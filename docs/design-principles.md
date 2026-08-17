@@ -1,0 +1,348 @@
+# Design principles
+
+Input to the PRD. Every principle below was **earned from a specific incident**
+while building the reference widget, and each carries the incident with it — a
+principle you can't trace to a thing that went wrong is a preference, and it will
+be argued about forever. Where something is still open, it says so.
+
+The test for each of these is not "is it true" but "does it hold across forty
+widgets". The reference widget is one. Several principles are marked as
+provisional for exactly that reason.
+
+---
+
+## 1 · State
+
+### 1.1 Parameters are the only state of record
+
+The URL, the controls, and the shareable link all track one object. Interaction
+state — an animation in flight, a hover, a selection — lives separately and
+**never writes back into parameters**.
+
+> *Earned:* the first animation ramped a parameter by mutating it. An animation
+> interrupted by a resize left the URL claiming one thing and the figure showing
+> another, and a mid-flight frame read as a legitimate answer — "of 1 means",
+> observed SD "—". A screenshot of it looked like a bug in the statistics.
+
+### 1.2 All state lives in the URL
+
+Not in a store, not in a component. Three things follow, and they are the reason
+the architecture is worth anything:
+
+- the Python helper is a query-string builder, ~200 lines, no kernel protocol
+- **"Copy link" makes the instructor an author** — tune the figure by hand until
+  it makes the point, copy, paste into a notebook. Nobody hand-writes parameters
+- the book and the notebook embed the same widget at different states
+
+### 1.3 Everything is seeded
+
+Same URL, same picture, in March and in September. "Everyone look at the third
+bar" works. Changing the seed becomes a deliberate teaching move — *is this
+pattern real, or is it noise?* — instead of an accident.
+
+### 1.4 `compute()` is pure and runs on parameter change only, never per frame
+
+Animation is a progressive **reveal of already-computed data**, not a simulation
+running live.
+
+> *Earned:* recomputing 2000 samples per frame was unusable. But the deeper
+> payoff was accidental: because the data is computed up front, Play lands
+> *exactly* on the picture the seed promises rather than somewhere near it.
+
+Corollary: `compute()` being pure and seeded is what will make this testable.
+No test harness exists yet; that is the cheapest thing on the backlog.
+
+---
+
+## 2 · The figure as an argument
+
+### 2.1 Don't open on the answer
+
+A widget with a result the student should reach **starts empty**. They build it.
+
+To publish a *finished* figure — a recap slide, two end states side by side —
+expose a parameter for it (`?shown=400`), never a special case in core. That keeps
+the authored state in the URL and therefore shareable.
+
+> *Earned twice.* First: the widget opened on a completed 400-sample histogram,
+> which gave away the punchline before the student had done anything. Second: the
+> authored `shown` was being re-applied on *every* parameter change, so switching
+> population handed you a fresh spoiled figure. **Authored state describes how a
+> figure arrives, not a property it keeps** — once the reader touches a control
+> they are exploring, and exploring must be spoiler-free.
+
+### 2.2 Show the mechanism, not the result
+
+A finished histogram of sample means looks exactly like a histogram of data, and
+it is not one. The step students miss is that **every bar is a pile of averages**,
+each summarising n observations that no longer appear anywhere on screen.
+
+So the animation draws n observations at their sampled values, collapses them
+visibly into their mean, and drops that single number into the pile. The collapse
+is the whole point; the histogram is the by-product.
+
+### 2.3 Show a countable thing while the count is small
+
+One dot per observation while they can be counted; bars once they can't, with a
+crossfade. **A single arrival must never be a two-pixel bar.**
+
+> *Earned:* fixing the density axis to the finished picture — which is right for
+> the endgame — made the first six arrivals invisible, defeating the entire
+> purpose of animating the mechanism.
+
+This also applies to *static* figures: small counts get a dot plot, large counts
+get a histogram. Same rule, no special case for animation.
+
+### 2.4 A claim waits until there is something to claim about
+
+The normal curve appears only once there are enough means to justify drawing it.
+A smooth curve over six dots is a lie told with a spline.
+
+But the **smoothed density of what you have so far** appears early — at four
+samples — because watching it lurch with every new sample *is* the lesson. Its
+instability is honest information about how little six observations tell you.
+
+The distinction: an *empirical* summary can be shown as soon as it exists, with
+its noise visible. A *theoretical claim* has a threshold.
+
+### 2.5 Fix the frame, not the data
+
+An axis rescaled every frame hides the convergence that is the point. Ratchet it
+upward, never downward, in nice steps.
+
+> *Earned:* a per-frame axis made the bars appear to stay the same height while
+> the numbers changed underneath — the exact opposite of the intended reading.
+> Separately, a coarse 1/2/5 ladder wasted half the panel at a peak of 50.
+
+### 2.6 Include the case that fails
+
+"Heavy-tailed" exists because convergence there is visibly slow. A demo where
+every population snaps to normal at n = 5 teaches that the CLT is magic, and the
+student has learned a false rule ("n = 30 is enough") that we then have to undo.
+
+### 2.7 Adjacency is the argument
+
+Put each prediction next to its observation:
+
+```
+population μ, σ  →  observed mean of the means      (should land on μ)
+predicted σ/√n   →  observed SD of the means        (should land on it)
+```
+
+Two adjacent pairs. Nothing needs to say "compare these".
+
+### 2.8 Numbers track the partial state
+
+While the picture builds, the readout reports what has actually been collected —
+`of 37 means`. Students watch the observed SD converge on the predicted SE
+instead of being shown the agreement as a finished fact.
+
+---
+
+## 3 · Controls and layout
+
+### 3.1 Reading order is the instruction
+
+```
+title & question → setup → drive buttons → figure → legend → numbers → utilities
+```
+
+Setup first, so you choose what you are sampling from before sampling from it.
+Drive buttons directly above the figure, so the control is beside the thing it
+controls. Numbers last. Utilities quiet, at the bottom.
+
+This is [PhET's implicit scaffolding][phet]: guide through layout, affordances,
+and sequencing rather than instructions, and keep the learner's agency. Costs
+nothing to get right and nothing to maintain.
+
+### 3.2 Data changes and display changes are different events
+
+A parameter marked `display: true` changes only how state is *drawn*. Those
+**keep the student's work**; data changes start over.
+
+> *Earned:* toggling "show normal" wiped out thirty samples the student had
+> collected. A checkbox that demolishes the figure punishes exactly the
+> comparison the checkbox exists to enable.
+
+Some display changes still alter derived state — rescaling an axis changes the
+binning — so the animation supplies a `rebuild` that re-derives everything
+downstream from the part that is genuinely invariant. For the CLT widget that is
+**one number**: how many samples have been drawn.
+
+### 3.3 Choose a control by what the options mean, not how many there are
+
+| shape | when |
+|---|---|
+| slider with tick labels | the options form a **magnitude** — left-to-right carries meaning |
+| segmented buttons | a few **alternative readings**, all worth seeing at rest |
+| dropdown | the list is too long for either |
+
+Same data — a string key from a fixed list — in three shapes.
+
+**A dropdown hides that a choice exists**, which is the wrong default for
+something whose job is to be explored. Tick labels under a slider are mandatory
+for the same reason: a bare slider shows a position and hides the positions.
+
+### 3.4 Same interaction loop → same size
+
+Draw one, Play, and Reset are pressed interchangeably, so they are the same size.
+Emphasis comes from weight and ink; separation from a gap. **Never from geometry** —
+a smaller Reset reads as a different *class* of control rather than a quieter
+member of the same one.
+
+### 3.5 Every control must carry an idea
+
+Save PNG and a bin-by-bin table are opt-in and off by default. Every extra
+control is one more thing to rule out before the concept gets attention, and the
+applet literature is blunt about it: [less guidance produced more engagement][phet].
+
+**Open:** the reference widget has eight controls. That is rich for a lecture demo
+and busy for a book figure. A cap ("one idea, at most N controls, seed always
+last") would keep forty widgets coherent but means cutting things. Unresolved.
+
+---
+
+## 4 · Pacing
+
+### 4.1 Pacing is chosen, not automatic
+
+Play runs at a speed the user sets and continues to the target count. Past a
+threshold the per-sample choreography switches off and only the arrivals show —
+but that is a **declared property of the chosen speed**, not something the
+animation decides about itself mid-run.
+
+> *Earned:* Play originally accelerated on its own. This is precisely what
+> [Mayer's segmenting principle][segmenting] warns against — people learn better
+> from user-paced segments than a continuous unit, and the effect is strongest
+> when "the material is complex, the presentation is fast-paced, and the learner
+> is inexperienced". An auto-accelerating animation takes the pacing decision
+> away from the only person who can see how fast the room is following.
+
+### 4.2 Stepping must stay responsive
+
+A second click on "Draw one" mid-step **fast-forwards the sample in flight** and
+starts the next, rather than being swallowed.
+
+> *Earned:* the button disabled itself for the 1.5 s its own animation ran. Rapid
+> clicking produced 2 samples from 14 clicks — and repeated clicking is the
+> primary affordance.
+
+### 4.3 Motion should read as the thing it depicts
+
+A mean *falling into place* accelerates downward. Sideways motion, where two
+panels have different scales, eases out early so the path arcs over and drops in.
+
+> *Earned:* four candidate paths mocked up side by side with dots at equal time
+> intervals so pacing was visible, not just shape. A linear diagonal read as a
+> slide; an elbow made the corner an event that stole attention from the landing;
+> a Bézier with lift implied upward motion the data does not have.
+
+Transient cues are cleared when motion stops — a frozen half-faded highlight
+reads as a *marked* bar rather than a recent arrival.
+
+---
+
+## 5 · Process
+
+### 5.1 Mock up before implementing
+
+Two comparison pages (`widgets/_lab/`) each changed a decision that would
+otherwise have been argued about or built wrong. Both took under an hour. Keep
+them: they are the record of *why*, which is the thing that gets lost.
+
+### 5.2 Quantify the trade-off instead of arguing it
+
+A continuous zoom slider was appealing until the numbers landed:
+
+| n | 2 | 5 | 10 | 30 | 100 |
+|---|---|---|---|---|---|
+| available zoom travel | **1.1×** | **1.8×** | 2.5× | 4.4× | 8.0× |
+
+A dead control at exactly the sample sizes where the lesson starts. That table
+ended the discussion in one line; taste would not have.
+
+### 5.3 Encode invariants in the data shape
+
+Not in review, not in a comment.
+
+- populations declare a **`halfWidth`, not a `domain`**, so every plotting window
+  is μ-centred by construction and an off-centre one is unrepresentable. That is
+  what lets a single rule carry μ across stacked panels
+- discrete populations declare **`[value, probability]` masses**, not a binned
+  array. The binned form silently parked the coin flip's second spike at x = 2,
+  off the panel, for several iterations
+
+### 5.4 Verify by assertion, not by screenshot
+
+Screenshots caught real problems and also produced three phantom ones (stray
+automation input moved sliders mid-capture). What actually settled things:
+asserting all populations are μ-centred, that masses sum to 1 and agree with the
+declared mean, that buttons measure 36 px, that display toggles preserve the
+sample count while data changes reset it.
+
+**Screenshots for judgement — is this legible, is this pleasing. Assertions for
+facts.** Never the reverse.
+
+### 5.5 Make the dev loop deterministic
+
+`scripts/serve.mjs` exists to send `Cache-Control: no-store`.
+
+> *Earned:* a fix appeared not to work. The browser was serving a cached
+> `widget.js` while the corrected file sat on disk — `python -m http.server` sends
+> no cache headers and browsers cache ES modules hard. **That failure mode looks
+> exactly like a bug in your own change.** It would have hit students on the
+> `use_local()` path too, silently serving stale widgets after every update.
+
+---
+
+## 6 · Known costs
+
+Stated so the PRD can decide rather than discover.
+
+**Canvas is not screen-readable.** Chosen for one code path across forty
+animating figures. The readout tiles are the accessible reading of every figure —
+that is why they are mandatory, not decorative. Dropping the table view removed
+bin-level access for screen readers; the summary statistics remain.
+
+**GitHub Pages sends `max-age=600`.** Students can get a stale widget for up to
+ten minutes after a deploy. A proper fix is content-hashed filenames, which needs
+a bundler and would end the no-build property. Probably worth it eventually; not
+yet.
+
+**`HEIGHTS` in the Python helper mirrors `manifest.json` by hand.** Notebooks
+need an explicit iframe height because we cannot rely on installing a
+`postMessage` listener in the notebook page (the book can, and does). Should be
+generated at build time.
+
+**Dead space for skewed populations.** μ-centring puts the exponential on
+`[-2.2, 4.2]` with nothing below zero — about a third of the panel. Accepted
+because it also puts μ visibly right of the mode, which is the thing about skewed
+distributions students most need to see. Revisit if it grates.
+
+**Widget count: 1.** The pipeline was half a day. A good widget is 3–8 hours
+including the pedagogical thinking, and a course-sized collection is 20–40 of
+them. **The content is the project**; everything above exists to make widget #20
+cost a fraction of widget #1.
+
+---
+
+## 7 · Open questions for the PRD
+
+1. **Control budget.** Is there a cap? Eight is too many for a book figure and
+   about right for a lecture demo. Do book embeds get a reduced control set — and
+   if so, is that a parameter or a separate build?
+2. **How much prose lives inside the widget?** The subtitle and the chapter
+   currently say overlapping things. One should be thin. A bare-figure widget
+   narrated entirely by its host is a real alternative and changes widget height
+   substantially.
+3. **Licensing.** Public Pages means public content. CC-BY for prose and figures,
+   MIT for code, is the obvious default — worth fixing before it spreads rather
+   than after.
+4. **Print fallback.** HTML-only was chosen, so no widget currently needs a
+   static figure. Every widget can export a PNG (opt-in, off) which keeps the door
+   open. Confirm this stays out of scope.
+5. **The catalogue.** Which 20–40 concepts earn a widget, and in what order? This
+   is the question the rest of the PRD is really about; nothing above answers it.
+
+[segmenting]: https://www.cambridge.org/core/books/abs/multimedia-learning/segmenting-principle/37240877DDA0362355ADB39936027982
+[phet]: https://phet.colorado.edu/en/research
