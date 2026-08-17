@@ -6,6 +6,17 @@
    Answers: why does anything go normal? Because a bell curve is what you get from
    adding up independent little pushes, and nothing more exotic than that.
 
+   THE AXIS IS A DEVIATION, NOT A COUNT. Each row nudges the ball one step, −1 or
+   +1, and the plotted value is the SUM of those nudges: zero in the middle, −1 −2
+   −3 to the left, +1 +2 +3 to the right. That is deliberate and it is what makes
+   this widget the start of the arc rather than a probability curiosity — the
+   picture the student ends up with is *how far a total of many small independent
+   errors strays from zero*, which is the shape every later widget reuses.
+
+   A consequence worth not hiding: after an even number of rows only even totals
+   are reachable, after an odd number only odd ones. The bins sit two apart for
+   exactly that reason. A ball cannot be one step from centre after twelve steps.
+
    Its job is to be a PREREQUISITE. It targets no documented misconception; it
    exists so that the central limit theorem is a thing the student has watched
    happen rather than a rule they were handed. (The catalogue's earning rule was
@@ -33,7 +44,7 @@
    ========================================================================= */
 
 import {
-  defineWidget, fmt, makePlot, niceTicks, normalPdf, samplePdf,
+  defineWidget, fmt, makePlot, niceTicks, spanningRule,
   createPile, DOT_R,
 } from "../core/index.js";
 
@@ -104,9 +115,9 @@ defineWidget({
   slug: "galton-board",
   title: "Where the bell curve comes from",
   subtitle:
-    "A ball meets a row of pegs and goes left or right, over and over. Its final " +
-    "column is just a count of how many times it went right. Drop enough balls and " +
-    "the pile is a bell curve — that is all a bell curve is.",
+    "Each row of pegs nudges the ball one step left or right. Where it lands is the " +
+    "sum of those independent nudges, so the pile shows how far many small random " +
+    "errors, added together, stray from zero. That is all a bell curve is.",
   height: 520,
 
   params: {
@@ -157,23 +168,30 @@ defineWidget({
         right += goRight;
         if (keep) keep[r] = goRight;
       }
-      landings[b] = right;
+      // Net deviation from centre: rights minus lefts.
+      landings[b] = 2 * right - rows;
       if (keep) paths.push(keep);
     }
 
-    // One bin per outcome 0..rows. Integer bins, so lo sits half a step left.
+    /* One bin per reachable total. Reachable totals are -rows, -rows+2, … +rows —
+       two apart, because a step is ±1 and parity is fixed by the number of rows.
+       Bin width 2 makes the bars tile continuously with centres on those totals. */
     const bins = rows + 1;
     const pmf = [];
     for (let k = 0; k <= rows; k += 1) pmf.push(binomPmf(rows, k, lean));
 
     return {
       landings, paths, bins,
-      lo: -0.5,
-      width: 1,
-      domain: [-0.5, rows + 0.5],
-      mean: rows * lean,
-      sd: Math.sqrt(rows * lean * (1 - lean)),
+      lo: -(rows + 1),
+      width: 2,
+      domain: [-(rows + 1), rows + 1],
+      // A step is +1 with probability p and −1 otherwise, so the total has
+      // mean n(2p − 1) and variance 4np(1 − p).
+      mean: rows * (2 * lean - 1),
+      sd: 2 * Math.sqrt(rows * lean * (1 - lean)),
       pmf,
+      // pmf[k] is the probability of the total 2k − rows.
+      totalFor: (k) => 2 * k - rows,
       pmfPeak: Math.max(...pmf),
     };
   },
@@ -310,6 +328,17 @@ defineWidget({
 
     const pa = makePlot({ ctx, colors, rect: top, xDomain: state.domain, yDomain: [0, rows] });
 
+    /* One rule at zero for the whole figure — the value a ball would land on if
+       every nudge cancelled. It is the point of the deviation framing: the pile is
+       symmetric about no-error, and when Lean is off 0.5 you watch the pile drift
+       off this line, which is what bias looks like. */
+    spanningRule(ctx, colors, {
+      x: pa.sx(0),
+      y0: top.y,
+      y1: bottom.y + bottom.h,
+      label: "0",
+    });
+
     pa.caption(
       inAir === 1
         ? `${rows} rows of pegs · ball ${total + 1} is at row ${Math.min(Math.floor(anim.flight[0].fall) + 1, rows)}`
@@ -319,9 +348,10 @@ defineWidget({
     );
 
     /* -- the peg field -------------------------------------------------- *
-     * A ball that has cleared r rows having gone right k times sits at
-     * x = k + (rows - r)/2, which centres the triangle and lands it on integer
-     * columns at the bottom. Pegs are drawn at every reachable position.     */
+     * In deviation units a ball that has cleared r rows having gone right k times
+     * sits at 2k − r. So the lattice is every reachable total at every depth, and
+     * the ball's horizontal position IS its running deviation — the board and the
+     * histogram below are literally the same axis.                            */
     const yOf = (r) => pa.sy(rows - r);
     ctx.save();
     ctx.fillStyle = colors.ink3;
@@ -329,7 +359,7 @@ defineWidget({
     for (let r = 0; r < rows; r += 1) {
       for (let k = 0; k <= r; k += 1) {
         ctx.beginPath();
-        ctx.arc(pa.sx(k + (rows - r) / 2), yOf(r), 2, 0, Math.PI * 2);
+        ctx.arc(pa.sx(2 * k - r), yOf(r), 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -346,10 +376,10 @@ defineWidget({
 
     pb.caption(
       total === 0
-        ? "Where they land — nothing dropped yet"
+        ? "Total deviation from centre — nothing dropped yet"
         : anim.done
-          ? `Where they land — ${total} ball${total === 1 ? "" : "s"}, ${rows} rows`
-          : `Where they land — ${total} of ${params.balls} balls`
+          ? `Total deviation from centre — ${total} ball${total === 1 ? "" : "s"}, ${rows} nudges each`
+          : `Total deviation from centre — ${total} of ${params.balls} balls`
     );
 
     const ticks = niceTicks(0, f.yMax, f.yMax <= 6 ? f.yMax : 4);
@@ -362,17 +392,23 @@ defineWidget({
     // what the pile is converging to, which keeps "the pile goes binomial" and
     // "the binomial looks normal" as two separate ideas.
     if (params.exact && f.barMix > 0) {
-      const pts = state.pmf.map((p, k) => [k, p * total]);
+      const pts = state.pmf.map((p, k) => [state.totalFor(k), p * total]);
       pb.curve(pts, { stroke: colors.theory, width: 2, opacity: f.barMix });
-      for (const [k, y] of pts) {
-        if (y > f.yMax * 0.02) pb.dot(k, y, { fill: colors.theory, r: 2.5 });
+      for (const [x, y] of pts) {
+        if (y > f.yMax * 0.02) pb.dot(x, y, { fill: colors.theory, r: 2.5 });
       }
     }
 
     pb.axisY({ ticks, label: "balls" });
+    // Symmetric, even-numbered ticks that always include 0 — the axis has to read
+    // as a deviation scale, so zero must be a labelled tick and not an inference.
+    const tickStep = Math.max(2, 2 * Math.ceil(rows / 6));
+    const xTicks = [];
+    for (let v = -Math.floor(rows / tickStep) * tickStep; v <= rows; v += tickStep) xTicks.push(v);
     pb.axisX({
-      ticks: rows <= 16 ? Array.from({ length: rows + 1 }, (_, k) => k) : undefined,
-      label: "steps right  (the column it ended in)",
+      ticks: xTicks,
+      format: (v) => (v > 0 ? `+${v}` : String(v)),
+      label: "total deviation  (each row is one step: −1 left, +1 right)",
     });
   },
 
@@ -389,13 +425,19 @@ defineWidget({
   summary({ params, state, anim }) {
     const total = anim.pile.shown;
     if (total === 0) {
-      return `A Galton board with ${params.rows} rows of pegs. Nothing dropped yet — press Drop one.`;
+      return (
+        `A Galton board with ${params.rows} rows of pegs, each nudging a ball one step ` +
+        `left or right. The chart below plots the total deviation from centre, zero in ` +
+        `the middle. Nothing dropped yet — press Drop one.`
+      );
     }
-    const peak = anim.pile.counts.indexOf(Math.max(...anim.pile.counts));
+    const peak = state.totalFor(anim.pile.counts.indexOf(Math.max(...anim.pile.counts)));
     return (
-      `A Galton board with ${params.rows} rows of pegs and a ${fmt(params.lean, 2)} chance ` +
-      `of going right at each. ${total} ball${total === 1 ? "" : "s"} dropped. The tallest ` +
-      `column is ${peak} steps right, and the pile ${total < 20 ? "is still sparse" : "tapers away on both sides, close to the binomial"}.`
+      `${params.rows} nudges per ball, each going right with probability ${fmt(params.lean, 2)}. ` +
+      `${total} ball${total === 1 ? "" : "s"} dropped. Deviations run from ${-params.rows} to ` +
+      `+${params.rows}; the tallest column is at ${peak > 0 ? "+" : ""}${peak}, and the pile ` +
+      `${total < 20 ? "is still sparse" : "tapers away symmetrically, close to the binomial"}. ` +
+      `Mean deviation ${fmt(anim.pile.mean, 2)}, against ${fmt(state.mean, 2)} expected.`
     );
   },
 });

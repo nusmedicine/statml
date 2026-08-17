@@ -4,11 +4,12 @@
     {
       "slug": "galton-board",
       "title": "Where the bell curve comes from",
-      "blurb": "A ball goes left or right at every row of pegs; its column is a count of the rights. Drop enough and the pile is a bell curve — that is all a bell curve is.",
+      "blurb": "Each row of pegs nudges a ball one step left or right; where it lands is the sum of those nudges. Drop enough and you see how far many small random errors, added together, stray from zero.",
       "course": "PHM5003",
       "topics": [
         "probability",
-        "random walk"
+        "random walk",
+        "error"
       ],
       "arc": 1,
       "height": 1000,
