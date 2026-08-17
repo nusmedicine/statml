@@ -153,11 +153,17 @@ speculatively.
 npm run check     # 7 invariant assertions; also runs inside npm run build
 ```
 
-### Before and after any refactor
+### When you touch `widgets/core/`
 
-Open <http://localhost:8000/widgets/_lab/fingerprint.html>. It runs on load. All
-states should say MATCH before you start and MATCH after you finish. That is how the
-`accumulator` extraction was proven invisible — five CLT states pixel-identical.
+Open `/widgets/_lab/fingerprint.html` on the dev server. It runs on load. All
+states should say MATCH before you start and MATCH after you finish. That is how
+the `accumulator` extraction was proven invisible, and how the `binsFor` move and
+the lead-button addition were each shown not to disturb `clt`.
+
+**Only core changes need the full suite.** A change confined to one widget's
+`main.js` cannot reach another widget; rebaseline that widget's own states and
+move on. And testing the widget you are actually building stays manual — no hash
+tells you whether a caption is honest or a figure is legible from the back row.
 
 It holds **two kinds of state**, and the difference is the most important thing in
 this file:

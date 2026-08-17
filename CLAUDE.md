@@ -65,9 +65,16 @@ sliders mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per
 
 - `npm run check` asserts the invariants that are cheap to state in code.
 - `widgets/_lab/fingerprint.html` hashes each widget's canvas against a stored
-  baseline. **Run it before and after any refactor.** Pixel identity is the only
-  honest proof that a refactor changed nothing; the accumulator extraction was
-  verified this way.
+  baseline. **Run the full suite when you touch `widgets/core/`** — that is the
+  only kind of change that can reach a widget you are not looking at, and it is
+  where "this cannot have affected anything" keeps turning out to be wrong.
+
+**Testing the widget you are building is manual, and should be.** Legibility,
+whether a caption is honest, whether a control carries an idea — no hash catches
+those. The fingerprint does the other job: proving the widgets you are *not*
+looking at still render identically after a shared change. A change confined to
+one `widgets/<slug>/main.js` cannot reach another widget, so it only needs its
+own states rebaselined.
 
 It holds **two kinds of state**, and the distinction is load-bearing:
 

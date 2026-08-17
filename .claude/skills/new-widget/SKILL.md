@@ -182,8 +182,12 @@ npm run dev      # NOT python -m http.server; this one sends no-store
 npm run check    # invariants
 ```
 
-Then `http://localhost:8000/widgets/_lab/fingerprint.html`, which hashes each
-widget's canvas against a baseline. Run before and after any refactor.
+Then `/widgets/_lab/fingerprint.html`, which hashes each widget's canvas against a
+baseline. **Run the full suite when you touch `widgets/core/`** — that is the only
+change that can reach a widget you are not looking at. A change confined to one
+widget's `main.js` only needs that widget's own states rebaselined, and testing
+the widget you are building stays manual: no hash tells you whether a caption is
+honest or a figure reads from the back row.
 
 It holds **two kinds of state**:
 
