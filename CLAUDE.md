@@ -15,7 +15,7 @@ before proposing either back.
 
 | file | why |
 |---|---|
-| [docs/prd.md](docs/prd.md) | What the project is, who it serves, what is out of scope. Read it before proposing scope — §10 lists non-goals so they can be pointed at rather than re-argued. |
+| [docs/prd.md](docs/prd.md) | What the project is, who it serves, what is out of scope. Read it before proposing scope — §11 lists non-goals so they can be pointed at rather than re-argued. |
 | [docs/design-principles.md](docs/design-principles.md) | The rules, each with the incident that earned it. **Not optional** — most of them exist because the obvious approach failed. |
 | [docs/catalogue.md](docs/catalogue.md) | What gets built next and why. The statistics arc is an agreed sequence, not a backlog to reorder. |
 | [README.md](README.md) | Layout, how to write a widget, deployment. |
@@ -46,9 +46,13 @@ change. This has already cost one debugging session.
 4. **Widgets start empty.** No widget opens on its own answer. To publish a
    finished figure use `?shown=N`, which applies on first render only.
 5. **Never hardcode a colour, size or font.** Everything comes from
-   `widgets/core/tokens.css`, and widgets reference the *semantic* roles
-   (`--c-empirical`, `--c-theory`, `--c-smoothed`, `--c-highlight`,
-   `--c-reference`) rather than the numbered series slots.
+   `widgets/core/tokens.css`, and widgets reference the *semantic* roles rather
+   than the numbered series slots: `--c-empirical` (what we observed or
+   simulated), `--c-theory` (the curve the pile is checked against),
+   `--c-smoothed`, `--c-highlight` (moving right now), `--c-reference` (a true
+   parameter), `--c-group-a` / `--c-group-b` (two arms of a comparison), and
+   `--c-extreme` (past a threshold — what a p-value counts). Needing a role that
+   does not exist is a signal to add one, not to reach for `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.
 7. **Zero runtime dependencies, no build step for widgets.** `package.json` has no
@@ -101,17 +105,23 @@ commit.
 the other way. The escape hatch: a placeholder `"px": "0"` satisfies `check`, so
 states can be written early and the expensive part deferred.
 
-It holds **two kinds of state**, and the distinction is load-bearing:
+It holds **three kinds of state**, and the distinction is load-bearing:
 
 | kind | how | sees |
 |---|---|---|
 | **settled** | `?…&shown=N` — figure fully built, nothing moving | the finished figure |
 | **driven** | `drive: { click, frames, dt }` — harness supplies the frame clock | anything drawn mid-motion |
+| **interrupted** | `drive: { before: [{ click, frames }], … }` | a state one action leaves another in |
 
 A suite of settled states alone is **no test of the animation at all**. That gap
 let a coordinate-system change put every falling ball six columns off-centre while
 all eight settled states still matched. `check.mjs` now fails any widget that
 declares an `animation` without at least one driven state.
+
+`before` exists because **three separate shipped bugs were mid-animation states**,
+and the last needed *two* actions to reach: a step left in flight when a
+non-choreographing speed took over froze a whole panel. Drive buttons are found
+by `data-key`, never by position — see principle 5.7.
 
 If a fingerprint state legitimately changes, regenerate the baseline **in the same
 commit** as the change, so the diff records that the rendering moved. Before

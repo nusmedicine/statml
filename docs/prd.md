@@ -131,7 +131,7 @@ about embedding is this repo's problem.
 | P8 | Never hardcodes a colour, size or font; references semantic token roles | tokens.css |
 | P9 | All randomness comes from the seeded `rng` passed to `compute` | §1.3 |
 | P10 | Legible projected | §3 |
-| P11 | Readout tiles are mandatory — they are the accessible reading of the figure | §10 |
+| P11 | Readout tiles are mandatory — they are the accessible reading of the figure | §11 |
 | P12 | Carries its own identity: title, question, subtitle. Self-explanatory, not self-teaching | §3 |
 | P13 | Works both in a ~900 px iframe and full-screen in its own tab | §4 |
 

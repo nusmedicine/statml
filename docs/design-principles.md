@@ -407,7 +407,7 @@ cost a fraction of widget #1.
 
 ## 7 · Open questions for the PRD
 
-**All five are now answered in [prd.md](prd.md) §8.** Kept here because the
+**All five are now answered in [prd.md](prd.md) §9.** Kept here because the
 question is worth seeing next to the principle that raised it — but do not
 re-litigate them from this list. In short: no control cap and no book mode; widget
 prose stays thin but self-explanatory; CC-BY-4.0 prose and MIT code; print
