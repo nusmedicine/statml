@@ -4,7 +4,10 @@ Interactive widgets for teaching statistics and machine learning, plus the book
 that embeds them and a Python helper that drops them into a live JupyterLab
 notebook.
 
-**Phase 0** — the pipeline, end to end, with one reference widget.
+Two widgets shipped, of a six-widget statistics arc. See
+[docs/catalogue.md](docs/catalogue.md) for what is planned and why,
+[docs/design-principles.md](docs/design-principles.md) for the rules, and
+[HANDOVER.md](HANDOVER.md) for the next task.
 
 ## Run it now
 
@@ -15,8 +18,9 @@ npm run dev
 Then open:
 
 - <http://localhost:8000/widgets/> — the widget gallery
-- <http://localhost:8000/widgets/clt/> — the reference widget
-- <http://localhost:8000/widgets/_lab/> — design comparisons
+- <http://localhost:8000/widgets/galton-board/> — arc 1: where the bell curve comes from
+- <http://localhost:8000/widgets/clt/> — arc 2: the sampling distribution of the mean
+- <http://localhost:8000/widgets/_lab/> — design comparisons and the fingerprint harness
 
 There is no install step and no build step. Widgets are plain ES modules with
 relative imports.
@@ -52,20 +56,26 @@ looks exactly like a bug in your change. The same trap catches students on the
 widgets/
   core/            the scaffold — everything a widget does not have to write
     tokens.css     DESIGN TOKENS. The single source of visual style.
-    widget.js      defineWidget() — the contract
+    widget.js      defineWidget() — the contract and its five invariants
+    accumulator.js createPile() — a distribution built one value at a time
     canvas.js      plot primitives + fixed mark specs
     controls.js    controls generated from the parameter spec
-    params.js      URL <-> typed values
+    params.js      URL <-> typed values; the param types and what each is for
     rng.js         seeded PRNG
     stats.js       stats helpers + the shared population registry
     env.js         theme, token bridge, iframe height reporting
-  clt/             the reference widget: index.html + main.js
-  manifest.json    the widget catalogue
+  galton-board/    arc 1: index.html + main.js
+  clt/             arc 2: the reference widget
+  _lab/            design comparisons + fingerprint harness; NOT deployed
+  manifest.json    registry of BUILT widgets (the plan lives in docs/catalogue.md)
   index.html       gallery
 
 book/              Quarto book; {{< widget slug k=v >}} shortcode
 python/            statml_widgets — show(), show_url(), url()
 notebooks/         example teaching notebook
+docs/              design principles and the widget catalogue
+scripts/serve.mjs  dev server; sends no-store (see above)
+scripts/check.mjs  invariant assertions; runs inside npm run build
 scripts/build.mjs  assembles _site/ (book at /, widgets at /w/)
 ```
 
@@ -94,8 +104,10 @@ testable and the presentation stays swappable.
 
 ### Animation
 
-Add an `animation` block and core provides `Draw one` / `Run` (a play/pause
-toggle), the frame loop, and reduced-motion handling:
+Add an `animation` block and core provides the drive buttons, the frame loop, and
+reduced-motion handling. Name the verbs with `stepLabel` / `runLabel` — a Galton
+board drops balls, it does not draw samples, and generic verbs make a widget feel
+like a demo of a framework:
 
 ```js
 animation: {
