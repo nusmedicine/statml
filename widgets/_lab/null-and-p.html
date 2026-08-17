@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the null and the p-value</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1040px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 76ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h2 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  .cell p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-2); min-height: 3em; }
+  canvas { display: block; width: 100%; height: auto; }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap; }
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-2); margin-top: var(--sp-2);
+           border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  .tiles b { display: block; font-size: var(--fs-lg); font-weight: 600; }
+  .tiles span.l { display: block; color: var(--ink-2); font-size: var(--fs-xs); }
+  .tiles span.n { display: block; color: var(--ink-3); font-size: var(--fs-xs); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The null, the tails, and what <em>p</em> actually counts</h1>
+  <p class="note">
+    Shuffle the labels, recompute the difference, drop it into the pile. That
+    pile <strong>is</strong> the null — the differences you would get if the
+    labels meant nothing. <em>p</em> is the share of it at least as far from zero
+    as the difference you actually saw.
+  </p>
+  <p class="note">
+    The idea under test: <strong>a dot that lands in a tail stays lit.</strong>
+    Arrivals are highlighted while falling anyway; one that lands beyond the line
+    keeps that colour, one that lands in the middle settles to the ordinary fill.
+    So <em>p</em> is “count the lit ones” rather than an abstract tail area —
+    and the lit count is exactly the numerator in the tile below. Uses the real
+    <code>createPile</code> and <code>makePlot</code> from core.
+  </p>
+  <p class="note">
+    Two studies, same machinery, <strong>same shuffles</strong>. Left has a real
+    effect; right has <strong>none at all</strong> — its true effect is exactly
+    zero. Press <em>New study</em> a few times and watch the right-hand
+    <em>p</em> bounce around: every one of those is a study where the null is
+    <strong>true</strong>. Roughly one in twenty will still land under 0.05.
+  </p>
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="shuffle">Shuffle once</button>
+    <button class="w-btn" id="play">Play to 400</button>
+    <button class="w-btn" id="study">New study</button>
+    <button class="w-btn" id="reset">Reset shuffles</button>
+    <span class="w-flash" id="flash"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <ol class="judge">
+    <li><strong>Can you actually count the lit dots while the count is small?</strong>
+      That is the claim. If they are not countable at 10–30 shuffles, <em>p</em>
+      is back to being an area and the idea has failed.</li>
+    <li><strong>Do the two rules read as “this far out, either way”?</strong>
+      Two-sided means the mirrored line matters as much as the observed one.</li>
+    <li><strong>Is the shaded tail doing any work the lit dots are not?</strong>
+      If not it is furniture and should go.</li>
+    <li><strong>Does the right-hand cell make the false positive land?</strong>
+      Press <em>New study</em> until it does. That is the whole case against
+      “p is the probability the null is true”.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng, createPile, makePlot, niceTicks, readTokens, binsFor } from "../core/index.js";
+
+function shuffled(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng.next() * (i + 1));
+    const t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
+  return a;
+}
+
+const N_PER = 9;
+const REPS = 400;
+const W = 460;
+const H = 250;
+
+const STUDIES = [
+  { key: "effect", name: "A real effect", delta: 1.15, sub: "The groups genuinely differ. The observed difference should sit out in a tail, and few shuffles should reach it." },
+  { key: "null", name: "No effect at all", delta: 0, sub: "The true effect is exactly zero. Any difference here is chance, and p is measuring nothing but luck." },
+];
+
+let studySeed = 3;
+
+/** Build one study and its whole null distribution, up front and seeded. */
+function buildStudy(delta, seed) {
+  const rng = makeRng(seed);
+  const values = [];
+  for (let i = 0; i < N_PER; i += 1) values.push(rng.normal(0, 1));
+  for (let i = 0; i < N_PER; i += 1) values.push(rng.normal(delta, 1));
+  const labels = values.map((_, i) => (i < N_PER ? 0 : 1));
+
+  const gapOf = (ls) => {
+    let sA = 0; let sB = 0;
+    for (let i = 0; i < values.length; i += 1) (ls[i] ? (sB += values[i]) : (sA += values[i]));
+    return sB / N_PER - sA / N_PER;
+  };
+  const observed = gapOf(labels);
+
+  const shuffleRng = makeRng(seed * 7 + 1);
+  const diffs = new Array(REPS);
+  let ls = labels;
+  for (let r = 0; r < REPS; r += 1) {
+    ls = shuffled(ls, shuffleRng);
+    diffs[r] = gapOf(ls);
+  }
+
+  // Centred on ZERO, because under H0 the null distribution of the difference
+  // is centred on zero by construction — the same "centre on the truth, not the
+  // estimate" rule the bootstrap window follows. Widened only if an extreme
+  // observed difference would otherwise fall off the panel.
+  let sd = 0;
+  for (const d of diffs) sd += d * d;
+  sd = Math.sqrt(sd / diffs.length);
+  const hw = Math.max(3.6 * sd, Math.abs(observed) * 1.18);
+
+  return { values, labels, observed, diffs, domain: [-hw, hw], bins: binsFor(REPS) };
+}
+
+const grid = document.getElementById("grid");
+const views = STUDIES.map((s) => {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  const h2 = document.createElement("h2");
+  h2.textContent = s.name;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = s.sub;
+  const canvas = document.createElement("canvas");
+  const tiles = document.createElement("div");
+  tiles.className = "tiles";
+  cell.append(h2, sub, canvas, tiles);
+  grid.appendChild(cell);
+  return { spec: s, canvas, tiles, study: null, pile: null, tail: null, shown: 0 };
+});
+
+function resetStudy(v) {
+  v.study = buildStudy(v.spec.delta, studySeed);
+  const { domain, bins } = v.study;
+  v.pile = createPile({ bins, lo: domain[0], width: (domain[1] - domain[0]) / bins });
+  // Counted per bin as values arrive, so the LIT dots are exactly p's numerator.
+  // Deriving the tail from bin centres instead would quantise the boundary and
+  // let a student count a different number than the tile reports.
+  v.tail = new Array(bins).fill(0);
+  v.shown = 0;
+}
+
+function pushOne(v) {
+  if (v.shown >= REPS) return false;
+  const d = v.study.diffs[v.shown];
+  const bin = v.pile.push(d);
+  if (bin >= 0 && Math.abs(d) >= Math.abs(v.study.observed) - 1e-12) v.tail[bin] += 1;
+  v.shown += 1;
+  return true;
+}
+
+function extremeCount(v) {
+  let k = 0;
+  for (let i = 0; i < v.shown; i += 1) {
+    if (Math.abs(v.study.diffs[i]) >= Math.abs(v.study.observed) - 1e-12) k += 1;
+  }
+  return k;
+}
+
+function drawCell(v) {
+  const c = readTokens();
+  const canvas = v.canvas;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || W;
+  const scale = cssW / W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(H * scale * dpr);
+  canvas.style.height = `${H * scale}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const { observed, domain } = v.study;
+  const f = v.pile.frame();
+  const rect = { x: 46, y: 26, w: W - 46 - 16, h: H - 26 - 42 };
+  const plot = makePlot({ ctx, colors: c, rect, xDomain: domain, yDomain: [0, f.yMax] });
+
+  plot.caption(
+    v.shown === 0
+      ? "Null distribution — nothing shuffled yet"
+      : `Null distribution — ${v.shown} shuffle${v.shown === 1 ? "" : "s"}`
+  );
+
+  const ticks = niceTicks(0, f.yMax, f.yMax <= 6 ? f.yMax : 4);
+  plot.grid(ticks);
+
+  /* Both tails: at least as far from zero as what was actually seen. Note how
+     much of the panel this covers — the tails run from the observed line out to
+     the edge, which at a typical effect is roughly half the width. At 0.10 it
+     read as a wash over the whole figure and competed with the data, so this is
+     the "is the band doing any work the lit dots are not?" question made
+     concrete. Kept faint here so the rest of the page stays judgeable. */
+  const a = Math.abs(observed);
+  plot.band(domain[0], -a, { fill: c.highlight, opacity: 0.05 });
+  plot.band(a, domain[1], { fill: c.highlight, opacity: 0.05 });
+
+  // The pile, then the tail bins overdrawn so the lit dots sit on top.
+  v.pile.draw(plot, f, { colors: c, smooth: false });
+  const opts = { lo: v.pile.lo, width: v.pile.width, fill: c.highlight };
+  if (f.barMix > 0) plot.bars(v.tail, { ...opts, opacity: f.barMix });
+  if (f.barMix < 1) plot.dotColumns(v.tail, { ...opts, opacity: 1 - f.barMix, maxR: 6 });
+
+  /* The observed difference and its mirror. Empirical, because it is the thing
+     we measured; the pile it is compared against is simulated.
+
+     ONLY THE OBSERVED LINE IS LABELLED. Both were labelled first, and when the
+     observed difference is small the two lines sit close together and their
+     labels collide into an unreadable smear — which is precisely the case the
+     no-effect study puts on screen every time. The mirror needs no label: the
+     symmetric shading and the lit dots either side already say "this far out,
+     either way". */
+  plot.vline(-observed, { stroke: c.empirical, width: 1 });
+  plot.vline(observed, {
+    stroke: c.empirical,
+    width: 2,
+    label: `observed ${observed.toFixed(2)} · and as far the other way`,
+    align: observed > 0 ? "left" : "right",
+  });
+
+  plot.axisY({ ticks, label: "count" });
+  plot.axisX({ label: "difference in means, after shuffling" });
+
+  // Tiles.
+  const k = extremeCount(v);
+  const p = v.shown ? k / v.shown : NaN;
+  const padj = (k + 1) / (v.shown + 1);
+  v.tiles.innerHTML = "";
+  const tile = (label, value, note) => {
+    const d = document.createElement("div");
+    d.innerHTML = `<span class="l"></span><b></b><span class="n"></span>`;
+    d.querySelector(".l").textContent = label;
+    d.querySelector("b").textContent = value;
+    d.querySelector(".n").textContent = note;
+    v.tiles.appendChild(d);
+  };
+  tile("As extreme or more", v.shown ? `${k} of ${v.shown}` : "—", "the lit dots");
+  tile(
+    "p-value",
+    v.shown ? p.toFixed(3) : "—",
+    v.shown ? `= ${k}/${v.shown} · adjusted ${padj.toFixed(3)}` : ""
+  );
+}
+
+function drawAll() { for (const v of views) drawCell(v); }
+
+/* --- driving ------------------------------------------------------------ */
+
+const PER_MS = 26;
+let raf = null;
+let playing = false;
+let last = 0;
+let acc = 0;
+
+function frame(ts) {
+  const dt = last ? Math.min(64, ts - last) : 16;
+  last = ts;
+  acc += dt;
+  let moved = false;
+  while (acc >= PER_MS) {
+    acc -= PER_MS;
+    for (const v of views) if (pushOne(v)) moved = true;
+  }
+  for (const v of views) v.pile.tick(dt);
+  drawAll();
+  if (playing && moved) { raf = requestAnimationFrame(frame); return; }
+  playing = false;
+  document.getElementById("play").textContent = "Play to 400";
+  document.getElementById("flash").textContent = "";
+  raf = null;
+  last = 0;
+}
+
+document.getElementById("shuffle").addEventListener("click", () => {
+  for (const v of views) pushOne(v);
+  drawAll();
+});
+
+document.getElementById("play").addEventListener("click", (e) => {
+  playing = !playing;
+  e.target.textContent = playing ? "Pause" : "Play to 400";
+  document.getElementById("flash").textContent = playing ? "shuffling" : "";
+  if (playing && raf === null) { last = 0; acc = 0; raf = requestAnimationFrame(frame); }
+});
+
+document.getElementById("study").addEventListener("click", () => {
+  studySeed += 1;
+  playing = false;
+  document.getElementById("play").textContent = "Play to 400";
+  for (const v of views) resetStudy(v);
+  drawAll();
+  document.getElementById("flash").textContent = `study seed ${studySeed}`;
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  playing = false;
+  document.getElementById("play").textContent = "Play to 400";
+  for (const v of views) resetStudy(v);
+  drawAll();
+});
+
+for (const v of views) resetStudy(v);
+drawAll();
+new ResizeObserver(drawAll).observe(grid);
+</script>
+</body>
+</html>
