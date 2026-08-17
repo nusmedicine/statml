@@ -96,6 +96,16 @@ export function defineWidget(config) {
     compute = () => ({}),
     draw,
     readout = null,
+    /**
+     * A one-sentence description of what the figure currently shows, recomputed
+     * on every paint and used as the figure's accessible label.
+     *
+     * Canvas is not screen-readable, so a widget owes a reading of its figure in
+     * text. Stat tiles are usually that reading — but a deliberately qualitative
+     * widget should not be forced to invent numbers it does not want to show, and
+     * `summary` is the alternative. A widget should provide at least one of the two.
+     */
+    summary = null,
     table = null,
     animation = null,
     png = false, // opt-in: most teaching widgets do not need an export button
@@ -108,7 +118,13 @@ export function defineWidget(config) {
 
   const values = resolveParams(spec, new URLSearchParams(location.search));
   const host = document.querySelector(mount);
-  const dom = buildShell(host, { title, subtitle, legend, hasTable: Boolean(table) });
+  const dom = buildShell(host, {
+    title,
+    subtitle,
+    legend,
+    hasReadout: Boolean(readout),
+    hasTable: Boolean(table),
+  });
 
   const surface = createCanvas(dom.figure, height);
   let colors = readTokens();
@@ -138,6 +154,9 @@ export function defineWidget(config) {
 
     if (readout) {
       renderReadout(dom.readout, readout({ params: { ...values }, state, anim, colors }));
+    }
+    if (summary) {
+      dom.figure.setAttribute("aria-label", summary({ params: { ...values }, state, anim }));
     }
     if (table && tableOpen) {
       renderTable(dom.tableWrap, table({ params: { ...values }, state, anim }));
@@ -419,7 +438,7 @@ export function defineWidget(config) {
  * top to bottom in the order they need to think about it, with no instruction
  * telling them to.
  */
-function buildShell(host, { title, subtitle, legend, hasTable }) {
+function buildShell(host, { title, subtitle, legend, hasReadout, hasTable }) {
   host.className = "w-root";
   host.innerHTML = "";
 
@@ -457,9 +476,11 @@ function buildShell(host, { title, subtitle, legend, hasTable }) {
     host.appendChild(ul);
   }
 
+  // Only created when the widget has numbers to show: an empty readout is a
+  // bordered gap that reads as something failing to load.
   const readout = el("div", "w-readout");
   readout.setAttribute("aria-live", "polite");
-  host.appendChild(readout);
+  if (hasReadout) host.appendChild(readout);
 
   const tableWrap = el("div", "w-table-wrap");
   tableWrap.hidden = true;

@@ -49,8 +49,8 @@ DEFAULT_BASE = "https://REPLACE-ME.github.io/book-statml/w"
 # Natural iframe heights, mirroring widgets/manifest.json. Keep in sync; Phase 1
 # should generate this from the manifest at build time.
 HEIGHTS: dict[str, int] = {
-    "galton-board": 1040,
-    "clt": 1090,
+    "galton-board": 1000,
+    "clt": 1040,
 }
 FALLBACK_HEIGHT = 680
 

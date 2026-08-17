@@ -289,8 +289,36 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   border-radius: var(--radius);
 }
 
-.w-field.is-bool > label { justify-content: flex-start; }
-.w-field input[type="checkbox"] { accent-color: var(--focus); }
+/* Adjacent checkboxes share one grid cell and one row: they are usually one
+   decision with several switches, and a lone checkbox in a slider-width column
+   scatters them across lines. */
+.w-bools {
+  /* Spans every column so the switches stay on ONE line. In a single
+     slider-width cell two labels already wrap, which puts them back on separate
+     rows — the thing grouping them was meant to fix. */
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-5);
+}
+
+.w-bools > label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.w-field input[type="checkbox"] {
+  accent-color: var(--focus);
+  flex: none;
+  margin: 0;
+}
 
 /* Tick labels under a `choice` slider. A slider without them shows a position
    and hides what the positions are — worse than the dropdown it replaced. */

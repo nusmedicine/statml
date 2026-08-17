@@ -11,7 +11,7 @@
         "random walk"
       ],
       "arc": 1,
-      "height": 1040,
+      "height": 1000,
       "status": "shipped"
     },
     {
@@ -24,7 +24,7 @@
         "inference"
       ],
       "arc": 2,
-      "height": 1090,
+      "height": 1040,
       "status": "shipped"
     }
   ]

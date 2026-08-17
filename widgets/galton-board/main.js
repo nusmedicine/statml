@@ -87,7 +87,7 @@ defineWidget({
     "A ball meets a row of pegs and goes left or right, over and over. Its final " +
     "column is just a count of how many times it went right. Drop enough balls and " +
     "the pile is a bell curve — that is all a bell curve is.",
-  height: 460,
+  height: 520,
 
   params: {
     rows: { type: "int", label: "Rows of pegs", min: 2, max: 30, default: 12 },
@@ -165,8 +165,11 @@ defineWidget({
     init({ params, state, fromScratch }) {
       const anim = {
         pile: makePile(params, state),
-        row: 0, //     how many rows the falling ball has cleared
-        rowT: 0, //    0..1 within the current row; 0 with row 0 means idle
+        // Rows fallen, as one continuous quantity rather than a row index plus a
+        // fraction. A frame long enough to span two rows must advance two rows —
+        // with a per-row index the descent was frame-rate-bound, so at speed the
+        // ball never reached the bottom before the next one started.
+        fall: 0,
         sinceCommit: 0,
         streamFrom: -1,
         streamT: 0,
@@ -185,6 +188,11 @@ defineWidget({
       const dropped = Math.min(anim.pile.shown, params.balls);
       anim.pile = makePile(params, state);
       anim.pile.rebuild(state.landings.slice(0, dropped));
+      // The ball in flight keeps falling. No display parameter here alters the
+      // binning or the paths — bins are rows + 1, and with the seed and rows fixed
+      // the first k paths are the same k paths — so discarding it would lose a
+      // ball the student was watching. Only drop it if its path is gone.
+      if (anim.pile.shown >= state.paths.length) anim.fall = 0;
       anim.done = anim.pile.shown >= params.balls;
     },
 
@@ -198,21 +206,25 @@ defineWidget({
       const choreo = hasPath && (stepping || speed.choreo);
 
       if (choreo) {
-        const budget = stepping ? STEP_ROW_MS : speed.rowMs;
-        anim.rowT += dt / Math.max(1, budget);
-        if (anim.rowT < 1) return true;
+        // Continuous, so a long frame advances several rows instead of one.
+        anim.fall += dt / Math.max(1, stepping ? STEP_ROW_MS : speed.rowMs);
+        if (anim.fall < params.rows) return true;
 
-        anim.rowT = 0.001; // stay non-zero: a zero rowT at row 0 means idle
-        anim.row += 1;
-        if (anim.row < params.rows) return true;
-
-        // Cleared the last row: the ball lands in the column it finished above.
+        // Reached the bottom: the ball lands in the column it finished above.
         anim.pile.push(state.landings[anim.pile.shown]);
-        anim.row = 0;
-        anim.rowT = 0;
+        anim.fall = 0;
         if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
         if (stepping) return halt(anim); // one ball per click
         return true;
+      }
+
+      /* A ball part-way down must not simply be abandoned. Switching to a
+         non-choreographed speed used to leave its half-drawn path frozen over the
+         board while other balls streamed into the pile. Land it first. */
+      if (anim.fall > 0) {
+        anim.pile.push(state.landings[anim.pile.shown]);
+        anim.fall = 0;
+        if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
       }
 
       if (speed.ms > 0) {
@@ -242,15 +254,17 @@ defineWidget({
     const { rows } = params;
     const pile = anim.pile;
     const total = pile.shown;
-    const falling = (anim.row > 0 || anim.rowT > 0) && total < params.balls;
+    const falling = anim.fall > 0 && total < params.balls;
 
     const ML = 50;
     const MR = 14;
     const plotW = w - ML - MR;
 
     // The peg field gets a fixed slice; the pile takes what is left. Both use the
-    // same x-domain, so a ball lands in the column it finished above.
-    const pegH = Math.min(180, Math.max(80, rows * 11));
+    // same x-domain, so a ball lands in the column it finished above. The board
+    // wants real vertical room — a squashed triangle makes the descent read as a
+    // sideways drift rather than a fall.
+    const pegH = Math.min(250, Math.max(110, rows * 15));
     const top = { x: ML, y: 24, w: plotW, h: pegH };
     const lowerY = top.y + top.h + 46;
     const bottom = { x: ML, y: lowerY, w: plotW, h: Math.max(90, h - lowerY - 40) };
@@ -259,7 +273,7 @@ defineWidget({
 
     pa.caption(
       falling
-        ? `${rows} rows of pegs · ball ${total + 1} is at row ${Math.min(anim.row + 1, rows)}`
+        ? `${rows} rows of pegs · ball ${total + 1} is at row ${Math.min(Math.floor(anim.fall) + 1, rows)}`
         : `${rows} rows of pegs · each one an independent left-or-right step`
     );
 
@@ -319,20 +333,27 @@ defineWidget({
     });
   },
 
-  /* --- readout ---------------------------------------------------------- *
-   * Prediction beside observation, twice. The predicted values are the binomial's
-   * own mean and SD, which is what makes this widget's truth exact rather than
-   * asymptotic.                                                              */
+  /* --- no readout ------------------------------------------------------- *
+   * Deliberately no stat tiles. This widget's job is qualitative: a bell shape
+   * emerging from accumulated randomness. Printing predicted-versus-observed mean
+   * and SD invites the student to check arithmetic instead of watching a shape
+   * appear, and the quantitative argument belongs to `clt`, where σ/√n is the
+   * actual claim.
+   *
+   * Canvas is not screen-readable, so the reading of the figure is carried in
+   * text by `summary` instead — same obligation, no numbers on screen.        */
 
-  readout({ params, state, anim }) {
-    const pile = anim.pile;
-    const of = `of ${pile.shown} ball${pile.shown === 1 ? "" : "s"}`;
-    return [
-      { label: "Predicted mean", value: fmt(state.mean, 2), note: `rows × lean` },
-      { label: "Observed mean", value: fmt(pile.mean, 2), note: of },
-      { label: "Predicted SD", value: fmt(state.sd, 2), note: "√(n p (1−p))" },
-      { label: "Observed SD", value: fmt(pile.sd, 2), note: of },
-    ];
+  summary({ params, state, anim }) {
+    const total = anim.pile.shown;
+    if (total === 0) {
+      return `A Galton board with ${params.rows} rows of pegs. Nothing dropped yet — press Drop one.`;
+    }
+    const peak = anim.pile.counts.indexOf(Math.max(...anim.pile.counts));
+    return (
+      `A Galton board with ${params.rows} rows of pegs and a ${fmt(params.lean, 2)} chance ` +
+      `of going right at each. ${total} ball${total === 1 ? "" : "s"} dropped. The tallest ` +
+      `column is ${peak} steps right, and the pile ${total < 20 ? "is still sparse" : "tapers away on both sides, close to the binomial"}.`
+    );
   },
 });
 
@@ -372,9 +393,10 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
     return [pa.sx(k + (rows - r) / 2), yOf(r)];
   };
 
-  const t = clamp01(anim.rowT);
-  const from = at(anim.row);
-  const to = at(Math.min(anim.row + 1, rows));
+  const row = Math.min(Math.floor(anim.fall), rows - 1);
+  const t = clamp01(anim.fall - row);
+  const from = at(row);
+  const to = at(row + 1);
   // Gravity: a fall accelerates. Sideways drift eases out, as in `clt`'s drop.
   const x = from[0] + (to[0] - from[0]) * (1 - Math.pow(1 - t, 3));
   const y = from[1] + (to[1] - from[1]) * (t * t);
@@ -388,7 +410,7 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
   ctx.beginPath();
   const start = at(0);
   ctx.moveTo(start[0], start[1]);
-  for (let r = 1; r <= anim.row; r += 1) {
+  for (let r = 1; r <= row; r += 1) {
     const p = at(r);
     ctx.lineTo(p[0], p[1]);
   }
@@ -397,8 +419,8 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
   ctx.globalAlpha = 1;
 
   // Which way it just went, named — the step is the idea, not the position.
-  if (anim.row < rows) {
-    const wentRight = path[anim.row] === 1;
+  {
+    const wentRight = path[row] === 1;
     ctx.globalAlpha = clamp01(t * 2);
     ctx.fillStyle = colors.ink2;
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;

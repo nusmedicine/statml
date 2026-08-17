@@ -41,7 +41,7 @@ local function widget(args, kwargs, meta)
     '<div class="statml-widget">' ..
       '<iframe src="%s" title="%s widget" loading="lazy" ' ..
       'data-statml="%s" allow="clipboard-write" ' ..
-      'style="width:100%%;height:1090px;border:1px solid rgba(128,128,128,0.28);' ..
+      'style="width:100%%;height:1040px;border:1px solid rgba(128,128,128,0.28);' ..
       'border-radius:6px;display:block;color-scheme:light dark;"></iframe>' ..
       '<p class="statml-widget-fallback">' ..
       '<a href="%s" target="_blank" rel="noopener">Open this figure in a new tab</a>' ..

@@ -6,8 +6,8 @@
     { "slug": "clt", "state": "?theme=light&dist=bimodal&n=8&shown=45", "px": "00d7da4b" },
     { "slug": "clt", "state": "?theme=light&dist=bernoulli&n=5&shown=400", "px": "131ab991" },
     { "slug": "clt", "state": "?theme=light&dist=pareto&n=8&view=zoom&smooth=0&shown=200", "px": "92a227b5" },
-    { "slug": "galton-board", "state": "?theme=light&rows=12&shown=300", "px": "e758a445" },
-    { "slug": "galton-board", "state": "?theme=light&rows=4&shown=25", "px": "9852e710" },
-    { "slug": "galton-board", "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0", "px": "45ac17c9" }
+    { "slug": "galton-board", "state": "?theme=light&rows=12&shown=300", "px": "df56082e" },
+    { "slug": "galton-board", "state": "?theme=light&rows=4&shown=25", "px": "fd1fe081" },
+    { "slug": "galton-board", "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0", "px": "71d0b789" }
   ]
 }

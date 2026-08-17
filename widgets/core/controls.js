@@ -9,12 +9,59 @@
 
 import { optionEntries } from "./params.js";
 
+/**
+ * Group consecutive checkboxes into one cell.
+ *
+ * Checkboxes are short and the grid column is sized for a slider, so left to
+ * themselves they scatter across rows and a pair of related overlays ends up split
+ * between two lines. Adjacent bools are almost always one decision with several
+ * switches, so they share a cell and sit on one row.
+ */
+function toCells(spec) {
+  const cells = [];
+  let bools = null;
+  for (const entry of Object.entries(spec)) {
+    if (entry[1].hidden) continue;
+    if (entry[1].type === "bool") {
+      if (!bools) {
+        bools = { kind: "bools", fields: [] };
+        cells.push(bools);
+      }
+      bools.fields.push(entry);
+    } else {
+      bools = null;
+      cells.push({ kind: "field", entry });
+    }
+  }
+  return cells;
+}
+
 export function buildControls(host, spec, values, onChange) {
   host.innerHTML = "";
   const setters = {};
 
-  for (const [name, field] of Object.entries(spec)) {
-    if (field.hidden) continue;
+  for (const cell of toCells(spec)) {
+    if (cell.kind === "bools") {
+      const group = document.createElement("div");
+      group.className = "w-field w-bools";
+      for (const [name, field] of cell.fields) {
+        const id = `f-${name}`;
+        const label = document.createElement("label");
+        label.setAttribute("for", id);
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.id = id;
+        input.checked = Boolean(values[name]);
+        input.addEventListener("change", () => onChange(name, input.checked));
+        label.append(input, document.createTextNode(field.label ?? name));
+        group.appendChild(label);
+        setters[name] = (v) => { input.checked = Boolean(v); };
+      }
+      host.appendChild(group);
+      continue;
+    }
+
+    const [name, field] = cell.entry;
     const wrap = document.createElement("div");
     wrap.className = "w-field";
 
@@ -145,18 +192,8 @@ export function buildControls(host, spec, values, onChange) {
       mark(values[name]);
       wrap.appendChild(seg);
       setters[name] = mark;
-    } else if (field.type === "bool") {
-      wrap.className = "w-field is-bool";
-      const input = document.createElement("input");
-      input.type = "checkbox";
-      input.id = id;
-      input.checked = Boolean(values[name]);
-      input.addEventListener("change", () => onChange(name, input.checked));
-      label.insertBefore(input, label.firstChild);
-      label.style.gap = "8px";
-      wrap.appendChild(label);
-      setters[name] = (v) => { input.checked = Boolean(v); };
     }
+    // `bool` never reaches here — checkboxes are grouped by toCells() above.
 
     host.appendChild(wrap);
   }
