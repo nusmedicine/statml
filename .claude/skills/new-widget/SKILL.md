@@ -189,6 +189,13 @@ widget's `main.js` only needs that widget's own states rebaselined, and testing
 the widget you are building stays manual: no hash tells you whether a caption is
 honest or a figure reads from the back row.
 
+**Baseline LAST, after the human has seen it.** The determinism runs are the
+slowest thing in the loop, and a baseline recorded before the design is agreed
+gets thrown away — `bootstrap` was baselined three times over for exactly this.
+Build, check the numbers programmatically, run the suite once if core changed,
+then *show it and iterate*; record the baseline only when the design stops
+moving. A placeholder `"px": "0"` satisfies `npm run check` in the meantime.
+
 It holds **two kinds of state**:
 
 - **settled** — `?…&shown=N`, the figure fully built and nothing moving

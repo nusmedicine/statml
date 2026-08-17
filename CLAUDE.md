@@ -76,6 +76,31 @@ looking at still render identically after a shared change. A change confined to
 one `widgets/<slug>/main.js` cannot reach another widget, so it only needs its
 own states rebaselined.
 
+### Order of work, and why baselining comes last
+
+The harness does **two** jobs and they belong at different moments:
+
+| job | when | cost |
+|---|---|---|
+| did I break the **other** widgets? | only if `widgets/core/` changed — run once, baseline nothing | one run |
+| record a baseline for the **new** widget | only once the design is agreed | 3 determinism runs + a verify pass |
+
+So: build → cheap checks (console, programmatic reads of the numbers) → **if core
+changed, one suite run to confirm the existing states still MATCH** → *show the
+human and iterate* → and only then add states, prove determinism, baseline,
+commit.
+
+> *Earned:* `bootstrap` was baselined three times over. Seven states recorded,
+> then the difference mode was cut and all seven were rebaselined, then it became
+> two-stage and they were rebaselined again. **A baseline recorded before the
+> design is settled is thrown away**, and the determinism runs are the slowest
+> thing in the loop. Reviewing a figure is what changes it; hashing it is what
+> freezes it, and freezing before review is backwards.
+
+`npm run check` fails a manifest widget with no fingerprint states, which pushes
+the other way. The escape hatch: a placeholder `"px": "0"` satisfies `check`, so
+states can be written early and the expensive part deferred.
+
 It holds **two kinds of state**, and the distinction is load-bearing:
 
 | kind | how | sees |
