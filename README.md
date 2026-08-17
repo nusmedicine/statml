@@ -4,7 +4,7 @@ Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
 state in the URL.
 
-Two widgets shipped, of a six-widget statistics arc. See
+Three widgets shipped, of a six-widget statistics arc. See
 [docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and
@@ -21,6 +21,7 @@ Then open:
 - <http://localhost:8000/widgets/> — the widget gallery
 - <http://localhost:8000/widgets/galton-board/> — arc 1: where the bell curve comes from
 - <http://localhost:8000/widgets/clt/> — arc 2: the sampling distribution of the mean
+- <http://localhost:8000/widgets/bootstrap/> — arc 3: uncertainty from one sample
 - <http://localhost:8000/widgets/_lab/> — design comparisons and the fingerprint harness
 
 There is no install step and no build step. Widgets are plain ES modules with
@@ -68,6 +69,7 @@ widgets/
     env.js         theme, token bridge, iframe height reporting
   galton-board/    arc 1: index.html + main.js
   clt/             arc 2: the reference widget
+  bootstrap/       arc 3: resampling one sample, two statistics
   _lab/            design comparisons + fingerprint harness; NOT deployed
   manifest.json    registry of BUILT widgets; the ONLY place a height lives
   index.html       gallery
@@ -274,9 +276,11 @@ The notebook lessons are the host. Tune a widget until it makes your point, pres
 **Copy link**, and paste the URL into a markdown cell. Two mechanisms:
 
 ``` markdown
-<!-- inline, if JupyterLab's sanitiser allows it — see below -->
+<!-- inline, if JupyterLab's sanitiser allows it — see below.
+     Take the height from the widget's entry in widgets/manifest.json;
+     they differ, and a short iframe clips the readout tiles. -->
 <iframe src="https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30"
-        width="100%" height="900" style="border:0"></iframe>
+        width="100%" height="1040" style="border:0"></iframe>
 
 <!-- always works -->
 [Explore the sampling distribution](https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30)
@@ -315,4 +319,4 @@ Before the first deploy:
 - No unit-test harness. `compute()` is pure and seeded, which is what would make
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
-- Widget count: 2, of a six-widget arc.
+- Widget count: 3, of a six-widget arc.

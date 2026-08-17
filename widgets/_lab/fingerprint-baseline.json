@@ -1,5 +1,5 @@
 {
-  "$comment": "Canvas hashes at fixed, fully-built states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Every state must pass shown= so nothing is animating; an animating figure hashes differently every run. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
+  "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all — that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
   "states": [
     {
       "slug": "clt",
@@ -95,6 +95,68 @@
         "dt": 32
       },
       "px": "27b8cac2"
+    },
+    {
+      "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution, same width.",
+      "slug": "bootstrap",
+      "state": "?theme=light&shown=400",
+      "px": "c3c84b54"
+    },
+    {
+      "$note": "The second statistic: two groups, two rows, the true-effect rule.",
+      "slug": "bootstrap",
+      "state": "?theme=light&stat=diff&n=20&shown=400",
+      "px": "949d3940"
+    },
+    {
+      "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
+      "slug": "bootstrap",
+      "state": "?theme=light&n=6&smooth=0&truth=0&shown=25",
+      "px": "6b023a51"
+    },
+    {
+      "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
+      "slug": "bootstrap",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "9a1c6574"
+    },
+    {
+      "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar*.",
+      "slug": "bootstrap",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 28,
+        "dt": 32
+      },
+      "px": "2bbd3538"
+    },
+    {
+      "$note": "DRIVEN: two-group collapse — the gap between the group means, which is the statistic.",
+      "slug": "bootstrap",
+      "state": "?theme=light&stat=diff&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "2bd7e6cb"
+    },
+    {
+      "$note": "DRIVEN: two-group drop — the trail leaving the gap midpoint and crossing into the pile.",
+      "slug": "bootstrap",
+      "state": "?theme=light&stat=diff&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 46,
+        "dt": 32
+      },
+      "px": "98ad35e5"
     }
   ]
 }

@@ -27,6 +27,20 @@
       "arc": 2,
       "height": 1040,
       "status": "shipped"
+    },
+    {
+      "slug": "bootstrap",
+      "title": "Uncertainty from one sample",
+      "blurb": "You get one sample, never a population. Resample it with replacement — duplicates and all — and the spread of the resampled statistic lands almost exactly on the true sampling distribution you could never have observed.",
+      "course": "PHM5003",
+      "topics": [
+        "resampling",
+        "uncertainty",
+        "inference"
+      ],
+      "arc": 3,
+      "height": 1200,
+      "status": "shipped"
     }
   ]
 }

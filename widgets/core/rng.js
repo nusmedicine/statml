@@ -71,5 +71,25 @@ export function makeRng(seed = 1) {
     pick(arr) {
       return arr[Math.floor(next() * arr.length)];
     },
+
+    /**
+     * `len` draws with replacement from a collection of `len` items, returned as
+     * INDICES.
+     *
+     * Indices and not values, because the entire content of a bootstrap resample
+     * is *which* observations were picked: some appear twice, some not at all.
+     * That is the mechanism rather than a detail of it, and a list of values has
+     * already thrown away the identity the choreography needs in order to show a
+     * duplicate as a duplicate rather than as a second observation.
+     *
+     * A method on the generator rather than the free `resample(arr, rng)` the
+     * plan called for — it needs only a length, and every other draw in this file
+     * is a method on the seeded stream.
+     */
+    resample(len) {
+      const out = new Array(len);
+      for (let i = 0; i < len; i += 1) out[i] = Math.floor(next() * len);
+      return out;
+    },
   };
 }

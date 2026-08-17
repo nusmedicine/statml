@@ -39,14 +39,8 @@
 import {
   defineWidget, POPULATIONS, histogram, normalPdf, fmt,
   makePlot, samplePdf, niceTicks, spanningRule,
-  createPile, barMixFor, DOT_R, FLASH_MS,
+  createPile, barMixFor, binsFor, DOT_R, FLASH_MS,
 } from "../core/index.js";
-
-/* Bins scale with the number of samples: 40 fixed bins scatters twenty dots
-   across forty columns during the dot phase, and makes the finished histogram
-   ragged enough to undercut the shape claim. Derived from `reps` rather than from
-   the running count, so the binning never changes mid-animation. */
-const binsFor = (reps) => Math.max(12, Math.min(44, Math.round(1.4 * Math.sqrt(reps))));
 
 /* Pacing is CHOSEN, not automatic. An animation that speeds up on its own takes
    the pacing decision away from the person who can see how fast the room is

@@ -65,7 +65,7 @@ previous one raises, and each reuses the previous one's machinery.
 |---|---|---|---|---|---|
 | 1 | `galton-board` ✅ | Origin of the bell curve | *Why does anything go normal?* Accumulated independent increments — a random walk of ±1 nudges, plotted as total deviation from zero so the shape reads as an error distribution from the start | **Prerequisite for `clt`.** Without it the CLT is a rule to memorise. Also dislodges the assumption that bell-shaped is simply the default shape of data | inferred |
 | 2 | `clt` ✅ | Sampling distribution of the mean | *What happens if I average?* Means go normal with spread σ/√n, whatever the population | That a sampling distribution should look like the population, increasingly so as n grows — no distinction between a distribution of data and a distribution of a statistic | **documented** |
-| 3 | `bootstrap` | Resampling one sample | *But I only ever have one sample.* Resample it with replacement and the spread of the resampled statistic stands in for the sampling distribution | That knowing an estimate's uncertainty requires repeated samples from the population — which is exactly what widget 2 quietly assumed. Also that resampling "manufactures data" | reported |
+| 3 | `bootstrap` ✅ | Resampling one sample | *But I only ever have one sample.* Resample it with replacement and the spread of the resampled statistic stands in for the sampling distribution | That knowing an estimate's uncertainty requires repeated samples from the population — which is exactly what widget 2 quietly assumed. Also that resampling "manufactures data" | reported |
 | 4 | `confidence-interval` | Effect size and its uncertainty | *How big is the effect, and how sure am I?* An interval, read as a range of compatible effects | That there is a 95% chance the true value lies in *this* interval. A realised interval either contains it or does not; 95% describes the procedure across many studies | **documented** |
 | 5 | `permutation-test` | p-value by shuffling | *Could chance alone have produced what I saw?* Shuffle the group labels, rebuild the difference, count | That p is P(H₀ true), or that 1 − p is the probability the alternative holds. Persists among researchers and professionals in statistics and epidemiology, not only students | **documented** |
 | 6 | `multiple-testing` | Correction | *What if I do that twenty thousand times?* | That 50 hits at p < 0.05 out of 20,000 tests is a finding. The most consequential statistical error in omics work | **documented** |
@@ -91,18 +91,27 @@ resampling motor from #3, so the only new idea is *what gets shuffled*.
 
 ### Design notes to settle before building
 
-**#3 should bootstrap both a mean and a difference.** The statistic under study
+**#3 bootstraps both a mean and a difference — done.** The statistic under study
 changes at #4 — from "a mean" (widgets 2–3) to "a difference between two groups"
 (widgets 4–6), because effect size is the thing that has clinical meaning. That
-transition should happen *inside* widget 3, visibly, rather than silently between
-widgets. Same machinery, a switch of statistic.
+transition happens *inside* widget 3, on a `stat` control, rather than silently
+between widgets. Same machinery, a switch of statistic.
 
-**#3's killer view: bootstrap distribution against the truth.** Draw the observed
-sample from a seeded population, so the widget can show the true sampling
+**#3's killer view: bootstrap distribution against the truth — done.** The observed
+sample is drawn from a seeded population, so the widget shows the true sampling
 distribution *and* the bootstrap distribution on the same axis. The bootstrap
-distribution — which you can actually compute — sits almost on top of the one you
-can never see. That single overlay is the entire justification for the method, and
-it is only available to us because populations are seeded and reproducible.
+distribution — which you can actually compute — comes out nearly the same width as
+the one you can never see. That single overlay is the entire justification for the
+method, and it is only available to us because populations are seeded.
+
+**What building #3 added to that plan**, and #4 inherits: the two curves agree in
+*width* and disagree in *position*, because the bootstrap is centred on your
+estimate and not on the truth. So the plotting window is centred on the true value
+rather than on the estimate — centring it on the estimate would put the pile in
+the middle every time and hide the one thing the bootstrap cannot do. The readout
+is two pairs saying opposite things: estimate vs truth **disagree**, bootstrap SE
+vs true SE **agree**. A widget that only showed the agreement would teach that
+resampling recovers the answer. It recovers the uncertainty.
 
 **#4 needs two views, not one.** One study → one interval (from #3's bootstrap
 distribution). Many studies → coverage, which is the *documented* misconception
@@ -126,10 +135,18 @@ descending row by row turned out to have a wholly different shape, so abstractin
 over one example would have been a guess — the second consumer is what tells you
 where the seam belongs.
 
-**Still to do before widget #3:** a resampling engine in `core/rng.js` —
-`resample(arr, rng)` returning *indices* rather than values, so the choreography
-can highlight which observations were picked and show the duplicates that are the
-whole mechanism. `permute(labels, rng)` follows at widget #5, not before.
+**Done at widget #3:** `rng.resample(len)` in `core/rng.js`, returning *indices*
+rather than values so the choreography can highlight which observations were
+picked and show the duplicates that are the whole mechanism. A method on the
+seeded generator rather than the free `resample(arr, rng)` the plan called for —
+it needs only a length, and every other draw in that file is a method.
+
+Also `binsFor(total)` moved into `core/accumulator.js`, where the rest of the
+binning lives. `clt` and `bootstrap` had chosen it identically, which is the
+second consumer the rule above asks for. Verified pixel-identical on all thirteen
+existing fingerprint states.
+
+`permute(labels, rng)` follows at widget #5, not before.
 
 ---
 

@@ -8,10 +8,9 @@ without re-deriving anything.
 `widgets/core/` — most of its rules exist because the obvious approach was tried
 and failed, and each one carries the incident that earned it.
 
-**Last updated:** the PRD written ([docs/prd.md](docs/prd.md)) and both embedders
-deleted — the Quarto book and the Python helper. Widgets 1 and 2 of the statistics
-arc shipped; `core/accumulator.js` extracted; the fingerprint harness extended to
-mid-animation states.
+**Last updated:** widget 3 `bootstrap` shipped — the pivot of the arc. Earlier the
+same session: the PRD written ([docs/prd.md](docs/prd.md)) and both embedders
+deleted, the Quarto book and the Python helper.
 
 ---
 
@@ -24,6 +23,7 @@ npm run dev
 - <http://localhost:8000/widgets/> — gallery
 - <http://localhost:8000/widgets/galton-board/> — widget 1
 - <http://localhost:8000/widgets/clt/> — widget 2
+- <http://localhost:8000/widgets/bootstrap/> — widget 3
 - <http://localhost:8000/widgets/_lab/> — design lab and the fingerprint harness
 
 ### Shipped
@@ -32,9 +32,19 @@ npm run dev
 |---|---|---|
 | 1 | `galton-board` | Where the bell curve comes from. A ball takes a ±1 nudge at each row; the axis is **total deviation from zero**, so the pile reads as an error distribution from the outset. Exact binomial overlay. Lean shifts the pile off the zero rule, which is bias made visible. |
 | 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
+| 3 | `bootstrap` | You have **one** sample. Resample it with replacement — copies stack above the observations they came from, so duplicates and never-picked values are both visible — collapse them to a statistic, drop it into the pile. The true sampling distribution sits behind it: **same width, different place.** A `stat` control switches from a mean to a difference between two groups. |
 
-Both start empty, both animate step by step, both build their pile with
-`core/accumulator.js`.
+All three start empty, all three animate step by step, all three build their pile
+with `core/accumulator.js`.
+
+**Two things widget 3 settled that widget 4 inherits.** The plotting window is
+centred on the **true value**, not on the estimate — centring on the estimate
+would put the pile in the middle every time and hide that the bootstrap is
+centred on your estimate rather than on the truth. And the default seed is 3, not
+1, because at n = 12 from an exponential the observed s runs anywhere from 0.6σ
+to 2.0σ and seed 1 lands 56% too wide; seed 3 gets the SE within 2% **and** puts
+the estimate 1.3 SE off μ, so both lessons arrive together. The comment on the
+`seed` param carries the reasoning — don't tidy it back.
 
 ### What is NOT verified
 
@@ -51,60 +61,68 @@ with them the questions of whether they worked.
 
 ---
 
-## 2 · The next task: widget 3, `bootstrap`
+## 2 · The next task: widget 4, `confidence-interval`
 
 The arc is one continuous argument and the order is load-bearing:
 
-> increments → means → **one sample** → an interval → a null by shuffling → many nulls
+> increments → means → one sample → **an interval** → a null by shuffling → many nulls
 
-**Widget 3 is the pivot.** As built, `clt` is a fiction: it draws hundreds of
-samples from a population whose μ and σ are printed on screen, and nobody has ever
-been in that position. Widget 3 pays that debt — you have **one** sample, you
-resample it with replacement, and the spread of the resampled statistic stands in
-for the sampling distribution.
+**Widget 4 is where the arc gets its first *documented* misconception target.**
+Widgets 1–3 were about building the sampling distribution; this one is about
+reading it. `bootstrap` already computes the distribution an interval is cut
+from, so the new idea is only what you do with it.
 
-**Misconception targeted.** That knowing an estimate's uncertainty requires
-repeated samples from the population — which is exactly what widget 2 quietly
-assumed. Secondarily, that resampling "manufactures data".
+**Misconception targeted.** That there is a 95% chance the true value lies in
+*this* interval. A realised interval either contains the truth or it does not;
+the 95% describes **the procedure across many studies**, not the one interval in
+front of you. This is documented, not inferred — Greenland et al. 2016 enumerates
+it, and it persists among researchers, not only students.
 
 ### Design decisions already taken
 
-1. **Draw the observed sample from a seeded population**, so the widget can put the
-   true sampling distribution *and* the bootstrap distribution on one axis. The
-   bootstrap distribution — which you can actually compute — sits almost on top of
-   the one you can never see. **That overlay is the entire justification for the
-   method**, and it is only available because populations are seeded.
-2. **Bootstrap a mean, then a difference.** The statistic changes at widget 4 from
-   "a mean" to "a difference between two groups", because effect size is what has
-   clinical meaning. Make that switch happen *inside* widget 3, visibly, rather than
-   silently between widgets.
-3. Reuse `POPULATIONS` from `core/stats.js` so a named population behaves exactly as
-   it does in `clt`.
+1. **Two views, not one**, and the second is the whole point:
+   - **one study → one interval**, cut from widget 3's bootstrap distribution as
+     percentiles. This is the view that feels like an answer.
+   - **many studies → coverage.** Repeat the whole study many times, draw one
+     interval per study as a horizontal line, colour the ones that miss. About 5
+     in 100 miss, and *which* ones miss is not knowable from inside any single
+     study. **This is the documented misconception target**; the first view is
+     the setup for it.
+   - Both, with the second reachable from the first.
+2. **The statistic is a difference by default.** Widget 3 makes the mean →
+   difference switch on a `stat` control; widget 4 opens on the difference,
+   because effect size is what has clinical meaning.
+3. Reuse `POPULATIONS`, and keep the true value marked with `--c-reference` and
+   the checked-against curve in `--c-theory`, as widget 3 does.
 
-### Likely shape
+### What widget 3 hands it
 
-- **Three panels**: the population (faint — you are not supposed to have it), the
-  one observed sample (a rug or dot strip, the thing you actually have), and the
-  bootstrap pile.
-- **Choreography per resample**: highlight the n draws being picked *from the
-  observed sample*, with replacement, so **duplicates are visible** — that is the
-  mechanism, not a detail. Then collapse to the statistic and drop it into the pile.
-  Structurally parallel to `clt`'s draw → collapse → drop, deliberately: the student
-  should recognise the motion.
-- `core/accumulator.js` gives you the pile. What you write is the resampling and
-  the choreography.
+- `rng.resample(len)` — already there, returns indices.
+- `createPile` for the bootstrap distribution.
+- The window-centred-on-truth decision, which matters *more* here: the coverage
+  view is a set of intervals scattered around a fixed true value, and that rule
+  is what keeps the true value in one pixel column.
+- The two-pairs readout shape. For this widget the honest pair is **nominal 95%
+  vs realised coverage so far** — and it should track the partial count, so a
+  student watches it converge on 95 rather than being shown 95 as a fact.
 
-### Core work it needs first
+### Core work it may need
 
-Add to `core/rng.js`:
+Percentiles of a growing pile. `createPile` keeps binned counts, a running sum
+and sum of squares — **not** the values — so a percentile cannot be read off it
+exactly. Two options, and the choice is worth making deliberately rather than by
+default:
 
-```js
-resample(arr, rng)   // n draws with replacement; returns INDICES, not values
-```
+- have the widget keep its own sorted array of resampled statistics, and leave
+  the pile as the *drawing* of the distribution; or
+- add `quantile(p)` to `createPile`, interpolating within a bin.
 
-Indices, so the choreography can highlight *which* observations were picked and
-show the duplicates. `permute(labels, rng)` follows at widget 5, not before —
-do not add it speculatively.
+The first is honest and local; the second is shared but approximate, and a
+confidence interval read off an approximation is a bad thing to teach with. Lean
+to the first unless widget 6 also needs it.
+
+`permute(labels, rng)` follows at widget 5, not before — do not add it
+speculatively.
 
 ---
 

@@ -71,6 +71,22 @@ export function niceCeil(v) {
 }
 
 /**
+ * Bin count for a pile that will end up holding `total` values.
+ *
+ * Scaled with the total rather than fixed, because 40 fixed bins scatters twenty
+ * dots across forty columns during the dot phase and leaves the finished
+ * histogram ragged enough to undercut the shape claim it exists to make. Derive
+ * it from the TARGET count, never from the running one, so the binning cannot
+ * change underneath a half-built figure.
+ *
+ * Lives here rather than in a widget because `clt` and `bootstrap` were choosing
+ * it identically — the second consumer is what says where a seam belongs.
+ */
+export function binsFor(total) {
+  return Math.max(12, Math.min(44, Math.round(1.4 * Math.sqrt(total))));
+}
+
+/**
  * @param bins        number of equal-width bins
  * @param lo          left edge of the first bin
  * @param width       bin width
