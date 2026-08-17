@@ -11,8 +11,9 @@
   p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 76ch; font-size: var(--fs-sm); }
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
   .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell.out { opacity: 0.66; }
   .cell h2 { font-size: var(--fs-md); margin: 0; }
-  .cell p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); min-height: 4.5em; }
+  .cell p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); min-height: 5.5em; }
   canvas { display: block; width: 100%; height: auto; }
   .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); }
   ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
@@ -22,20 +23,30 @@
 </head>
 <body>
 <main class="lab">
-  <h1>Shuffling the labels — two candidates</h1>
+  <h1>Shuffling the labels — three candidates</h1>
   <p class="note">
     Widget 5 asks <em>could chance alone have produced what I saw?</em> Under the
     null the grouping is meaningless, so any relabelling of the same numbers is
-    equally likely. The animation has one job: make it undeniable that
-    <strong>the data never changes and only the labels move</strong> — which is
+    equally likely. The animation has one job: make that undeniable — which is
     also the exact opposite of the bootstrap, where the values move and the
     labels are irrelevant.
   </p>
   <p class="note">
-    Both cells run the <strong>same seeded data</strong> and the
-    <strong>same sequence of shuffles</strong>, in lockstep. The faint vertical
-    guides mark each observation's value, so you can check whether anything has
-    actually moved.
+    <strong>Prior art.</strong> The Rossman/Chance <em>Comparing Groups</em>
+    applet — the most-used tool in simulation-based inference teaching — does not
+    swap or recolour. It <strong>pools every observation together and re-deals
+    them</strong> into the groups. The pooling step is H₀ stated physically:
+    there is only one group, and the split is a fiction. It also matches the card
+    activity students often do by hand first, so it is an established convention
+    rather than a private notation. That is candidate C.
+  </p>
+  <p class="note">
+    All cells run the <strong>same seeded data</strong> and the <strong>same
+    sequence of shuffles</strong>, in lockstep. Faint vertical guides mark each
+    observation's value: <strong>if a dot ever leaves its guide, the data
+    moved</strong>, and the whole claim is that it never does. Note the box
+    labels — a permutation keeps the group <em>sizes</em> fixed, which is what
+    separates it from randomly relabelling each observation independently.
   </p>
   <div class="bar">
     <button class="w-btn w-btn--primary" id="shuffle">Shuffle once</button>
@@ -46,15 +57,16 @@
   <div class="grid" id="grid"></div>
 
   <ol class="judge">
-    <li><strong>Does A make “the values never move” obvious?</strong> That is the
-      whole claim. If it does not land here it will not land in a lecture.</li>
-    <li><strong>Does B accidentally read as the data changing?</strong> The dots
-      travel vertically. Watch whether your eye reports motion as “this
-      observation moved” rather than “this observation was relabelled”.</li>
-    <li><strong>Which makes the two group means and the gap easier to read?</strong>
-      The gap <em>is</em> the test statistic; it has to be legible every frame.</li>
-    <li><strong>Are the two group colours distinguishable at a glance, and from
-      the back of a room?</strong> See the flag below.</li>
+    <li><strong>Does the pooling step in C earn its extra second?</strong> It is
+      the only candidate that shows <em>why</em> relabelling is legitimate, but
+      it is also the slowest and the busiest.</li>
+    <li><strong>In B, can you tell a swap from a re-deal?</strong> When dots
+      cross directly between boxes, watch whether it reads as “these two traded
+      places” — which is not what a permutation does.</li>
+    <li><strong>Do the boxes help?</strong> They make the group sizes fixed and
+      visible. Or they add furniture to a figure that already has a lot.</li>
+    <li><strong>Does any dot appear to leave its value guide?</strong> If so the
+      candidate is lying about the mechanism and is out, however nice it looks.</li>
   </ol>
 
   <div class="flag">
@@ -91,6 +103,10 @@ function shuffled(arr, rng) {
   return a;
 }
 
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+const smooth = (t) => t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
+
 /* One fixed study: 9 controls and 9 treated, with a real effect, so the observed
    gap is visibly non-zero and a shuffled gap usually is not. */
 const rng = makeRng(11);
@@ -101,43 +117,67 @@ for (let i = 0; i < N_PER; i += 1) VALUES.push(rng.normal(1.15, 1));
 const OBSERVED = VALUES.map((_, i) => (i < N_PER ? 0 : 1));
 
 const shuffleRng = makeRng(4);
-const meanOf = (vals, labels, g) => {
+const meanOf = (labels, g) => {
   let s = 0;
   let k = 0;
-  for (let i = 0; i < vals.length; i += 1) if (labels[i] === g) { s += vals[i]; k += 1; }
+  for (let i = 0; i < VALUES.length; i += 1) if (labels[i] === g) { s += VALUES[i]; k += 1; }
   return k ? s / k : NaN;
 };
-const gapOf = (labels) => meanOf(VALUES, labels, 1) - meanOf(VALUES, labels, 0);
-const OBSERVED_GAP = gapOf(OBSERVED);
+const OBSERVED_GAP = meanOf(OBSERVED, 1) - meanOf(OBSERVED, 0);
 
 const W = 460;
-const H = 250;
-const PAD_L = 24;
-const PAD_R = 24;
+const H = 300;
+const PAD_L = 30;
+const PAD_R = 22;
 const DOMAIN = [-3.2, 4.4];
 const sx = (v) => PAD_L + ((v - DOMAIN[0]) / (DOMAIN[1] - DOMAIN[0])) * (W - PAD_L - PAD_R);
 
+// Three bands: box A, the transient pool, box B.
+const BOX_H = 40;
+const ROW = [92, 208]; // centres of box A and box B
+const POOL_Y = 150;
+const STAT_Y = 262;
+
 const CANDIDATES = [
   {
-    key: "colours",
-    name: "A · One row, colours move",
+    key: "pool",
+    name: "C · Boxes, pool and re-deal",
     blurb:
-      "Every observation sits at its value on one axis, for good. A shuffle " +
-      "crossfades the fills. Nothing is ever in motion, so there is nothing to " +
-      "misread as the data changing.",
-    rowsFor: () => [125],
-    // A dot never moves; it only changes which group it belongs to.
-    yOf: () => 125,
+      "Every observation lifts out of its box into a single pool, then is dealt " +
+      "back into a box — vertically only, so it never leaves its value. The " +
+      "pooling step is the null stated physically: there is only one group. " +
+      "This is what Rossman/Chance and the card activity do.",
+    boxes: true,
+    pool: true,
+    yAt: (g0, g1, t) =>
+      t < 0.55
+        ? lerp(ROW[g0], POOL_Y, smooth(clamp01(t / 0.45)))
+        : lerp(POOL_Y, ROW[g1], smooth(clamp01((t - 0.55) / 0.45))),
   },
   {
     key: "rows",
-    name: "B · Two rows, dots swap",
+    name: "B · Boxes, dots move straight across",
     blurb:
-      "Group A above, group B below, each observation at its value. A shuffle " +
-      "animates dots vertically into their new group. Matches how the data is " +
-      "actually structured — at the cost of visible movement.",
-    rowsFor: () => [96, 154],
-    yOf: (g) => (g === 0 ? 96 : 154),
+      "Same two boxes, but an observation travels directly from its old box to " +
+      "its new one. Half the motion and half the time of C. The risk is that a " +
+      "direct crossing reads as two observations trading places, which is not " +
+      "what a permutation does.",
+    boxes: true,
+    pool: false,
+    yAt: (g0, g1, t) => lerp(ROW[g0], ROW[g1], smooth(t)),
+  },
+  {
+    key: "colours",
+    name: "A · One row, colours crossfade — ruled out",
+    blurb:
+      "One axis, group shown by fill only. Nothing moves, so nothing can be " +
+      "misread as the data changing — but nothing shows the shuffling either. " +
+      "It reads as dancing colours, and the crossfade passes through a muddy " +
+      "blend where every dot belongs to neither group. Kept as the record of why.",
+    boxes: false,
+    pool: false,
+    out: true,
+    yAt: () => 150,
   },
 ];
 
@@ -145,7 +185,7 @@ const grid = document.getElementById("grid");
 const views = [];
 for (const cand of CANDIDATES) {
   const cell = document.createElement("div");
-  cell.className = "cell";
+  cell.className = cand.out ? "cell out" : "cell";
   const h2 = document.createElement("h2");
   h2.textContent = cand.name;
   const p = document.createElement("p");
@@ -161,15 +201,15 @@ function tokens() {
   const v = (n) => cs.getPropertyValue(n).trim();
   return {
     ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
-    grid: v("--grid"), axis: v("--axis"), surface: v("--surface-1"),
+    grid: v("--grid"), axis: v("--axis"), border: v("--border"),
+    surface: v("--surface-1"),
     // Borrowed directly, and flagged on the page: there is no semantic role for
     // "one arm of a comparison" yet.
     a: v("--series-1"), b: v("--series-2"),
-    reference: v("--c-reference"), font: v("--font"),
+    font: v("--font"),
   };
 }
 
-/* Transition state: labels crossfading / travelling from `from` to `to`. */
 let from = OBSERVED.slice();
 let to = OBSERVED.slice();
 let t = 1;
@@ -180,32 +220,26 @@ function nextShuffle() {
   t = 0;
 }
 
-function dot(ctx, x, y, r, fill, alpha, c) {
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function dot(ctx, c, x, y, fill, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.arc(x, y, 6, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.lineWidth = 2;
   ctx.strokeStyle = c.surface;
   ctx.stroke();
-  ctx.restore();
-}
-
-function meanTick(ctx, c, x, y, colour, label) {
-  ctx.save();
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 7);
-  ctx.lineTo(x, y + 7);
-  ctx.stroke();
-  ctx.fillStyle = c.ink3;
-  ctx.font = `600 11px ${c.font}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText(label, x, y + 9);
   ctx.restore();
 }
 
@@ -221,87 +255,116 @@ function drawCell({ cand, canvas }) {
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
-  const ease = t * t * (3 - 2 * t);
+  const e = smooth(t);
 
-  // Value guides: the honest check. If a dot ever leaves its guide, the data moved.
+  // Value guides: the honest check. If a dot leaves its guide, the data moved.
   ctx.save();
   ctx.strokeStyle = c.grid;
   ctx.lineWidth = 1;
   for (const v of VALUES) {
     const x = Math.round(sx(v)) + 0.5;
     ctx.beginPath();
-    ctx.moveTo(x, 62);
-    ctx.lineTo(x, 178);
+    ctx.moveTo(x, 60);
+    ctx.lineTo(x, 240);
     ctx.stroke();
   }
   ctx.restore();
 
-  // Row labels, only where there are rows to name.
-  ctx.save();
-  ctx.fillStyle = c.ink3;
-  ctx.font = `600 11px ${c.font}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  if (cand.key === "rows") {
-    ctx.fillText("A", PAD_L - 8, 96);
-    ctx.fillText("B", PAD_L - 8, 154);
+  // The two group containers, always present and always the same size — a
+  // permutation reassigns membership, never the group sizes.
+  if (cand.boxes) {
+    ctx.save();
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth = 1;
+    // Stroked inside the loop: roundRect begins a new path each call, so one
+    // stroke at the end would paint only the last box.
+    for (const y of ROW) {
+      roundRect(ctx, PAD_L - 10, y - BOX_H / 2, W - PAD_L - PAD_R + 20, BOX_H, 6);
+      ctx.stroke();
+    }
+    ctx.fillStyle = c.ink3;
+    ctx.font = `600 10px ${c.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`GROUP A · n = ${N_PER}`, PAD_L - 10, ROW[0] - BOX_H / 2 - 4);
+    ctx.fillText(`GROUP B · n = ${N_PER}`, PAD_L - 10, ROW[1] - BOX_H / 2 - 4);
+    ctx.restore();
   }
-  ctx.restore();
+
+  // The pool: only meaningful while something is in it.
+  if (cand.pool && t < 1) {
+    const vis = Math.sin(Math.PI * clamp01(t)) ** 0.6;
+    ctx.save();
+    ctx.globalAlpha = 0.9 * vis;
+    ctx.fillStyle = c.ink3;
+    ctx.font = `600 10px ${c.font}`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText("POOLED — under H₀ there is only one group", W - PAD_R, POOL_Y - 26);
+    ctx.restore();
+  }
 
   // The observations.
   for (let i = 0; i < VALUES.length; i += 1) {
     const x = sx(VALUES[i]);
     if (cand.key === "colours") {
-      // Same place, always. Only the fill crossfades.
-      const y = cand.yOf();
-      dot(ctx, x, y, 6, from[i] ? c.b : c.a, 1 - ease, c);
-      dot(ctx, x, y, 6, to[i] ? c.b : c.a, ease, c);
+      dot(ctx, c, x, cand.yAt(), from[i] ? c.b : c.a, 1 - e);
+      dot(ctx, c, x, cand.yAt(), to[i] ? c.b : c.a, e);
     } else {
-      // Same x, always — but the dot travels between rows.
-      const y0 = cand.yOf(from[i]);
-      const y1 = cand.yOf(to[i]);
-      dot(ctx, x, y0 + (y1 - y0) * ease, 6, to[i] ? c.b : c.a, 1, c);
+      // x is never a function of t. Only the band changes.
+      const y = cand.yAt(from[i], to[i], t);
+      // In the pool an observation genuinely has no group, so it is drawn in
+      // recessive ink there rather than pretending to still belong somewhere.
+      const inPool = cand.pool && t > 0.3 && t < 0.75;
+      dot(ctx, c, x, y, inPool ? c.ink3 : (t < 0.5 ? (from[i] ? c.b : c.a) : (to[i] ? c.b : c.a)));
     }
   }
 
   // The statistic: two group means and the gap between them.
-  const labels = ease > 0.5 ? to : from;
-  const mA = meanOf(VALUES, labels, 0);
-  const mB = meanOf(VALUES, labels, 1);
-  const gap = mB - mA;
-  const gy = 200;
+  const labels = e > 0.5 ? to : from;
+  const mA = meanOf(labels, 0);
+  const mB = meanOf(labels, 1);
 
   ctx.save();
   ctx.strokeStyle = c.axis;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(PAD_L, gy + 0.5);
-  ctx.lineTo(W - PAD_R, gy + 0.5);
+  ctx.moveTo(PAD_L, STAT_Y + 0.5);
+  ctx.lineTo(W - PAD_R, STAT_Y + 0.5);
   ctx.stroke();
   ctx.restore();
 
-  meanTick(ctx, c, sx(mA), gy, c.a, "x̄A");
-  meanTick(ctx, c, sx(mB), gy, c.b, "x̄B");
+  for (const [m, colour, name] of [[mA, c.a, "x̄A"], [mB, c.b, "x̄B"]]) {
+    ctx.save();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx(m), STAT_Y - 7);
+    ctx.lineTo(sx(m), STAT_Y + 7);
+    ctx.stroke();
+    ctx.fillStyle = c.ink3;
+    ctx.font = `600 11px ${c.font}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(name, sx(m), STAT_Y + 9);
+    ctx.restore();
+  }
 
-  // The observed gap, held as a reference so a shuffled one can be compared to it.
-  ctx.save();
-  ctx.fillStyle = c.ink3;
-  ctx.font = `11px ${c.font}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(`observed gap ${OBSERVED_GAP.toFixed(2)}`, PAD_L, 46);
-  ctx.restore();
-
+  const shuffledNow = labels.some((v, i) => v !== OBSERVED[i]);
   ctx.save();
   ctx.fillStyle = c.ink1;
   ctx.font = `600 13px ${c.font}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  const shuffledNow = labels.some((v, i) => v !== OBSERVED[i]);
   ctx.fillText(
-    shuffledNow ? `shuffled gap ${gap.toFixed(2)}` : `THIS IS THE REAL LABELLING · gap ${gap.toFixed(2)}`,
-    PAD_L, 30
+    shuffledNow
+      ? `shuffled gap ${(mB - mA).toFixed(2)}`
+      : `THE REAL LABELLING · gap ${(mB - mA).toFixed(2)}`,
+    PAD_L - 10, 28
   );
+  ctx.fillStyle = c.ink3;
+  ctx.font = `11px ${c.font}`;
+  ctx.fillText(`observed gap ${OBSERVED_GAP.toFixed(2)}`, PAD_L - 10, 44);
   ctx.restore();
 }
 
@@ -311,7 +374,7 @@ function drawAll() {
 
 /* --- driving ------------------------------------------------------------ */
 
-const SHUFFLE_MS = 900;
+const SHUFFLE_MS = 1200;
 const HOLD_MS = 700;
 let raf = null;
 let looping = false;
@@ -342,19 +405,21 @@ function frame(ts) {
 }
 
 const flash = document.getElementById("flash");
+const start = () => { if (raf === null) { last = 0; raf = requestAnimationFrame(frame); } };
 
 document.getElementById("shuffle").addEventListener("click", () => {
   looping = false;
+  document.getElementById("play").textContent = "Play";
   flash.textContent = "";
   nextShuffle();
-  if (raf === null) { last = 0; raf = requestAnimationFrame(frame); }
+  start();
 });
 
 document.getElementById("play").addEventListener("click", (e) => {
   looping = !looping;
   e.target.textContent = looping ? "Pause" : "Play";
   flash.textContent = looping ? "shuffling" : "";
-  if (looping && raf === null) { last = 0; holding = HOLD_MS; raf = requestAnimationFrame(frame); }
+  if (looping) { holding = HOLD_MS; start(); }
 });
 
 document.getElementById("reset").addEventListener("click", () => {
@@ -364,7 +429,7 @@ document.getElementById("reset").addEventListener("click", () => {
   from = to.slice();
   to = OBSERVED.slice();
   t = 0;
-  if (raf === null) { last = 0; raf = requestAnimationFrame(frame); }
+  start();
 });
 
 drawAll();
