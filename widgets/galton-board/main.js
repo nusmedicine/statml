@@ -38,18 +38,38 @@ import {
 } from "../core/index.js";
 
 /* Pacing is chosen, not automatic — same contract as every other widget in the
-   arc. Below the choreography threshold a ball still lands and still flashes its
-   column; you just do not watch it fall. */
+   arc. Each tier must show something the tier below it does not, or it is not a
+   speed, just a wait:
+
+     Slow     one ball, slowly enough to read each left-or-right step
+     Medium   one ball at a time, quick but still a whole descent
+     Fast     a CASCADE — several balls in the air at once, like a real board
+     Fastest  no descent at all, the pile just fills
+
+   `releaseMs: null` means release the next ball only when the last has landed, so
+   exactly one is ever falling. A number smaller than the whole descent
+   (rows × rowMs) puts several in the air.
+
+   Fast used to run at 110 ms per ball with the descent switched off, which made it
+   slower than Fastest while showing strictly less — a tier that cost time and
+   bought nothing. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "watch every step", rowMs: 150, choreo: true },
-  medium: { label: "Medium", detail: "watch every step", rowMs: 45, choreo: true },
-  fast: { label: "Fast", detail: "balls only, no steps", ms: 110, choreo: false },
-  fastest: { label: "Fastest", detail: "fills in at once", ms: 0, choreo: false },
+  slow: { label: "Slow", detail: "one ball, every step", rowMs: 150, releaseMs: null, choreo: true },
+  medium: { label: "Medium", detail: "one ball at a time", rowMs: 45, releaseMs: null, choreo: true },
+  fast: { label: "Fast", detail: "a cascade of balls", rowMs: 14, releaseMs: 30, choreo: true },
+  fastest: { label: "Fastest", detail: "fills in at once", rowMs: 0, releaseMs: 0, choreo: false },
 };
 
-// "Drop one" always shows the descent, whatever Play is set to.
+// "Drop one" always shows one whole descent, whatever Play is set to.
 const STEP_ROW_MS = 190;
 const STREAM_MS = 3000;
+
+// Past this many trails the board is scribble rather than mechanism, so a cascade
+// shows the balls without their paths — the flow is the point there, not one route.
+const TRAIL_LIMIT = 2;
+
+// Guard against an unbounded flight list if a frame is pathologically long.
+const MAX_IN_FLIGHT = 32;
 
 // Paths retained for the reveal. Past this the descent is too fast to read.
 const KEEP_PATHS = 96;
@@ -165,12 +185,14 @@ defineWidget({
     init({ params, state, fromScratch }) {
       const anim = {
         pile: makePile(params, state),
-        // Rows fallen, as one continuous quantity rather than a row index plus a
-        // fraction. A frame long enough to span two rows must advance two rows —
-        // with a per-row index the descent was frame-rate-bound, so at speed the
-        // ball never reached the bottom before the next one started.
-        fall: 0,
-        sinceCommit: 0,
+        /* Balls currently in the air, oldest first: [{ i, fall }].
+           `fall` is rows fallen as one continuous quantity rather than a row index
+           plus a fraction — a frame long enough to span two rows must advance two
+           rows, or the descent is frame-rate-bound and slower than its own budget.
+           They fall at the same rate, so they land in release order and can be
+           folded into the pile from the front. */
+        flight: [],
+        sinceRelease: 0,
         streamFrom: -1,
         streamT: 0,
         done: false,
@@ -188,11 +210,11 @@ defineWidget({
       const dropped = Math.min(anim.pile.shown, params.balls);
       anim.pile = makePile(params, state);
       anim.pile.rebuild(state.landings.slice(0, dropped));
-      // The ball in flight keeps falling. No display parameter here alters the
-      // binning or the paths — bins are rows + 1, and with the seed and rows fixed
-      // the first k paths are the same k paths — so discarding it would lose a
-      // ball the student was watching. Only drop it if its path is gone.
-      if (anim.pile.shown >= state.paths.length) anim.fall = 0;
+      // Balls in the air keep falling. No display parameter here alters the binning
+      // or the paths — bins are rows + 1, and with the seed and rows fixed the first
+      // k paths are the same k paths — so discarding them would lose balls the
+      // student is watching. Drop only those whose path or slot is gone.
+      anim.flight = anim.flight.filter((b) => b.i < state.paths.length && b.i < params.balls);
       anim.done = anim.pile.shown >= params.balls;
     },
 
@@ -202,46 +224,63 @@ defineWidget({
 
       const stepping = anim.mode === "step";
       const speed = SPEEDS[params.speed] ?? SPEEDS.medium;
-      const hasPath = anim.pile.shown < state.paths.length;
+      const rowMs = stepping ? STEP_ROW_MS : speed.rowMs;
+      // Next ball not yet landed and not yet released.
+      const nextIndex = () => anim.pile.shown + anim.flight.length;
+      const hasPath = nextIndex() < state.paths.length;
       const choreo = hasPath && (stepping || speed.choreo);
 
       if (choreo) {
-        // Continuous, so a long frame advances several rows instead of one.
-        anim.fall += dt / Math.max(1, stepping ? STEP_ROW_MS : speed.rowMs);
-        if (anim.fall < params.rows) return true;
+        // Release. `null` means strictly one at a time; a smaller interval than the
+        // whole descent is what makes Fast a cascade rather than a queue.
+        const releaseMs = speed.releaseMs ?? params.rows * rowMs;
+        if (anim.flight.length === 0) {
+          anim.flight.push({ i: nextIndex(), fall: 0 });
+          anim.sinceRelease = 0;
+        } else if (!stepping) {
+          anim.sinceRelease += dt;
+          while (
+            anim.sinceRelease >= releaseMs &&
+            anim.flight.length < MAX_IN_FLIGHT &&
+            nextIndex() < params.balls &&
+            nextIndex() < state.paths.length
+          ) {
+            anim.sinceRelease -= releaseMs;
+            anim.flight.push({ i: nextIndex(), fall: 0 });
+          }
+        }
 
-        // Reached the bottom: the ball lands in the column it finished above.
-        anim.pile.push(state.landings[anim.pile.shown]);
-        anim.fall = 0;
+        for (const b of anim.flight) b.fall += dt / Math.max(1, rowMs);
+
+        // Land from the front: same fall rate means release order is landing order.
+        let landed = 0;
+        while (anim.flight.length && anim.flight[0].fall >= params.rows) {
+          anim.pile.push(state.landings[anim.flight[0].i]);
+          anim.flight.shift();
+          landed += 1;
+        }
+
         if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
-        if (stepping) return halt(anim); // one ball per click
+        if (stepping && landed) return halt(anim); // one ball per click
         return true;
       }
 
-      /* A ball part-way down must not simply be abandoned. Switching to a
-         non-choreographed speed used to leave its half-drawn path frozen over the
-         board while other balls streamed into the pile. Land it first. */
-      if (anim.fall > 0) {
-        anim.pile.push(state.landings[anim.pile.shown]);
-        anim.fall = 0;
-        if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
+      /* Balls part-way down must not simply be abandoned. Switching to a
+         non-choreographed speed used to leave a half-drawn path frozen over the
+         board while other balls streamed into the pile. Land them first. */
+      while (anim.flight.length) {
+        anim.pile.push(state.landings[anim.flight[0].i]);
+        anim.flight.shift();
       }
+      if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
 
-      if (speed.ms > 0) {
-        anim.sinceCommit += dt;
-        while (anim.sinceCommit >= speed.ms && anim.pile.shown < params.balls) {
-          anim.sinceCommit -= speed.ms;
-          anim.pile.push(state.landings[anim.pile.shown]);
-        }
-      } else {
-        if (anim.streamFrom < 0) anim.streamFrom = anim.pile.shown;
-        anim.streamT = Math.min(1, anim.streamT + dt / STREAM_MS);
-        const target = Math.min(
-          params.balls,
-          anim.streamFrom + Math.round(easeInOut(anim.streamT) * (params.balls - anim.streamFrom))
-        );
-        while (anim.pile.shown < target) anim.pile.push(state.landings[anim.pile.shown]);
-      }
+      if (anim.streamFrom < 0) anim.streamFrom = anim.pile.shown;
+      anim.streamT = Math.min(1, anim.streamT + dt / STREAM_MS);
+      const target = Math.min(
+        params.balls,
+        anim.streamFrom + Math.round(easeInOut(anim.streamT) * (params.balls - anim.streamFrom))
+      );
+      while (anim.pile.shown < target) anim.pile.push(state.landings[anim.pile.shown]);
 
       if (anim.pile.shown >= params.balls) return halt(anim, { finished: true });
       return true;
@@ -254,7 +293,7 @@ defineWidget({
     const { rows } = params;
     const pile = anim.pile;
     const total = pile.shown;
-    const falling = anim.fall > 0 && total < params.balls;
+    const inAir = anim.flight.length;
 
     const ML = 50;
     const MR = 14;
@@ -272,9 +311,11 @@ defineWidget({
     const pa = makePlot({ ctx, colors, rect: top, xDomain: state.domain, yDomain: [0, rows] });
 
     pa.caption(
-      falling
-        ? `${rows} rows of pegs · ball ${total + 1} is at row ${Math.min(Math.floor(anim.fall) + 1, rows)}`
-        : `${rows} rows of pegs · each one an independent left-or-right step`
+      inAir === 1
+        ? `${rows} rows of pegs · ball ${total + 1} is at row ${Math.min(Math.floor(anim.flight[0].fall) + 1, rows)}`
+        : inAir > 1
+          ? `${rows} rows of pegs · ${inAir} balls falling`
+          : `${rows} rows of pegs · each one an independent left-or-right step`
     );
 
     /* -- the peg field -------------------------------------------------- *
@@ -294,8 +335,10 @@ defineWidget({
     }
     ctx.restore();
 
-    /* -- the ball in flight, and its path so far ------------------------- */
-    if (falling) drawFallingBall({ ctx, colors, pa, pb: null, params, state, anim, yOf });
+    /* -- the balls in flight, and their paths so far ---------------------- */
+    for (const ball of anim.flight) {
+      drawFallingBall({ ctx, colors, pa, params, state, ball, yOf, trail: inAir <= TRAIL_LIMIT });
+    }
 
     /* -- the pile -------------------------------------------------------- */
     const f = pile.frame();
@@ -382,8 +425,8 @@ function halt(anim, { finished = false } = {}) {
  * The path travelled so far is drawn behind the ball, because the whole point is
  * that the landing column is an accumulation of steps rather than a destination.
  */
-function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
-  const path = state.paths[anim.pile.shown];
+function drawFallingBall({ ctx, colors, pa, params, state, ball, yOf, trail }) {
+  const path = state.paths[ball.i];
   if (!path) return;
 
   const { rows } = params;
@@ -393,8 +436,8 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
     return [pa.sx(k + (rows - r) / 2), yOf(r)];
   };
 
-  const row = Math.min(Math.floor(anim.fall), rows - 1);
-  const t = clamp01(anim.fall - row);
+  const row = Math.min(Math.floor(ball.fall), rows - 1);
+  const t = clamp01(ball.fall - row);
   const from = at(row);
   const to = at(row + 1);
   // Gravity: a fall accelerates. Sideways drift eases out, as in `clt`'s drop.
@@ -402,24 +445,26 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
   const y = from[1] + (to[1] - from[1]) * (t * t);
 
   ctx.save();
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  const start = at(0);
-  ctx.moveTo(start[0], start[1]);
-  for (let r = 1; r <= row; r += 1) {
-    const p = at(r);
-    ctx.lineTo(p[0], p[1]);
-  }
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
 
-  // Which way it just went, named — the step is the idea, not the position.
-  {
+  if (trail) {
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    const start = at(0);
+    ctx.moveTo(start[0], start[1]);
+    for (let r = 1; r <= row; r += 1) {
+      const p = at(r);
+      ctx.lineTo(p[0], p[1]);
+    }
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Which way it just went, named — the step is the idea, not the position.
+    // Only worth saying when a single ball is being followed.
     const wentRight = path[row] === 1;
     ctx.globalAlpha = clamp01(t * 2);
     ctx.fillStyle = colors.ink2;
@@ -431,7 +476,7 @@ function drawFallingBall({ ctx, colors, pa, params, state, anim, yOf }) {
   }
 
   ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.arc(x, y, trail ? 5 : 4, 0, Math.PI * 2);
   ctx.fillStyle = colors.highlight;
   ctx.fill();
   ctx.lineWidth = 2;
