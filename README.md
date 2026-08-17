@@ -217,9 +217,12 @@ argument.
    blue means "simulated" in all forty widgets, and students learn it.
 3. All randomness comes from the seeded `rng` passed to `compute`. Never
    `Math.random()`.
-4. Every widget ships a `readout` — it is the accessible reading of the figure,
-   not decoration. During an animation it should track the *partial* data, so
-   students watch the numbers converge as the picture fills in.
+4. Every widget owes a text reading of its figure, because canvas has none.
+   Usually that is `readout` (stat tiles), which during an animation should track
+   the *partial* data so students watch the numbers converge. A deliberately
+   qualitative widget provides `summary` instead — one sentence, used as the
+   figure's accessible label — rather than inventing numbers it does not want to
+   show.
 5. Reuse `POPULATIONS` from `core/stats.js` so a named population behaves
    identically everywhere it appears. Populations declare a `halfWidth`, not a
    `domain`: every plotting window is centred on μ by construction, so stacked
@@ -230,9 +233,14 @@ argument.
    should never be a two-pixel bar.
 7. Don't open on the answer. If the widget has a result the student should reach,
    it starts empty and they build it.
-8. Mark every presentation-only parameter `display: true`. An overlay toggle that
-   resets the figure is a bug, not a preference.
-9. Keep the control set to things that carry an idea. `Save PNG` and a bin-by-bin
+8. Write shared geometry once. If the animation and the data agree on where
+   something is, they call one named function — two copies of a formula is how the
+   halves of a figure come to disagree.
+9. Give any animating widget a **driven** fingerprint state. Settled states see
+   only the finished figure, so they are no test of the animation at all.
+10. Mark every presentation-only parameter `display: true`. An overlay toggle that
+    resets the figure is a bug, not a preference.
+11. Keep the control set to things that carry an idea. `Save PNG` and a bin-by-bin
    table are opt-in (`png: true`, defining `table`) and off by default — every
    extra control is one more thing to rule out before the concept gets attention.
 

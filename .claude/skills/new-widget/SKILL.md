@@ -172,9 +172,20 @@ npm run dev      # NOT python -m http.server; this one sends no-store
 npm run check    # invariants
 ```
 
-Then `http://localhost:8000/widgets/_lab/fingerprint.html` — hashes each widget's
-canvas at fixed states. Run before and after any refactor; pixel identity is the
-only honest proof that nothing changed.
+Then `http://localhost:8000/widgets/_lab/fingerprint.html`, which hashes each
+widget's canvas against a baseline. Run before and after any refactor.
+
+It holds **two kinds of state**:
+
+- **settled** — `?…&shown=N`, the figure fully built and nothing moving
+- **driven** — `drive: { click: "step"|"run", frames, dt }`, where the harness
+  replaces the frame clock with a queue it steps by hand
+
+A new widget with an animation needs **at least one driven state**, and
+`check.mjs` fails without one. Settled states cannot see anything drawn only while
+something moves: that gap once let a coordinate change put every falling ball six
+columns off-centre while all eight settled states matched. Before baselining a
+driven state, confirm it is identical across three runs.
 
 The automation browser throttles `requestAnimationFrame` to ~1 frame/300 ms and
 generates stray pointer input that moves sliders mid-capture. Both have produced
@@ -205,3 +216,10 @@ programmatic read, trust the read.
 - Extract an abstraction from one example. The CLT's draw/collapse/drop was
   deliberately *not* extracted, because a Galton ball's descent turned out to have
   a wholly different shape.
+- Write the same geometry twice. If the animation and the data agree on where
+  something is, they share one named function — see `deviationAfter()` in
+  `galton-board`. Two copies of a formula is how the halves of a figure come to
+  disagree, and a comment saying "keep in sync" does not prevent it.
+- Force a qualitative widget to invent numbers. Provide `summary` instead of
+  `readout` — it becomes the figure's accessible label, so canvas still gets a
+  text reading without stat tiles on screen.

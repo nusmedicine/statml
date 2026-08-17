@@ -293,6 +293,51 @@ facts.** Never the reverse.
 > exactly like a bug in your own change.** It would have hit students on the
 > `use_local()` path too, silently serving stale widgets after every update.
 
+### 5.6 A blind spot in the test suite must be named, never cited as safety
+
+> *Earned, expensively.* Every fingerprint state passed `shown=` — a fully built
+> figure — and `check.mjs` **required** it. Pre-filled states have nothing in
+> flight, so no verification in the repo had ever rendered a moving part. A
+> coordinate-system change then left every falling ball six columns off-centre and
+> all eight states still matched. The commit before it had written *"nothing is in
+> flight at a `shown=` state, so this is animation-only by construction"* as
+> reassurance. That sentence was an accurate description of a blind spot, read as
+> a safety property.
+
+The generalisation: **verify the thing that only exists while it moves.** A
+harness that can only photograph the finished state is not a weaker test of the
+animation, it is no test of it. The fix was a second kind of state — the harness
+supplies the frame clock, clicks a drive button, and steps a fixed number of
+fixed-length frames before hashing. Seeded data plus a controlled clock makes a
+mid-animation frame exactly as reproducible as a settled one.
+
+Two habits fall out:
+
+- **Prove a new check catches the bug it was built for.** Reintroduce the fault
+  and watch it fail. Ours did: the driven states differed, every settled state
+  still passed — which is simultaneously a passing regression test and a
+  demonstration that the old suite could not have caught it.
+- **Confirm determinism before baselining.** A flaky check is worse than none. Three
+  consecutive identical runs, then record. (The first determinism check was itself
+  wrong — it read the results table on a timer while it was still being built and
+  reported non-determinism from shifted rows. Measurement error looks exactly like
+  the failure it is measuring.)
+
+### 5.7 One formula, one place
+
+Shared geometry gets a single named function that every call site uses. Not a
+comment saying "keep these in sync".
+
+> *Earned:* the landing value moved to deviation units and the falling ball kept
+> its own copy of the old formula. Two call sites, one formula each, is precisely
+> how the halves of a figure come to disagree about where something is.
+
+The cheap version of this is worth paying for even when it costs something:
+`compute()` now builds every ball's path even for the balls whose path it will
+throw away, purely so the landing value comes from the same function the animation
+uses. A transient array of at most thirty entries in exchange for deleting a
+duplicate formula.
+
 ---
 
 ## 6 · Known costs

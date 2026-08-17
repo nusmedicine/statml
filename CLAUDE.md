@@ -58,15 +58,27 @@ sliders mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per
 300 ms so animations appear frozen).
 
 - `npm run check` asserts the invariants that are cheap to state in code.
-- `widgets/_lab/fingerprint.html` hashes each widget's canvas at fixed states
-  against a stored baseline. **Run it before and after any refactor.** Pixel
-  identity is the only honest proof that a refactor changed nothing; the
-  accumulator extraction was verified this way.
-- To drive an animation deterministically in the browser, replace
-  `requestAnimationFrame` with a manual queue and step it — see HANDOVER.md.
+- `widgets/_lab/fingerprint.html` hashes each widget's canvas against a stored
+  baseline. **Run it before and after any refactor.** Pixel identity is the only
+  honest proof that a refactor changed nothing; the accumulator extraction was
+  verified this way.
+
+It holds **two kinds of state**, and the distinction is load-bearing:
+
+| kind | how | sees |
+|---|---|---|
+| **settled** | `?…&shown=N` — figure fully built, nothing moving | the finished figure |
+| **driven** | `drive: { click, frames, dt }` — harness supplies the frame clock | anything drawn mid-motion |
+
+A suite of settled states alone is **no test of the animation at all**. That gap
+let a coordinate-system change put every falling ball six columns off-centre while
+all eight settled states still matched. `check.mjs` now fails any widget that
+declares an `animation` without at least one driven state.
 
 If a fingerprint state legitimately changes, regenerate the baseline **in the same
-commit** as the change, so the diff records that the rendering moved.
+commit** as the change, so the diff records that the rendering moved. Before
+baselining a new driven state, confirm it is identical across three runs — a flaky
+check is worse than none.
 
 ## Where things live
 

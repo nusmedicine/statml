@@ -1,178 +1,232 @@
 # Handover
 
 State of the project and the next task, written so a fresh session can start
-without re-deriving anything. Read [CLAUDE.md](CLAUDE.md) first, then this.
+without re-deriving anything.
 
-**Last updated:** widget 1 of the statistics arc shipped; `core/accumulator.js`
-extracted and verified pixel-identical.
+**Read [CLAUDE.md](CLAUDE.md) first**, then this. Then
+[docs/design-principles.md](docs/design-principles.md) before changing anything in
+`widgets/core/` — most of its rules exist because the obvious approach was tried
+and failed, and each one carries the incident that earned it.
+
+**Last updated:** widgets 1 and 2 of the statistics arc shipped; `core/accumulator.js`
+extracted; the fingerprint harness extended to mid-animation states.
 
 ---
 
-## Where the project is
+## 1 · Where the project is
 
-Phase 0 is complete and two widgets are shipped. The scaffold is proven by a
-second consumer, which is the point at which an abstraction stops being a guess.
-
-```
+```bash
 npm run dev
-open http://localhost:8000/widgets/          # gallery
-open http://localhost:8000/widgets/_lab/     # design lab + fingerprint harness
 ```
+
+- <http://localhost:8000/widgets/> — gallery
+- <http://localhost:8000/widgets/galton-board/> — widget 1
+- <http://localhost:8000/widgets/clt/> — widget 2
+- <http://localhost:8000/widgets/_lab/> — design lab and the fingerprint harness
 
 ### Shipped
 
-| arc | slug | state |
+| arc | slug | what it does |
 |---|---|---|
-| 1 | `galton-board` | Where the bell curve comes from. Random walk through pegs; exact binomial overlay |
-| 2 | `clt` | Sampling distribution of the mean. The reference widget |
+| 1 | `galton-board` | Where the bell curve comes from. A ball takes a ±1 nudge at each row; the axis is **total deviation from zero**, so the pile reads as an error distribution from the outset. Exact binomial overlay. Lean shifts the pile off the zero rule, which is bias made visible. |
+| 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
 
-Both start empty, both animate step-by-step, both use `core/accumulator.js` for
-the pile.
+Both start empty, both animate step by step, both build their pile with
+`core/accumulator.js`.
 
-### Not verified
+### What is NOT verified
 
-- **The Quarto book has never been rendered** — Quarto is not installed. Two
-  chapters and a Lua shortcode exist. `luac -p` passes; shortcode registration,
-  the `postMessage` iframe auto-resize in `book/assets/embed.html`, and the whole
-  render path are untested. Installing Quarto and running `npm run book` is the
-  cheapest way to retire a real unknown.
-- **No git remote**, so GitHub Pages has never deployed. `DEFAULT_BASE` in the
-  Python helper is a `REPLACE-ME` placeholder.
-- **`notebooks/demo.ipynb` has never been executed** in a real JupyterLab.
+Three real unknowns, cheapest first:
+
+1. **The Quarto book has never been rendered.** Quarto is not installed. Two
+   chapters, a Lua shortcode and a `postMessage` iframe auto-resize all exist and
+   are untested beyond `luac -p`. `brew install quarto && npm run book` retires the
+   largest single unknown in the repo.
+2. **No git remote**, so Pages has never deployed. `DEFAULT_BASE` in
+   `python/statml_widgets/__init__.py` is still a `REPLACE-ME` placeholder.
+3. **`notebooks/demo.ipynb` has never been executed** in a real JupyterLab.
 
 ---
 
-## The next task
-
-**Widget 3 of the arc: `bootstrap`.**
+## 2 · The next task: widget 3, `bootstrap`
 
 The arc is one continuous argument and the order is load-bearing:
 
 > increments → means → **one sample** → an interval → a null by shuffling → many nulls
 
-Widget 3 is the pivot. As built, `clt` is a fiction: it draws hundreds of samples
-from a population whose μ and σ are printed on screen, and nobody has ever been in
-that position. Widget 3 is where that debt is paid — you have **one** sample,
+**Widget 3 is the pivot.** As built, `clt` is a fiction: it draws hundreds of
+samples from a population whose μ and σ are printed on screen, and nobody has ever
+been in that position. Widget 3 pays that debt — you have **one** sample, you
 resample it with replacement, and the spread of the resampled statistic stands in
 for the sampling distribution.
 
-### Misconception it targets
+**Misconception targeted.** That knowing an estimate's uncertainty requires
+repeated samples from the population — which is exactly what widget 2 quietly
+assumed. Secondarily, that resampling "manufactures data".
 
-That knowing an estimate's uncertainty requires repeated samples from the
-population — which is exactly what widget 2 quietly assumed. Secondarily, that
-resampling "manufactures data".
+### Design decisions already taken
 
-### Design decisions already made (in docs/catalogue.md)
-
-1. **Draw the observed sample from a seeded population**, so the widget can draw
-   the true sampling distribution *and* the bootstrap distribution on the same
-   axis. The bootstrap distribution — which you can actually compute — sits almost
-   on top of the one you can never see. **That single overlay is the entire
-   justification for the method**, and it is only available because populations are
-   seeded and reproducible.
-2. **Bootstrap a mean, then a difference.** The statistic under study changes at
-   widget 4 from "a mean" to "a difference between two groups", because effect size
-   is what has clinical meaning. Make that transition happen *inside* widget 3,
-   visibly, rather than silently between widgets.
-3. Reuse `POPULATIONS` from `core/stats.js` so a named population behaves
-   identically to how it behaves in `clt`.
+1. **Draw the observed sample from a seeded population**, so the widget can put the
+   true sampling distribution *and* the bootstrap distribution on one axis. The
+   bootstrap distribution — which you can actually compute — sits almost on top of
+   the one you can never see. **That overlay is the entire justification for the
+   method**, and it is only available because populations are seeded.
+2. **Bootstrap a mean, then a difference.** The statistic changes at widget 4 from
+   "a mean" to "a difference between two groups", because effect size is what has
+   clinical meaning. Make that switch happen *inside* widget 3, visibly, rather than
+   silently between widgets.
+3. Reuse `POPULATIONS` from `core/stats.js` so a named population behaves exactly as
+   it does in `clt`.
 
 ### Likely shape
 
-- **Three panels**: the population (faint, since you are not supposed to have it),
-  the one observed sample (a rug or dot strip — the thing you actually have), and
-  the bootstrap pile.
+- **Three panels**: the population (faint — you are not supposed to have it), the
+  one observed sample (a rug or dot strip, the thing you actually have), and the
+  bootstrap pile.
 - **Choreography per resample**: highlight the n draws being picked *from the
-  observed sample* — with replacement, so some observations get picked twice and
-  that must be visible, it is the whole mechanism — collapse to the statistic, drop
-  into the pile. Structurally parallel to `clt`'s draw → collapse → drop, which is
-  deliberate: the student should recognise the motion.
-- `core/accumulator.js` gives you the pile for free. What you write is the
-  resampling and the choreography.
+  observed sample*, with replacement, so **duplicates are visible** — that is the
+  mechanism, not a detail. Then collapse to the statistic and drop it into the pile.
+  Structurally parallel to `clt`'s draw → collapse → drop, deliberately: the student
+  should recognise the motion.
+- `core/accumulator.js` gives you the pile. What you write is the resampling and
+  the choreography.
 
 ### Core work it needs first
 
 Add to `core/rng.js`:
 
 ```js
-resample(arr, rng)        // n draws with replacement; returns indices, not values,
-                          // so the choreography can highlight WHICH observations
-                          // were picked and show duplicates
+resample(arr, rng)   // n draws with replacement; returns INDICES, not values
 ```
 
-Return indices rather than values. Widget 5 (`permutation-test`) will want
-`permute(labels, rng)` alongside it; add that when you get there, not now.
+Indices, so the choreography can highlight *which* observations were picked and
+show the duplicates. `permute(labels, rng)` follows at widget 5, not before —
+do not add it speculatively.
 
 ---
 
-## How to work on this safely
+## 3 · How to work on this safely
 
-### Before a refactor
+### Every commit
 
 ```bash
-npm run dev
-open http://localhost:8000/widgets/_lab/fingerprint.html
+npm run check     # 7 invariant assertions; also runs inside npm run build
 ```
 
-It runs on load. All states should say MATCH. Refactor, reload, all states should
-still say MATCH. That is how the accumulator extraction was proven invisible — five
-CLT states pixel-identical before and after.
+### Before and after any refactor
 
-### Driving an animation deterministically
+Open <http://localhost:8000/widgets/_lab/fingerprint.html>. It runs on load. All
+states should say MATCH before you start and MATCH after you finish. That is how the
+`accumulator` extraction was proven invisible — five CLT states pixel-identical.
+
+It holds **two kinds of state**, and the difference is the most important thing in
+this file:
+
+| kind | how | sees |
+|---|---|---|
+| **settled** | `?…&shown=N` | the finished figure |
+| **driven** | `drive: { click, frames, dt }` | anything drawn mid-motion |
+
+A suite of settled states alone is **no test of the animation whatsoever.** That
+gap let a coordinate change put every falling ball six columns off-centre while all
+eight settled states matched — and the commit before it had cited "nothing is in
+flight at a `shown=` state" as *reassurance*. `check.mjs` now fails any widget that
+declares an `animation` without a driven state.
+
+When a rendering change is intentional, press **Copy new baseline** and paste over
+`fingerprint-baseline.json` **in the same commit**, so the diff records that the
+picture moved. Before baselining a *new* driven state, confirm it is identical
+across three runs.
+
+### Driving an animation by hand
 
 The automation browser throttles `requestAnimationFrame` to roughly one frame per
-300 ms, so animations look frozen and screenshots catch mid-flight states that
-appear to be bugs. Take control of the clock:
+300 ms, so animations look frozen and a screenshot catches a mid-flight state that
+looks like a bug. Take the clock:
 
 ```js
 window.__q = [];
 window.requestAnimationFrame = (cb) => { window.__q.push(cb); return 1; };
-window.__t = performance.now();
-const adv = (frames, dt = 32) => {
-  for (let i = 0; i < frames; i++) {
+let t = 1000;
+const adv = (n, dt = 32) => {
+  for (let i = 0; i < n; i++) {
     const cb = window.__q.shift();
     if (!cb) return i;
-    window.__t += dt;
-    cb(window.__t);
+    t += dt;
+    cb(t);
   }
-  return frames;
+  return n;
 };
-document.querySelectorAll('.w-drive .w-btn')[0].click();  // step
-adv(50);                                                  // 1.6s of animation
+document.querySelectorAll('.w-drive .w-btn')[0].click();   // 0 = step, 1 = play
+adv(50);
 ```
 
-Then assert on `.w-stat-note` / `.w-stat-value` text, or hash the canvas.
+Then assert on `.w-stat-value` / `.w-stat-note` text, the figure's `aria-label`, or
+a canvas hash. Note `dt` is clamped to 64 ms in core.
 
-### Also be aware
+### Traps that have already cost time
 
-The automation browser generates **stray pointer input** that moves sliders
-mid-capture. Several apparent bugs were this. If a screenshot disagrees with a
-programmatic read, trust the read and re-check.
+- **Stray pointer input.** The automation browser moves sliders mid-capture. Several
+  apparent bugs were this. If a screenshot disagrees with a programmatic read, trust
+  the read.
+- **A blank canvas is a thrown exception**, and the fingerprint harness cannot see
+  it (no canvas to hash). Read the console — a missing import once produced exactly
+  this.
+- **Long tool calls time out.** A three-run determinism check exceeded the 30 s
+  browser-tool limit. Kick the work off in the page, store results on `window`, wait
+  outside, then read them back.
+- **Heights live in three files** until the manifest is generated: `manifest.json`,
+  `HEIGHTS` in the Python helper, and `book/assets/widget.lua`. `npm run check`
+  catches drift between the first two.
 
 ---
 
-## Open decisions, with recommendations
+## 4 · Open decisions, with recommendations
 
 | decision | recommendation |
 |---|---|
-| **Control budget** — `clt` has 8 controls, rich for a lecture and busy for a book figure | Not yet resolved. Watch whether `bootstrap` also lands on 8; if it does, impose a cap |
-| **Prose inside the widget vs in the chapter** — currently overlapping | Thin the chapter, keep the widget subtitle. The widget travels to notebooks and slides where no chapter exists |
+| **Control budget** — `clt` has 8 controls, `galton-board` 7 | Watch widget 3. If it also lands on 7–8, impose a cap. Rich for a lecture, busy for a book figure |
+| **Prose in the widget vs the chapter** — currently overlapping | Thin the chapter. The widget travels to notebooks and slides where no chapter exists |
 | **Licensing** — public Pages means public content | CC-BY for prose and figures, MIT for code. Fix before it spreads |
-| **`ppv-prevalence` is deferred** yet has the strongest evidence in the catalogue (physicians report sensitivity *as* PPV) | Build it as the matched pair with `imbalance-metrics` when PHM5005 starts. Recorded at the top of the deferred list so it is not forgotten |
-| **Generating the manifest** from a machine-readable catalogue | Trigger: when more than a handful of widgets have shipped. Would also close the hand-mirrored `HEIGHTS` |
+| **`ppv-prevalence` is deferred** despite the strongest evidence in the catalogue (physicians report sensitivity *as* PPV) | Build it as a matched pair with `imbalance-metrics` when PHM5005 starts. Deliberately parked, not forgotten |
+| **Generating the manifest** from a machine-readable catalogue | Trigger: more than a handful of widgets shipped. Also closes the three-places heights |
+| **Ball physics on the Galton board** | Considered and dropped this session. A visible bounce implies the deflection is *caused* by the peg geometry, when the lesson is that each step is an independent coin flip. A landing squash would be free and safe; a bounce is not |
 
 ---
 
-## Checklist for shipping a widget
+## 5 · Shipping a widget
 
-1. `widgets/<slug>/index.html` — copy `widgets/clt/index.html`, change the title
-2. `widgets/<slug>/main.js` — `defineWidget({...})`; see the `new-widget` skill
-3. Entry in `widgets/manifest.json` with `slug`, `title`, `blurb`, `course`, `arc`,
-   `height`, `status: "shipped"`
-4. Height in **three** places until generation lands: `manifest.json`,
-   `HEIGHTS` in `python/statml_widgets/__init__.py`, and `book/assets/widget.lua`
-5. Two or three states added to `widgets/_lab/fingerprint-baseline.json`, all with
-   `shown=` so nothing animates
-6. Mark the entry shipped in `docs/catalogue.md`
+1. `widgets/<slug>/index.html` — copy `widgets/clt/index.html`, change title and description
+2. `widgets/<slug>/main.js` — `defineWidget({...})`; **use the `new-widget` skill**,
+   which carries the full contract
+3. Entry in `widgets/manifest.json`: `slug` `title` `blurb` `course` `arc` `height`
+   `status: "shipped"`
+4. Height in **three** places: manifest, `HEIGHTS` in the Python helper,
+   `book/assets/widget.lua`
+5. Fingerprint states: two or three **settled** (`shown=`) plus at least one
+   **driven** if it animates. Verify determinism, then baseline
+6. Mark shipped in `docs/catalogue.md`
 7. `npm run check && npm run build`
 8. A chapter in `book/chapters/` if the book covers it
+
+---
+
+## 6 · Why things are the way they are
+
+The git log is unusually informative — commit messages carry the reasoning, not
+just the change. Worth `git log` before arguing with a decision:
+
+| commit | what it settles |
+|---|---|
+| `8fc05f0` | Phase 0: the whole scaffold and its three invariants |
+| `b6c7d5b` | Why the statistics arc is a sequence and not a tier list |
+| `e58023b` | The accumulator extraction, and what was deliberately *not* extracted |
+| `b43a7e5` | Why Fast is a cascade — a tier must show what the tier below does not |
+| `bc21e1e` | Why the axis is a deviation and not a count |
+| `d3b7ed4` | The off-centre ball, and the blind spot that hid it |
+
+Two things a fresh session is most likely to get wrong, both recorded as principles:
+
+- **Parameters are the only state of record.** Animation state never writes back.
+- **A display parameter change must not discard the student's work.** An overlay
+  toggle that clears thirty collected samples is a bug, and it was one.
