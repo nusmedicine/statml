@@ -1,10 +1,11 @@
 # book-statml
 
-Interactive widgets for teaching statistics and machine learning, plus the book
-that embeds them and a Python helper that drops them into a live JupyterLab
-notebook.
+Interactive widgets for teaching statistics and machine learning, built for two
+NUS courses. Every widget is one HTML page and one ES module, with all of its
+state in the URL.
 
 Two widgets shipped, of a six-widget statistics arc. See
+[docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and
 [HANDOVER.md](HANDOVER.md) for the next task.
@@ -29,8 +30,7 @@ relative imports.
 one reason: it sends `Cache-Control: no-store`. Widgets are ES modules loaded by
 URL and browsers cache those hard, so with a plain static server you edit a core
 module, reload, and the page quietly keeps running the old one — a failure that
-looks exactly like a bug in your change. The same trap catches students on the
-`sw.use_local()` path.
+looks exactly like a bug in your change.
 
 ## The one idea
 
@@ -40,12 +40,14 @@ looks exactly like a bug in your change. The same trap catches students on the
 /w/clt/?dist=bimodal&n=30&seed=7
 ```
 
-- The **Python helper** is a query-string builder, nothing more. No kernel
-  communication, no widget protocol, no Jupyter extension.
+- **A URL is the entire interface.** No kernel communication, no widget protocol,
+  no Jupyter extension, no helper library in any language. A lesson embeds a
+  widget by pasting a link — which is why there is nothing here to install.
 - **"Copy link"** in every widget makes the instructor an author: tune the figure
   until it makes the point you want, copy the link, paste it into a notebook.
   You never hand-write parameters.
-- The **book and the notebook** embed the same widget at different states.
+- **One widget, many states.** The same widget appears in a lecture, a lesson and
+  a recap at three different points in its own argument.
 - A **seed** parameter makes every figure reproducible, so "everyone look at the
   third bar" works, and changing the seed becomes a teaching move rather than an
   accident.
@@ -67,17 +69,20 @@ widgets/
   galton-board/    arc 1: index.html + main.js
   clt/             arc 2: the reference widget
   _lab/            design comparisons + fingerprint harness; NOT deployed
-  manifest.json    registry of BUILT widgets (the plan lives in docs/catalogue.md)
+  manifest.json    registry of BUILT widgets; the ONLY place a height lives
   index.html       gallery
 
-book/              Quarto book; {{< widget slug k=v >}} shortcode
-python/            statml_widgets — show(), show_url(), url()
-notebooks/         example teaching notebook
-docs/              design principles and the widget catalogue
+docs/              prd, design principles, widget catalogue
 scripts/serve.mjs  dev server; sends no-store (see above)
 scripts/check.mjs  invariant assertions; runs inside npm run build
-scripts/build.mjs  assembles _site/ (book at /, widgets at /w/)
+scripts/build.mjs  assembles _site/ (gallery redirect at /, widgets at /w/)
 ```
+
+That is the whole repo. A Quarto book and a Python helper used to sit alongside
+it and were deleted — the book because the ebook is assembled with MyST, the
+helper because the lessons run the R kernel and a pasted URL needs no helper in
+any language. [docs/prd.md](docs/prd.md) §6 records both, and git history has the
+code if PHM5005 ever wants it back.
 
 ## Writing a widget
 
@@ -263,55 +268,51 @@ argument.
 at equal time intervals, so pacing is visible and not just shape. Underscore-
 prefixed directories are excluded from the deployed site.
 
-## In a teaching notebook
+## In a teaching lesson
 
-```python
-import sys; sys.path.insert(0, "python")
-import statml_widgets as sw
-
-sw.use_local()                        # or sw.use_pages("your-github-user")
-sw.show("clt", dist="exponential", n=30)
-```
-
-Or paste a link straight from a widget's *Copy link* button:
-
-```python
-sw.show_url("http://localhost:8000/widgets/clt/?dist=bimodal&n=30")
-```
-
-Notebooks get an explicit iframe height; the book uses a `postMessage`
-auto-resize instead. That split is deliberate — we control the book's page and
-can install a listener, and we cannot rely on doing so in a notebook.
-
-## In the book
-
-```bash
-brew install quarto     # not installed yet
-npm run book            # render to book/_book
-npm run build           # assemble _site/ (book at /, widgets at /w/)
-```
-
-In a chapter:
+The notebook lessons are the host. Tune a widget until it makes your point, press
+**Copy link**, and paste the URL into a markdown cell. Two mechanisms:
 
 ``` markdown
-{{{< widget clt dist=exponential n=5 >}}}
+<!-- inline, if JupyterLab's sanitiser allows it — see below -->
+<iframe src="https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30"
+        width="100%" height="900" style="border:0"></iframe>
+
+<!-- always works -->
+[Explore the sampling distribution](https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30)
 ```
 
-Same shape as `show("clt", dist="exponential", n=5)`, on purpose.
+**The link form always works** — kernel-independent, sanitiser-proof, zero code.
+That is why there is no Python or R helper: nothing a helper could do that a URL
+does not already do.
+
+**The iframe form is unverified.** JupyterLab sanitises HTML in markdown cells and
+may strip `<iframe>`. One test settles it: put one in one lesson and render it. A
+framed widget already posts its height to the parent (`core/env.js`), so a host
+that wants auto-resize needs only a short message listener.
+
+Design a widget to work both ways: readable in a ~900 px iframe, and correct
+full-screen in its own tab, since a link opens in a new one.
 
 ## Deploying
 
-`.github/workflows/deploy.yml` renders the book, assembles `_site/`, and
-publishes to GitHub Pages on push to `main`. Two things to do first:
+`.github/workflows/deploy.yml` runs `npm run build` — which runs the invariant
+checks first — and publishes `_site/` to GitHub Pages on push to `main`. There is
+no other toolchain: no Quarto, no Python, nothing to compile.
 
-1. Repo settings → Pages → Source: **GitHub Actions**.
-2. Set the real Pages origin in `python/statml_widgets/__init__.py`
-   (`DEFAULT_BASE`), or have notebooks call `sw.use_pages("your-github-user")`.
+Before the first deploy:
+
+1. Create the repo and remote. There isn't one yet.
+2. Repo settings → Pages → Source: **GitHub Actions**.
+3. Add the licences: **CC-BY-4.0** for prose and figures, **MIT** for code.
 
 ## Known seams
 
-- `HEIGHTS` in the Python helper mirrors `manifest.json` by hand. Phase 1 should
-  generate it at build time.
-- No test harness yet. `compute()` is pure and seeded, which is what makes one
-  worth adding.
-- Widget count: 1.
+- No git remote, so nothing has ever deployed and no widget has a real URL yet.
+- GitHub Pages sends `max-age=600`, so a student can get a stale widget for ten
+  minutes after a deploy. The fix is content-hashed filenames, which needs a
+  bundler and would end the no-build property. Not yet.
+- No unit-test harness. `compute()` is pure and seeded, which is what would make
+  one cheap; `npm run check` and the fingerprint harness cover the invariants and
+  the rendering in the meantime.
+- Widget count: 2, of a six-widget arc.

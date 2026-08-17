@@ -2,8 +2,12 @@
 /* ============================================================================
    Assemble the deployable site into _site/.
 
-     _site/          <- the rendered Quarto book (if book/_book exists)
-     _site/w/        <- the widgets, copied verbatim
+     _site/index.html <- a redirect to the gallery
+     _site/w/         <- the widgets, copied verbatim
+
+   That is the whole site. This repo produces widgets and nothing else; the
+   teaching material lives in the MyST notebook lessons and reaches a widget by
+   its URL. See docs/prd.md §4 and §6.
 
    Widgets are plain ES modules with relative imports, so copying widgets/ to
    _site/w/ preserves every path: widgets/clt/main.js imports "../core/index.js"
@@ -15,22 +19,12 @@
      prod  https://<user>.github.io/book-statml/w/clt/
    ========================================================================= */
 
-import { cp, mkdir, rm, writeFile, readFile, access } from "node:fs/promises";
+import { cp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "_site");
-const bookOut = join(root, "book", "_book");
-
-const exists = async (p) => {
-  try {
-    await access(p);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 await rm(site, { recursive: true, force: true });
 await mkdir(site, { recursive: true });
@@ -44,23 +38,19 @@ await cp(join(root, "widgets"), join(site, "w"), {
 const { widgets } = JSON.parse(await readFile(join(root, "widgets", "manifest.json"), "utf8"));
 console.log(`widgets: ${widgets.length} copied to _site/w`);
 
-// 2. Book -> _site root, if it has been rendered
-if (await exists(bookOut)) {
-  await cp(bookOut, site, { recursive: true });
-  console.log("book:    _site/ (rendered Quarto output)");
-} else {
-  await writeFile(
-    join(site, "index.html"),
-    `<!doctype html>
+// 2. The root redirects to the gallery. Widgets stay under /w/ so the deployed
+// layout matches dev (/widgets/ -> /w/) and a link keeps working if anything is
+// ever served from the root.
+await writeFile(
+  join(site, "index.html"),
+  `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>statml</title>
 <meta http-equiv="refresh" content="0;url=./w/">
 </head><body><p><a href="./w/">Widget gallery</a></p></body></html>
 `
-  );
-  console.log("book:    not rendered — _site/index.html redirects to the gallery.");
-  console.log("         Install Quarto and run `npm run book` to include it.");
-}
+);
+console.log("root:    _site/index.html redirects to the gallery");
 
 // 3. Pages must not run the output through Jekyll (it drops _-prefixed paths).
 await writeFile(join(site, ".nojekyll"), "");

@@ -8,8 +8,10 @@ without re-deriving anything.
 `widgets/core/` — most of its rules exist because the obvious approach was tried
 and failed, and each one carries the incident that earned it.
 
-**Last updated:** widgets 1 and 2 of the statistics arc shipped; `core/accumulator.js`
-extracted; the fingerprint harness extended to mid-animation states.
+**Last updated:** the PRD written ([docs/prd.md](docs/prd.md)) and both embedders
+deleted — the Quarto book and the Python helper. Widgets 1 and 2 of the statistics
+arc shipped; `core/accumulator.js` extracted; the fingerprint harness extended to
+mid-animation states.
 
 ---
 
@@ -36,15 +38,16 @@ Both start empty, both animate step by step, both build their pile with
 
 ### What is NOT verified
 
-Three real unknowns, cheapest first:
+Two unknowns. The other three were retired by deletion rather than by testing —
+the Quarto book, the Python helper and the demo notebook are gone (prd §6), and
+with them the questions of whether they worked.
 
-1. **The Quarto book has never been rendered.** Quarto is not installed. Two
-   chapters, a Lua shortcode and a `postMessage` iframe auto-resize all exist and
-   are untested beyond `luac -p`. `brew install quarto && npm run book` retires the
-   largest single unknown in the repo.
-2. **No git remote**, so Pages has never deployed. `DEFAULT_BASE` in
-   `python/statml_widgets/__init__.py` is still a `REPLACE-ME` placeholder.
-3. **`notebooks/demo.ipynb` has never been executed** in a real JupyterLab.
+1. **No git remote**, so Pages has never deployed and **no widget has a real URL
+   yet**. Nothing can be pasted into a lesson until this is done. Also blocks the
+   licences, which the PRD settles as CC-BY-4.0 for prose and MIT for code.
+2. **Does an `<iframe>` survive a JupyterLab markdown cell?** JupyterLab sanitises
+   HTML there and may strip it. One test in one lesson decides whether widgets
+   appear inline or only behind a link. Both work; inline is nicer.
 
 ---
 
@@ -175,13 +178,19 @@ a canvas hash. Note `dt` is clamped to 64 ms in core.
 - **Long tool calls time out.** A three-run determinism check exceeded the 30 s
   browser-tool limit. Kick the work off in the page, store results on `window`, wait
   outside, then read them back.
-- **Heights live in three files** until the manifest is generated: `manifest.json`,
-  `HEIGHTS` in the Python helper, and `book/assets/widget.lua`. `npm run check`
-  catches drift between the first two.
+- **Heights used to live in three files** and drift between them; `npm run check`
+  guarded it. They now live only in `manifest.json`, and that check is gone with
+  the duplicates. Do not add a second copy without restoring the check.
 
 ---
 
 ## 4 · Open decisions, with recommendations
+
+**All six are now settled in [docs/prd.md](docs/prd.md) §8**, mostly by taking the
+recommendation in the right-hand column. The two that did not simply go the way
+the table suggests: the **control budget** has no cap at all (the lecture is the
+governing surface, so rich is correct), and **generating the manifest** kept its
+deferral but swapped a count-based trigger for an incident-based one.
 
 | decision | recommendation |
 |---|---|
@@ -200,14 +209,14 @@ a canvas hash. Note `dt` is clamped to 64 ms in core.
 2. `widgets/<slug>/main.js` — `defineWidget({...})`; **use the `new-widget` skill**,
    which carries the full contract
 3. Entry in `widgets/manifest.json`: `slug` `title` `blurb` `course` `arc` `height`
-   `status: "shipped"`
-4. Height in **three** places: manifest, `HEIGHTS` in the Python helper,
-   `book/assets/widget.lua`
-5. Fingerprint states: two or three **settled** (`shown=`) plus at least one
+   `status: "shipped"`. That is the **only** place the height lives now
+4. Fingerprint states: two or three **settled** (`shown=`) plus at least one
    **driven** if it animates. Verify determinism, then baseline
+5. Judge it **projected**, or at least at a distance — the lecture is the
+   governing surface and back-row legibility is a requirement (prd §3). Thin
+   strokes and small tick labels are what fail
 6. Mark shipped in `docs/catalogue.md`
 7. `npm run check && npm run build`
-8. A chapter in `book/chapters/` if the book covers it
 
 ---
 

@@ -1,14 +1,21 @@
 # CLAUDE.md
 
-Interactive widgets for teaching statistics and machine learning, plus a Quarto
-book and a JupyterLab helper that embed them. Built for two NUS courses:
-**PHM5003** Applied Statistics for Precision Medicine and **PHM5005** AI/ML for
-Precision Medicine.
+Interactive widgets for teaching statistics and machine learning. Built for two
+NUS courses: **PHM5003** Applied Statistics for Precision Medicine and
+**PHM5005** AI/ML for Precision Medicine.
+
+**This repo produces widgets and nothing else** — a static site, a gallery and a
+page per widget. The teaching material lives in the MyST notebook lessons at
+`../jupyterbook/phm5003` and reaches a widget by its URL, either as a link in a
+markdown cell or as an iframe. A Quarto book and a Python helper used to live
+here; both were deleted for having no host. See [docs/prd.md](docs/prd.md) §6
+before proposing either back.
 
 ## Read these before changing anything
 
 | file | why |
 |---|---|
+| [docs/prd.md](docs/prd.md) | What the project is, who it serves, what is out of scope. Read it before proposing scope — §10 lists non-goals so they can be pointed at rather than re-argued. |
 | [docs/design-principles.md](docs/design-principles.md) | The rules, each with the incident that earned it. **Not optional** — most of them exist because the obvious approach failed. |
 | [docs/catalogue.md](docs/catalogue.md) | What gets built next and why. The statistics arc is an agreed sequence, not a backlog to reorder. |
 | [README.md](README.md) | Layout, how to write a widget, deployment. |
@@ -18,8 +25,7 @@ Precision Medicine.
 
 ```bash
 npm run dev      # dev server on :8000 — USE THIS, not python -m http.server
-npm run build    # assemble _site/ (book at /, widgets at /w/)
-npm run book     # quarto render (Quarto is NOT installed on this machine)
+npm run build    # assemble _site/ (gallery redirect at /, widgets at /w/)
 npm run check    # invariant assertions; run before every commit
 ```
 
@@ -93,23 +99,21 @@ widgets/core/       the scaffold — everything a widget does not have to write
   rng.js  stats.js  env.js
 widgets/<slug>/     one widget: index.html (12 lines) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed
-book/               Quarto book, {{< widget slug k=v >}} shortcode
-python/             statml_widgets — show(), show_url(), url()
-docs/               design principles and the catalogue
+widgets/manifest.json  registry of BUILT widgets; the ONLY place a height lives
+docs/               prd, design principles, catalogue
 ```
 
 ## Things that will bite you
 
-- **Quarto is not installed.** `book/` is written but has never been rendered.
-  The Lua shortcode parses (`luac -p`) but its registration is unverified.
-- **`HEIGHTS` in `python/statml_widgets/__init__.py` mirrors `manifest.json` by
-  hand.** Update both, plus the height in `book/assets/widget.lua`.
+- **There is still no git remote**, so Pages has never deployed and no widget has
+  a real URL to paste into a lesson yet.
 - **GitHub Pages sends `max-age=600`**, so students can get a stale widget for ten
   minutes after a deploy.
-- **`DEFAULT_BASE` in the Python helper is a placeholder.** There is no git remote
-  yet.
 - **The repo is inside Dropbox.** Avoid long-running writes; Dropbox can race with
   `.git`.
+- **Widget heights now live in exactly one place** (`manifest.json`). They used to
+  live in three, and `npm run check` guarded the drift. That check is gone with
+  the duplicates — do not reintroduce a second copy without reintroducing it.
 
 ## Style
 

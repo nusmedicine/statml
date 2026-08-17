@@ -290,8 +290,11 @@ facts.** Never the reverse.
 > *Earned:* a fix appeared not to work. The browser was serving a cached
 > `widget.js` while the corrected file sat on disk — `python -m http.server` sends
 > no cache headers and browsers cache ES modules hard. **That failure mode looks
-> exactly like a bug in your own change.** It would have hit students on the
-> `use_local()` path too, silently serving stale widgets after every update.
+> exactly like a bug in your own change.**
+
+The deployed path has a milder version of it — GitHub Pages sends `max-age=600` —
+which is accepted rather than fixed, because fixing it needs content-hashed
+filenames and therefore a bundler.
 
 ### 5.6 A blind spot in the test suite must be named, never cited as safety
 
@@ -354,10 +357,12 @@ ten minutes after a deploy. A proper fix is content-hashed filenames, which need
 a bundler and would end the no-build property. Probably worth it eventually; not
 yet.
 
-**`HEIGHTS` in the Python helper mirrors `manifest.json` by hand.** Notebooks
-need an explicit iframe height because we cannot rely on installing a
-`postMessage` listener in the notebook page (the book can, and does). Should be
-generated at build time.
+**~~`HEIGHTS` in the Python helper mirrors `manifest.json` by hand.~~ Closed.**
+Three files carried each widget height and drifted. Both duplicates were in the
+Quarto book and the Python helper, and deleting those ([prd.md](prd.md) §6) left
+one copy. Worth keeping as a record of the shape of the fix: the cost was retired
+by **removing the second consumer**, not by building the generator that had been
+planned for it. Check first whether a duplicate still needs to exist.
 
 **Dead space for skewed populations.** μ-centring puts the exponential on
 `[-2.2, 4.2]` with nothing below zero — about a third of the panel. Accepted
@@ -372,6 +377,12 @@ cost a fraction of widget #1.
 ---
 
 ## 7 · Open questions for the PRD
+
+**All five are now answered in [prd.md](prd.md) §8.** Kept here because the
+question is worth seeing next to the principle that raised it — but do not
+re-litigate them from this list. In short: no control cap and no book mode; widget
+prose stays thin but self-explanatory; CC-BY-4.0 prose and MIT code; print
+fallback out of scope; the catalogue closed for PHM5003 and open for PHM5005.
 
 1. **Control budget.** Is there a cap? Eight is too many for a book figure and
    about right for a lecture demo. Do book embeds get a reduced control set — and

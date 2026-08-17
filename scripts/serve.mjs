@@ -8,8 +8,9 @@
    quietly keeps running the old one. That failure mode looks exactly like a bug
    in your change, and costs far more than this file does.
 
-   The same trap catches students on the classroom path (`sw.use_local()`), which
-   is the other reason this is a real script and not a shell alias.
+   Deployed widgets hit a milder version of the same trap: GitHub Pages sends
+   `max-age=600`, so a student can run a ten-minute-old widget after a push. That
+   one we live with; this one we refuse to.
 
    Usage:  node scripts/serve.mjs [port]
    ========================================================================= */

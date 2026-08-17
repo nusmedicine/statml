@@ -11,7 +11,11 @@
    Every check here exists because getting it wrong has been possible:
      - an off-centre plotting window silently broke the shared mu rule
      - a binned array parked the coin flip's second spike off the panel
-     - three files hold the same widget height and drifted
+
+   A third check guarded widget heights, which used to live in three files
+   (manifest.json, a Python HEIGHTS dict, a Lua shortcode). Deleting both
+   embedders left one copy, so the check had nothing left to compare and went
+   with them. Recorded because "we removed a check" should never be silent.
    ========================================================================= */
 
 import { readFile, access } from "node:fs/promises";
@@ -126,11 +130,9 @@ const { makeRng } = await import(join(root, "widgets/core/rng.js"));
   ok("rng: seeded, reproducible, in range");
 }
 
-/* --- manifest agrees with what is on disk and with the other copies ---- */
+/* --- manifest agrees with what is on disk -------------------------------- */
 
 const manifest = JSON.parse(await readFile(join(root, "widgets/manifest.json"), "utf8"));
-const pySrc = await readFile(join(root, "python/statml_widgets/__init__.py"), "utf8");
-const luaSrc = await readFile(join(root, "book/assets/widget.lua"), "utf8");
 
 for (const w of manifest.widgets) {
   for (const field of ["slug", "title", "blurb", "height", "status"]) {
@@ -142,23 +144,9 @@ for (const w of manifest.widgets) {
   if (!(await exists(join(root, "widgets", w.slug, "main.js")))) {
     fail(`manifest "${w.slug}": no widgets/${w.slug}/main.js`);
   }
-  // Until the manifest is generated, three files carry each height and drift.
-  if (!new RegExp(`"${w.slug}":\\s*${w.height}\\b`).test(pySrc)) {
-    fail(`height drift: "${w.slug}" is ${w.height} in the manifest but not in python HEIGHTS`);
-  }
+  if (!(w.height > 0)) fail(`manifest "${w.slug}": height must be a positive number`);
 }
-ok(`${manifest.widgets.length} widgets: files present, heights agree with python HEIGHTS`);
-
-if (!/height:\d+px/.test(luaSrc)) {
-  fail("book/assets/widget.lua: no iframe height found");
-} else {
-  const luaHeight = Number(luaSrc.match(/height:(\d+)px/)[1]);
-  const tallest = Math.max(...manifest.widgets.map((w) => w.height));
-  if (luaHeight < tallest) {
-    fail(`book/assets/widget.lua height ${luaHeight}px is shorter than the tallest widget (${tallest}px)`);
-  }
-  ok(`book shortcode height ${luaHeight}px clears the tallest widget (${tallest}px)`);
-}
+ok(`${manifest.widgets.length} widgets: files present, heights well-formed`);
 
 /* --- fingerprint baseline is usable ------------------------------------ */
 

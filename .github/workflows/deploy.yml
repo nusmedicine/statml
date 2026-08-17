@@ -24,17 +24,12 @@ jobs:
         with:
           node-version: "20"
 
-      # Quarto renders the book. The widgets need no build step at all — they
-      # are plain ES modules and get copied verbatim by scripts/build.mjs.
-      - uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          version: "1.7.31"
-
-      - name: Render book
-        run: quarto render book
-
+      # No toolchain beyond node. The widgets are plain ES modules and get
+      # copied verbatim by scripts/build.mjs — there is nothing to compile.
+      # `npm run build` runs the invariant checks first, so a deploy that would
+      # ship a broken manifest fails here instead of in front of a class.
       - name: Assemble site
-        run: node scripts/build.mjs
+        run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
         with:

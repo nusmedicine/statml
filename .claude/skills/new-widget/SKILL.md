@@ -196,14 +196,19 @@ programmatic read, trust the read.
 ## Shipping checklist
 
 1. Entry in `widgets/manifest.json`: `slug` `title` `blurb` `course` `arc` `height`
-   `status: "shipped"`
-2. Height in **three** places: the manifest, `HEIGHTS` in
-   `python/statml_widgets/__init__.py`, and `book/assets/widget.lua`
-3. Two or three states in `widgets/_lab/fingerprint-baseline.json`, every one with
-   `shown=` so nothing animates
+   `status: "shipped"`. The manifest is the **only** place a height lives
+2. States in `widgets/_lab/fingerprint-baseline.json`: two or three **settled**
+   (`shown=`, nothing in flight) **plus at least one driven** (`drive: { click,
+   frames, dt }`) if the widget animates. `npm run check` fails a widget that
+   declares an `animation` without one — settled states are blind to anything
+   drawn only while something moves, and a coordinate change once put every
+   falling ball six columns off-centre while all eight settled states matched.
+   Confirm a new driven state is identical across three runs before baselining
+3. Judge it **projected**, or at least from across the room. The lecture is the
+   governing surface (`docs/prd.md` §3); thin strokes and small tick labels are
+   what fail at distance
 4. Mark shipped in `docs/catalogue.md`
 5. `npm run check && npm run build`
-6. A chapter in `book/chapters/` if the book covers it
 
 ## Do not
 

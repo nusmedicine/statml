@@ -1,5 +1,5 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. Keep HEIGHTS in python/statml_widgets/__init__.py in sync until this file is generated.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
   "widgets": [
     {
       "slug": "galton-board",

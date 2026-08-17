@@ -1,0 +1,295 @@
+# PRD
+
+What this project is, who it is for, and what it will not do.
+
+Two documents feed this one and neither is repeated here:
+
+| document | answers |
+|---|---|
+| [design-principles.md](design-principles.md) | **how** a widget behaves, each rule traced to the incident that earned it |
+| [catalogue.md](catalogue.md) | **which** concepts earn a widget, in what order, on what evidence |
+
+This one answers **what the thing is, who it serves, and what is out of scope** —
+the frame those two sit inside. Where it closes a question either of them left
+open, §9 says so explicitly.
+
+---
+
+## 1 · What this is
+
+A collection of small, seeded, URL-addressable interactive figures for teaching
+statistics and machine learning, built for two NUS courses: **PHM5003** Applied
+Statistics for Precision Medicine and **PHM5005** AI/ML for Precision Medicine.
+
+**This repo produces widgets and nothing else.** It is a static site: a gallery
+and one page per widget. The teaching material lives elsewhere — in the MyST
+notebook lessons at `Development/jupyterbook/phm5003` — and reaches a widget by
+its URL.
+
+A widget is one HTML page and one `main.js`, loaded as an ES module, with zero
+runtime dependencies and no build step. Its entire state is in its URL.
+
+---
+
+## 2 · Who it is for
+
+| | who | doing what |
+|---|---|---|
+| **primary** | the instructor, live | driving a widget on a projector, narrating it |
+| **secondary** | a student, later | opening it from a link in a notebook lesson cell |
+| **third** | the instructor, as author | tuning a figure by hand until it makes the point, then copying the link into a lesson |
+
+There is no fourth user. **No TA, no co-instructor, no outside contributor.**
+Three things follow:
+
+- no contributor scaffolding — no `CONTRIBUTING.md`, no issue templates, no
+  review process
+- **no API stability guarantee.** `widgets/core/` may be changed freely and all
+  call sites updated in the same commit. Nothing is versioned
+- documentation is written for a future session with no memory, not for a
+  stranger. That is what `HANDOVER.md` and the `new-widget` skill already are
+
+If a TA is ever added, this section is the first thing to revisit — most of the
+cheapness below depends on there being one author.
+
+---
+
+## 3 · A widget never arrives without a host
+
+This is the load-bearing fact about how the collection is used, and it settles
+what would otherwise be a contradiction between "prose stays thin" and "the
+widgets are public".
+
+**Every widget has a narrator.** In a lecture it is you, live, on a projector. In
+self-study it is the notebook lesson whose markdown cell links to it. There is no
+supported path where a student meets a widget cold with no surrounding context.
+So:
+
+- **Prose in the widget stays thin.** The host carries the argument. A widget that
+  re-teaches its concept duplicates the lesson and grows past a screen.
+- **But the widget must still carry its own identity**, because the link opens in
+  a **new tab** — the lesson prose is then on another screen, or scrolled away.
+  Title, question and subtitle must tell you what you are looking at and what
+  question it answers. The bar is **self-explanatory, not self-teaching**.
+
+### The governing surface is a projector
+
+When surfaces conflict, the lecture wins:
+
+- **No control budget.** Eight controls is fine. Rich is correct for a demo you
+  narrate. The test stays the one in principles §3.5 — *every control must carry
+  an idea* — which is a test of each control, not a count of them.
+- **Projection legibility is a requirement**, not a nicety — new, and earned by
+  this choice rather than by an incident. A figure that is crisp on a 27-inch
+  monitor at arm's length can be unreadable from the back row: thin strokes
+  disappear, 11 px tick labels vanish, low-contrast greys wash out in a lit room.
+  Judge every widget projected, or at minimum at a distance, before calling it
+  done. This is a **screenshot-for-judgement** question in the sense of principles
+  §5.4 — legibility is exactly what assertions cannot settle.
+
+Slides are **not** a surface. The lecture surface is the standalone widget page,
+opened in a browser. No reveal.js path, no deck embedding, nothing to build.
+
+---
+
+## 4 · How a widget reaches a lesson
+
+The notebooks are the host. Two mechanisms, in order of preference:
+
+| # | mechanism | status |
+|---|---|---|
+| 1 | **`<iframe>` in a markdown cell** — the widget appears inline in the lesson | **Unverified.** JupyterLab sanitises HTML in markdown cells and may strip `<iframe>`. One test settles it: put an iframe in one markdown cell of one lesson and render it |
+| 2 | **A plain link in a markdown cell** — opens the widget in a new tab | **Always works.** Kernel-independent, sanitiser-proof, zero code. This is the floor, and it is why nothing else is a hard requirement |
+
+Because mechanism 2 always works, **no kernel-side helper is needed in any
+language**. That is what removes both embedders — see §6.
+
+For the ebook assembled from these notebooks after the class, MyST renders raw
+HTML from markdown and also offers an iframe directive; confirm the exact syntax
+against your MyST version before relying on it. The ebook is built in the existing
+MyST project, not here.
+
+**Consequence for widget design:** a widget must look right in a ~900 px-wide
+iframe *and* full-screen in its own tab, because both are live paths. Nothing else
+about embedding is this repo's problem.
+
+---
+
+## 5 · Requirements
+
+### Every widget
+
+| # | requirement | source |
+|---|---|---|
+| P1 | Parameters are the only state of record; animation state never writes back | principles §1.1 |
+| P2 | All state lives in the URL — no store, no component state | §1.2 |
+| P3 | Everything is seeded. Same URL, same picture, in March and in September | §1.3 |
+| P4 | `compute()` is pure and runs on parameter change only, never per frame | §1.4 |
+| P5 | Starts empty. A finished figure is published via `?shown=N`, applied on first render only | §2.1 |
+| P6 | Shows the mechanism, not just the result | §2.2 |
+| P7 | A data change resets the animation; a `display: true` change must not | §3.2 |
+| P8 | Never hardcodes a colour, size or font; references semantic token roles | tokens.css |
+| P9 | All randomness comes from the seeded `rng` passed to `compute` | §1.3 |
+| P10 | Legible projected | §3 |
+| P11 | Readout tiles are mandatory — they are the accessible reading of the figure | §10 |
+| P12 | Carries its own identity: title, question, subtitle. Self-explanatory, not self-teaching | §3 |
+| P13 | Works both in a ~900 px iframe and full-screen in its own tab | §4 |
+
+### The scaffold
+
+| # | requirement |
+|---|---|
+| S1 | **Zero runtime dependencies.** `package.json` has no `dependencies` block |
+| S2 | **No build step for widgets.** Adding a bundler is a decision to discuss, not a convenience to reach for |
+| S3 | **Zero data collection.** No analytics, no telemetry, no backend, no student data — see §8 |
+| S4 | The dev server sends `Cache-Control: no-store`, always (principles §5.5) |
+| S5 | `npm run check` asserts every invariant cheap to state in code, and runs inside `npm run build` |
+| S6 | The fingerprint harness holds both settled and driven states; a widget declaring an `animation` without a driven state fails `check` |
+
+---
+
+## 6 · Subsystems being removed
+
+Both embedders are deleted. Neither has a host, and mechanism 2 in §4 makes both
+unnecessary.
+
+| subsystem | why it goes |
+|---|---|
+| **`book/`** — a Quarto book: `_quarto.yml`, `index.qmd`, `chapters/clt.qmd`, `assets/widget.lua`, `assets/embed.html`, `assets/head.html` | **Wrong toolchain.** The ebook is assembled with MyST (Jupyter Book 2), as `jupyterbook/phm5003/myst.yml` and `book-chem` both are. Quarto is not installed here and the Lua shortcode and `postMessage` auto-resize have never been rendered once. Deleting retires the repo's largest unverified subsystem without ever installing Quarto. Salvage the prose in `chapters/clt.qmd` into a lesson markdown cell first |
+| **`python/statml_widgets`** and **`notebooks/demo.ipynb`** | **No host.** The PHM5003 lessons run the R kernel (`ir`); there is no `phm5005` project yet. A Python helper cannot run in an R notebook, and a pasted URL needs no helper in any language. Removes `show()`, `show_url()`, `url()`, the `DEFAULT_BASE` placeholder, and the hand-mirrored `HEIGHTS` dict |
+
+**What this buys, beyond deleting code:** the three-places heights problem
+(`manifest.json`, Python `HEIGHTS`, `widget.lua`) collapses to **one** place. Both
+duplicate sites are in the files being deleted. The `npm run check` assertions
+covering them go too.
+
+**What is lost:** the convenience of `show(slug, n=30)` in a future Python course,
+and the auto-resizing iframe. Both are recoverable from git if PHM5005 turns out
+to want them.
+
+---
+
+## 7 · Where each widget lands
+
+The lessons already exist, so the arc has host slots. This answers catalogue.md's
+open question 1 — sequencing against actual teaching weeks.
+
+| # | widget | lesson |
+|---|---|---|
+| 1 | `galton-board` ✅ | `03 / 02-03 — Inferential Statistics: Normal Distribution` |
+| 2 | `clt` ✅ | `03 / 03-01 — Estimation: Estimating Mean & Variance` |
+| 3 | `bootstrap` | `03 / 03-02 — Estimation: Quantifying Uncertainty` |
+| 4 | `confidence-interval` | `03 / 03-02`, then `03 / 04-03 — Hypothesis Testing: Effect Size` |
+| 5 | `permutation-test` | `03 / 04-01 — Hypothesis Testing: Significance` |
+| 6 | `multiple-testing` | `05 — High Throughput Data` / `08 — RNAseq Expression Analysis` |
+
+Two deferred entries also have confirmed homes, which strengthens their case:
+`interaction-effect` → `04 / 05-04 — Modeling: Interactions Between Covariates`,
+and the ML bridge → `04 / 06-01 Modeling for Prediction` and `06-02 Modeling for
+Explanation`.
+
+**A widget without a lesson slot is a warning sign**, not a blocker — but it
+should prompt the question of who will ever show it.
+
+---
+
+## 8 · Distribution
+
+- **Public.** GitHub Pages, open to anyone.
+- **CC-BY-4.0** for prose and figures, **MIT** for code. Add both `LICENSE` files
+  before the content spreads, not after.
+- **Order of newly unblocked work:** create the public repo and remote → first
+  Pages deploy → paste real URLs into lesson markdown cells.
+
+**The widgets collect nothing.** No analytics, no telemetry, no backend, no
+accounts. This is not only a privacy position — it is what lets a widget be
+linked or embedded anywhere with no review, and what keeps the architecture a
+static file server. Treat any proposal that adds collection as a change to this
+PRD.
+
+Known cost, unchanged: **GitHub Pages sends `max-age=600`**, so a student can get
+a stale widget for up to ten minutes after a deploy. The proper fix is
+content-hashed filenames, which needs a bundler and would end S2. Not yet.
+
+---
+
+## 9 · Decisions this closes
+
+Every open question in `design-principles.md` §7 and `HANDOVER.md` §4, plus the
+four this document opened and settled:
+
+| question | resolution |
+|---|---|
+| **Control budget** — is there a cap? Do book embeds get a reduced set? | **No cap, no book mode.** The lecture governs; §3.5's per-control test replaces a count |
+| **How much prose in the widget?** | **Thin**, because a widget never arrives without a host — §3. Self-explanatory, not self-teaching |
+| **Licensing** | **CC-BY-4.0 prose, MIT code**, public Pages |
+| **Print fallback** | **Out of scope.** PNG export stays opt-in and off |
+| **The catalogue** — which concepts, in what order? | **Closed for PHM5003**: the six-widget arc, now with lesson slots in §7. **Open for PHM5005** — still a tier list |
+| **`ppv-prevalence` deferred** despite the strongest evidence in the catalogue | **Stays deferred**, built as a matched pair with `imbalance-metrics` |
+| **Generating the manifest** from a machine-readable catalogue | **Deferred, and largely obsolete.** Its main prize was ending the three-places heights; §6 does that by deletion instead. Its old count-based trigger never fires under a no-fixed-number plan — if it returns, the trigger is an **incident**, not a count |
+| **Ball physics on the Galton board** | **Closed.** Dropped — a bounce implies the deflection is caused by peg geometry when the lesson is an independent coin flip. A landing squash remains free and safe |
+| **Who else builds this?** | Nobody — §2 |
+| **How do you know it worked?** | Judgement in the room — §10 |
+| **The Quarto book** | **Deleted** — wrong toolchain, §6 |
+| **The Python helper** | **Deleted** — no host, §6 |
+
+---
+
+## 10 · Success
+
+**Your judgement in the room.** Did the lecture go better, did the questions
+change, did you stop re-explaining the same thing for the third year running.
+
+That is the whole bar, and stating it plainly has consequences worth naming:
+
+- **No instrumentation** — which is what makes S3 costless
+- **No pre/post testing, no item analysis, no cohort comparison.** So the
+  `inferred` evidence grades in `catalogue.md` will stay inferred. Those entries
+  are hypotheses about your students that this project has no mechanism to test.
+  Accepted knowingly
+- **The rule for earning a slot does the work instead.** A widget must name the
+  misconception it dislodges, or name the widget it is a prerequisite for. That
+  rule is the quality gate measurement would otherwise have been
+
+---
+
+## 11 · Non-goals
+
+Stated so they can be pointed at rather than re-argued:
+
+- A fixed widget count or a roadmap with dates. The catalogue is a living queue
+- Measurement of learning outcomes, in any form
+- Contributor onboarding, API stability, or versioning of `core/`
+- **A kernel-side helper in any language** — Python, R or otherwise. A pasted URL
+  is the interface
+- **Book tooling of any kind in this repo.** The ebook is MyST and is assembled
+  in the notebook project
+- LMS integration, authentication, or anything student-identifiable
+- Slides, PowerPoint, Keynote, reveal.js
+- Print or static-figure fallback
+- Screen-reader access to bin-level data. Canvas was chosen for one code path
+  across many animating figures; **readout tiles are the accessible reading of
+  every figure, which is why P11 makes them mandatory rather than decorative.**
+  No institutional standard applies. If one ever does, this is the decision that
+  reopens
+- Mobile-first layout. The projector, the laptop and a notebook iframe are the
+  targets
+- A bundler, until the `max-age` staleness actually bites
+
+---
+
+## 12 · Still open
+
+1. **The PHM5005 arc.** `catalogue.md` has a five-widget tier list and an
+   explicitly provisional spine — *a model that fits → a model that generalises →
+   an honest estimate of how well → a probability you can act on*. It needs the
+   same treatment PHM5003 got: one continuous argument where each widget answers a
+   question the previous one raises. Do this before building its first widget. The
+   course has no notebook project yet, so §7 cannot give it lesson slots either.
+2. **Does an `<iframe>` survive a JupyterLab markdown cell?** §4. One test, and it
+   decides whether widgets appear inline in a lesson or only behind a link.
+   Everything works either way; inline is just better.
+3. **Whether any concept resists a widget.** Some are hard because they are
+   *abstract*, which widgets help with; others because they are *technical*, which
+   widgets do not. `interaction-effect` is the main suspect — and §7 shows it has a
+   lesson waiting. Mock up before committing, per principles §5.1.

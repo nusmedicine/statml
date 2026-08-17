@@ -16,13 +16,14 @@ Not merged, because they have opposite shapes. The plan is mostly unbuilt entrie
 carrying prose and citations; the registry is small and fetched by every
 student's browser on every gallery load.
 
-**Planned evolution.** Once more than a handful of widgets have shipped, promote
-the machine-readable half of this file to `catalogue/index.js` (an ES module,
-importable by both node and the gallery — no new dependency) and *generate*
-`widgets/manifest.json` and the Python `HEIGHTS` dict from it. That closes the
-hand-mirrored-heights cost in the principles doc. Until then the drift risk is
-one line in review: **a widget marked shipped here must exist in the manifest,
-and vice versa.**
+**Planned evolution — mostly overtaken.** The prize was generating
+`widgets/manifest.json` and the Python `HEIGHTS` dict from one machine-readable
+source, closing the hand-mirrored-heights cost in the principles doc. Deleting
+both embedders ([prd.md](prd.md) §6) closed it by subtraction instead: the height
+now lives in exactly one file. What remains is the drift risk between *this* file
+and the manifest, which is one line in review: **a widget marked shipped here must
+exist in the manifest, and vice versa.** If generation ever returns, the trigger is
+an incident — not a widget count, which under a no-fixed-number plan never fires.
 
 ---
 
@@ -187,8 +188,11 @@ points, differing only by URL parameters and the chapter that embeds them.
 
 ## What this catalogue still does not settle
 
-1. **Sequencing against your actual teaching weeks.** The statistics arc has an
-   internal order; where it sits in a semester is yours.
+1. ~~**Sequencing against your actual teaching weeks.**~~ **Answered** in
+   [prd.md](prd.md) §7: every widget in the arc maps to an existing lesson in the
+   PHM5003 notebooks. Note that #3 and #4 share one — `03/03-02 Estimation:
+   Quantifying Uncertainty` — which is a mild argument that #3's switch from a mean
+   to a difference matters more than assumed, since one lesson carries both.
 2. **The `inferred` entries** — you have data I do not: which questions they get
    wrong in exams, which they ask twice.
 3. **Budget.** Six widgets at 3–8 hours each is 20–50 hours, and #1 and #3 will

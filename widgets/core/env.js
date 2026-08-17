@@ -11,11 +11,12 @@
      colour: tokens.css stays the single source of truth even inside canvas.
 
    Height reporting
-     The book page controls its own iframes, so widgets post their height and
-     the host resizes them (see book/assets/embed.js). Notebooks are different:
-     we cannot rely on injecting a listener into the notebook page, so there
-     `show()` passes an explicit height instead. Same widget, two mechanisms —
-     by design, not by accident.
+     A framed widget posts its height to the parent on every change. Nothing in
+     this repo listens any more — the Quarto book that did was deleted with the
+     rest of the embedders (docs/prd.md §6). It is kept because the notebook
+     lessons embed widgets by iframe, and a host that wants auto-resize needs
+     only a five-line message listener. It costs nothing when unframed: the
+     first line returns immediately.
    ========================================================================= */
 
 export function resolveTheme() {
