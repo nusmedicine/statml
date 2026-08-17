@@ -45,7 +45,7 @@
     {
       "slug": "permutation-test",
       "title": "Could chance alone have done this?",
-      "blurb": "If the grouping meant nothing, any relabelling of the same numbers would be as likely. Pool the observations, deal them back, rebuild the difference — and p is simply how many of those shuffles reached what you actually saw. Set the true effect to zero and watch a false positive happen.",
+      "blurb": "If the grouping meant nothing, any relabelling of the same numbers would be as likely. Pool the observations, deal them back, rebuild the difference — and p is simply how many of those shuffles reached what you actually saw, in red. Set the true effect to None and watch a false positive happen.",
       "course": "PHM5003",
       "topics": [
         "hypothesis testing",
@@ -53,7 +53,7 @@
         "resampling"
       ],
       "arc": 5,
-      "height": 1180,
+      "height": 1120,
       "status": "shipped"
     }
   ]

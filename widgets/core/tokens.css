@@ -58,6 +58,14 @@
   --c-group-a:   var(--series-1);    /* one arm of a comparison              */
   --c-group-b:   var(--series-4);    /* the other arm                        */
 
+  /* At or beyond a threshold: the tail a p-value counts, and later the tests a
+     correction flags. Red because this role's whole job is to be found first —
+     it is the one thing on the figure a reader is meant to count. Distinct from
+     --c-highlight, which means "moving right now": an arrival is highlighted
+     while it falls and turns THIS colour only if it lands somewhere that
+     counts, so the two never mean the same thing. */
+  --c-extreme:   var(--series-8);    /* past the line: what a p-value counts  */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

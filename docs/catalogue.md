@@ -171,18 +171,35 @@ dead Java plugin. StatKey — modern, widely used — was checked directly: pres
 tools either give the result and hide the mechanism, or showed the mechanism and
 have bit-rotted.
 
-**A dot that lands in a tail stays lit**, so p is *count the lit ones* rather
-than an abstract tail area. The lit count is exactly p's numerator: the tail is
+**A dot that lands past the line turns red** (`--c-extreme`, added for this and
+wanted again by #6 for the tests a correction flags), so p is *count the red
+ones* rather than an abstract tail area. It is a different colour from the
+arrival highlight on purpose: highlight means "moving right now", landing
+somewhere that counts is a separate fact. That count is exactly p's numerator: the tail is
 counted per bin as values arrive, never derived from bin centres at paint time,
 because quantising the boundary bin would let a student count a different number
 than the readout reports. Mocked up first in `widgets/_lab/null-and-p.html`,
 which also established that the shaded tail band is close to furniture — the
 tails run from the observed line to the panel edge, roughly half the panel.
 
-**The true effect is a control and it goes to zero.** Verified in node across 200
-seeds at `effect=0`, `n=12`: **exactly 5.0%** of studies give p < 0.05 while the
-null is *true*. `?effect=0&seed=103` is the one to show — it reads **p = 0.000**,
-which is also the case the never-zero form `(k+1)/(B+1)` exists for.
+**The true effect is a control and its first setting is None.** Verified in node
+across 200 seeds with no effect at `n=12`: **exactly 5.0%** of studies give
+p < 0.05 while the null is *true*. `?effect=none&seed=103` is the one to show —
+it reads **p = 0.000**, which is also the case the never-zero form `(k+1)/(B+1)`
+exists for.
+
+**Named levels, not a number**, and it solved two problems at once. A numeric
+slider put two numbers for "the effect" on screen — the one you set and the
+different one your study measured — and the gap between them is sampling
+variability, i.e. widgets 2 and 3 interrupting widget 5. A name cannot be
+compared against, so the question never arises. It also let the levels stay in
+SDs, where "Small" means the same thing in every population, without ever
+printing a σ multiple beside a raw difference. The multiples and detection rates
+are measured, not guessed — 120 studies per level — and the rates sit in the
+control's detail line, so it **teaches power for free**: a small real effect is
+found in about one study in six. Moderate is 0.9 SD rather than 0.8 because 0.8
+lands the default on p = 0.055, exactly on the threshold, which is a poor first
+thing to meet.
 
 ### Shared machinery
 

@@ -30,22 +30,25 @@
      established convention rather than a private notation.
 
    - THE DOTS MOVE VERTICALLY ONLY, so an observation never leaves its value.
-     The boxes carry their n, because a permutation holds the group SIZES fixed —
-     the thing that separates it from relabelling each observation independently,
-     and the thing a swap animation does not say.
+     A permutation holds the group SIZES fixed — the thing that separates it from
+     relabelling each observation independently, and the thing a swap animation
+     does not say — so the caption carries the n and the boxes never change size.
 
-   - A DOT THAT LANDS IN A TAIL STAYS LIT. Arrivals are highlighted while falling
-     anyway; one landing beyond the observed line keeps that colour. So p is
-     "count the lit ones" rather than an abstract tail area. The lit count is
-     exactly p's numerator — the tail is counted PER BIN as values arrive rather
-     than derived from bin centres at paint time, because quantising the boundary
-     bin would let a student count a different number than the readout reports,
-     and that would destroy the only reason the idea is worth anything.
+   - A DOT THAT LANDS PAST THE LINE TURNS RED. Arrivals are highlighted while
+     falling, which means "moving right now"; landing somewhere that counts is a
+     different fact and gets its own colour, `--c-extreme`. So p is "count the
+     red ones" rather than an abstract tail area. That count is exactly p's
+     numerator — the tail is counted PER BIN as values arrive rather than derived
+     from bin centres at paint time, because quantising the boundary bin would
+     let a student count a different number than the readout reports, and that
+     would destroy the only reason the idea is worth anything.
 
-   - THE TRUE EFFECT IS A CONTROL, AND IT GOES TO ZERO. That is the widget's
-     strongest move against the misconception: set it to zero, so the null is
-     TRUE, and re-seed. About one study in twenty still lands under p < 0.05. If
-     p were the probability the null is true it would read 1.00 every time.
+   - THE TRUE EFFECT IS A CONTROL, AND ITS FIRST SETTING IS "NONE". That is the
+     widget's strongest move against the misconception: with None the null is
+     TRUE, so re-seeding produces false positives you watched happen — about one
+     study in twenty under p < 0.05. If p were the probability the null is true
+     it would read 1.00 every time. Named levels rather than a number, for the
+     reason recorded at EFFECTS below.
    ========================================================================= */
 
 import {
@@ -54,19 +57,23 @@ import {
   createPile, binsFor,
 } from "../core/index.js";
 
-/* Shuffles whose label arrays are retained for the choreography. Past this the
-   animation is too fast for individual dots to read anyway. */
-const KEEP = 60;
+/* Three tiers, and every one of them still shows the groups changing.
 
+   There used to be a fourth, "Fastest", which filled the pile at once — and a
+   limit of 60 on how many shuffles kept their labelling, past which the study
+   panel silently held the real grouping while the pile below carried on. At
+   Fast you passed 60 in eight seconds, so the top half of the figure appeared
+   to freeze with nothing on screen saying why. Both are gone: EVERY shuffle now
+   keeps its labelling, and the fastest tier is the one where the dots still
+   land in their new boxes. What Fast drops is the pooling animation, not the
+   information. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "every stage shown", ms: 1800, choreo: true },
-  medium: { label: "Medium", detail: "every stage shown", ms: 750, choreo: true },
-  fast: { label: "Fast", detail: "differences only", ms: 130, choreo: false },
-  fastest: { label: "Fastest", detail: "fills in at once", ms: 0, choreo: false },
+  slow: { label: "Slow", detail: "pooled and re-dealt", ms: 1800, choreo: true },
+  medium: { label: "Medium", detail: "pooled and re-dealt", ms: 750, choreo: true },
+  fast: { label: "Fast", detail: "groups change, no pooling", ms: 150, choreo: false },
 };
 
 const STEP_MS = 1900;
-const STREAM_MS = 3200;
 /* Pool, deal, drop. The pool and the deal get equal time because they are the
    two halves of one claim — everything comes out, everything goes back. */
 const PHASE_FRAC = { pool: 0.36, deal: 0.34, drop: 0.30 };
@@ -82,6 +89,43 @@ const lerp = (a, b, t) => a + (b - a) * t;
 
 const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
+
+/* NAMED LEVELS, not a number, and the reason is worth keeping.
+
+   This was a numeric slider, and it put two numbers for "the effect" on screen
+   at once — the true one you set, and the different one your study happened to
+   measure. They differ for the most ordinary reason there is, sampling
+   variability, which is precisely what widgets 2 and 3 are about. But here it
+   is a distraction: a student asks why 0.9 became 1.06 and the p-value lesson
+   stops while you answer. A name has nothing to be compared against, so the
+   question never arises and the observed difference is simply what you measured.
+
+   It also removes a real wart. In population SDs, "Small" means the same thing
+   whichever population is chosen; in raw units the same number was a large
+   effect for the uniform and a negligible one for the bimodal, and the slider
+   and the readout disagreed unless σ happened to be 1. Naming the levels lets
+   them stay in SDs without ever showing a σ multiple beside a raw difference.
+
+   The multiple is still available to anyone who wants it — it is in the detail
+   line under the control, which is where a `choice` explains itself, and not in
+   the readout where it would sit next to the observed difference and invite
+   exactly the comparison this change exists to prevent. */
+/* The multiples and the detection rates are measured, not guessed: 120 studies
+   per level at n = 12 with 200 shuffles. The rates are in the detail lines
+   because they teach POWER for free — a small real effect is missed five times
+   out of six, and no separate widget has to say so.
+
+   Moderate is 0.9 SD rather than 0.8 deliberately. At 0.8 the median p is 0.060
+   and the default seed lands on 0.055, so the widget's first impression is a
+   result sitting exactly on the threshold — an interesting case, and a terrible
+   one to meet before you know what p is. 0.9 gives 0.035: readable, and not so
+   emphatic that the tail becomes a single bar. */
+const EFFECTS = {
+  none: { label: "None", detail: "no difference whatever — the null is TRUE", sd: 0 },
+  small: { label: "Small", detail: "0.4 SD · found in about 1 study in 6", sd: 0.4 },
+  moderate: { label: "Moderate", detail: "0.9 SD · found about half the time", sd: 0.9 },
+  large: { label: "Large", detail: "1.3 SD · found in 5 studies out of 6", sd: 1.3 },
+};
 
 /** The statistic: how much higher group B's mean is than group A's. */
 function gapOf(values, labels, n) {
@@ -112,18 +156,25 @@ defineWidget({
     dist: { type: "select", label: "Population", options: distOptions, default: "normal" },
     n: { type: "int", label: "Group size n", min: 4, max: 40, default: 12 },
 
-    /* The control this widget is really about. At zero the null is TRUE, so
-       every small p it then produces is a false positive you watched happen —
-       which is the demonstration that p is not the probability the null is
-       true. Kept in population SDs so it means the same thing whichever
-       population is chosen. Default 0.9σ is about 2.2 standard errors at n = 12:
-       a result you would report, and not an overwhelming one. */
+    /* The control this widget is really about — see EFFECTS above for why it is
+       named rather than numeric. "None" is the setting that matters: the null
+       is then TRUE, so every small p it produces is a false positive you watched
+       happen, which is the demonstration that p is not the probability the null
+       is true. A `choice` because the levels form a magnitude, so left-to-right
+       carries meaning and the tick labels put all four on screen at rest. */
     effect: {
-      type: "float", label: "True effect (σ)", min: 0, max: 1.6, step: 0.1, default: 0.9,
+      type: "choice",
+      label: "True effect",
+      options: Object.entries(EFFECTS).map(([value, e]) => ({ value, label: e.label, detail: e.detail })),
+      default: "moderate",
     },
 
+    /* 200, not 400. Without a fill-at-once speed, 400 shuffles is about a minute
+       of watching; 200 halves that and costs nothing worth having, since p is a
+       proportion and 200 draws pin it to about ±3%. A finished figure comes from
+       ?shown=, which is what that parameter is for. */
     reps: {
-      type: "int", label: "Shuffles to draw", min: 1, max: 2000, step: 1, default: 400,
+      type: "int", label: "Shuffles to draw", min: 1, max: 2000, step: 1, default: 200,
       // The first k shuffles are the same k shuffles whatever the target is.
       display: true,
     },
@@ -148,7 +199,7 @@ defineWidget({
      line is labelled where it is drawn, for the same reason. */
   legend: [
     { token: "empirical", label: "Differences chance alone produced", mark: "bar" },
-    { token: "highlight", label: "At least as far from zero as observed — these are what p counts", mark: "bar" },
+    { token: "extreme", label: "At least as far from zero as observed — these are what p counts", mark: "bar" },
   ],
 
   /* --- data ------------------------------------------------------------- */
@@ -156,7 +207,9 @@ defineWidget({
   compute({ params, rng }) {
     const pop = POPULATIONS[params.dist];
     const n = params.n;
-    const delta = params.effect * pop.sd;
+    // In population SDs, so a named level means the same thing in every
+    // population. The multiple never reaches the readout — see EFFECTS.
+    const delta = (EFFECTS[params.effect] ?? EFFECTS.moderate).sd * pop.sd;
 
     /* 1 — the one study. Group B is the same population shifted, so the two
        arms have identical spread and only their centres differ. */
@@ -170,12 +223,18 @@ defineWidget({
        shuffles are independent of one another rather than a random walk through
        arrangements. Nothing new is ever drawn from the population here: the
        values are fixed and only their assignment changes. */
+    /* Every shuffle keeps its labelling, in ONE flat Uint8Array rather than a
+       list of arrays: at the maximum 2000 shuffles of 40-per-group that is 160 KB
+       and a single allocation, where an array of arrays would be roughly ten
+       times the memory and two thousand objects for the collector to chase on
+       every parameter change. `permAt` hands back a view, never a copy. */
+    const width = 2 * n;
     const diffs = new Array(params.reps);
-    const perms = [];
+    const perms = new Uint8Array(params.reps * width);
     for (let r = 0; r < params.reps; r += 1) {
       const ls = rng.shuffle(labels);
       diffs[r] = gapOf(values, ls, n);
-      if (r < KEEP) perms.push(ls);
+      perms.set(ls, r * width);
     }
 
     /* The window is centred on ZERO, because under H₀ the difference is centred
@@ -235,8 +294,6 @@ defineWidget({
         phase: "pool", // 'pool' | 'deal' | 'drop'
         phaseT: 0,
         sinceCommit: 0,
-        streamFrom: -1,
-        streamT: 0,
         done: false,
       };
 
@@ -274,8 +331,22 @@ defineWidget({
 
       const stepping = anim.mode === "step";
       const speed = SPEEDS[params.speed] ?? SPEEDS.medium;
-      const hasDetail = anim.pile.shown < state.perms.length;
-      const choreo = hasDetail && (stepping || speed.choreo);
+      // Every shuffle keeps its labelling now, so the only question is whether
+      // the chosen speed wants the pooling shown.
+      const choreo = stepping || speed.choreo;
+
+      /* A step can be in flight when the uncoreographed path takes over — press
+         "Shuffle the labels" and then Play at Fast, or change speed while a step
+         is running. That path never advances `phaseT`, so anything left in it
+         stays exactly where it was: the study panel freezes with every
+         observation stranded in the pool, grey and belonging to no group, while
+         the pile below carries on filling. Clear it, for the same reason the
+         landing flash is cleared when the animation halts — a frozen transient
+         stops reading as motion and starts reading as a state. */
+      if (!choreo && anim.phaseT > 0) {
+        anim.phase = "pool";
+        anim.phaseT = 0;
+      }
 
       if (choreo) {
         const budget = (stepping ? STEP_MS : speed.ms) * PHASE_FRAC[anim.phase];
@@ -301,20 +372,15 @@ defineWidget({
         return true;
       }
 
-      if (speed.ms > 0) {
-        anim.sinceCommit += dt;
-        while (anim.sinceCommit >= speed.ms && anim.pile.shown < params.reps) {
-          anim.sinceCommit -= speed.ms;
-          push(anim, state, anim.pile.shown);
-        }
-      } else {
-        if (anim.streamFrom < 0) anim.streamFrom = anim.pile.shown;
-        anim.streamT = Math.min(1, anim.streamT + dt / STREAM_MS);
-        const target = Math.min(
-          params.reps,
-          anim.streamFrom + Math.round(easeInOut(anim.streamT) * (params.reps - anim.streamFrom))
-        );
-        while (anim.pile.shown < target) push(anim, state, anim.pile.shown);
+      /* Uncoreographed arrivals. The pooling is not drawn, but each shuffle
+         still commits one at a time — so the dots land in their new boxes, the
+         two group means shift and the difference changes, all of it visible.
+         What Fast gives up is the explanation of WHY relabelling is allowed,
+         not the fact that it is happening. */
+      anim.sinceCommit += dt;
+      while (anim.sinceCommit >= speed.ms && anim.pile.shown < params.reps) {
+        anim.sinceCommit -= speed.ms;
+        push(anim, state, anim.pile.shown);
       }
 
       if (anim.pile.shown >= params.reps) return halt(anim, { finished: true });
@@ -336,45 +402,56 @@ defineWidget({
     const MR = 14;
     const plotW = w - ML - MR;
 
-    const top = { x: ML, y: 30, w: plotW, h: 150 };
+    const top = { x: ML, y: 30, w: plotW, h: 124 };
     const bottomY = top.y + top.h + 58;
     const bottom = { x: ML, y: bottomY, w: plotW, h: Math.max(120, h - bottomY - 40) };
 
-    const boxA = top.y + 24;
-    const pool = top.y + 66;
-    const boxB = top.y + 108;
-    const meansY = top.y + 140;
+    // Tighter than it was, because the group names moved out of the way: they
+    // used to sit ABOVE each box, where "GROUP A · n = 12" competed with the
+    // panel caption directly over it for the same line of attention.
+    const boxA = top.y + 20;
+    const pool = top.y + 50;
+    const boxB = top.y + 80;
+    const meansY = top.y + 112;
     const BOX_H = 30;
 
     const ps = makePlot({ ctx, colors, rect: top, xDomain: dataDomain, yDomain: [0, 1] });
     const shown = anim.leadDone ? labelsInView({ state, anim, inFlight }) : null;
 
     /* -- upper panel: the study ------------------------------------------ */
+    /* The group SIZE has moved into the caption, where it can say what it is
+       for. It is not decoration: holding n fixed in each box is exactly what
+       makes this a permutation rather than relabelling each observation on its
+       own coin flip. */
     ps.caption(
       !anim.leadDone
         ? "Your study — nothing run yet · you get one, and it is the same numbers for every shuffle"
         : inFlight
           ? "Your study — the same numbers, dealt into the groups a different way"
           : shown.real
-            ? "Your study — the real grouping"
-            : "Your study — the last shuffled grouping"
+            ? `Your study — the real grouping · ${n} in each group, and shuffling never changes that`
+            : `Your study — one grouping chance could have dealt · still ${n} in each`
     );
 
-    // The two containers. Always present, always the same size: a permutation
-    // reassigns membership and never the group sizes.
+    // The two containers. Always present, always the same size.
     ctx.save();
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     for (const cy of [boxA, boxB]) {
-      roundRect(ctx, top.x - 8, cy - BOX_H / 2, top.w + 16, BOX_H, 6);
+      roundRect(ctx, top.x - 6, cy - BOX_H / 2, top.w + 12, BOX_H, 6);
       ctx.stroke();
     }
-    ctx.fillStyle = colors.ink3;
-    ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(`GROUP A · n = ${n}`, top.x - 8, boxA - BOX_H / 2 - 3);
-    ctx.fillText(`GROUP B · n = ${n}`, top.x - 8, boxB - BOX_H / 2 - 3);
+    /* One letter each, to the left and in that group's own colour — so the
+       label doubles as the colour key and the legend does not have to carry it.
+       Set in the medium size rather than the smallest: this is the only thing
+       naming the groups now, and it is read from across a room. */
+    ctx.font = `600 ${colors.fsMd} ${colors.font}`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = colors.groupA;
+    ctx.fillText("A", top.x - 12, boxA);
+    ctx.fillStyle = colors.groupB;
+    ctx.fillText("B", top.x - 12, boxB);
     ctx.restore();
 
     if (anim.leadDone) {
@@ -398,6 +475,19 @@ defineWidget({
           : `What chance alone produces — ${total} shuffle${total === 1 ? "" : "s"}`
     );
 
+    /* Both tails shaded, drawn under everything else. The lit bars already say
+       which shuffles count, but the shading says where the BOUNDARY is even
+       where no bar happens to have landed — and without it the two rules read
+       as a couple of blue lines among blue bars, which is exactly how they were
+       first misread. Faint: these regions run from the observed line out to the
+       panel edge, so at a typical effect they cover about half the figure and
+       anything stronger becomes a wash. */
+    if (anim.leadDone) {
+      const a = Math.abs(observed);
+      pn.band(domain[0], -a, { fill: colors.extreme, opacity: 0.08 });
+      pn.band(a, domain[1], { fill: colors.extreme, opacity: 0.08 });
+    }
+
     const ticks = niceTicks(0, f.yMax, f.yMax <= 6 ? f.yMax : 4);
     pn.grid(ticks);
 
@@ -406,7 +496,7 @@ defineWidget({
     /* The tail bins overdrawn, so the lit marks sit on top of the ordinary
        ones. Same technique the pile itself uses for the landing flash. */
     if (total > 0) {
-      const opts = { lo: pile.lo, width: pile.width, fill: colors.highlight };
+      const opts = { lo: pile.lo, width: pile.width, fill: colors.extreme };
       if (f.barMix > 0) pn.bars(anim.tail, { ...opts, opacity: f.barMix });
       if (f.barMix < 1) pn.dotColumns(anim.tail, { ...opts, opacity: 1 - f.barMix, maxR: 6 });
     }
@@ -439,7 +529,7 @@ defineWidget({
    * the panel above, so the two can be checked against each other.           */
 
   readout({ params, state, anim }) {
-    const { observed, delta } = state;
+    const { observed } = state;
     const total = anim.pile.shown;
     const k = extremeCount(state, total);
     const p = total ? k / total : NaN;
@@ -454,11 +544,20 @@ defineWidget({
         value: anim.leadDone ? fmt(observed) : "—",
         note: anim.leadDone ? "x̄B − x̄A, from one study" : "study not run yet",
       },
-      { label: "True effect", value: fmt(delta), note: "you never see this" },
+      /* A word, never a number. A number here would sit inches from the observed
+         difference and invite "why is 0.90 showing as 1.06?" — a fair question
+         with a long answer that belongs to widgets 2 and 3, asked at the moment
+         this widget is trying to talk about p. "None" also lands harder than
+         "0.00" when the point is that the null is true and p came out at 0.03. */
+      {
+        label: "True effect",
+        value: (EFFECTS[params.effect] ?? EFFECTS.moderate).label,
+        note: "you never see this",
+      },
       {
         label: "As extreme or more",
         value: total ? `${k} of ${total}` : "—",
-        note: "the lit marks above",
+        note: "the red marks above",
       },
       {
         label: "p-value",
@@ -470,6 +569,12 @@ defineWidget({
 });
 
 /* --- helpers ------------------------------------------------------------ */
+
+/** The labelling shuffle `r` used — a view into the flat store, never a copy. */
+function permAt(state, r) {
+  const w = 2 * state.n;
+  return state.perms.subarray(r * w, (r + 1) * w);
+}
 
 /** Fold shuffle `i` into the pile, keeping the lit-count in step with it. */
 function push(anim, state, i) {
@@ -501,13 +606,14 @@ function halt(anim, { finished = false } = {}) {
  */
 function labelsInView({ state, anim, inFlight }) {
   const at = anim.pile.shown;
-  // Only the first KEEP shuffles retain their labelling, so past that there is
-  // no shuffled arrangement to show and the real one is displayed instead. The
-  // caption has to say which, or it claims a grouping the figure is not showing.
-  const kept = at > 0 ? state.perms[at - 1] : null;
+  // Every shuffle keeps its labelling, so the only time the REAL grouping is on
+  // screen is before any shuffle has happened. The caption still says which,
+  // because "this is the arrangement you actually observed" and "this is one
+  // chance could have produced" are the two things the panel alternates between.
+  const kept = at > 0 ? permAt(state, at - 1) : null;
   const prev = kept ?? state.labels;
   const real = !kept;
-  const next = state.perms[at] ?? prev;
+  const next = at < state.diffs.length ? permAt(state, at) : prev;
   if (!inFlight) return { from: prev, to: prev, settled: prev, real };
   // Mid-flight the means belong to whichever end the dots are nearer.
   return { from: prev, to: next, settled: anim.phase === "pool" ? prev : next, real: false };
@@ -557,12 +663,6 @@ function drawStudy({ ctx, colors, ps, state, anim, shown, geom, inFlight }) {
     pin(ctx, colors, x, y, 5, fill, 1);
   }
 
-  // Naming the pool is most of its value — it is the null hypothesis in words,
-  // at the moment the picture is making it.
-  if (inFlight && (anim.phase === "pool" || anim.phase === "deal")) {
-    const vis = anim.phase === "pool" ? clamp01((t - 0.4) / 0.3) : clamp01((0.6 - t) / 0.3);
-    label(ctx, colors, "one pool — under H₀ the split means nothing", ps.x + ps.w, pool - 16, vis, "right");
-  }
 }
 
 /** The two group means, on the study panel's baseline: the statistic, in place. */
@@ -631,7 +731,9 @@ function drawDrop({ ctx, colors, ps, pn, state, anim, y0 }) {
   const t = clamp01(anim.phaseT);
   const bin = anim.pile.binOf(value);
 
-  const shown = state.perms[anim.pile.shown] ?? state.labels;
+  const shown = anim.pile.shown < state.diffs.length
+    ? permAt(state, anim.pile.shown)
+    : state.labels;
   let a = 0;
   let b = 0;
   for (let i = 0; i < state.values.length; i += 1) {

@@ -135,8 +135,25 @@ function drive(win, doc, spec) {
     }
   }
 
-  press(spec.click ?? "step");
   const dt = spec.dt ?? 32;
+
+  /* Some regressions only exist where one action INTERRUPTS another, and no
+     single click can reach them. A step left in flight when Fast took over once
+     froze a whole panel — every observation stranded mid-shuffle, belonging to
+     no group, while the figure below carried on as if nothing were wrong.
+     `before` performs those actions first, unmeasured, so the measured click
+     starts from a genuinely interrupted state. */
+  for (const step of spec.before ?? []) {
+    press(step.click);
+    for (let i = 0; i < (step.frames ?? 0); i += 1) {
+      const cb = queue.shift();
+      if (!cb) break;
+      t += dt;
+      cb(t);
+    }
+  }
+
+  press(spec.click ?? "step");
   let ran = 0;
   for (let i = 0; i < spec.frames; i += 1) {
     const cb = queue.shift();
@@ -145,7 +162,8 @@ function drive(win, doc, spec) {
     cb(t);
     ran += 1;
   }
-  return `${spec.lead ? "lead→" : ""}${spec.click ?? "step"} +${ran}f`;
+  const pre = (spec.before ?? []).map((s) => `${s.click}+${s.frames}f→`).join("");
+  return `${spec.lead ? "lead→" : ""}${pre}${spec.click ?? "step"} +${ran}f`;
 }
 
 async function shoot(entry) {

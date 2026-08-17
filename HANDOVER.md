@@ -36,7 +36,7 @@ npm run dev
 | 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
 | 3 | `bootstrap` | **Two stages, two buttons.** *Sample the population* draws your one sample out of the panel above — then greys out for good, because you cannot go back for more. *Resample your sample* then runs as often as you like: copies stack above the observations they came from, so duplicates and never-picked values are both visible, collapse to their mean, drop into the pile. The true sampling distribution sits behind it: **same width, different place.** |
 
-| 5 | `permutation-test` | **Two stages again.** *Run the study* once, then *Shuffle the labels* as often as you like. Every observation lifts out of its box into one pool and is dealt back — vertically only, so nothing leaves its value, and the boxes carry their `n` because a permutation fixes the group sizes. The difference falls into the null below, and **a dot landing beyond the observed line stays lit**, so p is *count the lit ones*. Set the true effect to zero and re-seed to watch a false positive happen. |
+| 5 | `permutation-test` | **Two stages again.** *Run the study* once, then *Shuffle the labels* as often as you like. Every observation lifts out of its box into one pool and is dealt back — vertically only, so nothing leaves its value, and the caption carries the `n` because a permutation fixes the group sizes. The difference falls into the null below, and **a dot landing beyond the observed line turns red**, so p is *count the red ones*. Set the true effect to **None** and re-seed to watch a false positive happen. |
 
 All start empty, all animate step by step, all build their pile with
 `core/accumulator.js`.
@@ -94,11 +94,19 @@ reading it. `bootstrap` already computes the distribution an interval is cut
 from, so the new idea is only what you do with it.
 
 **What widget 5 already built that widget 4 wants.** `--c-group-a` /
-`--c-group-b` in `tokens.css` (blue and amber), `rng.shuffle`, the two-box
-layout with group sizes on the boxes, and a worked example of a second panel
-whose x-axis is a *difference* while the panel above is in data units. Widget 4
-also needs the mean → difference transition that widget 3 gave up, so read the
-note at the end of §1 before designing it.
+`--c-group-b` and `--c-extreme` in `tokens.css` (blue, amber, red),
+`rng.shuffle`, the two-box layout, and a worked example of a second panel whose
+x-axis is a *difference* while the panel above is in data units. Widget 4 also
+needs the mean → difference transition that widget 3 gave up, so read the note at
+the end of §1 before designing it.
+
+**And one pattern worth copying.** Widget 5's effect control is **named levels**
+(None / Small / Moderate / Large), not a number — because a numeric "true effect"
+sits next to the observed one, differs from it for the most ordinary reason
+there is, and derails the lesson while you explain sampling variability. The
+detail line under the control carries the measured detection rate, so the
+control teaches power without a power widget. Widget 4 shows a true value too,
+and will face the same choice.
 
 **Misconception targeted.** That there is a 95% chance the true value lies in
 *this* interval. A realised interval either contains the truth or it does not;
