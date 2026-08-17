@@ -110,20 +110,25 @@ target. Both, with the second reachable from the first.
 **#6 is #5 run twenty thousand times.** If #5 is built so its null distribution
 and test statistic are reusable, #6 is largely a loop over it plus Bonferroni/BH.
 
-### Shared machinery — flag before widget #3
+### Shared machinery
 
 Widgets 2, 3, 5 and 6 all accumulate a statistic into a growing distribution.
-`clt/main.js` currently owns that logic privately: the dot-plot-becomes-histogram
-crossfade, the ratcheted count axis, the running mean and SD, the drop
-choreography, the KDE overlay.
 
-**Done** — `core/accumulator.js` exists and both shipped widgets use it. The
-extraction was verified pixel-identical on five CLT states via
-`widgets/_lab/fingerprint.html`.
-Three widgets duplicating it is the version of this project that becomes
-unmaintainable. Widgets 3, 5 and 6 additionally need a shared resampling engine
-(`resample`, `permute`) in `core/rng.js`. Doing both first is the difference
-between widget #3 costing a day and costing three.
+**Done.** `core/accumulator.js` (`createPile`) owns the binned counts, the running
+mean and SD, the dot-plot-to-histogram crossfade, the ratcheted count axis, the
+smoothed density and the landing flash. Both shipped widgets use it, and the
+extraction was verified **pixel-identical** on five CLT states via
+`widgets/_lab/fingerprint.html` rather than assumed invisible.
+
+Deliberately *not* extracted: the draw/collapse/drop choreography. A Galton ball
+descending row by row turned out to have a wholly different shape, so abstracting
+over one example would have been a guess — the second consumer is what tells you
+where the seam belongs.
+
+**Still to do before widget #3:** a resampling engine in `core/rng.js` —
+`resample(arr, rng)` returning *indices* rather than values, so the choreography
+can highlight which observations were picked and show the duplicates that are the
+whole mechanism. `permute(labels, rng)` follows at widget #5, not before.
 
 ---
 
