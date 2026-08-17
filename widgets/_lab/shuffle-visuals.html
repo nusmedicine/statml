@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shuffle visuals</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1040px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 76ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h2 { font-size: var(--fs-md); margin: 0; }
+  .cell p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); min-height: 4.5em; }
+  canvas { display: block; width: 100%; height: auto; }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  .flag { border-left: 2px solid var(--c-theory); padding-left: var(--sp-3); margin: var(--sp-4) 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Shuffling the labels — two candidates</h1>
+  <p class="note">
+    Widget 5 asks <em>could chance alone have produced what I saw?</em> Under the
+    null the grouping is meaningless, so any relabelling of the same numbers is
+    equally likely. The animation has one job: make it undeniable that
+    <strong>the data never changes and only the labels move</strong> — which is
+    also the exact opposite of the bootstrap, where the values move and the
+    labels are irrelevant.
+  </p>
+  <p class="note">
+    Both cells run the <strong>same seeded data</strong> and the
+    <strong>same sequence of shuffles</strong>, in lockstep. The faint vertical
+    guides mark each observation's value, so you can check whether anything has
+    actually moved.
+  </p>
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="shuffle">Shuffle once</button>
+    <button class="w-btn" id="play">Play</button>
+    <button class="w-btn" id="reset">Observed</button>
+    <span class="w-flash" id="flash"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <ol class="judge">
+    <li><strong>Does A make “the values never move” obvious?</strong> That is the
+      whole claim. If it does not land here it will not land in a lecture.</li>
+    <li><strong>Does B accidentally read as the data changing?</strong> The dots
+      travel vertically. Watch whether your eye reports motion as “this
+      observation moved” rather than “this observation was relabelled”.</li>
+    <li><strong>Which makes the two group means and the gap easier to read?</strong>
+      The gap <em>is</em> the test statistic; it has to be legible every frame.</li>
+    <li><strong>Are the two group colours distinguishable at a glance, and from
+      the back of a room?</strong> See the flag below.</li>
+  </ol>
+
+  <div class="flag">
+    <p class="note" style="margin:0">
+      <strong>Token gap this mockup exposes.</strong> There is no semantic role
+      for “one arm of a comparison”. The five roles are <code>empirical</code>,
+      <code>theory</code>, <code>smoothed</code>, <code>highlight</code>,
+      <code>reference</code>, and none of them means “group B” — so this page
+      borrows <code>--series-1</code> and <code>--series-2</code> directly, which
+      the house rules forbid in a real widget. Widgets 4, 5 and 6 all show two
+      groups, so this wants deciding once: probably
+      <code>--c-group-a</code> / <code>--c-group-b</code> in
+      <code>tokens.css</code>. Note <code>--series-2</code> is also
+      <code>--c-theory</code>; that collides if a figure ever shows two groups
+      <em>and</em> a theoretical curve.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+
+/* The API this widget will want in core. Written here first so the shape can be
+   tried before it is committed to: a seeded Fisher-Yates returning a NEW array,
+   matching `rng.resample(len)` in being a method on the stream. */
+function shuffled(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng.next() * (i + 1));
+    const t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
+  return a;
+}
+
+/* One fixed study: 9 controls and 9 treated, with a real effect, so the observed
+   gap is visibly non-zero and a shuffled gap usually is not. */
+const rng = makeRng(11);
+const N_PER = 9;
+const VALUES = [];
+for (let i = 0; i < N_PER; i += 1) VALUES.push(rng.normal(0, 1));
+for (let i = 0; i < N_PER; i += 1) VALUES.push(rng.normal(1.15, 1));
+const OBSERVED = VALUES.map((_, i) => (i < N_PER ? 0 : 1));
+
+const shuffleRng = makeRng(4);
+const meanOf = (vals, labels, g) => {
+  let s = 0;
+  let k = 0;
+  for (let i = 0; i < vals.length; i += 1) if (labels[i] === g) { s += vals[i]; k += 1; }
+  return k ? s / k : NaN;
+};
+const gapOf = (labels) => meanOf(VALUES, labels, 1) - meanOf(VALUES, labels, 0);
+const OBSERVED_GAP = gapOf(OBSERVED);
+
+const W = 460;
+const H = 250;
+const PAD_L = 24;
+const PAD_R = 24;
+const DOMAIN = [-3.2, 4.4];
+const sx = (v) => PAD_L + ((v - DOMAIN[0]) / (DOMAIN[1] - DOMAIN[0])) * (W - PAD_L - PAD_R);
+
+const CANDIDATES = [
+  {
+    key: "colours",
+    name: "A · One row, colours move",
+    blurb:
+      "Every observation sits at its value on one axis, for good. A shuffle " +
+      "crossfades the fills. Nothing is ever in motion, so there is nothing to " +
+      "misread as the data changing.",
+    rowsFor: () => [125],
+    // A dot never moves; it only changes which group it belongs to.
+    yOf: () => 125,
+  },
+  {
+    key: "rows",
+    name: "B · Two rows, dots swap",
+    blurb:
+      "Group A above, group B below, each observation at its value. A shuffle " +
+      "animates dots vertically into their new group. Matches how the data is " +
+      "actually structured — at the cost of visible movement.",
+    rowsFor: () => [96, 154],
+    yOf: (g) => (g === 0 ? 96 : 154),
+  },
+];
+
+const grid = document.getElementById("grid");
+const views = [];
+for (const cand of CANDIDATES) {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  const h2 = document.createElement("h2");
+  h2.textContent = cand.name;
+  const p = document.createElement("p");
+  p.textContent = cand.blurb;
+  const canvas = document.createElement("canvas");
+  cell.append(h2, p, canvas);
+  grid.appendChild(cell);
+  views.push({ cand, canvas });
+}
+
+function tokens() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n) => cs.getPropertyValue(n).trim();
+  return {
+    ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), surface: v("--surface-1"),
+    // Borrowed directly, and flagged on the page: there is no semantic role for
+    // "one arm of a comparison" yet.
+    a: v("--series-1"), b: v("--series-2"),
+    reference: v("--c-reference"), font: v("--font"),
+  };
+}
+
+/* Transition state: labels crossfading / travelling from `from` to `to`. */
+let from = OBSERVED.slice();
+let to = OBSERVED.slice();
+let t = 1;
+
+function nextShuffle() {
+  from = to.slice();
+  to = shuffled(to, shuffleRng);
+  t = 0;
+}
+
+function dot(ctx, x, y, r, fill, alpha, c) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = c.surface;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function meanTick(ctx, c, x, y, colour, label) {
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 7);
+  ctx.lineTo(x, y + 7);
+  ctx.stroke();
+  ctx.fillStyle = c.ink3;
+  ctx.font = `600 11px ${c.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText(label, x, y + 9);
+  ctx.restore();
+}
+
+function drawCell({ cand, canvas }) {
+  const c = tokens();
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || W;
+  const scale = cssW / W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(H * scale * dpr);
+  canvas.style.height = `${H * scale}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const ease = t * t * (3 - 2 * t);
+
+  // Value guides: the honest check. If a dot ever leaves its guide, the data moved.
+  ctx.save();
+  ctx.strokeStyle = c.grid;
+  ctx.lineWidth = 1;
+  for (const v of VALUES) {
+    const x = Math.round(sx(v)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, 62);
+    ctx.lineTo(x, 178);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Row labels, only where there are rows to name.
+  ctx.save();
+  ctx.fillStyle = c.ink3;
+  ctx.font = `600 11px ${c.font}`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  if (cand.key === "rows") {
+    ctx.fillText("A", PAD_L - 8, 96);
+    ctx.fillText("B", PAD_L - 8, 154);
+  }
+  ctx.restore();
+
+  // The observations.
+  for (let i = 0; i < VALUES.length; i += 1) {
+    const x = sx(VALUES[i]);
+    if (cand.key === "colours") {
+      // Same place, always. Only the fill crossfades.
+      const y = cand.yOf();
+      dot(ctx, x, y, 6, from[i] ? c.b : c.a, 1 - ease, c);
+      dot(ctx, x, y, 6, to[i] ? c.b : c.a, ease, c);
+    } else {
+      // Same x, always — but the dot travels between rows.
+      const y0 = cand.yOf(from[i]);
+      const y1 = cand.yOf(to[i]);
+      dot(ctx, x, y0 + (y1 - y0) * ease, 6, to[i] ? c.b : c.a, 1, c);
+    }
+  }
+
+  // The statistic: two group means and the gap between them.
+  const labels = ease > 0.5 ? to : from;
+  const mA = meanOf(VALUES, labels, 0);
+  const mB = meanOf(VALUES, labels, 1);
+  const gap = mB - mA;
+  const gy = 200;
+
+  ctx.save();
+  ctx.strokeStyle = c.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_L, gy + 0.5);
+  ctx.lineTo(W - PAD_R, gy + 0.5);
+  ctx.stroke();
+  ctx.restore();
+
+  meanTick(ctx, c, sx(mA), gy, c.a, "x̄A");
+  meanTick(ctx, c, sx(mB), gy, c.b, "x̄B");
+
+  // The observed gap, held as a reference so a shuffled one can be compared to it.
+  ctx.save();
+  ctx.fillStyle = c.ink3;
+  ctx.font = `11px ${c.font}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(`observed gap ${OBSERVED_GAP.toFixed(2)}`, PAD_L, 46);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = c.ink1;
+  ctx.font = `600 13px ${c.font}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  const shuffledNow = labels.some((v, i) => v !== OBSERVED[i]);
+  ctx.fillText(
+    shuffledNow ? `shuffled gap ${gap.toFixed(2)}` : `THIS IS THE REAL LABELLING · gap ${gap.toFixed(2)}`,
+    PAD_L, 30
+  );
+  ctx.restore();
+}
+
+function drawAll() {
+  for (const v of views) drawCell(v);
+}
+
+/* --- driving ------------------------------------------------------------ */
+
+const SHUFFLE_MS = 900;
+const HOLD_MS = 700;
+let raf = null;
+let looping = false;
+let last = 0;
+let holding = 0;
+
+function frame(ts) {
+  const dt = last ? Math.min(64, ts - last) : 16;
+  last = ts;
+
+  if (t < 1) {
+    t = Math.min(1, t + dt / SHUFFLE_MS);
+    drawAll();
+    raf = requestAnimationFrame(frame);
+    return;
+  }
+  if (looping) {
+    holding += dt;
+    if (holding >= HOLD_MS) {
+      holding = 0;
+      nextShuffle();
+    }
+    raf = requestAnimationFrame(frame);
+    return;
+  }
+  raf = null;
+  last = 0;
+}
+
+const flash = document.getElementById("flash");
+
+document.getElementById("shuffle").addEventListener("click", () => {
+  looping = false;
+  flash.textContent = "";
+  nextShuffle();
+  if (raf === null) { last = 0; raf = requestAnimationFrame(frame); }
+});
+
+document.getElementById("play").addEventListener("click", (e) => {
+  looping = !looping;
+  e.target.textContent = looping ? "Pause" : "Play";
+  flash.textContent = looping ? "shuffling" : "";
+  if (looping && raf === null) { last = 0; holding = HOLD_MS; raf = requestAnimationFrame(frame); }
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  looping = false;
+  document.getElementById("play").textContent = "Play";
+  flash.textContent = "";
+  from = to.slice();
+  to = OBSERVED.slice();
+  t = 0;
+  if (raf === null) { last = 0; raf = requestAnimationFrame(frame); }
+});
+
+drawAll();
+new ResizeObserver(drawAll).observe(grid);
+</script>
+</body>
+</html>
