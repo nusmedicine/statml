@@ -67,7 +67,7 @@ previous one raises, and each reuses the previous one's machinery.
 | 2 | `clt` ✅ | Sampling distribution of the mean | *What happens if I average?* Means go normal with spread σ/√n, whatever the population | That a sampling distribution should look like the population, increasingly so as n grows — no distinction between a distribution of data and a distribution of a statistic | **documented** |
 | 3 | `bootstrap` ✅ | Resampling one sample | *But I only ever have one sample.* Resample it with replacement and the spread of the resampled statistic stands in for the sampling distribution | That knowing an estimate's uncertainty requires repeated samples from the population — which is exactly what widget 2 quietly assumed. Also that resampling "manufactures data" | reported |
 | 4 | `confidence-interval` | Effect size and its uncertainty | *How big is the effect, and how sure am I?* An interval, read as a range of compatible effects | That there is a 95% chance the true value lies in *this* interval. A realised interval either contains it or does not; 95% describes the procedure across many studies | **documented** |
-| 5 | `permutation-test` | p-value by shuffling | *Could chance alone have produced what I saw?* Shuffle the group labels, rebuild the difference, count | That p is P(H₀ true), or that 1 − p is the probability the alternative holds. Persists among researchers and professionals in statistics and epidemiology, not only students | **documented** |
+| 5 | `permutation-test` ✅ | p-value by shuffling | *Could chance alone have produced what I saw?* Shuffle the group labels, rebuild the difference, count | That p is P(H₀ true), or that 1 − p is the probability the alternative holds. Persists among researchers and professionals in statistics and epidemiology, not only students | **documented** |
 | 6 | `multiple-testing` | Correction | *What if I do that twenty thousand times?* | That 50 hits at p < 0.05 out of 20,000 tests is a finding. The most consequential statistical error in omics work | **documented** |
 
 ### Why this sequence is better than my tiering
@@ -151,6 +151,38 @@ target. Both, with the second reachable from the first.
 
 **#6 is #5 run twenty thousand times.** If #5 is built so its null distribution
 and test statistic are reusable, #6 is largely a loop over it plus Bonferroni/BH.
+
+### What #5 settled, built out of order (before #4)
+
+**Pool and re-deal, not swap or recolour.** Three candidates were mocked up in
+`widgets/_lab/shuffle-visuals.html`. Recolouring dots in place was ruled out for
+reading as *dancing colours* — decoration, where a physical reassignment is the
+mechanism. The winner pools every observation into one band and deals it back,
+which is what the Rossman/Chance applet and the by-hand card activity do, so it
+is an established convention rather than a private notation. The pooling step is
+H₀ stated physically: there is only one group and the split is a fiction. Dots
+move **vertically only**, so nothing ever leaves its value, and the boxes carry
+their `n` because a permutation holds the group *sizes* fixed.
+
+**A survey worth recording, because it says the gap is real.** The
+Rossman/Chance applet is the best mechanism animation in the field and is now a
+dead Java plugin. StatKey — modern, widely used — was checked directly: pressing
+*Generate* simply adds dots to a dotplot and **no shuffle is shown at all**. The
+tools either give the result and hide the mechanism, or showed the mechanism and
+have bit-rotted.
+
+**A dot that lands in a tail stays lit**, so p is *count the lit ones* rather
+than an abstract tail area. The lit count is exactly p's numerator: the tail is
+counted per bin as values arrive, never derived from bin centres at paint time,
+because quantising the boundary bin would let a student count a different number
+than the readout reports. Mocked up first in `widgets/_lab/null-and-p.html`,
+which also established that the shaded tail band is close to furniture — the
+tails run from the observed line to the panel edge, roughly half the panel.
+
+**The true effect is a control and it goes to zero.** Verified in node across 200
+seeds at `effect=0`, `n=12`: **exactly 5.0%** of studies give p < 0.05 while the
+null is *true*. `?effect=0&seed=103` is the one to show — it reads **p = 0.000**,
+which is also the case the never-zero form `(k+1)/(B+1)` exists for.
 
 ### Shared machinery
 

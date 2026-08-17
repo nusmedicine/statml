@@ -51,6 +51,8 @@ export function readTokens() {
     smoothed: v("--c-smoothed"),
     highlight: v("--c-highlight"),
     reference: v("--c-reference"),
+    groupA: v("--c-group-a"),
+    groupB: v("--c-group-b"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),

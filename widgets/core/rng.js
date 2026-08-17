@@ -91,5 +91,29 @@ export function makeRng(seed = 1) {
       for (let i = 0; i < len; i += 1) out[i] = Math.floor(next() * len);
       return out;
     },
+
+    /**
+     * A seeded Fisher-Yates shuffle, returning a NEW array.
+     *
+     * The other half of the resampling arc, and the exact opposite of
+     * `resample`: that one draws WITH replacement, so values repeat and the
+     * order is irrelevant; this one is a permutation, so every element survives
+     * exactly once and only the arrangement changes. A permutation test shuffles
+     * the group LABELS, which is why this takes an array rather than a length —
+     * what gets permuted is a list of assignments, not a range of indices.
+     *
+     * Returning a new array rather than shuffling in place: the caller almost
+     * always still needs the original labelling to compare against.
+     */
+    shuffle(arr) {
+      const out = arr.slice();
+      for (let i = out.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(next() * (i + 1));
+        const t = out[i];
+        out[i] = out[j];
+        out[j] = t;
+      }
+      return out;
+    },
   };
 }

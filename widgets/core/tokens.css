@@ -40,6 +40,24 @@
   --c-smoothed:  var(--series-3);    /* a smoothed reading of the empirical  */
   --c-highlight: var(--series-7);    /* the one thing to look at right now   */
   --c-reference: var(--ink-3);       /* truth: a parameter, a null value     */
+
+  /* Two arms of a comparison. Widgets 4, 5 and 6 all put two groups on screen
+     and none of the roles above means "group B", which was forcing widgets to
+     reach for numbered slots directly.
+
+     Blue and amber, chosen against the two obvious alternatives: --series-2 is
+     already --c-theory, so an orange group would collide with "the curve the
+     pile is checked against" that clt and bootstrap establish; --series-7 is
+     --c-highlight, which a permutation test needs for the tail. Blue/amber is
+     also the most colour-blind-safe pair in the ramp and the highest-contrast
+     one, which matters when the figure is projected.
+
+     Group A deliberately shares its hue with --c-empirical: both mean "our
+     data", they never appear in the same panel, and giving the first arm its
+     own fourth colour would spend a hue to say nothing.  */
+  --c-group-a:   var(--series-1);    /* one arm of a comparison              */
+  --c-group-b:   var(--series-4);    /* the other arm                        */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

@@ -4,7 +4,7 @@ Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
 state in the URL.
 
-Three widgets shipped, of a six-widget statistics arc. See
+Four widgets shipped, of a six-widget statistics arc. See
 [docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and
@@ -22,6 +22,7 @@ Then open:
 - <http://localhost:8000/widgets/galton-board/> — arc 1: where the bell curve comes from
 - <http://localhost:8000/widgets/clt/> — arc 2: the sampling distribution of the mean
 - <http://localhost:8000/widgets/bootstrap/> — arc 3: uncertainty from one sample
+- <http://localhost:8000/widgets/permutation-test/> — arc 5: could chance alone have done this?
 - <http://localhost:8000/widgets/_lab/> — design comparisons and the fingerprint harness
 
 There is no install step and no build step. Widgets are plain ES modules with
@@ -70,6 +71,7 @@ widgets/
   galton-board/    arc 1: index.html + main.js
   clt/             arc 2: the reference widget
   bootstrap/       arc 3: resampling one sample, with replacement
+  permutation-test/ arc 5: a null by shuffling the group labels
   _lab/            design comparisons + fingerprint harness; NOT deployed
   manifest.json    registry of BUILT widgets; the ONLY place a height lives
   index.html       gallery
@@ -255,7 +257,8 @@ argument.
 1. Never hardcode a colour, size, or font — reference a token from `tokens.css`.
 2. Use the **semantic** colour roles, not the numbered slots:
    `--c-empirical` (what we observed), `--c-theory` (the asymptotic result),
-   `--c-highlight` (the one thing to look at), `--c-reference` (truth). The same
+   `--c-highlight` (the one thing to look at), `--c-reference` (truth), and
+   `--c-group-a` / `--c-group-b` for the two arms of a comparison. The same
    blue means "simulated" in all forty widgets, and students learn it.
 3. All randomness comes from the seeded `rng` passed to `compute`. Never
    `Math.random()`.
@@ -342,4 +345,4 @@ Before the first deploy:
 - No unit-test harness. `compute()` is pure and seeded, which is what would make
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
-- Widget count: 3, of a six-widget arc.
+- Widget count: 4, of a six-widget arc.

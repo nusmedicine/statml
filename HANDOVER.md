@@ -8,9 +8,10 @@ without re-deriving anything.
 `widgets/core/` — most of its rules exist because the obvious approach was tried
 and failed, and each one carries the incident that earned it.
 
-**Last updated:** widget 3 `bootstrap` shipped — the pivot of the arc. Earlier the
-same session: the PRD written ([docs/prd.md](docs/prd.md)) and both embedders
-deleted, the Quarto book and the Python helper.
+**Last updated:** widget 5 `permutation-test` shipped, out of order — widget 4
+`confidence-interval` is now the only gap in the statistics arc. Earlier the same
+session: widget 3 `bootstrap`, the PRD ([docs/prd.md](docs/prd.md)), and both
+embedders deleted.
 
 ---
 
@@ -24,6 +25,7 @@ npm run dev
 - <http://localhost:8000/widgets/galton-board/> — widget 1
 - <http://localhost:8000/widgets/clt/> — widget 2
 - <http://localhost:8000/widgets/bootstrap/> — widget 3
+- <http://localhost:8000/widgets/permutation-test/> — widget 5
 - <http://localhost:8000/widgets/_lab/> — design lab and the fingerprint harness
 
 ### Shipped
@@ -34,8 +36,10 @@ npm run dev
 | 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
 | 3 | `bootstrap` | **Two stages, two buttons.** *Sample the population* draws your one sample out of the panel above — then greys out for good, because you cannot go back for more. *Resample your sample* then runs as often as you like: copies stack above the observations they came from, so duplicates and never-picked values are both visible, collapse to their mean, drop into the pile. The true sampling distribution sits behind it: **same width, different place.** |
 
-All three start empty, all three animate step by step, all three build their pile
-with `core/accumulator.js`.
+| 5 | `permutation-test` | **Two stages again.** *Run the study* once, then *Shuffle the labels* as often as you like. Every observation lifts out of its box into one pool and is dealt back — vertically only, so nothing leaves its value, and the boxes carry their `n` because a permutation fixes the group sizes. The difference falls into the null below, and **a dot landing beyond the observed line stays lit**, so p is *count the lit ones*. Set the true effect to zero and re-seed to watch a false positive happen. |
+
+All start empty, all animate step by step, all build their pile with
+`core/accumulator.js`.
 
 **Four things widget 3 settled that widget 4 inherits.**
 
@@ -84,10 +88,17 @@ The arc is one continuous argument and the order is load-bearing:
 
 > increments → means → one sample → **an interval** → a null by shuffling → many nulls
 
-**Widget 4 is where the arc gets its first *documented* misconception target.**
+**Widget 4 is now the only gap in the statistics arc** — 1, 2, 3 and 5 are built.
 Widgets 1–3 were about building the sampling distribution; this one is about
 reading it. `bootstrap` already computes the distribution an interval is cut
 from, so the new idea is only what you do with it.
+
+**What widget 5 already built that widget 4 wants.** `--c-group-a` /
+`--c-group-b` in `tokens.css` (blue and amber), `rng.shuffle`, the two-box
+layout with group sizes on the boxes, and a worked example of a second panel
+whose x-axis is a *difference* while the panel above is in data units. Widget 4
+also needs the mean → difference transition that widget 3 gave up, so read the
+note at the end of §1 before designing it.
 
 **Misconception targeted.** That there is a 95% chance the true value lies in
 *this* interval. A realised interval either contains the truth or it does not;

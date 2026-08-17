@@ -160,6 +160,71 @@
         "frames": 44,
         "dt": 32
       }
+    },
+    {
+      "slug": "permutation-test",
+      "px": "38ead232",
+      "$note": "The default: a real effect, observed difference out in a tail, p = 0.03.",
+      "state": "?theme=light&shown=400"
+    },
+    {
+      "slug": "permutation-test",
+      "px": "2c30aba3",
+      "$note": "THE false positive. True effect is exactly zero and p reads 0.000 — the case the never-zero form exists for.",
+      "state": "?theme=light&effect=0&seed=103&shown=400"
+    },
+    {
+      "slug": "permutation-test",
+      "px": "74452181",
+      "$note": "Dot phase with a small n: the lit marks have to be countable one by one.",
+      "state": "?theme=light&n=6&shown=24"
+    },
+    {
+      "slug": "permutation-test",
+      "px": "acf47f85",
+      "$note": "DRIVEN, STAGE ONE: the study arriving into its two boxes, before any shuffling exists.",
+      "state": "?theme=light",
+      "drive": {
+        "click": "lead",
+        "frames": 28,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "permutation-test",
+      "px": "351092ea",
+      "$note": "DRIVEN: mid-pool — observations lifted out of both boxes, belonging to no group.",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "lead": true,
+        "click": "step",
+        "frames": 16,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "permutation-test",
+      "px": "828eee47",
+      "$note": "DRIVEN: mid-deal — dealt back into the boxes, vertically only, never leaving their values.",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "lead": true,
+        "click": "step",
+        "frames": 34,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "permutation-test",
+      "px": "4fe8a191",
+      "$note": "DRIVEN: mid-drop — the shuffled difference arcing from the study into the null.",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "lead": true,
+        "click": "step",
+        "frames": 52,
+        "dt": 32
+      }
     }
   ]
 }
