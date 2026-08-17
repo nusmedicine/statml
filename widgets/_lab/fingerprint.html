@@ -41,8 +41,20 @@
     change — so the diff records that the rendering moved and why.
   </p>
   <p class="note">
-    Every state must be static: pass <code>shown=</code> so the figure is fully
-    built and nothing is animating, or the hash is a coin toss.
+    <strong>Two kinds of state.</strong> A <em>settled</em> state passes
+    <code>shown=</code> so the figure is fully built and nothing is moving. A
+    <em>driven</em> state carries <code>drive</code> — this harness replaces the
+    frame clock with a queue it steps by hand, clicks a drive button, and advances a
+    fixed number of fixed-length frames before hashing. Seeded data plus a
+    controlled clock makes a mid-animation frame just as reproducible as a settled
+    one.
+  </p>
+  <p class="note">
+    Driven states exist because settled ones <strong>cannot see anything that is
+    only drawn while something is moving</strong>. A coordinate-system change once
+    left every falling ball six columns off-centre and every settled state still
+    matched, because no settled state has a ball in flight. <code>check.mjs</code>
+    now requires each widget with an animation to carry at least one driven state.
   </p>
 
   <div class="bar">
@@ -84,6 +96,36 @@ function hash(s) {
 const baseline = await (await fetch("./fingerprint-baseline.json")).json();
 let latest = [];
 
+/**
+ * Step a widget's animation by hand.
+ *
+ * The browser's own frame clock is unusable for this: it is throttled hard in
+ * automation and varies run to run, so a mid-animation hash taken against real time
+ * is noise. Replacing requestAnimationFrame with a queue and feeding it fixed
+ * timestamps makes the frame exactly reproducible — the widget's data is already
+ * seeded, so the only other input is the clock.
+ */
+function drive(win, doc, spec) {
+  const queue = [];
+  win.requestAnimationFrame = (cb) => queue.push(cb);
+  const buttons = doc.querySelectorAll(".w-drive .w-btn");
+  const button = buttons[spec.click === "run" ? 1 : 0];
+  if (!button) return "no drive button";
+
+  button.click();
+  const dt = spec.dt ?? 32;
+  let t = 1000;
+  let ran = 0;
+  for (let i = 0; i < spec.frames; i += 1) {
+    const cb = queue.shift();
+    if (!cb) break;
+    t += dt;
+    cb(t);
+    ran += 1;
+  }
+  return `${spec.click ?? "step"} +${ran}f`;
+}
+
 async function shoot(entry) {
   const frame = document.createElement("iframe");
   frame.width = FRAME_W;
@@ -92,15 +134,19 @@ async function shoot(entry) {
   frame.src = `../${entry.slug}/${entry.state}`;
   frames.appendChild(frame);
   await new Promise((r) => frame.addEventListener("load", r));
-  await new Promise((r) => setTimeout(r, SETTLE_MS));
+  await new Promise((r) => setTimeout(r, entry.drive ? 150 : SETTLE_MS));
 
   let px = "—";
   let note = "";
   try {
-    const canvas = frame.contentDocument.querySelector(".w-figure canvas");
+    const win = frame.contentWindow;
+    const doc = frame.contentDocument;
+    if (entry.drive) note = drive(win, doc, entry.drive);
+    const canvas = doc.querySelector(".w-figure canvas");
     px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
-    const errs = frame.contentDocument.querySelectorAll(".w-stat-value");
-    note = [...errs].map((n) => n.textContent).join(" | ");
+    if (!entry.drive) {
+      note = [...doc.querySelectorAll(".w-stat-value")].map((n) => n.textContent).join(" | ");
+    }
   } catch (e) {
     px = "error";
     note = String(e.message ?? e);

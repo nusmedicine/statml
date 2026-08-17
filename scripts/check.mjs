@@ -166,21 +166,54 @@ const baseline = JSON.parse(
   await readFile(join(root, "widgets/_lab/fingerprint-baseline.json"), "utf8")
 );
 const slugs = new Set(manifest.widgets.map((w) => w.slug));
-const covered = new Set();
+const settled = new Set();
+const driven = new Set();
+
 for (const s of baseline.states) {
   if (!slugs.has(s.slug)) fail(`fingerprint baseline: unknown widget "${s.slug}"`);
-  // A state that animates hashes differently every run, so the check would be
-  // noise rather than a signal.
-  if (!/[?&]shown=/.test(s.state)) {
-    fail(`fingerprint baseline: state "${s.state}" has no shown=, so it is not static`);
-  }
   if (!s.px) fail(`fingerprint baseline: "${s.slug}${s.state}" has no recorded hash`);
-  covered.add(s.slug);
+
+  if (s.drive) {
+    // Driven states are reproducible because the harness supplies the clock, so
+    // they must NOT also be pre-filled — the point is to render mid-motion.
+    if (!(s.drive.frames > 0)) {
+      fail(`fingerprint baseline: driven state "${s.state}" needs drive.frames > 0`);
+    }
+    if (/[?&]shown=/.test(s.state)) {
+      fail(`fingerprint baseline: driven state "${s.state}" also sets shown=, so nothing is in flight`);
+    }
+    driven.add(s.slug);
+  } else {
+    // A settled state left animating would hash differently every run.
+    if (!/[?&]shown=/.test(s.state)) {
+      fail(`fingerprint baseline: "${s.state}" has neither shown= nor drive, so it is not reproducible`);
+    }
+    settled.add(s.slug);
+  }
 }
+
 for (const slug of slugs) {
-  if (!covered.has(slug)) fail(`fingerprint baseline: widget "${slug}" has no states`);
+  if (!settled.has(slug)) fail(`fingerprint baseline: widget "${slug}" has no settled states`);
 }
-ok(`fingerprint baseline: ${baseline.states.length} static states covering ${covered.size} widget(s)`);
+
+/* Every widget with an animation needs at least one DRIVEN state. Settled states
+   are blind to anything drawn only while something is moving: a coordinate-system
+   change once put every falling ball six columns off-centre and all eight settled
+   states still matched. Enforcing this is the fix for that, not a nicety. */
+for (const w of manifest.widgets) {
+  const main = await readFile(join(root, "widgets", w.slug, "main.js"), "utf8");
+  if (/\banimation\s*:/.test(main) && !driven.has(w.slug)) {
+    fail(
+      `fingerprint baseline: widget "${w.slug}" declares an animation but has no driven state — ` +
+        `its mid-animation rendering is untested`
+    );
+  }
+}
+
+ok(
+  `fingerprint baseline: ${baseline.states.length} states — ` +
+    `${settled.size} widget(s) with settled coverage, ${driven.size} with driven coverage`
+);
 
 /* --- no runtime dependencies ------------------------------------------- */
 

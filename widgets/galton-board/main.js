@@ -26,12 +26,14 @@
    THE TEACHING DESIGN:
 
    - The ball's PATH is the subject, not the pile. At Slow speed one ball descends
-     one row at a time, and each row is visibly a fresh coin flip. The bin it ends
-     in is just a tally of how many times it went right — which is why the axis is
-     labelled "steps right", not "position".
+     one row at a time, and each row is visibly a fresh coin flip.
 
-   - The pegs and the pile share one x-axis, and the ball lands in the column it
-     finished above. Nothing has to explain the connection.
+   - The pegs and the pile share one x-axis, and a ball's horizontal position IS its
+     running deviation, so it lands in the column it finished above. Nothing has to
+     explain the connection — and `deviationAfter()` is the single function both the
+     board and the histogram get their geometry from, which is not optional: when
+     they each had their own copy of the formula, the falling ball silently sat six
+     columns off-centre while every settled test still passed.
 
    - "Lean" exists to break the symmetry. At p = 0.5 a student can suspect the
      bell shape comes from something about the middle. At p = 0.25 the pile is
@@ -111,6 +113,23 @@ function lgamma(z) {
 const binomPmf = (n, k, p) =>
   Math.exp(logChoose(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p));
 
+/**
+ * Running deviation after `r` of a path's nudges: rights minus lefts.
+ *
+ * THE ONLY PLACE THIS GEOMETRY IS WRITTEN. `compute` uses it for the landing value
+ * and `drawFallingBall` uses it for the ball's position at every depth, so the
+ * board and the histogram cannot disagree about where a ball is.
+ *
+ * They did once: the landing moved to deviation units and the falling ball kept the
+ * old peg-lattice formula, which put every path six columns to the right and made
+ * balls start off-centre. Two call sites, one formula each, is how that happens.
+ */
+function deviationAfter(path, r) {
+  let rights = 0;
+  for (let i = 0; i < r; i += 1) rights += path[i];
+  return 2 * rights - r;
+}
+
 defineWidget({
   slug: "galton-board",
   title: "Where the bell curve comes from",
@@ -161,16 +180,13 @@ defineWidget({
     const paths = [];
 
     for (let b = 0; b < balls; b += 1) {
-      let right = 0;
-      const keep = b < KEEP_PATHS ? new Array(rows) : null;
-      for (let r = 0; r < rows; r += 1) {
-        const goRight = rng.next() < lean ? 1 : 0;
-        right += goRight;
-        if (keep) keep[r] = goRight;
-      }
-      // Net deviation from centre: rights minus lefts.
-      landings[b] = 2 * right - rows;
-      if (keep) paths.push(keep);
+      // Always build the path, so the landing comes from deviationAfter() and not
+      // from a second copy of the formula. Only the first few are retained for the
+      // reveal; the rest is a transient array of at most `rows` entries.
+      const path = new Array(rows);
+      for (let r = 0; r < rows; r += 1) path[r] = rng.next() < lean ? 1 : 0;
+      landings[b] = deviationAfter(path, rows);
+      if (b < KEEP_PATHS) paths.push(path);
     }
 
     /* One bin per reachable total. Reachable totals are -rows, -rows+2, … +rows —
@@ -472,11 +488,9 @@ function drawFallingBall({ ctx, colors, pa, params, state, ball, yOf, trail }) {
   if (!path) return;
 
   const { rows } = params;
-  const at = (r) => {
-    let k = 0;
-    for (let i = 0; i < r; i += 1) k += path[i];
-    return [pa.sx(k + (rows - r) / 2), yOf(r)];
-  };
+  // Same geometry as the landing value, from the same function. At r = 0 this is
+  // 0, so every ball starts on the zero rule; at r = rows it is the landing.
+  const at = (r) => [pa.sx(deviationAfter(path, r)), yOf(r)];
 
   const row = Math.min(Math.floor(ball.fall), rows - 1);
   const t = clamp01(ball.fall - row);

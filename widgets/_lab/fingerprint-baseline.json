@@ -40,6 +40,61 @@
       "slug": "galton-board",
       "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0",
       "px": "17b24749"
+    },
+    {
+      "$note": "DRIVEN: mid-descent with a trail. The state that would have caught the ball-path offset.",
+      "slug": "galton-board",
+      "state": "?theme=light&rows=12&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 24,
+        "dt": 32
+      },
+      "px": "6f25eae7"
+    },
+    {
+      "$note": "DRIVEN: cascade, several balls in the air, trails suppressed.",
+      "slug": "galton-board",
+      "state": "?theme=light&rows=14&speed=fast",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 16
+      },
+      "px": "f4d9c787"
+    },
+    {
+      "$note": "DRIVEN: clt mid-draw, observations appearing one by one.",
+      "slug": "clt",
+      "state": "?theme=light&dist=exponential&n=8&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "4501c235"
+    },
+    {
+      "$note": "DRIVEN: clt mid-collapse, observations sliding to the labelled x-bar.",
+      "slug": "clt",
+      "state": "?theme=light&dist=exponential&n=8&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 24,
+        "dt": 32
+      },
+      "px": "dc1e4492"
+    },
+    {
+      "$note": "DRIVEN: clt mid-drop, the arced trail crossing between panels.",
+      "slug": "clt",
+      "state": "?theme=light&dist=bimodal&n=8&view=zoom&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 38,
+        "dt": 32
+      },
+      "px": "27b8cac2"
     }
   ]
 }
