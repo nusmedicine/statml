@@ -1,13 +1,14 @@
 {
-  "$comment": "Single source of truth for the widget catalogue. Consumed by the gallery page and the build script. Keep python/statml_widgets/_heights.py in sync — Phase 1 should generate it from here.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. Keep HEIGHTS in python/statml_widgets/__init__.py in sync until this file is generated.",
   "widgets": [
     {
       "slug": "clt",
       "title": "Central Limit Theorem",
       "blurb": "Starts empty. Draw one sample at a time and watch its observations collapse to a mean that falls into the pile below — which goes normal whatever the population looks like, with spread σ/√n.",
+      "course": "PHM5003",
       "topics": ["sampling", "inference"],
       "height": 1090,
-      "status": "reference"
+      "status": "shipped"
     }
   ]
 }
