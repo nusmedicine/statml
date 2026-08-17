@@ -69,7 +69,7 @@ widgets/
     env.js         theme, token bridge, iframe height reporting
   galton-board/    arc 1: index.html + main.js
   clt/             arc 2: the reference widget
-  bootstrap/       arc 3: resampling one sample, two statistics
+  bootstrap/       arc 3: resampling one sample, with replacement
   _lab/            design comparisons + fingerprint harness; NOT deployed
   manifest.json    registry of BUILT widgets; the ONLY place a height lives
   index.html       gallery

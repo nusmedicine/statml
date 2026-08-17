@@ -22,18 +22,29 @@
      put the TRUE sampling distribution — obtainable only by going back to the
      population two thousand times, which no one can do — behind the bootstrap
      distribution, which you can actually compute from the one sample you have.
-     They come out nearly the same width. That single comparison is the entire
-     justification for the method, and it is available only because the
-     population is reproducible.
+     That single comparison is the entire justification for the method, and it is
+     available only because the population is reproducible.
 
-   - THE BOOTSTRAP IS CENTRED ON YOUR ESTIMATE, NOT ON THE TRUTH. The two curves
-     agree in WIDTH and generally disagree in POSITION, and that is not a defect
-     to hide. The bootstrap tells you how far your estimate could have fallen
-     from the one you got; it cannot tell you how far it fell from the truth.
-     Hence the plotting window is centred on the true value rather than on the
-     estimate: a window centred on the estimate would put the pile in the middle
-     every time and hide exactly this. Change the seed and the whole pile slides
-     while its width stays put.
+   - AND THE OVERLAY IS HONEST ABOUT WHEN IT FAILS. The bootstrap does not sample
+     from the population; it samples from YOUR SAMPLE, substituting the empirical
+     distribution for the real one. So everything it can tell you is a property
+     of the sample you happened to get:
+
+       centre  it sits on x̄, not μ, and cannot tell you the gap between them
+       spread  for a mean it is essentially s/√n, so it is wrong exactly to the
+               degree s is a poor estimate of σ
+       shape   it inherits the sample's skew, which is noisier still at small n
+
+     It is asymptotically right and small-sample honest-but-noisy. That is why
+     the readout shows s beside σ at all: it is the *cause* of the two standard
+     errors agreeing or not, and without it the widget can only assert that the
+     bootstrap sometimes works. Drag n down and watch s pull away from σ and the
+     SEs pull apart with it.
+
+   - THE WINDOW IS CENTRED ON THE TRUE VALUE, not on the estimate. Centring on
+     the estimate is the obvious choice and it would put the pile in the middle
+     every time, hiding the first point above. Change the seed and the whole pile
+     slides while its width stays put.
 
    - DUPLICATES ARE THE MECHANISM, not a detail of it. A resample is drawn as
      copies stacking directly above the observations they were taken from, so an
@@ -46,26 +57,20 @@
      student recognises the shape and has only to notice what changed: the draws
      now come from the SAMPLE above rather than from the POPULATION above.
 
-   - THE STATISTIC SWITCHES INSIDE THIS WIDGET. Widgets 2–3 study a mean; widgets
-     4–6 study a difference between two groups, because effect size is the thing
-     with clinical meaning. Making that a control here, rather than a silent
-     change between two widgets, is the point: same machinery, new statistic.
-     Both land in the same lesson (Estimation — Quantifying Uncertainty), so the
-     transition has to happen somewhere a student can see it.
+   ONE STATISTIC, DELIBERATELY. An earlier build carried a `stat` control that
+   switched between a mean and a difference between two groups, so the widget-3
+   to widget-4 change of statistic would happen somewhere a student could see it.
+   Cut: two groups meant two rows, two collapses and a gap to read as the
+   statistic, and the mechanism being taught here — sampling with replacement —
+   got harder to narrate rather than easier. Widget 4 opens on a difference and
+   carries that transition alone. A widget teaches one idea.
    ========================================================================= */
 
 import {
   defineWidget, POPULATIONS, histogram, normalPdf, sd, fmt,
   makePlot, samplePdf, niceTicks, spanningRule,
-  createPile, binsFor, FLASH_MS,
+  createPile, binsFor,
 } from "../core/index.js";
-
-/* The true effect in difference mode, in population SDs. At the default n = 12
-   that is about 1.8 standard errors: visibly non-zero, and not so large that the
-   bootstrap spread beside it looks like a rounding error. Fixed rather than
-   exposed as a control — whether an effect could have been chance is widget 5's
-   question, and this widget is about how precisely it is pinned down. */
-const EFFECT_SD = 0.75;
 
 /* The true sampling distribution, by brute force. A fixed count, so the
    reference curve does not shift when `reps` does. */
@@ -102,22 +107,12 @@ const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const distOptions = ["exponential", "bimodal", "uniform", "pareto", "bernoulli", "normal"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
 
-/* --- the statistic ------------------------------------------------------- *
- * One function, used by the observed sample, by every bootstrap resample and by
- * the truth simulation. Three call sites agreeing on what is being estimated is
- * exactly the situation principle 5.7 exists for.                            */
-
 /** Mean of the values at `idx`, or of all of them when `idx` is omitted. */
 function meanAt(values, idx = null) {
   const k = idx ? idx.length : values.length;
   let s = 0;
   for (let i = 0; i < k; i += 1) s += idx ? values[idx[i]] : values[i];
   return s / k;
-}
-
-/** The statistic: a mean, or the difference between two group means. */
-function statOf(groupMeans) {
-  return groupMeans.length > 1 ? groupMeans[1] - groupMeans[0] : groupMeans[0];
 }
 
 /** Times each of `len` observations appears in the first `m` draws of `idx`. */
@@ -138,38 +133,32 @@ defineWidget({
     "In practice you get one sample, never a population. Draw a new sample of " +
     "the same size from the one you have — with replacement, so some " +
     "observations appear twice and others not at all — and the spread of the " +
-    "resampled statistic stands in for a sampling distribution you can never " +
-    "observe.",
-  height: 560,
+    "resampled means stands in for a sampling distribution you can never " +
+    "observe. It stands in only as well as your one sample represents the " +
+    "population, which is what the numbers below are for.",
+  height: 540,
 
-  /* Reading order of the setup block: what am I estimating, from what, from how
-     much of it — then how do I want to look at it.
+  /* Reading order of the setup block: what am I sampling from, how much of it,
+     with which draw — then how do I want to look at it.
 
      `display: true` marks a parameter that changes only how state is drawn.
      Those keep the student's work; the others make the data genuinely different
-     data and start over. `stat` is a data parameter precisely because it changes
-     what is being estimated. */
+     data and start over. */
   params: {
-    stat: {
-      type: "segmented",
-      label: "Statistic",
-      options: [
-        { value: "mean", label: "A mean", detail: "one group" },
-        { value: "diff", label: "A difference", detail: "between two groups" },
-      ],
-      default: "mean",
-    },
     dist: { type: "select", label: "Population", options: distOptions, default: "exponential" },
+
     // n = 12 keeps the copies countable, which is the whole reason the resample
     // is drawn observation by observation. Drag it down to 3 and the bootstrap
     // visibly stops working; that case is one drag away on purpose.
     n: { type: "int", label: "Sample size n", min: 3, max: 60, default: 12 },
+
     reps: {
       type: "int", label: "Resamples to draw", min: 1, max: 2000, step: 1, default: 400,
       // Extending the plan does not invalidate what is drawn: the first k
       // resamples are the same k resamples whatever the target is.
       display: true,
     },
+
     /* Seed 3, not 1, and the reason is worth keeping so nobody tidies it back.
        The bootstrap SE tracks the OBSERVED sample's spread, s/√n, not σ/√n — so
        how well it matches the truth depends on how representative your one
@@ -184,6 +173,7 @@ defineWidget({
        Every noisier seed is one tick away, which is where principle 2.6 wants
        the case that fails: included, not opened on. */
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 3 },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -214,15 +204,14 @@ defineWidget({
 
   compute({ params, rng }) {
     const pop = POPULATIONS[params.dist];
-    const two = params.stat === "diff";
-    const delta = two ? EFFECT_SD * pop.sd : 0;
     const n = params.n;
 
     /* 1 — THE sample. This, and nothing else, is what a real analyst holds. */
-    const groups = [{ label: "A", shift: 0, values: drawSample(pop, n, 0, rng) }];
-    if (two) groups.push({ label: "B", shift: delta, values: drawSample(pop, n, delta, rng) });
+    const sample = new Array(n);
+    for (let i = 0; i < n; i += 1) sample[i] = pop.sample(rng);
 
-    const observed = statOf(groups.map((g) => meanAt(g.values)));
+    const observed = meanAt(sample);
+    const sampleSd = sd(sample);
 
     /* 2 — the true sampling distribution: repeat the whole study TRUTH_REPS
        times, from the population. Simulated rather than assumed normal, because
@@ -233,52 +222,42 @@ defineWidget({
     for (let r = 0; r < TRUTH_REPS; r += 1) {
       let a = 0;
       for (let i = 0; i < n; i += 1) a += pop.sample(rng);
-      let s = a / n;
-      if (two) {
-        let b = 0;
-        for (let i = 0; i < n; i += 1) b += pop.sample(rng) + delta;
-        s = b / n - s;
-      }
-      truth[r] = s;
+      truth[r] = a / n;
     }
 
     /* 3 — the bootstrap resamples. Every value used here is a copy of one in
-       `groups`; nothing new is drawn from the population past this point, which
+       `sample`; nothing new is drawn from the population past this point, which
        is the whole claim of the method. */
     const stats = new Array(params.reps);
     const picks = [];
     for (let r = 0; r < params.reps; r += 1) {
-      const per = groups.map(() => rng.resample(n));
-      stats[r] = statOf(per.map((idx, g) => meanAt(groups[g].values, idx)));
-      if (r < KEEP) picks.push(per);
+      const idx = rng.resample(n);
+      stats[r] = meanAt(sample, idx);
+      if (r < KEEP) picks.push(idx);
     }
 
     /* Fix the frame, not the data: the tallest stack any choreographed resample
        will produce, so the sample panel's scale is settled before the animation
        starts and cannot move under a half-built picture. */
     let maxPick = 1;
-    for (const per of picks) {
-      for (const idx of per) {
-        for (const c of countsFrom(idx, n)) if (c > maxPick) maxPick = c;
-      }
+    for (const idx of picks) {
+      for (const c of countsFrom(idx, n)) if (c > maxPick) maxPick = c;
     }
 
-    const se = two ? (pop.sd * Math.SQRT2) / Math.sqrt(n) : pop.sd / Math.sqrt(n);
-    const trueVal = two ? delta : pop.mean;
+    const se = pop.sd / Math.sqrt(n);
 
-    /* Centred on the TRUE value, not on the estimate. The pile sitting visibly
-       off-centre is the lesson — a window centred on the estimate would put it
-       in the middle every time and hide the one thing the bootstrap cannot do.
-       Widened only when an unlucky sample would otherwise push it off the panel. */
-    const hw = Math.max(4.5 * se, Math.abs(observed - trueVal) + 3.6 * se);
-    const domain = [trueVal - hw, trueVal + hw];
+    /* Centred on μ, not on the estimate. The pile sitting visibly off-centre is
+       the lesson — a window centred on the estimate would put it in the middle
+       every time and hide the one thing the bootstrap cannot do. Widened only
+       when an unlucky sample would otherwise push it off the panel. Both this
+       window and the population's are μ-centred, so μ occupies the same pixel
+       column in every panel and one rule can carry it all the way down. */
+    const hw = Math.max(4.5 * se, Math.abs(observed - pop.mean) + 3.6 * se);
+    const domain = [pop.mean - hw, pop.mean + hw];
     const bins = binsFor(params.reps);
 
     return {
-      pop, two, delta, groups, picks, stats, observed, trueVal, se, domain, bins, maxPick,
-      // Both populations have to fit when there are two of them, so this window
-      // is NOT μ-centred in difference mode — see the spanning rule in draw().
-      dataDomain: two ? [pop.domain[0], pop.domain[1] + delta] : pop.domain,
+      pop, sample, picks, stats, observed, sampleSd, se, domain, bins, maxPick,
       hist: histogram(stats, domain, bins),
       truthDensity: densityCurve(truth, domain),
     };
@@ -286,7 +265,7 @@ defineWidget({
 
   /* --- animation -------------------------------------------------------- *
    * One logical unit is one resample: pick n observations with replacement,
-   * collapse the copies to the statistic, drop that number into the pile.    */
+   * collapse the copies to their mean, drop that number into the pile.       */
 
   animation: {
     stepLabel: "Resample once",
@@ -390,7 +369,7 @@ defineWidget({
    *   the pile         what you can build from it                           */
 
   draw({ ctx, colors, w, h, params, state, anim }) {
-    const { pop, two, groups, dataDomain, domain, hist, trueVal } = state;
+    const { pop, sample, domain, hist } = state;
     const pile = anim.pile;
     const total = pile.shown;
     const inFlight = anim.phaseT > 0 && total < params.reps;
@@ -400,10 +379,7 @@ defineWidget({
     const plotW = w - ML - MR;
 
     const top = { x: ML, y: 26, w: plotW, h: 56 };
-    // Two groups genuinely need two rows, so the panel grows rather than
-    // squeezing them into the one-group height.
-    const midH = two ? 132 : 92;
-    const mid = { x: ML, y: top.y + top.h + 54, w: plotW, h: midH };
+    const mid = { x: ML, y: top.y + top.h + 54, w: plotW, h: 92 };
     const bottomY = mid.y + mid.h + 56;
     const bottom = { x: ML, y: bottomY, w: plotW, h: Math.max(110, h - bottomY - 40) };
 
@@ -412,48 +388,40 @@ defineWidget({
       ? Math.max(...pop.masses.map((m) => m[1])) * 1.35
       : Math.max(...samplePdf(pop.pdf, pop.domain, 200).map((p) => p[1])) * 1.18;
 
-    const pa = makePlot({ ctx, colors, rect: top, xDomain: dataDomain, yDomain: [0, popYMax] });
-    const ms = makePlot({ ctx, colors, rect: mid, xDomain: dataDomain, yDomain: [0, 1] });
+    const pa = makePlot({ ctx, colors, rect: top, xDomain: pop.domain, yDomain: [0, popYMax] });
 
-    /* -- reference rules ------------------------------------------------- *
-     * In mean mode every window is μ-centred by construction — populations
-     * declare a half-width, not a domain — so μ occupies the same pixel column
-     * in the population panel and in the pile below, and ONE rule carries it all
-     * the way down. In difference mode nothing means the same thing in both
-     * scales: the upper panels are in data units and the pile is in difference
-     * units, so the truth is marked twice, locally and honestly. */
-    if (!two) {
-      spanningRule(ctx, colors, { x: pa.sx(pop.mean), y0: top.y, y1: bottom.y + bottom.h, label: "μ" });
-    }
+    /* -- one μ rule for the whole figure -------------------------------- *
+     * Every window here is μ-centred by construction — populations declare a
+     * half-width, not a domain, and the pile's window is built the same way — so
+     * μ occupies the same pixel column in all three panels and ONE rule carries
+     * it from top to bottom. Drawn first, so marks sit over it. */
+    spanningRule(ctx, colors, {
+      x: pa.sx(pop.mean),
+      y0: top.y,
+      y1: bottom.y + bottom.h,
+      label: "μ",
+    });
 
-    pa.caption(`Population — ${pop.label}${two ? ", two groups" : ""} · you never see this`);
+    pa.caption(`Population — ${pop.label} · you never see this`);
 
-    for (const g of groups) {
-      if (pop.masses) {
-        pa.spikes(pop.masses.map(([v, p]) => [v + g.shift, p]), {
-          fill: colors.ink3, opacity: 0.55, width: 14,
-        });
-      } else {
-        const curve = samplePdf((x) => pop.pdf(x - g.shift), dataDomain, 300);
-        pa.area(curve, { fill: colors.ink3, opacity: 0.12 });
-        pa.curve(curve, { stroke: colors.ink3, width: 2 });
-      }
-      if (two) {
-        pa.vline(pop.mean + g.shift, { stroke: colors.reference, label: `μ${g.label}`, align: "right" });
-      }
+    if (pop.masses) {
+      pa.spikes(pop.masses, { fill: colors.ink3, opacity: 0.55, width: 14 });
+    } else {
+      const curve = samplePdf(pop.pdf, pop.domain, 300);
+      pa.area(curve, { fill: colors.ink3, opacity: 0.12 });
+      pa.curve(curve, { stroke: colors.ink3, width: 2 });
     }
 
     // The pile below magnifies a window around μ. Marking it turns a bare scale
-    // change into a statement. Only meaningful in mean mode, where the two
-    // panels are measuring the same quantity.
-    if (!two) {
-      pa.band(domain[0], domain[1], { fill: colors.empirical, opacity: 0.06, label: "shown below" });
-    }
+    // change into a statement.
+    pa.band(domain[0], domain[1], { fill: colors.empirical, opacity: 0.06, label: "shown below" });
 
     pa.axisX({ label: pop.masses ? "outcome" : "x" });
 
     /* -- middle panel: the one sample you actually have ------------------- */
-    const rows = sampleRows(mid, two);
+    const ms = makePlot({
+      ctx, colors, rect: mid, xDomain: pop.domain, yDomain: [0, state.maxPick + 1],
+    });
     const revealed = revealedCounts({ params, state, anim, inFlight });
 
     /* Only the first KEEP resamples retain their pick indices, so past that
@@ -466,36 +434,26 @@ defineWidget({
         ? inFlight
           ? "Your sample — resampling it with replacement"
           : "Your sample — the copies that produced the last resample"
-        : `Your sample — n = ${params.n}${two ? " per group" : ""}, drawn once · ` +
+        : `Your sample — n = ${params.n}, drawn once · ` +
           "every resample is built from these values and no others"
     );
 
-    for (let g = 0; g < groups.length; g += 1) {
-      const rp = makePlot({
-        ctx, colors, rect: rows[g], xDomain: dataDomain, yDomain: [0, state.maxPick + 1],
-      });
-      drawSampleRow(ctx, rp, {
-        colors,
-        values: groups[g].values,
-        counts: revealed ? revealed.counts[g] : null,
-        label: two ? groups[g].label : "",
-        // Mid-collapse the copies are travelling, so they are drawn by the
-        // choreography instead; only the parents stay put here.
-        stacks: !revealed || anim.phase === "pick" || !inFlight,
-        fade: inFlight ? 1 : 0.55,
-      });
+    drawSampleRow(ctx, ms, {
+      colors,
+      values: sample,
+      counts: revealed ? revealed.counts : null,
+      // Mid-collapse the copies are travelling, so they are drawn by the
+      // choreography instead; only the parents stay put here.
+      stacks: !revealed || anim.phase === "pick" || !inFlight,
+      fade: inFlight ? 1 : 0.55,
+    });
 
-      /* Where your estimate actually comes from. In a settled figure this is the
-         only mark tying the sample to the pile below: the pile is centred HERE,
-         on the mean of these values, and not on the μ rule running past it. */
-      rp.vline(meanAt(groups[g].values), {
-        stroke: colors.empirical,
-        label: two ? `x̄${groups[g].label}` : "x̄",
-        align: "right",
-      });
-    }
+    /* Where your estimate actually comes from. In a settled figure this is the
+       only mark tying the sample to the pile below: the pile is centred HERE,
+       on the mean of these values, and not on the μ rule running past it. */
+    ms.vline(state.observed, { stroke: colors.empirical, label: "x̄", align: "right" });
 
-    ms.axisX({ label: two ? "observation value (group A above, B below)" : "observation value" });
+    ms.axisX({ label: "observation value" });
 
     /* -- lower panel: the bootstrap distribution -------------------------- */
     const f = pile.frame();
@@ -512,26 +470,22 @@ defineWidget({
     const ticks = niceTicks(0, f.yMax, f.yMax <= 6 ? f.yMax : 4);
     pb.grid(ticks);
 
-    if (two) {
-      pb.vline(trueVal, { stroke: colors.reference, label: "true effect", align: "right" });
-    }
-
     pile.draw(pb, f, { colors, smooth: params.smooth });
 
     /* The claim being checked is about the SHAPE of the bootstrap distribution,
        so it waits until there is a shape — the same threshold the histogram
        crossfade uses. A reference curve over six dots is a lie told with a
-       spline, and this particular curve is the widget's whole argument. */
+       spline, and this particular curve is the widget's whole argument.
+
+       `--c-theory`, not `--c-reference`, and the two roles divide cleanly:
+       reference carries a true PARAMETER (the μ rule) and theory carries the
+       CURVE the pile is being checked against. That is the job `clt`'s normal
+       overlay does in the same colour, so a student who learned "orange is what
+       the pile should look like" in widget 2 meets the same convention here. It
+       is also the payoff of this widget, and reference is `--ink-3` — the
+       quietest ink in the system, and the first mark to vanish on a projector. */
     if (params.truth && f.barMix > 0) {
       const scale = total * hist.width;
-      /* `--c-theory`, not `--c-reference`, and the two roles divide cleanly:
-         reference carries a true PARAMETER (the μ rule, the true-effect line) and
-         theory carries the CURVE the pile is being checked against. That is the
-         job `clt`'s normal overlay does in the same colour, so a student who
-         learned "orange is what the pile should look like" in widget 2 meets the
-         same convention here. It is also the payoff of this widget, and
-         reference is `--ink-3` — the quietest ink in the system, which is the
-         wrong weight for the one comparison the figure exists to make. */
       pb.curve(state.truthDensity.map(([x, d]) => [x, d * scale]), {
         stroke: colors.theory,
         width: 2,
@@ -540,48 +494,57 @@ defineWidget({
     }
 
     pb.axisY({ ticks, label: "count" });
-    pb.axisX({ label: two ? "resampled difference in means" : "resampled mean" });
+    pb.axisX({ label: "resampled mean" });
 
     /* -- the resample in flight, across the sample and pile panels -------- */
-    if (inFlight && revealed) {
-      drawResampleInFlight({ ctx, colors, rows, pb, state, anim, revealed, dataDomain });
-    }
+    if (inFlight && revealed) drawResampleInFlight({ ctx, colors, ms, pb, state, anim, revealed });
   },
 
   /* --- readout ---------------------------------------------------------- *
-   * Two pairs, reading left to right, and they say opposite things on purpose.
+   * Two tile-pairs carrying three comparisons, because the middle one is the
+   * answer to "when does the bootstrap fail":
    *
-   *   estimate  vs  truth        these DISAGREE, by an amount you cannot know
-   *   bootstrap SE vs true SE    these AGREE, which is why the method works
+   *   μ, σ   vs  x̄, s      read DOWN the columns. x̄ vs μ is how far off your
+   *                        estimate is; s vs σ is how representative your one
+   *                        sample was, and it is the CAUSE of the pair below
+   *   true SE vs bootstrap SE   agree exactly as well as s agrees with σ
    *
-   * Putting the disagreement first stops the widget from reading as "resampling
-   * recovers the answer". It recovers the uncertainty, not the answer.        */
+   * Packed two numbers to a tile rather than six tiles across, and not for
+   * space: the readout grid fits five columns, so six tiles orphan the last one
+   * onto its own row away from its partner — and adjacency IS the argument.
+   * `clt` already reads this way with its "Population μ, σ" tile, so the arc
+   * stays consistent.
+   *
+   * The truth comes first and your sample second, so the widget cannot be read
+   * as "resampling recovers the answer". It recovers the uncertainty. Drag n
+   * down and watch s pull away from σ and the two SEs pull apart with it.     */
 
   readout({ params, state, anim }) {
-    const { two, observed, trueVal, se } = state;
+    const { pop, observed, sampleSd, se } = state;
     const pile = anim.pile;
-    const of = `of ${pile.shown} resample${pile.shown === 1 ? "" : "s"}`;
 
     return [
       {
-        label: "Your estimate",
-        value: fmt(observed, 3),
-        note: two ? "x̄B − x̄A, from one study" : "x̄, from one sample",
+        label: "Population μ, σ",
+        value: `${fmt(pop.mean)}, ${fmt(pop.sd)}`,
+        note: "you never see these",
       },
-      { label: "True value", value: fmt(trueVal, 3), note: "you never see this" },
-      { label: "Bootstrap SE", value: fmt(pile.sd, 3), note: of },
-      { label: "True SE", value: fmt(se, 3), note: two ? "σ√(2/n)" : "σ/√n" },
+      {
+        label: "Your sample x̄, s",
+        value: `${fmt(observed)}, ${fmt(sampleSd)}`,
+        note: "all you ever have",
+      },
+      { label: "True SE", value: fmt(se, 3), note: "σ/√n" },
+      {
+        label: "Bootstrap SE",
+        value: fmt(pile.sd, 3),
+        note: `of ${pile.shown} resample${pile.shown === 1 ? "" : "s"}`,
+      },
     ];
   },
 });
 
 /* --- helpers ------------------------------------------------------------ */
-
-function drawSample(pop, n, shift, rng) {
-  const out = new Array(n);
-  for (let i = 0; i < n; i += 1) out[i] = pop.sample(rng) + shift;
-  return out;
-}
 
 /**
  * Stop advancing, clearing the landing flash: once the animation halts no
@@ -594,66 +557,42 @@ function halt(anim, { finished = false } = {}) {
   return false;
 }
 
-/** One row per group, stacked inside the sample panel with a gap between. */
-function sampleRows(mid, two) {
-  if (!two) return [mid];
-  const gap = 16;
-  const rh = (mid.h - gap) / 2;
-  return [
-    { ...mid, h: rh },
-    { ...mid, y: mid.y + rh + gap, h: rh },
-  ];
-}
-
 /**
- * Which observations the resample in view has picked so far, and the statistic
- * it is heading for.
+ * Which observations the resample in view has picked so far, and the mean it is
+ * heading for.
  *
- * During `pick` the draws are revealed in order — group A's n draws, then group
- * B's — so the count is partial. Once picking is over the whole resample is
- * present. Between steps this reports the PREVIOUS resample, so the copies that
- * produced the most recent dot stay on screen to be counted at leisure.
+ * During `pick` the draws are revealed in order, so the count is partial. Once
+ * picking is over the whole resample is present. Between steps this reports the
+ * PREVIOUS resample, so the copies that produced the most recent dot stay on
+ * screen to be counted at leisure.
  */
 function revealedCounts({ params, state, anim, inFlight }) {
-  const idx = inFlight ? anim.pile.shown : anim.pile.shown - 1;
-  const per = state.picks[idx];
-  if (!per) return null;
+  const at = inFlight ? anim.pile.shown : anim.pile.shown - 1;
+  const idx = state.picks[at];
+  if (!idx) return null;
 
   const n = params.n;
-  const drawsPerGroup = n;
-  const totalDraws = drawsPerGroup * per.length;
   const done = inFlight && anim.phase === "pick"
-    ? Math.floor(clamp01(anim.phaseT) * totalDraws)
-    : totalDraws;
+    ? Math.floor(clamp01(anim.phaseT) * n)
+    : n;
 
-  const counts = per.map((ids, g) =>
-    countsFrom(ids, n, Math.max(0, Math.min(drawsPerGroup, done - g * drawsPerGroup)))
-  );
-  const means = per.map((ids, g) => meanAt(state.groups[g].values, ids));
-
-  return { per, counts, means, stat: state.stats[idx], partial: done < totalDraws };
+  return {
+    counts: countsFrom(idx, n, done),
+    mean: meanAt(state.sample, idx),
+    partial: done < n,
+  };
 }
 
 /**
- * One group's row: the observations you were dealt along the baseline, and the
- * copies taken from them stacked directly above.
+ * The sample: the observations you were dealt along the baseline, and the copies
+ * taken from them stacked directly above.
  *
  * An observation never picked dims to recessive ink rather than disappearing —
  * "this one contributed nothing to that resample" is as much a part of sampling
  * with replacement as the duplicates are.
  */
-function drawSampleRow(ctx, plot, { colors, values, counts, label, stacks, fade }) {
+function drawSampleRow(ctx, plot, { colors, values, counts, stacks, fade }) {
   const { sx, sy } = plot;
-
-  if (label) {
-    ctx.save();
-    ctx.fillStyle = colors.ink3;
-    ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, plot.x - 8, sy(0.5));
-    ctx.restore();
-  }
 
   for (let i = 0; i < values.length; i += 1) {
     const used = counts ? counts[i] > 0 : true;
@@ -676,54 +615,44 @@ function drawSampleRow(ctx, plot, { colors, values, counts, label, stacks, fade 
  * crosses from the sample panel into the panel below.
  *
  *   pick     — copies appear above the observations they were taken from
- *   collapse — the copies slide together to their mean; with two groups the two
- *              means then span a gap, and that gap is the statistic
+ *   collapse — the copies slide together to their mean, labelled x̄*
  *   drop     — the single number falls into the slot it is about to occupy
  *
  * Deliberately the same shape as `clt`'s draw/collapse/drop. What differs is
  * where the copies come from, and that is the only thing a student should have
  * to notice.
  */
-function drawResampleInFlight({ ctx, colors, rows, pb, state, anim, revealed, dataDomain }) {
-  const { two, groups, maxPick } = state;
+function drawResampleInFlight({ ctx, colors, ms, pb, state, anim, revealed }) {
   const t = clamp01(anim.phaseT);
-
-  const scaleFor = (g) =>
-    makePlot({ ctx, colors, rect: rows[g], xDomain: dataDomain, yDomain: [0, maxPick + 1] });
+  const dotY = ms.sy(1.5);
 
   ctx.save();
 
   if (anim.phase === "collapse") {
-    // Every copy slides from its parent observation to the group's resampled
-    // mean. The copies are the resample; the parents stay where they are.
+    // Every copy slides from its parent observation to the resampled mean. The
+    // copies are the resample; the parents stay where they are.
     const e = easeOut(t);
-    for (let g = 0; g < groups.length; g += 1) {
-      const rp = scaleFor(g);
-      const target = rp.sx(revealed.means[g]);
-      for (let i = 0; i < groups[g].values.length; i += 1) {
-        const from = rp.sx(groups[g].values[i]);
-        for (let k = 1; k <= revealed.counts[g][i]; k += 1) {
-          pin(ctx, colors, from + (target - from) * e, rp.sy(k + 0.5), 4.5, colors.highlight, 1);
-        }
+    const target = ms.sx(revealed.mean);
+    for (let i = 0; i < state.sample.length; i += 1) {
+      const from = ms.sx(state.sample[i]);
+      for (let k = 1; k <= revealed.counts[i]; k += 1) {
+        pin(ctx, colors, from + (target - from) * e, ms.sy(k + 0.5), 4.5, colors.highlight, 1);
       }
     }
     if (e > 0.55) {
-      const alpha = (e - 0.55) / 0.45;
-      const origin = statOrigin({ ctx, colors, rows, state, revealed, dataDomain });
-      if (two) drawGap({ ctx, colors, rows, state, revealed, dataDomain, alpha });
-      label(ctx, colors, statLabel(two, revealed.stat), origin[0], origin[1] - 12, alpha);
+      label(ctx, colors, `x̄* = ${fmt(revealed.mean, 2)}`, target, dotY - 12, (e - 0.55) / 0.45);
     }
     ctx.restore();
     return;
   }
 
   if (anim.phase === "drop") {
-    const bin = anim.pile.binOf(revealed.stat);
-    const [x0, y0] = statOrigin({ ctx, colors, rows, state, revealed, dataDomain });
+    const value = state.stats[anim.pile.shown];
+    const bin = anim.pile.binOf(value);
     const geom = {
-      x0,
-      y0,
-      x1: pb.sx(revealed.stat),
+      x0: ms.sx(value),
+      y0: dotY,
+      x1: pb.sx(value),
       // A statistic outside the plotted window still lands, it just lands on the
       // floor — the same treatment a histogram gives it.
       y1: bin >= 0 ? pb.sy(anim.pile.counts[bin] + 0.5) : pb.bottom,
@@ -746,67 +675,11 @@ function drawResampleInFlight({ ctx, colors, rows, pb, state, anim, revealed, da
 
     // The label has already named the value by the time the fall starts, so it
     // clears out early rather than travelling down through the panel caption.
-    label(ctx, colors, statLabel(two, revealed.stat), at[0], at[1] - 12, 1 - t / 0.3);
+    label(ctx, colors, `x̄* = ${fmt(value, 2)}`, at[0], at[1] - 12, 1 - t / 0.3);
     pin(ctx, colors, at[0], at[1], 5, colors.highlight, 1);
   }
 
   ctx.restore();
-}
-
-/**
- * Where the statistic sits once the copies have collapsed, in canvas pixels.
- *
- * One group: the resampled mean, on its row. Two groups: the middle of the gap
- * between the two group means, which is where the difference is written and
- * therefore where it should start falling from. Shared by the collapse label and
- * by the drop, so the number cannot appear in one place and leave from another.
- */
-function statOrigin({ ctx, colors, rows, state, revealed, dataDomain }) {
-  const plot = (g) =>
-    makePlot({ ctx, colors, rect: rows[g], xDomain: dataDomain, yDomain: [0, state.maxPick + 1] });
-
-  if (!state.two) {
-    const rp = plot(0);
-    return [rp.sx(revealed.means[0]), rp.sy(1.5)];
-  }
-  const a = plot(0);
-  const b = plot(1);
-  return [
-    (a.sx(revealed.means[0]) + b.sx(revealed.means[1])) / 2,
-    (rows[0].y + rows[0].h + rows[1].y) / 2,
-  ];
-}
-
-/** The span between two group means — the difference, drawn as a distance. */
-function drawGap({ ctx, colors, rows, state, revealed, dataDomain, alpha }) {
-  const plot = (g) =>
-    makePlot({ ctx, colors, rect: rows[g], xDomain: dataDomain, yDomain: [0, state.maxPick + 1] });
-  const xa = plot(0).sx(revealed.means[0]);
-  const xb = plot(1).sx(revealed.means[1]);
-  const y = (rows[0].y + rows[0].h + rows[1].y) / 2;
-
-  ctx.save();
-  ctx.globalAlpha = clamp01(alpha);
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(xa, y);
-  ctx.lineTo(xb, y);
-  ctx.stroke();
-  // Ticks at each end, so the line reads as a measured distance rather than a
-  // connector between two dots.
-  for (const x of [xa, xb]) {
-    ctx.beginPath();
-    ctx.moveTo(x, y - 5);
-    ctx.lineTo(x, y + 5);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function statLabel(two, v) {
-  return two ? `x̄B − x̄A = ${fmt(v, 2)}` : `x̄* = ${fmt(v, 2)}`;
 }
 
 /**
@@ -856,7 +729,7 @@ function label(ctx, colors, text, x, y, alpha) {
  *
  * Binned first and then convolved, the same trick the pile uses: the cost is
  * bins x grid rather than values x grid, which matters because this runs over
- * two thousand simulated statistics on every parameter change. Binning spans the
+ * two thousand simulated means on every parameter change. Binning spans the
  * values' own range rather than the plotted window, so a tail falling outside
  * the panel still contributes to the density inside it.
  */

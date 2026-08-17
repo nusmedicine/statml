@@ -32,19 +32,31 @@ npm run dev
 |---|---|---|
 | 1 | `galton-board` | Where the bell curve comes from. A ball takes a ±1 nudge at each row; the axis is **total deviation from zero**, so the pile reads as an error distribution from the outset. Exact binomial overlay. Lean shifts the pile off the zero rule, which is bias made visible. |
 | 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
-| 3 | `bootstrap` | You have **one** sample. Resample it with replacement — copies stack above the observations they came from, so duplicates and never-picked values are both visible — collapse them to a statistic, drop it into the pile. The true sampling distribution sits behind it: **same width, different place.** A `stat` control switches from a mean to a difference between two groups. |
+| 3 | `bootstrap` | You have **one** sample. Resample it with replacement — copies stack above the observations they came from, so duplicates and never-picked values are both visible — collapse them to their mean, drop it into the pile. The true sampling distribution sits behind it: **same width, different place.** |
 
 All three start empty, all three animate step by step, all three build their pile
 with `core/accumulator.js`.
 
-**Two things widget 3 settled that widget 4 inherits.** The plotting window is
-centred on the **true value**, not on the estimate — centring on the estimate
-would put the pile in the middle every time and hide that the bootstrap is
-centred on your estimate rather than on the truth. And the default seed is 3, not
-1, because at n = 12 from an exponential the observed s runs anywhere from 0.6σ
-to 2.0σ and seed 1 lands 56% too wide; seed 3 gets the SE within 2% **and** puts
-the estimate 1.3 SE off μ, so both lessons arrive together. The comment on the
-`seed` param carries the reasoning — don't tidy it back.
+**Three things widget 3 settled that widget 4 inherits.**
+
+1. **The window is centred on the true value, not the estimate.** Centring on the
+   estimate is the obvious choice and would put the pile in the middle every
+   time, hiding that the bootstrap is centred on your estimate and not on μ.
+2. **The readout shows `s` beside `σ`.** The bootstrap samples from your sample,
+   not the population, so its SE is essentially `s/√n` and
+   `bootstrap SE / true SE` is exactly `s/σ`. That pair is the difference between
+   asserting the method works and showing why it sometimes doesn't. Four tiles,
+   two numbers each — six tiles orphan the last one onto its own row, because the
+   readout grid fits five columns.
+3. **Default seed 3, not 1.** At n = 12 from an exponential the observed `s` runs
+   from 0.6σ to 2.0σ; seed 1 lands 56% too wide. Seed 3 gets the SE within 2%
+   **and** puts the estimate 1.3 SE off μ, so both lessons arrive together. The
+   comment on the `seed` param carries the reasoning — don't tidy it back.
+
+**A `stat` control switching mean → difference was built and then cut** (see
+catalogue.md). Two groups meant two rows, two collapses and a gap to read as the
+statistic, and the mechanism this widget exists to teach got harder to narrate.
+Widget 4 carries that transition alone.
 
 ### What is NOT verified
 
@@ -89,9 +101,11 @@ it, and it persists among researchers, not only students.
      study. **This is the documented misconception target**; the first view is
      the setup for it.
    - Both, with the second reachable from the first.
-2. **The statistic is a difference by default.** Widget 3 makes the mean →
-   difference switch on a `stat` control; widget 4 opens on the difference,
-   because effect size is what has clinical meaning.
+2. **The statistic is a difference, and widget 4 now introduces it alone.** Widget
+   3 tried carrying the mean → difference switch and it was cut for muddying the
+   mechanism. So watch for the cost this creates here: a student meets a new
+   statistic *and* a new concept in the same widget. If it bites, the fix is a
+   one-group opening state rather than putting the switch back into widget 3.
 3. Reuse `POPULATIONS`, and keep the true value marked with `--c-reference` and
    the checked-against curve in `--c-theory`, as widget 3 does.
 

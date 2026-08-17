@@ -97,22 +97,22 @@
       "px": "27b8cac2"
     },
     {
-      "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution, same width.",
+      "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution.",
       "slug": "bootstrap",
       "state": "?theme=light&shown=400",
-      "px": "c3c84b54"
+      "px": "3bf9c7e6"
     },
     {
-      "$note": "The second statistic: two groups, two rows, the true-effect rule.",
+      "$note": "A different population and a mid-build count, still in the dot-to-bar crossfade.",
       "slug": "bootstrap",
-      "state": "?theme=light&stat=diff&n=20&shown=400",
-      "px": "949d3940"
+      "state": "?theme=light&dist=bimodal&n=25&shown=120",
+      "px": "a0b37fc5"
     },
     {
       "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
       "slug": "bootstrap",
       "state": "?theme=light&n=6&smooth=0&truth=0&shown=25",
-      "px": "6b023a51"
+      "px": "1d4a5e22"
     },
     {
       "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
@@ -123,10 +123,10 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "9a1c6574"
+      "px": "a588563e"
     },
     {
-      "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar*.",
+      "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar-star.",
       "slug": "bootstrap",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -134,29 +134,18 @@
         "frames": 28,
         "dt": 32
       },
-      "px": "2bbd3538"
+      "px": "4864b519"
     },
     {
-      "$note": "DRIVEN: two-group collapse — the gap between the group means, which is the statistic.",
+      "$note": "DRIVEN: mid-drop, the arced trail crossing from the sample panel into the pile.",
       "slug": "bootstrap",
-      "state": "?theme=light&stat=diff&speed=slow",
+      "state": "?theme=light&speed=slow",
       "drive": {
         "click": "step",
-        "frames": 30,
+        "frames": 44,
         "dt": 32
       },
-      "px": "2bd7e6cb"
-    },
-    {
-      "$note": "DRIVEN: two-group drop — the trail leaving the gap midpoint and crossing into the pile.",
-      "slug": "bootstrap",
-      "state": "?theme=light&stat=diff&speed=slow",
-      "drive": {
-        "click": "step",
-        "frames": 46,
-        "dt": 32
-      },
-      "px": "98ad35e5"
+      "px": "a970084e"
     }
   ]
 }

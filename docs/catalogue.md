@@ -91,11 +91,19 @@ resampling motor from #3, so the only new idea is *what gets shuffled*.
 
 ### Design notes to settle before building
 
-**#3 bootstraps both a mean and a difference — done.** The statistic under study
-changes at #4 — from "a mean" (widgets 2–3) to "a difference between two groups"
-(widgets 4–6), because effect size is the thing that has clinical meaning. That
-transition happens *inside* widget 3, on a `stat` control, rather than silently
-between widgets. Same machinery, a switch of statistic.
+**~~#3 should bootstrap both a mean and a difference.~~ Built, then cut.** The plan
+was to make the widgets-2–3 mean → widgets-4–6 difference transition happen
+*inside* widget 3 on a `stat` control, rather than silently between widgets. It
+was built and it worked. It came out anyway: two groups meant two rows, two
+collapses and a gap to read as the statistic, and **the mechanism widget 3 exists
+to teach — sampling with replacement — got harder to narrate, not easier.** The
+plan optimised for continuity of the *statistic* across the arc and paid for it in
+clarity of the *idea* in this widget, which is the wrong trade. A widget teaches
+one thing.
+
+Widget 4 opens on a difference and carries the transition alone. The cost is real
+and should be watched for: a student meets a new statistic and a new concept in
+the same widget, which is exactly what this plan was trying to avoid.
 
 **#3's killer view: bootstrap distribution against the truth — done.** The observed
 sample is drawn from a seeded population, so the widget shows the true sampling
@@ -104,14 +112,29 @@ distribution — which you can actually compute — comes out nearly the same wi
 the one you can never see. That single overlay is the entire justification for the
 method, and it is only available to us because populations are seeded.
 
-**What building #3 added to that plan**, and #4 inherits: the two curves agree in
-*width* and disagree in *position*, because the bootstrap is centred on your
-estimate and not on the truth. So the plotting window is centred on the true value
-rather than on the estimate — centring it on the estimate would put the pile in
-the middle every time and hide the one thing the bootstrap cannot do. The readout
-is two pairs saying opposite things: estimate vs truth **disagree**, bootstrap SE
-vs true SE **agree**. A widget that only showed the agreement would teach that
-resampling recovers the answer. It recovers the uncertainty.
+**What building #3 added to that plan**, and #4 inherits:
+
+The two curves agree in *width* and disagree in *position*, because the bootstrap
+is centred on your estimate and not on the truth. So the plotting window is
+centred on the true value rather than on the estimate — centring it on the
+estimate would put the pile in the middle every time and hide the one thing the
+bootstrap cannot do.
+
+**And the readout has to show `s` beside `σ`.** The bootstrap does not sample from
+the population, it samples from *your sample* — the plug-in principle, F̂ₙ for F —
+so for a mean its SE is essentially `s/√n`, and `bootstrap SE / true SE` is
+exactly `s/σ`. Without that pair on screen the widget can only *assert* that
+resampling sometimes works; with it, a student can see why. Measured across the
+defaults: n=12 gives s=0.98 and SEs of 0.283 vs 0.289; seed 6 gives s=2.05 and
+0.568 vs 0.289. Same mechanism, both times.
+
+The honest framing for the lecture, which the arc should not overclaim: the
+bootstrap is **asymptotically right and small-sample honest-but-noisy**. It is an
+estimate of the sampling distribution and has its own sampling error. Worth
+saying out loud that for a *mean* it barely earns its keep — `s/√n` is the
+textbook formula — and that its real value is statistics with no closed form
+(median, ratio, correlation) and skewed sampling distributions where a symmetric
+interval is wrong. Here it earns its slot as the idea that feeds #4–#6.
 
 **#4 needs two views, not one.** One study → one interval (from #3's bootstrap
 distribution). Many studies → coverage, which is the *documented* misconception

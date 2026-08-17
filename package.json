@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Interactive widgets for teaching statistics and machine learning.",
   "scripts": {
-    "dev": "node scripts/serve.mjs 8000",
+    "dev": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
     "build": "node scripts/check.mjs && node scripts/build.mjs",
     "preview": "npm run build && npx --yes serve _site"

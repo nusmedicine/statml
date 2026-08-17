@@ -12,7 +12,7 @@
    `max-age=600`, so a student can run a ten-minute-old widget after a push. That
    one we live with; this one we refuse to.
 
-   Usage:  node scripts/serve.mjs [port]
+   Usage:  node scripts/serve.mjs [port]      # or PORT=8123 npm run dev
    ========================================================================= */
 
 import { createServer } from "node:http";
@@ -21,7 +21,12 @@ import { join, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(import.meta.url), "..", "..");
-const port = Number(process.argv[2]) || 8000;
+/* Explicit argument wins, then PORT from the environment, then 8000. Nothing in
+   this repo depends on a particular port — every widget URL is relative and the
+   fingerprint harness loads its frames relatively too — so a second dev server
+   on another port is harmless, and honouring PORT is what lets one start when
+   8000 is already taken. */
+const port = Number(process.argv[2]) || Number(process.env.PORT) || 8000;
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
