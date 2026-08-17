@@ -62,7 +62,7 @@ previous one raises, and each reuses the previous one's machinery.
 
 | # | slug | concept | what it answers | misconception / prerequisite | evidence |
 |---|---|---|---|---|---|
-| 1 | `galton-board` | Origin of the bell curve | *Why does anything go normal?* Accumulated independent increments — a random walk, a ball through pins | **Prerequisite for `clt`.** Without it the CLT is a rule to memorise. Also dislodges the assumption that bell-shaped is simply the default shape of data | inferred |
+| 1 | `galton-board` ✅ | Origin of the bell curve | *Why does anything go normal?* Accumulated independent increments — a random walk, a ball through pins | **Prerequisite for `clt`.** Without it the CLT is a rule to memorise. Also dislodges the assumption that bell-shaped is simply the default shape of data | inferred |
 | 2 | `clt` ✅ | Sampling distribution of the mean | *What happens if I average?* Means go normal with spread σ/√n, whatever the population | That a sampling distribution should look like the population, increasingly so as n grows — no distinction between a distribution of data and a distribution of a statistic | **documented** |
 | 3 | `bootstrap` | Resampling one sample | *But I only ever have one sample.* Resample it with replacement and the spread of the resampled statistic stands in for the sampling distribution | That knowing an estimate's uncertainty requires repeated samples from the population — which is exactly what widget 2 quietly assumed. Also that resampling "manufactures data" | reported |
 | 4 | `confidence-interval` | Effect size and its uncertainty | *How big is the effect, and how sure am I?* An interval, read as a range of compatible effects | That there is a 95% chance the true value lies in *this* interval. A realised interval either contains it or does not; 95% describes the procedure across many studies | **documented** |
@@ -117,7 +117,9 @@ Widgets 2, 3, 5 and 6 all accumulate a statistic into a growing distribution.
 crossfade, the ratcheted count axis, the running mean and SD, the drop
 choreography, the KDE overlay.
 
-**Extract it into `core/accumulator.js` before widget #3 is written, not after.**
+**Done** — `core/accumulator.js` exists and both shipped widgets use it. The
+extraction was verified pixel-identical on five CLT states via
+`widgets/_lab/fingerprint.html`.
 Three widgets duplicating it is the version of this project that becomes
 unmaintainable. Widgets 3, 5 and 6 additionally need a shared resampling engine
 (`resample`, `permute`) in `core/rng.js`. Doing both first is the difference

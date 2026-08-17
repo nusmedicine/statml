@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · fingerprint</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: 0 0 var(--sp-3); }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: var(--sp-4) 0; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  th, td { text-align: left; padding: var(--sp-1) var(--sp-2) var(--sp-1) 0; border-bottom: 1px solid var(--grid); }
+  th { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 500; }
+  td.state { font-family: var(--font-mono); font-size: 11px; word-break: break-all; }
+  td.hash { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .v { font-weight: 600; }
+  .v-match { color: #0ca30c; }
+  .v-differ { color: #d03b3b; }
+  .v-new { color: var(--ink-3); }
+  #summary { margin: var(--sp-4) 0 0; font-weight: 600; }
+  pre { background: var(--surface-3); padding: var(--sp-3); border-radius: var(--radius); overflow-x: auto; font-size: 11px; }
+  .frames { position: absolute; left: -99999px; top: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Rendering fingerprint</h1>
+  <p class="note">
+    Hashes each widget's canvas at a fixed state and compares against a stored
+    baseline. <strong>Pixel-identical output is the only honest proof that a
+    refactor changed nothing</strong> — “looks the same” is not, and screenshots
+    of an animating figure are worse than useless.
+  </p>
+  <p class="note">
+    Run before a refactor, run after. If a state DIFFERS and you did not mean to
+    change it, you have found a regression. If you <em>did</em> mean to change it,
+    press <b>Copy new baseline</b> and paste over
+    <code>widgets/_lab/fingerprint-baseline.json</code> in the same commit as the
+    change — so the diff records that the rendering moved and why.
+  </p>
+  <p class="note">
+    Every state must be static: pass <code>shown=</code> so the figure is fully
+    built and nothing is animating, or the hash is a coin toss.
+  </p>
+
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="run">Run</button>
+    <button class="w-btn" id="copy">Copy new baseline</button>
+    <span class="w-flash" id="flash"></span>
+  </div>
+
+  <table>
+    <thead><tr><th>Result</th><th>Widget</th><th>State</th><th>Baseline</th><th>Now</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p id="summary"></p>
+  <div class="frames" id="frames"></div>
+</main>
+
+<script type="module">
+// Fixed viewport for the offscreen frames: canvas width feeds the hash, so it
+// must not depend on the window the harness happens to be open in.
+const FRAME_W = 900;
+const FRAME_H = 1200;
+const SETTLE_MS = 400;
+
+const rows = document.getElementById("rows");
+const summary = document.getElementById("summary");
+const frames = document.getElementById("frames");
+const flash = document.getElementById("flash");
+
+/** FNV-1a over the PNG data URL. Not cryptographic; just needs to be stable. */
+function hash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+const baseline = await (await fetch("./fingerprint-baseline.json")).json();
+let latest = [];
+
+async function shoot(entry) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W;
+  frame.height = FRAME_H;
+  frame.style.border = "0";
+  frame.src = `../${entry.slug}/${entry.state}`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  await new Promise((r) => setTimeout(r, SETTLE_MS));
+
+  let px = "—";
+  let note = "";
+  try {
+    const canvas = frame.contentDocument.querySelector(".w-figure canvas");
+    px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
+    const errs = frame.contentDocument.querySelectorAll(".w-stat-value");
+    note = [...errs].map((n) => n.textContent).join(" | ");
+  } catch (e) {
+    px = "error";
+    note = String(e.message ?? e);
+  }
+  frame.remove();
+  return { px, note };
+}
+
+async function run() {
+  rows.innerHTML = "";
+  summary.textContent = "running…";
+  latest = [];
+  let differ = 0;
+  let fresh = 0;
+
+  for (const entry of baseline.states) {
+    const { px, note } = await shoot(entry);
+    latest.push({ ...entry, px });
+
+    const known = entry.px && entry.px !== "";
+    const ok = known && px === entry.px;
+    if (known && !ok) differ += 1;
+    if (!known) fresh += 1;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td class="v ${ok ? "v-match" : known ? "v-differ" : "v-new"}">` +
+      `${ok ? "MATCH" : known ? "DIFFER" : "NEW"}</td>` +
+      `<td>${entry.slug}</td>` +
+      `<td class="state">${entry.state}<br><span style="color:var(--ink-3)">${note}</span></td>` +
+      `<td class="hash">${entry.px || "—"}</td>` +
+      `<td class="hash">${px}</td>`;
+    rows.appendChild(tr);
+  }
+
+  summary.textContent = differ
+    ? `${differ} state(s) DIFFER — a regression, unless you meant it`
+    : fresh
+      ? `All known states match; ${fresh} new state(s) need a baseline`
+      : `All ${baseline.states.length} states identical`;
+  summary.style.color = differ ? "#d03b3b" : "var(--ink-1)";
+}
+
+document.getElementById("run").addEventListener("click", run);
+
+document.getElementById("copy").addEventListener("click", async () => {
+  const next = JSON.stringify(
+    { $comment: baseline.$comment, states: latest },
+    null,
+    2
+  );
+  try {
+    await navigator.clipboard.writeText(next);
+    flash.textContent = "Baseline copied — paste over fingerprint-baseline.json";
+  } catch {
+    const pre = document.createElement("pre");
+    pre.textContent = next;
+    document.querySelector(".lab").appendChild(pre);
+    flash.textContent = "Clipboard blocked — copy from below";
+  }
+});
+
+run();
+</script>
+</body>
+</html>

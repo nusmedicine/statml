@@ -2,11 +2,28 @@
   "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. Keep HEIGHTS in python/statml_widgets/__init__.py in sync until this file is generated.",
   "widgets": [
     {
+      "slug": "galton-board",
+      "title": "Where the bell curve comes from",
+      "blurb": "A ball goes left or right at every row of pegs; its column is a count of the rights. Drop enough and the pile is a bell curve — that is all a bell curve is.",
+      "course": "PHM5003",
+      "topics": [
+        "probability",
+        "random walk"
+      ],
+      "arc": 1,
+      "height": 1040,
+      "status": "shipped"
+    },
+    {
       "slug": "clt",
       "title": "Central Limit Theorem",
       "blurb": "Starts empty. Draw one sample at a time and watch its observations collapse to a mean that falls into the pile below — which goes normal whatever the population looks like, with spread σ/√n.",
       "course": "PHM5003",
-      "topics": ["sampling", "inference"],
+      "topics": [
+        "sampling",
+        "inference"
+      ],
+      "arc": 2,
       "height": 1090,
       "status": "shipped"
     }

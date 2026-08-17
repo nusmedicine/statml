@@ -273,7 +273,13 @@ export function defineWidget(config) {
     const playing = rafId !== null && anim?.mode === "run";
     const done = Boolean(anim?.done);
     if (actions.run) {
-      actions.run.textContent = playing ? "Pause" : done ? "Replay" : hasAdvanced ? "Resume" : "Play";
+      actions.run.textContent = playing
+        ? "Pause"
+        : done
+          ? "Replay"
+          : hasAdvanced
+            ? "Resume"
+            : animation.runLabel ?? "Play";
       actions.run.setAttribute("aria-pressed", String(playing));
     }
     // Only disabled when there is genuinely nothing left. Clicking it mid-step
@@ -288,17 +294,19 @@ export function defineWidget(config) {
   // Reset belongs here too — start over is part of the same loop as draw and
   // play, not housekeeping like copying a link.
   const drive = buildActions(dom.drive, [
+    // Labels are the widget's to name: a Galton board drops balls, it does not
+    // draw samples. Generic verbs make a widget feel like a demo of a framework.
     animation && {
       key: "step",
-      text: "Draw one",
-      title: "Take one sample, slowly, showing every step",
+      text: animation.stepLabel ?? "Draw one",
+      title: "Advance one step, slowly, showing every stage",
       primary: true,
       onClick: () => startAnim("step"),
     },
     animation && {
       key: "run",
-      text: "Play",
-      title: "Keep drawing samples at the chosen speed",
+      text: animation.runLabel ?? "Play",
+      title: "Keep going at the chosen speed",
       primary: true,
       onClick: () => startAnim("run"),
     },

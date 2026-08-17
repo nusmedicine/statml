@@ -1,0 +1,13 @@
+{
+  "$comment": "Canvas hashes at fixed, fully-built states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Every state must pass shown= so nothing is animating; an animating figure hashes differently every run. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
+  "states": [
+    { "slug": "clt", "state": "?theme=light&dist=exponential&n=5&shown=12", "px": "3873f7b5" },
+    { "slug": "clt", "state": "?theme=light&dist=exponential&n=30&view=zoom&shown=400", "px": "16242573" },
+    { "slug": "clt", "state": "?theme=light&dist=bimodal&n=8&shown=45", "px": "00d7da4b" },
+    { "slug": "clt", "state": "?theme=light&dist=bernoulli&n=5&shown=400", "px": "131ab991" },
+    { "slug": "clt", "state": "?theme=light&dist=pareto&n=8&view=zoom&smooth=0&shown=200", "px": "92a227b5" },
+    { "slug": "galton-board", "state": "?theme=light&rows=12&shown=300", "px": "e758a445" },
+    { "slug": "galton-board", "state": "?theme=light&rows=4&shown=25", "px": "9852e710" },
+    { "slug": "galton-board", "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0", "px": "45ac17c9" }
+  ]
+}
