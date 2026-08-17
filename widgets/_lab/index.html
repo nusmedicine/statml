@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · design comparisons</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 640px; margin: 0 auto; padding: var(--sp-5) var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0; }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-5); }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-3); }
+  a.card {
+    display: block; padding: var(--sp-3); text-decoration: none; color: inherit;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  a.card:hover { border-color: var(--axis); }
+  a.card b { display: block; font-size: var(--fs-md); }
+  a.card span { color: var(--ink-2); font-size: var(--fs-sm); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Design lab</h1>
+  <p class="note">
+    Side-by-side comparisons for decisions that are easier to settle by looking
+    than by arguing. Not part of the deployed site — the build skips
+    underscore-prefixed directories.
+  </p>
+  <ul>
+    <li><a class="card" href="./drop-paths.html">
+      <b>Drop paths</b>
+      <span>Four candidate animation paths, with dots at equal time intervals so pacing shows and not just shape.</span>
+    </a></li>
+    <li><a class="card" href="./controls.html">
+      <b>Control styles</b>
+      <span>Dropdown vs discrete slider vs segmented buttons for a small ordered choice, plus a continuous-zoom alternative.</span>
+    </a></li>
+  </ul>
+</main>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# About this book {.unnumbered}
+
+This is a widget-first companion to a course in statistics and machine learning.
+Each chapter is short, and each rests on one interactive figure that you are
+meant to *drive* rather than read.
+
+Every figure is a standalone page whose entire state lives in its URL. That has
+three consequences worth knowing as a reader:
+
+- **Any view you produce is a link.** Every widget carries a *Copy link* button.
+  If a particular setting made something click for you, copy it and keep it.
+- **Results are reproducible.** A seed parameter means the figure you see is the
+  figure your classmate sees. Changing the seed is how you check whether a
+  pattern is real or is sampling noise.
+- **Nothing is gated behind the picture.** Every widget reports its key numbers
+  underneath, and most offer a table view of the underlying values.
+
+## For instructors
+
+The same widgets embed into a live JupyterLab notebook with no kernel
+dependency and no Jupyter extension:
+
+```python
+from statml_widgets import show
+show("clt", dist="exponential", n=30)
+```
+
+The book shortcode is deliberately the same shape:
+
+``` markdown
+{{{< widget clt dist=exponential n=30 >}}}
+```
+
+So a state you author by playing with a widget transfers between the book, a
+notebook, and a slide without being rebuilt.

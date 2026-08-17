@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · control styles</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 74ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-1); }
+  .cell .verdict { color: var(--ink-2); font-size: var(--fs-xs); margin: var(--sp-3) 0 0; }
+  .cell .verdict b { color: var(--ink-1); }
+  .out { margin: var(--sp-2) 0 0; font-size: var(--fs-xs); color: var(--ink-3); font-family: var(--font-mono); }
+
+  /* Candidate: segmented control. Would move into tokens.css if chosen. */
+  .seg { display: flex; border: 1px solid var(--axis); border-radius: var(--radius); overflow: hidden; }
+  .seg button {
+    flex: 1; padding: 5px 6px; font: inherit; font-size: var(--fs-sm);
+    background: var(--surface-1); color: var(--ink-2);
+    border: 0; border-right: 1px solid var(--grid); cursor: pointer; white-space: nowrap;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+
+  /* Candidate: ticked slider track. */
+  .ticks { display: flex; justify-content: space-between; margin-top: 2px; }
+  .ticks span { font-size: 10px; color: var(--ink-3); }
+
+  /* Zoom schematic. */
+  .track {
+    position: relative; height: 26px; margin: var(--sp-2) 0 0;
+    background: var(--surface-3); border-radius: 3px; overflow: hidden;
+  }
+  .track .win { position: absolute; top: 0; bottom: 0; background: var(--c-empirical); opacity: 0.3; }
+  .track .mu { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Control styles</h1>
+  <p class="note">
+    Live controls, real tokens. Two questions: what shape should a small ordered
+    choice take, and should “lower panel scale” stay two named views or become a
+    continuum. Drag everything.
+  </p>
+
+  <h2>1 · Play speed — four ordered options</h2>
+  <p class="note">
+    Speed is a genuine magnitude, so it has a natural order. The wrinkle: the
+    choreography switches off partway along, which is a regime change rather than
+    more of the same, and a control that hides its options hides that too.
+  </p>
+  <div class="grid" id="speed"></div>
+
+  <h2>2 · Lower panel scale</h2>
+  <p class="note">
+    Currently two named views. A slider could replace them — or replace the whole
+    idea with a continuous zoom. Move the <b>n</b> slider in the last cell: how
+    much zoom range exists at all depends on n, which is the thing to judge.
+  </p>
+  <div class="grid" id="scale"></div>
+</main>
+
+<script type="module">
+const SPEEDS = [
+  { value: "slow",    short: "Slow",    detail: "every step shown" },
+  { value: "medium",  short: "Medium",  detail: "every step shown" },
+  { value: "fast",    short: "Fast",    detail: "samples only" },
+  { value: "fastest", short: "Fastest", detail: "fills in" },
+];
+
+const SCALES = [
+  { value: "fixed", short: "Population", detail: "shared axis with the panel above" },
+  { value: "zoom",  short: "Zoom on μ",  detail: "μ ± 4 SE" },
+];
+
+function cell(host, title, verdict, build) {
+  const wrap = document.createElement("div");
+  wrap.className = "cell";
+  const h3 = document.createElement("h3");
+  h3.textContent = title;
+  wrap.appendChild(h3);
+  const body = document.createElement("div");
+  wrap.appendChild(body);
+  const out = document.createElement("p");
+  out.className = "out";
+  wrap.appendChild(out);
+  const v = document.createElement("p");
+  v.className = "verdict";
+  v.innerHTML = verdict;
+  wrap.appendChild(v);
+  host.appendChild(wrap);
+  build(body, (text) => { out.textContent = text; });
+}
+
+/* --- variant builders --------------------------------------------------- */
+
+function asDropdown(body, report, options, initial) {
+  const field = document.createElement("div");
+  field.className = "w-field";
+  field.innerHTML = `<label><span>Play speed</span></label>`;
+  const sel = document.createElement("select");
+  for (const o of options) {
+    const opt = document.createElement("option");
+    opt.value = o.value;
+    opt.textContent = `${o.short} — ${o.detail}`;
+    sel.appendChild(opt);
+  }
+  sel.value = initial;
+  sel.addEventListener("change", () => report(sel.value));
+  field.appendChild(sel);
+  body.appendChild(field);
+  report(initial);
+}
+
+function asSlider(body, report, options, initial, label) {
+  const i0 = options.findIndex((o) => o.value === initial);
+  const field = document.createElement("div");
+  field.className = "w-field";
+  const lab = document.createElement("label");
+  const name = document.createElement("span");
+  name.textContent = label;
+  const val = document.createElement("span");
+  val.className = "val";
+  lab.append(name, val);
+  field.appendChild(lab);
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "0";
+  input.max = String(options.length - 1);
+  input.step = "1";
+  input.value = String(i0);
+  field.appendChild(input);
+
+  const ticks = document.createElement("div");
+  ticks.className = "ticks";
+  for (const o of options) {
+    const s = document.createElement("span");
+    s.textContent = o.short;
+    ticks.appendChild(s);
+  }
+  field.appendChild(ticks);
+  body.appendChild(field);
+
+  const show = () => {
+    const o = options[+input.value];
+    val.textContent = o.short;
+    report(`${o.value} · ${o.detail}`);
+  };
+  input.addEventListener("input", show);
+  show();
+}
+
+function asSegmented(body, report, options, initial, label) {
+  const field = document.createElement("div");
+  field.className = "w-field";
+  field.innerHTML = `<label><span>${label}</span></label>`;
+  const seg = document.createElement("div");
+  seg.className = "seg";
+  for (const o of options) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = o.short;
+    b.setAttribute("aria-pressed", String(o.value === initial));
+    b.addEventListener("click", () => {
+      for (const other of seg.children) other.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-pressed", "true");
+      report(`${o.value} · ${o.detail}`);
+    });
+    seg.appendChild(b);
+  }
+  field.appendChild(seg);
+  body.appendChild(field);
+  report(`${initial} · ${options.find((o) => o.value === initial).detail}`);
+}
+
+/* --- continuous zoom, with n, to judge whether the range is worth having -- */
+
+function asContinuousZoom(body, report) {
+  const POP_HW = 3.2;  // exponential, mu-centred
+  const SIGMA = 1;
+
+  const mk = (label, min, max, step, value) => {
+    const field = document.createElement("div");
+    field.className = "w-field";
+    const lab = document.createElement("label");
+    const nm = document.createElement("span");
+    nm.textContent = label;
+    const val = document.createElement("span");
+    val.className = "val";
+    lab.append(nm, val);
+    const input = document.createElement("input");
+    input.type = "range";
+    Object.assign(input, { min, max, step, value });
+    field.append(lab, input);
+    body.appendChild(field);
+    return { input, val };
+  };
+
+  const zoom = mk("Zoom on μ", 0, 10, 1, 0);
+  const n = mk("Sample size n", 2, 100, 1, 30);
+
+  const track = document.createElement("div");
+  track.className = "track";
+  const win = document.createElement("div");
+  win.className = "win";
+  const mu = document.createElement("div");
+  mu.className = "mu";
+  mu.style.left = "50%";
+  track.append(win, mu);
+  body.appendChild(track);
+
+  const draw = () => {
+    const nn = +n.input.value;
+    const t = +zoom.input.value / 10;
+    const se = SIGMA / Math.sqrt(nn);
+    const tight = 4 * se;
+    // Geometric interpolation, so each step of the slider feels like the same
+    // amount of zoom rather than doing nothing until the very end.
+    const hw = Math.pow(POP_HW, 1 - t) * Math.pow(tight, t);
+    const frac = Math.min(1, hw / POP_HW);
+    win.style.left = `${50 - frac * 50}%`;
+    win.style.width = `${frac * 100}%`;
+    zoom.val.textContent = `μ ± ${(hw / se).toFixed(1)} SE`;
+    n.val.textContent = String(nn);
+    report(`window ${(hw / POP_HW * 100).toFixed(0)}% of the population range · full travel = ${(POP_HW / tight).toFixed(1)}× zoom`);
+  };
+
+  zoom.input.addEventListener("input", draw);
+  n.input.addEventListener("input", draw);
+  draw();
+}
+
+/* --- assemble ----------------------------------------------------------- */
+
+const speed = document.getElementById("speed");
+
+cell(speed, "A · Dropdown (current)",
+  "<b>Compact, but the alternatives are invisible until clicked.</b> For a learner, an option they cannot see is an option they do not consider. The long labels also force a wide column.",
+  (b, r) => asDropdown(b, r, SPEEDS, "medium"));
+
+cell(speed, "B · Discrete slider + tick labels",
+  "<b>Matches the other sliders and shows the ordering.</b> Speed is a real magnitude, so left-to-right means something. Tick labels recover what a bare slider hides — without them you cannot tell where the choreography stops.",
+  (b, r) => asSlider(b, r, SPEEDS, "medium", "Play speed"));
+
+cell(speed, "C · Segmented buttons",
+  "<b>Every option visible, one click to any of them.</b> Best for learning, worst for width — four labels is already tight at this column size, and it stops looking like the sliders beside it.",
+  (b, r) => asSegmented(b, r, SPEEDS, "medium", "Play speed"));
+
+const scale = document.getElementById("scale");
+
+cell(scale, "A · Dropdown (current)",
+  "<b>Two long labels in a control built for many.</b> A dropdown for two options is the wrong instrument: one click to open, one to choose, and neither option visible at rest.",
+  (b, r) => asDropdown(b, r, SCALES, "fixed"));
+
+cell(scale, "B · Two-position slider",
+  "<b>Consistent with the sliders, but a two-stop slider is a toggle wearing a costume.</b> Sliders imply a range; this one has two states and no in-between.",
+  (b, r) => asSlider(b, r, SCALES, "fixed", "Lower panel scale"));
+
+cell(scale, "C · Segmented buttons",
+  "<b>The natural shape for two named views.</b> Both visible, both one click away, and the two are genuinely different <i>readings</i> rather than more-or-less of one thing.",
+  (b, r) => asSegmented(b, r, SCALES, "fixed", "Lower panel scale"));
+
+cell(scale, "D · Continuous zoom (different concept)",
+  "<b>Connects the two facts instead of separating them</b> — the pile is tight <i>and</i> it is normal, one gesture. But drag <b>n</b> down: at n = 5 the full travel is under 2× zoom, so most of the slider does nothing, and you lose the two named reference points an instructor can say out loud.",
+  asContinuousZoom);
+</script>
+</body>
+</html>

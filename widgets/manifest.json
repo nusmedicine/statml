@@ -1,0 +1,13 @@
+{
+  "$comment": "Single source of truth for the widget catalogue. Consumed by the gallery page and the build script. Keep python/statml_widgets/_heights.py in sync — Phase 1 should generate it from here.",
+  "widgets": [
+    {
+      "slug": "clt",
+      "title": "Central Limit Theorem",
+      "blurb": "Starts empty. Draw one sample at a time and watch its observations collapse to a mean that falls into the pile below — which goes normal whatever the population looks like, with spread σ/√n.",
+      "topics": ["sampling", "inference"],
+      "height": 1090,
+      "status": "reference"
+    }
+  ]
+}

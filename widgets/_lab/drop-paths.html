@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · drop paths</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 980px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-4); max-width: 70ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h2 { font-size: var(--fs-md); margin: 0; }
+  .cell p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); min-height: 3em; }
+  canvas { display: block; width: 100%; height: auto; }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Drop-path candidates</h1>
+  <p class="note">
+    The diagonal only appears in “Zoom to the mean”, where the two panels have
+    different x-scales so the mean must move sideways as well as down. In shared-axis
+    view the drop is already perfectly vertical. Dots are spaced at <strong>equal time
+    intervals</strong>, so their spacing shows the pacing: bunched = slow, spread = fast.
+  </p>
+  <div class="bar">
+    <button class="w-btn" id="play">Play all</button>
+    <span class="w-flash" id="flash"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<script type="module">
+const easeOut   = (t) => 1 - Math.pow(1 - t, 3);
+const easeIn    = (t) => t * t;
+const easeInOut = (t) => t * t * (3 - 2 * t);
+const clamp01   = (t) => Math.max(0, Math.min(1, t));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// Geometry: the mean leaves the population baseline at x0 and must land in a bin
+// whose x differs because the lower panel is on a different scale.
+const X0 = 70, Y0 = 46, X1 = 300, Y1 = 232;
+
+const CANDIDATES = [
+  {
+    key: "linear",
+    name: "A · Linear diagonal (current)",
+    blurb: "One eased interpolation for both axes. Reads as a slide, not a fall — nothing in it says “this is dropping into place”.",
+    path: (t) => {
+      const e = easeInOut(t);
+      return [lerp(X0, X1, e), lerp(Y0, Y1, e)];
+    },
+  },
+  {
+    key: "elbow",
+    name: "B · Elbow (across, then down)",
+    blurb: "Sideways first, then a vertical drop. Legible and mechanical. The corner is a visible event, which draws the eye to the turn rather than the landing.",
+    path: (t) => {
+      const x = lerp(X0, X1, easeInOut(clamp01(t / 0.45)));
+      const y = lerp(Y0, Y1, easeIn(clamp01((t - 0.45) / 0.55)));
+      return [x, y];
+    },
+  },
+  {
+    key: "arc",
+    name: "C · Split timing (rescale, then gravity)",
+    blurb: "Sideways motion eases out over the first half while the fall accelerates under a gravity curve. Same information as the elbow, no corner — it arcs over and drops in.",
+    path: (t) => {
+      const x = lerp(X0, X1, easeOut(clamp01(t / 0.55)));
+      const y = lerp(Y0, Y1, easeIn(t));
+      return [x, y];
+    },
+  },
+  {
+    key: "toss",
+    name: "D · Tossed (Bézier with lift)",
+    blurb: "A quadratic curve with a control point above the start, so the mean lifts before falling. Playful, but the lift implies motion the data does not have.",
+    path: (t) => {
+      const e = easeInOut(t);
+      const cx = X1, cy = Y0 - 46;
+      const m = 1 - e;
+      return [
+        m * m * X0 + 2 * m * e * cx + e * e * X1,
+        m * m * Y0 + 2 * m * e * cy + e * e * Y1,
+      ];
+    },
+  },
+];
+
+const W = 420, H = 280;
+const grid = document.getElementById("grid");
+const views = [];
+
+for (const cand of CANDIDATES) {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  const h2 = document.createElement("h2");
+  h2.textContent = cand.name;
+  const p = document.createElement("p");
+  p.textContent = cand.blurb;
+  const canvas = document.createElement("canvas");
+  cell.append(h2, p, canvas);
+  grid.appendChild(cell);
+  views.push({ cand, canvas });
+}
+
+function tokens() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n) => cs.getPropertyValue(n).trim();
+  return {
+    ink2: v("--ink-2"), ink3: v("--ink-3"), grid: v("--grid"), axis: v("--axis"),
+    surface: v("--surface-1"), highlight: v("--c-highlight"), empirical: v("--c-empirical"),
+    font: v("--font"),
+  };
+}
+
+function drawCell({ cand, canvas }, liveT) {
+  const c = tokens();
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || W;
+  const scale = cssW / W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(H * scale * dpr);
+  canvas.style.height = `${H * scale}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // Panel furniture: a population baseline up top, a histogram bar below.
+  ctx.strokeStyle = c.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(20, Y0 + 0.5); ctx.lineTo(W - 20, Y0 + 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20, 260.5); ctx.lineTo(W - 20, 260.5); ctx.stroke();
+
+  ctx.fillStyle = c.ink3;
+  ctx.font = `11px ${c.font}`;
+  ctx.textAlign = "left";
+  ctx.fillText("population baseline", 20, Y0 - 8);
+  ctx.fillText("histogram", 20, 276);
+
+  ctx.fillStyle = c.empirical;
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(X1 - 11, Y1 + 8, 22, 260 - Y1 - 8);
+  ctx.globalAlpha = 1;
+
+  // The traced path.
+  ctx.strokeStyle = c.ink3;
+  ctx.globalAlpha = 0.4;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i <= 120; i += 1) {
+    const [x, y] = cand.path(i / 120);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Equal-time samples: spacing reveals pacing.
+  const N = 15;
+  for (let i = 0; i <= N; i += 1) {
+    const [x, y] = cand.path(i / N);
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = c.highlight;
+    ctx.globalAlpha = 0.4;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // The live marker.
+  if (liveT !== null) {
+    const [x, y] = cand.path(liveT);
+    ctx.beginPath();
+    ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = c.highlight;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = c.surface;
+    ctx.stroke();
+  }
+}
+
+let start = null;
+let running = false;
+
+function frame(ts) {
+  if (start === null) start = ts;
+  const t = ((ts - start) % 1800) / 1200;
+  for (const v of views) drawCell(v, Math.min(1, t));
+  if (running) requestAnimationFrame(frame);
+}
+
+document.getElementById("play").addEventListener("click", () => {
+  running = !running;
+  document.getElementById("flash").textContent = running ? "playing" : "";
+  if (running) { start = null; requestAnimationFrame(frame); }
+  else for (const v of views) drawCell(v, null);
+});
+
+for (const v of views) drawCell(v, null);
+new ResizeObserver(() => { for (const v of views) drawCell(v, null); }).observe(grid);
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# build output
+_site/
+book/_book/
+book/.quarto/
+.quarto/
+
+# node
+node_modules/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# macOS / Dropbox
+.DS_Store
+Icon?
+.dropbox
+.dropbox.attr
+*.sb-*
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# notebooks
+.ipynb_checkpoints/

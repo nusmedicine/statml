@@ -1,0 +1,16 @@
+{
+  "name": "book-statml",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive widgets for teaching statistics and machine learning, plus the book that embeds them.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs 8000",
+    "book": "quarto render book",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/build.mjs && npx --yes serve _site"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,478 @@
+/* ============================================================================
+   DESIGN TOKENS — the single source of visual style for every widget.
+   Change values here. Never hardcode a colour, size, or font in a widget.
+
+   The categorical series palette is a validated set: fixed slot order (never
+   cycled), CVD-separated on adjacent pairs, with selected dark-mode steps
+   rather than an automatic flip.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* --- surfaces & ink ---------------------------------------------------- */
+  --surface-1: #fcfcfb;              /* figure surface                       */
+  --surface-2: #f9f9f7;              /* page plane                           */
+  --surface-3: #f1f1ec;              /* control wells, table stripes         */
+  --ink-1: #0b0b0b;                  /* primary text                         */
+  --ink-2: #52514e;                  /* secondary text                       */
+  --ink-3: #898781;                  /* muted: axis labels, ticks            */
+  --grid: #e1e0d9;                   /* hairline gridline                    */
+  --axis: #c3c2b7;                   /* baseline / axis line                 */
+  --border: rgba(11, 11, 11, 0.10);  /* hairline ring                        */
+  --focus: #2a78d6;
+
+  /* --- categorical series: FIXED ORDER, NEVER CYCLED -------------------- */
+  --series-1: #2a78d6;               /* blue                                 */
+  --series-2: #eb6834;               /* orange                               */
+  --series-3: #1baf7a;               /* aqua                                 */
+  --series-4: #eda100;               /* yellow                               */
+  --series-5: #e87ba4;               /* magenta                              */
+  --series-6: #008300;               /* green                                */
+  --series-7: #4a3aa7;               /* violet                               */
+  --series-8: #e34948;               /* red                                  */
+
+  /* --- semantic roles for teaching figures ------------------------------ *
+   * Widgets reference THESE, not the numbered slots. One idea per role, so
+   * "empirical" is the same blue in all 40 widgets and students learn it.   */
+  --c-empirical: var(--series-1);    /* what we observed / simulated         */
+  --c-theory:    var(--series-2);    /* the theoretical / asymptotic result  */
+  --c-smoothed:  var(--series-3);    /* a smoothed reading of the empirical  */
+  --c-highlight: var(--series-7);    /* the one thing to look at right now   */
+  --c-reference: var(--ink-3);       /* truth: a parameter, a null value     */
+  --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
+
+  /* --- type ------------------------------------------------------------- */
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-fig: 20px;                    /* stat-tile value                      */
+
+  /* --- geometry --------------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --radius: 6px;
+  --bar-radius: 4px;                 /* rounded data-end on bars             */
+  --surface-gap: 2px;                /* the gap that separates touching marks */
+  --line-w: 2px;
+}
+
+/* Dark values are declared under BOTH scopes: the media query covers the OS
+   setting, the [data-theme] scope covers an explicit choice and must win both
+   ways. :where() keeps the media block's specificity at zero. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --surface-2: #0d0d0d;
+    --surface-3: #242422;
+    --ink-1: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --focus: #3987e5;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --surface-2: #0d0d0d;
+  --surface-3: #242422;
+  --ink-1: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --focus: #3987e5;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+/* ============================================================================
+   WIDGET CHROME — every widget gets the same frame, so the collection reads
+   as one system. Nothing here is widget-specific.
+   ========================================================================= */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Embedded in an iframe: no page chrome, the host page provides the margin. */
+body[data-embed="1"] { background: transparent; }
+body[data-embed="1"] .w-root { border: none; border-radius: 0; }
+
+.w-root {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+  background: var(--surface-1);
+  border: var(--hairline, 1px) solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* --- header --------------------------------------------------------------- */
+.w-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.w-subtitle {
+  margin: var(--sp-1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  max-width: 62ch;
+}
+
+/* --- figure --------------------------------------------------------------- */
+.w-figure {
+  position: relative;
+  margin: var(--sp-4) 0 0;
+}
+
+.w-figure canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* --- legend: always present for >= 2 series ------------------------------ */
+.w-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.w-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.w-legend .swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--swatch, var(--ink-3));
+}
+
+.w-legend .swatch[data-mark="line"] {
+  height: 3px;
+  border-radius: 2px;
+}
+
+.w-legend .swatch[data-mark="dot"] {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* --- readout: stat tiles. Also the accessible text of the figure. -------- */
+.w-readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) 0 0;
+  border-top: 1px solid var(--grid);
+}
+
+.w-stat-label {
+  display: block;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  text-transform: none;
+}
+
+.w-stat-value {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-fig);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.w-stat-note {
+  display: block;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+/* --- controls ------------------------------------------------------------- *
+ * The setup block comes FIRST, above the figure: choose what you are sampling
+ * from before you sample from it. Reading order is the instruction.           */
+.w-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--sp-3) var(--sp-4);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-4) 0 0;
+  border-top: 1px solid var(--grid);
+}
+
+.w-field { min-width: 0; }
+
+.w-field > label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-1);
+}
+
+.w-field .val {
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.w-field input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--focus);
+}
+
+.w-field select {
+  width: 100%;
+  padding: 5px var(--sp-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink-1);
+  background: var(--surface-1);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+}
+
+.w-field.is-bool > label { justify-content: flex-start; }
+.w-field input[type="checkbox"] { accent-color: var(--focus); }
+
+/* Tick labels under a `choice` slider. A slider without them shows a position
+   and hides what the positions are — worse than the dropdown it replaced. */
+.w-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1px;
+}
+
+.w-ticks span {
+  font-size: 10px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* What the current setting actually does, so a short tick label can stay short. */
+.w-detail {
+  margin: 2px 0 0;
+  min-height: 1.2em;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+/* Segmented control: a small set of alternative readings, all visible at rest. */
+.w-seg {
+  display: flex;
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.w-seg-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  background: var(--surface-1);
+  border: 0;
+  border-right: 1px solid var(--grid);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.w-seg-btn:last-child { border-right: 0; }
+.w-seg-btn:hover { background: var(--surface-3); }
+
+.w-seg-btn[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.w-seg-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* --- actions -------------------------------------------------------------- *
+ * Two rows, deliberately unequal. The drive row is what a student presses to
+ * make something happen and sits directly above the figure; the utility row is
+ * housekeeping and sits at the very bottom, styled to recede. Making the
+ * important control look important is the cheapest scaffolding there is.      */
+.w-drive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 0;
+}
+
+.w-utility {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) 0 0;
+  border-top: 1px solid var(--grid);
+}
+
+.w-btn {
+  padding: 5px 10px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink-1);
+  background: var(--surface-1);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* Every button in the drive row is the SAME SIZE. They are pressed
+   interchangeably, and a smaller Reset reads as a different class of control
+   rather than a quieter member of the same one. Emphasis comes from weight and
+   ink, and separation from a gap — never from geometry. */
+.w-drive .w-btn {
+  padding: 7px 16px;
+  font-size: var(--fs-md);
+}
+
+.w-btn--primary { font-weight: 600; }
+
+.w-drive .w-btn:not(.w-btn--primary) {
+  margin-left: var(--sp-3);
+  color: var(--ink-2);
+}
+
+.w-utility .w-btn {
+  color: var(--ink-2);
+  border-color: var(--grid);
+}
+
+.w-btn:hover { background: var(--surface-3); }
+.w-btn:active { transform: translateY(0.5px); }
+.w-btn[aria-pressed="true"] { background: var(--surface-3); }
+
+.w-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.w-btn:disabled:hover { background: var(--surface-1); }
+
+:where(.w-btn, select, input):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.w-flash {
+  align-self: center;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* --- table view: nothing is gated behind the figure --------------------- */
+.w-table-wrap {
+  margin: var(--sp-3) 0 0;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+}
+
+.w-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.w-table th,
+.w-table td {
+  padding: var(--sp-1) var(--sp-2);
+  text-align: right;
+  border-bottom: 1px solid var(--grid);
+}
+
+.w-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
+  color: var(--ink-2);
+  font-weight: 600;
+  text-align: right;
+}
+
+.w-table th:first-child,
+.w-table td:first-child { text-align: left; }
+
+.w-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

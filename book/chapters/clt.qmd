@@ -1,0 +1,92 @@
+---
+title: "The sampling distribution of the mean"
+---
+
+Almost every classical inference procedure you will meet rests on one fact: the
+mean of a sample behaves predictably even when the thing you sampled does not.
+
+Start with the population in the upper panel. It is an exponential — sharply
+right-skewed, nothing like a bell curve. Press **Draw one** and watch what
+happens: five observations appear at the values they were sampled at, slide
+together into their average $\bar{x}$, and that single number drops into the
+panel below as one dot.
+
+{{< widget clt dist=exponential n=5 >}}
+
+Press it four or five more times. The step worth dwelling on is the collapse:
+every dot in the lower panel is a *summary of five observations that are no
+longer on screen*. A histogram of sample means looks like a histogram of data,
+and it is not one — each bar is a pile of averages.
+
+By about the fourth dot a smoothed green curve appears, tracing the shape of what
+you have so far. Watch it as you keep clicking. At six means it lurches around
+with every new sample; that instability is not a flaw in the drawing, it is an
+honest picture of how little six observations tell you about a shape.
+
+Once the dots stop being countable they become bars, and only then does the
+normal curve appear — a claim about many means has no business being drawn over
+six. Press **Play** to keep drawing without clicking; set **Play speed** to
+whatever suits you. At *Slow* and *Medium* every sample still plays out in full;
+at *Fast* and *Fastest* the arithmetic is skipped and you just watch the samples
+arrive.
+
+The two overlay checkboxes are safe to toggle at any point — they change what is
+drawn, not what has been collected, so comparing the histogram with and without
+the normal curve costs you nothing.
+
+At $n = 5$ the result is still visibly skewed; it has inherited some of the
+population's asymmetry. Now drag $n$ upward — which clears the panel, because the
+means you collected were means of five, and they are not means of thirty. Two
+things happen at once, and it is worth separating them:
+
+**The shape becomes normal.** Switch the lower panel to *Zoom to the mean* and
+compare the histogram against the orange curve. By $n = 30$ the two are hard to
+tell apart. This is the central limit theorem: for any population with finite
+variance,
+
+$$
+\bar{X}_n \;\xrightarrow{\;d\;}\; \mathcal{N}\!\left(\mu,\ \frac{\sigma^2}{n}\right).
+$$
+
+**The spread shrinks.** Keep the lower panel on *Population scale* and watch the
+histogram narrow as $n$ grows. The standard deviation of the sampling
+distribution — the standard error — falls as $\sigma/\sqrt{n}$. Compare the
+*Predicted SE* and *Observed SD* readouts as you drag: they track each other
+closely, which is the theorem doing quantitative work rather than merely
+qualitative work.
+
+The $\sqrt{n}$ is the expensive part. Halving your standard error costs four
+times the data.
+
+## Where it fails, or fails slowly
+
+The theorem is asymptotic, and "asymptotic" hides a lot of practical variation.
+Here is a heavy-tailed population at $n = 5$, already run to completion so the two
+end states can be compared side by side.
+
+{{< widget clt dist=pareto n=5 view=zoom shown=400 >}}
+
+Convergence still happens — this Pareto has finite variance — but it is visibly
+slower and the right tail lingers well past the sample size where the
+exponential had already settled. The lesson is not that the CLT is unreliable;
+it is that "$n = 30$ is enough" is a rule of thumb about *populations you have
+already looked at*, not a theorem.
+
+The extreme case is instructive too. Set the population to *Coin flip*: a
+distribution with only two possible values, whose sample mean is discrete for
+every finite $n$. The histogram is visibly lumpy at small $n$ and smooths out as
+$n$ grows — normality arrives as an approximation to something that never
+literally becomes continuous.
+
+## Try this
+
+- Set $n = 30$, then change the **seed** repeatedly. How much does the histogram
+  move? That variation is the honest width of your uncertainty about the shape.
+- Set **samples to draw** to 20 and press *Play*. You will see all twenty as
+  individual dots, and most of what looks like structure in them is noise.
+- Watch the **Observed SD** tile while an animation runs. It jumps around wildly
+  for the first dozen means and then settles onto the predicted $\sigma/\sqrt{n}$.
+  That is the law of large numbers arriving, which is a different theorem from
+  the one this figure is about.
+- With the *Bimodal* population, find the smallest $n$ at which you can no
+  longer see two humps in the sampling distribution.
