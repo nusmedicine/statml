@@ -93,11 +93,20 @@ const SPEEDS = {
   fastest: { label: "Fastest", detail: "fills in at once", ms: 0, choreo: false },
 };
 
-// "Resample once" always runs the full choreography at this speed, whatever Play
-// is set to. Its whole job is to show the mechanism; a fast single step is useless.
+// "Resample your sample" always runs the full choreography at this speed,
+// whatever Play is set to. Its whole job is to show the mechanism; a fast single
+// step is useless.
 const STEP_MS = 1600;
 const STREAM_MS = 3200;
 const PHASE_FRAC = { pick: 0.46, collapse: 0.24, drop: 0.30 };
+
+/* Stage one: the single sample, falling out of the population. Slower than a
+   resample because it happens exactly once and everything after it depends on
+   it. The observations appear at their sampled values in the population panel,
+   hold, then fall together into the sample row. */
+const LEAD_MS = 2200;
+const LEAD_APPEAR = 0.46; // reveal is spread over this much of the stage
+const LEAD_FALL = 0.58; //   ...and the fall starts here, after a beat
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const easeIn = (t) => t * t;
@@ -268,14 +277,23 @@ defineWidget({
    * collapse the copies to their mean, drop that number into the pile.       */
 
   animation: {
-    stepLabel: "Resample once",
+    /* TWO STAGES, two buttons, and the asymmetry between them IS the widget.
+       You may press the first one exactly once — afterwards it greys out and
+       only Reset brings it back, because in real life you cannot go back to the
+       population for more data. You may press the second as often as you like,
+       because resampling costs nothing but arithmetic. A student who has felt
+       that difference in the buttons does not confuse the two loops. */
+    leadLabel: "Sample the population",
+    stepLabel: "Resample your sample",
     runLabel: "Play",
 
     init({ params, state, fromScratch }) {
       const anim = {
         pile: makeBootPile(state),
-        phase: "pick", // 'pick' | 'collapse' | 'drop'
-        phaseT: 0, //     0..1 within the current phase; 0 means idle
+        leadDone: false, //  core reads this: nothing else is available until it is true
+        leadT: 0, //         0..1 progress of the one draw from the population
+        phase: "pick", //    'pick' | 'collapse' | 'drop'
+        phaseT: 0, //        0..1 within the current phase; 0 means idle
         sinceCommit: 0,
         streamFrom: -1,
         streamT: 0,
@@ -283,8 +301,13 @@ defineWidget({
       };
 
       // Authored starting state, e.g. ?shown=400. Skipped on Replay: someone
-      // pressing it wants to watch the thing get built.
+      // pressing it wants to watch the thing get built. A figure that arrives
+      // with resamples already in it necessarily has its sample already drawn.
       const pre = fromScratch ? 0 : Math.min(Math.max(0, params.shown | 0), params.reps);
+      if (pre > 0) {
+        anim.leadDone = true;
+        anim.leadT = 1;
+      }
       for (let i = 0; i < pre; i += 1) anim.pile.push(state.stats[i]);
       anim.pile.clearFlash();
       if (anim.pile.shown >= params.reps) anim.done = true;
@@ -301,6 +324,20 @@ defineWidget({
     },
 
     advance(anim, { dt, params, state }) {
+      /* Stage one. Runs to completion and stops; there is nothing to repeat,
+         which is the entire point of it being a separate action. */
+      if (anim.mode === "lead") {
+        if (anim.leadDone) return false;
+        anim.leadT = Math.min(1, anim.leadT + dt / LEAD_MS);
+        if (anim.leadT < 1) return true;
+        anim.leadDone = true;
+        return false;
+      }
+
+      // Core disables the other buttons until the sample exists, so this is a
+      // guard against a programmatic play(), not something a click can reach.
+      if (!anim.leadDone) return false;
+
       if (anim.done) return false;
       anim.pile.tick(dt);
 
@@ -402,7 +439,11 @@ defineWidget({
       label: "μ",
     });
 
-    pa.caption(`Population — ${pop.label} · you never see this`);
+    pa.caption(
+      anim.leadDone
+        ? `Population — ${pop.label} · you never see this, and you cannot go back to it`
+        : `Population — ${pop.label} · you never see this`
+    );
 
     if (pop.masses) {
       pa.spikes(pop.masses, { fill: colors.ink3, opacity: 0.55, width: 14 });
@@ -422,36 +463,41 @@ defineWidget({
     const ms = makePlot({
       ctx, colors, rect: mid, xDomain: pop.domain, yDomain: [0, state.maxPick + 1],
     });
-    const revealed = revealedCounts({ params, state, anim, inFlight });
+    const revealed = anim.leadDone ? revealedCounts({ params, state, anim, inFlight }) : null;
 
-    /* Only the first KEEP resamples retain their pick indices, so past that
-       there are no copies to show and the caption must not claim otherwise.
-       That is also the settled figure a lesson publishes with ?shown=400, and
-       it is the right moment to say the thing the whole widget is arguing:
-       nothing new was ever drawn. */
+    /* Three things this caption has to be honest about, in order of the run:
+       the sample does not exist yet; it exists and is all you will ever get;
+       and past KEEP resamples there are no retained pick indices, so there are
+       no copies to show and it must not claim otherwise. That last case is also
+       the settled figure a lesson publishes with ?shown=400, which makes it the
+       right moment to say the thing the whole widget is arguing. */
     ms.caption(
-      revealed
-        ? inFlight
-          ? "Your sample — resampling it with replacement"
-          : "Your sample — the copies that produced the last resample"
-        : `Your sample — n = ${params.n}, drawn once · ` +
-          "every resample is built from these values and no others"
+      !anim.leadDone
+        ? "Your sample — nothing drawn yet · in real life you get exactly one"
+        : revealed
+          ? inFlight
+            ? "Your sample — resampling it with replacement"
+            : "Your sample — the copies that produced the last resample"
+          : `Your sample — n = ${params.n}, drawn once · ` +
+            "every resample is built from these values and no others"
     );
 
-    drawSampleRow(ctx, ms, {
-      colors,
-      values: sample,
-      counts: revealed ? revealed.counts : null,
-      // Mid-collapse the copies are travelling, so they are drawn by the
-      // choreography instead; only the parents stay put here.
-      stacks: !revealed || anim.phase === "pick" || !inFlight,
-      fade: inFlight ? 1 : 0.55,
-    });
+    if (anim.leadDone) {
+      drawSampleRow(ctx, ms, {
+        colors,
+        values: sample,
+        counts: revealed ? revealed.counts : null,
+        // Mid-collapse the copies are travelling, so they are drawn by the
+        // choreography instead; only the parents stay put here.
+        stacks: !revealed || anim.phase === "pick" || !inFlight,
+        fade: inFlight ? 1 : 0.55,
+      });
 
-    /* Where your estimate actually comes from. In a settled figure this is the
-       only mark tying the sample to the pile below: the pile is centred HERE,
-       on the mean of these values, and not on the μ rule running past it. */
-    ms.vline(state.observed, { stroke: colors.empirical, label: "x̄", align: "right" });
+      /* Where your estimate actually comes from. In a settled figure this is the
+         only mark tying the sample to the pile below: the pile is centred HERE,
+         on the mean of these values, and not on the μ rule running past it. */
+      ms.vline(state.observed, { stroke: colors.empirical, label: "x̄", align: "right" });
+    }
 
     ms.axisX({ label: "observation value" });
 
@@ -496,7 +542,8 @@ defineWidget({
     pb.axisY({ ticks, label: "count" });
     pb.axisX({ label: "resampled mean" });
 
-    /* -- the resample in flight, across the sample and pile panels -------- */
+    /* -- whichever stage is moving, across panel boundaries --------------- */
+    if (!anim.leadDone && anim.leadT > 0) drawLeadInFlight({ ctx, colors, pa, ms, state, anim });
     if (inFlight && revealed) drawResampleInFlight({ ctx, colors, ms, pb, state, anim, revealed });
   },
 
@@ -531,8 +578,12 @@ defineWidget({
       },
       {
         label: "Your sample x̄, s",
-        value: `${fmt(observed)}, ${fmt(sampleSd)}`,
-        note: "all you ever have",
+        /* Blank until the sample has actually been drawn. `compute` knows these
+           numbers from the first frame, and printing them would hand over the
+           answer before the student has pressed anything — the readout is as
+           capable of spoiling a figure as the figure is. */
+        value: anim.leadDone ? `${fmt(observed)}, ${fmt(sampleSd)}` : "—",
+        note: anim.leadDone ? "all you ever have" : "not drawn yet",
       },
       { label: "True SE", value: fmt(se, 3), note: "σ/√n" },
       {
@@ -608,6 +659,43 @@ function drawSampleRow(ctx, plot, { colors, values, counts, stacks, fade }) {
     }
   }
   ctx.restore();
+}
+
+/**
+ * Stage one: the single sample falling out of the population.
+ *
+ * Observations appear at their sampled values inside the POPULATION panel,
+ * hold for a beat, then fall together into the sample row below. Drawn in
+ * highlight while in flight and handed over to `drawSampleRow` in the empirical
+ * colour once they land — "the thing to look at right now" becoming "what we
+ * observed", which is exactly what has happened to them.
+ *
+ * Structurally this is the same fall as a resample's drop, and deliberately so.
+ * What a student has to notice is only WHERE each stage draws from: this one
+ * reaches into the panel above, and the next one never does again.
+ */
+function drawLeadInFlight({ ctx, colors, pa, ms, state, anim }) {
+  const t = clamp01(anim.leadT);
+  const popY = pa.bottom - 13;
+  const rowY = ms.sy(0.5);
+  // Both panels are plotted on the population's domain, so x never moves: this
+  // is a pure vertical fall, and easeIn is what makes it read as falling.
+  const fall = easeIn(clamp01((t - LEAD_FALL) / (1 - LEAD_FALL)));
+
+  for (let i = 0; i < state.sample.length; i += 1) {
+    // Stagger the appearance so a sample reads as n separate draws.
+    const at = (i / state.sample.length) * LEAD_APPEAR;
+    const grow = clamp01((t - at) / 0.1);
+    if (grow <= 0) continue;
+    pin(
+      ctx, colors,
+      pa.sx(state.sample[i]),
+      popY + (rowY - popY) * fall,
+      4.5 * grow,
+      colors.highlight,
+      1
+    );
+  }
 }
 
 /**

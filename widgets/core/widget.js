@@ -49,6 +49,23 @@
    stop) — the widget decides what a logical unit is. Core reads only `done` and
    sets `mode`; everything else in `anim` belongs to the widget.
 
+   A LEAD ACTION: something that happens ONCE, before stepping is meaningful.
+
+       animation: { leadLabel: 'Sample the population', ... }
+
+   Declaring `leadLabel` adds one more drive button, ahead of the others, which
+   runs `advance` with `anim.mode === 'lead'`. The widget sets `anim.leadDone`
+   when it has happened. Core does the rest: the lead button disables itself
+   afterwards, and step and run stay disabled until then, so the sequence cannot
+   be taken out of order.
+
+   The point is pedagogical, not mechanical. `bootstrap` draws the single sample
+   you are stuck with, then resamples it as often as you like — and the lead
+   button greying out permanently is the lesson, because in real life you cannot
+   go back to the population for more. `permutation-test` will have the same
+   shape: observe the data once, shuffle its labels many times. Only Reset brings
+   the lead action back.
+
    SPOILER-FREE BY CONSTRUCTION: a widget that declares an animation is re-inited
    on load and on every DATA parameter change, so `anim` is always the thing
    drawn and there is no "finished" picture to give the answer away before the
@@ -291,19 +308,29 @@ export function defineWidget(config) {
     if (!animation) return;
     const playing = rafId !== null && anim?.mode === "run";
     const done = Boolean(anim?.done);
+    // Nothing but the lead action is available until the lead action has run.
+    const leadPending = Boolean(animation.leadLabel) && !anim?.leadDone;
+
     if (actions.run) {
+      // Running the lead action is not "advancing" in the sense Resume means —
+      // drawing your sample leaves nothing part-played to resume from.
+      const advanced = hasAdvanced && anim?.mode !== "lead";
       actions.run.textContent = playing
         ? "Pause"
         : done
           ? "Replay"
-          : hasAdvanced
+          : advanced
             ? "Resume"
             : animation.runLabel ?? "Play";
       actions.run.setAttribute("aria-pressed", String(playing));
+      actions.run.disabled = leadPending;
     }
+    // The lead button greys out for good once used, and only Reset brings it
+    // back. That disabled state is the teaching, not a technicality.
+    if (actions.lead) actions.lead.disabled = !leadPending;
     // Only disabled when there is genuinely nothing left. Clicking it mid-step
     // fast-forwards the unit in flight, so it must stay live while running.
-    if (actions.step) actions.step.disabled = done;
+    if (actions.step) actions.step.disabled = done || leadPending;
   }
 
   /* --- actions ---------------------------------------------------------- */
@@ -313,6 +340,15 @@ export function defineWidget(config) {
   // Reset belongs here too — start over is part of the same loop as draw and
   // play, not housekeeping like copying a link.
   const drive = buildActions(dom.drive, [
+    // A one-off action that has to happen before stepping means anything. See
+    // the header: the widget owns `anim.leadDone`, core owns the button states.
+    animation?.leadLabel && {
+      key: "lead",
+      text: animation.leadLabel,
+      title: "Do this once, before stepping",
+      primary: true,
+      onClick: () => startAnim("lead"),
+    },
     // Labels are the widget's to name: a Galton board drops balls, it does not
     // draw samples. Generic verbs make a widget feel like a demo of a framework.
     animation && {

@@ -123,11 +123,21 @@ hides the convergence that is the point.
 animation: {
   stepLabel: "Drop one",       // name the verb — a Galton board drops balls
   runLabel: "Play",
+  leadLabel: "Sample the population",  // optional: a ONE-OFF action, see below
   init: ({ params, state, fromScratch }) => anim,
   advance: (anim, { dt, params, state }) => boolean,   // true = more to show
   rebuild: (anim, { params, state }) => void,          // optional
 }
 ```
+
+- **A lead action** is something that happens once, before repeating anything is
+  meaningful. Declaring `leadLabel` adds a button ahead of the others and runs
+  `advance` with `anim.mode === 'lead'`; the widget sets `anim.leadDone`, and core
+  disables the lead button from then on while keeping step and run disabled until
+  then. `bootstrap` draws its single sample this way, and the button greying out
+  for good is the teaching: you cannot go back to the population. A driven
+  fingerprint state for a widget with a lead action needs `"lead": true` in its
+  `drive` block, or it will try to click a disabled button and fail.
 
 - `advance` returns `false` to stop, leaving `anim` in place so a partly built
   picture stays on screen. Set `anim.done = true` when nothing is left.

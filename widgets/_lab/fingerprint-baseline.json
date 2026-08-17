@@ -97,55 +97,69 @@
       "px": "27b8cac2"
     },
     {
+      "slug": "bootstrap",
+      "px": "229eddad",
       "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution.",
-      "slug": "bootstrap",
-      "state": "?theme=light&shown=400",
-      "px": "3bf9c7e6"
+      "state": "?theme=light&shown=400"
     },
     {
+      "slug": "bootstrap",
+      "px": "57bbabad",
       "$note": "A different population and a mid-build count, still in the dot-to-bar crossfade.",
-      "slug": "bootstrap",
-      "state": "?theme=light&dist=bimodal&n=25&shown=120",
-      "px": "a0b37fc5"
+      "state": "?theme=light&dist=bimodal&n=25&shown=120"
     },
     {
+      "slug": "bootstrap",
+      "px": "292cccad",
       "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
-      "slug": "bootstrap",
-      "state": "?theme=light&n=6&smooth=0&truth=0&shown=25",
-      "px": "1d4a5e22"
+      "state": "?theme=light&n=6&smooth=0&truth=0&shown=25"
     },
     {
-      "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
       "slug": "bootstrap",
+      "px": "bda1be42",
+      "$note": "DRIVEN, STAGE ONE: the one sample mid-fall out of the population panel. Nothing else in the suite renders an empty sample panel with marks in flight above it.",
+      "state": "?theme=light",
+      "drive": {
+        "click": "lead",
+        "frames": 44,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "bootstrap",
+      "px": "75ccb6d1",
+      "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
       "state": "?theme=light&speed=slow",
       "drive": {
+        "lead": true,
         "click": "step",
         "frames": 12,
         "dt": 32
-      },
-      "px": "a588563e"
+      }
     },
     {
-      "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar-star.",
       "slug": "bootstrap",
+      "px": "8e9377c0",
+      "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar-star.",
       "state": "?theme=light&speed=slow",
       "drive": {
+        "lead": true,
         "click": "step",
         "frames": 28,
         "dt": 32
-      },
-      "px": "4864b519"
+      }
     },
     {
-      "$note": "DRIVEN: mid-drop, the arced trail crossing from the sample panel into the pile.",
       "slug": "bootstrap",
+      "px": "8debaae7",
+      "$note": "DRIVEN: mid-drop, the arced trail crossing from the sample panel into the pile.",
       "state": "?theme=light&speed=slow",
       "drive": {
+        "lead": true,
         "click": "step",
         "frames": 44,
         "dt": 32
-      },
-      "px": "a970084e"
+      }
     }
   ]
 }

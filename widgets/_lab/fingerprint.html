@@ -108,13 +108,35 @@ let latest = [];
 function drive(win, doc, spec) {
   const queue = [];
   win.requestAnimationFrame = (cb) => queue.push(cb);
-  const buttons = doc.querySelectorAll(".w-drive .w-btn");
-  const button = buttons[spec.click === "run" ? 1 : 0];
-  if (!button) return "no drive button";
-
-  button.click();
-  const dt = spec.dt ?? 32;
   let t = 1000;
+
+  /* Buttons are found by data-key, never by position. They used to be taken
+     positionally, and adding a third drive button to one widget silently pointed
+     every driven state at the wrong one — which still yields a stable,
+     plausible-looking hash. Throwing here is deliberate: `shoot` turns a throw
+     into px = "error", which can never match a baseline, so this fails loudly
+     instead of quietly drifting. */
+  const press = (key) => {
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`);
+    if (!b) throw new Error(`no "${key}" drive button`);
+    if (b.disabled) throw new Error(`"${key}" button is disabled — wrong stage?`);
+    b.click();
+  };
+
+  /* Some widgets gate stepping behind a one-off LEAD action: `bootstrap` has to
+     draw its single sample before it can resample it. Run that to completion
+     first, unmeasured, so the frames counted below are frames of the animation
+     actually under test. dt is clamped to 64ms in core, so this pumps at 64. */
+  if (spec.lead) {
+    press("lead");
+    for (let i = 0; i < 200 && queue.length; i += 1) {
+      t += 64;
+      queue.shift()(t);
+    }
+  }
+
+  press(spec.click ?? "step");
+  const dt = spec.dt ?? 32;
   let ran = 0;
   for (let i = 0; i < spec.frames; i += 1) {
     const cb = queue.shift();
@@ -123,7 +145,7 @@ function drive(win, doc, spec) {
     cb(t);
     ran += 1;
   }
-  return `${spec.click ?? "step"} +${ran}f`;
+  return `${spec.lead ? "lead→" : ""}${spec.click ?? "step"} +${ran}f`;
 }
 
 async function shoot(entry) {

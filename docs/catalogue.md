@@ -112,6 +112,15 @@ distribution — which you can actually compute — comes out nearly the same wi
 the one you can never see. That single overlay is the entire justification for the
 method, and it is only available to us because populations are seeded.
 
+**#3 is two staged actions, not one — added after building it.** The observed
+sample used to simply be there when the widget loaded, which meant the one draw
+from the population — the draw a real analyst gets exactly once — was never shown
+happening. Now *Sample the population* is its own button with its own animation,
+it can be pressed once, and it greys out afterwards; *Resample your sample* is
+unlimited. **The asymmetry between the two buttons is the distinction the widget
+exists to teach**, and a student who has felt it in the affordances does not
+confuse repeated sampling from a population with resampling one sample.
+
 **What building #3 added to that plan**, and #4 inherits:
 
 The two curves agree in *width* and disagree in *position*, because the bootstrap

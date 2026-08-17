@@ -32,13 +32,18 @@ npm run dev
 |---|---|---|
 | 1 | `galton-board` | Where the bell curve comes from. A ball takes a ±1 nudge at each row; the axis is **total deviation from zero**, so the pile reads as an error distribution from the outset. Exact binomial overlay. Lean shifts the pile off the zero rule, which is bias made visible. |
 | 2 | `clt` | Sampling distribution of the mean. Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
-| 3 | `bootstrap` | You have **one** sample. Resample it with replacement — copies stack above the observations they came from, so duplicates and never-picked values are both visible — collapse them to their mean, drop it into the pile. The true sampling distribution sits behind it: **same width, different place.** |
+| 3 | `bootstrap` | **Two stages, two buttons.** *Sample the population* draws your one sample out of the panel above — then greys out for good, because you cannot go back for more. *Resample your sample* then runs as often as you like: copies stack above the observations they came from, so duplicates and never-picked values are both visible, collapse to their mean, drop into the pile. The true sampling distribution sits behind it: **same width, different place.** |
 
 All three start empty, all three animate step by step, all three build their pile
 with `core/accumulator.js`.
 
-**Three things widget 3 settled that widget 4 inherits.**
+**Four things widget 3 settled that widget 4 inherits.**
 
+0. **A `leadLabel` in `core/widget.js`** — a one-off action before stepping is
+   meaningful. Widget 5 wants exactly this too (observe the data once, shuffle
+   its labels many times). Note the harness consequence: a driven fingerprint
+   state for such a widget needs `"lead": true` in its `drive` block, or it
+   clicks a disabled button and throws.
 1. **The window is centred on the true value, not the estimate.** Centring on the
    estimate is the obvious choice and would put the pile in the middle every
    time, hiding that the bootstrap is centred on your estimate and not on μ.
@@ -204,6 +209,11 @@ a canvas hash. Note `dt` is clamped to 64 ms in core.
 - **Stray pointer input.** The automation browser moves sliders mid-capture. Several
   apparent bugs were this. If a screenshot disagrees with a programmatic read, trust
   the read.
+- **The fingerprint harness finds drive buttons by `data-key`, never by position.**
+  It used to count them, and adding a third button to one widget silently
+  repointed every driven state in the suite at the wrong button — which still
+  yields a stable, plausible hash. Principle 5.7. If you add a drive button to
+  core, that is the thing to re-check.
 - **A blank canvas is a thrown exception**, and the fingerprint harness cannot see
   it (no canvas to hash). Read the console — a missing import once produced exactly
   this.

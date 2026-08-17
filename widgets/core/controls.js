@@ -228,6 +228,12 @@ export function buildActions(host, buttons, { withFlash = false } = {}) {
     b.type = "button";
     b.textContent = spec.text;
     b.title = spec.title ?? "";
+    // Stamped so anything outside this module can find a button by what it DOES
+    // rather than by where it sits. The fingerprint harness used to take the
+    // drive buttons positionally, so adding one silently redirected every driven
+    // state to the wrong button — and a wrong button still produces a perfectly
+    // plausible hash.
+    b.dataset.key = spec.key;
     b.addEventListener("click", () => spec.onClick(b));
     host.appendChild(b);
     made[spec.key] = b;

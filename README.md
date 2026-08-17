@@ -140,6 +140,29 @@ whatever starting state the author asked for) and `true` on Replay (skip it —
 someone pressing Replay wants to watch it build). Without this, Replay is a dead
 button on every pre-filled figure.
 
+#### A lead action
+
+Some widgets have a step that happens **once**, before repeating anything is
+meaningful. Declare `leadLabel` and core adds a button ahead of the others,
+running `advance` with `anim.mode === 'lead'`:
+
+```js
+animation: {
+  leadLabel: "Sample the population",   // pressed once
+  stepLabel: "Resample your sample",    // pressed as often as you like
+  ...
+}
+```
+
+The widget sets `anim.leadDone` when it has happened; core disables the lead
+button from then on and keeps step and run disabled until then, so the sequence
+cannot be taken out of order. Only Reset brings it back.
+
+This is pedagogy, not plumbing. In `bootstrap` the lead button greying out
+permanently **is** the lesson — you cannot go back to the population for more
+data — and the asymmetry between the two buttons is what stops a student
+confusing "sample the population" with "resample your sample".
+
 ### Parameter types
 
 | type | control | use when |

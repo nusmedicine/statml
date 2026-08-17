@@ -326,7 +326,36 @@ Two habits fall out:
   reported non-determinism from shifted rows. Measurement error looks exactly like
   the failure it is measuring.)
 
-### 5.7 One formula, one place
+### 5.7 A harness addresses what it drives by identity, never by position
+
+> *Earned, and caught in the act rather than after the fact.* The fingerprint
+> harness took the drive buttons positionally — `buttons[click === "run" ? 1 : 0]`
+> — which was correct for exactly as long as every widget had the same two
+> buttons in the same order. Adding a third to `bootstrap` (a one-off "Sample the
+> population" ahead of "Resample your sample") silently repointed **every driven
+> state in the suite**: `step` began clicking the new lead button and `run` began
+> clicking step. Verified directly rather than assumed.
+
+The dangerous part is not that it breaks. It is that **a wrong button still
+produces a stable, plausible hash** — the harness would have gone on reporting
+MATCH against a baseline of the wrong animation, which is the same failure shape
+as the settled-states blind spot in 5.6 and just as quiet.
+
+Two fixes, and the second matters more than the first:
+
+- buttons carry `data-key` and the harness selects on it, so a button is found by
+  **what it does**, not where it sits
+- **a driver that cannot do the thing must fail loudly, not do nothing.** Clicking
+  a disabled button is a silent no-op that hashes an untouched figure, so the
+  harness now throws — and a throw becomes `px = "error"`, which can never match
+  a baseline. A driven state that forgets its widget has a setup stage fails
+  instead of quietly photographing an empty panel.
+
+The generalisation: **anything that reaches across a boundary to operate a UI
+should name its target.** Positional addressing encodes an assumption about a
+layout that nobody has agreed to keep.
+
+### 5.8 One formula, one place
 
 Shared geometry gets a single named function that every call site uses. Not a
 comment saying "keep these in sync".
