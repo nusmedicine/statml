@@ -272,11 +272,23 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 .w-split .w-drive {
   flex-direction: column;
   align-items: stretch;
+  /* NOWRAP IS LOAD-BEARING, not tidiness. `.w-drive` sets `flex-wrap: wrap` for
+     the stacked layout; leaving it on while the direction is `column` asks the
+     container to wrap items into extra COLUMNS, and with an indefinite main
+     size that resolves the group 19.5px — exactly one line-height — taller than
+     it should be. The buttons then stretch to match and the cluster sits taller
+     than Reset beneath it, for no reason visible in any of their own styles.
+     A block does not wrap. */
+  flex-wrap: nowrap;
 }
 .w-split .w-drive-group {
   display: flex;
 }
-.w-split .w-drive-group .w-btn {
+/* Four classes deep so it beats `.w-drive .w-btn[data-key="run"]`, which is the
+   same specificity and declared later in this file. Without that the reserved
+   run width survives into the rail and breaks the equal split — invisibly at two
+   segments, where the share is wider than the reserve, and visibly at three. */
+.w-split .w-drive .w-drive-group .w-btn {
   flex: 1 1 0;
   min-width: 0;
 }

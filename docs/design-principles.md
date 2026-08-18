@@ -376,7 +376,17 @@ seven widgets that exist and fails **every** hypothetical widget with a longer
 label — which is the definition of a layout that is about to break on someone
 else. It costs 20 px of height to be immune.
 
-Two details that fall out:
+**A column that must not wrap has to say so.** `.w-drive` carries
+`flex-wrap: wrap` for the stacked layout, and switching the direction to `column`
+in the rail without turning it off asks the container to wrap items into extra
+*columns*. With an indefinite main size that resolves the cluster **19.5 px —
+exactly one line-height — taller than its own content**, and the segments stretch
+to match, so the pair sat visibly taller than the Reset beneath it. Nothing in any
+button's own styles explained it; two independent toggles (`flex-wrap: nowrap` on
+the row, or `flex: 0 0 auto` on a segment) each collapsed it, which is what
+identified the container as the culprit rather than the buttons.
+
+Three details that fall out:
 
 - **The lead stays outside the fence**, so a widget with one gets three rows
   rather than two. A lead is once-only and a step repeats; fencing them together
@@ -387,7 +397,10 @@ Two details that fall out:
   anything, and honouring the reserve would break the equal split instead. That
   is only possible because core sets the reservation as a **custom property**
   rather than an inline style — an inline style beats every rule, and a variable
-  does not.
+  does not. The override also has to *win*: at equal specificity the later rule
+  takes it, so the rail's is written one class deeper on purpose. It bites
+  invisibly at two segments, where the share is wider than the reserve anyway,
+  and visibly at three.
 
 > *Earned:* three rounds on the same row. Reset wrapped and looked accidental;
 > then it was made to grow, which fixed the wrap and left the rows' right edges
