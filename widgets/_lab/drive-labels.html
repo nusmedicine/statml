@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · drive button labels</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-4) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 80ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-3); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); color: var(--ink-3); text-align: right; }
+  .flag { color: var(--c-extreme); font-weight: 600; }
+  .ok { color: var(--c-empirical); font-weight: 600; }
+
+  .scheme { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); margin: 0 0 var(--sp-3); }
+  .scheme > h3 { margin-top: 0; }
+  .row { margin: 0 0 var(--sp-3); }
+  .row .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 3px; }
+  .rail { width: 262px; }
+  .wide { width: 694px; max-width: 100%; }
+  .verdict { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0 0; }
+  .verdict b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Drive button labels</h1>
+  <p class="note">
+    Variant B is codified: <b>step and play are fenced into one cluster, Reset
+    sits outside it</b>, and all seven widgets now fit one line — including
+    <code>bootstrap</code> and <code>permutation-test</code>, whose fourth
+    <i>lead</i> button simply sits before the cluster. No special arrangement is
+    needed for four buttons, so the earlier “E2” is withdrawn.
+  </p>
+
+  <h2>1 · What is actually wrong, as shipped</h2>
+  <p class="note">
+    Four problems, and only two are length. Widths are measured at the real drive
+    font (<code>--fs-md</code>), not counted in characters.
+  </p>
+  <table id="audit"></table>
+
+  <h2>2 · What a good label has to do here</h2>
+  <p class="note">
+    The existing rule in core is <i>“labels are the widget's to name: a Galton
+    board drops balls, it does not draw samples. Generic verbs make a widget feel
+    like a demo of a framework.”</i> That is about specificity and it is right,
+    but it is not sufficient — it permits both of the collisions above. Four
+    requirements, in priority order:
+  </p>
+  <ol class="note">
+    <li><b>Name the widget's own noun.</b> Balls, samples, studies, shuffles,
+      genes — never “item” or “step”. This is the existing rule.</li>
+    <li><b>A lead must not read like a step.</b> The lead happens once and greys
+      out for good; the step repeats forever. If the two are near-synonyms, the
+      greying-out looks like a fault instead of a lesson.</li>
+    <li><b>The same class of action reads the same across the arc.</b> A student
+      meets these six weeks apart. If one widget's once-only button and another's
+      repeatable button share a phrasing, the transfer is actively harmful.</li>
+    <li><b>Fit the narrowest track it will ever appear in.</b> 262 px rail, so a
+      step label has roughly 130 px once Play and Reset are paid for.</li>
+  </ol>
+
+  <h2>3 · Four schemes, in situ</h2>
+  <p class="note">
+    Each row is a real <code>.w-drive</code> with the shipped cluster, rendered at
+    both widths, printing its own measured line count. The lead button is shown
+    <b>spent</b> (disabled), because that is the state it spends most of its life
+    in and the one the labels have to survive.
+  </p>
+  <div id="schemes"></div>
+
+  <h2>4 · The one change I would make regardless of scheme</h2>
+  <p class="note" id="rec"></p>
+</main>
+
+<script type="module">
+/* ---- what is shipped today, per widget ---------------------------------- */
+const SHIPPED = [
+  { slug: "galton-board", lead: null, step: "Drop one", run: "Play" },
+  { slug: "clt", lead: null, step: "Draw one", run: "Play", note: "core default, not authored" },
+  { slug: "bootstrap", lead: "Sample the population", step: "Resample your sample", run: "Play" },
+  { slug: "confidence-interval", lead: null, step: "Run a study", run: "Play" },
+  { slug: "permutation-test", lead: "Run the study", step: "Shuffle the labels", run: "Play" },
+  { slug: "multiple-testing", lead: null, step: "Test more genes", run: "Play" },
+  { slug: "power-and-error", lead: null, step: "Run a study", run: "Play" },
+];
+
+const AUDIT = [
+  ["<code>permutation-test</code> lead <b>“Run the study”</b> vs <code>confidence-interval</code> / <code>power-and-error</code> step <b>“Run a study”</b>",
+   "collision", "Near-identical strings for opposite classes of action — once-only vs repeat-forever. Requirement 3. <b>The worst of the four.</b>"],
+  ["<code>bootstrap</code> step <b>“Resample your sample”</b>",
+   "wording", "“Resample your sample” is awkward and repeats its own stem. It is also the longest label in the project."],
+  ["<code>bootstrap</code> lead <b>“Sample the population”</b> beside that step",
+   "pair", "The asymmetry between these two IS the widget's lesson, so the pair has to be crisp. At 21 and 20 characters it is anything but."],
+  ["<code>multiple-testing</code> step <b>“Test more genes”</b>",
+   "vague", "“More” hides that each press tests a fixed batch of m/50. A reader cannot tell whether one press is one gene or a thousand."],
+  ["<code>galton-board</code> <b>“Drop one”</b> and <code>clt</code> <b>“Draw one”</b>",
+   "minor", "One <i>what</i>? Both are recoverable from context and neither collides, so this is polish, not a defect. <code>clt</code>'s is also the un-authored core default."],
+];
+
+const SCHEMES = [
+  {
+    name: "Scheme 0 · As shipped",
+    labels: SHIPPED,
+    verdict: "Baseline. Nothing here is forced by layout any more — every change below is about meaning and scannability.",
+  },
+  {
+    name: "Scheme 1 · Filler stripped, nouns kept",
+    labels: [
+      { slug: "galton-board", lead: null, step: "Drop", run: "Play" },
+      { slug: "clt", lead: null, step: "Draw", run: "Play" },
+      { slug: "bootstrap", lead: "Sample population", step: "Resample", run: "Play" },
+      { slug: "confidence-interval", lead: null, step: "Run study", run: "Play" },
+      { slug: "permutation-test", lead: "Observe", step: "Shuffle", run: "Play" },
+      { slug: "multiple-testing", lead: null, step: "Test genes", run: "Play" },
+      { slug: "power-and-error", lead: null, step: "Run study", run: "Play" },
+    ],
+    verdict: "The literal ask: drop every article and preposition, keep the noun. Four of seven fall to one word on their own. <b>Note what it exposes</b> — strip the filler from permutation's lead and confidence-interval's step and both become “Run study”, so the collision has to be broken in ANY scheme. Here the lead becomes “Observe”: what you do once, to the real world.",
+  },
+  {
+    name: "Scheme 2 · One word, no exceptions",
+    labels: [
+      { slug: "galton-board", lead: null, step: "Drop", run: "Play" },
+      { slug: "clt", lead: null, step: "Draw", run: "Play" },
+      { slug: "bootstrap", lead: "Sample", step: "Resample", run: "Play" },
+      { slug: "confidence-interval", lead: null, step: "Study", run: "Play" },
+      { slug: "permutation-test", lead: "Observe", step: "Shuffle", run: "Play" },
+      { slug: "multiple-testing", lead: null, step: "Test", run: "Play" },
+      { slug: "power-and-error", lead: null, step: "Study", run: "Play" },
+    ],
+    verdict: "<b>“Sample / Resample” is the prize.</b> One prefix carries bootstrap's entire lesson — the asymmetry between the draw you get once and the draw you can repeat — with no words spent on it at all. The cost is elsewhere: “Study” is a noun wearing a verb's clothes, and “Draw” and “Test” lean entirely on the figure above them for their object.",
+  },
+  {
+    name: "Scheme 3 · One word, two where one misleads",
+    labels: [
+      { slug: "galton-board", lead: null, step: "Drop", run: "Play" },
+      { slug: "clt", lead: null, step: "Draw sample", run: "Play" },
+      { slug: "bootstrap", lead: "Sample", step: "Resample", run: "Play" },
+      { slug: "confidence-interval", lead: null, step: "New study", run: "Play" },
+      { slug: "permutation-test", lead: "Observe", step: "Shuffle", run: "Play" },
+      { slug: "multiple-testing", lead: null, step: "Test batch", run: "Play" },
+      { slug: "power-and-error", lead: null, step: "New study", run: "Play" },
+    ],
+    verdict: "Keeps “Sample / Resample”, “Drop”, “Shuffle” and “Observe” at one word, and spends a second word only where one was genuinely ambiguous: “Draw” what, “Test” what, and “Study” is not a verb. <b>“Test batch” also repairs a defect scheme 2 inherits</b> — one press tests a batch of m/50, which “Test” alone hides completely.",
+  },
+];
+
+/* ---- render ------------------------------------------------------------- */
+const btn = (text, { primary = true, disabled = false } = {}) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `w-btn${primary ? " w-btn--primary" : ""}`;
+  b.textContent = text;
+  b.disabled = disabled;
+  return b;
+};
+const cluster = (...bs) => {
+  const g = document.createElement("div");
+  g.className = "w-drive-group";
+  bs.forEach((b) => g.appendChild(b));
+  return g;
+};
+
+// Measure a label at the real drive font, rather than counting characters.
+const probe = document.createElement("span");
+probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap";
+document.body.appendChild(probe);
+const px = (text) => {
+  const cs = getComputedStyle(document.documentElement);
+  probe.style.font = `600 ${cs.getPropertyValue("--fs-md")} ${cs.getPropertyValue("--font")}`;
+  probe.textContent = text;
+  return Math.round(probe.getBoundingClientRect().width);
+};
+
+const audit = document.getElementById("audit");
+audit.innerHTML = "<tr><th>where</th><th>kind</th><th>why it matters</th></tr>" +
+  AUDIT.map(([w, k, why]) => `<tr><td>${w}</td><td class="flag">${k}</td><td>${why}</td></tr>`).join("");
+
+const schemes = document.getElementById("schemes");
+for (const sc of SCHEMES) {
+  const box = document.createElement("div");
+  box.className = "scheme";
+  box.innerHTML = `<h3>${sc.name}</h3>`;
+
+  const tbl = document.createElement("table");
+  tbl.innerHTML = "<tr><th>widget</th><th>lead</th><th>step</th><th class='n'>step px</th></tr>" +
+    sc.labels.map((w) =>
+      `<tr><td><code>${w.slug}</code></td><td>${w.lead ?? "—"}</td><td>${w.step}</td><td class="n">${px(w.step)}</td></tr>`
+    ).join("");
+  box.appendChild(tbl);
+
+  // In situ: the two four-button widgets are the hard cases, so show those.
+  for (const slug of ["bootstrap", "permutation-test", "power-and-error"]) {
+    const w = sc.labels.find((x) => x.slug === slug);
+    for (const [label, cls] of [["rail 262", "rail"], ["stacked 694", "wide"]]) {
+      // The rail only matters for widgets that could use layout:"side".
+      if (cls === "rail" && slug !== "power-and-error") continue;
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+      const cap = document.createElement("p");
+      cap.className = "cap";
+      wrap.appendChild(cap);
+
+      const row = document.createElement("div");
+      row.className = `w-drive ${cls}`;
+      row.style.marginTop = "0";
+      if (w.lead) row.appendChild(btn(w.lead, { disabled: true }));
+      row.appendChild(cluster(btn(w.step), btn(w.run)));
+      row.appendChild(btn("Reset", { primary: false }));
+      wrap.appendChild(row);
+      box.appendChild(wrap);
+
+      requestAnimationFrame(() => {
+        const bs = [...row.querySelectorAll(".w-btn")];
+        const tops = bs.map((b) => b.getBoundingClientRect().top).sort((a, b) => a - b);
+        let lines = tops.length ? 1 : 0;
+        for (let i = 1; i < tops.length; i += 1) if (tops[i] - tops[i - 1] > 8) lines += 1;
+        cap.innerHTML = `${slug} · ${label} px · ` +
+          `<span style="color:var(--${lines === 1 ? "c-empirical" : "c-extreme"})">${lines} line${lines === 1 ? "" : "s"}${lines === 1 ? "" : " ✗"}</span>`;
+      });
+    }
+  }
+
+  const v = document.createElement("p");
+  v.className = "verdict";
+  v.innerHTML = sc.verdict;
+  box.appendChild(v);
+  schemes.appendChild(box);
+}
+
+document.getElementById("rec").innerHTML =
+  "<b>Two things hold whichever scheme wins.</b> First, the “Run the study” / “Run a " +
+  "study” collision must break — it is the only issue that can actively mislead, and " +
+  "stripping the filler makes it WORSE, collapsing both to “Run study”. Second, " +
+  "<b>shortening the face moves the noun into the tooltip</b>, so core's generic " +
+  "titles (“Advance one step, slowly, showing every stage”) have to become " +
+  "widget-specific — otherwise “Drop” and “Test” have nowhere to say what they drop " +
+  "or test. That is a real cost of one-word labels and it is paid in core, not in the " +
+  "label.";
+</script>
+</body>
+</html>

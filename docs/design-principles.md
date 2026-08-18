@@ -183,12 +183,205 @@ Same data — a string key from a fixed list — in three shapes.
 something whose job is to be explored. Tick labels under a slider are mandatory
 for the same reason: a bare slider shows a position and hides the positions.
 
+### 3.4a A tall widget puts its controls beside the figure, not above it
+
+Reading order (3.1) says setup first. It does **not** say setup *above*, and on a
+widget tall enough to scroll those stop being the same thing: `power-and-error`
+measured 1376 px in an 833 px viewport, which put the control block **848 px
+above the table it changed**. Reaching a slider meant scrolling back past the
+whole figure, which is the exact opposite of "the control is beside the thing it
+controls".
+
+`defineWidget({ layout: "side" })` puts the controls in a left rail and the
+figure in its own column, stacking again below 880 px. With the simulation panel
+behind an off-by-default toggle the same widget is **880 px — one screen**.
+
+Two things this cost, both worth stating:
+
+- **Opt-in, not global.** Widening the shell for every widget would move every
+  canvas and invalidate all 39 fingerprint baselines in one commit. Scoped to the
+  widgets that ask, the suite still reported 39 MATCH after the change.
+- **The bottleneck moves to the rail**, so the figure should *spend* the height
+  the rail is already paying for rather than leave it blank — the curves panel
+  grew from 128 to 228 px for free, which the projector wants.
+- **~~The drive buttons belong in the figure's column.~~ Wrong, and corrected
+  within the hour.** Moving them there was a literal reading of 3.1's "directly
+  above the figure", and the first person to drive it said they kept losing track:
+  the setup was on the left and Play was at the top, so operating the widget meant
+  watching two separate control locations. 3.1's actual claim is that a control
+  sits BESIDE the thing it controls, and under `side` the whole rail already does.
+  **One column, one place to look** — and 3.1's wording is about a stacked layout,
+  not a law about pixels.
+
+> *Earned:* the widget was built stacked, and the first person to drive it said
+> they had to scroll to the top to change the sample size. Six layouts were
+> mocked to scale in `widgets/_lab/power-layout.html` with the viewport fold
+> drawn on; the arithmetic picked the answer in one look, which taste would have
+> argued about (principle 5.2).
+
 ### 3.4 Same interaction loop → same size
 
 Draw one, Play, and Reset are pressed interchangeably, so they are the same size.
 Emphasis comes from weight and ink; separation from a gap. **Never from geometry** —
 a smaller Reset reads as a different *class* of control rather than a quieter
 member of the same one.
+
+**Amended: buttons may be GROUPED, which is not the same as ranked.** Step and
+Play are two *paces* of one action, so they sit in one connected cluster and read
+as a single control; Reset stays outside it and is never fenced with the things it
+destroys. Every button is still the same size, so the rule above is intact — what
+changed is that "separation from a gap" turned out to have a cost nobody had
+measured.
+
+> *Earned, and the deciding fact was arithmetic.* Three separate drive buttons
+> need 273 px. The control rail added by 3.4a is 262, so the row wrapped and Reset
+> fell to a second line looking accidental. Fencing the pair reclaims exactly the
+> inter-button gap that overflowed, and all seven widgets then fit one line at both
+> widths. Five alternatives were mocked in `_lab/drive-row.html`; putting Reset
+> inside the cluster also fits and was rejected on meaning, not on space.
+
+**A lead action needs no special arrangement** — it simply precedes the cluster.
+An earlier draft invented a stacked layout for the four-button case and it looked
+wrong because it was solving a problem that does not arise: the only widget on the
+narrow rail has no lead button. A bonus fell out of the fence: before the lead has
+run, Step and Play dim *together* inside it, which reads as one unavailable
+control rather than two unexplained dead buttons.
+
+### 3.4b A stage the reader has not entered shows none of its controls
+
+3.5 says every control must carry an idea. The sharper version, learned on
+`power-and-error`: it must carry one **at rest**. A seed with nothing random on
+screen and a play speed with nothing playing are not quiet controls, they are
+questions the reader has to rule out before the figure gets attention — and the
+drive buttons beside them promise a loop that does not exist yet.
+
+So a widget with a second stage puts the whole stage behind **one button**, and
+that button sits **in the control flow at the point the stage begins** — as a
+`gate` field, behind a divider, with the controls it reveals directly beneath it
+and the drive buttons behind a second divider after those. The drive row was the
+obvious home and was wrong for the same reason 3.4a records: it split the setup
+across two places on screen.
+
+`power-and-error` reads, top to bottom in one column:
+
+```
+True effect · Samples per group · Threshold α · Read the axis as
+──────────────────────────────
+[ Simulate to check ]                  <- shut: 5 controls, 809 px
+──────────────────────────────
+Seed · Play speed · Expected shape     <- open: 8 controls, 1052 px
+──────────────────────────────
+Run a study · Play · Reset
+```
+
+Three properties it must have, and the first two are what make it a button rather
+than an action:
+
+- **It writes to a real parameter.** `?studies=1` reproduces the stage, so a
+  copied link lands the reader where the author was. Invariant 1 does not bend for
+  chrome.
+- **It names the way back.** *Simulate to check* → *Hide the studies*. A one-way
+  reveal is a trapdoor, and `aria-pressed` has to be able to say which state it is
+  in.
+- **It is a display parameter, so leaving does not destroy.** Close the stage
+  after 37 studies, reopen, and the 37 are still there — verified. A gate that
+  discarded the work would punish the comparison it exists to enable, which is 3.2
+  in a new costume.
+
+Core carries two small additions for this: `when: { param }` on a field,
+declarative rather than a predicate function **so core knows which parameter gates
+what** and can rebuild the control block only when that one moves — rebuilding on
+every change drops a slider mid-drag; and a `gate` field type, which renders the
+button and is the **single** declaration of which parameter opens the stage. Core
+finds it by scanning the spec and hides step/run/reset with `hidden` rather than
+disabling them, because a disabled button still advertises a control the reader
+cannot use. It was briefly declared twice — once as a control and once under
+`animation` — which is exactly the shape principle 5.8 exists to prevent.
+
+### 3.4d A control that relabels itself reserves its widest label
+
+The run button is four buttons wearing one slot: **Play → Pause → Resume**, and
+**Replay** once finished. Measured at `--fs-md` those are 59 / 70 / 75 / 83 px, so
+the drive row's geometry depended on the animation's *state*. Two costs, and the
+second only appears in a narrow track:
+
+- the row twitched on every press, at every width
+- in the control rail, "Resume" alone overflowed and dropped Reset onto a second
+  line — so pausing an animation visibly broke the layout
+
+Core now measures every label the slot can hold and pins `min-width` to the widest.
+**The row's shape stops being a function of what the animation is doing.**
+
+Two things this cost, both worth keeping:
+
+- **Measure off a detached probe, never by writing labels into the live button.**
+  It is a flex item and an overflowing row can *shrink* it, so measuring in place
+  sometimes reports the squeezed width and confirms a fit that is not there.
+- **Reserving the widest makes a marginal row fail honestly.** Once pinned, the
+  worst case is always on screen: 283 px of buttons in a 270 px rail, wrapping in
+  every state rather than three states in four. That is the correct outcome — the
+  rail was simply too narrow — and the rail is now sized to the row (300 px)
+  rather than the row squeezed into the rail.
+
+> *Earned, and it is principle 5.6 in a new costume.* Every check of this row —
+> including the five-variant mockup that chose the cluster — had measured it in
+> its **initial** state. Three of the four labels only exist after something has
+> been pressed, so no amount of care about the starting picture could have found
+> this. It was reported from a lecture-sized window by someone pressing Pause.
+
+### 3.4c A drive label names the widget's noun, and a lead must not read like a step
+
+Core already said the first half: *"labels are the widget's to name — a Galton
+board drops balls, it does not draw samples. Generic verbs make a widget feel like
+a demo of a framework."* Right, and insufficient: it permits two labels in
+different widgets to describe opposite classes of action in nearly the same words.
+
+Audited across all seven (`_lab/drive-labels.html`), the worst find was
+`permutation-test`'s **lead** "Run the study" against `confidence-interval`'s and
+`power-and-error`'s **step** "Run a study". A once-only action and a
+repeat-forever one, four characters apart, met six weeks apart in different
+lessons. Nothing about the phrasing tells a student which is which, and when the
+lead greys out its permanence reads as a fault rather than the lesson it is.
+
+So, in priority order: **name the widget's own noun**; **a lead must not be a
+near-synonym of any step**; **the same class of action should read the same across
+the arc**; and **fit the narrowest track it will appear in** — a step label has
+about 130 px once Play and Reset are paid for, which ruled out a whole candidate
+scheme by measurement rather than by taste ("Run another study" wraps the rail).
+
+**Settled: one word where it is honest, two where one word misleads.** Four
+schemes were measured in `_lab/drive-labels.html` — all of them fit, so the choice
+was meaning, not space:
+
+| widget | lead | step |
+|---|---|---|
+| `galton-board` | — | **Drop** |
+| `clt` | — | **Draw sample** |
+| `bootstrap` | **Sample** | **Resample** |
+| `confidence-interval` | — | **New study** |
+| `permutation-test` | **Observe** | **Shuffle** |
+| `multiple-testing` | — | **Test batch** |
+| `power-and-error` | — | **New study** |
+
+Three things that fell out of doing it:
+
+- **`Sample` / `Resample` is the best label in the project.** One prefix carries
+  bootstrap's entire lesson — the draw you get once against the draw you can
+  repeat — and the step went from 143 px to 62. The widget's own comment already
+  said that asymmetry *is* the teaching; now the buttons say it too.
+- **Stripping filler made the collision WORSE.** "Run the study" and "Run a study"
+  both reduce to "Run study", byte-identical for opposite classes of action. The
+  fix had to be a different word, not fewer: `Observe` is what you do once, to the
+  real world, against the `Shuffle` that invents fictions.
+- **A one-word face must put its noun in the `title`.** "Drop" and "Test batch"
+  have nowhere to say what they drop or test, so `leadTitle` / `stepTitle` /
+  `runTitle` were added and every widget authors its own. **Shortening a label
+  without rehoming its noun is how a control stops explaining itself** — and
+  `clt` was the warning: it had been riding core's default "Draw one" for its
+  whole life, naming no noun at all, in the one widget where "one *what*" is
+  precisely what the student is trying to work out.
+
+Longer explanations belong in the button's `title`, not on its face.
 
 ### 3.5 Every control must carry an idea
 

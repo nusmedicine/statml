@@ -17,11 +17,42 @@ import { optionEntries } from "./params.js";
  * between two lines. Adjacent bools are almost always one decision with several
  * switches, so they share a cell and sit on one row.
  */
-function toCells(spec) {
+/**
+ * Whether a field is showing right now.
+ *
+ * DECLARATIVE, NOT A PREDICATE FUNCTION, and that is principle 5.3 — encode the
+ * invariant in the data shape. Core has to know WHICH parameter gates a field so
+ * it can rebuild the control block when exactly that parameter moves; an opaque
+ * `(values) => boolean` would force a rebuild on every change, and rebuilding
+ * mid-drag drops the slider you are holding.
+ *
+ *   when: { param: "studies" }              shown while `studies` is truthy
+ *   when: { param: "mode", equals: "raw" }  shown while `mode` === "raw"
+ */
+export function fieldShowing(field, values) {
+  const w = field.when;
+  if (!w) return true;
+  return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
+}
+
+/** Parameters that some other parameter's visibility depends on. */
+export function gatingParams(spec) {
+  const names = new Set();
+  for (const field of Object.values(spec)) if (field.when) names.add(field.when.param);
+  return names;
+}
+
+function toCells(spec, values) {
   const cells = [];
   let bools = null;
   for (const entry of Object.entries(spec)) {
     if (entry[1].hidden) continue;
+    if (!fieldShowing(entry[1], values)) continue;
+    if (entry[1].type === "gate") {
+      bools = null;
+      cells.push({ kind: "gate", entry });
+      continue;
+    }
     if (entry[1].type === "bool") {
       if (!bools) {
         bools = { kind: "bools", fields: [] };
@@ -37,10 +68,20 @@ function toCells(spec) {
 }
 
 export function buildControls(host, spec, values, onChange) {
+  const api = { sync: () => {}, syncAll: () => {}, rebuild: () => {} };
+  build(host, spec, values, onChange, api);
+  return api;
+}
+
+/* Split out so `rebuild` can re-run it in place. A gated field appearing or
+   disappearing changes which controls EXIST, which no amount of syncing values
+   can express — so the block is rebuilt, and only when a gating parameter moves.
+   `api` is mutated rather than replaced so every existing reference stays live. */
+function build(host, spec, values, onChange, api) {
   host.innerHTML = "";
   const setters = {};
 
-  for (const cell of toCells(spec)) {
+  for (const cell of toCells(spec, values)) {
     if (cell.kind === "bools") {
       const group = document.createElement("div");
       group.className = "w-field w-bools";
@@ -58,6 +99,43 @@ export function buildControls(host, spec, values, onChange) {
         setters[name] = (v) => { input.checked = Boolean(v); };
       }
       host.appendChild(group);
+      continue;
+    }
+
+    if (cell.kind === "gate") {
+      /* A BUTTON INSIDE THE CONTROL FLOW, not in the drive row, and the position
+         is the point: it sits exactly where the stage it opens begins, with the
+         controls it reveals directly beneath it. Putting it in the drive row
+         instead split the setup across two places on screen and readers reported
+         losing track of where to look.
+
+         It is a real parameter, so the stage survives a copied link. */
+      const [name, field] = cell.entry;
+      const wrap = document.createElement("div");
+      wrap.className = "w-field w-gate";
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "w-btn w-btn--primary w-gate-btn";
+      b.dataset.key = `gate-${name}`;
+      const paint = (v) => {
+        b.textContent = v ? field.labelOff ?? "Hide" : field.label ?? "Show";
+        b.setAttribute("aria-pressed", String(Boolean(v)));
+      };
+      paint(values[name]);
+      b.addEventListener("click", () => {
+        const next = !values[name];
+        paint(next);
+        onChange(name, next);
+      });
+      wrap.appendChild(b);
+      if (field.detail) {
+        const d = document.createElement("p");
+        d.className = "w-detail";
+        d.textContent = field.detail;
+        wrap.appendChild(d);
+      }
+      host.appendChild(wrap);
+      setters[name] = paint;
       continue;
     }
 
@@ -198,15 +276,11 @@ export function buildControls(host, spec, values, onChange) {
     host.appendChild(wrap);
   }
 
-  return {
-    /** Push a programmatic parameter change back into the controls. */
-    sync(name, value) {
-      setters[name]?.(value);
-    },
-    syncAll(next) {
-      for (const [name, v] of Object.entries(next)) setters[name]?.(v);
-    },
+  api.sync = (name, value) => { setters[name]?.(value); };
+  api.syncAll = (next) => {
+    for (const [name, v] of Object.entries(next)) setters[name]?.(v);
   };
+  api.rebuild = (next) => { build(host, spec, next, onChange, api); };
 }
 
 /**
@@ -220,6 +294,29 @@ export function buildControls(host, spec, values, onChange) {
 export function buildActions(host, buttons, { withFlash = false } = {}) {
   host.innerHTML = "";
   const made = {};
+
+  /* Consecutive buttons sharing a `group` are fenced into one connected cluster.
+     Used for the step/play pair, which are two PACES of one action rather than
+     two different actions — so they read as one control, and the gap that used
+     to sit between them is reclaimed. That gap is why a three-button row wrapped
+     in a 262px rail.
+
+     Same visual grammar as `.w-seg`, deliberately, but NOT the same thing: these
+     are actions, so no `aria-pressed` and no selected segment. Reset is never in
+     a group — a connected fence says "these belong together", and Reset is the
+     control that destroys what the others built. */
+  let openGroup = null;
+  let openKey = null;
+  const slot = (spec) => {
+    if (!spec.group) { openGroup = null; openKey = null; return host; }
+    if (openKey !== spec.group) {
+      openGroup = document.createElement("div");
+      openGroup.className = "w-drive-group";
+      openKey = spec.group;
+      host.appendChild(openGroup);
+    }
+    return openGroup;
+  };
 
   for (const spec of buttons) {
     if (!spec) continue;
@@ -244,7 +341,7 @@ export function buildActions(host, buttons, { withFlash = false } = {}) {
     // plausible hash.
     b.dataset.key = spec.key;
     b.addEventListener("click", () => spec.onClick(b));
-    host.appendChild(b);
+    slot(spec).appendChild(b);
     made[spec.key] = b;
   }
 

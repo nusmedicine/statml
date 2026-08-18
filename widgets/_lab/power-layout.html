@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · power-and-error layout</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 78ch; font-size: var(--fs-sm); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+
+  /* --- to-scale schematics ---------------------------------------------- */
+  .rack { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  .opt { width: 210px; }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .opt .tot { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .opt .tot b { color: var(--ink-1); }
+  .opt .fits { color: var(--c-empirical); }
+  .opt .nofits { color: var(--c-extreme); }
+
+  /* 1px of page = SCALE px here. Set in JS so the arithmetic is visible. */
+  .col { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+  .blk { position: relative; box-sizing: border-box; border-bottom: 1px solid var(--surface-1);
+         font-size: 9px; line-height: 1; color: var(--ink-1); padding: 2px 4px; overflow: hidden; white-space: nowrap; }
+  .blk.controls { background: color-mix(in srgb, var(--c-highlight) 55%, transparent); }
+  .blk.figure   { background: color-mix(in srgb, var(--c-empirical) 45%, transparent); }
+  .blk.readout  { background: color-mix(in srgb, var(--c-theory) 40%, transparent); }
+  .blk.chrome   { background: var(--surface-3); color: var(--ink-3); }
+  .blk.gone     { background: repeating-linear-gradient(45deg, var(--surface-3) 0 4px, transparent 4px 8px); color: var(--ink-3); }
+  .row2 { display: flex; }
+  .row2 > * { border-bottom: 1px solid var(--surface-1); }
+
+  /* the fold: where an 833px laptop viewport ends */
+  .fold { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--c-extreme); z-index: 3; }
+  .fold span { position: absolute; right: 2px; top: 1px; font-size: 9px; color: var(--c-extreme); background: var(--surface-1); padding: 0 2px; }
+
+  .verdict { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0 0; }
+  .verdict b { color: var(--ink-1); }
+
+  /* --- live control-packing demo ---------------------------------------- */
+  .demo { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); margin: 0 0 var(--sp-3); }
+  .demo > h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); }
+  .cg { display: grid; gap: var(--sp-3) var(--sp-4); border-top: 1px solid var(--grid); padding-top: var(--sp-3); }
+  .cg.c3 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .cg.c4 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .f label { display: flex; justify-content: space-between; font-size: var(--fs-xs); color: var(--ink-2); }
+  .f label b { color: var(--ink-1); }
+  .f input[type=range] { width: 100%; margin: 4px 0 0; }
+  .f .tk { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3); }
+  .f .dt { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .f.inline { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--ink-2); }
+  .seg { display: flex; border: 1px solid var(--axis); border-radius: var(--radius); overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; padding: 4px 6px; font: inherit; font-size: var(--fs-xs); background: var(--surface-1); color: var(--ink-2); border: 0; border-right: 1px solid var(--grid); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed=true] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); }
+  .measure b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>power-and-error · layout options</h1>
+  <p class="note">
+    The widget measures <b>1376&nbsp;px</b> in an 833&nbsp;px laptop viewport, so
+    changing the effect size means scrolling back past the whole figure. Blocks
+    below are <b>to scale</b>; the dashed rule is where an 833&nbsp;px viewport
+    ends. Anything below it needs a scroll.
+  </p>
+  <p class="note">
+    Two separable questions, and they have different answers: <b>how tall is
+    it</b>, and <b>how far are the controls from the figure</b>. A layout can fix
+    the second without fixing the first.
+  </p>
+
+  <h2>1 · The options, to scale</h2>
+  <div class="rack" id="rack"></div>
+
+  <h2>2 · Control packing, live</h2>
+  <p class="note">
+    The current block wastes two rows: the axis toggle sits alone on one, and the
+    <code>Expected shape</code> checkbox takes a whole row to itself because a
+    <code>bool</code> field spans full width. Drag anything; the measured height
+    is printed under each.
+  </p>
+  <div id="demos"></div>
+
+  <h2>3 · What each one costs</h2>
+  <p class="note" id="costs"></p>
+</main>
+
+<script type="module">
+const SCALE = 0.30;            // 1 page px -> 0.30 lab px
+const VIEWPORT = 833;          // the laptop that prompted this
+
+/* Measured from the live widget on 2026-08-19, dark theme, 780px shell. */
+const NOW = {
+  draft: 34, header: 81, controls: 278, drive: 36,
+  figure: 590, legend: 62, readout: 111, utility: 43, gaps: 141,
+};
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+
+/* Figure sub-blocks, from the draw() layout constants. */
+const FIG = { curves: 128, pileGap: 46, pile: 220, gridGap: 44, grid: 92, pad: 60 };
+
+const OPTIONS = [
+  {
+    key: "a", name: "A · Current",
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["controls", "controls — 7 fields, 3 cols", NOW.controls],
+      ["chrome", "drive", NOW.drive],
+      ["figure", "figure — curves + pile + 2×2", NOW.figure],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "The baseline. Controls are <b>848&nbsp;px above</b> the 2×2 they change.",
+  },
+  {
+    key: "b", name: "B · Pack the controls",
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["controls", "controls — 4 cols, 2 rows", 180],
+      ["chrome", "drive", NOW.drive],
+      ["figure", "figure — unchanged", NOW.figure],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "Cheapest change, no core edit. Saves ~98&nbsp;px. <b>Does not fix the scroll.</b>",
+  },
+  {
+    key: "c", name: "C · Sticky controls",
+    sticky: true,
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["controls", "controls — PINNED", NOW.controls],
+      ["chrome", "drive", NOW.drive],
+      ["figure", "figure", NOW.figure],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "Height unchanged, but controls never leave the screen. Core CSS. <b>Eats 278&nbsp;px of every viewport</b>, including the projector.",
+  },
+  {
+    key: "d", name: "D · Pile behind a toggle",
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["controls", "controls — packed", 180],
+      ["chrome", "drive", NOW.drive],
+      ["figure", "figure — curves + 2×2", FIG.curves + FIG.pileGap + FIG.grid + FIG.pad],
+      ["gone", "pile — opt-in", FIG.pile + FIG.gridGap],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "The simulation is already demoted to proof, so hiding it by default is honest. Saves ~<b>264&nbsp;px</b> on top of B.",
+  },
+  {
+    key: "e", name: "E · Controls beside figure",
+    twoCol: true,
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["__row", "controls | figure", NOW.figure + NOW.drive],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "Controls and figure always on screen together. Needs a wider shell (780 → ~1080&nbsp;px) and a narrow-screen fallback. <b>Core change.</b>",
+  },
+  {
+    key: "f", name: "F · E + D",
+    twoCol: true,
+    blocks: [
+      ["chrome", "draft", NOW.draft], ["chrome", "title", NOW.header],
+      ["__row", "controls | curves + 2×2", FIG.curves + FIG.pileGap + FIG.grid + FIG.pad + NOW.drive],
+      ["gone", "pile — opt-in", FIG.pile + FIG.gridGap],
+      ["chrome", "legend", NOW.legend], ["readout", "readout", NOW.readout],
+      ["chrome", "utility + gaps", NOW.utility + NOW.gaps],
+    ],
+    verdict: "<b>Fits one screen.</b> Everything visible at once: change a control, watch the 2×2 move, no scrolling anywhere.",
+  },
+];
+
+const rack = document.getElementById("rack");
+const totals = {};
+
+for (const opt of OPTIONS) {
+  const total = opt.blocks.reduce((a, b) => a + (b[0] === "gone" ? 0 : b[2]), 0);
+  totals[opt.key] = total;
+  const fits = total <= VIEWPORT;
+
+  const el = document.createElement("div");
+  el.className = "opt";
+  el.innerHTML = `
+    <h3>${opt.name}</h3>
+    <p class="tot"><b>${total}</b> px ·
+      <span class="${fits ? "fits" : "nofits"}">${fits ? "fits one screen" : `${total - VIEWPORT} px over`}</span></p>`;
+
+  const col = document.createElement("div");
+  col.className = "col";
+  for (const [kind, label, px] of opt.blocks) {
+    if (kind === "__row") {
+      const row = document.createElement("div");
+      row.className = "row2";
+      row.style.height = `${px * SCALE}px`;
+      row.innerHTML =
+        `<div class="blk controls" style="width:36%;height:100%">controls</div>` +
+        `<div class="blk figure" style="width:64%;height:100%">figure</div>`;
+      col.appendChild(row);
+      continue;
+    }
+    const b = document.createElement("div");
+    b.className = `blk ${kind}`;
+    b.style.height = `${px * SCALE}px`;
+    b.textContent = px >= 40 ? label : "";
+    if (kind === "controls" && opt.sticky) b.style.outline = "2px solid var(--c-extreme)";
+    col.appendChild(b);
+  }
+  const fold = document.createElement("div");
+  fold.className = "fold";
+  fold.style.top = `${VIEWPORT * SCALE}px`;
+  fold.innerHTML = "<span>833 px</span>";
+  if (total > VIEWPORT) col.appendChild(fold);
+  col.style.height = `${total * SCALE}px`;
+
+  el.appendChild(col);
+  const v = document.createElement("p");
+  v.className = "verdict";
+  v.innerHTML = opt.verdict;
+  el.appendChild(v);
+  rack.appendChild(el);
+}
+
+/* --- live control packing ------------------------------------------------ */
+const slider = (label, val, ticks, detail) => `
+  <div class="f">
+    <label><span>${label}</span><b>${val}</b></label>
+    <input type="range" min="0" max="4" value="2">
+    ${ticks ? `<div class="tk">${ticks.map((t) => `<span>${t}</span>`).join("")}</div>` : ""}
+    ${detail ? `<div class="dt">${detail}</div>` : ""}
+  </div>`;
+const segF = (label, a, b) => `
+  <div class="f"><label><span>${label}</span></label>
+    <div class="seg"><button aria-pressed="true">${a}</button><button aria-pressed="false">${b}</button></div>
+  </div>`;
+const check = (label) => `<div class="f inline"><input type="checkbox" checked><span>${label}</span></div>`;
+
+const FIELDS_3 =
+  slider("True effect", "Moderate", ["None", "Small", "Moderate", "Large"], "0.9 SD — needs about 16 per group") +
+  slider("Samples per group", "12") +
+  slider("Threshold α", "0.05", ["0.001", "0.01", "0.05", "0.10", "0.25"], "the convention, and only a convention") +
+  segF("Read the axis as", "Difference", "Test statistic") +
+  check("Expected shape") +
+  slider("Seed", "1") +
+  slider("Play speed", "Medium", ["Slow", "Medium", "Fast"], "each study drawn and dropped");
+
+/* Packed: the three DATA controls first and together, then the display ones —
+   and the checkbox shares a cell with the axis toggle instead of taking a row. */
+const FIELDS_4 =
+  slider("True effect", "Moderate", ["None", "Sm", "Mod", "Lg"], "0.9 SD") +
+  slider("Samples per group", "12") +
+  slider("Threshold α", "0.05", ["0.001", "0.05", "0.25"], "a convention") +
+  slider("Seed", "1") +
+  segF("Read the axis as", "Difference", "Test stat") +
+  `<div class="f">${check("Expected shape")}${check("Show the studies")}</div>` +
+  slider("Play speed", "Medium", ["Slow", "Med", "Fast"], "");
+
+const demos = document.getElementById("demos");
+for (const [title, cls, html, note] of [
+  ["Current — 3 columns, 7 fields", "c3", FIELDS_3, "Axis toggle alone on a row; checkbox spans full width."],
+  ["Packed — 4 columns, checkboxes paired", "c4", FIELDS_4, "Data controls first, display controls after, nothing alone on a row."],
+]) {
+  const d = document.createElement("div");
+  d.className = "demo";
+  d.innerHTML = `<h3>${title}</h3><div class="cg ${cls}">${html}</div>
+    <p class="measure">measured height: <b class="m">—</b> px<br><span style="color:var(--ink-3)">${note}</span></p>`;
+  demos.appendChild(d);
+}
+requestAnimationFrame(() => {
+  document.querySelectorAll(".demo").forEach((d) => {
+    d.querySelector(".m").textContent = Math.round(d.querySelector(".cg").getBoundingClientRect().height);
+  });
+});
+
+document.getElementById("costs").innerHTML = OPTIONS.map((o) => {
+  const t = totals[o.key];
+  const d = t - totals.a;
+  return `<b>${o.name}</b> — ${t} px (${d === 0 ? "baseline" : `${d > 0 ? "+" : ""}${d}`})`;
+}).join(" &nbsp;·&nbsp; ");
+</script>
+</body>
+</html>

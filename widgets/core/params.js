@@ -16,6 +16,7 @@
 
      int, float   numeric slider
      bool         checkbox
+     gate         full-width button that reveals a stage; a bool on the wire
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
@@ -59,7 +60,11 @@ export function resolveParams(spec, search) {
       case "float":
         out[name] = coerceNumber(field, raw, false);
         break;
+      /* `gate` is a bool that renders as a button rather than a checkbox — the
+         reveal for a whole second stage. Same wire format, so a link written
+         before it existed still reads. */
       case "bool":
+      case "gate":
         out[name] = raw === "1" || raw === "true" || raw === "yes";
         break;
       case "select":
@@ -108,7 +113,8 @@ export function toQuery(spec, values, extra = {}) {
   for (const [name, field] of Object.entries(spec)) {
     const v = values[name];
     if (v === undefined || v === field.default) continue;
-    q.set(name, field.type === "bool" ? (v ? "1" : "0") : String(v));
+    const isFlag = field.type === "bool" || field.type === "gate";
+    q.set(name, isFlag ? (v ? "1" : "0") : String(v));
   }
   for (const [k, v] of Object.entries(extra)) {
     if (v !== undefined && v !== null) q.set(k, String(v));

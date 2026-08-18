@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · drive row grouping</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 820px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 78ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+
+  .box { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); margin: 0 0 var(--sp-3); }
+  .box > h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  /* REAL widths. The rail track under layout:"side" is 262px; the stacked shell
+     is 694px. Anything measured at another width tells you nothing. */
+  .at { margin: 0 0 var(--sp-3); }
+  .at > .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 4px; }
+  .rail { width: 262px; }
+  .wide { width: 694px; max-width: 100%; }
+  .verdict { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0 0; }
+  .verdict b { color: var(--ink-1); }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+  .good { color: var(--c-empirical); font-weight: 600; }
+  .fits { font-family: var(--font-mono); font-size: 10px; }
+
+  /* ---- CANDIDATE: a connected drive cluster -----------------------------
+     Same grammar as .w-seg, but these are ACTIONS, not alternatives — so no
+     aria-pressed and no selected state. Would move into tokens.css if chosen. */
+  .w-drive-group {
+    display: inline-flex;
+    border: 1px solid var(--axis);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .w-drive-group .w-btn {
+    border: 0;
+    border-right: 1px solid var(--grid);
+    border-radius: 0;
+    margin-left: 0;
+  }
+  .w-drive-group .w-btn:last-child { border-right: 0; }
+
+  /* Candidates ride on the real .w-drive (its gap, and its margin-left on the
+     non-primary Reset), so a variant differs from the shipped row by the
+     grouping ALONE. An earlier draft used a private row class and quietly lost
+     that margin, which made the baseline look better than it is. */
+  .w-drive .push { margin-left: auto; }
+
+  /* B-prime: the same cluster with rail-tightened padding. */
+  .tight .w-btn { padding: 7px 11px; }
+  .w-drive.stackcol { flex-direction: column; align-items: stretch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Drive row · grouping the step/play pair</h1>
+  <p class="note">
+    Every block below is at a <b>real width</b> — 262 px is the control rail under
+    <code>layout:"side"</code>, 694 px is the stacked shell the other six widgets
+    use — and each one <b>prints its own measured line count</b>, so a verdict
+    here cannot disagree with the picture above it.
+  </p>
+  <p class="note">
+    That self-measurement earned itself twice over. The first harness got this
+    page's own answers <b>wrong in both directions</b>: variant A looked fine
+    because the private row class had silently dropped the shipped
+    <code>margin-left</code> on Reset, and every clustered variant looked like it
+    wrapped because a button inside a group sits ~1&nbsp;px off one standing bare
+    beside it, which counting distinct rounded tops read as a second row. Both are
+    fixed; the numbers below are measured against the real
+    <code>.w-drive</code>.
+  </p>
+  <p class="note">
+    <b>Principle 3.4 is what to check against.</b> Every drive button is the same
+    size; emphasis comes from weight and ink, separation from a gap —
+    <i>“never from geometry”</i>. That clause was written about making Reset
+    <b>smaller</b>. A cluster keeps every button the same size, so it is
+    consistent with 3.4 — but close enough to the line to say out loud.
+  </p>
+
+  <div id="out"></div>
+</main>
+
+<script type="module">
+const btn = (text, { primary = true, disabled = false, push = false } = {}) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `w-btn${primary ? " w-btn--primary" : ""}${push ? " push" : ""}`;
+  b.textContent = text;
+  b.disabled = disabled;
+  return b;
+};
+const group = (...bs) => {
+  const g = document.createElement("div");
+  g.className = "w-drive-group";
+  bs.forEach((b) => g.appendChild(b));
+  return g;
+};
+
+/* Each variant is a function returning the row's children, so the SAME
+   definition is rendered at both widths — no chance of the rail and the wide
+   version drifting apart. */
+const VARIANTS = [
+  {
+    id: "A", name: "A · Current — three separate buttons",
+    tight: false,
+    make: () => [btn("Run a study"), btn("Play"), btn("Reset", { primary: false })],
+    note: "As shipped. Five widgets have never shown a problem because they only ever ran at the wide width.",
+  },
+  {
+    id: "B", name: "B · Cluster the pair, Reset alongside",
+    tight: false,
+    make: () => [group(btn("Run a study"), btn("Play")), btn("Reset", { primary: false })],
+    note: "The two paces of one action read as one control; Reset stays the same size but is visibly outside it. Fits one row at BOTH widths — the cluster reclaims exactly the inter-button gap that made A wrap.",
+  },
+  {
+    id: "B2", name: "B′ · Same cluster, rail padding tightened 16 → 11 px",
+    tight: true,
+    make: () => [group(btn("Run a study"), btn("Play")), btn("Reset", { primary: false })],
+    note: "Kept only to show it is NOT needed: B already fits, so tightening the padding buys nothing and would make the rail's buttons differ from every other widget's for no reason. Rejected.",
+  },
+  {
+    id: "C", name: "C · Cluster, Reset pushed to the far edge",
+    tight: false,
+    make: () => [group(btn("Run a study"), btn("Play")), btn("Reset", { primary: false, push: true })],
+    note: "Separation is unmistakable in the rail. At 694 px Reset ends up marooned half a panel from the thing it undoes.",
+  },
+  {
+    id: "D", name: "D · All three in one cluster",
+    tight: false,
+    make: () => [group(btn("Run a study"), btn("Play"), btn("Reset", { primary: false }))],
+    note: "Fits, but Reset joins the group it destroys — and at width it reads as a segmented selector with three options rather than two actions and an undo.",
+  },
+  {
+    id: "E1", name: "E1 · Four buttons — lead INSIDE the cluster",
+    tight: true,
+    make: () => [
+      group(btn("Sample the population", { disabled: true }), btn("Resample"), btn("Play")),
+      btn("Reset", { primary: false }),
+    ],
+    note: "bootstrap and permutation-test have a one-off lead action, shown here spent. Two objections and the second is fatal: a dead segment inside a live fence reads as a rendering fault when that disabled state IS the teaching, and it wraps at rail width anyway.",
+  },
+  {
+    id: "E2", name: "E2 · Four buttons — lead on its own line, then the pair",
+    tight: true,
+    stack: true,
+    make: () => [
+      btn("Sample the population", { disabled: true }),
+      group(btn("Resample"), btn("Play")),
+      btn("Reset", { primary: false }),
+    ],
+    note: "The one-off keeps its own line and full width; the repeatable actions cluster beneath. The stage boundary is visible without a divider.",
+  },
+];
+
+const out = document.getElementById("out");
+
+for (const v of VARIANTS) {
+  const box = document.createElement("div");
+  box.className = "box";
+  box.innerHTML = `<h3>${v.name}</h3>`;
+
+  for (const [label, cls] of [["rail · layout:\"side\"", "rail"], ["stacked shell", "wide"]]) {
+    const at = document.createElement("div");
+    at.className = "at";
+    const cap = document.createElement("p");
+    cap.className = "cap";
+    at.appendChild(cap);
+
+    const row = document.createElement("div");
+    row.className = `w-drive ${cls}${v.tight ? " tight" : ""}${v.stack ? " stackcol" : ""}`;
+    row.style.marginTop = "0";
+    v.make().forEach((n) => row.appendChild(n));
+    at.appendChild(row);
+    box.appendChild(at);
+
+    // Measured after layout, so the caption cannot disagree with the picture.
+    requestAnimationFrame(() => {
+      const bs = [...row.querySelectorAll(".w-btn")];
+      /* Cluster tops with a tolerance. A button inside .w-drive-group sits ~1px
+         off one standing bare beside it (the group's own border), and counting
+         distinct rounded tops reported every clustered variant as wrapping. */
+      const tops = bs.map((b) => b.getBoundingClientRect().top).sort((x, y) => x - y);
+      let lines = tops.length ? 1 : 0;
+      for (let i = 1; i < tops.length; i += 1) if (tops[i] - tops[i - 1] > 8) lines += 1;
+      const w = Math.round(row.getBoundingClientRect().width);
+      const expected = v.stack ? 3 : 1;
+      const okLines = lines <= expected;
+      cap.innerHTML =
+        `${label} — ${w} px · <span class="fits" style="color:var(--${okLines ? "c-empirical" : "c-extreme"})">` +
+        `${lines} line${lines === 1 ? "" : "s"}${okLines ? "" : " ✗ wraps"}</span>`;
+    });
+  }
+
+  const p = document.createElement("p");
+  p.className = "verdict";
+  p.textContent = v.note;
+  box.appendChild(p);
+  out.appendChild(box);
+}
+</script>
+</body>
+</html>

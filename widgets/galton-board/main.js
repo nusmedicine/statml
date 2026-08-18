@@ -213,7 +213,8 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Drop one",
+    stepLabel: "Drop",
+    stepTitle: "Drop one ball — it takes a ±1 nudge at every row on the way down",
     runLabel: "Play",
 
     init({ params, state, fromScratch }) {

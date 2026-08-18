@@ -255,7 +255,8 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Run a study",
+    stepLabel: "New study",
+    stepTitle: "Run one more study and build its interval three ways",
     runLabel: "Play",
 
     /* `ran`, NOT `done`. Core reserves `anim.done` for "there is nothing left to

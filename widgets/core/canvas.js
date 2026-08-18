@@ -402,15 +402,28 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
  *
  * Draw this before the panel contents so marks and captions sit over it.
  */
-export function spanningRule(ctx, colors, { x, y0, y1, label, stroke }) {
-  const px = Math.round(x) + 0.5;
+/**
+ * One vertical rule carried across stacked panels.
+ *
+ * `width` and `dash` default to the hairline solid form widget 3 uses for the
+ * true mean — a quiet reference behind the data. Widget 7 needs the opposite
+ * weight from the same primitive: its rule is a DECISION BOUNDARY, the most
+ * important mark in the figure, and a 1px grey line is exactly the thing
+ * prd §3 says fails from the back of a lecture theatre. Optional, so nothing
+ * that already calls this changes.
+ */
+export function spanningRule(ctx, colors, { x, y0, y1, label, stroke, width = 1, dash = null }) {
+  // Half-pixel only for odd widths, which is where it actually sharpens.
+  const px = width % 2 ? Math.round(x) + 0.5 : Math.round(x);
   ctx.save();
   ctx.strokeStyle = stroke ?? colors.reference;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
   ctx.beginPath();
   ctx.moveTo(px, y0);
   ctx.lineTo(px, y1);
   ctx.stroke();
+  ctx.setLineDash([]);
   if (label) {
     ctx.fillStyle = colors.ink2;
     ctx.font = `${colors.fsXs} ${colors.font}`;

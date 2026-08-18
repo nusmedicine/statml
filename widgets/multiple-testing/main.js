@@ -267,7 +267,8 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Test more genes",
+    stepLabel: "Test batch",
+    stepTitle: "Test the next batch of genes — one fiftieth of them per press",
     runLabel: "Play",
 
     /* `tested`, NOT `done`. Core reserves `anim.done` for "nothing left to

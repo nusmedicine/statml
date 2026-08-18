@@ -95,7 +95,7 @@
    ========================================================================= */
 
 import { resolveParams, syncUrl, toQuery } from "./params.js";
-import { buildControls, buildActions } from "./controls.js";
+import { buildControls, buildActions, gatingParams } from "./controls.js";
 import { createCanvas } from "./canvas.js";
 import { makeRng } from "./rng.js";
 import {
@@ -146,6 +146,11 @@ export function defineWidget(config) {
     slug,
     title,
     subtitle = "",
+    /* A NUMBER, or a FUNCTION of the parameters.
+       Widget 7 hides its simulation panel behind a toggle, and a panel that can
+       be hidden has to be able to give its pixels back — otherwise the figure
+       keeps a few hundred rows of empty canvas and the toggle saves nothing that
+       a reader can see. Numbers stay numbers, so nothing existing changes. */
     height = 380,
     params: spec = {},
     legend = [],
@@ -172,6 +177,16 @@ export function defineWidget(config) {
      * this agrees with the widget's entry in manifest.json.
      */
     status = "shipped",
+
+    /* "stack" (default) or "side". Side puts the controls in a left rail beside
+       the figure instead of above it, which is what lets a tall widget fit one
+       screen — the controls and the thing they change are visible together.
+
+       OPT-IN, and that is the whole point: making it global would widen every
+       widget's canvas and invalidate all 39 fingerprint baselines at once. This
+       way only a widget that asks for it moves. Falls back to the stack below
+       880px, so the narrow case is unaffected either way. */
+    layout = "stack",
     mount = "#widget",
   } = config;
 
@@ -186,6 +201,7 @@ export function defineWidget(config) {
     subtitle,
     legend,
     status,
+    layout,
     hasReadout: Boolean(readout),
     hasTable: Boolean(table),
   });
@@ -212,6 +228,9 @@ export function defineWidget(config) {
   }
 
   function paint({ syncAddressBar = false } = {}) {
+    // Resolve a parameter-dependent height BEFORE resize, or the canvas paints
+    // at the previous size for one frame and the panels jump.
+    if (typeof height === "function") surface.setHeight(height({ ...values }));
     const { w, h } = surface.resize();
     surface.clear();
     draw({ ctx: surface.ctx, colors, w, h, params: { ...values }, state, anim });
@@ -260,8 +279,25 @@ export function defineWidget(config) {
 
   /* --- parameter changes ------------------------------------------------ */
 
+  const GATES = gatingParams(spec);
+
+  /* The name of the `gate` field, if the widget has one. Read off the spec
+     rather than declared a second time under `animation`: two declarations of
+     one fact is how they come to disagree (principle 5.8). */
+  const GATE_PARAM = Object.entries(spec).find(([, f]) => f.type === "gate")?.[0] ?? null;
+
   function setParam(name, value) {
     values[name] = value;
+
+    /* A parameter other fields are gated on has just moved, so which controls
+       exist has changed. Rebuilt here and nowhere else: rebuilding on every
+       change would drop a slider mid-drag. */
+    if (GATES.has(name)) {
+      // Shutting the gate takes the figure the animation was painting into away.
+      if (name === GATE_PARAM && !value) stopAnim();
+      controls.rebuild(values);
+      updateAnimButtons();
+    }
 
     if (spec[name]?.display) {
       // Display-only: keep the student's work. The state is recomputed because
@@ -359,6 +395,20 @@ export function defineWidget(config) {
 
   function updateAnimButtons() {
     if (!animation) return;
+
+    /* Behind a shut gate there is nothing to drive, so step, run and reset are
+       removed from the row rather than merely disabled — a disabled button still
+       advertises a control the reader cannot use, and principle 3.5 says every
+       control has to carry an idea AT REST. `hidden` takes them out of layout,
+       so the whole row collapses and the divider above it goes with it. */
+    if (GATE_PARAM) {
+      const open = Boolean(values[GATE_PARAM]);
+      for (const key of ["step", "run", "reset", "lead"]) {
+        if (actions[key]) actions[key].hidden = !open;
+      }
+      dom.drive.hidden = !open;
+      if (!open) return;
+    }
     const playing = rafId !== null && anim?.mode === "run";
     const done = Boolean(anim?.done);
     // Nothing but the lead action is available until the lead action has run.
@@ -398,7 +448,7 @@ export function defineWidget(config) {
     animation?.leadLabel && {
       key: "lead",
       text: animation.leadLabel,
-      title: "Do this once, before stepping",
+      title: animation.leadTitle ?? "Do this once, before stepping",
       primary: true,
       onClick: () => startAnim("lead"),
     },
@@ -406,15 +456,22 @@ export function defineWidget(config) {
     // draw samples. Generic verbs make a widget feel like a demo of a framework.
     animation && {
       key: "step",
+      group: "pace",
       text: animation.stepLabel ?? "Draw one",
-      title: "Advance one step, slowly, showing every stage",
+      /* THE NOUN LIVES HERE ONCE THE FACE IS ONE WORD. "Drop" and "Test batch"
+         cannot say what they drop or test in the space they have, so the widget
+         supplies the sentence and the generic string below is only a fallback.
+         Shortening a label without moving its noun somewhere is how a control
+         stops explaining itself — see principle 3.4c. */
+      title: animation.stepTitle ?? "Advance one step, slowly, showing every stage",
       primary: true,
       onClick: () => startAnim("step"),
     },
     animation && {
       key: "run",
+      group: "pace",
       text: animation.runLabel ?? "Play",
-      title: "Keep going at the chosen speed",
+      title: animation.runTitle ?? "Keep going at the chosen speed",
       primary: true,
       onClick: () => startAnim("run"),
     },
@@ -433,6 +490,51 @@ export function defineWidget(config) {
       },
     },
   ].filter(Boolean));
+
+  /* --- the run button's width is reserved, not discovered ------------------ *
+   *
+   * It relabels itself as the animation moves: Play -> Pause -> Resume, and
+   * Replay once finished. Those are not the same width — measured at --fs-md,
+   * 59 / 70 / 75 / 83 px — so the row's geometry depended on the animation's
+   * STATE. Two consequences, one ugly and one worse:
+   *
+   *   - the row twitched on every press, at every width
+   *   - in the 262px control rail, "Resume" alone overflowed and dropped Reset
+   *     onto a second line
+   *
+   * Reserving the widest label makes the row a fixed shape. Sizing is measured
+   * off a detached probe rather than by writing each label into the live button:
+   * the button is a flex item and can be SHRUNK by an overflowing row, so
+   * measuring it in place would sometimes report the squeezed width and confirm
+   * a fit that is not there.
+   *
+   * A blind spot worth naming, because it is the same shape as principle 5.6:
+   * every check of this row had measured it in its INITIAL state, and three of
+   * the four labels only exist once something has been pressed.                */
+  function reserveRunWidth() {
+    const b = drive.run;
+    if (!b) return;
+    const labels = [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"];
+    const cs = getComputedStyle(b);
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap";
+    probe.style.font = `${cs.fontWeight} ${cs.fontSize}/${cs.lineHeight} ${cs.fontFamily}`;
+    probe.style.letterSpacing = cs.letterSpacing;
+    document.body.appendChild(probe);
+    let text = 0;
+    for (const l of labels) {
+      probe.textContent = l;
+      text = Math.max(text, probe.getBoundingClientRect().width);
+    }
+    probe.remove();
+    const chrome =
+      parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+      parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    b.style.minWidth = `${Math.ceil(text + chrome)}px`;
+  }
+  reserveRunWidth();
+  // Re-measure once webfonts settle, in case the first pass sized on a fallback.
+  document.fonts?.ready?.then(reserveRunWidth);
 
   /* Theme lives in the header, not the utility row. It is housekeeping, which
      argues for utility — but it is also the one control a reader may need
@@ -551,8 +653,9 @@ export function defineWidget(config) {
  * top to bottom in the order they need to think about it, with no instruction
  * telling them to.
  */
-function buildShell(host, { title, subtitle, legend, status, hasReadout, hasTable }) {
+function buildShell(host, { title, subtitle, legend, status, layout = "stack", hasReadout, hasTable }) {
   host.className = "w-root";
+  host.dataset.layout = layout;
   host.innerHTML = "";
 
   /* Above the heading, not below it: someone who reached a draft from a link has
@@ -579,11 +682,31 @@ function buildShell(host, { title, subtitle, legend, status, hasReadout, hasTabl
   header.appendChild(headerTools);
   host.appendChild(header);
 
-  const controls = el("div", "w-controls");
-  host.appendChild(controls);
+  /* Under "side" the controls and the drive buttons share a rail and the figure
+     gets its own column. The DOM order is unchanged — rail before stage — so
+     tab order and screen-reader order still read setup-then-figure, which is
+     principle 3.1 and must not become a property of the CSS. */
+  const split = layout === "side" ? el("div", "w-split") : null;
+  if (split) host.appendChild(split);
+  const rail = split ? el("div", "w-rail") : null;
+  if (rail) split.appendChild(rail);
+  const stage = split ? el("div", "w-stage") : null;
+  if (stage) split.appendChild(stage);
 
+  const controls = el("div", "w-controls");
+  (rail ?? host).appendChild(controls);
+
+  /* THE DRIVE BUTTONS LIVE WITH THE CONTROLS, in the rail under `side`.
+
+     They were briefly in the stage above the figure, on a literal reading of
+     principle 3.1 ("directly above the figure"). That reading is wrong for a
+     two-column layout and it was reported as confusing straight away: the setup
+     was on the left and Play was at the top, so operating the widget meant
+     tracking two separate control locations. 3.1's actual claim is that a
+     control sits BESIDE the thing it controls, and in a side layout the whole
+     rail already does. One column, one place to look. */
   const drive = el("div", "w-drive");
-  host.appendChild(drive);
+  (rail ?? host).appendChild(drive);
 
   const figure = el("div", "w-figure");
   figure.setAttribute("role", "img");
@@ -591,7 +714,7 @@ function buildShell(host, { title, subtitle, legend, status, hasReadout, hasTabl
     "aria-label",
     `${title}. The numbers below the figure carry the same information.`
   );
-  host.appendChild(figure);
+  (stage ?? host).appendChild(figure);
 
   // A legend is always present for two or more series; one series needs none.
   if (legend.length >= 2) {

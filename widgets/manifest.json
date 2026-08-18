@@ -39,7 +39,7 @@
         "inference"
       ],
       "arc": 3,
-      "height": 1250,
+      "height": 1170,
       "status": "shipped"
     },
     {
@@ -85,6 +85,21 @@
       "arc": 6,
       "height": 1320,
       "status": "shipped"
+    },
+    {
+      "slug": "power-and-error",
+      "title": "Power and Error Rates",
+      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves — and which does not budge.",
+      "course": "PHM5003",
+      "topics": [
+        "power",
+        "sample size",
+        "type I error",
+        "hypothesis testing"
+      ],
+      "arc": 7,
+      "height": 1250,
+      "status": "draft"
     }
   ]
 }

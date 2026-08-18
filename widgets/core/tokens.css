@@ -202,6 +202,87 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   max-width: 62ch;
 }
 
+/* --- side layout: controls beside the figure ------------------------------ *
+ * OPT-IN via defineWidget({ layout: "side" }), because widening the shell for
+ * everyone would move every widget's canvas and invalidate all 39 fingerprint
+ * baselines in one commit. Only a widget that asks for it is affected.
+ *
+ * It exists because a tall widget forces a scroll BACK PAST THE FIGURE to reach
+ * the control that changes it, which is the opposite of "the control sits beside
+ * the thing it controls" (principle 3.1). Below 880px it stacks again, so the
+ * narrow case is exactly what it was.                                        */
+.w-root[data-layout="side"] {
+  max-width: 1120px;
+}
+
+.w-split {
+  display: grid;
+  /* 300px, and the number is measured. The drive row's worst case is the widest
+     run-button label — "Resume" — beside the step label and Reset, which comes to
+     283px. At 270 that overflowed and dropped Reset to a second line the moment
+     an animation had been paused, so the rail is sized to the row rather than the
+     row squeezed into the rail. The stage still gets 776px, wider than the 694 a
+     stacked widget has. */
+  grid-template-columns: minmax(250px, 300px) 1fr;
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.w-rail {
+  border-top: 1px solid var(--grid);
+  padding-top: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+/* One column in the rail, and its own top rule replaces the one .w-controls
+   draws, so the column does not get a stray line across it. */
+.w-split .w-controls {
+  grid-template-columns: 1fr;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Drive buttons are the last thing in the rail, behind their own divider, so
+   the column reads: what am I looking at -> what stage am I in -> make it go. */
+.w-split .w-drive {
+  border-top: 1px solid var(--grid);
+  padding-top: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+.w-split .w-drive[hidden] { display: none; }
+
+/* The gate: a full-width button that opens a stage, sitting in the control flow
+   at the point the stage begins. Its divider marks where setup ends. */
+.w-gate {
+  border-top: 1px solid var(--grid);
+  padding-top: var(--sp-4);
+  margin-top: var(--sp-1);
+}
+.w-gate-btn { width: 100%; justify-content: center; }
+.w-gate .w-detail { margin: var(--sp-2) 0 0; }
+
+.w-stage {
+  min-width: 0; /* or the canvas refuses to shrink inside the grid track */
+}
+
+.w-split .w-figure {
+  margin-top: var(--sp-4);
+}
+
+@media (max-width: 880px) {
+  .w-root[data-layout="side"] { max-width: 780px; }
+  .w-split { display: block; }
+  .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .w-split .w-controls {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    border-top: 1px solid var(--grid);
+    padding-top: var(--sp-4);
+    margin-top: var(--sp-4);
+  }
+}
+
+
 /* --- figure --------------------------------------------------------------- */
 .w-figure {
   position: relative;
@@ -508,6 +589,30 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 }
 .w-btn--icon:hover { color: var(--ink-1); }
 .w-btn--icon svg { display: block; }
+
+/* A connected cluster of buttons that are PACES of one action — step and play.
+   Mocked against five alternatives in _lab/drive-row.html, where the deciding
+   fact was measured rather than judged: three separate buttons need 273px and
+   the control rail is 262, so the row wrapped and Reset fell to its own line.
+   Fencing the pair reclaims exactly the gap that overflowed.
+
+   3.4 says separation comes from a gap and never from geometry. That was written
+   about making Reset SMALLER; every button here is still the same size, and the
+   fence groups rather than ranks. Reset is never inside one. */
+.w-drive-group {
+  display: inline-flex;
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.w-drive-group .w-btn {
+  border: 0;
+  border-right: 1px solid var(--grid);
+  border-radius: 0;
+  margin-left: 0;
+}
+.w-drive-group .w-btn:last-child { border-right: 0; }
+.w-drive-group .w-btn:disabled { opacity: 0.5; }
 
 .w-drive .w-btn:not(.w-btn--primary) {
   margin-left: var(--sp-3);

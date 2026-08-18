@@ -231,6 +231,125 @@ existing fingerprint states.
 
 ---
 
+## Widget 7 — past the agreed six
+
+The arc above is closed and stays closed: those six are one continuous argument
+and nothing has been inserted into it. This one is an **extension**, and it is
+numbered 7 in build order even though in *lesson* order it sits between #5 and
+#6 (it hosts at `03 / 04-02 — Hypothesis Testing: Decision Making`, which
+follows 04-01 and precedes the multiple-testing material). Renumbering a shipped
+widget to make the gallery match the lessons was the alternative and was not
+worth the churn.
+
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 7 | `power-and-error` 🟡 | Type I/II error, power, sample size | *I decided. How often is that decision wrong — and in which direction?* | That the two error rates are symmetric consequences of the same thing: that a noisier or smaller study is wrong more often in **both** directions. **α is chosen** and is fixed by construction whatever n does; **β is inherited** and is where all the noise lands | **documented** — and see below |
+
+**The evidence is unusually direct: this course's own material states it wrongly,
+because the app it links to computes it wrongly.** `03/04-02` sends students to
+`kennethban.shinyapps.io/decision`, whose `plot_decision` takes the critical
+value as `qnorm(1-threshold)` — the **standard** normal quantile — so it is
+pinned at 1.645 regardless of `sd`. Verified against the deployed app, which at
+its defaults (d = 4, sd = 1.5, α = 0.05) prints FP = 0.136 where the truth is
+0.05. The lesson prose then draws the conclusion the broken figure supports:
+
+> Larger variance (e.g. smaller sample size) · False positive (type I error)
+> **increases** · … · True negative **decreases**
+
+Neither happens. The β and power statements in that same block are all correct.
+**This needs fixing in `../jupyterbook/phm5003` as well as here** — replacing the
+app does not un-teach the sentence.
+
+**Why it earns a slot rather than being a port.** The Shiny app is a static
+figure with sliders, which non-negotiable #4 rules out. Here the two curves and
+the threshold are the *setup* — the Neyman-Pearson planning phase legitimately
+computes α and β before any data exists — and what the student builds is the
+**evidence that those predictions hold**, one study at a time. Set the effect to
+None and the two curves coincide exactly: one curve, and 5% of studies still
+land past the line, at every sample size from 3 to 100.
+
+**What building it settled**, and the first one generalises to any figure that
+draws a threshold:
+
+- **An axis must not carry two kinds of quantity — and the obvious fix cost more
+  than the problem.** Built first on the raw difference of means, the control
+  said α = 0.05 and the line it drew sat at 0.67 SD, with nothing connecting
+  them: 0.05 is an *area*, 0.67 is a *position*. Rebuilding on the **test
+  statistic** fixes that outright — the line sits at 1.645 in every state.
+
+  But standardising **divides the spread out**. Both curves become N(μ, 1), so
+  `n` has nowhere to act but position, and λ = d√(n/2) is the only thing either
+  data control touches. **Changing the sample size then looks exactly like
+  changing the effect size**, and the sliding curve was labelled "the true
+  effect". For a widget whose job is showing what each control does, collapsing
+  two of three controls into one motion is worse than the conflation it cured.
+
+  **So both are offered and raw is the default**, with the line printing its α
+  *and* its position in whichever units:
+
+  | control | raw axis | test-statistic axis |
+  |---|---|---|
+  | effect | alternative's centre moves | alternative moves |
+  | sample size | **both curves narrow** | alternative moves — *same motion* |
+  | threshold α | line moves | line moves |
+
+  They are one test drawn twice, and that is guaranteed by construction rather
+  than asserted: the studies are stored **once** as raw differences and the view
+  derives z as difference/se, which is all standardising is. Verified — power,
+  separation and observed rate are identical on both axes at every n. Flipping
+  the toggle is therefore a picture of the standardisation `03/04-01` teaches.
+- **Both windows are fixed, for opposite reasons.** Raw: the curves must be seen
+  to *narrow*, so a window fitted to the standard error would rescale in step and
+  hide it. z: a fitted window would put the line at a new pixel on every change,
+  which is the original defect in a new coordinate system.
+- **A pinned window forces the BINS to follow the spread.** On the raw axis a
+  fixed bin count collapses the pile to five bars of visible mass at n = 100
+  (against 29 at n = 3). Sizing bins to the standard error holds ~22 across the
+  visible mass at every n, so the pile still reads as a shape while genuinely
+  shrinking against a fixed axis.
+- **Areas are the wrong encoding for judging change**, so every shaded area is
+  restated as a length. Two regions can move a great deal and look identical; the
+  Shiny app hits the same wall and bolts a bar chart underneath for the same
+  reason. This went through two forms — a pair of proportion bars first, then the
+  **2 × 2 outcome grid** the figure now ends on, which is both what students
+  already know and what the lesson's own `plot_decision` builds. Every cell is the
+  same width and filled to its own rate, so all four share one scale and any cell
+  can be compared against any other, across rows as well as along them.
+- **Rows are the truth, columns are the decision**, and that orientation is what
+  makes the table teach: you pick your column, you never pick your row, and you
+  are never told which row you are in. The cells are CONDITIONAL rates, so each
+  row sums to 1 and no total is shown — a joint table needs a prior on how often
+  H₀ is true, which is a different and much harder lesson, and implying one here
+  would be the error widget 6 exists to undo.
+- **The degenerate case is left honest rather than blanked.** At effect = None the
+  two rows come out identical, because power collapses to α exactly. That is
+  arithmetic, not a bug, and reading one row twice is a better statement of "there
+  is no second world" than an empty row would be.
+- **A rule may only cross panels that share its axis.** The spanning rule ran
+  through the rate bars, which were on a 0–100% scale — the bar split sat at 71%
+  while the rule crossed at 50%, two unrelated positions reading as one
+  coordinate. It is two segments now, and the gap is deliberate.
+- **The threshold is a DISPLAY parameter.** α changes the decision, never the
+  observations, so a student can run a thousand studies and then slide it and
+  watch the same dots reclassify in place — measured: 5.1% → 25.4% called
+  significant with "studies run" untouched at 1000.
+- **A rate needs enough repetitions to stop looking like a trend.** At 400
+  studies a sweep across n = 3, 12, 30, 100 with the null true gave 6.0%, 5.8%,
+  4.0%, 3.3% — every one consistent with 0.05, and read left to right they look
+  exactly like a rate *falling with sample size*, the opposite of the point.
+  Fixed by a thousand repetitions **and** by putting the prediction beside the
+  observation, which is principle 2.7 doing real work rather than decorating.
+- **`spanningRule` gained an optional `width` and `dash`.** Widget 3 wants a
+  hairline for a quiet reference behind the data; a decision boundary wants the
+  heaviest mark in the figure. Verified pixel-identical on all 39 existing
+  fingerprint states.
+- **Text with a halo must be painted after the rule it defends.** `caption()` has
+  always drawn a surface halo so a spanning rule can pass behind it — which does
+  nothing if the rule is drawn last. Cost two passes to notice, once for the
+  captions and once for the curve labels.
+
+---
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
@@ -242,7 +361,6 @@ misconception named above the line in git history.
 | `regression-to-mean` | Regression to the mean | Attacks "responder" reasoning directly, but needs no resampling machinery |
 | `interaction-effect` | Effect modification | The conceptual core of *precision*, but may be technical rather than abstract — see open question 4 |
 | `censoring-km` | Censoring and Kaplan–Meier | Survival is its own arc; better built as a pair with `hazard-ratio` |
-| `power-sample-size` | Power | Naturally follows #5, so a candidate for #7 |
 | `sd-vs-se` · `confounding-simpson` · `forking-paths` · `bayes-updating` | | as before |
 
 `forking-paths` is worth noting as the natural #7 alternative: it is #6's lesson

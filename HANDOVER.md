@@ -10,10 +10,22 @@ than re-argued. Before changing anything in `widgets/core/`, read
 because the obvious approach was tried and failed, and each carries the incident
 that earned it.
 
-**Last updated:** **the PHM5003 statistics arc is COMPLETE** — all six widgets
-shipped, baselined and live. Nothing in it is outstanding. The next work is
-either PHM5005, which needs its catalogue treatment before any widget is built
-(prd §12.1), or the two things §1 lists as unverified.
+**Last updated:** the agreed six are shipped, baselined and live, and **widget 7
+`power-and-error` is a DRAFT** — built, verified, not yet baselined and not on the
+gallery. Two things about it are outstanding and both are decisions, not code:
+
+1. **Does red stay "called significant"?** It currently means *the decision you
+   made*, identically in both rows of the 2×2 and in the pile, so the red column
+   reads "α, then power". Colouring by CORRECTNESS instead would flip red's
+   meaning between the two rows. Parked deliberately, by the author.
+2. **`03/04-02`'s prose is still wrong, and that is in the other repo.** The
+   lesson says larger variance raises the type I error rate and lowers the true
+   negative rate. Neither happens — α is fixed by construction. Replacing the
+   Shiny app does not un-teach the sentence; see catalogue.md's widget 7 section
+   for the verified numbers.
+
+Then: baseline widget 7 and promote it, or start PHM5005, which needs its
+catalogue treatment before any widget is built (prd §12.1).
 
 ---
 
@@ -35,6 +47,7 @@ and a real one. The lab is not deployed and keeps its source path.
 | widget 2 | `/widget/clt/` | the sampling distribution of the mean |
 | widget 3 | `/widget/bootstrap/` | uncertainty from one sample |
 | widget 5 | `/widget/permutation-test/` | could chance alone have done this? |
+| widget 7 | `/widget/power-and-error/` | **DRAFT** — you choose α; you do not choose β |
 | lab | `/lab/` | the drafts — **not linked from the gallery** |
 | dev lab | `/widgets/_lab/` | design mockups **and the fingerprint harness**; not deployed |
 
@@ -62,6 +75,13 @@ All start empty, all animate step by step, all build their pile with
 
 | addition | why |
 |---|---|
+| `layout: "side"` | Controls in a left rail beside the figure instead of above it. **Opt-in**, because widening the shell globally would move every canvas and invalidate all 39 baselines at once. Principle 3.4a |
+| `height` may be a function of params | A panel that can be hidden has to give its pixels back, or a toggle trades a chart for the same amount of blank canvas |
+| `when: { param }` on a field | Declarative, not a predicate — core has to know WHICH param gates what so it can rebuild the control block only when that one moves. Rebuilding on every change drops a slider mid-drag |
+| `type: "gate"` field | A full-width button that opens a whole stage, sitting in the control flow where the stage begins. The single declaration of which param opens it; core scans for it. Principle 3.4b |
+| `group` on a drive button | Fences step and play into one cluster — two *paces* of one action. Reset is never inside one. Principle 3.4 as amended |
+| `leadTitle` / `stepTitle` / `runTitle` | One-word labels have nowhere to name their noun, so it moved into the tooltip. Principle 3.4c |
+| reserved run-button width | Play/Pause/Resume/Replay are 59/70/75/83 px, so the row's shape used to depend on the animation's state. Principle 3.4d |
 | `animation.leadLabel` + `anim.leadDone` | A one-off action before stepping means anything. The lead button greying out permanently **is** the teaching in both widgets 3 and 5. Core owns the button states; the widget owns `leadDone`. |
 | `rng.resample(len)` → indices | Draws WITH replacement. Indices, not values, so the choreography can show *which* observation was picked twice. |
 | `rng.shuffle(arr)` → new array | A permutation. The exact opposite move: every element survives once, only the arrangement changes. |
@@ -121,7 +141,7 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
 ---
 
-## 2 · The next task: there is no widget queued
+## 2 · The next task: finish widget 7, or start PHM5005
 
 The PHM5003 arc is closed. `docs/catalogue.md` marks all six shipped, and the
 manifest agrees. Three candidates, in the order I would take them:
@@ -238,6 +258,25 @@ cannot describe — it is how the Fast freeze was confirmed before it was fixed
 (recessive-ink pixels: 2142 settled, 5370 mid-pool, 5298 stuck, 1770 fixed).
 
 ### Traps that have already cost time
+
+- **A control that relabels itself changes the row's width.** Every check of the
+  drive row had measured it in its INITIAL state; three of the run button's four
+  labels only exist after a press, and "Resume" overflowed the rail. Same shape as
+  principle 5.6. Core now reserves the widest label — but note that reserving made
+  a marginal row wrap in EVERY state rather than three in four, which was correct:
+  the rail was too narrow and is now sized to the row.
+- **Measure a flex item off a detached probe, not by writing into it.** An
+  overflowing row can SHRINK a button, so measuring in place reports the squeezed
+  width and confirms a fit that is not there.
+- **A measuring harness can be wrong in both directions at once.**
+  `_lab/drive-row.html` first reported the shipped row as fine (its private row
+  class had dropped `.w-drive`'s `margin-left` on Reset) and every clustered
+  variant as wrapping (a button inside a group sits ~1px off a bare sibling, which
+  counting distinct rounded tops read as a second line). Make the page print its
+  own measurements, and ride the REAL classes.
+- **`?studies=true` instead of `?studies=1`.** A new param type has to be added to
+  the serialiser as well as the parser, or its URL silently stops matching every
+  other flag's format.
 
 - **Stray pointer input.** The automation browser moves sliders mid-capture.
   Several apparent bugs were this. If a screenshot disagrees with a programmatic

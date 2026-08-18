@@ -285,8 +285,10 @@ defineWidget({
    * labels" runs as often as you like, because rearranging costs nothing.    */
 
   animation: {
-    leadLabel: "Run the study",
-    stepLabel: "Shuffle the labels",
+    leadLabel: "Observe",
+    leadTitle: "Observe the real study, once — the data you actually collected",
+    stepLabel: "Shuffle",
+    stepTitle: "Pool every observation and deal the group labels back at random",
     runLabel: "Play",
 
     init({ params, state, fromScratch }) {

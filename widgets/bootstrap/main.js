@@ -283,8 +283,10 @@ defineWidget({
        population for more data. You may press the second as often as you like,
        because resampling costs nothing but arithmetic. A student who has felt
        that difference in the buttons does not confuse the two loops. */
-    leadLabel: "Sample the population",
-    stepLabel: "Resample your sample",
+    leadLabel: "Sample",
+    leadTitle: "Draw your one sample from the population — in real life you only ever get to do this once",
+    stepLabel: "Resample",
+    stepTitle: "Resample your own sample, with replacement — the population is out of reach now",
     runLabel: "Play",
 
     init({ params, state, fromScratch }) {

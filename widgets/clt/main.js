@@ -186,6 +186,14 @@ defineWidget({
    * performs them all at the chosen speed.                                  */
 
   animation: {
+    /* Authored, not inherited. This widget used to ride core's "Draw one"
+       default, which named no noun at all — and "one" of what is exactly the
+       thing a student is trying to work out here, since the unit is a whole
+       sample that then collapses to a single mean. */
+    stepLabel: "Draw sample",
+    stepTitle: "Draw one sample of n, collapse it to its mean, and drop that mean into the pile",
+    runLabel: "Play",
+
     init({ params, state, fromScratch }) {
       const anim = {
         pile: makeClPile(params, state),
