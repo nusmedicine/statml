@@ -2,8 +2,20 @@
    Environment: theme resolution, token bridge, and iframe height reporting.
 
    Theme
-     ?theme=light|dark stamps data-theme on <html> so the CSS toggle scope wins.
-     With no parameter, the OS preference applies and we listen for changes.
+     Three states: auto (follow the OS, live), light, dark. The widget's utility
+     row cycles them.
+
+     The choice is stored in localStorage, NOT in the parameters and NOT in the
+     URL, and that is deliberate. Non-negotiable 1 says parameters are the only
+     state of record — but a theme is not part of what the figure MEANS, it is a
+     property of the person looking at it. Put it in `values` and every "Copy
+     link" an instructor pastes would force their own theme on a room full of
+     students. It stays out of the shareable link for the same reason the OS
+     preference does.
+
+     ?theme=light|dark still works, as the embedder's suggestion — but only until
+     the reader expresses a preference of their own, which then wins for good. An
+     explicit click always beats a URL someone else wrote.
 
    Token bridge
      Canvas cannot read CSS custom properties, so readTokens() resolves them
@@ -19,13 +31,62 @@
      first line returns immediately.
    ========================================================================= */
 
-export function resolveTheme() {
-  const q = new URLSearchParams(location.search).get("theme");
-  if (q === "light" || q === "dark") {
-    document.documentElement.setAttribute("data-theme", q);
-    return q;
+const THEME_KEY = "statml:theme";
+const THEME_MODES = ["auto", "light", "dark"];
+
+const osTheme = () => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+/* Storage can throw outright in private browsing and in some sandboxed frames,
+   and a theme button is never worth breaking a widget over. Every access is
+   guarded and falls back to auto. */
+function stored() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return THEME_MODES.includes(v) ? v : null;
+  } catch {
+    return null;
   }
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** "auto" | "light" | "dark" — what the theme button should be showing. */
+export function themeMode() {
+  const own = stored();
+  if (own) return own;
+  // No choice of their own yet, so an embedder's ?theme= seeds the initial view.
+  const q = new URLSearchParams(location.search).get("theme");
+  return q === "light" || q === "dark" ? q : "auto";
+}
+
+/** Stamp <html> so the [data-theme] scope in tokens.css wins. Returns the
+    resolved theme, which is never "auto" — that is a mode, not a palette. */
+export function applyTheme() {
+  const mode = themeMode();
+  if (mode === "auto") {
+    document.documentElement.removeAttribute("data-theme");
+    return osTheme();
+  }
+  document.documentElement.setAttribute("data-theme", mode);
+  return mode;
+}
+
+/** Persist a choice and apply it. Returns the resolved theme. */
+export function setThemeMode(mode) {
+  try {
+    if (mode === "auto") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, mode);
+  } catch {
+    /* Unstorable: the choice still applies for this page, it just will not
+       survive a reload. Better than refusing to switch at all. */
+  }
+  return applyTheme();
+}
+
+/** The mode after this one, for a button that cycles auto -> light -> dark. */
+export const nextThemeMode = (mode) =>
+  THEME_MODES[(THEME_MODES.indexOf(mode) + 1) % THEME_MODES.length];
+
+export function resolveTheme() {
+  return applyTheme();
 }
 
 export function isEmbedded() {
@@ -79,8 +140,13 @@ export function reportHeight(slug) {
   post();
 }
 
-/** Re-run `fn` when the OS theme changes and no explicit theme is pinned. */
+/** Re-run `fn` when the OS theme changes, if we are following the OS.
+    The mode is read at fire time, not at bind time, because the reader can
+    switch back to auto long after this listener was attached. */
 export function onThemeChange(fn) {
-  if (new URLSearchParams(location.search).has("theme")) return;
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", fn);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (themeMode() !== "auto") return;
+    applyTheme();
+    fn();
+  });
 }

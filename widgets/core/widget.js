@@ -98,9 +98,48 @@ import { resolveParams, syncUrl, toQuery } from "./params.js";
 import { buildControls, buildActions } from "./controls.js";
 import { createCanvas } from "./canvas.js";
 import { makeRng } from "./rng.js";
-import { readTokens, resolveTheme, isEmbedded, reportHeight, onThemeChange } from "./env.js";
+import {
+  readTokens, resolveTheme, isEmbedded, reportHeight, onThemeChange,
+  themeMode, setThemeMode, nextThemeMode,
+} from "./env.js";
 
 const MAX_FRAME_MS = 64; // clamp dt so a stalled tab does not jump the animation
+
+/* --- theme icons -------------------------------------------------------- *
+ * Built as elements rather than markup strings so nothing in core needs
+ * innerHTML. `stroke: currentColor` is what lets one icon work in both themes:
+ * it tracks the button's ink, so there is no icon colour to add to tokens.css
+ * and no second copy to keep in step. */
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function icon(parts) {
+  const s = document.createElementNS(SVG_NS, "svg");
+  for (const [k, v] of Object.entries({
+    viewBox: "0 0 16 16", width: 15, height: 15, "aria-hidden": "true",
+    fill: "none", stroke: "currentColor", "stroke-width": 1.4, "stroke-linecap": "round",
+  })) s.setAttribute(k, String(v));
+  for (const [tag, attrs] of parts) {
+    const e = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+    s.appendChild(e);
+  }
+  return s;
+}
+
+const RAYS = [[8,1.3,8,2.7],[8,13.3,8,14.7],[1.3,8,2.7,8],[13.3,8,14.7,8],
+              [3.4,3.4,4.4,4.4],[11.6,11.6,12.6,12.6],[12.6,3.4,11.6,4.4],[4.4,11.6,3.4,12.6]];
+
+const THEME_ICON = {
+  // A sun, a moon, and a circle half-filled — the split disc is the convention
+  // for "follow the system", and it reads at a glance as neither one nor other.
+  light: () => icon([["circle", { cx: 8, cy: 8, r: 3.1 }],
+                     ...RAYS.map(([x1, y1, x2, y2]) => ["line", { x1, y1, x2, y2 }])]),
+  dark:  () => icon([["path", { d: "M13.2 9.8A5.6 5.6 0 0 1 6.2 2.8a5.6 5.6 0 1 0 7 7Z" }]]),
+  auto:  () => icon([["circle", { cx: 8, cy: 8, r: 5.4 }],
+                     ["path", { d: "M8 2.6a5.4 5.4 0 0 1 0 10.8Z", fill: "currentColor", stroke: "none" }]]),
+};
+
+const THEME_LABEL = { auto: "Theme: follow the system", light: "Theme: light", dark: "Theme: dark" };
 
 export function defineWidget(config) {
   const {
@@ -385,6 +424,23 @@ export function defineWidget(config) {
   const util = buildActions(
     dom.utility,
     [
+      {
+        key: "theme",
+        icon: () => THEME_ICON[themeMode()](),
+        text: THEME_LABEL[themeMode()],
+        title: `${THEME_LABEL[themeMode()]} — click for ${nextThemeMode(themeMode())}`,
+        onClick: (btn) => {
+          setThemeMode(nextThemeMode(themeMode()));
+          // The tokens the canvas drew with have just changed underneath it, so
+          // re-read them and repaint. No recompute: the data did not move.
+          colors = readTokens();
+          paint();
+          const mode = themeMode();
+          btn.replaceChildren(THEME_ICON[mode]());
+          btn.setAttribute("aria-label", THEME_LABEL[mode]);
+          btn.title = `${THEME_LABEL[mode]} — click for ${nextThemeMode(mode)}`;
+        },
+      },
       {
         key: "copy",
         text: "Copy link",

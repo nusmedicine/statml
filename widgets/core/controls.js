@@ -226,7 +226,16 @@ export function buildActions(host, buttons, { withFlash = false } = {}) {
     const b = document.createElement("button");
     b.className = spec.primary ? "w-btn w-btn--primary" : "w-btn";
     b.type = "button";
-    b.textContent = spec.text;
+    /* `icon` is a factory returning a fresh element, never a markup string —
+       so nothing here ever needs innerHTML. An icon button carries its name in
+       aria-label instead of visible text, because there is no text. */
+    if (spec.icon) {
+      b.classList.add("w-btn--icon");
+      b.appendChild(spec.icon());
+      if (spec.text) b.setAttribute("aria-label", spec.text);
+    } else {
+      b.textContent = spec.text;
+    }
     b.title = spec.title ?? "";
     // Stamped so anything outside this module can find a button by what it DOES
     // rather than by where it sits. The fingerprint harness used to take the

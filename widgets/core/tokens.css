@@ -451,6 +451,26 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 
 .w-btn--primary { font-weight: 600; }
 
+/* An icon button is square and optically the same weight as a text button
+   beside it: same height, same border, same hover. The icon inherits
+   currentColor so it tracks the button's ink in both themes without a second
+   colour token. */
+.w-btn--icon {
+  display: inline-grid;
+  place-items: center;
+  padding-inline: 0;
+  width: 2rem;
+  color: var(--ink-2);
+  /* Height is TAKEN from the row, not restated. The row is a flex line whose
+     cross size is set by the tallest text button, so the icon button matches it
+     automatically and keeps matching if that button's padding ever changes.
+     Zeroing the padding outright was the first attempt and left a 17px control
+     beside a 30px one. */
+  align-self: stretch;
+}
+.w-btn--icon:hover { color: var(--ink-1); }
+.w-btn--icon svg { display: block; }
+
 .w-drive .w-btn:not(.w-btn--primary) {
   margin-left: var(--sp-3);
   color: var(--ink-2);

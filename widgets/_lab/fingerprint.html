@@ -196,6 +196,17 @@ async function shoot(entry) {
 }
 
 async function run() {
+  /* The theme button stores a choice in localStorage, and the frames below are
+     same-origin, so a dark-mode click left over from driving a widget by hand
+     would repaint EVERY state and read as 28 simultaneous regressions. Clear it
+     before hashing anything.
+
+     Note what this does NOT fix: with no stored choice the widgets follow the
+     OS, so a baseline recorded on a light desktop will differ wholesale on a
+     dark one. That is pre-existing and separate; it just has never bitten
+     because these baselines have only ever been recorded in light. */
+  try { localStorage.removeItem("statml:theme"); } catch {}
+
   rows.innerHTML = "";
   summary.textContent = "running…";
   latest = [];
