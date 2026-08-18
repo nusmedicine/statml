@@ -43,6 +43,20 @@
       "status": "shipped"
     },
     {
+      "slug": "confidence-interval",
+      "title": "Confidence Intervals",
+      "blurb": "A 95% interval either contains the truth or it does not — the 95% is how often the procedure succeeds, not a chance for yours.",
+      "course": "PHM5003",
+      "topics": [
+        "estimation",
+        "uncertainty",
+        "inference"
+      ],
+      "arc": 4,
+      "height": 1180,
+      "status": "draft"
+    },
+    {
       "slug": "permutation-test",
       "title": "Hypothesis Testing",
       "blurb": "Shuffle the group labels to see what chance alone could have produced.",

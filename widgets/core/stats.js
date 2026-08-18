@@ -139,6 +139,19 @@ const DEFINITIONS = {
 };
 
 /** Derive the mu-centred plotting window, so it cannot be declared off-centre. */
+/* The effect ladder, in population SDs. Shared because widgets 4 and 5 must be
+   describing the SAME effects — an interval around a "Moderate" difference and a
+   p-value for a "Moderate" difference are two readings of one experiment, and if
+   the two widgets disagreed about what Moderate meant the arc would quietly stop
+   being one continuous argument.
+
+   The multiples were measured for widget 5, not guessed: 0.9 for Moderate rather
+   than 0.8 because 0.8 puts the default seed on p = 0.055, exactly on the
+   threshold. Widget 5's commentary carries the rest. In SDs rather than raw units
+   so "Small" means the same thing whichever population is chosen. Each widget
+   writes its own detail strings — the multiples are shared, the teaching is not. */
+export const EFFECT_SD = { none: 0, small: 0.4, moderate: 0.9, large: 1.3 };
+
 export const POPULATIONS = Object.fromEntries(
   Object.entries(DEFINITIONS).map(([key, p]) => [
     key,

@@ -52,7 +52,7 @@
    ========================================================================= */
 
 import {
-  defineWidget, POPULATIONS, histogram, fmt,
+  defineWidget, POPULATIONS, EFFECT_SD, histogram, fmt,
   makePlot, samplePdf, niceTicks,
   createPile, binsFor,
 } from "../core/index.js";
@@ -121,10 +121,10 @@ const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto"]
    one to meet before you know what p is. 0.9 gives 0.035: readable, and not so
    emphatic that the tail becomes a single bar. */
 const EFFECTS = {
-  none: { label: "None", detail: "no difference whatever — the null is TRUE", sd: 0 },
-  small: { label: "Small", detail: "0.4 SD · found in about 1 study in 6", sd: 0.4 },
-  moderate: { label: "Moderate", detail: "0.9 SD · found about half the time", sd: 0.9 },
-  large: { label: "Large", detail: "1.3 SD · found in 5 studies out of 6", sd: 1.3 },
+  none: { label: "None", detail: "no difference whatever — the null is TRUE", sd: EFFECT_SD.none },
+  small: { label: "Small", detail: "0.4 SD · found in about 1 study in 6", sd: EFFECT_SD.small },
+  moderate: { label: "Moderate", detail: "0.9 SD · found about half the time", sd: EFFECT_SD.moderate },
+  large: { label: "Large", detail: "1.3 SD · found in 5 studies out of 6", sd: EFFECT_SD.large },
 };
 
 /** The statistic: how much higher group B's mean is than group A's. */
