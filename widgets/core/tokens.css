@@ -251,23 +251,37 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   margin-top: var(--sp-4);
 }
 
-/* IN THE RAIL, RESET FILLS WHATEVER IS LEFT OF ITS LINE.
+/* IN THE RAIL THE DRIVE ROW IS TWO FULL-WIDTH ROWS, NOT A WRAPPING LINE.
 
-   Two things are wrong otherwise, and only the second is visible at width. The
-   `margin-left` that separates Reset from the cluster is a property of the
-   BUTTON, so it survives a line break: on the two widgets whose row wraps
-   (bootstrap and permutation-test, which carry a fourth lead button) Reset
-   landed 12px proud of the button above it — indented for a neighbour that is
-   no longer on its line. And a 68px button alone on a 300px line reads as
-   something that fell off rather than something placed.
+   Every action in one cluster, Reset beneath it, both spanning the rail. The
+   point is that it is a BLOCK rather than a flex line that happens to fit:
+   nothing here depends on how long a label is, so nothing can come adrift when
+   one changes.
 
-   Growing it fixes both at once: flush left when it wraps, and on the rows that
-   do not wrap it closes the ragged gap at the right edge instead. The rail is
-   narrow enough that this never strands Reset far from what it undoes — the
-   objection that ruled the same idea out at 694px. */
+   Two earlier attempts, both measured in _lab/drive-rail.html at the real 300px
+   track. Letting the line wrap and growing Reset left the rows' right edges
+   disagreeing by up to 42px — and failed ALL FIVE hostile future widgets in
+   that page's fragility table. Putting the lead on its own row above instead
+   was worse still, 89px, because a long step label wraps the remaining line
+   anyway. This rule is the only one of the three with flush edges on all seven
+   widgets AND no failures under stress; it costs 20px of height for it.
+
+   The reservation on the run button is dropped here on purpose: the cluster is
+   full width and its segments are flex:1, so a relabel cannot reflow anything,
+   and honouring the reserve would break the equal split instead. */
+.w-split .w-drive {
+  flex-direction: column;
+  align-items: stretch;
+}
+.w-split .w-drive-group {
+  display: flex;
+}
+.w-split .w-drive-group .w-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
 .w-split .w-drive .w-btn:not(.w-btn--primary) {
   margin-left: 0;
-  flex: 1 1 auto;
 }
 .w-split .w-drive[hidden] { display: none; }
 
@@ -632,6 +646,10 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 }
 .w-drive-group .w-btn:last-child { border-right: 0; }
 .w-drive-group .w-btn:disabled { opacity: 0.5; }
+
+/* Set by core to the widest label the run button can hold — see 3.4d. A
+   variable rather than an inline style so the rail below can drop it. */
+.w-drive .w-btn[data-key="run"] { min-width: var(--run-reserve, auto); }
 
 .w-drive .w-btn:not(.w-btn--primary) {
   margin-left: var(--sp-3);

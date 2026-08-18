@@ -355,6 +355,47 @@ Two things this cost, both worth keeping:
 > been pressed, so no amount of care about the starting picture could have found
 > this. It was reported from a lecture-sized window by someone pressing Pause.
 
+### 3.4e In a rail, the drive row is a BLOCK, not a line that happens to fit
+
+A wrapping flex row is a layout that depends on how long its labels are, and
+labels change — at runtime, when the run button relabels itself, and at authoring
+time, when a widget is added. In the 300 px rail the drive row is therefore
+**stacked full-width rows**: the lead if there is one, then the fenced step/play
+pair, then Reset. Nothing about it can come adrift.
+
+Two earlier attempts, both measured at the real track in `_lab/drive-rail.html`:
+
+| | rows | worst edge gap | hostile futures failing |
+|---|---|---|---|
+| wrap, and grow Reset to fill its line | 1–2 | **42 px** | **5 of 5** |
+| lead on its own row, cluster + Reset share the next | 1–2 | **89 px** | 0 of 5 |
+| **stacked full-width rows** | 2–3 | **0 px** | **0 of 5** |
+
+The fragility column is the one that decided it. The first rule looks fine on the
+seven widgets that exist and fails **every** hypothetical widget with a longer
+label — which is the definition of a layout that is about to break on someone
+else. It costs 20 px of height to be immune.
+
+Two details that fall out:
+
+- **The lead stays outside the fence**, so a widget with one gets three rows
+  rather than two. A lead is once-only and a step repeats; fencing them together
+  would say they are the same class of action, which is the distinction widgets 3
+  and 5 exist to teach.
+- **The run button's reserved width (3.4d) is dropped in the rail.** The cluster
+  is full width and its segments are `flex: 1`, so a relabel cannot reflow
+  anything, and honouring the reserve would break the equal split instead. That
+  is only possible because core sets the reservation as a **custom property**
+  rather than an inline style — an inline style beats every rule, and a variable
+  does not.
+
+> *Earned:* three rounds on the same row. Reset wrapped and looked accidental;
+> then it was made to grow, which fixed the wrap and left the rows' right edges
+> disagreeing; then it was pointed out that the right edge still did not line up.
+> Each fix was a local repair to a layout whose shape was never guaranteed. The
+> question that ended it was **"is it fragile to future widgets?"** — which is
+> answerable by measurement, and was.
+
 ### 3.4c A drive label names the widget's noun, and a lead must not read like a step
 
 Core already said the first half: *"labels are the widget's to name — a Galton

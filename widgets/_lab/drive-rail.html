@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · drive row in the rail</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1120px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 80ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-3); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .ok { color: var(--c-empirical); font-weight: 600; }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+  .rule { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .rule h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-1); }
+  .rule .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-3); }
+  .case { margin: 0 0 var(--sp-3); }
+  .case .who { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 3px; }
+  /* THE REAL TRACK. minmax(250,300) resolves to 300 at the shell's width. */
+  .rail { width: 300px; }
+  .verdict { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0 0; border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  .verdict b { color: var(--ink-1); }
+
+  /* Candidate mechanics — would move into tokens.css if chosen. */
+  .r-grow .w-btn:not(.w-btn--primary) { flex: 1 1 auto; margin-left: 0; }          /* as shipped now */
+  .r-block { flex-direction: column; align-items: stretch; }
+  .r-block .w-drive-group { display: flex; }
+  .r-block .w-drive-group .w-btn { flex: 1 1 0; min-width: 0; }
+  .r-block .w-btn:not(.w-btn--primary) { margin-left: 0; }
+  .r-lead .w-drive-group { flex: 1 1 auto; display: flex; }
+  .r-lead .w-drive-group .w-btn { flex: 1 1 0; min-width: 0; }
+  .r-lead .w-btn:not(.w-btn--primary) { flex: 1 1 auto; margin-left: 0; }
+  .r-lead .lead-full { flex: 1 0 100%; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Drive row in the 300&nbsp;px rail</h1>
+  <p class="note">
+    Real <code>.w-drive</code>, real <code>.w-btn</code> sizing, real 300&nbsp;px
+    track, real labels. The run button is shown as <b>Resume</b> — its widest
+    state, and the one core reserves width for. Each block prints its measured
+    <b>row count</b> and the <b>largest right-edge disagreement</b> between its
+    rows; 0&nbsp;px means every row ends flush with every other.
+  </p>
+
+  <p class="note">
+    <b>What shipped is rule B, with one difference worth recording.</b> B is
+    mocked here with the lead button <i>inside</i> the cluster, which is two rows.
+    Core keeps the lead outside it — a lead is once-only and a step repeats, and
+    fencing them together would say they are the same class of action — so the
+    two widgets that have one get <b>three</b> full-width rows rather than two:
+    the one-off, the fenced pace pair, then the undo. Every row is still flush at
+    both edges, which is the property that mattered.
+  </p>
+
+  <h2>1 · Three rules, every shipped widget</h2>
+  <div class="rules" id="rules"></div>
+
+  <h2>2 · Is it fragile? — deliberately hostile future widgets</h2>
+  <p class="note">
+    The real question. Each row below is a widget that does not exist yet,
+    designed to break one rule or another. <b>truncated</b> means a label was
+    clipped by its segment — the failure that matters, because a clipped verb is
+    a control that stops saying what it does.
+  </p>
+  <table id="stress"></table>
+
+  <h2>3 · Verdict</h2>
+  <p class="note" id="verdict"></p>
+</main>
+
+<script type="module">
+const btn = (text, { primary = true, disabled = false, cls = "" } = {}) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `w-btn${primary ? " w-btn--primary" : ""}${cls ? " " + cls : ""}`;
+  b.textContent = text;
+  b.disabled = disabled;
+  return b;
+};
+const group = (...bs) => {
+  const g = document.createElement("div");
+  g.className = "w-drive-group";
+  bs.forEach((x) => g.appendChild(x));
+  return g;
+};
+
+/* As shipped, with the run button in its widest state. */
+const WIDGETS = [
+  { slug: "galton-board", lead: null, step: "Drop" },
+  { slug: "clt", lead: null, step: "Draw sample" },
+  { slug: "bootstrap", lead: "Sample", step: "Resample" },
+  { slug: "confidence-interval", lead: null, step: "New study" },
+  { slug: "permutation-test", lead: "Observe", step: "Shuffle" },
+  { slug: "multiple-testing", lead: null, step: "Test batch" },
+  { slug: "power-and-error", lead: null, step: "New study" },
+];
+const RUN = "Resume";
+
+/* Three ways to lay the row out. Each returns the row element. */
+const RULES = {
+  grow: {
+    name: "A · As shipped",
+    sub: "cluster + Reset, Reset grows",
+    build: (w) => {
+      const row = document.createElement("div");
+      row.className = "w-drive rail r-grow";
+      if (w.lead) row.appendChild(btn(w.lead, { disabled: true }));
+      row.appendChild(group(btn(w.step), btn(RUN)));
+      row.appendChild(btn("Reset", { primary: false }));
+      return row;
+    },
+  },
+  block: {
+    name: "B · Two full-width rows",
+    sub: "ALL actions clustered, then Reset",
+    build: (w) => {
+      const row = document.createElement("div");
+      row.className = "w-drive rail r-block";
+      const acts = w.lead
+        ? group(btn(w.lead, { disabled: true }), btn(w.step), btn(RUN))
+        : group(btn(w.step), btn(RUN));
+      row.appendChild(acts);
+      row.appendChild(btn("Reset", { primary: false }));
+      return row;
+    },
+  },
+  lead: {
+    name: "C · Lead on top, then a filled row",
+    sub: "lead full width; cluster + Reset share",
+    build: (w) => {
+      const row = document.createElement("div");
+      row.className = "w-drive rail r-lead";
+      if (w.lead) row.appendChild(btn(w.lead, { disabled: true, cls: "lead-full" }));
+      row.appendChild(group(btn(w.step), btn(RUN)));
+      row.appendChild(btn("Reset", { primary: false }));
+      return row;
+    },
+  },
+};
+
+/* Measure: how many rows, and do their right edges agree? */
+function measure(row) {
+  const kids = [...row.children];
+  const lines = new Map();
+  for (const k of kids) {
+    const r = k.getBoundingClientRect();
+    const key = Math.round(r.top);
+    let hit = [...lines.keys()].find((t) => Math.abs(t - key) <= 8);
+    if (hit === undefined) { hit = key; lines.set(hit, []); }
+    lines.get(hit).push(r);
+  }
+  const rights = [...lines.values()].map((rs) => Math.max(...rs.map((r) => r.right)));
+  const spread = rights.length > 1 ? Math.round(Math.max(...rights) - Math.min(...rights)) : 0;
+  // A label is truncated when the text overflows the button box.
+  const truncated = [...row.querySelectorAll(".w-btn")]
+    .filter((b) => b.scrollWidth > b.clientWidth + 1)
+    .map((b) => b.textContent);
+  return { rows: lines.size, spread, truncated, height: Math.round(row.getBoundingClientRect().height) };
+}
+
+const host = document.getElementById("rules");
+const results = {};
+
+for (const key of Object.keys(RULES)) {
+  const rule = RULES[key];
+  const box = document.createElement("div");
+  box.className = "rule";
+  box.innerHTML = `<h3>${rule.name}</h3><p class="sub">${rule.sub}</p>`;
+  for (const w of WIDGETS) {
+    const c = document.createElement("div");
+    c.className = "case";
+    const who = document.createElement("p");
+    who.className = "who";
+    c.appendChild(who);
+    const row = rule.build(w);
+    c.appendChild(row);
+    box.appendChild(c);
+    requestAnimationFrame(() => {
+      const m = measure(row);
+      (results[key] ??= []).push({ slug: w.slug, ...m });
+      who.innerHTML = `${w.slug} · ${m.rows} row${m.rows > 1 ? "s" : ""} · ` +
+        `<span class="${m.spread === 0 ? "ok" : "bad"}">edges ${m.spread === 0 ? "flush" : "off by " + m.spread + "px"}</span>` +
+        (m.truncated.length ? ` · <span class="bad">clipped</span>` : "");
+    });
+  }
+  const v = document.createElement("p");
+  v.className = "verdict";
+  v.dataset.rule = key;
+  box.appendChild(v);
+  host.appendChild(box);
+}
+
+/* --- fragility ---------------------------------------------------------- */
+const STRESS = [
+  { name: "long step, no lead", lead: null, step: "Test another batch" },
+  { name: "long step + lead", lead: "Observe", step: "Test another batch" },
+  { name: "two long + lead", lead: "Sample the population", step: "Resample your sample" },
+  { name: "three-word step", lead: null, step: "Run one more study" },
+  { name: "lead + long everything", lead: "Draw your one sample", step: "Resample it again" },
+];
+
+const stressTbl = document.getElementById("stress");
+requestAnimationFrame(() => {
+  const cells = [];
+  for (const s of STRESS) {
+    const row = { name: s.name };
+    for (const key of Object.keys(RULES)) {
+      const el = RULES[key].build(s);
+      el.style.cssText = "position:absolute;left:-9999px;top:0";
+      document.body.appendChild(el);
+      const m = measure(el);
+      el.remove();
+      row[key] = m;
+    }
+    cells.push(row);
+  }
+  stressTbl.innerHTML =
+    "<tr><th>hypothetical widget</th>" +
+    Object.keys(RULES).map((k) => `<th>${RULES[k].name.split(" · ")[0]}</th>`).join("") + "</tr>" +
+    cells.map((r) =>
+      `<tr><td>${r.name}</td>` +
+      Object.keys(RULES).map((k) => {
+        const m = r[k];
+        const bad = m.truncated.length || m.spread > 0;
+        return `<td class="${bad ? "bad" : "ok"}">${m.rows}r · ${m.spread === 0 ? "flush" : m.spread + "px"}` +
+          (m.truncated.length ? ` · clipped “${m.truncated[0]}”` : "") + "</td>";
+      }).join("") + "</tr>"
+    ).join("");
+
+  // Fill the per-rule verdicts now that everything is measured.
+  for (const key of Object.keys(RULES)) {
+    const rs = results[key] ?? [];
+    const worst = Math.max(0, ...rs.map((r) => r.spread));
+    const rows = [...new Set(rs.map((r) => r.rows))].sort().join("/");
+    const clipped = rs.filter((r) => r.truncated.length).length;
+    const stressBad = cells.filter((c) => c[key].truncated.length || c[key].spread > 0).length;
+    const el = document.querySelector(`.verdict[data-rule="${key}"]`);
+    el.innerHTML =
+      `<b>${rows} row(s)</b> across the shipped seven · worst edge gap ` +
+      `<b class="${worst === 0 ? "ok" : "bad"}">${worst}px</b>` +
+      (clipped ? ` · <b class="bad">${clipped} clipped</b>` : "") +
+      `<br>fragility: <b class="${stressBad === 0 ? "ok" : "bad"}">${stressBad} of ${STRESS.length}</b> hostile cases fail`;
+  }
+
+  const summary = Object.keys(RULES).map((k) => {
+    const rs = results[k] ?? [];
+    const worst = Math.max(0, ...rs.map((r) => r.spread));
+    const stressBad = cells.filter((c) => c[k].truncated.length || c[k].spread > 0).length;
+    const tallest = Math.max(...rs.map((r) => r.height));
+    return { k, name: RULES[k].name, worst, stressBad, tallest };
+  });
+  const winner = summary.slice().sort((a, b) =>
+    (a.worst - b.worst) || (a.stressBad - b.stressBad) || (a.tallest - b.tallest))[0];
+  document.getElementById("verdict").innerHTML =
+    summary.map((s) =>
+      `<b>${s.name}</b> — worst edge gap ${s.worst}px, ${s.stressBad}/${STRESS.length} hostile cases fail, ` +
+      `tallest row ${s.tallest}px`).join("<br>") +
+    `<br><br>On alignment first, then fragility, then height: <b>${winner.name}</b>.`;
+});
+</script>
+</body>
+</html>

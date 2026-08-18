@@ -530,7 +530,12 @@ export function defineWidget(config) {
     const chrome =
       parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
       parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
-    b.style.minWidth = `${Math.ceil(text + chrome)}px`;
+    /* A custom property, not an inline min-width, so CSS can still override it.
+       In the rail the cluster is full width and its segments are flex:1, so the
+       button cannot reflow no matter what it is labelled — the reservation is
+       both unnecessary there and would break the equal split. An inline style
+       beats every rule; a variable does not. */
+    b.style.setProperty("--run-reserve", `${Math.ceil(text + chrome)}px`);
   }
   reserveRunWidth();
   // Re-measure once webfonts settle, in case the first pass sized on a fallback.
