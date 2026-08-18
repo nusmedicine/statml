@@ -113,7 +113,7 @@ const easeIn = (t) => t * t;
 const easeInOut = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 
-const distOptions = ["exponential", "bimodal", "uniform", "pareto", "bernoulli", "normal"]
+const distOptions = ["exponential", "bimodal", "uniform", "pareto", "counts", "proportion", "bernoulli", "normal"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
 
 /** Mean of the values at `idx`, or of all of them when `idx` is omitted. */

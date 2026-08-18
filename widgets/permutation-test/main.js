@@ -87,6 +87,12 @@ const easeInOut = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const lerp = (a, b, t) => a + (b - a) * t;
 
+/* Counts and Proportion are deliberately NOT offered here, and the reason is
+   this widget's effect control: it shifts group B by a multiple of the
+   population SD. Added to counts that produces non-integer counts, and added to
+   a proportion it produces values above 1 — a population that stops being the
+   population the label claims. The other three widgets sample it untouched and
+   do offer both. */
 const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
 

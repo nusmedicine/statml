@@ -110,7 +110,7 @@ const SPEEDS = {
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
-const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto"]
+const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto", "counts", "proportion"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
 
 /** Sample mean and the n−1 sample SD, in one place so the two never disagree. */

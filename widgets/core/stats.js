@@ -71,6 +71,79 @@ export function fmt(x, digits = 2) {
   return x.toFixed(digits);
 }
 
+/* --- two populations from the domain the courses teach ------------------- *
+ * A population earns a slot by the SHAPE-lesson it carries, not by being a
+ * familiar name — otherwise the dropdown grows and the teaching does not. These
+ * two each carry something no other entry here has:
+ *
+ *   Counts        MEAN AND VARIANCE ARE COUPLED. var = mu + mu^2/k, so "more
+ *                 expression" mechanically means "more variance". Every other
+ *                 population lets you set spread independently of centre, which
+ *                 is exactly the intuition count data breaks.
+ *   Proportion    BOUNDED SUPPORT. On [0, 1] a symmetric interval can run past a
+ *                 boundary, so x-bar +/- 1.96 s/sqrt(n) at small n produces
+ *                 intervals containing -0.04 of a cell. Nothing dramatises "an
+ *                 interval is what a procedure emitted, not a range of plausible
+ *                 values" better than an impossible one.
+ *
+ * Zero-inflation was considered and deliberately left out: its lesson is that it
+ * is a MIXTURE, which is structure, and a backdrop population contributes only a
+ * silhouette. As a silhouette it is near-indistinguishable from these counts. It
+ * deserves to be a widget's subject, not a dropdown entry.
+ */
+
+/** Negative-binomial masses, truncated and renormalised so they sum to 1.
+    The declared mean and sd are computed FROM this table rather than from the
+    textbook formula, because the table is what gets sampled — check.mjs compares
+    the two, and a truncated tail would otherwise make them disagree. */
+function negBinomialMasses(mu, size, kMax) {
+  const p = size / (size + mu);
+  const raw = [];
+  for (let k = 0; k <= kMax; k += 1) {
+    raw.push(Math.exp(
+      lgamma(k + size) - lgamma(size) - lgamma(k + 1) +
+      size * Math.log(p) + k * Math.log(1 - p)
+    ));
+  }
+  const total = raw.reduce((a, b) => a + b, 0);
+  return raw.map((v, k) => [k, v / total]);
+}
+
+const NB_MU = 3;
+const NB_SIZE = 1.5;   // var = 3 + 9/1.5 = 9, so sd = mu: strongly overdispersed
+const NB_MAX = 15;     // about mu + 4 sd; beyond here the mass is under 0.1%
+const NB_MASSES = negBinomialMasses(NB_MU, NB_SIZE, NB_MAX);
+const NB_MEAN = NB_MASSES.reduce((s, [k, q]) => s + k * q, 0);
+const NB_SD = Math.sqrt(NB_MASSES.reduce((s, [k, q]) => s + q * (k - NB_MEAN) ** 2, 0));
+
+/** Inverse-CDF draw from exactly the table above, so a sample cannot drift from
+    the declared mean the way an untruncated sampler would. */
+function sampleNegBinomial(rng) {
+  const u = rng.next();
+  let acc = 0;
+  for (const [k, q] of NB_MASSES) {
+    acc += q;
+    if (u < acc) return k;
+  }
+  return NB_MASSES[NB_MASSES.length - 1][0];
+}
+
+const BETA_A = 2;
+const BETA_B = 5;
+const BETA_MEAN = BETA_A / (BETA_A + BETA_B);
+const BETA_SD = Math.sqrt(
+  (BETA_A * BETA_B) / ((BETA_A + BETA_B) ** 2 * (BETA_A + BETA_B + 1))
+);
+const BETA_LOG_NORM = lgamma(BETA_A + BETA_B) - lgamma(BETA_A) - lgamma(BETA_B);
+
+/* Exact for integer a and b, and it needs nothing but rng.next(): the k-th
+   smallest of n uniforms is distributed Beta(k, n + 1 - k), so the 2nd smallest
+   of 6 is Beta(2, 5). No gamma sampler, no rejection loop, no new primitive. */
+function sampleBeta(rng) {
+  const u = Array.from({ length: BETA_A + BETA_B - 1 }, () => rng.next()).sort((x, y) => x - y);
+  return u[BETA_A - 1];
+}
+
 const DEFINITIONS = {
   normal: {
     label: "Normal",
@@ -119,6 +192,35 @@ const DEFINITIONS = {
     halfWidth: 3.2, // reaches x = 4.7, where the density is 0.006
     sample: (rng) => Math.pow(1 - rng.next(), -1 / 3),
     pdf: (x) => (x >= 1 ? 3 * Math.pow(x, -4) : 0),
+  },
+
+  counts: {
+    label: "Counts (neg. binomial)",
+    mean: NB_MEAN,
+    sd: NB_SD,
+    /* mu-centred like every window, which here means a third of the panel sits
+       below zero where a count cannot occur. That is the cost of the shared rule
+       putting mu in the same pixel column across stacked panels, and the
+       exponential already pays it. Recorded rather than worked around. */
+    halfWidth: NB_MAX - NB_MEAN,
+    sample: sampleNegBinomial,
+    pdf: null,
+    masses: NB_MASSES,
+  },
+
+  proportion: {
+    label: "Proportion (beta)",
+    mean: BETA_MEAN,
+    sd: BETA_SD,
+    /* Wide enough to reach 1 on the right, which puts the left edge well below
+       zero — and here that emptiness EARNS its place: it is exactly where an
+       impossible interval has to be visible for the lesson to land. */
+    halfWidth: 1 - BETA_MEAN,
+    sample: sampleBeta,
+    pdf: (x) =>
+      x <= 0 || x >= 1
+        ? 0
+        : Math.exp(BETA_LOG_NORM + (BETA_A - 1) * Math.log(x) + (BETA_B - 1) * Math.log(1 - x)),
   },
 
   // Discrete populations declare `masses` as [value, probability] pairs and no
