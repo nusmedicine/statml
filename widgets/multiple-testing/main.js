@@ -61,7 +61,7 @@
 
 import {
   defineWidget, POPULATIONS, EFFECT_SD, fmt,
-  tTailP,
+  tTailP, normalPdf,
   makePlot, niceTicks,
 } from "../core/index.js";
 
@@ -161,7 +161,7 @@ defineWidget({
     "Test twenty thousand genes at p < 0.05 and about a thousand come back " +
     "significant even when not one of them is different. That is not a finding, " +
     "it is arithmetic. Set the real effects to zero and watch it happen.",
-  height: 520,
+  height: 620,
 
   params: {
     /* The headline number, and the reason the widget exists. 20,000 is a real
@@ -281,15 +281,25 @@ defineWidget({
     },
   },
 
-  draw: ({ ctx, colors, w, h, state, anim }) => {
+  draw: ({ ctx, colors, w, h, params, state, anim }) => {
     const shown = anim ? anim.tested : 0;
     const calls = anim ? anim.calls : callsFor(state, 0);
 
     const padL = 54;
     const padR = 16;
-    const topInset = 30;
-    const topH = Math.round(h * 0.46);
-    const gap = 62;
+
+    /* --- what the effect actually looks like --------------------------- *
+     * A STRIP, not a panel. Mocked up at three heights in _lab/mt-panels.html:
+     * two curves and a shaded overlap lose nothing at a third the height, so it
+     * buys its lesson cheaply and the carpet below keeps the room it needs.
+     * It exists because "2.0 SD" is a number students cannot picture, and the
+     * overlap is the reason detection is hard at all. */
+    const stripH = 78;
+    drawOverlap(ctx, colors, { x: padL, y: 26, w: w - padL - padR, h: stripH }, params);
+
+    const topInset = 26 + stripH + 54;
+    const topH = Math.round(h * 0.40);
+    const gap = 58;
 
     /* --- the p-value carpet ------------------------------------------- */
 
@@ -333,7 +343,7 @@ defineWidget({
     /* --- what each rule calls ----------------------------------------- */
 
     const barsY = topInset + topH + gap;
-    const barsH = h - barsY - 20;
+    const barsH = h - barsY - 18;
     const rowH = barsH / RULES.length;
     const widest = Math.max(1, ...calls.map((c) => c.tp + c.fp));
 
@@ -347,39 +357,40 @@ defineWidget({
       shown ? "What each rule calls significant, of the genes tested so far" : "What each rule would call significant"
     );
 
+    /* Label and counts on ONE line ABOVE each bar, not beside it. Beside was the
+       first attempt and clipped at both ends: "Bonferroni" ran off the left
+       margin into "onferroni", and the uncorrected bar is so long that its count
+       text ran off the right. Above the bar, neither edge constrains anything. */
     ctx.save();
     ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
     for (let r = 0; r < RULES.length; r += 1) {
       const c = calls[r];
-      const y = barsY + r * rowH + rowH * 0.5;
-      const barH = Math.min(18, rowH * 0.42);
+      const top = barsY + r * rowH;
       const x0 = bars.sx(0);
-
-      ctx.fillStyle = colors.ink2;
-      ctx.textAlign = "right";
-      ctx.fillText(RULES[r].label, x0 - 8, y - barH * 0.1);
-
-      // True discoveries first, then the false ones, so red always sits on the
-      // outside edge where its length is what you read.
-      const wTp = bars.sx(c.tp) - x0;
-      const wFp = bars.sx(c.tp + c.fp) - bars.sx(c.tp);
-      ctx.fillStyle = colors.empirical;
-      ctx.fillRect(x0, y - barH, Math.max(c.tp > 0 ? 1 : 0, wTp), barH);
-      ctx.fillStyle = colors.extreme;
-      ctx.fillRect(x0 + wTp, y - barH, Math.max(c.fp > 0 ? 1 : 0, wFp), barH);
-
+      const barH = Math.min(14, rowH * 0.3);
       const total = c.tp + c.fp;
       const pct = total ? Math.round((100 * c.fp) / total) : 0;
+
       ctx.fillStyle = colors.ink2;
-      ctx.textAlign = "left";
       ctx.fillText(
         total
-          ? `${fmt(total, 0)} called · ${fmt(c.fp, 0)} false (${pct}%)`
-          : "nothing called",
-        x0 + Math.max(wTp + wFp, 2) + 8,
-        y - barH * 0.5
+          ? `${RULES[r].label} — ${fmt(total, 0)} called, ${fmt(c.fp, 0)} false (${pct}%)`
+          : `${RULES[r].label} — nothing called`,
+        x0,
+        top + rowH * 0.42
       );
+
+      const y = top + rowH * 0.52;
+      const wTp = bars.sx(c.tp) - x0;
+      const wFp = bars.sx(c.tp + c.fp) - bars.sx(c.tp);
+      // A minimum of one pixel, so a rule that found something never renders as
+      // having found nothing.
+      ctx.fillStyle = colors.empirical;
+      ctx.fillRect(x0, y, c.tp > 0 ? Math.max(1, wTp) : 0, barH);
+      ctx.fillStyle = colors.extreme;
+      ctx.fillRect(x0 + wTp, y, c.fp > 0 ? Math.max(1, wFp) : 0, barH);
     }
     ctx.restore();
   },
@@ -419,3 +430,51 @@ defineWidget({
     );
   },
 });
+
+/* --- the effect, as a picture rather than a number ---------------------- */
+
+function drawOverlap(ctx, colors, rect, params) {
+  const d = EFFECTS[params.effect].sd;
+  const lo = -3.4;
+  const hi = 3.4 + d;
+  const plot = makePlot({ ctx, colors, rect, xDomain: [lo, hi], yDomain: [0, 0.46] });
+  plot.axisX({ ticks: niceTicks(lo, hi, 7), label: "" });
+  plot.caption(
+    d === 0
+      ? "The two groups are the SAME distribution — every difference you find is chance"
+      : `A ${d.toFixed(1)} SD difference — the shaded part is where the two groups overlap`
+  );
+
+  const curve = (mu) => {
+    const out = [];
+    for (let i = 0; i <= 200; i += 1) {
+      const x = lo + ((hi - lo) * i) / 200;
+      out.push([x, normalPdf(x, mu, 1)]);
+    }
+    return out;
+  };
+
+  /* The overlap is drawn first and in --c-extreme, the same red that means
+     "past a threshold" everywhere else in the arc — here, the region where a
+     gene from either group is indistinguishable from the other. It is shaded
+     under both curves rather than outlined, because the AREA is the argument. */
+  const shade = [];
+  for (let i = 0; i <= 200; i += 1) {
+    const x = lo + ((hi - lo) * i) / 200;
+    shade.push([x, Math.min(normalPdf(x, 0, 1), normalPdf(x, d, 1))]);
+  }
+  plot.area(shade, { fill: colors.extreme, opacity: 0.3 });
+  plot.curve(curve(0), { stroke: colors.groupA, width: 2 });
+  if (d > 0) plot.curve(curve(d), { stroke: colors.groupB, width: 2 });
+
+  ctx.save();
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = colors.groupA;
+  ctx.fillText("control", plot.sx(0), plot.sy(0.43));
+  if (d > 0) {
+    ctx.fillStyle = colors.groupB;
+    ctx.fillText("treated", plot.sx(d), plot.sy(0.43));
+  }
+  ctx.restore();
+}
