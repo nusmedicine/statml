@@ -10,22 +10,33 @@ than re-argued. Before changing anything in `widgets/core/`, read
 because the obvious approach was tried and failed, and each carries the incident
 that earned it.
 
-**Last updated:** the agreed six are shipped, baselined and live, and **widget 7
-`power-and-error` is a DRAFT** — built, verified, not yet baselined and not on the
-gallery. Two things about it are outstanding and both are decisions, not code:
+**Last updated:** everything below is **pushed and live** — six shipped widgets
+on the gallery, plus widget 7 `power-and-error` as a DRAFT at its final URL. All
+seven now use the side layout. 39 fingerprint states, all MATCH.
 
-1. **Does red stay "called significant"?** It currently means *the decision you
-   made*, identically in both rows of the 2×2 and in the pile, so the red column
-   reads "α, then power". Colouring by CORRECTNESS instead would flip red's
-   meaning between the two rows. Parked deliberately, by the author.
-2. **`03/04-02`'s prose is still wrong, and that is in the other repo.** The
-   lesson says larger variance raises the type I error rate and lowers the true
-   negative rate. Neither happens — α is fixed by construction. Replacing the
-   Shiny app does not un-teach the sentence; see catalogue.md's widget 7 section
-   for the verified numbers.
+**The next task is a new arc of three: MLE, MCMC and EM — see §2.** It is the
+first arc since the original six and it needs its catalogue treatment before any
+of it is built.
 
-Then: baseline widget 7 and promote it, or start PHM5005, which needs its
-catalogue treatment before any widget is built (prd §12.1).
+Three things are outstanding from the last session, all small, none blocking:
+
+1. **Widget 7 has no fingerprint baseline.** Deliberate — drafts are exempt, and
+   a baseline recorded before the design settles is thrown away. It is the last
+   step before `draft` → `shipped`.
+2. **Does red stay "called significant"?** In widget 7 red means *the decision
+   you made*, identically in both rows of the 2×2 and in the pile, so the red
+   column reads "α, then power". Colouring by CORRECTNESS instead would flip
+   red's meaning between the two rows. Parked deliberately, by the author.
+3. **`03/04-02`'s prose is wrong, and that is in the other repo.** The lesson
+   says larger variance raises the type I error rate and lowers the true negative
+   rate. Neither happens — α is fixed by construction. Replacing the Shiny app
+   does not un-teach the sentence; catalogue.md's widget 7 section has the
+   verified numbers. With the author.
+
+Also noted, unrelated to any of the above: the deploy workflow warns that
+`actions/checkout@v4`, `setup-node@v4` and `upload-artifact@v4` target Node 20,
+which GitHub has deprecated and is force-running on Node 24. Building fine today;
+a `@v5` bump is a small separate change.
 
 ---
 
@@ -46,10 +57,24 @@ and a real one. The lab is not deployed and keeps its source path.
 | widget 1 | `/widget/galton-board/` | where the bell curve comes from |
 | widget 2 | `/widget/clt/` | the sampling distribution of the mean |
 | widget 3 | `/widget/bootstrap/` | uncertainty from one sample |
+| widget 4 | `/widget/confidence-interval/` | a range of compatible effects, and how often it misses |
 | widget 5 | `/widget/permutation-test/` | could chance alone have done this? |
+| widget 6 | `/widget/multiple-testing/` | what if I do that twenty thousand times? |
 | widget 7 | `/widget/power-and-error/` | **DRAFT** — you choose α; you do not choose β |
 | lab | `/lab/` | the drafts — **not linked from the gallery** |
 | dev lab | `/widgets/_lab/` | design mockups **and the fingerprint harness**; not deployed |
+
+**The mockup pages are the record of *why*, and they are worth opening before
+re-arguing any layout decision.** Each measures the real thing rather than
+asserting; several reversed a decision that taste had already made:
+
+| page | what it settled |
+|---|---|
+| `side-layout.html` | Whether every widget benefits from the rail. Injects the layout into the **live** widgets, so the canvases genuinely repaint. Saved 247–330px each |
+| `power-layout.html` | Six layouts to scale with the viewport fold drawn on. Picked the rail in one look |
+| `drive-row.html` | Five drive-row arrangements. **Was wrong in both directions before it measured itself** — see the traps list |
+| `drive-labels.html` | Four label schemes, measured in px not characters. Killed one scheme outright ("Run another study" wraps the rail) |
+| `drive-rail.html` | Three rail arrangements **against five hostile widgets that do not exist yet**. The fragility column is what decided it |
 
 **Drafts.** A widget with `"status": "draft"` deploys to its **final** URL like
 any other, wears a bar saying it is unfinished, is left off the gallery, is
@@ -66,10 +91,13 @@ requirement returns. Nothing moves, so a link shared while building never breaks
 | 1 | `galton-board` | A ball takes a ±1 nudge at each row; the axis is **total deviation from zero**, so the pile reads as an error distribution from the outset. Exact binomial overlay. Lean shifts the pile off the zero rule, which is bias made visible. |
 | 2 | `clt` | Draw one sample, watch its observations collapse to their mean, watch that mean drop into the pile. Normal σ/√n overlay. |
 | 3 | `bootstrap` | **Two stages.** *Sample the population* draws your one sample, then greys out for good — you cannot go back for more. *Resample your sample* runs unlimited: copies stack above the observations they came from, so duplicates and never-picked values are both visible. The true sampling distribution sits behind the pile: **same width, different place.** |
-| 5 | `permutation-test` | **Two stages again.** *Run the study* once, then *Shuffle the labels* unlimited. Every observation lifts into one pool and is dealt back — vertically only, so nothing leaves its value. The difference falls into the null below, and **a dot landing past the observed line turns red**, so p is *count the red ones*. Set the true effect to **None** and re-seed to watch a false positive happen. |
+| 4 | `confidence-interval` | One study's interval, then a hundred studies as a ladder against the true value, cut three ways — bootstrap, z, t. At n = 5 the z intervals miss far more than 1 in 20. |
+| 5 | `permutation-test` | **Two stages again.** *Observe* the study once, then *Shuffle* unlimited. Every observation lifts into one pool and is dealt back — vertically only, so nothing leaves its value. The difference falls into the null below, and **a dot landing past the observed line turns red**, so p is *count the red ones*. Set the true effect to **None** and re-seed to watch a false positive happen. |
+| 6 | `multiple-testing` | Three carpets of ADJUSTED p-values — raw, Bonferroni, BH — on one shared scale. Set real effects to 0 and about 1,000 of 20,000 still come back at p < 0.05. |
+| 7 | `power-and-error` **DRAFT** | Two curves, a threshold, and a 2×2 of TP/FP/TN/FN. Axis toggles between the raw difference and the test statistic — the same test drawn twice. α is fixed by construction; only β moves. |
 
-All start empty, all animate step by step, all build their pile with
-`core/accumulator.js`.
+All start empty, all animate step by step, and all but widget 7's curves build
+their pile with `core/accumulator.js`.
 
 ### What `core/` has gained, and what it is for
 
@@ -141,32 +169,107 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
 ---
 
-## 2 · The next task: finish widget 7, or start PHM5005
+## 2 · The next task: the inference arc — MLE, MCMC, EM
 
-The PHM5003 arc is closed. `docs/catalogue.md` marks all six shipped, and the
-manifest agrees. Three candidates, in the order I would take them:
+Requested by the author, in this order. **All three come out of one lesson**,
+`03 / 02-02 — Inferential Statistics: Inferring Parameters`, which is the single
+most useful fact about them: they already have a host, and that lesson's own
+structure supplies the order and the argument.
 
-1. **The PHM5005 arc.** prd §12.1 is explicit that it needs the same
-   one-continuous-argument treatment PHM5003 got **before its first widget is
-   built** — the catalogue still has a five-widget tier list with a provisional
-   spine, not an argument. That is writing, not code, and it is the highest-value
-   thing left. Note the course has no notebook project yet, so §7 cannot give it
-   lesson slots either.
+### They are one argument, not three widgets
 
+> what makes the data most likely → what the data makes likely → and if the data
+> is a mixture, where the labels are missing
+
+| # | slug (proposed) | the question | the lesson's own framing |
+|---|---|---|---|
+| 8 | `maximum-likelihood` | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
+| 9 | `mcmc-posterior` | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
+| 10 | `em-mixture` | What if each point came from one of two populations and nobody wrote down which? | E-step, M-step, iterate |
+
+**The pairing of #8 and #9 is the whole point of the arc.** MLE answers
+`P(Data|θ)` and Bayes answers `P(θ|Data)`, and the lesson states both in exactly
+that form, two headings apart. Reversing them is one of the most common errors in
+applied statistics and this pair is built to make the reversal visible.
+
+**#10 contains #8.** The M-step *is* maximum likelihood, run on soft-weighted
+data. So widget 10 reuses widget 8's machinery by construction, the way widget 6
+reused widget 5's — which is what made the original six cheap by the end.
+
+### What the lesson actually does, so nothing is re-derived
+
+- **Its worked example is a negative binomial**, `size = 2.5`, `mu = 10`, chosen
+  *because it has no analytical solution* — the point being that MLE is a search.
+  It optimises with `optim` and then draws a **contour plot** over (size, mu).
+  That contour is the figure widget 8 should be.
+- **The Bayesian section uses `brms`**, and its key sentence is worth quoting in
+  the widget: *"in the Bayes approach, we do not get a single estimate of the
+  parameters but rather a distribution of values"*. That is the misconception
+  target — a posterior is not a point with error bars.
+- **The EM section uses heights of adults and children**, a two-component normal
+  mixture. Unlabelled, it is simply bimodal. `flexmix`, `k = 2`.
+
+### The scoping question, and it is real
+
+**MCMC is a different KIND of widget from everything built so far.** Every one of
+the seven accumulates values into a pile, and `core/accumulator.js` exists for
+exactly that. **A chain is a path**, not a pile: it has an order, a starting
+point, burn-in, autocorrelation, and rejected proposals that never become
+samples. The accumulator will not serve it, and pretending otherwise is how a
+widget ends up lying about its own mechanism.
+
+Two new primitives are likely, and both are genuinely absent from `canvas.js`:
+
+- **a 2-D likelihood surface** (contour or heatmap) for #8 — the lesson already
+  draws one, and #10's E-step wants a related picture
+- **a trace / path** for #9 — the walk over iterations, with the accepted and
+  rejected steps distinguishable
+
+Do not extract either from one example. The rule this project works to is that
+**the second consumer tells you where the seam belongs** — and here #8 and #10
+plausibly *are* the two consumers of the surface, which is the argument for
+building #8 first and letting #10 pull the abstraction out.
+
+### There is prior art, and it is good — unlike last time
+
+The lesson links **chi-feng.github.io/mcmc-demo**, which is an excellent,
+well-maintained MCMC animation. **This is NOT the Shiny-app situation.** Widget 7
+replaced `kennethban.shinyapps.io/decision` because that app was slow *and
+arithmetically wrong*; chi-feng's is neither. So the case for building our own
+has to be made on different grounds — that it is seeded, URL-addressable,
+parameter-shareable and in the collection's visual language — and if that case
+cannot be made honestly, **linking it is a legitimate outcome**. Decide this
+before building, not after.
+
+### Before any of it is built
+
+`docs/catalogue.md` is the gate, and the rule is not a formality: **a widget is
+earned from a named misconception**, or from being a prerequisite for one. Draft
+entries for all three, with evidence graded honestly, then build. Starting points:
+
+- **MLE** — that the likelihood is a probability distribution over θ. It is not:
+  it is a function of θ for fixed data and does not integrate to 1. The stronger
+  version is "the MLE is the most probable parameter value", which is the
+  *Bayesian* statement — and that confusion is precisely what the #8/#9 pair
+  exists to dissolve.
+- **MCMC** — that a posterior is an answer with error bars; that chain samples
+  are independent; that a trace which *looks* settled has converged.
+- **EM** — that it finds *the* answer. It finds a local optimum, depends on its
+  initialisation, and can label-switch. Also that a hard assignment and a soft
+  responsibility are the same thing.
+
+### Still open from before, and not superseded
+
+1. **Baseline and promote widget 7.** Smallest remaining item.
 2. **Paste the real URLs into the PHM5003 lessons.** prd §8's order-of-work is
-   down to this one step, and it happens in `../jupyterbook/phm5003`, not here.
-   A plain markdown link is the settled mechanism — an iframe in a markdown cell
-   was TESTED and is stripped (prd §4).
-
-3. **Judge the six on a projector.** prd §3 makes it a requirement and it is the
-   only thing no hash discharges. The suspects are widget 4's ladder (a hundred
-   hairline intervals) and widget 6's three stacked carpets.
-
-A distributions / MLE / MCMC arc was discussed and belongs in the catalogue
-first, on the same rule as PHM5005. Worth knowing early: **MCMC is a different
-KIND of widget** — a chain is a path, with burn-in and autocorrelation, not a
-pile — so `core/accumulator.js` will not serve it and that is a scoping question,
-not a detail.
+   down to this one step, in `../jupyterbook/phm5003`. A plain markdown link is
+   the settled mechanism — an iframe in a markdown cell was TESTED and is
+   stripped (prd §4).
+3. **Judge the collection on a projector.** prd §3 makes it a requirement and it
+   is the only thing no hash discharges. Suspects: widget 4's ladder of hairline
+   intervals and widget 6's three stacked carpets.
+4. **PHM5005** still needs its own one-continuous-argument treatment before its
+   first widget (prd §12.1), and has no notebook project yet.
 
 ## 3 · How to work on this safely
 

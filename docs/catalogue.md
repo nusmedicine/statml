@@ -350,6 +350,39 @@ draws a threshold:
 
 ---
 
+## Queued: the inference arc — MLE, MCMC, EM
+
+**Requested, not yet argued.** Three widgets, all hosted by one lesson,
+`03 / 02-02 — Inferential Statistics: Inferring Parameters`:
+
+> what makes the data most likely → what the data make likely → and if the data
+> is a mixture, where the labels are missing
+
+| # | slug (proposed) | question | lesson's framing |
+|---|---|---|---|
+| 8 | `maximum-likelihood` | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
+| 9 | `mcmc-posterior` | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
+| 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
+
+**This section is deliberately not a catalogue entry yet.** The rule above still
+applies — a widget is earned from a named misconception, graded on honest
+evidence — and none of these has been through that. [HANDOVER.md](../HANDOVER.md)
+§2 carries what is already known: the lesson's worked examples, the candidate
+misconceptions, the fact that #10's M-step *is* #8, and two things that have to
+be settled before code:
+
+- **MCMC is a different KIND of widget.** A chain is a path — ordered, with
+  burn-in, autocorrelation and rejected proposals — not a pile, so
+  `core/accumulator.js` does not serve it. Two primitives are probably needed
+  that `canvas.js` does not have: a 2-D likelihood surface and a trace.
+- **There is good prior art and it is not broken.** The lesson links
+  chi-feng.github.io/mcmc-demo, which is excellent. Unlike the Shiny app widget 7
+  replaced, there is no correctness argument for rebuilding it — so the case has
+  to rest on being seeded, URL-addressable and in the collection's language, and
+  **linking it is a legitimate outcome** if that case cannot be made honestly.
+
+---
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
