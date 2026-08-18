@@ -136,7 +136,6 @@ function quantile(sorted, p) {
 defineWidget({
   slug: "confidence-interval",
   title: "Confidence Intervals",
-  status: "draft",
   subtitle:
     "Every study gives one interval, and that one either contains the true mean " +
     "or it does not. The 95% is not about your interval — it is how often the " +

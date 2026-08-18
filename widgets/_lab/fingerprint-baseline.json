@@ -243,6 +243,41 @@
         "frames": 60,
         "dt": 32
       }
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "5383b739",
+      "$note": "The default, one study: bootstrap interval cut from the resampled means, n = 5.",
+      "state": "?theme=light&shown=100"
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "81df4fe8",
+      "$note": "THE HEADLINE. 100 t intervals as a ladder, the truth a fixed vertical rule, the misses red.",
+      "state": "?theme=light&view=all&method=t&shown=100"
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "cd84c929",
+      "$note": "The SAME 100 studies re-cut by z. Narrower intervals, visibly more red — the whole t-versus-z argument in one diff against the state above.",
+      "state": "?theme=light&view=all&method=z&shown=100"
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "77c595b6",
+      "$note": "Counts: integer observations, and an interval reaching left of zero into impossible territory.",
+      "state": "?theme=light&dist=counts&method=t&shown=1"
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "55191021",
+      "$note": "DRIVEN: mid-study — the sample arriving while its bootstrap distribution fills beneath it.",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      }
     }
   ]
 }

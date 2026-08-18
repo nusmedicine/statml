@@ -10,9 +10,9 @@ than re-argued. Before changing anything in `widgets/core/`, read
 because the obvious approach was tried and failed, and each carries the incident
 that earned it.
 
-**Last updated:** widgets 3 and 5 shipped, the PRD written, both embedders
-deleted. **Widget 4 `confidence-interval` is the only gap left in the statistics
-arc.**
+**Last updated:** widget 4 shipped, which closes the PHM5003 statistics arc at
+five of six. **`multiple-testing` (arc 6) is the only one left**, and the
+PHM5005 arc still needs its catalogue treatment before its first widget.
 
 ---
 
