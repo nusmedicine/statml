@@ -250,6 +250,25 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   padding-top: var(--sp-4);
   margin-top: var(--sp-4);
 }
+
+/* IN THE RAIL, RESET FILLS WHATEVER IS LEFT OF ITS LINE.
+
+   Two things are wrong otherwise, and only the second is visible at width. The
+   `margin-left` that separates Reset from the cluster is a property of the
+   BUTTON, so it survives a line break: on the two widgets whose row wraps
+   (bootstrap and permutation-test, which carry a fourth lead button) Reset
+   landed 12px proud of the button above it — indented for a neighbour that is
+   no longer on its line. And a 68px button alone on a 300px line reads as
+   something that fell off rather than something placed.
+
+   Growing it fixes both at once: flush left when it wraps, and on the rows that
+   do not wrap it closes the ragged gap at the right edge instead. The rail is
+   narrow enough that this never strands Reset far from what it undoes — the
+   objection that ruled the same idea out at 694px. */
+.w-split .w-drive .w-btn:not(.w-btn--primary) {
+  margin-left: 0;
+  flex: 1 1 auto;
+}
 .w-split .w-drive[hidden] { display: none; }
 
 /* The gate: a full-width button that opens a stage, sitting in the control flow
