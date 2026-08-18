@@ -38,6 +38,22 @@
   </p>
   <div class="l-card"><canvas id="stack" height="960"></canvas></div>
 
+  <h2>D · three stacked carpets, CURRENT linear scale</h2>
+  <p class="l-why">
+    Same histogram three times. Within each bar, the red part is the share of
+    those genes the rule actually calls. Bonferroni cuts at 2.5e-6, which is the
+    same pixel as zero on this axis — so it cannot be a vertical line here, and
+    the only way it shows at all is as a fraction of the first bar's HEIGHT.
+  </p>
+  <div class="l-card"><canvas id="lin" height="760"></canvas></div>
+
+  <h2>E · the same three, log p-axis</h2>
+  <p class="l-why">
+    Now each rule is a clean vertical cut and everything left of it is called.
+    Legible, at the cost of an axis students must be taught to read.
+  </p>
+  <div class="l-card"><canvas id="log" height="760"></canvas></div>
+
   <h2>C · overlap only, as a wide short strip</h2>
   <p class="l-why">
     The effect-size panel does not need height — it is two curves and a shaded
@@ -172,6 +188,46 @@ function surfaceFor(id, cssH) {
   const { ctx, w } = surfaceFor("stack", 620);
   drawThresholds(ctx, { x: PAD, y: 30, w: w - PAD - 16, h: 240 });
   drawOverlap(ctx, { x: PAD, y: 360, w: w - PAD - 16, h: 220 });
+}
+
+/* --- D / E: three carpets, one per rule ---------------------------------- */
+let bhRank = 0;
+for (let r = M; r >= 1; r -= 1) { if (sorted[r-1] <= (r/M)*ALPHA) { bhRank = r; break; } }
+const CUTS = [
+  { label: "p < 0.05 — no correction", cut: ALPHA },
+  { label: "Bonferroni — p < 0.05/20000 = 2.5e-6", cut: ALPHA / M },
+  { label: "Benjamini–Hochberg", cut: bhRank ? sorted[bhRank-1] : -1 },
+];
+
+function carpet(ctx, rect, cut, label, logScale) {
+  const NB = logScale ? 24 : 20;
+  const LO = logScale ? -8 : 0;
+  const HI = logScale ? 0 : 1;
+  const tot = new Array(NB).fill(0), hit = new Array(NB).fill(0);
+  for (let i = 0; i < M; i += 1) {
+    const v = logScale ? Math.max(LO, Math.log10(p[i])) : p[i];
+    const k = Math.min(NB-1, Math.floor(((v - LO) / (HI - LO)) * NB));
+    tot[k] += 1;
+    if (p[i] <= cut) hit[k] += 1;
+  }
+  const peak = Math.max(1, ...tot);
+  const plot = makePlot({ ctx, colors, rect, xDomain: [LO, HI], yDomain: [0, peak * 1.15] });
+  plot.axisY({ ticks: niceTicks(0, peak * 1.15, 3), label: "genes" });
+  plot.axisX({
+    ticks: logScale ? [-8,-6,-4,-2,0] : [0, 0.05, 0.25, 0.5, 0.75, 1],
+    format: logScale ? (v) => (v === 0 ? "1" : `1e${v}`) : undefined,
+    label: "p-value",
+  });
+  const called = hit.reduce((a,b)=>a+b,0);
+  plot.caption(`${label} — ${called} called`);
+  const width = (HI - LO) / NB;
+  plot.bars(tot, { lo: LO, width, fill: colors.empirical, opacity: 0.7 });
+  plot.bars(hit, { lo: LO, width, fill: colors.extreme, opacity: 0.95 });
+}
+
+for (const [id, isLog] of [["lin", false], ["log", true]]) {
+  const { ctx, w } = surfaceFor(id, 760);
+  CUTS.forEach((c, i) => carpet(ctx, { x: PAD, y: 34 + i * 250, w: w - PAD - 16, h: 190 }, c.cut, c.label, isLog));
 }
 
 { // C — overlap as a short strip
