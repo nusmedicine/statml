@@ -420,10 +420,11 @@ export function defineWidget(config) {
     },
   ].filter(Boolean));
 
-  // Utility row: bottom of the widget, visually quiet.
-  const util = buildActions(
-    dom.utility,
-    [
+  /* Theme lives in the header, not the utility row. It is housekeeping, which
+     argues for utility — but it is also the one control a reader may need
+     BEFORE they can comfortably read anything, and a control you reach for
+     first does not belong at the bottom of a 1000px page. */
+  buildActions(dom.headerTools, [
       {
         key: "theme",
         icon: () => THEME_ICON[themeMode()](),
@@ -440,7 +441,13 @@ export function defineWidget(config) {
           btn.setAttribute("aria-label", THEME_LABEL[mode]);
           btn.title = `${THEME_LABEL[mode]} — click for ${nextThemeMode(mode)}`;
         },
-      },
+      }
+  ]);
+
+  // Utility row: bottom of the widget, visually quiet.
+  const util = buildActions(
+    dom.utility,
+    [
       {
         key: "copy",
         text: "Copy link",
@@ -534,9 +541,15 @@ function buildShell(host, { title, subtitle, legend, hasReadout, hasTable }) {
   host.className = "w-root";
   host.innerHTML = "";
 
+  /* The header is a row: heading on the left, a tools slot on the right that
+     stays aligned with the title's first line however long the subtitle runs. */
   const header = el("header");
-  header.appendChild(el("h1", "w-title", title));
-  if (subtitle) header.appendChild(el("p", "w-subtitle", subtitle));
+  const heading = el("div", "w-heading");
+  heading.appendChild(el("h1", "w-title", title));
+  if (subtitle) heading.appendChild(el("p", "w-subtitle", subtitle));
+  header.appendChild(heading);
+  const headerTools = el("div", "w-header-tools");
+  header.appendChild(headerTools);
   host.appendChild(header);
 
   const controls = el("div", "w-controls");
@@ -581,7 +594,7 @@ function buildShell(host, { title, subtitle, legend, hasReadout, hasTable }) {
   const utility = el("div", "w-utility");
   host.appendChild(utility);
 
-  return { figure, readout, controls, drive, utility, tableWrap };
+  return { figure, readout, controls, drive, utility, headerTools, tableWrap };
 }
 
 function el(tag, className, text) {
