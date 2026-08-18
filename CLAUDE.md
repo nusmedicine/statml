@@ -6,8 +6,9 @@ NUS courses: **PHM5003** Applied Statistics for Precision Medicine and
 
 **This repo produces widgets and nothing else** — a static site, a gallery and a
 page per widget. The teaching material lives in the MyST notebook lessons at
-`../jupyterbook/phm5003` and reaches a widget by its URL, either as a link in a
-markdown cell or as an iframe. A Quarto book and a Python helper used to live
+`../jupyterbook/phm5003` and reaches a widget **by a link in a markdown cell**,
+which opens it in a new tab. An `<iframe>` in a markdown cell was tested and is
+stripped by JupyterLab's sanitiser — prd §4 records what works instead. A Quarto book and a Python helper used to live
 here; both were deleted for having no host. See [docs/prd.md](docs/prd.md) §6
 before proposing either back.
 

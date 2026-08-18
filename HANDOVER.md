@@ -98,9 +98,13 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
    **What is left is not in this repo:** paste the real URLs into the PHM5003
    lesson markdown cells — which is also what finally settles point 2 below.
-2. **Does an `<iframe>` survive a JupyterLab markdown cell?** JupyterLab
-   sanitises HTML there and may strip it. One test in one lesson decides whether
-   widgets appear inline or only behind a link. Both work; inline is nicer.
+2. ~~**Does an `<iframe>` survive a JupyterLab markdown cell?**~~ **Closed: it
+   does not.** Tested on the live instance against the deployed widget — the
+   markdown sanitiser strips it silently, heading and all else rendering fine.
+   `IRdisplay::display_html()` from an R code cell *does* work, but only as a cell
+   the student runs (saved outputs are stripped until the notebook is trusted).
+   **The chosen mechanism is a plain link opening a new tab.** prd §4 has the
+   detail. The MyST ebook is a different renderer and is still untested.
 3. **Nothing has been judged on a projector.** That is a stated requirement
    (prd §3, P10) and it is the one no hash can discharge. The suspects are the
    2px reference curves and the `--fs-xs` tick labels.

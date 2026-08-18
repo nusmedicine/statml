@@ -137,7 +137,7 @@ function makeBootPile(state) {
 
 defineWidget({
   slug: "bootstrap",
-  title: "Uncertainty from one sample",
+  title: "Bootstrap Sampling",
   subtitle:
     "In practice you get one sample, never a population. Draw a new sample of " +
     "the same size from the one you have — with replacement, so some " +

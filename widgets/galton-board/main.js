@@ -132,7 +132,7 @@ function deviationAfter(path, r) {
 
 defineWidget({
   slug: "galton-board",
-  title: "Where the bell curve comes from",
+  title: "The Normal Distribution",
   subtitle:
     "Each row of pegs nudges the ball one step left or right. Where it lands is the " +
     "sum of those independent nudges, so the pile shows how far many small random " +

@@ -144,7 +144,7 @@ function makeNullPile(state) {
 
 defineWidget({
   slug: "permutation-test",
-  title: "Could chance alone have done this?",
+  title: "Hypothesis Testing",
   subtitle:
     "If the grouping meant nothing, any relabelling of the same numbers would " +
     "be just as likely. So shuffle the labels, recompute the difference, and " +

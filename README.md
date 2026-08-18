@@ -308,27 +308,34 @@ prefixed directories are excluded from the deployed site.
 ## In a teaching lesson
 
 The notebook lessons are the host. Tune a widget until it makes your point, press
-**Copy link**, and paste the URL into a markdown cell. Two mechanisms:
+**Copy link**, and paste the URL into a markdown cell as a link:
 
 ``` markdown
-<!-- inline, if JupyterLab's sanitiser allows it — see below.
-     Take the height from the widget's entry in widgets/manifest.json;
-     they differ, and a short iframe clips the readout tiles. -->
-<iframe src="https://nusmedicine.github.io/statml/widget/clt/?dist=exponential&n=30"
-        width="100%" height="1040" style="border:0"></iframe>
-
-<!-- always works -->
 [Explore the sampling distribution](https://nusmedicine.github.io/statml/widget/clt/?dist=exponential&n=30)
 ```
 
-**The link form always works** — kernel-independent, sanitiser-proof, zero code.
-That is why there is no Python or R helper: nothing a helper could do that a URL
-does not already do.
+That is the whole mechanism. It opens the widget in a new browser tab at exactly
+the state you tuned.
 
-**The iframe form is unverified.** JupyterLab sanitises HTML in markdown cells and
-may strip `<iframe>`. One test settles it: put one in one lesson and render it. A
-framed widget already posts its height to the parent (`core/env.js`), so a host
-that wants auto-resize needs only a short message listener.
+**Why not inline?** Because it was tested and it does not work. An `<iframe>` in
+a markdown cell is **stripped by JupyterLab's sanitiser** — the surrounding
+markdown renders and the widget silently does not.
+
+Inline *is* reachable from an R code cell, which is a different code path:
+
+``` r
+IRdisplay::display_html('<iframe src="https://nusmedicine.github.io/statml/widget/clt/?dist=exponential&n=30" width="100%" height="1040" style="border:0"></iframe>')
+```
+
+That is proven to work — but only as **a cell the student runs**. Saved outputs
+are stripped until the notebook is trusted, so a widget you ran and saved shows
+blank when someone else opens the file. Take `height` from the widget's entry in
+`widgets/manifest.json`; they differ, and a short iframe clips the readout tiles.
+Nothing in JupyterLab listens for the `statml:height` message a framed widget
+posts (`core/env.js`), so the fixed height is what you get.
+
+The link form needs none of that — no cell run, no trust, no kernel. It is why
+there is no Python or R helper: nothing a helper could do that a URL does not.
 
 Design a widget to work both ways: readable in a ~900 px iframe, and correct
 full-screen in its own tab, since a link opens in a new one.

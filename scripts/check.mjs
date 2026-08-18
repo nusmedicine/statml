@@ -148,6 +148,28 @@ for (const w of manifest.widgets) {
 }
 ok(`${manifest.widgets.length} widgets: files present, heights well-formed`);
 
+/* A widget's title now lives in three files — manifest.json (the gallery card),
+   main.js (the <h1> and document.title) and index.html (the static <title> shown
+   before JS runs). They were deliberately allowed to differ once, the card naming
+   the topic and the page asking the question, and that split was cut: a student
+   clicking "Hypothesis Testing" should land on a page that says so. Three copies
+   of one string is the shape that produced the three-places widget heights, so it
+   gets the same treatment they did. */
+for (const w of manifest.widgets) {
+  const main = await readFile(join(root, "widgets", w.slug, "main.js"), "utf8");
+  const html = await readFile(join(root, "widgets", w.slug, "index.html"), "utf8");
+  const page = main.match(/^\s*title:\s*"([^"]*)"/m)?.[1];
+  const stat = html.match(/<title>([^<·]*)·/)?.[1]?.trim();
+
+  if (page !== w.title) {
+    fail(`"${w.slug}": manifest card "${w.title}" but main.js title "${page}" — the card is what a student clicked`);
+  }
+  if (stat !== w.title) {
+    fail(`"${w.slug}": manifest card "${w.title}" but index.html <title> "${stat}"`);
+  }
+}
+ok(`${manifest.widgets.length} widgets: card, <h1> and <title> agree`);
+
 /* --- fingerprint baseline is usable ------------------------------------ */
 
 const baseline = JSON.parse(

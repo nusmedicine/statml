@@ -94,24 +94,47 @@ opened in a browser. No reveal.js path, no deck embedding, nothing to build.
 
 ## 4 · How a widget reaches a lesson
 
-The notebooks are the host. Two mechanisms, in order of preference:
+The notebooks are the host. **Tested on the live JupyterLab instance**
+(`notebook.phm.nusmed.space`, R kernel) against the deployed widget, not reasoned
+about:
 
 | # | mechanism | status |
 |---|---|---|
-| 1 | **`<iframe>` in a markdown cell** — the widget appears inline in the lesson | **Unverified.** JupyterLab sanitises HTML in markdown cells and may strip `<iframe>`. One test settles it: put an iframe in one markdown cell of one lesson and render it |
-| 2 | **A plain link in a markdown cell** — opens the widget in a new tab | **Always works.** Kernel-independent, sanitiser-proof, zero code. This is the floor, and it is why nothing else is a hard requirement |
+| 1 | **A plain link in a markdown cell** — opens the widget in a new browser tab | **CHOSEN.** Always works: kernel-independent, sanitiser-proof, zero code |
+| 2 | **`IRdisplay::display_html('<iframe …>')` in an R code cell** — inline in the lesson | **Works, with a caveat.** Proven live. But see *trust* below |
+| 3 | **`<iframe>` in a markdown cell** — inline in the lesson | **DEAD. Tested and stripped.** JupyterLab's markdown sanitiser removes `<iframe>` outright; the heading renders and the widget silently does not |
 
-Because mechanism 2 always works, **no kernel-side helper is needed in any
-language**. That is what removes both embedders — see §6.
+Mechanism 3 was ranked first in every earlier draft of this document on the
+assumption that it *might* be sanitised. It is. A control proved the point
+precisely: `<b>`, an `<a>` and an `<iframe>` in one `display_html` call all
+survived in an output cell, so HTML output is not the problem — the markdown-cell
+sanitiser is specifically what removes iframes.
 
-For the ebook assembled from these notebooks after the class, MyST renders raw
-HTML from markdown and also offers an iframe directive; confirm the exact syntax
-against your MyST version before relying on it. The ebook is built in the existing
-MyST project, not here.
+**The trust caveat on mechanism 2.** Outputs are stripped when they are loaded
+from an unsigned notebook and kept when they are generated in the running session.
+A lesson notebook authored elsewhere and handed to a student arrives *untrusted*,
+so a pre-saved widget output shows blank until the student runs the cell. Running
+it always works. So mechanism 2 is only safe as *a cell the student runs*, never
+as a figure they are expected to see on open.
 
-**Consequence for widget design:** a widget must look right in a ~900 px-wide
-iframe *and* full-screen in its own tab, because both are live paths. Nothing else
-about embedding is this repo's problem.
+**The decision is mechanism 1.** A link that opens a new tab. It is the floor, it
+needs no cell to be run, no trust, and no kernel — which is also what removes both
+embedders, see §6.
+
+The kernel never entered into any of this: markdown cells are rendered entirely by
+the JupyterLab frontend, so R versus Python was never the variable.
+
+For the ebook assembled from these notebooks after the class, MyST is a
+**different renderer with its own rules** — the JupyterLab result above says
+nothing about it, and it is untested. MyST renders raw HTML from markdown and also
+offers an iframe directive; confirm against your MyST version before relying on
+it. The ebook is built in the existing MyST project, not here.
+
+**Consequence for widget design:** full-screen in its own tab is now the path
+that carries the teaching, so it is the one to design for. The ~900 px iframe
+requirement (P13) is kept rather than dropped — mechanism 2 is proven and remains
+available, the widgets already satisfy it, and it costs nothing to keep. Nothing
+else about embedding is this repo's problem.
 
 ---
 
@@ -309,9 +332,11 @@ Stated so they can be pointed at rather than re-argued:
    same treatment PHM5003 got: one continuous argument where each widget answers a
    question the previous one raises. Do this before building its first widget. The
    course has no notebook project yet, so §7 cannot give it lesson slots either.
-2. **Does an `<iframe>` survive a JupyterLab markdown cell?** §4. One test, and it
-   decides whether widgets appear inline in a lesson or only behind a link.
-   Everything works either way; inline is just better.
+2. ~~**Does an `<iframe>` survive a JupyterLab markdown cell?**~~ **Closed: no.**
+   Tested on the live instance — the markdown sanitiser strips it. §4 records what
+   was tested, what replaced it, and the trust caveat on the surviving inline
+   option. **The MyST ebook is a separate renderer and remains untested**, which is
+   the part of this question that is still genuinely open.
 3. **Whether any concept resists a widget.** Some are hard because they are
    *abstract*, which widgets help with; others because they are *technical*, which
    widgets do not. `interaction-effect` is the main suspect — and §7 shows it has a
