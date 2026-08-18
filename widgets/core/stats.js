@@ -345,6 +345,16 @@ export function tCritical(df, conf = 0.95) {
   return (lo + hi) / 2;
 }
 
+/**
+ * Two-sided p-value for a t statistic: P(|T| > tObs) with `df` degrees of
+ * freedom. This is the same tail expression tCritical inverts, so the critical
+ * value and the p-value can never disagree about what the t distribution is.
+ */
+export function tTailP(tObs, df) {
+  if (!(df > 0)) return 1;
+  return incompleteBeta(df / 2, 0.5, df / (df + tObs * tObs));
+}
+
 /** The normal analogue, fixed: P(|Z| <= 1.959964) = 0.95. */
 export const Z_CRITICAL_95 = 1.959963984540054;
 

@@ -258,37 +258,48 @@ defineWidget({
     stepLabel: "Run a study",
     runLabel: "Play",
 
+    /* `ran`, NOT `done`. Core reserves `anim.done` for "there is nothing left to
+       show" and treats it as truthy to mean the next click is Replay — so a
+       COUNTER called done makes every step after the first replay instead of
+       advancing, and Play hides it because one click runs to the end. That
+       shipped. The driven fingerprint state below now clicks step twice. */
     init: ({ params, state, fromScratch }) => ({
-      done: fromScratch ? 0 : Math.min(params.shown, state.studies.length),
+      ran: fromScratch ? 0 : Math.min(params.shown, state.studies.length),
       t: 0,
       running: false,
+      done: false,
     }),
 
     advance: (anim, { dt, params, state }) => {
-      if (anim.done >= state.studies.length) return false;
+      if (anim.ran >= state.studies.length) {
+        anim.done = true;
+        return false;
+      }
       anim.t += dt / SPEEDS[params.speed].ms;
       if (anim.t < 1) {
         anim.running = true;
         return true;
       }
       anim.t = 0;
-      anim.done += 1;
+      anim.ran += 1;
       anim.running = false;
-      return anim.done < state.studies.length && anim.mode === "run";
+      if (anim.ran >= state.studies.length) anim.done = true;
+      return anim.ran < state.studies.length && anim.mode === "run";
     },
 
     /* Nothing derived lives in `anim` — a count and a clock, both of which
        survive a method, view or binning change untouched. Declared rather than
        omitted so that is a statement instead of an oversight. */
     rebuild: (anim, { state }) => {
-      anim.done = Math.min(anim.done, state.studies.length);
+      anim.ran = Math.min(anim.ran, state.studies.length);
+      anim.done = anim.ran >= state.studies.length;
     },
   },
 
   draw: (args) => (args.params.view === "all" ? drawLadder(args) : drawOne(args)),
 
   readout: ({ params, state, anim }) => {
-    const shown = anim ? anim.done : 0;
+    const shown = anim ? anim.ran : 0;
     const m = params.method;
     const done = state.studies.slice(0, shown);
     const hits = done.filter((s) => s.covers[m]).length;
@@ -326,7 +337,7 @@ defineWidget({
   },
 
   summary: ({ params, state, anim }) => {
-    const shown = anim ? anim.done : 0;
+    const shown = anim ? anim.ran : 0;
     if (!shown) return "No studies run yet. The figure is empty.";
     const done = state.studies.slice(0, shown);
     const hits = done.filter((s) => s.covers[params.method]).length;
@@ -340,7 +351,7 @@ defineWidget({
 /* --- view 1: this study, and the distribution its interval is cut from --- */
 
 function drawOne({ ctx, colors, w, h, params, state, anim }) {
-  const shown = anim ? anim.done : 0;
+  const shown = anim ? anim.ran : 0;
   const live = anim && anim.running && shown < state.studies.length;
   const subject = live ? state.studies[shown] : shown > 0 ? state.studies[shown - 1] : null;
 
@@ -456,7 +467,7 @@ function drawOne({ ctx, colors, w, h, params, state, anim }) {
 /* --- view 2: every study, as a ladder ----------------------------------- */
 
 function drawLadder({ ctx, colors, w, h, params, state, anim }) {
-  const shown = anim ? anim.done : 0;
+  const shown = anim ? anim.ran : 0;
   const m = params.method;
 
   const padL = 54;

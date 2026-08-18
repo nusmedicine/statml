@@ -3,7 +3,7 @@
 export { defineWidget } from "./widget.js";
 export { makeRng } from "./rng.js";
 export {
-  POPULATIONS, EFFECT_SD, normalPdf, studentTPdf, tCritical, Z_CRITICAL_95,
+  POPULATIONS, EFFECT_SD, normalPdf, studentTPdf, tCritical, tTailP, Z_CRITICAL_95,
   mean, sd, histogram, fmt,
 } from "./stats.js";
 export { makePlot, niceTicks, tickFormat, samplePdf, createCanvas, spanningRule } from "./canvas.js";

@@ -70,6 +70,21 @@
       "arc": 5,
       "height": 1120,
       "status": "shipped"
+    },
+    {
+      "slug": "multiple-testing",
+      "title": "Multiple Testing",
+      "blurb": "Test twenty thousand genes at p < 0.05 and about a thousand come back significant even when none of them is different. Then see what correcting for it costs.",
+      "course": "PHM5003",
+      "topics": [
+        "multiple testing",
+        "FDR",
+        "p-value",
+        "omics"
+      ],
+      "arc": 6,
+      "height": 1140,
+      "status": "draft"
     }
   ]
 }

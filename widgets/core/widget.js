@@ -336,7 +336,13 @@ export function defineWidget(config) {
       if (mode === "step" && wasStepping) fastForward();
     }
 
-    if (anim.done) resetAnim({ fromScratch: true }); // Replay
+    /* `=== true`, not truthy. `anim.done` is a FLAG meaning "nothing left to
+       show", but `done` is also the obvious name for a counter of how many are
+       done — and a widget that used it that way made every step after the first
+       replay instead of advancing, with Play masking it because one click runs
+       to the end. Comparing exactly makes a numeric `done` harmless instead of
+       silently destructive. */
+    if (anim.done === true) resetAnim({ fromScratch: true }); // Replay
     anim.mode = mode;
 
     // Reduced motion: no choreography, just arrive at the result.

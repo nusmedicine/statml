@@ -278,6 +278,23 @@
         "frames": 20,
         "dt": 32
       }
+    },
+    {
+      "slug": "confidence-interval",
+      "px": "371ff101",
+      "$note": "DRIVEN, REGRESSION: TWO step clicks. The counter was named anim.done, which core reads as \"finished\" and answers with Replay — so every click after the first reset the widget instead of advancing it, and it sat at one study forever. Play masked it entirely, because one click runs to the end. No single click reaches this state.",
+      "state": "?theme=light&speed=fast",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      }
     }
   ]
 }
