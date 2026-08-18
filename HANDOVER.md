@@ -109,7 +109,8 @@ their pile with `core/accumulator.js`.
 | `type: "gate"` field | A full-width button that opens a whole stage, sitting in the control flow where the stage begins. The single declaration of which param opens it; core scans for it. Principle 3.4b |
 | `group` on a drive button | Fences step and play into one cluster — two *paces* of one action. Reset is never inside one. Principle 3.4 as amended |
 | `leadTitle` / `stepTitle` / `runTitle` | One-word labels have nowhere to name their noun, so it moved into the tooltip. Principle 3.4c |
-| reserved run-button width | Play/Pause/Resume/Replay are 59/70/75/83 px, so the row's shape used to depend on the animation's state. Principle 3.4d |
+| reserved run-button width | Play/Pause/Resume/Replay are 59/70/75/83 px, so the row's shape used to depend on the animation's state. Set as a **custom property**, not an inline style, so the rail can drop it. Principle 3.4d |
+| the drive row is a BLOCK in the rail | Stacked full-width rows, `flex-wrap: nowrap`. Chosen because the wrapping alternative fails **5 of 5** hypothetical future widgets in `_lab/drive-rail.html`. Principle 3.4e |
 | `animation.leadLabel` + `anim.leadDone` | A one-off action before stepping means anything. The lead button greying out permanently **is** the teaching in both widgets 3 and 5. Core owns the button states; the widget owns `leadDone`. |
 | `rng.resample(len)` → indices | Draws WITH replacement. Indices, not values, so the choreography can show *which* observation was picked twice. |
 | `rng.shuffle(arr)` → new array | A permutation. The exact opposite move: every element survives once, only the arrangement changes. |
@@ -380,7 +381,17 @@ cannot describe — it is how the Fast freeze was confirmed before it was fixed
 - **`?studies=true` instead of `?studies=1`.** A new param type has to be added to
   the serialiser as well as the parser, or its URL silently stops matching every
   other flag's format.
-
+- **A wrapping COLUMN resolves its items one line too tall.** `.w-drive` sets
+  `flex-wrap: wrap` for the stacked layout; leaving it on while switching to
+  `flex-direction: column` made the button cluster 19.5px — exactly one
+  line-height — taller than its own content, with nothing in any button's styles
+  to explain it. Found by bisection: two unrelated toggles each fixed it, which is
+  what proves the fault is in the CONTAINER, not the things it contains.
+- **Check that a CSS override actually wins.** `.w-drive .w-btn[data-key="run"]`
+  and `.w-split .w-drive-group .w-btn` are both specificity 0,3,0, so the later
+  one took it — and the rail's override of the reserved run width silently lost.
+  Harmless at two segments, would have broken the split at three. Measure the
+  computed value, do not assume the rule applied.
 - **Stray pointer input.** The automation browser moves sliders mid-capture.
   Several apparent bugs were this. If a screenshot disagrees with a programmatic
   read, **trust the read**.

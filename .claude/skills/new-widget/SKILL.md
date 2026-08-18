@@ -31,17 +31,81 @@ defineWidget({
   slug: "my-widget",
   title: "What this shows",          // a claim, not a topic label
   subtitle: "…",                     // 2–3 lines; the layout does the rest
+  layout: "side",                    // controls in a left rail — see below
   height: 430,                       // canvas height, not page height
+                                     // …or ({ params }) => number
 
   params: { /* see below */ },
   legend: [{ token: "empirical", label: "…", mark: "bar" }],
 
   compute: ({ params, rng }) => state,                       // pure, seeded
-  animation: { stepLabel, runLabel, init, advance, rebuild }, // optional
+  animation: { stepLabel, stepTitle, runLabel, init, advance, rebuild },
   draw: ({ ctx, colors, w, h, params, state, anim }) => {},
   readout: ({ params, state, anim }) => [{ label, value, note }],
 });
 ```
+
+### `layout: "side"` — use it
+
+All seven widgets do. The controls sit in a left rail beside the figure instead
+of above it, stacking again below 880px. Measured on the real widgets in
+`_lab/side-layout.html`: it saves 247–330px each and takes four of six from
+over-a-screen to fitting, and **the canvas gets WIDER doing it** (694 → 770), so
+the figure gains room while the page shrinks. Principle 3.4a.
+
+Two consequences worth knowing before you fight them:
+
+- The **drive row is a block** in the rail — stacked full-width rows, never a
+  wrapping line. Chosen because the wrapping alternative failed 5 of 5
+  hypothetical future widgets (`_lab/drive-rail.html`). You get this for free;
+  do not re-flow it. Principle 3.4e.
+- The **legend and readout go with the figure**, in the right column. The rail is
+  what you SET, the stage is what you SEE.
+
+### A second stage goes behind a `gate`
+
+When a widget has a whole stage the reader has not entered — a simulation that
+only confirms what the figure already computes — put the stage behind one button
+and hide everything that serves it. Principle 3.4b.
+
+```js
+params: {
+  effect: { … }, n: { … },            // the setup, always visible
+
+  studies: {                          // renders as a full-width button
+    type: "gate",
+    label: "Simulate to check",       // shut
+    labelOff: "Hide simulation",      // open — it must name the way back
+    detail: "…",
+    default: false,
+    display: true,                    // so leaving does not destroy the work
+  },
+
+  // shown only while `studies` is truthy
+  seed:  { type: "int", …, when: { param: "studies" } },
+  speed: { type: "choice", …, when: { param: "studies" }, display: true },
+},
+```
+
+`when` is **declarative on purpose** — core has to know WHICH parameter gates a
+field so it can rebuild the control block only when that one moves. A predicate
+function would force a rebuild on every change, and rebuilding mid-drag drops the
+slider you are holding.
+
+Core finds the `gate` field by scanning the spec, and hides step/run/reset while
+it is shut. Do not declare the gate a second time under `animation`.
+
+### Name the button, then name its noun in the title
+
+Labels are one word wherever that is honest — `Drop`, `Resample`, `Shuffle`,
+`Observe` — which means the face has nowhere left to say what it drops or
+shuffles. So every widget authors `leadTitle` / `stepTitle` / `runTitle`.
+**Shortening a label without rehoming its noun is how a control stops explaining
+itself.** Principle 3.4c.
+
+A lead must not be a near-synonym of any step, in this widget or any other: a
+once-only action and a repeat-forever one four characters apart is a real defect
+that shipped once. Principle 3.4c has the audit.
 
 Plus `widgets/<slug>/index.html` — copy `widgets/clt/index.html` and change the
 `<title>` and `<meta name="description">`.
