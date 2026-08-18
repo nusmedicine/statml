@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>statml · interactive figures for statistics and machine learning</title>
+<meta name="description" content="Seeded, URL-addressable interactive figures for teaching statistics and machine learning at NUS Medicine.">
+<!-- Deployed at https://nusmedicine.github.io/statml/ and served from the repo
+     root in dev, so every path here is relative and prefixed with widget/.
+     scripts/check.mjs fails an absolute path anywhere in the deployed tree —
+     the site lives under a /statml/ subpath and a leading / works in dev and
+     404s in production. -->
+<link rel="stylesheet" href="./widget/core/tokens.css">
+<style>
+  .g-root { max-width: 780px; margin: 0 auto; padding: var(--sp-5) var(--sp-4); }
+  .g-title { margin: 0; font-size: var(--fs-fig); font-weight: 600; letter-spacing: -0.02em; }
+  .g-sub { margin: var(--sp-2) 0 0; color: var(--ink-2); max-width: 60ch; }
+  .g-grid {
+    display: grid; gap: var(--sp-3); margin: var(--sp-5) 0 0;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  .g-card {
+    display: block; padding: var(--sp-3); text-decoration: none; color: inherit;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .g-card:hover { border-color: var(--axis); }
+  .g-card h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+  .g-card p { margin: var(--sp-1) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .g-note {
+    margin: var(--sp-5) 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--grid);
+    color: var(--ink-3); font-size: var(--fs-sm);
+  }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="g-root">
+  <h1 class="g-title">statml</h1>
+  <p class="g-sub">
+    A repository of interactive widgets for NUS Medicine.
+  </p>
+  <div class="g-grid" id="grid"></div>
+  <p class="g-note">
+    Every widget keeps its state in the URL — tune one, press
+    <code>Copy link</code>, and it reopens exactly as you left it.
+  </p>
+</main>
+
+<script type="module">
+  const grid = document.getElementById("grid");
+  const res = await fetch("./widget/manifest.json");
+  const { widgets } = await res.json();
+
+  // Ordered by arc, not by manifest position. The statistics arc is an agreed
+  // sequence where each widget answers a question the previous one raises
+  // (docs/catalogue.md), so the gallery states that order rather than inheriting
+  // whatever order the entries happen to sit in.
+  for (const w of [...widgets].sort((a, b) => a.arc - b.arc)) {
+    const a = document.createElement("a");
+    a.className = "g-card";
+    a.href = `./widget/${w.slug}/`;
+
+    const h2 = document.createElement("h2");
+    h2.textContent = w.title;
+    a.appendChild(h2);
+
+    const p = document.createElement("p");
+    p.textContent = w.blurb;
+    a.appendChild(p);
+
+    grid.appendChild(a);
+  }
+</script>
+</body>
+</html>

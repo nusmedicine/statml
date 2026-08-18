@@ -25,7 +25,7 @@ before proposing either back.
 
 ```bash
 npm run dev      # dev server on :8000 — USE THIS, not python -m http.server
-npm run build    # assemble _site/ (gallery redirect at /, widgets at /w/)
+npm run build    # assemble _site/ (gallery at /, widgets at /widget/)
 npm run check    # invariant assertions; run before every commit
 ```
 
@@ -141,14 +141,26 @@ widgets/core/       the scaffold — everything a widget does not have to write
   rng.js  stats.js  env.js
 widgets/<slug>/     one widget: index.html (12 lines) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed
+widgets/index.html  redirect stub, so a trimmed /widget/ URL reaches the gallery
 widgets/manifest.json  registry of BUILT widgets; the ONLY place a height lives
+index.html          THE GALLERY — the landing page, deployed at /
+scripts/site.mjs    the one place the published `widget` namespace is named
 docs/               prd, design principles, catalogue
 ```
 
 ## Things that will bite you
 
 - **There is still no git remote**, so Pages has never deployed and no widget has
-  a real URL to paste into a lesson yet.
+  a real URL to paste into a lesson yet. The target is settled —
+  `https://nusmedicine.github.io/statml/widget/<slug>/` — and the build already
+  emits that layout; only the push is missing. See README § Deploying.
+- **The deployed site is served from a `/statml/` subpath**, so every path in a
+  deployed file must be relative. An absolute one works in dev and 404s in
+  production; `npm run check` fails on it.
+- **`widget` (singular) is the published namespace, `widgets/` is the source
+  directory.** `scripts/site.mjs` is the only place that name is written —
+  build.mjs and serve.mjs import it, and `check` asserts the root `index.html`
+  agrees, because it cannot import anything.
 - **GitHub Pages sends `max-age=600`**, so students can get a stale widget for ten
   minutes after a deploy.
 - **The repo is inside Dropbox.** Avoid long-running writes; Dropbox can race with

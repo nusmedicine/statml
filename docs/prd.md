@@ -196,10 +196,32 @@ should prompt the question of who will ever show it.
 ## 8 · Distribution
 
 - **Public.** GitHub Pages, open to anyone.
-- **CC-BY-4.0** for prose and figures, **MIT** for code. Add both `LICENSE` files
-  before the content spreads, not after.
+- **CC-BY-4.0** for prose and figures, **MIT** for code — the decision stands,
+  but **adding the files is deliberately deferred**. Publishing a licence invites
+  copying, and the arc is not finished; a public repo carrying no licence is *all
+  rights reserved* by default, which is the stricter position while the material
+  is still being built. The trigger to add them is the content being ready to
+  spread, not the first deploy.
+- **The address**, settled:
+
+  ```
+  https://nusmedicine.github.io/statml/                the gallery, and the landing page
+  https://nusmedicine.github.io/statml/widget/<slug>/  a widget
+  ```
+
+  A project site in the existing `nusmedicine` organisation, which already serves
+  `chemistry`, `nutrition` and `statcomputing` on exactly this pattern. `widget`
+  is singular because it reads as a namespace in a pasted link; `scripts/site.mjs`
+  is the only place that name is written.
+
+  **Consequence:** the site is served from a `/statml/` subpath, not a domain
+  root, so every deployed path must be relative — an absolute one works in dev and
+  404s in production. `npm run check` fails on one, and `scripts/serve.mjs` serves
+  the deployed layout so a copied URL needs no editing between dev and production.
+
 - **Order of newly unblocked work:** create the public repo and remote → first
-  Pages deploy → paste real URLs into lesson markdown cells.
+  Pages deploy → paste real URLs into lesson markdown cells. Steps two and three
+  are all that is left; the repo side is built.
 
 **The widgets collect nothing.** No analytics, no telemetry, no backend, no
 accounts. This is not only a privacy position — it is what lets a widget be

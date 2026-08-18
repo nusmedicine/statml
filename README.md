@@ -1,4 +1,4 @@
-# book-statml
+# statml
 
 Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
@@ -18,12 +18,18 @@ npm run dev
 
 Then open:
 
-- <http://localhost:8000/widgets/> — the widget gallery
-- <http://localhost:8000/widgets/galton-board/> — arc 1: where the bell curve comes from
-- <http://localhost:8000/widgets/clt/> — arc 2: the sampling distribution of the mean
-- <http://localhost:8000/widgets/bootstrap/> — arc 3: uncertainty from one sample
-- <http://localhost:8000/widgets/permutation-test/> — arc 5: could chance alone have done this?
+- <http://localhost:8000/> — the gallery, which is also the landing page
+- <http://localhost:8000/widget/galton-board/> — arc 1: where the bell curve comes from
+- <http://localhost:8000/widget/clt/> — arc 2: the sampling distribution of the mean
+- <http://localhost:8000/widget/bootstrap/> — arc 3: uncertainty from one sample
+- <http://localhost:8000/widget/permutation-test/> — arc 5: could chance alone have done this?
 - <http://localhost:8000/widgets/_lab/> — design comparisons and the fingerprint harness
+
+Those are the **deployed** paths, not the source layout. The dev server aliases
+`/widget/` onto the `widgets/` source directory so a URL copied out of a widget
+works unchanged in both places — swap `http://localhost:8000` for
+`https://nusmedicine.github.io/statml` and nothing else changes. The lab is not
+deployed, so it keeps its source path.
 
 There is no install step and no build step. Widgets are plain ES modules with
 relative imports.
@@ -39,7 +45,7 @@ looks exactly like a bug in your change.
 **All widget state lives in the URL.** Everything else follows from that.
 
 ```
-/w/clt/?dist=bimodal&n=30&seed=7
+/widget/clt/?dist=bimodal&n=30&seed=7
 ```
 
 - **A URL is the entire interface.** No kernel communication, no widget protocol,
@@ -74,12 +80,14 @@ widgets/
   permutation-test/ arc 5: a null by shuffling the group labels
   _lab/            design comparisons + fingerprint harness; NOT deployed
   manifest.json    registry of BUILT widgets; the ONLY place a height lives
-  index.html       gallery
+  index.html       redirect stub, so a trimmed /widget/ URL reaches the gallery
 
+index.html         THE GALLERY — the landing page, deployed at /
 docs/              prd, design principles, widget catalogue
-scripts/serve.mjs  dev server; sends no-store (see above)
+scripts/serve.mjs  dev server; sends no-store, aliases /widget/ (see above)
 scripts/check.mjs  invariant assertions; runs inside npm run build
-scripts/build.mjs  assembles _site/ (gallery redirect at /, widgets at /w/)
+scripts/build.mjs  assembles _site/ (gallery at /, widgets at /widget/)
+scripts/site.mjs   the one place the published `widget` namespace is named
 ```
 
 That is the whole repo. A Quarto book and a Python helper used to sit alongside
@@ -306,11 +314,11 @@ The notebook lessons are the host. Tune a widget until it makes your point, pres
 <!-- inline, if JupyterLab's sanitiser allows it — see below.
      Take the height from the widget's entry in widgets/manifest.json;
      they differ, and a short iframe clips the readout tiles. -->
-<iframe src="https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30"
+<iframe src="https://nusmedicine.github.io/statml/widget/clt/?dist=exponential&n=30"
         width="100%" height="1040" style="border:0"></iframe>
 
 <!-- always works -->
-[Explore the sampling distribution](https://<user>.github.io/book-statml/w/clt/?dist=exponential&n=30)
+[Explore the sampling distribution](https://nusmedicine.github.io/statml/widget/clt/?dist=exponential&n=30)
 ```
 
 **The link form always works** — kernel-independent, sanitiser-proof, zero code.
@@ -331,15 +339,38 @@ full-screen in its own tab, since a link opens in a new one.
 checks first — and publishes `_site/` to GitHub Pages on push to `main`. There is
 no other toolchain: no Quarto, no Python, nothing to compile.
 
-Before the first deploy:
+The target is **<https://nusmedicine.github.io/statml/>**, a project site in the
+existing `nusmedicine` organisation — the same pattern already serving
+`nusmedicine.github.io/chemistry/` and two others.
 
-1. Create the repo and remote. There isn't one yet.
-2. Repo settings → Pages → Source: **GitHub Actions**.
-3. Add the licences: **CC-BY-4.0** for prose and figures, **MIT** for code.
+```
+https://nusmedicine.github.io/statml/                the gallery
+https://nusmedicine.github.io/statml/widget/clt/     a widget
+```
+
+Because the site is served from a `/statml/` subpath and not a domain root,
+**every deployed path must be relative**. An absolute one works in dev and 404s
+in production, which nothing would catch before a deploy — so `npm run check`
+fails on any `href="/…"`, bare `from "/…"`, or `url(/…)` in a deployed file.
+
+Remaining before the first deploy:
+
+1. Create the public repo `nusmedicine/statml`, then `git remote add origin`
+   and push `main`. **Pages needs the repo to be public** on a free
+   organisation plan; `docs/prd.md` §8 makes it public anyway.
+2. Repo settings → Pages → Source: **GitHub Actions**. The workflow is already
+   in place and needs no edit.
+
+**No licence file yet, deliberately.** `docs/prd.md` §8 settles the eventual
+licences as CC-BY-4.0 for prose and MIT for code, but adding them now would
+invite copying while the material is still being built. A public repo with no
+licence is **all rights reserved** by default, which is the stricter position —
+so the licences go in when the content is ready to spread, not before.
 
 ## Known seams
 
 - No git remote, so nothing has ever deployed and no widget has a real URL yet.
+  The URL scheme is settled and the build emits it; only the push is missing.
 - GitHub Pages sends `max-age=600`, so a student can get a stale widget for ten
   minutes after a deploy. The fix is content-hashed filenames, which needs a
   bundler and would end the no-build property. Not yet.
@@ -347,3 +378,4 @@ Before the first deploy:
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
 - Widget count: 4, of a six-widget arc.
+

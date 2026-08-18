@@ -18,7 +18,7 @@
    with them. Recorded because "we removed a check" should never be silent.
    ========================================================================= */
 
-import { readFile, access } from "node:fs/promises";
+import { readFile, readdir, access } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -202,6 +202,68 @@ ok(
   `fingerprint baseline: ${baseline.states.length} states — ` +
     `${settled.size} widget(s) with settled coverage, ${driven.size} with driven coverage`
 );
+
+/* --- the deployed site: one name for /widget/, and no absolute paths ----- */
+
+const { PUBLIC_DIR } = await import(join(root, "scripts/site.mjs"));
+
+{
+  // build.mjs and serve.mjs import PUBLIC_DIR. index.html cannot — it is served
+  // verbatim and templating it would mean a build step — so it is checked here
+  // instead. Getting it wrong empties the gallery, in production only.
+  const landing = await readFile(join(root, "index.html"), "utf8");
+  if (!landing.includes(`./${PUBLIC_DIR}/manifest.json`)) {
+    fail(`index.html: does not fetch ./${PUBLIC_DIR}/manifest.json — the gallery would render empty`);
+  }
+  if (!landing.includes(`./${PUBLIC_DIR}/`)) {
+    fail(`index.html: no ./${PUBLIC_DIR}/ links, but scripts/site.mjs deploys widgets there`);
+  }
+  if (/["'`]\.\/widgets\//.test(landing)) {
+    fail(`index.html: links ./widgets/, the SOURCE directory — deployed it is ./${PUBLIC_DIR}/`);
+  }
+  ok(`landing page addresses ./${PUBLIC_DIR}/, agreeing with scripts/site.mjs`);
+}
+
+{
+  /* The site is served from a /statml/ subpath, so a leading slash resolves to
+     the domain root: it works in dev and 404s in production, and nothing catches
+     it before a deploy. This became possible the moment the site stopped living
+     at a domain root, which is why the check arrives with the move. */
+  const ABSOLUTE = [
+    [/\b(?:href|src)\s*=\s*["']\/(?!\/)/, "href/src"],
+    [/\bfrom\s*["']\/(?!\/)/, "import"],
+    [/\bimport\s*\(\s*["']\/(?!\/)/, "dynamic import"],
+    [/\bfetch\s*\(\s*["']\/(?!\/)/, "fetch"],
+    [/\burl\(\s*["']?\/(?!\/)/, "css url()"],
+  ];
+
+  // Same filter as build.mjs: a path segment starting with _ is not deployed.
+  const deployed = [["index.html", join(root, "index.html")]];
+  const walk = async (dir, rel) => {
+    for (const e of await readdir(dir, { withFileTypes: true })) {
+      if (e.name.startsWith("_")) continue;
+      const abs = join(dir, e.name);
+      const path = `${rel}/${e.name}`;
+      if (e.isDirectory()) await walk(abs, path);
+      else if (/\.(html|js|css)$/.test(e.name)) deployed.push([path, abs]);
+    }
+  };
+  await walk(join(root, "widgets"), "widgets");
+
+  for (const [path, abs] of deployed) {
+    const text = await readFile(abs, "utf8");
+    for (const [re, what] of ABSOLUTE) {
+      const m = text.match(re);
+      if (m) {
+        fail(
+          `${path}: absolute ${what} path ${JSON.stringify(m[0])} — the site is served ` +
+            `from /statml/, so every deployed path must be relative`
+        );
+      }
+    }
+  }
+  ok(`${deployed.length} deployed files: every path relative`);
+}
 
 /* --- no runtime dependencies ------------------------------------------- */
 

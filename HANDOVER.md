@@ -22,13 +22,18 @@ arc.**
 npm run dev      # :8000 unless taken; PORT=8123 npm run dev to move it
 ```
 
+Paths below are the **deployed** ones. The dev server aliases `/widget/` onto the
+`widgets/` source directory, so swapping `http://localhost:8000` for
+`https://nusmedicine.github.io/statml` is the only difference between a dev URL
+and a real one. The lab is not deployed and keeps its source path.
+
 | | | |
 |---|---|---|
-| gallery | `/widgets/` | |
-| widget 1 | `/widgets/galton-board/` | where the bell curve comes from |
-| widget 2 | `/widgets/clt/` | the sampling distribution of the mean |
-| widget 3 | `/widgets/bootstrap/` | uncertainty from one sample |
-| widget 5 | `/widgets/permutation-test/` | could chance alone have done this? |
+| gallery | `/` | also the landing page |
+| widget 1 | `/widget/galton-board/` | where the bell curve comes from |
+| widget 2 | `/widget/clt/` | the sampling distribution of the mean |
+| widget 3 | `/widget/bootstrap/` | uncertainty from one sample |
+| widget 5 | `/widget/permutation-test/` | could chance alone have done this? |
 | lab | `/widgets/_lab/` | design mockups **and the fingerprint harness** |
 
 ### Shipped
@@ -80,8 +85,13 @@ Worth knowing before designing widget 4, because it faces the same choices.
 ### What is NOT verified
 
 1. **No git remote.** Pages has never deployed and **no widget has a real URL
-   yet**, so nothing can be pasted into a lesson. Also blocks the licences, which
-   the PRD settles as CC-BY-4.0 for prose and MIT for code.
+   yet**, so nothing can be pasted into a lesson. Everything on this side is now
+   done — the URL scheme is settled at
+   `https://nusmedicine.github.io/statml/widget/<slug>/`, the build emits that
+   layout, `deploy.yml` is correct, and both licences are in place. What remains
+   needs a GitHub credential this machine does not have: create the public repo
+   `nusmedicine/statml`, push `main`, set Pages source to **GitHub Actions**.
+   See README § Deploying.
 2. **Does an `<iframe>` survive a JupyterLab markdown cell?** JupyterLab
    sanitises HTML there and may strip it. One test in one lesson decides whether
    widgets appear inline or only behind a link. Both work; inline is nicer.

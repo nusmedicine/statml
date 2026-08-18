@@ -1,10 +1,10 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` and `blurb` are GALLERY COPY and nothing else reads them: a widget page sets its own title from defineWidget({title}) in its main.js. So the gallery names the topic (“Hypothesis Testing”) while the page asks the question (“Could chance alone have done this?”). The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
   "widgets": [
     {
       "slug": "galton-board",
-      "title": "Where the bell curve comes from",
-      "blurb": "Each row of pegs nudges a ball one step left or right; where it lands is the sum of those nudges. Drop enough and you see how far many small random errors, added together, stray from zero.",
+      "title": "The Normal Distribution",
+      "blurb": "Many small random nudges, added together, land in a bell curve.",
       "course": "PHM5003",
       "topics": [
         "probability",
@@ -18,7 +18,7 @@
     {
       "slug": "clt",
       "title": "Central Limit Theorem",
-      "blurb": "Starts empty. Draw one sample at a time and watch its observations collapse to a mean that falls into the pile below — which goes normal whatever the population looks like, with spread σ/√n.",
+      "blurb": "The mean of a sample goes normal whatever the population looks like.",
       "course": "PHM5003",
       "topics": [
         "sampling",
@@ -30,8 +30,8 @@
     },
     {
       "slug": "bootstrap",
-      "title": "Uncertainty from one sample",
-      "blurb": "You get one sample, never a population. Resample it with replacement — duplicates and all — and the spread of the resampled means stands in for a sampling distribution you could never observe. As well as your one sample represents the population, and no better.",
+      "title": "Bootstrap Sampling",
+      "blurb": "Resample your one sample to see how uncertain its mean really is.",
       "course": "PHM5003",
       "topics": [
         "resampling",
@@ -44,8 +44,8 @@
     },
     {
       "slug": "permutation-test",
-      "title": "Could chance alone have done this?",
-      "blurb": "If the grouping meant nothing, any relabelling of the same numbers would be as likely. Pool the observations, deal them back, rebuild the difference — and p is simply how many of those shuffles reached what you actually saw, in red. Set the true effect to None and watch a false positive happen.",
+      "title": "Hypothesis Testing",
+      "blurb": "Shuffle the group labels to see what chance alone could have produced.",
       "course": "PHM5003",
       "topics": [
         "hypothesis testing",

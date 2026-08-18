@@ -2,85 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Widget gallery · statml</title>
-<link rel="stylesheet" href="./core/tokens.css">
-<style>
-  .g-root { max-width: 780px; margin: 0 auto; padding: var(--sp-5) var(--sp-4); }
-  .g-title { margin: 0; font-size: var(--fs-fig); font-weight: 600; letter-spacing: -0.02em; }
-  .g-sub { margin: var(--sp-2) 0 0; color: var(--ink-2); max-width: 60ch; }
-  .g-grid {
-    display: grid; gap: var(--sp-3); margin: var(--sp-5) 0 0;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  }
-  .g-card {
-    display: block; padding: var(--sp-3); text-decoration: none; color: inherit;
-    background: var(--surface-1); border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-  .g-card:hover { border-color: var(--axis); }
-  .g-card h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-  .g-card p { margin: var(--sp-1) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
-  .g-tags { margin: var(--sp-2) 0 0; display: flex; gap: var(--sp-1); flex-wrap: wrap; }
-  .g-tag {
-    font-size: var(--fs-xs); color: var(--ink-2); background: var(--surface-3);
-    border-radius: 3px; padding: 1px 6px;
-  }
-  .g-note {
-    margin: var(--sp-5) 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--grid);
-    color: var(--ink-3); font-size: var(--fs-sm);
-  }
-  code { font-family: var(--font-mono); font-size: 0.92em; }
-</style>
+<title>statml</title>
+<!-- The gallery moved to the site root when / stopped being a redirect and
+     became the landing page. This stub exists so a URL trimmed back from
+     .../widget/clt/ to .../widget/ lands on the gallery instead of a 404.
+
+     ../ resolves identically on both sides: /widget/ -> / in dev,
+     /statml/widget/ -> /statml/ in production. -->
+<meta http-equiv="refresh" content="0;url=../">
 </head>
-<body>
-<main class="g-root">
-  <h1 class="g-title">Widget gallery</h1>
-  <p class="g-sub">
-    Self-contained teaching widgets for statistics and machine learning. All state
-    lives in the URL, so any view you can produce here is a link you can paste into
-    a lesson.
-  </p>
-  <div class="g-grid" id="grid"></div>
-  <p class="g-note">
-    Every widget carries a <code>Copy link</code> button. Paste the result into a
-    notebook markdown cell — as a link, or as an <code>&lt;iframe&gt;</code> to show
-    it inline — and it reopens at exactly that state.
-  </p>
-</main>
-
-<script type="module">
-  const grid = document.getElementById("grid");
-  const res = await fetch("./manifest.json");
-  const { widgets } = await res.json();
-
-  for (const w of widgets) {
-    const a = document.createElement("a");
-    a.className = "g-card";
-    a.href = `./${w.slug}/`;
-
-    const h2 = document.createElement("h2");
-    h2.textContent = w.title;
-    a.appendChild(h2);
-
-    const p = document.createElement("p");
-    p.textContent = w.blurb;
-    a.appendChild(p);
-
-    if (w.topics?.length) {
-      const tags = document.createElement("div");
-      tags.className = "g-tags";
-      for (const t of w.topics) {
-        const span = document.createElement("span");
-        span.className = "g-tag";
-        span.textContent = t;
-        tags.appendChild(span);
-      }
-      a.appendChild(tags);
-    }
-
-    grid.appendChild(a);
-  }
-</script>
-</body>
+<body><p><a href="../">Widget gallery</a></p></body>
 </html>
