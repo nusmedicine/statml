@@ -369,8 +369,8 @@ so the licences go in when the content is ready to spread, not before.
 
 ## Known seams
 
-- No git remote, so nothing has ever deployed and no widget has a real URL yet.
-  The URL scheme is settled and the build emits it; only the push is missing.
+- Every push to `main` publishes to <https://nusmedicine.github.io/statml/>.
+  There is no staging step, which is what makes `npm run check` load-bearing.
 - GitHub Pages sends `max-age=600`, so a student can get a stale widget for ten
   minutes after a deploy. The fix is content-hashed filenames, which needs a
   bundler and would end the no-build property. Not yet.

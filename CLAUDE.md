@@ -150,10 +150,14 @@ docs/               prd, design principles, catalogue
 
 ## Things that will bite you
 
-- **There is still no git remote**, so Pages has never deployed and no widget has
-  a real URL to paste into a lesson yet. The target is settled —
-  `https://nusmedicine.github.io/statml/widget/<slug>/` — and the build already
-  emits that layout; only the push is missing. See README § Deploying.
+- **The site is live at <https://nusmedicine.github.io/statml/>**, deployed from
+  `main` by `.github/workflows/deploy.yml`; a widget is
+  `…/statml/widget/<slug>/`. **Every push to `main` publishes**, with no staging
+  step — which is what makes `npm run check` before committing load-bearing
+  rather than tidy.
+- **The repo is public and carries no licence**, which is all-rights-reserved by
+  default. Deliberate while the arc is unfinished — prd §8 has the eventual
+  CC-BY-4.0/MIT decision and the trigger for adding the files.
 - **The deployed site is served from a `/statml/` subpath**, so every path in a
   deployed file must be relative. An absolute one works in dev and 404s in
   production; `npm run check` fails on it.

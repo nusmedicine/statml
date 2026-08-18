@@ -84,14 +84,20 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
 ### What is NOT verified
 
-1. **No git remote.** Pages has never deployed and **no widget has a real URL
-   yet**, so nothing can be pasted into a lesson. Everything on this side is now
-   done — the URL scheme is settled at
-   `https://nusmedicine.github.io/statml/widget/<slug>/`, the build emits that
-   layout, `deploy.yml` is correct, and both licences are in place. What remains
-   needs a GitHub credential this machine does not have: create the public repo
-   `nusmedicine/statml`, push `main`, set Pages source to **GitHub Actions**.
-   See README § Deploying.
+1. ~~**No git remote.**~~ **Closed.** The site is live at
+   <https://nusmedicine.github.io/statml/>, deployed from `main` by GitHub
+   Actions, and every widget has a real URL —
+   `https://nusmedicine.github.io/statml/widget/<slug>/`. Verified against the
+   deployed site rather than the build: `clt` boots, animates and reports the
+   right share link under the `/statml/` subpath.
+
+   **Two consequences.** Every push to `main` publishes, so `npm run check`
+   before committing stopped being tidiness. And the repo is public with **no
+   licence**, which is all-rights-reserved by default and is deliberate — prd §8
+   carries the CC-BY-4.0/MIT decision and the trigger for adding it.
+
+   **What is left is not in this repo:** paste the real URLs into the PHM5003
+   lesson markdown cells — which is also what finally settles point 2 below.
 2. **Does an `<iframe>` survive a JupyterLab markdown cell?** JupyterLab
    sanitises HTML there and may strip it. One test in one lesson decides whether
    widgets appear inline or only behind a link. Both work; inline is nicer.

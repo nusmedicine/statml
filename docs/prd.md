@@ -219,9 +219,10 @@ should prompt the question of who will ever show it.
   404s in production. `npm run check` fails on one, and `scripts/serve.mjs` serves
   the deployed layout so a copied URL needs no editing between dev and production.
 
-- **Order of newly unblocked work:** create the public repo and remote → first
-  Pages deploy → paste real URLs into lesson markdown cells. Steps two and three
-  are all that is left; the repo side is built.
+- **Order of newly unblocked work:** ~~create the public repo and remote~~ →
+  ~~first Pages deploy~~ → **paste real URLs into lesson markdown cells.** The
+  first two are done — `nusmedicine/statml` is public and the site is live. Only
+  the third is left, and it happens in the notebook project, not here.
 
 **The widgets collect nothing.** No analytics, no telemetry, no backend, no
 accounts. This is not only a privacy position — it is what lets a widget be
