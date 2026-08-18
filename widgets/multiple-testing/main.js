@@ -128,28 +128,51 @@ function tTest(a, b, n) {
  */
 function callsFor(state, k) {
   const { p, isReal } = state;
-  if (k <= 0) return RULES.map((r) => ({ key: r.key, tp: 0, fp: 0, cut: 0 }));
+  const zeros = () => new Array(BINS).fill(0);
+  const blank = () => RULES.map((r) => ({ key: r.key, tp: 0, fp: 0, hist: zeros(), called: zeros() }));
+  if (k <= 0) return blank();
 
   const order = Array.from({ length: k }, (_, i) => i).sort((i, j) => p[i] - p[j]);
 
-  // Benjamini–Hochberg: the largest rank whose p is still under (rank/k)·alpha.
-  let bhRank = 0;
+  /* ADJUSTED p-values, one array per rule, indexed by RANK.
+     Adjusting the p-values instead of moving the threshold is what lets all
+     three panels keep the SAME 0.05 cut on the SAME linear axis: the
+     distribution moves right under correction rather than the threshold moving
+     left into a pixel indistinguishable from zero. It is also the column real
+     tools hand you — DESeq2 and limma give you padj and you cut it at 0.05. */
+  const adj = {
+    raw: new Float64Array(k),
+    bonf: new Float64Array(k),
+    bh: new Float64Array(k),
+  };
+  for (let r = 0; r < k; r += 1) {
+    adj.raw[r] = p[order[r]];
+    adj.bonf[r] = Math.min(1, p[order[r]] * k);
+  }
+  /* BH steps DOWN from the largest p, carrying the running minimum, which is
+     what makes the adjusted values monotone — without it a gene could be
+     "more significant" than one with a smaller raw p. */
+  let running = 1;
   for (let r = k; r >= 1; r -= 1) {
-    if (p[order[r - 1]] <= (r / k) * ALPHA) { bhRank = r; break; }
+    running = Math.min(running, (k / r) * p[order[r - 1]]);
+    adj.bh[r - 1] = Math.min(1, running);
   }
 
-  const cuts = { raw: ALPHA, bonf: ALPHA / k, bh: bhRank ? p[order[bhRank - 1]] : -1 };
-
   return RULES.map((rule) => {
-    const cut = cuts[rule.key];
+    const a = adj[rule.key];
+    const hist = zeros();
+    const called = zeros();
     let tp = 0;
     let fp = 0;
     for (let r = 0; r < k; r += 1) {
-      const i = order[r];
-      if (p[i] > cut) break; // sorted, so nothing further can qualify
-      if (isReal[i]) tp += 1; else fp += 1;
+      const bin = Math.min(BINS - 1, Math.floor(a[r] * BINS));
+      hist[bin] += 1;
+      if (a[r] <= ALPHA) {
+        called[bin] += 1;
+        if (isReal[order[r]]) tp += 1; else fp += 1;
+      }
     }
-    return { key: rule.key, tp, fp, cut };
+    return { key: rule.key, tp, fp, hist, called };
   });
 }
 
@@ -161,7 +184,7 @@ defineWidget({
     "Test twenty thousand genes at p < 0.05 and about a thousand come back " +
     "significant even when not one of them is different. That is not a finding, " +
     "it is arithmetic. Set the real effects to zero and watch it happen.",
-  height: 620,
+  height: 700,
 
   params: {
     /* The headline number, and the reason the widget exists. 20,000 is a real
@@ -288,111 +311,73 @@ defineWidget({
     const padL = 54;
     const padR = 16;
 
-    /* --- what the effect actually looks like --------------------------- *
-     * A STRIP, not a panel. Mocked up at three heights in _lab/mt-panels.html:
-     * two curves and a shaded overlap lose nothing at a third the height, so it
-     * buys its lesson cheaply and the carpet below keeps the room it needs.
-     * It exists because "2.0 SD" is a number students cannot picture, and the
-     * overlap is the reason detection is hard at all. */
-    const stripH = 78;
+    /* A STRIP, not a panel. Mocked up at three heights in _lab/mt-panels.html:
+       two curves and a shaded overlap lose nothing at a third the height. It
+       exists because "2.0 SD" is a number students cannot picture, and the
+       overlap is the reason detection is hard at all. */
+    const stripH = 74;
     drawOverlap(ctx, colors, { x: padL, y: 26, w: w - padL - padR, h: stripH }, params);
 
-    const topInset = 26 + stripH + 54;
-    const topH = Math.round(h * 0.40);
-    const gap = 58;
+    /* ONE SHARED Y-SCALE across all three carpets, taken from the RAW one.
+       Scale each to its own peak instead and Bonferroni's axis runs to 20,000 —
+       because it sends almost every gene to exactly 1.0 — which turns the
+       handful of survivors into a sub-pixel bar and destroys the only
+       comparison that matters. Sharing keeps the left-hand side readable and
+       lets the pile at 1.0 run off the top, labelled. */
+    const expected = shown / BINS;
+    const yMax = Math.max(1, expected * 1.35, ...(calls[0] ? calls[0].hist : [1]));
 
-    /* --- the p-value carpet ------------------------------------------- */
+    const top = 26 + stripH + 52;
+    const gap = 46;
+    const panelH = Math.max(60, (h - top - 24 - gap * 2) / 3);
 
-    const counts = new Array(BINS).fill(0);
-    for (let i = 0; i < shown; i += 1) {
-      const k = Math.min(BINS - 1, Math.floor(state.p[i] * BINS));
-      counts[k] += 1;
-    }
-    const expected = shown / BINS; // what a flat carpet would put in every bin
-    const peak = Math.max(1, ...counts, expected);
-
-    const hist = makePlot({
-      ctx, colors,
-      rect: { x: padL, y: topInset, w: w - padL - padR, h: topH },
-      xDomain: [0, 1],
-      yDomain: [0, peak * 1.18],
-    });
-    hist.grid(niceTicks(0, peak * 1.18, 4));
-    hist.axisY({ ticks: niceTicks(0, peak * 1.18, 4), label: "genes" });
-    hist.axisX({ ticks: [0, 0.05, 0.25, 0.5, 0.75, 1], label: "p-value" });
-    hist.caption(
-      shown
-        ? `${fmt(shown, 0)} genes tested — the first bar is p < 0.05`
-        : "p-values from every gene — nothing tested yet"
-    );
-
-    if (shown) {
-      // The first bin IS the significant set, so it wears the threshold colour.
-      hist.bars(counts.map((c, i) => (i === 0 ? c : 0)), {
-        lo: 0, width: 1 / BINS, fill: colors.extreme, opacity: 0.9,
-      });
-      hist.bars(counts.map((c, i) => (i === 0 ? 0 : c)), {
-        lo: 0, width: 1 / BINS, fill: colors.empirical, opacity: 0.7,
-      });
-
-      /* What chance alone produces, drawn flat across the top. The carpet is
-         CHECKED against this rather than merely described as flat. */
-      hist.curve([[0, expected], [1, expected]], { stroke: colors.theory, width: 2, dash: [5, 4] });
-    }
-
-    /* --- what each rule calls ----------------------------------------- */
-
-    const barsY = topInset + topH + gap;
-    const barsH = h - barsY - 18;
-    const rowH = barsH / RULES.length;
-    const widest = Math.max(1, ...calls.map((c) => c.tp + c.fp));
-
-    const bars = makePlot({
-      ctx, colors,
-      rect: { x: padL, y: barsY, w: w - padL - padR, h: barsH },
-      xDomain: [0, widest],
-      yDomain: [0, RULES.length],
-    });
-    bars.caption(
-      shown ? "What each rule calls significant, of the genes tested so far" : "What each rule would call significant"
-    );
-
-    /* Label and counts on ONE line ABOVE each bar, not beside it. Beside was the
-       first attempt and clipped at both ends: "Bonferroni" ran off the left
-       margin into "onferroni", and the uncorrected bar is so long that its count
-       text ran off the right. Above the bar, neither edge constrains anything. */
-    ctx.save();
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "left";
     for (let r = 0; r < RULES.length; r += 1) {
       const c = calls[r];
-      const top = barsY + r * rowH;
-      const x0 = bars.sx(0);
-      const barH = Math.min(14, rowH * 0.3);
+      const rect = { x: padL, y: top + r * (panelH + gap), w: w - padL - padR, h: panelH };
+      const plot = makePlot({ ctx, colors, rect, xDomain: [0, 1], yDomain: [0, yMax] });
+
+      plot.axisY({ ticks: niceTicks(0, yMax, 3), label: "genes" });
+      plot.axisX({ ticks: [0, 0.05, 0.25, 0.5, 0.75, 1], label: r === RULES.length - 1 ? "adjusted p-value" : "" });
+
       const total = c.tp + c.fp;
       const pct = total ? Math.round((100 * c.fp) / total) : 0;
-
-      ctx.fillStyle = colors.ink2;
-      ctx.fillText(
-        total
-          ? `${RULES[r].label} — ${fmt(total, 0)} called, ${fmt(c.fp, 0)} false (${pct}%)`
-          : `${RULES[r].label} — nothing called`,
-        x0,
-        top + rowH * 0.42
+      plot.caption(
+        !shown
+          ? RULES[r].label
+          : total
+            ? `${RULES[r].label} — ${fmt(total, 0)} called, ${fmt(c.fp, 0)} false (${pct}%)`
+            : `${RULES[r].label} — nothing called`
       );
 
-      const y = top + rowH * 0.52;
-      const wTp = bars.sx(c.tp) - x0;
-      const wFp = bars.sx(c.tp + c.fp) - bars.sx(c.tp);
-      // A minimum of one pixel, so a rule that found something never renders as
-      // having found nothing.
-      ctx.fillStyle = colors.empirical;
-      ctx.fillRect(x0, y, c.tp > 0 ? Math.max(1, wTp) : 0, barH);
-      ctx.fillStyle = colors.extreme;
-      ctx.fillRect(x0 + wTp, y, c.fp > 0 ? Math.max(1, wFp) : 0, barH);
+      if (!shown) continue;
+
+      /* CLAMPED to the shared ceiling. bars() does not clip to its rect, so
+         Bonferroni's pile of ~19,900 at padj = 1 drew eighteen times past the
+         top of its panel and straight over the carpet and the overlap strip
+         above it. Clamping stops it flush at the ceiling; the arrow label below
+         carries the real count, so nothing is hidden, only bounded. */
+      const cap = (arr) => arr.map((v) => Math.min(v, yMax));
+      plot.bars(cap(c.hist), { lo: 0, width: 1 / BINS, fill: colors.empirical, opacity: 0.7 });
+      // What this rule actually calls, at the SAME 0.05 cut in every panel.
+      plot.bars(cap(c.called), { lo: 0, width: 1 / BINS, fill: colors.extreme, opacity: 0.95 });
+
+      // Only the raw carpet is flat, so only it gets the flatness prediction.
+      if (r === 0) {
+        plot.curve([[0, expected], [1, expected]], { stroke: colors.theory, width: 2, dash: [5, 4] });
+      }
+
+      /* Anything past the shared ceiling says so in words rather than being
+         silently cropped, which would read as a bug. */
+      ctx.save();
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.fillStyle = colors.ink3;
+      ctx.textAlign = "right";
+      for (let b = 0; b < BINS; b += 1) {
+        if (c.hist[b] <= yMax) continue;
+        ctx.fillText(`${fmt(c.hist[b], 0)} ↑`, plot.sx((b + 1) / BINS) - 2, rect.y + 10);
+      }
+      ctx.restore();
     }
-    ctx.restore();
   },
 
   readout: ({ state, anim }) => {

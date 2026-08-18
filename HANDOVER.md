@@ -136,7 +136,7 @@ rule bars. 20,000 real two-sample t-tests take about 60 ms, so nothing is faked.
 Defaults authored by measurement: at n = 12 with a 2.0 SD effect, p < 0.05 calls
 1094 with 91% false, Bonferroni 21 with none false, BH 75 with 3 false.
 
-### THE AGREED CHANGE: plot ADJUSTED p-values, not raw ones
+### ~~THE AGREED CHANGE~~ — DONE: adjusted p-values, three stacked carpets
 
 Three stacked carpets — raw, Bonferroni-adjusted, BH-adjusted — instead of the
 current three rule bars.
@@ -159,8 +159,8 @@ current three rule bars.
   here. (It is right in a rank-versus-p threshold panel, where there is no
   flatness to lose; that panel is mocked up too and was not chosen.)
 
-**The one open design problem.** Bonferroni-adjusted sends ~19,900 of 20,000
-genes to exactly 1.0. Scale each panel to its own peak and the y-axis becomes
+**Resolved as proposed, and it works.** Bonferroni-adjusted sends ~19,900 of
+20,000 genes to exactly 1.0. Scale each panel to its own peak and the y-axis becomes
 20,000, making the 21 survivors a 0.3px bar — invisible, which defeats the point.
 The proposal is to put **all three panels on the raw carpet's scale (~1150)** so
 the left-hand side stays directly comparable, and let the pile at 1.0 clip off
