@@ -3,94 +3,109 @@
 
      increments → means → one sample → AN INTERVAL → a null by shuffling → many nulls
 
-   Widgets 1–3 build the sampling distribution. This one is about READING it:
-   widget 3 already computes the distribution an interval is cut from, so the
-   only new idea here is what you do with it.
+   ONE GROUP, and it is the same statistic widget 3 bootstrapped: a mean. Widget 3
+   builds the distribution an interval is cut from, so the only new idea here is
+   the cut. An earlier draft made this a two-group difference, per HANDOVER §2,
+   which also recorded the cost — "a student meets a new statistic AND a new
+   concept together" — and named the fix if it bit. It bit: teaching t against z
+   on a difference drags in Welch versus pooled degrees of freedom, which is noise
+   beside the point. The difference now arrives in widget 5, which needs two
+   groups anyway. Each step of the arc changes one thing.
 
-   MISCONCEPTION TARGETED — documented, not inferred. That there is a 95% chance
-   the true value lies in THIS interval. A realised interval either contains the
-   truth or it does not; the 95% describes the PROCEDURE across many studies.
-   Greenland et al. 2016 enumerate it and record it persisting among researchers.
+   TWO MISCONCEPTIONS, and the second is why three methods are here.
+
+   1. That there is a 95% chance the truth lies in THIS interval. A realised
+      interval either contains it or does not; the 95% describes the PROCEDURE
+      across many studies. Greenland et al. 2016 record it persisting among
+      researchers, not only students.
+
+   2. That the normal multiplier is fine for a mean at any n, because the CLT
+      says means go normal. It is not, and t is the price of having estimated σ
+      from the same small sample.
 
    THE TEACHING DESIGN, which is the part worth arguing about:
 
-   - ONE VERB, TWO READINGS. Every press runs one study: sample two groups,
-     bootstrap the difference, cut the 2.5th and 97.5th percentiles. The `view`
-     control then chooses how the SAME studies are drawn — this one in detail, or
-     all of them as a ladder. That makes view a display parameter, so a student
-     can build a hundred studies and only then flip to see coverage without
-     losing a single one. Invariant 3 is not a constraint here, it is the design:
-     the two pictures are the same evidence, and being able to move between them
-     without rebuilding is what lets the second correct the first.
+   - ONE VERB, THREE READINGS. Every press runs one study. `method` and `view`
+     are BOTH display parameters, so all three intervals are computed for every
+     study and switching only changes which is drawn. Flip z → t and the SAME
+     hundred studies are re-cut by a different rule: coverage moves, particular
+     rows turn red, the truth does not move, and nothing was re-randomised. There
+     is no "maybe it was a different sample" escape hatch, which is exactly what
+     makes the comparison an argument rather than an anecdote.
 
-   - THE LADDER IS THE ARGUMENT, THE SINGLE INTERVAL IS ITS SETUP. One interval
-     looks like an answer — a range, around your estimate, that feels like where
-     the truth is. A hundred of them, with about five missing and a vertical rule
-     showing which, says the thing the first picture cannot: the 95% was never a
-     property of your interval. It is the hit rate of the machine that made it.
+   - THE LOWER PANEL IS ALWAYS "THE DISTRIBUTION THE INTERVAL IS CUT FROM", and
+     the three methods differ only in where that distribution came from: resampled
+     from your data, or assumed to be normal, or assumed to be t. That single
+     parallel IS the bridge from resampling to analytical — the formula is not a
+     new idea, it is a shape you assumed instead of one you built. At a normal
+     population and moderate n the bootstrap and t pictures nearly coincide, which
+     is the reason the shortcut is worth learning.
 
-   - A MISSING INTERVAL IS `--c-extreme`, NOT A NEW COLOUR. "Past a threshold" is
-     exactly what a miss is, and widget 5 already uses that red for the shuffles
-     a p-value counts. Same red, same meaning: this one is on the wrong side of a
-     line that matters.
+   - t IS DRAWN OVER z, NOT DESCRIBED. With method = t the normal curve stays on
+     screen, recessive, so the fatter tails are visible as the reason the interval
+     is wider. Coverage is the consequence; the tails are the mechanism, and a
+     student shown only the consequence files t as an arbitrary table lookup.
 
-   - THE TRUTH IS DRAWN, AND IT IS THE ONLY THING THAT DOES NOT MOVE. A vertical
-     `--c-reference` rule at the true difference, spanning the whole ladder. The
-     intervals scatter around it; it never scatters around them. That is the
-     asymmetry the misconception gets backwards.
+   - THE POPULATION CONTROL CARRIES A SECOND LESSON FOR FREE. Two things break a
+     z interval at small n: σ was estimated (t prices this exactly), and the
+     sampling distribution is not normal yet (t does nothing for this). Normal at
+     n = 5: z ≈ 88%, t ≈ 95%. Exponential at n = 5: NEITHER reaches 95%. That
+     inoculates against the misconception this very lesson would otherwise
+     create — that t makes small samples safe.
 
-   - THE WINDOW IS CENTRED ON THE TRUTH, NEVER ON THE ESTIMATE. Centring on the
-     estimate is the obvious choice, puts the interval in the middle every time,
-     and hides the one thing the method cannot do. Widget 3 earned this rule.
+   - THE WINDOW IS CENTRED ON THE TRUTH, NEVER ON THE ESTIMATE. Widget 3 earned
+     this: centring on the estimate puts the interval in the middle every time and
+     hides the one thing the method cannot do.
 
-   - THE READOUT PAIRS NOMINAL WITH REALISED, and shows the partial count so a
-     student watches 95% arrive rather than being told it. Early on the realised
-     figure is visibly noisy — 3 of 4 is 75% — which is itself the lesson that
-     the guarantee is asymptotic.
+   - THE READOUT PAIRS NOMINAL WITH REALISED and shows the partial count, so 95%
+     is watched arriving rather than asserted. Early on it is visibly noisy, which
+     is itself the point that the guarantee is about the long run.
 
-   PERCENTILES COME FROM A SORTED ARRAY THIS WIDGET KEEPS, not from the pile.
+   PERCENTILES COME FROM A SORTED ARRAY THIS WIDGET KEEPS, as decided.
    `createPile` holds binned counts and running sums, not values, so a quantile
-   read off it would be interpolated within a bin — and an interval read off an
-   approximation is a bad thing to teach percentiles with. The pile stays what it
-   is good at, which is being the drawing. If widget 6 ever needs quantiles too,
-   that is the moment to reconsider, not before.
+   off it is interpolated within a bin — and an interval read off an approximation
+   is a bad thing to teach percentiles with.
+
+   PLOTTED IN DENSITY, NOT COUNTS, which is a deliberate exception to the rule in
+   the skill. That rule was earned by the ACCUMULATING pile in widgets 1, 2 and 5,
+   where a per-frame rescale hides the convergence that is the point. Nothing
+   accumulates in this panel: it is one study's distribution, fully revealed, and
+   density is the only axis on which a resampled histogram and an assumed curve
+   can be compared at all.
    ========================================================================= */
 
 import {
-  defineWidget, POPULATIONS, EFFECT_SD, fmt,
+  defineWidget, POPULATIONS, fmt,
+  normalPdf, studentTPdf, tCritical, Z_CRITICAL_95,
   makePlot, niceTicks,
   binsFor,
 } from "../core/index.js";
 
-/* Detail lines are this widget's own. The multiples are shared with widget 5
-   (core/stats.js) because the two must describe the same experiment, but what is
-   worth saying about an effect differs: widget 5's details carry detection
-   rates, because a p-value is about detection. An interval is about width, so
-   these say what the interval has to do. */
-const EFFECTS = {
-  none: { label: "None", detail: "the true difference is exactly zero", sd: EFFECT_SD.none },
-  small: { label: "Small", detail: "0.4 SD — narrow intervals will miss it", sd: EFFECT_SD.small },
-  moderate: { label: "Moderate", detail: "0.9 SD", sd: EFFECT_SD.moderate },
-  large: { label: "Large", detail: "1.3 SD", sd: EFFECT_SD.large },
-};
-
-/* Every tier still shows the interval being cut. What the fastest one drops is
-   the per-resample choreography, not the information — the lesson recorded in
-   widget 5, where a speed that quietly stopped updating a panel froze half the
-   figure with nothing on screen saying why. */
-const SPEEDS = {
-  slow: { label: "Slow", detail: "every resample shown", ms: 1500, choreo: true },
-  medium: { label: "Medium", detail: "every resample shown", ms: 700, choreo: true },
-  fast: { label: "Fast", detail: "intervals only", ms: 90, choreo: false },
-};
-
-const VIEWS = {
-  one: { label: "This study" },
-  all: { label: "All studies" },
-};
-
 const CONF = 0.95;
 const TAIL = (1 - CONF) / 2;
+
+const METHODS = {
+  boot: {
+    label: "Bootstrap",
+    detail: "percentiles of resampled means — assumes nothing about the shape",
+  },
+  z: {
+    label: "Normal (z)",
+    detail: "x̄ ± 1.96·s/√n — treats the estimated s as if it were σ",
+  },
+  t: {
+    label: "t",
+    detail: "x̄ ± t·s/√n — pays for having estimated σ from the same data",
+  },
+};
+
+const VIEWS = { one: { label: "This study" }, all: { label: "All studies" } };
+
+const SPEEDS = {
+  slow: { label: "Slow", detail: "every study shown", ms: 1400 },
+  medium: { label: "Medium", detail: "every study shown", ms: 600 },
+  fast: { label: "Fast", detail: "intervals only", ms: 80 },
+};
 
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
@@ -98,15 +113,16 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const distOptions = ["normal", "exponential", "bimodal", "uniform", "pareto"]
   .map((value) => ({ value, label: POPULATIONS[value].label }));
 
-/** The statistic, in one place. Both the study and every resample use it, so
-    the halves of the figure cannot come to disagree about what a difference is. */
-const diffOf = (a, b) => {
-  let sa = 0;
-  let sb = 0;
-  for (let i = 0; i < a.length; i += 1) sa += a[i];
-  for (let i = 0; i < b.length; i += 1) sb += b[i];
-  return sb / b.length - sa / a.length;
-};
+/** Sample mean and the n−1 sample SD, in one place so the two never disagree. */
+function summarise(x) {
+  const n = x.length;
+  let sum = 0;
+  for (let i = 0; i < n; i += 1) sum += x[i];
+  const m = sum / n;
+  let ss = 0;
+  for (let i = 0; i < n; i += 1) ss += (x[i] - m) * (x[i] - m);
+  return { mean: m, sd: Math.sqrt(ss / Math.max(1, n - 1)) };
+}
 
 /** Percentile of an ASCENDING array, interpolated between neighbours. */
 function quantile(sorted, p) {
@@ -122,34 +138,37 @@ defineWidget({
   title: "Confidence Intervals",
   status: "draft",
   subtitle:
-    "Every study gives one interval, and that one either contains the true " +
-    "difference or it does not. The 95% is not about your interval — it is how " +
-    "often the procedure that made it succeeds. Run studies until you can see " +
-    "the difference between those two statements.",
+    "Every study gives one interval, and that one either contains the true mean " +
+    "or it does not. The 95% is not about your interval — it is how often the " +
+    "procedure that made it succeeds. Build the intervals three ways and watch " +
+    "how often each actually works.",
   height: 560,
 
   params: {
     dist: { type: "select", label: "Population", options: distOptions, default: "normal" },
-    n: { type: "int", label: "Group size n", min: 4, max: 40, default: 12 },
 
-    effect: {
-      type: "choice",
-      label: "True effect",
-      options: Object.entries(EFFECTS).map(([value, e]) => ({ value, label: e.label, detail: e.detail })),
-      default: "moderate",
+    /* Down to 3, because the whole t lesson lives at small n and is invisible
+       above about 30. The default is 5: z undercovers by about seven points
+       there, which is large enough to see in a hundred studies. */
+    n: { type: "int", label: "Sample size n", min: 3, max: 40, default: 5 },
+
+    /* THE CONTROL THIS WIDGET IS REALLY ABOUT, and it is a DISPLAY parameter.
+       All three intervals are computed for every study, so switching re-cuts the
+       same studies rather than running new ones. Same data, same truth, different
+       rule, different hit rate — with nothing re-randomised to blame it on. */
+    method: {
+      type: "segmented",
+      label: "Interval from",
+      options: Object.entries(METHODS).map(([value, m]) => ({ value, label: m.label, detail: m.detail })),
+      default: "boot",
+      display: true,
     },
 
-    /* Resamples PER STUDY. Data, not display: change it and every interval is
-       cut from a different distribution, so the studies really are different. */
     reps: { type: "int", label: "Resamples per study", min: 50, max: 1000, step: 50, default: 400 },
 
-    /* The first k studies are the same k studies whatever the target, so raising
-       this must not throw away what is on screen. */
+    // The first k studies are the same k studies, so raising this keeps the work.
     studies: { type: "int", label: "Studies to run", min: 1, max: 200, step: 1, default: 100, display: true },
 
-    /* THE VIEW IS A DISPLAY PARAMETER, and that is the whole design. Both views
-       draw the SAME studies, so flipping between them keeps every one a student
-       has collected. Build a hundred here, then look at them there. */
     view: {
       type: "segmented",
       label: "Show",
@@ -171,65 +190,69 @@ defineWidget({
   },
 
   legend: [
-    { token: "group-a", label: "Group A", mark: "dot" },
-    { token: "group-b", label: "Group B", mark: "dot" },
-    { token: "reference", label: "The true difference", mark: "line" },
+    { token: "empirical", label: "Interval that contains the true mean", mark: "line" },
     { token: "extreme", label: "Interval that misses it", mark: "line" },
+    { token: "theory", label: "The distribution it was cut from", mark: "line" },
+    { token: "reference", label: "The true mean", mark: "line" },
   ],
 
-  /* Pure and seeded. EVERY study is computed here, including its whole bootstrap
-     distribution and its interval — the animation only reveals them, which is
-     what makes the picture land exactly where the seed promises. */
   compute: ({ params, rng }) => {
     const pop = POPULATIONS[params.dist];
-    const trueDiff = EFFECTS[params.effect].sd * pop.sd;
+    const mu = pop.mean;
+    const df = params.n - 1;
+    const tCrit = tCritical(df, CONF);
+    const se = (s) => s / Math.sqrt(params.n);
 
     const studies = [];
-    for (let s = 0; s < params.studies; s += 1) {
-      const a = Array.from({ length: params.n }, () => pop.sample(rng));
-      const b = Array.from({ length: params.n }, () => pop.sample(rng) + trueDiff);
-      const obs = diffOf(a, b);
+    for (let k = 0; k < params.studies; k += 1) {
+      const x = Array.from({ length: params.n }, () => pop.sample(rng));
+      const { mean: xbar, sd: s } = summarise(x);
 
-      /* The bootstrap of a difference resamples EACH GROUP separately, with
-         replacement and at its own size. Pooling the two would destroy the
-         grouping this widget is estimating. */
-      const diffs = new Array(params.reps);
+      // Bootstrap: resample the sample with replacement, recompute the mean.
+      const means = new Array(params.reps);
       for (let r = 0; r < params.reps; r += 1) {
-        const ia = rng.resample(params.n);
-        const ib = rng.resample(params.n);
-        let sa = 0;
-        let sb = 0;
-        for (let i = 0; i < params.n; i += 1) {
-          sa += a[ia[i]];
-          sb += b[ib[i]];
-        }
-        diffs[r] = sb / params.n - sa / params.n;
+        const idx = rng.resample(params.n);
+        let sum = 0;
+        for (let i = 0; i < params.n; i += 1) sum += x[idx[i]];
+        means[r] = sum / params.n;
       }
+      const sorted = [...means].sort((p, q) => p - q);
 
-      // The sorted array IS the interval's source of record — see the header.
-      const sorted = [...diffs].sort((x, y) => x - y);
-      const lo = quantile(sorted, TAIL);
-      const hi = quantile(sorted, 1 - TAIL);
+      const half = { z: Z_CRITICAL_95 * se(s), t: tCrit * se(s) };
+      const iv = {
+        boot: [quantile(sorted, TAIL), quantile(sorted, 1 - TAIL)],
+        z: [xbar - half.z, xbar + half.z],
+        t: [xbar - half.t, xbar + half.t],
+      };
 
-      studies.push({ a, b, obs, diffs, lo, hi, covers: lo <= trueDiff && trueDiff <= hi });
+      studies.push({
+        x, xbar, s, means,
+        iv,
+        covers: {
+          boot: iv.boot[0] <= mu && mu <= iv.boot[1],
+          z: iv.z[0] <= mu && mu <= iv.z[1],
+          t: iv.t[0] <= mu && mu <= iv.t[1],
+        },
+      });
     }
 
-    /* One window for every study and both views, centred on the TRUTH. Widget 3
-       earned this: centring on the estimate puts the interval in the middle every
-       time and hides the only thing the method cannot do. Wide enough that a
-       missing interval still lands inside the frame rather than being clipped
-       into invisibility, which would hide exactly the studies that matter. */
+    /* ONE window for every study, every method and both views, centred on the
+       TRUTH. Sized to the widest method so switching method never rescales the
+       axis — if it did, a narrower z interval would look the same size as a t
+       one and the mechanism would be invisible. */
     let reach = 0;
     for (const st of studies) {
-      reach = Math.max(reach, Math.abs(st.lo - trueDiff), Math.abs(st.hi - trueDiff));
+      for (const key of ["boot", "z", "t"]) {
+        reach = Math.max(reach, Math.abs(st.iv[key][0] - mu), Math.abs(st.iv[key][1] - mu));
+      }
     }
-    reach = reach > 0 ? reach * 1.12 : pop.sd;
-    const domain = [trueDiff - reach, trueDiff + reach];
+    reach = reach > 0 ? reach * 1.1 : pop.sd;
+    const domain = [mu - reach, mu + reach];
 
     const bins = binsFor(params.reps);
     const width = (domain[1] - domain[0]) / bins;
 
-    return { pop, trueDiff, studies, domain, bins, width };
+    return { pop, mu, df, tCrit, studies, domain, bins, width };
   },
 
   animation: {
@@ -237,79 +260,65 @@ defineWidget({
     runLabel: "Play",
 
     init: ({ params, state, fromScratch }) => ({
-      // How many studies are FINISHED. The one in flight is at index `done`.
       done: fromScratch ? 0 : Math.min(params.shown, state.studies.length),
       t: 0,
       running: false,
-      done_: false,
     }),
 
     advance: (anim, { dt, params, state }) => {
-      if (anim.done >= state.studies.length) {
-        anim.done_ = true;
-        return false;
-      }
-      const speed = SPEEDS[params.speed];
-      anim.t += dt / speed.ms;
-
+      if (anim.done >= state.studies.length) return false;
+      anim.t += dt / SPEEDS[params.speed].ms;
       if (anim.t < 1) {
         anim.running = true;
         return true;
       }
-
       anim.t = 0;
       anim.done += 1;
       anim.running = false;
-      if (anim.done >= state.studies.length) {
-        anim.done_ = true;
-        return false;
-      }
-      return anim.mode === "run";
+      return anim.done < state.studies.length && anim.mode === "run";
     },
 
-    /* A display change must not discard the student's work. Nothing derived
-       lives in `anim` — it holds a count and a clock, both of which survive a
-       binning or view change untouched — so there is nothing to rebuild. The
-       hook is declared anyway to say that deliberately rather than by omission. */
+    /* Nothing derived lives in `anim` — a count and a clock, both of which
+       survive a method, view or binning change untouched. Declared rather than
+       omitted so that is a statement instead of an oversight. */
     rebuild: (anim, { state }) => {
       anim.done = Math.min(anim.done, state.studies.length);
     },
   },
 
-  draw: ({ ctx, colors, w, h, params, state, anim }) => {
-    const shown = anim ? anim.done : 0;
-    const inFlight = anim && anim.running && shown < state.studies.length;
+  draw: (args) => (args.params.view === "all" ? drawLadder(args) : drawOne(args)),
 
-    if (params.view === "all") drawLadder({ ctx, colors, w, h, params, state, shown, inFlight, anim });
-    else drawOne({ ctx, colors, w, h, params, state, shown, inFlight, anim });
-  },
-
-  readout: ({ state, anim }) => {
+  readout: ({ params, state, anim }) => {
     const shown = anim ? anim.done : 0;
+    const m = params.method;
     const done = state.studies.slice(0, shown);
-    const hits = done.filter((s) => s.covers).length;
+    const hits = done.filter((s) => s.covers[m]).length;
     const current = shown > 0 ? done[done.length - 1] : null;
+
+    const meanWidth = done.length
+      ? done.reduce((acc, s) => acc + (s.iv[m][1] - s.iv[m][0]), 0) / done.length
+      : null;
+
+    const multiplier =
+      m === "z" ? `× ${fmt(Z_CRITICAL_95, 2)} on s/√n`
+      : m === "t" ? `× ${fmt(state.tCrit, 2)} on s/√n, ${state.df} df`
+      : "percentiles — no multiplier";
 
     return [
       {
         label: "This interval",
-        value: current ? `${fmt(current.lo, 2)} to ${fmt(current.hi, 2)}` : "—",
-        note: current ? (current.covers ? "contains the truth" : "MISSES the truth") : "run a study",
+        value: current ? `${fmt(current.iv[m][0], 2)} to ${fmt(current.iv[m][1], 2)}` : "—",
+        note: current ? (current.covers[m] ? "contains the true mean" : "MISSES the true mean") : "run a study",
       },
       {
-        label: "True difference",
-        value: fmt(state.trueDiff, 2),
-        note: "you never see this",
+        /* Width is the MECHANISM and coverage is the consequence. Shown together
+           because a student given only the coverage files t as a table lookup. */
+        label: "Typical width",
+        value: meanWidth === null ? "—" : fmt(meanWidth, 2),
+        note: multiplier,
       },
+      { label: "Nominal", value: "95%", note: "what the procedure promises" },
       {
-        label: "Nominal",
-        value: "95%",
-        note: "what the procedure promises",
-      },
-      {
-        /* The honest pair. Shows the partial count so the 95% is watched
-           arriving rather than asserted — and early on it is visibly noisy,
-           which is itself the point that the guarantee is about the long run. */
         label: "Realised so far",
         value: shown ? `${fmt((100 * hits) / shown, 1)}%` : "—",
         note: shown ? `${hits} of ${shown} contained it` : "no studies yet",
@@ -317,33 +326,31 @@ defineWidget({
     ];
   },
 
-  summary: ({ state, anim }) => {
+  summary: ({ params, state, anim }) => {
     const shown = anim ? anim.done : 0;
     if (!shown) return "No studies run yet. The figure is empty.";
     const done = state.studies.slice(0, shown);
-    const miss = done.filter((s) => !s.covers).length;
+    const hits = done.filter((s) => s.covers[params.method]).length;
     return (
-      `${shown} studies run. ${shown - miss} intervals contain the true difference of ` +
-      `${fmt(state.trueDiff, 2)} and ${miss} miss it.`
+      `${shown} studies, intervals built by ${METHODS[params.method].label}. ` +
+      `${hits} contain the true mean of ${fmt(state.mu, 2)} and ${shown - hits} miss it.`
     );
   },
 });
 
-/* --- view 1: this study ------------------------------------------------- */
+/* --- view 1: this study, and the distribution its interval is cut from --- */
 
-function drawOne({ ctx, colors, w, h, params, state, shown, inFlight, anim }) {
-  const study = shown > 0 ? state.studies[shown - 1] : null;
-  const live = inFlight ? state.studies[shown] : null;
-  const subject = live ?? study;
+function drawOne({ ctx, colors, w, h, params, state, anim }) {
+  const shown = anim ? anim.done : 0;
+  const live = anim && anim.running && shown < state.studies.length;
+  const subject = live ? state.studies[shown] : shown > 0 ? state.studies[shown - 1] : null;
 
   const padL = 54;
   const padR = 16;
-  /* A caption is drawn ABOVE its plot rect and an axis label BELOW it, so the
-     top inset and the inter-panel gap are both carrying text, not whitespace.
-     At 8 and 46 the study caption was clipped off the top of the canvas and
-     "observation value" landed on top of the lower panel's caption. */
+  // A caption draws ABOVE its rect and an axis label BELOW it: both insets are
+  // carrying text, not whitespace.
   const topInset = 30;
-  const topH = Math.round(h * 0.32);
+  const topH = Math.round(h * 0.26);
   const gap = 66;
 
   const obsPlot = makePlot({
@@ -352,113 +359,119 @@ function drawOne({ ctx, colors, w, h, params, state, shown, inFlight, anim }) {
     xDomain: state.pop.domain,
     yDomain: [0, 1],
   });
-
   obsPlot.axisX({ ticks: niceTicks(state.pop.domain[0], state.pop.domain[1], 6), label: "observation value" });
   obsPlot.caption(
-    subject
-      ? `Study ${live ? shown + 1 : shown} — two groups of ${params.n}`
-      : "Your study — nothing run yet"
+    subject ? `Study ${live ? shown + 1 : shown} — one sample of ${params.n}` : "Your sample — nothing run yet"
   );
 
   if (subject) {
-    // Two rows of observations, A above B, so the shift between them is vertical
-    // distance the eye can measure rather than two overlapping clouds.
-    const rowA = 0.66;
-    const rowB = 0.3;
     const reveal = live ? clamp01(easeOut(anim.t * 2)) : 1;
-
-    for (const [vals, row, tok] of [[subject.a, rowA, colors.groupA], [subject.b, rowB, colors.groupB]]) {
-      for (let i = 0; i < vals.length; i += 1) {
-        if (i / vals.length > reveal) continue;
-        obsPlot.dot(vals[i], row, { fill: tok, r: 3.6 });
-      }
+    for (let i = 0; i < subject.x.length; i += 1) {
+      if (i / subject.x.length > reveal) continue;
+      obsPlot.dot(subject.x[i], 0.5, { fill: colors.groupA, r: 4 });
     }
-
-    ctx.save();
-    ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = colors.groupA;
-    ctx.textAlign = "right";
-    ctx.fillText("A", obsPlot.x - 8, obsPlot.sy(rowA) + 4);
-    ctx.fillStyle = colors.groupB;
-    ctx.fillText("B", obsPlot.x - 8, obsPlot.sy(rowB) + 4);
-    ctx.restore();
+    obsPlot.vline(subject.xbar, { stroke: colors.empirical, label: "x̄", width: 2 });
   }
+  obsPlot.vline(state.mu, { stroke: colors.reference, label: "true mean", width: 2, align: "right" });
 
-  /* Lower panel: the bootstrap distribution this study's interval is cut from,
-     drawn on the SAME difference scale as the ladder in the other view so the
-     two readings are comparable without rescaling anything. */
+  /* Lower panel: THE DISTRIBUTION THE INTERVAL IS CUT FROM. Which one depends
+     entirely on the method, and that is the bridge — resampled from your data,
+     or a shape you assumed. */
   const botY = topInset + topH + gap;
   const botH = h - botY - 34;
+  const m = params.method;
+  const se = subject ? subject.s / Math.sqrt(params.n) : 1;
 
-  const counts = new Array(state.bins).fill(0);
+  // Density, not counts — see the header for why the counts rule does not apply.
+  const density = new Array(state.bins).fill(0);
   let peak = 1;
-  if (subject) {
-    const upTo = live ? Math.floor(subject.diffs.length * clamp01(anim.t)) : subject.diffs.length;
+  if (subject && m === "boot") {
+    const upTo = live ? Math.floor(subject.means.length * clamp01(anim.t)) : subject.means.length;
     for (let i = 0; i < upTo; i += 1) {
-      const k = Math.floor((subject.diffs[i] - state.domain[0]) / state.width);
-      if (k >= 0 && k < state.bins) counts[k] += 1;
+      const k = Math.floor((subject.means[i] - state.domain[0]) / state.width);
+      if (k >= 0 && k < state.bins) density[k] += 1;
     }
-    peak = Math.max(1, ...counts);
+    const denom = Math.max(1, upTo) * state.width;
+    for (let k = 0; k < state.bins; k += 1) density[k] /= denom;
+    peak = Math.max(1e-9, ...density);
+  } else if (subject) {
+    peak = (m === "t" ? studentTPdf(0, state.df) : normalPdf(0, 0, 1)) / se;
   }
 
   const distPlot = makePlot({
     ctx, colors,
     rect: { x: padL, y: botY, w: w - padL - padR, h: botH },
     xDomain: state.domain,
-    yDomain: [0, peak * 1.15],
+    yDomain: [0, peak * 1.2],
   });
-
-  distPlot.grid(niceTicks(0, peak * 1.15, 4));
-  distPlot.axisY({ ticks: niceTicks(0, peak * 1.15, 4), label: "count" });
-  distPlot.axisX({ ticks: niceTicks(state.domain[0], state.domain[1], 6), label: "difference in means (B − A)" });
+  distPlot.grid(niceTicks(0, peak * 1.2, 4));
+  distPlot.axisY({ ticks: niceTicks(0, peak * 1.2, 4), label: "density" });
+  distPlot.axisX({ ticks: niceTicks(state.domain[0], state.domain[1], 6), label: "sample mean" });
   distPlot.caption(
     subject
-      ? `Resampling this one study — the middle ${Math.round(CONF * 100)}% is the interval`
-      : "Its bootstrap distribution — run the study first"
+      ? m === "boot"
+        ? "Resampling your one sample — the middle 95% IS the interval"
+        : `Assumed shape for x̄ — ${METHODS[m].label}, centred on x̄, width s/√n`
+      : "The distribution the interval is cut from — run a study first"
   );
 
   if (subject) {
-    // The interval as a band, so the cut is an area of the distribution rather
-    // than two unexplained ticks.
-    distPlot.band(subject.lo, subject.hi, {
-      fill: subject.covers ? colors.empirical : colors.extreme,
-      opacity: 0.14,
-    });
-    distPlot.bars(counts, { lo: state.domain[0], width: state.width, fill: colors.empirical, opacity: 0.85 });
+    const [lo, hi] = subject.iv[m];
+    const ok = subject.covers[m];
+    distPlot.band(lo, hi, { fill: ok ? colors.empirical : colors.extreme, opacity: 0.14 });
 
-    for (const edge of [subject.lo, subject.hi]) {
-      distPlot.vline(edge, { stroke: subject.covers ? colors.empirical : colors.extreme, width: 2 });
+    if (m === "boot") {
+      distPlot.bars(density, { lo: state.domain[0], width: state.width, fill: colors.empirical, opacity: 0.85 });
+    } else {
+      const pts = (fn) => {
+        const out = [];
+        for (let i = 0; i <= 240; i += 1) {
+          const xv = state.domain[0] + ((state.domain[1] - state.domain[0]) * i) / 240;
+          out.push([xv, fn((xv - subject.xbar) / se) / se]);
+        }
+        return out;
+      };
+      /* With t selected, the normal stays on screen recessive. The fatter tails
+         are the MECHANISM behind the wider interval, and describing them in a
+         caption is not the same as letting a student see them. */
+      if (m === "t") {
+        distPlot.curve(pts((u) => normalPdf(u, 0, 1)), { stroke: colors.theory, width: 1.5, opacity: 0.3, dash: [4, 3] });
+      }
+      distPlot.curve(pts(m === "t" ? (u) => studentTPdf(u, state.df) : (u) => normalPdf(u, 0, 1)), {
+        stroke: colors.theory, width: 2,
+      });
+    }
+
+    for (const edge of [lo, hi]) {
+      distPlot.vline(edge, { stroke: ok ? colors.empirical : colors.extreme, width: 2 });
     }
   }
 
-  // The truth, last, so nothing is drawn over it.
-  distPlot.vline(state.trueDiff, { stroke: colors.reference, label: "true difference", width: 2 });
+  distPlot.vline(state.mu, { stroke: colors.reference, label: "true mean", width: 2, align: "right" });
 }
 
-/* --- view 2: all studies, as a ladder ----------------------------------- */
+/* --- view 2: every study, as a ladder ----------------------------------- */
 
-function drawLadder({ ctx, colors, w, h, params, state, shown, inFlight, anim }) {
+function drawLadder({ ctx, colors, w, h, params, state, anim }) {
+  const shown = anim ? anim.done : 0;
+  const m = params.method;
+
   const padL = 54;
   const padR = 16;
   const top = 24;
-  const botPad = 34;
-
   const total = state.studies.length;
+
   const plot = makePlot({
     ctx, colors,
-    rect: { x: padL, y: top, w: w - padL - padR, h: h - top - botPad },
+    rect: { x: padL, y: top, w: w - padL - padR, h: h - top - 34 },
     xDomain: state.domain,
-    yDomain: [total + 0.5, 0.5], // inverted: study 1 at the top, so it reads as a list
+    yDomain: [total + 0.5, 0.5], // inverted, so study 1 is at the top and it reads as a list
   });
-
-  plot.axisX({
-    ticks: niceTicks(state.domain[0], state.domain[1], 6),
-    label: "difference in means (B − A)",
-  });
+  plot.axisX({ ticks: niceTicks(state.domain[0], state.domain[1], 6), label: "sample mean" });
   plot.caption(
     shown
-      ? `${shown} studies — each line is one interval, red ones miss`
-      : `Every study you run adds one interval — none yet`
+      ? `${shown} studies, ${METHODS[m].label} intervals — red ones miss`
+      : "Every study adds one interval — none yet"
   );
 
   const rowH = plot.h / Math.max(total, 1);
@@ -469,29 +482,30 @@ function drawLadder({ ctx, colors, w, h, params, state, shown, inFlight, anim })
   ctx.lineCap = "round";
   for (let i = 0; i < shown; i += 1) {
     const st = state.studies[i];
+    const [lo, hi] = st.iv[m];
+    const ok = st.covers[m];
     const y = plot.sy(i + 1);
-    const ink = st.covers ? colors.empirical : colors.extreme;
+    const ink = ok ? colors.empirical : colors.extreme;
 
     ctx.strokeStyle = ink;
-    ctx.globalAlpha = st.covers ? 0.55 : 1;
+    ctx.globalAlpha = ok ? 0.55 : 1;
     ctx.lineWidth = lineW;
     ctx.beginPath();
-    ctx.moveTo(plot.sx(st.lo), y);
-    ctx.lineTo(plot.sx(st.hi), y);
+    ctx.moveTo(plot.sx(lo), y);
+    ctx.lineTo(plot.sx(hi), y);
     ctx.stroke();
 
-    // The point estimate, so a student can see the interval is built around it
-    // and that a miss is not always a wild estimate.
+    // The estimate itself, so a miss is visibly not always a wild x̄.
     ctx.globalAlpha = 1;
     ctx.fillStyle = ink;
     ctx.beginPath();
-    ctx.arc(plot.sx(st.obs), y, dotR, 0, Math.PI * 2);
+    ctx.arc(plot.sx(st.xbar), y, dotR, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 
-  /* The truth spans every row, drawn last. It is the only thing on this figure
-     that does not move — the intervals scatter around it, never the reverse,
-     which is the asymmetry the misconception gets backwards. */
-  plot.vline(state.trueDiff, { stroke: colors.reference, label: "true difference", width: 2 });
+  /* The truth spans every row and is drawn last. It is the only thing here that
+     does not move: the intervals scatter around it, never the reverse, which is
+     the asymmetry the misconception gets backwards. */
+  plot.vline(state.mu, { stroke: colors.reference, label: "true mean", width: 2 });
 }

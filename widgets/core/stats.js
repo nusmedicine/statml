@@ -150,6 +150,102 @@ const DEFINITIONS = {
    threshold. Widget 5's commentary carries the rest. In SDs rather than raw units
    so "Small" means the same thing whichever population is chosen. Each widget
    writes its own detail strings — the multiples are shared, the teaching is not. */
+/* --- Student's t ---------------------------------------------------------- *
+ * Widget 4 needs the 0.975 critical value and the density, for every n between
+ * 3 and 40. A lookup table would be 38 numbers typed from memory with no way to
+ * tell a wrong digit from a right one; this is computed, and check.mjs asserts
+ * it against published values, so a transcription error cannot survive.
+ *
+ * Lanczos log-gamma, then the regularised incomplete beta by continued fraction,
+ * which is what the t CDF is written in terms of. Standard numerical recipes.
+ */
+function lgamma(z) {
+  const C = [
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+  ];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  const zz = z - 1;
+  let x = C[0];
+  for (let i = 1; i < 9; i += 1) x += C[i] / (zz + i);
+  const w = zz + 7.5;
+  return 0.5 * Math.log(2 * Math.PI) + (zz + 0.5) * Math.log(w) - w + Math.log(x);
+}
+
+function betacf(a, b, x) {
+  const FPMIN = 1e-300;
+  const qab = a + b;
+  const qap = a + 1;
+  const qam = a - 1;
+  let c = 1;
+  let d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= 300; m += 1) {
+    const m2 = 2 * m;
+    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    h *= d * c;
+    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < 3e-14) break;
+  }
+  return h;
+}
+
+/** Regularised incomplete beta I_x(a, b). */
+function incompleteBeta(a, b, x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const front = Math.exp(
+    lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x)
+  );
+  return x < (a + 1) / (a + b + 2)
+    ? (front * betacf(a, b, x)) / a
+    : 1 - (front * betacf(b, a, 1 - x)) / b;
+}
+
+/** Density of Student's t with `df` degrees of freedom. */
+export function studentTPdf(x, df) {
+  const logC = lgamma((df + 1) / 2) - lgamma(df / 2) - 0.5 * Math.log(df * Math.PI);
+  return Math.exp(logC - ((df + 1) / 2) * Math.log(1 + (x * x) / df));
+}
+
+/**
+ * The two-sided critical value: P(|T| <= tCritical(df)) = conf.
+ * This is the number a t interval multiplies s/sqrt(n) by, and the whole reason
+ * a t interval is wider than a z interval at small n.
+ */
+export function tCritical(df, conf = 0.95) {
+  if (!(df > 0)) return Infinity;
+  const target = 1 - conf; // mass left in the two tails
+  // P(|T| > t) = I_{df/(df+t^2)}(df/2, 1/2), decreasing in t.
+  const tail = (v) => incompleteBeta(df / 2, 0.5, df / (df + v * v));
+  let lo = 0;
+  let hi = 400;
+  for (let i = 0; i < 200; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (tail(mid) > target) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** The normal analogue, fixed: P(|Z| <= 1.959964) = 0.95. */
+export const Z_CRITICAL_95 = 1.959963984540054;
+
 export const EFFECT_SD = { none: 0, small: 0.4, moderate: 0.9, large: 1.3 };
 
 export const POPULATIONS = Object.fromEntries(

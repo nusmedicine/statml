@@ -45,11 +45,12 @@
     {
       "slug": "confidence-interval",
       "title": "Confidence Intervals",
-      "blurb": "A 95% interval either contains the truth or it does not — the 95% is how often the procedure succeeds, not a chance for yours.",
+      "blurb": "Build the same studies' intervals three ways — bootstrap, normal, t — and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
       "course": "PHM5003",
       "topics": [
         "estimation",
         "uncertainty",
+        "t-distribution",
         "inference"
       ],
       "arc": 4,
