@@ -10,9 +10,10 @@ than re-argued. Before changing anything in `widgets/core/`, read
 because the obvious approach was tried and failed, and each carries the incident
 that earned it.
 
-**Last updated:** widget 4 shipped, which closes the PHM5003 statistics arc at
-five of six. **`multiple-testing` (arc 6) is the only one left**, and the
-PHM5005 arc still needs its catalogue treatment before its first widget.
+**Last updated:** five of six shipped. **Widget 6 `multiple-testing` is built
+and live as a draft** — one agreed design change, then baseline and promote,
+and the PHM5003 arc is closed. §2 has the change and the one open question.
+The PHM5005 arc still needs its catalogue treatment before its first widget.
 
 ---
 
@@ -120,63 +121,61 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
 ---
 
-## 2 · The next task: widget 4, `confidence-interval`
+## 2 · The next task: finish widget 6, `multiple-testing`
 
-> increments → means → one sample → **an interval** → a null by shuffling → many nulls
+> increments → means → one sample → an interval → a null by shuffling → **MANY NULLS**
 
-Widgets 1–3 build the sampling distribution; this one is about **reading** it.
-`bootstrap` already computes the distribution an interval is cut from, so the new
-idea is only what you do with it.
+**It is built and live as a draft** at `/statml/widget/multiple-testing/`, listed
+at `/statml/lab/`. What remains is one agreed design change, then baseline and
+promote. Read the file header first — it carries the full teaching rationale.
 
-**Misconception targeted — documented, not inferred.** That there is a 95% chance
-the true value lies in *this* interval. A realised interval either contains the
-truth or it does not; the 95% describes **the procedure across many studies**.
-Greenland et al. 2016 enumerates it, and it persists among researchers.
+### What is already there and working
 
-### Design decisions already taken
+An overlap strip (what the effect size looks like), the p-value carpet, and three
+rule bars. 20,000 real two-sample t-tests take about 60 ms, so nothing is faked.
+Defaults authored by measurement: at n = 12 with a 2.0 SD effect, p < 0.05 calls
+1094 with 91% false, Bonferroni 21 with none false, BH 75 with 3 false.
 
-1. **Two views, and the second is the whole point.**
-   - *One study → one interval*, cut from the bootstrap distribution as
-     percentiles. This is the view that feels like an answer.
-   - *Many studies → coverage.* Repeat the study many times, one horizontal line
-     per interval, colour the ones that miss. About 5 in 100 do, and **which**
-     ones is unknowable from inside any single study. This is the documented
-     target; the first view is its setup.
-   - Both, with the second reachable from the first.
-2. **The statistic is a difference, and this widget introduces it alone.** Widget
-   3 tried carrying the mean → difference switch and it was cut for muddying the
-   mechanism it exists to teach. Watch the cost that pushes here: a student meets
-   a new statistic *and* a new concept together. If it bites, the fix is a
-   one-group opening state, not putting the switch back into widget 3.
-3. Reuse `POPULATIONS`. Keep the true value in `--c-reference` and any
-   checked-against curve in `--c-theory`, as widgets 3 and 5 do.
+### THE AGREED CHANGE: plot ADJUSTED p-values, not raw ones
 
-### What is already built for it
+Three stacked carpets — raw, Bonferroni-adjusted, BH-adjusted — instead of the
+current three rule bars.
 
-`rng.resample`, `createPile`, `--c-group-a/b`, `--c-extreme` (a missed interval
-is exactly "past a threshold"), the two-box layout from widget 5, the
-`leadLabel` two-stage pattern, and a worked example of a lower panel whose x-axis
-is a *difference* while the panel above is in data units.
+    Bonferroni    padj = min(1, p * m)
+    BH            padj(i) = min over j >= i of (m/j) * p(j), clamped to 1 and
+                  forced monotone non-decreasing
 
-The readout's honest pair here is **nominal 95% vs realised coverage so far**,
-tracking the partial count so a student watches it converge rather than being
-shown 95 as a fact.
+**Why this and not the alternatives**, all of which were mocked up in
+`widgets/_lab/mt-panels.html` before choosing:
 
-### Core work it may need
+- **The threshold stays at 0.05 in every panel.** Same axis, same linear scale,
+  same red first bar. Nothing new for a student to learn, and the distribution
+  MOVES RIGHT under correction rather than the threshold moving left.
+- **It is the column they actually use.** DESeq2 and limma hand you `padj` and
+  you threshold it at 0.05. The widget then shows the real quantity.
+- **Log was tried and LOSES.** A uniform distribution is flat on a LINEAR axis;
+  against log p it piles up exponentially at 1 and the flat carpet — the single
+  fact this widget exists to teach — disappears. Do not reach for a log p-axis
+  here. (It is right in a rank-versus-p threshold panel, where there is no
+  flatness to lose; that panel is mocked up too and was not chosen.)
 
-**Percentiles of a growing pile.** `createPile` keeps binned counts and running
-sums — **not** the values — so a percentile cannot be read off it exactly. Two
-options, worth choosing deliberately:
+**The one open design problem.** Bonferroni-adjusted sends ~19,900 of 20,000
+genes to exactly 1.0. Scale each panel to its own peak and the y-axis becomes
+20,000, making the 21 survivors a 0.3px bar — invisible, which defeats the point.
+The proposal is to put **all three panels on the raw carpet's scale (~1150)** so
+the left-hand side stays directly comparable, and let the pile at 1.0 clip off
+the top with a label such as "19,979 genes, above the scale". Judge whether a
+clipped bar reads as honest or as broken; that is the only thing not settled.
 
-- the widget keeps its own sorted array of resampled statistics, leaving the pile
-  as the *drawing*; or
-- `quantile(p)` on `createPile`, interpolating within a bin.
+Whether the three rule bars survive alongside the carpets is also open. They
+carry the false-discovery counts, which are the headline, but the readout tiles
+carry those too. Keeping both pushes the figure past 850 px.
 
-The first is honest and local; the second is shared but approximate, and an
-interval read off an approximation is a bad thing to teach with. **Lean to the
-first** unless widget 6 also needs it.
+### Then
 
----
+Baseline and promote — §3 and §5. Settled states plus at least one **driven**,
+and given what §3 now records about `anim.done`, a driven state using `before`
+with two step clicks is worth having here too.
 
 ## 3 · How to work on this safely
 
@@ -272,6 +271,17 @@ cannot describe — it is how the Fast freeze was confirmed before it was fixed
 - **Stray pointer input.** The automation browser moves sliders mid-capture.
   Several apparent bugs were this. If a screenshot disagrees with a programmatic
   read, **trust the read**.
+- **`anim.done` is a FLAG, not a counter.** Core reads a truthy `anim.done` as
+  "finished" and answers the next click with Replay, so a widget that used it to
+  count how many items were done replayed on every step instead of advancing —
+  and **Play masked it completely**, because one click runs to the end. It
+  shipped in widget 4. Core now compares `=== true`, and both widgets use `ran` /
+  `tested`. A single driven fingerprint state cannot see this: it takes two
+  clicks, which is what `before` is for.
+- **A blank canvas is a thrown exception, and a pixel probe cannot tell you
+  that.** Counting ink reported zero in all three panels and said nothing about
+  why; the console named the undefined variable immediately. Read the console
+  first, every time.
 - **Never address a drive button by position.** The harness used to, and adding a
   third button to one widget silently repointed every driven state in the suite —
   and a wrong button still produces a stable, plausible hash. Principle 5.7.
