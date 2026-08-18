@@ -10,10 +10,10 @@ than re-argued. Before changing anything in `widgets/core/`, read
 because the obvious approach was tried and failed, and each carries the incident
 that earned it.
 
-**Last updated:** five of six shipped. **Widget 6 `multiple-testing` is built
-and live as a draft** — one agreed design change, then baseline and promote,
-and the PHM5003 arc is closed. §2 has the change and the one open question.
-The PHM5005 arc still needs its catalogue treatment before its first widget.
+**Last updated:** **the PHM5003 statistics arc is COMPLETE** — all six widgets
+shipped, baselined and live. Nothing in it is outstanding. The next work is
+either PHM5005, which needs its catalogue treatment before any widget is built
+(prd §12.1), or the two things §1 lists as unverified.
 
 ---
 
@@ -121,61 +121,32 @@ Worth knowing before designing widget 4, because it faces the same choices.
 
 ---
 
-## 2 · The next task: finish widget 6, `multiple-testing`
+## 2 · The next task: there is no widget queued
 
-> increments → means → one sample → an interval → a null by shuffling → **MANY NULLS**
+The PHM5003 arc is closed. `docs/catalogue.md` marks all six shipped, and the
+manifest agrees. Three candidates, in the order I would take them:
 
-**It is built and live as a draft** at `/statml/widget/multiple-testing/`, listed
-at `/statml/lab/`. What remains is one agreed design change, then baseline and
-promote. Read the file header first — it carries the full teaching rationale.
+1. **The PHM5005 arc.** prd §12.1 is explicit that it needs the same
+   one-continuous-argument treatment PHM5003 got **before its first widget is
+   built** — the catalogue still has a five-widget tier list with a provisional
+   spine, not an argument. That is writing, not code, and it is the highest-value
+   thing left. Note the course has no notebook project yet, so §7 cannot give it
+   lesson slots either.
 
-### What is already there and working
+2. **Paste the real URLs into the PHM5003 lessons.** prd §8's order-of-work is
+   down to this one step, and it happens in `../jupyterbook/phm5003`, not here.
+   A plain markdown link is the settled mechanism — an iframe in a markdown cell
+   was TESTED and is stripped (prd §4).
 
-An overlap strip (what the effect size looks like), the p-value carpet, and three
-rule bars. 20,000 real two-sample t-tests take about 60 ms, so nothing is faked.
-Defaults authored by measurement: at n = 12 with a 2.0 SD effect, p < 0.05 calls
-1094 with 91% false, Bonferroni 21 with none false, BH 75 with 3 false.
+3. **Judge the six on a projector.** prd §3 makes it a requirement and it is the
+   only thing no hash discharges. The suspects are widget 4's ladder (a hundred
+   hairline intervals) and widget 6's three stacked carpets.
 
-### ~~THE AGREED CHANGE~~ — DONE: adjusted p-values, three stacked carpets
-
-Three stacked carpets — raw, Bonferroni-adjusted, BH-adjusted — instead of the
-current three rule bars.
-
-    Bonferroni    padj = min(1, p * m)
-    BH            padj(i) = min over j >= i of (m/j) * p(j), clamped to 1 and
-                  forced monotone non-decreasing
-
-**Why this and not the alternatives**, all of which were mocked up in
-`widgets/_lab/mt-panels.html` before choosing:
-
-- **The threshold stays at 0.05 in every panel.** Same axis, same linear scale,
-  same red first bar. Nothing new for a student to learn, and the distribution
-  MOVES RIGHT under correction rather than the threshold moving left.
-- **It is the column they actually use.** DESeq2 and limma hand you `padj` and
-  you threshold it at 0.05. The widget then shows the real quantity.
-- **Log was tried and LOSES.** A uniform distribution is flat on a LINEAR axis;
-  against log p it piles up exponentially at 1 and the flat carpet — the single
-  fact this widget exists to teach — disappears. Do not reach for a log p-axis
-  here. (It is right in a rank-versus-p threshold panel, where there is no
-  flatness to lose; that panel is mocked up too and was not chosen.)
-
-**Resolved as proposed, and it works.** Bonferroni-adjusted sends ~19,900 of
-20,000 genes to exactly 1.0. Scale each panel to its own peak and the y-axis becomes
-20,000, making the 21 survivors a 0.3px bar — invisible, which defeats the point.
-The proposal is to put **all three panels on the raw carpet's scale (~1150)** so
-the left-hand side stays directly comparable, and let the pile at 1.0 clip off
-the top with a label such as "19,979 genes, above the scale". Judge whether a
-clipped bar reads as honest or as broken; that is the only thing not settled.
-
-Whether the three rule bars survive alongside the carpets is also open. They
-carry the false-discovery counts, which are the headline, but the readout tiles
-carry those too. Keeping both pushes the figure past 850 px.
-
-### Then
-
-Baseline and promote — §3 and §5. Settled states plus at least one **driven**,
-and given what §3 now records about `anim.done`, a driven state using `before`
-with two step clicks is worth having here too.
+A distributions / MLE / MCMC arc was discussed and belongs in the catalogue
+first, on the same rule as PHM5005. Worth knowing early: **MCMC is a different
+KIND of widget** — a chain is a path, with burn-in and autocorrelation, not a
+pile — so `core/accumulator.js` will not serve it and that is a scoping question,
+not a detail.
 
 ## 3 · How to work on this safely
 

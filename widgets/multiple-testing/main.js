@@ -179,7 +179,6 @@ function callsFor(state, k) {
 defineWidget({
   slug: "multiple-testing",
   title: "Multiple Testing",
-  status: "draft",
   subtitle:
     "Test twenty thousand genes at p < 0.05 and about a thousand come back " +
     "significant even when not one of them is different. That is not a finding, " +

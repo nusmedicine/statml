@@ -4,7 +4,7 @@ Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
 state in the URL.
 
-Five widgets shipped, of a six-widget statistics arc. See
+**The six-widget statistics arc is complete.** All six shipped. See
 [docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and
@@ -386,5 +386,6 @@ so the licences go in when the content is ready to spread, not before.
 - No unit-test harness. `compute()` is pure and seeded, which is what would make
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
-- Widget count: 5, of a six-widget arc.
+- Widget count: 6. The PHM5003 arc is closed; PHM5005 has no widgets yet and
+  needs its catalogue treatment first (prd §12.1).
 

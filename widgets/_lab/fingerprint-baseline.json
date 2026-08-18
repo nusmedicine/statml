@@ -295,6 +295,52 @@
         "frames": 40,
         "dt": 32
       }
+    },
+    {
+      "slug": "multiple-testing",
+      "px": "39d24fed",
+      "$note": "The default: the flat carpet against its m/20 rule, then the same genes after each correction. 1094 called, 21, 75.",
+      "state": "?theme=light&shown=20000"
+    },
+    {
+      "slug": "multiple-testing",
+      "px": "b8e07ab6",
+      "$note": "NOT ONE GENE IS DIFFERENT, and about 1000 still come back at p < 0.05 — every one a false positive. The setting the widget exists for.",
+      "state": "?theme=light&real=0&shown=20000"
+    },
+    {
+      "slug": "multiple-testing",
+      "px": "8fe389fc",
+      "$note": "POWER: a moderate 0.9 SD effect is invisible to correction at n = 12 and largely recovered at n = 60. Guards the raised n ceiling.",
+      "state": "?theme=light&effect=moderate&n=60&shown=20000"
+    },
+    {
+      "slug": "multiple-testing",
+      "px": "d6f21f2b",
+      "$note": "DRIVEN: mid-batch, with the corrections computed on the genes tested so far.",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "multiple-testing",
+      "px": "e24b2fd8",
+      "$note": "DRIVEN, REGRESSION: TWO step clicks. A counter named anim.done made every click after the first replay instead of advance, and Play hid it completely. No single click reaches this state.",
+      "state": "?theme=light&speed=fast",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      }
     }
   ]
 }
