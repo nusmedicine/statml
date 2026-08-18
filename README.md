@@ -23,6 +23,7 @@ Then open:
 - <http://localhost:8000/widget/clt/> — arc 2: the sampling distribution of the mean
 - <http://localhost:8000/widget/bootstrap/> — arc 3: uncertainty from one sample
 - <http://localhost:8000/widget/permutation-test/> — arc 5: could chance alone have done this?
+- <http://localhost:8000/lab/> — the drafts, unlinked from the gallery
 - <http://localhost:8000/widgets/_lab/> — design comparisons and the fingerprint harness
 
 Those are the **deployed** paths, not the source layout. The dev server aliases
@@ -82,7 +83,8 @@ widgets/
   manifest.json    registry of BUILT widgets; the ONLY place a height lives
   index.html       redirect stub, so a trimmed /widget/ URL reaches the gallery
 
-index.html         THE GALLERY — the landing page, deployed at /
+index.html         THE GALLERY — the landing page, deployed at /; SHIPPED only
+lab/index.html     the drafts, deployed at /lab/; NOT linked from the gallery
 docs/              prd, design principles, widget catalogue
 scripts/serve.mjs  dev server; sends no-store, aliases /widget/ (see above)
 scripts/check.mjs  invariant assertions; runs inside npm run build

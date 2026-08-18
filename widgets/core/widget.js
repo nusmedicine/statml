@@ -165,6 +165,13 @@ export function defineWidget(config) {
     table = null,
     animation = null,
     png = false, // opt-in: most teaching widgets do not need an export button
+    /**
+     * "shipped" | "draft". A draft is a widget being built: it deploys to its
+     * FINAL url from the first commit so no link ever has to move, but it is
+     * left off the gallery and wears a bar saying so. `npm run check` asserts
+     * this agrees with the widget's entry in manifest.json.
+     */
+    status = "shipped",
     mount = "#widget",
   } = config;
 
@@ -178,6 +185,7 @@ export function defineWidget(config) {
     title,
     subtitle,
     legend,
+    status,
     hasReadout: Boolean(readout),
     hasTable: Boolean(table),
   });
@@ -537,9 +545,22 @@ export function defineWidget(config) {
  * top to bottom in the order they need to think about it, with no instruction
  * telling them to.
  */
-function buildShell(host, { title, subtitle, legend, hasReadout, hasTable }) {
+function buildShell(host, { title, subtitle, legend, status, hasReadout, hasTable }) {
   host.className = "w-root";
   host.innerHTML = "";
+
+  /* Above the heading, not below it: someone who reached a draft from a link has
+     to read this BEFORE they believe the figure, not after. */
+  if (status === "draft") {
+    const bar = el("div", "w-draft");
+    bar.appendChild(el("strong", null, "Draft"));
+    bar.appendChild(
+      el("span", null,
+        "This widget is still being built. It is not finished teaching material, " +
+        "and what it shows may be wrong.")
+    );
+    host.appendChild(bar);
+  }
 
   /* The header is a row: heading on the left, a tools slot on the right that
      stays aligned with the title's first line however long the subtitle runs. */

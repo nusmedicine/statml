@@ -52,11 +52,17 @@
   const res = await fetch("./widget/manifest.json");
   const { widgets } = await res.json();
 
+  // Shipped only. A draft deploys to its final URL like everything else — what
+  // `status` controls is LISTING, not location, so promoting one never moves it
+  // and never breaks a link. Drafts are indexed at /lab/, which this page does
+  // not link to on purpose.
+  //
   // Ordered by arc, not by manifest position. The statistics arc is an agreed
   // sequence where each widget answers a question the previous one raises
   // (docs/catalogue.md), so the gallery states that order rather than inheriting
   // whatever order the entries happen to sit in.
-  for (const w of [...widgets].sort((a, b) => a.arc - b.arc)) {
+  const shipped = widgets.filter((w) => w.status === "shipped");
+  for (const w of shipped.sort((a, b) => a.arc - b.arc)) {
     const a = document.createElement("a");
     a.className = "g-card";
     a.href = `./widget/${w.slug}/`;

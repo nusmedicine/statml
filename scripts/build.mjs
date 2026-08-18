@@ -58,7 +58,12 @@ console.log(`widgets: ${widgets.length} copied to _site/${PUBLIC_DIR}`);
 await cp(join(root, "index.html"), join(site, "index.html"));
 console.log("root:    _site/index.html is the gallery");
 
-// 3. Pages must not run the output through Jekyll (it drops _-prefixed paths).
+// 3. The lab: an index of drafts, at /lab/. Deliberately not linked from the
+// landing page — see lab/index.html for why.
+await cp(join(root, "lab"), join(site, "lab"), { recursive: true });
+console.log("lab:     _site/lab/ indexes the drafts");
+
+// 4. Pages must not run the output through Jekyll (it drops _-prefixed paths).
 await writeFile(join(site, ".nojekyll"), "");
 
 console.log("\nBuilt _site/. Preview it with:  npx --yes serve _site");

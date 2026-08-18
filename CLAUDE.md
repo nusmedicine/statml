@@ -144,7 +144,8 @@ widgets/<slug>/     one widget: index.html (12 lines) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed
 widgets/index.html  redirect stub, so a trimmed /widget/ URL reaches the gallery
 widgets/manifest.json  registry of BUILT widgets; the ONLY place a height lives
-index.html          THE GALLERY — the landing page, deployed at /
+index.html          THE GALLERY — the landing page, deployed at /; SHIPPED only
+lab/index.html      the drafts, deployed at /lab/; NOT linked from the gallery
 scripts/site.mjs    the one place the published `widget` namespace is named
 docs/               prd, design principles, catalogue
 ```

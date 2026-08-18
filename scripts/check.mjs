@@ -167,6 +167,18 @@ for (const w of manifest.widgets) {
   if (stat !== w.title) {
     fail(`"${w.slug}": manifest card "${w.title}" but index.html <title> "${stat}"`);
   }
+
+  /* Status decides two independent things — whether the gallery lists it, and
+     whether the page wears a draft bar — and they are read from different files.
+     A draft recorded as shipped is exactly the failure that puts unfinished
+     teaching material on the front page. */
+  if (!["shipped", "draft"].includes(w.status)) {
+    fail(`"${w.slug}": status "${w.status}" is neither "shipped" nor "draft"`);
+  }
+  const declared = main.match(/^\s*status:\s*"([^"]*)"/m)?.[1] ?? "shipped";
+  if (declared !== w.status) {
+    fail(`"${w.slug}": manifest status "${w.status}" but main.js declares "${declared}" — the gallery and the draft bar would disagree`);
+  }
 }
 ok(`${manifest.widgets.length} widgets: card, <h1> and <title> agree`);
 
@@ -202,7 +214,15 @@ for (const s of baseline.states) {
   }
 }
 
-for (const slug of slugs) {
+/* Drafts are exempt. HANDOVER's order-of-work is explicit that a baseline
+   recorded before the design is settled gets thrown away — bootstrap was
+   baselined three times over — and a draft is by definition unsettled. The
+   requirement returns on promotion, which is what makes promotion a real gate. */
+const needsStates = new Set(
+  manifest.widgets.filter((w) => w.status !== "draft").map((w) => w.slug)
+);
+
+for (const slug of needsStates) {
   if (!settled.has(slug)) fail(`fingerprint baseline: widget "${slug}" has no settled states`);
 }
 
@@ -211,6 +231,7 @@ for (const slug of slugs) {
    change once put every falling ball six columns off-centre and all eight settled
    states still matched. Enforcing this is the fix for that, not a nicety. */
 for (const w of manifest.widgets) {
+  if (!needsStates.has(w.slug)) continue;
   const main = await readFile(join(root, "widgets", w.slug, "main.js"), "utf8");
   if (/\banimation\s*:/.test(main) && !driven.has(w.slug)) {
     fail(
@@ -243,7 +264,24 @@ const { PUBLIC_DIR } = await import(join(root, "scripts/site.mjs"));
   if (/["'`]\.\/widgets\//.test(landing)) {
     fail(`index.html: links ./widgets/, the SOURCE directory — deployed it is ./${PUBLIC_DIR}/`);
   }
-  ok(`landing page addresses ./${PUBLIC_DIR}/, agreeing with scripts/site.mjs`);
+  /* The whole point of the draft status. Lose this filter and unfinished
+     teaching material appears on the front door of a public site, with nothing
+     else in this file noticing. */
+  if (!/\.filter\([\s\S]{0,60}?status\s*===\s*"shipped"/.test(landing)) {
+    fail(`index.html: does not filter to status === "shipped" — a draft would show on the landing page`);
+  }
+  if (/href="\.?\.?\/?lab\/"/.test(landing)) {
+    fail(`index.html: links /lab/ — the landing page deliberately does not, see lab/index.html`);
+  }
+
+  const lab = await readFile(join(root, "lab", "index.html"), "utf8");
+  if (!lab.includes(`../${PUBLIC_DIR}/manifest.json`)) {
+    fail(`lab/index.html: does not fetch ../${PUBLIC_DIR}/manifest.json — it sits a level deeper than the gallery`);
+  }
+  if (!/status\s*===\s*"draft"/.test(lab)) {
+    fail(`lab/index.html: does not filter to status === "draft"`);
+  }
+  ok(`landing lists shipped only; lab/ lists drafts and is unlinked from it`);
 }
 
 {
@@ -260,7 +298,10 @@ const { PUBLIC_DIR } = await import(join(root, "scripts/site.mjs"));
   ];
 
   // Same filter as build.mjs: a path segment starting with _ is not deployed.
-  const deployed = [["index.html", join(root, "index.html")]];
+  const deployed = [
+    ["index.html", join(root, "index.html")],
+    ["lab/index.html", join(root, "lab", "index.html")],
+  ];
   const walk = async (dir, rel) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
       if (e.name.startsWith("_")) continue;

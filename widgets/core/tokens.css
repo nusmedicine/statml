@@ -20,6 +20,15 @@
   --grid: #e1e0d9;                   /* hairline gridline                    */
   --axis: #c3c2b7;                   /* baseline / axis line                 */
   --border: rgba(11, 11, 11, 0.10);  /* hairline ring                        */
+
+  /* A draft notice is CHROME, not data. It deliberately does not take a --c-
+     role: those name what a mark MEANS inside a figure (observed, theoretical,
+     past the threshold), and a banner means nothing about the statistics. Amber
+     because it has to be noticed by someone who landed here by accident, warm
+     because the rest of the palette is. */
+  --notice-bg:   #fdf4da;
+  --notice-ink:  #6b5410;
+  --notice-rule: #e0be5c;
   --focus: #2a78d6;
 
   /* --- categorical series: FIXED ORDER, NEVER CYCLED -------------------- */
@@ -104,6 +113,9 @@
     --grid: #2c2c2a;
     --axis: #383835;
     --border: rgba(255, 255, 255, 0.10);
+    --notice-bg:   #2b2413;
+    --notice-ink:  #ecdcab;
+    --notice-rule: #6d5c26;
     --focus: #3987e5;
     --series-1: #3987e5;
     --series-2: #d95926;
@@ -117,6 +129,9 @@
 }
 
 :root[data-theme="dark"] {
+  --notice-bg:   #2b2413;
+  --notice-ink:  #ecdcab;
+  --notice-rule: #6d5c26;
   color-scheme: dark;
   --surface-1: #1a1a19;
   --surface-2: #0d0d0d;
@@ -448,6 +463,22 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   padding: 7px 16px;
   font-size: var(--fs-md);
 }
+
+/* Draft bar. Sits above everything, including the heading, because its whole
+   job is to be read before the figure is believed. */
+.w-draft {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-left: 3px solid var(--notice-rule);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+}
+.w-draft strong { font-weight: 600; }
 
 /* Heading left, tools right, aligned to the title's first line. */
 .w-root > header {

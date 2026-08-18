@@ -34,7 +34,16 @@ and a real one. The lab is not deployed and keeps its source path.
 | widget 2 | `/widget/clt/` | the sampling distribution of the mean |
 | widget 3 | `/widget/bootstrap/` | uncertainty from one sample |
 | widget 5 | `/widget/permutation-test/` | could chance alone have done this? |
-| lab | `/widgets/_lab/` | design mockups **and the fingerprint harness** |
+| lab | `/lab/` | the drafts — **not linked from the gallery** |
+| dev lab | `/widgets/_lab/` | design mockups **and the fingerprint harness**; not deployed |
+
+**Drafts.** A widget with `"status": "draft"` deploys to its **final** URL like
+any other, wears a bar saying it is unfinished, is left off the gallery, is
+indexed at `/lab/`, and is **exempt from needing fingerprint states** — because
+baselining before the design settles throws the baseline away. Promotion is
+`"draft"` → `"shipped"` in `manifest.json` **and** in its `main.js`; `npm run
+check` fails if the two disagree, and the moment it ships the fingerprint
+requirement returns. Nothing moves, so a link shared while building never breaks.
 
 ### Shipped
 
