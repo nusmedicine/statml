@@ -91,6 +91,10 @@ function makeClPile(params, state) {
 
 defineWidget({
   slug: "clt",
+  /* Controls beside the figure. Measured in _lab/side-layout.html against the
+     real widget: 1020 -> 766 px, over a screen to fitting. The canvas gets WIDER doing this
+     (694 -> ~770), so the figure gains room rather than losing it. */
+  layout: "side",
   title: "Central Limit Theorem",
   subtitle:
     "Each sample of size n has a mean. Collect enough of those means and they " +

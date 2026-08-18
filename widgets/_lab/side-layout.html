@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · side layout, rolled out</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 80ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-3); }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; color: var(--ink-2); }
+  .win { color: var(--c-empirical); font-weight: 600; }
+  .no { color: var(--ink-3); }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+  /* ONE COLUMN, not two. Side by side each frame was ~575px — below the 880px
+     breakpoint — so the injected layout correctly stacked and the comparison
+     showed two identical widgets. A viewer narrower than the thing it is
+     demonstrating cannot demonstrate it. */
+  .frames { display: grid; grid-template-columns: 1fr; gap: var(--sp-4); }
+  .frames > div { min-width: 0; }
+  .frames h4 { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 4px; font-weight: 600; }
+  iframe { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); display: block; }
+  .pick { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin: 0 0 var(--sp-3); }
+  .pick button { padding: 5px 10px; font: inherit; font-size: var(--fs-sm); background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--axis); border-radius: var(--radius); cursor: pointer; }
+  .pick button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Would the other widgets benefit from the side layout?</h1>
+  <p class="note">
+    <b>These are the real widgets, not schematics.</b> Each is loaded in a
+    1200&nbsp;px frame and the side layout is <i>injected</i> — the same DOM
+    <code>buildShell</code> makes under <code>layout:"side"</code>, and the same
+    CSS already in <code>tokens.css</code>. Core carries a
+    <code>ResizeObserver</code>, so every canvas genuinely repaints at its new
+    width. Heights are measured after that repaint.
+  </p>
+  <p class="note">
+    The bar to clear is <b>900&nbsp;px</b> — a laptop viewport, and roughly what a
+    projector shows without scrolling. A widget only <i>benefits</i> if it is over
+    that now and the change brings it under, or close.
+  </p>
+
+  <h2>1 · Every widget, measured three ways</h2>
+  <p class="note">
+    <b>stacked</b> is as shipped. <b>side</b> moves controls and drive into a left
+    rail. <b>side + summary</b> additionally moves the legend and the readout into
+    the right column, under the figure — the second question on the table.
+  </p>
+  <table id="tbl"><tr><td class="no">measuring…</td></tr></table>
+
+  <h2>2 · Look at them</h2>
+  <div class="pick" id="pick"></div>
+  <div class="frames">
+    <div><h4>stacked — as shipped</h4><iframe id="fA" height="900"></iframe></div>
+    <div><h4>side + summary in the right column</h4><iframe id="fB" height="900"></iframe></div>
+  </div>
+
+  <h2>3 · Where the summary belongs</h2>
+  <p class="note" id="verdict"></p>
+</main>
+
+<script type="module">
+const SLUGS = [
+  "galton-board", "clt", "bootstrap", "confidence-interval",
+  "permutation-test", "multiple-testing", "power-and-error",
+];
+/* power-and-error already ships `side`, so it is measured with its simulation
+   open — the tallest state it has, and the fair comparison. */
+const QS = { "power-and-error": "?studies=1" };
+
+/* The same structure buildShell produces. Kept in one place so a measurement
+   here cannot drift from what the widget would actually render. */
+function injectSide(doc, { summaryInStage }) {
+  const root = doc.querySelector("#widget");
+  if (!root || root.querySelector(".w-split")) return;
+  root.dataset.layout = "side";
+
+  const split = doc.createElement("div");
+  split.className = "w-split";
+  const rail = doc.createElement("div");
+  rail.className = "w-rail";
+  const stage = doc.createElement("div");
+  stage.className = "w-stage";
+  split.append(rail, stage);
+
+  const controls = root.querySelector(".w-controls");
+  const drive = root.querySelector(".w-drive");
+  const figure = root.querySelector(".w-figure");
+  controls.parentNode.insertBefore(split, controls);
+  rail.appendChild(controls);
+  if (drive) rail.appendChild(drive);
+  stage.appendChild(figure);
+
+  if (summaryInStage) {
+    const legend = root.querySelector(".w-legend");
+    const readout = root.querySelector(".w-readout");
+    if (legend) stage.appendChild(legend);
+    if (readout) stage.appendChild(readout);
+  }
+}
+
+const load = (slug, mode) => new Promise((resolve) => {
+  const f = document.createElement("iframe");
+  f.style.cssText = "position:absolute;left:-9999px;top:0;width:1200px;height:2000px;border:0";
+  f.src = `/widgets/${slug}/${QS[slug] ?? ""}`;
+  f.addEventListener("load", async () => {
+    const doc = f.contentDocument;
+    // power-and-error already builds the split itself; only inject for the rest.
+    if (mode !== "stacked") injectSide(doc, { summaryInStage: mode === "summary" });
+    // Let the ResizeObserver repaint the canvas at its new width.
+    await new Promise((r) => setTimeout(r, 260));
+    const root = doc.querySelector("#widget");
+    const h = Math.round(root.getBoundingClientRect().height);
+    const rail = doc.querySelector(".w-rail");
+    const stage = doc.querySelector(".w-stage");
+    const readout = doc.querySelector(".w-readout");
+    const tiles = readout ? readout.children.length : 0;
+    // Does the readout still lay its tiles on ONE row at the narrower width?
+    let tileRows = 0;
+    if (readout && tiles) {
+      const tops = [...readout.children].map((c) => c.getBoundingClientRect().top).sort((a, b) => a - b);
+      tileRows = 1;
+      for (let i = 1; i < tops.length; i += 1) if (tops[i] - tops[i - 1] > 8) tileRows += 1;
+    }
+    resolve({
+      h,
+      rail: rail ? Math.round(rail.getBoundingClientRect().height) : null,
+      stage: stage ? Math.round(stage.getBoundingClientRect().height) : null,
+      tiles, tileRows,
+    });
+    f.remove();
+  });
+  document.body.appendChild(f);
+});
+
+const FITS = 900;
+const rows = [];
+const tbl = document.getElementById("tbl");
+
+for (const slug of SLUGS) {
+  const stacked = await load(slug, "stacked");
+  const side = await load(slug, "side");
+  const summary = await load(slug, "summary");
+  rows.push({ slug, stacked, side, summary });
+
+  tbl.innerHTML =
+    "<tr><th>widget</th><th class='n'>stacked</th><th class='n'>side</th>" +
+    "<th class='n'>side + summary</th><th class='n'>saved</th><th>verdict</th>" +
+    "<th class='n'>readout rows</th></tr>" +
+    rows.map((r) => {
+      const best = Math.min(r.side.h, r.summary.h);
+      const saved = r.stacked.h - best;
+      const wasOver = r.stacked.h > FITS;
+      const nowFits = best <= FITS;
+      const verdict = !wasOver
+        ? "<span class='no'>already fits — cosmetic only</span>"
+        : nowFits
+          ? "<span class='win'>over → fits</span>"
+          : `<span class='bad'>still ${best - FITS} px over</span>`;
+      return `<tr><td><code>${r.slug}</code></td>` +
+        `<td class="n">${r.stacked.h}</td><td class="n">${r.side.h}</td>` +
+        `<td class="n">${r.summary.h}</td>` +
+        `<td class="n">${saved > 0 ? "−" + saved : "+" + -saved}</td>` +
+        `<td>${verdict}</td>` +
+        `<td class="n">${r.summary.tileRows} of ${r.summary.tiles}</td></tr>`;
+    }).join("");
+}
+
+/* --- the side-by-side viewer -------------------------------------------- */
+const pick = document.getElementById("pick");
+const fA = document.getElementById("fA");
+const fB = document.getElementById("fB");
+let current = SLUGS[0];
+
+const show = (slug) => {
+  current = slug;
+  [...pick.children].forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.slug === slug)));
+  fA.src = `/widgets/${slug}/${QS[slug] ?? ""}`;
+  fB.src = `/widgets/${slug}/${QS[slug] ?? ""}`;
+  fB.addEventListener("load", function once() {
+    injectSide(fB.contentDocument, { summaryInStage: true });
+    fB.removeEventListener("load", once);
+  });
+};
+for (const slug of SLUGS) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.dataset.slug = slug;
+  b.textContent = slug;
+  b.addEventListener("click", () => show(slug));
+  pick.appendChild(b);
+}
+show(current);
+
+/* --- verdict on the summary column --------------------------------------- */
+const wrapped = rows.filter((r) => r.summary.tileRows > 1).map((r) => r.slug);
+const helped = rows.filter((r) => r.summary.h < r.side.h).map((r) => r.slug);
+document.getElementById("verdict").innerHTML =
+  `<b>Moving the legend and readout into the right column</b> is the conceptually ` +
+  `tidy answer — the rail is what you SET, the stage is what you SEE, and both of ` +
+  `those describe the figure rather than the controls. The measurements say: ` +
+  (helped.length
+    ? `it makes ${helped.length} widget(s) shorter still (${helped.join(", ")})`
+    : `it does <b>not</b> make anything shorter — the rail is already the short column, so the page height is set by the stage either way`) +
+  `. The cost is the readout losing ~300&nbsp;px of width: ` +
+  (wrapped.length
+    ? `<b class="bad">its tiles wrap onto a second row in ${wrapped.join(", ")}</b>, and those tiles are the accessible reading of the figure (principles §6), so wrapping is not free.`
+    : `<b class="win">no widget's tiles wrap</b>, so the width is affordable.`);
+</script>
+</body>
+</html>

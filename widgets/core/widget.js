@@ -728,18 +728,26 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
       li.appendChild(el("span", null, item.label));
       ul.appendChild(li);
     }
-    host.appendChild(ul);
+    (stage ?? host).appendChild(ul);
   }
 
-  // Only created when the widget has numbers to show: an empty readout is a
-  // bordered gap that reads as something failing to load.
+  /* THE LEGEND AND THE READOUT GO WITH THE FIGURE, not below the whole split.
+     The rail is what you SET; the stage is what you SEE — and both of these
+     describe the figure rather than the controls. The legend names its marks and
+     the readout is its numbers, which principles §6 calls the accessible reading
+     of every figure. Left full width they made the page two columns and then a
+     band, which is a shape nothing in the content asks for.
+
+     Checked before moving, because the readout loses ~300px here: no widget's
+     tiles wrap at the narrower width. If one ever does, that is a reason to
+     revisit this, not to let the tiles fold. */
   const readout = el("div", "w-readout");
   readout.setAttribute("aria-live", "polite");
-  if (hasReadout) host.appendChild(readout);
+  if (hasReadout) (stage ?? host).appendChild(readout);
 
   const tableWrap = el("div", "w-table-wrap");
   tableWrap.hidden = true;
-  if (hasTable) host.appendChild(tableWrap);
+  if (hasTable) (stage ?? host).appendChild(tableWrap);
 
   const utility = el("div", "w-utility");
   host.appendChild(utility);

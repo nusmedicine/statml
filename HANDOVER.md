@@ -75,7 +75,7 @@ All start empty, all animate step by step, all build their pile with
 
 | addition | why |
 |---|---|
-| `layout: "side"` | Controls in a left rail beside the figure instead of above it. **Opt-in**, because widening the shell globally would move every canvas and invalidate all 39 baselines at once. Principle 3.4a |
+| `layout: "side"` | Controls in a left rail beside the figure, legend and readout with the figure in the stage. **All seven widgets now use it** — measured on the real widgets in `_lab/side-layout.html`, saving 247–330px each and taking four of six from over-a-screen to fitting. The canvas got WIDER (694 → 770), so all 39 baselines moved and were re-recorded. Principle 3.4a |
 | `height` may be a function of params | A panel that can be hidden has to give its pixels back, or a toggle trades a chart for the same amount of blank canvas |
 | `when: { param }` on a field | Declarative, not a predicate — core has to know WHICH param gates what so it can rebuild the control block only when that one moves. Rebuilding on every change drops a slider mid-drag |
 | `type: "gate"` field | A full-width button that opens a whole stage, sitting in the control flow where the stage begins. The single declaration of which param opens it; core scans for it. Principle 3.4b |

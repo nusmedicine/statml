@@ -194,7 +194,33 @@ controls".
 
 `defineWidget({ layout: "side" })` puts the controls in a left rail and the
 figure in its own column, stacking again below 880 px. With the simulation panel
-behind an off-by-default toggle the same widget is **880 px — one screen**.
+behind an off-by-default toggle the same widget is **one screen**.
+
+**Now used by all seven**, and the rollout was measured on the real widgets in
+`_lab/side-layout.html` — injecting the same DOM `buildShell` builds, so every
+canvas genuinely repainted at its new width rather than being estimated:
+
+| | stacked | side | |
+|---|---|---|---|
+| `galton-board` | 987 | **740** | over a screen → fits |
+| `clt` | 1020 | **766** | over a screen → fits |
+| `permutation-test` | 1083 | **832** | over a screen → fits |
+| `confidence-interval` | 1182 | **892** | over a screen → fits |
+| `bootstrap` | 1184 | **930** | 30 px over, 254 better |
+| `multiple-testing` | 1344 | **1014** | 114 px over, 330 better |
+
+Every one saves 247–330 px and **the canvas gets WIDER doing it** — 694 → 770 —
+so a figure gains room while its page shrinks. The cost is the honest one: that
+is a rendering change to six shipped widgets, so all 39 fingerprint states were
+rebaselined in the same commit, after confirming three consecutive runs were
+byte-identical.
+
+**The legend and the readout go in the stage, not below the split.** The rail is
+what you SET; the stage is what you SEE, and both of those describe the figure —
+the legend names its marks, the readout is its numbers. Left full width they made
+the page two columns and then a band, a shape nothing in the content asks for.
+Checked before moving, because the readout loses ~300 px there: no widget's tiles
+wrap. If one ever does, that is a reason to revisit, not to let them fold.
 
 Two things this cost, both worth stating:
 

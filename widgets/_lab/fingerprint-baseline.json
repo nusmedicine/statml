@@ -4,42 +4,42 @@
     {
       "slug": "clt",
       "state": "?theme=light&dist=exponential&n=5&shown=12",
-      "px": "3873f7b5"
+      "px": "e8871e24"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=exponential&n=30&view=zoom&shown=400",
-      "px": "16242573"
+      "px": "fea7ef57"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=bimodal&n=8&shown=45",
-      "px": "00d7da4b"
+      "px": "fed6ec3b"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=bernoulli&n=5&shown=400",
-      "px": "131ab991"
+      "px": "fb4ffc3f"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=pareto&n=8&view=zoom&smooth=0&shown=200",
-      "px": "92a227b5"
+      "px": "0f0ae4ea"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=12&shown=300",
-      "px": "e989396a"
+      "px": "eba17024"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=4&shown=25",
-      "px": "8f288eac"
+      "px": "193a91f0"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0",
-      "px": "17b24749"
+      "px": "841349a9"
     },
     {
       "$note": "DRIVEN: mid-descent with a trail. The state that would have caught the ball-path offset.",
@@ -50,7 +50,7 @@
         "frames": 24,
         "dt": 32
       },
-      "px": "6f25eae7"
+      "px": "a1365f91"
     },
     {
       "$note": "DRIVEN: cascade, several balls in the air, trails suppressed.",
@@ -61,7 +61,7 @@
         "frames": 40,
         "dt": 16
       },
-      "px": "f4d9c787"
+      "px": "80df57a9"
     },
     {
       "$note": "DRIVEN: clt mid-draw, observations appearing one by one.",
@@ -72,7 +72,7 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "4501c235"
+      "px": "ae37294b"
     },
     {
       "$note": "DRIVEN: clt mid-collapse, observations sliding to the labelled x-bar.",
@@ -83,7 +83,7 @@
         "frames": 24,
         "dt": 32
       },
-      "px": "dc1e4492"
+      "px": "a244e9d2"
     },
     {
       "$note": "DRIVEN: clt mid-drop, the arced trail crossing between panels.",
@@ -94,29 +94,29 @@
         "frames": 38,
         "dt": 32
       },
-      "px": "27b8cac2"
+      "px": "67e7f763"
     },
     {
       "slug": "bootstrap",
-      "px": "229eddad",
+      "px": "9965dfdf",
       "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution.",
       "state": "?theme=light&shown=400"
     },
     {
       "slug": "bootstrap",
-      "px": "57bbabad",
+      "px": "a9c8b9f0",
       "$note": "A different population and a mid-build count, still in the dot-to-bar crossfade.",
       "state": "?theme=light&dist=bimodal&n=25&shown=120"
     },
     {
       "slug": "bootstrap",
-      "px": "292cccad",
+      "px": "92386d73",
       "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
       "state": "?theme=light&n=6&smooth=0&truth=0&shown=25"
     },
     {
       "slug": "bootstrap",
-      "px": "bda1be42",
+      "px": "25587279",
       "$note": "DRIVEN, STAGE ONE: the one sample mid-fall out of the population panel. Nothing else in the suite renders an empty sample panel with marks in flight above it.",
       "state": "?theme=light",
       "drive": {
@@ -127,7 +127,7 @@
     },
     {
       "slug": "bootstrap",
-      "px": "75ccb6d1",
+      "px": "394d0cf6",
       "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -139,7 +139,7 @@
     },
     {
       "slug": "bootstrap",
-      "px": "8e9377c0",
+      "px": "83e9a5aa",
       "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar-star.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -151,7 +151,7 @@
     },
     {
       "slug": "bootstrap",
-      "px": "8debaae7",
+      "px": "18e4ef19",
       "$note": "DRIVEN: mid-drop, the arced trail crossing from the sample panel into the pile.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -163,25 +163,25 @@
     },
     {
       "slug": "permutation-test",
-      "px": "6609d9db",
+      "px": "c091400b",
       "$note": "The default: a moderate real effect, observed difference out in a tail, p = 0.035.",
       "state": "?theme=light&shown=200"
     },
     {
       "slug": "permutation-test",
-      "px": "22e49fda",
+      "px": "9924d0de",
       "$note": "THE false positive. True effect is None and p reads 0.000 — the case the never-zero form exists for.",
       "state": "?theme=light&effect=none&seed=103&shown=200"
     },
     {
       "slug": "permutation-test",
-      "px": "8526e1b2",
+      "px": "aa41bd7f",
       "$note": "Dot phase with a small n: the red marks have to be countable one by one.",
       "state": "?theme=light&n=6&shown=24"
     },
     {
       "slug": "permutation-test",
-      "px": "38d57a50",
+      "px": "25ad7e90",
       "$note": "DRIVEN, STAGE ONE: the study arriving into its two boxes, before any shuffling exists.",
       "state": "?theme=light",
       "drive": {
@@ -192,7 +192,7 @@
     },
     {
       "slug": "permutation-test",
-      "px": "8a6a8ecd",
+      "px": "ef41ead5",
       "$note": "DRIVEN: mid-pool — observations lifted out of both boxes, belonging to no group.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -204,7 +204,7 @@
     },
     {
       "slug": "permutation-test",
-      "px": "c2fc6370",
+      "px": "bafda3ab",
       "$note": "DRIVEN: mid-deal — dealt back into the boxes, vertically only, never leaving their values.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -216,7 +216,7 @@
     },
     {
       "slug": "permutation-test",
-      "px": "85647bfd",
+      "px": "46425190",
       "$note": "DRIVEN: mid-drop — the shuffled difference arcing from the study into the null.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -228,7 +228,7 @@
     },
     {
       "slug": "permutation-test",
-      "px": "00dd3a96",
+      "px": "a75b608c",
       "$note": "DRIVEN, REGRESSION: a step left IN FLIGHT when Fast takes over. This froze the study panel with every observation stranded in the pool while the pile below kept filling. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -246,31 +246,31 @@
     },
     {
       "slug": "confidence-interval",
-      "px": "5383b739",
+      "px": "4720e546",
       "$note": "The default, one study: bootstrap interval cut from the resampled means, n = 5.",
       "state": "?theme=light&shown=100"
     },
     {
       "slug": "confidence-interval",
-      "px": "81df4fe8",
+      "px": "32bf309a",
       "$note": "THE HEADLINE. 100 t intervals as a ladder, the truth a fixed vertical rule, the misses red.",
       "state": "?theme=light&view=all&method=t&shown=100"
     },
     {
       "slug": "confidence-interval",
-      "px": "cd84c929",
+      "px": "3138b3a6",
       "$note": "The SAME 100 studies re-cut by z. Narrower intervals, visibly more red — the whole t-versus-z argument in one diff against the state above.",
       "state": "?theme=light&view=all&method=z&shown=100"
     },
     {
       "slug": "confidence-interval",
-      "px": "77c595b6",
+      "px": "0bb24bb0",
       "$note": "Counts: integer observations, and an interval reaching left of zero into impossible territory.",
       "state": "?theme=light&dist=counts&method=t&shown=1"
     },
     {
       "slug": "confidence-interval",
-      "px": "55191021",
+      "px": "06153824",
       "$note": "DRIVEN: mid-study — the sample arriving while its bootstrap distribution fills beneath it.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -281,7 +281,7 @@
     },
     {
       "slug": "confidence-interval",
-      "px": "371ff101",
+      "px": "f7071079",
       "$note": "DRIVEN, REGRESSION: TWO step clicks. The counter was named anim.done, which core reads as \"finished\" and answers with Replay — so every click after the first reset the widget instead of advancing it, and it sat at one study forever. Play masked it entirely, because one click runs to the end. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -298,25 +298,25 @@
     },
     {
       "slug": "multiple-testing",
-      "px": "39d24fed",
+      "px": "ecc2b4a0",
       "$note": "The default: the flat carpet against its m/20 rule, then the same genes after each correction. 1094 called, 21, 75.",
       "state": "?theme=light&shown=20000"
     },
     {
       "slug": "multiple-testing",
-      "px": "b8e07ab6",
+      "px": "823e9d76",
       "$note": "NOT ONE GENE IS DIFFERENT, and about 1000 still come back at p < 0.05 — every one a false positive. The setting the widget exists for.",
       "state": "?theme=light&real=0&shown=20000"
     },
     {
       "slug": "multiple-testing",
-      "px": "8fe389fc",
+      "px": "3a3f3a8b",
       "$note": "POWER: a moderate 0.9 SD effect is invisible to correction at n = 12 and largely recovered at n = 60. Guards the raised n ceiling.",
       "state": "?theme=light&effect=moderate&n=60&shown=20000"
     },
     {
       "slug": "multiple-testing",
-      "px": "d6f21f2b",
+      "px": "48d85d0b",
       "$note": "DRIVEN: mid-batch, with the corrections computed on the genes tested so far.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -327,7 +327,7 @@
     },
     {
       "slug": "multiple-testing",
-      "px": "e24b2fd8",
+      "px": "6228f1a3",
       "$note": "DRIVEN, REGRESSION: TWO step clicks. A counter named anim.done made every click after the first replay instead of advance, and Play hid it completely. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {

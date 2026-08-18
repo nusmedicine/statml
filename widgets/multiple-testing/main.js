@@ -178,6 +178,10 @@ function callsFor(state, k) {
 
 defineWidget({
   slug: "multiple-testing",
+  /* Controls beside the figure. Measured in _lab/side-layout.html against the
+     real widget: 1344 -> 1014 px; still over, but 330 better. The canvas gets WIDER doing this
+     (694 -> ~770), so the figure gains room rather than losing it. */
+  layout: "side",
   title: "Multiple Testing",
   subtitle:
     "Test twenty thousand genes at p < 0.05 and about a thousand come back " +

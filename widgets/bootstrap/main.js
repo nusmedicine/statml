@@ -137,6 +137,10 @@ function makeBootPile(state) {
 
 defineWidget({
   slug: "bootstrap",
+  /* Controls beside the figure. Measured in _lab/side-layout.html against the
+     real widget: 1184 -> 930 px; still 30 over, but 254 better. The canvas gets WIDER doing this
+     (694 -> ~770), so the figure gains room rather than losing it. */
+  layout: "side",
   title: "Bootstrap Sampling",
   subtitle:
     "In practice you get one sample, never a population. Draw a new sample of " +

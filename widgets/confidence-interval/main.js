@@ -135,6 +135,10 @@ function quantile(sorted, p) {
 
 defineWidget({
   slug: "confidence-interval",
+  /* Controls beside the figure. Measured in _lab/side-layout.html against the
+     real widget: 1182 -> 892 px, over a screen to fitting. The canvas gets WIDER doing this
+     (694 -> ~770), so the figure gains room rather than losing it. */
+  layout: "side",
   title: "Confidence Intervals",
   subtitle:
     "Every study gives one interval, and that one either contains the true mean " +

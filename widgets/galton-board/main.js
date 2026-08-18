@@ -132,6 +132,10 @@ function deviationAfter(path, r) {
 
 defineWidget({
   slug: "galton-board",
+  /* Controls beside the figure. Measured in _lab/side-layout.html against the
+     real widget: 987 -> 740 px, over a screen to fitting. The canvas gets WIDER doing this
+     (694 -> ~770), so the figure gains room rather than losing it. */
+  layout: "side",
   title: "The Normal Distribution",
   subtitle:
     "Each row of pegs nudges the ball one step left or right. Where it lands is the " +
