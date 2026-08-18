@@ -287,7 +287,14 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
     },
 
     /** Vertical reference line with an optional label at the top. */
-    vline(v, { stroke, label, width = 1, align = "left" } = {}) {
+    /* `labelDy` drops a label a row down the line. Two reference lines close
+       together otherwise print their labels on top of each other, both being
+       drawn at the top of the plot — which is what happened to "x̄" and "true
+       mean" in widget 4, where the estimate lands near the truth most of the
+       time. Callers offset UNCONDITIONALLY rather than on a proximity test: with
+       an animation running, a threshold makes labels jump between rows as the
+       estimate drifts, which is worse than a constant offset. */
+    vline(v, { stroke, label, width = 1, align = "left", labelDy = 0 } = {}) {
       const px = Math.round(sx(v)) + 0.5;
       ctx.save();
       ctx.strokeStyle = stroke;
@@ -301,7 +308,7 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
         ctx.font = `${colors.fsXs} ${colors.font}`;
         ctx.textAlign = align === "left" ? "right" : "left";
         ctx.textBaseline = "top";
-        ctx.fillText(label, px + (align === "left" ? -4 : 4), y + 1);
+        ctx.fillText(label, px + (align === "left" ? -4 : 4), y + 1 + labelDy);
       }
       ctx.restore();
       return api;

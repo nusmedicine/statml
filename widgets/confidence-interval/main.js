@@ -370,7 +370,11 @@ function drawOne({ ctx, colors, w, h, params, state, anim }) {
       if (i / subject.x.length > reveal) continue;
       obsPlot.dot(subject.x[i], 0.5, { fill: colors.groupA, r: 4 });
     }
-    obsPlot.vline(subject.xbar, { stroke: colors.empirical, label: "x̄", width: 2 });
+    // Offset one row down, always — see vline's note on why not on proximity.
+    obsPlot.vline(subject.xbar, {
+      stroke: colors.empirical, label: "x̄ (your estimate)", width: 2,
+      labelDy: parseFloat(colors.fsXs) + 3,
+    });
   }
   obsPlot.vline(state.mu, { stroke: colors.reference, label: "true mean", width: 2, align: "right" });
 
