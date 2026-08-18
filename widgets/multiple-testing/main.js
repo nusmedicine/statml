@@ -185,7 +185,12 @@ defineWidget({
        calls 75 with 3 false — an FDR of 4% against its nominal 5%. Lower n and
        both corrections return nothing, which teaches "correction destroys
        everything" instead of what BH actually buys. */
-    n: { type: "int", label: "Samples per group", min: 3, max: 24, default: 12 },
+    /* Up to 100, because the ceiling is where a whole lesson lives. At 0.9 SD
+       ("Moderate") and 20,000 genes, BH finds 0 of 100 at n = 12, 14 at n = 24,
+       50 at n = 40 and 94 at n = 60 — measured, not guessed. A cap of 24 hides
+       that entirely and leaves the impression that correction simply destroys
+       moderate effects, when what it actually does is price them. */
+    n: { type: "int", label: "Samples per group", min: 3, max: 100, default: 12 },
 
     dist: { type: "select", label: "Population", options: distOptions, default: "normal" },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },

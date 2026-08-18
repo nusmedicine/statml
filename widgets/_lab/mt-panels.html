@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · multiple-testing panels</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { margin: 0; background: var(--surface-2); }
+  .l-root { max-width: 1000px; margin: 0 auto; padding: var(--sp-5) var(--sp-4); }
+  h1 { margin: 0 0 var(--sp-2); font-size: var(--fs-fig); font-weight: 600; }
+  .l-lede { color: var(--ink-2); max-width: 68ch; margin: 0 0 var(--sp-5); }
+  h2 { margin: var(--sp-5) 0 var(--sp-1); font-size: var(--fs-md); font-weight: 600; }
+  .l-why { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); max-width: 68ch; }
+  .l-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+<main class="l-root">
+  <h1>multiple-testing — two candidate panels, two layouts</h1>
+  <p class="l-lede">
+    Same computation behind every panel: 20,000 genes, 100 of them real at 2.0 SD,
+    n = 12. The question is not whether the panels are correct, it is which
+    arrangement a room can read. Not deployed; <code>_lab/</code> is excluded from the site.
+  </p>
+
+  <h2>A · side by side</h2>
+  <p class="l-why">
+    Half width each. Compact, but the threshold panel loses horizontal room —
+    and horizontal room is exactly what its rank axis needs.
+  </p>
+  <div class="l-card"><canvas id="side" height="620"></canvas></div>
+
+  <h2>B · stacked, full width</h2>
+  <p class="l-why">
+    Each panel gets the full width. Costs vertical space, which on a projector is
+    the scarcer of the two.
+  </p>
+  <div class="l-card"><canvas id="stack" height="960"></canvas></div>
+
+  <h2>C · overlap only, as a wide short strip</h2>
+  <p class="l-why">
+    The effect-size panel does not need height — it is two curves and a shaded
+    overlap. A short full-width strip may buy most of its value for a third of
+    the space, leaving the thresholds panel a full-height slot of its own.
+  </p>
+  <div class="l-card"><canvas id="strip" height="300"></canvas></div>
+</main>
+
+<script type="module">
+import { POPULATIONS, tTailP, normalPdf } from "../core/index.js";
+import { makeRng } from "../core/rng.js";
+import { makePlot, niceTicks, createCanvas } from "../core/canvas.js";
+import { readTokens, resolveTheme } from "../core/env.js";
+
+resolveTheme();
+const colors = readTokens();
+
+/* --- the data, once ------------------------------------------------------ */
+const M = 20000, REAL = 100, SD = 2.0, N = 12, ALPHA = 0.05;
+const pop = POPULATIONS.normal;
+const rng = makeRng(1);
+const isReal = new Uint8Array(M);
+let placed = 0;
+while (placed < REAL) { const i = Math.floor(rng.next() * M); if (!isReal[i]) { isReal[i] = 1; placed += 1; } }
+const p = new Float64Array(M);
+{
+  const a = new Array(N), b = new Array(N);
+  for (let g = 0; g < M; g += 1) {
+    const lift = isReal[g] ? SD : 0;
+    for (let i = 0; i < N; i += 1) { a[i] = pop.sample(rng); b[i] = pop.sample(rng) + lift; }
+    let ma = 0, mb = 0; for (let i = 0; i < N; i += 1) { ma += a[i]; mb += b[i]; } ma /= N; mb /= N;
+    let va = 0, vb = 0; for (let i = 0; i < N; i += 1) { va += (a[i]-ma)**2; vb += (b[i]-mb)**2; }
+    const df = 2*N-2, se = Math.sqrt((va+vb)/df) * Math.sqrt(2/N);
+    p[g] = tTailP(Math.abs(mb-ma)/se, df);
+  }
+}
+const sorted = [...p].sort((x, y) => x - y);
+
+/* --- panel 1: the thresholds, on a log axis ------------------------------ */
+/* Bonferroni's line is at 0.05/20000 = 2.5e-6. On a linear p axis that is
+   indistinguishable from zero, so BOTH corrections are invisible and the panel
+   says nothing. Log10 is not decoration here — it is the only axis on which the
+   two rules can be seen at the same time. */
+const RANKS = 400;
+function drawThresholds(ctx, rect) {
+  const lo = -8, hi = 0; // log10 p
+  const plot = makePlot({ ctx, colors, rect, xDomain: [1, RANKS], yDomain: [lo, hi] });
+  const ticks = [-8, -6, -4, -2, 0];
+  plot.grid(ticks);
+  plot.axisY({ ticks, format: (v) => (v === 0 ? "1" : `1e${v}`), label: "p-value" });
+  plot.axisX({ ticks: niceTicks(1, RANKS, 5), label: "rank of the gene by p-value" });
+  plot.caption("Where each rule cuts");
+
+  const line = (fn, stroke, dash) => {
+    const pts = [];
+    for (let i = 1; i <= RANKS; i += 1) pts.push([i, Math.max(lo, Math.log10(fn(i)))]);
+    plot.curve(pts, { stroke, width: 2, dash });
+  };
+  // Bonferroni: flat, and brutally low. BH: a diagonal that rises with rank.
+  line(() => ALPHA / M, colors.extreme, [5, 4]);
+  line((i) => (i / M) * ALPHA, colors.theory, [5, 4]);
+  // The observed p-values, sorted. Where this crosses the BH line is the cutoff.
+  line((i) => sorted[i - 1], colors.empirical, null);
+
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.extreme; ctx.textAlign = "left";
+  ctx.fillText("Bonferroni", plot.sx(8), plot.sy(Math.log10(ALPHA / M)) - 6);
+  ctx.fillStyle = colors.theory;
+  ctx.fillText("Benjamini–Hochberg", plot.sx(RANKS * 0.42), plot.sy(Math.log10((RANKS * 0.42 / M) * ALPHA)) - 6);
+  ctx.fillStyle = colors.empirical;
+  ctx.fillText("your p-values, sorted", plot.sx(RANKS * 0.5), plot.sy(Math.log10(sorted[Math.floor(RANKS * 0.5)])) + 14);
+  ctx.restore();
+}
+
+/* --- panel 2: what 2.0 SD actually looks like ---------------------------- */
+function drawOverlap(ctx, rect, d = SD) {
+  const plot = makePlot({ ctx, colors, rect, xDomain: [-3.6, 3.6 + d], yDomain: [0, 0.44] });
+  plot.axisX({ ticks: niceTicks(-3.6, 3.6 + d, 7), label: "expression" });
+  plot.caption(`A ${d.toFixed(1)} SD difference — the shaded part is where the two groups overlap`);
+
+  const pts = (mu) => {
+    const out = [];
+    for (let i = 0; i <= 260; i += 1) {
+      const x = -3.6 + ((7.2 + d) * i) / 260;
+      out.push([x, normalPdf(x, mu, 1)]);
+    }
+    return out;
+  };
+  // The overlap first, so both curves sit on top of it.
+  const shade = [];
+  for (let i = 0; i <= 260; i += 1) {
+    const x = -3.6 + ((7.2 + d) * i) / 260;
+    shade.push([x, Math.min(normalPdf(x, 0, 1), normalPdf(x, d, 1))]);
+  }
+  plot.area(shade, { fill: colors.extreme, opacity: 0.28 });
+  plot.curve(pts(0), { stroke: colors.groupA, width: 2 });
+  plot.curve(pts(d), { stroke: colors.groupB, width: 2 });
+
+  ctx.save();
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = colors.groupA; ctx.fillText("control", plot.sx(0), plot.sy(0.41));
+  ctx.fillStyle = colors.groupB; ctx.fillText("treated", plot.sx(d), plot.sy(0.41));
+  ctx.restore();
+}
+
+/* --- the three layouts --------------------------------------------------- */
+const PAD = 56;
+function surfaceFor(id, cssH) {
+  const el = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const w = el.clientWidth;
+  el.width = Math.round(w * dpr);
+  el.height = Math.round(cssH * dpr);
+  el.style.height = `${cssH}px`;
+  const ctx = el.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, cssH);
+  return { ctx, w, h: cssH };
+}
+
+{ // A — side by side
+  const { ctx, w } = surfaceFor("side", 300);
+  const half = (w - PAD - 16 - 40) / 2;
+  drawThresholds(ctx, { x: PAD, y: 30, w: half, h: 220 });
+  drawOverlap(ctx, { x: PAD + half + 40 + 8, y: 30, w: half - 8, h: 220 });
+}
+
+{ // B — stacked full width
+  const { ctx, w } = surfaceFor("stack", 620);
+  drawThresholds(ctx, { x: PAD, y: 30, w: w - PAD - 16, h: 240 });
+  drawOverlap(ctx, { x: PAD, y: 360, w: w - PAD - 16, h: 220 });
+}
+
+{ // C — overlap as a short strip
+  const { ctx, w } = surfaceFor("strip", 150);
+  drawOverlap(ctx, { x: PAD, y: 30, w: w - PAD - 16, h: 95 });
+}
+</script>
+</body>
+</html>
