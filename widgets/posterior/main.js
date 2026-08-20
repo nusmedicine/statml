@@ -77,6 +77,24 @@
    the same asymmetry as a wider interval; here it is a prior that is still
    doing the work, which is the sharper version of the same fact.
 
+   AND REFUSING TO ASSUME HAS A PRICE, WHICH THE mu TAB PRINTS. Its interval
+   reads `width 6.0 · assume no extra spread and it claims only 3.2`, both
+   computed live off the same counts and the same prior. The second is what
+   widget 8's mu tab does — it assumes Poisson, and says so — and it is the
+   comparison that matters, because it is far larger than the one a reader
+   expects. Pinning the dispersion at its ESTIMATE costs 4% of the width;
+   assuming it away entirely costs 47%.
+
+   THE SEARCH STRATEGY IS NOT WHAT COSTS YOU; THE MODEL ASSUMPTION IS. The
+   natural guess is that widget 8's one-parameter-then-the-other is a greedy
+   shortcut that lands somewhere worse. It does not: the best mu is the sample
+   mean at EVERY size — 8.66 at 0.5, at 2.5, at 10, at a million — because the
+   `r` terms cancel out of d/dmu, and the posterior correlation between the two
+   parameters here is 0.024. That reframes the Both tab. It is not the proper
+   way against the shortcut; it is the tab that tells you WHETHER the shortcut
+   was safe, because a crest running straight up is what makes it so, and a
+   reader can see that rather than be told it.
+
    MCMC IS A TAB, AND IT IS AN HONEST ANSWER TO "WHAT IS THE BACKEND?".
 
    Nothing in the first three tabs is sampled. The posterior is exact: multiply
@@ -164,6 +182,12 @@ const JUMP_SIZE = 0.8;
 const JUMP_MU = 0.4;
 const BRMS_DRAWS = 6000; // 4 chains x (2000 - 500 warmup), the notebook's call
 
+/* The ratio bars: how far past the current point's bar a better proposal is
+   allowed to run before it is clipped. Declared up here because defineWidget()
+   renders synchronously at module load and its draw path reaches this. */
+const CAP = 1.15;
+
+const LEAD_MS = 1500;
 const STEP_MS = 360;
 const PLAY_MS = 150;
 const DRAW_STEP_MS = 260;
@@ -188,7 +212,9 @@ const A_Y = 34, A_H = 46;   // the counts, arriving
 const B_Y = 142, B_H = 106; // P(counts | theta)
 const C_Y = 300, C_H = 116; // P(theta)          -- the prior
 const D_Y = 474, D_H = 116; // P(theta | counts) -- the posterior
-const S_Y = 142, S_H = 306; // the (size, mu) plane
+const S_Y = 142, S_H = 306; // the (size, mu) plane, on the Both tab
+const M_H = 250;            // ...and on the sampler, which gives 56px to the ratio
+const R_Y = 448;            // the ratio strip
 
 const isPlane = (view) => view === "both" || view === "mcmc";
 /* Core hands the height function the VALUES object, not { params } — widget 8's
@@ -196,7 +222,9 @@ const isPlane = (view) => view === "both" || view === "mcmc";
    give its pixels back, or a tab trades a chart for the same amount of blank
    canvas. */
 const canvasHeight = ({ view }) =>
-  (isPlane(view) ? S_Y + S_H : D_Y + D_H) + 46;
+  view === "mcmc" ? R_Y + 104
+    : view === "both" ? S_Y + S_H + 46
+      : D_Y + D_H + 46;
 
 /** The x and = of the lesson's own figure, in the margin on a caption's
     baseline. The lesson draws prior x likelihood ∝ posterior side by side on
@@ -284,7 +312,9 @@ defineWidget({
     "area at 1, so there is no probability to read off it. Multiply it by what " +
     "you believed beforehand, divide by the total, and the curve that comes out " +
     "does have an area of 1. Then add counts one at a time and watch one prior " +
-    "get overwhelmed while the other does not.",
+    "get overwhelmed while the other does not. The first three tabs work it out " +
+    "exactly, by adding up 6,400 grid cells — which is fine for two parameters " +
+    "and impossible for ten. The fourth shows what you do instead.",
   layout: "side",
   height: canvasHeight,
 
@@ -352,10 +382,10 @@ defineWidget({
       type: "segmented",
       label: "Looking at",
       options: [
-        { value: "mu", label: "mu", detail: "the mean, with the dispersion integrated out rather than assumed" },
-        { value: "size", label: "size", detail: "the dispersion, with the mean integrated out — larger size means LESS spread" },
-        { value: "both", label: "Both", detail: "the joint posterior over the plane, which the other two tabs are the edges of" },
-        { value: "mcmc", label: "MCMC", detail: "what brms does instead of a grid, over the same posterior — and why it has to" },
+        { value: "mu", label: "mu", detail: "exact, on the grid · the mean, with the dispersion integrated out rather than assumed" },
+        { value: "size", label: "size", detail: "exact, on the grid · the dispersion, with the mean integrated out — larger size means LESS spread" },
+        { value: "both", label: "Both", detail: "exact, on the grid · the joint posterior the other two tabs are the edges of" },
+        { value: "mcmc", label: "MCMC", detail: "sampled, not enumerated · what brms does when a grid is no longer possible" },
       ],
       default: "mu",
       display: true,
@@ -454,11 +484,14 @@ defineWidget({
     let topM = 0;
     let topS = 0;
     const ll = new Float64Array(G * G);
+    const poisLl = new Float64Array(G);
 
     for (let m = 0; m <= n; m += 1) {
       if (m > 0) {
         const k = counts[m - 1];
         for (let i = 0; i < G; i += 1) A[i] += lgamma(k + SIZES[i]);
+        // size = Infinity is the Poisson limit, taken exactly by core's pmf.
+        for (let j = 0; j < G; j += 1) poisLl[j] += nbLogPmf(k, Infinity, MUS[j]);
         cGam += lgamma(k + 1);
         sumK += k;
       }
@@ -528,6 +561,25 @@ defineWidget({
       for (let j = 0; j < G; j += 1) { likM[m * G + j] *= scaleM; areaM += likM[m * G + j] * dM; }
       for (let i = 0; i < G; i += 1) { likS[m * G + i] *= scaleS; areaS += likS[m * G + i] * dS; }
 
+      /* WHAT ASSUMING IT AWAY WOULD HAVE COST, measured rather than asserted.
+         Widget 8's mu tab does not integrate the dispersion out — it assumes
+         Poisson, which is size = infinity, and says so. That is the honest
+         comparison for this widget's headline number, and it is a big one:
+         pinning size at its ESTIMATE costs 4% of the interval's width, while
+         assuming no overdispersion at all costs 47%. The search strategy is not
+         what costs you; the model assumption is. */
+      let poisMax = -Infinity;
+      const poisLp = new Float64Array(G);
+      for (let j = 0; j < G; j += 1) {
+        poisLp[j] = poisLl[j] + lPriorM[j];
+        if (poisLp[j] > poisMax) poisMax = poisLp[j];
+      }
+      let poisW = 0;
+      for (let j = 0; j < G; j += 1) poisW += Math.exp(poisLp[j] - poisMax);
+      const poisDens = new Float64Array(G);
+      for (let j = 0; j < G; j += 1) poisDens[j] = Math.exp(poisLp[j] - poisMax) / (poisW * dM);
+      const poisStat = summarise(poisDens, MUS, dM);
+
       const sm = summarise(margM.subarray(m * G, m * G + G), MUS, dM);
       const ss = summarise(margS.subarray(m * G, m * G + G), SIZES, dS);
       if (sm.peak > topM) topM = sm.peak;
@@ -535,6 +587,7 @@ defineWidget({
 
       steps.push({
         evidence, mu: sm, size: ss, expoM, expoS,
+        poisWidth: poisStat.hi - poisStat.lo,
         areaM: areaM * 10 ** expoM,
         areaS: areaS * 10 ** expoS,
         yTopM: Math.ceil(lmMax * scaleM * 1.1 * 2) / 2,
@@ -566,11 +619,18 @@ defineWidget({
      * mean(data))`, so the first thing a reader sees is a walk-in from a
      * declared starting guess — which is what a warmup is, and why brms throws
      * its first 500 draws away. */
+    /* THE PRIORS ARE NORMALISED HERE TOO, and that is not fussiness: the ratio
+       panel prints exp() of these numbers beside a P(counts) taken off the
+       grid, where the priors ARE normalised. The constants cancel out of every
+       acceptance ratio, so the chain is identical either way — but two numbers
+       on one screen that are on different scales is a figure that lies. */
+    const zS = Math.log(ws * dS);
+    const zM = Math.log(wm * dM);
     const logPost = (r, mu) => {
       if (!(r > 0) || !(mu > 0)) return -Infinity;
       let s = 0;
       for (const k of counts) s += nbLogPmf(k, r, mu);
-      return s - r / priorSize - 0.5 * ((mu - priorMu) / priorSd) ** 2;
+      return s - r / priorSize - zS - 0.5 * ((mu - priorMu) / priorSd) ** 2 - zM;
     };
     const sampleMean = n ? counts.reduce((a, b) => a + b, 0) / n : TRUE_MU;
     const chain = [];
@@ -582,9 +642,20 @@ defineWidget({
       const pr = Math.exp(Math.log(cr) + rng.normal(0, JUMP_SIZE));
       const pm = Math.exp(Math.log(cm) + rng.normal(0, JUMP_MU));
       const pl = logPost(pr, pm) + Math.log(pr) + Math.log(pm);
-      const take = Math.log(rng.next()) < pl - cl;
+      const u = rng.next();
+      const take = Math.log(u) < pl - cl;
+      /* The BARS show prior x likelihood with no Jacobian, because that is the
+         object the cancellation is about — P(theta | counts) x P(counts). The
+         WALK carries the Jacobian, because it is sampling log size and log mu.
+         Two different quantities, and conflating them would either bias the
+         cloud or mislabel the bars. */
+      const fromRaw = logPost(cr, cm);
+      const toRaw = logPost(pr, pm);
       if (take) { cr = pr; cm = pm; cl = pl; accepted += 1; }
-      chain.push({ size: cr, mu: cm, propSize: pr, propMu: pm, take, rate: accepted / (t + 1) });
+      chain.push({
+        size: cr, mu: cm, propSize: pr, propMu: pm, take, u,
+        fromRaw, toRaw, ratio: Math.exp(toRaw - fromRaw), rate: accepted / (t + 1),
+      });
     }
 
     return {
@@ -596,14 +667,39 @@ defineWidget({
   },
 
   animation: {
-    /* "Step", NOT "Add a count", AND THAT IS A REAL COST OF THE FOURTH TAB.
-       Three tabs advance the DATA by one observation and the fourth advances
-       the SAMPLER by one draw, so no single noun is honest on all four —
-       exactly the position widget 8 was in with its sweeps and its climb, and
-       it reached the same answer. The noun goes into `stepTitle`, which is what
-       3.4c says a one-word face has to do. */
-    stepLabel: "Step",
-    stepTitle: "Observe one more count — or, on the MCMC tab, take one more draw",
+    /* THE LEAD DEALS THE WHOLE SAMPLE, AND THE SAME WORDS WIDGET 8 USES.
+       3.4c says the same class of action should read the same across the arc,
+       and this IS widget 8's action on widget 8's data: twelve counts out of the
+       lesson's population, once, and that is all you get. Its prohibition is on
+       a lead reading like a STEP, and nothing here steps by drawing.
+
+       IT DOES NOT SHOW THE POPULATION, WHICH WIDGET 8 DOES. That needs the
+       150px distribution panel widget 8 has and this widget does not — and a
+       panel that exists for one animation and is empty for the rest of the
+       session is a bad trade. Widget 8 has already shown the arrow running
+       parameter -> data on exactly this population; here the lead's job is
+       narrower and worth its own button anyway: it establishes that the sample
+       is FIXED, by dealing every count at once and leaving the ones you have not
+       reached yet on screen as hollow rings. */
+    leadLabel: "Draw the counts",
+    leadTitle: "Deal your whole sample at once — you never get another one",
+    leadHint: "Step and Play wake up once you have counts to work through.",
+
+    /* THE FOURTH TAB DRIVES A DIFFERENT NOUN, so the label follows the tab.
+       Three tabs advance the DATA by one observation and the sampler advances
+       by one DRAW; those are not the same kind of thing, and one label for both
+       is what forced widget 8 into the bland "Step". Core resolves the map and
+       reserves the button against every label in it. */
+    stepLabel: {
+      param: "view",
+      labels: { mcmc: "Propose a move" },
+      default: "Add a count",
+    },
+    stepTitle: {
+      param: "view",
+      labels: { mcmc: "Propose one move, and see whether the chain takes it" },
+      default: "Observe one more of the counts you already drew",
+    },
     runLabel: "Play",
     runTitle: "Keep going to the end of the sample, or of the chain",
 
@@ -612,9 +708,14 @@ defineWidget({
          the SAME accumulating data, so they share one — switching tabs must not
          cost the counts you collected. The sampler counts something else
          entirely, so it gets its own. */
-      const anim = { obs: 0, draws: 0, flying: false, flyT: 1, done: false };
+      const anim = {
+        leadDone: false, leadT: 0,
+        obs: 0, draws: 0, flying: false, flyT: 1, done: false,
+      };
       const pre = fromScratch ? 0 : Math.max(0, params.shown | 0);
       if (pre > 0) {
+        anim.leadDone = true;
+        anim.leadT = 1;
         if (params.view === "mcmc") anim.draws = Math.min(pre, DRAWS);
         else anim.obs = Math.min(pre, params.n);
         anim.hasAdvanced = true;
@@ -636,7 +737,16 @@ defineWidget({
     },
 
     advance(anim, { dt, params }) {
-      if (anim.done) return false;
+      /* The one deal of the sample, which then stops. There is nothing to
+         repeat, which is the whole point of it being a separate action. */
+      if (anim.mode === "lead") {
+        if (anim.leadDone) return false;
+        anim.leadT = Math.min(1, anim.leadT + dt / LEAD_MS);
+        if (anim.leadT < 1) return true;
+        anim.leadDone = true;
+        return false;
+      }
+      if (!anim.leadDone || anim.done) return false;
       const mcmc = params.view === "mcmc";
       const dur = anim.mode === "step"
         ? (mcmc ? DRAW_STEP_MS : STEP_MS)
@@ -666,8 +776,10 @@ defineWidget({
     const { counts, countHi, steps, n } = state;
     const plotW = w - PAD_L - PAD_R;
     const plane = isPlane(params.view);
-    // The sampler always fits the finished dataset, exactly as brms would.
-    const m = params.view === "mcmc" ? n : anim.obs;
+    /* The sampler always fits the finished dataset, exactly as brms would — but
+       only once there IS one. Before the lead it would otherwise open on the
+       full posterior, which is the answer, given away (2.1). */
+    const m = params.view === "mcmc" ? (anim.leadDone ? n : 0) : anim.obs;
     const S = steps[m];
 
     /* ---- the counts, one at a time ------------------------------------- */
@@ -675,32 +787,23 @@ defineWidget({
       ctx, colors, rect: { x: PAD_L, y: A_Y, w: plotW, h: A_H },
       xDomain: [-0.5, countHi + 0.5], yDomain: [0, Math.max(3, state.maxMult)],
     });
-    pA.caption(params.view === "mcmc"
-      ? `All ${n} counts — the sampler fits the finished dataset, as brms would`
-      : m === 0 && !anim.flying
-        ? "Nothing observed yet — press “Step”"
-        : `Your counts — ${m} of ${n} observed`);
+    pA.caption(!anim.leadDone
+      ? (anim.leadT > 0 ? "Dealing your sample…" : "Press “Draw the counts” to begin")
+      : params.view === "mcmc"
+        ? `All ${n} counts — the sampler fits the finished dataset, as brms would`
+        : m === 0 && !anim.flying
+          ? `${n} counts dealt, none observed yet — press “Add a count”`
+          : `Your counts — ${m} of ${n} observed, ${n - m} still to come`);
 
-    const settled = new Array(countHi + 1).fill(0);
-    for (let i = 0; i < m; i += 1) settled[counts[i]] += 1;
-    pA.dotColumns(settled, { lo: -0.5, width: 1, fill: colors.empirical, maxR: 3.6 });
-
-    /* The arrival, accelerating downward into its own column (4.3). The level it
-       lands on is read off the same `settled` tally the dots are drawn from, so
-       the falling dot and the dot it becomes cannot disagree (5.8). */
-    if (!plane && anim.flying && m < n) {
-      const k = counts[m];
-      const y0 = pA.y + 2;
-      const y1 = pA.sy(settled[k] + 0.5);
-      const t = anim.flyT * anim.flyT;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(pA.sx(k), y0 + (y1 - y0) * t, 3.6, 0, Math.PI * 2);
-      ctx.fillStyle = colors.empirical;
-      ctx.fill();
-      ctx.restore();
-    }
-    pA.axisX({ label: "count — one observation each, drawn once and never redrawn" });
+    /* SOLID FOR OBSERVED, HOLLOW FOR STILL TO COME. The sample is fixed from the
+       moment the lead runs, and the pending rings are what says so — you can
+       count what is left, which is what tells a reader the answer is still
+       moving. Rings rather than faint fills: mocked all three ways in
+       _lab/mcmc-panel.html and at n = 60 a low-opacity pending dot is
+       indistinguishable from a solid one in the same column, while a ring stays
+       countable. A separate waiting row also worked and cost 36px more. */
+    drawCounts(ctx, pA, counts, n, m, anim, colors);
+    pA.axisX({ label: "count — dealt once, and never redrawn" });
 
     if (plane) drawPlane(ctx, colors, plotW, params, state, anim, m, S);
     else drawMarginal(ctx, colors, plotW, params, state, anim, m, S);
@@ -708,7 +811,7 @@ defineWidget({
 
   readout: ({ params, state, anim }) => {
     const view = params.view;
-    const m = view === "mcmc" ? state.n : anim.obs;
+    const m = view === "mcmc" ? (anim.leadDone ? state.n : 0) : anim.obs;
     const S = state.steps[m];
 
     if (view === "mcmc") {
@@ -762,12 +865,19 @@ defineWidget({
         /* THE NUMBER WIDGET 8 COULD NOT PRODUCE. Its interval was a range of
            parameter values the data did not rule out; this one is a statement
            about where the parameter is, with a probability attached, and it is
-           legitimate only because the curve it is measured on has an area of 1. */
+           legitimate only because the curve it is measured on has an area of 1.
+
+           On the mu tab it also carries what REFUSING TO ASSUME is worth, which
+           is the whole reason this widget integrates the dispersion out instead
+           of pinning it: assume no overdispersion and the same counts and the
+           same prior report an interval about half as wide, and wrong. */
         label: "95% credible interval",
         value: `${fmt(P.lo, 1)} – ${fmt(P.hi, 1)}`,
         note: m === 0
           ? "95% of your prior — no counts have narrowed it"
-          : `95% of the posterior's probability is in here · width ${fmt(P.hi - P.lo, 1)}`,
+          : size
+            ? `95% of the posterior's probability is in here · width ${fmt(P.hi - P.lo, 1)}`
+            : `width ${fmt(P.hi - P.lo, 1)} · assume no extra spread and it claims only ${fmt(S.poisWidth, 1)}`,
       },
     ];
   },
@@ -862,8 +972,9 @@ function drawMarginal(ctx, colors, plotW, params, state, anim, m, S) {
 /** A plane tab: the joint posterior, and optionally a walk over it. */
 function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   const mcmc = params.view === "mcmc";
+  // The sampler gives 56px of its plane to the ratio strip below it.
   const pS = makePlot({
-    ctx, colors, rect: { x: PAD_L, y: S_Y, w: plotW, h: S_H },
+    ctx, colors, rect: { x: PAD_L, y: S_Y, w: plotW, h: mcmc ? M_H : S_H },
     xDomain: [SIZE_LO, SIZE_HI], yDomain: [MU_LO, MU_HI],
   });
 
@@ -925,6 +1036,7 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   const t = anim.draws;
   if (t === 0) {
     pS.note("nothing drawn yet — the shading is the exact answer");
+    ratioStrip(ctx, colors, plotW, null, S);
     return;
   }
 
@@ -978,10 +1090,176 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
     ctx.restore();
   }
   pS.dot(cur.size, cur.mu, { fill: colors.empirical, r: 5 });
+  pS.note(`${t} draw${t === 1 ? "" : "s"} · brms would take ${BRMS_DRAWS.toLocaleString("en")}`);
 
-  pS.note(anim.flying && t < DRAWS
-    ? (state.chain[t].take
-      ? "accepted — the chain moves there"
-      : "rejected — it stays, and records where it already was")
-    : `${t} draw${t === 1 ? "" : "s"} · brms would take ${BRMS_DRAWS.toLocaleString("en")}`);
+  /* While a proposal is in flight the strip shows the decision being made; at
+     rest it shows the one just made. Showing the NEXT proposal at rest — which
+     is what an off-by-one here did — puts a verdict on screen for a move nobody
+     has proposed yet. */
+  ratioStrip(ctx, colors, plotW,
+    anim.flying && t < DRAWS ? state.chain[t] : state.chain[t - 1], S);
+}
+
+/* ============================================================================
+   THE RATIO, WHICH IS WHY MCMC EXISTS.
+
+   The commonest thing to believe about MCMC is that it goes and computes the
+   normalising constant. It does the opposite: P(counts) is the same number on
+   the top and the bottom of
+
+       posterior(new)     prior(new) x L(new) / P(counts)
+       --------------  =  -------------------------------
+       posterior(old)     prior(old) x L(old) / P(counts)
+
+   so it cancels, and the chain never needs it. That is the whole reason the
+   method is possible on a model where the integral is not.
+
+   Drawn as two bars from one left edge with the CURRENT point at full width, so
+   the proposal's length IS the acceptance probability and u is a dart thrown
+   along the same axis. Chosen in _lab/mcmc-panel.html against a plain note and
+   against a version that also carried a histogram of the draws; the histogram
+   was cut because at forty draws it reads as the sampler failing rather than as
+   the sampler working slowly, and the tab has to survive the first hundred
+   presses.
+
+   BOTH BARS TAKE ONE COLOUR. They were briefly coloured by outcome, which made
+   accept and reject instant and quietly said they were two different
+   quantities. They are one quantity at two points, which is the only reason
+   comparing them means anything. The outcome is carried by where u lands and by
+   the verdict line.
+
+   MOST PROPOSALS ARE HOPELESS, AND THE PANEL HAS TO SURVIVE THAT. Measured over
+   600 draws at these jump sizes: 436 are rejected, and 58% of those score under
+   2% of the current point's height — a bar two pixels long. That is not a
+   defect to scale away; it is the reason the method is cheap, since rejecting a
+   bad proposal costs one ratio and no integral. What WAS a defect is that
+   `toFixed(2)` printed every one of them as `ratio 0.00`, which reads as a
+   broken figure rather than as a hopeless proposal. Below 0.01 the ratio is
+   printed in scientific notation instead, so a sliver says how much of a sliver
+   it is.
+   ========================================================================= */
+function ratioStrip(ctx, colors, plotW, d, S) {
+  const x0 = PAD_L;
+  const wFull = Math.min(460, plotW - 190);
+  const valX = x0 + wFull * CAP + 12;
+  const rowH = 15, gap = 9;
+
+  ctx.save();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("Should it move? Compare the two lengths — nothing else is needed", x0, R_Y - 8);
+  ctx.restore();
+
+  const row = (i, label, frac, value) => {
+    const ry = R_Y + i * (rowH + gap);
+    ctx.save();
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x0 - 8, ry + rowH / 2);
+    ctx.textAlign = "left";
+    ctx.fillStyle = colors.ink2;
+    ctx.fillText(value, valX, ry + rowH / 2);
+    ctx.restore();
+    if (frac !== null) {
+      ctx.save();
+      ctx.fillStyle = colors.empirical;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0, ry, Math.max(2, wFull * Math.min(frac, CAP)), rowH);
+      ctx.restore();
+    }
+    return ry;
+  };
+
+  if (!d) {
+    row(0, "here now", null, "—");
+    const ry0 = row(1, "proposed", null, "—");
+    ctx.save();
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("nothing proposed yet", x0, ry0 + rowH + 22);
+    ctx.restore();
+    return;
+  }
+
+  row(0, "here now", 1, sci(Math.exp(d.fromRaw)));
+  const ry = row(1, "proposed", d.ratio, sci(Math.exp(d.toRaw)));
+
+  /* u, the dart — drawn only when there is something for it to decide. A better
+     proposal is taken outright, so a tick there is a dart with nothing to hit. */
+  if (d.ratio < 1) {
+    const ux = x0 + wFull * d.u;
+    ctx.save();
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(ux) + 0.5, ry - 4);
+    ctx.lineTo(Math.round(ux) + 0.5, ry + rowH + 4);
+    ctx.stroke();
+    ctx.fillStyle = colors.ink1;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`u = ${d.u.toFixed(2)}`, ux, ry + rowH + 6);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  const ratioText = d.ratio >= 0.01 ? d.ratio.toFixed(2) : sci(d.ratio);
+  ctx.fillStyle = d.take ? colors.ink2 : colors.extreme;
+  ctx.fillText(
+    d.ratio >= 1 ? "the proposal is better · taken without even needing u"
+      : d.take ? `ratio ${ratioText} · u landed inside → move anyway`
+        : `ratio ${ratioText} · u landed outside → stay, and record here again`,
+    x0, ry + rowH + 22);
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText(
+    `both would be divided by P(counts) = ${sci(S.evidence)} — so the chain never computes it`,
+    x0, ry + rowH + 38);
+  ctx.restore();
+}
+
+/** One dot per observation: solid once observed, a ring while still to come. */
+function drawCounts(ctx, p, counts, n, m, anim, colors) {
+  if (!anim.leadDone && anim.leadT <= 0) return;
+  const seen = new Array(Math.ceil(p.xDomain[1]) + 2).fill(0);
+  for (let i = 0; i < n; i += 1) {
+    const k = counts[i];
+    const level = seen[k];
+    seen[k] += 1;
+    /* During the deal the counts cascade in, so the sample arriving all at once
+       still reads as twelve things rather than one event. */
+    if (!anim.leadDone) {
+      const start = 0.05 + 0.7 * (n > 1 ? i / (n - 1) : 0);
+      if (anim.leadT < start) continue;
+    }
+    const cx = p.sx(k);
+    const cy = p.sy(level + 0.5);
+    /* The one being counted right now fills in and settles — the only motion a
+       press produces, since nothing arrives from anywhere: the count was already
+       on screen, waiting. */
+    const filling = anim.leadDone && anim.flying && i === m;
+    const t = filling ? anim.flyT : 0;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, filling ? 3.6 + 3 * (1 - t) : 3.6, 0, Math.PI * 2);
+    if (i < m || filling) {
+      ctx.globalAlpha = filling ? Math.max(0.25, t) : 1;
+      ctx.fillStyle = colors.empirical;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = colors.empirical;
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }

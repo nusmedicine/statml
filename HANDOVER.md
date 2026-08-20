@@ -2,8 +2,8 @@
 
 ## Where things are
 
-**Widget 9, `posterior`, is shipped.** Four tabs, baselined with **9 fingerprint
-states** (six settled, three driven), and the suite reports **56/56 MATCH**.
+**Widget 9, `posterior`, is shipped.** Four tabs, baselined with **10 fingerprint
+states** (six settled, four driven), and the suite reports **57/57 MATCH**.
 
 The inference arc's pair is now complete: #8 answers `P(Data | Parameters)` and
 #9 answers `P(Parameters | Data)`, on the same lesson, the same negative
@@ -16,14 +16,16 @@ misconception rule — do that before building it.
 
 ## What widget 9 is, in one paragraph
 
-The same twelve counts, arriving one at a time instead of all at once. Every
-press adds one observation and every curve moves. Three panels multiply —
-likelihood **×** prior **=** posterior — and each prints its own area, which is
-the whole argument: the likelihood's is `5 × 10⁻¹³` and nothing holds it there,
-the prior's is 1, the posterior's is 1 *after dividing by `P(counts)`*. A `size`
-tab does the same for the dispersion, a `Both` tab shows the joint posterior the
-two are the edges of, and an `MCMC` tab walks a Metropolis chain over that same
-posterior so a reader can see what `brms` does instead of a grid.
+A lead deals the whole sample at once — solid dots for observed, hollow rings
+for still to come — and Step works through it, one count per press. Three panels
+multiply: likelihood **×** prior **=** posterior, each printing its own area,
+which is the whole argument. The likelihood's is `5 × 10⁻¹³` and nothing holds
+it there; the prior's is 1; the posterior's is 1 *after dividing by
+`P(counts)`*. A `size` tab does the same for the dispersion, a `Both` tab shows
+the joint posterior the two are the edges of, and an `MCMC` tab walks a
+Metropolis chain over that same posterior — with two bars showing that
+`P(counts)` **cancels out of the acceptance ratio**, which is why the chain
+never has to compute it.
 
 ## The next job
 
@@ -32,6 +34,43 @@ not a decision — [docs/catalogue.md](docs/catalogue.md) §"Still queued" says 
 and names the two candidate misconceptions. The rule at the top of that file is
 the gate. `ppv-prevalence` is flagged there as the highest-evidence deferred
 item in the whole catalogue, which is a live argument for un-parking it instead.
+
+## The three questions that reshaped it, and the answers
+
+Asked after the first four-tab build, and all three are worth keeping because a
+student will ask the same ones.
+
+- **"Should the sample be generated first, so it does not move?"** It never
+  moved — `compute()` is pure and seeded — but the figure did not say so. It
+  does now: the lead deals every count, and the hollow rings are what is left.
+- **"Are mu / size / Both manual calculations, like MAP?"** No. MAP is a point;
+  these are the whole posterior, computed exactly by enumeration over 6,400
+  cells. Widget 8 *maximises*; widget 9 *integrates*. The subtitle and the tab
+  details now say "exact, on the grid" so the fourth tab has something to be an
+  alternative to.
+- **"Is MCMC finding the denominator?"** The opposite, and this is the one that
+  changed a whole panel. `P(counts)` cancels out of the acceptance ratio, so the
+  chain never computes it. brms shipping a separate `bridge_sampler()` is the
+  proof: if the sampler gave you the denominator, that function would not exist.
+
+## What the numbers said about coordinate ascent, since it comes up
+
+The intuition that widget 8's "best mu, then best size" is a greedy shortcut is
+the natural one and it is **wrong for this model**. The best mu is the sample
+mean at every size — 8.66 at size 0.5, at 2.5, at 10, at a million — because the
+`r` terms cancel out of `d/dmu`. Measured:
+
+| what you do about `size` | 95% interval for mu | width |
+|---|---|---|
+| pin it at its estimate, 2.55 | 6.02 – 11.77 | 5.75 |
+| don't pin it — integrate it out | 5.87 – 11.86 | 5.99 |
+| **assume Poisson (size = ∞)** | **7.10 – 10.27** | **3.17** |
+
+Pinning the nuisance parameter costs **4%**. Assuming the wrong model costs
+**47%**. Posterior correlation between the two parameters is 0.024, which is
+*why* the first two agree. **The search strategy is not what costs you; the
+model assumption is** — and the `Both` tab is what tells you which situation you
+are in, because a crest that runs straight up is what makes the shortcut safe.
 
 ## Things this session learned the hard way
 
@@ -54,6 +93,17 @@ item in the whole catalogue, which is a live argument for un-parking it instead.
   token it is 3.9px tall against 9.6 for the `×` above it, and reads as a stray
   hyphen. The lesson's own figure uses `∝`, so this was tried first. Widget 9
   uses `=` with the missing division stated at the other end of the same line.
+
+- **A constant used by `draw` must be declared ABOVE `defineWidget`.** It renders
+  synchronously at module load, so a `const` below it is still in the temporal
+  dead zone and the widget dies with "cannot access before initialization".
+
+- **`Replay` re-runs the lead, which means it blanks the figure.** Core calls
+  `resetAnim({fromScratch: true})` when `anim.done`, and that clears `leadDone`,
+  so Play-after-finishing leaves both step and run disabled until the lead is
+  pressed again. Widget 8 behaves the same way and `leadHint` explains it, so it
+  is the arc's semantics rather than a bug — but it made a test look like the
+  shared tab cursor had broken, which it had not.
 
 - **The fingerprint harness auto-runs on load.** `run()` is the last statement in
   `fingerprint.html`. Clicking **Run** therefore starts a SECOND concurrent pass
@@ -82,11 +132,12 @@ item in the whole catalogue, which is a live argument for un-parking it instead.
 ## Verifying, and what actually caught things
 
 `npm run check` before every commit. The fingerprint suite (`_lab/fingerprint.html`)
-**whenever `widgets/core/` changes** — it ran clean twice this session (47/47
-MATCH after the token and helper moves, and again after `nbLogPmf` moved), which
-is what made two separate core extractions safe to ship.
+**whenever `widgets/core/` changes** — it ran clean three times this session,
+each reporting 47/47 on the other widgets: after the token and helper moves,
+after `nbLogPmf` moved, and after the step-label change to `widget.js`. That is
+what made three separate core changes safe to ship.
 
-**Baselining is slow and the wait is the job.** One suite pass over 56 states
+**Baselining is slow and the wait is the job.** One suite pass over 57 states
 takes about eight minutes in the browser pane, and a new driven state needs three
 identical passes before it is recorded — so budget roughly half an hour, and do
 not start until the design has stopped moving. Confirm the table is nearly empty
@@ -96,8 +147,8 @@ seconds.
 **Write the baseline back with the original formatting.** A plain
 `json.dumps(indent=1)` rewrote all 47 states once and turned an 8-state addition
 into a 408-line diff. Preserve each existing state's own key order and pass
-`ensure_ascii=False`; widget 9's nine states were **60 insertions and no
-deletions**. `widgets/manifest.json` is the opposite — it stores non-ASCII
+`ensure_ascii=False`; widget 9's ten states landed as a clean block with the
+other 47 untouched. `widgets/manifest.json` is the opposite — it stores non-ASCII
 escaped, so write that one with `ensure_ascii=True`.
 
 The browser pane's tab reports `document.visibilityState === "hidden"`, so

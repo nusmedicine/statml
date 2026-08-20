@@ -730,6 +730,93 @@ lesson's model. The negative binomial with **both** parameters estimated is
 calibrated on both (98.2% for `mu`, 95.0% for `size`) and keeps it. That is the
 version that shipped.
 
+#### What the sampler tab shows, and why it is not the obvious thing
+
+Mocked in [`_lab/mcmc-panel.html`](../widgets/_lab/mcmc-panel.html) before any
+of it was written, because the first build showed a chain converging on a
+contour — true, and the least interesting fact about it.
+
+**MCMC does not compute the normalising constant. It avoids it.** `P(counts)` is
+the same number on the top and the bottom of the acceptance ratio, so it
+cancels, and the chain never needs it. That is the entire reason the method
+works on a model where the integral does not, and it is the misconception the
+tab exists to dissolve — it was the first thing asked about this widget, which
+is evidence enough that a student will ask it too.
+
+So the tab carries **two bars**: `prior × L` where the chain is and where it
+wants to go, from one left edge with the current point at full width, so the
+proposal's length *is* the acceptance probability and `u` is a dart thrown along
+the same axis. Underneath, one grey line: *both would be divided by
+P(counts) = 4.0 × 10⁻¹⁷ — so the chain never computes it.*
+
+Three things the mockup settled that guessing would not have:
+
+- **A teaching case has to be a near miss.** The first draft picked a rejection
+  with a ratio of `3 × 10⁻³⁵ / 1.2 × 10⁻¹⁸`. The bar was invisible and the ratio
+  printed `0.00`, which reads as a broken figure rather than a close call.
+- **Most proposals really are hopeless, and the panel has to survive it.**
+  Measured over 600 draws: 436 rejected, and 58% of those score under 2% of the
+  current height. That is not a scaling problem to fix — rejecting cheaply is
+  why the method is affordable — but `toFixed(2)` printed all of them as
+  `0.00`. Below 0.01 the ratio now prints in scientific notation.
+- **The histogram of the draws was built and cut.** It is the notebook's own
+  figure and it proves the chain recovers what the grid computed — but at forty
+  draws it is a row of spikes with a tall one where the chain sat stuck, and it
+  reads as the sampler *failing* rather than as the sampler working slowly. The
+  tab has to survive the first hundred presses, not just the finished run.
+
+**Both bars take one colour.** They were briefly coloured by outcome, which made
+accept and reject instant and quietly said they were two different quantities.
+They are one quantity at two points, which is the only reason comparing them
+means anything.
+
+#### The sample is dealt once, and says so
+
+`compute()` has always drawn every count up front — it is pure and seeded, so it
+has no choice — but the figure did not say so, and dots appearing from nowhere
+invite the reading that each press draws a fresh observation. A **lead action**
+now deals the whole sample at once and Step works through it: solid for
+observed, **hollow rings** for still to come, so what is left is countable and a
+reader can see the answer is still moving.
+
+Rings beat the two alternatives on the same page: at n = 60 a low-opacity
+pending dot is indistinguishable from a solid one in the same column, and a
+separate waiting row costs 36 px more and puts a gap between things you are
+comparing. The lead deliberately does **not** re-show the population the way
+widget 8's does — that needs a 150 px distribution panel this widget does not
+have and would leave empty for the rest of the session, and widget 8 has already
+run that arrow once on this exact population.
+
+#### What refusing to assume is worth, on the widget's own face
+
+The `mu` tab's interval carries it: *width 6.0 · assume no extra spread and it
+claims only 3.2.* Both numbers are computed live from the same twelve counts and
+the same prior — the second under a Poisson likelihood, which is what widget 8's
+`mu` tab assumes and says it assumes.
+
+That is the payoff of the whole two-parameter design, and the direction of it
+surprised the build:
+
+| what you do about `size` | 95% interval for mu | width |
+|---|---|---|
+| pin it at its estimate, 2.55 | 6.02 – 11.77 | 5.75 |
+| pin it at the *true* 2.5 | 6.00 – 11.79 | 5.78 |
+| don't pin it — integrate it out | 5.87 – 11.86 | **5.99** |
+| **assume Poisson (size = ∞)** | **7.10 – 10.27** | **3.17** |
+
+**Pinning the nuisance parameter costs 4%. Assuming the wrong model costs 47%.**
+The posterior correlation between the two parameters is 0.024, which is why the
+first three lines agree — and the best `mu` is the sample mean at *every* size
+(8.66 at 0.5, at 2.5, at 10, at a million), because the `r` terms cancel out of
+`d/dmu`. So widget 8's coordinate ascent is not a greedy shortcut that finds a
+worse answer; it finds exactly the same one.
+
+**The search strategy is not what costs you. The model assumption is.** Which
+reframes the `Both` tab: it is not "the proper way" against "the shortcut", it
+is the tab that tells you *whether the shortcut was safe* — a crest running
+straight up means the best `mu` does not depend on `size`, and you can see that
+rather than be told it.
+
 #### The `brms` check, answered
 
 - **`normal(0, 10)` on the Intercept is a prior on `log(mu)`**, because

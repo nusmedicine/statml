@@ -409,62 +409,75 @@
     {
       "slug": "posterior",
       "state": "?theme=light&shown=0",
-      "px": "a9d3b648"
+      "px": "7ed1ffa9"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&shown=12",
-      "px": "6adb95e8"
+      "px": "ac95fb08"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=size&shown=12",
-      "px": "f8fe287d"
+      "px": "b9df5dfa"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=both&shown=12",
-      "px": "caf12491"
+      "px": "fd10cc3d"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "ef9534a3"
+      "px": "67bd4619"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
-      "px": "a6b59cf8"
+      "px": "22b3e7ac"
     },
     {
       "slug": "posterior",
       "state": "?theme=light",
       "drive": {
+        "click": "lead",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "afa79e37"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light",
+      "drive": {
+        "lead": true,
         "click": "step",
         "frames": 4,
         "dt": 32
       },
-      "px": "c213e076"
+      "px": "bcfd8f91"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=size",
       "drive": {
+        "lead": true,
         "click": "run",
         "frames": 40,
         "dt": 32
       },
-      "px": "28231303"
+      "px": "9d306acd"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc",
       "drive": {
+        "lead": true,
         "click": "run",
         "frames": 60,
         "dt": 32
       },
-      "px": "4cfff97c"
+      "px": "0b17548a"
     }
   ]
 }

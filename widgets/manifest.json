@@ -120,7 +120,7 @@
     {
       "slug": "posterior",
       "title": "Bayesian Estimation",
-      "blurb": "The likelihood said which parameters make your counts most probable; it could not say how probable a parameter is. Multiply it by what you believed beforehand, divide by the total, and the curve you get has an area of 1. Twelve counts overwhelm your prior on the mean and barely touch your prior on the spread \u2014 and a fourth tab shows what brms does instead of a grid.",
+      "blurb": "The likelihood said which parameters make your counts most probable; it could not say how probable a parameter is. Multiply it by what you believed beforehand, divide by the total, and the curve you get has an area of 1. Twelve counts overwhelm your prior on the mean and barely touch your prior on the spread \u2014 and a fourth tab shows why the sampler brms uses never has to compute that total at all.",
       "course": "PHM5003",
       "topics": [
         "bayesian",

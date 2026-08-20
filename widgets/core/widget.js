@@ -49,6 +49,25 @@
    stop) — the widget decides what a logical unit is. Core reads only `done` and
    sets `mode`; everything else in `anim` belongs to the widget.
 
+   A STEP LABEL MAY DEPEND ON A PARAMETER, and declares which one:
+
+       animation: {
+         stepLabel: { param: 'view', labels: { mcmc: 'Propose a move' },
+                      default: 'Add a count' },
+       }
+
+   A plain string is still a plain string. The map form exists because a widget
+   whose tabs drive genuinely different nouns cannot obey 3.4c with one label —
+   widget 9's three grid tabs advance an OBSERVATION and its fourth advances a
+   DRAW, which are not the same kind of thing. Widget 8 hit a weaker version of
+   this and settled for the bland "Step".
+
+   DECLARATIVE, and for the same reason `when: { param }` is: core has to know
+   WHICH parameter the label depends on, and it has to know every label the
+   button can hold. A function could supply the current label and not the set,
+   and the set is what 3.4d reserves the button's width against — a label that
+   changes at runtime is exactly the defect that record describes.
+
    A LEAD ACTION: something that happens ONCE, before stepping is meaningful.
 
        animation: { leadLabel: 'Sample the population', ... }
@@ -416,6 +435,20 @@ export function defineWidget(config) {
     updateAnimButtons();
   }
 
+  /* A label declared as { param, labels, default } resolves against the live
+     value; a plain string resolves to itself. `labelSet` is every label the
+     button can ever hold, which is what the width reservation needs. */
+  function resolveLabel(spec, fallback) {
+    if (spec == null) return fallback;
+    if (typeof spec === "string") return spec;
+    return spec.labels?.[values[spec.param]] ?? spec.default ?? fallback;
+  }
+  function labelSet(spec, fallback) {
+    if (spec == null) return [fallback];
+    if (typeof spec === "string") return [spec];
+    return [...Object.values(spec.labels ?? {}), spec.default ?? fallback];
+  }
+
   function updateAnimButtons() {
     if (!animation) return;
 
@@ -462,7 +495,12 @@ export function defineWidget(config) {
     }
     // Only disabled when there is genuinely nothing left. Clicking it mid-step
     // fast-forwards the unit in flight, so it must stay live while running.
-    if (actions.step) actions.step.disabled = done || leadPending;
+    if (actions.step) {
+      actions.step.disabled = done || leadPending;
+      actions.step.textContent = resolveLabel(animation.stepLabel, "Draw one");
+      actions.step.title = resolveLabel(
+        animation.stepTitle, "Advance one step, slowly, showing every stage");
+    }
   }
 
   /* --- actions ---------------------------------------------------------- */
@@ -486,13 +524,13 @@ export function defineWidget(config) {
     animation && {
       key: "step",
       group: "pace",
-      text: animation.stepLabel ?? "Draw one",
+      text: resolveLabel(animation.stepLabel, "Draw one"),
       /* THE NOUN LIVES HERE ONCE THE FACE IS ONE WORD. "Drop" and "Test batch"
          cannot say what they drop or test in the space they have, so the widget
          supplies the sentence and the generic string below is only a fallback.
          Shortening a label without moving its noun somewhere is how a control
          stops explaining itself — see principle 3.4c. */
-      title: animation.stepTitle ?? "Advance one step, slowly, showing every stage",
+      title: resolveLabel(animation.stepTitle, "Advance one step, slowly, showing every stage"),
       primary: true,
       onClick: () => startAnim("step"),
     },
@@ -540,10 +578,8 @@ export function defineWidget(config) {
    * A blind spot worth naming, because it is the same shape as principle 5.6:
    * every check of this row had measured it in its INITIAL state, and three of
    * the four labels only exist once something has been pressed.                */
-  function reserveRunWidth() {
-    const b = drive.run;
+  function reserveWidth(b, labels, prop) {
     if (!b) return;
-    const labels = [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"];
     const cs = getComputedStyle(b);
     const probe = document.createElement("span");
     probe.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap";
@@ -564,11 +600,18 @@ export function defineWidget(config) {
        button cannot reflow no matter what it is labelled — the reservation is
        both unnecessary there and would break the equal split. An inline style
        beats every rule; a variable does not. */
-    b.style.setProperty("--run-reserve", `${Math.ceil(text + chrome)}px`);
+    b.style.setProperty(prop, `${Math.ceil(text + chrome)}px`);
   }
-  reserveRunWidth();
+  /* The step button reserves too, now that its label can depend on a parameter.
+     Same rule, same reason: the row's shape must not be a function of what the
+     widget happens to be showing. */
+  function reserveDriveWidths() {
+    reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"], "--run-reserve");
+    reserveWidth(drive.step, labelSet(animation?.stepLabel, "Draw one"), "--step-reserve");
+  }
+  reserveDriveWidths();
   // Re-measure once webfonts settle, in case the first pass sized on a fallback.
-  document.fonts?.ready?.then(reserveRunWidth);
+  document.fonts?.ready?.then(reserveDriveWidths);
 
   /* Theme lives in the header, not the utility row. It is housekeeping, which
      argues for utility — but it is also the one control a reader may need

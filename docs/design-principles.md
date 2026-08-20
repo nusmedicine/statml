@@ -463,6 +463,30 @@ Three things that fell out of doing it:
 
 Longer explanations belong in the button's `title`, not on its face.
 
+**Amended: a step label may depend on a parameter, and has to declare which
+one.** 3.4c assumes one widget drives one noun, and that assumption broke on
+widget 9: three of its tabs advance the DATA by one observation and the fourth
+advances a SAMPLER by one draw. Those are not the same kind of thing, and one
+label honest for both does not exist — widget 8 hit a weaker version of this
+with its sweeps and its climb, and settled for the bland "Step", which names no
+noun at all and is exactly what 3.4c's `clt` warning was about.
+
+Core now accepts a map, and the map form is declarative for the same reason
+`when: { param }` is:
+
+```js
+stepLabel: { param: 'view', labels: { mcmc: 'Propose a move' },
+             default: 'Add a count' },
+```
+
+**A function would have been shorter and wrong.** Core needs two things: the
+current label, and *every label the button can ever hold* — because 3.4d
+reserves the button's width against the widest, and a label that changes at
+runtime is precisely the defect 3.4d records. A function supplies the first and
+cannot supply the second. The reservation was generalised from the run button to
+any relabelling button in the same change; in the rail both are dropped by the
+`flex: 1` override, which is still correct there.
+
 ### 3.5 Every control must carry an idea
 
 Save PNG and a bin-by-bin table are opt-in and off by default. Every extra

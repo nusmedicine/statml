@@ -680,6 +680,9 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 /* Set by core to the widest label the run button can hold — see 3.4d. A
    variable rather than an inline style so the rail below can drop it. */
 .w-drive .w-btn[data-key="run"] { min-width: var(--run-reserve, auto); }
+/* The same, for a step button whose label depends on a parameter. Both are
+   dropped in the rail by the flex:1 override above, which is correct there. */
+.w-drive .w-btn[data-key="step"] { min-width: var(--step-reserve, auto); }
 
 .w-drive .w-btn:not(.w-btn--primary) {
   margin-left: var(--sp-3);
