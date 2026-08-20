@@ -94,6 +94,12 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
   const sx = (v) => x + ((v - x0) / (x1 - x0 || 1)) * w;
   const sy = (v) => y + h - ((v - y0) / (y1 - y0 || 1)) * h;
 
+  /* Where this panel's caption ended, so a note can tell whether it fits beside
+     it. -Infinity until one is drawn: a note with no caption above it has the
+     whole line, and a panel that draws its note FIRST gets today's behaviour
+     rather than a wrong guess. */
+  let captionRight = -Infinity;
+
   const api = {
     ctx, colors, sx, sy, x, y, w, h, xDomain, yDomain,
     bottom: y + h,
@@ -382,6 +388,8 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
       ctx.strokeText(text, x, y - 8);
       ctx.fillStyle = colors.ink2;
       ctx.fillText(text, x, y - 8);
+      // Where this line ends, so note() can find out whether it has room.
+      captionRight = x + ctx.measureText(text).width;
       ctx.restore();
       return api;
     },
@@ -396,16 +404,37 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
      * drops it just below the top edge instead, for a panel whose caption line
      * is already spoken for. The surface halo is what keeps it legible where a
      * spanning rule or a curve passes behind it.
+     *
+     * AND IT DROPS INSIDE BY ITSELF WHEN THE LINE IS FULL, because sharing a
+     * baseline with the caption is an assumption about width that nothing was
+     * checking. The fingerprint harness renders every widget in a 900px frame,
+     * which is 20px above the 880px breakpoint where the side layout stacks —
+     * so every baseline is recorded at the NARROWEST canvas that layout ever
+     * produces, 550px. Measured there, 10 of the 32 settled states had a
+     * caption and its note printing through each other, by up to 123px. The
+     * halo is what hid it: a note strokes surface-coloured before it fills, so
+     * a collision ERASES the caption underneath rather than blending, and the
+     * result still looks like a caption — a short one — and still hashes
+     * consistently for ever.
+     *
+     * `inside` is the fallback rather than a new position because it is the
+     * one this already had, for exactly this reason: a panel whose caption line
+     * is spoken for. A full line is a caption line that is spoken for.
      */
     note(text, { tone, inside = false } = {}) {
       ctx.save();
       ctx.font = `${colors.fsXs} ${colors.font}`;
+      /* 14px of clear air, or the two read as one wrapped sentence. Measured
+         against the caption's own right edge rather than a guess at how long a
+         caption is allowed to be — the caller knows neither the font nor the
+         width it ended up with. */
+      const drop = inside || x + w - ctx.measureText(text).width < captionRight + 14;
       ctx.textAlign = "right";
-      ctx.textBaseline = inside ? "top" : "alphabetic";
+      ctx.textBaseline = drop ? "top" : "alphabetic";
       ctx.strokeStyle = colors.surface;
       ctx.lineWidth = 3;
-      const px = x + w - (inside ? 3 : 0);
-      const py = inside ? y + 3 : y - 8;
+      const px = x + w - (drop ? 3 : 0);
+      const py = drop ? y + 3 : y - 8;
       ctx.strokeText(text, px, py);
       ctx.fillStyle = tone ?? colors.ink2;
       ctx.fillText(text, px, py);

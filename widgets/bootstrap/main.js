@@ -487,8 +487,12 @@ defineWidget({
           ? inFlight
             ? "Your sample — resampling it with replacement"
             : "Your sample — the copies that produced the last resample"
+          /* "uses" rather than "is built from": at the 900px frame the
+             fingerprint harness records in, the side layout gives a 550px
+             canvas and the longer form ran 36px off the end of it. caption()
+             has no width to fall back to the way note() does. */
           : `Your sample — n = ${params.n}, drawn once · ` +
-            "every resample is built from these values and no others"
+            "every resample uses these values and no others"
     );
 
     if (anim.leadDone) {

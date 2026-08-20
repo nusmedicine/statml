@@ -1307,14 +1307,30 @@ function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("Should it move? Compare the two lengths — nothing else is needed", x0, R_Y - 8);
+  /* These two are hand-drawn rather than a caption/note pair, so core's fallback
+     does not reach them and this line does the same job by hand: at the 550px
+     canvas the harness records, the long heading and the rate overlapped by
+     33px. The clause that goes is restated verbatim two lines below, in "so the
+     chain never computes it". */
+  const headLong = "Should it move? Compare the two lengths — nothing else is needed";
+  const headShort = "Should it move? Compare the two lengths";
+  const rateText = rate === null ? "" : `${Math.round(rate * 100)}% accepted so far`;
+  let rateW = 0;
+  if (rateText) {
+    ctx.font = `${colors.fsXs} ${colors.font}`;      // the rate's own size
+    rateW = ctx.measureText(rateText).width;
+    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  }
+  ctx.fillText(
+    ctx.measureText(headLong).width + rateW + 14 <= plotW ? headLong : headShort,
+    x0, R_Y - 8);
   if (rate !== null) {
     // A property of the proposals, so it lives with them rather than in a
     // readout tile that is supposed to hold an answer.
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "right";
-    ctx.fillText(`${Math.round(rate * 100)}% accepted so far`, x0 + plotW, R_Y - 8);
+    ctx.fillText(rateText, x0 + plotW, R_Y - 8);
   }
   ctx.restore();
 
@@ -1361,9 +1377,12 @@ function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(
-      "nothing proposed yet — the shading above is the exact answer, and this is a check of the chain against it",
-      x0, ry0 + rowH + 22);
+    /* Two lines, in the same slot the proposed state uses for its verdict and
+       its P(counts) note — so nothing below moves, and the 104-character
+       original stops running 60px off a 550px canvas. */
+    ctx.fillText("nothing proposed yet — the shading above is the exact answer,", x0, ry0 + rowH + 22);
+    ctx.fillText("so the chain can be watched agreeing with something already known to be right",
+      x0, ry0 + rowH + 38);
     ctx.restore();
     return;
   }
