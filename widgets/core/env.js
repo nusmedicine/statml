@@ -112,6 +112,8 @@ export function readTokens() {
     smoothed: v("--c-smoothed"),
     highlight: v("--c-highlight"),
     reference: v("--c-reference"),
+    prior: v("--c-prior"),
+    posterior: v("--c-posterior"),
     groupA: v("--c-group-a"),
     groupB: v("--c-group-b"),
     extreme: v("--c-extreme"),
@@ -120,6 +122,8 @@ export function readTokens() {
     fsXs: v("--fs-xs"),
     fsSm: v("--fs-sm"),
     fsMd: v("--fs-md"),
+    fsLg: v("--fs-lg"),
+    fsFig: v("--fs-fig"),
   };
 }
 

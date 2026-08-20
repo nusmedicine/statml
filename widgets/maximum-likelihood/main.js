@@ -113,7 +113,7 @@
    ========================================================================= */
 
 import {
-  defineWidget, makePlot, niceTicks, fmt, lgamma,
+  defineWidget, makePlot, niceTicks, fmt, sci, sup, nbLogPmf, nbPmf, nbDraw,
 } from "../core/index.js";
 
 /* --- the model, at the lesson's own numbers, in edgeR's parameterisation - *
@@ -210,53 +210,26 @@ const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const easeInOut = (t) => t * t * (3 - 2 * t);
 
-/* --- the negative binomial, in edgeR's (mu, dispersion) parameterisation - *
- * dnbinom(x, size, mu, log = TRUE), argument order and all. var = mu + mu^2/size,
- * so size -> infinity is Poisson — and that limit is taken EXPLICITLY rather
- * than approached with a huge size, because the gamma terms would then be
- * differences of lgamma at ~1e9 and lose every significant digit. Poisson is a
- * two-line closed form; use it.                                               */
-function nbLogPmf(k, size, mu) {
-  if (!Number.isFinite(size)) return k * Math.log(mu) - mu - lgamma(k + 1); // Poisson limit
-  const lsm = Math.log(size + mu);
-  return lgamma(k + size) - lgamma(size) - lgamma(k + 1)
-    + size * (Math.log(size) - lsm) + k * (Math.log(mu) - lsm);
-}
-
-const nbPmf = (k, size, mu) => Math.exp(nbLogPmf(k, size, mu));
+/* --- the negative binomial ------------------------------------------------ *
+ * `nbLogPmf` / `nbPmf` / `nbDraw` moved to core/stats.js when widget 9 became
+ * their second consumer. dnbinom(x, size, mu, log = TRUE), argument order and
+ * all, with the Poisson limit taken explicitly at size = Infinity.            */
 
 /** log P(counts | size, mu). One definition, summed — 41 candidates at n = 60 is
     2,460 evaluations, so there is nothing here worth factorising and a second
-    copy of the formula to keep in step. */
+    copy of the formula to keep in step. (Widget 9 evaluates 6,400 cells at
+    every count and DOES factorise; the two are far enough apart that neither
+    wants the other's version.) */
 function sumLogLik(counts, size, mu) {
   let ll = 0;
   for (const k of counts) ll += nbLogPmf(k, size, mu);
   return ll;
 }
 
-/** Inverse-CDF draw from the exact pmf. Untruncated: the axis moves to hold the
-    data instead, so the sampled mean is the declared one to six figures. */
-function nbDraw(rng, size, mu) {
-  const u = rng.next();
-  let acc = 0;
-  for (let k = 0; k <= 4000; k += 1) {
-    acc += nbPmf(k, size, mu);
-    if (u < acc) return k;
-  }
-  return 4000;
-}
-
-/* --- display helpers ----------------------------------------------------- */
-const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
-const sup = (v) => String(v).split("").map((ch) => SUP[ch] ?? ch).join("");
-
-/** Scientific notation with real superscripts. The exponent IS the teaching
-    here — it is what a probability distribution over a parameter could not do. */
-function sci(v, digits = 1) {
-  if (!(v > 0) || !Number.isFinite(v)) return "—";
-  const e = Math.floor(Math.log10(v));
-  return `${(v / 10 ** e).toFixed(digits)} × 10${sup(e)}`;
-}
+/* --- display helpers ----------------------------------------------------- *
+ * `sci` and `sup` moved to core when widget 9 became their second consumer.
+ * The exponent IS the teaching in both — it is what a probability distribution
+ * over a parameter could not do — so both widgets should print it identically. */
 
 /** A ratio, written so it can be read aloud. Comma-grouped while that is
     shorter than the exponent, then a bare power of ten — "x 10^25" is one number
@@ -265,23 +238,6 @@ function ratio(v) {
   if (!(v > 1) || !Number.isFinite(v)) return "—";
   if (v < 1e6) return `× ${Math.round(v).toLocaleString("en")}`;
   return `× 10${sup(Math.round(Math.log10(v)))}`;
-}
-
-/** A note on the caption's baseline, right-aligned. Local rather than in
-    canvas.js: one widget wants it, and a second consumer decides a seam. */
-function noteRight(ctx, colors, plot, text, tone, inside = false) {
-  ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = inside ? "top" : "alphabetic";
-  ctx.strokeStyle = colors.surface;
-  ctx.lineWidth = 3;
-  const px = plot.x + plot.w - (inside ? 3 : 0);
-  const py = inside ? plot.y + 3 : plot.y - 8;
-  ctx.strokeText(text, px, py);
-  ctx.fillStyle = tone;
-  ctx.fillText(text, px, py);
-  ctx.restore();
 }
 
 /* --- panel geometry ------------------------------------------------------ */
@@ -753,7 +709,7 @@ defineWidget({
          prints what its own heights add to and it is not 1. */
       let total = 0;
       for (let k = 0; k <= 600; k += 1) total += nbPmf(k, size, mu);
-      noteRight(ctx, colors, pA, `all spikes add to ${total.toFixed(3)}`, colors.ink2, true);
+      pA.note(`all spikes add to ${total.toFixed(3)}`, { inside: true });
     }
 
     /* ---- the data, in its own strip under the model, sharing its x-axis.
@@ -818,7 +774,7 @@ defineWidget({
         pB.bars(counts.map((k) => nbPmf(k, size, mu)), { lo: 0, width: 1, fill: colors.empirical });
         // Adjacency is the argument (2.7): this product IS the height of the dot
         // the panel below is about to receive.
-        noteRight(ctx, colors, pB, `product = ${sci(Math.exp(both ? spot.ll : F.ll[g]))}`, colors.empirical);
+        pB.note(`product = ${sci(Math.exp(both ? spot.ll : F.ll[g]))}`, { tone: colors.empirical });
       }
     }
 
@@ -902,10 +858,9 @@ defineWidget({
         for (const [x, y] of pts) pS.dot(x, y, { fill: colors.highlight, r: 3.5 });
         pS.dot(state.sizes[spot.i], state.mus[spot.j], { fill: colors.highlight, r: 6 });
         if (g > 0) {
-          noteRight(ctx, colors, pS, spot.moved
+          pS.note(spot.moved
             ? `move ${g} of ${CLIMB_MOVES}: swept all ${GRID} ${spot.axis} candidates`
-            : `move ${g}: swept all ${GRID} ${spot.axis} candidates — it did not move`,
-            colors.ink2);
+            : `move ${g}: swept all ${GRID} ${spot.axis} candidates — it did not move`);
         }
       }
     } else {
@@ -956,9 +911,9 @@ defineWidget({
            negative exponents asking to be compared by eye. The strong half —
            `all spikes add to 1.000` on the top panel — is exact and already
            there. */
-        noteRight(ctx, colors, pC, tab === "disp"
+        pC.note(tab === "disp"
           ? `mu is held fixed at ${fmt(state.mus[state.bestMu], 2)} — only size is moving`
-          : `size is held fixed — only mu is moving`, colors.ink2);
+          : `size is held fixed — only mu is moving`);
       }
     }
   },

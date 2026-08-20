@@ -361,7 +361,7 @@ Inferring Parameters`, and they are **one argument rather than three topics**:
 | # | slug | question | lesson's framing |
 |---|---|---|---|
 | 8 | `maximum-likelihood` 🟢 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
-| 9 | `mcmc-posterior` | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
+| 9 | `posterior` 🟢 | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
 | 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
 
 **The pairing of #8 and #9 is the point of the arc.** MLE answers `P(Data|θ)` and
@@ -651,70 +651,114 @@ saying what the greyed-out buttons are waiting for. **Widgets 3 and 5 have the
 identical structure and neither declares a hint yet** — the same complaint is
 presumably available there and has simply never been made.
 
-### Widget 9 · `posterior` — planned, not built
+### Widget 9 · `posterior` — shipped
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 9 | `posterior` | Bayesian estimation | *What do the data make probable — and how sure am I?* | That the likelihood curve already tells you how probable each parameter value is. It is `P(data \| θ)`. To get `P(θ \| data)` you need a prior, and you have to **normalise** | **documented parent** — the transposed conditional, same as #8 |
+| 9 | `posterior` 🟢 | Bayesian estimation | *What do the data make probable — and how sure am I?* | That the likelihood curve already tells you how probable each parameter value is. It is `P(data \| θ)`. To get `P(θ \| data)` you need a prior, and you have to **normalise** | **documented parent** — the transposed conditional, same as #8 |
 
 **This is the widget #8 was built to set up**, and the lesson states both forms two
 headings apart: MLE answers `P(Data | Parameters)`, Bayes answers
 `P(Parameters | Data)`. Reversing them is one of the commonest errors in applied
-statistics, and #8 now ends holding a likelihood curve over `mu` — the exact
-object #9 needs to multiply.
+statistics, and the pair is built to make the reversal visible rather than
+warned about.
 
-#### The spine
+#### What shipped
 
-1. #8's likelihood curve over `mu`, on **the same axis**.
-2. A **prior** curve over the same axis.
-3. Multiply, normalise → the **posterior**.
-4. **The posterior's area is 1**, so you can read probabilities off it. The
-   likelihood's area was nothing at all — that is the whole distinction, and it
-   finally has somewhere to land.
-5. The notebook says the payoff outright: *"in the Bayes approach, we do not get
-   a single estimate of the parameters but rather a distribution of values."*
+Four tabs over the lesson's own `rnbinom(size = 2.5, mu = 10)` counts, with a
+prior on **both** parameters and the joint posterior computed exactly on an
+80 × 80 grid:
 
-#### The animation, and why it is the mirror of #8
+| tab | shows |
+|---|---|
+| `mu` | likelihood **×** prior **=** marginal posterior, over the mean |
+| `size` | the same three panels over the dispersion |
+| `Both` | the joint posterior the two marginals are the edges of, shaded by 50 / 80 / 95% HPD |
+| `MCMC` | a Metropolis chain walking that same posterior — the answer to "what is the backend?" |
 
-| | what is fixed | what moves |
-|---|---|---|
-| **#8** | the data — drawn once, never redrawn | the **parameter** sweeps |
-| **#9** | the parameter axis | the **data** arrives one count at a time |
+Every panel prints its own total, which is the whole argument in one column:
+the likelihood's area is `5 × 10⁻¹³` and nothing holds it there; the prior's is
+1; the posterior's is 1 **after dividing by `P(counts)`**, which is the lesson's
+`P(X)` and is printed with it.
 
-So one press adds **one observation**, and the posterior shifts and narrows.
-That is the defining Bayesian move — updating — and it makes the prior visibly
-get overwhelmed: at n = 1 the posterior is barely the prior; by n = 12 the prior
-has stopped mattering. A **prior width** control turns that into an experiment,
-which is the question a student actually asks: *does my prior change the answer?*
+#### Three things the plan got wrong, and what replaced them
 
-#### Decisions taken in advance, from what this session learned
+- **~~One parameter, `mu`.~~ Both.** The plan reasoned from #8's discovery that
+  two parameters at once is where a figure comes apart — true for a *sweep*, and
+  wrong here, because the place the two approaches actually diverge IS the second
+  parameter. #8 cannot estimate `mu` without pinning `size` somewhere (it assumes
+  Poisson, and says so); Bayes puts a prior on both and **adds the plane up along
+  the axis you do not care about**. Marginalising is the lesson, and it needs two
+  axes to exist. The three-panel figure survives intact because the marginal
+  still factors — `posterior(mu) ∝ prior(mu) × ∫L(size, mu)·prior(size)·dsize` —
+  so the middle panel is the likelihood with the other parameter averaged out.
 
-- **Grid, not MCMC.** With one parameter the posterior is exact on the same
-  41-point grid #8 already uses. MCMC is what you need when there are many
-  parameters — a sentence, not a widget. `brms` runs 4 chains × 2000 iterations
-  because Stan is general; the widget does not have to be.
-- **MCMC therefore does not become widget 10 by default.** If it earns a slot it
-  is for burn-in, autocorrelation and rejected proposals — none of which this
-  lesson asks about — and
-  [chi-feng.github.io/mcmc-demo](https://chi-feng.github.io/mcmc-demo/) already
-  does it well. **Linking it remains a legitimate outcome.**
-- **One parameter, `mu`.** #8 spent this session learning that two parameters at
-  once is where it comes apart. The prior/posterior point needs exactly one axis.
-- **Reuse:** the NB log-pmf, the `mu` grid and the count axis all come straight
-  from #8. `lgamma` is already exported. This is the second consumer that
-  justifies pulling the pmf out of `maximum-likelihood/main.js` and into core —
-  and the first honest chance to do it.
+- **The payoff is that the two parameters behave DIFFERENTLY**, which one
+  parameter could never have shown. Measured on the defaults: over twelve counts
+  `mu`'s posterior narrows from SD 2.90 to 1.52 and its centre is dragged
+  7.08 → 8.57, so the prior is largely overwhelmed. `size`'s SD goes 1.00 → 1.12
+  — it does not narrow at all. Twelve counts say a great deal about a mean and
+  almost nothing about a dispersion, so on one parameter the prior stops
+  mattering and on the other it is still doing the work. #8 reported the same
+  asymmetry as a wider interval; this is the sharper version of it.
 
-#### To check before building
+- **~~MCMC is a sentence, not a widget.~~ It is a tab.** The plan's reasoning
+  still holds for the *mechanics* — burn-in, autocorrelation and rejected
+  proposals are not what this lesson asks about, and
+  [chi-feng.github.io/mcmc-demo](https://chi-feng.github.io/mcmc-demo/) does them
+  better than anything here would. What the plan missed is that a student who
+  has just watched an exact grid computation will reasonably ask what `brms` is
+  doing, and the honest answer is worth one tab: the same posterior, walked by a
+  random-walk Metropolis on **log** `size` and **log** `mu` (with the Jacobian —
+  that is what Stan is doing behind the notebook's log link), so the cloud can be
+  seen converging on a contour already on screen and already known to be right.
+  What it buys is the point: the grid costs 6,400 evaluations for two parameters
+  and 80ᵏ for k of them.
 
-- **brms puts its prior on the LOG scale.** `family = negbinomial()` uses a log
-  link, and the notebook computes `mu = exp(b_Intercept)`, so
-  `prior(normal(0, 10), class = Intercept)` is a prior on `log(mu)` — enormously
-  wide, roughly `mu` from `e⁻²⁰` to `e²⁰`. A widget prior placed directly on `mu`
-  is simpler and is **not the same object**; that difference needs stating rather
-  than papering over.
-- Whether the prior should be settable in shape as well as width, or whether one
-  width slider carries the whole idea.
+#### A one-parameter Poisson build was made first, and cut
+
+Worth recording, because the numbers are the argument and re-deriving them costs
+an hour. The plan's "reuse #8's `mu` grid" implies scoring the lesson's
+negative binomial counts with #8's **Poisson** likelihood. Measured over 2,000
+seeds at n = 12: the 95% credible interval then covers the true mean **64%** of
+the time. One seed in three shows the headline number missing the truth — which
+is a misspecified model, #8's lesson, not a broken method, and paying for it
+here with the widget's own headline is a bad trade.
+
+Poisson *counts* with a Poisson likelihood is calibrated (95.2%) and drops the
+lesson's model. The negative binomial with **both** parameters estimated is
+calibrated on both (98.2% for `mu`, 95.0% for `size`) and keeps it. That is the
+version that shipped.
+
+#### The `brms` check, answered
+
+- **`normal(0, 10)` on the Intercept is a prior on `log(mu)`**, because
+  `family = negbinomial()` uses a log link and the notebook recovers
+  `mu = exp(b_Intercept)`. Enormously wider than anything the widget's slider
+  reaches, and on a different scale. The `mu` prior's `detail` line says so.
+- **`exponential(1)` on `shape` is on the parameter itself**, so the widget's
+  `size` prior reproduces the notebook **exactly** at its default. That it sits
+  well below the true 2.5 is not a flaw to tune away: it is why the `size` tab
+  shows a prior still doing work at n = 12.
+- **Prior shape:** settled by the lesson rather than by a control. `mu` gets a
+  normal (centre and width, two sliders); `size` gets an exponential (its mean,
+  one slider). Three prior sliders, no shape picker.
+
+#### What went into core, and what did not
+
+The second consumer arrived, so the extraction the plan anticipated happened:
+`nbLogPmf` / `nbPmf` / `nbDraw` are in `core/stats.js`, and `sci` / `sup` went
+with them. `noteRight` became `plot.note()` in `canvas.js`. Two semantic colour
+roles were added — `--c-prior` and `--c-posterior` — because a Bayesian figure
+holds three curves and only one of them is data.
+
+**What did NOT get shared: the likelihood evaluation.** #9 factorises the
+negative binomial's log-pmf so that one count costs 80 `lgamma` calls instead of
+6,400 (the only per-observation term touching the grid is `Σ lgamma(k + r)`,
+which depends on `r` alone) — without which the prior sliders would not be live.
+#8 evaluates 2,460 cells in total and wants the plain, readable form. Two
+versions of one formula, deliberately, because they are optimising different
+things — the exception that 5.8 does not cover, and it is written down in both.
 
 ### Still queued: #10, and it is not certain
 

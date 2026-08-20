@@ -51,9 +51,11 @@ change. This has already cost one debugging session.
    than the numbered series slots: `--c-empirical` (what we observed or
    simulated), `--c-theory` (the curve the pile is checked against),
    `--c-smoothed`, `--c-highlight` (moving right now), `--c-reference` (a true
-   parameter), `--c-group-a` / `--c-group-b` (two arms of a comparison), and
-   `--c-extreme` (past a threshold — what a p-value counts). Needing a role that
-   does not exist is a signal to add one, not to reach for `--series-n`.
+   parameter), `--c-group-a` / `--c-group-b` (two arms of a comparison),
+   `--c-extreme` (past a threshold — what a p-value counts), and
+   `--c-prior` / `--c-posterior` (what you believed before the data, and after).
+   Needing a role that does not exist is a signal to add one, not to reach for
+   `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.
 7. **Zero runtime dependencies, no build step for widgets.** `package.json` has no
@@ -69,10 +71,19 @@ sliders mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per
 300 ms so animations appear frozen).
 
 - `npm run check` asserts the invariants that are cheap to state in code.
+- **Read the canvas's own text.** Wrap `CanvasRenderingContext2D.prototype.fillText`
+  to collect every string the widget paints, drive it, then grep the list. It is
+  the cheapest check in the repo and it catches what screenshots cannot: a `NaN`
+  at one end of a slider, a caption and its note overrunning one line, and — once
+  — a printed claim that was false on the very first press. Recipe in
+  [HANDOVER.md](HANDOVER.md).
 - `widgets/_lab/fingerprint.html` hashes each widget's canvas against a stored
   baseline. **Run the full suite when you touch `widgets/core/`** — that is the
   only kind of change that can reach a widget you are not looking at, and it is
   where "this cannot have affected anything" keeps turning out to be wrong.
+  **It auto-runs on load; never click Run.** Doing so starts a second concurrent
+  pass into the same table and the same `latest` array, which inflates the row
+  count and can make "Copy new baseline" copy a half-interleaved set.
 
 **Testing the widget you are building is manual, and should be.** Legibility,
 whether a caption is honest, whether a control carries an idea — no hash catches

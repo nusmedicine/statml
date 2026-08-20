@@ -205,6 +205,13 @@ open question 1 — sequencing against actual teaching weeks.
 | 4 | `confidence-interval` | `03 / 03-02`, then `03 / 04-03 — Hypothesis Testing: Effect Size` |
 | 5 | `permutation-test` | `03 / 04-01 — Hypothesis Testing: Significance` |
 | 6 | `multiple-testing` | `05 — High Throughput Data` / `08 — RNAseq Expression Analysis` |
+| 8 | `maximum-likelihood` ✅ | `03 / 02-02 — Inferential Statistics: Inferring Parameters` |
+| 9 | `posterior` ✅ | the same lesson, two headings later — it states `P(Data \| Parameters)` and `P(Parameters \| Data)` in that order, and the two widgets take one each |
+
+**#7 is missing from this table on purpose.** `power-and-error` is the only
+`draft` in the manifest and has no confirmed lesson slot, which is exactly the
+warning sign the paragraph below describes: it was built past the agreed six and
+nobody has yet said which week shows it.
 
 Two deferred entries also have confirmed homes, which strengthens their case:
 `interaction-effect` → `04 / 05-04 — Modeling: Interactions Between Covariates`,

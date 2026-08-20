@@ -268,8 +268,9 @@ argument.
 2. Use the **semantic** colour roles, not the numbered slots:
    `--c-empirical` (what we observed), `--c-theory` (the asymptotic result),
    `--c-highlight` (moving right now), `--c-reference` (truth), `--c-extreme`
-   (past a threshold — what a p-value counts), and
-   `--c-group-a` / `--c-group-b` for the two arms of a comparison. The same
+   (past a threshold — what a p-value counts),
+   `--c-group-a` / `--c-group-b` for the two arms of a comparison, and
+   `--c-prior` / `--c-posterior` for what you believed before and after. The same
    blue means "simulated" in all forty widgets, and students learn it.
 3. All randomness comes from the seeded `rng` passed to `compute`. Never
    `Math.random()`.

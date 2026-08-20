@@ -405,6 +405,66 @@
       },
       "px": "dc3efbf6",
       "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&shown=0",
+      "px": "a9d3b648"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&shown=12",
+      "px": "6adb95e8"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&view=size&shown=12",
+      "px": "f8fe287d"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&view=both&shown=12",
+      "px": "caf12491"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&view=mcmc&shown=600",
+      "px": "ef9534a3"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
+      "px": "a6b59cf8"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "c213e076"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&view=size",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "28231303"
+    },
+    {
+      "slug": "posterior",
+      "state": "?theme=light&view=mcmc",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "4cfff97c"
     }
   ]
 }

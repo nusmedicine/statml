@@ -75,6 +75,24 @@
      counts, so the two never mean the same thing. */
   --c-extreme:   var(--series-8);    /* past the line: what a p-value counts  */
 
+  /* A Bayesian figure holds three curves and only one of them is data. The
+     LIKELIHOOD is --c-empirical, because it is a function of your observations
+     and of nothing else — widget 8 already draws it that way and widget 9 has
+     to agree, or the curve a student swept in one lesson changes colour in the
+     next. The other two are neither observed nor theoretical: a prior is an
+     assumption you brought with you, and a posterior is what is left of it
+     after the data. Putting either on --c-theory would say it is a result.
+
+     Both share a slot with a role they can never meet. --c-prior takes amber
+     from --c-group-b: a figure with a prior in it has no A/B arms, and
+     blue/amber is the most colour-blind-safe and highest-contrast pair in the
+     ramp — which is what the two adjacent panels of the multiplication need.
+     --c-posterior takes violet from --c-highlight, which is nearly true anyway:
+     the posterior IS the thing moving right now, and it is the darkest slot in
+     the ramp, which the projector wants for the mark that carries the answer. */
+  --c-prior:     var(--series-4);    /* what you believed before the data    */
+  --c-posterior: var(--series-7);    /* what the data left you believing     */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

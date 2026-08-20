@@ -385,6 +385,33 @@ export function makePlot({ ctx, colors, rect, xDomain, yDomain }) {
       ctx.restore();
       return api;
     },
+
+    /**
+     * A short right-aligned note on the caption's own baseline — the place a
+     * panel says what its own heights add up to.
+     *
+     * Widget 8 wrote this locally and left a comment saying one consumer does
+     * not decide a seam; widget 9 is the second, and it wants the identical
+     * mark for the identical job (a panel stating its own total). `inside`
+     * drops it just below the top edge instead, for a panel whose caption line
+     * is already spoken for. The surface halo is what keeps it legible where a
+     * spanning rule or a curve passes behind it.
+     */
+    note(text, { tone, inside = false } = {}) {
+      ctx.save();
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = inside ? "top" : "alphabetic";
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      const px = x + w - (inside ? 3 : 0);
+      const py = inside ? y + 3 : y - 8;
+      ctx.strokeText(text, px, py);
+      ctx.fillStyle = tone ?? colors.ink2;
+      ctx.fillText(text, px, py);
+      ctx.restore();
+      return api;
+    },
   };
 
   return api;

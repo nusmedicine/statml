@@ -71,6 +71,59 @@ export function fmt(x, digits = 2) {
   return x.toFixed(digits);
 }
 
+/* --- scientific notation, with real superscripts ------------------------ *
+ * Lived in maximum-likelihood/main.js until widget 9 needed the same thing.
+ * Both widgets print numbers a likelihood actually reaches — 1e-13 at twelve
+ * counts, and worse at sixty — and the EXPONENT is the teaching in both: it is
+ * what a probability distribution over a parameter could never do. A shared
+ * formatter also means the two widgets print the same number the same way,
+ * which matters when a student meets them one lesson apart.                  */
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+
+/** Digits (and a minus sign) as Unicode superscripts. */
+export const sup = (v) => String(v).split("").map((ch) => SUP[ch] ?? ch).join("");
+
+/** `1.4 × 10⁻¹³`. Returns an em dash for anything not strictly positive. */
+export function sci(v, digits = 1) {
+  if (!(v > 0) || !Number.isFinite(v)) return "—";
+  const e = Math.floor(Math.log10(v));
+  return `${(v / 10 ** e).toFixed(digits)} × 10${sup(e)}`;
+}
+
+/* --- the negative binomial, in the lesson's (size, mu) parameterisation --- *
+ * `dnbinom(x, size, mu, log = TRUE)`, argument order and all — the call the
+ * PHM5003 notebook writes, so a student moving between the two never has to
+ * translate. var = mu + mu^2/size, so a LARGER size means LESS spread and
+ * size -> infinity is Poisson.
+ *
+ * Lived in maximum-likelihood/main.js until widget 9 became the second
+ * consumer, which is the rule: one example is not an abstraction.
+ *
+ * THE POISSON LIMIT IS TAKEN EXPLICITLY rather than approached with a huge
+ * size, because the gamma terms would then be differences of lgamma at ~1e9 and
+ * lose every significant digit. Poisson is a two-line closed form; use it.     */
+export function nbLogPmf(k, size, mu) {
+  if (!Number.isFinite(size)) return k * Math.log(mu) - mu - lgamma(k + 1); // Poisson limit
+  const lsm = Math.log(size + mu);
+  return lgamma(k + size) - lgamma(size) - lgamma(k + 1)
+    + size * (Math.log(size) - lsm) + k * (Math.log(mu) - lsm);
+}
+
+export const nbPmf = (k, size, mu) => Math.exp(nbLogPmf(k, size, mu));
+
+/** Inverse-CDF draw from the exact pmf. Untruncated: a widget moves its axis to
+    hold the data instead, so the sampled mean is the declared one to six
+    figures. */
+export function nbDraw(rng, size, mu) {
+  const u = rng.next();
+  let acc = 0;
+  for (let k = 0; k <= 4000; k += 1) {
+    acc += nbPmf(k, size, mu);
+    if (u < acc) return k;
+  }
+  return 4000;
+}
+
 /* --- two populations from the domain the courses teach ------------------- *
  * A population earns a slot by the SHAPE-lesson it carries, not by being a
  * familiar name — otherwise the dropdown grows and the teaching does not. These
