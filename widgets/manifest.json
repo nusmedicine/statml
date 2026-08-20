@@ -1,5 +1,5 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut \u2014 a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan \u2014 every candidate concept, its target misconception and evidence \u2014 lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut \u2014 a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan \u2014 every candidate concept, its target misconception and evidence \u2014 lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd §6) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently — by the time it was measured, eight of the nine were 190–310px wrong. Heights are also no longer one number per widget: `posterior` returns a different one per tab. README's iframe recipe says how to get a correct one.",
   "widgets": [
     {
       "slug": "galton-board",
@@ -12,7 +12,6 @@
         "error"
       ],
       "arc": 1,
-      "height": 1004,
       "status": "shipped"
     },
     {
@@ -25,7 +24,6 @@
         "inference"
       ],
       "arc": 2,
-      "height": 1037,
       "status": "shipped"
     },
     {
@@ -39,7 +37,6 @@
         "inference"
       ],
       "arc": 3,
-      "height": 1201,
       "status": "shipped"
     },
     {
@@ -54,7 +51,6 @@
         "inference"
       ],
       "arc": 4,
-      "height": 1199,
       "status": "shipped"
     },
     {
@@ -68,7 +64,6 @@
         "resampling"
       ],
       "arc": 5,
-      "height": 1100,
       "status": "shipped"
     },
     {
@@ -83,7 +78,6 @@
         "omics"
       ],
       "arc": 6,
-      "height": 1361,
       "status": "shipped"
     },
     {
@@ -98,7 +92,6 @@
         "hypothesis testing"
       ],
       "arc": 7,
-      "height": 1055,
       "status": "draft"
     },
     {
@@ -114,7 +107,6 @@
         "inference"
       ],
       "arc": 8,
-      "height": 1008,
       "status": "shipped"
     },
     {
@@ -131,7 +123,6 @@
         "inference"
       ],
       "arc": 9,
-      "height": 1112,
       "status": "shipped"
     }
   ]

@@ -15,7 +15,10 @@
    A third check guarded widget heights, which used to live in three files
    (manifest.json, a Python HEIGHTS dict, a Lua shortcode). Deleting both
    embedders left one copy, so the check had nothing left to compare and went
-   with them. Recorded because "we removed a check" should never be silent.
+   with them. The surviving copy has now gone too: nothing consumed it, and by
+   the time anyone measured, eight of the nine were 190-310px wrong — a number
+   with no reader does not stay right. Recorded because "we removed a check"
+   should never be silent.
    ========================================================================= */
 
 import { readFile, readdir, access } from "node:fs/promises";
@@ -135,7 +138,7 @@ const { makeRng } = await import(join(root, "widgets/core/rng.js"));
 const manifest = JSON.parse(await readFile(join(root, "widgets/manifest.json"), "utf8"));
 
 for (const w of manifest.widgets) {
-  for (const field of ["slug", "title", "blurb", "height", "status"]) {
+  for (const field of ["slug", "title", "blurb", "status"]) {
     if (!(field in w)) fail(`manifest "${w.slug ?? "?"}": missing ${field}`);
   }
   if (!(await exists(join(root, "widgets", w.slug, "index.html")))) {
@@ -144,9 +147,8 @@ for (const w of manifest.widgets) {
   if (!(await exists(join(root, "widgets", w.slug, "main.js")))) {
     fail(`manifest "${w.slug}": no widgets/${w.slug}/main.js`);
   }
-  if (!(w.height > 0)) fail(`manifest "${w.slug}": height must be a positive number`);
 }
-ok(`${manifest.widgets.length} widgets: files present, heights well-formed`);
+ok(`${manifest.widgets.length} widgets: card fields present, files on disk`);
 
 /* A widget's title now lives in three files — manifest.json (the gallery card),
    main.js (the <h1> and document.title) and index.html (the static <title> shown

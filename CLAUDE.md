@@ -154,7 +154,7 @@ widgets/core/       the scaffold — everything a widget does not have to write
 widgets/<slug>/     one widget: index.html (12 lines) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed
 widgets/index.html  redirect stub, so a trimmed /widget/ URL reaches the gallery
-widgets/manifest.json  registry of BUILT widgets; the ONLY place a height lives
+widgets/manifest.json  registry of BUILT widgets; gallery cards, and nothing else
 index.html          THE GALLERY — the landing page, deployed at /; SHIPPED only
 lab/index.html      the drafts, deployed at /lab/; NOT linked from the gallery
 scripts/site.mjs    the one place the published `widget` namespace is named
@@ -182,9 +182,12 @@ docs/               prd, design principles, catalogue
   minutes after a deploy.
 - **The repo is inside Dropbox.** Avoid long-running writes; Dropbox can race with
   `.git`.
-- **Widget heights now live in exactly one place** (`manifest.json`). They used to
-  live in three, and `npm run check` guarded the drift. That check is gone with
-  the duplicates — do not reintroduce a second copy without reintroducing it.
+- **A widget's height is recorded nowhere.** It lives only in `defineWidget`, and
+  for `posterior` it is a function of the parameters rather than a number. It
+  used to sit in three files with `npm run check` guarding the drift, then in
+  one that nothing read — where it drifted silently until eight of nine were
+  190–310px wrong. Adding a copy back needs a **reader** for it first, not a
+  use for it later. README's iframe recipe says how to measure one.
 
 ## Style
 

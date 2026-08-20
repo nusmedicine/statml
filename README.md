@@ -80,7 +80,7 @@ widgets/
   bootstrap/       arc 3: resampling one sample, with replacement
   permutation-test/ arc 5: a null by shuffling the group labels
   _lab/            design comparisons + fingerprint harness; NOT deployed
-  manifest.json    registry of BUILT widgets; the ONLY place a height lives
+  manifest.json    registry of BUILT widgets; gallery cards, and nothing else
   index.html       redirect stub, so a trimmed /widget/ URL reaches the gallery
 
 index.html         THE GALLERY — the landing page, deployed at /; SHIPPED only
@@ -332,10 +332,14 @@ IRdisplay::display_html('<iframe src="https://nusmedicine.github.io/statml/widge
 
 That is proven to work — but only as **a cell the student runs**. Saved outputs
 are stripped until the notebook is trusted, so a widget you ran and saved shows
-blank when someone else opens the file. Take `height` from the widget's entry in
-`widgets/manifest.json`; they differ, and a short iframe clips the readout tiles.
-Nothing in JupyterLab listens for the `statml:height` message a framed widget
-posts (`core/env.js`), so the fixed height is what you get.
+blank when someone else opens the file. **Measure the height yourself**: open the
+widget at the width you will frame it at and read the figure — they differ by
+several hundred pixels, some change with a tab (`posterior` returns a different
+height per view, so take the tallest), and a short iframe clips the readout
+tiles. The manifest used to carry a number for this and it went stale unread,
+which is why it no longer does. Nothing in JupyterLab listens for the
+`statml:height` message a framed widget posts (`core/env.js`), so whatever you
+hard-code is what you get.
 
 The link form needs none of that — no cell run, no trust, no kernel. It is why
 there is no Python or R helper: nothing a helper could do that a URL does not.
