@@ -429,7 +429,7 @@
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "c4cee116"
+      "px": "ef7da93b"
     },
     {
       "slug": "posterior",
@@ -477,7 +477,7 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "c24be5f2"
+      "px": "fc063d3e"
     }
   ]
 }

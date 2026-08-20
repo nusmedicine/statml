@@ -871,6 +871,43 @@ it reads as the sampler failing; with the exact curve drawn over it and the draw
 count on screen, "lumpy at 40, close by 600" is the right lesson and it is
 exactly why brms takes 6,000.
 
+#### The rail says which numbers are the truth and which are a belief
+
+Four questions in a row turned out to have one cause: the control block had two
+completely different kinds of thing in it and no way of saying so. It now reads
+as two labelled groups —
+
+```
+The population — which you would never really know
+   True mean · True size · Counts to collect · Seed
+Your prior — one distribution per parameter
+   mu — a Normal centred at · …give or take · size — an Exponential with mean
+```
+
+**The true parameters are controls again.** They were cut because the axis
+window followed the truth and a moving window would let a prior slide off the
+panel. The window does not have to follow: `mu` is fixed on [0, 20] and `size`
+on [0.5, 10], and the truth moves inside them. Which restores the thing widget 8
+is seen doing and this one was not — **set a truth, collect counts, watch the
+posterior find it.** At a true mean of 15 against a prior at 7, twelve counts
+get you to 11.1, which is the honest answer and the reason the prior sliders are
+there.
+
+**Naming the distributions replaced three lines of prose.** `mu — a Normal
+centred at` / `…give or take` / `size — an Exponential with mean` teaches that a
+prior *is* a distribution and each one costs its own parameters — which is the
+trade against maximum likelihood, and the answer to "why did MLE not need this
+extra parameter?". See [design-principles.md](design-principles.md) §3.4g.
+
+**The tab strip is two rows, not one.** `mu · size · Both` captioned *exact —
+one grid, added up*, and `MCMC` captioned *approximate — sampled, never
+enumerated*. The method is the grouping, so it is true before you click.
+
+**The sampler reports both parameters**, in the same two tiles the `Both` tab
+uses, each against the grid's exact value and the truth. The acceptance rate
+moved to the ratio strip, which is where the proposals are — it is a property of
+them, not one of the answers.
+
 #### The `brms` check, answered
 
 - **`normal(0, 10)` on the Intercept is a prior on `log(mu)`**, because

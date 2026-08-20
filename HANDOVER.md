@@ -83,6 +83,20 @@ are in, because a crest that runs straight up is what makes the shortcut safe.
   which is true at every count and, at one count, is the more interesting
   statement.
 
+- **Prose is what you reach for when the layout is not carrying the
+  distinction.** Four questions about widget 9 in a row — is `give or take`
+  needed, can the truth be separated from the prior, can the grid tabs be marked
+  as grid — all had prose answers on screen and none had a structural one. The
+  fixes were a labelled `section` divider, distribution names in the prior labels
+  (`mu — a Normal centred at`), and a two-row tab strip; between them they
+  deleted more text than they added. Principle 3.4g.
+
+- **An axis window does not have to follow the truth.** Widget 9's true
+  parameters were cut because a moving window would let a prior slide off the
+  panel. Fixing the windows instead — `mu` on [0, 20], `size` on [0.5, 10] —
+  brings the controls back, and with them the thing widget 8 is seen doing:
+  set a truth, collect counts, watch the posterior find it.
+
 - **A field's `detail` was rendering into a tooltip, or nowhere.** `choice` and
   `gate` showed it; `segmented` put it in a `title`; `int` and `float` dropped it
   entirely. So widget 8's "larger size = LESS spread" warning — the one thing its

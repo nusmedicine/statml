@@ -524,6 +524,45 @@ Two things fell out, both worth stating:
   `side` layout rollout. A number nothing reads is a number that drifts. Either
   fix all nine against a stated width or delete the field; do not leave it.
 
+### 3.4g A control block with two kinds of thing in it says so in its shape
+
+Seven sliders in one list read as one list. Widget 9's first four describe a
+population it is pretending not to know; its next three describe a belief about
+that population. Those are not the same kind of thing at all — one is the truth,
+the other is an assumption you brought — and a reader who cannot tell them apart
+asks, reasonably, why maximum likelihood did not need the extra parameters.
+
+Core gained a `section` field: a labelled divider, declared in the spec between
+the two groups because the spec is where the block's ORDER lives and a divider
+declared anywhere else could not say which two groups it comes between. It
+carries no value and never reaches the URL.
+
+The same argument settled a segmented control. Widget 9's four tabs are three
+grid computations and one sampler, and that difference matters *before* you
+choose, not after. It was a `detail` line that changed as you clicked; it is now
+two rows with a caption each:
+
+```
+[ mu ][ size ][ Both ]     exact — one grid, added up
+[ MCMC ]                   approximate — sampled, never enumerated
+```
+
+Options declare a `group`, consecutive options sharing one form a row. **Saying
+it in the shape beats saying it in a caption**, because the shape is true before
+the reader has done anything.
+
+> *Earned:* three separate questions about the same widget — "is `give or take`
+> needed?", "can you separate the true distribution from the prior?", "can we
+> show that mu/size/Both are exact and MCMC is not?" — all of which had prose
+> answers on screen and none of which had a structural one. Prose is what you
+> reach for when the layout is not carrying the distinction.
+
+**A corollary for the labels.** Naming the distribution does the work three
+lines of explanation were doing badly: `mu — a Normal centred at`, `…give or
+take`, `size — an Exponential with mean`. That is where a prior's cost against
+maximum likelihood is taught — one distribution per parameter, each with its own
+numbers — and it is shorter than the paragraph it replaced.
+
 ### 3.5 Every control must carry an idea
 
 Save PNG and a bin-by-bin table are opt-in and off by default. Every extra

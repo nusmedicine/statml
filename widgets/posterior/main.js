@@ -132,14 +132,31 @@
    LARGER size means LESS spread and size -> infinity is Poisson. Same warning
    as widget 8, on the same parameter, in the same words.
 
-   THE TRUE PARAMETERS ARE FIXED AT THE LESSON'S OWN 2.5 AND 10, AND ARE NOT
-   CONTROLS. Widget 8 offers them because moving `trueSize` there changes the
-   CONCLUSION — bring it down and the same search reports Poisson being wrong by
-   four orders of magnitude. Nothing like that is available here: a different
-   truth is the same figure at a different scale, which is a control that fails
-   3.5. It would also break the axes, because the prior sliders are in the
-   parameters' own units and a window that moved under them would let a prior
-   slide off the panel.
+   THE TRUE PARAMETERS ARE CONTROLS, AND AN EARLIER BUILD CUT THEM ON A BAD
+   ARGUMENT. The reasoning was that a different truth is the same figure at a
+   different scale, and that the axes would break — the prior sliders are in the
+   parameters' own units, so a window that moved under them would let a prior
+   slide off the panel. The second half was true and the conclusion was wrong:
+   THE WINDOW DOES NOT HAVE TO FOLLOW THE TRUTH. Widget 8 centres its window on
+   the truth because a likelihood sweep has nothing else on that axis; here a
+   prior lives there too, so the windows are fixed — mu on [0, 20], size on
+   [0.5, 10] — and the truth moves inside them.
+
+   With that, the sliders carry the one thing this widget was not doing that
+   widget 8 does: SET A TRUTH, COLLECT COUNTS, WATCH THE POSTERIOR FIND IT. And
+   the failures are as instructive as the successes — at a true mean of 15
+   against a prior centred on 7, twelve counts get you to 11.1, which is the
+   honest answer and the reason the prior sliders are next to them.
+
+   THE CONTROL BLOCK IS TWO LABELLED GROUPS, and that is not decoration. Four
+   numbers describe a population the widget is pretending not to know; three
+   describe a belief about it. Seven sliders in one list read as one list, and
+   the question that produced this divider — "why did maximum likelihood not
+   need this extra parameter?" — is exactly what an undivided list invites. The
+   prior's labels name their distributions for the same reason: `mu — a Normal
+   centred at`, `size — an Exponential with mean`. A prior IS a distribution and
+   each one costs its own parameters, which is the trade against maximum
+   likelihood, taught in a label rather than a paragraph.
    ========================================================================= */
 
 import {
@@ -147,9 +164,15 @@ import {
   lgamma, nbLogPmf, nbDraw,
 } from "../core/index.js";
 
-/* The lesson's own call, verbatim: rnbinom(1000, size = 2.5, mu = 10). */
-const TRUE_SIZE = 2.5;
-const TRUE_MU = 10;
+/* The lesson's own call, verbatim: rnbinom(1000, size = 2.5, mu = 10). Defaults
+   now, not constants — the two sliders that set them are the widget's own
+   validation: choose a truth, collect counts, watch the posterior find it. */
+const TRUE_SIZE_DEF = 2.5;
+const TRUE_MU_DEF = 10;
+
+/* The two rows of the tab strip. The method is the grouping. */
+const GRID_ROW = "exact — one grid, added up";
+const SAMPLED_ROW = "approximate — sampled, never enumerated";
 
 /* --- the parameter grid --------------------------------------------------- *
  * 80 x 80 = 6,400 cells, evaluated at their midpoints, so a sum times the cell
@@ -341,81 +364,85 @@ defineWidget({
   height: canvasHeight,
 
   params: {
+    /* THE POPULATION, AND THE PRIOR, ARE TWO DIFFERENT KINDS OF THING. Seven
+       numbers in one list read as one list; the divider is what makes the
+       difference structural rather than something a reader has to be told. */
+    truth: { type: "section", label: "The population — which you would never really know" },
+
+    /* THE TRUE PARAMETERS ARE CONTROLS AGAIN, and the reason they can be is that
+       the AXES NO LONGER FOLLOW THEM. Widget 8 centres its window on the truth,
+       which is right for a likelihood sweep with nothing else on the axis; here
+       a prior lives on that axis too, and a window that moved under it would let
+       the prior slide off the panel. So the windows are fixed — mu on [0, 20],
+       size on [0.5, 10] — and the truth moves inside them, which is what these
+       two sliders are for: set a truth, collect counts, watch the posterior
+       close on it. That is the whole validation, and it is the thing maximum
+       likelihood does in widget 8 that this widget should also be seen doing. */
+    trueMu: { type: "int", label: "True mean", min: 4, max: 16, default: TRUE_MU_DEF },
+    trueSize: {
+      type: "float", label: "True size", min: 1, max: 6, step: 0.5, default: TRUE_SIZE_DEF,
+      detail: "larger size = LESS spread · the notebook uses size 2.5, mu 10",
+    },
+
     /* 1 to 60. One count is worth seeing on its own — it barely moves either
        posterior, which is the honest picture of what one observation is worth.
        Sixty is where the mean is pinned and the dispersion still is not. */
-    n: {
-      type: "int", label: "Counts to collect", min: 1, max: 60, default: 12,
-      detail: "one press observes one of them",
-    },
+    n: { type: "int", label: "Counts to collect", min: 1, max: 60, default: 12 },
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 56 },
 
-    /* THE PRIORS, AND ALL THREE ARE DISPLAY PARAMETERS.
+    /* A PRIOR IS A DISTRIBUTION, AND EACH ONE COSTS ITS OWN PARAMETERS. That is
+       the trade against maximum likelihood, and the labels are where it is
+       taught: mu gets a Normal, which takes two numbers, and size gets an
+       Exponential, which takes one. Naming the distributions turned out to do
+       the job three lines of prose had been doing badly — the question this
+       answers was "why does MLE not need this extra parameter?", and the answer
+       is that these are not model parameters at all.
 
-       Changing your prior does not change a single count you observed, so a
-       prior change that discarded the observations would punish exactly the
-       comparison the sliders exist to enable (3.2). Move any of them
-       mid-animation and every posterior re-forms around the same data — which
-       is the experiment a student actually wants to run: does my prior change
-       the answer? On these two parameters it has two different answers.
+       ALL THREE ARE DISPLAY PARAMETERS. Changing a prior does not change a
+       single count you observed, so discarding the observations would punish
+       exactly the comparison the sliders exist to enable (3.2). */
+    prior: { type: "section", label: "Your prior — one distribution per parameter" },
 
-       The mu prior's centre is deliberately OFF the truth. A prior sitting on
-       the right answer demonstrates nothing; one at 7 against a true 10 is
-       dragged visibly across the panel by twelve counts. */
     priorMu: {
-      type: "float", label: "Before the data: mu is about", min: 2, max: 16, step: 0.5,
-      default: 7,
-      display: true,
-      /* THE QUESTION THIS LINE EXISTS TO ANSWER: "why does maximum likelihood
-         not need these?" The model has two parameters and these are not extra
-         ones — they describe a PRIOR, which is a distribution over a parameter
-         rather than a value for it, and a normal takes two numbers where an
-         exponential takes one. Widget 8 needs none of them because it never
-         produces a distribution over the parameter: it returns a point and a
-         curve with no area. These three numbers are what buys the sentence
-         widget 8 cannot say — there is a 95% chance mu is between 5.9 and 11.9. */
-      detail: "these three are your PRIOR, not the model — maximum likelihood needs none of them, and cannot give you a probability either",
+      /* Deliberately OFF the truth by default. A prior sitting on the right
+         answer demonstrates nothing; one at 7 against a true 10 is dragged
+         visibly across the panel by twelve counts. */
+      type: "float", label: "mu — a Normal centred at", min: 2, max: 16, step: 0.5,
+      default: 7, display: true,
     },
     priorSd: {
       type: "float", label: "…give or take", min: 0.5, max: 6, step: 0.5,
-      default: 3,
-      display: true,
+      default: 3, display: true,
       format: (v) => `± ${v.toFixed(1)}`,
-      /* THE LESSON'S OWN mu PRIOR IS NOT THIS OBJECT, and the difference is
-         worth one line rather than papering over. brms fits `count ~ 1` with a
-         log link and the notebook recovers mu as exp(b_Intercept), so its
-         `normal(0, 10)` on the Intercept is a prior on LOG mu — which puts mu
-         anywhere from e^-20 to e^20. Enormously vaguer than this slider
-         reaches, and on a different scale. Its OTHER prior, `exponential(1)` on
-         the shape, IS on the parameter itself, which is why the size slider
-         below reproduces the notebook exactly and this one cannot. */
-      detail: "the prior's STRENGTH — at ± 0.5 twelve counts barely move it, at ± 6 it hardly matters · the lesson's brms prior sits on log(mu), so its normal(0, 10) is vastly wider than either",
+      /* The lesson's own mu prior is NOT this object and the difference is worth
+         one line: brms fits `count ~ 1` with a log link and the notebook recovers
+         mu as exp(b_Intercept), so its normal(0, 10) is a prior on LOG mu. */
+      detail: "brms puts its normal(0, 10) on log(mu), so the lesson's is far wider",
     },
-    /* THE LESSON'S PRIOR ON size, REPRODUCIBLE EXACTLY. `prior(exponential(1),
-       class = shape)` is an exponential with mean 1, on the parameter itself,
-       so the default here IS the notebook's. That it sits well below the true
-       2.5 is not a flaw to tune away: it is why the size tab shows a prior that
-       is still doing work at n = 12, which is the widget's second lesson. */
     priorSize: {
-      type: "float", label: "…and size is about", min: 0.5, max: 6, step: 0.5,
-      default: 1,
-      display: true,
-      detail: "an exponential prior with this mean — the notebook's own exponential(1) · larger size = LESS spread",
+      type: "float", label: "size — an Exponential with mean", min: 0.5, max: 6, step: 0.5,
+      default: 1, display: true,
+      /* `prior(exponential(1), class = shape)` is on the parameter itself, so
+         this default IS the notebook's. That it sits below the true 2.5 is not a
+         flaw to tune away: it is why the size tab shows a prior still doing work
+         at n = 12. */
+      detail: "the notebook's own exponential(1)",
     },
 
-    /* FOUR READINGS OF ONE PROBLEM, so a segmented control and not a gate: all
-       four are worth seeing at rest (3.3), and a gate would take the whole
-       drive row with it. Named for the notebook's own two parameters, so these
-       tabs and `optim(c(size, mu), ...)` line up exactly as widget 8's do. */
+    /* FOUR READINGS, IN TWO ROWS, BECAUSE THREE OF THEM ARE THE SAME KIND OF
+       THING AND ONE IS NOT. The grid tabs and the sampler differ in method
+       before they differ in content, and a reader needs that before choosing
+       rather than after. Saying it in the SHAPE beats a caption that changes as
+       you click — which is what this was, and it was asked about. */
     view: {
       type: "segmented",
       label: "Looking at",
       options: [
-        { value: "mu", label: "mu", detail: "EXACT, by adding up all 6,400 grid cells · the mean, with the dispersion integrated out rather than assumed" },
-        { value: "size", label: "size", detail: "EXACT, by adding up all 6,400 grid cells · the dispersion, with the mean integrated out — larger size means LESS spread" },
-        { value: "both", label: "Both", detail: "EXACT, by adding up all 6,400 grid cells · the joint posterior the other two tabs are the edges of" },
-        { value: "mcmc", label: "MCMC", detail: "SAMPLED, never enumerated · 80 cells per axis is 6,400 for two parameters and 10¹⁹ for ten, so at some point you stop enumerating", },
+        { value: "mu", label: "mu", group: GRID_ROW, detail: "the mean, with the dispersion integrated out rather than assumed" },
+        { value: "size", label: "size", group: GRID_ROW, detail: "the dispersion, with the mean integrated out" },
+        { value: "both", label: "Both", group: GRID_ROW, detail: "the joint posterior the other two are the edges of" },
+        { value: "mcmc", label: "MCMC", group: SAMPLED_ROW, detail: "what brms does when a grid is no longer possible" },
       ],
       default: "mu",
       display: true,
@@ -432,7 +459,7 @@ defineWidget({
   ],
 
   compute: ({ params, rng }) => {
-    const { n, priorMu, priorSd, priorSize } = params;
+    const { n, trueMu, trueSize, priorMu, priorSd, priorSize } = params;
 
     /* ARRIVAL ORDER, NOT SORTED. Widget 8 sorts its counts because they are one
        fixed batch the reader only ever sees all at once; here the order IS the
@@ -446,7 +473,7 @@ defineWidget({
        the default n, which is the twelve-counts-of-sampling-error lesson
        widgets 2 to 4 established. */
     const counts = [];
-    for (let i = 0; i < n; i += 1) counts.push(nbDraw(rng, TRUE_SIZE, TRUE_MU));
+    for (let i = 0; i < n; i += 1) counts.push(nbDraw(rng, trueSize, trueMu));
 
     /* The count axis ratchets in steps of 8 to hold the data and then stays put
        for the whole animation (2.5). Widget 8's rule and widget 8's numbers, so
@@ -662,7 +689,7 @@ defineWidget({
       for (const k of counts) s += nbLogPmf(k, r, mu);
       return s - r / priorSize - zS - 0.5 * ((mu - priorMu) / priorSd) ** 2 - zM;
     };
-    const sampleMean = n ? counts.reduce((a, b) => a + b, 0) / n : TRUE_MU;
+    const sampleMean = n ? counts.reduce((a, b) => a + b, 0) / n : trueMu;
     const chain = [];
     let cr = 1;
     let cm = Math.max(0.5, sampleMean);
@@ -689,7 +716,7 @@ defineWidget({
     }
 
     return {
-      n, counts, countHi, maxMult,
+      n, counts, countHi, maxMult, trueMu, trueSize,
       priorS, priorM, joint, margM, margS, likM, likS, steps, chain,
       beliefTopM: Math.max(topM, priorPeakM) * 1.1,
       beliefTopS: Math.max(topS, priorPeakS) * 1.1,
@@ -846,41 +873,46 @@ defineWidget({
 
     if (view === "mcmc") {
       const t = anim.draws;
+      /* THE SAME TWO TILES THE Both TAB SHOWS, so the sampler is answering the
+         same question in the same slots and the comparison is a glance rather
+         than an act of memory. Each carries the grid's exact value beside it —
+         the only place in the collection where an approximation is checked
+         against a truth that is on the same screen and known to be right.
+         The acceptance rate moved to the ratio strip, where it belongs: it is a
+         property of the proposals, not one of the answers. */
       if (t === 0) {
         return [
-          { label: "Draws", value: "0", note: `press Step — brms would take ${BRMS_DRAWS.toLocaleString("en")}` },
-          { label: "The grid already knows", value: fmt(S.mu.mean, 2), note: "mu, exactly · the chain has to go and find it" },
+          { label: "mu", value: "—", note: `the grid says ${fmt(S.mu.mean, 2)} · press Step and watch the chain find it` },
+          { label: "size", value: "—", note: `the grid says ${fmt(S.size.mean, 2)} · brms would take ${BRMS_DRAWS.toLocaleString("en")} draws` },
         ];
       }
-      /* The sample's own answer against the exact one. This is the only place in
-         the collection where an approximation is checked against a truth that is
-         on the same screen and known to be right. */
-      let sum = 0;
-      for (let q = 0; q < t; q += 1) sum += state.chain[q].mu;
+      let sumMu = 0;
+      let sumSz = 0;
+      for (let q = 0; q < t; q += 1) { sumMu += state.chain[q].mu; sumSz += state.chain[q].size; }
       return [
         {
           label: "mu, from the draws",
-          value: fmt(sum / t, 2),
-          note: `${t} draw${t === 1 ? "" : "s"} · the grid says ${fmt(S.mu.mean, 2)}`,
+          value: fmt(sumMu / t, 2),
+          note: `${t} draw${t === 1 ? "" : "s"} · the grid says ${fmt(S.mu.mean, 2)} · true ${fmt(state.trueMu, 1)}`,
         },
         {
-          label: "Proposals accepted",
-          value: `${Math.round(state.chain[t - 1].rate * 100)}%`,
-          note: "a rejected one is not discarded — the chain records where it already was",
+          label: "size, from the draws",
+          value: fmt(sumSz / t, 2),
+          note: `the grid says ${fmt(S.size.mean, 2)} · true ${fmt(state.trueSize, 1)}`,
         },
       ];
     }
 
     if (view === "both") {
       return [
-        { label: "mu", value: fmt(S.mu.mean, 2), note: `true ${fmt(TRUE_MU, 1)} · 95% within ${fmt(S.mu.lo, 1)} – ${fmt(S.mu.hi, 1)}` },
-        { label: "size", value: fmt(S.size.mean, 2), note: `true ${fmt(TRUE_SIZE, 1)} · 95% within ${fmt(S.size.lo, 1)} – ${fmt(S.size.hi, 1)}` },
+        { label: "mu", value: fmt(S.mu.mean, 2), note: `true ${fmt(state.trueMu, 1)} · 95% within ${fmt(S.mu.lo, 1)} – ${fmt(S.mu.hi, 1)}` },
+        { label: "size", value: fmt(S.size.mean, 2), note: `true ${fmt(state.trueSize, 1)} · 95% within ${fmt(S.size.lo, 1)} – ${fmt(S.size.hi, 1)}` },
       ];
     }
 
     const size = view === "size";
     const P = size ? S.size : S.mu;
-    const truth = size ? TRUE_SIZE : TRUE_MU;
+    const truth = size ? state.trueSize : state.trueMu;
     const started = size ? params.priorSize : params.priorMu;
 
     return [
@@ -921,7 +953,7 @@ defineWidget({
 function drawMarginal(ctx, colors, plotW, params, state, anim, m, S) {
   const size = params.view === "size";
   const grid = size ? SIZES : MUS;
-  const truth = size ? TRUE_SIZE : TRUE_MU;
+  const truth = size ? state.trueSize : state.trueMu;
   const name = size ? "size" : "mu";
   const xDomain = size ? [SIZE_LO, SIZE_HI] : [MU_LO, MU_HI];
 
@@ -1046,13 +1078,13 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   pS.axisX({ ticks: [] });
 
   // The truth, which we can mark only because the population is seeded.
-  pS.dot(TRUE_SIZE, TRUE_MU, { fill: colors.reference, r: 5 });
+  pS.dot(state.trueSize, state.trueMu, { fill: colors.reference, r: 5 });
   ctx.save();
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
-  ctx.fillText("truth", pS.sx(TRUE_SIZE) + 10, pS.sy(TRUE_MU));
+  ctx.fillText("truth", pS.sx(state.trueSize) + 10, pS.sy(state.trueMu));
   ctx.restore();
 
   /* --- the edges: what each tab beside this one shows ------------------- */
@@ -1078,8 +1110,8 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
      earn trust in it for the problems where you cannot compute one. */
   const t = anim.draws;
   if (t === 0) {
-    pS.note("the shading is the exact answer — a check, not a shortcut");
-    ratioStrip(ctx, colors, plotW, null, S);
+    pS.note("the exact answer, to aim at");
+    ratioStrip(ctx, colors, plotW, null, S, null);
     return;
   }
 
@@ -1140,7 +1172,8 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
      is what an off-by-one here did — puts a verdict on screen for a move nobody
      has proposed yet. */
   ratioStrip(ctx, colors, plotW,
-    anim.flying && t < DRAWS ? state.chain[t] : state.chain[t - 1], S);
+    anim.flying && t < DRAWS ? state.chain[t] : state.chain[t - 1], S,
+    state.chain[t - 1].rate);
 }
 
 /* ============================================================================
@@ -1181,7 +1214,7 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
    printed in scientific notation instead, so a sliver says how much of a sliver
    it is.
    ========================================================================= */
-function ratioStrip(ctx, colors, plotW, d, S) {
+function ratioStrip(ctx, colors, plotW, d, S, rate) {
   const x0 = PAD_L;
   const wFull = Math.min(460, plotW - 190);
   const valX = x0 + wFull * CAP + 12;
@@ -1192,6 +1225,14 @@ function ratioStrip(ctx, colors, plotW, d, S) {
   ctx.fillStyle = colors.ink2;
   ctx.textBaseline = "alphabetic";
   ctx.fillText("Should it move? Compare the two lengths — nothing else is needed", x0, R_Y - 8);
+  if (rate !== null) {
+    // A property of the proposals, so it lives with them rather than in a
+    // readout tile that is supposed to hold an answer.
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "right";
+    ctx.fillText(`${Math.round(rate * 100)}% accepted so far`, x0 + plotW, R_Y - 8);
+  }
   ctx.restore();
 
   const row = (i, label, frac, value) => {
@@ -1224,7 +1265,9 @@ function ratioStrip(ctx, colors, plotW, d, S) {
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText("nothing proposed yet", x0, ry0 + rowH + 22);
+    ctx.fillText(
+      "nothing proposed yet — the shading above is the exact answer, and this is a check of the chain against it",
+      x0, ry0 + rowH + 22);
     ctx.restore();
     return;
   }
@@ -1379,10 +1422,12 @@ function drawEdges(ctx, colors, pS, planeW, planeH, edge, state) {
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(draws > 0 ? "mu, drawn" : "mu", mx, S_Y - 8);
+  // Just the parameter's name: the left margin is 54px and "size, drawn" needs
+  // 55 of them, and the bars already say whether these are draws.
+  ctx.fillText("mu", mx, S_Y - 8);
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  ctx.fillText(draws > 0 ? "size, drawn" : "size", PAD_L - 8, sy0 - MARG_H / 2);
+  ctx.fillText("size", PAD_L - 8, sy0 - MARG_H / 2);
   ctx.restore();
 }
 

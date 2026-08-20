@@ -53,6 +53,11 @@ function toCells(spec, values) {
       cells.push({ kind: "gate", entry });
       continue;
     }
+    if (entry[1].type === "section") {
+      bools = null;
+      cells.push({ kind: "section", entry });
+      continue;
+    }
     if (entry[1].type === "bool") {
       if (!bools) {
         bools = { kind: "bools", fields: [] };
@@ -82,6 +87,21 @@ function build(host, spec, values, onChange, api) {
   const setters = {};
 
   for (const cell of toCells(spec, values)) {
+    /* A LABELLED DIVIDER, and it carries no value. Widget 9 sets four numbers
+       describing a population it is pretending not to know, and three more
+       describing a belief about it — seven sliders that look like one list and
+       are two completely different kinds of thing. The heading is what makes
+       "these are the truth, those are your prior" structural instead of a
+       sentence somebody has to read. */
+    if (cell.kind === "section") {
+      const [, field] = cell.entry;
+      const h = document.createElement("p");
+      h.className = "w-section";
+      h.textContent = field.label ?? "";
+      host.appendChild(h);
+      continue;
+    }
+
     if (cell.kind === "bools") {
       const group = document.createElement("div");
       group.className = "w-field w-bools";
@@ -267,17 +287,34 @@ function build(host, spec, values, onChange, api) {
       const detail = document.createElement("p");
       detail.className = "w-detail";
 
-      const seg = document.createElement("div");
-      seg.className = "w-seg";
-      seg.setAttribute("role", "group");
-      seg.setAttribute("aria-label", field.label ?? name);
-
       const buttons = new Map();
       const mark = (v) => {
         for (const [key, btn] of buttons) btn.setAttribute("aria-pressed", String(key === v));
         detail.textContent = options.find((o) => o.value === v)?.detail ?? "";
       };
+
+      /* OPTIONS MAY DECLARE A `group`, AND A GROUP IS A ROW WITH A CAPTION.
+         One option list, still one parameter — but when three of the choices
+         are the same KIND of thing and the fourth is not, saying so in the
+         shape beats saying it in a caption that changes as you click. Widget 9
+         needs exactly that: mu, size and Both are one grid added up; MCMC is a
+         sampler, and a reader has to know that before choosing, not after.
+         Consecutive options sharing a `group` string form one row. */
+      let run = null;
       for (const o of options) {
+        if (!run || run.key !== o.group) {
+          run = { key: o.group, seg: document.createElement("div") };
+          run.seg.className = "w-seg";
+          run.seg.setAttribute("role", "group");
+          run.seg.setAttribute("aria-label", o.group ?? field.label ?? name);
+          wrap.appendChild(run.seg);
+          if (o.group) {
+            const cap = document.createElement("p");
+            cap.className = "w-seg-cap";
+            cap.textContent = o.group;
+            wrap.appendChild(cap);
+          }
+        }
         const b = document.createElement("button");
         b.type = "button";
         b.className = "w-seg-btn";
@@ -288,9 +325,8 @@ function build(host, spec, values, onChange, api) {
           onChange(name, o.value);
         });
         buttons.set(o.value, b);
-        seg.appendChild(b);
+        run.seg.appendChild(b);
       }
-      wrap.appendChild(seg);
       wrap.appendChild(detail);
       mark(values[name]);
       setters[name] = mark;

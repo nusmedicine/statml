@@ -17,6 +17,8 @@
      int, float   numeric slider
      bool         checkbox
      gate         full-width button that reveals a stage; a bool on the wire
+     section      a labelled divider between groups of controls; NOT a parameter,
+                  carries no value and never reaches the URL
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
@@ -48,6 +50,11 @@ function coerceNumber(field, raw, isInt) {
 export function resolveParams(spec, search) {
   const out = {};
   for (const [name, field] of Object.entries(spec)) {
+    /* A section is a heading, not a parameter. It lives in the spec because the
+       spec is the declaration of the control block's ORDER, and a divider that
+       had to be declared somewhere else could not say which two groups it comes
+       between. It never reaches `values`, so nothing downstream sees it. */
+    if (field.type === "section") continue;
     const raw = search.get(name);
     if (raw === null || raw === "") {
       out[name] = field.default;
@@ -94,7 +101,10 @@ export function optionEntries(field) {
     return o.map((item) =>
       typeof item === "string"
         ? { value: item, label: item }
-        : { value: item.value, label: item.label ?? item.value, detail: item.detail }
+        : {
+          value: item.value, label: item.label ?? item.value,
+          detail: item.detail, group: item.group,
+        }
     );
   }
   return Object.entries(o).map(([value, label]) => ({ value, label }));
