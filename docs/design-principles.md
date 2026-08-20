@@ -524,6 +524,29 @@ Two things fell out, both worth stating:
   `side` layout rollout. A number nothing reads is a number that drifts. Either
   fix all nine against a stated width or delete the field; do not leave it.
 
+### 3.4h Replay replays the loop; only Reset undoes the lead
+
+A lead action is the thing you get once — bootstrap's single sample, widget 8's
+twelve counts, widget 9's dealt sample. Core re-ran `init` from nothing on
+Replay, which threw the lead away, so a button labelled **Replay** produced a
+blank figure with step and run disabled and a hint telling you to press the lead
+again.
+
+`init` now receives `leadDone`, and a widget with a lead honours it:
+
+    init: ({ leadDone }) => ({ leadDone: Boolean(leadDone), ... })
+
+Two buttons, two jobs, and the distinction is the teaching: **Replay** re-runs
+the repeatable part, **Reset** goes back to before the one-off. That is what
+makes the lead greying out mean anything — it is not a technicality if exactly
+one control undoes it.
+
+> *Earned:* asked whether widget 9's tabs should be gated so a reader has to
+> "play through" each one. They should not — its first three tabs are three
+> views of ONE accumulation, and a sample observed once has been observed —
+> but the underlying want, *watch this tab build*, was already available through
+> Replay and unusable because Replay un-dealt the data.
+
 ### 3.4g A control block with two kinds of thing in it says so in its shape
 
 Seven sliders in one list read as one list. Widget 9's first four describe a
@@ -562,6 +585,14 @@ lines of explanation were doing badly: `mu — a Normal centred at`, `…give or
 take`, `size — an Exponential with mean`. That is where a prior's cost against
 maximum likelihood is taught — one distribution per parameter, each with its own
 numbers — and it is shorter than the paragraph it replaced.
+
+**And a heading has to outrank a label.** The first attempt made both `--fs-sm`
+on `--ink-2` and gave the heading a bolder weight, which is one signal; the
+blocks were reported as not apparent. A heading differs in KIND: primary ink
+against the labels' secondary, and a full line of air above rather than the gap
+between two fields. Four signals where there was one. Keep the heading itself to
+two or three words — `The population`, `Your prior`, `The inference` — because a
+heading that needs a subordinate clause is doing the block's explaining for it.
 
 ### 3.5 Every control must carry an idea
 

@@ -328,16 +328,26 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 /* A labelled divider between groups of controls. Same rule as the gate's, so a
    reader learns one mark: a hairline above means "a different kind of thing
    starts here". The first one in a block has no divider — there is nothing
-   above it to separate from. */
+   above it to separate from.
+
+   IT HAS TO OUTRANK A FIELD LABEL, and the first attempt did not. Both were
+   --fs-sm on --ink-2 and the heading's only edge was its weight, so a group
+   title read as one more control label and the blocks were reported as not
+   apparent. A heading needs to differ in KIND: primary ink against the labels'
+   secondary, and a full line of air above it rather than the gap between two
+   fields. Four signals — colour, weight, rule, space — where there was one. */
 .w-section {
-  margin: var(--sp-4) 0 0;
+  margin: var(--sp-5) 0 var(--sp-1);
   padding-top: var(--sp-3);
   border-top: 1px solid var(--grid);
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--ink-2);
+  color: var(--ink-1);
 }
 .w-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* `.w-controls` is a grid, so an item's margins ADD to the row gap: 12 + 24
+   above the heading against 12 + 4 below it. The asymmetry is what binds a
+   heading to the group under it rather than floating between two. */
 
 /* A caption under one row of a grouped segmented control. Recessive, because
    the buttons are the control and this only says what kind they are. */
@@ -347,6 +357,11 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   color: var(--ink-3);
 }
 .w-seg-cap:last-child { margin-bottom: 0; }
+
+/* A detail with nothing in it is not a blank line. The segmented control builds
+   its element up front because the text changes with the selection, so the
+   empty case has to be handled here rather than by not building it. */
+.w-detail:empty { display: none; }
 
 .w-stage {
   min-width: 0; /* or the canvas refuses to shrink inside the grid track */

@@ -83,6 +83,27 @@ are in, because a crest that runs straight up is what makes the shortcut safe.
   which is true at every count and, at one count, is the more interesting
   statement.
 
+- **Replay used to un-deal the lead's data, and now does not.** Core re-ran
+  `init` from nothing, so a button labelled Replay produced a blank figure with
+  step and run disabled. `init` now receives `leadDone`; Replay re-runs the loop
+  and **Reset is the only way back to before the lead**. True of `bootstrap`,
+  `permutation-test` and widget 8 as well. No fingerprint state presses Replay,
+  so nothing moved — 57/57 after it. Principle 3.4h.
+
+- **A section heading has to differ in KIND from a field label, not in degree.**
+  The first attempt was `--fs-sm` on `--ink-2` like every label, bolder by one
+  step, and the blocks were reported as not apparent. Primary ink, a hairline,
+  and a full line of air above — four signals, not one. Keep the heading to two
+  or three words; one that needs a subordinate clause is doing the block's
+  explaining for it. Principle 3.4g.
+
+- **`.w-subtitle` caps at `62ch`, which is ~76 real characters — the top of the
+  readable range, not a narrow column.** When a subtitle looks like a column
+  hugging the left edge, the copy is too long, not the cap. Widget 9's was 108
+  words against a collection median of 44; it is 63 now. Worth measuring before
+  touching that CSS: `bootstrap` at 74 is the next longest and everything else
+  is 31–53.
+
 - **Prose is what you reach for when the layout is not carrying the
   distinction.** Four questions about widget 9 in a row — is `give or take`
   needed, can the truth be separated from the prior, can the grid tabs be marked

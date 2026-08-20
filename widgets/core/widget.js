@@ -85,6 +85,16 @@
    shape: observe the data once, shuffle its labels many times. Only Reset brings
    the lead action back.
 
+   REPLAY THEREFORE KEEPS IT. `init` receives `leadDone`, true when the reader
+   pressed Replay on a finished animation and the lead had already run. A widget
+   with a lead honours it:
+
+       init: ({ leadDone }) => ({ leadDone: Boolean(leadDone), ... })
+
+   Without that, Replay re-ran `init` from nothing and un-dealt the data, so a
+   button labelled Replay produced a blank figure with step and run disabled.
+   Reset is the way back to before the lead, and it should be the only one.
+
    SPOILER-FREE BY CONSTRUCTION: a widget that declares an animation is re-inited
    on load and on every DATA parameter change, so `anim` is always the thing
    drawn and there is no "finished" picture to give the answer away before the
@@ -285,13 +295,22 @@ export function defineWidget(config) {
    */
   let seededOnce = false;
 
-  function resetAnim({ fromScratch = false } = {}) {
+  function resetAnim({ fromScratch = false, keepLead = false } = {}) {
     if (!animation) return;
     anim = animation.init({
       params: { ...values },
       state,
       colors,
       fromScratch: fromScratch || seededOnce,
+      /* REPLAY REPLAYS THE LOOP; IT DOES NOT UN-DEAL THE DATA. A lead action is
+         the thing you get once — bootstrap's single sample, widget 8's twelve
+         counts — and a Replay that threw it away left the reader looking at a
+         blank figure with step and run disabled, having pressed a button
+         labelled "Replay". Reset is the way back to before the lead, and it is
+         the only one; that is what makes the lead's permanence mean something.
+         The widget honours this in its own `init`, because `anim` is the
+         widget's object and core does not write into it. */
+      leadDone: keepLead,
     });
     seededOnce = true;
     hasAdvanced = false;
@@ -420,7 +439,7 @@ export function defineWidget(config) {
        replay instead of advancing, with Play masking it because one click runs
        to the end. Comparing exactly makes a numeric `done` harmless instead of
        silently destructive. */
-    if (anim.done === true) resetAnim({ fromScratch: true }); // Replay
+    if (anim.done === true) resetAnim({ fromScratch: true, keepLead: Boolean(anim.leadDone) }); // Replay
     anim.mode = mode;
 
     // Reduced motion: no choreography, just arrive at the result.

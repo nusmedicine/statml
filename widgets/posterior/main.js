@@ -353,13 +353,10 @@ defineWidget({
   title: "Bayesian Estimation",
   subtitle:
     "Maximum likelihood found the parameters that make your counts most probable. " +
-    "It cannot say how probable a parameter is: nothing holds the likelihood's " +
-    "area at 1, so there is no probability to read off it. Multiply it by what " +
-    "you believed beforehand, divide by the total, and the curve that comes out " +
-    "does have an area of 1. Then add counts one at a time and watch one prior " +
-    "get overwhelmed while the other does not. The first three tabs work it out " +
-    "exactly, by adding up 6,400 grid cells — which is fine for two parameters " +
-    "and impossible for ten. The fourth shows what you do instead.",
+    "It cannot say how probable a parameter is — nothing holds the likelihood's " +
+    "area at 1. Multiply it by what you believed beforehand, divide by the total, " +
+    "and the curve that comes out does. Then add counts one at a time and watch " +
+    "one prior get overwhelmed while the other does not.",
   layout: "side",
   height: canvasHeight,
 
@@ -367,7 +364,7 @@ defineWidget({
     /* THE POPULATION, AND THE PRIOR, ARE TWO DIFFERENT KINDS OF THING. Seven
        numbers in one list read as one list; the divider is what makes the
        difference structural rather than something a reader has to be told. */
-    truth: { type: "section", label: "The population — which you would never really know" },
+    truth: { type: "section", label: "The population" },
 
     /* THE TRUE PARAMETERS ARE CONTROLS AGAIN, and the reason they can be is that
        the AXES NO LONGER FOLLOW THEM. Widget 8 centres its window on the truth,
@@ -402,7 +399,7 @@ defineWidget({
        ALL THREE ARE DISPLAY PARAMETERS. Changing a prior does not change a
        single count you observed, so discarding the observations would punish
        exactly the comparison the sliders exist to enable (3.2). */
-    prior: { type: "section", label: "Your prior — one distribution per parameter" },
+    prior: { type: "section", label: "Your prior" },
 
     priorMu: {
       /* Deliberately OFF the truth by default. A prior sitting on the right
@@ -435,14 +432,23 @@ defineWidget({
        before they differ in content, and a reader needs that before choosing
        rather than after. Saying it in the SHAPE beats a caption that changes as
        you click — which is what this was, and it was asked about. */
+    inference: { type: "section", label: "The inference" },
     view: {
       type: "segmented",
-      label: "Looking at",
+      /* Empty on purpose: the heading above says it, and the two row captions
+         say what distinguishes the rows. A "Looking at" here would be a third
+         line of chrome between a heading and the buttons it introduces. */
+      label: "",
       options: [
-        { value: "mu", label: "mu", group: GRID_ROW, detail: "the mean, with the dispersion integrated out rather than assumed" },
-        { value: "size", label: "size", group: GRID_ROW, detail: "the dispersion, with the mean integrated out" },
-        { value: "both", label: "Both", group: GRID_ROW, detail: "the joint posterior the other two are the edges of" },
-        { value: "mcmc", label: "MCMC", group: SAMPLED_ROW, detail: "what brms does when a grid is no longer possible" },
+        /* NO per-tab `detail`. The row captions say what separates the rows,
+           and each figure's own caption says what that tab shows — panel B on
+           the mu tab already reads "the other parameter averaged out". A third
+           grey line under the buttons was the block's texture, not its
+           meaning. */
+        { value: "mu", label: "mu", group: GRID_ROW },
+        { value: "size", label: "size", group: GRID_ROW },
+        { value: "both", label: "Both", group: GRID_ROW },
+        { value: "mcmc", label: "MCMC", group: SAMPLED_ROW },
       ],
       default: "mu",
       display: true,
@@ -760,13 +766,16 @@ defineWidget({
     runLabel: "Play",
     runTitle: "Keep going to the end of the sample, or of the chain",
 
-    init({ params, fromScratch }) {
+    init({ params, fromScratch, leadDone }) {
       /* TWO CURSORS, AND ONLY TWO. The mu, size and Both tabs are three views of
          the SAME accumulating data, so they share one — switching tabs must not
          cost the counts you collected. The sampler counts something else
          entirely, so it gets its own. */
       const anim = {
-        leadDone: false, leadT: 0,
+        /* Replay keeps a dealt sample: core passes `leadDone` back in, true
+           when the reader replayed a finished animation that had already run
+           the lead. Only Reset goes back to before it. */
+        leadDone: Boolean(leadDone), leadT: leadDone ? 1 : 0,
         obs: 0, draws: 0, flying: false, flyT: 1, done: false,
       };
       const pre = fromScratch ? 0 : Math.max(0, params.shown | 0);

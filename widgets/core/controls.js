@@ -170,6 +170,10 @@ function build(host, spec, values, onChange, api) {
     const text = document.createElement("span");
     text.textContent = field.label ?? name;
     label.appendChild(text);
+    /* An empty label is a deliberate "the section heading above already said
+       this" — it must not render as a blank line. The control still names
+       itself to assistive tech through its own aria-label. */
+    const labelled = (field.label ?? name) !== "";
 
     if (field.type === "int" || field.type === "float") {
       const val = document.createElement("span");
@@ -275,7 +279,7 @@ function build(host, spec, values, onChange, api) {
       // Every option visible at rest. For a small set of alternative readings,
       // a collapsed dropdown hides that there is a choice to make.
       const options = optionEntries(field);
-      wrap.appendChild(label);
+      if (labelled) wrap.appendChild(label);
       /* THE DETAIL IS A LINE, NOT A TOOLTIP, and it was a tooltip for two
          widgets' worth of shipping. `choice` has always rendered its selected
          option's `detail` as visible copy; `segmented` put the identical field

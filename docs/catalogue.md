@@ -908,6 +908,47 @@ uses, each against the grid's exact value and the truth. The acceptance rate
 moved to the ratio strip, which is where the proposals are — it is a property of
 them, not one of the answers.
 
+#### The rail reads as one sentence, in three blocks
+
+`The population` → `Your prior` → `The inference`, each a heading with a
+hairline above it and a line of air. The first attempt had headings that were
+`--fs-sm` on `--ink-2` like every field label, differing only in weight, and the
+blocks were reported as not apparent — see
+[design-principles.md](design-principles.md) §3.4g. **No widget in the
+collection had ever grouped its controls**, so there was no precedent to match:
+`power-and-error`'s gate divider is a stage reveal, not a grouping.
+
+Three or four sliders under a two-word heading needs no further explanation,
+which is why the per-tab `detail` lines came out again — the row captions say
+what separates the rows and each figure's caption says what its tab shows.
+
+**And the subtitle was the actual problem with the header, not the layout.**
+`.w-subtitle` caps at `62ch`, which in this font resolves to 469px — about 76
+real characters per line, the top of the readable range, not a narrow column.
+Widget 9's subtitle was **108 words against a collection median of 44** and the
+next-longest of 74. It is 63 now. The cap is fine; the copy was not.
+
+#### Should the tabs be gated? No — but Replay had to be fixed
+
+Asked whether `size` and `Both` should stay blank until a reader has "played
+through" them, since running `mu` fills them in. They should not: the first
+three tabs are three views of **one** accumulation, and a sample observed once
+has been observed. Nothing further happens to produce the `size` answer — it is
+the same 6,400 cells added up along the other axis. Widget 8's tabs each carry
+their own cursor because each is a different *search* with a different amount of
+labour in it; these are not.
+
+Gating them would also fight the rule that put them in a segmented control:
+alternatives stay visible at rest, and a lecturer opening straight on `Both`
+should not be blocked.
+
+But the want underneath — *watch this tab build* — was already available and
+unusable, because **Replay re-ran `init` from nothing and un-dealt the sample**.
+Fixed in core: `init` receives `leadDone`, Replay re-runs the loop, and Reset
+remains the only way back to before the lead. That is now true of `bootstrap`,
+`permutation-test` and widget 8 as well, and it makes the lead greying out mean
+something — exactly one control undoes it.
+
 #### The `brms` check, answered
 
 - **`normal(0, 10)` on the Intercept is a prior on `log(mu)`**, because

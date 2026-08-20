@@ -293,10 +293,13 @@ defineWidget({
     stepTitle: "Resample your own sample, with replacement — the population is out of reach now",
     runLabel: "Play",
 
-    init({ params, state, fromScratch }) {
+    init({ params, state, fromScratch, leadDone }) {
       const anim = {
         pile: makeBootPile(state),
-        leadDone: false, //  core reads this: nothing else is available until it is true
+        /* Replay keeps a dealt sample: core passes `leadDone` back in, true
+           when the reader replayed a finished animation that had already run
+           the lead. Only Reset goes back to before it. */
+        leadDone: Boolean(leadDone), //  core reads this: nothing else is available until it is true
         leadT: 0, //         0..1 progress of the one draw from the population
         phase: "pick", //    'pick' | 'collapse' | 'drop'
         phaseT: 0, //        0..1 within the current phase; 0 means idle

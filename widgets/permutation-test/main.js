@@ -295,13 +295,16 @@ defineWidget({
     stepTitle: "Pool every observation and deal the group labels back at random",
     runLabel: "Play",
 
-    init({ params, state, fromScratch }) {
+    init({ params, state, fromScratch, leadDone }) {
       const anim = {
         pile: makeNullPile(state),
         // Lit counts per bin, maintained as values arrive so that the dots a
         // student can count ARE p's numerator. See the header.
         tail: new Array(state.bins).fill(0),
-        leadDone: false,
+        /* Replay keeps a dealt sample: core passes `leadDone` back in, true
+           when the reader replayed a finished animation that had already run
+           the lead. Only Reset goes back to before it. */
+        leadDone: Boolean(leadDone),
         leadT: 0,
         phase: "pool", // 'pool' | 'deal' | 'drop'
         phaseT: 0,

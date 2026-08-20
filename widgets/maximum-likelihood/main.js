@@ -553,13 +553,16 @@ defineWidget({
     runLabel: "Play",
     runTitle: "Run the rest of it",
 
-    init({ params, fromScratch }) {
+    init({ params, fromScratch, leadDone }) {
       /* ONE CURSOR PER TAB. The tabs are display-only, so switching must not
          throw away the sweep you were in the middle of — and the three index
          different things, so they cannot be the same number. */
       const anim = {
-        leadDone: false,
-        leadT: 0,
+        /* Replay keeps a dealt sample: core passes `leadDone` back in, true
+           when the reader replayed a finished animation that had already run
+           the lead. Only Reset goes back to before it. */
+        leadDone: Boolean(leadDone),
+        leadT: leadDone ? 1 : 0,
         cursor: { mean: -1, disp: -1, both: -1 },
         flyT: 1, //  0..1 arrival of the current candidate's score
         done: false,
