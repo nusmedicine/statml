@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · how does a person show a share?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap;
+         position: sticky; top: 0; background: var(--surface-2); padding: var(--sp-3) 0; z-index: 2;
+         border-bottom: 1px solid var(--grid); }
+  .bar label { color: var(--ink-2); font-size: var(--fs-sm); }
+  .bar input[type=range] { width: 220px; }
+  .bar button { font: inherit; font-size: var(--fs-sm); padding: var(--sp-1) var(--sp-3);
+                border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1);
+                color: var(--ink-1); cursor: pointer; }
+  .cand { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3); margin: 0 0 var(--sp-4); }
+  .cand p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .cand .meta { color: var(--ink-3); font-size: var(--fs-xs); margin: var(--sp-2) 0 0;
+                border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  canvas { display: block; width: 100%; height: auto; }
+  .key { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+         padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .key dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4);
+            font-size: var(--fs-sm); }
+  .key dt { color: var(--ink-1); font-weight: 600; }
+  .key dd { margin: 0; color: var(--ink-2); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>How does one person show a share?</h1>
+
+  <p class="note">
+    Widget 10's E-step gives every person a <strong>fraction</strong> of each
+    curve. The shipped build encodes that fraction as a <strong>hue</strong>,
+    ramping through grey at 0.5 — and the report on it was the one that matters:
+    <em>under hard cluster you can see the colours swapping; under share you
+    cannot tell what changed.</em> A hue that shifts a few percent per iteration
+    is not a visible event, and the E-step is half the algorithm.
+  </p>
+  <p class="note">
+    <strong>Drag the iteration slider and watch each panel.</strong> The question
+    is not which is prettiest at rest. It is which one <em>moves</em> when the
+    E-step runs, because that motion is the only thing on screen that says an
+    E-step happened at all.
+  </p>
+  <p class="note">
+    Published practice backs the split mark: Kern et al., <em>The whole and its
+    parts</em> (Visual Informatics, 2024), encode mixture-component proportions
+    with <strong>pie glyphs whose circular segments are the component
+    densities</strong>. B and C are that idea at one point and at one column.
+  </p>
+
+  <div class="bar">
+    <label>iteration <input id="it" type="range" min="0" max="40" value="0"></label>
+    <span id="itv" style="font-size:var(--fs-sm);color:var(--ink-1);font-weight:600"></span>
+    <button id="play">Play</button>
+    <button id="reset">Back to 0</button>
+    <label><input id="ord" type="checkbox"> stack each column by true group</label>
+  </div>
+
+  <div class="key">
+    <dl>
+      <dt>the data</dt><dd>the lesson's own: 100 adults N(170, 30), 100 children N(120, 15), seed 3</dd>
+      <dt>amber</dt><dd>the left curve's claim on a person</dd>
+      <dt>blue</dt><dd>the right curve's claim</dd>
+      <dt>iteration 0</dt><dd>the random guess — every share is exactly 0.5, so every mark should read as maximally undecided</dd>
+    </dl>
+  </div>
+
+  <div class="cand">
+    <h2>A · hue ramp through grey <em style="font-weight:400;color:var(--ink-3)">— what ships now</em></h2>
+    <p class="sub">Colour is <code>mix(ink3, side, |2s−1|)</code>. Hue says which curve, distance from grey says how sure.</p>
+    <canvas id="cA"></canvas>
+    <p class="meta" id="mA"></p>
+  </div>
+
+  <div class="cand">
+    <h2>B · split dot — each person is part amber, part blue</h2>
+    <p class="sub">One circle per person, filled from the bottom by its share. A person at 0.55 is visibly 55% amber. The pie glyph, as a fill level.</p>
+    <canvas id="cB"></canvas>
+    <p class="meta" id="mB"></p>
+  </div>
+
+  <div class="cand">
+    <h2>C · stacked column — the weighted counts the M-step actually consumes</h2>
+    <p class="sub">Each 5cm column is split at <code>Σ share</code>: the bottom is what the left curve is being fitted to, the top is what the right curve gets. The boundary dot is split. This is literally the M-step's input.</p>
+    <canvas id="cC"></canvas>
+    <p class="meta" id="mC"></p>
+  </div>
+
+  <div class="cand">
+    <h2>D · two overlaid dots, opacity = share</h2>
+    <p class="sub">An amber dot at alpha = s over a blue dot at alpha = 1−s. No new mark geometry; the halo goes.</p>
+    <canvas id="cD"></canvas>
+    <p class="meta" id="mD"></p>
+  </div>
+
+  <ol class="judge">
+    <li><strong>At iteration 0 every share is 0.5.</strong> Does the panel say
+      "nobody is assigned to anything yet", or does it say "no data"?</li>
+    <li><strong>Press Play and look away from the curves.</strong> Which panel
+      tells you an E-step ran without the curves moving?</li>
+    <li><strong>Is a 0.55 person distinguishable from a 0.95 one?</strong> That
+      difference is the entire misconception; if the mark cannot carry it, the
+      figure cannot make the argument.</li>
+    <li><strong>Read it from three metres.</strong> prd §3 — the lecture is the
+      governing surface, and a fill level inside a 7px circle may not survive it.</li>
+    <li><strong>Does the panel still read as a pile of people?</strong> The count
+      axis and the countable dot are what widget 10 inherited from the arc.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng, normalPdf, makePlot, niceTicks } from "../core/index.js";
+import { readTokens, resolveTheme } from "../core/env.js";
+
+resolveTheme();
+const colors = readTokens();
+
+const CHILD_MEAN = 120, CHILD_SD = 15, ADULT_MEAN = 170, ADULT_SD = 30, N_EACH = 100;
+const BIN = 5;
+
+/* --- the same data and the same EM as the widget -------------------------- */
+const rng = makeRng(3);
+const heights = [], truth = [];
+for (let i = 0; i < N_EACH; i += 1) { heights.push(rng.normal(ADULT_MEAN, ADULT_SD)); truth.push(0); }
+for (let i = 0; i < N_EACH; i += 1) { heights.push(rng.normal(CHILD_MEAN, CHILD_SD)); truth.push(1); }
+const N = heights.length;
+
+const shareOfLeft = (x, p) => {
+  const a = p.w * normalPdf(x, p.m1, p.s1);
+  const b = (1 - p.w) * normalPdf(x, p.m2, p.s2);
+  const t = a + b;
+  return t > 0 ? a / t : 0.5;
+};
+const ord = (p) => (p.m1 <= p.m2 ? p : { m1: p.m2, s1: p.s2, m2: p.m1, s2: p.s1, w: 1 - p.w });
+
+let lo = Infinity, hi = -Infinity;
+for (const x of heights) { if (x < lo) lo = x; if (x > hi) hi = x; }
+const domain = [Math.floor((lo - 6) / 10) * 10, Math.ceil((hi + 6) / 10) * 10];
+const bins = Math.ceil((domain[1] - domain[0]) / BIN);
+const scale = N * BIN;
+const span = hi - lo;
+
+const guess = ord({
+  m1: lo + span * rng.uniform(0.18, 0.42),
+  m2: lo + span * rng.uniform(0.58, 0.82),
+  s1: span / 6, s2: span / 6, w: 0.5,
+});
+
+const steps = [];
+{
+  let p = guess;
+  for (let it = 0; it < 41; it += 1) {
+    const resp = new Float64Array(N);
+    for (let i = 0; i < N; i += 1) resp[i] = shareOfLeft(heights[i], p);
+    let n1 = 0; for (let i = 0; i < N; i += 1) n1 += resp[i];
+    const n2 = N - n1;
+    let m1 = 0, m2 = 0;
+    for (let i = 0; i < N; i += 1) { m1 += resp[i] * heights[i]; m2 += (1 - resp[i]) * heights[i]; }
+    m1 /= n1; m2 /= n2;
+    let v1 = 0, v2 = 0;
+    for (let i = 0; i < N; i += 1) { v1 += resp[i] * (heights[i] - m1) ** 2; v2 += (1 - resp[i]) * (heights[i] - m2) ** 2; }
+    const q = ord({ m1, s1: Math.sqrt(v1 / n1), m2, s2: Math.sqrt(v2 / n2), w: n1 / N });
+    steps.push({ resp, p: q });
+    p = q;
+  }
+}
+
+/* --- where each person sits in the pile ---------------------------------- *
+ * TWO ORDERINGS, AND THE CHECKBOX IS THE QUESTION. Filling a column shortest
+ * first makes the level within a column arbitrary with respect to group, so the
+ * TRUE-GROUP view scatters blue through the amber columns and reads as noise —
+ * which is what the report on the shipped build said. Filling children first
+ * makes the same view a stacked histogram, which is the notebook's own ground
+ * truth figure. Neither ordering is visible under `share` or `cluster`, because
+ * a share depends on height and a column is one bin wide.                     */
+function slotsFor(byTruth) {
+  const order = heights.map((_, i) => i).sort((a, b) => {
+    const ba = Math.floor((heights[a] - domain[0]) / BIN);
+    const bb = Math.floor((heights[b] - domain[0]) / BIN);
+    if (ba !== bb) return ba - bb;
+    if (byTruth && truth[a] !== truth[b]) return truth[b] - truth[a]; // children first
+    return heights[a] - heights[b];
+  });
+  const filled = new Array(bins).fill(0);
+  const out = new Array(N);
+  for (const i of order) {
+    const b = Math.max(0, Math.min(bins - 1, Math.floor((heights[i] - domain[0]) / BIN)));
+    out[i] = { b, level: filled[b] };
+    filled[b] += 1;
+  }
+  return { out, filled };
+}
+let slots = slotsFor(false);
+
+let yMax = Math.max(...slots.filled);
+for (const q of [guess, ...steps.map((s) => s.p)]) {
+  yMax = Math.max(yMax,
+    scale * q.w * normalPdf(q.m1, q.m1, q.s1),
+    scale * (1 - q.w) * normalPdf(q.m2, q.m2, q.s2));
+}
+yMax *= 1.08;
+
+/* --- marks ---------------------------------------------------------------- */
+const H = 300, PAD_L = 58, PAD_R = 18, TOP = 16;
+
+function setup(id) {
+  const cv = document.getElementById(id);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cv.clientWidth || 820;
+  cv.width = Math.round(w * dpr); cv.height = Math.round((H + 46) * dpr);
+  cv.style.height = (H + 46) + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, H + 46);
+  return { ctx, w };
+}
+
+function frame(id, it) {
+  const { ctx, w } = setup(id);
+  const p = it === 0 ? guess : steps[it - 1].p;
+  const resp = it === 0 ? null : steps[it - 1].resp;
+  const plot = makePlot({
+    ctx, colors,
+    rect: { x: PAD_L, y: TOP, w: w - PAD_L - PAD_R, h: H - TOP },
+    xDomain: domain, yDomain: [0, yMax],
+  });
+  const ticks = niceTicks(0, yMax, 4);
+  plot.grid(ticks);
+  plot.axisY({ ticks, label: "people per 5 cm" });
+  plot.axisX({ label: "height (cm)" });
+  const share = (k) => (resp ? resp[k] : 0.5);
+  return { ctx, w, plot, p, share, plotW: w - PAD_L - PAD_R };
+}
+
+function curves(plot, p) {
+  const curveOf = (m, s, weight) => {
+    const pts = [];
+    for (let k = 0; k <= 200; k += 1) {
+      const x = domain[0] + ((domain[1] - domain[0]) * k) / 200;
+      pts.push([x, scale * weight * normalPdf(x, m, s)]);
+    }
+    return pts;
+  };
+  plot.curve(curveOf(p.m1, p.s1, p.w), { stroke: colors.groupB, width: 2.5 });
+  plot.curve(curveOf(p.m2, p.s2, 1 - p.w), { stroke: colors.groupA, width: 2.5 });
+}
+
+function mix(a, b, t) {
+  const hex = (s) => {
+    const h = s.trim().replace("#", "");
+    const f = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+    const v = parseInt(f, 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  };
+  const [r1, g1, b1] = hex(a), [r2, g2, b2] = hex(b);
+  const k = Math.max(0, Math.min(1, t));
+  const L = (u, v) => Math.round(u + (v - u) * k);
+  return `rgb(${L(r1, r2)} ${L(g1, g2)} ${L(b1, b2)})`;
+}
+
+/** Pixel geometry for one person, shared by every candidate so the four panels
+    are the same picture with a different mark. */
+function geom(w, plotW) {
+  const sx = (v) => PAD_L + ((v - domain[0]) / (domain[1] - domain[0])) * plotW;
+  const sy = (v) => TOP + (H - TOP) - (v / yMax) * (H - TOP);
+  const band = plotW / bins;
+  const pitch = (H - TOP) / yMax;
+  const r = Math.max(1.6, Math.min(5, band * 0.40, pitch * 0.40));
+  return { sx, sy, r };
+}
+
+/** A circle filled from the bottom to a fraction f — the pie glyph, as a level.
+    Cheaper than a clip per dot: the bottom cap is one arc between the two
+    points where y = the fill line crosses the circle. */
+function splitDot(ctx, cx, cy, r, f, top, bottom) {
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = top; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = colors.surface; ctx.stroke();
+  if (f <= 0.001) return;
+  if (f >= 0.999) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = bottom; ctx.fill(); return; }
+  const t = 1 - 2 * f;                       // fill line, in radii from centre
+  const a = Math.asin(Math.max(-1, Math.min(1, t)));
+  ctx.beginPath(); ctx.arc(cx, cy, r, a, Math.PI - a); ctx.closePath();
+  ctx.fillStyle = bottom; ctx.fill();
+}
+
+function drawA(it) {
+  const { ctx, w, plot, p, share, plotW } = frame("cA", it);
+  const { sx, sy, r } = geom(w, plotW);
+  for (let k = 0; k < N; k += 1) {
+    const s = share(k);
+    const fill = mix(colors.ink3, s > 0.5 ? colors.groupB : colors.groupA, Math.abs(2 * s - 1));
+    plot.dot(domain[0] + (slots.out[k].b + 0.5) * BIN, slots.out[k].level + 0.5, { fill, r });
+  }
+  curves(plot, p);
+  document.getElementById("mA").textContent =
+    "One mark, one hue. At 0.5 the mark is grey — which reads as absent as easily as it reads as undecided.";
+}
+
+function drawB(it) {
+  const { ctx, w, plot, p, share, plotW } = frame("cB", it);
+  const { sx, sy, r } = geom(w, plotW);
+  for (let k = 0; k < N; k += 1) {
+    const s = share(k);
+    splitDot(ctx, sx(domain[0] + (slots.out[k].b + 0.5) * BIN), sy(slots.out[k].level + 0.5),
+      r, s, colors.groupA, colors.groupB);
+  }
+  curves(plot, p);
+  document.getElementById("mB").textContent =
+    `Fill level = share. Radius ${r.toFixed(1)}px, so a 1% change in share moves the line by ${(2 * r / 100).toFixed(2)}px — legible as a trend across a column, not as a reading on one dot.`;
+}
+
+function drawC(it) {
+  const { ctx, w, plot, p, share, plotW } = frame("cC", it);
+  const { sx, sy, r } = geom(w, plotW);
+  // Σ share per bin: exactly the weighted count the M-step divides by.
+  const sums = new Array(bins).fill(0);
+  for (let k = 0; k < N; k += 1) sums[slots.out[k].b] += share(k);
+  for (let k = 0; k < N; k += 1) {
+    const b = slots.out[k].b, lv = slots.out[k].level;
+    const cut = sums[b];                       // amber below, blue above
+    const f = Math.max(0, Math.min(1, cut - lv));
+    splitDot(ctx, sx(domain[0] + (b + 0.5) * BIN), sy(lv + 0.5), r, f, colors.groupA, colors.groupB);
+  }
+  curves(plot, p);
+  const tot = sums.reduce((a, b) => a + b, 0);
+  document.getElementById("mC").textContent =
+    `Σ share over every bin is ${tot.toFixed(1)} of ${N} — the left curve's weighted count, and the number its new mean is an average over. One dot per column is split; the rest are whole.`;
+}
+
+function drawD(it) {
+  const { ctx, w, plot, p, share, plotW } = frame("cD", it);
+  const { sx, sy, r } = geom(w, plotW);
+  for (let k = 0; k < N; k += 1) {
+    const s = share(k);
+    const cx = sx(domain[0] + (slots.out[k].b + 0.5) * BIN), cy = sy(slots.out[k].level + 0.5);
+    ctx.globalAlpha = 1 - s;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = colors.groupA; ctx.fill();
+    ctx.globalAlpha = s;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = colors.groupB; ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  curves(plot, p);
+  document.getElementById("mD").textContent =
+    "Two dots, alpha = share. The surface halo cannot survive it, so overlapping people merge into a mass.";
+}
+
+const itEl = document.getElementById("it");
+const itv = document.getElementById("itv");
+function render() {
+  const it = +itEl.value;
+  itv.textContent = it === 0 ? "0 — the guess, every share exactly 0.5" : `${it}`;
+  drawA(it); drawB(it); drawC(it); drawD(it);
+}
+itEl.addEventListener("input", render);
+document.getElementById("ord").addEventListener("change", (e) => {
+  slots = slotsFor(e.target.checked);
+  render();
+});
+document.getElementById("reset").addEventListener("click", () => { itEl.value = 0; render(); });
+let timer = null;
+document.getElementById("play").addEventListener("click", (e) => {
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = "Play"; return; }
+  e.target.textContent = "Pause";
+  timer = setInterval(() => {
+    itEl.value = String((+itEl.value + 1) % 41);
+    render();
+    if (+itEl.value === 0) { clearInterval(timer); timer = null; e.target.textContent = "Play"; }
+  }, 380);
+});
+window.addEventListener("resize", render);
+render();
+</script>
+</body>
+</html>

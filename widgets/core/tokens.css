@@ -361,6 +361,46 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    above the heading against 12 + 4 below it. The asymmetry is what binds a
    heading to the group under it rather than floating between two. */
 
+/* The control block BELOW the drive row. Empty for every widget that declares
+   no `afterDrive` field, and an empty grid with padding would leave a stray gap
+   under the buttons — `:empty` collapses it to nothing. */
+.w-controls--after { border-top: 0; padding-top: 0; margin-top: var(--sp-4); }
+.w-controls--after:empty { display: none; margin: 0; }
+
+/* TWO RELATED NUMBERS ON ONE LINE. A population's centre and its spread are one
+   idea, and four of them stacked read as four unrelated sliders. `flex: 1 1 0`
+   with `min-width: 0` is what stops a long value pushing one field wider than
+   the other — they split the track evenly whatever they contain. */
+.w-field-row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+.w-field-row > .w-field { flex: 1 1 0; min-width: 0; }
+
+/* The caption ABOVE the row, unlike a segmented group's, which sits below: this
+   one names the thing being set and has to be read before the sliders are
+   touched, where that one classifies buttons already on screen. The swatch is
+   what ties a control block to a colour in the figure, so a reader setting a
+   population can see which one it is before any of it is drawn. */
+.w-row-cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-1);
+}
+.w-row-cap i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--swatch);
+  flex: none;
+}
+.w-row-detail { margin-top: var(--sp-1); }
+
 /* A caption under one row of a grouped segmented control. Recessive, because
    the buttons are the control and this only says what kind they are. */
 .w-seg-cap {

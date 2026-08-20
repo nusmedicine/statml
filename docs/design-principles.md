@@ -594,6 +594,88 @@ between two fields. Four signals where there was one. Keep the heading itself to
 two or three words — `The population`, `Your prior`, `The inference` — because a
 heading that needs a subordinate clause is doing the block's explaining for it.
 
+### 3.4i Two numbers that are one idea go on one line
+
+A field may declare `row: { key, label, token, detail }`. Consecutive fields
+sharing `key` render inside one flex row under a caption, and `token` puts a
+swatch of `--c-<token>` beside that caption.
+
+> *Earned:* widget 10 sets two populations, each with a centre and a spread.
+> Declared as four full-width sliders they read as four unrelated numbers, and
+> the labels — "Average child height", "Spread of child heights" — were doing
+> the grouping the layout should have done. The rail is 300px, so a paired field
+> gets 142px: enough for `average` and its value, not for a sentence. **That is
+> the point rather than the cost** — the caption carries the noun and the field
+> carries the quantity, which is shorter copy in both places.
+
+The swatch is the part worth keeping. A control block that sets a population the
+figure draws in amber should say *amber* where you set it, not leave the reader
+to infer it from the result — and widget 10 shows both groups in those two
+colours during setup, so the rail and the figure agree before anything is fitted.
+
+`detail` on the row belongs to the PAIR: widget 10's "set wider than the
+children's and the overlap is lopsided" is a fact about two spreads together and
+would be a lie under either slider alone.
+
+Declarative for the same reason `when` is: core groups before it renders.
+
+---
+
+### 3.4j The answer goes BELOW the drive row
+
+3.4e fixes the drive row as the last thing in the rail, and that stays right for
+anything you set before pressing a button. It is wrong for the one kind of
+control that only means something afterwards. A field marked `afterDrive: true`
+builds into a second control block under the buttons.
+
+> *Earned:* widget 10 withholds which people were really children. That reveal
+> was the third option of a `segmented` "colour each person by", and two things
+> were wrong with it. A reader met the **answer** in the setup block before
+> having asked a question, and reported it as confusing. And because a segmented
+> control has exactly one selection, choosing the reveal visibly **deselected**
+> the other two — so asking to see the truth looked like it had switched the fit
+> off.
+
+As its own checkbox below the buttons it composes rather than competes: the fit
+stays whatever you were reading it as, and the truth lies over the top.
+
+**A sticky reveal must still respect a reset.** `display: true` keeps a
+parameter across a data change, which is right — but widget 10's true curves
+then stayed on screen over a figure that had just been reset to nothing, which
+was reported as a bug. The widget cannot clear the parameter (1.1), so the
+*reveal* is conditioned on there being a result to lie behind: no result, no
+truth, and it returns by itself on the first step. **A revealed answer is a
+reference behind something, not a layer on its own.**
+
+---
+
+### 4.4 Opening a gate may play the stage in
+
+A gate is the one parameter change that is a reader stepping *through a door*
+rather than turning a dial, and what is behind it can be worth watching arrive.
+A widget opts in by setting `anim.entry` in `init`; core starts `advance` in
+mode `'enter'` when — and only when — the gate **opens**.
+
+> *Earned:* widget 10's sample used to appear as 200 dots at once. It falls out
+> of the two curves it was drawn from now, which is the sampling idea itself and
+> was lost in the pop.
+
+Three things this has to get right, all of them found by getting them wrong:
+
+- **Only the gate, only on open.** An ordinary data change must not trigger it,
+  or dragging a slider restarts the animation on every `input` event it fires.
+- **`'enter'` is exempt from "advanced", like `'lead'`.** `tick` sets
+  `hasAdvanced` after every advance, so without the exemption the run button
+  offers to **Resume** a stage that has only just been entered.
+- **The flag is the trigger, not the clock.** Keying the animation's progress
+  off `fromScratch` looks right and is wrong: Replay re-inits with `fromScratch`
+  true and nothing plays an entry, so the pile froze halfway out of the curves.
+  Progress starts at *finished*; `advance` consumes `entry` on its first frame
+  and resets the clock. Every other path — a shared link, a fingerprint state, a
+  Replay — leaves it finished, which is what keeps an authored state authored.
+
+---
+
 ### 3.5 Every control must carry an idea
 
 Save PNG and a bin-by-bin table are opt-in and off by default. Every extra

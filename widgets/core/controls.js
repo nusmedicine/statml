@@ -35,6 +35,33 @@ export function fieldShowing(field, values) {
   return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
 }
 
+/**
+ * TWO NUMBERS THAT ARE ONE IDEA GO ON ONE LINE.
+ *
+ *     childMean: { type: 'int', label: 'average',
+ *                  row: { key: 'child', label: 'Children', token: 'group-b',
+ *                         detail: '...' } },
+ *     childSd:   { type: 'int', label: 'spread', row: { key: 'child' } },
+ *
+ * Consecutive fields sharing `row.key` render inside one flex row, under an
+ * optional caption; `token` puts a swatch of `--c-<token>` beside that caption,
+ * which is how a control block says which colour on the figure it is setting.
+ * `label`, `token` and `detail` are read from the FIRST field of the run — the
+ * others need only the key.
+ *
+ * Earned by widget 10: a population's centre and its spread are one idea, and
+ * declaring two of them made a rail of four identical full-width sliders whose
+ * labels ("Average child height", "Spread of child heights") were doing the
+ * grouping that the layout should have done. The rail is 300px, so a paired
+ * field gets 142px — enough for "average" and its value, not for a sentence,
+ * which is the point: the caption carries the noun and the field carries the
+ * quantity. Widget 8's trueMu/trueSize and widget 9's prior pair are the same
+ * shape and can take it whenever they are next opened.
+ *
+ * DECLARATIVE, like `when`: core has to know the grouping before it renders,
+ * and a predicate would have to be re-run on every value change.
+ */
+
 /** Parameters that some other parameter's visibility depends on. */
 export function gatingParams(spec) {
   const names = new Set();
@@ -86,6 +113,12 @@ function build(host, spec, values, onChange, api) {
   host.innerHTML = "";
   const setters = {};
 
+  /* The run of fields currently sharing a row, and the box they go in. Reset by
+     anything that is not a plain field, so a row cannot straddle a divider. */
+  let rowKey = null;
+  let rowBox = null;
+  const endRow = () => { rowKey = null; rowBox = null; };
+
   for (const cell of toCells(spec, values)) {
     /* A LABELLED DIVIDER, and it carries no value. Widget 9 sets four numbers
        describing a population it is pretending not to know, and three more
@@ -94,6 +127,7 @@ function build(host, spec, values, onChange, api) {
        "these are the truth, those are your prior" structural instead of a
        sentence somebody has to read. */
     if (cell.kind === "section") {
+      endRow();
       const [, field] = cell.entry;
       const h = document.createElement("p");
       h.className = "w-section";
@@ -103,6 +137,7 @@ function build(host, spec, values, onChange, api) {
     }
 
     if (cell.kind === "bools") {
+      endRow();
       const group = document.createElement("div");
       group.className = "w-field w-bools";
       for (const [name, field] of cell.fields) {
@@ -123,6 +158,7 @@ function build(host, spec, values, onChange, api) {
     }
 
     if (cell.kind === "gate") {
+      endRow();
       /* A BUTTON INSIDE THE CONTROL FLOW, not in the drive row, and the position
          is the point: it sits exactly where the stage it opens begins, with the
          controls it reveals directly beneath it. Putting it in the drive row
@@ -160,6 +196,38 @@ function build(host, spec, values, onChange, api) {
     }
 
     const [name, field] = cell.entry;
+
+    /* Open a row box when this field starts a new run, close it when the key
+       changes. A field with no `row` closes any run and goes straight to host,
+       which is every existing widget and is why nothing of theirs moves. */
+    const row = typeof field.row === "string" ? { key: field.row } : field.row;
+    if (!row) {
+      endRow();
+    } else if (row.key !== rowKey) {
+      rowKey = row.key;
+      if (row.label) {
+        const cap = document.createElement("p");
+        cap.className = "w-row-cap";
+        if (row.token) {
+          const dot = document.createElement("i");
+          dot.style.setProperty("--swatch", `var(--c-${row.token}, var(--${row.token}))`);
+          cap.appendChild(dot);
+        }
+        cap.appendChild(document.createTextNode(row.label));
+        host.appendChild(cap);
+      }
+      rowBox = document.createElement("div");
+      rowBox.className = "w-field-row";
+      host.appendChild(rowBox);
+      if (row.detail) {
+        const d = document.createElement("p");
+        d.className = "w-detail w-row-detail";
+        d.textContent = row.detail;
+        host.appendChild(d);
+      }
+    }
+    const target = rowBox ?? host;
+
     const wrap = document.createElement("div");
     wrap.className = "w-field";
 
@@ -337,7 +405,7 @@ function build(host, spec, values, onChange, api) {
     }
     // `bool` never reaches here — checkboxes are grouped by toCells() above.
 
-    host.appendChild(wrap);
+    target.appendChild(wrap);
   }
 
   api.sync = (name, value) => { setters[name]?.(value); };

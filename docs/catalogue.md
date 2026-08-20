@@ -362,7 +362,7 @@ Inferring Parameters`, and they are **one argument rather than three topics**:
 |---|---|---|---|
 | 8 | `maximum-likelihood` 🟢 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
 | 9 | `bayesian` 🟢 | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
-| 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
+| 10 | `em-mixture` 🟢 | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
 
 **The pairing of #8 and #9 is the point of the arc.** MLE answers `P(Data|θ)` and
 Bayes answers `P(θ|Data)`; the lesson states both in exactly that form, two
@@ -990,13 +990,233 @@ which depends on `r` alone) — without which the prior sliders would not be liv
 versions of one formula, deliberately, because they are optimising different
 things — the exception that 5.8 does not cover, and it is written down in both.
 
-### Still queued: #10, and it is not certain
+### Widget 10 · `em-mixture` — shipped
 
-`em-mixture` — the notebook's third section, two normals over height data
-(adults 170 ± 30, children 120 ± 15) fitted with `flexmix`. Candidate
-misconceptions: that EM finds *the* answer rather than a local optimum that
-depends on its initialisation, and that a hard assignment and a soft
-responsibility are the same thing. Neither has been through the rule above.
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 10 | `em-mixture` 🟢 | EM on a two-component mixture | *What if each point came from one of two populations and nobody recorded which?* | That a hard cluster assignment and a soft responsibility are the same thing. EM never assigns a point to a component, it assigns a **fraction**; `clusters(em_result)` is an argmax taken afterwards, and the lesson's final figure paints a point whose share was 0.55 one confident colour | **inferred**, and the lesson's own output is what invites it |
+
+**The sentence the widget exists to say: EM gets the populations right and the
+individuals wrong.** Both halves are true at once on the lesson's own data, and
+the two readout tiles are named for them. Averaged over 200 datasets from
+`adults ~ N(170, 30)`, `children ~ N(120, 15)`, 100 each:
+
+| | |
+|---|---|
+| fitted components | 120.8 ± 14.7 and 172.1 ± 28.5 — right |
+| hard labels disagreeing with the true group | 27.9 of 200 (13.9%) — wrong |
+| shares between .2 and .8 | 43.2 of 200 |
+
+#### The other candidate misconception was measured, and dropped
+
+"EM finds a local optimum that depends on where it started" is the standard
+warning and it is **false on this data often enough to mislead**:
+
+| start | outcome |
+|---|---|
+| 500 random parameter starts | 499 → the same optimum; 1 → a degenerate spike on the tail |
+| 500 random-**responsibility** starts — what `flexmix`'s `set.seed(123)` actually seeds | **500 → the same optimum** |
+| both curves at the grand mean · both narrow on the children · one on each tail · min/max | the same optimum, every time |
+
+Every one lands on `logL = −966.89`. Showing a local optimum would mean rigging
+either the data or the start, and a figure that does so claims a pathology is
+routine when it is 0.2%. **It was dropped on honesty, not on the cost of a
+second figure** — which is the stronger reason and settles it permanently.
+
+#### The separation slider carries the argument across its whole range
+
+Sixty datasets per stop, children fixed at 120 ± 15:
+
+| adult mean | fitted components | hard labels wrong |
+|---|---|---|
+| 220 | 120.5 ± 14.8 / 220.5 ± 29.8 | 2.8 of 200 (1.4%) |
+| **170** (the lesson) | 120.8 ± 14.7 / 172.1 ± 28.5 | **27.9 of 200 (13.9%)** |
+| 140 | 121.0 ± 15.0 / **145.6** ± 28.8 | 63.8 of 200 (31.9%) |
+
+Three regimes on one control — populations right and individuals right;
+populations right and individuals wrong; and, at 140, the components merge and
+the populations go wrong too, which is 2.6's failing case. Together they say the
+mislabelled individuals are a property of the **overlap** and not a failure of
+the algorithm: at a gap of 100 the method is no better, the data simply is.
+
+#### All four parameters, because `parameters()` returns four
+
+Cell 32 names its rows `mean` and `sd` and its columns 1 and 2. The first build
+had two sliders and reported two means; it now has four and reports
+`121 ± 17 and 169 ± 23 cm` against `the children are 120 ± 15, the adults
+170 ± 30`. The spread ranges are 5–40 for both, safe across the whole square:
+over 1,040 runs covering every corner, the axis never had to stretch past
+**1.28×** the pile's own height (1.9× being the point at which the figure looks
+broken). The ratio is scale-invariant — halve a true spread and the pile narrows
+by exactly as much as the curve sharpens.
+
+**The spread is 3–12× harder to recover than the mean**, at every setting tried,
+150 seeds each:
+
+| setting | child mean | child sd | adult mean | adult sd |
+|---|---|---|---|---|
+| the notebook, 120±15 / 170±30 | 2.0% | **11.7%** | 4.1% | **13.1%** |
+| far apart, 100±15 / 220±30 | 1.2% | **6.4%** | 1.2% | **6.4%** |
+| merged, 140±15 / 150±30 | 1.7% | **20.8%** | 6.3% | **16.2%** |
+| equal spreads, 120±20 / 170±20 | 4.2% | **12.9%** | 3.0% | **14.2%** |
+
+That is widget 8's finding in a second model — there, at n = 60, the mean is
+pinned to a factor of 1.2 and the size only to 2.6. Not printed on the canvas:
+the tile carries all four numbers against all four true ones, and naming it
+would be a third idea in a figure already carrying two.
+
+**The spreads also open a regime the means cannot.** At 40/40 the two groups
+overlap heavily while their means stay 50 cm apart — 51 of 200 mislabelled and
+125 ambiguous — so overlap is reachable by widening as well as by closing in.
+
+#### Three stages, and the gate is the boundary
+
+> populations → **draw a sample** → inference
+
+**Populations.** Four sliders and two curves, in the two group colours, with a
+coloured swatch beside each pair in the rail so the control block and the figure
+agree before anything is fitted. No data on screen: none has been drawn.
+
+**The sample.** A `gate` — a full-width button in the control flow that hides the
+whole drive row until pressed (3.4b, already built). The people fall out of those
+curves grey and unlabelled, **and the true curves go with the labels**: both are
+the truth, and a figure that keeps one while withholding the other has given the
+premise away before it starts.
+
+**Inference.** Start, Iterate, Play, Reset — plus how to read it.
+
+Four beats, one visible change each. **Draw a sample** puts people on screen,
+**Start** puts curves on screen, **Iterate** is the first thing that colours
+anybody. People stay grey until the first E-step, because until then there are no
+responsibilities and so nothing for the mark to be a fraction of.
+
+The gate is deliberately **not** `display: true`, unlike widget 7's. There it
+opens an overlay on a finished figure, so leaving must not destroy the work. Here
+it is a stage boundary: going back to the populations and returning should start
+the inference over rather than resume a converged fit the reader stepped away
+from. Core sends a non-display gate down the data path, which resets that much.
+
+The caption names what is actually drawn at each stage. It read "Two curves, and
+the people they are claiming" throughout, which is false at both ends — no people
+before the sample, no curves between the sample and Start. **A caption naming a
+mark the frame does not contain is the same defect as a claim that is false on
+the first press.**
+
+#### The hard label is the default, and the setup shows the truth
+
+Two reorderings, both from the same report — that `share` is the harder of the
+two to explain when it comes first.
+
+**`hard cluster` is now the default reading.** A misconception is dislodged by
+being *met*, not pre-empted: the reader arrives expecting each person to be in a
+group, gets exactly that, and finds the share underneath it. The other way round,
+`share` has to be explained before anything has asked a question.
+
+**The setup shows both groups in their own colours, and Start takes them away.**
+Before the lead the colour control is overridden and the pile is painted by true
+group — those are not EM's guess about anything, they are the two populations the
+reader just set, and painting them `hard cluster` would report a fit that does not
+exist. That is cells 25 and 27 with the transition between them drawn, and it
+gives the lead something real to do: the labels going away **is** the premise, so
+a button that removes them earns being pressed once and greying out. The old
+"guess two curves" never did, and the handover said so at the time.
+
+The dissolve needs no colour interpolation, because the mark already carries a
+fraction: a child at 1 and an adult at 0 both travel to 0.5, which lands exactly
+on the state the first E-step starts from. An earlier attempt faded each dot
+toward `--ink-3` and read as the data being deleted rather than relabelled.
+
+#### How a person shows a share — settled in `_lab/soft-share.html`
+
+The first build encoded the share as a **hue**, ramping through `--ink-3` at
+0.5. It was reported unreadable in the precise way that matters: *under hard
+cluster you can see the colours swapping; under share you cannot tell what
+changed.* Two failures, both fatal to a figure whose subject is the E-step — a
+hue that shifts a few percent per iteration is not a visible **event**, and grey
+in a figure whose other colours are named reads as *no data* rather than *no
+group*. At the guess, where every share is exactly 0.5, the whole pile went grey
+and looked broken.
+
+It is a **split mark** now: one circle per person, filled from the bottom by its
+share, so a person at 0.55 is drawn 55% amber. At the guess that is 200 visibly
+half-and-half people, and every E-step is fill levels sliding. Published practice
+agrees on the mark and not the geometry — Kern et al., *The whole and its parts*
+(Visual Informatics, 2024), encode mixture proportions as **pie glyphs whose
+circular segments are the component densities**; a fill level is the same glyph
+read as a level, which is easier to compare across neighbours than an angle.
+
+**The candidate worth recording as rejected** is splitting each *column* at its
+weighted count `Σ share` — appealing because it is literally the M-step's input,
+and wrong because it paints the bottom 7 of 12 people fully amber and the top 5
+fully blue. That is a hard assignment wearing a soft costume, in the widget built
+to separate the two. The mock-up is what caught it.
+
+#### The pile stacks children first, and that is a fix
+
+Filled by height, a person's level within a column is arbitrary with respect to
+group. Invisible under `share` and `hard cluster` — a share depends on height, so
+a 5cm column is one flat colour whatever the order — but under `true group` it
+scattered blue through the amber columns and read as noise. Ordering by the true
+group makes that view a stacked histogram, which is the notebook's own cell 25,
+and the blue caps on the short columns become the mislabelled people, countable.
+Not a spoiler: the ordering is fixed for the whole run and cannot be seen until
+the truth is asked for, and nothing moves when the colouring is toggled — which
+is what makes the three views the same 200 people read three ways.
+
+#### What did NOT transfer from #8, though the plan assumed it would
+
+The plan said the M-step panel could be widget 8's figure, on the strength of
+the lesson's own `(e.g. using MLE)`. The statement is true and **the figure does
+not transfer**: widget 8's is a *search* — 41 candidates, one dot per press, a
+curve you climb — and the Gaussian M-step is closed form, a weighted mean and a
+weighted sd. Drawing a climb over arithmetic would make the arc's payoff a lie
+about what the M-step does. What transfers is the verb, not the panel.
+
+#### Why the `n` slider stops at 40
+
+A two-component Gaussian mixture has an unbounded likelihood: a component can
+shrink onto a few near-identical points and drive its own sd towards zero. Over
+210 (adult mean, seed) combinations per setting — 6/210 collapse below sd 6 at
+n = 20, 1/210 at n = 40, 0/210 at n = 100. That spike is a **second** lesson,
+about mixture likelihoods rather than about responsibilities, and the figure has
+nothing to say about it. It is not floored in the M-step, because a variance
+floor is a modelling choice and inventing one silently would misrepresent EM;
+the slider's floor makes it rare instead of hiding it.
+
+The same sweep killed a line of on-screen copy. The `share` option's detail read
+*"never 0 or 1"* — true of the model, false of a double: some share rounds to
+exactly 0 or 1 in 2/210 runs at n = 100 and 22/210 at n = 20. **A claim that
+holds at the default and not at the ends is not a claim.**
+
+## Next: a widget for `02-01 — Probability Distributions`
+
+**Undecided, and the next session opens with the argument rather than a build.**
+The lesson is 74 cells: a review of probability that reaches `P(A|B)` and Bayes
+on a contingency table (4–28); discrete PMF against continuous PDF (29–37); five
+distributions (38–59); and the `d`/`p`/`q`/`r` family as a table of every
+distribution against every prefix, with four separate diagrams (60–72).
+
+**Candidate A · `dpqr`.** Four readings of one distribution, in one figure.
+Its misconception is sitting between two of the notebook's own cells: cell 32
+says the probability of any single continuous value is **0**, and cell 68 runs
+`dnorm(160, mean = 160, sd = 10)` and prints `0.0399` — a **density**, which
+looks exactly like a probability and on a narrow enough distribution exceeds 1.
+Check that a density above 1 is reachable on the lesson's own distributions
+before betting on it; that number is the cleanest proof and the figure is weaker
+without it.
+
+**Candidate B · `ppv-prevalence`, whose parking reason has expired.** It is
+listed below as the highest-evidence item in this catalogue, deferred for one
+stated reason — *"it sits outside the resampling arc"*. Cells 4–28 are `P(A|B)`,
+`P(B|A)` and Bayes. It now has a host, which was the standing condition for
+un-parking it, and it is half of the `imbalance-metrics` pair that would carry a
+PHM5005 widget with it.
+
+The tension is real and worth stating: **A serves this lesson's largest section
+and nothing else; B serves a documented clinical error, a second course, and a
+section at the front of this notebook.** A is cheap — the arc has built every
+primitive it needs. B needs a natural-frequency grid, a mark this collection
+does not have.
 
 ## Deferred from PHM5003
 

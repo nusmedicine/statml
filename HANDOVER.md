@@ -2,124 +2,126 @@
 
 ## Where things are — read this first
 
-**Nothing from the last three sessions is deployed.** `main` and `origin/main`
-are both at `5cb11eb`, so the live site still shows **seven** widgets. Widgets 8
-and 9 exist only on branches:
+**Ten widgets, all deployed.** `main` and `origin/main` are level and every push
+to `main` publishes immediately, with no staging step — which is what makes
+`npm run check` before committing load-bearing rather than tidy.
 
-```
-main                        5cb11eb   ← what the world sees
-widget-8-maximum-likelihood 031f85c   ← +2 commits
-widget-9-posterior          HEAD      ← +10 more, branched off widget 8
-```
+`power-and-error` is still the only `draft` in the manifest.
 
-`widget-9-posterior` therefore carries **both** widgets. Merging it publishes
-both at once, and every push to `main` publishes immediately with no staging
-step. **That was deliberate: widget 9 is still under review.** Do not merge
-unless asked.
+## What widget 10 is, in one paragraph
 
-Widget 9 passes everything — `npm run check` clean, fingerprint **57/57 MATCH**,
-10 baselined states (six settled, four driven). It is finished in the sense that
-it works and is verified, and unfinished in the sense that each of the last four
-review rounds found something and the next one probably will too.
+`em-mixture`, "Expectation–Maximization", on the lesson's own two-population
+height data. **Three stages.** You set two populations with four sliders under
+their own colour swatches and see them as two curves — no data yet. **Draw a
+sample** and 200 people fall out of those curves and land grey and unlabelled,
+the curves fading as they go: the labels and the true curves leave together,
+because both are the truth. Then **Start** guesses two curves at random, and
+**Iterate** runs one E-step and one M-step per press — the dots recolour, then
+the curves move, and nothing else moves during either. Every person is drawn as
+one circle **filled from the bottom by its share**, so a 0.55 person is 55%
+amber; `hard cluster` rounds that off at 0.5 and is the default, because a
+misconception is dislodged by being met rather than pre-empted. A checkbox below
+the drive row shows who they really were. At the lesson's own settings it
+reports **121 ± 17 and 169 ± 23 cm** against a true 120 ± 15 and 170 ± 30, and
+**27 of 200 in the wrong group**. That pair is the whole widget: **EM gets the
+populations right and the individuals wrong.**
 
-## What widget 9 is, in one paragraph
+## The next job — a widget for `02-01 — Probability Distributions`
 
-`bayesian`, "Bayesian Estimation", on the lesson's own `rnbinom(size = 2.5,
-mu = 10)`. A lead deals the whole sample at once — solid dots for observed,
-hollow rings for still to come — and Step works through it, one count per press.
-Three panels multiply: likelihood **×** prior **=** posterior, each printing its
-own area, which is the whole argument. The likelihood's is `5 × 10⁻¹³` and
-nothing holds it there; the prior's is 1; the posterior's is 1 *after dividing
-by `P(counts)`*. A `size` tab does the same for the dispersion, a `Both` tab
-shows the joint posterior with both marginals standing on its edges, and an
-`MCMC` tab walks a Metropolis chain over that same posterior — with two bars
-showing that `P(counts)` **cancels out of the acceptance ratio**, which is why
-the chain never has to compute it, and histograms of the draws filling in under
-the exact marginals it is recovering.
+**Nothing is decided. The next session starts with a discussion, not a build.**
+The lesson is [`02-01 — Inferential Statistics: Probability
+Distributions`](https://notebook.phm.nusmed.space/phm5003/tutor004/lab/tree/notebooks/03%20-%20Introduction%20to%20Statistical%20Computing%20Part%201/02-01%20-%20Inferential%20Statistics%20-%20Probability%20Distributions.ipynb),
+74 cells, and a local copy sits beside this repo at
+`../jupyterbook/phm5003/notebook/03 - Introduction to Statistical Computing Part 1/`.
 
-## The next job — widget 10, `em-mixture`
+### What the lesson actually contains
 
-Widgets 8 and 9 are **merged and deployed**. The arc's next slot is EM, and it is
-in the SAME notebook that hosted both of them: `02-02 — Inferential Statistics:
-Inferring Parameters`, cells 22–36, under "Mixed distributions". So the host is
-already established and the "does it have a home?" question is settled before
-the design starts — which is not true of anything else in the queue.
-
-`power-and-error` is still the only `draft` in the manifest and still has no
-fingerprint states.
-
-### What the lesson actually teaches, verbatim
-
-The data is **heights, two groups**, and the notebook simulates it itself:
-
-```r
-adult_mean <- 170;  adult_sd <- 30      # rnorm(100, ...)
-children_mean <- 120;  children_sd <- 15
-height_data <- tibble(height = c(adults, children),
-                      group = factor(rep(1:2, each = 100, length = 200)))
-```
-
-200 points, an even 100/100 split — so the true mixing weight is exactly 0.5 and
-does not have to be estimated to make the figure work. The two components
-**overlap heavily**: the means are 50 apart against an adult SD of 30, so 1.7 SD
-in the wider component's units. That overlap is the widget's subject, not a
-nuisance — it is where a responsibility is near 0.5 and a hard label is a lie.
-
-Its EM is `flexmix(height ~ 1, data = height_data, k = 2)` with `set.seed(123)`,
-and the lesson pulls two things out of the fit: `parameters()` for the mean and
-sd of each component, and `clusters()` for a hard assignment per point.
-
-**The lesson's own words for the algorithm** — worth matching, because a student
-arrives having read exactly this:
-
-> - Start with an initial guess for the parameters. **This could be random**
-> - **E-Step** — "Based on the current estimate of the parameters, we calculate
->   the probability of each data point belonging to each distribution. This is
->   like making an educated guess about where each data point belongs based on
->   what we currently know"
-> - **M-Step** — "Using the probabilities calculated in the E-step, we update the
->   parameters of the distributions to maximize the likelihood of the data given
->   these new parameters **(e.g. using MLE)**"
-> - **Iterate** between the E-step and M-step until convergence
-
-### Three things in that text the widget should be built on
-
-1. **"(e.g. using MLE)" is the hinge, and #8 already built it.** The M-step is
-   maximum likelihood on weighted data — the same verb widget 8 spends a whole
-   figure on. The catalogue already says *"#10 contains #8"*; the lesson says it
-   too, in a parenthesis a student will read straight past. **Widget 10 has a
-   free move here**: the M-step panel can be widget 8's figure, which is the arc
-   paying off rather than a new idea.
-
-2. **The lesson shows the same data twice, and that IS the concept.** Cell 25
-   plots it coloured by true group; cell 27 plots it grey and says *"if we just
-   have data without any labels, all we can see is a bimodal distribution"*. That
-   pair of plots is the widget's opening: **the labels exist and are withheld**.
-   Principle 2.1 (widgets start empty) and this happen to want the same thing —
-   grey first, colours only as the algorithm earns them.
-
-3. **`clusters()` hands back a hard label, and that is a trap the lesson does not
-   flag.** EM never assigns a point to a component; it assigns a probability, and
-   `clusters()` is a post-hoc argmax. In the overlap a point sits at 0.55/0.45
-   and gets painted one solid colour. **The candidate misconception is right
-   there**: a hard assignment and a soft responsibility are not the same thing,
-   and the notebook's final figure shows only the hard one.
-
-### The open question, and it is a real one
-
-Neither candidate misconception has been through the rule at the top of
-[docs/catalogue.md](docs/catalogue.md). The two on the table are:
-
-| candidate | status |
+| cells | section |
 |---|---|
-| a hard assignment is not a soft responsibility | favoured — the lesson's own output invites it, and the overlap region makes it visible without a caption |
-| EM finds *the* answer, not a local optimum that depends on its start | real, but needs a second run from a different start to show, which is a second figure's worth of machinery |
+| 2–28 | **review of probability** — sample space, `P(A)`, `P(A and B)`, `P(A or B)`, **`P(A|B)`**, and **Bayes' theorem written out**. A `create_contingency_table` helper runs the whole thing twice, once for independent events and once for dependent |
+| 29–37 | **random variables** — discrete PMF vs continuous PDF, including the sentence *"the probability of X taking **any single value is 0**"* |
+| 38–59 | **five distributions** — binomial, Poisson, negative binomial, hypergeometric, normal. Each gets an `r*` simulation, a histogram, and one `d*` evaluation |
+| 60–72 | **the `d` / `p` / `q` / `r` family**, as a table of every distribution × every prefix, and **four separate diagrams** for what the four prefixes mean |
 
-**`ppv-prevalence` remains the highest-evidence deferred item in the whole
-catalogue** and is still a live argument for un-parking it instead. What has
-changed is that #10's host is now confirmed and its M-step is already built, so
-the cost of #10 dropped. That is a reason to prefer it, not a reason the
-misconception question is answered.
+### Two candidates, and they are very different bets
+
+**1 · `dpqr` — the four functions as four readings of one curve.**
+
+The notebook draws `d`, `p`, `q` and `r` as *four separate pictures*. They are
+four readings of one distribution, and a student meeting `dbinom` / `pbinom` /
+`qbinom` / `rbinom` has to hold all four at once. One figure where moving `x`
+shows the height at `x`, the area up to `x`, and the inverse question `q` asks,
+with `r` dropping draws out of it, is the notebook's own summary table made into
+a figure.
+
+**Its misconception is sitting in the notebook's own code.** Cell 32 says the
+probability of any single continuous value is **0**. Cell 68 then runs
+`dnorm(160, mean = 160, sd = 10)` and prints `0.0399`, which looks exactly like
+a probability and is not one — it is a **density**, and on a narrow enough
+distribution it exceeds 1. The gap between those two cells is the widget.
+**Verify that `d` can be driven above 1 on a slider before promising it**, since
+that single number is the cleanest possible proof and it needs a distribution
+the lesson actually uses.
+
+**2 · `ppv-prevalence`, which this lesson finally gives a host.**
+
+[docs/catalogue.md](docs/catalogue.md) calls this **the highest-evidence item in
+the whole catalogue** — physicians report sensitivity *as* PPV, and most put
+`P(disease | positive)` at 70–80% when it is far lower — and parked it for one
+reason only: *"it sits outside the resampling arc"*. Cells 4–28 are `P(A|B)`,
+`P(B|A)` and Bayes on a contingency table. **That reason has expired.** The
+standing argument for un-parking it was a confirmed host, and this is one.
+
+It is also half of a pair the catalogue already wants: `ppv-prevalence` and
+`imbalance-metrics` are the same misconception twice — base-rate neglect as a
+clinical reasoning error and as a model evaluation error, one natural-frequency
+grid labelled *patients* and one labelled *predictions*. Building it here would
+put a PHM5005 widget within reach for free.
+
+### How to choose, and what to check first
+
+The catalogue's rule is that **a widget is earned from a misconception**, and
+both candidates name one. So the question is not which is legitimate, it is
+which the course needs — and there is a real tension:
+
+- `dpqr` serves *this* lesson's largest section and nothing else. `ppv-prevalence`
+  serves a documented clinical error, a second course, and a lesson section that
+  happens to sit at the front of this notebook.
+- `dpqr` is cheap: one distribution, one axis, four readings, and the arc has
+  already built every primitive it needs. `ppv-prevalence` needs a
+  natural-frequency grid, which is a mark this collection does not have.
+
+**Do not decide before measuring one thing.** `dpqr`'s whole argument rests on a
+density exceeding 1 being reachable and legible; check it on the lesson's own
+distributions first. If it is not reachable, the misconception has to be carried
+by the area-versus-height comparison alone, which is a weaker figure and changes
+the bet.
+
+## What this session did — widget 10, and three core additions
+
+Widget 10 went through **six** rounds of review and changed shape in four of
+them. What survives is worth knowing, because most of it was not the first idea.
+
+| round | what changed, and why |
+|---|---|
+| the misconception | "EM finds a local optimum" was **measured and dropped** — 1,000+ starts across four schemes all land on the same answer. The surviving one is hard-label-vs-soft-share |
+| the figure | two panels became **one**, because the second was a share-versus-height S-curve, a shape the lesson never draws |
+| the mark | a hue ramp became a **split dot** — the report was "under hard cluster I can see the colours swapping; under share I can't tell what changed" |
+| the sliders | one mean became **four parameters**, because `parameters()` returns four |
+| the flow | one stage became **three**, with a gate between populations and inference |
+| the order | `hard cluster` became the default, and the truth reveal moved **below** the drive row |
+
+### Three things went into core, all additive
+
+| what | why |
+|---|---|
+| `row: { key, label, token, detail }` on a field — 3.4i | four full-width sliders read as four unrelated numbers. Paired under a coloured caption they read as two populations, and the swatch ties the control block to the figure's colours |
+| `afterDrive: true` — 3.4j | the withheld answer must not be met in the setup block. A second control container renders below the drive row |
+| `anim.entry` → mode `'enter'` — 4.4 | opening a gate can play the stage in. Widget 10's sample falls out of the curves that made it |
+
+**All three were proved additive the only way that counts: 57/57 pre-existing
+states MATCH, three separate times.** That is the whole argument for touching
+core three times in one session, and it is why the suite is not optional.
 
 ## What the last session did
 
@@ -519,4 +521,5 @@ hidden iframes behind that need clearing before the next attempt.
 | `likelihood.html` | counts vs a normal for the mechanism — counts won, because their heights add to an exact `1.000` |
 | `two-then-both.html` | layouts for a surface with two marginals. Records a design cut from widget 8; its finding that two upright curves side by side make the worse-determined parameter look better determined is why widget 9's marginals sit on the plane's edges |
 | `plain-language.html` | how much technical detail a biology MSc needs. Widget 8's readout is variant C, and widget 9's two-tiles-per-tab follows it |
+| `soft-share.html` | **how one person shows a share.** Settled the split mark — a circle filled from the bottom by its responsibility — against a hue ramp through grey, against opacity pairs, and against splitting each column at its weighted count. Records why the last of those is dangerous rather than merely worse |
 | `mcmc-panel.html` | **what the MCMC tab should show.** Settled B — the walk plus the ratio bars — and hollow rings for pending counts. Also records what was cut: the histogram of draws, because at forty draws it reads as the sampler failing. Later reinstated on the plane's edges, where the exact curve sits over it and the reading becomes "not enough draws yet" |

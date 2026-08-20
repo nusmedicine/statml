@@ -478,6 +478,66 @@
         "dt": 32
       },
       "px": "f260c2d8"
+    },
+    {
+      "$note": "The lesson's own data, converged, shares NOT rounded off — every mark a fraction.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=resp&shown=160",
+      "px": "f55ff248"
+    },
+    {
+      "$note": "The same fit rounded off at 0.5 — the default reading, and the one to dislodge.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=cluster&shown=160",
+      "px": "fadc8aa7"
+    },
+    {
+      "$note": "The withheld labels, stacked children-first, so each column is a true mix.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&truth=1&shown=160",
+      "px": "cfdbf9e5"
+    },
+    {
+      "$note": "The failing case: means 10cm apart, the components merge and the populations go wrong too.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=140&adultMean=150&n=100&seed=3&truth=1&shown=160",
+      "px": "47e5fdb9"
+    },
+    {
+      "$note": "DRIVEN: first iteration, mid E-step — fill levels moving off half and half.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3",
+      "drive": {
+        "lead": true,
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "a9aa08fd"
+    },
+    {
+      "$note": "DRIVEN: Play under way, curves sliding through an M-step.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&speed=slow",
+      "drive": {
+        "lead": true,
+        "click": "run",
+        "frames": 34,
+        "dt": 32
+      },
+      "px": "8549bbbf"
+    },
+    {
+      "$note": "Both spreads at 40: overlap made by widening rather than by closing in.",
+      "slug": "em-mixture",
+      "state": "?theme=light&sampled=1&childMean=120&childSd=40&adultMean=170&adultSd=40&n=100&seed=3&truth=1&shown=160",
+      "px": "d2a29672"
+    },
+    {
+      "$note": "The populations stage: two curves, no sample drawn, no drive row.",
+      "slug": "em-mixture",
+      "state": "?theme=light&childMean=120&adultMean=170&n=100&seed=3&shown=0",
+      "px": "b4204497"
     }
   ]
 }

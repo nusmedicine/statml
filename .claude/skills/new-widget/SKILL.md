@@ -280,8 +280,11 @@ programmatic read, trust the read.
 
 ## Shipping checklist
 
-1. Entry in `widgets/manifest.json`: `slug` `title` `blurb` `course` `arc` `height`
-   `status: "shipped"`. The manifest is the **only** place a height lives
+1. Entry in `widgets/manifest.json`: `slug` `title` `blurb` `course` `topics`
+   `arc` `status: "shipped"`. **No `height`** — the manifest carried one until it
+   drifted silently with nothing reading it, and the field was deleted. A
+   widget's height lives in `defineWidget` and nowhere else; adding a copy back
+   needs a reader for it first
 2. States in `widgets/_lab/fingerprint-baseline.json`: two or three **settled**
    (`shown=`, nothing in flight) **plus at least one driven** (`drive: { click,
    frames, dt }`) if the widget animates. `npm run check` fails a widget that

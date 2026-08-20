@@ -374,10 +374,43 @@ export function defineWidget(config) {
     // half-built picture of the old ones would be a lie. Start empty.
     stopAnim();
     render();
+
+    /* OPENING A GATE MAY PLAY THE STAGE IN. A gate is the one parameter change
+       that is a reader stepping THROUGH a door rather than turning a dial, and
+       what is behind it can be worth watching arrive: widget 10's sample falls
+       out of the two curves it was drawn from, which is the sampling idea
+       itself and is lost if 200 dots simply appear.
+
+       Narrow on purpose. Only the gate does this, and only when it OPENS — an
+       ordinary data change must not, or dragging a slider would restart the
+       animation on every `input` event it fires. The widget opts in by setting
+       `anim.entry` in `init`; without it nothing happens, which is every widget
+       but one. */
+    if (name === GATE_PARAM && values[name] && anim?.entry) startAnim("enter");
     updateAnimButtons();
   }
 
-  const controls = buildControls(dom.controls, spec, values, setParam);
+  /* THE SPEC SPLITS IN TWO, and the split is purely about position: fields
+     marked `afterDrive` build into the block below the drive row, everything
+     else into the block above it. Both halves keep the declaration ORDER of the
+     original spec, so `section`, `when` and `row` behave in each exactly as they
+     do in one block. Two `buildControls` calls, one merged api, so nothing
+     downstream has to know there are two. */
+  const specMain = {};
+  const specAfter = {};
+  for (const [name, field] of Object.entries(spec)) {
+    (field.afterDrive ? specAfter : specMain)[name] = field;
+  }
+  const hasAfter = Object.keys(specAfter).length > 0;
+  const controlsMain = buildControls(dom.controls, specMain, values, setParam);
+  const controlsAfter = hasAfter
+    ? buildControls(dom.controlsAfter, specAfter, values, setParam)
+    : null;
+  const controls = {
+    sync: (name, value) => { controlsMain.sync(name, value); controlsAfter?.sync(name, value); },
+    syncAll: (next) => { controlsMain.syncAll(next); controlsAfter?.syncAll(next); },
+    rebuild: (next) => { controlsMain.rebuild(next); controlsAfter?.rebuild(next); },
+  };
 
   /* --- animation -------------------------------------------------------- */
 
@@ -490,9 +523,13 @@ export function defineWidget(config) {
     const leadPending = Boolean(animation.leadLabel) && !anim?.leadDone;
 
     if (actions.run) {
-      // Running the lead action is not "advancing" in the sense Resume means —
-      // drawing your sample leaves nothing part-played to resume from.
-      const advanced = (anim?.hasAdvanced ?? hasAdvanced) && anim?.mode !== "lead";
+      /* Running the lead action is not "advancing" in the sense Resume means —
+         drawing your sample leaves nothing part-played to resume from. An entry
+         animation is the same kind of thing and needs the same exemption:
+         `tick` sets hasAdvanced after EVERY advance, so without this the run
+         button offers to Resume a stage that has only just been entered. */
+      const advanced = (anim?.hasAdvanced ?? hasAdvanced)
+        && anim?.mode !== "lead" && anim?.mode !== "enter";
       actions.run.textContent = playing
         ? "Pause"
         : done
@@ -818,6 +855,21 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   driveHint.hidden = true;
   (rail ?? host).appendChild(driveHint);
 
+  /* A SECOND CONTROL BLOCK, BELOW THE DRIVE ROW, for a field marked
+     `afterDrive: true`. Empty and collapsed for every widget that declares
+     none, which is all of them but widget 10.
+
+     3.4e fixes the drive row as the last thing in the rail, and that is still
+     right for anything you SET before pressing a button. It is wrong for the
+     one kind of control that only means something after: widget 10's "show the
+     true groups" is the withheld answer, and a reader who meets it in the setup
+     block meets the answer before the question. Reported as exactly that.
+
+     A separate container rather than CSS order, because `.w-controls` is a grid
+     and a field cannot leave it by reordering. */
+  const controlsAfter = el("div", "w-controls w-controls--after");
+  (rail ?? host).appendChild(controlsAfter);
+
   const figure = el("div", "w-figure");
   figure.setAttribute("role", "img");
   figure.setAttribute(
@@ -862,7 +914,7 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   const utility = el("div", "w-utility");
   host.appendChild(utility);
 
-  return { figure, readout, controls, drive, driveHint, utility, headerTools, tableWrap };
+  return { figure, readout, controls, controlsAfter, drive, driveHint, utility, headerTools, tableWrap };
 }
 
 function el(tag, className, text) {
