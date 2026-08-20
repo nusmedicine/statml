@@ -805,11 +805,22 @@ surprised the build:
 | **assume Poisson (size = ∞)** | **7.10 – 10.27** | **3.17** |
 
 **Pinning the nuisance parameter costs 4%. Assuming the wrong model costs 47%.**
-The posterior correlation between the two parameters is 0.024, which is why the
-first three lines agree — and the best `mu` is the sample mean at *every* size
-(8.66 at 0.5, at 2.5, at 10, at a million), because the `r` terms cancel out of
-`d/dmu`. So widget 8's coordinate ascent is not a greedy shortcut that finds a
-worse answer; it finds exactly the same one.
+The first three lines agree because the best `mu` is the sample mean at *every*
+size — 8.670 at 0.5, at 1, at 2.5, at 5, at 10 and at a million, identical to
+three decimals — because the `r` terms cancel out of `d/dmu`. So widget 8's
+coordinate ascent is not a greedy shortcut that finds a worse answer; it finds
+exactly the same one.
+
+> **This entry used to say "the posterior correlation between the two parameters
+> is 0.024", and that was a default-prior number written up as a property of the
+> model.** Measured on the same twelve counts, it runs from **+0.393** at
+> `mu ~ N(2, 0.5)` to **−0.327** at `mu ~ N(16, 3)`. What is independent of size
+> is where the `mu` ridge *sits*, not how wide it is: the likelihood does not
+> factor, and a smaller size means more variance, so a wider spread of `mu` stays
+> tolerable. On the crest the coupling is invisible — which is precisely why
+> 0.024 looked like a fact. **Independence of the argmax is not independence of
+> the parameters**, and the distinction is now something widget 9 prints rather
+> than something this file gets wrong. Found by a student question, not by us.
 
 **The search strategy is not what costs you. The model assumption is.** Which
 reframes the `Both` tab: it is not "the proper way" against "the shortcut", it

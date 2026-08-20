@@ -220,8 +220,8 @@ terms cancel out of `d/dmu`. Measured, same twelve counts and same prior:
 | **assume Poisson (size = ∞)** | **7.10 – 10.27** | **3.17** |
 
 Pinning the nuisance parameter costs **4%**. Assuming the wrong model costs
-**47%**. Posterior correlation between the two parameters is 0.024, which is why
-the first two agree. **The search strategy is not what costs you; the model
+**47%**. The first two agree because the best mu is the sample mean at *every*
+size (8.670 at 0.5, 1, 2.5, 5, 10 and a million, identical to three decimals). **The search strategy is not what costs you; the model
 assumption is** — and the `Both` tab is what tells you which case you are in,
 because a crest running straight up is what makes the shortcut safe.
 
@@ -241,6 +241,26 @@ because a crest running straight up is what makes the shortcut safe.
   sees, it survived three review rounds, and the only reason it was caught is that
   somebody read the axis and the printed area in the same breath and multiplied.
   **When a computed exponent feeds a label, put a tolerance in the floor.**
+
+- **A number measured at the DEFAULT is not a property of the model.** The
+  header comment and [docs/catalogue.md](docs/catalogue.md) both said "the
+  posterior correlation between the two parameters is 0.024" as settled fact. It
+  is the correlation *at the default prior*. Across the prior's range on the same
+  twelve counts it runs **+0.393** to **−0.327**. The trap is that the default
+  was chosen to be sensible, so the coupling is invisible exactly where anybody
+  would look. **Before writing a measured number into prose, move every control
+  and measure it again** — the same discipline as a printed caption, applied to
+  a comment. Found by a student question, which is the third time that has
+  happened on this widget.
+
+- **"The argmax does not move" is not "the parameters are independent."** Widget
+  8's best `mu` really is the sample mean at every size — 8.670 at 0.5, 1, 2.5,
+  5, 10 and a million. But the likelihood does not factor: a smaller size means
+  more variance, so a wider spread of `mu` stays tolerable. The ridge's LOCATION
+  is independent of size; its WIDTH is not. On the crest you cannot see the
+  difference, and off the crest it is the whole story — force `mu` to 3 when the
+  counts average 8.7 and contain a 19, and the size posterior collapses 2.55 to
+  0.92. The `size` tab prints that now.
 
 - **A fallback in core only reaches callers that use the core call.** `note()`
   gained a width fallback that fixed 7 of 10 collisions. The other three were a

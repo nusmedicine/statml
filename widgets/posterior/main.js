@@ -88,12 +88,35 @@
    THE SEARCH STRATEGY IS NOT WHAT COSTS YOU; THE MODEL ASSUMPTION IS. The
    natural guess is that widget 8's one-parameter-then-the-other is a greedy
    shortcut that lands somewhere worse. It does not: the best mu is the sample
-   mean at EVERY size — 8.66 at 0.5, at 2.5, at 10, at a million — because the
-   `r` terms cancel out of d/dmu, and the posterior correlation between the two
-   parameters here is 0.024. That reframes the Both tab. It is not the proper
-   way against the shortcut; it is the tab that tells you WHETHER the shortcut
-   was safe, because a crest running straight up is what makes it so, and a
-   reader can see that rather than be told it.
+   mean at EVERY size — 8.670 at 0.5, at 1, at 2.5, at 5, at 10 and at a million,
+   identical to three decimals — because the `r` terms cancel out of d/dmu. That
+   reframes the Both tab. It is not the proper way against the shortcut; it is
+   the tab that tells you WHETHER the shortcut was safe, because a crest running
+   straight up is what makes it so, and a reader can see that rather than be
+   told it.
+
+   AND THE PARAMETERS ARE NOT INDEPENDENT, WHICH IS A DIFFERENT CLAIM. This
+   comment used to add "the posterior correlation between the two parameters
+   here is 0.024" as though that were a property of the model. It is a property
+   of the DEFAULT PRIOR. Measured on the same twelve counts:
+
+       mu ~ N(7, 3)     the default        corr = +0.024
+       mu ~ N(2, 3)                        corr = +0.176
+       mu ~ N(2, 0.5)                      corr = +0.393
+       mu ~ N(16, 3)                       corr = -0.327
+
+   What is independent of size is where the mu ridge SITS, not how wide it is.
+   The likelihood does not factor — L(size, mu) != f(size) g(mu) — and a smaller
+   size means more variance, so a wider spread of mu stays tolerable. On the
+   crest the coupling is invisible, which is exactly why 0.024 looked like a
+   fact about the model. A prior that drags mu off the crest puts you on the
+   slope, where the two trade at once.
+
+   That is the hazard the size tab now prints, and it is the sharper half of
+   this widget: force mu to 3 when the counts average 8.7 and still contain a
+   19, and the only way the model can explain that 19 is enormous
+   overdispersion, so the size posterior collapses from 2.55 to 0.92 — a
+   parameter the reader never touched. See `pulled()`.
 
    MCMC IS A TAB, AND IT IS AN HONEST ANSWER TO "WHAT IS THE BACKEND?".
 
@@ -243,6 +266,27 @@ const areaText = (v) => (v >= 0.01 && v < 1e4 ? fmt(v, v >= 10 ? 1 : 3) : sci(v)
  * a value a hair BELOW an exact power of ten; anything genuinely between two
  * powers is already far from the boundary. */
 const expoOf = (logV) => Math.floor(logV / Math.LN10 + 1e-9);
+
+/** Is the prior on mu moving the size posterior enough to be worth naming?
+ *
+ * TEN PERCENT, AND THE NUMBER IS MEASURED. The comparison only earns its line
+ * when a reader would otherwise be misled, so the gap between the size
+ * posterior and the same posterior with the mu prior centred on the data has to
+ * clear a bar. Across the prior's range, on the defaults:
+ *
+ *     mu ~ N(7, 3)   the default        0%   silent
+ *     mu ~ N(9, 3)   on the data        0%   silent
+ *     mu ~ N(2, 3)   off-centre, vague  3%   silent — and it IS negligible
+ *     mu ~ N(7, 0.5) tight, near data   6%   silent
+ *     mu ~ N(16, 3)  off-centre, vague 13%   named
+ *     mu ~ N(2, 1.5)                   23%   named
+ *     mu ~ N(2, 0.5) tight and wrong   65%   named
+ *
+ * Five percent would fire on `N(7, 0.5)`, where nothing interesting is
+ * happening; twenty-five would miss `N(16, 3)`, where it is. Ten separates them
+ * with room on both sides. */
+const PULL = 0.10;
+const pulled = (S) => S.sizeRef !== null && Math.abs(S.size.mean - S.sizeRef) > PULL * S.sizeRef;
 
 /** How much extra spread an Exponential prior with this mean is expecting.
  *
@@ -663,6 +707,55 @@ defineWidget({
       for (let j = 0; j < G; j += 1) poisDens[j] = Math.exp(poisLp[j] - poisMax) / (poisW * dM);
       const poisStat = summarise(poisDens, MUS, dM);
 
+      /* WHAT YOUR PRIOR ON mu IS DOING TO size, WHICH IS THE THING NOBODY
+         EXPECTS. Widget 8 establishes that the best mu is the sample mean at
+         EVERY size, because the r terms cancel out of d/dmu — measured here at
+         sizes 0.5, 1, 2.5, 5, 10 and a million, all giving 8.670. It is easy to
+         read that as "the two parameters are independent". They are not.
+
+         The likelihood does not FACTOR: L(size, mu) != f(size) g(mu). What is
+         independent of size is where the mu ridge SITS, not how wide it is — a
+         smaller size means more variance, so a wider spread of mu stays
+         tolerable. On the crest the coupling is invisible; a prior that drags mu
+         off the crest lands you on the slope, where the two trade at once.
+
+         The mechanism is worth saying out loud, because it is the honest hazard
+         of applied Bayes: force mu down to 3 when the counts average 8.7 and
+         still include a 19, and the ONLY way the model can explain that 19 is
+         enormous overdispersion. So size collapses. It happens in both
+         directions — pull mu to 16 and size drops too.
+
+         Measured on the defaults: the posterior size mean is 2.55 at the default
+         prior and 0.92 at mu ~ N(2, 0.5), a 65% shift in a parameter the reader
+         never touched. The reference below is the same posterior with the mu
+         prior CENTRED ON THE DATA, which is the comparison that names the cause
+         — exactly the device `poisWidth` above uses for the mu tab.
+
+         Costs one more normalisation over the plane per step. `ll` is already
+         built, so this is the prior weighting again and nothing else. */
+      let refMean = null;
+      if (m > 0) {
+        const runMean = sumK / m;
+        let refMax = -Infinity;
+        const lRef = new Float64Array(G);
+        for (let j = 0; j < G; j += 1) lRef[j] = -0.5 * ((MUS[j] - runMean) / priorSd) ** 2;
+        for (let i = 0; i < G; i += 1) {
+          for (let j = 0; j < G; j += 1) {
+            const v = ll[i * G + j] + lPriorS[i] + lRef[j];
+            if (v > refMax) refMax = v;
+          }
+        }
+        let refW = 0;
+        let refAcc = 0;
+        for (let i = 0; i < G; i += 1) {
+          let row = 0;
+          for (let j = 0; j < G; j += 1) row += Math.exp(ll[i * G + j] + lPriorS[i] + lRef[j] - refMax);
+          refW += row;
+          refAcc += SIZES[i] * row;
+        }
+        refMean = refAcc / refW;
+      }
+
       const sm = summarise(margM.subarray(m * G, m * G + G), MUS, dM);
       const ss = summarise(margS.subarray(m * G, m * G + G), SIZES, dS);
       if (sm.peak > topM) topM = sm.peak;
@@ -677,6 +770,7 @@ defineWidget({
            and this share a scale without either being rescaled to the other. */
         peak: Math.exp(lpMax),
         poisWidth: poisStat.hi - poisStat.lo,
+        sizeRef: refMean,
         areaM: areaM * 10 ** expoM,
         areaS: areaS * 10 ** expoS,
         yTopM: Math.ceil(lmMax * scaleM * 1.1 * 2) / 2,
@@ -947,7 +1041,13 @@ defineWidget({
     if (view === "both") {
       return [
         { label: "mu", value: fmt(S.mu.mean, 2), note: `true ${fmt(state.trueMu, 1)} · 95% within ${fmt(S.mu.lo, 1)} – ${fmt(S.mu.hi, 1)}` },
-        { label: "size", value: fmt(S.size.mean, 2), note: `true ${fmt(state.trueSize, 1)} · 95% within ${fmt(S.size.lo, 1)} – ${fmt(S.size.hi, 1)}` },
+        {
+          label: "size",
+          value: fmt(S.size.mean, 2),
+          note: pulled(S)
+            ? `95% within ${fmt(S.size.lo, 1)} – ${fmt(S.size.hi, 1)} · your prior on mu pulled this from ${fmt(S.sizeRef, 2)}`
+            : `true ${fmt(state.trueSize, 1)} · 95% within ${fmt(S.size.lo, 1)} – ${fmt(S.size.hi, 1)}`,
+        },
       ];
     }
 
@@ -960,9 +1060,14 @@ defineWidget({
       {
         label: "Best estimate",
         value: fmt(P.mean, 2),
+        /* THE PULL REPLACES "N counts moved it here" RATHER THAN JOINING IT.
+           Four clauses wrap to two lines and bury the one that matters, and the
+           clause it displaces is the one the reader can already see happening. */
         note: m === 0
           ? "your prior on its own — you have not looked yet"
-          : `you started at ${fmt(started, 1)} · ${m} count${m === 1 ? "" : "s"} moved it here · the truth is ${fmt(truth, 1)}`,
+          : size && pulled(S)
+            ? `you started at ${fmt(started, 1)} · the truth is ${fmt(truth, 1)} · your prior on mu pulled this from ${fmt(S.sizeRef, 2)}`
+            : `you started at ${fmt(started, 1)} · ${m} count${m === 1 ? "" : "s"} moved it here · the truth is ${fmt(truth, 1)}`,
       },
       {
         /* THE NUMBER WIDGET 8 COULD NOT PRODUCE. Its interval was a range of
