@@ -334,7 +334,7 @@ That is proven to work — but only as **a cell the student runs**. Saved output
 are stripped until the notebook is trusted, so a widget you ran and saved shows
 blank when someone else opens the file. **Measure the height yourself**: open the
 widget at the width you will frame it at and read the figure — they differ by
-several hundred pixels, some change with a tab (`posterior` returns a different
+several hundred pixels, some change with a tab (`bayesian` returns a different
 height per view, so take the tallest), and a short iframe clips the readout
 tiles. The manifest used to carry a number for this and it went stale unread,
 which is why it no longer does. Nothing in JupyterLab listens for the

@@ -407,37 +407,37 @@
       "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&shown=0",
       "px": "980160d4"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&shown=12",
       "px": "49b63fba"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&view=size&shown=12",
       "px": "56cb6972"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&view=both&shown=12",
       "px": "579b112c"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&view=mcmc&shown=600",
       "px": "f52793b7"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
       "px": "eddf58ef"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light",
       "drive": {
         "click": "lead",
@@ -447,7 +447,7 @@
       "px": "952c409b"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light",
       "drive": {
         "lead": true,
@@ -458,7 +458,7 @@
       "px": "a90a90e0"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&view=size",
       "drive": {
         "lead": true,
@@ -469,7 +469,7 @@
       "px": "f943f1ee"
     },
     {
-      "slug": "posterior",
+      "slug": "bayesian",
       "state": "?theme=light&view=mcmc",
       "drive": {
         "lead": true,

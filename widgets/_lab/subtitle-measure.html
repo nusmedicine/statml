@@ -134,7 +134,7 @@ async function shippedSubtitle() {
   const f = document.createElement("iframe");
   f.width = 1200; f.height = 600;
   f.style.cssText = "position:fixed;left:-9999px;top:0;border:0";
-  f.src = "../posterior/";
+  f.src = "../bayesian/";
   document.body.appendChild(f);
   await new Promise((r) => f.addEventListener("load", r, { once: true }));
   const text = f.contentDocument.querySelector(".w-subtitle").textContent.trim();

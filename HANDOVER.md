@@ -24,7 +24,7 @@ review rounds found something and the next one probably will too.
 
 ## What widget 9 is, in one paragraph
 
-`posterior`, "Bayesian Estimation", on the lesson's own `rnbinom(size = 2.5,
+`bayesian`, "Bayesian Estimation", on the lesson's own `rnbinom(size = 2.5,
 mu = 10)`. A lead deals the whole sample at once — solid dots for observed,
 hollow rings for still to come — and Step works through it, one count per press.
 Three panels multiply: likelihood **×** prior **=** posterior, each printing its
@@ -37,18 +37,89 @@ showing that `P(counts)` **cancels out of the acceptance ratio**, which is why
 the chain never has to compute it, and histograms of the draws filling in under
 the exact marginals it is recovering.
 
-## The next job
+## The next job — widget 10, `em-mixture`
 
-**Keep fixing widget 9.** That is what the branch is for and where the last
-session stopped. Nothing else has earned a slot: #10 (`em-mixture`) is a
-candidate, not a decision — [docs/catalogue.md](docs/catalogue.md) §"Still
-queued" names its two candidate misconceptions and neither has been through the
-rule at the top of that file. `ppv-prevalence` is flagged there as the
-highest-evidence deferred item in the whole catalogue, which is a live argument
-for un-parking it instead of building #10.
+Widgets 8 and 9 are **merged and deployed**. The arc's next slot is EM, and it is
+in the SAME notebook that hosted both of them: `02-02 — Inferential Statistics:
+Inferring Parameters`, cells 22–36, under "Mixed distributions". So the host is
+already established and the "does it have a home?" question is settled before
+the design starts — which is not true of anything else in the queue.
 
 `power-and-error` is still the only `draft` in the manifest and still has no
 fingerprint states.
+
+### What the lesson actually teaches, verbatim
+
+The data is **heights, two groups**, and the notebook simulates it itself:
+
+```r
+adult_mean <- 170;  adult_sd <- 30      # rnorm(100, ...)
+children_mean <- 120;  children_sd <- 15
+height_data <- tibble(height = c(adults, children),
+                      group = factor(rep(1:2, each = 100, length = 200)))
+```
+
+200 points, an even 100/100 split — so the true mixing weight is exactly 0.5 and
+does not have to be estimated to make the figure work. The two components
+**overlap heavily**: the means are 50 apart against an adult SD of 30, so 1.7 SD
+in the wider component's units. That overlap is the widget's subject, not a
+nuisance — it is where a responsibility is near 0.5 and a hard label is a lie.
+
+Its EM is `flexmix(height ~ 1, data = height_data, k = 2)` with `set.seed(123)`,
+and the lesson pulls two things out of the fit: `parameters()` for the mean and
+sd of each component, and `clusters()` for a hard assignment per point.
+
+**The lesson's own words for the algorithm** — worth matching, because a student
+arrives having read exactly this:
+
+> - Start with an initial guess for the parameters. **This could be random**
+> - **E-Step** — "Based on the current estimate of the parameters, we calculate
+>   the probability of each data point belonging to each distribution. This is
+>   like making an educated guess about where each data point belongs based on
+>   what we currently know"
+> - **M-Step** — "Using the probabilities calculated in the E-step, we update the
+>   parameters of the distributions to maximize the likelihood of the data given
+>   these new parameters **(e.g. using MLE)**"
+> - **Iterate** between the E-step and M-step until convergence
+
+### Three things in that text the widget should be built on
+
+1. **"(e.g. using MLE)" is the hinge, and #8 already built it.** The M-step is
+   maximum likelihood on weighted data — the same verb widget 8 spends a whole
+   figure on. The catalogue already says *"#10 contains #8"*; the lesson says it
+   too, in a parenthesis a student will read straight past. **Widget 10 has a
+   free move here**: the M-step panel can be widget 8's figure, which is the arc
+   paying off rather than a new idea.
+
+2. **The lesson shows the same data twice, and that IS the concept.** Cell 25
+   plots it coloured by true group; cell 27 plots it grey and says *"if we just
+   have data without any labels, all we can see is a bimodal distribution"*. That
+   pair of plots is the widget's opening: **the labels exist and are withheld**.
+   Principle 2.1 (widgets start empty) and this happen to want the same thing —
+   grey first, colours only as the algorithm earns them.
+
+3. **`clusters()` hands back a hard label, and that is a trap the lesson does not
+   flag.** EM never assigns a point to a component; it assigns a probability, and
+   `clusters()` is a post-hoc argmax. In the overlap a point sits at 0.55/0.45
+   and gets painted one solid colour. **The candidate misconception is right
+   there**: a hard assignment and a soft responsibility are not the same thing,
+   and the notebook's final figure shows only the hard one.
+
+### The open question, and it is a real one
+
+Neither candidate misconception has been through the rule at the top of
+[docs/catalogue.md](docs/catalogue.md). The two on the table are:
+
+| candidate | status |
+|---|---|
+| a hard assignment is not a soft responsibility | favoured — the lesson's own output invites it, and the overlap region makes it visible without a caption |
+| EM finds *the* answer, not a local optimum that depends on its start | real, but needs a second run from a different start to show, which is a second figure's worth of machinery |
+
+**`ppv-prevalence` remains the highest-evidence deferred item in the whole
+catalogue** and is still a live argument for un-parking it instead. What has
+changed is that #10's host is now confirmed and its M-step is already built, so
+the cost of #10 dropped. That is a reason to prefer it, not a reason the
+misconception question is answered.
 
 ## What the last session did
 
@@ -174,7 +245,7 @@ that is the only reason this much core churn was safe. The `note()` fallback is
 the first that deliberately CHANGED rendering: 17 of 57 states moved, and every
 one was accounted for before the baseline was written — 2 `bootstrap` (the
 caption shortened), 6 `maximum-likelihood` (untouched file; all six are the note
-dropping inside), 9 `posterior`. The five widgets with no collisions and no edits
+dropping inside), 9 `bayesian`. The five widgets with no collisions and no edits
 — 32 states between them — all MATCHed, which is what proves the change reached
 only what it should. Three passes agreed exactly before anything was recorded.
 
@@ -247,7 +318,7 @@ because a crest running straight up is what makes the shortcut safe.
   log(mu)`, `as brms would`, `the notebook contours the NEGATIVE of this`) and of
   editorial tails (`which is the point`, `nothing else is needed`, `to aim at`,
   `you never get another one`, `taken without EVEN needing u`) came out of
-  `posterior` and `maximum-likelihood`. A student needs the fact, not where it
+  `bayesian` and `maximum-likelihood`. A student needs the fact, not where it
   came from or how much it matters. Provenance still belongs in the comments —
   it is why a default is what it is — but the canvas is not the place. Cutting
   one of them deleted code as well: with `— nothing else is needed` gone, the

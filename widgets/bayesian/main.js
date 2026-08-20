@@ -412,7 +412,7 @@ function hpdLevels(joint, cellArea) {
 }
 
 defineWidget({
-  slug: "posterior",
+  slug: "bayesian",
   title: "Bayesian Estimation",
   subtitle:
     "Maximum likelihood found the parameters that make your counts most probable. " +

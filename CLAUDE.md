@@ -183,7 +183,7 @@ docs/               prd, design principles, catalogue
 - **The repo is inside Dropbox.** Avoid long-running writes; Dropbox can race with
   `.git`.
 - **A widget's height is recorded nowhere.** It lives only in `defineWidget`, and
-  for `posterior` it is a function of the parameters rather than a number. It
+  for `bayesian` it is a function of the parameters rather than a number. It
   used to sit in three files with `npm run check` guarding the drift, then in
   one that nothing read — where it drifted silently until eight of nine were
   190–310px wrong. Adding a copy back needs a **reader** for it first, not a

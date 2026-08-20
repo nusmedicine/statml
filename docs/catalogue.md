@@ -361,7 +361,7 @@ Inferring Parameters`, and they are **one argument rather than three topics**:
 | # | slug | question | lesson's framing |
 |---|---|---|---|
 | 8 | `maximum-likelihood` 🟢 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
-| 9 | `posterior` 🟢 | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
+| 9 | `bayesian` 🟢 | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
 | 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
 
 **The pairing of #8 and #9 is the point of the arc.** MLE answers `P(Data|θ)` and
@@ -651,11 +651,11 @@ saying what the greyed-out buttons are waiting for. **Widgets 3 and 5 have the
 identical structure and neither declares a hint yet** — the same complaint is
 presumably available there and has simply never been made.
 
-### Widget 9 · `posterior` — shipped
+### Widget 9 · `bayesian` — shipped
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 9 | `posterior` 🟢 | Bayesian estimation | *What do the data make probable — and how sure am I?* | That the likelihood curve already tells you how probable each parameter value is. It is `P(data \| θ)`. To get `P(θ \| data)` you need a prior, and you have to **normalise** | **documented parent** — the transposed conditional, same as #8 |
+| 9 | `bayesian` 🟢 | Bayesian estimation | *What do the data make probable — and how sure am I?* | That the likelihood curve already tells you how probable each parameter value is. It is `P(data \| θ)`. To get `P(θ \| data)` you need a prior, and you have to **normalise** | **documented parent** — the transposed conditional, same as #8 |
 
 **This is the widget #8 was built to set up**, and the lesson states both forms two
 headings apart: MLE answers `P(Data | Parameters)`, Bayes answers

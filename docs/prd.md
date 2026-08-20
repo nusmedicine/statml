@@ -206,7 +206,7 @@ open question 1 — sequencing against actual teaching weeks.
 | 5 | `permutation-test` | `03 / 04-01 — Hypothesis Testing: Significance` |
 | 6 | `multiple-testing` | `05 — High Throughput Data` / `08 — RNAseq Expression Analysis` |
 | 8 | `maximum-likelihood` ✅ | `03 / 02-02 — Inferential Statistics: Inferring Parameters` |
-| 9 | `posterior` ✅ | the same lesson, two headings later — it states `P(Data \| Parameters)` and `P(Parameters \| Data)` in that order, and the two widgets take one each |
+| 9 | `bayesian` ✅ | the same lesson, two headings later — it states `P(Data \| Parameters)` and `P(Parameters \| Data)` in that order, and the two widgets take one each |
 
 **#7 is missing from this table on purpose.** `power-and-error` is the only
 `draft` in the manifest and has no confirmed lesson slot, which is exactly the
