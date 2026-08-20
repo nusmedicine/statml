@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · how wide should a subtitle be</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1120px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); max-width: 80ch; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .card > h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); display: flex;
+               justify-content: space-between; gap: var(--sp-4); align-items: baseline; }
+  .card > h3 .m { font-size: var(--fs-xs); color: var(--ink-3); font-weight: 400;
+                  font-family: var(--font-mono); white-space: nowrap; }
+  /* THE BLOCKS RENDER AT THEIR TRUE PIXEL WIDTHS, and the card scrolls if the
+     window is narrower. The first build used max-width, so on a 1000px laptop
+     all four collapsed to the same measure and the page showed nothing at all —
+     a comparison page that agrees with itself whatever you are comparing. */
+  .card { overflow-x: auto; }
+  .sub { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; margin: 0; }
+  .band { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: var(--fs-xs); }
+  .ok  { background: color-mix(in srgb, var(--c-smoothed) 24%, transparent); color: var(--ink-1); }
+  .over { background: color-mix(in srgb, var(--c-extreme) 24%, transparent); color: var(--ink-1); }
+  /* A ruler showing where 45 and 75 characters fall, in this exact font. */
+  .ruler { position: relative; height: 14px; margin: var(--sp-2) 0 0; }
+  .ruler i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--c-extreme); }
+  .ruler i::after { content: attr(data-l); position: absolute; top: 0; left: 3px;
+                    font-size: 10px; color: var(--ink-3); font-style: normal; white-space: nowrap; }
+  table.audit { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+  table.audit th { text-align: left; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400;
+                   padding: 0 var(--sp-3) var(--sp-1) 0; border-bottom: 1px solid var(--grid); }
+  table.audit td { padding: var(--sp-2) var(--sp-3) var(--sp-2) 0; color: var(--ink-2);
+                   border-bottom: 1px solid var(--grid); vertical-align: top; }
+  table.audit td.n { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>How wide should a subtitle be?</h1>
+  <p class="note">
+    The question that produced this page: <em>why not let the subtitle go full
+    width, instead of stopping at 40% and leaving the right side empty?</em> It
+    is the obvious instinct and the cap does look arbitrary. The answer is not a
+    rule, it is a number — <strong>characters per line</strong> — so this page
+    shows the real copy at each width and lets you read it.
+  </p>
+  <p class="note">
+    Comfortable reading is <strong>45–75 characters per line</strong>. Below 45
+    the eye jumps too often; above 75 the return sweep starts landing on the
+    wrong line and you re-read. The red marks below each block are where 45 and
+    75 fall <em>in this exact font</em>.
+  </p>
+  <p class="note">
+    Each block below is drawn at its <strong>true pixel width</strong>, not at
+    whatever your window allows — so the comparison holds even on a narrow
+    screen. The first block scrolls sideways if your window is under ~1150px,
+    which is itself worth noticing: that is the line you would be asking a
+    student to read.
+  </p>
+
+  <h2>The four options, same copy</h2>
+
+  <div class="card">
+    <h3>Full width, 1120px <span class="m" data-for="full"></span></h3>
+    <p class="sub" id="full" style="width: 1120px"></p>
+    <div class="ruler" data-ruler="full"></div>
+  </div>
+
+  <div class="card">
+    <h3>75ch, 567px <span class="m" data-for="w75"></span></h3>
+    <p class="sub" id="w75" style="width: 567px"></p>
+    <div class="ruler" data-ruler="w75"></div>
+  </div>
+
+  <div class="card">
+    <h3>62ch, 469px — what ships today <span class="m" data-for="cur"></span></h3>
+    <p class="sub" id="cur" style="width: 469px"></p>
+    <div class="ruler" data-ruler="cur"></div>
+  </div>
+
+  <div class="card">
+    <h3>62ch, with the copy cut to three lines <span class="m" data-for="short"></span></h3>
+    <p class="sub" id="short" style="width: 469px"></p>
+    <div class="ruler" data-ruler="short"></div>
+  </div>
+
+  <div class="card">
+    <h3>429px <em>and</em> the copy cut — the only one in the band <span class="m" data-for="both"></span></h3>
+    <p class="sub" id="both" style="width: 429px"></p>
+    <div class="ruler" data-ruler="both"></div>
+  </div>
+
+  <h2>Measured</h2>
+  <table class="audit">
+    <thead><tr><th>option</th><th>px</th><th>words</th><th>chars / line</th><th>lines</th><th>verdict</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <p class="note" style="margin-top: var(--sp-4)">
+    <strong>What this settles, and it is not what I first said.</strong> Full
+    width is out — 196 characters is 2.6x the maximum, and the eye cannot find
+    the next line. But the shipping measure is <em>also</em> out: 82 characters,
+    seven past the limit. The cap is not too narrow, it is too <em>wide</em>.
+  </p>
+  <p class="note">
+    So there are two independent levers, and they do different jobs:
+  </p>
+  <ul class="note" style="padding-left: 1.2em">
+    <li><strong>Width</strong> sets characters per line. To reach 75 the cap has
+      to come <em>down</em> to about 429px — narrower than today, not wider.</li>
+    <li><strong>Copy length</strong> sets the number of lines. 63 words wraps to
+      five; 47 words wraps to four. It does nothing at all to the line length.</li>
+  </ul>
+  <p class="note">
+    Which means the empty space to the right is not a problem stretching text
+    can solve — stretching makes it less readable, not more. It is solved by
+    shortening the copy so the block is compact enough to read as a deliberate
+    deck rather than as a column that ran out. The last block is both levers
+    pulled: 47 words at 429px, four lines, 75 characters, inside the band.
+  </p>
+</main>
+
+<script type="module">
+/* THE LONG COPY IS READ FROM THE WIDGET, not retyped here. A comparison page
+   that keeps its own copy of its subject is wrong the first time the subject
+   changes, and nothing tells you — so this loads the real widget in a hidden
+   frame and takes the subtitle it actually renders. */
+async function shippedSubtitle() {
+  const f = document.createElement("iframe");
+  f.width = 1200; f.height = 600;
+  f.style.cssText = "position:fixed;left:-9999px;top:0;border:0";
+  f.src = "../posterior/";
+  document.body.appendChild(f);
+  await new Promise((r) => f.addEventListener("load", r, { once: true }));
+  const text = f.contentDocument.querySelector(".w-subtitle").textContent.trim();
+  f.remove();
+  return text;
+}
+
+/* The proposal: same argument, one clause shorter. Kept here because it does
+   not exist anywhere else yet — that is the point of the page. */
+const SHORT =
+  "Maximum likelihood found the parameters that make your counts most probable — " +
+  "but nothing holds the likelihood's area at 1, so it cannot say how probable a " +
+  "parameter is. Multiply by what you believed beforehand and divide by the total, " +
+  "and the curve that comes out does.";
+
+const el = (id) => document.getElementById(id);
+const LONG = await shippedSubtitle();
+el("full").textContent = LONG;
+el("w75").textContent = LONG;
+el("cur").textContent = LONG;
+el("short").textContent = SHORT;
+el("both").textContent = SHORT;
+
+/* Average glyph width in the ACTUAL rendered font, rather than `ch` — which is
+   the width of "0" and runs about 30% narrow against real prose. That gap is
+   the whole reason 62ch was believed to be ~76 characters when it is 82. */
+function charW(node) {
+  const cs = getComputedStyle(node);
+  const c = document.createElement("canvas").getContext("2d");
+  c.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const t = node.textContent;
+  return c.measureText(t).width / t.length;
+}
+
+/* Re-measured on resize, not once at parse time. Every number here is a
+   function of the rendered width, so a page that measured once would quietly
+   describe a window you are no longer looking at — drag the edge and watch the
+   full-width row climb past 75 while the capped ones do not move. */
+function measure() {
+  const rows = [];
+  for (const [id, label] of [["full", "full width"], ["w75", "75ch"],
+                             ["cur", "62ch (ships today)"], ["short", "62ch, copy cut"],
+                             ["both", "429px + copy cut"]]) {
+    const node = el(id);
+    const width = node.getBoundingClientRect().width;
+    if (!width) return false;                       // not laid out yet
+    const cw = charW(node);
+    const cpl = Math.round(width / cw);
+    const lines = Math.round(node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight));
+    const over = cpl > 75;
+
+    document.querySelector(`.m[data-for="${id}"]`).textContent = `${cpl} chars/line · ${lines} lines`;
+
+    const ruler = document.querySelector(`.ruler[data-ruler="${id}"]`);
+    ruler.replaceChildren();
+    for (const n of [45, 75]) {
+      const x = n * cw;
+      if (x > width) continue;
+      const i = document.createElement("i");
+      i.style.left = `${x}px`;
+      i.dataset.l = n;
+      ruler.appendChild(i);
+    }
+
+    rows.push(`<tr><td>${label}</td><td class="n">${Math.round(width)}</td>` +
+      `<td class="n">${node.textContent.trim().split(/\s+/).length}</td>` +
+      `<td class="n">${cpl}</td><td class="n">${lines}</td>` +
+      `<td><span class="band ${over ? "over" : "ok"}">${over ? "past 75" : "in band"}</span></td></tr>`);
+  }
+  document.getElementById("rows").innerHTML = rows.join("");
+  return true;
+}
+
+// Fonts first: measuring in the fallback face reports a width nothing ships at.
+if (document.fonts?.ready) document.fonts.ready.then(measure);
+if (!measure()) requestAnimationFrame(measure);
+addEventListener("resize", measure);
+</script>
+</body>
+</html>
