@@ -217,13 +217,19 @@ const EFFECTS = {
    five numbers. 0.001 / 0.05 / 0.25 are the three the lesson compares as
    "stringent / baseline / lax"; 0.01 and 0.10 are what people reach for between.
 
+   ALL FIVE CARRY A `detail`, AND TWO OF THEM DID NOT UNTIL THE LINE BECAME
+   VISIBLE. `detail` used to render into a `title` tooltip, so an empty one cost
+   nothing; now that it is a line under the row, an empty one collapses it and
+   the whole control block jumps a line taller and shorter as you click along
+   the ladder. A ladder with two rungs missing is also just worse copy.
+
    IN THIS COORDINATE SYSTEM THE `z` IS THE LINE'S POSITION OUTRIGHT — no
    standard error multiplies it — which is the whole reason the axis changed. */
 const ALPHAS = {
   "0.001": { label: "0.001", a: 0.001, z: 3.090232306167813, detail: "stringent" },
-  "0.01": { label: "0.01", a: 0.01, z: 2.326347874040841, detail: "" },
+  "0.01": { label: "0.01", a: 0.01, z: 2.326347874040841, detail: "stricter than the convention" },
   "0.05": { label: "0.05", a: 0.05, z: 1.644853626951472, detail: "the convention, and only a convention" },
-  "0.10": { label: "0.10", a: 0.10, z: 1.281551565544600, detail: "" },
+  "0.10": { label: "0.10", a: 0.10, z: 1.281551565544600, detail: "laxer than the convention" },
   "0.25": { label: "0.25", a: 0.25, z: 0.674489750196082, detail: "lax" },
 };
 
