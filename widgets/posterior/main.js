@@ -216,11 +216,6 @@ const JUMP_SIZE = 0.8;
 const JUMP_MU = 0.4;
 const BRMS_DRAWS = 6000; // 4 chains x (2000 - 500 warmup), the notebook's call
 
-/* The ratio bars: how far past the current point's bar a better proposal is
-   allowed to run before it is clipped. Declared up here because defineWidget()
-   renders synchronously at module load and its draw path reaches this. */
-const CAP = 1.15;
-
 const LEAD_MS = 1500;
 const STEP_MS = 360;
 const PLAY_MS = 150;
@@ -231,6 +226,31 @@ const clamp01 = (t) => Math.max(0, Math.min(1, t));
 
 /** A number that might be 32 and might be 4e-13. */
 const areaText = (v) => (v >= 0.01 && v < 1e4 ? fmt(v, v >= 10 ? 1 : 3) : sci(v));
+
+/** The power of ten a likelihood panel factors out, from the log of its peak.
+ *
+ * THE EPSILON IS NOT COSMETIC, AND THE CASE IT FIXES WAS THE DEFAULT OPENING
+ * FRAME. At zero counts the likelihood is flat and its peak is the prior's own
+ * integral, which is 1 — except that adding 80 cells lands on
+ * 0.9999999999999999 for some priors and 1.0000000000000002 for others.
+ * Math.log of the first is -1.1e-16, floor() takes that to -1, and the panel
+ * redraws its y-axis in tenths. The m = 0 caption deliberately does not print
+ * the factor, so nothing on screen said so: the default prior's axis read
+ * 0 - 11 with a flat curve at 10 and `area = 20.0` underneath, while one notch
+ * of the size slider read 0 - 1.5. One ulp, in the first frame a reader sees.
+ *
+ * A tolerance rather than a rounding, because the intent is only ever to reject
+ * a value a hair BELOW an exact power of ten; anything genuinely between two
+ * powers is already far from the boundary. */
+const expoOf = (logV) => Math.floor(logV / Math.LN10 + 1e-9);
+
+/** How much extra spread an Exponential prior with this mean is expecting.
+ *
+ * var = mu + mu^2/size, so a LARGER size means LESS extra spread — which made
+ * this clause fixed text a bug rather than a shortcut. It read "a lot of extra
+ * spread" at every setting of a slider that runs to 6, so from about 2 upwards
+ * the caption said the opposite of the axis label two panels below it. */
+const spreadExpected = (v) => (v < 1.5 ? "a lot of" : v <= 3.5 ? "some" : "little");
 
 /* --- panel geometry ------------------------------------------------------- *
  * Two shapes. The marginal tabs stack the counts over the three curves of
@@ -615,8 +635,8 @@ defineWidget({
       /* Rescaled by a power of ten taken off the LOG so nothing underflows, with
          the exponent factored into the caption — widget 8's device, and the
          exponent it factors out is the thing worth watching collapse. */
-      const expoM = Math.floor((llMax + Math.log(lmMax)) / Math.LN10);
-      const expoS = Math.floor((llMax + Math.log(lsMax)) / Math.LN10);
+      const expoM = expoOf(llMax + Math.log(lmMax));
+      const expoS = expoOf(llMax + Math.log(lsMax));
       const scaleM = Math.exp(llMax - expoM * Math.LN10);
       const scaleS = Math.exp(llMax - expoS * Math.LN10);
       let areaM = 0;
@@ -650,6 +670,12 @@ defineWidget({
 
       steps.push({
         evidence, mu: sm, size: ss, expoM, expoS,
+        /* THE HEIGHT OF THE MOST PROBABLE POINT ON THE PLANE, which is what the
+           sampler's two bars are drawn against. `lpMax` is the max over the
+           grid of exactly the quantity `logPost` returns below — likelihood
+           times both priors, with the same normalising constants — so the bars
+           and this share a scale without either being rescaled to the other. */
+        peak: Math.exp(lpMax),
         poisWidth: poisStat.hi - poisStat.lo,
         areaM: areaM * 10 ** expoM,
         areaS: areaS * 10 ** expoS,
@@ -699,6 +725,12 @@ defineWidget({
     const chain = [];
     let cr = 1;
     let cm = Math.max(0.5, sampleMean);
+    /* THE START IS A POINT TO DRAW, NOT ONLY A SEED FOR THE LOOP. The tab has
+       to show the chain standing on the notebook's declared `initial_values`
+       BEFORE the first proposal, or the first press of "Propose a move" is the
+       one press that produces nothing: no dot, no dashed line, and a strip
+       still reading "nothing proposed yet" for the whole flight. */
+    const start = { size: cr, mu: cm, fromRaw: logPost(cr, cm), rate: null };
     let cl = logPost(cr, cm) + Math.log(cr) + Math.log(cm);
     let accepted = 0;
     for (let t = 0; t < DRAWS; t += 1) {
@@ -723,7 +755,7 @@ defineWidget({
 
     return {
       n, counts, countHi, maxMult, trueMu, trueSize,
-      priorS, priorM, joint, margM, margS, likM, likS, steps, chain,
+      priorS, priorM, joint, margM, margS, likM, likS, steps, chain, start,
       beliefTopM: Math.max(topM, priorPeakM) * 1.1,
       beliefTopS: Math.max(topS, priorPeakS) * 1.1,
     };
@@ -1010,7 +1042,7 @@ function drawMarginal(ctx, colors, plotW, params, state, anim, m, S) {
   /* ---- the prior ------------------------------------------------------- */
   gutter(ctx, colors, "×", C_Y - 8);
   pC.caption(size
-    ? `Your prior — size averages ${fmt(params.priorSize, 1)}, so you expected a lot of extra spread`
+    ? `Your prior — size averages ${fmt(params.priorSize, 1)}, so you expected ${spreadExpected(params.priorSize)} extra spread`
     : `Your prior — mu is about ${fmt(params.priorMu, 1)}, give or take ${fmt(params.priorSd, 1)}`);
   const priorPts = curveOf(prior);
   pC.area(priorPts, { fill: colors.prior, opacity: 0.12 });
@@ -1118,11 +1150,13 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
      watched agreeing with an answer you already have, which is the only way to
      earn trust in it for the problems where you cannot compute one. */
   const t = anim.draws;
-  if (t === 0) {
-    pS.note("the exact answer, to aim at");
-    ratioStrip(ctx, colors, plotW, null, S, null);
-    return;
-  }
+  /* AT ZERO DRAWS THE CHAIN IS STILL SOMEWHERE, and its first proposal has to
+     animate like every other one. This used to return early — before the dot,
+     before the dashed proposal, before the bars — so pressing "Propose a move"
+     the very first time left the panel reading "nothing proposed yet" for the
+     whole 260ms flight. The one action the tab exists for, invisible exactly
+     once, on the press everybody makes. */
+  const cur = t === 0 ? state.start : state.chain[t - 1];
 
   /* Every draw so far, as a light cloud. This is the object brms hands back:
      not a curve, a pile of numbers you then take the mean of. */
@@ -1154,7 +1188,6 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   /* The proposal in flight: where it wants to go, and whether it gets there. A
      rejected one is drawn as a hollow mark left behind, because "the chain did
      not move" is otherwise indistinguishable from "nothing happened". */
-  const cur = state.chain[t - 1];
   if (anim.flying && t < DRAWS) {
     /* --c-extreme for a rejection, which is the role's own meaning read
        literally: the proposal fell past the line the acceptance rule draws. */
@@ -1174,15 +1207,18 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
     ctx.restore();
   }
   pS.dot(cur.size, cur.mu, { fill: colors.empirical, r: 5 });
-  pS.note(`${t} draw${t === 1 ? "" : "s"} · brms takes ${BRMS_DRAWS.toLocaleString("en")}`);
+  pS.note(t === 0
+    ? "the exact answer, to aim at"
+    : `${t} draw${t === 1 ? "" : "s"} · brms takes ${BRMS_DRAWS.toLocaleString("en")}`);
 
   /* While a proposal is in flight the strip shows the decision being made; at
      rest it shows the one just made. Showing the NEXT proposal at rest — which
      is what an off-by-one here did — puts a verdict on screen for a move nobody
-     has proposed yet. */
-  ratioStrip(ctx, colors, plotW,
-    anim.flying && t < DRAWS ? state.chain[t] : state.chain[t - 1], S,
-    state.chain[t - 1].rate);
+     has proposed yet. At t = 0 there is no move just made, so at rest the strip
+     stays empty and only the flight fills it. */
+  const live = anim.flying && t < DRAWS ? state.chain[t] : t > 0 ? state.chain[t - 1] : null;
+  /* No rate until a decision has landed: 0/0 proposals accepted is not 0%. */
+  ratioStrip(ctx, colors, plotW, live, S, cur, t > 0 ? state.chain[t - 1].rate : null);
 }
 
 /* ============================================================================
@@ -1199,13 +1235,41 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
    so it cancels, and the chain never needs it. That is the whole reason the
    method is possible on a model where the integral is not.
 
-   Drawn as two bars from one left edge with the CURRENT point at full width, so
-   the proposal's length IS the acceptance probability and u is a dart thrown
-   along the same axis. Chosen in _lab/mcmc-panel.html against a plain note and
-   against a version that also carried a histogram of the draws; the histogram
-   was cut because at forty draws it reads as the sampler failing rather than as
-   the sampler working slowly, and the tab has to survive the first hundred
-   presses.
+   Drawn as two bars from one left edge, both against the height of the most
+   probable point on the plane. Chosen in _lab/mcmc-panel.html against a plain
+   note and against a version that also carried a histogram of the draws; the
+   histogram was cut because at forty draws it reads as the sampler failing
+   rather than as the sampler working slowly, and the tab has to survive the
+   first hundred presses.
+
+   THE CURRENT POINT USED TO BE PINNED AT FULL WIDTH, and that was wrong in the
+   way a chart is wrong when one of its marks never moves. The proposal's length
+   was then the acceptance probability read straight off the axis, which is a
+   real property and the reason it was built that way — but the top bar encoded
+   nothing, its printed value swung across two orders of magnitude underneath a
+   length that never changed, and the panel quietly said the chain's position
+   was a constant in the one tab whose subject is a chain moving.
+
+   SCALING BOTH TO THE PEAK COSTS NOTHING THE DECISION NEEDS. Accept iff
+   ratio > u, and ratio = proposed/current, so
+
+       proposed/current > u   <=>   len(proposed) > len(current) x u
+
+   which is the dart moved from wFull x u to len(current) x u and nothing else.
+   The geometry is identical; the top bar now says how far up the posterior the
+   chain has climbed, and the walk-in from the notebook's starting guess is
+   visible instead of implied.
+
+   AND THE SLIVERS DO NOT MATERIALISE, WHICH IS WHY THIS IS SAFE. Measured over
+   the full 600 draws at the defaults, the current point's height as a fraction
+   of the peak: median 0.53, quartiles 0.22 and 0.72, with 6% of draws under
+   0.05 and 11% under 0.10. So the top bar is a legible length about nine times
+   in ten, and the times it is not are the chain genuinely out in a tail — which
+   is a thing worth seeing, not an artefact to scale away.
+
+   CAP WENT WITH IT. A better proposal used to run past the current bar and be
+   clipped at 1.15x. Against the peak no bar can pass full width, so there is
+   nothing to clip: a better proposal is simply a longer bar.
 
    BOTH BARS TAKE ONE COLOUR. They were briefly coloured by outcome, which made
    accept and reject instant and quietly said they were two different
@@ -1223,11 +1287,21 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
    printed in scientific notation instead, so a sliver says how much of a sliver
    it is.
    ========================================================================= */
-function ratioStrip(ctx, colors, plotW, d, S, rate) {
+function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
   const x0 = PAD_L;
-  const wFull = Math.min(460, plotW - 190);
-  const valX = x0 + wFull * CAP + 12;
+  // The 1.15x of headroom CAP used to reserve is bar now, not blank canvas.
+  const wFull = Math.min(520, plotW - 110);
+  const valX = x0 + wFull + 12;
   const rowH = 15, gap = 9;
+
+  /* Both bars share ONE divisor, so their ratio is exact however they are
+     clipped. Normally that divisor is the grid's peak; a chain point can sit a
+     hair above it, since the grid is 6,400 midpoints and the continuous maximum
+     is not one of them, and taking the max keeps the longer bar inside the
+     strip without either bar being rescaled relative to the other. */
+  const here = Math.exp((d ?? cur).fromRaw);
+  const there = d ? Math.exp(d.toRaw) : 0;
+  const unit = wFull / Math.max(S.peak, here, there);
 
   ctx.save();
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
@@ -1244,8 +1318,17 @@ function ratioStrip(ctx, colors, plotW, d, S, rate) {
   }
   ctx.restore();
 
-  const row = (i, label, frac, value) => {
+  const row = (i, label, len, value) => {
     const ry = R_Y + i * (rowH + gap);
+    /* THE TRACK IS THE AXIS THE BARS ARE NOW ON, not decoration. With the
+       current point pinned at full width there was nothing to measure against
+       and none was needed; now that both bars move, a bar at half length is
+       only readable if its full length is visible behind it. */
+    ctx.save();
+    ctx.fillStyle = colors.ink3;
+    ctx.globalAlpha = 0.1;
+    ctx.fillRect(x0, ry, wFull, rowH);
+    ctx.restore();
     ctx.save();
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.fillStyle = colors.ink3;
@@ -1256,18 +1339,22 @@ function ratioStrip(ctx, colors, plotW, d, S, rate) {
     ctx.fillStyle = colors.ink2;
     ctx.fillText(value, valX, ry + rowH / 2);
     ctx.restore();
-    if (frac !== null) {
+    if (len !== null) {
       ctx.save();
       ctx.fillStyle = colors.empirical;
       ctx.globalAlpha = 0.85;
-      ctx.fillRect(x0, ry, Math.max(2, wFull * Math.min(frac, CAP)), rowH);
+      ctx.fillRect(x0, ry, Math.max(2, len), rowH);
       ctx.restore();
     }
     return ry;
   };
 
+  /* Before the first proposal the chain is still SOMEWHERE, and now that the
+     plane draws the dot it stands on, the strip shows how high that is. Only
+     the second row is empty — which is exactly what "nothing proposed yet"
+     means, and is the shape the reader sees filled in one press later. */
   if (!d) {
-    row(0, "here now", null, "—");
+    row(0, "here now", here * unit, sci(here));
     const ry0 = row(1, "proposed", null, "—");
     ctx.save();
     ctx.font = `${colors.fsXs} ${colors.font}`;
@@ -1281,13 +1368,22 @@ function ratioStrip(ctx, colors, plotW, d, S, rate) {
     return;
   }
 
-  row(0, "here now", 1, sci(Math.exp(d.fromRaw)));
-  const ry = row(1, "proposed", d.ratio, sci(Math.exp(d.toRaw)));
+  row(0, "here now", here * unit, sci(here));
+  const ry = row(1, "proposed", there * unit, sci(there));
 
   /* u, the dart — drawn only when there is something for it to decide. A better
-     proposal is taken outright, so a tick there is a dart with nothing to hit. */
+     proposal is taken outright, so a tick there is a dart with nothing to hit.
+
+     THROWN ALONG THE CURRENT BAR, not along the strip: accept iff
+     proposed/current > u, which is len(proposed) > len(current) x u. Under the
+     old full-width scaling those were the same place.
+
+     Against the DRAWN length, so the dart stays inside the bar it is measuring
+     when that bar is at its 2px floor. In the ~2% of draws where the chain is
+     far enough into a tail for that to happen the whole strip is a few pixels
+     wide and it is the printed ratio, not the bars, that carries the number. */
   if (d.ratio < 1) {
-    const ux = x0 + wFull * d.u;
+    const ux = x0 + Math.max(2, here * unit) * d.u;
     ctx.save();
     ctx.strokeStyle = colors.ink1;
     ctx.lineWidth = 1.5;
@@ -1443,6 +1539,14 @@ function drawEdges(ctx, colors, pS, planeW, planeH, edge, state) {
 /** One dot per observation: solid once observed, a ring while still to come. */
 function drawCounts(ctx, p, counts, n, m, anim, colors) {
   if (!anim.leadDone && anim.leadT <= 0) return;
+  /* THE DOT FITS ITS ROW, WHICH MATTERS ONLY AT THE TOP OF THE n SLIDER. The
+     strip is 46px whatever n is, so its rows get shorter as the tallest column
+     grows: at n = 60 seven rows are 6.6px apart and a fixed 3.6px radius drew
+     columns that touched, turning countable dots into solid bars — in the one
+     figure whose hollow rings exist to be counted. At the default n the pitch is
+     15px and this leaves the radius exactly where it was. */
+  const pitch = p.sy(0) - p.sy(1);
+  const r = Math.max(1.4, Math.min(3.6, pitch / 2 - 0.5));
   const seen = new Array(Math.ceil(p.xDomain[1]) + 2).fill(0);
   for (let i = 0; i < n; i += 1) {
     const k = counts[i];
@@ -1463,7 +1567,7 @@ function drawCounts(ctx, p, counts, n, m, anim, colors) {
     const t = filling ? anim.flyT : 0;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, filling ? 3.6 + 3 * (1 - t) : 3.6, 0, Math.PI * 2);
+    ctx.arc(cx, cy, filling ? r + 3 * (1 - t) : r, 0, Math.PI * 2);
     if (i < m || filling) {
       ctx.globalAlpha = filling ? Math.max(0.25, t) : 1;
       ctx.fillStyle = colors.empirical;
