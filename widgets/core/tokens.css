@@ -213,11 +213,23 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   letter-spacing: -0.01em;
 }
 
+/* 57ch, and the number is measured rather than reasoned about. `ch` is the
+   width of the "0" glyph, which in this face runs ~30% narrow against real
+   prose — so 62ch was believed to be "about 76 characters, the top of the
+   readable range" and is actually 82, seven PAST it. Measured at --fs-sm:
+   62ch = 469px = 82 characters; 57ch = 429px = 75, the limit.
+
+   The instinct this corrects is the opposite one — that a subtitle stopping at
+   40% of the page should be let out to fill the width. Full width here is 1120px
+   and 196 characters per line, about 2.6x the maximum, where the return sweep
+   starts landing on the wrong line. The empty space to the right is not a
+   problem stretching text can fix; it is answered by shorter copy.
+   _lab/subtitle-measure.html holds the comparison and re-measures it live. */
 .w-subtitle {
   margin: var(--sp-1) 0 0;
   color: var(--ink-2);
   font-size: var(--fs-sm);
-  max-width: 62ch;
+  max-width: 57ch;
 }
 
 /* --- side layout: controls beside the figure ------------------------------ *

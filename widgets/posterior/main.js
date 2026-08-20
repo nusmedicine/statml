@@ -237,7 +237,6 @@ const CRED = 0.95;
 const DRAWS = 600;
 const JUMP_SIZE = 0.8;
 const JUMP_MU = 0.4;
-const BRMS_DRAWS = 6000; // 4 chains x (2000 - 500 warmup), the notebook's call
 
 const LEAD_MS = 1500;
 const STEP_MS = 360;
@@ -442,7 +441,7 @@ defineWidget({
     trueMu: { type: "int", label: "True mean", min: 4, max: 16, default: TRUE_MU_DEF },
     trueSize: {
       type: "float", label: "True size", min: 1, max: 6, step: 0.5, default: TRUE_SIZE_DEF,
-      detail: "larger size = LESS spread · the notebook uses size 2.5, mu 10",
+      detail: "larger size = LESS spread",
     },
 
     /* 1 to 60. One count is worth seeing on its own — it barely moves either
@@ -476,19 +475,12 @@ defineWidget({
       type: "float", label: "…give or take", min: 0.5, max: 6, step: 0.5,
       default: 3, display: true,
       format: (v) => `± ${v.toFixed(1)}`,
-      /* The lesson's own mu prior is NOT this object and the difference is worth
-         one line: brms fits `count ~ 1` with a log link and the notebook recovers
-         mu as exp(b_Intercept), so its normal(0, 10) is a prior on LOG mu. */
-      detail: "brms puts its normal(0, 10) on log(mu), so the lesson's is far wider",
     },
     priorSize: {
       type: "float", label: "size — an Exponential with mean", min: 0.5, max: 6, step: 0.5,
       default: 1, display: true,
-      /* `prior(exponential(1), class = shape)` is on the parameter itself, so
-         this default IS the notebook's. That it sits below the true 2.5 is not a
-         flaw to tune away: it is why the size tab shows a prior still doing work
-         at n = 12. */
-      detail: "the notebook's own exponential(1)",
+      /* The default sits BELOW the true 2.5 deliberately: it is why the size
+         tab shows a prior still doing work at n = 12. */
     },
 
     /* FOUR READINGS, IN TWO ROWS, BECAUSE THREE OF THEM ARE THE SAME KIND OF
@@ -871,7 +863,7 @@ defineWidget({
        is FIXED, by dealing every count at once and leaving the ones you have not
        reached yet on screen as hollow rings. */
     leadLabel: "Draw the counts",
-    leadTitle: "Deal your whole sample at once — you never get another one",
+    leadTitle: "Deal your whole sample at once",
     leadHint: "Step and Play wake up once you have counts to work through.",
 
     /* THE FOURTH TAB DRIVES A DIFFERENT NOUN, so the label follows the tab.
@@ -982,7 +974,7 @@ defineWidget({
     pA.caption(!anim.leadDone
       ? (anim.leadT > 0 ? "Dealing your sample…" : "Press “Draw the counts” to begin")
       : params.view === "mcmc"
-        ? `All ${n} counts — the sampler fits the finished dataset, as brms would`
+        ? `All ${n} counts — the sampler fits the finished dataset`
         : m === 0 && !anim.flying
           ? `${n} counts dealt, none observed yet — press “Add a count”`
           : `Your counts — ${m} of ${n} observed, ${n - m} still to come`);
@@ -995,7 +987,7 @@ defineWidget({
        indistinguishable from a solid one in the same column, while a ring stays
        countable. A separate waiting row also worked and cost 36px more. */
     drawCounts(ctx, pA, counts, n, m, anim, colors);
-    pA.axisX({ label: "count — dealt once, and never redrawn" });
+    pA.axisX({ label: "count" });
 
     if (plane) drawPlane(ctx, colors, plotW, params, state, anim, m, S);
     else drawMarginal(ctx, colors, plotW, params, state, anim, m, S);
@@ -1017,8 +1009,8 @@ defineWidget({
          property of the proposals, not one of the answers. */
       if (t === 0) {
         return [
-          { label: "mu", value: "—", note: `the grid says ${fmt(S.mu.mean, 2)} · press Step and watch the chain find it` },
-          { label: "size", value: "—", note: `the grid says ${fmt(S.size.mean, 2)} · brms would take ${BRMS_DRAWS.toLocaleString("en")} draws` },
+          { label: "mu", value: "—", note: `the grid says ${fmt(S.mu.mean, 2)} · press Step to start the chain` },
+          { label: "size", value: "—", note: `the grid says ${fmt(S.size.mean, 2)} · ${DRAWS} draws to run` },
         ];
       }
       let sumMu = 0;
@@ -1085,7 +1077,7 @@ defineWidget({
           ? "95% of your prior — no counts have narrowed it"
           : size
             ? `95% of the posterior's probability is in here · width ${fmt(P.hi - P.lo, 1)}`
-            : `width ${fmt(P.hi - P.lo, 1)} · assume no extra spread and it claims only ${fmt(S.poisWidth, 1)}`,
+            : `width ${fmt(P.hi - P.lo, 1)} · assume no extra spread and it claims ${fmt(S.poisWidth, 1)}`,
       },
     ];
   },
@@ -1158,7 +1150,7 @@ function drawMarginal(ctx, colors, plotW, params, state, anim, m, S) {
   /* ---- the posterior --------------------------------------------------- */
   gutter(ctx, colors, "=", D_Y - 8);
   pD.caption(m === 0
-    ? `P(${name} | no counts) — still exactly your prior, which is the point`
+    ? `P(${name} | no counts) — still exactly your prior`
     : `P(${name} | your ${m} count${m === 1 ? "" : "s"}) — the answer is this whole curve`);
   const postPts = curveOf(post);
   pD.area(postPts, { fill: colors.posterior, opacity: 0.1 });
@@ -1313,8 +1305,8 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   }
   pS.dot(cur.size, cur.mu, { fill: colors.empirical, r: 5 });
   pS.note(t === 0
-    ? "the exact answer, to aim at"
-    : `${t} draw${t === 1 ? "" : "s"} · brms takes ${BRMS_DRAWS.toLocaleString("en")}`);
+    ? "the exact posterior"
+    : `${t} of ${DRAWS} draws`);
 
   /* While a proposal is in flight the strip shows the decision being made; at
      rest it shows the one just made. Showing the NEXT proposal at rest — which
@@ -1412,23 +1404,14 @@ function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textBaseline = "alphabetic";
-  /* These two are hand-drawn rather than a caption/note pair, so core's fallback
-     does not reach them and this line does the same job by hand: at the 550px
-     canvas the harness records, the long heading and the rate overlapped by
-     33px. The clause that goes is restated verbatim two lines below, in "so the
-     chain never computes it". */
-  const headLong = "Should it move? Compare the two lengths — nothing else is needed";
-  const headShort = "Should it move? Compare the two lengths";
+  /* This and the rate are hand-drawn rather than a caption/note pair, so core's
+     width fallback does not reach them. It used to carry "— nothing else is
+     needed" and overlapped the rate by 33px at the 550px canvas the harness
+     records, which needed a measured two-form heading to fix. Cutting the
+     clause fixed it by subtraction: 38 characters against a 451px line, with the
+     rate's 109, fits at every width the side layout produces. */
   const rateText = rate === null ? "" : `${Math.round(rate * 100)}% accepted so far`;
-  let rateW = 0;
-  if (rateText) {
-    ctx.font = `${colors.fsXs} ${colors.font}`;      // the rate's own size
-    rateW = ctx.measureText(rateText).width;
-    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  }
-  ctx.fillText(
-    ctx.measureText(headLong).width + rateW + 14 <= plotW ? headLong : headShort,
-    x0, R_Y - 8);
+  ctx.fillText("Should it move? Compare the two lengths", x0, R_Y - 8);
   if (rate !== null) {
     // A property of the proposals, so it lives with them rather than in a
     // readout tile that is supposed to hold an answer.
@@ -1482,12 +1465,11 @@ function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    /* Two lines, in the same slot the proposed state uses for its verdict and
-       its P(counts) note — so nothing below moves, and the 104-character
-       original stops running 60px off a 550px canvas. */
-    ctx.fillText("nothing proposed yet — the shading above is the exact answer,", x0, ry0 + rowH + 22);
-    ctx.fillText("so the chain can be watched agreeing with something already known to be right",
-      x0, ry0 + rowH + 38);
+    /* One line, in the slot the proposed state uses for its verdict. The
+       original ran 60px off a 550px canvas and was split in two; cutting the
+       second line's commentary put it back on one. */
+    ctx.fillText("nothing proposed yet — the shading above is the exact posterior",
+      x0, ry0 + rowH + 22);
     ctx.restore();
     return;
   }
@@ -1530,7 +1512,7 @@ function ratioStrip(ctx, colors, plotW, d, S, cur, rate) {
   const ratioText = d.ratio >= 0.01 ? d.ratio.toFixed(2) : sci(d.ratio);
   ctx.fillStyle = d.take ? colors.ink2 : colors.extreme;
   ctx.fillText(
-    d.ratio >= 1 ? "the proposal is better · taken without even needing u"
+    d.ratio >= 1 ? "the proposal is better · taken without needing u"
       : d.take ? `ratio ${ratioText} · u landed inside → move anyway`
         : `ratio ${ratioText} · u landed outside → stay, and record here again`,
     x0, ry + rowH + 22);

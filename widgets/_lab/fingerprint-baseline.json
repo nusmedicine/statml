@@ -357,7 +357,7 @@
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&estimate=both&shown=6",
-      "px": "5aa4c7d2",
+      "px": "f058b40f",
       "$note": "The Both tab, climb finished. The only contour in the suite, and the only right-angled path over one."
     },
     {
@@ -409,32 +409,32 @@
     {
       "slug": "posterior",
       "state": "?theme=light&shown=0",
-      "px": "15ab3f2d"
+      "px": "980160d4"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&shown=12",
-      "px": "12e1fc3e"
+      "px": "49b63fba"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=size&shown=12",
-      "px": "2c3ae2a5"
+      "px": "56cb6972"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=both&shown=12",
-      "px": "0045e42c"
+      "px": "579b112c"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "54178a45"
+      "px": "f52793b7"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
-      "px": "1754fcce"
+      "px": "eddf58ef"
     },
     {
       "slug": "posterior",
@@ -444,7 +444,7 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "b5cdd65a"
+      "px": "952c409b"
     },
     {
       "slug": "posterior",
@@ -455,7 +455,7 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "3198d97f"
+      "px": "a90a90e0"
     },
     {
       "slug": "posterior",
@@ -466,7 +466,7 @@
         "frames": 40,
         "dt": 32
       },
-      "px": "d04d6a4c"
+      "px": "f943f1ee"
     },
     {
       "slug": "posterior",
@@ -477,7 +477,7 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "f8397e8b"
+      "px": "f260c2d8"
     }
   ]
 }

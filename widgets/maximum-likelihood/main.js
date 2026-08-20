@@ -309,14 +309,14 @@ defineWidget({
     trueSize: {
       type: "float", label: "True size", min: 1, max: 20, step: 0.5,
       default: TRUE_SIZE_DEF,
-      detail: "larger size = LESS spread · the notebook uses size = 2.5, mu = 10",
+      detail: "larger size = LESS spread",
     },
 
     /* 4 to 60. Below 4 the curve barely has a peak; above 60 the likelihood is
        already past 10^-80 and heading for the smallest number a double holds. */
     n: {
       type: "int", label: "Counts in the sample", min: 4, max: 60, default: 12,
-      detail: "the notebook fits 1000 — this shows few enough to see each one's factor",
+      detail: "few enough to see each one's factor",
     },
 
     /* SEED 46 IS AUTHORED, AND THE PREVIOUS DEFAULT WAS A LIABILITY.
@@ -377,7 +377,7 @@ defineWidget({
       options: [
         { value: "mean", label: "mu", detail: "sweep the mean, assuming Poisson — no overdispersion at all" },
         { value: "disp", label: "size", detail: "sweep the size, with mu fixed at what the first tab found" },
-        { value: "both", label: "Both", detail: "the contour the notebook plots, and a simple search that climbs it one parameter at a time" },
+        { value: "both", label: "Both", detail: "a search that climbs the contour one parameter at a time" },
       ],
       default: "mean",
       display: true,
@@ -823,7 +823,7 @@ defineWidget({
          `neg_loglik` and hunts the MINIMUM; this plots the log-likelihood and
          hunts the maximum. Identical function, opposite sign, and a reader
          comparing the two figures needs to be told once. */
-      pS.axisX({ label: `size — the notebook contours the NEGATIVE of this, so its best is its lowest` });
+      pS.axisX({ label: `size — larger means LESS spread` });
 
       /* The truth, which we can mark only because the population is seeded —
          widget 3's move. The climb lands somewhere else, and the gap is the

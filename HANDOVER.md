@@ -242,6 +242,18 @@ because a crest running straight up is what makes the shortcut safe.
   somebody read the axis and the printed area in the same breath and multiplied.
   **When a computed exponent feeds a label, put a tolerance in the floor.**
 
+- **On-screen copy names no tool and asserts no significance.** Two passes'
+  worth of provenance (`the notebook uses…`, `brms puts its normal(0, 10) on
+  log(mu)`, `as brms would`, `the notebook contours the NEGATIVE of this`) and of
+  editorial tails (`which is the point`, `nothing else is needed`, `to aim at`,
+  `you never get another one`, `taken without EVEN needing u`) came out of
+  `posterior` and `maximum-likelihood`. A student needs the fact, not where it
+  came from or how much it matters. Provenance still belongs in the comments —
+  it is why a default is what it is — but the canvas is not the place. Cutting
+  one of them deleted code as well: with `— nothing else is needed` gone, the
+  ratio strip's heading always fits, so the measured two-form fallback it needed
+  went too.
+
 - **A number measured at the DEFAULT is not a property of the model.** The
   header comment and [docs/catalogue.md](docs/catalogue.md) both said "the
   posterior correlation between the two parameters is 0.024" as settled fact. It
@@ -297,11 +309,16 @@ because a crest running straight up is what makes the shortcut safe.
   a full line of air above. Two-word headings: one needing a subordinate clause
   is doing the block's explaining for it.
 
-- **`.w-subtitle` caps at `62ch`, which is ~76 real characters** — the top of the
-  readable range, not a narrow column. When a subtitle looks like a column
-  hugging the left edge, the copy is too long, not the cap. Widget 9's was 108
-  words against a collection median of 44; it is 63 now. `bootstrap` at 74 is the
-  next longest and everything else is 31–53.
+- **`.w-subtitle` caps at `57ch`, and the old `62ch` was too WIDE, not too narrow.**
+  `ch` is the width of the "0" glyph, which runs ~30% narrow against real prose,
+  so 62ch was recorded here as "~76 real characters, the top of the readable
+  range" and is actually **82** — seven past it. Measured at `--fs-sm`:
+  62ch = 469px = 82 characters, 57ch = 431px = 75. The question that found it was
+  "why not let the text go full width?", and the answer to that is 196 characters
+  per line, ~2.6x the maximum. **The empty space to the right of a subtitle is
+  not a problem stretching text can fix**; it is answered by shorter copy. Widget
+  9's is 63 words and 5 lines, `bootstrap` 74 and 6, everything else 31–53 and
+  3–4. `_lab/subtitle-measure.html` holds the comparison and re-measures live.
 
 - **Replay replays the loop; only Reset undoes the lead.** Core used to re-run
   `init` from nothing, so a button labelled Replay produced a blank figure with
