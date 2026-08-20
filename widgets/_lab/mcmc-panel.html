@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · what the MCMC tab should show</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 860px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  h3 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap;
+         position: sticky; top: 0; background: var(--surface-2); padding: var(--sp-2) 0; z-index: 2; }
+  .bar label { color: var(--ink-2); font-size: var(--fs-sm); }
+  .cand { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3); margin: 0 0 var(--sp-4); }
+  .cand p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .cand .meta { color: var(--ink-3); font-size: var(--fs-xs); margin: var(--sp-2) 0 0;
+                border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  canvas { display: block; width: 100%; height: auto; }
+  .key { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+         padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .key dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4);
+            font-size: var(--fs-sm); }
+  .key dt { color: var(--ink-1); font-weight: 600; }
+  .key dd { margin: 0; color: var(--ink-2); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table.num { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-4); width: 100%; }
+  table.num th, table.num td { text-align: left; padding: var(--sp-1) var(--sp-3) var(--sp-1) 0;
+                               border-bottom: 1px solid var(--grid); }
+  table.num td.n { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>What the MCMC tab should show — and how the sample arrives</h1>
+
+  <p class="note">
+    Widget 9 currently shows a chain converging on a contour. That is true and it
+    is the <em>least</em> interesting fact about it. <strong>MCMC does not compute
+    the normalising constant — it avoids it</strong>, because <code>P(counts)</code>
+    is the same number on the top and bottom of the acceptance ratio and cancels.
+    That is the entire reason the method exists, and it is the misconception this
+    tab has to dissolve. So the question is whether the cancellation can be
+    <em>seen</em>, and what that costs in panel height.
+  </p>
+
+  <div class="key">
+    <h2>The three things the tab could carry</h2>
+    <dl>
+      <dt>The walk</dt><dd>a chain over the exact posterior. Already built. Shows that the draws pile up where the mass is, and that a Markov chain is not independent sampling.</dd>
+      <dt>The ratio</dt><dd>two bars — <code>prior×L</code> where the chain is, and where it wants to go — with the uniform draw as a dart thrown at the shorter one. <strong>Both bars would be divided by the same <code>P(counts)</code>, so the comparison cannot change.</strong> This is the panel that fixes the misconception.</dd>
+      <dt>The result</dt><dd>a histogram of the draws with the exact marginal over it. It is the notebook's own figure (<code>post_samples %&gt;% ggplot(aes(x=mu)) + geom_histogram()</code>) and it is the proof the chain recovers what the grid computed.</dd>
+    </dl>
+  </div>
+
+  <p class="note">
+    <strong>The ratio panel's scaling is the design problem.</strong> Metropolis
+    ratios span orders of magnitude, so two bars on a shared linear scale would
+    often be one full bar and nothing. These are drawn with the CURRENT point's
+    height as full width, so the proposal's bar length <em>is</em> the acceptance
+    probability, and <code>u</code> is a tick on the same scale. A proposal that
+    is better than where you are runs past the line and is taken every time.
+  </p>
+
+  <div class="bar">
+    <label>proposal</label>
+    <span class="w-seg" id="caseseg"></span>
+    <label>depth</label>
+    <span class="w-seg" id="depthseg"></span>
+    <span class="w-flash" id="facts"></span>
+  </div>
+
+  <div id="cands"></div>
+
+  <ol class="judge">
+    <li><strong>Does the cancellation read?</strong> That is the whole test. Look
+      at candidate B without reading the caption: are you looking at two things
+      being <em>compared</em>, or two things being <em>measured</em>? If it reads
+      as measurement, the panel has not earned its height.</li>
+    <li><strong>Is <code>u</code> legible as a dart?</strong> The acceptance rule
+      is "draw a random number, keep it if it lands inside the shorter bar". If
+      the tick reads as a scale mark rather than as a throw, it needs a different
+      mark.</li>
+    <li><strong>In C, does the histogram add or dilute?</strong> It is the
+      notebook's own figure and it proves the chain works — but it is a third
+      idea in one panel, and the tab already has the walk and the ratio.</li>
+    <li><strong>Heights are printed under each.</strong> The marginal tabs are
+      636&nbsp;px of canvas. A plane tab at 494 has room; one at 640 does not,
+      and would make the widget's tallest state taller still.</li>
+    <li><strong>Flip between accept and reject.</strong> On a rejection the chain
+      does not move, and the figure has to say that something happened anyway —
+      otherwise a press looks like a no-op.</li>
+    <li><strong>Would you cut the walk?</strong> The honest question. If the
+      ratio panel plus the histogram carries the lesson, the plane is decoration
+      and the tab could be much shorter.</li>
+  </ol>
+
+  <h3>And separately: how the fixed sample should arrive</h3>
+  <p class="note">
+    The counts are drawn once and never redrawn — that is already true, because
+    <code>compute()</code> is pure and seeded — but the figure does not say so.
+    With a lead action ("Draw the counts"), all twelve land at once and Step then
+    moves them one at a time from <em>pending</em> to <em>observed</em>. Three
+    ways to draw the pending ones, at 5 of 12 observed.
+  </p>
+  <div class="bar">
+    <label>counts to collect</label>
+    <span class="w-seg" id="nseg"></span>
+  </div>
+  <div id="pending"></div>
+  <ol class="judge">
+    <li><strong>Do the pending dots read as "not yet counted"</strong>, or as a
+      second series? They must not look like data of a different kind.</li>
+    <li><strong>Can you count what is left?</strong> "Seven still to come" should
+      be readable without the caption, because that is what tells a reader the
+      answer is still moving.</li>
+    <li><strong>At n = 60 the pending row is crowded.</strong> Whichever wins has
+      to survive that, not just the default twelve.</li>
+  </ol>
+</main>
+
+<script type="module">
+import {
+  makeRng, makePlot, readTokens, niceTicks, fmt, sci, nbLogPmf, nbDraw,
+} from "../core/index.js";
+
+/* ---- the widget's own model, verbatim ---------------------------------- */
+const TRUE_SIZE = 2.5, TRUE_MU = 10;
+const N = 12, SEED = 56;
+const P_MU = 7, P_SD = 3, P_SIZE = 1;
+const G = 80, SIZE_LO = 0.5, SIZE_HI = 10, MU_LO = 0, MU_HI = 20;
+const dS = (SIZE_HI - SIZE_LO) / G, dM = (MU_HI - MU_LO) / G;
+const SIZES = Float64Array.from({ length: G }, (_, i) => SIZE_LO + (i + 0.5) * dS);
+const MUS = Float64Array.from({ length: G }, (_, j) => MU_LO + (j + 0.5) * dM);
+const HPD = [0.5, 0.8, 0.95], HPD_ALPHA = [0.62, 0.40, 0.22];
+const JUMP_SIZE = 0.8, JUMP_MU = 0.4, DRAWS = 600;
+
+const rng = makeRng(SEED);
+const counts = Array.from({ length: N }, () => nbDraw(rng, TRUE_SIZE, TRUE_MU));
+
+const logLik = (r, mu) => counts.reduce((a, k) => a + nbLogPmf(k, r, mu), 0);
+
+/* The priors are NORMALISED on the grid, exactly as the widget does it. The
+   constants cancel out of every acceptance ratio, so the chain is identical
+   either way — but P(counts) is printed here, and a mockup that prints a
+   different number from the thing it is mocking is worse than no mockup. */
+const zS = SIZES.reduce((a, r) => a + Math.exp(-r / P_SIZE), 0) * dS;
+const zM = MUS.reduce((a, mu) => a + Math.exp(-0.5 * ((mu - P_MU) / P_SD) ** 2), 0) * dM;
+const logPost = (r, mu) => (r > 0 && mu > 0)
+  ? logLik(r, mu) - r / P_SIZE - Math.log(zS) - 0.5 * ((mu - P_MU) / P_SD) ** 2 - Math.log(zM)
+  : -Infinity;
+
+/* the exact posterior on the grid, plus its HPD levels and mu marginal */
+const lp = new Float64Array(G * G);
+let lpMax = -Infinity;
+for (let i = 0; i < G; i += 1) {
+  for (let j = 0; j < G; j += 1) {
+    const v = logPost(SIZES[i], MUS[j]);
+    lp[i * G + j] = v;
+    if (v > lpMax) lpMax = v;
+  }
+}
+let W = 0;
+for (let q = 0; q < G * G; q += 1) W += Math.exp(lp[q] - lpMax);
+const cell = dS * dM;
+const EVIDENCE = Math.exp(lpMax + Math.log(W * cell));
+const joint = new Float64Array(G * G);
+const margMu = new Float64Array(G);
+for (let i = 0; i < G; i += 1) {
+  for (let j = 0; j < G; j += 1) {
+    const v = Math.exp(lp[i * G + j] - lpMax) / (W * cell);
+    joint[i * G + j] = v;
+    margMu[j] += v * dS;
+  }
+}
+const hpd = (() => {
+  let hi = 0;
+  for (const v of joint) if (v > hi) hi = v;
+  const BINS = 512, mass = new Float64Array(BINS + 1);
+  for (const v of joint) mass[Math.min(BINS, Math.floor((v / hi) * BINS))] += v * cell;
+  const out = [0, 0, 0];
+  let cum = 0, k = 0;
+  for (let b = BINS; b >= 0 && k < 3; b -= 1) {
+    cum += mass[b];
+    while (k < 3 && cum >= HPD[k]) { out[k] = (b / BINS) * hi; k += 1; }
+  }
+  return out;
+})();
+let margTop = 0;
+for (const v of margMu) if (v > margTop) margTop = v;
+
+/* the chain, exactly as the widget builds it */
+const chain = [];
+{
+  const sampleMean = counts.reduce((a, b) => a + b, 0) / N;
+  let cr = 1, cm = Math.max(0.5, sampleMean);
+  let cl = logPost(cr, cm) + Math.log(cr) + Math.log(cm);
+  let acc = 0;
+  for (let t = 0; t < DRAWS; t += 1) {
+    const pr = Math.exp(Math.log(cr) + rng.normal(0, JUMP_SIZE));
+    const pm = Math.exp(Math.log(cm) + rng.normal(0, JUMP_MU));
+    const pl = logPost(pr, pm) + Math.log(pr) + Math.log(pm);
+    const u = rng.next();
+    const take = Math.log(u) < pl - cl;
+    // The bars show the UNNORMALISED POSTERIOR at each point — prior x likelihood,
+    // no Jacobian — because that is the object the cancellation is about. The
+    // chain itself walks the log-scale target, which carries the Jacobian.
+    const fromRaw = logPost(cr, cm), toRaw = logPost(pr, pm);
+    if (take) { cr = pr; cm = pm; cl = pl; acc += 1; }
+    chain.push({ size: cr, mu: cm, propSize: pr, propMu: pm, take, u,
+      fromRaw, toRaw, ratio: Math.exp(toRaw - fromRaw), rate: acc / (t + 1) });
+  }
+}
+/* THREE cases, because the rule has three outcomes worth seeing, and the first
+   attempt at this page picked a rejection with a ratio of 3e-17 — a proposal
+   seventeen orders of magnitude worse than where the chain already was. The bar
+   was invisible and the ratio printed as 0.00, which makes the comparison look
+   degenerate rather than close. A teaching case has to be a NEAR miss. */
+const pick = (test, from) => {
+  for (let t = from; t < DRAWS - 1; t += 1) if (test(chain[t])) return t;
+  return from;
+};
+const TESTS = {
+  reject: (d) => !d.take && d.ratio > 0.18 && d.ratio < 0.62,
+  lucky: (d) => d.take && d.ratio > 0.35 && d.ratio < 0.8,
+  better: (d) => d.take && d.ratio > 1.05,
+};
+/* DEPTH MATTERS AND THE FIRST DRAFT OF THIS PAGE HID IT. At forty draws the
+   histogram is a row of spikes with a tall one where the chain sat stuck, and it
+   reads as the sampler failing rather than as the sampler working slowly. If C
+   is chosen, the tab has to survive the first hundred presses, not just the
+   finished run — so the depth is a control here. */
+const DEPTHS = [["shallow", 40], ["a hundred in", 150], ["most of the way", 480]];
+let caseKey = "reject";
+let depthFrom = 40;
+const at = () => pick(TESTS[caseKey], depthFrom);
+
+document.getElementById("facts").textContent =
+  `seed ${SEED} · ${N} counts · P(counts) = ${sci(EVIDENCE)} · acceptance ${Math.round(chain[DRAWS - 1].rate * 100)}%`;
+
+/* ---- drawing ----------------------------------------------------------- */
+const CW = 750, PAD_L = 62, PAD_R = 18;
+const PLOTW = CW - PAD_L - PAD_R;
+
+function plane(ctx, c, y, h, t) {
+  const p = makePlot({ ctx, colors: c, rect: { x: PAD_L, y, w: PLOTW, h },
+    xDomain: [SIZE_LO, SIZE_HI], yDomain: [MU_LO, MU_HI] });
+  p.caption("A chain wandering over that same posterior, faded");
+  const px = (i) => Math.round(p.x + (i * p.w) / G);
+  const py = (j) => Math.round(p.y + p.h - (j * p.h) / G);
+  ctx.save();
+  ctx.fillStyle = c.posterior;
+  for (let i = 0; i < G; i += 1) {
+    for (let j = 0; j < G; j += 1) {
+      const v = joint[i * G + j];
+      let band = -1;
+      for (let b = 0; b < 3; b += 1) if (v >= hpd[b]) { band = b; break; }
+      if (band < 0) continue;
+      ctx.globalAlpha = HPD_ALPHA[band] * 0.4;
+      ctx.fillRect(px(i), py(j + 1), px(i + 1) - px(i), py(j) - py(j + 1));
+    }
+  }
+  ctx.restore();
+  p.axisY({ ticks: niceTicks(MU_LO, MU_HI, 4), label: "mu" });
+  p.axisX({ label: "size — larger means LESS spread" });
+  p.dot(TRUE_SIZE, TRUE_MU, { fill: c.reference, r: 5 });
+
+  ctx.save();
+  ctx.fillStyle = c.empirical;
+  ctx.globalAlpha = 0.45;
+  for (let q = 0; q < t; q += 1) {
+    ctx.beginPath();
+    ctx.arc(p.sx(chain[q].size), p.sy(chain[q].mu), 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  const tail = [];
+  for (let q = Math.max(0, t - 24); q < t; q += 1) tail.push([chain[q].size, chain[q].mu]);
+  if (tail.length > 1) p.curve(tail, { stroke: c.empirical, width: 1.5 });
+
+  const cur = chain[t - 1], nxt = chain[t];
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = nxt.take ? c.highlight : c.extreme;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(p.sx(cur.size), p.sy(cur.mu));
+  ctx.lineTo(p.sx(nxt.propSize), p.sy(nxt.propMu));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(p.sx(nxt.propSize), p.sy(nxt.propMu), 4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  p.dot(cur.size, cur.mu, { fill: c.empirical, r: 5 });
+  return p;
+}
+
+/** Two bars from a common left edge, the CURRENT point at full width. The
+    proposal's length is then literally the acceptance probability, and u is a
+    dart thrown along the same axis. */
+function ratioStrip(ctx, c, y, h, t, withCancel) {
+  const nxt = chain[t];
+  const x0 = PAD_L, wFull = 460;
+  const CAP = 1.15;              // a better proposal runs past the top bar's end
+  const VALX = x0 + wFull * CAP + 12;   // the value column starts past the longest bar
+  const rowH = 15, gap = 9;
+  const shown = Math.min(CAP, nxt.ratio);
+
+  ctx.save();
+  ctx.font = `600 ${c.fsSm} ${c.font}`;
+  ctx.fillStyle = c.ink2;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("Should it move? Compare the two lengths — nothing else is needed", x0, y - 8);
+  ctx.restore();
+
+  const row = (i, label, frac, fill, valueText) => {
+    const ry = y + i * (rowH + gap);
+    ctx.save();
+    ctx.fillStyle = c.ink3;
+    ctx.font = `${c.fsXs} ${c.font}`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x0 - 8, ry + rowH / 2);
+    ctx.textAlign = "left";
+    ctx.fillStyle = c.ink2;
+    ctx.fillText(valueText, VALX, ry + rowH / 2);
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = fill;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0, ry, Math.max(1, wFull * Math.min(frac, CAP)), rowH);
+    ctx.restore();
+    return ry;
+  };
+
+  row(0, "here now", 1, c.empirical, sci(Math.exp(nxt.fromRaw)));
+  const ry = row(1, "proposed", shown,
+    nxt.take ? c.highlight : c.extreme, sci(Math.exp(nxt.toRaw)));
+
+  // u, the dart — drawn only when there is something for it to decide. A better
+  // proposal is taken outright, so a tick there is a dart with nothing to hit.
+  if (nxt.ratio < 1) {
+    const ux = x0 + wFull * nxt.u;
+    ctx.save();
+    ctx.strokeStyle = c.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(ux) + 0.5, ry - 4);
+    ctx.lineTo(Math.round(ux) + 0.5, ry + rowH + 4);
+    ctx.stroke();
+    ctx.fillStyle = c.ink1;
+    ctx.font = `${c.fsXs} ${c.font}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`u = ${nxt.u.toFixed(2)}`, ux, ry + rowH + 6);
+    ctx.restore();
+  }
+
+  const verdict = nxt.ratio >= 1
+    ? `the proposal is better · taken without even needing u`
+    : nxt.take
+      ? `ratio ${nxt.ratio.toFixed(2)} · u landed inside → move anyway`
+      : `ratio ${nxt.ratio.toFixed(2)} · u landed outside → stay, and record here again`;
+  ctx.save();
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillStyle = nxt.take ? c.ink2 : c.extreme;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(verdict, x0, ry + rowH + 22);
+  if (withCancel) {
+    ctx.fillStyle = c.ink3;
+    ctx.fillText(
+      `both would be divided by P(counts) = ${sci(EVIDENCE)} — the comparison cannot change, so the chain never computes it`,
+      x0, ry + rowH + 38);
+  }
+  ctx.restore();
+  return ry + rowH + (withCancel ? 52 : 36);
+}
+
+/** The notebook's own figure: a histogram of the draws, and the exact curve. */
+function histStrip(ctx, c, y, h, t) {
+  const BW = 0.5, BINS = Math.round((MU_HI - MU_LO) / BW);
+  const cnt = new Array(BINS).fill(0);
+  for (let q = 0; q < t; q += 1) {
+    const b = Math.floor((chain[q].mu - MU_LO) / BW);
+    if (b >= 0 && b < BINS) cnt[b] += 1;
+  }
+  const dens = cnt.map((k) => k / (t * BW));
+  const top = Math.max(margTop, ...dens) * 1.12;
+  const p = makePlot({ ctx, colors: c, rect: { x: PAD_L, y, w: PLOTW, h },
+    xDomain: [MU_LO, MU_HI], yDomain: [0, top] });
+  p.caption(`The ${t} draws for mu, and the curve the grid already knows`);
+  p.bars(dens, { lo: MU_LO, width: BW, fill: c.empirical, opacity: 0.45 });
+  const pts = [];
+  for (let j = 0; j < G; j += 1) pts.push([MUS[j], margMu[j]]);
+  p.curve(pts, { stroke: c.posterior, width: 2.5 });
+  p.axisX({ label: "mu" });
+  p.note("brms hands you the bars, not the curve");
+  return y + h + 24;
+}
+
+const T = 62; // draws accumulated, for every candidate
+
+const CANDS = [
+  {
+    name: "A — the walk only",
+    sub: "What is built today. The ratio is a sentence in the note; the cancellation is never shown.",
+    height: () => 372,
+    draw(ctx, c) {
+      const t = at();
+      const p = plane(ctx, c, 34, 306, t);
+      p.note(chain[t].take
+        ? "accepted — the chain moves there"
+        : "rejected — it stays, and records where it already was");
+      return 372;
+    },
+  },
+  {
+    name: "B — the walk and the ratio",
+    sub: "Two bars, the current point at full width. The proposal's length IS the acceptance probability; u is a dart.",
+    height: () => 452,
+    draw(ctx, c) {
+      const t = at();
+      const p = plane(ctx, c, 34, 250, t);
+      p.note(`${t} draws · brms would take 6,000`);
+      return ratioStrip(ctx, c, 340, 0, t, true) + 12;
+    },
+  },
+  {
+    name: "C — the walk, the ratio and the result",
+    sub: "Adds the notebook's own histogram, with the exact marginal over it. Three ideas in one panel.",
+    height: () => 578,
+    draw(ctx, c) {
+      const t = at();
+      const p = plane(ctx, c, 34, 208, t);
+      p.note(`${t} draws`);
+      const after = ratioStrip(ctx, c, 296, 0, t, true);
+      return histStrip(ctx, c, after + 22, 104, t);
+    },
+  },
+];
+
+/* ---- the pending / observed strip -------------------------------------- *
+ * The same seed and the same draw sequence, so the first twelve of these ARE
+ * the widget's twelve. n is a control here because the judge list says the
+ * winner has to survive n = 60, and a mockup that only shows the default is
+ * not testing that.                                                          */
+const counts60 = (() => {
+  const r = makeRng(SEED);
+  return Array.from({ length: 60 }, () => nbDraw(r, TRUE_SIZE, TRUE_MU));
+})();
+let PN = 12;
+const observedOf = (n) => Math.max(1, Math.round(n * 0.42));
+const PEND = [
+  { name: "P1 — pending at low opacity, same row", draw: pendOpacity },
+  { name: "P2 — pending hollow, same row", draw: pendHollow },
+  { name: "P3 — pending in a waiting row of its own", draw: pendRow },
+];
+const countHiFor = (n) => {
+  const kMax = Math.max(...counts60.slice(0, n));
+  return Math.max(32, Math.ceil((kMax + 3) / 8) * 8);
+};
+let COUNT_HI = countHiFor(PN);
+
+function tallies(upTo) {
+  const t = new Array(COUNT_HI + 1).fill(0);
+  for (let i = 0; i < upTo; i += 1) t[counts60[i]] += 1;
+  return t;
+}
+function maxStack(n) {
+  const t = new Array(COUNT_HI + 1).fill(0);
+  let m = 3;
+  for (let i = 0; i < n; i += 1) { t[counts60[i]] += 1; if (t[counts60[i]] > m) m = t[counts60[i]]; }
+  return m;
+}
+function stripPlot(ctx, c, y, h) {
+  return makePlot({ ctx, colors: c, rect: { x: PAD_L, y, w: PLOTW, h },
+    xDomain: [-0.5, COUNT_HI + 0.5], yDomain: [0, maxStack(PN) + 1] });
+}
+function dots(p, ctx, tally, from, upTo, style, c) {
+  const seen = tally.slice();
+  for (let i = from; i < upTo; i += 1) {
+    const k = counts60[i];
+    const lvl = seen[k];
+    seen[k] += 1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(p.sx(k), p.sy(lvl + 0.5), 3.6, 0, Math.PI * 2);
+    if (style === "solid") { ctx.fillStyle = c.empirical; ctx.fill(); }
+    else if (style === "faint") { ctx.globalAlpha = 0.30; ctx.fillStyle = c.empirical; ctx.fill(); }
+    else { ctx.strokeStyle = c.empirical; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.4; ctx.stroke(); }
+    ctx.restore();
+  }
+}
+function pendOpacity(ctx, c) {
+  const obs = observedOf(PN);
+  const p = stripPlot(ctx, c, 34, 78);
+  p.caption(`Your counts — ${obs} of ${PN} observed`);
+  dots(p, ctx, tallies(0), 0, obs, "solid", c);
+  dots(p, ctx, tallies(obs), obs, PN, "faint", c);
+  p.axisX({ label: "count" });
+  return 152;
+}
+function pendHollow(ctx, c) {
+  const obs = observedOf(PN);
+  const p = stripPlot(ctx, c, 34, 78);
+  p.caption(`Your counts — ${obs} of ${PN} observed`);
+  dots(p, ctx, tallies(0), 0, obs, "solid", c);
+  dots(p, ctx, tallies(obs), obs, PN, "hollow", c);
+  p.axisX({ label: "count" });
+  return 152;
+}
+function pendRow(ctx, c) {
+  const obs = observedOf(PN);
+  const pend = makePlot({ ctx, colors: c, rect: { x: PAD_L, y: 42, w: PLOTW, h: 30 },
+    xDomain: [-0.5, COUNT_HI + 0.5], yDomain: [0, Math.max(3, maxStack(PN))] });
+  ctx.save();
+  ctx.font = `600 ${c.fsSm} ${c.font}`;
+  ctx.fillStyle = c.ink2;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(`Your counts — ${obs} of ${PN} observed`, PAD_L, 26);
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillStyle = c.ink3;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText("to come", PAD_L - 8, 57);
+  ctx.restore();
+  const seen = new Array(COUNT_HI + 1).fill(0);
+  for (let i = obs; i < PN; i += 1) {
+    const k = counts60[i];
+    const lvl = seen[k]; seen[k] += 1;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = c.empirical;
+    ctx.beginPath();
+    ctx.arc(pend.sx(k), pend.sy(lvl + 0.5), 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.strokeStyle = c.grid;
+  ctx.beginPath();
+  ctx.moveTo(PAD_L, 80.5);
+  ctx.lineTo(PAD_L + PLOTW, 80.5);
+  ctx.stroke();
+  ctx.restore();
+  const p = stripPlot(ctx, c, 90, 62);
+  ctx.save();
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillStyle = c.ink3;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText("observed", PAD_L - 8, 121);
+  ctx.restore();
+  dots(p, ctx, tallies(0), 0, obs, "solid", c);
+  p.axisX({ label: "count" });
+  return 188;
+}
+
+/* ---- page scaffolding -------------------------------------------------- */
+function mount(host, list, heightOf) {
+  return list.map((cd) => {
+    const box = document.createElement("div");
+    box.className = "cand";
+    const h2 = document.createElement("h2");
+    h2.textContent = cd.name;
+    const sub = document.createElement("p");
+    sub.className = "sub";
+    sub.textContent = cd.sub ?? "";
+    const canvas = document.createElement("canvas");
+    const meta = document.createElement("p");
+    meta.className = "meta";
+    box.append(h2, sub, canvas, meta);
+    host.appendChild(box);
+    return { cd, canvas, meta, heightOf };
+  });
+}
+const views = [
+  ...mount(document.getElementById("cands"), CANDS, (cd) => cd.height()),
+  ...mount(document.getElementById("pending"), PEND, (cd) => (cd.draw === pendRow ? 188 : 152)),
+];
+
+function render() {
+  const c = readTokens();
+  for (const v of views) {
+    const H = v.heightOf(v.cd);
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const cssW = v.canvas.clientWidth || CW;
+    const s = cssW / CW;
+    v.canvas.width = Math.round(cssW * dpr);
+    v.canvas.height = Math.round(H * s * dpr);
+    v.canvas.style.height = `${H * s}px`;
+    const ctx = v.canvas.getContext("2d");
+    ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+    ctx.clearRect(0, 0, CW, H);
+    const used = v.cd.draw(ctx, c);
+    v.meta.textContent = v.cd.height
+      ? `panel ${H} px · drawn to ${Math.round(used)} px · the marginal tabs are 636 px, so this tab would be the ${H > 636 ? "TALLEST state" : "shorter state"}`
+      : `strip ${Math.round(used)} px`;
+  }
+}
+
+function segment(host, pairs, get, set) {
+  for (const [val, label] of pairs) {
+    const b = document.createElement("button");
+    b.className = "w-seg-btn";
+    b.type = "button";
+    b.textContent = label;
+    b.addEventListener("click", () => {
+      set(val);
+      [...host.children].forEach((x) => x.setAttribute("aria-pressed", String(x.textContent === label)));
+      render();
+    });
+    b.setAttribute("aria-pressed", String(val === get()));
+    host.appendChild(b);
+  }
+}
+segment(document.getElementById("caseseg"),
+  [["reject", "rejected — a near miss"], ["lucky", "accepted — though worse"], ["better", "accepted — better"]],
+  () => caseKey, (v) => { caseKey = v; });
+segment(document.getElementById("depthseg"),
+  DEPTHS.map(([label, from]) => [from, label]),
+  () => depthFrom, (v) => { depthFrom = v; });
+segment(document.getElementById("nseg"),
+  [[12, "12 — the default"], [30, "30"], [60, "60 — the widest"]],
+  () => PN, (v) => { PN = v; COUNT_HI = countHiFor(v); });
+
+render();
+addEventListener("resize", render);
+</script>
+</body>
+</html>
