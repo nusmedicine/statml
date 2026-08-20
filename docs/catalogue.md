@@ -360,7 +360,7 @@ Inferring Parameters`, and they are **one argument rather than three topics**:
 
 | # | slug | question | lesson's framing |
 |---|---|---|---|
-| 8 | `maximum-likelihood` 🟡 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
+| 8 | `maximum-likelihood` 🟢 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
 | 9 | `mcmc-posterior` | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
 | 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
 
@@ -370,11 +370,11 @@ headings apart. Reversing them is one of the most common errors in applied
 statistics, and this pair is built to make the reversal visible rather than
 warned about.
 
-### Widget 8 · `maximum-likelihood`
+### Widget 8 · `maximum-likelihood` — shipped
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 8 | `maximum-likelihood` 🟡 | Maximum likelihood estimation | *Which parameter value makes what I actually saw most probable?* | That the likelihood is a probability distribution **over the parameter** — that a taller curve at θ means θ is more probable. It is `P(data \| θ)` read as a function of θ for fixed data: it does not integrate to 1, and its total depends only on the range you chose to sweep | **reported**, with a documented parent — see below |
+| 8 | `maximum-likelihood` 🟢 | Maximum likelihood estimation | *Which parameter value makes what I actually saw most probable?* | That the likelihood is a probability distribution **over the parameter** — that a taller curve at θ means θ is more probable. It is `P(data \| θ)` read as a function of θ for fixed data: it does not integrate to 1, and its total depends only on the range you chose to sweep | **reported**, with a documented parent — see below |
 
 **The evidence, graded honestly.** I cannot name a study that measures *this*
 misconception at a rate, so it is **reported**, not documented. What is

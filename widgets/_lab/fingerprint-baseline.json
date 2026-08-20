@@ -341,6 +341,70 @@
         "frames": 40,
         "dt": 32
       }
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light&shown=41",
+      "px": "c0074487",
+      "$note": "The default payoff figure: the mu sweep complete, the peak on the sample mean and short of the true 10."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light&estimate=disp&shown=41",
+      "px": "8c81141f",
+      "$note": "The size tab, swept. A different x-axis and a different held-fixed note; nothing else in the suite renders this panel."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light&estimate=both&shown=6",
+      "px": "81a1b12a",
+      "$note": "The Both tab, climb finished. The only contour in the suite, and the only right-angled path over one."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light&n=60&factors=0&shown=41",
+      "px": "15fef153",
+      "$note": "n = 60 with the factor row off: the count axis has ratcheted out and the exponent has collapsed. Catches anything that scales with n."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light&trueSize=8&n=6&estimate=disp&shown=41",
+      "px": "0c919b95",
+      "$note": "A near-Poisson population (size 8) at small n. The size tab should find little to fix here, so it guards the branch that reports it."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light",
+      "drive": {
+        "click": "lead",
+        "frames": 44,
+        "dt": 32
+      },
+      "px": "a516c215",
+      "$note": "DRIVEN: the lead mid-fall, counts dropping out of the true distribution while it is still drawn. No settled state renders that curve at all."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light",
+      "drive": {
+        "click": "lead",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "04b39d74",
+      "$note": "DRIVEN: the lead early on, most counts still airborne and the true curve at full opacity."
+    },
+    {
+      "slug": "maximum-likelihood",
+      "state": "?theme=light",
+      "drive": {
+        "lead": true,
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "dc3efbf6",
+      "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
     }
   ]
 }

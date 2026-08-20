@@ -329,7 +329,6 @@ function halt(anim, { finished = false } = {}) {
 
 defineWidget({
   slug: "maximum-likelihood",
-  status: "draft",
   title: "Maximum Likelihood",
   subtitle:
     "Which parameter value makes what you actually saw most probable? Draw your " +

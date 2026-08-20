@@ -2,16 +2,18 @@
 
 ## Where things are
 
-**Widget 8, `maximum-likelihood`, is built and committed as a `draft`.** It is in
-`widgets/manifest.json`, so it appears at `/lab/` and not on the gallery. It has
-**no fingerprint baseline yet** — that is the next mechanical job, and the reason
-it was left is that the design moved five times in one session and a baseline
-recorded before the design settles is thrown away.
+**Widget 8, `maximum-likelihood`, is shipped.** It is on the gallery, baselined
+with **8 fingerprint states** (five settled, three driven), and the suite reports
+**47/47 MATCH**.
 
 Widget 9, `posterior`, is **planned in detail and not started** —
 [docs/catalogue.md](docs/catalogue.md), "Widget 9 · `posterior`". Read that before
-writing any of it; the design decisions are already taken and the reasons are
-recorded.
+writing any of it: the design decisions are already taken and the reasons are
+recorded, including one thing to verify first (brms puts its prior on the log
+scale, so `normal(0, 10)` is a prior on `log(mu)`, not on `mu`).
+
+`power-and-error` is still the only `draft` in the manifest, and still has no
+fingerprint states.
 
 ## What widget 8 is, in one paragraph
 
@@ -23,16 +25,11 @@ plots. Parameters, orientation and starting values follow
 `03 / 02-02 — Inferential Statistics — Inferring Parameters` so a student can
 move between the two without translating.
 
-## The next job, in order
+## The next job
 
-1. **Baseline it.** Two or three settled states (`?shown=41`, one per tab) plus at
-   least one **driven** state (`drive: { click, frames, dt, lead: true }`) —
-   `check.mjs` fails a widget that declares an `animation` without one. Confirm
-   each driven state is identical across three runs before writing the baseline.
-2. **Ship it**: `status: "shipped"` in `widgets/manifest.json` and 🟢 in the
-   catalogue, once you are happy it survives a projector.
-3. **Then widget 9.** The plan is written; the first real decision left is the
-   prior-scale question flagged under "To check before building".
+**Widget 9.** The plan is written. Its likelihood machinery comes straight from
+widget 8, and it is the second consumer that finally justifies pulling the
+negative binomial's log-pmf out of `maximum-likelihood/main.js` and into core.
 
 ## Things this session learned the hard way
 
@@ -78,6 +75,19 @@ wrong speed, the surface filling column by column, the interval clipped to the
 panel width — all of those were found by reading numbers out of the page or by
 tracking a marker's bounding box frame by frame. A screenshot showed a
 plausible-looking figure in every one of those cases.
+
+**Baselining is slow and the wait is the job.** One suite pass over 47 states
+takes about eight minutes in the browser pane, and a new driven state needs three
+identical passes before it is recorded — so budget roughly half an hour, and do
+not start until the design has stopped moving. Reloading the page restarts the
+run; confirm the table is nearly empty straight afterwards, or you will read a
+stale one and think a run finished in seconds.
+
+**Write the baseline back with the original formatting.** A plain
+`json.dumps(indent=1)` rewrote all 47 states and turned an 8-state addition into
+a 408-line diff. Preserve each existing state's own key order and pass
+`ensure_ascii=False`; the honest diff for this widget was **64 insertions and no
+deletions**.
 
 The browser pane's tab reports `document.visibilityState === "hidden"`, so
 `requestAnimationFrame` never fires and nothing animates on its own. Drive
