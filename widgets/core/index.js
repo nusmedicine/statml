@@ -4,7 +4,7 @@ export { defineWidget } from "./widget.js";
 export { makeRng } from "./rng.js";
 export {
   POPULATIONS, EFFECT_SD, normalPdf, studentTPdf, tCritical, tTailP, Z_CRITICAL_95,
-  mean, sd, histogram, fmt,
+  mean, sd, histogram, fmt, lgamma,
 } from "./stats.js";
 export { makePlot, niceTicks, tickFormat, samplePdf, createCanvas, spanningRule } from "./canvas.js";
 export { readTokens, resolveTheme, isEmbedded } from "./env.js";

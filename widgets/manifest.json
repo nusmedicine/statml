@@ -1,5 +1,5 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` and `blurb` are GALLERY COPY and nothing else reads them: a widget page sets its own title from defineWidget({title}) in its main.js. So the gallery names the topic (“Hypothesis Testing”) while the page asks the question (“Could chance alone have done this?”). The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut \u2014 a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan \u2014 every candidate concept, its target misconception and evidence \u2014 lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. This is now the ONLY place a widget height is recorded; it used to be three, and deleting the embedders closed that seam.",
   "widgets": [
     {
       "slug": "galton-board",
@@ -45,7 +45,7 @@
     {
       "slug": "confidence-interval",
       "title": "Confidence Intervals",
-      "blurb": "Build the same studies' intervals three ways — bootstrap, normal, t — and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
+      "blurb": "Build the same studies' intervals three ways \u2014 bootstrap, normal, t \u2014 and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -89,7 +89,7 @@
     {
       "slug": "power-and-error",
       "title": "Power and Error Rates",
-      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves — and which does not budge.",
+      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves \u2014 and which does not budge.",
       "course": "PHM5003",
       "topics": [
         "power",
@@ -99,6 +99,22 @@
       ],
       "arc": 7,
       "height": 1055,
+      "status": "draft"
+    },
+    {
+      "slug": "maximum-likelihood",
+      "title": "Maximum Likelihood",
+      "blurb": "Twelve gene counts, drawn once. Try a candidate mean and every count gets a height under it; multiply them and you have how probable that candidate makes exactly what you saw. Then estimate the dispersion the Poisson ignored, and watch a search over both stop moving after two steps.",
+      "course": "PHM5003",
+      "topics": [
+        "estimation",
+        "likelihood",
+        "negative binomial",
+        "overdispersion",
+        "inference"
+      ],
+      "arc": 8,
+      "height": 1008,
       "status": "draft"
     }
   ]

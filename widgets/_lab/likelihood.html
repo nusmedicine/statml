@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · what the likelihood figure has to show</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1080px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2.sec { font-size: var(--fs-lg); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-4); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 78ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  .cell p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-2); min-height: 4.4em; }
+  canvas { display: block; width: 100%; height: auto; }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-3); flex-wrap: wrap; }
+  .bar .grp { display: flex; align-items: center; gap: var(--sp-2); }
+  .bar label { color: var(--ink-2); font-size: var(--fs-sm); }
+  .bar input[type="range"] { width: 220px; accent-color: var(--focus); }
+  .bar .w-seg { flex: none; }
+  .bar .w-seg-btn { padding: 5px 10px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); margin-top: var(--sp-2);
+           border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  .tiles b { display: block; font-size: var(--fs-md); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tiles span.l { display: block; color: var(--ink-2); font-size: var(--fs-xs); }
+  .tiles span.n { display: block; color: var(--ink-3); font-size: var(--fs-xs); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 78ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  .key { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+         padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); max-width: 860px; }
+  .key p { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .key p:last-child { margin-bottom: 0; }
+  .key table { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); width: 100%; }
+  .key th { text-align: left; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400;
+            padding: 0 var(--sp-4) var(--sp-1) 0; border-bottom: 1px solid var(--grid); }
+  .key td { padding: var(--sp-2) var(--sp-4) var(--sp-2) 0; color: var(--ink-2);
+            border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .key td b { color: var(--ink-1); }
+  .key td span { color: var(--ink-3); font-size: var(--fs-xs); }
+  .wide { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); max-width: 560px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Maximum likelihood — what the figure has to show</h1>
+  <p class="note">
+    For widget 8. The claim under test: <strong>the likelihood is built the same
+    way every pile in this collection is built — one value at a time</strong>,
+    except the values are not random draws, they are <em>candidates you tried</em>.
+    Each press asks one question — <em>how probable is what I actually saw, if
+    this were the parameter?</em> — and drops the answer into the panel below.
+  </p>
+  <p class="note">
+    The top panel is <strong>one point of the bottom panel</strong>. A candidate
+    puts a model over the data; every observation gets a height under it; the
+    twelve heights multiply to one number; that number is one dot below. Slide
+    the candidate and you are walking along the bottom panel's x-axis.
+  </p>
+  <p class="note">
+    The bottom panel's y-axis carries the misconception target in its label:
+    it is <strong>P(the data | the parameter)</strong>, not a distribution over
+    the parameter. Watch its exponent when you change <em>n</em> — a probability
+    distribution cannot lose ten orders of magnitude because you collected more
+    data.
+  </p>
+
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="step">Try one value</button>
+    <button class="w-btn" id="sweep">Sweep</button>
+    <button class="w-btn" id="reset">Reset</button>
+    <span class="grp">
+      <label for="cand">candidate</label>
+      <input type="range" id="cand" min="0" max="40" step="1" value="0">
+    </span>
+  </div>
+  <div class="bar">
+    <span class="grp"><label>n</label>
+      <span class="w-seg" id="nseg"></span>
+    </span>
+    <span class="grp"><label>y-axis</label>
+      <span class="w-seg" id="axseg"></span>
+    </span>
+    <span class="grp"><label>contributions</label>
+      <span class="w-seg" id="barseg"></span>
+    </span>
+    <span class="grp"><label>true distribution</label>
+      <span class="w-seg" id="truthseg"></span>
+    </span>
+    <span class="grp"><label>seed</label>
+      <button class="w-btn" id="seedDown">&minus;</button>
+      <span class="w-flash" id="seedVal">3</span>
+      <button class="w-btn" id="seedUp">+</button>
+    </span>
+  </div>
+
+  <div class="key">
+    <p><strong>Probability and likelihood are the same formula read in two
+    directions</strong>, and the two panels below are the two directions. This is
+    the wording I would put in the widget's subtitle — judge it as copy.</p>
+    <table>
+      <tr><th></th><th>held fixed</th><th>varies along the x-axis</th><th>adds up to</th></tr>
+      <tr><td><b>probability</b><br><span>the top panel</span></td>
+          <td>the parameter — your guess</td><td>the data</td><td><b>1</b> — it is a distribution</td></tr>
+      <tr><td><b>likelihood</b><br><span>the bottom panel</span></td>
+          <td>the data — drawn once</td><td>the parameter</td><td><b>nothing in particular</b></td></tr>
+    </table>
+    <p>Both numbers are printed on the panels. The top one reads <code>1.000</code>
+    exactly, because for counts it is a sum of genuine probabilities. The bottom
+    one reads whatever it reads, and changing the range you swept changes it —
+    which is the point: <strong>there is no natural total.</strong></p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <ol class="judge">
+    <li><strong>Does panel A read as “this candidate explains these points badly”?</strong>
+      Drag the candidate to an end of its range. The stems should visibly collapse.
+      If they do not, the multiplication is invisible and the mechanism is not on
+      screen.</li>
+    <li><strong>Counts or measurements?</strong> The lesson uses a negative
+      binomial and the domain is RNA-seq, but the discrete pmf is flatter and its
+      duplicate values stack on the same stem. The normal is instantly readable
+      and costs the exact phrase “probability of the data” — its heights are
+      densities. Pick one.</li>
+    <li><strong>Does the contribution row earn its 80 px?</strong> It is the only
+      mark that shows all <em>n</em> factors separately, on a common scale, with
+      duplicates visible. It is also a third panel. Turn it off and see what is
+      lost.</li>
+    <li><strong>Likelihood or log-likelihood?</strong> The raw one carries the
+      honest number and an absurd exponent. The log one is what <code>optim</code>
+      actually maximises and is the only one still legible at n = 60. The peak is
+      in the same place — which is worth a sentence in the widget.</li>
+    <li><strong>Is the peak findable by eye?</strong> If the curve is flat near
+      its maximum, “read off the top” is not a thing a student can do — which is
+      an argument <em>for</em> the widget, not against it, but the figure has to
+      make the flatness visible rather than hide it.</li>
+    <li><strong>Does the curve tighten with n?</strong> Step n through 6 → 60 with
+      a completed sweep. If the narrowing is obvious, widget 9's posterior has its
+      setup for free.</li>
+    <li><strong>Do the two “adds to” numbers land?</strong> Top panel:
+      <code>1.000</code>. Bottom panel: some absurd total that moves when you sweep
+      a different range. That pair is the entire probability-vs-likelihood
+      distinction, stated in the only place a student is already looking. If it
+      does not read, it wants prose instead — but prose is what everyone already
+      tries.</li>
+    <li><strong>Should the true distribution be shown at all?</strong> Switch it
+      on above. In the widget it would not be a toggle: it is what the
+      <em>Draw the sample</em> lead shows while the observations fall out of it,
+      and then it goes for good — <strong>the one time the arrow runs
+      forwards</strong>. Everything after that runs backwards. Judge whether
+      seeing it once, and losing it, carries that.</li>
+    <li><strong>Should the dots be joined before the sweep finishes?</strong>
+      Here neighbouring visited points are joined and nothing else — a line across
+      a gap would be a claim about a candidate nobody evaluated.</li>
+  </ol>
+
+  <h2 class="sec">Stage two — both parameters unknown</h2>
+  <p class="note">
+    The same counts, the same likelihood, one more unknown: the dispersion. The
+    curve becomes a surface and there is <strong>no formula for the peak</strong>
+    — which is exactly why the lesson picked this model. Darker is more likely;
+    the bands are drops of 0.5, 1, 2, 3, 5, 10 and 20 in log-likelihood from the
+    maximum.
+  </p>
+  <p class="note">
+    What to look for: <strong>the two parameters are not equally determined.</strong>
+    Measured at n = 12, seed 3: the mean is pinned inside about 7–11.5, a factor of
+    1.6; the dispersion runs from about 0.8 to 4, a factor of 5 — on a log axis,
+    which is the honest scale for it. The MLE lands at 1.31 against a true 2.5 and
+    the surface barely objects. That is not a drawing artefact — it is why edgeR
+    and DESeq2 shrink dispersion estimates across genes rather than trust the
+    per-gene MLE. Change <em>n</em> above and watch the ridge close up.
+  </p>
+  <div class="wide"><canvas id="surface"></canvas>
+    <div class="tiles" id="surfTiles"></div>
+  </div>
+
+  <ol class="judge">
+    <li><strong>Is the banana legible as a shape, or does it just read as a
+      blur?</strong> Stepped bands were chosen over a smooth heatmap so the
+      contour is countable. Judge that.</li>
+    <li><strong>Does the grid cost land?</strong> 41 evaluations built the curve
+      above; this is 96 × 72 = 6,912 for a worse answer. That gap is the argument
+      that MLE is a search rather than a sweep — but it is currently only
+      available as a sentence, not as something you watch.</li>
+    <li><strong>Is the truth marker honest or distracting?</strong> We know the
+      true parameters because the population is seeded (widget 3's move). The MLE
+      lands somewhere else, which is the point.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng, makePlot, readTokens, normalPdf, samplePdf, niceTicks, fmt } from "../core/index.js";
+
+/* --- log-gamma. stats.js already has this, unexported; the widget will want it
+   exported rather than a second copy. ------------------------------------- */
+const LG_C = [
+  0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+  771.32342877765313, -176.61502916214059, 12.507343278686905,
+  -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+];
+function lgamma(z) {
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  const zz = z - 1;
+  let x = LG_C[0];
+  for (let i = 1; i < 9; i += 1) x += LG_C[i] / (zz + i);
+  const w = zz + 7.5;
+  return 0.5 * Math.log(2 * Math.PI) + (zz + 0.5) * Math.log(w) - w + Math.log(x);
+}
+
+/** Negative binomial in R's (size, mu) parameterisation — dnbinom(x, size, mu=). */
+function nbLogPmf(k, mu, size) {
+  return lgamma(k + size) - lgamma(size) - lgamma(k + 1)
+    + size * (Math.log(size) - Math.log(size + mu))
+    + k * (Math.log(mu) - Math.log(size + mu));
+}
+function nbSample(rng, mu, size) {
+  const u = rng.next();
+  let acc = 0;
+  for (let k = 0; k <= 400; k += 1) {
+    acc += Math.exp(nbLogPmf(k, mu, size));
+    if (u < acc) return k;
+  }
+  return 400;
+}
+
+/** What a candidate's heights add up to across EVERY possible observation.
+    For counts this is an exact sum and prints 1.000; for a density it is an
+    integral, which is one abstraction further from the student. */
+function modelTotal(m, th) {
+  if (m.discrete) {
+    let s = 0;
+    for (let k = 0; k <= 400; k += 1) s += m.p(k, th);
+    return s;
+  }
+  const lo = th - 9 * TRUE_SD, hi = th + 9 * TRUE_SD, K = 4000, dx = (hi - lo) / K;
+  let s = 0;
+  for (let i = 0; i < K; i += 1) s += 0.5 * (m.p(lo + i * dx, th) + m.p(lo + (i + 1) * dx, th)) * dx;
+  return s;
+}
+
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴",
+  5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sup = (n) => String(n).split("").map((ch) => SUP[ch] ?? ch).join("");
+function sci(v, digits = 1) {
+  if (!(v > 0)) return "0";
+  const e = Math.floor(Math.log10(v));
+  return `${(v / 10 ** e).toFixed(digits)} × 10${sup(e)}`;
+}
+
+/** A note on the caption's baseline, right-aligned. Same halo as caption(),
+    because a spanning mark can pass behind it. */
+function noteRight(ctx, c, plot, text, tone, inside = false) {
+  ctx.save();
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = inside ? "top" : "alphabetic";
+  ctx.strokeStyle = c.surface;
+  ctx.lineWidth = 3;
+  const px = plot.x + plot.w - (inside ? 2 : 0);
+  const py = inside ? plot.y + 3 : plot.y - 8;
+  ctx.strokeText(text, px, py);
+  ctx.fillStyle = tone;
+  ctx.fillText(text, px, py);
+  ctx.restore();
+}
+
+/* --- the two candidate readings ----------------------------------------- */
+const TRUE_MU = 10;
+const TRUE_SIZE = 2.5;   // the lesson's own values
+const TRUE_SD = 3;
+const GRID = 41;
+
+const MODELS = [
+  {
+    key: "counts",
+    name: "Gene counts — negative binomial",
+    sub: "One gene, n samples. The dispersion is known (size = 2.5); the candidate is the mean count. Every height is a genuine probability, so the product really is P(these exact counts).",
+    discrete: true,
+    param: "every candidate mean — the counts never change",
+    short: "mean",
+    dataLabel: "count",
+    askA: (th) => `If the mean were ${fmt(th, 1)}, how often would each count turn up?`,
+    askC: "Your counts are fixed. Which mean makes them most probable?",
+    xDomain: [-0.5, 32.5],
+    yMax: 0.17,
+    range: [3, 19],
+    truth: TRUE_MU,
+    draw: (rng) => nbSample(rng, TRUE_MU, TRUE_SIZE),
+    p: (x, th) => Math.exp(nbLogPmf(x, th, TRUE_SIZE)),
+    logp: (x, th) => nbLogPmf(x, th, TRUE_SIZE),
+  },
+  {
+    key: "measure",
+    name: "A measurement — normal",
+    sub: "The same machinery on a continuous scale, SD known (σ = 3). Instantly readable, and it costs one exact phrase: these heights are densities, not probabilities, so the product is not a probability either.",
+    discrete: false,
+    param: "every candidate mean — the values never change",
+    short: "mean",
+    dataLabel: "value",
+    askA: (th) => `If the mean were ${fmt(th, 1)}, what would the values look like?`,
+    askC: "Your values are fixed. Which mean makes them most probable?",
+    xDomain: [-2, 22],
+    yMax: 0.17,
+    range: [4, 16],
+    truth: TRUE_MU,
+    draw: (rng) => rng.normal(TRUE_MU, TRUE_SD),
+    p: (x, th) => normalPdf(x, th, TRUE_SD),
+    logp: (x, th) => Math.log(normalPdf(x, th, TRUE_SD)),
+  },
+];
+
+/* --- shared state -------------------------------------------------------- */
+let N = 12;
+let seed = 3;
+let axis = "lik";
+let showBars = true;
+let showTruth = false;
+let cursor = -1;               // -1 = nothing tried yet: the widget's empty state
+const visited = new Set();
+let raf = 0;
+
+/* --- geometry ------------------------------------------------------------ */
+const W = 470;
+const PAD_L = 60, PAD_R = 16;
+const A_Y = 30, A_H = 118;          // the model, with no axis of its own
+const D_Y = 150, D_H = 26;          // the data strip, sharing panel A's x-axis
+const B_Y = 240, B_H = 52;
+const C_H = 130;
+const cY = () => (showBars ? 352 : 270);
+const cellH = () => cY() + C_H + 48;
+
+/* --- build one model's data and its whole likelihood grid, up front ------- */
+function build(m) {
+  const rng = makeRng(seed * 101 + (m.key === "counts" ? 7 : 13));
+  const xs = [];
+  for (let i = 0; i < N; i += 1) xs.push(m.draw(rng));
+  xs.sort((a, b) => a - b);
+
+  const thetas = [], loglik = [];
+  for (let g = 0; g < GRID; g += 1) {
+    const th = m.range[0] + ((m.range[1] - m.range[0]) * g) / (GRID - 1);
+    let ll = 0;
+    for (const x of xs) ll += m.logp(x, th);
+    thetas.push(th);
+    loglik.push(ll);
+  }
+  const llMax = Math.max(...loglik);
+  const llMin = Math.min(...loglik);
+  const likAbs = loglik.map((v) => Math.exp(v));
+  const peakLik = Math.exp(llMax);
+  const expo = Math.floor(Math.log10(peakLik));
+  const scale = 10 ** expo;
+  const yTop = Math.ceil((peakLik / scale) * 1.08 * 2) / 2;
+
+  // A FIXED frame for the contribution row: the largest factor any candidate on
+  // the grid gives any observation. Rescaling it per candidate would hide the
+  // collapse that is the whole point (principle 2.5).
+  let maxP = 0;
+  for (const th of thetas) for (const x of xs) maxP = Math.max(maxP, m.p(x, th));
+
+  // Multiplicity, so the data strip can stack duplicates as countable dots.
+  const counts = new Array(33).fill(0);
+  let maxMult = 0;
+  if (m.discrete) {
+    for (const x of xs) if (x < 33) { counts[x] += 1; maxMult = Math.max(maxMult, counts[x]); }
+  }
+
+  const mn = xs.reduce((a, b) => a + b, 0) / xs.length;
+  return { xs, counts, maxMult, thetas, loglik, likAbs, llMax, llMin, expo, scale, yTop, maxP, mean: mn };
+}
+
+/* --- cells --------------------------------------------------------------- */
+const gridEl = document.getElementById("grid");
+const views = MODELS.map((m) => {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  const h3 = document.createElement("h3");
+  h3.textContent = m.name;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = m.sub;
+  const canvas = document.createElement("canvas");
+  const tiles = document.createElement("div");
+  tiles.className = "tiles";
+  cell.append(h3, sub, canvas, tiles);
+  gridEl.appendChild(cell);
+  return { m, canvas, tiles, d: null };
+});
+
+function rebuild() {
+  for (const v of views) v.d = build(v.m);
+}
+
+function fitCanvas(canvas, h) {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || W;
+  const s = cssW / W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(h * s * dpr);
+  canvas.style.height = `${h * s}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  return ctx;
+}
+
+function drawCell(v) {
+  const c = readTokens();
+  const { m, d } = v;
+  const ctx = fitCanvas(v.canvas, cellH());
+  const th = cursor >= 0 ? d.thetas[cursor] : null;
+
+  /* ---- Panel A: one candidate over the data ---- */
+  const pA = makePlot({
+    ctx, colors: c,
+    rect: { x: PAD_L, y: A_Y, w: W - PAD_L - PAD_R, h: A_H },
+    xDomain: m.xDomain, yDomain: [0, m.yMax],
+  });
+  pA.caption(th === null
+    ? `${N} observations — no candidate tried yet`
+    : m.askA(th));
+  pA.axisY({ ticks: [0, 0.05, 0.10, 0.15], format: (t) => t.toFixed(2),
+    label: m.discrete ? "probability" : "density" });
+  if (th !== null) {
+    // THE WHOLE PROBABILITY / LIKELIHOOD DISTINCTION, IN ONE NUMBER PER PANEL.
+    // Read across the DATA axis with the parameter fixed, the heights are a
+    // distribution and add to 1. Read across the PARAMETER axis with the data
+    // fixed, they are the same formula and add to nothing in particular.
+    noteRight(ctx, c, pA, m.discrete
+      ? `all spikes add to ${modelTotal(m, th).toFixed(3)}`
+      : `area under it = ${modelTotal(m, th).toFixed(3)}`, c.ink2, true);
+  }
+
+  // The distribution the data actually came from. In the widget this is not a
+  // toggle: it is what the LEAD action shows while the counts fall out of it,
+  // and it is taken away for good afterwards — the one time the arrow runs
+  // forwards. Here it is a switch so the picture can be judged at rest.
+  if (showTruth) {
+    const tp = [];
+    if (m.discrete) for (let k = 0; k <= 32; k += 1) tp.push([k, m.p(k, m.truth)]);
+    else for (let i = 0; i <= 200; i += 1) {
+      const x = m.xDomain[0] + ((m.xDomain[1] - m.xDomain[0]) * i) / 200;
+      tp.push([x, m.p(x, m.truth)]);
+    }
+    pA.curve(tp, { stroke: c.reference, width: 1.5, dash: [5, 4] });
+  }
+
+  if (th !== null) {
+    if (m.discrete) {
+      const pts = [];
+      for (let k = 0; k <= 32; k += 1) pts.push([k, m.p(k, th)]);
+      pA.spikes(pts, { fill: c.theory, opacity: 0.26, width: 8 });
+    } else {
+      const pts = samplePdf((x) => m.p(x, th), m.xDomain, 200);
+      pA.area(pts, { fill: c.theory, opacity: 0.10 });
+      pA.curve(pts, { stroke: c.theory });
+    }
+    // One stem per observation: the factor it contributes. A stem and not a dot
+    // because a length from the baseline is what gets read as a magnitude.
+    for (const x of d.xs) {
+      pA.curve([[x, 0], [x, m.p(x, th)]], { stroke: c.empirical, width: 2, opacity: 0.95 });
+    }
+    for (const x of d.xs) pA.dot(x, m.p(x, th), { fill: c.empirical, r: 3.2 });
+  }
+
+  /* ---- The data, in its own strip under the model, sharing its x-axis.
+     Inside panel A the duplicates land on one stem and stop being countable,
+     which is exactly what principle 2.3 forbids while n is small. ---- */
+  const pD = makePlot({
+    ctx, colors: c,
+    rect: { x: PAD_L, y: D_Y, w: W - PAD_L - PAD_R, h: D_H },
+    xDomain: m.xDomain, yDomain: [0, Math.max(3, d.maxMult)],
+  });
+  if (m.discrete) {
+    pD.dotColumns(d.counts, { lo: -0.5, width: 1, fill: c.empirical, maxR: 3.4 });
+  } else {
+    pD.rug(d.xs, { stroke: c.empirical, height: D_H - 2, opacity: 0.9 });
+  }
+  pD.axisX({ label: `${m.dataLabel} — your ${N} observations, drawn once and never redrawn` });
+
+  /* ---- Panel B: the n factors, on one scale ---- */
+  if (showBars) {
+    const pB = makePlot({
+      ctx, colors: c,
+      rect: { x: PAD_L, y: B_Y, w: W - PAD_L - PAD_R, h: B_H },
+      xDomain: [0, N], yDomain: [0, d.maxP],
+    });
+    pB.caption(th === null
+      ? "Its factors — one per observation"
+      : `Its ${N} factors — multiply these together`);
+    pB.axisX({ ticks: [], label: "one bar per observation, smallest value first" });
+    if (th !== null) {
+      pB.bars(d.xs.map((x) => m.p(x, th)), { lo: 0, width: 1, fill: c.empirical });
+      // Adjacency is the argument (principle 2.7): this product is literally the
+      // height of the dot the panel below is about to receive.
+      noteRight(ctx, c, pB, `product = ${sci(d.likAbs[cursor])}`, c.empirical);
+    }
+  }
+
+  /* ---- Panel C: the likelihood over every candidate ---- */
+  const isLog = axis === "log";
+  const pad = (d.llMax - d.llMin) * 0.08;
+  const yDom = isLog ? [d.llMin - pad, d.llMax + pad] : [0, d.yTop];
+  const pC = makePlot({
+    ctx, colors: c,
+    rect: { x: PAD_L, y: cY(), w: W - PAD_L - PAD_R, h: C_H },
+    xDomain: m.range, yDomain: yDom,
+  });
+  pC.caption(isLog
+    ? `log P(the ${N} ${m.dataLabel}s | ${m.short})`
+    : `P(the ${N} ${m.dataLabel}s | ${m.short})   × 10${sup(d.expo)}`);
+  if (visited.size > 1 && !isLog) {
+    let tot = 0;
+    for (const g of visited) tot += d.likAbs[g];
+    noteRight(ctx, c, pC, `these add to ${sci(tot)} — not 1`, c.ink2);
+  }
+  const yt = niceTicks(yDom[0], yDom[1], 4);
+  pC.grid(yt);
+  pC.axisY({ ticks: yt });
+  pC.axisX({ label: m.param });
+  pC.vline(m.truth, { stroke: c.reference, label: "true", align: "right" });
+
+  const yOf = (g) => (isLog ? d.loglik[g] : d.likAbs[g] / d.scale);
+  // Join only NEIGHBOURS you have both evaluated. A line across a gap would be a
+  // claim about a candidate nobody tried (principle 2.4).
+  let run = [];
+  for (let g = 0; g < GRID; g += 1) {
+    if (visited.has(g)) run.push([d.thetas[g], yOf(g)]);
+    else { if (run.length > 1) pC.curve(run, { stroke: c.empirical, width: 2, opacity: 0.55 }); run = []; }
+  }
+  if (run.length > 1) pC.curve(run, { stroke: c.empirical, width: 2, opacity: 0.55 });
+  for (const g of visited) pC.dot(d.thetas[g], yOf(g), { fill: c.empirical, r: 3 });
+
+  let best = -1;
+  for (const g of visited) if (best < 0 || d.loglik[g] > d.loglik[best]) best = g;
+  if (best >= 0) {
+    pC.dot(d.thetas[best], yOf(best), { fill: c.empirical, r: 5.5 });
+  }
+  if (th !== null) {
+    pC.vline(th, { stroke: c.highlight, label: "this candidate", align: "left", width: 2, labelDy: 13 });
+    pC.dot(th, yOf(cursor), { fill: c.highlight, r: 5 });
+  }
+
+  /* ---- tiles ---- */
+  const tile = (l, b, n) => `<div><span class="l">${l}</span><b>${b}</b><span class="n">${n}</span></div>`;
+  v.tiles.innerHTML =
+    tile("best so far", best >= 0 ? fmt(d.thetas[best], 1) : "—",
+      `of ${visited.size} tried`) +
+    tile("P(data | that)", best >= 0 ? sci(d.likAbs[best]) : "—",
+      best >= 0 ? `log = ${fmt(d.loglik[best], 1)}` : "") +
+    tile("sample mean", fmt(d.mean, 2), "the exact answer here") +
+    tile("true value", fmt(m.truth, 1), "known: the data is seeded");
+}
+
+/* --- the 2-D surface: stage two ----------------------------------------- */
+const SURF_W = 520, SURF_H = 330;
+const SZ_LO = 0.4, SZ_HI = 40;
+const MU_LO = 3, MU_HI = 22;
+const NX = 96, NY = 72;
+const LEVELS = [0.5, 1, 2, 3, 5, 10, 20];
+const ALPHAS = [0.80, 0.64, 0.50, 0.38, 0.27, 0.18, 0.10, 0.045];
+
+function drawSurface() {
+  const c = readTokens();
+  const canvas = document.getElementById("surface");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || SURF_W;
+  const s = cssW / SURF_W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(SURF_H * s * dpr);
+  canvas.style.height = `${SURF_H * s}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+  ctx.clearRect(0, 0, SURF_W, SURF_H);
+
+  const xs = views[0].d.xs;
+  const lo = Math.log(SZ_LO), hi = Math.log(SZ_HI);
+  const ll = new Float64Array(NX * NY);
+  let max = -Infinity, bx = 0, by = 0;
+  for (let j = 0; j < NY; j += 1) {
+    const size = Math.exp(lo + ((hi - lo) * (j + 0.5)) / NY);
+    for (let i = 0; i < NX; i += 1) {
+      const mu = MU_LO + ((MU_HI - MU_LO) * (i + 0.5)) / NX;
+      let s2 = 0;
+      for (const x of xs) s2 += nbLogPmf(x, mu, size);
+      ll[j * NX + i] = s2;
+      if (s2 > max) { max = s2; bx = mu; by = size; }
+    }
+  }
+
+  const rect = { x: 52, y: 26, w: SURF_W - 52 - 18, h: SURF_H - 26 - 46 };
+  const plot = makePlot({ ctx, colors: c, rect, xDomain: [MU_LO, MU_HI], yDomain: [lo, hi] });
+  plot.caption(`log P(the ${N} counts | mean, dispersion)  —  both unknown`);
+
+  // Cell bounds are ROUNDED TO WHOLE PIXELS and tiled edge to edge. Overlapping
+  // the rects by a fraction to close the seams instead — the obvious fix —
+  // double-composites the alpha along every seam and prints a grid over the
+  // whole surface, which reads as texture in the data.
+  const px = (i) => Math.round(rect.x + (i * rect.w) / NX);
+  const py = (j) => Math.round(rect.y + rect.h - (j * rect.h) / NY);
+  ctx.save();
+  ctx.fillStyle = c.empirical;
+  for (let j = 0; j < NY; j += 1) {
+    for (let i = 0; i < NX; i += 1) {
+      const drop = max - ll[j * NX + i];
+      let band = LEVELS.length;
+      for (let k = 0; k < LEVELS.length; k += 1) if (drop <= LEVELS[k]) { band = k; break; }
+      const a = ALPHAS[band];
+      if (!a) continue;
+      ctx.globalAlpha = a;
+      ctx.fillRect(px(i), py(j + 1), px(i + 1) - px(i), py(j) - py(j + 1));
+    }
+  }
+  ctx.restore();
+
+  const szTicks = [0.5, 1, 2, 5, 10, 20, 40].filter((t) => t >= SZ_LO && t <= SZ_HI);
+  plot.axisY({ ticks: szTicks.map(Math.log), format: (t) => String(+Math.exp(t).toFixed(1)), label: "dispersion (size)" });
+  plot.axisX({ label: "mean count" });
+  plot.dot(TRUE_MU, Math.log(TRUE_SIZE), { fill: c.reference, r: 5 });
+  plot.dot(bx, Math.log(by), { fill: c.highlight, r: 5.5 });
+
+  ctx.save();
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillStyle = c.ink2;
+  ctx.textBaseline = "middle";
+  ctx.fillText("truth", plot.sx(TRUE_MU) + 9, plot.sy(Math.log(TRUE_SIZE)));
+  ctx.fillText("MLE", plot.sx(bx) + 9, plot.sy(Math.log(by)));
+  ctx.restore();
+
+  const tile = (l, b, n) => `<div><span class="l">${l}</span><b>${b}</b><span class="n">${n}</span></div>`;
+  document.getElementById("surfTiles").innerHTML =
+    tile("mean (MLE)", fmt(bx, 2), `true ${TRUE_MU}`) +
+    tile("dispersion (MLE)", fmt(by, 2), `true ${TRUE_SIZE}`) +
+    tile("evaluations", String(NX * NY), "vs 41 for the curve") +
+    tile("n", String(N), "shared with the panels above");
+}
+
+/* --- controls ------------------------------------------------------------ */
+function seg(host, options, get, set) {
+  host.innerHTML = "";
+  for (const [val, label] of options) {
+    const b = document.createElement("button");
+    b.className = "w-seg-btn";
+    b.type = "button";
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(get() === val));
+    b.addEventListener("click", () => { set(val); render(); });
+    host.appendChild(b);
+  }
+}
+
+function render() {
+  seg(document.getElementById("nseg"), [[6, "6"], [12, "12"], [30, "30"], [60, "60"]],
+    () => N, (v) => { N = v; rebuild(); });
+  seg(document.getElementById("axseg"), [["lik", "Likelihood"], ["log", "Log-likelihood"]],
+    () => axis, (v) => { axis = v; });
+  seg(document.getElementById("barseg"), [[true, "Show"], [false, "Hide"]],
+    () => showBars, (v) => { showBars = v; });
+  seg(document.getElementById("truthseg"), [[true, "Show"], [false, "Hide"]],
+    () => showTruth, (v) => { showTruth = v; });
+  document.getElementById("seedVal").textContent = String(seed);
+  document.getElementById("cand").value = String(Math.max(cursor, 0));
+  for (const v of views) drawCell(v);
+  drawSurface();
+}
+
+function goto(g) {
+  cursor = Math.max(0, Math.min(GRID - 1, g));
+  visited.add(cursor);
+}
+
+document.getElementById("step").addEventListener("click", () => { goto(cursor + 1); render(); });
+document.getElementById("reset").addEventListener("click", () => {
+  cancelAnimationFrame(raf); raf = 0; cursor = -1; visited.clear(); render();
+});
+document.getElementById("cand").addEventListener("input", (e) => { goto(+e.target.value); render(); });
+document.getElementById("seedUp").addEventListener("click", () => { seed += 1; rebuild(); render(); });
+document.getElementById("seedDown").addEventListener("click", () => { seed = Math.max(1, seed - 1); rebuild(); render(); });
+document.getElementById("sweep").addEventListener("click", () => {
+  if (raf) { cancelAnimationFrame(raf); raf = 0; return; }
+  if (cursor >= GRID - 1) { cursor = -1; visited.clear(); }
+  let last = 0;
+  const tick = (t) => {
+    if (t - last > 55) { last = t; goto(cursor + 1); render(); }
+    raf = cursor < GRID - 1 ? requestAnimationFrame(tick) : 0;
+  };
+  raf = requestAnimationFrame(tick);
+});
+
+rebuild();
+render();
+addEventListener("resize", render);
+</script>
+</body>
+</html>

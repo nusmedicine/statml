@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · what a biology MSc actually needs</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 940px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); max-width: 80ch; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .card > h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  .card > p { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); max-width: 80ch; }
+  .tabname { color: var(--ink-3); font-size: var(--fs-xs); text-transform: uppercase;
+             letter-spacing: .06em; margin: var(--sp-5) 0 calc(-1 * var(--sp-2)); }
+  .card .w-readout { border-top: 0; }
+  .card .w-readout + .tabname { border-top: 1px solid var(--grid); padding-top: var(--sp-4); }
+  table.audit { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+  table.audit th { text-align: left; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400;
+                   padding: 0 var(--sp-3) var(--sp-1) 0; border-bottom: 1px solid var(--grid); }
+  table.audit td { padding: var(--sp-2) var(--sp-3) var(--sp-2) 0; color: var(--ink-2);
+                   border-bottom: 1px solid var(--grid); vertical-align: top; }
+  table.audit td.s { color: var(--ink-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
+  .v { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: var(--fs-xs); white-space: nowrap; }
+  .keep { background: color-mix(in srgb, var(--c-smoothed) 22%, transparent); color: var(--ink-1); }
+  .cut  { background: color-mix(in srgb, var(--c-extreme) 22%, transparent); color: var(--ink-1); }
+  .word { background: color-mix(in srgb, var(--c-theory) 22%, transparent); color: var(--ink-1); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 80ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 8, read by a biology MSc</h1>
+  <p class="note">
+    The reader is a PHM5003 student: comfortable with gene counts, samples and
+    means; <strong>not</strong> comfortable with log-likelihoods, 10⁻¹¹⁰, or the
+    phrase "likelihood interval". They need one chain of intuition and nothing
+    else:
+  </p>
+  <p class="note">
+    <strong>I have counts → I guess a parameter → that guess says how likely each
+    count was → multiply → one score for the guess → best score wins → and it is
+    not exactly the truth, but more counts narrow the range.</strong>
+  </p>
+  <p class="note">
+    Everything below is measured from the real widget at <code>n = 60, seed 46,
+    true size 2.5, mu 10</code> — the state in the screenshot that prompted this.
+    <strong>Nothing here is built yet.</strong>
+  </p>
+
+  <div id="variants"></div>
+
+  <h2>Every string in the widget, and whether it earns its place</h2>
+  <p class="note">
+    The readout is the loudest offender but not the only one. Verdicts are a
+    proposal, not a decision.
+  </p>
+  <table class="audit">
+    <tr><th>where</th><th>string</th><th></th><th>why</th></tr>
+    <tbody id="audit"></tbody>
+  </table>
+
+  <ol class="judge">
+    <li><strong>Does variant C lose anything you would miss in a lecture?</strong>
+      It drops every absolute likelihood and every log. What is left is a number
+      you can point at and a range you can point at.</li>
+    <li><strong>Is a ratio really more readable than an exponent?</strong> That is
+      variant B's whole bet: <em>"1,500× more likely than a mean of 12"</em>
+      instead of <em>"1.5 × 10⁻¹¹⁰"</em>. It is also more honest — a likelihood's
+      absolute value is arbitrary and only ratios of it mean anything.</li>
+    <li><strong>The ratio does not stay plain, and variant B shows it.</strong>
+      At n = 12 “beats Poisson by ×31,000” reads as a sentence; at n = 60 it is
+      × 8.4 × 10²⁵ and back in scientific notation. Either cap the wording
+      (<em>“more than a billion times”</em>) or accept that one number keeps an
+      exponent — it is at least a ratio, so the exponent means something a reader
+      can act on rather than being an arbitrary scale.</li>
+    <li><strong>Should the technical numbers be gone or one click away?</strong>
+      A <em>Show the arithmetic</em> switch would keep them for you and for a
+      student who wants them, without putting 10⁻¹¹⁰ in front of everyone.</li>
+    <li><strong>Does "a distribution would give 1" survive?</strong> It is the
+      widget's stated misconception target, and it is the weakest thing on screen:
+      two near-identical huge-negative exponents to compare. The clean half of the
+      same idea — <code>all spikes add to 1.000</code> on the top panel — costs
+      nothing and reads instantly.</li>
+    <li><strong>Is the Likelihood / Log toggle for students or for you?</strong>
+      The log axis is what <code>optim</code> maximises and the only one legible
+      at n = 60. It is also a second axis convention to explain.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/index.js";
+import { lgamma } from "../core/stats.js";
+
+const nbLog = (k, size, mu) => (!Number.isFinite(size)
+  ? k * Math.log(mu) - mu - lgamma(k + 1)
+  : lgamma(k + size) - lgamma(size) - lgamma(k + 1)
+    + size * (Math.log(size) - Math.log(size + mu)) + k * (Math.log(mu) - Math.log(size + mu)));
+const draw = (rng, size, mu) => {
+  const u = rng.next();
+  let a = 0;
+  for (let k = 0; k <= 4000; k += 1) { a += Math.exp(nbLog(k, size, mu)); if (u < a) return k; }
+  return 4000;
+};
+
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sup = (v) => String(v).split("").map((c) => SUP[c] ?? c).join("");
+const sci = (v, d = 1) => {
+  if (!(v > 0) || !Number.isFinite(v)) return "—";
+  const e = Math.floor(Math.log10(v));
+  return `${(v / 10 ** e).toFixed(d)} × 10${sup(e)}`;
+};
+const grouped = (v) => (v < 1e6 ? Math.round(v).toLocaleString("en") : sci(v));
+
+/* --- the real state behind the screenshot -------------------------------- */
+const N = 60, GRID = 41, LOG8 = Math.log(8);
+const rng = makeRng(46);
+const xs = [];
+for (let i = 0; i < N; i += 1) xs.push(draw(rng, 2.5, 10));
+const mean = xs.reduce((a, b) => a + b, 0) / N;
+const muAt = (g) => 6 + (8 * (g + 0.5)) / GRID;
+const sizeAt = (g) => 0.5 + (9.5 * (g + 0.5)) / GRID;
+const LL = (s, m) => xs.reduce((a, k) => a + nbLog(k, s, m), 0);
+
+const llMu = []; for (let g = 0; g < GRID; g += 1) llMu.push(LL(Infinity, muAt(g)));
+let bi = 0; for (let g = 1; g < GRID; g += 1) if (llMu[g] > llMu[bi]) bi = g;
+let a0 = -1, b0 = -1;
+for (let g = 0; g < GRID; g += 1) if (llMu[g] >= llMu[bi] - LOG8) { if (a0 < 0) a0 = g; b0 = g; }
+
+const llSz = []; for (let g = 0; g < GRID; g += 1) llSz.push(LL(sizeAt(g), muAt(bi)));
+let sj = 0; for (let g = 1; g < GRID; g += 1) if (llSz[g] > llSz[sj]) sj = g;
+let a1 = -1, b1 = -1;
+for (let g = 0; g < GRID; g += 1) if (llSz[g] >= llSz[sj] - LOG8) { if (a1 < 0) a1 = g; b1 = g; }
+
+const D = {
+  bestMu: muAt(bi), sampleMean: mean, pMu: Math.exp(llMu[bi]), logMu: llMu[bi],
+  muLo: muAt(a0), muHi: muAt(b0),
+  total: llMu.reduce((s, v) => s + Math.exp(v), 0),
+  beats12: Math.exp(llMu[bi] - LL(Infinity, 12)),
+  bestSize: sizeAt(sj), pSize: Math.exp(llSz[sj]), logSize: llSz[sj],
+  szLo: sizeAt(a1), szHi: sizeAt(b1),
+  poisson: Math.exp(llSz[sj] - LL(Infinity, muAt(bi))),
+};
+
+/* --- the three readings --------------------------------------------------- */
+const t = (label, value, note) => ({ label, value, note });
+
+const VARIANTS = [
+  {
+    key: "A",
+    name: "A · As shipped — four tiles, three of them scientific notation",
+    blurb: "What the screenshot shows. Every payload the widget has ever carried is on screen at once, and two of the four numbers are huge negative exponents that a biology student cannot hold, sitting next to each other so they invite a comparison nobody can make by eye.",
+    mean: [
+      t("Best mean so far", D.bestMu.toFixed(2), `of 41 tried · lands on the sample mean ${D.sampleMean.toFixed(2)} · true 10.0`),
+      t(`P(the ${N} counts | it)`, sci(D.pMu), `the biggest so far — log = ${D.logMu.toFixed(1)}`),
+      t("Pinned to within", `${D.muLo.toFixed(1)} – ${D.muHi.toFixed(1)}`, `a span of ${(D.muHi - D.muLo).toFixed(1)} — more counts shrink THIS, not the miss`),
+      t("Those scores add to", sci(D.total), "a distribution would give 1"),
+    ],
+    size: [
+      t("Best size so far", D.bestSize.toFixed(2), `true 2.5 · pinned to ${D.szLo.toFixed(1)}–${D.szHi.toFixed(1)}`),
+      t(`P(the ${N} counts | it)`, sci(D.pSize), `the biggest so far — log = ${D.logSize.toFixed(1)}`),
+      t("Better than Poisson by", `× ${sci(D.poisson)}`, "what assuming Poisson cost you"),
+      t("mu, re-checked", D.bestMu.toFixed(2), "unchanged at every size — it was right all along"),
+    ],
+    both: [
+      t("size", D.bestSize.toFixed(2), "true 2.5"),
+      t("mu", D.bestMu.toFixed(2), "true 10.0"),
+      t("Counts used", String(N), "the notebook's optim uses 1000"),
+    ],
+  },
+  {
+    key: "B",
+    name: "B · Plain — ratios instead of absolutes, no logs",
+    blurb: "Same three ideas, none of them in scientific notation. The bet: a likelihood's absolute value is arbitrary and only RATIOS of it mean anything, so a ratio is both more readable and more honest. “1,500 times more likely than a mean of 12” is a sentence; “1.5 × 10⁻¹¹⁰” is not.",
+    mean: [
+      t("Best mean", D.bestMu.toFixed(2), `your ${N} counts point here · the true mean is 10.0`),
+      t("Beats a mean of 12 by", `× ${grouped(D.beats12)}`, "a likelihood only means something as a ratio"),
+      t("Plausible range", `${D.muLo.toFixed(1)} – ${D.muHi.toFixed(1)}`, "more counts narrow this — the estimate itself can still be unlucky"),
+    ],
+    size: [
+      t("Best size", D.bestSize.toFixed(2), "the true size is 2.5 · smaller size = more spread"),
+      t("Beats plain Poisson by", `× ${grouped(D.poisson)}`, "what ignoring the extra spread would have cost"),
+      t("Plausible range", `${D.szLo.toFixed(1)} – ${D.szHi.toFixed(1)}`, "much looser than the mean — size is the hard one"),
+    ],
+    both: [
+      t("size", D.bestSize.toFixed(2), "true 2.5"),
+      t("mu", D.bestMu.toFixed(2), "true 10.0"),
+      t("Counts used", String(N), "the notebook's optim uses 1000"),
+    ],
+  },
+  {
+    key: "C",
+    name: "C · Minimal — a number to point at and a range to point at",
+    blurb: "Two tiles per tab. Everything else moves to the small grey notes already on the canvas, or behind a “Show the arithmetic” switch. This is the version that survives being projected and read from the back row.",
+    mean: [
+      t("Best mean", D.bestMu.toFixed(2), "the true mean is 10.0"),
+      t("Plausible range", `${D.muLo.toFixed(1)} – ${D.muHi.toFixed(1)}`, "more counts narrow this"),
+    ],
+    size: [
+      t("Best size", D.bestSize.toFixed(2), "the true size is 2.5"),
+      t("Beats plain Poisson by", `× ${grouped(D.poisson)}`, "what ignoring the extra spread would cost"),
+    ],
+    both: [
+      t("size", D.bestSize.toFixed(2), "true 2.5"),
+      t("mu", D.bestMu.toFixed(2), "true 10.0"),
+    ],
+  },
+];
+
+const host = document.getElementById("variants");
+for (const v of VARIANTS) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<h3>${v.name}</h3><p>${v.blurb}</p>`;
+  for (const [key, label] of [["mean", "mu tab"], ["size", "size tab"], ["both", "both tab"]]) {
+    const h = document.createElement("p");
+    h.className = "tabname";
+    h.textContent = label;
+    const ul = document.createElement("div");
+    ul.className = "w-readout";
+    for (const tile of v[key]) {
+      const d = document.createElement("div");
+      d.innerHTML = `<span class="w-stat-label">${tile.label}</span>` +
+        `<span class="w-stat-value">${tile.value}</span>` +
+        `<span class="w-stat-note">${tile.note}</span>`;
+      ul.appendChild(d);
+    }
+    card.append(h, ul);
+  }
+  host.appendChild(card);
+}
+
+/* --- the text audit ------------------------------------------------------- */
+const AUDIT = [
+  ["control", "True mu (mean)", "word", "“mu” is jargon in a control label. The axis can say mu; the slider should say “True mean”."],
+  ["control", "True size · larger size = LESS spread", "keep", "The direction warning is load-bearing and the notebook does not carry one."],
+  ["control", "Read the score as: Likelihood / Log", "cut", "A second axis convention to explain. The log is what optim maximises — instructor-grade. Move behind the arithmetic switch."],
+  ["control", "Each count's factor", "keep", "One checkbox, and turning the factor row off is a real teaching move."],
+  ["control", "Estimating: mu / size / Both", "keep", "The control that answers “are we recovering one parameter or two?”."],
+  ["drive", "Draw the counts / Step / Play / Reset", "keep", "Already fixed once; these read correctly cold."],
+  ["caption", "If mu were 10.4 and the counts were Poisson, how often would each turn up?", "keep", "This IS the mechanism, in a sentence. The most valuable string in the widget."],
+  ["caption", "all spikes add to 1.000", "keep", "Exact, instant, and the clean half of the probability-vs-likelihood point."],
+  ["caption", "Its 60 factors at Poisson, mu 10.39 — multiply these together", "keep", "Answers “multiply what?”, which was asked."],
+  ["caption", "product = 1.5 × 10⁻¹¹⁰", "keep", "Small grey text, and it is the link to the dot the next panel receives. Fine as context; it was never a headline."],
+  ["caption", "P(the 60 counts | mu) — taller is better × 10⁻¹¹⁰", "keep", "“Taller is better” is the direction. The exponent has to be somewhere and an axis label is the honest place."],
+  ["caption", "these add to 7.9 × 10⁻¹¹⁰ — not 1", "cut", "The weak half of the device: two near-identical exponents to compare by eye. The top panel already makes the point exactly."],
+  ["axis", "every candidate mu — your counts never change", "keep", "Says what the x-axis is and what is being held still."],
+  ["axis", "size — the notebook contours the NEGATIVE of this", "keep", "Just added, and it answers a question that was asked."],
+  ["legend", "four entries, 12–20 words each", "word", "The longest text on the page and the least read. Halve them."],
+  ["readout", "log = -287.3", "cut", "A second unreadable number attached to the first."],
+  ["readout", "Those scores add to", "cut", "See the caption above — same idea, worse vehicle."],
+  ["readout", "Pinned to within", "word", "Rename “Plausible range”. Same number, no jargon."],
+  ["readout", "P(the 60 counts | it)", "word", "Replace with a ratio against a named alternative."],
+];
+const tbody = document.getElementById("audit");
+for (const [where, str, v, why] of AUDIT) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${where}</td><td class="s">${str}</td>` +
+    `<td><span class="v ${v}">${v === "word" ? "reword" : v}</span></td><td>${why}</td>`;
+  tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>

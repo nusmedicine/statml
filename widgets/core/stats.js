@@ -261,7 +261,11 @@ const DEFINITIONS = {
  * Lanczos log-gamma, then the regularised incomplete beta by continued fraction,
  * which is what the t CDF is written in terms of. Standard numerical recipes.
  */
-function lgamma(z) {
+/* Exported because the negative binomial is now a widget's SUBJECT and not just
+   a backdrop population: `maximum-likelihood` evaluates its log-pmf across a
+   parameter grid. A second copy in the widget would be the same formula written
+   twice, which is how two halves of a figure come to disagree. */
+export function lgamma(z) {
   const C = [
     0.99999999999980993, 676.5203681218851, -1259.1392167224028,
     771.32342877765313, -176.61502916214059, 12.507343278686905,

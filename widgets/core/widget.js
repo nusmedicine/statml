@@ -213,7 +213,14 @@ export function defineWidget(config) {
   let tableOpen = false;
   let rafId = null;
   let lastTs = 0;
-  let hasAdvanced = false; // drives Play / Resume / Replay labelling
+  /* Drives Play / Resume / Replay labelling. Core owns it, but it is ALSO
+     stamped onto `anim`, because a widget whose display toggle switches between
+     two separate progressions is the one thing core cannot judge for itself:
+     `maximum-likelihood` sweeps the mean and then the dispersion, and arriving
+     in the second sweep with the button reading "Resume" offers to continue
+     something that has not started. Such a widget corrects it in `rebuild`; one
+     that ignores it falls back to this flag and is unaffected. */
+  let hasAdvanced = false;
 
   const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -286,6 +293,20 @@ export function defineWidget(config) {
      one fact is how they come to disagree (principle 5.8). */
   const GATE_PARAM = Object.entries(spec).find(([, f]) => f.type === "gate")?.[0] ?? null;
 
+  /* A SHUT GATE TAKES THE WHOLE DRIVE ROW WITH IT, and the early return below
+     skips every label and disabled flag on the way out — so the row is not
+     merely hidden, it is stale. That is right for `power-and-error`, whose gate
+     opens the ONLY thing there is to drive.
+
+     It is wrong for a widget whose drive row PREDATES its gate, and that has
+     bitten once: `maximum-likelihood` briefly used a gate to open a second
+     sweep on top of a first one that was already fully drivable, and shipped
+     with four dead buttons in its default state. An opt-out was added, removed
+     as unused, and added again before that widget settled on a segmented tab
+     instead and stopped needing one. It is not carried here now — nothing uses
+     it — but a third widget in that shape should reach for a `segmented`
+     control rather than a gate, or bring the opt-out back. */
+
   function setParam(name, value) {
     values[name] = value;
 
@@ -334,6 +355,7 @@ export function defineWidget(config) {
 
     const more = animation.advance(anim, { dt, params: { ...values }, state, colors });
     hasAdvanced = true;
+    if (anim) anim.hasAdvanced = true;
     paint();
 
     if (more) {
@@ -351,6 +373,7 @@ export function defineWidget(config) {
       if (guard++ > 10000) break;
     }
     hasAdvanced = true;
+    if (anim) anim.hasAdvanced = true;
   }
 
   function startAnim(mode) {
@@ -417,7 +440,7 @@ export function defineWidget(config) {
     if (actions.run) {
       // Running the lead action is not "advancing" in the sense Resume means —
       // drawing your sample leaves nothing part-played to resume from.
-      const advanced = hasAdvanced && anim?.mode !== "lead";
+      const advanced = (anim?.hasAdvanced ?? hasAdvanced) && anim?.mode !== "lead";
       actions.run.textContent = playing
         ? "Pause"
         : done
@@ -429,8 +452,14 @@ export function defineWidget(config) {
       actions.run.disabled = leadPending;
     }
     // The lead button greys out for good once used, and only Reset brings it
-    // back. That disabled state is the teaching, not a technicality.
+    // back. That disabled state is the teaching, not a technicality — which is
+    // exactly why the OTHER two need to say they are waiting rather than broken.
     if (actions.lead) actions.lead.disabled = !leadPending;
+    if (dom.driveHint) {
+      const hint = leadPending ? animation.leadHint : null;
+      dom.driveHint.textContent = hint ?? "";
+      dom.driveHint.hidden = !hint;
+    }
     // Only disabled when there is genuinely nothing left. Clicking it mid-step
     // fast-forwards the unit in flight, so it must stay live while running.
     if (actions.step) actions.step.disabled = done || leadPending;
@@ -713,6 +742,20 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   const drive = el("div", "w-drive");
   (rail ?? host).appendChild(drive);
 
+  /* WHY IS THIS GREYED OUT? A lead action disables step and run until it has
+     run, and until now nothing on screen said so — the reader gets two dead
+     buttons, a blank figure, and no way to tell a gate from a bug. It was
+     reported as exactly that. The widget authors the sentence, because only the
+     widget knows what the lead produces; with no `leadHint` the line is absent
+     and nothing about the existing widgets changes.
+
+     A sibling of `.w-drive` rather than a child: in the stacked layout that row
+     is `flex-wrap: wrap`, so a paragraph inside it would sit BESIDE the
+     buttons. */
+  const driveHint = el("p", "w-detail");
+  driveHint.hidden = true;
+  (rail ?? host).appendChild(driveHint);
+
   const figure = el("div", "w-figure");
   figure.setAttribute("role", "img");
   figure.setAttribute(
@@ -757,7 +800,7 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   const utility = el("div", "w-utility");
   host.appendChild(utility);
 
-  return { figure, readout, controls, drive, utility, headerTools, tableWrap };
+  return { figure, readout, controls, drive, driveHint, utility, headerTools, tableWrap };
 }
 
 function el(tag, className, text) {

@@ -350,38 +350,379 @@ draws a threshold:
 
 ---
 
-## Queued: the inference arc — MLE, MCMC, EM
+## The inference arc — MLE, MCMC, EM
 
-**Requested, not yet argued.** Three widgets, all hosted by one lesson,
-`03 / 02-02 — Inferential Statistics: Inferring Parameters`:
+Three widgets, all hosted by one lesson, `03 / 02-02 — Inferential Statistics:
+Inferring Parameters`, and they are **one argument rather than three topics**:
 
 > what makes the data most likely → what the data make likely → and if the data
 > is a mixture, where the labels are missing
 
-| # | slug (proposed) | question | lesson's framing |
+| # | slug | question | lesson's framing |
 |---|---|---|---|
-| 8 | `maximum-likelihood` | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
+| 8 | `maximum-likelihood` 🟡 | Which parameter makes what I saw most probable? | `P(Data \| Parameters)` |
 | 9 | `mcmc-posterior` | What do the data make probable, and how sure am I? | `P(Parameters \| Data)` |
 | 10 | `em-mixture` | What if each point came from one of two populations and nobody recorded which? | E-step, M-step, iterate |
 
-**This section is deliberately not a catalogue entry yet.** The rule above still
-applies — a widget is earned from a named misconception, graded on honest
-evidence — and none of these has been through that. [HANDOVER.md](../HANDOVER.md)
-§2 carries what is already known: the lesson's worked examples, the candidate
-misconceptions, the fact that #10's M-step *is* #8, and two things that have to
-be settled before code:
+**The pairing of #8 and #9 is the point of the arc.** MLE answers `P(Data|θ)` and
+Bayes answers `P(θ|Data)`; the lesson states both in exactly that form, two
+headings apart. Reversing them is one of the most common errors in applied
+statistics, and this pair is built to make the reversal visible rather than
+warned about.
 
-- **MCMC is a different KIND of widget.** A chain is a path — ordered, with
-  burn-in, autocorrelation and rejected proposals — not a pile, so
-  `core/accumulator.js` does not serve it. Two primitives are probably needed
-  that `canvas.js` does not have: a 2-D likelihood surface and a trace.
-- **There is good prior art and it is not broken.** The lesson links
-  chi-feng.github.io/mcmc-demo, which is excellent. Unlike the Shiny app widget 7
-  replaced, there is no correctness argument for rebuilding it — so the case has
-  to rest on being seeded, URL-addressable and in the collection's language, and
-  **linking it is a legitimate outcome** if that case cannot be made honestly.
+### Widget 8 · `maximum-likelihood`
 
----
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 8 | `maximum-likelihood` 🟡 | Maximum likelihood estimation | *Which parameter value makes what I actually saw most probable?* | That the likelihood is a probability distribution **over the parameter** — that a taller curve at θ means θ is more probable. It is `P(data \| θ)` read as a function of θ for fixed data: it does not integrate to 1, and its total depends only on the range you chose to sweep | **reported**, with a documented parent — see below |
+
+**The evidence, graded honestly.** I cannot name a study that measures *this*
+misconception at a rate, so it is **reported**, not documented. What is
+documented is its parent: **transposing a conditional** — reading `P(A|B)` as
+`P(B|A)` — which the p-value literature widget 5 already leans on records among
+researchers and professionals, not only students. "The likelihood is a
+distribution over θ" is that same transposition applied to estimation, and its
+stronger form — *the MLE is the most probable parameter value* — is precisely the
+**Bayesian** statement. Treat the grade as a hypothesis to test on your students,
+which is what the `inferred`/`reported` grades exist for.
+
+**It also earns the slot on the second route: it is a prerequisite for #9 and
+#10.** #9 is this widget's curve multiplied by a prior and normalised, which is
+the moment the area *does* mean 1 — a comparison that only works if #8 has
+established what the height means first. And **#10 contains #8**: the M-step *is*
+maximum likelihood, run on soft-weighted data, the way #6 was #5 run twenty
+thousand times.
+
+**What the lesson supplies, so nothing is re-derived.** The worked example is a
+negative binomial at `size = 2.5`, `mu = 10`, chosen *because it has no
+analytical solution* — the point being that MLE is a search. The lesson optimises
+with `optim` and draws a contour over (size, mu). That contour is widget 8's
+second stage.
+
+#### Design decisions, settled before code
+
+Mocked up first in [`widgets/_lab/likelihood.html`](../widgets/_lab/likelihood.html),
+which drew the whole figure twice — on counts and on a normal — and carries the
+judging questions each panel had to answer.
+
+**Counts, not measurements**, and one number decided it. The distinction the
+widget exists to teach is *probability sums to 1 over the data, likelihood sums
+to nothing in particular over the parameter*, and on a discrete model the first
+of those is an **exact `1.000` you can print on the panel**. On a normal it is
+the area under a density — one more abstraction handed to a student who is
+already confused about which thing is a distribution. Counts are also the
+lesson's own model and what RNA-seq actually uses.
+
+**Three tabs, and the tab is the control the widget was missing.** A negative
+binomial *has* two parameters, and a widget that estimates one while quietly
+holding the other invites exactly the question that was asked of it — *"so are we
+recovering the mean, or both?"*. Naming what you are estimating answers it before
+it is asked.
+
+| tab | assumed | swept | what it teaches |
+|---|---|---|---|
+| **Mean** | no extra dispersion, i.e. **Poisson** | the mean, 41 candidates | the mechanism, and that the peak lands on the sample mean |
+| **Dispersion** | the mean, at what the first tab found | the dispersion, 41 candidates | that the Poisson assumption was wrong, and by how much |
+| **Both** | nothing | a **climb** over the drawn surface | that the two searches stop disagreeing after two moves |
+
+Each tab keeps its own cursor, so switching never destroys a sweep in progress.
+
+**The mean tab assumes Poisson, which is what makes the second tab inevitable
+rather than optional.** Poisson is the negative binomial at dispersion zero, so
+the assumption sits exactly on the *left end* of the dispersion axis. And because
+the counts are overdispersed, **the best Poisson visibly fails to cover them** —
+at the default the counts 0–3 and 21–23 sit where the fitted Poisson has almost
+no mass, on screen, before anything is said. That replaces a fiction (holding the
+true dispersion and calling it "known") with a lesson: **maximum likelihood gives
+you the best parameter for the model you assumed, and if the model is wrong the
+best parameter is still wrong.**
+
+**The Both tab climbs rather than sweeps, and that is the whole reason it works.**
+A surface version was built and cut once: it filled the contour one mean-column
+at a time, so each press evaluated one mean and *all* the dispersions — one
+marginal grew a dot per press while the other was finished after the first. Every
+established treatment draws the surface first and animates a **path** over it
+([rpsychologist.com/likelihood](https://rpsychologist.com/likelihood/) uses live
+sliders; animated surfaces are always gradient paths), so this does too. The
+climb is **coordinate ascent** — maximise over one parameter, then the other —
+which means each move is literally one of the other two tabs run once.
+
+**It is not what `optim` does, and the code said otherwise until it was checked.**
+`optim(method = "BFGS")` is quasi-Newton: it takes the gradient numerically,
+corrects the direction with an approximation to the inverse Hessian, and
+line-searches along it, so **every iteration moves both parameters at once,
+diagonally**. Measured from the same start on the same data: BFGS-style steps run
+at 21°, 111°, 21°, 110° and take six iterations; coordinate ascent runs straight
+up, straight across, and is done in two. Both land in the same place — (2.14,
+8.66) against (2.15, 8.67). **Same answer, different path.** Coordinate ascent is
+kept because each of its moves *is* one of the other two tabs run once, which is
+what makes the third tab a synthesis rather than a fourth idea; a gradient path
+would be truer to `optim` and would teach nothing the other tabs have not already
+set up.
+
+**It converges in two moves and the next two visibly do nothing.** Measured: from
+the leftmost candidate at dispersion zero, move 1 slides the mean 6.10 → 9.22,
+move 2 lifts the dispersion 0.02 → 0.76, and moves 3, 4 and 5 do not budge —
+because for a fixed dispersion the NB's MLE for the mean *is* the sample mean
+whatever that dispersion is. **That is the vertical-crest fact acted out by a
+search that refuses to move**, and it costs 246 cells against 1,681 for the whole
+grid.
+
+**The true parameters are settable, and the dispersion slider is the best control
+in the widget.** Measured at n = 12: set it to 0 and the dispersion tab finds
+0.03 and reports **"nothing to fix — these counts really are Poisson"**. Slide it
+up and the same search reports Poisson being wrong by 10⁴, then 10⁸, then 10²³.
+That answers a question a student actually asks: *how would I know I needed the
+negative binomial?* The true-mean slider is weaker — it mostly relabels — but it
+is capped at 5–20 so an instructor can match their own example.
+
+**A default seed made the method look broken, and the fix was not the seed.**
+Seed 12 shipped first. Its sample mean goes 9.17 → 9.50 → 8.22 as n goes 12 → 30
+→ 60, so the first person to slide the sample size *up* watched the estimate get
+*worse* and reasonably concluded maximum likelihood was failing. Nothing was
+wrong — measured over 400 seeds the mean absolute error falls 2.63 → 1.64 → 1.02
+→ 0.71 against a theoretical 2.82 → 1.63 → 1.03 → 0.73, and the sampler's own
+mean over 400,000 draws is 10.02 — but seed 12 at n = 60 is in the unluckiest
+3.8%, and a default that makes the method look broken is a bad default. It is now
+seed 46: 8.67 → 9.53 → 10.33.
+
+**The seed is not the real fix and must not be relied on.** For any single sample
+the estimate genuinely *can* get worse with more data, and a student who moves the
+seed will find one that does. What improves reliably is the **precision**, so the
+readout now leads with the likelihood interval — which falls 3.32 → 2.15 → 1.17
+even on the unlucky seed — and says so outright: *"more counts shrink THIS, not
+the miss."* The widget previously spent two of its four tiles on one quantity
+(`Best mean so far` and `Sample mean` differ only by a grid step), which is where
+the room came from.
+
+**`size` and `mu`, because that is what the notebook and `dnbinom` take.** The
+lesson writes `rnbinom(1000, size = 2.5, mu = 10)`, defines its likelihood with
+`dnbinom(x, size, mu, log = TRUE)`, optimises `c(size, mu)` with `optim`, and
+plots its contour as `aes(x = size, y = mu)`. The widget now uses those two
+parameters, in that orientation, with the truth at 2.5 and 10 — so a student can
+move between the two without translating anything.
+
+An earlier build used edgeR's **dispersion** instead (`φ = 1/size`, so `φ = 0` is
+Poisson and larger means *more* spread), which points the intuitive way. It was
+changed back: matching the lesson wins, and a student reading "dispersion" here
+and `size` there would have had to invert it in their head every time.
+
+**So the direction warning is the widget's job.** `var = μ + μ²/size`, so a
+**larger `size` means LESS spread** and `size → ∞` is Poisson. The notebook does
+not say this anywhere — its own parameter table calls `k` the dispersion, which
+is the opposite convention from edgeR's — and the size slider's detail line does.
+
+**Two starting points, and conflating them broke the figure.** `optim` is handed
+`initial_values <- c(size = 1, mu = mean(data))` — a *solver* detail, a place to
+begin iterating. The climb tab starts there, because that tab **is** `optim`. The
+mu tab needs something else: a *modelling* assumption to sweep under. Using
+`size = 1` there was mimicking the wrong thing and it showed — at `size = 1` the
+data is assumed so overdispersed that the mean's likelihood interval ran off both
+ends of the panel and the readout printed a span equal to the whole window.
+Poisson is what an analyst assumes before thinking about overdispersion, it gives
+a sharp unclipped peak, and it is what makes the size tab's **× 3.1 × 10⁴** mean
+anything. That figure is computed at the exact `size → ∞` limit, which is off the
+right-hand end of an axis stopping at 10 — the limit is taken in closed form
+rather than approached with a huge `size`, where the gamma terms would be
+differences of `lgamma` at ~1e9 and lose every significant digit.
+
+**One deliberate deviation.** The notebook starts `optim` at `mu = mean(data)`,
+which is already the answer, so the climb's first move would do nothing. The
+widget starts the climb at the notebook's `size = 1` and a deliberately poor `mu`,
+so the first move is worth watching. Everything after the start is the notebook's
+procedure.
+
+**Written for a biology MSc, and the readout was rewritten to prove it.** The
+reader is comfortable with gene counts, samples and means, and not with
+log-likelihoods or 10⁻¹¹⁰. Shown a finished sweep, the widget used to put four
+tiles on screen — three of them scientific notation, two of those near-identical
+huge negative exponents sitting side by side inviting a comparison nobody can
+make by eye. It was read, correctly, as "technical".
+
+It is now **two tiles per tab**: a number to point at and a range to point at.
+Audited string by string in
+[`widgets/_lab/plain-language.html`](../widgets/_lab/plain-language.html), which
+renders three candidate readouts from the widget's real numbers and gives a
+verdict on every label, caption and axis in it.
+
+| cut | why |
+|---|---|
+| `log = -287.3` | a second unreadable number attached to the first |
+| `these add to 7.9 × 10⁻¹¹⁰ — not 1` | the weak half of the probability-vs-likelihood point: two huge exponents to compare by eye |
+| the **Likelihood / Log** toggle | a second axis convention to explain, and the log is what `optim` maximises — a fact for whoever is teaching, not for a first encounter |
+
+**The misconception target survives the cut, on the canvas.** `all spikes add to
+1.000` is exact, instant and free; the tile version was the same idea in its
+worst possible vehicle. A secondary idea belongs in small grey text, not in a
+stat tile.
+
+**And the Poisson ratio went too.** It answered *"why a negative binomial rather
+than a Poisson?"*, which this lesson does not ask — the negative binomial is
+simply the example it uses. The size tab reports a **plausible range** instead,
+which says something about the *method* and says it by comparison with the tab
+next door: at n = 60 the mean is pinned to a factor of 1.2 and the size only to
+2.6. **Some parameters are much harder to estimate than others** — no Poisson
+required.
+
+Poisson survives as the mu tab's *assumption*, because at any other assumed size
+the mean's plausible range runs off the panel — measured: holding size at 1 or at
+the true 2.5 clips it at both n = 12 and n = 60, because if you assume the counts
+are that overdispersed you genuinely cannot pin the mean down within ±40%. What
+was missing was a note saying what is held still, which now sits in the slot the
+cut freed: *"size is held fixed — only mu is moving."*
+
+**And the exponent now comes off the log-likelihood rather than off `exp()` of
+it.** At n = 200 the likelihood is past 1e-308, `exp()` returns 0, and the axis
+label would have been -Infinity with every plotted value NaN. Scaling in log
+space cannot underflow at any n the widget offers.
+
+**One press in the Both tab is a whole sweep, and it says so rather than showing
+it.** The mu and size tabs spend one press per candidate — 41 presses, 41 dots.
+The Both tab spends one press per *move*, and a move maximises over an entire
+axis: **41 evaluations behind a single click.** Five presses do 41× the work of
+five presses next door while looking like less, which was read — reasonably — as
+*"why is the sweep only a few steps?"*.
+
+**It was animated as the sweep it is, and that was reverted.** A scan ran the
+length of the axis cell by cell with a marker trailing it holding the best so
+far; it worked, and it was measured working (move 1 climbing the mu axis frame by
+frame, move 2 running rightward along size). It was still **jarring** — a marker
+shooting across the panel and snapping back, five times, reads as a glitch rather
+than as a search. The note carries it instead: *"move 2 of 5: swept all 41 size
+candidates"*. **Naming the 41 costs nothing; the motion cost legibility.**
+
+**Why it does not reproduce R's numbers, and it is not the solver.** The
+notebook's `optim` reports `size = 2.535698, mu = 9.931002` from **1000** counts.
+The widget fits 12–60, because its mechanism is seeing each count's own factor
+and that needs a countable number. Measured on the widget's own method with no
+grid at all: n = 22 → size 1.80, n = 60 → 2.85, n = 200 → 2.55, **n = 1000 →
+2.561**, which is R's answer to within the difference between two random samples.
+The grid costs another 0.09 on size and 0.02 on mu at n = 1000 — real, but an
+order of magnitude smaller than the sampling error at the sizes the widget shows.
+So: **different data, and far less of it**, then the grid a distant second. The
+readout says so in the Both tab — *"Counts used 22 · the notebook's optim uses
+1000"*.
+
+**The contour is the notebook's, negated.** The notebook plots `neg_loglik` with
+`geom_contour_filled` and hunts the **minimum**; the widget plots the
+log-likelihood and hunts the maximum. Identical function, opposite sign, same
+`aes(x = size, y = mu)` orientation — and the axis label says it outright, because
+a reader holding the two figures side by side needs telling once.
+
+**Every factor uses both parameters, and the panel now says which.** *"Multiply
+these together"* was asked, reasonably, *"multiply what — both mu and size?"*.
+Each factor is `dnbinom(count, size, mu)` and always uses both; the tabs differ
+only in which one is moving. The factor row's caption now names the pair it is
+sitting at, in every tab.
+
+**The Both tab reports two numbers, not four.** It used to add how many moves had
+changed anything and how many cells the climb cost against the full grid — both
+true, both interesting, and both more technical detail piled on a notebook that
+is already technical. What is left is what `optim` itself returns: `size` and
+`mu`. The climb's own caption still says when it stopped moving.
+
+**The count axis ratchets, and at the far corner it has to reach past 200.** That
+is not a drawing failure: mean 20 with dispersion 1 genuinely produces counts
+that large, which is exactly why RNA-seq needs this distribution. The default
+reaches 32.
+
+**Stage one's answer is checkable, which is why it can carry the widget alone.**
+With the spread fixed, the MLE for the mean is exactly the sample mean (`d/dμ` of
+the NB log-likelihood gives `μ̂ = Σk/n` outright, whatever the spread is). So the
+widget is seen reproducing an estimator the reader already trusts. The peak lands
+on the nearest *grid* point, which is honest about what a grid search returns.
+
+**And the estimate is not the truth**, which the readout says outright rather than
+leaving a reader to conclude the method is broken: the sample mean is 9.17 against
+a true 10, which is twelve counts' worth of sampling error.
+
+**The lead action is the probability direction.** *Draw the counts* shows the
+distribution they come from, drops them out of it, and then takes it away for
+good — the one time the arrow runs parameter → data. Every press after it runs
+data → parameter. Same lead-button grammar as #3 and #5, where the button greying
+out permanently *is* the teaching, used here for a different reason.
+
+**Its first labels were reported as a broken widget, and that earned a core
+change.** With the lead unpressed, core disables step and run — so the first
+thing a reader met was two dead buttons, a blank figure and no way to tell a gate
+from a bug. `Draw` / `Try one` / `Play` became **`Draw the counts` / `Step` /
+`Play`**, and `animation.leadHint` now prints one line under the drive row
+saying what the greyed-out buttons are waiting for. **Widgets 3 and 5 have the
+identical structure and neither declares a hint yet** — the same complaint is
+presumably available there and has simply never been made.
+
+### Widget 9 · `posterior` — planned, not built
+
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 9 | `posterior` | Bayesian estimation | *What do the data make probable — and how sure am I?* | That the likelihood curve already tells you how probable each parameter value is. It is `P(data \| θ)`. To get `P(θ \| data)` you need a prior, and you have to **normalise** | **documented parent** — the transposed conditional, same as #8 |
+
+**This is the widget #8 was built to set up**, and the lesson states both forms two
+headings apart: MLE answers `P(Data | Parameters)`, Bayes answers
+`P(Parameters | Data)`. Reversing them is one of the commonest errors in applied
+statistics, and #8 now ends holding a likelihood curve over `mu` — the exact
+object #9 needs to multiply.
+
+#### The spine
+
+1. #8's likelihood curve over `mu`, on **the same axis**.
+2. A **prior** curve over the same axis.
+3. Multiply, normalise → the **posterior**.
+4. **The posterior's area is 1**, so you can read probabilities off it. The
+   likelihood's area was nothing at all — that is the whole distinction, and it
+   finally has somewhere to land.
+5. The notebook says the payoff outright: *"in the Bayes approach, we do not get
+   a single estimate of the parameters but rather a distribution of values."*
+
+#### The animation, and why it is the mirror of #8
+
+| | what is fixed | what moves |
+|---|---|---|
+| **#8** | the data — drawn once, never redrawn | the **parameter** sweeps |
+| **#9** | the parameter axis | the **data** arrives one count at a time |
+
+So one press adds **one observation**, and the posterior shifts and narrows.
+That is the defining Bayesian move — updating — and it makes the prior visibly
+get overwhelmed: at n = 1 the posterior is barely the prior; by n = 12 the prior
+has stopped mattering. A **prior width** control turns that into an experiment,
+which is the question a student actually asks: *does my prior change the answer?*
+
+#### Decisions taken in advance, from what this session learned
+
+- **Grid, not MCMC.** With one parameter the posterior is exact on the same
+  41-point grid #8 already uses. MCMC is what you need when there are many
+  parameters — a sentence, not a widget. `brms` runs 4 chains × 2000 iterations
+  because Stan is general; the widget does not have to be.
+- **MCMC therefore does not become widget 10 by default.** If it earns a slot it
+  is for burn-in, autocorrelation and rejected proposals — none of which this
+  lesson asks about — and
+  [chi-feng.github.io/mcmc-demo](https://chi-feng.github.io/mcmc-demo/) already
+  does it well. **Linking it remains a legitimate outcome.**
+- **One parameter, `mu`.** #8 spent this session learning that two parameters at
+  once is where it comes apart. The prior/posterior point needs exactly one axis.
+- **Reuse:** the NB log-pmf, the `mu` grid and the count axis all come straight
+  from #8. `lgamma` is already exported. This is the second consumer that
+  justifies pulling the pmf out of `maximum-likelihood/main.js` and into core —
+  and the first honest chance to do it.
+
+#### To check before building
+
+- **brms puts its prior on the LOG scale.** `family = negbinomial()` uses a log
+  link, and the notebook computes `mu = exp(b_Intercept)`, so
+  `prior(normal(0, 10), class = Intercept)` is a prior on `log(mu)` — enormously
+  wide, roughly `mu` from `e⁻²⁰` to `e²⁰`. A widget prior placed directly on `mu`
+  is simpler and is **not the same object**; that difference needs stating rather
+  than papering over.
+- Whether the prior should be settable in shape as well as width, or whether one
+  width slider carries the whole idea.
+
+### Still queued: #10, and it is not certain
+
+`em-mixture` — the notebook's third section, two normals over height data
+(adults 170 ± 30, children 120 ± 15) fitted with `flexmix`. Candidate
+misconceptions: that EM finds *the* answer rather than a local optimum that
+depends on its initialisation, and that a hard assignment and a soft
+responsibility are the same thing. Neither has been through the rule above.
 
 ## Deferred from PHM5003
 

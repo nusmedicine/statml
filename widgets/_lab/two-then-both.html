@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · two curves, then the surface</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 860px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap;
+         position: sticky; top: 0; background: var(--surface-2); padding: var(--sp-2) 0; z-index: 2; }
+  .bar label { color: var(--ink-2); font-size: var(--fs-sm); }
+  .cand { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3); margin: 0 0 var(--sp-4); }
+  .cand p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .cand .meta { color: var(--ink-3); font-size: var(--fs-xs); margin: var(--sp-2) 0 0;
+                border-top: 1px solid var(--grid); padding-top: var(--sp-2); }
+  canvas { display: block; width: 100%; height: auto; }
+  .key { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+         padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .key dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4);
+            font-size: var(--fs-sm); }
+  .key dt { color: var(--ink-1); font-weight: 600; }
+  .key dd { margin: 0; color: var(--ink-2); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Two curves, then the surface — where do they go?</h1>
+  <p class="note">
+    Widget 8, stages two and three. The proposal: before the contour, search the
+    <strong>mean</strong> and the <strong>spread</strong> as two separate
+    likelihood curves. The contour then arrives as the thing that connects them
+    rather than as a new kind of object.
+  </p>
+  <p class="note">
+    <strong>The two curves have a real payload of their own</strong>, and it is
+    clearer as two curves than as any contour: <em>the mean's peak is sharp and
+    the spread's is flabby.</em> You can find one of these parameters and you
+    cannot really find the other. Both curves peak at exactly the same height —
+    the joint maximum — so they can honestly share a y-axis, which is what makes
+    the comparison fair.
+  </p>
+  <p class="note">
+    <strong>And the contour has a payload the curves cannot carry.</strong>
+    Measured on this data: the best mean is <code>9.165</code> whatever spread you
+    assume — 0.5, 1, 2.5, 5, 20, all give the same answer, because for a fixed
+    spread the negative binomial's MLE for the mean <em>is</em> the sample mean.
+    So <strong>the crest of the surface is a vertical line</strong>. But it does
+    not work the other way: assume a mean of 5 and the best spread is 0.87; assume
+    9.17 and it is 1.35. One parameter is immune to what you guess about the
+    other; the other is not. That asymmetry is a shape, and only the surface has
+    shapes.
+  </p>
+
+  <div class="key">
+    <h2>The layout criteria, since this is a layout question</h2>
+    <dl>
+      <dt>Alignment</dt><dd>A shared axis should be <em>physically</em> shared. The mean curve's x-axis and the contour's x-axis are the same quantity; if they are not on the same pixels, the reader has to be told they match instead of seeing it.</dd>
+      <dt>Constancy</dt><dd>Between stages, a mark that means the same thing should not move. Every pixel that moves is a re-orientation the reader pays for.</dd>
+      <dt>Comparability</dt><dd>Stage two's job is comparing two peaks. Two curves in the <em>same orientation</em> compare far better than one upright and one rotated.</dd>
+      <dt>Figure and ground</dt><dd>The contour is dense ink; the curves are sparse. The dense thing will dominate whatever you do, so it should not also be first in reading order.</dd>
+    </dl>
+    <p class="note" style="margin:var(--sp-3) 0 0">
+      <strong>Constancy and comparability pull against each other here</strong>,
+      and that is the whole decision. A marginal curve on the surface's y-axis has
+      to be rotated; a curve you are comparing peaks with should not be. Something
+      has to give in stage two or in stage three.
+    </p>
+  </div>
+
+  <div class="bar">
+    <label>showing</label>
+    <span class="w-seg" id="stageseg"></span>
+    <span class="w-flash" id="facts"></span>
+  </div>
+
+  <div id="cands"></div>
+
+  <ol class="judge">
+    <li><strong>Flip the stage toggle and watch what moves.</strong> That is the
+      test. In A nothing moves at all; in B the spread curve rotates and crosses
+      the panel; in C nothing moves but nothing lines up either.</li>
+    <li><strong>Can you read the rotated curve?</strong> A is asking you to
+      compare a sharp upright peak with a sharp sideways one, in stage two, with
+      no contour between them yet. If that comparison fails, A's constancy was
+      bought with the thing stage two exists to do.</li>
+    <li><strong>Does A's empty cell read as a hole or as a question?</strong>
+      It is captioned as a question — <em>"do these two answers depend on each
+      other?"</em> — which is the honest description of what goes there.</li>
+    <li><strong>In C, is the unshared mean axis actually a problem?</strong> The
+      contour's mean axis runs the full width while the mean curve above it runs
+      half. They are the same quantity at two different scales, one above the
+      other, which is the exact configuration that invites a false reading.</li>
+    <li><strong>Height.</strong> Printed under each. The widget's canvas is
+      already 604&nbsp;px in stage one; whatever this costs is on top of the model
+      panel, the data strip and the factor row.</li>
+    <li><strong>Does the vertical crest read in the contour?</strong> That is the
+      stage-three payload. If the bands are too soft to see that the ridge runs
+      straight up, the fact needs a mark of its own rather than a shape.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng, makePlot, readTokens, niceTicks, fmt } from "../core/index.js";
+
+const LG_C = [
+  0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+  771.32342877765313, -176.61502916214059, 12.507343278686905,
+  -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+];
+function lgamma(z) {
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  const zz = z - 1;
+  let x = LG_C[0];
+  for (let i = 1; i < 9; i += 1) x += LG_C[i] / (zz + i);
+  const w = zz + 7.5;
+  return 0.5 * Math.log(2 * Math.PI) + (zz + 0.5) * Math.log(w) - w + Math.log(x);
+}
+const nbLogPmf = (k, mu, s) =>
+  lgamma(k + s) - lgamma(s) - lgamma(k + 1)
+  + s * (Math.log(s) - Math.log(s + mu)) + k * (Math.log(mu) - Math.log(s + mu));
+
+/* --- the widget's own data: seed 12, n = 12, NB(10, 2.5) ---------------- */
+const MU_LO = 4, MU_HI = 16, GRID = 41;
+const S_LO = 0.4, S_HI = 40, NY = 121;
+const LS_LO = Math.log(S_LO), LS_HI = Math.log(S_HI);
+const muAt = (g) => MU_LO + ((MU_HI - MU_LO) * (g + 0.5)) / GRID;
+const lsAt = (j) => LS_LO + ((LS_HI - LS_LO) * (j + 0.5)) / NY;
+
+const rng = makeRng(12);
+const counts = [];
+for (let i = 0; i < 12; i += 1) {
+  const u = rng.next();
+  let acc = 0;
+  for (let k = 0; k <= 600; k += 1) { acc += Math.exp(nbLogPmf(k, 10, 2.5)); if (u < acc) { counts.push(k); break; } }
+}
+const surf = new Float64Array(GRID * NY);
+let surfMax = -Infinity;
+for (let j = 0; j < NY; j += 1) {
+  const s = Math.exp(lsAt(j));
+  for (let g = 0; g < GRID; g += 1) {
+    let ll = 0;
+    for (const k of counts) ll += nbLogPmf(k, muAt(g), s);
+    surf[j * GRID + g] = ll;
+    if (ll > surfMax) surfMax = ll;
+  }
+}
+// The two profiles: each parameter searched with the other at its best.
+const meanProf = new Array(GRID).fill(-Infinity);
+const spreadProf = new Array(NY).fill(-Infinity);
+for (let j = 0; j < NY; j += 1) for (let g = 0; g < GRID; g += 1) {
+  const v = surf[j * GRID + g];
+  if (v > meanProf[g]) meanProf[g] = v;
+  if (v > spreadProf[j]) spreadProf[j] = v;
+}
+const EXPO = Math.floor(Math.log10(Math.exp(surfMax)));
+const SCALE = 10 ** EXPO;
+const yTop = Math.ceil((Math.exp(surfMax) / SCALE) * 1.12 * 2) / 2;
+const meanY = meanProf.map((v) => Math.exp(v) / SCALE);
+const spreadY = spreadProf.map((v) => Math.exp(v) / SCALE);
+let bestG = 0, bestJ = 0;
+for (let g = 0; g < GRID; g += 1) if (meanProf[g] > meanProf[bestG]) bestG = g;
+for (let j = 0; j < NY; j += 1) if (spreadProf[j] > spreadProf[bestJ]) bestJ = j;
+
+document.getElementById("facts").textContent =
+  `counts ${counts.join(",")} · both curves peak at ${Math.max(...meanY).toFixed(2)} and ` +
+  `${Math.max(...spreadY).toFixed(2)} (×10${EXPO}) — the same number, so the shared y-axis is honest`;
+
+/* The conventional 1/8-likelihood interval: everything within log(8) of the
+   maximum. This is what a search REPORTS, and reporting one per parameter
+   implies their rectangle. Measured on a 600x600 grid: the mean's interval is a
+   factor of 3.0 wide and the spread's a factor of 7.6, and the compatible region
+   fills 78% of the rectangle they imply. */
+const DROP = Math.log(8);
+const muLo = muAt(meanProf.findIndex((v) => v >= surfMax - DROP));
+const muHi = muAt(GRID - 1 - [...meanProf].reverse().findIndex((v) => v >= surfMax - DROP));
+const lsLo = lsAt(spreadProf.findIndex((v) => v >= surfMax - DROP));
+const lsHi = lsAt(NY - 1 - [...spreadProf].reverse().findIndex((v) => v >= surfMax - DROP));
+
+const BANDS = [0.5, 1, 2, 3, 5, 10, 20];
+const ALPHA = [0.80, 0.64, 0.50, 0.38, 0.27, 0.18, 0.10, 0.045];
+
+/* --- shared drawing pieces ---------------------------------------------- */
+function contour(ctx, c, rect, showCrest) {
+  const p = makePlot({ ctx, colors: c, rect, xDomain: [MU_LO, MU_HI], yDomain: [LS_LO, LS_HI] });
+  const px = (i) => Math.round(rect.x + (i * rect.w) / GRID);
+  const py = (j) => Math.round(rect.y + rect.h - (j * rect.h) / NY);
+  ctx.save();
+  ctx.fillStyle = c.empirical;
+  for (let g = 0; g < GRID; g += 1) for (let j = 0; j < NY; j += 1) {
+    const drop = surfMax - surf[j * GRID + g];
+    let b = BANDS.length;
+    for (let i = 0; i < BANDS.length; i += 1) if (drop <= BANDS[i]) { b = i; break; }
+    if (!ALPHA[b]) continue;
+    ctx.globalAlpha = ALPHA[b];
+    ctx.fillRect(px(g), py(j + 1), px(g + 1) - px(g), py(j) - py(j + 1));
+  }
+  ctx.restore();
+  if (showCrest) p.vline(muAt(bestG), { stroke: c.highlight, width: 2 });
+  p.dot(10, Math.log(2.5), { fill: c.reference, r: 5 });
+  p.dot(muAt(bestG), lsAt(bestJ), { fill: c.highlight, r: 5.5 });
+  return p;
+}
+
+function meanCurve(ctx, c, rect, { ticks }) {
+  const p = makePlot({ ctx, colors: c, rect, xDomain: [MU_LO, MU_HI], yDomain: [0, yTop] });
+  p.curve(meanProf.map((_, g) => [muAt(g), meanY[g]]), { stroke: c.empirical, width: 2 });
+  p.dot(muAt(bestG), meanY[bestG], { fill: c.highlight, r: 5 });
+  p.vline(10, { stroke: c.reference });
+  p.axisX(ticks ? { label: "candidate mean" } : { ticks: [] });
+  return p;
+}
+
+/** The spread curve, ROTATED: value runs along x, the parameter up y. */
+function spreadCurveRot(ctx, c, rect) {
+  const p = makePlot({ ctx, colors: c, rect, xDomain: [0, yTop], yDomain: [LS_LO, LS_HI] });
+  p.curve(spreadProf.map((_, j) => [spreadY[j], lsAt(j)]), { stroke: c.empirical, width: 2 });
+  p.dot(spreadY[bestJ], lsAt(bestJ), { fill: c.highlight, r: 5 });
+  ctx.save();
+  ctx.strokeStyle = c.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(rect.x + 0.5, rect.y); ctx.lineTo(rect.x + 0.5, rect.y + rect.h); ctx.stroke();
+  ctx.restore();
+  return p;
+}
+
+/** The spread curve, UPRIGHT: the parameter runs along x on a log scale. */
+function spreadCurveUp(ctx, c, rect) {
+  const p = makePlot({ ctx, colors: c, rect, xDomain: [LS_LO, LS_HI], yDomain: [0, yTop] });
+  p.curve(spreadProf.map((_, j) => [lsAt(j), spreadY[j]]), { stroke: c.empirical, width: 2 });
+  p.dot(lsAt(bestJ), spreadY[bestJ], { fill: c.highlight, r: 5 });
+  p.vline(Math.log(2.5), { stroke: c.reference });
+  const t = [0.5, 1, 2, 5, 10, 20, 40];
+  p.axisX({ ticks: t.map(Math.log), format: (v) => String(+Math.exp(v).toFixed(1)), label: "candidate spread" });
+  return p;
+}
+
+/** What two separate searches tell you: one interval each, so a RECTANGLE. */
+function intervalBox(ctx, c, p, label) {
+  const x0 = p.sx(muLo), x1 = p.sx(muHi), y0 = p.sy(lsHi), y1 = p.sy(lsLo);
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = c.ink3;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.setLineDash([]);
+  if (label) {
+    ctx.fillStyle = c.ink3;
+    ctx.font = `${c.fsXs} ${c.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(label, x0 + 5, y0 + 4);
+  }
+  ctx.restore();
+}
+
+function prompt(ctx, c, rect, lines) {
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = c.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  ctx.setLineDash([]);
+  ctx.fillStyle = c.ink3;
+  ctx.font = `${c.fsSm} ${c.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  lines.forEach((l, i) => ctx.fillText(l, rect.x + rect.w / 2, rect.y + rect.h / 2 + (i - (lines.length - 1) / 2) * 18));
+  ctx.restore();
+}
+
+/* --- the three candidates ------------------------------------------------ */
+const W = 776;               // the real stage width in the side layout
+const PAD_L = 56, PAD_R = 18;
+const MARG = 150;            // the rotated marginal's column
+const GAP = 10;
+const JOINT_W = W - PAD_L - PAD_R - GAP - MARG;
+
+/** The L-frame both A and B end on: mean curve on top, spread on the right. */
+function drawLFrame(ctx, c, filled) {
+  const topY = 34, topH = 78;
+  const conY = topY + topH + 10, conH = 208;
+  const jr = { x: PAD_L, y: conY, w: JOINT_W, h: conH };
+  const p = filled
+    ? contour(ctx, c, jr, true)
+    : makePlot({ ctx, colors: c, rect: jr, xDomain: [MU_LO, MU_HI], yDomain: [LS_LO, LS_HI] });
+  /* THE EMPTY CELL WAS THE WEAKNESS, and a captioned prompt was decoration in
+     it. What belongs there is what two separate searches actually give you: one
+     interval per parameter, which is a RECTANGLE. Stage three then draws the
+     real region inside it. */
+  intervalBox(ctx, c, p, filled ? null : "what two separate searches tell you");
+  if (!filled) {
+    ctx.save();
+    ctx.fillStyle = c.ink3;
+    ctx.font = `${c.fsSm} ${c.font}`;
+    ctx.textAlign = "center";
+    ctx.fillText("is every pair in this box really compatible?", jr.x + jr.w / 2, jr.y + jr.h - 14);
+    ctx.restore();
+  }
+  const t = [0.5, 1, 2, 5, 10, 20, 40];
+  p.axisY({ ticks: t.map(Math.log), format: (v) => String(+Math.exp(v).toFixed(1)), label: "spread" });
+  p.axisX({ label: "candidate mean" });
+  const mp = meanCurve(ctx, c, { x: PAD_L, y: topY, w: JOINT_W, h: topH }, { ticks: false });
+  mp.caption("the mean, searched on its own");
+  const sp = spreadCurveRot(ctx, c, { x: PAD_L + JOINT_W + GAP, y: conY, w: MARG, h: conH });
+  ctx.save();
+  ctx.font = `600 ${c.fsSm} ${c.font}`;
+  ctx.fillStyle = c.ink2;
+  ctx.textAlign = "left";
+  ctx.fillText("the spread", PAD_L + JOINT_W + GAP, topY + topH - 4);
+  ctx.fillText("on its own", PAD_L + JOINT_W + GAP, topY + topH + 12);
+  ctx.restore();
+  return conY + conH + 44;
+}
+
+/** The upright pair: two curves, same orientation, shared y. */
+function drawPair(ctx, c, y0) {
+  const h = 132;
+  const w = (W - PAD_L - PAD_R - 52) / 2;
+  const a = meanCurve(ctx, c, { x: PAD_L, y: y0, w, h }, { ticks: true });
+  a.axisY({ ticks: niceTicks(0, yTop, 4) });
+  a.caption("the mean, searched on its own");
+  const b = spreadCurveUp(ctx, c, { x: PAD_L + w + 52, y: y0, w, h });
+  b.caption("the spread, searched on its own");
+  ctx.save();
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillStyle = c.ink3;
+  ctx.textAlign = "right";
+  ctx.fillText(`both peak at the same height`, W - PAD_R, y0 + h + 34);
+  ctx.restore();
+  return y0 + h + 44;
+}
+
+const CANDS = [
+  {
+    key: "A",
+    name: "A · One frame, filled in",
+    sub: "Both stages use the same grid. Stage two draws the two marginals and leaves the joint cell as an open question; stage three fills it. NOTHING MOVES — at the price of comparing an upright peak with a rotated one in stage two, which is the one comparison stage two exists to make.",
+    height: (stage) => (stage === 3 ? 364 : 364),
+    draw(ctx, c, stage) { return drawLFrame(ctx, c, stage === 3); },
+  },
+  {
+    key: "B",
+    name: "B · Upright pair, then reframe",
+    sub: "Stage two puts both curves the same way up, side by side, sharing a y-axis — the fairest possible comparison of two peaks. Stage three reframes into the L, which rotates the spread curve and slides it across the panel. Comparability in stage two, paid for with the biggest move of the three.",
+    height: (stage) => (stage === 3 ? 364 : 220),
+    draw(ctx, c, stage) { return stage === 3 ? drawLFrame(ctx, c, true) : drawPair(ctx, c, 34); },
+  },
+  {
+    key: "C",
+    name: "C · Upright pair, then add below",
+    sub: "Stage two as in B. Stage three keeps both curves exactly where they are and puts the contour underneath at full width. Nothing moves and nothing rotates — but the contour's mean axis is now a different length from the mean curve's, directly above it, which is the configuration that invites a false reading.",
+    height: (stage) => (stage === 3 ? 476 : 220),
+    draw(ctx, c, stage) {
+      const y = drawPair(ctx, c, 34);
+      if (stage !== 3) return y;
+      const jr = { x: PAD_L, y: y + 22, w: W - PAD_L - PAD_R, h: 208 };
+      const p = contour(ctx, c, jr, true);
+      p.caption("and now both at once");
+      const t = [0.5, 1, 2, 5, 10, 20, 40];
+      p.axisY({ ticks: t.map(Math.log), format: (v) => String(+Math.exp(v).toFixed(1)), label: "spread" });
+      p.axisX({ label: "candidate mean" });
+      return jr.y + jr.h + 44;
+    },
+  },
+];
+
+let stage = 2;
+const host = document.getElementById("cands");
+const views = CANDS.map((cd) => {
+  const box = document.createElement("div");
+  box.className = "cand";
+  const h2 = document.createElement("h2");
+  h2.textContent = cd.name;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = cd.sub;
+  const canvas = document.createElement("canvas");
+  const meta = document.createElement("p");
+  meta.className = "meta";
+  box.append(h2, sub, canvas, meta);
+  host.appendChild(box);
+  return { cd, canvas, meta };
+});
+
+function render() {
+  const c = readTokens();
+  for (const v of views) {
+    const H = v.cd.height(stage);
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const cssW = v.canvas.clientWidth || W;
+    const s = cssW / W;
+    v.canvas.width = Math.round(cssW * dpr);
+    v.canvas.height = Math.round(H * s * dpr);
+    v.canvas.style.height = `${H * s}px`;
+    const ctx = v.canvas.getContext("2d");
+    ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const used = v.cd.draw(ctx, c, stage);
+    v.meta.textContent =
+      `stage 2: ${v.cd.height(2)} px · stage 3: ${v.cd.height(3)} px · ` +
+      `drawn to ${Math.round(used)} px · on top of the 386 px of model, data strip and factors above it, ` +
+      `the widget canvas would be ${386 + v.cd.height(stage)} px`;
+  }
+}
+
+const seg = document.getElementById("stageseg");
+for (const [val, label] of [[2, "Stage two — each on its own"], [3, "Stage three — both at once"]]) {
+  const b = document.createElement("button");
+  b.className = "w-seg-btn";
+  b.type = "button";
+  b.textContent = label;
+  b.addEventListener("click", () => {
+    stage = val;
+    [...seg.children].forEach((x, i) => x.setAttribute("aria-pressed", String(i === (val === 2 ? 0 : 1))));
+    render();
+  });
+  b.setAttribute("aria-pressed", String(val === stage));
+  seg.appendChild(b);
+}
+
+render();
+addEventListener("resize", render);
+</script>
+</body>
+</html>
