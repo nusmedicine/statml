@@ -98,13 +98,13 @@
     },
     {
       "slug": "bootstrap",
-      "px": "9965dfdf",
+      "px": "92015621",
       "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution.",
       "state": "?theme=light&shown=400"
     },
     {
       "slug": "bootstrap",
-      "px": "a9c8b9f0",
+      "px": "898a257f",
       "$note": "A different population and a mid-build count, still in the dot-to-bar crossfade.",
       "state": "?theme=light&dist=bimodal&n=25&shown=120"
     },
@@ -345,31 +345,31 @@
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&shown=41",
-      "px": "c0074487",
+      "px": "91922ba4",
       "$note": "The default payoff figure: the mu sweep complete, the peak on the sample mean and short of the true 10."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&estimate=disp&shown=41",
-      "px": "8c81141f",
+      "px": "ec0ec807",
       "$note": "The size tab, swept. A different x-axis and a different held-fixed note; nothing else in the suite renders this panel."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&estimate=both&shown=6",
-      "px": "81a1b12a",
+      "px": "5aa4c7d2",
       "$note": "The Both tab, climb finished. The only contour in the suite, and the only right-angled path over one."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&n=60&factors=0&shown=41",
-      "px": "15fef153",
+      "px": "7871cfcb",
       "$note": "n = 60 with the factor row off: the count axis has ratcheted out and the exponent has collapsed. Catches anything that scales with n."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&trueSize=8&n=6&estimate=disp&shown=41",
-      "px": "0c919b95",
+      "px": "8f410fc8",
       "$note": "A near-Poisson population (size 8) at small n. The size tab should find little to fix here, so it guards the branch that reports it."
     },
     {
@@ -403,23 +403,23 @@
         "frames": 6,
         "dt": 32
       },
-      "px": "dc3efbf6",
+      "px": "3b02c39e",
       "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
     },
     {
       "slug": "posterior",
       "state": "?theme=light&shown=0",
-      "px": "7ed1ffa9"
+      "px": "15ab3f2d"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&shown=12",
-      "px": "ac95fb08"
+      "px": "12e1fc3e"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=size&shown=12",
-      "px": "b9df5dfa"
+      "px": "2c3ae2a5"
     },
     {
       "slug": "posterior",
@@ -429,12 +429,12 @@
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "ef7da93b"
+      "px": "54178a45"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
-      "px": "22b3e7ac"
+      "px": "1754fcce"
     },
     {
       "slug": "posterior",
@@ -444,7 +444,7 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "afa79e37"
+      "px": "b5cdd65a"
     },
     {
       "slug": "posterior",
@@ -455,7 +455,7 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "bcfd8f91"
+      "px": "3198d97f"
     },
     {
       "slug": "posterior",
@@ -466,7 +466,7 @@
         "frames": 40,
         "dt": 32
       },
-      "px": "9d306acd"
+      "px": "d04d6a4c"
     },
     {
       "slug": "posterior",
@@ -477,7 +477,7 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "fc063d3e"
+      "px": "f8397e8b"
     }
   ]
 }

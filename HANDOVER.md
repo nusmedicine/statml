@@ -2,14 +2,14 @@
 
 ## Where things are — read this first
 
-**Nothing from the last two sessions is deployed.** `main` and `origin/main` are
-both at `5cb11eb`, so the live site still shows **seven** widgets. Widgets 8 and
-9 exist only on branches:
+**Nothing from the last three sessions is deployed.** `main` and `origin/main`
+are both at `5cb11eb`, so the live site still shows **seven** widgets. Widgets 8
+and 9 exist only on branches:
 
 ```
 main                        5cb11eb   ← what the world sees
 widget-8-maximum-likelihood 031f85c   ← +2 commits
-widget-9-posterior          f45195c   ← +6 more, branched off widget 8
+widget-9-posterior          HEAD      ← +10 more, branched off widget 8
 ```
 
 `widget-9-posterior` therefore carries **both** widgets. Merging it publishes
@@ -19,8 +19,8 @@ unless asked.
 
 Widget 9 passes everything — `npm run check` clean, fingerprint **57/57 MATCH**,
 10 baselined states (six settled, four driven). It is finished in the sense that
-it works and is verified, and unfinished in the sense that each of the last
-three review rounds found something and the next one probably will too.
+it works and is verified, and unfinished in the sense that each of the last four
+review rounds found something and the next one probably will too.
 
 ## What widget 9 is, in one paragraph
 
@@ -50,21 +50,100 @@ for un-parking it instead of building #10.
 `power-and-error` is still the only `draft` in the manifest and still has no
 fingerprint states.
 
+## What the last session did
+
+Four commits. The last was not on the list when the session started, and it is
+the one worth reading.
+
+| commit | what |
+|---|---|
+| `Widget 9: an axis in tenths…` | five canvas fixes, below |
+| `Delete manifest's height…` | the field is gone, and `check`'s assertion with it |
+| `Power and error: a ladder…` | alphas `0.01` and `0.10` carried `detail: ""`, so the block jumped a line taller and shorter as you clicked across the row |
+| `A note that will not fit…` | core `note()` gained a fallback; three callers core cannot reach were fixed as copy |
+
+The five in widget 9, all found by reading the text the canvas paints:
+
+- **An axis in tenths, in the opening frame.** At zero counts the likelihood's
+  peak is the prior's own integral, which is 1 — except that summing 80 cells
+  lands on `0.9999999999999999` for the DEFAULT prior. `log()` of that is
+  `-1.1e-16`, `floor()` takes it to **-1**, and the panel redrew its y-axis
+  `0 – 11` with the flat curve at 10 and `area = 20.0` printed underneath. One
+  notch of the size slider read `0 – 1.5`. `expoOf()` carries the tolerance now,
+  and the comment carries the story.
+- **A caption that ran backwards over half its slider.** "so you expected a lot
+  of extra spread" was fixed text under a slider running to 6, and a larger size
+  is LESS spread — which the axis label two panels down says outright.
+- **The first MCMC proposal was invisible.** `drawPlane` returned early at
+  `t = 0`, before the dot, the dashed line and the bars alike, so the first press
+  of "Propose a move" left the panel reading "nothing proposed yet" for its whole
+  flight. `compute()` returns the chain's start now and the plane draws it.
+- **The current point's bar never moved.** Pinned at full width, it made the
+  proposal's length the acceptance probability read off the axis — but it encoded
+  nothing itself while its printed value swung two orders of magnitude, in the
+  one tab whose subject is a chain moving. Both bars scale to the plane's peak
+  now. The decision is untouched: `proposed/current > u` is
+  `len(proposed) > len(current) × u`, so the dart moved along the current bar
+  and means what it meant. `CAP` went with it — against the peak nothing can
+  pass full width. Measured over 600 draws, current/peak has median 0.53 and
+  quartiles 0.22/0.72, with 6% under 0.05.
+- **Counts stopped being countable at n = 60.** Seven rows in a 46px strip with a
+  fixed 3.6px radius drew solid bars, in the figure whose hollow rings exist to
+  be counted. The radius follows the row pitch and is unchanged below ~n = 24.
+
+## THE BIG ONE: every baseline is recorded at the NARROWEST canvas
+
+`fingerprint.html` sets `FRAME_W = 900`. The side layout stacks at
+`max-width: 880px`, so 900 is **20px above the breakpoint** — every state is
+hashed with the rail still beside the figure, on a **550px canvas**, the
+narrowest that layout ever produces. Nobody had ever looked at one.
+
+Measured there, **10 of the 32 settled states had a caption printing through its
+own note**, by up to **123px**:
+
+| widget | states | colliding |
+|---|---|---|
+| posterior | 6 | 4 |
+| maximum-likelihood | 5 | 4 |
+| bootstrap | 3 | 2 |
+| the other five | 18 | 0 |
+
+**The halo is what hid it.** `note()` strokes surface-coloured before it fills,
+so a collision ERASES the caption underneath rather than blending — the result
+still looks like a caption, a short one, and it hashes consistently for ever. A
+screenshot at 1400px would never have shown it and no hash ever will. It took
+reading the painted text **at the width the harness itself uses**.
+
+`caption()` records where it ended; `note()` checks before claiming the same
+baseline and drops INSIDE the panel's top-right when the line is full — the
+position `note()` already had, for "a panel whose caption line is already spoken
+for". A full line is a caption line that is spoken for. At 770px the automatic
+fallback fires **zero** times, so nothing changed for the normal case.
+
+That fixed 7 of 10. The other three were not caption/note pairs, which is the
+lesson worth keeping: **a fallback in core only reaches callers that use the core
+call.** `bootstrap`'s caption was itself 36px too long and `caption()` has no
+fallback to give it; widget 9's ratio-strip heading and its "nothing proposed
+yet" line are hand-drawn `fillText`. All three were fixed as copy.
+
+**If you add a caption or a note, measure it at 550px, not at 1400.** The recipe
+is below; point it at a 900px iframe.
+
 ## Open, and deliberately not fixed
 
-- **`manifest.json`'s `height` is stale for every widget and nothing reads it.**
-  The embedders that consumed it were deleted (prd §6). Measured at the
-  fingerprint harness's own 900px frame, every recorded height is 190–310px too
-  tall — left over from before the `side` layout. `posterior`'s is correct
-  (1112); the other eight are not. **A number nothing reads is a number that
-  drifts.** Either fix all nine against a stated width or delete the field.
+- **`caption()` still has no width fallback.** `note()` got one; a caption that
+  is simply too long still runs off the canvas, and the only reason none does
+  today is that `bootstrap`'s was shortened by hand. A second occurrence is the
+  trigger to give `caption()` the same treatment. The hard part is that there is
+  no good automatic answer — truncating a caption is worse than wrapping it, and
+  wrapping moves every panel below it.
 
-- **Four other widgets gained visible copy they had never shown.** `detail` was
-  rendering into a `title` tooltip on `segmented` and nowhere at all on
+- **The four widgets that gained visible copy have now been read.** `detail` used
+  to render into a `title` tooltip on `segmented` and nowhere at all on
   `int`/`float`; fixing it surfaced written-and-reviewed lines in `clt`,
-  `confidence-interval`, `maximum-likelihood` and `power-and-error`. All of it
-  read well when checked and none of it moved a canvas — but those four have not
-  been *looked at* since. Worth one pass.
+  `confidence-interval`, `maximum-likelihood` and `power-and-error`. All four
+  were read this session. Only `power-and-error` needed anything — its two empty
+  strings, now fixed. The other three read well and are considered done.
 
 - **Widget 8 is the cautionary example in widget 9's copy.** Its `mu` tab
   assumes Poisson, and widget 9's readout prints what that assumption costs
@@ -73,7 +152,7 @@ fingerprint states.
 
 ## What core gained, because it is a lot
 
-Eight files under `widgets/core/` moved across these two sessions. A fresh
+Eight files under `widgets/core/` moved across these three sessions. A fresh
 session should know the surface changed:
 
 | change | why |
@@ -88,10 +167,16 @@ session should know the surface changed:
 | `section` field type | a labelled divider between control groups — 3.4g |
 | `group` on segmented options | two captioned rows, not a caption that changes — 3.4g |
 | `init({ leadDone })` | Replay replays the loop instead of un-dealing the data — 3.4h |
+| `note()` falls back INSIDE when the line is full | a caption and its note were printing through each other in 10 of 32 states — see above |
 
-Every one was followed by a full fingerprint run reporting **47/47** on the other
-widgets before it was committed. That is the only reason this much core churn was
-safe.
+Every one was followed by a full fingerprint run before it was committed, and
+that is the only reason this much core churn was safe. The `note()` fallback is
+the first that deliberately CHANGED rendering: 17 of 57 states moved, and every
+one was accounted for before the baseline was written — 2 `bootstrap` (the
+caption shortened), 6 `maximum-likelihood` (untouched file; all six are the note
+dropping inside), 9 `posterior`. The five widgets with no collisions and no edits
+— 32 states between them — all MATCHed, which is what proves the change reached
+only what it should. Three passes agreed exactly before anything was recorded.
 
 ## The questions that reshaped widget 9
 
@@ -141,6 +226,27 @@ assumption is** — and the `Both` tab is what tells you which case you are in,
 because a crest running straight up is what makes the shortcut safe.
 
 ## Things these sessions learned the hard way
+
+- **A claim has to survive the whole slider, not just the default.** The size
+  prior's caption said "so you expected a lot of extra spread" at every setting
+  of a control that runs to 6 — and larger size is LESS spread, which the axis
+  label two panels below states outright. Sweeping a slider end to end and
+  reading what the canvas prints at each stop takes about a minute. The same
+  sweep is what proves there is no `NaN` at either extreme.
+
+- **One ulp is enough to make a figure lie, and the DEFAULT is where it landed.**
+  `Math.floor(Math.log(x) / Math.LN10)` on an `x` that should be exactly 1 but is
+  `0.9999999999999999` returns `-1`, not `0`. A panel that factors a power of ten
+  out of its axis then silently redraws in tenths. It is the first frame a reader
+  sees, it survived three review rounds, and the only reason it was caught is that
+  somebody read the axis and the printed area in the same breath and multiplied.
+  **When a computed exponent feeds a label, put a tolerance in the floor.**
+
+- **A fallback in core only reaches callers that use the core call.** `note()`
+  gained a width fallback that fixed 7 of 10 collisions. The other three were a
+  caption too long for `caption()` to help with, and two hand-drawn `fillText`
+  calls that core has no view of. Fixing the shared path is right and it is not
+  the whole job — go back and re-measure rather than assuming the class is closed.
 
 - **A claim printed on a figure has to survive the FIRST press.** The likelihood
   note said `— not 1`, and for a single Poisson observation the likelihood over
@@ -265,6 +371,38 @@ everything for one measurement **inside a single `javascript_exec`**, and assert
 `location.search` if the state matters. Screenshots come back at an inconsistent
 scale in this pane; pass `scale: 1`, and if the page renders small, resize and
 re-take rather than trusting it.
+
+**SWEEP EVERY STATE AT 900px, WHICH IS WHERE THE COLLISIONS LIVE.** This is what
+found the caption/note overlaps, and it is worth keeping because a widget's text
+is at its most cramped at exactly the width the harness records. Load a widget
+into a 900px iframe, hook `fillText` inside it, and force ONE repaint by clicking
+its own theme button — far more reliable than waiting on the `ResizeObserver`,
+which silently measured nothing about a third of the time and reported the empty
+result as "no collisions". **A capture of zero strings is a failed measurement,
+not a clean one** — assert `painted > 0` on every row or the sweep lies to you.
+
+```js
+const f = document.createElement("iframe");
+f.width = 900; f.height = 1500;
+f.style.cssText = "position:fixed;left:-9999px;top:0;border:0";
+f.src = "/widgets/" + slug + "/" + state;          // a baseline state, verbatim
+document.body.appendChild(f);
+await new Promise((r) => f.addEventListener("load", r, { once: true }));
+await new Promise((r) => setTimeout(r, 260));
+const rows = [];
+const P = f.contentWindow.CanvasRenderingContext2D.prototype;
+const orig = P.fillText;
+P.fillText = function (s, x, y, ...r) { /* …push as above… */ };
+f.contentWindow.document.querySelector('button[data-key="theme"]').click();
+await new Promise((r) => setTimeout(r, 60));
+P.fillText = orig;
+// Then: group by y, sort by x, flag it[i].x0 < it[i-1].x1, and flag any
+// x1 > canvasWidth. Skip rows with a non-zero transform (rotated axis labels).
+```
+
+Run it in chunks of about a dozen states — the whole 38-state sweep in one
+`javascript_exec` blows the 30s tool timeout, and a timed-out call can leave
+hidden iframes behind that need clearing before the next attempt.
 
 ## Lab pages, and what each one settled
 
