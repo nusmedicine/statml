@@ -174,6 +174,18 @@ function build(host, spec, values, onChange, api) {
         onChange(name, v);
       });
       wrap.appendChild(input);
+      /* A NUMERIC FIELD'S `detail` USED TO GO NOWHERE AT ALL. `params.js`
+         documents `detail` as something any field may carry, `choice` and
+         `gate` rendered it, and `int`/`float` silently dropped it — so widget
+         8's warning that a LARGER size means LESS spread, which is the one
+         thing about that parameterisation that catches people, has never been
+         on screen. Same field, same job, same rendering, everywhere. */
+      if (field.detail) {
+        const d = document.createElement("p");
+        d.className = "w-detail";
+        d.textContent = field.detail;
+        wrap.appendChild(d);
+      }
       setters[name] = (v) => {
         input.value = String(v);
         show(v);
@@ -244,6 +256,16 @@ function build(host, spec, values, onChange, api) {
       // a collapsed dropdown hides that there is a choice to make.
       const options = optionEntries(field);
       wrap.appendChild(label);
+      /* THE DETAIL IS A LINE, NOT A TOOLTIP, and it was a tooltip for two
+         widgets' worth of shipping. `choice` has always rendered its selected
+         option's `detail` as visible copy; `segmented` put the identical field
+         into `title`, where a projector never shows it and a touch screen
+         cannot reach it. Two widgets had written real explanations into it —
+         widget 8's three sweeps, and widget 9's grid-versus-sampler
+         distinction, which is the whole reason its fourth tab exists — and
+         neither was ever seen. Same field, same job, same rendering. */
+      const detail = document.createElement("p");
+      detail.className = "w-detail";
 
       const seg = document.createElement("div");
       seg.className = "w-seg";
@@ -253,6 +275,7 @@ function build(host, spec, values, onChange, api) {
       const buttons = new Map();
       const mark = (v) => {
         for (const [key, btn] of buttons) btn.setAttribute("aria-pressed", String(key === v));
+        detail.textContent = options.find((o) => o.value === v)?.detail ?? "";
       };
       for (const o of options) {
         const b = document.createElement("button");
@@ -267,8 +290,9 @@ function build(host, spec, values, onChange, api) {
         buttons.set(o.value, b);
         seg.appendChild(b);
       }
-      mark(values[name]);
       wrap.appendChild(seg);
+      wrap.appendChild(detail);
+      mark(values[name]);
       setters[name] = mark;
     }
     // `bool` never reaches here — checkboxes are grouped by toCells() above.

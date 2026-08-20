@@ -817,6 +817,60 @@ is the tab that tells you *whether the shortcut was safe* — a crest running
 straight up means the best `mu` does not depend on `size`, and you can see that
 rather than be told it.
 
+#### Three questions from the first read, and what each changed
+
+- **"Is `give or take` needed? MLE did not need this extra parameter."** It is
+  not a model parameter. The model has two, `mu` and `size`, and both methods
+  estimate those two. The three sliders describe a **prior**, which is a
+  *distribution* over a parameter rather than a value for it — a normal takes a
+  centre and a width, an exponential takes one number. MLE needs none of them
+  because it never produces a distribution over the parameter: it returns a
+  point and a curve with no area. **The prior is the price of the sentence
+  widget 8 cannot say** — *there is a 95% chance mu is between 5.9 and 11.9.*
+  That is now the `detail` line on the first prior slider, and `give or take` is
+  labelled as the prior's STRENGTH, which is the widget's best single
+  experiment.
+
+- **"How can we indicate mu / size / Both are grid and MCMC is not?"** It was
+  already written and was rendering into a tooltip — see
+  [design-principles.md](design-principles.md) §3.4f, which that question
+  earned. The tab strip now shows *EXACT, by adding up all 6,400 grid cells*
+  against *SAMPLED, never enumerated · 80 cells per axis is 6,400 for two
+  parameters and 10¹⁹ for ten.*
+
+- **"Why guess, when we can see the true distribution?"** The best question in
+  the set, and the honest answer is that **on this problem you should just use
+  the grid.** The contour is on screen so the sampler can be watched agreeing
+  with an answer you already have — the only way to earn trust in it for the
+  problems where you cannot compute one. The readout carries the check
+  continuously: *mu, from the draws 8.35 · the grid says 8.57.* Two different
+  "true" things share that panel and the widget now separates them: the faded
+  contour is the exact posterior, computable here and not at ten parameters; the
+  `truth` dot is the real parameters, visible only because the population is
+  seeded.
+
+#### The marginals sit on the plane's edges
+
+Asked for on the sampler tab and given to `Both` as well, because it is what
+makes that tab's claim to be "the joint the other two are the edges of"
+checkable instead of asserted. `mu`'s marginal stands on the right (mu is the
+plane's y-axis) and `size`'s lies underneath (size is the x), so each aligns
+with the axis it belongs to and *a marginal is the plane added up along the
+other axis* becomes visible.
+
+**Not side by side**, which
+[`_lab/two-then-both.html`](../widgets/_lab/two-then-both.html) had already
+ruled out: two upright curves invite the eye to compare their peaks, and the
+peaks are not comparable, so the worse-determined parameter looks better
+determined.
+
+On the sampler they carry a histogram of the draws under the exact curve — the
+notebook's own `post_samples %>% ggplot(aes(x=mu)) + geom_histogram()`. **This
+reverses the earlier decision to cut it.** The objection was that at forty draws
+it reads as the sampler failing; with the exact curve drawn over it and the draw
+count on screen, "lumpy at 40, close by 600" is the right lesson and it is
+exactly why brms takes 6,000.
+
 #### The `brms` check, answered
 
 - **`normal(0, 10)` on the Intercept is a prior on `log(mu)`**, because

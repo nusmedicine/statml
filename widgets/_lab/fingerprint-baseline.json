@@ -424,12 +424,12 @@
     {
       "slug": "posterior",
       "state": "?theme=light&view=both&shown=12",
-      "px": "fd10cc3d"
+      "px": "0045e42c"
     },
     {
       "slug": "posterior",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "67bd4619"
+      "px": "c4cee116"
     },
     {
       "slug": "posterior",
@@ -477,7 +477,7 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "0b17548a"
+      "px": "c24be5f2"
     }
   ]
 }

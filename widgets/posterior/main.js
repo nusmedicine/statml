@@ -117,6 +117,17 @@
    link and the notebook recovers mu as exp(b_Intercept). Sampling log mu is
    what Stan is already doing.
 
+   AND "WHY GUESS, WHEN THE ANSWER IS ALREADY ON SCREEN?" IS THE RIGHT QUESTION.
+   The honest reply is that on THIS problem you should just use the grid. The
+   contour is drawn so the sampler can be watched agreeing with an answer that is
+   already known to be right, which is the only way to earn trust in it for the
+   problems where no such answer exists — and the readout runs that check
+   continuously, printing the chain's mu beside the grid's. Two different "true"
+   things share the panel and they are not the same kind of thing: the faded
+   contour is the exact POSTERIOR, computable here and not at ten parameters; the
+   `truth` dot is the real PARAMETERS, visible only because the population is
+   seeded and never available with real data.
+
    `size` RUNS BACKWARDS AND THE WIDGET SAYS SO. var = mu + mu^2/size, so a
    LARGER size means LESS spread and size -> infinity is Poisson. Same warning
    as widget 8, on the same parameter, in the same words.
@@ -212,9 +223,20 @@ const A_Y = 34, A_H = 46;   // the counts, arriving
 const B_Y = 142, B_H = 106; // P(counts | theta)
 const C_Y = 300, C_H = 116; // P(theta)          -- the prior
 const D_Y = 474, D_H = 116; // P(theta | counts) -- the posterior
-const S_Y = 142, S_H = 306; // the (size, mu) plane, on the Both tab
-const M_H = 250;            // ...and on the sampler, which gives 56px to the ratio
-const R_Y = 448;            // the ratio strip
+const S_Y = 142;            // the (size, mu) plane
+const S_H = 250;            // on Both
+const M_H = 250;            // on the sampler
+/* THE MARGINALS GO ON THE PLANE'S EDGES, NOT SIDE BY SIDE. Each one then lines
+   up with its own axis — mu is the plane's y, so mu's marginal is vertical on
+   the right; size is the x, so size's is horizontal below — which makes "a
+   marginal is the plane added up along the other axis" a thing you can see
+   rather than a thing you are told. _lab/two-then-both.html had already found
+   the alternative wanting: two upright curves side by side make the
+   worse-determined parameter look better determined, because the eye compares
+   their peaks and the peaks are not comparable. */
+const MARG_W = 84;          // mu's marginal, vertical, right of the plane
+const MARG_H = 56;          // size's marginal, horizontal, below it
+const R_Y = 566;            // the ratio strip, on the sampler only
 
 const isPlane = (view) => view === "both" || view === "mcmc";
 /* Core hands the height function the VALUES object, not { params } — widget 8's
@@ -223,7 +245,7 @@ const isPlane = (view) => view === "both" || view === "mcmc";
    canvas. */
 const canvasHeight = ({ view }) =>
   view === "mcmc" ? R_Y + 104
-    : view === "both" ? S_Y + S_H + 46
+    : view === "both" ? S_Y + S_H + MARG_H + 8 + 46
       : D_Y + D_H + 46;
 
 /** The x and = of the lesson's own figure, in the margin on a caption's
@@ -345,7 +367,15 @@ defineWidget({
       type: "float", label: "Before the data: mu is about", min: 2, max: 16, step: 0.5,
       default: 7,
       display: true,
-      detail: "what you believed the mean was, before a single count",
+      /* THE QUESTION THIS LINE EXISTS TO ANSWER: "why does maximum likelihood
+         not need these?" The model has two parameters and these are not extra
+         ones — they describe a PRIOR, which is a distribution over a parameter
+         rather than a value for it, and a normal takes two numbers where an
+         exponential takes one. Widget 8 needs none of them because it never
+         produces a distribution over the parameter: it returns a point and a
+         curve with no area. These three numbers are what buys the sentence
+         widget 8 cannot say — there is a 95% chance mu is between 5.9 and 11.9. */
+      detail: "these three are your PRIOR, not the model — maximum likelihood needs none of them, and cannot give you a probability either",
     },
     priorSd: {
       type: "float", label: "…give or take", min: 0.5, max: 6, step: 0.5,
@@ -360,7 +390,7 @@ defineWidget({
          reaches, and on a different scale. Its OTHER prior, `exponential(1)` on
          the shape, IS on the parameter itself, which is why the size slider
          below reproduces the notebook exactly and this one cannot. */
-      detail: "how sure you were · the lesson's brms prior for mu sits on log(mu), so its normal(0, 10) is vastly wider than this",
+      detail: "the prior's STRENGTH — at ± 0.5 twelve counts barely move it, at ± 6 it hardly matters · the lesson's brms prior sits on log(mu), so its normal(0, 10) is vastly wider than either",
     },
     /* THE LESSON'S PRIOR ON size, REPRODUCIBLE EXACTLY. `prior(exponential(1),
        class = shape)` is an exponential with mean 1, on the parameter itself,
@@ -382,10 +412,10 @@ defineWidget({
       type: "segmented",
       label: "Looking at",
       options: [
-        { value: "mu", label: "mu", detail: "exact, on the grid · the mean, with the dispersion integrated out rather than assumed" },
-        { value: "size", label: "size", detail: "exact, on the grid · the dispersion, with the mean integrated out — larger size means LESS spread" },
-        { value: "both", label: "Both", detail: "exact, on the grid · the joint posterior the other two tabs are the edges of" },
-        { value: "mcmc", label: "MCMC", detail: "sampled, not enumerated · what brms does when a grid is no longer possible" },
+        { value: "mu", label: "mu", detail: "EXACT, by adding up all 6,400 grid cells · the mean, with the dispersion integrated out rather than assumed" },
+        { value: "size", label: "size", detail: "EXACT, by adding up all 6,400 grid cells · the dispersion, with the mean integrated out — larger size means LESS spread" },
+        { value: "both", label: "Both", detail: "EXACT, by adding up all 6,400 grid cells · the joint posterior the other two tabs are the edges of" },
+        { value: "mcmc", label: "MCMC", detail: "SAMPLED, never enumerated · 80 cells per axis is 6,400 for two parameters and 10¹⁹ for ten, so at some point you stop enumerating", },
       ],
       default: "mu",
       display: true,
@@ -972,9 +1002,10 @@ function drawMarginal(ctx, colors, plotW, params, state, anim, m, S) {
 /** A plane tab: the joint posterior, and optionally a walk over it. */
 function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   const mcmc = params.view === "mcmc";
-  // The sampler gives 56px of its plane to the ratio strip below it.
+  const planeH = mcmc ? M_H : S_H;
+  const planeW = plotW - MARG_W - 8;
   const pS = makePlot({
-    ctx, colors, rect: { x: PAD_L, y: S_Y, w: plotW, h: mcmc ? M_H : S_H },
+    ctx, colors, rect: { x: PAD_L, y: S_Y, w: planeW, h: planeH },
     xDomain: [SIZE_LO, SIZE_HI], yDomain: [MU_LO, MU_HI],
   });
 
@@ -982,9 +1013,9 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
      opposite ends of it — measured, after the first pair overran by 20px and
      printed through each other. */
   pS.caption(mcmc
-    ? "A chain wandering over that same posterior, faded"
+    ? "A chain wandering over the same posterior"
     : m === 0
-      ? "P(size, mu | no counts) — your two priors, multiplied"
+      ? "P(size, mu | no counts) — your two priors"
       : `P(size, mu | your ${m} count${m === 1 ? "" : "s"})`);
 
   /* THE HPD BANDS, WHICH ARE THE WHOLE DIFFERENCE FROM WIDGET 8'S CONTOUR. That
@@ -1012,10 +1043,7 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   ctx.restore();
 
   pS.axisY({ ticks: niceTicks(MU_LO, MU_HI, 4), label: "mu" });
-  /* THE SAME PLANE THE NOTEBOOK CONTOURS, AND THE SAME WAY UP. Its contour cell
-     is `aes(x = size, y = mu)`, and widget 8's surface follows it, so a student
-     comparing all three figures never has to re-orient. */
-  pS.axisX({ label: "size — larger means LESS spread, and Poisson is off the right" });
+  pS.axisX({ ticks: [] });
 
   // The truth, which we can mark only because the population is seeded.
   pS.dot(TRUE_SIZE, TRUE_MU, { fill: colors.reference, r: 5 });
@@ -1027,15 +1055,30 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
   ctx.fillText("truth", pS.sx(TRUE_SIZE) + 10, pS.sy(TRUE_MU));
   ctx.restore();
 
+  /* --- the edges: what each tab beside this one shows ------------------- */
+  const base0 = m * G * G;
+  const margins = (draws) => {
+    const mu = [], size = [];
+    for (let j = 0; j < G; j += 1) mu.push([MUS[j], state.margM[m * G + j]]);
+    for (let i = 0; i < G; i += 1) size.push([SIZES[i], state.margS[m * G + i]]);
+    return { mu, size, draws };
+  };
+  drawEdges(ctx, colors, pS, planeW, planeH, margins(mcmc ? anim.draws : 0), state);
+
   if (!mcmc) {
-    pS.note("50%, 80%, 95% · the whole plane, 1");
+    pS.note("50%, 80%, 95% · all of it, 1");
     return;
   }
 
   /* ---- the chain -------------------------------------------------------- */
+  /* THE ANSWER TO "WHY GUESS, WHEN THE ANSWER IS ALREADY ON SCREEN?" — which is
+     the sharpest question this widget gets asked, and the right one. You should
+     use the grid on this problem. The shading is here so the sampler can be
+     watched agreeing with an answer you already have, which is the only way to
+     earn trust in it for the problems where you cannot compute one. */
   const t = anim.draws;
   if (t === 0) {
-    pS.note("nothing drawn yet — the shading is the exact answer");
+    pS.note("the shading is the exact answer — a check, not a shortcut");
     ratioStrip(ctx, colors, plotW, null, S);
     return;
   }
@@ -1090,7 +1133,7 @@ function drawPlane(ctx, colors, plotW, params, state, anim, m, S) {
     ctx.restore();
   }
   pS.dot(cur.size, cur.mu, { fill: colors.empirical, r: 5 });
-  pS.note(`${t} draw${t === 1 ? "" : "s"} · brms would take ${BRMS_DRAWS.toLocaleString("en")}`);
+  pS.note(`${t} draw${t === 1 ? "" : "s"} · brms takes ${BRMS_DRAWS.toLocaleString("en")}`);
 
   /* While a proposal is in flight the strip shows the decision being made; at
      rest it shows the one just made. Showing the NEXT proposal at rest — which
@@ -1223,6 +1266,123 @@ function ratioStrip(ctx, colors, plotW, d, S) {
   ctx.fillText(
     `both would be divided by P(counts) = ${sci(S.evidence)} — so the chain never computes it`,
     x0, ry + rowH + 38);
+  ctx.restore();
+}
+
+/**
+ * The plane's two edges: mu's marginal standing on the right, size's lying
+ * underneath, each aligned with the axis it belongs to.
+ *
+ * On the Both tab these are the exact curves — literally the bottom panel of
+ * the mu tab and of the size tab, which is what makes that tab's claim to be
+ * "the joint the other two are the edges of" checkable rather than asserted.
+ * On the sampler they get a histogram of the draws underneath, which is the
+ * notebook's own output: `post_samples %>% ggplot(aes(x=mu)) + geom_histogram()`.
+ * Lumpy at forty draws, close by six hundred — and that gap is exactly why brms
+ * takes six thousand.
+ */
+function drawEdges(ctx, colors, pS, planeW, planeH, edge, state) {
+  const { mu, size, draws } = edge;
+  let muTop = 0;
+  let szTop = 0;
+  for (const [, v] of mu) if (v > muTop) muTop = v;
+  for (const [, v] of size) if (v > szTop) szTop = v;
+
+  /* Histogram of the draws, density-normalised so it sits on the exact curve's
+     own scale rather than beside it. */
+  const BW_MU = (MU_HI - MU_LO) / 40;
+  const BW_SZ = (SIZE_HI - SIZE_LO) / 40;
+  const hMu = new Array(40).fill(0);
+  const hSz = new Array(40).fill(0);
+  if (draws > 0) {
+    for (let q = 0; q < draws; q += 1) {
+      const c = state.chain[q];
+      const a = Math.floor((c.mu - MU_LO) / BW_MU);
+      const b = Math.floor((c.size - SIZE_LO) / BW_SZ);
+      if (a >= 0 && a < 40) hMu[a] += 1;
+      if (b >= 0 && b < 40) hSz[b] += 1;
+    }
+    for (let q = 0; q < 40; q += 1) {
+      hMu[q] /= draws * BW_MU;
+      hSz[q] /= draws * BW_SZ;
+      if (hMu[q] > muTop) muTop = hMu[q];
+      if (hSz[q] > szTop) szTop = hSz[q];
+    }
+  }
+
+  /* mu, standing up on the right. The value axis runs left-to-right and mu runs
+     bottom-to-top, so this is drawn by hand rather than through makePlot — a
+     rotated plot would need a rotated context and every label would come out
+     sideways. */
+  const mx = PAD_L + planeW + 8;
+  const syMu = (v) => pS.sy(v);
+  const sxMu = (d) => mx + (d / (muTop * 1.08 || 1)) * MARG_W;
+  if (draws > 0) {
+    ctx.save();
+    ctx.fillStyle = colors.empirical;
+    ctx.globalAlpha = 0.4;
+    for (let q = 0; q < 40; q += 1) {
+      if (!hMu[q]) continue;
+      const y1 = syMu(MU_LO + q * BW_MU);
+      const y0 = syMu(MU_LO + (q + 1) * BW_MU);
+      ctx.fillRect(mx, y0, sxMu(hMu[q]) - mx, Math.max(1, y1 - y0 - 1));
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.strokeStyle = colors.posterior;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  mu.forEach(([v, d], i) => (i ? ctx.lineTo(sxMu(d), syMu(v)) : ctx.moveTo(sxMu(d), syMu(v))));
+  ctx.stroke();
+  ctx.restore();
+
+  /* size, lying flat underneath, sharing the plane's x-axis exactly. */
+  const sy0 = S_Y + planeH + 8 + MARG_H;
+  const syS = (d) => sy0 - (d / (szTop * 1.08 || 1)) * MARG_H;
+  if (draws > 0) {
+    ctx.save();
+    ctx.fillStyle = colors.empirical;
+    ctx.globalAlpha = 0.4;
+    for (let q = 0; q < 40; q += 1) {
+      if (!hSz[q]) continue;
+      const x0 = pS.sx(SIZE_LO + q * BW_SZ);
+      const x1 = pS.sx(SIZE_LO + (q + 1) * BW_SZ);
+      ctx.fillRect(x0, syS(hSz[q]), Math.max(1, x1 - x0 - 1), sy0 - syS(hSz[q]));
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.strokeStyle = colors.posterior;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  size.forEach(([v, d], i) => (i ? ctx.lineTo(pS.sx(v), syS(d)) : ctx.moveTo(pS.sx(v), syS(d))));
+  ctx.stroke();
+  ctx.restore();
+
+  // The axis the plane gave up, now under the edge that shares it.
+  const pB = makePlot({
+    ctx, colors, rect: { x: PAD_L, y: sy0 - MARG_H, w: planeW, h: MARG_H },
+    xDomain: [SIZE_LO, SIZE_HI], yDomain: [0, 1],
+  });
+  /* THE SAME PLANE THE NOTEBOOK CONTOURS, AND THE SAME WAY UP. Its contour cell
+     is `aes(x = size, y = mu)`, and widget 8's surface follows it, so a student
+     comparing all three figures never has to re-orient. */
+  pB.axisX({ label: "size — larger means LESS spread, and Poisson is off the right" });
+
+  /* Short, and in the margins, because the plane's own caption and note already
+     own the line above it and the tick row owns the line below. */
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(draws > 0 ? "mu, drawn" : "mu", mx, S_Y - 8);
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText(draws > 0 ? "size, drawn" : "size", PAD_L - 8, sy0 - MARG_H / 2);
   ctx.restore();
 }
 

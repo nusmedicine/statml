@@ -487,6 +487,43 @@ cannot supply the second. The reservation was generalised from the run button to
 any relabelling button in the same change; in the rail both are dropped by the
 `flex: 1` override, which is still correct there.
 
+### 3.4f `detail` must render wherever it is declared
+
+`params.js` documents `detail` as something any field may carry. Three of the
+five field types dropped it on the floor:
+
+| type | what it did with `detail` |
+|---|---|
+| `choice`, `gate` | rendered it, as a visible line |
+| `segmented` | put it in a `title` tooltip — invisible on a projector, unreachable on a touch screen |
+| `int`, `float` | **nothing at all** |
+
+So four widgets had written explanations that nobody has ever seen. Widget 8's
+`trueSize` slider carries the warning that a LARGER size means LESS spread — the
+one thing about that parameterisation that catches people, and its own header
+says "the direction warning is therefore the widget's job". It was never on
+screen. Widget 9's tab strip carried the distinction between an exact grid and a
+sampler, which is the entire reason its fourth tab exists; also never on screen.
+
+**A field's declared copy is a promise the framework has to keep.** Same field,
+same job, same rendering, everywhere.
+
+> *Earned:* the question "how can we indicate that mu/size/Both are grid
+> approximations and MCMC is not?" — asked about a widget where that sentence
+> was already written, already reviewed, and rendering into a tooltip. The
+> defect was invisible precisely because the fix looked done.
+
+Two things fell out, both worth stating:
+
+- **It surfaces copy in five shipped widgets at once.** Read it before shipping
+  the fix; it was written to be read, but it was written without being seen.
+- **`manifest.json`'s `height` is now stale for every widget, and nothing reads
+  it.** The embedders that consumed it were deleted ([prd.md](prd.md) §6), so
+  the field has had no consumer since — and measured at the harness's own 900px
+  frame, every recorded height is 190–310px too tall, left over from before the
+  `side` layout rollout. A number nothing reads is a number that drifts. Either
+  fix all nine against a stated width or delete the field; do not leave it.
+
 ### 3.5 Every control must carry an idea
 
 Save PNG and a bin-by-bin table are opt-in and off by default. Every extra

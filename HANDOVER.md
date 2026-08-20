@@ -22,10 +22,11 @@ multiply: likelihood **×** prior **=** posterior, each printing its own area,
 which is the whole argument. The likelihood's is `5 × 10⁻¹³` and nothing holds
 it there; the prior's is 1; the posterior's is 1 *after dividing by
 `P(counts)`*. A `size` tab does the same for the dispersion, a `Both` tab shows
-the joint posterior the two are the edges of, and an `MCMC` tab walks a
-Metropolis chain over that same posterior — with two bars showing that
+the joint posterior with both marginals standing on its edges, and an `MCMC` tab
+walks a Metropolis chain over that same posterior — with two bars showing that
 `P(counts)` **cancels out of the acceptance ratio**, which is why the chain
-never has to compute it.
+never has to compute it, and histograms of the draws filling in under the exact
+marginals it is trying to recover.
 
 ## The next job
 
@@ -81,6 +82,22 @@ are in, because a crest that runs straight up is what makes the shortcut safe.
   1` the moment anyone pressed the button once. It now says **`not fixed at 1`**,
   which is true at every count and, at one count, is the more interesting
   statement.
+
+- **A field's `detail` was rendering into a tooltip, or nowhere.** `choice` and
+  `gate` showed it; `segmented` put it in a `title`; `int` and `float` dropped it
+  entirely. So widget 8's "larger size = LESS spread" warning — the one thing its
+  own header calls the widget's job — has never been on screen, and neither had
+  widget 9's grid-versus-sampler tab copy. Fixed in `controls.js` for every field
+  type; it surfaces written-and-reviewed copy in five shipped widgets at once, so
+  read it before shipping such a fix. Recorded as principle 3.4f.
+
+- **`manifest.json`'s `height` is stale for every widget and nothing reads it.**
+  The embedders that consumed it were deleted (prd §6). Measured at the
+  fingerprint harness's own 900px frame, every recorded height is 190–310px too
+  tall — left over from before the `side` layout. `posterior`'s is now correct
+  (1112, its MCMC tab); the other eight are not. **A number nothing reads is a
+  number that drifts:** either fix all of them against a stated width or delete
+  the field, but do not leave it as it is.
 
 - **Capture the canvas's text and read it.** That bug was found by wrapping
   `CanvasRenderingContext2D.prototype.fillText` to collect every string the
