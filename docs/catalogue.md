@@ -1188,35 +1188,244 @@ The same sweep killed a line of on-screen copy. The `share` option's detail read
 exactly 0 or 1 in 2/210 runs at n = 100 and 22/210 at n = 20. **A claim that
 holds at the default and not at the ends is not a claim.**
 
-## Next: a widget for `02-01 — Probability Distributions`
+## Widget 11 · `probability-mechanisms` — draft
 
-**Undecided, and the next session opens with the argument rather than a build.**
-The lesson is 74 cells: a review of probability that reaches `P(A|B)` and Bayes
-on a contingency table (4–28); discrete PMF against continuous PDF (29–37); five
-distributions (38–59); and the `d`/`p`/`q`/`r` family as a table of every
-distribution against every prefix, with four separate diagrams (60–72).
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 11 | `probability-mechanisms` 🟡 | Probability distributions, and the `d`/`p`/`q`/`r` family | *Which distribution do I need, and what do the four functions give me?* | That a distribution is chosen by the shape of the histogram — which cannot be consulted until the data is in, by which point the choice has been made by whatever function got typed | **inferred** |
 
-**Candidate A · `dpqr`.** Four readings of one distribution, in one figure.
-Its misconception is sitting between two of the notebook's own cells: cell 32
-says the probability of any single continuous value is **0**, and cell 68 runs
-`dnorm(160, mean = 160, sd = 10)` and prints `0.0399` — a **density**, which
-looks exactly like a probability and on a narrow enough distribution exceeds 1.
-Check that a density above 1 is reachable on the lesson's own distributions
-before betting on it; that number is the cleanest proof and the figure is weaker
-without it.
+**Three views, and naming the map as a place you can go is the workflow.** *Map*
+is the decision tree; *Distribution* plays the chosen process one draw at a time;
+*R code* turns each of `d`, `p`, `q` and `r` into the question it answers. Try
+one, press Map, try another.
 
-**Candidate B · `ppv-prevalence`, whose parking reason has expired.** It is
-listed below as the highest-evidence item in this catalogue, deferred for one
-stated reason — *"it sits outside the resampling arc"*. Cells 4–28 are `P(A|B)`,
-`P(B|A)` and Bayes. It now has a host, which was the standing condition for
-un-parking it, and it is half of the `imbalance-metrics` pair that would carry a
-PHM5005 widget with it.
+**The tree is never a toll.** The R code view carries all eight distributions as
+chips, so a student who already knows they want `rpois` reaches it in one click.
+Walking the tree is how you *find* a distribution, not the price of looking one
+up.
 
-The tension is real and worth stating: **A serves this lesson's largest section
-and nothing else; B serves a documented clinical error, a second course, and a
-section at the front of this notebook.** A is cheap — the arc has built every
-primitive it needs. B needs a natural-frequency grid, a mark this collection
-does not have.
+**The figure is generic; the example is one line of description.** Free throws
+and endangered species told a reader what *that panel* was about and nothing
+about what a binomial is, so the axes now read "Successes in 10 trials" and
+"Targets found in 50 draws" and the concrete cases sit in the nameplate.
+
+### The tree, and why it is drawn rather than walked
+
+Eight endings, all on screen from the first click, dimmed, with the path lighting
+up as it goes. A breadcrumb says where you have been; the tree says where you
+are, what the alternatives were, and that there are exactly eight endings. Three
+questions reach any leaf:
+
+| | question | splits |
+|---|---|---|
+| 1 | Is your data **discrete** or **continuous**? | counting / measuring |
+| 2a | Is there a maximum possible count? | binomial-pair / Poisson-pair |
+| 2b | What kind of measurement? | quantity / waiting time / all equally likely |
+| 3a | Does every try have the same chance? | binomial / hypergeometric |
+| 3b | Is the average rate the same in every window? | Poisson / negative binomial |
+| 3c | Could the biggest plausible value be **ten times** the smallest? | normal / log-normal |
+
+**Question 3c is the one that took three attempts.** "Symmetric or right-skewed"
+is answerable only with the data in hand, which is the habit the widget exists to
+break. The span test is answerable about the quantity itself, and it disposes of
+"but lab values are normal" with a number:
+
+| quantity | 1st pct | 99th pct | span |
+|---|---|---|---|
+| serum sodium N(140, 2.5) | 134.2 | 145.8 | **1.1×** |
+| adult height N(160, 10) | 136.7 | 183.3 | **1.3×** |
+| birthweight N(3.2, 0.5) | 2.04 | 4.36 | **2.1×** |
+| ALT lognormal(3.1, 0.55) | 6.2 | 79.8 | **12.9×** |
+| CRP lognormal(1, 1) | 0.27 | 27.8 | **105×** |
+
+Everything normal sits at 1–2×; everything log-normal at 10×+. Sodium is the case
+that makes the rule rather than the exception to it — an earlier draft paired
+birthweight against CRP and gave a reader no way to tell which was which.
+
+### Every distribution has its parameters on sliders
+
+Frozen numbers let a student watch eight processes and never ask what happens
+when one of them changes. Each entry is a **builder over its own parameters**,
+and the params block declares one slider per entry gated on `dist`, so only the
+two or three that belong to the chosen distribution are ever on screen. Three of
+them carry an idea no static figure could:
+
+| slider | what it demonstrates | measured |
+|---|---|---|
+| negative binomial **size** | large size *is* a Poisson | var/mean **3.57 → 1.23** as size goes 2 → 30 |
+| hypergeometric **how many you draw** | without-replacement only matters when you take a big fraction | var/mean **0.86 → 0.42** as draws go 50 → 500 of 1000 |
+| uniform **top of the range** | a density is not a probability | `dunif` **1.00 → 5.00** as the range narrows to 0.2 |
+
+The last is the cheapest demonstration in the collection that a density can
+exceed 1, and it is one slider. `dexp` at rate 20 reads **10.0** for the same
+reason.
+
+### The rail is decided in one place, per view
+
+Core decides which controls *exist* from the spec's `when`, which takes one
+condition. Three of the four rules here need two — a field belongs to a
+distribution AND to a view — so `syncChrome` settles them from `draw`, as one
+table rather than four scattered lines, because the rule is a single idea: **the
+Map is for choosing**, and a rail carrying the last distribution's sliders, its
+outputs and a dropdown naming it is a rail full of answers to a question the
+reader has not asked yet.
+
+| control | map | distribution | R code |
+|---|---|---|---|
+| view switcher | ✓ | ✓ | ✓ |
+| its parameters | | ✓ | ✓ |
+| speed, seed | | ✓ | |
+| q | | | ✓ |
+| drive row | | ✓ | |
+| legend | | ✓ | |
+
+**There is no distribution dropdown.** It was a `select`, and it read badly: on a
+view with nothing chosen it said *"— not chosen —"* above a figure telling you to
+go to the Map, which is two controls disagreeing about who is in charge. Both
+figure views carry the same **row of eight chips**, so a distribution is picked
+the same way wherever you are and the tree is never the toll for looking one up.
+The cost is that the eight names are no longer keyboard-reachable; the readout
+still names what is chosen.
+
+The Map's readout is one line — *Chosen: Hypergeometric* — rather than Draws /
+Mean / Variance with em-dashes in them, which is a preview of an answer nobody
+has asked for. **Clear** sits on the map, where the choice was made, and only
+once there is something to clear.
+
+**Four defects came out of building this, all of them the same kind.**
+
+*The cursor moved after the repaint.* `setParam` repaints synchronously, so
+setting the tree cursor afterwards drew the previous leaf still lit while the
+rail already showed the new one — a dropdown reading Hypergeometric above a tree
+lit through to Binomial, with nothing scheduled to reconcile them.
+
+*The cursor never followed the list.* `cursor` and `dist` are genuinely
+independent — you can have chosen the binomial and be browsing the continuous
+branch — so the cursor must not track `dist` on every paint. It follows only when
+`dist` changes from outside the tree, which needs a remembered last value.
+
+*`PAR_NAMES` was written out by hand* and drifted the moment `hk` became `hpct`
+and `hN` was added; those two sliders then stayed on the Map because nothing was
+looking for them. Derived from the distribution table now — principle 5.8.
+
+*The log-normal's slider and its R call disagreed.* The slider is the **median**,
+because that is the number a reader can picture, but R's parameter is the mean of
+the logs — so a slider reading 3 sat above a call reading `meanlog = 1.10`. The
+call is written `meanlog = log(3)` now: valid R, it runs, and it says where the
+number came from.
+
+*`hidden` does not hide an element with an explicit `display`.* The attribute is
+only a user-agent default and `.w-legend` is `display: flex`, so the legend stayed
+on screen while every DOM check agreed it was hidden. `.w-drive` escapes this
+only because the side layout carries `.w-split .w-drive[hidden]`. Both are set
+now: the attribute for assistive tech, the inline style for the eye.
+
+### Answering a question must not navigate
+
+Landing used to switch to the Distribution view the instant the last answer was
+clicked, and the report was that it *jumps*. A click that answers a question and
+a click that changes what you are looking at are two different actions, and one
+button doing both is why it felt jarring. The answer box lands and stays on the
+Map; the **distribution's name**, one column to its right, carries a `→` and is
+what you press to go and watch it.
+
+### The hypergeometric's pool is a control, and its draw is a fraction
+
+A thousand dots in a 58px strip are 2px across and a removal leaves a gap nobody
+can see. **Pool size** is now 100/200/500/1000 and the grid lays itself out for
+whichever it has — at 200 the dots are four times the area. **How much of the
+pool you draw** replaced a raw count, because what decides whether without-
+replacement differs from with-replacement is the *share* taken, and a slider
+reading "50" says nothing about that until you have also read the pool size.
+Measured at K = 40: taking 5% of a pool of 100 gives var/mean **0.59**, taking
+60% gives **0.23**.
+
+*A URL bug came out of this.* `params.js` matches a URL parameter against option
+keys with `includes`, which is strict equality — so numeric `choice` values made
+`?hN=1000` fall back to the default silently, and two pool sizes produced
+identical figures. Every other `choice` in the collection uses strings; this one
+now does too.
+
+### Four things testing caught that no assertion would have
+
+**The parameter sliders stayed on the Map.** They are gated on `dist`, which is
+right, but the Map is where you *choose* — arriving there to find the last
+distribution's sliders still on screen reads as leftovers. `when` takes one
+condition and this needs two (`dist` AND `view`), so `draw` hides them, the same
+way it hides the drive row.
+
+**The discrete overlay was drawn as stems.** A pmf conventionally is, but stems
+over a histogram put two sets of vertical bars in one panel and it read as a
+mistake. A **dot at the expected count** says "this is where the bar should
+reach" and leaves the bars the only vertical thing on screen.
+
+**The exponential's rate and mean are reciprocals**, and nothing said so — a
+slider reading 5 above a mean reading 0.20 looks like the widget disagreeing with
+itself. The strip now prints *gaps average 1/5 = 0.20* and the slider's detail
+says the same.
+
+**The R-code cards looked inert under a rescaling parameter.** An exponential's
+window is 5/rate wide and a normal's is mean ± 3sd, so both are *self-similar*:
+change the parameter and the curve is pixel-identical while only the scale
+beneath it moves. The mini figures had no axis, so that read as a slider doing
+nothing. They carry tick labels now.
+
+**The theory dots needed a line through them.** Dots alone read as scattered
+marks; the line is what makes eight of them one distribution, and it is the same
+stroke the continuous panels use.
+
+**The theory curve was named in the legend and never drawn.** It was lost when
+the reading moved to its own view, so the legend advertised a mark that did not
+exist. It is back on the Distribution view behind a `Show the distribution`
+toggle, scaled to expected counts, and it waits for a draw rather than opening on
+the answer.
+
+### Eight distributions, four of each type
+
+Three are beyond the taught five: **exponential** (the gap between the same
+arrivals the Poisson panel counts — one process asked two questions),
+**uniform** (a p-value under a true null), and **log-normal** (the shape most
+biomedical measurements take). Adding them balances the tree and makes "a density
+is not a probability" demonstrable without a contrived parameter:
+`dexp(0.2, rate = 5) = 1.84` and `dunif(x, 0, 1) = 1.0000` exactly.
+
+### Which mechanism pair is a picture, measured before anything was drawn
+
+40,000 draws per cell, in [`_lab/mechanisms.html`](../widgets/_lab/mechanisms.html):
+
+| pair | var/mean | separation | |
+|---|---|---|---|
+| `rpois(lambda = 5)` vs `rnbinom(size = 2, mu = 5)` | 0.995 vs 3.536 | **3.5×** | a picture |
+| `rbinom(50, 0.02)` vs `rhyper(m = 20, n = 980, k = 50)` | 0.988 vs 0.928 | **5%** | not a picture |
+
+Surveying 50 plots from 1000 gives a finite-population correction of 0.951, so
+the hypergeometric panel carries a different claim — **the chance moves as the
+pool empties**, printed as a running `P(next) = 19/951` against the binomial's
+fixed `P(make) = 0.7`. Its pool **pulses rather than dims**: fifty faded dots in a
+thousand is a 5% change in a field of grey, but the *event* is visible even when
+the total is not.
+
+### Three things the build settled the hard way
+
+**The cursor is a quantile, not an x.** x has a different range in every
+distribution and a slider's bounds cannot depend on another parameter; the
+control then performs `q` rather than illustrating it; and it puts the discrete
+overshoot on the control — ask 0.95 of the Poisson and `qpois` returns 9, whose
+cumulative is 0.968.
+
+**Reading is a view, not a `gate`.** Core's `updateAnimButtons` treats a gate as
+the boundary of the stage the animation lives in and hides step/run/reset while
+it is shut. Here the drawing happens *before* the reading, so a gate hid the
+drive row in the only view that has one — and the widget hides that row itself,
+from `draw`, on the two views with nothing to drive.
+
+**`setParam` does not sync the control showing the same value.** The tree is
+clicked on the canvas — a first for this collection, and it needed no core change
+because `defineWidget` returns `setParam`. But `setParam` only rebuilds controls
+when the parameter *gates* another field, so the `Where you are` select went
+stale on every canvas click and then reasserted its stale value. Two lines in the
+widget rather than a core change; if a second widget ever drives a parameter from
+its canvas, that is the moment to move it.
 
 ## Deferred from PHM5003
 

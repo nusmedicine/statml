@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · where do the numbers come from?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); max-width: 62ch; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap;
+         position: sticky; top: 0; background: var(--surface-2); padding: var(--sp-3) 0; z-index: 2;
+         border-bottom: 1px solid var(--grid); }
+  .bar label { color: var(--ink-2); font-size: var(--fs-sm); display: flex; align-items: center; gap: 6px; }
+  .bar input[type=range] { width: 130px; }
+  .bar button { font: inherit; font-size: var(--fs-sm); padding: var(--sp-1) var(--sp-3);
+                border: 1px solid var(--axis); border-radius: var(--radius); background: var(--surface-1);
+                color: var(--ink-1); cursor: pointer; }
+  .bar button:hover { background: var(--surface-3); }
+  .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: var(--radius); overflow: hidden; }
+  .seg button { border: 0; border-right: 1px solid var(--grid); border-radius: 0; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed=true] { background: var(--surface-3); font-weight: 600; }
+
+  .cand { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3); margin: 0 0 var(--sp-3); transition: opacity .18s; }
+  .cand.dim { opacity: .28; }
+  .cand h3 { font-size: var(--fs-md); margin: 0; display: flex; align-items: baseline; gap: var(--sp-2);
+             flex-wrap: wrap; }
+  .cand h3 em { font-style: normal; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400; }
+  .cand p.sub { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); }
+  canvas { display: block; width: 100%; height: auto; }
+  .callrow { display: flex; gap: var(--sp-4); align-items: baseline; flex-wrap: wrap;
+             border-top: 1px solid var(--grid); margin-top: var(--sp-2); padding-top: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; color: var(--ink-1); }
+  .callrow .r { font-family: var(--font-mono); font-size: var(--fs-sm); }
+  .callrow .stat { color: var(--ink-2); font-size: var(--fs-xs); margin-left: auto; }
+  .callrow .stat b { color: var(--ink-1); font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; margin: 0 0 var(--sp-4);
+            font-variant-numeric: tabular-nums; }
+  table.m th, table.m td { padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--grid); text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 600; }
+  .verdict { font-weight: 600; }
+  .yes { color: var(--series-6); }
+  .no  { color: var(--series-8); }
+
+  .opts { display: grid; gap: var(--sp-3); margin: 0 0 var(--sp-4); }
+  .opt { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+         padding: var(--sp-3); }
+  .opt b { display: block; font-size: var(--fs-md); margin-bottom: 2px; }
+  .opt span { color: var(--ink-2); font-size: var(--fs-sm); }
+  .opt .size { float: right; color: var(--ink-3); font-size: var(--fs-xs); }
+  h2.sect { font-size: var(--fs-lg); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-4);
+            border-top: 2px solid var(--grid); }
+  h3.pair { font-size: var(--fs-md); margin: var(--sp-4) 0 var(--sp-1); color: var(--ink-1); }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--fs-xs);
+            color: var(--ink-3); margin-bottom: var(--sp-3); min-height: 1.2em; }
+  .crumbs b { color: var(--ink-2); font-weight: 600; }
+  .q { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 var(--sp-1); letter-spacing: -0.01em; }
+  .qsub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  @media (max-width: 640px) { .answers { grid-template-columns: 1fr; } }
+  .ans { text-align: left; font: inherit; padding: var(--sp-3); cursor: pointer;
+         background: var(--surface-1); border: 1px solid var(--axis); border-radius: var(--radius);
+         color: var(--ink-1); }
+  .ans:hover { border-color: var(--focus); background: var(--surface-3); }
+  .ans b { display: block; font-size: var(--fs-md); margin-bottom: 2px; }
+  .ans span { color: var(--ink-2); font-size: var(--fs-sm); }
+  pre.code { font-family: var(--font-mono); font-size: var(--fs-sm); background: var(--surface-3);
+             border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3);
+             margin: 0 0 var(--sp-3); overflow-x: auto; color: var(--ink-1); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-5); padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Where do the numbers come from?</h1>
+
+  <p class="note">
+    The notebook introduces five distributions as five named formulas with an
+    <code>r*</code> call each. This page asks whether each one's <strong>generative
+    story</strong> can be played out on screen instead — so a student picks a
+    distribution by knowing the process, not by squinting at a histogram.
+    <strong>Every example, parameter and R call below is the notebook's own,
+    verbatim.</strong>
+  </p>
+  <p class="note">
+    Each panel is one mechanism. The strip on top is <strong>one draw
+    happening</strong>; the pile below is every draw so far. Watch the strip, not
+    the pile — the pile is the part the notebook already draws.
+  </p>
+
+  <div class="bar">
+    <button id="play">Pause</button>
+    <button id="step">Step</button>
+    <button id="reset">Reset</button>
+    <label>speed <input id="speed" type="range" min="1" max="6" value="3"></label>
+  </div>
+
+  <h2 class="sect">Section 1 &middot; How did these numbers get made?</h2>
+  <p class="note">
+    Before any formula: <strong>somebody did something, and a number came out.</strong> Four
+    processes, each played out on screen. The name at the top of each panel is the answer, not
+    the question &mdash; the question is what the person was <em>doing</em>.
+  </p>
+  <p class="note">
+    They come in <strong>two pairs</strong>, and inside each pair only <em>one thing</em>
+    changes. Finding that one thing is the whole section.
+  </p>
+
+  <h3 class="pair">Pair one &mdash; you decided up front how many times to look</h3>
+  <p class="note">Ten free throws. Fifty plots surveyed. A set number of tries, and you
+    count the successes. <strong>The one thing that changes: whether each try has the same
+    chance.</strong></p>
+
+  <div class="cand" data-panel="binom">
+    <h3>1 · Binomial <em>— free throws, notebook cells 39–42</em></h3>
+    <p class="sub">A <strong>fixed number of tries</strong>, each independent, each with the
+      <strong>same chance</strong>. Count the successes.</p>
+    <canvas id="c-binom"></canvas>
+    <div class="callrow">
+      <span class="r" id="r-binom"></span>
+      <span class="stat" id="s-binom"></span>
+    </div>
+  </div>
+
+  <div class="cand" data-panel="hyper">
+    <h3>2 · Hypergeometric <em>— endangered species, notebook cells 51–54</em></h3>
+    <p class="sub">The same counting, from a <strong>finite pool, without replacement</strong>.
+      Watch the printed chance: in panel 1 it never moves, here it moves on every single draw.</p>
+    <canvas id="c-hyper"></canvas>
+    <div class="callrow">
+      <span class="r" id="r-hyper"></span>
+      <span class="stat" id="s-hyper"></span>
+    </div>
+  </div>
+
+  <h3 class="pair">Pair two &mdash; you watched one window and counted what turned up</h3>
+  <p class="note">One hour in A&amp;E. One plot of ground. No set number of tries and no
+    ceiling on the count. <strong>The one thing that changes: whether every window has the
+    same underlying rate.</strong></p>
+
+  <div class="cand" data-panel="pois">
+    <h3>3 · Poisson <em>— patients per hour, notebook cells 43–46</em></h3>
+    <p class="sub">Events in a window, arriving at a <strong>rate that holds still</strong>.
+      No ceiling on the count.</p>
+    <canvas id="c-pois"></canvas>
+    <div class="callrow">
+      <span class="r" id="r-pois"></span>
+      <span class="stat" id="s-pois"></span>
+    </div>
+  </div>
+
+  <div class="cand" data-panel="nbin">
+    <h3>4 · Negative binomial <em>— species per plot, notebook cells 47–50</em></h3>
+    <p class="sub">The same window — but <strong>the rate itself is redrawn for every plot</strong>.
+      That one change is the whole difference, and the rate marker is the only thing on this page
+      that panel 3 does not have.</p>
+    <canvas id="c-nbin"></canvas>
+    <div class="callrow">
+      <span class="r" id="r-nbin"></span>
+      <span class="stat" id="s-nbin"></span>
+    </div>
+  </div>
+
+  <h2 class="sect">Section 2 &middot; Which one is my data?</h2>
+  <p class="note">
+    Section 1 showed four processes. This section asks <strong>four questions about yours</strong>
+    &mdash; none of them about the shape of your histogram, all of them about what you did &mdash;
+    and hands back the distribution, the R code, and the figure it makes.
+  </p>
+
+  <div class="cand" data-panel="tree" id="treecard">
+    <div id="crumbs" class="crumbs"></div>
+    <div id="qbox"></div>
+    <div id="leafbox" hidden>
+      <h3 id="leaf-name"></h3>
+      <p class="sub" id="leaf-ex"></p>
+      <pre class="code" id="leaf-code"></pre>
+      <canvas id="c-leaf"></canvas>
+      <div class="callrow" style="gap:var(--sp-5)">
+        <span class="r" id="leaf-read"></span>
+      </div>
+      <p class="note" id="leaf-note" style="margin-top:var(--sp-2)"></p>
+    </div>
+    <div style="margin-top:var(--sp-3)">
+      <button id="back" hidden>Back</button>
+      <button id="restart" hidden>Start over</button>
+    </div>
+  </div>
+
+  <h2>Which contrasts actually work at the notebook's own numbers</h2>
+  <p class="note">
+    Simulated, 40,000 draws each. <strong>var/mean is the readout that separates them</strong> — it is
+    1.0 for a Poisson by definition, and every other row is measured against that.
+  </p>
+  <table class="m">
+    <thead><tr><th>pair</th><th>at the notebook's parameters</th><th>var/mean</th><th>separation</th><th></th></tr></thead>
+    <tbody>
+      <tr><td rowspan="2">binomial vs hypergeometric</td><td><code>rbinom(50, 0.02)</code></td><td>0.988</td>
+          <td rowspan="2">5%</td><td rowspan="2" class="verdict no">invisible</td></tr>
+      <tr><td><code>rhyper(m=20, n=980, k=50)</code></td><td>0.928</td></tr>
+      <tr><td rowspan="2">the same pair, drawing <b>half</b> the pool</td><td><code>rbinom(25, 0.4)</code></td><td>0.598</td>
+          <td rowspan="2">2.0&times;</td><td rowspan="2" class="verdict yes">visible</td></tr>
+      <tr><td><code>rhyper(m=20, n=30, k=25)</code></td><td>0.304</td></tr>
+      <tr><td rowspan="2">Poisson vs negative binomial</td><td><code>rpois(lambda = 5)</code></td><td>0.995</td>
+          <td rowspan="2">3.5&times;</td><td rowspan="2" class="verdict yes">visible</td></tr>
+      <tr><td><code>rnbinom(size = 2, mu = 5)</code></td><td>3.536</td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    <strong>The finding that decides the scope.</strong> The notebook's hypergeometric draws
+    50 from a pool of 1000, and the finite-population correction is
+    (1000&minus;50)/999 = <b>0.951</b>. There is no picture in a 5% narrowing. So
+    &ldquo;without replacement makes it narrower&rdquo; is <em>not</em> the lesson that panel 2
+    can carry at these numbers — <strong>&ldquo;the chance changes as the pool empties, and it
+    stops mattering when the pool is large&rdquo;</strong> is, and that is why panel 2 prints a
+    moving <code>P(next)</code> rather than a second pile beside panel 1's.
+  </p>
+
+  <h2>What section 1 and section 2 become in the widget</h2>
+  <div class="opts">
+    <div class="opt"><span class="size">stage 1</span>
+      <b>How did these numbers get made?</b>
+      <span>Two contrast pairs, four mechanisms. A student meets the <em>process</em> before any
+      name, and the pair structure means only one thing ever changes between two panels
+      &mdash; fixed chance vs moving chance, fixed rate vs redrawn rate.</span></div>
+    <div class="opt"><span class="size">stage 2</span>
+      <b>Which one is my data?</b>
+      <span>Four questions, none about the shape of a histogram. The leaf is the payoff:
+      the distribution's name, the notebook's own R call, the figure, and
+      <code>d</code>/<code>p</code>/<code>q</code>/<code>r</code> read off it &mdash; which is the
+      notebook's cells 60&ndash;71 arriving as an <em>answer to a question the student asked</em>
+      rather than as a table.</span></div>
+    <div class="opt"><span class="size">not built</span>
+      <b>Normal keeps its mechanism elsewhere</b>
+      <span>The measuring branch lands on <code>rnorm</code> and points at
+      <code>galton-board</code>, which already is &ldquo;many small effects add up&rdquo;. Building it
+      twice would spend a panel to say nothing new.</span></div>
+  </div>
+
+  <h2>Judging questions</h2>
+  <ol class="judge">
+    <li><b>Panel 2.</b> Does a <code>P(next)</code> that ticks 20/1000 &rarr; 19/999 &rarr; 19/998
+      read as &ldquo;without replacement&rdquo;? If not, hypergeometric has no visible mechanism and
+      option C gets easier.</li>
+    <li><b>Panel 4 against panel 3.</b> Is the jumping rate marker enough on its own, or does the
+      contrast need both piles on one axis?</li>
+    <li><b>Panel 1.</b> Ten attempts resolving one at a time — is that teaching anything a student
+      does not already have, or is binomial the one that needs no mechanism?</li>
+    <li><b>Panel 5.</b> Does <code>q</code> earn its quarter? Note it lands on 5 while
+      <code>p</code> reads 0.616, not 0.5 — <code>q</code> is not <code>p</code> inverted on a
+      discrete distribution, and that gotcha is sitting unremarked in notebook cell 65.</li>
+    <li><b>All of it.</b> Does the R call under each panel do the reference job, or is a lookup
+      table still wanted separately?</li>
+  </ol>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { lgamma, nbPmf } from "../core/stats.js";
+
+/* ---------- draws. Seeded, so the page is the same on every load. --------- */
+const rng = makeRng(20260820);
+const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+
+function poisDraw(lambda) {          // Knuth; lambda here is always small
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k += 1; p *= rng.next(); } while (p > L);
+  return k - 1;
+}
+/* Marsaglia-Tsang, so the negative binomial can be drawn AS a gamma-mixed
+   Poisson rather than from its pmf. The mixing rate is the whole point of
+   panel 4 — a pmf draw would hide the one thing it exists to show. */
+function gammaDraw(shape, scale) {
+  if (shape < 1) return gammaDraw(shape + 1, scale) * Math.pow(rng.next(), 1 / shape);
+  const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    const z = rng.normal(), v = Math.pow(1 + c * z, 3);
+    if (v <= 0) continue;
+    const u = rng.next();
+    if (Math.log(u) < 0.5 * z * z + d - d * v + d * Math.log(v)) return d * v * scale;
+  }
+}
+
+/* ---------- the four mechanisms ----------------------------------------- *
+ * Each returns everything needed to REPLAY the draw frame by frame, not just
+ * its count: the panel's whole job is the middle of the draw.               */
+const P_BINOM = { n: 10, p: 0.7 };
+const P_HYPER = { N: 1000, K: 20, k: 50 };
+/* WHERE in the pool the 20 sit. Contiguous indices drew them as one solid bar
+   along the first row, which reads as a sorted pool rather than a random one.
+   Fixed positions, drawn once, so the picture is stable across draws. */
+const HYPER_GOOD = (() => {
+  const r = makeRng(4242), set = new Set();
+  while (set.size < P_HYPER.K) set.add(r.int(0, P_HYPER.N - 1));
+  return set;
+})();
+const HYPER_GOOD_IX = [...HYPER_GOOD];
+const HYPER_BAD_IX = Array.from({ length: P_HYPER.N }, (_, i) => i).filter((i) => !HYPER_GOOD.has(i));
+const P_POIS  = { lambda: 5 };
+const P_NBIN  = { mu: 5, size: 2 };
+
+function drawBinom() {
+  const hits = Array.from({ length: P_BINOM.n }, () => rng.next() < P_BINOM.p);
+  return { hits, count: hits.filter(Boolean).length };
+}
+function drawHyper() {
+  let left = P_HYPER.N, good = P_HYPER.K;
+  const steps = [];
+  /* WHICH cell each draw takes, not just whether it hit. Without this the
+     dimming walks the pool in index order, which empties the coloured block
+     first and shows a sample that was never taken. */
+  const goodIx = rng.shuffle(HYPER_GOOD_IX);
+  const badIx = rng.shuffle(HYPER_BAD_IX);
+  let gi = 0, bi = 0;
+  for (let i = 0; i < P_HYPER.k; i += 1) {
+    const pNext = good / left;
+    const hit = rng.next() < pNext;
+    steps.push({ pNext, hit, left, good, cell: hit ? goodIx[gi++] : badIx[bi++] });
+    if (hit) good -= 1;
+    left -= 1;
+  }
+  return { steps, count: steps.filter((s) => s.hit).length };
+}
+function eventTimes(rate) {          // a rate over one unit window
+  const n = poisDraw(rate);
+  return Array.from({ length: n }, () => rng.next()).sort((a, b) => a - b);
+}
+function drawPois() {
+  const times = eventTimes(P_POIS.lambda);
+  return { times, rate: P_POIS.lambda, count: times.length };
+}
+function drawNbin() {
+  const rate = gammaDraw(P_NBIN.size, P_NBIN.mu / P_NBIN.size);
+  const times = eventTimes(rate);
+  return { times, rate, count: times.length };
+}
+
+/* ---------- panels ------------------------------------------------------- */
+const MECH = 34, DROP = 14, HOLD = 10, CYCLE = MECH + DROP + HOLD;
+
+const panels = [
+  { key: "binom", dom: 10, draw: drawBinom, mech: mechBinom,
+    call: () => `rbinom(1000, size = ${P_BINOM.n}, prob = ${P_BINOM.p})` },
+  { key: "hyper", dom: 8, draw: drawHyper, mech: mechHyper,
+    call: () => `rhyper(1000, m = ${P_HYPER.K}, n = ${P_HYPER.N - P_HYPER.K}, k = ${P_HYPER.k})` },
+  { key: "pois", dom: 30, draw: drawPois, mech: mechWindow,
+    call: () => `rpois(1000, lambda = ${P_POIS.lambda})` },
+  { key: "nbin", dom: 30, draw: drawNbin, mech: mechWindow,
+    call: () => `rnbinom(1000, size = ${P_NBIN.size}, prob = ${P_NBIN.size}/(${P_NBIN.mu} + ${P_NBIN.size}))` },
+];
+
+for (const p of panels) {
+  p.cv = document.getElementById("c-" + p.key);
+  p.rEl = document.getElementById("r-" + p.key);
+  p.sEl = document.getElementById("s-" + p.key);
+  p.counts = [];
+  p.t = 0;
+  p.cur = p.draw();
+}
+
+const W = 860, H = 236, MECH_Y = 92, PILE_TOP = 108, BASE = 206;
+
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.aspectRatio = `${W} / ${H}`;
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return g;
+}
+
+/* ---------- mechanism renderers ----------------------------------------- */
+function label(g, x, y, s, colour, size = 11, weight = 400, align = "left") {
+  g.fillStyle = colour; g.textAlign = align; g.textBaseline = "alphabetic";
+  g.font = `${weight} ${size}px ${css("--font")}`;
+  g.fillText(s, x, y);
+}
+
+function mechBinom(g, p, frac) {
+  const { hits } = p.cur;
+  const shown = Math.min(P_BINOM.n, Math.floor(frac * P_BINOM.n * 1.0001));
+  const r = 11, gap = 34, x0 = 24;
+  label(g, x0, 30, "one game — 10 attempts, each with the same chance", css("--ink-2"));
+  for (let i = 0; i < P_BINOM.n; i += 1) {
+    const cx = x0 + r + i * gap, cy = 58;
+    g.beginPath(); g.arc(cx, cy, r, 0, 7);
+    if (i >= shown) { g.strokeStyle = css("--grid"); g.lineWidth = 1.5; g.stroke(); continue; }
+    if (hits[i]) { g.fillStyle = css("--c-empirical"); g.fill(); }
+    else { g.strokeStyle = css("--axis"); g.lineWidth = 1.5; g.stroke(); }
+    if (i === shown - 1 && frac < 1) { g.strokeStyle = css("--c-highlight"); g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, r + 4, 0, 7); g.stroke(); }
+  }
+  const madeSoFar = hits.slice(0, shown).filter(Boolean).length;
+  label(g, x0 + 10.4 * gap, 52, `${madeSoFar} made`, css("--ink-1"), 15, 600);
+  label(g, x0 + 10.4 * gap, 68, `P(make) = ${P_BINOM.p}  — fixed`, css("--ink-3"), 11);
+}
+
+function mechHyper(g, p, frac) {
+  const { steps } = p.cur;
+  const shown = Math.min(P_HYPER.k, Math.floor(frac * P_HYPER.k * 1.0001));
+  /* 125 x 8 rather than the first attempt's 100 x 10: a wider, shorter block
+     leaves room for a bigger dot, and the dot has to be big enough that its
+     ABSENCE registers. */
+  const cols = 125, pitch = 5.4, x0 = 24, y0 = 34;
+  label(g, x0, 22, "a pool of 1000 plots — 20 hold the species — draw 50, without replacement", css("--ink-2"));
+
+  /* WHICH draw took each cell. Cached on the draw, because p.cur is replaced
+     wholesale every cycle and rebuilding this per frame is 50 map writes for
+     nothing. */
+  const takenAt = p.cur.takenAt ?? (p.cur.takenAt = new Map(steps.map((st, j) => [st.cell, j])));
+
+  /* Dimming a drawn plot was invisible: 50 faded dots in 1000 is a 5% change in
+     a field of grey, and nobody can see a cumulative total that small. What IS
+     visible is the EVENT. Each drawn plot flashes, throws a ring, shrinks and
+     goes — so fifty removals read as fifty things happening, and what they
+     leave behind is a hole rather than a shade. */
+  const PULSE = 7;
+  for (let i = 0; i < P_HYPER.N; i += 1) {
+    const cx = x0 + (i % cols) * pitch + 2, cy = y0 + Math.floor(i / cols) * pitch + 6;
+    const isGood = HYPER_GOOD.has(i);
+    const r0 = isGood ? 3.2 : 2;
+    const j = takenAt.get(i);
+    if (j === undefined || j >= shown) {                 // still in the pool
+      g.beginPath(); g.arc(cx, cy, r0, 0, 7);
+      g.fillStyle = isGood ? css("--c-group-b") : css("--axis");
+      g.fill();
+      continue;
+    }
+    const u = (shown - 1 - j) / PULSE;
+    const tone = isGood ? css("--c-group-b") : css("--c-highlight");
+    if (u < 1) {
+      g.beginPath(); g.arc(cx, cy, r0 * (1 - u) + 0.6, 0, 7);   // the plot shrinking away
+      g.fillStyle = tone; g.fill();
+      g.beginPath(); g.arc(cx, cy, 3 + u * 7, 0, 7);            // the ring it throws
+      g.strokeStyle = tone; g.lineWidth = 1.5;
+      g.globalAlpha = 1 - u; g.stroke(); g.globalAlpha = 1;
+    } else if (isGood) {
+      /* A find stays countable once its pulse is over — an empty slot would
+         throw away the one thing this draw was counting. A miss leaves nothing,
+         which is the point: the pool is one plot smaller. */
+      g.beginPath(); g.arc(cx, cy, r0, 0, 7);
+      g.strokeStyle = css("--c-group-b"); g.lineWidth = 1.4;
+      g.globalAlpha = 0.75; g.stroke(); g.globalAlpha = 1;
+    }
+  }
+  const st = steps[Math.min(shown, P_HYPER.k - 1)];
+  const hitsSoFar = steps.slice(0, shown).filter((s) => s.hit).length;
+  const rx = x0 + cols * pitch + 20;
+  label(g, rx, 34, `${hitsSoFar} found`, css("--ink-1"), 15, 600);
+  label(g, rx, 54, `P(next) = ${st.good}/${st.left}`, css("--c-highlight"), 12, 600);
+  label(g, rx, 70, `= ${(st.good / st.left).toFixed(4)}  — MOVES`, css("--ink-3"), 11);
+  label(g, rx, 86, `${shown} of 50 drawn`, css("--ink-3"), 11);
+}
+
+function mechWindow(g, p, frac) {
+  const { times, rate } = p.cur;
+  const x0 = 24, x1 = 660, y = 66;
+  const isNb = p.key === "nbin";
+  label(g, x0, 20, isNb ? "one plot — but the rate is redrawn first" : "one hour — a rate that never changes", css("--ink-2"));
+  /* the rate marker: fixed on the Poisson, redrawn on the negative binomial */
+  const rs = 24, rw = 200;
+  label(g, x0, 40, "rate", css("--ink-3"), 11);
+  g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0 + rs, 36.5); g.lineTo(x0 + rs + rw, 36.5); g.stroke();
+  const rxp = x0 + rs + Math.min(1, rate / 20) * rw;
+  g.fillStyle = isNb ? css("--c-highlight") : css("--c-reference");
+  g.beginPath(); g.moveTo(rxp, 30); g.lineTo(rxp + 5, 40); g.lineTo(rxp - 5, 40); g.closePath(); g.fill();
+  label(g, x0 + rs + rw + 10, 40, `${rate.toFixed(isNb ? 2 : 0)}${isNb ? "  — redrawn every plot" : "  — fixed"}`,
+        isNb ? css("--c-highlight") : css("--ink-3"), 11, isNb ? 600 : 400);
+  /* the window and its events */
+  g.strokeStyle = css("--axis"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, y + 16.5); g.lineTo(x1, y + 16.5); g.stroke();
+  const seen = times.filter((t) => t <= frac);
+  for (const t of seen) {
+    const tx = x0 + t * (x1 - x0);
+    g.strokeStyle = css("--c-empirical"); g.lineWidth = 2;
+    g.beginPath(); g.moveTo(tx, y - 8); g.lineTo(tx, y + 16); g.stroke();
+  }
+  if (frac < 1) {
+    const cx = x0 + frac * (x1 - x0);
+    g.strokeStyle = css("--c-highlight"); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(cx, y - 14); g.lineTo(cx, y + 20); g.stroke();
+  }
+  label(g, x1 + 22, 62, `${seen.length}`, css("--ink-1"), 17, 600);
+  label(g, x1 + 22, 78, isNb ? "species" : "patients", css("--ink-3"), 11);
+}
+
+/* ---------- the pile, shared ---------------------------------------------- */
+function pile(g, p, falling) {
+  const x0 = 24, x1 = 700, dom = p.dom;
+  const bw = (x1 - x0) / (dom + 1);
+  const freq = new Array(dom + 1).fill(0);
+  for (const c of p.counts) freq[Math.min(dom, c)] += 1;
+  const peak = Math.max(6, ...freq);
+  for (let k = 0; k <= dom; k += 1) {
+    if (!freq[k]) continue;
+    const h = (freq[k] / peak) * (BASE - PILE_TOP - 8);
+    g.fillStyle = css("--c-empirical");
+    g.fillRect(x0 + k * bw + 1, BASE - h, bw - 2, h);
+  }
+  g.strokeStyle = css("--axis"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, BASE + 0.5); g.lineTo(x1, BASE + 0.5); g.stroke();
+  const tickEvery = dom <= 12 ? 1 : 5;
+  for (let k = 0; k <= dom; k += tickEvery) {
+    label(g, x0 + k * bw + bw / 2, BASE + 14, String(k) + (k === dom && dom === 30 ? "+" : ""),
+          css("--ink-3"), 10, 400, "center");
+  }
+  if (falling !== null) {
+    const { k, y } = falling;
+    g.fillStyle = css("--c-highlight");
+    g.beginPath(); g.arc(x0 + k * bw + bw / 2, y, 5, 0, 7); g.fill();
+  }
+  label(g, x1 + 22, PILE_TOP + 24, `${p.counts.length}`, css("--ink-1"), 17, 600);
+  label(g, x1 + 22, PILE_TOP + 40, "draws", css("--ink-3"), 11);
+}
+
+function renderPanel(p) {
+  const g = p.g ?? (p.g = fit(p.cv));
+  g.clearRect(0, 0, W, H);
+  const frac = Math.min(1, p.t / MECH);
+  p.mech(g, p, frac);
+  g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(24, MECH_Y + 0.5); g.lineTo(W - 24, MECH_Y + 0.5); g.stroke();
+  let falling = null;
+  if (p.t > MECH && p.t < MECH + DROP) {
+    const u = (p.t - MECH) / DROP;
+    falling = { k: Math.min(p.dom, p.cur.count), y: PILE_TOP + 6 + u * (BASE - PILE_TOP - 12) };
+  }
+  pile(g, p, falling);
+  p.rEl.innerHTML = "<code>" + p.call() + "</code>";
+  const n = p.counts.length;
+  if (n > 2) {
+    const m = p.counts.reduce((a, b) => a + b, 0) / n;
+    const v = p.counts.reduce((a, b) => a + (b - m) ** 2, 0) / n;
+    p.sEl.innerHTML = `mean <b>${m.toFixed(2)}</b> &nbsp; var <b>${v.toFixed(2)}</b> &nbsp; var/mean <b>${(v / m).toFixed(2)}</b>`;
+  } else p.sEl.textContent = "";
+}
+
+/* ---------- section 2: the decision tree --------------------------------- *
+ * Every question is about WHAT THE PERSON DID. None is about the shape of a
+ * histogram, which is the habit the section exists to break: a student who
+ * chooses by shape cannot choose at all until the data is already in, and by
+ * then the choice has usually been made for them by whatever function they
+ * happened to type.                                                          */
+const TREE = {
+  start: {
+    q: "Are you counting things, or measuring them?",
+    sub: "The first fork, and the only one that leaves the counts entirely.",
+    a: [
+      { label: "Counting how many", detail: "successes, patients, species — always a whole number, never a half", go: "fixed" },
+      { label: "Measuring how much", detail: "birthweight, height, concentration — any value in a range", go: "L_norm" },
+    ],
+  },
+  fixed: {
+    q: "Did you decide up front how many times to look?",
+    sub: "A set number of tries has a ceiling on the count. A window of time or space does not.",
+    a: [
+      { label: "Yes — a set number of tries", detail: "10 free throws; 50 plots surveyed. The count cannot exceed that number", go: "same" },
+      { label: "No — I watched one window", detail: "one hour in A&E; one plot of ground. Any number could turn up", go: "rate" },
+    ],
+  },
+  same: {
+    q: "Does every try have the same chance?",
+    sub: "Or does taking one change the odds for the next?",
+    a: [
+      { label: "Same chance every time", detail: "each free throw is the same shot — the pool is huge, or you put it back", go: "L_binom" },
+      { label: "Taking one changes the odds", detail: "20 species among 1000 plots, and a plot you have surveyed is used up", go: "L_hyper" },
+    ],
+  },
+  rate: {
+    q: "Is every window the same, or are some busier than others?",
+    sub: "This is the fork almost everybody gets wrong, and the one the notebook's two count examples are built to separate.",
+    a: [
+      { label: "Every window the same", detail: "A&E runs at 5 an hour, all night, every night", go: "L_pois" },
+      { label: "Some are busier than others", detail: "some plots are simply richer ground than others", go: "L_nbin" },
+    ],
+  },
+};
+
+/* --- the leaves. Each is the notebook's own example, call and cell range. -- */
+const lchoose = (n, k) => lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1);
+const erf = (x) => {                       /* Abramowitz & Stegun 7.1.26     */
+  const s = Math.sign(x); x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const poly = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t;
+  return s * (1 - poly * Math.exp(-x * x));
+};
+const pnorm = (x, m, sd) => 0.5 * (1 + erf((x - m) / (sd * Math.SQRT2)));
+
+const LEAVES = {
+  L_binom: {
+    name: "Binomial", panel: "binom", ex: "free throws — 10 attempts, each with chance 0.7",
+    cells: "notebook cells 39–42", max: 10, at: 7,
+    pmf: (k) => Math.exp(lchoose(10, k) + k * Math.log(0.7) + (10 - k) * Math.log(0.3)),
+    code: "n <- 10\np <- 0.7\n\nrbinom(1000, size = n, prob = p)   # simulate 1000 games\ndbinom(x, size = n, prob = p)      # chance of exactly x",
+    fn: ["dbinom", "pbinom", "qbinom"], args: "size = 10, prob = 0.7",
+    note: "Here <code>d</code> really is a probability: <code>dbinom(7, 10, 0.7)</code> is the chance of exactly 7, and it can never exceed 1.",
+  },
+  L_hyper: {
+    name: "Hypergeometric", panel: "hyper", ex: "endangered species — 20 among 1000 plots, survey 50",
+    cells: "notebook cells 51–54", max: 8, at: 1,
+    pmf: (k) => Math.exp(lchoose(20, k) + lchoose(980, 50 - k) - lchoose(1000, 50)),
+    code: "N <- 1000   # total plots\nK <- 20     # plots holding the species\nn <- 50     # plots surveyed\n\nrhyper(1000, m = K, n = N - K, k = n)\ndhyper(x, m = K, n = N - K, k = n)",
+    fn: ["dhyper", "phyper", "qhyper"], args: "m = 20, n = 980, k = 50",
+    note: "The same counting as the binomial, and at these numbers almost the same answer — surveying 50 of 1000 barely empties the pool. It is when you survey a <em>large fraction</em> that the two part company.",
+  },
+  L_pois: {
+    name: "Poisson", panel: "pois", ex: "patients per hour — a rate of 5, every hour",
+    cells: "notebook cells 43–46", max: 16, at: 5,
+    pmf: (k) => Math.exp(-5 + k * Math.log(5) - lgamma(k + 1)),
+    code: "lambda <- 5\n\nrpois(1000, lambda = lambda)   # simulate 1000 hours\ndpois(x, lambda = lambda)      # chance of exactly x patients",
+    fn: ["dpois", "ppois", "qpois"], args: "lambda = 5",
+    note: "A Poisson has one parameter, because its mean and its variance are the <em>same number</em>. Check it on the pile in section 1: var/mean sits at 1.00.",
+  },
+  L_nbin: {
+    name: "Negative binomial", panel: "nbin", ex: "species per plot — mean 5, but some ground is richer",
+    cells: "notebook cells 47–50", max: 25, at: 3,
+    pmf: (k) => nbPmf(k, 2, 5),
+    code: "mu <- 5\nk  <- 2                    # smaller k = more extra spread\nprob <- k/(mu + k)\n\nrnbinom(1000, size = k, prob = prob)\ndnbinom(x, size = k, prob = prob)",
+    fn: ["dnbinom", "pnbinom", "qnbinom"], args: "size = 2, prob = 2/7",
+    note: "Same mean as the Poisson above, <b>3.5&times; the variance</b>. That extra spread is the rate wobbling from plot to plot, and it is the whole reason this distribution exists.",
+  },
+  L_norm: {
+    name: "Normal", panel: null, ex: "baby birthweight — mean 3.2 kg, sd 0.5 kg",
+    cells: "notebook cells 55–59", cont: true, lo: 1.7, hi: 4.7, at: 3.2,
+    pdf: (x) => Math.exp(-0.5 * ((x - 3.2) / 0.5) ** 2) / (0.5 * Math.sqrt(2 * Math.PI)),
+    cdf: (x) => pnorm(x, 3.2, 0.5),
+    code: "mean <- 3.2   # kg\nsd   <- 0.5   # kg\n\nrnorm(1000, mean = mean, sd = sd)\npnorm(2.5, mean = mean, sd = sd)   # chance of under 2.5 kg",
+    fn: ["dnorm", "pnorm", "qnorm"], args: "mean = 3.2, sd = 0.5",
+    note: "<b>The one place <code>d</code> is not a probability.</b> <code>dnorm(3.2, 3.2, 0.5)</code> is <b>0.798</b> — a density, meaning <i>per kg</i>. Narrow the sd past 0.4 and it goes above 1, which no probability ever does. The probability is the shaded <em>area</em>, never the height.",
+  },
+};
+
+let node = "start", path = [];
+const qbox = document.getElementById("qbox");
+const leafbox = document.getElementById("leafbox");
+const crumbs = document.getElementById("crumbs");
+const backBtn = document.getElementById("back");
+const restartBtn = document.getElementById("restart");
+let leafG = null, leafCur = 0, leaf = null;
+
+function renderTree() {
+  crumbs.innerHTML = path.length
+    ? path.map((t) => `<b>${t}</b>`).join(" <span>&rsaquo;</span> ")
+    : '<span>four questions about what you did — not about what your histogram looks like</span>';
+  backBtn.hidden = path.length === 0;
+  const isLeaf = node.startsWith("L_");
+  restartBtn.hidden = !isLeaf;
+  leafbox.hidden = !isLeaf;
+  if (!isLeaf) {
+    const n = TREE[node];
+    qbox.hidden = false;
+    qbox.innerHTML = `<p class="q">${n.q}</p><p class="qsub">${n.sub}</p><div class="answers">` +
+      n.a.map((a, i) => `<button class="ans" data-i="${i}"><b>${a.label}</b><span>${a.detail}</span></button>`).join("") +
+      `</div>`;
+    return;
+  }
+  qbox.hidden = true;
+  leaf = LEAVES[node];
+  leafCur = leaf.at;
+  document.getElementById("leaf-name").innerHTML =
+    `${leaf.name} <em>— ${leaf.cells}</em>` +
+    (leaf.panel ? ` <a href="#" data-jump="${leaf.panel}" style="font-size:var(--fs-sm);font-weight:400">watch it happen &uarr;</a>` : "");
+  document.getElementById("leaf-ex").textContent = leaf.ex;
+  document.getElementById("leaf-code").textContent = leaf.code;
+  document.getElementById("leaf-note").innerHTML = leaf.note;
+  renderLeaf();
+}
+
+function renderLeaf() {
+  const cv = document.getElementById("c-leaf");
+  const g = leafG ?? (leafG = fit(cv));
+  g.clearRect(0, 0, W, H);
+  const x0 = 24, x1 = 690, top = 40, base = 182;
+  let d, pc, q;
+  if (leaf.cont) {
+    const span = leaf.hi - leaf.lo, N = 240;
+    const ys = Array.from({ length: N + 1 }, (_, i) => leaf.pdf(leaf.lo + (i / N) * span));
+    const peak = Math.max(...ys);
+    const px = (x) => x0 + ((x - leaf.lo) / span) * (x1 - x0);
+    const py = (y) => base - (y / peak) * (base - top);
+    /* the AREA is the probability; the curve's height is not */
+    g.beginPath(); g.moveTo(px(leaf.lo), base);
+    for (let i = 0; i <= N; i += 1) {
+      const x = leaf.lo + (i / N) * span;
+      if (x > leafCur) break;
+      g.lineTo(px(x), py(ys[i]));
+    }
+    g.lineTo(px(Math.min(leafCur, leaf.hi)), base); g.closePath();
+    g.fillStyle = css("--c-empirical"); g.globalAlpha = 0.30; g.fill(); g.globalAlpha = 1;
+    g.beginPath();
+    for (let i = 0; i <= N; i += 1) g.lineTo(px(leaf.lo + (i / N) * span), py(ys[i]));
+    g.strokeStyle = css("--c-empirical"); g.lineWidth = 2; g.stroke();
+    d = leaf.pdf(leafCur); pc = leaf.cdf(leafCur); q = 3.2;
+    const cx = px(leafCur);
+    g.strokeStyle = css("--c-highlight"); g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx, top - 10); g.lineTo(cx, base); g.stroke();
+    g.fillStyle = css("--c-highlight");
+    g.beginPath(); g.arc(cx, py(d), 4.5, 0, 7); g.fill();
+    for (let t = 2; t <= 4.5; t += 0.5) label(g, px(t), base + 14, t.toFixed(1), css("--ink-3"), 10, 400, "center");
+    label(g, x0, 22, `drag the cursor — x = ${leafCur.toFixed(2)} kg`, css("--ink-2"));
+  } else {
+    const dom = leaf.max, bw = (x1 - x0) / (dom + 1);
+    const pm = Array.from({ length: dom + 1 }, (_, k) => leaf.pmf(k));
+    const peak = Math.max(...pm);
+    let acc = 0; q = dom;
+    for (let k = 0; k <= dom; k += 1) { acc += pm[k]; if (acc >= 0.5) { q = k; break; } }
+    let cum = 0;
+    for (let k = 0; k <= dom; k += 1) {
+      const h = (pm[k] / peak) * (base - top), x = x0 + k * bw + 1, w = bw - 2;
+      g.fillStyle = k === leafCur ? css("--c-highlight") : css("--c-empirical");
+      g.globalAlpha = k === leafCur ? 1 : (k < leafCur ? 0.32 : 0.85);
+      g.fillRect(x, base - h, w, h); g.globalAlpha = 1;
+      if (k <= leafCur) cum += pm[k];
+      if (dom <= 16 || k % 5 === 0)
+        label(g, x0 + k * bw + bw / 2, base + 14, String(k),
+              k === leafCur ? css("--ink-1") : css("--ink-3"), 10, k === leafCur ? 600 : 400, "center");
+    }
+    d = pm[leafCur]; pc = cum;
+    const qx = x0 + q * bw + bw / 2;
+    g.strokeStyle = css("--c-theory"); g.lineWidth = 2; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(qx, top - 12); g.lineTo(qx, base); g.stroke(); g.setLineDash([]);
+    label(g, qx + 6, top - 4, `${leaf.fn[2]}(0.5, …) = ${q}`, css("--c-theory"), 11, 600);
+    label(g, x0, 22, `drag the cursor — x = ${leafCur}`, css("--ink-2"));
+  }
+  g.strokeStyle = css("--axis"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, base + 0.5); g.lineTo(x1, base + 0.5); g.stroke();
+  label(g, 714, 62, d.toFixed(4), css("--c-highlight"), 15, 600);
+  label(g, 714, 76, leaf.fn[0] + "(x, …)", css("--ink-3"), 10);
+  label(g, 714, 106, pc.toFixed(4), css("--ink-1"), 15, 600);
+  label(g, 714, 120, leaf.fn[1] + "(x, …)", css("--ink-3"), 10);
+  label(g, 714, 150, "1000", css("--ink-1"), 15, 600);
+  label(g, 714, 164, "r… (1000, …)", css("--ink-3"), 10);
+  const xs = leaf.cont ? leafCur.toFixed(2) : leafCur;
+  document.getElementById("leaf-read").innerHTML =
+    `<code>${leaf.fn[0]}(${xs}, ${leaf.args})</code> = <b>${d.toFixed(4)}</b>` +
+    `${leaf.cont ? ' <span style="color:var(--ink-3)">— a DENSITY</span>' : ""}&nbsp;&nbsp;` +
+    `<code>${leaf.fn[1]}(${xs}, ${leaf.args})</code> = <b>${pc.toFixed(4)}</b>&nbsp;&nbsp;` +
+    `<code>${leaf.fn[2]}(0.5, ${leaf.args})</code> = <b>${leaf.cont ? q.toFixed(1) : q}</b>`;
+}
+
+function leafPick(ev) {
+  if (!leaf) return;
+  const cv = document.getElementById("c-leaf"), r = cv.getBoundingClientRect();
+  const x = (ev.clientX - r.left) * (W / r.width);
+  if (leaf.cont) {
+    const u = (x - 24) / (690 - 24);
+    leafCur = Math.max(leaf.lo, Math.min(leaf.hi, leaf.lo + u * (leaf.hi - leaf.lo)));
+  } else {
+    const bw = (690 - 24) / (leaf.max + 1);
+    leafCur = Math.max(0, Math.min(leaf.max, Math.floor((x - 24) / bw)));
+  }
+  renderLeaf();
+}
+let dragging = false;
+const leafCv = document.getElementById("c-leaf");
+leafCv.addEventListener("pointerdown", (e) => { dragging = true; leafCv.setPointerCapture(e.pointerId); leafPick(e); });
+leafCv.addEventListener("pointermove", (e) => { if (dragging) leafPick(e); });
+leafCv.addEventListener("pointerup", () => { dragging = false; });
+
+qbox.addEventListener("click", (e) => {
+  const b = e.target.closest(".ans"); if (!b) return;
+  const a = TREE[node].a[+b.dataset.i];
+  path.push(a.label); node = a.go; renderTree();
+});
+document.getElementById("treecard").addEventListener("click", (e) => {
+  const j = e.target.closest("[data-jump]"); if (!j) return;
+  e.preventDefault();
+  document.querySelector(`[data-panel="${j.dataset.jump}"]`).scrollIntoView({ behavior: "smooth", block: "center" });
+});
+backBtn.onclick = () => {
+  path.pop();
+  node = "start";
+  for (const step of path) node = TREE[node].a.find((a) => a.label === step).go;
+  renderTree();
+};
+restartBtn.onclick = () => { node = "start"; path = []; renderTree(); };
+
+/* ---------- loop ---------------------------------------------------------- */
+let running = true, speed = 3, acc = 0;
+function tick() {
+  if (running) {
+    acc += speed;
+    while (acc >= 3) {
+      acc -= 3;
+      for (const p of panels) {
+        p.t += 1;
+        if (p.t === MECH + DROP) p.counts.push(p.cur.count);
+        if (p.t >= CYCLE) { p.t = 0; p.cur = p.draw(); }
+      }
+    }
+    for (const p of panels) renderPanel(p);
+  }
+  requestAnimationFrame(tick);
+}
+/* Two presses per draw, deliberately: the first completes the mechanism and
+   leaves it on screen to be read, the second banks the count and starts the
+   next. One press per draw skips the only thing these panels exist to show. */
+function stepOne() {
+  for (const p of panels) {
+    if (p.t < MECH) p.t = MECH;
+    else { p.counts.push(p.cur.count); p.cur = p.draw(); p.t = 0; }
+    renderPanel(p);
+  }
+}
+document.getElementById("play").onclick = (e) => { running = !running; e.target.textContent = running ? "Pause" : "Play"; };
+document.getElementById("step").onclick = () => { running = false; document.getElementById("play").textContent = "Play"; stepOne(); };
+document.getElementById("reset").onclick = () => {
+  for (const p of panels) { p.counts = []; p.t = 0; p.cur = p.draw(); renderPanel(p); }
+};
+document.getElementById("speed").oninput = (e) => { speed = +e.target.value; };
+
+for (const p of panels) renderPanel(p);
+renderTree();
+tick();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut \u2014 a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan \u2014 every candidate concept, its target misconception and evidence \u2014 lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd \u00a76) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently \u2014 by the time it was measured, eight of the nine were 190\u2013310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut — a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd §6) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently — by the time it was measured, eight of the nine were 190–310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
   "widgets": [
     {
       "slug": "galton-board",
@@ -42,7 +42,7 @@
     {
       "slug": "confidence-interval",
       "title": "Confidence Intervals",
-      "blurb": "Build the same studies' intervals three ways \u2014 bootstrap, normal, t \u2014 and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
+      "blurb": "Build the same studies' intervals three ways — bootstrap, normal, t — and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -83,7 +83,7 @@
     {
       "slug": "power-and-error",
       "title": "Power and Error Rates",
-      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves \u2014 and which does not budge.",
+      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves — and which does not budge.",
       "course": "PHM5003",
       "topics": [
         "power",
@@ -112,7 +112,7 @@
     {
       "slug": "bayesian",
       "title": "Bayesian Estimation",
-      "blurb": "The likelihood said which parameters make your counts most probable; it could not say how probable a parameter is. Multiply it by what you believed beforehand, divide by the total, and the curve you get has an area of 1. Twelve counts overwhelm your prior on the mean and barely touch your prior on the spread \u2014 and a fourth tab shows why a sampler never has to compute that total at all.",
+      "blurb": "The likelihood said which parameters make your counts most probable; it could not say how probable a parameter is. Multiply it by what you believed beforehand, divide by the total, and the curve you get has an area of 1. Twelve counts overwhelm your prior on the mean and barely touch your prior on the spread — and a fourth tab shows why a sampler never has to compute that total at all.",
       "course": "PHM5003",
       "topics": [
         "bayesian",
@@ -127,8 +127,8 @@
     },
     {
       "slug": "em-mixture",
-      "title": "Expectation\u2013Maximization",
-      "blurb": "Set two populations, draw a sample from them, and the labels come off as it lands. Two curves are guessed at random; every person then reports what fraction of them belongs to each, and those fractions refit the curves. Repeat. The two populations come back almost exactly right \u2014 and a seventh of the individuals still end up in the wrong group, which is what a hard cluster label hides.",
+      "title": "Expectation–Maximization",
+      "blurb": "Set two populations, draw a sample from them, and the labels come off as it lands. Two curves are guessed at random; every person then reports what fraction of them belongs to each, and those fractions refit the curves. Repeat. The two populations come back almost exactly right — and a seventh of the individuals still end up in the wrong group, which is what a hard cluster label hides.",
       "course": "PHM5003",
       "topics": [
         "EM",
@@ -140,6 +140,27 @@
       ],
       "arc": 10,
       "status": "shipped"
+    },
+    {
+      "slug": "probability-mechanisms",
+      "title": "Probability Distributions",
+      "blurb": "Eight distributions on one decision tree, and which one you need is settled by what you are measuring rather than by the shape of the data. Walk the tree — counting or measuring, is there a ceiling, does the chance move — and land on a distribution you can then watch being generated one draw at a time. Then read it: d, p, q and r as the four questions they each answer.",
+      "course": "PHM5003",
+      "topics": [
+        "probability distributions",
+        "discrete vs continuous",
+        "binomial",
+        "Poisson",
+        "negative binomial",
+        "hypergeometric",
+        "normal distribution",
+        "log-normal",
+        "exponential",
+        "uniform",
+        "d/p/q/r"
+      ],
+      "arc": 11,
+      "status": "draft"
     }
   ]
 }

@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · two tabs, and questions that name the distribution</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 940px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); max-width: 66ch; }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--grid); margin: var(--sp-4) 0 0; }
+  .tabs button { font: inherit; font-size: var(--fs-md); font-weight: 600; padding: var(--sp-2) var(--sp-4);
+    background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    color: var(--ink-3); cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--ink-1); border-bottom-color: var(--c-empirical); }
+  .tabs .sub { margin-left: auto; align-self: center; font-size: var(--fs-xs); color: var(--ink-3);
+    font-weight: 400; padding-bottom: var(--sp-2); }
+  .panel { background: var(--surface-1); border: 1px solid var(--border); border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius); padding: var(--sp-4); }
+
+  #treewrap { margin: var(--sp-3) 0 0; overflow-x: auto; }
+  #tree { width: 100%; min-width: 640px; height: auto; display: block; }
+  #tree .box { cursor: pointer; }
+  #tree .box rect { fill: var(--surface-1); stroke: var(--axis); stroke-width: 1; rx: 5; }
+  #tree text { font-family: var(--font); font-size: 11px; fill: var(--ink-2); dominant-baseline: middle; }
+  #tree .lead text { fill: var(--ink-1); }
+  #tree .box:hover rect { stroke: var(--focus); }
+  #tree .on rect { fill: var(--surface-3); stroke: var(--c-empirical); stroke-width: 1.5; }
+  #tree .on text { fill: var(--ink-1); font-weight: 600; }
+  #tree .leaf rect { rx: 12; }
+  #tree .off { opacity: .3; }
+  #tree path { fill: none; stroke: var(--grid); stroke-width: 1.5; }
+  #tree path.on { stroke: var(--c-empirical); }
+  .q { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 var(--sp-1); letter-spacing: -0.01em; }
+  .qsub { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  .answers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-3); }
+  @media (max-width: 680px) { .answers { grid-template-columns: 1fr; } }
+  .ans { text-align: left; font: inherit; padding: var(--sp-3); cursor: pointer; color: var(--ink-1);
+    background: var(--surface-1); border: 1px solid var(--axis); border-radius: var(--radius); }
+  .ans:hover { border-color: var(--focus); background: var(--surface-3); }
+  .ans b { display: block; font-size: var(--fs-md); margin-bottom: 2px; }
+  .ans span { color: var(--ink-2); font-size: var(--fs-sm); }
+
+  .landed { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  @media (max-width: 760px) { .landed { grid-template-columns: 1fr; } }
+  .nameplate .kicker { font-size: var(--fs-xs); color: var(--ink-3); text-transform: uppercase;
+    letter-spacing: .06em; }
+  .nameplate h3 { font-size: 22px; margin: 2px 0 var(--sp-1); letter-spacing: -0.02em; }
+  .pill { display: inline-block; font-size: var(--fs-xs); font-weight: 600; padding: 2px 8px;
+    border-radius: 999px; border: 1px solid var(--axis); color: var(--ink-2); }
+  .pill.disc { border-color: var(--c-empirical); color: var(--c-empirical); }
+  .pill.cont { border-color: var(--c-theory); color: var(--c-theory); }
+  .facts { margin: var(--sp-3) 0 0; font-size: var(--fs-sm); }
+  .facts div { display: flex; gap: var(--sp-2); padding: 3px 0; border-top: 1px solid var(--grid); }
+  .facts dt { color: var(--ink-3); flex: 0 0 92px; }
+  .facts dd { margin: 0; color: var(--ink-1); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
+  .chip { font: inherit; font-size: var(--fs-sm); padding: 5px 12px; cursor: pointer;
+    background: var(--surface-1); border: 1px solid var(--axis); border-radius: 999px; color: var(--ink-2); }
+  .chip[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600;
+    border-color: var(--ink-3); }
+  .chip i { font-style: normal; font-size: var(--fs-xs); color: var(--ink-3); margin-left: 6px; }
+
+  .cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); }
+  @media (max-width: 760px) { .cards { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3);
+    background: var(--surface-1); }
+  .card .fn { font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; color: var(--ink-1); }
+  .card .use { color: var(--ink-3); font-size: var(--fs-xs); margin-left: var(--sp-2); }
+  .card .ask { font-size: var(--fs-md); color: var(--ink-1); margin: var(--sp-2) 0 var(--sp-2);
+    font-weight: 600; }
+  /* EVERY canvas, not just the cards'. `fit()` sets the backing-store width to
+     W * devicePixelRatio and leaves the CSS width alone, so a canvas with no
+     rule lays out at its raw pixel width — 2x intended on a retina screen, and
+     the nameplate figures had been doing exactly that. */
+  canvas { display: block; width: 100%; max-width: 100%; height: auto; }
+  .card canvas { margin-bottom: var(--sp-2); }
+  .card pre { font-family: var(--font-mono); font-size: var(--fs-sm); background: var(--surface-3);
+    border: 1px solid var(--grid); border-radius: var(--radius); padding: 6px 8px; margin: 0;
+    overflow-x: auto; color: var(--ink-1); }
+  .card .ansv { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .card .ansv b { color: var(--ink-1); font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+  .card .warn { color: var(--c-theory); font-size: var(--fs-xs); margin: var(--sp-1) 0 0; }
+  .knob { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 0;
+    font-size: var(--fs-xs); color: var(--ink-3); }
+  .knob input { flex: 1; accent-color: var(--focus); }
+  .vs { margin-top: var(--sp-3); border-top: 1px solid var(--grid); padding-top: var(--sp-3); }
+  .vshead { font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-2); }
+  .vsrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); }
+  .vsrow > div, .cards > .card, .landed > div { min-width: 0; }
+  .vsrow p { margin: var(--sp-1) 0 0; font-size: var(--fs-xs); color: var(--ink-3); }
+  .vsrow p b { display: block; color: var(--ink-1); font-size: var(--fs-sm); }
+  .vsrow p span { display: block; }
+  .vsrow p em { display: block; font-style: normal; font-size: var(--fs-fig); font-weight: 600;
+                color: var(--ink-1); letter-spacing: -0.02em; margin-top: 2px; }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-5); padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Two tabs, and questions that name the distribution</h1>
+  <p class="note">
+    Structure and wording for widget 11. The animations from
+    <a href="./mechanisms.html">the mechanisms page</a> are unchanged and carry over.
+    <strong>Tab 1</strong> walks a live decision tree and ends on a nameplate;
+    <strong>tab 2</strong> turns each R function into the question it answers.
+  </p>
+
+  <div class="tabs" id="tabs">
+    <button data-t="dist" aria-selected="true">Distributions</button>
+    <button data-t="code" aria-selected="false">R code</button>
+    <span class="sub" id="tabsub"></span>
+  </div>
+
+  <section class="panel" id="p-dist">
+    <div id="qbox"></div>
+    <div id="treewrap"><svg id="tree" viewBox="0 0 720 300" role="group" aria-label="distribution decision tree"></svg></div>
+    <div id="landed" hidden>
+      <div class="landed">
+        <div class="nameplate">
+          <div class="kicker" id="np-kick"></div>
+          <h3 id="np-name"></h3>
+          <span class="pill" id="np-pill"></span>
+          <dl class="facts" id="np-facts"></dl>
+          <p style="margin:var(--sp-3) 0 0">
+            <button class="chip" id="restart">Start over</button>
+            <button class="chip" id="tocode">See the R code &rarr;</button>
+          </p>
+        </div>
+        <div>
+          <canvas id="np-fig"></canvas>
+          <p class="note" id="np-note" style="margin-top:var(--sp-2)"></p>
+          <div id="np-vs" class="vs" hidden>
+            <p class="vshead">The two are told apart by their <b>span</b>, not by being lab values</p>
+            <div class="vsrow">
+              <div><canvas id="vs-a"></canvas><p><b>Normal</b> — adult height<span>1st percentile 137&nbsp;cm, 99th 183&nbsp;cm</span><em>1.3&times;</em></p></div>
+              <div><canvas id="vs-b"></canvas><p><b>Log-normal</b> — CRP<span>1st percentile 0.27, 99th 27.8&nbsp;mg/L</span><em>105&times;</em></p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-code" hidden>
+    <p class="note" style="margin-bottom:var(--sp-3)">
+      Every R distribution has the same four functions. <strong>The prefix is the question you are
+      asking</strong>; the rest of the name is which distribution you are asking it about.
+    </p>
+    <div class="chips" id="chips"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <h2>Judging questions</h2>
+  <ol class="judge">
+    <li><b>Question 1.</b> &ldquo;Counting whole things&rdquo; against &ldquo;measuring on a scale&rdquo; is
+      the discrete/continuous fork in the words a student would use. Does it read that way, or does it
+      need the words <em>discrete</em> and <em>continuous</em> in the answers themselves rather than
+      only on the nameplate?</li>
+    <li><b>Question 2.</b> &ldquo;Is there a maximum possible count?&rdquo; replaces the old
+      &ldquo;did you decide up front how many times to look?&rdquo;. It asks about the <em>data</em>
+      rather than the procedure, and a ceiling is what actually separates the two count pairs.</li>
+    <li><b>The nameplate.</b> Is naming the distribution, its type, its parameters and its R call
+      enough to stop the flow feeling abstract? Anything missing that a student would need when they
+      meet the name again in a later lesson?</li>
+    <li><b>Tab 2.</b> Each card leads with the question, not the function. Does
+      <code>q</code>'s question (&ldquo;how big is a bad-but-not-rare case?&rdquo;) do a better job
+      than &ldquo;x at quantile q&rdquo;?</li>
+    <li><b>The <code>d</code> card on a continuous distribution</b> is the only one whose answer is
+      not a probability, and it says so in the card. Is that the right place for it?</li>
+  </ol>
+</main>
+
+<script type="module">
+import { lgamma, nbPmf } from "../core/stats.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+const lchoose = (n, k) => lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1);
+function erf(x) {
+  const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a);
+  const poly = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t;
+  return s * (1 - poly * Math.exp(-a * a));
+}
+
+/* ---- the five, with everything the nameplate and the cards need ---------- */
+const SQ2PI = Math.sqrt(2 * Math.PI);
+const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
+/* Acklam's inverse normal CDF — needed by the log-normal's quantile, and by any
+   continuous quantile that has a closed form rather than a bisection. */
+function probit(p) {
+  const a = [-39.6968302866538, 220.946098424521, -275.928510446969, 138.357751867269, -30.6647980661472, 2.50662827745924];
+  const b = [-54.4760987982241, 161.585836858041, -155.698979859887, 66.8013118877197, -13.2806815528857];
+  const c = [-0.00778489400243029, -0.322396458041136, -2.40075827716184, -2.54973253934373, 4.37466414146497, 2.93816398269878];
+  const d = [0.00778469570904146, 0.32246712907004, 2.445134137143, 3.75440866190742];
+  const pl = 0.02425;
+  if (p < pl) { const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p > 1 - pl) { const q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  const q = p - 0.5, r = q * q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+
+const D = {
+  binom: {
+    name: "Binomial", type: "discrete",
+    counts: "successes out of a fixed number of tries",
+    example: "free throws made out of 10 attempts",
+    params: "size = 10, prob = 0.7", args: "size = 10, prob = 0.7",
+    max: 10, at: 6, q: 0.95,
+    pmf: (k) => Math.exp(lchoose(10, k) + k * Math.log(0.7) + (10 - k) * Math.log(0.3)),
+    unit: "free throws made",
+    asks: {
+      d: "What is the chance of making exactly 6?",
+      p: "What is the chance of making 6 or fewer?",
+      q: "A good night is the top 5% — how many is that?",
+      r: "Simulate 200 games so I can see the spread.",
+    },
+  },
+  hyper: {
+    name: "Hypergeometric", type: "discrete",
+    counts: "hits when you draw from a pool without putting them back",
+    example: "plots holding the species, in a survey of 50 from 1000",
+    params: "m = 20, n = 980, k = 50", args: "m = 20, n = 980, k = 50",
+    max: 8, at: 3, q: 0.95,
+    pmf: (k) => Math.exp(lchoose(20, k) + lchoose(980, 50 - k) - lchoose(1000, 50)),
+    unit: "plots with the species",
+    asks: {
+      d: "What is the chance of finding exactly 3?",
+      p: "What is the chance of finding 3 or fewer?",
+      q: "A lucky survey is the top 5% — how many is that?",
+      r: "Simulate 200 surveys so I can see the spread.",
+    },
+  },
+  pois: {
+    name: "Poisson", type: "discrete",
+    counts: "events in a window, with no ceiling",
+    example: "patients arriving in one hour, at 5 an hour",
+    params: "lambda = 5", args: "lambda = 5",
+    max: 16, at: 1, q: 0.95,
+    pmf: (k) => Math.exp(-5 + k * Math.log(5) - lgamma(k + 1)),
+    unit: "patients in an hour",
+    asks: {
+      d: "What is the chance of exactly 1 patient?",
+      p: "What is the chance of 1 or fewer?",
+      q: "How busy is a 1-in-20 hour? Staff for that.",
+      r: "Simulate 200 hours so I can see the spread.",
+    },
+  },
+  nbin: {
+    name: "Negative binomial", type: "discrete",
+    counts: "events in a window when the rate itself varies",
+    example: "species in one plot, averaging 5 but some ground is richer",
+    params: "size = 2, prob = 2/7", args: "size = 2, prob = 2/7",
+    max: 25, at: 1, q: 0.95,
+    pmf: (k) => nbPmf(k, 2, 5),
+    unit: "species in a plot",
+    asks: {
+      d: "What is the chance of exactly 1 species?",
+      p: "What is the chance of 1 or fewer?",
+      q: "How rich is the top 5% of ground?",
+      r: "Simulate 200 plots so I can see the spread.",
+    },
+  },
+  norm: {
+    name: "Normal", type: "continuous",
+    counts: "a quantity many small effects ADD to",
+    example: "adult height — also birthweight, blood pressure, serum sodium",
+    params: "mean = 160, sd = 10", args: "mean = 160, sd = 10",
+    cont: true, lo: 125, hi: 195, at: 150, q: 0.95,
+    pdf: (x) => Math.exp(-0.5 * ((x - 160) / 10) ** 2) / (10 * SQ2PI),
+    cdf: (x) => Phi((x - 160) / 10),
+    quant: (p) => 160 + 10 * probit(p),
+    unit: "height (cm)", tickStep: 10, dens: "per cm", noun: "height",
+    spread: "the 99th percentile is 1.3× the 1st",
+    asks: {
+      d: "How dense is the curve at 150 cm?",
+      p: "What is the chance someone is under 150 cm?",
+      q: "How tall are the tallest 5%?",
+      r: "Simulate 200 people so I can see the spread.",
+    },
+  },
+  lnorm: {
+    name: "Log-normal", type: "continuous",
+    counts: "a quantity many small effects MULTIPLY",
+    example: "CRP, a marker of inflammation — healthy under 3, serious infection over 100",
+    params: "meanlog = 1, sdlog = 1", args: "meanlog = 1, sdlog = 1",
+    cont: true, lo: 0.001, hi: 25, at: 5, q: 0.95,
+    pdf: (x) => (x <= 0 ? 0 : Math.exp(-((Math.log(x) - 1) ** 2) / 2) / (x * 1 * SQ2PI)),
+    cdf: (x) => (x <= 0 ? 0 : Phi(Math.log(x) - 1)),
+    quant: (p) => Math.exp(1 + probit(p)),
+    unit: "CRP (mg/L)", tickStep: 5, dens: "per mg/L", noun: "level",
+    spread: "the 99th percentile is 105× the 1st",
+    asks: {
+      d: "How dense is the curve at 5 mg/L?",
+      p: "What is the chance a patient is under 5 mg/L?",
+      q: "What level are the highest 5% above?",
+      r: "Simulate 200 patients so I can see the spread.",
+    },
+  },
+  exp: {
+    name: "Exponential", type: "continuous",
+    counts: "the WAITING TIME until the next event, when the rate is steady",
+    example: "the gap between patient arrivals, at 5 an hour — a mean of 12 minutes",
+    params: "rate = 5", args: "rate = 5",
+    cont: true, lo: 0, hi: 1, at: 0.2, q: 0.95,
+    pdf: (x) => (x < 0 ? 0 : 5 * Math.exp(-5 * x)),
+    cdf: (x) => (x < 0 ? 0 : 1 - Math.exp(-5 * x)),
+    quant: (p) => -Math.log(1 - p) / 5,
+    unit: "hours until the next patient", tickStep: 0.2, dens: "per hour", noun: "waiting time",
+    asks: {
+      d: "How dense is the curve at 0.2 hours?",
+      p: "What is the chance the next patient arrives within 12 minutes?",
+      q: "How long is the longest 5% of waits?",
+      r: "Simulate 200 gaps so I can see the spread.",
+    },
+  },
+  unif: {
+    name: "Uniform", type: "continuous",
+    counts: "any value in a range, all equally likely",
+    example: "a p-value when the null hypothesis is true",
+    params: "min = 0, max = 1", args: "min = 0, max = 1",
+    cont: true, lo: 0, hi: 1, at: 0.05, q: 0.95,
+    pdf: (x) => (x >= 0 && x <= 1 ? 1 : 0),
+    cdf: (x) => Math.max(0, Math.min(1, x)),
+    quant: (p) => p,
+    unit: "p-value", tickStep: 0.2, dens: "per unit of p", noun: "p-value",
+    asks: {
+      d: "How dense is the curve at 0.05?",
+      p: "What is the chance a true null gives p below 0.05?",
+      q: "What p-value are the largest 5% above?",
+      r: "Simulate 200 tests of a true null.",
+    },
+  },
+};
+const KEYS = Object.keys(D);
+const R = { binom: "binom", hyper: "hyper", pois: "pois", nbin: "nbinom",
+            norm: "norm", lnorm: "lnorm", exp: "exp", unif: "unif" };
+
+/* ---- tab 1: three questions, and the last one names the distribution ----- */
+/* The whole map is on screen from the start and the path lights up as it is
+   walked. A breadcrumb said where you had been; this says where you are, what
+   the alternatives were, and that there are exactly eight endings — which is
+   the complaint about abstraction answered by showing the thing rather than
+   describing it. Every box is clickable, so a wrong turn costs one click.
+
+   LABELS ARE SHORT ON PURPOSE. A tree crowded with examples is unreadable at
+   the size it has to render; the current question below carries one line of
+   help and the nameplate carries the rest. */
+const ROOT = {
+  q: "Are you counting things, or measuring them?",
+  hint: "This is the fork that decides what kind of answer R gives back.",
+  kids: [
+    {
+      id: "count", label: "Counting whole things", tag: "discrete",
+      q: "Is there a maximum possible count?",
+      hint: "A fixed number of tries puts a ceiling on the answer. A window of time or space does not.",
+      kids: [
+        {
+          id: "cap", label: "Has a maximum",
+          q: "Does every try have the same chance?",
+          hint: "Or does taking one change the odds for the next?",
+          kids: [
+            { id: "b1", label: "Same chance", leaf: "binom" },
+            { id: "b2", label: "Odds change as you go", leaf: "hyper" },
+          ],
+        },
+        {
+          id: "nocap", label: "No maximum",
+          q: "Is the average rate the same in every window?",
+          hint: "Or do some windows simply run hotter than others?",
+          kids: [
+            { id: "p1", label: "Same rate everywhere", leaf: "pois" },
+            { id: "p2", label: "Rate varies", leaf: "nbin" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "meas", label: "Measuring on a scale", tag: "continuous",
+      q: "What kind of measurement?",
+      hint: "Three shapes cover almost everything continuous you will meet.",
+      kids: [
+        {
+          id: "qty", label: "A quantity",
+          q: "Could the biggest plausible value be ten times the smallest?",
+          hint: "Answerable about the quantity itself, with no data. Serum sodium spans 1.1×; CRP spans 100×.",
+          kids: [
+            { id: "n1", label: "No — within about 2×", leaf: "norm" },
+            { id: "n2", label: "Yes — a few far bigger", leaf: "lnorm" },
+          ],
+        },
+        { id: "wait", label: "A waiting time", leaf: "exp" },
+        { id: "flat", label: "All values equally likely", leaf: "unif" },
+      ],
+    },
+  ],
+};
+
+/* Tidy-tree layout: leaves take consecutive rows, a parent sits at the mean of
+   its children. Columns are fixed rather than measured — four is the deepest
+   the tree goes and the widths are chosen to hold the longest label. */
+const COLS = [12, 190, 368, 546];
+const COLW = 162;
+const ROWH = 34;
+const NODES = new Map();
+(function layout() {
+  let row = 0;
+  const walk = (n, depth, parent) => {
+    n.depth = depth; n.parent = parent;
+    NODES.set(n.id ?? "root", n);
+    if (n.leaf || !n.kids) { n.row = row++; return; }
+    n.kids.forEach((k) => walk(k, depth + 1, n));
+    n.row = (n.kids[0].row + n.kids[n.kids.length - 1].row) / 2;
+  };
+  ROOT.kids.forEach((k) => walk(k, 0, null));
+})();
+const yOf = (n) => 18 + n.row * ROWH;
+/* A leaf's own box is its answer; the distribution's name sits one column to
+   its right, so the map reads "…and that is called a Binomial". */
+const xOf = (n) => COLS[n.depth];
+
+let cur = ROOT;          // the node whose question is being asked
+let picked = [];         // ids on the path taken so far
+const qbox = document.getElementById("qbox");
+const landed = document.getElementById("landed");
+const svg = document.getElementById("tree");
+
+const SVGNS = "http://www.w3.org/2000/svg";
+const el = (t, attrs) => {
+  const e = document.createElementNS(SVGNS, t);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+
+function leafNode() { return cur.leaf ? cur : null; }
+function onPath(n) { return picked.includes(n.id); }
+function reachable(n) { return cur.kids ? cur.kids.includes(n) : false; }
+
+function drawTree() {
+  svg.replaceChildren();
+  const draw = (n) => {
+    const x = xOf(n), y = yOf(n);
+    if (n.parent) {
+      const px = xOf(n.parent) + COLW, py = yOf(n.parent);
+      const mid = px + (x - px) / 2;
+      const p = el("path", { d: `M ${px} ${py} H ${mid} V ${y} H ${x}` });
+      if (onPath(n) && onPath(n.parent)) p.classList.add("on");
+      svg.appendChild(p);
+    }
+    const g = el("g", { class: "box", tabindex: 0, role: "button" });
+    if (onPath(n)) g.classList.add("on");
+    else if (!reachable(n)) g.classList.add("off");
+    g.appendChild(el("rect", { x, y: y - 12, width: COLW, height: 24 }));
+    const t = el("text", { x: x + 9, y });
+    t.textContent = n.label;
+    g.appendChild(t);
+    g.addEventListener("click", () => go(n));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(n); } });
+    svg.appendChild(g);
+
+    if (n.leaf) {
+      const lx = x + COLW + 22;
+      const lp = el("path", { d: `M ${x + COLW} ${y} H ${lx}` });
+      if (onPath(n)) lp.classList.add("on");
+      svg.appendChild(lp);
+      const lg = el("g", { class: "box leaf lead" });
+      if (onPath(n)) lg.classList.add("on"); else if (!reachable(n)) lg.classList.add("off");
+      lg.appendChild(el("rect", { x: lx, y: y - 12, width: 150, height: 24 }));
+      const lt = el("text", { x: lx + 11, y });
+      lt.textContent = D[n.leaf].name;
+      lg.appendChild(lt);
+      lg.addEventListener("click", () => go(n));
+      svg.appendChild(lg);
+    } else n.kids.forEach(draw);
+  };
+  ROOT.kids.forEach(draw);
+  svg.setAttribute("viewBox", `0 0 720 ${18 + 8 * ROWH}`);
+}
+
+/** Walk to a node: the path becomes its ancestry, and the question shown is
+    its own — or, if it is a leaf, the nameplate. */
+function go(n) {
+  picked = [];
+  for (let a = n; a; a = a.parent) picked.unshift(a.id);
+  cur = n;
+  render();
+}
+
+function render() {
+  const leaf = leafNode();
+  landed.hidden = !leaf;
+  qbox.hidden = Boolean(leaf);
+  if (!leaf) {
+    qbox.innerHTML = `<p class="q">${cur.q}</p><p class="qsub">${cur.hint ?? ""}</p>`;
+  }
+  drawTree();
+  if (!leaf) return;
+
+  const node = n2key(cur);
+  const dd = D[node];
+  document.getElementById("np-kick").textContent = "you have landed on";
+  document.getElementById("np-name").textContent = dd.name;
+  const pill = document.getElementById("np-pill");
+  pill.textContent = dd.type;
+  pill.className = "pill " + (dd.cont ? "cont" : "disc");
+  document.getElementById("np-facts").innerHTML = [
+    ["counts", dd.counts], ["example", dd.example],
+    ["parameters", `<code>${dd.params}</code>`],
+    ["in R", `<code>r${R[node]}(200, ${dd.args})</code>`],
+  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  document.getElementById("np-note").innerHTML = dd.cont
+    ? "Because it is <b>continuous</b>, the height of this curve is a <b>density</b>, not a probability — a probability is an <i>area</i> under it."
+    : "Because it is <b>discrete</b>, each bar is a real probability: the chance of exactly that count. They add to 1.";
+  drawShape(document.getElementById("np-fig"), dd, null);
+
+  const vs = document.getElementById("np-vs");
+  vs.hidden = !(node === "norm" || node === "lnorm");
+  if (!vs.hidden) {
+    drawShape(document.getElementById("vs-a"), D.norm, null, 300, 132);
+    drawShape(document.getElementById("vs-b"), D.lnorm, null, 300, 132);
+  }
+}
+const n2key = (n) => n.leaf;
+
+/* ---- drawing ------------------------------------------------------------- */
+function fit(cv, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.aspectRatio = `${w} / ${h}`;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return g;
+}
+function label(g, x, y, s, c, size = 10, weight = 400, align = "center") {
+  g.fillStyle = c; g.textAlign = align; g.textBaseline = "alphabetic";
+  g.font = `${weight} ${size}px ${css("--font")}`; g.fillText(s, x, y);
+}
+
+/* mode: null = plain shape | {kind:'d'|'p'|'q'|'r', at, q, draws} */
+function drawShape(cv, dd, mode, W = 380, H = 168) {
+  const g = fit(cv, W, H);
+  g.clearRect(0, 0, W, H);
+  const x0 = 30, x1 = W - 8, top = 14, base = H - 40;
+
+  if (dd.cont) {
+    const span = dd.hi - dd.lo, N = 240;
+    const ys = Array.from({ length: N + 1 }, (_, i) => dd.pdf(dd.lo + (i / N) * span));
+    const peak = Math.max(...ys);
+    const px = (v) => x0 + ((v - dd.lo) / span) * (x1 - x0);
+    const py = (v) => base - (v / peak) * (base - top);
+    if (mode?.kind === "p" || mode?.kind === "q") {
+      const cut = mode.kind === "p" ? mode.at : mode.qx;
+      g.beginPath(); g.moveTo(px(dd.lo), base);
+      for (let i = 0; i <= N; i += 1) {
+        const v = dd.lo + (i / N) * span;
+        const inside = mode.kind === "p" ? v <= cut : v >= cut;
+        if (inside) g.lineTo(px(v), py(ys[i])); else g.lineTo(px(v), base);
+      }
+      g.lineTo(px(dd.hi), base); g.closePath();
+      g.fillStyle = css("--c-empirical"); g.globalAlpha = 0.3; g.fill(); g.globalAlpha = 1;
+    }
+    if (mode?.kind === "r") {
+      /* Inverse-CDF from the shared quantile, so a new distribution needs a
+         `quant` and nothing else — the first version called rng.normal(3.2, 0.5)
+         directly and would have drawn birthweights on the CRP panel. */
+      const rng = makeRng(9); const bins = 26; const cnt = new Array(bins).fill(0);
+      for (let i = 0; i < (mode.draws ?? 200); i += 1) {
+        const v = dd.quant(Math.min(0.9999, Math.max(0.0001, rng.next())));
+        const b = Math.floor(((v - dd.lo) / span) * bins);
+        if (b >= 0 && b < bins) cnt[b] += 1;
+      }
+      const mx = Math.max(...cnt);
+      for (let b = 0; b < bins; b += 1) {
+        const hgt = (cnt[b] / mx) * (base - top);
+        g.fillStyle = css("--c-empirical");
+        g.fillRect(x0 + (b / bins) * (x1 - x0) + 1, base - hgt, (x1 - x0) / bins - 2, hgt);
+      }
+    } else {
+      g.beginPath();
+      for (let i = 0; i <= N; i += 1) g.lineTo(px(dd.lo + (i / N) * span), py(ys[i]));
+      g.strokeStyle = css("--c-theory"); g.lineWidth = 2; g.stroke();
+    }
+    if (mode?.kind === "d") {
+      g.strokeStyle = css("--c-highlight"); g.lineWidth = 2;
+      g.beginPath(); g.moveTo(px(mode.at), base); g.lineTo(px(mode.at), py(dd.pdf(mode.at))); g.stroke();
+      g.fillStyle = css("--c-highlight");
+      g.beginPath(); g.arc(px(mode.at), py(dd.pdf(mode.at)), 4, 0, 7); g.fill();
+    }
+    if (mode?.kind === "q") {
+      g.strokeStyle = css("--c-highlight"); g.lineWidth = 2;
+      g.beginPath(); g.moveTo(px(mode.qx), top); g.lineTo(px(mode.qx), base); g.stroke();
+    }
+    const st = dd.tickStep ?? 1;
+    const dec = st < 1 ? (st < 0.1 ? 2 : (String(st).split(".")[1] || "").length) : 0;
+    for (let t = Math.ceil(dd.lo / st) * st; t <= dd.hi + 1e-9; t += st) {
+      label(g, px(t), base + 13, t.toFixed(dec), css("--ink-3"));
+    }
+  } else {
+    const dom = dd.max, bw = (x1 - x0) / (dom + 1);
+    const pm = Array.from({ length: dom + 1 }, (_, k) => dd.pmf(k));
+    let src = pm, peak = Math.max(...pm);
+    if (mode?.kind === "r") {
+      const rng = makeRng(9); const cnt = new Array(dom + 1).fill(0);
+      let acc = [];
+      for (let k = 0; k <= dom; k += 1) acc.push(pm[k]);
+      for (let i = 0; i < (mode.draws ?? 200); i += 1) {
+        const u = rng.next(); let s = 0, k = 0;
+        for (; k <= dom; k += 1) { s += acc[k]; if (u < s) break; }
+        cnt[Math.min(dom, k)] += 1;
+      }
+      src = cnt; peak = Math.max(...cnt);
+    }
+    for (let k = 0; k <= dom; k += 1) {
+      const hgt = (src[k] / peak) * (base - top);
+      let fill = css("--c-empirical"), alpha = 0.85;
+      if (mode?.kind === "d") { alpha = k === mode.at ? 1 : 0.28; if (k === mode.at) fill = css("--c-highlight"); }
+      if (mode?.kind === "p") { alpha = k <= mode.at ? 0.95 : 0.2; }
+      if (mode?.kind === "q") { alpha = k >= mode.qx ? 0.95 : 0.2; if (k >= mode.qx) fill = css("--c-highlight"); }
+      g.globalAlpha = alpha; g.fillStyle = fill;
+      g.fillRect(x0 + k * bw + 1, base - hgt, bw - 2, hgt); g.globalAlpha = 1;
+    }
+    const step = dom <= 10 ? 1 : dom <= 16 ? 2 : 5;
+    for (let k = 0; k <= dom; k += step) label(g, x0 + k * bw + bw / 2, base + 13, String(k), css("--ink-3"));
+  }
+  g.strokeStyle = css("--axis"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, base + .5); g.lineTo(x1, base + .5); g.stroke();
+  /* The unit belongs on the axis, not only in the card's answer line: four of
+     the eight are continuous now and "0.2" means nothing without "hours". */
+  label(g, (x0 + x1) / 2, base + 30, dd.unit, css("--ink-3"), 10, 400, "center");
+}
+
+/* ---- tab 2: four cards, each led by its question ------------------------- */
+function quantile(dd, p) {
+  if (dd.cont) return dd.quant(p);
+  let acc = 0;
+  for (let k = 0; k <= dd.max; k += 1) { acc += dd.pmf(k); if (acc >= p - 1e-12) return k; }
+  return dd.max;
+}
+function cdfAt(dd, x) {
+  if (dd.cont) return dd.cdf(x);
+  let acc = 0; for (let k = 0; k <= x; k += 1) acc += dd.pmf(k); return acc;
+}
+
+let current = "pois";
+function renderCode() {
+  const dd = D[current], suf = R[current];
+  document.getElementById("chips").innerHTML = KEYS.map((k) =>
+    `<button class="chip" data-k="${k}" aria-pressed="${k === current}">${D[k].name}<i>${D[k].type}</i></button>`).join("");
+
+  const at = dd.at, qx = quantile(dd, dd.q);
+  const dv = dd.cont ? dd.pdf(at) : dd.pmf(at);
+  const pv = cdfAt(dd, at);
+  const xs = dd.cont ? at.toFixed(2) : String(at);
+  const cards = [
+    { k: "d", fn: `d${suf}`, use: "one exact value", ask: dd.asks.d,
+      code: `d${suf}(${xs}, ${dd.args})`, val: dv.toFixed(4),
+      warn: dd.cont
+        ? `This is a DENSITY — ${dd.dens}, not a probability. It can exceed 1${dv > 1 ? ", and here it does" : ""}. The probability of any single exact ${dd.noun} is 0.`
+        : null,
+      unit: dd.cont ? dd.dens : "probability" },
+    { k: "p", fn: `p${suf}`, use: "this or less", ask: dd.asks.p,
+      code: `p${suf}(${xs}, ${dd.args})`, val: pv.toFixed(4), unit: "probability" },
+    { k: "q", fn: `q${suf}`, use: "go the other way", ask: dd.asks.q,
+      code: `q${suf}(0.95, ${dd.args})`, val: dd.cont ? qx.toFixed(2) : String(qx),
+      warn: dd.cont ? null : `q is the SMALLEST x whose cumulative reaches 0.95 — here p${suf}(${qx}, …) = ${cdfAt(dd, qx).toFixed(3)}, which overshoots.`,
+      unit: dd.unit },
+    { k: "r", fn: `r${suf}`, use: "make fake data", ask: dd.asks.r,
+      code: `r${suf}(200, ${dd.args})`, val: "200", unit: "simulated values" },
+  ];
+  document.getElementById("cards").innerHTML = cards.map((c) => `
+    <div class="card">
+      <div><span class="fn">${c.fn}()</span><span class="use">${c.use}</span></div>
+      <p class="ask">${c.ask}</p>
+      <canvas id="fig-${c.k}"></canvas>
+      <pre>${c.code}</pre>
+      <p class="ansv"><b>${c.val}</b> &nbsp;<span>${c.unit}</span></p>
+      ${c.warn ? `<p class="warn">${c.warn}</p>` : ""}
+    </div>`).join("");
+  drawShape(document.getElementById("fig-d"), dd, { kind: "d", at });
+  drawShape(document.getElementById("fig-p"), dd, { kind: "p", at });
+  drawShape(document.getElementById("fig-q"), dd, { kind: "q", qx });
+  drawShape(document.getElementById("fig-r"), dd, { kind: "r", draws: 200 });
+  document.getElementById("tabsub").textContent = `${dd.name} · ${dd.type}`;
+}
+
+/* ---- wiring -------------------------------------------------------------- */
+document.getElementById("restart").onclick = () => { cur = ROOT; picked = []; render(); };
+document.getElementById("tocode").onclick = () => { current = n2key(cur); showTab("code"); };
+document.getElementById("chips").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  current = b.dataset.k; renderCode();
+});
+function showTab(t) {
+  for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-selected", String(b.dataset.t === t));
+  document.getElementById("p-dist").hidden = t !== "dist";
+  document.getElementById("p-code").hidden = t !== "code";
+  document.getElementById("tabsub").textContent = t === "code" ? `${D[current].name} · ${D[current].type}` : "";
+  if (t === "code") renderCode();
+}
+document.getElementById("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (b) showTab(b.dataset.t);
+});
+
+render();
+renderCode();
+showTab("dist");
+</script>
+</body>
+</html>
