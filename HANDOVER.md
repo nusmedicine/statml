@@ -6,9 +6,10 @@
 publishes immediately, with no staging step — which is what makes
 `npm run check` before committing load-bearing rather than tidy.
 
-`power-and-error` and `probability-mechanisms` are the `draft`s in the manifest.
-**The gallery lists shipped widgets only**, so bare `localhost:8000` will not show
-either of them; `/lab/` indexes the drafts and both live at their final URLs:
+`power-and-error` is the only remaining `draft`. **The gallery lists shipped
+widgets only**, so a draft will not appear there; `/lab/` indexes them and they
+live at their final URLs either way — shipping one changes `status` and nothing
+else.
 
 ```
 http://localhost:8000/widget/probability-mechanisms/
@@ -34,24 +35,25 @@ its own parameters. The figures are generic — "Successes in 10 trials", "Targe
 found in 50 draws", "Events in one window" — with the concrete example one line
 of description rather than the subject of the panel.
 
-## The next job — baseline it, then ship it
+**Widget 11 is baselined and shipped.** 13 states — ten settled and three driven
+— identical across three consecutive runs, recorded in the same commit that
+promoted it. The 65 pre-existing states matched on all three passes.
 
-The design is settled and reviewed. What is left is mechanical:
+## The next job — the arc's next entry, which is an argument to have
 
-1. **Fingerprint states.** Two or three **settled** (`?dist=…&view=…&shown=…`)
-   plus at least one **driven** (`drive: { click, frames, dt }`) — `check.mjs`
-   fails a non-draft widget that declares an `animation` without one. Confirm each
-   driven state is identical across three runs before recording it.
-2. **Promote to shipped** — `status: "shipped"` in **both** `widgets/manifest.json`
-   and `main.js`; `check` fails if they disagree.
-3. Mark it shipped in [docs/catalogue.md](docs/catalogue.md).
-4. **Judge it projected.** The hypergeometric pool's dots are ~4px at the narrow
-   layout and the R-code cards put 11px mono on a half-width card.
+Nothing is half-finished. [docs/catalogue.md](docs/catalogue.md) still lists
+**`ppv-prevalence`** as the highest-evidence deferred item in the whole
+catalogue — physicians report sensitivity *as* PPV, and most put
+`P(disease | positive)` at 70–80% when it is far lower. Widget 11 has not changed
+that, and its parking reason ("it sits outside the resampling arc") expired when
+the probability lesson turned out to host it. It is also half of a pair with
+`imbalance-metrics`, which would carry the collection's **first PHM5005 widget**
+— every one of the eleven so far is PHM5003.
 
-Then the arc's next entry is the catalogue's own argument to have, not a decision
-already made — [docs/catalogue.md](docs/catalogue.md) still lists
-`ppv-prevalence` as the highest-evidence deferred item, and widget 11 has not
-changed that.
+The one thing still worth doing to widget 11: **judge it projected.** The
+hypergeometric pool's dots are ~4px at the narrow layout and the R-code cards put
+11px mono on a half-width card. Neither is a defect anyone has reported; neither
+has been seen from the back of a lecture theatre.
 
 ## Two things about this widget that are not like the others
 

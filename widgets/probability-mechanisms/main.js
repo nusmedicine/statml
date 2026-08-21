@@ -559,7 +559,6 @@ const handle = defineWidget({
     "measuring — not by the shape of the data. Walk the tree, watch the " +
     "process, then read it with d, p, q and r.",
   layout: "side",
-  status: "draft",
 
   /* Taller once a distribution is chosen, because the tree collapses to its
      path and a mechanism and a pile appear underneath it. */

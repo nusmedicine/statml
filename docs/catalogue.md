@@ -1188,11 +1188,11 @@ The same sweep killed a line of on-screen copy. The `share` option's detail read
 exactly 0 or 1 in 2/210 runs at n = 100 and 22/210 at n = 20. **A claim that
 holds at the default and not at the ends is not a claim.**
 
-## Widget 11 · `probability-mechanisms` — draft
+## Widget 11 · `probability-mechanisms` — shipped
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 11 | `probability-mechanisms` 🟡 | Probability distributions, and the `d`/`p`/`q`/`r` family | *Which distribution do I need, and what do the four functions give me?* | That a distribution is chosen by the shape of the histogram — which cannot be consulted until the data is in, by which point the choice has been made by whatever function got typed | **inferred** |
+| 11 | `probability-mechanisms` 🟢 | Probability distributions, and the `d`/`p`/`q`/`r` family | *Which distribution do I need, and what do the four functions give me?* | That a distribution is chosen by the shape of the histogram — which cannot be consulted until the data is in, by which point the choice has been made by whatever function got typed | **inferred** |
 
 **Three views, and naming the map as a place you can go is the workflow.** *Map*
 is the decision tree; *Distribution* plays the chosen process one draw at a time;

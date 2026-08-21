@@ -538,6 +538,99 @@
       "slug": "em-mixture",
       "state": "?theme=light&childMean=120&adultMean=170&n=100&seed=3&shown=0",
       "px": "b4204497"
+    },
+    {
+      "$note": "The map with nothing chosen: eight endings visible, only the two live ones bright.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=map&shown=0",
+      "px": "8347a342"
+    },
+    {
+      "$note": "The map answered: the path lit through to Poisson, and Clear in the corner.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=map&dist=pois&shown=0",
+      "px": "df5c3f4b"
+    },
+    {
+      "$note": "Binomial, settled. The attempts strip at rest and the theory dots over the pile.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=binom&seed=1&shown=200",
+      "px": "631fb5a1"
+    },
+    {
+      "$note": "Hypergeometric drawing 60% of the pool — the case where without-replacement bites.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&shown=200",
+      "px": "6494ab54"
+    },
+    {
+      "$note": "Poisson, settled. Half of the pair: a rate that never moves, var/mean at 1.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=pois&seed=1&shown=200",
+      "px": "2235aef2"
+    },
+    {
+      "$note": "Negative binomial on the SAME axis as the Poisson above — the pair's whole point.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=nbin&seed=1&shown=200",
+      "px": "d2b735a6"
+    },
+    {
+      "$note": "Log-normal: the measure strip, and a skew a normal cannot make.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=lnorm&seed=1&shown=200",
+      "px": "4c54e134"
+    },
+    {
+      "$note": "Exponential: the gap mechanism, marking the wait between the Poisson's own arrivals.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=exp&seed=1&shown=200",
+      "px": "b0202460"
+    },
+    {
+      "$note": "R code on the Poisson: four cards, each led by the question its function answers.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=code&dist=pois&prob=0.95&shown=0",
+      "px": "02b610fe"
+    },
+    {
+      "$note": "R code on a narrowed uniform, where dunif reads 5.0 — a density above 1, on a slider.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=code&dist=unif&umax=0.2&prob=0.5&shown=0",
+      "px": "bea3c48b"
+    },
+    {
+      "$note": "DRIVEN: mid-pool. Plots pulsing and vanishing, P(next) moving — invisible at rest.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "8c30c4ae"
+    },
+    {
+      "$note": "DRIVEN: mid-game. Attempts resolving one at a time under a chance that never moves.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=binom&seed=1&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "7c819102"
+    },
+    {
+      "$note": "DRIVEN: Play under way, a window filling under a rate that was redrawn for it.",
+      "slug": "probability-mechanisms",
+      "state": "?theme=light&view=dist&dist=nbin&seed=1&speed=slow",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "4354d4f5"
     }
   ]
 }
