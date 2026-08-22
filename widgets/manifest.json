@@ -42,7 +42,7 @@
     {
       "slug": "confidence-interval",
       "title": "Confidence Intervals",
-      "blurb": "Build the same studies' intervals three ways — bootstrap, normal, t — and watch how often each actually contains the true mean. At n = 5 the normal one misses far more than 1 time in 20.",
+      "blurb": "Three ways to cut an interval, and how often each one actually contains the truth.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -69,7 +69,7 @@
     {
       "slug": "multiple-testing",
       "title": "Multiple Testing",
-      "blurb": "Test twenty thousand genes at p < 0.05 and about a thousand come back significant even when none of them is different. Then see what correcting for it costs.",
+      "blurb": "Test twenty thousand genes and a thousand come back significant when none is different.",
       "course": "PHM5003",
       "topics": [
         "multiple testing",
@@ -83,7 +83,7 @@
     {
       "slug": "power-and-error",
       "title": "Power and Error Rates",
-      "blurb": "You choose the false positive rate; you do not choose the other one. Change the sample size and watch which of the two moves — and which does not budge.",
+      "blurb": "You choose the false positive rate. You do not choose the other one.",
       "course": "PHM5003",
       "topics": [
         "power",
@@ -97,7 +97,7 @@
     {
       "slug": "maximum-likelihood",
       "title": "Maximum Likelihood",
-      "blurb": "Twelve gene counts, drawn once. Try a candidate mean and every count gets a height under it; multiply them and you have how probable that candidate makes exactly what you saw. Then estimate the dispersion the Poisson ignored, and watch a search over both stop moving after two steps.",
+      "blurb": "Try a candidate parameter and see how probable it makes the counts you actually got.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -112,7 +112,7 @@
     {
       "slug": "bayesian",
       "title": "Bayesian Estimation",
-      "blurb": "The likelihood said which parameters make your counts most probable; it could not say how probable a parameter is. Multiply it by what you believed beforehand, divide by the total, and the curve you get has an area of 1. Twelve counts overwhelm your prior on the mean and barely touch your prior on the spread — and a fourth tab shows why a sampler never has to compute that total at all.",
+      "blurb": "What the likelihood could not give you: a probability for the parameter itself.",
       "course": "PHM5003",
       "topics": [
         "bayesian",
@@ -128,7 +128,7 @@
     {
       "slug": "em-mixture",
       "title": "Expectation–Maximization",
-      "blurb": "Set two populations, draw a sample from them, and the labels come off as it lands. Two curves are guessed at random; every person then reports what fraction of them belongs to each, and those fractions refit the curves. Repeat. The two populations come back almost exactly right — and a seventh of the individuals still end up in the wrong group, which is what a hard cluster label hides.",
+      "blurb": "Recover two populations from a mixture, and see which individuals it still gets wrong.",
       "course": "PHM5003",
       "topics": [
         "EM",
@@ -144,7 +144,7 @@
     {
       "slug": "probability-mechanisms",
       "title": "Probability Distributions",
-      "blurb": "Eight distributions on one decision tree, and which one you need is settled by what you are measuring rather than by the shape of the data. Walk the tree — counting or measuring, is there a ceiling, does the chance move — and land on a distribution you can then watch being generated one draw at a time. Then read it: d, p, q and r as the four questions they each answer.",
+      "blurb": "Eight distributions on one decision tree: which you need is settled by what you measure.",
       "course": "PHM5003",
       "topics": [
         "probability distributions",
@@ -165,7 +165,7 @@
     {
       "slug": "odds-and-risk",
       "title": "Odds Ratio and Relative Risk",
-      "blurb": "One table, two ratios. They share a numerator and divide by different things, so the odds ratio always overstates — by 1% when the outcome is rare and 200% when it is not, with the effect never changing. Then run the same patients as a case-control study, enrolling every case and a few controls each, and watch the risk ratio go wherever your enrolment budget puts it while the odds ratio still estimates the population's.",
+      "blurb": "One table, two ratios. The odds ratio always overstates, and by how much is set by the base rate.",
       "course": "PHM5003",
       "topics": [
         "odds ratio",

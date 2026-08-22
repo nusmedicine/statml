@@ -147,8 +147,21 @@ for (const w of manifest.widgets) {
   if (!(await exists(join(root, "widgets", w.slug, "main.js")))) {
     fail(`manifest "${w.slug}": no widgets/${w.slug}/main.js`);
   }
+  /* A BLURB IS A CHOOSER, NOT AN ABSTRACT — one sentence saying which widget
+     this is, so a reader can tell whether it is the one they want. The full
+     argument is in the widget, and the full description in docs/catalogue.md.
+
+     Capped because it drifted. The first four were written at 63-70 characters
+     and the later ones reached 423 — four sentences — and the gallery is a
+     three-column grid whose ROW HEIGHT IS SET BY ITS TALLEST CARD, so one long
+     blurb inflates two neighbours that did nothing wrong. Half the landing page
+     was one widget's paragraph. 120 leaves room for a second short clause where
+     the idea is genuinely a pair, which is what `power-and-error` needs. */
+  if (w.blurb.length > 120) {
+    fail(`manifest "${w.slug}": blurb is ${w.blurb.length} chars — cap is 120, and the grid row grows to fit the longest`);
+  }
 }
-ok(`${manifest.widgets.length} widgets: card fields present, files on disk`);
+ok(`${manifest.widgets.length} widgets: card fields present, blurbs within 120, files on disk`);
 
 /* A widget's title now lives in three files — manifest.json (the gallery card),
    main.js (the <h1> and document.title) and index.html (the static <title> shown
