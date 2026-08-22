@@ -2,119 +2,168 @@
 
 ## Where things are — read this first
 
-**Eleven widgets.** `main` and `origin/main` are level and every push to `main`
+**Twelve widgets.** `main` and `origin/main` are level and every push to `main`
 publishes immediately, with no staging step — which is what makes
 `npm run check` before committing load-bearing rather than tidy.
 
-`power-and-error` is the only remaining `draft`. **The gallery lists shipped
-widgets only**, so a draft will not appear there; `/lab/` indexes them and they
-live at their final URLs either way — shipping one changes `status` and nothing
-else.
+`power-and-error` and `odds-and-risk` are the two `draft`s. **The gallery lists
+shipped widgets only**, so a draft will not appear there; `/lab/` indexes them
+and they live at their final URLs either way — shipping one changes `status` and
+nothing else.
 
 ```
-http://localhost:8000/widget/probability-mechanisms/
+http://localhost:8000/widget/odds-and-risk/
 ```
 
-## What widget 11 is, in one paragraph
+**Nothing is committed.** The working tree holds one new widget, two core
+changes, two new design principles and a large catalogue entry.
 
-`probability-mechanisms`, "Probability Distributions". **Three views, switched by
-one segmented control.** *Map* is an eight-ending decision tree drawn on the
-canvas and clicked directly — the whole map visible, dimmed, the path lighting up
-as it is walked, three questions, the first asking outright whether the data is
-**discrete or continuous**. Answering the last question lands but does **not**
-navigate; the distribution's name, one column right, carries a `→` and is what
-you press to go and look at it. *Distribution* plays that process one draw at a
-time above a pile, with the theoretical curve over it. *R code* turns `d`, `p`,
-`q` and `r` into the four questions they answer, each with its own picture,
-driven by a **quantile** slider — moving it *is* `qbinom`/`qpois`/`qnorm`. Both
-figure views carry the same **row of eight chips**, so the tree is never the toll
-for looking a distribution up.
+---
 
-**Eight distributions, four discrete and four continuous**, each a builder over
-its own parameters. The figures are generic — "Successes in 10 trials", "Targets
-found in 50 draws", "Events in one window" — with the concrete example one line
-of description rather than the subject of the panel.
+## Widget 12 · `odds-and-risk` — a draft, ten review rounds in
 
-**Widget 11 is baselined and shipped.** 13 states — ten settled and three driven
-— identical across three consecutive runs, recorded in the same commit that
-promoted it. The 65 pre-existing states matched on all three passes.
+Two tabs. **Study design** comes first and is the default; **The calculation**
+is the second. Four controls, and the only button on the calculation tab is
+Reset — the figure updates live as you drag.
 
-## The next job — the arc's next entry, which is an argument to have
+| tab | what it is |
+|---|---|
+| Study design | both designs side by side, animated. Recruit, then count. Play lives here |
+| The calculation | the piles, the division written out, the two ratios |
 
-Nothing is half-finished. [docs/catalogue.md](docs/catalogue.md) still lists
-**`ppv-prevalence`** as the highest-evidence deferred item in the whole
-catalogue — physicians report sensitivity *as* PPV, and most put
-`P(disease | positive)` at 70–80% when it is far lower. Widget 11 has not changed
-that, and its parking reason ("it sits outside the resampling arc") expired when
-the probability lesson turned out to host it. It is also half of a pair with
-`imbalance-metrics`, which would carry the collection's **first PHM5005 widget**
-— every one of the eleven so far is PHM5003.
+**Read [docs/catalogue.md](docs/catalogue.md) § Widget 12 before changing
+anything.** It is long because the widget changed shape in nine of ten rounds,
+and every round records what was reversed and why. Reversing one of them back
+without reading it will re-earn a defect that has already been paid for.
+
+The six decisions most likely to be undone by accident:
+
+| do not | because |
+|---|---|
+| reinstate a "Work it out" button | there is nothing to build; the answer is a division of two numbers the reader typed. #4 is honoured by **where it opens** — both sliders at 20, no effect, both ratios 1.00 |
+| relabel the boxes generic | "40 events per 60 non-events" is not a sentence. Concrete nouns in the figure, EXPOSURE and OUTCOME in the rules |
+| rename the tabs to the lesson's sections | "Two denominators" / "Why the odds ratio" were headings wearing costumes and were the first thing a reader tripped over |
+| model a case-control by thinning survivors | at 1-in-1 it IS the cohort. It enrols **every case and r controls per case** now |
+| claim the odds ratio is *unchanged* | it is not, and cannot be — whole people do not divide. It **estimates**; the risk ratio estimates nothing |
+| make the base rate a data parameter | the gesture is *pin the effect and walk the base rate*; under the data rule that wipes the figure at every notch |
+
+### What is left
+
+1. **Judge it, projected.** Nothing below has been seen from the back of a room.
+2. **Then baseline it** — but see the blocker.
+3. Mark shipped in `widgets/manifest.json` and in the catalogue.
+
+### THE SHIP BLOCKER, named rather than deferred quietly
+
+`check.mjs` demands a driven fingerprint state from any widget declaring an
+`animation`, and `_lab/fingerprint.html` drives by clicking a button with a
+`data-key`. **This widget has no such button on the calculation tab** — its
+animation is driven by *display parameters* (principle 4.4). Drafts are exempt,
+so `check` passes today.
+
+Shipping needs one of:
+
+- teach the harness to drive a **control** (a segmented button, a range) and not
+  only a drive button — the better fix, and it would serve any future widget
+  that eases on a toggle; or
+- narrow the rule in `check.mjs` to widgets that *have* a drive button.
+
+Until one of those lands, **the eases have no fingerprint coverage at all.**
+That is a blind spot, and principle 5.6 says a blind spot must be named and
+never cited as safety.
+
+### Two core changes this widget forced, both now principles
+
+- **4.4 — a display change may deserve a transition.** The widget sets
+  `anim.easing` in `rebuild`; core clears the flag and supplies frames. Clearing
+  matters: a request that survives being granted is granted again, and a slider
+  dragged faster than the frame clock then cancels every frame before it runs.
+- **4.5 — a widget may decline a drive button.** `stepLabel: null` /
+  `runLabel: null`. Omitting them still gets the default.
+
+Also added: `--c-event` and `--c-nonevent` in `tokens.css`. `--c-nonevent` is
+deliberately **not** grey — it is the odds' denominator and the whole lesson is
+that it shrinks, so drawing it as furniture would hide the one quantity moving.
+**All 78 pre-existing fingerprint states MATCH** after every core change; the
+suite was run four times this session.
+
+---
+
+## Still outstanding, and independent of the widget
+
+**`04 / 04-08` needs two corrections in `../jupyterbook/phm5003`.** Kenneth is
+doing these by hand.
+
+- **Cell 40** states the odds-ratio interpretation wrongly. On the table
+  `a=24, b=60, c=16, d=100` it says *"the odds of death in infected patients is
+  2.5:1 = 5:2 … for every 5 patients who died with infection, there were 2 who
+  died without"*. The odds are 24/60 = **2:5**; 2.5 is the odds *ratio*, which is
+  not an odds; and the death counts are 24 and 16, i.e. **3:2**.
+- **Cell 47's Caution** says *"In retrospective studies, we often do not know the
+  population at risk, as the exposure is usually not known"*. It should say
+  **case-control** — a retrospective *cohort* is fine for a risk ratio — and in a
+  case-control the exposure is precisely what you go and ascertain. What is
+  unknown is the population at risk.
 
 The one thing still worth doing to widget 11: **judge it projected.** The
 hypergeometric pool's dots are ~4px at the narrow layout and the R-code cards put
-11px mono on a half-width card. Neither is a defect anyone has reported; neither
-has been seen from the back of a lecture theatre.
+11px mono on a half-width card.
 
-## Two things about this widget that are not like the others
-
-**It is clicked on the canvas**, which nothing else here does. No core change was
-needed: `defineWidget` returns `setParam`, so the module attaches its own
-listener and hit-tests against the box list the draw pass just built. If a second
-widget ever wants this, that is the moment to move it into core rather than
-copy it.
-
-**It manages its own rail**, from `draw`, in `syncChrome`. Core decides which
-controls *exist* from the spec's `when`, which takes one condition; three of these
-rules need two — a field belongs to a distribution AND to a view. The table is in
-the code and in the catalogue.
+---
 
 ## What this session did
 
-Widget 11 went through **eight** rounds of review and changed shape in six of
-them. Almost none of the first build survives, and the record of why is in
-[docs/catalogue.md](docs/catalogue.md).
+Planned widget 12, built it, and rebuilt it nine times against review. The
+catalogue carries the full record. In brief:
 
 | round | what changed |
 |---|---|
-| the framing | the notebook's five examples became **eight generic mechanisms**; free throws and endangered species moved from being the subject to being one line of description |
-| the continuous side | **exponential, uniform and log-normal** added, so four of each type. The exponential is the gap between the same arrivals the Poisson counts |
-| the questions | "symmetric or skewed" became **"could the biggest be ten times the smallest"** — answerable about the quantity, with no data |
-| the shape | two tabs became **three views**, and a breadcrumb became **the whole tree** |
-| the flow | landing stopped navigating; the **name** is the button that does |
-| the controls | frozen numbers became **sliders**, and the dropdown became **chips** |
+| plan | `odds-and-risk` chosen over `ppv-prevalence` on four checkable counts |
+| 1–2 | built with baseline-risk/risk-ratio inputs and two views |
+| 3 | **"true risk ratio" was an error** — nothing here samples. Four counts, set directly |
+| 4 | the drive row went; the figure updates live |
+| 5 | the odds ratio goes first, matching `04-08` |
+| 6–7 | study design became a strip, then a diagram, then **its own tab** |
+| 8 | three layout defects in the design panel |
+| 9 | concrete labels kept; the design animation staged one group at a time |
+| 10 | **the case-control model was wrong**, and so was the claim about it |
 
-### The measurements that decided things
+### The harness traps, which will recur
 
-Every one of these is a number that ended an argument, and each is written up in
-the catalogue with its consequence.
+Every one of these produced a false report about a correct widget.
 
-| question | measured | what it settled |
-|---|---|---|
-| does the binomial/hypergeometric pair make a picture? | **5%** separation at the taught numbers | no — that panel carries "the chance moves as the pool empties" instead |
-| does the Poisson/negative-binomial pair? | **3.5×** | yes, and it is the widget's clearest contrast |
-| can a density exceed 1 without contrivance? | `dexp(0.2, rate = 5)` = **1.84**, `dunif` at range 0.2 = **5.0** | yes — it is one slider, not a special case |
-| does "lab value" decide normal vs log-normal? | sodium **1.1×**, CRP **105×** (99th ÷ 1st) | no. The span does, and sodium is the case that makes the rule |
-| does `size` really approach Poisson? | var/mean **3.57 → 1.23** as size goes 2 → 30 | yes, visibly |
+- **An ease cannot be settled by a fixed wait.** This browser does not always run
+  rAF through a long `await`. Nor by watching the *wording*, which flips at the
+  halfway point while the numbers keep moving. Settle by **observing the exact
+  target value**.
+- **Dedupe before any collision check.** A repeated paint lands the same string
+  at the same pixel, and a frame captured mid-ease then reads as thousands of
+  overlaps.
+- **A wrapper flag that says *installed* is worthless** once a diagnostic has
+  restored the original. The probe then measures nothing and every state looks
+  wrong. Install unconditionally.
+- **An invalid `fillStyle` is a silent no-op.** `fills[undefined]` left every dot
+  the canvas default black, and the text sweep saw nothing wrong because the text
+  was fine. Wrap `arc` and `fill` and tally what colour was actually *asked for*
+  — the fillText recipe, one level down. **A canvas will not tell you it ignored
+  you.**
+- **`globalAlpha = 0` paints perfectly.** A whole panel was invisible while every
+  string reported correct text at correct coordinates. Only a screenshot found
+  it. Screenshots for judgement, assertions for facts — and *invisible* is a
+  judgement.
+- **A `const` below `defineWidget` is in its temporal dead zone.** It calls
+  `draw` during its own top-level run. Function declarations hoist; `const` does
+  not.
 
-### Four defects worth not repeating
+### One lesson about placement, earned three times over
 
-All four were the same mistake: **checking that a flag was set rather than that
-something moved.**
+A count went **inside** its box (the dots reach it), then on the **label line**
+(a 105px label against an 88px box), then **below** the box — where it sits
+between two boxes and labels neither. It is on the label line now with short
+labels. **A count has to be placed against everything that can grow, not against
+the thing it labels.**
 
-- **`hidden` does not hide an element with an explicit `display`.** It is only a
-  user-agent default, and `.w-legend` is `display: flex` — so the legend stayed on
-  screen while every DOM check agreed it was hidden. `.w-drive` escaped this only
-  because the side layout carries `.w-split .w-drive[hidden]`. Set both.
-- **`setParam` repaints synchronously.** Updating module state *after* calling it
-  paints the old state; the tree lit one leaf while the rail named another.
-- **`setParam` does not sync a control showing the same value** unless that
-  parameter gates another field.
-- **A hand-written list of parameter names drifted** the moment one was renamed —
-  derive it from the table (principle 5.8).
-
-And one in core's contract worth knowing: **`params.js` matches a URL value
-against option keys with `includes`, which is strict equality.** Numeric `choice`
-values therefore fall back to the default silently. Use strings.
+---
 
 ## THE BIG ONE: every baseline is recorded at the NARROWEST canvas
 

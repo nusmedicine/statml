@@ -207,6 +207,11 @@ open question 1 — sequencing against actual teaching weeks.
 | 6 | `multiple-testing` | `05 — High Throughput Data` / `08 — RNAseq Expression Analysis` |
 | 8 | `maximum-likelihood` ✅ | `03 / 02-02 — Inferential Statistics: Inferring Parameters` |
 | 9 | `bayesian` ✅ | the same lesson, two headings later — it states `P(Data \| Parameters)` and `P(Parameters \| Data)` in that order, and the two widgets take one each |
+| 12 | `odds-and-risk` ⚪ | `04 / 04-08 — Hypothesis Testing: Comparing Counts Between 2x2 Categories`, effect-size section; then `04 / 05-05 — Modeling: Categorical Outcome`, which derives `exp(bₙ)` as an odds ratio |
+
+**#10 and #11 are missing by drift, not on purpose.** `em-mixture` is the third of the three
+widgets the catalogue hosts at `03 / 02-02`; `probability-mechanisms` has no slot recorded
+anywhere and needs one written down.
 
 **#7 is missing from this table on purpose.** `power-and-error` is the only
 `draft` in the manifest and has no confirmed lesson slot, which is exactly the

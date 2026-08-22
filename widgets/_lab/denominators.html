@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the denominator that moves</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1040px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 76ch; font-size: var(--fs-sm); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  .cell { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3); }
+  .cell.ctrl { border-style: dashed; }
+  .cell h2 { font-size: var(--fs-md); margin: 0; }
+  .cell p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); min-height: 7.5em; }
+  canvas { display: block; width: 100%; height: auto; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: 0 0 var(--sp-3); }
+  .bar label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .readout {
+    display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: baseline;
+    margin: 0 0 var(--sp-4); padding: var(--sp-2) var(--sp-3);
+    background: var(--surface-2); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: var(--fs-sm);
+  }
+  .readout b { font-weight: 600; color: var(--ink-1); }
+  .readout span { color: var(--ink-2); }
+  .readout .big { font-size: var(--fs-md); }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: var(--sp-4) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  .flag { border-left: 2px solid var(--c-theory); padding-left: var(--sp-3); margin: var(--sp-4) 0 0; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table.sweep { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0 0; }
+  table.sweep th, table.sweep td { padding: 2px var(--sp-3) 2px 0; text-align: left; color: var(--ink-2); }
+  table.sweep th { color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The denominator that moves — four candidates</h1>
+
+  <p class="note">
+    For widget 12. Risk and odds share a numerator and differ in
+    <strong>denominator</strong>: risk is deaths over <em>everyone</em>, odds is
+    deaths over <em>the survivors</em>. As the outcome gets common the odds
+    denominator is eaten while the risk denominator is not, so the odds ratio
+    always overstates the risk ratio — and by how much is set by the base rate,
+    not by the effect.
+  </p>
+
+  <p class="note">
+    <strong>Settled: A, plus the division written out.</strong> The question was
+    whether having the survivors <em>step aside</em> reads as <em>the denominator
+    changed</em> or merely as <em>dots moving</em> — everything else in the
+    catalogue entry is checkable arithmetic; this was not. A won, and it now
+    carries the fraction underneath: the same people again as the two terms, ten
+    to a row.
+  </p>
+  <p class="note">
+    <strong>What the fraction adds that the towers cannot.</strong> The numerator
+    is the deaths and is <em>identical in both readings</em>. The denominator is
+    everyone, and as the reading moves to odds it <strong>sheds its red dots one
+    at a time</strong> until only survivors are left. So risk's numerator is
+    visibly <em>inside</em> its denominator and odds' is visibly beside it — which
+    is the reason only one of the two can pass 1, stated as a picture rather than
+    as a rule. At a 30% base rate the exposed group reads 60 ÷ 40 = 1.50, and a
+    risk never could.
+  </p>
+  <p class="note">
+    B, C and D stay on the page as the record of what was compared, at their
+    original height and without the fraction. Deciding by looking is only honest
+    if the alternatives are still there to look at.
+  </p>
+
+  <p class="note">
+    <strong>Prior art, surveyed.</strong> Every interactive OR/RR tool found is a
+    calculator: type a 2&times;2, get four numbers. The Rossman/Chance two-way
+    table applet shuffles for a <em>test</em> and does not touch effect size.
+    Nothing animates the denominator. That is candidate <strong>D</strong>, on
+    the page as the baseline to beat rather than as a straw man — if D reads as
+    well as the others, the widget has not earned its slot.
+  </p>
+
+  <p class="note">
+    All four cells run the <strong>same numbers in lockstep</strong>: 100 people
+    per group and a risk ratio pinned at <strong>2.00</strong>, so the effect
+    <em>never changes</em> and every move of the odds ratio is the base rate's
+    doing. The deaths are drawn <strong>on the floor</strong> and never move —
+    only the denominator does.
+  </p>
+
+  <div class="bar">
+    <label>Baseline risk</label>
+    <div class="w-seg" id="rate"></div>
+    <button class="w-btn w-btn--primary" id="toggle">Show odds</button>
+    <button class="w-btn" id="sweep">Sweep the base rate</button>
+  </div>
+
+  <div class="readout" id="readout"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <ol class="judge">
+    <li><strong>At 1%, are the two denominators distinguishable?</strong> They
+      should not be — 2 deaths against 100 and 2 against 98 is the rare-outcome
+      approximation, and the whole point is that you can <em>see</em> it rather
+      than be told a threshold. If a candidate makes 100 and 98 look different,
+      it is overselling.</li>
+    <li><strong>At 40%, does the odds pile read as short?</strong> 80 deaths
+      standing beside 20 survivors is where the odds ratio's 6.00 comes from. If
+      the picture does not make that pile look alarming, the number is doing all
+      the work.</li>
+    <li><strong>In A and C, does the motion read as the denominator changing,
+      or as dots moving?</strong> The deaths never move. Watch whether that
+      registers, or whether the eye just follows the travelling block.</li>
+    <li><strong>Does B's simultaneity beat A's motion?</strong> B never moves and
+      shows both readings at once, which is 2.7 — adjacency is the argument. A
+      shows one reading at a time and pays a second for the transition. Only one
+      of these can be the figure.</li>
+    <li><strong>Do the people earn their space?</strong> C is A with the dots
+      replaced by solid bars. If C reads as well, the dots are furniture and 200
+      of them are expensive furniture.</li>
+    <li><strong>Is D really worse?</strong> Answer this one honestly before
+      reading the others.</li>
+    <li><strong>Does the fraction's duplication cost more than it buys?</strong>
+      Its two terms are the same 100 people already standing in the towers
+      directly above, drawn a second time and smaller. That is the price of the
+      fraction <em>form</em> — you cannot write a division without both terms
+      stacked — but it is a real price, and the alternative is to drop the towers
+      and let the fraction be the whole figure.</li>
+    <li><strong>Are 100 dots countable, or texture?</strong> At this size the
+      numerator block reads as a red rectangle with rows rather than as forty
+      things. 2.3 wants a countable thing; 100 per group is what makes
+      <em>out of 100</em> a natural frequency. Those two pull opposite ways and
+      this is the size at which to judge which wins — and it wants judging
+      projected, not on a desk.</li>
+  </ol>
+
+  <div class="flag">
+    <p class="note" style="margin:0">
+      <strong>Token gap this mockup exposes.</strong> There is no semantic role
+      for <em>the outcome happened</em> versus <em>it did not</em>. The closest
+      is <code>--c-extreme</code>, which means &ldquo;past the line: what a
+      p-value counts&rdquo; — a different idea, and widget 12 has no threshold in
+      it. <code>--c-group-a</code>/<code>--c-group-b</code> are already spoken
+      for by the two <em>arms</em> (exposed / unexposed), which is the other axis
+      of the same table. So this page borrows <code>--series-8</code> and
+      <code>--series-1</code> directly, which the house rules forbid in a real
+      widget. If the split survives, this wants deciding once — probably
+      <code>--c-event</code> / <code>--c-nonevent</code> in
+      <code>tokens.css</code>. Note that a 2&times;2 widget needs
+      <strong>both</strong> pairs at once, so whatever is added must not collide
+      with the group roles.
+    </p>
+  </div>
+
+  <div class="flag">
+    <p class="note" style="margin:0">
+      <strong>Deliberately not on this page: the case-control half.</strong>
+      Thinning the survivors 1-in-<em>k</em> is widget 12's second view and its
+      motion is a different question — dots leaving a pile, not a pile moving.
+      It is settled separately, once the split is. One useful fact for that page:
+      <strong>the lesson's own ICU table divides cleanly</strong> —
+      <code>b=60</code> and <code>d=100</code> are both whole after 1&nbsp;in&nbsp;2,
+      4, 5, 10 and 20, so the thinning demo can use real data and still land on
+      whole people at every setting, with the odds ratio at exactly
+      <strong>2.5000</strong> throughout.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+/* No core imports: this page needs no rng and no plot. Everything here is
+   deterministic — the counts are set by the controls, not drawn. That is
+   deliberate. Widget 12 is not about sampling variability, and importing a
+   seeded draw would import widgets 2-5 into a figure that is not about them. */
+
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+const smooth = (t) => t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
+
+const N = 100;                    /* people per exposure group */
+const RR = 2;                     /* pinned: the effect never changes */
+const RATES = [0.01, 0.05, 0.10, 0.20, 0.30, 0.40];
+let rateIdx = 3;                  /* 20% — where the split is obvious but not absurd */
+
+const counts = () => {
+  const r0 = RATES[rateIdx];
+  const r1 = r0 * RR;
+  return {
+    r0, r1,
+    exposed:   { died: Math.round(r1 * N), lived: N - Math.round(r1 * N) },
+    unexposed: { died: Math.round(r0 * N), lived: N - Math.round(r0 * N) },
+  };
+};
+
+const stats = () => {
+  const c = counts();
+  const risk = (g) => g.died / (g.died + g.lived);
+  const odds = (g) => g.died / g.lived;
+  const rr = risk(c.exposed) / risk(c.unexposed);
+  const or = odds(c.exposed) / odds(c.unexposed);
+  return { ...c, riskE: risk(c.exposed), riskU: risk(c.unexposed),
+           oddsE: odds(c.exposed), oddsU: odds(c.unexposed), rr, or };
+};
+
+/* ---- geometry, shared by every candidate so the cells are comparable ---- */
+const W = 460;
+const H = 306;
+const COLS = 5;
+const ROWS = 20;                  /* 5 x 20 = 100 */
+const PITCH = 7.6;
+const DOT_R = 2.9;
+const COL_W = COLS * PITCH;       /* 38 */
+const STACK_H = ROWS * PITCH;     /* 152 */
+const PER_PERSON = STACK_H / N;   /* 1.52px of height per person, for the bars */
+const FLOOR = 228;
+const SPLIT_DX = 50;              /* how far the survivors step aside */
+
+/* A is the chosen shape, so it gets a taller canvas and the division written
+   out underneath. The terms of the fraction are the same people again, packed
+   ten to a row: the numerator is the deaths and never changes, and the
+   denominator loses its red dots as the reading moves from risk to odds. That
+   drop-out IS the arithmetic — and it shows the thing that makes odds able to
+   exceed 1 and risk unable to: risk's numerator sits INSIDE its denominator,
+   and odds' does not. */
+const H_TALL = 414;
+const RULE_Y = 318;               /* the fraction bar */
+const FR_PITCH = 6.6;
+const FR_R = 2.5;
+const FR_PER_ROW = 10;
+const FR_W = FR_PER_ROW * FR_PITCH;   /* 66 */
+
+const GX = [66, 272];             /* left edge of each group's death column. 66, not 44:
+                                     B's left bracket label sits at gx-15 right-aligned and
+                                     ran off the canvas: caught by the fillText sweep, which
+                                     is the only check that sees it — a collision erases what
+                                     it overruns rather than blending, so it still looks like
+                                     text. */
+
+/* Where person i of a group sits, given how many died. The deaths fill from the
+   floor upward and NEVER move; the survivors sit on top when merged and stand
+   on the floor beside them when split. */
+function personXY(i, died, gx, split) {
+  if (i < died) {
+    const row = Math.floor(i / COLS), col = i % COLS;
+    return [gx + PITCH / 2 + col * PITCH, FLOOR - PITCH / 2 - row * PITCH];
+  }
+  if (split) {
+    const j = i - died;
+    const row = Math.floor(j / COLS), col = j % COLS;
+    return [gx + SPLIT_DX + PITCH / 2 + col * PITCH, FLOOR - PITCH / 2 - row * PITCH];
+  }
+  const row = Math.floor(i / COLS), col = i % COLS;
+  return [gx + PITCH / 2 + col * PITCH, FLOOR - PITCH / 2 - row * PITCH];
+}
+
+const CANDIDATES = [
+  {
+    key: "aside",
+    name: "A · The survivors step aside",
+    blurb:
+      "CHOSEN. One column of people per group, deaths on the floor. Press Show " +
+      "odds and the survivors lift off and land beside them on the same floor. " +
+      "The deaths never move — only what they are measured against. Underneath, " +
+      "the division written out: same numerator both times, and the denominator " +
+      "drops its red dots as the reading changes. Risk's numerator sits inside " +
+      "its denominator; odds' does not, which is why only one of them can pass 1.",
+    kind: "dots", motion: true, fraction: true, h: H_TALL,
+  },
+  {
+    key: "brackets",
+    name: "B · Both denominators, at once",
+    blurb:
+      "The same column, and it never moves. Two brackets instead: the left one " +
+      "spans everyone, the right one spans only the survivors. Both readings on " +
+      "screen together, which is 2.7 — adjacency is the argument — and it costs " +
+      "no seconds and no motion. The risk is that a bracket reads as annotation " +
+      "rather than as mechanism.",
+    kind: "brackets", motion: false,
+  },
+  {
+    key: "bars",
+    name: "C · The same motion, without the people",
+    blurb:
+      "A is a stacked bar that splits into two bars. Identical geometry, " +
+      "identical timing, solid rectangles instead of 200 dots. This is the " +
+      "control for whether the people are carrying the idea or decorating it — " +
+      "a countable thing is principle 2.3, but 100 per group is well past " +
+      "countable and may just be texture.",
+    kind: "bars", motion: true,
+  },
+  {
+    key: "table",
+    name: "D · The 2×2 and four numbers — the baseline to beat",
+    blurb:
+      "What every existing tool does, and what the lesson already prints. If " +
+      "this reads as clearly as the others then the widget is decoration and " +
+      "the honest move is to write a better paragraph instead. Included so that " +
+      "claim is checkable rather than assumed.",
+    kind: "table", motion: false, ctrl: true,
+  },
+];
+
+const grid = document.getElementById("grid");
+const views = [];
+for (const cand of CANDIDATES) {
+  const cell = document.createElement("div");
+  cell.className = cand.ctrl ? "cell ctrl" : "cell";
+  const h2 = document.createElement("h2");
+  h2.textContent = cand.name;
+  const p = document.createElement("p");
+  p.textContent = cand.blurb;
+  const canvas = document.createElement("canvas");
+  cell.append(h2, p, canvas);
+  grid.appendChild(cell);
+  views.push({ cand, canvas });
+}
+
+function tokens() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n) => cs.getPropertyValue(n).trim();
+  return {
+    ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), border: v("--border"),
+    surface: v("--surface-1"),
+    /* Borrowed, and flagged on the page: no semantic role means "the outcome
+       happened" yet, and --c-extreme is a different idea. */
+    died: v("--series-8"), lived: v("--series-1"),
+    font: v("--font"), mono: v("--font-mono"),
+  };
+}
+
+/* ---- state ---- */
+let split = false;
+let t = 1;                        /* 0..1 through the current transition */
+let sweeping = false;
+
+function setSplit(next) {
+  if (next === split) return;
+  split = next;
+  t = 0;
+  document.getElementById("toggle").textContent = split ? "Show risk" : "Show odds";
+}
+
+/* ---- painting ---- */
+function label(ctx, c, text, x, y, { size = "xs", tone = "ink2", align = "left", bold = false } = {}) {
+  ctx.save();
+  const px = size === "sm" ? 12 : size === "md" ? 13 : 11;
+  ctx.font = `${bold ? "600 " : ""}${px}px ${c.font}`;
+  ctx.fillStyle = tone === "ink1" ? c.ink1 : tone === "ink3" ? c.ink3 : c.ink2;
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function bracket(ctx, c, x, yTop, yBot, dir) {
+  /* dir = -1 opens left, +1 opens right */
+  const arm = 5 * dir;
+  ctx.save();
+  ctx.strokeStyle = c.ink3;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + arm, yTop + 0.5);
+  ctx.lineTo(x, yTop + 0.5);
+  ctx.lineTo(x, yBot + 0.5);
+  ctx.lineTo(x + arm, yBot + 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* One term of the fraction: `list` is [{fill, alpha}], packed ten to a row.
+   `dir` = -1 grows upward from `yEdge` (numerator), +1 grows down (denominator). */
+function fracBlock(ctx, gx, yEdge, list, dir) {
+  const rows = Math.ceil(list.length / FR_PER_ROW);
+  for (let i = 0; i < list.length; i += 1) {
+    const row = Math.floor(i / FR_PER_ROW), col = i % FR_PER_ROW;
+    /* Both terms read outward from the rule, so the first dot of each is
+       nearest the bar and the block grows away from it. */
+    const r = dir < 0 ? rows - 1 - row : row;
+    const x = gx + FR_PITCH / 2 + col * FR_PITCH;
+    const y = dir < 0
+      ? yEdge - FR_PITCH / 2 - (rows - 1 - r) * FR_PITCH
+      : yEdge + FR_PITCH / 2 + r * FR_PITCH;
+    if (list[i].alpha <= 0.01) continue;
+    ctx.save();
+    ctx.globalAlpha = list[i].alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, FR_R, 0, Math.PI * 2);
+    ctx.fillStyle = list[i].fill;
+    ctx.fill();
+    ctx.restore();
+  }
+  return rows;
+}
+
+function drawFraction(ctx, c, gx, g, e) {
+  const { died, lived } = g;
+
+  /* Numerator: the deaths. Identical in both readings — that is the point. */
+  const num = Array.from({ length: died }, () => ({ fill: c.died, alpha: 1 }));
+
+  /* Denominator: everyone, with the deaths packed LAST so that dropping them
+     shortens the block from its tail instead of punching holes in it.
+
+     They leave ONE AT A TIME rather than fading together, for two reasons.
+     2.8 — the readout reports what has actually been collected, and a
+     half-faded dot is in neither term, so a lerped denominator of 76 is a
+     number describing nothing. Shedding discretely keeps the count equal to the
+     dots on screen at every frame. And 4.3 — a frozen half-faded mark reads as
+     *marked* rather than as leaving. */
+  const shed = Math.round(died * e);
+  const den = [
+    ...Array.from({ length: lived }, () => ({ fill: c.lived, alpha: 1 })),
+    ...Array.from({ length: died - shed }, () => ({ fill: c.died, alpha: 1 })),
+  ];
+
+  label(ctx, c, e > 0.5 ? "deaths ÷ survivors" : "deaths ÷ everyone",
+    gx, 250, { size: "sm", tone: "ink2" });
+
+  fracBlock(ctx, gx, RULE_Y - 7, num, -1);
+  fracBlock(ctx, gx, RULE_Y + 7, den, 1);
+
+  ctx.save();
+  ctx.strokeStyle = c.ink1;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(gx - 3, RULE_Y + 0.5);
+  ctx.lineTo(gx + FR_W + 3, RULE_Y + 0.5);
+  ctx.stroke();
+  ctx.restore();
+
+  /* The counts, and the quotient — both read off the block that was just drawn,
+     so they cannot disagree with it. */
+  const denNow = den.length;
+  label(ctx, c, String(died), gx + FR_W + 8, RULE_Y - 12, { size: "sm", tone: "ink1", bold: true });
+  label(ctx, c, String(denNow), gx + FR_W + 8, RULE_Y + 22, { size: "sm", tone: "ink1", bold: true });
+  label(ctx, c, `= ${(died / denNow).toFixed(2)}`, gx + FR_W + 38, RULE_Y + 5,
+    { size: "md", tone: "ink1", bold: true });
+}
+
+function drawGroup(ctx, c, gx, g, e, kind, title, sub, withFraction) {
+  const died = g.died, lived = g.lived;
+  label(ctx, c, title, gx, 26, { size: "sm", tone: "ink1", bold: true });
+  label(ctx, c, sub, gx, 42, { size: "xs", tone: "ink3" });
+
+  if (kind === "dots") {
+    for (let i = 0; i < N; i += 1) {
+      const [x0, y0] = personXY(i, died, gx, false);
+      const [x1, y1] = personXY(i, died, gx, true);
+      const x = lerp(x0, x1, e), y = lerp(y0, y1, e);
+      ctx.beginPath();
+      ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
+      ctx.fillStyle = i < died ? c.died : c.lived;
+      ctx.fill();
+    }
+  } else if (kind === "bars") {
+    const hDied = died * PER_PERSON, hLived = lived * PER_PERSON;
+    ctx.fillStyle = c.died;
+    ctx.fillRect(gx, FLOOR - hDied, COL_W, hDied);
+    ctx.fillStyle = c.lived;
+    /* merged: sits on top of the deaths. split: on the floor, one step right. */
+    const lx = lerp(gx, gx + SPLIT_DX, e);
+    const ly = lerp(FLOOR - hDied - hLived, FLOOR - hLived, e);
+    ctx.fillRect(lx, ly, COL_W, hLived);
+  } else if (kind === "brackets") {
+    for (let i = 0; i < N; i += 1) {
+      const [x, y] = personXY(i, died, gx, false);
+      ctx.beginPath();
+      ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
+      ctx.fillStyle = i < died ? c.died : c.lived;
+      ctx.fill();
+    }
+    const topAll = FLOOR - STACK_H;
+    const topDied = FLOOR - died * PER_PERSON;
+    bracket(ctx, c, gx - 8, topAll, FLOOR, -1);
+    bracket(ctx, c, gx + COL_W + 8, topAll, topDied, 1);
+    label(ctx, c, `÷ ${N}`, gx - 15, (topAll + FLOOR) / 2, { align: "right", tone: "ink3" });
+    label(ctx, c, `÷ ${lived}`, gx + COL_W + 15, (topAll + topDied) / 2 + 4, { tone: "ink3" });
+  }
+
+  /* The countable claim, under the floor. B shows BOTH — that is its whole
+     claim, and printing one of them was the sequential cells' habit leaking
+     into the simultaneous one. */
+  if (kind === "brackets") {
+    label(ctx, c, `${died} in ${N}  ·  risk ${((died / N) * 100).toFixed(0)}%`, gx, FLOOR + 20,
+      { size: "sm", tone: "ink1", bold: true });
+    label(ctx, c, `${died} per ${lived}  ·  odds ${(died / lived).toFixed(2)}`, gx, FLOOR + 38,
+      { size: "sm", tone: "ink1", bold: true });
+    return;
+  }
+  if (withFraction) { drawFraction(ctx, c, gx, g, e); return; }
+  const showOdds = e > 0.5;
+  /* At a 1% base rate the unexposed group has exactly one death, and "1 deaths"
+     is the kind of thing only the fillText sweep ever sees. */
+  const deathWord = died === 1 ? "death" : "deaths";
+  const line = showOdds
+    ? `${died} ${deathWord} per ${lived} survivors`
+    : `${died} ${deathWord} in ${N} people`;
+  const val = showOdds
+    ? `odds ${(died / lived).toFixed(2)}`
+    : `risk ${((died / N) * 100).toFixed(0)}%`;
+  label(ctx, c, line, gx, FLOOR + 20, { size: "xs", tone: "ink2" });
+  label(ctx, c, val, gx, FLOOR + 36, { size: "sm", tone: "ink1", bold: true });
+}
+
+function drawTable(ctx, c, s) {
+  const x0 = 78, y0 = 70, cw = 92, rh = 30;   /* 78: "Unexposed" is right-aligned at x0-8 */
+  ctx.save();
+  ctx.strokeStyle = c.border;
+  ctx.lineWidth = 1;
+  for (let r = 0; r <= 2; r += 1) {
+    ctx.beginPath(); ctx.moveTo(x0, y0 + r * rh + 0.5); ctx.lineTo(x0 + 2 * cw, y0 + r * rh + 0.5); ctx.stroke();
+  }
+  for (let k = 0; k <= 2; k += 1) {
+    ctx.beginPath(); ctx.moveTo(x0 + k * cw + 0.5, y0); ctx.lineTo(x0 + k * cw + 0.5, y0 + 2 * rh); ctx.stroke();
+  }
+  ctx.restore();
+
+  label(ctx, c, "Died", x0 + cw / 2, y0 - 8, { align: "center", tone: "ink3" });
+  label(ctx, c, "Survived", x0 + cw * 1.5, y0 - 8, { align: "center", tone: "ink3" });
+  label(ctx, c, "Exposed", x0 - 8, y0 + rh * 0.5 + 4, { align: "right", tone: "ink3" });
+  label(ctx, c, "Unexposed", x0 - 8, y0 + rh * 1.5 + 4, { align: "right", tone: "ink3" });
+
+  const cells = [
+    [s.exposed.died, s.exposed.lived],
+    [s.unexposed.died, s.unexposed.lived],
+  ];
+  ctx.save();
+  ctx.font = `600 15px ${c.mono}`;
+  ctx.fillStyle = c.ink1;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let r = 0; r < 2; r += 1) {
+    for (let k = 0; k < 2; k += 1) {
+      ctx.fillText(String(cells[r][k]), x0 + cw * (k + 0.5), y0 + rh * (r + 0.5));
+    }
+  }
+  ctx.restore();
+
+  const rows = [
+    [`risk  ${(s.riskE * 100).toFixed(0)}%  vs  ${(s.riskU * 100).toFixed(0)}%`, `RR = ${s.rr.toFixed(2)}`],
+    [`odds  ${s.oddsE.toFixed(2)}  vs  ${s.oddsU.toFixed(2)}`, `OR = ${s.or.toFixed(2)}`],
+  ];
+  ctx.save();
+  ctx.font = `13px ${c.mono}`;
+  ctx.fillStyle = c.ink2;
+  ctx.textAlign = "left";
+  rows.forEach(([a, b], i) => {
+    ctx.fillText(a, x0, y0 + 2 * rh + 34 + i * 24);
+    ctx.fillStyle = c.ink1;
+    ctx.fillText(b, x0 + 210, y0 + 2 * rh + 34 + i * 24);
+    ctx.fillStyle = c.ink2;
+  });
+  ctx.restore();
+}
+
+function drawCell({ cand, canvas }) {
+  const c = tokens();
+  const s = stats();
+  const h = cand.h ?? H;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || W;
+  const scale = cssW / W;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(h * scale * dpr);
+  canvas.style.height = `${h * scale}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+
+  if (cand.kind === "table") { drawTable(ctx, c, s); return; }
+
+  /* The floor. Every pile stands on it, which is what makes two piles a height
+     comparison rather than two unrelated blobs. */
+  ctx.save();
+  ctx.strokeStyle = c.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(28, FLOOR + 0.5);
+  ctx.lineTo(W - 20, FLOOR + 0.5);
+  ctx.stroke();
+  ctx.restore();
+
+  const e = cand.motion ? (split ? smooth(t) : 1 - smooth(t)) : 0;
+  drawGroup(ctx, c, GX[0], s.exposed, e, cand.kind, "Infection", "exposed", cand.fraction);
+  drawGroup(ctx, c, GX[1], s.unexposed, e, cand.kind, "No infection", "baseline", cand.fraction);
+
+  /* The ratio gets its own line at the foot, not the top right. Top right is
+     where group 2's title lives, and B's label is twice as long as A's — it
+     overlapped "No infection" while every string was comfortably inside the
+     canvas, so the fillText sweep passed it. Some things only a screenshot
+     catches, and this is the kind. */
+  const showOdds = cand.kind === "brackets" ? null : e > 0.5;
+  let ratio;
+  if (showOdds === null) {
+    ratio = `RR ${s.rr.toFixed(2)}   ·   OR ${s.or.toFixed(2)}`;
+  } else if (cand.fraction) {
+    /* The ratio is a division too, and writing it out is the second half of the
+       same request: one fraction per group, then those two divided. */
+    ratio = showOdds
+      ? `odds ratio  =  ${s.oddsE.toFixed(2)} ÷ ${s.oddsU.toFixed(2)}  =  ${s.or.toFixed(2)}`
+      : `risk ratio  =  ${s.riskE.toFixed(2)} ÷ ${s.riskU.toFixed(2)}  =  ${s.rr.toFixed(2)}`;
+  } else {
+    ratio = showOdds ? `OR ${s.or.toFixed(2)}` : `RR ${s.rr.toFixed(2)}`;
+  }
+  label(ctx, c, ratio, 28, h - 12, { size: "md", tone: "ink1", bold: true });
+}
+
+function drawAll() { views.forEach(drawCell); }
+
+/* ---- the shared readout: the arithmetic, once, checkable against every cell ---- */
+function paintReadout() {
+  const s = stats();
+  document.getElementById("readout").innerHTML = [
+    `<span>baseline risk</span> <b>${(s.r0 * 100).toFixed(0)}%</b>`,
+    `<span>exposed risk</span> <b>${(s.r1 * 100).toFixed(0)}%</b>`,
+    `<span>RR</span> <b class="big">${s.rr.toFixed(2)}</b>`,
+    `<span>OR</span> <b class="big">${s.or.toFixed(2)}</b>`,
+    `<span>the odds ratio overstates by</span> <b>${((s.or / s.rr - 1) * 100).toFixed(0)}%</b>`,
+  ].join("");
+}
+
+/* ---- controls ---- */
+const rateBar = document.getElementById("rate");
+RATES.forEach((r, i) => {
+  const b = document.createElement("button");
+  b.className = "w-seg-btn";
+  b.type = "button";
+  b.textContent = `${(r * 100).toFixed(0)}%`;
+  b.setAttribute("aria-pressed", String(i === rateIdx));
+  b.addEventListener("click", () => {
+    rateIdx = i;
+    /* Changing the base rate must NOT reset the reading — principle 3.2, and it
+       is the whole gesture: hold the split open and walk the rate along it. */
+    [...rateBar.children].forEach((el, k) => el.setAttribute("aria-pressed", String(k === i)));
+    paintReadout();
+    drawAll();
+  });
+  rateBar.appendChild(b);
+});
+
+document.getElementById("toggle").addEventListener("click", () => setSplit(!split));
+
+document.getElementById("sweep").addEventListener("click", () => {
+  if (sweeping) return;
+  sweeping = true;
+  setSplit(true);
+  let i = 0;
+  const step = () => {
+    rateIdx = i % RATES.length;
+    [...rateBar.children].forEach((el, k) => el.setAttribute("aria-pressed", String(k === rateIdx)));
+    paintReadout();
+    drawAll();
+    i += 1;
+    if (i <= RATES.length) setTimeout(step, 900);
+    else sweeping = false;
+  };
+  setTimeout(step, 400);
+});
+
+/* ---- frame clock ---- */
+let last = null;
+function frame(ts) {
+  if (last === null) last = ts;
+  const dt = Math.min(ts - last, 50);
+  last = ts;
+  if (t < 1) {
+    t = clamp01(t + dt / 700);
+    drawAll();
+  }
+  requestAnimationFrame(frame);
+}
+
+paintReadout();
+drawAll();
+requestAnimationFrame(frame);
+addEventListener("resize", drawAll);
+</script>
+</body>
+</html>

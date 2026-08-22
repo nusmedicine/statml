@@ -713,6 +713,40 @@ starts the next, rather than being swallowed.
 > clicking produced 2 samples from 14 clicks — and repeated clicking is the
 > primary affordance.
 
+### 4.4 A display change may deserve a transition — and almost none do
+
+A `display` parameter repaints and does not animate, because for an overlay a
+jump is correct: the thing being toggled is decoration over a figure that has
+not moved. Some toggles are not that. When two settings are two **readings of
+the same data**, easing between them is what shows it is the same data — a jump
+can only assert it.
+
+Core supplies the frames and nothing else: the widget sets `anim.easing` in
+`rebuild`, and core clears the flag when it starts the loop. Clearing matters.
+`easing` is a *request*, and a request that survives being granted is granted
+again — any display change while an ease is in flight would stop and restart the
+loop, resetting its frame budget every time.
+
+> *Earned:* widget 12's two denominators. The deaths must be **seen** not to move
+> while what they are measured against does, and that is the widget's entire
+> claim. It was first built with the reading as an ordinary display toggle,
+> which made the claim a caption. Keep the exemption narrow: every widget before
+> this one wants the jump.
+
+### 4.5 A widget may decline a drive button it has no use for
+
+`stepLabel: null` and `runLabel: null` remove the button. Omitting them still
+gets the default, so this is an explicit statement rather than an oversight.
+
+> *Earned:* widget 12 was built with the cohort being followed up ten patients at
+> a time, which put a stopwatch on the part of epidemiology nobody watches — you
+> get the 2×2 at the end, already complete. With the follow-up gone there is
+> nothing to step: a lead works the ratios out once, and after that the only
+> thing that happens is a toggle. **A dead Step beside a live toggle teaches that
+> the toggle is the afterthought.**
+
+---
+
 ### 4.3 Motion should read as the thing it depicts
 
 A mean *falling into place* accelerates downward. Sideways motion, where two

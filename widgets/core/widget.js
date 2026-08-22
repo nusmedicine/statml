@@ -367,6 +367,35 @@ export function defineWidget(config) {
       animation?.rebuild?.(anim, { params: { ...values }, state, colors });
       paint({ syncAddressBar: true });
       updateAnimButtons();
+
+      /* A DISPLAY CHANGE MAY DESERVE A TRANSITION. Some toggles switch between
+         two readings of the SAME data, and easing between them is what shows it
+         is the same data — a jump only asserts it. Widget 12's two denominators
+         are the case: the deaths must be seen not to move while what they are
+         measured against does.
+
+         Core supplies the frames and nothing else. The widget decides there is
+         something to ease, in `rebuild`, by setting `anim.easing`; `advance`
+         clears it when the ease lands. Narrow on purpose, exactly like the
+         gate's entry animation below — an ordinary display toggle stays
+         instant, which is what every widget before this one wants. */
+      /* CONSUMED, not merely read. `easing` is a REQUEST for frames, and a
+         request that survives being granted is a request that gets granted
+         again: any display change while an ease is in flight — dragging a
+         slider, say — would stop and restart the loop, resetting its frame
+         budget every time. Clearing it here means the widget asks once and core
+         answers once. */
+      if (anim?.easing) {
+        anim.easing = false;
+        /* Do not restart a loop that is already easing. `startAnim` stops the
+           pending frame before scheduling a new one, so a display parameter
+           changing faster than the frame clock — a slider being dragged, or a
+           test harness setting seventy parameters a second — cancels every
+           frame before it runs and the ease never advances at all. Found by a
+           sweep that measured a permanently stuck transition and blamed the
+           widget. */
+        if (rafId === null || anim.mode !== "ease") startAnim("ease");
+      }
       return;
     }
 
@@ -472,7 +501,13 @@ export function defineWidget(config) {
        replay instead of advancing, with Play masking it because one click runs
        to the end. Comparing exactly makes a numeric `done` harmless instead of
        silently destructive. */
-    if (anim.done === true) resetAnim({ fromScratch: true, keepLead: Boolean(anim.leadDone) }); // Replay
+    /* `mode !== "ease"`: an ease is a transition between two readings of a
+       FINISHED figure, so a finished figure is exactly when one happens.
+       Without the guard, toggling the denominator on a completed widget would
+       Replay it instead of easing. */
+    if (mode !== "ease" && anim.done === true) {
+      resetAnim({ fromScratch: true, keepLead: Boolean(anim.leadDone) }); // Replay
+    }
     anim.mode = mode;
 
     // Reduced motion: no choreography, just arrive at the result.
@@ -529,7 +564,7 @@ export function defineWidget(config) {
          `tick` sets hasAdvanced after EVERY advance, so without this the run
          button offers to Resume a stage that has only just been entered. */
       const advanced = (anim?.hasAdvanced ?? hasAdvanced)
-        && anim?.mode !== "lead" && anim?.mode !== "enter";
+        && anim?.mode !== "lead" && anim?.mode !== "enter" && anim?.mode !== "ease";
       actions.run.textContent = playing
         ? "Pause"
         : done
@@ -575,9 +610,15 @@ export function defineWidget(config) {
       primary: true,
       onClick: () => startAnim("lead"),
     },
-    // Labels are the widget's to name: a Galton board drops balls, it does not
-    // draw samples. Generic verbs make a widget feel like a demo of a framework.
-    animation && {
+    /* Labels are the widget's to name: a Galton board drops balls, it does not
+       draw samples. Generic verbs make a widget feel like a demo of a framework.
+
+       `stepLabel: null` DECLINES the button. Not the same as omitting it, which
+       still gets the default — an explicit null is a widget saying it has
+       nothing to step, and widget 12 is the first: its study is already over
+       and the only motion left is between two readings of it. A dead Step
+       beside a live toggle teaches that the toggle is the afterthought. */
+    animation && animation.stepLabel !== null && {
       key: "step",
       group: "pace",
       text: resolveLabel(animation.stepLabel, "Draw one"),
@@ -590,7 +631,7 @@ export function defineWidget(config) {
       primary: true,
       onClick: () => startAnim("step"),
     },
-    animation && {
+    animation && animation.runLabel !== null && {
       key: "run",
       group: "pace",
       text: animation.runLabel ?? "Play",
@@ -662,8 +703,13 @@ export function defineWidget(config) {
      Same rule, same reason: the row's shape must not be a function of what the
      widget happens to be showing. */
   function reserveDriveWidths() {
-    reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"], "--run-reserve");
-    reserveWidth(drive.step, labelSet(animation?.stepLabel, "Draw one"), "--step-reserve");
+    /* Guarded: a widget that declined a button has no element to reserve for. */
+    if (drive.run) {
+      reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"], "--run-reserve");
+    }
+    if (drive.step) {
+      reserveWidth(drive.step, labelSet(animation?.stepLabel, "Draw one"), "--step-reserve");
+    }
   }
   reserveDriveWidths();
   // Re-measure once webfonts settle, in case the first pass sized on a fallback.

@@ -117,6 +117,8 @@ export function readTokens() {
     groupA: v("--c-group-a"),
     groupB: v("--c-group-b"),
     extreme: v("--c-extreme"),
+    event: v("--c-event"),
+    nonevent: v("--c-nonevent"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),

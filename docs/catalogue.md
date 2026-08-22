@@ -1427,6 +1427,815 @@ stale on every canvas click and then reasserted its stale value. Two lines in th
 widget rather than a core change; if a second widget ever drives a parameter from
 its canvas, that is the moment to move it.
 
+## Widget 12 · `odds-and-risk` — built, draft
+
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 12 | `odds-and-risk` 🟡 | Odds ratio vs relative risk | *One table, two ratios. Why do they disagree, and which one am I allowed to compute?* | That an odds ratio reports how much **more likely** an outcome is. It is the same numerator over a denominator that shrinks as the outcome gets common, so it always overstates the risk ratio — and by how much is set by the **base rate**, not by the effect | **documented** |
+
+### REBUILT AFTER REVIEW — this supersedes the design notes below
+
+Shown to Kenneth as a built draft and it did not survive contact. Three
+complaints, all fair, and the fix for each was smaller than the thing it removed.
+
+**1. ~~Baseline risk and true risk ratio as inputs.~~ You set the four counts.**
+*"What is true risk ratio? So we are sampling from this distribution — sounds a
+bit misleading."* Correct, and it was an error rather than a preference: the
+label says there is a population parameter and we are sampling from it, and
+**nothing in this widget samples anything**. The epistemics of widgets 2–5 got
+imported into a widget that has none. Two sliders now set how many died in each
+arm; the risk ratio and odds ratio are the only numbers on screen the reader did
+not set. **A ratio is the one thing in this topic that must always be an output.**
+
+**2. ~~Views called "Two denominators" and "Why the odds ratio".~~ Tabs called
+Cohort and Case-control.** *"I don't understand the view buttons — do we need
+it?"* They were my own section headings leaking onto the screen as controls, and
+they were the first thing a reader tripped over. The tabs are **study designs**
+now: two words a student recognises before they arrive, and switching between
+them is itself the lesson rather than a way to reach it. Kenneth's call.
+
+**3. The control names the act, not the jargon.** *Measure the deaths against
+**everyone** / **the survivors***, and then *risk* and *odds* appear on the
+figure as the **result** of having done it.
+
+**And the case-control argument lost its algebra.** The brackets and the
+regrouping identity `(a/b)/(c/d) = (a/c)/(b/d)` are the deep reason and they are
+too much: the reader must hold four cells and two groupings before the point
+arrives. One line gets there instead — **enrol fewer survivors and your study's
+death rate climbs to 81%**, not because the disease got worse but because you
+stopped enrolling survivors. A death rate you set with a budget slider is not a
+finding, and neither is a risk ratio built out of two of them: 2.00 in the
+cohort, 1.22 here. The odds ratio sits at 2.67 the whole way, which is the
+answer to *then what do I report*.
+
+| survivors enrolled | death rate in your study | RR | OR |
+|---|---|---|---|
+| all of them | 30% | 2.00 | **2.67** |
+| 1 in 2 | 46% | 1.71 | **2.67** |
+| 1 in 5 | 68% | 1.38 | **2.67** |
+| 1 in 10 | 81% | 1.22 | **2.67** |
+
+**The tab switch is the transition.** Core principle 4.4 was added for the
+denominator toggle and pays for itself twice: switching to Case-control empties
+the survivors you did not enrol out of the *same* picture as hollow rings, so the
+two designs are visibly two views of one cohort rather than two figures.
+
+**IEEE already knows the difference between undefined and infinite, and my zero
+guards were destroying it.** `riskU === 0 ? Infinity : riskE / riskU` turns both
+`0/0` and `0.4/0` into infinity. Drag both sliders to zero — nobody dies in
+either arm, two drags from the default — and the figure claimed the odds ratio
+was ∞. It is not; it does not exist. Plain division gets all three cases right,
+and the four degenerate corners are now named on screen rather than papered over.
+Everyone dying in both arms is the best of them: the risk ratio is 1.00 and the
+odds ratio does not exist, **which is the odds scale showing you its edge**.
+
+**Verified: 420 states swept at the 550px canvas** — 70 cohort and 350
+case-control, every corner included — with every printed ratio checked against an
+independent computation, and no overflow, collision or blank.
+
+Mock-up: `widgets/_lab/simpler-2x2.html`, which is where the shape was settled
+before any of it was built.
+
+### Round two of review: the division graphic, and what the convention is
+
+**The fraction is back under each arm.** Cut in the rebuild as furniture, asked
+for again, and it earns the space: the numerator is the deaths and is *identical*
+in both readings, while the denominator drops its red dots one at a time. That
+shows the thing no wording does — **risk's numerator sits inside its denominator
+and odds' sits beside it** — which is why only one of the two can pass 1. Set 90
+and 45 and the exposed arm reads 90 over 10 = **9.00**; a risk never could.
+
+**What the convention actually is**, since it was asked and the widget should
+carry it. Two different things get called a convention here and only one of them
+is arbitrary:
+
+- **The table layout** — exposure down the rows with the exposed first, outcome
+  across the columns with the event first — *is* arbitrary, in the way driving on
+  the left is. It exists so `a`, `b`, `c`, `d` mean the same thing everywhere.
+- **Risk versus odds is not.** Risk divides by everyone, is bounded at 1, and is
+  the quantity anybody actually wants. Odds divides by the survivors, has no
+  ceiling, and is the quantity the **mathematics keeps handing you** — a
+  case-control cannot give a risk, odds survives that sampling, and above all
+  **logistic regression models `log(odds)`**: the logit is what maps (0,1) onto
+  the real line so a linear model can fit a binary outcome. `exp(bₙ)` is an odds
+  ratio because of the link function, not because anyone chose it for
+  interpretability.
+
+That last point is the one to say out loud in `05-05`: **we report odds ratios
+because that is what the method returns, not because they are easier to
+understand — and they are not.** It is the whole reason the misreading is so
+common.
+
+**A study-design reminder graphic, mocked up:** `widgets/_lab/study-design.html`.
+Time runs left to right in both panels and what differs is which end the
+investigator *started* from; the case-control dots travel **against** the arrow,
+the only motion on the page that does. Each panel ends on one line — *60 of your
+200 died, you counted that* against *60 of your 130 died, you chose that*. Open
+question on that page: a strip along the top of the figure that redraws with the
+Cohort/Case-control tab, or a first tab of its own.
+
+One thing that build settled: **a ghost stays behind in the recruited box.** The
+first version let it empty out, which says the patients *left* the infected group
+when they died. They did not — the two ends are two sortings of the same 200
+people, and a person is in one box at each end at once.
+
+**One more core fix, from the same family as the last two.** `startAnim` stops
+the pending frame before scheduling a new one, so a display parameter changing
+faster than the frame clock — a slider being dragged, or a sweep setting seventy
+parameters a second — cancelled every frame before it ran and the ease never
+advanced. Core now declines to restart a loop already easing. Found by a sweep
+that measured a permanently stuck transition and blamed the widget; the widget
+was fine, verified directly. All 78 fingerprint states MATCH.
+
+**Verified: 420 states swept at the 550px canvas**, 70 cohort and 350
+case-control, with the settle checked by *observing the target value* rather than
+by a fixed wait — this browser does not always run rAF through a long await, and
+a probe that watched the wording instead of the number passed at the halfway
+point of an ease and reported the widget wrong twice.
+
+### Round three: the button names the RESULT, and the design graphic reads by step
+
+**~~The control names the act, not the jargon.~~ Reversed, and it was my
+mistake.** "Measure the deaths against · Everyone / The survivors" reads well and
+it does not TEACH: nothing on screen connects the choice to the two ratio cards
+at the bottom, so a reader is left asking *which of these am I supposed to be
+looking at*. Reported exactly that way.
+
+The buttons are now **Relative risk / Odds ratio** — the two things the widget
+exists to distinguish are the two things you press — and the denominator moved to
+the detail line underneath, which `segmented` renders as visible copy. **The
+selected card is lit and the other dimmed**, crossfading on the same `q` as the
+piles, with a rule under the live one so the link survives a projector that eats
+a 30% alpha difference. Button → piles → fraction → result is now one chain.
+
+Both cards stay on screen: the comparison *is* the lesson, and dimming says "not
+the one you are building", never "not relevant".
+
+**The study-design graphic reads left to right by STEP, not by time.** The first
+version was faithful to the calendar — exposure left, outcome right, in both
+panels — so the cohort's dots flowed right and the case-control's flowed left,
+and it read as two things converging on the middle. **Reading order beat
+chronology.** Step 1 on the left is always the group you *recruited*; step 2 on
+the right is always what you went and *counted*:
+
+| | step 1 | step 2 |
+|---|---|---|
+| cohort | recruit by **exposure** | wait, count the outcome |
+| case-control | recruit by **outcome** | look back at the exposure |
+
+Four phrases, and the distinction is in the reading direction rather than in an
+arrow that has to be explained. The graphic is now driven by the same two death
+sliders as the widget, so a reminder can carry the reader's own numbers.
+
+**A limit of the harness, recorded because it wasted three rounds.** An ease
+cannot be settled by waiting a fixed time — this browser does not always run rAF
+through a long await — nor by watching the *wording*, which flips at the halfway
+point while the numbers keep moving. It has to be settled by observing the exact
+target value. Even then a sweep flagged 17 of 420 states at one degenerate column
+where a direct probe shows the widget printing the right thing; the layout sweep
+(420 states, zero overflow, zero collisions) is the part that carries.
+
+### Round four: the drive row is gone, and the explanation explains
+
+**~~Work it out.~~ Cut, and it was the widget's worst friction.** Reported
+exactly: change a slider, find the button greyed out, and the only way back is
+Reset — which throws away the numbers you had just set.
+
+The lead existed on the reading of non-negotiable #4 that a widget must not open
+on its own answer. **#4 exists so a student BUILDS the answer instead of being
+handed it, and here there is nothing to build**: the answer is a division of two
+numbers the student typed in themselves, so a button between the input and the
+arithmetic is a toll rather than a stage. What honours #4 instead is **where it
+opens** — both sliders at 20, no effect, both ratios exactly 1.00. The figure
+opens on the null case, which is the *opposite* of its answer, and the first drag
+is what makes the two numbers separate. The drive row is now **Reset alone**.
+
+**A ship-time blocker this creates, named rather than deferred quietly**
+(principle 5.6). `check.mjs` requires a driven fingerprint state from any widget
+declaring an `animation`, and the harness drives by pressing a button with a
+`data-key`. Widget 12 has no such button: its animation is driven by *display
+parameters*. Drafts are exempt, so this passes today. Shipping it needs either
+the harness taught to drive a control, or the rule narrowed to widgets that have
+a drive button — and until one of those happens **the eases have no fingerprint
+coverage, which is a blind spot and not a safety.**
+
+**The study-design strip sits above the figure**, two lines, redrawing with the
+tab. Step 1 is the group you recruited and its counts are **boxed**; step 2 is
+what you then counted, unboxed. The case-control explanation points back at it: a
+risk divides by a number in a box, and a number in a box is not a measurement.
+
+**"Overstates" is now defined, in numbers, every time it appears.** It was a bare
+verb in the readout and nowhere explained — *further from what, and why does it
+matter?* It matters because of the sentence people actually write:
+
+> The truth is that infection multiplies the RISK of dying by 2.00. Someone who
+> reads the odds ratio as if it were a risk ratio would write "2.67 times as
+> likely" — 33% more effect than there is.
+
+**And the case-control line gives the mechanism, not a verdict.** It used to say
+*you chose this* and stop, which names the crime and not the method. Now:
+
+> You kept every case and only 28 of the 140 survivors. So the risk of dying with
+> infection reads 40 out of 52 here, where those same 40 deaths sat in 100 people
+> in the cohort — and the two arms' denominators shrank by different amounts, so
+> 2.00 became 1.38. The odds ratio survived because both arms lost the same
+> FRACTION of their survivors: each arm's odds rose by the same factor, and a
+> ratio does not notice.
+
+**The rounding footnote fires at 5%, not 0.5%.** It is true at 0.5% and it is a
+footnote, and firing it on almost every setting displaced the sentence the reader
+is there for. The cohort's odds ratio is now named in the note either way, so the
+reader can see for themselves that it did not move.
+
+**Three harness traps in one session, all of which produced false reports about a
+correct widget**, and all worth knowing before the next sweep: an ease cannot be
+settled by a fixed wait, nor by watching wording that flips at the halfway point;
+a repeated paint lands the same string at the same pixel and must be **deduped**
+before any collision check, or a frame captured mid-ease reads as thousands of
+overlaps; and a wrapper flag that says *installed* is worthless once a diagnostic
+has restored the original — the probe then measures nothing and every state looks
+wrong. 420 states swept clean once all three were fixed.
+
+### Round five: the strip has to NAME the design, and the odds ratio goes first
+
+**A strip that is only numbered steps does not read as an explanation.** It
+shipped as two numbered lines with counts, and a reader looked straight past it:
+*where is the description about study design?* It was on screen the whole time —
+verified by reading the canvas — and it did not register, because it had no
+heading and no sentence, only instructions. It now opens with the design's
+**name** and one plain line saying what that design is, plus a key for the boxes:
+*boxed = a number you chose, not one you measured.*
+
+The lesson generalises past this widget: **a caption tells you what you are
+looking at; only a heading tells you that you are meant to look.**
+
+**Those descriptions are short because they were measured.** The first pair
+carried a second clause each — *this is the design a risk ratio needs* — and ran
+**65px off the 550px canvas**, where an overrun erases what it crosses rather
+than blending and still looks like text. The clause is said better by the readout
+note anyway, attached to the number it is about. The strip's widest right edge is
+now 451 of 550.
+
+**The odds ratio comes first, everywhere.** Buttons, cards and readout tiles, and
+it is the default. `04-08` derives the odds ratio in its cell 35 and the relative
+risk six cells later — **a widget that hosts in a lesson should meet the reader
+in the order the lesson does**, and the widget's own title says odds ratio first.
+
+### Round six: the strip is a diagram, not a summary of one
+
+**A two-line text summary is not what "incorporate the mock-up" meant**, and a
+reader said so. The point the design graphic makes is **shape** — two groups you
+assembled, two you counted — and shape is the thing a sentence is worst at. The
+strip is now the mock-up's diagram: four boxes in a row with an arrow between the
+pairs, the recruited pair heavy-bordered and filled, the counted pair light.
+
+One row rather than the mock-up's two columns of two, because the widget already
+spends 150px on the piles below. The row still carries the only thing that
+matters — **which pair is boxed** — and it redraws with the tab, so switching
+design visibly moves the border from one pair to the other.
+
+**And the lab page was broken at rest, which is the state anyone opening it sees
+first.** The boxes were faded in with the animation, so before you pressed Run
+the whole left half of each panel was invisible while its heading sat above
+nothing. **Boxes are furniture and are always drawn**; only the contents — the
+dots and the counts — are the study's output and worth waiting for. Caught from a
+screenshot, and no assertion would have found it: every string was painting, at
+the right coordinates, at `globalAlpha = 0`.
+
+### Round seven: study design is a TAB, and it comes first
+
+**Two attempts to put the design above the figure both failed, and the third
+answer was that it does not belong above the figure at all.** It went in as a
+two-line text summary (invisible to a reader), then as a compact four-box
+diagram (better, still a caption). What it actually is: *a whole idea, and the
+one that has to land before the calculation means anything.* So it gets a whole
+panel, and it is the **first tab and the default**.
+
+| tab | what it is |
+|---|---|
+| **Study design** | both designs side by side, animated. Recruit, then count. |
+| **The calculation** | the piles, the division, the two ratios |
+
+**Two tabs, not three.** Cohort and case-control live *inside* the calculation as
+an ordinary control, because there they select a table; on the design tab both
+are on screen at once, because there the whole point is the comparison.
+
+The panel is `_lab/study-design.html` ported in, at one dot per five people, with
+the case-control enrolling one survivor in two — fixed, because this tab is a
+reminder and not a parameter study. The enrolment slider stays with the
+calculation, where it changes an answer.
+
+**The widget owns the drive row from `draw`**, the way widget 11 does: core
+decides which buttons exist and cannot know that one of two views has nothing to
+run. Play belongs to the design tab; the calculation hides the row entirely.
+Both `hidden` and `style.display` are set — `hidden` is only a user-agent default
+and loses to any explicit display.
+
+**A `const` below `defineWidget` is in its temporal dead zone.** The design tab's
+geometry was declared next to the function that uses it, which is where it reads
+best and where it kills the widget on load: `defineWidget` calls `draw` during
+its own top-level run. *Function declarations hoist; `const` does not.* Declared
+above the call now, with the reason written where the next person will move it
+back.
+
+**Three placements for one number before it stopped colliding.** The box count
+went inside the box, where 28 dots reach it; then onto the label line, where
+"lived — the controls" is 105px against an 88px box and the right-aligned count
+lands inside the label; then below the box, which is the only line in the panel
+nothing else occupies — and even that needed the row pitch opened up, because
+row 1's count was sitting 8px above row 2's label. **A count has to be placed
+against everything that can grow, not against the thing it labels.**
+
+### Round eight: three layout defects in the design panel, mocked up before porting
+
+All three reported from one screenshot, all fixed in `_lab/study-design.html`
+first and ported only once they read.
+
+**The step headings sat 12px above the box labels** and the two ran together as
+one block of text on top of the boxes — *the words are obscuring the graphs*. The
+boxes now start **40px** below the heading, which is the whole fix.
+
+**A count below its box labels neither box.** It sits between two of them, and
+the reader has to guess upward or downward — reported as exactly that confusion,
+and it was my own doing: the count had been moved there in round seven to escape
+the dots. It shares the **label's line** now, right-aligned to the box edge, so
+label and count are one phrase attached to one box.
+
+That only works with **short labels**: "lived — the controls" is 105px against a
+104px box, so the count lands inside the label. The labels are `cases` /
+`controls` / `infected` / `not infected`, and what the long ones were explaining
+is said once on its own line — *cases died · controls lived*. **Three placements
+for one number, and the constraint was never the thing it labels — it was
+everything around it that can grow.**
+
+**The enrolment slider now shows on the design tab**, where it drives the
+case-control panel and is the argument: change your budget, watch the death rate
+move while nobody's illness does. That needed a rule `when` cannot express — the
+field belongs on the design tab always, and on the calculation tab only when the
+design is case-control — so the widget manages that one field from `draw`, in
+`syncRail`, alongside the drive row. Both `hidden` and `style.display` are set.
+
+### Round nine: concrete labels stay, and the design animation is staged
+
+**Settled: concrete labels, generic vocabulary in the RULES.** Widget 11 went
+concrete → generic and the catalogue calls that a win, but the argument does not
+transfer: widget 11 had **eight panels** and the examples were doing the work of
+telling them apart, so a student learned "the free-throw one" instead of "the
+fixed-n one". Widget 12 has **one table** and nothing to confuse it with, so the
+concrete labels are not standing in for a mechanism.
+
+What decided it is that **the widget's hardest sentences collapse without
+concrete nouns.** *"40 died for every 60 who lived"* is readable; *"40 events per
+60 non-events"* is not, and that phrase is the entire odds concept. Worse on the
+design tab, where **"cases" and "controls" mean nothing except died and lived.**
+
+So the split is widget 11's real lesson applied properly — *the figure carries
+the mechanism, the example is one line of description*: the boxes say infected
+and died, and every RULE says EXPOSURE and OUTCOME. A cohort fixes the exposure
+and measures the outcome; a case-control fixes the outcome and measures the
+exposure. Both are on screen and neither does the other's job.
+
+**Parked, not rejected:** a `scenario` parameter (ICU · smoking/lung cancer ·
+treatment/response) would buy transfer and serve `05-05`'s CHD example properly.
+It costs a control on a widget already told three times it has too many. Cheap to
+add later — everything downstream is four counts.
+
+### Round nine, part two: the design animation had to be staged
+
+Two complaints from one screenshot. **Nothing was in the recruited boxes until
+Run**, so dragging a slider changed nothing visible; and **all four flows moved
+at once** — *"I have no idea where came from what"*.
+
+**Full at rest** fixes the first and pays for itself twice, because it states the
+designs' real asymmetry with no words at all: **what you do not know at
+recruitment is different.**
+
+| | at recruitment you know | so the dots | and what arrives is |
+|---|---|---|---|
+| cohort | who is exposed | sit **grey** | the outcome colour |
+| case-control | who died | are **already red and blue** | which box they belong in |
+
+**One pass per recruited group** fixes the second: the active group is lit and its
+partner held back, so a reader follows one split at a time.
+
+Two defects caught on the way, both invisible to a text sweep. The finished
+figure sat **entirely dimmed**, because once both passes are over neither is
+"live" — dimming is for guiding attention *during* a run, not a property of the
+result. And every travelling dot was painted **black**: `stagesFor` emits
+`fill:` and the rewritten painter read `f.k`, so `fills[undefined]` is an invalid
+`fillStyle` and an invalid `fillStyle` is a **no-op that silently leaves the
+canvas default**. Found by wrapping `arc` and `fill` and tallying what colour was
+actually asked for — the same recipe as the fillText sweep, one level down, and
+worth keeping: **a canvas will not tell you it ignored you.**
+
+### Round ten: the case-control model was wrong, and so was the claim about it
+
+**Reported as a question, and the question was right.** *"If I put 100 cases and
+100 controls it looks like a cohort — am I misunderstanding something?"* No. The
+model was parameterised as **thin the survivors 1-in-k**, which is a real
+sampling scheme and a bad choice of dial: **at k = 1 it IS the cohort**, so the
+control made the distinction look like it was about sampling fraction when it is
+about which margin you fixed. It also spoke a language no investigator uses —
+nobody thinks *one survivor in five*, they think *100 cases and 100 controls*.
+
+**The model now enrols every case and `r` controls per case**, drawn from a
+source population that both studies sample: the cohort follows 100 exposed and
+100 unexposed chosen by EXPOSURE, the case-control enrols by OUTCOME. That is
+also why case-control studies exist — you cannot follow everyone when the outcome
+is rare — and it is what lets the control ratio exceed the survivors the cohort
+happened to follow.
+
+**AND I GOT THE ARITHMETIC CLAIM WRONG, twice over.** I told Kenneth the new
+model would make the odds ratio *exactly* invariant and retire the whole-people
+footnote. Measured before building on it:
+
+| model | exactly invariant | worst drift |
+|---|---|---|
+| thin survivors 1-in-k (old) | 10.4% | 133% |
+| enrol N cases + M controls | **3.9%** | 102% |
+| enrol ALL cases + M controls | 8.8% | 25% |
+
+Enrolling a fixed number of cases is **worse**, because it rounds *both* columns
+instead of one. Nothing makes it exact. Whole people do not divide.
+
+**So the claim changed, and the new one is truer than the old one ever was.**
+
+> The odds ratio **estimates** the population's. The risk ratio is not estimating
+> anything.
+
+Measured across the sensible slider range: the risk ratio's median shift is
+**7.9%** and the odds ratio's is **0.7%**, an eleven-fold difference — and the
+risk ratio's *direction is the investigator's to choose*, which is worse than a
+bias. At the default table:
+
+| controls per case | death rate | RR | shift | OR | shift |
+|---|---|---|---|---|---|
+| 1 : 1 | 50% | **1.64** | −18% | 2.62 | −1.9% |
+| 1 : 2 | 33% | **1.96** | −2% | 2.71 | +1.5% |
+| 1 : 4 | 20% | **2.20** | +10% | 2.66 | −0.2% |
+
+The risk ratio swings 1.64 → 2.20 and **crosses the truth on the way**, so it is
+right at 1:2 purely by accident — and you would have no way to know, because
+knowing would require the population ratio you are doing a case-control study to
+avoid measuring. **"The odds ratio is unchanged" was an idealisation this widget
+asserted for six rounds and papered over with a footnote about rounding. Naming
+what the number actually IS retires the footnote by making it the point.**
+
+**One dot scale, derived.** A 1:4 enrolment holds several hundred people, so the
+design tab's scale is computed from the fullest box in either panel and printed
+once — a fixed scale either overflows there or wastes the box everywhere else.
+
+**And both tabs read the same `studyOf`** (5.8). A design tab and a calculation
+tab that modelled a case-control differently would be the exact confusion this
+round started from, one level up.
+
+### The mock-ups, and one retired
+
+| page | status |
+|---|---|
+| `_lab/denominators.html` | **live.** Settled candidate A — the survivors step aside — and the division graphic underneath it. Both are in the widget |
+| `_lab/simpler-2x2.html` | **panel A live, panel B superseded and bannered.** Panel A settled the shape: you set the four counts, the ratios are outputs. Panel B's *which side did you fill in first* framing survived; its thinning arithmetic did not |
+| `_lab/study-design.html` | **retired and deleted** |
+
+`study-design.html` settled four things and all four are in the widget and in
+this entry: read left to right **by step** rather than by chronology; a **ghost
+stays behind** in the recruited box; the boxes are **full at rest** so the
+sliders visibly drive them; and the groups move **one pass at a time**. What was
+left in the file afterwards was the superseded thinning model — a page that
+teaches a case-control wrongly is worse than no page, and the repo keeps records
+of *cut designs*, not of wrong arithmetic.
+
+### Why this goes next, ahead of `ppv-prevalence`
+
+The handover pointed at `ppv-prevalence` as the highest-evidence deferred item,
+and it still is. This one goes first anyway, on four counts that are checkable
+rather than aesthetic:
+
+- **Two confirmed lesson slots**, where `ppv-prevalence` has none.
+  `04 / 04-08 — Comparing Counts Between 2x2 Categories`, effect-size section;
+  and `04 / 05-05 — Modeling: Categorical Outcome`, which derives `exp(bₙ)` as an
+  odds ratio and hands students one to read. No other widget but
+  `confidence-interval` has two.
+- **It fixes a live error in the course's own material** — see below. Same
+  evidence shape that earned `power-and-error` its slot.
+- **It completes 04-08 rather than duplicating it.** That lesson has two halves.
+  The first — Fisher's exact test as a permutation null over a hypergeometric —
+  is already served twice, by `permutation-test` and by widget 11's
+  hypergeometric panel. The effect-size half has nothing.
+- **It builds the machinery `ppv-prevalence` needs.** Both are a natural-frequency
+  2×2 whose lesson is a denominator nobody looked at, and `imbalance-metrics` is
+  the same grid a third time with *predictions* on the columns. Per the rule in
+  Shared machinery, the seam is not cut here — the second consumer tells you
+  where it belongs, and that is `ppv-prevalence`.
+
+### What building it settled
+
+**The base rate and the risk ratio are `display` parameters, which looks like a
+violation and is not.** `display: true` means exactly one thing to core:
+recompute, call `animation.rebuild`, keep the student's work — an overlay is a
+consequence of that meaning rather than the meaning itself. The data rule exists
+because a pile built from *other samples* is a lie about what was drawn, and
+nothing here is drawn: the table is exact arithmetic on two settings and the
+animation is a progressive **reveal** of it. Getting this wrong costs the widget
+its point — the gesture it exists for is *pin the effect and walk the base rate*,
+and under the data rule that gesture wipes 200 followed-up patients at every
+notch. Found by a sweep that reported all 72 states wrong, because every one of
+them was the empty figure.
+
+**The follow-up animation was built and then cut.** The cohort arrived ten
+patients at a time, which put a stopwatch on the part of epidemiology nobody
+watches: you get the 2×2 at the end, already complete. What is genuinely in
+motion is the **reading**, and that is where the frames went instead.
+
+That needed **two core additions**, both written up as principles 4.4 and 4.5.
+A `display` parameter could not animate, because for an overlay a jump is
+correct — but these two settings are two readings of the same data, and the
+deaths must be *seen* not to move while their denominator does. And there was no
+way to have an animation without a Step button, which after the cut had nothing
+to step. All 78 pre-existing fingerprint states MATCH after both changes.
+
+**The `easing` flag has to be consumed, not merely read.** First written as
+`if (anim.easing) startAnim("ease")`, which left the flag set for the whole
+transition — so every display change mid-ease stopped and restarted the loop.
+Found by a sweep whose own control-poking was doing exactly that, and which
+therefore measured mid-ease values and reported 56 states wrong.
+
+### The visual answer to *why a risk ratio needs a cohort*
+
+The design view now argues it rather than stating it, in three marks.
+
+**A heavy bar locks the margin the design fixed** — rows for a cohort, columns
+for a case-control. The one you fixed is a number you *chose*; the one left free
+is a number you *measured*. The caption says so in the same words at every
+setting: *everything inside a bar is a group you assembled*.
+
+**The pairing rectangles ease between the two groupings.** `(a/b)/(c/d)` and
+`(a/c)/(b/d)` are the same four numbers regrouped, and a jump would let a reader
+think they are different data. The rule falls straight out and is the thing to
+carry away: **a ratio survives the sampling when both its terms come from the
+same enrolled group.** A risk divides a case count by a case-plus-control count,
+so it crosses; an odds *within* a column does not.
+
+**And the risk moves while the slider does.** At baseline 20% with RR 2, keeping
+one control in five takes the risk of dying from **0.40 to 0.77** — with not one
+patient's outcome changed. That is the proof rather than the illustration: a
+quantity that shifts when you change your own enrolment is not one you measured.
+Meanwhile the cohort's within-column odds are 2.00 and 0.75, and the sample's
+are 2.00 and 0.75 — identical, at every base rate, with no rare-outcome
+assumption anywhere in it.
+
+**Controls come in whole people, and the invariance is only exact when they
+divide.** Thinning by round(b/k) is exactly invariant in **66 of 90**
+combinations; the worst drift is **28.6%** at baseline 30% with RR 3, where the
+exposed arm has ten survivors and a quarter of them is 2.5 people. Rounding
+quietly and still claiming "unchanged" would be a claim that holds at the default
+and not at the ends, which is not a claim. So the figure says what happened, and
+names the cause as the rounding rather than the study being small — at baseline
+1% the drift is 1% on **99** controls, which is not a small study by any reading.
+The default (20%, RR 2) is exact at every *k*.
+
+**Prose on a canvas has to be wrapped by whoever paints it.** The verdict line
+ran **163px past a 770px canvas** and looked completely fine, because a
+surface-coloured stroke erases what it overruns rather than blending. 288
+instances across the design view's 180 states, none of which any hash would ever
+catch. `wrapText` now owns it, and the strip's right-aligned note measures where
+the coloured labels actually finished rather than predicting it.
+
+**`--c-event` and `--c-nonevent` added to `tokens.css`**, the gap the mock-up
+flagged. `--c-extreme` was the nearest role and means something else — past a
+threshold, which a 2×2 does not have — and the group roles are spoken for by the
+other axis of the same table. `--c-nonevent` is deliberately **not** grey: it is
+the odds' denominator and the whole lesson is that it shrinks, so drawing it as
+furniture would hide the one quantity that moves. All **78 existing fingerprint
+states MATCH** after the core change.
+
+**Verified by assertion, not by screenshot: 252 states swept at the 550px
+canvas** — 72 in the denominators view and 180 in the design view — every printed
+ratio and every fraction checked against an independent computation, with no
+overflow, no collision and nothing blank.
+
+### The lesson states it wrongly, and the numbers say so
+
+`04-08` cell 40, on the ICU table `a=24, b=60, c=16, d=100`:
+
+> Here, the odds of death in infected patients is 2.5:1 = 5:2 … for every 5
+> patients who died with infection, there were 2 who died without infection
+
+The odds of death in infected patients is 24/60 = **0.4, i.e. 2:5**. 2.5 is the
+odds *ratio*, which is not an odds. And the death counts are 24 and 16, i.e.
+**3:2**, not 5:2. The bullet takes the OR, narrates it as an odds, then
+re-narrates it as a head-count ratio across groups — the two confusions the
+widget exists to dislodge, in one sentence, in the lesson that hosts it.
+**This needs fixing in `../jupyterbook/phm5003` as well as here.** Cell 44's RR
+reading is correct, and `05-05`'s "higher odds" phrasing is correct.
+
+### The evidence, which is unusually good
+
+- [Holcomb et al. 2001](https://pubmed.ncbi.nlm.nih.gov/11576589/), *An odd
+  measure of risk*: **26%** of OB/GYN papers surveyed asserted an "X-fold risk"
+  from an odds ratio, and in **44%** of those the OR–RR gap exceeded 20%.
+- [Schulman et al. 1999](https://www.nejm.org/doi/full/10.1056/NEJM199902253400806)
+  and the Schwartz/Woloshin/Welch correspondence: referral 90.6% vs 84.7%,
+  **OR 0.60, RR 0.93**. National media reported "40% less likely"; the truth was
+  **6.5%**, a 6.5× exaggeration of the reduction. The NEJM editors published a
+  mea culpa for allowing the odds ratio into the abstract.
+
+### The measurements, taken before anything was drawn
+
+**Holding the effect fixed at RR = 2 and moving only the base rate.** The
+student changes nothing about the effect and the odds ratio runs away:
+
+| baseline risk | 1% | 5% | 8.3% | **13.8%** | 20% | 30% | 40% |
+|---|---|---|---|---|---|---|---|
+| OR | 2.02 | 2.11 | 2.20 | **2.38** | 2.67 | 3.50 | 6.00 |
+| overstatement | 1% | 6% | **10%** | **21%** | 33% | 75% | 200% |
+
+Two things this settled. The familiar rule of thumb — *under 10% and OR ≈ RR* —
+is **exactly the 10% overstatement line**, at a baseline of 8.3%. And **the
+lesson's own example is already past it**: the ICU table's baseline is 13.8%, a
+21% overstatement, so the widget does not need a contrived case to make its
+point — it needs the one the notebook already uses.
+
+**Thinning the controls, on the same table.** Keep every case, keep 1 in *k*
+survivors, which is what a case-control study does:
+
+| controls kept | infected | uninfected | RR | OR |
+|---|---|---|---|---|
+| all | 24/60 | 16/100 | 2.07 | **2.5000** |
+| 1 in 2 | 24/30 | 16/50 | 1.83 | **2.5000** |
+| 1 in 5 | 24/12 | 16/20 | 1.50 | **2.5000** |
+| 1 in 10 | 24/6 | 16/10 | 1.30 | **2.5000** |
+
+Both groups' odds multiply by exactly *k*, so the ratio cancels; the two risks
+multiply by **different** factors (2.33× and 3.22× at 1 in 5), so their ratio does
+not. That is the answer to *then why use an odds ratio at all*, and it is
+visible rather than asserted.
+
+**Relabelling the outcome.** OR(death) = 2.5, OR(survival) = 0.4 — exactly
+reciprocal. RR(death) = 2.07, RR(survival) = 0.83, and 1/2.07 = **0.48**. So
+*"twice the risk of dying" does not mean "half the chance of surviving"* — for the
+risk ratio.
+
+**~~The flip ships, the transpose does not.~~ Reversed.** Transposing the table
+was filed as one symmetry too many. It is not a symmetry, it is **the mechanism
+of view 2** — see the design section below. It ships.
+
+### Which design permits which measure, and why — the corrected version
+
+The rule is **not** cohort versus observational. A cohort study *is*
+observational unless it is an RCT, and a **retrospective cohort is still a
+cohort**, where RR is fine. The line is **case-control versus everything else**,
+and one question draws it: *did the sampling fix the outcome column?*
+
+| design | investigator fixes | free to be measured | RR? |
+|---|---|---|---|
+| RCT / cohort, prospective **or** retrospective | the **rows** — who is exposed | the outcome split within each row | ✅ |
+| cross-sectional | only the grand total | both | ✅ (prevalence) |
+| **case-control** | the **columns** — how many cases, how many controls | the exposure split within each column | ❌ |
+
+In one sentence: **you may only compute a proportion whose denominator is a group
+you deliberately assembled.** A case-control's "risk of dying" is a number you
+chose when you decided to recruit two controls per case.
+
+**Why the odds ratio escapes, which is a better fact than "it approximates the
+RR".** Read the ICU table *down the columns* — the only direction a case-control
+can see — before and after keeping every case and 1 in 5 survivors:
+
+| | full cohort | case-control |
+|---|---|---|
+| odds of infection **among the dead** | 24/16 = **1.5000** | 24/16 = **1.5000** |
+| odds of infection **among the living** | 60/100 = **0.6000** | 12/20 = **0.6000** |
+| ratio | **2.5000** | **2.5000** |
+
+Not approximately equal — **identical**, and not only the ratio but each odds on
+its own. Thinning scales the whole survivor column by 1/5 and odds computed
+*within* a column cannot feel it. The row-wise risks meanwhile go 0.286 and 0.138
+→ 0.667 and 0.444, and RR 2.07 → 1.50.
+
+The bridge is `(a/b)/(c/d) = (a/c)/(b/d)` — the same four numbers, regrouped.
+**The odds ratio does not know which variable is the cause**, so *odds of exposure
+among cases vs controls*, which is all you can measure, **is** *odds of outcome
+among exposed vs unexposed*, which is what you wanted. That is the entire reason
+case-control studies work, and it is **exact at every base rate** — no rare-disease
+assumption anywhere in it.
+
+Keep that separate from the rare-disease claim, which is weaker and comes later:
+the OR you recovered is exact, but reading it *as a risk ratio* is the step that
+needs the outcome to be rare.
+
+**A second correction for `04-08`.** Cell 47's Caution says *"In retrospective
+studies, we often do not know the population at risk, as the exposure is usually
+not known."* Two things: it should say **case-control**, not retrospective — a
+retrospective cohort is fine — and in a case-control the exposure is precisely
+what you go and ascertain. What is unknown is the population at risk.
+
+### The figure — the denominator is the thing that moves
+
+Each exposure group is a column of people. Press **Risk** and the red fraction is
+measured against the *full column*. Press **Odds** and the survivors slide out
+into a **second pile**, so the same red is now measured against a pile that
+shrinks as the outcome gets common. That split is the whole mechanism: at a 1%
+baseline the survivor pile and the whole column are indistinguishable, which is
+**the rare-outcome approximation as something you can see** rather than a rule
+with a threshold attached.
+
+Below, both ratios on **one log axis with 1 marked**, per 2.7 — adjacency is the
+argument. Slide the base rate and the RR marker stays pinned while the OR marker
+walks away.
+
+Two views on one segmented control, per widget 11:
+
+| view | what it does |
+|---|---|
+| **Two denominators** | the split, the divergence, and the flip toggle |
+| **Why the odds ratio** | thin the controls; RR collapses, OR does not move a digit — then read the same table **down the columns** and find the two numbers a case-control actually computes untouched by the sampling |
+
+The second view is why the widget is not an argument that the odds ratio is bad.
+It ends on **which measure is honest is decided by the design, not by taste** —
+which is also what `05-05` needs, since logistic regression hands students an
+odds ratio whether they wanted one or not.
+
+### Decisions taken at planning, so they are not re-argued
+
+- **The risk ratio is the control; the odds ratio is derived.** Setting the
+  effect *as an RR* is what makes "you did not change the effect and the OR
+  changed" a demonstration rather than a coincidence. The base-rate slider is
+  capped so the exposed risk stays below 1.
+- **No risk difference, no NNT.** 04-08 does not teach them, and a third mark on
+  a two-mark axis dilutes the one contrast the widget exists to make. Deliberate
+  non-goal; the clinical case for reporting it is real and belongs in the lesson
+  prose, not here.
+- **Thinning is deterministic, not sampled.** The point is the structural
+  invariance, not sampling noise — importing noise here imports widgets 2–5 into
+  a widget that is not about them. A note says real sampling adds noise on top.
+- **The Fisher's-test half of 04-08 is out of scope**, being already served twice.
+
+### Open before building
+
+Presets. The ICU table is the host lesson's own and must be one. Schulman is the
+**case that fails** (2.6) — a protective direction at a 90% base rate, where the
+OR is a *worse* liar than anything a slider reaches. A third, rare-outcome case
+where the two coincide is the control condition. Whether these are a `choice`
+control or three `?shown=` links is a layout question for the mock-up.
+
+**Mock up before implementing** (5.1). The one thing no argument settles is
+whether the column-splits-into-two-piles motion reads as *the denominator
+changed* or as *dots moving*. **Built, and A chosen:**
+`widgets/_lab/denominators.html` — four treatments in lockstep over the same
+pinned RR = 2.00, with the base rate on a segmented control so the two ends can
+be judged against each other. **A** steps the survivors aside, **B** draws both
+denominators as brackets and never moves, **C** is A without the people, and
+**D** is the 2×2 and four numbers — what every existing tool does, on the page as
+the baseline to beat rather than as a straw man.
+
+**Settled: A, and it carries the division underneath.** The towers answer *what
+is it measured against*; they do not show the arithmetic, so the figure now
+writes the fraction out with the same people as its two terms, ten to a row. The
+numerator is the deaths and is **identical in both readings**. The denominator is
+everyone, and moving to odds makes it **shed its red dots one at a time** until
+only survivors remain.
+
+That drop-out earns its place by showing something no wording had: **risk's
+numerator sits inside its denominator and odds' sits beside it**, which is the
+reason only one of the two can pass 1. At a 30% base rate the exposed group reads
+60 ÷ 40 = **1.50**, and a risk never could. The ratio is written as a division
+too — `odds ratio = 4.00 ÷ 0.67 = 6.00` — so both levels of the calculation are
+on screen.
+
+**The shedding is discrete, one person per step, not a fade.** A half-faded dot
+belongs to neither term, so a denominator interpolated to 76 is a number
+describing nothing — 2.8 asks the readout to report what has actually been
+collected, and 4.3 warns that a frozen half-faded mark reads as *marked* rather
+than as leaving. Shedding whole people keeps the printed count equal to the dots
+on screen at every frame, and both counts are read off the block that was just
+drawn so they cannot drift from it.
+
+**B, C and D stay on the page** at their original height and without the
+fraction. Deciding by looking is only honest while the alternatives are still
+there to look at.
+
+Two open questions the fraction raises, for the projected review: whether its
+duplication of the towers costs more than the fraction form buys, and whether 100
+dots are countable or texture — 2.3 wants a countable thing and 100 per group is
+what makes *out of 100* a natural frequency, and those pull opposite ways.
+
+Two things the build settled on the way:
+
+- **There is no token for *the outcome happened*.** `--c-extreme` is the nearest
+  and means something else — past a threshold, which widget 12 does not have —
+  and `--c-group-a`/`--c-group-b` are spoken for by the two *arms*, which is the
+  other axis of the same table. A 2×2 widget needs both pairs at once, so
+  whatever is added must not collide with the group roles. Probably
+  `--c-event` / `--c-nonevent`.
+- **The fillText sweep cannot see two strings colliding inside the canvas.** It
+  found two real left-edge overflows and a `1 deaths` plural, then passed a
+  ratio label sitting on top of a group title — both comfortably within the
+  canvas bounds, so every extent was legal. A screenshot caught it in one look.
+  The sweep answers *does anything run off the edge*; it does not answer *does
+  anything run into anything else*, and the harness now checks the second too,
+  grouped by canvas — grouping by y alone pairs each string with its twin in the
+  cell next door.
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
@@ -1434,7 +2243,7 @@ misconception named above the line in git history.
 
 | slug | concept | why it was parked |
 |---|---|---|
-| `ppv-prevalence` | Predictive value vs prevalence | **The highest-evidence item in the whole catalogue is now deferred** — physicians report sensitivity *as* PPV, and most put P(disease \| positive) at 70–80% when it is far lower. It sits outside the resampling arc, which is a good reason to postpone it and a bad reason to forget it. Flagging so the choice is visible |
+| `ppv-prevalence` | Predictive value vs prevalence | **The highest-evidence item in the whole catalogue is now deferred** — physicians report sensitivity *as* PPV, and most put P(disease \| positive) at 70–80% when it is far lower. It sits outside the resampling arc, which is a good reason to postpone it and a bad reason to forget it. **Postponed once more, deliberately**: widget 12 is the same natural-frequency 2×2 with two confirmed lesson slots against this one's none, and building it first builds the grid this needs |
 | `regression-to-mean` | Regression to the mean | Attacks "responder" reasoning directly, but needs no resampling machinery |
 | `interaction-effect` | Effect modification | The conceptual core of *precision*, but may be technical rather than abstract — see open question 4 |
 | `censoring-km` | Censoring and Kaplan–Meier | Survival is its own arc; better built as a pair with `hazard-ratio` |

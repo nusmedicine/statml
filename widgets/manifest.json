@@ -161,6 +161,23 @@
       ],
       "arc": 11,
       "status": "shipped"
+    },
+    {
+      "slug": "odds-and-risk",
+      "title": "Odds Ratio and Relative Risk",
+      "blurb": "One table, two ratios. They share a numerator and divide by different things, so the odds ratio always overstates — by 1% when the outcome is rare and 200% when it is not, with the effect never changing. Then thin the survivors as a case-control study does and watch the risk ratio collapse while the odds ratio stays put.",
+      "course": "PHM5003",
+      "topics": [
+        "odds ratio",
+        "relative risk",
+        "2x2 table",
+        "effect size",
+        "study design",
+        "case-control",
+        "epidemiology"
+      ],
+      "arc": 12,
+      "status": "draft"
     }
   ]
 }

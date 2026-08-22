@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · a simpler 2×2</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: 0; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 76ch; font-size: var(--fs-sm); }
+  .panel { background: var(--surface-1); border: 1px solid var(--border);
+           border-radius: var(--radius); padding: var(--sp-4); margin: 0 0 var(--sp-4); }
+  .panel > p { color: var(--ink-2); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-3); max-width: 76ch; }
+  canvas { display: block; width: 100%; height: auto; }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-end; margin: 0 0 var(--sp-3); }
+  .ctl { min-width: 220px; flex: 1; }
+  .ctl label { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--ink-2); }
+  .ctl label b { color: var(--ink-1); font-weight: 600; }
+  .ctl input { width: 100%; }
+  .seg { display: inline-flex; }
+  ol.judge { color: var(--ink-2); font-size: var(--fs-sm); max-width: 76ch; margin: var(--sp-3) 0 0; padding-left: 1.2em; }
+  ol.judge li { margin-bottom: var(--sp-2); }
+  .flag { border-left: 2px solid var(--c-theory); padding-left: var(--sp-3); margin: var(--sp-4) 0 0; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>A simpler 2×2 — what should widget 12 actually be?</h1>
+
+  <p class="note">
+    Three complaints from the first build, and this page is the answer to all
+    three. <strong>The view buttons were section headings pretending to be
+    controls.</strong> <strong>&ldquo;True risk ratio&rdquo; was wrong</strong> —
+    it says there is a population parameter and we are sampling from it, and
+    nothing here samples anything. And <strong>the ratios were inputs</strong>,
+    when a ratio is the one thing in this topic that should always be an output.
+  </p>
+
+  <div class="panel">
+    <h2>A · You set the four counts. Everything else is arithmetic.</h2>
+    <p>
+      Two arms of 100. Drag how many died in each. Nothing is drawn, nothing is
+      sampled, there is no seed and no &ldquo;true&rdquo; anything — the risk
+      ratio and the odds ratio are computed in front of you and are the only
+      numbers on screen you did not set. One toggle: what the deaths are measured
+      against.
+    </p>
+    <div class="row">
+      <div class="ctl">
+        <label for="a"><span>Died, with infection</span><b id="aV">40</b></label>
+        <input type="range" id="a" min="0" max="100" value="40">
+      </div>
+      <div class="ctl">
+        <label for="c"><span>Died, without infection</span><b id="cV">20</b></label>
+        <input type="range" id="c" min="0" max="100" value="20">
+      </div>
+      <div class="ctl" style="flex:0 0 auto">
+        <label style="display:block;margin-bottom:4px"><span>Measure the deaths against</span></label>
+        <div class="seg w-seg" role="group" aria-label="Measure against" id="mode">
+          <button type="button" class="w-seg-btn" aria-pressed="true">everyone</button>
+          <button type="button" class="w-seg-btn" aria-pressed="false">the survivors</button>
+        </div>
+      </div>
+    </div>
+    <canvas id="cvA"></canvas>
+    <ol class="judge">
+      <li><strong>Is &ldquo;out of everyone&rdquo; / &ldquo;per survivor&rdquo;
+        better than &ldquo;risk&rdquo; / &ldquo;odds&rdquo;?</strong> It names
+        what the control does instead of naming the jargon, and the jargon then
+        appears on the figure as the <em>result</em> of doing it.</li>
+      <li><strong>Set both sliders to the same number.</strong> Both ratios go to
+        1.00 together. Then raise them both — still 1.00, both of them. No
+        effect is no effect on either scale, which is worth meeting early.</li>
+      <li><strong>Now set 90 and 45.</strong> The risk ratio is 2.00 and the odds
+        ratio is 11.00. Same &ldquo;twice the risk&rdquo;, and one of the two
+        numbers has left the building.</li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <h2>B · Cohort or case-control: which side of the table did you fill in first?</h2>
+    <p style="border-left:2px solid var(--c-extreme); padding-left:var(--sp-3); color:var(--ink-2)">
+      <strong>SUPERSEDED MODEL — do not read the numbers.</strong> This panel
+      forms its case-control by <em>thinning the survivors 1-in-k</em>, which
+      widget 12 no longer does: at k&nbsp;=&nbsp;1 it <em>is</em> the cohort, so
+      the control makes the distinction look like it is about sampling fraction
+      when it is about which margin you fixed. The widget now enrols <b>every
+      case and r controls per case</b> from a source population both studies
+      sample. The framing this panel settled — <em>which side did you fill in
+      first</em>, boxed = chosen — survived and is in the widget; the arithmetic
+      did not. Panel A above is unaffected.
+    </p>
+    <p>
+      The same 200 patients, studied two ways. <strong>A cohort starts with the
+      exposure and waits</strong> — you pick 100 infected and 100 not, and you
+      <em>count</em> how many die. <strong>A case-control starts with the outcome
+      and looks back</strong> — you pick the people who died and some who did
+      not, and you <em>count</em> how many were infected. The numbers you picked
+      are printed in a box; the numbers you counted are not.
+    </p>
+    <div class="row">
+      <div class="ctl">
+        <label for="k"><span>Survivors you enrolled (case-control)</span><b id="kV">1 in 2</b></label>
+        <input type="range" id="k" min="0" max="4" value="1">
+      </div>
+    </div>
+    <canvas id="cvB"></canvas>
+    <ol class="judge">
+      <li><strong>Read the death rate under each panel.</strong> The cohort says
+        30%, which is a fact about the disease. The case-control says whatever
+        your slider says — and the slider is about your budget, not about
+        anybody's illness. That is the whole argument, and it needs no algebra.</li>
+      <li><strong>Does the boxed / not-boxed distinction land?</strong> It is
+        trying to say <em>you chose this number, so you may not report it as a
+        finding</em> without using the word &ldquo;margin&rdquo;.</li>
+      <li><strong>Is the odds ratio line worth keeping here?</strong> It stays at
+        2.67 in both panels at every slider setting, which is the reason odds
+        ratios exist — but it is also a fourth number on a page whose point is
+        already made by the third.</li>
+    </ol>
+  </div>
+
+  <div class="flag">
+    <p class="note" style="margin:0">
+      <strong>The question this page exists to settle: one widget or two?</strong>
+      A and B are different lessons. A is <em>two ways to divide</em>; B is
+      <em>which studies may divide which way</em>. The first build made them two
+      views of one widget and the view switch was the first thing to confuse a
+      reader. The alternatives are: put B behind a gate at the bottom of A so it
+      is a second stage rather than a second view, or make B its own widget and
+      let A be small and sharp.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+/* Deliberately no core imports and no rng. THAT IS THE POINT OF THE PAGE: the
+   first build had a seed, a speed control and a "true risk ratio", all of which
+   implied a sampling story that does not exist here. Four counts and division. */
+
+const N = 100;
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function tokens() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n) => cs.getPropertyValue(n).trim();
+  return {
+    ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), border: v("--border"),
+    surface: v("--surface-1"), surface2: v("--surface-2"),
+    event: v("--c-event"), nonevent: v("--c-nonevent"),
+    theory: v("--c-theory"), highlight: v("--c-highlight"),
+    font: v("--font"), mono: v("--font-mono"),
+  };
+}
+
+function fit(canvas, w, h) {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cssW = canvas.clientWidth || w;
+  const scale = cssW / w;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(h * scale * dpr);
+  canvas.style.height = `${h * scale}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+
+function say(ctx, c, s, x, y, { size = 11, tone = "ink2", align = "left", bold = false, mono = false } = {}) {
+  ctx.save();
+  ctx.font = `${bold ? "600 " : ""}${size}px ${mono ? c.mono : c.font}`;
+  ctx.fillStyle = tone === "ink1" ? c.ink1 : tone === "ink3" ? c.ink3 : c[tone] ?? c.ink2;
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+const f2 = (v) => (!Number.isFinite(v) ? "∞" : v >= 10 ? v.toFixed(1) : v.toFixed(2));
+
+/* ---------------- panel A ---------------- */
+const WA = 940, HA = 330;
+const COLS = 5, PITCH = 7.4, DOT_R = 2.8;
+const COL_W = COLS * PITCH, STACK = (N / COLS) * PITCH;
+const FLOOR_A = 230, SPLIT = 48;
+
+let modeOdds = false;
+let ease = 1;          // 0..1 toward the current mode
+let easeFrom = 0;
+
+function armXY(i, died, gx, aside) {
+  const j = i < died || !aside ? i : i - died;
+  const row = Math.floor(j / COLS), col = j % COLS;
+  return [gx + (i >= died && aside ? SPLIT : 0) + PITCH / 2 + col * PITCH,
+          FLOOR_A - PITCH / 2 - row * PITCH];
+}
+
+function drawA() {
+  const c = tokens();
+  const ctx = fit(document.getElementById("cvA"), WA, HA);
+  const a = +document.getElementById("a").value;
+  const cc = +document.getElementById("c").value;
+  const b = N - a, d = N - cc;
+  const q = lerp(easeFrom, modeOdds ? 1 : 0, ease * ease * (3 - 2 * ease));
+
+  const arms = [
+    { gx: 150, title: "With infection", died: a, lived: b },
+    { gx: 480, title: "No infection", died: cc, lived: d },
+  ];
+
+  ctx.save();
+  ctx.strokeStyle = c.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(120, FLOOR_A + 0.5); ctx.lineTo(660, FLOOR_A + 0.5); ctx.stroke();
+  ctx.restore();
+
+  for (const arm of arms) {
+    say(ctx, c, arm.title, arm.gx, 34, { size: 13, tone: "ink1", bold: true });
+    say(ctx, c, `${N} patients`, arm.gx, 50, { tone: "ink3" });
+    for (let i = 0; i < N; i += 1) {
+      const [x0, y0] = armXY(i, arm.died, arm.gx, false);
+      const [x1, y1] = armXY(i, arm.died, arm.gx, true);
+      ctx.beginPath();
+      ctx.arc(lerp(x0, x1, q), lerp(y0, y1, q), DOT_R, 0, Math.PI * 2);
+      ctx.fillStyle = i < arm.died ? c.event : c.nonevent;
+      ctx.fill();
+    }
+    /* The sentence, in words, with the number it produces. No fraction glyphs:
+       the words ARE the fraction and a novice reads them without decoding. */
+    const den = q > 0.5 ? arm.lived : N;
+    const val = den === 0 ? null : arm.died / den;
+    say(ctx, c, q > 0.5 ? `${arm.died} died for every ${arm.lived} who lived` : `${arm.died} died out of ${N}`,
+      arm.gx, FLOOR_A + 24, { size: 12, tone: "ink2" });
+    say(ctx, c, val === null ? "—" : (q > 0.5 ? `odds ${f2(val)}` : `risk ${(val * 100).toFixed(0)}%`),
+      arm.gx, FLOOR_A + 44, { size: 15, tone: "ink1", bold: true });
+  }
+
+  /* Both ratios, always, side by side — the comparison is the widget. */
+  const riskE = a / N, riskU = cc / N;
+  const oddsE = b === 0 ? Infinity : a / b, oddsU = d === 0 ? Infinity : cc / d;
+  const rr = riskU === 0 ? Infinity : riskE / riskU;
+  const or = oddsU === 0 ? Infinity : oddsE / oddsU;
+  const bx = 720;
+  say(ctx, c, "RELATIVE RISK", bx, 60, { tone: "ink3", bold: true });
+  say(ctx, c, `${(riskE * 100).toFixed(0)}%  ÷  ${(riskU * 100).toFixed(0)}%`, bx, 82, { size: 13, tone: "ink2", mono: true });
+  say(ctx, c, f2(rr), bx, 116, { size: 28, tone: "ink1", bold: true });
+  say(ctx, c, "ODDS RATIO", bx, 168, { tone: "ink3", bold: true });
+  say(ctx, c, `${f2(oddsE)}  ÷  ${f2(oddsU)}`, bx, 190, { size: 13, tone: "ink2", mono: true });
+  say(ctx, c, f2(or), bx, 224, { size: 28, tone: "event", bold: true });
+
+  if (Number.isFinite(rr) && Number.isFinite(or) && rr > 0) {
+    const over = or / rr - 1;
+    say(ctx, c,
+      Math.abs(over) < 0.005 ? "the two agree here" : `the odds ratio is ${Math.round(over * 100)}% further from 1`,
+      bx, 252, { size: 12, tone: "ink2" });
+  }
+}
+
+for (const id of ["a", "c"]) {
+  document.getElementById(id).addEventListener("input", (e) => {
+    document.getElementById(`${id}V`).textContent = e.target.value;
+    drawA();
+  });
+}
+document.querySelectorAll("#mode .w-seg-btn").forEach((btn, i) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#mode .w-seg-btn").forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+    easeFrom = lerp(easeFrom, modeOdds ? 1 : 0, ease);
+    modeOdds = i === 1;
+    ease = 0;
+  });
+});
+
+/* ---------------- panel B ---------------- */
+const WB = 940, HB = 432;   /* the two ratio lines sit at 380 and 400 */
+/* One fixed cohort, chosen so every enrolment fraction lands on whole people:
+   60 and 80 survivors share a factor of 20. A mockup that has to say "24.5
+   controls" is arguing against itself. */
+const COHORT = { a: 40, b: 60, c: 20, d: 80 };
+const KEEP = [
+  { label: "all of them", k: 1 },
+  { label: "1 in 2", k: 2 },
+  { label: "1 in 4", k: 4 },
+  { label: "1 in 5", k: 5 },
+  { label: "1 in 10", k: 10 },
+];
+
+function block(ctx, c, x, y, n, fill, per = 10, pitch = 6.2, r = 2.3) {
+  for (let i = 0; i < n; i += 1) {
+    ctx.beginPath();
+    ctx.arc(x + pitch / 2 + (i % per) * pitch, y + pitch / 2 + Math.floor(i / per) * pitch, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+}
+
+/** A number the investigator CHOSE, drawn in a box. Everything unboxed was counted. */
+function chosen(ctx, c, s, x, y) {
+  ctx.save();
+  ctx.font = `600 13px ${c.font}`;
+  const w = ctx.measureText(s).width;
+  ctx.fillStyle = c.surface2;
+  ctx.strokeStyle = c.ink3;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x - 5, y - 13, w + 10, 19, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = c.ink1;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(s, x, y);
+  ctx.restore();
+  return w + 10;
+}
+
+function drawB() {
+  const c = tokens();
+  const ctx = fit(document.getElementById("cvB"), WB, HB);
+  const k = KEEP[+document.getElementById("k").value].k;
+  const cc = { a: COHORT.a, b: Math.round(COHORT.b / k), c: COHORT.c, d: Math.round(COHORT.d / k) };
+
+  const studies = [
+    {
+      x: 78, title: "COHORT", sub: "start with the exposure, then wait",
+      t: COHORT, chose: "rows",
+      how: ["You chose 100 infected and 100 not.", "You counted who died."],
+    },
+    {
+      x: 522, title: "CASE-CONTROL", sub: "start with the outcome, then look back",
+      t: cc, chose: "cols",
+      how: [`You chose all ${COHORT.a + COHORT.c} who died and ${cc.b + cc.d} who lived.`,
+        "You counted who had been infected."],
+    },
+  ];
+
+  for (const st of studies) {
+    const { t } = st;
+    say(ctx, c, st.title, st.x, 24, { size: 13, tone: "ink1", bold: true });
+    say(ctx, c, st.sub, st.x, 40, { tone: "ink3" });
+
+    const cw = 150, ch = 84, gy = 78;
+    say(ctx, c, "died", st.x + 46, gy - 8, { align: "center", tone: "ink3" });
+    say(ctx, c, "lived", st.x + cw + 46, gy - 8, { align: "center", tone: "ink3" });
+    say(ctx, c, "infected", st.x - 10, gy + 22, { align: "right", size: 12, tone: "ink2" });
+    say(ctx, c, "not", st.x - 10, gy + ch + 22, { align: "right", size: 12, tone: "ink2" });
+
+    const cells = [[t.a, c.event], [t.b, c.nonevent], [t.c, c.event], [t.d, c.nonevent]];
+    cells.forEach(([n, fill], i) => {
+      const cx = st.x + (i % 2) * cw, cy = gy + Math.floor(i / 2) * ch;
+      block(ctx, c, cx, cy, n, fill);
+      say(ctx, c, String(n), cx, cy + ch - 12, { size: 13, tone: "ink1", bold: true });
+    });
+
+    /* The margin the investigator fixed gets the box; the other is counted. */
+    if (st.chose === "rows") {
+      chosen(ctx, c, "100", st.x + 2 * cw + 14, gy + 22);
+      chosen(ctx, c, "100", st.x + 2 * cw + 14, gy + ch + 22);
+      say(ctx, c, String(t.a + t.c), st.x + 46, gy + 2 * ch + 16, { align: "center", size: 13, tone: "ink1", bold: true });
+      say(ctx, c, String(t.b + t.d), st.x + cw + 46, gy + 2 * ch + 16, { align: "center", size: 13, tone: "ink1", bold: true });
+    } else {
+      say(ctx, c, String(t.a + t.b), st.x + 2 * cw + 14, gy + 22, { size: 13, tone: "ink1", bold: true });
+      say(ctx, c, String(t.c + t.d), st.x + 2 * cw + 14, gy + ch + 22, { size: 13, tone: "ink1", bold: true });
+      chosen(ctx, c, String(t.a + t.c), st.x + 24, gy + 2 * ch + 16);
+      chosen(ctx, c, String(t.b + t.d), st.x + cw + 24, gy + 2 * ch + 16);
+    }
+
+    st.how.forEach((line, i) => say(ctx, c, line, st.x, gy + 2 * ch + 44 + i * 16, { size: 12, tone: "ink2" }));
+
+    const total = t.a + t.b + t.c + t.d;
+    const deathRate = (t.a + t.c) / total;
+    const rr = (t.a / (t.a + t.b)) / (t.c / (t.c + t.d));
+    const or = (t.a / t.b) / (t.c / t.d);
+    const y0 = gy + 2 * ch + 92;
+    say(ctx, c, `death rate in this study   ${(deathRate * 100).toFixed(0)}%`, st.x, y0,
+      { size: 13, tone: "ink1", bold: true });
+    say(ctx, c, st.chose === "rows" ? "counted — a fact about the disease" : "you chose this when you chose the slider",
+      st.x, y0 + 16, { size: 12, tone: st.chose === "rows" ? "ink2" : "event" });
+    say(ctx, c, `relative risk   ${f2(rr)}`, st.x, y0 + 42, { size: 13, tone: "ink1", bold: true });
+    say(ctx, c, `odds ratio      ${f2(or)}`, st.x, y0 + 62, { size: 13, tone: "ink1", bold: true });
+  }
+
+  const midX = 484;
+  ctx.save();
+  ctx.strokeStyle = c.grid;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(midX, 16); ctx.lineTo(midX, HB - 16); ctx.stroke();
+  ctx.restore();
+}
+
+document.getElementById("k").addEventListener("input", (e) => {
+  document.getElementById("kV").textContent = KEEP[+e.target.value].label;
+  drawB();
+});
+
+/* ---------------- clock ---------------- */
+let last = null;
+function frame(ts) {
+  if (last === null) last = ts;
+  const dt = Math.min(ts - last, 50);
+  last = ts;
+  if (ease < 1) { ease = clamp01(ease + dt / 420); drawA(); }
+  requestAnimationFrame(frame);
+}
+drawA();
+drawB();
+requestAnimationFrame(frame);
+addEventListener("resize", () => { drawA(); drawB(); });
+</script>
+</body>
+</html>

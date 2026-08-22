@@ -93,6 +93,25 @@
   --c-prior:     var(--series-4);    /* what you believed before the data    */
   --c-posterior: var(--series-7);    /* what the data left you believing     */
 
+  /* Whether the outcome HAPPENED to a person, which is the other axis of a
+     2x2 from --c-group-a/b and has to be legible beside them: a contingency
+     table needs both pairs on screen at once, exposure down the rows and
+     outcome across the columns.
+
+     --c-event shares red with --c-extreme, and the kinship is real rather than
+     a saving: both mean "this is the thing you are counting". They differ in
+     what makes a mark qualify — a threshold there, an outcome here — and no
+     figure has both, because a 2x2 has no tail.
+
+     --c-nonevent is deliberately NOT grey. It is the denominator of the odds
+     and the widget's whole lesson is that it shrinks, so drawing it as
+     furniture would hide the one quantity that moves. Blue is the same
+     --series-1 as --c-empirical and --c-group-a: all three mean "the people we
+     actually have", and none of them ever appears in a panel with another. */
+  --c-event:     var(--series-8);    /* the outcome happened to this person  */
+  --c-nonevent:  var(--series-1);    /* it did not — and this is the odds'
+                                        denominator, not background          */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */
