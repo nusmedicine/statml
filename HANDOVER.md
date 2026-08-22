@@ -2,12 +2,13 @@
 
 ## Where things are
 
-**Twelve widgets, all shipped, all live.** `/lab/` is empty. `main` and
-`origin/main` are level and every push to `main` publishes immediately, which is
-what makes `npm run check` before committing load-bearing rather than tidy.
+**Thirteen widgets: twelve shipped, one draft.** `/lab/` has one entry,
+`generalization`. `main` and `origin/main` are level at `bb96c44`, and every push
+to `main` publishes immediately — which is what makes `npm run check` before
+committing load-bearing rather than tidy.
 
-**105 fingerprint states**, every widget carrying both settled and driven
-coverage. The suite passes clean as of the last commit.
+**105 fingerprint states**, all MATCH. Widget 13 carries none yet; `check` allows
+that because it is a draft, and that is deliberate (see below).
 
 ```
 npm run dev      # :8000 — USE THIS, not python -m http.server
@@ -16,53 +17,198 @@ npm run check    # before every commit
 
 ---
 
-## NEXT: widget 13 — ML model evaluation, for PHM5005
+## Reading the PHM5005 notebooks — the old blocker is gone
 
-Kenneth's source is a Colab notebook:
-<https://colab.research.google.com/drive/1y4UzVeSZOIpY5Vxg3dM047p-2fwrs4Zc>
+The previous handover said widget 13 could not be planned because Kenneth's Colab
+links serve a sign-in page to an agent. **That was never the blocker it looked
+like.** Two routes, both verified:
 
-### Blocker, and the first thing to resolve
+- **Shared Drive folder**, readable without auth:
+  <https://drive.google.com/drive/folders/1QcSRjgcasZRpFyw1lOHSowjjDgcXp0_c>
+  `curl -sL` it and parse the HTML — each entry is `data-id="<fileId>"` followed
+  by the nearest `aria-label="<filename> Unknown Shared"`. That yields all 34
+  notebooks plus a *Change Log* Google Doc (read it first,
+  `.../export?format=txt`). Then pull any file:
+  `curl -sL "https://drive.google.com/uc?export=download&id=<fileId>"`
+- **Local copies, WITH cell outputs**, in
+  `~/Downloads/PHM5005 AY2025-26 - Notebooks/For Review/`. Source is
+  byte-identical to Drive; Drive's are stripped of outputs and these are not.
+  **Prefer local** — the printed numbers are the valuable half.
 
-**That link needs auth and cannot be read by an agent** — it serves a sign-in
-page, not the notebook. Nothing about the widget can be planned until its content
-is in hand. Ask Kenneth for one of:
+**Match by filename, never by link.** The same notebook has appeared under three
+Drive IDs across two sessions. Confirm with an MD5 against the local copy.
 
-- **`File → Download → .ipynb`, dropped anywhere readable** — best, because the
-  cell outputs come with it and the widget should meet the lesson in the lesson's
-  own order (that rule is why widget 12 puts the odds ratio first)
-- share the Colab link-viewable, then it can be fetched
-- paste the section headings and the metrics it computes
+There is still no `../jupyterbook/phm5005`, so PHM5005 lesson slots are named by
+notebook filename.
 
-Also worth asking: **is there a `../jupyterbook/phm5005`?** Only `phm5003` exists
-locally, so the PHM5005 lessons are not on this machine at all. Every widget so
-far has been aimed at a named lesson slot, and there is currently no way to
-name one.
+---
 
-### What the repo already knows about this topic
+## Widget 13 — `generalization`, "Fitting and Generalizing" — SHIPPED AS A DRAFT
 
-`docs/catalogue.md` § *PHM5005* has a guessed arc waiting to be overwritten. Two
-of its five entries are model evaluation and both are **documented**
-misconceptions:
+Two tabs over one train/test split, mirroring the workflow diagram in `04-1` and
+`04-4`. The fit tab splits by ratio and shows training error falling while test
+error turns around; the cross-validation tab makes the training set the CV set
+and finds the same turning point without touching the test set.
 
-| # | slug | misconception |
+### What remains before it ships
+
+1. **Fingerprint states.** Two or three settled plus **at least one driven state
+   per tab** — the tabs drive different nouns (`Add a parameter` vs `Next fold`),
+   so one driven state does not cover both. Prove each identical across three
+   runs before recording.
+2. Flip `status` to `shipped` in `manifest.json` **and** in `main.js` — `check`
+   asserts they agree.
+3. Mark it shipped in `docs/catalogue.md`, which still lists the PHM5005 arc as
+   entirely unbuilt.
+4. **Judge it projected.** Never done for widgets 11, 12 or 13.
+
+### The one open design question Kenneth flagged and did not settle
+
+At the default 80/20 the test curve turns up on **80% of seeds**; at 60/40 it is
+97%. Defaulting to the split students are taught costs a fifth of readers the
+effect on their opening seed. Left as-is deliberately.
+
+### Also unresolved, and deliberately
+
+**CV diverges wildly from the test curve past the interpolation threshold** —
+20–500x. This was researched and is consistent with the literature; a caption was
+considered and declined. If it ever needs one, the material is: Bates, Hastie &
+Tibshirani (arXiv 2104.00673) — CV "estimates the average prediction error of
+models fit on other unseen training sets", not the model you fitted; and the
+PRESS identity, `e_(i) = e_i / (1 - h_ii)` with `sum h_ii = p`, which makes the
+divergence algebraic rather than incidental. Verified on the widget's own data:
+mean leverage equals `p/n` to machine precision and `max h_ii` hits 1.0000 from
+17 parameters on.
+
+---
+
+## What widget 13 cost, so the dead ends are not re-walked
+
+**Three designs were built and two were stashed.** Both stashes are still in the
+repo — `git stash list`:
+
+| stash | approach | why it was dropped |
 |---|---|---|
-| 4 | `imbalance-metrics` | that 99% accuracy on a 1% prevalence outcome is a good model |
-| 5 | `calibration` | that a good AUC means the predicted probabilities are usable at the bedside |
+| `stash@{1}` | k-NN, merged validation + CV in one figure | **k's direction is backwards** — small k is MORE flexible, the exact defect principle 3.4f records. Also merged too much into one picture |
+| `stash@{0}` | decision tree depth, 2-D classification | *"too complicated — students will get distracted with decision trees instead of seeing the big general picture"* |
 
-Read the catalogue's note on **the pair worth building together**:
-`ppv-prevalence` and `imbalance-metrics` are the same misconception twice — base
-rate neglect as a clinical reasoning error and as a model evaluation error. Same
-grid, one labelled *patients*, one labelled *predictions*.
+**Measurements worth not repeating.** All were made to settle a design question:
 
-**Widget 12 built the machinery for it.** `odds-and-risk` is a 2×2 whose lesson
-is a denominator nobody looked at; `imbalance-metrics` is the same grid a third
-time with predictions on the columns. The catalogue's rule on shared machinery
-says the seam is not cut until the second consumer tells you where it belongs —
-**this is that second consumer**, so expect to extract something from
-`widgets/odds-and-risk/main.js` rather than to copy it.
+- **Polynomial degree explodes without care.** Validation R² of -20,142 at
+  n_train=15, degree 9. Solved by a log axis with a ceiling fitted in whole
+  decades, plus sizing the ladder against n.
+- **`p > 0.6 x n_train` is roughly where overfitting becomes reliable.** This
+  single fact drove every sizing decision in the widget.
+- **1-D logistic regression does not overfit at all** — accuracy 0.891 flat from
+  2 to 10 parameters. Ridge plus sigmoid saturation. A dead end; do not retry it
+  as an overfitting vehicle.
+- **FEV1-against-age is very nearly a quadratic**, so the best polynomial is
+  trivially three parameters and the exercise answers itself. Rejected in favour
+  of a one-compartment concentration curve, where no polynomial is ever right.
+- **Forsythe orthogonal polynomials** beat normal equations outright and give
+  every parameter count in one pass. Checked against numpy's `Polynomial.fit`:
+  worst disagreement 3e-11.
+- **Training MSE is never exactly zero** while the parameter count stays below
+  the training size — asserted over ~2,000 states, which is what makes the log
+  axis safe.
 
-Do not assume the notebook is about `imbalance-metrics`. It may be ROC/AUC,
-train-test, cross-validation, or a survey of all of them. Read it first.
+**A new core token landed with it**: `--c-holdout` (red) in `tokens.css`, for
+data set aside and scored once at the end. Neither `--c-extreme` nor `--c-event`
+says that. Additive only — the full fingerprint suite reported 105/105 MATCH.
+
+---
+
+## A fully designed, fully de-risked widget that was NOT built
+
+Before the arc moved to `04-1`/`04-4`, **`04-2 Model Evaluation` was designed in
+detail and then set aside.** The design work is sound and should not be redone
+from scratch. Its spine:
+
+> A model outputs probabilities. A threshold turns them into labels. Every
+> threshold-dependent metric is a property of that threshold, not of the model.
+
+The evidence, straight out of `04-2`'s own printed output (cell 39), which prints
+two classification reports side by side and which nobody reads across:
+
+| | threshold 0.50 | Youden 0.31 |
+|---|---|---|
+| accuracy | **0.70** | **0.70** |
+| recall | 0.53 (10 of 19) | 0.84 (16 of 19) |
+| deaths missed | **9** | **3** |
+
+Same 42 of 60 correct. Six more deaths caught, six more false alarms — and
+accuracy does not move at all.
+
+The figure: a probability axis with each patient a dot, died on one row and
+survived on the other, and a vertical threshold line. **The four quadrants ARE
+the confusion matrix**, actual on rows and predicted on columns, sklearn's own
+layout. Sweeping the threshold traces the ROC curve one patient at a time — a
+death steps it up, a survivor steps it right.
+
+De-risked with a calibrated binormal model (negatives ~ N(0,1), positives ~
+N(d,1), posterior `sigma(logit(pi) - d^2/2 + d*z)`, so AUC is an OUTPUT). At 5%
+prevalence it reproduces the documented imbalance misconception exactly:
+**AUC 0.95, accuracy 95%, recall 0%, precision undefined.**
+
+---
+
+## NEXT: plan a widget for classical algorithms, from `04-3`
+
+`04-3 — ML - Supervised Learning - Tour of Algorithms`, 46 cells. Six families,
+each with model, objective, strengths/caveats and one worked example: linear and
+regularised regression (Ridge/Lasso/ElasticNet), logistic regression, SVM with
+kernels, decision trees, ensembles (bagging against boosting), naive Bayes, and a
+shallow MLP.
+
+**Nothing is decided. Read the notebook first** — `04-3` locally, with outputs.
+
+### The raw material, already extracted
+
+Every classifier in `04-3` is scored on the same 60 test patients, 19 of them
+deaths. Collected across `04-2`, `04-3`, `04-4` and `04-5`:
+
+| model | accuracy | class-1 recall | class-1 F1 |
+|---|---|---|---|
+| GaussianNB | 0.70 | 0.26 | 0.36 |
+| HistGradientBoosting | 0.65 | 0.42 | 0.43 |
+| RandomForest | 0.72 | 0.42 | 0.48 |
+| GridSearch-tuned LR | 0.68 | 0.53 | 0.51 |
+| TPOT2 AutoML | 0.68 | 0.53 | 0.51 |
+| LogisticRegression | 0.70 | 0.53 | 0.53 |
+| MLP | 0.72 | 0.53 | 0.54 |
+| DecisionTree | 0.70 | 0.58 | 0.55 |
+| SVC (rbf) | 0.72 | 0.63 | 0.59 |
+| **LR, threshold moved to 0.31** | 0.70 | **0.84** | **0.64** |
+
+Nine algorithms, plus grid search, plus AutoML, span recall 0.26–0.63. **Moving
+the threshold on the plainest model beat all of them**, and tuning and AutoML
+both landed slightly *below* the untuned baseline.
+
+Regression side, body fat: LinearRegression R² 0.992, Ridge 0.991, Lasso 0.979,
+ElasticNet 0.845, SVR 0.767.
+
+### Candidate misconceptions — the widget has to earn its slot from one
+
+1. **That choosing the right algorithm is where the gains are.** The table above
+   is the evidence, and it is the notebook's own output. Strongest on evidence,
+   and it is a *negative* result, which is harder to build a figure around.
+2. **That an algorithm is a black box rather than an assumed SHAPE.** A linear
+   boundary, axis-aligned rectangles, distance-based blobs, a kernel's curve —
+   the shape is the assumption, and it is what makes a model fit or fail. The
+   known-good form here is sklearn's classifier-comparison figure: one row per
+   dataset, one column per algorithm. Most visual, least novel.
+3. **That a more complex algorithm is a better one.** Overlaps heavily with
+   widget 13, which is now built — check before duplicating it.
+
+### Open questions for the planning conversation
+
+- Is this **one** widget or the head of several? Six families is a lot for one
+  figure, and `regularization-path` and `feature-importance` are already separate
+  catalogue entries.
+- Does it want the 2-D decision-boundary picture (recognisable, and the tree
+  version of that was already rejected as too complicated), or something else?
+- Widget 13 already spent the decision-tree idea and Kenneth found it a
+  distraction. Bear that on any design that leans on trees.
 
 ---
 
@@ -74,7 +220,7 @@ The observations still hold; each is a one-file change, to be taken **one at a
 time**:
 
 - `maximum-likelihood`'s step button reads "Step" — core's generic fallback, and
-  the only step button in twelve widgets that names no act. Its own title says
+  the only step button in thirteen widgets that names no act. Its own title says
   "Try the next candidate, **or** take the next move of the climb", so the action
   differs by tab; `stepLabel` accepts a `{param, labels, default}` form for
   exactly that, and `bayesian` and `probability-mechanisms` already use it.
@@ -85,12 +231,13 @@ time**:
   count" or "Propose a move".
 - `em-mixture`'s lead reads "Start", the only lead label naming no act.
 
-**Judge projected.** Widgets 11 and 12 have not been seen from the back of a
+**Judge projected.** Widgets 11, 12 and 13 have not been seen from the back of a
 room. Widget 11's hypergeometric dots are ~4px at the narrow layout and its
 R-code cards put 11px mono on a half-width card.
 
 **`04 / 04-08` needs two corrections in `../jupyterbook/phm5003`.** Kenneth is
-doing these by hand.
+doing these by hand. **Both verified still present** in the notebook as of this
+handover, so neither has been made yet.
 
 - **Cell 40** states the odds-ratio interpretation wrongly. On `a=24, b=60,
   c=16, d=100` it says *"the odds of death in infected patients is 2.5:1 = 5:2
