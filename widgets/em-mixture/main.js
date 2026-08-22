@@ -643,7 +643,10 @@ defineWidget({
        back and guess again, by moving the seed — and it earns its place instead
        by making initialisation a visible event rather than a state the figure
        is simply found in. */
-    leadLabel: "Start",
+    /* NOT "START", which was the only lead label naming no act — every other
+       one says what it does (Sample, Observe, Draw the counts) — and which sat
+       next to Play meaning something different by one synonym. */
+    leadLabel: "Take the labels off",
     leadTitle: "Take the labels away and put two curves down at random",
     leadHint: "Iterate and Play wake up once the labels are gone.",
     stepLabel: "Iterate",

@@ -785,6 +785,24 @@ one label naming a genuinely different action: it restarts rather than continues
 The generalisation: **a control's label answers "what happens if I press this?" —
 not "what has happened so far".** The second question is the figure's job.
 
+Three corollaries, all found by sweeping every button in the collection once the
+rule was written down:
+
+- **Every button names its own act.** `maximum-likelihood`'s step button read
+  "Step" — core's generic fallback showing through, and the only one in twelve
+  widgets that did not say what pressing it does. Where the act genuinely differs
+  by view, the `{param, labels, default}` form says so per view, and
+  `reserveWidth` measures the whole set so the row does not resize.
+- **A gated button must say it is waiting, not look broken.** Five widgets grey
+  out Step and Play until a lead action has run. Three explained it with
+  `leadHint` and two did not, so a reader met two dead controls and no reason.
+  The lead greying out once used is teaching; the other two greying out before it
+  is used is not.
+- **A hint may name a button only when that button's label is fixed.**
+  `bayesian`'s hint said "Step and Play" while the button on screen read "Add a
+  count" or "Propose a move" — a pointer to a control that does not exist. Where
+  the label varies, the hint says "the other two".
+
 Two things fell out, both worth having. `hasAdvanced` went entirely, from core
 and from the two widgets that were maintaining it by hand; and the run button's
 reserved width dropped a label, since "Resume" was the 75px one it was sized for.
