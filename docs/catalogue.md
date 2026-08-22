@@ -2502,7 +2502,15 @@ machinery at all.
 
 # PHM5005 · AI/ML for Precision Medicine
 
-Unchanged, awaiting the same treatment — an arc rather than a tier list. My guess
+**Widget 13 starts here: ML model evaluation**, from Kenneth's Colab notebook —
+<https://colab.research.google.com/drive/1y4UzVeSZOIpY5Vxg3dM047p-2fwrs4Zc>.
+The link needs auth and cannot be read by an agent, so the notebook has to be
+handed over as `.ipynb` before anything is planned; there is no
+`../jupyterbook/phm5005` on this machine either, so no lesson slot can be named
+yet. Which of the entries below it lands on is an open question — do not assume
+`imbalance-metrics` until the notebook has been read.
+
+The arc below is unchanged, awaiting the same treatment — an arc rather than a tier list. My guess
 at its spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on
