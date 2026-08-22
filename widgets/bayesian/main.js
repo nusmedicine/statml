@@ -902,7 +902,6 @@ defineWidget({
         anim.leadT = 1;
         if (params.view === "mcmc") anim.draws = Math.min(pre, DRAWS);
         else anim.obs = Math.min(pre, params.n);
-        anim.hasAdvanced = true;
       }
       anim.done = params.view === "mcmc" ? anim.draws >= DRAWS : anim.obs >= params.n;
       return anim;
@@ -915,7 +914,6 @@ defineWidget({
       const live = params.view === "mcmc" ? anim.draws : anim.obs;
       const last = params.view === "mcmc" ? DRAWS : params.n;
       anim.done = live >= last;
-      anim.hasAdvanced = live > 0;
       anim.flying = false;
       anim.flyT = 1;
     },
@@ -944,7 +942,6 @@ defineWidget({
         // It has landed, so it counts: everything below moves on by one.
         anim.flying = false;
         if (mcmc) anim.draws += 1; else anim.obs += 1;
-        anim.hasAdvanced = true;
         if (at() >= last) { anim.done = true; return false; }
         if (anim.mode === "step") return false;
       }

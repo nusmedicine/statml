@@ -242,15 +242,6 @@ export function defineWidget(config) {
   let tableOpen = false;
   let rafId = null;
   let lastTs = 0;
-  /* Drives Play / Resume / Replay labelling. Core owns it, but it is ALSO
-     stamped onto `anim`, because a widget whose display toggle switches between
-     two separate progressions is the one thing core cannot judge for itself:
-     `maximum-likelihood` sweeps the mean and then the dispersion, and arriving
-     in the second sweep with the button reading "Resume" offers to continue
-     something that has not started. Such a widget corrects it in `rebuild`; one
-     that ignores it falls back to this flag and is unaffected. */
-  let hasAdvanced = false;
-
   const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* --- recompute / paint / render --------------------------------------- *
@@ -313,7 +304,6 @@ export function defineWidget(config) {
       leadDone: keepLead,
     });
     seededOnce = true;
-    hasAdvanced = false;
   }
 
   function render(opts = {}) {
@@ -454,8 +444,6 @@ export function defineWidget(config) {
     lastTs = ts;
 
     const more = animation.advance(anim, { dt, params: { ...values }, state, colors });
-    hasAdvanced = true;
-    if (anim) anim.hasAdvanced = true;
     paint();
 
     if (more) {
@@ -472,8 +460,6 @@ export function defineWidget(config) {
     while (animation.advance(anim, { dt: 400, params: { ...values }, state, colors })) {
       if (guard++ > 10000) break;
     }
-    hasAdvanced = true;
-    if (anim) anim.hasAdvanced = true;
   }
 
   function startAnim(mode) {
@@ -558,20 +544,27 @@ export function defineWidget(config) {
     const leadPending = Boolean(animation.leadLabel) && !anim?.leadDone;
 
     if (actions.run) {
-      /* Running the lead action is not "advancing" in the sense Resume means —
-         drawing your sample leaves nothing part-played to resume from. An entry
-         animation is the same kind of thing and needs the same exemption:
-         `tick` sets hasAdvanced after EVERY advance, so without this the run
-         button offers to Resume a stage that has only just been entered. */
-      const advanced = (anim?.hasAdvanced ?? hasAdvanced)
-        && anim?.mode !== "lead" && anim?.mode !== "enter" && anim?.mode !== "ease";
+      /* PLAY / PAUSE, AND NOTHING ELSE UNTIL THE FIGURE IS FINISHED.
+         "Resume" is gone, and it was wrong for a reason worth keeping written
+         down: it was chosen off `hasAdvanced`, which `tick` sets after EVERY
+         advance — so a single Step relabelled the run button "Resume" and
+         offered to continue something the reader had never started. Reported as
+         exactly that confusion.
+
+         The exemption list underneath it (lead, enter, ease) was the same bug
+         being patched one mode at a time, and each new mode had to remember to
+         join the list. The bug is not the modes, it is the premise: RESUME IS
+         THE COUNTERPART OF A PAUSE, not of progress. A reader who never pressed
+         Pause has nothing to resume, and one who did press it is looking at a
+         button they just changed — so "Play" is unambiguous there too.
+
+         "Replay" stays, because it is the one label that names a genuinely
+         different action: it restarts rather than continues. */
       actions.run.textContent = playing
         ? "Pause"
         : done
           ? "Replay"
-          : advanced
-            ? "Resume"
-            : animation.runLabel ?? "Play";
+          : animation.runLabel ?? "Play";
       actions.run.setAttribute("aria-pressed", String(playing));
       actions.run.disabled = leadPending;
     }
@@ -657,14 +650,17 @@ export function defineWidget(config) {
 
   /* --- the run button's width is reserved, not discovered ------------------ *
    *
-   * It relabels itself as the animation moves: Play -> Pause -> Resume, and
-   * Replay once finished. Those are not the same width — measured at --fs-md,
-   * 59 / 70 / 75 / 83 px — so the row's geometry depended on the animation's
-   * STATE. Two consequences, one ugly and one worse:
+   * It relabels itself as the animation moves: Play -> Pause, and Replay once
+   * finished. Those are not the same width — measured at --fs-md, 59 / 70 / 83
+   * px — so the row's geometry depended on the animation's STATE. Two
+   * consequences, one ugly and one worse:
    *
    *   - the row twitched on every press, at every width
-   *   - in the 262px control rail, "Resume" alone overflowed and dropped Reset
-   *     onto a second line
+   *   - in the 262px control rail, the widest label alone overflowed and
+   *     dropped Reset onto a second line
+   *
+   * (A fourth label, "Resume", was retired with the labelling rule above. It
+   * was the 75px one, so this reservation only ever got narrower.)
    *
    * Reserving the widest label makes the row a fixed shape. Sizing is measured
    * off a detached probe rather than by writing each label into the live button:
@@ -705,7 +701,7 @@ export function defineWidget(config) {
   function reserveDriveWidths() {
     /* Guarded: a widget that declined a button has no element to reserve for. */
     if (drive.run) {
-      reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Resume", "Replay"], "--run-reserve");
+      reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Replay"], "--run-reserve");
     }
     if (drive.step) {
       reserveWidth(drive.step, labelSet(animation?.stepLabel, "Draw one"), "--step-reserve");

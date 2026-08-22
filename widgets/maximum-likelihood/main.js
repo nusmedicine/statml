@@ -580,13 +580,12 @@ defineWidget({
 
     /* Switching tab re-derives the run button's whole story from the cursor that
        is now live. The mean sweep being finished says nothing about the climb:
-       without this, entering a fresh tab showed "Replay" over an empty panel,
-       and once that was fixed, "Resume" — offering to continue something that
-       had not begun. */
+       without this, entering a fresh tab showed "Replay" over an empty panel.
+       (It then showed "Resume" for the same reason, until core retired that
+       label outright — a Step should not offer to continue a run.) */
     rebuild(anim, { params }) {
       const live = anim.cursor[params.estimate];
       anim.done = live >= lastIndex(params.estimate);
-      anim.hasAdvanced = live >= 0;
       anim.flyT = 1;
     },
 

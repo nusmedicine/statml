@@ -764,6 +764,31 @@ loop, resetting its frame budget every time.
 > which made the claim a caption. Keep the exemption narrow: every widget before
 > this one wants the jump.
 
+### 4.4b A control's label names what THIS press will do
+
+> *Earned.* The run button read **Resume** after a single Step. Reported as
+> exactly that: *when I just do 1 step, it says resume, which confuses me.*
+
+The label was chosen off `hasAdvanced`, a flag core set after **every** advance —
+so any progress at all, from any source, relabelled a button the reader had never
+touched. Three exemptions had already been bolted on for `lead`, `enter` and
+`ease`, each added when that mode's turn came to produce the bug, and every new
+mode would have had to remember to join the list.
+
+**The list was the tell.** Patching a rule mode by mode means the rule is wrong:
+*Resume is the counterpart of a Pause, not of progress.* A reader who never
+pressed Pause has nothing to resume, and one who did press it is looking at a
+button whose state they just set — so Play is unambiguous there too. The label is
+now Play / Pause, plus **Replay** once finished, which survives because it is the
+one label naming a genuinely different action: it restarts rather than continues.
+
+The generalisation: **a control's label answers "what happens if I press this?" —
+not "what has happened so far".** The second question is the figure's job.
+
+Two things fell out, both worth having. `hasAdvanced` went entirely, from core
+and from the two widgets that were maintaining it by hand; and the run button's
+reserved width dropped a label, since "Resume" was the 75px one it was sized for.
+
 ### 4.5 A widget may decline a drive button it has no use for
 
 `stepLabel: null` and `runLabel: null` remove the button. Omitting them still
