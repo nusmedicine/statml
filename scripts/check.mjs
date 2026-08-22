@@ -193,6 +193,15 @@ const slugs = new Set(manifest.widgets.map((w) => w.slug));
 const settled = new Set();
 const driven = new Set();
 
+/* Which widgets BUILD THEMSELVES — those declaring a `shown` parameter, the
+   authored head start that says how far in to open. Only those can be caught
+   part-built by a settled state, so only those are made to pin it. */
+const buildsItself = new Set();
+for (const w of manifest.widgets) {
+  const main = await readFile(join(root, "widgets", w.slug, "main.js"), "utf8");
+  if (/^\s*shown:\s*\{/m.test(main)) buildsItself.add(w.slug);
+}
+
 for (const s of baseline.states) {
   if (!slugs.has(s.slug)) fail(`fingerprint baseline: unknown widget "${s.slug}"`);
   if (!s.px) fail(`fingerprint baseline: "${s.slug}${s.state}" has no recorded hash`);
@@ -208,9 +217,19 @@ for (const s of baseline.states) {
     }
     driven.add(s.slug);
   } else {
-    // A settled state left animating would hash differently every run.
-    if (!/[?&]shown=/.test(s.state)) {
-      fail(`fingerprint baseline: "${s.state}" has neither shown= nor drive, so it is not reproducible`);
+    /* A settled state left animating would hash differently every run, and
+       `shown=` is what pins a self-building figure to a definite point.
+
+       BUT NOT EVERY WIDGET BUILDS ITSELF. One that declares no `shown` has no
+       build-up to be partway through: `render()` recomputes, resets the anim and
+       paints, and starts no frame loop, so its figure is a pure function of the
+       URL and the URL alone settles it. Requiring `shown=` of such a widget
+       forces a meaningless parameter into the state string purely to satisfy a
+       regex — which is not a check passing, it is a check being worked around.
+       Widget 12 declines `shown` deliberately (every state is four counts and
+       two toggles) and would have had to fake one. */
+    if (!/[?&]shown=/.test(s.state) && buildsItself.has(s.slug)) {
+      fail(`fingerprint baseline: "${s.state}" has neither shown= nor drive, and "${s.slug}" declares a shown parameter — so it is not pinned`);
     }
     settled.add(s.slug);
   }

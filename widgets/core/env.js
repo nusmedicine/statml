@@ -119,6 +119,7 @@ export function readTokens() {
     extreme: v("--c-extreme"),
     event: v("--c-event"),
     nonevent: v("--c-nonevent"),
+    unknown: v("--c-unknown"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),

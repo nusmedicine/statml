@@ -353,7 +353,7 @@ function halt(anim, { finished = false } = {}) {
 
 defineWidget({
   slug: "power-and-error",
-  status: "draft",
+  status: "shipped",
   title: "Power and Error Rates",
   subtitle:
     "You choose the false positive rate. You do not choose the other one. " +

@@ -5,6 +5,21 @@
    for free.
 
    Filters/controls sit in one block below the figure, in declaration order.
+
+   EVERY SETTABLE CONTROL CARRIES `data-param`, and every segmented button also
+   carries `data-value`. Nothing in the shipped page reads them — they exist so
+   `_lab/fingerprint.html` can drive a control the way a reader would, which is
+   the only way to fingerprint an animation that has no drive button to press.
+   Widget 12 eases on a segmented toggle and declines Step and Play entirely
+   (principle 4.5), so before these attributes existed its transitions had NO
+   coverage at all and could not have any: `check.mjs` demands a driven state
+   from anything declaring an `animation`, and the harness could only press
+   `.w-drive .w-btn[data-key=...]`.
+
+   They are also the same rule as principle 5.7 one level out — a driver finds
+   what it drives BY NAME, never by position. Taking segmented buttons
+   positionally is exactly the bug that once pointed every driven state at the
+   wrong button while still producing a stable, plausible-looking hash.
    ========================================================================= */
 
 import { optionEntries } from "./params.js";
@@ -147,6 +162,7 @@ function build(host, spec, values, onChange, api) {
         const input = document.createElement("input");
         input.type = "checkbox";
         input.id = id;
+        input.dataset.param = name;
         input.checked = Boolean(values[name]);
         input.addEventListener("change", () => onChange(name, input.checked));
         label.append(input, document.createTextNode(field.label ?? name));
@@ -252,6 +268,7 @@ function build(host, spec, values, onChange, api) {
       const input = document.createElement("input");
       input.type = "range";
       input.id = id;
+      input.dataset.param = name;
       input.min = String(field.min ?? 0);
       input.max = String(field.max ?? 100);
       input.step = String(field.step ?? (field.type === "int" ? 1 : 0.01));
@@ -286,6 +303,7 @@ function build(host, spec, values, onChange, api) {
       wrap.appendChild(label);
       const select = document.createElement("select");
       select.id = id;
+      select.dataset.param = name;
       for (const { value, label: text2 } of optionEntries(field)) {
         const opt = document.createElement("option");
         opt.value = value;
@@ -309,6 +327,11 @@ function build(host, spec, values, onChange, api) {
       const input = document.createElement("input");
       input.type = "range";
       input.id = id;
+      input.dataset.param = name;
+      /* A `choice` RANGE HOLDS AN INDEX, NOT THE PARAMETER'S VALUE, so a driver
+         that sets `ratio` to "1to2" would otherwise have to know the option
+         order. The option values ride along on the element that hides them. */
+      input.dataset.options = JSON.stringify(options.map((o) => o.value));
       input.min = "0";
       input.max = String(options.length - 1);
       input.step = "1";
@@ -390,6 +413,8 @@ function build(host, spec, values, onChange, api) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "w-seg-btn";
+        b.dataset.param = name;
+        b.dataset.value = o.value;
         b.textContent = o.label;
         if (o.detail) b.title = o.detail;
         b.addEventListener("click", () => {

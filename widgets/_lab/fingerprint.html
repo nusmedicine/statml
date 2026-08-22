@@ -44,10 +44,21 @@
     <strong>Two kinds of state.</strong> A <em>settled</em> state passes
     <code>shown=</code> so the figure is fully built and nothing is moving. A
     <em>driven</em> state carries <code>drive</code> — this harness replaces the
-    frame clock with a queue it steps by hand, clicks a drive button, and advances a
+    frame clock with a queue it steps by hand, performs an action, and advances a
     fixed number of fixed-length frames before hashing. Seeded data plus a
     controlled clock makes a mid-animation frame just as reproducible as a settled
     one.
+  </p>
+  <p class="note">
+    <strong>The action is a drive button <em>or</em> a control.</strong>
+    <code>{ click: "run" }</code> presses
+    <code>.w-drive .w-btn[data-key="run"]</code>;
+    <code>{ set: { against: "risk" } }</code> works the parameter control itself,
+    found by its <code>data-param</code>. The second exists because a widget may
+    decline drive buttons entirely (principle 4.5) and ease on a toggle instead —
+    widget 12 does — and such a widget had <strong>no way to be driven at all</strong>,
+    so its transitions carried no coverage while <code>check.mjs</code> still demanded
+    some. Both forms work in <code>before</code> steps, and one step may do both.
   </p>
   <p class="note">
     Driven states exist because settled ones <strong>cannot see anything that is
@@ -123,6 +134,61 @@ function drive(win, doc, spec) {
     b.click();
   };
 
+  /* Work a PARAMETER CONTROL, the way a reader would, and for the same reason
+     `press` exists: some widgets have no drive button to press. A widget may
+     decline Step and Play (principle 4.5) and ease on a `display` parameter
+     instead (4.4) — widget 12 does both — and its transitions were then
+     undriveable and therefore unfingerprintable.
+
+     Found by `data-param`, never by position, which is principle 5.7 applied to
+     controls: a positional lookup silently drives the wrong thing and still
+     yields a stable, plausible hash. `controls.js` stamps the attributes;
+     nothing in the shipped page reads them.
+
+     Note the events differ by control, and getting one wrong is silent: a range
+     driven with `change` moves the thumb and never reaches the widget. */
+  const setParam = (name, value) => {
+    const seg = doc.querySelectorAll(`.w-seg-btn[data-param="${name}"]`);
+    if (seg.length) {
+      const b = [...seg].find((x) => x.dataset.value === String(value));
+      if (!b) {
+        throw new Error(`"${name}" has no option "${value}" (has ${[...seg].map((x) => x.dataset.value).join(", ")})`);
+      }
+      b.click();
+      return;
+    }
+    const el = doc.querySelector(`[data-param="${name}"]`);
+    if (!el) throw new Error(`no control for parameter "${name}"`);
+    const fire = (type) => el.dispatchEvent(new win.Event(type, { bubbles: true }));
+    if (el.dataset.options) {
+      /* A `choice` slider holds an INDEX. Its option values ride along on the
+         element so a spec can name the value and not the position. */
+      const i = JSON.parse(el.dataset.options).indexOf(value);
+      if (i < 0) throw new Error(`"${name}" has no option "${value}"`);
+      el.value = String(i);
+      fire("input");
+    } else if (el.type === "checkbox") {
+      el.checked = Boolean(value);
+      fire("change");
+    } else if (el.tagName === "SELECT") {
+      el.value = String(value);
+      fire("change");
+    } else {
+      el.value = String(value);
+      fire("input");
+    }
+  };
+
+  /* One step is a set, a click, or both — a set THEN a click, because a control
+     chooses what the button will then run. */
+  const act = (step) => {
+    for (const [k, v] of Object.entries(step.set ?? {})) setParam(k, v);
+    if (step.click) press(step.click);
+  };
+  const label = (step) =>
+    [Object.entries(step.set ?? {}).map(([k, v]) => `${k}=${v}`).join(","), step.click]
+      .filter(Boolean).join("+");
+
   /* Some widgets gate stepping behind a one-off LEAD action: `bootstrap` has to
      draw its single sample before it can resample it. Run that to completion
      first, unmeasured, so the frames counted below are frames of the animation
@@ -144,7 +210,7 @@ function drive(win, doc, spec) {
      `before` performs those actions first, unmeasured, so the measured click
      starts from a genuinely interrupted state. */
   for (const step of spec.before ?? []) {
-    press(step.click);
+    act(step);
     for (let i = 0; i < (step.frames ?? 0); i += 1) {
       const cb = queue.shift();
       if (!cb) break;
@@ -153,7 +219,10 @@ function drive(win, doc, spec) {
     }
   }
 
-  press(spec.click ?? "step");
+  /* "step" stays the default ONLY when the spec names no action at all, so an
+     existing state that relies on it keeps working and a `set`-only state does
+     not go looking for a button that was deliberately declined. */
+  act(spec.set || spec.click ? spec : { click: "step" });
   let ran = 0;
   for (let i = 0; i < spec.frames; i += 1) {
     const cb = queue.shift();
@@ -162,8 +231,8 @@ function drive(win, doc, spec) {
     cb(t);
     ran += 1;
   }
-  const pre = (spec.before ?? []).map((s) => `${s.click}+${s.frames}f→`).join("");
-  return `${spec.lead ? "lead→" : ""}${pre}${spec.click ?? "step"} +${ran}f`;
+  const pre = (spec.before ?? []).map((s) => `${label(s)}+${s.frames}f→`).join("");
+  return `${spec.lead ? "lead→" : ""}${pre}${label(spec) || "step"} +${ran}f`;
 }
 
 async function shoot(entry) {

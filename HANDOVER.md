@@ -2,21 +2,19 @@
 
 ## Where things are — read this first
 
-**Twelve widgets.** `main` and `origin/main` are level and every push to `main`
-publishes immediately, with no staging step — which is what makes
+**Twelve widgets, and all twelve are now SHIPPED.** `power-and-error` and
+`odds-and-risk` were the last two drafts; both are baselined and on the gallery,
+and `/lab/` is empty. `main` and `origin/main` are level, and every push to
+`main` publishes immediately with no staging step — which is what makes
 `npm run check` before committing load-bearing rather than tidy.
-
-`power-and-error` and `odds-and-risk` are the two `draft`s. **The gallery lists
-shipped widgets only**, so a draft will not appear there; `/lab/` indexes them
-and they live at their final URLs either way — shipping one changes `status` and
-nothing else.
 
 ```
 http://localhost:8000/widget/odds-and-risk/
 ```
 
-**Nothing is committed.** The working tree holds one new widget, two core
-changes, two new design principles and a large catalogue entry.
+**105 fingerprint states**, every widget carrying both settled and driven
+coverage. The two shipped in this round were baselined after three identical
+runs, per 5.6.
 
 ---
 
@@ -40,6 +38,11 @@ The six decisions most likely to be undone by accident:
 
 | do not | because |
 |---|---|
+| write an explanation as a paragraph | four sentences across five wrapped lines was reported as a wall of text. `textBlock` takes an array — one claim per line, `""` for a gap — and the one-line limit is its own editor |
+| end a caption with a flourish | four of them did ("that is the odds scale showing you its edge"). That is the widget admiring its own point; cutting them cost no information |
+| write on-screen copy in metaphor | "a fact about your budget" for a death rate was cut on sight. The number IS the controls-per-case ratio. Principle 2.9 — and it applies to readout notes and control detail lines too |
+| widen "Controls per case" below 1:1 | fewer controls than cases is not a design anyone runs. 1:1 is the textbook default; `r/(r+1)` gives 50 / 67 / 80% of maximum precision at 1:1 / 1:2 / 1:4, which is where the ceiling of four comes from |
+| expect the enrolment control to move a ratio at the opening table | at 20/20 every enrolment gives RR = OR = 1.00 and only the death rate moves. That is arithmetic, not a bug. The swing needs an effect first |
 | reinstate a "Work it out" button | there is nothing to build; the answer is a division of two numbers the reader typed. #4 is honoured by **where it opens** — both sliders at 20, no effect, both ratios 1.00 |
 | relabel the boxes generic | "40 events per 60 non-events" is not a sentence. Concrete nouns in the figure, EXPOSURE and OUTCOME in the rules |
 | rename the tabs to the lesson's sections | "Two denominators" / "Why the odds ratio" were headings wearing costumes and were the first thing a reader tripped over |
@@ -49,28 +52,69 @@ The six decisions most likely to be undone by accident:
 
 ### What is left
 
-1. **Judge it, projected.** Nothing below has been seen from the back of a room.
-2. **Then baseline it** — but see the blocker.
-3. Mark shipped in `widgets/manifest.json` and in the catalogue.
+**Nothing blocking — widget 12 is shipped.** What remains is judgement, not
+work: it has not been seen projected from the back of a room. If something is
+wrong there, the fix and its baseline go in the same commit.
 
-### THE SHIP BLOCKER, named rather than deferred quietly
+Older, still true:
+~~2. Baseline it.~~ Done: 15 states, 5 of them driven, including two driven by a
+   **control** rather than a button — the coverage that did not exist before.
+~~3. Mark shipped.~~ Done, in `widgets/manifest.json` and `main.js` both, which
+   `check` requires to agree.
+
+Round twelve answered the fourth thing he had flagged: **the case-control panel
+never said why anyone would run one.** It does now, in one line per panel, and
+the copy across the widget was rewritten to name quantities rather than reach for
+figures of speech — that is now principle **2.9**, and it is worth reading before
+writing any on-screen string.
+
+### THE SHIP BLOCKER IS GONE — the harness can drive a control
 
 `check.mjs` demands a driven fingerprint state from any widget declaring an
-`animation`, and `_lab/fingerprint.html` drives by clicking a button with a
-`data-key`. **This widget has no such button on the calculation tab** — its
-animation is driven by *display parameters* (principle 4.4). Drafts are exempt,
-so `check` passes today.
+`animation`, and `_lab/fingerprint.html` could only press a button carrying a
+`data-key`. This widget declines Play and Step on the calculation tab (4.5) and
+eases on a **segmented toggle** (4.4), so its transitions were undriveable and
+therefore unfingerprintable — a blind spot with no floor under it.
 
-Shipping needs one of:
+Taken the better of the two routes: **the harness now drives controls.**
 
-- teach the harness to drive a **control** (a segmented button, a range) and not
-  only a drive button — the better fix, and it would serve any future widget
-  that eases on a toggle; or
-- narrow the rule in `check.mjs` to widgets that *have* a drive button.
+- `controls.js` stamps `data-param` on every settable control and `data-value` on
+  every segmented button. Nothing in the shipped page reads them.
+- A `choice` slider also carries `data-options`, because its DOM value is an
+  **index** — without it a spec would have to name a position, which 5.7 forbids.
+- A drive spec may say `{ set: { against: "risk" }, frames: 6 }` as well as
+  `{ click: "run" }`. Both work in `before`; one step may do both.
+- `check.mjs` needed no change — it only ever required `drive.frames > 0`.
 
-Until one of those lands, **the eases have no fingerprint coverage at all.**
-That is a blind spot, and principle 5.6 says a blind spot must be named and
-never cited as safety.
+**The event differs by control and getting it wrong is silent**: a range driven
+with `change` moves the thumb and never reaches the widget, so the harness
+photographs an untouched figure and hashes it happily. The setter throws instead,
+and a throw becomes `px = "error"`, which can never match a baseline.
+
+Proved end to end: setting `against` to `risk` at 60/30 gives six frames of ease
+whose middle frame prints `= 73%` — a denominator genuinely mid-flight — settling
+to `60% ÷ 30%` 22 frames later.
+
+### Round eleven, in one table
+
+| what | why it was wrong |
+|---|---|
+| design tab **full at rest** | it painted 112 dots at `globalAlpha = 0`; the sliders drove nothing visible |
+| **one pass per recruited group** | all four flows shared one `travel` — "I have no idea where came from what" |
+| **`--c-unknown`** (aliases `--ink-3`) | a cohort does not know who dies at recruitment; a case-control does. Two designs, same marks, and the colours alone say which |
+| the ghost **returns to full** | a fixed 0.22 was right when the boxes started empty; once they start full it says the patients LEFT |
+| `STEP_DX` 34 → **25** | a panel gets 233px, not 247 — the boxes overflowed their own panel |
+| step 2 is **"then count"** in both | the counting is the same act; only the fixed margin differs. Also the only wording that fits |
+| closing copy **shortened** | its last line was painted 12px below the canvas floor |
+| `FLOOR`/`RULE_Y` **−40** | a band of nothing between the strip's rule and the tallest possible pile, fixed at both ends |
+| arm heading 146, was **floating at 82–128px** above its pile | fixed baseline, not tracking the pile: two arms, two heights, reads as broken |
+| **"the two exposure groups" deleted** | captioned nothing; its job moved to the strip's step 1 |
+| strip step 1 says **EXPOSURE / OUTCOME** | it was a ternary with two identical branches, so the strip called an outcome-recruited group an exposure |
+| manifest blurb | still described the thinning model and the "stays put" claim that **round ten retired** |
+
+**Swept, not judged:** 882 cohort and 1,020 case-control states at the 550px
+canvas — zero overflows, zero collisions, worst baseline 692 against 718.
+**All 78 pre-existing fingerprint states MATCH** after four core changes.
 
 ### Two core changes this widget forced, both now principles
 

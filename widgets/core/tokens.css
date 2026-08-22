@@ -112,6 +112,19 @@
   --c-nonevent:  var(--series-1);    /* it did not — and this is the odds'
                                         denominator, not background          */
 
+  /* AND THE THIRD STATE, which is not a third outcome: we have not looked yet.
+     A cohort recruits by exposure, so at enrolment nobody's outcome is known
+     and every dot is this colour; the outcome colour is what ARRIVES. A
+     case-control recruits by outcome, so its dots are --c-event/--c-nonevent
+     before it starts. Two designs drawn with the same marks, and the only
+     difference is which of them opens grey — an asymmetry that needs no words.
+
+     Grey is right HERE for the same reason it is wrong for --c-nonevent: this
+     one really is absence of information, and it must lose to both outcome
+     colours sitting next to it. It aliases --ink-3 the way --c-reference does
+     rather than taking a series slot, because it is not a series. */
+  --c-unknown:   var(--ink-3);       /* not measured yet, not a third outcome */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

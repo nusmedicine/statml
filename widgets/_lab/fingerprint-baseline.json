@@ -631,6 +631,226 @@
         "dt": 32
       },
       "px": "4354d4f5"
+    },
+    {
+      "$note": "The setup at the default: two curves, the line at 1.645, alpha and beta before any data.",
+      "slug": "power-and-error",
+      "state": "?theme=light&shown=0",
+      "px": "ab1c922b"
+    },
+    {
+      "$note": "Effect None: the two curves coincide exactly, and 5% still lands past the line.",
+      "slug": "power-and-error",
+      "state": "?theme=light&effect=none&shown=0",
+      "px": "47e3c96a"
+    },
+    {
+      "$note": "n = 100 on the RAW axis, where sample size narrows BOTH curves — the motion z hides.",
+      "slug": "power-and-error",
+      "state": "?theme=light&n=100&shown=0",
+      "px": "51633709"
+    },
+    {
+      "$note": "The test-statistic axis: the line pinned at 1.645 and only the alternative sliding.",
+      "slug": "power-and-error",
+      "state": "?theme=light&axis=z&n=40&shown=0",
+      "px": "cbac8b68"
+    },
+    {
+      "$note": "alpha 0.001 against a small effect — alpha chosen, beta inherited, and beta is nearly all of it.",
+      "slug": "power-and-error",
+      "state": "?theme=light&effect=small&alpha=0.001&shown=0",
+      "px": "5f2a4eb9"
+    },
+    {
+      "$note": "1000 studies run: the observed rates against the predicted ones they were told to check.",
+      "slug": "power-and-error",
+      "state": "?theme=light&studies=1&seed=1&shown=1000",
+      "px": "770765a4"
+    },
+    {
+      "$note": "The null, fully run: 5% of studies significant at every n, which is what alpha MEANS.",
+      "slug": "power-and-error",
+      "state": "?theme=light&effect=none&studies=1&seed=1&shown=1000",
+      "px": "0e9136c1"
+    },
+    {
+      "$note": "Underpowered and fully run: a small effect at n=12, where most studies miss it.",
+      "slug": "power-and-error",
+      "state": "?theme=light&effect=small&n=12&studies=1&seed=1&shown=1000",
+      "px": "9d806562"
+    },
+    {
+      "$note": "Expected shape off, so the pile stands alone against the line.",
+      "slug": "power-and-error",
+      "state": "?theme=light&studies=1&seed=1&theory=0&shown=1000",
+      "px": "2ce90866"
+    },
+    {
+      "$note": "DRIVEN: a study in flight — drawn, standing, not yet dropped. Invisible at rest.",
+      "slug": "power-and-error",
+      "state": "?theme=light&studies=1&seed=1&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "f34d264b"
+    },
+    {
+      "$note": "DRIVEN: Play under way, the pile filling under a threshold that never moves.",
+      "slug": "power-and-error",
+      "state": "?theme=light&studies=1&seed=1&speed=medium",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "22f9b157"
+    },
+    {
+      "$note": "DRIVEN, INTERRUPTED: a step still in flight when Play takes over.",
+      "slug": "power-and-error",
+      "state": "?theme=light&studies=1&seed=1&speed=slow",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 4
+          }
+        ],
+        "click": "run",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "72721250"
+    },
+    {
+      "$note": "Study design at rest: both recruited pairs FULL, the cohort grey and the case-control already coloured.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light",
+      "px": "a914d895"
+    },
+    {
+      "$note": "Design at rest with an effect and 1:4 enrolment — the dot scale derived from the fullest box.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&died1=40&died0=20&ratio=1to4",
+      "px": "cef2bc9a"
+    },
+    {
+      "$note": "The calculation at the null: both sliders at 20, both ratios exactly 1.00. Where it opens.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate",
+      "px": "55d7d592"
+    },
+    {
+      "$note": "Odds ratio, cohort, 40/20: the survivors stepped aside and the claim names the overstatement.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=40&died0=20",
+      "px": "b6110b1f"
+    },
+    {
+      "$note": "The same table read as a relative risk — same deaths, denominator back to everyone.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=40&died0=20&against=risk",
+      "px": "26e5aaec"
+    },
+    {
+      "$note": "90/45: the exposed arm reads 90 over 10 = 9.00, which a risk could never do.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=90&died0=45",
+      "px": "0577d769"
+    },
+    {
+      "$note": "Case-control 1:1 — the risk ratio collapses to 1.64 while the odds ratio holds near 2.67.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20",
+      "px": "50575266"
+    },
+    {
+      "$note": "Case-control 1:4 — the risk ratio now OVERshoots at 2.20, having crossed the truth on the way.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20&ratio=1to4",
+      "px": "fc92f5ac"
+    },
+    {
+      "$note": "Everyone died in both arms: risk ratio 1.00, and the odds ratio does not exist.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=100&died0=100",
+      "px": "12f1a26f"
+    },
+    {
+      "$note": "Nobody died in either arm: 0/0, undefined rather than infinite, and the figure says so.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=0&died0=0",
+      "px": "53007809"
+    },
+    {
+      "$note": "DRIVEN: the design run mid pass one — the exposed group lit, its partner held back.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&died1=40&died0=20",
+      "drive": {
+        "click": "run",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "abc91f93"
+    },
+    {
+      "$note": "DRIVEN: mid pass two — the first group dimmed, the second travelling, counts still landing.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&died1=40&died0=20",
+      "drive": {
+        "click": "run",
+        "frames": 26,
+        "dt": 32
+      },
+      "px": "b4414a84"
+    },
+    {
+      "$note": "DRIVEN BY A CONTROL: the odds/risk crossfade mid-ease. No drive button can reach this (4.4, 4.5).",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=40&died0=20",
+      "drive": {
+        "set": {
+          "against": "risk"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "9eda1d7b"
+    },
+    {
+      "$note": "DRIVEN BY A CONTROL: the survivors you did not enrol emptying to hollow rings.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&view=calculate&died1=40&died0=20",
+      "drive": {
+        "set": {
+          "design": "case-control"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "4bb622ce"
+    },
+    {
+      "$note": "DRIVEN, INTERRUPTED: the enrolment changed while the design run was still in flight.",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&died1=40&died0=20",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 12
+          }
+        ],
+        "set": {
+          "ratio": "1to4"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "15cb8911"
     }
   ]
 }

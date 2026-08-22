@@ -137,6 +137,37 @@ While the picture builds, the readout reports what has actually been collected �
 `of 37 means`. Students watch the observed SD converge on the predicted SE
 instead of being shown the agreement as a finished fact.
 
+### 2.9 On-screen copy names the quantity — no metaphors, no verdicts
+
+Text a student reads on a figure must name the statistical quantity it is about.
+A figure of speech makes the reader translate before they can think, and imports
+connotations nobody agreed to.
+
+> *Earned.* Widget 12's case-control note read **"you chose that — a fact about
+> your budget"**, describing a death rate. Cut on sight: *don't use words like
+> budget etc… please don't mix metaphors. use statistical language where
+> possible and don't editorialize.* The number is not *like* a budget; it **is**
+> the controls-per-case ratio, and the line that says so is both shorter and
+> plainer. The pair became *"you counted this — it is the incidence"* against
+> *"you set this — it is controls per case"*.
+
+Three failure modes, all the same mistake:
+
+- **A metaphor standing in for a quantity.** "your budget" for an enrolment
+  ratio. Ask what the number is; if the sentence does not say, rewrite it.
+- **Personifying the method.** "the cohort does not know who dies" — a study
+  design does not know things. "the outcome has not been observed yet" is no
+  longer and says the same thing without the fiction.
+- **A verdict where a mechanism belongs.** "your ratio, nothing else", "by
+  construction", "you chose this". State what produced the number and let the
+  reader draw the conclusion; the whole point of a figure is that the conclusion
+  is available to them.
+
+Simple is not the same as figurative — usually the plainest sentence is the one
+that names the actual quantity. **Source comments are exempt** and should stay as
+vivid as they like: they are addressed to whoever changes the code next, and the
+history of what failed is the most valuable thing in them.
+
 ---
 
 ## 3 · Controls and layout
@@ -874,6 +905,29 @@ Two fixes, and the second matters more than the first:
 The generalisation: **anything that reaches across a boundary to operate a UI
 should name its target.** Positional addressing encodes an assumption about a
 layout that nobody has agreed to keep.
+
+**And a harness must be able to drive whatever the widget is driven by.** For
+eleven widgets that meant a drive button, so `press` was the whole vocabulary.
+Then widget 12 declined Play and Step (4.5) and eased on a segmented toggle
+(4.4) — and its transitions became *undriveable*, which under 5.6 is a blind
+spot with no floor under it: `check.mjs` demands a driven state from anything
+declaring an `animation`, so the only way to satisfy the rule would have been to
+add a button the widget does not want.
+
+The fix generalises the same way `data-key` did. `controls.js` stamps
+`data-param` on every settable control and `data-value` on every segmented
+button — attributes nothing in the shipped page reads — and a drive spec may now
+say `{ set: { against: "risk" }, frames: 6 }` instead of `{ click: "run" }`. A
+`choice` slider additionally carries `data-options`, because its DOM value is an
+*index*: without it a spec would have to name the position, which is exactly the
+positional addressing this principle exists to forbid.
+
+The trap it hides is the usual one. **The event differs by control and getting it
+wrong is silent** — a range driven with `change` moves the thumb and never
+reaches the widget, so the harness photographs an untouched figure and records a
+stable, plausible hash for it. Same failure shape as clicking the wrong button,
+same remedy: the setter throws when it cannot find the control or the option,
+and a throw becomes `px = "error"`, which can never match a baseline.
 
 ### 5.8 One formula, one place
 

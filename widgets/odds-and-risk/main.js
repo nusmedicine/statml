@@ -77,10 +77,21 @@ const N = 100;
    which margin you fixed. It also spoke a language no investigator uses.
    Reported as exactly that confusion — *if I put 100 cases and 100 controls it
    looks like a cohort, am I misunderstanding something?* No. */
+/* THE DETAIL LINES CARRY THE EFFICIENCY, IN NUMBERS. With the cases fixed — which
+   is the situation a case-control is for — r controls per case reach about
+   r/(r+1) of the precision unlimited controls would give: 50%, 67%, 80% here,
+   and 83% at 1:5. That plateau is the whole reason the classical ceiling sits at
+   four (Ury 1975; Taylor 1986), and saying it in percentages means the control
+   teaches something even at the opening table, where it moves no ratio at all.
+
+   1:1 stays the first notch because it is the textbook default: for a fixed
+   TOTAL sample, equal groups maximise power. Nothing below 1:1 is offered —
+   fewer controls than cases is not a design anyone runs, since the cases are the
+   scarce half and the controls are the cheap one. */
 const ENROL = {
-  "1to1": { label: "1 : 1", r: 1, detail: "as many controls as cases — half your study died, by construction" },
-  "1to2": { label: "1 : 2", r: 2, detail: "" },
-  "1to4": { label: "1 : 4", r: 4, detail: "past about 1:4 the extra controls buy almost no power" },
+  "1to1": { label: "1 : 1", r: 1, detail: "equal groups, so half your participants are cases. Half the precision that unlimited controls would give" },
+  "1to2": { label: "1 : 2", r: 2, detail: "two thirds of the precision that unlimited controls would give" },
+  "1to4": { label: "1 : 4", r: 4, detail: "four fifths of it, and a fifth control would add only three points — 1:4 is the usual ceiling" },
 };
 
 const EASE_MS = 420;
@@ -151,7 +162,14 @@ const PITCH = 7.6;
 const DOT_R = 2.9;
 const COL_W = COLS * PITCH;
 const SPLIT_DX = 52;
-const FLOOR = 362;
+/* THE WHOLE FIGURE BELOW THE STRIP SITS 40px HIGHER than it used to — FLOOR and
+   RULE_Y moved together, so every gap between the pile, its sentence, the
+   fraction and the cards is unchanged. What was removed was a band of nothing
+   between the strip's rule at 110 and the top of the tallest pile the figure can
+   draw: fixed at both ends, so it was dead in EVERY state rather than headroom
+   consumed in some. Both numbers are load-bearing together; move one and the
+   fraction lands on the pile's own sentence. */
+const FLOOR = 322;
 
 /* The division, written out under each arm: the same people again as the two
    terms of a fraction, packed ten to a row. The numerator is the deaths and is
@@ -167,7 +185,7 @@ const FR_PER_ROW = 10;
 const FR_PITCH = 6.6;
 const FR_R = 2.5;
 const FR_W = FR_PER_ROW * FR_PITCH;
-const RULE_Y = 478;
+const RULE_Y = 438;   /* see FLOOR: these two move as a pair */
 
 /**
  * Where person `i` of an arm stands. Deaths fill from the floor upward and
@@ -238,6 +256,28 @@ function wrapText(ctx, colors, s, x, y, maxW, opts = {}) {
   return y + lines.length * lh;
 }
 
+/**
+ * A stack of separate statements, each starting on its own line.
+ *
+ * PARAGRAPHS ARE THE WRONG SHAPE FOR A RULE. Four sentences of prose wrapping
+ * across five lines were reported as a wall of text, and they were: nothing in
+ * a wrapped paragraph tells the eye where one claim ends and the next begins,
+ * so a reader either reads all of it or none of it. One claim per line is
+ * scannable, and it also forces each claim to be short enough to BE one line.
+ *
+ * An empty string is a half-height gap, which is how the closing instruction is
+ * separated from the rules above it without a heading.
+ */
+function textBlock(ctx, colors, items, x, y, maxW, opts = {}) {
+  const lh = Math.round(parseFloat(opts.size === "sm" ? colors.fsSm : colors.fsXs) * 1.45);
+  let at = y;
+  for (const item of items) {
+    if (!item) { at += Math.round(lh / 2); continue; }
+    at = wrapText(ctx, colors, item, x, at, maxW, opts);
+  }
+  return at;
+}
+
 /* NaN and Infinity are different failures and must not print the same. Set both
    sliders to 0 and the risk ratio is 0/0 — undefined, not infinite — and a
    figure that says the odds ratio is ∞ when nobody died is telling a lie the
@@ -261,10 +301,15 @@ function dotScale(counts) {
    panel is BOX_W + STEP_DX + BOX_W = 222, against the 247 each half gets. The
    first pass used 116-wide boxes and a 74px step gap, which needed 306 and put
    the right-hand boxes 41px off the edge. */
-/* Two panels must fit the 550px canvas: BOX_W + STEP_DX + BOX_W = 242 against
-   the 247 each half gets. BOX_W is 104 rather than 88 because the LABEL AND ITS
-   COUNT now share one line and both have to fit above the box they name. */
-const BOX_W = 104, BOX_H = 88, DES_DY = 118, STEP_DX = 34;
+/* Two panels must fit the 550px canvas, and the budget is tighter than the half
+   it looks like: a panel gets `half - 14` = 233, not 247. At STEP_DX 34 the two
+   boxes alone spanned 242, so the boxes overflowed their own panel by 9px and
+   the step-2 HEADING crossed the dashed divider into the next panel. 104 + 25 +
+   104 = 233 exactly, which is what the gap is for.
+
+   BOX_W is 104 rather than 88 because the LABEL AND ITS COUNT share one line and
+   both have to fit above the box they name. */
+const BOX_W = 104, BOX_H = 88, DES_DY = 118, STEP_DX = 25;
 /* 7 per row at pitch 11 keeps the fullest box — 200 people, 40 dots, which the
    cohort's "lived" reaches when nobody dies — inside its own border. At 6 per
    row it was 7 rows and spilled 15px out the bottom. */
@@ -312,12 +357,17 @@ defineWidget({
     + "survivors and a risk divides them by everyone — so the odds ratio is always "
     + "further from 1, and further still the commoner the outcome.",
   layout: "side",
-  status: "draft",
-  /* 600: the deepest text at the 550px canvas — where the claim wraps worst —
-     sits at baseline 586, measured across every corner rather than guessed. */
-  /* Measured, not guessed: the deepest text at the 550px canvas — where the claim
-     wraps worst — sat at baseline 686 before the strip grew by 40px. */
-  height: ({ view }) => (view === "design" ? 506 : 758),
+  status: "shipped",
+  /* MEASURED, NOT GUESSED, and re-measured every time the figure moves: swept
+     across every corner of both designs and both ratios at the 550px canvas —
+     where the claim wraps worst — and taken from the deepest baseline any of
+     them reaches. The calculation tab's worst is 692 (case-control, where the
+     note runs longest) and the design tab's is 484, once the study has run.
+
+     A widget's height lives ONLY here. It used to sit in three files with
+     `npm run check` guarding the drift, then in one that nothing read, where it
+     went silently wrong by 190-310px. */
+  height: ({ view }) => (view === "design" ? 512 : 718),
 
   params: {
     /* THE FIRST TAB IS THE STUDY DESIGN AND IT IS THE DEFAULT. A reader arriving
@@ -397,7 +447,7 @@ defineWidget({
       options: Object.entries(ENROL).map(([value, o]) => ({ value, label: o.label, detail: o.detail })),
       default: "1to1",
       /* NO `when`. This field belongs on the design tab (where it drives the
-         case-control panel and is the argument: change your budget, watch the
+         case-control panel and is the argument: change the enrolment ratio, watch the
          death rate move) AND on the calculation tab, but only there when the
          design is case-control. That is two conditions, and `when` takes one —
          so the widget manages this one field from `draw`, the way widget 11
@@ -513,7 +563,7 @@ defineWidget({
       return [
         { label: "Death rate, cohort", value: pct(cohort.deathRate), note: "you counted this" },
         { label: "Death rate, case-control", value: pct(ccStudy.deathRate),
-          note: "your controls-per-case ratio, nothing else" },
+          note: "set by your controls-per-case ratio" },
         { label: "Same population", value: "both", note: "neither study changed anybody's illness" },
       ];
     }
@@ -531,13 +581,13 @@ defineWidget({
            over with a footnote about whole people. Naming what the number IS
            retires the footnote by making it the point. */
         note: !cc ? "the two odds divided"
-          : `estimates the population's ${fmtRatio(cohort.or)} — this is the one you can report`,
+          : `estimates the population's ${fmtRatio(cohort.or)}`,
       },
       {
         label: "Relative risk",
         value: fmtRatio(study.rr),
         note: cc
-          ? `NOT AN ESTIMATE OF ANYTHING — the population's is ${fmtRatio(cohort.rr)}`
+          ? `does not estimate the population's ${fmtRatio(cohort.rr)}`
             + (Number.isFinite(rrShift) ? ` (${rrShift >= 0 ? "+" : ""}${Math.round(rrShift * 100)}%)` : "")
           : "the two risks divided",
       },
@@ -549,8 +599,8 @@ defineWidget({
         /* `Number.isFinite` is doing real work here: NaN and Infinity both fail
            it, which is what the "—" is for. */
         note: cc
-          ? `your ratio, nothing else — the population's is ${pct(cohort.deathRate)}`
-          : (study.rr === 1 ? "no effect: the two agree exactly" : "effect that is not there"),
+          ? `set by your controls-per-case ratio — the population's is ${pct(cohort.deathRate)}`
+          : (study.rr === 1 ? "no effect: the two agree exactly" : "more effect than the risk ratio shows"),
       },
     ];
   },
@@ -619,24 +669,72 @@ function drawDesignPanel(ctx, colors, x0, kind, t, cohort, ccTable, scale, panel
     : [{ f: 0, to: 0, n: n(st.a), k: "event" }, { f: 0, to: 1, n: n(st.b), k: "nonevent" },
       { f: 1, to: 0, n: n(st.c), k: "event" }, { f: 1, to: 1, n: n(st.d), k: "nonevent" }];
 
-  const recruited = easeSeg(t, 0, 0.18);
-  const travel = easeSeg(t, 0.2, 0.74);
-  const arrived = easeSeg(t, 0.6, 0.92);
+  /* THE RECRUITED GROUPS ARE FULL AT REST, and this is the one thing about the
+     panel that must not be animated. Fading them in with the run left both
+     step-1 boxes empty until Play, so dragging either death slider changed
+     NOTHING VISIBLE on the tab the slider was sitting next to — reported as
+     exactly that. The dots were being painted the whole time at globalAlpha 0,
+     which is a no-op that no assertion can see and no hash can catch.
+
+     It also pays for itself a second time. A recruited group is a number you
+     CHOSE; it exists before the study runs, and drawing it before the study
+     runs says so. Only step 2 waits, because step 2 is the measurement. */
+
+  /* ONE PASS PER RECRUITED GROUP. All four flows moving together was reported
+     as "I have no idea where came from what" — nobody follows two splits at
+     once. The first group goes, then the second, and whichever is travelling is
+     lit while its partner is held back.
+
+     HELD BACK, NOT HIDDEN — it is still a group you recruited. And NOTHING IS
+     DIMMED at either end of the run: dimming guides attention DURING motion, so
+     a finished figure sitting entirely dimmed is just a dark figure. That
+     shipped once, because after the last pass neither group is "live". */
+  const pass = [easeSeg(t, 0.08, 0.46), easeSeg(t, 0.54, 0.92)];
+  const running = t > 0 && t < 1;
+  const dimOf = (g) => (!running ? 1 : (t < 0.5) === (g === 0) ? 1 : 0.3);
+  const arrived = easeSeg(t, 0.78, 0.98);
 
   /* Y0 IS 40 BELOW THE STEP HEADING, not 12. At 12 the heading and the box
      labels read as one block of text sitting on the boxes, and a reader said
      the words were obscuring the graphs. */
-  const X1 = x0, X2 = x0 + BOX_W + STEP_DX, Y0 = 118;
+  const X1 = x0, X2 = x0 + BOX_W + STEP_DX, Y0 = 122;
   text(ctx, colors, cc ? "CASE-CONTROL" : "COHORT", x0, 30, { size: "sm", tone: "ink1", bold: true });
   text(ctx, colors, cc ? "recruit by outcome, then look back" : "recruit by exposure, then wait",
     x0, 46, { size: "xs", tone: "ink3" });
-  if (cc) text(ctx, colors, "cases died · controls lived", x0, 62, { size: "xs", tone: "ink3" });
-  text(ctx, colors, cc ? "1  recruit by OUTCOME" : "1  recruit by EXPOSURE", X1, 92,
+  /* WHY ANYONE RUNS A CASE-CONTROL, as a pair rather than as a defence. The tab
+     spends the rest of its space showing that a case-control's death rate is set
+     by the enrolment ratio and its risk ratio estimates nothing — and a reader
+     who stops there concludes, reasonably and wrongly, that nobody should run
+     one. So the limitation sits on the design that has it and the remedy sits
+     opposite, at the same baseline, and the pair reads across.
+
+     One line each. The other reasons — long latent periods, cost, many
+     exposures against one outcome — are prose and belong in the lesson. This is
+     the one the figure's own counts support: 200 followed to observe 40 deaths
+     against 40 enrolled straight away. */
+  text(ctx, colors,
+    cc ? "you enrol the cases directly, however rare" : "a rare outcome needs a very large cohort",
+    x0, 62, { size: "xs", tone: "ink2" });
+  if (cc) text(ctx, colors, "cases died · controls lived", x0, 78, { size: "xs", tone: "ink3" });
+  /* STEP 2 IS "THEN COUNT" IN BOTH PANELS, and that is not a saving — it is the
+     truer statement. The counting is the same act in both designs; the ONLY
+     thing that differs is which margin you fixed first, so putting all the
+     asymmetry in step 1 says so. What gets counted is written on the boxes
+     directly below it (died · lived against infected · not infected), where it
+     belongs to the box rather than to the column.
+
+     It also fits, which "2 count the outcome" did not: at 116px against the
+     104px its box gets, it crossed the dashed divider and stopped 3px short of
+     the next panel's heading. Step 1's phrase is 128px over a 104px box, so it
+     overhangs into the gap — which is why step 2 is right-aligned to the panel
+     edge rather than left-aligned to its box: any left-aligned step 2 starts
+     1px after step 1 ends and the two read as one line. */
+  text(ctx, colors, cc ? "1  recruit by OUTCOME" : "1  recruit by EXPOSURE", X1, 96,
     { size: "xs", tone: "highlight", bold: true });
   ctx.save();
   ctx.globalAlpha = Math.max(0.4, arrived);
-  text(ctx, colors, cc ? "2  count the exposure" : "2  count the outcome", X2, 92,
-    { size: "xs", tone: "ink2", bold: true });
+  text(ctx, colors, "2  then count", x0 + panelW, 96,
+    { size: "xs", tone: "ink2", bold: true, align: "right" });
   ctx.restore();
 
   const pos = (col, row) => [col === 0 ? X1 : X2, Y0 + row * DES_DY];
@@ -645,21 +743,31 @@ function drawDesignPanel(ctx, colors, x0, kind, t, cohort, ccTable, scale, panel
     for (const row of [0, 1]) {
       const [bx, by] = pos(col, row);
       const mine = col === 0;
+      /* A STEP-2 BOX IS NEVER DIMMED BY A PASS, because both groups arrive into
+         it — it is not "the other one" to anything. Only the recruited pair
+         takes turns. */
+      const dim = mine ? dimOf(row) : 1;
       /* BOXES ARE FURNITURE AND ARE ALWAYS DRAWN. Fading them in with the
          animation left the whole left half invisible before Play was pressed,
          with its heading sitting above nothing — and every string was painting
          correctly at alpha 0, so no assertion could see it. */
-      desBox(ctx, colors, bx, by, mine, mine ? 1 : 0.45);
+      desBox(ctx, colors, bx, by, mine, dim * (mine ? 1 : 0.45));
+      ctx.save();
+      ctx.globalAlpha = dim;
       text(ctx, colors, group[row].label, bx, by - 8, { size: "xs", tone: mine ? "ink1" : "ink2", bold: mine });
+      ctx.restore();
       /* THE COUNT SHARES THE LABEL'S LINE, right-aligned to the box edge. Below
          the box it sits BETWEEN two boxes and labels neither — reported as
          exactly that confusion. Inside the box the dots reach it. On the label
          line, label and count are one phrase attached to one box, and short
          labels are what make the line fit. */
-      const shown = mine ? recruited : arrived;
+      /* A RECRUITED COUNT IS ALWAYS ON SCREEN; A COUNTED ONE WAITS. That is the
+         whole distinction the tab teaches, and gating them the same way threw
+         it away along with the sliders' only visible effect. */
+      const shown = mine ? 1 : arrived;
       if (shown > 0.5) {
         ctx.save();
-        ctx.globalAlpha = shown;
+        ctx.globalAlpha = shown * dim;
         text(ctx, colors, String(group[row].total), bx + BOX_W, by - 8,
           { size: "sm", align: "right", tone: "ink1", bold: true });
         ctx.restore();
@@ -667,29 +775,68 @@ function drawDesignPanel(ctx, colors, x0, kind, t, cohort, ccTable, scale, panel
     }
   }
 
+  /* `fill` HAS TO BE A REAL COLOUR STRING. An earlier rewrite read `f.k` off a
+     flow that emits `k:`, so every dot was drawn with `fills[undefined]` — and
+     an invalid fillStyle is a silent no-op that leaves the canvas default
+     black. A canvas will not tell you it ignored you; the only way this was
+     found was wrapping `arc` and `fill` and tallying what colour was ASKED
+     for. */
+  const dot = (x, y, fill, alpha) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.restore();
+  };
+
   const out = [0, 0], into = [0, 0];
   for (const fl of flows) {
     const [sx0, sy0] = pos(0, fl.f);
     const [dx0, dy0] = pos(1, fl.to);
     const s0 = out[fl.f]; out[fl.f] += fl.n;
     const d0 = into[fl.to]; into[fl.to] += fl.n;
+    const travel = pass[fl.f];
+    const dim = dimOf(fl.f);
+    const outcome = fl.k === "event" ? colors.event : colors.nonevent;
+    /* WHAT YOU DO NOT KNOW AT RECRUITMENT IS DIFFERENT, and that is the two
+       designs' real asymmetry — stated here with no words at all, which is the
+       second thing full-at-rest buys.
+
+       A cohort recruits by EXPOSURE: at step 1 nobody's outcome has happened
+       yet, so its dots sit unknown-grey and the outcome colour is what ARRIVES.
+       A case-control recruits by OUTCOME: its dots are red and blue before it
+       starts, and what arrives is which exposure box they turn out to belong
+       in. Same marks, same motion, and the colours alone say which study you
+       are looking at. */
+    const rest = cc ? outcome : colors.unknown;
     for (let i = 0; i < fl.n; i += 1) {
       const si = s0 + i, di = d0 + i;
       const sx = sx0 + 9 + (si % DOTS_PER_ROW) * DOT_PITCH;
       const sy = sy0 + 11 + Math.floor(si / DOTS_PER_ROW) * DOT_PITCH;
       const dx = dx0 + 9 + (di % DOTS_PER_ROW) * DOT_PITCH;
       const dy = dy0 + 11 + Math.floor(di / DOTS_PER_ROW) * DOT_PITCH;
-      const fill = fl.k === "event" ? colors.event : colors.nonevent;
-      ctx.save();
-      ctx.globalAlpha = recruited * 0.22;
-      ctx.beginPath(); ctx.arc(sx, sy, 3.2, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill();
-      ctx.restore();
-      ctx.save();
-      ctx.globalAlpha = recruited;
-      ctx.beginPath();
-      ctx.arc(lerp(sx, dx, travel), lerp(sy, dy, travel) - Math.sin(Math.PI * travel) * 12, 3.2, 0, Math.PI * 2);
-      ctx.fillStyle = fill; ctx.fill();
-      ctx.restore();
+      /* A GHOST STAYS BEHIND in the recruited box, and IT COMES BACK TO FULL as
+         the traveller lands. Letting it empty says the patients LEFT the group
+         they were recruited into; the two ends are two sortings of the same
+         people, and a person is in one box at each end at once.
+
+         A fixed faint ghost was right when the boxes STARTED empty and wrong the
+         moment they started full: the run then took a bright box and left a
+         washed-out one, which says departure louder than an empty box ever did.
+         Faint only while the dot is genuinely in transit. It keeps the REST
+         colour — step 1 is the group you chose, and a cohort's step 1 never
+         learns anything. */
+      if (travel > 0) dot(sx, sy, rest, dim * lerp(0.22, 1, travel));
+      const x = lerp(sx, dx, travel);
+      const y = lerp(sy, dy, travel) - Math.sin(Math.PI * travel) * 12;
+      dot(x, y, rest, dim);
+      /* The outcome colour arrives WITH the dot, painted over the grey, so what
+         a cohort learns is learned on the way across. For a case-control the
+         two colours are the same and this second paint is a no-op. */
+      if (rest !== outcome) dot(x, y, outcome, dim * travel);
     }
   }
 
@@ -700,11 +847,26 @@ function drawDesignPanel(ctx, colors, x0, kind, t, cohort, ccTable, scale, panel
     ctx.globalAlpha = arrived;
     text(ctx, colors, `${dead} of your ${total} participants died`, x0, 366,
       { size: "sm", tone: "ink1", bold: true });
-    /* WRAPPED TO THE PANEL, not the canvas. A per-panel note is 247px wide at
+    /* WRAPPED TO THE PANEL, not the canvas. A per-panel note is 233px wide at
        the narrow layout, and "it is your controls-per-case ratio" is longer than
-       that — it ran to the canvas edge and out of its own column. */
-    wrapText(ctx, colors, cc ? "you chose that — it is your ratio, not the disease's"
-      : "you counted that — it is a fact about the disease",
+       that — it ran to the canvas edge and out of its own column.
+
+       AND IT HAS TO FIT ON ONE LINE. Both notes wrapped with a single word on
+       the second — "disease" and "disease's" alone under 40 characters — which
+       reads as a mistake and cost the gap between this note and the rule below
+       it. "it is" was the filler paying for that.
+
+       The two are parallel to the character — same length, same shape, and each
+       names the quantity its death rate actually IS. An earlier pair said "a
+       fact about your budget", which is a metaphor doing a statistician's job:
+       one of these numbers is an incidence and the other is the control's own
+       label, so the lines say so.
+
+       Both must also FIT ON ONE LINE in 233px. Every version that ran to 43
+       characters wrapped with a single word underneath, which reads as a
+       mistake and eats the gap below. 37 characters each, measured. */
+    wrapText(ctx, colors, cc ? "you set this — it is controls per case"
+      : "you counted this — it is the incidence",
       x0, 384, panelW, { size: "xs", tone: cc ? "event" : "ink2" });
     ctx.restore();
   }
@@ -740,11 +902,18 @@ function drawDesignTab(ctx, colors, w, h, params, state, t) {
   ctx.restore();
 
   if (t <= 0) {
-    wrapText(ctx, colors,
-      "Two studies of the same source population — and neither of them IS the population. The heavy "
-      + "boxes are the groups each investigator recruited, and those numbers are chosen rather than "
-      + "measured. Press Run both studies.",
-      tx, 366, maxW, { size: "sm", tone: "ink3" });
+    /* THE REST STATE IS THE ONE EVERY READER SEES FIRST, so it has to be worth
+       looking at — and now it is: both heavy boxes are already full, and the
+       sliders fill them. What it does NOT say is what the study found, which is
+       the only thing Run adds. */
+    textBlock(ctx, colors, [
+      "Two studies of the same source population. Neither one is the population.",
+      "Heavy box = a group the investigator recruited — a count chosen, not measured.",
+      "Grey = the outcome is not yet observed. At recruitment, that is the cohort only.",
+      "Steps 1 and 2 are the order you did things, not the order they happened.",
+      "",
+      "Press Run both studies.",
+    ], tx, 366, maxW, { size: "sm", tone: "ink3" });
     return;
   }
   if (t < 1) return;
@@ -754,15 +923,24 @@ function drawDesignTab(ctx, colors, w, h, params, state, t) {
      are the instance a reader can hold, and EXPOSURE and OUTCOME are the thing
      they are an instance of. Both are on screen, and neither is asked to do the
      other's job. */
-  wrapText(ctx, colors,
-    "Both read left to right in the order you did things, not the order they happened. A cohort fixes the "
-    + "EXPOSURE and measures the outcome; a case-control fixes the OUTCOME and measures the exposure. "
-    + `That is the whole difference — and look what it does to a death rate: ${pct(cohort.deathRate)} in `
-    + `the cohort, which nobody chose, against ${pct(ccTable.deathRate)} in the case-control, which is `
-    + "nothing but your controls-per-case ratio. A risk divides by a group, and in a case-control every "
-    + "group is one you assembled. Now open The calculation.",
-    tx, 416, maxW, { size: "sm", tone: "ink2" });
+  textBlock(ctx, colors, [
+    "A cohort fixes the EXPOSURE and measures the outcome.",
+    "A case-control fixes the OUTCOME and measures the exposure.",
+    "A risk divides by a group, and in a case-control every group is one you fixed.",
+    "",
+    "Now open The calculation.",
+  ], tx, 416, maxW, { size: "sm", tone: "ink2" });
 }
+/* THE READING-ORDER NOTE MOVED TO THE KEY, above, where a legend's facts live —
+   and "that is the whole difference" went entirely, because it is the paragraph
+   talking about itself. Which death rate was measured is now said per panel,
+   attached to the number it is about, so repeating it here bought nothing. */
+/* THE TWO DEATH RATES USED TO BE SPELLED OUT HERE TOO, and that made seven
+   lines of prose at the 550px canvas — the last of which was painted 12px BELOW
+   the canvas floor, invisible and unhashable. Both numbers are already on
+   screen twice: under each panel ("40 of your 80 participants died · you chose
+   that") and again in the readout tiles. A caption that restates the readout
+   costs lines and buys nothing. */
 
 /* ---------------------------------------------------------------------------
    THE DESIGN STRIP, above everything.
@@ -790,7 +968,7 @@ function drawStrip(ctx, colors, w, tx, maxW, params, state) {
   ctx.restore();
   text(ctx, colors, cc ? "CASE-CONTROL" : "COHORT", tx, 24, { size: "sm", tone: "ink1", bold: true });
   text(ctx, colors,
-    cc ? "start with the outcome, then look back" : "start with the exposure, then wait",
+    cc ? "recruit by outcome, then look back" : "recruit by exposure, then wait",
     tx + nameW + 12, 24, { size: "xs", tone: "ink3" });
 
   /* FOUR BOXES IN A ROW, which is the mock-up's diagram compressed to one line.
@@ -811,9 +989,19 @@ function drawStrip(ctx, colors, w, tx, maxW, params, state) {
   const x0 = tx;
   const x1 = tx + 2 * BW + GAP + ARROW;
 
-  text(ctx, colors, cc ? "1  you recruit these — your choice" : "1  you recruit these — your choice",
+  /* THE SAME TWO STEP HEADINGS THE DESIGN TAB USES, word for word. They were
+     "you recruit these — your choice" / "then you count these" here and
+     "recruit by EXPOSURE" / "then count" there, which is the confusion 5.8 is
+     about one level up: two tabs describing one study in two vocabularies, so a
+     reader has to work out that they are the same steps.
+
+     The old step 1 was also a ternary whose two branches were identical — the
+     case-control's wording had been meant to differ and had collapsed, so the
+     strip called an outcome-recruited group an exposure. Which margin you fixed
+     is now the only thing that changes between the designs, here as there. */
+  text(ctx, colors, cc ? "1  recruit by OUTCOME — your choice" : "1  recruit by EXPOSURE — your choice",
     x0, 46, { size: "xs", tone: "highlight", bold: true });
-  text(ctx, colors, "2  then you count these", x1, 46, { size: "xs", tone: "ink3", bold: true });
+  text(ctx, colors, "2  then count", x1, 46, { size: "xs", tone: "ink3", bold: true });
 
   const drawPair = (bx, pair, mine) => {
     pair.forEach(([label, n], i) => {
@@ -881,9 +1069,12 @@ function drawFigure(ctx, colors, w, h, params, state, view) {
     { gx: gx[1], title: "No infection", died: cohort.c, lived: cohort.d, kept: study.d },
   ];
 
-  /* One quiet tag naming what the two arms ARE, so the generic word is on the
-     figure and not only in the prose below it. */
-  text(ctx, colors, "the two exposure groups", gx[0], 118, { size: "xs", tone: "ink3" });
+  /* "the two exposure groups" USED TO SIT HERE, at y 118, and it was an orphan:
+     below the strip's rule so it labelled nothing above it, and 128px above the
+     piles it was meant to name. Its job — put the generic word EXPOSURE on the
+     figure rather than only in the prose — belongs to the strip's step 1, which
+     now says "recruit by EXPOSURE" the way the design tab does. A tag that has
+     to be read as a caption for something two headings away is not a caption. */
 
   ctx.save();
   ctx.strokeStyle = colors.axis;
@@ -895,8 +1086,20 @@ function drawFigure(ctx, colors, w, h, params, state, view) {
   ctx.restore();
 
   for (const arm of arms) {
+    /* THE ARM HEADING SITS JUST ABOVE THE TALLEST PILE THE FIGURE CAN DRAW, not
+       at the top of the space. At 146 it was 82px above the pile it names at the
+       default and 128px above it at a 50/50 split, floating between the strip
+       and the figure and attached to neither.
+
+       A FIXED baseline, not one tracking the pile: the two arms' piles are
+       different heights, so a heading following its own pile puts the two
+       titles at two heights and reads as broken — and it would then move under
+       a slider drag, which is the trap the counts on the design tab took three
+       placements to escape. 214 is the highest any dot goes (100 people, 20
+       rows of 5, floor at 362), measured across every corner rather than
+       guessed; a dot's top edge is 211 and "100 patients" descends to ~203. */
     text(ctx, colors, arm.title, arm.gx, 146, { size: "sm", tone: "ink1", bold: true });
-    text(ctx, colors, `${N} patients`, arm.gx, 162, { size: "xs", tone: "ink3" });
+    text(ctx, colors, `${N} patients`, arm.gx, 160, { size: "xs", tone: "ink3" });
 
     /* A SURVIVOR YOU DID NOT ENROL BECOMES A RING and stays on screen. They are
        people the cohort had and your study does not, and a study that silently
@@ -1021,42 +1224,45 @@ function drawFigure(ctx, colors, w, h, params, state, view) {
   /* --- the one line that carries the lesson of the current tab ------------ */
   const cc = params.design === "case-control";
   const over = study.or / study.rr;
+  /* EVERY BRANCH RETURNS AN ARRAY OF LINES, one claim each. As one paragraph
+     these ran to five wrapped lines and read as a wall — nothing in a wrapped
+     paragraph tells the eye where one claim ends, so a reader takes all of it
+     or none. Each branch also lost its closing flourish: "that is the odds
+     scale showing you its edge", "this is where that stops being an
+     abstraction", "that gap is what overstating means". Those are the caption
+     admiring its own point (2.9), and cutting them cost no information. */
   let claim;
   if (!Number.isFinite(over)) {
     /* The corners, named rather than papered over. Both are one drag apart and
        a figure that prints ∞ or NaN at them is worse than one that says why. */
     if (study.a + study.c === 0) {
-      claim = "Nobody died in either arm, so there is nothing to divide: 0 out of 100 against 0 out of 100 "
-        + "is not a number, and neither ratio exists. Drag a slider up.";
+      claim = ["Nobody died in either arm, so 0 out of 100 is being divided by 0 out of 100. "
+        + "That is undefined, not large: neither ratio exists.", "", "Drag a slider up."];
     } else if (study.b + study.d === 0) {
-      claim = "Everyone died in both arms. The risks are equal so the risk ratio is 1.00 — but there are no "
-        + "survivors to divide by, so both odds are infinite and their ratio does not exist. That is the "
-        + "odds scale showing you its edge.";
+      claim = ["Everyone died in both arms. The risks are equal, so the risk ratio is 1.00.",
+        "There are no survivors to divide by, so both odds are infinite and their ratio does not exist."];
     } else if (study.c === 0) {
-      claim = "Nobody died without the infection, so both ratios are dividing by zero and both come out "
-        + "infinite. Every effect looks the same size there, which is why a study with an empty cell "
-        + "reports a confidence interval and not a point estimate.";
+      claim = ["Nobody died without the infection, so both ratios divide by zero and both are infinite.",
+        "Every effect is the same size there. A study with an empty cell reports a confidence "
+        + "interval, not a point estimate."];
     } else if (study.b === 0 || study.d === 0) {
-      claim = `One arm has no survivors left, so its odds are infinite and the odds ratio does not survive `
-        + `it — while the risk ratio is still ${fmtRatio(study.rr)}. Risk has a ceiling at 100%; odds does `
-        + `not, and this is where that stops being an abstraction.`;
+      claim = [`One arm has no survivors left, so its odds are infinite and the odds ratio does not exist.`,
+        `The risk ratio is still ${fmtRatio(study.rr)}: risk has a ceiling at 100%, odds does not.`];
     } else {
-      claim = "One of the two ratios is dividing by zero, so it is infinite rather than large. "
-        + "Move a slider off the end.";
+      claim = ["One of the two ratios is dividing by zero, so it is infinite rather than large.",
+        "", "Move a slider off the end."];
     }
   } else if (!cc) {
     claim = study.rr === 1
-      ? "No effect, and both ratios say so together: 1.00 and 1.00. Drag either slider and watch which of "
-        + "the two moves further."
+      ? ["No effect: both ratios are 1.00.", "", "Drag either slider and watch which of the two moves further."]
       /* "OVERSTATES" IS DEFINED HERE, IN NUMBERS, EVERY TIME. It was used as a
          bare verb in the readout and nowhere explained, and a reader said so:
          further from what, and why does that matter? It matters because of the
          sentence people actually write. */
-      : `The truth is that infection multiplies the RISK of dying by ${fmtRatio(study.rr)}. `
-        + `Someone who reads the odds ratio as if it were a risk ratio would write "${fmtRatio(study.or)} times `
-        + `as likely" — ${Math.round((over - 1) * 100)}% more effect than there is. That gap is what "the odds `
-        + `ratio overstates" means: it holds for any exposure and any outcome, and it grows as the outcome `
-        + `gets commoner.`;
+      : [`Infection multiplies the RISK of dying by ${fmtRatio(study.rr)}.`,
+        `Read as a risk ratio, the odds ratio says "${fmtRatio(study.or)} times as likely" `
+        + `— ${Math.round((over - 1) * 100)}% more effect than there is.`,
+        `The gap grows as the outcome gets commoner.`];
   } else {
     /* WHY THE RISK RATIO IS MISLEADING HERE, AS A MECHANISM RATHER THAN A
        VERDICT. The old line said "you chose this" and stopped, which names the
@@ -1073,14 +1279,19 @@ function drawFigure(ctx, colors, w, h, params, state, view) {
        anything. That also retires the whole-people footnote by making it the
        point rather than the excuse. */
     const rrShift = cohort.rr === 0 || !Number.isFinite(cohort.rr) ? NaN : study.rr / cohort.rr - 1;
-    claim = `You enrolled all ${study.a + study.c} cases and ${study.b + study.d} controls, so `
-      + `${pct(study.deathRate)} of your study died — that is your ratio, not the disease's `
-      + `${pct(cohort.deathRate)}. The risk ratio followed you: ${fmtRatio(cohort.rr)} in the population and `
-      + `${fmtRatio(study.rr)} here`
-      + (Number.isFinite(rrShift) ? `, ${rrShift >= 0 ? "+" : ""}${Math.round(rrShift * 100)}%` : "")
-      + `. Change the ratio and it moves again — above the truth or below it, and you choose which. The odds `
-      + `ratio did not follow you: ${fmtRatio(cohort.or)} against ${fmtRatio(study.or)}. It ESTIMATES the `
-      + `population's; the risk ratio is not estimating anything.`;
+    const shift = Number.isFinite(rrShift)
+      ? ` (${rrShift >= 0 ? "+" : ""}${Math.round(rrShift * 100)}%)` : "";
+    /* FOUR ROWS OF label: value, so the three quantities line up and can be
+       read against each other. One of them ran to 98 characters as a sentence
+       and wrapped with "the population." alone underneath. */
+    claim = [
+      `Enrolled: all ${study.a + study.c} cases and ${study.b + study.d} controls.`,
+      `Death rate: ${pct(study.deathRate)} in your study, ${pct(cohort.deathRate)} in the population.`,
+      `Risk ratio: ${fmtRatio(cohort.rr)} in the population, ${fmtRatio(study.rr)} here${shift}. `
+        + `Change the enrolment and it moves again, above the truth or below it.`,
+      `Odds ratio: ${fmtRatio(cohort.or)} in the population, ${fmtRatio(study.or)} here. It estimates the `
+        + `population's; the risk ratio estimates nothing.`,
+    ];
   }
-  wrapText(ctx, colors, claim, tx, cardY + 82, maxW, { size: "sm", tone: "ink2" });
+  textBlock(ctx, colors, claim, tx, cardY + 82, maxW, { size: "sm", tone: "ink2" });
 }

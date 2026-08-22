@@ -92,7 +92,7 @@
         "hypothesis testing"
       ],
       "arc": 7,
-      "status": "draft"
+      "status": "shipped"
     },
     {
       "slug": "maximum-likelihood",
@@ -165,7 +165,7 @@
     {
       "slug": "odds-and-risk",
       "title": "Odds Ratio and Relative Risk",
-      "blurb": "One table, two ratios. They share a numerator and divide by different things, so the odds ratio always overstates — by 1% when the outcome is rare and 200% when it is not, with the effect never changing. Then thin the survivors as a case-control study does and watch the risk ratio collapse while the odds ratio stays put.",
+      "blurb": "One table, two ratios. They share a numerator and divide by different things, so the odds ratio always overstates — by 1% when the outcome is rare and 200% when it is not, with the effect never changing. Then run the same patients as a case-control study, enrolling every case and a few controls each, and watch the risk ratio go wherever your enrolment budget puts it while the odds ratio still estimates the population's.",
       "course": "PHM5003",
       "topics": [
         "odds ratio",
@@ -177,7 +177,7 @@
         "epidemiology"
       ],
       "arc": 12,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

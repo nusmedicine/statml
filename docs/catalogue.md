@@ -243,7 +243,7 @@ worth the churn.
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 7 | `power-and-error` 🟡 | Type I/II error, power, sample size | *I decided. How often is that decision wrong — and in which direction?* | That the two error rates are symmetric consequences of the same thing: that a noisier or smaller study is wrong more often in **both** directions. **α is chosen** and is fixed by construction whatever n does; **β is inherited** and is where all the noise lands | **documented** — and see below |
+| 7 | `power-and-error` ✅ | Type I/II error, power, sample size | *I decided. How often is that decision wrong — and in which direction?* | That the two error rates are symmetric consequences of the same thing: that a noisier or smaller study is wrong more often in **both** directions. **α is chosen** and is fixed by construction whatever n does; **β is inherited** and is where all the noise lands | **documented** — and see below |
 
 **The evidence is unusually direct: this course's own material states it wrongly,
 because the app it links to computes it wrongly.** `03/04-02` sends students to
@@ -1427,11 +1427,11 @@ stale on every canvas click and then reasserted its stale value. Two lines in th
 widget rather than a core change; if a second widget ever drives a parameter from
 its canvas, that is the moment to move it.
 
-## Widget 12 · `odds-and-risk` — built, draft
+## Widget 12 · `odds-and-risk` — SHIPPED
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 12 | `odds-and-risk` 🟡 | Odds ratio vs relative risk | *One table, two ratios. Why do they disagree, and which one am I allowed to compute?* | That an odds ratio reports how much **more likely** an outcome is. It is the same numerator over a denominator that shrinks as the outcome gets common, so it always overstates the risk ratio — and by how much is set by the **base rate**, not by the effect | **documented** |
+| 12 | `odds-and-risk` ✅ | Odds ratio vs relative risk | *One table, two ratios. Why do they disagree, and which one am I allowed to compute?* | That an odds ratio reports how much **more likely** an outcome is. It is the same numerator over a denominator that shrinks as the outcome gets common, so it always overstates the risk ratio — and by how much is set by the **base rate**, not by the effect | **documented** |
 
 ### REBUILT AFTER REVIEW — this supersedes the design notes below
 
@@ -1888,6 +1888,251 @@ once — a fixed scale either overflows there or wastes the box everywhere else.
 **And both tabs read the same `studyOf`** (5.8). A design tab and a calculation
 tab that modelled a case-control differently would be the exact confusion this
 round started from, one level up.
+
+### Round eleven: two of round nine's four decisions were never in the widget
+
+**Found by assertion, not by eye, and it is the exact failure the handover
+warns about.** The design tab painted **112 dots at `globalAlpha = 0`** at rest.
+Round nine settled *full at rest* — "so the sliders visibly drive them" — and the
+catalogue claimed all four of `study-design.html`'s lessons were in the widget.
+Two were not. `recruited = easeSeg(t, 0, 0.18)` is 0 when `t` is 0, so both
+recruited boxes were empty until Play, and dragging either death slider changed
+**nothing visible on the tab the slider sits next to**. The other missing one:
+*one pass per recruited group* — all four flows shared a single `travel`.
+
+A screenshot shows an empty box and an empty box looks like a design choice.
+What proved it was wrapping `arc`/`fill` and tallying the alpha each dot was
+asked for. **`globalAlpha = 0` paints perfectly**, and no hash will ever flag it.
+
+**Full at rest pays for itself twice, and the second payment is the better one.**
+The asymmetry it states without words:
+
+| | at recruitment you know | so its dots sit | and what arrives is |
+|---|---|---|---|
+| cohort | who is exposed | **unknown-grey** | the outcome colour |
+| case-control | who died | **already red and blue** | which box they belong in |
+
+That needed one token. `--c-unknown` aliases `--ink-3` the way `--c-reference`
+does, and grey is right *here* for the same reason it is wrong for
+`--c-nonevent`: this one really is absence of information, and it has to lose to
+both outcome colours beside it.
+
+**The ghost had to come back to full, which the fixed 0.22 never did.** A faint
+ghost was correct when the boxes started EMPTY and wrong the moment they started
+full: the run then took a bright box and left a washed-out one, saying *these
+people left* louder than an empty box ever did — the precise thing the ghost was
+invented to prevent. Faint only while the dot is genuinely in transit.
+
+### Round eleven, part two: four layout defects, all measured
+
+**A panel gets `half - 14` = 233px, not the 247 it looks like**, and at
+`STEP_DX = 34` the two boxes alone spanned 242. So the boxes overflowed their own
+panel and the step-2 heading crossed the dashed divider into the next one.
+`104 + 25 + 104 = 233` exactly.
+
+**Step 2 is "then count" in both panels now**, and that is not a saving. The
+counting is the same act in both designs; the only thing that differs is which
+margin you fixed, so putting all the asymmetry in step 1 says so. What gets
+counted is on the boxes directly beneath. Any left-aligned step 2 also starts
+**1px** after step 1 ends — step 1's phrase is 128px over a 104px box — so it is
+right-aligned to the panel edge.
+
+**The closing copy's last line was painted 12px BELOW the canvas floor**, where
+it is invisible and unhashable. It spelled out both death rates, which are
+already on screen twice: under each panel and again in the readout tiles. A
+caption that restates the readout costs lines and buys nothing.
+
+**The calculation figure sits 40px higher.** `FLOOR` and `RULE_Y` moved together,
+so every gap between the pile, its sentence, the fraction and the cards is
+unchanged; what was removed was a band of nothing between the strip's rule and
+the top of the tallest pile the figure can draw — **fixed at both ends, so dead
+in every state** rather than headroom consumed in some. The arm heading came down
+with it, from 82px above the pile it names (128px at a 50/50 split) to a fixed
+baseline just clear of the highest a dot ever goes. Fixed, not tracking its own
+pile: the two arms are different heights, so a heading following its pile puts the
+two titles at two heights and reads as broken.
+
+**And "the two exposure groups" is gone.** It sat below the strip's rule, so it
+captioned nothing above it, and 128px above the piles it was meant to name. Its
+job — the generic word on the figure — belongs to the strip's step 1, which now
+reads `1 recruit by EXPOSURE` exactly as the design tab does. That step heading
+had been a **ternary whose two branches were identical**: the case-control
+wording was meant to differ and had collapsed, so the strip called an
+outcome-recruited group an exposure.
+
+**Measured, not judged:** 882 cohort states and 1,020 case-control states swept
+at the 550px canvas across both ratios and all three enrolments — zero overflows,
+zero collisions, worst baseline 692 against a 718 canvas.
+
+### Round eleven, part three: THE SHIP BLOCKER IS GONE
+
+The handover named it rather than deferring it quietly (5.6): `check.mjs` demands
+a driven fingerprint state from any widget declaring an `animation`, and the
+harness could only press `.w-drive .w-btn[data-key=…]`. Widget 12 declines Play
+and Step on the calculation tab (4.5) and eases on a segmented toggle (4.4), so
+**its transitions had no coverage and could not have any.**
+
+Taken the better of the two routes the handover offered — teach the harness to
+drive a control:
+
+- `controls.js` stamps `data-param` on every settable control and `data-value` on
+  every segmented button. Nothing in the shipped page reads them.
+- A `choice` slider also carries `data-options`, because its DOM value is an
+  **index**; without it a spec would have to name a position, which is the exact
+  thing 5.7 forbids.
+- A drive spec may now say `{ set: { against: "risk" }, frames: 6 }`. Both forms
+  work in `before` steps and one step may do both — a set THEN a click, because a
+  control chooses what the button will run.
+- `check.mjs` needed no change: it only ever required `drive.frames > 0` and no
+  `shown=`.
+
+Proved end to end rather than assumed: setting `against` to `risk` at 60/30
+yields six frames of ease whose middle frame prints `= 73%` — a denominator
+genuinely mid-flight, which no settled state can reach — settling to `60% ÷ 30%`
+22 frames later.
+
+**All 78 pre-existing fingerprint states MATCH** after all four core changes
+(`tokens.css`, `env.js`, `controls.js`, and the harness). Widget 12 is still
+unbaselined, deliberately: the order of work puts baselining after the design is
+agreed, and this round changed the design.
+
+### Round twelve: why anyone runs a case-control, and prose that names the quantity
+
+**"The case-control panel still doesn't explain why you'd ever do one."** Fair,
+and the tab creates the problem itself: it spends its whole space showing that a
+case-control's death rate is set by the enrolment ratio and its risk ratio
+estimates nothing, so a reader who stops there concludes — reasonably, and
+wrongly — that nobody should run one. That is the opposite of what `05-05` needs,
+where students are handed odds ratios from case-control studies and logistic
+regressions for the rest of their careers.
+
+**One line each, as a pair rather than as a defence.** The limitation sits on the
+design that has it and the remedy sits opposite at the same baseline, so it reads
+across:
+
+| | |
+|---|---|
+| COHORT · recruit by exposure, then wait | *a rare outcome needs a very large cohort* |
+| CASE-CONTROL · recruit by outcome, then look back | *you enrol the cases directly, however rare* |
+
+The other reasons — long latent periods, cost, many exposures against one
+outcome — are prose and belong in the lesson. This is the one the figure's own
+counts already support: 200 followed to observe 40 deaths, against 40 enrolled
+straight away.
+
+**A limitation to name rather than hide (5.6):** the widget *states* this and
+cannot *demonstrate* it. Its own cohort is 200 people with a 20% death rate,
+where a cohort is perfectly feasible. Demonstrating it needs a base rate low
+enough that a cohort is impossible, which is a fourth control on a widget already
+told three times it has too many.
+
+### Round twelve, part two: the copy names the quantity
+
+**Reported directly:** *don't use words like budget etc… please don't mix
+metaphors. use statistical language where possible and don't editorialize. use
+the simplest way to explain intuitively.*
+
+That killed "a fact about your budget", which was **added in round eleven** —
+a metaphor doing a statistician's job. The quantity has a name. The pair is now:
+
+| | |
+|---|---|
+| cohort | *you counted this — it is the incidence* |
+| case-control | *you set this — it is controls per case* |
+
+37 characters each, measured: every version that ran to 43 wrapped with a single
+word underneath. Same fix for *"the cohort does not know who dies"* — a study
+design does not know things — now *"the outcome has not been observed yet, which
+at recruitment is true of the cohort and not of the case-control"*; and for the
+readout's *"your controls-per-case ratio, nothing else"*, where "nothing else"
+was a verdict rather than a mechanism.
+
+### Round twelve, part three: the enrolment ratio, researched rather than guessed
+
+Asked whether the notches should become 2:1 · 1:1 · 1:2, and whether real studies
+use one control per case or more.
+
+**They stay 1:1 · 1:2 · 1:4, and the literature is the reason.** 1:1 is the
+textbook default — for a fixed TOTAL sample, equal groups maximise power. Above
+it you fix the cases and add controls, and precision reaches about `r/(r+1)` of
+what unlimited controls would give: **50%, 67%, 75%, 80%** at 1, 2, 3, 4, which is
+the plateau the classical ceiling of four comes from (Ury 1975; Taylor 1986).
+**Below 1:1 is not a design anyone runs** — cases are the scarce half and controls
+the cheap one — so a 2:1 notch would teach a study students will never meet. (The
+one real exception: large-scale genetic association studies use 10+ controls per
+case, because their significance threshold is extreme enough that the plateau does
+not bind. Not PHM5003 material.)
+
+**What the question really found is that the control is inert at the opening
+table**, and necessarily so:
+
+| | 1:1 | 1:2 | 1:4 |
+|---|---|---|---|
+| 20 / 20 — the default | RR 1.00 · OR 1.00 | 1.00 · 1.00 | 1.00 · 1.00 |
+| 40 / 20 | RR 1.64 · OR 2.62 | **1.96** · 2.71 | 2.20 · 2.66 |
+| 60 / 30 | RR 1.87 · OR 3.45 | 2.32 · 3.54 | 2.71 · 3.50 |
+
+With no effect every enrolment gives 1.00 and only the death rate moves. Once
+there IS an effect the existing three notches already cross the truth — the swing
+was never missing, it was gated behind making an effect first. So the notches did
+not change and **the detail lines now carry the efficiency in numbers**, which
+means the control teaches something even at the opening table where it moves no
+ratio at all.
+
+### Round thirteen: a copy sweep, and paragraphs became lines
+
+**"Looks like a wall of text."** It was: the design tab's closing copy ran four
+sentences across five wrapped lines, and nothing in a wrapped paragraph tells the
+eye where one claim ends and the next begins — so a reader takes all of it or
+none. Every explanatory block is now **one claim per line**, via a `textBlock`
+helper that also takes an empty string as a half-height gap. The constraint is
+its own editor: a claim that will not fit one line is too long.
+
+The design tab's rest state was a key all along, so it is shaped like one:
+
+| before | after |
+|---|---|
+| four sentences, 4 wrapped lines, ending "Press Run both studies." | `Two studies of the same source population. Neither one is the population.`<br>`Heavy box = a group the investigator recruited — a count chosen, not measured.`<br>`Grey = the outcome is not yet observed. At recruitment, that is the cohort only.`<br>`Steps 1 and 2 are the order you did things, not the order they happened.`<br>*(gap)*<br>`Press Run both studies.` |
+
+And the case-control caption became four aligned rows — `Enrolled:` /
+`Death rate:` / `Risk ratio:` / `Odds ratio:` — so the three quantities can be
+read against each other instead of extracted from a paragraph.
+
+### Round thirteen, part two: every editorial tail cut
+
+A sweep of all on-screen copy against principle **2.9**. Four captions ended with
+the widget admiring its own point, and cutting them cost no information:
+
+| cut | from |
+|---|---|
+| *"That is the odds scale showing you its edge."* | everyone died in both arms |
+| *"and this is where that stops being an abstraction"* | one arm with no survivors |
+| *"That gap is what 'the odds ratio overstates' means…"* | the main cohort claim |
+| *"and you choose which"* | the case-control claim |
+
+Four more were verdicts or personification rather than mechanism:
+
+| was | now |
+|---|---|
+| NOT AN ESTIMATE OF ANYTHING — the population's is 2.00 | does not estimate the population's 2.00 |
+| estimates the population's 2.67 — this is the one you can report | estimates the population's 2.67 |
+| effect that is not there | more effect than the risk ratio shows |
+| The risk ratio **followed you** … the odds ratio **did not follow you** | Risk ratio: 2.00 in the population, 1.64 here … Odds ratio: 2.67, 2.62 here |
+
+Two more went for redundancy rather than tone. *"That is the whole difference"*
+is the paragraph talking about itself; and *"only one of the two death rates
+below is a finding"* is now said per panel, attached to the number it is about,
+so repeating it in the closing block bought nothing. The reading-order note moved
+into the key, where a legend's facts belong.
+
+Also unified: the calculation tab's strip said *"start with the exposure, then
+wait"* where the design tab said *"recruit by exposure, then wait"* — one study,
+one vocabulary (5.8 applied to words).
+
+**Swept: 616 calculation states and 330 design states** (165 of them genuinely at
+rest, with a Reset between) at the 550px canvas — zero overflows, zero
+collisions, nothing leaving its own panel. Deepest 709 against 718, and 476
+against 512.
 
 ### The mock-ups, and one retired
 
