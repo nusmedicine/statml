@@ -178,6 +178,20 @@
       ],
       "arc": 12,
       "status": "shipped"
+    },
+    {
+      "slug": "generalization",
+      "title": "Fitting and Generalizing",
+      "blurb": "Every parameter you add fits your own patients better and generalizes worse.",
+      "course": "PHM5005",
+      "topics": [
+        "overfitting",
+        "cross-validation",
+        "generalization",
+        "model selection"
+      ],
+      "arc": 13,
+      "status": "draft"
     }
   ]
 }

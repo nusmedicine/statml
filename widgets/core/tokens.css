@@ -125,6 +125,20 @@
      rather than taking a series slot, because it is not a series. */
   --c-unknown:   var(--ink-3);       /* not measured yet, not a third outcome */
 
+  /* DATA SET ASIDE, AND SCORED EXACTLY ONCE, AT THE END. Red because a test set
+     is the one partition a reader must not touch while working, and red is the
+     collection's colour for "this is the line you do not cross" — it already
+     carries --c-extreme, past a threshold, and --c-event, the outcome nobody
+     wants. A held-out test set is the same kind of thing: consequential, and
+     spent when you use it.
+
+     Added rather than borrowed. The train/test distinction is not an extreme
+     value and not an outcome, so reaching for either of those roles would have
+     meant a colour that says something the figure does not. It also will not
+     stay a one-widget need: every widget in the PHM5005 arc that splits data
+     has this same partition to name. */
+  --c-holdout:   var(--series-8);    /* set aside, and scored once at the end */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

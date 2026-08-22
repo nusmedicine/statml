@@ -120,6 +120,7 @@ export function readTokens() {
     event: v("--c-event"),
     nonevent: v("--c-nonevent"),
     unknown: v("--c-unknown"),
+    holdout: v("--c-holdout"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),
