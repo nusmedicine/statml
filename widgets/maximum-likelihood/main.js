@@ -547,27 +547,9 @@ defineWidget({
        `leadHint` says what is waiting on it. */
     leadLabel: "Draw the counts",
     leadTitle: "Draw your counts out of the distribution they come from — the only time you will ever see it",
-    leadHint: "The other two wake up once you have counts to score.",
-    /* NAMED PER TAB, because "Step" was the only step button in the collection
-       that did not say what pressing it does — it was core's generic fallback
-       showing through. The action genuinely differs by tab, which is exactly
-       what the {param, labels, default} form is for and what `bayesian` and
-       `probability-mechanisms` already use. `reserveWidth` measures every label
-       in the set, so the row does not resize when the tab changes. */
-    stepLabel: {
-      param: "estimate",
-      labels: { mean: "Try a mean", disp: "Try a size", both: "Climb one step" },
-      default: "Try a mean",
-    },
-    stepTitle: {
-      param: "estimate",
-      labels: {
-        mean: "Score the next candidate mean against your counts",
-        disp: "Score the next candidate size, with the mean held where the first tab left it",
-        both: "Take the next move of the climb, one parameter at a time",
-      },
-      default: "Try the next candidate",
-    },
+    leadHint: "Step and Play wake up once you have counts to score.",
+    stepLabel: "Step",
+    stepTitle: "Try the next candidate, or take the next move of the climb",
     runLabel: "Play",
     runTitle: "Run the rest of it",
 

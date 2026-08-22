@@ -864,11 +864,7 @@ defineWidget({
        reached yet on screen as hollow rings. */
     leadLabel: "Draw the counts",
     leadTitle: "Deal your whole sample at once",
-    /* "THE OTHER TWO", NOT "STEP AND PLAY". The step button here reads "Add a
-       count" or "Propose a move" depending on the tab, so a hint naming Step
-       pointed at a button that does not exist on screen. A hint may name the
-       buttons it is about only when their labels are fixed. */
-    leadHint: "The other two wake up once you have counts to work through.",
+    leadHint: "Step and Play wake up once you have counts to work through.",
 
     /* THE FOURTH TAB DRIVES A DIFFERENT NOUN, so the label follows the tab.
        Three tabs advance the DATA by one observation and the sampler advances

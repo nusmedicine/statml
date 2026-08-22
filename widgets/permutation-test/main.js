@@ -291,7 +291,6 @@ defineWidget({
   animation: {
     leadLabel: "Observe",
     leadTitle: "Observe the real study, once — the data you actually collected",
-    leadHint: "Shuffle and Play wake up once you have a study to shuffle.",
     stepLabel: "Shuffle",
     stepTitle: "Pool every observation and deal the group labels back at random",
     runLabel: "Play",

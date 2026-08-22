@@ -289,11 +289,6 @@ defineWidget({
        that difference in the buttons does not confuse the two loops. */
     leadLabel: "Sample",
     leadTitle: "Draw your one sample from the population — in real life you only ever get to do this once",
-    /* WITHOUT THIS, TWO DEAD BUTTONS AND NO REASON. The lead greying out once
-       used is the teaching; the other two greying out BEFORE it is used is not,
-       and a reader cannot tell a control that is waiting from one that is
-       broken. Three of the five lead-gated widgets said so and two did not. */
-    leadHint: "Resample and Play wake up once you have drawn your sample.",
     stepLabel: "Resample",
     stepTitle: "Resample your own sample, with replacement — the population is out of reach now",
     runLabel: "Play",
