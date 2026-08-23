@@ -6,10 +6,10 @@
 `linear-regularization` (arc 14). Both are listed at `/lab/` and neither is on
 the gallery.
 
-**Twelve commits are unpushed.** `main` is ahead of `origin/main`, and every push
+**Sixteen commits are unpushed.** `main` is ahead of `origin/main`, and every push
 publishes immediately with no staging step — which is what makes `npm run check`
 before committing load-bearing rather than tidy. Nothing in them is risky: every
-`widgets/core/` change was verified with a full suite run. But it is twelve at
+`widgets/core/` change was verified with a full suite run. But it is sixteen at
 once, so read them before pushing.
 
 **105 fingerprint states, and each now carries TWO hashes.** See *Verifying
@@ -22,45 +22,124 @@ npm run check    # before every commit
 
 ---
 
-## NEXT: pick a matrix placement, then finish widget 14
+## NEXT: two tweaks to widget 14, both decided, neither built
 
-The core work for a clickable correlation matrix is **done, committed and
-verified**. What is left is one layout decision and then a single widget change.
+Kenneth reviewed the widget with the matrix in and raised three things. Two are
+decided and **neither is started**; the third was researched and needs no change,
+which is recorded below so it is not reopened.
 
-**The decision.** `widgets/_lab/linreg-matrix.html` mocks four placements, all
-live — the matrices are clickable, which is the half no screenshot can judge.
+### 1. The equation's terms — go with T4
 
-| | matrix | plane & predictions | cost |
-|---|---|---|---|
-| **M1** beside the bars | 150px | **221px, unchanged** | bars lose a third of their width |
-| **M2** third panel in the row | 147px | 147px | plane drops 228 → 147 |
-| **M3** replaces the predictions | 221px | plane 221px | the scatter goes behind a toggle |
-| **M4** its own strip | 132px | **221px, unchanged** | widget grows 438 → **603px** |
+Decided. `widgets/_lab/equation-terms.html` mocks five ways of writing a term,
+all at the widget's real 546px block width, and **T4** is the choice:
 
-**M1 is the recommendation**: the only option that costs nothing anyone is
-looking at. What gives way is bar-chart width, and the bars are thirteen short
-columns whose information is vertical.
+    + 0.78 × z_Age    rather than    +0.78z(Age)
 
-**Then the widget change**, which is one commit:
+Three changes to `equationHTML` in `widgets/linear-regularization/main.js`:
 
-1. A `regions` function returning the 13×13 grid, one cell per ordered pair.
-2. The `pair` parameter becomes a `select` over 156 ordered pairs, grouped by the
-   x variable — thirteen `<optgroup>`s of twelve. That dropdown is the keyboard
-   and screen-reader path to the same parameter a cell sets; the matrix is a
-   faster way to reach it, never the only way.
-3. At least one `drive: { hit: [x, y] }` fingerprint state, which `check.mjs`
-   now requires of any non-draft widget declaring `regions`.
+1. `form="infix"` on the leading `<mo>` sign.
+2. `<msub><mi>z</mi><mi mathvariant="normal">Age</mi></msub>` instead of
+   `z<mo>(</mo>…<mo>)</mo>`.
+3. `<mo>&#xD7;</mo>` instead of the invisible-times `<mo>&#x2062;</mo>`.
 
-The matrix is drawn **unlabelled** in the mock-up, on purpose: thirteen row names
-plus thirteen rotated column names cost more room than the grid itself, and the
-readout already names the pair. What the grid has to carry is the *texture* —
-dark is correlated is long contours. Whether that reads without labels is the
-main thing to judge.
+**Why it looks messy today, because the cause is not obvious.** The equation is
+one `<math>` per term — it has to be, since a single `<math>` does not
+line-break — which makes each leading `+`/`−` the *first child of its row*. MathML
+then sets it as a **prefix** operator, unary minus, with no spacing, instead of
+infix. `form="infix"` restores **7.1px per term**, measured. That one attribute
+is most of the difference; the subscript and the explicit `×` are the rest.
 
-Worth knowing: the four-way slider it replaces reaches elongations 1.09–4.77:1.
-The matrix reaches **Weight/Hip at 5.73:1** and **Age/Weight at 1.01:1**, where
-the contours are so nearly circular that the diamond and the circle become the
-same shape — the case where the whole L1-versus-L2 distinction stops mattering.
+Measured at 546px: T4 needs three lines at thirteen terms, the same as today, so
+it costs no extra height. T5 (parentheses plus a dot) needed four and is out.
+
+Update `plainEquation` to match, or the fallback and the MathML will disagree.
+
+### 2. Mock up the matrix in the RAIL
+
+Not decided — Kenneth asked to see it. Right now the matrix is on the canvas
+(placement M1, beside the bars), and the honest position is that **the repo's own
+rule points the other way**: the rail is what you SET and the stage is what you
+SEE, and the matrix is a control.
+
+The trade, both directions:
+
+- **In the rail (DOM):** keyboard- and screen-reader-operable for free, and needs
+  none of the canvas hit-testing. Costs a new *interactive* control type in core
+  — the `readback` that exists is deliberately inert — and the rail is excluded
+  from the text hash on purpose, so it would sit outside both fingerprint checks.
+- **On the canvas (today):** inside the pixel hash, and bigger — 150px against a
+  13×13 grid squeezed into a 250–300px rail. Its texture is teaching content, not
+  only a picker, which is the one real argument for treating it as a figure.
+
+The hit-testing is not wasted either way: SVM's support vectors and the tree
+widget's nodes are figure-native and cannot move to the rail.
+
+Mock both side by side and let him choose, as with every other layout decision.
+
+### 3. Predicted on which axis — CHECKED, and the widget is already right
+
+Kenneth's instinct was that predicted belongs on y. **It does not — leave the
+widget alone.** This was researched rather than argued from convention, and the
+answer is one-sided.
+
+**scikit-learn, which is what the course teaches and what `04-3` uses.**
+`PredictionErrorDisplay` with `kind="actual_vs_predicted"`, in
+`sklearn/metrics/_plot/regression.py`:
+
+    x_data, y_data = self.y_pred, self.y_true
+    xlabel, ylabel = "Predicted values", "Actual values"
+
+The name reads *Y vs X*, not left-to-right. Its sibling `residual_vs_predicted`
+shares that x-axis, so the two panels sklearn draws side by side line up —
+flipping ours breaks the correspondence with the notebook's own figure.
+
+**Everywhere else the course touches.** caret's `plotObsVsPred` is `obs ~ pred`
+with `xlab = "Predicted"` — Kuhn's own package. Harrell's `val.prob` is
+`xlab = "Predicted Probability"`. Clinical calibration plots are universally
+predicted-risk on x against observed proportion on y, which is the figure these
+students will meet again and again. R's `plot(lm)` has no observed-vs-fitted
+panel at all, but every panel it does have puts fitted on x.
+
+**And there is a real argument, not just a head-count.** Residual = observed −
+predicted. With predicted on x, the signed vertical gap from a point down to the
+`y = x` line **is** the residual: above the line means the model under-predicted.
+Flip the axes and the vertical gap becomes *predicted − observed*, so every
+statement about over- and under-prediction inverts relative to what "residual"
+means everywhere else in the course. The residual plot is this plot with the
+`y = x` line straightened to horizontal, and that only reads if both share
+predicted on x.
+
+Second: for a calibrated model `E[observed | predicted] = predicted`, so a
+smoother through the cloud should sit on `y = x`. The reverse conditional is not
+— shrinkage makes the cloud flatter than 45°, which is regression to the mean
+rather than a model defect. Piñeiro et al., *Ecological Modelling* 216(3), 2008,
+1000+ citations, concludes observed-on-y against predicted-on-x for exactly this
+reason: r² is the same either way, but slope and intercept are not.
+
+**The dissent is real but thin**: tidymodels puts predicted on y — the same
+author as caret, disagreeing with himself — and no source found offers a
+*statistical* argument for it. It is habit: predicted is what the procedure
+produced, so it feels like output.
+
+If it still looks wrong on screen, the fix is the axis labels or a caption, not
+the orientation.
+
+---
+
+## Then: fingerprint states and shipping
+
+Widget 14 still carries none, deliberately — baselining waits until the design
+stops moving, and it has moved three times in one session. When it settles:
+
+1. Two or three settled states. It declares no `animation` and no `shown`, so a
+   URL alone settles it.
+2. **At least one `drive: { hit: [x, y] }` state.** `check.mjs` demands one of any
+   non-draft widget declaring `regions`, because a `set` state reaches its
+   parameter through the DOM control and gives the hit geometry no coverage — and
+   no pixel hash can see that geometry either.
+3. Flip `status` to `shipped` in `manifest.json` **and** `main.js`.
+4. Mark it shipped in `docs/catalogue.md`.
+5. **Judge it projected.** Never done for widgets 11, 12, 13 or 14.
 
 ---
 
@@ -100,24 +179,31 @@ algorithms. They are four settings of one objective, which the notebook prints
 two lines above that table.
 
 Two dials on a shared ladder, a readback in the rail naming which of the four you
-are in, the fitted equation as MathML above the figure, thirteen coefficient
-bars, a conditional-slice coefficient plane, and a predicted-against-measured
-panel.
+are in, the fitted equation as MathML above the figure, thirteen coefficient bars
+beside a clickable 13×13 correlation matrix, a conditional-slice coefficient
+plane, and a predicted-against-measured panel. Height 438, no animation, no
+seed, no `shown`.
 
-### What remains before it ships
-
-1. The matrix placement above, then the widget change.
-2. **Fingerprint states.** Two or three settled, plus a `hit` state once the
-   matrix lands. It declares no `animation`, so it needs no driven state.
-3. Flip `status` to `shipped` in `manifest.json` **and** in `main.js` — `check`
-   asserts they agree.
-4. Mark it shipped in `docs/catalogue.md`.
-5. **Judge it projected.** Never done for widgets 11, 12, 13 or 14.
+What remains is the three tweaks at the top of this file, then the shipping steps
+under *Then*.
 
 ### The design decisions, so they are not re-argued
 
 - **Layout D2**, chosen from a four-way mock-up: equation on top, bars full
   width, then the plane and the predictions as two squares of equal standing.
+- **The matrix is placement M1**, chosen from four: beside the bars, so the two
+  panels keep 221px and the widget keeps its height. What gives way is bar-chart
+  width, which the bars can afford because they are thirteen short columns whose
+  information is vertical. **Unlabelled on purpose** — thirteen row names plus
+  thirteen rotated column names cost more room than the grid, and the readout
+  already names the pair. What it carries is the texture.
+- **All 156 ordered pairs, not 78.** `(i, j)` and `(j, i)` are the same two
+  measurements with the axes swapped, and which is horizontal is a real
+  difference on screen. The four-pair slider it replaced reached elongations
+  1.09–4.77:1; the matrix reaches 1.01:1 (Age against Weight, r = 0.013 —
+  contours so nearly circular that the diamond and the circle become the same
+  shape, which is the case where the L1/L2 distinction stops mattering) and
+  5.73:1 (Weight against Hip). Neither end was reachable before.
 - **The readback sits in the rail, not on the figure.** It reports the two dials
   directly above it, and 2.7 puts a reading next to what produced it. On the
   canvas it also painted over the Forearm and Wrist bars and only looked clear
