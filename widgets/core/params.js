@@ -118,6 +118,9 @@ export function optionEntries(field) {
         }
     );
   }
+  /* The object-map form carries no `group` and cannot: an object is a map from
+     value to label with nowhere to hang a third field. A widget that wants
+     grouping declares the array form. */
   return Object.entries(o).map(([value, label]) => ({ value, label }));
 }
 

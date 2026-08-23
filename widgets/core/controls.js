@@ -399,11 +399,32 @@ function build(host, spec, values, onChange, api) {
       const select = document.createElement("select");
       select.id = id;
       select.dataset.param = name;
-      for (const { value, label: text2 } of optionEntries(field)) {
+      /* CONSECUTIVE OPTIONS SHARING A `group` BECOME AN <optgroup>, the same
+         declaration the segmented branch already reads and the same rule — a
+         run, not a lookup, so the spec's order is the rendered order.
+
+         Earned by the correlation matrix: thirteen measurements make 156 ordered
+         pairs, and the dropdown is the keyboard and screen-reader path to the
+         same parameter the matrix sets. A flat list of 156 is technically
+         operable and practically not; thirteen groups of twelve is. Ungrouped
+         options are appended straight to the select, so every existing widget
+         renders byte-identically. */
+      let run = null;
+      for (const { value, label: text2, group } of optionEntries(field)) {
         const opt = document.createElement("option");
         opt.value = value;
         opt.textContent = text2;
-        select.appendChild(opt);
+        if (group === undefined) {
+          run = null;
+          select.appendChild(opt);
+          continue;
+        }
+        if (!run || run.key !== group) {
+          run = { key: group, el: document.createElement("optgroup") };
+          run.el.label = group;
+          select.appendChild(run.el);
+        }
+        run.el.appendChild(opt);
       }
       select.value = values[name];
       select.addEventListener("change", () => onChange(name, select.value));
