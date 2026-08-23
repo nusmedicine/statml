@@ -192,6 +192,21 @@
       ],
       "arc": 13,
       "status": "draft"
+    },
+    {
+      "slug": "linear-regularization",
+      "title": "Linear Models and Regularization",
+      "blurb": "One objective, two penalty dials. Only the diamond has corners, and only a corner sets a coefficient to exactly zero.",
+      "course": "PHM5005",
+      "topics": [
+        "linear regression",
+        "regularization",
+        "ridge",
+        "lasso",
+        "elastic net"
+      ],
+      "arc": 14,
+      "status": "draft"
     }
   ]
 }
