@@ -121,6 +121,36 @@ const { makeRng } = await import(join(root, "widgets/core/rng.js"));
   ok("pile: seeded reproducibly, axis monotone, rebuild matches push sequence");
 }
 
+const { hitTest } = await import(join(root, "widgets/core/canvas.js"));
+
+/* --- hitTest: the arithmetic no pixel hash can see ---------------------- *
+ * A canvas click is the one interaction a fingerprint cannot cover: the picture
+ * hashes identically whether the target is in the right place or six columns
+ * off. So the geometry is pure, DOM-free, and asserted here instead. */
+
+{
+  const cell = (i, j) => ({ x: 10 + j * 20, y: 40 + i * 20, w: 20, h: 20, set: { pair: `${i}-${j}` } });
+  const grid = [];
+  for (let i = 0; i < 3; i += 1) for (let j = 0; j < 3; j += 1) grid.push(cell(i, j));
+
+  const at = (x, y) => hitTest(grid, x, y)?.set.pair ?? null;
+  if (at(15, 45) !== "0-0") fail("hitTest: missed the first cell");
+  if (at(55, 85) !== "2-2") fail("hitTest: missed the last cell");
+  if (at(9.9, 45) !== null) fail("hitTest: matched left of the grid");
+  if (at(70, 45) !== null) fail("hitTest: matched right of the grid");
+  if (at(15, 39.9) !== null) fail("hitTest: matched above the grid");
+  if (at(15, 100) !== null) fail("hitTest: matched below the grid");
+  /* Half-open on both axes, so neighbouring cells cannot both claim a pixel. */
+  if (at(30, 60) !== "1-1") fail("hitTest: a shared edge went to the wrong cell");
+  if (at(29.99, 59.99) !== "0-0") fail("hitTest: a shared edge went to the wrong cell");
+  /* Declared in drawing order, so something drawn later claims the click the
+     same way it claims the pixels. */
+  const over = [...grid, { x: 0, y: 0, w: 200, h: 200, set: { pair: "overlay" } }];
+  if (hitTest(over, 15, 45).set.pair !== "overlay") fail("hitTest: an overlay did not win");
+  if (hitTest([], 1, 1) !== null) fail("hitTest: an empty list matched");
+  ok("hitTest: half-open bounds, last match wins, misses return null");
+}
+
 /* --- rng: seeded, deterministic ---------------------------------------- */
 
 {
@@ -205,6 +235,7 @@ const baseline = JSON.parse(
 const slugs = new Set(manifest.widgets.map((w) => w.slug));
 const settled = new Set();
 const driven = new Set();
+const hitDriven = new Set();
 
 /* Which widgets BUILD THEMSELVES — those declaring a `shown` parameter, the
    authored head start that says how far in to open. Only those can be caught
@@ -233,6 +264,8 @@ for (const s of baseline.states) {
       fail(`fingerprint baseline: driven state "${s.state}" also sets shown=, so nothing is in flight`);
     }
     driven.add(s.slug);
+    const steps = [s.drive, ...(s.drive.before ?? [])];
+    if (steps.some((d) => Array.isArray(d?.hit))) hitDriven.add(s.slug);
   } else {
     /* A settled state left animating would hash differently every run, and
        `shown=` is what pins a self-building figure to a definite point.
@@ -275,6 +308,17 @@ for (const w of manifest.widgets) {
     fail(
       `fingerprint baseline: widget "${w.slug}" declares an animation but has no driven state — ` +
         `its mid-animation rendering is untested`
+    );
+  }
+  /* The same rule for clickable regions, and for a sharper reason. A driven
+     `set` state reaches the parameter through its DOM control, which routes
+     around the region map entirely — so a widget can declare `regions`, have
+     every target in the wrong place, and still hash MATCH on every state. The
+     picture is identical either way. Only a `hit` state exercises the geometry. */
+  if (/\bregions\s*:/.test(main) && !hitDriven.has(w.slug)) {
+    fail(
+      `fingerprint baseline: widget "${w.slug}" declares clickable regions but has no hit-driven ` +
+        `state — its hit-test geometry is untested, and no pixel hash can see it`
     );
   }
 }

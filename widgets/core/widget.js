@@ -123,9 +123,9 @@
    drawn. If a widget has no binning-dependent animation state it can omit it.
    ========================================================================= */
 
-import { resolveParams, syncUrl, toQuery } from "./params.js";
+import { resolveParams, syncUrl, toQuery, optionKeys } from "./params.js";
 import { buildControls, buildActions, gatingParams } from "./controls.js";
-import { createCanvas } from "./canvas.js";
+import { createCanvas, hitTest } from "./canvas.js";
 import { makeRng } from "./rng.js";
 import {
   readTokens, resolveTheme, isEmbedded, reportHeight, onThemeChange,
@@ -185,6 +185,21 @@ export function defineWidget(config) {
     legend = [],
     compute = () => ({}),
     draw,
+    /**
+     * Clickable targets on the canvas: `({ w, h, params, state }) => [{ x, y, w,
+     * h, set: { param: value }, label }]`, in drawing coordinates.
+     *
+     * NOT built inside `draw()`. `draw()` runs on every animation frame and a
+     * region list rebuilt there is per-frame work that paints nothing; this is
+     * called lazily, at click and hover time, from `surface.width/height` —
+     * which ARE the `w`/`h` the last `draw()` was handed, so the map and the
+     * picture agree without either caching the other.
+     *
+     * It is deliberately not handed `colors` or `anim`. A target that could move
+     * with the theme, or with how far an animation has run, would drift away
+     * from the picture; unrepresentable beats documented (5.3).
+     */
+    regions = null,
     readout = null,
     /**
      * A one-sentence description of what the figure currently shows, recomputed
@@ -438,6 +453,66 @@ export function defineWidget(config) {
     rebuild: (next) => { controlsMain.rebuild(next); controlsAfter?.rebuild(next); },
     refresh: (next) => { controlsMain.refresh(next); controlsAfter?.refresh(next); },
   };
+
+  /* --- clickable regions on the canvas ----------------------------------- *
+   * A region resolves a pixel to an IDENTITY and hands it to the same door a
+   * widget uses for any external write, which syncs the control and then goes
+   * through `setParam`. No selection variable, no second state of record: the
+   * URL and the rail move exactly as if the reader had used the dropdown.
+   *
+   * EXACTLY ONE PARAMETER PER REGION, checked at load. Two would paint an
+   * intermediate state nobody asked for, write the URL twice, and — the reason
+   * that matters — make the click a DIFFERENT transaction from the one a
+   * fingerprint state performs, so the harness would be verifying a sequence
+   * the reader never takes. A pair of variables is one parameter here, not two.
+   */
+  function setFromRegion(name, value) {
+    controls.sync(name, value);
+    setParam(name, value);
+  }
+
+  if (regions) {
+    /* VALIDATED AT LOAD, LOUDLY, not at click time and leniently. A region table
+       can be wrong in exactly two ways — a parameter that does not exist and a
+       value that is not one of its options — and both are code defects, so they
+       throw where every other driver in this repo throws. Coercing them into
+       the default instead would turn a click that does the wrong thing into a
+       click that quietly does something else. */
+    const probe = regions({ w: surface.width, h: surface.height, params: { ...values }, state });
+    for (const r of probe ?? []) {
+      const keys = Object.keys(r.set ?? {});
+      if (keys.length !== 1) {
+        throw new Error(`region "${r.label ?? "?"}" sets ${keys.length} parameters; exactly one is allowed`);
+      }
+      const [name] = keys;
+      const field = spec[name];
+      if (!field) throw new Error(`region "${r.label ?? "?"}" sets unknown parameter "${name}"`);
+      if (["select", "choice", "segmented"].includes(field.type)
+        && !optionKeys(field).includes(r.set[name])) {
+        throw new Error(`region "${r.label ?? "?"}" sets "${name}" to "${r.set[name]}", which is not one of its options`);
+      }
+    }
+
+    const at = (ev) => {
+      const p = surface.pointAt(ev);
+      if (!p) return null;
+      return hitTest(
+        regions({ w: surface.width, h: surface.height, params: { ...values }, state }) ?? [],
+        p.x, p.y
+      );
+    };
+    surface.canvas.addEventListener("pointerdown", (ev) => {
+      const r = at(ev);
+      if (!r) return;
+      ev.preventDefault();
+      const [name] = Object.keys(r.set);
+      setFromRegion(name, r.set[name]);
+    });
+    /* The only thing that says a figure can be clicked at all. */
+    surface.canvas.addEventListener("pointermove", (ev) => {
+      surface.canvas.style.cursor = at(ev) ? "pointer" : "default";
+    });
+  }
 
   /* --- animation -------------------------------------------------------- */
 

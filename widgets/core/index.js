@@ -6,7 +6,7 @@ export {
   POPULATIONS, EFFECT_SD, normalPdf, studentTPdf, tCritical, tTailP, Z_CRITICAL_95,
   mean, sd, histogram, fmt, sci, sup, lgamma, nbLogPmf, nbPmf, nbDraw,
 } from "./stats.js";
-export { makePlot, niceTicks, tickFormat, samplePdf, createCanvas, spanningRule } from "./canvas.js";
+export { makePlot, niceTicks, tickFormat, samplePdf, createCanvas, spanningRule, hitTest } from "./canvas.js";
 export { readTokens, resolveTheme, isEmbedded } from "./env.js";
 export {
   createPile, barMixFor, smoothMixFor, niceCeil, binsFor,

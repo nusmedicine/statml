@@ -49,7 +49,49 @@ export function createCanvas(host, height) {
     get width() { return w; },
     get height() { return h; },
     clear() { ctx.clearRect(0, 0, w, h); },
+
+    /**
+     * A pointer event in DRAWING coordinates — the space `draw()` paints in.
+     *
+     * SCALED AGAINST THE ELEMENT'S OWN BOX, NEVER AGAINST devicePixelRatio.
+     * `ctx.setTransform(dpr, …)` above already makes one drawing unit one CSS
+     * pixel, so `canvas.width / rect.width` IS the dpr — multiplying by it puts
+     * the click in device pixels, a factor of two out on a retina screen. That
+     * trap is silent: the click still lands on a real target, just the wrong one.
+     *
+     * THE TWO FACTORS ARE COMPUTED SEPARATELY, and that is not tidiness. The
+     * element is `width: 100%` with its height pinned in px by `resize`, so a
+     * host that has been widened but not yet repainted — the ResizeObserver in
+     * widget.js debounces by 60ms — is showing the last frame stretched in x and
+     * not at all in y. One shared factor would be right only when nothing has
+     * moved; two are right always.
+     */
+    pointAt(ev) {
+      const r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      return {
+        x: (ev.clientX - r.left) * (w / r.width),
+        y: (ev.clientY - r.top) * (h / r.height),
+      };
+    },
   };
+}
+
+/**
+ * The region under a point, or null. LAST MATCH WINS, which is the z-order the
+ * figure already has: regions are declared in drawing order, so something drawn
+ * over a cell claims the click the same way it claims the pixels.
+ *
+ * Pure and DOM-free on purpose. The arithmetic is the one part of a canvas click
+ * that no pixel hash can see, so it is the part that gets an assertion in
+ * `npm run check` instead.
+ */
+export function hitTest(regions, x, y) {
+  let found = null;
+  for (const r of regions) {
+    if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) found = r;
+  }
+  return found;
 }
 
 /* --- scales & ticks ------------------------------------------------------ */
