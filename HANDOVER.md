@@ -6,11 +6,20 @@
 `linear-regularization` (arc 14). Both are listed at `/lab/` and neither is on
 the gallery.
 
-**Sixteen commits are unpushed.** `main` is ahead of `origin/main`, and every push
-publishes immediately with no staging step — which is what makes `npm run check`
-before committing load-bearing rather than tidy. Nothing in them is risky: every
-`widgets/core/` change was verified with a full suite run. But it is sixteen at
-once, so read them before pushing.
+**Everything is committed and pushed**, so the twenty commits that were sitting
+on `main` are live at <https://nusmedicine.github.io/statml/>. There is no staging
+step, which is what makes `npm run check` before committing load-bearing rather
+than tidy, and GitHub Pages sends `max-age=600`, so a student can get a stale
+widget for ten minutes after a deploy.
+
+The last five are one change each, and their messages carry the reasoning rather
+than this file:
+
+    f095d5e  Let widget 14's panels fill the row, and align the equation
+    1dd52d0  Mock up how wide widget 14's two panels go
+    af8c597  Give core a matrix control, and put widget 14's grid in the rail
+    43344b9  Mock up the correlation matrix in the rail
+    69cf912  Write widget 14's equation terms as T4
 
 **105 fingerprint states, and each now carries TWO hashes.** See *Verifying
 changes* below — this is the biggest single change to how the repo checks itself.
@@ -22,61 +31,145 @@ npm run check    # before every commit
 
 ---
 
-## NEXT: two tweaks to widget 14, both decided, neither built
+## NEXT: widget 15 — logistic regression, as a linear model with a link
 
-Kenneth reviewed the widget with the matrix in and raised three things. Two are
-decided and **neither is started**; the third was researched and needs no change,
-which is recorded below so it is not reopened.
+Agreed with Kenneth as the next build. **Nothing is designed yet**, so this
+section is the ground rather than the plan: what the host lesson does, what the
+numbers are, what the misconception is, and what has already been decided
+elsewhere and must not be re-argued.
 
-### 1. The equation's terms — go with T4
+### The host lesson, read
 
-Decided. `widgets/_lab/equation-terms.html` mocks five ways of writing a term,
-all at the widget's real 546px block width, and **T4** is the choice:
+`../jupyterbook/phm5003/notebook/04 - Introduction to Statistical Computing Part 2/05-05 - Modeling - Categorical Outcome.ipynb`
+— nineteen cells, and it opens on the framing the widget has to carry:
 
-    + 0.78 × z_Age    rather than    +0.78z(Age)
+> The linear model can be generalized to include a link function, which allows
+> the modeling of different outcomes besides continuous variables
 
-Three changes to `equationHTML` in `widgets/linear-regularization/main.js`:
+It is the fifth of seven modelling lessons (`05-01` single covariate through
+`05-07` hierarchical), so the reader arrives having fitted straight lines four
+times. **`05-05` is where the line stops being a line**, and the lesson's own
+answer is that it does not: what changed is the scale it is straight on.
 
-1. `form="infix"` on the leading `<mo>` sign.
-2. `<msub><mi>z</mi><mi mathvariant="normal">Age</mi></msub>` instead of
-   `z<mo>(</mo>…<mo>)</mo>`.
-3. `<mo>&#xD7;</mo>` instead of the invisible-times `<mo>&#x2062;</mo>`.
+- **Data:** the Framingham study,
+  `https://raw.githubusercontent.com/kennethban/dataset/main/framingham.csv`.
+  **4240 rows, 16 columns**, printed by the notebook.
+- **Model:** `glm(TenYearCHD ~ BMI + age, data = data, family = "binomial")`.
+- **The printed coefficients**, from the notebook's own output — a widget that
+  does not reproduce these to the digit is wrong:
 
-**Why it looks messy today, because the cause is not obvious.** The equation is
-one `<math>` per term — it has to be, since a single `<math>` does not
-line-break — which makes each leading `+`/`−` the *first child of its row*. MathML
-then sets it as a **prefix** operator, unary minus, with no spacing, instead of
-infix. `form="infix"` restores **7.1px per term**, measured. That one attribute
-is most of the difference; the subscript and the explicit `×` are the rest.
+  | term | estimate | std. error | p |
+  |---|---|---|---|
+  | (Intercept) | **−6.54292372** | 0.407430778 | 4.9e−58 |
+  | BMI | **0.03532089** | 0.011176590 | 1.6e−03 |
+  | age | **0.07581313** | 0.005744181 | 9.0e−40 |
 
-Measured at 546px: T4 needs three lines at thirteen terms, the same as today, so
-it costs no extra height. T5 (parentheses plus a dot) needed four and is out.
+- **The odds ratios it derives:** `exp(0.035) = 1.036` for BMI,
+  `exp(0.076) = 1.079` for age.
+- The lesson then prints a `modelsummary` table with `exponentiate = TRUE` and a
+  `ggcoefstats` forest plot on the odds-ratio scale with a dashed line at 1.
 
-Update `plainEquation` to match, or the fallback and the MathML will disagree.
+### The misconception, and it is two
 
-### 2. Mock up the matrix in the RAIL
+1. **That logistic regression is a different algorithm.** It is the same linear
+   predictor; what is new is a function applied to the mean before the line is
+   fitted. The lesson writes it as `f(μ) = β₀ + β₁X` and then names `f` as
+   `log(odds)`.
+2. **That `exp(b)` is an odds ratio because odds ratios are interpretable.** It
+   is an odds ratio *because of the link* — a constant shift on a log scale is a
+   constant multiple on the original one, and nobody chose that. `docs/catalogue.md`
+   already says this out loud at line 1519 and calls it the thing `05-05` needs
+   said. It is also why the odds ratio is the quantity you are handed whether you
+   wanted it or not.
 
-Not decided — Kenneth asked to see it. Right now the matrix is on the canvas
-(placement M1, beside the bars), and the honest position is that **the repo's own
-rule points the other way**: the rail is what you SET and the stage is what you
-SEE, and the matrix is a control.
+### The shape that suggests itself, NOT yet decided
 
-The trade, both directions:
+**One fitted model, two scales, and a control that moves between them.** On the
+link scale — `log(odds)` — the model is a straight line and the data are at ±∞,
+so the points cannot be drawn. On the probability scale it is an S and the points
+are at 0 and 1 where they belong. **It is the same fit both times**, and that is
+the whole claim: the link is a change of axis, not a change of model.
 
-- **In the rail (DOM):** keyboard- and screen-reader-operable for free, and needs
-  none of the canvas hit-testing. Costs a new *interactive* control type in core
-  — the `readback` that exists is deliberately inert — and the rail is excluded
-  from the text hash on purpose, so it would sit outside both fingerprint checks.
-- **On the canvas (today):** inside the pixel hash, and bigger — 150px against a
-  13×13 grid squeezed into a 250–300px rail. Its texture is teaching content, not
-  only a picker, which is the one real argument for treating it as a figure.
+What that buys, and why it is worth a widget rather than a figure: **step one
+covariate by +1 and watch what happens on each scale.** On the log-odds scale the
+shift is a constant `b` everywhere. On the probability scale it is not constant —
+big in the middle, vanishing at both ends. That is the same fact widget 12
+measures from a 2×2 table, arrived at from the other direction, and it is why an
+odds ratio is one number and a risk ratio is not.
 
-The hit-testing is not wasted either way: SVM's support vectors and the tree
-widget's nodes are figure-native and cannot move to the rail.
+Open, and the sort of thing Kenneth settles from a mock-up rather than prose:
 
-Mock both side by side and let him choose, as with every other layout decision.
+- **One covariate or two.** `age` alone draws a clean S; the lesson fits `BMI +
+  age`. Two means the curve is a slice at a held BMI, which is the same
+  conditional-slice problem widget 14 solved — and the solution there is written
+  down, so it is cheap to reuse.
+- **Two scales or three.** The lesson's algebra goes `p → odds → log(odds)` in
+  three steps and the middle one is where the odds ratio actually lives.
+- **Whether the fitting is shown.** IRLS converging is a real animation and
+  widget 8 already owns "likelihood, one candidate at a time". Reusing that idea
+  here may be right or may be a second widget wearing the first one's clothes.
+- **The forest plot.** `ggcoefstats` on the OR scale with a line at 1 is the
+  lesson's own last figure; whether the widget should end there is a design
+  question, not a given.
 
-### 3. Predicted on which axis — CHECKED, and the widget is already right
+### Already decided elsewhere — do not re-argue
+
+- **Odds versus risk, and why an odds ratio overstates a risk ratio**, is widget
+  12 (`odds-and-risk`), shipped. Widget 15 should *lean on* it, not restate it.
+  `docs/catalogue.md` §"Widget 12" carries the whole argument including the
+  measured base-rate dependence.
+- **Predicted goes on x** — see the CLOSED section below. It applies to any
+  observed-against-predicted panel this widget grows.
+- **No runtime dependencies and no build step.** The data has to be inlined the
+  way widget 14 inlines 252 rows of body fat. Three columns of 4240 rows is
+  roughly 50KB of source; that is the first measurement to take, and subsampling
+  is a decision with a cost (the printed coefficients would stop matching).
+- **`glm` drops rows with `NA`.** Framingham's `BMI` has them. Match the
+  notebook's row set or the coefficients will not match its output, and that
+  agreement is the widget's cheapest self-check.
+
+### Before writing any code
+
+Read `docs/design-principles.md` and `docs/prd.md` §11 first — most of the rules
+exist because the obvious approach failed, and §11 lists the non-goals so they
+can be pointed at rather than re-argued. Then `docs/catalogue.md` for where this
+sits in the statistics arc. The `new-widget` skill covers the `defineWidget`
+contract, the data-vs-display parameter split and how to verify a change without
+trusting screenshots.
+
+---
+
+## Then: widget 14 is still a draft, and finishing it is small
+
+Everything Kenneth asked for is built and pushed. What is left is the shipping
+list, and the first item has a wrinkle worth reading.
+
+**The matrix is a DOM control, so no fingerprint state can see its geometry.**
+`px` hashes the canvas; `tx` reads `.w-math`, `.w-legend` and `.w-readout`, and
+the rail is excluded on purpose. On the canvas the grid was at least inside `px`,
+and `check.mjs` forced a `hit` state to cover the cell-to-value mapping. Both are
+gone. Two ways to close it, and the choice is open:
+
+- **`?pair=Weight~Hip` as a settled state.** Free — the widget has no animation,
+  so a URL settles it — and it proves the parameter reaches the figure. It does
+  not prove the CELL sets it.
+- **Teach the harness's `set` verb to drive a `matrix`.** `set` finds a control by
+  `data-param` and writes `.value`, which a grid has none of; clicking
+  `[data-value="…"]` inside it instead would be a few lines and would cover the
+  cell-to-value mapping the way `hit` covered the canvas. This is the honest
+  replacement for what was lost.
+
+Then:
+
+1. Two or three settled states. It declares no `animation` and no `shown`, so a
+   URL alone settles it.
+2. Flip `status` to `shipped` in `manifest.json` **and** `main.js`.
+3. Mark it shipped in `docs/catalogue.md`.
+4. **Judge it projected.** Never done for widgets 11, 12, 13 or 14.
+
+---
+
+### CLOSED: predicted on which axis — the widget is already right
 
 Kenneth's instinct was that predicted belongs on y. **It does not — leave the
 widget alone.** This was researched rather than argued from convention, and the
@@ -126,37 +219,32 @@ the orientation.
 
 ---
 
-## Then: fingerprint states and shipping
+## What the core contract gained, all of it widget 14's doing
 
-Widget 14 still carries none, deliberately — baselining waits until the design
-stops moving, and it has moved three times in one session. When it settles:
-
-1. Two or three settled states. It declares no `animation` and no `shown`, so a
-   URL alone settles it.
-2. **At least one `drive: { hit: [x, y] }` state.** `check.mjs` demands one of any
-   non-draft widget declaring `regions`, because a `set` state reaches its
-   parameter through the DOM control and gives the hit geometry no coverage — and
-   no pixel hash can see that geometry either.
-3. Flip `status` to `shipped` in `manifest.json` **and** `main.js`.
-4. Mark it shipped in `docs/catalogue.md`.
-5. **Judge it projected.** Never done for widgets 11, 12, 13 or 14.
-
----
-
-## What the core contract gained this session
-
-Six additions, each its own commit, each verified with a full 105-state run.
+Eight additions, each its own commit, each verified with a full 105-state run.
 
 | what | where | why |
 |---|---|---|
 | `type: "readback"` | `params.js`, `controls.js`, `tokens.css` | a case table in the rail naming which of a few labelled outcomes the controls above it produce. A non-parameter spec entry, exactly like `section`: carries no value, never reaches the URL |
-| `regions` | `widget.js`, `canvas.js` | clickable targets on the canvas, resolved to a parameter |
+| **`type: "matrix"`** | `params.js`, `controls.js`, `tokens.css` | a labelled grid of shaded cells, one option per cell, for a parameter that is a **pair**. Declares `rows`, `cols` and a `token`; each option carries `row`, `col` and `shade`. Arrow keys move the selection from one focus stop, which is what lets it replace a 156-option dropdown rather than sit beside one |
+| **a height may be a function of the WIDTH** | `canvas.js`, `widget.js` | `resize(heightOf)` resolves it, because the width is knowable before anything is painted and the height is not. For a panel that has to stay **square** — widget 14's plane is only allowed to be square, so wider costs taller |
+| `regions` | `widget.js`, `canvas.js` | clickable targets on the canvas, resolved to a parameter. **Declared by no widget now** — kept for SVM's support vectors and the tree widget's nodes, which are figure-native |
 | `pointAt` / `hitTest` | `canvas.js` | pointer event → drawing coordinates; the region under a point |
 | the exported `setParam` syncs | `widget.js` | it is the door that is NOT a control, so it must tell the rail |
 | a checkbox's `detail` renders | `controls.js` | 3.4f, third time |
-| `<optgroup>` runs in a `select` | `controls.js` | the 156-option keyboard path |
+| `<optgroup>` runs in a `select` | `controls.js` | the 156-option keyboard path, before the matrix replaced it |
 
-Two of these have a subtlety worth not rediscovering:
+Four of these have a subtlety worth not rediscovering:
+
+**A `matrix` cell's shade is an opacity on a CHILD element.** Fading the cell
+fades the selected cell's ring with it — brightest exactly where it is least
+needed.
+
+**A `matrix` arrow step that lands on a non-option keeps going; one that runs off
+the edge does not wrap.** So the ends of the grid are findable by feel, and the
+diagonal — a measurement against itself is not a pair — is skipped rather than
+stopping you.
+
 
 **`readback` takes a `live` FUNCTION where `when` must stay declarative.** `when`
 is declarative so core can avoid rebuilding the control block on every change —
@@ -179,24 +267,38 @@ algorithms. They are four settings of one objective, which the notebook prints
 two lines above that table.
 
 Two dials on a shared ladder, a readback in the rail naming which of the four you
-are in, the fitted equation as MathML above the figure, thirteen coefficient bars
-beside a clickable 13×13 correlation matrix, a conditional-slice coefficient
-plane, and a predicted-against-measured panel. Height 438, no animation, no
-seed, no `shown`.
+are in, a labelled 13×13 correlation matrix in the rail as the pair selector, the
+fitted equation as MathML in a card above the figure, thirteen coefficient bars
+across the full width, a conditional-slice coefficient plane, and a
+predicted-against-measured panel. **Canvas height is a function of the width**
+(`ROW_TOP + panelSide(w) + ROW_BOTTOM` — 423px at the narrow frame, 541 at the
+wide) because the two panels have to stay square. No animation, no seed, no
+`shown`.
 
-What remains is the three tweaks at the top of this file, then the shipping steps
-under *Then*.
+What remains is the fingerprint question at the top of this file, then the
+shipping steps under *Then*.
 
 ### The design decisions, so they are not re-argued
 
 - **Layout D2**, chosen from a four-way mock-up: equation on top, bars full
   width, then the plane and the predictions as two squares of equal standing.
-- **The matrix is placement M1**, chosen from four: beside the bars, so the two
-  panels keep 221px and the widget keeps its height. What gives way is bar-chart
-  width, which the bars can afford because they are thirteen short columns whose
-  information is vertical. **Unlabelled on purpose** — thirteen row names plus
-  thirteen rotated column names cost more room than the grid, and the readout
-  already names the pair. What it carries is the texture.
+  **The squares fill the row** (P3 of four in `_lab/linreg-panel-width.html`) and
+  the canvas is however tall that makes it — they are square because the
+  diamond has to look like a diamond, so wider costs taller. The 228px cap they
+  used to carry left 206px of the row empty at the wide frame.
+- **The matrix is in the RAIL, as core's `matrix` control**, chosen as C4a from
+  two rounds of `_lab/linreg-matrix-rail.html`. It replaces a 156-option
+  dropdown rather than sitting beside one: the dropdown's 66px of rail is the
+  difference between a grid smaller than the canvas's and one half again bigger.
+  **Both axes named in full**, the columns turned ninety degrees — at 45° the
+  names cleared each other by 2.3px against an 11px type size, at 90° by 7.8px.
+
+  It was on the CANVAS first, placement M1 of four, unlabelled because thirteen
+  row names plus thirteen rotated column names cost more room than a 150px grid.
+  What moved it was a measurement nobody had taken: the rail is 444px against a
+  654px stage, so it had 210px of slack, and it is 300px wide against the 150px
+  the canvas could spare. Cells went 11.5px → 17.8px *with* the names, and the
+  bars got 174px of width back.
 - **All 156 ordered pairs, not 78.** `(i, j)` and `(j, i)` are the same two
   measurements with the axes swapped, and which is horizontal is a real
   difference on screen. The four-pair slider it replaced reached elongations
@@ -270,6 +372,22 @@ atomic inline box in an ordinary inline formatting context.
 
 Each of these produced a wrong answer that looked right.
 
+- **A `requestAnimationFrame` measurement reported the PREVIOUS frame.** The panel
+  mock-up measured its heights in a rAF after rendering, and after a width change
+  it printed the old stage height beside the new rail height — the two columns
+  disagreeing about which frame they were in, which is worse than no number.
+  Reading a bounding rect forces layout, so **measure synchronously at the end of
+  the render**; the rAF buys nothing and costs correctness.
+- **A batch of scripted edits is all-or-nothing, and a failed assert is silent.**
+  Two edits in this session did not land — a stale `76.3px` and a blurb — because
+  a *later* replacement in the same script threw, so the file was never written
+  and the earlier ones went with it. It looks exactly like success: no error in
+  the file, no diff. Either write after each replacement or grep for the new text
+  afterwards.
+- **A screenshot of a long page comes back black once it is scrolled.** The
+  browser pane paints the top of the document; `scrollIntoView` then screenshot
+  gives a black frame with no error. Hide the cards above the one you want and
+  screenshot at the top instead.
 - **A measurement comparing unlike things.** The MathML capability probe compared
   an `<mfrac>` against a `<span>` *wrapping* a `<math>`, whose height carries the
   surrounding line-height — 19px against the fraction's 16.5px. It reported a
@@ -309,6 +427,16 @@ review at once. The observations still hold; each is a one-file change:
 
 **Judge projected.** Widgets 11, 12, 13 and 14 have never been seen from the back
 of a room. Widget 11's hypergeometric dots are ~4px at the narrow layout.
+
+**`widgets/_lab/index.html` has stopped being an index.** Thirteen of the
+twenty-six lab pages are missing from it — exactly half, including every mock-up
+made for widgets 13 and 14 and all three drive-row pages. Adding one alone makes
+the list *more* misleading, not less, so this is one change: catch the index up in
+a single pass, or delete it. To list them:
+
+```bash
+for f in widgets/_lab/*.html; do b=$(basename "$f"); case $b in index.html|fingerprint.html) continue;; esac; grep -q "$b" widgets/_lab/index.html || echo "$b"; done
+```
 
 **`04 / 04-08` needs two corrections in `../jupyterbook/phm5003`**, by hand:
 
