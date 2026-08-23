@@ -179,14 +179,51 @@ function drive(win, doc, spec) {
     }
   };
 
-  /* One step is a set, a click, or both — a set THEN a click, because a control
-     chooses what the button will then run. */
+  /* CLICK THE FIGURE ITSELF, at a point in DRAWING coordinates.
+     
+     `set` reaches a parameter through its DOM control, which routes around the
+     region map completely — so a state driven by `set` gives a widget's canvas
+     hit-test no coverage at all, and that geometry is precisely what no pixel
+     hash can see: the picture is identical whether a target sits where it is
+     drawn or six columns away.
+
+     THIS IS NOT A BREACH OF 5.7. That principle forbids addressing a CONTROL by
+     position — the third button, the second slider — because inserting one
+     silently repoints every state. A region has no identity but its place on
+     the figure; its position IS what is under test, and the frame is a fixed
+     900px wide so the coordinate means the same thing every run.
+
+     It throws when the point hits nothing, for the same reason `press` throws on
+     a missing button: a click that lands on empty canvas still leaves a stable,
+     plausible hash. The widget's own cursor is the detector — core sets it to
+     "pointer" over a region and "default" off one. */
+  const hitAt = ([x, y]) => {
+    const canvas = doc.querySelector(".w-figure canvas");
+    if (!canvas) throw new Error("hit: no canvas");
+    const r = canvas.getBoundingClientRect();
+    const k = r.width / (canvas.clientWidth || 1);
+    const clientX = r.left + x * k;
+    const clientY = r.top + y * k;
+    const send = (type) => canvas.dispatchEvent(
+      new win.PointerEvent(type, { bubbles: true, clientX, clientY })
+    );
+    send("pointermove");
+    if (canvas.style.cursor !== "pointer") {
+      throw new Error(`hit: (${x}, ${y}) is not over a region`);
+    }
+    send("pointerdown");
+  };
+
+  /* One step is a set, a hit, a click, or a combination — in that order, because
+     a control or a cell chooses what the button will then run. */
   const act = (step) => {
     for (const [k, v] of Object.entries(step.set ?? {})) setParam(k, v);
+    if (step.hit) hitAt(step.hit);
     if (step.click) press(step.click);
   };
   const label = (step) =>
-    [Object.entries(step.set ?? {}).map(([k, v]) => `${k}=${v}`).join(","), step.click]
+    [Object.entries(step.set ?? {}).map(([k, v]) => `${k}=${v}`).join(","),
+      step.hit ? `hit(${step.hit.join(",")})` : "", step.click]
       .filter(Boolean).join("+");
 
   /* Some widgets gate stepping behind a one-off LEAD action: `bootstrap` has to
@@ -222,7 +259,7 @@ function drive(win, doc, spec) {
   /* "step" stays the default ONLY when the spec names no action at all, so an
      existing state that relies on it keeps working and a `set`-only state does
      not go looking for a button that was deliberately declined. */
-  act(spec.set || spec.click ? spec : { click: "step" });
+  act(spec.set || spec.click || spec.hit ? spec : { click: "step" });
   let ran = 0;
   for (let i = 0; i < spec.frames; i += 1) {
     const cb = queue.shift();
