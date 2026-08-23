@@ -407,6 +407,57 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    above the heading against 12 + 4 below it. The asymmetry is what binds a
    heading to the group under it rather than floating between two. */
 
+/* THE FITTED MODEL, AS MathML, ABOVE THE FIGURE. Widget 14 writes its equation
+   here rather than painting it on the canvas: MathML italicises a one-letter
+   identifier and leaves a multi-letter one upright on its own, makes the
+   definition of z a real fraction, and is read by a screen reader as an
+   expression that can be stepped through — canvas text is read as nothing.
+
+   FONT-FAMILY IS DELIBERATELY NOT SET. The UA stylesheet gives `math` its own
+   `font-family: math`, and the stretchy glyphs — fraction bars, big parentheses,
+   radicals — are driven by the OpenType MATH table, which an interface font does
+   not carry. Overriding this with the body sans produces subtly broken maths.
+   The size IS nudged, because Chromium renders math noticeably small beside body
+   text.
+
+   Colour is inherited rather than set with `mathcolor`, so dark mode just works. */
+.w-math {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink-1);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+}
+.w-math-eq {
+  /* A FLOOR, AND DELIBERATELY NO CEILING. How long the equation is depends on
+     how many terms survive; how many lines that takes depends on the column
+     width. Reserving three lines holds the block at a constant height for every
+     width the side layout reaches — measured 70px flat from 884px to 1400px,
+     across both dial sweeps — so dragging a dial no longer moves the figure
+     under the reader (3.4d).
+
+     A `-webkit-line-clamp: 3` ceiling was tried and removed. Below the 880px
+     breakpoint the column narrows to ~350px, thirteen terms need four lines,
+     and the clamp hid one — silently, with no scrollbar and no ellipsis. A
+     block that jogs is untidy; a block that drops a term from the model is
+     false, and the model is what this widget is about. */
+  min-height: 4.65em;   /* 3 x the 1.55 line-height above */
+}
+/* SIZED BY THE SMALLEST THING IN IT, not by the biggest. MathML shrinks each
+   nested level — a fraction's numerator lands at about 0.71 of its parent — so
+   at the 1.15 that made the equation itself look right, `z(x) = (x - x̄)/s`
+   rendered its numerator at 9.0px, which is under this repo's floor for
+   anything meant to survive a projector.
+
+   1.45 puts the numerator at 11.3px and the equation at 16.0px, and is the
+   largest multiplier that still fits thirteen terms in the three reserved lines
+   at the narrowest column the side layout reaches (534px). 1.6 tips it to four
+   lines and the block grows to 88px. */
+.w-math math { font-size: 1.45em; }
+.w-math-note {
+  margin: 2px 0 0;
+  color: var(--ink-3);
+}
+
 /* A READBACK: a small case table that names which of a few labelled outcomes
    the controls above it currently produce. It carries no value and sets
    nothing — it is the rail's answer to "so what have I just chosen".

@@ -270,63 +270,154 @@ function computeAll({ params }) {
   };
 }
 
-/* --- the fitted model, written out ---------------------------------------- *
+/* --- the fitted model, as MathML ------------------------------------------ *
  * Not the objective — the MODEL, with the weights in it. A term at exactly zero
- * is not written at all, which is the whole reason to draw it: the equation is
+ * is not written at all, which is the whole reason to show it: the equation is
  * as long as the model is big. Raising a1 shortens it from three lines to one;
- * raising a2 never shortens it at all, because L2 cannot reach zero. That
- * contrast is the widget's claim, stated in the length of a line of text.
+ * raising a2 never shortens it, because L2 cannot reach zero. That contrast is
+ * the widget's claim, stated in the length of a line of text.
  *
- * Three lines are RESERVED whatever the current length, so the block does not
- * change height as the reader drags and push everything below it around (the
- * hazard 3.4d records, in a paragraph rather than a button). Measured at 11px
- * in 486px of width: thirteen terms need 1200px, which is three lines.
+ * ---------------------------------------------------------------------------
+ * WHY IT LEFT THE CANVAS, AND WHAT THAT COSTS.
  *
- * z(...) rather than the bare name because the coefficients are on STANDARDISED
- * features — the penalty has to act on standardised features or it would charge
- * a measurement for the units it was taken in. Bare "10.27 Abdomen" reads as
- * per-centimetre and is wrong by a factor of the standard deviation. */
-const EQ_LINES = 3;
-const EQ_LH = 14;
+ * Drawn as unicode it read as prose, not as maths: `z` and `Abdomen` were the
+ * same kind of glyph, and the spacing round + and − was whatever the interface
+ * font gives a plus sign in a sentence. MathML gets the typographic rule right
+ * without being told — MathML Core sets `text-transform: math-auto` on <mi>,
+ * which italicises a single-letter identifier and leaves a multi-letter one
+ * upright, so `z` is a variable and `Abdomen` is a name. It also makes the
+ * definition of z a real fraction instead of a division sign, and it is read by
+ * screen readers as an expression they can step through rather than as a flat
+ * string — canvas text is read as nothing at all.
+ *
+ * THE COST IS NAMED HERE BECAUSE PRINCIPLE 5.6 SAYS A BLIND SPOT MUST BE, never
+ * cited as safety. The equation now leaves BOTH cheap checks in the repo:
+ *
+ *   1. `_lab/fingerprint.html` hashes the CANVAS. Thirteen coefficients stop
+ *      being covered by any of the 105 states.
+ *   2. The canvas text sweep works by wrapping `fillText`. The equation stops
+ *      going through `fillText`, so the sweep silently stops seeing it — no
+ *      error, no gap in its output, just thirteen fewer strings in a list
+ *      nobody counts.
+ *
+ * So a flipped sign or a coefficient off by a factor would now ship with the
+ * canvas hash still reporting MATCH. The floor that closes it is a textContent
+ * check in the harness, and it is NOT in this change.
+ *
+ * ---------------------------------------------------------------------------
+ * MathML Core is Baseline since January 2023 and the floor is Chrome/Edge 109.
+ * An older engine does not fail tidily: it drops the <math> wrapper and renders
+ * the tokens run together — "body fat %=19.2 +0.78 z(Age)" with the invisible
+ * times character showing. So support is PROBED, and the plain-text equation is
+ * rendered instead when the probe fails.
+ * ========================================================================= */
 
-function drawEquation(ctx, colors, x, y, width, w) {
-  const terms = [`body fat % = ${Y_MEAN.toFixed(1)}`];
+/**
+ * A CAPABILITY TEST, NOT AN INTERFACE TEST. `window.MathMLElement` says the DOM
+ * interface is defined; it does not say the layout engine stacks a fraction. So
+ * measure one — an <mfrac> must be markedly taller than a plain <mn>.
+ *
+ * Both sides must be <math>. Comparing the <mfrac> against a <span> wrapping a
+ * <math> measures the span's line-height instead and reports a browser that
+ * lays maths out perfectly as one that does not, which would force the fallback
+ * on every reader for ever.
+ */
+function mathmlRenders() {
+  if (typeof window.MathMLElement !== "function") return false;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  probe.innerHTML = '<math id="lr-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
+    + '<math id="lr-flat"><mn>1</mn></math>';
+  document.body.appendChild(probe);
+  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
+  const stacked = h("lr-frac"), flat = h("lr-flat");
+  probe.remove();
+  return flat > 0 && stacked > flat * 1.4;
+}
+const MATHML = mathmlRenders();
+
+/* TWO DECIMALS, UNLESS TWO DECIMALS SAY ZERO. Four of the 637 reachable
+   coefficient slots sit between 0.002 and 0.005 — at a1 = a2 = 0.01 the Knee
+   coefficient is -0.005 — and `toFixed(2)` printed them as "0.00", so the
+   equation read "− 0.00 z(Knee)": subtract zero times Knee. A term that is in
+   the model is written with enough digits to show that it is. */
+function coefText(v) {
+  const two = Math.abs(v).toFixed(2);
+  return two === "0.00" ? Math.abs(v).toFixed(3) : two;
+}
+
+const NAMED = (t) => `<mi mathvariant="normal">${t}</mi>`;
+
+/* ONE <math> PER TERM. A single <math> does not line-break — MathML Core treats
+   `white-space` as `nowrap` on every MathML element, automatic linebreaking was
+   left out of the spec, and no engine implements it, so thirteen terms in one
+   <math> measure past 1000px and simply overflow. Separate inline <math>
+   elements with real whitespace between them are atomic inline boxes in an
+   ordinary inline formatting context, so the line breaker can break at the
+   seams. The break opportunities are exactly the ones authored here. */
+function equationHTML(w) {
+  const parts = [`<math><mrow>${NAMED("body&#xA0;fat&#xA0;%")}<mo>=</mo>`
+    + `<mn>${Y_MEAN.toFixed(1)}</mn></mrow></math>`];
   for (let j = 0; j < P; j += 1) {
     if (Math.abs(w[j]) < 1e-9) continue;
-    terms.push(`${w[j] < 0 ? "−" : "+"} ${Math.abs(w[j]).toFixed(2)}·z(${COLS[j]})`);
+    parts.push(`<math><mrow><mo>${w[j] < 0 ? "&#x2212;" : "+"}</mo>`
+      + `<mn>${coefText(w[j])}</mn><mo>&#x2062;</mo><mi>z</mi>`
+      + `<mo stretchy="false">(</mo>${NAMED(COLS[j])}<mo stretchy="false">)</mo></mrow></math>`);
   }
-  ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = colors.ink1;
-  let line = "";
-  let row = 0;
-  const put = () => { ctx.fillText(line, x, y + row * EQ_LH + EQ_LH / 2); row += 1; };
-  for (const t of terms) {
-    const next = line ? `${line} ${t}` : t;
-    if (ctx.measureText(next).width > width && line) {
-      /* A hard stop rather than an overflow. Three lines hold every state this
-         widget can reach; if a future dataset needs four, this truncates into
-         the reserved block instead of painting over the bars below it. */
-      if (row === EQ_LINES - 1) { line = `${line} …`; break; }
-      put();
-      line = t;
-    } else {
-      line = next;
-    }
-  }
-  if (line) put();
+  return parts.join(" ");
+}
 
-  /* The note follows the LAST line written, not the last reserved one. Pinned to
-     the bottom of the block it floated four rows below a one-line equation with
-     a gap in between, reading as a stray caption rather than a footnote to the
-     line above it. The block's HEIGHT is still reserved — that is what stops the
-     bars jogging — it is only the note that moves. */
-  ctx.fillStyle = colors.ink3;
-  ctx.fillText("z(·) — the measurement in standard deviations from its mean",
-    x, y + row * EQ_LH + EQ_LH / 2);
-  ctx.restore();
+/* The general definition rather than a description of one. A reader who has
+   only been told "in standard deviations from its mean" cannot compute one. */
+const Z_DEF = `<math><mrow><mi>z</mi><mo stretchy="false">(</mo><mi>x</mi>`
+  + `<mo stretchy="false">)</mo><mo>=</mo><mfrac>`
+  + `<mrow><mi>x</mi><mo>&#x2212;</mo><mover><mi>x</mi><mo>&#xAF;</mo></mover></mrow>`
+  + `<mi>s</mi></mfrac></mrow></math>`;
+
+const Z_DEF_PLAIN = "z(x) = (x − mean of x) ÷ SD of x";
+
+function plainEquation(w) {
+  let out = `body fat % = ${Y_MEAN.toFixed(1)}`;
+  for (let j = 0; j < P; j += 1) {
+    if (Math.abs(w[j]) < 1e-9) continue;
+    out += ` ${w[j] < 0 ? "−" : "+"} ${coefText(w[j])} z(${COLS[j]})`;
+  }
+  return out;
+}
+
+/* MOUNTED LAZILY, FROM INSIDE draw(), AND SCOPED TO THE WIDGET'S OWN HOST.
+   `buildShell` creates `.w-figure` synchronously inside `defineWidget`, so this
+   file's module scope runs BEFORE it exists — mounting there queries null and
+   throws, and the reader gets a blank page rather than a missing equation.
+   draw() is the first hook that runs after the shell is built, and it is also
+   the only per-change signal a widget gets without a core change.
+
+   MEMOISED because paint() runs per frame and rebuilding fourteen <math>
+   elements costs ~0.7ms against the 0.004ms of the fillText line it replaces.
+   The key is the coefficients themselves: all 49 reachable fits produce a
+   distinct key, checked. */
+let mathHost = null;
+let mathKey = null;
+
+function renderEquation(w) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    const note = document.createElement("p");
+    note.className = "w-math-note";
+    note.innerHTML = MATHML ? Z_DEF : Z_DEF_PLAIN;
+    mathHost.append(document.createElement("div"), note);
+    mathHost.firstChild.className = "w-math-eq";
+    figure.parentNode.insertBefore(mathHost, figure);
+  }
+  const key = w.map((v) => coefText(v) + (v < 0 ? "-" : "+")).join(",");
+  if (key === mathKey) return;
+  mathKey = key;
+  const eq = mathHost.querySelector(".w-math-eq");
+  if (MATHML) eq.innerHTML = equationHTML(w);
+  else eq.textContent = plainEquation(w);
 }
 
 /* --- draw ---------------------------------------------------------------- */
@@ -340,7 +431,7 @@ defineWidget({
     + "— which is why only it sets a coefficient to exactly zero.",
   layout: "side",
   status: "draft",
-  height: 510,
+  height: 438,
 
   params: {
     /* THE TWO DIALS, IN THE TABLE'S OWN ORDER. Each is a data parameter: it
@@ -457,14 +548,16 @@ defineWidget({
      * stubs on a shared axis. That is left alone deliberately: abdomen
      * circumference really does dominate body fat, and the thing this panel is
      * for survives any scale — how many bars are EXACTLY zero (2.3).          */
-    /* LAYOUT D2. The equation takes the top; the bars run full width beneath
-       it; the plane and the predictions sit below as two squares of equal
-       standing. The squares are WIDTH-bound at this canvas width, not
-       height-bound, so the equation's four reserved rows cost the figure
-       nothing — measured, they draw at 221px either way. */
-    drawEquation(ctx, colors, padL, 14, inner, state.w);
+    /* THE EQUATION IS NO LONGER ON THE CANVAS — it is MathML above it. The
+       canvas paid for that by getting 72px shorter rather than by giving the
+       space to the panels: `rowTop` falls from 248 to 176 and `height` from 510
+       to 438, so `side` stays min(228, …) at every width and the plane does not
+       move at all. Growing the plane is a separate change with its own argument;
+       it cannot even be delivered between 880 and 915px, where the panels are
+       width-clamped rather than height-bound. */
+    renderEquation(state.w);
 
-    const barTop = 86, barH = 112;
+    const barTop = 14, barH = 112;
     const lim = state.barLimit;
     const sy = (v) => barTop + barH / 2 - (v / lim) * (barH / 2);
     const band = inner / P;
