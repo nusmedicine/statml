@@ -1017,6 +1017,34 @@
       "state": "?theme=light&pair=Age~Weight",
       "px": "17150237",
       "tx": "c70e58d8"
+    },
+    {
+      "$note": "The opening state: the straight line alone, at the median BMI. Age on x, link off.",
+      "slug": "logistic-regression",
+      "state": "?theme=light",
+      "px": "c921dc7b",
+      "tx": "df5c4096"
+    },
+    {
+      "$note": "The link added, nothing else moved. Both fits on all three rungs, and the three strips swap which one is flat.",
+      "slug": "logistic-regression",
+      "state": "?theme=light&link=true",
+      "px": "7a956637",
+      "tx": "735176d4"
+    },
+    {
+      "$note": "BMI on x with age held at its floor — where the straight line is negative over most of the axis, which is the one state that makes step 1 visible.",
+      "slug": "logistic-regression",
+      "state": "?theme=light&xvar=bmi&age=32",
+      "px": "7cccd500",
+      "tx": "80e01bee"
+    },
+    {
+      "$note": "The held covariate at its ceiling, with the link. The curve sits well above the binned dots, because the dots are everyone at that age and the curve is one BMI of 45.",
+      "slug": "logistic-regression",
+      "state": "?theme=light&link=true&bmi=45",
+      "px": "f27909e3",
+      "tx": "10712389"
     }
   ]
 }

@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; the equation, the link figure, the strip axis</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 940px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 84ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-3); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 92ch; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .frame { width: 550px; max-width: 100%; border: 1px dashed var(--axis);
+    padding: var(--sp-2); border-radius: var(--radius); box-sizing: content-box; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 4px 8px; text-align: left;
+    font-variant-numeric: tabular-nums; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td { color: var(--ink-2); }
+  canvas { display: block; }
+  .eqbox { font-size: var(--fs-xs); color: var(--ink-1); line-height: 1.55; }
+  .eqbox math { font-size: 1.45em; }
+  .eqbox .sub { color: var(--ink-3); }
+  .lit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The equation, the link figure, and what the strip's height means</h1>
+  <p class="note">
+    Three questions from review, drawn at the real <b>550px</b> stage.
+    <br>&mdash; the equation should be <b>MathML</b> and should name its covariates;
+    <br>&mdash; the little link figure has <b>p on x</b> while the panel below it has <b>p on y</b>,
+    which is a 90&deg; disagreement inside one figure;
+    <br>&mdash; and the strip has no axis, so what its bars measure is a guess.
+  </p>
+  <p class="note" id="probe"></p>
+
+  <h2>Round 1 &mdash; the equation</h2>
+  <p class="note">
+    All four are MathML. <b>One <code>&lt;math&gt;</code> per term</b>, because a single one does not
+    line-break &mdash; MathML Core treats <code>white-space</code> as <code>nowrap</code> on every
+    element and no engine implements automatic linebreaking, so a long equation in one
+    <code>&lt;math&gt;</code> simply overflows. Separate inline elements with real whitespace between
+    them break at the seams, and the seams are authored.
+  </p>
+  <div id="eqs"></div>
+  <table id="eqm"></table>
+
+  <h2>Round 2 &mdash; the link figure, and which way p runs</h2>
+  <p class="note">
+    The panels below the card put <b>p on the vertical axis</b>. L1 is what is built and puts it on
+    the horizontal one, which is the disagreement. The literature's conventional plot is L1, so this
+    is a choice between matching convention and matching the figure it sits above &mdash; and the
+    figure it sits above is the one the reader is looking at.
+  </p>
+  <div id="links"></div>
+
+  <h2>Round 3 &mdash; what the strip's height is</h2>
+  <p class="note">
+    The bars are the change in <b>that panel's own quantity</b> for one step, each strip scaled to
+    its own largest. The row label says <code>step</code>, which names what CAUSED the change rather
+    than what is being measured &mdash; so the honest fix is a label that names the quantity, and
+    then the question is whether a number is needed too.
+  </p>
+  <div id="strips"></div>
+</main>
+
+<script type="module">
+const tok = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---- does MathML actually lay out? Compare a <math> against a <math>, never a
+   <math> against a <span>: a span wrapping a math carries the surrounding
+   line-height, which once reported a browser that lays maths out perfectly as
+   one that does not. ---------------------------------------------------- */
+function mathmlRenders() {
+  const box = document.createElement("div");
+  box.style.cssText = "position:absolute;visibility:hidden;font-size:16px";
+  box.innerHTML = '<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>';
+  document.body.appendChild(box);
+  const [frac, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
+  box.remove();
+  return frac > plain * 1.3;
+}
+const MATHML = mathmlRenders();
+document.getElementById("probe").innerHTML =
+  `MathML lays out here: <b>${MATHML ? "yes" : "NO — the fallback would be showing"}</b>.`;
+
+const mi = (t) => `<mi mathvariant="normal">${t}</mi>`;
+const named = (v, sub) => `<msub><mn>${v}</mn>${mi(sub)}</msub>`;
+
+/* the left-hand side, log( p(Y) / (1 - p(Y)) ), as the notebook writes it */
+const LHS = `<math><mrow>${mi("log")}<mo>(</mo><mfrac>`
+  + `<mrow><mi>p</mi><mo>(</mo><mi>Y</mi><mo>)</mo></mrow>`
+  + `<mrow><mn>1</mn><mo>−</mo><mi>p</mi><mo>(</mo><mi>Y</mi><mo>)</mo></mrow>`
+  + `</mfrac><mo>)</mo><mo>=</mo></mrow></math>`;
+
+const EQS = [
+  {
+    id: "M1", name: "The notebook's own line, verbatim",
+    blurb: "Exactly what 05-05 prints, subscripts and all. Nothing to learn twice, and the reader can put the widget beside the lesson and see one thing.",
+    html: LHS
+      + ` <math><mrow><mo form="infix">−</mo>${named("6.54", "intercept")}</mrow></math>`
+      + ` <math><mrow><mo form="infix">+</mo>${mi("BMI")}<mo>×</mo>${named("0.035", "BMI")}</mrow></math>`
+      + ` <math><mrow><mo form="infix">+</mo>${mi("age")}<mo>×</mo>${named("0.076", "age")}</mrow></math>`,
+  },
+  {
+    id: "M2", name: "General form above the instance",
+    blurb: "The framework first, then this model as one case of it. Two lines, and the second is M1.",
+    html: `<div><math><mrow><mi>f</mi><mo>(</mo><mi>μ</mi><mo>)</mo><mo>=</mo>`
+      + `<msub><mi>b</mi><mn>0</mn></msub><mo form="infix">+</mo>`
+      + `<msub><mi>b</mi><mn>1</mn></msub>${mi("BMI")}<mo form="infix">+</mo>`
+      + `<msub><mi>b</mi><mn>2</mn></msub>${mi("age")}</mrow></math></div>`
+      + `<div style="margin-top:4px">` + LHS
+      + ` <math><mrow><mo form="infix">−</mo>${named("6.54", "intercept")}</mrow></math>`
+      + ` <math><mrow><mo form="infix">+</mo>${mi("BMI")}<mo>×</mo>${named("0.035", "BMI")}</mrow></math>`
+      + ` <math><mrow><mo form="infix">+</mo>${mi("age")}<mo>×</mo>${named("0.076", "age")}</mrow></math></div>`,
+  },
+  {
+    id: "M3", name: "General form with x₁ and x₂, named underneath",
+    blurb: "The form the lesson's algebra uses, with the covariates identified below rather than substituted in. Closest to the textbook and the furthest from the numbers.",
+    html: `<div><math><mrow><mi>f</mi><mo>(</mo><mi>μ</mi><mo>)</mo><mo>=</mo>`
+      + `<msub><mi>b</mi><mn>0</mn></msub><mo form="infix">+</mo>`
+      + `<msub><mi>b</mi><mn>1</mn></msub><msub><mi>x</mi><mn>1</mn></msub><mo form="infix">+</mo>`
+      + `<msub><mi>b</mi><mn>2</mn></msub><msub><mi>x</mi><mn>2</mn></msub></mrow></math></div>`
+      + `<div class="sub" style="margin-top:2px">x₁ = BMI · x₂ = age · f = logit</div>`,
+  },
+  {
+    id: "M4", name: "The notebook's line, with the term on the x axis lit",
+    blurb: "M1, plus the one thing the figure below is currently showing. The covariate on the x axis is the one whose step is being read, and the other is held — which is a fact about the equation, so it can be said in the equation.",
+    html: LHS
+      + ` <math><mrow><mo form="infix">−</mo>${named("6.54", "intercept")}</mrow></math>`
+      + ` <math class="lit"><mrow><mo form="infix">+</mo>${mi("BMI")}<mo>×</mo>${named("0.035", "BMI")}</mrow></math>`
+      + ` <math><mrow><mo form="infix">+</mo>${mi("age")}<mo>×</mo>${named("0.076", "age")}</mrow></math>`,
+  },
+];
+
+{
+  const host = document.getElementById("eqs");
+  for (const e of EQS) {
+    const d = document.createElement("div");
+    d.className = "cell";
+    d.innerHTML = `<h3>${e.id} &mdash; ${e.name}</h3><p>${e.blurb}</p>`
+      + `<div class="frame"><div class="eqbox" id="eq${e.id}">${e.html}</div></div>`;
+    host.appendChild(d);
+  }
+  /* measured synchronously: a rAF here reports the previous frame's layout */
+  let t = `<tr><th>#</th><th>height at 550px</th><th>lines</th><th>widest term</th></tr>`;
+  for (const e of EQS) {
+    const box = document.getElementById("eq" + e.id);
+    const kids = [...box.querySelectorAll("math")];
+    const tops = new Set(kids.map((k) => Math.round(k.getBoundingClientRect().top)));
+    const widest = Math.max(...kids.map((k) => k.getBoundingClientRect().width));
+    t += `<tr><td><b>${e.id}</b></td><td>${Math.round(box.getBoundingClientRect().height)}px</td>`
+      + `<td>${tops.size}</td><td>${Math.round(widest)}px</td></tr>`;
+  }
+  document.getElementById("eqm").innerHTML = t;
+}
+
+/* ---- round 2: four orientations of the same function ------------------- */
+const LINKS = [
+  { id: "L1", name: "p on x, log-odds on y — what is built, and the convention",
+    blurb: "The plot every textbook draws. It also disagrees by 90° with the panel underneath it, where p runs up the side." },
+  { id: "L2", name: "p on y, log-odds on x — matching the panel below",
+    blurb: "The same function, transposed so that p is vertical in both the card and the figure. Reads as: for this probability, that is the log-odds." },
+  { id: "L3", name: "Two scales side by side, tied at named probabilities",
+    blurb: "Not a curve at all. Two vertical rulers, p and log(odds), with the same points marked on both — which is what the two panels below actually are. No search found this used as a teaching device, which is either an opportunity or a warning." },
+  { id: "L4", name: "L2 with the reader's own two probabilities marked",
+    blurb: "L2, plus where the current step's two probabilities land. The card stops being a definition and starts reporting." },
+];
+
+function drawLink(cv, id) {
+  const w = 150, h = 96, dpr = window.devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = tok("--surface-1"); c.fillRect(0, 0, w, h);
+  c.font = `9px ${tok("--font")}`;
+  c.textBaseline = "middle";
+  const L = Math.log, lg = (p) => L(p / (1 - p));
+
+  if (id === "L1" || id === "L2" || id === "L4") {
+    const flip = id !== "L1";
+    const px = (p) => (flip ? 26 + 8 : 26 + p * 104);
+    const X = (p, y) => (flip ? 26 + ((y + 6) / 12) * 108 : 26 + p * 108);
+    const Y = (p, y) => (flip ? 84 - p * 72 : 48 - (y / 6) * 38);
+    /* the bounds p = 0 and p = 1 */
+    c.strokeStyle = tok("--axis"); c.setLineDash([2, 2]); c.lineWidth = 1;
+    for (const p of [0, 1]) {
+      c.beginPath();
+      if (flip) { c.moveTo(26, Y(p, 0)); c.lineTo(w - 6, Y(p, 0)); }
+      else { c.moveTo(X(p, 0), 8); c.lineTo(X(p, 0), 78); }
+      c.stroke();
+    }
+    c.setLineDash([]);
+    c.strokeStyle = tok("--c-theory"); c.lineWidth = 1.6;
+    c.beginPath();
+    for (let i = 0; i <= 160; i += 1) {
+      const p = 0.0025 + (0.995 * i) / 160, y = lg(p);
+      const x = X(p, y), yy = Y(p, y);
+      if (i === 0) c.moveTo(x, yy); else c.lineTo(x, yy);
+    }
+    c.stroke();
+    c.fillStyle = tok("--ink-3");
+    if (flip) {
+      c.textAlign = "right";
+      c.fillText("1", 22, Y(1, 0)); c.fillText("0", 22, Y(0, 0));
+      c.save(); c.translate(9, 48); c.rotate(-Math.PI / 2);
+      c.textAlign = "center"; c.fillText("p", 0, 0); c.restore();
+      c.textAlign = "center"; c.fillText("log(odds)", 26 + 54, 92);
+    } else {
+      c.textAlign = "center";
+      c.fillText("0", X(0, 0), 88); c.fillText("1", X(1, 0), 88); c.fillText("p", 26 + 54, 88);
+      c.save(); c.translate(9, 44); c.rotate(-Math.PI / 2);
+      c.fillText("log(odds)", 0, 0); c.restore();
+    }
+    if (id === "L4") {
+      for (const [p, lab] of [[0.136, ""], [0.145, ""]]) {
+        c.fillStyle = tok("--c-highlight");
+        c.beginPath(); c.arc(X(p, lg(p)), Y(p, lg(p)), 3, 0, 7); c.fill();
+      }
+      c.fillStyle = tok("--c-highlight"); c.textAlign = "left";
+      c.fillText("0.136 → 0.145", 34, 16);
+    }
+    return;
+  }
+
+  /* L3 — two rulers, tied */
+  const ties = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99];
+  const yOf = (p) => 84 - ((lg(p) + 4.6) / 9.2) * 72;
+  const yP = (p) => 84 - p * 72;
+  c.strokeStyle = tok("--axis"); c.lineWidth = 1;
+  c.beginPath(); c.moveTo(40, 10); c.lineTo(40, 86); c.moveTo(108, 10); c.lineTo(108, 86); c.stroke();
+  for (const p of ties) {
+    c.strokeStyle = tok("--grid");
+    c.beginPath(); c.moveTo(40, yP(p)); c.lineTo(108, yOf(p)); c.stroke();
+    c.fillStyle = tok("--ink-3"); c.textAlign = "right";
+    c.fillText(String(p), 37, yP(p));
+    c.textAlign = "left";
+    c.fillText(lg(p).toFixed(1), 111, yOf(p));
+  }
+  c.fillStyle = tok("--ink-2"); c.textAlign = "center";
+  c.fillText("p", 40, 6); c.fillText("log(odds)", 112, 6);
+}
+
+{
+  const host = document.getElementById("links");
+  for (const l of LINKS) {
+    const d = document.createElement("div");
+    d.className = "cell";
+    d.innerHTML = `<h3>${l.id} &mdash; ${l.name}</h3><p>${l.blurb}</p>`;
+    const cv = document.createElement("canvas");
+    d.appendChild(cv);
+    host.appendChild(d);
+    drawLink(cv, l.id);
+  }
+}
+
+/* ---- round 3: what the strip's height is ------------------------------- */
+const B0 = -6.54292372, BB = 0.03532089, BA = 0.07581313, BMI = 25.5;
+const pAt = (a) => 1 / (1 + Math.exp(-(B0 + BB * BMI + BA * a)));
+const STEPS = [];
+for (let a = 32; a < 70; a += 1) STEPS.push([a, pAt(a), pAt(a + 1)]);
+
+const STRIPS = [
+  { id: "S1", name: "What is built — the row says “step”", label: "step", max: false, top: false,
+    blurb: "“step” names what CAUSED the change, not what is being measured. Nothing on screen says the bars are a difference in p." },
+  { id: "S2", name: "The row names the quantity", label: "Δ p", max: false, top: false,
+    blurb: "One word changed. The bar is now a change in p, and the panel it sits under says which p." },
+  { id: "S3", name: "…and the tallest bar carries its value", label: "Δ p", max: true, top: false,
+    blurb: "A scale, given once. It says what full height means, so every other bar can be read off it." },
+  { id: "S4", name: "…and the current bar carries its own", label: "Δ p", max: true, top: true,
+    blurb: "The number the reader is actually asking for, at the bar they are on. Duplicates the panel's corner reading, which may be a cost." },
+];
+
+function drawStrip(cv, spec) {
+  const w = 200, h = 74, dpr = window.devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = tok("--surface-1"); c.fillRect(0, 0, w, h);
+  c.font = `11px ${tok("--font")}`;
+  c.textBaseline = "middle";
+  const x0 = 46, y0 = 14, sw = w - x0 - 10, sh = 36;
+  const cursor = 26;
+  let maxD = 0;
+  for (const [, p1, p2] of STEPS) maxD = Math.max(maxD, p2 - p1);
+  const barW = sw / STEPS.length - 1.2;
+  c.fillStyle = tok("--c-highlight");
+  STEPS.forEach(([a, p1, p2], k) => {
+    if (k >= cursor) return;
+    const bh = ((p2 - p1) / maxD) * sh;
+    c.globalAlpha = k === cursor - 1 ? 1 : 0.4;
+    c.fillRect(x0 + (k + 0.5) * (sw / STEPS.length) - barW / 2, y0 + sh - bh, barW, bh);
+  });
+  c.globalAlpha = 1;
+  c.strokeStyle = tok("--axis");
+  c.beginPath(); c.moveTo(x0, y0 + sh + 0.5); c.lineTo(x0 + sw, y0 + sh + 0.5); c.stroke();
+  c.fillStyle = tok("--ink-3"); c.textAlign = "right";
+  c.fillText(spec.label, x0 - 8, y0 + sh / 2);
+  c.textAlign = "center";
+  for (const a of [40, 50, 60, 70]) {
+    c.fillText(String(a), x0 + ((a - 32) / 38) * sw, y0 + sh + 12);
+  }
+  if (spec.max) {
+    c.textAlign = "left";
+    c.fillStyle = tok("--ink-3");
+    c.fillText(`${(maxD * 100).toFixed(2)} pp`, x0 + 2, y0 + 5);
+    c.strokeStyle = tok("--grid");
+    c.beginPath(); c.moveTo(x0, y0 + 0.5); c.lineTo(x0 + sw, y0 + 0.5); c.stroke();
+  }
+  if (spec.top) {
+    const [, p1, p2] = STEPS[cursor - 1];
+    const bh = ((p2 - p1) / maxD) * sh;
+    c.fillStyle = tok("--c-highlight");
+    c.textAlign = "center";
+    c.fillText(`+${((p2 - p1) * 100).toFixed(2)} pp`,
+      x0 + (cursor - 0.5) * (sw / STEPS.length), y0 + sh - bh - 7);
+  }
+}
+
+{
+  const host = document.getElementById("strips");
+  for (const s of STRIPS) {
+    const d = document.createElement("div");
+    d.className = "cell";
+    d.innerHTML = `<h3>${s.id} &mdash; ${s.name}</h3><p>${s.blurb}</p>`;
+    const cv = document.createElement("canvas");
+    d.appendChild(cv);
+    host.appendChild(d);
+    drawStrip(cv, s);
+  }
+}
+</script>
+</body>
+</html>

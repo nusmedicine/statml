@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; three scales, one fit</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 84ch; font-size: var(--fs-sm); }
+  p.note b, p.note strong { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4);
+    overflow-x: auto; }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .bar label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  canvas { display: block; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 4px 8px; text-align: left;
+    font-variant-numeric: tabular-nums; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td { color: var(--ink-2); }
+  td b { color: var(--ink-1); font-weight: 600; }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+
+  /* --- round 2: the framework row, as real DOM --- */
+  .fw { background: var(--surface-3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); }
+  .fw-eq { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1);
+    margin-bottom: var(--sp-1); }
+  .fw-links { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3);
+    list-style: none; margin: 0; padding: 0; font-size: var(--fs-xs); color: var(--ink-3); }
+  .fw-links li.on { color: var(--ink-1); font-weight: 600; }
+  .fw-links li.on::before { content: ""; display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--c-highlight); margin-right: 5px; vertical-align: 1px; }
+  .frame { border: 1px dashed var(--axis); padding: var(--sp-2); border-radius: var(--radius);
+    flex: 0 0 auto; box-sizing: content-box; }   /* the stated width IS the content width, and never shrinks */
+  .frame > span { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: 4px; }
+  .row2 { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Three scales, one fit</h1>
+  <p class="note">
+    <b>SETTLED: B, and F1.</b> Three small multiples, all three rungs beside each other; the
+    framework row above the figure at the full stage width. A, C and D stay on the page at
+    their measured sizes &mdash; deciding by looking is only honest while the alternatives are
+    still there to look at.
+    <br><br>
+    <b>Three things B needed before it could be chosen honestly</b>, all measured on this page
+    and all now applied to every candidate so the four stay comparable:
+    <br>&mdash; <b>tick density follows the panel.</b> Eight labels 64px apart at 486px are the
+    same eight 15px apart at 114px, which the text sweep calls legal and the eye calls a smear.
+    Under 300px the ticks go every ten years.
+    <br>&mdash; <b>the &plusmn;&infin; fact is said once, as a caption.</b> Per-panel it did not
+    fit in a 114px column, so it vanished from both of the panels it is about.
+    <br>&mdash; <b>the step's number has a fixed corner</b> rather than following the marker. At
+    114px the +1 bracket is 3px wide and is not a bracket; the quantity was always the number,
+    and a fixed slot makes B's three panels read as a row of three numbers &mdash;
+    <code>+0.91&nbsp;pp</code>, <code>&times;1.0788</code>, <code>+0.0758</code> &mdash; which is
+    the comparison B exists to make.
+  </p>
+  <p class="note">
+    Widget 15 opens on the <b>probability</b> scale with the raw 0/1 outcomes and no fitted
+    curve. The question this page settles is what the <b>ladder</b> looks like — probability,
+    odds, log-odds — and whether it is a control that swaps one panel or a layout that shows
+    more than one at once.
+    <br><br>
+    The claim being drawn: <b>step one covariate by +1 and the shift is a constant on the
+    log-odds scale and is not a constant on the probability scale.</b> Same coefficient, same
+    odds ratio, six times the risk difference across the data. Everything is the notebook's own
+    fit — <code>&minus;6.54292372 + 0.03532089&middot;BMI + 0.07581313&middot;age</code> on the
+    3658 complete cases.
+    <br><br>
+    <b>The raw outcomes exist on the probability panel only.</b> A 0 or a 1 is at
+    <code>&minus;&infin;</code> and <code>+&infin;</code> once you leave it, which is why the
+    binned proportions are there: they are what survives the change of scale.
+    <br><br>
+    Two things drawing it settled that arguing would not have:
+    <b>the odds rung is not straight either</b> &mdash; it is a different curve, not a
+    halfway house, so the ladder is <em>curved, curved differently, straight</em> rather than
+    three degrees of the same bend. And with age on x the whole figure, raw strip included, is
+    determined by <b>39 (age, n, events) triples &mdash; 356 bytes</b>, against 39,868 for the
+    3658 three-column rows. The 40KB inline the catalogue budgeted for is only needed if a
+    covariate other than age goes on the x axis.
+  </p>
+
+  <div class="bar">
+    <label>frame
+      <select id="frame">
+        <option value="550">900px &mdash; 550 canvas, the narrowest side layout</option>
+        <option value="770">1120px &mdash; 770 canvas, the widest</option>
+      </select>
+    </label>
+    <label>scale
+      <select id="scale">
+        <option value="p">probability</option>
+        <option value="odds">odds</option>
+        <option value="logit" selected>log-odds</option>
+      </select>
+    </label>
+    <label>step at age <input type="range" id="age" min="33" max="69" step="1" value="50"></label>
+    <label>BMI held <input type="range" id="bmi" min="18" max="40" step="0.5" value="25.5"></label>
+    <label>bin <select id="bin"><option>5</option><option>10</option><option>2</option></select> yr</label>
+    <label><input type="checkbox" id="full" checked> p axis spans 0&ndash;1</label>
+    <span id="state" class="measure"></span>
+  </div>
+
+  <div id="host"></div>
+
+  <h2>What each one costs</h2>
+  <p class="note">
+    <b>&Delta;px</b> is how tall the +1&nbsp;year step is drawn, at age&nbsp;35 and at age&nbsp;68.
+    It is the whole argument in two numbers: on log-odds it should be the same at both ends, and
+    on probability it should not. A step drawn under <b>1&nbsp;px</b> is not a step the reader
+    can see, whatever the caption says.
+  </p>
+  <table id="measure"></table>
+
+  <h2>Round 2 &mdash; where the framework row goes</h2>
+  <p class="note">
+    <code>f(&mu;) = &beta;<sub>0</sub> + &beta;<sub>1</sub>X</code> with the links the course
+    touches named beside it. It carries no value and is not a control &mdash; a
+    <code>readback</code>-shaped row. The only question is whether it fits in the rail, which is
+    <b>300&nbsp;px</b> of content, or has to sit above the figure at the full
+    <b>550&nbsp;px</b>. Widget&nbsp;14 has one of each: its equation is a card above the figure,
+    its readback is in the rail.
+  </p>
+  <div class="row2" id="fhost"></div>
+  <table id="fmeasure"></table>
+</main>
+
+<script type="module">
+/* Age-level counts are ALL the figure needs with age on x: the raw strip is fully
+   determined by (age, n, events). 39 triples, 356 bytes — against 39,868 for the
+   3658 three-column rows. Measured, and reported in the table below. */
+const AGE = "32,1,0;33,5,0;34,14,0;35,33,2;36,77,2;37,80,4;38,124,7;39,147,6;40,167,11;41,145,10;42,161,14;43,137,11;44,143,11;45,140,13;46,166,13;47,114,18;48,149,17;49,116,20;50,123,19;51,123,26;52,129,24;53,116,20;54,113,20;55,113,24;56,113,26;57,101,25;58,93,27;59,113,20;60,88,25;61,98,24;62,79,17;63,89,26;64,102,24;65,55,17;66,42,17;67,27,12;68,15,6;69,1,0;70,1,0"
+  .split(";").map((s) => s.split(",").map(Number));
+
+const B0 = -6.54292372, BB = 0.03532089, BA = 0.07581313;
+const AGE_LO = 32, AGE_HI = 70;
+
+const tok = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const pAt = (age, bmi) => 1 / (1 + Math.exp(-(B0 + BB * bmi + BA * age)));
+
+/* Three rungs of the ladder. `f` maps a probability onto the rung; a non-finite
+   result is a point the panel cannot draw, which is the ±∞ fact rather than a bug. */
+const SCALES = {
+  p:     { title: "probability", axis: "p", lo: 0, hi: 1, ticks: [0, .25, .5, .75, 1],
+           f: (p) => p, fmt: (v) => v.toFixed(2), raw: true },
+  odds:  { title: "odds", axis: "p / (1 − p)", lo: 0, hi: 1, ticks: [0, .25, .5, .75, 1],
+           f: (p) => p / (1 - p), fmt: (v) => v.toFixed(2), raw: false },
+  logit: { title: "log-odds", axis: "log( p / (1 − p) )", lo: -4, hi: 0, ticks: [-4, -3, -2, -1, 0],
+           f: (p) => Math.log(p / (1 - p)), fmt: (v) => v.toFixed(0), raw: false },
+};
+
+const el = (id) => document.getElementById(id);
+const S = () => ({
+  frame: +el("frame").value, scale: el("scale").value, age: +el("age").value,
+  bmi: +el("bmi").value, bin: +el("bin").value, full: el("full").checked,
+});
+
+/* --- one plot ------------------------------------------------------------- */
+const PAD_L = 52, PAD_R = 12, PAD_T = 18, PAD_B = 26;
+
+function bins(w) {
+  const out = new Map();
+  for (const [a, n, e] of AGE) {
+    const k = Math.floor(a / w) * w;   /* 30-34, 35-39, … — anchored the way a person bins */
+    const b = out.get(k) || { k, n: 0, e: 0, sa: 0 };
+    b.n += n; b.e += e; b.sa += a * n; out.set(k, b);
+  }
+  return [...out.values()].map((b) => ({ ...b, age: b.sa / b.n, rate: b.e / b.n }));
+}
+
+function plot(ctx, box, key, st, opts = {}) {
+  const sc = SCALES[key];
+  const lo = key === "p" && !st.full ? 0 : sc.lo;
+  const hi = key === "p" && !st.full ? 0.6 : sc.hi;
+  const { x, y, w, h } = box;
+  const px = x + PAD_L, pw = w - PAD_L - PAD_R;
+  const py = y + PAD_T, ph = h - PAD_T - (opts.noAxis ? 6 : PAD_B);
+  const X = (a) => px + ((a - AGE_LO) / (AGE_HI - AGE_LO)) * pw;
+  const Y = (v) => py + ph - ((v - lo) / (hi - lo)) * ph;
+  const on = (v) => Number.isFinite(v) && v >= lo - 1e-9 && v <= hi + 1e-9;
+
+  ctx.save();
+  ctx.font = `11px ${tok("--font")}`;
+  ctx.textBaseline = "middle";
+
+  /* gridlines and the y axis */
+  ctx.strokeStyle = tok("--grid"); ctx.lineWidth = 1;
+  ctx.fillStyle = tok("--ink-3"); ctx.textAlign = "right";
+  for (const t of sc.ticks) {
+    const tv = key === "p" && !st.full ? t * 0.6 : t;
+    if (!on(tv)) continue;
+    const yy = Math.round(Y(tv)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(px, yy); ctx.lineTo(px + pw, yy); ctx.stroke();
+    ctx.fillText(sc.fmt(tv), px - 6, yy);
+  }
+  ctx.strokeStyle = tok("--axis");
+  ctx.beginPath(); ctx.moveTo(px + .5, py); ctx.lineTo(px + .5, py + ph); ctx.stroke();
+
+  /* the raw 0/1 outcomes — probability panel only. Deterministic jitter, never
+     Math.random: a mock-up that will not redraw the same twice cannot be compared. */
+  if (sc.raw) {
+    for (const [a, n, e] of AGE) {
+      for (let i = 0; i < n; i++) {
+        const ev = i < e;
+        const j = (((a * 7919 + i * 2654435761) >>> 0) % 1000) / 1000 - 0.5;
+        const jy = (((a * 104729 + i * 40503) >>> 0) % 1000) / 1000 - 0.5;
+        const vy = (ev ? 1 : 0) + jy * 0.09;
+        if (!on(vy)) continue;
+        ctx.fillStyle = ev ? tok("--c-event") : tok("--c-nonevent");
+        ctx.globalAlpha = 0.12;
+        ctx.fillRect(X(a + j * 0.8) - 0.75, Y(vy) - 0.75, 1.5, 1.5);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* the fitted curve */
+  ctx.strokeStyle = tok("--c-theory"); ctx.lineWidth = 2;
+  ctx.beginPath();
+  let started = false;
+  for (let a = AGE_LO; a <= AGE_HI; a += 0.25) {
+    const v = sc.f(pAt(a, st.bmi));
+    if (!on(v)) { started = false; continue; }
+    if (started) ctx.lineTo(X(a), Y(v)); else { ctx.moveTo(X(a), Y(v)); started = true; }
+  }
+  ctx.stroke();
+
+  /* binned proportions — what travels across all three rungs */
+  let offscale = 0;
+  for (const b of bins(st.bin)) {
+    const v = sc.f(b.rate);
+    if (!on(v)) {
+      offscale++;
+      ctx.fillStyle = tok("--c-smoothed"); ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      const yy = py + ph;
+      ctx.moveTo(X(b.age), yy + 5); ctx.lineTo(X(b.age) - 4, yy - 1); ctx.lineTo(X(b.age) + 4, yy - 1);
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      continue;
+    }
+    ctx.fillStyle = tok("--c-smoothed");
+    ctx.beginPath(); ctx.arc(X(b.age), Y(v), Math.max(2.5, Math.sqrt(b.n) / 6), 0, 7); ctx.fill();
+  }
+
+  /* the +1 step */
+  const v1 = sc.f(pAt(st.age, st.bmi)), v2 = sc.f(pAt(st.age + 1, st.bmi));
+  let dpx = null;
+  if (on(v1) && on(v2)) {
+    dpx = Math.abs(Y(v1) - Y(v2));
+    ctx.strokeStyle = tok("--c-highlight"); ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(X(st.age), Y(v1)); ctx.lineTo(X(st.age + 1), Y(v1));
+    ctx.lineTo(X(st.age + 1), Y(v2));
+    ctx.stroke();
+    ctx.fillStyle = tok("--c-highlight");
+    ctx.beginPath(); ctx.arc(X(st.age), Y(v1), 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(X(st.age + 1), Y(v2), 3, 0, 7); ctx.fill();
+    const lab = key === "logit" ? `+${(v2 - v1).toFixed(4)}`
+      : key === "odds" ? `×${(v2 / v1).toFixed(4)}`
+      : `+${((v2 - v1) * 100).toFixed(2)} pp`;
+    /* bottom-right: the FITTED CURVE rises to the right on all three rungs, so
+       that corner is clear of it. The raw strip is another matter — on the
+       probability panel the band of zeros runs straight through this slot — so
+       the number is stroked surface-coloured first and sits on its own plate. */
+    ctx.textAlign = "right";
+    ctx.lineWidth = 3; ctx.strokeStyle = tok("--surface-1"); ctx.lineJoin = "round";
+    ctx.strokeText(lab, px + pw - 6, py + ph - 6);
+    ctx.fillStyle = tok("--c-highlight");
+    ctx.fillText(lab, px + pw - 6, py + ph - 6);
+  }
+
+  /* panel title, and the note where the raw outcomes are not. Both are sized
+     against the panel they are in: B's columns are 114px and the wording written
+     for a 486px panel ran off the canvas and onto the title. */
+  ctx.textAlign = "left"; ctx.fillStyle = tok("--ink-1");
+  ctx.font = `600 11px ${tok("--font")}`;
+  const titleW = ctx.measureText(sc.title).width;
+  ctx.fillText(sc.title, px, y + 9);
+  ctx.font = `11px ${tok("--font")}`;
+  ctx.fillStyle = tok("--ink-3"); ctx.textAlign = "right";
+  /* The note lives in the HEADER, beside the axis expression. Inside the plot it
+     had nowhere to stand: the step label roams the whole panel with the slider —
+     top-right at old age, bottom-left at young — so top-left collided at one end
+     of the slider and bottom-left at the other. The header is the only strip of
+     this panel that nothing else is drawn in. */
+  const room = pw - titleW - 10;
+  if (ctx.measureText(sc.axis).width < room) ctx.fillText(sc.axis, px + pw, y + 9);
+
+  /* x axis */
+  if (!opts.noAxis) {
+    ctx.strokeStyle = tok("--axis");
+    ctx.beginPath(); ctx.moveTo(px, py + ph + .5); ctx.lineTo(px + pw, py + ph + .5); ctx.stroke();
+    ctx.fillStyle = tok("--ink-3"); ctx.textAlign = "center";
+    const step = pw < 300 ? 10 : 5;
+    for (let a = step === 10 ? 40 : 35; a <= 70; a += step) ctx.fillText(String(a), X(a), py + ph + 13);
+    ctx.textAlign = "left"; ctx.fillText("age", x + 2, py + ph + 13);
+  }
+  ctx.restore();
+  return { pw, ph, dpx, offscale, stepPx: (a) => {
+    const w1 = sc.f(pAt(a, st.bmi)), w2 = sc.f(pAt(a + 1, st.bmi));
+    return on(w1) && on(w2) ? Math.abs(Y(w1) - Y(w2)) : null;
+  } };
+}
+
+/* --- the shared caption ---------------------------------------------------
+   The ±∞ fact belongs to the figure, not to each panel. As a caption it is said
+   once and always fits; per-panel it did not fit in B at all. */
+const NOTE_H = 18;
+function caption(ctx, w) {
+  ctx.save();
+  ctx.font = `11px ${tok("--font")}`;
+  ctx.fillStyle = tok("--ink-3");
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  const long = "A raw 0 or 1 is at ±∞ on the odds and log-odds axes — only the binned proportions cross.";
+  const short = "0 and 1 exist on the first axis only.";
+  ctx.fillText(ctx.measureText(long).width < w - 8 ? long : short, 4, 10);
+  ctx.restore();
+}
+
+/* --- the four candidates -------------------------------------------------- */
+const CANDS = [
+  { id: "A", name: "One panel, the axis rescales",
+    blurb: "The scale is a control. The panel is as big as it can be and the change of scale is an <b>act</b> — the reader does it, one rung at a time. Nothing is ever beside anything.",
+    height: (w) => 268 + NOTE_H,
+    draw(ctx, w, st) {
+      const r = plot(ctx, { x: 0, y: NOTE_H, w, h: 268 }, st.scale, st);
+      return { panels: 1, visible: 1, r: [r], key: [st.scale] };
+    } },
+  { id: "B", name: "Three small multiples, all at once — CHOSEN",
+    blurb: "All three rungs beside each other, no control. This is the layout the comparison literature asks for, and it is also the one that has to fit three plots into the width of one &mdash; which is what the three fixes at the top of the page are for. Read the three numbers in the bottom-right corners as a row: only one of them is a constant you would quote.",
+    height: (w) => 236 + NOTE_H,
+    draw(ctx, w, st) {
+      const keys = ["p", "odds", "logit"], gap = 8;
+      const cw = (w - gap * 2) / 3, out = [];
+      keys.forEach((k, i) => out.push(plot(ctx, { x: i * (cw + gap), y: NOTE_H, w: cw, h: 236 }, k, st)));
+      return { panels: 3, visible: 3, r: out, key: keys };
+    } },
+  { id: "C", name: "Two stacked, the lower one switches",
+    blurb: "Probability on top, always, because it is the only rung the raw outcomes exist on. The lower panel is the rung under test. <b>Shared x</b>, so a vertical line through both is the same age in both.",
+    height: (w) => 372 + NOTE_H,
+    draw(ctx, w, st) {
+      const lower = st.scale === "p" ? "logit" : st.scale;
+      const a = plot(ctx, { x: 0, y: NOTE_H, w, h: 168 }, "p", st, { noAxis: true });
+      const b = plot(ctx, { x: 0, y: NOTE_H + 180, w, h: 192 }, lower, st);   /* 12px between them */
+      return { panels: 2, visible: 2, r: [a, b], key: ["p", lower] };
+    } },
+  { id: "D", name: "Three stacked, no control at all",
+    blurb: "Every rung, full width, nothing to press. The ladder is the layout. It costs the most height of the four, and the height is the only thing it costs.",
+    height: (w) => 500 + NOTE_H,
+    draw(ctx, w, st) {
+      const a = plot(ctx, { x: 0, y: NOTE_H, w, h: 144 }, "p", st, { noAxis: true });
+      const b = plot(ctx, { x: 0, y: NOTE_H + 156, w, h: 144 }, "odds", st, { noAxis: true });
+      const c = plot(ctx, { x: 0, y: NOTE_H + 312, w, h: 188 }, "logit", st);   /* 12px between each */
+      return { panels: 3, visible: 3, r: [a, b, c], key: ["p", "odds", "logit"] };
+    } },
+];
+
+const host = el("host");
+for (const c of CANDS) {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.innerHTML = `<h3>${c.id} &mdash; ${c.name}</h3><p>${c.blurb}</p>`;
+  const cv = document.createElement("canvas"); cv.id = "cv" + c.id;
+  d.appendChild(cv);
+  const m = document.createElement("div"); m.className = "measure"; m.id = "m" + c.id;
+  d.appendChild(m);
+  host.appendChild(d);
+}
+
+function render() {
+  const st = S();
+  const rows = [];
+  for (const c of CANDS) {
+    const cv = el("cv" + c.id), w = st.frame, h = c.height(w);
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = w * dpr; cv.height = h * dpr;
+    cv.style.width = w + "px"; cv.style.height = h + "px";
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = tok("--surface-1"); ctx.fillRect(0, 0, w, h);
+    caption(ctx, w);
+    const out = c.draw(ctx, w, st);
+
+    const perScale = out.key.map((k, i) => {
+      const r = out.r[i];
+      const s35 = r.stepPx(35), s68 = r.stepPx(68);
+      return { k, pw: r.pw, ph: r.ph, off: r.offscale, s35, s68 };
+    });
+    const pxYr = (perScale[0].pw / (AGE_HI - AGE_LO));
+    el("m" + c.id).textContent =
+      `canvas ${w}×${h} · plot ${Math.round(perScale[0].pw)}×${Math.round(perScale[0].ph)} · ` +
+      `${pxYr.toFixed(1)} px per year · ` + perScale.map((p) =>
+        `${SCALES[p.k].title} Δpx ${p.s35 === null ? "—" : p.s35.toFixed(1)}→${p.s68 === null ? "—" : p.s68.toFixed(1)}`).join(" · ");
+    rows.push({ c, h, perScale, pxYr, visible: out.visible });
+  }
+
+  /* the measurement table */
+  const fmt = (v) => v === null ? "—" : (v < 1 ? `<span class="bad">${v.toFixed(1)}</span>` : v.toFixed(1));
+  let t = `<tr><th>#</th><th>rungs visible<br>at once</th><th>plot w×h</th><th>px / year</th>
+    <th>canvas h</th><th>&Delta;px on p<br>@35 &rarr; @68</th><th>&Delta;px on log-odds<br>@35 &rarr; @68</th>
+    <th>bins off the<br>log-odds axis</th></tr>`;
+  for (const r of rows) {
+    const p = r.perScale.find((x) => x.k === "p");
+    const l = r.perScale.find((x) => x.k === "logit");
+    t += `<tr><td><b>${r.c.id}</b></td><td>${r.visible}</td>
+      <td>${Math.round(r.perScale[0].pw)}×${Math.round(r.perScale[0].ph)}</td>
+      <td>${r.pxYr.toFixed(1)}</td><td>${r.h}</td>
+      <td>${p ? fmt(p.s35) + " → " + fmt(p.s68) : "—"}</td>
+      <td>${l ? fmt(l.s35) + " → " + fmt(l.s68) : "—"}</td>
+      <td>${l ? l.off : "—"}</td></tr>`;
+  }
+  el("measure").innerHTML = t;
+
+  const st2 = S();
+  const p1 = pAt(st2.age, st2.bmi), p2 = pAt(st2.age + 1, st2.bmi);
+  el("state").textContent =
+    `age ${st2.age}→${st2.age + 1} at BMI ${st2.bmi.toFixed(1)}: ` +
+    `p ${p1.toFixed(4)}→${p2.toFixed(4)} (+${((p2 - p1) * 100).toFixed(2)} pp) · ` +
+    `odds ×${((p2 / (1 - p2)) / (p1 / (1 - p1))).toFixed(4)} · ` +
+    `log-odds +${(Math.log(p2 / (1 - p2)) - Math.log(p1 / (1 - p1))).toFixed(5)}`;
+}
+
+/* --- round 2: the framework row at each width ----------------------------- */
+const FW = [
+  { id: "F1", w: 550, name: "Above the figure, full stage width — CHOSEN",
+    links: ["identity → lm", "logit → this widget", "log → hazards, counts"], on: 1 },
+  { id: "F2", w: 300, name: "In the rail, same wording",
+    links: ["identity → lm", "logit → this widget", "log → hazards, counts"], on: 1 },
+  { id: "F3", w: 300, name: "In the rail, only the current link named",
+    links: ["identity", "logit — this widget", "log"], on: 1 },
+];
+{
+  const h = el("fhost");
+  for (const f of FW) {
+    const d = document.createElement("div"); d.className = "frame";
+    d.style.width = f.w + "px";
+    d.innerHTML = `<span>${f.id} &mdash; ${f.name} &middot; ${f.w}px</span>
+      <div class="fw" id="fw${f.id}">
+        <div class="fw-eq">f(μ) = β₀ + β₁X</div>
+        <ul class="fw-links">${f.links.map((l, i) =>
+          `<li class="${i === f.on ? "on" : ""}">${l}</li>`).join("")}</ul>
+      </div>`;
+    h.appendChild(d);
+  }
+  let t = `<tr><th>#</th><th>width</th><th>row height</th><th>link lines</th><th>reads as</th></tr>`;
+  for (const f of FW) {
+    const node = el("fw" + f.id);
+    const ul = node.querySelector(".fw-links");
+    const tops = new Set([...ul.children].map((c) => c.offsetTop));   /* forces layout, synchronously */
+    t += `<tr><td><b>${f.id}</b></td><td>${f.w}px</td><td>${node.offsetHeight}px</td>
+      <td>${tops.size}</td><td>${tops.size === 1 ? "one line" : tops.size + " lines"}</td></tr>`;
+  }
+  el("fmeasure").innerHTML = t;
+}
+
+for (const id of ["frame", "scale", "age", "bmi", "bin", "full"]) el(id).addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

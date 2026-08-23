@@ -207,6 +207,20 @@
       ],
       "arc": 14,
       "status": "shipped"
+    },
+    {
+      "slug": "logistic-regression",
+      "title": "Logistic Regression",
+      "blurb": "A binary outcome has no line through it. Move the link to the left-hand side and the model is straight again.",
+      "course": "PHM5003",
+      "topics": [
+        "logistic regression",
+        "link function",
+        "odds ratio",
+        "generalized linear model"
+      ],
+      "arc": 15,
+      "status": "draft"
     }
   ]
 }

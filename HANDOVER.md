@@ -2,154 +2,76 @@
 
 ## Where things are
 
-**Fourteen widgets, all fourteen shipped. `/lab/` is empty.** `generalization`
-(arc 13) and `linear-regularization` (arc 14) were promoted at Kenneth's
-instruction; the gallery is now the whole collection and the draft bar is off
-both.
-
-> **What promotion actually changed, so nobody has to guess.** A draft already
-> lives at its final URL, so no link moved. What went away is the bar reading
-> *"this widget is still being built, and what it shows may be wrong"* — which
-> means **both are now presented to students as finished teaching material.**
-> Neither has been [judged projected](#deferred-ready-to-pick-up-individually),
-> and that item is no longer a tidy-up: it is the one review a shipped widget has
-> not had. Widget 11's hypergeometric dots are ~4px at the narrow layout, which
-> is what that review is for.
-
-**Everything is committed and pushed**, so the twenty commits that were sitting
-on `main` are live at <https://nusmedicine.github.io/statml/>. There is no staging
-step, which is what makes `npm run check` before committing load-bearing rather
-than tidy, and GitHub Pages sends `max-age=600`, so a student can get a stale
-widget for ten minutes after a deploy.
-
-The last five are one change each, and their messages carry the reasoning rather
-than this file:
-
-    f095d5e  Let widget 14's panels fill the row, and align the equation
-    1dd52d0  Mock up how wide widget 14's two panels go
-    af8c597  Give core a matrix control, and put widget 14's grid in the rail
-    43344b9  Mock up the correlation matrix in the rail
-    69cf912  Write widget 14's equation terms as T4
-
-**113 fingerprint states, and each carries TWO hashes.** Eight were added for the
-two promotions — `check` demands settled coverage of every non-draft widget, and
-a driven state of any that declares an `animation`, which is what makes promotion
-a real gate rather than a flag. See *Verifying changes* below.
+**Fifteen widgets: fourteen shipped, and `logistic-regression` built as a
+DRAFT.** It sits at `/lab/`, off the gallery, and has not been judged projected.
+Everything before it is unchanged and still live at
+<https://nusmedicine.github.io/statml/>.
 
 ```bash
 npm run dev      # :8000 — USE THIS, not python -m http.server
 npm run check    # before every commit
 ```
 
----
+**117 fingerprint states, each carrying two hashes.** Four are widget 15's, all
+settled: it declares no `animation` and no `regions`, so settled coverage is all
+`check` requires of it.
 
-## NEXT: widget 15 — logistic regression, as a linear model with a link
-
-Agreed with Kenneth as the next build. **Nothing is designed yet**, so this
-section is the ground rather than the plan: what the host lesson does, what the
-numbers are, what the misconception is, and what has already been decided
-elsewhere and must not be re-argued.
-
-### The host lesson, read
-
-`../jupyterbook/phm5003/notebook/04 - Introduction to Statistical Computing Part 2/05-05 - Modeling - Categorical Outcome.ipynb`
-— nineteen cells, and it opens on the framing the widget has to carry:
-
-> The linear model can be generalized to include a link function, which allows
-> the modeling of different outcomes besides continuous variables
-
-It is the fifth of seven modelling lessons (`05-01` single covariate through
-`05-07` hierarchical), so the reader arrives having fitted straight lines four
-times. **`05-05` is where the line stops being a line**, and the lesson's own
-answer is that it does not: what changed is the scale it is straight on.
-
-- **Data:** the Framingham study,
-  `https://raw.githubusercontent.com/kennethban/dataset/main/framingham.csv`.
-  **4240 rows, 16 columns**, printed by the notebook.
-- **Model:** `glm(TenYearCHD ~ BMI + age, data = data, family = "binomial")`.
-- **The printed coefficients**, from the notebook's own output — a widget that
-  does not reproduce these to the digit is wrong:
-
-  | term | estimate | std. error | p |
-  |---|---|---|---|
-  | (Intercept) | **−6.54292372** | 0.407430778 | 4.9e−58 |
-  | BMI | **0.03532089** | 0.011176590 | 1.6e−03 |
-  | age | **0.07581313** | 0.005744181 | 9.0e−40 |
-
-- **The odds ratios it derives:** `exp(0.035) = 1.036` for BMI,
-  `exp(0.076) = 1.079` for age.
-- The lesson then prints a `modelsummary` table with `exponentiate = TRUE` and a
-  `ggcoefstats` forest plot on the odds-ratio scale with a dashed line at 1.
-
-### The misconception, and it is two
-
-1. **That logistic regression is a different algorithm.** It is the same linear
-   predictor; what is new is a function applied to the mean before the line is
-   fitted. The lesson writes it as `f(μ) = β₀ + β₁X` and then names `f` as
-   `log(odds)`.
-2. **That `exp(b)` is an odds ratio because odds ratios are interpretable.** It
-   is an odds ratio *because of the link* — a constant shift on a log scale is a
-   constant multiple on the original one, and nobody chose that. `docs/catalogue.md`
-   already says this out loud at line 1519 and calls it the thing `05-05` needs
-   said. It is also why the odds ratio is the quantity you are handed whether you
-   wanted it or not.
-
-### The shape that suggests itself, NOT yet decided
-
-**One fitted model, two scales, and a control that moves between them.** On the
-link scale — `log(odds)` — the model is a straight line and the data are at ±∞,
-so the points cannot be drawn. On the probability scale it is an S and the points
-are at 0 and 1 where they belong. **It is the same fit both times**, and that is
-the whole claim: the link is a change of axis, not a change of model.
-
-What that buys, and why it is worth a widget rather than a figure: **step one
-covariate by +1 and watch what happens on each scale.** On the log-odds scale the
-shift is a constant `b` everywhere. On the probability scale it is not constant —
-big in the middle, vanishing at both ends. That is the same fact widget 12
-measures from a 2×2 table, arrived at from the other direction, and it is why an
-odds ratio is one number and a risk ratio is not.
-
-Open, and the sort of thing Kenneth settles from a mock-up rather than prose:
-
-- **One covariate or two.** `age` alone draws a clean S; the lesson fits `BMI +
-  age`. Two means the curve is a slice at a held BMI, which is the same
-  conditional-slice problem widget 14 solved — and the solution there is written
-  down, so it is cheap to reuse.
-- **Two scales or three.** The lesson's algebra goes `p → odds → log(odds)` in
-  three steps and the middle one is where the odds ratio actually lives.
-- **Whether the fitting is shown.** IRLS converging is a real animation and
-  widget 8 already owns "likelihood, one candidate at a time". Reusing that idea
-  here may be right or may be a second widget wearing the first one's clothes.
-- **The forest plot.** `ggcoefstats` on the OR scale with a line at 1 is the
-  lesson's own last figure; whether the widget should end there is a design
-  question, not a given.
-
-### Already decided elsewhere — do not re-argue
-
-- **Odds versus risk, and why an odds ratio overstates a risk ratio**, is widget
-  12 (`odds-and-risk`), shipped. Widget 15 should *lean on* it, not restate it.
-  `docs/catalogue.md` §"Widget 12" carries the whole argument including the
-  measured base-rate dependence.
-- **Predicted goes on x** — see the CLOSED section below. It applies to any
-  observed-against-predicted panel this widget grows.
-- **No runtime dependencies and no build step.** The data has to be inlined the
-  way widget 14 inlines 252 rows of body fat. Three columns of 4240 rows is
-  roughly 50KB of source; that is the first measurement to take, and subsampling
-  is a decision with a cost (the printed coefficients would stop matching).
-- **`glm` drops rows with `NA`.** Framingham's `BMI` has them. Match the
-  notebook's row set or the coefficients will not match its output, and that
-  agreement is the widget's cheapest self-check.
-
-### Before writing any code
-
-Read `docs/design-principles.md` and `docs/prd.md` §11 first — most of the rules
-exist because the obvious approach failed, and §11 lists the non-goals so they
-can be pointed at rather than re-argued. Then `docs/catalogue.md` for where this
-sits in the statistics arc. The `new-widget` skill covers the `defineWidget`
-contract, the data-vs-display parameter split and how to verify a change without
-trusting screenshots.
+> **One of those four was flaky once and is not.** `?theme=light` hashed
+> `c921dc7b` on the first suite run, `016d5689` on the second and `c921dc7b`
+> again on the third — with its **`tx` identical every time**, so the text was
+> never in doubt and only the pixels moved. Isolated, it gave `c921dc7b` on six
+> consecutive renders and again after 10, 20 and 30 churned iframes. Eleven
+> observations against one. The recorded value is right and the outlier was
+> environmental, but it is written down because the next person to see a lone
+> `DIFFER` on that row should re-run before believing it.
 
 ---
+
+## NEXT: widget 15 needs the marginal-vs-conditional note, then a projected review
+
+**The widget is built and the design has held for two rounds.** What is open is
+one thing Kenneth found and one thing nobody has done.
+
+### 1. The green dots and the curve answer different questions, and nothing says so
+
+Reported as: *"when I move BMI/Age, sometimes they move outside the range of the
+green dots — what does it mean?"*
+
+It means the figure is correct and silent. The **dots are marginal**: the
+observed proportion among everyone in that bin, at whatever BMI they actually
+had — average 25.4. The **curve is conditional**: the model at the one held value
+the slider is set to. Drag BMI to 45 and you are asking about a subgroup almost
+nobody in the bins belongs to, so of course the curve leaves them. They coincide
+only near the middle of the data, BMI ≈ 25.4 or age ≈ 49.
+
+That is the most useful thing the two sliders demonstrate and it currently reads
+as a defect. It is a caption or a readout line, not a rebuild — **and it will
+move the `px` of all four states**, so rebaseline in the same commit.
+
+### 2. Judge it projected
+
+Widgets 11, 12, 13, 14 and now 15 have never been seen from the back of a room.
+Widget 15's binomial intervals are 1px hairlines and its strip bars are ~3px
+wide at the narrow frame, so it has more to lose from distance than most.
+
+### Do NOT re-argue these
+
+Every one was measured or chosen from a mock-up, and all of it is in
+`docs/catalogue.md` under *Widget 15* with the numbers:
+
+- **The model is 05-05's own**, `TenYearCHD ~ BMI + age`, coefficients to the
+  digit. A second data set (`prevalentHyp ~ sysBP`) was built, made step 1
+  unmissable, and was cut for matching the lesson. Its numbers are kept.
+- **Three panels, and they are the two bounds coming off one at a time** — not
+  three arbitrary views. That is the answer to *why log it*.
+- **No training, no convergence.** Widget 8 owns iterative fitting.
+- **No stages, no sweep, no animation.** Both were built at Kenneth's request
+  and both were removed at his request; the figure's subject is a mapping, and
+  varying two sliders is the exploration.
+- **The straight line is `--c-reference` grey**, not `--c-extreme`: extreme and
+  event are the same `--series-8`, so a red line and a red dot would be one
+  colour with two meanings.
+
 
 ## Then: two things the promotion did not do
 

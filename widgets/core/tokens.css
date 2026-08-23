@@ -522,6 +522,75 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   color: var(--ink-3);
 }
 
+/* THE FRAMEWORK ROW: one equation, and the links the course touches, in a card
+   above the figure. Widget 15's organising idea is WHERE the link goes — on the
+   LEFT-hand side, applied to the mean — so the row states `f(μ) = β₀ + β₁X`
+   once and marks which link the figure below is showing.
+
+   IT REUSES `.w-math` AS ITS CARD and adds only what `.w-math`'s own children
+   cannot give it. `.w-math-eq` reserves 6.93em of height and hangs an 8.3em
+   indent, both measured for a thirteen-term sum that wraps; for one short line
+   they are a tall empty box with its first line pulled out of the card.
+
+   THE PLACEMENT WAS MEASURED, not chosen — `_lab/logistic-scales.html`, round
+   two. At the 550px stage the row is one line and 58px tall. In the rail's
+   300px the same wording wraps to two lines and 79px, and the only way back to
+   one line there is to drop what each link is FOR, which is the whole content
+   of the row. */
+.w-link-eq {
+  font-size: var(--fs-lg);
+  color: var(--ink-1);
+  /* A LINE IS TALLER THAN ITS LINE-HEIGHT WHEN IT CONTAINS A FRACTION. The
+     equation's <mfrac> renders about 2.2x the base, so at the 1.55 inherited
+     from `.w-math` the line box is shorter than the thing inside it and the
+     two wrapped lines close up on each other — reported as the formula looking
+     squashed. 2.3 clears the fraction with a little air, and it is set here
+     rather than on `.w-math` so the links row underneath keeps its own
+     spacing. */
+  line-height: 2.3;
+}
+/* The equation and the drawn link sit side by side, and wrap rather than shrink
+   below about 26em: a 108px figure squeezed to 40px is worse than one on its
+   own line. */
+.w-link-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-1);
+}
+.w-link-row > div { flex: 1 1 17em; }
+.w-link-fig { flex: 0 0 auto; }
+/* The term the figure is currently stepping. MathML inherits `color`, so one
+   class on the term's own <math> is the whole of it. */
+.w-link-eq .lit { color: var(--c-highlight); }
+.w-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+/* The current link is marked twice — weight and a dot — because colour alone is
+   not a distinction every reader has. */
+.w-links li[aria-current] {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.w-links li[aria-current]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-highlight);
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
 /* A MATRIX CONTROL: a labelled grid of cells, one option per cell, each shaded
    by a magnitude the widget supplies. For a parameter that is a PAIR — 156
    ordered pairs of thirteen body measurements in widget 14 — where a flat

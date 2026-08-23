@@ -2481,6 +2481,531 @@ Two things the build settled on the way:
   grouped by canvas — grouping by y alone pairs each string with its twin in the
   cell next door.
 
+## Widget 15 · `logistic-regression` — BUILT, AS A DRAFT
+
+### REDESIGNED AFTER REVIEW — this supersedes the staging notes below
+
+Shown as a built draft and the verdict was *"I don't get the intuition, what is
+the dataset?"*, with an arc to replace it: **(1) what happens when you predict a
+0/1 outcome with ordinary linear regression, (2) why we add the link to squash
+it into (0, 1), (3) how that makes the coefficients odds** — and, after a first
+rebuild, *"let's match 05-05 if possible"*: `CHD ~ BMI + age`, both covariates
+shown, and the logit function drawn somewhere.
+
+**The dataset question was a defect, not a question.** The figure showed 3658
+dots and named none of them. The caption now says what they are before anything
+happens: *Framingham · 3658 people · did they develop heart disease within ten
+years?*
+
+**Step 1 needed the axis opened and the held slider to drive it.** Measured
+first: over the whole sample the linear probability model only makes 37 of 3658
+people impossible, and the worst is −0.032, which is easy to dismiss. But the
+defect belongs to the LINE, not to the sample, and the held covariate is what
+walks it out of the box:
+
+| held at | the straight line is negative | worst |
+|---|---|---|
+| BMI on x, age 32 | **below BMI 29.1** — most of the axis | −0.063 |
+| Age on x, BMI 18 | below age 37.2 | −0.050 |
+
+So **the probability axis runs from −0.18 to 1.18 with 0 and 1 ruled**, because
+an axis stopping at the boundary clips away exactly the thing step 1 exists to
+show, and the readout reports where the line crosses rather than a headcount.
+That last part was a correction: at BMI on x with age held at 32 the count read
+*"3058 people"*, which is everyone under BMI 29.1 and none of whom is
+necessarily 32 — a conditional printed as a fact.
+
+**Either covariate goes on the x axis.** One control doing two jobs: it is how
+the reader sees the second coefficient at all — `exp(0.07581) = 1.0788` for age,
+`exp(0.03532) = 1.0360` for BMI, both the notebook's — and it is *adjusted for*
+as a picture, since holding the other covariate elsewhere shifts the intercept
+and changes the slope not at all. Both sliders are always present, because the
+model has both; whichever is on the axis is where the step is read.
+
+**The link is drawn, not only named.** The card above the figure carries
+`f(y) = b₀ + b₁x₁ + b₂x₂`, then `logit(p) = log( p / (1 − p) )`, then a small
+inline SVG of the logit itself — the curve that takes (0, 1) and stretches it
+over the whole real line, which is the only reason an unbounded straight line
+can live there. Named as an equation it is a definition; drawn, it is the
+reason.
+
+**Two acts, not three, and that is a claim rather than a saving.** *Fit a
+straight line*, then *Add the link*. Squashing on the probability scale and
+straightening on the log-odds scale are not two things in sequence — they are
+the same change of scale, so every panel changes on the same press.
+
+**A second data set was built and cut, and the numbers are kept in case this
+reads flat.** `prevalentHyp ~ sysBP` is the only pair in the file whose
+probability spans 0.003 to 0.960; there the same straight line makes **684
+people (18.7%) impossible and predicts 269%**, its fitted 50% point lands at
+**141.4 mmHg** against a clinical threshold of 140 — a self-check the reader can
+perform — and because hypertension crosses p = 0.5 its probability strip is a
+**hump** rather than the half-story ramp CHD can manage. It went because
+matching 05-05 matters more.
+
+**What survived:** three panels abreast (layout B), the floor strips, the
+framework row above the figure (F1), the fixed corner for the step's number.
+**What went:** the 38-step walk, replaced by reading the step wherever the
+slider is; and the bin-width control, which multiplied by the step unit and gave
+the second data set 50 mmHg bins.
+
+**EVERY CONTROL IS A DISPLAY PARAMETER, and getting that wrong was invisible in
+every check that had been run.** Reported as *"I change the sliders and nothing
+happens"* — and nothing was the wrong word for what was happening. The data is
+3658 fixed people and the coefficients are fixed constants, so no slider changes
+what the numbers ARE; each only chooses which slice of one model is drawn. Marked
+as data parameters, every one of them **reset the animation**: press *Fit a
+straight line*, press *Add the link*, move any slider, and both curves vanished
+and the drive row went back to the start. Non-negotiable 3, exactly — an overlay
+that discards the reader's work is a bug — and `anim` here holds no derived state
+at all, so `display: true` costs nothing and no `rebuild` is needed.
+
+It survived a 308-state text sweep because a sweep reads the strings on the
+canvas and every string was legal; it survived the readout checks because the
+readout was correct for the stage it had been reset to. **The check that finds it
+is a canvas hash across a parameter change with the stage read beside it**, which
+is what the fingerprint harness does per state and what no amount of text
+checking will do.
+
+**And the fix removed a slider rather than relabelling one.** Reported next as
+*"is there supposed to be some sweep or animation?"* — there was not, and the
+read point should never have been a parameter. Widget 8's precedent settles it:
+a swept position is `anim` state over precomputed data, with no control of its
+own, because an animation that wrote a parameter would make the slider and the
+figure disagree about where the reader is (non-negotiable 1). So the read point
+became `anim.cursor`, **Play walks it the length of the axis** and the strip
+fills in behind it, and the only slider left is the covariate being HELD — which
+is gated by the segmented control, so it never has to explain which role it is
+in.
+
+That freed the drive row and pushed *Add the link* onto a checkbox, which is
+where it belonged: **it wants to be reversible.** Flipping it off and on is how
+the reader sees this is one set of data read two ways rather than a second
+model, and a one-way drive button cannot do that.
+
+**The reversible toggle then paid for itself twice over.** Because the steps are
+read off whichever fit is showing, the two silhouettes SWAP:
+
+| | probability strip | log-odds strip |
+|---|---|---|
+| straight line | **flat** — +0.95 pp at every step | curved |
+| with the link | a ramp — +0.33 pp to +1.83 pp | **flat** |
+
+A straight line asserts the risk DIFFERENCE is constant; the link asserts the
+LOG-ODDS difference is. Which assumption you are making is what the checkbox
+picks, and the flat strip is which one you picked. That was not designed — it
+fell out of computing the steps from the active fit, three lines — and it is now
+the clearest thing on the figure.
+
+The odds-ratio tile reads `—` while the link is off, deliberately: a straight
+line has no constant one, and quoting exp(b) there would be quoting a
+coefficient the model on screen does not have.
+
+**Three more from the same review, each mocked up in
+`_lab/logit-card.html` and chosen from four:**
+
+- **M1 — the equation is 05-05's own line, in MathML**, fraction and subscripts
+  and all, with **the term on the x axis lit** (M4's addition). Which covariate
+  is being stepped and which is held is a fact about the equation, so 2.7 puts
+  the reading next to what produced it. One `<math>` per term, `form="infix"` on
+  every sign, and a `<math>`-against-`<math>` capability probe — all three
+  lessons inherited from widget 14 rather than rediscovered. The separate
+  general form went: `log(p/(1−p)) = …` **is** the link on the left-hand side,
+  shown concretely, and the links row underneath already names the framework.
+- **L4 — the drawn link is transposed, and that is a deliberate break with
+  convention.** Every textbook plots p on the horizontal axis; every panel under
+  this card puts it on the vertical one, and *"the axis for p in the formula box
+  is 90 degrees to the probability graph below"* is the cost of following the
+  convention inside a 132px inset. p runs up the side here too, and the reader's
+  current two probabilities are marked on the curve — which turns the card from
+  a definition into a reading. L3, two tied rulers, is conceptually the closest
+  thing to what the panels below actually do and was cut on measurement: at
+  132px its labels collide.
+- **S3 — the strip names its quantity and carries a scale.** *"When I step, what
+  increases in the bars?"* was unanswerable: the row label read `step`, which
+  names what CAUSED the change rather than what is measured. The rows now read
+  `Δ p`, `Δ odds`, `Δ log-odds`, and full height carries its own value once, so
+  every other bar can be read off it. Each strip is still scaled to its own
+  largest, because the three quantities share no unit — the scale line is what
+  makes that legible rather than arbitrary.
+
+**THE THREE PANELS HAD A JOB AND NEVER SAID IT, which is why they read as
+decoration.** Four questions from review — *"if I don't add the link then all the
+graphs don't make sense, so should I always add it?"*, *"fitting a straight line
+only makes sense for probability, i.e. we assume the 0/1 outcome is
+probability?"*, *"why do I need to log it — doesn't 0/1 map to p/(1−p)?"* and
+*"where does the binomial family fit?"* — and the middle two are the answer to
+the outer two.
+
+**The three panels are the two bounds coming off one at a time.** That is the
+answer to *why log it*, and the widget was not giving it:
+
+| | range | what is still wrong |
+|---|---|---|
+| p | 0 to 1 | bounded at **both** ends |
+| p/(1−p) | 0 to ∞ | ceiling gone, **floor still at 0** |
+| log(p/(1−p)) | −∞ to +∞ | both gone |
+
+**Odds is only half the fix**, and it is asymmetric in a way the numbers make
+plain: p = 0.01 gives odds 0.010 and p = 0.99 gives 99, two symmetric
+probabilities and wildly asymmetric odds; take logs and they are −4.595 and
++4.595 again. So each panel's header now carries its **range** rather than its
+expression — the expression names the scale, which the title already did — and
+each panel **rules the bounds it has**: two on probability, one on odds, none on
+log-odds, where the emptiness is the point.
+
+The odds floor needed the axis opened below 0 to be visible at all. At `lo = 0`
+the rule lands on the plot's own bottom edge and reads as the axis, which hides
+the single fact the middle panel exists for.
+
+**Least squares on a 0/1 outcome fits the probability itself**, and the caption
+says so now. `E[Y|X]` for a binary Y **is** `P(Y = 1|X)`, which is why a fitted
+value outside 0 and 1 is a defect rather than a curiosity: the model has already
+called it a probability.
+
+**The family is drawn, as intervals on the binned dots.** Link and family are
+two choices — the link is the scale the mean is linear on, the family is how
+each observation scatters around it — and `family = "binomial"` is why R hands
+you the logit without being asked, it being binomial's canonical link. On screen
+the family is what says **how far a dot should be from the curve**:
+1.96·√(p(1−p)/n) is 4.9px at the 461-person bin and 20.9px at the 139-person
+one, so the sparse bins visibly wander and the dense ones do not. The interval
+is computed in probability space and then transformed, never a standard error
+transformed — on the log-odds panel a bar of equal length either side of the dot
+would be wrong at both ends.
+
+*Earned on the way:* with the link off the step is read off the straight line,
+whose probability can be negative — and **a negative probability has no logit**,
+so the card's two dots have nowhere to go. Writing `NaN` into an SVG `cx` is a
+console error; hiding the dot is the lesson.
+
+**THE STAGES AND THE SWEEP ARE BOTH GONE, and the widget is four controls.**
+Reported as *"I get confused which one comes first"* and *"maybe don't need the
+step and animation — we'll let the student vary the BMI or age to see how it
+maps to probability"*. The staging was mine, not the material's: fitting a
+straight line and then adding a link is a sequence I imposed on a figure whose
+subject is a MAPPING, and a reader who has to remember which button they already
+pressed is spending attention on the widget rather than on the model.
+
+So: no lead, no step, no Play, no `shown`. The straight line is always drawn
+because it is the foil, the link is a checkbox, and both covariates are live
+sliders — whichever is on the axis is where the step is read, the other is held.
+The reader varies two numbers and watches the mapping, which is the whole of it.
+The sweep added two turns earlier went with it; it was asked for, built, and
+then read as a fourth thing to operate.
+
+**The two lines were the same colour and nobody could tell them apart.**
+`--c-extreme` is `#e34948` and `--c-theory` is `#eb6834` — eleven degrees of hue
+apart, and at a 1.5px stroke in either theme they are one line. The straight
+line is the FOIL, the thing being compared against rather than a result, so it
+takes `--c-reference` and dashes: grey dashed against solid orange, which no
+reader has to decode.
+
+**The formula looked squashed, and a fraction is why.** An `<mfrac>` renders
+about 2.2× the base size, so at the 1.55 line-height inherited from `.w-math`
+the line box is shorter than the thing inside it and two wrapped lines close up
+on each other. `line-height: 2.3` on `.w-link-eq` clears it, set there rather
+than on `.w-math` so the links row keeps its own spacing. Card height is 121px
+and constant across all 120 reachable states — the figure never jogs (3.4d).
+
+**"How can one show the mapping from the outcome (0/1) to the link function?"
+— there is no such mapping, and saying so is the answer.** The link does not
+transform the outcome; it transforms the MEAN. `logit(0)` is −∞ and `logit(1)`
+is +∞, so an individual observation has no place on the other two axes at all.
+What gets transformed is `E[Y|X]`, which for a binary Y is `P(Y = 1|X)` — and
+the only way to SEE that mean is to group, which is what the binned proportions
+are. The figure had been making this point solely by omission (the raw dots
+appear on one panel and no other), so the caption band is now two lines and the
+first says it outright: *a single 0 or 1 has no odds, so what the link
+transforms is the proportion.*
+
+**There is no training and no convergence, and that is the decision rather than
+an omission.** The coefficients are fixed constants — the notebook's printed
+output — and *Fit a straight line* is instant because fitting is a computation,
+not a reveal. IRLS converging is a real animation, and widget 8 already owns
+*likelihood, one candidate at a time*; an iterative fit here would be a second
+widget in the first one's clothes, and the claim on this figure is about the
+link rather than about the search.
+
+**Verified.** 308 states swept with the `fillText` wrapper across both frames,
+both covariates, six BMI values, five ages and all three stages — no overflow,
+no collision, no NaN. `tokens.css` gained `.w-link-eq` / `.w-links` /
+`.w-link-row`, so the full fingerprint suite was run: **113 of 113 MATCH.** No
+states of its own yet; it is a draft and the design is still moving.
+
+### Scope: logistic, not a GLM with a family selector
+
+Asked at planning — should this be *generalized linear models* as a whole, with
+logistic as one setting on a family selector? **No, and the reason is a count
+rather than a taste.** The course fits exactly one family.
+
+Every `family =` in PHM5003, counted:
+
+| family | where | covariates? |
+|---|---|---|
+| `binomial` ×6 | `05-05`, `06-01` (through `glmulti`), `07 Summary` | yes |
+| `negbinomial` ×1 | `02-02`, as `brm(count ~ 1, …)` | **no — intercept only** |
+
+The single non-binomial fit has no covariate, so it has no `β₁`, no `exp(b)` and
+nothing to read through a link at all. It is the Bayesian parameter-estimation
+lesson using NB as a *distribution* — widget 9's host, not a regression.
+
+`07 - Summary` cell 24 is the other half of the count. It is the course's own
+**Build model** table, the thing a student consults to choose a model, and it has
+four rows: continuous → `lm`, binary → `glm(family="binomial")`, time-to-event →
+`coxph`, hierarchical → `lmer`. **No count row, one glm family.** A family
+selector would carry two or three options the course never asks anyone to fit,
+and each would need a dataset the course does not supply.
+
+**The idea's second instance is `05-06`, and it is not a GLM.** The very next
+lesson writes `h(t) = h₀(t)·exp(β₁X₁ + …)`, then `ln(h/h₀) = β₁X₁ + …`, and says
+out loud that this is *the familiar linear combination of predictors on the RHS,
+similar to what we see in multiple linear regression*. It then runs the same
+`modelsummary(exponentiate = T)` line and reads the same forest plot with a
+reference at 1, and `exp(b)` is a hazard ratio for the identical reason. Cox has
+no family, no `glm()` and an unspecified baseline hazard, so **a family selector
+would exclude the best second instance the course has.**
+
+**PHM5005 teaches the same model with no GLM framing at all**, which argues for a
+logistic widget and against a GLM one. `04-3` §2 is `z = Xw + b` then `σ(z)`,
+minimising cross-entropy, deciding at `p ≥ 0.5` — no odds, no link, no `exp(b)`:
+
+| | PHM5003 `05-05` | PHM5005 `04-3` §2 |
+|---|---|---|
+| form | `log(p/(1−p)) = β₀ + β₁X` | `z = Xw + b`, then `σ(z)` |
+| direction | p → link | link → p |
+| objective | binomial likelihood | cross-entropy |
+| what you read off | `exp(b)`, an odds ratio | a class, at `p ≥ 0.5` |
+
+They are the same function read in opposite directions, and cross-entropy **is**
+the binomial log-likelihood. One logistic widget serves both hosts; a family
+dropdown is meaningless in `04-3`.
+
+**The case for the unified frame is real, and it is a case for two instances
+rather than for a mode.** Comparing two cases beats studying them one at a time
+for abstracting the schema — studied singly, cases are encoded concretely and
+retrieved later on surface similarity ([Gentner, Loewenstein & Thompson
+2003][gentner]). But that result is about comparing **instances**, and the
+instances this course has are logistic and Cox, not logistic and an invented
+Poisson. No empirical study was found comparing unified-first against
+instances-first teaching for GLMs: the literature is normative on the frame and
+silent on the sequencing, so the misconception above is graded `inferred`.
+
+So the framework **is** on screen, as one labelled row rather than as a mode —
+see *Decided* below. And **widget 16 is Cox, at `05-06`**, where the same figure
+returns and `exp(b)` is a hazard ratio. That is the comparison the result above
+actually asks for, and it is why widget 15's spine must not be binomial-specific.
+
+Poisson and negative-binomial regression are parked with no host; see *Deferred
+from PHM5003*.
+
+[gentner]: https://groups.psych.northwestern.edu/gentner/papers/GentnerLoewensteinThompson03.pdf
+
+### What the lesson fits, to the digit
+
+- **Data:** the Framingham study,
+  `https://raw.githubusercontent.com/kennethban/dataset/main/framingham.csv`.
+  4240 rows, 16 columns.
+- **Model:** `glm(TenYearCHD ~ BMI + age, data = data, family = "binomial")`,
+  after `data %>% drop_na`.
+- **Printed coefficients**, from the notebook's own `broom::tidy` output. A
+  widget that does not reproduce these to the digit is wrong:
+
+  | term | estimate | std. error | p |
+  |---|---|---|---|
+  | (Intercept) | **−6.54292372** | 0.407430778 | 4.9e−58 |
+  | BMI | **0.03532089** | 0.011176590 | 1.6e−03 |
+  | age | **0.07581313** | 0.005744181 | 9.0e−40 |
+
+- **The odds ratios it derives:** `exp(0.035) = 1.036` for BMI,
+  `exp(0.076) = 1.079` for age.
+- The lesson closes with a `modelsummary` table at `exponentiate = TRUE` and a
+  `ggcoefstats` forest plot on the OR scale with a dashed line at 1.
+
+### Measured before anything was designed
+
+Four measurements, all from the notebook's own CSV, fitted by IRLS in plain JS.
+Two of them changed the shape of the widget.
+
+**1. The row set is 3658, and `BMI` is not why.** `drop_na` runs on the **whole
+sixteen-column frame** before the fit, so the row set depends on columns the
+model never uses: `glucose` has **388** missing and `education` 105, against
+`BMI`'s 19. Complete cases across all sixteen columns is **3658**.
+
+- On those 3658 rows the fit reproduces the printed table to all eight digits,
+  and the standard errors to seven.
+- Dropping NA on `BMI + age + TenYearCHD` only gives n = 4221 and
+  **−6.27495 / 0.03162 / 0.07226** — visibly not the notebook's numbers.
+
+So *agreeing with the printed table* is a real self-check rather than a
+tautology, and it is the cheapest one the widget has.
+
+**2. Inlining costs 40KB, and subsampling is not available.** 3658 rows of
+`(BMI, age, TenYearCHD)` as a flat delimited string is **39,868 bytes**; as JSON
+arrays, 47,240. `linear-regularization` already inlines 252 rows this way inside
+a 63KB `main.js` — same shape, five times the size. Subsampling would break
+measurement 1, which is the whole self-check, so it is not a saving that is
+available.
+
+**3. The upper bend of the S is off-data — and the widget is better for it.**
+Fitted p over the 3658 rows runs **0.034 to 0.523**, median 0.127. At median BMI,
+p = 0.5 is not reached until **age 74.5**, and the data stops at 70. The reader
+never sees the curve flatten at the top.
+
+What is reachable is the whole argument anyway, with no extrapolation:
+
+| age step, at median BMI 25.38 | p | Δp | odds × |
+|---|---|---|---|
+| 32 → 33 | 0.038 | **+0.0029** | 1.0788 |
+| 50 → 51 | 0.135 | +0.0091 | 1.0788 |
+| 70 → 71 | 0.416 | **+0.0185** | 1.0788 |
+
+**The same coefficient, the same odds ratio to four decimals, and a 6.4× spread
+in the risk difference** — which is widget 12's finding arrived at from the other
+direction, and the reason an odds ratio is one number while a risk ratio is not.
+Any design that needs the flat top has to leave the data to get it.
+
+**4. Binned age proportions are usably straight on the logit scale, and two bins
+are undrawable.**
+
+| bin | n | events | rate | logit |
+|---|---|---|---|---|
+| 30–34 | 20 | 0 | 0.000 | **−∞** |
+| 35–39 | 461 | 21 | 0.046 | −3.04 |
+| 40–44 | 753 | 57 | 0.076 | −2.50 |
+| 45–49 | 685 | 81 | 0.118 | −2.01 |
+| 50–54 | 610 | 108 | 0.177 | −1.54 |
+| 55–59 | 533 | 122 | 0.229 | −1.22 |
+| 60–64 | 456 | 116 | 0.254 | −1.08 |
+| 65–69 | 139 | 52 | 0.374 | −0.52 |
+| 70–74 | 1 | 0 | 0.000 | **−∞** |
+
+The two end bins have no events, so they go to −∞ and cannot be plotted at all.
+That is not a nuisance to be trimmed — it is **the ±∞ point, free**, and it is
+the same reason a raw 0/1 outcome cannot be drawn on a log-odds axis either.
+
+
+Three more came out of drawing it, in `widgets/_lab/logistic-scales.html`. All
+three change something.
+
+**5. The +1 step on the probability panel is SUB-PIXEL at the young end, in every
+layout.** 0.4–0.7px at age 35 against 2.2–3.5px at 68, and a taller panel does
+not rescue it: A's 224px panel still gives 0.8px. So **the gap cannot carry that
+half of the argument — the printed number has to**, which is why the step's
+number gets a slot of its own rather than a position beside the marker. It is
+also not a defect: 0.36 percentage points on an axis that runs to 1 *is*
+invisible, and that is the claim. The risk is only that invisible reads as
+broken, and a number next to it is what stops that.
+
+**6. The odds rung is a different curve, not a halfway house.** Probability is an
+S, odds is convex, log-odds is straight — three shapes, not three degrees of one
+bend. That is what makes the middle rung worth a panel instead of a step to skip
+past, and it was not obvious until it was drawn.
+
+**7. With age on x the whole figure costs 356 bytes, not 40KB.** The raw strip is
+fully determined by the 39 `(age, n, events)` triples, so measurement 2's
+39,868-byte inline is only needed if a covariate other than age goes on the x
+axis. Worth knowing before the data is pasted in.
+
+### Decided at planning, so they are not re-argued
+
+- **The common framework is on screen, and it is a labelled ROW, not a mode.**
+  `f(μ) = β₀ + β₁X`, with the links the course touches named beside it —
+  identity → `lm`, **logit → this widget**, log → hazards and counts — and the
+  current one lit. What it exists to make visible is *where the link lives*:
+  **on the left-hand side**, applied to the mean, so the right-hand side is the
+  same linear model the reader has already fitted four times. It carries no
+  value, never reaches the URL and is not a control (3.5) — a `readback`-shaped
+  row, like widget 14's.
+
+  **It goes ABOVE THE FIGURE at the full stage width** — placement **F1** of
+  three, and the measurement is one-sided. At 550px the full wording is one line
+  and 58px tall. In the rail's 300px it wraps to two lines and 79px (F2), and the
+  only way to get it back to one line there is to drop what each link is *for*
+  (F3), which is the entire content of the row.
+- **The spine is family-agnostic on purpose.** *Straight on one scale, curved on
+  another; a constant `b` on the link scale is a constant multiple on the
+  response scale.* Nothing in that sentence is binomial, so widget 16 reuses it
+  rather than re-arguing it — which is the whole reason the scope note above
+  refuses the family selector but keeps the framework.
+- **It opens empty on the PROBABILITY scale: the raw 0/1 outcomes, no fitted
+  curve.** That is the problem statement — 3658 points at two heights and no line
+  that could go through them — and it is the lesson's own order, `p → odds →
+  log(odds)`. The alternative was to open on the log-odds scale with only the
+  binned proportions, so their straightness is the reader's own observation; that
+  is the better reveal but it starts on the answer. Trying the first (agreed with
+  Kenneth); the second is the fallback if it reads flat.
+
+  **With B this got stronger rather than weaker.** The opening state is three
+  axes, the raw outcomes on the first, and nothing on the other two — so the
+  first thing the reader sees is that *the data cannot be drawn on two of these
+  three axes at all*. That is the problem statement and the ±∞ point in one, and
+  it costs nothing.
+- **Two covariates, age on x, BMI held.** Fitting age alone gives a different
+  coefficient and measurement 1 dies. The conditional slice is **exact and
+  trivial** here, unlike `linear-regularization`'s: the model is linear in the
+  link, so holding BMI fixed only shifts the intercept. Moving the BMI slider
+  shifts the log-odds line vertically by `0.03532 × Δ` and slides the S-curve
+  horizontally along age. Same fact, two appearances — which is *adjusted for
+  BMI* as a picture, at no cost.
+- **Three scales, THREE PANELS, no control.** Layout **B** of four in
+  `widgets/_lab/logistic-scales.html`, chosen by Kenneth over the one-panel
+  control (A), the two-stacked switch (C) and the three-stacked full-width (D).
+  Probability, odds and log-odds beside each other, 114px per column at the
+  narrow frame. Planning had assumed a control on one panel; the mock-up says
+  otherwise, and the reason is that **the comparison is the argument** — three
+  rungs in sequence is a thing to remember, three rungs abreast is a thing to
+  see. It is also what the Gentner result in the scope note above asks for.
+
+  What travels across all three is the binned proportions; what does **not** is
+  the raw 0/1 strip, which is at ±∞ the moment you leave the probability scale.
+
+  **B was the most expensive of the four to make legible, and the three fixes
+  are part of the decision:**
+  - **Tick density follows the panel, not the figure.** Eight labels 64px apart
+    at 486px are the same eight 15px apart at 114px. The text sweep calls that
+    legal — every extent is inside the canvas — and the eye calls it a smear.
+    Under 300px the ticks go every ten years.
+  - **The ±∞ fact is a caption for the figure, said once.** Per panel it did not
+    fit in a 114px column, so it silently vanished from both of the panels it is
+    about, which is worse than not saying it.
+  - **The step's number has a fixed corner** rather than following the marker.
+    At 114px the +1 bracket is **3px wide** and is not a bracket. The quantity
+    was always the number, and a fixed bottom-right slot makes B's three panels
+    read as a row of three: `+0.91 pp`, `×1.0788`, `+0.0758` — of which exactly
+    one is a constant you would quote. It is stroked surface-coloured first,
+    because on the probability panel the band of zeros runs through that corner.
+- **The fitting is not shown.** IRLS converging is a real animation and widget 8
+  already owns *likelihood, one candidate at a time*. The claim here is about the
+  link, not about the fit; an IRLS pass would be a second widget in the first
+  one's clothes. Consequence: no animation, therefore no driven fingerprint
+  states — same as `linear-regularization`.
+- **No forest plot.** `ggcoefstats` on the OR scale with a line at 1 is the
+  lesson's last figure, but widget 12 already owns odds ratios on a log axis with
+  1 marked. Spending a panel to restate it makes widget 12's point worse. The
+  readout naming `exp(b)` for whichever covariate is stepped is enough.
+
+### Open, for the mock-up
+
+- **Which covariate the +1 step applies to, and whether that is a control.**
+  Stepping age *walks along* the curve; stepping BMI *shifts* the curve. Both are
+  `exp(b)` on the odds scale, so the pair shows adjustment as a picture — and it
+  may be one idea too many for one figure.
+- **Whether the curve is drawn past the data.** Measurement 3 says the flat top
+  is unreachable honestly. Either accept the one-sided story, or continue the
+  curve beyond age 70 with the data range marked.
+- **Bin width, and where the bins are ANCHORED.** Five-year bins give seven
+  usable bins and two at −∞; ten-year bins give four, all usable. The undrawable
+  pair is worth something (measurement 4), which argues for five. The mock-up
+  also caught the anchoring: bins from the youngest age present start at 32 and
+  there are then **no** zero-event bins, so the ±∞ point disappears. Anchored on
+  multiples of the width — 30–34, 35–39, … , which is how a person bins — the two
+  come back.
+- **If a confidence interval is printed, say which one.** R's `broom::tidy(conf.int
+  = TRUE)` — which is what `modelsummary` and `ggcoefstats` use — is
+  **profile-likelihood**, not Wald. They are close and they are not equal, and a
+  widget quoting Wald against the notebook's printed interval will look wrong.
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
@@ -2489,6 +3014,7 @@ misconception named above the line in git history.
 | slug | concept | why it was parked |
 |---|---|---|
 | `ppv-prevalence` | Predictive value vs prevalence | **The highest-evidence item in the whole catalogue is now deferred** — physicians report sensitivity *as* PPV, and most put P(disease \| positive) at 70–80% when it is far lower. It sits outside the resampling arc, which is a good reason to postpone it and a bad reason to forget it. **Postponed once more, deliberately**: widget 12 is the same natural-frequency 2×2 with two confirmed lesson slots against this one's none, and building it first builds the grid this needs |
+| `count-regression` | Poisson / negative-binomial regression | **Parked with no host, and the measurement is in widget 15's scope note.** Every `family =` with a covariate in PHM5003 is `binomial`; NB appears only as a *distribution* (`02-01`, `02-02`), as a simulation device (HTD `03`), and inside `DESeq2` at `08 / 01-2`, where the student calls `DESeq()` and never writes a GLM. `08` is the slot it would earn, and the framing there is already sitting in the output: **`log2FoldChange` IS the coefficient on the log link**, and `2^LFC` is a fold change for exactly the reason `exp(b)` is an odds ratio |
 | `regression-to-mean` | Regression to the mean | Attacks "responder" reasoning directly, but needs no resampling machinery |
 | `interaction-effect` | Effect modification | The conceptual core of *precision*, but may be technical rather than abstract — see open question 4 |
 | `censoring-km` | Censoring and Kaplan–Meier | Survival is its own arc; better built as a pair with `hazard-ratio` |
