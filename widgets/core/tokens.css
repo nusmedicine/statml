@@ -657,7 +657,23 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   gap: var(--sp-2) var(--sp-5);
 }
 
-.w-bools > label {
+/* One switch, and its detail beneath it when it has one. The ROW is the flex
+   container and each switch is a column inside it, which is what stops a detail
+   landing beside the next checkbox instead of under its own.
+
+   `min-width: 0` so a long detail wraps inside the column rather than widening
+   it: the label carries `white-space: nowrap`, and without this the column's
+   min-content would be the longest unbroken run in the detail. */
+.w-bool {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Descendant rather than child, now that a switch sits inside `.w-bool`. The
+   two select the same elements for every widget that declares no bool detail,
+   so nothing that exists today moves. */
+.w-bools label {
   display: flex;
   align-items: center;
   gap: var(--sp-2);

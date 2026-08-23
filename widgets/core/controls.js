@@ -231,6 +231,12 @@ function build(host, spec, values, onChange, api) {
       group.className = "w-field w-bools";
       for (const [name, field] of cell.fields) {
         const id = `f-${name}`;
+        /* EACH SWITCH IS A COLUMN, not a bare label. `.w-bools` is a flex ROW,
+           so a detail appended straight to it would land between two
+           checkboxes rather than under the one it belongs to. The wrapper is
+           what gives a detail somewhere to be. */
+        const item = document.createElement("div");
+        item.className = "w-bool";
         const label = document.createElement("label");
         label.setAttribute("for", id);
         const input = document.createElement("input");
@@ -240,7 +246,22 @@ function build(host, spec, values, onChange, api) {
         input.checked = Boolean(values[name]);
         input.addEventListener("change", () => onChange(name, input.checked));
         label.append(input, document.createTextNode(field.label ?? name));
-        group.appendChild(label);
+        item.appendChild(label);
+
+        /* 3.4f, THE THIRD TIME. `params.js` documents `detail` as something any
+           field may carry. `choice` and `gate` rendered it from the start;
+           `int`/`float` were fixed when widget 8's warning about its size
+           parameter turned out never to have been on screen; `bool` was missed
+           in both passes, so a checkbox's detail was copy nobody could read.
+           Same field, same job, same rendering, everywhere. */
+        if (field.detail) {
+          const d = document.createElement("p");
+          d.className = "w-detail";
+          d.textContent = field.detail;
+          item.appendChild(d);
+        }
+
+        group.appendChild(item);
         setters[name] = (v) => { input.checked = Boolean(v); };
       }
       host.appendChild(group);
