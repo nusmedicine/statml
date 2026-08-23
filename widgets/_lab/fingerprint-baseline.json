@@ -4,42 +4,50 @@
     {
       "slug": "clt",
       "state": "?theme=light&dist=exponential&n=5&shown=12",
-      "px": "e8871e24"
+      "px": "e8871e24",
+      "tx": "2520301c"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=exponential&n=30&view=zoom&shown=400",
-      "px": "fea7ef57"
+      "px": "fea7ef57",
+      "tx": "ac2a7f62"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=bimodal&n=8&shown=45",
-      "px": "fed6ec3b"
+      "px": "fed6ec3b",
+      "tx": "b4f14642"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=bernoulli&n=5&shown=400",
-      "px": "fb4ffc3f"
+      "px": "fb4ffc3f",
+      "tx": "75b1209a"
     },
     {
       "slug": "clt",
       "state": "?theme=light&dist=pareto&n=8&view=zoom&smooth=0&shown=200",
-      "px": "0f0ae4ea"
+      "px": "0f0ae4ea",
+      "tx": "5505a5b6"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=12&shown=300",
-      "px": "eba17024"
+      "px": "eba17024",
+      "tx": "b7e1c302"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=4&shown=25",
-      "px": "193a91f0"
+      "px": "193a91f0",
+      "tx": "b7e1c302"
     },
     {
       "slug": "galton-board",
       "state": "?theme=light&rows=25&lean=0.25&shown=600&exact=0",
-      "px": "841349a9"
+      "px": "841349a9",
+      "tx": "b7e1c302"
     },
     {
       "$note": "DRIVEN: mid-descent with a trail. The state that would have caught the ball-path offset.",
@@ -50,7 +58,8 @@
         "frames": 24,
         "dt": 32
       },
-      "px": "a1365f91"
+      "px": "a1365f91",
+      "tx": "b7e1c302"
     },
     {
       "$note": "DRIVEN: cascade, several balls in the air, trails suppressed.",
@@ -61,7 +70,8 @@
         "frames": 40,
         "dt": 16
       },
-      "px": "80df57a9"
+      "px": "80df57a9",
+      "tx": "b7e1c302"
     },
     {
       "$note": "DRIVEN: clt mid-draw, observations appearing one by one.",
@@ -72,7 +82,8 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "ae37294b"
+      "px": "ae37294b",
+      "tx": "5098ad25"
     },
     {
       "$note": "DRIVEN: clt mid-collapse, observations sliding to the labelled x-bar.",
@@ -83,7 +94,8 @@
         "frames": 24,
         "dt": 32
       },
-      "px": "a244e9d2"
+      "px": "a244e9d2",
+      "tx": "5098ad25"
     },
     {
       "$note": "DRIVEN: clt mid-drop, the arced trail crossing between panels.",
@@ -94,29 +106,34 @@
         "frames": 38,
         "dt": 32
       },
-      "px": "67e7f763"
+      "px": "67e7f763",
+      "tx": "a0b9951b"
     },
     {
       "slug": "bootstrap",
       "px": "92015621",
+      "tx": "6b21fa71",
       "$note": "The default payoff figure: bootstrap pile offset from the true sampling distribution.",
       "state": "?theme=light&shown=400"
     },
     {
       "slug": "bootstrap",
       "px": "898a257f",
+      "tx": "5c47a43e",
       "$note": "A different population and a mid-build count, still in the dot-to-bar crossfade.",
       "state": "?theme=light&dist=bimodal&n=25&shown=120"
     },
     {
       "slug": "bootstrap",
       "px": "92386d73",
+      "tx": "94e21503",
       "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
       "state": "?theme=light&n=6&smooth=0&truth=0&shown=25"
     },
     {
       "slug": "bootstrap",
       "px": "25587279",
+      "tx": "b795d10a",
       "$note": "DRIVEN, STAGE ONE: the one sample mid-fall out of the population panel. Nothing else in the suite renders an empty sample panel with marks in flight above it.",
       "state": "?theme=light",
       "drive": {
@@ -128,6 +145,7 @@
     {
       "slug": "bootstrap",
       "px": "394d0cf6",
+      "tx": "14b81c48",
       "$note": "DRIVEN: mid-pick, copies stacking above the observations they were taken from.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -140,6 +158,7 @@
     {
       "slug": "bootstrap",
       "px": "83e9a5aa",
+      "tx": "14b81c48",
       "$note": "DRIVEN: mid-collapse, the copies sliding to the labelled x-bar-star.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -152,6 +171,7 @@
     {
       "slug": "bootstrap",
       "px": "18e4ef19",
+      "tx": "14b81c48",
       "$note": "DRIVEN: mid-drop, the arced trail crossing from the sample panel into the pile.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -164,24 +184,28 @@
     {
       "slug": "permutation-test",
       "px": "c091400b",
+      "tx": "db648666",
       "$note": "The default: a moderate real effect, observed difference out in a tail, p = 0.035.",
       "state": "?theme=light&shown=200"
     },
     {
       "slug": "permutation-test",
       "px": "9924d0de",
+      "tx": "57890d9e",
       "$note": "THE false positive. True effect is None and p reads 0.000 — the case the never-zero form exists for.",
       "state": "?theme=light&effect=none&seed=103&shown=200"
     },
     {
       "slug": "permutation-test",
       "px": "aa41bd7f",
+      "tx": "768a4df8",
       "$note": "Dot phase with a small n: the red marks have to be countable one by one.",
       "state": "?theme=light&n=6&shown=24"
     },
     {
       "slug": "permutation-test",
       "px": "25ad7e90",
+      "tx": "72a05451",
       "$note": "DRIVEN, STAGE ONE: the study arriving into its two boxes, before any shuffling exists.",
       "state": "?theme=light",
       "drive": {
@@ -193,6 +217,7 @@
     {
       "slug": "permutation-test",
       "px": "ef41ead5",
+      "tx": "41a8a48d",
       "$note": "DRIVEN: mid-pool — observations lifted out of both boxes, belonging to no group.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -205,6 +230,7 @@
     {
       "slug": "permutation-test",
       "px": "bafda3ab",
+      "tx": "41a8a48d",
       "$note": "DRIVEN: mid-deal — dealt back into the boxes, vertically only, never leaving their values.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -217,6 +243,7 @@
     {
       "slug": "permutation-test",
       "px": "46425190",
+      "tx": "41a8a48d",
       "$note": "DRIVEN: mid-drop — the shuffled difference arcing from the study into the null.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -229,6 +256,7 @@
     {
       "slug": "permutation-test",
       "px": "a75b608c",
+      "tx": "dd16e22e",
       "$note": "DRIVEN, REGRESSION: a step left IN FLIGHT when Fast takes over. This froze the study panel with every observation stranded in the pool while the pile below kept filling. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -247,30 +275,35 @@
     {
       "slug": "confidence-interval",
       "px": "4720e546",
+      "tx": "54fa08f6",
       "$note": "The default, one study: bootstrap interval cut from the resampled means, n = 5.",
       "state": "?theme=light&shown=100"
     },
     {
       "slug": "confidence-interval",
       "px": "32bf309a",
+      "tx": "430b75ff",
       "$note": "THE HEADLINE. 100 t intervals as a ladder, the truth a fixed vertical rule, the misses red.",
       "state": "?theme=light&view=all&method=t&shown=100"
     },
     {
       "slug": "confidence-interval",
       "px": "3138b3a6",
+      "tx": "a5b4973d",
       "$note": "The SAME 100 studies re-cut by z. Narrower intervals, visibly more red — the whole t-versus-z argument in one diff against the state above.",
       "state": "?theme=light&view=all&method=z&shown=100"
     },
     {
       "slug": "confidence-interval",
       "px": "0bb24bb0",
+      "tx": "5e754493",
       "$note": "Counts: integer observations, and an interval reaching left of zero into impossible territory.",
       "state": "?theme=light&dist=counts&method=t&shown=1"
     },
     {
       "slug": "confidence-interval",
       "px": "06153824",
+      "tx": "ae87f1ff",
       "$note": "DRIVEN: mid-study — the sample arriving while its bootstrap distribution fills beneath it.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -282,6 +315,7 @@
     {
       "slug": "confidence-interval",
       "px": "f7071079",
+      "tx": "10c62a8a",
       "$note": "DRIVEN, REGRESSION: TWO step clicks. The counter was named anim.done, which core reads as \"finished\" and answers with Replay — so every click after the first reset the widget instead of advancing it, and it sat at one study forever. Play masked it entirely, because one click runs to the end. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -299,24 +333,28 @@
     {
       "slug": "multiple-testing",
       "px": "ecc2b4a0",
+      "tx": "03a8725a",
       "$note": "The default: the flat carpet against its m/20 rule, then the same genes after each correction. 1094 called, 21, 75.",
       "state": "?theme=light&shown=20000"
     },
     {
       "slug": "multiple-testing",
       "px": "823e9d76",
+      "tx": "4c990a70",
       "$note": "NOT ONE GENE IS DIFFERENT, and about 1000 still come back at p < 0.05 — every one a false positive. The setting the widget exists for.",
       "state": "?theme=light&real=0&shown=20000"
     },
     {
       "slug": "multiple-testing",
       "px": "3a3f3a8b",
+      "tx": "6e44b898",
       "$note": "POWER: a moderate 0.9 SD effect is invisible to correction at n = 12 and largely recovered at n = 60. Guards the raised n ceiling.",
       "state": "?theme=light&effect=moderate&n=60&shown=20000"
     },
     {
       "slug": "multiple-testing",
       "px": "48d85d0b",
+      "tx": "fad81c1e",
       "$note": "DRIVEN: mid-batch, with the corrections computed on the genes tested so far.",
       "state": "?theme=light&speed=slow",
       "drive": {
@@ -328,6 +366,7 @@
     {
       "slug": "multiple-testing",
       "px": "6228f1a3",
+      "tx": "3b483b82",
       "$note": "DRIVEN, REGRESSION: TWO step clicks. A counter named anim.done made every click after the first replay instead of advance, and Play hid it completely. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -346,30 +385,35 @@
       "slug": "maximum-likelihood",
       "state": "?theme=light&shown=41",
       "px": "91922ba4",
+      "tx": "daa78496",
       "$note": "The default payoff figure: the mu sweep complete, the peak on the sample mean and short of the true 10."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&estimate=disp&shown=41",
       "px": "ec0ec807",
+      "tx": "bdb12566",
       "$note": "The size tab, swept. A different x-axis and a different held-fixed note; nothing else in the suite renders this panel."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&estimate=both&shown=6",
       "px": "f058b40f",
+      "tx": "c38b85b2",
       "$note": "The Both tab, climb finished. The only contour in the suite, and the only right-angled path over one."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&n=60&factors=0&shown=41",
       "px": "7871cfcb",
+      "tx": "69fff663",
       "$note": "n = 60 with the factor row off: the count axis has ratcheted out and the exponent has collapsed. Catches anything that scales with n."
     },
     {
       "slug": "maximum-likelihood",
       "state": "?theme=light&trueSize=8&n=6&estimate=disp&shown=41",
       "px": "8f410fc8",
+      "tx": "a558e54a",
       "$note": "A near-Poisson population (size 8) at small n. The size tab should find little to fix here, so it guards the branch that reports it."
     },
     {
@@ -381,6 +425,7 @@
         "dt": 32
       },
       "px": "a516c215",
+      "tx": "9bbe141a",
       "$note": "DRIVEN: the lead mid-fall, counts dropping out of the true distribution while it is still drawn. No settled state renders that curve at all."
     },
     {
@@ -392,6 +437,7 @@
         "dt": 32
       },
       "px": "04b39d74",
+      "tx": "9bbe141a",
       "$note": "DRIVEN: the lead early on, most counts still airborne and the true curve at full opacity."
     },
     {
@@ -404,37 +450,44 @@
         "dt": 32
       },
       "px": "3b02c39e",
+      "tx": "acb2b790",
       "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&shown=0",
-      "px": "980160d4"
+      "px": "980160d4",
+      "tx": "55c5fedf"
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&shown=12",
-      "px": "49b63fba"
+      "px": "49b63fba",
+      "tx": "dba8f03d"
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&view=size&shown=12",
-      "px": "56cb6972"
+      "px": "56cb6972",
+      "tx": "3e5ae356"
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&view=both&shown=12",
-      "px": "579b112c"
+      "px": "579b112c",
+      "tx": "e8a430a7"
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&view=mcmc&shown=600",
-      "px": "f52793b7"
+      "px": "f52793b7",
+      "tx": "be227892"
     },
     {
       "slug": "bayesian",
       "state": "?theme=light&n=60&priorMu=13&priorSd=1&shown=60",
-      "px": "eddf58ef"
+      "px": "eddf58ef",
+      "tx": "5f425881"
     },
     {
       "slug": "bayesian",
@@ -444,7 +497,8 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "952c409b"
+      "px": "952c409b",
+      "tx": "55c5fedf"
     },
     {
       "slug": "bayesian",
@@ -455,7 +509,8 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "a90a90e0"
+      "px": "a90a90e0",
+      "tx": "55c5fedf"
     },
     {
       "slug": "bayesian",
@@ -466,7 +521,8 @@
         "frames": 40,
         "dt": 32
       },
-      "px": "f943f1ee"
+      "px": "f943f1ee",
+      "tx": "311bfe51"
     },
     {
       "slug": "bayesian",
@@ -477,31 +533,36 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "f260c2d8"
+      "px": "f260c2d8",
+      "tx": "4b138ca8"
     },
     {
       "$note": "The lesson's own data, converged, shares NOT rounded off — every mark a fraction.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=resp&shown=160",
-      "px": "f55ff248"
+      "px": "f55ff248",
+      "tx": "63f74283"
     },
     {
       "$note": "The same fit rounded off at 0.5 — the default reading, and the one to dislodge.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=cluster&shown=160",
-      "px": "fadc8aa7"
+      "px": "fadc8aa7",
+      "tx": "63f74283"
     },
     {
       "$note": "The withheld labels, stacked children-first, so each column is a true mix.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&truth=1&shown=160",
-      "px": "cfdbf9e5"
+      "px": "cfdbf9e5",
+      "tx": "63f74283"
     },
     {
       "$note": "The failing case: means 10cm apart, the components merge and the populations go wrong too.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=140&adultMean=150&n=100&seed=3&truth=1&shown=160",
-      "px": "47e5fdb9"
+      "px": "47e5fdb9",
+      "tx": "b75a5021"
     },
     {
       "$note": "DRIVEN: first iteration, mid E-step — fill levels moving off half and half.",
@@ -513,7 +574,8 @@
         "frames": 8,
         "dt": 32
       },
-      "px": "a9aa08fd"
+      "px": "a9aa08fd",
+      "tx": "49a61139"
     },
     {
       "$note": "DRIVEN: Play under way, curves sliding through an M-step.",
@@ -525,79 +587,92 @@
         "frames": 34,
         "dt": 32
       },
-      "px": "8549bbbf"
+      "px": "8549bbbf",
+      "tx": "c31ceb08"
     },
     {
       "$note": "Both spreads at 40: overlap made by widening rather than by closing in.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&childSd=40&adultMean=170&adultSd=40&n=100&seed=3&truth=1&shown=160",
-      "px": "d2a29672"
+      "px": "d2a29672",
+      "tx": "c57525fa"
     },
     {
       "$note": "The populations stage: two curves, no sample drawn, no drive row.",
       "slug": "em-mixture",
       "state": "?theme=light&childMean=120&adultMean=170&n=100&seed=3&shown=0",
-      "px": "b4204497"
+      "px": "b4204497",
+      "tx": "e951426c"
     },
     {
       "$note": "The map with nothing chosen: eight endings visible, only the two live ones bright.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=map&shown=0",
-      "px": "8347a342"
+      "px": "8347a342",
+      "tx": "7e0fc69c"
     },
     {
       "$note": "The map answered: the path lit through to Poisson, and Clear in the corner.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=map&dist=pois&shown=0",
-      "px": "df5c3f4b"
+      "px": "df5c3f4b",
+      "tx": "0631114a"
     },
     {
       "$note": "Binomial, settled. The attempts strip at rest and the theory dots over the pile.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=binom&seed=1&shown=200",
-      "px": "631fb5a1"
+      "px": "631fb5a1",
+      "tx": "ea7b1bef"
     },
     {
       "$note": "Hypergeometric drawing 60% of the pool — the case where without-replacement bites.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&shown=200",
-      "px": "6494ab54"
+      "px": "6494ab54",
+      "tx": "824a517a"
     },
     {
       "$note": "Poisson, settled. Half of the pair: a rate that never moves, var/mean at 1.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=pois&seed=1&shown=200",
-      "px": "2235aef2"
+      "px": "2235aef2",
+      "tx": "bf94e6aa"
     },
     {
       "$note": "Negative binomial on the SAME axis as the Poisson above — the pair's whole point.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=nbin&seed=1&shown=200",
-      "px": "d2b735a6"
+      "px": "d2b735a6",
+      "tx": "f5e98cd4"
     },
     {
       "$note": "Log-normal: the measure strip, and a skew a normal cannot make.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=lnorm&seed=1&shown=200",
-      "px": "4c54e134"
+      "px": "4c54e134",
+      "tx": "27ce22fe"
     },
     {
       "$note": "Exponential: the gap mechanism, marking the wait between the Poisson's own arrivals.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=exp&seed=1&shown=200",
-      "px": "b0202460"
+      "px": "b0202460",
+      "tx": "1c37d261"
     },
     {
       "$note": "R code on the Poisson: four cards, each led by the question its function answers.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=code&dist=pois&prob=0.95&shown=0",
-      "px": "02b610fe"
+      "px": "02b610fe",
+      "tx": "7609657c"
     },
     {
       "$note": "R code on a narrowed uniform, where dunif reads 5.0 — a density above 1, on a slider.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=code&dist=unif&umax=0.2&prob=0.5&shown=0",
-      "px": "bea3c48b"
+      "px": "bea3c48b",
+      "tx": "4194e080"
     },
     {
       "$note": "DRIVEN: mid-pool. Plots pulsing and vanishing, P(next) moving — invisible at rest.",
@@ -608,7 +683,8 @@
         "frames": 10,
         "dt": 32
       },
-      "px": "8c30c4ae"
+      "px": "8c30c4ae",
+      "tx": "6f215150"
     },
     {
       "$note": "DRIVEN: mid-game. Attempts resolving one at a time under a chance that never moves.",
@@ -619,7 +695,8 @@
         "frames": 8,
         "dt": 32
       },
-      "px": "7c819102"
+      "px": "7c819102",
+      "tx": "e080b905"
     },
     {
       "$note": "DRIVEN: Play under way, a window filling under a rate that was redrawn for it.",
@@ -630,61 +707,71 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "4354d4f5"
+      "px": "4354d4f5",
+      "tx": "e2db42b5"
     },
     {
       "$note": "The setup at the default: two curves, the line at 1.645, alpha and beta before any data.",
       "slug": "power-and-error",
       "state": "?theme=light&shown=0",
-      "px": "ab1c922b"
+      "px": "ab1c922b",
+      "tx": "a1188c34"
     },
     {
       "$note": "Effect None: the two curves coincide exactly, and 5% still lands past the line.",
       "slug": "power-and-error",
       "state": "?theme=light&effect=none&shown=0",
-      "px": "47e3c96a"
+      "px": "47e3c96a",
+      "tx": "a5a8b320"
     },
     {
       "$note": "n = 100 on the RAW axis, where sample size narrows BOTH curves — the motion z hides.",
       "slug": "power-and-error",
       "state": "?theme=light&n=100&shown=0",
-      "px": "51633709"
+      "px": "51633709",
+      "tx": "e5684b45"
     },
     {
       "$note": "The test-statistic axis: the line pinned at 1.645 and only the alternative sliding.",
       "slug": "power-and-error",
       "state": "?theme=light&axis=z&n=40&shown=0",
-      "px": "cbac8b68"
+      "px": "cbac8b68",
+      "tx": "de854bf0"
     },
     {
       "$note": "alpha 0.001 against a small effect — alpha chosen, beta inherited, and beta is nearly all of it.",
       "slug": "power-and-error",
       "state": "?theme=light&effect=small&alpha=0.001&shown=0",
-      "px": "5f2a4eb9"
+      "px": "5f2a4eb9",
+      "tx": "f368c49f"
     },
     {
       "$note": "1000 studies run: the observed rates against the predicted ones they were told to check.",
       "slug": "power-and-error",
       "state": "?theme=light&studies=1&seed=1&shown=1000",
-      "px": "770765a4"
+      "px": "770765a4",
+      "tx": "cf8792af"
     },
     {
       "$note": "The null, fully run: 5% of studies significant at every n, which is what alpha MEANS.",
       "slug": "power-and-error",
       "state": "?theme=light&effect=none&studies=1&seed=1&shown=1000",
-      "px": "0e9136c1"
+      "px": "0e9136c1",
+      "tx": "4785504e"
     },
     {
       "$note": "Underpowered and fully run: a small effect at n=12, where most studies miss it.",
       "slug": "power-and-error",
       "state": "?theme=light&effect=small&n=12&studies=1&seed=1&shown=1000",
-      "px": "9d806562"
+      "px": "9d806562",
+      "tx": "acb07ba4"
     },
     {
       "$note": "Expected shape off, so the pile stands alone against the line.",
       "slug": "power-and-error",
       "state": "?theme=light&studies=1&seed=1&theory=0&shown=1000",
-      "px": "2ce90866"
+      "px": "2ce90866",
+      "tx": "cf8792af"
     },
     {
       "$note": "DRIVEN: a study in flight — drawn, standing, not yet dropped. Invisible at rest.",
@@ -695,7 +782,8 @@
         "frames": 10,
         "dt": 32
       },
-      "px": "f34d264b"
+      "px": "f34d264b",
+      "tx": "a1188c34"
     },
     {
       "$note": "DRIVEN: Play under way, the pile filling under a threshold that never moves.",
@@ -706,7 +794,8 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "22f9b157"
+      "px": "22f9b157",
+      "tx": "67d9a8cd"
     },
     {
       "$note": "DRIVEN, INTERRUPTED: a step still in flight when Play takes over.",
@@ -723,67 +812,78 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "72721250"
+      "px": "72721250",
+      "tx": "a1188c34"
     },
     {
       "$note": "Study design at rest: both recruited pairs FULL, the cohort grey and the case-control already coloured.",
       "slug": "odds-and-risk",
       "state": "?theme=light",
-      "px": "a914d895"
+      "px": "a914d895",
+      "tx": "a83bee73"
     },
     {
       "$note": "Design at rest with an effect and 1:4 enrolment — the dot scale derived from the fullest box.",
       "slug": "odds-and-risk",
       "state": "?theme=light&died1=40&died0=20&ratio=1to4",
-      "px": "cef2bc9a"
+      "px": "cef2bc9a",
+      "tx": "c949f3e3"
     },
     {
       "$note": "The calculation at the null: both sliders at 20, both ratios exactly 1.00. Where it opens.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate",
-      "px": "55d7d592"
+      "px": "55d7d592",
+      "tx": "d15d619e"
     },
     {
       "$note": "Odds ratio, cohort, 40/20: the survivors stepped aside and the claim names the overstatement.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=40&died0=20",
-      "px": "b6110b1f"
+      "px": "b6110b1f",
+      "tx": "d7dbbb6a"
     },
     {
       "$note": "The same table read as a relative risk — same deaths, denominator back to everyone.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=40&died0=20&against=risk",
-      "px": "26e5aaec"
+      "px": "26e5aaec",
+      "tx": "d7dbbb6a"
     },
     {
       "$note": "90/45: the exposed arm reads 90 over 10 = 9.00, which a risk could never do.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=90&died0=45",
-      "px": "0577d769"
+      "px": "0577d769",
+      "tx": "2fdfc220"
     },
     {
       "$note": "Case-control 1:1 — the risk ratio collapses to 1.64 while the odds ratio holds near 2.67.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20",
-      "px": "50575266"
+      "px": "50575266",
+      "tx": "b91cf796"
     },
     {
       "$note": "Case-control 1:4 — the risk ratio now OVERshoots at 2.20, having crossed the truth on the way.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20&ratio=1to4",
-      "px": "fc92f5ac"
+      "px": "fc92f5ac",
+      "tx": "127ebd0c"
     },
     {
       "$note": "Everyone died in both arms: risk ratio 1.00, and the odds ratio does not exist.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=100&died0=100",
-      "px": "12f1a26f"
+      "px": "12f1a26f",
+      "tx": "7f026b2c"
     },
     {
       "$note": "Nobody died in either arm: 0/0, undefined rather than infinite, and the figure says so.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=0&died0=0",
-      "px": "53007809"
+      "px": "53007809",
+      "tx": "11182bce"
     },
     {
       "$note": "DRIVEN: the design run mid pass one — the exposed group lit, its partner held back.",
@@ -794,7 +894,8 @@
         "frames": 8,
         "dt": 32
       },
-      "px": "abc91f93"
+      "px": "abc91f93",
+      "tx": "51b1c1a8"
     },
     {
       "$note": "DRIVEN: mid pass two — the first group dimmed, the second travelling, counts still landing.",
@@ -805,7 +906,8 @@
         "frames": 26,
         "dt": 32
       },
-      "px": "b4414a84"
+      "px": "b4414a84",
+      "tx": "51b1c1a8"
     },
     {
       "$note": "DRIVEN BY A CONTROL: the odds/risk crossfade mid-ease. No drive button can reach this (4.4, 4.5).",
@@ -818,7 +920,8 @@
         "frames": 6,
         "dt": 32
       },
-      "px": "9eda1d7b"
+      "px": "9eda1d7b",
+      "tx": "d7dbbb6a"
     },
     {
       "$note": "DRIVEN BY A CONTROL: the survivors you did not enrol emptying to hollow rings.",
@@ -831,7 +934,8 @@
         "frames": 6,
         "dt": 32
       },
-      "px": "4bb622ce"
+      "px": "4bb622ce",
+      "tx": "b91cf796"
     },
     {
       "$note": "DRIVEN, INTERRUPTED: the enrolment changed while the design run was still in flight.",
@@ -850,7 +954,8 @@
         "frames": 8,
         "dt": 32
       },
-      "px": "15cb8911"
+      "px": "15cb8911",
+      "tx": "c949f3e3"
     }
   ]
 }

@@ -218,6 +218,10 @@ for (const w of manifest.widgets) {
 for (const s of baseline.states) {
   if (!slugs.has(s.slug)) fail(`fingerprint baseline: unknown widget "${s.slug}"`);
   if (!s.px) fail(`fingerprint baseline: "${s.slug}${s.state}" has no recorded hash`);
+  /* The TEXT hash, beside the pixel one. The figure stopped being entirely
+     canvas when widget 14 wrote its equation as MathML, and a state carrying
+     only `px` would silently cover the picture and not the words. */
+  if (!s.tx) fail(`fingerprint baseline: "${s.slug}${s.state}" has no recorded text hash`);
 
   if (s.drive) {
     // Driven states are reproducible because the harness supplies the clock, so

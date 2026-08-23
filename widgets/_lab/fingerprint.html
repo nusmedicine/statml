@@ -75,7 +75,7 @@
   </div>
 
   <table>
-    <thead><tr><th>Result</th><th>Widget</th><th>State</th><th>Baseline</th><th>Now</th></tr></thead>
+    <thead><tr><th>Result</th><th>Widget</th><th>State</th><th>Baseline<br>px / text</th><th>Now<br>px / text</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
   <p id="summary"></p>
@@ -235,6 +235,35 @@ function drive(win, doc, spec) {
   return `${spec.lead ? "lead→" : ""}${pre}${label(spec) || "step"} +${ran}f`;
 }
 
+/* WHAT THE FIGURE SAYS IN WORDS, hashed beside what it LOOKS like.
+ *
+ * The canvas hash covers pixels, and until widget 14 that was the whole figure.
+ * It now writes its fitted equation as MathML in the DOM, which leaves both
+ * cheap checks at once: this hash stops seeing it, and the canvas text sweep —
+ * which works by wrapping `fillText` — silently stops seeing it too, with no
+ * error and no gap in its output. A flipped sign or a coefficient off by a
+ * factor would ship with the picture still reporting MATCH.
+ *
+ * Three regions, named rather than inferred, so it works under both layouts —
+ * `.w-stage` exists only in the side layout, and a stack widget hangs its
+ * readout straight off the host. The readout was never covered either, which is
+ * the larger half of what this closes: every widget's stat tiles have been
+ * unhashed since the harness was written.
+ *
+ * The rail is deliberately absent. Principle: the rail is what you SET and the
+ * stage is what you SEE, and a control's own label is not a reading of the
+ * figure.
+ */
+const TEXT_PARTS = [".w-math", ".w-legend", ".w-readout"];
+
+function figureText(doc) {
+  return TEXT_PARTS
+    .map((sel) => [...doc.querySelectorAll(sel)].map((n) => n.textContent).join(" "))
+    .join(" | ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function shoot(entry) {
   const frame = document.createElement("iframe");
   frame.width = FRAME_W;
@@ -246,6 +275,7 @@ async function shoot(entry) {
   await new Promise((r) => setTimeout(r, entry.drive ? 150 : SETTLE_MS));
 
   let px = "—";
+  let tx = "—";
   let note = "";
   try {
     const win = frame.contentWindow;
@@ -253,15 +283,17 @@ async function shoot(entry) {
     if (entry.drive) note = drive(win, doc, entry.drive);
     const canvas = doc.querySelector(".w-figure canvas");
     px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
+    tx = hash(figureText(doc));
     if (!entry.drive) {
       note = [...doc.querySelectorAll(".w-stat-value")].map((n) => n.textContent).join(" | ");
     }
   } catch (e) {
     px = "error";
+    tx = "error";
     note = String(e.message ?? e);
   }
   frame.remove();
-  return { px, note };
+  return { px, tx, note };
 }
 
 async function run() {
@@ -283,11 +315,15 @@ async function run() {
   let fresh = 0;
 
   for (const entry of baseline.states) {
-    const { px, note } = await shoot(entry);
-    latest.push({ ...entry, px });
+    const { px, tx, note } = await shoot(entry);
+    latest.push({ ...entry, px, tx });
 
-    const known = entry.px && entry.px !== "";
-    const ok = known && px === entry.px;
+    /* BOTH must be known and BOTH must match. A state whose baseline predates
+       the text hash counts as new rather than as a regression, so adding the
+       column does not turn every row red — but it also does not quietly pass:
+       it says NEW until it is baselined. */
+    const known = Boolean(entry.px) && entry.px !== "" && Boolean(entry.tx);
+    const ok = known && px === entry.px && tx === entry.tx;
     if (known && !ok) differ += 1;
     if (!known) fresh += 1;
 
@@ -297,8 +333,8 @@ async function run() {
       `${ok ? "MATCH" : known ? "DIFFER" : "NEW"}</td>` +
       `<td>${entry.slug}</td>` +
       `<td class="state">${entry.state}<br><span style="color:var(--ink-3)">${note}</span></td>` +
-      `<td class="hash">${entry.px || "—"}</td>` +
-      `<td class="hash">${px}</td>`;
+      `<td class="hash">${entry.px || "—"}<br>${entry.tx || "—"}</td>` +
+      `<td class="hash">${px}<br>${tx}</td>`;
     rows.appendChild(tr);
   }
 
