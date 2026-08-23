@@ -956,6 +956,67 @@
       },
       "px": "15cb8911",
       "tx": "c949f3e3"
+    },
+    {
+      "$note": "The fit tab at twelve parameters: the training curve through the noise and the held-out error already climbing. The state the widget exists to reach.",
+      "slug": "generalization",
+      "state": "?theme=light&params=12&shown=12",
+      "px": "97e991a5",
+      "tx": "b4b5b1e3"
+    },
+    {
+      "$note": "The cross-validation tab, five folds. The aqua fold mark only exists here, so no fit-tab state covers it.",
+      "slug": "generalization",
+      "state": "?theme=light&view=cv&params=8&shown=8&folds=5",
+      "px": "5afd4dc3",
+      "tx": "18b7d49d"
+    },
+    {
+      "$note": "Two parameters — a straight line — with both roles drawn and the true curve revealed. Covers `look=both` (no error lines) and the afterDrive reveal in one state.",
+      "slug": "generalization",
+      "state": "?theme=light&params=2&shown=2&look=both&truth=1",
+      "px": "2c28fba9",
+      "tx": "f5bf88f5"
+    },
+    {
+      "$note": "DRIVEN: mid-add, one parameter going onto the ladder. A settled state is blind to anything drawn only while the curve is moving.",
+      "slug": "generalization",
+      "state": "?theme=light&speed=slow&params=1",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "d15ab525",
+      "tx": "7c6e5053"
+    },
+    {
+      "$note": "The opening state: both dials at zero, so this IS plain linear regression and all thirteen coefficients are in.",
+      "slug": "linear-regularization",
+      "state": "?theme=light",
+      "px": "b0c2a944",
+      "tx": "a9e0c241"
+    },
+    {
+      "$note": "Lasso at a1 = 1. Three of thirteen survive, and the other ten bars are EXACTLY zero — the one thing no other setting shows.",
+      "slug": "linear-regularization",
+      "state": "?theme=light&a1=5",
+      "px": "890b85ab",
+      "tx": "1c4b2c5f"
+    },
+    {
+      "$note": "Elastic net at both dials wide open, on the most elongated pair (Weight against Hip, 5.73:1). The grouping effect puts coefficients back.",
+      "slug": "linear-regularization",
+      "state": "?theme=light&a1=6&a2=6&pair=Weight~Hip",
+      "px": "9069a796",
+      "tx": "5877f147"
+    },
+    {
+      "$note": "The near-circular end of the pair range: Age against Weight, r = 0.013, contours 1.01:1 — where the diamond and the circle become the same shape. Also the only cover the rail matrix gets, since the rail is outside both hashes: it proves the parameter reaches the figure, not that the cell sets it.",
+      "slug": "linear-regularization",
+      "state": "?theme=light&pair=Age~Weight",
+      "px": "17150237",
+      "tx": "c70e58d8"
     }
   ]
 }

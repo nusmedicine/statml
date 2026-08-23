@@ -2,9 +2,19 @@
 
 ## Where things are
 
-**Fourteen widgets: twelve shipped, two drafts** — `generalization` (arc 13) and
-`linear-regularization` (arc 14). Both are listed at `/lab/` and neither is on
-the gallery.
+**Fourteen widgets, all fourteen shipped. `/lab/` is empty.** `generalization`
+(arc 13) and `linear-regularization` (arc 14) were promoted at Kenneth's
+instruction; the gallery is now the whole collection and the draft bar is off
+both.
+
+> **What promotion actually changed, so nobody has to guess.** A draft already
+> lives at its final URL, so no link moved. What went away is the bar reading
+> *"this widget is still being built, and what it shows may be wrong"* — which
+> means **both are now presented to students as finished teaching material.**
+> Neither has been [judged projected](#deferred-ready-to-pick-up-individually),
+> and that item is no longer a tidy-up: it is the one review a shipped widget has
+> not had. Widget 11's hypergeometric dots are ~4px at the narrow layout, which
+> is what that review is for.
 
 **Everything is committed and pushed**, so the twenty commits that were sitting
 on `main` are live at <https://nusmedicine.github.io/statml/>. There is no staging
@@ -21,8 +31,10 @@ than this file:
     43344b9  Mock up the correlation matrix in the rail
     69cf912  Write widget 14's equation terms as T4
 
-**105 fingerprint states, and each now carries TWO hashes.** See *Verifying
-changes* below — this is the biggest single change to how the repo checks itself.
+**113 fingerprint states, and each carries TWO hashes.** Eight were added for the
+two promotions — `check` demands settled coverage of every non-draft widget, and
+a driven state of any that declares an `animation`, which is what makes promotion
+a real gate rather than a flag. See *Verifying changes* below.
 
 ```bash
 npm run dev      # :8000 — USE THIS, not python -m http.server
@@ -139,12 +151,15 @@ trusting screenshots.
 
 ---
 
-## Then: widget 14 is still a draft, and finishing it is small
+## Then: two things the promotion did not do
 
-Everything Kenneth asked for is built and pushed. What is left is the shipping
-list, and the first item has a wrinkle worth reading.
+**1. Neither shipped widget has been judged projected.** Widgets 11, 12, 13 and
+14 have never been seen from the back of a room, and two of them now carry no
+draft bar. It is the cheapest review left and the only one a shipped widget is
+missing.
 
-**The matrix is a DOM control, so no fingerprint state can see its geometry.**
+**2. The matrix's geometry is still uncovered, and no fingerprint state can see
+it.**
 `px` hashes the canvas; `tx` reads `.w-math`, `.w-legend` and `.w-readout`, and
 the rail is excluded on purpose. On the canvas the grid was at least inside `px`,
 and `check.mjs` forced a `hit` state to cover the cell-to-value mapping. Both are
@@ -159,13 +174,9 @@ gone. Two ways to close it, and the choice is open:
   cell-to-value mapping the way `hit` covered the canvas. This is the honest
   replacement for what was lost.
 
-Then:
-
-1. Two or three settled states. It declares no `animation` and no `shown`, so a
-   URL alone settles it.
-2. Flip `status` to `shipped` in `manifest.json` **and** `main.js`.
-3. Mark it shipped in `docs/catalogue.md`.
-4. **Judge it projected.** Never done for widgets 11, 12, 13 or 14.
+The four settled states widget 14 now carries prove the parameter reaches the
+figure — including `?pair=Age~Weight`, the near-circular end at r = 0.013. None of
+them proves that the CELL sets it.
 
 ---
 
@@ -372,6 +383,12 @@ atomic inline box in an ordinary inline formatting context.
 
 Each of these produced a wrong answer that looked right.
 
+- **The fingerprint table renders a state string as HTML, so `&params=` shows as
+  `¶ms=`.** `&para` is a legacy named entity that browsers resolve without a
+  semicolon, and the harness sets that cell with `innerHTML`. It is display only —
+  the widget receives `params=12`, verified by opening the URL and reading the
+  control — but it reads exactly like a state that lost a parameter, and it will
+  do the same to `&amp…`, `&lt…`, `&not…`. Check the widget, not the table.
 - **A `requestAnimationFrame` measurement reported the PREVIOUS frame.** The panel
   mock-up measured its heights in a rAF after rendering, and after a width change
   it printed the old stage height beside the new rail height — the two columns

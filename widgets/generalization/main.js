@@ -331,7 +331,7 @@ defineWidget({
     + "never seen stop benefiting long before that — and rotating which patients are held "
     + "out is how you find where, without ever touching the test set.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: 528,
 
   params: {

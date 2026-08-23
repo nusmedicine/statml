@@ -513,7 +513,7 @@ defineWidget({
     + "diamond around the origin and α₂ draws a circle, and only the diamond has corners "
     + "— which is why only it sets a coefficient to exactly zero.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: canvasHeight,
 
   params: {

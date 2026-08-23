@@ -191,7 +191,7 @@
         "model selection"
       ],
       "arc": 13,
-      "status": "draft"
+      "status": "shipped"
     },
     {
       "slug": "linear-regularization",
@@ -206,7 +206,7 @@
         "elastic net"
       ],
       "arc": 14,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

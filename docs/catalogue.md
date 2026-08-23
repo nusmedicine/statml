@@ -2523,7 +2523,7 @@ sections, each with a **Model** and an **Objective** — is the spine.
 
 | # | slug | family | status |
 |---|---|---|---|
-| 1 | `linear-regularization` | linear, with and without regularization | **built — draft** |
+| 1 | `linear-regularization` | linear, with and without regularization | **built — shipped** |
 | 2 | — | instance-based (kNN) | deferred, see below |
 | 3 | — | margin-based (SVM) | planned |
 | 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | planned |
@@ -2559,7 +2559,7 @@ failure data:
 ### Arc B · evaluation
 
 Unchanged below, and still the arc widget 13 belongs to. `generalization` is
-built as a draft against `04-1` and `04-4`.
+built and shipped against `04-1` and `04-4`.
 
 **`04-2 Model Evaluation` is designed but unbuilt** — a probability axis, one dot
 per patient, a threshold line whose four quadrants ARE the confusion matrix. Its
