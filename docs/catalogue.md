@@ -3051,10 +3051,145 @@ sections, each with a **Model** and an **Objective** — is the spine.
 |---|---|---|---|
 | 1 | `linear-regularization` | linear, with and without regularization | **built — shipped** |
 | 2 | — | instance-based (kNN) | deferred, see below |
-| 3 | — | margin-based (SVM) | planned |
+| 3 | `support-vector-machine` | margin-based (SVM) | **built — draft** |
 | 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | planned |
 | 5 | — | probabilistic (naive Bayes) | planned |
 | 6 | — | neural networks (a shallow MLP) | planned |
+
+#### Widget 16 · `support-vector-machine` — BUILT, AS A DRAFT
+
+**The claim:** the boundary is set by the samples inside the
+margin, and every other sample enters the objective at *exactly* zero. `C` is not
+an accuracy dial — it sets how wide the corridor is, and the corridor decides who
+counts. That is the one thing about an SVM that is true of no other model in the
+tour: a logistic regression's loss is never zero, so every patient pulls on it
+(widget 15), and a least-squares fit squares every residual (widget 14).
+
+**It carries BOTH data sets, as one segmented control** — chosen from the
+mock-up at `widgets/_lab/svm-stage.html`, which draws them at the real stage
+widths with the ladder measured underneath. The story fires on one and not the
+other, and that pairing is the argument (2.6): the biopsies say what a margin
+*is*, the cohort is what the same method does when there is no gap.
+
+**`04-3`'s own SVC example — the heart-failure cohort — does not fire.** The two
+features with signal are serum creatinine (AUC 0.728) and ejection fraction
+(0.676 inverted), and every other pair is worse; no pair beats the base rate of
+0.679 by much. On that plane:
+
+| C | support vectors | margin | inside the margin | accuracy |
+|---|---|---|---|---|
+| 0.01 | 192 of 299 | 7.93 | 188 | 0.686 |
+| 0.1 | 183 | 3.34 | 182 | 0.706 |
+| 1 | 179 | 2.14 | 179 | 0.732 |
+| 100 | 180 | 2.14 | 175 | 0.732 |
+
+Four orders of magnitude of `C` move the corridor's width by 4× and the count
+inside it by **two patients**. There is no corridor to see, because the corridor
+is the cohort. And it is a poor stage for a figure about individuals: the two
+features take only **17 and 40 distinct values**, so 299 patients occupy **142
+positions**, and **21 of those hold both outcomes** — 95 patients sitting exactly
+where someone with the opposite outcome sits. No line separates them and no ring
+marks one of them.
+
+**`03-5`'s colorectal biopsies do fire.** GSE44076, 194 samples, 97 normal and 97
+adenocarcinoma. Two probes chosen so that both axes carry weight and neither
+separates alone: **FXYD5** (dysadherin, up in tumour) against **C7** (complement
+C7, down), from a search over the 38 separable pairs among the 120 best-AUC
+probes with gene symbols.
+
+| C | support vectors | margin | accuracy |
+|---|---|---|---|
+| 0.003 | 174 of 194 | 3.54 | 0.995 |
+| 0.03 | 58 | 1.84 | 1.000 |
+| 0.3 | 18 | 1.06 | 1.000 |
+| 1 | 10 | 0.72 | 1.000 |
+| 10 | 3 | 0.51 | 1.000 |
+| 30 | 3 | 0.39 | 1.000 |
+
+**`C` sweeps the support vectors from 174 to 3 while accuracy never leaves
+1.000** — the whole chain in one dial, with the accuracy flat across it, which is
+the answer to *C is a quality knob*. Refitting on the support vectors alone
+reproduces the decision surface to **1e-9 or better** at every rung: 191 samples
+can be deleted and the boundary does not move.
+
+**Carrying both is the argument for 2.6.** The biopsies say what a margin *is*;
+the cohort is what the same method does when there is no gap.
+
+**Two of the notebook's own caveats do NOT fire, and should not be built on.**
+
+- *"Sensitive to feature scaling — always standardise."* On heart failure, RBF on
+  raw units against standardised is 0.715 vs 0.729 by 5-fold CV at
+  `gamma="scale"`, and 0.739 vs 0.746 at `gamma=1`. `gamma="scale"` already
+  divides by the variance, and with two features of comparable importance the
+  imbalance does not bite. This is the same non-result kNN's scaling story gave.
+- *`gamma` overfits.* It does — train accuracy 0.722 → 0.886 as gamma goes 0.03 →
+  100, CV peaking at 0.746 at gamma = 1 and falling to 0.709. But **widget 13
+  already owns** *every parameter you add fits your own patients better and
+  generalises worse*, so this would be that widget again with a different dial.
+
+**The solver is SMO, written for this, ~50 lines, no dependency.** LIBSVM's
+maximal-violating-pair working set, so it is deterministic — nothing is drawn at
+random. It agrees with `sklearn.svm.SVC(kernel="linear")` to **four decimal
+places in both `w` and `b` at every rung of the ladder on both data sets**.
+Worst case is 55 ms (heart failure at C = 100); the ladder therefore stops at
+C = 30, which costs nothing because the solution is identical from C = 1 upward
+on that data and from C = 10 upward on the other.
+
+> *One bug worth not rediscovering.* When every support vector is **bounded**
+> there is no free α and `b` is only pinned to an interval; LIBSVM takes its
+> midpoint. Taking that midpoint with the sign flipped shifted the boundary by
+> 0.39 on two rungs **while `w` stayed exact to four decimals** — so the fit
+> looked right, the margin width looked right, and only the accuracy was wrong.
+
+
+#### What building widget 16 settled
+
+- **Two panels: the plane, and the hinge loss beside it.** The loss panel is the
+  answer to *why only those samples* — past y f(x) = 1 the loss is not small, it
+  is flat — and the optional dashed overlay is widget 15's logistic loss, which
+  never gets there.
+- **The plane is ISOMETRIC, so its height is a function of the width** and of the
+  data set. A margin is a distance and a distance needs equal units per pixel;
+  the panel's aspect ratio is therefore the data's own. Same trade widget 14
+  makes for its square panels.
+- **Serum creatinine is drawn and fitted on a LOG scale.** Raw, it spans 8.6 SD
+  against ejection fraction's 5.6 because of a handful of patients over
+  5 mg/dL, and the cohort collapses into one corner of an isometric panel.
+  Logged it spans 6.5 — and the fit is better too, accuracy 0.766 against 0.732
+  at C = 1. `04-3` does not log it, but `04-3` is fitting eleven features with an
+  RBF kernel; this is a two-feature linear projection either way.
+- **The loss panel's frame is FIXED at y f(x) ∈ [-3, 7]**, which holds the cohort
+  entirely and the biopsies to C = 1. A first cut used [-2.5, 3] and put 167 of
+  194 samples off frame at the DEFAULT C — the crowded floor the panel exists to
+  show was empty. 2.5, and the data decides the frame's width once, not per rung.
+- **The samples are counted into bins, not drawn as dots on the curve.** Dots are
+  the truer mark, one sample at its own loss; at 194 of them along a flat floor
+  they merge into a single coloured line, and a line does not say 187.
+
+**THE CLAIM WAS WRONG AT THE SEPARABLE END, AND THE READOUT CAUGHT IT.** Two
+tiles read *support vectors 3* and *loss exactly zero 194* at C = 30 on the
+biopsies, which is a flat contradiction — and the tile was right. **Influence is
+carried by α, not by the loss.** A support vector sitting exactly ON the margin
+has y f(x) = 1, so its hinge loss is zero while its α is not. So the honest
+partition is **inside the corridor or touching its edge** (α > 0) against
+**beyond it** (α = 0), and those two do add to n. Every line of copy in the
+widget is phrased on α for that reason.
+
+**The text sweep found nothing on its first two runs because it was seeing
+nothing.** Both attempts to force a repaint failed silently: `resize` on the
+iframe's window, which core does not listen to; and changing the iframe's width
+for real, where the document reflows (`.w-figure` went 550 → 666 → 550) but the
+canvas stayed at 1100 backing pixels, because **a ResizeObserver callback is
+delivered as part of the rendering lifecycle and this browser suspends that for
+an offscreen iframe** — nothing after the initial synchronous paint ever runs.
+Driving a *control* works, because `setParam → recompute → paint` is synchronous
+inside the event handler. Every state is now loaded with C one rung away and
+moved onto it, which is exactly one paint at exactly the wanted state.
+
+Once it could see, it found the real defect: **the plane's caption ran through
+the loss panel's caption in 54 of 72 states.** `caption()` strokes
+surface-coloured before it fills, so the collision erased "Hinge loss" rather
+than blending — on screen it just looked like a short caption.
 
 `linear-regularization` **is** the `regularization-path` entry in the tail list
 below, built under a clearer name. Its misconception: *the penalty is not a

@@ -2,10 +2,10 @@
 
 ## Where things are
 
-**Fifteen widgets: fourteen shipped, and `logistic-regression` built as a
-DRAFT.** It sits at `/lab/`, off the gallery, and has not been judged projected.
-Everything before it is unchanged and still live at
-<https://nusmedicine.github.io/statml/>.
+**Sixteen widgets: fourteen shipped, and `logistic-regression` and
+`support-vector-machine` built as DRAFTS.** Both sit at `/lab/`, off the
+gallery, and neither has been judged projected. Everything before them is
+unchanged and still live at <https://nusmedicine.github.io/statml/>.
 
 ```bash
 npm run dev      # :8000 — USE THIS, not python -m http.server
@@ -14,7 +14,9 @@ npm run check    # before every commit
 
 **117 fingerprint states, each carrying two hashes.** Four are widget 15's, all
 settled: it declares no `animation` and no `regions`, so settled coverage is all
-`check` requires of it.
+`check` requires of it. **Widget 16 has none yet** — it is a draft, and `check`
+only demands states of a non-draft widget. Baseline it after the review, not
+before.
 
 > **One of those four was flaky once and is not.** `?theme=light` hashed
 > `c921dc7b` on the first suite run, `016d5689` on the second and `c921dc7b`
@@ -27,7 +29,55 @@ settled: it declares no `animation` and no `regions`, so settled coverage is all
 
 ---
 
-## NEXT: widget 15 needs the marginal-vs-conditional note, then a projected review
+## NEXT: widget 16 needs review, then its baseline
+
+**`support-vector-machine` is built and has had no human eyes on it.** It has no
+fingerprint states yet, deliberately — baselining comes after the design stops
+moving, and the design has not been reviewed once.
+
+    http://localhost:8000/widgets/support-vector-machine/
+
+Three states worth opening in this order:
+
+| what it shows | url |
+|---|---|
+| the default, sklearn's C = 1 | `?theme=light` |
+| the payoff: 191 samples deleted, boundary unmoved | `?theme=light&C=8&only=true&compare=true` |
+| the failing case: no gap, the corridor IS the cohort | `?theme=light&data=hf` |
+
+**What it does.** Two data sets on one segmented control, one dial (C on a
+nine-rung log ladder), and two display toggles. The plane on the left with the
+corridor and the support vectors ringed; the hinge loss on the right, with every
+sample counted into bins beneath it. No animation, no seed, no `shown` — one
+dial, and dragging it is the motion (4.5).
+
+**What it has already survived.** A 144-state canvas text sweep at both frame
+widths — no overrun, no NaN, no collision — and every fit agrees with
+`sklearn.svm.SVC(kernel="linear")` to four decimals in `w` and `b` at all nine
+rungs on both data sets. The design decisions and the three measurements that
+killed alternatives are in `docs/catalogue.md` under *Widget 16*; the stage
+comparison that chose the data is at `widgets/_lab/svm-stage.html`.
+
+**Open, and worth a look while reviewing:**
+
+- **The boundary is on `--c-highlight` violet, not `--c-theory`.** Orange is
+  eleven degrees of hue from `--c-event`'s red, which this file already records
+  as reading like one colour at a thin stroke. If that holds it wants a **named
+  role** rather than a borrowed one: five of the six PHM5005 algorithm widgets
+  draw a decision boundary, so `--c-boundary` would be earning its slot rather
+  than serving one widget.
+- **`regions` is still not declared.** A click on a sample could set a `focus`
+  parameter and light that sample up in both panels — which is what the region
+  machinery was kept for. Deferred to round two on purpose: the keyboard path
+  for it is 194 or 299 options and needs its own answer.
+- **No RBF.** `gamma` overfits measurably (train 0.722 → 0.886, CV peaking at
+  1.0) but that is widget 13's lesson with a different dial, and the notebook's
+  scaling caveat does not fire at all. Both are recorded in the catalogue.
+
+---
+
+## THEN: widget 15 needs the marginal-vs-conditional note, then a projected review
+
 
 **The widget is built and the design has held for two rounds.** What is open is
 one thing Kenneth found and one thing nobody has done.
@@ -505,6 +555,18 @@ PR.fillText = function (s, x, y) {
 - **It cannot see DOM.** Widget 14's equation is MathML and does not go through
   `fillText` at all — the sweep stopped seeing it with no error and no gap in its
   output. That is what the text hash below exists to cover.
+- **FORCE THE REPAINT BY DRIVING A CONTROL, never by resizing.** Widget 16's
+  sweep reported a clean pass twice from an EMPTY list. Dispatching `resize` on
+  the iframe's window does nothing, because core listens to a ResizeObserver on
+  `.w-figure`. Changing the iframe's width for real does not work either: the
+  document reflows — `.w-figure` measured 550 → 666 → 550 — and the canvas stays
+  at 1100 backing pixels, because **a ResizeObserver callback is delivered as
+  part of the rendering lifecycle and this browser suspends that for an
+  offscreen iframe**. Nothing after the initial synchronous paint ever runs.
+  `setParam → recompute → paint` IS synchronous, inside the event handler, so
+  load each state with one parameter a step away and move it onto the target:
+  exactly one paint, at exactly the state you want. Recipe in
+  `widgets/_lab/svm-sweep.js`.
 
 ### The fingerprint harness — now TWO hashes
 

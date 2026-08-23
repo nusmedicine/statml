@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; which data the SVM widget stands on</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b, p.note strong { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .bar label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 3px 8px; text-align: right; }
+  th { color: var(--ink-3); font-weight: 600; text-align: left; }
+  td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.on td { color: var(--ink-1); background: var(--surface-3); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Which data the SVM widget stands on</h1>
+  <p class="note">
+    <b>The claim the widget would make:</b> the boundary is set by the samples in the margin,
+    and every other sample enters the objective at <i>exactly</i> zero. <b>C</b> is not an
+    accuracy dial &mdash; it sets how wide the corridor is, and the corridor decides who counts.
+    <br><br>
+    <b>What is open is which data that claim stands on</b>, because it does not fire on both.
+  </p>
+  <p class="note">
+    <b>04-3&rsquo;s own SVC example is the heart-failure cohort, and on it the story does not
+    fire.</b>
+    <br>Two features carry signal &mdash; serum creatinine (AUC 0.728) and ejection fraction
+    (0.676 inverted).
+    <br>On that plane <b>179 of 299 patients are support vectors at C = 1, and never fewer than
+    175 anywhere on the ladder</b>. There is no corridor; the corridor is the cohort.
+    <br>Accuracy moves 0.689 &rarr; 0.732 across four orders of magnitude of C, and the count
+    inside the margin moves by <b>two patients</b>. The chain does not move.
+    <br>And the two features take only <b>17 and 40 distinct values</b>, so 299 patients occupy
+    <b>142 positions</b> &mdash; and <b>21 of those hold both outcomes</b>, 95 patients sitting
+    exactly where someone with the opposite outcome sits. No line separates them, and no ring
+    marks one of them.
+  </p>
+  <p class="note">
+    <b>03-5&rsquo;s colorectal biopsies do fire.</b>
+    <br>194 samples, 97 normal and 97 adenocarcinoma; two probes, <b>FXYD5</b> (dysadherin, up in
+    tumour) against <b>C7</b> (complement C7, down).
+    <br><b>C sweeps the support vectors from 174 down to 3 while accuracy never leaves 1.000.</b>
+    <br>Tick <i>fit on the support vectors only</i> at the tight end: 191 samples leave and the
+    boundary does not move &mdash; to nine decimal places, measured in the table at the foot.
+    <br>Cost: it is <b>03-5</b>&rsquo;s data, not <b>04-3</b>&rsquo;s, and its axes are probe
+    sets rather than a bedside measurement.
+  </p>
+  <p class="note">
+    <b>So: which stage &mdash; or does the widget carry both, as one control?</b> Carrying both is
+    the argument for principle 2.6: the biopsies say what a margin <i>is</i>, and the cohort is
+    what the same method does when there is no gap. Both are drawn below at the same C.
+  </p>
+
+  <div class="bar">
+    <label>C
+      <input type="range" id="ci" min="0" max="8" step="1" value="5">
+      <b id="clabel" style="color: var(--ink-1)"></b>
+    </label>
+    <label><input type="checkbox" id="drop"> fit on the support vectors only</label>
+    <label><input type="checkbox" id="fan"> show every rung&rsquo;s boundary</label>
+    <label>frame
+      <select id="frame">
+        <option value="770">1120px page &mdash; stage 770, the widest</option>
+        <option value="534">884px page &mdash; stage 534, the narrowest side layout</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <h2>S1 &middot; the plane alone</h2>
+  <p class="note">One panel, the full stage width. The corridor is the model; the ringed samples
+    are the only ones it depends on.</p>
+  <div class="cell"><h3>S1a &mdash; colorectal biopsies (194)</h3><div id="s1a"></div><div class="measure" id="m1a"></div></div>
+  <div class="cell"><h3>S1b &mdash; heart failure (299), the lesson&rsquo;s own SVC data</h3><div id="s1b"></div><div class="measure" id="m1b"></div></div>
+
+  <h2>S2 &middot; the plane, with the loss beside it &mdash; a second, smaller question</h2>
+  <p class="note">
+    The second panel is the <b>hinge loss</b> against the signed margin <i>y&thinsp;f(x)</i>, with
+    every sample&rsquo;s own position marked underneath it. It answers <i>why only those samples</i>:
+    past <i>y&thinsp;f&nbsp;=&nbsp;1</i> the loss is not small, it is <b>exactly zero</b>, so those
+    samples enter the objective at nothing. The dashed curve is the <b>logistic loss</b> widget 15
+    minimises, which never reaches zero &mdash; there, every patient pulls.
+  </p>
+  <div class="cell"><h3>S2a &mdash; colorectal</h3><div id="s2a"></div></div>
+  <div class="cell"><h3>S2b &mdash; heart failure</h3><div id="s2b"></div></div>
+
+  <h2>Two things noticed while drawing it, neither decided</h2>
+  <p class="note">
+    <b>The boundary is on <code>--c-highlight</code> violet, not <code>--c-theory</code>.</b>
+    Orange and the red of <code>--c-event</code> are eleven degrees of hue apart, which
+    HANDOVER already records as reading like one colour at a thin stroke. Support vectors are
+    then ringed in <code>--ink-1</code> rather than recoloured, so a support vector keeps saying
+    which class it is. If this holds it wants a named role &mdash; five of the six PHM5005
+    algorithm widgets draw a decision boundary.
+    <br><br>
+    <b>The loss panel rescales its own axes with C</b>, so it jumps as you drag &mdash; that is
+    2.5 and it would be fixed before shipping, not left.
+  </p>
+
+  <h2>The ladder, measured</h2>
+  <p class="note">Both fits agree with <code>sklearn.svm.SVC(kernel="linear")</code> to four
+    decimal places in <i>w</i> and <i>b</i> at every rung; the solver is SMO with LIBSVM&rsquo;s
+    maximal-violating-pair selection, so it is deterministic.
+    <b>&ldquo;drop&rdquo;</b> is the largest gap anywhere on the plane between the boundary fitted
+    on everything and the boundary fitted on the support vectors alone.</p>
+  <div style="display:flex; gap: var(--sp-5); flex-wrap: wrap">
+    <div><b style="font-size:var(--fs-sm)">colorectal, 194</b><div id="tabA"></div></div>
+    <div><b style="font-size:var(--fs-sm)">heart failure, 299</b><div id="tabB"></div></div>
+  </div>
+</main>
+<script type="module" src="./svm-stage.js"></script>
+</body>
+</html>

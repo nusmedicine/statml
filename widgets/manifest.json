@@ -221,6 +221,22 @@
       ],
       "arc": 15,
       "status": "draft"
+    },
+    {
+      "slug": "support-vector-machine",
+      "title": "Support Vector Machines",
+      "blurb": "The boundary is set by the samples inside the margin. Delete every other sample and it does not move.",
+      "course": "PHM5005",
+      "topics": [
+        "SVM",
+        "margin",
+        "support vectors",
+        "hinge loss",
+        "classification",
+        "regularization"
+      ],
+      "arc": 16,
+      "status": "draft"
     }
   ]
 }
