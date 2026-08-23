@@ -4,7 +4,8 @@ Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
 state in the URL.
 
-**The six-widget statistics arc is complete.** All six shipped. See
+**Fourteen widgets: the twelve-widget PHM5003 statistics arc is complete and
+shipped; PHM5005 has two in draft.** See
 [docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and
@@ -102,7 +103,8 @@ code if PHM5005 ever wants it back.
 
 `defineWidget` supplies URL state, controls, seeded RNG, theming, legend, stat
 tiles, table view, PNG export, the shareable link, and iframe height reporting.
-A widget supplies data, drawing, and optionally an animation:
+A widget supplies data, drawing, and optionally an animation and clickable
+regions:
 
 ```js
 import { defineWidget, makePlot } from "../core/index.js";
@@ -185,6 +187,18 @@ confusing "sample the population" with "resample your sample".
 | `segmented` | connected button group | a handful of **alternative readings**, all worth seeing at rest |
 | `select` | dropdown | the list is too long for either of the above |
 
+`select` options may carry a `group`; consecutive options sharing one render as
+an `<optgroup>` run. The object-map option form drops `group` — an object maps
+value to label with nowhere to hang a third field, so declare the array form.
+
+Two spec entries are **not** parameters. `section` is a labelled divider;
+`readback` is a small case table naming which of a few labelled outcomes the
+controls above it produce. Both say where in the rail they go, both carry no
+value, and neither ever reaches the URL. A `readback`'s `live(values)` may be a
+function where a field's `when` may not — `when` has to be declarative so core
+can avoid rebuilding the control block on every change, and rebuilding mid-drag
+drops the slider you are holding; a readback rebuilds nothing.
+
 `select`, `choice`, and `segmented` are the same data — a string key from a fixed
 list — in three shapes. Pick by what the options *mean*, not by how many. A
 dropdown hides that a choice exists, which is the wrong default for a widget
@@ -262,6 +276,31 @@ thing it controls, and they are styled `w-btn--primary` while utilities recede.
 In `readout`, put each prediction next to its observation — adjacency is the
 argument.
 
+### Clickable regions
+
+A widget may make its canvas clickable. `regions` returns targets in drawing
+coordinates and core resolves a pointer to one:
+
+```js
+regions: ({ w, h, params, state }) => cells.map((c) => ({
+  x: c.x, y: c.y, w: c.w, h: c.h, set: { pair: c.key }, label: c.key,
+})),
+```
+
+The `set` is applied through the same door any external write uses, which syncs
+the control first — so the URL and the rail move exactly as if the reader had
+used the dropdown. Three rules, and core throws at load on the first two:
+
+- **exactly one parameter per region**, so a click is the same transaction a
+  fingerprint state performs;
+- **the value must be a real option key**;
+- **keep the control** — it is the keyboard and screen-reader path to the same
+  parameter, and the drawn target is the shortcut.
+
+Built lazily at click and hover time, never inside `draw()`, and not handed
+`colors` or `anim`: a target that moved with the theme, or with animation
+progress, would drift away from the picture.
+
 ### House rules
 
 1. Never hardcode a colour, size, or font — reference a token from `tokens.css`.
@@ -293,8 +332,14 @@ argument.
 8. Write shared geometry once. If the animation and the data agree on where
    something is, they call one named function — two copies of a formula is how the
    halves of a figure come to disagree.
-9. Give any animating widget a **driven** fingerprint state. Settled states see
-   only the finished figure, so they are no test of the animation at all.
+9. Give any animating widget a **driven** fingerprint state, and any widget with
+   `regions` a **hit-driven** one. Settled states see only the finished figure,
+   so they are no test of the animation at all; a `set` state reaches its
+   parameter through the DOM control and routes around the region map, so it is
+   no test of the hit geometry — which no pixel hash can see either, because the
+   picture is identical whether a target sits where it is drawn or six columns
+   away. Every state carries two hashes, `px` over the canvas and `tx` over the
+   figure's text, and MATCHes only if both agree.
 10. Mark every presentation-only parameter `display: true`. An overlay toggle that
     resets the figure is a bug, not a preference.
 11. Keep the control set to things that carry an idea. `Save PNG` and a bin-by-bin
@@ -367,13 +412,9 @@ Because the site is served from a `/statml/` subpath and not a domain root,
 in production, which nothing would catch before a deploy — so `npm run check`
 fails on any `href="/…"`, bare `from "/…"`, or `url(/…)` in a deployed file.
 
-Remaining before the first deploy:
-
-1. Create the public repo `nusmedicine/statml`, then `git remote add origin`
-   and push `main`. **Pages needs the repo to be public** on a free
-   organisation plan; `docs/prd.md` §8 makes it public anyway.
-2. Repo settings → Pages → Source: **GitHub Actions**. The workflow is already
-   in place and needs no edit.
+Both deploy steps are done: the public repo exists at
+<https://github.com/nusmedicine/statml> and Pages is served from GitHub Actions.
+The site is live, and every push to `main` publishes it.
 
 **No licence file yet, deliberately.** `docs/prd.md` §8 settles the eventual
 licences as CC-BY-4.0 for prose and MIT for code, but adding them now would
@@ -391,6 +432,7 @@ so the licences go in when the content is ready to spread, not before.
 - No unit-test harness. `compute()` is pure and seeded, which is what would make
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
-- Widget count: 6. The PHM5003 arc is closed; PHM5005 has no widgets yet and
-  needs its catalogue treatment first (prd §12.1).
+- Widget count: 14. The PHM5003 arc is closed and shipped; PHM5005 has two
+  drafts and its catalogue treatment is written — `docs/catalogue.md` now carries
+  two PHM5005 arcs, one per algorithm family and one for evaluation.
 

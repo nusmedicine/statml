@@ -213,10 +213,11 @@ open question 1 — sequencing against actual teaching weeks.
 widgets the catalogue hosts at `03 / 02-02`; `probability-mechanisms` has no slot recorded
 anywhere and needs one written down.
 
-**#7 is missing from this table on purpose.** `power-and-error` is the only
-`draft` in the manifest and has no confirmed lesson slot, which is exactly the
-warning sign the paragraph below describes: it was built past the agreed six and
-nobody has yet said which week shows it.
+**The two drafts are missing from this table on purpose.** `generalization`
+(arc 13) and `linear-regularization` (arc 14) are the manifest's only `draft`
+entries, and both are PHM5005 — a course with no MyST project, so §7 cannot give
+them lesson slots. They are named by host notebook instead: `04-1`/`04-4` and
+`04-3` respectively.
 
 Two deferred entries also have confirmed homes, which strengthens their case:
 `interaction-effect` → `04 / 05-04 — Modeling: Interactions Between Covariates`,
@@ -282,7 +283,7 @@ four this document opened and settled:
 | **How much prose in the widget?** | **Thin**, because a widget never arrives without a host — §3. Self-explanatory, not self-teaching |
 | **Licensing** | **CC-BY-4.0 prose, MIT code**, public Pages |
 | **Print fallback** | **Out of scope.** PNG export stays opt-in and off |
-| **The catalogue** — which concepts, in what order? | **Closed for PHM5003**: the six-widget arc, now with lesson slots in §7. **Open for PHM5005** — still a tier list |
+| **The catalogue** — which concepts, in what order? | **Closed for PHM5003**: the twelve-widget arc, with lesson slots in §7. **Partly open for PHM5005**: the per-family arc from `04-3` is agreed and started; the evaluation arc is still a tier list |
 | **`ppv-prevalence` deferred** despite the strongest evidence in the catalogue | **Stays deferred**, built as a matched pair with `imbalance-metrics` |
 | **Generating the manifest** from a machine-readable catalogue | **Deferred, and largely obsolete.** Its main prize was ending the three-places heights; §6 does that by deletion instead. Its old count-based trigger never fires under a no-fixed-number plan — if it returns, the trigger is an **incident**, not a count |
 | **Ball physics on the Galton board** | **Closed.** Dropped — a bounce implies the deflection is caused by peg geometry when the lesson is an independent coin flip. A landing squash remains free and safe |
@@ -338,12 +339,16 @@ Stated so they can be pointed at rather than re-argued:
 
 ## 12 · Still open
 
-1. **The PHM5005 arc.** `catalogue.md` has a five-widget tier list and an
-   explicitly provisional spine — *a model that fits → a model that generalises →
-   an honest estimate of how well → a probability you can act on*. It needs the
-   same treatment PHM5003 got: one continuous argument where each widget answers a
-   question the previous one raises. Do this before building its first widget. The
-   course has no notebook project yet, so §7 cannot give it lesson slots either.
+1. ~~**The PHM5005 arc.**~~ **Partly closed.** The notebooks turned out to be
+   readable — on disk with their outputs, and mirrored in a Drive folder needing
+   no auth — and reading `04-3 Tour of Algorithms` produced a second arc beside
+   the evaluation one: six widgets, one per algorithm family, in the order the
+   notebook teaches them. `catalogue.md` now carries both, and two widgets are
+   built as drafts. What is still open is the evaluation arc's own spine, which
+   remains the provisional *a model that fits → a model that generalises → an
+   honest estimate of how well → a probability you can act on*. The course still
+   has no notebook project, so §7 gives PHM5005 no lesson slots — host notebooks
+   are named instead.
 2. ~~**Does an `<iframe>` survive a JupyterLab markdown cell?**~~ **Closed: no.**
    Tested on the live instance — the markdown sanitiser strips it. §4 records what
    was tested, what replaced it, and the trust caveat on the surviving inline

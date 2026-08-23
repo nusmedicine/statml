@@ -40,6 +40,7 @@ defineWidget({
 
   compute: ({ params, rng }) => state,                       // pure, seeded
   animation: { stepLabel, stepTitle, runLabel, init, advance, rebuild },
+  regions: ({ w, h, params, state }) => [{ x, y, w, h, set: { param: value } }],
   draw: ({ ctx, colors, w, h, params, state, anim }) => {},
   readout: ({ params, state, anim }) => [{ label, value, note }],
 });
@@ -47,7 +48,7 @@ defineWidget({
 
 ### `layout: "side"` — use it
 
-All seven widgets do. The controls sit in a left rail beside the figure instead
+All fourteen widgets do. The controls sit in a left rail beside the figure instead
 of above it, stacking again below 880px. Measured on the real widgets in
 `_lab/side-layout.html`: it saves 247–330px each and takes four of six from
 over-a-screen to fitting, and **the canvas gets WIDER doing it** (694 → 770), so
@@ -130,6 +131,33 @@ Pick a control by what the options *mean*, not how many there are:
 | `choice` | slider + tick labels | options form a **magnitude** |
 | `segmented` | button group | a few **alternative readings** |
 | `select` | dropdown | the list is too long for either |
+
+`select` options may carry a `group`; consecutive options sharing one render as an
+`<optgroup>`. The object-map option form silently drops `group` — declare the
+array form if you want it.
+
+**`readback` is not a parameter.** Like `section`, it is a spec entry that says
+where in the rail it goes and carries no value, so it never reaches the URL. It
+renders a small case table naming which of a few labelled outcomes the controls
+above it produce — widget 14's two penalty dials produce linear / ridge / lasso /
+elastic net, and which one you have is a fact about the dials, so 2.7 puts it
+beside them rather than on the figure.
+
+```js
+kind: {
+  type: "readback",
+  cols: ["α₁ = 0", "α₁ > 0"],
+  rows: ["α₂ = 0", "α₂ > 0"],
+  cells: [["Linear", "Lasso"], ["Ridge", "ElasticNet"]],
+  live: (values) => [row, col],
+}
+```
+
+`live` is a FUNCTION where `when` must stay declarative, and the difference is
+load-bearing: `when` has to be declarative so core can avoid rebuilding the
+control block on every change, because rebuilding mid-drag drops the slider you
+are holding. A readback rebuilds nothing — it swaps two class names — so a
+predicate is safe there and only there.
 
 ```js
 params: {
@@ -237,6 +265,36 @@ Use `spikes()` for discrete distributions and declare `masses: [[value, prob], �
 Never express point masses as a binned array — that put the coin flip's second
 spike off the panel and it survived several iterations.
 
+## Clickable regions
+
+A widget may make its canvas clickable. `regions` returns targets in drawing
+coordinates; core resolves a pointer to one and applies its `set` through the
+same door any external write uses, which syncs the control first. So the URL and
+the rail move exactly as if the reader had used the dropdown — a region is a
+faster way to reach a parameter, never a second state of record.
+
+```js
+regions: ({ w, h }) => cells.map((c) => ({ ...c, set: { pair: c.key }, label: c.key })),
+```
+
+Three rules, and core throws at load if you break the first two:
+
+- **Exactly one parameter per region.** Two would paint an intermediate state
+  nobody asked for, write the URL twice, and make the click a different
+  transaction from the one a fingerprint state performs — so the harness would be
+  verifying a sequence the reader never takes. A pair of variables is one
+  parameter, not two.
+- **The value must be a real option key.** A region table can be wrong in exactly
+  two ways, and both are code defects, so both throw where every other driver in
+  this repo throws rather than being coerced into the default.
+- **Keep the control.** The dropdown or slider is the keyboard and screen-reader
+  path to the same parameter. The matrix is the shortcut, not the only route.
+
+It is built lazily at click and hover time, never inside `draw()` — `draw()` runs
+every frame and a region list rebuilt there is per-frame work that paints
+nothing. It is not handed `colors` or `anim` either: a target that moved with the
+theme, or with how far an animation had run, would drift away from the picture.
+
 ## Verifying
 
 **Screenshots for judgement. Assertions for facts. Never the reverse.**
@@ -246,8 +304,9 @@ npm run dev      # NOT python -m http.server; this one sends no-store
 npm run check    # invariants
 ```
 
-Then `/widgets/_lab/fingerprint.html`, which hashes each widget's canvas against a
-baseline. **Run the full suite when you touch `widgets/core/`** — that is the only
+Then `/widgets/_lab/fingerprint.html`, which hashes each state **twice** — `px`
+over the canvas and `tx` over the figure's text (`.w-math`, `.w-legend`,
+`.w-readout`) — and MATCHes only if both agree. **Run the full suite when you touch `widgets/core/`** — that is the only
 change that can reach a widget you are not looking at. A change confined to one
 widget's `main.js` only needs that widget's own states rebaselined, and testing
 the widget you are building stays manual: no hash tells you whether a caption is
@@ -258,13 +317,18 @@ slowest thing in the loop, and a baseline recorded before the design is agreed
 gets thrown away — `bootstrap` was baselined three times over for exactly this.
 Build, check the numbers programmatically, run the suite once if core changed,
 then *show it and iterate*; record the baseline only when the design stops
-moving. A placeholder `"px": "0"` satisfies `npm run check` in the meantime.
+moving. A placeholder needs **both** hashes in the meantime — `"px": "0",
+"tx": "0"` — because `check` fails a state carrying only one.
 
-It holds **two kinds of state**:
+It holds **three kinds of state**:
 
 - **settled** — `?…&shown=N`, the figure fully built and nothing moving
-- **driven** — `drive: { click: "step"|"run", frames, dt }`, where the harness
-  replaces the frame clock with a queue it steps by hand
+- **driven** — `drive: { click, frames, dt }`, `{ set: {…} }` or
+  `{ hit: [x, y] }`, where the harness replaces the frame clock with a queue it
+  steps by hand. `hit` dispatches a real pointer event on the canvas at a point
+  in DRAWING coordinates and throws if it is over no region
+- **interrupted** — `drive: { before: [{ click, frames }], … }`, a state one
+  action leaves another in
 
 A new widget with an animation needs **at least one driven state**, and
 `check.mjs` fails without one. Settled states cannot see anything drawn only while
@@ -285,12 +349,15 @@ programmatic read, trust the read.
    drifted silently with nothing reading it, and the field was deleted. A
    widget's height lives in `defineWidget` and nowhere else; adding a copy back
    needs a reader for it first
-2. States in `widgets/_lab/fingerprint-baseline.json`: two or three **settled**
-   (`shown=`, nothing in flight) **plus at least one driven** (`drive: { click,
-   frames, dt }`) if the widget animates. `npm run check` fails a widget that
-   declares an `animation` without one — settled states are blind to anything
-   drawn only while something moves, and a coordinate change once put every
-   falling ball six columns off-centre while all eight settled states matched.
+2. States in `widgets/_lab/fingerprint-baseline.json`, each carrying **both**
+   hashes: two or three **settled** (`shown=`, nothing in flight), **plus at
+   least one driven** (`drive: { click, frames, dt }`) if the widget animates,
+   **plus at least one hit-driven** (`drive: { hit: [x, y] }`) if it declares
+   `regions`. `npm run check` fails a widget missing either — settled states are
+   blind to anything drawn only while something moves, and a coordinate change
+   once put every falling ball six columns off-centre while all eight settled
+   states matched; a `set` state routes around the region map entirely, so it
+   leaves the hit-test geometry untested, and no pixel hash can see that.
    Confirm a new driven state is identical across three runs before baselining
 3. Judge it **projected**, or at least from across the room. The lecture is the
    governing surface (`docs/prd.md` §3); thin strokes and small tick labels are

@@ -76,9 +76,15 @@ sliders mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per
   the cheapest check in the repo and it catches what screenshots cannot: a `NaN`
   at one end of a slider, a caption and its note overrunning one line, and — once
   — a printed claim that was false on the very first press. Recipe in
-  [HANDOVER.md](HANDOVER.md).
-- `widgets/_lab/fingerprint.html` hashes each widget's canvas against a stored
-  baseline. **Run the full suite when you touch `widgets/core/`** — that is the
+  [HANDOVER.md](HANDOVER.md). **It sees canvas and nothing else**: widget 14
+  writes its equation as MathML in the DOM, which never goes through `fillText`,
+  so the sweep stopped covering it with no error and no gap in its output — just
+  fewer strings in a list nobody counts. That is what the text hash below is for.
+- `widgets/_lab/fingerprint.html` hashes each state **twice**: `px` over the
+  canvas, and `tx` over the figure's text — the `textContent` of `.w-math`,
+  `.w-legend` and `.w-readout`. A state MATCHes only if both agree, and `check`
+  fails a state carrying only `px`. The rail is deliberately absent: the rail is
+  what you SET and the stage is what you SEE. **Run the full suite when you touch `widgets/core/`** — that is the
   only kind of change that can reach a widget you are not looking at, and it is
   where "this cannot have affected anything" keeps turning out to be wrong.
   **It auto-runs on load; never click Run.** Doing so starts a second concurrent
@@ -114,8 +120,16 @@ commit.
 > freezes it, and freezing before review is backwards.
 
 `npm run check` fails a manifest widget with no fingerprint states, which pushes
-the other way. The escape hatch: a placeholder `"px": "0"` satisfies `check`, so
-states can be written early and the expensive part deferred.
+the other way. The escape hatch is a placeholder — but it needs **both** hashes,
+`"px": "0", "tx": "0"`, because `check` fails a state carrying only one. That
+rule exists so a state cannot silently cover the picture and not the words.
+
+`check` also fails a non-draft widget that declares `animation` without a driven
+state, or `regions` without a **hit-driven** one. A `set` state reaches its
+parameter through the DOM control and routes around the region map entirely, so
+it gives a widget's hit-test no coverage at all — and that geometry is exactly
+what no pixel hash can see, since the picture is identical whether a target sits
+where it is drawn or six columns away.
 
 It holds **three kinds of state**, and the distinction is load-bearing:
 
@@ -151,7 +165,7 @@ widgets/core/       the scaffold — everything a widget does not have to write
   controls.js       controls generated from the parameter spec
   params.js         URL <-> typed values; param types and what each is for
   rng.js  stats.js  env.js
-widgets/<slug>/     one widget: index.html (12 lines) + main.js
+widgets/<slug>/     one widget: index.html (a stub) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed
 widgets/index.html  redirect stub, so a trimmed /widget/ URL reaches the gallery
 widgets/manifest.json  registry of BUILT widgets; gallery cards, and nothing else

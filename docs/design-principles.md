@@ -131,6 +131,18 @@ predicted σ/√n   →  observed SD of the means        (should land on it)
 
 Two adjacent pairs. Nothing needs to say "compare these".
 
+**It decides where a reading goes, not just what sits beside what.** Widget 14's
+two penalty dials produce four named models — linear, ridge, lasso, elastic net —
+and the table naming them was first drawn on the figure, because that is where
+figures go. Wrong: the table is a reading of the DIALS, not of the picture, so it
+belongs in the rail directly under them, where moving α₁ off zero visibly moves
+the lit cell one column right. On the canvas it was also painted over two of the
+coefficient bars, and only looked clear because those two coefficients happen to
+be small.
+
+The test is not "is this a number?" but **"what produced it?"** — and the answer
+puts it next to that.
+
 ### 2.8 Numbers track the partial state
 
 While the picture builds, the readout reports what has actually been collected —
@@ -527,7 +539,19 @@ five field types dropped it on the floor:
 |---|---|
 | `choice`, `gate` | rendered it, as a visible line |
 | `segmented` | put it in a `title` tooltip — invisible on a projector, unreachable on a touch screen |
-| `int`, `float` | **nothing at all** |
+| `int`, `float` | **nothing at all** — fixed when this was written |
+| `bool` | **nothing at all** — and missed by both earlier passes |
+
+**Fixed three times, and the third time is the interesting one.** `bool` is not
+in the table above because the table was written from the widgets that existed:
+no checkbox had ever declared a `detail`, so nothing looked broken. When widget
+14 wrote one it went nowhere, silently, exactly as `int` and `float` had. A
+survey of what is currently declared is not a survey of what the contract
+promises — the rule is about the CONTRACT, so the audit has to be too.
+
+The fix also had a layout constraint the others did not: `.w-bools` is a flex
+ROW, so a paragraph appended to it lands between two checkboxes rather than under
+its own. Each switch now sits in its own column.
 
 So four widgets had written explanations that nobody has ever seen. Widget 8's
 `trueSize` slider carries the warning that a LARGER size means LESS spread — the
@@ -717,6 +741,36 @@ applet literature is blunt about it: [less guidance produced more engagement][ph
 and busy for a book figure. A cap ("one idea, at most N controls, seed always
 last") would keep forty widgets coherent but means cutting things. Unresolved.
 
+### 3.6 A click on the figure is a control, and obeys every rule a control does
+
+A widget may make its canvas clickable — a cell of a drawn correlation matrix, a
+node of a drawn tree. The temptation is to treat that as a different kind of
+thing from a slider, because it is drawn rather than declared. It is not.
+
+**It sets a parameter, or it is a second state of record.** The URL, the rail and
+the figure all track `values` (1.1). A click that kept its selection anywhere
+else would make the widget lie about itself the moment the reader copied the
+link. `probability-mechanisms` got this right from the start; the machinery to
+make it right *generally* took longer, because the exported `setParam` did not
+tell the rail anything, and that widget only survived by luck — both parameters
+it sets happen to gate another field, so the rebuild resynced the rail as a side
+effect. A parameter that gates nothing got no such rescue.
+
+**The control stays.** A dropdown reaching the same parameter is the keyboard and
+screen-reader path; the drawn target is a shortcut, never the only route. A
+figure you can only operate with a mouse is a figure some readers cannot operate.
+
+**One parameter per target.** Two would paint an intermediate state nobody asked
+for, write the URL twice, and — the reason that actually bites — make the click a
+different transaction from the one a test performs, so the harness would verify a
+sequence the reader never takes.
+
+**A target table can be wrong in exactly two ways, and both throw at load.** A
+parameter that does not exist, and a value that is not one of its options. Both
+are code defects, so both fail where every other driver in this repo fails,
+rather than being coerced into the default — which would turn a click that does
+the wrong thing into a click that quietly does something else.
+
 ---
 
 ## 4 · Pacing
@@ -902,6 +956,23 @@ Two habits fall out:
   reported non-determinism from shifted rows. Measurement error looks exactly like
   the failure it is measuring.)
 
+**A second shape of blind spot, and it opens without anything breaking: a check
+is scoped to a MEDIUM, so moving content out of that medium drops it out of
+coverage silently.** Both cheap checks in this repo read the canvas — the
+fingerprint hashes `toDataURL`, the text sweep wraps `fillText`. Widget 14 moved
+its fitted equation into the DOM as MathML, and both stopped seeing thirteen
+coefficients at once. No error, no gap in any output, just fewer strings in a
+list nobody counts — and the canvas hash would have gone on reporting MATCH over
+a flipped sign.
+
+Nothing was broken by that move; the coverage simply did not follow the content.
+So the rule has a second half: **when content changes medium, the check has to
+change medium with it, or the loss gets named where the next reader will look.**
+The fix was a second hash over the figure's text — which promptly showed the hole
+was older and larger than the equation. **No widget's readout had ever been
+hashed**, across all 105 states. Widget 14 did not create that blind spot, it
+made it visible.
+
 ### 5.7 A harness addresses what it drives by identity, never by position
 
 > *Earned, and caught in the act rather than after the fact.* The fingerprint
@@ -953,6 +1024,25 @@ reaches the widget, so the harness photographs an untouched figure and records a
 stable, plausible hash for it. Same failure shape as clicking the wrong button,
 same remedy: the setter throws when it cannot find the control or the option,
 and a throw becomes `px = "error"`, which can never match a baseline.
+
+**The one thing this principle does NOT forbid, and the reason is the whole
+point.** A widget may make its canvas clickable (3.6), and the harness drives
+those with `{ hit: [x, y] }` — a raw coordinate, which is exactly what the rest
+of this principle spends a page outlawing.
+
+It is not an exception, it is the rule read correctly. Positional addressing is
+forbidden because a *control* has an identity — a name, a role, a `data-key` —
+and using its position instead encodes an assumption about layout that nobody
+agreed to keep. **A drawn region has no identity but its place on the figure.**
+Its position is not a proxy for what it is; its position *is* what it is, and it
+is the thing under test: no pixel hash can tell whether a target sits where it
+is drawn or six columns away, because the picture is identical either way.
+
+So the same discipline applies in the form the medium allows. The frame is a
+fixed 900px wide, so a coordinate means the same thing every run. The verb
+throws when the point is over no region — the widget's own cursor is the
+detector — for the same reason `press` throws on a missing button: a click that
+lands on empty canvas still leaves a stable, plausible hash.
 
 ### 5.8 One formula, one place
 
