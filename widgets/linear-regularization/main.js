@@ -143,6 +143,22 @@ function rSquared(w) {
 const ALPHAS = [0, 0.01, 0.03, 0.1, 0.3, 1, 3];
 const alphaOf = (key) => ALPHAS[Number(key)] ?? 0;
 
+/* WHAT EACH SETTING ACTUALLY DOES, measured rather than described. The details
+   used to read "a diamond of the size that reaches this fit", which says nothing
+   the tick label does not: the diamond's size IS whatever the fit turned out to
+   be, so the sentence defines the setting by its own consequence and repeats
+   verbatim for every non-zero value.
+
+   These state the consequence as a count instead, and they are computed from the
+   solver above rather than typed in, so they cannot drift from the model (5.8).
+   Fourteen fits at load, each 13x13 per sweep — unmeasurable.
+
+   "alone" is the qualifier doing real work: each number holds with the OTHER
+   dial at zero, which is the path the option is about. It is also the contrast
+   the widget exists for — one column of counts falls, the other never does. */
+const L1_SURVIVORS = ALPHAS.map((a) => fitAll(a, 0).filter((v) => Math.abs(v) > 1e-9).length);
+const L2_LARGEST = ALPHAS.map((a) => Math.max(...fitAll(0, a).map(Math.abs)));
+
 /* EVERY PAIR SHARES ABDOMEN, and the partner is what the reader picks. Two
    reasons. The plane's horizontal axis then never moves, so switching partners
    compares like with like instead of redrawing the whole frame (2.5). And the
@@ -336,8 +352,8 @@ defineWidget({
         value: String(i),
         label: v === 0 ? "0" : String(v),
         detail: v === 0
-          ? "0 — no diamond; nothing is pushed to exactly zero"
-          : `${v} — a diamond of the size that reaches this fit`,
+          ? "0 — no L1 term; nothing reaches zero"
+          : `${v} — alone, ${L1_SURVIVORS[i]} of the 13 survive`,
       })),
       default: "0",
     },
@@ -347,9 +363,14 @@ defineWidget({
       options: ALPHAS.map((v, i) => ({
         value: String(i),
         label: v === 0 ? "0" : String(v),
+        /* The zero option is the one the widget OPENS on, and it used to be the
+           only detail long enough to wrap — 59 characters against 46 — so the
+           rail jogged 16px every time the reader dragged this dial across zero
+           and everything below it moved. Kept under one line, like the rest
+           (3.4d, in a paragraph rather than a button). */
         detail: v === 0
-          ? "0 — no circle; coefficients are not pulled toward each other"
-          : `${v} — a circle of the size that reaches this fit`,
+          ? "0 — no L2 term; nothing shrinks"
+          : `${v} — alone, all 13 survive; largest ${fmt(L2_LARGEST[i], 1)}`,
       })),
       default: "0",
     },
@@ -391,10 +412,19 @@ defineWidget({
       display: true,
     },
 
+    /* NAMES THE MARK, PROMISES NO MOTION. "Show the route from the unpenalised
+       fit" reads as an offer of something to watch, and at the opening state
+       there is nothing: with both dials at zero you ARE the unpenalised fit, so
+       every point of the route is the same point. Naming the endpoint instead is
+       true at every setting, including that one.
+
+       Its `detail` is gone rather than reworded — `detail` is not rendered for a
+       `bool` at all, so the line was dead copy nobody could ever read. That is a
+       gap in core's `bools` branch, not in this widget, and it is left for its
+       own change. */
     trail: {
       type: "bool",
-      label: "Show the route from the unpenalised fit",
-      detail: "where the pair would sit with every dial at zero",
+      label: "The route from α₁ = α₂ = 0",
       default: true,
       display: true,
     },
