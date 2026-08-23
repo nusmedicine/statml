@@ -2502,16 +2502,71 @@ machinery at all.
 
 # PHM5005 · AI/ML for Precision Medicine
 
-**Widget 13 starts here: ML model evaluation**, from Kenneth's Colab notebook —
-<https://colab.research.google.com/drive/1y4UzVeSZOIpY5Vxg3dM047p-2fwrs4Zc>.
-The link needs auth and cannot be read by an agent, so the notebook has to be
-handed over as `.ipynb` before anything is planned; there is no
-`../jupyterbook/phm5005` on this machine either, so no lesson slot can be named
-yet. Which of the entries below it lands on is an open question — do not assume
-`imbalance-metrics` until the notebook has been read.
+**The notebooks are readable now, and that changed the plan.** They are on disk
+at `~/Downloads/PHM5005 AY2025-26 - Notebooks/For Review/` with their cell
+outputs intact, and mirrored in a shared Drive folder that needs no auth. Match
+by filename, never by link — the same notebook has appeared under three Drive
+IDs. There is still no `../jupyterbook/phm5005`, so PHM5005 lesson slots are
+named by notebook filename rather than by chapter.
 
-The arc below is unchanged, awaiting the same treatment — an arc rather than a tier list. My guess
-at its spine, for you to overwrite:
+## Two arcs, not one
+
+The evaluation arc below was written before any notebook had been read. Reading
+`04-3 Tour of Algorithms` produced a **second** arc that runs beside it rather
+than inside it, and the two target different things: this one is about
+*evaluating* a model, that one is about what a model *is*.
+
+### Arc A · one widget per algorithm family, from `04-3`
+
+Agreed 2026-08-23, in this order. The notebook's own structure — six family
+sections, each with a **Model** and an **Objective** — is the spine.
+
+| # | slug | family | status |
+|---|---|---|---|
+| 1 | `linear-regularization` | linear, with and without regularization | **built — draft** |
+| 2 | — | instance-based (kNN) | deferred, see below |
+| 3 | — | margin-based (SVM) | planned |
+| 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | planned |
+| 5 | — | probabilistic (naive Bayes) | planned |
+| 6 | — | neural networks (a shallow MLP) | planned |
+
+`linear-regularization` **is** the `regularization-path` entry in the tail list
+below, built under a clearer name. Its misconception: *the penalty is not a
+property of the algorithm, it is a response to how little data you have.*
+Measured on the notebook's own body fat data — the best penalty slides from
+α = 1 at n = 18 to **α = 0 at n = 202**, so the four rows of `04-3`'s table are
+four settings of one objective rather than four algorithms.
+
+**kNN was planned in detail and then deferred**, which is worth recording so the
+work is not redone. `04-3` mentions it once, in the overview table, with no
+worked example; Kenneth's course covers it in the unsupervised-learning notebook
+instead, and it will be picked up there. What the planning measured, on the heart
+failure data:
+
+- serum creatinine (AUC 0.728) and ejection fraction (0.324, i.e. 0.676
+  inverted) are the top two features by a clear margin, so a 2-D plane on them
+  is a fair reduction rather than a caricature
+- **the scaling story does not fire.** Standardised against as-measured is within
+  one or two patients at every k, even though ejection fraction outweighs
+  log-creatinine 52:1 in range — because ejection fraction is recorded in coarse
+  steps, so creatinine survives as a tie-breaker. Do not build a kNN widget
+  around "forgetting to scale"
+- **the dimensionality story fires hard.** At k = 9, adding features
+  strongest-first takes deaths caught from 8 of 19 down to **1 of 19**, while the
+  nearest neighbour's distance goes from 0.038 of the mean distance to 0.394.
+  "Nearest" stops meaning near, and it is measurable on screen
+
+### Arc B · evaluation
+
+Unchanged below, and still the arc widget 13 belongs to. `generalization` is
+built as a draft against `04-1` and `04-4`.
+
+**`04-2 Model Evaluation` is designed but unbuilt** — a probability axis, one dot
+per patient, a threshold line whose four quadrants ARE the confusion matrix. Its
+evidence is `04-2`'s own cell 39: at threshold 0.50 and at Youden 0.31 the
+accuracy is 0.70 both times, while deaths missed goes from 9 to 3.
+
+My guess at the evaluation arc's spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on
 
@@ -2523,8 +2578,9 @@ at its spine, for you to overwrite:
 | 4 | `imbalance-metrics` | Metrics under class imbalance | That 99% accuracy on a 1% prevalence outcome is a good model | **documented** |
 | 5 | `calibration` | Calibration vs discrimination | That good AUC means the predicted probabilities are usable at the bedside | reported |
 
-Then: `bias-variance` · `learning-curve` · `regularization-path` ·
-`dimreduce-artifacts` · `feature-importance`.
+Then: `bias-variance` · `learning-curve` · `dimreduce-artifacts` ·
+`feature-importance`. (`regularization-path` has left this list — it is built, as
+`linear-regularization` in Arc A.)
 
 **The pair worth building together.** `ppv-prevalence` and `imbalance-metrics`
 are the same misconception twice — base-rate neglect as a clinical reasoning error
