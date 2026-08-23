@@ -282,6 +282,34 @@ function computeAll({ params }) {
   };
 }
 
+/* --- the layout, and the height that follows from it ---------------------- *
+ * THE TWO PANELS ARE SQUARE AND THAT IS NOT NEGOTIABLE. The plane's claim is
+ * that only the diamond has corners; at unequal scales the L1 ball is not drawn
+ * as a diamond and the L2 ball is not drawn as a circle, so the sentence in the
+ * subtitle and the picture would disagree. The predictions panel is measured
+ * against predicted in the same units, so `y = x` is only at 45 degrees while it
+ * is square too.
+ *
+ * Square means WIDER COSTS TALLER, so the canvas height is a function of the
+ * width rather than a number. It was 438 with `side` capped at 228, which left
+ * 206px of the row empty at the wide frame — the bars ran the full width and the
+ * two squares stopped well short of them. Mocked as P3 of four in
+ * `_lab/linreg-panel-width.html`: at the wide frame the plane goes 228 -> 331px,
+ * 45% more of the panel the whole tangency argument lives in, and at the narrow
+ * frame nothing changes at all because the panels are already width-bound there.
+ *
+ * The alternative that was drawn and rejected is P4, narrowing the bars and the
+ * equation to the panels instead: it removes the ragged edge by wasting MORE of
+ * the row, not less.                                                          */
+const PAD_L = 48, PAD_R = 16;
+const BAR_TOP = 14, BAR_H = 112;
+const ROW_TOP = BAR_TOP + BAR_H + 50;
+const ROW_GAP = 44;      /* between the two squares — room for the y axis label */
+const ROW_BOTTOM = 34;   /* the x axis label under them */
+
+const panelSide = (w) => (w - PAD_L - PAD_R - ROW_GAP) / 2;
+const canvasHeight = ({ w }) => ROW_TOP + panelSide(w) + ROW_BOTTOM;
+
 /* --- where the correlation matrix went ------------------------------------
  * IT IS A CONTROL, AND IT IS NOW IN THE RAIL — core's `matrix` type, declared
  * in `params` below. It was drawn on the canvas first, beside the bars, and
@@ -486,7 +514,7 @@ defineWidget({
     + "— which is why only it sets a coefficient to exactly zero.",
   layout: "side",
   status: "draft",
-  height: 438,
+  height: canvasHeight,
 
   params: {
     /* THE TWO DIALS, IN THE TABLE'S OWN ORDER. Each is a data parameter: it
@@ -623,7 +651,7 @@ defineWidget({
   compute: computeAll,
 
   draw({ ctx, colors, w, h, params, state }) {
-    const padL = 48, padR = 16;
+    const padL = PAD_L, padR = PAD_R;
     const inner = w - padL - padR;
 
     /* ---- panel 1: thirteen coefficients ---------------------------------- *
@@ -631,20 +659,18 @@ defineWidget({
      * stubs on a shared axis. That is left alone deliberately: abdomen
      * circumference really does dominate body fat, and the thing this panel is
      * for survives any scale — how many bars are EXACTLY zero (2.3).          */
-    /* THE EQUATION IS NO LONGER ON THE CANVAS — it is MathML above it. The
-       canvas paid for that by getting 72px shorter rather than by giving the
-       space to the panels: `rowTop` falls from 248 to 176 and `height` from 510
-       to 438, so `side` stays min(228, …) at every width and the plane does not
-       move at all. Growing the plane is a separate change with its own argument;
-       it cannot even be delivered between 880 and 915px, where the panels are
-       width-clamped rather than height-bound. */
+    /* THE EQUATION IS NO LONGER ON THE CANVAS — it is MathML above it, in a card.
+       The canvas paid for that by getting 72px shorter rather than by giving the
+       space to the panels: `rowTop` fell from 248 to 176. The panels got their
+       space in a later change instead, by dropping the height cap — see the
+       layout block at the top of this file. */
     renderEquation(state.w);
 
     /* THE BARS HAVE THE FULL WIDTH BACK. They gave up 174px of 470 to the
        correlation matrix while it was on the canvas; the matrix is a control and
        is now in the rail, so thirteen columns share the whole panel again. */
     const barW = inner;
-    const barTop = 14, barH = 112;
+    const barTop = BAR_TOP, barH = BAR_H;
     const lim = state.barLimit;
     const sy = (v) => barTop + barH / 2 - (v / lim) * (barH / 2);
     const band = barW / P;
@@ -723,8 +749,10 @@ defineWidget({
     ctx.restore();
 
     /* ---- panel 2: the coefficient plane ---------------------------------- */
-    const rowTop = barTop + barH + 50;
-    const side = Math.min(h - rowTop - 34, (inner - 44) / 2);
+    const rowTop = ROW_TOP;
+    /* NO CAP. `height` above is what keeps this square — the panel is half the
+       row and the canvas is however tall that makes it. */
+    const side = panelSide(w);
     const planeW = side, dataW = side, rowH = side;
 
     /* ISOTROPIC, OR THE CIRCLE IS NOT A CIRCLE. One px-per-unit for both axes,

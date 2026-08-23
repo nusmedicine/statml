@@ -31,9 +31,23 @@ export function createCanvas(host, height) {
   let w = 0;
   let h = height;
 
-  function resize() {
+  /**
+   * `heightOf` is optional and is a function of the WIDTH. It resolves here
+   * rather than in the caller because the ordering is the whole point: the width
+   * is set by CSS and is knowable before anything is painted, the height is not,
+   * and a height computed from last frame's width paints one frame at the wrong
+   * size — which is exactly the jump the caller's old comment was about.
+   *
+   * A widget needs this when a panel must stay SQUARE. Widget 14's coefficient
+   * plane is only allowed to be square: its claim is that only the diamond has
+   * corners, and at unequal scales the L1 ball is not drawn as a diamond. So a
+   * panel that fills the row's width has to be given the height to match, and
+   * only the width knows what that is.
+   */
+  function resize(heightOf) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = Math.max(240, host.clientWidth || 600);
+    if (heightOf) h = heightOf(w);
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.style.height = `${h}px`;

@@ -750,6 +750,15 @@ The horizontal padding is `--sp-2` rather than `--sp-3` for that reason alone.
 **A reserve is a promise about a column width; anything that narrows the column
 is a change to the reserve.**
 
+A hanging indent is the same thing said a third way, and there it was paid on
+purpose. Aligning the equation's continuation lines under the right-hand side of
+the `=` indents every line after the first by 91px, which costs exactly one line
+at the narrowest column — four rather than three. The reserve went to four, and
+because a reserve is one number for every width, a wide frame now carries a line
+of slack inside the card. **That is what a reserve costs: the worst case, paid
+everywhere.** It is still the right trade against a block that changes height as
+a dial moves, but it is a trade and not a free win.
+
 ---
 
 ### 4.4 Opening a gate may play the stage in

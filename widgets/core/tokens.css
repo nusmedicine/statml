@@ -433,12 +433,17 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    overhangs by. Measured across both frames.
 
    THE HORIZONTAL PADDING IS SMALLER THAN THE VERTICAL, AND THAT IS NOT TASTE.
-   Padding narrows the column the equation wraps in, and thirteen terms need a
-   FOURTH line below 512px — measured, over all 49 dial settings. The narrowest
-   column the side layout reaches is 534px, so 12px each side plus the ring
-   leaves 508 and the block jogged 15.5px as a dial moved: the very fault the
-   reserve on `.w-math-eq` exists to prevent, reintroduced by the box. 8px leaves
-   516, which clears the threshold by 4px. Do not put it back to `--sp-3`. */
+   Padding narrows the column the equation wraps in. Thirteen terms needed a
+   FOURTH line below 512px, and 12px each side plus the ring leaves 508 of the
+   narrowest 534px column — so the block jogged 15.5px as a dial moved, the very
+   fault the reserve on `.w-math-eq` exists to prevent, reintroduced by the box.
+   8px leaves 516 and cleared it.
+
+   THAT ARGUMENT NO LONGER BINDS, and the number is left at 8px anyway. The
+   hanging indent costs a line at every column under 600px, so 508 and 516 both
+   need four lines now and the reserve covers both. A wider column is still never
+   worse for a block that wraps, and `--sp-3` would buy nothing but a slightly
+   fatter card. */
 .w-math {
   margin: 0 0 var(--sp-2);
   padding: var(--sp-3) var(--sp-2);
@@ -452,10 +457,10 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 .w-math-eq {
   /* A FLOOR, AND DELIBERATELY NO CEILING. How long the equation is depends on
      how many terms survive; how many lines that takes depends on the column
-     width. Reserving three lines holds the block at a constant height for every
-     width the side layout reaches — measured 76.3px flat from 884px to 1400px,
-     across both dial sweeps — so dragging a dial no longer moves the figure
-     under the reader (3.4d).
+     width. Reserving the worst case holds the block at a constant height for
+     every width the side layout reaches — measured 121.3px flat from 884px to
+     1400px, across both dial sweeps — so dragging a dial no longer moves the
+     figure under the reader (3.4d).
 
      A `-webkit-line-clamp: 3` ceiling was tried and removed. Below the 880px
      breakpoint the column narrows to ~350px, thirteen terms need four lines,
@@ -472,8 +477,34 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
      moved. Measured worst case is 55.62px = 5.056em, over all 49 dial settings
      at every column width the side layout reaches (534px to 770px). 5.2em
      reserves that with about 3% to spare, which is roughly what a font
-     substitution on another platform costs. */
-  min-height: 5.2em;   /* 3 lines of 1.733em — see above, NOT 3 x 1.55 */
+     substitution on another platform costs.
+
+     FOUR LINES RATHER THAN THREE, because of the hanging indent below. It costs
+     exactly one line at the narrowest column the side layout reaches: with the
+     indent, thirteen terms need four lines at 534px and under, and three at
+     640px and over — measured over all 49 dial settings. The reserve has to
+     cover the worst case at the NARROWEST width, because it is one number for
+     every width, so a wide frame carries a line of slack inside the card. That
+     is the price of the alignment and it was paid knowingly. */
+  min-height: 6.93em;   /* 4 lines of 1.733em — see above, NOT 4 x 1.55 */
+
+  /* A HANGING INDENT, so the right-hand side of the equation is a column.
+     Every term after the first line starts where `19.2` starts, rather than
+     under `body fat %`, and thirteen terms over three or four lines read as one
+     sum instead of as a paragraph.
+
+     `padding-left` moves every line right; `text-indent` pulls the FIRST one
+     back to the edge, so line one keeps the full width and only continuations
+     pay. The flex alternative — a fixed left column and the terms in their own
+     box — makes every line pay, which is one line worse.
+
+     8.3em is the rendered width of `body fat % =` plus the space after it,
+     measured at 91px against this block's 11px type. It is a constant for the
+     same reason `1.45em` above is one: it depends on the maths font's metrics,
+     and being a few pixels out on another platform is a cosmetic misalignment
+     rather than a block that changes height. */
+  padding-left: 8.3em;
+  text-indent: -8.3em;
 }
 /* SIZED BY THE SMALLEST THING IN IT, not by the biggest. MathML shrinks each
    nested level — a fraction's numerator lands at about 0.71 of its parent — so

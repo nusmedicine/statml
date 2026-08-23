@@ -270,10 +270,16 @@ export function defineWidget(config) {
   }
 
   function paint({ syncAddressBar = false } = {}) {
-    // Resolve a parameter-dependent height BEFORE resize, or the canvas paints
-    // at the previous size for one frame and the panels jump.
-    if (typeof height === "function") surface.setHeight(height({ ...values }));
-    const { w, h } = surface.resize();
+    /* A HEIGHT FUNCTION GETS THE PARAMETERS **AND THE WIDTH**, and resolving it
+       is `resize`'s job. It used to resolve here, one line earlier, which was
+       right for a height that depends only on the parameters and impossible for
+       one that depends on the width: the width is not known until `resize` has
+       measured it, so a height asked for first could only be computed from the
+       LAST frame's width. `w` rides along in the same object as the values —
+       no widget has a parameter of that name, checked. */
+    const { w, h } = surface.resize(
+      typeof height === "function" ? (cw) => height({ ...values, w: cw }) : null
+    );
     surface.clear();
     draw({ ctx: surface.ctx, colors, w, h, params: { ...values }, state, anim });
 

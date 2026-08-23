@@ -397,8 +397,9 @@ are stripped until the notebook is trusted, so a widget you ran and saved shows
 blank when someone else opens the file. **Measure the height yourself**: open the
 widget at the width you will frame it at and read the figure — they differ by
 several hundred pixels, some change with a tab (`bayesian` returns a different
-height per view, so take the tallest), and a short iframe clips the readout
-tiles. The manifest used to carry a number for this and it went stale unread,
+height per view, so take the tallest), some change with the **width**
+(`linear-regularization`'s panels are square, so its canvas is taller in a wider
+frame), and a short iframe clips the readout tiles. The manifest used to carry a number for this and it went stale unread,
 which is why it no longer does. Nothing in JupyterLab listens for the
 `statml:height` message a framed widget posts (`core/env.js`), so whatever you
 hard-code is what you get.
