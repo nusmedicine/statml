@@ -100,6 +100,11 @@ function toCells(spec, values) {
       cells.push({ kind: "section", entry });
       continue;
     }
+    if (entry[1].type === "readback") {
+      bools = null;
+      cells.push({ kind: "readback", entry });
+      continue;
+    }
     if (entry[1].type === "bool") {
       if (!bools) {
         bools = { kind: "bools", fields: [] };
@@ -127,6 +132,12 @@ export function buildControls(host, spec, values, onChange) {
 function build(host, spec, values, onChange, api) {
   host.innerHTML = "";
   const setters = {};
+  /* `setters` is keyed by parameter NAME, which is enough for every control —
+     each one only ever shows its own value. A readback shows a function of
+     SEVERAL parameters, so it cannot be keyed by one of them; it goes in a list
+     that every change re-runs. Cheap because it swaps two class names and
+     rebuilds nothing. */
+  const refreshers = [];
 
   /* The run of fields currently sharing a row, and the box they go in. Reset by
      anything that is not a plain field, so a row cannot straddle a divider. */
@@ -148,6 +159,69 @@ function build(host, spec, values, onChange, api) {
       h.className = "w-section";
       h.textContent = field.label ?? "";
       host.appendChild(h);
+      continue;
+    }
+
+    /* A CASE TABLE, and it sets nothing. The two penalty dials in widget 14
+       produce four named models — linear, ridge, lasso, elastic net — and which
+       one you have is a fact about the two dials, so it belongs beside them
+       rather than on the figure, where it was first drawn. `live` returns the
+       [row, col] of the cell that is true now.
+
+       `live` is a FUNCTION, unlike `when`, and the difference is load-bearing:
+       `when` has to be declarative because core must know which parameter gates
+       a field in order NOT to rebuild on every change (rebuilding mid-drag drops
+       the slider you are holding). A readback rebuilds nothing, so re-running it
+       on every change costs nothing and a predicate is safe here. */
+    if (cell.kind === "readback") {
+      endRow();
+      const [, field] = cell.entry;
+      const wrap = document.createElement("div");
+      wrap.className = "w-field";
+      if (field.label) {
+        const cap = document.createElement("span");
+        cap.className = "w-label";
+        cap.textContent = field.label;
+        wrap.appendChild(cap);
+      }
+      const grid = document.createElement("div");
+      grid.className = "w-readback";
+      const cols = field.cols ?? [];
+      const rows = field.rows ?? [];
+      grid.style.gridTemplateColumns = `auto repeat(${cols.length}, 1fr)`;
+      const cellEls = [];
+      const head = document.createElement("div");
+      head.className = "w-readback-hd";
+      grid.appendChild(head);
+      for (const c of cols) {
+        const el = document.createElement("div");
+        el.className = "w-readback-hd";
+        el.textContent = c;
+        grid.appendChild(el);
+      }
+      rows.forEach((rowLabel, i) => {
+        const rl = document.createElement("div");
+        rl.className = "w-readback-hd";
+        rl.textContent = rowLabel;
+        grid.appendChild(rl);
+        cellEls[i] = [];
+        (field.cells?.[i] ?? []).forEach((text, j) => {
+          const el = document.createElement("div");
+          el.textContent = text;
+          grid.appendChild(el);
+          cellEls[i][j] = el;
+        });
+      });
+      const mark = (next) => {
+        const at = field.live?.(next) ?? [-1, -1];
+        cellEls.forEach((row, i) => row.forEach((el, j) => {
+          el.classList.toggle("w-readback-on", i === at[0] && j === at[1]);
+        }));
+      };
+      mark(values);
+      refreshers.push(mark);
+      wrap.appendChild(grid);
+      host.appendChild(wrap);
       continue;
     }
 
@@ -436,7 +510,9 @@ function build(host, spec, values, onChange, api) {
   api.sync = (name, value) => { setters[name]?.(value); };
   api.syncAll = (next) => {
     for (const [name, v] of Object.entries(next)) setters[name]?.(v);
+    api.refresh(next);
   };
+  api.refresh = (next) => { for (const f of refreshers) f(next); };
   api.rebuild = (next) => { build(host, spec, next, onChange, api); };
 }
 

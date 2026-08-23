@@ -19,6 +19,8 @@
      gate         full-width button that reveals a stage; a bool on the wire
      section      a labelled divider between groups of controls; NOT a parameter,
                   carries no value and never reaches the URL
+     readback     a small case table naming which of a few labelled outcomes the
+                  controls above it produce; NOT a parameter, sets nothing
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
@@ -30,6 +32,10 @@
    the alternatives inside a dropdown hides that a choice exists at all; `select`
    only when the list is long enough that neither fits.
    ========================================================================= */
+
+/* Spec entries that declare POSITION in the control block and nothing else.
+   They carry no value, never reach `values`, and never reach the URL. */
+const NON_PARAM_TYPES = new Set(["section", "readback"]);
 
 /** Clamp and snap a number to the field's min/max/step. */
 function coerceNumber(field, raw, isInt) {
@@ -53,8 +59,13 @@ export function resolveParams(spec, search) {
     /* A section is a heading, not a parameter. It lives in the spec because the
        spec is the declaration of the control block's ORDER, and a divider that
        had to be declared somewhere else could not say which two groups it comes
-       between. It never reaches `values`, so nothing downstream sees it. */
-    if (field.type === "section") continue;
+       between. It never reaches `values`, so nothing downstream sees it.
+
+       `readback` is the second of these: a case table naming which of a few
+       labelled outcomes the controls above it produce. Same reasoning — it has
+       to say where in the rail it goes — and the same consequence: it carries no
+       value, so it never reaches the URL. */
+    if (NON_PARAM_TYPES.has(field.type)) continue;
     const raw = search.get(name);
     if (raw === null || raw === "") {
       out[name] = field.default;

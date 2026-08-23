@@ -338,6 +338,13 @@ export function defineWidget(config) {
   function setParam(name, value) {
     values[name] = value;
 
+    /* A readback reports a function of SEVERAL parameters, so no single
+       control's own setter can keep it current. Refreshed here, before the
+       branches below return, because every one of them is a change it might be
+       reporting on — and because a `display` change returns early and a data
+       change returns later, so anywhere else would miss one of them. */
+    controls.refresh(values);
+
     /* A parameter other fields are gated on has just moved, so which controls
        exist has changed. Rebuilt here and nowhere else: rebuilding on every
        change would drop a slider mid-drag. */
@@ -429,6 +436,7 @@ export function defineWidget(config) {
     sync: (name, value) => { controlsMain.sync(name, value); controlsAfter?.sync(name, value); },
     syncAll: (next) => { controlsMain.syncAll(next); controlsAfter?.syncAll(next); },
     rebuild: (next) => { controlsMain.rebuild(next); controlsAfter?.rebuild(next); },
+    refresh: (next) => { controlsMain.refresh(next); controlsAfter?.refresh(next); },
   };
 
   /* --- animation -------------------------------------------------------- */

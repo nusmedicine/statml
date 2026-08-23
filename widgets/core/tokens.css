@@ -407,6 +407,39 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    above the heading against 12 + 4 below it. The asymmetry is what binds a
    heading to the group under it rather than floating between two. */
 
+/* A READBACK: a small case table that names which of a few labelled outcomes
+   the controls above it currently produce. It carries no value and sets
+   nothing — it is the rail's answer to "so what have I just chosen".
+
+   In the rail rather than on the figure because the thing it describes is the
+   CONTROLS, not the data: principle 2.7 puts a reading next to what produced it,
+   and the two dials are what produce it. Drawn on the canvas first, where it sat
+   beside a figure it was not describing. */
+.w-readback {
+  display: grid;
+  gap: 1px;
+  background: var(--grid);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-1);
+}
+.w-readback > * {
+  background: var(--surface-1);
+  padding: 5px 6px;
+  text-align: center;
+  color: var(--ink-2);
+}
+.w-readback .w-readback-hd { color: var(--ink-3); }
+/* The live cell takes --c-highlight, which means "the one thing to look at right
+   now" — and a case table has exactly one of those. */
+.w-readback .w-readback-on {
+  background: var(--c-highlight);
+  color: var(--surface-1);
+  font-weight: 600;
+}
+
 /* The control block BELOW the drive row. Empty for every widget that declares
    no `afterDrive` field, and an empty grid with padding would leave a stray gap
    under the buttons — `:empty` collapses it to nothing. */
