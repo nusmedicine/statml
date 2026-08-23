@@ -431,7 +431,7 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   /* A FLOOR, AND DELIBERATELY NO CEILING. How long the equation is depends on
      how many terms survive; how many lines that takes depends on the column
      width. Reserving three lines holds the block at a constant height for every
-     width the side layout reaches — measured 70px flat from 884px to 1400px,
+     width the side layout reaches — measured 76.3px flat from 884px to 1400px,
      across both dial sweeps — so dragging a dial no longer moves the figure
      under the reader (3.4d).
 
@@ -439,8 +439,19 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
      breakpoint the column narrows to ~350px, thirteen terms need four lines,
      and the clamp hid one — silently, with no scrollbar and no ellipsis. A
      block that jogs is untidy; a block that drops a term from the model is
-     false, and the model is what this widget is about. */
-  min-height: 4.65em;   /* 3 x the 1.55 line-height above */
+     false, and the model is what this widget is about.
+
+     A LINE IS TALLER THAN THE LINE-HEIGHT, so three of them are not 3 x 1.55em.
+     Each term is an <msub> — z with the measurement subscripted — and its
+     inline box descends past the 17.05px strut, which pushes the line box to
+     18.54px. The reserve was 4.65em while the terms were z(Name), and the block
+     was flat; the subscripts made it 51.15px, 54.13px or 55.62px depending on
+     which terms land on which line, i.e. the figure jogged 4.5px as a dial
+     moved. Measured worst case is 55.62px = 5.056em, over all 49 dial settings
+     at every column width the side layout reaches (534px to 770px). 5.2em
+     reserves that with about 3% to spare, which is roughly what a font
+     substitution on another platform costs. */
+  min-height: 5.2em;   /* 3 lines of 1.733em — see above, NOT 3 x 1.55 */
 }
 /* SIZED BY THE SMALLEST THING IN IT, not by the biggest. MathML shrinks each
    nested level — a fraction's numerator lands at about 0.71 of its parent — so

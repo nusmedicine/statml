@@ -704,6 +704,45 @@ reference behind something, not a layer on its own.**
 
 ---
 
+### 3.4k A block that reserves lines must reserve LINE BOXES
+
+3.4d is the horizontal case: a control whose label can change reserves its widest
+label, so the row's shape stops being a function of what is in it. The vertical
+case is a block of flowing text whose *length* changes — widget 14's equation is
+as long as the model is big — and the same fix applies: reserve the tallest case
+so the figure below it does not move as the reader drags a dial.
+
+**But lines and line-heights are not the same thing.** A line box is as tall as
+the tallest inline box on it, and `line-height` only sets the *strut*. Anything
+that descends past the strut — a subscript, a superscript, an inline image, a
+`<math>` element — makes that line taller than the line-height and every other
+line stays short. So a block reserving `3 x line-height` reserves three lines only
+while every line happens to be plain text.
+
+> *Earned:* the equation's terms became `z` with the measurement subscripted.
+> `.w-math-eq` reserved `4.65em`, written as "3 x the 1.55 line-height above", and
+> that had been flat at every width for as long as the terms were `z(Name)`. Each
+> `<msub>` pushes its line box from 17.05px to 18.54px, so the block came out
+> 51.15px, 54.13px or 55.62px depending on **which terms landed on which line** —
+> the figure jogged 4.5px as a dial moved, under a comment that said it did not.
+> Nothing failed: not `check`, not all 105 fingerprint states, not the screenshot.
+
+Two ways out, and they are not equivalent:
+
+- **Raise the reserve** to the measured tallest case. Keeps the leading the
+  design was chosen with, and is a measured constant — so it is only as good as
+  the platform it was measured on.
+- **Raise the `line-height`** until the strut contains the tallest inline box.
+  Uniform by mechanism rather than by measurement, and it costs the whole block:
+  1.78 was the threshold here against the 1.55 the typesetting was picked at.
+
+Widget 14 takes the first, because the mock-up Kenneth chose from was drawn at
+1.55 and leading is part of what he was choosing. **Measure the worst case over
+every state AND every width the layout reaches** — 49 dial settings x the 534px
+to 770px the side layout spans — not the one on screen.
+
+---
+
 ### 4.4 Opening a gate may play the stage in
 
 A gate is the one parameter change that is a reader stepping *through a door*

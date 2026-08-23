@@ -368,7 +368,9 @@ function drawMatrix(ctx, colors, g, state) {
  *
  * So a flipped sign or a coefficient off by a factor would now ship with the
  * canvas hash still reporting MATCH. The floor that closes it is a textContent
- * check in the harness, and it is NOT in this change.
+ * check in the harness. It was BUILT afterwards — every state now carries a `tx`
+ * hash over `.w-math`, `.w-legend` and `.w-readout` — but it closes nothing here
+ * until this widget has fingerprint states of its own, and it has none.
  *
  * ---------------------------------------------------------------------------
  * MathML Core is Baseline since January 2023 and the floor is Chrome/Edge 109.
@@ -420,33 +422,50 @@ const NAMED = (t) => `<mi mathvariant="normal">${t}</mi>`;
    <math> measure past 1000px and simply overflow. Separate inline <math>
    elements with real whitespace between them are atomic inline boxes in an
    ordinary inline formatting context, so the line breaker can break at the
-   seams. The break opportunities are exactly the ones authored here. */
+   seams. The break opportunities are exactly the ones authored here.
+
+   AND THAT IS WHY EVERY SIGN CARRIES form="infix". One <math> per term makes
+   each leading + or - the FIRST CHILD of its row, so MathML sets it as a PREFIX
+   operator — unary minus, no spacing — rather than as the infix + it is. The
+   attribute restores 7.1px per term, measured, and it is most of the difference
+   between this reading as a sum and reading as a run-on string.
+
+   THE MEASUREMENT IS A SUBSCRIPT AND THE TIMES IS VISIBLE: z_Age rather than
+   z(Age), and a multiplication sign rather than the invisible-times character.
+   Twenty-six parentheses leave the equation, and what replaces them says
+   outright that a coefficient multiplies a measurement — which is what a linear
+   model IS. Chosen as T4 from five candidates drawn at the real 546px block
+   width in `_lab/equation-terms.html`. It still fits thirteen terms in the three
+   reserved lines; T5, parentheses plus a dot, needed a fourth. */
 function equationHTML(w) {
   const parts = [`<math><mrow>${NAMED("body&#xA0;fat&#xA0;%")}<mo>=</mo>`
     + `<mn>${Y_MEAN.toFixed(1)}</mn></mrow></math>`];
   for (let j = 0; j < P; j += 1) {
     if (Math.abs(w[j]) < 1e-9) continue;
-    parts.push(`<math><mrow><mo>${w[j] < 0 ? "&#x2212;" : "+"}</mo>`
-      + `<mn>${coefText(w[j])}</mn><mo>&#x2062;</mo><mi>z</mi>`
-      + `<mo stretchy="false">(</mo>${NAMED(COLS[j])}<mo stretchy="false">)</mo></mrow></math>`);
+    parts.push(`<math><mrow><mo form="infix">${w[j] < 0 ? "&#x2212;" : "+"}</mo>`
+      + `<mn>${coefText(w[j])}</mn><mo>&#xD7;</mo>`
+      + `<msub><mi>z</mi>${NAMED(COLS[j])}</msub></mrow></math>`);
   }
   return parts.join(" ");
 }
 
 /* The general definition rather than a description of one. A reader who has
-   only been told "in standard deviations from its mean" cannot compute one. */
-const Z_DEF = `<math><mrow><mi>z</mi><mo stretchy="false">(</mo><mi>x</mi>`
-  + `<mo stretchy="false">)</mo><mo>=</mo><mfrac>`
+   only been told "in standard deviations from its mean" cannot compute one.
+
+   SUBSCRIPTED, because the equation above it is. A note defining z(x) over an
+   equation written in z_Age asks the reader to bridge two notations for one
+   quantity before they have been told it is one quantity. */
+const Z_DEF = `<math><mrow><msub><mi>z</mi><mi>x</mi></msub><mo>=</mo><mfrac>`
   + `<mrow><mi>x</mi><mo>&#x2212;</mo><mover><mi>x</mi><mo>&#xAF;</mo></mover></mrow>`
   + `<mi>s</mi></mfrac></mrow></math>`;
 
-const Z_DEF_PLAIN = "z(x) = (x − mean of x) ÷ SD of x";
+const Z_DEF_PLAIN = "z_x = (x − mean of x) ÷ SD of x";
 
 function plainEquation(w) {
   let out = `body fat % = ${Y_MEAN.toFixed(1)}`;
   for (let j = 0; j < P; j += 1) {
     if (Math.abs(w[j]) < 1e-9) continue;
-    out += ` ${w[j] < 0 ? "−" : "+"} ${coefText(w[j])} z(${COLS[j]})`;
+    out += ` ${w[j] < 0 ? "−" : "+"} ${coefText(w[j])} × z_${COLS[j]}`;
   }
   return out;
 }
