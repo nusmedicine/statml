@@ -809,7 +809,33 @@ export function defineWidget(config) {
 
   return {
     render,
-    setParam,
+
+    /* THE EXPORTED `setParam` IS, BY DEFINITION, THE DOOR THAT IS NOT A CONTROL.
+       Every internal caller is a control reporting its own value, so the DOM
+       already agrees and syncing it back would write into a range the reader is
+       mid-drag. A widget calling this from a canvas click is the opposite case:
+       nothing has told the rail anything, and `setParam` does not tell it
+       either — it calls `controls.refresh`, which re-runs readbacks only, and
+       `controls.sync` has no caller anywhere in this file.
+
+       That has never bitten, and only by luck. `probability-mechanisms` clicks
+       its tree through this door and its own comment records the near miss —
+       "a dropdown reading Hypergeometric above a tree lit through to Binomial.
+       Nothing repainted again to reconcile them" — and the reason it holds
+       today is that `dist` and `view` both gate another field, so the rebuild
+       at the top of `setParam` reconstructs the rail from `values` as a side
+       effect. A parameter that gates nothing gets no such rescue, and the
+       dropdown keeps showing a value the widget is no longer on.
+
+       Sync first, then set. That is the order `drive.set` uses in the
+       fingerprint harness — write the DOM, then let the event carry it — so a
+       canvas click and a driven state become the same transaction rather than
+       two paths that happen to agree. */
+    setParam: (name, value) => {
+      controls.sync(name, value);
+      setParam(name, value);
+    },
+
     play: () => startAnim("run"),
     step: () => startAnim("step"),
     get params() { return { ...values }; },
