@@ -152,9 +152,15 @@ the orientation.
 
 ---
 
-## What the core contract gained, all of it widget 14's doing
+## What the core contract gained
 
-Eight additions, each its own commit, each verified with a full 105-state run.
+**Widget 15 added three CSS roles and nothing else** — `.w-link-eq`,
+`.w-link-row` and `.w-links`, for the card above its figure. No new parameter
+type, no new `widget.js` hook. The full suite was run once afterwards and all 113
+pre-existing states matched, which is the only thing that run was for.
+
+The eight below are widget 14's, each its own commit, each verified with a full
+105-state run.
 
 | what | where | why |
 |---|---|---|
@@ -301,9 +307,40 @@ atomic inline box in an ordinary inline formatting context.
 
 ---
 
-## Traps that cost time this session
+## Traps that cost time
 
 Each of these produced a wrong answer that looked right.
+
+**From widget 15's session:**
+
+- **A display parameter marked as data silently discards the reader's work.**
+  All three of widget 15's controls were data parameters, so every slider move
+  reset the animation: press two buttons, move a slider, and both curves vanish
+  and the drive row goes back to the start. It survived a 308-state text sweep,
+  because every string on the canvas was legal — they were just the strings for
+  the state it had been reset to. **The check that finds it is a canvas hash
+  across a parameter change with the drive-button states read beside it**, and
+  nothing else will.
+- **A hand-typed data table looks exactly like a correct one.** Widget 15's age
+  aggregate was typed into a heredoc rather than pasted from the generator and
+  drifted from age 53 up — seventeen wrong rows, a total of 3653/558 against the
+  true 3658/557. Generate the string, splice it in programmatically, and assert
+  the totals in the same script.
+- **The console panel caps at 50 and does not clear on navigate.** Fifty
+  identical errors persisted across reloads after the bug producing them was
+  fixed, which reads exactly like a fix that did not work. Install your own
+  `window.onerror` counter and drive the failing case; that is the honest read.
+- **`advance` returning "there is more to show" is what a RUN means, not a
+  step.** Core re-queues on a true return, so widget 15's first step button
+  walked the entire axis on one press and then greyed itself out. A step
+  advances one unit and returns `false`.
+- **Two similar tokens are one colour at a 1.5px stroke.** `--c-extreme`
+  (`#e34948`) and `--c-theory` (`#eb6834`) are eleven degrees of hue apart, and
+  the legend was still declaring the old token after the canvas had moved to a
+  new one — so it was not merely hard to read, it was naming a colour the figure
+  no longer used. Read the swatches' computed colours, not the source.
+
+**From earlier sessions:**
 
 - **The fingerprint table renders a state string as HTML, so `&params=` shows as
   `¶ms=`.** `&para` is a legacy named entity that browsers resolve without a
@@ -364,12 +401,18 @@ review at once. The observations still hold; each is a one-file change:
   count" or "Propose a move".
 - `em-mixture`'s lead reads "Start", the only lead label naming no act.
 
-**Judge projected.** Widgets 11, 12, 13 and 14 have never been seen from the back
-of a room. Widget 11's hypergeometric dots are ~4px at the narrow layout.
+**Judge projected.** Widgets 11, 12, 13, 14 and 15 have never been seen from the
+back of a room. Widget 11's hypergeometric dots are ~4px at the narrow layout;
+widget 15's binomial intervals are 1px hairlines and its strip bars ~3px wide.
 
-**`widgets/_lab/index.html` has stopped being an index.** Thirteen of the
-twenty-six lab pages are missing from it — exactly half, including every mock-up
-made for widgets 13 and 14 and all three drive-row pages. Adding one alone makes
+**Give `fingerprint.html` an `?only=<slug>` filter.** It always runs every state,
+which is what forces the loop in *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* above.
+A filter would make "record the new widget's states" a first-class thing the
+harness does rather than something worked around.
+
+**`widgets/_lab/index.html` has stopped being an index.** Sixteen of the
+twenty-nine lab pages are missing from it, including every mock-up made for
+widgets 13, 14 and 15 and all three drive-row pages. Adding one alone makes
 the list *more* misleading, not less, so this is one change: catch the index up in
 a single pass, or delete it. To list them:
 
@@ -525,10 +568,54 @@ than blending**.
 | job | when | cost |
 |---|---|---|
 | did I break the **other** widgets? | only if `widgets/core/` changed — run once, baseline nothing | one run |
-| record a baseline for the **new** widget | only once the design is agreed | 3 determinism runs + a verify pass |
+| record a baseline for the **new** widget | only once the design is agreed | hash its own states directly, seconds |
 
 Build → cheap checks → **if core changed, one suite run** → *show Kenneth and
-iterate* → and only then add states, prove determinism, baseline, commit.
+iterate* → and only then add states, baseline, commit.
+
+### NEVER BASELINE BY PLACEHOLDER-AND-DIFF
+
+**Do not add states with `"px": "0", "tx": "0"`, run the suite to see them go
+red, copy the numbers back, and run the suite again to confirm.** The two jobs in
+the table above are separate, and this welds them together: it re-verifies 113
+already-known-good states in order to learn four numbers, twice.
+
+Measured, on widget 15: **three full runs at roughly forty minutes each** — the
+placeholder run, the confirming run, and a third to settle one flaky hash — to
+record four states. The same four hashes take **seconds** computed directly.
+
+**The previous widgets are baselined once. After that you only ever ADD.** To
+record a new widget's states, hash them yourself in an iframe — this is exactly
+what `shoot()` does, and copying it is cheaper than driving it:
+
+```js
+const hash = (s) => { let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, "0"); };
+const f = document.createElement("iframe");
+f.width = 900; f.height = 1200;                     // FRAME_W / FRAME_H, do not change
+f.src = `../<slug>/${state}`;                        // state must carry ?theme=light
+document.body.appendChild(f);
+await new Promise((r) => f.addEventListener("load", r));
+await new Promise((r) => setTimeout(r, 400));        // SETTLE_MS
+const d = f.contentDocument;
+const px = hash(d.querySelector(".w-figure canvas").toDataURL("image/png"));
+const tx = hash([".w-math", ".w-legend", ".w-readout"]
+  .flatMap((s) => [...d.querySelectorAll(s)]).map((n) => n.textContent)
+  .join(" ").replace(/\s+/g, " ").trim());
+```
+
+Run it from any page under `widgets/_lab/`, loop the states you want, paste the
+pairs into the baseline. Then run the full suite **once** at the end — that run
+is the confirmation, and it is the only one you need.
+
+The placeholder pair is an **escape hatch and nothing else**: it exists so
+`check` will pass on a non-draft widget whose design is still moving. It is not a
+step in baselining.
+
+*The harness has no way to run a subset, which is what makes the loop above
+necessary. A `?only=<slug>` filter on `fingerprint.html` would remove the need
+for it and is a small, obvious change nobody has made.*
 
 > *Earned three times.* `bootstrap` was baselined three times over. Widget 11
 > changed shape in six of eight review rounds. Widget 12 went thirteen rounds.
