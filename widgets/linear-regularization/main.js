@@ -169,14 +169,26 @@ const L2_LARGEST = ALPHAS.map((a) => Math.max(...fitAll(0, a).map(Math.abs)));
    Weight/Hip is the most elongated pair in the data at 5.69:1 and is left out
    for this: it shares neither axis, and four segment buttons reading
    "Abdome…" / "Weight …" / "Abdome…" / "Abdome…" told the reader nothing. */
-const PAIRS = [
-  { key: "chest", a: "Abdomen", b: "Chest" },
-  { key: "hip", a: "Abdomen", b: "Hip" },
-  { key: "wrist", a: "Abdomen", b: "Wrist" },
-  { key: "height", a: "Abdomen", b: "Height" },
-];
+/* EVERY ORDERED PAIR, and the matrix is how you reach them. Thirteen
+   measurements make 169 cells, 13 of them the diagonal, so 156 pairs. The four
+   that a slider could offer spanned elongations 1.09:1 to 4.77:1; the full set
+   runs 1.01:1 (Age against Weight, r = 0.013 — contours so nearly circular that
+   the diamond and the circle become the same shape) to 5.73:1 (Weight against
+   Hip). The case where the L1/L2 distinction stops mattering is only reachable
+   here.
+
+   ORDERED, not unordered: (i, j) and (j, i) are the same two measurements with
+   the axes swapped, and which one is horizontal is a real difference on screen.
+
+   The value is `x~y`, x horizontal. It is one parameter, not two — a region may
+   set exactly one, and a pair of variables is one fact about the figure. */
+const PAIR_SEP = "~";
+const pairKey = (a, b) => `${a}${PAIR_SEP}${b}`;
+const PAIRS = [];
+for (const a of COLS) for (const b of COLS) if (a !== b) PAIRS.push({ key: pairKey(a, b), a, b });
 const pairOf = (key) => PAIRS.find((p) => p.key === key) ?? PAIRS[0];
 const elongation = (r) => Math.sqrt((1 + r) / (1 - r));
+const corrOf = (a, b) => GRAM[COLS.indexOf(a)][COLS.indexOf(b)];
 
 /** Which cell of the notebook's table these two dials land in. */
 function tableCell(a1, a2) {
@@ -268,6 +280,60 @@ function computeAll({ params }) {
        fat percent rather than in standardised anything. */
     predicted: X.map((x) => Y_MEAN + x.reduce((s, v, j) => s + v * w[j], 0)),
   };
+}
+
+/* --- the correlation matrix -----------------------------------------------
+ * ONE geometry function, and both draw() and regions() call it. Separating the
+ * hit map from the drawing is what keeps the map off the animation frame, and
+ * the price is exactly the hazard 5.8 names: two call sites each carrying a copy
+ * of the same arithmetic is how a figure comes to disagree with what it can be
+ * clicked on. Paid here, once.
+ *
+ * M1 — beside the bars. Chosen from four placements mocked up at the real width
+ * in `_lab/linreg-matrix.html`: the only one that costs nothing anyone is
+ * looking at. The panels keep 221px and the widget keeps its height; what gives
+ * way is bar-chart width, and the bars are thirteen short columns whose
+ * information is vertical. */
+const MATRIX_SIDE = 150;
+const MATRIX_GAP = 24;
+
+function matrixGrid(inner, padL) {
+  const cell = MATRIX_SIDE / P;
+  const x = padL + inner - MATRIX_SIDE;
+  return { x, y: 14, cell, barW: inner - MATRIX_SIDE - MATRIX_GAP };
+}
+
+/**
+ * UNLABELLED, and that is the design rather than a shortcut. Thirteen row names
+ * plus thirteen rotated column names cost more room than the grid itself, and
+ * the readout already names the pair you are on. What the grid has to carry is
+ * the TEXTURE — where the dark blocks are — because dark is correlated is long
+ * contours is a penalty shape that matters.
+ */
+function drawMatrix(ctx, colors, g, state) {
+  ctx.save();
+  for (let i = 0; i < P; i += 1) {
+    for (let j = 0; j < P; j += 1) {
+      /* Row is the VERTICAL axis, column the horizontal — the same way round as
+         the plane it sets, so dragging your eye across the matrix is dragging it
+         along the plane's x axis. */
+      const diagonal = i === j;
+      ctx.fillStyle = diagonal ? colors.surface2 : colors.empirical;
+      ctx.globalAlpha = diagonal ? 1 : 0.10 + 0.90 * Math.abs(GRAM[i][j]);
+      ctx.fillRect(g.x + j * g.cell, g.y + i * g.cell, g.cell - 1, g.cell - 1);
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(g.x + state.ia * g.cell - 1, g.y + state.ib * g.cell - 1,
+    g.cell + 1, g.cell + 1);
+  ctx.fillStyle = colors.ink3;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  ctx.fillText("click a pair", g.x + MATRIX_SIDE, g.y + MATRIX_SIDE + 4);
+  ctx.restore();
 }
 
 /* --- the fitted model, as MathML ------------------------------------------ *
@@ -489,17 +555,20 @@ defineWidget({
        coefficient: the model is the same thirteen numbers whichever pair is on
        the plane. The idea it carries is the elongation — how correlated the two
        measurements are is what decides whether the penalty's shape matters. */
+    /* A DROPDOWN OVER ALL 156, GROUPED BY THE HORIZONTAL MEASUREMENT. The matrix
+       on the figure sets this same parameter and is the faster way to reach it —
+       but it is a shortcut, not the only route: a figure operable only with a
+       mouse is a figure some readers cannot operate (3.6). Thirteen optgroups of
+       twelve is navigable where a flat 156 is not. */
     pair: {
-      type: "choice",
-      label: "Abdomen on the plane, against",
+      type: "select",
+      label: "Pair on the plane",
       options: PAIRS.map((p) => ({
         value: p.key,
-        label: p.b,
-        detail: `${p.b} — correlated ${fmt(GRAM[COLS.indexOf(p.a)][COLS.indexOf(p.b)], 2)} `
-          + `with Abdomen, so the contours are `
-          + `${fmt(elongation(GRAM[COLS.indexOf(p.a)][COLS.indexOf(p.b)]), 1)} times longer than wide`,
+        label: `${p.a} / ${p.b}  (r = ${fmt(corrOf(p.a, p.b), 2)})`,
+        group: p.a,
       })),
-      default: "chest",
+      default: pairKey("Abdomen", "Chest"),
       display: true,
     },
 
@@ -539,6 +608,28 @@ defineWidget({
 
   compute: computeAll,
 
+  /* THE SAME GRID draw() paints, expressed as targets. One parameter per cell —
+     a pair is one fact about the figure, not two — and the diagonal is left out
+     because a measurement against itself is not a pair. Core throws at load if a
+     region names more than one parameter or a value that is not a real option,
+     so a typo here fails at definition time rather than doing something quiet at
+     click time. */
+  regions: ({ w }) => {
+    const g = matrixGrid(w - 48 - 16, 48);
+    const out = [];
+    for (let i = 0; i < P; i += 1) {
+      for (let j = 0; j < P; j += 1) {
+        if (i === j) continue;
+        out.push({
+          x: g.x + j * g.cell, y: g.y + i * g.cell, w: g.cell, h: g.cell,
+          set: { pair: pairKey(COLS[j], COLS[i]) },
+          label: `${COLS[j]} against ${COLS[i]}`,
+        });
+      }
+    }
+    return out;
+  },
+
   draw({ ctx, colors, w, h, params, state }) {
     const padL = 48, padR = 16;
     const inner = w - padL - padR;
@@ -557,10 +648,13 @@ defineWidget({
        width-clamped rather than height-bound. */
     renderEquation(state.w);
 
+    const g = matrixGrid(inner, padL);
+    drawMatrix(ctx, colors, g, state);
+
     const barTop = 14, barH = 112;
     const lim = state.barLimit;
     const sy = (v) => barTop + barH / 2 - (v / lim) * (barH / 2);
-    const band = inner / P;
+    const band = g.barW / P;
 
     ctx.save();
     ctx.strokeStyle = colors.grid;
@@ -568,7 +662,7 @@ defineWidget({
     for (const t of [-lim / 2, lim / 2]) {
       ctx.beginPath();
       ctx.moveTo(padL, Math.round(sy(t)) + 0.5);
-      ctx.lineTo(padL + inner, Math.round(sy(t)) + 0.5);
+      ctx.lineTo(padL + g.barW, Math.round(sy(t)) + 0.5);
       ctx.stroke();
     }
     ctx.fillStyle = colors.ink3;
@@ -618,7 +712,7 @@ defineWidget({
     ctx.strokeStyle = colors.axis;
     ctx.beginPath();
     ctx.moveTo(padL, Math.round(sy(0)) + 0.5);
-    ctx.lineTo(padL + inner, Math.round(sy(0)) + 0.5);
+    ctx.lineTo(padL + g.barW, Math.round(sy(0)) + 0.5);
     ctx.stroke();
 
     ctx.font = `${colors.fsXs} ${colors.font}`;
