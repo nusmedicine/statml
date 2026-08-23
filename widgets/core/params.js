@@ -24,13 +24,22 @@
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
+     matrix       a labelled grid of cells, one option per cell, each shaded by a
+                  magnitude the widget supplies
 
-   select / choice / segmented are the same data (a string key from a fixed list)
-   in three shapes, chosen by what the options MEAN rather than how many there
-   are. Reach for `choice` when they form a magnitude, so left-to-right carries
-   information; `segmented` for a handful of alternative readings, where hiding
-   the alternatives inside a dropdown hides that a choice exists at all; `select`
-   only when the list is long enough that neither fits.
+   select / choice / segmented / matrix are the same data (a string key from a
+   fixed list) in four shapes, chosen by what the options MEAN rather than how
+   many there are. Reach for `choice` when they form a magnitude, so
+   left-to-right carries information; `segmented` for a handful of alternative
+   readings, where hiding the alternatives inside a dropdown hides that a choice
+   exists at all; `select` only when the list is long enough that neither fits.
+
+   `matrix` is for the case none of those fit: an option that is a PAIR of things,
+   each half ranging over a list. 156 ordered pairs of thirteen body measurements
+   is a flat dropdown nobody can navigate, and the grid's own texture — which
+   pairs are shaded dark — is teaching content, so the control and the figure are
+   the same object. It carries `rows` and `cols`, the axis names, and each option
+   carries `row`, `col` and `shade`.
    ========================================================================= */
 
 /* Spec entries that declare POSITION in the control block and nothing else.
@@ -87,7 +96,8 @@ export function resolveParams(spec, search) {
         break;
       case "select":
       case "choice":
-      case "segmented": {
+      case "segmented":
+      case "matrix": {
         const keys = optionKeys(field);
         out[name] = keys.includes(raw) ? raw : field.default;
         break;
@@ -115,6 +125,11 @@ export function optionEntries(field) {
         : {
           value: item.value, label: item.label ?? item.value,
           detail: item.detail, group: item.group,
+          /* `matrix` only. Where the option sits in the grid, and how dark the
+             cell is drawn — 0 to 1. Carried on the option rather than in a
+             parallel array, so a cell cannot come adrift from the value it
+             sets. */
+          row: item.row, col: item.col, shade: item.shade,
         }
     );
   }

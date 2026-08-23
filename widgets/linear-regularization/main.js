@@ -282,59 +282,29 @@ function computeAll({ params }) {
   };
 }
 
-/* --- the correlation matrix -----------------------------------------------
- * ONE geometry function, and both draw() and regions() call it. Separating the
- * hit map from the drawing is what keeps the map off the animation frame, and
- * the price is exactly the hazard 5.8 names: two call sites each carrying a copy
- * of the same arithmetic is how a figure comes to disagree with what it can be
- * clicked on. Paid here, once.
+/* --- where the correlation matrix went ------------------------------------
+ * IT IS A CONTROL, AND IT IS NOW IN THE RAIL — core's `matrix` type, declared
+ * in `params` below. It was drawn on the canvas first, beside the bars, and
+ * four placements were mocked up before that; `_lab/linreg-matrix-rail.html`
+ * holds the comparison and the numbers.
  *
- * M1 — beside the bars. Chosen from four placements mocked up at the real width
- * in `_lab/linreg-matrix.html`: the only one that costs nothing anyone is
- * looking at. The panels keep 221px and the widget keeps its height; what gives
- * way is bar-chart width, and the bars are thirteen short columns whose
- * information is vertical. */
-const MATRIX_SIDE = 150;
-const MATRIX_GAP = 24;
-
-function matrixGrid(inner, padL) {
-  const cell = MATRIX_SIDE / P;
-  const x = padL + inner - MATRIX_SIDE;
-  return { x, y: 14, cell, barW: inner - MATRIX_SIDE - MATRIX_GAP };
-}
-
-/**
- * UNLABELLED, and that is the design rather than a shortcut. Thirteen row names
- * plus thirteen rotated column names cost more room than the grid itself, and
- * the readout already names the pair you are on. What the grid has to carry is
- * the TEXTURE — where the dark blocks are — because dark is correlated is long
- * contours is a penalty shape that matters.
- */
-function drawMatrix(ctx, colors, g, state) {
-  ctx.save();
-  for (let i = 0; i < P; i += 1) {
-    for (let j = 0; j < P; j += 1) {
-      /* Row is the VERTICAL axis, column the horizontal — the same way round as
-         the plane it sets, so dragging your eye across the matrix is dragging it
-         along the plane's x axis. */
-      const diagonal = i === j;
-      ctx.fillStyle = diagonal ? colors.surface2 : colors.empirical;
-      ctx.globalAlpha = diagonal ? 1 : 0.10 + 0.90 * Math.abs(GRAM[i][j]);
-      ctx.fillRect(g.x + j * g.cell, g.y + i * g.cell, g.cell - 1, g.cell - 1);
-      ctx.globalAlpha = 1;
-    }
-  }
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(g.x + state.ia * g.cell - 1, g.y + state.ib * g.cell - 1,
-    g.cell + 1, g.cell + 1);
-  ctx.fillStyle = colors.ink3;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "top";
-  ctx.fillText("click a pair", g.x + MATRIX_SIDE, g.y + MATRIX_SIDE + 4);
-  ctx.restore();
-}
+ * WHAT MOVED IT was one measurement nobody had taken: the rail is 444px against
+ * a 654px stage, so it had 210px of slack, and it is 300px wide against the
+ * 150px the canvas could spare. The grid is twice the size in the rail. Cells
+ * went from 11.5px to 17.8px even after the thirteen names took their 54px.
+ *
+ * WHAT IT COSTS, named here because 5.6 says a blind spot must be. The rail is
+ * outside BOTH fingerprint hashes on purpose — `px` hashes the canvas and `tx`
+ * reads the figure's text, and a control's own label is not a reading of the
+ * figure. So the grid's geometry is covered by neither, where on the canvas it
+ * was at least inside `px`. What replaces that cover is the `matrix` control
+ * being CORE: one implementation, exercised by every widget that ever declares
+ * one, rather than thirteen-by-thirteen arithmetic written twice in this file.
+ *
+ * The canvas hit-testing this used — `regions`, `pointAt`, `hitTest` — stays in
+ * core and is not orphaned: SVM's support vectors and the tree widget's nodes
+ * are figure-native and cannot move to a rail.
+ * ========================================================================= */
 
 /* --- the fitted model, as MathML ------------------------------------------ *
  * Not the objective — the MODEL, with the weights in it. A term at exactly zero
@@ -574,18 +544,43 @@ defineWidget({
        coefficient: the model is the same thirteen numbers whichever pair is on
        the plane. The idea it carries is the elongation — how correlated the two
        measurements are is what decides whether the penalty's shape matters. */
-    /* A DROPDOWN OVER ALL 156, GROUPED BY THE HORIZONTAL MEASUREMENT. The matrix
-       on the figure sets this same parameter and is the faster way to reach it —
-       but it is a shortcut, not the only route: a figure operable only with a
-       mouse is a figure some readers cannot operate (3.6). Thirteen optgroups of
-       twelve is navigable where a flat 156 is not. */
+    /* THE MATRIX ITSELF, AS THE CONTROL. All 156 ordered pairs on one grid, the
+       column the horizontal measurement and the row the vertical — the same way
+       round as the plane the cell sets, so dragging your eye across the grid is
+       dragging it along the plane's x axis.
+
+       ALL 156, NOT 78. `(i, j)` and `(j, i)` are the same two measurements with
+       the axes swapped, and which one is horizontal is a real difference on
+       screen: the pair reaches elongations from 1.01:1 (Age against Weight,
+       r = 0.013, contours so nearly circular that the diamond and the circle
+       become the same shape — the case where the L1/L2 distinction stops
+       mattering) to 5.73:1 (Weight against Hip). The four-pair slider this
+       replaced reached 1.09–4.77 and neither end.
+
+       IT REPLACED A 156-OPTION DROPDOWN, which is why it can be the only route
+       rather than a shortcut: the grid takes focus once and the arrow keys move
+       the selection, so 3.6 is satisfied by the control itself instead of by a
+       parallel one. Two controls for one parameter was measured too — the
+       dropdown's 66px of rail is the difference between a grid SMALLER than the
+       canvas's and one half again bigger.
+
+       Display, because it changes no coefficient: the model is the same thirteen
+       numbers whichever pair is on the plane. What it carries is the elongation,
+       and how correlated two measurements are is what decides whether the
+       penalty's shape matters at all. */
     pair: {
-      type: "select",
+      type: "matrix",
       label: "Pair on the plane",
+      rows: COLS,
+      cols: COLS,
+      token: "empirical",
       options: PAIRS.map((p) => ({
         value: p.key,
-        label: `${p.a} / ${p.b}  (r = ${fmt(corrOf(p.a, p.b), 2)})`,
-        group: p.a,
+        label: `${p.a} against ${p.b}`,
+        detail: `${p.a} against ${p.b} · r = ${fmt(corrOf(p.a, p.b), 2)}`,
+        col: COLS.indexOf(p.a),
+        row: COLS.indexOf(p.b),
+        shade: Math.abs(corrOf(p.a, p.b)),
       })),
       default: pairKey("Abdomen", "Chest"),
       display: true,
@@ -627,28 +622,6 @@ defineWidget({
 
   compute: computeAll,
 
-  /* THE SAME GRID draw() paints, expressed as targets. One parameter per cell —
-     a pair is one fact about the figure, not two — and the diagonal is left out
-     because a measurement against itself is not a pair. Core throws at load if a
-     region names more than one parameter or a value that is not a real option,
-     so a typo here fails at definition time rather than doing something quiet at
-     click time. */
-  regions: ({ w }) => {
-    const g = matrixGrid(w - 48 - 16, 48);
-    const out = [];
-    for (let i = 0; i < P; i += 1) {
-      for (let j = 0; j < P; j += 1) {
-        if (i === j) continue;
-        out.push({
-          x: g.x + j * g.cell, y: g.y + i * g.cell, w: g.cell, h: g.cell,
-          set: { pair: pairKey(COLS[j], COLS[i]) },
-          label: `${COLS[j]} against ${COLS[i]}`,
-        });
-      }
-    }
-    return out;
-  },
-
   draw({ ctx, colors, w, h, params, state }) {
     const padL = 48, padR = 16;
     const inner = w - padL - padR;
@@ -667,13 +640,14 @@ defineWidget({
        width-clamped rather than height-bound. */
     renderEquation(state.w);
 
-    const g = matrixGrid(inner, padL);
-    drawMatrix(ctx, colors, g, state);
-
+    /* THE BARS HAVE THE FULL WIDTH BACK. They gave up 174px of 470 to the
+       correlation matrix while it was on the canvas; the matrix is a control and
+       is now in the rail, so thirteen columns share the whole panel again. */
+    const barW = inner;
     const barTop = 14, barH = 112;
     const lim = state.barLimit;
     const sy = (v) => barTop + barH / 2 - (v / lim) * (barH / 2);
-    const band = g.barW / P;
+    const band = barW / P;
 
     ctx.save();
     ctx.strokeStyle = colors.grid;
@@ -681,7 +655,7 @@ defineWidget({
     for (const t of [-lim / 2, lim / 2]) {
       ctx.beginPath();
       ctx.moveTo(padL, Math.round(sy(t)) + 0.5);
-      ctx.lineTo(padL + g.barW, Math.round(sy(t)) + 0.5);
+      ctx.lineTo(padL + barW, Math.round(sy(t)) + 0.5);
       ctx.stroke();
     }
     ctx.fillStyle = colors.ink3;
@@ -731,7 +705,7 @@ defineWidget({
     ctx.strokeStyle = colors.axis;
     ctx.beginPath();
     ctx.moveTo(padL, Math.round(sy(0)) + 0.5);
-    ctx.lineTo(padL + g.barW, Math.round(sy(0)) + 0.5);
+    ctx.lineTo(padL + barW, Math.round(sy(0)) + 0.5);
     ctx.stroke();
 
     ctx.font = `${colors.fsXs} ${colors.font}`;

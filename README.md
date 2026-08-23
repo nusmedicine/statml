@@ -186,6 +186,7 @@ confusing "sample the population" with "resample your sample".
 | `choice` | slider + tick labels | options that form a **magnitude**, so left-to-right carries meaning |
 | `segmented` | connected button group | a handful of **alternative readings**, all worth seeing at rest |
 | `select` | dropdown | the list is too long for either of the above |
+| `matrix` | labelled grid of shaded cells | an option that is a **pair**, each half ranging over a list |
 
 `select` options may carry a `group`; consecutive options sharing one render as
 an `<optgroup>` run. The object-map option form drops `group` — an object maps
@@ -199,11 +200,27 @@ function where a field's `when` may not — `when` has to be declarative so core
 can avoid rebuilding the control block on every change, and rebuilding mid-drag
 drops the slider you are holding; a readback rebuilds nothing.
 
-`select`, `choice`, and `segmented` are the same data — a string key from a fixed
-list — in three shapes. Pick by what the options *mean*, not by how many. A
-dropdown hides that a choice exists, which is the wrong default for a widget
-whose job is to be explored; `choice` slider ticks are mandatory for the same
-reason (a bare slider shows a position and hides the positions).
+`select`, `choice`, `segmented` and `matrix` are the same data — a string key
+from a fixed list — in four shapes. Pick by what the options *mean*, not by how
+many. A dropdown hides that a choice exists, which is the wrong default for a
+widget whose job is to be explored; `choice` slider ticks are mandatory for the
+same reason (a bare slider shows a position and hides the positions).
+
+`matrix` is the one to reach for when an option is a **pair** and a flat list of
+every combination is technically operable and practically not. It declares `rows`
+and `cols` (the axis names) and a `token` (the semantic role its cells are shaded
+in); each option carries `row`, `col` and `shade` — 0 to 1 — alongside its
+`value`, and its `detail` is the line shown under the grid. A cell with no option
+is drawn and not selectable, which is how widget 14 leaves out the diagonal: a
+measurement against itself is not a pair. The grid takes focus once and the arrow
+keys move the selection, so it needs no parallel dropdown to satisfy 3.6.
+
+> *Earned:* widget 14's 156 ordered pairs of thirteen body measurements. The grid
+> was on the CANVAS first, with `regions` for hit-testing, and moving it into the
+> rail doubled it — 11.5px cells to 17.8px, even after the thirteen names took
+> 54px — because the rail is 300px wide and had 210px of vertical slack that
+> nobody had measured. The cost is named where it belongs, in the widget's own
+> header: the rail is outside both fingerprint hashes.
 
 ### Data parameters vs display parameters
 

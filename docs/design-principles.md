@@ -741,6 +741,15 @@ Widget 14 takes the first, because the mock-up Kenneth chose from was drawn at
 every state AND every width the layout reaches** — 49 dial settings x the 534px
 to 770px the side layout spans — not the one on screen.
 
+**And then a box put it straight back.** The equation was later given a card, and
+padding narrows the column the text wraps in: thirteen terms need a FOURTH line
+below 512px, and 12px of padding each side of the narrowest 534px column leaves
+508. The block jogged 15.5px — three times the fault this rule was written
+about — and nothing in the change looked like it touched the equation at all.
+The horizontal padding is `--sp-2` rather than `--sp-3` for that reason alone.
+**A reserve is a promise about a column width; anything that narrows the column
+is a change to the reserve.**
+
 ---
 
 ### 4.4 Opening a gate may play the stage in

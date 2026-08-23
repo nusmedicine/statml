@@ -421,8 +421,30 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    text.
 
    Colour is inherited rather than set with `mathcolor`, so dark mode just works. */
+/* A CARD, so the equation is its own object. Unboxed it floated between the
+   subtitle and the figure with nothing to say which it belonged to, and it is
+   neither: it is what the two dials just produced. `--surface-1` is the figure's
+   own plane and the ring is the same hairline every other card in the collection
+   carries, so it reads as a second panel rather than as a new kind of thing.
+
+   It also pays for itself. The rail beside it holds a 300px matrix, and the rail
+   may not end below the stage without making the whole widget taller; the
+   padding here makes the stage 26px taller, which is 26px the rail no longer
+   overhangs by. Measured across both frames.
+
+   THE HORIZONTAL PADDING IS SMALLER THAN THE VERTICAL, AND THAT IS NOT TASTE.
+   Padding narrows the column the equation wraps in, and thirteen terms need a
+   FOURTH line below 512px — measured, over all 49 dial settings. The narrowest
+   column the side layout reaches is 534px, so 12px each side plus the ring
+   leaves 508 and the block jogged 15.5px as a dial moved: the very fault the
+   reserve on `.w-math-eq` exists to prevent, reintroduced by the box. 8px leaves
+   516, which clears the threshold by 4px. Do not put it back to `--sp-3`. */
 .w-math {
   margin: 0 0 var(--sp-2);
+  padding: var(--sp-3) var(--sp-2);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   color: var(--ink-1);
   font-size: var(--fs-xs);
   line-height: 1.55;
@@ -468,6 +490,90 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   margin: 2px 0 0;
   color: var(--ink-3);
 }
+
+/* A MATRIX CONTROL: a labelled grid of cells, one option per cell, each shaded
+   by a magnitude the widget supplies. For a parameter that is a PAIR — 156
+   ordered pairs of thirteen body measurements in widget 14 — where a flat
+   dropdown is technically operable and practically not, and where the shading
+   is teaching content rather than decoration.
+
+   FOUR AREAS ON ONE SET OF TRACKS: corner, column names, row names, cells. The
+   grid track sizes them, so no name can come adrift from the cell it names.
+
+   THE COLUMN NAMES ARE TURNED NINETY DEGREES BY `writing-mode`, WHICH IS THE
+   WHOLE TRICK. It makes a name's own length its HEIGHT, so the band above the
+   grid sizes itself off the longest name with no measurement anywhere — where a
+   45-degree rotation needs an authored band height and a sin 45. Forty-five was
+   built first and measured: at widget 14's column pitch the rotated names clear
+   each other by 2.3px against an 11px type size, where ninety clears by 7.8px.
+   The band is 12px taller for it. */
+.w-matrix {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 3px;
+  margin-top: var(--sp-1);
+}
+.w-matrix-cols {
+  display: grid;
+  grid-template-columns: repeat(var(--w-matrix-cols), 1fr);
+  gap: 1px;
+}
+.w-matrix-cols span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);   /* bottom-to-top, the way an axis label reads */
+  justify-self: center;
+  align-self: end;
+}
+.w-matrix-rows {
+  display: grid;
+  grid-template-rows: repeat(var(--w-matrix-rows), 1fr);
+  gap: 1px;
+}
+.w-matrix-rows span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+.w-matrix-cols span,
+.w-matrix-rows span {
+  font-size: var(--fs-xs);
+  line-height: 1;
+  color: var(--ink-3);
+}
+/* The names of the row and the column you are on, in the same token the figure
+   marks the selection with — one token, one meaning. */
+.w-matrix-cols span.on,
+.w-matrix-rows span.on { color: var(--c-highlight); }
+
+.w-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--w-matrix-cols), 1fr);
+  gap: 1px;
+  aspect-ratio: 1;
+}
+.w-matrix-grid > [role="row"] { display: contents; }
+.w-matrix-cell {
+  position: relative;
+  cursor: pointer;
+  background: var(--surface-2);
+}
+.w-matrix-cell--off { cursor: default; }
+/* THE SHADE IS AN OPACITY ON THE CHILD. Fading the cell would fade the selected
+   cell's ring with it, brightest exactly where it is least needed. */
+.w-matrix-cell > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--w-matrix-token, var(--c-empirical));
+}
+.w-matrix-cell[aria-selected="true"] {
+  outline: 2px solid var(--c-highlight);
+  outline-offset: -1px;
+  z-index: 1;
+}
+.w-matrix-grid:focus-visible { outline: 2px solid var(--c-highlight); outline-offset: 3px; }
 
 /* A READBACK: a small case table that names which of a few labelled outcomes
    the controls above it currently produce. It carries no value and sets

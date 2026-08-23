@@ -430,6 +430,156 @@ function build(host, spec, values, onChange, api) {
       select.addEventListener("change", () => onChange(name, select.value));
       wrap.appendChild(select);
       setters[name] = (v) => { select.value = v; };
+    } else if (field.type === "matrix") {
+      /* A GRID OF CELLS, ONE OPTION PER CELL. For a parameter that is a PAIR —
+         each half ranging over a list — where a flat dropdown of every
+         combination is technically operable and practically not, and where the
+         grid's own shading carries something the option list cannot.
+         Widget 14: thirteen body measurements, 156 ordered pairs, and how dark
+         a cell is drawn IS how correlated that pair is.
+
+         FOUR AREAS SHARING ONE SET OF TRACKS — an empty corner, the column
+         names, the row names, and the cells. Sharing the tracks is the point:
+         names positioned independently of the cells they name is how a labelled
+         figure comes to be off by one, and there is no arithmetic here to get
+         wrong. The column names are turned ninety degrees with `writing-mode`,
+         which makes a name's LENGTH its height, so the band above the grid
+         sizes itself off the longest name — see tokens.css. */
+      const options = optionEntries(field);
+      const rows = field.rows ?? [];
+      const cols = field.cols ?? rows;
+      if (labelled) { label.id = `${id}-l`; wrap.appendChild(label); }
+
+      const box = document.createElement("div");
+      box.className = "w-matrix";
+      box.style.setProperty("--w-matrix-cols", String(cols.length));
+      box.style.setProperty("--w-matrix-rows", String(rows.length));
+      /* Which semantic role the cells are shaded in. Named the same way a legend
+         entry and a row caption name theirs, so a widget never writes a colour. */
+      if (field.token) {
+        box.style.setProperty("--w-matrix-token", `var(--c-${field.token})`);
+      }
+      box.appendChild(document.createElement("div"));   /* the corner */
+
+      const colBand = document.createElement("div");
+      colBand.className = "w-matrix-cols";
+      for (const c of cols) {
+        const el = document.createElement("span");
+        el.textContent = c;
+        colBand.appendChild(el);
+      }
+      box.appendChild(colBand);
+
+      const rowBand = document.createElement("div");
+      rowBand.className = "w-matrix-rows";
+      for (const r of rows) {
+        const el = document.createElement("span");
+        el.textContent = r;
+        rowBand.appendChild(el);
+      }
+      box.appendChild(rowBand);
+
+      const grid = document.createElement("div");
+      grid.className = "w-matrix-grid";
+      grid.id = id;
+      grid.dataset.param = name;
+      grid.tabIndex = 0;
+      grid.setAttribute("role", "grid");
+      if (labelled) grid.setAttribute("aria-labelledby", label.id);
+      else grid.setAttribute("aria-label", name);
+
+      /* Two lookups, built once: cell by position, and position by value. The
+         second is what lets `setters` and the arrow keys work from the URL's
+         value without searching 156 options on every keypress. */
+      const at = rows.map(() => new Array(cols.length).fill(null));
+      const where = new Map();
+      for (const o of options) {
+        if (o.row === undefined || o.col === undefined) continue;
+        at[o.row][o.col] = o;
+        where.set(o.value, [o.row, o.col]);
+      }
+      const cellEls = rows.map(() => new Array(cols.length).fill(null));
+      for (let i = 0; i < rows.length; i += 1) {
+        const rowEl = document.createElement("div");
+        rowEl.setAttribute("role", "row");
+        for (let j = 0; j < cols.length; j += 1) {
+          const o = at[i][j];
+          const el = document.createElement("div");
+          el.className = "w-matrix-cell";
+          el.setAttribute("role", "gridcell");
+          if (!o) {
+            /* NOT EVERY CELL IS AN OPTION. A measurement against itself is not a
+               pair, so the diagonal is drawn and not selectable. */
+            el.classList.add("w-matrix-cell--off");
+            el.setAttribute("aria-disabled", "true");
+          } else {
+            el.dataset.value = o.value;
+            el.title = o.label;
+            el.setAttribute("aria-label", o.label);
+            el.setAttribute("aria-selected", "false");
+            /* THE SHADE IS AN OPACITY ON A CHILD, NOT ON THE CELL. The selected
+               cell's ring is on the cell itself, and fading the cell would fade
+               the ring with it — brightest exactly where it is least needed. */
+            const fill = document.createElement("i");
+            fill.style.opacity = String(0.10 + 0.90 * Math.min(1, Math.max(0, o.shade ?? 1)));
+            el.appendChild(fill);
+            el.addEventListener("click", () => { mark(o.value); onChange(name, o.value); });
+          }
+          rowEl.appendChild(el);
+          cellEls[i][j] = el;
+        }
+        grid.appendChild(rowEl);
+      }
+      box.appendChild(grid);
+      wrap.appendChild(box);
+
+      const detail = document.createElement("p");
+      detail.className = "w-detail";
+      wrap.appendChild(detail);
+
+      let atNow = where.get(values[name]) ?? [0, 0];
+      function mark(v) {
+        const pos = where.get(v);
+        if (!pos) return;
+        const prev = cellEls[atNow[0]]?.[atNow[1]];
+        if (prev) prev.setAttribute("aria-selected", "false");
+        atNow = pos;
+        cellEls[pos[0]][pos[1]].setAttribute("aria-selected", "true");
+        /* The names of the row and the column you are on take the highlight, so
+           a grid with no labels ON it still says which pair is selected. */
+        for (let k = 0; k < cols.length; k += 1) {
+          colBand.children[k].classList.toggle("on", k === pos[1]);
+        }
+        for (let k = 0; k < rows.length; k += 1) {
+          rowBand.children[k].classList.toggle("on", k === pos[0]);
+        }
+        detail.textContent = at[pos[0]][pos[1]]?.detail ?? "";
+      }
+      mark(values[name]);
+
+      /* ARROW KEYS MOVE THE SELECTION, the way they do in the dropdown this
+         replaces — one control, one focus stop, no roving tabindex over 169
+         cells. A step that lands on a cell that is not an option keeps going in
+         the same direction; a step that runs off the edge does not wrap, so the
+         ends of the grid are findable by feel. */
+      grid.addEventListener("keydown", (e) => {
+        const step = {
+          ArrowLeft: [0, -1], ArrowRight: [0, 1],
+          ArrowUp: [-1, 0], ArrowDown: [1, 0],
+        }[e.key];
+        if (!step) return;
+        let [i, j] = atNow;
+        for (;;) {
+          i += step[0]; j += step[1];
+          if (i < 0 || j < 0 || i >= rows.length || j >= cols.length) return;
+          if (at[i][j]) break;
+        }
+        e.preventDefault();
+        mark(at[i][j].value);
+        onChange(name, at[i][j].value);
+      });
+
+      setters[name] = mark;
     } else if (field.type === "choice") {
       // A slider over an ordered option list. Tick labels are not decoration:
       // without them the slider shows a position and hides what the positions
