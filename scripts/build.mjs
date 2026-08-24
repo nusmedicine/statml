@@ -39,7 +39,29 @@ import { PUBLIC_DIR } from "./site.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const site = join(root, "_site");
 
-await rm(site, { recursive: true, force: true });
+/* Windows holds a directory open while anything has a handle on it, so a file
+   scanner walking the tree makes rmdir fail EBUSY. This repo lives inside
+   Dropbox, which indexes _site/ the moment a build populates it, and a second
+   build then dies before it writes anything. It is a race, not a stuck lock:
+   the failing path moved DEEPER on each run — _site, then _site/widget, then
+   _site/widget/bayesian — which is the scanner walking behind the delete.
+   Measured here, it needed up to 6 attempts and always won inside 300ms; a
+   cold _site/ succeeds on the first. macOS never sees this at all, because
+   unlink there does not care that a handle is open. */
+async function rmTree(dir) {
+  const DEADLINE = 40; // × 50ms = 2s, against a measured worst case of 6 attempts
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await rm(dir, { recursive: true, force: true });
+    } catch (err) {
+      const locked = err.code === "EBUSY" || err.code === "EPERM" || err.code === "ENOTEMPTY";
+      if (!locked || attempt === DEADLINE) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+}
+
+await rmTree(site);
 await mkdir(site, { recursive: true });
 
 // 1. Widgets -> _site/widget. Underscore-prefixed directories are design-lab
