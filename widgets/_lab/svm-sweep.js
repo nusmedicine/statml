@@ -71,6 +71,19 @@ window.__sweep = async function (frameW, onProgress) {
       seen.push({ s: String(s), left, right: left + wdt, y, rot: t ? Math.abs(t.b) > 0.5 : false });
       return orig.apply(this, arguments);
     };
+    /* DRIVEN TWICE, AND THE SECOND ONE IS THE ONE TIMED AND RECORDED. The first
+       repaint on a freshly loaded page is cold-JIT and, in an offscreen iframe
+       the browser has deprioritised, wildly so — one state reported 22 SECONDS
+       where the same state warm is 54-138 ms and the whole compute path in node
+       is 70. A number that wrong invites exactly the wrong conclusion, so the
+       harness measures a warm repaint or it does not measure one.
+
+       The buffer is cleared between the two, because two sets are two paints
+       and recording both reports collisions between strings that were never on
+       screen together. */
+    slider.value = String(st.C === 0 ? 2 : 0);
+    slider.dispatchEvent(new win.Event("input", { bubbles: true }));
+    seen.length = 0;
     const t0 = win.performance.now();
     slider.value = String(st.C);
     slider.dispatchEvent(new win.Event("input", { bubbles: true }));

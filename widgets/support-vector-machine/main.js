@@ -97,17 +97,23 @@ const SETS = {
   moons: {
     label: "Crescents",
     detail: "Two interleaving arcs. No straight line can do this either.",
+    /* THE UPPER ARC IS THE +1 CLASS, and which way round that goes is not
+       cosmetic. The kernel space puts +1 above the boundary by definition, so
+       a data set whose +1 class sits LOW in the input space has to turn over on
+       the way up — and with the arcs labelled the other way round the lift
+       looked like an unexplained mirror rather than a transformation. Measured:
+       the correlation between x2 and f ran -0.75 to -0.94 for every kernel. */
     make(rng) {
       const out = [];
       for (let i = 0; i < N_PER_CLASS; i += 1) {
         const t = rng.uniform(0, Math.PI);
         out.push({ x: [1.25 * (Math.cos(t) - 0.5) + rng.normal(0, 0.11),
-                       1.25 * (Math.sin(t) - 0.25) + rng.normal(0, 0.11)], y: -1 });
+                       1.25 * (Math.sin(t) - 0.25) + rng.normal(0, 0.11)], y: 1 });
       }
       for (let i = 0; i < N_PER_CLASS; i += 1) {
         const t = rng.uniform(0, Math.PI);
         out.push({ x: [1.25 * (0.5 - Math.cos(t)) + rng.normal(0, 0.11),
-                       1.25 * (0.25 - Math.sin(t)) + rng.normal(0, 0.11)], y: 1 });
+                       1.25 * (0.25 - Math.sin(t)) + rng.normal(0, 0.11)], y: -1 });
       }
       return out;
     },
@@ -470,6 +476,23 @@ defineWidget({
     const K = X.map((a) => X.map((b) => kf(a, b)));
     const { alpha, b } = solveSVM(K, y, C);
 
+    /* THE LINEAR KERNEL'S "KERNEL SPACE" IS THE INPUT PLANE — phi is the
+       identity — so its lift is the plane TURNED until the boundary is level,
+       and the horizontal axis is the along-boundary coordinate rather than x1.
+       Written as a proper rotation: t = (w2, -w1)/|w| against n = w/|w| has
+       determinant +1, where the more obvious (-w2, w1) has determinant -1 and
+       is a REFLECTION. That distinction is the whole of this fix — a reflection
+       reads as an unexplained mirror, a rotation reads as turning the page.
+
+       For a curved kernel there is no along-boundary coordinate to use, so x1
+       stays put and only the height moves. */
+    let alongOf = (p) => p[0];
+    if (params.kernel === "linear") {
+      const w = [0, 1].map((j) => y.reduce((sacc, yi, i) => sacc + alpha[i] * yi * X[i][j], 0));
+      const nrm = Math.hypot(w[0], w[1]) || 1;
+      alongOf = (p) => (w[1] * p[0] - w[0] * p[1]) / nrm;
+    }
+
     /* Support vectors are read off ALPHA, not off a float comparison on
        y f(x) = 1: a support vector sitting exactly on the margin has zero hinge
        loss and a positive weight, and only alpha tells the two apart. */
@@ -514,10 +537,11 @@ defineWidget({
 
     return {
       pts, sv, svSet: new Set(sv), F,
-      /* Where each sample sits on the kernel space's vertical axis. Computed
-         here rather than in draw() because it is a property of the fit, and
-         draw() runs on every frame of the lift. */
-      lifted: f.map(squash),
+      /* WHERE EACH SAMPLE LANDS IN THE KERNEL SPACE — both coordinates, because
+         the linear kernel's lift is a ROTATION and moves points sideways too.
+         Computed here rather than in draw(), which runs on every frame. */
+      lifted: pts.map((p, i) => [alongOf(p.x), squash(f[i])]),
+      alongOf,
       contours: [contour(F, 1), contour(F, -1), contour(F, 0)],
       inside: marg.filter((m) => m < 1 - 1e-7).length,
       wrong: marg.filter((m) => m <= 0).length,
@@ -573,6 +597,7 @@ defineWidget({
   draw({ ctx, colors, w, params, state, anim }) {
     const t = anim?.t ?? (params.lift === "kernel" ? 1 : 0);
     const mix = (a, b) => a + (b - a) * t;
+    const along = state.alongOf;
     const side = planeSide(w);
     const rect = { x: Math.round(PAD_L + (w - PAD_L - PAD_R - side) / 2), y: PAD_T, w: side, h: side };
     /* The vertical frame travels with the lift. It has to: the input space runs
@@ -621,8 +646,10 @@ defineWidget({
       ctx.globalAlpha = 1 - t * t;
       ctx.beginPath();
       for (const path of paths) {
-        path.forEach(([px, py], k) =>
-          (k ? ctx.lineTo(sx(px), sy(mix(py, level))) : ctx.moveTo(sx(px), sy(mix(py, level)))));
+        path.forEach(([px, py], k) => {
+          const X0 = sx(mix(px, along([px, py]))), Y0 = sy(mix(py, level));
+          return k ? ctx.lineTo(X0, Y0) : ctx.moveTo(X0, Y0);
+        });
       }
       ctx.stroke();
 
@@ -647,7 +674,8 @@ defineWidget({
        mark it would cost more than the mark is worth. */
     state.pts.forEach((p, i) => {
       const isSV = params.marks && state.svSet.has(i);
-      const cx = sx(p.x[0]), cy = sy(mix(p.x[1], state.lifted[i]));
+      const cx = sx(mix(p.x[0], state.lifted[i][0]));
+      const cy = sy(mix(p.x[1], state.lifted[i][1]));
       ctx.beginPath();
       ctx.arc(cx, cy, isSV ? 3.6 : 2.9, 0, Math.PI * 2);
       ctx.fillStyle = p.y > 0 ? colors.event : colors.nonevent;
@@ -665,7 +693,12 @@ defineWidget({
     });
     ctx.restore();
 
-    plot.axisX({ ticks, label: "x₁" });
+    /* On a linear kernel the lift ROTATES, so past the halfway point the
+       horizontal axis is the along-boundary coordinate and not x1 any more.
+       Saying so is not optional: a rotated axis still labelled x1 is a figure
+       claiming a reading it is not giving. */
+    const rotated = t >= 0.5 && params.kernel === "linear";
+    plot.axisX({ ticks, label: rotated ? "along the boundary" : "x₁" });
     plot.axisY({
       ticks: yTicks,
       format: t < 0.5 ? String : (v) => (v === 0 ? "0" : v > 0 ? "+1" : "−1"),
@@ -674,7 +707,9 @@ defineWidget({
     plot.caption(
       t < 0.5
         ? `${SETS[params.data].label} · ${KERNELS[params.kernel].label} kernel`
-        : "Kernel space · the boundary is flat here"
+        : rotated
+          ? "Kernel space · the same plane, turned level"
+          : "Kernel space · the boundary is flat here"
     );
   },
 

@@ -585,6 +585,13 @@ PR.fillText = function (s, x, y) {
 - **It cannot see DOM.** Widget 14's equation is MathML and does not go through
   `fillText` at all — the sweep stopped seeing it with no error and no gap in its
   output. That is what the text hash below exists to cover.
+- **A HARNESS TIMING NUMBER CAN BE 300x WRONG.** The sweep reported a worst
+  repaint of **22 seconds**, captioned "each state is a COLD page, so the worst
+  is a first paint". That state warm is 54-138 ms and its compute path in node
+  is 70 — it was the browser pane being throttled, and the same 201-state sweep
+  took **84 s, 165 s and 465 s on three identical runs**. Time a WARM repaint or
+  do not report one, and never caption a number you have not checked against a
+  second measurement.
 - **A HARNESS PAGE MUST REPORT ITS OWN PROGRESS.** `svm-sweep.html` printed
   "running…" and never changed, because the sweep was driven from the console
   and its result read out of a variable — so a finished run and a hung one

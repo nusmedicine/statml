@@ -72,8 +72,8 @@
     `  NaN / undefined   ${nan.length}`,
     `  colliding text    ${hits.length}`,
     ``,
-    `  repaint ms        median ${ms[Math.floor(ms.length / 2)]}, worst ${ms[ms.length - 1]}`,
-    `                    (each state is a COLD page, so the worst is a first paint)`,
+    `  warm repaint ms   median ${ms[Math.floor(ms.length / 2)]}, worst ${ms[ms.length - 1]}`,
+    `                    (each state is driven twice; this is the second)`,
     `  canvas sizes      ${[...new Set(ok.map((r) => `${r.W}x${r.H}`))].join(", ")}`,
     `  strings per state ${[...new Set(ok.map((r) => r.n))].sort((a, b) => a - b).join(", ")}`,
   ];

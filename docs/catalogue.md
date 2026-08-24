@@ -3154,6 +3154,45 @@ different: on the crescents a degree-3 polynomial threads a single smooth cubic
 between the two arcs (**14 support vectors, none wrong**) where RBF makes closed
 loops, and on the rings degree 2 gives an exact conic with **9 support vectors**.
 
+##### Round three: the flip, which was two things
+
+*"Why is it when we use the linear kernel there is some flip transformation?"*
+Measured rather than guessed, and it was **two separate causes**:
+
+**One was my labelling.** The kernel space puts the +1 class above the boundary
+by definition, so a data set whose +1 class sits LOW in the input space has to
+turn over on the way up. The crescents had the +1 class on the *lower* arc, so
+they flipped under **every** kernel: the correlation between x₂ and f ran −0.75
+to −0.94 across all ten kernel settings. Swapping the arcs takes it to **+0.75
+to +0.94** and the flip is gone. The fit is untouched — a global label swap
+negates w, b and f and leaves the support-vector set and the error count exactly
+as they were, re-checked against sklearn afterwards.
+
+**One was real, and only on the linear kernel.** On the rings, the linear fit is
+degenerate — no line separates them — so the direction w is essentially
+arbitrary, and it landed near −x₂: correlation **−0.98** for linear against
+−0.05 to −0.17 for every curved kernel. Lifting along an arbitrary direction
+mirrored the picture.
+
+**The fix is that the linear kernel's lift is now a ROTATION.** For a linear
+kernel φ is the identity, so its "kernel space" *is* the input plane — the
+honest move is to turn the plane until the boundary is level, not to collapse it
+onto f. The horizontal axis becomes the along-boundary coordinate and says so;
+the caption reads *the same plane, turned level*, which is the whole point of a
+linear kernel. Written as a proper rotation: `t = (w₂, −w₁)/‖w‖` against
+`n = w/‖w‖` has determinant **+1**, where the more obvious `(−w₂, w₁)` has
+determinant −1 and is a REFLECTION. That distinction is the entire fix — a
+reflection reads as an unexplained mirror, a rotation reads as turning the page.
+Checked: det = 1.000000 at every C on all three data sets.
+
+**A harness number can be 300× wrong and still get captioned as normal.** The
+sweep reported a worst repaint of **22 seconds** on one state, under a line
+saying "each state is a COLD page, so the worst is a first paint". That state
+warm is 54–138 ms and its whole compute path in node is 70 — the number was the
+browser pane being throttled, and the same 201-state sweep took 84 s, 165 s and
+465 s on three identical runs. The harness now drives each state twice and times
+the second.
+
 **No Step and no Play.** Declaring `animation` for the ease got core's two
 default drive buttons for free, and they had nothing to advance — Kenneth
 clicked them and nothing happened. `stepLabel: null` and `runLabel: null`
