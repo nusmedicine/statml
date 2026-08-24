@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; showing the kernel transformation</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b, p.note strong { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .bar label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 3px 8px; text-align: right; }
+  th { color: var(--ink-3); font-weight: 600; text-align: left; }
+  td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  td:first-child, th:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Showing the kernel transformation</h1>
+
+  <p class="note">
+    <b>The three asks pull in one direction, and there is a cost worth naming before you
+    look.</b> Making the kernel the subject means the data has to be <b>generated</b>, because
+    none of PHM5005's own data sets can carry it &mdash; measured below. So this would be the
+    first widget in the PHM5005 arc that does not stand on a course notebook&rsquo;s data.
+    Widgets 1&ndash;11 all generate from a seed, so it is not new to the collection; it is new
+    to this arc.
+    <br><br>
+    <b>The alternative is to answer 1 and 3 and drop 2:</b> keep the margin as the subject,
+    keep the colorectal biopsies, cut the second data set and the hinge loss, and let the plane
+    have the full width. That is the smaller widget and it keeps real data.
+    <br><br>
+    Below is what the kernel version looks like.
+  </p>
+
+  <p class="note">
+    <b>Two panels, and the same fit in both.</b> On the left, the measurements as they were
+    taken. On the right, the same samples after the feature map &mdash; where the boundary is a
+    <b>straight line with a corridor</b>. Switch the kernel and watch the left-hand boundary bend
+    while the right-hand one stays straight. That is the whole idea: the SVM only ever draws a
+    straight line, and the kernel decides which space it draws it in.
+    <br><br>
+    The map is <b>&phi;(z<sub>1</sub>, z<sub>2</sub>) = (z<sub>1</sub>&sup2;,
+    z<sub>2</sub>&sup2;)</b> &mdash; a real member of the degree-2 polynomial family, and one that
+    lands in <b>two</b> dimensions rather than six, so the lifted space can be drawn rather than
+    described. A boundary at z<sub>1</sub>&sup2; + z<sub>2</sub>&sup2; = c is a circle on the left
+    and the line u + v = c on the right, exactly.
+  </p>
+
+  <p class="note">
+    <b>The data is generated, and it has to be.</b> None of PHM5005's three data sets can carry
+    this &mdash; measured, not assumed:
+  </p>
+  <table>
+    <tr><th>data</th><th>what a kernel adds</th></tr>
+    <tr><td>Colorectal biopsies (<code>03-5</code>)</td>
+        <td style="text-align:left">nothing. 2,258 probes have |AUC&nbsp;&minus;&nbsp;0.5|&nbsp;&gt;&nbsp;0.45 and one separates the classes alone; of 435 mid-strength pairs, <b>0</b> need a curve</td></tr>
+    <tr><td>Heart failure (<code>04-3</code>)</td>
+        <td style="text-align:left">2.4&ndash;4.0 CV points on the best 2-feature pairs &mdash; real but invisible &mdash; and on all features RBF is <b>worse</b> than linear, 0.729 against 0.736. Ejection fraction is not U-shaped: the 50&ndash;60 uptick is 7 deaths in 24 patients and 60+ drops back</td></tr>
+    <tr><td>Body fat (<code>04-1/2/3</code>)</td>
+        <td style="text-align:left">regression, not classification</td></tr>
+  </table>
+  <p class="note">
+    So the samples below are drawn from a seeded generator, like widgets 1&ndash;11. The clinical
+    frame is real, though, and it is the reason the boundary is a ring: <b>a reference range has
+    two ends.</b> Sodium under 135 is abnormal and over 145 is abnormal; the same for potassium
+    either side of 3.5&ndash;5.0. &ldquo;Normal&rdquo; is a region in the middle, and no threshold
+    &mdash; no straight line &mdash; can carve a middle out.
+  </p>
+
+  <div class="bar">
+    <label>kernel
+      <select id="kern">
+        <option value="lin">straight line &mdash; &phi;(z) = z</option>
+        <option value="sq" selected>squared features &mdash; &phi;(z) = (z&sup2;)</option>
+      </select>
+    </label>
+    <label>C
+      <input type="range" id="ci" min="0" max="8" step="1" value="5">
+      <b id="clabel" style="color: var(--ink-1)"></b>
+    </label>
+    <label><input type="checkbox" id="units" checked> real units on the left</label>
+    <label>frame
+      <select id="frame">
+        <option value="770">1120px page &mdash; stage 770, the widest</option>
+        <option value="534">884px page &mdash; stage 534, the narrowest side layout</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <h2>K1 &middot; the lift, side by side</h2>
+  <p class="note">The candidate figure. Two panels, one control that matters.</p>
+  <div class="cell"><div id="k1"></div><div class="measure" id="m1"></div></div>
+
+  <h2>K2 &middot; what the reader sees on the straight-line kernel</h2>
+  <p class="note">
+    Same figure, <code>kernel = straight line</code> forced, so the two can be compared without
+    reaching for the control. <b>The map is the identity, so the two panels are the same panel</b>
+    &mdash; which is the honest way to say that a linear SVM does no transformation at all. The
+    boundary cuts the ring in half and misclassifies about a third of the cohort whatever C does.
+  </p>
+  <div class="cell"><div id="k2"></div><div class="measure" id="m2"></div></div>
+
+  <h2>Three things this raises</h2>
+  <p class="note">
+    <b>1. Does the right-hand panel need real units?</b> It is drawn in squared standardised
+    deviations, which no lab reports. The alternative is to label it &ldquo;how far outside the
+    range, squared&rdquo; and drop the numbers.
+    <br><br>
+    <b>2. Is C still worth a control?</b> It is what makes the corridor visible and it is one of
+    the notebook's three parameters &mdash; but with the kernel as the subject it is a second idea,
+    and &ldquo;simplify&rdquo; may mean fixing it.
+    <br><br>
+    <b>3. RBF is not drawable and is not offered.</b> Its feature space is infinite-dimensional,
+    so there is no right-hand panel for it. Offering <code>rbf</code> here would mean a control
+    whose whole point &mdash; seeing the lifted space &mdash; goes blank for one of its options.
+    The squared map is a genuine polynomial-family map and it is the one that can be shown.
+  </p>
+</main>
+<script type="module" src="./svm-kernel.js"></script>
+</body>
+</html>
