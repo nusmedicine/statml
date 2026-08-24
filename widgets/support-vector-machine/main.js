@@ -118,18 +118,47 @@ const SETS = {
    carries the idea and each tick can say what it does. */
 const C_LADDER = [0.01, 0.1, 1, 10, 100];
 const G_LADDER = [0.1, 0.3, 1, 3, 10, 30];
+const DEGREES = [2, 3, 4];
 
+/* All three of 04-3's kernels, written the way the notebook writes them. */
 const KERNELS = {
   linear: {
     label: "Linear",
     detail: "No transformation. The boundary is a straight line in this plane.",
     k: (a, b) => a[0] * b[0] + a[1] * b[1],
   },
+  poly: {
+    label: "Polynomial",
+    detail: "Products of the features up to degree d, so the boundary is a curve.",
+    k: (a, b, d) => (a[0] * b[0] + a[1] * b[1] + 1) ** d,
+  },
   rbf: {
     label: "RBF",
     detail: "A bump around every sample, so the boundary can curve and close.",
     k: (a, b, g) => Math.exp(-g * ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)),
   },
+};
+
+/* --- the kernel space, and how its vertical axis is scaled --------------- *
+ * f(x) = w.phi(x) + b is a LINEAR functional of the feature vector, so plotting
+ * it against x1 is a true 2-D view of the kernel space: the direction w, and
+ * one input coordinate. In it the boundary is exactly the line f = 0 and the
+ * margins exactly f = +/-1, for EVERY kernel — nothing about that view is an
+ * illustration.
+ *
+ * Its dynamic range is the problem. Median max|f| over the 150 states is 1.90
+ * and the worst is 42 (blobs, degree-4 polynomial, C = 100), so a linear axis
+ * either wastes four fifths of the panel or throws away 68 of 180 samples. So
+ * it is LINEAR OUT TO ONE MARGIN AND LOGARITHMIC BEYOND: the three positions
+ * that carry meaning — the boundary and the two margins — keep true spacing,
+ * and "much further out" is compressed, which is the half that carries none.
+ * Those three are the only labelled positions, so the axis never claims a
+ * reading it is not giving. */
+const LIFT_DOM = [-3.2, 3.2];
+const squash = (f) => {
+  const a = Math.abs(f);
+  const v = a <= 1 ? a : 1 + Math.log(a);
+  return Math.sign(f) * Math.min(v, LIFT_DOM[1]);
 };
 
 /**
@@ -267,7 +296,7 @@ function contour(F, level) {
       }
     }
   }
-  return chain(segs);
+  return { level, paths: chain(segs) };
 }
 
 /**
@@ -367,6 +396,17 @@ defineWidget({
       })),
       default: "2",
     },
+    degree: {
+      type: "choice",
+      label: "d — the degree",
+      when: { param: "kernel", equals: "poly" },
+      options: DEGREES.map((v, i) => ({
+        value: String(i),
+        label: String(v),
+        detail: `${v} — products of up to ${v} features at a time`,
+      })),
+      default: "1",
+    },
     gamma: {
       type: "choice",
       label: "γ — how far one sample reaches",
@@ -383,8 +423,19 @@ defineWidget({
       default: "2",
     },
 
-    /* Display: how it is DRAWN. Marking the support vectors adds nothing to the
-       model and must not disturb anything (3.2). */
+    /* Display: how it is DRAWN. Neither of these changes the fit — the lift is
+       the SAME model seen along the direction w rather than in the plane the
+       measurements were taken in (3.2). */
+    lift: {
+      type: "segmented",
+      label: "Looking at",
+      options: [
+        { value: "input", label: "Input space", detail: "The two measurements, as they were taken." },
+        { value: "kernel", label: "Kernel space", detail: "The same samples, along the direction the boundary is perpendicular to." },
+      ],
+      default: "input",
+      display: true,
+    },
     marks: {
       type: "bool",
       label: "Ring the support vectors",
@@ -405,7 +456,12 @@ defineWidget({
     const set = SETS[params.data];
     const kern = KERNELS[params.kernel];
     const C = C_LADDER[Number(params.C)];
-    const g = G_LADDER[Number(params.gamma)];
+    /* The second kernel argument, whichever kernel is in play: gamma for the
+       RBF, the degree for the polynomial, ignored by the linear one. Kept as
+       ONE value so the solver, the per-sample decision and the grid all read
+       the same number — three copies of "which dial is live" is how two halves
+       of a figure come to disagree. */
+    const g = params.kernel === "poly" ? DEGREES[Number(params.degree)] : G_LADDER[Number(params.gamma)];
     const pts = set.make(rng);
     const X = pts.map((p) => p.x);
     const y = pts.map((p) => p.y);
@@ -436,14 +492,16 @@ defineWidget({
     const svX = new Float64Array(m), svY = new Float64Array(m), svC = new Float64Array(m);
     sv.forEach((i, k) => { svX[k] = X[i][0]; svY[k] = X[i][1]; svC[k] = alpha[i] * y[i]; });
     const F = new Float64Array(GRID * GRID);
-    const linear = params.kernel === "linear";
+    const kind = params.kernel;
     for (let j = 0; j < GRID; j += 1) {
       const py = gridAt(j);
       for (let i = 0; i < GRID; i += 1) {
         const px = gridAt(i);
         let s = b;
-        if (linear) {
+        if (kind === "linear") {
           for (let k = 0; k < m; k += 1) s += svC[k] * (svX[k] * px + svY[k] * py);
+        } else if (kind === "poly") {
+          for (let k = 0; k < m; k += 1) s += svC[k] * (svX[k] * px + svY[k] * py + 1) ** g;
         } else {
           for (let k = 0; k < m; k += 1) {
             const dx = svX[k] - px, dy = svY[k] - py;
@@ -456,20 +514,71 @@ defineWidget({
 
     return {
       pts, sv, svSet: new Set(sv), F,
-      contours: { zero: contour(F, 0), up: contour(F, 1), down: contour(F, -1) },
+      /* Where each sample sits on the kernel space's vertical axis. Computed
+         here rather than in draw() because it is a property of the fit, and
+         draw() runs on every frame of the lift. */
+      lifted: f.map(squash),
+      contours: [contour(F, 1), contour(F, -1), contour(F, 0)],
       inside: marg.filter((m) => m < 1 - 1e-7).length,
       wrong: marg.filter((m) => m <= 0).length,
       n: y.length,
     };
   },
 
-  draw({ ctx, colors, w, params, state }) {
+  /* --- the lift ---------------------------------------------------------- *
+   * `t` runs 0 at the input space to 1 at the kernel space, and EVERYTHING
+   * moves by the same rule: a sample at input height x2 with decision value f
+   * is drawn at (1 - t)*x2 + t*squash(f), and a contour vertex at height b on
+   * the level L is drawn at (1 - t)*b + t*L. So the boundary flattens into the
+   * line y = 0 and its two margins into y = +/-1, which is exactly what they
+   * are in the kernel space. One formula, so the samples and the boundary
+   * cannot disagree about where they are mid-flight (5.8).
+   *
+   * Only the HEIGHT moves; x1 is the horizontal axis at both ends. That is what
+   * makes the motion readable — every dot slides straight up or down, and a
+   * reader can follow the one they were looking at.                          */
+  animation: {
+    init: ({ params }) => {
+      const t = params.lift === "kernel" ? 1 : 0;
+      return { t, tT: t, easing: false, done: false };
+    },
+    /* Exponential rather than a normalised clock, so an interruption resumes
+       from where the figure actually is instead of jumping back to an origin —
+       which is what happens when the reader changes their mind mid-lift. */
+    advance: (anim, { dt }) => {
+      const gap = anim.tT - anim.t;
+      if (Math.abs(gap) < 0.002) { anim.t = anim.tT; return false; }
+      anim.t += gap * Math.min(1, (dt / 460) * 2.6);
+      return true;
+    },
+    /* `rebuild` runs on every display change and is not told which parameter
+       moved, so the widget compares what it is showing against what the
+       parameters now ask for. Setting `easing` is the request for frames; core
+       clears it when it grants one (4.4). */
+    rebuild: (anim, { params }) => {
+      anim.tT = params.lift === "kernel" ? 1 : 0;
+      if (Math.abs(anim.tT - anim.t) > 0.002) anim.easing = true;
+    },
+  },
+
+  draw({ ctx, colors, w, params, state, anim }) {
+    const t = anim?.t ?? (params.lift === "kernel" ? 1 : 0);
+    const mix = (a, b) => a + (b - a) * t;
     const side = planeSide(w);
     const rect = { x: Math.round(PAD_L + (w - PAD_L - PAD_R - side) / 2), y: PAD_T, w: side, h: side };
-    const plot = makePlot({ ctx, colors, rect, xDomain: DOM, yDomain: DOM });
+    /* The vertical frame travels with the lift. It has to: the input space runs
+       to +/-2.2 and the kernel space's compressed axis to +/-3.2, and a frame
+       that jumped between them at the ends of the motion would undo the whole
+       point of easing it. */
+    const yDom = [mix(DOM[0], LIFT_DOM[0]), mix(DOM[1], LIFT_DOM[1])];
+    const plot = makePlot({ ctx, colors, rect, xDomain: DOM, yDomain: yDom });
     const { sx, sy } = plot;
     const ticks = [-2, -1, 0, 1, 2];
-    plot.grid(ticks);
+    /* Past the halfway point the vertical axis is f, not x2, so it carries the
+       three positions that mean something there and nothing else. Swapping at
+       the midpoint is safe because nobody reads a tick label mid-flight. */
+    const yTicks = t < 0.5 ? ticks : [-1, 0, 1];
+    plot.grid(yTicks);
     ctx.save();
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
@@ -497,18 +606,30 @@ defineWidget({
     ctx.strokeStyle = colors.highlight;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    for (const [paths, dash, lw] of [
-      [state.contours.up, [5, 4], 1.25],
-      [state.contours.down, [5, 4], 1.25],
-      [state.contours.zero, null, 2],
-    ]) {
-      ctx.setLineDash(dash ?? []);
-      ctx.lineWidth = lw;
+    for (const { level, paths } of state.contours) {
+      ctx.setLineDash(level === 0 ? [] : [5, 4]);
+      ctx.lineWidth = level === 0 ? 2 : 1.25;
+      ctx.globalAlpha = 1 - t * t;
       ctx.beginPath();
       for (const path of paths) {
-        path.forEach(([px, py], k) => (k ? ctx.lineTo(sx(px), sy(py)) : ctx.moveTo(sx(px), sy(py))));
+        path.forEach(([px, py], k) =>
+          (k ? ctx.lineTo(sx(px), sy(mix(py, level))) : ctx.moveTo(sx(px), sy(mix(py, level)))));
       }
       ctx.stroke();
+
+      /* A contour is only traced where it EXISTS in the input plane, so a
+         closed ring flattens into a segment as wide as the ring was — a
+         boundary that stops in mid-air. In the kernel space it runs the whole
+         width, so the straight line is CROSS-FADED with it.
+         Both, not just one: they land at the same height at t = 1, but a dashed
+         contour and a dashed line arrive with different dash phases, and two
+         dashes out of phase on the same line read as a solid one. */
+      ctx.globalAlpha = t * t;
+      ctx.beginPath();
+      ctx.moveTo(rect.x, sy(t * level));
+      ctx.lineTo(rect.x + rect.w, sy(t * level));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
     ctx.setLineDash([]);
 
@@ -517,7 +638,7 @@ defineWidget({
        mark it would cost more than the mark is worth. */
     state.pts.forEach((p, i) => {
       const isSV = params.marks && state.svSet.has(i);
-      const cx = sx(p.x[0]), cy = sy(p.x[1]);
+      const cx = sx(p.x[0]), cy = sy(mix(p.x[1], state.lifted[i]));
       ctx.beginPath();
       ctx.arc(cx, cy, isSV ? 3.6 : 2.9, 0, Math.PI * 2);
       ctx.fillStyle = p.y > 0 ? colors.event : colors.nonevent;
@@ -536,8 +657,16 @@ defineWidget({
     ctx.restore();
 
     plot.axisX({ ticks, label: "x₁" });
-    plot.axisY({ ticks, label: "x₂" });
-    plot.caption(`${SETS[params.data].label} · ${KERNELS[params.kernel].label} kernel`);
+    plot.axisY({
+      ticks: yTicks,
+      format: t < 0.5 ? String : (v) => (v === 0 ? "0" : v > 0 ? "+1" : "−1"),
+      label: t < 0.5 ? "x₂" : "f(x)",
+    });
+    plot.caption(
+      t < 0.5
+        ? `${SETS[params.data].label} · ${KERNELS[params.kernel].label} kernel`
+        : "Kernel space · the boundary is flat here"
+    );
   },
 
   readout({ state, params }) {

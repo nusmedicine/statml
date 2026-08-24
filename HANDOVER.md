@@ -44,23 +44,36 @@ Four states, in this order:
 | the default — blobs, a line is enough | `?theme=light` |
 | **a line cannot carve out a ring** — 171 of 180 are support vectors, 74 wrong | `?theme=light&data=rings&kernel=linear` |
 | **the same data, RBF** — a closed circle, 31 support vectors, none wrong | `?theme=light&data=rings&kernel=rbf` |
+| **THE LIFT** — press *Kernel space* here and watch it flatten | `?theme=light&data=rings&kernel=rbf` |
+| the polynomial, threading one cubic between the crescents | `?theme=light&data=moons&kernel=poly` |
 | gamma too high — the boundary wraps single samples | `?theme=light&data=moons&kernel=rbf&gamma=5` |
 
 **What it is.** Three generated data sets (`Two blobs`, `Rings`, `Crescents`),
-two kernels (Linear, RBF), C and γ on `choice` ladders, one square panel with x₁
-and x₂ on the axes, and a display toggle for the support-vector rings. Every
-control carries a plain-language `detail` line. No animation, no seed control,
-no `shown`.
+all three of the notebook's kernels (Linear, Polynomial, RBF), C on a `choice`
+ladder with γ or d appearing beside it depending on the kernel, one square panel
+with x₁ and x₂ on the axes, and two display toggles — `Looking at`
+(Input space / Kernel space) and the support-vector rings. Every control carries
+a plain-language `detail` line. No seed control and no `shown`.
+
+**THE LIFT is the thing to look at.** `Looking at → Kernel space` morphs the
+panel into Kenneth's notebook diagram: the samples slide vertically to
+f(x) and the curved boundary flattens into the line f = 0 with its margins at
+±1. It is **exact for every kernel** — f is a linear functional of the feature
+vector, so plotting it against x₁ is a true 2-D view of the kernel space — and
+it EASES, on core's display-change path (4.4, second use after widget 12).
 
 **Its shape came from a published interactive Kenneth pointed at** (a Medium
 article by Budi Sumandra) — blobs / circles / moons, linear-vs-rbf, C and gamma,
 show-support-vectors, one panel. `docs/catalogue.md` under *Widget 16* has the
 full decision record.
 
-**What it has already survived.** **105 of 105 states match
+**What it has already survived.** **150 of 150 states match
 `sklearn.svm.SVC` exactly** on support-vector count and error count — every
-dataset × kernel × C × γ, checked twice: against the extracted solver in node,
-and against the running widget's own readout in the browser. Plus a 111-state
+dataset × kernel × C × (γ or d), checked against the extracted solver in node;
+the linear and RBF half was also checked against the running widget's own
+readout in the browser. The polynomial reference is
+`SVC(kernel="poly", gamma=1, coef0=1)`, which is the notebook's
+`(⟨xᵢ,xⱼ⟩ + 1)^d` rather than sklearn's default. Plus a 111-state
 canvas text sweep with no overrun, no NaN and no collision; slowest repaint
 52 ms, median 17.
 
@@ -70,17 +83,17 @@ canvas text sweep with no overrun, no NaN and no collision; slowest repaint
   reader redraw the samples and watch which points become support vectors — one
   line of spec — but it is a fourth control on a widget that was asked to be
   simpler.
-- **The two-panel LIFT is built and not shipped**, at
-  `widgets/_lab/svm-kernel.html`: measurements on the left, φ(z) = (z₁², z₂²) on
-  the right, where the boundary is a straight line with a corridor. It is the
-  deeper answer to *why a kernel* — the SVM only ever draws a straight line, and
-  the kernel picks the space. It cannot draw RBF or crescents, which is why the
-  shipped widget shows the boundary's shape instead. One commit away.
+- **The lifted view's vertical axis is compressed beyond one margin**, because
+  median max|f| is 1.90 and the worst state is 42. Only 0 and ±1 are labelled,
+  so it never claims a reading it is not giving — but it is a broken axis and
+  worth a second opinion.
+- **An earlier two-panel lift is superseded** and left at
+  `widgets/_lab/svm-kernel.html`: φ(z) = (z₁², z₂²) side by side with the
+  measurements. It reads well but can only draw that one map — not RBF, not the
+  crescents — which is why the shipped lift plots f instead.
 - **The clinical framing is also on that page and was cut** — two labs with
   reference ranges, so "normal on both" is a region in the middle. Dropped
   because a made-up label on invented patients reads as a clinical finding.
-- **No polynomial kernel.** The notebook lists linear / poly / rbf; poly is left
-  out because rbf is its default and the one whose two dials it explains.
 - **`--c-boundary` still wants a name.** The boundary is on `--c-highlight`
   violet because `--c-theory` orange is eleven degrees of hue from
   `--c-event`'s red. Five of the six PHM5005 algorithm widgets draw a decision
@@ -567,6 +580,12 @@ PR.fillText = function (s, x, y) {
 - **It cannot see DOM.** Widget 14's equation is MathML and does not go through
   `fillText` at all — the sweep stopped seeing it with no error and no gap in its
   output. That is what the text hash below exists to cover.
+- **A HARNESS PAGE MUST REPORT ITS OWN PROGRESS.** `svm-sweep.html` printed
+  "running…" and never changed, because the sweep was driven from the console
+  and its result read out of a variable — so a finished run and a hung one
+  looked identical to anyone opening the page, and one was taken for the other.
+  It now shows a bar, the state it is on, and a PASS/FAIL summary. Any lab page
+  that takes minutes needs the same.
 - **A STATE THAT PAINTED NOTHING IS A FAILURE, NOT A PASS.** A widget that
   throws inside `render()` leaves its canvas at the default **150x75** and its
   readout empty — and a sweep that only counts overruns then reports a clean run

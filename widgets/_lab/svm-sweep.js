@@ -18,7 +18,7 @@
  * every state is loaded with C one rung away and then moved onto it: exactly
  * one paint, at exactly the state wanted.
  */
-window.__sweep = async function (frameW) {
+window.__sweep = async function (frameW, onProgress) {
   const out = [];
   const f = document.createElement("iframe");
   f.width = frameW;
@@ -31,18 +31,27 @@ window.__sweep = async function (frameW) {
   for (const data of ["blobs", "rings", "moons"]) {
     for (let C = 0; C < 5; C += 1) {
       states.push({ data, kernel: "linear", C, marks: true });
-      for (let gamma = 0; gamma < 6; gamma += 1) {
-        states.push({ data, kernel: "rbf", C, gamma, marks: true });
-      }
+      for (let gamma = 0; gamma < 6; gamma += 1) states.push({ data, kernel: "rbf", C, gamma, marks: true });
+      for (let degree = 0; degree < 3; degree += 1) states.push({ data, kernel: "poly", C, degree, marks: true });
+      /* The lifted view carries less text than the input one and all of it is
+         fixed, so it is sampled rather than swept: one per kernel per rung. */
+      states.push({ data, kernel: "linear", C, marks: true, lift: "kernel" });
+      states.push({ data, kernel: "rbf", C, gamma: 2, marks: true, lift: "kernel" });
+      states.push({ data, kernel: "poly", C, degree: 1, marks: true, lift: "kernel" });
     }
     states.push({ data, kernel: "linear", C: 2, marks: false });
     states.push({ data, kernel: "rbf", C: 2, gamma: 2, marks: false });
   }
 
+  let done = 0;
   for (const st of states) {
     const q = (c) => `?theme=light&data=${st.data}&kernel=${st.kernel}&C=${c}`
       + (st.gamma === undefined ? "" : `&gamma=${st.gamma}`)
+      + (st.degree === undefined ? "" : `&degree=${st.degree}`)
+      + (st.lift ? `&lift=${st.lift}` : "")
       + (st.marks ? "" : "&marks=false");
+    done += 1;
+    onProgress?.(done, states.length, q(st.C).replace("?theme=light&", ""));
     f.src = `/widgets/support-vector-machine/${q(st.C === 0 ? 1 : st.C - 1)}`;
     await new Promise((r) => f.addEventListener("load", r, { once: true }));
     await wait(140);

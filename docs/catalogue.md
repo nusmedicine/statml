@@ -3102,6 +3102,63 @@ in TWO dimensions, so the lifted space can be drawn rather than described. It is
 one commit away if the boundary's *shape* turns out not to be enough of an
 illustration. It cannot draw RBF or crescents, which is why it is not the widget.
 
+##### Round two: the lift, the ease, and the third kernel
+
+Kenneth's three follow-ups, and what each turned into.
+
+**1. "Is there a way to visualize lifts?"** — he has the classic three-panel
+diagram in the notebook: *input space → (Kernel) → kernel space, boundary flat,
+margins either side → back to input space, boundary a ring.* The widget now does
+that as **one panel that morphs**, on a `Looking at` control: *Input space* /
+*Kernel space*.
+
+**The lifted view is exact, for every kernel.** `f(x) = w·φ(x) + b` is a linear
+functional of the feature vector, so plotting `f` against `x₁` is a true 2-D view
+of the kernel space — the direction `w`, and one input coordinate. The boundary
+is exactly the line `f = 0` and the margins exactly `f = ±1`. Nothing about it is
+an illustration, which the earlier φ(z) = (z₁², z₂²) lab version could not claim
+for RBF.
+
+**Only the HEIGHT moves.** `x₁` is the horizontal axis at both ends, so every dot
+slides straight up or down and a reader can follow the one they were watching.
+One rule does all of it: a sample at input height `x₂` with decision value `f` is
+drawn at `(1−t)·x₂ + t·squash(f)`, and a contour vertex at height `b` on level
+`L` at `(1−t)·b + t·L`. So the boundary flattens into `y = 0` and its margins
+into `y = ±1`, and the samples and the boundary cannot disagree mid-flight (5.8).
+
+**The vertical axis is linear to one margin and logarithmic beyond.** Median
+max|f| over the 150 states is **1.90** and the worst is **42** (blobs, degree-4
+polynomial, C = 100), so a linear axis either wastes four fifths of the panel or
+throws away 68 of 180 samples. The three positions that carry meaning — the
+boundary and the two margins — keep true spacing; "much further out" is
+compressed, which is the half that carries none. Those three are the **only
+labelled positions**, so the axis never claims a reading it is not giving.
+
+**2. "Can the transitions be animated?"** — the lift eases, on core's
+display-change path: `rebuild` sets `anim.easing`, core grants frames, `advance`
+chases the target exponentially so an interruption resumes from where the figure
+actually is. That is 4.4's narrow case, and this is its second use after widget
+12's two denominators.
+
+A contour is only traced where it EXISTS in the input plane, so a closed ring
+flattens into a segment as wide as the ring was — a boundary stopping in mid-air.
+The full-width straight line is **cross-faded** with it. Both fade, not just one:
+they land at the same height at t = 1, but a dashed contour and a dashed line
+arrive with different dash phases, and two dashes out of phase on one line read
+as a solid one.
+
+**3. "Would polynomial be useful?"** — yes, and it is in. `K = (⟨xᵢ,xⱼ⟩ + 1)^d`,
+the notebook's own form, with `d` on its own `choice` ladder shown only for that
+kernel, exactly as γ is shown only for RBF. It earns its place by looking
+different: on the crescents a degree-3 polynomial threads a single smooth cubic
+between the two arcs (**14 support vectors, none wrong**) where RBF makes closed
+loops, and on the rings degree 2 gives an exact conic with **9 support vectors**.
+
+**Verified again after all three: 150 of 150 states match `sklearn.svm.SVC`
+exactly** on support-vector count and error count — every dataset × kernel × C ×
+(γ or d). The polynomial reference is `SVC(kernel="poly", gamma=1, coef0=1)`,
+which is the notebook's form rather than sklearn's default.
+
 ##### Decided while building, so it is not re-argued
 
 - **The corridor is NOT shaded.** Shading |f| ≤ 1 is right for a linear kernel,

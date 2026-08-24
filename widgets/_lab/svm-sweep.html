@@ -1,6 +1,92 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Lab · widget 16 text sweep</title>
-<link rel="stylesheet" href="../core/tokens.css"></head>
-<body><main style="padding:16px;font:13px system-ui"><pre id="out">running…</pre></main>
-<script src="./svm-sweep.js"></script>
-</body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; widget 16 text sweep</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  main { max-width: 980px; margin: 0 auto; padding: var(--sp-4);
+    font: var(--fs-sm)/1.5 var(--font); color: var(--ink-2); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); color: var(--ink-1); }
+  p { max-width: 88ch; margin: 0 0 var(--sp-3); }
+  b { color: var(--ink-1); }
+  #bar { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden;
+    margin: var(--sp-3) 0 var(--sp-2); }
+  #fill { height: 100%; width: 0; background: var(--c-highlight); transition: width .15s; }
+  #now { font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  #out { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--sp-3); white-space: pre-wrap; font: var(--fs-xs)/1.6 ui-monospace, monospace;
+    color: var(--ink-2); margin-top: var(--sp-3); }
+  .pass { color: var(--c-smoothed); font-weight: 600; }
+  .fail { color: var(--c-event); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Widget 16 &middot; canvas text sweep</h1>
+  <p>
+    Drives every combination of data set, kernel, C and &gamma;/d through the widget and records
+    <b>every string it paints</b>, then checks three things: nothing overruns the canvas, nothing
+    reads <code>NaN</code>, and no two strings share a baseline and overlap &mdash; which matters
+    because <code>caption()</code> strokes surface-coloured before it fills, so a collision
+    <em>erases</em> what it overruns and still looks like a short caption.
+    <b>A state that painted nothing is a failure, not a pass.</b>
+  </p>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="now">starting&hellip;</div>
+  <pre id="out"></pre>
+</main>
+<script type="module">
+  import "./svm-sweep.js";
+
+  const fill = document.getElementById("fill");
+  const now = document.getElementById("now");
+  const out = document.getElementById("out");
+
+  /* THE PAGE REPORTS ITS OWN PROGRESS. It used to print "running…" and never
+     change, because the sweep was driven from the console and its result read
+     out of a variable — so a finished run and a hung one looked identical from
+     the page, and one of them was mistaken for the other. */
+  const t0 = performance.now();
+  const rows = await window.__sweep(900, (done, total, at) => {
+    fill.style.width = `${(done / total) * 100}%`;
+    now.textContent = `${done} / ${total}   ${at}`;
+  });
+  const secs = ((performance.now() - t0) / 1000).toFixed(0);
+
+  const errs = rows.filter((r) => r.err);
+  const ok = rows.filter((r) => !r.err);
+  const bad = ok.filter((r) => r.bad?.length);
+  const nan = ok.filter((r) => r.nan?.length);
+  const hits = ok.filter((r) => r.hits?.length);
+  const ms = ok.map((r) => r.ms).sort((a, b) => a - b);
+  const clean = !errs.length && !bad.length && !nan.length && !hits.length;
+
+  now.textContent = `${rows.length} states in ${secs}s`;
+  const lines = [
+    `${clean ? "PASS" : "FAIL"}  ${rows.length} states, ${secs}s`,
+    ``,
+    `  painted nothing   ${errs.length}`,
+    `  overrunning       ${bad.length}`,
+    `  NaN / undefined   ${nan.length}`,
+    `  colliding text    ${hits.length}`,
+    ``,
+    `  repaint ms        median ${ms[Math.floor(ms.length / 2)]}, worst ${ms[ms.length - 1]}`,
+    `                    (each state is a COLD page, so the worst is a first paint)`,
+    `  canvas sizes      ${[...new Set(ok.map((r) => `${r.W}x${r.H}`))].join(", ")}`,
+    `  strings per state ${[...new Set(ok.map((r) => r.n))].sort((a, b) => a - b).join(", ")}`,
+  ];
+  for (const r of [...errs, ...bad, ...nan, ...hits].slice(0, 20)) {
+    lines.push(``, `  ${r.at}`, `    ${r.err ?? [...(r.bad ?? []), ...(r.nan ?? []), ...(r.hits ?? [])].join("\n    ")}`);
+  }
+  out.textContent = "";
+  const head = document.createElement("span");
+  head.className = clean ? "pass" : "fail";
+  head.textContent = lines[0];
+  out.appendChild(head);
+  out.appendChild(document.createTextNode(`\n${lines.slice(1).join("\n")}`));
+  window.__R = rows;
+</script>
+</body>
+</html>
