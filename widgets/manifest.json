@@ -220,7 +220,7 @@
         "generalized linear model"
       ],
       "arc": 15,
-      "status": "draft"
+      "status": "shipped"
     },
     {
       "slug": "support-vector-machine",
@@ -237,7 +237,7 @@
         "hyperparameters"
       ],
       "arc": 16,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

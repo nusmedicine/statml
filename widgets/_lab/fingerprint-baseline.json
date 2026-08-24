@@ -1045,6 +1045,62 @@
       "state": "?theme=light&link=true&bmi=45",
       "px": "f27909e3",
       "tx": "10712389"
+    },
+    {
+      "$note": "The opening state: two blobs, a straight kernel, the plane as measured.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light",
+      "px": "39f45623",
+      "tx": "0a10e703"
+    },
+    {
+      "$note": "The failing case. No line separates a ring, so 171 of 180 are support vectors and 74 are wrong.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light&data=rings&kernel=linear",
+      "px": "447e072b",
+      "tx": "65cb6e89"
+    },
+    {
+      "$note": "The payoff, settled: the same rings in the kernel space, boundary flat, margins at +/-1.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light&data=rings&kernel=rbf&lift=kernel",
+      "px": "8c1d0e1a",
+      "tx": "2a8685b7"
+    },
+    {
+      "$note": "The polynomial threading one cubic between the crescents.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light&data=moons&kernel=poly&degree=1",
+      "px": "4b42bb61",
+      "tx": "8b7652af"
+    },
+    {
+      "$note": "DRIVEN: mid-lift, about 55% of the way. The only state that can see the morph, which no settled one can.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light&data=rings&kernel=rbf",
+      "drive": {
+        "set": {
+          "lift": "kernel"
+        },
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "cdae3ff9",
+      "tx": "2a8685b7"
+    },
+    {
+      "$note": "DRIVEN: mid-rotation. The linear lift turns the plane rather than collapsing it, and only a driven state sees it turning.",
+      "slug": "support-vector-machine",
+      "state": "?theme=light&data=blobs&kernel=linear",
+      "drive": {
+        "set": {
+          "lift": "kernel"
+        },
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "486105f3",
+      "tx": "0a10e703"
     }
   ]
 }

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab &middot; hash new fingerprint states</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  main { max-width: 940px; margin: 0 auto; padding: var(--sp-4);
+    font: var(--fs-sm)/1.55 var(--font); color: var(--ink-2); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); color: var(--ink-1); }
+  p { max-width: 88ch; }
+  b { color: var(--ink-1); }
+  #now { font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  pre { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--sp-3); font: var(--fs-xs)/1.6 ui-monospace, monospace; overflow-x: auto; }
+  #frames { position: fixed; left: -99999px; top: 0; }
+  .bad { color: var(--c-event); font-weight: 600; }
+  .good { color: var(--c-smoothed); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hash new fingerprint states</h1>
+  <p>
+    Computes <code>px</code> and <code>tx</code> for a handful of NEW states directly, so they can
+    be pasted into <code>fingerprint-baseline.json</code> ready-made.
+    <b>This is not a second copy of the suite.</b> The suite&rsquo;s job is to prove the widgets you
+    are <em>not</em> looking at still render identically; this one&rsquo;s job is to learn a few
+    numbers. Welding them together means re-verifying every known-good state twice over to record
+    four &mdash; which is the loop <code>NEVER BASELINE BY PLACEHOLDER-AND-DIFF</code> exists to
+    forbid.
+    <br><br>
+    <b>Each state is hashed three times.</b> A driven state that is not identical across three runs
+    is flaky, and a flaky check is worse than none. Run the full suite once afterwards; that run is
+    the confirmation and the only one needed.
+    <br><br>
+    Edit <code>STATES</code> in this file for the next widget.
+  </p>
+  <div id="now">starting&hellip;</div>
+  <pre id="out"></pre>
+</main>
+<div id="frames"></div>
+<script type="module">
+/* Everything below the STATES list is copied VERBATIM from fingerprint.html —
+   the frame size, the settle, the hash, the text parts and the whole of
+   drive(). It has to be: a hash computed by even slightly different code is a
+   number that will never match the suite, and it would look like a regression
+   in the widget rather than a difference between two harnesses. If the suite
+   changes, re-copy. The full-suite run afterwards is what catches a drift. */
+
+const STATES = [
+  { slug: "support-vector-machine", state: "?theme=light",
+    $note: "The opening state: two blobs, a straight kernel, the plane as measured." },
+  { slug: "support-vector-machine", state: "?theme=light&data=rings&kernel=linear",
+    $note: "The failing case. No line separates a ring, so 171 of 180 are support vectors and 74 are wrong." },
+  { slug: "support-vector-machine", state: "?theme=light&data=rings&kernel=rbf&lift=kernel",
+    $note: "The payoff, settled: the same rings in the kernel space, boundary flat, margins at +/-1." },
+  { slug: "support-vector-machine", state: "?theme=light&data=moons&kernel=poly&degree=1",
+    $note: "The polynomial threading one cubic between the crescents." },
+  { slug: "support-vector-machine", state: "?theme=light&data=rings&kernel=rbf",
+    drive: { set: { lift: "kernel" }, frames: 4, dt: 32 },
+    $note: "DRIVEN: mid-lift, about 55% of the way. The only state that can see the morph, which no settled one can." },
+  { slug: "support-vector-machine", state: "?theme=light&data=blobs&kernel=linear",
+    drive: { set: { lift: "kernel" }, frames: 4, dt: 32 },
+    $note: "DRIVEN: mid-rotation. The linear lift turns the plane rather than collapsing it, and only a driven state sees it turning." },
+];
+
+const FRAME_W = 900;
+const FRAME_H = 1200;
+const SETTLE_MS = 400;
+const RUNS = 3;
+
+const frames = document.getElementById("frames");
+const now = document.getElementById("now");
+const out = document.getElementById("out");
+
+function hash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+function drive(win, doc, spec) {
+  const queue = [];
+  win.requestAnimationFrame = (cb) => queue.push(cb);
+  let t = 1000;
+
+  /* Buttons are found by data-key, never by position. They used to be taken
+     positionally, and adding a third drive button to one widget silently pointed
+     every driven state at the wrong one — which still yields a stable,
+     plausible-looking hash. Throwing here is deliberate: `shoot` turns a throw
+     into px = "error", which can never match a baseline, so this fails loudly
+     instead of quietly drifting. */
+  const press = (key) => {
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`);
+    if (!b) throw new Error(`no "${key}" drive button`);
+    if (b.disabled) throw new Error(`"${key}" button is disabled — wrong stage?`);
+    b.click();
+  };
+
+  /* Work a PARAMETER CONTROL, the way a reader would, and for the same reason
+     `press` exists: some widgets have no drive button to press. A widget may
+     decline Step and Play (principle 4.5) and ease on a `display` parameter
+     instead (4.4) — widget 12 does both — and its transitions were then
+     undriveable and therefore unfingerprintable.
+
+     Found by `data-param`, never by position, which is principle 5.7 applied to
+     controls: a positional lookup silently drives the wrong thing and still
+     yields a stable, plausible hash. `controls.js` stamps the attributes;
+     nothing in the shipped page reads them.
+
+     Note the events differ by control, and getting one wrong is silent: a range
+     driven with `change` moves the thumb and never reaches the widget. */
+  const setParam = (name, value) => {
+    const seg = doc.querySelectorAll(`.w-seg-btn[data-param="${name}"]`);
+    if (seg.length) {
+      const b = [...seg].find((x) => x.dataset.value === String(value));
+      if (!b) {
+        throw new Error(`"${name}" has no option "${value}" (has ${[...seg].map((x) => x.dataset.value).join(", ")})`);
+      }
+      b.click();
+      return;
+    }
+    const el = doc.querySelector(`[data-param="${name}"]`);
+    if (!el) throw new Error(`no control for parameter "${name}"`);
+    const fire = (type) => el.dispatchEvent(new win.Event(type, { bubbles: true }));
+    if (el.dataset.options) {
+      /* A `choice` slider holds an INDEX. Its option values ride along on the
+         element so a spec can name the value and not the position. */
+      const i = JSON.parse(el.dataset.options).indexOf(value);
+      if (i < 0) throw new Error(`"${name}" has no option "${value}"`);
+      el.value = String(i);
+      fire("input");
+    } else if (el.type === "checkbox") {
+      el.checked = Boolean(value);
+      fire("change");
+    } else if (el.tagName === "SELECT") {
+      el.value = String(value);
+      fire("change");
+    } else {
+      el.value = String(value);
+      fire("input");
+    }
+  };
+
+  /* CLICK THE FIGURE ITSELF, at a point in DRAWING coordinates.
+     
+     `set` reaches a parameter through its DOM control, which routes around the
+     region map completely — so a state driven by `set` gives a widget's canvas
+     hit-test no coverage at all, and that geometry is precisely what no pixel
+     hash can see: the picture is identical whether a target sits where it is
+     drawn or six columns away.
+
+     THIS IS NOT A BREACH OF 5.7. That principle forbids addressing a CONTROL by
+     position — the third button, the second slider — because inserting one
+     silently repoints every state. A region has no identity but its place on
+     the figure; its position IS what is under test, and the frame is a fixed
+     900px wide so the coordinate means the same thing every run.
+
+     It throws when the point hits nothing, for the same reason `press` throws on
+     a missing button: a click that lands on empty canvas still leaves a stable,
+     plausible hash. The widget's own cursor is the detector — core sets it to
+     "pointer" over a region and "default" off one. */
+  const hitAt = ([x, y]) => {
+    const canvas = doc.querySelector(".w-figure canvas");
+    if (!canvas) throw new Error("hit: no canvas");
+    const r = canvas.getBoundingClientRect();
+    const k = r.width / (canvas.clientWidth || 1);
+    const clientX = r.left + x * k;
+    const clientY = r.top + y * k;
+    const send = (type) => canvas.dispatchEvent(
+      new win.PointerEvent(type, { bubbles: true, clientX, clientY })
+    );
+    send("pointermove");
+    if (canvas.style.cursor !== "pointer") {
+      throw new Error(`hit: (${x}, ${y}) is not over a region`);
+    }
+    send("pointerdown");
+  };
+
+  /* One step is a set, a hit, a click, or a combination — in that order, because
+     a control or a cell chooses what the button will then run. */
+  const act = (step) => {
+    for (const [k, v] of Object.entries(step.set ?? {})) setParam(k, v);
+    if (step.hit) hitAt(step.hit);
+    if (step.click) press(step.click);
+  };
+  const label = (step) =>
+    [Object.entries(step.set ?? {}).map(([k, v]) => `${k}=${v}`).join(","),
+      step.hit ? `hit(${step.hit.join(",")})` : "", step.click]
+      .filter(Boolean).join("+");
+
+  /* Some widgets gate stepping behind a one-off LEAD action: `bootstrap` has to
+     draw its single sample before it can resample it. Run that to completion
+     first, unmeasured, so the frames counted below are frames of the animation
+     actually under test. dt is clamped to 64ms in core, so this pumps at 64. */
+  if (spec.lead) {
+    press("lead");
+    for (let i = 0; i < 200 && queue.length; i += 1) {
+      t += 64;
+      queue.shift()(t);
+    }
+  }
+
+  const dt = spec.dt ?? 32;
+
+  /* Some regressions only exist where one action INTERRUPTS another, and no
+     single click can reach them. A step left in flight when Fast took over once
+     froze a whole panel — every observation stranded mid-shuffle, belonging to
+     no group, while the figure below carried on as if nothing were wrong.
+     `before` performs those actions first, unmeasured, so the measured click
+     starts from a genuinely interrupted state. */
+  for (const step of spec.before ?? []) {
+    act(step);
+    for (let i = 0; i < (step.frames ?? 0); i += 1) {
+      const cb = queue.shift();
+      if (!cb) break;
+      t += dt;
+      cb(t);
+    }
+  }
+
+  /* "step" stays the default ONLY when the spec names no action at all, so an
+     existing state that relies on it keeps working and a `set`-only state does
+     not go looking for a button that was deliberately declined. */
+  act(spec.set || spec.click || spec.hit ? spec : { click: "step" });
+  let ran = 0;
+  for (let i = 0; i < spec.frames; i += 1) {
+    const cb = queue.shift();
+    if (!cb) break;
+    t += dt;
+    cb(t);
+    ran += 1;
+  }
+  const pre = (spec.before ?? []).map((s) => `${label(s)}+${s.frames}f→`).join("");
+  return `${spec.lead ? "lead→" : ""}${pre}${label(spec) || "step"} +${ran}f`;
+}
+
+/* WHAT THE FIGURE SAYS IN WORDS, hashed beside what it LOOKS like.
+ *
+ * The canvas hash covers pixels, and until widget 14 that was the whole figure.
+ * It now writes its fitted equation as MathML in the DOM, which leaves both
+ * cheap checks at once: this hash stops seeing it, and the canvas text sweep —
+ * which works by wrapping `fillText` — silently stops seeing it too, with no
+ * error and no gap in its output. A flipped sign or a coefficient off by a
+ * factor would ship with the picture still reporting MATCH.
+ *
+ * Three regions, named rather than inferred, so it works under both layouts —
+ * `.w-stage` exists only in the side layout, and a stack widget hangs its
+ * readout straight off the host. The readout was never covered either, which is
+ * the larger half of what this closes: every widget's stat tiles have been
+ * unhashed since the harness was written.
+ *
+ * The rail is deliberately absent. Principle: the rail is what you SET and the
+ * stage is what you SEE, and a control's own label is not a reading of the
+ * figure.
+ */
+const TEXT_PARTS = [".w-math", ".w-legend", ".w-readout"];
+
+function figureText(doc) {
+  return TEXT_PARTS
+    .map((sel) => [...doc.querySelectorAll(sel)].map((n) => n.textContent).join(" "))
+    .join(" | ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function shoot(entry) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W;
+  frame.height = FRAME_H;
+  frame.style.border = "0";
+  frame.src = `../${entry.slug}/${entry.state}`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  await new Promise((r) => setTimeout(r, entry.drive ? 150 : SETTLE_MS));
+  let px = "\u2014", tx = "\u2014", note = "";
+  try {
+    const win = frame.contentWindow;
+    const doc = frame.contentDocument;
+    if (entry.drive) note = drive(win, doc, entry.drive);
+    const canvas = doc.querySelector(".w-figure canvas");
+    px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
+    tx = hash(figureText(doc));
+  } catch (e) {
+    px = "error"; tx = "error"; note = String(e.message ?? e);
+  }
+  frame.remove();
+  return { px, tx, note };
+}
+
+try { localStorage.removeItem("statml:theme"); } catch {}
+
+const results = [];
+for (const st of STATES) {
+  const runs = [];
+  for (let r = 0; r < RUNS; r += 1) {
+    now.textContent = `${st.state}${st.drive ? " (driven)" : ""} — run ${r + 1} of ${RUNS}`;
+    runs.push(await shoot(st));
+  }
+  const stable = runs.every((v) => v.px === runs[0].px && v.tx === runs[0].tx);
+  results.push({ st, runs, stable });
+}
+now.textContent = `${results.length} states, ${RUNS} runs each`;
+
+const flaky = results.filter((r) => !r.stable);
+const head = document.createElement("span");
+head.className = flaky.length ? "bad" : "good";
+head.textContent = flaky.length
+  ? `FLAKY — ${flaky.length} state(s) differ across ${RUNS} runs; do NOT baseline them`
+  : `STABLE — every state identical across ${RUNS} runs`;
+out.appendChild(head);
+
+const json = results.map(({ st, runs }) => {
+  const e = { $note: st.$note, slug: st.slug, state: st.state };
+  if (st.drive) e.drive = st.drive;
+  e.px = runs[0].px; e.tx = runs[0].tx;
+  return e;
+});
+const lines = ["", ""];
+for (const { st, runs, stable } of results) {
+  lines.push(`${stable ? "  ok  " : "  FLAKY"} ${st.state}${st.drive ? "  [driven]" : ""}`);
+  for (const r of runs) lines.push(`         px ${r.px}  tx ${r.tx}${r.note ? `   ${r.note}` : ""}`);
+}
+lines.push("", "paste into widgets/_lab/fingerprint-baseline.json:", "");
+lines.push(json.map((e) => JSON.stringify(e)).join(",\n"));
+out.appendChild(document.createTextNode(lines.join("\n")));
+window.__NEW = json;
+</script>
+</body>
+</html>

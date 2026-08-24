@@ -368,7 +368,6 @@ defineWidget({
     + "a straight one, or one that bends around the data.",
   layout: "side",
   height: heightFor,
-  status: "draft",
 
   params: {
     /* Reading order is the instruction (3.1): what am I looking at, what is

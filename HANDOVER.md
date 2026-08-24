@@ -2,10 +2,16 @@
 
 ## Where things are
 
-**Sixteen widgets: fourteen shipped, and `logistic-regression` and
-`support-vector-machine` deployed as DRAFTS.** Both sit at `/lab/`, off the
-gallery, and neither has been judged projected. Everything is live at
-<https://nusmedicine.github.io/statml/>.
+**Sixteen widgets, all sixteen SHIPPED.** `logistic-regression` and
+`support-vector-machine` were promoted out of `/lab/` onto the gallery; `/lab/`
+is now empty. Everything is live at <https://nusmedicine.github.io/statml/>.
+
+**123 fingerprint states.** Six are widget 16's — four settled and two driven,
+each identical across three runs before it was recorded.
+
+**Two things were shipped without being done**, both worth knowing:
+widget 15 still lacks the marginal-vs-conditional note Kenneth asked for (below),
+and **no widget from 11 onward has been judged projected**.
 
 **Next up is widget 17, tree-based models** — the section right after SVM in
 `04-3`. Nothing is built; what is known is directly below.
@@ -121,19 +127,20 @@ under *Widget 16* in the catalogue.
 
 ---
 
-## THEN: widget 16 needs its fingerprint baseline before it can ship
+## Widget 16 · `support-vector-machine` — SHIPPED
 
-**`support-vector-machine` is deployed as a DRAFT** — it is at `/lab/`, off the
-gallery, which is where a draft belongs. Two things stand between it and
-`status: "shipped"`:
+**Baselined and promoted.** Six states: four settled, and two driven with
+`drive: { set: { lift: "kernel" }, frames: 4, dt: 32 }` — the ease is reached
+through the `Looking at` control, since the widget declines Step and Play. Each
+was hashed three times and was identical every time.
 
-1. **No fingerprint states.** `check.mjs` fails a non-draft widget without them.
-   The design has now been through three rounds and stopped moving, so this is
-   the moment. Hash them directly rather than by placeholder-and-diff — the
-   recipe is under *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* below. It declares an
-   `animation` (the lift's ease), so `check` will also want a **driven** state:
-   `drive: { set: { lift: "kernel" }, frames, dt }`.
-2. **It has never been judged projected.** Neither have widgets 11–15.
+**It has never been judged projected.** Neither has any widget from 11 onward.
+
+`widgets/_lab/fingerprint-new.html` is what recorded them, and it is reusable:
+edit its `STATES` list for the next widget. It exists because the suite and the
+baseline are two different jobs — the suite proves the widgets you are NOT
+looking at still render identically, and welding the two together means
+re-verifying 117 known-good states twice in order to learn six numbers.
 
 ### What it is, and what was decided
 
@@ -168,6 +175,38 @@ Open, and worth a look:
 - **An earlier two-panel lift is superseded** and left at
   `widgets/_lab/svm-kernel.html`: φ(z) = (z₁², z₂²) beside the measurements. It
   reads well but can only draw that one map — not RBF, not the crescents.
+
+---
+
+## THE BASELINE IS MACHINE-DEPENDENT, and that is now demonstrated
+
+**Ten of `odds-and-risk`'s states DIFFER on this machine, and its code has not
+changed.** Established rather than assumed:
+
+- the ten are exactly its `view=calculate` states — the dot-grid ones
+- **only `px` moved; every `tx` is identical**, so no number and no label changed
+- they differ **identically across two full suite runs**, so it is not flakiness
+- `widgets/odds-and-risk/` was last touched in `1b4be2e`, which `git merge-base
+  --is-ancestor` confirms is an ANCESTOR of `2fda59b`, the commit that recorded
+  the baseline. The code is provably the same code the baseline was taken from
+- opened by hand, the widget is **correct** — the dot columns, the division
+  graphic, 40/60 = 0.67 against 20/80 = 0.25, all right
+
+So the figure is fine and the rendering environment is not the one the baseline
+was recorded in. A sub-pixel difference in how a grid of dots is rasterised
+changes every pixel's alpha slightly, which changes the PNG hash, and leaves the
+picture indistinguishable.
+
+**Do not re-baseline those ten to make the suite green.** That bakes one
+machine's rasteriser into the repository and it will go red again on the next
+one. The real options are to record the baseline in a pinned browser, to hash
+something less brittle than the PNG bytes, or to accept that `px` is a
+same-machine check and lean on `tx`.
+
+> **This lands right before a move to Windows.** The six states just recorded for
+> `support-vector-machine` are this-machine hashes too. Expect the suite to go
+> red wholesale there, on `px` and not on `tx`, and do not read that as sixteen
+> simultaneous regressions — check whether `tx` moved before believing anything.
 
 ---
 

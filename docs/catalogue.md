@@ -2481,7 +2481,7 @@ Two things the build settled on the way:
   grouped by canvas — grouping by y alone pairs each string with its twin in the
   cell next door.
 
-## Widget 15 · `logistic-regression` — BUILT, AS A DRAFT
+## Widget 15 · `logistic-regression` — SHIPPED
 
 ### REDESIGNED AFTER REVIEW — this supersedes the staging notes below
 
@@ -3051,12 +3051,12 @@ sections, each with a **Model** and an **Objective** — is the spine.
 |---|---|---|---|
 | 1 | `linear-regularization` | linear, with and without regularization | **built — shipped** |
 | 2 | — | instance-based (kNN) | deferred, see below |
-| 3 | `support-vector-machine` | margin-based (SVM) | **built — draft** |
+| 3 | `support-vector-machine` | margin-based (SVM) | **built — shipped** |
 | 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | **next** — see HANDOVER |
 | 5 | — | probabilistic (naive Bayes) | planned |
 | 6 | — | neural networks (a shallow MLP) | planned |
 
-#### Widget 16 · `support-vector-machine` — BUILT, AS A DRAFT
+#### Widget 16 · `support-vector-machine` — SHIPPED
 
 **REBUILT AFTER REVIEW — this supersedes the design notes below.** The first
 build was about the margin, on two clinical data sets, with a hinge-loss panel

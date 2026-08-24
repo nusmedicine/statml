@@ -380,7 +380,6 @@ function renderFramework(params, cur) {
   }
 }
 
-
 /* --- draw ----------------------------------------------------------------- */
 
 /* THE CAPTION NARRATES THE THREE STAGES, and at stage 0 its job is to say what
@@ -629,7 +628,6 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
   ctx.restore();
 }
 
-
 /* --- the widget ----------------------------------------------------------- */
 
 defineWidget({
@@ -641,7 +639,7 @@ defineWidget({
     + "what fixes that — and fixing it is what turns the coefficient into an odds ratio. "
     + "The model is 05-05's own: TenYearCHD ~ BMI + age, on 3658 people from Framingham.",
   layout: "side",
-  status: "draft",
+
   height: CANVAS_H,
 
   params: {
