@@ -846,10 +846,21 @@ await new Promise((r) => f.addEventListener("load", r));
 await new Promise((r) => setTimeout(r, 400));        // SETTLE_MS
 const d = f.contentDocument;
 const px = hash(d.querySelector(".w-figure canvas").toDataURL("image/png"));
-const tx = hash([".w-math", ".w-legend", ".w-readout"]
-  .flatMap((s) => [...d.querySelectorAll(s)]).map((n) => n.textContent)
-  .join(" ").replace(/\s+/g, " ").trim());
+const tx = hash([".w-math", ".w-legend", ".w-readout"]      // per SELECTOR, joined " | "
+  .map((s) => [...d.querySelectorAll(s)].map((n) => n.textContent).join(" "))
+  .join(" | ").replace(/\s+/g, " ").trim());
 ```
+
+**The three selectors are joined by `" | "`, not flattened into one list.** This
+recipe read `.flatMap(…).join(" ")` until it was checked against
+`figureText()` in `fingerprint.html`, which is the function that actually
+recorded every `tx` in the baseline. The two build different strings, so they
+hash differently — and the failure is silent in the worst way: the recipe still
+returns a plausible eight-hex-digit `tx`, and a widget baselined with it reads
+MATCH against itself for ever while never agreeing with the suite. It surfaced
+only because a sixteen-widget spot-check came back 16/16 red on `tx` at the same
+moment `px` went red for an unrelated reason. **Copy `figureText` rather than
+this block if the two ever disagree again.**
 
 Run it from any page under `widgets/_lab/`, loop the states you want, paste the
 pairs into the baseline. Then run the full suite **once** at the end — that run
