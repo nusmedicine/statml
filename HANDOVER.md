@@ -178,35 +178,57 @@ Open, and worth a look:
 
 ---
 
-## THE BASELINE IS MACHINE-DEPENDENT, and that is now demonstrated
+## `px` TRACKS THE DEVICE PIXEL RATIO — the baseline is now Windows
 
-**Ten of `odds-and-risk`'s states DIFFER on this machine, and its code has not
-changed.** Established rather than assumed:
+**The move to Windows turned all 123 states red on `px` and not one on `tx`.**
+The cause is not the rasteriser, which is what this section used to guess. It is
+`devicePixelRatio`, and the arithmetic is exact:
 
-- the ten are exactly its `view=calculate` states — the dot-grid ones
-- **only `px` moved; every `tx` is identical**, so no number and no label changed
-- they differ **identically across two full suite runs**, so it is not flakiness
-- `widgets/odds-and-risk/` was last touched in `1b4be2e`, which `git merge-base
-  --is-ancestor` confirms is an ANCESTOR of `2fda59b`, the commit that recorded
-  the baseline. The code is provably the same code the baseline was taken from
-- opened by hand, the widget is **correct** — the dot columns, the division
-  graphic, 40/60 = 0.67 against 20/80 = 0.25, all right
+| | macOS | this machine |
+|---|---|---|
+| `.w-figure` | 550.4 CSS px | 550.4 CSS px |
+| `devicePixelRatio` | 2 | **1.25** (Windows at 125% scaling) |
+| canvas backing store | 1100 | **688** |
 
-So the figure is fine and the rendering environment is not the one the baseline
-was recorded in. A sub-pixel difference in how a grid of dots is rasterised
-changes every pixel's alpha slightly, which changes the PNG hash, and leaves the
-picture indistinguishable.
+The geometry is identical — same breakpoint, same rail beside the same figure.
+But `px` hashes `toDataURL()`, which encodes the **backing store**, so a display
+scaling change rewrites every hash while leaving the picture the same size on
+screen.
 
-**Do not re-baseline those ten to make the suite green.** That bakes one
-machine's rasteriser into the repository and it will go red again on the next
-one. The real options are to record the baseline in a pinned browser, to hash
-something less brittle than the PNG bytes, or to accept that `px` is a
-same-machine check and lean on `tx`.
+**Measured over the full suite, not sampled:** 123 of 123 `px` moved, **0 of 123
+`tx` moved** — including all 41 driven mid-animation states. `tx` is therefore
+the cross-machine invariant, demonstrated at full scale rather than hoped for.
+The re-baseline diff is exactly 123 `px` lines and nothing else, which is itself
+the evidence that only pixels moved.
 
-> **This lands right before a move to Windows.** The six states just recorded for
-> `support-vector-machine` are this-machine hashes too. Expect the suite to go
-> red wholesale there, on `px` and not on `tx`, and do not read that as sixteen
-> simultaneous regressions — check whether `tx` moved before believing anything.
+**Windows hashes are stable.** Eight states hashed three times each came back
+identical, including `odds-and-risk` — the widget whose ten `view=calculate`
+states were the flaky ones on the Mac. That flakiness has not reappeared here.
+
+### What this means for the next move
+
+**The baseline is now specific to DPR 1.25.** Changing Windows display scaling
+is enough to turn the whole suite red again, and it will look exactly like a
+catastrophic regression. **Check `devicePixelRatio` before believing anything**:
+
+```js
+// in the harness page, or any widget's console
+devicePixelRatio                                   // expect 1.25
+document.querySelector(".w-figure canvas").width   // expect 688 at FRAME_W 900
+```
+
+The standing rule still holds for the **undiagnosed** case: do not re-baseline
+to make the suite green, because that buries the reason. What made re-baselining
+right this time is that the cause was identified first and `tx` proved the
+figures had not changed — the baseline was re-recorded *knowing* what moved, not
+to silence it.
+
+The options for making `px` durable are unchanged, and now better informed: pin
+the browser *and* the scale factor, hash something less brittle than the PNG
+bytes, or accept that `px` is a same-machine check and lean on `tx`. Note that
+normalising the canvas back to a fixed size before hashing would survive a
+scaling change but **not** a platform change — Windows DirectWrite and macOS
+CoreText rasterise text differently, so it solves the smaller half.
 
 ---
 
@@ -225,16 +247,30 @@ matched on `[/\\]`.
 `core.autocrlf=true`, so without it the first commit from a Windows machine
 rewrites every line ending in the repository into one unreadable diff.
 
+**`npm run build` retries the `_site` delete**, because this repo lives inside
+Dropbox and Windows will not remove a directory anything holds a handle on.
+Dropbox indexes `_site/` the moment a build populates it, so a second build died
+on `EBUSY` before writing anything — roughly two runs in three. It is a race, not
+a stuck lock: the failing path moved *deeper* each run, the scanner walking
+behind the delete. Measured worst case 6 attempts, ~300ms.
+
 **Two things that are still macOS-shaped and will need translating:**
 
-- **The PHM5005 notebooks** are read from `~/Downloads/PHM5005 AY2025-26 -
-  Notebooks/For Review/`. On Windows that is
-  `%USERPROFILE%\Downloads\…`; the shared Drive folder in *Reading the PHM5005
-  notebooks* below needs no auth and works anywhere.
+- **The PHM5005 notebooks are NOT on this machine.** `~/Downloads/PHM5005
+  AY2025-26 - Notebooks/For Review/` did not come across, and a search of
+  Downloads, Documents and the whole Dropbox tree finds no `*.ipynb` matching
+  5005. **Widget 17 needs `04-3`'s printed cell outputs** — the accuracy/recall
+  table in *NEXT* above came from them — so re-download from the shared Drive
+  folder in *Reading the PHM5005 notebooks* below, which needs no auth. PHM5003
+  is fine: `../jupyterbook/phm5003` is present.
 - **The scratch verification scripts** (the sklearn comparison, the solver
   bench) were run from a session scratch directory that does not persist. They
   are described in `docs/catalogue.md` under *Widget 16*; rebuilding one takes a
   few minutes and needs `pip install scikit-learn pandas` in a venv.
+
+**Git had no identity here** and refused the first commit. Set repo-local to
+`Kenneth Ban <kennethban@gmail.com>`, matching every existing commit; a
+`--global` one would save doing it again in the next repo.
 
 Everything else is Node ≥ 20 and a browser. Nothing in `package.json` shells out.
 
