@@ -55,6 +55,11 @@ with x₁ and x₂ on the axes, and two display toggles — `Looking at`
 (Input space / Kernel space) and the support-vector rings. Every control carries
 a plain-language `detail` line. No seed control and no `shown`.
 
+**No Step and no Play** (4.5). Declaring `animation` for the ease gets core's
+two drive buttons for free and they have nothing to run; `stepLabel: null` and
+`runLabel: null` decline them. Worth knowing for the next widget that eases: an
+ease is not an animation the reader drives.
+
 **THE LIFT is the thing to look at.** `Looking at → Kernel space` morphs the
 panel into Kenneth's notebook diagram: the samples slide vertically to
 f(x) and the curved boundary flattens into the line f = 0 with its margins at

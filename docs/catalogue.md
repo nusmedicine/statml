@@ -3154,6 +3154,14 @@ different: on the crescents a degree-3 polynomial threads a single smooth cubic
 between the two arcs (**14 support vectors, none wrong**) where RBF makes closed
 loops, and on the rings degree 2 gives an exact conic with **9 support vectors**.
 
+**No Step and no Play.** Declaring `animation` for the ease got core's two
+default drive buttons for free, and they had nothing to advance — Kenneth
+clicked them and nothing happened. `stepLabel: null` and `runLabel: null`
+decline them, which is 4.5 and what widget 12 does for the same reason: a dead
+Step beside a live toggle teaches that the toggle is the afterthought. **An ease
+is not an animation the reader drives**, and the only thing that should be
+declared alongside it is the control that triggers it.
+
 **Verified again after all three: 150 of 150 states match `sklearn.svm.SVC`
 exactly** on support-vector count and error count — every dataset × kernel × C ×
 (γ or d). The polynomial reference is `SVC(kernel="poly", gamma=1, coef0=1)`,

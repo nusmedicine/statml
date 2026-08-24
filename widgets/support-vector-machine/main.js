@@ -538,6 +538,15 @@ defineWidget({
    * makes the motion readable — every dot slides straight up or down, and a
    * reader can follow the one they were looking at.                          */
   animation: {
+    /* NO STEP AND NO PLAY. Principle 4.5, and `null` rather than omitted:
+       omitting still gets core's default button. There is nothing here to
+       advance one of, and nothing to keep going — the only motion is the lift,
+       and the control that drives it is `Looking at`. A dead Step beside a live
+       toggle teaches that the toggle is the afterthought, which is backwards.
+       Widget 12 declines for the same reason. */
+    stepLabel: null,
+    runLabel: null,
+
     init: ({ params }) => {
       const t = params.lift === "kernel" ? 1 : 0;
       return { t, tT: t, easing: false, done: false };
