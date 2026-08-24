@@ -23,9 +23,17 @@
 
 import { readFile, readdir, access } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/* IMPORT BY file:// URL, NEVER BY PATH. `join()` gives a POSIX absolute path on
+   a Mac, which `import()` happens to accept, and `C:\...` on Windows, which it
+   refuses outright — `ERR_UNSUPPORTED_ESM_URL_SCHEME: Received protocol 'c:'`.
+   So every one of these five imports worked here and `npm run check` — and with
+   it `npm run build` — failed on the first line of the first assertion on any
+   Windows machine. */
+const mod = (rel) => import(pathToFileURL(join(root, rel)).href);
 const problems = [];
 const notes = [];
 
@@ -42,7 +50,7 @@ const exists = async (p) => {
 
 /* --- populations: mu-centred windows, valid discrete masses -------------- */
 
-const { POPULATIONS } = await import(join(root, "widgets/core/stats.js"));
+const { POPULATIONS } = await mod("widgets/core/stats.js");
 
 for (const [key, p] of Object.entries(POPULATIONS)) {
   const [lo, hi] = p.domain;
@@ -77,8 +85,8 @@ ok(`${Object.keys(POPULATIONS).length} populations: mu-centred, masses valid`);
 
 /* --- the pile: seeded, reproducible, monotone axis ---------------------- */
 
-const { createPile } = await import(join(root, "widgets/core/accumulator.js"));
-const { makeRng } = await import(join(root, "widgets/core/rng.js"));
+const { createPile } = await mod("widgets/core/accumulator.js");
+const { makeRng } = await mod("widgets/core/rng.js");
 
 {
   const build = () => {
@@ -121,7 +129,7 @@ const { makeRng } = await import(join(root, "widgets/core/rng.js"));
   ok("pile: seeded reproducibly, axis monotone, rebuild matches push sequence");
 }
 
-const { hitTest } = await import(join(root, "widgets/core/canvas.js"));
+const { hitTest } = await mod("widgets/core/canvas.js");
 
 /* --- hitTest: the arithmetic no pixel hash can see ---------------------- *
  * A canvas click is the one interaction a fingerprint cannot cover: the picture
@@ -330,7 +338,7 @@ ok(
 
 /* --- the deployed site: one name for /widget/, and no absolute paths ----- */
 
-const { PUBLIC_DIR } = await import(join(root, "scripts/site.mjs"));
+const { PUBLIC_DIR } = await mod("scripts/site.mjs");
 
 {
   // build.mjs and serve.mjs import PUBLIC_DIR. index.html cannot — it is served

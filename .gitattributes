@@ -1,0 +1,13 @@
+# LF in the working tree on every platform.
+#
+# Git for Windows defaults to core.autocrlf=true, which checks every file out
+# with CRLF and converts back on commit. Two things go wrong without this file:
+# a first commit from a Windows machine rewrites the line endings of the whole
+# repository into one unreadable diff, and any check that matches file contents
+# has to care which platform wrote them.
+* text=auto eol=lf
+
+# Nothing here is binary, but say so for the ones a future contributor might add.
+*.png binary
+*.jpg binary
+*.woff2 binary

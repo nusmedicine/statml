@@ -221,6 +221,23 @@
       ],
       "arc": 15,
       "status": "draft"
+    },
+    {
+      "slug": "support-vector-machine",
+      "title": "Support Vector Machines",
+      "blurb": "A straight boundary cannot carve out a ring. C sets how wide the corridor is; the kernel sets what shape it may be.",
+      "course": "PHM5005",
+      "topics": [
+        "SVM",
+        "margin",
+        "support vectors",
+        "kernel",
+        "RBF",
+        "classification",
+        "hyperparameters"
+      ],
+      "arc": 16,
+      "status": "draft"
     }
   ]
 }

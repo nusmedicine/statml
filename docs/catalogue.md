@@ -3051,10 +3051,208 @@ sections, each with a **Model** and an **Objective** — is the spine.
 |---|---|---|---|
 | 1 | `linear-regularization` | linear, with and without regularization | **built — shipped** |
 | 2 | — | instance-based (kNN) | deferred, see below |
-| 3 | — | margin-based (SVM) | planned |
-| 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | planned |
+| 3 | `support-vector-machine` | margin-based (SVM) | **built — draft** |
+| 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | **next** — see HANDOVER |
 | 5 | — | probabilistic (naive Bayes) | planned |
 | 6 | — | neural networks (a shallow MLP) | planned |
+
+#### Widget 16 · `support-vector-machine` — BUILT, AS A DRAFT
+
+**REBUILT AFTER REVIEW — this supersedes the design notes below.** The first
+build was about the margin, on two clinical data sets, with a hinge-loss panel
+beside the plane. Kenneth asked for three things — one data set, show the kernel
+transformation, drop the hinge loss if it is hard to explain — and pointed at a
+published interactive (a Medium article by Budi Sumandra) whose shape is:
+synthetic blobs / circles / moons, a linear-vs-rbf toggle, C and gamma sliders,
+a *show support vectors* checkbox, and ONE panel showing the decision boundary
+with its two margin contours.
+
+**The widget is now that shape.** Three generators (`Two blobs`, `Rings`,
+`Crescents`), two kernels, C and gamma on `choice` ladders, one square panel with
+x₁ and x₂ on the axes, and a display toggle for the rings on the support
+vectors. Every control carries a plain-language `detail` line, which is the
+"student friendly" half of the ask.
+
+**The claim:** C sets how wide the corridor is; the kernel sets what shape it may
+be. On the rings a linear kernel puts a straight boundary through the middle —
+**171 of 180 samples become support vectors and 74 are misclassified** — and the
+same data under an RBF kernel is a closed circle with **31 support vectors and
+none wrong**. One control, and the whole point of a kernel.
+
+**THE DATA IS GENERATED, AND IT HAS TO BE.** None of PHM5005's data sets can show
+a kernel doing anything, which was measured before anything was drawn:
+
+| data | what a kernel adds |
+|---|---|
+| Colorectal biopsies (`03-5`) | nothing. 2,258 probes have \|AUC − 0.5\| > 0.45 and one separates the classes alone; of 435 mid-strength pairs, **0** need a curve |
+| Heart failure (`04-3`) | 2.4–4.0 CV points on the best 2-feature pairs, and on all features RBF is **worse** than linear, 0.729 against 0.736. Ejection fraction is not U-shaped: the 50–60 uptick is 7 deaths in 24 patients and 60+ drops back to 0.194 |
+| Body fat (`04-1/2/3`) | regression, not classification |
+
+So the samples come from the seeded `rng`, as widgets 1–11 do. **A clinical
+framing was built and cut**: two labs each with a reference range, so "normal on
+both" is a region in the middle and the boundary is a ring for a real reason.
+It is at `widgets/_lab/svm-kernel.html` with its measurements. It was dropped
+because a made-up label on invented patients reads as a clinical finding, and
+this widget's subject is a shape. Kenneth's call.
+
+**The two-panel lift is also built, and also not shipped.** Same lab page: the
+measurements on the left, φ(z) = (z₁², z₂²) on the right, where the boundary is
+a straight line with a corridor — a genuine degree-2 polynomial map that lands
+in TWO dimensions, so the lifted space can be drawn rather than described. It is
+one commit away if the boundary's *shape* turns out not to be enough of an
+illustration. It cannot draw RBF or crescents, which is why it is not the widget.
+
+##### Round two: the lift, the ease, and the third kernel
+
+Kenneth's three follow-ups, and what each turned into.
+
+**1. "Is there a way to visualize lifts?"** — he has the classic three-panel
+diagram in the notebook: *input space → (Kernel) → kernel space, boundary flat,
+margins either side → back to input space, boundary a ring.* The widget now does
+that as **one panel that morphs**, on a `Looking at` control: *Input space* /
+*Kernel space*.
+
+**The lifted view is exact, for every kernel.** `f(x) = w·φ(x) + b` is a linear
+functional of the feature vector, so plotting `f` against `x₁` is a true 2-D view
+of the kernel space — the direction `w`, and one input coordinate. The boundary
+is exactly the line `f = 0` and the margins exactly `f = ±1`. Nothing about it is
+an illustration, which the earlier φ(z) = (z₁², z₂²) lab version could not claim
+for RBF.
+
+**Only the HEIGHT moves.** `x₁` is the horizontal axis at both ends, so every dot
+slides straight up or down and a reader can follow the one they were watching.
+One rule does all of it: a sample at input height `x₂` with decision value `f` is
+drawn at `(1−t)·x₂ + t·squash(f)`, and a contour vertex at height `b` on level
+`L` at `(1−t)·b + t·L`. So the boundary flattens into `y = 0` and its margins
+into `y = ±1`, and the samples and the boundary cannot disagree mid-flight (5.8).
+
+**The vertical axis is linear to one margin and logarithmic beyond.** Median
+max|f| over the 150 states is **1.90** and the worst is **42** (blobs, degree-4
+polynomial, C = 100), so a linear axis either wastes four fifths of the panel or
+throws away 68 of 180 samples. The three positions that carry meaning — the
+boundary and the two margins — keep true spacing; "much further out" is
+compressed, which is the half that carries none. Those three are the **only
+labelled positions**, so the axis never claims a reading it is not giving.
+
+**2. "Can the transitions be animated?"** — the lift eases, on core's
+display-change path: `rebuild` sets `anim.easing`, core grants frames, `advance`
+chases the target exponentially so an interruption resumes from where the figure
+actually is. That is 4.4's narrow case, and this is its second use after widget
+12's two denominators.
+
+A contour is only traced where it EXISTS in the input plane, so a closed ring
+flattens into a segment as wide as the ring was — a boundary stopping in mid-air.
+The full-width straight line is **cross-faded** with it. Both fade, not just one:
+they land at the same height at t = 1, but a dashed contour and a dashed line
+arrive with different dash phases, and two dashes out of phase on one line read
+as a solid one.
+
+**3. "Would polynomial be useful?"** — yes, and it is in. `K = (⟨xᵢ,xⱼ⟩ + 1)^d`,
+the notebook's own form, with `d` on its own `choice` ladder shown only for that
+kernel, exactly as γ is shown only for RBF. It earns its place by looking
+different: on the crescents a degree-3 polynomial threads a single smooth cubic
+between the two arcs (**14 support vectors, none wrong**) where RBF makes closed
+loops, and on the rings degree 2 gives an exact conic with **9 support vectors**.
+
+##### Round three: the flip, which was two things
+
+*"Why is it when we use the linear kernel there is some flip transformation?"*
+Measured rather than guessed, and it was **two separate causes**:
+
+**One was my labelling.** The kernel space puts the +1 class above the boundary
+by definition, so a data set whose +1 class sits LOW in the input space has to
+turn over on the way up. The crescents had the +1 class on the *lower* arc, so
+they flipped under **every** kernel: the correlation between x₂ and f ran −0.75
+to −0.94 across all ten kernel settings. Swapping the arcs takes it to **+0.75
+to +0.94** and the flip is gone. The fit is untouched — a global label swap
+negates w, b and f and leaves the support-vector set and the error count exactly
+as they were, re-checked against sklearn afterwards.
+
+**One was real, and only on the linear kernel.** On the rings, the linear fit is
+degenerate — no line separates them — so the direction w is essentially
+arbitrary, and it landed near −x₂: correlation **−0.98** for linear against
+−0.05 to −0.17 for every curved kernel. Lifting along an arbitrary direction
+mirrored the picture.
+
+**The fix is that the linear kernel's lift is now a ROTATION.** For a linear
+kernel φ is the identity, so its "kernel space" *is* the input plane — the
+honest move is to turn the plane until the boundary is level, not to collapse it
+onto f. The horizontal axis becomes the along-boundary coordinate and says so;
+the caption reads *the same plane, turned level*, which is the whole point of a
+linear kernel. Written as a proper rotation: `t = (w₂, −w₁)/‖w‖` against
+`n = w/‖w‖` has determinant **+1**, where the more obvious `(−w₂, w₁)` has
+determinant −1 and is a REFLECTION. That distinction is the entire fix — a
+reflection reads as an unexplained mirror, a rotation reads as turning the page.
+Checked: det = 1.000000 at every C on all three data sets.
+
+**A harness number can be 300× wrong and still get captioned as normal.** The
+sweep reported a worst repaint of **22 seconds** on one state, under a line
+saying "each state is a COLD page, so the worst is a first paint". That state
+warm is 54–138 ms and its whole compute path in node is 70 — the number was the
+browser pane being throttled, and the same 201-state sweep took 84 s, 165 s and
+465 s on three identical runs. The harness now drives each state twice and times
+the second.
+
+**No Step and no Play.** Declaring `animation` for the ease got core's two
+default drive buttons for free, and they had nothing to advance — Kenneth
+clicked them and nothing happened. `stepLabel: null` and `runLabel: null`
+decline them, which is 4.5 and what widget 12 does for the same reason: a dead
+Step beside a live toggle teaches that the toggle is the afterthought. **An ease
+is not an animation the reader drives**, and the only thing that should be
+declared alongside it is the control that triggers it.
+
+**Verified again after all three: 150 of 150 states match `sklearn.svm.SVC`
+exactly** on support-vector count and error count — every dataset × kernel × C ×
+(γ or d). The polynomial reference is `SVC(kernel="poly", gamma=1, coef0=1)`,
+which is the notebook's form rather than sklearn's default.
+
+##### Decided while building, so it is not re-argued
+
+- **The corridor is NOT shaded.** Shading |f| ≤ 1 is right for a linear kernel,
+  where the band is a strip. On an RBF it inverts the picture: f decays to b away
+  from the data, so the whole far field sits inside the margin and the shading
+  covers everything *except* the two clouds — which reads as "the margin is the
+  plane". Both were drawn. The three contours say it without lying, which is
+  what every SVM tutorial figure does.
+- **The panel is square**, so its height is a function of the width. A margin is
+  a distance and a distance needs equal units per pixel.
+- **One fixed square domain for all three generators**, so gamma means the same
+  thing in each (2.5).
+- **RBF, not poly.** The notebook offers linear / poly / rbf; poly is left out
+  because rbf is the notebook's own default and the one whose two dials — C and
+  gamma — the notebook explains.
+
+##### Verified
+
+- **105 of 105 states match `sklearn.svm.SVC` exactly** on support-vector count
+  and error count — every dataset × kernel × C × gamma combination, checked twice:
+  once against the extracted solver in node, once against the running widget's
+  own readout in the browser.
+- **111-state canvas text sweep**: no overrun, no NaN, no collision. Slowest
+  repaint 52 ms, median 17 ms.
+
+##### Three things that cost time, all of which looked like something else
+
+**A temporal dead zone in the solver made every solve throw, and it read as a
+harness problem.** `const hi = C - 1e-12` at function scope, then `let lo, hi`
+inside the loop body — the `let` shadows the outer binding for the whole block,
+including the selection loop that runs *before* the declaration. A widget that
+throws in `render()` leaves its canvas at the default 150×75 and its readout
+empty, so the sweep reported a clean pass over an empty list and the obvious
+reading was "the iframe had not laid out yet". **The sweep now fails a state that
+painted nothing**, which is the check that would have named it in one run.
+
+**`maxIter` was the binding constraint, not `eps`.** On the rings at C = 100 — a
+linear kernel on data no line can separate, so the optimum is flat — stopping at
+20,000 iterations gave 175 support vectors and 77 errors against sklearn's 170
+and 74. Every value of eps from 1e-5 to 1e-9 gave the *same* cut-off answer, and
+every one of them converged to sklearn's exactly once the cap was raised. A
+cut-off solve is silently wrong rather than obviously wrong.
+
+**Two closures in the selection loop cost 1.9 seconds on one state.** The
+membership tests were `inUp(k)` / `inLow(k)`, called twice per sample per
+iteration — tens of millions of closure calls on a control meant to be dragged.
+Written out inline the same state is tens of milliseconds.
 
 `linear-regularization` **is** the `regularization-path` entry in the tail list
 below, built under a clearer name. Its misconception: *the penalty is not a
