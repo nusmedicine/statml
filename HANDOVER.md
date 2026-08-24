@@ -31,48 +31,60 @@ before.
 
 ## NEXT: widget 16 needs review, then its baseline
 
-**`support-vector-machine` is built and has had no human eyes on it.** It has no
-fingerprint states yet, deliberately — baselining comes after the design stops
-moving, and the design has not been reviewed once.
+**`support-vector-machine` is built and REBUILT.** It has no fingerprint states
+yet, deliberately — baselining comes after the design stops moving, and this
+design has moved once already.
 
     http://localhost:8000/widgets/support-vector-machine/
 
-Three states worth opening in this order:
+Four states, in this order:
 
 | what it shows | url |
 |---|---|
-| the default, sklearn's C = 1 | `?theme=light` |
-| the payoff: 191 samples deleted, boundary unmoved | `?theme=light&C=8&only=true&compare=true` |
-| the failing case: no gap, the corridor IS the cohort | `?theme=light&data=hf` |
+| the default — blobs, a line is enough | `?theme=light` |
+| **a line cannot carve out a ring** — 171 of 180 are support vectors, 74 wrong | `?theme=light&data=rings&kernel=linear` |
+| **the same data, RBF** — a closed circle, 31 support vectors, none wrong | `?theme=light&data=rings&kernel=rbf` |
+| gamma too high — the boundary wraps single samples | `?theme=light&data=moons&kernel=rbf&gamma=5` |
 
-**What it does.** Two data sets on one segmented control, one dial (C on a
-nine-rung log ladder), and two display toggles. The plane on the left with the
-corridor and the support vectors ringed; the hinge loss on the right, with every
-sample counted into bins beneath it. No animation, no seed, no `shown` — one
-dial, and dragging it is the motion (4.5).
+**What it is.** Three generated data sets (`Two blobs`, `Rings`, `Crescents`),
+two kernels (Linear, RBF), C and γ on `choice` ladders, one square panel with x₁
+and x₂ on the axes, and a display toggle for the support-vector rings. Every
+control carries a plain-language `detail` line. No animation, no seed control,
+no `shown`.
 
-**What it has already survived.** A 144-state canvas text sweep at both frame
-widths — no overrun, no NaN, no collision — and every fit agrees with
-`sklearn.svm.SVC(kernel="linear")` to four decimals in `w` and `b` at all nine
-rungs on both data sets. The design decisions and the three measurements that
-killed alternatives are in `docs/catalogue.md` under *Widget 16*; the stage
-comparison that chose the data is at `widgets/_lab/svm-stage.html`.
+**Its shape came from a published interactive Kenneth pointed at** (a Medium
+article by Budi Sumandra) — blobs / circles / moons, linear-vs-rbf, C and gamma,
+show-support-vectors, one panel. `docs/catalogue.md` under *Widget 16* has the
+full decision record.
+
+**What it has already survived.** **105 of 105 states match
+`sklearn.svm.SVC` exactly** on support-vector count and error count — every
+dataset × kernel × C × γ, checked twice: against the extracted solver in node,
+and against the running widget's own readout in the browser. Plus a 111-state
+canvas text sweep with no overrun, no NaN and no collision; slowest repaint
+52 ms, median 17.
 
 **Open, and worth a look while reviewing:**
 
-- **The boundary is on `--c-highlight` violet, not `--c-theory`.** Orange is
-  eleven degrees of hue from `--c-event`'s red, which this file already records
-  as reading like one colour at a thin stroke. If that holds it wants a **named
-  role** rather than a borrowed one: five of the six PHM5005 algorithm widgets
-  draw a decision boundary, so `--c-boundary` would be earning its slot rather
-  than serving one widget.
-- **`regions` is still not declared.** A click on a sample could set a `focus`
-  parameter and light that sample up in both panels — which is what the region
-  machinery was kept for. Deferred to round two on purpose: the keyboard path
-  for it is 194 or 299 options and needs its own answer.
-- **No RBF.** `gamma` overfits measurably (train 0.722 → 0.886, CV peaking at
-  1.0) but that is widget 13's lesson with a different dial, and the notebook's
-  scaling caveat does not fire at all. Both are recorded in the catalogue.
+- **No seed control.** The data is fixed at seed 1. Exposing a seed would let a
+  reader redraw the samples and watch which points become support vectors — one
+  line of spec — but it is a fourth control on a widget that was asked to be
+  simpler.
+- **The two-panel LIFT is built and not shipped**, at
+  `widgets/_lab/svm-kernel.html`: measurements on the left, φ(z) = (z₁², z₂²) on
+  the right, where the boundary is a straight line with a corridor. It is the
+  deeper answer to *why a kernel* — the SVM only ever draws a straight line, and
+  the kernel picks the space. It cannot draw RBF or crescents, which is why the
+  shipped widget shows the boundary's shape instead. One commit away.
+- **The clinical framing is also on that page and was cut** — two labs with
+  reference ranges, so "normal on both" is a region in the middle. Dropped
+  because a made-up label on invented patients reads as a clinical finding.
+- **No polynomial kernel.** The notebook lists linear / poly / rbf; poly is left
+  out because rbf is its default and the one whose two dials it explains.
+- **`--c-boundary` still wants a name.** The boundary is on `--c-highlight`
+  violet because `--c-theory` orange is eleven degrees of hue from
+  `--c-event`'s red. Five of the six PHM5005 algorithm widgets draw a decision
+  boundary, so the role would be earning its slot rather than serving one widget.
 
 ---
 
@@ -555,6 +567,13 @@ PR.fillText = function (s, x, y) {
 - **It cannot see DOM.** Widget 14's equation is MathML and does not go through
   `fillText` at all — the sweep stopped seeing it with no error and no gap in its
   output. That is what the text hash below exists to cover.
+- **A STATE THAT PAINTED NOTHING IS A FAILURE, NOT A PASS.** A widget that
+  throws inside `render()` leaves its canvas at the default **150x75** and its
+  readout empty — and a sweep that only counts overruns then reports a clean run
+  over an EMPTY LIST. That is exactly how a temporal-dead-zone bug in widget
+  16's solver, throwing on every single state, read as "the harness settled too
+  early" for a whole round. Assert the canvas has a real width and the readout
+  has text before believing a zero.
 - **FORCE THE REPAINT BY DRIVING A CONTROL, never by resizing.** Widget 16's
   sweep reported a clean pass twice from an EMPTY list. Dispatching `resize` on
   the iframe's window does nothing, because core listens to a ResizeObserver on
