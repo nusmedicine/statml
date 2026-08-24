@@ -3,9 +3,12 @@
 ## Where things are
 
 **Sixteen widgets: fourteen shipped, and `logistic-regression` and
-`support-vector-machine` built as DRAFTS.** Both sit at `/lab/`, off the
-gallery, and neither has been judged projected. Everything before them is
-unchanged and still live at <https://nusmedicine.github.io/statml/>.
+`support-vector-machine` deployed as DRAFTS.** Both sit at `/lab/`, off the
+gallery, and neither has been judged projected. Everything is live at
+<https://nusmedicine.github.io/statml/>.
+
+**Next up is widget 17, tree-based models** — the section right after SVM in
+`04-3`. Nothing is built; what is known is directly below.
 
 ```bash
 npm run dev      # :8000 — USE THIS, not python -m http.server
@@ -29,80 +32,172 @@ before.
 
 ---
 
-## NEXT: widget 16 needs review, then its baseline
+## NEXT: widget 17 — tree-based models and ensembles
 
-**`support-vector-machine` is built and REBUILT.** It has no fingerprint states
-yet, deliberately — baselining comes after the design stops moving, and this
-design has moved once already.
+Arc A #4 in [docs/catalogue.md](docs/catalogue.md): **one widget for tree →
+forest → boosting**, hosting at PHM5005 `04-3`, sections "Tree-based Models" and
+"Ensembled Trees". Nothing is built. Nothing is designed. What follows is what
+is already known, so none of it is re-measured.
+
+### The notebook's own numbers, which are the strongest evidence in the section
+
+`04-3` runs all three on the heart-failure test set and prints this:
+
+| model | accuracy | recall on deaths | deaths caught |
+|---|---|---|---|
+| Decision tree | 0.70 | **0.58** | 11 of 19 |
+| Random forest | **0.72** | 0.42 | 8 of 19 |
+| Gradient boosting | 0.65 | 0.42 | 8 of 19 |
+
+**The section's claim is "Higher accuracy than single trees. Reduce
+overfitting."** On its own worked example the forest gains two points of accuracy
+and **misses three more deaths than the single tree it replaced**, and boosting
+is worse on both counts. That is a real, notebook-native finding and it is the
+first thing to decide about: is it this widget's subject, or does it belong to
+the evaluation arc (`04-2` owns the threshold and the confusion matrix)?
+**Do not let it be both.**
+
+### What a tree widget can reuse from widget 16, verbatim
+
+The two are the same picture with a different boundary, which is an argument for
+building it on the same stage:
+
+- **The three generators** — `Two blobs`, `Rings`, `Crescents` — with their fixed
+  square domain and seeded `rng`. A tree on the rings draws a **staircase**
+  around them where the RBF drew a circle, and putting those two side by side in
+  a lesson is free if the data is the same.
+- **The square isometric panel** and `heightFor`.
+- **`contour()` + `chain()`** — marching squares with interpolated crossings and
+  the segments linked into polylines. A tree's decision surface is piecewise
+  constant, so its contours come out as exact axis-aligned steps with no extra
+  work.
+- **The sweep harness**, `widgets/_lab/svm-sweep.html`. Point it at the new slug
+  and change the state list.
+
+### What is DIFFERENT, and worth deciding early
+
+- **A tree grows, so it probably WANTS Step and Play** — depth 1, then 2, then 3,
+  one split at a time — where widget 16 declined both. That is a real animation
+  with something to advance, and `check.mjs` will then demand a driven
+  fingerprint state.
+- **A forest is a pile of trees**, which is what `core/accumulator.js` is for and
+  what four widgets in the statistics arc already use. Averaging B trees one at a
+  time is the same motion as `bootstrap`'s resampling — 2.3, show a countable
+  thing while the count is small.
+- **Boosting is sequential and corrects the previous tree's mistakes**, which is
+  a genuinely different motion from bagging and may not fit one widget with the
+  other two. The catalogue says one widget for all three; that was decided before
+  any of it was drawn, and it is worth re-testing against a mock-up rather than
+  assumed.
+
+### Measure before designing — it has paid four times now
+
+Every widget in this arc has had at least one candidate story die to a
+measurement, and each death saved a build:
+
+- kNN's *forgetting to scale* — dead, ejection fraction is recorded in coarse
+  steps so creatinine survives as a tie-breaker
+- SVM's *always standardise* — dead, `gamma="scale"` already divides by the
+  variance
+- SVM's *a kernel unlocks the problem* — dead on all three course data sets, so
+  widget 16 generates its own
+- the *margin is a handful of points* — dead on heart failure, 179 of 299
+
+**For trees, the obvious candidates to measure first:**
+
+1. **Does a single tree's structure really change with the data?** The notebook
+   says "small changes in data can change the tree structure". Refit on 25
+   bootstrap resamples and count how often the ROOT split changes feature. If it
+   is stable, that caveat does not fire and should not be built.
+2. **Does the forest actually reduce variance visibly?** Same 25 resamples,
+   measure the spread of the decision boundary for a single tree against a
+   100-tree forest.
+3. **Where does boosting's advantage show up**, if anywhere, given it is the
+   worst of the three on this data?
+
+`04-3`'s data is body fat (regression) and heart failure (classification); the
+scratch reference for both, plus the sklearn comparison harness, is described
+under *Widget 16* in the catalogue.
+
+---
+
+## THEN: widget 16 needs its fingerprint baseline before it can ship
+
+**`support-vector-machine` is deployed as a DRAFT** — it is at `/lab/`, off the
+gallery, which is where a draft belongs. Two things stand between it and
+`status: "shipped"`:
+
+1. **No fingerprint states.** `check.mjs` fails a non-draft widget without them.
+   The design has now been through three rounds and stopped moving, so this is
+   the moment. Hash them directly rather than by placeholder-and-diff — the
+   recipe is under *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* below. It declares an
+   `animation` (the lift's ease), so `check` will also want a **driven** state:
+   `drive: { set: { lift: "kernel" }, frames, dt }`.
+2. **It has never been judged projected.** Neither have widgets 11–15.
+
+### What it is, and what was decided
+
+Three generated data sets, all three of `04-3`'s kernels, C on a ladder with γ or
+d beside it, and two display toggles — `Looking at` (Input space / Kernel space)
+and the support-vector rings. **150 of 150 states match `sklearn.svm.SVC`
+exactly** on support-vector count and error count.
 
     http://localhost:8000/widgets/support-vector-machine/
-
-Four states, in this order:
 
 | what it shows | url |
 |---|---|
 | the default — blobs, a line is enough | `?theme=light` |
 | **a line cannot carve out a ring** — 171 of 180 are support vectors, 74 wrong | `?theme=light&data=rings&kernel=linear` |
 | **the same data, RBF** — a closed circle, 31 support vectors, none wrong | `?theme=light&data=rings&kernel=rbf` |
-| **THE LIFT** — press *Kernel space* here and watch it flatten | `?theme=light&data=rings&kernel=rbf` |
-| the polynomial, threading one cubic between the crescents | `?theme=light&data=moons&kernel=poly` |
-| gamma too high — the boundary wraps single samples | `?theme=light&data=moons&kernel=rbf&gamma=5` |
+| **THE LIFT** — press *Kernel space* and watch it flatten | `?theme=light&data=rings&kernel=rbf` |
+| the polynomial, one cubic between the crescents | `?theme=light&data=moons&kernel=poly` |
+| γ too high — the boundary wraps single samples | `?theme=light&data=moons&kernel=rbf&gamma=5` |
 
-**What it is.** Three generated data sets (`Two blobs`, `Rings`, `Crescents`),
-all three of the notebook's kernels (Linear, Polynomial, RBF), C on a `choice`
-ladder with γ or d appearing beside it depending on the kernel, one square panel
-with x₁ and x₂ on the axes, and two display toggles — `Looking at`
-(Input space / Kernel space) and the support-vector rings. Every control carries
-a plain-language `detail` line. No seed control and no `shown`.
+Open, and worth a look:
 
-**No Step and no Play** (4.5). Declaring `animation` for the ease gets core's
-two drive buttons for free and they have nothing to run; `stepLabel: null` and
-`runLabel: null` decline them. Worth knowing for the next widget that eases: an
-ease is not an animation the reader drives.
-
-**THE LIFT is the thing to look at.** `Looking at → Kernel space` morphs the
-panel into Kenneth's notebook diagram: the samples slide vertically to
-f(x) and the curved boundary flattens into the line f = 0 with its margins at
-±1. It is **exact for every kernel** — f is a linear functional of the feature
-vector, so plotting it against x₁ is a true 2-D view of the kernel space — and
-it EASES, on core's display-change path (4.4, second use after widget 12).
-
-**Its shape came from a published interactive Kenneth pointed at** (a Medium
-article by Budi Sumandra) — blobs / circles / moons, linear-vs-rbf, C and gamma,
-show-support-vectors, one panel. `docs/catalogue.md` under *Widget 16* has the
-full decision record.
-
-**What it has already survived.** **150 of 150 states match
-`sklearn.svm.SVC` exactly** on support-vector count and error count — every
-dataset × kernel × C × (γ or d), checked against the extracted solver in node;
-the linear and RBF half was also checked against the running widget's own
-readout in the browser. The polynomial reference is
-`SVC(kernel="poly", gamma=1, coef0=1)`, which is the notebook's
-`(⟨xᵢ,xⱼ⟩ + 1)^d` rather than sklearn's default. Plus a 111-state
-canvas text sweep with no overrun, no NaN and no collision; slowest repaint
-52 ms, median 17.
-
-**Open, and worth a look while reviewing:**
-
-- **No seed control.** The data is fixed at seed 1. Exposing a seed would let a
-  reader redraw the samples and watch which points become support vectors — one
-  line of spec — but it is a fourth control on a widget that was asked to be
-  simpler.
 - **The lifted view's vertical axis is compressed beyond one margin**, because
   median max|f| is 1.90 and the worst state is 42. Only 0 and ±1 are labelled,
-  so it never claims a reading it is not giving — but it is a broken axis and
-  worth a second opinion.
-- **An earlier two-panel lift is superseded** and left at
-  `widgets/_lab/svm-kernel.html`: φ(z) = (z₁², z₂²) side by side with the
-  measurements. It reads well but can only draw that one map — not RBF, not the
-  crescents — which is why the shipped lift plots f instead.
-- **The clinical framing is also on that page and was cut** — two labs with
-  reference ranges, so "normal on both" is a region in the middle. Dropped
-  because a made-up label on invented patients reads as a clinical finding.
+  so it never claims a reading it is not giving — but it is a broken axis.
+- **No seed control.** The data is fixed at seed 1. Exposing one would let a
+  reader redraw the samples and watch which points become support vectors — one
+  line of spec, but a fourth control on a widget asked to be simpler.
 - **`--c-boundary` still wants a name.** The boundary is on `--c-highlight`
   violet because `--c-theory` orange is eleven degrees of hue from
   `--c-event`'s red. Five of the six PHM5005 algorithm widgets draw a decision
   boundary, so the role would be earning its slot rather than serving one widget.
+- **An earlier two-panel lift is superseded** and left at
+  `widgets/_lab/svm-kernel.html`: φ(z) = (z₁², z₂²) beside the measurements. It
+  reads well but can only draw that one map — not RBF, not the crescents.
+
+---
+
+## Working on Windows
+
+**The toolchain runs there now; it did not before.** `npm run check` — and with
+it `npm run build` — failed on the first line of the first assertion on any
+Windows machine, because five dynamic imports were written
+`import(join(root, "…"))` and `join()` gives `C:\…` there, which Node's ESM
+loader refuses outright: `ERR_UNSUPPORTED_ESM_URL_SCHEME, Received protocol
+'c:'`. They go through `pathToFileURL` now. `serve.mjs` and `build.mjs` were
+already fine — both use `resolve`/`sep`, and build's lab-directory filter already
+matched on `[/\\]`.
+
+`.gitattributes` now pins the working tree to LF. Git for Windows defaults to
+`core.autocrlf=true`, so without it the first commit from a Windows machine
+rewrites every line ending in the repository into one unreadable diff.
+
+**Two things that are still macOS-shaped and will need translating:**
+
+- **The PHM5005 notebooks** are read from `~/Downloads/PHM5005 AY2025-26 -
+  Notebooks/For Review/`. On Windows that is
+  `%USERPROFILE%\Downloads\…`; the shared Drive folder in *Reading the PHM5005
+  notebooks* below needs no auth and works anywhere.
+- **The scratch verification scripts** (the sklearn comparison, the solver
+  bench) were run from a session scratch directory that does not persist. They
+  are described in `docs/catalogue.md` under *Widget 16*; rebuilding one takes a
+  few minutes and needs `pip install scikit-learn pandas` in a venv.
+
+Everything else is Node ≥ 20 and a browser. Nothing in `package.json` shells out.
 
 ---
 

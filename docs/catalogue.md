@@ -3052,7 +3052,7 @@ sections, each with a **Model** and an **Objective** — is the spine.
 | 1 | `linear-regularization` | linear, with and without regularization | **built — shipped** |
 | 2 | — | instance-based (kNN) | deferred, see below |
 | 3 | `support-vector-machine` | margin-based (SVM) | **built — draft** |
-| 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | planned |
+| 4 | — | tree-based and ensembles, **one widget** for tree → forest → boosting | **next** — see HANDOVER |
 | 5 | — | probabilistic (naive Bayes) | planned |
 | 6 | — | neural networks (a shallow MLP) | planned |
 
