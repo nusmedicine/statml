@@ -6,35 +6,49 @@
 `support-vector-machine` were promoted out of `/lab/` onto the gallery; `/lab/`
 is now empty. Everything is live at <https://nusmedicine.github.io/statml/>.
 
-**123 fingerprint states.** Six are widget 16's — four settled and two driven,
-each identical across three runs before it was recorded.
+**123 fingerprint states, each carrying two hashes, and the suite is GREEN** — a
+full run on this machine reports *all 123 states identical*. Six are widget 16's,
+four settled and two driven. Four are widget 15's, all settled: it declares no
+`animation` and no `regions`, so settled coverage is all `check` requires of it.
+
+**The work now happens on Windows, and the toolchain is verified there.** The
+move cost three fixes and turned up one silent bug; all four are in and pushed.
+Read *Working on Windows* and *`px` tracks the device pixel ratio* below before
+trusting or re-recording any hash. The short version:
+
+- **`npm run build` was failing two runs in three** — Dropbox holds `_site/` open
+  and Windows will not remove a directory anything has a handle on. It retries now.
+- **The dev server is on `:8010`, not `:8000`** — a Docker container in WSL owns
+  8000, and the failure looks like a working server from the shell.
+- **All 123 `px` hashes were re-recorded**; `tx` did not move on a single state.
+  It was display scaling, not a regression.
+- **HANDOVER's own baselining recipe computed `tx` wrongly** and would have
+  poisoned widget 17's baseline silently. Fixed.
 
 **Two things were shipped without being done**, both worth knowing:
 widget 15 still lacks the marginal-vs-conditional note Kenneth asked for (below),
 and **no widget from 11 onward has been judged projected**.
 
 **Next up is widget 17, tree-based models** — the section right after SVM in
-`04-3`. Nothing is built; what is known is directly below.
+`04-3`. Nothing is built; what is known is directly below. **It is blocked on one
+thing**: the PHM5005 notebooks did not survive the move, and the design turns on
+`04-3`'s printed accuracy/recall table. Re-download before designing.
 
 ```bash
-npm run dev      # :8000 — USE THIS, not python -m http.server
-npm run check    # before every commit
+PORT=8010 npm run dev   # NOT plain `npm run dev` — :8000 is Docker's here
+npm run check           # before every commit
 ```
 
-**117 fingerprint states, each carrying two hashes.** Four are widget 15's, all
-settled: it declares no `animation` and no `regions`, so settled coverage is all
-`check` requires of it. **Widget 16 has none yet** — it is a draft, and `check`
-only demands states of a non-draft widget. Baseline it after the review, not
-before.
-
-> **One of those four was flaky once and is not.** `?theme=light` hashed
-> `c921dc7b` on the first suite run, `016d5689` on the second and `c921dc7b`
-> again on the third — with its **`tx` identical every time**, so the text was
-> never in doubt and only the pixels moved. Isolated, it gave `c921dc7b` on six
-> consecutive renders and again after 10, 20 and 30 churned iframes. Eleven
-> observations against one. The recorded value is right and the outlier was
-> environmental, but it is written down because the next person to see a lone
-> `DIFFER` on that row should re-run before believing it.
+> **A lone `DIFFER` is worth re-running before believing.** On the Mac,
+> `logistic-regression`'s `?theme=light` hashed one value on the first suite run,
+> a different one on the second and the original again on the third — with its
+> **`tx` identical every time**, so only the pixels ever moved. Isolated, it gave
+> the recorded value on six consecutive renders and again after 10, 20 and 30
+> churned iframes: eleven observations against one. The specific hashes are gone,
+> superseded by the Windows re-baseline, but the habit is the point. Note this
+> state has **not** been re-tested for flakiness here — the eight states that were
+> hashed three times each on Windows were all stable, and that state was not one
+> of them.
 
 ---
 
@@ -149,7 +163,7 @@ d beside it, and two display toggles — `Looking at` (Input space / Kernel spac
 and the support-vector rings. **150 of 150 states match `sklearn.svm.SVC`
 exactly** on support-vector count and error count.
 
-    http://localhost:8000/widgets/support-vector-machine/
+    http://localhost:8010/widgets/support-vector-machine/
 
 | what it shows | url |
 |---|---|
@@ -266,9 +280,12 @@ server looks fine from the shell and broken in the tab.
 `.claude/launch.json` pins **8010** so the preview tool is deterministic rather
 than picking a random free port. `serve.mjs` already honours a port — `PORT=8010
 npm run dev`, or `node scripts/serve.mjs 8010` — and nothing in the repo depends
-on which one, since every widget URL is relative. **The `:8000` in CLAUDE.md and
-README is now wrong on this machine**; left alone rather than swept, because
-that is a four-file edit for a machine-local conflict.
+on which one, since every widget URL is relative.
+
+CLAUDE.md and README each carry a note pointing here rather than a hardcoded
+`:8010`. That is deliberate: the clash is **machine-local**, so swapping one
+hardcoded port for another would be stale again on the next machine, and the
+README's seven example URLs are the documented deployed paths.
 
 **Two things that are still macOS-shaped and will need translating:**
 

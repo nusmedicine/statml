@@ -17,6 +17,11 @@ shipped; PHM5005 has two in draft.** See
 npm run dev
 ```
 
+The URLs below assume the default `:8000`. **If that port is taken** — it is on
+the current Windows machine, by a Docker container in WSL — start it somewhere
+else with `PORT=8010 npm run dev` and substitute. Nothing depends on the port;
+every widget URL is relative.
+
 Then open:
 
 - <http://localhost:8000/> — the gallery, which is also the landing page
