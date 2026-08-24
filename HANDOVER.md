@@ -11,9 +11,8 @@ full run on this machine reports *all 123 states identical*. Six are widget 16's
 four settled and two driven. Four are widget 15's, all settled: it declares no
 `animation` and no `regions`, so settled coverage is all `check` requires of it.
 
-**The work now happens on Windows, and the toolchain is verified there.** The
-move cost three fixes and turned up one silent bug; all four are in and pushed.
-Read *Working on Windows* and *`px` tracks the device pixel ratio* below before
+**The work now happens on Windows, and the toolchain is verified there.** Read
+*Working on Windows* and *`px` tracks the device pixel ratio* below before
 trusting or re-recording any hash. The short version:
 
 - **`npm run build` was failing two runs in three** — Dropbox holds `_site/` open
@@ -25,18 +24,36 @@ trusting or re-recording any hash. The short version:
 - **HANDOVER's own baselining recipe computed `tx` wrongly** and would have
   poisoned widget 17's baseline silently. Fixed.
 
+**A later pass found three more, all of them the move's fault:**
+
+- **`.claude/launch.json` declared `"port": 8010` and never passed it**, so the
+  preview tool started the server on its default **8000** — the one port the pin
+  exists to avoid — and then pointed the pane at 8010. It also carried
+  `autoPort: true`, which contradicts the determinism it was added for.
+- **The documented dev command was bash-only.** `PORT=8010 npm run dev` was in
+  CLAUDE.md, README and this file; PowerShell is the shell here and has no
+  inline env-var prefix, so it dies with `CommandNotFoundException`. It is
+  `node scripts/serve.mjs 8010` everywhere now — an argv port works in any shell.
+- **The PHM5005 notebooks were missing** and are re-downloaded, but the only
+  copies available online are **output-stripped**. That is not cosmetic: it is
+  what forced `04-3`'s numbers to be re-measured, and re-measuring changed them.
+
+**The suite was re-run twice this session: 122/123 then 123/123.** The lone
+DIFFER was a `px`-only flake — see the note below — not a regression.
+
 **Two things were shipped without being done**, both worth knowing:
 widget 15 still lacks the marginal-vs-conditional note Kenneth asked for (below),
 and **no widget from 11 onward has been judged projected**.
 
 **Next up is widget 17, tree-based models** — the section right after SVM in
-`04-3`. Nothing is built; what is known is directly below. **It is blocked on one
-thing**: the PHM5005 notebooks did not survive the move, and the design turns on
-`04-3`'s printed accuracy/recall table. Re-download before designing.
+`04-3`. Nothing is built; what is known is directly below. **It is no longer
+blocked**: all 34 PHM5005 notebooks are back on this machine, and `04-3`'s tree
+numbers have been re-measured rather than read — which changed one of them. See
+*Reading the PHM5005 notebooks* for where they are and what they do not carry.
 
 ```bash
-PORT=8010 npm run dev   # NOT plain `npm run dev` — :8000 is Docker's here
-npm run check           # before every commit
+node scripts/serve.mjs 8010   # NOT `npm run dev` — :8000 is Docker's here
+npm run check                 # before every commit
 ```
 
 > **A lone `DIFFER` is worth re-running before believing.** On the Mac,
@@ -45,10 +62,15 @@ npm run check           # before every commit
 > **`tx` identical every time**, so only the pixels ever moved. Isolated, it gave
 > the recorded value on six consecutive renders and again after 10, 20 and 30
 > churned iframes: eleven observations against one. The specific hashes are gone,
-> superseded by the Windows re-baseline, but the habit is the point. Note this
-> state has **not** been re-tested for flakiness here — the eight states that were
-> hashed three times each on Windows were all stable, and that state was not one
-> of them.
+> superseded by the Windows re-baseline, but the habit is the point.
+>
+> **It has now happened on Windows too, on a different state.** A full suite run
+> reported 122 MATCH and one DIFFER —
+> `clt ?theme=light&dist=exponential&n=5&shown=12` — with **`px` moved and `tx`
+> identical**, the same signature. The very next run returned all 123 MATCH. So
+> this is not a `logistic-regression` quirk and not a macOS one: it is a property
+> of `px`, it is rare, and `tx` has never once moved with it. **A lone DIFFER
+> whose `tx` is unchanged is a re-run, not a regression.**
 
 ---
 
@@ -57,25 +79,48 @@ npm run check           # before every commit
 Arc A #4 in [docs/catalogue.md](docs/catalogue.md): **one widget for tree →
 forest → boosting**, hosting at PHM5005 `04-3`, sections "Tree-based Models" and
 "Ensembled Trees". Nothing is built. Nothing is designed. What follows is what
-is already known, so none of it is re-measured.
+is known, so none of it is measured a second time — and two of the three blocks
+below are measurements taken this session, not notes carried over.
 
-### The notebook's own numbers, which are the strongest evidence in the section
+### The notebook's own numbers — RE-MEASURED, and one of them was an artifact
 
-`04-3` runs all three on the heart-failure test set and prints this:
+The table this section used to quote was read off `04-3`'s printed cell outputs
+on the Mac. **It has now been re-run** (sklearn 1.9.0, the notebook's own
+preprocessing and parameters, verbatim) and it does not come back the same:
 
-| model | accuracy | recall on deaths | deaths caught |
+| model | as printed in `04-3` | re-run here | agrees? |
 |---|---|---|---|
-| Decision tree | 0.70 | **0.58** | 11 of 19 |
-| Random forest | **0.72** | 0.42 | 8 of 19 |
-| Gradient boosting | 0.65 | 0.42 | 8 of 19 |
+| Decision tree | 0.70 / 0.58 / 11 of 19 | 0.70 / 0.63 / 12 of 19 | no |
+| Random forest | 0.72 / 0.42 / 8 of 19 | 0.73 / 0.58 / 11 of 19 | no |
+| Gradient boosting | 0.65 / 0.42 / 8 of 19 | 0.65 / 0.42 / 8 of 19 | **exactly** |
+
+Two different causes, and both matter:
+
+- **The notebook's `DecisionTreeClassifier` carries no `random_state`.** Its
+  printed row is one unseeded draw. Over 200 seeds on the same split: accuracy
+  0.67–0.73, recall **0.47–0.74**, deaths caught **9–14**, median 12. The printed
+  0.58 / 11 sits below its own median.
+- **The forest moved despite `random_state=42`**, so that one is library drift,
+  not seeding. Boosting reproducing to the digit is what rules out the data or
+  the split having changed.
 
 **The section's claim is "Higher accuracy than single trees. Reduce
-overfitting."** On its own worked example the forest gains two points of accuracy
-and **misses three more deaths than the single tree it replaced**, and boosting
-is worse on both counts. That is a real, notebook-native finding and it is the
-first thing to decide about: is it this widget's subject, or does it belong to
-the evaluation arc (`04-2` owns the threshold and the confusion matrix)?
-**Do not let it be both.**
+overfitting."** Paired over 200 seeds — same seed to both, same test set:
+
+| | tree | forest |
+|---|---|---|
+| accuracy | 0.709 ± 0.017 | **0.730 ± 0.023** |
+| recall on deaths | **0.621 ± 0.051** | 0.566 ± 0.052 |
+| deaths caught | **11.8 ± 1.0** | 10.8 ± 1.0 |
+
+**The trade-off is real and it is directional**: the forest is more accurate in
+70% of seeds and catches fewer deaths in 64% of them. **But it is worth about
+ONE death, not three.** "Misses three more" was the printed draw's extreme, and
+building a widget around three would be building around noise.
+
+That is still a real finding and it is the first thing to decide about: is it
+this widget's subject, or does it belong to the evaluation arc (`04-2` owns the
+threshold and the confusion matrix)? **Do not let it be both.**
 
 ### What a tree widget can reuse from widget 16, verbatim
 
@@ -125,13 +170,27 @@ measurement, and each death saved a build:
 
 **For trees, the obvious candidates to measure first:**
 
-1. **Does a single tree's structure really change with the data?** The notebook
-   says "small changes in data can change the tree structure". Refit on 25
-   bootstrap resamples and count how often the ROOT split changes feature. If it
-   is stable, that caveat does not fire and should not be built.
-2. **Does the forest actually reduce variance visibly?** Same 25 resamples,
-   measure the spread of the decision boundary for a single tree against a
-   100-tree forest.
+1. **Does a single tree's structure really change with the data? — MEASURED, and
+   it does.** The notebook says "small changes in data can change the tree
+   structure". Over 200 bootstrap resamples of the heart-failure training set the
+   ROOT split lands on:
+
+   | feature | share of resamples |
+   |---|---|
+   | `serum_creatinine` | **66%** |
+   | `ejection_fraction` | **33%** |
+   | `serum_sodium`, `age` | 0.5% each |
+
+   **The caveat fires, and the shape of it is teachable**: it is not a rare
+   accident, it is a two-thirds/one-third coin, and it is the same two features
+   kNN's story turned on. A widget can show the root flipping between exactly two
+   candidates rather than dissolving into noise.
+
+2. **Does the forest actually reduce variance visibly?** Not yet measured as a
+   *boundary* spread — what is measured is the outcome spread, and it is small:
+   tree ±1.0 deaths caught against forest ±1.0, so the forest is not visibly
+   steadier on this metric. The boundary picture may still show it. Measure on
+   widget 16's generators, not on heart failure, since that is the stage.
 3. **Where does boosting's advantage show up**, if anywhere, given it is the
    worst of the three on this data?
 
@@ -278,28 +337,51 @@ happy `200`; the browser prefers IPv4 and gets the container's `400`. So the
 server looks fine from the shell and broken in the tab.
 
 `.claude/launch.json` pins **8010** so the preview tool is deterministic rather
-than picking a random free port. `serve.mjs` already honours a port — `PORT=8010
-npm run dev`, or `node scripts/serve.mjs 8010` — and nothing in the repo depends
-on which one, since every widget URL is relative.
+than picking a random free port — and it now *passes* that port. It previously
+declared `"port": 8010` while its `runtimeArgs` were just `["scripts/serve.mjs"]`,
+so the server fell through to its own default of **8000** — the one port the pin
+exists to avoid — while the preview pane was pointed at 8010. It also carried
+`autoPort: true`, which contradicts the determinism it was added for; both are
+fixed.
+
+**Use `node scripts/serve.mjs 8010`, not `PORT=8010 npm run dev`.** The shell on
+this machine is PowerShell, which has no inline env-var prefix: `PORT=8010 npm
+run dev` dies with `CommandNotFoundException: The term 'PORT=8010' is not
+recognized`. It worked on macOS and it works in the Git Bash tool, which is why
+it survived the move into CLAUDE.md, README and this file. An argv port works in
+every shell, and `serve.mjs` has always honoured one.
 
 CLAUDE.md and README each carry a note pointing here rather than a hardcoded
 `:8010`. That is deliberate: the clash is **machine-local**, so swapping one
 hardcoded port for another would be stale again on the next machine, and the
 README's seven example URLs are the documented deployed paths.
 
-**Two things that are still macOS-shaped and will need translating:**
+**Both of the macOS-shaped gaps are now closed.**
 
-- **The PHM5005 notebooks are NOT on this machine.** `~/Downloads/PHM5005
-  AY2025-26 - Notebooks/For Review/` did not come across, and a search of
-  Downloads, Documents and the whole Dropbox tree finds no `*.ipynb` matching
-  5005. **Widget 17 needs `04-3`'s printed cell outputs** — the accuracy/recall
-  table in *NEXT* above came from them — so re-download from the shared Drive
-  folder in *Reading the PHM5005 notebooks* below, which needs no auth. PHM5003
-  is fine: `../jupyterbook/phm5003` is present.
-- **The scratch verification scripts** (the sklearn comparison, the solver
-  bench) were run from a session scratch directory that does not persist. They
-  are described in `docs/catalogue.md` under *Widget 16*; rebuilding one takes a
-  few minutes and needs `pip install scikit-learn pandas` in a venv.
+- **The PHM5005 notebooks are back**, all 34, in `~/Downloads/PHM5005 AY2025-26 -
+  Notebooks/Master/` — on this machine, `C:\Users\Admin\Downloads\…`. Plus
+  `Supporting Materials/Heart Failure.ipynb`. **They are output-stripped**; see
+  *Reading the PHM5005 notebooks* below, which is the caveat that matters.
+  PHM5003 is fine: `../jupyterbook/phm5003` is present.
+- **There is a working Python again.** `python` from the Bash tool hits the
+  Microsoft Store stub and dies with an install advert; **`py` is the launcher
+  that works**, and it is Python 3.14. sklearn 1.9.0 / pandas 3.0.5 / numpy
+  2.5.2 install cleanly:
+
+  ```powershell
+  py -m venv .venv
+  .venv\Scripts\python.exe -m pip install scikit-learn pandas
+  ```
+
+  **Build the venv outside the repo.** `.venv/` is gitignored, but this repo is
+  inside Dropbox and a venv is thousands of small files for the indexer to fight
+  with — the same class of problem as the `_site` delete.
+
+  The two scripts behind the tree numbers in *NEXT* are kept beside the
+  notebooks, in `…/PHM5005 AY2025-26 - Notebooks/_scratch/`: `tree43.py`
+  reproduces `04-3`'s three models verbatim, `tree43b.py` runs the paired
+  200-seed comparison and the root-split census. They are **deliberately not in
+  this repo** — prd §6 records why a Python helper was deleted from it.
 
 **Git had no identity here** and refused the first commit. Set repo-local to
 `Kenneth Ban <kennethban@gmail.com>`, matching every existing commit; a
@@ -721,11 +803,22 @@ for f in widgets/_lab/*.html; do b=$(basename "$f"); case $b in index.html|finge
 
 Two routes, both verified:
 
-- **Local copies, WITH cell outputs**, in
-  `~/Downloads/PHM5005 AY2025-26 - Notebooks/For Review/`. **Prefer these** — the
-  printed numbers are the valuable half.
+- **Local copies on this machine**, all 34, in `~/Downloads/PHM5005 AY2025-26 -
+  Notebooks/Master/`.
 - **Shared Drive folder**, readable without auth:
   <https://drive.google.com/drive/folders/1QcSRjgcasZRpFyw1lOHSowjjDgcXp0_c>
+  Its top level is the 34 lesson notebooks; `Supporting Materials/` holds the
+  data-prep notebooks, `Heart Failure.ipynb` among them.
+
+**THE DRIVE COPIES CARRY NO CELL OUTPUTS.** Measured across all 34: every one
+parses, and **not one holds a single output**. The Drive folder is the clean
+student copy. The `For Review/` set that had the printed numbers was local to the
+Mac and has no equivalent online.
+
+**The printed numbers were the valuable half, and that half must now be re-run
+rather than read.** That is exactly how `04-3`'s table in *NEXT* turned out to be
+part artifact. **Treat any number in this file quoted from a printed output, and
+not since re-measured, as one draw from a possibly unseeded model.**
 
 **Match by filename, never by link.** The same notebook has appeared under three
 Drive IDs across two sessions.

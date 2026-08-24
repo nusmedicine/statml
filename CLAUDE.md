@@ -30,11 +30,13 @@ npm run build    # assemble _site/ (gallery at /, widgets at /widget/)
 npm run check    # invariant assertions; run before every commit
 ```
 
-**On the current Windows machine the dev server is `PORT=8010 npm run dev`** —
-a Docker container in WSL owns `:8000` and the clash presents as a *working*
-server from the shell and a broken one in the browser. `serve.mjs` honours
-`PORT` and an argv port, and every widget URL is relative, so no port is load
-bearing. HANDOVER's *Working on Windows* has the diagnosis.
+**On the current Windows machine the dev server is `node scripts/serve.mjs 8010`**
+— a Docker container in WSL owns `:8000` and the clash presents as a *working*
+server from the shell and a broken one in the browser. Pass the port as an
+argument, never as `PORT=…`: the shell here is PowerShell, which has no inline
+env-var prefix and reads `PORT=8010` as a command name. Every widget URL is
+relative, so no port is load bearing. HANDOVER's *Working on Windows* has the
+diagnosis.
 
 **Always `npm run dev`.** It exists solely to send `Cache-Control: no-store`.
 Widgets are ES modules loaded by URL and browsers cache them hard enough that an

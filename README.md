@@ -19,7 +19,8 @@ npm run dev
 
 The URLs below assume the default `:8000`. **If that port is taken** — it is on
 the current Windows machine, by a Docker container in WSL — start it somewhere
-else with `PORT=8010 npm run dev` and substitute. Nothing depends on the port;
+else with `node scripts/serve.mjs 8010` and substitute — an argv port works in
+every shell, where `PORT=…` is bash-only. Nothing depends on the port;
 every widget URL is relative.
 
 Then open:

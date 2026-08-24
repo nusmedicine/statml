@@ -4,9 +4,8 @@
     {
       "name": "widgets",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/serve.mjs"],
-      "port": 8010,
-      "autoPort": true
+      "runtimeArgs": ["scripts/serve.mjs", "8010"],
+      "port": 8010
     }
   ]
 }
