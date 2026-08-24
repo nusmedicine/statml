@@ -254,6 +254,22 @@ on `EBUSY` before writing anything — roughly two runs in three. It is a race, 
 a stuck lock: the failing path moved *deeper* each run, the scanner walking
 behind the delete. Measured worst case 6 attempts, ~300ms.
 
+**The dev server runs on :8010 here, not :8000.** A Docker container in WSL
+(`mcq-app-web-1`, from the `app-mcq` project) publishes `127.0.0.1:8000`, and
+WSL2's localhost forwarding mirrors it onto the Windows side through
+`wslrelay.exe`. The failure is confusing rather than obvious: the port is split
+by address family — `wslrelay` holds **IPv4** `127.0.0.1:8000` while a dev
+server started on 8000 gets **IPv6** `::`. `curl` prefers IPv6 and reports a
+happy `200`; the browser prefers IPv4 and gets the container's `400`. So the
+server looks fine from the shell and broken in the tab.
+
+`.claude/launch.json` pins **8010** so the preview tool is deterministic rather
+than picking a random free port. `serve.mjs` already honours a port — `PORT=8010
+npm run dev`, or `node scripts/serve.mjs 8010` — and nothing in the repo depends
+on which one, since every widget URL is relative. **The `:8000` in CLAUDE.md and
+README is now wrong on this machine**; left alone rather than swept, because
+that is a four-file edit for a machine-local conflict.
+
 **Two things that are still macOS-shaped and will need translating:**
 
 - **The PHM5005 notebooks are NOT on this machine.** `~/Downloads/PHM5005
