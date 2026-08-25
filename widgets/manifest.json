@@ -269,6 +269,19 @@
       ],
       "arc": 18,
       "status": "draft"
+    },
+    {
+      "slug": "pca",
+      "title": "Principal component analysis",
+      "blurb": "Any two genes keep exactly two thirds of the spread. Turn a direction to where it is largest and see what a plane keeps.",
+      "course": "PHM5005",
+      "topics": [
+        "PCA",
+        "dimensionality reduction",
+        "unsupervised learning"
+      ],
+      "arc": 19,
+      "status": "draft"
     }
   ]
 }

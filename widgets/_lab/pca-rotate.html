@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; rotating the cloud, and how many groups</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .split { display: grid; grid-template-columns: 260px 1fr; gap: var(--sp-4); align-items: start; }
+  @media (max-width: 880px) { .split { grid-template-columns: 1fr; } }
+  .rail label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin-bottom: var(--sp-3); }
+  .rail input[type=range] { width: 100%; }
+  .rail button { font: inherit; font-size: var(--fs-xs); padding: 5px 12px; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-right: 6px; }
+  .rail button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; max-width: 100%; cursor: grab; touch-action: none; }
+  canvas.grabbing { cursor: grabbing; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; }
+  th { color: var(--ink-3); font-weight: 600; text-align: left; }
+  td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.on td { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Rotating the cloud, and how many groups</h1>
+
+  <p class="note">
+    Two questions that need eyes rather than argument: <b>does dragging the cloud around
+    actually help you read it</b>, and <b>how many groups still look like groups</b> at the real
+    width. Drag on the figure to turn it; <b>Default view</b> puts it back.
+    <br><br>
+    <b>One measurement settled a third question before this page was drawn.</b> The group centres
+    are laid out <b>in a plane</b>, not along a line, and that is what makes the second component
+    worth having: with centres on a line PC1 alone already separates everything and PC2 is noise.
+    In a plane, PC1 alone gets worse as you add groups &mdash; 100% at two, 51% at six &mdash; while
+    PC1 <i>and</i> PC2 stay at 100%. The table under the figure is that, live.
+  </p>
+
+  <div class="cell">
+    <div class="split">
+      <div class="rail">
+        <label>Groups <b id="ng">4</b>
+          <input type="range" id="n" min="2" max="6" step="1" value="4">
+        </label>
+        <label>Seed <b id="sd">1</b>
+          <input type="range" id="seed" min="1" max="40" step="1" value="1">
+        </label>
+        <label>Width
+          <button type="button" data-w="560" aria-pressed="true">560</button>
+          <button type="button" data-w="700" aria-pressed="false">700</button>
+        </label>
+        <label>Show
+          <button type="button" data-show="axes" aria-pressed="true">Gene axes</button>
+          <button type="button" data-show="pcs" aria-pressed="false">PC1 &amp; PC2</button>
+          <button type="button" data-show="plane" aria-pressed="false">Plane</button>
+        </label>
+        <label>View
+          <button type="button" id="reset">Default view</button>
+        </label>
+        <p class="measure" id="ang"></p>
+      </div>
+      <div>
+        <canvas id="c"></canvas>
+        <p class="measure" id="m"></p>
+        <table id="tbl">
+          <thead><tr><th>groups</th><th>PC1 alone</th><th>PC1 + PC2</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h3>Gated, or just Play?</h3>
+    <p>
+      <b>Not gated.</b> A gate is for a stage the reader has to <i>choose</i> to enter &mdash; widget 18
+      has three, and each one is a decision with a consequence. The four beats here are one
+      continuous story with no decision in it, so three gates would add three presses that mean
+      nothing and give the reader three chances to stop halfway.
+      <b>Step plus Play is the grammar</b>, with the readout naming which of the four you are in.
+      Step is there for a lecturer talking over it; Play is there for a student who wants the
+      story. That is principle 4.1 &mdash; pacing is chosen, and this chooses it.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+/* A mock-up, not a widget. It owns its own clock and its own drag handling,
+   which is exactly the part that would have to move into widgets/core/ — core
+   today turns a pointerdown into ONE parameter and has no notion of a drag. */
+
+const css = getComputedStyle(document.documentElement);
+const tok = (n) => css.getPropertyValue(n).trim();
+let C = {};
+const readTokens = () => {
+  C = {
+    ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"),
+    grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"),
+    hi: tok("--c-highlight"), ref: tok("--c-reference"),
+    cl: [tok("--c-cluster-a"), tok("--c-cluster-b"), tok("--c-cluster-c"),
+         tok("--c-group-a"), tok("--c-group-b"), tok("--c-extreme")],
+    font: tok("--font"), fsXs: tok("--fs-xs"), fsSm: tok("--fs-sm"),
+  };
+};
+readTokens();
+
+const makeRng = (s) => { let a = s >>> 0; return () => {
+  a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+const gauss = (r) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+
+const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const unit = (a) => { const n = Math.hypot(...a) || 1; return a.map(v => v / n); };
+
+/* The plane the group centres live in — deliberately NOT axis aligned, so no
+   component can be read off a gene label. */
+const E1 = unit([1, 1, 0.35]);
+const E2 = (() => { const r = [-0.4, 0.5, 1]; return unit(r.map((v, i) => v - dot(r, E1) * E1[i])); })();
+
+const R_SEP = 2.6, SIG = 0.42;
+function build(n, seed) {
+  const perG = n <= 3 ? 4 : 3, r = makeRng(seed), pts = [];
+  for (let g = 0; g < n; g++) {
+    const a = 2 * Math.PI * g / n;
+    const c = [0,1,2].map(k => R_SEP * (Math.cos(a) * E1[k] + Math.sin(a) * E2[k]));
+    for (let i = 0; i < perG; i++) pts.push({ g, p: c.map(v => v + gauss(r) * SIG) });
+  }
+  const N = pts.length;
+  const mu = [0,1,2].map(k => pts.reduce((s, q) => s + q.p[k], 0) / N);
+  const sd = [0,1,2].map(k => Math.sqrt(pts.reduce((s, q) => s + (q.p[k] - mu[k]) ** 2, 0) / N) || 1);
+  for (const q of pts) q.z = q.p.map((v, k) => (v - mu[k]) / sd[k]);
+  return pts;
+}
+function eig(pts) {
+  const N = pts.length, M = [[0,0,0],[0,0,0],[0,0,0]];
+  for (const q of pts) for (let i=0;i<3;i++) for (let j=0;j<3;j++) M[i][j] += q.z[i]*q.z[j]/N;
+  const mv = (A, x) => [0,1,2].map(i => A[i][0]*x[0] + A[i][1]*x[1] + A[i][2]*x[2]);
+  const top = (A) => { let x = unit([0.31,0.72,0.41]); for (let i=0;i<1500;i++) x = unit(mv(A,x)); return x; };
+  const w1 = top(M), l1 = dot(w1, mv(M, w1));
+  const D = M.map((row,i) => row.map((v,j) => v - l1*w1[i]*w1[j]));
+  const t = top(D), w2 = unit(t.map((v,i) => v - dot(w1,t)*w1[i]));
+  return { w1, w2, l1, l2: dot(w2, mv(M, w2)) };
+}
+function sepOn(pts, dims, w1, w2) {
+  const pr = pts.map(q => dims === 1 ? [dot(q.z,w1)] : [dot(q.z,w1), dot(q.z,w2)]);
+  let ok = 0;
+  for (let i=0;i<pr.length;i++) {
+    let b = Infinity, bi = -1;
+    for (let j=0;j<pr.length;j++) { if (i===j) continue;
+      let d=0; for (let k=0;k<pr[i].length;k++) d += (pr[i][k]-pr[j][k])**2;
+      if (d<b) { b=d; bi=j; } }
+    if (pts[bi].g === pts[i].g) ok++;
+  }
+  return ok / pts.length;
+}
+
+/* --- camera. THE DEFAULT IS NOT A NEUTRAL CHOICE: it has to be an angle where
+   the cloud reads as three dimensional. Straight down an axis and it collapses
+   to a flat scatter with no depth at all. --------------------------------- */
+const AZ0 = 0.72, EL0 = 0.40;
+let az = AZ0, el = EL0;
+const camera = (a, e) => {
+  const ca=Math.cos(a), sa=Math.sin(a), ce=Math.cos(e), se=Math.sin(e);
+  const ex = [-sa, ca, 0], ey = [-ca*se, -sa*se, ce];
+  return (p) => [dot(p, ex), -dot(p, ey)];
+};
+
+const show = { axes: true, pcs: false, plane: false };
+let W = 560, n = 4, seed = 1;
+
+function draw() {
+  const cv = document.getElementById("c");
+  const H = Math.round(W * 0.62);
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  cv.style.width = W+"px"; cv.style.height = H+"px";
+  const g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+
+  const pts = build(n, seed), E = eig(pts);
+  const cx = W/2, cy = H/2, S = Math.min(W, H) * 0.145;
+  const cam = camera(az, el);
+  const P = (p) => { const [a,b] = cam(p); return [cx + a*S, cy + b*S]; };
+
+  const arrow = (x0,y0,x1,y1,col,wd,hd) => {
+    g.save(); g.strokeStyle=col; g.fillStyle=col; g.lineWidth=wd;
+    g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+    const an=Math.atan2(y1-y0,x1-x0);
+    g.beginPath(); g.moveTo(x1,y1);
+    g.lineTo(x1-hd*Math.cos(an-0.42), y1-hd*Math.sin(an-0.42));
+    g.lineTo(x1-hd*Math.cos(an+0.42), y1-hd*Math.sin(an+0.42));
+    g.closePath(); g.fill(); g.restore();
+  };
+  const label = (t,x,y,col) => { g.save(); g.fillStyle=col; g.font=`${C.fsXs} ${C.font}`;
+    g.textAlign="left"; g.textBaseline="middle"; g.fillText(t,x,y); g.restore(); };
+
+  if (show.axes) for (let i=0;i<3;i++) {
+    const d=[0,0,0]; d[i]=3.1;
+    const o=P([0,0,0]), e=P(d);
+    arrow(o[0],o[1],e[0],e[1],C.ink3,1.3,6);
+    label(`Gene ${i+1}`, e[0]+5, e[1]-6, C.ink3);
+  }
+  if (show.plane) {
+    const R=2.8;
+    const cs=[[-R,-R],[R,-R],[R,R],[-R,R]].map(([u,v]) =>
+      P([0,1,2].map(k => E.w1[k]*u + E.w2[k]*v)));
+    g.save(); g.beginPath(); g.moveTo(cs[0][0],cs[0][1]);
+    for (let i=1;i<4;i++) g.lineTo(cs[i][0],cs[i][1]);
+    g.closePath(); g.fillStyle=C.grid; g.globalAlpha=.5; g.fill();
+    g.globalAlpha=1; g.strokeStyle=C.axis; g.lineWidth=1; g.stroke(); g.restore();
+  }
+  if (show.pcs) for (const [v,nm,col] of [[E.w1,"PC1",C.hi],[E.w2,"PC2",C.ink2]]) {
+    const o=P(v.map(x=>-x*2.7)), e=P(v.map(x=>x*2.7));
+    arrow(o[0],o[1],e[0],e[1],col,1.8,7); arrow(e[0],e[1],o[0],o[1],col,1.8,7);
+    label(nm, e[0]+6, e[1]-6, col);
+  }
+
+  /* DEPTH ORDER, and it is what makes rotation worth anything. Painted in
+     arbitrary order the cloud is a flat sticker and turning it tells you
+     nothing; painted back-to-front the near samples occlude the far ones and
+     the third dimension arrives for free. */
+  const depth = (p) => {
+    const ca=Math.cos(az), sa=Math.sin(az), ce=Math.cos(el), se=Math.sin(el);
+    return dot(p, [ca*ce, sa*ce, se]);
+  };
+  const ordered = pts.slice().sort((a,b) => depth(a.z) - depth(b.z));
+  for (const q of ordered) {
+    const [x,y] = P(q.z);
+    g.save();
+    g.beginPath(); g.arc(x, y, 4.6, 0, Math.PI*2);
+    g.fillStyle = C.cl[q.g % C.cl.length]; g.fill();
+    g.lineWidth = 1.6; g.strokeStyle = C.surface; g.stroke();
+    g.restore();
+  }
+
+  const s1 = sepOn(pts,1,E.w1,E.w2), s2 = sepOn(pts,2,E.w1,E.w2);
+  document.getElementById("m").innerHTML =
+    `${pts.length} samples in ${n} groups &middot; PC1 holds <b>${(E.l1/3*100).toFixed(0)}%</b>, ` +
+    `PC1+PC2 <b>${((E.l1+E.l2)/3*100).toFixed(0)}%</b> of the 3.00`;
+  document.getElementById("ang").innerHTML =
+    `turn <b>${(az*180/Math.PI).toFixed(0)}&deg;</b> &middot; tilt <b>${(el*180/Math.PI).toFixed(0)}&deg;</b>` +
+    (Math.abs(az-AZ0)<1e-6 && Math.abs(el-EL0)<1e-6 ? " &middot; default" : "");
+
+  const tb = document.querySelector("#tbl tbody");
+  tb.innerHTML = "";
+  for (let k=2;k<=6;k++) {
+    const p2 = build(k, seed), e2 = eig(p2);
+    const tr = document.createElement("tr");
+    if (k === n) tr.className = "on";
+    tr.innerHTML = `<td>${k}</td><td>${(sepOn(p2,1,e2.w1,e2.w2)*100).toFixed(0)}%</td>` +
+      `<td>${(sepOn(p2,2,e2.w1,e2.w2)*100).toFixed(0)}%</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* --- the drag. Core has no equivalent: its canvas listener turns a
+   pointerdown into ONE parameter through the region map and ignores movement
+   entirely. Whatever this becomes in the widget, `turn` and `tilt` have to end
+   up as PARAMETERS, or the shared link stops reproducing what you are looking
+   at — non-negotiable 1. ------------------------------------------------- */
+const cv = document.getElementById("c");
+let drag = null;
+cv.addEventListener("pointerdown", (ev) => {
+  drag = { x: ev.clientX, y: ev.clientY, az, el };
+  cv.setPointerCapture(ev.pointerId); cv.classList.add("grabbing");
+});
+cv.addEventListener("pointermove", (ev) => {
+  if (!drag) return;
+  az = drag.az + (ev.clientX - drag.x) * 0.011;
+  /* Tilt is clamped short of straight overhead: past 85 degrees the vertical
+     axis collapses to a point and the picture stops being readable. */
+  el = Math.max(-1.48, Math.min(1.48, drag.el - (ev.clientY - drag.y) * 0.011));
+  draw();
+});
+const end = () => { drag = null; cv.classList.remove("grabbing"); };
+cv.addEventListener("pointerup", end);
+cv.addEventListener("pointercancel", end);
+
+document.getElementById("reset").addEventListener("click", () => { az = AZ0; el = EL0; draw(); });
+document.getElementById("n").addEventListener("input", (e) => {
+  n = +e.target.value; document.getElementById("ng").textContent = n; draw(); });
+document.getElementById("seed").addEventListener("input", (e) => {
+  seed = +e.target.value; document.getElementById("sd").textContent = seed; draw(); });
+for (const b of document.querySelectorAll("[data-w]"))
+  b.addEventListener("click", () => {
+    for (const o of document.querySelectorAll("[data-w]")) o.setAttribute("aria-pressed", String(o===b));
+    W = +b.dataset.w; draw(); });
+for (const b of document.querySelectorAll("[data-show]"))
+  b.addEventListener("click", () => {
+    const k = b.dataset.show; show[k] = !show[k];
+    b.setAttribute("aria-pressed", String(show[k])); draw(); });
+
+draw();
+</script>
+</body>
+</html>

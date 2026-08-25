@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; the PCA tab, two ways to animate the mechanism</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 4px 12px; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--border);
+    border-radius: var(--radius); }
+  .bar button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; max-width: 100%; }
+  .verdict { border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The PCA tab &mdash; two ways to animate the mechanism</h1>
+
+  <p class="note verdict">
+    <b>SETTLED: A.</b> Kenneth&rsquo;s call, 2026-08-26 &mdash; <i>&ldquo;go with A, it matches my
+    diagrams&rdquo;</i>. So the 3-D cloud with the turning plane is the stage for <b>all four tabs</b>,
+    and B is kept only as the record of what was weighed. The honesty cost A carries is real and is
+    paid on the page, not designed away: the swept family is chosen to contain the answer, so the
+    dial must name what it plots &mdash; the variance of the projected samples at each orientation &mdash;
+    and must never say the method looks for it.
+  </p>
+
+  <p class="note">
+    Both draw the same claim, in your diagram&rsquo;s words: <b>PC1 is the direction along which the
+    spread of the projected points is as large as possible.</b> They differ in where the search
+    happens, and that decides whether the reader ever sees the whole search or only a slice of it.
+    <br><br>
+    <b>Widths are the real ones.</b> The narrow canvas is 550&nbsp;px, which is what the fingerprint
+    harness renders at and roughly what a projector gives you; the wide one is 900&nbsp;px.
+    Everything is drawn from <code>tokens.css</code> &mdash; no hardcoded colour, size or font.
+  </p>
+
+  <div class="bar">
+    <label>width
+      <button type="button" data-w="550" aria-pressed="true">550</button>
+      <button type="button" data-w="720" aria-pressed="false">720</button>
+      <button type="button" data-w="900" aria-pressed="false">900</button>
+    </label>
+    <label>theme
+      <button type="button" data-theme="light" aria-pressed="true">light</button>
+      <button type="button" data-theme="dark" aria-pressed="false">dark</button>
+    </label>
+    <button type="button" id="replay">Replay both</button>
+  </div>
+
+  <!-- ============================ A ============================ -->
+  <div class="cell">
+    <h3>A &mdash; your diagram, animated: the plane turns through the 3-D cloud</h3>
+    <p>
+      Three axis arrows, nine samples in three groups, and a plane that <b>turns</b>. The readout is
+      the variance of the points once projected onto the plane, and the small dial beside it is that
+      same variance for <b>every</b> orientation in the family being swept &mdash; so &ldquo;as large as
+      possible&rdquo; is something the reader watches happen rather than something a caption asserts.
+      The plane stops at the maximum, the samples drop onto it, and it rotates flat to face you.
+      <b>That last rotation is the step your third panel is:</b> the 2-D plot is the plane, seen
+      face-on.
+    </p>
+    <canvas id="cA"></canvas>
+    <p class="measure" id="mA"></p>
+  </div>
+
+  <!-- ============================ B ============================ -->
+  <div class="cell">
+    <h3>B &mdash; the search shown whole: one dimension lower, then lifted</h3>
+    <p>
+      The same mechanism with the search complete rather than sampled. In 2-D, a direction is
+      <b>one angle</b>, so the variance-against-angle curve underneath is the entire search &mdash; every
+      direction there is, with PC1 at the peak and PC2 ninety degrees away at the trough. Nothing is
+      off-screen and nothing is a family chosen to contain the answer.
+      <b>The cost:</b> it is not your diagram, and the reader meets 3-D only afterwards.
+    </p>
+    <canvas id="cB"></canvas>
+    <p class="measure" id="mB"></p>
+  </div>
+
+  <div class="cell verdict">
+    <h3>The honesty problem both share, and what it costs to fix</h3>
+    <p>
+      <b>PCA does not search.</b> It solves an eigenproblem; nothing rotates and nothing is tried.
+      A turning plane is a didactic fiction &mdash; a good one, because it is the notebook&rsquo;s own
+      wording, but the widget must not end up claiming the method works this way.
+      <b>A is the more exposed of the two</b>, because a plane sweeping one family of orientations
+      invites &ldquo;so it tries them all&rdquo;, and it does not: the family is chosen to contain the
+      answer. <b>B is safer</b>, because in 2-D the family really is every direction.
+      <br><br>
+      The cheap fix in either is one line under the dial naming what is plotted &mdash; the variance for
+      each direction &mdash; and letting the reader see the peak, rather than a line saying the method
+      looks for it.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+/* ------------------------------------------------------------------ *
+ * A mock-up, not a widget. It hardcodes its own animation clock and
+ * reads tokens.css for every colour, which is the half that has to be
+ * right for the picture to be judgeable at all.
+ * ------------------------------------------------------------------ */
+
+const css = getComputedStyle(document.documentElement);
+const tok = (n) => css.getPropertyValue(n).trim();
+let C = {};
+function readTokens() {
+  C = {
+    ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"),
+    grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"),
+    a: tok("--c-group-a"), b: tok("--c-group-b"), hi: tok("--c-highlight"),
+    ref: tok("--c-reference"), unknown: tok("--c-unknown"), emp: tok("--c-empirical"),
+    font: tok("--font") || "system-ui, sans-serif",
+    fsXs: tok("--fs-xs") || "11px", fsSm: tok("--fs-sm") || "13px",
+  };
+}
+readTokens();
+
+/* --- a tiny seeded rng, as core's does ---------------------------- */
+function makeRng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const gauss = (r) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+
+/* --- nine samples in three groups, in 3-D ------------------------- *
+ * Deliberately your diagram's count: three groups of three. Countable,
+ * which is principle 2.3, and it is what makes a drop-line readable.  */
+function cloud3(seed) {
+  const r = makeRng(seed);
+  const centres = [[2.4, 1.6, 0.5], [-2.2, 1.2, -0.4], [-0.4, -2.3, 0.3]];
+  const pts = [];
+  for (let g = 0; g < 3; g++)
+    for (let i = 0; i < 3; i++)
+      pts.push({ g, p: centres[g].map((c) => c + gauss(r) * 0.45) });
+  return pts;
+}
+/* the same idea in 2-D, for treatment B: an elongated cloud so the
+   direction of greatest spread is real and not a coin toss */
+function cloud2(seed) {
+  const r = makeRng(seed);
+  const th = 0.62, ct = Math.cos(th), st = Math.sin(th);
+  const pts = [];
+  for (let g = 0; g < 3; g++)
+    for (let i = 0; i < 4; i++) {
+      const u = gauss(r) * 2.5 + (g - 1) * 2.2, v = gauss(r) * 0.62;
+      pts.push({ g, p: [u * ct - v * st, u * st + v * ct] });
+    }
+  return pts;
+}
+
+/* --- 3-vector helpers --------------------------------------------- */
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul3 = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const norm3 = (a) => { const n = Math.hypot(...a) || 1; return mul3(a, 1 / n); };
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+/* --- orthographic camera ------------------------------------------ */
+function camera(az, el) {
+  const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  const ex = [-sa, ca, 0];
+  const ey = [-ca * se, -sa * se, ce];
+  return (p) => [dot3(p, ex), -dot3(p, ey)];
+}
+
+/* --- variance captured by the plane spanned by (u, v) -------------- */
+function captured(pts, mean, u, v) {
+  let s = 0;
+  for (const { p } of pts) {
+    const d = sub3(p, mean);
+    s += dot3(d, u) ** 2 + dot3(d, v) ** 2;
+  }
+  return s / pts.length;
+}
+
+/* --- top two eigenvectors of a 3x3 covariance, by power iteration -- */
+function pca3(pts) {
+  const n = pts.length;
+  const mean = [0, 1, 2].map((k) => pts.reduce((s, { p }) => s + p[k], 0) / n);
+  const Cv = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (const { p } of pts) { const d = sub3(p, mean);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) Cv[i][j] += d[i] * d[j] / n; }
+  const mv = (M, x) => [0, 1, 2].map((i) => M[i][0] * x[0] + M[i][1] * x[1] + M[i][2] * x[2]);
+  const top = (M) => { let x = norm3([0.31, 0.72, 0.41]);
+    for (let i = 0; i < 400; i++) x = norm3(mv(M, x)); return x; };
+  const w1 = top(Cv);
+  const D = Cv.map((row, i) => row.map((v, j) => v - dot3(mv(Cv, w1), w1) * w1[i] * w1[j]));
+  let w2 = top(D);
+  w2 = norm3(sub3(w2, mul3(w1, dot3(w1, w2))));
+  return { mean, w1, w2, w3: norm3(cross3(w1, w2)) };
+}
+
+/* --- the sweep family, for treatment A ---------------------------- *
+ * The plane is rotated about w1: at t = 0 it holds w1 and w3 (the
+ * WORST 2-D plane containing w1), at t = 1 it holds w1 and w2 (the
+ * best). One angle, and the family provably contains the answer --
+ * which is exactly the honesty cost named on the page.               */
+function planeAt(E, t) {
+  const a = t * Math.PI / 2;
+  return { u: E.w1, v: norm3(add3(mul3(E.w2, Math.sin(a)), mul3(E.w3, Math.cos(a)))) };
+}
+
+/* ================= drawing helpers ================================ */
+function dpiCanvas(cv, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  return g;
+}
+function arrow(g, x0, y0, x1, y1, col, wd = 1.4, head = 7) {
+  g.save(); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = wd;
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  g.beginPath(); g.moveTo(x1, y1);
+  g.lineTo(x1 - head * Math.cos(a - 0.4), y1 - head * Math.sin(a - 0.4));
+  g.lineTo(x1 - head * Math.cos(a + 0.4), y1 - head * Math.sin(a + 0.4));
+  g.closePath(); g.fill(); g.restore();
+}
+function sample(g, x, y, col, r = 4.4) {
+  g.save(); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+  g.fillStyle = col; g.fill();
+  g.lineWidth = 1.4; g.strokeStyle = C.surface; g.stroke(); g.restore();
+}
+function label(g, t, x, y, col, size, align = "left", base = "middle") {
+  g.save(); g.fillStyle = col; g.font = `${size} ${C.font}`;
+  g.textAlign = align; g.textBaseline = base; g.fillText(t, x, y); g.restore();
+}
+const groupCol = (gI) => [C.a, C.b, C.emp][gI];
+
+/* ================= TREATMENT A ==================================== */
+const A = { pts: cloud3(7), phase: 0, t: 0, best: 0 };
+A.E = pca3(A.pts);
+A.varAt = (t) => { const { u, v } = planeAt(A.E, t); return captured(A.pts, A.E.mean, u, v); };
+A.best = A.varAt(1);
+
+function drawA(w) {
+  const H = 300;
+  const g = dpiCanvas(document.getElementById("cA"), w, H);
+  const dialW = Math.min(150, w * 0.24);
+  const sceneW = w - dialW - 24;
+  const cx = sceneW * 0.46, cy = H * 0.52;
+  const S = Math.min(sceneW, H) * 0.155;
+
+  /* phase 0: the plane turns.  phase 1: samples drop onto it.
+     phase 2: the plane rotates flat and becomes the 2-D plot.        */
+  const t = A.phase === 0 ? A.t : 1;
+  const { u, v } = planeAt(A.E, t);
+  const flat = A.phase === 2 ? Math.min(1, A.t) : 0;
+
+  /* the camera eases toward looking straight down the plane's normal,
+     which IS the third panel of your diagram: the 2-D plot is the
+     plane seen face-on.                                              */
+  const nrm = norm3(cross3(u, v));
+  const az0 = 0.72, el0 = 0.42;
+  const azT = Math.atan2(nrm[1], nrm[0]) - Math.PI / 2, elT = Math.asin(nrm[2]);
+  const ease = flat < 0.5 ? 2 * flat * flat : 1 - ((-2 * flat + 2) ** 2) / 2;
+  const cam = camera(az0 + (azT - az0) * ease, el0 + (elT - el0) * ease);
+  const P = (p) => { const [a, b] = cam(sub3(p, A.E.mean)); return [cx + a * S, cy + b * S]; };
+
+  /* axis arrows, fading as the view flattens -- once you are looking
+     down the normal the original axes mean nothing, and leaving them
+     lit invites reading PC1 as one of them */
+  g.save(); g.globalAlpha = 1 - ease;
+  for (const [ax, nm] of [[[3.6, 0, 0], ""], [[0, 3.6, 0], ""], [[0, 0, 3.0], ""]]) {
+    const o = P(A.E.mean), e = P(add3(A.E.mean, ax));
+    arrow(g, o[0], o[1], e[0], e[1], C.ink3, 1.3, 6);
+  }
+  g.restore();
+
+  /* the plane, as a parallelogram in u and v */
+  const R = 3.5;
+  const corners = [[-R, -R], [R, -R], [R, R], [-R, R]].map(([su, sv]) =>
+    P(add3(A.E.mean, add3(mul3(u, su), mul3(v, sv)))));
+  g.save();
+  g.beginPath(); g.moveTo(...corners[0]);
+  for (let i = 1; i < 4; i++) g.lineTo(...corners[i]);
+  g.closePath();
+  g.fillStyle = C.grid; g.globalAlpha = 0.55; g.fill();
+  g.globalAlpha = 1; g.strokeStyle = C.axis; g.lineWidth = 1; g.stroke();
+  g.restore();
+
+  /* PC1 and PC2, drawn IN the plane -- your diagram's dashed arrows */
+  for (const [vec, nm] of [[u, "PC1"], [v, "PC2"]]) {
+    const o = P(A.E.mean), e = P(add3(A.E.mean, mul3(vec, R * 0.82)));
+    g.save(); g.setLineDash([4, 3]);
+    arrow(g, o[0], o[1], e[0], e[1], nm === "PC1" ? C.hi : C.ink2, 1.6, 7);
+    g.restore();
+    label(g, nm, e[0] + 6, e[1] - 6, nm === "PC1" ? C.hi : C.ink2, C.fsXs);
+  }
+
+  /* samples -- and, once dropped, their perpendicular drop lines */
+  const drop = A.phase >= 1 ? Math.min(1, A.phase === 1 ? A.t : 1) : 0;
+  for (const { g: gi, p } of A.pts) {
+    const d = sub3(p, A.E.mean);
+    const onPlane = add3(A.E.mean, add3(mul3(u, dot3(d, u)), mul3(v, dot3(d, v))));
+    const shown = add3(p, mul3(sub3(onPlane, p), drop));
+    const s = P(shown), o = P(p);
+    if (drop > 0 && drop < 1) {
+      g.save(); g.strokeStyle = C.ink3; g.globalAlpha = 0.5; g.setLineDash([2, 3]);
+      g.beginPath(); g.moveTo(o[0], o[1]); g.lineTo(s[0], s[1]); g.stroke(); g.restore();
+    }
+    sample(g, s[0], s[1], groupCol(gi));
+  }
+
+  /* the dial: variance captured, for every orientation in the family */
+  const dx = w - dialW, dy = 44, dh = H - dy - 46;
+  const vmin = A.varAt(0), vmax = A.varAt(1);
+  g.save(); g.strokeStyle = C.axis; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(dx + 0.5, dy); g.lineTo(dx + 0.5, dy + dh); g.stroke(); g.restore();
+  g.beginPath();
+  for (let i = 0; i <= 60; i++) {
+    const tt = i / 60, val = A.varAt(tt);
+    const px = dx + 8 + (dialW - 26) * ((val - vmin) / (vmax - vmin || 1));
+    const py = dy + dh - dh * tt;
+    i ? g.lineTo(px, py) : g.moveTo(px, py);
+  }
+  g.strokeStyle = C.ink3; g.lineWidth = 1.6; g.stroke();
+  const curV = A.varAt(t);
+  const mx = dx + 8 + (dialW - 26) * ((curV - vmin) / (vmax - vmin || 1));
+  const my = dy + dh - dh * t;
+  sample(g, mx, my, C.hi, 4.2);
+  label(g, "variance of the", dx, dy - 26, C.ink2, C.fsXs);
+  label(g, "projected samples", dx, dy - 13, C.ink2, C.fsXs);
+  label(g, "each orientation", dx, dy + dh + 14, C.ink3, C.fsXs);
+  label(g, "of the plane", dx, dy + dh + 27, C.ink3, C.fsXs);
+
+  const pct = (curV / A.best * 100);
+  document.getElementById("mA").innerHTML =
+    `plane holds <b>${curV.toFixed(2)}</b> of the ${A.best.toFixed(2)} it can &mdash; <b>${pct.toFixed(0)}%</b>` +
+    ` &middot; phase <b>${["turning", "projecting", "flattening"][A.phase]}</b>`;
+}
+
+/* ================= TREATMENT B ==================================== */
+const B = { pts: cloud2(4), phase: 0, t: 0 };
+(function () {
+  const n = B.pts.length;
+  B.mean = [0, 1].map((k) => B.pts.reduce((s, { p }) => s + p[k], 0) / n);
+  B.varAt = (th) => { const u = [Math.cos(th), Math.sin(th)];
+    let s = 0; for (const { p } of B.pts) s += ((p[0] - B.mean[0]) * u[0] + (p[1] - B.mean[1]) * u[1]) ** 2;
+    return s / n; };
+  let bestTh = 0, bv = -1;
+  for (let i = 0; i < 720; i++) { const th = i / 720 * Math.PI, v = B.varAt(th);
+    if (v > bv) { bv = v; bestTh = th; } }
+  B.bestTh = bestTh; B.bv = bv;
+})();
+
+function drawB(w) {
+  const H = 330, curveH = 96, gap = 26;
+  const g = dpiCanvas(document.getElementById("cB"), w, H);
+  const planeH = H - curveH - gap - 26;
+  const cx = w * 0.5, cy = planeH * 0.52 + 6;
+  const S = Math.min(w * 0.5, planeH) * 0.22;
+  const th = B.phase === 0 ? B.t * Math.PI : B.bestTh;
+  const u = [Math.cos(th), Math.sin(th)];
+  const P = (p) => [cx + (p[0] - B.mean[0]) * S, cy - (p[1] - B.mean[1]) * S];
+
+  /* the candidate direction, drawn through the cloud */
+  const L = 4.6;
+  const e0 = P([B.mean[0] - u[0] * L, B.mean[1] - u[1] * L]);
+  const e1 = P([B.mean[0] + u[0] * L, B.mean[1] + u[1] * L]);
+  g.save(); g.strokeStyle = C.hi; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(e0[0], e0[1]); g.lineTo(e1[0], e1[1]); g.stroke(); g.restore();
+  label(g, "PC1", e1[0] + 8, e1[1], C.hi, C.fsXs);
+
+  /* the perpendicular, once the search has stopped */
+  if (B.phase >= 1) {
+    const v = [-u[1], u[0]];
+    const f0 = P([B.mean[0] - v[0] * L * 0.5, B.mean[1] - v[1] * L * 0.5]);
+    const f1 = P([B.mean[0] + v[0] * L * 0.5, B.mean[1] + v[1] * L * 0.5]);
+    g.save(); g.strokeStyle = C.ink2; g.lineWidth = 1.6; g.setLineDash([4, 3]);
+    g.beginPath(); g.moveTo(f0[0], f0[1]); g.lineTo(f1[0], f1[1]); g.stroke(); g.restore();
+    label(g, "PC2", f1[0] + 7, f1[1] - 4, C.ink2, C.fsXs);
+  }
+
+  /* every sample, with a tick where it lands on the line -- the
+     projected points whose spread the readout names */
+  for (const { g: gi, p } of B.pts) {
+    const s = P(p);
+    const proj = (p[0] - B.mean[0]) * u[0] + (p[1] - B.mean[1]) * u[1];
+    const q = P([B.mean[0] + u[0] * proj, B.mean[1] + u[1] * proj]);
+    g.save(); g.strokeStyle = C.ink3; g.globalAlpha = 0.45; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(q[0], q[1]); g.stroke(); g.restore();
+    sample(g, q[0], q[1], C.ink3, 2.6);
+    sample(g, s[0], s[1], groupCol(gi));
+  }
+
+  /* THE WHOLE SEARCH: variance against angle, every direction there is */
+  const ax = 44, aw = w - ax - 16, ay = H - 22, ah = curveH;
+  g.save(); g.strokeStyle = C.axis; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(ax, ay + 0.5); g.lineTo(ax + aw, ay + 0.5); g.stroke(); g.restore();
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i <= 180; i++) { const v = B.varAt(i / 180 * Math.PI); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  g.beginPath();
+  for (let i = 0; i <= 180; i++) {
+    const v = B.varAt(i / 180 * Math.PI);
+    const px = ax + aw * (i / 180), py = ay - ah * ((v - lo) / (hi - lo || 1));
+    i ? g.lineTo(px, py) : g.moveTo(px, py);
+  }
+  g.strokeStyle = C.ink3; g.lineWidth = 1.8; g.stroke();
+  const cv = B.varAt(th);
+  const cxp = ax + aw * (th / Math.PI), cyp = ay - ah * ((cv - lo) / (hi - lo || 1));
+  g.save(); g.strokeStyle = C.hi; g.lineWidth = 1; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(cxp, cyp); g.lineTo(cxp, ay); g.stroke(); g.restore();
+  sample(g, cxp, cyp, C.hi, 4.2);
+  label(g, "variance of", 4, ay - ah + 6, C.ink2, C.fsXs);
+  label(g, "the projected", 4, ay - ah + 19, C.ink2, C.fsXs);
+  label(g, "samples", 4, ay - ah + 32, C.ink2, C.fsXs);
+  label(g, "0°", ax, ay + 12, C.ink3, C.fsXs, "center", "top");
+  label(g, "90°", ax + aw / 2, ay + 12, C.ink3, C.fsXs, "center", "top");
+  label(g, "180°", ax + aw, ay + 12, C.ink3, C.fsXs, "center", "top");
+
+  document.getElementById("mB").innerHTML =
+    `direction <b>${(th * 180 / Math.PI).toFixed(0)}°</b> &middot; variance of the projected samples ` +
+    `<b>${cv.toFixed(2)}</b>, largest available <b>${B.bv.toFixed(2)}</b>`;
+}
+
+/* ================= the clock ====================================== */
+let W = 550;
+function frame() {
+  const step = 0.011;
+  if (A.phase === 0) { A.t += step; if (A.t >= 1) { A.t = 1; A.phase = 1; A.t = 0; } }
+  else if (A.phase === 1) { A.t += step * 1.6; if (A.t >= 1) { A.phase = 2; A.t = 0; } }
+  else if (A.phase === 2) { A.t += step * 1.1; if (A.t >= 1) A.t = 1; }
+  if (B.phase === 0) { B.t += step * 0.9; if (B.t >= 1) { B.t = 1; B.phase = 1; } }
+  drawA(W); drawB(W);
+  requestAnimationFrame(frame);
+}
+function reset() { A.phase = 0; A.t = 0; B.phase = 0; B.t = 0; }
+document.getElementById("replay").addEventListener("click", reset);
+for (const btn of document.querySelectorAll("[data-w]"))
+  btn.addEventListener("click", () => {
+    for (const o of document.querySelectorAll("[data-w]")) o.setAttribute("aria-pressed", String(o === btn));
+    W = Number(btn.dataset.w); reset();
+  });
+for (const btn of document.querySelectorAll("[data-theme]"))
+  btn.addEventListener("click", () => {
+    for (const o of document.querySelectorAll("[data-theme]")) o.setAttribute("aria-pressed", String(o === btn));
+    document.documentElement.setAttribute("data-theme", btn.dataset.theme);
+    readTokens();
+  });
+frame();
+</script>
+</body>
+</html>

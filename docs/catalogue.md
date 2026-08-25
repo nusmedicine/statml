@@ -4101,6 +4101,460 @@ points in majority territory — **does not fire**: on the balanced boundary onl
 for the single cluster. The single cloud shows the k effect *more* strongly.
 Building a shape control for it would have been building for a story the data
 does not support.
+---
+
+## The unsupervised arc · ONE WIDGET PER ALGORITHM
+
+**Agreed 2026-08-26, and it reversed a plan that had already been built against.**
+`03-5 - ML - Unsupervised Learning` holds four dimensionality-reduction methods,
+and the first design was one widget with four tabs. Kenneth's call after seeing
+the PCA tab: *"we'll do each algorithm as a separate widget due to the
+complexity."*
+
+| # | slug | method | status |
+|---|---|---|---|
+| 19 | `pca` | PCA | **built — draft** |
+| — | — | MDS | planned, storyboarded |
+| — | — | t-SNE | planned, storyboarded |
+| — | — | UMAP | planned, storyboarded |
+| — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
+
+**What the count was, so it is not re-argued.** Four tabs meant roughly 25
+parameters, six renderers that do not exist, four separate optimisers and ~18
+fingerprint states, against a project budget of 3–8 hours a widget. An
+adversarial pass over the four storyboards reached "these are four widgets,
+honestly closer to five" independently.
+
+**Build MDS next, not t-SNE.** It is the only one of the three with a closed-form
+answer to debug the shared machinery against, and it exercises the whole
+iterative half that PCA does not.
+
+---
+
+## Widget 19 · `pca` — BUILT, DRAFT
+
+**It belongs to neither arc**, like widget 18. Arc A is *what a model is* and arc
+B is *how well it did*; this one hosts at `03-5 - ML - Unsupervised Learning`,
+cells 7–19, where there is no model and no score — only a picture, and the
+question of what may be read off it.
+
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 19 | `pca` 🟠 | PCA | *Why not just plot two of the genes?* | That a 2-D plot **is** the data. Any two standardised genes keep exactly two thirds of the spread; the reader has to meet the cost of a projection before "the best plane" means anything | **reported** — the standard warning in the single-cell literature, and `03-5`'s own text is the invitation: it reads "the samples separate visually into 2 clusters" straight off a PCA plot |
+
+**THE DESIGN WENT THROUGH FOUR SHAPES AND THE FOURTH IS THE ONE.** Recorded
+because three were built, and the last two were cut for the same reason: I kept
+adding to the previous version instead of going back to the mock-up Kenneth had
+already approved.
+
+1. *Four projections of one data set, which is honest* — a comparison widget.
+   Cut when the four notebook diagrams turned out to be **mechanism** diagrams:
+   he wanted what each method does, not which is best.
+2. *Four beats: Gene 1 against Gene 2, then PC1, PC2, project.* The first beat
+   was a baseline plane — what a reader does when they have not heard of PCA —
+   and because the features are standardised it keeps **exactly 2.00 of 3.00**,
+   verified to 8.9e-16 over 360 runs, for any pair of genes. **That fact
+   survives and is worth re-using** if a later version wants a baseline back.
+3. *The same four beats plus a rotatable cloud, a lead that centred the samples,
+   a viewpoint choice and a one-axis orbit.* Cut whole: **"what the heck are you
+   doing? this is not what we did in the mockup."** It was.
+4. **What is built**, and it is the mock-up: two controls, free rotation, PCA
+   drawn, projection shown.
+
+**NOTHING SPINS, AND THAT IS THE POINT.** Shape 3 turned PC1 into place by power
+iteration and swept PC2 through the perpendicular circle, defended on the ground
+that both are real algorithms and therefore not a fiction. They are real, and it
+was still wrong: sklearn computes an SVD, nothing rotates, and a reader watching
+a line hunt for a maximum learns a mechanism the method has not got. *"Don't do
+crazy spinning rotation that is nonsensical."* The components are now simply
+drawn — they are a property of the data, they appear when asked for, and the
+widget claims nothing about how they were found. **This also closes the honesty
+gap that was open through shapes 2 and 3**, which no amount of careful wording
+had managed to.
+
+**THE SAMPLES ARRIVE CENTRED.** Shape 3 had a lead button that translated the
+cloud onto the origin so "every feature minus its mean" was visible. It was one
+press between the reader and the thing they came for, and standardising is
+preprocessing rather than part of PCA — `03-5` does it in cell 3, two sections
+earlier.
+
+**Three controls, two gates, no Step and no Play.** `groups`, `samples` and
+`seed` are the whole rail. `Run PCA` draws PC1, PC2 and the plane; `Project onto
+the plane` flattens the samples and fills the 2-D panel. There is nothing to step
+through, so both buttons are declined via `stepLabel: null` / `runLabel: null`
+(4.5) — a dead Step beside a live gate teaches that the gate is the afterthought.
+
+**`--c-cluster-a` … `-f` is a ramp of six, ordered brightest first: blue,
+yellow, red, aqua, green, violet.** The first three are Kenneth's — *"choose
+bright base colors first"* — and a figure showing three groups should get the
+three most separable hues rather than whatever the other roles left over. An
+earlier version started at aqua and magenta and read as a muted palette at the
+count most widgets use.
+
+**The last three were measured rather than picked by eye.** With blue/yellow/red
+fixed, all ten ways of choosing three more were scored on the smallest weighted
+RGB distance between any two of the six, in **both** themes:
+
+| last three | worst pair |
+|---|---|
+| **aqua + green + violet** | **76** |
+| orange + aqua + green / orange + aqua + violet / orange + green + violet | 40 |
+| everything containing magenta | 34 |
+
+Magenta is in every one of the worst options because it sits too close to red.
+A first attempt used it and would have put two near-identical dots on the same
+six-group figure. Final worst pair: 85 in light, 76 in dark.
+
+**`samples` is per group, not in total**, so the groups stay balanced whatever
+the count — an unbalanced cloud would put a second variable into a control meant
+to change only how much data there is. **It was checked against the group count
+before being added**, at all 25 combinations over 40 seeds: two components are
+never worse than one, PC1+PC2 holds 99–100% throughout, and PC1 alone tracks the
+group count and not the sample count. The two controls are independent: one sets
+how much data there is, the other how hard the question is.
+
+### A TRAP THAT WILL BITE THE NEXT WIDGET: only the FIRST gate animates
+
+`GATE_PARAM` in `widgets/core/widget.js` is
+`Object.entries(spec).find(([, f]) => f.type === "gate")?.[0]` — **the first gate
+in the spec and only that one.** It is what the entry animation is keyed on. So
+with two data gates, opening the first played in and opening the second silently
+**jumped**: a data change runs `stopAnim(); render()`, and `init` then read the
+new value and set the finished figure directly. Reported as *"i didn't see any
+animation for projection?"* — and it was not there to see.
+
+**The fix is to make the gates `display: true`**, which is also the honest
+reading: neither gate changes what the state IS. `compute` finds the components
+and the projection whatever they say; the gates choose how much is drawn. Display
+parameters take the other branch and ask for frames through `anim.easing`, which
+has no first-gate restriction. Any widget here wanting two animated gates needs
+the same.
+
+### THE ROTATION HAS TO LAND ON THE 2-D GRAPH, not merely face-on
+
+Turning until the plane's normal points at the reader leaves the **in-plane**
+rotation wherever it happened to be, so the cloud settled at an arbitrary roll
+and the panel beside it showed the same samples the other way up. *"It should
+rotate so the 2D plane looks the same as what the final 2d graph looks like."*
+
+So the end state is written down rather than derived from angles: the screen
+basis becomes **PC1 across and PC2 up** — exactly what the right panel plots —
+and the scale becomes the right panel's scale, `(side/2 − 16) / span`. The
+camera therefore returns its two basis vectors instead of a projection function,
+and the turn slerps each toward its target and re-orthonormalises, which keeps
+every intermediate frame an orthonormal pair so the cloud rotates rather than
+shearing. Asserted: at the end of the turn **every sample sits within 1.1e-13 px
+of where the 2-D panel draws it**, from every starting angle.
+
+**`slerp` had been deleted and was then called again** — the "nothing spins"
+rewrite removed the last use, and the landing needed it back. It went unnoticed
+in the browser and was caught by the node driver, which is the argument for that
+harness in one line.
+
+**THE PROJECTION IS TWO MOVES IN SEQUENCE, NOT TWO AT ONCE.** They used to share
+the middle tenth, so the samples were still falling while the camera had begun to
+swing — two motions together, and the eye can follow neither.
+
+| | |
+|---|---|
+| 0.00 – 0.42 | every sample slides onto the plane |
+| 0.42 – 1.00 | the plane turns to face the reader |
+| 0.70 – 1.00 | the 2-D panel fades up behind the end of that turn |
+
+1800ms against 900 for the components, because the components appearing is a
+*reveal* and this is a *move* (4.3). The turn takes the larger share and a cubic
+ease rather than the quadratic the drop uses: a plane that starts turning
+abruptly reads as a cut. The turn also takes the **shorter way round** — without
+that a 10-degree move can travel 350 the wrong way, which is precisely the
+nonsensical spin this widget exists without.
+
+**THE GROUP CENTRES LIE IN A PLANE, NOT ON A LINE**, and that one choice is what
+makes a second component worth having. Nearest-neighbour-in-its-own-group, 40
+seeds:
+
+| centres | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|
+| on a line, PC1 | 99% | 98% | 85% | 70% | 57% |
+| on a line, PC1+PC2 | 100% | 99% | 85% | 68% | 55% |
+| **in a plane, PC1** | 100% | 91% | 78% | 67% | **51%** |
+| **in a plane, PC1+PC2** | 100% | 100% | 100% | 100% | **99%** |
+
+With the centres on a line PC1 already separates everything and PC2 adds
+nothing, so "now add the second component" is a step with no reason behind it.
+In a plane, **one** component gets monotonically worse as groups are added and
+**two** stay perfect. That is the argument for PC2, and it is what makes `groups`
+a control that carries an idea (3.5) rather than a count of dots.
+
+**Not gated — Step and Play.** A gate is for a stage the reader must *choose* to
+enter; widget 18 has three and each is a decision with a consequence. These four
+beats are one continuous story with no decision in it, so gates would add three
+presses that mean nothing and three chances to stop halfway.
+
+**`drag` was added to `widgets/core/widget.js`** so the cloud can be turned
+freely. Core previously resolved a pointer to an identity through the region map
+and ignored movement entirely.
+
+It names its parameters **up front**, so core validates them at load exactly as
+it validates a region — a name that is not in the spec is a code defect and
+throws there rather than doing nothing on the first drag. It may name **more
+than one**, which a region may not, and the difference is real rather than a
+relaxation: a region's objection to two is that it would paint an intermediate
+state, write the URL twice and make a click a different transaction from the one
+the harness performs. None of that follows here, because the values are applied
+**together** and only the last goes through `setParam` — one recompute, one
+repaint, one address-bar write, however many are named. Two numbers that are one
+gesture stay one transaction.
+
+**A first attempt got this wrong** and constrained the camera to a single
+`orbit` axis with the tilt hidden inside a viewpoint choice, on a
+misreading of that comment. Free rotation was the ask, and `turn` and `tilt`
+are now both parameters — so a shared link reproduces the angle a student was
+looking from. Turn wraps (a cloud has no far side, and a drag that hits a wall
+reads as the figure being broken); tilt clamps at 80°, past which the vertical
+axis collapses to a point.
+
+**Samples paint back to front**, or the cloud is a flat sticker and turning it
+tells you nothing.
+
+### THIS WIDGET NO LONGER HAS A FAILING CASE, and principle 2.6 wants one
+
+Shape 2 carried a `shape` control with two, both measured and both the
+notebook's own blind spots:
+
+- **`outlier`** — `03-5` cell 7 lists "sensitive to outliers, which can dominate
+  principal components" and never shows it. One sample moved 12 units
+  perpendicular to the group axis, 60 seeds: PC1 swings onto it (alignment
+  0.91), **that one sample supplies 77% of PC1's variance**, and the other
+  eleven are squeezed into **30% of the plot's width**. Sharp transition between
+  6 and 12 units — at 8 it is 7% and 97%.
+- **`round`** — a cloud with no groups in it. The plane still keeps **2.42 of
+  3.00, 81%**, and PC1 still beats every single gene. *Keeping more of the
+  spread is not the same as finding something.*
+
+Both were dropped for simplicity, not because they stopped being true. **The
+numbers above are enough to rebuild either as one extra option.** Its caption was
+wrong twice on the way — first "no direction carries much more than another",
+then "barely better than any two genes" — both times by describing the
+population when the figure shows twelve samples of it.
+
+**A `within one gene` failing case was designed and is arithmetically
+impossible**, which is worth not rediscovering: after `StandardScaler` every
+feature has variance exactly 1.00, so no gene can "have a large spread", and with
+only three genes the group direction can never be pushed out of the top two
+components. What would do it is a correlated nuisance direction loading on all
+three — and that needs more than three genes to draw.
+
+**The reconnaissance below was done for the four-method comparison widget.** It
+is the payoff for the per-algorithm widgets rather than their spine. None is
+wasted; none should be taken again.
+
+### The real data was measured first, and it answered the question the plan hung on
+
+`Colorectal_GSE44076.csv`, preprocessed as the notebook does: **194 samples ×
+49,386 probes, balanced 97 normal / 97 adenocarcinoma.** All four methods, five
+seeds each.
+
+| method | silhouette of the two clusters **in the picture** | of 194, how many it puts in the **wrong** group | 10-NN agreement across seeds |
+|---|---|---|---|
+| MDS | 0.400 | 5, 5, 8, 7, 7 | **0.35** |
+| PCA | 0.590 | 5, 5, 5, 5, 5 | **1.00** |
+| t-SNE | 0.679 | 2, 2, 2, 2, 2 | 0.72 |
+| UMAP | **0.810** | 2, 2, 2, 2, 2 | 0.71 |
+
+**How separated the picture looks doubles; how much it knows moves by three
+samples out of 194.** UMAP and t-SNE score an identical ARI of 0.959, MDS and PCA
+an identical 0.899 — four methods, two answers. Distance faithfulness runs the
+other way: MDS 0.77, PCA 0.76, t-SNE 0.61, UMAP 0.56. The tighter and more
+convincing the clusters look, the less the distances mean.
+
+**PCA is bit-identical across all five seeds. MDS is the least reproducible of
+the four, not t-SNE** — only about a third of each point's ten nearest neighbours
+survive a seed change, and the number of samples it puts in the wrong group
+changes with the seed. That is the opposite of what most people expect, and it is
+what `03-5`'s "the cluster separation is less clear" is actually recording.
+
+**On generated blobs where the truth is known:** a cluster genuinely 10× wider
+renders 2.1× wider in t-SNE and **1.2× in UMAP**; a true 5:1 gap ratio renders as
+**11.4:1 in UMAP**. PCA gets both right to two decimals, being a linear
+projection.
+
+**Two things were measured and did NOT fire, so nobody re-runs them.** t-SNE does
+not invent clusters from pure noise at this scale — silhouettes 0.31–0.37 for
+every method including PCA — and no method splits the tumour class into fake
+subgroups. The Wattenberg-style "t-SNE manufactures structure" demonstration is
+not available on data of this size.
+
+**The consequence for principle 2.6:** on the real data nothing fails. Every
+method separates the classes at 97–99%. The failing cases therefore have to come
+from the generated stage, which is what the `shape` control is.
+
+### Treatment A over B, and what A costs
+
+`_lab/dr-pca-mechanism.html` drew both at the real width. **A** — the 3-D cloud
+with a turning plane, Kenneth's diagram. **B** — the same mechanism one dimension
+lower, where a direction is a single angle so the variance-against-angle curve
+underneath is provably every direction there is. Kenneth chose A: *"go with A, it
+matches my diagrams."*
+
+**A cannot show every candidate**, because in 3-D a direction has two degrees of
+freedom. That is not paid for by sweeping a family and implying it was
+exhaustive; it is paid by making both moves real algorithms. PC1 is **power
+iteration** — multiply by the covariance, renormalise — which is how the top
+eigenvector is genuinely computed, climbs monotonically, and converges from any
+start. PC2 is an **exhaustive 180° sweep** of the circle perpendicular to PC1,
+which in 3-D really is every allowed direction, and where the reader watches the
+spread rise, pass the maximum and *fall*.
+
+**The residual honesty gap, named rather than designed away:** sklearn computes
+PCA by SVD, not by iterating. Power iteration is a real algorithm and randomised
+SVD is essentially it, so the widget does not lie — but a reader could leave
+thinking the library turns a line. Open, not settled.
+
+### The generated stage, measured before it was drawn
+
+**Twelve samples, not nine.** The diagram has three groups of three. Over 60
+seeds three-of-three separates in the 2-D plot at a mean of 97% but **67% on the
+worst seed** — four samples of nine landing nearer another group, on a figure
+whose whole claim is that the groups came through. Four-of-three is 99% mean,
+92% worst, no seed below 90%.
+
+**A `within one gene` failing case was designed and is arithmetically
+impossible.** After `StandardScaler` every feature has variance exactly 1.00, so
+no gene can "have a large spread", and with only three genes the group direction
+can never be pushed out of the top two components. Measured, then dropped. What
+would actually do it is a correlated nuisance direction loading on all three
+genes — and that needs more than three genes to draw.
+
+**The failing case is the notebook's own instead.** `03-5` cell 7 lists
+"sensitive to outliers, which can dominate principal components" and never shows
+it. One sample moved 12 units perpendicular to the group axis, over 60 seeds:
+PC1 swings onto it (alignment 0.91), **that one sample supplies 77% of PC1's
+variance**, and the other eleven are squeezed into **30% of the plot's width**.
+The transition is sharp and sits between 6 and 12 units — at 8 it is 7% and 97%.
+
+**The round cloud turned out to be the sharper failing case.** Its caption nearly
+shipped as "no direction carries much more than another", which is true of the
+population and false of twelve samples: PC1 lands at **1.50 against PC2's 0.90**
+and clears the one-gene tick at every seed. Twelve samples in three genes
+manufacture a leading direction out of nothing.
+
+**λ₁ ≥ 1 is a theorem on standardised data**, with equality only if every
+correlation is zero. So "PC1 lands past the one-gene tick" is guaranteed and must
+not be presented as a discovery. What is contingent, and is the real content, is
+*how far* past — 2.80 at `groups`, 1.64 at `outlier`, 1.50 at `round`.
+
+### Three bugs the assertions caught and no screenshot would have
+
+- **The `start` control printed a claim that was false.** An eigenvector has no
+  sign, so power iteration lands on whichever end it started nearest:
+  **83 of 270 start-pairs landed on opposite signs**, mirroring the arrow and
+  flipping the 2-D scatter. Fixed with sklearn's `svd_flip` convention, and the
+  direction arrows are drawn **double-headed**, because pinning the sign is a
+  convention and one arrowhead would assert a direction the data has not got.
+- **Power iteration capped at 14 steps landed 0.29 from the true PC1** on the
+  worst of 360 trajectories. It needs up to **500** when the top two eigenvalues
+  are close, which is exactly what two of the three shapes are built to have. It
+  now runs to convergence, shows six real iterates, and the answer comes from a
+  Jacobi eigendecomposition — agreement verified to 1e-12.
+- **Below 420px the two panels overflowed the canvas** and the right one was
+  simply not drawn. A `Math.max(180, …)` floor that read as protecting the figure
+  was what did it.
+
+### `--c-cluster-a/b/c` were added to `tokens.css`
+
+A third group colour did not exist. `--c-group-a`/`--c-group-b` are **two arms of
+a comparison**, which is a thing you decided; a cluster in a projection is the
+opposite — the grouping is what you are trying to find out. Three, because the
+failure these widgets exist to show is a third group appearing, merging or moving
+between methods. Aqua, magenta and green are what the ramp had left.
+
+**This is a `widgets/core/` change and the full suite was run.** 123 of 123
+states: every text hash identical, every pixel hash different — uniformly, on
+every widget, at `devicePixelRatio` 1 against a baseline recorded at the
+machine's scaled DPR. That is the documented `px` behaviour, not a regression,
+but **the pixel half is still unverified** and wants one run from the normal
+browser before this lands.
+
+### Still owed
+
+- The MDS, t-SNE and UMAP tabs. Storyboards exist for all four.
+- **An adversarial pass says these are four widgets, not one** — roughly 25
+  parameters, six renderers that do not exist, four separate optimisers, ~18
+  fingerprint states. It recommends building **MDS** next rather than t-SNE:
+  MDS has a closed-form answer to debug the shared skeleton against, and it
+  exercises the whole iterative half that PCA does not.
+- No fingerprint states, by design — the shape is unreviewed.
+- **`dimreduce-artifacts` in the arc-B tail list is this widget's second half**
+  and should be struck from there, or narrowed, once the four tabs land.
+---
+
+## NEXT · MDS, as its own widget
+
+**Build this one before t-SNE and UMAP.** It is the only one of the three with a
+**closed-form answer to check the machinery against**, and it exercises the whole
+iterative half that PCA does not — PCA's objective does not fall over steps at
+all, which is why it ended up with no Step button.
+
+### The one sentence
+
+*The input is the table of distances, not the cloud, and the 2-D picture is the
+arrangement whose distances come closest to it.*
+
+### The beat that IS the widget
+
+After the distances are measured, **the coordinates are put away**: the 3-D
+cloud fades to a faint outline and the distance matrix stays at full ink.
+It is the only place in the four DR widgets where the *input to a method* is
+shown to be something other than the cloud. The outline stays on screen for the
+rest of the run so the reader can see it being **ignored**, not deleted.
+
+### The closed-form checks — debug the machinery against these, not a picture
+
+| stage | what must come out |
+|---|---|
+| **n = 3** | stress exactly **0.000**. Three points make one triangle, and a triangle is flat |
+| **n = 4, regular tetrahedron** | six equal distances of **3.27** come out as four at **2.79** and two at **3.94** — it lies down as a square. Stress settles at **1.830** and will not go lower |
+| **the seed** | all 50 seeds give **1.8304**; the mirror splits 23 / 27 |
+
+That last row is the seed lesson with no sentence needed: the picture arrives
+rotated or mirrored, the stress tile reads the same to three decimals, and the
+two sit side by side. **This is Kenneth's own diagram made true — his 5.5 / 3.2 /
+6.1 becoming 5.2 / 2.8 / 5.4 is exactly "close, not equal".**
+
+### Why MDS is the seed widget, measured on the real data
+
+From the four-method reconnaissance (see the section above): **MDS is by far the
+least reproducible of the four, not t-SNE.** Across 5 seeds only **35%** of each
+point's ten nearest neighbours survive a seed change — PCA 100%, t-SNE 72%, UMAP
+71% — and the number of samples it puts in the wrong group changes with the seed
+(5, 5, 8, 7, 7 of 194). This is what `03-5`'s "the cluster separation is less
+clear" is actually recording, and it is the opposite of what most readers expect.
+
+### Two controls that carry ideas
+
+- **`points` 3–8.** 3 fits exactly; 4 never does. That is principle 2.6's failing
+  case on one slider, and it needs no extra machinery.
+- **`turn`, on the 3-D cloud.** Turning it moves the picture and **does not move
+  a digit in the matrix**. Distance is what survives rotation — and it plants the
+  seed lesson in 3-D before the reader meets it in 2-D. Must be `display: true`
+  so it does not reset the run.
+
+### What can be reused from widget 19 verbatim
+
+`widgets/pca/main.js` is the reference. The 3-vector helpers, `slerp`, the
+orthographic `camera` returning two basis vectors, the depth-sorted scatter, the
+`layout` function read by both `height` and `draw`, `--c-cluster-a…f`, and the
+`drag` block are all method-independent. **Read the two traps recorded under
+widget 19 before writing any of it**: only the FIRST gate animates unless the
+gates are `display: true`, and a rotation must land on the 2-D graph's own
+framing rather than merely face-on.
+
+### Not settled
+
+Whether the real 194 samples appear at all. The storyboard proposes a gate —
+*Run it on the 194 samples* — swapping the mechanism panels for one scatter and a
+Shepard plot. That is a second widget's worth of work and should be a separate
+decision after the mechanism half is reviewed.
 
 ---
 
