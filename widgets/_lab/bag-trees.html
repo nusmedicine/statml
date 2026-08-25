@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; showing the collection of trees</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1320px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: 0; }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 60ch; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; }
+  html { scrollbar-gutter: stable; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .knob { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .knob input[type="range"] { width: 200px; }
+  .knob .out { font-variant-numeric: tabular-nums; color: var(--ink-1); min-width: 4.2em; }
+  .wrap { overflow-x: auto; padding-bottom: var(--sp-1); }
+  .row { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3);
+    justify-content: start; align-items: start; }
+  ul.claims { list-style: none; margin: var(--sp-3) 0 0; padding: 0; max-width: 100ch; }
+  ul.claims li { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: var(--sp-1);
+    font-variant-numeric: tabular-nums; }
+  ul.claims b { color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+
+  <h1>Showing the collection of trees</h1>
+  <p class="note">
+    A mock-up, not a change to the bagging page. Right now that page tells you there are fifty
+    trees and shows you one. These three put the <b>collection</b> on screen, so
+    &ldquo;<b>166 distinct structures</b> in 2000 resamples&rdquo; becomes something you look at
+    rather than something you are told. Same twelve samples, same bootstrap seed as the real
+    page, so these are the actual trees it draws.
+  </p>
+
+  <div class="bar">
+    <label class="knob">trees drawn
+      <input type="range" id="k" min="1" max="50" step="1" value="18">
+      <span class="out" id="kOut">18 of 50</span>
+    </label>
+    <label class="knob"><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <h2>M1 &middot; the grid replaces the tree panel</h2>
+  <p class="note">
+    The collection takes the middle panel entirely. Nothing is added to the row, but the current
+    tree is no longer readable at full size &mdash; you lose the ability to read its first split
+    and compare it with page one&rsquo;s.
+  </p>
+  <div class="wrap"><div class="row" id="rowM1"></div></div>
+
+  <h2>M2 &middot; the current tree, with the collection beneath it</h2>
+  <p class="note">
+    The middle panel keeps the tree at readable size and gains a strip of miniatures under it.
+    Both ideas survive, at the cost of a shorter tree and much smaller miniatures.
+  </p>
+  <div class="wrap"><div class="row" id="rowM2"></div></div>
+
+  <h2>M3 &middot; a shelf under the whole row</h2>
+  <p class="note">
+    The three existing panels are untouched and the collection gets the full page width beneath
+    them. The most legible miniatures of the three, and the only one that costs the current
+    design nothing &mdash; but it needs vertical space, and the shelf is below the fold on a
+    short window.
+  </p>
+  <div class="wrap"><div class="row" id="rowM3"></div></div>
+
+  <ul class="claims" id="claims"></ul>
+
+</main>
+
+<!-- Deliberately NOT added to _lab/index.html: that index is stale and
+     catching it up is its own change. -->
+<script type="module" src="./bag-trees.js"></script>
+</body>
+</html>
