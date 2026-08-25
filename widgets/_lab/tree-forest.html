@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; drawing the forest</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The shared _lab style block, verbatim, except the max-width. 1180 is the
+     house value for a two-panel stage page; this one puts THREE real stages
+     side by side (3 x 550.4 = 1651 px of canvas), so the grid gets its own
+     scroll container and the wrapper is widened. Prose is still capped at
+     88ch / 100ch, so nothing here reads the full width. */
+  .lab { max-width: 1560px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  h2:first-of-type { margin-top: var(--sp-3); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b, p.note strong { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .bar label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); }
+  th, td { border: 1px solid var(--grid); padding: 3px 8px; text-align: right; }
+  th { color: var(--ink-3); font-weight: 600; text-align: left; }
+  td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  td:first-child, th:first-child { text-align: left; }
+
+  /* --- this page's own additions ---------------------------------------- */
+
+  /* Three real stages are wider than any window, so the GRID scrolls and the
+     page body never does. */
+  .wrap { overflow-x: auto; padding-bottom: var(--sp-1); }
+
+  /* The fit factor is computed from the scroll container's width, and a page
+     that gains a vertical scrollbar as its own figures are added loses ~15 px
+     of that width AFTER the canvases have been sized — which showed as a grid
+     that overflowed by exactly one scrollbar. Reserving the gutter makes the
+     width a constant that the measurement can trust. */
+  html { scrollbar-gutter: stable; }
+  .grid { display: grid; gap: var(--sp-3); justify-content: start; align-items: start; }
+  .grid .cell { margin-bottom: 0; }
+  .grid .cell .measure { margin-top: var(--sp-1); }
+  .grid .cell .measure + .measure { margin-top: 2px; }
+
+  /* One claim per line, directly under the figures it is read off. */
+  ul.claims { list-style: none; margin: var(--sp-3) 0 0; padding: 0; max-width: 100ch; }
+  ul.claims li { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: var(--sp-1);
+    font-variant-numeric: tabular-nums; }
+  ul.claims b { color: var(--ink-1); font-weight: 600; }
+  ul.claims code { color: var(--ink-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
+
+  .yes { color: var(--series-6); font-weight: 600; }
+  .no { color: var(--series-8); font-weight: 600; }
+
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    vertical-align: -1px; margin-right: 2px; }
+  .legend { color: var(--ink-3); max-width: 120ch; }
+  .legend b { color: var(--ink-2); font-weight: 400; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Drawing the forest</h1>
+
+  <div class="bar">
+    <label>section
+      <select id="sec">
+        <option value="a">A &mdash; how the forest is drawn</option>
+        <option value="b">B &mdash; four presses, four walls?</option>
+        <option value="c">C &mdash; the box against the circle</option>
+        <option value="d">D &mdash; boosting, and what it cost to find a stage</option>
+      </select>
+    </label>
+    <label id="rowsLab">B shown
+      <select id="rows">
+        <option value="all">all four</option>
+        <option value="1">1</option>
+        <option value="5">5</option>
+        <option value="15">15</option>
+        <option value="50">50</option>
+      </select>
+    </label>
+    <label>stage
+      <select id="stage">
+        <option value="550.4">550.4 px stage &mdash; panel 494.4 px, the narrow side layout</option>
+        <option value="770">770 px stage &mdash; panel 560 px, the widest (planeSide caps at 560)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="fit" checked> fit to window <b id="fitLab" style="color: var(--ink-1)"></b></label>
+    <label><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <p class="note legend">
+    <span class="sw" style="background: var(--c-nonevent)"></span> <b>class y = &minus;1</b>
+    &nbsp; <span class="sw" style="background: var(--c-event)"></span> <b>class y = +1</b>
+    &nbsp; <span class="sw" style="background: var(--c-highlight)"></span> <b>the boundary the model predicts on</b>
+    &nbsp; <span class="sw" style="background: var(--ink-2)"></span> <b>a cut inside the model</b>
+    &nbsp;&middot;&nbsp; <b id="legendNote"></b>
+  </p>
+
+  <section data-sec="a">
+    <h2>A &middot; three ways to draw the same forest</h2>
+    <p class="note">
+      One fitted forest on the rings, read at a prefix of <b>B</b> members &mdash; so every panel
+      in a row is the same model. Columns are the drawing; rows are how many trees have been
+      added.
+    </p>
+    <div class="wrap"><div class="grid" id="gridA"></div></div>
+    <ul class="claims" id="claimsA"></ul>
+    <p class="measure" id="checkA"></p>
+  </section>
+
+  <section data-sec="b" hidden>
+    <h2>B &middot; level 1 to level 4, one wall at a time</h2>
+    <p class="note">
+      One fitted tree, truncated at each level. The cut that lands at this level is drawn in the
+      boundary colour; the cuts already standing are grey.
+    </p>
+    <div class="wrap"><div class="grid" id="gridB"></div></div>
+    <ul class="claims" id="claimsB"></ul>
+  </section>
+
+  <section data-sec="c" hidden>
+    <h2>C &middot; the depth-4 box against widget 16&rsquo;s RBF circle</h2>
+    <p class="note">
+      Same 180 samples, same panel, same boundary colour. On the left the tree at full depth; on
+      the right widget 16&rsquo;s own model, solved with widget 16&rsquo;s own solver at its own
+      default dials.
+    </p>
+    <div class="wrap"><div class="grid" id="gridC"></div></div>
+    <ul class="claims" id="claimsC"></ul>
+  </section>
+
+  <section data-sec="d" hidden>
+    <h2>D &middot; boosting, on the one generator that earned it</h2>
+    <p class="note">
+      Not the rings &mdash; the <b>wave</b>, y = +1 where x&#8322; &gt; 1.2 sin(6 x&#8321;), on the
+      same square domain and the same 180 points. Top row is AdaBoost after m rounds, bottom row
+      is the forest after B trees, on the same samples.
+    </p>
+    <div class="wrap"><div class="grid" id="gridD"></div></div>
+    <ul class="claims" id="claimsD"></ul>
+    <h2>What else was tried, and the number that ended it</h2>
+    <p class="note">
+      41 candidate generators were swept. One cleared both bars; three looked like winners until
+      the forest was allowed a fair configuration. Figures are balanced accuracy, boosting minus
+      the forest named in the row, paired over 40&ndash;100 data seeds.
+    </p>
+    <div id="tableD"></div>
+  </section>
+
+  <h2>Three things this raises, none of them decided here</h2>
+  <p class="note" id="closing"></p>
+</main>
+<!-- Deliberately NOT added to _lab/index.html. That index lists 13 of the 32
+     pages in this directory and knows about neither SVM page; HANDOVER records
+     catching it up as its own single change, so adding one more card here would
+     only make a stale list look maintained. -->
+<script type="module" src="./tree-forest.js"></script>
+</body>
+</html>
