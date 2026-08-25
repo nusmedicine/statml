@@ -2,17 +2,23 @@
 
 ## Where things are
 
-**Nineteen widgets: sixteen SHIPPED, three DRAFT.** Widget 17,
-`trees-and-ensembles`, widget 18, `balancing-data`, and widget 19,
-`pca`, are all drafts — they deploy to their final URLs
+**Twenty widgets: sixteen SHIPPED, four DRAFT.** Widget 17,
+`trees-and-ensembles`, widget 18, `balancing-data`, widget 19, `pca`, and
+widget 20, `mds`, are all drafts — they deploy to their final URLs
 but stay off the gallery and wear the draft bar. Everything is live at
 <https://nusmedicine.github.io/statml/>.
 
-**Widget 19 `pca` is the newest, and Kenneth HAS driven it** — six rounds of his
-own feedback are in it. It began as a four-tab widget over PCA, MDS, t-SNE and
-UMAP; his call on 2026-08-26 was **one algorithm, one widget** — *"we'll do each
-algorithm as a separate widget due to the complexity"* — so it is PCA alone, and
-MDS is next, as its own widget. See *NEXT* below.
+**Widget 20 `mds` is the newest and KENNETH HAS NOT SEEN IT.** It is built
+against the storyboard, every closed-form check in it reproduces, and not one
+review round has happened — which is why it has no fingerprint states. See
+*NEXT* below for the three URLs to open in front of him and the two decisions
+to put to him.
+
+**Widget 19 `pca` has six rounds of Kenneth's own feedback in it.** It began as
+a four-tab widget over PCA, MDS, t-SNE and UMAP; his call on 2026-08-26 was
+**one algorithm, one widget** — *"we'll do each algorithm as a separate widget
+due to the complexity"* — so it is PCA alone, MDS is widget 20, and t-SNE is
+next.
 
 **`widgets/core/` CHANGED IN THREE FILES**, which is the one kind of change that
 reaches widgets you are not looking at:
@@ -38,14 +44,22 @@ asked for.** Widget 17 is still missing a look at its boosting page. Both are
 unbaselined by design — a baseline recorded before the design is settled is
 thrown away, and widget 18's design moved in every one of those twelve rounds.
 
-**THREE COMMITS ARE UNPUSHED**, and they are widget 19's: the core change, the
-widget, and this handover. The nine that the previous handover warned about have
-since been pushed — `git ls-remote` puts `origin/main` at `3058818`, the commit
-whose own message said they were outstanding.
+**EVERYTHING AFTER `3058818` IS UNPUSHED**, and that is the durable way to say
+it: `git ls-remote` puts `origin/main` there, and nothing since has been
+published. As of this commit that is widget 19's four — the core change, the
+widget, its handover and a correction to that handover — plus widget 20's.
+**Every push to `main` publishes**, so a push now puts two unreviewed drafts on
+the live site at once.
 
-**Verify this rather than believing it.** The local `origin/main` ref was last
-fetched on 24 August and a stale ref reads as a clean tree either way, which is
-exactly how the number got carried forward wrong:
+**DO NOT WRITE THE COUNT DOWN, WRITE THE SHA.** The number has now been wrong in
+four consecutive handovers — nine, then eleven, then three, then four — and the
+mechanism is the same every time: **a handover commit counts the tree before
+itself exists**, so it is short by one the instant it lands, and the next
+session copies the stale figure forward. `3058818` does not move when a commit
+is added to the local branch.
+
+**Verify even that rather than believing it.** The local `origin/main` ref was
+last fetched on 24 August and a stale ref reads as a clean tree either way:
 
 ```bash
 git ls-remote origin refs/heads/main    # the truth, without touching any ref
@@ -132,27 +146,127 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: build MDS as its own widget
+## NEXT: SHOW WIDGET 20 TO KENNETH, then t-SNE
 
-**Widget 19 `pca` is done for now** — six rounds of Kenneth's own feedback, and
-he called it: *"ok commit, write handover and let's continue in new session to
-build MDS."*
+**`mds` is built and Kenneth has not seen it.** Nothing in it has been through a
+review round, which is the whole reason it has no fingerprint states: a baseline
+recorded before the design is settled is thrown away, and widget 18's moved in
+all twelve of its rounds.
 
-**Start here:** [docs/catalogue.md](docs/catalogue.md) § *NEXT · MDS, as its own
-widget*. It has the one sentence the widget makes, the beat that IS the widget,
-the closed-form checks to debug against, the two controls that carry ideas, and
-what can be lifted from widget 19 verbatim. **Then** § *Widget 19* above it, for
-the two traps that will bite the same way.
+```bash
+node scripts/serve.mjs 8010     # then /widget/mds/
+```
 
-**The three closed-form checks, because they are why MDS comes before t-SNE:**
+**Three states worth opening in front of him, in this order:**
 
-| stage | what must come out |
+| URL | what it shows |
 |---|---|
-| n = 3 | stress exactly **0.000** — three points make one triangle, and a triangle is flat |
-| n = 4, regular tetrahedron | six equal distances of 3.27 come out as four at **2.79** and two at **3.94**; stress settles at **1.830** and will not go lower |
-| the seed | all 50 seeds give **1.8304**; the mirror splits 23 / 27 |
+| `/widget/mds/` | four samples, three genes, nothing measured — drag it |
+| `/widget/mds/?measured=1&shown=25` | the finished square: 3.27 in every cell, 2.79 four times and 3.94 twice underneath |
+| `/widget/mds/?points=3&measured=1&shown=10` | the same thing fitting exactly, stress 0.000 |
 
-Debug the shared machinery against those, not against a picture.
+**Two things to put to him directly**, because both are one decision away:
+
+1. **At five and six samples the seed changes the ANSWER, not just the
+   orientation** — SMACOF is a local optimiser and these shapes are symmetric
+   enough to have several optima (n = 6: 6.468, 8.483, 12.328, 14.216 over 200
+   starts). It is true, it is what `03-5`'s "the cluster separation is less
+   clear" records, and it is a second lesson on top of the first. **Capping
+   `points` at 4 removes it entirely and costs nothing else.**
+2. **The table cells carry two numbers** — the measured distance over the fitted
+   one. That is the argument, and it is also the densest thing on the figure.
+
+**Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
+UMAP*. Its open question is the one MDS did not have: t-SNE is not thirty lines
+and has no closed-form answer, so decide early whether it computes at runtime or
+replays a precomputed seeded table.
+
+---
+
+## Widget 20 · `mds` — BUILT, DRAFT, UNREVIEWED
+
+Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*. The short
+version, and the parts that will bite something else:
+
+**Three panels, one gate, Step and Play.** Where the samples are, the table of
+every pair's distance, and the arrangement built from that table alone. The gate
+plays four beats over 2s and the third of them is the widget: **the gene axes go
+out and the samples hollow to faint rings** while the table stays at full ink.
+The outline stays for the rest of the run, and turning it still moves no digit
+in the table.
+
+**IT IS NOT A PROJECTION AND MUST NEVER LOOK LIKE ONE.** Widget 19 flattens a
+cloud onto a plane; this one throws the coordinates away and builds an
+arrangement from nothing. That is the difference between the two widgets, and it
+is why the 2-D panel has **no axes and no axis labels** — an MDS arrangement is
+fixed only up to a turn and a mirror, so an x and a y would name two quantities
+that do not exist.
+
+**The closed-form checks all reproduce, and they earned their keep on the first
+run.** n = 3 gives stress 0.000 on 200 of 200 starting layouts; n = 4 gives
+1.830, with the six equal 3.27s coming out as four at 2.79 and two at 3.94; the
+mirror splits 22 / 28 over 50 seeds. The analytic optimum for the square,
+s = δ(2 + √2)/4 = 2.7876, confirms the solver rather than the other way round.
+
+### Verify it without a browser — the driver is the fastest thing in the loop
+
+Same two recipes as widget 19, under *Verifying changes* below: the node driver
+(stub the one import, capture the config, pump `advance` with a fixed `dt`) and
+the contract check that lists every capability BY NAME. **82 assertions run in
+under a second, with no server**, and they cover every closed-form answer above.
+
+**The driver's own first run was wrong, and in an instructive way.** It opened
+the gate by setting the parameter and calling `rebuild`, which leaves the reveal
+to animate — so `pump` ran the 2s reveal, returned false, and every stress
+assertion read the RANDOM STARTING LAYOUT. It reported stress 8.58 at n = 4 and
+3.14 at n = 3. **A harness that drives the wrong phase reports the widget as
+broken**, and the tell was that n = 3 — which cannot fail — failed too. Build
+each state the way a shared link does (`measured: true` in `init`) and drive the
+one path you mean to test.
+
+### Three defects the checks caught, and one is a core fact worth knowing
+
+- **A `choice` renders the SELECTED OPTION's `detail` and IGNORES the field's
+  own** (`controls.js`, the choice branch). A line written once for the whole
+  slider is copy nobody can read, and it looks completely correct in the source.
+  Found by scraping the rail in the browser, not by reading `main.js`. Per
+  option it is the better line anyway.
+- **A square table cell takes its size from the height it does not need.** The
+  box is wider than it is tall and the text runs across it; at the 550px canvas
+  a square cell put six samples on a **7px font**. Width sets the type size now,
+  height only has to hold two lines: 10px there, 13px at a real width.
+- **The largest-gap tile read "B–A is 3.94"** of a pair the rest of the widget
+  calls A–B, because `pairs` runs down the table's rows and holds the later
+  letter first.
+
+### TWO TOOLING FAULTS, and the first cost the most time
+
+- **`Bash` SILENTLY TRUNCATES A LONG COMMAND, so a big heredoc dies with
+  `unexpected EOF while looking for matching '`.** A 25KB `cat > file <<'EOF'`
+  fails; a six-line one works. It is not a quoting problem and no amount of
+  escaping fixes it. **Write files with the `Write` tool and patch them with a
+  short `node -e` script**, which is what every edit in this session ended up
+  doing. The limit is somewhere between 6KB and 18KB and is not worth pinning
+  down — just do not put file contents in a shell command.
+- **THE STRAY POINTER INPUT IS REAL AND IT MOVED TWO SLIDERS.** Between one
+  `javascript_tool` call and the next, `?points=4&seed=1` became
+  `?points=5&seed=44` with eleven fit steps run, purely from automation-browser
+  input nobody dispatched. HANDOVER has warned about this for several widgets;
+  this is the first time it has been caught in the act with the URL to prove it.
+  **Do the whole measurement in ONE call** — wrap `fillText`, force the repaint,
+  read the result, return — so there is no window for anything to drift.
+
+### The browser pane could not be shown, so nothing was judged by eye
+
+`computer{action:"screenshot"}` fails with *the Browser pane is not displayed,
+so the page is not compositing frames*, and `tabs_select` does not fix it.
+Everything visual here was established the other way: a `fillText` sweep for
+every string and its measured extent, and an `arc`/`strokeRect` sweep for every
+dot and panel box. That gives font sizes, overruns, collisions, whether a dot
+sits inside its panel and how close two dots come — but **it says nothing about
+whether the figure is pleasing**, which is exactly the half screenshots are for.
+Getting the canvas out as a data URL works and costs a round trip per few KB;
+it was not worth it against simply opening the page.
 
 ---
 

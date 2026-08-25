@@ -282,6 +282,19 @@
       ],
       "arc": 19,
       "status": "draft"
+    },
+    {
+      "slug": "mds",
+      "title": "Multidimensional scaling",
+      "blurb": "The input is a table of distances, not coordinates — and no flat picture can match every one of them.",
+      "course": "PHM5005",
+      "topics": [
+        "dimensionality reduction",
+        "unsupervised",
+        "distance"
+      ],
+      "arc": 20,
+      "status": "draft"
     }
   ]
 }

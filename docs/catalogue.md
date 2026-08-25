@@ -4114,7 +4114,7 @@ complexity."*
 | # | slug | method | status |
 |---|---|---|---|
 | 19 | `pca` | PCA | **built — draft** |
-| — | — | MDS | planned, storyboarded |
+| 20 | `mds` | MDS | **built — draft** |
 | — | — | t-SNE | planned, storyboarded |
 | — | — | UMAP | planned, storyboarded |
 | — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
@@ -4125,9 +4125,10 @@ fingerprint states, against a project budget of 3–8 hours a widget. An
 adversarial pass over the four storyboards reached "these are four widgets,
 honestly closer to five" independently.
 
-**Build MDS next, not t-SNE.** It is the only one of the three with a closed-form
-answer to debug the shared machinery against, and it exercises the whole
-iterative half that PCA does not.
+**MDS was built next rather than t-SNE**, because it is the only one of the three
+with a closed-form answer to debug the shared machinery against, and it
+exercises the whole iterative half that PCA does not. That answer earned its
+keep immediately — see Widget 20 below. **t-SNE is next.**
 
 ---
 
@@ -4477,7 +4478,8 @@ browser before this lands.
 
 ### Still owed
 
-- The MDS, t-SNE and UMAP tabs. Storyboards exist for all four.
+- The t-SNE and UMAP tabs. Storyboards exist for all four; **MDS is built**, as
+  widget 20 and its own widget rather than a tab.
 - **An adversarial pass says these are four widgets, not one** — roughly 25
   parameters, six renderers that do not exist, four separate optimisers, ~18
   fingerprint states. It recommends building **MDS** next rather than t-SNE:
@@ -4488,19 +4490,198 @@ browser before this lands.
   and should be struck from there, or narrowed, once the four tabs land.
 ---
 
-## NEXT · MDS, as its own widget
+## Widget 20 · `mds` — BUILT, DRAFT
+
+**Unreviewed by Kenneth.** Built against the storyboard below, which is kept
+intact underneath so the answers can be checked against what was assumed.
+
+| # | slug | concept | what it answers | misconception | evidence |
+|---|---|---|---|---|---|
+| 20 | `mds` 🟠 | Multidimensional scaling | *What does a method see when it is given no coordinates?* | That a 2-D picture is a **projection** of the data — a flattening, with a direction of view. MDS has no view: it is handed a table of distances and builds an arrangement from nothing, and the arrangement it builds is only as good as the distances it manages to match | **reported** — `03-5`'s own text reads "the cluster separation is less clear" off an MDS plot, which is a statement about the picture rather than about the fit |
+
+### The one sentence, and where it is on screen
+
+*The input is the table of distances, not the cloud, and the 2-D picture is the
+arrangement whose distances come closest to it.*
+
+**Three panels, left to right: where the samples are, what was measured, what
+came out.** One gate — *Measure every pair* — and then Step and Play.
+
+**THE BEAT THAT IS THE WIDGET IS THE THIRD PHASE OF THE GATE.** Opening it plays
+four overlapping beats over 2 s: a line grows between every pair, the distances
+fill into the table in reading order, **the gene axes go out and the samples
+hollow to faint rings**, and the starting layout arrives on the right. The
+outline stays for the rest of the run, so the reader watches it be ignored
+rather than deleted — and turning it still works, and still moves no digit in
+the table, which is the seed of "distance survives rotation".
+
+**EVERY CELL CARRIES TWO NUMBERS**, and that is the argument rather than a
+decoration: the distance the samples have, in full ink, and directly under it
+the distance the picture managed, in `--c-empirical`. At four samples the table
+reads 3.27 six times over the top row of every cell and **2.79 2.79 2.79 2.79
+3.94 3.94** underneath — the square, visible without a sentence saying so.
+Adjacency (2.7) applied per cell instead of per figure.
+
+### The closed-form checks — reproduced exactly, and they are the debug harness
+
+| stage | what must come out | measured |
+|---|---|---|
+| n = 3 | stress **0.000** — three points make one triangle, and a triangle is flat | 0.000 on **200 of 200** starting layouts |
+| n = 4, regular tetrahedron | six equal distances of **3.27** come out as four at **2.79** and two at **3.94**; stress **1.830** | exact, on **200 of 200** |
+| the seed | one stress value, and the arrangement mirrored about half the time | 1.830 on all 50; the mirror splits **22 / 28** |
+
+The analytic optimum confirms the fit rather than the other way round: for a
+square of side *s* against a target δ, minimising 4(s − δ)² + 2(s√2 − δ)² gives
+*s* = δ(2 + √2)/4 = 2.7876 and stress 1.8302. **Debug the machinery against
+those, not against a picture** — it is what caught a harness that was pumping
+the reveal instead of the fit and reporting stress 8.58 at n = 4.
+
+### The stage: n samples as far from each other as they can get
+
+One sentence describes all four counts, and the shapes fall out of it — a
+triangle, a **regular tetrahedron**, a triangular bipyramid, an octahedron, all
+on a sphere of radius 2. R = 2 is what makes the tetrahedron's edge 3.266, which
+is the number every check above is written against.
+
+**`points` STOPS AT SIX, and both reasons are one reason.** `--c-cluster-a…f` is
+six colours and a sample needs its own identity in three panels at once; and the
+table is n by n, so a seventh row takes the cells below the size two numbers fit
+in at the narrowest canvas. The storyboard said 3–8.
+
+**The default is FOUR, not three.** Three opens on stress 0.000, which is the
+wrong first impression of a method whose whole content is *close, not equal*;
+four is the failing case one notch to the right of the exact one, and the reader
+meets "close" before they meet "exact".
+
+**The arrangement is turned by a fixed rotation before anything is measured.**
+Unrotated, the octahedron's six samples sit exactly ON the three gene axes,
+which says a sample is one gene. Nothing about the method changes — every
+distance is identical — which is itself the first thing the widget shows.
+
+### `seed` IS THE OPTIMISER'S START, NOT THE DATA — and at five and six it changes the answer
+
+The data is fixed per count; the seed is where SMACOF is dropped before its
+first step, which is why the control is labelled **Starting layout**. At three
+and four samples every start lands on the same stress and only the mirror moves.
+**At five and six it does not**, and this is measured rather than incidental:
+
+| n | optima found over 200 starting layouts |
+|---|---|
+| 3 | 0.000 ×200 |
+| 4 | 1.830 ×200 |
+| 5 | **4.100 ×162**, 5.287 ×4, 8.380 ×34 |
+| 6 | **6.468 ×73**, 8.483 ×72, 12.328 ×38, 14.216 ×17 |
+
+**This is kept, not designed away**, and it is the reason the stress tile reads
+from the moment the gate opens. SMACOF is a local optimiser; sklearn's `n_init=4`
+exists for exactly this, and the four-method reconnaissance already found MDS to
+be the least reproducible of the four on the real data (10-NN agreement 0.35
+across seeds, against PCA's 1.00). A reader who moves the seed at n = 6 and
+watches the stress change is learning the thing `03-5`'s "the cluster separation
+is less clear" is actually recording.
+
+**It is also the first thing to cut if Kenneth wants one lesson per widget.**
+Capping `points` at 4 would remove it entirely and cost nothing else.
+
+### Decided while building, so they are not re-argued
+
+- **The starting layout is part of the reveal, not of the first press.** Held
+  back until the first step it flashed past inside that step's 340 ms and the
+  reader saw only the result. Shown, Rearrange is a button that **improves**
+  something and the stress tile has a baseline to fall from.
+- **Stop when the picture stops moving, not when the number stops falling.** Raw
+  stress keeps improving in the ninth decimal long after every sample is inside
+  a pixel of where it lands, and those steps are Play running with nothing to
+  see. At a 0.002-unit movement tolerance the last step is sub-pixel at every
+  canvas width, n = 4 still lands on 1.830 from all 200 starts, and the median
+  run is **15 steps rather than 30**.
+- **Raw stress, Σ(d − δ)², because that is what `mds.stress_` returns** and the
+  only number `03-5` prints. It is scale-dependent, which is why the distances
+  are drawn at a fixed radius rather than normalised.
+- **No axes and no axis labels on the 2-D panel.** An MDS arrangement is fixed
+  only up to a turn and a mirror, so an x and a y would name two quantities that
+  do not exist. The line where the labels would have been says so.
+- **ONE SCALE FOR BOTH PANELS**, covering the whole trajectory including the
+  starting layout — so a distance that came out short cannot look long because
+  its panel was drawn bigger, and nothing crosses a panel edge mid-run (2.5).
+- **The gate is `display: true`.** As a data gate it would be the one gate core
+  animates, which is convenient — but shutting it would throw away a fit the
+  reader had stepped through, behind a button labelled *Back to the
+  coordinates*. It asks for frames with `anim.easing` instead.
+- **`Rearrange`, not `Iterate` or `Step`** — both are taken by widgets 10 and 8,
+  and the label names this widget's noun (3.4c).
+
+### Three defects the checks caught, and one was invisible in the source
+
+- **A `choice` renders the SELECTED OPTION's `detail` and ignores the field's
+  own.** `points` carried one line for the whole slider and it was copy nobody
+  could read — found in the browser, not in the source, where it looks correct.
+  Per option it is also the better line: 3, 6, 10 and 15 distances, all the same
+  length or two or three different ones. Both are facts about the **input**, so
+  neither gives away what the fit will do.
+- **A square table cell takes its size from the height it does not need.** The
+  box is wider than it is tall and the text in it runs across; at a 550px canvas
+  a square cell put six samples on a **7px font**. Width sets the type size now
+  and height only has to hold two lines of it: 10px there, 13px at the width a
+  reader actually has.
+- **The largest-gap tile read "B–A is 3.94"** of a pair every other part of the
+  widget calls A–B, because `pairs` runs down the table's rows and holds the
+  later letter first.
+
+### Still owed
+
+- **Kenneth has not seen it.** Nothing below the mock-up line has been reviewed.
+- **No fingerprint states** — the shape is unreviewed, and a baseline recorded
+  before the design is settled is thrown away.
+- **No catalogue promotion, no manifest `shipped`.** It is a draft and off the
+  gallery.
+- **Judge it projected**, which no widget from 11 onward has had.
+- **A pair-highlight was designed and dropped**: clicking a table cell drawing
+  that one pair as a line in both pictures. It is the obvious next thing the
+  matrix wants, and it was cut because `regions` requires the parameter to keep
+  a visible control (3.6) and a dropdown of fifteen pairs in the rail is clutter
+  that carries no idea at rest.
+
+---
+
+## NEXT · t-SNE, then UMAP
+
+**`mds` is built; t-SNE is the next one in the per-algorithm arc.** Read *Widget
+20* above first — its three traps are the ones that will bite again — and then
+the storyboard below, which was written for the four-tab widget and is the
+payoff for the per-algorithm ones rather than their spine.
+
+**The two things settled by widgets 19 and 20 that carry straight over:** the
+3-vector helpers, the orthographic `camera`, the depth-sorted scatter, the
+`layout` function read by both `height` and `draw`, `--c-cluster-a…f` and the
+`drag` block are all method-independent and were lifted verbatim from `pca` into
+`mds`. And **only the FIRST gate animates** unless the gates are `display: true`.
+
+**The open question t-SNE has and MDS did not:** it is not small, and a faithful
+implementation is a decision rather than a convenience (non-negotiable 7). MDS
+was chosen first precisely because SMACOF is thirty lines and has a closed-form
+answer to check them against. Decide early whether t-SNE *computes* at runtime
+or *replays* a precomputed seeded table — the second is legitimate (an animation
+is a reveal of already-computed data, invariant 2) and is probably the only way
+UMAP appears at all.
+
+---
+
+## The MDS storyboard, as it was written
+
+Kept intact so the answers above can be checked against what was assumed.
 
 **Build this one before t-SNE and UMAP.** It is the only one of the three with a
 **closed-form answer to check the machinery against**, and it exercises the whole
 iterative half that PCA does not — PCA's objective does not fall over steps at
 all, which is why it ended up with no Step button.
 
-### The one sentence
+#### The one sentence
 
 *The input is the table of distances, not the cloud, and the 2-D picture is the
 arrangement whose distances come closest to it.*
 
-### The beat that IS the widget
+#### The beat that IS the widget
 
 After the distances are measured, **the coordinates are put away**: the 3-D
 cloud fades to a faint outline and the distance matrix stays at full ink.
@@ -4508,7 +4689,7 @@ It is the only place in the four DR widgets where the *input to a method* is
 shown to be something other than the cloud. The outline stays on screen for the
 rest of the run so the reader can see it being **ignored**, not deleted.
 
-### The closed-form checks — debug the machinery against these, not a picture
+#### The closed-form checks — debug the machinery against these, not a picture
 
 | stage | what must come out |
 |---|---|
@@ -4521,7 +4702,7 @@ rotated or mirrored, the stress tile reads the same to three decimals, and the
 two sit side by side. **This is Kenneth's own diagram made true — his 5.5 / 3.2 /
 6.1 becoming 5.2 / 2.8 / 5.4 is exactly "close, not equal".**
 
-### Why MDS is the seed widget, measured on the real data
+#### Why MDS is the seed widget, measured on the real data
 
 From the four-method reconnaissance (see the section above): **MDS is by far the
 least reproducible of the four, not t-SNE.** Across 5 seeds only **35%** of each
@@ -4530,7 +4711,7 @@ point's ten nearest neighbours survive a seed change — PCA 100%, t-SNE 72%, UM
 (5, 5, 8, 7, 7 of 194). This is what `03-5`'s "the cluster separation is less
 clear" is actually recording, and it is the opposite of what most readers expect.
 
-### Two controls that carry ideas
+#### Two controls that carry ideas
 
 - **`points` 3–8.** 3 fits exactly; 4 never does. That is principle 2.6's failing
   case on one slider, and it needs no extra machinery.
@@ -4539,7 +4720,7 @@ clear" is actually recording, and it is the opposite of what most readers expect
   seed lesson in 3-D before the reader meets it in 2-D. Must be `display: true`
   so it does not reset the run.
 
-### What can be reused from widget 19 verbatim
+#### What can be reused from widget 19 verbatim
 
 `widgets/pca/main.js` is the reference. The 3-vector helpers, `slerp`, the
 orthographic `camera` returning two basis vectors, the depth-sorted scatter, the
@@ -4549,7 +4730,7 @@ widget 19 before writing any of it**: only the FIRST gate animates unless the
 gates are `display: true`, and a rotation must land on the 2-D graph's own
 framing rather than merely face-on.
 
-### Not settled
+#### Not settled
 
 Whether the real 194 samples appear at all. The storyboard proposes a gate —
 *Run it on the 194 samples* — swapping the mechanism panels for one scatter and a
