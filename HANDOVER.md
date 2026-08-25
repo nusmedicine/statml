@@ -2,10 +2,19 @@
 
 ## Where things are
 
-**Seventeen widgets: sixteen SHIPPED, one DRAFT.** Widget 17,
-`trees-and-ensembles`, was built this session and is a draft — it deploys to its
-final URL but stays off the gallery and wears the draft bar. Everything is live
-at <https://nusmedicine.github.io/statml/>.
+**Eighteen widgets: sixteen SHIPPED, two DRAFT.** Widget 17,
+`trees-and-ensembles`, and widget 18, `balancing-data`, are both drafts — they
+deploy to their final URLs but stay off the gallery and wear the draft bar.
+Everything is live at <https://nusmedicine.github.io/statml/>.
+
+**Widget 18 went through TWELVE rounds of review with Kenneth and is now what he
+asked for.** Widget 17 is still missing a look at its boosting page. Both are
+unbaselined by design — a baseline recorded before the design is settled is
+thrown away, and widget 18's design moved in every one of those twelve rounds.
+
+**COMMITTED, NOT PUSHED.** Every push to `main` publishes, and nobody has looked
+at widget 18 in a browser — including the session that built it, because
+screenshots do not work from here. Push when someone has.
 
 **123 fingerprint states, each carrying two hashes, and the suite is GREEN** — a
 full run on this machine reports *all 123 states identical*. Six are widget 16's,
@@ -51,10 +60,16 @@ finished boosting page, and flagged that its 20 rounds may be too many since
 nothing visible changes after round 6. It is not baselined and has no catalogue
 entry — see its own section below for the five things still owed.
 
-**Next up is a widget on IMBALANCED DATA** — under/oversampling and SMOTE,
-asked for at the end of this session. **It has an obstacle no other widget in
-the arc had: no notebook section hosts it.** Read that section before proposing
-anything.
+**Widget 18 `balancing-data` is BUILT and REVIEWED**, hosting at `03-4 Data
+Preprocessing`, section `## Balancing Data`. Three steps revealed downwards by
+gates: the cohort and a dial that throws cases away, the fit against the whole
+cohort's line, and the four corrections. Its twelve review rounds are recorded
+below and in [docs/catalogue.md](docs/catalogue.md) — read the round headings
+before changing anything, because most of them reversed an earlier decision for
+a reason that is written down.
+
+**Next is a widget for UNSUPERVISED LEARNING** — PCA, MDS, t-SNE, UMAP. The
+reconnaissance is done; see *NEXT* below.
 
 ```bash
 node scripts/serve.mjs 8010   # NOT `npm run dev` — :8000 is Docker's here
@@ -79,106 +94,1176 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: plan a widget for IMBALANCED DATA — under/oversampling and SMOTE
+## NEXT: plan a widget for UNSUPERVISED LEARNING — PCA, MDS, t-SNE, UMAP
 
 **Nothing is built and nothing is designed.** Kenneth asked for this at the end
-of the session that finished widget 17. Read the four blocks below before
-proposing anything: three are measurements taken while looking for it, and one
-is a genuine obstacle that has to be settled first.
+of the session that finished widget 18. The reconnaissance below was done then,
+so the next session starts from facts rather than from a search.
 
-### THE OBSTACLE: there is no host section for it yet
+### The host exists and is unusually complete
 
-Every widget in this repo reaches a student through a link in a markdown cell of
-a specific lesson. **All 34 PHM5005 notebooks were searched for `SMOTE`,
-`oversampl`, `undersampl`, `imblearn` and `resampl`: not one hit.** What the
-course actually teaches about imbalance is three things, and all three are one
-line of sklearn:
+`03-5 - ML - Unsupervised Learning.ipynb`, 68 cells, and it is TWO subjects:
 
-| what | where |
-|---|---|
-| `class_weight='balanced'` | `04-2` cell 18 (logistic regression), `04-3` cells 33 and 36 (forest, HGB) |
-| `StratifiedKFold` | `04-4` cell 3; cell 7 sets it up "for our imbalanced dataset" |
-| `scoring="f1"` rather than accuracy | `04-4` cells 3 and 7 |
+| cells | subject | methods |
+|---|---|---|
+| 6–50 | **Dimensionality reduction** | PCA (7–19), MDS (20–30), t-SNE (31–40), UMAP (41–50) |
+| 51–67 | **Clustering** | K-Means (52–59), DBSCAN (60–67) |
 
-So this widget has **no lesson to link from**, unlike every other widget in the
-arc. That is a decision for Kenneth, not something to design around silently:
-either a notebook gains a section and the widget hosts there, or the widget
-teaches the three things the course *does* say and SMOTE is out of scope.
-**Ask before building.**
+Every one of the four DR methods is worked on the **same data**, plotted twice —
+once without labels, once coloured by the true `normal`/`tumor` type — and the
+notebook draws its own conclusion each time:
 
-### The obvious dataset is barely imbalanced
+- PCA: *"the samples separate visually into 2 clusters"*
+- MDS: *"the cluster separation is less clear"*
+- t-SNE: *"clear separation into 2 clusters"*
+- UMAP: *"a clear separation into 2 clusters"*
 
-`heart_failure_alpha.csv`, which `04-2`, `04-3` and `04-4` all use: **299 rows,
-203 `N` and 96 `Y` — 32.1% minority, a ratio of 1:2.11.** Note `DEATH_EVENT` is
-a **string** column of `'N'`/`'Y'`, not 0/1; code that assumed integers divided
-by zero.
+**That structure is a widget already**: one data set, four projections, a
+labels-on/labels-off toggle, and the question *does the structure you see mean
+anything*. Kenneth's own framing — "PCA, MDS, t-SNE, UMAP" — matches it exactly.
 
-1:2 is mild. Resampling is for 1:20 and 1:100, and a widget demonstrating SMOTE
-on 1:2 will show almost nothing — the same trap that killed the boosting stage
-twice in the last session. **Measure the effect size on this data before
-designing a page around it.** If it is small, either the widget needs a
-synthetic stage with a real imbalance, or the honest subject is `class_weight`
-and the decision threshold, not resampling.
+### The data, and what is already known about it
 
-### `class_weight='balanced'` is the baseline any resampling must beat
+Colorectal gene expression, loaded straight from a URL in cell 3:
 
-The strongest prior available, and it was measured last session in another
-context. Hunting for a stage where boosting looks good, a thin diagonal corridor
-with a **19% minority class** produced the largest headline win of the whole
-search: **+5.44 balanced-accuracy points over the forest, 90% of 40 seeds,
-p = 2.9e-11.** It did not survive:
-
-> a one-line `class_weight='balanced'` forest scores **0.8348** and beats the
-> boosted model by **6.48 points in 100% of 40 seeds**. On raw accuracy the gap
-> was only +0.9pp and it reversed at wider corridors. The reweighting was
-> compensating for imbalance under a metric that rewards it — not correcting a
-> boundary.
-
-**Any claim that SMOTE or resampling helps must be paired against
-`class_weight='balanced'`, not against a default model.** It is one line, it is
-already in the notebook, and it is what a student would reach for first.
-
-### Tooling: `imblearn` is NOT installed
-
-`importlib.util.find_spec("imblearn")` is `None` in the scratch venv. It is
-needed only for **offline measurement** — a widget ships zero runtime
-dependencies (non-negotiable 7) and would implement SMOTE itself, which is
-short: pick a minority point, pick one of its *k* nearest minority neighbours,
-place a new point at a uniform random position along the segment between them.
-That is also a genuinely good animation, and the one thing here a static figure
-cannot show.
-
-The scratch venv lost its own `python.exe` at some point but the packages
-survive, so measurement runs as the base interpreter plus a `PYTHONPATH`:
-
-```bash
-PYTHONPATH="<scratch>/venv/Lib/site-packages" "C:/Users/Admin/AppData/Local/Python/pythoncore-3.14-64/python.exe" script.py
+```
+https://sbcb.inf.ufrgs.br/data/cumida/Genes/Colorectal/GSE44076/Colorectal_GSE44076.csv
 ```
 
-### What to measure first, in order
+Dropping `samples` and `type`, then `KNNImputer(n_neighbors=5)` + `StandardScaler`
+over the numeric columns. **This is the same data widget 16's planning already
+measured**, and that measurement is directly relevant: *2,258 probes have
+|AUC − 0.5| > 0.45 and one separates the classes alone; of 435 mid-strength
+pairs, ZERO need a curve.* So the classes are close to trivially separable, which
+is why every method finds two clusters — and which is a warning: **a projection
+widget on this data may not be able to show a method FAILING**, and the four
+methods differing is the whole point.
 
-1. **Is there a host?** Ask Kenneth. Everything else is downstream of it.
-2. **Effect size on heart failure at 1:2.11** — SMOTE, random over, random
-   under, and `class_weight='balanced'`, paired over many seeds, on F1 and on
-   recall. If nothing separates them, say so and stop.
-3. **Where the methods actually differ**, if anywhere: sweep the imbalance ratio
-   from 1:2 to 1:50 on a synthetic 2-D stage and find where the curves cross.
-   That plot may itself be the widget.
-4. **What SMOTE draws that the others cannot.** Its synthetic points land on
-   segments between real minority points, so the picture is geometric where the
-   others are not. If the widget has one honest subject, this is the candidate.
+Measure that before designing. If nothing separates the four on this data, the
+options are the same two widget 16 faced: a generated stage, or a different
+question.
 
-### What widget 17 already settles, so it is not re-litigated
+### The parameters each method exposes, from the notebook's own syntax cells
 
-- Two-feature toy stages of 12/24/40 points work well for algorithm mechanics,
-  and 12 is small enough that the arithmetic can be checked by hand.
-- Sample **emphasis** already has two idioms here: bootstrap multiplicity (dot
-  size + ring, bagging page) and residual magnitude (dot size, boosting page).
-  Oversampling is a third instance of the same idea and should look like a
-  sibling of those, not a new invention.
-- `_lab/` is for **comparison pages that settle a decision**; the widget is built
-  with `defineWidget` from the start. Building the app in `_lab` cost a full
-  rebuild last session.
+| method | knobs the notebook names |
+|---|---|
+| PCA | `n_components`. Outputs `components_` and `explained_variance_ratio_` |
+| MDS | `n_components`, `metric` (True = distances, False = rank order only), `random_state`. Outputs `stress_` |
+| t-SNE | `n_components`, **`perplexity`** (5–50, "balance between local and global"), `learning_rate` ("too small = crowding; too large = points fly apart"), `max_iter`, `random_state` |
+| UMAP | `n_components`, **`n_neighbors`** ("local vs global"), **`min_dist`** ("how tightly points are packed"), `metric`, `random_state` |
+
+**`perplexity`, `n_neighbors` and `min_dist` are the three that carry an idea**,
+and all three are the same idea in different clothes: how much of the
+neighbourhood a point is allowed to care about. That is the candidate spine.
+
+### Two things to settle before anything is drawn
+
+1. **`random_state` is on THREE of the four.** MDS, t-SNE and UMAP all return a
+   different picture on a different seed, and PCA does not. A widget that lets a
+   reader move the seed and watch t-SNE rearrange itself while PCA sits still
+   would teach something no static figure in the lesson can — and it is the
+   honest warning about reading clusters off a t-SNE plot. **This may be the
+   whole widget.**
+2. **Zero runtime dependencies (non-negotiable 7).** PCA is a few dozen lines of
+   power iteration or Jacobi. MDS is SMACOF. t-SNE and UMAP are NOT small, and a
+   faithful UMAP is out of the question. Decide early whether the widget
+   *computes* the projections at runtime or *replays* precomputed ones from a
+   seeded table — the second is legitimate here (the animation would be a reveal
+   of already-computed data, invariant 2) and is probably the only way UMAP
+   appears at all.
+
+### What widget 18 settled that applies here
+
+- **A reference that moves with the control is not a reference** (2.5). If a
+  projection widget shows a quality number, fix what it is measured against.
+- **`_lab` mock-ups settle layout decisions in one round; prose does not.**
+- **The Browser pane runs no frames when it is not displayed** — drive animations
+  by pumping `requestAnimationFrame` by hand, and never trust a screenshot here.
+- **Assert every string anchor, and count the thing you think you edited.**
+  `check.mjs` now fails a `main.js` that calls `defineWidget` more than once,
+  which is one class of that damage caught.
+
+---
+
+## Widget 18 · `balancing-data` — DRAFT, three steps, twelve rounds of review
+
+Live at `/widget/balancing-data/`, `status: "draft"`, so it is off the gallery
+and owes no fingerprint states yet.
+
+```
+node scripts/serve.mjs 8011        # then /widget/balancing-data/
+```
+
+**Read the round headings below before changing anything.** Twelve of them, and
+most reversed an earlier decision for a reason that is written down — including
+two core capabilities that were added, used for one session, and taken back out
+again when the design moved past them.
+
+**The host is `03-4 ML - Data Preprocessing`, section `## Balancing Data`.** The
+previous session reported that no PHM5005 notebook mentions SMOTE and that this
+widget therefore had no lesson to live in. **That was wrong** — `03-4` cell 67
+imports `from imblearn.over_sampling import SMOTE` verbatim, and cells 62–72 are
+a complete treatment. Kenneth named the section; it checks out. Full cell table
+in [docs/catalogue.md](docs/catalogue.md) under Widget 18.
+
+**`03-4` never fits a model.** Its own figure is two bar charts of class counts.
+Every score the widget prints is its own measurement, and the readout says so.
+
+### What it is
+
+**Three steps, revealed downwards by two `gate` buttons**, over a 150 + 150
+cohort on `[0, 10]²`, one square panel and a count strip under it.
+
+```
+Cases kept   [100%  50%  25%  10%  5%]      <- always there
+Seed         [ 1 .. 200 ]
+──────────────────────────────────────
+[ Fit a model ]            <-> Back to the cohort
+──────────────────────────────────────
+[ Try a balancing method ] <-> Back to the plain fit
+Balancing    [None | Class weights | Oversample | Undersample | SMOTE]
+k            [1  3  5]                       <- only under SMOTE
+Play speed   [Slow | Steady | Quick]
+── Make one sample · Play · Start over
+```
+
+- **The dial keeps a PREFIX of the minority list**, so 5% ⊂ 10% ⊂ 25% ⊂ 50%, the
+  majority never moves, and dragging it makes patients vanish. The widget opens
+  on the whole cohort, so the reader creates the imbalance themselves.
+- **The world does not move with the dial.** The held-out set is the cohort's own
+  50/50 at every rung, so the ceiling is ONE number and balancing visibly climbs
+  back to it. This is a SAMPLING imbalance, not a prevalence one, and the copy
+  says "collect" throughout for that reason.
+- **Three tiles, all against that one reference**: minority cases caught, false
+  alarms, F1. No accuracy tile — on a balanced world it tracks F1 to within a few
+  thousandths, and its old job needs an imbalanced test set, which is arc B's
+  `imbalance-metrics`.
+- **Step is one sample with every beat**; Play runs at the reader's chosen pace.
+
+**ONE UNIT IS ONE SAMPLE — copied, dropped, or made.** That is what makes the
+four methods one animation rather than four. Class weights has an EMPTY plan, so
+core disables Step and Play, and the disabled buttons are cell 63's "leaves
+dataset unchanged" said by the buttons rather than in prose (4.5).
+
+### The numerics are a SECOND MODULE, which no other widget has
+
+`widgets/balancing-data/model.js` holds the stage, the four methods, the weighted
+logistic fit and the scoring, and `main.js` imports it. The reason is 5.8: widget
+16 kept a solver in `_lab/svm-stage-core.js` AND a second copy in its own
+`main.js`, and had to verify both. Here node imports the shipping module directly
+(`_scratch/verify18.mjs` → `verify18.json` → `imb6.py`), so what was checked IS
+what runs.
+
+**Checked against scikit-learn 1.9.0 and imbalanced-learn 0.14.2, 12 stages ×
+8 fits each:**
+
+| | |
+|---|---|
+| worst coefficient disagreement | **7.1e-07** |
+| worst metric disagreement | **0** |
+| worst synthetic point off its segment | **0** |
+| worst class-weight vs `n/(2·n_c)` | **0** |
+| neighbours not among the true k nearest | **0** |
+| plans not balancing to exactly 1:1 | **0** |
+
+### What the widget prints, at the default seed
+
+At **5% minority** (190 : 10), recall on 4000 held-out samples:
+
+| method | recall | precision |
+|---|---|---|
+| none | **8.5%** | 58.6% |
+| class weights | 82.5% | 19.2% |
+| oversample | 82.5% | 19.5% |
+| undersample | 76.0% | 24.4% |
+| SMOTE | 81.5% | 21.0% |
+
+At **40% minority** the same five run 72.7% / 80.7 / 82.4 / 81.1 / 80.2 — the gap
+to doing nothing collapses from 74 points to 8. **That is cell 72's "when the
+minority class is highly underrepresented", and it is why the stage needed a
+dial that heart failure at 1:2.11 cannot provide.**
+
+Page three, at 10% and `before` the split: **43 of 160 random copies and 55 of
+160 SMOTE samples carry a held-out patient**, and the test half becomes 36 : 36
+rather than the population's 36 : 4. Undersampling carries nothing — it only
+removes — but its test half becomes 4 : 4, so the distortion moves entirely into
+the denominator. **That asymmetry is the third tile and it is worth keeping.**
+
+### Verified
+
+- **135-state canvas text sweep** at `widgets/_lab/balancing-sweep.html`: step ×
+  cases kept × method × k × how far the plan has run. Clean, and **that is not
+  enough** — see below.
+- **240-state MID-FLIGHT drive sweep** at `widgets/_lab/balancing-drive.html`:
+  presses a drive button and pumps `requestAnimationFrame` by hand, collecting
+  whatever the iframe throws, and sweeping the pace rungs because the quick one
+  skips the neighbour fan entirely. Clean, with **168 of 240** buttons
+  unavailable — exactly the count the gating predicts.
+- **Model checked against scikit-learn 1.9.0 / imbalanced-learn 0.14.2**: worst
+  coefficient disagreement **9.7e-07**, every metric including F1 at **0.000**,
+  every synthetic point exactly on its segment, zero problems over 15 states.
+- **All 123 fingerprint states identical** after each of the two core changes.
+- `npm run check` passes, and now also fails a `main.js` that calls
+  `defineWidget` more than once.
+
+### Still owed
+
+1. **Nobody has looked at it in a browser.** Screenshots do not work from this
+   session — see *THE BROWSER PANE RUNS NO FRAMES* below — so legibility, the
+   weight of the band, and whether three lines is one too many are all unjudged.
+2. **No fingerprint states.** Baseline only once the design is frozen. It
+   declares an `animation`, so `check` will demand at least one **driven** state
+   the moment `status` becomes `"shipped"`.
+3. **No markdown-cell link in `03-5`** — after cell 65 or cell 71.
+4. **Not judged projected** — the standing debt since widget 11.
+5. **Not pushed.** Every push to `main` publishes.
+
+#### A SETTLED SWEEP IS NO TEST OF A FRAME, and this widget proved it
+
+Every state in the text sweep is reached through `shown`, with the animation at
+rest, so **not one of them runs `drawInFlight`**. A random copy carries a
+`parent` and no `neighbour`, and the slow-motion branch read
+`state.pts[undefined].x1` and threw on **every frame** — under Oversample only,
+on two of the three pages — while **348 settled states passed clean**. It was
+found by reading the browser console, not by the harness.
+
+This is 5.6 exactly: the blind spot has to be named. `balancing-drive.html` is
+the answer, and it does three things a settled sweep cannot:
+
+- it collects errors **off the iframe's own window**, because an exception thrown
+  inside a rAF callback rejects nothing and never reaches the harness frame — a
+  sweep that does not listen reports a clean pass over a widget that is throwing
+- it lands **inside** a unit (1 frame), mid-slide (8) and well into the plan (40)
+- it fails a state that is FROZEN under Play, not just one that throws
+
+Its 36-of-180 disabled-button count is the None and Class-weights states, and
+that number is load-bearing: it is the same count as *pages × those two methods ×
+shares × Step*, so a Step button that quietly stopped disabling itself would show
+up as 0.
+
+### Round two: the ideal line is in, and the middle page is gone
+
+Kenneth asked for a "no imbalance / ideal world" line so the methods can be seen
+pushing towards it, picked **T2** of three mock-ups, and said to cut a page.
+
+**The figure now carries three lines** — where the model cut *before* balancing
+(grey, dashed), where it cuts *now* (violet), and where it would cut **if the two
+classes were equally common** (orange). All four methods make the effective prior
+50/50, so that third line is what every one of them is estimating, and the page
+stops being *the line moved* and becomes *the gap closed*.
+
+**T2 is the gap drawn as the washed region the two lines label differently**, and
+it closes to nothing as the plan runs. Its polygons come from `model.js` beside
+the number the readout prints, so the picture and the tile cannot disagree about
+what "the gap" is.
+
+**The middle page is gone.** *One sample at a time* was never a different subject
+— it was the same plan at a slower pace, and core's own tooltip for Step already
+says "advance one step, slowly, showing every stage". So **Step is the slow
+motion and Play is the fast one**, `paceOf(anim)` reads `anim.mode`, and the two
+buttons carry the difference. Two pages, three controls, and one fewer thing to
+learn — which was the ask.
+
+The class-counts readout tile went with it: the strip under the figure already
+draws them. The lead tile is now **"Differs from the ideal line"**, at 20.4%
+unbalanced against 1.5–5.5% for the four methods.
+
+### Round twelve: why undersampling is not punished here — and where the cost hides
+
+Kenneth: *"undersampling improves it, but in practice throwing away samples makes
+everything underfit. How come it isn't detrimental here? Is it because the
+dataset is simple?"*
+
+The intuition is right and the widget was hiding the evidence. Three
+measurements, 60 seeds each.
+
+#### 1 · The cost IS there. It is in the SPREAD, not the average
+
+| 5% collected | mean F1 | spread |
+|---|---|---|
+| class weights | 0.814 | **± 0.028** |
+| undersample | 0.806 | **± 0.049** |
+
+Nearly **twice the variance for a third of a point of mean**. At 10% collected it
+is ±0.016 against ±0.030. Undersampling reaches the same answer far less
+reliably, and a table of means cannot say so.
+
+**So the widget now has a `seed` control** — every other widget in the collection
+had one and this did not, which is an oversight worth naming rather than quietly
+fixing. Across seeds 1–6 at 5% collected: class weights 0.825 / 0.837 / 0.804 /
+0.749 / 0.809 / 0.801, undersample 0.808 / 0.798 / 0.838 / 0.766 / 0.822 /
+0.752. The instability is now something a reader can press a button and see.
+
+#### 2 · Why the MEAN survives: the minority is the binding constraint
+
+With 8 minority cases you have eight points of information about where that cloud
+is — whether you keep 150 majority points or 8. The majority's centre is already
+pinned to about σ/√8 by eight points. **Undersampling discards the class you have
+plenty of**, and on this stage the boundary's uncertainty was never coming from
+that side.
+
+#### 3 · Dimensionality does NOT punish it — it helps, and the reason matters
+
+Adding pure-noise features at 5% collected, so 16 undersampled rows must fit ever
+more parameters:
+
+| features | params | none | class weights | **undersample** |
+|---|---|---|---|---|
+| 2 | 3 | 0.280 | 0.814 | 0.806 |
+| 12 | 13 | 0.328 | 0.678 | **0.749** |
+| 50 | 51 | 0.231 | 0.415 | **0.720** |
+
+The opposite of the prediction. **It is the L2 penalty.** sklearn's objective is
+`0.5·‖b‖² + C·Σ wᵢ·lossᵢ` with C = 1, so the likelihood term grows with the
+number of rows: 16 rows means the penalty weighs proportionally more, the noise
+coefficients are shrunk hard, and the fit stays near the signal. 158 rows have
+enough leverage to chase noise directions that separate eight upweighted minority
+points. **That is a fact about the regulariser, not a recommendation for
+undersampling.**
+
+#### 4 · A structured majority did not punish it either, and that is instructive
+
+Majority redrawn as three separated clusters of 50. At 8 kept, **11.4% of draws
+miss a cluster entirely** — and F1 barely moves (0.921 ± 0.020 against class
+weights' 0.922 ± 0.017). Because all three clusters sit on the same side of the
+minority and a LINEAR boundary only needs the majority's rough centroid. Losing a
+mode does not move a line.
+
+#### So: is it because the dataset is simple?
+
+**Partly, and specifically.** What would make undersampling bite is a model with
+capacity to lose — a tree or a forest, where every split needs points in its own
+region — or majority structure sitting ON the decision surface, where dropping
+95% removes the evidence for where the surface goes. Two Gaussians and a
+three-parameter linear model have neither.
+
+**What the widget can honestly claim is what it now shows: undersampling costs
+you reliability, not accuracy.** The rest belongs to a widget about model
+capacity, and `overfitting-capacity` is already in arc B.
+
+### Round eleven: THE TEST SET WAS MOVING WITH THE DIAL — and that was the bug
+
+Kenneth: *"say the ground truth is 0.852 in a perfect world, but we only collect
+25% of disease cases — then if we correct imbalance should we approach the
+theoretical 0.852? What would make sense pedagogically?"*
+
+**Under his framing, yes it should — and the widget was making it impossible.**
+The dial was doing TWO things at once, and they are different stories:
+
+| | training set | test set | what balancing can do |
+|---|---|---|---|
+| **A** the disease itself gets rarer | rarer | **also rarer** | recovers the boundary, never the score |
+| **B** we only collected some cases | rarer | **unchanged** | recovers both |
+
+The widget did A. Kenneth's sentence is B. Measured, 40 seeds, F1:
+
+```
+        ---------- A ----------      ---------- B ----------
+kept    ceiling   none  balanced     ceiling   none  balanced
+100%     0.836   0.836   0.836        0.836   0.836   0.836
+ 50%     0.769   0.748   0.769        0.836   0.791   0.835-0.836
+ 25%     0.665   0.624   0.664        0.836   0.688   0.831-0.834
+ 10%     0.468   0.392   0.464        0.836   0.442   0.818-0.826
+  5%     0.328   0.230   0.328        0.836   0.268   0.802-0.810
+```
+
+Under A every method lands **exactly** on a ceiling that slides out from under
+it, so a correct figure still reads as "balancing does not work". Under B the
+ceiling is **one number at every rung** and balancing visibly climbs back to it.
+
+**It is now B**, and three things fell out:
+
+- **Kenneth's original intuition becomes true.** Accuracy improves with balancing
+  (0.749 → 0.832 at 25% collected) instead of getting worse. Nothing on the
+  readout moves counterintuitively any more.
+- **The residual gap becomes the second lesson.** At 5% collected, balancing
+  reaches 0.810 of a possible 0.836 — it recovers almost everything, and what is
+  left is the estimation error from eight real cases. **Balancing cannot invent
+  cases nobody collected.**
+- **The accuracy tile went.** On a world that stays 50/50 it tracks F1 to within
+  a few thousandths. Its old job — "99% accuracy by predicting the rare outcome
+  away" — needs an IMBALANCED test set to fire, and that is arc B's
+  `imbalance-metrics`, not this widget's subject.
+
+Three tiles now, all against one fixed reference:
+
+```
+ 5% collected  none      caught  256 of 2000   alarms  11   F1 0.226  (0.832 with every case)
+ 5% collected  weights   caught 1619 of 2000   alarms 308   F1 0.825  (0.832 with every case)
+```
+
+#### The distinction that has to stay written down
+
+**This is a SAMPLING imbalance, not a PREVALENCE one.** The copy says "collect"
+throughout for that reason. When a class is genuinely rare in the world,
+rebalancing to 50/50 throws away a correct prior and the honest fix is a
+threshold, not a resample. That is a different widget and it is already planned.
+
+#### And the rule the whole round earned
+
+**A REFERENCE THAT MOVES WITH THE CONTROL IS NOT A REFERENCE.** Principle 2.5
+says fix the frame, not the data — and the test population IS the frame for every
+number in the readout. Letting it follow the dial was 2.5 broken in the one place
+nobody thought to look, because it was in `compute` rather than in a scale. The
+figure was right, the numbers were right, every check passed, and the widget
+still could not be read.
+
+### Round ten: THE CEILING MOVES WITH PREVALENCE — Kenneth was right, the widget was wrong
+
+Kenneth: *"whole cohort F1 ≈ 0.832; at 50% kept it drops to 0.727, balancing takes
+it to ~0.755 but doesn't approach the ground truth. Is this expected, or are we
+not calculating the correct cohort?"*
+
+**Neither. The widget was comparing him against a ceiling from a different
+population.** Two explanations were possible and they are very different:
+
+- **less information** — half the minority cases are gone and no balancing
+  invents them, so the boundary is estimated worse. An honest gap.
+- **F1 moved its own goalposts** — F1 depends on prevalence, because precision
+  falls as the positive class gets rarer, so the SAME boundary scores lower on a
+  rarer test set.
+
+Measured, 40 seeds, scoring the whole-cohort boundary on every test set:
+
+| kept | share | whole cohort on a 50% test | on **this** test | balanced methods |
+|---|---|---|---|---|
+| 100% | 50.0% | 0.836 | 0.836 | 0.836 |
+| 50% | 33.3% | 0.836 | **0.769** | 0.767 – 0.769 |
+| 25% | 20.2% | 0.836 | **0.665** | 0.657 – 0.666 |
+| 10% | 9.1% | 0.836 | **0.468** | 0.448 – 0.472 |
+| 5% | 5.1% | 0.836 | **0.328** | 0.308 – 0.343 |
+
+**It is the second explanation, and completely.** The balanced methods land ON
+the reachable ceiling at every rung — 0.769 against 0.769 at 50% kept. There is
+essentially no estimation gap. The entire residual was the metric changing its
+own scale, and 0.832 is a number from a 50%-prevalence population that does not
+exist once the dial has moved.
+
+At the sparse end the balanced fits even come out slightly ABOVE the whole-cohort
+line (0.465 against 0.454 at 10% kept), because neither boundary is optimised for
+F1 at that prevalence — the whole cohort's is optimal for a 50/50 prior.
+
+**So the F1 tile's note now carries the ceiling for the CURRENT test set**, and a
+reader watches it come down as they turn the dial:
+
+```
+100% kept  none      F1 0.832   (for the minority class; 0.832 with the whole cohort)
+ 50% kept  none      F1 0.727   (for the minority class; 0.759 with the whole cohort)
+ 50% kept  weights   F1 0.755   (for the minority class; 0.759 with the whole cohort)
+ 10% kept  weights   F1 0.465   (for the minority class; 0.454 with the whole cohort)
+```
+
+0.755 against a reachable 0.759 reads as "it got there". 0.755 against a
+remembered 0.832 read as "it fell short", and that was the widget's fault.
+
+Both straw-man numbers moved into the accuracy tile, where the contrast is
+sharper for being in one place: *"flagging nobody scores 94.9%, and 0.000 on
+F1"*.
+
+**This is also Chicco & Jurman's complaint about F1, made visible rather than
+asserted.** Their objection is that F1 *"fails to consider the ratio between
+positive and negative elements"* — which is exactly why its ceiling slides from
+0.836 to 0.328 while the boundary that achieves it barely moves. A reader who
+turns the dial sees that happen.
+
+**A COMPARISON IS ONLY HONEST IF BOTH SIDES ARE MEASURED ON THE SAME
+POPULATION.** Every other tile already obeyed it — `caught` and `false alarms`
+both compare against the whole cohort scored on the current test set. F1 was the
+one that did not, and it was the one that misled.
+
+### Round nine: the minority ALREADY was the positive class — now the widget says so
+
+Kenneth: *"can you predict on minority class as this is the usual use case?"*
+
+**It already did, at the code level, and had done since the first build.** Three
+places make it so, and none of them were on screen:
+
+- `MINORITY = 1`, and `fitLogistic` regresses on `p.y` — so `y = 1` is the side
+  the model's decision value points at
+- `score()` counts a minority patient the model flagged as a **true positive**
+- recall, precision and F1 therefore all describe **finding the rare outcome**
+
+So the numbers were right and the framing was invisible. A reader who does not
+know which class is being detected cannot read a single tile below the figure,
+and Kenneth had to ask — which is the report.
+
+**Three places now say it:**
+
+| where | what it says |
+|---|---|
+| subtitle | *"The job is to find the rare outcome, and a model can score well by predicting it away…"* — the task in the first clause |
+| legend | *"Minority class — the one to find"* |
+| F1 tile | *"for the minority class"* |
+
+The subtitle is shorter than the one it replaced.
+
+**And `model.js` now carries the reason it is fixed rather than offered**, next to
+the constants: F1, precision and recall are not invariant to swapping the classes
+— that asymmetry is the whole argument for MCC — so a control letting a reader
+relabel which class is "positive" would let them flatter a model without changing
+it. A screening test is asked to find disease, not to confirm health.
+
+**Worth keeping as a general lesson: a widget can be correct and unreadable.**
+Every number here was right for four rounds of review while the one sentence that
+makes them legible was missing. Nothing in the harness could have caught that —
+the text sweep reads what is painted, not what is absent.
+
+### Round eight: F1 beside accuracy, and NO class toggle — both decided from evidence
+
+Kenneth: *"maybe we should report F1? or accuracy/precision/recall? also depends
+what we are trying to predict… maybe give a toggle to predict on majority or
+minority?"*
+
+#### The toggle is a trap, and the literature says why
+
+**F1, precision and recall are NOT invariant to swapping the classes.** Chicco &
+Jurman's argument for MCC turns on exactly this: F1 *"fails to consider the ratio
+between positive and negative elements"*, where MCC is *"invariant for class
+swapping"*. So the reason Kenneth had to ask "what are we trying to predict?" is
+that those three metrics have no answer until you say.
+
+A toggle would therefore let a reader **flatter a model by relabelling it**,
+which is the opposite of the lesson. The rare outcome is what a clinical model is
+asked to find, so it is **fixed**, and the F1 tile states it in four words —
+*"for the minority class"*. Stating the positive class costs one phrase; offering
+to change it costs the point of the widget.
+
+#### F1 and accuracy, because they disagree
+
+Measured, 40 seeds, at each rung of the dial. F1 improves with balancing at every
+setting; accuracy worsens at every setting:
+
+| 5% kept, 4000 held-out, 203 rare | accuracy | F1 | caught |
+|---|---|---|---|
+| **flagging nobody at all** | **94.9%** | **0.000** | 0 |
+| no balancing | **95.0%** | 0.230 | 32 |
+| class weights | 82.6% | 0.328 | 163 |
+| SMOTE | 84.2% | 0.343 | 158 |
+| undersample | 80.1% | 0.308 | 166 |
+
+**That is the pair.** The straw man that flags nobody scores 94.9% on one and
+0.000 on the other — which is why `04-4` scores on `f1` and why cell 62 is about
+accuracy. Two numbers moving opposite ways, each with the same straw man printed
+beside it.
+
+**The four tiles are now:**
+
+| tile | reference in its note |
+|---|---|
+| Minority cases caught — `22 of 203` | `170 of 203 with the whole cohort` |
+| False alarms — `19` | `692 with the whole cohort` |
+| F1 — `0.180` | `for the minority class; flagging nobody scores 0.000` |
+| Accuracy — `95.0%` | `flagging nobody scores 94.9%` |
+
+Two counts against the best case, two metrics against the worst one. The
+"Judged differently" tile went; the band on the figure already shows that gap and
+shows it shrinking, which is what it was for.
+
+**F1 and not MCC**, though the 2024 comparisons prefer MCC for imbalanced health
+data. MCC is what the course does not type, and a correlation coefficient is a
+second lesson. Recorded as a decision.
+
+**And metric selection is not this widget's subject.** Arc B's `imbalance-metrics`
+is already planned for exactly that — *"99% accuracy on a 1% prevalence outcome"*.
+Widget 18 shows what balancing does to the DATA; it carries only the two numbers
+it needs to stop misleading.
+
+`score()` now returns `f1`, and `imb6.py` checks it against
+`sklearn.metrics.f1_score`: worst metric disagreement **0.000e+00**.
+
+### A FIFTH TOOLING FAULT: an anchor that matched the WRONG occurrence
+
+A scripted edit spliced on `if (at === 2 && params.method !== "none") {` — a
+string that appears **twice**, once in `drawFigure` and once in the readout.
+`str.index` took the first, and `s[:i] + new + s[j:]` duplicated ~350 lines,
+leaving `defineWidget` called **twice** in one file.
+
+**The file parsed. `npm run check` was green.** Two valid halves make a valid
+whole, and nothing counted anything.
+
+`check.mjs` now asserts **exactly one `defineWidget({` per main.js**. Matched on
+`defineWidget({` rather than on a line-anchored `defineWidget(`, because
+`probability-mechanisms` assigns the result — the first version of the check
+failed on a correct file, which is at least the honest direction to fail in.
+
+Five faults now, and four of them silent. The rule earned by all of them:
+**assert the anchor, and count the thing you think you edited.**
+
+### Round seven: THE METRICS WERE THE PROBLEM, and accuracy is the answer
+
+Kenneth: *"do the metrics mean… i'm confused, the accuracy should be better with
+balancing?"* It should not, and the readout never showed the number that says so.
+
+Measured at 5% kept — 8 cases — over 40 seeds, on 4,000 held-out patients of whom
+203 are the rare class:
+
+| | accuracy | caught | missed | false alarms |
+|---|---|---|---|---|
+| **calling everyone majority** | **94.9%** | 0 | 203 | 0 |
+| no balancing | **95.0%** | 32 | 171 | 31 |
+| class weights | **82.6%** | 163 | 40 | 656 |
+| SMOTE | 84.2% | 158 | 45 | 586 |
+| undersample | 80.1% | 166 | 37 | 757 |
+
+**Balancing makes accuracy WORSE — 95.0% down to 82.6% — and that is cell 62's
+entire point.** The unbalanced model is a rounding error away from a model that
+flags nobody at all, and it catches 32 of 203. The old readout printed recall and
+precision as bare percentages that moved in opposite directions and explained
+neither.
+
+**The tiles are now counts, and accuracy is named as the trap:**
+
+| tile | at 5% kept, no balancing | with class weights |
+|---|---|---|
+| Minority cases caught | **22 of 203** | 165 of 203 |
+| False alarms | 19 | 616 |
+| Accuracy | **95.0%** — *calling everyone majority scores 94.9%* | 83.7% |
+| Judged differently | 20.5% | 2.0% |
+
+That third note is the whole lesson in eight words, and it is computed live
+(`1 − rare / test.length`), not written down.
+
+**Counts, not percentages, for the first two.** "22 of 203" is a sentence about
+patients; "10.8% recall" is a sentence about a formula. 2.3, applied to a number
+that is not small but is still countable.
+
+### Round seven, part two: Play's speed is the reader's
+
+The automatic speed-up went. It choreographed the first six samples and then
+raced, which showed the mechanism to someone who pressed Play without stepping —
+but the figure changed its own speed halfway through for reasons nothing on
+screen explained. **A `pace` rung says the same thing and says who decided it**
+(4.1), and it appears only at the balancing step.
+
+| rung | ms per sample | shows |
+|---|---|---|
+| Slow | 700 | every beat of every sample |
+| Steady | 260 | still shows where each sample comes from |
+| Quick | 60 | arrivals only — for filling the plane |
+
+**Step ignores the dial and is always slow with every beat.** That is what Step
+IS, and core's own tooltip already promises "slowly, showing every stage".
+
+Verified by counting the neighbour fan's own dash pattern, `[3, 3]`, per frame at
+64 ms a frame:
+
+```
+Slow Play      ###########.##########.##########.######   11 frames = 704 ms
+Steady Play    ####.####.####.####.####.####.####.####.    4 frames = 256 ms
+Quick Play     ........................................    no fan at all
+Quick + Step   ########################.                  24 frames = 1536 ms
+```
+
+`pace` is a DISPLAY parameter, so changing speed never discards the samples the
+reader has already made, and it takes effect at the next sample because
+`advance` fixes a unit's duration when the unit starts.
+
+### Round seven, part three: the rule is on screen where it applies
+
+Cell 64's *"apply balancing only to the training set"* was cut with the split
+step and is back as copy rather than as a page. The balance gate reads **"four
+corrections, every one of them on the training data only"**, and the panel's own
+caption at that step is **"the training data — held-out patients are never
+balanced"**. Literally true of the figure: every method acts on `pts`, and every
+number underneath comes from `test`, which nothing touches.
+
+**IT WAS A `note` FIRST AND THE SWEEP FAILED 105 STATES.** `note()` and the line
+key BOTH right-align on the caption's baseline and neither knows the other
+exists, so they overlapped by up to **64 px** — and a note strokes
+surface-coloured before it fills, so the collision ERASES what it overruns and
+still looks like a short caption. Folding the rule into the caption leaves
+exactly one right-aligned thing on that line, so the class of collision is gone
+rather than tuned. **Two right-aligned things on one baseline is a bug waiting
+for a long string**, and this widget is the second to find it.
+
+### Round six: THREE steps, revealed downwards — and core shrank to 13 lines
+
+Kenneth again: *"still confusing, perhaps can also simplify"* — reveal the steps
+**vertically with dividers so it looks cumulative**, cut the number of steps, and
+find words that tell Reset, Play and Restart apart.
+
+#### The gates were already the answer
+
+Core's `gate` type is, verbatim from its own comment, *"a full-width button
+inside the control flow, not in the drive row… it sits exactly where the stage it
+opens begins, with the controls it reveals directly beneath it"*, with a divider
+above and a `labelOff` for closing again. That is precisely the vertical
+cumulative reveal, and it has been in core since widget 12.
+
+**So the rail is now two gates and the controls beneath them:**
+
+```
+Cases kept   [100%  50%  25%  10%  5%]      <- always there
+──────────────────────────────────────
+[ Fit a model ]            <-> Back to the cohort
+──────────────────────────────────────
+[ Try a balancing method ] <-> Back to the plain fit
+Balancing    [None | Class weights | Oversample | Undersample | SMOTE]
+k            [1  3  5]                       <- only under SMOTE
+── Make one sample · Play · Start over
+```
+
+#### And it made two of the three core additions unnecessary
+
+`when: { param, atLeast: n }` existed so a numbered step could reveal controls
+cumulatively. **A gate is a bool, so `when: { param }` — the truthy form core has
+always had — already says it.** `keepOnReset` existed so Reset would not collapse
+the narrative; once the narrative is gates, the honest thing is for Reset to
+close them, which is what it does by default.
+
+**Both were reverted.** Core carried a comparison nothing compared for exactly
+one session. What is left is **13 lines of actual code**:
+
+| | |
+|---|---|
+| `anim.inert` | the widget says there is nothing to drive; core removes Step and Play. Seven lines |
+| `.w-drive-group[hidden]` | `display: inline-flex` outranks the UA sheet's `[hidden]` — one line |
+| `resetLabel` / `resetTitle` | four lines, default unchanged, so no existing widget moves |
+
+#### Three actions, three words
+
+The usability literature on reset controls is blunt: **a bare "Reset" is vague
+and gets pressed by mistake**; the label should name what it clears. This widget
+now has three ways to go back or forward, and each says which:
+
+| word | what it does |
+|---|---|
+| **Play** / **Make one sample** | run the balancing |
+| **Back to the cohort** / **Back to the plain fit** | the gate, closing |
+| **Start over** | Reset — closes every gate, returns to the whole cohort |
+
+`resetLabel` is what let the third one be named. Nothing else in the collection
+changes: the default is still "Reset".
+
+#### The dial runs 100% → 5%, and starts at 100%
+
+`KEEPS = [1, 0.5, 0.25, 0.1, 0.05]` of a 150-case minority pool — **150, 75, 38,
+15, 8 cases** against a fixed 150 majority, so the outcome goes from half the
+cohort to one patient in twenty. Expressed as *how many you keep* and not as a
+minority share, because that is what the reader is doing: throwing cases away.
+
+**So the widget opens on a balanced cohort and the reader creates the imbalance.**
+The whole-cohort line and the current line start on top of each other and
+separate as the dial comes down, which is the entire argument in one gesture.
+
+#### What was cut
+
+**The train/test split step is gone**, and with it cell 64's *"apply balancing
+only to the training set"*. It was a page, then a step, and it did not survive
+the reduction to three. The leakage it warns about is arc B's `data-leakage`
+anyway. Recorded in the widget header so it reads as a decision rather than an
+omission — and it is one gate away if Kenneth wants it back.
+
+#### Verified
+
+- **All 123 fingerprint states identical** after the core revert-and-add.
+- **Model matches scikit-learn** on the new dial: worst coefficient disagreement
+  **9.7e-07**, zero problems, 15 states.
+- **135-state text sweep** PASS; **120-state drive sweep** PASS with **84 of 120**
+  buttons unavailable — exactly 5 methods × 2 keeps × 2 keys × 3 frames at the
+  fit step, plus None and Class weights at the balance step.
+
+At 10% kept (15 cases): gap to the whole cohort **19.7%** unbalanced against
+**4.5%** under SMOTE.
+
+### Round five: BUILT as a five-step narrative — and core cost 38 lines, not a rewrite
+
+Kenneth pushed back on the round-four framing: *"do we need such a radical
+change? you mean we cannot make conditional buttons?"* He was right to. One of
+the three changes disappeared entirely, and the other two came to **38 lines of
+code across three core files**, verified by **one** fingerprint run: *all 123
+states identical*.
+
+#### What core gained, and why each one
+
+| | |
+|---|---|
+| `when: { param, atLeast: n }` in `controls.js` | a control appears at its step and **stays**. `equals` alone makes a control belong to exactly one step and vanish after it, so every comparison would cost a trip backwards |
+| `keepOnReset: true` on a field | Reset skips it. Exactly one kind of parameter should carry it: the one saying **which part of the widget you are looking at** |
+| `anim.inert` in `widget.js` | the widget says there is nothing to drive and core **removes** Step and Play. `stepLabel: null` cannot do this — it is read once when the shell is built, and whether there is anything to drive changes with a parameter |
+| `.w-drive-group[hidden]` in `tokens.css` | `display: inline-flex` outranks the UA sheet's `[hidden]`, the same collision the drive row itself hit. Without it, hiding the two buttons leaves an empty bordered box |
+
+**`atLeast` was the one I nearly built and did not need — until it turned out to
+be one line.** Kenneth's own suggestion (navigate with the tabs) would have made
+`equals` sufficient. It is in because keeping every unlocked control is both
+PhET's model and far less clicking, and because one line inside an existing
+`fingerprint` run is not a cost worth arguing about.
+
+#### The five steps
+
+```
+1 Cohort    both classes, fully sampled            no controls
+2 Rare      the imbalance dial                     -> share
+3 Sample    the cases that survived                no new control
+4 Split     fit on everything, or on four fifths   -> train
+5 Balance   the four methods                       -> method, k
+```
+
+Steps 1 and 3 unlock nothing **on purpose** — they are the two beats where the
+reader is meant to look rather than fiddle.
+
+**Rarity is a REMOVAL.** The dial keeps a prefix of the cohort's minority list,
+so 5% ⊂ 10% ⊂ 20% ⊂ 40% and the majority never moves. Dragging it makes patients
+vanish, and step 2 draws the ones it took as dashed outlines. A fixed total could
+never show that.
+
+**The reference line is the whole cohort's own fit** — Kenneth: *"ground truth
+can make it simpler."* It replaced a line fitted to 20,000 invisible points,
+which was defensible (it is what every method estimates) but invited exactly the
+question it got. Now it comes from the picture in step 1 and the honest answer is
+short: it is the line you get when you have every case.
+
+#### Verified
+
+- **All 123 fingerprint states identical** after the core change.
+- **Model still matches scikit-learn on the new cohort stage**: worst coefficient
+  disagreement **9.7e-07**, zero problems — the verifier now builds the cohort
+  the same way the widget does.
+- The narrative gates, driven end to end: controls appear one per step, `k` only
+  under SMOTE, Step and Play **hidden** under None and Class weights and at every
+  step below balancing, and Reset leaves the step alone
+  (`?step=4&share=3&method=smote&k=0` → `?step=4`).
+
+At 10% minority, step 5: gap to the whole cohort **19.8%** unbalanced against
+4.5% class weights, 5.0% SMOTE, 6.2% oversample, **8.0% undersample** — the
+ordering held through the rebuild, and undersampling is still furthest out.
+
+#### Play shows its working
+
+The first six samples under Play are choreographed at 580 ms, then it fills in at
+70 ms. Verified by counting the neighbour fan's own dash pattern, `[3, 3]`, which
+nothing else in the widget uses:
+
+```
+PLAY  #########.#########.#########.#########.#########.#########.  then plain
+STEP  ########################.
+```
+
+#### The one blemish left
+
+**A stale `k` slider can strand itself.** `k` is gated on `method === "smote"`,
+not on the step, because only SMOTE has neighbours. So a reader who picks SMOTE
+at step 5 and then clicks back to step 2 sees a lone `k` slider with no method
+control above it. It cannot be gated on both — `when` takes one parameter — and
+the alternatives are worse: gating on the step alone shows `k` under four methods
+that have no neighbours. Left as is, deliberately, and only reachable by
+navigating backwards after choosing SMOTE.
+
+#### A FOURTH HARNESS FAULT: a `.replace()` with no assertion
+
+The drive sweep was edited to count a hidden button as unavailable. The edit
+**silently did nothing** — the anchor text had already been rewritten by an
+earlier pass, and `str.replace()` returns the string unchanged when it finds no
+match. The harness then reported **84 of 240 buttons unavailable** where the
+design predicts 168, and every Play button that core had removed from the row
+counted as live.
+
+It was caught by checking the number against the design rather than reading PASS:
+84 is exactly half of 168, which is what "one of the two keys is never counted"
+looks like. With the assertion in place it reports **168 of 240** — 120 states
+below the balancing step plus 48 under None and Class weights.
+
+**Every string edit to a harness or a widget now asserts its anchor.** Four
+faults in this widget's tooling and three of them were silent: a settled sweep
+that never ran a frame, a regex that stopped matching when a readout changed, a
+pixel hash that could not tell two identical repaints apart, and now a
+find-and-replace that found nothing. **A harness reports what it measures, and
+what it does not measure it reports as a pass.**
+
+### Round four: the narrative, mocked up first (superseded by round five)
+
+Kenneth asked for three things: show the whole dataset and the ground truth
+before simulating the imbalance; gate the controls so the sequence tells a story;
+and keep the k-neighbour animation during Play. **The third is built. The first
+two are mocked up at `widgets/_lab/balance-narrative.html` and await a decision.**
+
+#### The stage has to change shape, and the measurement says it can
+
+Today `makeStage(rng, share)` draws nMaj majority and nMin minority with the
+total fixed at 200, so **moving the dial redraws the scene** and a reader cannot
+see what rarity cost them. The narrative needs the opposite: a whole cohort with
+both classes fully sampled, and a dial that **removes** minority cases from it.
+
+| | |
+|---|---|
+| cohort | **150 majority + 150 minority = 300 patients** |
+| 40% minority | keep 100 of 150 — 250 patients, 1:1.5 |
+| 20% | keep 38 — 188 patients, 1:3.9 |
+| 10% | keep 17 — 167 patients, 1:8.8 |
+| 5% | keep **8** — 158 patients, 1:18.8 |
+
+Shares nest, so 5% ⊂ 10% ⊂ 20% ⊂ 40% and the majority never moves: the dots only
+ever disappear. **k has to drop to {1, 3, 5}** — 8 minority cases at 5% leaves
+k ≤ 7, and a control whose options quietly stop working at one end of another is
+3.4d's defect.
+
+The claim survives, and sharpens — 40 seeds, held out at the same prevalence:
+
+| minority | recall, none | recall, the four | gap, none | gap, the four |
+|---|---|---|---|---|
+| 40% (100 cases) | 78.0% | 84.3–84.5% | 5.3% | 2.2–2.5% |
+| 20% (38) | 55.6% | 83.5–84.6% | 15.3% | 3.1–4.4% |
+| 10% (17) | 33.0% | 81.7–83.6% | 18.9% | 4.4–6.4% |
+| 5% (8) | **15.8%** | 78.0–81.6% | 19.3% | 7.0–9.3% |
+
+Undersampling is still furthest from the target at every share (2.5 / 4.4 / 6.4 /
+9.3) **while having the HIGHEST recall at 5%** (81.6%) — it overshoots. Worth
+keeping: it is the one place the two readings disagree about which method wins.
+
+#### The evidence behind the sequence
+
+- **Guide by what exists, not by instructions.** PhET's *implicit scaffolding* —
+  guidance living in affordances and constraints so students are "guided without
+  feeling guided". An argument for revealing controls rather than printing a
+  numbered list, and the reason the mock-up's rail has no "now do this" text.
+- **Each stage relaxes a constraint.** PhET's own account of successive tabs:
+  they "add complexity… and sometimes relax constraints present in earlier tabs,
+  e.g. by allowing control over more variables simultaneously".
+- **The contrast has to come first.** Schwartz & Bransford's *A Time For Telling*
+  and Schwartz & Martin's statistics work: explicit instruction lands far better
+  when learners have first compared contrasting cases. Watching 142 of 150 cases
+  disappear is that contrast; being told the class is rare is not.
+
+#### What it costs to build, and it is not free
+
+Two changes to `widgets/core/`, and **each one means a full 123-state fingerprint
+run** before it can be trusted:
+
+1. **`when: { param, atLeast: n }`.** Core's `visibleFor` has `{ param }` and
+   `{ param, equals }` only, so a control can be shown on exactly one stage but
+   not "from stage 3 onwards". Every control in a narrative has to persist once
+   revealed, or the reader cannot go back and change the imbalance while looking
+   at SMOTE.
+2. **A way for the widget to say there is nothing to drive.** Core hides the
+   drive row only behind a `gate`, and takes the FIRST gate-typed parameter — so
+   a five-stage narrative cannot use gates to hide it. `anim.inert` would let the
+   widget say it, and it also kills the standing "Replay does nothing under None
+   and Class weights" wart in the same stroke.
+
+**And one thing that needs a decision, not code: Reset.** Core's Reset returns
+EVERY control to its default, which in a gated narrative means collapsing back to
+stage 1 and discarding the reader's whole progression. That is either the right
+behaviour ("start the story over") or the demolition 3.2 warns about, and it is
+Kenneth's call which.
+
+#### Built and verified: Play now shows its working
+
+`03-4` cell 65's mechanism was invisible to anyone who pressed Play instead of
+Step — 70 ms a sample. **The first six samples under Play are now choreographed
+too** at 580 ms, then it fills in at 70 ms: about 3.5 s of construction rather
+than the 45 s that showing all of them would cost.
+
+Keyed off `anim.k`, so a reader who already stepped through six by hand gets no
+repeat — they have seen it.
+
+**A UNIT'S PACE IS FIXED WHEN THE UNIT STARTS**, stored on `anim` as `ms` and
+`full`, and `draw` reads what `advance` wrote rather than recomputing it from the
+mode. Widget 17 lost a whole panel to the other arrangement: a step left in
+flight when a non-choreographing speed took over froze it, because the two ends
+disagreed about how long the unit was.
+
+Verified by counting the neighbour fan's own dash pattern — `[3, 3]`, which
+nothing else in the widget uses — frame by frame:
+
+```
+PLAY  #########.#########.#########.#########.#########.#########.  then plain
+STEP  ########################.
+```
+
+Nine frames of fan then one to land, six times over, at 64 ms a frame — 580 ms a
+sample, exactly as declared. Step is 24 frames, 1536 ms, one sample.
+
+### Round three: the third line is NOT ground truth, and the copy says so
+
+Kenneth asked *"is the ideal line the ground truth from the data?"* — and the
+honest answer is **no**, which the name "ideal" was quietly implying. Measured
+against the true optimal rule for these two clouds, over 200,000 patients at
+equal prevalence:
+
+| | |
+|---|---|
+| the line and the true rule disagree about | **3.19%** of patients |
+| error rate, the line | **16.42%** |
+| error rate, the true rule | **16.09%** |
+| so the straight line costs | **0.33 points** over the best possible |
+| patients BOTH get wrong — the clouds genuinely overlap | **14.66%** |
+
+The true rule is a gentle curve, not a line, because the two clouds have
+different spreads — majority sd (1.7, 1.9) against minority (1.3, 1.6). It bows
+outward with height: at x₂ = 5 it sits **14 px** from the line on the 560 px
+panel, and at x₂ = 1 and 9 it is **22 and 28 px** the other way.
+
+**So the third line is the best STRAIGHT cut when the classes are equally
+common** — which is exactly what all four methods are estimating, and which is
+what makes it the right target for this figure. It is not the data's truth.
+
+**It is now labelled `equal classes` rather than `ideal`**, and the readout tile
+reads *Gap to equal classes*. "Ideal" is a verdict, and it was read as one — 2.9
+in one word.
+
+**The true curve is NOT drawn.** It would be a fourth line sitting within 3% of
+the third, on a figure whose complaint was already complexity, and it would
+answer a question this page is not asking. The numbers above are here so that
+decision can be revisited rather than re-measured.
+
+### Round three, part two: no source references in on-screen copy
+
+Kenneth: *"remove any editorial comments like this is from notebook etc, but you
+can explain the buttons."* Every string that reaches the screen now names a
+mechanism and nothing else.
+
+| was | is |
+|---|---|
+| `RandomOverSampler — minority samples copied at random` | `minority samples copied at random until the counts are even` |
+| `RandomUnderSampler — majority samples dropped at random` | `majority samples dropped at random until the counts are even` |
+| `class_weight='balanced' — no sample added or removed` | `nothing added or dropped — minority samples just count more` |
+| `5 — the default in imbalanced-learn, and the notebook's` | `5 — the usual choice, between close in and far out` |
+| `the training half only — what 03-4 says to do` | `hold out 20% first, then balance only the 80% left behind` |
+| `everything, and then split what came out` | `balance all 200 first, then hold out 20% of whatever came out` |
+
+**The library names moved into the source comments**, one line above each method,
+where a developer needs them and a student does not. Leading with
+`RandomOverSampler` put a word the reader cannot act on in front of the words
+that say what happens.
+
+**The file header keeps its cell-by-cell provenance** — that is a source comment,
+which CLAUDE.md exempts, and it is the only record of which cell each page answers.
+
+All seven `detail` lines are now **56–61 characters**, so the rail cannot jog by a
+line when the reader drags across the ladder (3.4d).
+
+### THREE HARNESS FAULTS, and every one of them made a test quietly stop testing
+
+Worth reading before trusting any before/after comparison in this repo.
+
+**1. A settled sweep is no test of a frame.** Every state in
+`balancing-sweep.js` is reached through `shown`, animation at rest, so **not one
+of them runs `drawInFlight`**. A random copy carries a `parent` and no
+`neighbour`; the slow-motion branch read `state.pts[undefined].x1` and threw on
+**every frame**, under Oversample only — while **348 settled states passed
+clean**. Found by reading the browser console, not by the harness.
+`widgets/_lab/balancing-drive.html` now presses a drive button and pumps
+`requestAnimationFrame` by hand. It collects errors **off the iframe's own
+window**, because an exception inside a rAF callback rejects nothing and never
+reaches the harness frame.
+
+**2. A progress check written against a readout string dies when the readout
+changes.** The freeze test looked for an "N of M" and called a state frozen when
+N stayed 0. Then the counts tile was replaced — and no tile on the Balancing page
+printed that shape any more, so the regex matched nothing, every state counted as
+progress, and the check stopped checking with no error and no failure.
+
+**3. A PIXEL HASH IS NOT AN EQUALITY TEST HERE, and two attempts at one both
+passed for the wrong reason before the check was rewritten.** Measured:
+
+- **The load paint is not the same picture as any repaint.** At an identical
+  state, load-paint against the first repaint differs by **clt 41,734 of
+  1,471,968 bytes · bootstrap 39,244 of 1,846,800 · galton-board 17,498 of
+  1,778,400 · balancing-data 201,825 of 2,172,384** — and every repaint after
+  that is **byte-identical**, 0 and 0 on all four. This is a property of the
+  collection, not of one widget.
+- **The first `getImageData` after a paint can differ from every read after it.**
+  711051006 once, then 1780657374 twice, on a canvas nothing touched in between.
+- **A sparse hash misses a small mark.** At stride 397 it read about one pixel in
+  a hundred and missed a single highlight ring, calling a drawing state frozen.
+
+Even warmed and read twice, the comparison stayed unreliable enough to report
+**zero** freezes in a run where freezes were known to exist. **The strings do not
+have this problem** — they are byte-identical across repaints — so the check now
+collects one string-set per pumped frame through `fillText` and compares the
+first frame with the last. Nothing forces an extra repaint: each pumped callback
+already paints once. An earlier version sampled the strings by nudging the
+`share` control, which RESETS the animation, so it compared a freshly reset
+figure with itself.
+
+**AND THE CHECK WAS PROVED TO FAIL.** `anim.t += dt` was changed to `anim.t += 0`
+and the suite re-run: **12 states flagged**, which is exactly the 2 pages x 3
+methods-with-a-plan x 2 shares where progress is guaranteed. Reverted after. A
+green harness that has never been shown to go red is not evidence.
+
+This is also why the fingerprint suite is stable: it renders each state in a
+FRESH iframe and hashes once, so it only ever compares load-paints with
+load-paints. Any harness that repaints in place has to warm first.
+
+### CLOSED: `Play` used to read "Replay" and stay enabled under None and Class
+weights
+
+Solved in round six by `anim.inert`, which is the one core capability from this
+widget that survived. The record of the problem, kept because it is why the
+capability exists:
+
+**It read "Replay" and stayed enabled under None and Class weights.** Both
+have an empty plan, so `init` sets `done: true` — which correctly disables Step
+and gives it the label *"Nothing to change"*, and that disabled button is the
+lesson. But core turns a finished `run` button into an enabled "Replay", and
+replaying nothing repaints the same picture. The three widget-side alternatives
+are all worse (leaving `done: false` enables a Step that does nothing; a `gate`
+means something else; `runLabel` takes a plain string only and cannot vary by
+method), so the real fix is in core — and a core change means a full 123-state
+fingerprint run. **Kenneth's call whether it is worth one.**
+
+### Decided while building, so it is not re-argued
+
+- **The stage is generated, and the measurement that forced it is in the
+  catalogue.** On heart failure SMOTE runs in 11 columns and a two-column picture
+  puts its neighbours at median rank 16 of 95, with 39 of 96 patients sharing
+  none at all. The picture would draw a line to a point that visibly is not near.
+- **One minority cloud, not two.** The obvious "two minority clusters with
+  majority in the gap, so interpolation lands in majority territory" story was
+  measured and **does not fire** — 4.2% against the single cloud's 8.6%. A shape
+  control would have been built for a story the data does not support.
+- **`k` tops out at 9 and `share` bottoms out at 5%**, because SMOTE needs k + 1
+  minority points and 3% leaves six. A control whose options quietly stop working
+  at one end of another control is the defect 3.4d records.
+- **The fade on page three means "held out" on BOTH settings**, and the
+  difference is whether a construction line touches a faded dot. Fading only
+  under `after` would have said the test half does not exist yet under `before`,
+  which is backwards: it exists, and balancing is reading it.
+
+### THE BROWSER PANE RUNS NO FRAMES WHEN IT IS NOT DISPLAYED
+
+Not throttled — **zero**. `requestAnimationFrame` never fires, so an animation
+driven by clicking Step or Play advances by nothing at all, the canvas keeps its
+first paint, and the readout keeps its first numbers. Screenshots fail loudly
+(*"the Browser pane is not displayed, so the page is not compositing frames"*)
+and this fails **silently**, which is worse: it reads exactly like an `advance`
+that never increments, and half an hour went into looking for that bug.
+
+The way through is the one the fingerprint harness already uses — **replace
+`requestAnimationFrame` with a queue and pump it by hand**:
+
+```js
+const q = []; win.requestAnimationFrame = (cb) => q.push(cb);
+doc.querySelector('.w-drive .w-btn[data-key="step"]').click();
+let t = 0; for (let i = 0; i < frames; i++) { const cb = q.shift(); if (!cb) break; cb(t += 64); }
+```
+
+64 ms because that is core's `MAX_FRAME_MS` clamp. Driven this way, widget 18's
+Step landed one sample in 3 frames on the fast page and 30 on the slow one, and
+Play ran to 30 in 60 — which is the contract, checked rather than assumed.
+
+**And a second one, from the same session: `navigate` drops the query string.**
+`mcp__Claude_Browser__navigate` to `…/widget/x/?a=1&b=2` lands on the right page
+with `location.search === ""`, so every parameter silently falls back to its
+default. A widget tested that way is being tested at its defaults no matter what
+URL was asked for — and for widget 18 that meant `method=none`, whose plan is
+empty and whose Step button is *correctly* disabled. Set `location.href` from
+`javascript_tool`, or load through an iframe `src`, both of which keep it.
+
+### Three bugs this build hit, all of which read as something else
+
+- **`fits[0]` is not the unbalanced fit under class weights** — it is the
+  weighted one, so the dashed reference line quietly became a second copy of the
+  live line and the readout's "72.7% unbalanced" printed the weighted number
+  against itself. There is now an explicit `baseFit`, always unweighted.
+- **A random copy never reaches `S.made`.** `shownState` files it under `copies`,
+  because it lands exactly on its parent — so the leak counter, which walked
+  `made`, reported oversampling as leaking NOTHING on the page whose whole
+  subject is the leak. It walks the plan prefix now.
+- **The fit set and the plan indices were in different frames.** On page three
+  `after`, the plan is built over the training half and then lifted to full-stage
+  indices for drawing; the fit needs them back in source indices. Two maps, one
+  each way — an `indexOf` per step would have been O(n²) over a 180-entry plan.
 
 ---
 
@@ -449,11 +1534,25 @@ README's seven example URLs are the documented deployed paths.
   inside Dropbox and a venv is thousands of small files for the indexer to fight
   with — the same class of problem as the `_site` delete.
 
-  The two scripts behind the tree numbers in *NEXT* are kept beside the
-  notebooks, in `…/PHM5005 AY2025-26 - Notebooks/_scratch/`: `tree43.py`
-  reproduces `04-3`'s three models verbatim, `tree43b.py` runs the paired
-  200-seed comparison and the root-split census. They are **deliberately not in
-  this repo** — prd §6 records why a Python helper was deleted from it.
+  **The venv had vanished by the next session and had to be rebuilt.** It is
+  at `…/PHM5005 AY2025-26 - Notebooks/_scratch/venv`, and the measurement
+  scripts sit beside it: `tree43.py` / `tree43b.py` behind widget 17's tree
+  numbers, and `imb1.py`–`imb6.py` plus `verify18.mjs` behind widget 18's.
+  `verify18.mjs` is the interesting one — node imports the SHIPPING module
+  `widgets/balancing-data/model.js` and dumps its numbers for `imb6.py` to
+  check against scikit-learn, so what was verified is what runs. Its imports are
+  absolute `file:///D:/…` URLs because a relative path cannot cross from C: to
+  D: on Windows. They are **deliberately not in this repo** — prd §6 records why
+  a Python helper was deleted from it.
+
+  ```powershell
+  cd "C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch"
+  py -m venv venv
+  ./venv/Scripts/python.exe -m pip install scikit-learn pandas imbalanced-learn
+  ```
+
+  Note `imbalanced-learn` is now in that list: `03-4` needs it, and the earlier
+  claim that it was unavailable is no longer a constraint.
 
 **Git had no identity here** and refused the first commit. Set repo-local to
 `Kenneth Ban <kennethban@gmail.com>`, matching every existing commit; a

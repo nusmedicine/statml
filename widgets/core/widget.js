@@ -183,6 +183,10 @@ export function defineWidget(config) {
     height = 380,
     params: spec = {},
     legend = [],
+    /* What the Reset button says and promises. A widget whose Reset does
+       something specific should name it: see the note at the button itself. */
+    resetLabel,
+    resetTitle,
     compute = () => ({}),
     draw,
     /**
@@ -627,6 +631,30 @@ export function defineWidget(config) {
       dom.drive.hidden = !open;
       if (!open) return;
     }
+    /* THE WIDGET SAYS WHEN THERE IS NOTHING TO DRIVE, by setting `anim.inert`,
+       and core takes step and run out of the row rather than leaving them dead.
+
+       `stepLabel: null` cannot do this: it is read once when the shell is built,
+       so it declines a button for the whole life of the widget. Whether there is
+       anything to drive can change with a parameter — widget 18's Class weights
+       adds and removes no sample, so its plan is empty while Oversample's is
+       180 long — and a button that is live but does nothing teaches that the
+       control beside it is the afterthought (4.5). It was reported as exactly
+       that: Play relabelled itself "Replay" on a method that changes no data,
+       and replaying nothing repainted the same picture.
+
+       The GROUP is hidden too, not just its buttons: `.w-drive-group` is
+       `display: inline-flex`, so hiding the two buttons inside it would have
+       left an empty bordered box sitting in the row. */
+    const inert = Boolean(anim?.inert);
+    for (const key of ["step", "run"]) {
+      const b = actions[key];
+      if (!b) continue;
+      b.hidden = inert;
+      const group = b.parentElement;
+      if (group?.classList.contains("w-drive-group")) group.hidden = inert;
+    }
+
     const playing = rafId !== null && anim?.mode === "run";
     const done = Boolean(anim?.done);
     // Nothing but the lead action is available until the lead action has run.
@@ -723,10 +751,27 @@ export function defineWidget(config) {
     },
     {
       key: "reset",
-      text: "Reset",
-      title: "Return every control to its default and start over",
+      /* THE LABEL NAMES WHAT IT CLEARS, because "Reset" alone does not. The
+         usability literature on reset controls is blunt about it — a bare
+         "Reset" is vague and gets clicked by mistake — and a widget that already
+         has Play, and gates that say "Back to…", needs its third action to be
+         unmistakable. Widget 18 calls it "Start over", because there it closes
+         every gate and returns to the cohort. Default unchanged, so no existing
+         widget moves. */
+      text: resetLabel ?? "Reset",
+      title: resetTitle ?? "Return every control to its default and start over",
       onClick: () => {
         stopAnim();
+        /* EVERY control, including the gates — so on a staged widget this is
+           the way back to the beginning, and the label below says so. A
+           `keepOnReset` exemption was built for the opposite reading and taken
+           out again: it existed so a narrative could survive Reset, and once the
+           narrative was expressed as gates the honest thing was for Reset to
+           close them.
+
+           Still a trap for a harness, and it stays written down: a fingerprint
+           sweep that clicks Reset between states tests only the default state
+           and reports "0 problems" from it. */
         for (const [name, field] of Object.entries(spec)) values[name] = field.default;
         controls.syncAll(values);
         render();

@@ -255,6 +255,20 @@
       ],
       "arc": 17,
       "status": "draft"
+    },
+    {
+      "slug": "balancing-data",
+      "title": "Balancing Data",
+      "blurb": "When one class is rare a model predicts it away. Four ways to correct that, and what each does to the data.",
+      "course": "PHM5005",
+      "topics": [
+        "imbalance",
+        "resampling",
+        "SMOTE",
+        "preprocessing"
+      ],
+      "arc": 18,
+      "status": "draft"
     }
   ]
 }

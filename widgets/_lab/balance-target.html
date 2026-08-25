@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; widget 18, the ideal-world line</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 62ch; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(620px, max-content));
+    gap: var(--sp-3); justify-content: start; align-items: start; }
+  .wrap { overflow-x: auto; padding-bottom: var(--sp-1); }
+  canvas { display: block; }
+  html { scrollbar-gutter: stable; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .knob { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .knob select, .knob input[type="range"] { font: inherit; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums;
+    margin: var(--sp-2) 0 var(--sp-3); }
+  th, td { text-align: right; padding: 3px var(--sp-3) 3px 0; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td b { color: var(--ink-1); }
+  .rail { display: grid; grid-template-columns: 300px 1fr; gap: var(--sp-3);
+    align-items: start; max-width: 1000px; }
+  .fake { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); font-size: var(--fs-sm); }
+  .fake .grp { margin-bottom: var(--sp-3); }
+  .fake .lbl { font-size: var(--fs-xs); color: var(--ink-2); margin-bottom: 4px; }
+  .fake .seg { display: flex; gap: 2px; flex-wrap: wrap; }
+  .fake .seg span { border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px;
+    background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); }
+  .fake .seg span.on { background: var(--c-highlight); border-color: var(--c-highlight); color: #fff; }
+  .fake .btn { display: inline-block; border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; margin-right: 4px; background: var(--surface-2); font-size: var(--fs-xs); }
+  .fake .btn.pri { background: var(--c-highlight); border-color: var(--c-highlight); color: #fff; }
+  .fake .btn.off { opacity: .45; }
+  ol.what { margin: 0; padding-left: 1.2em; font-size: var(--fs-sm); color: var(--ink-2); max-width: 70ch; }
+  ol.what li { margin-bottom: var(--sp-2); }
+  ol.what b { color: var(--ink-1); }
+  .swatch { display: inline-block; width: 26px; height: 3px; vertical-align: middle;
+    margin-right: 6px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+
+  <h1>Widget 18 &middot; the ideal-world line, and what the buttons do</h1>
+  <p class="note">
+    Two questions in one page. <b>First</b>: is there a line worth drawing that says
+    &ldquo;here is where the model would cut if the classes were equally common&rdquo;, so the four
+    methods can be seen pushing towards it? <b>Second</b>: the widget has five controls and three
+    buttons, and it should be obvious what each one does. The bottom of the page proposes cutting
+    one control entirely.
+  </p>
+  <p class="note">
+    Everything here is drawn with the widget&rsquo;s own <code>model.js</code>, at the widget&rsquo;s
+    own 560&nbsp;px panel width, so these are the real lines rather than an impression of them.
+  </p>
+
+  <div class="bar">
+    <label class="knob">minority
+      <select id="share"></select>
+    </label>
+    <label class="knob">method
+      <select id="method">
+        <option value="none">None</option>
+        <option value="weights" selected>Class weights</option>
+        <option value="over">Oversample</option>
+        <option value="under">Undersample</option>
+        <option value="smote">SMOTE</option>
+      </select>
+    </label>
+    <label class="knob">k
+      <select id="k"></select>
+    </label>
+    <label class="knob">seed
+      <input type="range" id="seed" min="1" max="40" step="1" value="1">
+      <span id="seedOut">1</span>
+    </label>
+    <label class="knob"><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <h2>The measurement that says it is worth drawing</h2>
+  <p class="note">
+    The target is the <b>same logistic model fitted where the two classes are equally common</b> &mdash;
+    not the Bayes boundary, because these two clouds have unequal spreads so the Bayes rule is a
+    curve, and drawing a curve against straight fitted lines would blame imbalance for the model
+    being linear. Across six seeds it crosses x&#8322;&nbsp;=&nbsp;5 within <b>0.07 of a 10-unit
+    axis</b> &mdash; four pixels &mdash; so it is a target and not a wobble.
+  </p>
+  <p class="note">
+    Below: the share of a 6,000-patient population that each fitted line labels
+    <b>differently from the target</b>, over 40 seeds. One number, in patients, comparable across
+    methods &mdash; which recall and precision were not.
+  </p>
+  <table id="tbl"></table>
+  <p class="note" id="pxNote"></p>
+
+  <h2>Three ways to show it</h2>
+  <div class="wrap">
+    <div class="row">
+      <div class="cell">
+        <h3>T1 &middot; three lines, nothing else</h3>
+        <p>
+          <span class="swatch" style="background:var(--c-reference)"></span>before balancing &middot;
+          <span class="swatch" style="background:var(--c-highlight)"></span>now &middot;
+          <span class="swatch" style="background:var(--c-theory)"></span>if the classes were equal.
+          The cheapest version: the target is just a third line and the reader measures the gap by eye.
+        </p>
+        <div id="t1"></div>
+        <div class="measure" id="m1"></div>
+      </div>
+      <div class="cell">
+        <h3>T2 &middot; the gap as a band</h3>
+        <p>
+          Same three lines, and the plane between <em>now</em> and <em>ideal</em> washed. The
+          band is the ground still to cover, and it shrinks to nothing as the plan runs &mdash;
+          which is the thing being watched.
+        </p>
+        <div id="t2"></div>
+        <div class="measure" id="m2"></div>
+      </div>
+      <div class="cell">
+        <h3>T3 &middot; three lines and a gap bar</h3>
+        <p>
+          The gap as a length under the panel, on a fixed scale, with the unbalanced gap left
+          behind it in grey. Costs <b>46&nbsp;px</b> of height and turns the comparison into a
+          number you can read without arithmetic.
+        </p>
+        <div id="t3"></div>
+        <div class="measure" id="m3"></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>All four methods at once, at the current share</h2>
+  <p class="note">
+    Not a proposal for the widget &mdash; the widget shows one method at a time and that is right.
+    This row is here so the <em>ordering</em> can be judged: does undersampling really land further
+    from the target than the other three, and is that visible or only in the number?
+  </p>
+  <div class="wrap"><div class="row" id="four"></div></div>
+
+  <h2>Which button does what &mdash; and one control to cut</h2>
+  <p class="note">
+    The widget currently has <b>three pages</b>, and the middle one, <em>One sample at a time</em>,
+    is not a different subject &mdash; it is the same plan at a slower pace. Core already has a word
+    for that: its own tooltip for Step reads
+    <em>&ldquo;advance one step, slowly, showing every stage&rdquo;</em>.
+    <b>So Step can be the slow motion and the page can go.</b> Two pages, one fewer thing to learn,
+    and the two drive buttons explain themselves.
+  </p>
+  <div class="rail">
+    <div class="fake">
+      <div class="grp">
+        <div class="lbl">Page</div>
+        <div class="seg"><span class="on">Balancing</span><span>Only the training set</span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl">Minority class</div>
+        <div class="seg"><span>40%</span><span>20%</span><span class="on">10%</span><span>5%</span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl">Balancing</div>
+        <div class="seg"><span>None</span><span>Class weights</span><span>Oversample</span><span>Undersample</span><span class="on">SMOTE</span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl">k &mdash; neighbours to choose from</div>
+        <div class="seg"><span>1</span><span>3</span><span class="on">5</span><span>9</span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl">&nbsp;</div>
+        <span class="btn pri">Make one sample</span><span class="btn">Play</span><span class="btn">Reset</span>
+      </div>
+    </div>
+    <ol class="what">
+      <li><b>Page</b> &mdash; which question. <em>Balancing</em> is what each method does to the data
+        and where the model then cuts; <em>Only the training set</em> is what goes wrong if you
+        balance before you split.</li>
+      <li><b>Minority class</b> &mdash; how rare the outcome is, from 80 of 200 down to 10 of 200.
+        Everything else on the page is a response to this one.</li>
+      <li><b>Balancing</b> &mdash; what you do about it. The label on the Step button changes with
+        it: <em>Copy one sample</em>, <em>Drop one sample</em>, <em>Make one sample</em> &mdash; and
+        under <em>None</em> and <em>Class weights</em> it reads <em>Nothing to change</em> and greys
+        out, because those two really do change no data.</li>
+      <li><b>k</b> &mdash; appears only under SMOTE, because only SMOTE has neighbours to choose
+        from. Larger k reaches further out: at a 10% minority the share of new samples whose nearest
+        real neighbour is a majority patient runs <b>17.8%</b> at k&nbsp;=&nbsp;1 to
+        <b>35.8%</b> at k&nbsp;=&nbsp;9.</li>
+      <li><b>Make one sample</b> &mdash; one sample, <em>slowly</em>: the parent lights, its k
+        neighbours light, one is chosen, the new point slides along that segment and lands.</li>
+      <li><b>Play</b> &mdash; the rest of them, fast, until the counts are even.</li>
+      <li><b>Reset</b> &mdash; back to the start. Note it returns <em>every</em> control to its
+        default, not just the animation.</li>
+    </ol>
+  </div>
+
+</main>
+<script type="module">
+  import * as L from "./balance-target.js";
+  import * as M from "../balancing-data/model.js";
+  import { makeRng } from "../core/rng.js";
+
+  const $ = (id) => document.getElementById(id);
+  M.SHARES.forEach((s, i) => $("share").add(new Option(`${Math.round(s * 100)}%`, String(i))));
+  $("share").value = "2";
+  M.K_OPTIONS.forEach((k, i) => $("k").add(new Option(String(k), String(i))));
+  $("k").value = "2";
+
+  const METHODS = ["none", "weights", "over", "under", "smote"];
+  const LABEL = { none: "None", weights: "Class weights", over: "Oversample", under: "Undersample", smote: "SMOTE" };
+
+  /* The table is computed here rather than pasted, so it cannot go stale against
+     model.js the way a copied number would. */
+  function table() {
+    const ideal = L.idealFit();
+    const rows = [];
+    for (const share of M.SHARES) {
+      const cells = {};
+      for (const method of METHODS) {
+        let sum = 0;
+        for (let seed = 1; seed <= 20; seed += 1) {
+          const rng = makeRng(seed);
+          const pts = M.makeStage(rng, share);
+          const { set, weights } = L.buildSet(pts, method, 5, makeRng(seed + 31));
+          sum += L.disagree(M.fitLogistic(set, { weights }), ideal);
+        }
+        cells[method] = 100 * sum / 20;
+      }
+      rows.push({ share, cells });
+    }
+    const head = `<tr><th>minority</th>${METHODS.map((m) => `<th>${LABEL[m]}</th>`).join("")}</tr>`;
+    const body = rows.map((r) => {
+      const best = Math.min(...METHODS.filter((m) => m !== "none").map((m) => r.cells[m]));
+      return `<tr><td>${Math.round(r.share * 100)}%</td>` + METHODS.map((m) =>
+        `<td>${r.cells[m] === best ? `<b>${r.cells[m].toFixed(2)}%</b>` : `${r.cells[m].toFixed(2)}%`}</td>`).join("") + "</tr>";
+    }).join("");
+    $("tbl").innerHTML = head + body;
+
+    const at5 = -(ideal.b0 + ideal.b2 * 5) / ideal.b1;
+    const px = (f) => ((-(f.b0 + f.b2 * 5) / f.b1) - at5) * (560 / 10);
+    const bits = M.SHARES.map((share) => {
+      const pts = M.makeStage(makeRng(1), share);
+      return `${Math.round(share * 100)}%: <b>${px(M.fitLogistic(pts)).toFixed(0)} px</b>`;
+    });
+    $("pxNote").innerHTML = "And it is visible, not just measurable. How far the unbalanced line "
+      + "sits from the target where it crosses x&#8322;&nbsp;=&nbsp;5, on the 560&nbsp;px panel &mdash; "
+      + bits.join(" &middot; ") + ". The balanced methods all land within <b>11&nbsp;px</b>.";
+  }
+
+  function render() {
+    const share = M.SHARES[Number($("share").value)];
+    const k = M.K_OPTIONS[Number($("k").value)];
+    const method = $("method").value;
+    const seed = Number($("seed").value);
+    $("seedOut").textContent = String(seed);
+    $("k").closest(".knob").style.opacity = method === "smote" ? 1 : 0.35;
+
+    for (const [id, variant] of [["t1", "T1"], ["t2", "T2"], ["t3", "T3"]]) {
+      $(id).innerHTML = "";
+      const r = L.panel($(id), { variant, share, method, k, seed, caption: "the training set, and where the model cuts it" });
+      $("m" + id.slice(1)).innerHTML =
+        `gap to the ideal line <b>${(100 * r.gap).toFixed(2)}%</b> of patients`
+        + `&nbsp; &middot; &nbsp;before balancing <b>${(100 * r.gap0).toFixed(2)}%</b>`;
+    }
+
+    $("four").innerHTML = "";
+    for (const m of METHODS) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      const h = document.createElement("h3");
+      h.textContent = LABEL[m];
+      cell.appendChild(h);
+      const host = document.createElement("div");
+      cell.appendChild(host);
+      const meas = document.createElement("div");
+      meas.className = "measure";
+      cell.appendChild(meas);
+      $("four").appendChild(cell);
+      const r = L.panel(host, { variant: "T1", share, method: m, k, seed, caption: LABEL[m] });
+      meas.innerHTML = `gap <b>${(100 * r.gap).toFixed(2)}%</b>`;
+    }
+  }
+
+  $("dark").addEventListener("change", (e) => {
+    document.documentElement.dataset.theme = e.target.checked ? "dark" : "light";
+    render();
+  });
+  for (const id of ["share", "method", "k", "seed"]) $(id).addEventListener("input", render);
+  document.documentElement.dataset.theme = "light";
+  table();
+  render();
+</script>
+</body>
+</html>

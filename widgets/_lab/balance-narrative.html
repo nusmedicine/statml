@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; widget 18, the five-stage narrative</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 94ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .steps { display: flex; gap: 6px; flex-wrap: wrap; margin: var(--sp-3) 0; position: sticky;
+    top: 0; z-index: 3; background: var(--surface-2); padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--grid); }
+  .steps button { font: inherit; font-size: var(--fs-xs); padding: 6px 10px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--ink-2);
+    border-radius: var(--radius); }
+  .steps button.on { background: var(--c-highlight); border-color: var(--c-highlight); color: #fff; }
+  .steps button.done { color: var(--ink-1); border-color: var(--axis); }
+  .split { display: grid; grid-template-columns: 300px max-content; gap: var(--sp-4);
+    align-items: start; }
+  .rail { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); }
+  .grp { margin-bottom: var(--sp-3); }
+  .grp.new { outline: 2px solid var(--c-highlight); outline-offset: 6px; border-radius: 4px; }
+  .lbl { font-size: var(--fs-xs); color: var(--ink-2); margin-bottom: 4px; }
+  .seg { display: flex; gap: 2px; flex-wrap: wrap; }
+  .seg button { font: inherit; font-size: var(--fs-xs); padding: 3px 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2);
+    border-radius: 4px; }
+  .seg button.on { background: var(--c-highlight); border-color: var(--c-highlight); color: #fff; }
+  .detail { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 4px; min-height: 2.4em; }
+  .gate { width: 100%; font: inherit; font-size: var(--fs-sm); padding: 8px; cursor: pointer;
+    border: 1px solid var(--c-highlight); background: var(--c-highlight); color: #fff;
+    border-radius: var(--radius); margin-top: var(--sp-3); }
+  .gate[disabled] { opacity: .4; cursor: default; }
+  .drive { display: flex; gap: 6px; margin-top: var(--sp-3); padding-top: var(--sp-3);
+    border-top: 1px solid var(--grid); }
+  .drive button { font: inherit; font-size: var(--fs-xs); padding: 5px 10px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-1);
+    border-radius: 4px; }
+  .drive button.pri { background: var(--c-highlight); border-color: var(--c-highlight); color: #fff; }
+  .drive button[disabled] { opacity: .35; cursor: default; }
+  .stat { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--sp-3); margin-top: var(--sp-3); padding-top: var(--sp-3);
+    border-top: 1px solid var(--grid); max-width: 620px; }
+  .stat .k { font-size: var(--fs-xs); color: var(--ink-2); }
+  .stat .v { font-size: var(--fs-fig); font-weight: 600; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; }
+  .stat .n { font-size: var(--fs-xs); color: var(--ink-3); }
+  .say { background: var(--surface-1); border-left: 3px solid var(--c-highlight);
+    padding: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; max-width: 78ch;
+    font-size: var(--fs-sm); color: var(--ink-2); }
+  .say b { color: var(--ink-1); }
+  canvas { display: block; }
+  html { scrollbar-gutter: stable; }
+  ul.cite { font-size: var(--fs-sm); color: var(--ink-2); max-width: 94ch; }
+  ul.cite li { margin-bottom: var(--sp-2); }
+  ul.cite b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+
+  <h1>Widget 18 &middot; the five-stage narrative</h1>
+  <p class="note">
+    A mock-up of the sequence, not a change to the widget. Click through the stages: the figure is
+    real, drawn with the widget&rsquo;s own <code>model.js</code> at its own 560&nbsp;px panel, and
+    the rail beside it shows <b>exactly which controls exist at that point</b> &mdash; the newly
+    revealed one is outlined. What is faked is only the gating mechanism.
+  </p>
+
+  <div class="steps" id="steps"></div>
+
+  <div class="split">
+    <div>
+      <div class="rail" id="rail"></div>
+      <div class="say" id="say"></div>
+    </div>
+    <div>
+      <div id="fig"></div>
+      <div class="stat" id="stat"></div>
+    </div>
+  </div>
+
+  <h2>Why this order, and what the evidence says</h2>
+  <ul class="cite">
+    <li>
+      <b>Guide by what exists, not by instructions.</b> PhET&rsquo;s <i>implicit scaffolding</i> is
+      the idea that guidance should live in the affordances and constraints of the thing itself, so
+      students are &ldquo;guided without feeling guided&rdquo;. That is an argument for
+      <b>revealing controls</b> rather than printing a numbered list of steps &mdash; which is what
+      this mock-up does, and why there is no &ldquo;now do this&rdquo; text anywhere in the rail.
+      (<a href="https://arxiv.org/pdf/1306.6544">Podolefsky, Perkins &amp; Moore, 2013</a>)
+    </li>
+    <li>
+      <b>Each stage relaxes a constraint.</b> PhET&rsquo;s own description of successive tabs is
+      that they &ldquo;add complexity&hellip; and sometimes relax constraints present in earlier
+      tabs, e.g. by allowing control over more variables simultaneously&rdquo;. Stages 1&ndash;5
+      here do exactly that, one control at a time, and every control stays once revealed.
+      (<a href="https://phet.colorado.edu/en/research">PhET research</a>)
+    </li>
+    <li>
+      <b>Seeing the contrast first is what makes the explanation land.</b> Schwartz &amp;
+      Bransford&rsquo;s <i>A Time For Telling</i> finds that explicit instruction is far more
+      effective when learners have first been prepared by comparing contrasting cases &mdash; and
+      Schwartz &amp; Martin found the same in statistics instruction specifically. Stage&nbsp;1
+      showing the <b>whole cohort</b> before stage&nbsp;2 takes it away is that contrast: the reader
+      watches 142 of 150 cases disappear rather than being told the class is rare.
+      (<a href="https://aaalab.stanford.edu/assets/papers/2004/Inventing_to_prepare_for_future_learning.pdf">Schwartz &amp; Martin, 2004</a>)
+    </li>
+    <li>
+      <b>Autonomy without structure backfires.</b> The same literature is clear that handing over
+      every control at once produces frustration rather than discovery. The current widget opens
+      with five controls and three buttons visible at once.
+    </li>
+  </ul>
+
+  <h2>What this mock-up does not settle</h2>
+  <p class="note">
+    Three things need a decision before it is built, and all three are cheap to change now and dear
+    to change later &mdash; they are listed in the reply rather than guessed at here.
+  </p>
+
+</main>
+<script type="module">
+  import * as N from "./balance-narrative.js";
+  import * as M from "../balancing-data/model.js";
+
+  const $ = (id) => document.getElementById(id);
+  const state = { i: 0, share: 2, method: "none", k: 2, seed: 1, trainOnly: true, progress: 1 };
+
+  const STEPS = [
+    { key: "cohort", label: "1 · The whole cohort" },
+    { key: "rare", label: "2 · Make it rare" },
+    { key: "sample", label: "3 · What we collected" },
+    { key: "split", label: "4 · Hold out a test set" },
+    { key: "balance", label: "5 · Try a method" },
+  ];
+  const GATE = [
+    "Make the outcome rare",
+    "Use only the cases we have",
+    "Hold out a test set",
+    "Try a balancing method",
+    null,
+  ];
+  const SAY = [
+    "Both classes, fully sampled, and the rule that actually decides them. Nothing to set yet — "
+      + "the only thing to notice is that the two clouds <b>overlap</b>, so even the true rule gets "
+      + "some patients wrong.",
+    "The outcome becomes rare. The majority never moves; minority cases <b>disappear</b>, and the "
+      + "dashed outlines are the ones rarity took. This is the only stage where the loss is visible.",
+    "The outlines go. This is the dataset you would actually have — and the model fitted to it has "
+      + "already drifted off the line the whole cohort gave. The shaded region is the disagreement.",
+    "Twenty per cent is set aside. Everything from here happens on the training set only, and the "
+      + "faded dots are the ones you must not touch.",
+    "Now a method can be tried. Step makes one sample slowly, showing where it came from; Play "
+      + "makes the rest. Under <b>None</b> and <b>Class weights</b> there is nothing to make, so "
+      + "neither button appears.",
+  ];
+
+  function railHTML() {
+    const st = STEPS[state.i].key;
+    const seen = (n) => state.i >= n;
+    const seg = (name, opts, cur, grp) =>
+      `<div class="grp ${grp ? "new" : ""}"><div class="lbl">${name}</div><div class="seg">`
+      + opts.map((o) => `<button data-set="${o.set}" data-v="${o.v}" class="${o.v === String(cur) ? "on" : ""}">${o.label}</button>`).join("")
+      + `</div><div class="detail">${opts.find((o) => o.v === String(cur))?.detail ?? ""}</div></div>`;
+
+    let h = "";
+    if (seen(1)) {
+      h += seg("Minority class", M.SHARES.map((s, i) => ({
+        set: "share", v: String(i), label: `${Math.round(s * 100)}%`,
+        detail: `${N.keepFor(s)} of ${N.N_MIN_POOL} cases kept — one patient in `
+          + (Math.round(10 * (N.N_MAJ + N.keepFor(s)) / N.keepFor(s)) / 10),
+      })), state.share, state.i === 1);
+    }
+    if (seen(3)) {
+      h += seg("Fit on", [
+        { set: "trainOnly", v: "false", label: "Everything", detail: "all the cases, test set included — what you must not do" },
+        { set: "trainOnly", v: "true", label: "Training only", detail: "the 80% left after holding a test set back" },
+      ], String(state.trainOnly), state.i === 3);
+    }
+    if (seen(4)) {
+      h += seg("Balancing", [
+        { set: "method", v: "none", label: "None", detail: "the data as collected, and the model exactly as it comes" },
+        { set: "method", v: "weights", label: "Class weights", detail: "nothing added or dropped — minority samples just count more" },
+        { set: "method", v: "over", label: "Oversample", detail: "minority samples copied at random until the counts are even" },
+        { set: "method", v: "under", label: "Undersample", detail: "majority samples dropped at random until the counts are even" },
+        { set: "method", v: "smote", label: "SMOTE", detail: "new samples placed between a minority point and a neighbour" },
+      ], state.method, state.i === 4);
+      if (state.method === "smote") {
+        h += seg("k — neighbours to choose from", N.K_OPTIONS.map((v, i) => ({
+          set: "k", v: String(i), label: String(v),
+          detail: v === 1 ? "1 — always the nearest, so new samples hug the real ones"
+            : v === 3 ? "3 — a short list, so new samples stay close in"
+              : "5 — the usual choice, between close in and far out",
+        })), state.k, false);
+      }
+    }
+    const gate = GATE[state.i];
+    if (gate) h += `<button class="gate" id="gate">${gate}</button>`;
+    if (st === "balance") {
+      const hasPlan = state.method === "over" || state.method === "under" || state.method === "smote";
+      h += `<div class="drive">`
+        + (hasPlan
+          ? `<button class="pri" data-drive="step">${
+            state.method === "over" ? "Copy one sample"
+              : state.method === "under" ? "Drop one sample" : "Make one sample"}</button>`
+            + `<button data-drive="play">Play</button><button data-drive="reset">Reset</button>`
+          : `<span class="detail" style="min-height:0">nothing to add or drop — this method changes no data</span>`)
+        + `</div>`;
+    }
+    return h;
+  }
+
+  function render() {
+    $("steps").innerHTML = STEPS.map((s, i) =>
+      `<button data-step="${i}" class="${i === state.i ? "on" : i < state.i ? "done" : ""}">${s.label}</button>`).join("");
+    $("rail").innerHTML = railHTML();
+    $("say").innerHTML = SAY[state.i];
+    $("fig").innerHTML = "";
+    const r = N.drawStage($("fig"), {
+      stage: STEPS[state.i].key,
+      share: M.SHARES[state.share], method: state.i >= 4 ? state.method : "none",
+      k: N.K_OPTIONS[state.k], seed: state.seed,
+      trainOnly: state.i >= 3 ? state.trainOnly : false,
+      progress: state.progress,
+    });
+    const tile = (k, v, n) => `<div><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
+    const pc = (x) => `${(100 * x).toFixed(1)}%`;
+    let s = "";
+    if (state.i === 0) {
+      s = tile("Cohort", `${r.nMaj} : ${N.N_MIN_POOL}`, "every case, both outcomes")
+        + tile("The two clouds overlap", "yes", "no rule can separate them completely");
+    } else if (state.i === 1) {
+      s = tile("Cases kept", `${r.keep} of ${N.N_MIN_POOL}`, `${r.lost} lost to rarity`)
+        + tile("Now the cohort is", `${r.nMaj} : ${r.keep}`, "the majority never moved");
+    } else {
+      s = tile("Gap to the whole cohort", pc(r.gap), `${pc(r.gapRare)} with no balancing`)
+        + tile("Minority found", pc(r.score.recall), `${pc(r.scoreRare.recall)} with no balancing`)
+        + tile("Of those flagged, correct", pc(r.score.precision), `${pc(r.scoreRare.precision)} with no balancing`);
+      if (state.i >= 3) s += tile("Held out", `${r.held}`, `fitting on ${r.source}`);
+    }
+    $("stat").innerHTML = s;
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.step !== undefined) { state.i = Number(b.dataset.step); state.progress = 1; }
+    else if (b.id === "gate") { state.i = Math.min(STEPS.length - 1, state.i + 1); }
+    else if (b.dataset.set) {
+      const v = b.dataset.v;
+      state[b.dataset.set] = b.dataset.set === "trainOnly" ? v === "true"
+        : b.dataset.set === "method" ? v : Number(v);
+      state.progress = 1;
+    } else if (b.dataset.drive === "reset") state.progress = 0;
+    else if (b.dataset.drive === "play") state.progress = 1;
+    else if (b.dataset.drive === "step") state.progress = Math.min(1, state.progress + 0.02);
+    render();
+  });
+  document.documentElement.dataset.theme = "light";
+  render();
+</script>
+</body>
+</html>

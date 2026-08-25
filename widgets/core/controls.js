@@ -43,6 +43,13 @@ import { optionEntries } from "./params.js";
  *
  *   when: { param: "studies" }              shown while `studies` is truthy
  *   when: { param: "mode", equals: "raw" }  shown while `mode` === "raw"
+ *
+ * AN `atLeast` FORM WAS ADDED AND THEN REMOVED. A staged widget seemed to need
+ * "shown once `step` reaches 3, and stays" — until the stage was expressed as
+ * GATES instead of as a numbered step, and a gate is a bool, so the truthy form
+ * above already says it. Core carried a comparison nothing compared for exactly
+ * one session. If a widget ever needs it again the line is one line; unused
+ * machinery in a file every widget shares is not.
  */
 export function fieldShowing(field, values) {
   const w = field.when;

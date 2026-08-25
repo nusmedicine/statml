@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; widget 18 mid-flight drive sweep</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  main { max-width: 980px; margin: 0 auto; padding: var(--sp-4);
+    font: var(--fs-sm)/1.5 var(--font); color: var(--ink-2); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); color: var(--ink-1); }
+  p { max-width: 92ch; margin: 0 0 var(--sp-3); }
+  b { color: var(--ink-1); }
+  #bar { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden;
+    margin: var(--sp-3) 0 var(--sp-2); }
+  #fill { height: 100%; width: 0; background: var(--c-highlight); transition: width .15s; }
+  #now { font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  #out { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--sp-3); white-space: pre-wrap; font: var(--fs-xs)/1.6 ui-monospace, monospace;
+    color: var(--ink-2); margin-top: var(--sp-3); }
+  .pass { color: var(--c-smoothed); font-weight: 600; }
+  .fail { color: var(--c-event); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Widget 18 &middot; mid-flight drive sweep</h1>
+  <p>
+    The text sweep drives every <b>settled</b> state and cannot see a single frame of the animation.
+    That gap hid a real bug: a random copy carries a <code>parent</code> and no
+    <code>neighbour</code>, so the slow-motion branch read <code>state.pts[undefined].x1</code> and
+    threw on every frame &mdash; under Oversample only, on two of the three pages &mdash; while
+    <b>348 settled states passed clean</b>.
+  </p>
+  <p>
+    This one presses a drive button and then pumps <code>requestAnimationFrame</code> by hand, one
+    frame at a time, collecting anything the iframe throws. Sixty frames is enough to sit inside a
+    unit, mid-slide, and well into the plan.
+  </p>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="now">starting&hellip;</div>
+  <pre id="out"></pre>
+</main>
+<script type="module">
+  import "./balancing-drive.js";
+
+  const fill = document.getElementById("fill");
+  const now = document.getElementById("now");
+  const out = document.getElementById("out");
+
+  const t0 = performance.now();
+  const rows = await window.__drive(900, (done, total, at) => {
+    fill.style.width = `${(done / total) * 100}%`;
+    now.textContent = `${done} / ${total}   ${at}`;
+  });
+  const secs = ((performance.now() - t0) / 1000).toFixed(0);
+
+  const errs = rows.filter((r) => r.err || r.errs?.length);
+  const stuck = rows.filter((r) => r.stuck);
+  const nan = rows.filter((r) => r.nan);
+  const blank = rows.filter((r) => !r.err && (!r.W || r.W < 300));
+  const clean = !errs.length && !stuck.length && !nan.length && !blank.length;
+
+  now.textContent = `${rows.length} states in ${secs}s`;
+  const lines = [
+    `${clean ? "PASS" : "FAIL"}  ${rows.length} driven states, ${secs}s`,
+    ``,
+    `  threw mid-frame    ${errs.length}`,
+    `  Play x40 changed nothing ${stuck.length}`,
+    `  NaN in the readout ${nan.length}`,
+    `  painted nothing    ${blank.length}`,
+    ``,
+    `  buttons unavailable (expected below step 5, and under None/Class weights): `
+      + `${rows.filter((r) => r.disabled).length} of ${rows.length}`,
+  ];
+  for (const r of [...errs, ...stuck, ...nan, ...blank].slice(0, 20)) {
+    lines.push(``, `  ${r.at}`, `    ${r.err ?? (r.errs ?? []).join("\n    ") ?? ""} ${r.stuck ? "FROZEN" : ""} ${r.rd ?? ""}`);
+  }
+  out.textContent = "";
+  const head = document.createElement("span");
+  head.className = clean ? "pass" : "fail";
+  head.textContent = lines[0];
+  out.appendChild(head);
+  out.appendChild(document.createTextNode(`\n${lines.slice(1).join("\n")}`));
+  window.__R = rows;
+</script>
+</body>
+</html>

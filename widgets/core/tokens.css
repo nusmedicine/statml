@@ -1129,6 +1129,11 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 }
 .w-drive-group .w-btn:last-child { border-right: 0; }
 .w-drive-group .w-btn:disabled { opacity: 0.5; }
+/* `display: inline-flex` outranks the UA sheet's `[hidden] { display: none }`,
+   the same collision the drive row itself hit. A widget that declares
+   `anim.inert` hides this group, and without the rule it would stay on screen
+   as an empty bordered box while reporting `hidden === true`. */
+.w-drive-group[hidden] { display: none; }
 
 /* Set by core to the widest label the run button can hold — see 3.4d. A
    variable rather than an inline style so the rail below can drop it. */

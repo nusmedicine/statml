@@ -228,6 +228,23 @@ for (const w of manifest.widgets) {
   if (!["shipped", "draft"].includes(w.status)) {
     fail(`"${w.slug}": status "${w.status}" is neither "shipped" nor "draft"`);
   }
+  /* EXACTLY ONE WIDGET PER FILE, and this is here because a file with two of
+     them passed every other check.
+
+     A scripted edit anchored on a string that appears twice spliced ~350 lines
+     back in, leaving `defineWidget` called twice: the file parsed, `npm run
+     check` was green, and the second call quietly re-registered the widget over
+     the first. Nothing else in this script counts anything, so nothing else
+     could notice. Duplication is the one corruption a syntax check cannot see —
+     two valid halves make a valid whole. */
+  /* Matched on `defineWidget({` and not on `defineWidget(` at line start: one
+     widget assigns the result (`const handle = defineWidget({ ... })`) so an
+     anchored match found zero and the check failed on a correct file. */
+  const defines = (main.match(/defineWidget\(\{/g) ?? []).length;
+  if (defines !== 1) {
+    fail(`"${w.slug}": main.js calls defineWidget ${defines} times — expected exactly 1`);
+  }
+
   const declared = main.match(/^\s*status:\s*"([^"]*)"/m)?.[1] ?? "shipped";
   if (declared !== w.status) {
     fail(`"${w.slug}": manifest status "${w.status}" but main.js declares "${declared}" — the gallery and the draft bar would disagree`);
