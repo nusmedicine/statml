@@ -238,6 +238,23 @@
       ],
       "arc": 16,
       "status": "shipped"
+    },
+    {
+      "slug": "trees-and-ensembles",
+      "title": "Trees and Ensembles",
+      "blurb": "A tree cuts the plane one threshold at a time. Resample the data and it picks a different one.",
+      "course": "PHM5005",
+      "topics": [
+        "decision tree",
+        "CART",
+        "Gini impurity",
+        "bagging",
+        "bootstrap",
+        "ensembles",
+        "variance"
+      ],
+      "arc": 17,
+      "status": "draft"
     }
   ]
 }
