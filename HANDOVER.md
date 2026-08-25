@@ -38,15 +38,21 @@ asked for.** Widget 17 is still missing a look at its boosting page. Both are
 unbaselined by design — a baseline recorded before the design is settled is
 thrown away, and widget 18's design moved in every one of those twelve rounds.
 
-**NINE COMMITS ARE UNPUSHED, not one.** Widget 18 is the newest; widgets 17's
-four, the Windows move, and the last handover are all still local. Every push to
-`main` publishes all of them at once, and nobody has looked at widget 18 in a
-browser — including the session that built it, because screenshots do not work
-from here.
+**THREE COMMITS ARE UNPUSHED**, and they are widget 19's: the core change, the
+widget, and this handover. The nine that the previous handover warned about have
+since been pushed — `git ls-remote` puts `origin/main` at `3058818`, the commit
+whose own message said they were outstanding.
+
+**Verify this rather than believing it.** The local `origin/main` ref was last
+fetched on 24 August and a stale ref reads as a clean tree either way, which is
+exactly how the number got carried forward wrong:
 
 ```bash
-git log origin/main..HEAD --oneline    # see what a push would publish
+git ls-remote origin refs/heads/main    # the truth, without touching any ref
+git log origin/main..HEAD --oneline     # what a push would publish, if the ref is fresh
 ```
+
+Every push to `main` publishes, with no staging step.
 
 **123 fingerprint states, each carrying two hashes, and the suite is GREEN** — a
 full run on this machine reports *all 123 states identical*. Six are widget 16's,
