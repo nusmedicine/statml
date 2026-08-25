@@ -67,6 +67,35 @@
   --c-group-a:   var(--series-1);    /* one arm of a comparison              */
   --c-group-b:   var(--series-4);    /* the other arm                        */
 
+  /* GROUPS NOBODY ASSIGNED — the unsupervised case, and not the A/B pair above.
+     An arm of a comparison is a thing you decided; a cluster in a projection is
+     what you are trying to find out, so the colour means only "these samples
+     travelled together".
+
+     A RAMP OF SIX, ORDERED BRIGHTEST AND MOST FAMILIAR FIRST: blue, yellow,
+     red, then aqua, green, violet. A figure showing three groups uses the first
+     three and should get the three most separable hues, not whatever the other
+     roles left over.
+
+     THE LAST THREE WERE MEASURED, NOT CHOSEN BY EYE. With blue/yellow/red
+     fixed, all ten ways of picking three more from the ramp were scored on the
+     smallest weighted RGB distance between any two of the six, in BOTH themes.
+     Aqua+green+violet scores 76; every other option scores 34 to 40, and
+     magenta is in all of the worst ones because it sits too close to red.
+     A first attempt used magenta and would have put two near-identical dots on
+     the same six-group figure.
+
+     Six because that is what a group count control can reach, and the sixth
+     must not repeat the first. These deliberately DO overlap other roles by
+     hue: a cluster figure has no p-value tail and no theoretical curve in it,
+     so --c-extreme's red and --c-cluster-c's red never share a panel. */
+  --c-cluster-a: var(--series-1);    /* blue                                 */
+  --c-cluster-b: var(--series-4);    /* yellow                               */
+  --c-cluster-c: var(--series-8);    /* red                                  */
+  --c-cluster-d: var(--series-3);    /* aqua                                 */
+  --c-cluster-e: var(--series-6);    /* green                                */
+  --c-cluster-f: var(--series-7);    /* violet                               */
+
   /* At or beyond a threshold: the tail a p-value counts, and later the tests a
      correction flags. Red because this role's whole job is to be found first —
      it is the one thing on the figure a reader is meant to count. Distinct from

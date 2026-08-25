@@ -16,6 +16,8 @@
          readout:  ({ params, state, anim }) => [{ label, value, note }],
          table:    ({ params, state, anim }) => ({ columns, rows }),
          animation: { init, advance },              // see below
+         regions:  ({ w, h, params, state }) => [{ set: { k: v }, ... }],
+         drag:     { param, value },                // a movement, not a click
        })
 
    THREE INVARIANTS worth knowing before you write a widget:
@@ -235,6 +237,36 @@ export function defineWidget(config) {
        way only a widget that asks for it moves. Falls back to the stack below
        880px, so the narrow case is unaffected either way. */
     layout = "stack",
+
+    /* DRAGGING THE FIGURE, for the case a click cannot express: a quantity the
+       reader wants to sweep rather than pick. `regions` resolves a pixel to an
+       identity; this resolves a MOVEMENT to a value.
+     *
+     *     drag: {
+     *       params: ["turn", "tilt"],                // declared, not returned
+     *       value: ({ dx, dy, start, params, state, w, h }) => ({ turn, tilt }),
+     *       cursor: "grab",                          // optional, default "grab"
+     *     }
+     *
+       DECLARED rather than inferred from the return value, because core has to
+       validate the names at load exactly as it validates a region: a parameter
+       that is not in the spec is a code defect and should throw here rather
+       than do nothing on the first drag.
+
+       MORE THAN ONE PARAMETER IS ALLOWED HERE AND NOT IN A REGION, and the
+       difference is real rather than a relaxation. A region's objection to two
+       is that it would paint an intermediate state, write the URL twice, and
+       make a click a different transaction from the one the harness performs.
+       None of that follows here: the values are applied TOGETHER, and only the
+       last goes through `setParam`, so there is one recompute, one repaint and
+       one address-bar write however many are named. Two numbers that are one
+       gesture — a camera's turn and tilt — stay one transaction.
+
+       `start` holds those parameters' values when the gesture began, so `value`
+       is a pure function of the gesture and cannot accumulate drift across
+       frames. It ends at the same door a region click uses — sync the control,
+       then set — so the rail, the URL and the figure cannot disagree. */
+    drag = null,
     mount = "#widget",
   } = config;
 
@@ -520,8 +552,78 @@ export function defineWidget(config) {
     });
     /* The only thing that says a figure can be clicked at all. */
     surface.canvas.addEventListener("pointermove", (ev) => {
+      if (dragging) return;   // a gesture in flight owns the cursor
       surface.canvas.style.cursor = at(ev) ? "pointer" : "default";
     });
+  }
+
+  /* --- dragging the figure ------------------------------------------------ *
+   * Same door as a region click, one parameter, validated at load. See the
+   * `drag` entry in the options above for why it is one and why it is declared
+   * rather than returned.                                                     */
+  let dragging = null;
+  if (drag) {
+    const dragParams = drag.params ?? [drag.param];
+    for (const name of dragParams) {
+      if (!spec[name]) throw new Error(`drag sets unknown parameter "${name}"`);
+    }
+    if (typeof drag.value !== "function") {
+      throw new Error(`drag on "${dragParams.join(", ")}" has no value() function`);
+    }
+    const grab = drag.cursor ?? "grab";
+    surface.canvas.style.cursor = grab;
+
+    surface.canvas.addEventListener("pointerdown", (ev) => {
+      /* A region click wins where the two overlap: it is a smaller target and
+         a more specific intent, and a reader aiming at one does not expect the
+         whole figure to swing. */
+      if (regions && at(ev)) return;
+      ev.preventDefault();
+      dragging = {
+        x: ev.clientX, y: ev.clientY,
+        start: Object.fromEntries(dragParams.map((n) => [n, values[n]])),
+      };
+      surface.canvas.setPointerCapture?.(ev.pointerId);
+      surface.canvas.style.cursor = "grabbing";
+    });
+
+    surface.canvas.addEventListener("pointermove", (ev) => {
+      if (!dragging) return;
+      const next = drag.value({
+        dx: ev.clientX - dragging.x,
+        dy: ev.clientY - dragging.y,
+        start: dragging.start,
+        params: { ...values },
+        state,
+        w: surface.width,
+        h: surface.height,
+      });
+      /* ONLY WHEN SOMETHING ACTUALLY CHANGES. `value` is expected to snap to a
+         step, so a slow drag reports the same numbers many times over — and
+         every one of those would recompute, repaint and rewrite the address
+         bar. */
+      if (dragParams.every((n) => next[n] === values[n])) return;
+      /* APPLIED TOGETHER, ONE TRANSACTION. Everything but the last is written
+         straight into `values` with its control synced; the last goes through
+         the ordinary door, and `recompute` then sees all of them at once. One
+         recompute, one repaint, one address-bar write. */
+      const tail = dragParams[dragParams.length - 1];
+      for (const n of dragParams) {
+        if (n === tail) continue;
+        values[n] = next[n];
+        controls.sync(n, next[n]);
+      }
+      setFromRegion(tail, next[tail]);
+    });
+
+    const release = (ev) => {
+      if (!dragging) return;
+      dragging = null;
+      surface.canvas.releasePointerCapture?.(ev.pointerId);
+      surface.canvas.style.cursor = grab;
+    };
+    surface.canvas.addEventListener("pointerup", release);
+    surface.canvas.addEventListener("pointercancel", release);
   }
 
   /* --- animation -------------------------------------------------------- */

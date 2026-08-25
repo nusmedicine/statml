@@ -116,6 +116,7 @@ export function readTokens() {
     posterior: v("--c-posterior"),
     groupA: v("--c-group-a"),
     groupB: v("--c-group-b"),
+    clusters: ["a", "b", "c", "d", "e", "f"].map((k) => v(`--c-cluster-${k}`)),
     extreme: v("--c-extreme"),
     event: v("--c-event"),
     nonevent: v("--c-nonevent"),
