@@ -12,9 +12,15 @@ asked for.** Widget 17 is still missing a look at its boosting page. Both are
 unbaselined by design — a baseline recorded before the design is settled is
 thrown away, and widget 18's design moved in every one of those twelve rounds.
 
-**COMMITTED, NOT PUSHED.** Every push to `main` publishes, and nobody has looked
-at widget 18 in a browser — including the session that built it, because
-screenshots do not work from here. Push when someone has.
+**NINE COMMITS ARE UNPUSHED, not one.** Widget 18 is the newest; widgets 17's
+four, the Windows move, and the last handover are all still local. Every push to
+`main` publishes all of them at once, and nobody has looked at widget 18 in a
+browser — including the session that built it, because screenshots do not work
+from here.
+
+```bash
+git log origin/main..HEAD --oneline    # see what a push would publish
+```
 
 **123 fingerprint states, each carrying two hashes, and the suite is GREEN** — a
 full run on this machine reports *all 123 states identical*. Six are widget 16's,
