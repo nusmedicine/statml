@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; showing boosting progress</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1320px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 64ch; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2);
+    font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; }
+  html { scrollbar-gutter: stable; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-3); position: sticky; top: 0; z-index: 2;
+    background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); }
+  .knob { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .knob input[type="range"] { width: 190px; }
+  .knob .out { font-variant-numeric: tabular-nums; color: var(--ink-1); min-width: 4.6em; }
+  .wrap { overflow-x: auto; padding-bottom: var(--sp-1); }
+  .row { display: grid; gap: var(--sp-3); justify-content: start; align-items: start; }
+  ul.claims { list-style: none; margin: var(--sp-3) 0 0; padding: 0; max-width: 100ch; }
+  ul.claims li { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: var(--sp-1);
+    font-variant-numeric: tabular-nums; }
+  ul.claims b { color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+
+  <h1>Showing boosting progress</h1>
+  <p class="note">
+    A mock-up, not a change to the widget. Two questions. <b>Where does the loss go</b> &mdash; the
+    boosting page currently shows what is left, the running sum, the tree, and a shelf of trees,
+    and none of them says &ldquo;this is converging&rdquo;. And <b>what should a leaf say</b>: the
+    leaves currently print <code>n&nbsp;=&nbsp;k</code>, which barely moves between rounds, while
+    the thing that actually changes is the <b>step</b> each leaf adds.
+    Numbers are measured from the widget's own gradient boosting on the designed twelve at depth&nbsp;2.
+  </p>
+
+  <div class="bar">
+    <label class="knob">round
+      <input type="range" id="k" min="0" max="20" step="1" value="6">
+      <span class="out" id="kOut">6 of 20</span>
+    </label>
+    <label class="knob">learning rate
+      <select id="rate">
+        <option value="r0.1">0.1</option>
+        <option value="r0.3" selected>0.3</option>
+        <option value="r1">1.0</option>
+      </select>
+    </label>
+    <label class="knob"><input type="checkbox" id="dark"> dark</label>
+  </div>
+
+  <h2>Where the loss curve goes</h2>
+  <p class="note">
+    All three drawn at the widget's real stage width. L1 and L2 keep the shelf; L3 spends the
+    whole row on the curve.
+  </p>
+  <div class="wrap"><div class="row" id="rowL"></div></div>
+  <ul class="claims" id="claimsL"></ul>
+
+  <h2>What a leaf says</h2>
+  <p class="note">
+    The same tree, three labellings. Watch the numbers as the round slider moves &mdash; that is
+    the test: which of these visibly changes?
+  </p>
+  <div class="wrap"><div class="row" id="rowN"></div></div>
+  <ul class="claims" id="claimsN"></ul>
+
+</main>
+
+<!-- Deliberately NOT added to _lab/index.html: that index is stale and
+     catching it up is its own change. -->
+<script type="module" src="./boost-loss.js"></script>
+</body>
+</html>
