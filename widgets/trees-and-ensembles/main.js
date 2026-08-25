@@ -250,6 +250,17 @@ const signatureOf = (n) =>
 const predictAt = (n, x1, x2) =>
   isLeafNode(n) ? n.leaf : ((n.feature === 0 ? x1 : x2) <= n.threshold ? predictAt(n.left, x1, x2) : predictAt(n.right, x1, x2));
 
+/**
+ * A threshold, for DISPLAY only.
+ *
+ * A threshold is the midpoint of two sample values rounded to 0.1, and 118 of
+ * those pairs land on a float that prints in full: 0.1 and 0.2 give
+ * 0.15000000000000002, which overflows the edge label it is drawn in. The
+ * model keeps the exact value — only the label is rounded, so nothing about
+ * the fit moves.
+ */
+const fmtT = (v) => String(Math.round(v * 100) / 100);
+
 const ordinal = (n) => {
   const r = n % 100;
   if (r >= 11 && r <= 13) return `${n}th`;
@@ -302,6 +313,167 @@ function buildBag(pts, rng) {
   return { trees, cum };
 }
 
+/* ---- boosting -----------------------------------------------------------
+   GRADIENT boosting with logistic loss, which is what 04-3 teaches: cell 36
+   fits a HistGradientBoostingClassifier with learning_rate 0.1, and cell 31
+   names "Gradient Boosting, XGBoost" as the boosting family. AdaBoost appears
+   nowhere in the notebook.
+
+   Each round fits a small REGRESSION tree to the negative gradient — for
+   logistic loss that is simply `y - p`, how wrong the current model is at
+   each sample — gives each leaf the Newton step for that loss, and adds it in
+   shrunk by the learning rate. That is the slide's own picture: a loss
+   function on the left, trees added with +, an additive prediction.
+
+   DEPTH 2, AND IT IS MEASURED. sklearn defaults to 3, which on twelve samples
+   is eight leaves — it fits everything in one shot, and the decision region
+   then repaints 0.00% from round two onward, so there is nothing to watch.
+   Depth 2 gives four leaves, seven distinct tree shapes in twenty rounds, and
+   6.14% repaint over rounds 2-5. A stump (depth 1) is AdaBoost's convention
+   and has no structure to show at all.
+
+   THIS PAGE DOES NOT CLAIM BOOSTING WINS, because on this stage it does not.
+   Paired over 200 training seeds against 20000 fresh points, at depth 2 and
+   rate 0.3:
+
+        n     one tree   bag(50)   gb(20)    vs tree        vs bag
+        12    0.8833     0.9098    0.8767    -0.66pp  6%    -3.31pp  4%
+        24    0.9086     0.9199    0.9021    -0.65pp 25%    -1.78pp 20%
+        40    0.9280     0.9335    0.9302    +0.21pp 48%    -0.34pp 44%
+
+   Twelve samples are simply too few for it: a single tree already fits them.
+   The page shows HOW boosting works, and says plainly that it needs more data
+   than this to pay. Claiming a win the measurement does not support would be
+   the one thing a teaching widget must not do. */
+
+const BOOST_M = 20;
+const BOOST_DEPTH = 2;
+const RATES = [
+  { key: "0.1", value: 0.1, label: "0.1", detail: "0.1 — the notebook's, small steps" },
+  { key: "0.3", value: 0.3, label: "0.3", detail: "0.3 — the default here" },
+  { key: "1.0", value: 1, label: "1.0", detail: "1.0 — no shrinkage, each tree added whole" },
+];
+const rateOf = (params) => RATES[Number(params.rate)] ?? RATES[1];
+
+const sigmoid = (f) => 1 / (1 + Math.exp(-f));
+
+/**
+ * A regression tree over the residuals, in the same node shape the tree
+ * drawer already accepts, so one drawer serves all three pages.
+ *
+ * The split criterion is SSE reduction rather than Gini: the target here is a
+ * real-valued residual, not a class. Written as `sl^2/nl + sr^2/nr`, which is
+ * the part of the sum of squares that varies with the split.
+ */
+function regressionTree(pts, idx, resid, depth, maxDepth, rect) {
+  const node = newNode(idx, depth, rect);
+  node.value = idx.reduce((s, i) => s + resid[i], 0) / Math.max(1, idx.length);
+  node.counts = countsOf(pts, idx);
+  if (depth >= maxDepth || idx.length < 2) { node.leaf = node.value > 0 ? 1 : -1; return node; }
+
+  let best = null;
+  const total = idx.reduce((s, i) => s + resid[i], 0);
+  for (let j = 0; j < 2; j += 1) {
+    const order = idx.slice().sort((a, b) => valueOf(pts[a], j) - valueOf(pts[b], j));
+    let sl = 0, nl = 0;
+    for (let k = 1; k < order.length; k += 1) {
+      sl += resid[order[k - 1]]; nl += 1;
+      if (valueOf(pts[order[k]], j) === valueOf(pts[order[k - 1]], j)) continue;
+      const sr = total - sl, nr = idx.length - nl;
+      const gain = (sl * sl) / nl + (sr * sr) / nr;
+      if (best === null || gain > best.gain) {
+        best = { gain, feature: j, threshold: (valueOf(pts[order[k]], j) + valueOf(pts[order[k - 1]], j)) / 2 };
+      }
+    }
+  }
+  if (!best) { node.leaf = node.value > 0 ? 1 : -1; return node; }
+
+  const lo = [], hi = [];
+  for (const i of idx) { (valueOf(pts[i], best.feature) <= best.threshold ? lo : hi).push(i); }
+  node.feature = best.feature;
+  node.threshold = best.threshold;
+  /* Rects are threaded, not left null: a depth-2 cut belongs to its parent's
+     half of the plane, and drawn full-width it claims a region it never saw. */
+  node.left = regressionTree(pts, lo, resid, depth + 1, maxDepth, cutRect(rect, best.feature, "lo", best.threshold));
+  node.right = regressionTree(pts, hi, resid, depth + 1, maxDepth, cutRect(rect, best.feature, "hi", best.threshold));
+  return node;
+}
+
+const leafAt = (n, x1, x2) =>
+  (n.feature === null ? n : ((n.feature === 0 ? x1 : x2) <= n.threshold ? leafAt(n.left, x1, x2) : leafAt(n.right, x1, x2)));
+
+/** Give every leaf the Newton step for logistic loss, and clip it. */
+function newtonLeaves(node, resid, p) {
+  if (node.feature === null) {
+    const num = node.idx.reduce((s, i) => s + resid[i], 0);
+    const den = node.idx.reduce((s, i) => s + p[i] * (1 - p[i]), 0);
+    /* A pure leaf drives the denominator to ~0 and the step to infinity; one
+       infinity in the running sum blanks the panel with nothing on screen to
+       say why. Clipped, exactly as the libraries do. */
+    node.value = den > 1e-9 ? clamp(num / den, -6, 6) : 0;
+    node.leaf = node.value > 0 ? 1 : -1;
+    return;
+  }
+  newtonLeaves(node.left, resid, p);
+  newtonLeaves(node.right, resid, p);
+}
+
+function buildBoost(pts, rate) {
+  const n = pts.length;
+  const pos = pts.filter((q) => q.y > 0).length / n;
+  /* The constant model the sequence starts from: the log-odds of the base
+     rate, which is the best a model with no features can do. */
+  const F0 = Math.log(clamp(pos, 1e-6, 1 - 1e-6) / (1 - clamp(pos, 1e-6, 1 - 1e-6)));
+  const F = new Array(n).fill(F0);
+
+  const rounds = [];
+  const run = new Float32Array(VOTE_GRID * VOTE_GRID).fill(F0);
+  const cum = [];
+
+  /* Mean logistic loss after each round, starting from the constant model.
+     This is the quantity the lecture slide's left-hand axis names, and the
+     only one on the page that says "this is converging". */
+  const logLoss = () => {
+    let t = 0;
+    for (let i = 0; i < n; i += 1) {
+      const q = clamp(sigmoid(F[i]), 1e-12, 1 - 1e-12);
+      t += pts[i].y > 0 ? -Math.log(q) : -Math.log(1 - q);
+    }
+    return t / n;
+  };
+  const losses = [logLoss()];
+
+  for (let m = 0; m < BOOST_M; m += 1) {
+    const p = F.map(sigmoid);
+    const resid = pts.map((q, i) => (q.y > 0 ? 1 : 0) - p[i]);
+    const tree = regressionTree(pts, pts.map((_, i) => i), resid, 0, BOOST_DEPTH, { ...FULL_RECT });
+    newtonLeaves(tree, resid, p);
+
+    for (let i = 0; i < n; i += 1) F[i] += rate * leafAt(tree, pts[i].x1, pts[i].x2).value;
+
+    for (let gy = 0; gy < VOTE_GRID; gy += 1) {
+      const y = voteCell(gy);
+      for (let gx = 0; gx < VOTE_GRID; gx += 1) {
+        run[gy * VOTE_GRID + gx] += rate * leafAt(tree, voteCell(gx), y).value;
+      }
+    }
+    let maxAbs = 0;
+    for (let i = 0; i < run.length; i += 1) maxAbs = Math.max(maxAbs, Math.abs(run[i]));
+    cum.push({ f: Float32Array.from(run), maxAbs: maxAbs || 1 });
+
+    losses.push(logLoss());
+    rounds.push({
+      tree, resid,
+      meanAbs: resid.reduce((s, v) => s + Math.abs(v), 0) / n,
+      sig: signatureOf(tree),
+      cuts: cutsOf(tree),
+    });
+  }
+  const keys = rounds.map((r) => r.sig);
+  return { rounds, cum, F0, rate, losses, distinct: new Set(keys).size, keys };
+}
+
+
 /* ---- geometry -----------------------------------------------------------
    Core hands a widget ONE canvas, so the three panels are regions inside it
    rather than separate elements. Every size is derived from `w` so the figure
@@ -312,6 +484,7 @@ const PAD_L = 30, PAD_B = 14, GAP = 14;
 const TITLE_H = 18;     /* a panel title, drawn above its rect */
 const AXIS_H = 20;      /* tick labels, drawn below it */
 const SHELF_INNER = 96;
+const LOSS_H = 104;     /* the loss curve, full width, above the shelf (L2) */
 
 /**
  * Every rectangle in the figure, from the width and the page.
@@ -327,18 +500,26 @@ function layoutOf(w, page) {
   const panelTop = TITLE_H;
   const panelH = side - 22;
   const panelBottom = panelTop + panelH;
-  const shelfTop = panelBottom + AXIS_H + TITLE_H + 8;
+  /* Boosting spends 114 px on a full-width loss curve between the panels and
+     the shelf. Chosen from three placements mocked at this exact stage width
+     (_lab/boost-loss.html): at a third of the width the converged tail is
+     unreadable, and dropping the shelf for it loses the sequence of trees. */
+  const lossTop = panelBottom + AXIS_H + TITLE_H + 8;
+  const shelfTop = page === "boost"
+    ? lossTop + LOSS_H + TITLE_H + 10
+    : panelBottom + AXIS_H + TITLE_H + 8;
 
   const P1 = { x: PAD_L, y: panelTop, w: side - PAD_L, h: panelH };
   const P2 = { x: P1.x + P1.w + GAP + PAD_L, y: panelTop, w: side - PAD_L, h: panelH };
   const P3 = { x: P2.x + P2.w + GAP, y: panelTop, w: treeW, h: panelH };
   const shelf = { x: PAD_L, y: shelfTop, w: w - PAD_L - 8, h: SHELF_INNER };
+  const loss = { x: PAD_L, y: lossTop, w: w - PAD_L - 8, h: LOSS_H };
 
   return {
-    side, treeW, P1, P2, P3, shelf,
-    height: page === "bag"
-      ? shelfTop + SHELF_INNER + PAD_B
-      : panelBottom + AXIS_H + PAD_B,
+    side, treeW, P1, P2, P3, shelf, loss,
+    height: page === "tree"
+      ? panelBottom + AXIS_H + PAD_B
+      : shelfTop + SHELF_INNER + PAD_B,
   };
 }
 
@@ -531,6 +712,11 @@ function drawScan(ctx, colors, R, step, sweep, settled) {
   ctx.textAlign = "center"; ctx.textBaseline = "top";
   for (let v = 0; v <= 10; v += 2) ctx.fillText(String(v), px(v), R.y + R.h - B + 4);
   ctx.fillText("threshold t", (R.x + L + R.x + R.w) / 2, R.y + R.h - 10);
+
+  /* Which curve is which, beside the curves rather than in the shared legend. */
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillStyle = colors.theory;   ctx.fillText("x₁", R.x + L + 3, R.y + 1);
+  ctx.fillStyle = colors.smoothed; ctx.fillText("x₂", R.x + L + 19, R.y + 1);
 }
 
 /* Connector endpoints taken RADIALLY — along the line joining the two centres
@@ -553,7 +739,7 @@ function treeLayout(root, R, useFinal) {
 }
 
 function drawTreeDiagram(ctx, colors, R, root, opts) {
-  const { committed = null, active = null, arriving = 1, labels = true } = opts ?? {};
+  const { committed = null, active = null, arriving = 1, labels = true, leafLabel = null } = opts ?? {};
   const live = committed ? new Set(committed) : null;
   const shown = (n) => (live ? live.has(n) : !isLeafNode(n));
 
@@ -595,7 +781,7 @@ function drawTreeDiagram(ctx, colors, R, root, opts) {
       ctx.fillStyle = colors.ink3;
       ctx.textAlign = rel === "≤" ? "right" : "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`${rel} ${n.threshold}`, (x1 + x2) / 2 + (rel === "≤" ? -5 : 5), (y1 + y2) / 2);
+      ctx.fillText(`${rel} ${fmtT(n.threshold)}`, (x1 + x2) / 2 + (rel === "≤" ? -5 : 5), (y1 + y2) / 2);
       ctx.globalAlpha = 1;
     });
   });
@@ -621,7 +807,7 @@ function drawTreeDiagram(ctx, colors, R, root, opts) {
       if (labels && u > 0.75) {
         ctx.fillStyle = colors.ink3; ctx.font = `9px ${colors.font}`;
         ctx.textAlign = "center"; ctx.textBaseline = "top";
-        ctx.fillText(`n = ${n.idx.length}`, x, y + r + 4);
+        ctx.fillText(leafLabel ? leafLabel(n) : `n = ${n.idx.length}`, x, y + r + 4);
       }
     } else {
       const searching = n === active;
@@ -713,6 +899,15 @@ voteBuf.canvas.width = VOTE_GRID;
 voteBuf.canvas.height = VOTE_GRID;
 let voteCache = { bag: null, k: -1, ink: "" };
 
+/* Beside voteBuf on purpose. These are module-level bindings read by draw(),
+   and defineWidget() paints during its own call — so a `const` declared BELOW
+   that call is still in its temporal dead zone when the first frame runs.
+   Declared here, they are initialised before anything can paint. */
+const sumBuf = document.createElement("canvas").getContext("2d");
+sumBuf.canvas.width = VOTE_GRID;
+sumBuf.canvas.height = VOTE_GRID;
+let sumCache = { boost: null, k: -1, ink: "" };
+
 function drawVote(ctx, colors, R, bag, k) {
   if (k === 0) return;
   const ink = `${colors.event}|${colors.nonevent}`;
@@ -761,8 +956,9 @@ defineWidget({
 
   subtitle:
     "A decision tree splits the plane one axis-aligned cut at a time, choosing at each step the "
-    + "feature and the threshold that leave the two sides purest. A bag is many such trees, each "
-    + "fitted to a resample of the same data, and their votes pooled.",
+    + "feature and the threshold that leave the two sides purest. A bag fits many such trees to "
+    + "resamples of the same data and pools their votes. Gradient boosting instead fits one small "
+    + "tree at a time to what the model still gets wrong, and adds it in shrunk by a learning rate.",
 
   params: {
     /* Reading order is the instruction (3.1): which page, then what it is
@@ -773,6 +969,7 @@ defineWidget({
       options: [
         { value: "tree", label: "One tree", detail: "How a single tree chooses each split." },
         { value: "bag", label: "A bag of trees", detail: "The same samples resampled, one tree each, votes pooled." },
+        { value: "boost", label: "Boosting", detail: "Small trees in sequence, each fitted to what is left over." },
       ],
       default: "tree",
       /* Display, not data: the samples and both fits are unchanged by it, so
@@ -791,6 +988,17 @@ defineWidget({
       })),
       default: "0",
     },
+    /* The notebook's own knob (cell 36, "# shrinkage parameter"). Shown only
+       on the page it acts on: principle 3.5 wants every control to carry an
+       idea at rest, and on the other two pages this one carries none. It is a
+       DATA parameter — it changes what is fitted, not how it is drawn. */
+    rate: {
+      type: "choice",
+      label: "Learning rate",
+      options: RATES.map((r, i) => ({ value: String(i), label: r.label, detail: r.detail })),
+      default: "1",
+      when: { param: "page", equals: "boost" },
+    },
     speed: {
       type: "choice",
       label: "Pace",
@@ -804,12 +1012,14 @@ defineWidget({
     shown: { type: "int", label: "Shown", min: 0, max: BAG_B, default: 0, hidden: true },
   },
 
+  /* Only what is true on every page. The two score-curve rows were here and
+     were advertising, on the bagging and boosting pages, two colours that
+     appear on neither; the curves are now labelled beside themselves, which is
+     where a reader looks anyway. */
   legend: [
     { token: "nonevent", label: "Class y = −1", mark: "dot" },
     { token: "event", label: "Class y = +1", mark: "dot" },
-    { token: "highlight", label: "The cut being scored, and the one chosen", mark: "line" },
-    { token: "theory", label: "Score of every x₁ threshold", mark: "line" },
-    { token: "smoothed", label: "Score of every x₂ threshold", mark: "line" },
+    { token: "highlight", label: "The cut in question", mark: "line" },
   ],
 
   compute({ params, rng }) {
@@ -817,7 +1027,8 @@ defineWidget({
     const pts = makeSamples(n, rng);
     const { root, steps } = buildStepwise(pts);
     const bag = buildBag(pts, rng);
-    return { pts, root, steps, bag, leaves: leavesOf(root) };
+    const boost = buildBoost(pts, rateOf(params).value);
+    return { pts, root, steps, bag, boost, leaves: leavesOf(root) };
   },
 
   animation: {
@@ -827,13 +1038,15 @@ defineWidget({
        runtime (Play -> Pause -> Resume -> Replay) and a per-page map would
        collide with that. Both pages want "Play", which is the default, so it
        is omitted rather than restated. */
-    stepLabel: { param: "page", labels: { bag: "Draw one resample" }, default: "Find the next split" },
+    stepLabel: { param: "page", labels: { bag: "Draw one resample", boost: "Fit the next tree" },
+      default: "Find the next split" },
 
     init: ({ params, state, fromScratch }) => {
       const head = fromScratch ? 0 : Math.max(0, Number(params.shown) || 0);
       return {
         tree: { k: Math.min(head, state.steps.length), phase: "idle", t: 0 },
         bag: { k: Math.min(head, BAG_B), phase: "idle", t: 0 },
+        boost: { k: Math.min(head, BOOST_M), phase: "idle", t: 0 },
         done: false,
       };
     },
@@ -849,6 +1062,24 @@ defineWidget({
     advance(anim, { dt, params, state }) {
       const sp = speedOf(params);
       const running = anim.mode === "run";
+
+      if (params.page === "boost") {
+        /* Same two beats as the bag — what is left over is shown, then the
+           tree that answers it lands — so the ensemble pages share a grammar. */
+        const o = anim.boost;
+        if (o.k >= BOOST_M) { anim.done = true; return false; }
+        if (o.phase === "idle") { o.phase = sp.flip ? "fit" : "draw"; o.t = 0; }
+        o.t += dt;
+        const drawMs = sp.flip ? 0 : DRAW_MS / sp.mult;
+        const fitMs = sp.flip ? FLIP_MS * (2 / sp.mult) : FIT_MS / sp.mult;
+        if (o.phase === "draw" && o.t >= drawMs) { o.phase = "fit"; o.t = 0; }
+        else if (o.phase === "fit" && o.t >= fitMs) {
+          o.k += 1; o.phase = "idle"; o.t = 0;
+          anim.done = o.k >= BOOST_M;
+          return running && !anim.done;
+        }
+        return true;
+      }
 
       if (params.page === "bag") {
         const b = anim.bag;
@@ -886,6 +1117,7 @@ defineWidget({
     rebuild: (anim, { state }) => ({
       tree: { ...anim.tree, k: Math.min(anim.tree.k, state.steps.length) },
       bag: { ...anim.bag, k: Math.min(anim.bag.k, BAG_B) },
+      boost: { ...anim.boost, k: Math.min(anim.boost.k, BOOST_M) },
       done: anim.done,
     }),
   },
@@ -897,16 +1129,40 @@ defineWidget({
     }
     const L = layoutOf(w, params.page);
     if (params.page === "bag") drawBagPage(ctx, colors, L, params, state, anim);
+    else if (params.page === "boost") drawBoostPage(ctx, colors, L, params, state, anim);
     else drawTreePage(ctx, colors, L, params, state, anim);
   },
 
   readout: ({ params, state, anim }) => {
+    if (params.page === "boost") {
+      const o = anim?.boost ?? { k: 0, phase: "idle" };
+      const shown = o.k + (o.phase === "fit" ? 1 : 0);
+      const cur = state.boost.rounds[clamp(shown - 1, 0, BOOST_M - 1)];
+      const distinct = new Set(state.boost.keys.slice(0, shown)).size;
+      /* The same quantity the curve plots, so the tiles and the figure cannot
+         disagree — an earlier version reported mean |y − p| here while the
+         panel drew log loss, two different numbers both called "what is
+         left". */
+      const L = state.boost.losses;
+      const drop = shown > 0 ? L[shown - 1] - L[shown] : 0;
+      const first = L[0] - L[1];
+      return [
+        { label: "Trees added", value: `${shown} of ${BOOST_M}`,
+          note: `each one depth ${BOOST_DEPTH}, fitted to what is left` },
+        { label: "Loss", value: L[shown].toFixed(4),
+          note: shown ? `this tree removed ${drop.toFixed(4)}, the first removed ${first.toFixed(4)}`
+            : "the constant model, before any tree" },
+        { label: "Distinct tree shapes", value: shown ? String(distinct) : "—",
+          note: shown ? `of ${shown} fitted` : "none fitted yet" },
+      ];
+    }
+
     if (params.page === "bag") {
       const b = anim?.bag ?? { k: 0, phase: "idle" };
       const shown = b.k + (b.phase === "fit" ? 1 : 0);
       const drawn = state.bag.trees.slice(0, Math.max(1, shown));
       const distinct = new Set(state.bag.trees.slice(0, shown).map((t) => t.sig)).size;
-      const rootSig = `${FEAT[state.steps[0].win.feature]} ≤ ${state.steps[0].win.threshold}`;
+      const rootSig = `${FEAT[state.steps[0].win.feature]} ≤ ${fmtT(state.steps[0].win.threshold)}`;
       const differing = state.bag.trees.slice(0, shown)
         .filter((t) => t.root.feature !== state.steps[0].win.feature
           || t.root.threshold !== state.steps[0].win.threshold).length;
@@ -945,7 +1201,7 @@ defineWidget({
         note: `node Gini ${step.node.gini.toFixed(4)}` },
       { label: known ? "Lowest" : "Best so far",
         value: known ? best.score.toFixed(4) : "—",
-        note: known ? `${FEAT[best.feature]} ≤ ${best.threshold}` : "press to search" },
+        note: known ? `${FEAT[best.feature]} ≤ ${fmtT(best.threshold)}` : "press to search" },
     ];
   },
 });
@@ -1028,6 +1284,186 @@ function drawTreePage(ctx, colors, R, params, state, anim) {
     arriving: a.phase === "commit" ? easeOut(a.t / (COMMIT_MS / sp.mult)) : 1,
   });
 }
+
+/* The running sum as a signed fill. Same cached-blit machinery as the vote,
+   but the quantity is a MARGIN rather than a fraction, so it is normalised by
+   the largest |F| on the panel: without that, the fill washes out as alpha
+   accumulates and the picture stops changing for the wrong reason. */
+function drawSum(ctx, colors, R, boost, k) {
+  if (k === 0) return;
+  const ink = `${colors.event}|${colors.nonevent}`;
+  if (sumCache.boost !== boost || sumCache.k !== k || sumCache.ink !== ink) {
+    const { f, maxAbs } = boost.cum[k - 1];
+    const img = sumBuf.createImageData(VOTE_GRID, VOTE_GRID);
+    const A = colors._rgbNonevent, B = colors._rgbEvent;
+    for (let gy = 0; gy < VOTE_GRID; gy += 1) {
+      for (let gx = 0; gx < VOTE_GRID; gx += 1) {
+        const t = clamp(f[gy * VOTE_GRID + gx] / maxAbs, -1, 1);
+        const u = (t + 1) / 2;
+        const o = ((VOTE_GRID - 1 - gy) * VOTE_GRID + gx) * 4;
+        img.data[o] = A[0] + (B[0] - A[0]) * u;
+        img.data[o + 1] = A[1] + (B[1] - A[1]) * u;
+        img.data[o + 2] = A[2] + (B[2] - A[2]) * u;
+        img.data[o + 3] = 140;
+      }
+    }
+    sumBuf.putImageData(img, 0, 0);
+    sumCache = { boost, k, ink };
+  }
+  ctx.drawImage(sumBuf.canvas, R.x, R.y, R.w, R.h);
+}
+
+/* The shelf: every tree in the sequence, as silhouettes.
+
+   Silhouettes work here and did NOT under AdaBoost. A stump is always the same
+   three-node shape, so twenty of them were twenty identical marks; a depth-2
+   regression tree has four leaves and seven distinct shapes appear in twenty
+   rounds, so the shelf shows the sequence genuinely changing. Leaf colour is
+   the sign of the step that leaf adds. */
+/**
+ * Log loss against round, with each round's DROP as a bar from the curve.
+ *
+ * A LINEAR axis on purpose. On a log axis a converging tail keeps looking
+ * like progress, which is the opposite of what this panel has to say: the
+ * drops get small. The bars are what make that legible — at round 6 the drop
+ * is 0.0343 against the first round's 0.1968.
+ *
+ * The whole curve is drawn faint and the part reached solid, so the reader
+ * can see the shape the learning rate produces without being handed the
+ * finished answer before pressing anything.
+ */
+function drawLoss(ctx, colors, R, losses, k) {
+  const L = 42, B = 22, TOP = 10, RGT = 8;
+  const hi = losses[0] * 1.06 || 1;
+  const px = (i) => R.x + L + (i / (losses.length - 1)) * (R.w - L - RGT);
+  const py = (v) => R.y + R.h - B - (v / hi) * (R.h - B - TOP);
+
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = colors.ink3; ctx.font = `10px ${colors.font}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let g = 0; g <= 2; g += 1) {
+    const v = (hi * g) / 2, y = Math.round(py(v)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(R.x + L, y); ctx.lineTo(R.x + R.w - RGT, y); ctx.stroke();
+    ctx.fillText(v.toFixed(2), R.x + L - 4, py(v));
+  }
+
+  ctx.strokeStyle = colors.ink3; ctx.globalAlpha = 0.28; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  losses.forEach((v, i) => (i ? ctx.lineTo(px(i), py(v)) : ctx.moveTo(px(i), py(v))));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = colors.smoothed; ctx.globalAlpha = 0.35;
+  const bw = Math.max(1.5, (R.w - L - RGT) / losses.length - 2);
+  for (let i = 1; i <= k; i += 1) {
+    ctx.fillRect(px(i) - bw / 2, py(losses[i]), bw, py(losses[i - 1]) - py(losses[i]));
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = colors.smoothed; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= k; i += 1) (i ? ctx.lineTo(px(i), py(losses[i])) : ctx.moveTo(px(i), py(losses[i])));
+  ctx.stroke();
+
+  if (k > 0) {
+    ctx.fillStyle = colors.highlight;
+    ctx.beginPath(); ctx.arc(px(k), py(losses[k]), 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = colors.ink1; ctx.font = `600 10px ${colors.font}`;
+    const late = k > (losses.length - 1) * 0.6;
+    ctx.textAlign = late ? "right" : "left"; ctx.textBaseline = "bottom";
+    ctx.fillText(losses[k].toFixed(4), px(k) + (late ? -6 : 6), py(losses[k]) - 5);
+  }
+
+  ctx.fillStyle = colors.ink3; ctx.font = `10px ${colors.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let i = 0; i <= BOOST_M; i += 5) ctx.fillText(String(i), px(i), R.y + R.h - B + 4);
+  ctx.fillText("trees added", (R.x + L + R.x + R.w) / 2, R.y + R.h - 11);
+}
+
+function drawBoostShelf(ctx, colors, R, boost, k) {
+  const cols = BOOST_M;
+  const s = Math.min(R.w / cols, R.h);
+  const ox = R.x + (R.w - s * cols) / 2, oy = R.y + (R.h - s) / 2;
+  for (let i = 0; i < BOOST_M; i += 1) {
+    const cx = ox + i * s;
+    if (i < k) miniature(ctx, colors, boost.rounds[i].tree, cx, oy, s, i === k - 1);
+    else {
+      ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.strokeRect(cx + s * 0.18 + 0.5, oy + s * 0.18 + 0.5, s * 0.64, s * 0.64);
+      ctx.setLineDash([]);
+    }
+  }
+}
+
+function drawBoostPage(ctx, colors, R, params, state, anim) {
+  const o = anim?.boost ?? { k: 0, phase: "idle", t: 0 };
+  const sp = speedOf(params);
+  const drawing = o.phase === "draw", fitting = o.phase === "fit";
+  const inFlight = drawing || fitting;
+  const shown = o.k + (fitting ? 1 : 0);
+  const showTree = inFlight || o.k > 0;
+  const idx = clamp(inFlight ? o.k : o.k - 1, 0, BOOST_M - 1);
+  const r = state.boost.rounds[idx];
+  /* The residual panel looks FORWARD: during a round it shows what that round
+     was handed, and at rest what the next one will be handed. Otherwise the
+     panel that is meant to say "here is what is left" would be showing a
+     quantity the model has already dealt with. */
+  const resid = (inFlight ? r : state.boost.rounds[clamp(o.k, 0, BOOST_M - 1)]).resid;
+
+  const drawU = sp.flip ? 1 : (drawing ? easeOut(o.t / (DRAW_MS / sp.mult)) : (showTree ? 1 : 0));
+  const fitU = sp.flip ? 1 : (fitting ? easeOut(o.t / (FIT_MS / sp.mult)) : (showTree ? 1 : 0));
+
+  /* --- panel 1: the residual this round is fitted to --- */
+  panelTitle(ctx, colors, R.P1, "what is left to fix");
+  const S1 = planeFrame(ctx, colors, R.P1);
+  if (showTree) {
+    ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1.8; ctx.globalAlpha = fitU;
+    r.cuts.forEach((n) => cutLine(ctx, S1, n.rect, n.feature, n.threshold));
+    ctx.globalAlpha = 1;
+  }
+  {
+    /* Radius by |residual|, on a fixed scale from 0 to 0.5 rather than
+       normalised per round: the whole point is that the dots SHRINK as the
+       sequence converges (mean |y - p| runs 0.486 -> 0.248 -> 0.029 -> 0.001),
+       and a per-round rescale would hold them the same size forever. */
+    const base = state.pts.length > 30 ? 4 : state.pts.length > 16 ? 4.8 : 5.6;
+    state.pts.forEach((p, i) => {
+      const mag = clamp(Math.abs(resid[i]) / 0.5, 0, 1.35);
+      const rr = base * (0.28 + 0.85 * mag * drawU + 0.72 * (1 - drawU));
+      const x = S1.sx(p.x1), y = S1.sy(p.x2);
+      ctx.fillStyle = p.y > 0 ? colors.event : colors.nonevent;
+      ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = colors.surface; ctx.lineWidth = 1.2; ctx.stroke();
+    });
+  }
+
+  /* --- panel 2: the additive prediction --- */
+  panelTitle(ctx, colors, R.P2, "the sum so far");
+  const S2 = planeFrame(ctx, colors, R.P2);
+  drawSum(ctx, colors, R.P2, state.boost, shown);
+  drawSamples(ctx, colors, S2, state.pts, null);
+
+  /* --- panel 3: the tree fitted to it --- */
+  panelTitle(ctx, colors, R.P3, "the tree it fits to that");
+  if (showTree) {
+    /* Leaves print the STEP they add, not how many samples they hold. The
+       counts are a property of the split and barely move between rounds —
+       4, 1, 1, 6 at round 1 and still 4, 1, 1, 6 at round 6 — while all four
+       steps change. The leaf's step is also the tree's actual output. */
+    drawTreeDiagram(ctx, colors, R.P3, r.tree, {
+      arriving: fitU,
+      leafLabel: (n) => (n.value > 0 ? `+${n.value.toFixed(2)}` : n.value.toFixed(2)),
+    });
+  }
+
+  panelTitle(ctx, colors, R.loss, "the loss, as trees are added");
+  drawLoss(ctx, colors, R.loss, state.boost.losses, shown);
+
+  panelTitle(ctx, colors, R.shelf, "every tree in the sequence");
+  drawBoostShelf(ctx, colors, R.shelf, state.boost, shown);
+}
+
 
 function drawBagPage(ctx, colors, R, params, state, anim) {
   const b = anim?.bag ?? { k: 0, phase: "idle", t: 0 };
