@@ -2,9 +2,10 @@
 
 ## Where things are
 
-**Sixteen widgets, all sixteen SHIPPED.** `logistic-regression` and
-`support-vector-machine` were promoted out of `/lab/` onto the gallery; `/lab/`
-is now empty. Everything is live at <https://nusmedicine.github.io/statml/>.
+**Seventeen widgets: sixteen SHIPPED, one DRAFT.** Widget 17,
+`trees-and-ensembles`, was built this session and is a draft — it deploys to its
+final URL but stays off the gallery and wears the draft bar. Everything is live
+at <https://nusmedicine.github.io/statml/>.
 
 **123 fingerprint states, each carrying two hashes, and the suite is GREEN** — a
 full run on this machine reports *all 123 states identical*. Six are widget 16's,
@@ -45,11 +46,15 @@ DIFFER was a `px`-only flake — see the note below — not a regression.
 widget 15 still lacks the marginal-vs-conditional note Kenneth asked for (below),
 and **no widget from 11 onward has been judged projected**.
 
-**Next up is widget 17, tree-based models** — the section right after SVM in
-`04-3`. Nothing is built; what is known is directly below. **It is no longer
-blocked**: all 34 PHM5005 notebooks are back on this machine, and `04-3`'s tree
-numbers have been re-measured rather than read — which changed one of them. See
-*Reading the PHM5005 notebooks* for where they are and what they do not carry.
+**Widget 17 is built and unreviewed in one place**: Kenneth has not seen the
+finished boosting page, and flagged that its 20 rounds may be too many since
+nothing visible changes after round 6. It is not baselined and has no catalogue
+entry — see its own section below for the five things still owed.
+
+**Next up is a widget on IMBALANCED DATA** — under/oversampling and SMOTE,
+asked for at the end of this session. **It has an obstacle no other widget in
+the arc had: no notebook section hosts it.** Read that section before proposing
+anything.
 
 ```bash
 node scripts/serve.mjs 8010   # NOT `npm run dev` — :8000 is Docker's here
@@ -74,132 +79,199 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: widget 17 — tree-based models and ensembles
+## NEXT: plan a widget for IMBALANCED DATA — under/oversampling and SMOTE
 
-Arc A #4 in [docs/catalogue.md](docs/catalogue.md): **one widget for tree →
-forest → boosting**, hosting at PHM5005 `04-3`, sections "Tree-based Models" and
-"Ensembled Trees". Nothing is built. Nothing is designed. What follows is what
-is known, so none of it is measured a second time — and two of the three blocks
-below are measurements taken this session, not notes carried over.
+**Nothing is built and nothing is designed.** Kenneth asked for this at the end
+of the session that finished widget 17. Read the four blocks below before
+proposing anything: three are measurements taken while looking for it, and one
+is a genuine obstacle that has to be settled first.
 
-### The notebook's own numbers — RE-MEASURED, and one of them was an artifact
+### THE OBSTACLE: there is no host section for it yet
 
-The table this section used to quote was read off `04-3`'s printed cell outputs
-on the Mac. **It has now been re-run** (sklearn 1.9.0, the notebook's own
-preprocessing and parameters, verbatim) and it does not come back the same:
+Every widget in this repo reaches a student through a link in a markdown cell of
+a specific lesson. **All 34 PHM5005 notebooks were searched for `SMOTE`,
+`oversampl`, `undersampl`, `imblearn` and `resampl`: not one hit.** What the
+course actually teaches about imbalance is three things, and all three are one
+line of sklearn:
 
-| model | as printed in `04-3` | re-run here | agrees? |
-|---|---|---|---|
-| Decision tree | 0.70 / 0.58 / 11 of 19 | 0.70 / 0.63 / 12 of 19 | no |
-| Random forest | 0.72 / 0.42 / 8 of 19 | 0.73 / 0.58 / 11 of 19 | no |
-| Gradient boosting | 0.65 / 0.42 / 8 of 19 | 0.65 / 0.42 / 8 of 19 | **exactly** |
+| what | where |
+|---|---|
+| `class_weight='balanced'` | `04-2` cell 18 (logistic regression), `04-3` cells 33 and 36 (forest, HGB) |
+| `StratifiedKFold` | `04-4` cell 3; cell 7 sets it up "for our imbalanced dataset" |
+| `scoring="f1"` rather than accuracy | `04-4` cells 3 and 7 |
 
-Two different causes, and both matter:
+So this widget has **no lesson to link from**, unlike every other widget in the
+arc. That is a decision for Kenneth, not something to design around silently:
+either a notebook gains a section and the widget hosts there, or the widget
+teaches the three things the course *does* say and SMOTE is out of scope.
+**Ask before building.**
 
-- **The notebook's `DecisionTreeClassifier` carries no `random_state`.** Its
-  printed row is one unseeded draw. Over 200 seeds on the same split: accuracy
-  0.67–0.73, recall **0.47–0.74**, deaths caught **9–14**, median 12. The printed
-  0.58 / 11 sits below its own median.
-- **The forest moved despite `random_state=42`**, so that one is library drift,
-  not seeding. Boosting reproducing to the digit is what rules out the data or
-  the split having changed.
+### The obvious dataset is barely imbalanced
 
-**The section's claim is "Higher accuracy than single trees. Reduce
-overfitting."** Paired over 200 seeds — same seed to both, same test set:
+`heart_failure_alpha.csv`, which `04-2`, `04-3` and `04-4` all use: **299 rows,
+203 `N` and 96 `Y` — 32.1% minority, a ratio of 1:2.11.** Note `DEATH_EVENT` is
+a **string** column of `'N'`/`'Y'`, not 0/1; code that assumed integers divided
+by zero.
 
-| | tree | forest |
-|---|---|---|
-| accuracy | 0.709 ± 0.017 | **0.730 ± 0.023** |
-| recall on deaths | **0.621 ± 0.051** | 0.566 ± 0.052 |
-| deaths caught | **11.8 ± 1.0** | 10.8 ± 1.0 |
+1:2 is mild. Resampling is for 1:20 and 1:100, and a widget demonstrating SMOTE
+on 1:2 will show almost nothing — the same trap that killed the boosting stage
+twice in the last session. **Measure the effect size on this data before
+designing a page around it.** If it is small, either the widget needs a
+synthetic stage with a real imbalance, or the honest subject is `class_weight`
+and the decision threshold, not resampling.
 
-**The trade-off is real and it is directional**: the forest is more accurate in
-70% of seeds and catches fewer deaths in 64% of them. **But it is worth about
-ONE death, not three.** "Misses three more" was the printed draw's extreme, and
-building a widget around three would be building around noise.
+### `class_weight='balanced'` is the baseline any resampling must beat
 
-That is still a real finding and it is the first thing to decide about: is it
-this widget's subject, or does it belong to the evaluation arc (`04-2` owns the
-threshold and the confusion matrix)? **Do not let it be both.**
+The strongest prior available, and it was measured last session in another
+context. Hunting for a stage where boosting looks good, a thin diagonal corridor
+with a **19% minority class** produced the largest headline win of the whole
+search: **+5.44 balanced-accuracy points over the forest, 90% of 40 seeds,
+p = 2.9e-11.** It did not survive:
 
-### What a tree widget can reuse from widget 16, verbatim
+> a one-line `class_weight='balanced'` forest scores **0.8348** and beats the
+> boosted model by **6.48 points in 100% of 40 seeds**. On raw accuracy the gap
+> was only +0.9pp and it reversed at wider corridors. The reweighting was
+> compensating for imbalance under a metric that rewards it — not correcting a
+> boundary.
 
-The two are the same picture with a different boundary, which is an argument for
-building it on the same stage:
+**Any claim that SMOTE or resampling helps must be paired against
+`class_weight='balanced'`, not against a default model.** It is one line, it is
+already in the notebook, and it is what a student would reach for first.
 
-- **The three generators** — `Two blobs`, `Rings`, `Crescents` — with their fixed
-  square domain and seeded `rng`. A tree on the rings draws a **staircase**
-  around them where the RBF drew a circle, and putting those two side by side in
-  a lesson is free if the data is the same.
-- **The square isometric panel** and `heightFor`.
-- **`contour()` + `chain()`** — marching squares with interpolated crossings and
-  the segments linked into polylines. A tree's decision surface is piecewise
-  constant, so its contours come out as exact axis-aligned steps with no extra
-  work.
-- **The sweep harness**, `widgets/_lab/svm-sweep.html`. Point it at the new slug
-  and change the state list.
+### Tooling: `imblearn` is NOT installed
 
-### What is DIFFERENT, and worth deciding early
+`importlib.util.find_spec("imblearn")` is `None` in the scratch venv. It is
+needed only for **offline measurement** — a widget ships zero runtime
+dependencies (non-negotiable 7) and would implement SMOTE itself, which is
+short: pick a minority point, pick one of its *k* nearest minority neighbours,
+place a new point at a uniform random position along the segment between them.
+That is also a genuinely good animation, and the one thing here a static figure
+cannot show.
 
-- **A tree grows, so it probably WANTS Step and Play** — depth 1, then 2, then 3,
-  one split at a time — where widget 16 declined both. That is a real animation
-  with something to advance, and `check.mjs` will then demand a driven
-  fingerprint state.
-- **A forest is a pile of trees**, which is what `core/accumulator.js` is for and
-  what four widgets in the statistics arc already use. Averaging B trees one at a
-  time is the same motion as `bootstrap`'s resampling — 2.3, show a countable
-  thing while the count is small.
-- **Boosting is sequential and corrects the previous tree's mistakes**, which is
-  a genuinely different motion from bagging and may not fit one widget with the
-  other two. The catalogue says one widget for all three; that was decided before
-  any of it was drawn, and it is worth re-testing against a mock-up rather than
-  assumed.
+The scratch venv lost its own `python.exe` at some point but the packages
+survive, so measurement runs as the base interpreter plus a `PYTHONPATH`:
 
-### Measure before designing — it has paid four times now
+```bash
+PYTHONPATH="<scratch>/venv/Lib/site-packages" "C:/Users/Admin/AppData/Local/Python/pythoncore-3.14-64/python.exe" script.py
+```
 
-Every widget in this arc has had at least one candidate story die to a
-measurement, and each death saved a build:
+### What to measure first, in order
 
-- kNN's *forgetting to scale* — dead, ejection fraction is recorded in coarse
-  steps so creatinine survives as a tie-breaker
-- SVM's *always standardise* — dead, `gamma="scale"` already divides by the
-  variance
-- SVM's *a kernel unlocks the problem* — dead on all three course data sets, so
-  widget 16 generates its own
-- the *margin is a handful of points* — dead on heart failure, 179 of 299
+1. **Is there a host?** Ask Kenneth. Everything else is downstream of it.
+2. **Effect size on heart failure at 1:2.11** — SMOTE, random over, random
+   under, and `class_weight='balanced'`, paired over many seeds, on F1 and on
+   recall. If nothing separates them, say so and stop.
+3. **Where the methods actually differ**, if anywhere: sweep the imbalance ratio
+   from 1:2 to 1:50 on a synthetic 2-D stage and find where the curves cross.
+   That plot may itself be the widget.
+4. **What SMOTE draws that the others cannot.** Its synthetic points land on
+   segments between real minority points, so the picture is geometric where the
+   others are not. If the widget has one honest subject, this is the candidate.
 
-**For trees, the obvious candidates to measure first:**
+### What widget 17 already settles, so it is not re-litigated
 
-1. **Does a single tree's structure really change with the data? — MEASURED, and
-   it does.** The notebook says "small changes in data can change the tree
-   structure". Over 200 bootstrap resamples of the heart-failure training set the
-   ROOT split lands on:
-
-   | feature | share of resamples |
-   |---|---|
-   | `serum_creatinine` | **66%** |
-   | `ejection_fraction` | **33%** |
-   | `serum_sodium`, `age` | 0.5% each |
-
-   **The caveat fires, and the shape of it is teachable**: it is not a rare
-   accident, it is a two-thirds/one-third coin, and it is the same two features
-   kNN's story turned on. A widget can show the root flipping between exactly two
-   candidates rather than dissolving into noise.
-
-2. **Does the forest actually reduce variance visibly?** Not yet measured as a
-   *boundary* spread — what is measured is the outcome spread, and it is small:
-   tree ±1.0 deaths caught against forest ±1.0, so the forest is not visibly
-   steadier on this metric. The boundary picture may still show it. Measure on
-   widget 16's generators, not on heart failure, since that is the stage.
-3. **Where does boosting's advantage show up**, if anywhere, given it is the
-   worst of the three on this data?
-
-`04-3`'s data is body fat (regression) and heart failure (classification); the
-scratch reference for both, plus the sklearn comparison harness, is described
-under *Widget 16* in the catalogue.
+- Two-feature toy stages of 12/24/40 points work well for algorithm mechanics,
+  and 12 is small enough that the arithmetic can be checked by hand.
+- Sample **emphasis** already has two idioms here: bootstrap multiplicity (dot
+  size + ring, bagging page) and residual magnitude (dot size, boosting page).
+  Oversampling is a third instance of the same idea and should look like a
+  sibling of those, not a new invention.
+- `_lab/` is for **comparison pages that settle a decision**; the widget is built
+  with `defineWidget` from the start. Building the app in `_lab` cost a full
+  rebuild last session.
 
 ---
 
+## Widget 17 · `trees-and-ensembles` — DRAFT, three pages, not yet baselined
+
+Live at `/widget/trees-and-ensembles/`, `status: "draft"`, so it is off the
+gallery and owes no fingerprint states yet.
+
+**What it is.** Three pages behind a `page` segmented parameter — *One tree*,
+*A bag of trees*, *Boosting* — over a 12/24/40-point two-feature stage on
+`[0, 11]²`. Verified against scikit-learn 1.9.0 at every step.
+
+- **One tree** animates the SEARCH: a candidate line glides across the node
+  while the score curve traces behind it and a running minimum descends, then
+  the winner commits. The tree matches the lecture slide's shape and sklearn's
+  fit exactly: `x1≤5.5, x2≤5.5, x1≤9.0`, 4 leaves, depth 3, 0 training errors.
+- **A bag of trees** resamples with replacement, pools the votes, and shows
+  every tree in the bag as silhouettes on a shelf.
+- **Boosting** is GRADIENT boosting, because that is what `04-3` cell 36 fits
+  (`HistGradientBoostingClassifier`, `learning_rate=0.1`). It was built as
+  AdaBoost first and Kenneth caught it against his own slide.
+
+**What is left before it can ship:**
+
+1. **Kenneth has not reviewed the finished boosting page.** He flagged that 20
+   rounds may be too many, since nothing visible changes after round 6.
+2. **No fingerprint states.** Baseline only once the design is frozen. It
+   declares an `animation`, so `check` will demand at least one **driven** state
+   the moment `status` becomes `"shipped"`.
+3. **No catalogue entry.** Arc A row 4 says "one widget for tree → forest →
+   boosting" and still needs its spec row.
+4. **No markdown-cell link in `04-3`.**
+5. **Not judged projected** — the standing debt since widget 11.
+
+### The measurements it is built on, so none is taken twice
+
+| claim | number |
+|---|---|
+| bagging: resamples choosing a different first split | **79.2%** of 2000; 166 distinct structures, most common 6.5% |
+| bagging: pooled vote vs the single tree | **3.7%** of the plane at n=12, **0.00%** at n=24 |
+| bagging: accuracy, 300 seeds × 20000 test points | 0.8852 → **0.9082** (+2.30pp); the gain SHRINKS with n (+1.13 at 24, +0.71 at 40) |
+| boosting: depth 3 on 12 points | 8 leaves, fits in one shot, **0.00% repaint from round 2** — which is why depth is 2 |
+| boosting: does it win? | **No.** gb(20) is −0.66pp vs one tree and **−3.31pp vs the bag** at n=12, ahead in 4% of seeds |
+| boosting: the learning rate reshapes the descent | by round 20 the loss reaches 0.1246 / 0.0118 / 0.0000 at rates 0.1 / 0.3 / 1.0 |
+
+**The two ensemble pages contrast cleanly, and that is the payload:** more trees
+never hurt a bag; more rounds *do* hurt a boost.
+
+### Design decisions already settled from `_lab` comparison pages
+
+- **`_lab/tree-forest.html`** — F1/F2/F3, how to draw a forest. Unresolved, and
+  it was for the *rings* stage; widget 17 went a different way.
+- **`_lab/bag-trees.html`** — M1/M2/M3, showing the collection. **M3 won**: a
+  shelf under all three panels, 46px per tree against 38 and 26.
+- **`_lab/boost-loss.html`** — L1/L2/L3 and three leaf labellings. **L2 won**
+  (loss curve full width above the shelf, +114px of height) and **step labels
+  won** over `n = k`, which is identical at every round because the counts are a
+  property of the split.
+
+### Traps this widget hit, all still live for the next one
+
+- **`_lab` is for comparison pages, not for building the app.** Building it there
+  meant hand-rolling the rail, drive row, theme control and controls, and every
+  one drifted from core. The worst: DOM tabs meant the current page never
+  reached the URL, which defeats Copy link — the mechanism the repo exists for.
+- **`runLabel` takes a plain string only**; only `stepLabel` takes the
+  `{ param, labels, default }` map. The map form renders `[object Object]`.
+- **A "rest" phase is core's job, not the widget's.** `advance` returning `false`
+  stops and leaves `anim` in place. The contract is `anim.mode`: return false on
+  unit completion under Step, true under Play.
+- **`const`/`let` read by `draw()` must be declared ABOVE the `defineWidget`
+  call.** It paints during its own call, so anything below is in a temporal dead
+  zone and the first frame throws.
+- **Core's Reset returns EVERY control to its default**, not just the animation.
+  A sweep that clicks Reset between states silently tests only the default one.
+  This produced a "0 problems" result that was worthless.
+- **Measuring inside a `hidden` container returns 0**, and arithmetic on it fails
+  quietly rather than throwing — it sized a canvas at 954px in a 1206px slot, and
+  400px in another.
+- **`display: flex` on a class outranks `[hidden] { display: none }`.** A hidden
+  drive row stayed on screen while reporting `hidden === true`. Core guards this
+  at `tokens.css .w-split .w-drive[hidden]`.
+- **A threshold is a midpoint of values rounded to 0.1, and 118 such pairs print
+  in full** — `(0.1+0.2)/2` is `0.15000000000000002`. Round labels for display;
+  never round the model.
+- **Per-cell `fillRect` rasters freeze the renderer.** 110×110 rects per frame
+  did it. Cache an `ImageData` and blit once.
+- **The Chrome extension runs JS in an isolated world**, so patching
+  `CanvasRenderingContext2D.prototype.fillText` there never sees the page's
+  drawing and returns `total: 0` — which reads exactly like a clean pass. Use
+  **Brave for screenshots, the in-app Browser pane for instrumentation.**
+
+---
 ## Widget 16 · `support-vector-machine` — SHIPPED
 
 **Baselined and promoted.** Six states: four settled, and two driven with
