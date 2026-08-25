@@ -2,10 +2,36 @@
 
 ## Where things are
 
-**Eighteen widgets: sixteen SHIPPED, two DRAFT.** Widget 17,
-`trees-and-ensembles`, and widget 18, `balancing-data`, are both drafts — they
-deploy to their final URLs but stay off the gallery and wear the draft bar.
-Everything is live at <https://nusmedicine.github.io/statml/>.
+**Nineteen widgets: sixteen SHIPPED, three DRAFT.** Widget 17,
+`trees-and-ensembles`, widget 18, `balancing-data`, and widget 19,
+`pca`, are all drafts — they deploy to their final URLs
+but stay off the gallery and wear the draft bar. Everything is live at
+<https://nusmedicine.github.io/statml/>.
+
+**Widget 19 `pca` is the newest, and Kenneth HAS driven it** — six rounds of his
+own feedback are in it. It began as a four-tab widget over PCA, MDS, t-SNE and
+UMAP; his call on 2026-08-26 was **one algorithm, one widget** — *"we'll do each
+algorithm as a separate widget due to the complexity"* — so it is PCA alone, and
+MDS is next, as its own widget. See *NEXT* below.
+
+**`widgets/core/` CHANGED IN THREE FILES**, which is the one kind of change that
+reaches widgets you are not looking at:
+
+- **`tokens.css` gained `--c-cluster-a` … `-f`**, a ramp of six for an
+  unsupervised grouping, ordered blue, yellow, red, aqua, green, violet.
+  `env.js` exposes them as `colors.clusters`. `--c-group-a/b` mean *arms of a
+  comparison you assigned*, which a cluster is the opposite of.
+- **`widget.js` gained `drag`**, so a figure can resolve a MOVEMENT to a value
+  the way `regions` resolves a pixel to an identity. It names its parameters up
+  front and may name more than one, because they are applied together as a
+  single transaction — see its own comment block for why a region may not.
+
+**The suite has been run four times and reports 123/123 with every text hash
+identical.** The pixel half CANNOT be judged from an agent session: the browser
+pane runs at `devicePixelRatio` 1 and the baseline was recorded at the machine's
+scaled DPR, so most pixel hashes differ uniformly, on every widget, including
+ones nothing touched. **One run from the normal browser is owed before any of
+this is pushed.**
 
 **Widget 18 went through TWELVE rounds of review with Kenneth and is now what he
 asked for.** Widget 17 is still missing a look at its boosting page. Both are
@@ -100,11 +126,103 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: plan a widget for UNSUPERVISED LEARNING — PCA, MDS, t-SNE, UMAP
+## NEXT: build MDS as its own widget
 
-**Nothing is built and nothing is designed.** Kenneth asked for this at the end
-of the session that finished widget 18. The reconnaissance below was done then,
-so the next session starts from facts rather than from a search.
+**Widget 19 `pca` is done for now** — six rounds of Kenneth's own feedback, and
+he called it: *"ok commit, write handover and let's continue in new session to
+build MDS."*
+
+**Start here:** [docs/catalogue.md](docs/catalogue.md) § *NEXT · MDS, as its own
+widget*. It has the one sentence the widget makes, the beat that IS the widget,
+the closed-form checks to debug against, the two controls that carry ideas, and
+what can be lifted from widget 19 verbatim. **Then** § *Widget 19* above it, for
+the two traps that will bite the same way.
+
+**The three closed-form checks, because they are why MDS comes before t-SNE:**
+
+| stage | what must come out |
+|---|---|
+| n = 3 | stress exactly **0.000** — three points make one triangle, and a triangle is flat |
+| n = 4, regular tetrahedron | six equal distances of 3.27 come out as four at **2.79** and two at **3.94**; stress settles at **1.830** and will not go lower |
+| the seed | all 50 seeds give **1.8304**; the mirror splits 23 / 27 |
+
+Debug the shared machinery against those, not against a picture.
+
+---
+
+## Widget 19 · `pca` — BUILT, DRAFT, reviewed six times
+
+```bash
+node scripts/serve.mjs 8010     # then /widget/pca/
+```
+
+**The rail is three sliders — groups, samples per group, seed — and nothing
+else.** Drag the figure to turn the cloud freely. **Run PCA** draws PC1, PC2 and
+their plane. **Project onto the plane** lands the samples on it and turns the
+plane to face you over 1.8s, and that turn is the 2-D plot arriving. No Step, no
+Play, no lead.
+
+**NOTHING SPINS.** An earlier build turned PC1 into place by power iteration and
+swept PC2 through the perpendicular circle, defended on the ground that both are
+real algorithms. They are, and it was still wrong — sklearn computes an SVD,
+nothing rotates, and a reader watching a line hunt for a maximum learns a
+mechanism the method has not got. *"Don't do crazy spinning rotation that is
+nonsensical."* **Do not put it back.**
+
+**THE GROUP CENTRES LIE IN A PLANE, NOT ON A LINE.** One component separates the
+groups worse and worse as `groups` rises — 100% at two, 51% at six — while two
+stay at 100%. On a line PC1 alone already separates everything and PC2 adds
+nothing, so the third beat would have no reason behind it. **MDS needs the same
+care about where its stage puts its structure.**
+
+### Two things it does not have, both deliberate, both one decision away
+
+- **No failing case, and principle 2.6 wants one.** An earlier build had two,
+  measured, both `03-5`'s own blind spots: an outlier supplying 77% of PC1 and
+  squeezing the other eleven samples into 30% of the plot, and a groupless cloud
+  whose plane still keeps 81%. Dropped for simplicity, not because they stopped
+  being true. Numbers to rebuild either are in the catalogue.
+- **No one-versus-two comparison.** Two readout tiles read *"Right group, on PC1
+  alone 73% / On PC1 and PC2 100%"* and were the payoff for the groups slider.
+  Cut on *"just report PC1 % and PC2% at the end"*. With them gone the groups
+  slider changes the picture but no longer makes an argument. ~15 lines.
+
+### Three traps this widget hit, all still live
+
+1. **Only the FIRST gate animates.** `GATE_PARAM` is
+   `spec.find(f => f.type === "gate")` — one gate, the first one. With two data
+   gates the second silently JUMPS, because a data change runs
+   `stopAnim(); render()` and `init` paints the finished figure. **Make both
+   gates `display: true`** and ask for frames with `anim.easing`.
+2. **A rotation must land on the target figure's own framing**, not merely
+   face-on. Facing the plane's normal leaves the in-plane roll wherever it was,
+   so the panel beside it showed the same samples the other way up. Write the
+   end state down — the screen basis becomes PC1 across, PC2 up, at the other
+   panel's scale — and slerp the basis vectors toward it, re-orthonormalising so
+   the cloud rotates rather than shears.
+3. **A wholesale rewrite loses blocks silently.** It happened twice in one
+   session: `slerp` was deleted and then called, and the entire `drag` block
+   vanished during a comment cleanup while every existing assertion still
+   passed. **Edit these files; do not regenerate them** — and see the contract
+   check below.
+
+### Verify it without a browser
+
+Both are recorded under *Verifying changes*: the node driver (stub the one
+import, capture the config, pump `advance` with a fixed `dt`) and the **contract
+check**, which is the lesson from trap 3 — a driver that only exercises what
+exists cannot notice what stopped existing, so list the capabilities BY NAME:
+every top-level key, every parameter and its type, that the parameter list is
+exactly those and no more, and that `drag` is wired to both angles rather than
+merely present.
+
+---
+
+### The reconnaissance, as it was written
+
+Kenneth asked for this at the end of the session that finished widget 18. Some
+of what follows is now answered; it is left intact so the answers can be checked
+against what was assumed.
 
 ### The host exists and is unusually complete
 
@@ -2034,6 +2152,55 @@ notebook filename.
 facts. Never the reverse.** Screenshots here have produced several phantom bugs:
 the automation browser generates stray pointer input that moves sliders
 mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per 300 ms.
+
+### Driving the animation in node, with no browser at all
+
+**This is the way past "the browser pane runs no frames".** A widget's `main.js`
+imports exactly one thing, so stubbing that import captures the whole config
+object — and `compute`, `animation.init/advance`, `readout`, `summary` and
+`drag.value` are then all callable from node, with no DOM and no clock.
+
+```js
+src = src.replace(/^import \{ defineWidget \} from "\.\.\/core\/index\.js";$/m,
+  'const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c);');
+src += "\nexport { __cfg };\n";
+```
+
+Then supply an rng with `.next()`, call `compute`, and pump `advance` with a
+fixed `dt` until `anim.done`. **What it catches that nothing else here does:**
+that the animation reaches its last frame at all, that every stage is passed in
+order, that `shown=N` lands where it claims, and — cheapest of the lot — that no
+`readout` tile or `summary` string anywhere along the rail contains a `NaN` or
+an `undefined`. Twenty-three such assertions over widget 19 ran in under a
+second and needed no server.
+
+It does NOT see the drawing: `draw` wants a real `CanvasRenderingContext2D`. Use
+it for the contract and the numbers, the text sweep below for the strings, and
+the fingerprint for the pixels.
+
+**AND LIST THE CAPABILITIES BY NAME, or the driver will not notice a deletion.**
+This is the sharper half and it was learned twice in one session. A wholesale
+rewrite deleted the entire `drag` block during a comment cleanup; the `turn` and
+`tilt` parameters survived, the camera still read them, nothing wrote to them,
+and the cloud was frozen — while **every existing assertion still passed**,
+because all of them tested behaviour that was still there. The same rewrite
+habit had already deleted `slerp` and then called it.
+
+So a second driver asserts what the widget must HAVE rather than what it does:
+
+```js
+for (const key of ["slug","title","status","layout","height","params",
+                   "compute","draw","readout","summary","animation","drag"])
+  ck(`declares \`${key}\``, W[key] != null);
+const WANT = { groups:"choice", samples:"choice", seed:"int",
+               pca:"gate", projected:"gate", turn:"int", tilt:"int" };
+for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
+ck("no parameters beyond those",
+   Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
+```
+
+A driver that only exercises what exists cannot notice what stopped existing.
+**Edit these files; do not regenerate them.**
 
 ### The canvas text sweep
 
