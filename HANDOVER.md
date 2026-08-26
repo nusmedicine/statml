@@ -203,7 +203,7 @@ non-metric degeneracy and not the solver — see the widget section below for th
 three things tried. If it should not be reachable, the options are capping
 `groups` at 3 while the rank fit is selected, or a line of copy naming it.
 
-### OPEN: should the 2-D panel label its axes? The lesson does, the widget does not
+### SETTLED: the 2-D panel labels no axes. The lesson does, and that is fine
 
 Kenneth asked what the axes correspond to on the table. **Nothing**, and that is
 why the widget draws neither — an MDS arrangement is fixed only up to a turn and
@@ -216,7 +216,9 @@ the labels would have been says *only the distances mean anything*.
 first dimension is a property of the data. So a student who runs the lesson sees
 labelled axes and comes to this widget and sees none.
 
-Three ways out, none of them obviously right:
+**Kenneth: “ok don’t need to label”** — so option 1, which is what is built.
+The alternatives are kept because the question will come back the first time a
+student compares the widget with their own ggplot output:
 
 1. **Leave it.** The widget is about the table, and labelling axes that appear
    nowhere in the table invites exactly the question Kenneth just asked.
@@ -302,6 +304,59 @@ So the readout names it: under the rank fit the second tile becomes **Ranks
 held**, reading `15/15` at the default and `2/66` at four groups of three. **If
 Kenneth would rather it never appeared**, the options are capping `groups` at 3
 while the rank fit is selected, or a line of copy.
+
+### CHECKED AGAINST THE LIBRARY: the continuation is real, the iterating first half is not `cmdscale`
+
+Kenneth, on the *rank order from here* marker: *"does this mean the NMDS
+algorithm uses MDS first, then converts to ranks? is it your idea, or this is
+the actual algorithm? we don't want to invent things just for visualization."*
+The right question, and it was answered from the MASS documentation rather than
+from memory.
+
+**The continuation is real.** `isoMDS`'s signature is
+
+```
+isoMDS(d, y = cmdscale(d, k), k = 2, maxit = 50, trace = TRUE, tol = 1e-3, p = 2)
+```
+
+and its own words for `y` are *"An initial configuration. If none is supplied,
+`cmdscale` is used to provide the classical solution."* So
+`isoMDS(distMatrix, k = 2)` — exactly how `05-04` calls it — computes the
+classical solution first and iterates on ranks from there. The same page
+confirms the stress this widget prints: *"the square root of the ratio of the
+sum of squared differences between the input distances and those of the
+configuration to the sum of configuration distances squared"*, which is Kruskal
+stress-1, and *"an iterative algorithm is used, which will usually converge in
+around 10 iterations"*, which is the length of the widget's rank phase.
+
+**WHAT IS NOT `cmdscale` IS THE FIRST HALF.** `cmdscale` is classical
+Torgerson scaling — an eigendecomposition, closed form, no iterations at all.
+The widget's metric phase is SMACOF, which iterates. So a reader who maps the
+widget's first run onto the lesson's first line of code would come away thinking
+`cmdscale` converges over steps, and it does not.
+
+**Three things make that defensible, and they are worth having written down
+rather than rediscovered:**
+
+- **SMACOF is a real metric MDS, not a teaching fiction.** It is what
+  `sklearn.manifold.MDS(metric=True)` runs. The widget is faithful to a
+  standard implementation; it is just not faithful to R's.
+- **The lesson's own prose describes the iterative one.** `05-04` says of
+  classical MDS: *"The optimization process involves adjusting the positions of
+  points in the lower-dimensional space to minimize the stress function S. This
+  is typically done using iterative algorithms"*, and carries a figure called
+  `mds-stress.png` for it. The prose and the code disagree in the lesson itself;
+  the widget matches the prose.
+- **The widget never names `cmdscale`.** The control says *Distances* and
+  *match the distances themselves*. A detail line that did name it was cut for
+  exactly this reason (2.9) — the claim that survives is the one the widget can
+  back: the rank fit carries on from where the metric fit stopped.
+
+**Still open, and it is Kenneth's call.** If the difference matters, the fix is
+one line of copy on the metric option naming it as stress minimisation, so no
+reader maps it onto `cmdscale`. This is the same class of gap as widget 19's
+*nothing spins*, and that one was closed by removing the motion rather than by
+wording — the difference here is that the motion is real in `sklearn`.
 
 ### A NON-METRIC ARRANGEMENT HAS NO SIZE OF ITS OWN, so the widget fixes it
 

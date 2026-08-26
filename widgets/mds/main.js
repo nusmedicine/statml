@@ -545,7 +545,15 @@ defineWidget({
       label: "Fit",
       options: [
         { value: "metric", label: "Distances", detail: "match the distances themselves" },
-        { value: "rank", label: "Rank order", detail: "keep the ORDER of the distances and forget their sizes — it carries on from the fit above, the way isoMDS starts from cmdscale" },
+        /* THE DETAIL NO LONGER NAMES `cmdscale`, and the reason is that it was
+           an overclaim on the face of the figure (2.9). `isoMDS` really does
+           start from `cmdscale` — that is its documented default, `y =
+           cmdscale(d, k)` — but the fit ABOVE this control is SMACOF, not
+           `cmdscale`, so "the way isoMDS starts from cmdscale" invited the
+           reader to map the metric half onto a function it is not. The claim
+           that survives is the one the widget can back: this fit carries on
+           from where that one stopped. */
+        { value: "rank", label: "Rank order", detail: "keep the ORDER of the distances and forget their sizes — it carries on from where the fit above stopped" },
       ],
       default: "metric",
       display: true,
