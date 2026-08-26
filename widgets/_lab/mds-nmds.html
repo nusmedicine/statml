@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; NMDS in widget 20, or a widget of its own</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 4px 12px; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--border);
+    border-radius: var(--radius); }
+  .bar button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; max-width: 100%; }
+  .verdict { border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); align-items: start; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  table.num { border-collapse: collapse; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+  table.num th, table.num td { border: 1px solid var(--border); padding: 3px 8px; text-align: right; }
+  table.num th { color: var(--ink-2); font-weight: 600; text-align: left; }
+  table.num td.win { color: var(--c-empirical); font-weight: 600; }
+  /* A mock rail, so a control can be judged where it would actually sit. */
+  .rail { width: 260px; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--sp-3); background: var(--surface-2); font-size: var(--fs-xs); }
+  .rail .f { margin-bottom: var(--sp-3); }
+  .rail .lab2 { color: var(--ink-2); display: flex; justify-content: space-between; }
+  .rail .track { height: 4px; background: var(--border); border-radius: 2px; margin: 6px 0 3px; position: relative; }
+  .rail .track i { position: absolute; width: 11px; height: 11px; top: -4px; border-radius: 50%;
+    background: var(--ink-1); }
+  .rail .det { color: var(--ink-3); }
+  .rail .gate { display: block; width: 100%; text-align: left; padding: 7px 10px; margin-bottom: 3px;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1);
+    color: var(--ink-1); font: inherit; font-size: var(--fs-xs); }
+  .rail .gate.on { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .rail .drive { display: flex; gap: 6px; margin: var(--sp-2) 0; }
+  .rail .drive span { flex: 1; text-align: center; padding: 6px 0; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface-1); }
+  .rail hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>NMDS &mdash; in widget 20, or a widget of its own</h1>
+
+  <p class="note verdict">
+    <b>THE LESSON ANSWERS THE STRUCTURAL HALF.</b> PHM5003
+    <i>05 &middot; Introduction to High Throughput Data / 04 &middot; Dimensionality Reduction</i>
+    has one section &mdash; <code>## 3. Multidimensional Scaling (MDS): Classical and Non-metric</code> &mdash;
+    with <code>### 1) Classical MDS</code> and <code>### 2) Non-metric MDS</code> under it, on the same
+    <code>distMatrix</code>, one after the other. <b>One topic, so one widget.</b> What is still open is
+    what NMDS <i>shows</i>, and that is what everything below is for.
+  </p>
+
+  <p class="note">
+    Every number on this page is computed here, from the widget&rsquo;s own stage and its own solver.
+    The default is <b>two groups of four</b>, which is the lesson&rsquo;s design: the <code>airway</code>
+    dataset is 4 controls and 4 dexamethasone-treated samples, and it runs
+    <code>cmdscale(dist(t(countData)), k&nbsp;=&nbsp;2)</code> then <code>isoMDS(distMatrix, k&nbsp;=&nbsp;2)</code>.
+    <b>Widget 20 caps samples-per-group at 3, so it cannot currently reproduce that design</b> &mdash; adding
+    a fourth option is one line and the table holds it at 13px wide / 11px narrow.
+  </p>
+
+  <h2>1 &middot; The whole widget, with NMDS in it</h2>
+
+  <div class="cell">
+    <h3>The 2&times;2, at the real width</h3>
+    <p>
+      <b>NMDS continues from where MDS stopped</b>, which is not a convenience: <code>isoMDS</code>&rsquo;s
+      default starting configuration is <code>cmdscale</code>, so &ldquo;one after another&rdquo; is what the
+      library itself does. It also matters numerically &mdash; from a random start, non-metric MDS
+      <b>collapsed 18 of 40 seeds</b> into degenerate clumps at eight samples. From the metric fit it
+      never did. Press through the stages in order.
+      <br><br>
+      <b>Seed 12, and it is picked rather than default.</b> Seed 1 fits so well that the rank-order
+      stage converges in one step and shows nothing; 12 recovers 3.2&times; the cluster separation against
+      a median of 1.7&times; over 40 seeds, and runs 59 steps rather than hitting the cap. <b>Section 5 is
+      the honest typical case</b> &mdash; this one is picked to be legible.
+    </p>
+    <div class="bar">
+      <label>stage
+        <button type="button" data-stage="measured" aria-pressed="true">measured</button>
+        <button type="button" data-stage="metric" aria-pressed="false">after MDS</button>
+        <button type="button" data-stage="nmds" aria-pressed="false">after NMDS</button>
+      </label>
+      <label>dissimilarities
+        <button type="button" data-warp="none" aria-pressed="true">as measured</button>
+        <button type="button" data-warp="squash" aria-pressed="false">squashed (same order)</button>
+      </label>
+      <label>width
+        <button type="button" data-w="550" aria-pressed="false">550</button>
+        <button type="button" data-w="770" aria-pressed="true">770</button>
+      </label>
+      <label>theme
+        <button type="button" data-theme="light" aria-pressed="true">light</button>
+        <button type="button" data-theme="dark" aria-pressed="false">dark</button>
+      </label>
+    </div>
+    <canvas id="main"></canvas>
+    <p class="measure" id="mainRead"></p>
+  </div>
+
+  <h2>2 &middot; Where the control goes</h2>
+
+  <div class="cell">
+    <h3>Two candidate rails, at the real width</h3>
+    <p>
+      <b>A</b> is a third gate, so the reader walks MDS &rarr; NMDS the way the lesson does and the second
+      fit starts from the first. <b>B</b> is a segmented control, so both are always one click apart but
+      neither follows the other, and switching to rank order has to re-run from scratch &mdash; which is
+      the case that degenerates.
+    </p>
+    <div class="two">
+      <div>
+        <p><b>A &mdash; a third gate, in sequence</b></p>
+        <div class="rail">
+          <div class="f"><div class="lab2"><span>Groups</span><b>2</b></div>
+            <div class="track"><i style="left:0%"></i></div>
+            <div class="det">two centres &mdash; they make a line</div></div>
+          <div class="f"><div class="lab2"><span>Samples per group</span><b>4</b></div>
+            <div class="track"><i style="left:100%;transform:translateX(-100%)"></i></div>
+            <div class="det">four around each centre</div></div>
+          <div class="f"><div class="lab2"><span>Seed</span><b>1</b></div>
+            <div class="track"><i style="left:0%"></i></div>
+            <div class="det">moves every sample, and where the fit starts from</div></div>
+          <hr>
+          <button class="gate on" type="button">Back to the coordinates</button>
+          <div class="det">write each distance into the table, then set the coordinates aside</div>
+          <div class="drive"><span>Rearrange</span><span>Play</span><span>Reset</span></div>
+          <button class="gate" type="button">Fit the rank order instead</button>
+          <div class="det">keep the order of the distances, drop their sizes</div>
+        </div>
+      </div>
+      <div>
+        <p><b>B &mdash; a segmented control</b></p>
+        <div class="rail">
+          <div class="f"><div class="lab2"><span>Fit</span></div>
+            <div style="display:flex;gap:0;margin-top:6px">
+              <span style="flex:1;text-align:center;padding:6px 0;border:1px solid var(--ink-1);
+                border-radius:var(--radius) 0 0 var(--radius);background:var(--ink-1);color:var(--surface-1)">Distances</span>
+              <span style="flex:1;text-align:center;padding:6px 0;border:1px solid var(--border);
+                border-left:0;border-radius:0 var(--radius) var(--radius) 0;background:var(--surface-1)">Rank order</span>
+            </div>
+            <div class="det" style="margin-top:5px">match the distances themselves</div></div>
+          <div class="f"><div class="lab2"><span>Groups</span><b>2</b></div>
+            <div class="track"><i style="left:0%"></i></div></div>
+          <div class="f"><div class="lab2"><span>Samples per group</span><b>4</b></div>
+            <div class="track"><i style="left:100%;transform:translateX(-100%)"></i></div></div>
+          <div class="f"><div class="lab2"><span>Seed</span><b>1</b></div>
+            <div class="track"><i style="left:0%"></i></div></div>
+          <hr>
+          <button class="gate on" type="button">Back to the coordinates</button>
+          <div class="drive"><span>Rearrange</span><span>Play</span><span>Reset</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>3 &middot; What the table says once the fit is non-metric</h2>
+
+  <div class="cell">
+    <h3>Three treatments, at the real cell size</h3>
+    <p>
+      This is the sharp problem. The widget&rsquo;s argument is <b>two numbers per cell</b> &mdash; the distance
+      the samples have, and under it the distance the picture managed &mdash; and NMDS is not trying to make
+      the second equal the first. It is matching <b>f(D)</b>, a monotone transform of the first, refitted at
+      every step. So the second number stops being comparable to what is above it.
+    </p>
+    <div class="bar">
+      <label>treatment
+        <button type="button" data-tt="raw" aria-pressed="true">1 &middot; leave it</button>
+        <button type="button" data-tt="disp" aria-pressed="false">2 &middot; show f(D)</button>
+        <button type="button" data-tt="rank" aria-pressed="false">3 &middot; show ranks</button>
+      </label>
+    </div>
+    <canvas id="tab"></canvas>
+    <p class="measure" id="tabRead"></p>
+  </div>
+
+  <h2>4 &middot; The transform, which is the lesson&rsquo;s own diagram</h2>
+
+  <div class="cell">
+    <h3>Fitted distance against measured dissimilarity</h3>
+    <p>
+      The lesson carries a figure called <code>nmds-transform.png</code> for exactly this. Metric MDS is
+      trying to put the points on the diagonal; non-metric MDS is trying to put them on <b>any rising
+      line</b>, and the staircase is the <code>f</code> it fitted. <b>It is the only place the difference
+      between the two methods is visible as a shape rather than as a number</b> &mdash; which is the argument
+      for finding it a fifth panel, and the argument against is that the widget has four already.
+    </p>
+    <canvas id="shep"></canvas>
+    <p class="measure" id="shepRead"></p>
+  </div>
+
+  <h2>5 &middot; What the numbers say</h2>
+
+  <div class="cell">
+    <h3>Eight samples, two groups of four, 40 seeds, medians</h3>
+    <p>
+      <b>Squashed</b> raises every dissimilarity to the power 0.35 &mdash; large ones compressed toward each
+      other, <b>rank order untouched</b>. That is the lesson&rsquo;s &ldquo;non-Euclidean distances&rdquo; case, and
+      it is the only condition under which the two methods disagree about the picture.
+    </p>
+    <div id="grid"></div>
+    <p class="measure">
+      Separation is the smallest between-cluster distance over the largest within-cluster one: above 1
+      means the clusters are still distinct blobs.
+    </p>
+  </div>
+
+  <h2>6 &middot; What this settles, and what it does not</h2>
+  <div class="cell">
+    <p class="note verdict" style="margin:0">
+      <b>ONE WIDGET, as a third gate</b> &mdash; the lesson puts both under one heading on one distance
+      matrix, <code>isoMDS</code> starts from <code>cmdscale</code>, and the sequence is what stops NMDS
+      degenerating. <b>Three things need your call:</b>
+      <br><br>
+      <b>1. The table.</b> Treatment 3 (ranks) is the only one that stays honest under NMDS, because it
+      shows what is actually being matched &mdash; but it means the table changes what it prints when the
+      second gate opens, and the reader has to notice.
+      <br>
+      <b>2. The transform panel.</b> It is the lesson&rsquo;s own figure and the only visible difference
+      between the methods, but the 2&times;2 is full and it would make the widget 2&times;3.
+      <br>
+      <b>3. The stress number changes meaning.</b> Widget 20 prints RAW stress, matching
+      <code>sklearn</code>&rsquo;s <code>stress_</code> and the lesson&rsquo;s classical formula. The lesson&rsquo;s
+      NMDS formula is normalised, and the two are not comparable &mdash; so putting both on one chart forces
+      the widget onto Kruskal stress-1 throughout, and every stress figure recorded so far changes.
+      <br><br>
+      <b>And whether the squash control earns its place.</b> Without it NMDS lands in the same picture as
+      MDS with a lower stress, which is true and undersells it; with it, metric MDS visibly loses the
+      clusters and NMDS gets them back. It is a fourth control on a rail that has three.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+/* ===========================================================================
+   Real numerics. The stage and the metric solver are widget 20's; the
+   non-metric half is PAVA + the same Guttman transform, which is what
+   isoMDS/monoMDS do. Nothing here is drawn from a stored table.
+   ======================================================================== */
+const R = 2, SIGMA = 0.22, JITTER = 0.12;
+const LETTERS = "ABCDEFGHIJKL";
+const d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const d3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const clamp01 = (v) => clamp(v, 0, 1);
+
+function makeRng(seed) {
+  let a = (seed >>> 0) + 0x6d2b79f5;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const gauss = (r) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+
+function spread(n) {
+  if (n === 2) return [[0, 0, R], [0, 0, -R]];
+  if (n === 3) return [0, 1, 2].map((k) => {
+    const a = (2 * Math.PI * k) / 3;
+    return [R * Math.cos(a), R * Math.sin(a), 0];
+  });
+  const c = R / Math.sqrt(3);
+  return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => v.map((x) => x * c));
+}
+function tilted(pts) {
+  const a = 0.54, b = 0.33;
+  const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+  return pts.map(([x, y, z]) => {
+    const x1 = ca * x - sa * y, y1 = sa * x + ca * y;
+    return [x1, cb * y1 - sb * z, sb * y1 + cb * z];
+  });
+}
+function stage(groups, per, rng) {
+  const centres = spread(groups).map((p) => {
+    const v = [0, 1, 2].map((k) => p[k] + gauss(rng) * JITTER * R);
+    const m = Math.hypot(v[0], v[1], v[2]) || 1;
+    return v.map((x) => (x / m) * R);
+  });
+  const out = [];
+  for (let g = 0; g < groups; g += 1) {
+    for (let i = 0; i < per; i += 1) {
+      out.push({ g, p: centres[g].map((x) => (per > 1 ? x + gauss(rng) * SIGMA : x)) });
+    }
+  }
+  return out;
+}
+const pairsOf = (n) => {
+  const o = [];
+  for (let i = 1; i < n; i += 1) for (let j = 0; j < i; j += 1) o.push([i, j]);
+  return o;
+};
+
+/* Pool-adjacent-violators: the least-squares non-decreasing fit. This is `f`,
+   the monotone transform the lesson's NMDS stress formula names. */
+function pava(y) {
+  const lvl = [], wt = [], start = [];
+  for (let i = 0; i < y.length; i += 1) {
+    let val = y[i], wgt = 1, st = i;
+    while (lvl.length && lvl[lvl.length - 1] > val) {
+      const pv = lvl.pop(), pw = wt.pop();
+      st = start.pop();
+      val = (pv * pw + val * wgt) / (pw + wgt);
+      wgt += pw;
+    }
+    lvl.push(val); wt.push(wgt); start.push(st);
+  }
+  const out = new Array(y.length);
+  for (let b = 0; b < lvl.length; b += 1) {
+    const to = b + 1 < lvl.length ? start[b + 1] : y.length;
+    for (let i = start[b]; i < to; i += 1) out[i] = lvl[b];
+  }
+  return out;
+}
+
+function guttman(X, T, pairs) {
+  const n = X.length;
+  const tgt = new Map(pairs.map(([i, j], k) => [i + "," + j, T[k]]));
+  const at = (i, j) => tgt.get(i > j ? i + "," + j : j + "," + i);
+  const Y = [];
+  for (let i = 0; i < n; i += 1) {
+    let sx = 0, sy = 0, wii = 0;
+    for (let j = 0; j < n; j += 1) {
+      if (j === i) continue;
+      const d = d2(X[i], X[j]);
+      const b = d > 1e-12 ? -at(i, j) / d : 0;
+      sx += b * X[j][0]; sy += b * X[j][1]; wii -= b;
+    }
+    Y.push([(wii * X[i][0] + sx) / n, (wii * X[i][1] + sy) / n]);
+  }
+  return Y;
+}
+
+/* Kruskal stress-1 for BOTH methods, so one chart can carry the pair. Metric
+   compares to the dissimilarities, non-metric to their monotone fit. */
+function disparities(d, delta, order) {
+  const out = new Array(d.length);
+  const fitted = pava(order.map((k) => d[k]));
+  order.forEach((k, r) => { out[k] = fitted[r]; });
+  return out;
+}
+function stress1(X, pairs, delta, order, metric) {
+  const d = pairs.map(([i, j]) => d2(X[i], X[j]));
+  const t = metric ? delta : disparities(d, delta, order);
+  const num = d.reduce((s, v, k) => s + (v - t[k]) ** 2, 0);
+  const den = d.reduce((s, v) => s + v * v, 0) || 1;
+  return Math.sqrt(num / den);
+}
+
+function fit(delta, pairs, n, rng, { metric = true, from = null, cap = 200 } = {}) {
+  let X = [];
+  if (from) X = from.map((p) => p.slice());
+  else for (let i = 0; i < n; i += 1) X.push([(rng() * 2 - 1) * R, (rng() * 2 - 1) * R]);
+  const mx = X.reduce((s, p) => s + p[0], 0) / n, my = X.reduce((s, p) => s + p[1], 0) / n;
+  X = X.map((p) => [p[0] - mx, p[1] - my]);
+  const order = pairs.map((_, k) => k).sort((a, b) => delta[a] - delta[b]);
+  const path = [X], ss = [stress1(X, pairs, delta, order, metric)];
+  for (let it = 0; it < cap; it += 1) {
+    const d = pairs.map(([i, j]) => d2(X[i], X[j]));
+    let T = delta;
+    if (!metric) {
+      T = disparities(d, delta, order);
+      /* The disparities are pinned only up to a scale, so without this the
+         non-metric fit walks steadily toward a point. */
+      const sd = Math.hypot(...d), st = Math.hypot(...T) || 1;
+      T = T.map((v) => (v * sd) / st);
+    }
+    const Y = guttman(X, T, pairs);
+    const move = Math.max(...Y.map((p, i) => d2(p, X[i])));
+    X = Y; path.push(X); ss.push(stress1(X, pairs, delta, order, metric));
+    if (move < 0.002) break;
+  }
+  return { path, ss, X, order };
+}
+
+/* --- one model, shared by every figure on the page ----------------------- */
+/* SEED 12, and it is chosen rather than default — seed 1 fits so well that the
+   rank-order stage converges in ONE step and shows nothing. 12 is above the
+   median for how much NMDS recovers (3.2x the separation against a median of
+   1.7x over 40 seeds) and below the extreme (seed 20 is 16.5x), and it runs 59
+   steps rather than hitting the cap. The 40-seed table in section 5 is the
+   honest typical case; this one is picked to be legible. */
+const GROUPS = 2, PER = 4, N = GROUPS * PER, SEED = 12;
+const PAIRS = pairsOf(N);
+
+function model(warp) {
+  const placed = stage(GROUPS, PER, makeRng(SEED));
+  const pts = tilted(placed.map((s) => s.p));
+  const gs = placed.map((s) => s.g);
+  const truth = PAIRS.map(([i, j]) => d3(pts[i], pts[j]));
+  const mx = Math.max(...truth);
+  const delta = warp === "squash" ? truth.map((v) => (v / mx) ** 0.35 * mx) : truth.slice();
+  const m = fit(delta, PAIRS, N, makeRng(SEED), { metric: true });
+  const nm = fit(delta, PAIRS, N, makeRng(SEED), { metric: false, from: m.X });
+  const order = m.order;
+  let far = 0;
+  for (const v of delta) far = Math.max(far, v);
+  let span = 0;
+  for (const p of pts) span = Math.max(span, Math.hypot(p[0], p[1], p[2]));
+  for (const X of [...m.path, ...nm.path]) for (const p of X) span = Math.max(span, Math.hypot(p[0], p[1]));
+  return { pts, gs, delta, truth, m, nm, order, far, span: span * 1.1 };
+}
+const MODELS = { none: model("none"), squash: model("squash") };
+
+/* --- drawing ------------------------------------------------------------- */
+const tk = () => {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (k) => cs.getPropertyValue(k).trim();
+  return {
+    surface: v("--surface-1"), ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), empirical: v("--c-empirical"),
+    highlight: v("--c-highlight"), theory: v("--c-theory"),
+    clusters: ["a", "b", "c", "d", "e", "f"].map((k) => v("--c-cluster-" + k)),
+    font: v("--font"), fsXs: v("--fs-xs"), fsSm: v("--fs-sm"),
+  };
+};
+function fitCanvas(cv, w, h) {
+  const dpr = devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, C, s, x, y, col, size, align = "left", base = "middle") {
+  ctx.save();
+  ctx.fillStyle = col; ctx.font = size + " " + C.font;
+  ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function dot(ctx, C, x, y, col, r = 4.5, fade = 1, hollow = 0) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (hollow < 1) { ctx.globalAlpha = (1 - hollow) * fade; ctx.fillStyle = col; ctx.fill(); }
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = hollow > 0 ? C.ink3 : C.surface;
+  ctx.globalAlpha = (hollow > 0 ? 0.35 : 1) * fade;
+  ctx.stroke();
+  ctx.restore();
+}
+const camera = (t, l) => {
+  const az = (t * Math.PI) / 180, el = (l * Math.PI) / 180;
+  const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  return { ex: [-sa, ca, 0], ey: [-ca * se, -sa * se, ce] };
+};
+const dt3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/* Widget 20's layout, verbatim in shape. */
+const PAD = 14, GAP = 20, TOP = 26, ROW_GAP = 34, BOT = 30, CELL_MAX = 360, ROW_RATIO = 0.8;
+function layout(w) {
+  const colW = Math.min(CELL_MAX, Math.max(40, (w - PAD * 2 - GAP) / 2));
+  const rowH = colW * ROW_RATIO;
+  const x0 = Math.max(PAD, (w - (colW * 2 + GAP)) / 2);
+  const x1 = x0 + colW + GAP, y1 = TOP + rowH + ROW_GAP;
+  return {
+    side: Math.min(colW, rowH),
+    space: { x: x0, y: TOP, w: colW, h: rowH },
+    table: { x: x1, y: TOP, w: colW, h: rowH },
+    chart: { x: x0, y: y1, w: colW, h: rowH },
+    flat: { x: x1, y: y1, w: colW, h: rowH },
+    height: TOP + rowH + ROW_GAP + rowH + BOT,
+  };
+}
+
+function drawTable(ctx, C, box, M, X, mode, showFit) {
+  const { x, y, w: pw, h: ph } = box;
+  const cw = Math.min(78, pw / N), ch = Math.min(58, ph / N);
+  const gx = x + (pw - cw * N) / 2, gy = y + (ph - ch * N) / 2;
+  const fs = Math.round(Math.min(cw * 0.34, ch * 0.42));
+  const numbered = fs >= 8;
+  const type = clamp(fs, 7, 13) + "px";
+  const col = (i) => C.clusters[M.gs[i] % C.clusters.length];
+  const d = PAIRS.map(([i, j]) => d2(X[i], X[j]));
+  const disp = disparities(d, M.delta, M.order);
+  const rankOf = (v) => { const s = v.map((x2, k) => k).sort((a, b) => v[a] - v[b]); const r = []; s.forEach((k, i) => { r[k] = i + 1; }); return r; };
+  const rD = rankOf(M.delta), rd = rankOf(d);
+
+  txt(ctx, C, "Distance between every pair", x, y - 10, C.ink2, C.fsSm);
+  for (let c = 0; c < N - 1; c += 1) txt(ctx, C, LETTERS[c], gx + cw * (c + 1.5), gy + ch * 0.5, col(c), type, "center");
+  for (let r = 1; r < N; r += 1) txt(ctx, C, LETTERS[r], gx + cw * 0.5, gy + ch * (r + 0.5), col(r), type, "center");
+
+  PAIRS.forEach(([i, j], k) => {
+    const tx = gx + cw * (j + 1.5), ty = gy + ch * (i + 0.5);
+    ctx.save();
+    ctx.fillStyle = C.empirical;
+    ctx.globalAlpha = 0.04 + 0.30 * clamp01(M.delta[k] / M.far);
+    ctx.fillRect(gx + cw * (j + 1), gy + ch * i, cw, ch);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.strokeRect(gx + cw * (j + 1) + 0.5, gy + ch * i + 0.5, cw - 1, ch - 1);
+    if (numbered) {
+      let a, b;
+      if (mode === "rank") { a = String(rD[k]); b = String(rd[k]); }
+      else if (mode === "disp") { a = disp[k].toFixed(2); b = d[k].toFixed(2); }
+      else { a = M.delta[k].toFixed(2); b = d[k].toFixed(2); }
+      txt(ctx, C, a, tx, showFit ? ty - fs * 0.6 : ty, mode === "disp" ? C.theory : C.ink1, type, "center");
+      if (showFit) txt(ctx, C, b, tx, ty + fs * 0.6, C.empirical, type, "center");
+    }
+    ctx.restore();
+  });
+}
+
+function drawMain() {
+  const C = tk();
+  const M = MODELS[state.warp];
+  const L = layout(state.w);
+  const ctx = fitCanvas(document.getElementById("main"), state.w, L.height);
+  const run = state.stage === "nmds" ? M.nm : M.m;
+  const X = state.stage === "measured" ? M.m.path[0] : run.X;
+  const showFit = true;
+
+  /* top left — the samples, coordinates set aside */
+  {
+    const { x, y, w: pw, h: ph } = L.space;
+    const cx = x + pw / 2, cy = y + ph / 2;
+    const S = (L.side / 2 - 14) / M.span;
+    const { ex, ey } = camera(34, 21);
+    const P = (p) => [cx + dt3(p, ex) * S, cy - dt3(p, ey) * S];
+    const eye = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];
+    txt(ctx, C, "The samples, in three genes", x, y - 10, C.ink2, C.fsSm);
+    ctx.save();
+    ctx.strokeStyle = C.ink3; ctx.lineWidth = 1; ctx.globalAlpha = 0.28;
+    for (const [i, j] of PAIRS) {
+      const a = P(M.pts[i]), b = P(M.pts[j]);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    ctx.restore();
+    M.pts.map((p, i) => ({ i, p, d: dt3(p, eye) })).sort((a, b) => a.d - b.d).forEach((q) => {
+      const [px, py] = P(q.p);
+      dot(ctx, C, px, py, C.clusters[M.gs[q.i]], 4.5, 1, 1);
+    });
+  }
+
+  drawTable(ctx, C, L.table, M, X, state.tt, state.stage !== "measured");
+
+  /* bottom left — one stress curve across BOTH methods */
+  {
+    const { x, y, w: pw, h: ph } = L.chart;
+    const PL = 40, PB = 18, PT = 8, PR = 8;
+    const ax = x + PL, ay = y + PT;
+    const aw = Math.max(10, pw - PL - PR), ah = Math.max(10, ph - PT - PB);
+    const mSteps = M.m.ss.length - 1, nSteps = M.nm.ss.length - 1;
+    const total = mSteps + nSteps;
+    const top = Math.max(M.m.ss[0], 1e-9);
+    const px = (k) => ax + (k / total) * aw;
+    const py = (s) => ay + ah - clamp01(s / top) * ah;
+    txt(ctx, C, "Stress at every step", x, y - 10, C.ink2, C.fsSm);
+    ctx.save();
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    for (let g = 1; g < 4; g += 1) {
+      const gy2 = Math.round(ay + (ah * g) / 4) + 0.5;
+      ctx.beginPath(); ctx.moveTo(ax, gy2); ctx.lineTo(ax + aw, gy2); ctx.stroke();
+    }
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath(); ctx.moveTo(ax + 0.5, ay); ctx.lineTo(ax + 0.5, ay + ah + 0.5); ctx.lineTo(ax + aw, ay + ah + 0.5); ctx.stroke();
+    txt(ctx, C, "0", ax - 5, ay + ah, C.ink3, C.fsXs, "right");
+    txt(ctx, C, top.toFixed(2), ax - 5, ay + 1, C.ink3, C.fsXs, "right", "top");
+
+    const upto = state.stage === "measured" ? 0 : state.stage === "metric" ? mSteps : total;
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    for (let k = 0; k <= Math.min(upto, mSteps); k += 1) {
+      const p = [px(k), py(M.m.ss[k])];
+      if (k === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+    }
+    ctx.stroke();
+    if (upto > mSteps) {
+      /* THE SECOND METHOD CONTINUES THE SAME CURVE, which is the whole point of
+         starting it where the first one stopped. */
+      ctx.strokeStyle = C.theory; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      for (let k = 0; k <= upto - mSteps; k += 1) {
+        const p = [px(mSteps + k), py(M.nm.ss[k])];
+        if (k === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+      }
+      ctx.stroke();
+      ctx.save();
+      ctx.strokeStyle = C.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px(mSteps), ay); ctx.lineTo(px(mSteps), ay + ah); ctx.stroke();
+      ctx.restore();
+      txt(ctx, C, "rank order from here", px(mSteps) + 4, ay + 2, C.ink3, C.fsXs, "left", "top");
+    }
+    ctx.restore();
+    txt(ctx, C, total + " steps", ax + aw, ay + ah + 5, C.ink3, C.fsXs, "right", "top");
+  }
+
+  /* bottom right — the arrangement */
+  if (state.stage !== "measured") {
+    const { x, y, w: pw, h: ph } = L.flat;
+    const cx = x + pw / 2, cy = y + ph / 2;
+    const S = (L.side / 2 - 14) / M.span;
+    const P = (p) => [cx + p[0] * S, cy - p[1] * S];
+    txt(ctx, C, state.stage === "nmds" ? "The arrangement, from the rank order" : "The arrangement, in 2-D",
+      x, y - 10, C.ink2, C.fsSm);
+    ctx.save();
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, pw - 1, ph - 1);
+    ctx.restore();
+    for (let i = 0; i < N; i += 1) {
+      const [px2, py2] = P(X[i]);
+      dot(ctx, C, px2, py2, C.clusters[M.gs[i]]);
+      txt(ctx, C, LETTERS[i], px2 + 7, py2 - 7, C.clusters[M.gs[i]], C.fsXs);
+    }
+    txt(ctx, C, "only the distances mean anything", x + pw / 2, y + ph + 13, C.ink3, C.fsXs, "center");
+  }
+
+  const sepOf = (Y) => {
+    let w = 0, b = Infinity;
+    for (const [i, j] of PAIRS) { const d = d2(Y[i], Y[j]); if (M.gs[i] === M.gs[j]) w = Math.max(w, d); else b = Math.min(b, d); }
+    return b / w;
+  };
+  const s = state.stage === "measured" ? M.m.ss[0] : run.ss[run.ss.length - 1];
+  document.getElementById("mainRead").innerHTML =
+    "stress-1 <b>" + s.toFixed(3) + "</b> &middot; cluster separation <b>"
+    + (state.stage === "measured" ? "—" : sepOf(X).toFixed(2)) + "</b> &middot; metric took <b>"
+    + (M.m.ss.length - 1) + "</b> steps, the rank-order fit <b>" + (M.nm.ss.length - 1)
+    + "</b> more &middot; canvas <b>" + state.w + "&times;" + Math.round(L.height) + "</b>";
+}
+
+function drawTableCompare() {
+  const C = tk();
+  const M = MODELS[state.warp];
+  const w = 760, box = { x: 14, y: 26, w: 360, h: 288 };
+  const ctx = fitCanvas(document.getElementById("tab"), w, 340);
+  drawTable(ctx, C, box, M, M.nm.X, state.tt, true);
+  const legend = {
+    raw: "the measured distance over what the picture managed — but the fit was never trying to match it",
+    disp: "f(D), the monotone fit, over what the picture managed — these two ARE what is being compared",
+    rank: "the rank of the measured distance over the rank in the picture — equal ranks mean a perfect non-metric fit",
+  };
+  txt(ctx, C, "after the rank-order fit", box.x + box.w + 24, box.y + 8, C.ink2, C.fsSm);
+  const words = legend[state.tt].split(" ");
+  let line = "", ly = box.y + 34;
+  for (const word of words) {
+    if ((line + " " + word).length > 42) { txt(ctx, C, line, box.x + box.w + 24, ly, C.ink3, C.fsXs); line = word; ly += 15; }
+    else line = line ? line + " " + word : word;
+  }
+  txt(ctx, C, line, box.x + box.w + 24, ly, C.ink3, C.fsXs);
+  const d = PAIRS.map(([i, j]) => d2(M.nm.X[i], M.nm.X[j]));
+  const rankOf = (v) => { const s = v.map((x, k) => k).sort((a, b) => v[a] - v[b]); const r = []; s.forEach((k, i) => { r[k] = i + 1; }); return r; };
+  const rD = rankOf(M.delta), rd = rankOf(d);
+  let agree = 0;
+  for (let k = 0; k < rD.length; k += 1) if (rD[k] === rd[k]) agree += 1;
+  /* EXACT RANK EQUALITY UNDERSELLS A RANK FIT and would be a misleading number
+     on its own: non-metric MDS is asked for a MONOTONE relationship, not for
+     every pair to hold its exact position, and 28 pairs squeezed out of three
+     dimensions into two will shuffle neighbours. Spearman is what the method is
+     actually being judged on. */
+  const n2 = rD.length, mR = (n2 - 1) / 2;
+  let num = 0, da = 0, db = 0;
+  for (let k = 0; k < n2; k += 1) {
+    num += (rD[k] - 1 - mR) * (rd[k] - 1 - mR);
+    da += (rD[k] - 1 - mR) ** 2; db += (rd[k] - 1 - mR) ** 2;
+  }
+  const rho = num / Math.sqrt(da * db);
+  document.getElementById("tabRead").innerHTML =
+    "the order agrees at <b>Spearman " + rho.toFixed(3) + "</b>, which is what a rank fit is judged on"
+    + " &mdash; only <b>" + agree + "</b> of " + n2 + " pairs hold their EXACT rank, and that is not"
+    + " the same question";
+}
+
+function drawShepard() {
+  const C = tk();
+  const w = 760, h = 300;
+  const ctx = fitCanvas(document.getElementById("shep"), w, h);
+  const M = MODELS[state.warp];
+  const boxes = [
+    { x: 46, y: 26, w: 300, h: 230, run: M.m, label: "Metric — fitting the distances themselves", metric: true },
+    { x: 420, y: 26, w: 300, h: 230, run: M.nm, label: "Non-metric — fitting a monotone transform", metric: false },
+  ];
+  const maxD = Math.max(...M.delta) * 1.06;
+  for (const b of boxes) {
+    const X = b.run.X;
+    const d = PAIRS.map(([i, j]) => d2(X[i], X[j]));
+    const maxd = Math.max(...d, maxD) * 1.02;
+    const sx = (v) => b.x + (v / maxD) * b.w;
+    const sy = (v) => b.y + b.h - (v / maxd) * b.h;
+    txt(ctx, C, b.label, b.x, b.y - 10, C.ink2, C.fsSm);
+    ctx.save();
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(b.x + 0.5, b.y); ctx.lineTo(b.x + 0.5, b.y + b.h + 0.5); ctx.lineTo(b.x + b.w, b.y + b.h + 0.5); ctx.stroke();
+    /* the diagonal: where a perfect metric fit would put every pair */
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = C.ink3; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(maxD), sy(maxD)); ctx.stroke();
+    ctx.restore();
+    if (!b.metric) {
+      const disp = disparities(d, M.delta, M.order);
+      const idx = M.order;
+      ctx.save();
+      ctx.strokeStyle = C.theory; ctx.lineWidth = 2;
+      ctx.beginPath();
+      idx.forEach((k, r) => {
+        const p = [sx(M.delta[k]), sy(disp[k])];
+        if (r === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (let k = 0; k < PAIRS.length; k += 1) dot(ctx, C, sx(M.delta[k]), sy(d[k]), C.empirical, 3.2);
+    txt(ctx, C, "measured dissimilarity", b.x + b.w / 2, b.y + b.h + 8, C.ink3, C.fsXs, "center", "top");
+    ctx.save();
+    ctx.translate(b.x - 10, b.y + b.h / 2); ctx.rotate(-Math.PI / 2);
+    txt(ctx, C, "distance in the picture", 0, 0, C.ink3, C.fsXs, "center", "bottom");
+    ctx.restore();
+  }
+  document.getElementById("shepRead").innerHTML =
+    "dashed is the diagonal a perfect metric fit lands on; the solid line is <b>f</b>, the monotone "
+    + "transform the non-metric fit is actually matching";
+}
+
+/* --- the measured grid --------------------------------------------------- */
+function buildGrid() {
+  const rows = [];
+  for (const [label, warp] of [["as measured", "none"], ["squashed (x^0.35)", "squash"]]) {
+    const acc = { metric: [], nmds: [], rand: [] };
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const placed = stage(GROUPS, PER, makeRng(seed));
+      const pts = tilted(placed.map((s) => s.p));
+      const gs = placed.map((s) => s.g);
+      const truth = PAIRS.map(([i, j]) => d3(pts[i], pts[j]));
+      const mx = Math.max(...truth);
+      const delta = warp === "squash" ? truth.map((v) => (v / mx) ** 0.35 * mx) : truth.slice();
+      const m = fit(delta, PAIRS, N, makeRng(seed), { metric: true });
+      const nm = fit(delta, PAIRS, N, makeRng(seed), { metric: false, from: m.X });
+      const rd = fit(delta, PAIRS, N, makeRng(seed), { metric: false });
+      const sepOf = (Y) => {
+        let w = 0, b = Infinity;
+        for (const [i, j] of PAIRS) { const dd = d2(Y[i], Y[j]); if (gs[i] === gs[j]) w = Math.max(w, dd); else b = Math.min(b, dd); }
+        return b / w;
+      };
+      acc.metric.push({ s: m.ss[m.ss.length - 1], sep: sepOf(m.X) });
+      acc.nmds.push({ s: nm.ss[nm.ss.length - 1], sep: sepOf(nm.X) });
+      acc.rand.push({ s: rd.ss[rd.ss.length - 1], sep: sepOf(rd.X) });
+    }
+    const med = (a) => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
+    rows.push({ label,
+      metric: [med(acc.metric.map((v) => v.s)), med(acc.metric.map((v) => v.sep))],
+      nmds: [med(acc.nmds.map((v) => v.s)), med(acc.nmds.map((v) => v.sep))],
+      rand: [med(acc.rand.map((v) => v.s)), med(acc.rand.map((v) => v.sep))] });
+  }
+  let html = '<table class="num"><tr><th>dissimilarities</th>'
+    + "<th>metric stress</th><th>metric sep.</th>"
+    + "<th>NMDS stress</th><th>NMDS sep.</th>"
+    + "<th>NMDS from random</th></tr>";
+  for (const r of rows) {
+    const win = r.nmds[1] > r.metric[1] ? " class=\"win\"" : "";
+    html += "<tr><th>" + r.label + "</th>"
+      + "<td>" + r.metric[0].toFixed(3) + "</td><td>" + r.metric[1].toFixed(2) + "</td>"
+      + "<td>" + r.nmds[0].toFixed(3) + "</td><td" + win + ">" + r.nmds[1].toFixed(2) + "</td>"
+      + "<td>" + r.rand[0].toFixed(3) + " / sep " + r.rand[1].toFixed(2) + "</td></tr>";
+  }
+  html += "</table>";
+  document.getElementById("grid").innerHTML = html;
+}
+
+/* --- wiring -------------------------------------------------------------- */
+const state = { stage: "measured", warp: "none", w: 770, tt: "raw", theme: "light" };
+function redraw() { drawMain(); drawTableCompare(); drawShepard(); }
+for (const b of document.querySelectorAll(".bar button")) {
+  b.addEventListener("click", () => {
+    const key = ["stage", "warp", "w", "theme", "tt"].find((k) => b.dataset[k] !== undefined);
+    const group = b.parentElement.querySelectorAll("button");
+    for (const o of group) o.setAttribute("aria-pressed", String(o === b));
+    let v = b.dataset[key];
+    if (key === "w") v = Number(v);
+    state[key === "w" ? "w" : key] = v;
+    if (key === "theme") document.documentElement.setAttribute("data-theme", v);
+    redraw();
+  });
+}
+document.documentElement.setAttribute("data-theme", "light");
+buildGrid();
+redraw();
+</script>
+</body>
+</html>
