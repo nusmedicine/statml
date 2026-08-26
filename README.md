@@ -4,10 +4,11 @@ Interactive widgets for teaching statistics and machine learning, built for two
 NUS courses. Every widget is one HTML page and one ES module, with all of its
 state in the URL.
 
-**Twenty widgets: sixteen shipped, four in draft.** The PHM5003 statistics arc
-is complete at thirteen shipped; PHM5005 has three shipped and four in draft —
-`trees-and-ensembles`, `balancing-data`, `pca` and `mds`, which deploy to their
-final URLs but stay off the gallery and wear the draft bar. See
+**Twenty-one widgets, all shipped and all on the gallery.** The PHM5003
+statistics arc is complete at thirteen; PHM5005 has eight, ending in the
+dimensionality-reduction run — `pca`, `mds` and `t-sne`, with UMAP planned
+next. `/lab/` is where a draft lives while its design moves, and it is empty
+at the moment. See
 [docs/prd.md](docs/prd.md) for what this is and what it will not do,
 [docs/catalogue.md](docs/catalogue.md) for what is planned and why,
 [docs/design-principles.md](docs/design-principles.md) for the rules, and

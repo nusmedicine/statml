@@ -3,23 +3,6 @@
 Which concepts earn a widget, for which course, and on what evidence.
 Companion to [design-principles.md](design-principles.md).
 
-## How to read this file
-
-**This is the RECORD, and it is long on purpose.** HANDOVER is current state and
-the next task; this is where a decision and the measurement behind it live, and
-it keeps sections marked `SUPERSEDED` rather than deleting them so a later
-answer can be checked against what was assumed.
-
-| looking for | go to |
-|---|---|
-| what to build next | § *NEXT · UMAP*, near the end |
-| how a widget got its shape | § *Widget N*, in order |
-| the four-method reconnaissance | § *Widget 19*, under the PCA sections |
-| the arcs, and what is deliberately not a widget | the arc sections below |
-
-A full copy as it stood on 2026-08-26 is in
-[archive/](archive/), taken when HANDOVER was cut from 152 KB to 46.
-
 ## Where this lives, and why not in the manifest
 
 Two files, deliberately:
@@ -2498,123 +2481,6 @@ Two things the build settled on the way:
   grouped by canvas — grouping by y alone pairs each string with its twin in the
   cell next door.
 
-## Widget 14 · `linear-regularization` — SHIPPED
-
-**Moved here from HANDOVER on 2026-08-26**, which was the only place it lived —
-the catalogue jumped from widget 12 to widget 15. HANDOVER is current state and
-the next task; this is the record, so this is where it belongs.
-
-### What the core contract gained, at widgets 14 and 15
-
-**Widget 15 added three CSS roles and nothing else** — `.w-link-eq`,
-`.w-link-row` and `.w-links`, for the card above its figure. No new parameter
-type, no new `widget.js` hook. The full suite was run once afterwards and all 113
-pre-existing states matched, which is the only thing that run was for.
-
-The eight below are widget 14's, each its own commit, each verified with a full
-105-state run.
-
-| what | where | why |
-|---|---|---|
-| `type: "readback"` | `params.js`, `controls.js`, `tokens.css` | a case table in the rail naming which of a few labelled outcomes the controls above it produce. A non-parameter spec entry, exactly like `section`: carries no value, never reaches the URL |
-| **`type: "matrix"`** | `params.js`, `controls.js`, `tokens.css` | a labelled grid of shaded cells, one option per cell, for a parameter that is a **pair**. Declares `rows`, `cols` and a `token`; each option carries `row`, `col` and `shade`. Arrow keys move the selection from one focus stop, which is what lets it replace a 156-option dropdown rather than sit beside one |
-| **a height may be a function of the WIDTH** | `canvas.js`, `widget.js` | `resize(heightOf)` resolves it, because the width is knowable before anything is painted and the height is not. For a panel that has to stay **square** — widget 14's plane is only allowed to be square, so wider costs taller |
-| `regions` | `widget.js`, `canvas.js` | clickable targets on the canvas, resolved to a parameter. **Declared by no widget now** — kept for SVM's support vectors and the tree widget's nodes, which are figure-native |
-| `pointAt` / `hitTest` | `canvas.js` | pointer event → drawing coordinates; the region under a point |
-| the exported `setParam` syncs | `widget.js` | it is the door that is NOT a control, so it must tell the rail |
-| a checkbox's `detail` renders | `controls.js` | 3.4f, third time |
-| `<optgroup>` runs in a `select` | `controls.js` | the 156-option keyboard path, before the matrix replaced it |
-
-Four of these have a subtlety worth not rediscovering:
-
-**A `matrix` cell's shade is an opacity on a CHILD element.** Fading the cell
-fades the selected cell's ring with it — brightest exactly where it is least
-needed.
-
-**A `matrix` arrow step that lands on a non-option keeps going; one that runs off
-the edge does not wrap.** So the ends of the grid are findable by feel, and the
-diagonal — a measurement against itself is not a pair — is skipped rather than
-stopping you.
-
-
-**`readback` takes a `live` FUNCTION where `when` must stay declarative.** `when`
-is declarative so core can avoid rebuilding the control block on every change —
-rebuilding mid-drag drops the slider you are holding. A readback rebuilds
-nothing; it swaps two class names. So a predicate is safe there and only there.
-
-**`regions` allows exactly ONE parameter per region, checked at load.** Two would
-paint an intermediate state nobody asked for, write the URL twice, and — the
-reason that matters — make the click a *different transaction* from the one a
-fingerprint state performs, so the harness would be verifying a sequence the
-reader never takes. A pair of variables is one parameter, not two.
-
----
-
-### The widget itself
-
-Hosts at PHM5005 `04-3 Tour of Algorithms`, section 1. Its four-row table —
-linear / ridge / lasso / elastic net against α₁ and α₂ — is read as four
-algorithms. They are four settings of one objective, which the notebook prints
-two lines above that table.
-
-Two dials on a shared ladder, a readback in the rail naming which of the four you
-are in, a labelled 13×13 correlation matrix in the rail as the pair selector, the
-fitted equation as MathML in a card above the figure, thirteen coefficient bars
-across the full width, a conditional-slice coefficient plane, and a
-predicted-against-measured panel. **Canvas height is a function of the width**
-(`ROW_TOP + panelSide(w) + ROW_BOTTOM` — 423px at the narrow frame, 541 at the
-wide) because the two panels have to stay square. No animation, no seed, no
-`shown`.
-
-What remains is the fingerprint question at the top of this file, then the
-shipping steps under *Then*.
-
-### The design decisions, so they are not re-argued
-
-- **Layout D2**, chosen from a four-way mock-up: equation on top, bars full
-  width, then the plane and the predictions as two squares of equal standing.
-  **The squares fill the row** (P3 of four in `_lab/linreg-panel-width.html`) and
-  the canvas is however tall that makes it — they are square because the
-  diamond has to look like a diamond, so wider costs taller. The 228px cap they
-  used to carry left 206px of the row empty at the wide frame.
-- **The matrix is in the RAIL, as core's `matrix` control**, chosen as C4a from
-  two rounds of `_lab/linreg-matrix-rail.html`. It replaces a 156-option
-  dropdown rather than sitting beside one: the dropdown's 66px of rail is the
-  difference between a grid smaller than the canvas's and one half again bigger.
-  **Both axes named in full**, the columns turned ninety degrees — at 45° the
-  names cleared each other by 2.3px against an 11px type size, at 90° by 7.8px.
-
-  It was on the CANVAS first, placement M1 of four, unlabelled because thirteen
-  row names plus thirteen rotated column names cost more room than a 150px grid.
-  What moved it was a measurement nobody had taken: the rail is 444px against a
-  654px stage, so it had 210px of slack, and it is 300px wide against the 150px
-  the canvas could spare. Cells went 11.5px → 17.8px *with* the names, and the
-  bars got 174px of width back.
-- **All 156 ordered pairs, not 78.** `(i, j)` and `(j, i)` are the same two
-  measurements with the axes swapped, and which is horizontal is a real
-  difference on screen. The four-pair slider it replaced reached elongations
-  1.09–4.77:1; the matrix reaches 1.01:1 (Age against Weight, r = 0.013 —
-  contours so nearly circular that the diamond and the circle become the same
-  shape, which is the case where the L1/L2 distinction stops mattering) and
-  5.73:1 (Weight against Hip). Neither end was reachable before.
-- **The readback sits in the rail, not on the figure.** It reports the two dials
-  directly above it, and 2.7 puts a reading next to what produced it. On the
-  canvas it also painted over the Forearm and Wrist bars and only looked clear
-  because those two coefficients happen to be small.
-- **The plane is a CONDITIONAL SLICE** of the full thirteen-feature fit: the
-  other eleven held where they were fitted, the pair free. An earlier build
-  fitted a separate two-feature model and the panels then disagreed about
-  Abdomen — 8.80 against 10.27 — because those are different models, not
-  different views. The slice is exact, not approximate: a coordinate-descent
-  fixed point IS the statement that the solution is already optimal in any subset
-  of coordinates given the rest. Profiling the other eleven out instead is
-  wrong — at a lasso solution their gradients are not zero, they equal the
-  subgradient, so a profiled contour is tangent to nothing.
-
----
-
----
-
 ## Widget 15 · `logistic-regression` — SHIPPED
 
 ### REDESIGNED AFTER REVIEW — this supersedes the staging notes below
@@ -3414,7 +3280,7 @@ failure data:
   nearest neighbour's distance goes from 0.038 of the mean distance to 0.394.
   "Nearest" stops meaning near, and it is measurable on screen
 
-## Widget 18 · `balancing-data` — SHIPPED, twelve rounds of review
+## Widget 18 · `balancing-data` — BUILT, DRAFT, twelve rounds of review
 
 **It belongs to neither arc, and that is the point.** Arc A is *what a model is*
 and arc B is *how well it did*; this one hosts at `03-4 ML - Data Preprocessing`,
@@ -4249,8 +4115,8 @@ complexity."*
 |---|---|---|---|
 | 19 | `pca` | PCA | **built — draft** |
 | 20 | `mds` | MDS, classical **and non-metric** | **built — draft**, five review rounds |
-| 21 | `t-sne` | t-SNE | **built — shipped**, one long session on 2026-08-26 |
-| — | — | UMAP | **planned next** — see § NEXT · UMAP below |
+| — | — | t-SNE | **planned and measured, not built** — every question settled, see § NEXT below |
+| — | — | UMAP | planned, storyboarded |
 | — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
 
 **What the count was, so it is not re-argued.** Four tabs meant roughly 25
@@ -4269,7 +4135,7 @@ replays. § NEXT carries the measurements.**
 
 ---
 
-## Widget 19 · `pca` — SHIPPED
+## Widget 19 · `pca` — BUILT, DRAFT
 
 **It belongs to neither arc**, like widget 18. Arc A is *what a model is* and arc
 B is *how well it did*; this one hosts at `03-5 - ML - Unsupervised Learning`,
@@ -4627,7 +4493,7 @@ browser before this lands.
   and should be struck from there, or narrowed, once the four tabs land.
 ---
 
-## Widget 20 · `mds` — SHIPPED
+## Widget 20 · `mds` — BUILT, DRAFT
 
 **FOUR ROUNDS OF REVIEW IN, and the fourth added a second method.** Built against the storyboard below, which is kept
 intact underneath so the answers can be checked against what was assumed; then
@@ -5523,125 +5389,13 @@ start above all), so a claim about *what the lesson's own code does* should say
 
 ---
 
-## NEXT · UMAP — widget 22, to be planned
+## THEN · UMAP
 
-**t-SNE is built and shipped, so UMAP is next, and as a planning session
-first.** Read § *NEXT · t-SNE* above before anything else: it is the template.
-Three questions, each closed with a measurement rather than an argument, and the
-traps recorded underneath. This section is what that session turns into the same
-thing.
-
-### It is its own widget, and the notebook already says so
-
-`## 5. Uniform Manifold Approximation and Projection`, cells 46–53 of
-`05 / 04 — Dimensionality Reduction`. Its own top-level heading, exactly as
-t-SNE has `## 4` — so by the rule that settled widget 21, **UMAP is widget 22
-and not a second half of anything.**
-
-### The hosts
-
-| course | notebook | what it runs |
-|---|---|---|
-| PHM5003 | `05 / 04`, cells 46–53, heading `## 5` | `umap` (CRAN): `umap(scaledData, n_neighbors = 3, min_dist = 0.5)` on the same 8-sample `airway` data. **On this disk.** Cell 47 links <https://pair-code.github.io/understanding-umap/> |
-| PHM5005 | `03-5`, cells 41–50 | `umap-learn`, the Python side. **Not on this disk** |
-
-**The lesson names exactly two controls** — `n_neighbors` ("number of
-neighboring points") and `min_dist` ("minimum distance between points") — and
-says outright that they "can alter the clustering". Two controls, and the old
-reconnaissance called them *"the three that carry an idea"* along with t-SNE's
-perplexity: **`n_neighbors` is perplexity in different clothes, and `min_dist`
-has no t-SNE counterpart at all.**
-
-### Cell 46's maths, and the two places it departs from t-SNE
-
-1. **A fuzzy membership in high dimensions**,
-   `μ(xᵢ,xⱼ) = exp(−max(0, d(xᵢ,xⱼ) − ρᵢ) / σᵢ)` — and `ρᵢ` is **the distance
-   to the point's nearest neighbour**, subtracted off. t-SNE has no counterpart.
-   It is what guarantees every point is connected to something, and it is why
-   UMAP does not care how dense a region is.
-2. **A low-dimensional membership `1 / (1 + a·d^{2b})`**, where **`a` and `b`
-   are FITTED from `min_dist`** rather than fixed. t-SNE's Student-t has no free
-   parameter at all. So `min_dist` does not change what UMAP knows — it changes
-   the curve the picture is scored against, which is a presentation choice
-   wearing the clothes of a fidelity one.
-3. **Cross-entropy, not KL.** KL is one-sided: t-SNE pays for pulling a true
-   neighbour apart and is *credited* for drawing a stranger close (measured, on
-   the widget's own stage: +137% against −37%). Cross-entropy has both terms, so
-   UMAP pays for putting strangers together too — **and that is the mechanism
-   behind it spreading clusters further than t-SNE.**
-
-### The three questions
-
-1. **Compute at runtime, or replay a seeded table?** This section used to assert
-   the replay was "likely the only honest option". **Treat that as unverified.**
-   The identical assertion was made about t-SNE and was wrong: exact t-SNE at
-   n = 48 runs 1000 iterations in 55 ms, and the widget computes. UMAP is
-   genuinely bigger — a fuzzy simplicial set, a fitted `a`/`b`, negative
-   sampling — but *bigger than ninety lines* is not the same as *too big*.
-   **Measure it.** A replayed table cannot honour a live `n_neighbors` slider,
-   so this decision and question 2 are one decision, exactly as they were for
-   t-SNE.
-2. **What is the one sentence?** The arc so far: PCA — *a 2-D plot is not the
-   data*. MDS — *the input is the table of distances, not the cloud*. t-SNE —
-   *it keeps who is near whom and throws away everything else*. The candidate
-   for UMAP is **`min_dist` decides how the picture LOOKS and not what it
-   knows** — a knob that makes clusters tighter and more convincing without
-   making them any more real. Nothing else in the arc has a control like that.
-3. **Which failure?** Two are already measured on the real 194 samples and both
-   are worse in UMAP than in anything else:
-   - **a true 5:1 gap ratio renders as 11.4:1** — the worst gap distortion of
-     the four methods
-   - **a cluster genuinely 10× wider renders 1.2× wider** — i.e. essentially
-     erased, against t-SNE's 2.1×
-
-   And the summary that makes them one point: **UMAP had the highest silhouette
-   of the four (0.810) and the WORST distance faithfulness (0.56).** PCA 0.590
-   and 0.76; MDS 0.400 and 0.77. *The tighter and more convincing the clusters
-   look, the less the distances mean.* That is the failing case and the sentence
-   in one measurement, and it is the natural end of the four-widget arc.
-
-### What to lift, and the one comment to read first
-
-`widgets/t-sne/main.js` is the reference, not `mds`. Method-independent and
-three times used now: the 3-vector helpers, the orthographic `camera`, the
-wireframe `globe`, the depth-sorted and depth-sized scatter, the `drag` block,
-the `labels` toggle, `--c-cluster-a…f`, and the `layout` function read by both
-`height` and `draw`. New at widget 21 and worth reusing: the `regions` map, the
-clickable objective chart that scrubs the run, and the neighbour-distribution
-panel.
-
-**Read the `otherDisplay` comment in `t-sne/main.js` before adding any display
-parameter.** Core tells a widget that a display parameter changed but not which
-one, so the widget deduces it by watching every display parameter except the one
-being scrubbed. Two versions of that guard were wrong before the third was
-right, and both failures are silent — they throw the reader's position away.
-
-### What widget 21 learned that will bite the same way
-
-- **A step cannot be one iteration** where the picture is worse than useless
-  partway. Measure where the arrangement becomes honest before choosing a step.
-- **The objective's curve may not fall cleanly.** t-SNE's KL rises on 139 of
-  1000 steps and jumps at the early-exaggeration release. Find out what UMAP's
-  cross-entropy actually does before promising a chart that descends.
-- **Refuse where the library refuses.** `Rtsne` errors unless
-  `3 × perplexity < n − 1`, and that rule decided the sample count — at n = 12
-  there were two legal perplexities and nothing to teach between them. Find
-  UMAP's equivalent: `n_neighbors` cannot exceed n − 1, and the lesson runs it
-  at **3 on 8 samples** for exactly that reason.
-- **A shared axis between two spaces is a fiction that has to be paid for.**
-  `_lab/tsne-kernels.html` draws four ways of doing it and records which are
-  honest.
-- **The reference check is cheap now.** Python and sklearn are installed;
-  `_lab/tsne-sklearn-ref.py` and `_lab/tsne-verify.mjs` are the pattern — pull a
-  table from the library, compare, and set the tolerance by measuring where
-  agreement bottoms out rather than by what passes. `umap-learn` is not
-  installed, and pip on this machine needs HANDOVER's wheel workaround.
-
-### After UMAP
-
-`03-5`'s **second subject** is clustering — K-Means (cells 52–59) and DBSCAN
-(60–67) — and it is untouched. The dimensionality-reduction arc closes with
-UMAP.
+Unchanged by this session, and still last. `## 5` in the same notebook gives it
+its own heading, so it is its own widget on the same rule. It is the one method
+where a **replayed table** is likely the only honest option — the cross-entropy
+objective with its learned `a` and `b`, the fuzzy simplicial set and the negative
+sampling are not thirty lines and not ninety. Decide that when it is next.
 
 ---
 

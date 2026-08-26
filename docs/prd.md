@@ -213,13 +213,17 @@ open question 1 — sequencing against actual teaching weeks.
 widgets the catalogue hosts at `03 / 02-02`; `probability-mechanisms` has no slot recorded
 anywhere and needs one written down.
 
-**THE DRAFTS ARE MISSING FROM THIS TABLE ON PURPOSE, and which widgets they are
-has moved twice.** `generalization` (13) and `linear-regularization` (14) were
-the drafts when this was written and are both shipped now; the manifest's four
-`draft` entries are **`trees-and-ensembles` (17), `balancing-data` (18), `pca`
-(19) and `mds` (20)**. All four are PHM5005 — a course with no MyST project, so
-§7 cannot give them lesson slots. They are named by host notebook instead:
-`03-3`, `03-4` and `03-5` (twice, cells 7–19 and 20–30).
+**THE PHM5005 WIDGETS ARE MISSING FROM THIS TABLE ON PURPOSE.** That course has
+no MyST project, so §7 cannot give them lesson slots; they are named by host
+notebook instead — `03-3`, `03-4`, and `03-5` four times over (cells 7–19,
+20–30, 31–40 and, when UMAP is built, 41–50).
+
+**There are no drafts at present.** As of 2026-08-26 all twenty-one widgets are
+shipped: `trees-and-ensembles` (17), `balancing-data` (18), `pca` (19),
+`mds` (20) and `t-sne` (21) were promoted together. `draft` remains what a
+widget wears while its design is still moving — it deploys to its final URL,
+stays off the gallery, wears the draft bar, and owes no fingerprint states until
+promotion.
 
 **`mds` IS THE FIRST WIDGET WITH A HOST IN EACH COURSE, and the manifest can
 only name one.** It was built against PHM5005's `03-5` (cells 20–30, Python and
