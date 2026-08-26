@@ -17,12 +17,19 @@
 
 import { defineWidget } from "../core/index.js";
 
-/* The samples sit on a sphere of this radius, as far from each other as they
-   can get. R = 2 makes the regular tetrahedron's edge 3.27, which is the number
-   every closed-form check in the catalogue is written against. */
+/* The group centres sit on a sphere of this radius, as far from each other as
+   they can get, and each sample scatters around its own centre by SIGMA. At one
+   sample per group a centre IS a sample, which is how the ungrouped stage the
+   widget started with is still reachable. */
 const R = 2;
-const LETTERS = "ABCDEF";
+const SIGMA = 0.22;
+const LETTERS = "ABCDEFGHIJKL";
 const GENES = ["Gene 1", "Gene 2", "Gene 3"];
+/* Past six samples an individual letter has nothing to label — the dots are in
+   clusters and overlap — so identity falls back to the group's colour, and the
+   table's headers keep the letters. Same threshold retires the pair lines: 15 of
+   them read as a figure, 66 read as a hairball. */
+const LABEL_MAX = 6;
 
 /* --- 3-vector arithmetic -------------------------------------------------- */
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -33,31 +40,38 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const clamp01 = (v) => clamp(v, 0, 1);
 
 /* --- the stage ------------------------------------------------------------ *
- * n samples on a sphere, spread as far apart as they can get — which for these
- * counts are the shapes anyone would draw: a triangle, a regular tetrahedron, a
- * triangular bipyramid, an octahedron — and then MOVED BY THE SEED.
+ * `groups` centres on a sphere, spread as far apart as they can get: two
+ * antipodal, three a triangle, four a regular tetrahedron. The seed moves them,
+ * and `samples` members scatter around each.
  *
- * IT STOPS AT SIX, and both reasons are the same reason. `--c-cluster-a…f` is
- * six colours and a sample needs its own identity in three panels at once; and
- * the table is n by n, so a seventh row takes the cells below the size two
- * numbers fit in at the narrowest canvas.
+ * THE SAME LESSON TWICE, AT TWO SCALES, and it is what makes `groups` carry an
+ * idea rather than just adding dots (3.5). Three points make a triangle and a
+ * triangle is flat; four spread out in space cannot be laid on paper at all —
+ * and the group CENTRES obey exactly the same rule, because two centres make a
+ * line and three make a plane. Measured over 200 seeds at three per group:
  *
- * THREE FITS EXACTLY AND FOUR NEVER DOES, which is principle 2.6's failing case
- * on one slider and needs no extra machinery: any three points make a triangle
- * and a triangle is flat, while four spread out in space cannot be laid on
- * paper at all.                                                              */
+ *     2 groups   stress 0.01   the picture is faithful
+ *     3 groups   stress 0.10   still faithful
+ *     4 groups   stress 14.3   the clusters come through, the gaps do not
+ *
+ * That last row is the widget's whole argument arriving on a control the reader
+ * moves: at four clusters the separation still reads 2.1 — every cluster is a
+ * distinct blob — while how far apart they LOOK has stopped being how far apart
+ * they are.
+ *
+ * IT STOPS AT FOUR GROUPS, where PCA goes to six, and the table is why: it is n
+ * by n, and four groups of three already takes the cells below the size a
+ * number fits in. The object here is the table, so the table sets the limit. */
 function spread(n) {
-  const eq = (k, m) => {
-    const a = (2 * Math.PI * k) / m;
-    return [R * Math.cos(a), R * Math.sin(a), 0];
-  };
-  if (n === 3) return [0, 1, 2].map((k) => eq(k, 3));
-  if (n === 4) {
-    const c = R / Math.sqrt(3);
-    return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => scale(v, c));
+  if (n === 2) return [[0, 0, R], [0, 0, -R]];
+  if (n === 3) {
+    return [0, 1, 2].map((k) => {
+      const a = (2 * Math.PI * k) / 3;
+      return [R * Math.cos(a), R * Math.sin(a), 0];
+    });
   }
-  if (n === 5) return [...[0, 1, 2].map((k) => eq(k, 3)), [0, 0, R], [0, 0, -R]];
-  return [[R, 0, 0], [-R, 0, 0], [0, R, 0], [0, -R, 0], [0, 0, R], [0, 0, -R]];
+  const c = R / Math.sqrt(3);
+  return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => scale(v, c));
 }
 
 const gauss = (rng) =>
@@ -81,12 +95,21 @@ const gauss = (rng) =>
    scale-dependent, and a cloud that grew with the seed would make the number
    incomparable between seeds. */
 const JITTER = 0.12;
-function stage(n, rng) {
-  return spread(n).map((p) => {
+function stage(groups, per, rng) {
+  const centres = spread(groups).map((p) => {
     const v = [0, 1, 2].map((k) => p[k] + gauss(rng) * JITTER * R);
     const m = Math.hypot(v[0], v[1], v[2]) || 1;
     return v.map((x) => (x / m) * R);
   });
+  const out = [];
+  for (let g = 0; g < groups; g += 1) {
+    for (let i = 0; i < per; i += 1) {
+      /* At one per group the sample IS the centre, with no scatter of its own —
+         so the jitter measured for the ungrouped stage still governs it. */
+      out.push({ g, p: centres[g].map((x) => (per > 1 ? x + gauss(rng) * SIGMA : x)) });
+    }
+  }
+  return out;
 }
 
 /* A fixed turn of the whole arrangement, applied once. Unrotated, the
@@ -334,19 +357,32 @@ defineWidget({
        SELECTED option's `detail` and ignores the field's own, so a line written
        once for the whole slider is copy nobody can read — which is what this
        one was until it was checked in the browser rather than in the source.
-       Per option it is also the better line: what changes with the count is
-       how many distances there are and how many different lengths, and both
-       are facts about the INPUT, so neither gives away what the fit will do. */
-    points: {
+
+       Neither detail says what the fit will do with the count, only what the
+       INPUT is: how the centres sit, and how many distances there are. */
+    groups: {
       type: "choice",
-      label: "Samples",
+      label: "Groups",
       options: [
-        { value: "3", label: "3", detail: "3 distances to match" },
-        { value: "4", label: "4", detail: "6 distances to match" },
-        { value: "5", label: "5", detail: "10 distances to match" },
-        { value: "6", label: "6", detail: "15 distances to match" },
+        { value: "2", label: "2", detail: "two centres — they make a line" },
+        { value: "3", label: "3", detail: "three centres — they make a plane" },
+        { value: "4", label: "4", detail: "four centres, spread through space" },
       ],
-      default: "4",
+      default: "2",
+    },
+    /* Per group, so the groups stay balanced whatever the count — the same
+       reading widget 19 gives the same control. One is a real setting and not a
+       degenerate one: every sample its own group is the ungrouped stage, and
+       three of them is where the fit is exact. */
+    samples: {
+      type: "choice",
+      label: "Samples per group",
+      options: [
+        { value: "1", label: "1", detail: "no clusters — every sample on its own" },
+        { value: "2", label: "2", detail: "a pair around each centre" },
+        { value: "3", label: "3", detail: "three around each centre" },
+      ],
+      default: "3",
     },
     /* ONE SEED, AND EVERYTHING DOWNSTREAM OF IT MOVES — the samples first, then
        the layout the fit starts from. It used to move only the second, which
@@ -385,10 +421,14 @@ defineWidget({
   },
 
   compute({ params, rng }) {
-    const n = Number(params.points);
+    const groups = Number(params.groups);
+    const per = Number(params.samples);
+    const n = groups * per;
     /* The samples first, so the seed reaches them before it reaches the
        starting layout: one seed, and everything downstream of it moves. */
-    const pts = tilted(stage(n, rng));
+    const placed = stage(groups, per, rng);
+    const pts = tilted(placed.map((s) => s.p));
+    const gs = placed.map((s) => s.g);
     const D = targets(pts);
     const path = smacof(D, rng, n);
 
@@ -405,8 +445,14 @@ defineWidget({
        chart is a reveal of an already-computed curve, like every other
        animation in this repo (invariant 2). Same function the readout uses, so
        the number under the figure and the point on the curve cannot disagree. */
+    /* The largest distance in the table, which the cell shading is measured
+       against — so the darkest cell is always the furthest pair rather than a
+       fixed value that would leave a tight cloud uniformly pale. */
+    let far = 0;
+    for (const [i, j] of pairList(n)) far = Math.max(far, D[i][j]);
+
     return {
-      n, pts, D, path, pairs: pairList(n), span: span * 1.1,
+      n, groups, per, gs, pts, D, path, pairs: pairList(n), span: span * 1.1, far,
       stress: path.map((X) => rawStress(X, D)),
     };
   },
@@ -488,8 +534,15 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim }) {
     const L = layout(w);
-    const { n, pts, D, pairs } = state;
+    const { n, gs, pts, D, pairs } = state;
     const at = shownAt(state, anim);
+    /* IDENTITY IS THE GROUP'S COLOUR AND, WHILE THERE IS ROOM, THE SAMPLE'S
+       LETTER. Past six the letters have nothing to label — the dots sit on top
+       of each other inside a cluster — and the pair lines stop being a figure:
+       fifteen of them read, sixty-six are a hairball. The table's headers keep
+       the letters at every count, which is where they are needed to read a row. */
+    const labelled = n <= LABEL_MAX;
+    const col = (i) => sampleCol(colors, gs[i]);
 
     /* The measuring, in four overlapping beats:
          0.00 - 0.45   a line grows between every pair
@@ -549,11 +602,14 @@ defineWidget({
       /* Every pair, drawn as it is measured and left faint afterwards — the
          same marks the arrangement on the right carries, so the two pictures
          read as the same kind of object. */
-      if (linked > 0.01) {
+      if (linked > 0.01 && (labelled || away < 0.99)) {
         ctx.save();
         ctx.strokeStyle = colors.ink3;
         ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.5 * linked * (1 - 0.45 * away);
+        /* Above six samples they are the MEASURING and nothing more: they draw
+           with the reveal and leave with the coordinates, rather than staying
+           as sixty-six lines over four clusters. */
+        ctx.globalAlpha = 0.5 * linked * (labelled ? 1 - 0.45 * away : 1 - away);
         for (const [i, j] of pairs) {
           const a = P(pts[i]), b = P(pts[j]);
           ctx.beginPath();
@@ -574,11 +630,12 @@ defineWidget({
       for (const q of order) {
         const [px, py] = P(q.p);
         const near = clamp(q.d / R, -1, 1);
-        sampleDot(ctx, colors, px, py, sampleCol(colors, q.i), away,
+        sampleDot(ctx, colors, px, py, col(q.i), away,
           R_DOT * (1 + 0.2 * near), 0.72 + 0.28 * ((near + 1) / 2));
+        if (!labelled) continue;
         ctx.save();
         ctx.globalAlpha = 1 - 0.55 * away;
-        text(ctx, colors, LETTERS[q.i], px + 7, py - 7, sampleCol(colors, q.i), colors.fsXs);
+        text(ctx, colors, LETTERS[q.i], px + 7, py - 7, col(q.i), colors.fsXs);
         ctx.restore();
       }
     }
@@ -596,21 +653,32 @@ defineWidget({
       const ch = Math.min(58, ph / n);
       const gx = x + (pw - cw * n) / 2;
       const gy = y + (ph - ch * n) / 2;
-      const fs = clamp(Math.round(Math.min(cw * 0.3, ch * 0.42)), 7, 13);
+      const fs = Math.round(Math.min(cw * 0.34, ch * 0.42));
+      /* THE NUMBERS GO WHEN THEY STOP BEING READABLE, and the shading is what
+         makes that survivable rather than a loss. Four groups of three is a
+         twelve by twelve table: the cells reach 7px, which is not a number
+         anybody reads. What the reader wants from a table that size is the
+         BLOCK PATTERN — near within a cluster, far between them — and that is a
+         picture, not a set of figures. It is drawn at every count, so at six
+         samples it sits under the numbers rather than replacing them. */
+      const numbered = fs >= 8;
+      const type = `${clamp(fs, 7, 13)}px`;
 
       text(ctx, colors, "Distance between every pair", x, y - 10, colors.ink2, colors.fsSm);
 
       ctx.save();
       ctx.globalAlpha = clamp01(rev / 0.3);
 
-      // Headers: the column a distance is measured from, the row it runs to.
+      /* Headers: the column a distance is measured from, the row it runs to —
+         in the sample's own letter and its GROUP's colour, which is what makes
+         the block pattern below readable as groups rather than as texture. */
       for (let c = 0; c < n - 1; c += 1) {
         text(ctx, colors, LETTERS[c], gx + cw * (c + 1.5), gy + ch * 0.5,
-          sampleCol(colors, c), `${fs}px`, "center");
+          col(c), type, "center");
       }
       for (let r = 1; r < n; r += 1) {
         text(ctx, colors, LETTERS[r], gx + cw * 0.5, gy + ch * (r + 0.5),
-          sampleCol(colors, r), `${fs}px`, "center");
+          col(r), type, "center");
       }
 
       /* Lower triangle only. A distance table is symmetric with a zero
@@ -623,11 +691,19 @@ defineWidget({
         const ty = gy + ch * (i + 0.5);
         ctx.save();
         ctx.globalAlpha = show;
+        /* Darker is further, so the shading and the number it sits under say
+           the same thing rather than opposite ones. Capped well short of
+           opaque: the number has to stay readable on top of it. */
+        ctx.fillStyle = colors.empirical;
+        ctx.globalAlpha = show * (0.04 + 0.30 * clamp01(D[i][j] / state.far));
+        ctx.fillRect(gx + cw * (j + 1), gy + ch * i, cw, ch);
+        ctx.globalAlpha = show;
         ctx.strokeStyle = colors.grid;
         ctx.lineWidth = 1;
         ctx.strokeRect(gx + cw * (j + 1) + 0.5, gy + ch * i + 0.5, cw - 1, ch - 1);
+        if (!numbered) { ctx.restore(); return; }
         text(ctx, colors, D[i][j].toFixed(2), tx, arranged > 0.02 ? ty - fs * 0.6 : ty,
-          colors.ink1, `${fs}px`, "center");
+          colors.ink1, type, "center");
         /* THE SECOND NUMBER IS THE ARGUMENT. Adjacency (2.7): the distance the
            samples have, and directly under it the distance the picture managed
            — in every cell, so no sentence has to say which ones came out
@@ -635,7 +711,7 @@ defineWidget({
         if (arranged > 0.02) {
           ctx.globalAlpha = show * arranged;
           text(ctx, colors, dist2(at[i], at[j]).toFixed(2), tx, ty + fs * 0.6,
-            colors.empirical, `${fs}px`, "center");
+            colors.empirical, type, "center");
         }
         ctx.restore();
       });
@@ -660,19 +736,21 @@ defineWidget({
       ctx.strokeRect(x + 0.5, y + 0.5, pw - 1, ph - 1);
       ctx.strokeStyle = colors.ink3;
       ctx.globalAlpha = 0.5;
-      for (const [i, j] of pairs) {
-        const a = P(at[i]), b = P(at[j]);
-        ctx.beginPath();
-        ctx.moveTo(a[0], a[1]);
-        ctx.lineTo(b[0], b[1]);
-        ctx.stroke();
+      if (labelled) {
+        for (const [i, j] of pairs) {
+          const a = P(at[i]), b = P(at[j]);
+          ctx.beginPath();
+          ctx.moveTo(a[0], a[1]);
+          ctx.lineTo(b[0], b[1]);
+          ctx.stroke();
+        }
       }
       ctx.restore();
 
       for (let i = 0; i < n; i += 1) {
         const [px, py] = P(at[i]);
-        sampleDot(ctx, colors, px, py, sampleCol(colors, i));
-        text(ctx, colors, LETTERS[i], px + 7, py - 7, sampleCol(colors, i), colors.fsXs);
+        sampleDot(ctx, colors, px, py, col(i));
+        if (labelled) text(ctx, colors, LETTERS[i], px + 7, py - 7, col(i), colors.fsXs);
       }
 
       /* NO AXES AND NO AXIS LABELS, deliberately. An MDS arrangement is fixed
@@ -746,7 +824,9 @@ defineWidget({
         value: String(n),
         /* The tile is a number and what it counts. How to turn the figure is an
            instruction, and instructions live in the subtitle (2.9). */
-        note: "three genes each",
+        note: state.per === 1
+          ? "three genes each, no clusters"
+          : `${state.groups} groups of ${state.per}, three genes each`,
       }];
     }
     const at = shownAt(state, anim);
@@ -782,11 +862,15 @@ defineWidget({
 
   /* Core hands this to `aria-label`, so it describes what is on screen. */
   summary({ params, state, anim }) {
-    const { n, D, path } = state;
+    const { n, D, path, groups, per } = state;
     const view = `Turned ${params.turn} degrees, tilted ${params.tilt}.`;
+    const stock = per === 1
+      ? `${n} samples spread over a sphere in three genes`
+      : `${n} samples in ${groups} groups of ${per}, their centres spread over a sphere in `
+        + `three genes`;
     if (!params.measured) {
-      return `${n} samples spread over a sphere in three genes, drawn with the sphere they `
-        + `sit on so their depth can be seen. ${view} No distances measured yet.`;
+      return `${stock}, drawn with the sphere the centres sit on so their depth can be seen. `
+        + `${view} No distances measured yet.`;
     }
     const stage = anim.k === 0 && !anim.moving
       ? "in their starting layout, which is random"

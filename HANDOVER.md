@@ -8,12 +8,12 @@ widget 20, `mds`, are all drafts — they deploy to their final URLs
 but stay off the gallery and wear the draft bar. Everything is live at
 <https://nusmedicine.github.io/statml/>.
 
-**Widget 20 `mds` has had ONE round of Kenneth’s feedback, and the result is
-unseen.** He asked for a visible third dimension, a seed that varies the
-samples, and a graph of the stress; all three are in, and the second one changed
-the stage — done literally it would have made four samples fit exactly at the
-default seed. Still no fingerprint states. See *NEXT* below for the four URLs to
-open and the one thing to put to him.
+**Widget 20 `mds` has had TWO rounds of Kenneth’s feedback, and the result is
+unseen.** Round one: a visible third dimension, a seed that varies the samples,
+a graph of the stress. Round two: groups, like PCA’s — and the group count turned
+out to reproduce the widget’s own argument, because two centres make a line and
+three make a plane while four make a tetrahedron. Still no fingerprint states.
+See *NEXT* below for the five URLs to open and the one decision to put to him.
 
 **Widget 19 `pca` has six rounds of Kenneth's own feedback in it.** It began as
 a four-tab widget over PCA, MDS, t-SNE and UMAP; his call on 2026-08-26 was
@@ -147,60 +147,48 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: WIDGET 20, ROUND TWO — then t-SNE
+## NEXT: WIDGET 20, ROUND THREE — then t-SNE
 
-**One round of Kenneth's feedback is in, and it is unseen.** He asked for three
-things and all three are built; nobody has looked at the result. Still no
-fingerprint states, for the same reason as before: a baseline recorded before
-the design is settled is thrown away.
+**Two rounds of Kenneth's feedback are in and the result is unseen.** Round one:
+a visible third dimension, a seed that varies the samples, a stress chart. Round
+two: groups, like PCA's. Still no fingerprint states — the design has moved in
+both rounds and will move again.
 
 ```bash
 node scripts/serve.mjs 8010     # then /widget/mds/
 ```
 
-**Four states worth opening, in this order:**
+**Five states worth opening, in this order:**
 
 | URL | what it shows |
 |---|---|
-| `/widget/mds/` | four samples on a drawn sphere — the round-one ask; drag it |
-| `/widget/mds/?measured=1` | the table at full ink, the coordinates gone, the starting layout and its stress |
-| `/widget/mds/?measured=1&shown=19` | the finished fit: stress 1.445, and the curve under it flat |
-| `/widget/mds/?points=3&measured=1&shown=9` | three samples fitting exactly, stress 0.000, the curve on the floor |
+| `/widget/mds/` | two clusters of three on a drawn sphere, nothing measured; drag it |
+| `?measured=1` | the table at full ink, shaded by distance — the block pattern IS the clustering |
+| `?measured=1&shown=28` | the faithful case: stress 0.001, every fitted number equal to its measured one |
+| `?groups=4&samples=3&measured=1&shown=28` | the broken case: stress 20.7, four clusters still distinct, the gaps wrong |
+| `?groups=3&samples=1&measured=1&shown=9` | three samples, no clusters, fitting exactly — stress 0.000 |
 
-**THE ONE THING TO PUT TO HIM, because it is the one place his ask and the
-widget's argument pulled against each other.** *"Could we have the seed slider
-to vary the samples"* done literally — uniform random samples — **breaks the
-widget**: n random points on a sphere are near-coplanar often enough that four
-of them fit in two dimensions to three decimals at the median seed, and at seed
-1 they fit exactly. The reader would meet "MDS is lossless" as the default view.
-
-So the shapes stay and the seed **jitters** them, by 0.12 of the radius, which
-is the largest jitter that still fails at every one of 200 seeds:
-
-| jitter | n = 3 | n = 4, lowest stress of 200 seeds |
-|---|---|---|
-| uniform random | 0.000 always | **0.000** — fits exactly at seed 1 |
-| 0.12R (built) | 0.000 always | **0.385** — never fits |
-| 0.20R | 0.000 always | 0.048 — one seed in 200 slips through |
-| 0.30R | 0.000 always | 0.000 |
-
-**What that cost, and he should know it:** the regular tetrahedron's six equal
-3.27s coming out as four at 2.79 and two at 3.94 is gone as an on-screen fact,
-and so is the local-optimum lesson at five and six samples. Both needed the data
-frozen. If he wants either back, freezing the data is the whole change — it is
-one line, and the superseded sections in the catalogue keep the numbers.
+**THE ONE DECISION TO PUT TO HIM: the default now FITS.** Two groups of three is
+`03-5`'s own case and the largest setting whose table is comfortably numbered at
+every width — but its stress is 0.001, so a reader who never touches `groups`
+leaves having seen MDS be exact. The previous default failed to fit, which is
+the widget's headline claim. **No setting does both**: the fit only breaks at
+four groups, and four groups of two lands its font exactly on the 8px threshold
+where the numbers drop out at a 550px canvas. Options are (a) leave it, since
+`groups` is the second control and its own detail line points at the answer,
+(b) default to four groups of two and accept that the numbers vanish on a narrow
+window, (c) default to `samples = 1`, which is the old ungrouped stage and shows
+no clusters at all.
 
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
-UMAP*. Its open question is the one MDS did not have: t-SNE is not thirty lines
-and has no closed-form answer, so decide early whether it computes at runtime or
-replays a precomputed seeded table.
+UMAP*.
 
 ---
 
-## Widget 20 · `mds` — BUILT, DRAFT, ONE ROUND IN
+## Widget 20 · `mds` — BUILT, DRAFT, TWO ROUNDS IN
 
 Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*, including
-two sections marked SUPERSEDED that keep measurements worth not taking again.
+three sections marked SUPERSEDED that keep measurements worth not taking again.
 The short version, and the parts that will bite something else:
 
 **Three panels and a chart. One gate, then Step and Play.** Where the samples
@@ -208,71 +196,90 @@ are, the table of every pair's distance, the arrangement built from that table
 alone, and under the arrangement the stress falling step by step. The gate plays
 four beats over 2s and the third of them is the widget: **the sphere and the
 gene axes go out and the samples hollow to faint rings** while the table stays
-at full ink. The outline stays for the rest of the run, and turning it still
-moves no digit in the table.
+at full ink.
 
 **IT IS NOT A PROJECTION AND MUST NEVER LOOK LIKE ONE.** Widget 19 flattens a
 cloud onto a plane; this one throws the coordinates away and builds an
-arrangement from nothing. That is the difference between the two widgets, and it
-is why the 2-D panel has **no axes and no axis labels** — an MDS arrangement is
-fixed only up to a turn and a mirror, so an x and a y would name two quantities
-that do not exist.
+arrangement from nothing. That is why the 2-D panel has **no axes and no axis
+labels** — an MDS arrangement is fixed only up to a turn and a mirror.
 
-**The sphere is drawn as its three coordinate great circles, back halves at a
-third of the ink.** That hidden-half split is what stops three ellipses reading
-as three flat rings, and it is what makes turning legible. A bounding cube does
-the same job; the sphere won because it is exactly true of this stage — every
-sample is on it — so it describes the data rather than furnishing the panel.
-**If the stage ever stops being a sphere, the globe becomes a lie** and has to
-go with it.
+### The group count reproduces the widget's own argument, one level up
 
-**Depth is drawn twice, and both are needed.** Back-to-front ordering only
-separates samples that happen to overlap; sizing by depth — a fifth larger and
-full ink at the front, a fifth smaller and lighter at the back — is what tells a
-reader whether a dot between two others is in front of them or between them.
+Two centres make a line and three make a plane — both already flat, so 2-D holds
+them exactly. Four make a tetrahedron and it cannot. Median stress over 40
+seeds at three per group: **0.01, 0.12, 14.3**. At four groups the clusters are
+still distinct (separation ratio 2.5) while the gaps between them are wrong,
+which is `03-5`'s "the cluster separation is less clear" with a mechanism under
+it. **If that stops holding, `groups` has stopped meaning anything** — the
+driver asserts all three.
+
+### The table degrades on purpose, and the shading is the part worth keeping
+
+Twelve samples is a 12 × 12 table whose cells reach 7px. So **every cell is
+shaded by its distance** (darker is further, alpha 0.04–0.34 of
+`--c-empirical`), at every count, and **the numbers go when the cell drops below
+8px** — numbers to 8 samples at 550px and 9 at 770, none at 12. Nine is the one
+count that flips with the window.
+
+That is a gain rather than a concession: what a reader wants from a table that
+size is the BLOCK PATTERN, near within a cluster and far between, and that is a
+picture rather than a set of figures. It is how the reader sees that the input
+already contains the clustering.
+
+**Letters and pair lines retire together above six samples** — a letter has
+nothing to label once dots overlap inside a cluster, and sixty-six pair lines
+are a hairball where fifteen are a figure. The table's headers keep the letters
+at every count, coloured by GROUP.
 
 ### A MULTIPLIER, NOT AN ALPHA SET BEFORE THE CALL
 
 `sampleDot` assigns `globalAlpha` outright in both of its branches, so an alpha
 set by the caller is thrown away and a depth cue built that way silently does
 nothing. It takes a `fade` **multiplier** now. Any helper that sets
-`globalAlpha` rather than multiplying it has this property; check before
-wrapping one in a `save`/`restore` and expecting the alpha to compose.
+`globalAlpha` rather than multiplying it has this property.
 
 ### Verify it without a browser — the driver is the fastest thing in the loop
 
-Same two recipes as widget 19, under *Verifying changes* below: the node driver
-(stub the one import, capture the config, pump `advance` with a fixed `dt`) and
-the contract check that lists every capability BY NAME. **80 assertions run in
-under a second, with no server.**
+Same two recipes as widget 19, under *Verifying changes* below. **119 assertions
+run in under a second, with no server**, over all nine settings of the two count
+controls.
 
-**Its anchors changed with the stage, and the new ones are better.** The
-tetrahedron's exact numbers were an assertion about one configuration; what
-replaced them holds at every seed — n = 3 exact at all 60 tested, n = 4 never
-below 0.2, twelve seeds giving twelve different distance tables, and **the
-stress never rising across 100 runs**, which is SMACOF's defining property and
-the one the new chart draws. An assertion that a curve never goes up is worth
-more than an assertion that it ends at 1.830.
+**Its anchors have now changed twice, and each time for the better.** The
+regular tetrahedron's exact numbers asserted one configuration; what replaced
+them holds at every seed — n = 3 exact at all 60 tested, n = 4 never below 0.2,
+twelve seeds giving twelve different distance tables, **the stress never rising
+across 108 runs**, and now **every cluster a separate blob at every grouped
+setting over 30 seeds**. An assertion that a curve never goes up is worth more
+than an assertion that it ends at 1.830.
 
-**The driver's own first run was wrong, and in an instructive way.** It opened
-the gate by setting the parameter and calling `rebuild`, which leaves the reveal
-to animate — so `pump` ran the 2s reveal, returned false, and every stress
-assertion read the RANDOM STARTING LAYOUT. It reported stress 8.58 at n = 4 and
-3.14 at n = 3. **A harness that drives the wrong phase reports the widget as
-broken**, and the tell was that n = 3 — which cannot fail — failed too. Build
-each state the way a shared link does (`measured: true` in `init`) and drive the
-one path you mean to test.
+### THE HARNESS DROVE THE WRONG PATH TWICE, the same way both times
+
+Both cost a round of confusion and both look exactly like a broken widget.
+
+1. **Opening the gate by setting the parameter and calling `rebuild` leaves the
+   reveal to ANIMATE**, so `pump` ran the 2s reveal, returned false, and every
+   stress assertion read the random starting layout — stress 8.58 at n = 4 and
+   3.14 at n = 3. The tell was that n = 3 failed, and n = 3 cannot fail.
+2. **In the browser, toggling the gate to force a repaint restarts the reveal
+   whenever `k` is 0** — `rebuild` only short-circuits to `reveal = 1` if a fit
+   is already on screen. With the frame clock throttled the captured paint sat
+   at reveal ≈ 0, and a sweep reported **zero numbers in the table at every
+   count**, including ones that plainly show them.
+
+**Force a repaint with a SEED NUDGE, not a gate toggle**: a data change re-inits,
+and `init` sets `reveal = 1` whenever the gate is open. Set the seed one step
+away, clear the buffer, set it back — exactly one paint, at exactly the state
+you want, with nothing left animating.
 
 ### Three defects the checks caught, and one is a core fact worth knowing
 
 - **A `choice` renders the SELECTED OPTION's `detail` and IGNORES the field's
   own** (`controls.js`, the choice branch). A line written once for the whole
-  slider is copy nobody can read, and it looks completely correct in the source.
-  Found by scraping the rail in the browser, not by reading `main.js`.
-- **A square table cell takes its size from the height it does not need.** The
-  box is wider than it is tall and the text runs across it; at the 550px canvas
-  a square cell put six samples on a **7px font**. Width sets the type size now,
-  height only has to hold two lines: 10px there, 13px at a real width.
+  slider is copy nobody can read, and it looks correct in the source. Found by
+  scraping the rail in the browser, not by reading `main.js`.
+- **A square table cell takes its size from the height it does not need.** At a
+  550px canvas a square cell put six samples on a **7px font**. Width sets the
+  type size now, height only has to hold two lines.
 - **The largest-gap tile read "B–A is 3.94"** of a pair the rest of the widget
   calls A–B, because `pairs` runs down the table's rows and holds the later
   letter first.
@@ -281,32 +288,30 @@ one path you mean to test.
 
 - **`Bash` SILENTLY TRUNCATES A LONG COMMAND, so a big heredoc dies with
   `unexpected EOF while looking for matching '`.** A 25KB `cat > file <<'EOF'`
-  fails; a six-line one works. It is not a quoting problem and no amount of
-  escaping fixes it. **Write files with the `Write` tool and patch them with a
-  short `node -e` script.** A second trap sits next to it: **backticks inside a
-  double-quoted `node -e` are command substitution**, so a patch script carrying
-  markdown code spans dies with `pca\: No such file or directory`. Single-quote
-  the script, or put it in a file.
+  fails; a six-line one works. It is not a quoting problem. **Write files with
+  the `Write` tool and patch them with a short `node -e` script.** A second trap
+  sits next to it: **backticks inside a double-quoted `node -e` are command
+  substitution**, so a patch script carrying markdown code spans dies with
+  `pca\: No such file or directory`. Single-quote the script, or put it in a
+  file. And **a bulk regex replace across a driver leaves it half-converted** —
+  the loops kept their old variable while their bodies referenced a new one, and
+  it only surfaced as `combo is not defined`. Read the file after a sweep.
 - **THE STRAY POINTER INPUT IS REAL AND IT MOVED TWO SLIDERS.** Between one
   `javascript_tool` call and the next, `?points=4&seed=1` became
   `?points=5&seed=44` with eleven fit steps run, purely from automation-browser
-  input nobody dispatched. HANDOVER has warned about this for several widgets;
-  this is the first time it has been caught in the act with the URL to prove it.
-  **Do the whole measurement in ONE call** — wrap `fillText`, force the repaint,
-  read the result, return — so there is no window for anything to drift.
+  input nobody dispatched. **Do the whole measurement in ONE call** — wrap
+  `fillText`, force the repaint, read the result, return.
 
 ### The browser pane could not be shown, so nothing was judged by eye
 
 `computer{action:"screenshot"}` fails with *the Browser pane is not displayed,
 so the page is not compositing frames*, and `tabs_select` does not fix it.
 Everything visual here was established the other way: a `fillText` sweep for
-every string and its measured extent, and an `arc`/`stroke`/`moveTo` sweep for
-every dot, every globe segment and every panel box. That gives font sizes,
-overruns, collisions, dot radii, stroke alphas, and whether anything falls
-outside its panel — but **it says nothing about whether the figure is
-pleasing**, which is exactly the half screenshots are for. Getting the canvas
-out as a data URL works and costs a round trip per few KB; it was not worth it
-against simply opening the page.
+every string and its measured extent, and `arc`/`fillRect`/`stroke` sweeps for
+every dot, every shaded cell, every globe segment and every panel box. That
+gives font sizes, overruns, collisions, dot radii, shading alphas, and whether
+anything falls outside its panel — but **it says nothing about whether the
+figure is pleasing**, which is exactly the half screenshots are for.
 
 ---
 

@@ -4492,7 +4492,7 @@ browser before this lands.
 
 ## Widget 20 · `mds` — BUILT, DRAFT
 
-**ONE ROUND OF REVIEW IN.** Built against the storyboard below, which is kept
+**TWO ROUNDS OF REVIEW IN.** Built against the storyboard below, which is kept
 intact underneath so the answers can be checked against what was assumed; then
 Kenneth asked for three things, one of which changed the stage — see *Round one*
 below before reading anything under it, because two later sections it
@@ -4595,6 +4595,77 @@ and claim a relationship it has not got. The head of the curve is
 203 → 287 at 550. Default seed 1 at four samples: stress 1.445 rather than
 1.830, over 19 steps rather than 25.
 
+### Round two of review: groups, and the same lesson arriving one level up
+
+Kenneth: *"could we also set groups like in PCA? then we can see the
+clustering?"* — so `points` is gone and the rail carries widget 19's own pair,
+**Groups** (2–4) and **Samples per group** (1–3), for totals of 2 to 12. Group
+centres spread on the sphere and jittered by the seed; members scattered around
+their centre at σ = 0.22R.
+
+**THE GROUP COUNT TURNED OUT TO REPRODUCE THE WIDGET'S ARGUMENT, and that is
+what makes it a control worth having rather than more dots (3.5).** Two centres
+make a line and three make a plane — both are already flat, so a 2-D picture can
+hold them exactly. Four make a tetrahedron and it cannot. Measured over 40 seeds
+at three per group:
+
+| groups | median stress | what the reader sees |
+|---|---|---|
+| 2 | **0.01** | the picture is faithful — every distance comes out right |
+| 3 | **0.12** | still faithful |
+| 4 | **14.3** | the clusters come through; the gaps between them do not |
+
+It is the sample-count lesson at a second scale: three points fit and four never
+do, and their *centres* obey the same rule. At four groups the separation ratio
+— smallest between-cluster distance over largest within-cluster one — still
+reads **2.5**, so every cluster is a distinct blob, while how far apart they
+LOOK has stopped being how far apart they are. **That is the single most useful
+thing the widget now says**, and it is exactly `03-5`'s "the cluster separation
+is less clear" with a mechanism under it.
+
+**Separation is asserted, not eyeballed.** Every grouped setting, 30 seeds each,
+worst-case ratio > 1 — because "see the clustering" fails silently if a cluster
+ever smears into its neighbour, and no pixel hash would notice.
+
+### The table had to change, and the shading is the part worth keeping
+
+**Twelve samples is a 12 × 12 table.** The cells reach 7px, which is not a
+number anybody reads. Two things follow:
+
+- **Every cell is now shaded by its distance** — darker is further, so the
+  shading and the number it sits under say the same thing rather than opposite
+  ones. Alpha runs 0.04 to 0.34 of `--c-empirical`, capped well short of opaque
+  so a number stays readable on top. It is drawn at **every** count, so at six
+  samples it sits under the numbers rather than replacing them.
+- **The numbers go when the cell drops below 8px.** Numbers up to 8 samples at a
+  550px canvas and 9 at 770; nothing at 12. Nine is the one count that flips
+  with the window, which is the cost of a legibility floor honestly applied.
+
+**This is a gain, not a concession.** What a reader wants from a 12 × 12 table
+is the BLOCK PATTERN — near within a cluster, far between them — and that is a
+picture, not a set of figures. The shading is how the reader sees that *the
+input already contains the clustering*, which is the whole reason the 2-D
+picture can show it.
+
+**Letters and pair lines retire together at six samples.** Past that a letter
+has nothing to label — the dots sit on top of each other inside a cluster — and
+fifteen pair lines read as a figure where sixty-six read as a hairball. The
+table's headers keep the letters at every count, in the sample's own letter and
+its GROUP's colour, which is what makes the block pattern readable as groups
+rather than as texture.
+
+**GROUPS STOP AT FOUR, where PCA goes to six.** The table is n by n and it is
+the object this widget is about, so the table sets the limit. PCA can afford
+six groups of twelve because its figure is a scatter.
+
+**The default is two groups of three**, which is `03-5`'s own case — normal
+against tumour — and the largest setting whose table is comfortably numbered at
+every width. It is the *faithful* end of the sweep: stress 0.001, the picture
+exact. **Worth a decision:** the previous default failed to fit, which is the
+widget's headline claim, and no setting both shows clusters and fails while
+staying comfortably numbered — four groups of two is the closest and its font
+lands exactly on the 8px threshold at 550.
+
 ### SUPERSEDED BY ROUND ONE · the closed-form checks, which verified the solver
 
 | stage | what must come out | measured |
@@ -4609,7 +4680,7 @@ square of side *s* against a target δ, minimising 4(s − δ)² + 2(s√2 − �
 those, not against a picture** — it is what caught a harness that was pumping
 the reveal instead of the fit and reporting stress 8.58 at n = 4.
 
-### The stage: n samples as far from each other as they can get, then jittered by the seed
+### SUPERSEDED BY ROUND TWO · the stage before it had groups
 
 One sentence describes all four counts, and the shapes fall out of it — a
 triangle, a **regular tetrahedron**, a triangular bipyramid, an octahedron, all
