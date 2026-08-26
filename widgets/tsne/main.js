@@ -318,9 +318,12 @@ function layout(w) {
   const x0 = Math.max(PAD_L, (w - (colW * 2 + GAP)) / 2);
   const x1 = x0 + colW + GAP;
   const y1 = TOP + rowH + ROW_GAP;
-  /* The curve row is shorter than the spaces row: it carries lines and an axis,
-     where the panels above carry a whole cloud. */
-  const curveH = Math.max(96, rowH * 0.62);
+  /* THE BOTTOM ROW GREW when the neighbour panel took on the KL's own terms.
+     It carries three things stacked now — the two distributions, the signed
+     per-neighbour term under them, and a kernel inset in the corner — where it
+     used to carry one pair of curves. 0.62 of the row above left the terms
+     strip 30px tall, which is not a strip, it is a smudge. */
+  const curveH = Math.max(150, rowH * 0.95);
   return {
     side: Math.min(colW, rowH),
     space: { x: x0, y: TOP, w: colW, h: rowH },
@@ -905,11 +908,11 @@ defineWidget({
      * A kernel is similarity against DISTANCE; the thing t-SNE matches is a
      * probability distribution over WHICH OTHER SAMPLE is a neighbour.
      *
-     * So this panel is one sample's two distributions, side by side. Click any
-     * sample in the 3-D panel to change which. Each bar is one other sample:
-     * how likely it is to be this one's neighbour in the data, and how likely
-     * in the picture. The descent moves the second onto the first, and the KL
-     * beside it is how far apart they still are.
+     * So this panel is one sample's two distributions, with the KL's own terms
+     * beneath them and the kernels demoted to an inset. Click any sample in the
+     * 3-D panel to change which. Settled from `_lab/tsne-kernels.html`, which
+     * drew four candidates live and is kept: Kenneth's call was "B as inset and
+     * C in the panel".
      *
      * PERPLEXITY IS VISIBLE HERE AS A COUNT, which is the whole reason the
      * panel earns its place: at perplexity 5 about five bars stand up, because
@@ -918,7 +921,13 @@ defineWidget({
     {
       const { x, y, w: pw, h: ph } = L.curves;
       const rows = neighbourRows(state.P0, Y, picked);
-      const a = chartArea(x, y, pw, ph);
+      const cell = chartArea(x, y, pw, ph);
+      /* Three bands: the distributions, the terms that add up to the KL, and a
+         line of type. The terms get a third of the height because they are read
+         for SIGN and for which few bars dominate, not for a value. */
+      const termH = Math.max(44, cell.h * 0.30);
+      const a = { x: cell.x, y: cell.y, w: cell.w, h: cell.h - termH - 16 };
+      const tb = { x: cell.x, y: cell.y + a.h + 16, w: cell.w, h: termH };
       const top = Math.max(...rows.map((r) => Math.max(r.p, r.q)), 1e-9);
 
       text(ctx, colors, "Who is a neighbour of this sample", x, y - 10, colors.ink2, colors.fsSm);
@@ -968,7 +977,9 @@ defineWidget({
 
       /* WHERE PERPLEXITY LANDS. The bars are sorted by p, so the perplexity-th
          bar is the edge of the neighbourhood the reader asked for — and the
-         line falls exactly where the outline stops being tall. */
+         line falls exactly where the outline stops being tall. Unlabelled on
+         the canvas: the figure's legend names it, and a label here rode the
+         dashed line, whose position moves with the control. */
       const pp = state.perplexity;
       if (pp < rows.length) {
         const lx = a.x + pp * bw;
@@ -978,31 +989,118 @@ defineWidget({
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(lx, a.y);
-        ctx.lineTo(lx, a.y + a.h);
+        ctx.lineTo(lx, a.y + a.h + termH + 16);
         ctx.stroke();
         ctx.restore();
       }
 
-      /* THE KEY STACKS IN THE TOP RIGHT, all three lines right-aligned, and
-         that is by construction rather than by measuring. The bars are sorted
-         by p, so the tall ones are always on the LEFT and the top right is
-         always empty. Laid out along the top edge instead, the perplexity label
-         printed through "in the data" at 550 and 640px — and it could not be
-         fixed by shortening either, because the label rides the dashed line and
-         the line's position moves with the control. */
-      const key = [
-        [`perplexity ${pp}`, colors.reference],
-        ["in the data", colors.ink2],
-        ["in the picture", colors.empirical],
-      ];
-      key.forEach(([s, c], i) => {
-        text(ctx, colors, s, a.x + a.w - 4, a.y + 2 + i * 13, c, colors.fsXs, "right", "top");
-      });
+      /* ---- the KL's own terms, signed --------------------------------------
+       * p·log(p/q) per neighbour, and the KL is EXACTLY their sum — no proxy.
+       * Shading the gap between outline and bar was the obvious alternative and
+       * is wrong: the gap is |p−q|, but the terms are signed and log-weighted,
+       * so a pair the picture over-weights points DOWNWARDS. Shading would draw
+       * a cost where the truth is a credit.
+       *
+       * Measured on the default stage, at the end of the run: pairs the picture
+       * under-weights carry 137% of the KL, pairs it over-weights carry −37%,
+       * and the worst 2% of pairs carry 77% of the total. That asymmetry is why
+       * t-SNE keeps neighbourhoods and throws away everything else. */
+      const terms = rows.map((r) => (r.p > 0 ? r.p * Math.log(r.p / Math.max(r.q, 1e-12)) : 0));
+      const mag = Math.max(...terms.map(Math.abs), 1e-12);
+      const zero = tb.y + tb.h / 2;
+      ctx.save();
+      ctx.strokeStyle = colors.axis;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tb.x, zero + 0.5);
+      ctx.lineTo(tb.x + tb.w, zero + 0.5);
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      for (let k = 0; k < terms.length; k += 1) {
+        const h = (terms[k] / mag) * (tb.h / 2 - 3);
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = terms[k] >= 0 ? colors.extreme : colors.smoothed;
+        ctx.fillRect(tb.x + k * bw + 0.5, h >= 0 ? zero - h : zero,
+          Math.max(0.8, bw - 1), Math.abs(h));
+      }
+      ctx.restore();
+      /* BOTH LABELS ON THE RIGHT, one per row, and nothing else on either
+         baseline. Left-aligned they sat under the tallest term bars, and the
+         second one printed through "these add up to the KL" at 550px — where
+         the cell is 192px wide and two labels do not fit on one line however
+         they are worded. The claim they carried is a readout tile now, which
+         has the room for a sentence. The far-neighbour terms are always tiny,
+         so the right of this strip is always clear. */
+      text(ctx, colors, "costs the fit", tb.x + tb.w - 2, tb.y + 1, colors.extreme, colors.fsXs, "right", "top");
+      /* Just UNDER the zero line rather than at the strip's bottom edge, which
+         is the cell's bottom edge too — six pixels from the line of type below
+         it, and at 550px the two spanned the same width. Here it is a clear
+         half-strip from both. */
+      text(ctx, colors, "pays it back", tb.x + tb.w - 2, zero + 3, colors.smoothed, colors.fsXs, "right", "top");
 
-      text(ctx, colors, `sample ${picked + 1} — click another`, a.x, a.y + a.h + 5,
-        colors.ink3, colors.fsXs, "left", "top");
+      /* ---- the two kernels, demoted to an inset ---------------------------
+       * They cannot show the KL — that belongs to the distributions above —
+       * but they are the only thing that explains WHY the tail is cheap, and
+       * therefore why the strip below is so lopsided. Variant B from the lab
+       * page: each kernel against distance in units of its OWN width, which
+       * invents no shared axis. The rugs are this sample's real neighbours. */
+      const iw = Math.min(150, a.w * 0.42), ih = Math.min(62, a.h * 0.46);
+      const ix = a.x + a.w - iw, iy = a.y + 2;
+      const isx = (u) => ix + (Math.min(u, 6) / 6) * iw;
+      const isy = (v) => iy + ih - v * (ih - 12);
+      ctx.save();
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ix + 0.5, iy + 0.5, iw, ih);
+      ctx.restore();
+      const kcurve = (f, col, dash) => {
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.4;
+        if (dash) ctx.setLineDash(dash);
+        ctx.beginPath();
+        for (let q = 0; q <= 60; q += 1) {
+          const u = (q / 60) * 6, px = isx(u), py = isy(f(u));
+          if (q === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+      };
+      kcurve((u) => Math.exp(-(u * u) / 2), colors.ink2, [4, 3]);
+      kcurve((u) => 1 / (1 + u * u), colors.theory, null);
+      /* This sample's neighbours, in each kernel's own units: the 3-D distances
+         divided by its own sigma, and the 2-D distances as they stand, since
+         the t's width is fixed at 1. Where the data's rug piles up past the
+         right edge and the picture's does not IS the crowding problem. */
+      const sig = state.sigmas[picked] || 1;
+      const rug = (vals, col, y0) => {
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        for (const v of vals) {
+          ctx.beginPath();
+          ctx.moveTo(isx(v), y0);
+          ctx.lineTo(isx(v), y0 + 5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+      const uData = [], uPic = [];
+      for (let j = 0; j < n; j += 1) {
+        if (j === picked) continue;
+        uData.push(dist3(pts[picked], pts[j]) / sig);
+        uPic.push(dist2(Y[picked], Y[j]));
+      }
+      rug(uData, colors.ink2, iy + ih - 12);
+      rug(uPic, colors.theory, iy + ih - 6);
+      text(ctx, colors, "the two kernels, each in its own units",
+        ix + iw, iy - 3, colors.ink3, colors.fsXs, "right", "bottom");
+
+      text(ctx, colors, `sample ${picked + 1} — click another`, cell.x,
+        cell.y + cell.h + 5, colors.ink3, colors.fsXs, "left", "top");
     }
-
     /* ---- bottom right: the KL divergence falling ------------------------- */
     {
       const { x, y, w: pw, h: ph } = L.descent;
@@ -1103,8 +1201,9 @@ defineWidget({
     }
   },
 
-  readout({ state, anim }) {
+  readout({ params, state, anim }) {
     const { pts, kl, n, perplexity, clamped, legal } = state;
+    const picked = clamp(params.pick | 0, 0, n - 1);
     const Y = shownAt(state, anim);
     const steps = state.path.length - 1;
     const out = [
@@ -1126,6 +1225,25 @@ defineWidget({
         value: `${Math.round(neighboursKept(pts, Y) * 100)}%`,
         note: "of each sample's three nearest in 3-D, how many are still nearest here",
       },
+      /* THE STRIP'S OWN CLAIM, in a tile because it is a sentence and the strip
+         is 192px wide at the narrowest. It also says which way the asymmetry
+         runs, which is the whole point of drawing the terms signed: pulling a
+         true neighbour apart is what costs, and drawing a stranger close pays
+         some of it back. */
+      (() => {
+        const rows = neighbourRows(state.P0, Y, picked);
+        let up = 0, down = 0;
+        for (const r of rows) {
+          if (r.p <= 0) continue;
+          const t = r.p * Math.log(r.p / Math.max(r.q, 1e-12));
+          if (t >= 0) up += t; else down += t;
+        }
+        return {
+          label: `Sample ${picked + 1}'s share`,
+          value: (up + down).toFixed(3),
+          note: `+${up.toFixed(3)} from neighbours pulled apart, ${down.toFixed(3)} back from strangers drawn close`,
+        };
+      })(),
     ];
     if (clamped) {
       out.push({
