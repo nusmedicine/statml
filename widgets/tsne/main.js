@@ -488,11 +488,19 @@ defineWidget({
   layout: "side",
   height: ({ w }) => layout(w).height,
 
-  /* Two entries, and they have to be true with the labels BOTH off and on,
-     because core takes the legend once at build time rather than per render. */
+  /* THE KEY IS `token`, NOT `swatch`, and getting that wrong fails SILENTLY:
+     core writes `var(--c-${item.token}, var(--${item.token}))`, so an unknown
+     key leaves it resolving `var(--c-undefined, var(--undefined))` and every
+     swatch renders the same default grey. The legend looked present and said
+     nothing. Kenneth spotted it on screen; no check in the repo would have.
+     `mark` picks the shape, so a bar reads as a bar and a line as a line.
+
+     These have to be true with the labels BOTH off and on, because core takes
+     the legend once at build time rather than per render. */
   legend: [
-    { label: "what the picture says", swatch: "--c-empirical" },
-    { label: "what the data says", swatch: "--ink-2" },
+    { token: "ink-2", label: "what the data says", mark: "line" },
+    { token: "empirical", label: "what the picture says", mark: "bar" },
+    { token: "reference", label: "perplexity — how many neighbours count", mark: "line" },
   ],
 
   params: {
