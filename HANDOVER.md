@@ -12,8 +12,10 @@ but stay off the gallery and wear the draft bar. Everything is live at
 unseen.** Round one: a visible third dimension, a seed that varies the samples,
 a graph of the stress. Round two: groups, like PCA’s — and the group count turned
 out to reproduce the widget’s own argument, because two centres make a line and
-three make a plane while four make a tetrahedron. Still no fingerprint states.
-See *NEXT* below for the five URLs to open and the one decision to put to him.
+three make a plane while four make a tetrahedron. Round three: the row of three
+became a 2x2, which gave every panel half the canvas instead of a third and put
+the table’s numbers back at twelve samples. Still no fingerprint states. See
+*NEXT* below for the five URLs to open and the one decision to put to him.
 
 **Widget 19 `pca` has six rounds of Kenneth's own feedback in it.** It began as
 a four-tab widget over PCA, MDS, t-SNE and UMAP; his call on 2026-08-26 was
@@ -147,12 +149,12 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: WIDGET 20, ROUND THREE — then t-SNE
+## NEXT: WIDGET 20, ROUND FOUR — then t-SNE
 
-**Two rounds of Kenneth's feedback are in and the result is unseen.** Round one:
-a visible third dimension, a seed that varies the samples, a stress chart. Round
-two: groups, like PCA's. Still no fingerprint states — the design has moved in
-both rounds and will move again.
+**Three rounds of Kenneth's feedback are in and the result is unseen.** Round
+one: a visible third dimension, a seed that varies the samples, a stress chart.
+Round two: groups, like PCA's. Round three: the row of three became a 2x2. Still
+no fingerprint states — the design has moved in all three rounds.
 
 ```bash
 node scripts/serve.mjs 8010     # then /widget/mds/
@@ -168,24 +170,27 @@ node scripts/serve.mjs 8010     # then /widget/mds/
 | `?groups=4&samples=3&measured=1&shown=28` | the broken case: stress 20.7, four clusters still distinct, the gaps wrong |
 | `?groups=3&samples=1&measured=1&shown=9` | three samples, no clusters, fitting exactly — stress 0.000 |
 
-**THE ONE DECISION TO PUT TO HIM: the default now FITS.** Two groups of three is
-`03-5`'s own case and the largest setting whose table is comfortably numbered at
-every width — but its stress is 0.001, so a reader who never touches `groups`
-leaves having seen MDS be exact. The previous default failed to fit, which is
-the widget's headline claim. **No setting does both**: the fit only breaks at
-four groups, and four groups of two lands its font exactly on the 8px threshold
-where the numbers drop out at a 550px canvas. Options are (a) leave it, since
+**THE ONE DECISION STILL OPEN: the default FITS.** Two groups of three is
+`03-5`'s own case — normal against tumour — but its stress is 0.001, so a reader
+who never touches `groups` leaves having seen MDS be exact. The default before
+groups existed failed to fit, which is the widget's headline claim.
+
+**Round three removed the obstacle to changing it.** Under the row of three,
+four groups of two landed its cell font exactly on the 8px threshold, so that
+default would have dropped its numbers on a narrow window; in the 2x2 it reads
+**11px at 550 and 13px at 770**. So the options are now (a) leave it, since
 `groups` is the second control and its own detail line points at the answer,
-(b) default to four groups of two and accept that the numbers vanish on a narrow
-window, (c) default to `samples = 1`, which is the old ungrouped stage and shows
-no clusters at all.
+(b) default to four groups of two — four clusters, stress 9.8, numbers
+everywhere, and it costs nothing now, or (c) default to `samples = 1`, the
+ungrouped stage, which shows no clusters at all. **It is a teaching choice about
+which case a reader should meet first, which is why it has not been made here.**
 
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
 UMAP*.
 
 ---
 
-## Widget 20 · `mds` — BUILT, DRAFT, TWO ROUNDS IN
+## Widget 20 · `mds` — BUILT, DRAFT, THREE ROUNDS IN
 
 Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*, including
 three sections marked SUPERSEDED that keep measurements worth not taking again.
@@ -202,6 +207,45 @@ at full ink.
 cloud onto a plane; this one throws the coordinates away and builds an
 arrangement from nothing. That is why the 2-D panel has **no axes and no axis
 labels** — an MDS arrangement is fixed only up to a turn and a mirror.
+
+### Round three put it in a 2x2, and the quadrants are determined rather than chosen
+
+```
+    the samples        the table
+    the stress         the arrangement
+```
+
+Three panels in a row gave each of them a third of the canvas — 210px at the
+width a reader has, 146 at the narrowest — and left the chart alone in a band
+two thirds empty. Each panel now gets **half**, which is 37% more, and the
+widget goes 377px tall to **666** (550px canvas: 287 to 492). That is ordinary
+here: `multiple-testing` is 700 and `odds-and-risk` 718.
+
+**The table is what the extra width buys**, and it is the panel that could use
+it: twelve samples — four groups of three, the setting where the fit breaks —
+now prints all 132 of its numbers at 10px on a 770px canvas, where the row of
+three could only shade them. Nine samples went from *no numbers at all* on a
+narrow window to 9px.
+
+**Do not reshuffle the quadrants.** Exactly one assignment satisfies all three
+constraints, so any change to one forces the rest:
+
+- the table sits **directly above the arrangement** it is the input to, which is
+  the one adjacency the widget cannot do without (2.7)
+- the cloud is **diagonal from the arrangement**, never beside or above it.
+  Widget 19 puts a cloud next to a 2-D plot because there the second IS a
+  projection of the first; here it is not, and two spaces sharing an edge invite
+  exactly the reading this widget exists to break. In the row of three the table
+  sat physically between them, and that was doing real work
+- reading order runs **across then down** (3.1), the order the story does
+
+Cloud top-left forces arrangement bottom-right; table top-right is the only
+remaining quadrant that keeps it above the arrangement. Everything follows.
+
+**The chart earned its quadrant rather than being stretched into it**: a plot
+area inset from the cell, four gridlines, an axis, the starting stress against 0
+on the y and the step count on the x. The reader is being asked to read a SHAPE
+— steep, then flat — and a shape needs something to be read against.
 
 ### The group count reproduces the widget's own argument, one level up
 

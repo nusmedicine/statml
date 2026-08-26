@@ -4492,7 +4492,7 @@ browser before this lands.
 
 ## Widget 20 · `mds` — BUILT, DRAFT
 
-**TWO ROUNDS OF REVIEW IN.** Built against the storyboard below, which is kept
+**THREE ROUNDS OF REVIEW IN.** Built against the storyboard below, which is kept
 intact underneath so the answers can be checked against what was assumed; then
 Kenneth asked for three things, one of which changed the stage — see *Round one*
 below before reading anything under it, because two later sections it
@@ -4665,6 +4665,61 @@ exact. **Worth a decision:** the previous default failed to fit, which is the
 widget's headline claim, and no setting both shows clusters and fails while
 staying comfortably numbered — four groups of two is the closest and its font
 lands exactly on the 8px threshold at 550.
+
+### Round three of review: two by two, and which quadrant is which
+
+Kenneth: *"can you see if can decongest the panels..all 3 are in a row with the
+stress graph in a separate row..how to 2 x 2? or any other arrangement that
+makes sense?"* — the row of three is gone.
+
+```
+    the samples        the table
+    the stress         the arrangement
+```
+
+**Three in a row put every panel on a third of the canvas** — 210px at the width
+a reader has and 146 at the narrowest — and left the chart alone in a band that
+was two thirds empty. Each panel now gets **half** the canvas, which is 37% more,
+and the widget goes 377px tall to 666 (550px canvas: 287 to 492). That is
+ordinary here: `multiple-testing` is 700 and `odds-and-risk` 718.
+
+**The table is what the extra width buys.** Its cells grow enough to keep their
+numbers where the row could not:
+
+| samples | row of three | two by two |
+|---|---|---|
+| 6 | 13px / 10px | 13px / **13px** |
+| 8 | 10px / 8px | 13px / **11px** |
+| 9 | 10px / **none** | 13px / **9px** |
+| 12 | **none** / none | **10px** / none |
+
+(desktop 770px canvas / narrow 550px). Twelve samples — four groups of three,
+the setting where the fit breaks — now prints all 132 of its numbers at the
+width a reader has, where the row of three could only shade them.
+
+**THE QUADRANTS ARE NOT INTERCHANGEABLE**, and there is exactly one assignment
+that satisfies all three constraints:
+
+- **the table sits DIRECTLY ABOVE the arrangement** it is the input to, which is
+  the one adjacency the widget cannot do without (2.7)
+- **the cloud is DIAGONAL from the arrangement**, never beside or above it.
+  Widget 19 puts a cloud next to a 2-D plot because there the second IS a
+  projection of the first; here it is not, and two spaces sharing an edge invite
+  exactly the reading this widget exists to break. In the row of three the table
+  sat physically between them, and that was doing real work
+- **reading order runs across then down** (3.1), which is the order the story
+  does: the samples, their distances, the fit falling, the arrangement
+
+With the cloud top-left, that forces the arrangement bottom-right, and the two
+remaining quadrants take the table and the chart. Table top-right is the only
+one of those two that puts it above the arrangement. Everything is determined.
+
+**The chart earned its quadrant rather than being stretched into it.** With a
+half-canvas cell it is a chart now instead of a baseline with a line over it: a
+plot area inset from the cell, four gridlines, an axis, the starting stress
+against 0 on the y and the step count on the x. The reader is being asked to
+read a SHAPE — steep, then flat — and a shape needs something to be read
+against.
 
 ### SUPERSEDED BY ROUND ONE · the closed-form checks, which verified the solver
 

@@ -207,31 +207,45 @@ function smacof(D, rng, n) {
  * legible at any size and a six-by-six grid of two-line cells is not.
  * No lower clamp on the panel size: a floor lets the panels total more than the
  * canvas holds, which ran widget 19's right panel 60px off the edge.          */
-const PAD_L = 14, PAD_R = 14, GAP = 18, TOP = 26, BOT = 30;
-const TABLE_RATIO = 1.3;
-const SIDE_MAX = 300;
-const CHART_GAP = 34;
+const PAD_L = 14, PAD_R = 14, GAP = 20, TOP = 26, ROW_GAP = 34, BOT = 30;
+const CELL_MAX = 360;
+const ROW_RATIO = 0.8;
 
+/* TWO BY TWO, and which quadrant each panel takes is the whole design:
+ *
+ *      the samples      the table
+ *      the stress       the arrangement
+ *
+ * Three panels in a row put every one of them on a third of the canvas — 210px
+ * at the width a reader has, 146 at the narrowest — and left the stress chart
+ * alone in a band that was two thirds empty. The grid gives each panel HALF the
+ * canvas instead, which is 37% more, and the table's cells grow enough to keep
+ * their numbers at twelve samples where the row could not.
+ *
+ * The quadrants are not interchangeable:
+ *   - the table sits DIRECTLY ABOVE the arrangement it is the input to, which
+ *     is the one adjacency the widget cannot do without (2.7)
+ *   - the cloud is DIAGONAL from the arrangement, never beside or above it.
+ *     Widget 19 puts a cloud next to a 2-D plot because there the second is a
+ *     projection of the first. Here it is not, and two spaces sharing an edge
+ *     invite exactly the reading this widget exists to break
+ *   - reading order runs across then down, which is the order the story does
+ *     (3.1): the samples, their distances, the fit falling, the arrangement   */
 function layout(w) {
-  const inner = w - PAD_L - PAD_R - GAP * 2;
-  const side = Math.min(SIDE_MAX, Math.max(40, inner / (2 + TABLE_RATIO)));
-  const table = side * TABLE_RATIO;
-  const used = side * 2 + table + GAP * 2;
-  const x0 = Math.max(PAD_L, (w - used) / 2);
-  const chartH = clamp(side * 0.34, 40, 78);
-  const flatX = x0 + side + table + GAP * 2;
+  const colW = Math.min(CELL_MAX, Math.max(40, (w - PAD_L - PAD_R - GAP) / 2));
+  const rowH = colW * ROW_RATIO;
+  const x0 = Math.max(PAD_L, (w - (colW * 2 + GAP)) / 2);
+  const x1 = x0 + colW + GAP;
+  const y1 = TOP + rowH + ROW_GAP;
   return {
-    side,
-    space: { x: x0, y: TOP, w: side, h: side },
-    table: { x: x0 + side + GAP, y: TOP, w: table, h: side },
-    flat: { x: flatX, y: TOP, w: side, h: side },
-    /* UNDER THE ARRANGEMENT AND NOWHERE ELSE. The stress is a reading of that
-       panel, so 2.7 puts it directly beneath it; run full width it would sit
-       under the cloud as well and claim a relationship it has not got. The
-       empty band that leaves under the other two panels is the cost, and it is
-       40-78px of it. */
-    chart: { x: flatX, y: TOP + side + CHART_GAP, w: side, h: chartH },
-    height: TOP + side + CHART_GAP + chartH + BOT,
+    /* The square a scatter gets, which is the smaller side of its cell — the
+       spare width goes to the table, which is the only panel that can use it. */
+    side: Math.min(colW, rowH),
+    space: { x: x0, y: TOP, w: colW, h: rowH },
+    table: { x: x1, y: TOP, w: colW, h: rowH },
+    chart: { x: x0, y: y1, w: colW, h: rowH },
+    flat: { x: x1, y: y1, w: colW, h: rowH },
+    height: TOP + rowH + ROW_GAP + rowH + BOT,
   };
 }
 
@@ -766,7 +780,7 @@ defineWidget({
       ctx.restore();
     }
 
-    /* ---- under it: the stress, step by step ----------------------------- *
+    /* ---- bottom left: the stress, step by step -------------------------- *
      * WHAT IS BEING MINIMISED, drawn as it falls. The curve is only ever drawn
      * as far as the reader has stepped (2.1) — the whole thing up front would
      * hand them the answer before they pressed anything — but the FRAME is the
@@ -779,21 +793,41 @@ defineWidget({
       const { x, y, w: pw, h: ph } = L.chart;
       const total = state.path.length - 1;
       const top = Math.max(state.stress[0], 1e-9);
-      const px = (k) => x + (total > 0 ? (k / total) * pw : 0);
-      const py = (s) => y + ph - clamp01(s / top) * (ph - 2);
+      /* Inset, because in a full quadrant the curve wants a plot area rather
+         than the whole cell: the labels live in the margin the inset leaves. */
+      const PL = 40, PB = 18, PT = 8, PR = 8;
+      const ax = x + PL, ay = y + PT;
+      const aw = Math.max(10, pw - PL - PR), ah = Math.max(10, ph - PT - PB);
+      const px = (k) => ax + (total > 0 ? (k / total) * aw : 0);
+      const py = (s) => ay + ah - clamp01(s / top) * ah;
 
       ctx.save();
       ctx.globalAlpha = arranged;
       text(ctx, colors, "Stress at every step", x, y - 10, colors.ink2, colors.fsSm);
 
-      ctx.strokeStyle = colors.axis;
+      /* Four gridlines and a frame, which is what turns a bare baseline into a
+         chart once it has a quadrant to fill. The reader is being asked to read
+         a SHAPE — steep then flat — and a shape needs something to be read
+         against. */
+      ctx.strokeStyle = colors.grid;
       ctx.lineWidth = 1;
+      for (let g = 1; g < 4; g += 1) {
+        const gyy = Math.round(ay + (ah * g) / 4) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ax, gyy);
+        ctx.lineTo(ax + aw, gyy);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = colors.axis;
       ctx.beginPath();
-      ctx.moveTo(x, y + ph + 0.5);
-      ctx.lineTo(x + pw, y + ph + 0.5);
+      ctx.moveTo(ax + 0.5, ay);
+      ctx.lineTo(ax + 0.5, ay + ah + 0.5);
+      ctx.lineTo(ax + aw, ay + ah + 0.5);
       ctx.stroke();
-      text(ctx, colors, "0", x - 4, y + ph, colors.ink3, colors.fsXs, "right");
-      text(ctx, colors, top.toFixed(1), x - 4, y + 1, colors.ink3, colors.fsXs, "right", "top");
+      text(ctx, colors, "0", ax - 5, ay + ah, colors.ink3, colors.fsXs, "right");
+      text(ctx, colors, top.toFixed(1), ax - 5, ay + 1, colors.ink3, colors.fsXs, "right", "top");
+      text(ctx, colors, `${total} steps`, ax + aw, ay + ah + 5,
+        colors.ink3, colors.fsXs, "right", "top");
 
       /* Through the completed steps, then out to wherever the one in flight has
          got to — so the line lengthens continuously rather than in jumps. */
