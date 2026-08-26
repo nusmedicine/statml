@@ -1,301 +1,315 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut — a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd §6) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently — by the time it was measured, eight of the nine were 190–310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
-  "widgets": [
-    {
-      "slug": "galton-board",
-      "title": "The Normal Distribution",
-      "blurb": "Many small random nudges, added together, land in a bell curve.",
-      "course": "PHM5003",
-      "topics": [
-        "probability",
-        "random walk",
-        "error"
-      ],
-      "arc": 1,
-      "status": "shipped"
-    },
-    {
-      "slug": "clt",
-      "title": "Central Limit Theorem",
-      "blurb": "The mean of a sample goes normal whatever the population looks like.",
-      "course": "PHM5003",
-      "topics": [
-        "sampling",
-        "inference"
-      ],
-      "arc": 2,
-      "status": "shipped"
-    },
-    {
-      "slug": "bootstrap",
-      "title": "Bootstrap Sampling",
-      "blurb": "Resample your one sample to see how uncertain its mean really is.",
-      "course": "PHM5003",
-      "topics": [
-        "resampling",
-        "uncertainty",
-        "inference"
-      ],
-      "arc": 3,
-      "status": "shipped"
-    },
-    {
-      "slug": "confidence-interval",
-      "title": "Confidence Intervals",
-      "blurb": "Three ways to cut an interval, and how often each one actually contains the truth.",
-      "course": "PHM5003",
-      "topics": [
-        "estimation",
-        "uncertainty",
-        "t-distribution",
-        "inference"
-      ],
-      "arc": 4,
-      "status": "shipped"
-    },
-    {
-      "slug": "permutation-test",
-      "title": "Hypothesis Testing",
-      "blurb": "Shuffle the group labels to see what chance alone could have produced.",
-      "course": "PHM5003",
-      "topics": [
-        "hypothesis testing",
-        "p-value",
-        "resampling"
-      ],
-      "arc": 5,
-      "status": "shipped"
-    },
-    {
-      "slug": "multiple-testing",
-      "title": "Multiple Testing",
-      "blurb": "Test twenty thousand genes and a thousand come back significant when none is different.",
-      "course": "PHM5003",
-      "topics": [
-        "multiple testing",
-        "FDR",
-        "p-value",
-        "omics"
-      ],
-      "arc": 6,
-      "status": "shipped"
-    },
-    {
-      "slug": "power-and-error",
-      "title": "Power and Error Rates",
-      "blurb": "You choose the false positive rate. You do not choose the other one.",
-      "course": "PHM5003",
-      "topics": [
-        "power",
-        "sample size",
-        "type I error",
-        "hypothesis testing"
-      ],
-      "arc": 7,
-      "status": "shipped"
-    },
-    {
-      "slug": "maximum-likelihood",
-      "title": "Maximum Likelihood",
-      "blurb": "Try a candidate parameter and see how probable it makes the counts you actually got.",
-      "course": "PHM5003",
-      "topics": [
-        "estimation",
-        "likelihood",
-        "negative binomial",
-        "overdispersion",
-        "inference"
-      ],
-      "arc": 8,
-      "status": "shipped"
-    },
-    {
-      "slug": "bayesian",
-      "title": "Bayesian Estimation",
-      "blurb": "What the likelihood could not give you: a probability for the parameter itself.",
-      "course": "PHM5003",
-      "topics": [
-        "bayesian",
-        "prior",
-        "posterior",
-        "MCMC",
-        "negative binomial",
-        "inference"
-      ],
-      "arc": 9,
-      "status": "shipped"
-    },
-    {
-      "slug": "em-mixture",
-      "title": "Expectation–Maximization",
-      "blurb": "Recover two populations from a mixture, and see which individuals it still gets wrong.",
-      "course": "PHM5003",
-      "topics": [
-        "EM",
-        "mixture model",
-        "clustering",
-        "latent variable",
-        "normal distribution",
-        "inference"
-      ],
-      "arc": 10,
-      "status": "shipped"
-    },
-    {
-      "slug": "probability-mechanisms",
-      "title": "Probability Distributions",
-      "blurb": "Eight distributions on one decision tree: which you need is settled by what you measure.",
-      "course": "PHM5003",
-      "topics": [
-        "probability distributions",
-        "discrete vs continuous",
-        "binomial",
-        "Poisson",
-        "negative binomial",
-        "hypergeometric",
-        "normal distribution",
-        "log-normal",
-        "exponential",
-        "uniform",
-        "d/p/q/r"
-      ],
-      "arc": 11,
-      "status": "shipped"
-    },
-    {
-      "slug": "odds-and-risk",
-      "title": "Odds Ratio and Relative Risk",
-      "blurb": "One table, two ratios. The odds ratio always overstates, and by how much is set by the base rate.",
-      "course": "PHM5003",
-      "topics": [
-        "odds ratio",
-        "relative risk",
-        "2x2 table",
-        "effect size",
-        "study design",
-        "case-control",
-        "epidemiology"
-      ],
-      "arc": 12,
-      "status": "shipped"
-    },
-    {
-      "slug": "generalization",
-      "title": "Fitting and Generalizing",
-      "blurb": "Every parameter you add fits your own patients better and generalizes worse.",
-      "course": "PHM5005",
-      "topics": [
-        "overfitting",
-        "cross-validation",
-        "generalization",
-        "model selection"
-      ],
-      "arc": 13,
-      "status": "shipped"
-    },
-    {
-      "slug": "linear-regularization",
-      "title": "Linear Models and Regularization",
-      "blurb": "One objective, two penalty dials. Only the diamond has corners, and only a corner sets a coefficient to exactly zero.",
-      "course": "PHM5005",
-      "topics": [
-        "linear regression",
-        "regularization",
-        "ridge",
-        "lasso",
-        "elastic net"
-      ],
-      "arc": 14,
-      "status": "shipped"
-    },
-    {
-      "slug": "logistic-regression",
-      "title": "Logistic Regression",
-      "blurb": "A binary outcome has no line through it. Move the link to the left-hand side and the model is straight again.",
-      "course": "PHM5003",
-      "topics": [
-        "logistic regression",
-        "link function",
-        "odds ratio",
-        "generalized linear model"
-      ],
-      "arc": 15,
-      "status": "shipped"
-    },
-    {
-      "slug": "support-vector-machine",
-      "title": "Support Vector Machines",
-      "blurb": "A straight boundary cannot carve out a ring. C sets how wide the corridor is; the kernel sets what shape it may be.",
-      "course": "PHM5005",
-      "topics": [
-        "SVM",
-        "margin",
-        "support vectors",
-        "kernel",
-        "RBF",
-        "classification",
-        "hyperparameters"
-      ],
-      "arc": 16,
-      "status": "shipped"
-    },
-    {
-      "slug": "trees-and-ensembles",
-      "title": "Trees and Ensembles",
-      "blurb": "A tree cuts the plane one threshold at a time. Resample the data and it picks a different one.",
-      "course": "PHM5005",
-      "topics": [
-        "decision tree",
-        "CART",
-        "Gini impurity",
-        "bagging",
-        "bootstrap",
-        "ensembles",
-        "variance"
-      ],
-      "arc": 17,
-      "status": "draft"
-    },
-    {
-      "slug": "balancing-data",
-      "title": "Balancing Data",
-      "blurb": "When one class is rare a model predicts it away. Four ways to correct that, and what each does to the data.",
-      "course": "PHM5005",
-      "topics": [
-        "imbalance",
-        "resampling",
-        "SMOTE",
-        "preprocessing"
-      ],
-      "arc": 18,
-      "status": "draft"
-    },
-    {
-      "slug": "pca",
-      "title": "Principal component analysis",
-      "blurb": "Any two genes keep exactly two thirds of the spread. Turn a direction to where it is largest and see what a plane keeps.",
-      "course": "PHM5005",
-      "topics": [
-        "PCA",
-        "dimensionality reduction",
-        "unsupervised learning"
-      ],
-      "arc": 19,
-      "status": "draft"
-    },
-    {
-      "slug": "mds",
-      "title": "Multidimensional scaling",
-      "blurb": "Fit a picture to a table of distances — or to nothing but their rank order, which is the non-metric one.",
-      "course": "PHM5005",
-      "topics": [
-        "dimensionality reduction",
-        "unsupervised",
-        "distance",
-        "rank"
-      ],
-      "arc": 20,
-      "status": "draft"
-    }
-  ]
+ "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut — a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd §6) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently — by the time it was measured, eight of the nine were 190–310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
+ "widgets": [
+  {
+   "slug": "galton-board",
+   "title": "The Normal Distribution",
+   "blurb": "Many small random nudges, added together, land in a bell curve.",
+   "course": "PHM5003",
+   "topics": [
+    "probability",
+    "random walk",
+    "error"
+   ],
+   "arc": 1,
+   "status": "shipped"
+  },
+  {
+   "slug": "clt",
+   "title": "Central Limit Theorem",
+   "blurb": "The mean of a sample goes normal whatever the population looks like.",
+   "course": "PHM5003",
+   "topics": [
+    "sampling",
+    "inference"
+   ],
+   "arc": 2,
+   "status": "shipped"
+  },
+  {
+   "slug": "bootstrap",
+   "title": "Bootstrap Sampling",
+   "blurb": "Resample your one sample to see how uncertain its mean really is.",
+   "course": "PHM5003",
+   "topics": [
+    "resampling",
+    "uncertainty",
+    "inference"
+   ],
+   "arc": 3,
+   "status": "shipped"
+  },
+  {
+   "slug": "confidence-interval",
+   "title": "Confidence Intervals",
+   "blurb": "Three ways to cut an interval, and how often each one actually contains the truth.",
+   "course": "PHM5003",
+   "topics": [
+    "estimation",
+    "uncertainty",
+    "t-distribution",
+    "inference"
+   ],
+   "arc": 4,
+   "status": "shipped"
+  },
+  {
+   "slug": "permutation-test",
+   "title": "Hypothesis Testing",
+   "blurb": "Shuffle the group labels to see what chance alone could have produced.",
+   "course": "PHM5003",
+   "topics": [
+    "hypothesis testing",
+    "p-value",
+    "resampling"
+   ],
+   "arc": 5,
+   "status": "shipped"
+  },
+  {
+   "slug": "multiple-testing",
+   "title": "Multiple Testing",
+   "blurb": "Test twenty thousand genes and a thousand come back significant when none is different.",
+   "course": "PHM5003",
+   "topics": [
+    "multiple testing",
+    "FDR",
+    "p-value",
+    "omics"
+   ],
+   "arc": 6,
+   "status": "shipped"
+  },
+  {
+   "slug": "power-and-error",
+   "title": "Power and Error Rates",
+   "blurb": "You choose the false positive rate. You do not choose the other one.",
+   "course": "PHM5003",
+   "topics": [
+    "power",
+    "sample size",
+    "type I error",
+    "hypothesis testing"
+   ],
+   "arc": 7,
+   "status": "shipped"
+  },
+  {
+   "slug": "maximum-likelihood",
+   "title": "Maximum Likelihood",
+   "blurb": "Try a candidate parameter and see how probable it makes the counts you actually got.",
+   "course": "PHM5003",
+   "topics": [
+    "estimation",
+    "likelihood",
+    "negative binomial",
+    "overdispersion",
+    "inference"
+   ],
+   "arc": 8,
+   "status": "shipped"
+  },
+  {
+   "slug": "bayesian",
+   "title": "Bayesian Estimation",
+   "blurb": "What the likelihood could not give you: a probability for the parameter itself.",
+   "course": "PHM5003",
+   "topics": [
+    "bayesian",
+    "prior",
+    "posterior",
+    "MCMC",
+    "negative binomial",
+    "inference"
+   ],
+   "arc": 9,
+   "status": "shipped"
+  },
+  {
+   "slug": "em-mixture",
+   "title": "Expectation–Maximization",
+   "blurb": "Recover two populations from a mixture, and see which individuals it still gets wrong.",
+   "course": "PHM5003",
+   "topics": [
+    "EM",
+    "mixture model",
+    "clustering",
+    "latent variable",
+    "normal distribution",
+    "inference"
+   ],
+   "arc": 10,
+   "status": "shipped"
+  },
+  {
+   "slug": "probability-mechanisms",
+   "title": "Probability Distributions",
+   "blurb": "Eight distributions on one decision tree: which you need is settled by what you measure.",
+   "course": "PHM5003",
+   "topics": [
+    "probability distributions",
+    "discrete vs continuous",
+    "binomial",
+    "Poisson",
+    "negative binomial",
+    "hypergeometric",
+    "normal distribution",
+    "log-normal",
+    "exponential",
+    "uniform",
+    "d/p/q/r"
+   ],
+   "arc": 11,
+   "status": "shipped"
+  },
+  {
+   "slug": "odds-and-risk",
+   "title": "Odds Ratio and Relative Risk",
+   "blurb": "One table, two ratios. The odds ratio always overstates, and by how much is set by the base rate.",
+   "course": "PHM5003",
+   "topics": [
+    "odds ratio",
+    "relative risk",
+    "2x2 table",
+    "effect size",
+    "study design",
+    "case-control",
+    "epidemiology"
+   ],
+   "arc": 12,
+   "status": "shipped"
+  },
+  {
+   "slug": "generalization",
+   "title": "Fitting and Generalizing",
+   "blurb": "Every parameter you add fits your own patients better and generalizes worse.",
+   "course": "PHM5005",
+   "topics": [
+    "overfitting",
+    "cross-validation",
+    "generalization",
+    "model selection"
+   ],
+   "arc": 13,
+   "status": "shipped"
+  },
+  {
+   "slug": "linear-regularization",
+   "title": "Linear Models and Regularization",
+   "blurb": "One objective, two penalty dials. Only the diamond has corners, and only a corner sets a coefficient to exactly zero.",
+   "course": "PHM5005",
+   "topics": [
+    "linear regression",
+    "regularization",
+    "ridge",
+    "lasso",
+    "elastic net"
+   ],
+   "arc": 14,
+   "status": "shipped"
+  },
+  {
+   "slug": "logistic-regression",
+   "title": "Logistic Regression",
+   "blurb": "A binary outcome has no line through it. Move the link to the left-hand side and the model is straight again.",
+   "course": "PHM5003",
+   "topics": [
+    "logistic regression",
+    "link function",
+    "odds ratio",
+    "generalized linear model"
+   ],
+   "arc": 15,
+   "status": "shipped"
+  },
+  {
+   "slug": "support-vector-machine",
+   "title": "Support Vector Machines",
+   "blurb": "A straight boundary cannot carve out a ring. C sets how wide the corridor is; the kernel sets what shape it may be.",
+   "course": "PHM5005",
+   "topics": [
+    "SVM",
+    "margin",
+    "support vectors",
+    "kernel",
+    "RBF",
+    "classification",
+    "hyperparameters"
+   ],
+   "arc": 16,
+   "status": "shipped"
+  },
+  {
+   "slug": "trees-and-ensembles",
+   "title": "Trees and Ensembles",
+   "blurb": "A tree cuts the plane one threshold at a time. Resample the data and it picks a different one.",
+   "course": "PHM5005",
+   "topics": [
+    "decision tree",
+    "CART",
+    "Gini impurity",
+    "bagging",
+    "bootstrap",
+    "ensembles",
+    "variance"
+   ],
+   "arc": 17,
+   "status": "draft"
+  },
+  {
+   "slug": "balancing-data",
+   "title": "Balancing Data",
+   "blurb": "When one class is rare a model predicts it away. Four ways to correct that, and what each does to the data.",
+   "course": "PHM5005",
+   "topics": [
+    "imbalance",
+    "resampling",
+    "SMOTE",
+    "preprocessing"
+   ],
+   "arc": 18,
+   "status": "draft"
+  },
+  {
+   "slug": "pca",
+   "title": "Principal component analysis",
+   "blurb": "Any two genes keep exactly two thirds of the spread. Turn a direction to where it is largest and see what a plane keeps.",
+   "course": "PHM5005",
+   "topics": [
+    "PCA",
+    "dimensionality reduction",
+    "unsupervised learning"
+   ],
+   "arc": 19,
+   "status": "draft"
+  },
+  {
+   "slug": "mds",
+   "title": "Multidimensional scaling",
+   "blurb": "Fit a picture to a table of distances — or to nothing but their rank order, which is the non-metric one.",
+   "course": "PHM5005",
+   "topics": [
+    "dimensionality reduction",
+    "unsupervised",
+    "distance",
+    "rank"
+   ],
+   "arc": 20,
+   "status": "draft"
+  },
+  {
+   "slug": "tsne",
+   "title": "t-SNE",
+   "blurb": "Perplexity is how many neighbours a sample must care about. What survives into the picture is who is near whom.",
+   "course": "PHM5003",
+   "topics": [
+    "dimensionality reduction",
+    "unsupervised",
+    "neighbourhood",
+    "perplexity"
+   ],
+   "arc": 21,
+   "status": "draft"
+  }
+ ]
 }
