@@ -211,7 +211,7 @@ defineWidget({
   slug: "pca",
   title: "Principal component analysis",
   subtitle: "Turn the cloud to see its shape. Then draw the two directions the samples spread along most, and flatten them onto the plane those two make.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,
 

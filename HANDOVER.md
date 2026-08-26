@@ -1,5 +1,29 @@
 # Handover
 
+## FIRST THING AT A REAL KEYBOARD: rebaseline eleven states
+
+**All twenty-one widgets are SHIPPED and on the gallery** — the five drafts were
+promoted on 2026-08-26 at Kenneth's call. Promotion is a real gate: `check`
+demands fingerprint states of a non-draft widget, so eleven were added —
+settled and driven for each of the five, plus a **hit-driven** one for `t-sne`,
+which is the first widget in the repo to declare `regions`.
+
+**THEIR HASHES ARE PLACEHOLDERS, `"0"`/`"0"`, and they will all report DIFFER
+until they are recorded.** That is deliberate and it could not be otherwise: the
+Browser pane runs at `devicePixelRatio` 1 while this machine's baseline was
+recorded at its scaled DPR, so a `px` recorded from an agent session is wrong
+for the machine that checks it. Writing one would have poisoned the baseline
+silently, which is the trap this file already records widget 17 nearly falling
+into.
+
+**So the suite is 123 real states and 11 unrecorded ones**, and until they are
+recorded a DIFFER no longer means what it means everywhere else in this repo.
+Recording them is one pass at a real keyboard: run `widgets/_lab/fingerprint.html`,
+confirm the eleven are deterministic across three runs, and copy the new
+baseline. Grep the baseline for `PLACEHOLDER` to find them.
+
+---
+
 ## Where things are
 
 **Twenty widgets: sixteen SHIPPED, four DRAFT.** Widget 17,

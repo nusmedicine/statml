@@ -594,7 +594,7 @@ defineWidget({
     "The job is to find the minority outcome. Start from a cohort with both, keep only some of "
     + "the cases you managed to collect, and watch four corrections pull the boundary back "
     + "towards where all of them put it.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: heightFor,
 

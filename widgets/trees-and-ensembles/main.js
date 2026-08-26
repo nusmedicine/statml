@@ -950,7 +950,7 @@ function resolveRGB(css) {
 defineWidget({
   slug: "trees-and-ensembles",
   title: "Trees and Ensembles",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: canvasHeight,
 

@@ -462,7 +462,7 @@ defineWidget({
   slug: "mds",
   title: "Multidimensional scaling",
   subtitle: "Drag the figure to turn it. Then measure the distance between every pair and set the coordinates aside: the picture is the arrangement whose distances come closest to that table.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,
 

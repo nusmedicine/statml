@@ -254,7 +254,7 @@
     "variance"
    ],
    "arc": 17,
-   "status": "draft"
+   "status": "shipped"
   },
   {
    "slug": "balancing-data",
@@ -268,7 +268,7 @@
     "preprocessing"
    ],
    "arc": 18,
-   "status": "draft"
+   "status": "shipped"
   },
   {
    "slug": "pca",
@@ -281,7 +281,7 @@
     "unsupervised learning"
    ],
    "arc": 19,
-   "status": "draft"
+   "status": "shipped"
   },
   {
    "slug": "mds",
@@ -295,7 +295,7 @@
     "rank"
    ],
    "arc": 20,
-   "status": "draft"
+   "status": "shipped"
   },
   {
    "slug": "t-sne",
@@ -309,7 +309,7 @@
     "perplexity"
    ],
    "arc": 21,
-   "status": "draft"
+   "status": "shipped"
   }
  ]
 }

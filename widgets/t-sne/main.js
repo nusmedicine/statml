@@ -487,7 +487,7 @@ defineWidget({
   slug: "t-sne",
   title: "t-SNE",
   subtitle: "Every sample carries a neighbourhood, and perplexity is how many others fit inside it. Drag the cloud to turn it, then run the descent: what survives into the picture is who is near whom, and nothing else.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,
 
