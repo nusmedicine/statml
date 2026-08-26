@@ -161,8 +161,13 @@ below and in [docs/catalogue.md](docs/catalogue.md) — read the round headings
 before changing anything, because most of them reversed an earlier decision for
 a reason that is written down.
 
-**Next is a widget for UNSUPERVISED LEARNING** — PCA, MDS, t-SNE, UMAP. The
-reconnaissance is done; see *NEXT* below.
+**Next is WIDGET 21, t-SNE, and its planning session is DONE** — see *NEXT*
+below. Every question that session was called to settle is settled, with numbers
+rather than guesses: it is one widget, it computes at runtime rather than
+replaying a table, and its stage is four times the size of MDS's because the
+library's own `3 × perplexity < n − 1` rule leaves nothing to teach at MDS's.
+The PHM5003 notebook turned out to be on this disk, which is what settled the
+first of those.
 
 ```bash
 node scripts/serve.mjs 8010   # NOT `npm run dev` — :8000 is Docker's here
@@ -187,32 +192,71 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: PLAN THE t-SNE WIDGET
+## NEXT: BUILD THE t-SNE WIDGET — the planning is DONE
 
-**Kenneth's call at the end of the MDS session: *"start new session where we'll
-plan for t-SNE widget."* A PLANNING session, not a building one** — which is
-what widgets 19 and 20 both wanted and only half got.
+**The planning session Kenneth asked for ran on 2026-08-26 and every question it
+was called to settle is settled.** Full record, with all the numbers, in
+[docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE — PLANNED AND MEASURED*.
+Read that before writing a line. The short version:
 
-**Start here:** [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
-UMAP*. It carries the three questions to settle before any code, what to lift
-from `mds` rather than rewrite, and the four things widget 20 learned that will
-bite the same way. **Then** § *Widget 20* above it, which is five rounds of
-decisions and most of them apply again.
+**THE PHM5003 NOTEBOOK IS ON THIS DISK.** The previous handover said to ask
+Kenneth for it. It is at `../jupyterbook/phm5003/notebook/05 - Introduction to
+High Throughput Data/04 - Dimensionality Reduction.ipynb`, 54 cells, and reading
+it settled the structural question in one look. **PHM5005's `03-5` is still
+missing** and is the only thing still worth asking for.
 
-**The first thing to ask Kenneth for is the notebook.** t-SNE has two hosts —
-PHM5005's `03-5` cells 31–40 (Python, `sklearn.manifold.TSNE`) and PHM5003's
-`05 / 04 — Dimensionality Reduction` (R) — and **reading the PHM5003 one is what
-settled widget 20's whole structure**: one heading over classical and non-metric
-meant one widget rather than two. It is not on this disk. He supplied a
-tokenised JupyterLab link last time; the token is deliberately not recorded
-anywhere in this public repo, so ask again.
+1. **ONE WIDGET.** t-SNE has its own top-level heading, `## 4`, and UMAP has
+   `## 5`. Widget 20 carries two methods only because `## 3` covers both under
+   one topic. The rule held; it just had to be read rather than guessed.
+2. **IT COMPUTES AT RUNTIME. There is no replay table.** This was the question
+   the last handover said decides the rest, and its premise was too pessimistic:
+   exact t-SNE at n = 48 runs **1000 iterations in 55 ms**, and `compute()` runs
+   on parameter change only. So **`perplexity` is a live slider**, which is what
+   the widget hangs on. A ~90-line prototype exists and is the widget's
+   `compute()` already — gradient verified against a central difference to
+   **2.4e-10**, perplexity bisection to 1.1e-4.
+3. **The one sentence:** *t-SNE keeps who is near whom, and throws away
+   everything else. The clusters are real; their sizes, their gaps and where
+   they sit are not.* It is the notebook's own weakness column — "Does not
+   preserve global structure" — made into a claim a figure can demonstrate.
 
-**The one question that decides the rest:** does t-SNE COMPUTE at runtime or
-REPLAY a precomputed seeded table? SMACOF was thirty lines; t-SNE is not. A
-replay is legitimate — an animation is a reveal of already-computed data
-(invariant 2) — but **a replayed table cannot honour a live `perplexity`
-slider**, and `perplexity` is the control that carries the idea. So that is one
-decision, not two.
+**THE STAGE IS FOUR TIMES MDS's, and the library forced it.** `Rtsne` errors
+unless `3 × perplexity < n − 1`, so at n = 12 there are two legal perplexities
+and they differ by 0.06 — **the control carries nothing at MDS's size.** At
+n = 48 the same measurement swings 0.09 → 0.66 → 0.58 across the legal range.
+**So: about 48 samples, four groups of twelve, and no distance table** — t-SNE's
+input panel is one point's neighbourhood, not a grid.
+
+**Two failures to build, both on the perplexity slider**, out of five that fire:
+t-SNE **manufactures clusters from a cloud that has none** (0.634 against PCA's
+0.447, higher on **38 of 40 seeds**) and **too small a perplexity shatters real
+groups** (0.09 against 0.66). Cell 41 sends students to
+<https://distill.pub/2016/misread-tsne/> in as many words, so the lesson is
+already pointing at both. A third is nearly free: **5 of 40 seeds give a broken
+picture** while the other 35 agree. **That is not the same metric as the
+reconnaissance's seed-to-seed 10-NN agreement (PCA 1.00, MDS 0.35, t-SNE 0.72 on
+the real 194 samples)**, and the two should not be quoted in one row until one of
+them has been measured the other's way.
+
+**Three traps, all measured, all in the catalogue:** a Step cannot be one
+iteration (the picture is worse than useless before ~600 of the 1000, so a step
+is ~25); the KL curve does not fall cleanly and this is widget 20's stress-1
+problem again; and early exaggeration does nothing at n = 12 but is real at
+n = 48, so the n = 12 finding must not be carried forward.
+
+**ONE OPEN DESIGN QUESTION, and it is Kenneth's call:** what the chart plots.
+KL against the plain `P` wobbles — it rises on 139 of 1000 steps and jumps +0.54
+when early exaggeration is released — and the alternative is worse, because the
+quantity each step actually minimises is ~45 during exaggeration against ~2
+after and one axis cannot hold both. The recommendation is to chart the plain KL
+and mark the release, on the grounds that the wobble *is* the mechanism. Ask
+before building it.
+
+**ONE DEBT BEFORE IT SHIPS: a reference table against `Rtsne` or `sklearn`.**
+Python is not installed on this machine, so the prototype's checks are all
+internal — they catch implementation bugs, not a wrong reading of the algorithm.
+`_lab/svm-sklearn-ref.json` and `_lab/tree-forest-reference.json` are what this
+looks like when it is done, and neither can be regenerated here.
 
 ---
 

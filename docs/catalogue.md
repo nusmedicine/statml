@@ -4115,7 +4115,7 @@ complexity."*
 |---|---|---|---|
 | 19 | `pca` | PCA | **built — draft** |
 | 20 | `mds` | MDS, classical **and non-metric** | **built — draft**, five review rounds |
-| — | — | t-SNE | **planned next** — storyboarded, and see § NEXT below |
+| — | — | t-SNE | **planned and measured, not built** — every question settled, see § NEXT below |
 | — | — | UMAP | planned, storyboarded |
 | — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
 
@@ -4128,7 +4128,10 @@ honestly closer to five" independently.
 **MDS was built next rather than t-SNE**, because it is the only one of the three
 with a closed-form answer to debug the shared machinery against, and it
 exercises the whole iterative half that PCA does not. That answer earned its
-keep immediately — see Widget 20 below. **t-SNE is next.**
+keep immediately — see Widget 20 below. **t-SNE is next, and its planning
+session is done: the notebook gives it its own heading, so it is one widget, and
+an exact t-SNE at widget scale runs in 55 ms, so it computes rather than
+replays. § NEXT carries the measurements.**
 
 ---
 
@@ -5039,76 +5042,248 @@ again, which is the change round one reversed.
 
 ---
 
-## NEXT · t-SNE, then UMAP
+## NEXT · t-SNE — PLANNED AND MEASURED, not yet built
 
-**`mds` is built and t-SNE is next, as a planning session first.** Read *Widget
-20* above before anything else — it is five review rounds of decisions, and most
-of them apply again — then this, then the storyboard below, which was written
-for the abandoned four-tab widget and is the payoff for the per-algorithm ones
-rather than their spine.
+**The planning session ran on 2026-08-26 and it settled all three questions.**
+Everything below that carries a number was measured in this repo, in node,
+against an exact t-SNE written for the purpose — not recalled. The prototype and
+its checks are described under *The prototype, and what it proves* below; it is
+about 90 lines and is what the widget would ship.
 
-### What is already built and should be lifted, not rewritten
+**READ THE NOTEBOOK SECTION FIRST.** It is on this disk after all —
+`../jupyterbook/phm5003/notebook/05 - Introduction to High Throughput Data/04 -
+Dimensionality Reduction.ipynb`, 54 cells — and it answered the structural
+question before any code was written. The previous handover said to ask Kenneth
+for it; that is no longer needed for PHM5003. **PHM5005's `03-5` is still not on
+this disk.**
 
-`widgets/mds/main.js` is the reference now, not `pca`. Method-independent and
-already twice-used: the 3-vector helpers, the orthographic `camera`, the
-wireframe `globe`, the depth-sorted and depth-SIZED scatter, the `drag` block,
-`--c-cluster-a…f`, the 2×2 `layout` read by both `height` and `draw`, the
-grouped `stage`, and the stress chart. **The 2×2 quadrants are determined rather
-than chosen** — see widget 20 — so a t-SNE widget that keeps a cloud and a
-result should keep them diagonal for the same reason.
+### Question 0, which the notebook settled: ONE WIDGET, not two
 
-### The three questions to settle BEFORE any code
+`04 - Dimensionality Reduction` gives t-SNE **its own top-level heading**:
 
-1. **Compute at runtime, or replay a seeded table?** This is the one MDS did not
-   have. SMACOF is thirty lines; t-SNE is not, and a faithful one is a decision
-   rather than a convenience (non-negotiable 7). Replaying is legitimate — an
-   animation is a reveal of already-computed data (invariant 2) — and is
-   probably the only way UMAP ever appears. **But a replayed table cannot honour
-   a live `perplexity` slider**, which is the control that carries the idea, so
-   this decision and question 2 are the same decision.
-2. **What is the one sentence?** PCA's was *a 2-D plot is not the data*; MDS's is
-   *the input is the table of distances, not the cloud*. t-SNE's candidate is
-   **what a neighbourhood is, and that `perplexity` decides how big one is** —
-   the reconnaissance already found `perplexity`, `n_neighbors` and `min_dist`
-   are three clothes for one idea.
-3. **Which failure does it show?** Principle 2.6, and t-SNE has an unusually
-   good one on paper — distances between clusters mean nothing — but **the
-   reconnaissance measured it and it did NOT fire on this data**: t-SNE does not
-   invent clusters from noise at this scale (silhouettes 0.31–0.37 for every
-   method including PCA), and no method splits the tumour class into fake
-   subgroups. What DID fire is on generated blobs: a cluster genuinely 10×
-   wider renders 2.1× wider in t-SNE and 1.2× in UMAP, and a true 5:1 gap ratio
-   renders as 11.4:1 in UMAP. **So the failing case has to come from a generated
-   stage**, exactly as it did for widgets 19 and 20.
+```
+## 1. Principal Component Analysis (PCA)               cells 7–14
+## 2. Non-negative Matrix Factorization (NMF)           cells 15–23
+## 3. Multidimensional Scaling (MDS): Classical and     cells 24–38   <- widget 20
+     Non-metric
+## 4. t-Distributed Stochastic Neighbor Embedding       cells 39–45   <- this one
+## 5. Uniform Manifold Approximation and Projection     cells 46–53
+```
 
-### What widget 20 learned that will bite t-SNE the same way
+**So widget 20's exception does not extend here.** MDS carries two methods
+because `## 3` carries two sub-headings under one topic; t-SNE has `## 4` to
+itself and UMAP has `## 5`. One algorithm, one widget — Kenneth's rule, applied
+by reading rather than by taste.
 
-- **Only the FIRST gate animates** unless the gates are `display: true`.
-- **A seeded random start can degenerate**, and the cure is usually where you
-  start rather than how you stop. Non-metric MDS collapsed 18 of 40 seeds from a
-  random start and none from the classical one. t-SNE's own early-exaggeration
-  phase is the same kind of device; find out what `sklearn` actually does before
-  inventing a schedule.
-- **Do not animate a search the library does not perform** (widget 19), but
-  **do not remove real motion either** (widget 20). The test is *does the
-  library do this*, and t-SNE genuinely does gradient descent — so its motion is
-  real and should be named, not hidden.
-- **Check the claim against the library, not against memory.** `isoMDS`'s
-  default start was verified from the MASS documentation because Kenneth asked
-  *"is it your idea, or this is the actual algorithm?"* — the right question, and
-  the answer changed a line of on-screen copy.
+### Question 1: COMPUTE AT RUNTIME. The replay is not needed.
+
+**This is the question the previous handover said decides the rest, and the
+answer is that its premise was too pessimistic.** Exact t-SNE — the algorithm
+`sklearn` runs as `method="exact"` and `Rtsne` runs at `theta=0` — is *small*,
+and at widget scale it is *fast*:
+
+| n | 1000 iterations | 400 iterations |
+|---|---|---|
+| 24 | 23 ms | 13 ms |
+| 36 | 35 ms | 20 ms |
+| **48** | **55 ms** | 29 ms |
+| 60 | 92 ms | 39 ms |
+| 80 | 138 ms | 65 ms |
+
+`compute()` runs on parameter change only, never per frame (invariant 2), so
+55 ms is a slider that feels immediate. **`perplexity` can therefore be a live
+control**, which is what the whole widget hangs on — and the replayed table,
+which could not have honoured it, is not needed.
+
+Three checks say the implementation is right rather than merely fast:
+
+- **the analytic gradient matches a central difference of the KL to 2.4e-10.**
+  It matched to only 1.9e-2 first, and the cause was a real bug: the row
+  normalisation of `P(·|i)` recomputed its sum inside the divide loop, so `P`
+  never summed to 1 — and the standard gradient `4Σ(p−q)w(yᵢ−yⱼ)` is derived
+  assuming it does. **A wrong `P` is consistent between analytic and numerical,
+  so only the gradient check could see this.** No picture would have.
+- **the perplexity bisection hits its target**, to within 1.1e-4 in `2^H` across
+  perplexity 2–11, in about 15 bisections a point.
+- **KL falls**, 2.14 to 0.22 over 1000 steps at n = 48.
+
+### Question 2: the one sentence, and it is the lesson's own weakness column
+
+> **t-SNE keeps who is near whom, and throws away everything else. The clusters
+> are real; their sizes, their gaps and where they sit are not.**
+
+The notebook's overview table (cell 1) names t-SNE's weakness as *"Does not
+preserve global structure"* and its strength as *"Excellent at revealing local
+structures and clusters"*. The sentence above is those two lines made into one
+claim a figure can be built to demonstrate. Every half of the "not" is measured
+below.
+
+**The catalogue's earlier candidate — *what a neighbourhood is, and that
+`perplexity` decides how big one is* — survives as the MECHANISM but not as the
+sentence.** Perplexity is how the widget shows the claim; the claim is what a
+reader is allowed to conclude from the picture.
+
+### Question 3: which failure — FIVE fire, and they need pruning to two
+
+All measured on generated stages, which is where the reconnaissance said they
+would have to come from.
+
+| # | the failure | measured |
+|---|---|---|
+| 1 | **it manufactures clusters from a cloud that has none** | a round 3-D Gaussian, no groups at all. Best 2-way split a reader could see: **t-SNE 0.634 ± 0.104 against PCA's 0.447 ± 0.057**, higher on **38 of 40 seeds** at n = 12, perplexity 2. Holds at every size tried (n = 12, 24, 40, 60) and **is strongest at low perplexity**, decaying toward PCA's value as perplexity rises |
+| 2 | **cluster size means nothing** | a group genuinely **11.2× wider** than its neighbour is drawn **1.6× wider**. At 5.6× true it draws 1.4×; at 2.2× true it draws 1.2× |
+| 3 | **the gaps between clusters mean nothing** | true centre-to-centre gaps of 5.2 / 7.1 / 1.9 draw as 1568 / 1440 / 713 — and the *ratio* moves too, 3.7 : 1 true against 2.2 : 1 drawn |
+| 4 | **the seed gives a different answer, not just a different picture** | n = 48, perplexity 5, one stage, 40 seeds: **5 of 40 come out broken** (silhouette < 0.4, as low as 0.08). The other 35 average 0.648 and agree with each other. A student who runs it once has no way to know which they got |
+| 5 | **perplexity too small shatters the true groups** | n = 48: perplexity 2 → silhouette **0.09**; perplexity 5 → **0.66**; perplexity 12 → 0.58. A sevenfold swing across the legal range, with the optimum in the middle |
+
+**#1 and #5 are the pair to build**, and they are one control: both live on
+`perplexity`, both are what the lesson's own link is about — cell 41 sends
+students to <https://distill.pub/2016/misread-tsne/> in as many words — and #1
+is the demonstration the four-method reconnaissance reported as unavailable.
+**It was unavailable on the real 194-sample data; at the widget's generated
+scale it fires on 38 of 40 seeds.** That is not a contradiction of the earlier
+measurement, it is its boundary, and both readings should stay in this file.
+
+#4 is nearly free — `seed` exists in every widget in the arc — and it feeds an
+arc-wide comparison, **though not as one number: the reconnaissance measured
+seed-to-seed 10-NN agreement on the real 194 samples (PCA 1.00, MDS 0.35, t-SNE
+0.72), and the 5-of-40 figure above is a different metric on a generated stage.**
+Both are true and they are not interchangeable; a widget that wants the
+comparison has to measure the same thing on the same data before quoting it.
+#2 and #3 each need a stage of their own and should wait.
+
+### THE STAGE MUST BE BIGGER THAN MDS'S, and Rtsne's own rule is why
+
+`Rtsne` refuses to run unless **3 × perplexity < n − 1**. That is not a
+convention, it is a hard error in the library, and it decides the sample count.
+Silhouette of the true groups, four overlapping groups, mean of 12 seeds:
+
+| n | legal perplexity | what the control can show |
+|---|---|---|
+| 12 | ≤ 3 | **nothing** — 0.62 at p2 against 0.56 at p3 |
+| 24 | ≤ 7 | 0.48 → 0.58 → 0.58 |
+| 36 | ≤ 11 | 0.32 → 0.49 → 0.60 → 0.57 |
+| **48** | **≤ 15** | **0.09 → 0.34 → 0.66 → 0.65 → 0.58** |
+
+**So the stage is about 48 samples, four groups of twelve** — four times MDS's,
+and it follows from the library rather than from taste. Two consequences, to be
+planned for rather than discovered:
+
+- **there is no distance table.** MDS's 12 × 12 grid was already at its
+  legibility limit at n = 12 (the round-three measurements above). t-SNE does
+  not want one anyway: its input panel is a *neighbourhood*, one point at a time.
+- **the lesson's own run is n = 8**, and `perplexity_value <- min(2, ncol/3)` in
+  cell 42 is a **workaround for a sample count too small to choose in**, not a
+  tuning decision. The widget can show why that line has to be there, which is a
+  better use of the notebook than reproducing its 8 points.
+
+### What the widget looks like, and most of it is determined
+
+**The 2×2 is inherited and its assignment is forced**, by exactly the argument
+recorded under widget 20's round three: the input panel sits directly above the
+arrangement it feeds, and the 3-D cloud sits **diagonal** from the arrangement
+because the arrangement is not a projection of it. t-SNE is "Non-linear" in the
+notebook's own table, so that argument is stronger here than it was for MDS.
+
+```
+    the samples (3-D, draggable)      one point's neighbourhood
+    the KL falling                    the t-SNE arrangement
+```
+
+The **neighbourhood panel** is this widget's answer to MDS's distance table, and
+it is where the three formulas of cell 40 live: a selected sample, the Gaussian
+`σᵢ` that perplexity sets drawn as a ring around it, and `p_{j|i}` as the weight
+of the edges to everything else. Moving `perplexity` moves the ring, which puts
+the mechanism in one gesture.
+
+Lift from `widgets/mds/main.js` rather than rewriting: the 3-vector helpers, the
+orthographic `camera`, the wireframe `globe`, the depth-sorted and depth-sized
+scatter, the `drag` block, `--c-cluster-a…f`, and the `layout` function read by
+both `height` and `draw`.
+
+### Three things that will bite, all measured
+
+1. **A STEP CANNOT BE ONE ITERATION.** The picture needs the full 1000 and is
+   *worse than useless* partway: at n = 48, silhouette **0.21 at 250 steps,
+   0.02 at 300, 0.23 at 400, 0.50 at 600, 0.66 at 1000**. A Step button
+   advancing one gradient step would need a thousand presses to reach an honest
+   figure, and every early press would show a picture the method does not
+   endorse. **A step should be about 25 iterations**, giving 40 of them.
+2. **THE KL CURVE DOES NOT FALL CLEANLY, and this is widget 20's stress-1
+   problem again.** At n = 48 it rises on **139 of 1000 steps**, and it **jumps
+   +0.54 at step 250** when early exaggeration is released. Charting instead the
+   quantity each step is actually minimising is worse, not better: during
+   exaggeration that number is ~45 against ~2 after, and **one axis cannot hold
+   both** — the exact reason raw stress became stress-1 in widget 20.
+   **Recommendation: chart KL against the plain `P` for the whole run, and mark
+   the release**, because the wobble is the mechanism rather than a defect — for
+   250 steps t-SNE is deliberately not minimising the thing it reports.
+   *This is a call for Kenneth, and it is the one open design question.*
+3. **EARLY EXAGGERATION IS SIZE-DEPENDENT, so do not carry the n = 12 finding
+   forward.** At n ≤ 12 it does nothing measurable (silhouette 0.972 with it,
+   0.980 without). At n = 48 it is real: **0.574 with against 0.484 without,
+   helping on 13 of 20 seeds**. The stage the perplexity lesson needs is exactly
+   the size at which the library's default earns its place, so **keep it** — and
+   it is what makes the picture visibly fly apart and settle, which is real
+   motion the library genuinely performs (widget 20's test, not widget 19's).
+
+### Two things checked so nobody re-checks them
+
+- **The random start is fine here, and widget 20's degeneracy does not
+  reproduce.** Non-metric MDS collapsed 18 of 40 seeds from a random start. For
+  t-SNE at n = 48 over 20 seeds, a random start scored **0.577** against a PCA
+  start's **0.498** — no evidence the PCA start helps. `Rtsne`, which is what
+  PHM5003 runs, starts from `rnorm × 1e-4` anyway. *(`sklearn` changed its
+  default to `init="pca"` in 1.2; PHM5005's notebook is not on this disk, and
+  its `max_iter` argument dates it to sklearn ≥ 1.5, so it will be getting the
+  PCA start. Worth one look when that notebook is available — it is exactly the
+  kind of library-versus-memory claim this project has been wrong about before.)*
+- **The picture's size converges rather than running away.** Radius 179 at 250
+  steps, 509 at 500, and 505–508 from there out to 4000 with KL flat at 0.046.
+  So the widget does **not** need widget 20's hold-the-size-fixed correction.
+  The absolute scale is still arbitrary and enormous — a true gap of 5.2 draws
+  as 1568 units — so the panel must normalise, and no distance may be read off
+  it.
 
 ### The hosts, and there are two
 
 | course | notebook | what it runs |
 |---|---|---|
-| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state` |
-| PHM5003 | `05 / 04 — Dimensionality Reduction` | the R side, alongside PCA, NMF, MDS and UMAP |
+| PHM5003 | `05 / 04 — Dimensionality Reduction`, **cells 39–45**, heading `## 4` | `Rtsne` — `perplexity` and nothing else, set to `min(2, ncol/3)` on 8 samples. **On this disk.** Links distill.pub's *How to Use t-SNE Effectively* |
+| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state`. **Not on this disk** |
 
-**Read the PHM5003 one before designing.** It is what settled widget 20's
-structure — one heading over classical and non-metric meant one widget — and its
-t-SNE section will say whether the same is true of anything here. It is not on
-this disk; ask Kenneth for the notebook link.
+**The two libraries do not agree on defaults** — the start, the learning rate,
+and `max_iter` versus `n_iter` — so a widget claiming "this is what the library
+does" has to say *which*. PHM5003's is the one that can be read today, and
+`Rtsne` is the simpler and the stricter of the two.
+
+### The prototype, and what it proves
+
+Written this session in node, about 90 lines: squared distances, the per-point
+bisection on `βᵢ = 1/2σᵢ²` to hit `log(perplexity)` in nats, the symmetrised
+joint `P`, Student-t `Q`, the gradient, and the descent both libraries run —
+momentum 0.5 → 0.8 at step 250, early exaggeration ×12 released at 250,
+per-coordinate gains with `min_gain` 0.01. **It is the widget's `compute()`
+already**, and it is what every number in this section came out of.
+
+**What it does NOT prove is agreement with `sklearn` or `Rtsne` on the same
+input.** Python is not installed on this machine — that is what
+`_lab/svm-sklearn-ref.json` and `_lab/tree-forest-reference.json` were for on
+the previous machine, and neither can be regenerated here. The internal checks
+above (gradient against numerical, perplexity against its target, KL falling)
+catch implementation bugs; they cannot catch a wrong reading of the algorithm.
+**A reference table against one of the two libraries is owed before this ships**,
+and it is the same debt the SVM and tree widgets both paid.
+
+---
+
+## THEN · UMAP
+
+Unchanged by this session, and still last. `## 5` in the same notebook gives it
+its own heading, so it is its own widget on the same rule. It is the one method
+where a **replayed table** is likely the only honest option — the cross-entropy
+objective with its learned `a` and `b`, the fuzzy simplicial set and the negative
+sampling are not thirty lines and not ninety. Decide that when it is next.
 
 ---
 
