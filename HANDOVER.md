@@ -48,27 +48,40 @@ reaches widgets you are not looking at:
 identical.** The pixel half CANNOT be judged from an agent session: the browser
 pane runs at `devicePixelRatio` 1 and the baseline was recorded at the machine's
 scaled DPR, so most pixel hashes differ uniformly, on every widget, including
-ones nothing touched. **One run from the normal browser is owed before any of
-this is pushed.**
+ones nothing touched.
+
+**IT WENT OUT WITHOUT THAT RUN, AND THAT IS STILL OWED.** The push on
+2026-08-26 shipped the `widgets/core/` change — `tokens.css`'s cluster ramp and
+`widget.js`'s `drag` — on the strength of the TEXT half alone, which was
+identical across all 123 states. **One suite run from the normal browser is the
+first thing to do at a real keyboard.** What it would catch is a pixel-level
+change in one of the sixteen SHIPPED widgets, which are the ones on the gallery
+and the ones a student reaches; the two new drafts have no baseline to compare
+against anyway. Nothing suggests there is such a change — `tx` moving is the
+signature of a real regression and it never moved — but it has not been ruled
+out, and this is the honest place to say so rather than in a commit message
+nobody re-reads.
 
 **Widget 18 went through TWELVE rounds of review with Kenneth and is now what he
 asked for.** Widget 17 is still missing a look at its boosting page. Both are
 unbaselined by design — a baseline recorded before the design is settled is
 thrown away, and widget 18's design moved in every one of those twelve rounds.
 
-**EVERYTHING AFTER `3058818` IS UNPUSHED**, and that is the durable way to say
-it: `git ls-remote` puts `origin/main` there, and nothing since has been
-published. As of this commit that is widget 19's four — the core change, the
-widget, its handover and a correction to that handover — plus widget 20's.
-**Every push to `main` publishes**, so a push now puts two unreviewed drafts on
-the live site at once.
+**EVERYTHING IS PUSHED, and widgets 19 and 20 are LIVE.** The fourteen commits
+that had built up — widget 19's four, widget 20's ten — went out on 2026-08-26,
+taking `origin/main` from `3058818` to `dfdc768`. The deploy succeeded, and the
+live site was checked rather than assumed: `/widget/mds/`, `/widget/pca/`, the
+gallery and `/lab/` all return 200, the deployed `main.js` carries the newest
+copy rather than a cached build, and the live manifest reports **16 shipped and
+four drafts** — `trees-and-ensembles`, `balancing-data`, `pca`, `mds` — so both
+new widgets are at their final URLs, off the gallery, wearing the draft bar.
 
-**DO NOT WRITE THE COUNT DOWN, WRITE THE SHA.** The number has now been wrong in
-four consecutive handovers — nine, then eleven, then three, then four — and the
-mechanism is the same every time: **a handover commit counts the tree before
+**DO NOT WRITE THE COUNT DOWN, WRITE THE SHA.** The number was wrong in four
+consecutive handovers — nine, then eleven, then three, then four — and the
+mechanism was the same every time: **a handover commit counts the tree before
 itself exists**, so it is short by one the instant it lands, and the next
-session copies the stale figure forward. `3058818` does not move when a commit
-is added to the local branch.
+session copies the stale figure forward. A SHA does not move when a commit is
+added to the local branch; a count does.
 
 **Verify even that rather than believing it.** The local `origin/main` ref was
 last fetched on 24 August and a stale ref reads as a clean tree either way:
