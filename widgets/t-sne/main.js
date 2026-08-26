@@ -484,7 +484,7 @@ const RUN_MS = 70;
 const otherDisplay = (p) => `${p.turn},${p.tilt},${p.labels},${p.pick}`;
 
 defineWidget({
-  slug: "tsne",
+  slug: "t-sne",
   title: "t-SNE",
   subtitle: "Every sample carries a neighbourhood, and perplexity is how many others fit inside it. Drag the cloud to turn it, then run the descent: what survives into the picture is who is near whom, and nothing else.",
   status: "draft",

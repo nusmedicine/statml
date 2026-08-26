@@ -298,7 +298,7 @@
    "status": "draft"
   },
   {
-   "slug": "tsne",
+   "slug": "t-sne",
    "title": "t-SNE",
    "blurb": "Perplexity is how many neighbours a sample must care about. What survives into the picture is who is near whom.",
    "course": "PHM5003",
