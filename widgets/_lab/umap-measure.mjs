@@ -15,7 +15,7 @@ import { umap, fuzzySet, findAbParams, pcaPlane, stage as makeStage } from "../u
    of its stage and nothing holds the two together. */
 import { makeRng } from "../core/rng.js";
 
-const stage = (seed, per = 12, g = 4) => {
+const stage = (seed, per = 8, g = 6) => {
   const st = makeStage(g, per, makeRng(seed));
   return { X: st.map((s2) => s2.p), y: st.map((s2) => s2.g) };
 };
@@ -75,7 +75,7 @@ console.log("=== Q1 · what compute() would cost, node on this machine ===");
 console.log(`${"n".padStart(5)} ${"iters".padStart(6)} | ${"fuzzy set".padStart(10)} ` +
             `${"descent".padStart(9)} ${"total".padStart(8)}`);
 console.log("-".repeat(46));
-for (const [per, iters] of [[6, 500], [12, 200], [12, 500], [12, 800], [24, 500]]) {
+for (const [per, iters] of [[4, 300], [8, 200], [8, 300], [8, 800], [16, 300]]) {
   const { X } = stage(1, per);
   const ts = [], tf = [];
   for (let r = 0; r < 5; r += 1) {

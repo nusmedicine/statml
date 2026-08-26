@@ -5798,6 +5798,59 @@ two together.
 filled the ball and is load-bearing now that they sit on it. Three great circles
 may be too sparse to read as a surface.
 
+#### SIX GROUPS, EVENLY SPACED — because four could be flattened
+
+*(Kenneth, 2026-08-26: "I can clearly see clusters already when flatten and
+won't see the benefit of umap optimization.")* He was right, and it is a fact
+about geometry rather than about tuning: **four directions in three dimensions
+can be projected onto a plane and stay apart; six evenly spaced ones cannot,
+because any plane has an axis and whatever lies along it collapses.** Six seeds,
+n = 48 throughout:
+
+| groups | per | cap | projection silhouette | after UMAP | gain |
+|---|---|---|---|---|---|
+| 4 | 12 | 30° | **0.684** | 0.882 | +0.199 |
+| **6** | **8** | **30°** | **0.540** | **0.899** | **+0.360** |
+| 8 | 6 | 25° | 0.502 | 0.908 | +0.406 |
+| 12 | 4 | 20° | 0.549 | 0.901 | +0.352 |
+
+**Eight and twelve gain more and are not used, for a reason with nothing to do
+with geometry:** `tokens.css` defines SIX cluster roles, `--c-cluster-a` to
+`-f`, and `sampleCol` wraps with `%`. At eight groups two pairs would share a
+colour, and a cluster plot that repeats a colour tells the reader something
+false. **Six is the octahedron, it is every cluster colour there is, and it
+keeps n = 48 at eight per group.**
+
+**What the reader now sees, on the widget's own tiles:**
+
+| | flat map | settled | |
+|---|---|---|---|
+| four groups | 78% kept, spread 0.095 | 80%, 0.067 | +2 points, ×1.4 |
+| **six groups** | **81% kept, spread 0.104** | **90%, 0.036** | **+9 points, ×2.9** |
+
+And the sentence is stronger again: `min_dist` 0 → 0.99 moves retention
+**+0.013**, past seed noise on **1 of 10** seeds, while moving the clusters
+**×3.62** looser on 10 of 10. `n_neighbors` 2 → 40 moves retention **+0.271** on
+10 of 10 — **twenty-one times the effect on the same measure.**
+
+`n_neighbors` also has a real optimum now rather than a ceiling: retention
+0.663 / 0.847 / 0.897 / 0.930 / 0.934 at 2 / 3 / 5 / 15 / 40, while the
+silhouette turns over — 0.904 at 15 against 0.884 at 40.
+
+#### THE GLOBE IS A WIREFRAME OF PARALLELS AND MERIDIANS
+
+Seven parallels and twelve meridians, front arcs at full weight and back arcs at
+0.28, every arc broken where it crosses the horizon rather than drawn whole and
+over-painted. **The change follows the stage change**: while the samples filled
+the ball the globe was a reference and three coordinate circles placed it; now
+every sample sits on it and the wireframe has to read as a SURFACE, because
+whether a reader sees a curved surface or a scatter in a box is the whole
+difference between a manifold and a cloud.
+
+**And one defect the sweep caught:** `pick` had `max: 47` from when four groups
+was the ceiling, so the last 24 samples of the largest stage were unreachable by
+URL. `draw` clamps, so nothing broke and nothing said so.
+
 #### THE COPY IS CONVENTIONAL, after a pass on Kenneth's instruction
 
 *(2026-08-26: "remove any extraneous commentary from the widget. use

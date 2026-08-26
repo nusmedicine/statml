@@ -32,11 +32,12 @@
    wider than its neighbour draws 1.02x +- 0.07. The readout says so.
 
    THE ONE SENTENCE: `min_dist` decides how tight the picture LOOKS, not what
-   UMAP KNOWS. Swept end to end over ten seeds on this stage it moves 5-NN
-   retention by +0.023 — inside the seed noise on TEN of ten seeds — while
-   moving the clusters x2.63 looser on ten of ten. `n_neighbors` over its range
-   moves retention by +0.255, up on ten of ten and far outside that noise. The
-   two controls sit next to each other so a reader can find out which is which.
+   UMAP KNOWS. Swept end to end over ten seeds it moves 5-NN retention by
+   +0.013 — inside the seed noise on nine of ten — while moving the clusters
+   x3.62 looser on TEN of ten. `n_neighbors` over its range moves retention by
+   +0.271, up on ten of ten and far outside that noise: twenty-one times the
+   effect on the same measure. The two controls sit next to each other so a
+   reader can find out which is which.
 
    The solver is `./model.js`, a separate module so `_lab/umap-verify.mjs` can
    import it in node — WHAT IS VERIFIED IS WHAT SHIPS. Against umap-learn
@@ -54,25 +55,25 @@ import { fuzzySet, findAbParams, umap, pcaPlane, stage, R } from "./model.js";
    seeds as the mean distance a sample travels in a step, against the radius of
    the arrangement:
 
-     step   at 10 iters/step   at 20 iters/step
-        1             30.24%             37.65%
-        2             11.83%             11.94%
-        3              7.19%              7.20%
-       …
-     steps moving under 1%    16 of 30            5 of 15
+     step    moves, as % of the picture's radius
+        1                                 41.52%
+        2                                 12.01%
+        3                                  6.86%
+        5                                  3.38%
+       10                                  1.03%
+       15                                  0.08%
+     steps moving under 1%                5 of 15
 
-   At ten a reader presses thirty times and half of those presses move the
-   picture by less than one per cent of its own size. At twenty, five of fifteen
-   do. KENNETH REPORTED THAT DEFECT ON WIDGET 17 — twenty boosting rounds with
-   nothing visible after six — so it is not hypothetical.
+   At ten iterations a step it is thirty presses and sixteen of them move the
+   picture by under one per cent of its own size. KENNETH REPORTED THAT DEFECT
+   ON WIDGET 17 — twenty boosting rounds with nothing visible after six — so it
+   is not hypothetical.
 
-   The tail is not dead, it is TIGHTENING: retention is flat from 25 iterations
-   (0.859, against 0.862 at the end) while the clusters keep contracting,
-   0.242 down to 0.068 on the spread-over-gap measure. Real motion, just not
-   rearrangement.
+   The tail is not dead, it is TIGHTENING: retention flattens early while the
+   clusters keep contracting, 0.104 down to 0.036 on the spread-over-gap
+   measure. Real motion, just not rearrangement.
 
-   A step still cannot be ONE iteration: at one the arrangement reads 0.706
-   retention against a settled 0.862. */
+   A step still cannot be ONE iteration. */
 const ITERS = 300;
 const PER_STEP = 20;
 
@@ -179,7 +180,7 @@ function chordOverArc(pts, mu) {
 
 /* How tight the clusters LOOK, against how much they mean: mean within-group
    radius over mean centre-to-centre gap. The other half of the sentence, and
-   the half min_dist DOES move — x2.63 across its range on ten seeds. */
+   the half min_dist DOES move — x3.62 across its range on ten seeds. */
 function tightness(Y, gs, groups) {
   if (groups < 2) return 0;
   const cs = [];
@@ -374,29 +375,59 @@ function sampleDot(ctx, colors, x, y, col, r = R_DOT, fade = 1) {
   ctx.restore();
 }
 
-/* The manifold, and here it is not decoration: cell 41's analogy is a globe
-   flattened to a map, so the sphere the samples sit on is the thing being
-   flattened. Widget 21 drew the same wireframe for a different reason. */
+/* THE SPHERE THE SAMPLES LIE ON, drawn as a wireframe of parallels and
+   meridians rather than the three coordinate circles widget 21 uses.
+
+   That change follows the stage change. While the samples filled the ball the
+   globe was a reference and three great circles were enough to place it; now
+   every sample sits ON it and the wireframe has to read as a SURFACE, because
+   whether a reader sees a curved surface or a scatter in a box is the whole
+   difference between a manifold and a cloud. Kenneth asked for it in as many
+   words after seeing the caps land on three circles.
+
+   Front arcs are drawn at full weight and back arcs at a third, which is what
+   gives the sphere its inside and outside. Every arc is broken wherever it
+   crosses the horizon rather than drawn whole and over-painted, so the split is
+   exact at any camera angle. */
+const PARALLELS = 7, MERIDIANS = 12;
+
+function arc(ctx, P, eye, pt, steps, front) {
+  ctx.beginPath();
+  let drawing = false;
+  for (let k = 0; k <= steps; k += 1) {
+    const p = pt(k / steps);
+    if ((dot(p, eye) >= 0) !== front) { drawing = false; continue; }
+    const [x, y] = P(p);
+    if (drawing) ctx.lineTo(x, y); else { ctx.moveTo(x, y); drawing = true; }
+  }
+  ctx.stroke();
+}
+
 function globe(ctx, colors, P, eye, radius, alpha) {
-  const planes = [[0, 1], [1, 2], [2, 0]];
   ctx.save();
-  ctx.lineWidth = 1;
   ctx.strokeStyle = colors.grid;
-  for (const [a, b] of planes) {
-    for (const front of [false, true]) {
-      ctx.globalAlpha = alpha * (front ? 0.9 : 0.32);
-      ctx.beginPath();
-      let drawing = false;
-      for (let k = 0; k <= 96; k += 1) {
-        const t = (k / 96) * Math.PI * 2;
-        const p = [0, 0, 0];
-        p[a] = radius * Math.cos(t);
-        p[b] = radius * Math.sin(t);
-        if ((dot(p, eye) >= 0) !== front) { drawing = false; continue; }
-        const [x, y] = P(p);
-        if (drawing) ctx.lineTo(x, y); else { ctx.moveTo(x, y); drawing = true; }
-      }
-      ctx.stroke();
+  for (const front of [false, true]) {
+    ctx.globalAlpha = alpha * (front ? 0.85 : 0.28);
+    /* Parallels, skipping the poles where the ring has no radius. */
+    for (let i = 1; i < PARALLELS + 1; i += 1) {
+      const lat = -Math.PI / 2 + (Math.PI * i) / (PARALLELS + 1);
+      const r = radius * Math.cos(lat), z = radius * Math.sin(lat);
+      /* The equator carries the weight, so the sphere has a waist to read. */
+      ctx.lineWidth = Math.abs(lat) < 1e-6 ? 1.2 : 0.8;
+      arc(ctx, P, eye, (t) => {
+        const th = t * Math.PI * 2;
+        return [r * Math.cos(th), r * Math.sin(th), z];
+      }, 72, front);
+    }
+    ctx.lineWidth = 0.8;
+    /* Meridians: half circles pole to pole, so each is drawn once. */
+    for (let i = 0; i < MERIDIANS; i += 1) {
+      const lon = (Math.PI * i) / MERIDIANS;
+      const ca = Math.cos(lon), sa = Math.sin(lon);
+      arc(ctx, P, eye, (t) => {
+        const th = t * Math.PI * 2;
+        return [radius * Math.cos(th) * ca, radius * Math.cos(th) * sa, radius * Math.sin(th)];
+      }, 72, front);
     }
   }
   ctx.restore();
@@ -514,30 +545,38 @@ defineWidget({
       default: "off",
       display: true,
     },
+    /* SIX BY DEFAULT, because four can be flattened without losing them. See
+       `spreadDirs` in model.js for the table: the flat map the descent starts
+       from separates four clusters at silhouette 0.684 and six at 0.540, so at
+       four the optimisation looks like it earns nothing. Six is also every
+       cluster colour the tokens file defines and no more. */
     groups: {
       type: "choice",
       label: "Groups",
       options: [
-        { value: "2", label: "2", detail: "two clusters" },
-        { value: "3", label: "3", detail: "three clusters" },
-        { value: "4", label: "4", detail: "four clusters, spread through space" },
+        { value: "2", label: "2", detail: "at the poles" },
+        { value: "3", label: "3", detail: "round the equator" },
+        { value: "4", label: "4", detail: "a tetrahedron — a flat map can still keep them apart" },
+        { value: "6", label: "6", detail: "an octahedron — no flat map can keep all six apart" },
       ],
-      default: "4",
+      default: "6",
     },
     samples: {
       type: "choice",
       label: "Samples per group",
       options: [
-        { value: "3", label: "3", detail: "the R lesson's own scale — 8 samples of airway" },
-        { value: "6", label: "6", detail: "enough for n_neighbors to start mattering" },
+        { value: "4", label: "4", detail: "near the R lesson's scale — 8 samples of airway" },
+        { value: "8", label: "8", detail: "48 samples in all at six groups" },
         { value: "12", label: "12", detail: "the whole useful range of n_neighbors is reachable" },
       ],
-      default: "12",
+      default: "8",
     },
 
     /* THE FIRST OF THE LESSON'S TWO CONTROLS, and the one that changes what
-       UMAP KNOWS. Swept 2 to 40 it moves 5-NN retention by +0.255, up on 10 of
-       10 seeds: 0.631 at 2, 0.743 at 3, 0.793 at 5, 0.862 at 15, 0.885 at 40.
+       UMAP KNOWS. Swept 2 to 40 it moves 5-NN retention by +0.271, up on 10 of
+       10 seeds: 0.663 at 2, 0.847 at 3, 0.897 at 5, 0.930 at 15, 0.934 at 40.
+       The silhouette turns over where retention flattens — 0.904 at 15 against
+       0.884 at 40 — so there is an optimum in the middle rather than a ceiling.
        PHM5003's own setting of 3 is at the shattering end, because 8 samples
        leave nowhere else to be — worth showing rather than copying. */
     neighbours: {
@@ -550,8 +589,8 @@ defineWidget({
     },
 
     /* THE SECOND, and the one the widget is about. Over the same sweep it moves
-       retention by +0.023, which is inside the seed noise on ALL TEN seeds,
-       while moving how tight the clusters LOOK by x2.63, looser on 10 of 10.
+       retention by +0.013, which is inside the seed noise on nine of ten seeds,
+       while moving how tight the clusters LOOK by x3.62, looser on 10 of 10.
 
        NOT `display: true`, however much it behaves like a presentation control.
        It feeds `compute()`: a and b change, the descent is different, the
@@ -633,7 +672,11 @@ defineWidget({
       type: "int",
       label: "Sample",
       min: 0,
-      max: 47,
+      /* THE LARGEST STAGE, which is six groups of twelve. It was 47 while four
+         groups was the ceiling, so the last 24 samples of the biggest stage were
+         unreachable by URL — `draw` clamps, so nothing broke and nothing said
+         so. A hidden parameter's range still has to cover every stage. */
+      max: 71,
       default: 0,
       display: true,
       hidden: true,

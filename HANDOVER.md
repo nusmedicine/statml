@@ -158,6 +158,31 @@ a Swiss roll wound tightly enough defeats UMAP at n = 48 (it keeps 69% of the
 chord neighbourhoods and 40% of the true ones). `_lab/umap-sphere.html` has all
 four stages live.
 
+### SIX GROUPS AND A THICKER GLOBE — both his, both done
+
+*(2026-08-26: "I can clearly see clusters already when flatten and won't see the
+benefit of umap optimization", and "thicken the globe so it reads as a
+surface".)*
+
+**Six evenly spaced clusters, at the vertices of an octahedron, is the default.**
+Four directions in three dimensions can be projected onto a plane and stay apart;
+six cannot, because any plane has an axis and whatever lies along it collapses.
+Six seeds: the flat map separates four groups at silhouette **0.684** and six at
+**0.540**, while UMAP reaches 0.899 either way. On the widget's own tiles, six
+groups roughly doubles what the optimisation visibly adds — neighbours kept
+**81% → 90%** against four groups' 78% → 80%, spread over gap **0.104 → 0.036**
+against 0.095 → 0.067.
+
+**Eight and twelve gain more and are not used**: `tokens.css` has six cluster
+colours and `sampleCol` wraps, so eight groups would repeat two.
+
+**The globe is seven parallels and twelve meridians**, front arcs at full weight
+and back at 0.28, each broken at the horizon rather than over-painted.
+
+**One defect the sweep caught:** `pick` had `max: 47` from when four groups was
+the ceiling, so the last 24 samples of the biggest stage were unreachable by URL.
+`draw` clamps, so nothing broke and nothing said so.
+
 ### What he should look at, because none of it is checkable
 
 - **Is the graph legible at 385 edges?** Mapping C — opacity AND width carrying

@@ -248,8 +248,28 @@ const cross3 = (a, b) => [
   a[0] * b[1] - a[1] * b[0],
 ];
 
-/** Unit directions for the group centres: two poles, three round the equator,
-    or four at the vertices of a tetrahedron. */
+/** Unit directions for the group centres, evenly spaced: two poles, three round
+    the equator, four at the vertices of a tetrahedron, six at the vertices of an
+    octahedron.
+
+    SIX IS THE DEFAULT AND IT IS THE POINT OF THE WIDGET. At four, the flat map
+    the descent starts from ALREADY SEPARATES the clusters — silhouette 0.684 —
+    so the optimisation appears to earn nothing, which is exactly how Kenneth
+    read it. Four directions in three dimensions can be projected onto a plane
+    and stay apart; six evenly spaced ones cannot, because any plane has an axis
+    and whatever lies along it collapses. Six seeds, n = 48 throughout:
+
+      groups   per   cap   projection silhouette   after UMAP   gain
+           4    12    30                   0.684        0.882   +0.199
+           6     8    30                   0.540        0.899   +0.360
+           8     6    25                   0.502        0.908   +0.406
+          12     4    20                   0.549        0.901   +0.352
+
+    Eight and twelve gain more still and are not used, for a reason that has
+    nothing to do with the geometry: `tokens.css` defines SIX cluster roles,
+    `--c-cluster-a` to `-f`, and `sampleCol` wraps with `%`. At eight groups two
+    pairs would share a colour, and a cluster plot that repeats a colour is
+    telling the reader something false. */
 function spreadDirs(n) {
   if (n === 2) return [[0, 0, 1], [0, 0, -1]];
   if (n === 3) {
@@ -257,6 +277,9 @@ function spreadDirs(n) {
       const a = (2 * Math.PI * k) / 3;
       return [Math.cos(a), Math.sin(a), 0];
     });
+  }
+  if (n === 6) {
+    return [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
   }
   const c = 1 / Math.sqrt(3);
   return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => scale3(v, c));

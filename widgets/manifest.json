@@ -314,7 +314,7 @@
     {
       "slug": "umap",
       "title": "UMAP",
-      "blurb": "A graph of nearest neighbours, laid out in 2-D. One control changes what it records, the other only how it packs.",
+      "blurb": "Six clusters on a sphere, flattened to 2-D. A flat map cannot keep them apart; the neighbour graph can.",
       "course": "PHM5003",
       "topics": [
         "dimensionality reduction",
