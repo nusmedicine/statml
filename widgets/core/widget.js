@@ -513,6 +513,27 @@ export function defineWidget(config) {
     setParam(name, value);
   }
 
+  /* THE REGION UNDER A POINTER, and it lives out here rather than inside the
+     `if (regions)` block because the DRAG handler needs it too — that is where
+     "a region click wins where the two overlap" is enforced.
+
+     It was declared with `const` inside that block, which is block-scoped, so
+     the drag handler's reference to it threw `ReferenceError: at is not
+     defined` on every pointerdown. That could only ever fire for a widget
+     declaring BOTH `regions` and `drag`, and until widget 21 no widget declared
+     `regions` at all — for every other widget `regions && at(ev)` short-circuits
+     before `at` is ever evaluated, which is why this sat here unnoticed and why
+     hoisting it changes nothing for them. */
+  const at = (ev) => {
+    if (!regions) return null;
+    const p = surface.pointAt(ev);
+    if (!p) return null;
+    return hitTest(
+      regions({ w: surface.width, h: surface.height, params: { ...values }, state }) ?? [],
+      p.x, p.y
+    );
+  };
+
   if (regions) {
     /* VALIDATED AT LOAD, LOUDLY, not at click time and leniently. A region table
        can be wrong in exactly two ways — a parameter that does not exist and a
@@ -535,14 +556,6 @@ export function defineWidget(config) {
       }
     }
 
-    const at = (ev) => {
-      const p = surface.pointAt(ev);
-      if (!p) return null;
-      return hitTest(
-        regions({ w: surface.width, h: surface.height, params: { ...values }, state }) ?? [],
-        p.x, p.y
-      );
-    };
     surface.canvas.addEventListener("pointerdown", (ev) => {
       const r = at(ev);
       if (!r) return;
@@ -550,10 +563,16 @@ export function defineWidget(config) {
       const [name] = Object.keys(r.set);
       setFromRegion(name, r.set[name]);
     });
-    /* The only thing that says a figure can be clicked at all. */
+    /* The only thing that says a figure can be clicked at all.
+       FALLS BACK TO THE DRAG CURSOR, not to "default": a widget with both a
+       region map and a draggable figure would otherwise lose its grab hand
+       everywhere outside a region, and the figure would stop advertising that
+       it turns. Widget 21 is the first with both, and its subtitle tells the
+       reader to drag the cloud. */
     surface.canvas.addEventListener("pointermove", (ev) => {
       if (dragging) return;   // a gesture in flight owns the cursor
-      surface.canvas.style.cursor = at(ev) ? "pointer" : "default";
+      const idle = drag ? (drag.cursor ?? "grab") : "default";
+      surface.canvas.style.cursor = at(ev) ? "pointer" : idle;
     });
   }
 

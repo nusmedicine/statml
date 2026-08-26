@@ -286,18 +286,37 @@ function layout(w) {
   const x0 = Math.max(PAD_L, (w - (colW * 2 + GAP)) / 2);
   const x1 = x0 + colW + GAP;
   const y1 = TOP + rowH + ROW_GAP;
-  /* The curve row is shorter than the spaces row: it carries two lines and an
-     axis, where the panels above carry a whole cloud. */
+  /* The curve row is shorter than the spaces row: it carries lines and an axis,
+     where the panels above carry a whole cloud. */
   const curveH = Math.max(96, rowH * 0.62);
   return {
     side: Math.min(colW, rowH),
     space: { x: x0, y: TOP, w: colW, h: rowH },
     flat: { x: x1, y: TOP, w: colW, h: rowH },
     arrow: { x: x0 + colW, y: TOP + rowH / 2, w: GAP },
-    curves: { x: x0, y: y1, w: colW * 2 + GAP, h: curveH },
+    /* THE BOTTOM ROW IS THE DIAGRAM'S, WITH ONE CELL REPAID. Kenneth's mock-up
+       has two probability panels side by side, and overlaying them on one axis
+       — which is the correction to the notebook's two y-scales — frees the
+       second cell. It goes to the KL, which is cell 40's THIRD formula and
+       third figure and was missing from the first build: the widget reported
+       convergence as a number in the readout and never drew it. */
+    curves: { x: x0, y: y1, w: colW, h: curveH },
+    descent: { x: x1, y: y1, w: colW, h: curveH },
     height: TOP + rowH + ROW_GAP + curveH + BOT,
   };
 }
+
+/* The KL panel's plot area, inset from its cell. Shared by `draw` and
+   `regions` so the curve and the click targets cannot drift apart — the one
+   piece of geometry no pixel hash can see, since the picture is identical
+   whether a target sits where it is drawn or six columns away. */
+const CH_L = 42, CH_B = 20, CH_T = 10, CH_R = 10;
+const chartArea = (x, y, w, h) => ({
+  x: x + CH_L,
+  y: y + CH_T,
+  w: Math.max(10, w - CH_L - CH_R),
+  h: Math.max(10, h - CH_T - CH_B),
+});
 
 const TURN0 = 34, TILT0 = 21;
 function camera(turnDeg, tiltDeg) {
@@ -484,6 +503,78 @@ defineWidget({
        descent the reader had stepped through. */
     turn: { type: "int", label: "Turn", min: -180, max: 180, default: TURN0, display: true, hidden: true },
     tilt: { type: "int", label: "Tilt", min: -80, max: 80, default: TILT0, display: true, hidden: true },
+
+    /* WHERE THE READER IS IN THE RUN, and it is a PARAMETER because clicking the
+       KL curve has to go through the same door every other write does
+       (non-negotiable 1). A region resolves a pixel to one parameter, core
+       syncs it and writes the URL, and the arrangement above jumps there — so a
+       scrubbed position is shareable in a way `anim.k` alone could never be.
+
+       `display: true`, so a scrub keeps the run rather than resetting it, and
+       0 by default so the widget still starts empty (non-negotiable 4).
+       `?step=40` publishes the finished figure the way `?shown=N` does
+       elsewhere.
+
+       Step and Play move `anim.k` and do NOT write back here, which is the
+       other half of invariant 1. `rebuild` below is what reconciles the two,
+       and it only honours this when the PARAMETER moved — otherwise turning
+       the cloud would snap the reader back to wherever they last clicked. */
+    step: {
+      type: "int",
+      label: "Step",
+      min: 0,
+      max: ITERS / PER_STEP,
+      default: 0,
+      display: true,
+      hidden: true,
+    },
+  },
+
+  /* THE KL CURVE IS CLICKABLE, one region per step. A region resolves a pixel
+     to an identity and sets exactly one parameter, which is the contract core
+     enforces at load — so a click here is the same transaction as a slider
+     move, and lands in the URL.
+
+     Regions win over `drag` where the two overlap, which is what stops a click
+     on the chart also swinging the cloud. They do not overlap here — different
+     quadrants — but the ordering is core's and worth not relying on by luck. */
+  regions({ w, state }) {
+    /* STATE IS NULL ON THE FIRST CALL, and that is core's load-time validation
+       probe rather than a click: `recompute()` runs from `render()`, which is
+       after the probe at widget.js:516. This widget is the first to declare
+       `regions` at all, so nothing had met it before.
+
+       The cost is real and is named rather than waved past: returning nothing
+       means the probe validates nothing, so a bad region table would not throw
+       at load the way core intends. What covers it instead is an assertion —
+       _lab checks the strips resolve to their own step, tile without a gap,
+       reach both ends, and sit where the curve DRAWS each step. That last one
+       is the check core's probe could not have made anyway.
+
+       The proper fix is in core, moving the probe after the first render, and
+       that is a `widgets/core/` change which owes a full fingerprint run. */
+    if (!state) return [];
+    const L = layout(w);
+    const { x, y, w: pw, h: ph } = L.descent;
+    const total = state.path.length - 1;
+    const a = chartArea(x, y, pw, ph);
+    const out = [];
+    for (let k = 0; k <= total; k += 1) {
+      /* Each step owns the strip around its own x, so the nearest step to the
+         pointer is the one that takes the click — half a step of slack on each
+         side, and the two ends keep their outer half rather than being
+         unreachable at the frame edge. */
+      const cx = a.x + (total > 0 ? (k / total) * a.w : 0);
+      const half = total > 0 ? a.w / total / 2 : a.w / 2;
+      const x0 = Math.max(a.x, cx - half);
+      const x1 = Math.min(a.x + a.w, cx + half);
+      out.push({
+        set: { step: k },
+        x: x0, y: a.y, w: Math.max(1, x1 - x0), h: a.h,
+        label: `step ${k * PER_STEP}`,
+      });
+    }
+    return out;
   },
 
   drag: {
@@ -542,12 +633,34 @@ defineWidget({
 
     init: ({ params, state, fromScratch }) => {
       const total = state.path.length - 1;
-      const pre = fromScratch ? 0 : clamp(params.shown | 0, 0, total);
-      return { k: pre, t: 1, moving: false, done: pre >= total };
+      const pre = fromScratch ? 0 : clamp(params.step | 0, 0, total);
+      /* `view` is how rebuild tells a scrub from a turn — see there. */
+      return {
+        k: pre, t: 1, moving: false, done: pre >= total,
+        view: `${params.turn},${params.tilt}`,
+      };
     },
 
-    rebuild: (anim, { state }) => {
+    /* WHICH DISPLAY PARAMETER MOVED, deduced rather than told. Core calls
+       rebuild once per display-parameter write and does not say which one, and
+       this widget has exactly three: `turn`, `tilt` and `step`. So if neither
+       angle changed, the write was to `step`.
+
+       Comparing `step` against its own last-applied value was the obvious
+       version and is WRONG in a way worth recording: after stepping away from a
+       scrubbed position, clicking that same point again writes a value the
+       guard has already seen, so nothing happens — the reader clicks the dot
+       they are aiming at and the figure sits still. Deducing from the angles
+       instead honours every click, including one back to where they were. */
+    rebuild: (anim, { params, state }) => {
       const total = state.path.length - 1;
+      const view = `${params.turn},${params.tilt}`;
+      if (view === anim.view) {
+        anim.k = clamp(params.step | 0, 0, total);
+        anim.moving = false;
+        anim.t = 1;
+      }
+      anim.view = view;
       if (anim.k > total) { anim.k = total; anim.moving = false; anim.t = 1; }
       anim.done = anim.k >= total;
     },
@@ -663,7 +776,7 @@ defineWidget({
       const { x, y, w: pw, h: ph } = L.curves;
       const plot = makePlot({
         ctx, colors,
-        rect: { x: x + 34, y, w: pw - 44, h: ph - 24 },
+        rect: { x: x + CH_L, y: y + CH_T, w: Math.max(10, pw - CH_L - CH_R), h: Math.max(10, ph - CH_T - CH_B) },
         xDomain: [0, 3.2],
         yDomain: [0, 1.05],
       });
@@ -690,15 +803,117 @@ defineWidget({
          axis LABEL — four pixels apart at the default width — which is exactly
          the collision note() exists to avoid, and which the text sweep found
          before any screenshot could have. */
-      plot.caption("The same neighbourhood, drawn two ways");
-      plot.note("the heavier tail is the whole difference");
+      plot.caption("One neighbourhood, two kernels");
 
       /* Both keys sit in the empty top-right of the plot: past a distance of
-         1.5 neither curve rises above 0.32, so neither key is drawn over. */
-      text(ctx, colors, "Gaussian — the neighbourhood in 3-D",
-        plot.sx(1.5), plot.sy(0.88), colors.ink3, colors.fsXs);
-      text(ctx, colors, "Student's t — the same one in the picture",
-        plot.sx(1.5), plot.sy(0.72), colors.theory, colors.fsXs);
+         1.5 neither curve rises above 0.32, so neither key is drawn over. They
+         are short because the cell is half what it was — the sentence they used
+         to carry is the caption's job now. */
+      text(ctx, colors, "Gaussian, in 3-D",
+        plot.sx(1.45), plot.sy(0.9), colors.ink3, colors.fsXs);
+      text(ctx, colors, "Student's t, in the picture",
+        plot.sx(1.45), plot.sy(0.74), colors.theory, colors.fsXs);
+      text(ctx, colors, "the heavier tail is the difference",
+        plot.sx(1.45), plot.sy(0.55), colors.ink3, colors.fsXs);
+    }
+
+    /* ---- bottom right: the KL divergence falling ------------------------- */
+    {
+      const { x, y, w: pw, h: ph } = L.descent;
+      const a = chartArea(x, y, pw, ph);
+      const total = state.path.length - 1;
+      /* The ceiling is the whole trajectory's maximum rather than its first
+         value, because the curve RISES before it falls: measured at n = 48 it
+         goes 2.14 up to 2.59 by step 50 and does not pass its start again until
+         step 200. Anchored on kl[0] the exaggerated stretch would draw off the
+         top of the frame. */
+      const top = Math.max(...state.kl, 1e-9);
+      const px = (k) => a.x + (total > 0 ? (k / total) * a.w : 0);
+      const py = (v) => a.y + a.h - clamp01(v / top) * a.h;
+
+      text(ctx, colors, "KL divergence, as it descends", x, y - 10, colors.ink2, colors.fsSm);
+
+      ctx.save();
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      for (let g = 1; g < 4; g += 1) {
+        const gy = Math.round(a.y + (a.h * g) / 4) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(a.x, gy);
+        ctx.lineTo(a.x + a.w, gy);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = colors.axis;
+      ctx.beginPath();
+      ctx.moveTo(a.x + 0.5, a.y);
+      ctx.lineTo(a.x + 0.5, a.y + a.h + 0.5);
+      ctx.lineTo(a.x + a.w, a.y + a.h + 0.5);
+      ctx.stroke();
+      ctx.restore();
+
+      text(ctx, colors, "0", a.x - 5, a.y + a.h, colors.ink3, colors.fsXs, "right");
+      text(ctx, colors, top.toFixed(1), a.x - 5, a.y + 1, colors.ink3, colors.fsXs, "right", "top");
+
+      /* WHERE EARLY EXAGGERATION IS RELEASED, drawn only once the reader has
+         reached it — before that it would announce a stage they have not met.
+         It is the explanation for the shape they are looking at: for the first
+         250 gradient steps t-SNE is minimising a P multiplied by twelve, so the
+         number plotted here is not the one it is working on, and it wanders. */
+      const rel = EXAG_UNTIL / PER_STEP;
+      if (anim.k > rel) {
+        ctx.save();
+        ctx.strokeStyle = colors.ink3;
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px(rel), a.y);
+        ctx.lineTo(px(rel), a.y + a.h);
+        ctx.stroke();
+        ctx.restore();
+        text(ctx, colors, "exaggeration off", px(rel) + 4, a.y + 2,
+          colors.ink3, colors.fsXs, "left", "top");
+      }
+
+      /* THROUGH THE COMPLETED STEPS ONLY, so the chart starts empty and grows —
+         the same reveal widget 20's stress chart uses, and what keeps the
+         widget from opening on its own answer (non-negotiable 4). The frame is
+         drawn from the start, which is what gives a scrub something to aim at
+         without showing where the curve goes. */
+      const live = lerp(state.kl[anim.k], state.kl[Math.min(anim.k + 1, total)],
+        anim.moving ? easeIO(anim.t) : 0);
+      ctx.save();
+      ctx.strokeStyle = colors.empirical;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(px(0), py(state.kl[0]));
+      for (let k = 1; k <= anim.k; k += 1) ctx.lineTo(px(k), py(state.kl[k]));
+      if (anim.moving) ctx.lineTo(px(anim.k + easeIO(anim.t)), py(live));
+      ctx.stroke();
+      ctx.restore();
+
+      /* The reader's own position, which is what a click moves. */
+      const hx = px(anim.k + (anim.moving ? easeIO(anim.t) : 0));
+      ctx.save();
+      ctx.fillStyle = colors.empirical;
+      ctx.beginPath();
+      ctx.arc(hx, py(live), 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      /* THE HINT AND THE TOTAL NEVER SHARE THE LINE, and that is by
+         construction rather than by measuring. Side by side they printed
+         through each other in a half-width cell at 550 and 640px — which is the
+         width the fingerprint harness records at — and picking shorter wording
+         would only have moved the threshold rather than removed it. */
+      if (anim.k === 0) {
+        text(ctx, colors, "click to jump", a.x, a.y + a.h + 5,
+          colors.ink3, colors.fsXs, "left", "top");
+      } else {
+        text(ctx, colors, `${anim.k * PER_STEP} steps`, a.x, a.y + a.h + 5,
+          colors.ink3, colors.fsXs, "left", "top");
+        text(ctx, colors, `of ${total * PER_STEP}`, a.x + a.w, a.y + a.h + 5,
+          colors.ink3, colors.fsXs, "right", "top");
+      }
     }
   },
 
