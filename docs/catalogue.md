@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *NEXT · UMAP*, near the end |
+| what to build next | § *NEXT · DBSCAN*, near the end |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -4250,8 +4250,9 @@ complexity."*
 | 19 | `pca` | PCA | **built — draft** |
 | 20 | `mds` | MDS, classical **and non-metric** | **built — draft**, five review rounds |
 | 21 | `t-sne` | t-SNE | **built — shipped**, one long session on 2026-08-26 |
-| — | — | UMAP | **planned next** — see § NEXT · UMAP below |
-| — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
+| 22 | `umap` | UMAP | **built — shipped**, four review rounds on 2026-08-26 |
+| 23 | `kmeans` | K-Means (`03-5` cells 51–59) | **built — shipped**, four review rounds on 2026-08-26 |
+| 24 | `dbscan` | DBSCAN (`03-5` cells 60–67) | **reconnoitred** — see § NEXT · DBSCAN below |
 
 **What the count was, so it is not re-argued.** Four tabs meant roughly 25
 parameters, six renderers that do not exist, four separate optimisers and ~18
@@ -6463,11 +6464,21 @@ clustering — K-Means (cells 52–59) and DBSCAN (60–67) — and **K-Means is
 
 ---
 
-## NEXT · K-Means — widget 23, RECONNOITRED, not yet planned
+## Widget 23 · `kmeans` — SHIPPED 2026-08-26, four review rounds
 
-**The reconnaissance below was done on 2026-08-26 while closing widget 22.
-Nothing here is measured** — that is the planning session's job, on the pattern
-of § *NEXT · t-SNE*: three questions, each closed with a number.
+**The reconnaissance was done on 2026-08-26 while closing widget 22; the
+planning session ran the same day, on the pattern of § *NEXT · t-SNE*, and
+closed all four questions.** Everything below that carries a number was measured
+in the engine that would ship — `widgets/kmeans/model.js`, **imported** and not
+copied by `widgets/_lab/kmeans-measure.mjs`. That is the widget-22 lesson
+applied from the first line rather than retrofitted, and it is why the
+verification below is of the shipping code.
+
+```bash
+node   widgets/_lab/kmeans-measure.mjs             # every number in this section
+node   widgets/_lab/kmeans-verify.mjs --fixtures   # then kmeans-ref.py, then:
+node   widgets/_lab/kmeans-verify.mjs              # 8 cases against sklearn 1.9.0
+```
 
 ### THE HOST, AND FOR THE FIRST TIME SINCE WIDGET 19 THERE IS ONLY ONE
 
@@ -6486,71 +6497,883 @@ say which library it is about.
   each point to the nearest centroid by Euclidean distance; move each centroid to
   the mean of the points assigned to it; repeat until assignments stop changing
 - **the objective**, written out: minimise `Σ_k Σ_{x ∈ C_k} ‖x − μ_k‖²`
-- **a diagram**, `unsupervised-kmeans.png` — **hosted on Dropbox rather than
-  embedded**, so unlike UMAP's it cannot be extracted from the notebook. **Ask
-  Kenneth for it before designing the layout**; widget 22's layout came from
-  exactly such a diagram and the catalogue treats one as binding.
+- **a diagram**, `unsupervised-kmeans.png` — hosted on Dropbox rather than
+  embedded, so unlike UMAP's it could not be extracted from the notebook.
+  **Kenneth supplied it on 2026-08-26**, which is what let this session plan a
+  layout at all; its grammar is read off below and is binding.
 - **a strengths and limitations table**, and its three limitations are three
   candidate failing cases in the notebook's own words:
   - *"Must specify K in advance"*
   - *"Assumes clusters are spherical and similar size"*
   - *"Sensitive to outliers and initial centroid placement"*
 
-### THE THREE QUESTIONS, and one of them is already answered
+  **All three were staged and measured this session, and all three fire.** Which
+  two to ship is below.
 
-1. **Compute or replay? Compute, and it is not a real question this time.**
-   Lloyd's algorithm at n = 48 is microseconds — no measurement needed to know
-   that, unlike t-SNE and UMAP where the assumption was wrong twice.
-2. **What is the one sentence?** The arc so far: PCA — *a 2-D plot is not the
-   data*; MDS — *the input is the table of distances, not the cloud*; t-SNE —
-   *it keeps who is near whom and throws away everything else*; UMAP — *how tight
-   it looks is a setting*. The candidates here come from the limitations, and
-   **"must specify K in advance" is the one with no counterpart anywhere in the
-   arc**: every earlier widget was told what it was looking for, or told nothing.
-3. **Which failure?** Three are named above and all three are cheap to stage.
-   *Sensitive to initial placement* is nearly free — `seed` exists in every
-   widget — and it is the one a reader can be made to discover by pressing a
-   button twice.
+### THE DIAGRAM, AND WHAT IT DECIDES
 
-### A FOURTH QUESTION THIS ARC HAS NOT MET: WHICH SPACE DOES IT CLUSTER IN?
+Four panels left to right — `k = 2`, **Assign**, **Update**, **Final** — with a
+red arrow looping from Update back to Assign. Its notation, in the order a
+builder needs it:
+
+| it draws | so the widget must |
+|---|---|
+| points as **dots**, centroids as **crosses** in the cluster's colour | two marks, and only the cross moves |
+| the dots **black** in panel 1 | start uncoloured — `--c-unknown`, "not measured yet, not a third outcome". The data has no colours of its own, which is the whole of unsupervised |
+| assignment **recolours dots and does not move crosses** | one beat that changes only colour |
+| update **moves crosses and does not recolour dots**, leaving the old cross as a faded ghost with a dotted arrow to the new one | one beat that changes only position, and keeps its own before-and-after on screen |
+| a loop arrow from Update back to Assign | a **Step** button. The loop is the algorithm; a widget that only plays it start-to-finish throws away the one thing the diagram bothered to draw |
+| bare L-shaped axes, no ticks, no numbers | the coordinates are not the point. Widget 19–22 precedent agrees |
+
+**The four panels are one plot at four moments, not four plots.** So the widget
+is a single stage that replays them, and the diagram's left-to-right reading
+becomes the Step button's job. This is the same conversion widget 22 made from
+its own diagram.
+
+**`lloyd()` already returns exactly this.** It hands back the whole run as
+`steps` — `init`, then alternating `assign` and `update` frames, each carrying
+its centroids, its labels and its inertia, and each `update` also carrying the
+positions it came *from*. `compute()` runs the algorithm to convergence before
+the first frame is drawn and the animation only walks the array, which is
+non-negotiable 2 satisfied by construction rather than by discipline.
+
+### QUESTION 1: COMPUTE AT RUNTIME — and the consequence is bigger than the answer
+
+The reconnaissance called this one already answered. It is, but the rule is that
+a question closes with a number and this one was free to take:
+
+| n | K | ms per fit, init and Lloyd to convergence | iterations |
+|---|---|---|---|
+| 48 | 2 | **0.018 ms** | 1 |
+| 48 | 4 | 0.019 ms | 2 |
+| 48 | 8 | 0.042 ms | 2 |
+| 120 | 4 | 0.045 ms | 3 |
+| 399 | 6 | 0.273 ms | 17 |
+
+**The whole K = 1…8 sweep, ten restarts at every K, costs 1.24 ms.** That is the
+number that matters, because it means the widget can afford **a panel of the
+objective against K, recomputed on every parameter change**. No earlier widget in
+this arc could have fitted its own model nine times per render — t-SNE at n = 48
+is 55 ms and UMAP more — and that panel is what closes question 2 below. Compare
+the two failures of nerve this repo has already recorded: compute-versus-replay
+was assumed wrong for t-SNE and again for UMAP.
+
+### THE ENGINE IS THE LIBRARY'S — exactly, which widget 22 could not manage
+
+Eight fixtures spanning both candidate stages, both initialisers, K below, at and
+above the truth, and 3-D as well as 2-D. Against **sklearn 1.9.0**:
+
+| what | agreement |
+|---|---|
+| labels | **identical on all 8**, point for point |
+| inertia | ≤ **7.1e-15** |
+| silhouette | ≤ 3.3e-16 |
+| ARI | ≤ 1.1e-16 |
+
+**Exact, rather than umap-verify's "comparable in kind and not to the digit".**
+The difference is that `kmeans-verify.mjs --fixtures` writes the points *and the
+initial centroids* to JSON and `kmeans-ref.py` reads them, so both engines run
+Lloyd from byte-identical input; UMAP's reference had to rebuild its stage in
+numpy and compare across two generators. Any widget whose stage can be
+serialised should do it this way.
+
+Two details that had to be got right for the comparison to mean anything:
+
+- **`tol=0`.** sklearn's default `tol=1e-4` stops on a small centre shift, which
+  is a *weaker* rule than cell 52's "until assignments no longer change". Left at
+  the default the two engines would disagree for a reason that is a bug in
+  neither.
+- **the one deliberate divergence never fires.** An emptied cluster keeps its
+  centroid here and sklearn relocates it; **0 of 1680 runs** empty a cluster at
+  any step, across 2–4 groups, K = 2…8, 40 seeds and both initialisers. Freezing
+  is also the better picture — a centroid nobody chose sits still and visibly
+  owns nothing, which is what K set too high looks like.
+
+### AND THE NOTEBOOK'S OWN CALL GETS ONE START
+
+`KMeans(n_clusters=2, random_state=42)` resolves `n_init` to **1** under sklearn
+1.9.0 — the default became `"auto"` in 1.4, which is 1 for k-means++ and 10 for
+random init. So the lesson's third limitation is **live in the lesson's own
+code** rather than defended against by the library, and the widget can say so
+about the exact call on the exact page. Measured consequences are in question 3.
+
+### QUESTION 2: THE ONE SENTENCE
+
+> **K-Means returns K clusters whether or not the data has any. What it minimises
+> falls at every K, so it cannot be what tells you K was wrong.**
+
+The arc so far: PCA — *a 2-D plot is not the data*; MDS — *the input is the table
+of distances, not the cloud*; t-SNE — *it keeps who is near whom and throws away
+everything else*; UMAP — *how tight it looks is a setting*. **This is the first
+widget in the arc where the reader supplies the answer's shape and the method
+complies**, which is why "must specify K" was the candidate with no counterpart
+anywhere, and the measurement is what turns it from a limitation into a claim:
+
+| K | inertia | fall vs K−1 | silhouette | ARI vs truth |
+|---|---|---|---|---|
+| 1 | 55.73 | — | — | 0.000 |
+| 2 | 29.78 | 46.6% | 0.508 | 0.561 |
+| **3 (the truth)** | **5.33** | **82.1%** | **0.738** | **1.000** |
+| 4 | 4.21 | 21.0% | 0.632 | 0.872 |
+| 5 | 3.71 | 11.9% | 0.481 | 0.773 |
+| 6 | 2.85 | 23.0% | 0.417 | 0.653 |
+| 7 | 2.37 | 16.8% | 0.450 | 0.627 |
+| 8 | 2.04 | 14.2% | 0.402 | 0.504 |
+
+**The objective never rises.** It is still falling 14% a step at K = 8, where the
+answer has 5 clusters more than the data has groups and the ARI has halved. A
+reader watching only the number the algorithm is minimising has no signal at all
+— and the fall at K = 6 (23.0%) is *larger* than the fall at K = 4 (21.0%), so
+the elbow is not even monotone in its decrements. That is the elbow method's own
+weakness on the page, unprompted.
+
+**And the honest boundary, which the widget must not overclaim past.** The
+silhouette *can* choose K here — it peaks at the truth on 5 of 5 stage seeds
+(0.499 ± 0.013 at K = 2, **0.714 ± 0.013 at K = 3**, 0.607 ± 0.020 at K = 4). So
+the sentence is *the objective cannot*, not *nothing can*. What the widget is
+teaching is that **the check has to come from outside the thing being minimised**,
+which is also why cell 59 prints two scores the fit never saw.
+
+**The structureless cloud, and what it is honestly worth.** 48 points uniform on
+a disc, no groups at all, 40 seeds:
+
+| K | silhouette on the cloud | on three real groups |
+|---|---|---|
+| 2 | 0.403 ± 0.032 | 0.491 ± 0.021 |
+| 3 | 0.422 ± 0.030 | 0.696 ± 0.030 |
+| 4 | 0.428 ± 0.030 | 0.596 ± 0.037 |
+
+K-Means partitions the cloud into K tidy wedges and scores **0.42**, which
+against cell 51's own scale — near +1 well matched, near 0 between clusters —
+reads as *fine*. But **0 of 40 cloud runs beat the worst real-group run**, so
+the widget may not claim the silhouette is fooled. What it may claim is sharper
+and is visible in the table: **at K = 2 three real groups score 0.491 and pure
+noise scores 0.403.** The number means nothing on its own; it means something
+against another number.
+
+*(t-SNE's #1 failing case was the same demonstration — a method drawing clusters
+in a cloud that has none — and there it was the headline. Here it is support:
+t-SNE's cloud was a surprise, K-Means' is arithmetic.)*
+
+### QUESTION 3: WHICH FAILURE — all three fire, and two should ship
+
+| # | the lesson's words | measured | cost |
+|---|---|---|---|
+| 1 | *"Must specify K in advance"* | the table above: monotone fall to K = 8, ARI 1.000 → 0.504 | **one control, and it is the one sentence** |
+| 2 | *"Assumes clusters are spherical and similar size"* | a cliff between 3:1 and 4:1 elongation, below | one control and its own stage shape |
+| 3 | *"Sensitive to … initial centroid placement"* | needs four groups to fire, below | ~~free — every widget has `seed`~~ **one more control, see WHAT BUILDING IT CHANGED** |
+
+**#1 and #3 are the pair to build.** #1 is the widget. #3 costs nothing, rides on
+a control that already exists in every widget in the collection, and is *the one
+a reader discovers by pressing a button twice* — which is what the reconnaissance
+predicted and the measurement now supports. #2 is real and well measured but it
+needs a stage shape of its own; it is the first thing to add if the layout has
+room, and the second thing to cut if it does not.
+
+#### #3, measured: 60 restarts per setting, on a stage where the truth is reachable
+
+A restart counts as having failed if it **misses the best partition found**, not
+if it scores worse — two earlier criteria were tried and both were wrong, and the
+script records why: inertia-above-best counted 3.94 against 3.92 (one point
+swapped) as a failure, and ARI-below-0.9-against-the-truth counted 60 of 60 at
+six groups because at 8 per group the stage itself is unrecoverable. What a
+reader sees is **a different picture from the same data**, so that is what is
+counted.
+
+| stage | random init, `n_init=1` | random, `n_init=10` | k-means++, `n_init=1` | k-means++, `n_init=10` |
+|---|---|---|---|---|
+| 3 groups of 16 | 3 / 60 | 0 / 60 | 0 / 60 | 0 / 60 |
+| 4 groups of 12 | 19 / 60 | 0 / 60 | 6 / 60 | 0 / 60 |
+| **6 groups of 8** | **41 / 60** | 1 / 60 | **9 / 60** | 0 / 60 |
+
+**Three groups is not enough to show it and six is.** At three groups the
+notebook's own configuration — k-means++, one start — never misses, so a widget
+staged at three would quietly teach that the limitation is theoretical. At six it
+misses 9 times in 60, and plain random starts miss 41.
+
+**And a missed run is visibly missed**: it agrees with the best partition at ARI
+0.45 (three groups), 0.60 (four) and 0.73 (six). It is a different answer, not a
+rounding difference — two true groups fused and one split, which is exactly what
+a reader can point at.
+
+#### #2, measured — and it corrects the lesson's own wording
+
+Twenty stage seeds each, two groups, K = 2:
+
+| stage | ARI vs truth | silhouette of the answer |
+|---|---|---|
+| round, equal | 1.000 ± 0.000 | 0.751 |
+| elongated 3:1 | **1.000 ± 0.000** | 0.535 |
+| elongated 5:1 | 0.212 ± 0.346 | 0.400 |
+| elongated 8:1 | 0.002 ± 0.028 | 0.449 |
+| equal n, **3× width** | 0.714 ± 0.151 | 0.583 |
+| **4× count**, equal width | **0.995 ± 0.020** | 0.750 |
+| 4× count *and* 3× width | 0.333 ± 0.186 | 0.428 |
+
+**"Similar size" is about WIDTH, not COUNT.** Four times as many points in one
+group as the other costs nothing measurable (0.995); three times the *spread*
+costs 0.29 of ARI on its own and 0.67 when the counts are lopsided too. The
+lesson's phrase reads as *n* to most students and the widget can put that right
+in one control.
+
+**Where "spherical" tips over**, 30 stage seeds per row:
+
+| aspect | ARI vs truth | runs broken (ARI < 0.9) |
+|---|---|---|
+| 1 – 3 | 0.997 ± 0.015 | **0 / 30** |
+| 3.5 | 0.965 | 1 / 30 |
+| 4 | 0.656 | 11 / 30 |
+| 4.5 | 0.460 | 17 / 30 |
+| 5 | 0.185 | 26 / 30 |
+| 8 | 0.002 | **30 / 30** |
+
+A cliff between 3:1 and 4:1, and nothing before it. That is a good control —
+a slider whose whole first half does nothing is honest here, because *the
+assumption holds until it doesn't* is the lesson.
+
+### QUESTION 4: WHICH SPACE — it fires, and only from four groups up
 
 Cell 53, verbatim: *"For simplicity, we will reduce the dimensions to 2 so that
 that be mapped to the 2D plots for comparison. In practice, data is reduced to
-10-50 dimensions to for clustering in this space."*
+10-50 dimensions to for clustering in this space."* Measured on the arc's own
+stage — `groups` caps on a sphere of radius 2, widgets 20–22's `stage()`,
+imported — clustered in 3-D and in its PCA plane, K set to the true number, 20
+seeds each:
 
-**That is a real teaching point and the lesson says it out loud**: clustering in
-the reduced space is a choice, and the choice made for the figure is not the one
-made in practice. A widget that clusters in 3-D and in the 2-D projection and
-compares them would be showing what cell 53 only asserts.
+| groups | ARI in 3-D | ARI in the 2-D picture | the two labelings differ |
+|---|---|---|---|
+| 2 × 24 | 1.000 | 1.000 | **0 / 20** |
+| 3 × 16 | 1.000 | 1.000 | 0 / 20 |
+| 4 × 12 | 1.000 | 0.903 ± 0.119 | 11 / 20 |
+| **6 × 8** | **0.995** | **0.776 ± 0.091** | **19 / 20** |
 
-*(Two typos in that sentence — "so that that be" and "to for clustering". Flag
-them with the `03-5` cell 45 `random_state` omission already recorded above.)*
+**At the notebook's own K = 2 the question does not exist**, which is worth
+saying out loud: cell 56 clusters two groups, and for two groups the choice of
+space changes nothing in 20 of 20 runs. The lesson's caveat is true and its own
+example cannot show it.
 
-### THE EVALUATION IS THE NOTEBOOK'S OWN, and ARI is new to the arc
+**And the reason it is worth a widget at all is the second table.** Both answers
+scored *in the 2-D picture*, which is the only place a reader can see anything:
 
-Cell 59 prints **`silhouette_score`** — which widgets 19 to 22 have all used
-internally but never shown — and **`adjusted_rand_score`**, agreement with the
-true labels, which **nothing in the arc has used**. ARI is the natural readout
-for a widget whose whole question is *did it find the real groups*.
+| groups | silhouette of the 2-D answer | of the 3-D answer | ARI (2-D / 3-D) |
+|---|---|---|---|
+| 4 | 0.708 | 0.663 | 0.903 / 1.000 |
+| 6 | **0.618** | 0.487 | **0.776 / 0.995** |
 
-**And cell 58's figure is two panels side by side: the clusters K-Means found,
-against the true labels.** That is widget 22's `labels` toggle expressed as two
-panels rather than one control, and choosing between them is a layout decision
-for the planning session.
+**The picture endorses the answer that was fitted to the picture.** At six groups
+the worse clustering scores 27% *better* on the only number a reader can compute
+from what is on screen. That is a genuinely new idea for this arc and it is cell
+53's sentence made true rather than asserted.
+
+### THE STAGE IS FLAT — settled by Kenneth on 2026-08-26
+
+| | **A · flat** | **B · chained** |
+|---|---|---|
+| stage | 2-D blobs, exactly the diagram | the arc's 3-D sphere stage, projected by PCA |
+| shows | the mechanism, K, the seed, the shape cliff | all of that, plus question 4 |
+| costs | nothing new | a camera, a globe, two runs, two spaces on screen |
+| risk | question 4 goes unshown, or waits for widget 24 | the assign/update beat — the thing the diagram is about — happens inside a projection, and the widget teaches two things |
+
+**A, and Kenneth took it on 2026-08-26**, on the collection's own rule that a widget teaches
+one thing — the rule that cut widget 3's `stat` control after it was built and
+working. The diagram is flat and binding; question 4 needs four groups minimum
+and a third dimension the reader cannot see; and **DBSCAN (cells 60–67) is the
+natural widget 24 and runs on UMAP output**, so "which space" has a better host
+one widget later, where the mechanism is not competing for the same screen.
+
+Both sets of numbers are recorded above so B can be chosen without re-measuring —
+and under A they are what widget 24 inherits rather than what widget 23 discards.
+
+### THE SHAPE OF IT, if A
+
+- **one stage**, one plot, dots and crosses, replaying `steps`
+- **Step** advances one beat and names it (`Assign` / `Update`); **Run** plays to
+  convergence; the caption says which beat and which iteration
+- **`K`** — an int control, 1…6. Six because `tokens.css` defines exactly six
+  cluster colours (`--c-cluster-a`…`-f`) and widget 22 already took that as the
+  ceiling for `groups`
+- **`groups`** — how many the data actually has, so K and the truth can disagree.
+  Default **6**: question 3's table says the seed lesson does not fire below four
+- **`seed`** — the failing case, free
+- **`shape`** — **held back from the first build, Kenneth's call on 2026-08-26.**
+  The elongation cliff is measured and `blobs(rng, { aspect })` is built, so
+  adding it after review is one control and no new machinery
+- **`labels`** — display-only, off by default, non-negotiable 4. **A toggle, not
+  two panels — Kenneth's call on 2026-08-26.** Cell 58 draws found-clusters and
+  true-labels side by side; widget 22 made the same comparison a toggle on one
+  panel, and two panels would halve the stage the mechanism plays on
+- **readout**: inertia (the thing being minimised), silhouette and ARI — cell 59
+  prints the last two, and the first has to be visible for "it improves at every
+  K" to be watchable
+- **the K sweep panel**, if it fits: inertia and silhouette against K = 1…6, live
+  at 1.24 ms a render. **This is what makes the one sentence a picture rather
+  than a caption**, and it is the whole reason question 1's answer mattered
+
+### WHAT BUILDING IT CHANGED — one control the plan did not have
+
+**`seed` was not free after all, and the plan said it was.** Every widget in the
+collection has a `seed`, so question 3 counted the initial-placement failing
+case as costing nothing. Built, it cost one more control, and the reason is
+worth keeping:
+
+**One seed feeding both the samples and the starting centroids moves two things
+at once.** A reader presses it, gets a different clustering, and cannot tell
+whether the data changed or the start did — on the one control whose entire job
+is to show that *the start* matters. The plan's own measurements had the same
+confound and did not notice it, because they varied the init against a stage
+held fixed at one seed, which is not a thing the widget could do.
+
+So there are two: **`seed` draws different samples, `start` places the centroids
+differently on the same samples.** Measured through the shipping widget, at the
+default 8 samples per group, over 60 starts on identical points:
+
+| groups (K = groups) | starts landing somewhere else | first one |
+|---|---|---|
+| 2 | **0 / 60** | — |
+| 3 | 3 / 60 | start 4 |
+| **4 (the default)** | **15 / 60** | **start 4** |
+| 6 | 33 / 60 | start 3 |
+
+*(Re-measured at the shipping defaults — 12 samples a group, Forgy init. The
+first version of this table was k-means++ at 8 a group; see REVIEW ROUND 1.)*
+
+**~~That is why `groups` defaults to 6~~** — it did, for one build; REVIEW ROUND 1
+below moved it to 4 for a reason that outranks this one. Same 48 points, two
+nudges of the start:
+
+| | start 2 (the default) | start 4 |
+|---|---|---|
+| within-cluster SS | **3.79** | 13.24 |
+| silhouette | **0.70** | 0.44 |
+| ARI | **1.00** | 0.58 |
+| iterations | 4 | 1 |
+
+**And the silhouette moves with it**, which matters for honesty: a reader who
+never turns the true groups on can still see that something is worse. The
+widget does not need the labels to make the point; it needs them to *score* it.
+
+**These numbers are not the plan's 9-in-60 and should not be quoted as if they
+were.** That figure held the samples fixed at one stage seed and varied only the
+init, in a lab script; this one is the widget's own two controls, and it is the
+one a reader can reproduce. Both are in the repo — `_lab/kmeans-measure.mjs` §5
+for the first, `_lab/kmeans-drive.mjs` for this one.
+
+### REVIEW ROUND 1 — three notes, and each one moved something structural
+
+Kenneth, 2026-08-26, on the first build: the clustering read as cluttered; a
+speed control would help, with the slowest showing the centroid comparing itself
+against the dots near it and the fastest not; and choosing K to watch the two
+scores move is the lesson, with the sweep panel in doubt.
+
+**1. The clutter was one mark, and removing it was right.** A ring in
+`--c-highlight` marked every point that had changed cluster on the current
+assignment. On the FIRST assignment every point has changed, so it drew a ring
+on all 48 at once, on top of a dot that already had a fill and — with the true
+groups shown — a second ring outside it. Three marks per point, two of them
+rings. **The count moved into the caption** (*"Assign — 12 points changed
+cluster"*), which is where it always belonged: it is the algorithm's stopping
+rule, and a number is a better reading of it than 48 circles.
+
+**2. The spokes replace it, and they are the assignment being WORKED OUT.** At
+Slow and Medium each centroid grows a dashed spoke out to every point it is
+claiming, and only then do the colours change:
+
+```
+0.00 - 0.55   spokes grow, from the centroid outward
+0.45 - 1.00   the dots cross-fade to their new colour
+0.72 - 1.00   the spokes fade out
+```
+
+**Growing from the centroid rather than from the point** is what makes it read
+as the centroid reaching rather than the points jumping. **Winner only** — a
+line from every point to every centroid is the comparison itself, and at K = 6
+with 48 points that is 288 lines and a hairball. Fast draws none of it, which is
+what Fast is: the same states, none of the working.
+
+**And Iterate always runs the full choreography, whatever Play is set to.** Its
+whole job is to show the mechanism and a fast single step is useless.
+`bootstrap` settled the identical question the identical way.
+
+**3. The sweep panel is cut.** ** It plotted the objective and the silhouette
+against every K at once, under the stage. Three reasons, in order of weight:
+it showed all six answers before the reader had built one, which principle 4 is
+against; it was a second figure competing with the mechanism for the same
+screen; and it was 194px of height for something the two readout tiles already
+say one K at a time. **Choosing K and watching the tiles move is the same lesson
+with the reader doing the work.** **The version worth building was called “not a small change” here, then asked
+for, built and cut** — REVIEW ROUND 2. It cost `k` becoming a display parameter,
+and what killed it was not the cost: it was being a second object.
+
+#### And cutting it exposed a defect in the default
+
+With the sweep gone, the reader walks K on the slider. At `groups = 6` — the
+default the plan argued for — **the truth sits AT THE TOP of the K slider**, so
+walking K shows both scores improving all the way to the end. A reader doing
+exactly what the widget invites would have learned the opposite of the lesson.
+**Four groups leaves room above the truth**, and the divergence is the whole
+sentence, on the slider:
+
+| K | 1 | 2 | 3 | **4** | 5 | 6 |
+|---|---|---|---|---|---|---|
+| within-cluster SS | 49.2 | 27.0 | 13.2 | **3.8** | 3.2 | 2.5 |
+| silhouette | — | 0.45 | 0.57 | **0.70** | 0.61 | 0.57 |
+| ARI | 0.00 | 0.48 | 0.70 | **1.00** | 0.91 | 0.84 |
+
+The objective never rises. The silhouette turns over at the truth and falls.
+**That is question 2's sentence with nothing left to assert**, and it is only
+visible because K can go past the number of groups. Six is one click away for
+anyone who wants the start lesson at full strength (33 of 60 against 15).
+
+#### THE INIT CHANGED TO FORGY, and the plan's numbers are about the other one
+
+`kmeans++` starts so well on separated blobs that **the default run converged in
+ONE iteration** — the loop the whole widget is about was over before the reader
+saw it. The widget now uses **Forgy**: K of the observations, uniformly at
+random. Two reasons and they agree:
+
+- **It is cell 52's step 1 verbatim** — *"Choose K cluster centres (centroids)
+  randomly"*. The lead button says the centroids are placed at random, and
+  k-means++ makes that a half-truth since it deliberately spreads them apart.
+  `sklearn`'s own `init="random"` is this.
+- **It gives a loop worth watching**: 3.0 iterations on average at the defaults
+  against 1.8, and 15 of 60 starts landing elsewhere against 10.
+
+**So every k-means++ number in the sections above describes what the notebook's
+code runs, not what the widget runs, and the two must not be quoted for each
+other.** The distinction is worth keeping on both sides: the lesson's own
+`KMeans(n_clusters=2, random_state=42)` gets one k-means++ start, and the
+algorithm the lesson *writes out* starts uniformly at random. **An `init`
+control showing both is the obvious next one**, and it is one segmented control
+over machinery that already exists — `forgy` and `kmeansPlusPlus` are both
+exported and both verified.
+
+#### The defaults, and why each is the value it is
+
+| | | |
+|---|---|---|
+| `groups` | **4** | leaves room above the truth on the K slider — the table above |
+| `samples` | **12** | 48 samples, the scale the rest of the arc uses |
+| `k` | **4** | opens matching the stage, so the first run shows the mechanism working |
+| `start` | **2** | four iterations AND the right answer; start 4 is one of the fifteen in sixty that is not, so the lesson is two nudges away |
+| `speed` | medium | spokes shown, briskly |
+
+**`start = 2` is chosen, not incidental**, and that is worth saying plainly: a
+default that converged in one iteration would have hidden the loop, and one that
+converged wrongly would have taught distrust of the widget rather than of the
+method.
+
+### REVIEW ROUND 2 — the silhouette graph, BUILT AND CUT. The measurement stands.
+
+Kenneth asked for it, then read it and cut it: *"more confusing for students. will
+let them explore and take note of numbers."* **The panel is gone; everything
+measured for it is below and is about the method, not about the panel.**
+
+**That is the second panel this widget has built and cut, and the reasons were
+different both times** — which is worth stating plainly, because a third
+proposal will arrive:
+
+| | what it did | why it went |
+|---|---|---|
+| round 1 | plotted the objective and the silhouette against every K at once, behind a checkbox | handed over the answer to the widget's own question before the reader had run anything |
+| round 2 | plotted only the K the reader had taken to convergence, starting empty | **fixed that, and was still too much to carry.** Reading a number off a tile after each run is the same lesson with one thing on screen instead of two |
+
+**So the objection is not spoilers and it is not the drawing — it is the second
+object.** A widget teaches one thing, and the stage is the thing. Anything that
+proposes to put a curve under it has to beat "look at the tile, write it down",
+which is a lower bar than it sounds.
+
+#### THE MEASUREMENT, which is the valuable half and outlives the panel
+
+Same 48 points, 60 different starts, walking K = 1…6 with each:
+
+| | one start (what the widget runs) | ten starts (`n_init = 10`) |
+|---|---|---|
+| silhouette peaks at the true K | **45 / 60** | **60 / 60** |
+| the objective **rises** somewhere in the curve | **16 / 60** | **0 / 60** |
+| silhouette at K = 4, the truth | 0.632 ± 0.119 (0.31 – 0.70) | 0.699 ± 0.000 |
+| at K = 3 | 0.538 ± 0.033 | 0.568 ± 0.000 |
+| at K = 5 | 0.610 ± 0.031 | 0.636 ± 0.009 |
+
+Three readings, and the third is the one that is still open:
+
+1. **A single start is not stable, and a quarter of the curves point at the
+   wrong K.**
+2. **The instability is concentrated AT THE TRUTH** — spread 0.119 at K = 4
+   against 0.03 either side. A bad start costs most exactly where the answer is,
+   because that is the only K with a good partition to miss.
+3. **`n_init = 10` removes it.** Not reduces: 60 of 60 peaks correct, 0 of 60
+   curves non-monotone, zero variance below K = 5. And **sklearn's
+   `n_init="auto"` already resolves to 10 for `init="random"`**, which is the
+   init this widget runs. The library's default is the cure.
+
+#### AND CUTTING THE GRAPH DID NOT CLOSE THE ONE THAT NEEDED A RULING — settled in ROUND 3
+
+Row two of that table is a problem for the widget as it now stands, and arguably
+a bigger one: **the reader is being asked to note the numbers down as they move
+K.** "What K-Means minimises falls at every K" is a claim about the global
+optimum, and one random start does not reach it — so on 16 of 60 curves, the SS
+tile **goes up** as K goes up, and now it goes up in the reader's own notes with
+no curve on screen to make the oddity obvious.
+
+Three ways out, unchanged by the cut:
+
+| | |
+|---|---|
+| **accept it** | the deeper lesson: a single-start elbow is unreliable, which is why nobody draws one from a single start |
+| **an `n_init` control** | 1 or 10, sklearn's own parameter. One segmented control over machinery that exists — `_lab/kmeans-measure.mjs` already fits in a loop and keeps the lowest inertia as `tries` |
+| **say less** | soften the on-screen claim to "the objective cannot tell you K was too big", which survives non-monotonicity |
+
+**The recommendation was the control, and Kenneth took it** — see REVIEW ROUND 3.
+The three ways out below are kept because the argument for the other two is what
+the control has to keep beating.
+
+#### What was reverted, so it is not rebuilt by accident
+
+- the strip under the stage, and `layout()` is stage-only again at `STAGE_MAX`
+  400 (446px tall, against 546 with the strip)
+- **`k` is a DATA parameter again.** It was briefly `display: true` because the
+  record lived in `anim`, which a data change re-inits; with no record there is
+  no reason, and data is what it should be — a new K is a new model and starting
+  the run over is honest
+- `compute` fits **one** K again rather than all six
+- the hidden `tried` bitmask, `?shown=`'s counterpart, is gone
+- `animation.rebuild` is gone; `labels` and `speed` derive nothing, so core
+  keeping `anim` untouched is exactly right
+
+**`_lab/kmeans-drive.mjs` went from 84 assertions to 69 with it**, and that ratio
+is the honest cost of the feature: twelve of the fifteen were for the graph
+alone, because a graph that quietly empties on a change of K still renders and
+still passes everything else.
+
+### REVIEW ROUND 3 — `n_init` lands, and the true groups move up the rail
+
+Kenneth, 2026-08-26, after asking what `n_init` and `"auto"` actually do:
+*"add the n_init control, 1 or 10, also move the true groups toggle after seed
+slider (before the K-means section)."* **This closes the ruling round 2 left
+open.**
+
+#### `restarts` — the cure for the control above it
+
+A `segmented`, 1 or 10, in the K-Means block directly under `start`, which is
+the control it answers. **Default 1**, because ten hides the lesson `start`
+exists to teach; ten is what the reader turns on once they have felt it.
+
+What it does, on the same 48 points:
+
+| | start 2 (the default) | start 4 | start 8 |
+|---|---|---|---|
+| `n_init = 1` | SS **3.79**, sil 0.70, ARI **1.00**, 4 iterations | SS 13.24, sil 0.44, ARI **0.58** | SS 13.06, sil 0.41, ARI **0.63** |
+| `n_init = 10` | SS **3.79**, sil 0.70, ARI **1.00**, 4 iterations | SS **3.79**, sil 0.70, ARI **1.00** | SS **3.79**, sil 0.70, ARI **1.00** |
+
+Over 30 starts at the defaults: **8 land somewhere else at one start, 0 at ten.**
+
+#### THE PROPERTY THE CONTROL RESTS ON, and it is worth protecting
+
+**All the restarts draw from ONE stream, so the ten starts BEGIN with the one
+start.** Switching to ten can lower the objective or leave the picture exactly
+where it was, and can never land somewhere unrelated. Measured across 90
+(start × K) pairs, **40 are unchanged** — and an unchanged picture is not a
+control doing nothing, it is the reader learning something true: *their start
+was already the best of ten*.
+
+Lose that and the control becomes a re-roll wearing a different label, with the
+picture moving for a reason the reader will mis-attribute. Nothing else in
+`_lab/kmeans-drive.mjs` would notice, so it is asserted directly.
+
+#### And the figure says which it is showing
+
+At ten starts the animation replays **the winner** and the other nine are never
+drawn — which is exactly what `sklearn` reports, and exactly the kind of thing a
+widget has to say out loud rather than let a reader assume. The init frame's
+caption becomes *"4 centroids — the best of 10 random starts"*, and the
+accessible summary says the same. The canvas text sweep covers both wordings,
+because a caption that only one setting produces is a caption no check sees.
+
+#### What `n_init` actually is, checked against the installed library
+
+Read out of `_BaseKMeans._check_params_vs_input` in **sklearn 1.9.0**, not from
+memory:
+
+- **It is a best-of-N wrapper, not more iterations.** The whole algorithm runs
+  `n_init` times from fresh starts, each to convergence, and **only the lowest
+  inertia is kept**. The rest are discarded.
+- **`"auto"` resolves by looking at `init`**: `"k-means++"` → **1**;
+  `"random"` → **10**; an explicit array → 1; a callable → 10. It became the
+  default in 1.4; before that it was 10 for everything.
+- Measured on 48 points in 4 blobs, `init="random"`, 40 seeds: at `n_init=1`
+  **35 of 40** runs score above the best (worst 144.8 against best 72.3); at 10,
+  **1 of 40** (worst 72.5).
+
+**So the control is the gap between what the widget does and what the library
+would have done.** The widget runs Forgy, which *is* `init="random"`, with one
+start; sklearn's own default for that init is ten.
+
+**And "k-means++ makes restarts unnecessary" is sklearn's judgement, not a
+guarantee** — measured on this stage, k-means++ with one start still missed the
+best partition 9 times in 60 at six groups. Worth knowing, because the
+notebook's own `KMeans(n_clusters=2, random_state=42)` is exactly that
+configuration.
+
+#### The true groups moved into the data block
+
+`labels` now sits after `seed`, before the `K-Means` divider. **What the groups
+really were is a fact about the samples, not a way of looking at them** — the
+only display-ish thing about it is that revealing it must not throw the run
+away, which is why it stays `display: true`. The rail now reads:
+
+```
+The data      groups · samples · seed · True groups
+K-Means       K · centroid start · starts to try
+Watching      play speed
+```
+
+One control under the last divider is thin, and it is still the right split:
+playback is not the model, and a `shape` control would join the first block
+while an `init` control would join the second.
+
+### REVIEW ROUND 4 — the rail was twice the figure
+
+Kenneth, 2026-08-26: *"the left panel is quite tall so when i scroll to play i
+can't see the graph. can you see if can reduce the rows? like 2 sliders per
+row?"* — and, correctly, *"mock-up before implementing"*.
+
+**The report as a number, measured at 1240px, side layout, the real 300px
+track:** controls **776**, drive row 138, rail **947** — against a **446px**
+stage whose whole column is 570. Play started **808px** down a column beside a
+figure that ended at 446. Scroll far enough to see Play and the stage still on
+screen was **45% at a 700px viewport, 58% at 760, 89% at 900**.
+
+Six rails were drawn side by side at the real width in
+[`_lab/kmeans-rail.html`](../widgets/_lab/kmeans-rail.html), each built by
+`core/controls.js` itself from a real spec — same builder, same CSS, same track,
+so the heights are the heights rather than an impression of them.
+
+| | | controls | Play at | rail | stage visible @700 / @760 / @900 |
+|---|---|---|---|---|---|
+| A | as shipped | 776 | 808 | 947 | 45% / 58% / 89% |
+| B | two sliders per row | 649 | 682 | 820 | — |
+| C | speed below the buttons | 616 | 649 | 876 | — |
+| **D** | **B + C — SHIPPED** | **489** | **522** | **737** | **100% / 100% / 100%** |
+| E | + seed beside true groups | 433 | 466 | 693 | 100% |
+| F | E without the headings | 328 | 361 | 588 | 100% |
+
+**D was taken because it costs nothing.** Both halves are core's own machinery
+and both were already in use:
+
+- **`row: { key }`** puts consecutive fields in one flex row — widget 9's, for
+  its population dials. Here it pairs `groups`+`samples` (both describe the
+  stage) and `k`+`start` (both describe the fit). **Each pair is genuinely one
+  kind of thing**, which is what a flex row asserts.
+- **`afterDrive: true`** builds a field into the block *below* the drive row —
+  widget 10's and `generalization`'s. `speed` goes there, and the "Watching"
+  divider goes with it: a heading over one control below the buttons is
+  furniture. It removes nothing and moves 160px out from between the reader and
+  Play. It is also arguably where a pace belonged — 3.4e fixes the drive row as
+  the last thing you SET before pressing, and a play speed is not that.
+
+Measured after shipping: controls **489**, drive top **522**, rail **737**, and
+**100% of the stage on screen with Play visible at every viewport tried**.
+
+#### ONE IDEA BUILT AND DROPPED, because it measured to zero
+
+The obvious companion to pairing was **shortening the labels to fit the
+half-width** — "Groups in the data" → "Groups", "Clusters to look for (K)" →
+"Clusters (K)" — with each noun rehomed into the detail line, which principle
+3.4c requires and the rail already renders. Built as its own candidate and
+measured: **at 144px every full-length label already sits on one 18px line.**
+None of them wrapped, so the shortened rail came out at exactly the same height
+as the long-labelled one, to the pixel.
+
+**A real cost for a saving of zero**, and the pairs keep every label they have.
+Worth recording because the idea will occur again to anyone looking at a 300px
+rail and assuming long labels must be the problem.
+
+#### E and F are on the table and each spends something
+
+**E** is a third pair, `seed` beside `True groups`, for 56 more pixels. The
+objection is not the height: **those two are not siblings.** One draws different
+samples; the other reveals what the samples always were, and a flex row says the
+things inside it are the same kind of thing. **F** drops the two remaining
+headings for 105 more — and the headings are what keep `seed` and `start` from
+reading as one dial, which is the distinction round 1 added a whole control to
+make. Cheapest height, dearest meaning.
+
+Neither is needed: D already puts the whole stage on screen with Play visible.
+
+### BUILT — what is in `widgets/kmeans/`, and what is owed
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/kmeans/
+node widgets/_lab/kmeans-drive.mjs     # 68 assertions, incl. the canvas text sweep
+node widgets/_lab/kmeans-verify.mjs    # 8 cases against sklearn 1.9.0
+```
+
+| | |
+|---|---|
+| `model.js` | Lloyd, k-means++ and Forgy, inertia, silhouette, ARI, the stage. Verified against sklearn exactly |
+| `main.js` | the widget. `status: "draft"`, not in the manifest, not on the gallery |
+| `_lab/kmeans-drive.mjs` | drives it with no browser and no clock — the contract, the numbers, and every string it paints |
+
+**The drive script does three jobs and the third is new to this repo.** Besides
+the contract assertions and the canvas text sweep, it records **where** the
+widget draws and fails if anything lands outside the canvas at 320, 420, 550,
+694, 770 or 900px. The fingerprint hashes one width and `check` asserts nothing
+about geometry, so an overrun at a width nobody looked at is invisible — and
+this collection has already shipped one, a caption printing through its own note
+at 550px. It is cheap and it belongs in the next widget too.
+
+**Owed, in order:** Kenneth's review; then the fingerprint states (two or three
+settled plus at least one driven, confirmed identical across three runs); then
+the manifest entry and `status: "shipped"`. Baselining before the review is what
+the order-of-work section argues against, and `bootstrap` paid for it three
+times.
+
+**Not yet judged projected**, like every widget from 11 on.
+
+### What this session did NOT settle
+
+*(The three layout questions it raised were put to Kenneth the same day and are
+settled above: flat stage, `labels` toggle, no shape control in the first build.)*
+
+- **the centroid cross is not a core mark.** `canvas.js` has `dot()` and nothing
+  cross-shaped. Drawing it in `widgets/kmeans/main.js` is the cheap answer and is
+  defensible under the repo's own "one consumer does not decide a seam" rule (the
+  `note()` comment in `canvas.js`); promoting it to core costs a full fingerprint
+  run and should wait for a second consumer
+- **the real data has not been re-run.** Cell 59's printed silhouette and ARI on
+  GSE44076 are not on this disk and the Drive copies carry no outputs, so what
+  the lesson's own figure actually prints is unknown. It needs one network fetch
+  of the CuMiDa CSV — ask before reaching for it
+- **the two typos in cell 53** — "so that that be" and "to for clustering", plus
+  "reduce the data to before clustering" with the number missing. Flag with the
+  `03-5` cell 45 `random_state` omission already recorded above
 
 ### WHAT TO LIFT
 
-`widgets/umap/` is the reference. **`model.js` is the pattern to repeat**: the
-algorithm in its own module so `_lab` can import and check it, which is what
-made "what is verified is what ships" true for widget 22 and is not true for
-widget 21. Also the stage on the sphere and its exported `stage()`, the camera
-and the wireframe globe, the two-gate staging, `anim.inert`, and the
-`otherDisplay` guard.
+`widgets/umap/` is the reference, and **`model.js` is the pattern that was
+repeated**: the algorithm in its own module, so `_lab` imports the shipping code
+rather than a copy of it. `widgets/kmeans/model.js` exists and is verified;
+`main.js` is what remains. Also worth lifting: the two-gate staging, `anim.inert`,
+the `otherDisplay` guard, and — only if B is chosen — the stage on the sphere,
+the camera and the wireframe globe.
 
 **And the obvious arc move**: `03-5` runs K-Means on **PCA output** and DBSCAN on
-**UMAP output**. So widget 23 chains off widgets 19 and 22 rather than starting
-fresh, and the arc's four dimensionality-reduction widgets become the input to
-its clustering ones.
+**UMAP output**. So the clustering widgets chain off widgets 19 and 22 rather
+than starting fresh, and under recommendation A that chaining is what widget 24
+inherits rather than what widget 23 spends itself on.
+
+---
+
+## NEXT · DBSCAN — widget 24, RECONNOITRED, not yet planned
+
+**Written on 2026-08-26 while shipping widget 23. Nothing here is measured** —
+that is the planning session's job, on the pattern of § *NEXT · t-SNE* and
+§ *NEXT · K-Means*: three questions, each closed with a number.
+
+### THE HOST, AND AGAIN THERE IS ONLY ONE
+
+| course | notebook | what it runs |
+|---|---|---|
+| PHM5005 | `03-5`, cells 60–67, heading `### DBSCAN` | `DBSCAN(eps=0.7, min_samples=5)` on `X_umap` — the cancer gene expression data reduced to 2-D by **UMAP** first |
+| PHM5003 | **nothing** | checked across all ten notebook directories: DBSCAN appears **zero times** |
+
+### FIRST MOVE: ASK FOR THE DIAGRAM
+
+Cell 60 embeds `unsupervised-dbscan.png` **from Dropbox rather than as an
+attachment**, exactly as cell 52 did for K-Means, so it cannot be pulled out of
+the notebook. **Widget 23's whole layout came from that diagram** — dots and
+crosses, the ghost and the dotted arrow, the loop becoming the Iterate button —
+and the catalogue treats one as binding. Ask before designing anything.
+
+### CELL 60 IS AS COMPLETE AS CELL 52 WAS
+
+- **the algorithm in five numbered steps**, and it introduces three kinds of
+  point rather than one: count the neighbours within `eps`; at least
+  `min_samples` of them makes a **core point**; core points within `eps` of each
+  other join one cluster; a non-core point within `eps` of a core point is a
+  **border point**; anything else is **noise**, labelled `-1`
+- **two parameters and no K**: `eps` (the radius, "typically 0.5 – 5 on scaled
+  data") and `min_samples`
+- **a strengths and limitations table**, and the limitations are again three
+  candidate failing cases in the lesson's own words:
+  - *"Sensitive to choice of parameters (`eps`, `min_samples`)"*
+  - *"Performance can degrade in high-dimensional data"*
+  - *"Varying densities can cause clusters to be merged or split incorrectly"*
+
+### THE ONE SENTENCE IS ALREADY HALF-WRITTEN, BY WIDGET 23
+
+Widget 23's claim is *K-Means returns K clusters whether or not the data has
+any; what it minimises falls at every K, so it cannot be what tells you K was
+wrong.* Cell 60's first strength is **"Does not require specifying the number of
+clusters in advance"** — which reads as the cure, and is the obvious candidate:
+
+> **DBSCAN does not make you choose K. It makes you choose a radius instead,
+> and the radius decides how many clusters you get.**
+
+**That pairing is the reason to build these two adjacent**, and it is worth
+testing rather than assuming: the planning session should measure how the
+cluster COUNT moves with `eps` on a fixed stage, because if a wide sweep of
+`eps` gives the same count the sentence is wrong and something else is the
+lesson.
+
+### THREE THINGS THIS ARC HAS NOT HAD TO DRAW
+
+1. **Three kinds of point, not one.** Core, border, noise. The tokens file
+   defines six cluster colours and `--c-unknown` ("not measured yet, not a third
+   outcome") — and **noise is not that**: it is a verdict, not an absence. This
+   is the first token question of the widget and probably wants a new semantic
+   role rather than a borrowed one.
+2. **A radius is a drawable object.** `eps` is a circle around a point, which no
+   widget in this arc has drawn and which makes the parameter visible in a way
+   K-Means' `K` never could be.
+3. **Noise breaks the evaluation, quietly.** Cell 67 prints
+   `silhouette_score(X_umap, db_labels)` with noise still labelled `-1`, so
+   sklearn scores **noise as if it were a cluster**. Whether that materially
+   moves the number on this data is measurable and worth measuring — widget 23
+   prints the same two scores, and if the answer is "yes, a lot" then the two
+   widgets' readouts are not comparable and the widget has to say so.
+
+### THE FOURTH QUESTION, STILL OPEN, AND THIS IS ITS HOST
+
+Cell 61 repeats cell 53's caveat **verbatim, typos and all** — *"we will reduce
+the dimensions to 2 so that that be mapped to the 2D plots"*, *"reduced to 10-50
+dimensions to for clustering"*. § *QUESTION 4* above measured that clustering
+the 2-D picture instead of the data changes the answer on **11 of 20** runs at
+four groups and **19 of 20** at six, and that the wrong answer scores **better**
+on the only number visible in the picture. **Widget 23 was kept flat and this was
+named as its host** — the numbers are recorded there and need no re-measuring.
+
+### THE ARC MOVE, WHICH THE NOTEBOOK STATES OUTRIGHT
+
+Cell 51 names the two common workflows in as many words: **PCA → K-Means** and
+**UMAP → DBSCAN**. Widget 23 is the first; widget 24 is the second, and
+`widgets/umap/model.js` already exports the machinery — `umap`, `fuzzySet`,
+`findAbParams`, `pcaPlane`, and the sphere `stage()`. **The four
+dimensionality-reduction widgets become the input to the two clustering ones**,
+which is the shape the whole arc has been building toward.
+
+### WHAT TO LIFT
+
+`widgets/kmeans/` is the closest reference and the more recent one:
+
+- **`model.js` imported, never copied** — `_lab/kmeans-verify.mjs` hands sklearn
+  the points *and* the initial state as JSON so both engines run on
+  byte-identical input, which is why widget 23 matches the library exactly
+  rather than "comparably". DBSCAN is deterministic given `eps` and
+  `min_samples`, so the same trick should give an exact match with no seed to
+  reconcile at all.
+- **`_lab/kmeans-drive.mjs`** — 77 assertions with no browser and no clock:
+  the contract, the numbers, the canvas text sweep run offline against a
+  recording stub, and a geometry check that fails anything drawn outside the
+  canvas at 320–900px. Copy it wholesale.
+- **`_lab/kmeans-shoot.html`** — records a new widget's fingerprint states
+  without re-running the suite, and **proves its copy of the harness faithful
+  against existing baseline hashes before printing anything**. That guard is the
+  whole value; HANDOVER records what the drifted version cost.
+- **the rail**: `row: { key }` pairs two controls, `afterDrive: true` puts the
+  pace control under the button it governs. `_lab/kmeans-rail.html` has the
+  measurements and the two candidates that were not taken.
 
 ---
 

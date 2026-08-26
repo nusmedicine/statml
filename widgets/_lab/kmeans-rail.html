@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shortening widget 23's rail</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 84ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  tr.pick td { background: color-mix(in srgb, var(--c-empirical) 10%, transparent); }
+  .ok { color: var(--c-empirical); font-weight: 600; }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+  .mid { color: var(--c-theory); font-weight: 600; }
+
+  .cands { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; }
+
+  /* THE REAL TRACK. `.w-split` is minmax(250px, 300px) and resolves to 300 at
+     the shell's 1120px max-width, so every rail below is exactly what ships. */
+  .rail { width: 300px; border-top: 1px solid var(--grid); padding-top: var(--sp-4); }
+  .rail .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .rail .w-drive {
+    border-top: 1px solid var(--grid); padding-top: var(--sp-4); margin-top: var(--sp-4);
+    display: flex; flex-direction: column; align-items: stretch; flex-wrap: nowrap;
+  }
+  .rail .w-drive-group { display: flex; }
+  .rail .w-drive .w-drive-group .w-btn { flex: 1 1 0; min-width: 0; }
+  .rail .w-drive .w-btn:not(.w-btn--primary) { margin-left: 0; }
+  .rail .w-drive .w-btn[data-key="run"] { outline: 2px solid var(--c-empirical); outline-offset: 2px; }
+
+  .strip { position: relative; }
+  .mark { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--c-extreme); pointer-events: none; }
+  .mark span { position: absolute; left: 2px; top: -15px; font-size: 10px; font-family: var(--font-mono); color: var(--c-extreme); background: var(--surface-1); padding: 0 3px; }
+  .mark.stage { border-color: var(--c-empirical); }
+  .mark.stage span { color: var(--c-empirical); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 23's rail is twice its figure</h1>
+
+  <p class="note">
+    Measured on the shipped widget, 1240&nbsp;px viewport, side layout, real
+    300&nbsp;px track: <b>controls 778, drive row 138, rail 951</b> — against a
+    <b>446&nbsp;px stage</b> whose whole column (stage + legend + readout) is
+    <b>570</b>. The Play button therefore starts <b>811&nbsp;px</b> down a column
+    beside a figure that ended at 446, and reaching it scrolls the figure off the
+    top. That is the report, and it is a layout fact rather than a taste.
+  </p>
+
+  <p class="note">
+    Every rail below is built by <code>core/controls.js</code> itself from a real
+    parameter spec — same builder, same CSS, same 300&nbsp;px track — so these
+    are the heights, not an impression of them. Play is ringed in
+    <b class="ok">blue</b>. The <b class="ok">blue line</b> is where the stage
+    ends (446) and the <b class="bad">red line</b> where the figure column ends
+    (570): a rail finishing above red needs no scroll the figure did not already
+    need.
+  </p>
+
+  <div id="out"></div>
+
+  <h2>The candidates, drawn at the real width</h2>
+  <div class="cands strip" id="rails"></div>
+
+  <h2>What each one costs</h2>
+  <div id="costs"></div>
+
+  <h2>One idea measured and dropped</h2>
+  <p class="note">
+    <b>Shortening the labels to fit the half-width buys nothing.</b> The obvious
+    companion to pairing was cutting “Groups in the data” to “Groups” and
+    “Clusters to look for (K)” to “Clusters (K)”, moving each noun into the
+    detail line as principle 3.4c requires. Built and measured: at 144&nbsp;px
+    <b>every full-length label already sits on one 18&nbsp;px line</b> — none of
+    them wrapped — so the shortened rail came out at exactly the same height as
+    the long-labelled one, to the pixel. It is a real cost (a detail is read less
+    than a label) for a saving of zero, so the pairs below keep every label they
+    have.
+  </p>
+</main>
+
+<script type="module">
+import { buildControls, buildActions } from "../core/controls.js";
+
+const SPEEDS = [
+  { value: "slow", label: "Slow", detail: "each centroid reaches for the points it claims" },
+  { value: "medium", label: "Medium", detail: "the same, quicker" },
+  { value: "fast", label: "Fast", detail: "no spokes — colours and centroids only" },
+];
+const LABELS = [
+  { value: "off", label: "Off", detail: "can you tell how many there were?" },
+  { value: "on", label: "On", detail: "colour ring shows the group each sample came from" },
+];
+const RESTARTS = [
+  { value: "1", label: "1", detail: "n_init = 1 — you keep whatever that one start gives you" },
+  { value: "10", label: "10", detail: "n_init = 10 — ten starts, and only the lowest sum of squares is kept" },
+];
+const groupsOpt = [2, 3, 4, 6].map((v) => ({ value: String(v), label: String(v) }));
+const samplesOpt = [4, 8, 12].map((v) => ({ value: String(v), label: String(v) }));
+
+/* A — exactly what ships today. */
+const A = {
+  data: { type: "section", label: "The data" },
+  groups: { type: "choice", label: "Groups in the data", options: groupsOpt, default: "4" },
+  samples: { type: "choice", label: "Samples per group", options: samplesOpt, default: "12" },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws different samples" },
+  labels: { type: "segmented", label: "True groups", options: LABELS, default: "off" },
+  fit: { type: "section", label: "K-Means" },
+  k: { type: "int", label: "Clusters to look for (K)", min: 1, max: 6, default: 4, detail: "n_clusters" },
+  start: { type: "int", label: "Centroid start", min: 1, max: 60, default: 2, detail: "same samples, different random placement" },
+  restarts: { type: "segmented", label: "Starts to try", options: RESTARTS, default: "1" },
+  show: { type: "section", label: "Watching" },
+  speed: { type: "choice", label: "Play speed", options: SPEEDS, default: "medium" },
+};
+
+/* B — two sliders per row, twice. `row: { key }` is core's, already used by
+   widget 9; nothing is renamed and nothing is removed. */
+const paired = (s) => ({
+  ...s,
+  groups: { ...s.groups, row: { key: "stage" } },
+  samples: { ...s.samples, row: { key: "stage" } },
+  k: { ...s.k, row: { key: "fitrow" } },
+  start: { ...s.start, row: { key: "fitrow" } },
+});
+const B = paired(A);
+
+/* C — Play speed moves BELOW the drive row on `afterDrive`, which core already
+   supports and two widgets already use. It removes nothing; it takes 160px of
+   control out from between the reader and the button. */
+const belowDrive = (s) => {
+  const { show, speed, ...rest } = s;
+  return { ...rest, speed: { ...speed, afterDrive: true } };
+};
+const C = belowDrive(A);
+
+/* D — both. */
+const D = belowDrive(paired(A));
+
+/* E — D, and the true-groups toggle joins the seed on its row. */
+const E = (() => {
+  const s = { ...D };
+  s.seed = { ...s.seed, row: { key: "sr" } };
+  s.labels = { ...s.labels, row: { key: "sr" } };
+  return s;
+})();
+
+/* F — E without the two remaining headings. The blocks keep their order; only
+   the dividers go, so this isolates what the headings cost. */
+const F = (() => { const { data, fit, ...rest } = E; return rest; })();
+
+const CANDS = [
+  ["A", "as shipped", A, "one control per row"],
+  ["B", "two sliders per row", B, "groups+samples, K+start"],
+  ["C", "speed below the buttons", C, "afterDrive, no pairing"],
+  ["D", "B + C", D, "the pairs and the move"],
+  ["E", "D + seed beside true groups", E, "a third pair"],
+  ["F", "E without the headings", F, "no section dividers"],
+];
+
+const STAGE = 446;      /* the canvas */
+const COLUMN = 570;     /* canvas + legend + readout */
+const RAIL_TOP = 163;   /* where both columns start, under title and subtitle */
+const DRIVE_H = 138;
+
+const defaults = (spec) => Object.fromEntries(
+  Object.entries(spec).filter(([, f]) => !["section", "readback"].includes(f.type))
+    .map(([n, f]) => [n, f.default])
+);
+
+const DRIVE = [
+  { key: "lead", text: "Place the centroids", primary: true, onClick: () => {} },
+  { key: "step", group: "pace", text: "Iterate", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+
+const rails = document.getElementById("rails");
+const rows = [];
+
+for (const [id, name, spec, gives] of CANDS) {
+  const main = {};
+  const after = {};
+  for (const [n, f] of Object.entries(spec)) (f.afterDrive ? after : main)[n] = f;
+
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${id} · ${name}</h3><p class="sub">${gives}</p>`;
+
+  const rail = document.createElement("div");
+  rail.className = "rail";
+  const controls = document.createElement("div");
+  controls.className = "w-controls";
+  rail.appendChild(controls);
+  const drive = document.createElement("div");
+  drive.className = "w-drive";
+  rail.appendChild(drive);
+  let tail = null;
+  if (Object.keys(after).length) {
+    tail = document.createElement("div");
+    tail.className = "w-controls";
+    tail.style.cssText = "border-top:0;padding-top:0;margin-top:var(--sp-3)";
+    rail.appendChild(tail);
+  }
+  cand.appendChild(rail);
+  rails.appendChild(cand);
+
+  buildControls(controls, main, defaults(spec), () => {});
+  buildActions(drive, DRIVE);
+  if (tail) buildControls(tail, after, defaults(spec), () => {});
+
+  const h = (n) => Math.round(n.getBoundingClientRect().height);
+  const top = rail.getBoundingClientRect().top;
+  rows.push({
+    id, name, gives,
+    controls: h(controls),
+    driveTop: Math.round(drive.getBoundingClientRect().top - top),
+    rail: h(rail),
+  });
+}
+
+for (const [y, cls, label] of [
+  [STAGE, "stage", `stage ends · ${STAGE}`],
+  [COLUMN, "", `figure column ends · ${COLUMN}`],
+]) {
+  const m = document.createElement("div");
+  m.className = `mark ${cls}`;
+  m.style.top = `${y + 62}px`;
+  m.innerHTML = `<span>${label}</span>`;
+  rails.appendChild(m);
+}
+
+/**
+ * THE NUMBER THE REPORT IS ABOUT. Scroll far enough to see the whole drive
+ * block, then ask how much of the 446px stage is still on screen. 100% means
+ * the reader never has to choose between the button and the figure.
+ */
+function stageVisible(driveTop, viewport) {
+  const driveBottom = RAIL_TOP + driveTop + DRIVE_H;
+  const scroll = Math.max(0, driveBottom - viewport);
+  const top = Math.max(RAIL_TOP, scroll);
+  const bottom = Math.min(RAIL_TOP + STAGE, scroll + viewport);
+  return Math.max(0, Math.round((100 * (bottom - top)) / STAGE));
+}
+
+const pct = (v) => (v >= 100 ? `<span class="ok">100%</span>`
+  : v >= 80 ? `<span class="mid">${v}%</span>` : `<span class="bad">${v}%</span>`);
+
+const base = rows[0];
+document.getElementById("out").innerHTML = `
+  <table>
+    <tr>
+      <th></th><th>candidate</th>
+      <th class="n">controls</th><th class="n">Play starts at</th><th class="n">rail</th><th class="n">saved</th>
+      <th class="n">stage visible with Play on screen<br>viewport 760</th>
+      <th class="n">viewport 900</th>
+    </tr>
+    ${rows.map((r) => `<tr${r.id === "D" ? ' class="pick"' : ""}>
+      <td><b>${r.id}</b></td><td>${r.name}</td>
+      <td class="n">${r.controls}</td>
+      <td class="n">${r.driveTop}</td>
+      <td class="n">${r.rail}</td>
+      <td class="n">${r.id === "A" ? "—" : `−${base.rail - r.rail}`}</td>
+      <td class="n">${pct(stageVisible(r.driveTop, 760))}</td>
+      <td class="n">${pct(stageVisible(r.driveTop, 900))}</td>
+    </tr>`).join("")}
+  </table>`;
+
+document.getElementById("costs").innerHTML = `
+  <table>
+    <tr><th>candidate</th><th>what it gives up</th></tr>
+    <tr><td><b>B</b></td><td><b>Nothing.</b> <code>row: { key }</code> is core's own, widget 9 already uses it, and no label wraps at 144px — see the measurement below the fold. Two sliders sit where one did.</td></tr>
+    <tr><td><b>C</b></td><td><b>Nothing, and it arguably gains.</b> Play speed governs Play, so sitting under it is where it belonged; <code>afterDrive</code> is core's and two widgets already use it. The rail is barely shorter — the field moved rather than went — but the <i>button</i> rises 160px.</td></tr>
+    <tr><td><b>D</b></td><td>B's cost plus C's, which is to say none. This is the recommendation.</td></tr>
+    <tr><td><b>E</b></td><td>A further 56&nbsp;px, and the objection is not the height — it is that <b>these two are not a pair</b>. One draws different samples; the other reveals what the samples always were. A flex row says the things inside it are siblings, and B and C's pairs each genuinely are (two dials describing the stage; two dials describing the fit). Take E if the 56&nbsp;px are needed, knowing that is what is being spent.</td></tr>
+    <tr><td><b>F</b></td><td>The headings. “The data” and “K-Means” are what keep <code>seed</code> and <code>start</code> from reading as one kind of dial — a distinction review round 1 added a whole control to make. Cheapest height, dearest meaning.</td></tr>
+  </table>`;
+</script>
+</body>
+</html>

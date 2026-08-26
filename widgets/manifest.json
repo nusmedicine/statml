@@ -324,6 +324,20 @@
       ],
       "arc": 22,
       "status": "shipped"
+    },
+    {
+      "slug": "kmeans",
+      "title": "K-Means",
+      "blurb": "Centroids claim the nearest points, then move to their mean. The objective falls at every K; the silhouette does not.",
+      "course": "PHM5005",
+      "topics": [
+        "clustering",
+        "unsupervised",
+        "centroids",
+        "choosing K"
+      ],
+      "arc": 23,
+      "status": "shipped"
     }
   ]
 }

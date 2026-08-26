@@ -1,11 +1,12 @@
 # Handover
 
-**Twenty-two widgets, all shipped, all on the gallery, and the fingerprint
-suite GREEN at 139 of 139.**
+**Twenty-three widgets, all shipped, all on the gallery, and 144 fingerprint
+states recorded.**
 
-Widget 22 `umap` was planned, measured, built, revised over four rounds of
-Kenneth's review, baselined and promoted on 2026-08-26. **Widget 23 is
-K-MEANS**, chosen the same day and reconnoitred but not planned — see *NEXT*.
+Widget 23 `kmeans` was reconnoitred, planned, measured, built and revised over
+four rounds of Kenneth's review on 2026-08-26 — its engine verified exactly
+against sklearn — then baselined with five states and promoted to the gallery the
+same day. **Widget 24 is DBSCAN**, reconnoitred but not planned. See *NEXT*.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -23,9 +24,17 @@ npm run check                 # before every commit
 
 ---
 
-## The suite is GREEN at 139 of 139
+## The suite: 144 states, and widget 23 was added without re-running it
 
-**Every state is recorded and every one matches.** Widget 22's five states went
+**Widget 23 added five states on 2026-08-26 WITHOUT running the suite**, with
+`_lab/kmeans-shoot.html` — which is what *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*
+below prescribes. It reproduced four existing baseline hashes first, to prove its
+copy of the harness had not drifted, and all five new states were identical
+across three runs. **No full run was owed**: nothing in `widgets/core/` was
+touched, and that is the only kind of change that can reach a widget nobody is
+looking at.
+
+**Every state before those is recorded and every one matches.** Widget 22's five states went
 in on 2026-08-26 when Kenneth promoted it, confirmed identical across three
 consecutive runs first, and a fourth run against the recorded baseline read
 **139 of 139 MATCH**. Earlier the same day the eleven placeholders left by the
@@ -71,6 +80,7 @@ is blind to.
 | 20 | `mds` | shipped, five rounds, **two methods** — classical and non-metric |
 | 21 | `t-sne` | shipped, built and reviewed across one long session on 2026-08-26 |
 | 22 | `umap` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
+| 23 | `kmeans` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -103,43 +113,105 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT: PLAN K-MEANS, WIDGET 23
+## NEXT: PLAN DBSCAN, WIDGET 24
 
-**Kenneth chose it on 2026-08-26**, and the reconnaissance is already written:
-[docs/catalogue.md](docs/catalogue.md) § *NEXT · K-Means*. **Read that, not this
-summary.** Then run a planning session on the pattern of § *NEXT · t-SNE* —
-three questions, each closed with a number rather than an argument.
+**Widget 23 shipped on 2026-08-26; the arc's second clustering widget is
+DBSCAN.** The reconnaissance is written —
+[docs/catalogue.md](docs/catalogue.md) § *NEXT · DBSCAN*. **Read that, not this
+summary.** Then run a planning session on the pattern of § *NEXT · t-SNE* and
+§ *NEXT · K-Means*: three questions, each closed with a number rather than an
+argument.
 
 ### The four things that shape it
 
-1. **ONE HOST, for the first time since widget 19.** PHM5005 `03-5` cells 52–59.
-   **PHM5003 does not teach K-Means at all** — its clustering notebook is
-   hierarchical clustering and mentions it zero times. Nothing to reconcile
-   between an R library and a Python one.
-2. **ASK FOR THE DIAGRAM FIRST.** Cell 52 embeds `unsupervised-kmeans.png` from
-   **Dropbox rather than as an attachment**, so it cannot be pulled out of the
-   notebook the way widget 22's was. Widget 22's layout came from exactly such a
-   diagram and the catalogue treats one as binding — so getting it is the first
-   move, not the last.
-3. **THE FAILING CASES ARE THE NOTEBOOK'S OWN WORDS.** Cell 52's limitations
-   column reads *"Must specify K in advance"*, *"Assumes clusters are spherical
-   and similar size"*, *"Sensitive to outliers and initial centroid placement"*.
-   All three are cheap to stage, and the third is nearly free — `seed` is in
-   every widget already.
-4. **CELL 53 ASKS A QUESTION NOTHING IN THE ARC HAS MET.** Verbatim: *"For
-   simplicity, we will reduce the dimensions to 2 … In practice, data is reduced
-   to 10-50 dimensions to for clustering in this space."* Clustering in the
-   reduced space is a choice with consequences, and the lesson says so without
-   showing it.
+1. **ONE HOST AGAIN.** PHM5005 `03-5` cells 60–67. **PHM5003 mentions DBSCAN
+   zero times** — checked across all ten of its notebook directories. Nothing to
+   reconcile between an R library and a Python one.
+2. **ASK FOR THE DIAGRAM FIRST.** Cell 60 embeds `unsupervised-dbscan.png` from
+   **Dropbox rather than as an attachment**, exactly as cell 52 did. Widget 23's
+   entire layout came from that diagram; getting this one is the first move, not
+   the last.
+3. **THE ONE SENTENCE IS HALF-WRITTEN BY WIDGET 23.** Its claim is *you must
+   choose K, and the objective cannot tell you that you chose wrong.* Cell 60's
+   first strength is *"Does not require specifying the number of clusters in
+   advance"* — so the candidate is **DBSCAN does not make you choose K; it makes
+   you choose a radius, and the radius decides how many clusters you get.**
+   **Measure that before believing it**: sweep `eps` on a fixed stage and see
+   whether the cluster count actually moves.
+4. **THREE KINDS OF POINT, WHICH THIS ARC HAS NEVER DRAWN.** Core, border,
+   noise. `tokens.css` has six cluster colours and `--c-unknown` — and noise is
+   not "not measured yet", it is a verdict. Probably wants a new semantic role.
 
-**Question 1 is already answered and it is the first time**: Lloyd's algorithm at
-n = 48 is microseconds, so compute-versus-replay is not a real question here. It
-was wrong twice — for t-SNE and again for UMAP — and this time the answer is
-obvious rather than assumed.
+**And one trap worth measuring early**: cell 67 prints
+`silhouette_score(X_umap, db_labels)` with noise still labelled `-1`, so sklearn
+scores **noise as if it were a cluster**. Widget 23 prints the same two scores;
+if that materially moves the number, the two widgets' readouts are not
+comparable and widget 24 has to say so.
 
-**Lift `widgets/umap/`, and repeat `model.js` above all.** The algorithm in its
-own module is what made *what is verified is what ships* true for widget 22 and
-false for widget 21.
+### The arc move, which the notebook states outright
+
+Cell 51 names the two workflows: **PCA → K-Means** and **UMAP → DBSCAN**.
+Widget 23 is the first, widget 24 the second, and `widgets/umap/model.js`
+already exports `umap`, `fuzzySet`, `findAbParams`, `pcaPlane` and the sphere
+`stage()`. The four dimensionality-reduction widgets become the input to the two
+clustering ones.
+
+### Lift from `widgets/kmeans/`, and these four things above all
+
+| | |
+|---|---|
+| `model.js` **imported, never copied** | `_lab/kmeans-verify.mjs` writes the points *and* the initial state to JSON and Python reads them, so both engines run on byte-identical input — which is why widget 23 matches sklearn exactly rather than "comparably". DBSCAN has no seed at all, so the same trick should be exact with nothing to reconcile |
+| `_lab/kmeans-drive.mjs` | 77 assertions, no browser and no clock: the contract, the numbers, the canvas text sweep run offline against a recording stub, and a geometry check that fails anything drawn outside the canvas at 320–900px. Copy it wholesale |
+| `_lab/kmeans-shoot.html` | records a new widget's fingerprint states **without re-running the suite**, and proves its copy of the harness faithful against existing baseline hashes before printing anything. That guard is the whole value |
+| the rail | `row: { key }` pairs two controls; `afterDrive: true` puts the pace control under the button it governs. `_lab/kmeans-rail.html` has the measurements |
+
+---
+
+## WIDGET 23 IS SHIPPED — and one review is owed
+
+**On the gallery, five fingerprint states, 144 in the baseline.** Planned,
+measured, built and revised over **four rounds** of Kenneth's review on
+2026-08-26, then baselined and promoted.
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/kmeans/
+# http://localhost:8010/widgets/kmeans/?labels=on&start=4&restarts=10&shown=99
+node widgets/_lab/kmeans-drive.mjs     # 77 assertions, incl. the canvas text sweep
+node widgets/_lab/kmeans-verify.mjs    # 8 cases against sklearn 1.9.0, ALL MATCH
+node widgets/_lab/kmeans-measure.mjs   # every number the catalogue quotes
+```
+
+**The five states were recorded with `_lab/kmeans-shoot.html`, not by running
+the suite** — HANDOVER's *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* prescribes
+exactly that, and the shooter first reproduced four existing baseline hashes to
+prove its copy of the harness had not drifted. All five were identical across
+three runs. **The full suite was not re-run and did not need to be**: nothing in
+`widgets/core/` was touched, so no change could reach a widget nobody was
+looking at — and the four states the shooter re-hashed still match.
+
+**STILL OWED: it has not been judged PROJECTED**, at lecture size from the back
+of a room. **Neither has anything since widget 10.** It is the cheapest review
+left in the repo and the one nothing here can do.
+
+The full record is [docs/catalogue.md](docs/catalogue.md) § *NEXT · K-Means*,
+including four review rounds and **two panels that were built and cut** — read
+those before proposing a third.
+
+### Three things recorded and NOT fixed
+
+- **The objective is not monotone in K on a single start.** On 16 of 60 walks a
+  reader could take, the within-cluster SS tile goes *up* as K goes up, because
+  "falls at every K" is a claim about the global optimum. The `n_init` control
+  is the cure and it is now on the widget, defaulted to 1 so the lesson still
+  fires; the claim itself is not made on screen.
+- **`shape` was never built.** The elongation cliff is measured — nothing breaks
+  at 3:1, 11 of 30 runs break at 4:1, 30 of 30 at 8:1 — and
+  `blobs(rng, { aspect })` is written and exported. One control.
+- **The widget runs Forgy; the notebook's code runs k-means++.** Cell 52's step
+  1 says "randomly", which is Forgy, and `sklearn`'s default is not. Both are
+  exported and verified; an `init` control showing the pair is one segmented
+  control.
 
 ---
 
