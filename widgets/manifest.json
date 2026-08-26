@@ -286,12 +286,13 @@
     {
       "slug": "mds",
       "title": "Multidimensional scaling",
-      "blurb": "The input is a table of distances, not coordinates — and no flat picture can match every one of them.",
+      "blurb": "Fit a picture to a table of distances — or to nothing but their rank order, which is the non-metric one.",
       "course": "PHM5005",
       "topics": [
         "dimensionality reduction",
         "unsupervised",
-        "distance"
+        "distance",
+        "rank"
       ],
       "arc": 20,
       "status": "draft"

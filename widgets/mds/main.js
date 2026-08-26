@@ -1,7 +1,14 @@
 /* ============================================================================
-   Multidimensional scaling.
+   Multidimensional scaling, classical and non-metric.
 
-   Host: PHM5005 `03-5 - ML - Unsupervised Learning.ipynb`, cells 20-30.
+   TWO HOSTS, ONE IN EACH COURSE, which no other widget has:
+     PHM5005 `03-5 - ML - Unsupervised Learning.ipynb`, cells 20-30 — Python,
+       `sklearn.manifold.MDS`, and where this widget started
+     PHM5003 `05 / 04 - Dimensionality Reduction.ipynb` — R, `cmdscale` then
+       `isoMDS`, and the source of the non-metric half. It puts classical and
+       non-metric under ONE heading on ONE distance matrix, which is why they
+       are one widget here rather than two.
+
    Design history and the measurements behind every constant here are in
    docs/catalogue.md under Widget 20.
 

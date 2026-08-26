@@ -213,11 +213,26 @@ open question 1 — sequencing against actual teaching weeks.
 widgets the catalogue hosts at `03 / 02-02`; `probability-mechanisms` has no slot recorded
 anywhere and needs one written down.
 
-**The two drafts are missing from this table on purpose.** `generalization`
-(arc 13) and `linear-regularization` (arc 14) are the manifest's only `draft`
-entries, and both are PHM5005 — a course with no MyST project, so §7 cannot give
-them lesson slots. They are named by host notebook instead: `04-1`/`04-4` and
-`04-3` respectively.
+**THE DRAFTS ARE MISSING FROM THIS TABLE ON PURPOSE, and which widgets they are
+has moved twice.** `generalization` (13) and `linear-regularization` (14) were
+the drafts when this was written and are both shipped now; the manifest's four
+`draft` entries are **`trees-and-ensembles` (17), `balancing-data` (18), `pca`
+(19) and `mds` (20)**. All four are PHM5005 — a course with no MyST project, so
+§7 cannot give them lesson slots. They are named by host notebook instead:
+`03-3`, `03-4` and `03-5` (twice, cells 7–19 and 20–30).
+
+**`mds` IS THE FIRST WIDGET WITH A HOST IN EACH COURSE, and the manifest can
+only name one.** It was built against PHM5005's `03-5` (cells 20–30, Python and
+`sklearn`), and its non-metric half comes from **PHM5003's** `05 / 04 —
+Dimensionality Reduction` (R, `cmdscale` then `isoMDS`), which puts classical
+and non-metric under one heading on one distance matrix. Both courses teach MDS;
+only PHM5003 teaches the non-metric half.
+
+The manifest still records `course: "PHM5005"` because the field takes one
+string — and **nothing reads it**, in the gallery, the build or the lab index,
+so it is a note rather than a switch. The dual host is recorded here instead. It
+is also the argument that the DR widgets serve both courses, the way
+`multiple-testing` and `bootstrap` already do (§ *Overlap* in the catalogue).
 
 Two deferred entries also have confirmed homes, which strengthens their case:
 `interaction-effect` → `04 / 05-04 — Modeling: Interactions Between Covariates`,

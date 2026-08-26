@@ -4114,8 +4114,8 @@ complexity."*
 | # | slug | method | status |
 |---|---|---|---|
 | 19 | `pca` | PCA | **built — draft** |
-| 20 | `mds` | MDS | **built — draft** |
-| — | — | t-SNE | planned, storyboarded |
+| 20 | `mds` | MDS, classical **and non-metric** | **built — draft**, five review rounds |
+| — | — | t-SNE | **planned next** — storyboarded, and see § NEXT below |
 | — | — | UMAP | planned, storyboarded |
 | — | — | K-Means, DBSCAN (`03-5` cells 51–67) | the notebook's second subject, not started |
 
@@ -5041,24 +5041,74 @@ again, which is the change round one reversed.
 
 ## NEXT · t-SNE, then UMAP
 
-**`mds` is built; t-SNE is the next one in the per-algorithm arc.** Read *Widget
-20* above first — its three traps are the ones that will bite again — and then
-the storyboard below, which was written for the four-tab widget and is the
-payoff for the per-algorithm ones rather than their spine.
+**`mds` is built and t-SNE is next, as a planning session first.** Read *Widget
+20* above before anything else — it is five review rounds of decisions, and most
+of them apply again — then this, then the storyboard below, which was written
+for the abandoned four-tab widget and is the payoff for the per-algorithm ones
+rather than their spine.
 
-**The two things settled by widgets 19 and 20 that carry straight over:** the
-3-vector helpers, the orthographic `camera`, the depth-sorted scatter, the
-`layout` function read by both `height` and `draw`, `--c-cluster-a…f` and the
-`drag` block are all method-independent and were lifted verbatim from `pca` into
-`mds`. And **only the FIRST gate animates** unless the gates are `display: true`.
+### What is already built and should be lifted, not rewritten
 
-**The open question t-SNE has and MDS did not:** it is not small, and a faithful
-implementation is a decision rather than a convenience (non-negotiable 7). MDS
-was chosen first precisely because SMACOF is thirty lines and has a closed-form
-answer to check them against. Decide early whether t-SNE *computes* at runtime
-or *replays* a precomputed seeded table — the second is legitimate (an animation
-is a reveal of already-computed data, invariant 2) and is probably the only way
-UMAP appears at all.
+`widgets/mds/main.js` is the reference now, not `pca`. Method-independent and
+already twice-used: the 3-vector helpers, the orthographic `camera`, the
+wireframe `globe`, the depth-sorted and depth-SIZED scatter, the `drag` block,
+`--c-cluster-a…f`, the 2×2 `layout` read by both `height` and `draw`, the
+grouped `stage`, and the stress chart. **The 2×2 quadrants are determined rather
+than chosen** — see widget 20 — so a t-SNE widget that keeps a cloud and a
+result should keep them diagonal for the same reason.
+
+### The three questions to settle BEFORE any code
+
+1. **Compute at runtime, or replay a seeded table?** This is the one MDS did not
+   have. SMACOF is thirty lines; t-SNE is not, and a faithful one is a decision
+   rather than a convenience (non-negotiable 7). Replaying is legitimate — an
+   animation is a reveal of already-computed data (invariant 2) — and is
+   probably the only way UMAP ever appears. **But a replayed table cannot honour
+   a live `perplexity` slider**, which is the control that carries the idea, so
+   this decision and question 2 are the same decision.
+2. **What is the one sentence?** PCA's was *a 2-D plot is not the data*; MDS's is
+   *the input is the table of distances, not the cloud*. t-SNE's candidate is
+   **what a neighbourhood is, and that `perplexity` decides how big one is** —
+   the reconnaissance already found `perplexity`, `n_neighbors` and `min_dist`
+   are three clothes for one idea.
+3. **Which failure does it show?** Principle 2.6, and t-SNE has an unusually
+   good one on paper — distances between clusters mean nothing — but **the
+   reconnaissance measured it and it did NOT fire on this data**: t-SNE does not
+   invent clusters from noise at this scale (silhouettes 0.31–0.37 for every
+   method including PCA), and no method splits the tumour class into fake
+   subgroups. What DID fire is on generated blobs: a cluster genuinely 10×
+   wider renders 2.1× wider in t-SNE and 1.2× in UMAP, and a true 5:1 gap ratio
+   renders as 11.4:1 in UMAP. **So the failing case has to come from a generated
+   stage**, exactly as it did for widgets 19 and 20.
+
+### What widget 20 learned that will bite t-SNE the same way
+
+- **Only the FIRST gate animates** unless the gates are `display: true`.
+- **A seeded random start can degenerate**, and the cure is usually where you
+  start rather than how you stop. Non-metric MDS collapsed 18 of 40 seeds from a
+  random start and none from the classical one. t-SNE's own early-exaggeration
+  phase is the same kind of device; find out what `sklearn` actually does before
+  inventing a schedule.
+- **Do not animate a search the library does not perform** (widget 19), but
+  **do not remove real motion either** (widget 20). The test is *does the
+  library do this*, and t-SNE genuinely does gradient descent — so its motion is
+  real and should be named, not hidden.
+- **Check the claim against the library, not against memory.** `isoMDS`'s
+  default start was verified from the MASS documentation because Kenneth asked
+  *"is it your idea, or this is the actual algorithm?"* — the right question, and
+  the answer changed a line of on-screen copy.
+
+### The hosts, and there are two
+
+| course | notebook | what it runs |
+|---|---|---|
+| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state` |
+| PHM5003 | `05 / 04 — Dimensionality Reduction` | the R side, alongside PCA, NMF, MDS and UMAP |
+
+**Read the PHM5003 one before designing.** It is what settled widget 20's
+structure — one heading over classical and non-metric meant one widget — and its
+t-SNE section will say whether the same is true of anything here. It is not on
+this disk; ask Kenneth for the notebook link.
 
 ---
 
