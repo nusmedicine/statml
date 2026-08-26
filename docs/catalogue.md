@@ -5869,6 +5869,22 @@ asks it.
 **EVERY LABEL PAIR WAS MEASURED against the narrowest column the layout produces
 — 203px at a 520px viewport — and four of the first five overflowed it.**
 
+**A SECOND PASS CUT THE CONTROL DETAILS** *(Kenneth, 2026-08-26: "remove
+unnecessary comments in the slides/options if it's apparent what it means")*, and
+house style was already on his side: `pca`, `mds` and `t-sne` carry **two**
+top-level details each across eight or nine parameters, where this widget had one
+on nearly everything. It is down to three — `n_neighbors`, `min_dist`, and the
+seed's dual role, which is the one thing not apparent from its label — plus four
+per-option details naming the group arrangements, since "at the poles" and "an
+octahedron" are not readable off the numbers 2 and 6.
+
+**AND THE CHORD-OVER-ARC TILE IS GONE** *("we use the sphere as an example, so we
+only show metrics that make sense for this algorithm")*, which is the right cut:
+that ratio is a property of THIS STAGE'S geometry, not of UMAP, and a readout
+that only means something on a sphere teaches the example rather than the method.
+The measurement stays in this file, because it is why the sphere is a legitimate
+stage — but the manifold point is made by the picture, not by a number.
+
 #### TWO DEFECTS THE BUILD FOUND, and only one is this widget's
 
 1. **EVERY SAMPLE HAS A LINK AT μ = 1 AND ITS IDEAL DISTANCE IS ZERO.** A

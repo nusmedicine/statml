@@ -145,39 +145,6 @@ function neighboursKept(pts, Y, k = 3) {
   return s / n;
 }
 
-/* AN EDGE IS A STRAIGHT CHORD, THE DATA LIES ON A CURVED SURFACE, AND UMAP ONLY
-   EVER SEES THE CHORD. What makes that legitimate is that a manifold is locally
-   Euclidean: for a short enough separation the chord and the arc along the
-   surface agree to second order. Measured on this stage, over all 1128 pairs —
-
-     arc between the pair    pairs    worst chord/arc    mean
-     0 to 0.5                  177             0.9974   0.9989
-     0.5 to 1                   79             0.9899   0.9949
-     1 to 2                      8             0.9837   0.9874
-     2 to 3                     25             0.9093   0.9181
-     3 to 4                    538             0.8415   0.8699
-     4 to 7                    301             0.7457   0.8228
-
-   — so near pairs agree to three parts in a thousand and distant ones are out
-   by a quarter. THE GRAPH ONLY EVER JOINS NEAR PAIRS, which is why the chord is
-   a fair substitute, and the readout reports the range over the edges the graph
-   actually built rather than over all pairs. */
-function chordOverArc(pts, mu) {
-  const n = pts.length;
-  let lo = 1, hi = 0, sum = 0, count = 0;
-  for (let i = 0; i < n; i += 1)
-    for (let j = i + 1; j < n; j += 1) {
-      if (mu[i][j] <= 1e-9) continue;
-      const ri = Math.hypot(...pts[i]) || 1, rj = Math.hypot(...pts[j]) || 1;
-      const cosang = clamp(dot(pts[i], pts[j]) / (ri * rj), -1, 1);
-      const arc = R * Math.acos(cosang);
-      if (arc < 1e-9) continue;
-      const r = dist3(pts[i], pts[j]) / arc;
-      lo = Math.min(lo, r); hi = Math.max(hi, r); sum += r; count += 1;
-    }
-  return count ? { lo, hi, mean: sum / count } : null;
-}
-
 /* How tight the clusters LOOK, against how much they mean: mean within-group
    radius over mean centre-to-centre gap. The other half of the sentence, and
    the half min_dist DOES move — x3.62 across its range on ten seeds. */
@@ -539,8 +506,8 @@ defineWidget({
       type: "segmented",
       label: "Labels",
       options: [
-        { value: "off", label: "Off", detail: "how many clusters can you see?" },
-        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
       ],
       default: "off",
       display: true,
@@ -556,8 +523,8 @@ defineWidget({
       options: [
         { value: "2", label: "2", detail: "at the poles" },
         { value: "3", label: "3", detail: "round the equator" },
-        { value: "4", label: "4", detail: "a tetrahedron — a flat map can still keep them apart" },
-        { value: "6", label: "6", detail: "an octahedron — no flat map can keep all six apart" },
+        { value: "4", label: "4", detail: "a tetrahedron" },
+        { value: "6", label: "6", detail: "an octahedron" },
       ],
       default: "6",
     },
@@ -565,9 +532,9 @@ defineWidget({
       type: "choice",
       label: "Samples per group",
       options: [
-        { value: "4", label: "4", detail: "near the R lesson's scale — 8 samples of airway" },
-        { value: "8", label: "8", detail: "48 samples in all at six groups" },
-        { value: "12", label: "12", detail: "the whole useful range of n_neighbors is reachable" },
+        { value: "4", label: "4" },
+        { value: "8", label: "8" },
+        { value: "12", label: "12" },
       ],
       default: "8",
     },
@@ -585,7 +552,7 @@ defineWidget({
       min: 2,
       max: 40,
       default: 15,
-      detail: "how many nearest neighbours each sample is joined to — n_neighbors",
+      detail: "n_neighbors",
     },
 
     /* THE SECOND, and the one the widget is about. Over the same sweep it moves
@@ -605,7 +572,7 @@ defineWidget({
       max: 0.95,
       step: 0.05,
       default: 0.1,
-      detail: "how closely the layout may pack points — min_dist in both libraries",
+      detail: "min_dist",
     },
 
     /* THE TWO GATES ARE CELL 41'S TWO NUMBERED STEPS, and Kenneth's own
@@ -622,14 +589,12 @@ defineWidget({
       type: "gate",
       label: "Build the neighbour graph",
       labelOff: "Clear the graph",
-      detail: "find each sample's nearest neighbours and weight an edge to each one",
       display: true,
     },
     flatten: {
       type: "gate",
       label: "Flatten to 2-D",
       labelOff: "Back to the cloud",
-      detail: "project onto the two most-spread directions, then optimise the layout",
       when: { param: "graph" },
       display: true,
     },
@@ -1344,7 +1309,7 @@ defineWidget({
       return [{
         label: "Samples",
         value: String(n),
-        note: `${groups} groups of ${state.per}, measured on three genes`,
+        note: `${groups} groups of ${state.per}, on a sphere in three dimensions`,
       }];
     }
 
@@ -1386,19 +1351,6 @@ defineWidget({
       note: `of each sample's 3 nearest in 3-D, still nearest here; `
         + `${Math.round(state.keptFlat * 100)}% after the projection alone`,
     });
-    /* THE MANIFOLD POINT, and it needs a number rather than a claim: the edges
-       are straight chords through the inside of the sphere, and they stand in
-       for distances along its surface. They may, because every edge the graph
-       builds is a short one. */
-    const ca = chordOverArc(pts, state.mu);
-    if (ca) {
-      out.push({
-        label: "Chord over arc",
-        value: `${(ca.mean * 100).toFixed(1)}%`,
-        note: `an edge's straight length against the distance along the surface, `
-          + `${(ca.lo * 100).toFixed(0)}–${(ca.hi * 100).toFixed(0)}% across the graph`,
-      });
-    }
     out.push({
       label: "Spread over gap",
       value: tightness(Y, gs, groups).toFixed(3),
@@ -1418,7 +1370,7 @@ defineWidget({
   summary({ params, state, anim }) {
     const { n, groups, per, neighbours, curve, gs } = state;
     const told = params.labels === "on";
-    const stock = `${n} samples in ${groups} groups of ${per}, measured on three genes, `
+    const stock = `${n} samples in ${groups} groups of ${per}, on a sphere in three dimensions, `
       + (told ? "coloured by group" : "all one colour so the grouping is not given away")
       + `, turned ${params.turn} degrees and tilted ${params.tilt}.`;
     if (!params.graph) return `${stock} No neighbour graph has been built yet.`;
