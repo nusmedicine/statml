@@ -5523,7 +5523,7 @@ start above all), so a claim about *what the lesson's own code does* should say
 
 ---
 
-## Widget 22 · `umap` — DRAFT BUILT, planned and measured first
+## Widget 22 · `umap` — SHIPPED, planned and measured first
 
 **The planning session ran on 2026-08-26 and it settled all three questions.**
 Everything below that carries a number was measured — in this repo in node
@@ -5547,9 +5547,31 @@ algorithm twice — `_lab/tsne-engine.js` is what the verification checks and
 `widgets/balancing-data/model.js` is the pattern that avoids that, and this
 follows it.
 
-`status: "draft"` in both the manifest and `main.js`, so it lands on `/lab/` and
-is exempt from fingerprint states until the design settles — **baseline last**,
-and `bootstrap` was baselined three times over for forgetting that.
+**SHIPPED on 2026-08-26, and baselined last** — it spent the session as a draft
+on `/lab/` through four rounds of Kenneth's review, and the states were recorded
+only once he promoted it. `bootstrap` was baselined three times over for taking
+that order the other way round.
+
+**Five fingerprint states, and the suite is GREEN at 139 of 139:**
+
+| kind | state | what it covers |
+|---|---|---|
+| settled | `?theme=light` | the gate shut — the one-panel layout nothing else reaches |
+| settled | `…&graph=1&flatten=1&step=15` | the finished figure |
+| driven | `click: step`, 12 frames | mid-optimisation, which no settled state can see |
+| **hit-driven** | `hit: [140, 188]`, 2 frames | the region map — that point resolves to `pick=44`, a sample in the cloud |
+| driven | `click: gate-flatten`, 8 frames | **the flattening tween mid-rotation** |
+
+**The hit coordinate was measured, not guessed** — widget 21's was guessed and hit
+nothing, which is recorded above. A pointer sweep over the whole canvas at the
+harness's 900px frame found 959 live targets; `[140, 188]` was checked to set
+`pick=44` before it went in. The canvas is 547 × 488 there.
+
+**Each driven state was checked against its settled sibling**, which is the other
+thing widget 21's session learned: `mds` and `balancing-data` hashed IDENTICALLY
+settled and driven, which passes `check` and covers nothing. All five differ on
+`px`. Two share a `tx` — the hit state and the tween both sit at step 0 with the
+same parameters, so the words are the same while the pictures are not.
 
 **The staging is Kenneth's workflow — set up, inspect, then run** — expressed as
 cell 41's own two numbered steps:

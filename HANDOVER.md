@@ -1,11 +1,11 @@
 # Handover
 
-**Twenty-one widgets shipped, a twenty-second built as a DRAFT, and the
-fingerprint suite GREEN at 134 of 134.**
+**Twenty-two widgets, all shipped, all on the gallery, and the fingerprint
+suite GREEN at 139 of 139.**
 
-**Widget 22 `umap` is built and needs Kenneth's eyes** — it is on `/lab/`, not
-the gallery, and carries no fingerprint states yet, deliberately. **Widget 23 is
-K-MEANS**, chosen 2026-08-26 and reconnoitred but not planned. Both below.
+Widget 22 `umap` was planned, measured, built, revised over four rounds of
+Kenneth's review, baselined and promoted on 2026-08-26. **Widget 23 is
+K-MEANS**, chosen the same day and reconnoitred but not planned — see *NEXT*.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -23,11 +23,13 @@ npm run check                 # before every commit
 
 ---
 
-## The suite is GREEN at 134 of 134
+## The suite is GREEN at 139 of 139
 
-**Every state is recorded and every one matches.** The eleven placeholders left
-by the promotion were replaced with real hashes on 2026-08-26, confirmed
-identical across three consecutive runs first. The two `widgets/core/` changes
+**Every state is recorded and every one matches.** Widget 22's five states went
+in on 2026-08-26 when Kenneth promoted it, confirmed identical across three
+consecutive runs first, and a fourth run against the recorded baseline read
+**139 of 139 MATCH**. Earlier the same day the eleven placeholders left by the
+previous promotion were replaced with real hashes, on the same three-run rule. The two `widgets/core/` changes
 that owed a run — hoisting `at` out of the `if (regions)` block, and the
 regions hover handler falling back to the drag cursor — are covered by that run:
 **123 pre-existing states matched, so neither reached a widget it should not
@@ -68,7 +70,7 @@ is blind to.
 | 19 | `pca` | shipped, six rounds |
 | 20 | `mds` | shipped, five rounds, **two methods** — classical and non-metric |
 | 21 | `t-sne` | shipped, built and reviewed across one long session on 2026-08-26 |
-| 22 | `umap` | **DRAFT.** Planned, measured, built and revised over four review rounds on 2026-08-26. On `/lab/`; no baseline yet |
+| 22 | `umap` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -141,12 +143,11 @@ false for widget 21.
 
 ---
 
-## WIDGET 22 IS A DRAFT AND NEEDS HIS EYES
+## WIDGET 22 IS SHIPPED — and one review is still owed
 
-**On `/lab/`, not the gallery, with no fingerprint baseline — deliberately.**
-Six commits of design, every one of them moved by his review, so the design is
-still moving and **a baseline recorded now would be thrown away**. `bootstrap`
-was baselined three times over for getting that order backwards.
+**On the gallery, five fingerprint states, suite GREEN at 139 of 139.** Promoted
+on 2026-08-26 after four rounds of Kenneth's review; the states were recorded
+only once he promoted it, which is the order the catalogue argues for.
 
 ```bash
 node scripts/serve.mjs 8017
@@ -156,21 +157,11 @@ node widgets/_lab/umap-landing.mjs    # the flattening lands on frame 0, 2.2e-16
 node widgets/_lab/umap-measure.mjs    # every number the catalogue quotes
 ```
 
-**What only he can judge:**
+**STILL OWED: it has not been judged PROJECTED**, at lecture size from the back
+of a room. Neither has any widget from 11 onward — it is the cheapest review
+left in the repo and the one nothing here can do.
 
-- **projected, at lecture size.** No widget from 11 onward has had that review and
-  it is the cheapest one left.
-- **the graph at 384 edges** — mapping C, opacity and width both carrying μ, his
-  call. `Neighbours` at 40 is its worst case.
-- **the six caps on the globe** at panel size, and whether the wireframe reads as
-  a surface.
-
-**The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 22 ·
-`umap`***, including every measurement and the four review rounds. What that
-section carries and this file should not: the sphere stage and why a sphere buys
-the metaphor but no geodesic lesson, the PCA-plane start and the flattening
-animation, six groups against four, the conventional-language pass, and the two
-defects the build found.
+The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 22 · `umap`*.
 
 ### Two things recorded and NOT fixed
 
@@ -180,9 +171,23 @@ defects the build found.
   `seededOnce` is deliberate; leaving the parameter in the address bar is not.
   **The fix is core's and owes a full fingerprint run.**
 - **Widget 21 draws the same wireframe globe over samples that fill the BALL.**
-  Widget 22's now sit on the sphere; widget 21's do not, and its globe implies a
-  surface its data is not on. It never claims a manifold, so it is a smaller
-  problem there — but it is the same one.
+  Widget 22's now sit on the sphere and its globe is a surface; widget 21's is
+  not, and implies one its data is not on. It never claims a manifold, so it is
+  the smaller version of the same problem.
+
+### What baselining widget 22 taught, for widget 23
+
+- **The hit coordinate is measured, never guessed.** A pointer sweep of the whole
+  canvas at the harness's 900px frame found 959 live targets, and `[140, 188]`
+  was checked to set `pick=44` before it went into the baseline. Widget 21's was
+  guessed and hit nothing.
+- **Check every driven state against its settled sibling.** `mds` and
+  `balancing-data` once hashed IDENTICALLY settled and driven, which passes
+  `check` and covers nothing.
+- **A gate counts as a drive button**: `click: "gate-flatten"` is what captures
+  an entry animation, and it is how the flattening tween got a state at all.
+- **The harness needs the tab FRONTED** — it composites no frames otherwise — and
+  a full pass over 139 states takes about 40 seconds here.
 
 ---
 

@@ -476,7 +476,7 @@ defineWidget({
   slug: "umap",
   title: "UMAP",
   subtitle: "UMAP builds a weighted graph of each sample's nearest neighbours, then lays that graph out in two dimensions. Neighbours changes which neighbourhoods the graph records. Minimum distance changes only how closely the layout may pack points.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: ({ w, flatten }) => layout(w, !!flatten).height,
 
