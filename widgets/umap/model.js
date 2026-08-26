@@ -198,6 +198,100 @@ export function findAbParams(spread = 1, minDist = 0.1) {
   return { a, b };
 }
 
+/* --- the stage ------------------------------------------------------------- *
+ *
+ * HERE RATHER THAN IN `main.js` FOR THE REASON THE SOLVER IS: `_lab`'s scripts
+ * import it, so the numbers the catalogue quotes come off the stage the widget
+ * actually generates. Widget 21 keeps its stage private and its measurement
+ * script keeps a copy, and nothing holds the two together.
+ */
+
+/* THE SAMPLES LIE ON THE SPHERE, NOT IN THE BALL, and that is the difference
+   between drawing a manifold and drawing a reference. Widget 21's stage — which
+   this one used first — puts the cluster CENTRES on a sphere of radius R and
+   then scatters samples around them in all three dimensions, so the cloud fills
+   the ball: radius from the origin ran 1.14 to 3.33 and only 9 of 48 samples
+   landed within 0.1 of R. The wireframe globe was drawing a surface the data was
+   not on, and the edges cut through the interior. Kenneth put it exactly: it
+   "doesn't bring home the point that UMAP can find clusters on manifolds".
+
+   Now every sample sits at exactly radius R, as a cap around each group's
+   direction — a real 2-manifold embedded in three dimensions, which is what
+   cell 46 assumes and what "flattening a globe onto a map" describes.
+
+   WHAT IT DOES NOT BUY, recorded so it is not claimed: a lesson about geodesics.
+   On a sphere the chord is 2R sin(theta/2) in the great-circle angle, strictly
+   increasing over the whole range — so the k nearest by chord are ALWAYS the k
+   nearest by arc, for every k. Measured on caps and on a band around the sphere,
+   the two neighbourhoods agree 100% of the time. A sphere cannot separate the
+   two metrics; only a surface that folds back on itself can, and a Swiss roll
+   wound tightly enough to do it defeats UMAP at n = 48 rather than showing it
+   off. `_lab/umap-sphere.html` has all four stages and the numbers.
+
+   SO THE SPHERE IS FOR THE METAPHOR, and the metaphor is now honest.
+
+   CAP_DEG 30 is measured. Retention is flat at 0.876 across 15 to 35 degrees and
+   only falls at 60 (0.860); tightness starts loosening past 45. What decides it
+   is that the caps stay compact against the 109 degrees between tetrahedral
+   centres. */
+export const R = 2;
+const CAP_DEG = 30;
+const JITTER = 0.12;
+
+const gauss = (rng) =>
+  Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
+const scale3 = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const unit3 = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return scale3(a, 1 / m); };
+const cross3 = (a, b) => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+
+/** Unit directions for the group centres: two poles, three round the equator,
+    or four at the vertices of a tetrahedron. */
+function spreadDirs(n) {
+  if (n === 2) return [[0, 0, 1], [0, 0, -1]];
+  if (n === 3) {
+    return [0, 1, 2].map((k) => {
+      const a = (2 * Math.PI * k) / 3;
+      return [Math.cos(a), Math.sin(a), 0];
+    });
+  }
+  const c = 1 / Math.sqrt(3);
+  return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => scale3(v, c));
+}
+
+export function stage(groups, per, rng) {
+  const out = [];
+  const centres = spreadDirs(groups).map((p) =>
+    unit3([0, 1, 2].map((k) => p[k] + gauss(rng) * JITTER)));
+  const sig = (CAP_DEG * Math.PI) / 180 / 2;
+  for (let g = 0; g < groups; g += 1) {
+    const c = centres[g];
+    /* An orthonormal frame in the tangent plane at c. The seed vector only has
+       to be non-parallel to c, and 0.9 is a safe threshold for a unit vector. */
+    const t = Math.abs(c[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const u = unit3(cross3(c, t));
+    const v = cross3(c, u);
+    for (let i = 0; i < per; i += 1) {
+      /* A Gaussian ANGLE from the centre and a uniform bearing, then walk that
+         far along the great circle. Scattering in the tangent plane and
+         projecting back would bunch samples toward the rim at wide caps; this
+         puts them on the surface directly. */
+      const ang = Math.abs(gauss(rng) * sig);
+      const phi = rng.uniform(0, 2 * Math.PI);
+      const dir = [0, 1, 2].map((k) => u[k] * Math.cos(phi) + v[k] * Math.sin(phi));
+      out.push({
+        g,
+        p: [0, 1, 2].map((k) => (c[k] * Math.cos(ang) + dir[k] * Math.sin(ang)) * R),
+      });
+    }
+  }
+  return out;
+}
+
+
 /* --- where the flattening STARTS -------------------------------------------
  *
  * `umap-learn`'s default `init` is **"spectral"** — the Laplacian eigenmaps
@@ -211,7 +305,10 @@ export function findAbParams(spread = 1, minDist = 0.1) {
  *
  * while all three finish in the same place — 0.814 to 0.819 retention, 0.103 to
  * 0.116 tightness. So the choice costs nothing in the answer and decides only
- * what the reader watches happen.
+ * what the reader watches happen. (Those three were measured on the earlier
+ * ball stage; on the sphere the plane starts higher still, 0.728 against a
+ * settled 0.832 at 3-NN over eight seeds, because a 2-manifold flattens to two
+ * dimensions better than a solid ball does.)
  *
  * THE PCA PLANE IS THE ONE THIS WIDGET USES, for four reasons and none of them
  * is quality:
@@ -223,9 +320,13 @@ export function findAbParams(spread = 1, minDist = 0.1) {
  *      flat map PCA gives you, then let the neighbour graph pull it into shape.
  *   3. `sklearn`'s t-SNE defaults to `init="pca"` for the same reason, so a
  *      structured start is library-endorsed rather than a convenience.
- *   4. it hands the widget a number: 65 per cent of neighbourhoods survive the
- *      flattening alone, 81 per cent after UMAP. THAT DIFFERENCE IS WHAT UMAP
- *      ADDS, and nothing else in the arc states it.
+ *   4. it hands the widget a number: on the sphere stage 73 per cent of each
+ *      sample's three nearest neighbours survive the flattening ALONE and 83
+ *      per cent after UMAP, averaged over eight seeds. THAT DIFFERENCE IS WHAT
+ *      UMAP ADDS, and nothing else in the arc states it. It is bigger at two
+ *      and three groups (+0.215 and +0.241) than at four (+0.104), because four
+ *      tetrahedral caps have a near-isotropic covariance and no plane is much
+ *      better than any other — the eigenvalues run 1.56 / 1.35 / 1.07.
  *
  * It is also 43x cheaper than spectral — a 3x3 eigendecomposition against a
  * 48x48 one, 0.1 ms against 4.3 ms.

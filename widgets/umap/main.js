@@ -32,9 +32,10 @@
    wider than its neighbour draws 1.02x +- 0.07. The readout says so.
 
    THE ONE SENTENCE: `min_dist` decides how tight the picture LOOKS, not what
-   UMAP KNOWS. Swept end to end over ten seeds it moves 5-NN retention by
-   +0.026 and cluster tightness by x2.16; `n_neighbors` over its range moves
-   retention by +0.490. A nineteenfold difference on the same measure, and the
+   UMAP KNOWS. Swept end to end over ten seeds on this stage it moves 5-NN
+   retention by +0.023 — inside the seed noise on TEN of ten seeds — while
+   moving the clusters x2.63 looser on ten of ten. `n_neighbors` over its range
+   moves retention by +0.255, up on ten of ten and far outside that noise. The
    two controls sit next to each other so a reader can find out which is which.
 
    The solver is `./model.js`, a separate module so `_lab/umap-verify.mjs` can
@@ -46,64 +47,52 @@
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
-import { fuzzySet, findAbParams, umap, pcaPlane } from "./model.js";
+import { fuzzySet, findAbParams, umap, pcaPlane, stage, R } from "./model.js";
 
-/* The stage is widget 21's, unchanged: `groups` centres on a sphere of radius
-   R, `per` samples scattered around each by SIGMA. Nothing in UMAP forces 48
-   the way Rtsne's `3 * perplexity < n - 1` forced it for t-SNE — the reason to
-   keep it is the ARC. The same cloud under four methods is what makes widgets
-   19 to 22 comparable, and the n_neighbors sweep still has room in it: eight
-   legal settings differing by 0.50 in retention. */
-const R = 2;
-const SIGMA = 0.62;
-const JITTER = 0.12;
+/* 300 iterations, revealed 20 at a time — FIFTEEN STEPS. The count follows from
+   how far the picture actually moves, measured on the sphere stage over ten
+   seeds as the mean distance a sample travels in a step, against the radius of
+   the arrangement:
 
-/* 300 iterations, revealed 10 at a time — THIRTY STEPS, AND THE PCA START IS
-   WHY IT IS NOT FIFTY. From a random start the run genuinely needed 500: at 300
-   iterations retention read 0.787 and silhouette 0.698 against 0.805 and 0.774
-   at 500. Starting on the flat map, the same run is done far sooner. Ten seeds,
-   from the PCA plane:
+     step   at 10 iters/step   at 20 iters/step
+        1             30.24%             37.65%
+        2             11.83%             11.94%
+        3              7.19%              7.20%
+       …
+     steps moving under 1%    16 of 30            5 of 15
 
-     step  iters   retention   tightness      CE   moves, as % of the picture
-        0      0       0.663       0.282   302.6   —
-        1     10       0.795       0.177   217.4   25.6%
-        2     20       0.802       0.155   208.5    9.1%
-        5     50       0.811       0.134   201.1    2.9%
-       10    100       0.812       0.121   197.7    1.3%
-       20    200       0.814       0.109   194.6    0.5%
-       30    300       0.813       0.105   194.0    0.25%
-       50    500       0.813       0.103   193.7    0.01%
+   At ten a reader presses thirty times and half of those presses move the
+   picture by less than one per cent of its own size. At twenty, five of fifteen
+   do. KENNETH REPORTED THAT DEFECT ON WIDGET 17 — twenty boosting rounds with
+   nothing visible after six — so it is not hypothetical.
 
-   Retention is finished by step 2. What the tail buys is tightness, and it buys
-   it at a rate that falls off a cliff: cutting 500 to 300 leaves retention
-   IDENTICAL at 0.813, tightness 0.110 against 0.103, and the cross-entropy 0.6%
-   higher. That is twenty presses removed which each moved the picture by under a
-   third of one per cent.
+   The tail is not dead, it is TIGHTENING: retention is flat from 25 iterations
+   (0.859, against 0.862 at the end) while the clusters keep contracting,
+   0.242 down to 0.068 on the spread-over-gap measure. Real motion, just not
+   rearrangement.
 
-   KENNETH ALREADY REPORTED THIS DEFECT ON WIDGET 17 — its twenty boosting rounds
-   with nothing visible changing after six — so it is not a hypothetical.
-
-   A step still CANNOT be one iteration: from a random start one iteration gives
-   retention 0.116 and silhouette -0.119, a picture that puts the groups inside
-   each other. */
+   A step still cannot be ONE iteration: at one the arrangement reads 0.706
+   retention against a settled 0.862. */
 const ITERS = 300;
-const PER_STEP = 10;
+const PER_STEP = 20;
 
-/* THE LEARNING RATE IS 0.1 AND THAT IS A MEASURED CHOICE WITH A MEASURED COST.
+/* THE LEARNING RATE IS 0.1, AND WHAT DECIDES IT IS WHAT THE CHART CAN DRAW.
    A full-batch gradient does not need the large steps a stochastic one does, so
-   a small eta is the appropriate setting — and the consequence is the first
-   clean objective curve in this arc. Widget 20's raw stress and widget 21's KL
-   both rose often enough to need explaining away; t-SNE's rises on 139 of 1000
-   steps. Six seeds, 500 iterations:
+   a small eta is the appropriate setting; the question is how small. Ten seeds,
+   300 iterations:
 
-     eta     CE rises    final CE    retention    tightness
-     1.0      206/500       186.4        0.822        0.080
-     0.25     147/500       187.3        0.826        0.092
-     0.1        8/500       190.3        0.803        0.102
-     0.05       0/500       208.5        0.794        0.156
+     eta      iterations that rise     rises ON THE CHART     final CE
+     1.0                   ~130/300                  many        143.0
+     0.25                   ~103/300                  some       145.4
+     0.1                      17/300                 0 of 15      148.5
+     0.05                      0/300                 0 of 15      152.2
 
-   Two per cent of the objective for a chart that descends. 0.05 buys the last
-   eight rises for ten per cent and a visibly looser picture, which is too much. */
+   THE CHART PLOTS EVERY TWENTIETH ITERATION, and at eta 0.1 not one of its
+   fifteen points rises — the seventeen upticks all fall between plotted points
+   and are invisible. So 0.05 buys nothing a reader can see and costs 2.5% of
+   the objective and a visibly looser picture (0.071 against 0.060). Widget 20's
+   raw stress and widget 21's KL both rose visibly and had to be explained away;
+   this one does not, and the reason is measured rather than asserted. */
 const ETA = 0.1;
 
 /* --- 3-vector arithmetic, as widgets 19, 20 and 21 have ---------------------- */
@@ -116,6 +105,11 @@ const clamp01 = (v) => clamp(v, 0, 1);
 const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const dist2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross3 = (a, b) => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
 const unit3 = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return scale3(a, 1 / m); };
 const easeCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
 
@@ -129,36 +123,6 @@ function slerp(a, b, t) {
   const s = Math.sin(th);
   const c1 = Math.sin((1 - t) * th) / s, c2 = Math.sin(t * th) / s;
   return [0, 1, 2].map((k) => a[k] * c1 + b[k] * c2);
-}
-
-function spread(n) {
-  if (n === 2) return [[0, 0, R], [0, 0, -R]];
-  if (n === 3) {
-    return [0, 1, 2].map((k) => {
-      const a = (2 * Math.PI * k) / 3;
-      return [R * Math.cos(a), R * Math.sin(a), 0];
-    });
-  }
-  const c = R / Math.sqrt(3);
-  return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => scale3(v, c));
-}
-
-const gauss = (rng) =>
-  Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
-
-function stage(groups, per, rng) {
-  const out = [];
-  const centres = spread(groups).map((p) => {
-    const v = [0, 1, 2].map((k) => p[k] + gauss(rng) * JITTER * R);
-    const m = Math.hypot(v[0], v[1], v[2]) || 1;
-    return v.map((x) => (x / m) * R);
-  });
-  for (let g = 0; g < groups; g += 1) {
-    for (let i = 0; i < per; i += 1) {
-      out.push({ g, p: centres[g].map((x) => x + gauss(rng) * SIGMA) });
-    }
-  }
-  return out;
 }
 
 /* How much of each sample's neighbourhood survived into the picture: of its
@@ -180,9 +144,42 @@ function neighboursKept(pts, Y, k = 3) {
   return s / n;
 }
 
+/* AN EDGE IS A STRAIGHT CHORD, THE DATA LIES ON A CURVED SURFACE, AND UMAP ONLY
+   EVER SEES THE CHORD. What makes that legitimate is that a manifold is locally
+   Euclidean: for a short enough separation the chord and the arc along the
+   surface agree to second order. Measured on this stage, over all 1128 pairs —
+
+     arc between the pair    pairs    worst chord/arc    mean
+     0 to 0.5                  177             0.9974   0.9989
+     0.5 to 1                   79             0.9899   0.9949
+     1 to 2                      8             0.9837   0.9874
+     2 to 3                     25             0.9093   0.9181
+     3 to 4                    538             0.8415   0.8699
+     4 to 7                    301             0.7457   0.8228
+
+   — so near pairs agree to three parts in a thousand and distant ones are out
+   by a quarter. THE GRAPH ONLY EVER JOINS NEAR PAIRS, which is why the chord is
+   a fair substitute, and the readout reports the range over the edges the graph
+   actually built rather than over all pairs. */
+function chordOverArc(pts, mu) {
+  const n = pts.length;
+  let lo = 1, hi = 0, sum = 0, count = 0;
+  for (let i = 0; i < n; i += 1)
+    for (let j = i + 1; j < n; j += 1) {
+      if (mu[i][j] <= 1e-9) continue;
+      const ri = Math.hypot(...pts[i]) || 1, rj = Math.hypot(...pts[j]) || 1;
+      const cosang = clamp(dot(pts[i], pts[j]) / (ri * rj), -1, 1);
+      const arc = R * Math.acos(cosang);
+      if (arc < 1e-9) continue;
+      const r = dist3(pts[i], pts[j]) / arc;
+      lo = Math.min(lo, r); hi = Math.max(hi, r); sum += r; count += 1;
+    }
+  return count ? { lo, hi, mean: sum / count } : null;
+}
+
 /* How tight the clusters LOOK, against how much they mean: mean within-group
    radius over mean centre-to-centre gap. The other half of the sentence, and
-   the half min_dist DOES move — x2.16 across its range on ten seeds. */
+   the half min_dist DOES move — x2.63 across its range on ten seeds. */
 function tightness(Y, gs, groups) {
   if (groups < 2) return 0;
   const cs = [];
@@ -539,11 +536,10 @@ defineWidget({
     },
 
     /* THE FIRST OF THE LESSON'S TWO CONTROLS, and the one that changes what
-       UMAP KNOWS. Swept 2 to 40 it moves 5-NN retention by +0.490, up on 10 of
-       10 seeds — and NOT monotonically: retention reads 0.332 at 2, 0.677 at 5,
-       0.805 at 15, 0.822 at 40, while the silhouette turns over and comes back
-       down. There is an optimum in the middle, and PHM5003's own setting of 3
-       is at the shattering end because 8 samples leave nowhere else to be. */
+       UMAP KNOWS. Swept 2 to 40 it moves 5-NN retention by +0.255, up on 10 of
+       10 seeds: 0.631 at 2, 0.743 at 3, 0.793 at 5, 0.862 at 15, 0.885 at 40.
+       PHM5003's own setting of 3 is at the shattering end, because 8 samples
+       leave nowhere else to be — worth showing rather than copying. */
     neighbours: {
       type: "int",
       label: "Neighbours",
@@ -554,8 +550,8 @@ defineWidget({
     },
 
     /* THE SECOND, and the one the widget is about. Over the same sweep it moves
-       retention by +0.026 — inside the seed noise on 8 of 10 seeds — while
-       moving how tight the clusters LOOK by x2.16, looser on 10 of 10.
+       retention by +0.023, which is inside the seed noise on ALL TEN seeds,
+       while moving how tight the clusters LOOK by x2.63, looser on 10 of 10.
 
        NOT `display: true`, however much it behaves like a presentation control.
        It feeds `compute()`: a and b change, the descent is different, the
@@ -1347,6 +1343,19 @@ defineWidget({
       note: `of each sample's 3 nearest in 3-D, still nearest here; `
         + `${Math.round(state.keptFlat * 100)}% after the projection alone`,
     });
+    /* THE MANIFOLD POINT, and it needs a number rather than a claim: the edges
+       are straight chords through the inside of the sphere, and they stand in
+       for distances along its surface. They may, because every edge the graph
+       builds is a short one. */
+    const ca = chordOverArc(pts, state.mu);
+    if (ca) {
+      out.push({
+        label: "Chord over arc",
+        value: `${(ca.mean * 100).toFixed(1)}%`,
+        note: `an edge's straight length against the distance along the surface, `
+          + `${(ca.lo * 100).toFixed(0)}–${(ca.hi * 100).toFixed(0)}% across the graph`,
+      });
+    }
     out.push({
       label: "Spread over gap",
       value: tightness(Y, gs, groups).toFixed(3),

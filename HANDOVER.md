@@ -118,25 +118,45 @@ node widgets/_lab/umap-measure.mjs   # the catalogue's numbers
 with nothing keeping the two in step; `balancing-data/model.js` is the pattern
 this follows.
 
-### THE GLOBE IS A REFERENCE SPHERE, NOT A MANIFOLD — open, and his call
+### THE SAMPLES ARE ON THE SPHERE — stage B, his call, done
 
-Kenneth asked whether the 3-D distances were Euclidean. **They are, exactly** —
-`knn` agrees with the Euclidean norm to 8.9e-16, matching `umap-learn`'s default
-and PHM5005 cell 42. UMAP's manifold story comes from `ρ` and `σ` rescaling each
-neighbourhood, not from a different metric; no geodesic is computed.
+*(2026-08-26.)* Every sample sits at exactly radius 2, as a cap around its
+group's direction. The globe is now the surface the data is on rather than a
+reference the data ignores, and the edges hug it instead of cutting through.
 
-**But he asked it as "drawing the links in 3D manifold space", and the samples
-are not on a manifold.** `stage()` puts the four cluster CENTRES on a sphere of
-radius 2 and scatters samples around them in all three dimensions: radius from
-the origin runs 1.14 to 3.33, mean 2.29 ± 0.47, **only 9 of 48 within 0.1 of
-radius 2**. The great-circle distance differs from the Euclidean chord by up to
-1.83. `_lab/umap-metric.mjs` measures both. So the wireframe globe invites a
-reading the data does not support — and widget 21 draws the same globe.
+**The metric is Euclidean and that is legitimate BECAUSE a manifold is locally
+Euclidean** — his own read. Measured over all 1128 pairs: pairs an arc of 0–0.5
+apart have chord/arc **0.9974**, pairs 4–7 apart **0.7457**. The graph only ever
+joins near pairs, so the substitution holds, and the widget says so in a tile —
+**Chord over arc, 97.3%** over the edges actually built, range 88–100%.
 
-**Two ways out, and it is a teaching call: drop the globe, or put the samples ON
-the sphere** — which would make the manifold real and cell 41's analogy literal,
-at the cost of changing the stage widgets 19 to 22 share and every number
-measured on it.
+**The two claims got CLEANER, not weaker**, over ten seeds:
+
+| | on the ball | on the sphere |
+|---|---|---|
+| `min_dist` 0 → 0.99, retention | +0.026, past noise on 2/10 | **+0.023, past noise on 0/10** |
+| `min_dist` 0 → 0.99, tightness | ×2.16 | **×2.63** |
+| `n_neighbors` 2 → 40 | +0.490 | **+0.255, up on 10/10** |
+
+Retention overall is higher too — 0.862 against 0.813 — because a 2-manifold
+flattens into two dimensions better than a solid ball does.
+
+**Two knock-ons, both measured after: FIFTEEN steps not thirty** (at 10
+iterations a step, 16 of 30 moved under 1% of the picture; at 20, five of
+fifteen do), and **eta 0.1 stands** — 17 of 300 iterations rise but **0 of the
+chart's 15 points do**, so nothing a reader can see.
+
+**The stage lives in `widgets/umap/model.js` and is exported**, so
+`_lab/umap-measure.mjs` measures the stage the widget generates instead of a
+copy. Widget 21 keeps its stage private and its script keeps a copy.
+
+**WHAT THE SPHERE DOES NOT BUY, so it is not claimed: a geodesic lesson.** On a
+sphere chord = 2R·sin(θ/2) is strictly increasing in the great-circle angle, so
+the k nearest by chord are ALWAYS the k nearest by arc, for every k — measured at
+100% on caps and on a band. Only a surface that folds back can separate them, and
+a Swiss roll wound tightly enough defeats UMAP at n = 48 (it keeps 69% of the
+chord neighbourhoods and 40% of the true ones). `_lab/umap-sphere.html` has all
+four stages live.
 
 ### What he should look at, because none of it is checkable
 

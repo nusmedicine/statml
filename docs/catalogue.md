@@ -5736,6 +5736,68 @@ failing case, but it is a different widget: no clusters, and it contradicts the
 this widget is not telling.** *Kenneth's call; the recommendation is to drop the
 globe unless he wants the metaphor, in which case B costs nothing.*
 
+#### THE SAMPLES ARE ON THE SPHERE NOW — stage B, and it is his call
+
+*(Kenneth, 2026-08-26: "can go with B for umap for the metaphor… the problem
+with current setup is that the distance cuts through the sphere and it doesn't
+bring home the point that umap can find clusters on manifolds.")* Every sample
+sits at exactly radius 2, as a cap around each group's direction — poles at two
+groups, an equatorial triangle at three, a tetrahedron at four. `CAP_DEG` is 30,
+measured: retention is flat at 0.876 from 15 to 35 degrees and only falls at 60.
+
+**HE IS RIGHT ABOUT THE LOCAL METRIC, and it is what makes the chord legitimate.**
+A manifold is locally Euclidean, so for a short enough separation the straight
+chord and the arc along the surface agree to second order. Measured over all
+1128 pairs of this stage:
+
+| arc between the pair | pairs | worst chord/arc | mean |
+|---|---|---|---|
+| 0 – 0.5 | 177 | **0.9974** | 0.9989 |
+| 0.5 – 1 | 79 | 0.9899 | 0.9949 |
+| 2 – 3 | 25 | 0.9093 | 0.9181 |
+| 4 – 7 | 301 | **0.7457** | 0.8228 |
+
+Near pairs agree to three parts in a thousand; distant ones are out by a quarter.
+**The graph only ever joins near pairs**, which is why the substitution holds, and
+the widget now says so in a readout tile: *Chord over arc*, **97.3%** mean over
+the edges the graph actually built, range 88–100%.
+
+**What the stage change did to the two claims, re-measured over ten seeds:**
+
+| | on the ball (was) | on the sphere (now) |
+|---|---|---|
+| `min_dist` 0 → 0.99, retention | +0.026, past noise on 2/10 seeds | **+0.023, past noise on 0/10** |
+| `min_dist` 0 → 0.99, tightness | ×2.16 | **×2.63** |
+| `n_neighbors` 2 → 40, retention | +0.490 | **+0.255, up on 10/10** |
+
+**The sentence is cleaner, not weaker**: `min_dist` now fails to move retention on
+*every* seed, while moving the picture further. Retention overall is higher too
+(0.862 against 0.813) — a 2-manifold flattens into two dimensions better than a
+solid ball does, which is the manifold assumption paying off.
+
+**Two knock-on changes, both measured after:**
+
+- **FIFTEEN STEPS, not thirty.** Mean distance a sample travels per step, against
+  the arrangement's radius: at 10 iterations a step, 16 of 30 steps move under
+  1%; at 20 a step, 5 of 15 do. The tail is not dead, it is *tightening* —
+  retention is flat from 25 iterations while the clusters keep contracting from
+  0.242 to 0.068 on the spread measure.
+- **eta 0.1 STANDS, and the reason is what the chart can draw.** On the sphere 17
+  of 300 iterations rise, which read as 48/500 when sampled every iteration and
+  looked like a regression. **They all fall between plotted points: 0 of the
+  chart's 15 points rise.** Dropping to 0.05 removes upticks no reader can see
+  and costs 2.5% of the objective and a visibly looser picture.
+
+**The stage moved into `widgets/umap/model.js` and is exported**, so
+`_lab/umap-measure.mjs` imports the stage the widget generates rather than
+keeping a copy — the same reason the solver lives there. Widget 21 keeps its
+stage private and its measurement script keeps a copy, with nothing holding the
+two together.
+
+**Still open, and it needs eyes:** the globe was decoration when the samples
+filled the ball and is load-bearing now that they sit on it. Three great circles
+may be too sparse to read as a surface.
+
 #### THE COPY IS CONVENTIONAL, after a pass on Kenneth's instruction
 
 *(2026-08-26: "remove any extraneous commentary from the widget. use

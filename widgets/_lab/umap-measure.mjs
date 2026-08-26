@@ -8,25 +8,20 @@
    Run: node widgets/_lab/umap-measure.mjs
    ========================================================================= */
 
-import { umap, fuzzySet, findAbParams } from "../umap/model.js";
+import { umap, fuzzySet, findAbParams, pcaPlane, stage as makeStage } from "../umap/model.js";
+
+/* THE WIDGET'S OWN STAGE, imported rather than copied — the same reason the
+   solver lives in model.js. Widget 21's measurement script keeps a private copy
+   of its stage and nothing holds the two together. */
 import { makeRng } from "../core/rng.js";
 
-/* --- the stage, and the metrics ---------------------------------------------
-   Widget 21's: `g` centres on a sphere of radius 2, `per` samples scattered by
-   0.62 around each. */
-const R = 2, SIGMA = 0.62;
-const CENTRES = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]
-  .map((c) => { const m = Math.hypot(...c) / R; return c.map((v) => v / m); });
+const stage = (seed, per = 12, g = 4) => {
+  const st = makeStage(g, per, makeRng(seed));
+  return { X: st.map((s2) => s2.p), y: st.map((s2) => s2.g) };
+};
 
-function stage(seed, per = 12, g = 4, sigma = SIGMA) {
-  const rng = makeRng(seed), X = [], y = [];
-  for (let i = 0; i < g; i += 1)
-    for (let p = 0; p < per; p += 1) {
-      X.push(CENTRES[i].map((c) => c + rng.normal(0, sigma)));
-      y.push(i);
-    }
-  return { X, y };
-}
+/* The widget starts from the PCA plane, so the measurements must too. */
+const umapFromPlane = (X, opts) => umap(X, { ...opts, init: pcaPlane(X).Y });
 
 const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
 const sd = (a) => Math.sqrt(mean(a.map((x) => (x - mean(a)) ** 2)));
@@ -85,7 +80,7 @@ for (const [per, iters] of [[6, 500], [12, 200], [12, 500], [12, 800], [24, 500]
   const ts = [], tf = [];
   for (let r = 0; r < 5; r += 1) {
     let t0 = performance.now(); fuzzySet(X, 15); tf.push(performance.now() - t0);
-    t0 = performance.now(); umap(X, { nNeighbors: 15, minDist: 0.1, iters, seed: 1 });
+    t0 = performance.now(); umapFromPlane(X, { nNeighbors: 15, minDist: 0.1, iters, seed: 1 });
     ts.push(performance.now() - t0);
   }
   console.log(`${String(X.length).padStart(5)} ${String(iters).padStart(6)} | ` +
@@ -104,7 +99,7 @@ for (const md of [0.0, 0.05, 0.1, 0.25, 0.5, 0.8, 0.99]) {
   const rt = [], tg = [], sl = [];
   for (const s of SEEDS) {
     const { X, y } = stage(s);
-    const { Y } = umap(X, { nNeighbors: 15, minDist: md, iters: 500, seed: s });
+    const { Y } = umapFromPlane(X, { nNeighbors: 15, minDist: md, iters: 500, seed: s });
     rt.push(retention(X, Y)); tg.push(tightness(Y, y)); sl.push(silhouette(Y, y));
   }
   mdRows[md] = { rt, tg };
@@ -132,7 +127,7 @@ for (const k of [2, 3, 5, 10, 15, 25, 40, 47]) {
   const rt = [], tg = [], sl = [];
   for (const s of SEEDS) {
     const { X, y } = stage(s);
-    const { Y } = umap(X, { nNeighbors: k, minDist: 0.1, iters: 500, seed: s });
+    const { Y } = umapFromPlane(X, { nNeighbors: k, minDist: 0.1, iters: 500, seed: s });
     rt.push(retention(X, Y)); tg.push(tightness(Y, y)); sl.push(silhouette(Y, y));
   }
   nnRows[k] = rt;
@@ -153,7 +148,7 @@ for (const it of [1, 10, 25, 50, 100, 150, 200, 300, 500, 800]) {
   const rt = [], tg = [], sl = [], ce = [];
   for (const s of SEEDS) {
     const { X, y } = stage(s);
-    const { Y, curve } = umap(X, { nNeighbors: 15, minDist: 0.1, iters: it, seed: s });
+    const { Y, curve } = umapFromPlane(X, { nNeighbors: 15, minDist: 0.1, iters: it, seed: s });
     rt.push(retention(X, Y)); tg.push(tightness(Y, y)); sl.push(silhouette(Y, y));
     ce.push(curve[curve.length - 1]);
   }
@@ -170,7 +165,7 @@ for (const eta of [1.0, 0.5, 0.25, 0.1, 0.05]) {
   const rz = [], fz = [], rt = [], tg = [];
   for (const s of SEEDS.slice(0, 6)) {
     const { X, y } = stage(s);
-    const { Y, curve } = umap(X, { nNeighbors: 15, minDist: 0.1, iters: 500, eta, seed: s });
+    const { Y, curve } = umapFromPlane(X, { nNeighbors: 15, minDist: 0.1, iters: 500, eta, seed: s });
     rz.push(curve.slice(1).filter((v, i) => v > curve[i]).length);
     fz.push(curve[curve.length - 1]); rt.push(retention(X, Y)); tg.push(tightness(Y, y));
   }
