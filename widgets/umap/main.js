@@ -451,6 +451,9 @@ defineWidget({
     { token: "ink-2", label: "an edge — how strongly two samples are joined", mark: "line" },
     { token: "empirical", label: "the cross-entropy, falling", mark: "line" },
     { token: "highlight", label: "the sample the bottom-left curves are about", mark: "dot" },
+    /* THE BOTTOM-LEFT PANEL'S WHOLE EXPLANATION, and it lives here because the
+       legend is DOM and wraps where a canvas caption in a 192px cell cannot. */
+    { token: "ink-3", label: "each curve is ONE link — what that pair pays at every distance, and the dot is the distance it wants", mark: "line" },
   ],
 
   params: {
@@ -933,8 +936,17 @@ defineWidget({
       const px = (d) => ar.x + (d / KERN_D) * ar.w;
       const py = (v) => ar.y + ar.h - clamp01(v / KERN_CE) * ar.h;
 
-      text(ctx, colors, "Cross-entropy, against distance in the picture",
-        x, y - 10, colors.ink2, colors.fsSm);
+      /* THE TITLE NAMES ONE PAIR, not the objective. Kenneth read this panel
+         and asked what the axes were and why there were several lines — which
+         is the panel failing, not the reader. It had been titled "Cross-entropy,
+         against distance in the picture", which is true of the WHOLE
+         arrangement and is what the panel on the right actually plots. What
+         this one shows is a single pair's share of it, as a function of how far
+         apart that pair is drawn, for three of the picked sample's links.
+         The legend carries the rest, because it is DOM and wraps. */
+      text(ctx, colors, "What one link pays", x, y - 10, colors.ink2, colors.fsSm);
+      text(ctx, colors, "at this distance", x + pw, y - 10,
+        colors.ink3, colors.fsXs, "right");
 
       ctx.save();
       ctx.strokeStyle = colors.grid;
@@ -1058,7 +1070,13 @@ defineWidget({
       const px = (k) => ar.x + (total > 0 ? (k / total) * ar.w : 0);
       const py = (v) => ar.y + ar.h - clamp01(v / top) * ar.h;
 
-      text(ctx, colors, "Cross-entropy, as it falls", x, y - 10, colors.ink2, colors.fsSm);
+      /* PAIRED WITH THE PANEL ON ITS LEFT, deliberately: "one link" against
+         "every link" is what says the two are the same quantity at two scales,
+         and not two different things called cross-entropy. Both pairs were
+         measured to fit the narrowest column the layout produces — 203px at a
+         520px viewport — rather than chosen and hoped for. */
+      text(ctx, colors, "What every link pays", x, y - 10, colors.ink2, colors.fsSm);
+      text(ctx, colors, "added up", x + pw, y - 10, colors.ink3, colors.fsXs, "right");
 
       ctx.save();
       ctx.strokeStyle = colors.grid;
