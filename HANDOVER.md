@@ -2,9 +2,10 @@
 
 **Twenty-one widgets shipped, a twenty-second built as a DRAFT, and the
 fingerprint suite GREEN at 134 of 134.**
-Widget 22 `umap` is planned, measured and built; it carries `status: "draft"`,
-so it sits on `/lab/` and NOT on the gallery, and it has no fingerprint states
-yet — deliberately. **What is left is Kenneth looking at it** — see *NEXT*.
+
+**Widget 22 `umap` is built and needs Kenneth's eyes** — it is on `/lab/`, not
+the gallery, and carries no fingerprint states yet, deliberately. **Widget 23 is
+K-MEANS**, chosen 2026-08-26 and reconnoitred but not planned. Both below.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -67,6 +68,7 @@ is blind to.
 | 19 | `pca` | shipped, six rounds |
 | 20 | `mds` | shipped, five rounds, **two methods** — classical and non-metric |
 | 21 | `t-sne` | shipped, built and reviewed across one long session on 2026-08-26 |
+| 22 | `umap` | **DRAFT.** Planned, measured, built and revised over four review rounds on 2026-08-26. On `/lab/`; no baseline yet |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -99,187 +101,91 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT: KENNETH LOOKS AT THE UMAP DRAFT
+## NEXT: PLAN K-MEANS, WIDGET 23
 
-**Widget 22 is built and on `/lab/`.** Planned, measured, then built on
-2026-08-26; `npm run check` passes at 22 widgets. The full record is
-[docs/catalogue.md](docs/catalogue.md) § *Widget 22 · `umap`* — read that
-rather than this summary.
+**Kenneth chose it on 2026-08-26**, and the reconnaissance is already written:
+[docs/catalogue.md](docs/catalogue.md) § *NEXT · K-Means*. **Read that, not this
+summary.** Then run a planning session on the pattern of § *NEXT · t-SNE* —
+three questions, each closed with a number rather than an argument.
+
+### The four things that shape it
+
+1. **ONE HOST, for the first time since widget 19.** PHM5005 `03-5` cells 52–59.
+   **PHM5003 does not teach K-Means at all** — its clustering notebook is
+   hierarchical clustering and mentions it zero times. Nothing to reconcile
+   between an R library and a Python one.
+2. **ASK FOR THE DIAGRAM FIRST.** Cell 52 embeds `unsupervised-kmeans.png` from
+   **Dropbox rather than as an attachment**, so it cannot be pulled out of the
+   notebook the way widget 22's was. Widget 22's layout came from exactly such a
+   diagram and the catalogue treats one as binding — so getting it is the first
+   move, not the last.
+3. **THE FAILING CASES ARE THE NOTEBOOK'S OWN WORDS.** Cell 52's limitations
+   column reads *"Must specify K in advance"*, *"Assumes clusters are spherical
+   and similar size"*, *"Sensitive to outliers and initial centroid placement"*.
+   All three are cheap to stage, and the third is nearly free — `seed` is in
+   every widget already.
+4. **CELL 53 ASKS A QUESTION NOTHING IN THE ARC HAS MET.** Verbatim: *"For
+   simplicity, we will reduce the dimensions to 2 … In practice, data is reduced
+   to 10-50 dimensions to for clustering in this space."* Clustering in the
+   reduced space is a choice with consequences, and the lesson says so without
+   showing it.
+
+**Question 1 is already answered and it is the first time**: Lloyd's algorithm at
+n = 48 is microseconds, so compute-versus-replay is not a real question here. It
+was wrong twice — for t-SNE and again for UMAP — and this time the answer is
+obvious rather than assumed.
+
+**Lift `widgets/umap/`, and repeat `model.js` above all.** The algorithm in its
+own module is what made *what is verified is what ships* true for widget 22 and
+false for widget 21.
+
+---
+
+## WIDGET 22 IS A DRAFT AND NEEDS HIS EYES
+
+**On `/lab/`, not the gallery, with no fingerprint baseline — deliberately.**
+Six commits of design, every one of them moved by his review, so the design is
+still moving and **a baseline recorded now would be thrown away**. `bootstrap`
+was baselined three times over for getting that order backwards.
 
 ```bash
 node scripts/serve.mjs 8017
-# http://localhost:8017/widgets/umap/?graph=1&flatten=1&step=50&labels=on
-node widgets/_lab/umap-verify.mjs    # the SHIPPING module against umap-learn
-node widgets/_lab/umap-measure.mjs   # the catalogue's numbers
+# http://localhost:8017/widgets/umap/?graph=1&flatten=1&labels=on   then press Optimise
+node widgets/_lab/umap-verify.mjs     # the shipping module against umap-learn
+node widgets/_lab/umap-landing.mjs    # the flattening lands on frame 0, 2.2e-16
+node widgets/_lab/umap-measure.mjs    # every number the catalogue quotes
 ```
 
-**The solver is `widgets/umap/model.js`, not a copy in `main.js`**, so
-`umap-verify.mjs` checks what actually runs. Widget 21 has its algorithm twice
-with nothing keeping the two in step; `balancing-data/model.js` is the pattern
-this follows.
+**What only he can judge:**
 
-### THE SAMPLES ARE ON THE SPHERE — stage B, his call, done
+- **projected, at lecture size.** No widget from 11 onward has had that review and
+  it is the cheapest one left.
+- **the graph at 384 edges** — mapping C, opacity and width both carrying μ, his
+  call. `Neighbours` at 40 is its worst case.
+- **the six caps on the globe** at panel size, and whether the wireframe reads as
+  a surface.
 
-*(2026-08-26.)* Every sample sits at exactly radius 2, as a cap around its
-group's direction. The globe is now the surface the data is on rather than a
-reference the data ignores, and the edges hug it instead of cutting through.
+**The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 22 ·
+`umap`***, including every measurement and the four review rounds. What that
+section carries and this file should not: the sphere stage and why a sphere buys
+the metaphor but no geodesic lesson, the PCA-plane start and the flattening
+animation, six groups against four, the conventional-language pass, and the two
+defects the build found.
 
-**The metric is Euclidean and that is legitimate BECAUSE a manifold is locally
-Euclidean** — his own read. Measured over all 1128 pairs: pairs an arc of 0–0.5
-apart have chord/arc **0.9974**, pairs 4–7 apart **0.7457**. The graph only ever
-joins near pairs, so the substitution holds, and the widget says so in a tile —
-**Chord over arc, 97.3%** over the edges actually built, range 88–100%.
+### Two things recorded and NOT fixed
 
-**The two claims got CLEANER, not weaker**, over ten seeds:
-
-| | on the ball | on the sphere |
-|---|---|---|
-| `min_dist` 0 → 0.99, retention | +0.026, past noise on 2/10 | **+0.023, past noise on 0/10** |
-| `min_dist` 0 → 0.99, tightness | ×2.16 | **×2.63** |
-| `n_neighbors` 2 → 40 | +0.490 | **+0.255, up on 10/10** |
-
-Retention overall is higher too — 0.862 against 0.813 — because a 2-manifold
-flattens into two dimensions better than a solid ball does.
-
-**Two knock-ons, both measured after: FIFTEEN steps not thirty** (at 10
-iterations a step, 16 of 30 moved under 1% of the picture; at 20, five of
-fifteen do), and **eta 0.1 stands** — 17 of 300 iterations rise but **0 of the
-chart's 15 points do**, so nothing a reader can see.
-
-**The stage lives in `widgets/umap/model.js` and is exported**, so
-`_lab/umap-measure.mjs` measures the stage the widget generates instead of a
-copy. Widget 21 keeps its stage private and its script keeps a copy.
-
-**WHAT THE SPHERE DOES NOT BUY, so it is not claimed: a geodesic lesson.** On a
-sphere chord = 2R·sin(θ/2) is strictly increasing in the great-circle angle, so
-the k nearest by chord are ALWAYS the k nearest by arc, for every k — measured at
-100% on caps and on a band. Only a surface that folds back can separate them, and
-a Swiss roll wound tightly enough defeats UMAP at n = 48 (it keeps 69% of the
-chord neighbourhoods and 40% of the true ones). `_lab/umap-sphere.html` has all
-four stages live.
-
-### SIX GROUPS AND A THICKER GLOBE — both his, both done
-
-*(2026-08-26: "I can clearly see clusters already when flatten and won't see the
-benefit of umap optimization", and "thicken the globe so it reads as a
-surface".)*
-
-**Six evenly spaced clusters, at the vertices of an octahedron, is the default.**
-Four directions in three dimensions can be projected onto a plane and stay apart;
-six cannot, because any plane has an axis and whatever lies along it collapses.
-Six seeds: the flat map separates four groups at silhouette **0.684** and six at
-**0.540**, while UMAP reaches 0.899 either way. On the widget's own tiles, six
-groups roughly doubles what the optimisation visibly adds — neighbours kept
-**81% → 90%** against four groups' 78% → 80%, spread over gap **0.104 → 0.036**
-against 0.095 → 0.067.
-
-**Eight and twelve gain more and are not used**: `tokens.css` has six cluster
-colours and `sampleCol` wraps, so eight groups would repeat two.
-
-**The globe is seven parallels and twelve meridians**, front arcs at full weight
-and back at 0.28, each broken at the horizon rather than over-painted.
-
-**One defect the sweep caught:** `pick` had `max: 47` from when four groups was
-the ceiling, so the last 24 samples of the biggest stage were unreachable by URL.
-`draw` clamps, so nothing broke and nothing said so.
-
-### What he should look at, because none of it is checkable
-
-- **Is the graph legible at 385 edges?** Mapping C — opacity AND width carrying
-  μ — is his call and this is the first time it has been seen inside the widget
-  rather than on the lab page. `neighbours` at 40 is its worst case.
-- **Does the 2-D panel read**, with halos, edges and 48 dots in one 244px cell.
-- **The two gates**, which are cell 41's two numbered steps and his own phrasing:
-  join the neighbours, then flatten it. His one arrow said "→ umap"; this is two.
-- **Projected**, which no widget from 11 on has had.
-
-### THE FLATTENING IS REAL — the start is the PCA plane
-
-*(Kenneth asked, 2026-08-26; it was random, which is the library's
-NON-default — `umap-learn` defaults to `"spectral"`.)* Eight seeds: the flat map
-alone keeps **65%** of every sample's neighbourhood where a random start keeps
-**9%**, and all starts finish in the same place. So it costs nothing and decides
-only what the reader watches.
-
-**`flatten` now rotates the cloud onto its two most-spread directions and lays
-it flat**, and the rotation lands EXACTLY on frame 0 of the descent — checked at
-**2.2e-16** across four cases by `_lab/umap-landing.mjs`. A mismatch there would
-jump the cloud at the end of the turn and no pixel hash could see it.
-
-It also buys a readout tile nothing else in the arc has: **60% from flattening
-alone, 83% after UMAP.** That difference is what UMAP adds.
-
-**Two things the new start changed, both measured after:**
-
-- **The run is half as long — 300 iterations, not 500.** From the PCA plane
-  retention is finished by step 2 (0.795 of a final 0.813); cutting 500 to 300
-  leaves retention identical and removes twenty presses that each moved the
-  picture under 0.3%. **Kenneth reported that exact defect on widget 17.**
-- **The cross-entropy has a floor and the chart now draws it.**
-  `CE = Σ H(μ) + KL`, and the entropy term is **139.8 of a final 170.9 — 82% of
-  what the widget reports is irreducible.** The shorter curve is what exposed it;
-  anchored at 0 with nothing marked, the chart claimed a reachable target.
-
-### The sentence fires, read off the widget's own readout
-
-Seed 1, settled. `packing` 0 → 0.95: neighbours kept **81% → 83%**, how tight it
-looks **0.108 → 0.205**. `neighbours` 2 → 40: neighbours kept **41% → 83%**.
-Five points of retention against forty-two, in two tiles side by side.
-
-### Two defects the build found, and one is widget 21's too
-
-- **Every sample has a μ = 1 link whose ideal distance is zero** — its nearest
-  neighbour, on the kernel's flat top past ρ. Drawn as the kernel panel's
-  strongest curve it said the opposite of the panel's point. The window is now
-  the range whose minimum fits the frame. **A screenshot caught it; no assertion
-  would have.**
-- **A published `step` survives a data change in the URL but not in the figure**,
-  and **t-SNE does it too** — measured there: `?step=40` reads KL 0.157, then
+- **A published `step` survives a data change in the URL but not in the figure,
+  and widget 21 does it too.** Measured there: `?step=40` reads KL 0.157, then
   moving `perplexity` reads 1.727 while the URL still says `step=40`. Core's
-  `seededOnce` is deliberate (non-negotiable 4); leaving the parameter in the
-  address bar is not. **The fix is core's and owes a full fingerprint run**, so
-  it is recorded rather than taken.
-
-### Do NOT baseline it yet
-
-`status: "draft"` exempts it from fingerprint states, and that is the point:
-**a baseline recorded before the design is agreed is thrown away**, and the
-determinism runs are the slowest thing in the loop. Build → show → iterate →
-baseline. `bootstrap` was baselined three times over for getting that order
-backwards.
-
-### One correction to this file
-
-**`umap-learn` WAS already installed** — 0.5.12 with numba 0.67.0, in the
-`_scratch` venv. The note below saying it was not is stale and has been fixed.
-First call costs ~5.6 s of numba JIT, ~30 ms after that. Two gaps are real and
-unchanged: **R is not installed**, so the `umap` CRAN package PHM5003 actually
-runs is unchecked.
-
-**`03-5` IS on this disk** — `~/Downloads/PHM5005 AY2025-26 - Notebooks/Master/`,
-read on 2026-08-26; the claim that it was not is stale everywhere it appeared.
-Two things came out of reading it. **The hosts disagree about the settings**:
-PHM5003 runs `n_neighbors = 3, min_dist = 0.5` on 8 samples, PHM5005 runs
-**15 and 0.1** — which is what every measurement here defaults to. And **`03-5`
-cell 45 is not reproducible**: its own syntax block three cells above documents
-`random_state=42` and the run omits it, so five identical runs give silhouettes
-from +0.676 to +0.823 and pictures of visibly different extent. One-word fix,
-flagged for Kenneth, and it is the seed lesson landing in his own notebook.
-
-### The one thing found by checking rather than assuming
-
-`umap-verify.mjs` first reported `rho` off by 5.2e-8 everywhere. The obvious
-suspect — sklearn's cancelling `|x|²+|y|²−2x·y` distance form — **was
-wrong**: sklearn agrees with a direct sum of squares exactly. `umap-learn` declares
-`rho` and `result` as `np.float32` inside `smooth_knn_dist`, so it rounds
-whatever dtype it is handed. The proof is a bit pattern rather than a story:
-`Math.fround(js) === lib` for **200 of 200** values across five cases. **A
-residual that size is a dtype, not an algorithm — check `Math.fround` before
-loosening a tolerance.**
+  `seededOnce` is deliberate; leaving the parameter in the address bar is not.
+  **The fix is core's and owes a full fingerprint run.**
+- **Widget 21 draws the same wireframe globe over samples that fill the BALL.**
+  Widget 22's now sit on the sphere; widget 21's do not, and its globe implies a
+  surface its data is not on. It never claims a manifold, so it is a smaller
+  problem there — but it is the same one.
 
 ---
 
----
 ## `px` TRACKS THE DEVICE PIXEL RATIO — the baseline is now Windows
 
 **The move to Windows turned all 123 states red on `px` and not one on `tx`.**

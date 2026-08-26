@@ -5384,7 +5384,7 @@ both `height` and `draw`.
 | course | notebook | what it runs |
 |---|---|---|
 | PHM5003 | `05 / 04 — Dimensionality Reduction`, **cells 39–45**, heading `## 4` | `Rtsne` — `perplexity` and nothing else, set to `min(2, ncol/3)` on 8 samples. **On this disk.** Links distill.pub's *How to Use t-SNE Effectively* |
-| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state`. **Not on this disk** |
+| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state`. **ON this disk** — read 2026-08-26 while planning widget 22; the note that it was not is stale |
 
 **BOTH HOSTS ARE CONFIRMED BY KENNETH** (2026-08-26: *"t-sne is also taught in
 PHM5005 03-5"*). So this is the **second widget with a host in each course**,
@@ -6435,9 +6435,100 @@ the *picture* while μ comes from the *data*.
 
 ### After UMAP
 
-`03-5`'s **second subject** is clustering — K-Means (cells 52–59) and DBSCAN
-(60–67) — and it is untouched. The dimensionality-reduction arc closes with
-UMAP.
+The dimensionality-reduction arc closes here. `03-5`'s **second subject** is
+clustering — K-Means (cells 52–59) and DBSCAN (60–67) — and **K-Means is widget
+23**, chosen by Kenneth on 2026-08-26.
+
+---
+
+## NEXT · K-Means — widget 23, RECONNOITRED, not yet planned
+
+**The reconnaissance below was done on 2026-08-26 while closing widget 22.
+Nothing here is measured** — that is the planning session's job, on the pattern
+of § *NEXT · t-SNE*: three questions, each closed with a number.
+
+### THE HOST, AND FOR THE FIRST TIME SINCE WIDGET 19 THERE IS ONLY ONE
+
+| course | notebook | what it runs |
+|---|---|---|
+| PHM5005 | `03-5`, cells 52–59, heading `### K-Means` | `KMeans(n_clusters=2, random_state=42)` on `X_pca` — the cancer gene expression data reduced to 2-D by PCA first |
+| PHM5003 | **nothing** | its clustering notebook is `05 / 08 — Hierarchical Clustering`, and it mentions K-Means **zero times** |
+
+**So the two-host pattern of widgets 20, 21 and 22 does not apply here.** Nothing
+has to be reconciled between an R library and a Python one, and no claim has to
+say which library it is about.
+
+### CELL 52 IS UNUSUALLY COMPLETE, and most of the widget is in it
+
+- **the algorithm in four numbered steps**: choose K centroids at random; assign
+  each point to the nearest centroid by Euclidean distance; move each centroid to
+  the mean of the points assigned to it; repeat until assignments stop changing
+- **the objective**, written out: minimise `Σ_k Σ_{x ∈ C_k} ‖x − μ_k‖²`
+- **a diagram**, `unsupervised-kmeans.png` — **hosted on Dropbox rather than
+  embedded**, so unlike UMAP's it cannot be extracted from the notebook. **Ask
+  Kenneth for it before designing the layout**; widget 22's layout came from
+  exactly such a diagram and the catalogue treats one as binding.
+- **a strengths and limitations table**, and its three limitations are three
+  candidate failing cases in the notebook's own words:
+  - *"Must specify K in advance"*
+  - *"Assumes clusters are spherical and similar size"*
+  - *"Sensitive to outliers and initial centroid placement"*
+
+### THE THREE QUESTIONS, and one of them is already answered
+
+1. **Compute or replay? Compute, and it is not a real question this time.**
+   Lloyd's algorithm at n = 48 is microseconds — no measurement needed to know
+   that, unlike t-SNE and UMAP where the assumption was wrong twice.
+2. **What is the one sentence?** The arc so far: PCA — *a 2-D plot is not the
+   data*; MDS — *the input is the table of distances, not the cloud*; t-SNE —
+   *it keeps who is near whom and throws away everything else*; UMAP — *how tight
+   it looks is a setting*. The candidates here come from the limitations, and
+   **"must specify K in advance" is the one with no counterpart anywhere in the
+   arc**: every earlier widget was told what it was looking for, or told nothing.
+3. **Which failure?** Three are named above and all three are cheap to stage.
+   *Sensitive to initial placement* is nearly free — `seed` exists in every
+   widget — and it is the one a reader can be made to discover by pressing a
+   button twice.
+
+### A FOURTH QUESTION THIS ARC HAS NOT MET: WHICH SPACE DOES IT CLUSTER IN?
+
+Cell 53, verbatim: *"For simplicity, we will reduce the dimensions to 2 so that
+that be mapped to the 2D plots for comparison. In practice, data is reduced to
+10-50 dimensions to for clustering in this space."*
+
+**That is a real teaching point and the lesson says it out loud**: clustering in
+the reduced space is a choice, and the choice made for the figure is not the one
+made in practice. A widget that clusters in 3-D and in the 2-D projection and
+compares them would be showing what cell 53 only asserts.
+
+*(Two typos in that sentence — "so that that be" and "to for clustering". Flag
+them with the `03-5` cell 45 `random_state` omission already recorded above.)*
+
+### THE EVALUATION IS THE NOTEBOOK'S OWN, and ARI is new to the arc
+
+Cell 59 prints **`silhouette_score`** — which widgets 19 to 22 have all used
+internally but never shown — and **`adjusted_rand_score`**, agreement with the
+true labels, which **nothing in the arc has used**. ARI is the natural readout
+for a widget whose whole question is *did it find the real groups*.
+
+**And cell 58's figure is two panels side by side: the clusters K-Means found,
+against the true labels.** That is widget 22's `labels` toggle expressed as two
+panels rather than one control, and choosing between them is a layout decision
+for the planning session.
+
+### WHAT TO LIFT
+
+`widgets/umap/` is the reference. **`model.js` is the pattern to repeat**: the
+algorithm in its own module so `_lab` can import and check it, which is what
+made "what is verified is what ships" true for widget 22 and is not true for
+widget 21. Also the stage on the sphere and its exported `stage()`, the camera
+and the wireframe globe, the two-gate staging, `anim.inert`, and the
+`otherDisplay` guard.
+
+**And the obvious arc move**: `03-5` runs K-Means on **PCA output** and DBSCAN on
+**UMAP output**. So widget 23 chains off widgets 19 and 22 rather than starting
+fresh, and the arc's four dimensionality-reduction widgets become the input to
+its clustering ones.
 
 ---
 
