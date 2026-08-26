@@ -521,6 +521,22 @@ defineWidget({
       detail: "moves every sample, and where the fit starts from",
     },
 
+    /* LABELS OFF BY DEFAULT, so the reader reads the structure off the picture
+       before being told what it is — the notebook plots every method twice for
+       the same reason. `--c-unknown` is what the tokens file gives "not
+       measured yet": absence of information, which is what a withheld label is,
+       rather than a third category. */
+    labels: {
+      type: "segmented",
+      label: "Labels",
+      options: [
+        { value: "off", label: "Off", detail: "can you see the groups without being told?" },
+        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
+      ],
+      default: "off",
+      display: true,
+    },
+
     /* `display: true`, and it has to be. As a data gate this would be the one
        gate core animates, which is convenient — but shutting it would then
        throw away a fit the reader had stepped through, and the way back is a
@@ -742,7 +758,8 @@ defineWidget({
        fifteen of them read, sixty-six are a hairball. The table's headers keep
        the letters at every count, which is where they are needed to read a row. */
     const labelled = n <= LABEL_MAX;
-    const col = (i) => sampleCol(colors, gs[i]);
+    const told = params.labels === "on";
+    const col = (i) => (told ? sampleCol(colors, gs[i]) : colors.unknown);
 
     /* The measuring, in four overlapping beats:
          0.00 - 0.45   a line grows between every pair

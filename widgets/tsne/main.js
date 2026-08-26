@@ -27,7 +27,6 @@
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
-import { makePlot } from "../core/canvas.js";
 
 /* The stage: `groups` centres on a sphere of radius R, `per` samples scattered
    around each by SIGMA. Four times MDS's sample count, and Rtsne forced it —
@@ -78,22 +77,23 @@ function spread(n) {
 const gauss = (rng) =>
   Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
 
-/* `shape` decides whether there is anything to find. "groups" is the honest
-   stage; "cloud" is one round Gaussian with NO groups in it, and it is the
-   failing case — measured over 40 seeds, the best two-way split a reader could
-   see in the t-SNE picture scores 0.634 +- 0.104 against the same cloud's
-   0.447 +- 0.057 under a plain projection, higher on 38 of 40. It is worst at
-   low perplexity and decays toward the projection's value as perplexity rises,
-   which is exactly what the distill.pub article cell 41 links is about. */
-function stage(shapeName, groups, per, rng) {
+/* THE GROUPS ARE ALWAYS REAL, and whether the reader is TOLD is the `labels`
+   control. That replaced a stage selector — groups against one structureless
+   cloud — on Kenneth's call, because the selector never said what it was for
+   and only read to someone who already knew the answer. Turning labels off and
+   asking "how many clusters?" puts the question to the reader instead, and it
+   is what the notebook itself does: every method is plotted twice, once bare
+   and once coloured by type.
+
+   WHAT THAT COSTS, recorded rather than quietly dropped: the structureless
+   cloud was this widget's principle-2.6 failing case, and it was measured —
+   over 40 seeds the best two-way split a reader could see in the t-SNE picture
+   scored 0.634 +- 0.104 against the same cloud's 0.447 +- 0.057 under a plain
+   projection, higher on 38 of 40, and worst at low perplexity. That is the
+   distill.pub demonstration cell 41 links to, and it is not reachable now.
+   Bringing it back is one option on `labels`, not a rebuild. */
+function stage(groups, per, rng) {
   const out = [];
-  if (shapeName === "cloud") {
-    const n = groups * per;
-    for (let i = 0; i < n; i += 1) {
-      out.push({ g: 0, p: [0, 1, 2].map(() => gauss(rng) * R * 0.62) });
-    }
-    return out;
-  }
   const centres = spread(groups).map((p) => {
     const v = [0, 1, 2].map((k) => p[k] + gauss(rng) * JITTER * R);
     const m = Math.hypot(v[0], v[1], v[2]) || 1;
@@ -171,6 +171,38 @@ const joint = (Pc) => {
   for (let i = 0; i < n; i += 1) for (let j = 0; j < n; j += 1) P[i][j] = (Pc[i][j] + Pc[j][i]) / (2 * n);
   return P;
 };
+
+/* ONE SAMPLE'S TWO DISTRIBUTIONS, which is what the method actually matches.
+   Not distances — for sample i, a probability over WHICH OTHER SAMPLE is its
+   neighbour: 47 numbers that sum to 1, from the 3-D data, and the same 47 from
+   the picture. The descent moves the picture until the second looks like the
+   first, and KL is how far apart they are.
+
+   Both rows are renormalised over j so each reads as a distribution over i's
+   neighbours. The objective is the symmetrised JOINT over pairs rather than
+   these rows, and this is a slice of it — the sum runs over every sample's
+   row, which is what the panel's note says. */
+function neighbourRows(P0, Y, i) {
+  const n = Y.length;
+  const p = [], q = [];
+  let sp = 0, sq = 0;
+  for (let j = 0; j < n; j += 1) {
+    if (j === i) continue;
+    const dx = Y[i][0] - Y[j][0], dy = Y[i][1] - Y[j][1];
+    const w = 1 / (1 + dx * dx + dy * dy);
+    p.push({ j, v: P0[i][j] });
+    q.push({ j, v: w });
+    sp += P0[i][j];
+    sq += w;
+  }
+  if (sp <= 0) sp = 1e-12;
+  if (sq <= 0) sq = 1e-12;
+  /* Sorted by p, so the shape is legible and the tall bars are i's real
+     neighbours. q keeps the same order, which is what lets the two be read
+     against each other bar for bar. */
+  const order = p.map((_, k) => k).sort((a, b) => p[b].v - p[a].v);
+  return order.map((k) => ({ j: p[k].j, p: p[k].v / sp, q: q[k].v / sq }));
+}
 
 /* q(ij), the second formula, and the gradient of the third. The Student-t with
    one degree of freedom is (1 + d^2)^-1: same shape as a Gaussian near zero,
@@ -357,6 +389,18 @@ function halo(ctx, col, cx, cy, radii, alpha) {
   ctx.restore();
 }
 
+/* The mark that says "this is the one the bars are about". A ring rather than
+   a colour change, so it reads the same whether labels are on or off. */
+function ring(ctx, colors, x, y, r) {
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function sampleDot(ctx, colors, x, y, col, r = R_DOT, fade = 1) {
   ctx.save();
   ctx.globalAlpha = fade;
@@ -429,6 +473,13 @@ function shownAt(state, anim) {
 const STEP_MS = 260;
 const RUN_MS = 70;
 
+/* Every display parameter EXCEPT `step`, as one string. `rebuild` compares it
+   against the last one to work out whether the write it is reacting to was a
+   scrub of the KL curve or something else. ADD TO THIS WHENEVER A DISPLAY
+   PARAMETER IS ADDED — an omission here does not throw, it silently throws the
+   reader's position away on that control. */
+const otherDisplay = (p) => `${p.turn},${p.tilt},${p.labels},${p.pick}`;
+
 defineWidget({
   slug: "tsne",
   title: "t-SNE",
@@ -437,23 +488,26 @@ defineWidget({
   layout: "side",
   height: ({ w }) => layout(w).height,
 
+  /* Two entries, and they have to be true with the labels BOTH off and on,
+     because core takes the legend once at build time rather than per render. */
   legend: [
-    { label: "in three genes", swatch: "--c-cluster-a" },
-    { label: "the neighbourhood each sample is given", swatch: "--c-ink3" },
+    { label: "what the picture says", swatch: "--c-empirical" },
+    { label: "what the data says", swatch: "--ink-2" },
   ],
 
   params: {
-    /* THE FAILING CASE IS A STAGE, not an extra panel — the same move widgets
-       19 and 20 made, and the reconnaissance said it would have to be: on the
-       real 194 samples every method separates the classes and nothing fails. */
-    shape: {
+    /* OFF BY DEFAULT, so the reader reads the clusters off the picture before
+       being told what they are — the notebook's own order, and non-negotiable 4
+       applied to knowledge rather than to the figure. */
+    labels: {
       type: "segmented",
-      label: "The samples",
+      label: "Labels",
       options: [
-        { value: "groups", label: "In groups", detail: "clusters that genuinely exist" },
-        { value: "cloud", label: "One cloud", detail: "no groups at all — one round spread" },
+        { value: "off", label: "Off", detail: "how many clusters can you see?" },
+        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
       ],
-      default: "groups",
+      default: "off",
+      display: true,
     },
     groups: {
       type: "choice",
@@ -528,6 +582,19 @@ defineWidget({
       display: true,
       hidden: true,
     },
+
+    /* WHICH SAMPLE THE NEIGHBOUR PANEL IS ABOUT. A parameter for the same
+       reason `step` is: clicking a sample goes through the one door, so the
+       chosen sample lands in the URL and a link can point at it. */
+    pick: {
+      type: "int",
+      label: "Sample",
+      min: 0,
+      max: 47,
+      default: 0,
+      display: true,
+      hidden: true,
+    },
   },
 
   /* THE KL CURVE IS CLICKABLE, one region per step. A region resolves a pixel
@@ -538,7 +605,7 @@ defineWidget({
      Regions win over `drag` where the two overlap, which is what stops a click
      on the chart also swinging the cloud. They do not overlap here — different
      quadrants — but the ordering is core's and worth not relying on by luck. */
-  regions({ w, state }) {
+  regions({ w, params, state }) {
     /* STATE IS NULL ON THE FIRST CALL, and that is core's load-time validation
        probe rather than a click: `recompute()` runs from `render()`, which is
        after the probe at widget.js:516. This widget is the first to declare
@@ -555,10 +622,42 @@ defineWidget({
        that is a `widgets/core/` change which owes a full fingerprint run. */
     if (!state) return [];
     const L = layout(w);
+    const out = [];
+
+    /* THE SAMPLES ARE CLICKABLE IN THE 3-D PANEL ONLY, and that is a
+       correctness limit rather than a preference: a region is resolved from
+       `params` and `state`, and core hands it no `anim`. The 3-D positions
+       depend only on turn and tilt, both parameters, so they can be hit-tested
+       exactly. The 2-D positions depend on where the descent has got to, which
+       lives in `anim` — a target computed from `params.step` would sit
+       wherever the reader last CLICKED rather than where the sample is drawn
+       the moment they aim at it, and that is exactly the silent mismatch no
+       pixel hash can see. So the pick happens in the data, and the picture
+       shows what became of it. */
+    {
+      const { x, y, w: pw, h: ph } = L.space;
+      const cx = x + pw / 2, cy = y + ph / 2;
+      const S = (L.side / 2 - 16) / state.span3;
+      const { ex, ey } = camera(params.turn, params.tilt);
+      const eye = [
+        ex[1] * ey[2] - ex[2] * ey[1],
+        ex[2] * ey[0] - ex[0] * ey[2],
+        ex[0] * ey[1] - ex[1] * ey[0],
+      ];
+      /* Depth order, so the target stack matches the paint order and the
+         nearest sample claims the click — hitTest takes the LAST match. */
+      const order = state.pts.map((p, i) => [dot(p, eye), i]).sort((a, b) => a[0] - b[0]);
+      const rr = R_DOT + 3;
+      for (const [, i] of order) {
+        const px = cx + dot(state.pts[i], ex) * S;
+        const py = cy - dot(state.pts[i], ey) * S;
+        out.push({ set: { pick: i }, x: px - rr, y: py - rr, w: rr * 2, h: rr * 2, label: `sample ${i + 1}` });
+      }
+    }
+
     const { x, y, w: pw, h: ph } = L.descent;
     const total = state.path.length - 1;
     const a = chartArea(x, y, pw, ph);
-    const out = [];
     for (let k = 0; k <= total; k += 1) {
       /* Each step owns the strip around its own x, so the nearest step to the
          pointer is the one that takes the click — half a step of slack on each
@@ -589,9 +688,9 @@ defineWidget({
   },
 
   compute({ params, rng }) {
-    const groups = params.shape === "cloud" ? 4 : +params.groups;
+    const groups = +params.groups;
     const per = +params.samples;
-    const st = stage(params.shape, groups, per, rng);
+    const st = stage(groups, per, rng);
     const pts = st.map((s) => s.p);
     const gs = st.map((s) => s.g);
     const n = pts.length;
@@ -606,7 +705,7 @@ defineWidget({
     const perplexity = clamp(params.perplexity, 2, legal);
     const clamped = perplexity !== params.perplexity;
 
-    const { path, kl, sigmas } = descend(pts, perplexity, rng);
+    const { path, kl, sigmas, P0 } = descend(pts, perplexity, rng);
 
     /* ONE SCALE FOR THE 2-D PANEL, covering the whole trajectory, so the frame
        never moves under the reader (2.5) and a sample never crosses an edge.
@@ -619,7 +718,7 @@ defineWidget({
     for (const p of pts) span3 = Math.max(span3, Math.hypot(p[0], p[1], p[2]));
 
     return {
-      n, groups, per, gs, pts, path, kl, sigmas, perplexity, clamped, legal,
+      n, groups, per, gs, pts, path, kl, sigmas, P0, perplexity, clamped, legal,
       span2: span2 * 1.08 || 1, span3: span3 * 1.1 || 1,
       klMax: Math.max(...kl) * 1.05 || 1,
     };
@@ -634,33 +733,42 @@ defineWidget({
     init: ({ params, state, fromScratch }) => {
       const total = state.path.length - 1;
       const pre = fromScratch ? 0 : clamp(params.step | 0, 0, total);
-      /* `view` is how rebuild tells a scrub from a turn — see there. */
+      /* `others` is how rebuild tells a scrub from every other display change
+         — see there. */
       return {
         k: pre, t: 1, moving: false, done: pre >= total,
-        view: `${params.turn},${params.tilt}`,
+        others: otherDisplay(params),
       };
     },
 
     /* WHICH DISPLAY PARAMETER MOVED, deduced rather than told. Core calls
-       rebuild once per display-parameter write and does not say which one, and
-       this widget has exactly three: `turn`, `tilt` and `step`. So if neither
-       angle changed, the write was to `step`.
+       rebuild once per display-parameter write and does not say which one. So
+       the widget watches every display parameter EXCEPT `step`: if none of them
+       moved, the write must have been `step`, and only then does the reader's
+       position jump.
 
-       Comparing `step` against its own last-applied value was the obvious
-       version and is WRONG in a way worth recording: after stepping away from a
-       scrubbed position, clicking that same point again writes a value the
-       guard has already seen, so nothing happens — the reader clicks the dot
-       they are aiming at and the figure sits still. Deducing from the angles
-       instead honours every click, including one back to where they were. */
+       Two wrong versions were built first and both are worth recording, because
+       they are the same mistake at different sizes.
+
+       Comparing `step` against its own last-applied value fails on a click BACK
+       to a step the reader has already stepped away from: the value is one the
+       guard has seen, so nothing happens and the figure sits still under a
+       click aimed straight at it.
+
+       Watching only `turn` and `tilt` fails the moment another display
+       parameter exists — and two arrived the same afternoon. Clicking a SAMPLE
+       leaves the angles alone, so the widget read it as a scrub and threw away
+       however far the reader had run the descent. Watching all of them is the
+       version that does not need revisiting when the next one is added. */
     rebuild: (anim, { params, state }) => {
       const total = state.path.length - 1;
-      const view = `${params.turn},${params.tilt}`;
-      if (view === anim.view) {
+      const others = otherDisplay(params);
+      if (others === anim.others) {
         anim.k = clamp(params.step | 0, 0, total);
         anim.moving = false;
         anim.t = 1;
       }
-      anim.view = view;
+      anim.others = others;
       if (anim.k > total) { anim.k = total; anim.moving = false; anim.t = 1; }
       anim.done = anim.k >= total;
     },
@@ -687,7 +795,13 @@ defineWidget({
     const L = layout(w);
     const { n, gs, pts, sigmas } = state;
     const Y = shownAt(state, anim);
-    const col = (i) => sampleCol(colors, gs[i]);
+    /* LABELS OFF IS THE DEFAULT, and the colour it uses is `--c-unknown`,
+       which the tokens file defines as "not measured yet" — absence of
+       information rather than a third category. That is exactly what a
+       withheld label is. */
+    const told = params.labels === "on";
+    const col = (i) => (told ? sampleCol(colors, gs[i]) : colors.unknown);
+    const picked = clamp(params.pick | 0, 0, n - 1);
     /* The halo fades as the descent runs: at the start it is the whole story,
        by the end the reader is looking at the arrangement. It never goes to
        zero, because it is what the picture was built out of. */
@@ -710,7 +824,7 @@ defineWidget({
       text(ctx, colors, "3-D space", x, y - 10, colors.ink2, colors.fsSm);
       text(ctx, colors, "Gaussian", x + pw, y - 10, colors.ink3, colors.fsXs, "right");
 
-      if (params.shape !== "cloud") globe(ctx, colors, P, eye, R, 0.7);
+      globe(ctx, colors, P, eye, R, 0.7);
 
       /* Depth-sorted so a near sample covers a far one, and the halo is drawn
          with its own dot so the two cannot separate. */
@@ -726,7 +840,8 @@ defineWidget({
       for (const [depth, i] of order) {
         const [px, py] = P(pts[i]);
         const fade = 0.55 + 0.45 * clamp01((depth / state.span3 + 1) / 2);
-        sampleDot(ctx, colors, px, py, col(i), R_DOT, fade);
+        sampleDot(ctx, colors, px, py, col(i), i === picked ? R_DOT + 1.5 : R_DOT, fade);
+        if (i === picked) ring(ctx, colors, px, py, R_DOT + 5);
       }
     }
 
@@ -767,54 +882,117 @@ defineWidget({
         halo(ctx, col(i), px, py, rs, haloA * 0.85);
       }
       for (let i = 0; i < n; i += 1) {
-        sampleDot(ctx, colors, cx + Y[i][0] * S, cy - Y[i][1] * S, col(i));
+        const px = cx + Y[i][0] * S, py = cy - Y[i][1] * S;
+        sampleDot(ctx, colors, px, py, col(i), i === picked ? R_DOT + 1.5 : R_DOT);
+        /* THE PICKED SAMPLE IS MARKED IN BOTH SPACES, which is what ties the
+           bars below to a sample rather than to an index. It is the same
+           sample, so it wears the same ring. */
+        if (i === picked) ring(ctx, colors, px, py, R_DOT + 5);
       }
     }
 
-    /* ---- bottom: the two kernels on ONE axis ------------------------------ */
+    /* ---- bottom left: WHAT IS ACTUALLY BEING MATCHED ---------------------- *
+     * The two kernels used to be here, drawn as shapes. They were a reference
+     * figure: nothing moved them, and — worse — they showed the wrong object.
+     * A kernel is similarity against DISTANCE; the thing t-SNE matches is a
+     * probability distribution over WHICH OTHER SAMPLE is a neighbour.
+     *
+     * So this panel is one sample's two distributions, side by side. Click any
+     * sample in the 3-D panel to change which. Each bar is one other sample:
+     * how likely it is to be this one's neighbour in the data, and how likely
+     * in the picture. The descent moves the second onto the first, and the KL
+     * beside it is how far apart they still are.
+     *
+     * PERPLEXITY IS VISIBLE HERE AS A COUNT, which is the whole reason the
+     * panel earns its place: at perplexity 5 about five bars stand up, because
+     * sigma was chosen for this sample to make exactly that true. A radius
+     * would not have shown it; a count does.                                  */
     {
       const { x, y, w: pw, h: ph } = L.curves;
-      const plot = makePlot({
-        ctx, colors,
-        rect: { x: x + CH_L, y: y + CH_T, w: Math.max(10, pw - CH_L - CH_R), h: Math.max(10, ph - CH_T - CH_B) },
-        xDomain: [0, 3.2],
-        yDomain: [0, 1.05],
-      });
-      plot.grid([0.25, 0.5, 0.75, 1]);
-      plot.axisX({ ticks: [0, 1, 2, 3], label: "Distance between two samples" });
-      plot.axisY({ ticks: [0, 0.5, 1], label: "Similarity" });
+      const rows = neighbourRows(state.P0, Y, picked);
+      const a = chartArea(x, y, pw, ph);
+      const top = Math.max(...rows.map((r) => Math.max(r.p, r.q)), 1e-9);
 
-      /* BOTH NORMALISED TO 1 AT ZERO, which is the correction to the notebook's
-         own pair of figures: drawn from their own formulas the Gaussian peaks
-         at 0.4 and the t at 1.0, so the t reads as taller as well as
-         heavier-tailed. Only the tail is the point, and scaling both to the
-         same height is what makes the tail the only visible difference. */
-      const gaussCurve = [], tCurve = [];
-      for (let k = 0; k <= 120; k += 1) {
-        const d = (k / 120) * 3.2;
-        gaussCurve.push([d, Math.exp(-(d * d) / 2)]);
-        tCurve.push([d, 1 / (1 + d * d)]);
+      text(ctx, colors, "Who is a neighbour of this sample", x, y - 10, colors.ink2, colors.fsSm);
+
+      ctx.save();
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      for (let g = 1; g < 4; g += 1) {
+        const gy = Math.round(a.y + (a.h * g) / 4) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(a.x, gy);
+        ctx.lineTo(a.x + a.w, gy);
+        ctx.stroke();
       }
-      plot.curve(gaussCurve, { stroke: colors.ink3, dash: [5, 4], width: 1.6 });
-      plot.curve(tCurve, { stroke: colors.theory, width: 2 });
+      ctx.strokeStyle = colors.axis;
+      ctx.beginPath();
+      ctx.moveTo(a.x + 0.5, a.y);
+      ctx.lineTo(a.x + 0.5, a.y + a.h + 0.5);
+      ctx.lineTo(a.x + a.w, a.y + a.h + 0.5);
+      ctx.stroke();
+      ctx.restore();
 
-      /* The caption and its note go through the plot API rather than being
-         placed by hand. A hand-placed note under the axis printed through the
-         axis LABEL — four pixels apart at the default width — which is exactly
-         the collision note() exists to avoid, and which the text sweep found
-         before any screenshot could have. */
-      plot.caption("One neighbourhood, two kernels");
+      const bw = a.w / rows.length;
+      /* In the data: an outline, because it is the target and does not move.
+         In the picture: filled, because it is what the descent is changing. */
+      ctx.save();
+      for (let k = 0; k < rows.length; k += 1) {
+        const bx = a.x + k * bw;
+        const hq = clamp01(rows[k].q / top) * a.h;
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = colors.empirical;
+        ctx.fillRect(bx + 0.5, a.y + a.h - hq, Math.max(0.8, bw - 1), hq);
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = colors.ink2;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let k = 0; k < rows.length; k += 1) {
+        const bx = a.x + k * bw, hp = clamp01(rows[k].p / top) * a.h;
+        const py = a.y + a.h - hp;
+        if (k === 0) ctx.moveTo(bx, py); else ctx.lineTo(bx, py);
+        ctx.lineTo(bx + bw, py);
+      }
+      ctx.stroke();
+      ctx.restore();
 
-      /* Both keys sit in the empty top-right of the plot: past a distance of
-         1.5 neither curve rises above 0.32, so neither key is drawn over. They
-         are short because the cell is half what it was — the sentence they used
-         to carry is the caption's job now. */
-      text(ctx, colors, "Gaussian, in 3-D",
-        plot.sx(1.45), plot.sy(0.9), colors.ink3, colors.fsXs);
-      text(ctx, colors, "Student's t, in the picture",
-        plot.sx(1.45), plot.sy(0.74), colors.theory, colors.fsXs);
-      text(ctx, colors, "the heavier tail is the difference",
-        plot.sx(1.45), plot.sy(0.55), colors.ink3, colors.fsXs);
+      /* WHERE PERPLEXITY LANDS. The bars are sorted by p, so the perplexity-th
+         bar is the edge of the neighbourhood the reader asked for — and the
+         line falls exactly where the outline stops being tall. */
+      const pp = state.perplexity;
+      if (pp < rows.length) {
+        const lx = a.x + pp * bw;
+        ctx.save();
+        ctx.strokeStyle = colors.reference;
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(lx, a.y);
+        ctx.lineTo(lx, a.y + a.h);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      /* THE KEY STACKS IN THE TOP RIGHT, all three lines right-aligned, and
+         that is by construction rather than by measuring. The bars are sorted
+         by p, so the tall ones are always on the LEFT and the top right is
+         always empty. Laid out along the top edge instead, the perplexity label
+         printed through "in the data" at 550 and 640px — and it could not be
+         fixed by shortening either, because the label rides the dashed line and
+         the line's position moves with the control. */
+      const key = [
+        [`perplexity ${pp}`, colors.reference],
+        ["in the data", colors.ink2],
+        ["in the picture", colors.empirical],
+      ];
+      key.forEach(([s, c], i) => {
+        text(ctx, colors, s, a.x + a.w - 4, a.y + 2 + i * 13, c, colors.fsXs, "right", "top");
+      });
+
+      text(ctx, colors, `sample ${picked + 1} — click another`, a.x, a.y + a.h + 5,
+        colors.ink3, colors.fsXs, "left", "top");
     }
 
     /* ---- bottom right: the KL divergence falling ------------------------- */
@@ -954,17 +1132,22 @@ defineWidget({
   summary({ params, state, anim }) {
     const { n, groups, per, perplexity, kl } = state;
     const view = `Turned ${params.turn} degrees, tilted ${params.tilt}.`;
-    const stock = params.shape === "cloud"
-      ? `${n} samples in one round cloud with no groups in it`
-      : `${n} samples in ${groups} groups of ${per}`;
+    const told = params.labels === "on";
+    const stock = `${n} samples in ${groups} groups of ${per}`;
+    const shown = told
+      ? "coloured by the group each really came from"
+      : "all drawn the same colour, so the grouping is not given away";
+    const picked = clamp(params.pick | 0, 0, n - 1);
     const steps = state.path.length - 1;
     const where = anim.k === 0
       ? "the random start, before any gradient step"
       : `after ${anim.k * PER_STEP} of ${steps * PER_STEP} gradient steps`;
-    return `${stock}, in three genes, each drawn with the Gaussian neighbourhood `
+    return `${stock}, in three genes, ${shown}, each drawn with the Gaussian neighbourhood `
       + `perplexity ${perplexity} gives it. ${view} Beside it the same samples arranged in `
       + `two dimensions by t-SNE, ${where}, each wearing the Student's t neighbourhood the `
-      + `picture uses instead. Underneath, the two kernels on one axis. `
+      + `picture uses instead. Underneath, sample ${picked + 1}'s two neighbour `
+      + `distributions — how likely every other sample is to be its neighbour in the data, `
+      + `and in the picture — which is the pair t-SNE is matching. `
       + `KL divergence ${kl[anim.k].toFixed(3)}, and `
       + `${Math.round(neighboursKept(state.pts, shownAt(state, anim)) * 100)}% of each sample's `
       + `three nearest neighbours survived the mapping.`;

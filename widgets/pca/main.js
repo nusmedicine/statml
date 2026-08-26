@@ -235,6 +235,22 @@ defineWidget({
       default: "4",
     },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    /* LABELS OFF BY DEFAULT, so the reader reads the structure off the picture
+       before being told what it is — the notebook plots every method twice for
+       the same reason. `--c-unknown` is what the tokens file gives "not
+       measured yet": absence of information, which is what a withheld label is,
+       rather than a third category. */
+    labels: {
+      type: "segmented",
+      label: "Labels",
+      options: [
+        { value: "off", label: "Off", detail: "can you see the groups without being told?" },
+        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
+      ],
+      default: "off",
+      display: true,
+    },
+
 
     /* Both gates are `display: true`, which is what makes them animate: core
        gives its entry animation to `GATE_PARAM`, the first gate in the spec and
@@ -336,6 +352,9 @@ defineWidget({
   draw({ ctx, colors, w, params, state, anim }) {
     const L = layout(w);
     const { pts, pc1, pc2 } = state;
+    /* Whether the reader has been told which group a sample came from. Off by
+       default, so they read the structure off the picture first. */
+    const told = params.labels === "on";
 
     const lines = clamp(anim.pca / 0.55, 0, 1);
     const plane = clamp((anim.pca - 0.5) / 0.5, 0, 1);
@@ -419,7 +438,7 @@ defineWidget({
     ctx.save();
     for (const q of placed) {
       const [x, y] = P(q.home);
-      sampleDot(ctx, colors, x, y, groupCol(colors, q.g));
+      sampleDot(ctx, colors, x, y, told ? groupCol(colors, q.g) : colors.unknown);
     }
     ctx.restore();
 
@@ -432,7 +451,9 @@ defineWidget({
       ctx.globalAlpha = flat;
       ctx.strokeStyle = colors.axis; ctx.lineWidth = 1;
       ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
-      for (const q of state.proj) sampleDot(ctx, colors, sx(q.a), sy(q.b), groupCol(colors, q.g));
+      for (const q of state.proj) {
+        sampleDot(ctx, colors, sx(q.a), sy(q.b), told ? groupCol(colors, q.g) : colors.unknown);
+      }
       text(ctx, colors, "The samples on PC1 and PC2", rx, ry - 9, colors.ink2, colors.fsSm);
       text(ctx, colors, "PC1", rx + rw / 2, ry + rh + 11, colors.ink3, colors.fsXs, "center", "top");
       ctx.translate(rx - 6, ry + rh / 2);
