@@ -5523,13 +5523,19 @@ start above all), so a claim about *what the lesson's own code does* should say
 
 ---
 
-## NEXT · UMAP — widget 22, to be planned
+## NEXT · UMAP — widget 22, PLANNED AND MEASURED, not yet built
 
-**t-SNE is built and shipped, so UMAP is next, and as a planning session
-first.** Read § *NEXT · t-SNE* above before anything else: it is the template.
-Three questions, each closed with a measurement rather than an argument, and the
-traps recorded underneath. This section is what that session turns into the same
-thing.
+**The planning session ran on 2026-08-26 and it settled all three questions.**
+Everything below that carries a number was measured — in this repo in node
+against `_lab/umap-engine.js`, or in the `_scratch` venv against `umap-learn`
+0.5.12 — not recalled. Where both were measured the source is named, because
+the two use different generators for the stage and agree in shape rather than
+to the digit.
+
+**The prototype is `widgets/_lab/umap-engine.js`**, about 250 lines, and it is
+what the widget's `compute()` should be. `umap-verify.mjs` checks it against
+the library through `umap-ref.json`; `umap-measure.mjs` produces the numbers
+quoted here.
 
 ### It is its own widget, and the notebook already says so
 
@@ -5543,62 +5549,477 @@ and not a second half of anything.**
 | course | notebook | what it runs |
 |---|---|---|
 | PHM5003 | `05 / 04`, cells 46–53, heading `## 5` | `umap` (CRAN): `umap(scaledData, n_neighbors = 3, min_dist = 0.5)` on the same 8-sample `airway` data. **On this disk.** Cell 47 links <https://pair-code.github.io/understanding-umap/> |
-| PHM5005 | `03-5`, cells 41–50 | `umap-learn`, the Python side. **Not on this disk** |
+| PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 41–50, heading `### UMAP` | `umap-learn`: `UMAP(n_components=2, n_neighbors=15, min_dist=0.1)` on the cancer gene expression data. **ON THIS DISK** — `~/Downloads/PHM5005 AY2025-26 - Notebooks/Master/`, read 2026-08-26. Cell 41 carries the diagram and the globe-to-flat-map analogy |
+
+#### THE TWO HOSTS DISAGREE ABOUT THE SETTINGS, and PHM5005's are the widget's
+
+| | `n_neighbors` | `min_dist` | data |
+|---|---|---|---|
+| PHM5003, R | **3** | **0.5** | 8 samples of `airway` |
+| PHM5005, Python | **15** | **0.1** | the cancer gene expression set |
+
+**PHM5005's pair is exactly what every measurement in this section defaults
+to**, which was luck rather than judgement — the sweeps were centred there
+before `03-5` was read. It also sits at the good end: `n_neighbors` = 15 is the
+silhouette peak on this stage, and 3 is the shattering end. **PHM5003's 3 is
+forced by having 8 samples**, the same way t-SNE's `min(2, ncol/3)` is, and it
+is worth showing rather than reproducing.
+
+#### `03-5` CELL 45 IS NOT REPRODUCIBLE, and its own syntax block says how to fix it
+
+Cell 42 documents `random_state=42`. **Cell 45, the run that makes the figure,
+omits it.** Measured — five runs of cell 45 exactly as written, on the widget's
+stage (`_scratch/umap10.py`):
+
+| | silhouette across 5 identical runs | spread |
+|---|---|---|
+| cell 45 as written | +0.676, +0.736, +0.758, +0.808, +0.823 | **0.147** |
+| with `random_state=42` | +0.772 five times | **0.000000** |
+
+The extent of the picture moves too — 16.7 × 10.5 on one run, 6.6 × 18.4 on
+another. **A student who reruns the notebook gets a different figure, and the
+one-word fix is already written three cells above.** *Flagged for Kenneth.* It
+is also the seed lesson arriving in his own notebook, which is a better hook for
+the widget's `seed` control than anything generated.
 
 **The lesson names exactly two controls** — `n_neighbors` ("number of
 neighboring points") and `min_dist` ("minimum distance between points") — and
-says outright that they "can alter the clustering". Two controls, and the old
-reconnaissance called them *"the three that carry an idea"* along with t-SNE's
-perplexity: **`n_neighbors` is perplexity in different clothes, and `min_dist`
-has no t-SNE counterpart at all.**
+says outright that they "can alter the clustering". Note the notebook's prose
+calls them `num_neighbor` and `min_dist_value`, which are the R variable names
+in cell 48 rather than the argument names; the arguments are `n_neighbors` and
+`min_dist`. Cell 47 also says "we can perform t-SNE using the `umap`
+function" — a copy-paste from the t-SNE section above it. **Both are one-word
+fixes and neither changes anything; flagged for Kenneth, not acted on.**
 
-### Cell 46's maths, and the two places it departs from t-SNE
+### Cell 46's maths, and the three places it departs from t-SNE
 
 1. **A fuzzy membership in high dimensions**,
    `μ(xᵢ,xⱼ) = exp(−max(0, d(xᵢ,xⱼ) − ρᵢ) / σᵢ)` — and `ρᵢ` is **the distance
    to the point's nearest neighbour**, subtracted off. t-SNE has no counterpart.
-   It is what guarantees every point is connected to something, and it is why
-   UMAP does not care how dense a region is.
+   It is what guarantees every point is connected to something. `σᵢ` is
+   bisected so the row sums to `log₂(k)`, which is the same shape as t-SNE's
+   perplexity bisection with **`n_neighbors` setting the target**.
 2. **A low-dimensional membership `1 / (1 + a·d^{2b})`**, where **`a` and `b`
    are FITTED from `min_dist`** rather than fixed. t-SNE's Student-t has no free
-   parameter at all. So `min_dist` does not change what UMAP knows — it changes
-   the curve the picture is scored against, which is a presentation choice
-   wearing the clothes of a fidelity one.
+   parameter at all.
 3. **Cross-entropy, not KL.** KL is one-sided: t-SNE pays for pulling a true
-   neighbour apart and is *credited* for drawing a stranger close (measured, on
-   the widget's own stage: +137% against −37%). Cross-entropy has both terms, so
-   UMAP pays for putting strangers together too — **and that is the mechanism
-   behind it spreading clusters further than t-SNE.**
+   neighbour apart and is *credited* for drawing a stranger close. Cross-entropy
+   carries both terms, so UMAP pays for putting strangers together too — and
+   that is the mechanism behind it spreading clusters further than t-SNE.
 
-### The three questions
+### Question 1: COMPUTE AT RUNTIME. The replay is not needed — again.
 
-1. **Compute at runtime, or replay a seeded table?** This section used to assert
-   the replay was "likely the only honest option". **Treat that as unverified.**
-   The identical assertion was made about t-SNE and was wrong: exact t-SNE at
-   n = 48 runs 1000 iterations in 55 ms, and the widget computes. UMAP is
-   genuinely bigger — a fuzzy simplicial set, a fitted `a`/`b`, negative
-   sampling — but *bigger than ninety lines* is not the same as *too big*.
-   **Measure it.** A replayed table cannot honour a live `n_neighbors` slider,
-   so this decision and question 2 are one decision, exactly as they were for
-   t-SNE.
-2. **What is the one sentence?** The arc so far: PCA — *a 2-D plot is not the
-   data*. MDS — *the input is the table of distances, not the cloud*. t-SNE —
-   *it keeps who is near whom and throws away everything else*. The candidate
-   for UMAP is **`min_dist` decides how the picture LOOKS and not what it
-   knows** — a knob that makes clusters tighter and more convincing without
-   making them any more real. Nothing else in the arc has a control like that.
-3. **Which failure?** Two are already measured on the real 194 samples and both
-   are worse in UMAP than in anything else:
-   - **a true 5:1 gap ratio renders as 11.4:1** — the worst gap distortion of
-     the four methods
-   - **a cluster genuinely 10× wider renders 1.2× wider** — i.e. essentially
-     erased, against t-SNE's 2.1×
+**This section used to assert that a replay was "likely the only honest
+option". That was wrong, for the second time in this arc.** The identical
+assertion was made about t-SNE and overturned by measuring it; the same holds
+here. Node on this machine, `_lab/umap-measure.mjs`:
 
-   And the summary that makes them one point: **UMAP had the highest silhouette
-   of the four (0.810) and the WORST distance faithfulness (0.56).** PCA 0.590
-   and 0.76; MDS 0.400 and 0.77. *The tighter and more convincing the clusters
-   look, the less the distances mean.* That is the failing case and the sentence
-   in one measurement, and it is the natural end of the four-widget arc.
+| n | iterations | fuzzy set | descent | total |
+|---|---|---|---|---|
+| 24 | 500 | 0.8 ms | 6 ms | **7 ms** |
+| 48 | 200 | 0.4 ms | 10 ms | 11 ms |
+| **48** | **500** | **0.4 ms** | **24 ms** | **25 ms** |
+| 48 | 800 | 0.4 ms | 39 ms | 39 ms |
+| 96 | 500 | 1.2 ms | 96 ms | 97 ms |
+
+`compute()` runs on parameter change only, never per frame (invariant 2), so
+25 ms is a slider that feels immediate — **less than half t-SNE's 55 ms**.
+**Both `n_neighbors` and `min_dist` can therefore be live controls**, which is
+what the whole widget hangs on, and a replayed table could have honoured
+neither.
+
+**The fuzzy simplicial set costs nothing (0.4 ms) and the descent is everything
+else**, which matters for the widget's structure: `min_dist` changes only `a`
+and `b`, so a `min_dist` move does not have to rebuild μ at all.
+
+#### The departure from `umap-learn`, made deliberately and measured
+
+The library optimises by **stochastic edge sampling with five negative samples
+a step** — an approximation built for n in the millions. At n = 48 the **exact
+full-batch gradient** over all 1128 pairs is affordable, so that is what the
+engine runs. On the library's own μ, eight seeds, `min_dist` 0.1 (measured in
+Python so both sides see identical μ):
+
+| | 5-NN retention | tightness | silhouette |
+|---|---|---|---|
+| `umap-learn` SGD | 0.718 | 0.093 | 0.765 |
+| exact full-batch | **0.820** | 0.085 | **0.807** |
+
+Same picture, slightly better, and seed for seed they agree about which seeds
+come out loose — because this is the objective the library approximates. **It
+follows that the widget may say "this is UMAP's objective" and may NOT say
+"this is what `umap-learn` prints".** *That wording is a call for Kenneth.*
+
+The gradient is exact and worth writing down, because it is one line:
+
+```
+C     = −Σ [ μ·log(w) + (1−μ)·log(1−w) ],   w = 1/(1 + a·s^b),   s = d²
+dC/ds = (b/s)·(μ − w)
+```
+
+#### Checked against the library, and the residual is the library's
+
+`umap-verify.mjs` against `umap-learn` 0.5.12 / numpy 2.5.2, five cases
+(n = 48 at `n_neighbors` 3/5/15/30, and n = 8 at 3 — the lesson's own shape):
+
+| what | result |
+|---|---|
+| `a` and `b` from `min_dist` | worst **4.7e-6** relative over twelve values, 0.0 to 0.99. Gauss-Newton here against scipy's Levenberg-Marquardt there |
+| **`ρ`** | **200 of 200 bit-exact** at float32 |
+| **`σ`** | **199 of 200 bit-exact** at float32; the one that is not differs by 3.5e-6 |
+| **`μ`** | worst **1.4e-5** absolute, 2.4e-5 relative, at `n_neighbors` = 3 |
+
+**The first run reported ρ off by 5.2e-8 everywhere and the obvious suspect was
+wrong.** sklearn's `kneighbors` uses the cancelling `|x|²+|y|²−2x·y` form, so
+that looked like the cause — but sklearn's distances agree with a direct sum of
+squares **exactly, 0.0e0**. What is actually happening is that `umap-learn`
+declares `rho` and `result` as `np.float32` *inside* `smooth_knn_dist`, so it
+rounds whatever dtype it is handed. The evidence is a bit pattern rather than a
+plausible story: `Math.fround(js) === lib` for **200 of 200** values. The one σ
+that misses is the bisection's own stopping tolerance — both values land inside
+`umap-learn`'s `SMOOTH_K_TOLERANCE` of 1e-5 on the row sum (js 3.90688992,
+lib 3.90690118, target 3.90689060). Two legal stopping points, not two answers.
+
+**`umap-learn` was already installed** (0.5.12, numba 0.67.0) — the previous
+note here saying it was not is stale. First call costs ~5.6 s of numba JIT and
+~30 ms thereafter. **The R `umap` package is still unchecked**, and it is what
+PHM5003 actually runs; R is not installed here. Same gap as `Rtsne`'s.
+
+### Question 2: the one sentence, and it is measured two ways
+
+> **`min_dist` decides how tight the picture LOOKS, not what UMAP KNOWS. The
+> clusters get tighter and more convincing and not one bit more real.**
+
+**The evidence is a paired sweep of both controls against the same two
+measures** — 5-NN retention for what it knows, and within-cluster radius over
+centre-to-centre gap for how it looks. Ten seeds, n = 48, four groups of twelve
+(`umap-measure.mjs`; the Python column is `_scratch/umap1.py`–`umap2.py` and
+agrees in shape):
+
+| control, swept end to end | 5-NN retention | tightness |
+|---|---|---|
+| **`min_dist` 0.0 → 0.99** | **+0.026**, past seed noise on **2 of 10** seeds | **×2.16 looser, on 10 of 10 seeds** |
+| **`n_neighbors` 2 → 40** | **+0.490**, up on **10 of 10** seeds | ×0.07 |
+
+**A nineteenfold difference in effect on what survives.** One knob moves the
+knowledge and the other moves only the presentation, and the widget can put
+them side by side and let a reader discover which is which. *Nothing else in
+the arc has a control like that*, and it is the natural close of the
+four-widget sequence: PCA — *a 2-D plot is not the data*; MDS — *the input is
+the table of distances, not the cloud*; t-SNE — *it keeps who is near whom and
+throws away everything else*; UMAP — *and how tight it looks is a setting*.
+
+#### THE MECHANISM IS EXACT, and it is the best thing found this session
+
+`dC/ds = (b/s)(μ − w)` is zero exactly when **`w = μ`**. So every pair has an
+ideal separation, and it is closed-form:
+
+```
+d*(μ) = ( (1/μ − 1) / a ) ^ (1 / 2b)
+```
+
+μ comes from the data and `n_neighbors`. `a` and `b` come from `min_dist`
+**and nothing else**. So `min_dist` moves every pair's target distance without
+touching a single μ — which is the sentence, mechanically, in one formula.
+Verified numerically against a 400,000-point argmin at μ = 0.2 / 0.5 / 0.8: the
+analytic `d*` and the numerical minimum agree to four decimals.
+
+And what it does is not a uniform stretch — it is a **compression of the range**
+(`_scratch/umap9.py`):
+
+| `min_dist` | d\*(μ=0.9) | d\*(μ=0.5) | d\*(μ=0.05) | spread across μ |
+|---|---|---|---|---|
+| 0.0 | 0.164 | 0.659 | 4.244 | **×25.8** |
+| 0.25 | 0.335 | 0.947 | 3.811 | ×11.4 |
+| 0.5 | 0.537 | 1.224 | 3.690 | ×6.9 |
+| 0.99 | 0.982 | 1.741 | 3.754 | **×3.8** |
+
+At `min_dist` 0 the picture is asked to draw distances spanning a factor of 26,
+so near pairs go very tight and far pairs go far — **tight blobs with big gaps**.
+At 0.99 the same μ's are asked for distances spanning only 3.8, so everything
+lands at a similar remove. Strong pairs move **5.98×** and weak pairs **0.88×**,
+and no μ changed. That is exactly the ×2.16 measured on the finished picture.
+
+### Question 3: which failure — the SIZE one, and the gap one is a trap
+
+Both were measured on generated stages, ten seeds each, `umap-learn`
+(`_scratch/umap3.py`):
+
+| the failure | true | drawn | verdict |
+|---|---|---|---|
+| **cluster size means nothing** | 1.9× wider | **1.01× ±0.06** | **BUILD THIS** |
+| | 4.6× wider | **1.02× ±0.07** | |
+| | 9.3× wider | **1.31× ±0.27** | |
+| **the gap between clusters means nothing** | 2:1 | 3.17:1 **±2.60**, range 0.69 .. 9.93 | **do not print a number** |
+| | 5:1 | 5.76:1 ±2.75, range 2.05 .. 11.43 | |
+| | 10:1 | 6.57:1 ±4.27, range 1.61 .. 14.84 | |
+
+**Cluster size is not merely distorted, it is erased**, and tightly enough to
+put a number on screen: a group genuinely five times wider draws the same size
+as its neighbour, on every seed. It pairs with the sentence exactly — the
+clusters look tight and convincing *because* `min_dist` says so, and their
+width carries nothing.
+
+**The gap failure is the trap.** This file previously recorded "a true 5:1 gap
+ratio renders as 11.4:1" from the old reconnaissance. That number reproduces —
+**as the maximum of a ten-seed range that also contains 2.05.** It is not a
+systematic inflation, it is *noise*, and quoting the single run as "the"
+distortion would have put a false claim on a widget. A true 2:1 gap draws
+anywhere from 0.69:1 to 9.93:1. **Both readings stay in this file**; the
+failure is real but its shape is "arbitrary", not "inflated", and demonstrating
+arbitrary needs the seed control and several presses rather than one printed
+ratio.
+
+### THE LIBRARY DOES NOT REFUSE — and that inverts widget 21's rule
+
+Widget 21's lesson was *refuse where the library refuses*: `Rtsne` errors unless
+`3 × perplexity < n − 1`, and that hard error decided the sample count. **UMAP's
+equivalent does not exist.** Measured at n = 48:
+
+| `n_neighbors` | what `umap-learn` does |
+|---|---|
+| 1 | **raises** `ValueError: n_neighbors must be greater than 1` |
+| 2 … 47 | runs |
+| 48, 60 | **runs anyway, silently clamping to 47** — no warning naming the clamp |
+
+So the floor is a hard error and the ceiling is a silent clamp. **The widget
+should still say so**, because a control that quietly stops meaning what it
+reads is precisely the failure this project exists to avoid — but it says it as
+a readout, not as a refusal. Widget 21's readout already does this when it
+clamps perplexity; the same treatment, opposite reason.
+
+**`n_neighbors` has an optimum in the middle, and the lesson's own setting is
+near the edge.** From the sweep above: retention 0.332 at k = 2, 0.492 at 3,
+0.677 at 5, **0.805 at 15**, 0.829 at 47 — and the tightness and silhouette
+columns turn over, silhouette peaking at k = 15 and falling to 0.743 at 47.
+**The lesson runs `n_neighbors = 3` on 8 samples**, which at widget scale is the
+shattering end of the range. That is the same shape as t-SNE's
+`perplexity_value <- min(2, ncol/3)`: a workaround for a sample count too small
+to choose in, and worth showing rather than reproducing.
+
+### The stage: 48 samples, four groups of twelve — inherited, and it still fits
+
+Widget 21's stage carries over unchanged (centres on a sphere of radius 2,
+σ = 0.62, twelve per group), and the `n_neighbors` sweep above is the evidence
+that it still has room: eight legal settings that differ by 0.50 in retention.
+`Rtsne`'s `3 × perplexity < n − 1` is what forced 48 for t-SNE; nothing forces
+it here, so **keeping it is a choice, and the reason is the arc** — the same
+cloud under four methods is what makes widgets 19–22 comparable.
+
+### Three things that will bite, all measured
+
+1. **A STEP CANNOT BE ONE ITERATION**, same as widget 21. At n = 48, ten seeds:
+
+   | iterations | 5-NN retention | silhouette |
+   |---|---|---|
+   | 1 | 0.116 | **−0.119** |
+   | 25 | 0.312 | −0.004 |
+   | 100 | 0.641 | 0.343 |
+   | 300 | 0.787 | 0.698 |
+   | **500** | **0.805** | **0.774** |
+   | 800 | 0.811 | 0.790 |
+
+   One iteration is *worse than nothing* — a negative silhouette is a picture
+   that puts the groups inside each other. **500 iterations, and a step of about
+   12**, giving ~42 of them, which is t-SNE's 40 within rounding. 800 buys
+   almost nothing.
+
+2. **THE CROSS-ENTROPY CURVE CAN BE MADE TO FALL CLEANLY, and this is the first
+   time in the arc that has been true.** Widget 20's raw stress and widget 21's
+   KL both rose often enough to need explaining away — t-SNE's rises on 139 of
+   1000 steps and jumps at the exaggeration release. UMAP's is a choice of step
+   size (`umap-measure.mjs`, six seeds):
+
+   | `eta` | CE rises on | final CE | retention | tightness |
+   |---|---|---|---|---|
+   | 1.0 | **206/500** | 186.4 | 0.822 | 0.080 |
+   | 0.25 | 147/500 | 187.3 | 0.826 | 0.092 |
+   | **0.1** | **8/500** | **190.3** | **0.803** | **0.102** |
+   | 0.05 | 0/500 | 208.5 | 0.794 | 0.156 |
+
+   **`eta` = 0.1 buys a monotone chart for 2% of the objective.** 0.05 buys the
+   last eight rises for 10% and a visibly looser picture, which is too much.
+   The justification is not that the chart looks nicer: a **full-batch** gradient
+   does not need the large steps a stochastic one does, so a small `eta` is the
+   appropriate setting and the clean curve is a consequence. Recorded with its
+   price so the choice is not re-argued as a cosmetic one.
+
+3. **`min_dist` IS A DISPLAY-LIKE CONTROL THAT IS NOT A DISPLAY PARAMETER.** It
+   changes the arrangement, so it must reset the animation (non-negotiable 3) —
+   but everything a reader has learned about *which* points are near which
+   survives it, which is the whole point. Do not be tempted to mark it
+   `display: true` to keep the descent: it feeds `compute()`, and invariant 1
+   is not negotiable for a control that moves the picture. **Read the
+   `otherDisplay` comment in `t-sne/main.js` before adding any display
+   parameter** — core says a display parameter changed but not which, the widget
+   deduces it by watching every display parameter except the one being scrubbed,
+   and two versions of that guard were wrong before the third was right.
+
+### The notebook's three figures, and what checking them found
+
+Cell 46 embeds `umap-high.png`, `umap-low.png` and `umap-cross.png`, extracted
+and read this session. **`umap-cross.png` was digitised rather than eyeballed** —
+1131 columns off the teal curve, axes recovered from the gridlines, an error
+floor of ±0.025 CE units from the line thickness (`_scratch/umapfig.py`,
+`umap8.py`).
+
+| figure | what it draws | finding |
+|---|---|---|
+| `umap-high.png` | a 3-D scatter, a blue manifold curve, dashed black edges | the edges are **uniform** — no membership strength is visible, and μ is the whole of step 1. It also reads as near-complete rather than k-nearest |
+| `umap-low.png` | the same graph in 2-D | same, and on its own axes |
+| `umap-cross.png` | cross-entropy against low-dimensional distance | **the right idea, and NOT a curve UMAP can produce** |
+
+**`umap-cross.png` is illustrative, not computed.** Its minimum sits at
+d = 1.106 with CE = 0.667, which is the correct *shape* — a genuine minimum at
+a non-zero distance is exactly what the per-pair cross-entropy has. But fitting
+`−[μ log w + (1−μ) log(1−w)]` to the digitised curve:
+
+- free in `(μ, a, b)`: best fit μ = 0.527, **a = 0.653, b = 1.930**, RMS 0.117 —
+  4.7× the digitisation floor
+- constrained so `(a, b)` come from a real `min_dist`: RMS **0.408**, worst
+  residual 1.53 CE units on a curve whose minimum is 0.667 — 16× the floor
+
+**No `min_dist` pairs a = 0.653 with b = 1.930.** The `min_dist` giving that `a`
+is about 0.47, and its `b` is 1.31. So the figure is a hand-drawn illustration
+of the right idea.
+
+**This is a much better figure than t-SNE's `tsne-kl.png` and it should be said
+so.** That one marked `p/q = 1` as ideal while the curve it plotted bottomed out
+at `1/e`, which invites a question the page cannot answer. UMAP's has no such
+flaw: its minimum **is** the ideal, because the per-pair cross-entropy really is
+minimised at `w = μ`. *Flagged for Kenneth; the notebooks are his and both may
+be deliberate simplification.*
+
+**What the widget can add that all three figures lack: the weights.** Drawing
+the graph with edge opacity or width carrying μ puts step 1 on screen, and it is
+what makes `n_neighbors` visible as something other than a number.
+
+### THE LAYOUT IS KENNETH'S DIAGRAM, and it came from PHM5005 cell 41
+
+**He supplied it on 2026-08-26** and widget 21's history says to treat it as
+binding — *"go with A, it matches my diagrams"*, and then, when a later shape
+drifted, *"what the heck are you doing? this is not what we did in the
+mockup."* It is **his own notebook's figure**, `unsupervised-umap.png`, embedded
+in `03-5` cell 41 at 540px and hosted on Dropbox. Four quadrants:
+
+```
+    3D space                  ——red arrow——>   2D space (UMAP1 / UMAP2)
+    three coloured points,                     THE SAME three points, halos
+    each wearing concentric                    WIDER AND OVERLAPPING
+    halos, TIGHT
+
+    Graph of neighborhood     ——red arrow——>   Graph of neighborhood
+    probabilities                              probabilities
+    the same three points,                     the SAME graph, same edge
+    edges WEIGHTED — one black                 weights, RE-DRAWN flat
+    (strong), two grey (weak)
+```
+
+**Read against widget 21's diagram it is the same top row and a different
+bottom one.** t-SNE's carried the two probability curves underneath; UMAP's
+carries **the graph, drawn once per space**. So the claim the diagram makes is
+*the graph is what survives, and the picture is a re-drawing of it* — which is
+the notebook's own analogy, below.
+
+#### THE ANALOGY IS THE NOTEBOOK'S OWN WORDS, and the widget already owns it
+
+Cell 41, verbatim: high-dimensional data lies on a manifold, *"analogous to
+mapping points on a globe to a flat map while trying to keep nearby points
+close together and faraway points far apart without too much distortion."*
+Kenneth restated it on 2026-08-26 as **connect them in a graph, then flatten
+the manifold — like flattening a map.**
+
+**Widget 21 already draws a wireframe globe**, and it is in the lift list above.
+So the analogy the lesson uses and the machinery this arc has built are the same
+object, which has not happened before in the arc.
+
+**AND THE ANALOGY IS ALSO THE FAILING CASE, which is the useful part.**
+Flattening a globe is exactly why Greenland looks the size of Africa on a
+Mercator — and the measurement above is that a cluster genuinely 4.6× wider
+draws **1.02×**. The distortion the analogy warns about is the distortion the
+widget measures. *That connection is worth making on screen; it is his framing
+and it lands on the failing case for free.*
+
+Cell 41 also gives the two steps in his words — *"build a weighted graph where
+edges represent the probability of connection between points"*, then *"place
+points in lower dimension so that the same connectivity pattern is preserved"* —
+and writes the cross-entropy with `p_ij` / `q_ij` rather than PHM5003's `μ`.
+**The two notebooks use different notation for the same quantity**, and a widget
+serving both has to pick one and say so.
+
+#### THE FOUR QUADRANTS BECOME THE TOP ROW — decided, and by him
+
+*(2026-08-26.)* **His diagram's bottom row isolates the edges the way its top
+row isolates the halos, and the widget draws points, halos and weighted edges
+together in each space panel** — exactly what widget 21 did with t-SNE's halos.
+So the layout is:
+
+```
+    3D space  ——arrow——>  2D space (UMAP1 / UMAP2)
+    points + halos +      the same points, halos and edges,
+    weighted edges        flattened
+
+    the cross-entropy     the cross-entropy against
+    falling, clickable    low-dimensional distance
+    to scrub the run
+```
+
+That keeps every panel his diagram asks for and leaves the bottom row for the
+two cross-entropy panels, the second of which he chose separately.
+
+#### THE GRAPH IS DRAWN WHOLE, opacity carrying μ — his call, measured after
+
+His diagram has three points and three edges. The stage has 48, and the counts
+are the reason the question was asked at all (`_scratch/graph-legible.mjs`):
+
+| `n_neighbors` | edges of 1128 | mean μ | edges ≥ 0.5 |
+|---|---|---|---|
+| **3** (PHM5003's) | 66 | **0.833** | **66 — all of them** |
+| **15** (PHM5005's) | **385** | 0.360 | 122 |
+| 40 | 1040 | 0.183 | 167 |
+
+**He chose all edges with opacity ∝ μ**, over drawing only the picked sample's.
+`_lab/umap-edges.html` is that decision at real panel size — 300 × 300, roughly
+what a 2×2 gives each quadrant at the 900px breakpoint — with four mappings side
+by side and every μ computed live by the shipping engine. *"Ink"* below is summed
+alpha × width, a proxy for how much of the panel the edges occupy:
+
+| mapping | k = 3 | k = 15 | k = 40 |
+|---|---|---|---|
+| **A · alpha = μ** (the literal reading) | 1.1 | 2.9 | **4.0** |
+| **B · alpha = μ²** | 1.0 | 1.9 | 2.5 |
+| C · alpha = μ^1.5 and width 0.4–2.2px | 2.2 | 4.0 | **5.2** |
+| D · each sample's three strongest | 1.1 | 1.6 | 1.7 |
+
+*(ink per point; A also goes from 353 strokes at k = 15 to 940 at k = 40.)*
+
+**C IS CHOSEN — opacity AND width, `alpha = μ^1.5` with width 0.4–2.2px.**
+*(Kenneth, 2026-08-26, over a recommendation of B.)*
+
+**The ink column argues against C and the ink column is the wrong measure.**
+C carries the most ink at every setting, but it *concentrates* it: width is a far
+stronger visual channel than opacity, so a strong edge reads as a line and a weak
+one as a hairline, where under A and B every edge is the same line at a different
+grey. Total ink says how much of the panel is covered; it does not say whether
+the covering is structured. **The reason to record the number anyway is that C is
+the variant most at risk at `n_neighbors` = 40** (ink per point 5.2), and that is
+where to look first if the panel ever reads as full.
+
+**What the sweep did establish, and it holds for C too:** the mapping decides
+whether `n_neighbors` changes how FULL the panel is. Under A the ink per point
+nearly quadruples across the control, 1.1 → 4.0, so moving the slider reads partly
+as "the picture got darker" rather than as "the neighbourhood got bigger". B goes
+1.0 → 2.5 and C 2.2 → 5.2. **At `n_neighbors` = 3 the four are indistinguishable**
+(ink 1.0–2.2), because mean μ is 0.833 there and almost every edge is strong.
+
+**No mapping is literally honest and that is worth saying rather than resolving.**
+Overlapping semi-transparent strokes compound, so `alpha = μ` already does not
+render as *darkness ∝ μ* wherever edges cross — which at 385 edges is everywhere.
+C adds a second channel rather than fixing that, and the widget should not claim
+an edge's appearance can be read back as a number.
+
+**D is recorded but not chosen.** It is the sparse end of the scale, and it is
+what the `pick` route would have looked like.
 
 ### What to lift, and the one comment to read first
 
@@ -5607,36 +6028,25 @@ three times used now: the 3-vector helpers, the orthographic `camera`, the
 wireframe `globe`, the depth-sorted and depth-sized scatter, the `drag` block,
 the `labels` toggle, `--c-cluster-a…f`, and the `layout` function read by both
 `height` and `draw`. New at widget 21 and worth reusing: the `regions` map, the
-clickable objective chart that scrubs the run, and the neighbour-distribution
-panel.
+clickable objective chart that scrubs the run, and the `otherDisplay` guard.
 
-**Read the `otherDisplay` comment in `t-sne/main.js` before adding any display
-parameter.** Core tells a widget that a display parameter changed but not which
-one, so the widget deduces it by watching every display parameter except the one
-being scrubbed. Two versions of that guard were wrong before the third was
-right, and both failures are silent — they throw the reader's position away.
+**A shared axis between two spaces is a fiction that has to be paid for.**
+`_lab/tsne-kernels.html` draws four ways of doing it and records which are
+honest — and UMAP needs one for the d\*(μ) panel, whose x-axis is a distance in
+the *picture* while μ comes from the *data*.
 
-### What widget 21 learned that will bite the same way
+### What the session did NOT settle
 
-- **A step cannot be one iteration** where the picture is worse than useless
-  partway. Measure where the arrangement becomes honest before choosing a step.
-- **The objective's curve may not fall cleanly.** t-SNE's KL rises on 139 of
-  1000 steps and jumps at the early-exaggeration release. Find out what UMAP's
-  cross-entropy actually does before promising a chart that descends.
-- **Refuse where the library refuses.** `Rtsne` errors unless
-  `3 × perplexity < n − 1`, and that rule decided the sample count — at n = 12
-  there were two legal perplexities and nothing to teach between them. Find
-  UMAP's equivalent: `n_neighbors` cannot exceed n − 1, and the lesson runs it
-  at **3 on 8 samples** for exactly that reason.
-- **A shared axis between two spaces is a fiction that has to be paid for.**
-  `_lab/tsne-kernels.html` draws four ways of doing it and records which are
-  honest.
-- **The reference check is cheap now.** Python and sklearn are installed;
-  `_lab/tsne-sklearn-ref.py` and `_lab/tsne-verify.mjs` are the pattern — pull a
-  table from the library, compare, and set the tolerance by measuring where
-  agreement bottoms out rather than by what passes. `umap-learn` is not
-  installed. If pip is blocked, ASK KENNETH — he runs SimpleWall and it is
-  usually an unapproved prompt, not a property of the machine.
+- **the layout**, above — Kenneth's, and it blocks building
+- **the wording of the library claim** — the widget runs the exact objective
+  `umap-learn` approximates, and how that is said on screen is a teaching call
+- **the R `umap` package is unchecked**, and it is what PHM5003 runs. R is not
+  installed. The same gap `Rtsne` has, and it matters for the same reason: a
+  claim about *what the lesson's own code does* should be checked against the
+  lesson's own library
+- **how the two notebooks' notation is reconciled.** PHM5003 writes the high-D
+  membership as `μ(xᵢ,xⱼ)`, PHM5005 as `p_ij` with `q_ij` for the low-D one. The
+  widget serves both and has to pick one and say which
 
 ### After UMAP
 

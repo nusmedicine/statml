@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; drawing 385 edges without a hairball</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .bar output { font-variant-numeric: tabular-nums; color: var(--ink-1); min-width: 3ch; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  canvas { display: block; max-width: 100%; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+<h1>Drawing 385 edges without a hairball</h1>
+
+<p class="note">
+  Kenneth&rsquo;s diagram for widget 22 draws <b>the graph of neighbourhood
+  probabilities on the points</b>, and he chose <b>all edges with opacity
+  proportional to &mu;</b> over drawing only one sample&rsquo;s. The concern was
+  legibility: at the widget&rsquo;s stage &mdash; 48 samples, four groups &mdash;
+  <b>n_neighbors&nbsp;=&nbsp;15 gives 385 edges</b>, and 40 gives 1040. This page
+  is that decision at real panel size, so it is settled by looking rather than by
+  arguing. Every &mu; here is computed live by
+  <code>_lab/umap-engine.js</code>, the same code that would ship.
+</p>
+
+<p class="note">
+  <b>The four mappings differ only in how &mu; becomes ink.</b> Linear is the
+  literal reading of &ldquo;opacity proportional to &mu;&rdquo;. Gamma bends it so
+  weak edges fade faster than they would linearly. Width-and-opacity spends the
+  weight on both channels. Top-k-per-point draws each sample&rsquo;s strongest
+  edges only, which is the sparsest thing that is still every sample&rsquo;s own
+  neighbourhood. <b>The panel size is 300&nbsp;&times;&nbsp;300, which is roughly
+  what a 2&times;2 widget gives each quadrant at the 900px breakpoint.</b>
+</p>
+
+<div class="cell">
+  <div class="bar">
+    <label>n_neighbors <input id="k" type="range" min="2" max="40" value="15"><output id="kOut">15</output></label>
+    <label>seed <input id="seed" type="range" min="1" max="12" value="1"><output id="seedOut">1</output></label>
+    <label>samples per group <input id="per" type="range" min="3" max="12" value="12"><output id="perOut">12</output></label>
+    <label><input id="labels" type="checkbox"> colour by true group</label>
+  </div>
+  <div id="stats" class="measure"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<h2>What to look for</h2>
+<p class="note">
+  <b>Whether the four groups are still four groups.</b> The edges exist to show
+  that the graph is what UMAP carries across, so if they fill the panel the
+  points they connect stop being visible &mdash; and the points are the data.
+  <b>Move n_neighbors to 40</b> for the worst case and <b>to 3</b> for the
+  lesson&rsquo;s own, where the graph is sparse but every edge is nearly the same
+  weight.
+</p>
+
+<script type="module">
+import { fuzzySet, umap } from "./umap-engine.js";
+import { makeRng } from "../core/rng.js";
+
+/* The widget's stage, as widget 21 builds it. */
+const R = 2, SIGMA = 0.62;
+const CENTRES = [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]]
+  .map((c) => { const m = Math.hypot(...c) / R; return c.map((v) => v / m); });
+
+function stage(seed, per) {
+  const rng = makeRng(seed), X = [], y = [];
+  for (let i = 0; i < 4; i += 1)
+    for (let p = 0; p < per; p += 1) { X.push(CENTRES[i].map((c) => c + rng.normal(0, SIGMA))); y.push(i); }
+  return { X, y };
+}
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const CLUSTER = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d"];
+
+const VARIANTS = [
+  { key: "linear", title: "A · opacity linear in &mu;",
+    note: "The literal reading. alpha = mu, one hairline width throughout." },
+  { key: "gamma", title: "B · opacity = &mu;<sup>2</sup>",
+    note: "Same idea, bent. A mu of 0.3 draws at 0.09 rather than 0.3, so the weak majority recedes." },
+  { key: "both", title: "C · opacity AND width carry &mu;",
+    note: "alpha = mu^1.5 and width 0.4 to 2.2px. The strong edges read as structure rather than as darker hairlines." },
+  { key: "topk", title: "D · each sample's three strongest only",
+    note: "NOT what was chosen — here as the sparse end of the scale, so the cost of the other three is visible." },
+];
+
+const SIZE = 300;
+const grid = document.getElementById("grid");
+const cells = VARIANTS.map((v) => {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.innerHTML = `<h3>${v.title}</h3><p>${v.note}</p>`;
+  const cv = document.createElement("canvas");
+  d.appendChild(cv);
+  const m = document.createElement("div");
+  m.className = "measure";
+  d.appendChild(m);
+  grid.appendChild(d);
+  return { ...v, canvas: cv, measure: m };
+});
+
+function draw() {
+  const k = +document.getElementById("k").value;
+  const seed = +document.getElementById("seed").value;
+  const per = +document.getElementById("per").value;
+  const showLabels = document.getElementById("labels").checked;
+  document.getElementById("kOut").textContent = k;
+  document.getElementById("seedOut").textContent = seed;
+  document.getElementById("perOut").textContent = per;
+
+  const { X, y } = stage(seed, per);
+  const n = X.length;
+  const kk = Math.max(2, Math.min(k, n - 1));
+  const { mu } = fuzzySet(X, kk);
+  const { Y } = umap(X, { nNeighbors: kk, minDist: 0.1, iters: 500, seed });
+
+  /* every non-zero pair, and the edge list each variant draws from */
+  const edges = [];
+  for (let i = 0; i < n; i += 1)
+    for (let j = i + 1; j < n; j += 1) if (mu[i][j] > 1e-9) edges.push([i, j, mu[i][j]]);
+  const topk = new Set();
+  for (let i = 0; i < n; i += 1) {
+    const row = [];
+    for (let j = 0; j < n; j += 1) if (j !== i && mu[i][j] > 1e-9) row.push([j, mu[i][j]]);
+    row.sort((a, b) => b[1] - a[1]);
+    for (const [j] of row.slice(0, 3)) topk.add(i < j ? `${i},${j}` : `${j},${i}`);
+  }
+
+  const mean = edges.reduce((s, e) => s + e[2], 0) / (edges.length || 1);
+  document.getElementById("stats").innerHTML =
+    `n = <b>${n}</b>, n_neighbors = <b>${kk}</b> &middot; ` +
+    `<b>${edges.length}</b> edges of ${(n * (n - 1)) / 2} &middot; ` +
+    `mean &mu; <b>${mean.toFixed(3)}</b> &middot; ` +
+    `&mu; &ge; 0.5 on <b>${edges.filter((e) => e[2] >= 0.5).length}</b> &middot; ` +
+    `each sample's top three = <b>${topk.size}</b> edges`;
+
+  /* the 2-D arrangement, scaled into the panel */
+  let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (const p of Y) for (let d = 0; d < 2; d += 1) { lo[d] = Math.min(lo[d], p[d]); hi[d] = Math.max(hi[d], p[d]); }
+  const pad = 22, span = Math.max(hi[0] - lo[0], hi[1] - lo[1]) || 1;
+  const sx = (p) => pad + ((p[0] - lo[0]) / span) * (SIZE - 2 * pad);
+  const sy = (p) => SIZE - pad - ((p[1] - lo[1]) / span) * (SIZE - 2 * pad);
+
+  const ink = css("--ink-1");
+  const colours = CLUSTER.map((t) => css(t));
+
+  for (const v of cells) {
+    const cv = v.canvas, dpr = devicePixelRatio || 1;
+    cv.width = SIZE * dpr; cv.height = SIZE * dpr;
+    cv.style.width = `${SIZE}px`; cv.style.height = `${SIZE}px`;
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    let drawn = 0, ink1 = 0;
+    ctx.strokeStyle = ink;
+    ctx.lineCap = "round";
+    for (const [i, j, w] of edges) {
+      let alpha, width = 1;
+      if (v.key === "linear") { alpha = w; }
+      else if (v.key === "gamma") { alpha = w * w; }
+      else if (v.key === "both") { alpha = w ** 1.5; width = 0.4 + 1.8 * w; }
+      else { if (!topk.has(`${i},${j}`)) continue; alpha = w; }
+      if (alpha < 0.004) continue;
+      drawn += 1; ink1 += alpha * width;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(sx(Y[i]), sy(Y[i]));
+      ctx.lineTo(sx(Y[j]), sy(Y[j]));
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = showLabels ? colours[y[i]] : css("--ink-2");
+      ctx.beginPath();
+      ctx.arc(sx(Y[i]), sy(Y[i]), 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = css("--surface-1");
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.strokeStyle = ink;
+    }
+
+    /* "ink" is the summed alpha x width — a proxy for how much of the panel the
+       edges take, and the number that separates the four at a glance. */
+    v.measure.innerHTML = `<b>${drawn}</b> strokes &middot; ink <b>${ink1.toFixed(0)}</b>` +
+      ` &middot; ink per point <b>${(ink1 / n).toFixed(1)}</b>`;
+  }
+}
+
+for (const id of ["k", "seed", "per", "labels"])
+  document.getElementById(id).addEventListener("input", draw);
+draw();
+</script>
+</main>
+</body>
+</html>

@@ -3,8 +3,8 @@
 **Twenty-one widgets, all shipped, all on the gallery, everything pushed, and
 the fingerprint suite GREEN at 134 of 134.**
 `origin/main` is at `235ffca`; the deploy succeeded and the live site was
-checked rather than assumed. Next up is **planning the UMAP widget** — see
-*NEXT* below.
+checked rather than assumed. **The UMAP widget is planned and measured**; what
+is left is building it: the layout is agreed and the engine is written.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -99,101 +99,136 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT: PLAN THE UMAP WIDGET
+## NEXT: BUILD UMAP — everything is settled, nothing blocks it
 
-**A planning session, not a building one** — the same shape that worked for
-t-SNE, where every question was settled with a measurement before a line of
-widget code was written.
+**The planning session ran on 2026-08-26 and it closed all three questions with
+measurements.** The full record is
+[docs/catalogue.md](docs/catalogue.md) § *NEXT · UMAP* — read it rather than
+this summary, which exists only to say what is left.
 
-**Start with [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE*.** It is
-the template: the three questions, each answered with numbers, and the traps
-recorded underneath. Then § *THEN · UMAP*, which is short and is what this
-session turns into the same thing.
+**The prototype exists and is checked.** `widgets/_lab/umap-engine.js` is what
+`compute()` should be; `umap-verify.mjs` proves it against `umap-learn` 0.5.12
+through `umap-ref.json`; `umap-measure.mjs` produces every number the catalogue
+quotes. All three are node scripts, not pages:
 
-### What is already known
+```bash
+node widgets/_lab/umap-verify.mjs    # agreement with the library
+node widgets/_lab/umap-measure.mjs   # the catalogue's numbers
+```
 
-**The notebook is on this disk** and UMAP has its own top-level heading, `## 5`,
-cells 46–53 of
-`../jupyterbook/phm5003/notebook/05 - Introduction to High Throughput Data/04 - Dimensionality Reduction.ipynb`.
-By the rule that settled t-SNE — one algorithm per widget where the lesson gives
-it its own heading — **UMAP is its own widget, widget 22.**
+### The three answers, in one line each
 
-| what | value |
-|---|---|
-| library | `umap` (CRAN), `umap(scaledData, n_neighbors=, min_dist=)` |
-| the lesson's settings | `n_neighbors = 3`, `min_dist = 0.5`, on the same 8-sample `airway` data |
-| the two controls it names | **`n_neighbors`** — "number of neighboring points"; **`min_dist`** — "minimum distance between points" |
-| the lesson's own link | <https://pair-code.github.io/understanding-umap/> — the Google PAIR explainer, UMAP's equivalent of the distill article t-SNE's section links |
-| PHM5005 | `03-5`, cells 41–50, the Python side. **Still not on this disk** |
+1. **COMPUTE, do not replay.** n = 48, 500 iterations: **25 ms** — less than
+   half t-SNE's 55 ms. Both `n_neighbors` and `min_dist` can be live controls.
+   The old note that a replay was "likely the only honest option" was the same
+   wrong assumption t-SNE's session overturned, and it has been deleted.
+2. **The sentence: `min_dist` decides how tight the picture LOOKS, not what
+   UMAP KNOWS.** Swept end to end over ten seeds, `min_dist` moves 5-NN
+   retention by **+0.026** and tightness by **×2.16**; `n_neighbors` moves
+   retention by **+0.490**. A nineteenfold difference, and the two controls sit
+   side by side so a reader can find out which is which.
+3. **The failure: cluster size is ERASED.** A group genuinely 4.6× wider draws
+   **1.02× ±0.07**. The gap-ratio failure is a trap — the catalogue's old
+   "5:1 renders as 11.4:1" reproduces only as the *maximum* of a range that also
+   contains 2.05, so it is noise rather than inflation and must not be printed
+   as a ratio.
 
-**Cell 46 gives the maths**, and it is three steps like t-SNE's:
+### THE DIAGRAM ARRIVED, and it is his own notebook's figure
 
-1. a fuzzy membership in high dimensions,
-   `μ(xᵢ,xⱼ) = exp(−max(0, d(xᵢ,xⱼ) − ρᵢ) / σᵢ)`, where **ρᵢ is the distance to
-   the nearest neighbour** — the piece t-SNE has no counterpart for
-2. a low-dimensional membership `1 / (1 + a·d^{2b})`, with **`a` and `b` fitted
-   from `min_dist`** rather than fixed
-3. **cross-entropy**, not KL — and that difference is the whole reason UMAP
-   spreads clusters further apart than t-SNE
+*(2026-08-26.)* `unsupervised-umap.png`, embedded in **PHM5005 `03-5` cell 41**
+at 540px. Four quadrants — **3D space** and **2D space** on top, three coloured
+points wearing concentric halos, tight in 3-D and wide and overlapping in 2-D;
+**"Graph of neighborhood probabilities"** underneath, twice, the same three
+points with **weighted edges** (one black, two grey) re-drawn flat. A red arrow
+between each pair. Same top row as widget 21's diagram, a different bottom one.
 
-### The three questions to settle, and what is already measured
+**His analogy is the notebook's own words** — *"mapping points on a globe to a
+flat map while trying to keep nearby points close together and faraway points
+far apart without too much distortion"* — and he restated it as **connect them
+in a graph, then flatten the manifold, like flattening a map.** Two things
+follow, and the catalogue has both: **widget 21 already draws a wireframe
+globe**, and **flattening a map IS the failing case** — Greenland the size of
+Africa is the same distortion as a cluster 4.6× wider drawing 1.02×.
 
-1. **Compute at runtime, or replay?** t-SNE's answer was compute — exact t-SNE
-   at n = 48 runs 1000 iterations in 55 ms. **UMAP is the one where the old
-   reconnaissance expected a replay to be the only honest option**: the fuzzy
-   simplicial set, the fitted `a`/`b`, and negative sampling are not ninety
-   lines. **Measure it rather than assuming** — that is exactly the assumption
-   t-SNE's planning session overturned. A replay cannot honour a live
-   `n_neighbors` slider, so this decision and question 2 are one decision.
-2. **What is the one sentence?** PCA's is *a 2-D plot is not the data*. MDS's is
-   *the input is the table of distances, not the cloud*. t-SNE's is *it keeps who
-   is near whom and throws away everything else*. UMAP needs its own, and the
-   candidate is **what `min_dist` actually controls** — because it is a
-   presentation parameter, not a fidelity one, which is a genuinely surprising
-   and teachable thing.
-3. **Which failure?** The reconnaissance measured two on the real data and both
-   are UMAP's own: **a true 5:1 gap ratio renders as 11.4:1**, and **a cluster
-   genuinely 10× wider renders only 1.2× wider** — a stronger distortion than
-   t-SNE's 2.1×. UMAP also scored the highest silhouette of the four (0.810)
-   while having the *worst* distance faithfulness (0.56). **The tighter and more
-   convincing the clusters look, the less the distances mean** — that is UMAP's
-   sentence and its failing case in one.
+### THE LAYOUT IS SETTLED — nothing blocks building now
 
-### What to lift rather than rewrite
+*(2026-08-26, both his calls.)* **His diagram is the TOP ROW and the graph is
+drawn ON the points** — its bottom row isolates the edges the way its top row
+isolates the halos, which is what widget 21 did with t-SNE's halos:
 
-`widgets/t-sne/main.js` is the reference now, not `mds`. Method-independent and
-three times used: the 3-vector helpers, the orthographic `camera`, the wireframe
-`globe`, the depth-sorted and depth-sized scatter, the `drag` block, the
-`labels` toggle, `--c-cluster-a…f`, the `layout` function read by both `height`
-and `draw`, and — new in widget 21 — the `regions` map, the clickable descent
-chart, and the `otherDisplay` guard in `rebuild`.
+```
+    3D space  ——arrow——>  2D space (UMAP1 / UMAP2)
+    points + halos + weighted edges      the same, flattened
 
-**Read the `otherDisplay` comment before adding any display parameter.** Core
-says a display parameter changed but not which; the widget deduces it by
-watching every display parameter except the one being scrubbed. Two versions of
-that guard were wrong before the third was right, and the failure is silent —
-it throws the reader's position away.
+    the cross-entropy falling,           the cross-entropy against
+    clickable to scrub                   low-dimensional distance
+```
 
-### What widget 21 learned that will bite the same way
+**And the graph is drawn WHOLE, opacity carrying μ** — all 385 edges at
+`n_neighbors` = 15, not just the picked sample's. `_lab/umap-edges.html` is that
+decision at real panel size with four mappings side by side, every μ computed
+live by the shipping engine.
 
-- **A step cannot be one iteration** if the picture is worse than useless
-  partway. Measure where the arrangement becomes honest before choosing.
-- **The objective's curve may not fall cleanly.** t-SNE's KL rises on 139 of
-  1000 steps and jumps at the exaggeration release. Find out what UMAP's
-  cross-entropy does before promising a chart that descends.
-- **Check the library's own limits and refuse where it refuses.** `Rtsne` errors
-  unless `3 × perplexity < n − 1`, which decided the sample count. Find UMAP's
-  equivalent — `n_neighbors` cannot exceed n − 1, and the lesson runs it at 3 on
-  8 samples for that reason.
-- **A shared axis between two spaces is a fiction that has to be paid for.**
-  `_lab/tsne-kernels.html` records four ways of drawing one and which of them
-  are honest.
-- **The reference check is cheap now.** Python is installed, sklearn is
-  installed, and `_lab/tsne-sklearn-ref.py` + `_lab/tsne-verify.mjs` are the
-  pattern: generate a table from the library, compare the JS against it, and set
-  the tolerance by measurement rather than by what passes. `umap-learn` is not
-  installed — and if pip is blocked, ASK KENNETH rather than working around
-  it. See *Working on Windows* below.
+**The mapping is C: `alpha = μ^1.5` AND width 0.4–2.2px**, both channels carrying
+μ. *(His call, over a recommendation of μ².)* The lab page's "ink per point"
+column argues against it — C is the heaviest at every setting, 2.2 / 4.0 / 5.2
+across k = 3 / 15 / 40 against the literal alpha = μ's 1.1 / 2.9 / 4.0 — but that
+measure is the wrong one: **C concentrates its ink.** Width is a far stronger
+channel than opacity, so a strong edge reads as a line and a weak one as a
+hairline, where under the other mappings every edge is the same line at a
+different grey. **Where to look first if the panel ever reads as full is
+`n_neighbors` = 40**, which is C's worst case.
+
+**No mapping is literally honest.** Overlapping semi-transparent strokes compound,
+so `alpha = μ` does not render as darkness ∝ μ wherever edges cross — at 385 edges
+that is everywhere. **Say it rather than resolve it**, and do not let the widget
+imply an edge's appearance reads back as a number.
+
+### The other two panels are settled
+
+**The cross-entropy against distance** — *his call* — redrawn from real `a`, `b`
+and μ instead of illustrated. Two things measured before anyone draws it:
+
+- **`min_dist` TRANSLATES the curve and does not move its floor.** The value at
+  the minimum is the entropy of μ and nothing else, because the minimum is at
+  `w = μ`. Constant at 0.693 for μ = 0.5 across the whole slider. One fixed
+  y-axis to about 7 holds every setting.
+- **THE TRAP: at PHM5003's `n_neighbors = 3` there is barely a μ to draw** — 66
+  non-zero pairs of 1128 and μ effectively binary. **Which μ the panel draws is
+  a design decision, not a detail.**
+
+**The cross-entropy falling over steps**, clickable to scrub, as widget 21 has.
+
+### One correction to this file
+
+**`umap-learn` WAS already installed** — 0.5.12 with numba 0.67.0, in the
+`_scratch` venv. The note below saying it was not is stale and has been fixed.
+First call costs ~5.6 s of numba JIT, ~30 ms after that. Two gaps are real and
+unchanged: **R is not installed**, so the `umap` CRAN package PHM5003 actually
+runs is unchecked.
+
+**`03-5` IS on this disk** — `~/Downloads/PHM5005 AY2025-26 - Notebooks/Master/`,
+read on 2026-08-26; the claim that it was not is stale everywhere it appeared.
+Two things came out of reading it. **The hosts disagree about the settings**:
+PHM5003 runs `n_neighbors = 3, min_dist = 0.5` on 8 samples, PHM5005 runs
+**15 and 0.1** — which is what every measurement here defaults to. And **`03-5`
+cell 45 is not reproducible**: its own syntax block three cells above documents
+`random_state=42` and the run omits it, so five identical runs give silhouettes
+from +0.676 to +0.823 and pictures of visibly different extent. One-word fix,
+flagged for Kenneth, and it is the seed lesson landing in his own notebook.
+
+### The one thing found by checking rather than assuming
+
+`umap-verify.mjs` first reported `rho` off by 5.2e-8 everywhere. The obvious
+suspect — sklearn's cancelling `|x|²+|y|²−2x·y` distance form — **was
+wrong**: sklearn agrees with a direct sum of squares exactly. `umap-learn` declares
+`rho` and `result` as `np.float32` inside `smooth_knn_dist`, so it rounds
+whatever dtype it is handed. The proof is a bit pattern rather than a story:
+`Math.fround(js) === lib` for **200 of 200** values across five cases. **A
+residual that size is a dtype, not an algorithm — check `Math.fround` before
+loosening a tolerance.**
+
+---
 
 ---
 ## `px` TRACKS THE DEVICE PIXEL RATIO — the baseline is now Windows
@@ -365,14 +400,33 @@ README's seven example URLs are the documented deployed paths.
   D: on Windows. They are **deliberately not in this repo** — prd §6 records why
   a Python helper was deleted from it.
 
+  **Widget 22's planning scripts are there too**, and the catalogue cites them
+  by name: `umapstage.py` is the shared stage and metrics, `umap1.py`/`umap2.py`
+  the `min_dist`-against-`n_neighbors` sweeps, `umap3.py` the library limits and
+  the two failure cases, `umap4.py`/`umap5.py` the full-batch-against-library
+  comparison and the learning-rate sweep, `umap6.py` the distance-form
+  diagnosis, `umapfig.py`/`umap7.py`/`umap8.py` the digitising and fitting of
+  `umap-cross.png`, `umap9.py` the d*(mu) table, `umap10.py` the `03-5`
+  reproducibility check, `graph-legible.mjs` the edge counts, and
+  `ce-panel.mjs` the fourth panel's legibility. What ships in the repo is the
+  other half — `widgets/_lab/umap-engine.js`, `umap-ref.py`, `umap-verify.mjs` and
+  `umap-measure.mjs`.
+
   ```powershell
   cd "C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch"
   py -m venv venv
-  ./venv/Scripts/python.exe -m pip install scikit-learn pandas imbalanced-learn
+  ./venv/Scripts/python.exe -m pip install scikit-learn pandas imbalanced-learn umap-learn pillow
   ```
 
   Note `imbalanced-learn` is now in that list: `03-4` needs it, and the earlier
-  claim that it was unavailable is no longer a constraint.
+  claim that it was unavailable is no longer a constraint. **`umap-learn` and
+  `pillow` joined it at widget 22's planning session** — the first is the
+  reference `widgets/_lab/umap-ref.py` pulls its table from, the second is what
+  digitised the notebook's cross-entropy figure. `umap-learn` 0.5.12 drags in
+  numba, so the first call costs ~5.6 s of JIT and ~30 ms after that.
+
+  **numpy 2.x removed `ndarray.ptp`**, so `Y.ptp(0)` raises `AttributeError` in
+  anything copied from an older script. `np.ptp(Y, axis=0)` is the replacement.
 
 **Git had no identity here** and refused the first commit. Set repo-local to
 `Kenneth Ban <kennethban@gmail.com>`, matching every existing commit; a
