@@ -5635,7 +5635,8 @@ right, and both failures are silent — they throw the reader's position away.
   `_lab/tsne-sklearn-ref.py` and `_lab/tsne-verify.mjs` are the pattern — pull a
   table from the library, compare, and set the tolerance by measuring where
   agreement bottoms out rather than by what passes. `umap-learn` is not
-  installed, and pip on this machine needs HANDOVER's wheel workaround.
+  installed. If pip is blocked, ASK KENNETH — he runs SimpleWall and it is
+  usually an unapproved prompt, not a property of the machine.
 
 ### After UMAP
 

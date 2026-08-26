@@ -127,8 +127,19 @@ function drive(win, doc, spec) {
      plausible-looking hash. Throwing here is deliberate: `shoot` turns a throw
      into px = "error", which can never match a baseline, so this fails loudly
      instead of quietly drifting. */
+  /* A GATE COUNTS AS A DRIVE BUTTON, and it lives in the rail rather than in
+     `.w-drive`. Widget 19 is why: it declines Step and Play outright (4.5,
+     `stepLabel: null` / `runLabel: null`) because nothing about PCA iterates,
+     so its ONLY animation is the gate opening — and `check.mjs` demands a
+     driven state of anything declaring an `animation`. Before this it had none
+     and could not have had one: `press` looked only inside `.w-drive`, and the
+     gate carries no `data-param` either, so `set` could not reach it.
+
+     Still by `data-key`, never by position — `controls.js` stamps a gate with
+     `gate-<param>` already, so nothing new had to be added to core for this. */
   const press = (key) => {
-    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`);
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`)
+      ?? doc.querySelector(`.w-gate-btn[data-key="${key}"]`);
     if (!b) throw new Error(`no "${key}" drive button`);
     if (b.disabled) throw new Error(`"${key}" button is disabled — wrong stage?`);
     b.click();

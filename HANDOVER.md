@@ -1,6 +1,7 @@
 # Handover
 
-**Twenty-one widgets, all shipped, all on the gallery, everything pushed.**
+**Twenty-one widgets, all shipped, all on the gallery, everything pushed, and
+the fingerprint suite GREEN at 134 of 134.**
 `origin/main` is at `235ffca`; the deploy succeeded and the live site was
 checked rather than assumed. Next up is **planning the UMAP widget** — see
 *NEXT* below.
@@ -21,51 +22,38 @@ npm run check                 # before every commit
 
 ---
 
-## THE TWO THINGS THAT ARE OWED
+## The suite is GREEN at 134 of 134
 
-### 1. Rebaseline eleven fingerprint states — do this first
+**Every state is recorded and every one matches.** The eleven placeholders left
+by the promotion were replaced with real hashes on 2026-08-26, confirmed
+identical across three consecutive runs first. The two `widgets/core/` changes
+that owed a run — hoisting `at` out of the `if (regions)` block, and the
+regions hover handler falling back to the drag cursor — are covered by that run:
+**123 pre-existing states matched, so neither reached a widget it should not
+have.**
 
-All five drafts were promoted to the gallery on 2026-08-26. Promotion is a real
-gate: `check` demands fingerprint states of a non-draft widget, so eleven were
-added — settled and driven for each of `trees-and-ensembles`, `balancing-data`,
-`pca`, `mds` and `t-sne`, plus a **hit-driven** one for `t-sne`, the first
-widget in the repo to declare `regions`.
+**Four of the eleven placeholder states were wrong in ways `check` cannot
+see**, and recording them is what found it. Worth knowing, because the next
+widget's states will be written the same way:
 
-**Their hashes are placeholders, `"0"`/`"0"`, and they will all report DIFFER
-until recorded.** That was the only correct option from an agent session: the
-Browser pane runs at `devicePixelRatio` 1 while this machine's baseline was
-recorded at its scaled DPR, so any `px` written there is wrong for the machine
-that checks it. Writing one would have poisoned the baseline silently.
+- **`pca` could not be driven at all.** It declines Step and Play outright
+  (4.5, `stepLabel: null`), so its only animation is the gate opening — and
+  `press` looked only inside `.w-drive`, while `set` needs a `data-param` the
+  gate does not carry. The harness now falls back to `.w-gate-btn[data-key]`,
+  which `controls.js` already stamps. **A gate counts as a drive button.**
+- **`mds` and `balancing-data` hashed IDENTICALLY settled and driven**, which
+  passes `check` and covers nothing. Their Step does nothing until a gate is
+  open: mds needs `measured=1`, and balancing-data needs **four** things true —
+  `keep=3` so cases have actually been thrown away, then `fit=1`, `balance=1`
+  and a method that generates samples. At 100% kept, SMOTE adds nothing and the
+  widget removes Step itself.
+- **`t-sne`'s hit coordinate was guessed and hit nothing.** It is computed from
+  the widget's own `regions()` at the harness's 550px canvas now.
 
-**So the suite is 123 recorded states and 11 unrecorded ones, and until they are
-recorded a DIFFER does not mean what it means everywhere else here.** That is
-the cost, and it is why this is first. One pass: open
-`widgets/_lab/fingerprint.html`, let it auto-run, confirm the eleven are
-identical across three runs, copy the new baseline.
-`grep PLACEHOLDER widgets/_lab/fingerprint-baseline.json` finds them.
-
-### 2. A full suite run for the `widgets/core/` changes
-
-`widget.js` changed twice on 2026-08-26 and both are unrun:
-
-- **`at` was hoisted out of the `if (regions)` block.** It was `const`-scoped
-  there and referenced from the `if (drag)` block, so every pointerdown threw
-  `ReferenceError` for a widget declaring both — which no widget did until
-  `t-sne`. Provably inert elsewhere: with no `regions`, `regions && at(ev)`
-  short-circuits before `at` is evaluated.
-- **The regions hover handler falls back to the drag cursor**, not `"default"`,
-  so a draggable figure keeps its grab hand outside a region.
-
-Both are on paths no existing widget reaches. That is an argument, not a
-measurement, and CLAUDE.md is explicit that a `widgets/core/` change owes a full
-run. It could not be done here — the Browser pane composites no frames when it
-is not displayed, so the harness cannot run at all.
-
-**A third is recorded but NOT fixed:** core probes `regions()` at load with
-`state` still `null`, because `recompute()` runs from `render()`, which is
-later. So the load-time validation that block exists to perform validates
-nothing. `t-sne` guards with `if (!state) return []`. The proper fix is to move
-the probe after the first render, and it owes the same suite run.
+**So a driven state needs checking against its settled sibling.** If the two
+hash the same, the drive did nothing — `check` cannot tell, and the whole
+reason it demands a driven state is the mid-animation rendering a settled state
+is blind to.
 
 ---
 
@@ -204,8 +192,8 @@ it throws the reader's position away.
   installed, and `_lab/tsne-sklearn-ref.py` + `_lab/tsne-verify.mjs` are the
   pattern: generate a table from the library, compare the JS against it, and set
   the tolerance by measurement rather than by what passes. `umap-learn` is not
-  installed, and pip on this machine needs the wheel workaround under
-  *Working on Windows* below.
+  installed — and if pip is blocked, ASK KENNETH rather than working around
+  it. See *Working on Windows* below.
 
 ---
 ## `px` TRACKS THE DEVICE PIXEL RATIO — the baseline is now Windows
@@ -224,6 +212,19 @@ The geometry is identical — same breakpoint, same rail beside the same figure.
 But `px` hashes `toDataURL()`, which encodes the **backing store**, so a display
 scaling change rewrites every hash while leaving the picture the same size on
 screen.
+
+**THE BROWSER PANE REPORTS THE SAME 1.25, so a baseline CAN be recorded from an
+agent session.** I argued the opposite when the eleven placeholders went in —
+that the pane runs at DPR 1 and any `px` recorded there would be wrong for this
+machine — and it was inherited rather than measured. It is one line to check:
+`devicePixelRatio` in the pane reads **1.25**, and the decisive test is stronger
+still — **run the suite and see whether the pre-existing states MATCH.** They
+did, all 123 of them, which proves the environment reproduces the baseline
+exactly. Do that before assuming a hash cannot be recorded.
+
+The pane does have a real limitation, and it is a different one: **it composites
+no frames while it is not displayed**, so `requestAnimationFrame` stalls and the
+harness cannot run at all. Front the tab first.
 
 **Measured over the full suite, not sampled:** 123 of 123 `px` moved, **0 of 123
 `tx` moved** — including all 41 driven mid-animation states. `tx` is therefore
@@ -264,34 +265,24 @@ CoreText rasterise text differently, so it solves the smaller half.
 
 ## Working on Windows
 
-### PYTHON IS INSTALLED, AND pip CANNOT REACH THE NETWORK
+### Python is installed — and ASK before working around a blocked network
 
-Python 3.12 is at `%LOCALAPPDATA%ProgramsPythonPython312python.exe`, with
-`numpy`, `scipy` and `scikit-learn` in it. It went in with
+Python 3.12 is at `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`, with
+`numpy`, `scipy` and `scikit-learn`. It went in with
 `winget install Python.Python.3.12`.
 
-**`python.exe` gets `WinError 10013` on every outbound socket** — "an attempt
-was made to access a socket in a way forbidden by its access permissions" —
-while PowerShell reaches PyPI perfectly well. So `pip install` cannot fetch
-anything. The way in is to download the wheels with PowerShell and install them
-offline:
+**KENNETH RUNS SIMPLEWALL, a per-application firewall, and a blocked socket
+usually means a prompt he did not approve in time.** On 2026-08-26 `pip` failed
+with `WinError 10013` on every connection while PowerShell reached PyPI fine. I
+diagnosed that as a permanent property of the machine, built a
+fetch-wheels-with-PowerShell-and-install-offline workaround, and wrote it into
+this file as standing guidance. **It was a firewall prompt that had timed out.**
+One click would have fixed it, and the workaround has been deleted rather than
+left here to send the next session down the same path.
 
-```powershell
-# resolve and fetch, in PowerShell, which is allowed out
-$m = Invoke-RestMethod "https://pypi.org/pypi/<package>/json"
-$w = $m.releases.($m.info.version) | Where-Object { $_.filename -like "*cp312-*win_amd64.whl" } | Select-Object -First 1
-Invoke-WebRequest $w.url -OutFile "wheels$($w.filename)"
-```
-
-```bash
-python -m pip install --no-index --find-links wheels <package>
-```
-
-**Fetch the dependencies too** — `--no-index` resolves nothing. `scikit-learn`
-1.9 needs `numpy`, `scipy`, `joblib`, `threadpoolctl` **and `narwhals`**, which
-is the one that is easy to miss. Expect the same for `umap-learn`, which also
-wants `numba` and `llvmlite`.
-
+**So: a blocked network call is a question, not a constraint.** Say what was
+blocked and what it was trying to reach, and ask him to approve it. Only build
+around it if he says it cannot be approved.
 
 **The toolchain runs there now; it did not before.** `npm run check` — and with
 it `npm run build` — failed on the first line of the first assertion on any

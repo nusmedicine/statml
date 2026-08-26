@@ -1103,14 +1103,12 @@
    "tx": "0a10e703"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "trees-and-ensembles",
    "state": "?theme=light&shown=1",
-   "px": "0",
-   "tx": "0"
+   "px": "2c563075",
+   "tx": "3f3bd97f"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "trees-and-ensembles",
    "state": "?theme=light",
    "drive": {
@@ -1118,75 +1116,67 @@
     "frames": 12,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "bb23a75a",
+   "tx": "30c58191"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "balancing-data",
    "state": "?theme=light&shown=1",
-   "px": "0",
-   "tx": "0"
+   "px": "ae02e154",
+   "tx": "42752df9"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "balancing-data",
-   "state": "?theme=light",
+   "state": "?theme=light&keep=3&fit=1&balance=1&method=smote",
    "drive": {
     "click": "step",
     "frames": 12,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "58e84e04",
+   "tx": "34e40cad"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "pca",
    "state": "?theme=light",
-   "px": "0",
-   "tx": "0"
+   "px": "f14ea50e",
+   "tx": "590c3933"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "pca",
    "state": "?theme=light",
    "drive": {
-    "click": "step",
+    "click": "gate-pca",
     "frames": 12,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "db4a72db",
+   "tx": "23a7bb2c"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "mds",
    "state": "?theme=light&shown=1",
-   "px": "0",
-   "tx": "0"
+   "px": "598dd0e0",
+   "tx": "ddd347e3"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "mds",
-   "state": "?theme=light",
+   "state": "?theme=light&measured=1",
    "drive": {
     "click": "step",
     "frames": 12,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "f06447f6",
+   "tx": "f858a502"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "t-sne",
    "state": "?theme=light&step=40",
-   "px": "0",
-   "tx": "0"
+   "px": "2a123bd7",
+   "tx": "873a19f1"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "t-sne",
    "state": "?theme=light",
    "drive": {
@@ -1194,23 +1184,22 @@
     "frames": 12,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "f0677cd7",
+   "tx": "064da7ff"
   },
   {
-   "$note": "PLACEHOLDER — no baseline recorded yet. Rebaseline at a real keyboard; px cannot be recorded from an agent session (devicePixelRatio 1 vs scaled).",
    "slug": "t-sne",
    "state": "?theme=light",
    "drive": {
     "hit": [
-     600,
-     560
+     449,
+     356
     ],
     "frames": 2,
     "dt": 32
    },
-   "px": "0",
-   "tx": "0"
+   "px": "d4c94107",
+   "tx": "798b6a7e"
   }
  ]
 }
