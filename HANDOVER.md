@@ -185,6 +185,32 @@ everywhere, and it costs nothing now, or (c) default to `samples = 1`, the
 ungrouped stage, which shows no clusters at all. **It is a teaching choice about
 which case a reader should meet first, which is why it has not been made here.**
 
+**AND THE OPEN QUESTION KENNETH RAISED ON SEEING THE 2x2: does NMDS go in this
+widget, or is it its own?** He said *"we'll discuss if it's appropriate to put
+NMDS here or create a separate widget for it"* — so it is a conversation to
+have, not a task to start. What bears on it, so the discussion does not begin
+from nothing:
+
+- **In sklearn it is one flag on the class this widget already implements.**
+  The reconnaissance table in the catalogue records `MDS(metric=…)`: True fits
+  the distances, False fits their RANK ORDER only. That is an argument for a
+  toggle here rather than a twenty-first widget.
+- **But it is a different objective, not a different setting of this one.**
+  Metric MDS matches d to δ; non-metric matches d to a monotone transform of δ
+  fitted at each step, so "the arrangement whose distances come closest" — the
+  widget's one sentence — stops being true, and the second number in every cell
+  stops being comparable to the first. **The table is this widget's whole
+  argument, and NMDS is precisely the case where the table's numbers are not
+  what is being matched.** That is the strongest reason it might want its own
+  widget, and it is also the sharpest thing NMDS has to teach.
+- **CHECK `03-5` CELLS 20-30 FIRST.** Whether the notebook runs `metric=True`
+  or `metric=False` decides which one is the host's actual method, and it was
+  not checkable here — the PHM5005 notebooks are not on this disk (only
+  `../jupyterbook/phm5003` is). One look settles half the question.
+- Whichever way it goes, the shared machinery is already built: SMACOF, the
+  table, the chart and the stage would all carry over, and non-metric SMACOF is
+  metric SMACOF with an isotonic regression on the disparities each step.
+
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
 UMAP*.
 

@@ -4834,6 +4834,16 @@ again, which is the change round one reversed.
 - **No catalogue promotion, no manifest `shipped`.** It is a draft and off the
   gallery.
 - **Judge it projected**, which no widget from 11 onward has had.
+- **NMDS: same widget or its own?** Raised by Kenneth on seeing the 2x2 and
+  left open. In sklearn it is one flag on the class this widget already
+  implements — `MDS(metric=False)` fits the RANK ORDER of the distances rather
+  than the distances — which argues for a toggle here. Against: it is a
+  different objective, so "the arrangement whose distances come closest" stops
+  being true and the second number in every cell stops being comparable to the
+  first. The table is this widget's whole argument, and NMDS is exactly the case
+  where the table's numbers are not what is being matched. **Check `03-5` cells
+  20-30 for which one the notebook actually runs before deciding** — the
+  PHM5005 notebooks were not on disk when this was written.
 - **A pair-highlight was designed and dropped**: clicking a table cell drawing
   that one pair as a line in both pictures. It is the obvious next thing the
   matrix wants, and it was cut because `regions` requires the parameter to keep
