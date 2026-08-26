@@ -544,7 +544,17 @@ defineWidget({
       type: "segmented",
       label: "Fit",
       options: [
-        { value: "metric", label: "Distances", detail: "match the distances themselves" },
+        /* IT NAMES STRESS MINIMISATION, and that closes a gap rather than
+           decorating the control. `05-04`'s first line of MDS code is
+           `cmdscale`, which is classical Torgerson scaling: an
+           eigendecomposition, closed form, no iterations at all. This fit is
+           SMACOF — what `sklearn.manifold.MDS(metric=True)` runs, and what the
+           lesson's own PROSE describes ("adjusting the positions of points ...
+           typically done using iterative algorithms") — so it does iterate, and
+           a reader who mapped it onto `cmdscale` would leave thinking that
+           function converges over steps. Saying "a step at a time" is what
+           stops the mapping, and it is true of this fit. */
+        { value: "metric", label: "Distances", detail: "match the distances themselves — by minimising the stress, a step at a time" },
         /* THE DETAIL NO LONGER NAMES `cmdscale`, and the reason is that it was
            an overclaim on the face of the figure (2.9). `isoMDS` really does
            start from `cmdscale` — that is its documented default, `y =

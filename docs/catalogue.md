@@ -4849,11 +4849,21 @@ rather than rediscovered:**
   exactly this reason (2.9) — the claim that survives is the one the widget can
   back: the rank fit carries on from where the metric fit stopped.
 
-**Still open, and it is Kenneth's call.** If the difference matters, the fix is
-one line of copy on the metric option naming it as stress minimisation, so no
-reader maps it onto `cmdscale`. This is the same class of gap as widget 19's
-*nothing spins*, and that one was closed by removing the motion rather than by
-wording — the difference here is that the motion is real in `sklearn`.
+**SETTLED: the metric option names stress minimisation.** Kenneth's call —
+*"yes, name it as stress minimization"* — so its detail reads *match the
+distances themselves — by minimising the stress, a step at a time*. The last
+four words are the ones doing the work: `cmdscale` does not take steps, so a
+reader who has just run it cannot map this fit onto it.
+
+This is the same class of gap as widget 19's *nothing spins*, and it was closed
+the opposite way. There, the motion was removed, because sklearn computes an SVD
+and nothing rotates. Here the motion is real — `sklearn.manifold.MDS(metric=True)`
+genuinely iterates — so the fix is to NAME it rather than to remove it. **The
+test is not "is there motion" but "does the library do this"**, and the two
+widgets answer it differently because their libraries do.
+
+Both options' details render three lines at 300px, so switching between them
+does not jog the rail by a line (3.4d).
 
 ### The size of a non-metric arrangement is arbitrary, so it is held fixed
 
