@@ -38,7 +38,8 @@
   <b>n_neighbors&nbsp;=&nbsp;15 gives 385 edges</b>, and 40 gives 1040. This page
   is that decision at real panel size, so it is settled by looking rather than by
   arguing. Every &mu; here is computed live by
-  <code>_lab/umap-engine.js</code>, the same code that would ship.
+  <code>widgets/umap/model.js</code>, which is the module the widget itself
+  runs &mdash; not a copy of it.
 </p>
 
 <p class="note">
@@ -74,7 +75,7 @@
 </p>
 
 <script type="module">
-import { fuzzySet, umap } from "./umap-engine.js";
+import { fuzzySet, umap } from "../umap/model.js";
 import { makeRng } from "../core/rng.js";
 
 /* The widget's stage, as widget 21 builds it. */

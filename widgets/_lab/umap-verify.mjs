@@ -1,5 +1,5 @@
 /* ============================================================================
-   Compare umap-engine.js against umap-learn 0.5.12, through umap-ref.json.
+   Compare widgets/umap/model.js — the SHIPPING module — against umap-learn 0.5.12, through umap-ref.json.
 
    The pattern is tsne-verify.mjs's, which is what proved widget 21's engine:
    pull a table out of the library, compare against it, and SET THE TOLERANCE BY
@@ -30,7 +30,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { knn, smoothKnnDist, fuzzySet, findAbParams, umap } from "./umap-engine.js";
+import { knn, smoothKnnDist, fuzzySet, findAbParams, umap } from "../umap/model.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ref = JSON.parse(readFileSync(join(here, "umap-ref.json"), "utf8"));

@@ -1,10 +1,10 @@
 # Handover
 
-**Twenty-one widgets, all shipped, all on the gallery, everything pushed, and
-the fingerprint suite GREEN at 134 of 134.**
-`origin/main` is at `235ffca`; the deploy succeeded and the live site was
-checked rather than assumed. **The UMAP widget is planned and measured**; what
-is left is building it: the layout is agreed and the engine is written.
+**Twenty-one widgets shipped, a twenty-second built as a DRAFT, and the
+fingerprint suite GREEN at 134 of 134.**
+Widget 22 `umap` is planned, measured and built; it carries `status: "draft"`,
+so it sits on `/lab/` and NOT on the gallery, and it has no fingerprint states
+yet — deliberately. **What is left is Kenneth looking at it** — see *NEXT*.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -99,105 +99,62 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT: BUILD UMAP — everything is settled, nothing blocks it
+## NEXT: KENNETH LOOKS AT THE UMAP DRAFT
 
-**The planning session ran on 2026-08-26 and it closed all three questions with
-measurements.** The full record is
-[docs/catalogue.md](docs/catalogue.md) § *NEXT · UMAP* — read it rather than
-this summary, which exists only to say what is left.
-
-**The prototype exists and is checked.** `widgets/_lab/umap-engine.js` is what
-`compute()` should be; `umap-verify.mjs` proves it against `umap-learn` 0.5.12
-through `umap-ref.json`; `umap-measure.mjs` produces every number the catalogue
-quotes. All three are node scripts, not pages:
+**Widget 22 is built and on `/lab/`.** Planned, measured, then built on
+2026-08-26; `npm run check` passes at 22 widgets. The full record is
+[docs/catalogue.md](docs/catalogue.md) § *Widget 22 · `umap`* — read that
+rather than this summary.
 
 ```bash
-node widgets/_lab/umap-verify.mjs    # agreement with the library
+node scripts/serve.mjs 8017
+# http://localhost:8017/widgets/umap/?graph=1&flatten=1&step=50&labels=on
+node widgets/_lab/umap-verify.mjs    # the SHIPPING module against umap-learn
 node widgets/_lab/umap-measure.mjs   # the catalogue's numbers
 ```
 
-### The three answers, in one line each
+**The solver is `widgets/umap/model.js`, not a copy in `main.js`**, so
+`umap-verify.mjs` checks what actually runs. Widget 21 has its algorithm twice
+with nothing keeping the two in step; `balancing-data/model.js` is the pattern
+this follows.
 
-1. **COMPUTE, do not replay.** n = 48, 500 iterations: **25 ms** — less than
-   half t-SNE's 55 ms. Both `n_neighbors` and `min_dist` can be live controls.
-   The old note that a replay was "likely the only honest option" was the same
-   wrong assumption t-SNE's session overturned, and it has been deleted.
-2. **The sentence: `min_dist` decides how tight the picture LOOKS, not what
-   UMAP KNOWS.** Swept end to end over ten seeds, `min_dist` moves 5-NN
-   retention by **+0.026** and tightness by **×2.16**; `n_neighbors` moves
-   retention by **+0.490**. A nineteenfold difference, and the two controls sit
-   side by side so a reader can find out which is which.
-3. **The failure: cluster size is ERASED.** A group genuinely 4.6× wider draws
-   **1.02× ±0.07**. The gap-ratio failure is a trap — the catalogue's old
-   "5:1 renders as 11.4:1" reproduces only as the *maximum* of a range that also
-   contains 2.05, so it is noise rather than inflation and must not be printed
-   as a ratio.
+### What he should look at, because none of it is checkable
 
-### THE DIAGRAM ARRIVED, and it is his own notebook's figure
+- **Is the graph legible at 385 edges?** Mapping C — opacity AND width carrying
+  μ — is his call and this is the first time it has been seen inside the widget
+  rather than on the lab page. `neighbours` at 40 is its worst case.
+- **Does the 2-D panel read**, with halos, edges and 48 dots in one 244px cell.
+- **The two gates**, which are cell 41's two numbered steps and his own phrasing:
+  join the neighbours, then flatten it. His one arrow said "→ umap"; this is two.
+- **Projected**, which no widget from 11 on has had.
 
-*(2026-08-26.)* `unsupervised-umap.png`, embedded in **PHM5005 `03-5` cell 41**
-at 540px. Four quadrants — **3D space** and **2D space** on top, three coloured
-points wearing concentric halos, tight in 3-D and wide and overlapping in 2-D;
-**"Graph of neighborhood probabilities"** underneath, twice, the same three
-points with **weighted edges** (one black, two grey) re-drawn flat. A red arrow
-between each pair. Same top row as widget 21's diagram, a different bottom one.
+### The sentence fires, read off the widget's own readout
 
-**His analogy is the notebook's own words** — *"mapping points on a globe to a
-flat map while trying to keep nearby points close together and faraway points
-far apart without too much distortion"* — and he restated it as **connect them
-in a graph, then flatten the manifold, like flattening a map.** Two things
-follow, and the catalogue has both: **widget 21 already draws a wireframe
-globe**, and **flattening a map IS the failing case** — Greenland the size of
-Africa is the same distortion as a cluster 4.6× wider drawing 1.02×.
+Seed 1, settled. `packing` 0 → 0.95: neighbours kept **81% → 83%**, how tight it
+looks **0.108 → 0.205**. `neighbours` 2 → 40: neighbours kept **41% → 83%**.
+Five points of retention against forty-two, in two tiles side by side.
 
-### THE LAYOUT IS SETTLED — nothing blocks building now
+### Two defects the build found, and one is widget 21's too
 
-*(2026-08-26, both his calls.)* **His diagram is the TOP ROW and the graph is
-drawn ON the points** — its bottom row isolates the edges the way its top row
-isolates the halos, which is what widget 21 did with t-SNE's halos:
+- **Every sample has a μ = 1 link whose ideal distance is zero** — its nearest
+  neighbour, on the kernel's flat top past ρ. Drawn as the kernel panel's
+  strongest curve it said the opposite of the panel's point. The window is now
+  the range whose minimum fits the frame. **A screenshot caught it; no assertion
+  would have.**
+- **A published `step` survives a data change in the URL but not in the figure**,
+  and **t-SNE does it too** — measured there: `?step=40` reads KL 0.157, then
+  moving `perplexity` reads 1.727 while the URL still says `step=40`. Core's
+  `seededOnce` is deliberate (non-negotiable 4); leaving the parameter in the
+  address bar is not. **The fix is core's and owes a full fingerprint run**, so
+  it is recorded rather than taken.
 
-```
-    3D space  ——arrow——>  2D space (UMAP1 / UMAP2)
-    points + halos + weighted edges      the same, flattened
+### Do NOT baseline it yet
 
-    the cross-entropy falling,           the cross-entropy against
-    clickable to scrub                   low-dimensional distance
-```
-
-**And the graph is drawn WHOLE, opacity carrying μ** — all 385 edges at
-`n_neighbors` = 15, not just the picked sample's. `_lab/umap-edges.html` is that
-decision at real panel size with four mappings side by side, every μ computed
-live by the shipping engine.
-
-**The mapping is C: `alpha = μ^1.5` AND width 0.4–2.2px**, both channels carrying
-μ. *(His call, over a recommendation of μ².)* The lab page's "ink per point"
-column argues against it — C is the heaviest at every setting, 2.2 / 4.0 / 5.2
-across k = 3 / 15 / 40 against the literal alpha = μ's 1.1 / 2.9 / 4.0 — but that
-measure is the wrong one: **C concentrates its ink.** Width is a far stronger
-channel than opacity, so a strong edge reads as a line and a weak one as a
-hairline, where under the other mappings every edge is the same line at a
-different grey. **Where to look first if the panel ever reads as full is
-`n_neighbors` = 40**, which is C's worst case.
-
-**No mapping is literally honest.** Overlapping semi-transparent strokes compound,
-so `alpha = μ` does not render as darkness ∝ μ wherever edges cross — at 385 edges
-that is everywhere. **Say it rather than resolve it**, and do not let the widget
-imply an edge's appearance reads back as a number.
-
-### The other two panels are settled
-
-**The cross-entropy against distance** — *his call* — redrawn from real `a`, `b`
-and μ instead of illustrated. Two things measured before anyone draws it:
-
-- **`min_dist` TRANSLATES the curve and does not move its floor.** The value at
-  the minimum is the entropy of μ and nothing else, because the minimum is at
-  `w = μ`. Constant at 0.693 for μ = 0.5 across the whole slider. One fixed
-  y-axis to about 7 holds every setting.
-- **THE TRAP: at PHM5003's `n_neighbors = 3` there is barely a μ to draw** — 66
-  non-zero pairs of 1128 and μ effectively binary. **Which μ the panel draws is
-  a design decision, not a detail.**
-
-**The cross-entropy falling over steps**, clickable to scrub, as widget 21 has.
+`status: "draft"` exempts it from fingerprint states, and that is the point:
+**a baseline recorded before the design is agreed is thrown away**, and the
+determinism runs are the slowest thing in the loop. Build → show → iterate →
+baseline. `bootstrap` was baselined three times over for getting that order
+backwards.
 
 ### One correction to this file
 

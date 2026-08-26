@@ -1,8 +1,14 @@
 /* ============================================================================
-   UMAP, at the scale a widget uses. NOT DEPLOYED — this is the planning
-   prototype for widget 22, kept because every number in docs/catalogue.md
-   § NEXT · UMAP came out of it, and because it is what that widget's
-   compute() should be.
+   UMAP, at the scale a widget uses. THIS IS WHAT `main.js` RUNS, and it is a
+   separate module for one reason: `_lab/umap-verify.mjs` imports it in node and
+   checks it against `umap-learn`, so WHAT IS VERIFIED IS WHAT SHIPS.
+
+   Widget 21 has the algorithm twice — once in `_lab/tsne-engine.js`, which the
+   verification checks, and once in `widgets/t-sne/main.js`, which students run.
+   Nothing keeps those two in step. `widgets/balancing-data/model.js` is the
+   pattern that does, and HANDOVER calls it the interesting one; this follows it.
+
+   Every number in docs/catalogue.md § NEXT · UMAP came out of this file.
 
    WHY THIS EXISTS RATHER THAN A REPLAY TABLE. The catalogue's standing
    question was whether UMAP has to precompute; the old reconnaissance called a
@@ -46,10 +52,9 @@
        C   = -SUM [ mu*log(w) + (1-mu)*log(1-w) ],  w = 1/(1 + a*s^b), s = d^2
        dC/ds = (b/s) * (mu - w)
 
-   umap-checks.mjs runs the verifications; umap-measure.mjs runs the
-   measurements the catalogue quotes; umap-verify.mjs compares this against
-   umap-learn 0.5.12 through umap-ref.json. All three are node scripts, not
-   pages.
+   `_lab/umap-measure.mjs` runs the measurements the catalogue quotes and
+   `_lab/umap-verify.mjs` compares this against umap-learn 0.5.12 through
+   `umap-ref.json`. Both are node scripts, not pages.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -222,9 +227,45 @@ export function crossEntropy(mu, Y, a, b) {
  * KL for the same problem met twice before.
  *
  * `clip` is the library's own +-4 on the per-point step.
+ *
+ * THE START IS A SPREAD, uniform on [-2, 2], and it decides two things a
+ * near-coincident start gets wrong. `umap-learn`'s `init="random"` is uniform on
+ * [-10, 10]; this is the same idea at this engine's own scale, and the reason it
+ * is not the same NUMBER is measured below.
+ *
+ * A near-coincident start (normal, sigma 1e-2 — what Rtsne does, and what this
+ * file did first) puts every pair at d ~ 0, where the (1-mu)log(1-w) term
+ * diverges. The cross-entropy then opens at 7103 against a final 188, so a chart
+ * of it spends 97 per cent of its height on the first frame and squashes the
+ * whole descent into a hairline. Five seeds, n = 48:
+ *
+ *   start           start r   max r   final r   fills frame   CE[0]/end   rises
+ *   normal x 1e-2       0.0     6.7       6.7          100%          38      10
+ *   uniform +-1         1.3     6.9       6.9          100%         4.3       0
+ *   uniform +-2 (this)  2.6     6.7       6.7           99%         2.9       0
+ *   uniform +-4         5.3     7.0       7.0          100%         2.7       0
+ *   uniform +-10        13.2   13.2       6.5           49%         3.4       0
+ *
+ * "Fills frame" is final radius over the largest radius anywhere in the run, and
+ * it matters because the 2-D panel is scaled to the whole trajectory so the frame
+ * cannot move under the reader (principle 2.5). **At the library's literal +-10
+ * the finished picture uses under half the panel**, because that constant is
+ * sized for umap-learn's own output — which spans 26 to 42 on this stage against
+ * this engine's 13. Copying the number rather than the ratio would spend half the
+ * figure on white space.
+ *
+ * Among the starts that do fill it, +-2 gives the smallest opening blob, so the
+ * arrangement visibly flies apart and settles — real motion the method performs,
+ * which is widget 20's test rather than widget 19's. +-4 is the closest match to
+ * the library's start RELATIVE to output scale if that is ever wanted back.
+ *
+ * `every` samples the trajectory: the widget animates 50 steps of 10 iterations
+ * rather than 500 of one, because at one iteration the arrangement is worse than
+ * useless (silhouette -0.119, measured). Frames and curve are both sampled at
+ * the same points, so a scrub of the chart and the picture cannot disagree.
  */
 export function umap(X, {
-  nNeighbors = 15, minDist = 0.1, spread = 1, iters = 500,
+  nNeighbors = 15, minDist = 0.1, spread = 1, iters = 500, every = 1,
   eta = 0.1, clip = 4, seed = 1, mu: given = null, ab = null,
 } = {}) {
   const n = X.length;
@@ -234,7 +275,7 @@ export function umap(X, {
   const { a, b } = ab || findAbParams(spread, minDist);
 
   const rng = makeRng(seed);
-  const Y = Array.from({ length: n }, () => [rng.normal(0, 1e-2), rng.normal(0, 1e-2)]);
+  const Y = Array.from({ length: n }, () => [rng.uniform(-2, 2), rng.uniform(-2, 2)]);
   const frames = [Y.map((p) => p.slice())];
   const curve = [crossEntropy(mu, Y, a, b)];
 
@@ -255,8 +296,10 @@ export function umap(X, {
       Y[i][0] -= step * Math.min(clip, Math.max(-clip, gx[i]));
       Y[i][1] -= step * Math.min(clip, Math.max(-clip, gy[i]));
     }
-    frames.push(Y.map((p) => p.slice()));
-    curve.push(crossEntropy(mu, Y, a, b));
+    if ((it + 1) % every === 0) {
+      frames.push(Y.map((p) => p.slice()));
+      curve.push(crossEntropy(mu, Y, a, b));
+    }
   }
   return { Y, frames, curve, a, b, k, mu, rho: set.rho, sigma: set.sigma };
 }

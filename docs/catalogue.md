@@ -5523,7 +5523,7 @@ start above all), so a claim about *what the lesson's own code does* should say
 
 ---
 
-## NEXT · UMAP — widget 22, PLANNED AND MEASURED, not yet built
+## Widget 22 · `umap` — DRAFT BUILT, planned and measured first
 
 **The planning session ran on 2026-08-26 and it settled all three questions.**
 Everything below that carries a number was measured — in this repo in node
@@ -5536,6 +5536,97 @@ to the digit.
 what the widget's `compute()` should be. `umap-verify.mjs` checks it against
 the library through `umap-ref.json`; `umap-measure.mjs` produces the numbers
 quoted here.
+
+### THE DRAFT IS BUILT — 2026-08-26, and what building it found
+
+`widgets/umap/main.js` plus **`widgets/umap/model.js`**, and the second one is
+the point: the solver is a separate module so `_lab/umap-verify.mjs` imports it
+in node and checks THE SHIPPING CODE against `umap-learn`. Widget 21 has its
+algorithm twice — `_lab/tsne-engine.js` is what the verification checks and
+`widgets/t-sne/main.js` is what students run, with nothing keeping them in step.
+`widgets/balancing-data/model.js` is the pattern that avoids that, and this
+follows it.
+
+`status: "draft"` in both the manifest and `main.js`, so it lands on `/lab/` and
+is exempt from fingerprint states until the design settles — **baseline last**,
+and `bootstrap` was baselined three times over for forgetting that.
+
+**The staging is Kenneth's workflow — set up, inspect, then run** — expressed as
+cell 41's own two numbered steps:
+
+| gate | what appears |
+|---|---|
+| *(shut)* | one large panel: the cloud on its globe, draggable, `labels` off |
+| **Join the neighbours** | halos and weighted edges, in place, same panel |
+| **Flatten it** | the full 2×2 — both spaces, both cross-entropy panels |
+
+**BOTH GATES ARE `display: true`**, which widget 19's trap forces: `GATE_PARAM`
+is the FIRST gate in the spec and only that one, so a second data gate opens
+without animating.
+
+**AND CORE ONLY HIDES THE DRIVE ROW FOR THE FIRST GATE**, which left Settle and
+Play live and useless while `graph` was open and `flatten` was shut — the
+`maximum-likelihood` shape core's own comment warns about. `anim.inert` is the
+answer core points to, set in **both** `init` and `rebuild` because `flatten` is
+a display parameter and opening it never re-runs `init`.
+
+#### THE SENTENCE FIRES IN THE BUILT WIDGET, read off its own readout
+
+Seed 1, four groups of twelve, at the settled end (`?…&step=50`):
+
+| `packing` | Neighbours kept | How tight it looks |
+|---|---|---|
+| 0 | 81% | 0.108 |
+| 0.1 | 83% | 0.110 |
+| 0.5 | 86% | 0.153 |
+| 0.95 | **83%** | **0.205** |
+
+| `neighbours` | Neighbours kept | How tight it looks |
+|---|---|---|
+| 2 | **41%** | 1.239 |
+| 5 | 68% | 0.592 |
+| 15 | **83%** | 0.110 |
+| 40 | 83% | 0.135 |
+
+**Five points of retention against forty-two.** The two tiles sit side by side
+and say it without a caption, which is what they are for.
+
+#### TWO DEFECTS THE BUILD FOUND, and only one is this widget's
+
+1. **EVERY SAMPLE HAS A LINK AT μ = 1 AND ITS IDEAL DISTANCE IS ZERO.** A
+   sample's nearest neighbour sits at `d ≤ ρ`, on the kernel's flat top, and the
+   fuzzy union keeps it at 1 — so `d*(1) = 0` for any `a` and `b`, and it is the
+   one link `packing` cannot move. Drawn as the strongest of the kernel panel's
+   three curves it rose monotonically from the origin and read as the headline,
+   saying the opposite of the panel's point; the weakest curve had its minimum
+   off the right of the frame, and the caption printed `μ 1.00, 0.30, 0.00`.
+   **The window is now the range whose minimum FITS** — `d*(μ) ≤ 4` bounds μ
+   below, `μ < 1` above — and each minimum carries its own μ on the dot rather
+   than the three being listed in a caption that did not fit. *A screenshot
+   caught this and no assertion would have.*
+
+2. **A PUBLISHED `step` SURVIVES A DATA CHANGE IN THE URL BUT NOT IN THE FIGURE,
+   AND WIDGET 21 DOES IT TOO.** Core's `seededOnce` deliberately forces
+   `fromScratch` after the first render — non-negotiable 4, exploring must be
+   spoiler-free — so a data change resets the animation to empty. But the
+   parameter is left in the address bar. Measured on **t-SNE**: `?step=40` first
+   render reads KL 0.157, then moving `perplexity` reads KL 1.727 while the URL
+   says `?perplexity=8&step=40`. A link shared from that state shows the
+   recipient a settled figure the sharer was not looking at. **Inherited, not
+   introduced, and the fix is core's** — which owes a full fingerprint run, so it
+   is recorded rather than taken here.
+
+#### Checked, and what is still owed
+
+A `fillText` sweep over 16 URLs at the parameter extremes — every combination of
+2/4 groups, 3/12 samples, `neighbours` 2 and 40, `packing` 0 and 0.95, three
+positions in the run, both label settings, and the camera at both stops —
+collected **65 distinct strings and not one `NaN`, `Infinity`, `undefined` or
+`null`**. `npm run check` passes at 22 widgets.
+
+**Still owed, and all of it needs eyes rather than a hash:** Kenneth has not seen
+it; it has not been judged projected; and the fingerprint states cannot be
+recorded until the design stops moving.
 
 ### It is its own widget, and the notebook already says so
 

@@ -8,7 +8,7 @@
    Run: node widgets/_lab/umap-measure.mjs
    ========================================================================= */
 
-import { umap, fuzzySet, findAbParams } from "./umap-engine.js";
+import { umap, fuzzySet, findAbParams } from "../umap/model.js";
 import { makeRng } from "../core/rng.js";
 
 /* --- the stage, and the metrics ---------------------------------------------
