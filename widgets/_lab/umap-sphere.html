@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; in the ball, or on the sphere</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .bar output { font-variant-numeric: tabular-nums; color: var(--ink-1); min-width: 3ch; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  canvas { display: block; max-width: 100%; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin-top: var(--sp-2); width: 100%; }
+  th, td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-3); font-weight: 500; }
+  td b { color: var(--ink-1); }
+  .win { color: var(--c-empirical); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+<h1>In the ball, or on the sphere</h1>
+
+<p class="note">
+  Kenneth asked whether the 3-D distances are Euclidean. They are, exactly &mdash;
+  but he asked it as <b>&ldquo;drawing the links in 3D manifold space&rdquo;</b>,
+  and widget 22&rsquo;s samples are <b>not on a manifold</b>. Its
+  <code>stage()</code> puts the four cluster CENTRES on a sphere of radius 2 and
+  then scatters samples around them in all three dimensions, so the cloud fills
+  the ball: radius from the origin runs 1.14 to 3.33, and only 9 of 48 samples
+  land within 0.1 of radius 2. The wireframe globe therefore draws a surface the
+  data is not on.
+</p>
+
+<p class="note">
+  <b>This page is the alternative, live.</b> Stage B puts every sample exactly on
+  the sphere, as a cap around each cluster direction &mdash; a real 2-manifold
+  embedded in three dimensions, which is what cell 46 assumes and what
+  &ldquo;flattening a globe onto a map&rdquo; describes. Stage C spreads one
+  continuous band right around it, so there are no clusters to lean on and the
+  curvature is all there is. Everything is computed by
+  <code>widgets/umap/model.js</code>, the module the widget itself runs.
+</p>
+
+<p class="note">
+  <b>The question the numbers answer.</b> On a curved surface the honest
+  neighbourhood is the GEODESIC one &mdash; along the surface &mdash; and UMAP
+  only ever sees Euclidean chords through the interior. Cell 46&rsquo;s claim is
+  that the per-point <code>&rho;</code> and <code>&sigma;</code> rescaling
+  recovers the geodesic structure anyway. <b>The right-hand columns test exactly
+  that</b>: neighbours kept against geodesic truth, for the layout and for the
+  chord distances it was given.
+</p>
+
+<div class="cell">
+  <div class="bar">
+    <label>n_neighbors <input id="k" type="range" min="2" max="40" value="15"><output id="kOut">15</output></label>
+    <label>min_dist <input id="md" type="range" min="0" max="95" step="5" value="10"><output id="mdOut">0.10</output></label>
+    <label>seed <input id="seed" type="range" min="1" max="12" value="1"><output id="seedOut">1</output></label>
+    <label>turn <input id="turn" type="range" min="-180" max="180" step="3" value="34"><output id="turnOut">34</output></label>
+    <label>cap width <input id="cap" type="range" min="10" max="70" step="5" value="25"><output id="capOut">25&deg;</output></label>
+    <label><input id="labels" type="checkbox" checked> colour by group</label>
+  </div>
+</div>
+
+<div id="stages"></div>
+
+<h2>What to decide</h2>
+<p class="note">
+  <b>Does the sphere teach something the ball does not?</b> Look for the gap
+  between the two right-hand columns. If UMAP on chord distances recovers the
+  geodesic neighbourhoods, the manifold assumption is doing real work and the
+  globe is honest. If the chords already agree with the geodesics, the sphere is
+  decoration with extra steps &mdash; and dropping the globe is the cheaper fix.
+  <b>Widen the caps</b> to make the curvature matter.
+</p>
+
+<script type="module">
+import { fuzzySet, findAbParams, umap, pcaPlane } from "../umap/model.js";
+import { makeRng } from "../core/rng.js";
+
+const R = 2, JITTER = 0.12;
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+const unit = (a) => { const m = norm(a) || 1; return a.map((v) => v / m); };
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const CLUSTER = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d"];
+
+const TETRA = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((c) => unit(c).map((v) => v * R));
+
+function camera(turnDeg, tiltDeg) {
+  const az = (turnDeg * Math.PI) / 180, el = (tiltDeg * Math.PI) / 180;
+  const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  return { ex: [-sa, ca, 0], ey: [-ca * se, -sa * se, ce] };
+}
+
+/* --- the three stages ------------------------------------------------------ */
+
+/** A: what widget 22 ships. Centres on the sphere, samples scattered in the ball. */
+function stageBall(seed, per, sigma = 0.62) {
+  const rng = makeRng(seed), X = [], y = [];
+  const centres = TETRA.map((p) => unit(p.map((v) => v + rng.normal(0, JITTER * R))).map((v) => v * R));
+  for (let g = 0; g < 4; g += 1)
+    for (let i = 0; i < per; i += 1) { X.push(centres[g].map((v) => v + rng.normal(0, sigma))); y.push(g); }
+  return { X, y, onSphere: false };
+}
+
+/** B: every sample ON the sphere, as a cap around each cluster direction. */
+function stageCap(seed, per, capDeg) {
+  const rng = makeRng(seed), X = [], y = [];
+  const centres = TETRA.map((p) => unit(p.map((v) => v + rng.normal(0, JITTER * R))));
+  for (let g = 0; g < 4; g += 1) {
+    const c = centres[g];
+    /* an orthonormal frame in the tangent plane at c */
+    const t = Math.abs(c[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const u = unit([c[1] * t[2] - c[2] * t[1], c[2] * t[0] - c[0] * t[2], c[0] * t[1] - c[1] * t[0]]);
+    const v = [c[1] * u[2] - c[2] * u[1], c[2] * u[0] - c[0] * u[2], c[0] * u[1] - c[1] * u[0]];
+    for (let i = 0; i < per; i += 1) {
+      /* a Gaussian angle from the centre, and a uniform bearing — so the cap is
+         a cluster ON the surface rather than a patch of the tangent plane */
+      const ang = Math.abs(rng.normal(0, (capDeg * Math.PI) / 180 / 2));
+      const phi = rng.uniform(0, 2 * Math.PI);
+      const dir = unit([
+        u[0] * Math.cos(phi) + v[0] * Math.sin(phi),
+        u[1] * Math.cos(phi) + v[1] * Math.sin(phi),
+        u[2] * Math.cos(phi) + v[2] * Math.sin(phi),
+      ]);
+      X.push([0, 1, 2].map((k) => (c[k] * Math.cos(ang) + dir[k] * Math.sin(ang)) * R));
+      y.push(g);
+    }
+  }
+  return { X, y, onSphere: true };
+}
+
+/** D: a Swiss roll — the manifold where a geodesic REALLY differs from a chord,
+    because the surface folds back on itself. Two points a millimetre apart
+    across the gap are a whole turn apart along the sheet. Nothing on a sphere
+    can do this: chord = 2R sin(theta/2) is strictly increasing in the
+    great-circle angle, so on a sphere the k nearest by chord are ALWAYS the k
+    nearest by geodesic, for every k. */
+function stageRoll(seed, per) {
+  const rng = makeRng(seed), X = [], y = [];
+  const n = per * 4;
+  /* WOUND TIGHT ENOUGH TO BITE, and the tightness was measured rather than
+     picked. What decides it is the gap between turns against the spacing between
+     points along the sheet: at 0.55 the gap is 3.46 against a spacing of 1.66
+     and 90% of chord neighbours are the right ones, so nothing happens. At 0.12
+     the gap is 0.75 against 1.29 and agreement falls to 48% — half of every
+     point's nearest neighbours in 3-D sit on a DIFFERENT TURN of the sheet. */
+  const COEF = 0.12, TURNS = 2.6;
+  const t0 = 1.4 * Math.PI, t1 = t0 + TURNS * 2 * Math.PI;
+  for (let i = 0; i < n; i += 1) {
+    const t = t0 + (t1 - t0) * (i / n);                  /* along the roll */
+    const h = rng.uniform(-1, 1) * 1.6;                  /* across it */
+    const j = rng.normal(0, 0.04);
+    X.push([COEF * t * Math.cos(t) + j, h, COEF * t * Math.sin(t) + j]);
+    y.push(Math.floor((i / n) * 4));
+    /* the arc length along the spiral, which is the honest distance */
+    X[X.length - 1].arc = COEF * 0.5 * (t * Math.sqrt(1 + t * t) + Math.log(t + Math.sqrt(1 + t * t)));
+    X[X.length - 1].h = h;
+  }
+  return { X, y, onSphere: false, roll: true };
+}
+
+/** C: one continuous band right around the sphere. No clusters at all. */
+function stageBand(seed, per) {
+  const rng = makeRng(seed), X = [], y = [];
+  const n = per * 4;
+  for (let i = 0; i < n; i += 1) {
+    const t = (i / n) * 2 * Math.PI;
+    const lat = 0.55 * Math.sin(2 * t) + rng.normal(0, 0.06);
+    const lon = t + rng.normal(0, 0.05);
+    X.push([R * Math.cos(lat) * Math.cos(lon), R * Math.cos(lat) * Math.sin(lon), R * Math.sin(lat)]);
+    y.push(Math.floor((i / n) * 4));
+  }
+  return { X, y, onSphere: true };
+}
+
+/* --- metrics --------------------------------------------------------------- */
+const chord = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/** great-circle distance on the sphere of radius R, through each point's direction */
+const geo = (a, b) => R * Math.acos(Math.max(-1, Math.min(1, dot(unit(a), unit(b)))));
+const d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+function nearest(items, k, metric) {
+  return items.map((p, i) => items.map((q, j) => [metric(p, q), j]).filter(([, j]) => j !== i)
+    .sort((a, b) => a[0] - b[0]).slice(0, k).map(([, j]) => j));
+}
+function agree(A, B, k) {
+  const sa = A.map((r) => new Set(r));
+  return B.reduce((s, r, i) => s + r.filter((j) => sa[i].has(j)).length / k, 0) / B.length;
+}
+
+/* --- one stage, rendered --------------------------------------------------- */
+const SIZE = 300, K = 5;
+const host = document.getElementById("stages");
+
+const STAGES = [
+  { key: "ball", title: "A &middot; in the ball &mdash; what widget 22 ships",
+    note: "Cluster centres on the sphere, samples scattered around them in all three dimensions. The globe is a reference, not a surface the data is on." },
+  { key: "cap", title: "B &middot; on the sphere &mdash; clusters as caps",
+    note: "Every sample at exactly radius 2, as a cap around each cluster direction. A real 2-manifold in 3-D, which is what cell 46 assumes." },
+  { key: "band", title: "C &middot; on the sphere &mdash; one band, no clusters",
+    note: "A continuous band wrapping the sphere. Nothing to lean on but the curvature, so this is where a manifold method has to earn it." },
+  { key: "roll", title: "D &middot; a Swiss roll &mdash; where a geodesic really differs",
+    note: "The surface folds back on itself, so two points close in 3-D can be a whole turn apart along the sheet. A SPHERE CAN NEVER DO THIS: chord = 2R sin(&theta;/2) is strictly increasing in the great-circle angle, so on a sphere the k nearest by chord are always the k nearest by geodesic, for every k. That is why B and C read 100% and this one does not." },
+];
+
+const cells = STAGES.map((st) => {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.innerHTML = `<h3>${st.title}</h3><p>${st.note}</p>`;
+  const row = document.createElement("div");
+  row.className = "row";
+  const c3 = document.createElement("canvas"), c2 = document.createElement("canvas");
+  row.append(c3, c2);
+  d.appendChild(row);
+  const t = document.createElement("div");
+  d.appendChild(t);
+  host.appendChild(d);
+  return { ...st, c3, c2, table: t };
+});
+
+function drawSpace(cv, X, y, mu, told, turn, onSphere) {
+  const dpr = devicePixelRatio || 1;
+  cv.width = SIZE * dpr; cv.height = SIZE * dpr;
+  cv.style.width = `${SIZE}px`; cv.style.height = `${SIZE}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  const { ex, ey } = camera(turn, 21);
+  const eye = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];
+  let span = 0; for (const p of X) span = Math.max(span, norm(p));
+  const S = (SIZE / 2 - 18) / (span * 1.05);
+  const P = (p) => [SIZE / 2 + dot(p, ex) * S, SIZE / 2 - dot(p, ey) * S];
+
+  /* the globe */
+  ctx.save();
+  ctx.strokeStyle = css("--grid");
+  ctx.lineWidth = 1;
+  for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) for (const front of [false, true]) {
+    ctx.globalAlpha = front ? 0.9 : 0.32;
+    ctx.beginPath();
+    let drawing = false;
+    for (let q = 0; q <= 96; q += 1) {
+      const th = (q / 96) * Math.PI * 2, p = [0, 0, 0];
+      p[a] = R * Math.cos(th); p[b] = R * Math.sin(th);
+      if ((dot(p, eye) >= 0) !== front) { drawing = false; continue; }
+      const [px, py] = P(p);
+      if (drawing) ctx.lineTo(px, py); else { ctx.moveTo(px, py); drawing = true; }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  /* edges, mapping C */
+  ctx.save();
+  ctx.strokeStyle = css("--ink-2");
+  ctx.lineCap = "round";
+  for (let i = 0; i < X.length; i += 1) for (let j = i + 1; j < X.length; j += 1) {
+    const w = mu[i][j];
+    if (w <= 1e-9) continue;
+    const a = 0.9 * w ** 1.5;
+    if (a < 0.004) continue;
+    ctx.globalAlpha = a; ctx.lineWidth = 0.4 + 1.8 * w;
+    const p = P(X[i]), q = P(X[j]);
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+  }
+  ctx.restore();
+
+  const order = X.map((p, i) => [dot(p, eye), i]).sort((a, b) => a[0] - b[0]);
+  for (const [depth, i] of order) {
+    const [px, py] = P(X[i]);
+    ctx.globalAlpha = 0.55 + 0.45 * Math.max(0, Math.min(1, (depth / span + 1) / 2));
+    ctx.beginPath(); ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+    ctx.fillStyle = told ? css(CLUSTER[y[i] % 4]) : css("--c-unknown");
+    ctx.fill();
+    ctx.lineWidth = 1.3; ctx.strokeStyle = css("--surface-1"); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = css("--ink-3");
+  ctx.font = `${css("--fs-xs")} ${css("--font")}`;
+  ctx.fillText(onSphere ? "every sample on the sphere" : "samples fill the ball", 6, SIZE - 6);
+}
+
+function drawLayout(cv, Y, y, mu, told) {
+  const dpr = devicePixelRatio || 1;
+  cv.width = SIZE * dpr; cv.height = SIZE * dpr;
+  cv.style.width = `${SIZE}px`; cv.style.height = `${SIZE}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (const p of Y) for (let d = 0; d < 2; d += 1) { lo[d] = Math.min(lo[d], p[d]); hi[d] = Math.max(hi[d], p[d]); }
+  const pad = 20, span = Math.max(hi[0] - lo[0], hi[1] - lo[1]) || 1;
+  const P = (p) => [pad + ((p[0] - lo[0]) / span) * (SIZE - 2 * pad),
+    SIZE - pad - ((p[1] - lo[1]) / span) * (SIZE - 2 * pad)];
+  ctx.save();
+  ctx.strokeStyle = css("--ink-2"); ctx.lineCap = "round";
+  for (let i = 0; i < Y.length; i += 1) for (let j = i + 1; j < Y.length; j += 1) {
+    const w = mu[i][j];
+    if (w <= 1e-9) continue;
+    const a = 0.9 * w ** 1.5;
+    if (a < 0.004) continue;
+    ctx.globalAlpha = a; ctx.lineWidth = 0.4 + 1.8 * w;
+    const p = P(Y[i]), q = P(Y[j]);
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+  }
+  ctx.restore();
+  for (let i = 0; i < Y.length; i += 1) {
+    const [px, py] = P(Y[i]);
+    ctx.beginPath(); ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+    ctx.fillStyle = told ? css(CLUSTER[y[i] % 4]) : css("--c-unknown");
+    ctx.fill();
+    ctx.lineWidth = 1.3; ctx.strokeStyle = css("--surface-1"); ctx.stroke();
+  }
+  ctx.fillStyle = css("--ink-3");
+  ctx.font = `${css("--fs-xs")} ${css("--font")}`;
+  ctx.fillText("the UMAP layout", 6, SIZE - 6);
+}
+
+function run() {
+  const k = +document.getElementById("k").value;
+  const md = +document.getElementById("md").value / 100;
+  const seed = +document.getElementById("seed").value;
+  const turn = +document.getElementById("turn").value;
+  const cap = +document.getElementById("cap").value;
+  const told = document.getElementById("labels").checked;
+  document.getElementById("kOut").textContent = k;
+  document.getElementById("mdOut").textContent = md.toFixed(2);
+  document.getElementById("seedOut").textContent = seed;
+  document.getElementById("turnOut").textContent = turn;
+  document.getElementById("capOut").innerHTML = `${cap}&deg;`;
+
+  for (const c of cells) {
+    const { X, y, onSphere, roll } = c.key === "ball" ? stageBall(seed, 12)
+      : c.key === "cap" ? stageCap(seed, 12, cap)
+      : c.key === "band" ? stageBand(seed, 12) : stageRoll(seed, 12);
+    const n = X.length;
+    const kk = Math.max(2, Math.min(k, n - 1));
+    const { mu } = fuzzySet(X, kk);
+    const { a, b } = findAbParams(1, md);
+    const { Y: Y0 } = pcaPlane(X);
+    const { frames } = umap(X, { nNeighbors: kk, iters: 300, every: 10, eta: 0.1, seed, mu, ab: { a, b }, init: Y0 });
+    const Y = frames[frames.length - 1];
+
+    drawSpace(c.c3, X, y, mu, told, turn, onSphere);
+    drawLayout(c.c2, Y, y, mu, told);
+
+    /* the two ground truths, and what survives into the layout */
+    /* on the roll the honest distance is along the sheet: arc length plus the
+       displacement across it, which is the surface's own flat metric */
+    const trueMetric = roll ? (a2, b2) => Math.hypot(a2.arc - b2.arc, a2.h - b2.h) : geo;
+    const nChord = nearest(X, K, chord);
+    const nGeo = nearest(X, K, trueMetric);
+    const nLay = nearest(Y, K, d2);
+    let worst = 1, mean = 0, np = 0;
+    for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) {
+      const g = trueMetric(X[i], X[j]);
+      if (g < 1e-9) continue;
+      const r = chord(X[i], X[j]) / g;
+      worst = Math.min(worst, r); mean += r; np += 1;
+    }
+    mean /= np;
+    /* STAGE A HAS NO SURFACE, so it has no geodesic either. Projecting its
+       samples onto the sphere to compute one produces numbers — the mean ratio
+       even comes out above 1, which is impossible on an actual sphere — and
+       every one of them is an artefact of the projection. They are struck out
+       rather than printed, because a number in a table is read as a finding. */
+    const surface = onSphere || roll;
+    const na = "—";
+    const rows = surface ? [
+      ["shortest chord / true-distance ratio", worst.toFixed(3), worst < 0.9 ? "curvature bites" : "near-flat"],
+      ["mean chord / true-distance ratio", mean.toFixed(3), ""],
+      ["neighbourhoods that AGREE (chord vs true)", (agree(nChord, nGeo, K) * 100).toFixed(0) + "%", ""],
+      ["layout keeps the CHORD neighbourhoods", (agree(nChord, nLay, K) * 100).toFixed(0) + "%", ""],
+      ["layout keeps the TRUE neighbourhoods", (agree(nGeo, nLay, K) * 100).toFixed(0) + "%",
+        agree(nGeo, nLay, K) < agree(nChord, nLay, K) - 0.1 ? "the manifold is NOT recovered" : ""],
+    ] : [
+      ["shortest chord / true-distance ratio", na, "no surface — the samples fill the ball"],
+      ["mean chord / true-distance ratio", na, ""],
+      ["neighbourhoods that AGREE (chord vs true)", na, ""],
+      ["layout keeps the CHORD neighbourhoods", (agree(nChord, nLay, K) * 100).toFixed(0) + "%", ""],
+      ["layout keeps the TRUE neighbourhoods", na, "there is no geodesic to keep"],
+    ];
+    c.table.innerHTML = `<table><thead><tr><th>${K}-NN, n = ${n}</th><th>value</th><th></th></tr></thead><tbody>`
+      + rows.map(([a2, b2, c2]) => `<tr><td>${a2}</td><td><b>${b2}</b></td><td>${c2}</td></tr>`).join("")
+      + "</tbody></table>";
+  }
+}
+
+for (const id of ["k", "md", "seed", "turn", "cap", "labels"])
+  document.getElementById(id).addEventListener("input", run);
+run();
+</script>
+</main>
+</body>
+</html>

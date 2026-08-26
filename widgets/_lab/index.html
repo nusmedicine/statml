@@ -28,6 +28,10 @@
     underscore-prefixed directories.
   </p>
   <ul>
+    <li><a class="card" href="./umap-sphere.html">
+      <b>Widget 22 &middot; in the ball, or on the sphere</b>
+      <span>OPEN &mdash; the widget draws a wireframe globe, but its samples fill the BALL: only 9 of 48 land within 0.1 of radius 2. Four stages live, all computed by the shipping <code>umap/model.js</code>: what ships, clusters as caps ON the sphere, one band around it, and a tightly wound Swiss roll. The numbers settle whether a manifold stage would teach anything.</span>
+    </a></li>
     <li><a class="card" href="./umap-edges.html">
       <b>Widget 22 &middot; drawing 385 edges without a hairball</b>
       <span>SETTLED &mdash; C, opacity AND width carrying &mu;. Kenneth&rsquo;s diagram draws the graph of neighbourhood probabilities on the points, and he chose all edges with opacity proportional to &mu; over drawing one sample&rsquo;s. Four mappings at real panel size on the widget&rsquo;s own stage: linear, &mu;&sup2;, opacity-and-width, and each sample&rsquo;s three strongest. Every &mu; computed live by <code>umap-engine.js</code>. Move n_neighbors to 40 for the worst case and to 3 for the lesson&rsquo;s own.</span>

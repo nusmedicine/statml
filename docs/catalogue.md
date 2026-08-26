@@ -5692,10 +5692,49 @@ the same problem, though it never claims a manifold. Two ways out and it is a
 teaching call:
 
 - **drop the globe**, and stop implying a surface the samples are not on
-- **put the samples ON the sphere**, which makes the manifold real, makes cell
-  41's globe-onto-a-map analogy literal, and gives the widget a genuine
-  curved-surface case — at the cost of changing the stage that widgets 19 to 22
-  share, and every number measured on it
+- **put the samples ON the sphere**, which makes the manifold real and cell 41's
+  globe-onto-a-map analogy literal
+
+**CORRECTION: THE FOUR WIDGETS DO NOT SHARE A STAGE, and an earlier note here
+saying so was wrong.** Each `stage()` is a private copy in its own `main.js`,
+and the constants already differ: `pca` uses SIGMA 0.42 and has no R or JITTER,
+`mds` uses SIGMA 0.22, and only `t-sne` and `umap` match at 0.62. **No widget
+imports or quotes another's numbers.** So changing widget 22's stage changes
+nothing in 19, 20 or 21 — they keep their own code and their own fingerprint
+baselines. The only thing lost is that 21 and 22 would stop generating the same
+cloud from the same seed, and nothing in the repo compares them numerically.
+
+#### AND THE SPHERE WOULD TEACH NOTHING EXTRA — measured, then proved
+
+`_lab/umap-sphere.html` runs four stages live through the shipping `model.js`:
+what ships, clusters as caps ON the sphere, one band around it, and a tightly
+wound Swiss roll. 5-NN, n = 48, seed 1:
+
+| stage | chord vs true neighbourhoods agree | layout keeps CHORD | layout keeps TRUE |
+|---|---|---|---|
+| A · in the ball (ships) | — *no surface* | 84% | — |
+| B · caps on the sphere | **100%** | 89% | 89% |
+| C · band on the sphere | **100%** | 95% | 95% |
+| D · Swiss roll | **49%** | 69% | **40%** |
+
+**B and C read 100% and that is not a coincidence, it is a theorem.** On a
+sphere the chord is `2R·sin(θ/2)` in the great-circle angle θ, which is strictly
+increasing over the whole range — so the k nearest by chord are ALWAYS the k
+nearest by geodesic, for every k. **A sphere cannot separate the two metrics.**
+Putting the samples on it would make the globe honest and the analogy literal,
+and would add no geodesic lesson whatever.
+
+**The Swiss roll is the manifold that can, and UMAP FAILS IT at this size.** Wound
+so the gap between turns (0.75) is below the spacing between points along the
+sheet (1.29), only 49% of chord neighbours are the right ones — and the layout
+keeps 69% of the CHORD neighbourhoods it was handed while keeping only **40%** of
+the true ones. It faithfully preserves the wrong graph. That is a legitimate
+failing case, but it is a different widget: no clusters, and it contradicts the
+"UMAP preserves manifold structure" story rather than showing it.
+
+**So the sphere buys the metaphor and nothing else, and the roll buys a lesson
+this widget is not telling.** *Kenneth's call; the recommendation is to drop the
+globe unless he wants the metaphor, in which case B costs nothing.*
 
 #### THE COPY IS CONVENTIONAL, after a pass on Kenneth's instruction
 
