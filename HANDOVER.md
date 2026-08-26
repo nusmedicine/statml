@@ -252,11 +252,29 @@ after and one axis cannot hold both. The recommendation is to chart the plain KL
 and mark the release, on the grounds that the wobble *is* the mechanism. Ask
 before building it.
 
-**ONE DEBT BEFORE IT SHIPS: a reference table against `Rtsne` or `sklearn`.**
-Python is not installed on this machine, so the prototype's checks are all
-internal — they catch implementation bugs, not a wrong reading of the algorithm.
-`_lab/svm-sklearn-ref.json` and `_lab/tree-forest-reference.json` are what this
-looks like when it is done, and neither can be regenerated here.
+**THE REFERENCE DEBT IS PAID.** Python was installed on 2026-08-26 and the
+engine now agrees with **scikit-learn 1.9.0**: P to **1.6e-10–5.6e-9**, KL to
+**2–4e-9**, and the gradient at **cosine 1.000000000000, scale 1.0000×** —
+identical, not merely parallel. `_lab/tsne-sklearn-ref.py` regenerates the
+table; `node widgets/_lab/tsne-verify.mjs` checks against it. The residual was
+shown to be **sklearn's own bisection truncation, not ours**, by sweeping our
+tolerance: agreement is best at sklearn's 1e-5 and *worsens* past it.
+
+**pip cannot reach the network on this machine** — `python.exe` gets
+`WinError 10013` on every socket while PowerShell reaches PyPI fine. The way in
+is to fetch wheels with `Invoke-WebRequest` and `pip install --no-index
+--find-links`. `scikit-learn` 1.9 also needs `narwhals`, which is easy to miss.
+
+**`Rtsne` is still unchecked and R is not installed.** PHM5003 runs `Rtsne`, not
+sklearn, and their defaults differ — so any on-screen claim about *what the
+lesson's code does* needs that check first.
+
+**KENNETH'S DIAGRAM ARRIVED AND IT OVERRIDES ONE INHERITED RULE.** It is a 2×2
+already — the two spaces on top with an arrow between them, the two probability
+curves underneath — so there is no separate neighbourhood panel, and **the cloud
+sits BESIDE the arrangement rather than diagonal from it**, which is precisely
+what widget 20's round three forbade. That conflict is his call. Full reading,
+plus two flaws found in the notebook's own three figures, in the catalogue.
 
 ---
 

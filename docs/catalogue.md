@@ -5252,10 +5252,121 @@ both `height` and `draw`.
 | PHM5003 | `05 / 04 — Dimensionality Reduction`, **cells 39–45**, heading `## 4` | `Rtsne` — `perplexity` and nothing else, set to `min(2, ncol/3)` on 8 samples. **On this disk.** Links distill.pub's *How to Use t-SNE Effectively* |
 | PHM5005 | `03-5 - ML - Unsupervised Learning`, cells 31–40 | `sklearn.manifold.TSNE` — `perplexity` 5–50, `learning_rate`, `max_iter`, `random_state`. **Not on this disk** |
 
+**BOTH HOSTS ARE CONFIRMED BY KENNETH** (2026-08-26: *"t-sne is also taught in
+PHM5005 03-5"*). So this is the **second widget with a host in each course**,
+after widget 20 — and it hits the same limitation: the manifest records one
+`course` and nothing reads that field. prd §7 carries the note; it does not need
+a second one.
+
 **The two libraries do not agree on defaults** — the start, the learning rate,
 and `max_iter` versus `n_iter` — so a widget claiming "this is what the library
-does" has to say *which*. PHM5003's is the one that can be read today, and
-`Rtsne` is the simpler and the stricter of the two.
+does" has to say *which*. `Rtsne` is the simpler and the stricter of the two,
+and it is what PHM5003 runs; `sklearn`'s side is now verified directly (above),
+`Rtsne`'s is not, because R is not installed here.
+
+**A practical note on the two, since a lesson can be read either way.** `Rtsne`
+exposes `perplexity` and little else in the notebook's usage, and refuses to run
+at `3 × perplexity ≥ n − 1`. `sklearn` exposes `learning_rate` and `max_iter`
+too, and does not refuse — it warns. **The widget should follow `Rtsne` and
+refuse**, because a control that silently produces nonsense past a threshold is
+the failure this project exists to avoid, and because a reader who meets the
+limit learns why `min(2, ncol/3)` is in cell 42.
+
+### THE LAYOUT IS KENNETH'S DIAGRAM, and it overrides one inherited rule
+
+**He supplied it on 2026-08-26, and widget 19's history says to treat it as
+binding** — *"go with A, it matches my diagrams"*, and then, when a later shape
+drifted, *"what the heck are you doing? this is not what we did in the mockup."*
+
+His diagram is already a 2×2, and it is not the one proposed above:
+
+```
+    3D space  ——red arrow——>  2D space (TSNE1 / TSNE2)
+    the same three coloured points in both, each wearing concentric
+    halos: TIGHT in 3-D, WIDE AND OVERLAPPING in 2-D
+
+    Probability distribution   ——>   Probability distribution
+    (Gaussian)                       (Student's t)
+    probability against distance     the same, with the Gaussian
+                                     under it as a dashed line
+```
+
+So the quadrants are **the two spaces on top, the two distributions
+underneath** — which means:
+
+- **there is no separate "one point's neighbourhood" panel.** The halo IS the
+  neighbourhood, it is drawn on every point rather than one, and it lives in
+  the space panels. `perplexity` sets the 3-D halo, and that is the mechanism.
+- **THE CLOUD SITS BESIDE THE ARRANGEMENT, NOT DIAGONAL FROM IT.** Widget 20's
+  round three forbade exactly this: a cloud sharing an edge with a 2-D result
+  invites reading the second as a projection of the first. Kenneth's diagram
+  puts them side by side with an arrow between them, and the arrow is doing the
+  work the diagonal was doing. **This is a real conflict between an agreed rule
+  and an agreed diagram, and it is his call, not one to settle quietly.**
+- the bottom row is the pair of curves, and **drawing them on ONE axis fixes a
+  flaw in the notebook's own figures** — see below.
+
+### The notebook's three figures, and one of them will confuse a reader
+
+Cell 40 embeds `tsne-high.png`, `tsne-low.png` and `tsne-kl.png`. Extracted and
+read this session:
+
+| figure | what it draws | note |
+|---|---|---|
+| `tsne-high.png` | a Gaussian pdf, peak **0.4** | fine |
+| `tsne-low.png` | `1/(1+x²)`, peak **1.0**, 0.1 at x = ±3 | exactly t-SNE's kernel, but **unnormalised**, so it is drawn on a different y-scale from the Gaussian |
+| `tsne-kl.png` | `r·ln r` against `r = p/q`, with a red line labelled *"Ideal Ratio (p/q = 1)"* | **the marked ideal is not the curve's minimum** |
+
+**Two things a careful student will trip on, and the widget can fix both.**
+
+1. **The two distribution figures are on different y-scales** (0.4 against 1.0),
+   so the t-distribution reads as *taller as well as heavier-tailed*. Only the
+   tail is the point. Kenneth's own composite already fixes this by overlaying
+   them — one axis, the Gaussian dashed underneath — which is what the widget
+   should draw.
+2. **`tsne-kl.png` marks `p/q = 1` as ideal, but the plotted curve bottoms out
+   at `p/q = 1/e ≈ 0.37` with value `−1/e ≈ −0.37`.** The curve is right and
+   the label is right; what is missing is that a *single term* of the KL sum is
+   not what gets minimised. `Σ p log(p/q) ≥ 0` with equality only at `p = q`
+   (Gibbs), and the constraint `Σp = Σq = 1` is what stops the individual terms
+   diving to −1/e. As drawn, the figure invites "why aim at 1 when 0.37 is
+   lower?" and has no answer on the page.
+
+   **This is an opportunity rather than a complaint**: a widget that shows the
+   real KL falling over real steps, on real data, needs no ratio plot — and it
+   is a better answer to the same question. *Flagging it for Kenneth; the
+   notebook is his and this may well be deliberate simplification.*
+
+**It also settles the open chart question by other means.** The diagram commits
+to showing KL, so the widget has a KL panel; and since that panel plots KL
+against steps rather than against `p/q`, the recommendation above stands — one
+quantity, the plain `P`, the whole run, with the exaggeration release marked.
+
+### THE REFERENCE CHECK IS DONE, and the engine agrees with scikit-learn
+
+**Python was installed on 2026-08-26 at Kenneth's go-ahead, so the debt this
+section used to record is paid.** `tsne-sklearn-ref.py` writes
+`tsne-sklearn-ref.json` and `tsne-verify.mjs` compares the JS engine against it.
+All comparisons pass against **scikit-learn 1.9.0 / numpy 2.5.2**.
+
+| what | result |
+|---|---|
+| **P**, the high-dimensional affinities | worst `|P_js − P_sk|` between **1.6e-10 and 5.6e-9** across five cases; both sum to 1.000000000 |
+| **KL** at an embedding both are handed | agrees to **2–4e-9** |
+| **the gradient** at that embedding | **cosine 1.000000000000, scale 1.0000×** — not merely parallel, identical |
+| **the embedding** | compared on 3-NN retention and group separation, not coordinates. Our five seeds land inside sklearn's five on every case |
+
+**The residual is sklearn's, not ours, and that was measured rather than
+assumed.** Sweeping our bisection tolerance against sklearn's fixed P: 1e-3 gives
+3.8e-5, 1e-4 gives 2.1e-6, **1e-5 gives 5.6e-9 — and 1e-6 and tighter give
+2.0e-7 and stop improving.** Agreement is best exactly at sklearn's own
+tolerance and then *worsens* as we converge past it, which is the signature of
+the library's truncation rather than a difference in algorithm.
+
+**One finding strengthens the seed lesson.** sklearn's spread across five seeds
+is *wider* than ours at perplexity 2 — silhouette **−0.240 to 0.415** against our
+0.015 to 0.325, final KL up to 3.649 against our 1.697. The instability the
+widget is built to show is, if anything, understated by our engine.
 
 ### The prototype, and what it proves
 
@@ -5266,14 +5377,15 @@ momentum 0.5 → 0.8 at step 250, early exaggeration ×12 released at 250,
 per-coordinate gains with `min_gain` 0.01. **It is the widget's `compute()`
 already**, and it is what every number in this section came out of.
 
-**What it does NOT prove is agreement with `sklearn` or `Rtsne` on the same
-input.** Python is not installed on this machine — that is what
-`_lab/svm-sklearn-ref.json` and `_lab/tree-forest-reference.json` were for on
-the previous machine, and neither can be regenerated here. The internal checks
-above (gradient against numerical, perplexity against its target, KL falling)
-catch implementation bugs; they cannot catch a wrong reading of the algorithm.
-**A reference table against one of the two libraries is owed before this ships**,
-and it is the same debt the SVM and tree widgets both paid.
+**Agreement with `sklearn` is now proven too** — see *THE REFERENCE CHECK IS
+DONE* above. The internal checks catch implementation bugs; the reference check
+catches a wrong reading of the algorithm, and both are green.
+
+**`Rtsne` is still unchecked**, and it is the library PHM5003 actually runs. R
+is not installed here. The gap is narrow — sklearn's `method="exact"` and
+`Rtsne` at `theta=0` are the same algorithm — but their defaults differ (the
+start above all), so a claim about *what the lesson's own code does* should say
+`Rtsne` and be checked against it, not inferred from sklearn.
 
 ---
 
