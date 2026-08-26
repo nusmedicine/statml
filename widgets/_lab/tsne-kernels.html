@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab &middot; the two kernels, and whether they can show the KL</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); font-weight: 600; }
+  .cell { background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: var(--sp-3); margin-bottom: var(--sp-4); }
+  .cell h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .cell > p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; }
+  .cell > p b { color: var(--ink-1); font-weight: 600; }
+  .cell > p.bad b { color: var(--c-extreme); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 4px 12px; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--border);
+    border-radius: var(--radius); }
+  .bar button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .measure { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+  .measure b { color: var(--ink-1); font-weight: 600; }
+  canvas { display: block; max-width: 100%; cursor: pointer; }
+  .verdict { border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); align-items: start; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="lab">
+<h1>The two kernels &mdash; four ways, and which of them can show the KL</h1>
+
+<p class="note">
+  Kenneth asked two things: <b>can the Gaussian and the t be shown overlapping for
+  a sample you click</b>, and <b>does that help visualise the KL divergence</b>.
+  Four variants below, on the widget&rsquo;s own stage &mdash; 48 samples, four
+  groups, perplexity 5. <b>Click any sample in the cloud at the top</b> and every
+  panel follows it.
+</p>
+
+<p class="note">
+  <b>The research, briefly.</b> The two-curves-overlaid idiom is not from the
+  t-SNE paper &mdash; van der Maaten &amp; Hinton&rsquo;s Figure 1 is a
+  <i>gradient heatmap</i>, high-dimensional distance against low-dimensional
+  distance, coloured by the force between a pair. That is variant D. The curve
+  overlay is the teaching idiom, and it is what PHM5003 cell 40 uses, drawn as
+  two separate figures on two different y-scales.
+</p>
+
+<div class="cell">
+  <h3>The stage &mdash; click a sample</h3>
+  <p>The same generated cloud the widget uses. Left, the samples in three genes;
+    right, the t-SNE arrangement after the full 1000 steps. The ringed sample is
+    the one every panel below is about.</p>
+  <div class="bar">
+    <label>perplexity
+      <input id="perp" type="range" min="2" max="15" value="5" step="1">
+      <b id="perpv">5</b></label>
+    <label>steps
+      <input id="step" type="range" min="0" max="40" value="40" step="1">
+      <b id="stepv">1000</b></label>
+  </div>
+  <canvas id="stage" width="1120" height="330"></canvas>
+  <div class="measure" id="stagem"></div>
+</div>
+
+<h2>A &middot; the two curves on one axis, with this sample&rsquo;s real neighbours on them</h2>
+<div class="cell">
+  <h3>Kenneth&rsquo;s ask, drawn literally</h3>
+  <p>The Gaussian is this sample&rsquo;s own &sigma; &mdash; the one perplexity
+    chose for it &mdash; over real 3-D distance. The t is over real distance in the
+    picture. <b>Every other sample is a tick on each curve</b>, at its actual
+    distance, so you can see which ones the kernel counts as neighbours.</p>
+  <p class="bad">The honesty cost, and it is why this needs your eye: the two
+    x-axes are <b>not the same quantity</b>. One is a distance in gene space, the
+    other a distance in a picture whose scale is arbitrary. To put them on one
+    axis the picture is <b>rescaled so its median pair distance matches the
+    data&rsquo;s</b>. That changes no ranking and no conclusion, but the t curve
+    you see is drawn at a scale the algorithm never used.</p>
+  <canvas id="vA" width="1120" height="290"></canvas>
+  <div class="measure" id="mA"></div>
+</div>
+
+<h2>B &middot; the same two curves, each in units of its own width</h2>
+<div class="cell">
+  <h3>No rescaling, and the axes are honest &mdash; but they mean different things</h3>
+  <p>Each curve is drawn against <b>distance measured in units of that
+    kernel&rsquo;s own width</b>: the Gaussian in units of &sigma;<sub>i</sub>,
+    the t in its own units, where the kernel&rsquo;s width is fixed at 1. That is
+    the natural dimensionless variable for each, so nothing is invented &mdash;
+    and the tail difference is the only thing left to see.</p>
+  <p>The ticks are the same samples as in A. Watch where they pile up: in the
+    data they sit far out in the Gaussian&rsquo;s dead zone, and in the picture
+    they sit where the t still has probability to give. <b>That gap is the
+    crowding problem</b>, which is the whole reason for the heavy tail.</p>
+  <canvas id="vB" width="1120" height="290"></canvas>
+  <div class="measure" id="mB"></div>
+</div>
+
+<h2>C &middot; the bars, with the KL&rsquo;s own terms under them</h2>
+<div class="cell">
+  <h3>What the widget has now, plus the thing that actually is the KL</h3>
+  <p>Top: the two distributions, as the widget draws them. <b>Bottom: the signed
+    per-neighbour term</b>, p&middot;log(p/q) &mdash; and the KL is exactly the sum
+    of those, no proxy. Above the line costs; below the line is a credit.</p>
+  <p class="bad">The trap this exists to avoid: <b>shading the gap between the
+    outline and the bar would be wrong</b>. The gap is |p&minus;q|, but the terms
+    are signed and log-weighted, so a pair the picture over-weights points
+    <i>downwards</i>. Shading would show a cost where the truth is a credit.</p>
+  <canvas id="vC" width="1120" height="330"></canvas>
+  <div class="measure" id="mC"></div>
+</div>
+
+<h2>D &middot; the paper&rsquo;s own figure &mdash; the force between a pair</h2>
+<div class="cell">
+  <h3>van der Maaten &amp; Hinton, Figure 1</h3>
+  <p>Distance in the data across, distance in the picture up, and the colour is
+    the <b>gradient</b> &mdash; which way and how hard t-SNE pulls that pair.
+    Blue pulls together, red pushes apart. It answers a question the curves
+    cannot: not &ldquo;what is the similarity&rdquo; but <b>&ldquo;what will the
+    method DO about it&rdquo;</b>. The ringed sample&rsquo;s pairs are plotted on
+    it as dots, so you can see where this sample&rsquo;s own forces sit.</p>
+  <canvas id="vD" width="1120" height="330"></canvas>
+  <div class="measure" id="mD"></div>
+</div>
+
+<h2>Where this leaves it</h2>
+<div class="cell verdict">
+  <p><b>Does the kernel diagram help visualise the KL? No &mdash; and A and B
+    both show why.</b> The kernel turns a distance into a similarity; the KL
+    compares two <i>distributions</i>, which is what you get after normalising.
+    The curves are one step upstream, and no amount of overlaying reaches the
+    divergence.</p>
+  <p><b>What the curves DO explain is the one thing the bars cannot:</b> why
+    q keeps probability out in the tail, and therefore why pulling a true
+    neighbour apart is expensive while drawing a stranger close is free.
+    Measured on this stage: pairs the picture under-weights carry <b>137%</b> of
+    the KL, pairs it over-weights carry <b>&minus;37%</b>, and the worst 2% of
+    pairs carry <b>77%</b> of the total.</p>
+  <p><b>So they are complementary, not alternatives.</b> B is the honest version
+    of the overlay and it is small enough to be an inset rather than a quadrant.
+    C is the one that shows the KL. D is the paper&rsquo;s own and answers a
+    different question again.</p>
+</div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { tsne, sqDists, condP, joint } from "./tsne-engine.js";
+
+/* the widget's own stage, verbatim in shape */
+const R = 2, SIGMA = 0.62, JITTER = 0.12;
+const gauss = (rng) => Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
+const spread4 = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => v.map((x) => (x / Math.sqrt(3)) * R));
+function stage(seed) {
+  const rng = makeRng(seed), pts = [], gs = [];
+  const centres = spread4.map((p) => {
+    const v = p.map((x) => x + gauss(rng) * JITTER * R);
+    const m = Math.hypot(...v) || 1;
+    return v.map((x) => (x / m) * R);
+  });
+  for (let g = 0; g < 4; g += 1) for (let i = 0; i < 12; i += 1) {
+    pts.push(centres[g].map((x) => x + gauss(rng) * SIGMA)); gs.push(g);
+  }
+  return { pts, gs };
+}
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+const FONT = T("--font") || "system-ui";
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const d3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+const d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+
+const { pts, gs } = stage(1);
+const N = pts.length;
+let picked = 34, perp = 5, stepK = 40, run = null;
+
+function recompute() {
+  run = tsne(pts, { perplexity: perp, iters: 1000, seed: 1 });
+  /* The engine returns `betas`, not sigmas — beta is 1/(2σ²), which is the form
+     the bisection actually solves in. The widget converts on the way out; here
+     it has to be done by hand, and assuming the widget's field name is what
+     broke this page on its first load. */
+  const c = condP(sqDists(pts), perp);
+  run.P0 = joint(c.P);
+  run.sig = Array.from(c.betas, (b) => Math.sqrt(1 / (2 * b)));
+}
+recompute();
+
+const txt = (ctx, s, x, y, col, size, align = "left", base = "middle") => {
+  ctx.save(); ctx.fillStyle = col; ctx.font = `${size} ${FONT}`;
+  ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y); ctx.restore();
+};
+const frame = (ctx, a) => {
+  ctx.save(); ctx.strokeStyle = T("--grid"); ctx.lineWidth = 1;
+  for (let g = 1; g < 4; g += 1) {
+    const gy = Math.round(a.y + (a.h * g) / 4) + 0.5;
+    ctx.beginPath(); ctx.moveTo(a.x, gy); ctx.lineTo(a.x + a.w, gy); ctx.stroke();
+  }
+  ctx.strokeStyle = T("--axis");
+  ctx.beginPath(); ctx.moveTo(a.x + 0.5, a.y); ctx.lineTo(a.x + 0.5, a.y + a.h + 0.5);
+  ctx.lineTo(a.x + a.w, a.y + a.h + 0.5); ctx.stroke(); ctx.restore();
+};
+const clusterCol = (g) => T(`--c-cluster-${"abcdef"[g % 6]}`);
+
+/* --- the stage ----------------------------------------------------------- */
+const stageC = document.getElementById("stage");
+let stageHits = [];
+function drawStage() {
+  const ctx = stageC.getContext("2d");
+  const W = stageC.width, H = stageC.height;
+  ctx.clearRect(0, 0, W, H);
+  const Y = run.path[stepK * 25];
+  stageHits = [];
+
+  /* left: the cloud, fixed camera */
+  const az = 0.6, el = 0.37;
+  const ex = [-Math.sin(az), Math.cos(az), 0];
+  const ey = [-Math.cos(az) * Math.sin(el), -Math.sin(az) * Math.sin(el), Math.cos(el)];
+  const eye = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];
+  let s3 = 0; for (const p of pts) s3 = Math.max(s3, Math.hypot(...p));
+  const cx1 = 260, cy1 = H / 2, S1 = 120 / s3;
+  txt(ctx, "the samples, in three genes — click one", 40, 22, T("--ink-2"), T("--fs-sm"));
+  const ord = pts.map((p, i) => [dot3(p, eye), i]).sort((a, b) => a[0] - b[0]);
+  for (const [, i] of ord) {
+    const x = cx1 + dot3(pts[i], ex) * S1, y = cy1 - dot3(pts[i], ey) * S1;
+    stageHits.push({ i, x, y });
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, i === picked ? 5.5 : 4, 0, 7);
+    ctx.fillStyle = clusterCol(gs[i]); ctx.fill();
+    ctx.lineWidth = 1.4; ctx.strokeStyle = T("--surface-1"); ctx.stroke(); ctx.restore();
+    if (i === picked) {
+      ctx.save(); ctx.strokeStyle = T("--c-highlight"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); ctx.restore();
+    }
+  }
+  /* right: the arrangement */
+  let s2 = 0; for (const p of Y) s2 = Math.max(s2, Math.hypot(...p));
+  const cx2 = 820, cy2 = H / 2, S2 = 120 / (s2 || 1);
+  txt(ctx, `the picture, after ${stepK * 25} steps`, 620, 22, T("--ink-2"), T("--fs-sm"));
+  for (let i = 0; i < N; i += 1) {
+    const x = cx2 + Y[i][0] * S2, y = cy2 - Y[i][1] * S2;
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, i === picked ? 5.5 : 4, 0, 7);
+    ctx.fillStyle = clusterCol(gs[i]); ctx.fill();
+    ctx.lineWidth = 1.4; ctx.strokeStyle = T("--surface-1"); ctx.stroke(); ctx.restore();
+    if (i === picked) {
+      ctx.save(); ctx.strokeStyle = T("--c-highlight"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); ctx.restore();
+    }
+  }
+  document.getElementById("stagem").innerHTML =
+    `sample <b>${picked + 1}</b>, group <b>${gs[picked] + 1}</b> &middot; its &sigma; is `
+    + `<b>${run.sig[picked].toFixed(2)}</b>, where a typical pair in the data is `
+    + `<b>${median(allPairs3()).toFixed(2)}</b> apart`;
+}
+function allPairs3() {
+  const a = []; for (let i = 0; i < N; i += 1) for (let j = i + 1; j < N; j += 1) a.push(d3(pts[i], pts[j]));
+  return a;
+}
+stageC.addEventListener("click", (ev) => {
+  const r = stageC.getBoundingClientRect();
+  const x = (ev.clientX - r.left) * (stageC.width / r.width);
+  const y = (ev.clientY - r.top) * (stageC.height / r.height);
+  let best = null, bd = 400;
+  for (const h of stageHits) { const d = (h.x - x) ** 2 + (h.y - y) ** 2; if (d < bd) { bd = d; best = h.i; } }
+  if (best !== null) { picked = best; drawAll(); }
+});
+
+/* --- A: one axis, the picture rescaled to the data's median -------------- */
+function drawA() {
+  const c = document.getElementById("vA"), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+  const a = { x: 70, y: 30, w: c.width - 120, h: c.height - 80 };
+  const Y = run.path[stepK * 25];
+  const dData = [], dPic = [];
+  for (let j = 0; j < N; j += 1) { if (j === picked) continue; dData.push(d3(pts[picked], pts[j])); dPic.push(d2(Y[picked], Y[j])); }
+  /* the rescale, stated on the figure itself */
+  const k = median(allPairs3()) / (median(dPic) || 1);
+  const xmax = Math.max(...dData, ...dPic.map((v) => v * k)) * 1.05;
+  frame(ctx, a);
+  const sx = (v) => a.x + (v / xmax) * a.w, sy = (v) => a.y + a.h - v * a.h;
+  const sig = run.sig[picked];
+  const gcurve = [], tcurve = [];
+  for (let q = 0; q <= 200; q += 1) {
+    const d = (q / 200) * xmax;
+    gcurve.push([d, Math.exp(-(d * d) / (2 * sig * sig))]);
+    tcurve.push([d, 1 / (1 + (d / k) * (d / k))]);
+  }
+  const line = (pt, col, dash) => {
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash);
+    ctx.beginPath(); pt.forEach(([x, y], i) => (i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))));
+    ctx.stroke(); ctx.restore();
+  };
+  line(gcurve, T("--ink-2"), [5, 4]);
+  line(tcurve, T("--c-theory"), null);
+  const rug = (vals, col, y0, h) => {
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    for (const v of vals) { ctx.beginPath(); ctx.moveTo(sx(v), y0); ctx.lineTo(sx(v), y0 + h); ctx.stroke(); }
+    ctx.restore();
+  };
+  rug(dData, T("--ink-2"), a.y + a.h + 3, 8);
+  rug(dPic.map((v) => v * k), T("--c-theory"), a.y + a.h + 13, 8);
+  txt(ctx, "Gaussian, this sample's own σ, over distance in the data", sx(xmax * 0.42), sy(0.9), T("--ink-2"), T("--fs-xs"));
+  txt(ctx, "Student's t, over distance in the picture (rescaled)", sx(xmax * 0.42), sy(0.78), T("--c-theory"), T("--fs-xs"));
+  txt(ctx, "every other sample, in the data", a.x, a.y + a.h + 26, T("--ink-3"), T("--fs-xs"), "left", "top");
+  txt(ctx, "…and in the picture", a.x + 210, a.y + a.h + 26, T("--c-theory"), T("--fs-xs"), "left", "top");
+  txt(ctx, "0", a.x - 5, a.y + a.h, T("--ink-3"), T("--fs-xs"), "right");
+  txt(ctx, "1", a.x - 5, a.y + 1, T("--ink-3"), T("--fs-xs"), "right", "top");
+  txt(ctx, "distance", a.x + a.w, a.y + a.h + 26, T("--ink-3"), T("--fs-xs"), "right", "top");
+  document.getElementById("mA").innerHTML =
+    `the picture was multiplied by <b>${k.toExponential(2)}</b> to put the two medians on top of each other`;
+}
+
+/* --- B: each in units of its own kernel width ---------------------------- */
+function drawB() {
+  const c = document.getElementById("vB"), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+  const a = { x: 70, y: 30, w: c.width - 120, h: c.height - 80 };
+  const Y = run.path[stepK * 25];
+  const sig = run.sig[picked];
+  const uData = [], uPic = [];
+  for (let j = 0; j < N; j += 1) { if (j === picked) continue; uData.push(d3(pts[picked], pts[j]) / sig); uPic.push(d2(Y[picked], Y[j])); }
+  const xmax = 6;
+  frame(ctx, a);
+  const sx = (v) => a.x + (Math.min(v, xmax) / xmax) * a.w, sy = (v) => a.y + a.h - v * a.h;
+  const gc = [], tc = [];
+  for (let q = 0; q <= 200; q += 1) {
+    const u = (q / 200) * xmax;
+    gc.push([u, Math.exp(-(u * u) / 2)]);
+    tc.push([u, 1 / (1 + u * u)]);
+  }
+  const line = (pt, col, dash) => {
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash);
+    ctx.beginPath(); pt.forEach(([x, y], i) => (i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))));
+    ctx.stroke(); ctx.restore();
+  };
+  line(gc, T("--ink-2"), [5, 4]);
+  line(tc, T("--c-theory"), null);
+  const rug = (vals, col, y0, h) => {
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    for (const v of vals) { ctx.beginPath(); ctx.moveTo(sx(v), y0); ctx.lineTo(sx(v), y0 + h); ctx.stroke(); }
+    ctx.restore();
+  };
+  rug(uData, T("--ink-2"), a.y + a.h + 3, 8);
+  rug(uPic, T("--c-theory"), a.y + a.h + 13, 8);
+  const beyond = uData.filter((v) => v > xmax).length;
+  txt(ctx, "Gaussian — in units of this sample's own σ", sx(2.4), sy(0.9), T("--ink-2"), T("--fs-xs"));
+  txt(ctx, "Student's t — in its own units, width fixed at 1", sx(2.4), sy(0.78), T("--c-theory"), T("--fs-xs"));
+  txt(ctx, "0", a.x - 5, a.y + a.h, T("--ink-3"), T("--fs-xs"), "right");
+  txt(ctx, "1", a.x - 5, a.y + 1, T("--ink-3"), T("--fs-xs"), "right", "top");
+  for (const v of [1, 2, 3, 4, 5]) txt(ctx, String(v), sx(v), a.y + a.h + 26, T("--ink-3"), T("--fs-xs"), "center", "top");
+  txt(ctx, "distance, in units of each kernel's own width", a.x + a.w, a.y + a.h + 42, T("--ink-3"), T("--fs-xs"), "right", "top");
+  document.getElementById("mB").innerHTML =
+    `<b>${beyond}</b> of ${N - 1} samples sit beyond ${xmax}σ in the data — past the right edge, where the `
+    + `Gaussian has given up entirely and the t has not`;
+}
+
+/* --- C: the bars plus the signed KL terms -------------------------------- */
+function drawC() {
+  const c = document.getElementById("vC"), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+  const Y = run.path[stepK * 25];
+  const p = [], q = []; let sp = 0, sq = 0;
+  for (let j = 0; j < N; j += 1) {
+    if (j === picked) continue;
+    const w = 1 / (1 + d2(Y[picked], Y[j]) ** 2);
+    p.push(run.P0[picked][j]); q.push(w); sp += run.P0[picked][j]; sq += w;
+  }
+  const ordr = p.map((_, k) => k).sort((x, y) => p[y] - p[x]);
+  const rows = ordr.map((k) => ({ p: p[k] / sp, q: q[k] / sq }));
+  const top = { x: 70, y: 26, w: c.width - 120, h: 150 };
+  const bot = { x: 70, y: 208, w: c.width - 120, h: 86 };
+  frame(ctx, top);
+  const hi = Math.max(...rows.map((r) => Math.max(r.p, r.q)), 1e-9);
+  const bw = top.w / rows.length;
+  rows.forEach((r, k) => {
+    const h = (r.q / hi) * top.h;
+    ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = T("--c-empirical");
+    ctx.fillRect(top.x + k * bw + 0.5, top.y + top.h - h, Math.max(0.8, bw - 1), h); ctx.restore();
+  });
+  ctx.save(); ctx.strokeStyle = T("--ink-2"); ctx.lineWidth = 1.2; ctx.beginPath();
+  rows.forEach((r, k) => {
+    const bx = top.x + k * bw, py = top.y + top.h - (r.p / hi) * top.h;
+    if (k === 0) ctx.moveTo(bx, py); else ctx.lineTo(bx, py);
+    ctx.lineTo(bx + bw, py);
+  });
+  ctx.stroke(); ctx.restore();
+  txt(ctx, "the two distributions", top.x + 4, top.y + 2, T("--ink-2"), T("--fs-xs"), "left", "top");
+
+  /* the terms, signed, on a zero line */
+  const terms = rows.map((r) => (r.p > 0 ? r.p * Math.log(r.p / Math.max(r.q, 1e-12)) : 0));
+  const tot = terms.reduce((s, v) => s + v, 0);
+  const mag = Math.max(...terms.map(Math.abs), 1e-9);
+  const zero = bot.y + bot.h / 2;
+  ctx.save(); ctx.strokeStyle = T("--axis"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(bot.x, zero + 0.5); ctx.lineTo(bot.x + bot.w, zero + 0.5); ctx.stroke(); ctx.restore();
+  terms.forEach((v, k) => {
+    const h = (v / mag) * (bot.h / 2 - 4);
+    ctx.save(); ctx.fillStyle = v >= 0 ? T("--c-extreme") : T("--c-smoothed"); ctx.globalAlpha = 0.9;
+    ctx.fillRect(bot.x + k * bw + 0.5, h >= 0 ? zero - h : zero, Math.max(0.8, bw - 1), Math.abs(h));
+    ctx.restore();
+  });
+  txt(ctx, "p · log(p/q) — above the line costs, below is a credit", bot.x + 4, bot.y - 8, T("--ink-2"), T("--fs-xs"), "left", "top");
+  txt(ctx, "these add up to the KL", bot.x + bot.w, bot.y - 8, T("--ink-3"), T("--fs-xs"), "right", "top");
+  txt(ctx, "nearest", bot.x, bot.y + bot.h + 6, T("--ink-3"), T("--fs-xs"), "left", "top");
+  txt(ctx, "furthest", bot.x + bot.w, bot.y + bot.h + 6, T("--ink-3"), T("--fs-xs"), "right", "top");
+  const pos = terms.filter((v) => v > 0).reduce((s, v) => s + v, 0);
+  const neg = terms.filter((v) => v < 0).reduce((s, v) => s + v, 0);
+  document.getElementById("mC").innerHTML =
+    `this sample's share of the KL is <b>${tot.toFixed(4)}</b> &mdash; `
+    + `<b>+${pos.toFixed(4)}</b> from neighbours the picture pulled apart, `
+    + `<b>${neg.toFixed(4)}</b> credited back by strangers it drew close`;
+}
+
+/* --- D: the paper's gradient heatmap ------------------------------------- */
+function drawD() {
+  const c = document.getElementById("vD"), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+  const a = { x: 70, y: 26, w: c.width - 320, h: c.height - 76 };
+  const NX = 120, NY = 80;
+  const dhMax = 4, dlMax = 4;
+  const img = ctx.createImageData(NX, NY);
+  /* the t-SNE gradient for ONE pair, up to the constants that do not change
+     sign: (p - q) * (1 + dl^2)^-1, with p from a unit Gaussian on the
+     high-dimensional distance and q from the t on the low-dimensional one. */
+  let gmax = 0;
+  const G = [];
+  for (let yy = 0; yy < NY; yy += 1) {
+    G.push([]);
+    for (let xx = 0; xx < NX; xx += 1) {
+      const dh = (xx / (NX - 1)) * dhMax, dl = ((NY - 1 - yy) / (NY - 1)) * dlMax;
+      const pv = Math.exp(-(dh * dh) / 2);
+      const qv = 1 / (1 + dl * dl);
+      const g = (pv - qv) * qv;
+      G[yy].push(g); gmax = Math.max(gmax, Math.abs(g));
+    }
+  }
+  for (let yy = 0; yy < NY; yy += 1) for (let xx = 0; xx < NX; xx += 1) {
+    const t = G[yy][xx] / gmax, i = (yy * NX + xx) * 4;
+    /* blue pulls together, red pushes apart, pale where the force is nil */
+    const v = Math.min(1, Math.abs(t) ** 0.6);
+    img.data[i] = t > 0 ? 60 + 150 * v : 210 - 40 * v;
+    img.data[i + 1] = 200 - 130 * v;
+    img.data[i + 2] = t > 0 ? 230 - 40 * v : 90 + 60 * (1 - v);
+    img.data[i + 3] = 255;
+  }
+  const off = document.createElement("canvas"); off.width = NX; off.height = NY;
+  off.getContext("2d").putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(off, a.x, a.y, a.w, a.h);
+  ctx.save(); ctx.strokeStyle = T("--axis"); ctx.lineWidth = 1; ctx.strokeRect(a.x + 0.5, a.y + 0.5, a.w, a.h); ctx.restore();
+
+  /* this sample's own pairs, on the same axes */
+  const Y = run.path[stepK * 25];
+  const sig = run.sig[picked];
+  let s2 = 0; for (let j = 0; j < N; j += 1) if (j !== picked) s2 = Math.max(s2, d2(Y[picked], Y[j]));
+  for (let j = 0; j < N; j += 1) {
+    if (j === picked) continue;
+    const dh = d3(pts[picked], pts[j]) / sig, dl = (d2(Y[picked], Y[j]) / (s2 || 1)) * dlMax;
+    if (dh > dhMax) continue;
+    const x = a.x + (dh / dhMax) * a.w, y = a.y + a.h - (Math.min(dl, dlMax) / dlMax) * a.h;
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, 3, 0, 7);
+    ctx.fillStyle = T("--ink-1"); ctx.globalAlpha = 0.75; ctx.fill(); ctx.restore();
+  }
+  txt(ctx, "distance in the data (in units of σ) →", a.x, a.y + a.h + 22, T("--ink-3"), T("--fs-xs"), "left", "top");
+  ctx.save(); ctx.translate(a.x - 42, a.y + a.h / 2); ctx.rotate(-Math.PI / 2);
+  txt(ctx, "distance in the picture →", 0, 0, T("--ink-3"), T("--fs-xs"), "center", "middle"); ctx.restore();
+  const kx = a.x + a.w + 40;
+  txt(ctx, "what the method does to a pair", kx, a.y + 4, T("--ink-1"), T("--fs-sm"), "left", "top");
+  txt(ctx, "blue — pull them together", kx, a.y + 30, T("--ink-2"), T("--fs-xs"), "left", "top");
+  txt(ctx, "red — push them apart", kx, a.y + 48, T("--ink-2"), T("--fs-xs"), "left", "top");
+  txt(ctx, "pale — leave them alone", kx, a.y + 66, T("--ink-2"), T("--fs-xs"), "left", "top");
+  txt(ctx, "each dot is one of this", kx, a.y + 96, T("--ink-3"), T("--fs-xs"), "left", "top");
+  txt(ctx, "sample's 47 pairs", kx, a.y + 112, T("--ink-3"), T("--fs-xs"), "left", "top");
+  document.getElementById("mD").innerHTML =
+    `the top-left corner is the expensive one: <b>near in the data, far in the picture</b> — `
+    + `which is the region the KL charges 137% of its total for`;
+}
+
+function drawAll() { drawStage(); drawA(); drawB(); drawC(); drawD(); }
+
+document.getElementById("perp").addEventListener("input", (e) => {
+  perp = +e.target.value; document.getElementById("perpv").textContent = perp;
+  recompute(); drawAll();
+});
+document.getElementById("step").addEventListener("input", (e) => {
+  stepK = +e.target.value; document.getElementById("stepv").textContent = stepK * 25;
+  drawAll();
+});
+drawAll();
+</script>
+</body>
+</html>
