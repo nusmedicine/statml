@@ -8,11 +8,12 @@ widget 20, `mds`, are all drafts — they deploy to their final URLs
 but stay off the gallery and wear the draft bar. Everything is live at
 <https://nusmedicine.github.io/statml/>.
 
-**Widget 20 `mds` is the newest and KENNETH HAS NOT SEEN IT.** It is built
-against the storyboard, every closed-form check in it reproduces, and not one
-review round has happened — which is why it has no fingerprint states. See
-*NEXT* below for the three URLs to open in front of him and the two decisions
-to put to him.
+**Widget 20 `mds` has had ONE round of Kenneth’s feedback, and the result is
+unseen.** He asked for a visible third dimension, a seed that varies the
+samples, and a graph of the stress; all three are in, and the second one changed
+the stage — done literally it would have made four samples fit exactly at the
+default seed. Still no fingerprint states. See *NEXT* below for the four URLs to
+open and the one thing to put to him.
 
 **Widget 19 `pca` has six rounds of Kenneth's own feedback in it.** It began as
 a four-tab widget over PCA, MDS, t-SNE and UMAP; his call on 2026-08-26 was
@@ -146,35 +147,48 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: SHOW WIDGET 20 TO KENNETH, then t-SNE
+## NEXT: WIDGET 20, ROUND TWO — then t-SNE
 
-**`mds` is built and Kenneth has not seen it.** Nothing in it has been through a
-review round, which is the whole reason it has no fingerprint states: a baseline
-recorded before the design is settled is thrown away, and widget 18's moved in
-all twelve of its rounds.
+**One round of Kenneth's feedback is in, and it is unseen.** He asked for three
+things and all three are built; nobody has looked at the result. Still no
+fingerprint states, for the same reason as before: a baseline recorded before
+the design is settled is thrown away.
 
 ```bash
 node scripts/serve.mjs 8010     # then /widget/mds/
 ```
 
-**Three states worth opening in front of him, in this order:**
+**Four states worth opening, in this order:**
 
 | URL | what it shows |
 |---|---|
-| `/widget/mds/` | four samples, three genes, nothing measured — drag it |
-| `/widget/mds/?measured=1&shown=25` | the finished square: 3.27 in every cell, 2.79 four times and 3.94 twice underneath |
-| `/widget/mds/?points=3&measured=1&shown=10` | the same thing fitting exactly, stress 0.000 |
+| `/widget/mds/` | four samples on a drawn sphere — the round-one ask; drag it |
+| `/widget/mds/?measured=1` | the table at full ink, the coordinates gone, the starting layout and its stress |
+| `/widget/mds/?measured=1&shown=19` | the finished fit: stress 1.445, and the curve under it flat |
+| `/widget/mds/?points=3&measured=1&shown=9` | three samples fitting exactly, stress 0.000, the curve on the floor |
 
-**Two things to put to him directly**, because both are one decision away:
+**THE ONE THING TO PUT TO HIM, because it is the one place his ask and the
+widget's argument pulled against each other.** *"Could we have the seed slider
+to vary the samples"* done literally — uniform random samples — **breaks the
+widget**: n random points on a sphere are near-coplanar often enough that four
+of them fit in two dimensions to three decimals at the median seed, and at seed
+1 they fit exactly. The reader would meet "MDS is lossless" as the default view.
 
-1. **At five and six samples the seed changes the ANSWER, not just the
-   orientation** — SMACOF is a local optimiser and these shapes are symmetric
-   enough to have several optima (n = 6: 6.468, 8.483, 12.328, 14.216 over 200
-   starts). It is true, it is what `03-5`'s "the cluster separation is less
-   clear" records, and it is a second lesson on top of the first. **Capping
-   `points` at 4 removes it entirely and costs nothing else.**
-2. **The table cells carry two numbers** — the measured distance over the fitted
-   one. That is the argument, and it is also the densest thing on the figure.
+So the shapes stay and the seed **jitters** them, by 0.12 of the radius, which
+is the largest jitter that still fails at every one of 200 seeds:
+
+| jitter | n = 3 | n = 4, lowest stress of 200 seeds |
+|---|---|---|
+| uniform random | 0.000 always | **0.000** — fits exactly at seed 1 |
+| 0.12R (built) | 0.000 always | **0.385** — never fits |
+| 0.20R | 0.000 always | 0.048 — one seed in 200 slips through |
+| 0.30R | 0.000 always | 0.000 |
+
+**What that cost, and he should know it:** the regular tetrahedron's six equal
+3.27s coming out as four at 2.79 and two at 3.94 is gone as an on-screen fact,
+and so is the local-optimum lesson at five and six samples. Both needed the data
+frozen. If he wants either back, freezing the data is the whole change — it is
+one line, and the superseded sections in the catalogue keep the numbers.
 
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
 UMAP*. Its open question is the one MDS did not have: t-SNE is not thirty lines
@@ -183,17 +197,19 @@ replays a precomputed seeded table.
 
 ---
 
-## Widget 20 · `mds` — BUILT, DRAFT, UNREVIEWED
+## Widget 20 · `mds` — BUILT, DRAFT, ONE ROUND IN
 
-Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*. The short
-version, and the parts that will bite something else:
+Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*, including
+two sections marked SUPERSEDED that keep measurements worth not taking again.
+The short version, and the parts that will bite something else:
 
-**Three panels, one gate, Step and Play.** Where the samples are, the table of
-every pair's distance, and the arrangement built from that table alone. The gate
-plays four beats over 2s and the third of them is the widget: **the gene axes go
-out and the samples hollow to faint rings** while the table stays at full ink.
-The outline stays for the rest of the run, and turning it still moves no digit
-in the table.
+**Three panels and a chart. One gate, then Step and Play.** Where the samples
+are, the table of every pair's distance, the arrangement built from that table
+alone, and under the arrangement the stress falling step by step. The gate plays
+four beats over 2s and the third of them is the widget: **the sphere and the
+gene axes go out and the samples hollow to faint rings** while the table stays
+at full ink. The outline stays for the rest of the run, and turning it still
+moves no digit in the table.
 
 **IT IS NOT A PROJECTION AND MUST NEVER LOOK LIKE ONE.** Widget 19 flattens a
 cloud onto a plane; this one throws the coordinates away and builds an
@@ -202,18 +218,41 @@ is why the 2-D panel has **no axes and no axis labels** — an MDS arrangement i
 fixed only up to a turn and a mirror, so an x and a y would name two quantities
 that do not exist.
 
-**The closed-form checks all reproduce, and they earned their keep on the first
-run.** n = 3 gives stress 0.000 on 200 of 200 starting layouts; n = 4 gives
-1.830, with the six equal 3.27s coming out as four at 2.79 and two at 3.94; the
-mirror splits 22 / 28 over 50 seeds. The analytic optimum for the square,
-s = δ(2 + √2)/4 = 2.7876, confirms the solver rather than the other way round.
+**The sphere is drawn as its three coordinate great circles, back halves at a
+third of the ink.** That hidden-half split is what stops three ellipses reading
+as three flat rings, and it is what makes turning legible. A bounding cube does
+the same job; the sphere won because it is exactly true of this stage — every
+sample is on it — so it describes the data rather than furnishing the panel.
+**If the stage ever stops being a sphere, the globe becomes a lie** and has to
+go with it.
+
+**Depth is drawn twice, and both are needed.** Back-to-front ordering only
+separates samples that happen to overlap; sizing by depth — a fifth larger and
+full ink at the front, a fifth smaller and lighter at the back — is what tells a
+reader whether a dot between two others is in front of them or between them.
+
+### A MULTIPLIER, NOT AN ALPHA SET BEFORE THE CALL
+
+`sampleDot` assigns `globalAlpha` outright in both of its branches, so an alpha
+set by the caller is thrown away and a depth cue built that way silently does
+nothing. It takes a `fade` **multiplier** now. Any helper that sets
+`globalAlpha` rather than multiplying it has this property; check before
+wrapping one in a `save`/`restore` and expecting the alpha to compose.
 
 ### Verify it without a browser — the driver is the fastest thing in the loop
 
 Same two recipes as widget 19, under *Verifying changes* below: the node driver
 (stub the one import, capture the config, pump `advance` with a fixed `dt`) and
-the contract check that lists every capability BY NAME. **82 assertions run in
-under a second, with no server**, and they cover every closed-form answer above.
+the contract check that lists every capability BY NAME. **80 assertions run in
+under a second, with no server.**
+
+**Its anchors changed with the stage, and the new ones are better.** The
+tetrahedron's exact numbers were an assertion about one configuration; what
+replaced them holds at every seed — n = 3 exact at all 60 tested, n = 4 never
+below 0.2, twelve seeds giving twelve different distance tables, and **the
+stress never rising across 100 runs**, which is SMACOF's defining property and
+the one the new chart draws. An assertion that a curve never goes up is worth
+more than an assertion that it ends at 1.830.
 
 **The driver's own first run was wrong, and in an instructive way.** It opened
 the gate by setting the parameter and calling `rebuild`, which leaves the reveal
@@ -229,8 +268,7 @@ one path you mean to test.
 - **A `choice` renders the SELECTED OPTION's `detail` and IGNORES the field's
   own** (`controls.js`, the choice branch). A line written once for the whole
   slider is copy nobody can read, and it looks completely correct in the source.
-  Found by scraping the rail in the browser, not by reading `main.js`. Per
-  option it is the better line anyway.
+  Found by scraping the rail in the browser, not by reading `main.js`.
 - **A square table cell takes its size from the height it does not need.** The
   box is wider than it is tall and the text runs across it; at the 550px canvas
   a square cell put six samples on a **7px font**. Width sets the type size now,
@@ -245,9 +283,10 @@ one path you mean to test.
   `unexpected EOF while looking for matching '`.** A 25KB `cat > file <<'EOF'`
   fails; a six-line one works. It is not a quoting problem and no amount of
   escaping fixes it. **Write files with the `Write` tool and patch them with a
-  short `node -e` script**, which is what every edit in this session ended up
-  doing. The limit is somewhere between 6KB and 18KB and is not worth pinning
-  down — just do not put file contents in a shell command.
+  short `node -e` script.** A second trap sits next to it: **backticks inside a
+  double-quoted `node -e` are command substitution**, so a patch script carrying
+  markdown code spans dies with `pca\: No such file or directory`. Single-quote
+  the script, or put it in a file.
 - **THE STRAY POINTER INPUT IS REAL AND IT MOVED TWO SLIDERS.** Between one
   `javascript_tool` call and the next, `?points=4&seed=1` became
   `?points=5&seed=44` with eleven fit steps run, purely from automation-browser
@@ -261,12 +300,13 @@ one path you mean to test.
 `computer{action:"screenshot"}` fails with *the Browser pane is not displayed,
 so the page is not compositing frames*, and `tabs_select` does not fix it.
 Everything visual here was established the other way: a `fillText` sweep for
-every string and its measured extent, and an `arc`/`strokeRect` sweep for every
-dot and panel box. That gives font sizes, overruns, collisions, whether a dot
-sits inside its panel and how close two dots come — but **it says nothing about
-whether the figure is pleasing**, which is exactly the half screenshots are for.
-Getting the canvas out as a data URL works and costs a round trip per few KB;
-it was not worth it against simply opening the page.
+every string and its measured extent, and an `arc`/`stroke`/`moveTo` sweep for
+every dot, every globe segment and every panel box. That gives font sizes,
+overruns, collisions, dot radii, stroke alphas, and whether anything falls
+outside its panel — but **it says nothing about whether the figure is
+pleasing**, which is exactly the half screenshots are for. Getting the canvas
+out as a data URL works and costs a round trip per few KB; it was not worth it
+against simply opening the page.
 
 ---
 

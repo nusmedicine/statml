@@ -4492,8 +4492,11 @@ browser before this lands.
 
 ## Widget 20 · `mds` — BUILT, DRAFT
 
-**Unreviewed by Kenneth.** Built against the storyboard below, which is kept
-intact underneath so the answers can be checked against what was assumed.
+**ONE ROUND OF REVIEW IN.** Built against the storyboard below, which is kept
+intact underneath so the answers can be checked against what was assumed; then
+Kenneth asked for three things, one of which changed the stage — see *Round one*
+below before reading anything under it, because two later sections it
+supersedes are marked and kept rather than deleted.
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
@@ -4522,7 +4525,77 @@ reads 3.27 six times over the top row of every cell and **2.79 2.79 2.79 2.79
 3.94 3.94** underneath — the square, visible without a sentence saying so.
 Adjacency (2.7) applied per cell instead of per figure.
 
-### The closed-form checks — reproduced exactly, and they are the debug harness
+### Round one of review: three asks, and the second one changed the stage
+
+Kenneth's first look: *"looks nice a few things, 1. can we visualize the
+original points in 3D so show that it's in >2D? 2. could we have the seed slider
+to vary the samples 3. is a graph of the stress possible to show the
+minimization?"* All three are in. The second one is the interesting one, because
+doing it literally would have broken the widget.
+
+**1 · The samples now sit on a drawn sphere, and the dots are sized by depth.**
+The sphere is its three coordinate great circles, with the half of each that
+runs behind drawn at a third of the ink — which is what stops three ellipses
+reading as three flat rings, and what makes the turning legible. A bounding cube
+was the other candidate and does the same job; the sphere wins because it is
+*exactly true of this stage* — every sample is on it — so it describes the data
+rather than furnishing the panel. On top of that a near sample is drawn a fifth
+larger and at full ink and a far one a fifth smaller and lighter: depth sorting
+alone only separates the samples that happen to overlap, and says nothing about
+a dot sitting *between* two others. Both fade out with the axes when the
+coordinates are set aside.
+
+**2 · The seed moves the samples — but FULLY RANDOM SAMPLES BREAK THE WIDGET,
+and that had to be measured before it was believed.** n random points on a
+sphere are near-coplanar often enough that four of them fit in two dimensions to
+three decimals at the median seed:
+
+| samples | n = 3 | n = 4: min / p50 / max final stress over 200 seeds |
+|---|---|---|
+| uniform on the sphere | 0.000 always | **0.000** / 0.037 / 3.553 |
+| spread, jittered by 0.12R | 0.000 always | **0.385** / 1.673 / 4.409 |
+| spread, jittered by 0.20R | 0.000 always | 0.048 / 1.435 / 5.152 |
+| spread, jittered by 0.30R | 0.000 always | 0.000 / 0.891 / 6.761 |
+
+Uniform sampling hands the reader the *opposite* of the lesson — at seed 1 the
+four samples fit exactly. So the shapes stay and the seed **jitters** them, at
+**0.12 of the radius: the largest jitter that still fails at every seed.** Each
+sample is put back on the sphere afterwards, because raw stress is
+scale-dependent and a cloud that grew with the seed would make the number
+incomparable between seeds.
+
+**What this bought, and what it cost.** Bought: the table stops reading as a
+pattern — six cells all saying 3.27 looked like a construction, and now every
+seed gives a different set of measurements — and `seed` means *new data*, which
+is what it means in the other nineteen widgets. Cost: **the regular
+tetrahedron's 3.27 → 2.79 / 3.94 is gone as an on-screen fact**, and so is the
+local-optimum lesson at five and six samples, which needed fixed data to be
+visible as such. What survives is the same contrast with more variety behind it:
+three fits at every seed, four never does, and *how badly* it fails now ranges
+0.4 to 4.4.
+
+**The closed-form checks are gone from the widget but not from the record**, and
+they were what verified the solver in the first place — see the table below,
+which is now history rather than a live assertion. What replaces them in the
+driver are properties that hold at every seed: n = 3 exact at all 60 tested,
+n = 4 never below 0.2, twelve seeds giving twelve different distance tables, and
+**the stress never rising across 100 runs**, which is SMACOF's defining property
+and the one the new chart draws.
+
+**3 · A stress chart under the arrangement**, 40–78px tall depending on the
+canvas. It is drawn only as far as the reader has stepped (2.1) — the whole
+curve up front would hand them the answer before they pressed anything — but the
+FRAME is the finished run's, the y axis fixed at the starting layout's stress and
+the x axis at however many steps there turn out to be (2.5). It sits under the
+arrangement and nowhere else: run full width it would sit under the cloud too
+and claim a relationship it has not got. The head of the curve is
+`--c-highlight`, which is the token for the thing moving right now.
+
+**Where the numbers moved.** Widget height goes 272 → 379 at a 776px canvas and
+203 → 287 at 550. Default seed 1 at four samples: stress 1.445 rather than
+1.830, over 19 steps rather than 25.
+
+### SUPERSEDED BY ROUND ONE · the closed-form checks, which verified the solver
 
 | stage | what must come out | measured |
 |---|---|---|
@@ -4536,12 +4609,14 @@ square of side *s* against a target δ, minimising 4(s − δ)² + 2(s√2 − �
 those, not against a picture** — it is what caught a harness that was pumping
 the reveal instead of the fit and reporting stress 8.58 at n = 4.
 
-### The stage: n samples as far from each other as they can get
+### The stage: n samples as far from each other as they can get, then jittered by the seed
 
 One sentence describes all four counts, and the shapes fall out of it — a
 triangle, a **regular tetrahedron**, a triangular bipyramid, an octahedron, all
-on a sphere of radius 2. R = 2 is what makes the tetrahedron's edge 3.266, which
-is the number every check above is written against.
+on a sphere of radius 2 — and then the seed moves every sample off it by 0.12 of
+the radius and puts it back on the surface (round one). R = 2 is what made the
+unjittered tetrahedron's edge 3.266, which is the number the superseded checks
+below are written against.
 
 **`points` STOPS AT SIX, and both reasons are one reason.** `--c-cluster-a…f` is
 six colours and a sample needs its own identity in three panels at once; and the
@@ -4558,30 +4633,27 @@ Unrotated, the octahedron's six samples sit exactly ON the three gene axes,
 which says a sample is one gene. Nothing about the method changes — every
 distance is identical — which is itself the first thing the widget shows.
 
-### `seed` IS THE OPTIMISER'S START, NOT THE DATA — and at five and six it changes the answer
+### SUPERSEDED BY ROUND ONE · `seed` used to be the optimiser's start only
 
-The data is fixed per count; the seed is where SMACOF is dropped before its
-first step, which is why the control is labelled **Starting layout**. At three
-and four samples every start lands on the same stress and only the mirror moves.
-**At five and six it does not**, and this is measured rather than incidental:
+Kept because the measurement behind it is real and would otherwise be taken
+again. With the data fixed per count, the seed was where SMACOF was dropped
+before its first step, and at five and six samples it changed the ANSWER
+rather than the orientation — SMACOF is a local optimiser and these shapes
+are symmetric enough to have several optima:
 
-| n | optima found over 200 starting layouts |
+| n | optima found over 200 starting layouts, data fixed |
 |---|---|
-| 3 | 0.000 ×200 |
-| 4 | 1.830 ×200 |
-| 5 | **4.100 ×162**, 5.287 ×4, 8.380 ×34 |
-| 6 | **6.468 ×73**, 8.483 ×72, 12.328 ×38, 14.216 ×17 |
+| 3 | 0.000 x200 |
+| 4 | 1.830 x200 |
+| 5 | **4.100 x162**, 5.287 x4, 8.380 x34 |
+| 6 | **6.468 x73**, 8.483 x72, 12.328 x38, 14.216 x17 |
 
-**This is kept, not designed away**, and it is the reason the stress tile reads
-from the moment the gate opens. SMACOF is a local optimiser; sklearn's `n_init=4`
-exists for exactly this, and the four-method reconnaissance already found MDS to
-be the least reproducible of the four on the real data (10-NN agreement 0.35
-across seeds, against PCA's 1.00). A reader who moves the seed at n = 6 and
-watches the stress change is learning the thing `03-5`'s "the cluster separation
-is less clear" is actually recording.
-
-**It is also the first thing to cut if Kenneth wants one lesson per widget.**
-Capping `points` at 4 would remove it entirely and cost nothing else.
+That is a true property of the method — sklearn's `n_init=4` exists for it,
+and the reconnaissance measured MDS as the least reproducible of the four on
+the real data (10-NN agreement 0.35 across seeds against PCA's 1.00). It is
+no longer VISIBLE, because the seed now moves the data too and the two causes
+cannot be told apart from one number. Restoring it means freezing the data
+again, which is the change round one reversed.
 
 ### Decided while building, so they are not re-argued
 
