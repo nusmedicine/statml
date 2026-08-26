@@ -203,6 +203,34 @@ non-metric degeneracy and not the solver — see the widget section below for th
 three things tried. If it should not be reachable, the options are capping
 `groups` at 3 while the rank fit is selected, or a line of copy naming it.
 
+### OPEN: should the 2-D panel label its axes? The lesson does, the widget does not
+
+Kenneth asked what the axes correspond to on the table. **Nothing**, and that is
+why the widget draws neither — an MDS arrangement is fixed only up to a turn and
+a mirror, so turn the picture thirty degrees and every coordinate changes while
+every distance, and therefore the whole table, stays identical. The line where
+the labels would have been says *only the distances mean anything*.
+
+**But `05-04` labels them**, in both plots, `xlab("First Dimension")` and
+`ylab("Second Dimension")` — because ggplot needs axis labels, not because a
+first dimension is a property of the data. So a student who runs the lesson sees
+labelled axes and comes to this widget and sees none.
+
+Three ways out, none of them obviously right:
+
+1. **Leave it.** The widget is about the table, and labelling axes that appear
+   nowhere in the table invites exactly the question Kenneth just asked.
+2. **Label them as the lesson does**, and carry the caveat in the line
+   underneath — matches what students will produce themselves.
+3. **Label them and let the reader break them**: a control that turns the
+   arrangement while the table visibly does not move. That is the strongest
+   version and the most work.
+
+**Worth knowing before choosing 3:** the widget can no longer show that for
+free. Before round one the seed moved only the optimiser, so two seeds gave the
+same arrangement rotated or mirrored — turn it, and nothing in the table
+changed. The seed now moves the samples too, so that demonstration is gone.
+
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
 UMAP*. Its open question is the one MDS did not have: t-SNE is not thirty lines
 and has no closed-form answer, so decide early whether it computes at runtime or
@@ -274,6 +302,23 @@ So the readout names it: under the rank fit the second tile becomes **Ranks
 held**, reading `15/15` at the default and `2/66` at four groups of three. **If
 Kenneth would rather it never appeared**, the options are capping `groups` at 3
 while the rank fit is selected, or a line of copy.
+
+### A NON-METRIC ARRANGEMENT HAS NO SIZE OF ITS OWN, so the widget fixes it
+
+Kenneth: *“in NMDS the clusters are quite close together and not as clear as
+MDS.”* Half of that was the DRAWING. Only the order of the distances is fitted,
+so nothing in the objective pins the size, and the fit drifts smaller because
+the monotone fit pools neighbouring distances and pooling averages. The final
+arrangement as a fraction of its panel, before the fix: **84% metric against 48%
+rank at four groups of three** — two pictures side by side at different scales.
+
+The rank fit now holds the metric fit’s size at every step, which the first frame
+already has, so the switch stays seamless. Scaling changes no distance ORDER, so
+it changes nothing the fit is judged on — separation, stress and all 149
+assertions are unmoved.
+
+**The other half was real**: the four-group degeneracy above. Fixing the scale
+makes it MORE visible, which is the right direction.
 
 ### KRUSKAL STRESS-1 REPLACES RAW STRESS, and every earlier figure changed
 

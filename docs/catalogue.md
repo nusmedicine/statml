@@ -4802,6 +4802,33 @@ three. **A reader is told what happened rather than left to wonder.** If Kenneth
 would rather the widget never showed it, the options are capping `groups` at 3
 while the rank fit is selected, or a line of copy naming it.
 
+### The size of a non-metric arrangement is arbitrary, so it is held fixed
+
+Kenneth, on seeing it: *"in NMDS the clusters are quite close together and not as
+clear as MDS."* **Half of that was the drawing rather than the method.** Only the
+ORDER of the distances is fitted, so nothing in the objective says how big the
+picture should be — and left alone the fit drifts smaller, because the monotone
+fit pools neighbouring distances and pooling averages. The final arrangement as a
+fraction of the panel, before the fix:
+
+| | metric | rank |
+|---|---|---|
+| two or three groups | 84% | 84% |
+| four groups of two | 83% | 66% |
+| four groups of three | 84% | **48%** |
+
+So at four groups the rank result was drawn at half size beside a metric one at
+full size, and the reader was comparing two pictures at different scales. The
+rank fit now holds the metric fit's size at every step — which the first frame
+already has, so the switch stays seamless. **Scaling changes no distance ORDER,
+so it changes nothing the fit is judged on**: separation and stress come out the
+same either way, and the 149 assertions do not move.
+
+**The other half was real** and is the degeneracy recorded above. Fixing the
+scale makes it MORE visible rather than less, which is the right direction: the
+clusters that merged are now drawn merged at full size instead of merged and
+small.
+
 ### Kruskal stress-1 replaces raw stress, throughout
 
 The widget printed RAW stress, which is `sklearn`'s `stress_` and the lesson's
