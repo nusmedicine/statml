@@ -8,14 +8,23 @@ widget 20, `mds`, are all drafts — they deploy to their final URLs
 but stay off the gallery and wear the draft bar. Everything is live at
 <https://nusmedicine.github.io/statml/>.
 
-**Widget 20 `mds` has had TWO rounds of Kenneth’s feedback, and the result is
+**Widget 20 `mds` has had FOUR rounds of Kenneth’s feedback, and the result is
 unseen.** Round one: a visible third dimension, a seed that varies the samples,
-a graph of the stress. Round two: groups, like PCA’s — and the group count turned
-out to reproduce the widget’s own argument, because two centres make a line and
-three make a plane while four make a tetrahedron. Round three: the row of three
-became a 2x2, which gave every panel half the canvas instead of a third and put
-the table’s numbers back at twelve samples. Still no fingerprint states. See
-*NEXT* below for the five URLs to open and the one decision to put to him.
+a graph of the stress. Round two: groups, like PCA’s — and the group count
+turned out to reproduce the widget’s own argument, because two centres make a
+line and three make a plane while four make a tetrahedron. Round three: the row
+of three became a 2x2, which gave every panel half the canvas instead of a third
+and put the table’s numbers back at twelve samples. Round four: **NON-METRIC
+MDS**, in this widget rather than its own, because `05-04` puts classical and
+non-metric under one heading on one distance matrix. Still no fingerprint
+states. See *NEXT* below for the six URLs to open and the two decisions to put
+to him.
+
+**THE STRESS NUMBER CHANGED MEANING IN ROUND FOUR.** It was raw stress —
+`sklearn`’s `stress_` — and it is Kruskal **stress-1** now, because the lesson’s
+non-metric formula is the normalised one and a single chart cannot carry both
+definitions. Any stress figure in this file older than the round-four section is
+a different quantity: four samples ungrouped reads 0.152 rather than 1.445.
 
 **Widget 19 `pca` has six rounds of Kenneth's own feedback in it.** It began as
 a four-tab widget over PCA, MDS, t-SNE and UMAP; his call on 2026-08-26 was
@@ -149,74 +158,59 @@ npm run check                 # before every commit
 
 ---
 
-## NEXT: WIDGET 20, ROUND FOUR — then t-SNE
+## NEXT: WIDGET 20, ROUND FIVE — then t-SNE
 
-**Three rounds of Kenneth's feedback are in and the result is unseen.** Round
+**Four rounds of Kenneth's feedback are in and the result is unseen.** Round
 one: a visible third dimension, a seed that varies the samples, a stress chart.
-Round two: groups, like PCA's. Round three: the row of three became a 2x2. Still
-no fingerprint states — the design has moved in all three rounds.
+Round two: groups, like PCA's. Round three: the row of three became a 2x2.
+Round four: **non-metric MDS**, as a segmented control, with the table switching
+to ranks. Still no fingerprint states — the design has moved in all four rounds.
 
 ```bash
 node scripts/serve.mjs 8010     # then /widget/mds/
 ```
 
-**Five states worth opening, in this order:**
+**Six states worth opening, in this order.** Every stress figure below is
+**Kruskal stress-1**, which replaced raw stress in round four — a number quoted
+anywhere older than that section is a different quantity.
 
 | URL | what it shows |
 |---|---|
 | `/widget/mds/` | two clusters of three on a drawn sphere, nothing measured; drag it |
 | `?measured=1` | the table at full ink, shaded by distance — the block pattern IS the clustering |
-| `?measured=1&shown=28` | the faithful case: stress 0.001, every fitted number equal to its measured one |
-| `?groups=4&samples=3&measured=1&shown=28` | the broken case: stress 20.7, four clusters still distinct, the gaps wrong |
-| `?groups=3&samples=1&measured=1&shown=9` | three samples, no clusters, fitting exactly — stress 0.000 |
+| `?measured=1&shown=99` | the faithful case: stress **0.002**, every fitted number equal to its measured one |
+| `?measured=1&method=rank&shown=99` | the same picture, read as ranks: stress **0.000**, **Ranks held 15/15** |
+| `?groups=4&samples=3&measured=1&shown=99` | the broken case: stress **0.190**, four clusters still distinct, the gaps wrong |
+| `?groups=4&samples=3&measured=1&method=rank&shown=200` | the rank fit DEGENERATING: stress 0.169, **Ranks held 2/66** |
 
-**THE ONE DECISION STILL OPEN: the default FITS.** Two groups of three is
-`03-5`'s own case — normal against tumour — but its stress is 0.001, so a reader
-who never touches `groups` leaves having seen MDS be exact. The default before
-groups existed failed to fit, which is the widget's headline claim.
+**TWO DECISIONS ARE OPEN, and both are teaching calls rather than engineering
+ones, which is why neither has been made here.**
 
-**Round three removed the obstacle to changing it.** Under the row of three,
-four groups of two landed its cell font exactly on the 8px threshold, so that
-default would have dropped its numbers on a narrow window; in the 2x2 it reads
-**11px at 550 and 13px at 770**. So the options are now (a) leave it, since
-`groups` is the second control and its own detail line points at the answer,
-(b) default to four groups of two — four clusters, stress 9.8, numbers
-everywhere, and it costs nothing now, or (c) default to `samples = 1`, the
-ungrouped stage, which shows no clusters at all. **It is a teaching choice about
-which case a reader should meet first, which is why it has not been made here.**
+**1. The default FITS.** Two groups of three is `05-04`'s own shape, but its
+stress is 0.002, so a reader who never touches `groups` leaves having seen MDS
+be exact. The default before groups existed failed to fit, which is the widget's
+headline claim. Round three removed the obstacle to changing it: four groups of
+two now reads 11px at a 550px canvas and 13px at 770, where under the row of
+three it sat exactly on the 8px threshold and would have lost its numbers. So
+(a) leave it, since `groups` is the second control and its own detail line
+points at the answer, (b) default to four groups of two — four clusters, stress
+0.195, numbers everywhere — or (c) default to `samples = 1`, the ungrouped
+stage, which shows no clusters at all.
 
-**AND THE OPEN QUESTION KENNETH RAISED ON SEEING THE 2x2: does NMDS go in this
-widget, or is it its own?** He said *"we'll discuss if it's appropriate to put
-NMDS here or create a separate widget for it"* — so it is a conversation to
-have, not a task to start. What bears on it, so the discussion does not begin
-from nothing:
-
-- **In sklearn it is one flag on the class this widget already implements.**
-  The reconnaissance table in the catalogue records `MDS(metric=…)`: True fits
-  the distances, False fits their RANK ORDER only. That is an argument for a
-  toggle here rather than a twenty-first widget.
-- **But it is a different objective, not a different setting of this one.**
-  Metric MDS matches d to δ; non-metric matches d to a monotone transform of δ
-  fitted at each step, so "the arrangement whose distances come closest" — the
-  widget's one sentence — stops being true, and the second number in every cell
-  stops being comparable to the first. **The table is this widget's whole
-  argument, and NMDS is precisely the case where the table's numbers are not
-  what is being matched.** That is the strongest reason it might want its own
-  widget, and it is also the sharpest thing NMDS has to teach.
-- **CHECK `03-5` CELLS 20-30 FIRST.** Whether the notebook runs `metric=True`
-  or `metric=False` decides which one is the host's actual method, and it was
-  not checkable here — the PHM5005 notebooks are not on this disk (only
-  `../jupyterbook/phm5003` is). One look settles half the question.
-- Whichever way it goes, the shared machinery is already built: SMACOF, the
-  table, the chart and the stage would all carry over, and non-metric SMACOF is
-  metric SMACOF with an isotonic regression on the disparities each step.
+**2. The rank fit degenerates at four groups** and currently ships that way,
+with the **Ranks held** tile reporting it (`2/66`). It is the documented
+non-metric degeneracy and not the solver — see the widget section below for the
+three things tried. If it should not be reachable, the options are capping
+`groups` at 3 while the rank fit is selected, or a line of copy naming it.
 
 **Then t-SNE**, per [docs/catalogue.md](docs/catalogue.md) § *NEXT · t-SNE, then
-UMAP*.
+UMAP*. Its open question is the one MDS did not have: t-SNE is not thirty lines
+and has no closed-form answer, so decide early whether it computes at runtime or
+replays a precomputed seeded table.
 
 ---
 
-## Widget 20 · `mds` — BUILT, DRAFT, THREE ROUNDS IN
+## Widget 20 · `mds` — BUILT, DRAFT, FOUR ROUNDS IN, TWO METHODS
 
 Full record in [docs/catalogue.md](docs/catalogue.md) § *Widget 20*, including
 three sections marked SUPERSEDED that keep measurements worth not taking again.
@@ -233,6 +227,70 @@ at full ink.
 cloud onto a plane; this one throws the coordinates away and builds an
 arrangement from nothing. That is why the 2-D panel has **no axes and no axis
 labels** — an MDS arrangement is fixed only up to a turn and a mirror.
+
+### Round four added NON-METRIC MDS, in this widget rather than its own
+
+`05-04 Dimensionality Reduction` has ONE section — *Multidimensional Scaling:
+Classical and Non-metric* — with the two under it on the same `distMatrix`:
+`cmdscale(dist(t(countData)), k = 2)` then `isoMDS(distMatrix, k = 2)`. One
+topic, one widget. Its data is `airway`, 4 controls and 4 treated, which is why
+**`samples per group` gained a fourth option**.
+
+Kenneth's four calls on the mock-up, all built: a **segmented control**, the
+table showing **ranks**, **no transform panel**, **no squash control** — *"we
+just want to give an intuition of how non-metric is different because it uses
+ranks."*
+
+**THE RANK FIT CONTINUES THE METRIC ONE, and do not change that.** `isoMDS`
+takes its default start from `cmdscale`, so it is what the lesson's own code
+does — and from a random start non-metric SMACOF **collapsed 18 of 40 seeds**
+into degenerate clumps at eight samples. So the rank trajectory IS the metric
+one with more steps on the end, the prefix is bit-identical (asserted), and the
+reader keeps their place when they switch. That is why `method` is
+`display: true` despite changing what `compute` returns, and why `rebuild`
+clamps the step index for the switch back.
+
+**A THRESHOLD NUDGE WAS PROPOSED FOR THE RANK TABLE AND THEN MEASURED AWAY.**
+The worry was that ranks would disagree everywhere. They disagree by GROUP
+count, not sample count — exact-rank agreement over 40 seeds is 87–100% at two
+groups, 44–100% at three, 6–33% at four — which is the widget's own lesson
+arriving per cell. It is content. And a rank is a shorter string than a
+distance, so it fits wherever a distance did.
+
+### THE RANK FIT DEGENERATES AT FOUR GROUPS, and it ships that way on purpose
+
+Non-metric scaling can satisfy an order by clumping: with four tetrahedral
+centres it pulls each cluster toward a point. Over 20 seeds, **spearman 0.785 →
+0.809 while stress-1 goes 0.159 → 0.106** — the number falls because the
+configuration collapsed, not because the order improved. Two and three groups
+are clean at 0/20.
+
+**It is not the solver.** Rescaling the disparities and rescaling the
+configuration give bit-identical results; stopping on stress gain the way
+`isoMDS` does moves it from 14/20 to 12/20 and no further. It is the documented
+non-metric degeneracy.
+
+So the readout names it: under the rank fit the second tile becomes **Ranks
+held**, reading `15/15` at the default and `2/66` at four groups of three. **If
+Kenneth would rather it never appeared**, the options are capping `groups` at 3
+while the rank fit is selected, or a line of copy.
+
+### KRUSKAL STRESS-1 REPLACES RAW STRESS, and every earlier figure changed
+
+The widget printed raw stress — `sklearn`'s `stress_`, the lesson's classical
+formula. The lesson's non-metric formula is normalised and the two are not
+comparable, so one chart carrying both methods forces one definition. **Four
+samples ungrouped now reads 0.152, not 1.445; four groups of three 0.190, not
+20.7.** Anything in this file quoting an old figure is quoting a different
+quantity.
+
+**And stress-1 is not monotone, which raw stress was.** It divides by the size
+of the arrangement, so the first Guttman step out of a random layout can shrink
+it faster than it improves the fit: 8 of 5699 metric steps rise, every one at
+step 1, worst by 0.108. The chart's ceiling is the trajectory's MAXIMUM rather
+than its first value — anchored on `stress[0]` those runs draw their second
+point above the frame. The driver exempts steps 1–2 for the same reason and
+says so.
 
 ### Round three put it in a 2x2, and the quadrants are determined rather than chosen
 

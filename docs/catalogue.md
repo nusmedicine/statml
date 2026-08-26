@@ -4492,7 +4492,7 @@ browser before this lands.
 
 ## Widget 20 · `mds` — BUILT, DRAFT
 
-**THREE ROUNDS OF REVIEW IN.** Built against the storyboard below, which is kept
+**FOUR ROUNDS OF REVIEW IN, and the fourth added a second method.** Built against the storyboard below, which is kept
 intact underneath so the answers can be checked against what was assumed; then
 Kenneth asked for three things, one of which changed the stage — see *Round one*
 below before reading anything under it, because two later sections it
@@ -4500,7 +4500,7 @@ supersedes are marked and kept rather than deleted.
 
 | # | slug | concept | what it answers | misconception | evidence |
 |---|---|---|---|---|---|
-| 20 | `mds` 🟠 | Multidimensional scaling | *What does a method see when it is given no coordinates?* | That a 2-D picture is a **projection** of the data — a flattening, with a direction of view. MDS has no view: it is handed a table of distances and builds an arrangement from nothing, and the arrangement it builds is only as good as the distances it manages to match | **reported** — `03-5`'s own text reads "the cluster separation is less clear" off an MDS plot, which is a statement about the picture rather than about the fit |
+| 20 | `mds` 🟠 | Multidimensional scaling, classical and non-metric | *What does a method see when it is given no coordinates?* | That a 2-D picture is a **projection** of the data — a flattening, with a direction of view. MDS has no view: it is handed a table of distances and builds an arrangement from nothing, and the arrangement it builds is only as good as the distances it manages to match | **reported** — `03-5`'s own text reads "the cluster separation is less clear" off an MDS plot, which is a statement about the picture rather than about the fit |
 
 ### The one sentence, and where it is on screen
 
@@ -4720,6 +4720,103 @@ plot area inset from the cell, four gridlines, an axis, the starting stress
 against 0 on the y and the step count on the x. The reader is being asked to
 read a SHAPE — steep, then flat — and a shape needs something to be read
 against.
+
+### Round four of review: non-metric MDS, in this widget
+
+Kenneth's four calls on the mock-up (`widgets/_lab/mds-nmds.html`): a **segmented
+control**, the table showing **ranks**, **no transform panel**, and **no squash
+control** — *"we just want to give an intuition of how non-metric is different
+because it uses ranks."* All four are in.
+
+**One widget, and `05-04` decided it rather than taste.** The lesson has one
+section — `## 3. Multidimensional Scaling (MDS): Classical and Non-metric` —
+with `### 1) Classical MDS` and `### 2) Non-metric MDS` under it, on the same
+`distMatrix`: `cmdscale(dist(t(countData)), k = 2)` then
+`isoMDS(distMatrix, k = 2)`. Its data is `airway`, 4 controls and 4 treated,
+which is why **`samples per group` gained a fourth option** — without it the
+widget could not reproduce the design it sits beside.
+
+### The rank fit CONTINUES the metric one, and that is load-bearing
+
+`isoMDS` takes its default starting configuration from `cmdscale`, so beginning
+at the classical answer is what the lesson's own code does. It is also the
+difference between working and not: from a random start, non-metric SMACOF
+**collapsed 18 of 40 seeds** into degenerate clumps at eight samples. From the
+metric fit it never did.
+
+So the rank-order trajectory **is the metric one with more steps on the end**,
+and three things fall out of that:
+
+- the reader who has run the metric fit **keeps their place** when they switch,
+  which is what makes a segmented control read as *carry on* rather than *start
+  again*. `rebuild` clamps the step index for the switch back, where the path
+  gets shorter
+- the stress chart is one curve with the switch marked, drawn only once the
+  reader has stepped past it
+- `method` is `display: true` even though it changes what `compute` returns.
+  That is the point rather than a fudge: the prefix is bit-identical, asserted
+
+### The table prints ranks, and they disagree exactly where the fit is bad
+
+Under the rank fit the cell shows the measured rank over the rank the picture
+produced, the caption changes to *Rank of every pair's distance*, and the
+shading runs on rank too — which flattens it, honestly: a distance ramp
+separates *far* from *very far*, and a rank ramp is evenly spaced because the
+method has stopped being able to tell them apart.
+
+**A threshold nudge was proposed for this and then measured away.** The worry
+was that ranks would disagree everywhere and make a good fit look broken. What
+the measurement showed is that agreement tracks the GROUP COUNT, not the sample
+count — the share of pairs holding their exact rank, over 40 seeds:
+
+| | 2 groups | 3 groups | 4 groups |
+|---|---|---|---|
+| exact rank held | 87–100% | 44–100% | **6–33%** |
+
+That is the widget's own lesson arriving per cell: two centres make a line and
+three make a plane, so 2-D holds them and the order survives; four make a
+tetrahedron and it does not. **The disagreement is content.** And a rank is a
+shorter string than a distance, so it fits wherever a distance did — no
+threshold change was needed at all.
+
+### THE RANK FIT DEGENERATES AT FOUR GROUPS, and it is recorded rather than hidden
+
+Non-metric scaling can satisfy an order by clumping. With four tetrahedral
+centres — which 2-D cannot hold anyway — it pulls each cluster toward a point
+and equalises what is left. Over 20 seeds at four groups: **spearman 0.785 →
+0.809 while stress-1 goes 0.159 → 0.106**, which is the textbook signature of a
+degenerate solution — the number falls because the configuration collapsed, not
+because the order improved. Two and three groups are clean at 0/20.
+
+**It is not the solver, and three things were tried before concluding that:**
+
+| tried | result |
+|---|---|
+| rescale the disparities to the configuration's size | 19/30 collapse |
+| rescale the configuration instead (textbook) | **bit-identical**, 19/30 |
+| stop on stress gain < 1e-3, the way `isoMDS` does | 12/20, from 14/20 |
+
+So it ships, and the readout says so: under the rank fit the second tile becomes
+**Ranks held**, which reads `15/15` at the default and `2/66` at four groups of
+three. **A reader is told what happened rather than left to wonder.** If Kenneth
+would rather the widget never showed it, the options are capping `groups` at 3
+while the rank fit is selected, or a line of copy naming it.
+
+### Kruskal stress-1 replaces raw stress, throughout
+
+The widget printed RAW stress, which is `sklearn`'s `stress_` and the lesson's
+classical formula. The lesson's non-metric formula is the normalised one, and
+the two are not comparable — so one chart carrying both methods forces a single
+definition, and stress-1 is the one that works for both. **Every stress figure
+recorded above this line is a different number now**: four samples ungrouped
+reads 0.152 rather than 1.445, four groups of three 0.190 rather than 20.7.
+
+**And stress-1 is not monotone, which raw stress was.** It divides by the size
+of the arrangement, and the first Guttman step out of a random layout can shrink
+it faster than it improves the fit: 8 of 5699 metric steps rise, every one of
+them at step 1, the worst by 0.108. The chart's ceiling is the trajectory's
+maximum rather than its first value, or those runs would draw their second point
+above the top of the frame.
 
 ### SUPERSEDED BY ROUND ONE · the closed-form checks, which verified the solver
 

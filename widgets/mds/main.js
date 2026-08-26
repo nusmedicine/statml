@@ -23,7 +23,9 @@ import { defineWidget } from "../core/index.js";
    widget started with is still reachable. */
 const R = 2;
 const SIGMA = 0.22;
-const LETTERS = "ABCDEFGHIJKL";
+/* Sixteen, because four groups of four is now reachable and every sample needs
+   a header letter in the table whether or not its dot is labelled. */
+const LETTERS = "ABCDEFGHIJKLMNOP";
 const GENES = ["Gene 1", "Gene 2", "Gene 3"];
 /* Past six samples an individual letter has nothing to label — the dots are in
    clusters and overlap — so identity falls back to the group's colour, and the
@@ -138,19 +140,68 @@ function targets(pts) {
   return D;
 }
 
-/* Raw stress, which is what sklearn's `stress_` reports and what `03-5` prints:
-   the sum over pairs of (what the picture shows - what the table asks for)^2. */
-function rawStress(X, D) {
-  let s = 0;
-  for (let i = 0; i < X.length; i += 1)
-    for (let j = i + 1; j < X.length; j += 1) s += (dist2(X[i], X[j]) - D[i][j]) ** 2;
-  return s;
+/* Pool-adjacent-violators: the least-squares fit to `y` that never decreases
+   along the order it is given. This is `f`, the monotonic transformation
+   `03-5`'s non-metric stress formula names, and it is refitted at EVERY step —
+   which is what the lesson's "it is typically determined iteratively" means. */
+function pava(y) {
+  const lvl = [], wt = [], start = [];
+  for (let i = 0; i < y.length; i += 1) {
+    let val = y[i], wgt = 1, st = i;
+    while (lvl.length && lvl[lvl.length - 1] > val) {
+      const pv = lvl.pop(), pw = wt.pop();
+      st = start.pop();
+      val = (pv * pw + val * wgt) / (pw + wgt);
+      wgt += pw;
+    }
+    lvl.push(val); wt.push(wgt); start.push(st);
+  }
+  const out = new Array(y.length);
+  for (let b = 0; b < lvl.length; b += 1) {
+    const to = b + 1 < lvl.length ? start[b + 1] : y.length;
+    for (let i = start[b]; i < to; i += 1) out[i] = lvl[b];
+  }
+  return out;
+}
+
+/* The disparities: what the non-metric fit is actually aiming at. `order` is the
+   pairs sorted by their MEASURED distance, so a monotone fit along it is exactly
+   "keep the order and forget the sizes". */
+function disparities(d, order) {
+  const out = new Array(d.length);
+  const fitted = pava(order.map((k) => d[k]));
+  order.forEach((k, r) => { out[k] = fitted[r]; });
+  return out;
+}
+
+/* KRUSKAL STRESS-1 FOR BOTH METHODS, and the change is deliberate rather than
+   tidy. The widget used to print RAW stress, which is what `sklearn`'s
+   `stress_` returns and what `03-5`'s classical formula writes. But the
+   lesson's NON-metric formula is the normalised one, and the two are not
+   comparable — so a single chart carrying both methods forces one definition
+   over the pair, and stress-1 is the one that works for both. Every stress
+   figure recorded before this change is a different number. */
+function stress1(X, pairs, delta, order, metric) {
+  const d = pairs.map(([i, j]) => dist2(X[i], X[j]));
+  const t = metric ? delta : disparities(d, order);
+  const num = d.reduce((s, v, k) => s + (v - t[k]) ** 2, 0);
+  const den = d.reduce((s, v) => s + v * v, 0) || 1;
+  return Math.sqrt(num / den);
+}
+
+/* 1 for the closest pair, up to n(n-1)/2 for the furthest. This is the whole of
+   what the non-metric fit is given. */
+function rankOf(v) {
+  const order = v.map((_, k) => k).sort((a, b) => v[a] - v[b]);
+  const out = new Array(v.length);
+  order.forEach((k, i) => { out[k] = i + 1; });
+  return out;
 }
 
 /* One SMACOF step — the Guttman transform. Every sample moves to the average of
    where each other sample would put it if that one distance were right, so the
    move is a compromise between n - 1 demands and the stress cannot rise. */
-function guttman(X, D) {
+function guttman(X, target) {
   const n = X.length;
   const Y = [];
   for (let i = 0; i < n; i += 1) {
@@ -161,7 +212,7 @@ function guttman(X, D) {
       /* Two samples exactly on top of each other have no direction to be pushed
          apart along, so they contribute nothing this step rather than dividing
          by zero and taking the whole layout to NaN. */
-      const b = d > 1e-12 ? -D[i][j] / d : 0;
+      const b = d > 1e-12 ? -target(i, j) / d : 0;
       sx += b * X[j][0];
       sy += b * X[j][1];
       wii -= b;
@@ -190,8 +241,43 @@ function smacof(D, rng, n) {
   X = X.map((p) => [p[0] - mx, p[1] - my]);
 
   const path = [X];
+  const at = (i, j) => D[i][j];
   for (let it = 0; it < MAX_STEPS; it += 1) {
-    const Y = guttman(X, D);
+    const Y = guttman(X, at);
+    const move = Math.max(...Y.map((p, i) => dist2(p, X[i])));
+    path.push(Y);
+    X = Y;
+    if (move < MOVE_TOL) break;
+  }
+  return path;
+}
+
+/* THE NON-METRIC HALF, AND IT CONTINUES FROM THE METRIC FIT RATHER THAN FROM A
+   RANDOM START. That is not a convenience: `isoMDS` takes its default starting
+   configuration from `cmdscale`, so beginning at the classical answer is what
+   the lesson's own code does. It also decides whether this works at all — from
+   a random start, non-metric SMACOF COLLAPSED 18 OF 40 SEEDS into degenerate
+   clumps at eight samples, every cluster on top of its neighbour. From the
+   metric fit it never did.
+
+   So the rank-order trajectory is the metric one with more steps on the end,
+   and the reader who has already run the metric fit keeps their position when
+   they switch. */
+function smacofRank(pairs, order, from) {
+  let X = from.map((p) => p.slice());
+  const n = X.length;
+  const path = [X];
+  for (let it = 0; it < MAX_STEPS; it += 1) {
+    const d = pairs.map(([i, j]) => dist2(X[i], X[j]));
+    let T = disparities(d, order);
+    /* Rescaled to the picture's own size. The disparities are pinned only up to
+       a scale — nothing in a monotone fit says how big the arrangement should
+       be — so without this the whole layout walks steadily toward a point. */
+    const sd = Math.hypot(...d), st = Math.hypot(...T) || 1;
+    T = T.map((v) => (v * sd) / st);
+    const tgt = new Map(pairs.map(([i, j], k) => [i + "," + j, T[k]]));
+    const at = (i, j) => tgt.get(i > j ? `${i},${j}` : `${j},${i}`);
+    const Y = guttman(X, at);
     const move = Math.max(...Y.map((p, i) => dist2(p, X[i])));
     path.push(Y);
     X = Y;
@@ -395,6 +481,11 @@ defineWidget({
         { value: "1", label: "1", detail: "no clusters — every sample on its own" },
         { value: "2", label: "2", detail: "a pair around each centre" },
         { value: "3", label: "3", detail: "three around each centre" },
+        /* FOUR EXISTS FOR THE LESSON'S OWN DESIGN. `05-04` runs on `airway`,
+           which is 4 controls and 4 dexamethasone-treated samples — two groups
+           of four — and without this option the widget could not reproduce the
+           figure it is meant to sit beside. */
+        { value: "4", label: "4", detail: "four around each centre" },
       ],
       default: "3",
     },
@@ -424,6 +515,31 @@ defineWidget({
       display: true,
     },
 
+    /* THE SECOND METHOD, and `03-5` is why it is here rather than in a widget of
+       its own: it has ONE section — "Multidimensional Scaling: Classical and
+       Non-metric" — with the two under it, run on the same distance matrix one
+       after the other. One topic, one widget.
+
+       `display: true` although it changes what `compute` returns, and that is
+       the point rather than a fudge: the rank-order trajectory IS the metric one
+       with more steps on the end, so a reader who has run the metric fit keeps
+       their position when they switch and simply carries on. `rebuild` clamps
+       the step index for the switch back, where the path gets shorter.
+
+       Only after the gate: there is no method to choose before there is a table
+       to fit. */
+    method: {
+      type: "segmented",
+      label: "Fit",
+      options: [
+        { value: "metric", label: "Distances", detail: "match the distances themselves" },
+        { value: "rank", label: "Rank order", detail: "keep the ORDER of the distances and forget their sizes — it carries on from the fit above, the way isoMDS starts from cmdscale" },
+      ],
+      default: "metric",
+      display: true,
+      when: { param: "measured" },
+    },
+
     /* Hidden, because the figure is their control — but parameters, so a shared
        link reproduces the angle the reader was looking from. */
     turn: { type: "int", label: "Turn", min: -180, max: 180, step: 3, default: TURN0, display: true, hidden: true },
@@ -444,7 +560,22 @@ defineWidget({
     const pts = tilted(placed.map((s) => s.p));
     const gs = placed.map((s) => s.g);
     const D = targets(pts);
-    const path = smacof(D, rng, n);
+    const pairs = pairList(n);
+    const delta = pairs.map(([i, j]) => D[i][j]);
+    /* The pairs from closest to furthest. The non-metric fit gets this and
+       nothing else, and it is what the table prints once it is chosen. */
+    const order = pairs.map((_, k) => k).sort((a, b) => delta[a] - delta[b]);
+    const rankD = rankOf(delta);
+
+    const metricPath = smacof(D, rng, n);
+    const rank = params.method === "rank";
+    /* The rank-order run is the metric one with more steps on the end — the
+       first entry of the continuation is the last of the metric path, so it is
+       dropped rather than shown twice as a step that moves nothing. */
+    const path = rank
+      ? metricPath.concat(smacofRank(pairs, order, metricPath[metricPath.length - 1]).slice(1))
+      : metricPath;
+    const switchAt = rank ? metricPath.length - 1 : null;
 
     /* ONE SCALE FOR BOTH PANELS, or the two pictures cannot be compared at all —
        a distance that came out short would look long simply because its panel
@@ -463,11 +594,21 @@ defineWidget({
        against — so the darkest cell is always the furthest pair rather than a
        fixed value that would leave a tight cloud uniformly pale. */
     let far = 0;
-    for (const [i, j] of pairList(n)) far = Math.max(far, D[i][j]);
+    for (const v of delta) far = Math.max(far, v);
+
+    /* The stress at every step, computed once here rather than per frame — the
+       chart is a reveal of an already-computed curve, like every other animation
+       in this repo (invariant 2). Each step is measured against WHAT IT WAS
+       MINIMISING: the distances before the switch, their monotone fit after. So
+       the curve drops at the switch, and it drops because the target got easier
+       rather than because the picture improved — which is exactly why the
+       picture beside it can be seen not moving. */
+    const stress = path.map((X, k) =>
+      stress1(X, pairs, delta, order, switchAt === null || k <= switchAt));
 
     return {
-      n, groups, per, gs, pts, D, path, pairs: pairList(n), span: span * 1.1, far,
-      stress: path.map((X) => rawStress(X, D)),
+      n, groups, per, gs, pts, D, path, pairs, delta, order, rankD, switchAt, rank,
+      span: span * 1.1, far, stress,
     };
   },
 
@@ -507,7 +648,15 @@ defineWidget({
 
     /* `anim.easing` is core's word for "this display change wants frames". It is
        consumed when granted, so it has to be asked for each time. */
-    rebuild: (anim, { params }) => {
+    rebuild: (anim, { params, state }) => {
+      /* SWITCHING METHOD KEEPS THE READER'S PLACE, which is what makes the
+         segmented control read as "carry on" rather than "start again": the
+         rank-order path is the metric one with more steps, so the same index is
+         the same arrangement. Going back the other way the path gets shorter,
+         and a step index left past its end would index off the array. */
+      const total = state.path.length - 1;
+      if (anim.k > total) { anim.k = total; anim.moving = false; anim.t = 1; }
+      anim.done = anim.k >= total;
       if (!params.measured) { anim.reveal = 0; return; }
       /* A fit already on screen does not replay the measuring. The reader shut
          the gate to look at the coordinates again and opened it back up; the
@@ -678,7 +827,22 @@ defineWidget({
       const numbered = fs >= 8;
       const type = `${clamp(fs, 7, 13)}px`;
 
-      text(ctx, colors, "Distance between every pair", x, y - 10, colors.ink2, colors.fsSm);
+      /* UNDER THE RANK-ORDER FIT THE TABLE PRINTS RANKS, because that is the
+         whole of what the method is given: 1 for the closest pair, up to 15 or
+         28 or 66 for the furthest. It is the one place the difference between
+         the two methods is visible at all, which is why the caption changes
+         with it — and a rank is a shorter string than a distance, so it fits
+         wherever a distance did.
+
+         THE RANKS DISAGREE EXACTLY WHERE THE FIT IS BAD, which is content and
+         not noise. Measured over 40 seeds, the share of pairs holding their
+         exact rank runs 87-100% at two groups, 44-100% at three and 6-33% at
+         four — the same "two centres make a line, three make a plane, four make
+         a tetrahedron" the widget already turns on, arriving per cell. */
+      const ranked = Boolean(state.rank);
+      const fitRank = ranked ? rankOf(pairs.map(([i, j]) => dist2(at[i], at[j]))) : null;
+      text(ctx, colors, ranked ? "Rank of every pair's distance" : "Distance between every pair",
+        x, y - 10, colors.ink2, colors.fsSm);
 
       ctx.save();
       ctx.globalAlpha = clamp01(rev / 0.3);
@@ -709,23 +873,31 @@ defineWidget({
            the same thing rather than opposite ones. Capped well short of
            opaque: the number has to stay readable on top of it. */
         ctx.fillStyle = colors.empirical;
-        ctx.globalAlpha = show * (0.04 + 0.30 * clamp01(D[i][j] / state.far));
+        /* SHADED BY WHAT THE CELL SAYS. Under the rank fit that is the rank,
+           and the flattening is honest rather than incidental: a distance ramp
+           separates "far" from "very far", and a rank ramp is evenly spaced
+           because the method has stopped being able to tell them apart. */
+        const shadeBy = ranked
+          ? state.rankD[k] / pairs.length
+          : clamp01(D[i][j] / state.far);
+        ctx.globalAlpha = show * (0.04 + 0.30 * shadeBy);
         ctx.fillRect(gx + cw * (j + 1), gy + ch * i, cw, ch);
         ctx.globalAlpha = show;
         ctx.strokeStyle = colors.grid;
         ctx.lineWidth = 1;
         ctx.strokeRect(gx + cw * (j + 1) + 0.5, gy + ch * i + 0.5, cw - 1, ch - 1);
         if (!numbered) { ctx.restore(); return; }
-        text(ctx, colors, D[i][j].toFixed(2), tx, arranged > 0.02 ? ty - fs * 0.6 : ty,
-          colors.ink1, type, "center");
-        /* THE SECOND NUMBER IS THE ARGUMENT. Adjacency (2.7): the distance the
-           samples have, and directly under it the distance the picture managed
-           — in every cell, so no sentence has to say which ones came out
-           wrong, and every press of Rearrange moves fifteen numbers at once. */
+        text(ctx, colors, ranked ? String(state.rankD[k]) : D[i][j].toFixed(2),
+          tx, arranged > 0.02 ? ty - fs * 0.6 : ty, colors.ink1, type, "center");
+        /* THE SECOND NUMBER IS THE ARGUMENT. Adjacency (2.7): what the samples
+           have, and directly under it what the picture managed — in every cell,
+           so no sentence has to say which ones came out wrong. Under the rank
+           fit both are ranks, so a cell agrees when its two numbers are EQUAL
+           rather than merely close, which is a sharper thing to look for. */
         if (arranged > 0.02) {
           ctx.globalAlpha = show * arranged;
-          text(ctx, colors, dist2(at[i], at[j]).toFixed(2), tx, ty + fs * 0.6,
-            colors.empirical, type, "center");
+          text(ctx, colors, ranked ? String(fitRank[k]) : dist2(at[i], at[j]).toFixed(2),
+            tx, ty + fs * 0.6, colors.empirical, type, "center");
         }
         ctx.restore();
       });
@@ -792,7 +964,14 @@ defineWidget({
     if (arranged > 0.02) {
       const { x, y, w: pw, h: ph } = L.chart;
       const total = state.path.length - 1;
-      const top = Math.max(state.stress[0], 1e-9);
+      /* THE CEILING IS THE WHOLE TRAJECTORY'S MAXIMUM, not its first value, and
+         that is not defensive coding: stress-1 divides by the size of the
+         arrangement, and the first Guttman step out of a random layout can
+         shrink it faster than it improves the fit. Measured over 5699 metric
+         steps, 8 rise — every one of them at step 1, the worst by 0.108. Anchored
+         on `stress[0]` those runs would draw their second point above the top of
+         the frame. */
+      const top = Math.max(...state.stress, 1e-9);
       /* Inset, because in a full quadrant the curve wants a plot area rather
          than the whole cell: the labels live in the margin the inset leaves. */
       const PL = 40, PB = 18, PT = 8, PR = 8;
@@ -829,9 +1008,27 @@ defineWidget({
       text(ctx, colors, `${total} steps`, ax + aw, ay + ah + 5,
         colors.ink3, colors.fsXs, "right", "top");
 
+      /* WHERE THE TARGET CHANGED, drawn only once the reader has stepped past
+         it. Before that it would be announcing a stage they have not reached. */
+      const sw = state.switchAt;
+      if (sw !== null && anim.k > sw) {
+        ctx.save();
+        ctx.strokeStyle = colors.ink3;
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px(sw), ay);
+        ctx.lineTo(px(sw), ay + ah);
+        ctx.stroke();
+        ctx.restore();
+        text(ctx, colors, "rank order from here", px(sw) + 4, ay + 2,
+          colors.ink3, colors.fsXs, "left", "top");
+      }
+
       /* Through the completed steps, then out to wherever the one in flight has
          got to — so the line lengthens continuously rather than in jumps. */
-      const live = rawStress(at, D);
+      const live = stress1(at, pairs, state.delta, state.order,
+        sw === null || anim.k < sw);
       ctx.strokeStyle = colors.empirical;
       ctx.lineWidth = 1.8;
       ctx.beginPath();
@@ -864,6 +1061,38 @@ defineWidget({
       }];
     }
     const at = shownAt(state, anim);
+    const metricNow = state.switchAt === null || anim.k < state.switchAt;
+    const stress = [
+      {
+        label: "Stress",
+        value: stress1(at, pairs, state.delta, state.order, metricNow).toFixed(3),
+        /* 2.8: the number reports what is on screen, so a reader watching it
+           fall is watching the arrangement they can see. At zero steps that is
+           the starting layout, which is the baseline every press is against. */
+        note: anim.k === 0 && !anim.moving
+          ? "the starting layout, before any step"
+          : `after ${anim.k} of ${path.length - 1} steps`,
+      },
+    ];
+
+    /* THE SECOND TILE FOLLOWS WHAT IS BEING FITTED. Under the rank order,
+       "largest gap" would be a gap in a quantity the method is not matching —
+       so it becomes the count of pairs whose rank came out exactly right, which
+       is what the table beside it is showing. */
+    if (state.rank && !metricNow) {
+      const fitRank = rankOf(pairs.map(([i, j]) => dist2(at[i], at[j])));
+      let same = 0;
+      for (let k = 0; k < pairs.length; k += 1) if (fitRank[k] === state.rankD[k]) same += 1;
+      stress.push({
+        label: "Ranks held",
+        value: `${same}/${pairs.length}`,
+        note: same === pairs.length
+          ? "every pair is in the order it was measured in"
+          : "pairs whose place in the order came out exactly right",
+      });
+      return stress;
+    }
+
     let worst = pairs[0], gap = 0;
     for (const [i, j] of pairs) {
       const g = Math.abs(dist2(at[i], at[j]) - D[i][j]);
@@ -873,30 +1102,19 @@ defineWidget({
        LATER letter first: the tile read "B–A is 3.94" of a pair every other
        part of the widget calls A–B. */
     const [wi, wj] = [Math.min(...worst), Math.max(...worst)];
-    return [
-      {
-        label: "Stress",
-        value: rawStress(at, D).toFixed(3),
-        /* 2.8: the number reports what is on screen, so a reader watching it
-           fall is watching the arrangement they can see. At zero steps that is
-           the starting layout, which is the baseline every press is against. */
-        note: anim.k === 0 && !anim.moving
-          ? "the starting layout, before any step"
-          : `after ${anim.k} of ${path.length - 1} steps`,
-      },
-      {
-        label: "Largest gap",
-        value: gap.toFixed(2),
-        note: gap < 0.005
-          ? "every distance came out exact"
-          : `${LETTERS[wi]}–${LETTERS[wj]} is ${dist2(at[wi], at[wj]).toFixed(2)}, not ${D[wi][wj].toFixed(2)}`,
-      },
-    ];
+    stress.push({
+      label: "Largest gap",
+      value: gap.toFixed(2),
+      note: gap < 0.005
+        ? "every distance came out exact"
+        : `${LETTERS[wi]}–${LETTERS[wj]} is ${dist2(at[wi], at[wj]).toFixed(2)}, not ${D[wi][wj].toFixed(2)}`,
+    });
+    return stress;
   },
 
   /* Core hands this to `aria-label`, so it describes what is on screen. */
   summary({ params, state, anim }) {
-    const { n, D, path, groups, per } = state;
+    const { n, path, groups, per, pairs } = state;
     const view = `Turned ${params.turn} degrees, tilted ${params.tilt}.`;
     const stock = per === 1
       ? `${n} samples spread over a sphere in three genes`
@@ -909,10 +1127,14 @@ defineWidget({
     const stage = anim.k === 0 && !anim.moving
       ? "in their starting layout, which is random"
       : `after ${anim.k} of ${path.length - 1} steps`;
-    return `The ${(n * (n - 1)) / 2} distances between the ${n} samples, written into a table; `
+    const metricNow = state.switchAt === null || anim.k < state.switchAt;
+    const held = metricNow
+      ? "matching the distances themselves"
+      : "matching only the ORDER of the distances, which is what non-metric scaling is given";
+    const s = stress1(shownAt(state, anim), pairs, state.delta, state.order, metricNow);
+    return `The ${pairs.length} distances between the ${n} samples, written into a table; `
       + `the coordinates are faded out, because from here the table is the whole input. ${view} `
-      + `Beside it the same ${n} samples arranged in two dimensions, ${stage}. Stress `
-      + `${rawStress(shownAt(state, anim), D).toFixed(3)}, where 0 would mean every distance `
-      + `came out exactly right.`;
+      + `Beside it the same ${n} samples arranged in two dimensions, ${stage}, ${held}. `
+      + `Stress ${s.toFixed(3)}, where 0 would mean nothing was lost.`;
   },
 });
