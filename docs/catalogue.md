@@ -5570,6 +5570,71 @@ Play live and useless while `graph` was open and `flatten` was shut — the
 answer core points to, set in **both** `init` and `rebuild` because `flatten` is
 a display parameter and opening it never re-runs `init`.
 
+#### THE FLATTENING IS REAL — the start is the PCA plane, not noise
+
+**Kenneth asked whether the initial configuration was random or a genuine
+flattening. It was random, and that turned out to be the LIBRARY'S NON-DEFAULT:**
+`umap-learn`'s default `init` is `"spectral"`. Measured over eight seeds, the
+difference is entirely at the start —
+
+| start | 5-NN retention AT THE START | at the end | tightness | cost |
+|---|---|---|---|---|
+| random | **0.087** | 0.819 | 0.116 | 0.0 ms |
+| **PCA plane** | **0.653** | 0.814 | 0.103 | 0.1 ms |
+| spectral (the library's default) | 0.538 | 0.818 | 0.106 | 4.3 ms |
+
+— all three finish in the same place, so the choice costs nothing in the answer
+and decides only what the reader watches happen. **The PCA plane was chosen**
+(*Kenneth, 2026-08-26: "switch to PCA init and animate the flattening"*):
+
+1. **it IS a flattening**, so cell 41's globe-onto-a-map analogy stops being a
+   metaphor and the widget can animate the real transformation
+2. **it is widget 19's own plane** — start from the flat map PCA gives you, then
+   let the neighbour graph pull it into shape
+3. **`sklearn`'s t-SNE defaults to `init="pca"`** for the same reason
+4. it hands the widget a number nothing else in the arc states: **60% of
+   neighbourhoods survive the flattening alone, 83% after UMAP. That difference
+   IS what UMAP adds**, and it is a readout tile.
+
+**IT MUST NOT BE THE CAMERA'S VIEW.** `turn` and `tilt` are display parameters,
+so an init that followed them would let turning the cloud change the answer.
+
+**The entry animation lands EXACTLY on frame 0**, checked rather than eyeballed:
+`_lab/umap-landing.mjs` compares the tween's final basis projection against the
+descent's first frame across four cases including the extremes, and the worst
+disagreement is **2.2e-16**. A mismatch there would jump the cloud at the end of
+the rotation, and no pixel hash of a settled state could see it.
+
+#### TWO THINGS THE NEW START CHANGED, and both were measured after
+
+**1. THE RUN IS HALF AS LONG — 300 iterations, not 500.** From the PCA plane,
+ten seeds:
+
+| step | iterations | retention | tightness | CE | moves, as % of the picture |
+|---|---|---|---|---|---|
+| 0 | 0 | 0.663 | 0.282 | 302.6 | — |
+| 1 | 10 | **0.795** | 0.177 | 217.4 | 25.6% |
+| 2 | 20 | 0.802 | 0.155 | 208.5 | 9.1% |
+| 10 | 100 | 0.812 | 0.121 | 197.7 | 1.3% |
+| 30 | 300 | **0.813** | 0.105 | 194.0 | 0.25% |
+| 50 | 500 | 0.813 | 0.103 | 193.7 | 0.01% |
+
+Retention is finished by step 2; the tail buys tightness at a collapsing rate.
+Cutting 500 to 300 leaves retention **identical** and tightness 0.110 against
+0.103. **That removes twenty presses which each moved the picture by under a
+third of one per cent** — and Kenneth already reported that exact defect on
+widget 17, whose twenty boosting rounds change nothing visible after six.
+
+**2. THE CROSS-ENTROPY HAS A FLOOR AND THE CHART NOW DRAWS IT.** Writing
+`CE = Σ H(μ) + KL(μ‖w)` splits it into the entropy of the graph, which no
+arrangement can remove, and the fit error, which is the only part the descent
+touches. On this stage **the floor is 139.8 against a final 170.9 — 82 per cent
+of what the widget reports is irreducible.** A better start shrank the curve's
+range, which is what exposed it: anchored at 0 with nothing marked, the chart
+said the curve was failing to reach a target it could in principle hit. It is
+now a dashed reference line labelled *as low as it can go*, and the descent
+visibly lands on it.
+
 #### THE SENTENCE FIRES IN THE BUILT WIDGET, read off its own readout
 
 Seed 1, four groups of twelve, at the settled end (`?…&step=50`):

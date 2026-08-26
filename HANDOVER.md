@@ -128,6 +128,33 @@ this follows.
   join the neighbours, then flatten it. His one arrow said "→ umap"; this is two.
 - **Projected**, which no widget from 11 on has had.
 
+### THE FLATTENING IS REAL — the start is the PCA plane
+
+*(Kenneth asked, 2026-08-26; it was random, which is the library's
+NON-default — `umap-learn` defaults to `"spectral"`.)* Eight seeds: the flat map
+alone keeps **65%** of every sample's neighbourhood where a random start keeps
+**9%**, and all starts finish in the same place. So it costs nothing and decides
+only what the reader watches.
+
+**`flatten` now rotates the cloud onto its two most-spread directions and lays
+it flat**, and the rotation lands EXACTLY on frame 0 of the descent — checked at
+**2.2e-16** across four cases by `_lab/umap-landing.mjs`. A mismatch there would
+jump the cloud at the end of the turn and no pixel hash could see it.
+
+It also buys a readout tile nothing else in the arc has: **60% from flattening
+alone, 83% after UMAP.** That difference is what UMAP adds.
+
+**Two things the new start changed, both measured after:**
+
+- **The run is half as long — 300 iterations, not 500.** From the PCA plane
+  retention is finished by step 2 (0.795 of a final 0.813); cutting 500 to 300
+  leaves retention identical and removes twenty presses that each moved the
+  picture under 0.3%. **Kenneth reported that exact defect on widget 17.**
+- **The cross-entropy has a floor and the chart now draws it.**
+  `CE = Σ H(μ) + KL`, and the entropy term is **139.8 of a final 170.9 — 82% of
+  what the widget reports is irreducible.** The shorter curve is what exposed it;
+  anchored at 0 with nothing marked, the chart claimed a reachable target.
+
 ### The sentence fires, read off the widget's own readout
 
 Seed 1, settled. `packing` 0 → 0.95: neighbours kept **81% → 83%**, how tight it

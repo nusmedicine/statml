@@ -198,6 +198,115 @@ export function findAbParams(spread = 1, minDist = 0.1) {
   return { a, b };
 }
 
+/* --- where the flattening STARTS -------------------------------------------
+ *
+ * `umap-learn`'s default `init` is **"spectral"** — the Laplacian eigenmaps
+ * embedding of the fuzzy graph — and NOT random. This file used random first,
+ * which is the library's non-default, and the difference is entirely at the
+ * start: measured over eight seeds, 5-NN retention of the STARTING layout is
+ *
+ *     random          0.087        (nothing at all)
+ *     PCA plane       0.653
+ *     spectral        0.538
+ *
+ * while all three finish in the same place — 0.814 to 0.819 retention, 0.103 to
+ * 0.116 tightness. So the choice costs nothing in the answer and decides only
+ * what the reader watches happen.
+ *
+ * THE PCA PLANE IS THE ONE THIS WIDGET USES, for four reasons and none of them
+ * is quality:
+ *
+ *   1. it IS a flattening — the cloud projected onto its two most-spread
+ *      directions — so the notebook's globe-onto-a-map analogy stops being a
+ *      metaphor and the widget can animate the real transformation.
+ *   2. it is widget 19's own plane, which ties the two together: start from the
+ *      flat map PCA gives you, then let the neighbour graph pull it into shape.
+ *   3. `sklearn`'s t-SNE defaults to `init="pca"` for the same reason, so a
+ *      structured start is library-endorsed rather than a convenience.
+ *   4. it hands the widget a number: 65 per cent of neighbourhoods survive the
+ *      flattening alone, 81 per cent after UMAP. THAT DIFFERENCE IS WHAT UMAP
+ *      ADDS, and nothing else in the arc states it.
+ *
+ * It is also 43x cheaper than spectral — a 3x3 eigendecomposition against a
+ * 48x48 one, 0.1 ms against 4.3 ms.
+ *
+ * WHAT IT MUST NOT BE is the camera's view. `turn` and `tilt` are display
+ * parameters, so an init that followed them would let turning the cloud change
+ * the answer — a widget lying about itself (non-negotiable 1). The plane is a
+ * property of the data and of nothing else.
+ */
+
+const v3 = {
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  scale: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  unit: (a) => { const n = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / n, a[1] / n, a[2] / n]; },
+};
+
+/* Exact eigenvectors of a symmetric 3x3 by cyclic Jacobi, as widget 19 has.
+   Machine precision in about six sweeps and independent of any starting vector,
+   which power iteration is not — widget 19's comment records it landing 0.29
+   from the true PC1 on the worst of 360 trajectories. */
+function jacobiEig3(Cin) {
+  const A = Cin.map((r) => r.slice());
+  const V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let sweep = 0; sweep < 24; sweep += 1) {
+    let off = 0;
+    for (let i = 0; i < 3; i += 1) for (let j = i + 1; j < 3; j += 1) off += A[i][j] * A[i][j];
+    if (off < 1e-24) break;
+    for (let p = 0; p < 3; p += 1) for (let q = p + 1; q < 3; q += 1) {
+      if (Math.abs(A[p][q]) < 1e-30) continue;
+      const theta = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+      const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+      const c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < 3; k += 1) {
+        const akp = A[k][p], akq = A[k][q];
+        A[k][p] = c * akp - s * akq; A[k][q] = s * akp + c * akq;
+      }
+      for (let k = 0; k < 3; k += 1) {
+        const apk = A[p][k], aqk = A[q][k];
+        A[p][k] = c * apk - s * aqk; A[q][k] = s * apk + c * aqk;
+      }
+      for (let k = 0; k < 3; k += 1) {
+        const vkp = V[k][p], vkq = V[k][q];
+        V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq;
+      }
+    }
+  }
+  const order = [0, 1, 2].sort((a, b) => A[b][b] - A[a][a]);
+  return order.map((i) => v3.unit([V[0][i], V[1][i], V[2][i]]));
+}
+
+/* An eigenvector has no sign. sklearn pins it with `svd_flip` — largest
+   magnitude entry positive — and so does widget 19, so the two widgets orient
+   the same cloud the same way. Camera-independent on purpose: pinning it to the
+   shortest turn from wherever the reader happened to be looking would make the
+   embedding a function of a display parameter. */
+function canonical(v) {
+  let m = 0;
+  for (let i = 1; i < 3; i += 1) if (Math.abs(v[i]) > Math.abs(v[m])) m = i;
+  return v[m] < 0 ? v3.scale(v, -1) : v.slice();
+}
+
+/**
+ * The plane the cloud is flattened onto, and the flattening itself.
+ * Returns the centred points, the two directions, and the 2-D coordinates —
+ * which are the descent's starting layout and the landing point of the widget's
+ * entry animation, so the tween ends exactly on frame 0 of the run.
+ */
+export function pcaPlane(X) {
+  const n = X.length, d = X[0].length;
+  const centre = Array.from({ length: d }, (_, k) => X.reduce((s, p) => s + p[k], 0) / n);
+  const Z = X.map((p) => p.map((v, k) => v - centre[k]));
+  const C = [0, 1, 2].map((a) => [0, 1, 2].map((b) => Z.reduce((s, p) => s + p[a] * p[b], 0) / n));
+  const eig = jacobiEig3(C);
+  const pc1 = canonical(eig[0]);
+  /* squared up against pc1, so the pair is exactly orthonormal and the tween
+     rotates rather than shears */
+  const pc2 = canonical(v3.unit(v3.sub(eig[1], v3.scale(pc1, v3.dot(eig[1], pc1)))));
+  return { centre, Z, pc1, pc2, Y: Z.map((p) => [v3.dot(p, pc1), v3.dot(p, pc2)]) };
+}
+
 /* --- step 3: the descent ---------------------------------------------------- */
 
 /** The cross-entropy itself, summed over unordered pairs. */
@@ -266,7 +375,7 @@ export function crossEntropy(mu, Y, a, b) {
  */
 export function umap(X, {
   nNeighbors = 15, minDist = 0.1, spread = 1, iters = 500, every = 1,
-  eta = 0.1, clip = 4, seed = 1, mu: given = null, ab = null,
+  eta = 0.1, clip = 4, seed = 1, mu: given = null, ab = null, init = null,
 } = {}) {
   const n = X.length;
   const k = Math.max(2, Math.min(nNeighbors, n - 1));
@@ -274,8 +383,14 @@ export function umap(X, {
   const mu = set.mu;
   const { a, b } = ab || findAbParams(spread, minDist);
 
+  /* `init` is the starting layout, and the widget hands it the PCA plane — see
+     `pcaPlane` above for why, and for the eight-seed table. The uniform fallback
+     is what `umap-learn`'s `init="random"` does, kept so this module still runs
+     standalone in the measurement scripts. */
   const rng = makeRng(seed);
-  const Y = Array.from({ length: n }, () => [rng.uniform(-2, 2), rng.uniform(-2, 2)]);
+  const Y = init
+    ? init.map((p) => [p[0], p[1]])
+    : Array.from({ length: n }, () => [rng.uniform(-2, 2), rng.uniform(-2, 2)]);
   const frames = [Y.map((p) => p.slice())];
   const curve = [crossEntropy(mu, Y, a, b)];
 

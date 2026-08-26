@@ -46,7 +46,7 @@
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
-import { fuzzySet, findAbParams, umap } from "./model.js";
+import { fuzzySet, findAbParams, umap, pcaPlane } from "./model.js";
 
 /* The stage is widget 21's, unchanged: `groups` centres on a sphere of radius
    R, `per` samples scattered around each by SIGMA. Nothing in UMAP forces 48
@@ -58,11 +58,35 @@ const R = 2;
 const SIGMA = 0.62;
 const JITTER = 0.12;
 
-/* 500 iterations, revealed 10 at a time. A step CANNOT be one iteration: at
-   n = 48 one iteration gives 5-NN retention 0.116 and silhouette -0.119, a
-   picture that puts the groups inside each other. It is honest from about 300
-   (0.787 / 0.698), settled by 500 (0.805 / 0.774), and 800 buys 0.006. */
-const ITERS = 500;
+/* 300 iterations, revealed 10 at a time — THIRTY STEPS, AND THE PCA START IS
+   WHY IT IS NOT FIFTY. From a random start the run genuinely needed 500: at 300
+   iterations retention read 0.787 and silhouette 0.698 against 0.805 and 0.774
+   at 500. Starting on the flat map, the same run is done far sooner. Ten seeds,
+   from the PCA plane:
+
+     step  iters   retention   tightness      CE   moves, as % of the picture
+        0      0       0.663       0.282   302.6   —
+        1     10       0.795       0.177   217.4   25.6%
+        2     20       0.802       0.155   208.5    9.1%
+        5     50       0.811       0.134   201.1    2.9%
+       10    100       0.812       0.121   197.7    1.3%
+       20    200       0.814       0.109   194.6    0.5%
+       30    300       0.813       0.105   194.0    0.25%
+       50    500       0.813       0.103   193.7    0.01%
+
+   Retention is finished by step 2. What the tail buys is tightness, and it buys
+   it at a rate that falls off a cliff: cutting 500 to 300 leaves retention
+   IDENTICAL at 0.813, tightness 0.110 against 0.103, and the cross-entropy 0.6%
+   higher. That is twenty presses removed which each moved the picture by under a
+   third of one per cent.
+
+   KENNETH ALREADY REPORTED THIS DEFECT ON WIDGET 17 — its twenty boosting rounds
+   with nothing visible changing after six — so it is not a hypothetical.
+
+   A step still CANNOT be one iteration: from a random start one iteration gives
+   retention 0.116 and silhouette -0.119, a picture that puts the groups inside
+   each other. */
+const ITERS = 300;
 const PER_STEP = 10;
 
 /* THE LEARNING RATE IS 0.1 AND THAT IS A MEASURED CHOICE WITH A MEASURED COST.
@@ -91,6 +115,21 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const clamp01 = (v) => clamp(v, 0, 1);
 const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const dist2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const unit3 = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return scale3(a, 1 / m); };
+const easeCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
+
+/* Shorter arc between two unit vectors, as widget 19 has. Interpolating the
+   components and renormalising instead cuts through the inside of the sphere on
+   a wide turn, which reads as the cloud shrinking rather than turning. */
+function slerp(a, b, t) {
+  const d = clamp(dot(a, b), -1, 1);
+  const th = Math.acos(d);
+  if (th < 1e-6) return b.slice();
+  const s = Math.sin(th);
+  const c1 = Math.sin((1 - t) * th) / s, c2 = Math.sin(t * th) / s;
+  return [0, 1, 2].map((k) => a[k] * c1 + b[k] * c2);
+}
 
 function spread(n) {
   if (n === 2) return [[0, 0, R], [0, 0, -R]];
@@ -400,6 +439,12 @@ function shownAt(state, anim) {
 const STEP_MS = 260;
 const RUN_MS = 70;
 
+/* THE FLATTENING, and it is a move rather than a reveal — widget 19 spends 1800
+   on the same turn and 900 on its components appearing, for that reason. The
+   cloud has to be seen to ROTATE onto its plane, because that is the claim: the
+   arrangement UMAP starts from is a real projection of the data and not noise. */
+const ENTER_MS = 1500;
+
 /* THE LOW-DIMENSIONAL MEMBERSHIP, and the distance at which a pair of a given
    strength is happiest. dC/ds = (b/s)(mu - w) is zero exactly when w = mu, so
 
@@ -450,6 +495,7 @@ defineWidget({
   legend: [
     { token: "ink-2", label: "an edge — how strongly two samples are joined", mark: "line" },
     { token: "empirical", label: "the cross-entropy, falling", mark: "line" },
+    { token: "reference", label: "the graph's own entropy — the part no arrangement can remove", mark: "line" },
     { token: "highlight", label: "the sample the bottom-left curves are about", mark: "dot" },
     /* THE BOTTOM-LEFT PANEL'S WHOLE EXPLANATION, and it lives here because the
        legend is DOM and wraps where a canvas caption in a 192px cell cannot. */
@@ -548,7 +594,7 @@ defineWidget({
       type: "gate",
       label: "Flatten it",
       labelOff: "Back to the cloud",
-      detail: "lay the same graph out in two dimensions, like a globe onto a map",
+      detail: "turn the cloud onto its two most-spread directions and lay it flat, like a globe onto a map",
       when: { param: "graph" },
       display: true,
     },
@@ -633,9 +679,17 @@ defineWidget({
 
     const { mu, rho, sigma } = fuzzySet(pts, neighbours);
     const { a, b } = findAbParams(1, params.packing);
+
+    /* THE FLATTENING STARTS ON THE PCA PLANE, not at random — `umap-learn`'s own
+       default is structured too (spectral), and the eight-seed table is in
+       model.js. `Z` is the centred cloud and `pc1`/`pc2` its two most-spread
+       directions, so `Y0` IS the flattening: the entry animation rotates the
+       cloud onto exactly this plane and lands on frame 0 of the run. */
+    const { Z, pc1, pc2, Y: Y0 } = pcaPlane(pts);
+
     const { frames: path, curve } = umap(pts, {
       nNeighbors: neighbours, iters: ITERS, every: PER_STEP,
-      eta: ETA, seed: params.seed, mu, ab: { a, b },
+      eta: ETA, seed: params.seed, mu, ab: { a, b }, init: Y0,
     });
 
     /* ONE SCALE FOR THE 2-D PANEL, covering the whole trajectory, so the frame
@@ -658,12 +712,30 @@ defineWidget({
     /* The edge weights the picked sample actually has, which is what the kernel
        panel draws curves for. Sorted so the strongest, the middling and the
        weakest can each get one. */
+    /* THE CROSS-ENTROPY HAS A FLOOR AND IT IS NOT ZERO. Writing it as
+       CE = SUM H(mu) + KL(mu || w) splits it in two: the entropy of the graph
+       itself, which no arrangement can remove, and the fit error, which is the
+       only part the descent can touch. On this stage the floor is 139.8 against
+       a final 170.9 — SO 82 PER CENT OF WHAT THE WIDGET REPORTS IS IRREDUCIBLE.
+       A chart anchored at 0 with no floor marked says the opposite: that the
+       curve is failing to reach a target it could in principle hit. */
     const edgeList = [];
+    let floor = 0;
     for (let i = 0; i < n; i += 1)
-      for (let j = i + 1; j < n; j += 1) if (mu[i][j] > 1e-9) edgeList.push(mu[i][j]);
+      for (let j = i + 1; j < n; j += 1) {
+        const m = mu[i][j];
+        if (m > 1e-9) edgeList.push(m);
+        if (m > 1e-9 && m < 1 - 1e-9) floor -= m * Math.log(m) + (1 - m) * Math.log(1 - m);
+      }
 
+    /* WHAT THE FLATTENING ALONE GETS, before UMAP moves a single point. It is
+       the readout tile that says what UMAP ADDS — 65 per cent against 81 on
+       this stage — and no other widget in the arc states that difference.
+       Taken from path[0] rather than from Y0 because compute recentres every
+       frame below, and the two must be the same numbers. */
     return {
-      n, groups, per, gs, pts, path, curve, mu, rho, sigma, a, b,
+      n, groups, per, gs, pts, Z, pc1, pc2, path, curve, mu, rho, sigma, a, b,
+      keptFlat: neighboursKept(pts, path[0]), floor,
       neighbours, clamped, legal, edgeCount: edgeList.length,
       meanMu: edgeList.length ? edgeList.reduce((s, v) => s + v, 0) / edgeList.length : 0,
       span2: span2 * 1.08 || 1,
@@ -760,6 +832,11 @@ defineWidget({
       return {
         k: pre, t: 1, moving: false, done: pre >= total,
         inert: !params.flatten,
+        /* 1 WHEN THE GATE IS ALREADY OPEN ON LOAD, so a shared link opens on the
+           figure rather than replaying into it — widget 19's rule, and the same
+           reasoning as `shown`: an authored head start describes how the figure
+           arrives, not something it keeps. */
+        enter: params.flatten ? 1 : 0,
         others: otherDisplay(params),
       };
     },
@@ -783,9 +860,29 @@ defineWidget({
       if (anim.k > total) { anim.k = total; anim.moving = false; anim.t = 1; }
       anim.done = anim.k >= total;
       anim.inert = !params.flatten;
+
+      /* THE FLATTENING ASKS FOR FRAMES. `anim.easing` is core's word for "this
+         display change wants them", and it is CONSUMED when granted, so it has
+         to be asked for each time. Shutting the gate rewinds, so re-opening it
+         plays again rather than snapping to the end. */
+      if (!params.flatten) anim.enter = 0;
+      else if (anim.enter < 1) anim.easing = true;
     },
 
     advance(anim, { dt, state }) {
+      /* CORE'S OWN MODE FOR A DISPLAY TRANSITION. Nothing of the descent moves
+         while the cloud is rotating onto its plane — they are two different
+         things and overlapping them would read as one. */
+      if (anim.mode === "ease") {
+        anim.enter = Math.min(1, anim.enter + dt / ENTER_MS);
+        return anim.enter < 1;
+      }
+      /* A STEP INTERRUPTING THE FLATTENING FINISHES IT FIRST. Core stops the
+         ease the moment Settle or Play is pressed, which would leave the cloud
+         frozen half-rotated with the descent running underneath it — and
+         HANDOVER records three shipped bugs that were exactly a mid-animation
+         state one action left another in. */
+      anim.enter = 1;
       const total = state.path.length - 1;
       const dur = anim.mode === "step" ? STEP_MS : RUN_MS;
       if (anim.moving) {
@@ -877,15 +974,44 @@ defineWidget({
 
     arrow(ctx, colors, L.arrow, 0.9);
 
-    /* ---- the same graph, flattened ---------------------------------------- */
+    /* ---- the same graph, flattened ---------------------------------------- *
+     *
+     * THE FLATTENING IS A REAL ROTATION, and that is why the start is the PCA
+     * plane rather than noise. While `anim.enter` runs 0 to 1 this panel shows
+     * the SAME cloud the panel on the left does, turning onto its two
+     * most-spread directions and landing flat — and where it lands is exactly
+     * frame 0 of the descent, because that frame IS this projection.
+     *
+     * Slerping each basis vector and squaring the second up against the first
+     * keeps every frame orthonormal, so the cloud rotates rather than shears —
+     * widget 19's note, and its helpers.
+     *
+     * The graph comes with it. The edges are drawn through the whole turn,
+     * because carrying them across is the claim the arrow makes.
+     */
     {
       const { x, y, w: pw, h: ph } = L.flat;
       const cx = x + pw / 2, cy = y + ph / 2;
-      const S = (L.side / 2 - 16) / state.span2;
+      const S2 = (L.side / 2 - 16) / state.span2;
+      const turning = anim.enter < 1;
+      const te = easeCubic(clamp01(anim.enter));
+
+      let at;
+      if (turning) {
+        const base = camera(params.turn, params.tilt);
+        const ux = slerp(base.ex, state.pc1, te);
+        let uy = slerp(base.ey, state.pc2, te);
+        uy = unit3(sub3(uy, scale3(ux, dot(ux, uy))));
+        const S3 = (L.side / 2 - 16) / state.span3;
+        const S = lerp(S3, S2, te);
+        at = (i) => [cx + dot(state.Z[i], ux) * S, cy - dot(state.Z[i], uy) * S];
+      } else {
+        at = (i) => [cx + Y[i][0] * S2, cy - Y[i][1] * S2];
+      }
 
       text(ctx, colors, "2-D space", x, y - 10, colors.ink2, colors.fsSm);
-      text(ctx, colors, "membership in the picture", x + pw, y - 10,
-        colors.ink3, colors.fsXs, "right");
+      text(ctx, colors, turning ? "flattening onto its own plane" : "membership in the picture",
+        x + pw, y - 10, colors.ink3, colors.fsXs, "right");
 
       /* The axes are named UMAP1 and UMAP2 and carry NO ticks, deliberately.
          They have no units: the arrangement's size is arbitrary, and a scale
@@ -893,19 +1019,26 @@ defineWidget({
          apart" — that this widget exists to break. `03-5` cell 41 lists
          "Interpretation of axes is not straightforward" among UMAP's
          limitations; this is that, drawn. */
-      ctx.save();
-      ctx.strokeStyle = colors.axis;
-      ctx.lineWidth = 1;
-      const ax = Math.round(x + 12) + 0.5, ay = Math.round(y + ph - 14) + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(ax, y + 8);
-      ctx.lineTo(ax, ay);
-      ctx.lineTo(x + pw - 8, ay);
-      ctx.stroke();
-      ctx.restore();
-      text(ctx, colors, "UMAP1", x + pw - 8, ay + 10, colors.ink3, colors.fsXs, "right", "top");
-
-      const at = (i) => [cx + Y[i][0] * S, cy - Y[i][1] * S];
+      /* The axes arrive with the landing. Mid-rotation they would be naming
+         directions the picture does not have yet. */
+      const axesIn = clamp01((anim.enter - 0.72) / 0.28);
+      if (axesIn > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = axesIn;
+        ctx.strokeStyle = colors.axis;
+        ctx.lineWidth = 1;
+        const ax = Math.round(x + 12) + 0.5, ay = Math.round(y + ph - 14) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ax, y + 8);
+        ctx.lineTo(ax, ay);
+        ctx.lineTo(x + pw - 8, ay);
+        ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = axesIn;
+        text(ctx, colors, "UMAP1", x + pw - 8, ay + 10, colors.ink3, colors.fsXs, "right", "top");
+        ctx.restore();
+      }
 
       /* THE LOW-D HALO IS IN THE ARRANGEMENT'S OWN UNITS, which is a thing
          widget 21 could not do: t-SNE's kernel and its output scale are
@@ -914,10 +1047,13 @@ defineWidget({
          can be drawn at their true radii and `packing` visibly moves them.
          There is no flat top — w = 1 only at d = 0 — and that asymmetry with
          the panel on the left is the rho subtraction, drawn. */
+      /* The low-D halos arrive with the landing too: 1/(1 + a d^2b) is a
+         function of a distance IN THIS PANEL, and mid-rotation there is no such
+         distance yet. */
       for (let i = 0; i < n; i += 1) {
         const [px, py] = at(i);
-        const rs = [0.75, 0.5, 0.25].map((h) => dStar(h, a, b) * S);
-        halo(ctx, col(i), px, py, rs, haloA * 0.85);
+        const rs = [0.75, 0.5, 0.25].map((h) => dStar(h, a, b) * S2);
+        halo(ctx, col(i), px, py, rs, haloA * 0.85 * axesIn);
       }
       edges(ctx, colors, mu, at, n, 0.9);
       for (let i = 0; i < n; i += 1) {
@@ -1100,6 +1236,25 @@ defineWidget({
       text(ctx, colors, Math.round(top).toString(), ar.x - 5, ar.y + 1,
         colors.ink3, colors.fsXs, "right", "top");
 
+      /* THE FLOOR, drawn because the curve lands on it and a reader is owed the
+         reason. It is the entropy of the graph — the part of the cross-entropy
+         that is a property of the DATA and not of the picture — and the descent
+         cannot go under it however well it fits. Drawn from the start rather
+         than revealed, because it is a property of the frame and not of the
+         reader's progress. */
+      const fy = py(state.floor);
+      ctx.save();
+      ctx.strokeStyle = colors.reference;
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ar.x, fy);
+      ctx.lineTo(ar.x + ar.w, fy);
+      ctx.stroke();
+      ctx.restore();
+      text(ctx, colors, "as low as it can go", ar.x + ar.w - 2, fy - 3,
+        colors.ink3, colors.fsXs, "right", "bottom");
+
       /* THROUGH THE COMPLETED STEPS ONLY, so the chart starts empty and grows —
          the same reveal widgets 20 and 21 use, and what keeps the widget from
          opening on its own answer (non-negotiable 4). The frame is drawn from
@@ -1174,17 +1329,26 @@ defineWidget({
       label: "Cross-entropy",
       value: curve[anim.k].toFixed(1),
       note: anim.k === 0
-        ? "the random start, before any step"
+        ? "the flat map, before any gradient step"
         : `after ${anim.k * PER_STEP} of ${total * PER_STEP} gradient steps`,
     });
 
     /* THE TWO HALVES OF THE SENTENCE, side by side, so moving `packing` shows
        one move and the other stay still. That is the whole widget in two
        tiles. */
+    /* THE NUMBER THAT SAYS WHAT UMAP ADDS, and nothing else in the arc states
+       it. The flattening alone — widget 19's plane, which is where this one
+       starts — already keeps about two thirds of every sample's neighbourhood.
+       What the descent buys is the rest, and a reader who has just watched the
+       cloud rotate flat can see the tile move as they press Settle. */
+    const kept = neighboursKept(pts, Y);
     out.push({
       label: "Neighbours kept",
-      value: `${Math.round(neighboursKept(pts, Y) * 100)}%`,
-      note: "of each sample's three nearest in 3-D, how many are still nearest here — what UMAP KNOWS",
+      value: `${Math.round(kept * 100)}%`,
+      note: anim.k === 0
+        ? `the flat map alone, before UMAP moves anything — what UMAP KNOWS`
+        : `of each sample's three nearest in 3-D, how many are still nearest here `
+          + `— ${Math.round(state.keptFlat * 100)}% from flattening alone, the rest is UMAP`,
     });
     out.push({
       label: "How tight it looks",
@@ -1222,7 +1386,7 @@ defineWidget({
       return `${base} The graph has not been flattened yet.`;
     }
     const where = anim.k === 0
-      ? "the random start, before any gradient step"
+      ? "flattened onto its two most-spread directions and not yet moved by UMAP"
       : `after ${anim.k * PER_STEP} of ${total * PER_STEP} gradient steps`;
     const Y = shownAt(state, anim);
     return `${base} Beside it the same graph laid out in two dimensions, ${where}, `
