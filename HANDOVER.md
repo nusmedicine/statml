@@ -118,6 +118,26 @@ node widgets/_lab/umap-measure.mjs   # the catalogue's numbers
 with nothing keeping the two in step; `balancing-data/model.js` is the pattern
 this follows.
 
+### THE GLOBE IS A REFERENCE SPHERE, NOT A MANIFOLD — open, and his call
+
+Kenneth asked whether the 3-D distances were Euclidean. **They are, exactly** —
+`knn` agrees with the Euclidean norm to 8.9e-16, matching `umap-learn`'s default
+and PHM5005 cell 42. UMAP's manifold story comes from `ρ` and `σ` rescaling each
+neighbourhood, not from a different metric; no geodesic is computed.
+
+**But he asked it as "drawing the links in 3D manifold space", and the samples
+are not on a manifold.** `stage()` puts the four cluster CENTRES on a sphere of
+radius 2 and scatters samples around them in all three dimensions: radius from
+the origin runs 1.14 to 3.33, mean 2.29 ± 0.47, **only 9 of 48 within 0.1 of
+radius 2**. The great-circle distance differs from the Euclidean chord by up to
+1.83. `_lab/umap-metric.mjs` measures both. So the wireframe globe invites a
+reading the data does not support — and widget 21 draws the same globe.
+
+**Two ways out, and it is a teaching call: drop the globe, or put the samples ON
+the sphere** — which would make the manifold real and cell 41's analogy literal,
+at the cost of changing the stage widgets 19 to 22 share and every number
+measured on it.
+
 ### What he should look at, because none of it is checkable
 
 - **Is the graph legible at 385 edges?** Mapping C — opacity AND width carrying

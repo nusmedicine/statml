@@ -480,7 +480,7 @@ const otherDisplay = (p) => `${p.turn},${p.tilt},${p.labels},${p.pick},${p.graph
 defineWidget({
   slug: "umap",
   title: "UMAP",
-  subtitle: "Join every sample to its neighbours, then flatten the graph like a globe onto a map. Two controls: one changes what UMAP knows, the other only how tightly it draws — and telling them apart is the whole of reading a UMAP plot.",
+  subtitle: "UMAP builds a weighted graph of each sample's nearest neighbours, then lays that graph out in two dimensions. Neighbours changes which neighbourhoods the graph records. Minimum distance changes only how closely the layout may pack points.",
   status: "draft",
   layout: "side",
   height: ({ w, flatten }) => layout(w, !!flatten).height,
@@ -493,13 +493,13 @@ defineWidget({
      These have to read true with the labels BOTH off and on, because core takes
      the legend once at build time rather than per render. */
   legend: [
-    { token: "ink-2", label: "an edge — how strongly two samples are joined", mark: "line" },
-    { token: "empirical", label: "the cross-entropy, falling", mark: "line" },
-    { token: "reference", label: "the graph's own entropy — the part no arrangement can remove", mark: "line" },
-    { token: "highlight", label: "the sample the bottom-left curves are about", mark: "dot" },
-    /* THE BOTTOM-LEFT PANEL'S WHOLE EXPLANATION, and it lives here because the
-       legend is DOM and wraps where a canvas caption in a 192px cell cannot. */
-    { token: "ink-3", label: "each curve is ONE link — what that pair pays at every distance, and the dot is the distance it wants", mark: "line" },
+    { token: "ink-2", label: "edge — the membership strength μ between two samples", mark: "line" },
+    { token: "empirical", label: "cross-entropy over all pairs", mark: "line" },
+    { token: "reference", label: "lower bound — the entropy of the graph itself", mark: "line" },
+    { token: "highlight", label: "selected sample", mark: "dot" },
+    /* The bottom-left panel's explanation lives here because the legend is DOM
+       and wraps, where a canvas caption in a 192px cell cannot. */
+    { token: "ink-3", label: "one pair's cross-entropy against distance; the dot marks its minimum", mark: "line" },
   ],
 
   params: {
@@ -550,7 +550,7 @@ defineWidget({
       min: 2,
       max: 40,
       default: 15,
-      detail: "how many others each sample is joined to — the lesson's n_neighbors",
+      detail: "how many nearest neighbours each sample is joined to — n_neighbors",
     },
 
     /* THE SECOND, and the one the widget is about. Over the same sweep it moves
@@ -563,14 +563,14 @@ defineWidget({
        would be a widget lying about itself (non-negotiable 1). That it changes
        the picture without changing the knowledge is the LESSON, not a licence
        to skip the recompute. */
-    packing: {
+    minDist: {
       type: "float",
-      label: "Packing",
+      label: "Minimum distance",
       min: 0,
       max: 0.95,
       step: 0.05,
       default: 0.1,
-      detail: "how much room the picture must leave between points — the lesson's min_dist",
+      detail: "how closely the layout may pack points — min_dist in both libraries",
     },
 
     /* THE TWO GATES ARE CELL 41'S TWO NUMBERED STEPS, and Kenneth's own
@@ -585,16 +585,16 @@ defineWidget({
        whatever the gates say, and the gates choose how much is drawn. */
     graph: {
       type: "gate",
-      label: "Join the neighbours",
+      label: "Build the neighbour graph",
       labelOff: "Clear the graph",
-      detail: "draw each sample's neighbourhood, and an edge wherever two are joined",
+      detail: "find each sample's nearest neighbours and weight an edge to each one",
       display: true,
     },
     flatten: {
       type: "gate",
-      label: "Flatten it",
+      label: "Flatten to 2-D",
       labelOff: "Back to the cloud",
-      detail: "turn the cloud onto its two most-spread directions and lay it flat, like a globe onto a map",
+      detail: "project onto the two most-spread directions, then optimise the layout",
       when: { param: "graph" },
       display: true,
     },
@@ -678,7 +678,7 @@ defineWidget({
     const clamped = neighbours !== params.neighbours;
 
     const { mu, rho, sigma } = fuzzySet(pts, neighbours);
-    const { a, b } = findAbParams(1, params.packing);
+    const { a, b } = findAbParams(1, params.minDist);
 
     /* THE FLATTENING STARTS ON THE PCA PLANE, not at random — `umap-learn`'s own
        default is structured too (spectral), and the eight-seed table is in
@@ -808,10 +808,10 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Settle",
+    stepLabel: "Optimise",
     stepTitle: `Run ${PER_STEP} more gradient steps`,
     runLabel: "Play",
-    runTitle: "Keep going until the arrangement stops moving",
+    runTitle: "Run to the end of the optimisation",
 
     /* TWO GATES, AND CORE ONLY KNOWS ABOUT THE FIRST. `GATE_PARAM` is
        `Object.entries(spec).find(f => f.type === "gate")` — so core hides the
@@ -934,7 +934,7 @@ defineWidget({
 
       text(ctx, colors, "3-D space", x, y - 10, colors.ink2, colors.fsSm);
       if (joined) {
-        text(ctx, colors, "membership from the data", x + pw, y - 10,
+        text(ctx, colors, "membership in the data", x + pw, y - 10,
           colors.ink3, colors.fsXs, "right");
       }
 
@@ -963,9 +963,7 @@ defineWidget({
       }
 
       if (!open) {
-        text(ctx, colors,
-          joined ? "click a sample, drag to turn — then flatten it"
-            : "drag to turn the cloud. How many clusters can you see?",
+        text(ctx, colors, joined ? "drag to turn, click a sample" : "drag to turn",
           x, y + ph + 8, colors.ink3, colors.fsXs, "left", "top");
       }
     }
@@ -1010,7 +1008,7 @@ defineWidget({
       }
 
       text(ctx, colors, "2-D space", x, y - 10, colors.ink2, colors.fsSm);
-      text(ctx, colors, turning ? "flattening onto its own plane" : "membership in the picture",
+      text(ctx, colors, turning ? "projecting onto PC1, PC2" : "membership in the layout",
         x + pw, y - 10, colors.ink3, colors.fsXs, "right");
 
       /* The axes are named UMAP1 and UMAP2 and carry NO ticks, deliberately.
@@ -1044,7 +1042,7 @@ defineWidget({
          widget 21 could not do: t-SNE's kernel and its output scale are
          unrelated, so its 2-D halo used an invented unit. Here the membership
          1/(1 + a d^2b) is a function of a distance IN THIS PANEL, so the rings
-         can be drawn at their true radii and `packing` visibly moves them.
+         can be drawn at their true radii and `minDist` visibly moves them.
          There is no flat top — w = 1 only at d = 0 — and that asymmetry with
          the panel on the left is the rho subtraction, drawn. */
       /* The low-D halos arrive with the landing too: 1/(1 + a d^2b) is a
@@ -1080,8 +1078,8 @@ defineWidget({
          this one shows is a single pair's share of it, as a function of how far
          apart that pair is drawn, for three of the picked sample's links.
          The legend carries the rest, because it is DOM and wraps. */
-      text(ctx, colors, "What one link pays", x, y - 10, colors.ink2, colors.fsSm);
-      text(ctx, colors, "at this distance", x + pw, y - 10,
+      text(ctx, colors, "Cross-entropy, one pair", x, y - 10, colors.ink2, colors.fsSm);
+      text(ctx, colors, "vs distance", x + pw, y - 10,
         colors.ink3, colors.fsXs, "right");
 
       ctx.save();
@@ -1130,7 +1128,7 @@ defineWidget({
          d <= rho puts the membership on the kernel's flat top, and the fuzzy
          union keeps it there. d*(1) = 0 for any a and b, so that curve has its
          minimum at the origin, rises monotonically, and is the ONE link
-         `packing` cannot move. Drawn as the strongest of three it read as the
+         `minDist` cannot move. Drawn as the strongest of three it read as the
          headline and said the opposite of the panel's point.
 
          At the other end a link of mu ~ 0.00 has its minimum off the right of
@@ -1167,7 +1165,7 @@ defineWidget({
         ctx.stroke();
         /* The minimum, which is exactly where the picture's membership equals
            the data's. It is the distance this pair is being pulled toward, and
-           `packing` is the only thing that moves it. */
+           `minDist` is the only thing that moves it. */
         const ds = dStar(m, a, b);
         if (ds <= KERN_D) {
           ctx.globalAlpha = 1;
@@ -1179,7 +1177,7 @@ defineWidget({
           /* EACH MINIMUM CARRIES ITS OWN mu, rather than the three being listed
              in a caption. The list did not fit — 38 characters in a 192px cell —
              and a label on the dot is the better reading anyway: it names the
-             link whose ideal distance that dot IS, so moving `packing` shows a
+             link whose ideal distance that dot IS, so moving `minDist` shows a
              labelled dot sliding rather than a number changing somewhere else.
              The three are well separated by construction: d* is monotone in mu,
              and these are the largest, middle and smallest the sample has. */
@@ -1194,7 +1192,7 @@ defineWidget({
       text(ctx, colors,
         chosen.length
           ? `sample ${picked + 1} — click another`
-          : `sample ${picked + 1} has only μ = 1 links`,
+          : `sample ${picked + 1}: every link is at μ = 1`,
         ar.x, ar.y + ar.h + 5, colors.ink3, colors.fsXs, "left", "top");
     }
 
@@ -1208,11 +1206,12 @@ defineWidget({
 
       /* PAIRED WITH THE PANEL ON ITS LEFT, deliberately: "one link" against
          "every link" is what says the two are the same quantity at two scales,
-         and not two different things called cross-entropy. Both pairs were
-         measured to fit the narrowest column the layout produces — 203px at a
-         520px viewport — rather than chosen and hoped for. */
-      text(ctx, colors, "What every link pays", x, y - 10, colors.ink2, colors.fsSm);
-      text(ctx, colors, "added up", x + pw, y - 10, colors.ink3, colors.fsXs, "right");
+         and not two different things called cross-entropy. EVERY label pair in
+         this widget was measured against the narrowest column the layout
+         produces — 203px at a 520px viewport — rather than chosen and hoped
+         for; four of the first five overflowed it. */
+      text(ctx, colors, "Cross-entropy, all pairs", x, y - 10, colors.ink2, colors.fsSm);
+      text(ctx, colors, "vs steps", x + pw, y - 10, colors.ink3, colors.fsXs, "right");
 
       ctx.save();
       ctx.strokeStyle = colors.grid;
@@ -1252,7 +1251,7 @@ defineWidget({
       ctx.lineTo(ar.x + ar.w, fy);
       ctx.stroke();
       ctx.restore();
-      text(ctx, colors, "as low as it can go", ar.x + ar.w - 2, fy - 3,
+      text(ctx, colors, "lower bound", ar.x + ar.w - 2, fy - 3,
         colors.ink3, colors.fsXs, "right", "bottom");
 
       /* THROUGH THE COMPLETED STEPS ONLY, so the chart starts empty and grows —
@@ -1306,21 +1305,21 @@ defineWidget({
       return [{
         label: "Samples",
         value: String(n),
-        note: `${groups} groups of ${state.per}, in three genes — join them up to start`,
+        note: `${groups} groups of ${state.per}, measured on three genes`,
       }];
     }
 
     out.push({
       label: "Edges",
       value: String(edgeCount),
-      note: `of ${(n * (n - 1)) / 2} possible pairs, mean strength ${meanMu.toFixed(2)}`,
+      note: `of ${(n * (n - 1)) / 2} possible pairs, mean membership ${meanMu.toFixed(2)}`,
     });
 
     if (!params.flatten) {
       out.push({
         label: "Neighbours",
         value: String(neighbours),
-        note: "each sample is joined to this many — flatten the graph to see what survives",
+        note: "nearest neighbours per sample — n_neighbors",
       });
       return out;
     }
@@ -1329,11 +1328,11 @@ defineWidget({
       label: "Cross-entropy",
       value: curve[anim.k].toFixed(1),
       note: anim.k === 0
-        ? "the flat map, before any gradient step"
-        : `after ${anim.k * PER_STEP} of ${total * PER_STEP} gradient steps`,
+        ? `after the projection, before any gradient step; lower bound ${state.floor.toFixed(1)}`
+        : `after ${anim.k * PER_STEP} of ${total * PER_STEP} steps; lower bound ${state.floor.toFixed(1)}`,
     });
 
-    /* THE TWO HALVES OF THE SENTENCE, side by side, so moving `packing` shows
+    /* THE TWO HALVES OF THE SENTENCE, side by side, so moving `minDist` shows
        one move and the other stay still. That is the whole widget in two
        tiles. */
     /* THE NUMBER THAT SAYS WHAT UMAP ADDS, and nothing else in the arc states
@@ -1345,22 +1344,20 @@ defineWidget({
     out.push({
       label: "Neighbours kept",
       value: `${Math.round(kept * 100)}%`,
-      note: anim.k === 0
-        ? `the flat map alone, before UMAP moves anything — what UMAP KNOWS`
-        : `of each sample's three nearest in 3-D, how many are still nearest here `
-          + `— ${Math.round(state.keptFlat * 100)}% from flattening alone, the rest is UMAP`,
+      note: `of each sample's 3 nearest in 3-D, still nearest here; `
+        + `${Math.round(state.keptFlat * 100)}% after the projection alone`,
     });
     out.push({
-      label: "How tight it looks",
+      label: "Spread over gap",
       value: tightness(Y, gs, groups).toFixed(3),
-      note: "cluster width over the gaps between them — smaller looks more convincing, and packing is what sets it",
+      note: "mean cluster radius over the mean distance between cluster centres",
     });
 
     if (clamped) {
       out.push({
         label: "Neighbours",
         value: String(neighbours),
-        note: `${n} samples allow at most ${legal} — umap-learn clamps here without saying so`,
+        note: `${n} samples allow at most ${legal}; umap-learn clamps silently`,
       });
     }
     return out;
@@ -1368,34 +1365,25 @@ defineWidget({
 
   summary({ params, state, anim }) {
     const { n, groups, per, neighbours, curve, gs } = state;
-    const view = `Turned ${params.turn} degrees, tilted ${params.tilt}.`;
     const told = params.labels === "on";
-    const stock = `${n} samples in ${groups} groups of ${per}`;
-    const shown = told
-      ? "coloured by the group each really came from"
-      : "all drawn the same colour, so the grouping is not given away";
+    const stock = `${n} samples in ${groups} groups of ${per}, measured on three genes, `
+      + (told ? "coloured by group" : "all one colour so the grouping is not given away")
+      + `, turned ${params.turn} degrees and tilted ${params.tilt}.`;
+    if (!params.graph) return `${stock} No neighbour graph has been built yet.`;
+    const base = `${stock} Each sample is joined to its ${neighbours} nearest neighbours, `
+      + `${state.edgeCount} weighted edges in all.`;
+    if (!params.flatten) return `${base} The graph has not been laid out in two dimensions yet.`;
     const total = state.path.length - 1;
-    if (!params.graph) {
-      return `${stock}, in three genes, on a sphere, ${shown}. ${view} Nothing has been `
-        + `joined up yet: the neighbour graph is not drawn and there is no arrangement.`;
-    }
-    const base = `${stock}, in three genes, ${shown}, each wearing the neighbourhood `
-      + `${neighbours} neighbours give it and joined to the others by ${state.edgeCount} `
-      + `weighted edges. ${view}`;
-    if (!params.flatten) {
-      return `${base} The graph has not been flattened yet.`;
-    }
     const where = anim.k === 0
-      ? "flattened onto its two most-spread directions and not yet moved by UMAP"
+      ? "projected onto its two most-spread directions and not yet optimised"
       : `after ${anim.k * PER_STEP} of ${total * PER_STEP} gradient steps`;
     const Y = shownAt(state, anim);
-    return `${base} Beside it the same graph laid out in two dimensions, ${where}, `
-      + `its edges unchanged and its halos drawn from the low-dimensional kernel that `
-      + `packing ${params.packing} sets. Underneath, the cross-entropy a single pair pays `
-      + `at each distance in the picture, and the cross-entropy of the whole arrangement `
-      + `falling — ${curve[anim.k].toFixed(1)} now. `
+    return `${base} Beside it the same graph in two dimensions, ${where}. Below, the `
+      + `cross-entropy of a single pair against the distance it is drawn at, and the `
+      + `cross-entropy over all pairs against steps: ${curve[anim.k].toFixed(1)} now, `
+      + `against a lower bound of ${state.floor.toFixed(1)}. `
       + `${Math.round(neighboursKept(state.pts, Y) * 100)}% of each sample's three nearest `
-      + `neighbours survived the flattening, and the clusters draw at `
-      + `${tightness(Y, gs, groups).toFixed(3)} of the gaps between them.`;
+      + `neighbours in three dimensions are still its nearest here, and the clusters have a `
+      + `mean radius ${tightness(Y, gs, groups).toFixed(3)} of the mean gap between them.`;
   },
 });

@@ -5656,6 +5656,65 @@ Seed 1, four groups of twelve, at the settled end (`?…&step=50`):
 **Five points of retention against forty-two.** The two tiles sit side by side
 and say it without a caption, which is what they are for.
 
+#### THE METRIC IS PLAIN EUCLIDEAN — asked, and checked rather than asserted
+
+*(Kenneth, 2026-08-26: "is the distance used euclidean or something else?")*
+`knn` agrees with the Euclidean norm to **8.9e-16** over every neighbour pair,
+which is exact. That matches both hosts: `umap-learn` defaults to
+`metric="euclidean"` and PHM5005 cell 42 passes it explicitly.
+
+**UMAP's manifold story does not come from a different distance.** It comes from
+`ρᵢ` and `σᵢ`: subtracting the nearest-neighbour distance and dividing by a
+per-point bandwidth rescales each neighbourhood so the local metric is unit,
+which is what cell 46 means by "the Riemannian metric is locally constant". On
+this stage `σ` varies by **×5.2** across the samples. **No geodesic is ever
+computed** — the rescaling is the approximation.
+
+#### THE GLOBE IS A REFERENCE SPHERE, NOT A MANIFOLD, and that needs deciding
+
+**The samples do not lie on the sphere the widget draws.** `stage()` puts the
+four cluster CENTRES on a sphere of radius 2 and then scatters samples around
+them in all three dimensions, so the cloud fills the ball rather than the shell.
+Measured, seed 1:
+
+| radius from the origin | min | p25 | median | p75 | max |
+|---|---|---|---|---|---|
+| | 1.14 | 1.98 | 2.29 | 2.62 | 3.33 |
+
+mean 2.29 ± 0.47, and **only 9 of 48 samples are within 0.1 of radius 2**. The
+great-circle distance on that sphere differs from the Euclidean chord by up to
+**1.83** on neighbour pairs, so the two are not interchangeable.
+
+**So the wireframe globe invites a reading the data does not support** — Kenneth
+asked the question as "drawing the links in 3D manifold space", which is the
+misconception the drawing creates. Widget 21 draws the same globe and inherits
+the same problem, though it never claims a manifold. Two ways out and it is a
+teaching call:
+
+- **drop the globe**, and stop implying a surface the samples are not on
+- **put the samples ON the sphere**, which makes the manifold real, makes cell
+  41's globe-onto-a-map analogy literal, and gives the widget a genuine
+  curved-surface case — at the cost of changing the stage that widgets 19 to 22
+  share, and every number measured on it
+
+#### THE COPY IS CONVENTIONAL, after a pass on Kenneth's instruction
+
+*(2026-08-26: "remove any extraneous commentary from the widget. use
+conventional language, not something you invented.")* The parameter `packing`
+was invented and is now `minDist`, labelled **Minimum distance** and naming
+`min_dist` in its detail — the same treatment widget 21 gives Perplexity. Also
+renamed to the terms the notebooks and the libraries use: *Settle* → **Optimise**
+(cell 41's own verb), *What one link pays* → **Cross-entropy, one pair**,
+*as low as it can go* → **lower bound**, *How tight it looks* → **Spread over
+gap**, *Join the neighbours* → **Build the neighbour graph**, and the legend now
+says **membership strength μ** rather than "how strongly two samples are
+joined". The two stage captions are bare instructions; the invitations
+("How many clusters can you see?") were cut, since the `labels` control already
+asks it.
+
+**EVERY LABEL PAIR WAS MEASURED against the narrowest column the layout produces
+— 203px at a 520px viewport — and four of the first five overflowed it.**
+
 #### TWO DEFECTS THE BUILD FOUND, and only one is this widget's
 
 1. **EVERY SAMPLE HAS A LINK AT μ = 1 AND ITS IDEAL DISTANCE IS ZERO.** A

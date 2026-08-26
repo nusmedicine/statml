@@ -314,7 +314,7 @@
     {
       "slug": "umap",
       "title": "UMAP",
-      "blurb": "Flatten the neighbour graph like a globe onto a map. One knob changes what UMAP knows, the other how tight it looks.",
+      "blurb": "A graph of nearest neighbours, laid out in 2-D. One control changes what it records, the other only how it packs.",
       "course": "PHM5003",
       "topics": [
         "dimensionality reduction",
