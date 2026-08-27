@@ -629,13 +629,15 @@ README's seven example URLs are the documented deployed paths.
   anything copied from an older script. `np.ptp(Y, axis=0)` is the replacement.
 
 **`git commit` can die with `unable to write file .git/objects/…: Permission
-denied` while PowerShell writes the same path fine.** Dropbox's filter driver
-denies the HARDLINK git uses to finalise a loose object (`core.createObject`
-defaults to `link`); it struck mid-session on 2026-08-27 after a run of
-successful commits, on every retry, from both shells. The repo now sets
-`core.createObject rename` (repo-local), which fixed it on the first try. If
-it recurs on a fresh clone, that one config line is the whole cure — do not
-chase permissions.
+denied` while PowerShell writes the same path fine.** It is Dropbox racing
+git for the new object file — the same class as the `_site` delete retry —
+and it struck twice on 2026-08-27. **A retry a few seconds later cleared the
+second strike, so retry once before diagnosing anything.** The first strike
+persisted across retries from both shells and cleared only after
+`core.createObject rename` went into the repo config (Dropbox's filter driver
+can deny the hardlink git defaults to); the setting is still in place, and the
+second strike proved it is not a complete cure on its own. So: retry, and only
+then chase configuration — never permissions.
 
 **Git had no identity here** and refused the first commit. Set repo-local to
 `Kenneth Ban <kennethban@gmail.com>`, matching every existing commit; a
