@@ -6,7 +6,8 @@ states recorded.**
 Widget 23 `kmeans` was reconnoitred, planned, measured, built and revised over
 four rounds of Kenneth's review on 2026-08-26 — its engine verified exactly
 against sklearn — then baselined with five states and promoted to the gallery the
-same day. **Widget 24 is DBSCAN**, reconnoitred but not planned. See *NEXT*.
+same day. **Widget 24 is DBSCAN: planned and measured on 2026-08-26, engine
+built and exact against sklearn, all four design calls settled, and no `main.js` yet.** See *NEXT*.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -24,15 +25,20 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 144 states, and widget 23 was added without re-running it
+## The suite: 152 states, all matching — and widget 24 ran the full one
+
+**Widget 24 added eight states on 2026-08-27 by running the full suite three
+times**, then a fourth against the recorded hashes: **152 of 152 MATCH**. It did
+not need the full run — nothing in `widgets/core/` was touched — but the suite
+was the cheapest way to get eight hashes at once, and it bought a real
+assurance for free: **the 144 pre-existing states all matched on every run**, so
+nothing in the new widget reached a widget nobody was looking at.
 
 **Widget 23 added five states on 2026-08-26 WITHOUT running the suite**, with
 `_lab/kmeans-shoot.html` — which is what *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*
 below prescribes. It reproduced four existing baseline hashes first, to prove its
 copy of the harness had not drifted, and all five new states were identical
-across three runs. **No full run was owed**: nothing in `widgets/core/` was
-touched, and that is the only kind of change that can reach a widget nobody is
-looking at.
+across three runs.
 
 **Every state before those is recorded and every one matches.** Widget 22's five states went
 in on 2026-08-26 when Kenneth promoted it, confirmed identical across three
@@ -81,6 +87,7 @@ is blind to.
 | 21 | `t-sne` | shipped, built and reviewed across one long session on 2026-08-26 |
 | 22 | `umap` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 | 23 | `kmeans` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
+| 24 | `dbscan` | shipped. Planned and measured on 2026-08-26, built and revised over two review rounds on 2026-08-27, then baselined with **eight** states — five settled, three driven |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -113,59 +120,55 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT: PLAN DBSCAN, WIDGET 24
+## WIDGET 24 IS SHIPPED — `dbscan`, built and baselined 2026-08-27
 
-**Widget 23 shipped on 2026-08-26; the arc's second clustering widget is
-DBSCAN.** The reconnaissance is written —
-[docs/catalogue.md](docs/catalogue.md) § *NEXT · DBSCAN*. **Read that, not this
-summary.** Then run a planning session on the pattern of § *NEXT · t-SNE* and
-§ *NEXT · K-Means*: three questions, each closed with a number rather than an
-argument.
+**The full history is [docs/catalogue.md](docs/catalogue.md) § *Widget 24 ·
+`dbscan`*** — four design calls, two review rounds, and the two mock-up pages
+that settled them. Read that before changing anything. What belongs here is only
+what would cost time to rediscover:
 
-### The four things that shape it
+**Two review rounds each rewrote the animation, and the second was the real
+one.** The first build made the reach a beat you PERFORM ("Draw the reach"), so
+`eps` — a data parameter — re-initialised the animation on every drag and the
+discs vanished while the widget's most important slider moved. The second build
+grew one ring per **BFS layer**, which drew four rings at once, moved nothing,
+and never showed a neighbourhood being counted; Kenneth reported those as three
+separate questions and they were one fault. **A breadth-first front is not what
+DBSCAN does.** It now walks one point at a time:
 
-1. **ONE HOST AGAIN.** PHM5005 `03-5` cells 60–67. **PHM5003 mentions DBSCAN
-   zero times** — checked across all ten of its notebook directories. Nothing to
-   reconcile between an R library and a Python one.
-2. **ASK FOR THE DIAGRAM FIRST.** Cell 60 embeds `unsupervised-dbscan.png` from
-   **Dropbox rather than as an attachment**, exactly as cell 52 did. Widget 23's
-   entire layout came from that diagram; getting this one is the first move, not
-   the last.
-3. **THE ONE SENTENCE IS HALF-WRITTEN BY WIDGET 23.** Its claim is *you must
-   choose K, and the objective cannot tell you that you chose wrong.* Cell 60's
-   first strength is *"Does not require specifying the number of clusters in
-   advance"* — so the candidate is **DBSCAN does not make you choose K; it makes
-   you choose a radius, and the radius decides how many clusters you get.**
-   **Measure that before believing it**: sweep `eps` on a fixed stage and see
-   whether the cluster count actually moves.
-4. **THREE KINDS OF POINT, WHICH THIS ARC HAS NEVER DRAWN.** Core, border,
-   noise. `tokens.css` has six cluster colours and `--c-unknown` — and noise is
-   not "not measured yet", it is a verdict. Probably wants a new semantic role.
+```
+0.00 - 0.44   the disc TRAVELS from the point just examined to this one
+0.38 - 0.74   spokes grow from it to every point inside the disc
+0.62 - 1.00   the ones it pulls in take the cluster colour
+```
 
-**And one trap worth measuring early**: cell 67 prints
-`silhouette_score(X_umap, db_labels)` with noise still labelled `-1`, so sklearn
-scores **noise as if it were a cluster**. Widget 23 prints the same two scores;
-if that materially moves the number, the two widgets' readouts are not
-comparable and widget 24 has to say so.
+**Three things worth not rediscovering:**
 
-### The arc move, which the notebook states outright
+- **A mark drawn with `globalAlpha` over a wash takes its colour from the
+  wash.** Grammar G's border weight was measured at 97% distinct from core *on a
+  bare surface* and shipped as an alpha; on the figure it sat on ten overlapping
+  eps discs and read 79,135,202 against core's 57,135,229 — nothing like 97%,
+  and varying across the stage. It is a mixed opaque colour now. **A mark whose
+  appearance depends on what is behind it is not a mark.**
+- **`--grid` is the wrong token for anything that must read as a region.** It is
+  a hairline colour chosen to be nearly invisible and the eps disc vanished
+  outright in dark mode. `--ink-3` is `#898781` in *both* themes.
+- **Hand-pumping `requestAnimationFrame` is how the animation was checked**, and
+  it caught a `ReferenceError` that fires only on a mid-beat frame at a
+  particular speed. Every settled state and every `?shown=N` link sails past it.
+  The harness's own `drive()` does the same thing; borrow it.
 
-Cell 51 names the two workflows: **PCA → K-Means** and **UMAP → DBSCAN**.
-Widget 23 is the first, widget 24 the second, and `widgets/umap/model.js`
-already exports `umap`, `fuzzySet`, `findAbParams`, `pcaPlane` and the sphere
-`stage()`. The four dimensionality-reduction widgets become the input to the two
-clustering ones.
+**`_lab/dbscan-drive.mjs` IS STILL OWED.** The contract assertions, the offline
+canvas text sweep and the geometry check at 320–900px were all run **by hand**
+during the build and passed — at 320px, 98 arcs drawn, 0 outside the canvas, no
+horizontal scroll — but a check that lives in a transcript is not a check. Copy
+`kmeans-drive.mjs` wholesale.
 
-### Lift from `widgets/kmeans/`, and these four things above all
-
-| | |
-|---|---|
-| `model.js` **imported, never copied** | `_lab/kmeans-verify.mjs` writes the points *and* the initial state to JSON and Python reads them, so both engines run on byte-identical input — which is why widget 23 matches sklearn exactly rather than "comparably". DBSCAN has no seed at all, so the same trick should be exact with nothing to reconcile |
-| `_lab/kmeans-drive.mjs` | 77 assertions, no browser and no clock: the contract, the numbers, the canvas text sweep run offline against a recording stub, and a geometry check that fails anything drawn outside the canvas at 320–900px. Copy it wholesale |
-| `_lab/kmeans-shoot.html` | records a new widget's fingerprint states **without re-running the suite**, and proves its copy of the harness faithful against existing baseline hashes before printing anything. That guard is the whole value |
-| the rail | `row: { key }` pairs two controls; `afterDrive: true` puts the pace control under the button it governs. `_lab/kmeans-rail.html` has the measurements |
-
----
+**And one default is worth a second opinion.** The eps discs are a toggle
+defaulting **off**, which trades directly against review round 1, where they were
+made permanent precisely so dragging `eps` had something to move. What moves now
+is the caption's live core count and the travelling disc. Flipping that one
+default is the whole fix if it turns out to be too little.
 
 ## WIDGET 23 IS SHIPPED — and one review is owed
 

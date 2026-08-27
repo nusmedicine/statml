@@ -7265,11 +7265,20 @@ inherits rather than what widget 23 spends itself on.
 
 ---
 
-## NEXT · DBSCAN — widget 24, RECONNOITRED, not yet planned
+## Widget 24 · `dbscan` — SHIPPED 2026-08-27
 
-**Written on 2026-08-26 while shipping widget 23. Nothing here is measured** —
-that is the planning session's job, on the pattern of § *NEXT · t-SNE* and
-§ *NEXT · K-Means*: three questions, each closed with a number.
+**The reconnaissance was written on 2026-08-26 while shipping widget 23; the
+planning session ran the same day, on the pattern of § *NEXT · K-Means*, and
+closed all four questions.** Everything below that carries a number was measured
+in the engine that will ship — `widgets/dbscan/model.js`, **imported** and never
+copied by `widgets/_lab/dbscan-measure.mjs`. Kenneth supplied cell 60's diagram
+at the top of the session, which is what let a layout be planned at all.
+
+```bash
+node   widgets/_lab/dbscan-measure.mjs             # every number in this section
+node   widgets/_lab/dbscan-verify.mjs --fixtures   # then dbscan-ref.py, then:
+node   widgets/_lab/dbscan-verify.mjs              # 13 cases against sklearn 1.9.0
+```
 
 ### THE HOST, AND AGAIN THERE IS ONLY ONE
 
@@ -7278,71 +7287,832 @@ that is the planning session's job, on the pattern of § *NEXT · t-SNE* and
 | PHM5005 | `03-5`, cells 60–67, heading `### DBSCAN` | `DBSCAN(eps=0.7, min_samples=5)` on `X_umap` — the cancer gene expression data reduced to 2-D by **UMAP** first |
 | PHM5003 | **nothing** | checked across all ten notebook directories: DBSCAN appears **zero times** |
 
-### FIRST MOVE: ASK FOR THE DIAGRAM
-
-Cell 60 embeds `unsupervised-dbscan.png` **from Dropbox rather than as an
-attachment**, exactly as cell 52 did for K-Means, so it cannot be pulled out of
-the notebook. **Widget 23's whole layout came from that diagram** — dots and
-crosses, the ghost and the dotted arrow, the loop becoming the Iterate button —
-and the catalogue treats one as binding. Ask before designing anything.
+So nothing has to be reconciled between an R library and a Python one, exactly
+as at widget 23.
 
 ### CELL 60 IS AS COMPLETE AS CELL 52 WAS
 
-- **the algorithm in five numbered steps**, and it introduces three kinds of
-  point rather than one: count the neighbours within `eps`; at least
-  `min_samples` of them makes a **core point**; core points within `eps` of each
-  other join one cluster; a non-core point within `eps` of a core point is a
-  **border point**; anything else is **noise**, labelled `-1`
-- **two parameters and no K**: `eps` (the radius, "typically 0.5 – 5 on scaled
-  data") and `min_samples`
-- **a strengths and limitations table**, and the limitations are again three
-  candidate failing cases in the lesson's own words:
-  - *"Sensitive to choice of parameters (`eps`, `min_samples`)"*
-  - *"Performance can degrade in high-dimensional data"*
-  - *"Varying densities can cause clusters to be merged or split incorrectly"*
+- **the algorithm in five numbered steps**, introducing three kinds of point
+  rather than one: count the neighbours within `eps`; at least `min_samples` of
+  them makes a **core point**; core points within `eps` of each other join one
+  cluster; a non-core point within `eps` of a core point is a **border point**;
+  anything else is **noise**, labelled `-1`
+- **two parameters and no K**: `eps` ("typically 0.5 – 5 on scaled data") and
+  `min_samples`, which cell 60 is careful to say counts **the point itself**
+- **a strengths and limitations table**, and both halves are live:
+  - strengths: no K in advance · clusters of arbitrary shape · noise found automatically
+  - limitations: *"Sensitive to choice of parameters"* · *"degrade in high-dimensional data"* · *"Varying densities can cause clusters to be merged or split incorrectly"*
 
-### THE ONE SENTENCE IS ALREADY HALF-WRITTEN, BY WIDGET 23
+### THE DIAGRAM, AND WHAT IT DECIDES
 
-Widget 23's claim is *K-Means returns K clusters whether or not the data has
-any; what it minimises falls at every K, so it cannot be what tells you K was
-wrong.* Cell 60's first strength is **"Does not require specifying the number of
-clusters in advance"** — which reads as the cure, and is the obvious candidate:
+Two panels — **Data**, a red arrow, **Assign points ≤ eps** — then two dotted
+arrows fanning out of the second panel to two named verdicts. Its notation, in
+the order a builder needs it:
 
-> **DBSCAN does not make you choose K. It makes you choose a radius instead,
-> and the radius decides how many clusters you get.**
+| it draws | so the widget must |
+|---|---|
+| points as **dots, all black** in panel 1 | start uncoloured. Same opening as cell 52's diagram, and the arc already agrees: the data has no colours of its own |
+| a **grey disc on EVERY point** in panel 2, not on a selected one | draw `eps` as a disc per point. It is the first drawable parameter in the arc — K never could be |
+| the discs **overlapping** inside each group and standing alone at the lone point | draw them translucent and under the dots. **The overlap is the whole algorithm**: it is what "within `eps` of each other" looks like |
+| one point left **black**, labelled *Noise (< min samples)* | noise is what never gained a colour — and see § THREE KINDS OF POINT, because this collides with an existing token |
+| two groups **coloured** red and blue, labelled *Cluster (≥ min samples)* | cluster colours from the six in `tokens.css` |
+| both verdicts named with **their rule in parentheses** | the caption names the count rule, not a verdict word alone. Principle 2.9 already wants this |
+| bare L-shaped axes, no ticks, no numbers | the coordinates are not the point. Widgets 19–23 agree |
 
-**That pairing is the reason to build these two adjacent**, and it is worth
-testing rather than assuming: the planning session should measure how the
-cluster COUNT moves with `eps` on a fixed stage, because if a wide sweep of
-`eps` gives the same count the sentence is wrong and something else is the
-lesson.
+**The diagram draws TWO outcomes and the text describes THREE.** Border points
+are step 4 of the numbered list and appear nowhere in the picture. That gap is
+the widget's one real drawing decision and it is put to Kenneth below.
 
-### THREE THINGS THIS ARC HAS NOT HAD TO DRAW
+**And the loop that cell 52 had is not here.** K-Means' diagram has a red arrow
+from Update back to Assign, which became the Iterate button. DBSCAN has no
+outer loop at all — but it has an inner one the diagram does not draw, and
+`dbscan()` returns it: a cluster **grows one hop at a time** from the point that
+seeded it, through the chain of overlapping discs. Measured at an `eps` that
+works, that growth is 11–14 beats on four blobs and **[4, 10] on two rings** —
+the outer ring crawling around itself ten hops — which is the best animation
+available here and the one thing that makes `eps` legible as a *reach* rather
+than a setting.
 
-1. **Three kinds of point, not one.** Core, border, noise. The tokens file
-   defines six cluster colours and `--c-unknown` ("not measured yet, not a third
-   outcome") — and **noise is not that**: it is a verdict, not an absence. This
-   is the first token question of the widget and probably wants a new semantic
-   role rather than a borrowed one.
-2. **A radius is a drawable object.** `eps` is a circle around a point, which no
-   widget in this arc has drawn and which makes the parameter visible in a way
-   K-Means' `K` never could be.
-3. **Noise breaks the evaluation, quietly.** Cell 67 prints
-   `silhouette_score(X_umap, db_labels)` with noise still labelled `-1`, so
-   sklearn scores **noise as if it were a cluster**. Whether that materially
-   moves the number on this data is measurable and worth measuring — widget 23
-   prints the same two scores, and if the answer is "yes, a lot" then the two
-   widgets' readouts are not comparable and the widget has to say so.
+### QUESTION 1: COMPUTE AT RUNTIME — and so can a whole sweep
 
-### THE FOURTH QUESTION, STILL OPEN, AND THIS IS ITS HOST
+| n | eps | ms per fit | clusters |
+|---|---|---|---|
+| 48 | 0.30 | **0.026 ms** | 4 |
+| 48 | 0.55 | 0.024 ms | 3 |
+| 96 | 0.25 | 0.039 ms | 4 |
+| 150 | 0.20 | 0.061 ms | 5 |
+| 300 | 0.15 | 0.156 ms | 5 |
 
-Cell 61 repeats cell 53's caveat **verbatim, typos and all** — *"we will reduce
-the dimensions to 2 so that that be mapped to the 2D plots"*, *"reduced to 10-50
-dimensions to for clustering"*. § *QUESTION 4* above measured that clustering
-the 2-D picture instead of the data changes the answer on **11 of 20** runs at
-four groups and **19 of 20** at six, and that the wrong answer scores **better**
-on the only number visible in the picture. **Widget 23 was kept flat and this was
-named as its host** — the numbers are recorded there and need no re-measuring.
+**A 60-step sweep of `eps` costs 0.86 ms and a 120-step sweep 1.62 ms**, against
+widget 23's whole K = 1…8 sweep at 1.24 ms. So the panel that closed widget 23's
+question 2 has an exact counterpart here that is equally affordable: **the
+cluster count plotted against every `eps`, live, on every render.** Whether it
+should ship is a different question — widget 23 built that panel twice and cut
+it twice — but it is not blocked by cost.
+
+### THE ENGINE IS THE LIBRARY'S — exactly, and with nothing to reconcile
+
+Thirteen fixtures spanning all four stages, `eps` below / inside / above the
+useful range, `min_samples` at 3, 4 and 5, and 3-D and UMAP output as well as
+2-D. Against **sklearn 1.9.0**:
+
+| what | agreement |
+|---|---|
+| labels, **as integers** and not merely as a partition | **identical on all 13**, point for point |
+| `core_sample_indices_` | **identical on all 13** |
+| silhouette, both readings | ≤ **1.9e-15** |
+| ARI | ≤ 1.1e-16 |
+
+**Stricter than widget 23's, because there is less to get right.** K-Means had an
+initialisation and a tolerance to reconcile; DBSCAN has no seed anywhere, so the
+same points and the same two parameters either agree point for point or one
+engine is wrong. Two details still had to be deliberate:
+
+- **the point is its own neighbour.** `min_samples` counts it — cell 60 says so —
+  and getting it wrong shifts every core/border verdict by one, which reads as a
+  tuning difference rather than a bug.
+- **the traversal is copied, including the arbitrary part.** A border point
+  within `eps` of two clusters has no principled owner; it goes to whichever
+  cluster reaches it first, and "first" is sklearn's outer loop in index order
+  plus a **LIFO stack**. `dbscan()` runs that stack for the labels and a separate
+  breadth-first pass for the drawing, so the picture can be a growing front
+  while the answer stays byte-identical.
+
+### QUESTION 2: THE ONE SENTENCE — the candidate fires, and something sharper is under it
+
+The reconnaissance's candidate was *DBSCAN does not make you choose K; it makes
+you choose a radius instead, and the radius decides how many clusters you get* —
+and it said outright that this had to be **measured**, because if a wide sweep of
+`eps` gave the same count the sentence was wrong. It does not. On four blobs of
+twelve, `min_samples` = 4:
+
+| eps | clusters | core | border | noise | what a reader sees |
+|---|---|---|---|---|---|
+| 0.10 | 1 | 2 | 3 | 43 | none of the four groups |
+| 0.15 | 3 | 13 | 4 | 31 | 1 of 4 |
+| 0.20 | **4** | 20 | 6 | 22 | **2 of 4 — the right COUNT, the wrong answer** |
+| 0.25 | 4 | 25 | 9 | 14 | 3 of 4 |
+| **0.30** | **4** | **32** | **11** | **5** | **all four** |
+| 0.40 | 4 | 46 | 2 | 0 | all four |
+| 0.50 | 4 | 47 | 1 | 0 | all four |
+| 0.60 | 3 | 48 | 0 | 0 | 3 of 4 |
+| 0.80 | 1 | 48 | 0 | 0 | 1 of 4 |
+
+**The count moves, it is not monotone, and the right count is not the right
+answer.** Over 20 seeds the count passes through the truth on 27.6% of the `eps`
+range for blobs, 20.9% for rings and **5.0% for moons** — so "does not require
+specifying the number of clusters in advance" is true only in the sense that the
+choice has been **moved**, not removed. On rings the count runs 0 → 2 → 1 → 2 →
+4 → 1 as `eps` rises: **the same count arrives twice from different radii, with
+different answers behind it.**
+
+**And the second half, which is the finding of this session.** Widget 23's honest
+boundary was *the objective cannot choose K, but the silhouette can* — it peaks
+at the true K on 5 of 5 seeds. Asked the same question here, over 20 seeds:
+
+| stage | eps the silhouette picks | an eps that works | it lands |
+|---|---|---|---|
+| blobs | 0.14 ± 0.03 | 0.29 ± 0.03 | **0 / 20** |
+| rings | 0.27 ± 0.01 | 0.35 ± 0.01 | **0 / 20** |
+| moons | 0.18 ± 0.03 | 0.33 ± 0.02 | **0 / 15** |
+
+**Nought of fifty-five, and biased in a direction that can be explained.** The
+mechanism is in the table above: at `eps` 0.18 on blobs, 22 of 48 points are
+noise and the silhouette of what remains is **0.856** — the highest anywhere on
+the sweep, higher than the 0.740 at the `eps` that is actually right. **Throwing
+points away makes what is left look tighter**, and the silhouette scores only
+what is left. So it always prefers a radius that is too small.
+
+> **The candidate sentence, with the measurement's second clause attached:**
+>
+> **DBSCAN does not make you choose how many clusters there are. It makes you
+> choose a radius, the radius decides how many you get — and the number you can
+> compute from the picture prefers a radius that is too small.**
+
+That is the arc's fifth one-sentence claim and it inverts widget 23's rather than
+repeating it: there, the check that works has to come from outside the thing
+being minimised, and the silhouette was that check. Here the silhouette is
+*inside* the thing being chosen, because `eps` decides which points get scored.
+
+### THE TWO NOISE TRAPS, AND ONE OF THEM WAS NOT PREDICTED
+
+The reconnaissance flagged one: cell 67 prints `silhouette_score(X_umap,
+db_labels)` with `-1` still in the labels, so **sklearn scores noise as if it
+were one cluster** scattered over the whole plane. Measured, the gap is large and
+it is not a constant:
+
+| stage | eps | noise | as cell 67 prints it | noise dropped | gap |
+|---|---|---|---|---|---|
+| blobs | 0.18 | 22 | 0.157 | **0.856** | 0.699 |
+| blobs | 0.35 | 1 | 0.621 | 0.740 | 0.119 |
+| moons | 0.18 | 40 | −0.016 | **0.934** | 0.951 |
+| cloud | 0.25 | 30 | 0.025 | 0.710 | 0.685 |
+| varying | 0.35 | 0 | 0.885 | 0.885 | 0.000 |
+
+**So widget 23's silhouette tile and widget 24's are not comparable unless the
+widget says which reading it prints** — the gap runs from 0.000 to 0.951 with the
+noise count, which is precisely the thing that changes as a reader drags `eps`.
+
+**The second trap was not predicted and it is worse.** `adjusted_rand_score`
+treats `-1` as one more label, so a whole true group declared noise counts as a
+whole true group correctly separated. On hand-built labelings of 48 points in two
+true groups of 24:
+
+| what DBSCAN returned | cell 67's ARI | noise split into singletons |
+|---|---|---|
+| both groups found as clusters | 1.000 | 1.000 |
+| **ONE found, the other ALL NOISE** | **1.000** | **0.505** |
+| one found, the other in 2 pieces | 0.743 | 0.743 |
+| both found, 6 points left noise | 0.759 | 0.765 |
+| both merged into one cluster | 0.000 | 0.000 |
+
+**A run that found one of two cancer subtypes and threw the other away scores
+exactly as well as a run that found both**, and widget 23 prints that tile
+unchanged. The correction is one line — count each noise point as its own
+singleton, which is what `-1` means — and it **moves the number only where the
+number was lying**: 1.000 → 0.505 on the case that deserves it, 0.759 → 0.765 on
+the case that does not. It is `adjustedRandNoiseAware` in the engine.
+
+> ***Earned, three times in one session.*** This was not found by reasoning about
+> the metric. It was found because **three stages built for this plan passed for
+> the wrong reason**: the first `rings` had unequal density, so DBSCAN "solved"
+> it by clustering the inner ring and calling the entire outer ring noise —
+> scored 1.000. The first `varying` had two groups, so "cluster the tight one,
+> noise the loose one" scored 1.000. Both looked like successes. **A stage that
+> can be passed for the wrong reason is not a stage, and a criterion that can be
+> gamed measures nothing** — which is why every table in this section is scored
+> by `recovered()`, a blunt verdict that asks whether each true group actually
+> came back as a cluster, and not by any index at all.
+
+### QUESTION 3: WHICH FAILURE — and this is the first widget in the arc with a STRENGTH to show
+
+Widgets 19–23 each demonstrated a limitation. DBSCAN is the first method in the
+arc that does something the previous widget could not, and `widgets/kmeans/
+model.js` is importable, so the comparison runs both engines on **byte-identical
+points**. K-Means gets K = the true number and ten restarts — its best case:
+
+| stage | K-Means ARI | groups recovered | DBSCAN ARI | groups recovered |
+|---|---|---|---|---|
+| blobs 4 × 12 | 0.997 ± 0.013 | 20 / 20 | 0.993 ± 0.015 | 20 / 20 |
+| **rings** | **−0.016 ± 0.001** | **0 / 20** | **1.000 ± 0.000** | **20 / 20** |
+| moons | 0.220 ± 0.034 | 20 / 20 * | 0.833 ± 0.182 | 15 / 20 |
+| varying (ratio 1) | 1.000 ± 0.000 | 20 / 20 | 1.000 ± 0.000 | 20 / 20 |
+
+\* *moons is the one row where `recovered()` and the ARI disagree about K-Means,
+and the ARI is right: a 60%-plurality rule is too generous when two crescents
+are cut across the middle. The ARI of 0.220 is what to quote.*
+
+**On rings, K-Means scores below chance on every one of 20 seeds and DBSCAN is
+exact on every one of 20.** That is the cleanest head-to-head this collection
+has produced, it needs no caveat, and it is the notebook's own first strength —
+*"Can find clusters of arbitrary shape"* — with a number on it.
+
+**And the failing case that is DBSCAN's own**, cell 60's third limitation. Two
+tight blobs close together and one loose blob away from both, so the two blades
+of the scissors are on the stage at once; `ratio` is how much wider the loose one
+is; 30 stage seeds each; and the search is over the **whole** `eps` range, so a
+failure is the method's and not the tuning's:
+
+| ratio | some eps recovers all three | best noise-aware ARI | width of the working eps band |
+|---|---|---|---|
+| 1.0 | 30 / 30 | 1.000 ± 0.000 | 0.233 |
+| 2.0 | 30 / 30 | 0.994 ± 0.013 | 0.182 |
+| 3.0 | 28 / 30 | 0.953 ± 0.054 | 0.128 |
+| 4.0 | 22 / 30 | 0.896 ± 0.075 | 0.090 |
+| 5.0 | 14 / 30 | 0.838 ± 0.073 | 0.070 |
+| 6.0 | **8 / 30** | 0.797 ± 0.067 | 0.061 |
+| 8.0 | **3 / 30** | 0.758 ± 0.049 | 0.015 |
+
+**Two things get worse at once and both are true**: the answer degrades, and the
+band of `eps` that still works narrows from 0.233 to 0.015. And the scissors is
+visible on one seed at ratio 6 — there is no radius that does both jobs:
+
+| eps | the two tight blobs | the loose blob |
+|---|---|---|
+| 0.08 – 0.12 | separate | **ALL NOISE** |
+| 0.16 – 0.28 | separate | 1–2 pieces, 3–12 noise |
+| **0.32** | **MERGED into one** | 2 pieces, 3 noise |
+| 0.40 – 0.84 | **MERGED into one** | whole, 0 noise |
+
+**`min_samples` is the second knob and it matters exactly where the shape is not
+round.** At an `eps` that works: on blobs every value from 2 to 8 recovers all
+four groups and 9–10 only start shedding points; on **rings** only 2–4 work and 5
+already breaks it; on **moons** only 4–5 work, 3 merges the two crescents into
+one and 6 shatters them into noise. So it is a real control on the stages where
+the strength lives and a no-op on the stage widget 23 used.
+
+**The k-distance knee — the textbook cure — is only half a cure here.** Taking
+the knee of the sorted 4-distance curve recovers everything on 16/20 blobs seeds
+and 20/20 varying seeds, but **5/20 on rings and 5/20 on moons**: it reads
+0.308 ± 0.042 where 0.474 ± 0.010 is needed. It works where you did not need it.
+
+### QUESTION 4: WHICH SPACE — it does NOT fire, and that is the answer
+
+Widget 23 measured that clustering the 2-D picture instead of the data changes
+the answer on 11 of 20 runs at four groups and 19 of 20 at six, **named this
+widget as question 4's host**, and kept itself flat. Re-asked of a density
+method on the same sphere stage, best `eps` in each space, 10 seeds:
+
+| groups | best in 3-D | best in the UMAP picture | the two answers differ |
+|---|---|---|---|
+| 2 × 24 | 1.000 ± 0.000 | 1.000 ± 0.000 | **0 / 10** |
+| 3 × 16 | 1.000 ± 0.000 | 1.000 ± 0.000 | **0 / 10** |
+| 4 × 12 | 1.000 ± 0.000 | 1.000 ± 0.000 | **0 / 10** |
+| 6 × 8 | 0.990 ± 0.018 | 0.982 ± 0.030 | 2 / 10 |
+
+**It does not fire, and the reason is not an accident.** UMAP's objective is to
+preserve local neighbourhoods, and local neighbourhoods are the entire input to
+DBSCAN — so `UMAP → DBSCAN` is a well-matched pipeline in a way `PCA → K-Means`
+is not. Cell 51's two named workflows are not equally safe, and the widget could
+say so; but **question 4 has no host in widget 24 either, and should stop being
+carried forward as an open item.** Widget 23's numbers stand and are the record.
+
+**The related question that DOES exist here was measured and is weak.** UMAP a
+structureless cloud, then DBSCAN the picture, choosing `eps` the way a reader
+would — by maximising the only number visible:
+
+| what went in | clusters found | noise | silhouette |
+|---|---|---|---|
+| a cloud, no groups at all | 2.4 ± 0.7 | 38.1 ± 2.6 | 0.904 ± 0.075 |
+| 4 real groups | 2.4 ± 0.7 | 34.8 ± 11.4 | 0.968 ± 0.030 |
+
+The cloud scores 93% of what real structure scores — but **both runs are
+degenerate**, leaving 35–38 of 48 points as noise, which is the § QUESTION 2
+silhouette bias showing up again rather than an independent finding. It is
+support, not a headline, and t-SNE's version of this demonstration is better.
+
+### 48 SAMPLES CARRIES A DENSITY METHOD — checked, because it might not have
+
+Every widget in this arc stages 48 points, and a method that estimates density
+could plausibly have needed more. Share of 20 seeds where some `eps` recovers
+every true group:
+
+| stage | n=32 | n=48 | n=64 | n=96 | n=144 |
+|---|---|---|---|---|---|
+| blobs | 20/20 | **20/20** | 20/20 | 20/20 | 20/20 |
+| rings | 20/20 | **20/20** | 20/20 | 20/20 | 20/20 |
+| moons | 19/20 | **19/20** | 20/20 | 20/20 | 20/20 |
+| varying | 20/20 | **20/20** | 20/20 | 20/20 | 20/20 |
+
+The arc's stage size holds. Moons is the only one that would gain from 64.
+
+### THREE KINDS OF POINT, AND THE TOKEN QUESTION THE RECONNAISSANCE PREDICTED
+
+`tokens.css` defines six cluster colours and `--c-unknown`, which its own comment
+scopes precisely: *"not measured yet, not a third outcome"*. **Noise is exactly
+the third outcome that comment excludes** — it is a verdict, not an absence.
+
+And the widget needs **both roles in the same figure**, which is the part that
+makes this a real problem rather than a naming one. The diagram's first panel is
+every dot uncoloured — nothing has been decided — and that is `--c-unknown`. The
+last panel has noise in it. If noise is also grey, a reader cannot tell *not yet
+decided* from *decided: no cluster*, and those are the widget's two most
+important states.
+
+Three candidate resolutions, none measured, all cheap to mock up:
+
+1. **`--c-noise` as a new colour role.** Honest, and the tokens file's own
+   precedent (`--c-holdout` was added rather than borrowed) supports adding
+   rather than aliasing.
+2. **Same grey, different mark** — a filled dot for undecided, an open ring or a
+   small × for noise. This is closest to the diagram, where the noise point is
+   simply the dot that never gained a colour.
+3. **Border points get the third mark instead**, and noise stays grey. The
+   diagram does not draw border points at all, so nothing is inherited here.
+
+The three kinds also need a mark grammar, and there are only two natural axes —
+fill and outline. The obvious assignment is **core = filled in the cluster
+colour, border = the cluster colour as a ring on an unfilled dot, noise = grey**,
+which says "border belongs to this cluster but did not build it" without a word.
+
+### THE SHAPE OF IT
+
+- **one stage**, one plot, dots and discs, replaying the growth
+- **`eps`** — the widget. A slider; the useful range across all four stages is
+  0.05 – 0.90 and every value in it paints something. On `blobs` the default
+  wants to be **0.30**: the only setting where all three kinds of point are on
+  screen at once (32 core, 11 border, 5 noise) *and* the answer is right, where
+  0.40 is also right but has 2 border points and 0 noise and so hides two thirds
+  of the lesson. **The same measurement has not been made for `rings`, which is
+  now the default stage** — its working band is 0.35 – 0.60 and the equivalent
+  all-three-kinds-visible value is the first thing to measure at build time
+- **`min_samples`** — an int, 2–10. A no-op on blobs and decisive on rings and
+  moons, which is a reason to pair it with the stage control rather than ship it
+  alone
+- **`shape`** — `rings` (default) and `blobs`, settled by Kenneth on 2026-08-26.
+  `moons` and `varying` are built and measured but held back; each is one more
+  option and no new machinery
+- **`seed`** — free here, and genuinely free: DBSCAN has no initialisation, so
+  unlike widget 23 there is no second `start` control hiding behind it
+- **`labels`** — display-only, off by default, non-negotiable 4. It keeps
+  **widget 23's outer ring unchanged**, which grammar G is chosen partly to
+  afford: border is carried by opacity rather than by the ring, so nothing had
+  to be invented here
+- **the drive**: no outer loop to iterate, so the beats are *place the discs* →
+  *mark the core points* → *grow each cluster, one hop at a time*. Measured at
+  11–14 beats on blobs and 14–25 on rings and moons
+- **readout**: clusters found, points called noise, and the silhouette — with the
+  ARI **corrected** per § THE TWO NOISE TRAPS or dropped, but not carried over
+  from widget 23 unchanged
+
+### TWO CALLS SETTLED BY KENNETH, 2026-08-26
+
+**1. `rings` is the default stage, with `blobs` one click away.** A `shape`
+control with two options and nothing else. The reasoning is the measurement:
+`rings` is the only place in the arc where the new method does something the
+previous one cannot — K-Means **−0.016 ± 0.001 on 20 of 20 seeds**, DBSCAN
+**1.000 ± 0.000 on 20 of 20** — and it is also where the growth animation is
+best, the outer ring crawling around itself in **10 hops** while the inner takes
+4. `blobs` is widget 23's own stage point for point, so the two clustering
+widgets stay comparable.
+
+**`moons` and `varying` are built, verified and measured but do NOT ship in the
+first build.** Adding either later is one more option on `shape` and no new
+machinery — the same shape the `shape` control took at widget 23, and the same
+reason: a widget teaches one thing. `varying` is the first to add if there is
+room, because it is DBSCAN's own failing case and the widget currently shows a
+strength without one.
+
+**2. The one sentence takes both clauses:**
+
+> **DBSCAN does not make you choose how many clusters there are. It makes you
+> choose a radius, the radius decides how many you get — and the number you can
+> compute from the picture prefers a radius that is too small.**
+
+The second clause is the session's strongest finding (**0 of 55**) and it inverts
+widget 23 rather than repeating it: there, the check that works had to come from
+outside the thing being minimised, and the silhouette was that check. Here the
+silhouette is *inside* the thing being chosen, because `eps` decides which points
+get scored at all.
+
+**One consequence for the build, and it is not free.** The claim's second clause
+is about a number, so that number has to be **on screen and moving** as `eps`
+moves — a silhouette tile alone will not carry it, because a reader dragging a
+slider sees one value at a time and the claim is about where the maximum is. The
+§ QUESTION 1 sweep panel (1.62 ms, affordable) is the obvious answer and it is
+also the panel widget 23 built twice and cut twice. **Read § REVIEW ROUND 2 of
+widget 23 before proposing it**, and note that the objection there — *it asks the
+reader to hold two things at once* — is weaker here, because the panel would be
+plotting the very quantity the sentence is about rather than a second opinion
+about the answer.
+
+### THE STAGE DECISION HAS A CONSEQUENCE, MEASURED AFTER IT WAS TAKEN
+
+**`rings` cannot show the three kinds of point, and no tuning fixes it.** The
+default-`eps` measurement in § QUESTION 2 was made on `blobs`; repeated on
+`rings`, which is now the opening stage, it says something different:
+
+| eps | clusters | core | border | noise | hops | what a reader sees |
+|---|---|---|---|---|---|---|
+| 0.28 | 4 | 8 | 11 | 29 | [3,3,3,3] | neither ring |
+| 0.32 | 7 | 22 | 15 | 11 | [5,4,3,3,3,4,3] | 1 of 2 |
+| 0.36 | 3 | 45 | 3 | 0 | [5,10,8] | **both rings** |
+| **0.40** | **2** | **48** | **0** | **0** | **[4, 10]** | **both rings** |
+| 0.50 | 2 | 48 | 0 | 0 | [3, 9] | both rings |
+| 0.65 | 1 | 48 | 0 | 0 | [6] | 1 of 2 |
+
+**At every `eps` that recovers both rings, there are 0 border points and 0 noise
+points** — over 20 seeds, only 5 have any `eps` at all where both rings come back
+*and* all three kinds of point are on screen, and the best single value qualifies
+on 3 of 20.
+
+**The cause is structural and it is the same fact as the strength.** A ring is a
+near-uniform chain, so every point sits at nearly the same 4th-nearest-neighbour
+distance — and as `eps` crosses that distance, *every* point becomes core at
+once. Border and noise points require local density to VARY, and a ring has no
+variation by construction. That uniformity is exactly what makes the two rings
+separable at all.
+
+**Scattering extra points over the disc does not fix it, measured both ways.**
+Taking the scatter out of the rings' 48 thins them and breaks the connectivity
+the stage exists to show (best case 7 of 20 seeds); adding it on top at n = 50–56
+fails differently, because the `eps` at which the two rings connect is *above*
+the `eps` at which a scattered point near a ring is absorbed — so by the time
+both rings work, the scatter has been absorbed too (0–1 of 20 seeds at every
+count from 2 to 8).
+
+**So the two stages carry two halves of the lesson and cannot be merged:**
+
+| | `rings` | `blobs` |
+|---|---|---|
+| arbitrary shape, against K-Means | **the whole point** — −0.016 vs 1.000 | ties, 0.997 vs 0.993 |
+| core / border / noise all on screen | **never**, at any working `eps` | at `eps` 0.30: 32 / 11 / 5 |
+| the growth animation | **[4, 10] — a ring crawling round itself** | [4,3,3,2] |
+| cell 60's third strength, *finds noise automatically* | cannot show it | shows it |
+
+**This does not overturn the call to open on `rings`** — it is one click to
+`blobs`, and the strength is the reason the widget exists next to widget 23. But
+the diagram's entire second panel is the three verdicts, and on `rings` the
+opening screen has only two of them. **Worth one look before building**: opening
+on `blobs` puts the diagram's own picture first and moves the strength one click
+away, which is the same trade in the other direction.
+
+### THE MARKS MOCK-UP IS BUILT — `_lab/dbscan-marks.html`
+
+**Seven candidate grammars, drawn by the shipping engine on the real 550&nbsp;px
+canvas at the real 4.6&nbsp;px radius, on both stages, with `labels` off and
+on.** Ink is counted off an offscreen canvas rather than reasoned about. Open it
+with `node scripts/serve.mjs 8010` at
+`/widgets/_lab/dbscan-marks.html`; it needs no interaction and auto-draws.
+
+| | grammar | border vs core, real | at projector size |
+|---|---|---|---|
+| A | the diagram's own — border not drawn | — | — |
+| B | + a new `--c-noise`, border still not drawn | — | — |
+| C | core filled, border hollow, noise a grey cross | 36% | **9%** |
+| D | as C, noise a hollow grey ring | 36% | **9%** |
+| E | border at 0.62 the radius | 65% | **67%** |
+| F | border takes the outer ring | 244% | 427% |
+| **G** | **border at 45% opacity, full size** | **98%** | **97%** |
+
+**Four fail on the numbers rather than on taste.** A's noise is **0% distinct
+from `--c-unknown`** — the same grey circle, which is the token argument with a
+number on it. F draws border at **148% of core's ink**, so the weaker membership
+is the louder mark, and it spends the ring. D is the weakest on noise (36% from
+undecided). And C and D fail in the way that matters most, below.
+
+**THE MEASUREMENT THAT REVERSED THE PAGE, and it was not in the first version.**
+Every mark was originally scored against *undecided*, which is the right
+question for noise and the wrong one for **border** — border's job is to be told
+apart from **core**. Added, and measured at both radii:
+
+> **Stroke width is not scale-invariant, so a hollow mark converges on its
+> filled twin as the figure shrinks.** A 1.9&nbsp;px stroke on a 2.6&nbsp;px dot
+> has closed the hole. C and D read correctly at 4.6&nbsp;px (36% distinct) and
+> collapse to **9%** at projector size: core and border become the same mark
+> exactly where legibility is already worst.
+
+**Size and opacity are the two channels that survive**, because both scale with
+the mark. E holds at 65% → 67% but pays for it — border is **9 pixels** at
+projector size against core's 23. **G was added after E's result** to ask
+whether the scale-invariant channel has to cost area, and it does not: border
+keeps **99% of core's ink** and stays **97% distinct** from it, in both themes.
+
+### G, AND KENNETH TOOK IT ON 2026-08-26
+
+**The mark grammar, in full, and this is what `main.js` implements:**
+
+| state | mark |
+|---|---|
+| **undecided** — nothing has run | filled `--c-unknown`, full radius. Cell 60's first panel |
+| **core** — at least `min_samples` within `eps` | filled in the cluster colour, full radius |
+| **border** — in a cluster, did not build it | the **same** cluster colour, **same** radius, **45% opacity** |
+| **noise** — in no cluster | a cross in `--ink-3` |
+| **true group**, when `labels` is on | the outer ring, **unchanged from widget 23** |
+
+**No new token.** `--c-noise` was candidate B's ask and G does not need it: noise
+is a *shape* here, not a colour, so `--c-unknown`'s comment stays true and
+nothing is added to `tokens.css`.
+
+**And the widget draws all three kinds cell 60 names**, which was the real
+question underneath the shortlist. B would have drawn two.
+
+**The rule a reader learns is one sentence**: *solid built this cluster, faint
+only joined it, a cross belongs to none.*
+
+**One thing to check while building, seen in the swatches and not measured.**
+With `labels` on, a 45%-opacity dot inside a full-strength truth ring lets the
+ring dominate — a border point can read as an empty ring rather than as a faint
+dot. It is the one combination on the page where G is not obviously best, it
+appears only when the reader turns the true groups on, and the fix if it is real
+is the ring's weight rather than the dot's. **Look at the `labels` ON figure at
+550px before baselining anything.**
+
+**Two things the page found that are not about marks:**
+
+- **The `eps` disc must be `--ink-3` at low alpha, never `--grid`.** `--grid` is
+  a hairline colour chosen to be nearly invisible — #e1e0d9 on a #fcfcfb surface,
+  #2c2c2a on a #1a1a19 one — and the disc vanished outright in dark mode.
+  `--ink-3` is #898781 in *both* themes, so a low-alpha fill lands mid-grey
+  against either. Found by reading pixels, not by looking.
+- **Drawing the disc on all 48 points at once is a grey field, not a picture.**
+  At a working `eps` the discs cover most of the plot and merge. Cell 60's
+  diagram gets away with it because it has seven points. **The widget probably
+  wants the disc on the growth frontier rather than on everything** — which is
+  also what makes `eps` read as a reach rather than a wash. Not settled here.
+
+### THE ARI TILE IS CORRECTED, SILENTLY — Kenneth, 2026-08-26
+
+**One tile, computed by `adjustedRandNoiseAware`, and the trap is not named on
+screen.** Each noise point is counted as its own singleton, which is what `-1`
+means: not grouped with anything.
+
+| what DBSCAN returned | cell 67's ARI | the tile this widget prints |
+|---|---|---|
+| both groups found as clusters | 1.000 | 1.000 |
+| **ONE found, the other ALL NOISE** | **1.000** | **0.505** |
+| both found, 6 points left as noise | 0.759 | 0.765 |
+| both merged into one cluster | 0.000 | 0.000 |
+
+**The correction moves the number only where the number was lying**, which is
+what makes it a correction rather than a different metric — and is the whole
+reason it can be made without a word on screen. A reader who never learns there
+was a trap still gets an honest number, and the tile stays comparable in kind
+with widget 23's, which is the point of having it at all.
+
+**The two rejected options are recorded because each was arguable.** Printing
+both readings makes the gap between them the lesson and it moves live as `eps`
+moves — but it spends a tile on a rail that is already the widest thing in the
+widget, and asks a reader to hold two numbers where the widget's own sentence is
+about a third one (the silhouette). Dropping it avoids the trap by not walking
+into it, and loses the direct comparison with the widget sitting next to it on
+the gallery.
+
+**Consequence for widget 23, and it is not a bug there.** `widgets/kmeans/`
+prints the uncorrected ARI and is right to: K-Means never returns noise, so the
+two readings are identical on every input it can produce. But **the two widgets
+sit side by side and a reader comparing the two numbers is comparing different
+computations.** Nothing needs changing; it needs knowing. If widget 23 is ever
+touched again, importing `adjustedRandNoiseAware` would make them literally the
+same function at zero cost to its numbers.
+
+### REVIEW ROUND 1 — Kenneth, 2026-08-27, and one note was a design fault
+
+Three notes on the first build: could it have a shape selector and controls for
+the number of clusters and samples like the other widgets; the search animation
+could be improved, with the dashed reach thin and hard to see; and — *"I was
+playing with the eps radius and couldn't dynamically see its effect."*
+
+**1. The third note was a fault rather than a preference.** `eps` is a data
+parameter, so changing it re-initialised the animation, which reset the disc
+tween to 0 — **the discs vanished, and the widget's single most important
+slider moved with nothing on screen responding to it.** The lead button *was*
+"Draw the reach", which is what made that possible: the reach had been modelled
+as a beat you PERFORM.
+
+> **The discs are a picture of the PARAMETER, not of the answer, so they are
+> drawn always.** Cell 60's step 1 — count the neighbours within eps — needs no
+> press; it is what the slider already says. The lead is now **"Mark the core
+> points"**, which is step 2 and the first actual verdict.
+
+Principle 4 is untouched: no cluster appears until something is pressed. What
+changed is that dragging `eps` is now a thing a reader can watch — the discs
+resize and the caption counts the core points live, **0 / 0 / 36 / 48** across
+eps 0.20 / 0.30 / 0.40 / 0.55, with nothing pressed at all.
+
+**2. The stage controls, and one of them is deliberately not "per group".**
+
+| control | options | note |
+|---|---|---|
+| `shape` | `rings` · `moons` · `blobs` | `moons` promoted from the held-back list |
+| `samples` | 48 · 96 · 150, **a total** | see below |
+| `groups` | 2 · 3 · 4 · 6, **`blobs` only** | `when: { param: "shape", equals: "blobs" }` — two rings are two rings, and a control claiming otherwise would be a lie about the data |
+
+**`moons` earns its place on a measurement.** At 48 points and the default `eps`
+0.40 it is the best stage in the widget for the mark grammar: **2 clusters, 2/2
+recovered, 36 core, 11 border, 1 noise** — all four marks live *and* the answer
+right, which `rings` cannot do at any radius.
+
+**`samples` is a TOTAL where widget 23's is per group.** `rings` defines its
+count as a total by construction — `model.js` records why: an equal count on
+rings of different circumference is secretly a varying-density stage — and
+`blobs` splits its by group. One "per group" number cannot give 48 on both, and
+**48 is the size every measurement in this section was taken at.**
+
+**24 was offered for one build and withdrawn.** Swept across the whole
+0.10–0.80 range: at 24 points there is **no `eps` at all** that recovers `rings`
+or `moons`. A stage option that cannot work at any setting is a trap rather than
+a lesson — the reader gets a screen of noise and no way out. 48 is the floor,
+which is § 48 SAMPLES CARRIES A DENSITY METHOD arriving from the other side.
+
+**3. The reach mark is fixed; the hop choreography goes back to Kenneth.**
+`widgets/_lab/dbscan-reach.html` draws seven reach marks and four hop
+choreographies at the real 550px canvas, and measures the first set: **contrast
+is the mean channel distance between the ring's own pixels and the wash beside
+it**, sampled every degree around the circle.
+
+| mark | contrast | |
+|---|---|---|
+| dashed, 1.5px — **as shipped** | **89** | the baseline |
+| solid 2.2px | 195 | 2.2× |
+| **tint only, no outline** | **33** | **worse than the dashed line** |
+| filled + outlined | 204 | 2.3× |
+| **haloed outline** | **214** | **2.4× — taken** |
+| haloed + filled + outlined | 214 | no better than plain haloed |
+| haloed + wash cut away inside | 214 | no better either |
+
+**The dashed ring was the one mark in this collection not laying a surface
+stroke underneath itself** — the trick every other mark here already uses, so a
+mark never has to win a contrast fight it did not pick. Applied, because it is
+strictly better at no cost. **The tint-only row is the one worth keeping**:
+filling a region the grey wash already fills adds no edge, and reads worse than
+the thin line it would replace.
+
+**The hop is NOT applied and is Kenneth's call.** Four choreographies are on the
+page, live and as a filmstrip — the strip is there because motion cannot be
+reviewed one frame at a time and the automation browser throttles
+`requestAnimationFrame` to about three frames a second. The interesting one is
+**2, the sweep**: the ring grows from the source point out to `eps` over the
+first 60% of the beat, and each arriving point takes its colour as the expanding
+edge passes it — which makes `eps` **a distance the cluster travels** rather
+than a number in a slider. Its risk is pace: at Play's 330 ms a sweep may read
+as a flicker, and the page has a toggle to watch it at both.
+
+### THE SWEEP — built, shipped for one round, replaced
+
+Candidate 2 of the reach mock-up: the ring grew in place from the source point
+out to `eps` over the first 62% of a beat, and each arriving point took the
+cluster colour once the expanding edge passed it. **Review round 2 below
+replaced it with a point-by-point walk**, so the choreography is gone and only
+two things from it are worth keeping.
+
+**The sweep was per BFS LAYER, and that is why it failed** — see round 2.
+
+**And hand-pumping `requestAnimationFrame` caught a bug nothing else could.**
+`draw` read `pace.sweep` with `pace` never declared in `draw`. That
+`ReferenceError` fires *only* on a grow beat with `layer > 0` at a sweeping
+speed — so every settled state, every `?shown=N` link and the first hop of
+every cluster sail straight past it, and it threw on the first hand-pumped
+frame. The suite's *settled states are no test of an animation* rule, earning
+itself one widget later, and the reason this widget's driven states are the
+shape they are.
+
+### REVIEW ROUND 2 — the sweep was the wrong animation, and three reports said so
+
+Kenneth on the shipped sweep, 2026-08-27: he expected the ring to **tween and
+move to the next one**; asked **why multiple rings are highlighted when he
+thought it was one at a time**; and asked **what happened to the spiderweb links
+to the nearby points being considered**. Plus: the eps radii on load are
+distracting and want a toggle.
+
+**The first three are one report, and it is not a tuning note.** The sweep grew
+one ring in place per **BFS layer** — so four rings were live at once, none of
+them moved, and nothing showed a neighbourhood being counted. That is a growth
+**front**, and a front is not what DBSCAN does. `dbscan_inner` pops **one point**
+at a time, looks at its neighbourhood, and pushes what is new. The widget was
+drawing a defensible abstraction of the algorithm instead of the algorithm, and
+three separate "why does it do that" questions is what that costs.
+
+> **One beat is now one point being examined.**
+>
+> ```
+> 0.00 - 0.44   the disc TRAVELS from the point just examined to this one
+> 0.38 - 0.74   spokes grow from it to every point inside the disc
+> 0.62 - 1.00   the ones it pulls in take the cluster colour
+> ```
+>
+> **The order is the argument**: the disc arrives before it can see anything, it
+> sees before it claims, and it claims last.
+
+**Border points are pulled in but never examined.** They cannot extend a
+cluster — that is what makes them border points — and giving them a beat would
+say the opposite.
+
+**The spokes draw EVERY point inside the disc, not just the new ones.** A reader
+watching a point be examined is watching it *count*, and the ones already taken
+still counted toward the verdict that made this point core. Drawing only the new
+ones would show fewer spokes than the caption's number.
+
+**The walk order is the layers', flattened; the labels stay the stack's.**
+`model.js` already keeps both and records why. Flattened layers give a disc that
+crawls outward from the seed; the LIFO stack would send it jumping back and
+forth across ground it has already covered — true to the source and useless to
+watch. The answer is byte-identical either way.
+
+**Cost, and it is real**: the default stage went from 14 beats to **36**, one per
+core point. Pacing was re-cut to suit (Slow 620 ms, Medium 300, Fast 105, one
+press of *Next point* 900), and a **progress counter** was added — *"Cluster 2/2
+· core point 7/28"* — because a 36-beat walk with nothing showing is a reader
+wondering whether it has stalled.
+
+**Verified by hand-pumping `requestAnimationFrame`**, one Slow beat:
+
+| frame | 1 | 3 | 5 | 7 | 10 |
+|---|---|---|---|---|---|
+| discs on screen | 1 | 1 | 1 | 1 | 1 |
+| disc centre | 407,228 | 402,219 | 388,195 | 381,183 | 381,183 |
+| spoke segments | 0 | 0 | 0 | **4** | 4 |
+| dots drawn | 48 | 48 | 48 | 48 | **50** |
+
+**One disc throughout, its centre travelling, spokes only after it arrives, and
+points joining only after the spokes.** At Fast: **0 frames with spokes** and
+never more than one disc — the same "drop the working, keep the states" call
+widget 23's Fast makes.
+
+**And the eps discs are now a toggle, defaulting OFF.** At a working radius
+every point carries one, so the wash is the largest thing on the figure and it
+competes with the single disc that is doing the work. **This trades against
+review round 1**, where the discs were made permanent precisely so dragging
+`eps` had something to move; what moves now is the caption's live core count and
+the travelling disc. **If that is too little, the fix is this one default** —
+the mark, the wash and the toggle all stay as they are.
+
+### THE RAIL, TIDIED — Kenneth, 2026-08-27
+
+**The disc toggle moved into the DBSCAN block**, under `eps` and
+`min_samples`. It had been sitting with the data controls because it is a
+`display` parameter, which was the wrong reason: **it is about the fitting
+parameters, not about the sample**, and the block it now sits in is the one
+whose two sliders it draws. The rail reads
+
+```
+The data   shape · samples · groups (blobs only) · seed · true groups
+DBSCAN     eps · min_samples · every point's disc
+           [ Mark the core points ] [ Next point ] [ Play ] [ Reset ]
+           play speed
+```
+
+**And the control text was cut back to what the label does not already say.**
+Four details went:
+
+| control | was | now |
+|---|---|---|
+| Shape · Rings | "one cluster surrounds the other — no partition by nearest centre can separate them" | "one ring inside the other" |
+| Shape · Moons | "sklearn's own comparison stage: neither half is convex and their bounding discs overlap" | "two interleaving crescents" |
+| Shape · Blobs | **"widget 23's stage, point for point — what K-Means is good at"** | "round, separated groups" |
+| Radius (eps) | "how far a cluster reaches from each point" | *(none)* |
+| Every point's disc · Off | "just the disc of the point being examined" | *(none)* |
+
+**The `Blobs` one was a defect rather than verbosity.** *"Widget 23's stage"*
+means nothing to a student — the gallery numbers widgets for us, not for them,
+and no other user-facing string in the collection names one. It was the only
+leak of internal vocabulary into the reader's screen, and it was found by
+grepping the `detail:` strings for internal references rather than by reading
+them.
+
+The rest stayed and each has a reason: **Samples** keeps *"in total, split
+between the groups"* because the total-vs-per-group distinction is exactly what
+is not obvious; **Neighbours needed** keeps *"min_samples — counting the point
+itself"* because that name maps to the notebook and the counting rule shifts
+every core/border verdict by one; **Seed** keeps *"draws different samples"*,
+which every widget in the collection carries.
+
+**`eps` lost its gloss because the figure gives it three times over** — the label
+says *Radius*, a disc is drawn at that radius, and the caption counts what is
+inside it.
+
+### WHAT SHIPPED, AND WHAT IS STILL OWED
+
+| | |
+|---|---|
+| `widgets/dbscan/model.js` | the engine — `dbscan()` returning labels, core flags, neighbourhoods and the growth layers; both silhouette readings; both ARI readings; `recovered()`; the k-distance curve; four stages |
+| `widgets/dbscan/main.js` | the widget: grammar G, the point-by-point walk, three stages, the corrected ARI |
+| `_lab/dbscan-verify.mjs` + `dbscan-ref.py` | 13 cases against sklearn 1.9.0, **all 13 exact** on labels, core indices, both silhouettes and the ARI |
+| `_lab/dbscan-measure.mjs` | every planning number, in ten sections, importing the shipping engine |
+| `_lab/dbscan-marks.html` | seven mark grammars at the real width, ink counted — how G was chosen |
+| `_lab/dbscan-reach.html` | seven reach marks and four hop choreographies, contrast measured — how the haloed ring was chosen, and where the four rejected hops live |
+
+**Eight fingerprint states, baselined 2026-08-27** — five settled and three
+driven, identical across three consecutive full-suite runs, and the whole
+152-state suite MATCHes after recording:
+
+| state | covers |
+|---|---|
+| `?shown=0` | the empty opening |
+| `?shown=99` | rings, finished |
+| `?discs=on&shown=99` | the disc wash — same `tx`, different `px`, which is the toggle doing exactly what it claims |
+| `?shape=blobs&eps=0.3&labels=on&shown=99` | all four marks at once, true-group rings, the ARI tile |
+| `?shape=moons&shown=99` | the third stage |
+| `lead → step×34 → step +9f` | **mid-travel** — the disc between two points |
+| `lead → step×34 → step +20f` | the same beat with the spokes out and the joins tinting |
+| `speed=fast, lead → run +14f` | the only path that draws no spokes at all |
+
+**`_lab/dbscan-drive.mjs` IS STILL OWED** — the offline assertion suite on the
+pattern of `kmeans-drive.mjs`: the contract, the canvas text sweep against a
+recording stub, and the geometry check at 320–900px. Every one of those checks
+was run **by hand in the browser** during the build and passed (at 320px: 98
+arcs drawn, **0 outside the canvas**, no horizontal scroll), but a check that
+lives in a transcript is not a check. Copy `kmeans-drive.mjs` wholesale.
 
 ### THE ARC MOVE, WHICH THE NOTEBOOK STATES OUTRIGHT
 

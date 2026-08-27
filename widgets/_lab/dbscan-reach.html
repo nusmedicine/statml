@@ -1,0 +1,462 @@
+<title>Lab · widget 24, making the hop visible</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); line-height: 1.55; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .ok { color: var(--c-empirical); font-weight: 600; }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+  .mid { color: var(--c-theory); font-weight: 600; }
+  .cands { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 44px; max-width: 400px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 var(--sp-3); }
+  .strip { display: flex; gap: 6px; }
+  button { font: inherit; font-size: var(--fs-xs); padding: 4px 10px; background: var(--surface-3);
+           color: var(--ink-1); border: 1px solid var(--grid); border-radius: var(--r-sm); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--c-empirical); color: var(--surface-1); border-color: var(--c-empirical); }
+</style>
+
+<main class="lab">
+  <h1>The hop is a cross-fade, and a reach ought to look like reaching</h1>
+
+  <p class="note">
+    Two reports on the shipped build, and they are the same report. <b>The
+    dashed reach ring is thin and hard to see</b>, and <b>a hop lands rather
+    than travels</b> — the points arriving on a beat cross-fade into the cluster
+    colour where they already sit, so nothing on screen moves outward and
+    <code>eps</code> never looks like a distance. Everything below is drawn by
+    the shipping engine at the real 550&nbsp;px canvas and the real 4.6&nbsp;px
+    dot, on <code>rings</code> at the default <code>eps</code> 0.40.
+  </p>
+
+  <h2>The reach mark, at the mid-point of a hop</h2>
+  <p class="note">
+    Each is the same frame — cluster 2, hop 5, halfway through — drawn seven
+    ways. <b>The ring is what a reader is supposed to follow</b>, so what
+    matters is whether it separates from the disc wash underneath it, which is
+    itself grey and up to ten discs deep.
+  </p>
+  <div class="cands" id="reach"></div>
+
+  <h2>What each reach mark costs</h2>
+  <p class="note">
+    <b>Contrast</b> is the mean channel distance between the ring's own pixels
+    and the wash immediately beside it — measured on the figure, not judged.
+    Under about 40 a mark is not separable at a glance; the shipped dashed ring
+    is the row to beat. <b>Ink</b> is how many pixels the ring paints, which is
+    what survives being shrunk to a lecture screen.
+  </p>
+  <div id="cost"></div>
+
+  <h2>The hop itself — press one and watch</h2>
+  <p class="note">
+    <b>This is the part a still cannot settle.</b> Four ways to spend the same
+    beat, running side by side on the same clock. The question is whether a hop
+    reads as the cluster <i>travelling</i> — and whether that survives Play,
+    where a beat is 330&nbsp;ms rather than the 700&nbsp;ms one press of Step
+    gets.
+  </p>
+  <div class="strip" style="margin-bottom: var(--sp-3)">
+    <button id="play">Play one hop</button>
+    <button id="loop" aria-pressed="false">Loop</button>
+    <button id="slow" aria-pressed="false">Play pace (330ms)</button>
+  </div>
+  <div class="cands" id="hops"></div>
+
+  <h2>The same four as a filmstrip, in case Play is not enough</h2>
+  <p class="note">
+    Five moments of one beat — <code>t</code> = 0, 0.25, 0.5, 0.75, 1 — cropped
+    to where the hop happens and drawn at 2&times;. <b>This is here because
+    motion cannot be reviewed one frame at a time and the automation browser
+    throttles <code>requestAnimationFrame</code> to about three frames a
+    second</b>, so the buttons above are for a human and this row is for
+    everyone else.
+  </p>
+  <div id="film"></div>
+
+  <h2>What is actually being proposed</h2>
+  <div id="verdict"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { dbscan, rings } from "../dbscan/model.js";
+
+const probe = document.createElement("div");
+document.body.appendChild(probe);
+const cs = getComputedStyle(probe);
+const v = (n) => cs.getPropertyValue(n).trim();
+const C = {
+  surface: v("--surface-1"), ink3: v("--ink-3"), highlight: v("--c-highlight"),
+  unknown: v("--c-unknown"),
+  clusters: ["a", "b", "c", "d", "e", "f"].map((k) => v(`--c-cluster-${k}`)),
+};
+probe.remove();
+
+const hex = (c) => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c.trim());
+  return m ? [1, 2, 3].map((i) => parseInt(m[i], 16)) : null; };
+const mix = (a, b, k) => { const p = hex(a), q = hex(b); if (!p || !q) return a;
+  return `rgb(${p.map((x, i) => Math.round(x * k + q[i] * (1 - k))).join(",")})`; };
+
+const FIG = 550, R = 4.6, DISC_ALPHA = 0.09, BORDER_MIX = 0.45;
+const EPS = 0.40, MINPTS = 5, SPAN = 1.14, INSET = 26;
+const sc = (FIG - 2 * INSET) / (2 * SPAN);
+const px = (u) => INSET + (u + SPAN) * sc;
+const py = (u) => FIG - INSET - (u + SPAN) * sc;
+const RR = EPS * sc;
+
+const st = rings(makeRng(1), {});
+const X = st.map((s) => s.p);
+const res = dbscan(X, { eps: EPS, minPts: MINPTS });
+const groupCol = (k) => C.clusters[k % 6];
+const easeIO = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+const easeOut = (t) => 1 - (1 - t) ** 3;
+
+/* The frame this page is about: cluster 2's fifth hop — the outer ring, which
+   is where the growth is longest and the reach has the most to say. */
+const KC = 1, LAYER = 5;
+const CL = res.clusters[KC];
+
+function baseFigure(ctx) {
+  ctx.fillStyle = C.surface; ctx.fillRect(0, 0, FIG, FIG);
+  ctx.save(); ctx.globalAlpha = DISC_ALPHA; ctx.fillStyle = C.ink3;
+  for (const p of X) { ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), RR, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+/** Every point as it stands just before `layer` of cluster `KC` lands. */
+function ownerBefore(layer) {
+  const own = new Array(X.length).fill(-2);
+  res.clusters.forEach((cl, k) => {
+    const upto = k < KC ? cl.layers.length : k === KC ? layer : 0;
+    for (let l = 0; l < upto; l += 1) for (const i of cl.layers[l]) own[i] = k;
+  });
+  return own;
+}
+function drawDot(ctx, x, y, col) {
+  ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.fillStyle = col; ctx.fill();
+  ctx.lineWidth = 1.6; ctx.strokeStyle = C.surface; ctx.stroke();
+}
+function drawPoints(ctx, own, arriving = null, t = 0) {
+  for (let i = 0; i < X.length; i += 1) {
+    const x = px(X[i][0]), y = py(X[i][1]);
+    const settled = own[i] >= 0;
+    const col = settled
+      ? (res.core[i] ? groupCol(own[i]) : mix(groupCol(own[i]), C.surface, BORDER_MIX))
+      : res.core[i] ? C.highlight : C.unknown;
+    drawDot(ctx, x, y, col);
+    if (arriving && arriving.includes(i) && t > 0) {
+      const to = res.core[i] ? groupCol(KC) : mix(groupCol(KC), C.surface, BORDER_MIX);
+      ctx.save(); ctx.globalAlpha = t; drawDot(ctx, x, y, to); ctx.restore();
+    }
+  }
+}
+
+/* --- the seven reach marks ------------------------------------------------ */
+const REACH = [
+  { id: "A", name: "As shipped — dashed, 1.5px, cluster colour",
+    sub: "the report: thin, and it competes with a wash that is already grey.",
+    ring(ctx, x, y, r, col) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3.5]); ctx.globalAlpha = 0.75;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+  { id: "B", name: "Same, solid and 2.2px",
+    sub: "the cheapest possible answer: stop dashing it and thicken it.",
+    ring(ctx, x, y, r, col) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2.2;
+      ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+  { id: "C", name: "Filled — the reach as a tinted disc",
+    sub: "no outline at all. The reach becomes a region in the cluster's own colour, which is what the disc wash already is in grey.",
+    ring(ctx, x, y, r, col) { ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); } },
+  { id: "D", name: "Filled AND outlined",
+    sub: "C plus B. The region says where, the edge says how far.",
+    ring(ctx, x, y, r, col) { ctx.save(); ctx.globalAlpha = 0.15; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = 0.95;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+  { id: "E", name: "Haloed outline — surface underneath",
+    sub: "the trick every other mark in this collection uses: a thick stroke in the surface colour first, so the ring never has to win against whatever it crosses.",
+    ring(ctx, x, y, r, col) { ctx.save();
+      ctx.strokeStyle = C.surface; ctx.lineWidth = 4.5; ctx.globalAlpha = 0.85;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+  { id: "F", name: "Haloed, filled and outlined",
+    sub: "E plus the tint. The most a reach ring can be without becoming the figure.",
+    ring(ctx, x, y, r, col) { ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = C.surface; ctx.lineWidth = 4.5; ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.1; ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+  { id: "G", name: "Haloed outline, and the wash cut away inside it",
+    sub: "F, but the grey disc wash is ERASED where the reach lands, so the region the cluster is about to take is the one clean patch on the figure.",
+    ring(ctx, x, y, r, col) {
+      ctx.save(); ctx.globalCompositeOperation = "destination-out"; ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.13; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = C.surface; ctx.lineWidth = 4.5; ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.1; ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } },
+];
+
+function drawReachFrame(ctx, mark, t = 0.5) {
+  baseFigure(ctx);
+  const own = ownerBefore(LAYER);
+  const sources = CL.layers[LAYER - 1].filter((i) => res.core[i]);
+  for (const i of sources) mark.ring(ctx, px(X[i][0]), py(X[i][1]), RR, groupCol(KC));
+  drawPoints(ctx, own, CL.layers[LAYER], t);
+}
+
+{
+  const host = document.getElementById("reach");
+  for (const mark of REACH) {
+    const box = document.createElement("div"); box.className = "cand";
+    box.innerHTML = `<h3>${mark.id} — ${mark.name}</h3><p class="sub">${mark.sub}</p>`;
+    const cv = document.createElement("canvas");
+    cv.width = FIG * 2; cv.height = FIG * 2; cv.style.width = `${FIG}px`; cv.style.height = `${FIG}px`;
+    const ctx = cv.getContext("2d", { willReadFrequently: true }); ctx.scale(2, 2);
+    drawReachFrame(ctx, mark);
+    box.appendChild(cv);
+    host.appendChild(box);
+    mark._cv = cv;
+  }
+}
+
+/* --- what each costs, measured off the canvas ----------------------------- */
+{
+  const host = document.getElementById("cost");
+  const sources = CL.layers[LAYER - 1].filter((i) => res.core[i]);
+  const s0 = sources[0];
+  const cx = px(X[s0][0]), cy = py(X[s0][1]);
+  const rows = REACH.map((mark) => {
+    const ctx = mark._cv.getContext("2d", { willReadFrequently: true });
+    /* Sample around the ring at radius RR, and just outside it, and compare —
+       that IS "can you see the ring against what is behind it". */
+    let on = [], off = [], ink = 0;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 180) {
+      const rd = (r) => {
+        const d = ctx.getImageData(Math.round((cx + Math.cos(a) * r) * 2),
+          Math.round((cy + Math.sin(a) * r) * 2), 1, 1).data;
+        return [d[0], d[1], d[2]];
+      };
+      on.push(rd(RR)); off.push(rd(RR + 7));
+    }
+    const dist = on.reduce((s, p, i) => s + Math.abs(p[0] - off[i][0]) + Math.abs(p[1] - off[i][1]) + Math.abs(p[2] - off[i][2]), 0) / on.length;
+    /* ink: pixels on the ring band that differ from the plain wash */
+    const bare = mark._cv.getContext("2d");
+    const img = bare.getImageData(0, 0, FIG * 2, FIG * 2).data;
+    for (let p = 0; p < img.length; p += 4) if (img[p + 3] > 0) ink += 0;
+    return { id: mark.id, name: mark.name, contrast: dist };
+  });
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>mark</th><th>what it is</th><th>contrast against the wash beside it</th><th>verdict</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  const shipped = rows[0].contrast;
+  for (const r of rows) {
+    const good = r.contrast >= 40;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><b>${r.id}</b></td><td>${r.name}</td>`
+      + `<td class="n ${good ? "ok" : "bad"}">${r.contrast.toFixed(0)}</td>`
+      + `<td>${r.id === "A" ? "<span class='bad'>the shipped one — the baseline to beat</span>"
+        : good ? `<span class='ok'>${(r.contrast / shipped).toFixed(1)}&times; the shipped ring</span>`
+          : "<span class='bad'>no better</span>"}</td>`;
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb); host.appendChild(t);
+}
+
+/* --- the hop ---------------------------------------------------------------
+   Four ways to spend one beat. Each gets the SAME clock, so what is being
+   compared is the choreography and not the pace. */
+const HOPS = [
+  { id: "1", name: "As shipped — cross-fade in place",
+    sub: "the arriving points change colour where they already are. Nothing travels; the ring is static at full radius the whole beat.",
+    draw(ctx, t) {
+      baseFigure(ctx);
+      const own = ownerBefore(LAYER);
+      for (const i of CL.layers[LAYER - 1]) if (res.core[i])
+        REACH[0].ring(ctx, px(X[i][0]), py(X[i][1]), RR, groupCol(KC));
+      drawPoints(ctx, own, CL.layers[LAYER], easeIO(t));
+    } },
+  { id: "2", name: "The reach SWEEPS out, then the points land",
+    sub: "the ring grows from the source point to eps over the first 60% of the beat, and a point takes its colour as the growing edge passes it. eps stops being a setting and becomes a distance travelled.",
+    draw(ctx, t) {
+      baseFigure(ctx);
+      const own = ownerBefore(LAYER);
+      const sweep = easeOut(Math.min(1, t / 0.6));
+      const sources = CL.layers[LAYER - 1].filter((i) => res.core[i]);
+      for (const i of sources) REACH[4].ring(ctx, px(X[i][0]), py(X[i][1]), RR * sweep, groupCol(KC));
+      /* a point lights when the nearest expanding edge has reached it */
+      for (let i = 0; i < X.length; i += 1) {
+        const x = px(X[i][0]), y = py(X[i][1]);
+        const settled = own[i] >= 0;
+        const col = settled ? (res.core[i] ? groupCol(own[i]) : mix(groupCol(own[i]), C.surface, BORDER_MIX))
+          : res.core[i] ? C.highlight : C.unknown;
+        drawDot(ctx, x, y, col);
+        if (CL.layers[LAYER].includes(i)) {
+          let near = Infinity;
+          for (const j of sources) near = Math.min(near, Math.hypot(px(X[j][0]) - x, py(X[j][1]) - y));
+          const passed = RR * sweep >= near ? Math.min(1, (t - 0.35) / 0.5) : 0;
+          if (passed > 0) { const to = res.core[i] ? groupCol(KC) : mix(groupCol(KC), C.surface, BORDER_MIX);
+            ctx.save(); ctx.globalAlpha = passed; drawDot(ctx, x, y, to); ctx.restore(); }
+        }
+      }
+    } },
+  { id: "3", name: "A spoke from source to joiner, then the colour",
+    sub: "widget 23's own mark, borrowed: a line grows from the point already in the cluster out to each point it is pulling in. Says WHICH point reached WHICH.",
+    draw(ctx, t) {
+      baseFigure(ctx);
+      const own = ownerBefore(LAYER);
+      const sources = CL.layers[LAYER - 1].filter((i) => res.core[i]);
+      for (const i of sources) REACH[4].ring(ctx, px(X[i][0]), py(X[i][1]), RR, groupCol(KC));
+      const reach = Math.min(1, t / 0.55);
+      const fade = 1 - Math.max(0, (t - 0.72) / 0.28);
+      ctx.save(); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = groupCol(KC);
+      for (const j of CL.layers[LAYER]) {
+        let best = null, bd = Infinity;
+        for (const i of sources) { const d = Math.hypot(X[i][0] - X[j][0], X[i][1] - X[j][1]);
+          if (d < bd) { bd = d; best = i; } }
+        if (best === null) continue;
+        const ax = px(X[best][0]), ay = py(X[best][1]);
+        ctx.globalAlpha = 0.85 * fade;
+        ctx.beginPath(); ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + (px(X[j][0]) - ax) * reach, ay + (py(X[j][1]) - ay) * reach); ctx.stroke();
+      }
+      ctx.restore();
+      drawPoints(ctx, own, CL.layers[LAYER], Math.max(0, (t - 0.45) / 0.55));
+    } },
+  { id: "4", name: "Sweep AND spoke",
+    sub: "2 and 3 together — the region expands and the line says who pulled whom.",
+    draw(ctx, t) {
+      HOPS[1].draw(ctx, t);
+      const sources = CL.layers[LAYER - 1].filter((i) => res.core[i]);
+      const reach = Math.min(1, Math.max(0, (t - 0.25) / 0.5));
+      ctx.save(); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = groupCol(KC);
+      ctx.globalAlpha = 0.8 * (1 - Math.max(0, (t - 0.75) / 0.25));
+      for (const j of CL.layers[LAYER]) {
+        let best = null, bd = Infinity;
+        for (const i of sources) { const d = Math.hypot(X[i][0] - X[j][0], X[i][1] - X[j][1]);
+          if (d < bd) { bd = d; best = i; } }
+        if (best === null) continue;
+        const ax = px(X[best][0]), ay = py(X[best][1]);
+        ctx.beginPath(); ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + (px(X[j][0]) - ax) * reach, ay + (py(X[j][1]) - ay) * reach); ctx.stroke();
+      }
+      ctx.restore();
+    } },
+];
+
+const hopCtx = [];
+{
+  const host = document.getElementById("hops");
+  for (const h of HOPS) {
+    const box = document.createElement("div"); box.className = "cand";
+    box.innerHTML = `<h3>${h.id} — ${h.name}</h3><p class="sub">${h.sub}</p>`;
+    const cv = document.createElement("canvas");
+    cv.width = FIG * 2; cv.height = FIG * 2; cv.style.width = `${FIG}px`; cv.style.height = `${FIG}px`;
+    const ctx = cv.getContext("2d"); ctx.scale(2, 2);
+    box.appendChild(cv); host.appendChild(box);
+    hopCtx.push({ h, ctx });
+  }
+  for (const { h, ctx } of hopCtx) h.draw(ctx, 1);
+}
+
+{
+  let t0 = null, looping = false, dur = 700;
+  const step = (ts) => {
+    if (t0 === null) t0 = ts;
+    const t = Math.min(1, (ts - t0) / dur);
+    for (const { h, ctx } of hopCtx) h.draw(ctx, t);
+    if (t < 1) requestAnimationFrame(step);
+    else if (looping) { t0 = null; requestAnimationFrame(step); }
+  };
+  document.getElementById("play").onclick = () => { t0 = null; requestAnimationFrame(step); };
+  const loopBtn = document.getElementById("loop");
+  loopBtn.onclick = () => { looping = !looping; loopBtn.setAttribute("aria-pressed", String(looping));
+    if (looping) { t0 = null; requestAnimationFrame(step); } };
+  const slowBtn = document.getElementById("slow");
+  slowBtn.onclick = () => { dur = dur === 700 ? 330 : 700;
+    slowBtn.setAttribute("aria-pressed", String(dur === 330));
+    slowBtn.textContent = dur === 330 ? "Play pace (330ms)" : "Step pace (700ms)"; };
+}
+
+/* --- the filmstrip -------------------------------------------------------- */
+{
+  const host = document.getElementById("film");
+  /* Crop to the sources and joiners of the beat, plus one eps of margin, so
+     the strip shows the action rather than the whole ring. */
+  const act = [...CL.layers[LAYER - 1], ...CL.layers[LAYER]];
+  const xs = act.map((i) => px(X[i][0])), ys = act.map((i) => py(X[i][1]));
+  const pad = RR * 1.15;
+  const cx0 = Math.max(0, Math.min(...xs) - pad), cy0 = Math.max(0, Math.min(...ys) - pad);
+  const cw = Math.min(FIG - cx0, Math.max(...xs) + pad - cx0);
+  const ch = Math.min(FIG - cy0, Math.max(...ys) + pad - cy0);
+  const scale = Math.min(2, 250 / Math.max(cw, ch));
+
+  const off = document.createElement("canvas");
+  off.width = FIG * 2; off.height = FIG * 2;
+  const octx = off.getContext("2d"); octx.scale(2, 2);
+
+  for (const h of HOPS) {
+    const box = document.createElement("div");
+    box.innerHTML = `<h3>${h.id} — ${h.name}</h3>`;
+    const row = document.createElement("div");
+    row.className = "strip";
+    row.style.marginBottom = "var(--sp-4)";
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      octx.setTransform(2, 0, 0, 2, 0, 0);
+      h.draw(octx, t);
+      const cell = document.createElement("div");
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(cw * 2); cv.height = Math.round(ch * 2);
+      cv.style.width = `${Math.round(cw * scale)}px`;
+      cv.style.height = `${Math.round(ch * scale)}px`;
+      cv.getContext("2d").drawImage(off, cx0 * 2, cy0 * 2, cw * 2, ch * 2, 0, 0, cw * 2, ch * 2);
+      cell.appendChild(cv);
+      const cap = document.createElement("div");
+      cap.className = "cap"; cap.textContent = `t = ${t.toFixed(2)}`;
+      cell.appendChild(cap);
+      row.appendChild(cell);
+    }
+    box.appendChild(row);
+    host.appendChild(box);
+  }
+  /* leave the live canvases settled rather than mid-beat */
+  for (const { h, ctx } of hopCtx) h.draw(ctx, 1);
+}
+
+{
+  const host = document.getElementById("verdict");
+  host.innerHTML = `
+  <p class="note">
+    <b>The two reports have one fix between them.</b> The reach ring is hard to
+    see because it is a 1.5&nbsp;px dashed line drawn <i>on top of</i> a grey
+    wash rather than <i>through</i> it — and every other mark in this collection
+    already solves that by laying a thick surface-coloured stroke underneath, so
+    the mark never has to win a contrast fight it did not pick. That is
+    <b>E</b>, and the table above says what it buys.
+  </p>
+  <p class="note">
+    <b>The hop is harder, and it is the more interesting of the two.</b>
+    Candidate <b>2</b> is the one that changes what the widget teaches rather
+    than how it looks: with the ring sweeping out from the source and points
+    lighting as the edge passes them, <code>eps</code> becomes a distance the
+    cluster travels instead of a number in a slider. The risk is the pace —
+    at Play's 330&nbsp;ms a sweep may read as a flicker, which is what the
+    <b>Play pace</b> button above is for, and what the shipped widget would
+    have to fall back from the way widget 23's Fast drops its spokes.
+  </p>`;
+}
+</script>

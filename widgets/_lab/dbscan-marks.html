@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 24, drawing three kinds of point</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); line-height: 1.55; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .ok { color: var(--c-empirical); font-weight: 600; }
+  .bad { color: var(--c-extreme); font-weight: 600; }
+  .mid { color: var(--c-theory); font-weight: 600; }
+
+  .cands { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 30px; max-width: 280px; }
+  .cand canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .row { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 var(--sp-3); }
+
+  /* THE REAL STAGE. `fingerprint.html` sets FRAME_W 900, the side layout
+     stacks at 880, so every baselined figure is hashed on a 550px canvas.
+     These are drawn at exactly that, which is where widget 11's six overflows
+     were found and none was visible at 1400. */
+  .real { border: 1px solid var(--grid); background: var(--surface-1); display: block; }
+  .swatchrow { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .verdict { font-size: var(--fs-xs); }
+  .verdict b { display: inline-block; min-width: 78px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 24 draws four states of a dot, and the tokens file has names for two</h1>
+
+  <p class="note">
+    Cell 60 names <b>three kinds of point</b> — core, border, noise — and its
+    diagram draws <b>two</b>: coloured dots for a cluster, a black dot left over
+    for noise. Border points are step 4 of the numbered list and appear nowhere
+    in the picture. The widget also needs a <b>fourth</b> state the diagram does
+    show, in its first panel: nothing decided yet, which is
+    <code>--c-unknown</code> — and that token's own comment scopes it to
+    <i>“not measured yet, not a third outcome”</i>. <b>Noise is exactly the
+    third outcome that comment excludes.</b> Both states are on screen in the
+    same figure, so they cannot share a mark.
+  </p>
+
+  <p class="note">
+    And there is a fifth mark competing for the same dot: <code>labels</code>,
+    the true group, which <b>widget 23 draws as a coloured ring outside the
+    dot</b> — deliberately outside, so that what K-Means decided (the fill) and
+    what was really there (the ring) never occupy the same mark. Any grammar
+    that spends the ring on <i>border</i> takes that away, and the two widgets
+    sit side by side on the gallery.
+  </p>
+
+  <p class="note">
+    Every figure below is drawn on the <b>real 550&nbsp;px canvas</b> at the real
+    <code>4.6&nbsp;px</code> dot radius, by the shipping engine
+    (<code>../dbscan/model.js</code>), on the two stages that ship. Ink is
+    counted, not estimated: see <b>What each mark costs</b>.
+  </p>
+
+  <h2>The four states, at the size they are actually drawn</h2>
+  <p class="note">
+    Each swatch is one dot at the widget's own radius, magnified 6&times; with
+    no smoothing, so what you are judging is the pixels a reader gets. The
+    <b>middle column is the projector test</b>: the same mark drawn at
+    <code>2.6&nbsp;px</code>, which is what a 550&nbsp;px canvas becomes on a
+    lecture screen seen from the back of a room.
+  </p>
+  <div class="cands" id="swatches"></div>
+
+  <h2>On the default stage — <code>rings</code>, and it has no border or noise to draw</h2>
+  <p class="note">
+    <b>This is the measured consequence of opening on <code>rings</code></b>, not
+    a property of any candidate below. At every <code>eps</code> that recovers
+    both rings there are <b>0 border and 0 noise points</b>; over 20 seeds only 5
+    have any <code>eps</code> where both rings come back <i>and</i> all three
+    kinds are on screen. A ring is a near-uniform chain, so every point crosses
+    into core at the same radius. <b>Left is <code>eps</code> 0.32, where the
+    marks exist but the answer is wrong; right is 0.40, the answer, where two of
+    the four states are unreachable.</b>
+  </p>
+  <div class="cands" id="ringsRow"></div>
+
+  <h2>On <code>blobs</code> at <code>eps</code> 0.30 — where all four states are live at once</h2>
+  <p class="note">
+    32 core, 11 border, 5 noise, and the answer is right. <b>Each candidate is
+    drawn twice: <code>labels</code> off, then on.</b> The second is the one that
+    decides this — a grammar that reads beautifully until the true groups are
+    turned on has not been tested.
+  </p>
+  <div class="cands" id="blobsRow"></div>
+
+  <h2>What each mark costs</h2>
+  <p class="note">
+    <b>Ink</b> is the count of pixels the mark actually paints, at the real
+    radius and at the projector radius, measured off an offscreen canvas rather
+    than reasoned about. A hollow mark carries roughly a third of a filled one's
+    ink and is the first thing to vanish at distance —
+    <code>docs/design-principles.md</code> has the rule and this is the number
+    behind it. <b>Distinct</b> is the share of pixels that differ between that
+    mark and the <i>undecided</i> mark: two marks a reader must tell apart
+    cannot both be grey circles.
+  </p>
+  <div id="ink"></div>
+
+  <h2>The channels each candidate spends</h2>
+  <div id="channels"></div>
+
+  <h2>What the numbers rule out, and the one that reversed itself</h2>
+  <p class="note">
+    <b>The last two columns above were added after the swatches were looked
+    at, and they changed the answer.</b> The first version of this page measured
+    every mark against <i>undecided</i>, which is the right question for noise
+    and the wrong one for border — border's job is to be told apart from
+    <b>core</b>. Measured, and measured at both radii, because
+    <b>a hollow ring fills in as it shrinks</b>: stroke width is not
+    scale-invariant, so a grammar that separates core from border by fill stops
+    separating them at all on a lecture screen.
+  </p>
+  <table>
+    <thead><tr><th>candidate</th><th>verdict</th><th>the number</th></tr></thead>
+    <tbody>
+      <tr><td><b>A</b></td><td class="bad">out</td>
+        <td>noise is <b>0% distinct</b> from <i>undecided</i> — the same grey
+        circle. This is the token argument with a number on it: a reader cannot
+        tell <i>not looked at yet</i> from <i>looked at, and it belongs to
+        nothing</i>.</td></tr>
+      <tr><td><b>F</b></td><td class="bad">out, twice</td>
+        <td>border draws <b>148% of core's ink</b> — the <i>weaker</i>
+        membership is the <i>louder</i> mark, which inverts what the picture
+        means. And it spends the outer ring, so <code>labels</code> needs a
+        second ring further out: <b>427%</b> against core at projector size, a
+        blob where a dot should be.</td></tr>
+      <tr><td><b>C</b>, <b>D</b></td><td class="bad">out at the back of the room</td>
+        <td><b>This is the reversal.</b> Both look right at 4.6&nbsp;px — border
+        36% distinct from core — and both collapse to <b>9%</b> at 2.6&nbsp;px,
+        because a 1.9&nbsp;px stroke on a 2.6&nbsp;px dot has closed the hole.
+        Core and border become the same mark exactly where it matters most.
+        D is additionally the weakest on noise (36% from <i>undecided</i>).</td></tr>
+      <tr><td><b>B</b></td><td class="mid">survives, and draws two verdicts</td>
+        <td>every mark ≥&nbsp;91% distinct, none under full ink, no channel
+        spent. <b>But border is not drawn at all</b> — B is A with the token
+        added, so step 4 of cell 60 stays unshown. Costs
+        <code>--c-noise</code>.</td></tr>
+      <tr><td><b>E</b></td><td class="ok">survives the projector</td>
+        <td>the only candidate whose border/core pair <i>holds</i> as the figure
+        shrinks — <b>65% → 67%</b>, because size is scale-invariant and stroke
+        width is not. The cost is real and is the reason it was written off
+        first: border is <b>9 pixels</b> at projector size against core's 23.
+        Nine unambiguous pixels against twenty-two ambiguous ones is the
+        trade.</td></tr>
+      <tr><td><b>G</b></td><td class="ok">survives, and keeps the area</td>
+        <td>added after E's result, to ask whether the scale-invariant channel
+        has to cost area. Border is full size at 45% opacity, so it neither
+        thins nor shrinks. See its row above for whether that holds.</td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    <b>So the shortlist is B, E and G</b>, and the question underneath it has not
+    changed: <i>does the widget draw border points at all?</i> B says cell 60's
+    diagram was right to draw two verdicts and the text's third kind is a
+    footnote. E and G say the text names three kinds and a widget that draws two
+    is teaching the diagram rather than the algorithm.
+  </p>
+
+  <h2>One thing this page cannot settle</h2>
+  <p class="note">
+    <b>Whether the grammar is learnable is not a pixel count.</b> Candidate C's
+    rule is one sentence — <i>filled means this point built a cluster, hollow
+    means it only joined one, grey means neither</i> — and candidate E's needs
+    two. That is the kind of thing the swatches above are for, and the reason
+    this is a page rather than a table.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { dbscan, rings, blobs } from "../dbscan/model.js";
+
+/* ------------------------------------------------------------------ tokens */
+const probe = document.createElement("div");
+document.body.appendChild(probe);
+const cs = getComputedStyle(probe);
+const v = (n) => cs.getPropertyValue(n).trim();
+const C = {
+  surface: v("--surface-1"),
+  unknown: v("--c-unknown"),
+  ink3: v("--ink-3"),
+  grid: v("--grid"),
+  cluster: ["a", "b", "c", "d", "e", "f"].map((k) => v(`--c-cluster-${k}`)),
+  /* THE CANDIDATE TOKEN. Not in tokens.css — it is what candidate B is asking
+     for, and mixing it here rather than adding it there keeps this page from
+     changing anything that ships. A muted plum: it must LOSE to all six cluster
+     colours and must not read as grey. */
+  noise: "#9a7f93",
+};
+probe.remove();
+
+const R = 4.6;          /* the widget's dot radius */
+const R_PROJ = 2.6;     /* the same figure on a lecture screen, from the back */
+const groupCol = (k) => C.cluster[k % 6];
+
+/* ------------------------------------------------------------- the marks --
+   Each candidate is a function (ctx, x, y, state, opts) where `state` is one
+   of "undecided" | "core" | "border" | "noise" and opts carries the cluster
+   colour and the true-group colour. Every one of them draws the surface-
+   coloured halo first: `--surface-gap` is 2px and touching marks must
+   separate, which every scatter widget in this collection already does. */
+
+function halo(ctx, x, y, r, extra = 0) {
+  ctx.beginPath();
+  ctx.arc(x, y, r + 1.6 + extra, 0, Math.PI * 2);
+  ctx.fillStyle = C.surface;
+  ctx.fill();
+}
+function filled(ctx, x, y, r, col) {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = col; ctx.fill();
+}
+function hollow(ctx, x, y, r, col, lw = 1.9) {
+  ctx.beginPath(); ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2);
+  ctx.fillStyle = C.surface; ctx.fill();
+  ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.stroke();
+}
+function cross(ctx, x, y, r, col, lw = 1.8) {
+  ctx.save(); ctx.lineCap = "round"; ctx.lineWidth = lw; ctx.strokeStyle = col;
+  const a = r * 0.78;
+  ctx.beginPath();
+  ctx.moveTo(x - a, y - a); ctx.lineTo(x + a, y + a);
+  ctx.moveTo(x + a, y - a); ctx.lineTo(x - a, y + a);
+  ctx.stroke(); ctx.restore();
+}
+/** Widget 23's true-group mark, unchanged: a ring OUTSIDE the dot. */
+function truthRing(ctx, x, y, r, col) {
+  ctx.beginPath(); ctx.arc(x, y, r + 2.8, 0, Math.PI * 2);
+  ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke();
+}
+
+const CANDIDATES = [
+  {
+    id: "A",
+    name: "The diagram's own grammar",
+    sub: "core and border NOT distinguished. Two verdicts, exactly as cell 60 draws them; step 4 of its own text goes unshown.",
+    channels: { fill: "cluster / grey", outline: "—", shape: "—", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided" || st === "noise") filled(ctx, x, y, r, C.unknown);
+      else filled(ctx, x, y, r, o.col);
+    },
+  },
+  {
+    id: "B",
+    name: "A new --c-noise role",
+    sub: "noise gets a colour of its own, so it cannot be read as 'not looked at yet'. Border still undrawn. Costs one token.",
+    channels: { fill: "cluster / grey / plum", outline: "—", shape: "—", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") filled(ctx, x, y, r, C.noise);
+      else filled(ctx, x, y, r, o.col);
+    },
+  },
+  {
+    id: "C",
+    name: "Filled built it, hollow joined it",
+    sub: "core filled in the cluster colour, border the same colour hollow, noise a grey cross. One rule, and the ring stays free for labels.",
+    channels: { fill: "core vs border", outline: "cluster", shape: "cross = noise", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") cross(ctx, x, y, r, C.ink3);
+      else if (st === "border") hollow(ctx, x, y, r, o.col);
+      else filled(ctx, x, y, r, o.col);
+    },
+  },
+  {
+    id: "D",
+    name: "Hollow throughout",
+    sub: "border hollow in the cluster colour, noise hollow in grey — 'we looked, and nobody'. Undecided stays filled grey. No new token.",
+    channels: { fill: "decided vs not", outline: "cluster / grey", shape: "—", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") hollow(ctx, x, y, r, C.ink3);
+      else if (st === "border") hollow(ctx, x, y, r, o.col);
+      else filled(ctx, x, y, r, o.col);
+    },
+  },
+  {
+    id: "E",
+    name: "Size carries core vs border",
+    sub: "border is the cluster colour at 0.62 the radius. Nothing is hollow, so nothing thins at distance — but small is its own way to vanish.",
+    channels: { fill: "cluster / grey", outline: "—", shape: "size = core vs border", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") cross(ctx, x, y, r, C.ink3);
+      else if (st === "border") filled(ctx, x, y, r * 0.62, o.col);
+      else filled(ctx, x, y, r, o.col);
+    },
+  },
+  {
+    id: "F",
+    name: "Border takes the ring",
+    sub: "the plan's first guess: border is an unfilled dot with a cluster-colour ring. Drawn here to show what it costs — labels has no mark left, so its ring is drawn in a SECOND ring further out.",
+    channels: { fill: "core vs border", outline: "cluster", shape: "—", ring: "SPENT on border" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r, 2);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") filled(ctx, x, y, r, C.unknown);
+      else if (st === "border") { filled(ctx, x, y, r, C.surface); truthRing(ctx, x, y, r, o.col); }
+      else filled(ctx, x, y, r, o.col);
+    },
+    outerTruth: true,
+  },
+  {
+    id: "G",
+    name: "Border at half weight, full size",
+    sub: "core solid, border the same colour and the same size at 45% opacity, noise a grey cross. Opacity is scale-invariant the way size is — but it keeps the mark's whole area.",
+    channels: { fill: "cluster / grey", outline: "—", shape: "opacity = core vs border", ring: "labels — FREE" },
+    draw(ctx, x, y, st, o, r) {
+      halo(ctx, x, y, r);
+      if (st === "undecided") filled(ctx, x, y, r, C.unknown);
+      else if (st === "noise") cross(ctx, x, y, r, C.ink3);
+      else if (st === "border") {
+        ctx.save(); ctx.globalAlpha = 0.45; filled(ctx, x, y, r, o.col); ctx.restore();
+      } else filled(ctx, x, y, r, o.col);
+    },
+  },
+];
+
+const STATES = ["undecided", "core", "border", "noise"];
+
+/* --------------------------------------------------------------- swatches */
+{
+  const host = document.getElementById("swatches");
+  for (const cand of CANDIDATES) {
+    const box = document.createElement("div");
+    box.className = "cand";
+    box.innerHTML = `<h3>${cand.id} — ${cand.name}</h3><p class="sub">${cand.sub}</p>`;
+    const cv = document.createElement("canvas");
+    const W = 276, H = 30 * STATES.length + 24;
+    cv.width = W * 2; cv.height = H * 2; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+    const ctx = cv.getContext("2d");
+    ctx.scale(2, 2);
+    ctx.fillStyle = C.surface; ctx.fillRect(0, 0, W, H);
+    ctx.font = `10px ${getComputedStyle(document.body).fontFamily}`;
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = C.ink3;
+    ctx.fillText("real", 64, 12); ctx.fillText("projector", 104, 12); ctx.fillText("+ true group", 178, 12);
+    STATES.forEach((st, i) => {
+      const y = 34 + i * 30;
+      ctx.fillStyle = C.ink3;
+      ctx.textAlign = "right";
+      ctx.fillText(st, 56, y);
+      ctx.textAlign = "left";
+      const o = { col: groupCol(0) };
+      cand.draw(ctx, 72, y, st, o, R);
+      cand.draw(ctx, 122, y, st, o, R_PROJ);
+      /* the same mark with `labels` on — the test that decides it */
+      const oo = { col: groupCol(0) };
+      cand.draw(ctx, 200, y, st, oo, R);
+      truthRing(ctx, 200, y, cand.outerTruth ? R + 2.8 : R, groupCol(2));
+    });
+    box.appendChild(cv);
+    host.appendChild(box);
+  }
+}
+
+/* ---------------------------------------------------------- the real stage
+   550 CSS px, which is what every fingerprint baseline is hashed at, drawn on
+   a 2x backing store so the marks are judged at the resolution a reader gets
+   rather than at the page's own device ratio. */
+const FIG = 550;
+
+function stageFigure(cand, { X, y, res, told, title }) {
+  const wrap = document.createElement("div");
+  const cv = document.createElement("canvas");
+  cv.className = "real";
+  cv.width = FIG * 2; cv.height = FIG * 2;
+  cv.style.width = `${FIG}px`; cv.style.height = `${FIG}px`;
+  const ctx = cv.getContext("2d");
+  ctx.scale(2, 2);
+  ctx.fillStyle = C.surface; ctx.fillRect(0, 0, FIG, FIG);
+
+  let lo = Infinity, hi = -Infinity;
+  for (const p of X) for (const c of p) { lo = Math.min(lo, c); hi = Math.max(hi, c); }
+  const pad = 34, span = (hi - lo) || 1;
+  const sx = (u) => pad + ((u - lo) / span) * (FIG - 2 * pad);
+
+  /* the eps disc on every point, which is the diagram's own second panel and
+     the one mark none of these candidates changes.
+
+     --ink-3 AND NOT --grid, and this was found by reading the pixels rather
+     than by looking. `--grid` is #e1e0d9 on a #fcfcfb surface and #2c2c2a on a
+     #1a1a19 one — a hairline colour, chosen to be nearly invisible, which is
+     exactly wrong for the one mark that has to read as a filled region. It
+     vanished outright in dark mode. `--ink-3` is #898781 in BOTH themes, so a
+     low-alpha fill of it lands mid-grey against either surface, which is what
+     the diagram draws. */
+  ctx.save();
+  ctx.fillStyle = C.ink3;
+  ctx.globalAlpha = 0.17;
+  for (const p of X) {
+    ctx.beginPath();
+    ctx.arc(sx(p[0]), sx(p[1]), (res.eps / span) * (FIG - 2 * pad), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  for (let i = 0; i < X.length; i += 1) {
+    const x = sx(X[i][0]), yy = sx(X[i][1]);
+    const lab = res.labels[i];
+    const st = lab === -1 ? "noise" : res.core[i] ? "core" : "border";
+    cand.draw(ctx, x, yy, st, { col: lab === -1 ? C.unknown : groupCol(lab) }, R);
+    if (told) truthRing(ctx, x, yy, cand.outerTruth ? R + 2.8 : R, groupCol(y[i]));
+  }
+  wrap.appendChild(cv);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  cap.textContent = title;
+  wrap.appendChild(cap);
+  return wrap;
+}
+
+function stageData(kind, seed, eps) {
+  const st = kind === "rings" ? rings(makeRng(seed), {}) : blobs(makeRng(seed), { groups: 4, per: 12 });
+  const X = st.map((s) => s.p), y = st.map((s) => s.g);
+  const res = dbscan(X, { eps, minPts: 4 });
+  res.eps = eps;
+  return { X, y, res };
+}
+
+{
+  const host = document.getElementById("ringsRow");
+  for (const cand of CANDIDATES) {
+    const box = document.createElement("div");
+    box.className = "cand";
+    box.innerHTML = `<h3>${cand.id} — ${cand.name}</h3>`;
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const eps of [0.32, 0.40]) {
+      const d = stageData("rings", 1, eps);
+      const n = { core: 0, border: d.res.border.length, noise: d.res.noise.length };
+      n.core = d.res.core.filter(Boolean).length;
+      row.appendChild(stageFigure(cand, {
+        ...d, told: false,
+        title: `eps ${eps.toFixed(2)} — ${d.res.nClusters} clusters, ${n.core} core / ${n.border} border / ${n.noise} noise`,
+      }));
+    }
+    box.appendChild(row);
+    host.appendChild(box);
+  }
+}
+
+{
+  const host = document.getElementById("blobsRow");
+  for (const cand of CANDIDATES) {
+    const box = document.createElement("div");
+    box.className = "cand";
+    box.innerHTML = `<h3>${cand.id} — ${cand.name}</h3><p class="sub">${cand.sub}</p>`;
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const told of [false, true]) {
+      const d = stageData("blobs", 1, 0.30);
+      const n = d.res.core.filter(Boolean).length;
+      row.appendChild(stageFigure(cand, {
+        ...d, told,
+        title: told
+          ? `labels ON — the true group is the outer ring`
+          : `labels off — ${d.res.nClusters} clusters, ${n} core / ${d.res.border.length} border / ${d.res.noise.length} noise`,
+      }));
+    }
+    box.appendChild(row);
+    host.appendChild(box);
+  }
+}
+
+/* -------------------------------------------------------------------- ink
+   Counted off an offscreen canvas, not reasoned about. `ink` is how many
+   pixels the mark paints at all; `distinct` is the share of pixels inside the
+   mark's own box that DIFFER from the undecided mark drawn at the same place,
+   which is the only thing that matters for the pair a reader must separate. */
+function inkOf(cand, state, r) {
+  const S = 40;
+  const cv = new OffscreenCanvas(S * 4, S * 4);
+  const ctx = cv.getContext("2d", { willReadFrequently: true });
+  ctx.scale(4, 4);
+  ctx.fillStyle = C.surface; ctx.fillRect(0, 0, S, S);
+  cand.draw(ctx, S / 2, S / 2, state, { col: groupCol(0) }, r);
+  const d = ctx.getImageData(0, 0, S * 4, S * 4).data;
+  const bg = (() => {
+    const c = document.createElement("canvas").getContext("2d");
+    c.fillStyle = C.surface; c.fillRect(0, 0, 1, 1);
+    return c.getImageData(0, 0, 1, 1).data;
+  })();
+  let ink = 0;
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) {
+    const off = Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]);
+    px.push([d[i], d[i + 1], d[i + 2]]);
+    if (off > 24) ink += 1;
+  }
+  return { ink: ink / 16, px };            /* /16 back to CSS pixels */
+}
+
+{
+  const host = document.getElementById("ink");
+  const rows = [];
+  for (const cand of CANDIDATES) {
+    const und = inkOf(cand, "undecided", R);
+    for (const st of ["core", "border", "noise"]) {
+      const a = inkOf(cand, st, R);
+      const b = inkOf(cand, st, R_PROJ);
+      let diff = 0;
+      for (let i = 0; i < a.px.length; i += 1) {
+        const p = a.px[i], q = und.px[i];
+        if (Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) > 40) diff += 1;
+      }
+      /* AND THE PAIR THAT ACTUALLY DECIDES IT. The column above compares
+         every mark to `undecided`, which is the right question for NOISE and
+         the wrong one for BORDER — border's job is to be told apart from
+         CORE. Measured at both radii, because a hollow ring FILLS IN as it
+         shrinks and stops being hollow at all. */
+      const coreA = inkOf(cand, "core", R);
+      const coreB = inkOf(cand, "core", R_PROJ);
+      const vs = (p, q, base) => {
+        let n = 0;
+        for (let i = 0; i < p.px.length; i += 1) {
+          const u = p.px[i], w = q.px[i];
+          if (Math.abs(u[0] - w[0]) + Math.abs(u[1] - w[1]) + Math.abs(u[2] - w[2]) > 40) n += 1;
+        }
+        return (100 * n) / Math.max(1, base * 16);
+      };
+      rows.push({
+        id: cand.id, st,
+        ink: a.ink, proj: b.ink,
+        distinct: (100 * diff) / Math.max(1, und.ink * 16),
+        vsCore: st === "core" ? null : vs(a, coreA, coreA.ink),
+        vsCoreProj: st === "core" ? null : vs(b, coreB, coreB.ink),
+      });
+    }
+  }
+  const undInk = inkOf(CANDIDATES[0], "undecided", R).ink;
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>candidate</th><th>state</th><th>ink at 4.6px</th>"
+    + "<th>ink at 2.6px (projector)</th><th>share of the filled dot</th>"
+    + "<th>distinct from <i>undecided</i></th>"
+    + "<th>distinct from <i>core</i></th>"
+    + "<th>&hellip; at projector size</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    const thin = r.ink < undInk * 0.45;
+    const same = r.distinct < 25;
+    const cell = (v) => {
+      if (v === null) return '<td class="n">—</td>';
+      return `<td class="n ${v < 25 ? "bad" : "ok"}">${v.toFixed(0)}%</td>`;
+    };
+    tr.innerHTML = `<td>${r.id}</td><td>${r.st}</td>`
+      + `<td class="n">${r.ink.toFixed(0)}</td>`
+      + `<td class="n">${r.proj.toFixed(0)}</td>`
+      + `<td class="n${thin ? " bad" : ""}">${(100 * r.ink / undInk).toFixed(0)}%</td>`
+      + `<td class="n ${same ? "bad" : "ok"}">${r.distinct.toFixed(0)}%</td>`
+      + cell(r.vsCore) + cell(r.vsCoreProj);
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  host.appendChild(t);
+  const p = document.createElement("p");
+  p.className = "note";
+  p.innerHTML = `A filled dot at 4.6&nbsp;px is <b>${undInk.toFixed(0)} pixels</b>.`
+    + ` <span class="bad">Red in the fourth column</span> is a mark under 45% of that`
+    + ` — thin enough to lose at distance. <span class="bad">Red in the fifth</span>`
+    + ` is a mark under a quarter different from <i>undecided</i>: the difference`
+    + ` between <i>not looked at yet</i> and <i>looked at, and it belongs to`
+    + ` nothing</i>.`
+    + ` <b>The last two columns are the ones that decide this page.</b> Border's`
+    + ` job is to be told apart from CORE, not from undecided — and a hollow ring`
+    + ` <b>fills in as it shrinks</b>, so a grammar that separates the two by`
+    + ` fill can stop separating them at all on a lecture screen. That is why the`
+    + ` pair is measured at both radii, and it is not something the swatches`
+    + ` alone would have proved.`;
+  host.appendChild(p);
+}
+
+/* --------------------------------------------------------------- channels */
+{
+  const host = document.getElementById("channels");
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>candidate</th><th>fill</th><th>outline</th>"
+    + "<th>shape / size</th><th>the outer ring</th><th>draws border at all</th>"
+    + "<th>needs a new token</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const c of CANDIDATES) {
+    const spent = c.channels.ring.includes("SPENT");
+    const drawsBorder = ["C", "D", "E", "F"].includes(c.id);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><b>${c.id}</b></td><td>${c.channels.fill}</td>`
+      + `<td>${c.channels.outline}</td><td>${c.channels["shape"]}</td>`
+      + `<td class="${spent ? "bad" : "ok"}">${c.channels.ring}</td>`
+      + `<td class="${drawsBorder ? "ok" : "bad"}">${drawsBorder ? "yes" : "no"}</td>`
+      + `<td class="${c.id === "B" ? "mid" : "ok"}">${c.id === "B" ? "--c-noise" : "no"}</td>`;
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  host.appendChild(t);
+}
+</script>
+</body>
+</html>

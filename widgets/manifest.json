@@ -338,6 +338,20 @@
       ],
       "arc": 23,
       "status": "shipped"
+    },
+    {
+      "slug": "dbscan",
+      "title": "DBSCAN",
+      "blurb": "No K — a radius instead. Clusters grow through overlapping discs, and what is never reached is noise.",
+      "course": "PHM5005",
+      "topics": [
+        "clustering",
+        "unsupervised",
+        "density",
+        "noise"
+      ],
+      "arc": 24,
+      "status": "shipped"
     }
   ]
 }
