@@ -16,8 +16,11 @@
    star wavers, which is why the readout carries the CI and not a star.
 
    Stage: DAG on the left, scatter on the right (Kenneth's pick, candidate A
-   with the DAG beside it — `_lab/causal-stage.html`). No animation: the
-   widget is a comparison, not an accumulation, like svm.
+   with the DAG beside it — `_lab/causal-stage.html`). The one animation is
+   widget 12's ease, for widget 12's reason: the adjusted line SWINGS from the
+   unadjusted slope to its own, so the samples are seen not to move while the
+   model changes — a jump would only assert it. No drive buttons; the drive
+   row is Reset alone.
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
@@ -25,6 +28,35 @@ import { tTailP } from "../core/stats.js";
 import { ols, STRUCTURES } from "./model.js";
 
 const N = 1000;
+const EASE_MS = 450;
+
+/* Interpolate two token colours for the continuous third variables (age, HR).
+   The collider's ICU is binary and gets the endpoints exactly. */
+function hexLerp(a, b, t) {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
+
+/* THE DAG'S GEOMETRY, ONCE — draw() paints it and regions() makes the third
+   variable's node a click target, and two copies of this arithmetic is how
+   the target ends up six columns from the node (the fingerprint section's
+   own incident). */
+function dagLayout(w, h) {
+  const DAG_W = Math.max(168, Math.min(200, w * 0.32));
+  const dag = { x: 6, y: 30, w: DAG_W, h: h - 90 };
+  const R = 21;
+  return {
+    dag,
+    R,
+    P: {
+      z: [dag.x + dag.w / 2, dag.y + 26],
+      x: [dag.x + 34, dag.y + dag.h - 26],
+      y: [dag.x + dag.w - 34, dag.y + dag.h - 26],
+    },
+  };
+}
 
 /* One place for every on-screen name, per structure. */
 const NAMES = {
@@ -133,6 +165,20 @@ defineWidget({
       default: "off",
       display: true,
     },
+    /* The third variable, made visible on the scatter — the clue to WHY
+       adjusting moves the fit: in a fork the colour runs along the slope, in
+       a collider the two colours hold the two tilted clouds. Kenneth's ask,
+       review round 2. */
+    colour: {
+      type: "segmented",
+      label: "Colour by the third variable",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On", detail: "each patient tinted by the variable the model may adjust for" },
+      ],
+      default: "off",
+      display: true,
+    },
 
     model: { type: "section", label: "The model" },
     /* The gate opens the modelling stage: the widget starts as data and a
@@ -161,6 +207,8 @@ defineWidget({
   /* True with everything off and on — core takes the legend once. */
   legend: [
     { token: "unknown", label: "1000 simulated patients", mark: "dot" },
+    { token: "nonevent", label: "Third variable low — for the ICU, not admitted", mark: "dot" },
+    { token: "event", label: "Third variable high — for the ICU, admitted", mark: "dot" },
     { token: "empirical", label: "The unadjusted fit", mark: "line" },
     { token: "highlight", label: "The adjusted fit", mark: "line" },
     { token: "reference", label: "The true effect, revealed on request", mark: "line" },
@@ -173,6 +221,11 @@ defineWidget({
     const d = spec.make(rng, N);
     const unadj = ols(d.y, [d.x], tTailP);
     const adj = ols(d.y, [d.x, d.z], tTailP);
+    /* Colour scale for the third variable: 5th to 95th percentile, clamped,
+       so one tail draw does not wash every other patient to one end. */
+    const zs = [...d.z].sort((a, b) => a - b);
+    const zLo = zs[Math.floor(0.05 * (N - 1))];
+    const zHi = zs[Math.floor(0.95 * (N - 1))];
     return {
       structure,
       d,
@@ -184,22 +237,49 @@ defineWidget({
       meanY: meanOf(d.y),
       xDom: padDomain(d.x),
       yDom: padDomain(d.y),
+      zLo,
+      zHi: zHi === zLo ? zLo + 1 : zHi,
     };
   },
 
-  draw({ ctx, colors, w, h, params, state }) {
+  /* WIDGET 12'S EASE, NOT A DRIVE. `stepLabel: null` and `runLabel: null`
+     decline the buttons (4.5) — there is nothing to step, and the drive row
+     is Reset alone. The one motion is the adjusted line swinging between the
+     unadjusted slope and its own when the model changes: two readings of the
+     SAME data, and easing between them is what shows the samples not moving
+     (widget 12's rationale, verbatim). A data change resets `init` and lands
+     instantly — new samples are a new picture, and nothing eases across it. */
+  animation: {
+    stepLabel: null,
+    runLabel: null,
+    init: ({ params }) => {
+      const m = params.fit && params.adjust === "on" ? 1 : 0;
+      return { mix: m, mixT: m, easing: false, done: false };
+    },
+    advance: (anim, { dt }) => {
+      const rate = Math.min(1, (dt / EASE_MS) * 2.6);
+      const gap = anim.mixT - anim.mix;
+      if (Math.abs(gap) < 0.004) {
+        anim.mix = anim.mixT;
+        return false;
+      }
+      anim.mix += gap * rate;
+      return true;
+    },
+    rebuild: (anim, { params }) => {
+      anim.mixT = params.fit && params.adjust === "on" ? 1 : 0;
+      if (Math.abs(anim.mixT - anim.mix) > 0.004) anim.easing = true;
+    },
+  },
+
+  draw({ ctx, colors, w, h, params, state, anim }) {
     const names = NAMES[state.structure];
     const adjusted = params.fit && params.adjust === "on";
+    const mix = anim?.mix ?? (adjusted ? 1 : 0);
 
     /* --- DAG panel, left ------------------------------------------------- */
-    const DAG_W = Math.max(168, Math.min(200, w * 0.32));
-    const dag = { x: 6, y: 30, w: DAG_W, h: h - 90 };
-    const P = {
-      z: [dag.x + dag.w / 2, dag.y + 26],
-      x: [dag.x + 34, dag.y + dag.h - 26],
-      y: [dag.x + dag.w - 34, dag.y + dag.h - 26],
-    };
-    const R = 21;
+    const { dag, P, R } = dagLayout(w, h);
+    const DAG_W = dag.w;
 
     ctx.save();
     ctx.font = `600 ${colors.fsSm} ${colors.font}`;
@@ -290,9 +370,13 @@ defineWidget({
     ctx.rect(rect.x, rect.y, rect.w, rect.h);
     ctx.clip();
 
-    ctx.fillStyle = colors.unknown;
+    const tint = (z) => {
+      const t = Math.max(0, Math.min(1, (z - state.zLo) / (state.zHi - state.zLo)));
+      return hexLerp(colors.nonevent, colors.event, t);
+    };
     ctx.globalAlpha = 0.45;
     for (let i = 0; i < N; i += 1) {
+      ctx.fillStyle = params.colour === "on" ? tint(state.d.z[i]) : colors.unknown;
       ctx.beginPath();
       ctx.arc(plot.sx(state.d.x[i]), plot.sy(state.d.y[i]), 2, 0, 2 * Math.PI);
       ctx.fill();
@@ -317,12 +401,38 @@ defineWidget({
       lineAt(state.meanY - state.truth * state.meanX, state.truth, colors.reference, 1.5, [6, 5]);
     }
     if (params.fit) {
-      lineAt(state.unadj.beta[0], state.unadj.beta[1], colors.empirical, 2.5);
-      if (adjusted) {
-        lineAt(state.adj.beta[0] + state.adj.beta[2] * state.meanZ, state.adj.beta[1], colors.highlight, 2.5);
+      const ub0 = state.unadj.beta[0];
+      const ub1 = state.unadj.beta[1];
+      lineAt(ub0, ub1, colors.empirical, 2.5);
+      /* The adjusted line grows OUT of the unadjusted one: at mix 0 the two
+         coincide, at 1 it has swung to its own slope. Between them the pair
+         is visibly the same data read twice. */
+      if (mix > 0.004) {
+        const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
+        const ab1 = state.adj.beta[1];
+        lineAt(ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
       }
     }
     ctx.restore();
+  },
+
+  /* The third variable's node is a click target that flips `adjust` — the
+     same write the segmented control performs, through the same door. Built
+     from `dagLayout`, the one copy of the geometry. No region while the model
+     is unfitted: `adjust` is hidden then, and a region must keep a visible
+     control (3.6). */
+  regions({ w, h, params }) {
+    if (!params.fit) return [];
+    const { P, R } = dagLayout(w, h);
+    const [zx, zy] = P.z;
+    return [{
+      x: zx - R - 4,
+      y: zy - R - 4,
+      w: 2 * (R + 4),
+      h: 2 * (R + 4),
+      set: { adjust: params.adjust === "on" ? "off" : "on" },
+      label: "Adjust for the third variable",
+    }];
   },
 
   readout({ params, state }) {

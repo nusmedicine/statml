@@ -3231,6 +3231,35 @@ data/algorithm rule (Structure + Seed = the data; Adjust = the model, and
 Adjust is `display: true` — both fits computed per `compute()`, the toggle
 only re-reads them, exactly `confidence-interval`'s method pattern).
 
+### BUILT AS A DRAFT — round 1 (2026-08-27)
+
+Kenneth picked **candidate A with the DAG beside it**. Shipped as
+`widgets/fork-pipe-collider/`, status draft: DAG left (boxed adjusted node,
+open paths in `--c-extreme`, blocked as faded dashes, a one-line verdict),
+scatter right with the two slopes, truth dashed on request. Rail: *The data*
+(Structure, Seed, True effect) / *The model* (a "Fit the model" gate so the
+widget starts as data and a question, then Adjust). All toggles display-true;
+both fits computed up front. Verified by DOM drive (all six structure×adjust
+states read the mock-up's numbers) and a six-state canvas text sweep (clean;
+the centred pipe verdict clipped at 550px by arithmetic and ships
+left-aligned).
+
+### ROUND 2 — Kenneth: click the node, show Z, and should the fit move?
+
+Three asks, all in: **the third variable's node is a click target** flipping
+`adjust` (a `regions` entry built from `dagLayout()`, the one copy of the
+geometry; no region while the model is unfitted, since 3.6 wants the control
+visible); **Colour by the third variable** tints each patient
+`--c-nonevent` → `--c-event` (5th–95th percentile scale for the continuous
+age/HR, the exact endpoints for ICU) — the clue to *why* adjusting moves the
+fit; and **the adjusted line now EASES** between the unadjusted slope and its
+own, widget 12's mechanism for widget 12's reason: two readings of the same
+data, and the samples are seen not to move while the model changes. No drive
+buttons (`stepLabel: null`, `runLabel: null` — the drive row is Reset alone);
+a data change lands instantly by `init`. The ease answers Kenneth's "useful
+or distracting?" with the repo's own precedent rather than taste; if it reads
+as noise in review, deleting the `animation` block reverts it whole.
+
 ---
 
 # PHM5005 · AI/ML for Precision Medicine
