@@ -4626,6 +4626,15 @@ browser before this lands.
 - No fingerprint states, by design — the shape is unreviewed.
 - **`dimreduce-artifacts` in the arc-B tail list is this widget's second half**
   and should be struck from there, or narrowed, once the four tabs land.
+
+### THE RAIL GAINED SECTIONS — Kenneth, 2026-08-27
+
+Round two of the rail-section sweep (candidates in
+[`_lab/dimred-rail.html`](../widgets/_lab/dimred-rail.html)): **The data**
+(groups+samples on one row, seed, True groups) / **PCA** (the two gates).
+This was the loud half of the double-naming call — "PCA" sits directly above a
+button reading "Run PCA" — and Kenneth took arc consistency over avoiding the
+repetition. +34px measured. Rail-only — both hashes untouched, no rebaseline.
 ---
 
 ## Widget 20 · `mds` — SHIPPED
@@ -5174,6 +5183,16 @@ again, which is the change round one reversed.
   matrix wants, and it was cut because `regions` requires the parameter to keep
   a visible control (3.6) and a dropdown of fifteen pairs in the rail is clutter
   that carries no idea at rest.
+
+### THE RAIL GAINED SECTIONS — Kenneth, 2026-08-27
+
+Round two of the rail-section sweep, the milder half of the double-naming call
+(candidates in [`_lab/dimred-rail.html`](../widgets/_lab/dimred-rail.html)):
+**The data** (groups+samples on one row, seed, True groups) / **MDS** (the
+gate, and the Fit toggle once it opens — the toggle the unsectioned rail left
+floating). The gate names an act ("Measure every pair"), not the method, so
+here the heading adds a word the rail did not carry. +32px measured. Rail-only
+— both hashes untouched, no rebaseline.
 
 ---
 
