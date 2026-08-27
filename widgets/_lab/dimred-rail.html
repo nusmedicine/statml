@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab · sections for the t-SNE and UMAP rails</title>
+<title>Lab · sections for the dimensionality-reduction rails</title>
 <link rel="stylesheet" href="../core/tokens.css">
 <style>
   .lab { max-width: 1720px; margin: 0 auto; padding: var(--sp-4); }
@@ -70,6 +70,20 @@
 
   <h2>What each candidate changes, and what it spends</h2>
   <div id="costs"></div>
+
+  <h2>Round two: pca and mds — the judgement call</h2>
+  <p class="note">
+    Both already order their rails data-then-method, and their method "block" is
+    the gate(s): a full-width button that draws its own hairline and <b>names the
+    method on its face</b> ("Run PCA", "Measure every pair"). So the open
+    question is whether a heading directly above that button says the name twice,
+    or whether the arc reading identically across all six widgets is worth the
+    repetition. Both B rails are drawn at their opening state — mds's
+    <i>Fit</i> toggle appears under the MDS heading once the gate opens.
+  </p>
+  <div class="cands" id="rails2"></div>
+  <div id="out2"></div>
+  <div id="costs2"></div>
 </main>
 
 <script type="module">
@@ -233,7 +247,7 @@ const defaults = (spec) => Object.fromEntries(
 const rails = document.getElementById("rails");
 const rows = [];
 
-for (const [id, name, spec, gives, driveKey, isRef] of CANDS) {
+function renderRail(railsEl, rowList, [id, name, spec, gives, driveKey, isRef]) {
   const main = {};
   const after = {};
   for (const [n, f] of Object.entries(spec)) (f.afterDrive ? after : main)[n] = f;
@@ -258,15 +272,16 @@ for (const [id, name, spec, gives, driveKey, isRef] of CANDS) {
     rail.appendChild(tail);
   }
   cand.appendChild(rail);
-  rails.appendChild(cand);
+  railsEl.appendChild(cand);
 
   buildControls(controls, main, defaults(spec), () => {});
   buildActions(drive, DRIVES[driveKey]);
   if (tail) buildControls(tail, after, defaults(spec), () => {});
 
   const h = (n) => Math.round(n.getBoundingClientRect().height);
-  rows.push({ id, name, controls: h(controls), rail: h(rail), isRef });
+  rowList.push({ id, name, controls: h(controls), rail: h(rail), isRef });
 }
+for (const c of CANDS) renderRail(rails, rows, c);
 
 const baseOf = (id) => rows.find((r) => r.id === id.split(" ")[0] + " A");
 document.getElementById("out").innerHTML = `
@@ -306,6 +321,116 @@ document.getElementById("costs").innerHTML = `
     <tr><td><b>UMAP C</b></td><td>B, plus two pairs: groups+samples as in kmeans, and neighbours+minimum distance —
       the lesson's own two dials, one row asserting they are the two things UMAP asks you to choose. The cost is
       the detail lines (<code>n_neighbors</code>, <code>min_dist</code>) render at half width; both are one word.</td></tr>
+  </table>`;
+
+/* ---- Round two: pca and mds, specs verbatim from the shipped widgets. ---- */
+const REVEAL = [
+  { value: "off", label: "Off", detail: "can you see the groups without being told?" },
+  { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
+];
+const PCA_A = {
+  groups: { type: "choice", label: "Groups in the data",
+    options: [2, 3, 4, 5, 6].map((v) => ({ value: String(v), label: String(v) })), default: "3" },
+  samples: { type: "choice", label: "Samples per group",
+    options: [3, 4, 6, 8, 12].map((v) => ({ value: String(v), label: String(v) })), default: "4" },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+  labels: { type: "segmented", label: "True groups", options: REVEAL, default: "off" },
+  pca: { type: "gate", label: "Run PCA", labelOff: "Clear the components",
+    detail: "draw the two directions the samples are most spread along" },
+  projected: { type: "gate", label: "Project onto the plane", labelOff: "Back to the cloud",
+    detail: "flatten every sample onto it, and turn the plane to face you", when: { param: "pca" } },
+};
+const PCA_B = {
+  data: { type: "section", label: "The data" },
+  groups: { ...PCA_A.groups, row: { key: "stage" } },
+  samples: { ...PCA_A.samples, row: { key: "stage" } },
+  seed: PCA_A.seed,
+  labels: PCA_A.labels,
+  fit: { type: "section", label: "PCA" },
+  pca: PCA_A.pca,
+  projected: PCA_A.projected,
+};
+const MDS_A = {
+  groups: { type: "choice", label: "Groups in the data",
+    options: [
+      { value: "2", label: "2", detail: "two centres — they make a line" },
+      { value: "3", label: "3", detail: "three centres — they make a plane" },
+      { value: "4", label: "4", detail: "four centres, spread through space" },
+    ], default: "2" },
+  samples: { type: "choice", label: "Samples per group",
+    options: [
+      { value: "1", label: "1", detail: "no clusters — every sample on its own" },
+      { value: "2", label: "2", detail: "a pair around each centre" },
+      { value: "3", label: "3", detail: "three around each centre" },
+      { value: "4", label: "4", detail: "four around each centre" },
+    ], default: "3" },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1,
+    detail: "moves every sample, and where the fit starts from" },
+  labels: { type: "segmented", label: "True groups", options: REVEAL, default: "off" },
+  measured: { type: "gate", label: "Measure every pair", labelOff: "Back to the coordinates",
+    detail: "write each distance into the table, then set the coordinates aside" },
+  method: { type: "segmented", label: "Fit",
+    options: [
+      { value: "metric", label: "Distances", detail: "match the distances themselves — by minimising the stress, a step at a time" },
+      { value: "rank", label: "Rank order", detail: "keep the ORDER of the distances and forget their sizes — it carries on from where the fit above stopped" },
+    ], default: "metric", when: { param: "measured" } },
+};
+const MDS_B = {
+  data: { type: "section", label: "The data" },
+  groups: { ...MDS_A.groups, row: { key: "stage" } },
+  samples: { ...MDS_A.samples, row: { key: "stage" } },
+  seed: MDS_A.seed,
+  labels: MDS_A.labels,
+  fit: { type: "section", label: "MDS" },
+  measured: MDS_A.measured,
+  method: MDS_A.method,
+};
+
+DRIVES.pca = [{ key: "reset", text: "Reset", onClick: () => {} }];
+DRIVES.mds = [
+  { key: "step", group: "pace", text: "Rearrange", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+
+const CANDS2 = [
+  ["pca A", "as shipped", PCA_A, "the gate hairline is the only divider", "pca", false],
+  ["pca B", "sections + pair", PCA_B, "The data / PCA — a heading above \"Run PCA\"", "pca", false],
+  ["mds A", "as shipped", MDS_A, "the gate hairline is the only divider", "mds", false],
+  ["mds B", "sections + pair", MDS_B, "The data / MDS — a heading above \"Measure every pair\"", "mds", false],
+];
+const rails2 = document.getElementById("rails2");
+const rows2 = [];
+for (const c of CANDS2) renderRail(rails2, rows2, c);
+
+const base2 = (id) => rows2.find((r) => r.id === id.split(" ")[0] + " A");
+document.getElementById("out2").innerHTML = `
+  <table>
+    <tr>
+      <th>rail</th><th>candidate</th>
+      <th class="n">controls</th><th class="n">rail</th><th class="n">vs shipped</th>
+    </tr>
+    ${rows2.map((r) => {
+      const d = r.rail - base2(r.id).rail;
+      return `<tr>
+      <td><b>${r.id}</b></td><td>${r.name}</td>
+      <td class="n">${r.controls}</td>
+      <td class="n">${r.rail}</td>
+      <td class="n">${d === 0 ? "—" : (d >= 0 ? "+" : "−") + Math.abs(d)}</td>
+    </tr>`;
+    }).join("")}
+  </table>`;
+
+document.getElementById("costs2").innerHTML = `
+  <table>
+    <tr><th>candidate</th><th>the call</th></tr>
+    <tr><td><b>pca B</b></td><td><b>The double-naming is at its loudest here.</b> "PCA" sits directly above a
+      full-width button reading "Run PCA" — the heading adds no word the button does not already carry, only the
+      block boundary. What it buys is the arc reading identically across all six make-data-then-fit widgets, and
+      the groups+samples pair, which claws back most of the height.</td></tr>
+    <tr><td><b>mds B</b></td><td><b>The milder case.</b> Its gate says "Measure every pair" — an act, not the
+      method's name — so "MDS" above it is not a repetition, and once the gate opens the heading also covers the
+      <i>Fit</i> toggle, which is a genuine method control the shipped rail leaves floating.</td></tr>
   </table>`;
 </script>
 </body>
