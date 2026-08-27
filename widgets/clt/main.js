@@ -108,20 +108,20 @@ defineWidget({
      Those keep the student's work; the others start over, because they make the
      samples genuinely different samples. */
   params: {
+    /* TWO BLOCKS (2026-08-27 rail-section sweep): the population and the one
+       sample size drawn from it, then everything about the pile of means the
+       theorem is a claim about. Follows bootstrap's ruling — same shape, same
+       split — with Play speed below the buttons it governs. */
+    pop: { type: "section", label: "The population" },
     dist: { type: "select", label: "Population", options: distOptions, default: "exponential" },
     n: { type: "int", label: "Sample size n", min: 1, max: 100, default: 5 },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+
+    means: { type: "section", label: "The sample means" },
     reps: {
       type: "int", label: "Samples to draw", min: 1, max: 2000, step: 1, default: 400,
       // Extending the plan does not invalidate what is drawn: the first k means
       // are the same k means whatever the target is.
-      display: true,
-    },
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
-    speed: {
-      type: "choice",
-      label: "Play speed",
-      options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
-      default: "medium",
       display: true,
     },
     view: {
@@ -136,6 +136,15 @@ defineWidget({
     },
     smooth: { type: "bool", label: "Smoothed density", default: true, display: true },
     theory: { type: "bool", label: "Normal σ/√n", default: true, display: true },
+
+    speed: {
+      type: "choice",
+      label: "Play speed",
+      options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
+      default: "medium",
+      display: true,
+      afterDrive: true,
+    },
 
     // Authoring escape hatch, deliberately not a visible control. The figure is
     // spoiler-free by default; a chapter or notebook that wants a finished
