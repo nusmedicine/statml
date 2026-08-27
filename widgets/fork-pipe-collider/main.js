@@ -542,32 +542,76 @@ defineWidget({
         if (mix > 0.004) {
           const ab1 = state.adj.beta[1];
           if (state.groups) {
+            /* THE PAIR, Kenneth's variant C: the ICU = 1 line solid at full
+               weight, the ICU = 0 comparator DOTTED — de-emphasised, kept
+               (adjusting removes comparisons across the groups, not the
+               patients; both clouds inform the slope). The dot pattern [2,4]
+               is deliberately unlike the truth line's [6,5] dashes. */
+            const intercepts = [];
             state.groups.forEach((g, gi) => {
               const gb0 = g.my - ab1 * g.mx;
               const cb0 = ub0 + (gb0 - ub0) * mix;
               const cb1 = ub1 + (ab1 - ub1) * mix;
-              lineAt(plotD, state.xDom, cb0, cb1, colors.highlight, 2.5);
-              /* Each line named by the group it is drawn for — the pair is one
-                 model evaluated at ICU = 0 and ICU = 1, and the label is that
-                 evaluation. Fades in with the split so it never names a line
-                 still riding the unadjusted slope; anchored near the left edge
-                 because the pair descends out of the frame to the right. */
-              if (mix > 0.6) {
-                const lx = state.xDom[0] + (state.xDom[1] - state.xDom[0]) * 0.035;
+              intercepts[gi] = { cb0, cb1 };
+              if (gi === 0) lineAt(plotD, state.xDom, cb0, cb1, colors.highlight, 2, [2, 4]);
+              else lineAt(plotD, state.xDom, cb0, cb1, colors.highlight, 2.5);
+            });
+            /* Labels and the gap bracket fade in with the split, so nothing
+               names a line still riding the unadjusted slope. */
+            if (mix > 0.6) {
+              ctx.save();
+              ctx.globalAlpha = (mix - 0.6) / 0.4;
+              ctx.font = `${colors.fsXs} ${colors.font}`;
+              ctx.textAlign = "left";
+
+              /* Each line named by the group it is drawn for — one model,
+                 evaluated at ICU = 0 and ICU = 1. Anchored left of centre
+                 because the pair descends out of the frame to the right,
+                 and right of the bracket so the two annotations share the
+                 edge without colliding. */
+              ctx.textBaseline = "bottom";
+              const lx = state.xDom[0] + (state.xDom[1] - state.xDom[0]) * 0.12;
+              intercepts.forEach(({ cb0, cb1 }, gi) => {
                 const text = `${names.z} = ${gi}`;
-                ctx.save();
-                ctx.globalAlpha = (mix - 0.6) / 0.4;
-                ctx.font = `${colors.fsXs} ${colors.font}`;
-                ctx.textAlign = "left";
-                ctx.textBaseline = "bottom";
                 ctx.strokeStyle = colors.surface;
                 ctx.lineWidth = 3;
                 ctx.strokeText(text, plotD.sx(lx) + 2, plotD.sy(cb0 + cb1 * lx) - 4);
                 ctx.fillStyle = colors.ink2;
                 ctx.fillText(text, plotD.sx(lx) + 2, plotD.sy(cb0 + cb1 * lx) - 4);
-                ctx.restore();
+              });
+
+              /* THE GAP BRACKET on the intercept axis — the vertical distance
+                 between parallel lines is the same at every x, so it sits at
+                 the left edge where the intercepts live. Its value is the
+                 model's third number: R's printed ICU coefficient. */
+              const ax = state.xDom[0] + (state.xDom[1] - state.xDom[0]) * 0.025;
+              const px = plotD.sx(ax);
+              const y0 = plotD.sy(intercepts[0].cb0 + intercepts[0].cb1 * ax);
+              const y1 = plotD.sy(intercepts[1].cb0 + intercepts[1].cb1 * ax);
+              ctx.strokeStyle = colors.ink1;
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.moveTo(px, y0);
+              ctx.lineTo(px, y1);
+              ctx.stroke();
+              for (const [ye, dir] of [[y0, y1 > y0 ? 1 : -1], [y1, y0 > y1 ? 1 : -1]]) {
+                ctx.fillStyle = colors.ink1;
+                ctx.beginPath();
+                ctx.moveTo(px, ye);
+                ctx.lineTo(px - 4, ye + dir * 6);
+                ctx.lineTo(px + 4, ye + dir * 6);
+                ctx.fill();
               }
-            });
+              const gap = state.adj.beta[2];
+              const label = `effect of ${names.z} = ${gap >= 0 ? "+" : ""}${fmt(gap, 2)}`;
+              ctx.textBaseline = "middle";
+              ctx.strokeStyle = colors.surface;
+              ctx.lineWidth = 3;
+              ctx.strokeText(label, px + 8, (y0 + y1) / 2);
+              ctx.fillStyle = colors.ink1;
+              ctx.fillText(label, px + 8, (y0 + y1) / 2);
+              ctx.restore();
+            }
           } else {
             const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
             lineAt(plotD, state.xDom, ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
