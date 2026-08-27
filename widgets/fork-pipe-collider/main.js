@@ -213,6 +213,25 @@ defineWidget({
       display: true,
       when: { param: "fit" },
     },
+    /* WHERE THE ADJUSTED NUMBER COMES FROM — the added-variable view, gated
+       on adjust being ON because the residual cloud IS the adjusted picture
+       (a view of it while the model on screen was unadjusted would disagree
+       with every tile). Chosen over per-band fit lines by measurement: within
+       quartile bands the fork's slope is still −0.38 to −0.30, so the
+       "obvious" bridge teaches the opposite (`_lab/causal-measure.mjs`,
+       ROUND TWO). This one cannot lie: the residual slope equals the
+       adjusted coefficient exactly, by Frisch–Waugh. */
+    view: {
+      type: "segmented",
+      label: "View",
+      options: [
+        { value: "data", label: "Data", detail: "the measurements as recorded" },
+        { value: "resid", label: "Third variable removed", detail: "what it explains is taken out of both axes — the slope left is the adjusted coefficient" },
+      ],
+      default: "data",
+      display: true,
+      when: { param: "adjust", equals: "on" },
+    },
   },
 
   /* True with everything off and on — core takes the legend once. */
@@ -246,6 +265,25 @@ defineWidget({
         if (d.x[i] > xDom[1] || d.y[i] > yDom[1]) beyond += 1;
       }
     }
+    /* The added-variable view: both axes regressed on the third variable,
+       residuals kept. The residual slope equals adj.beta[1] exactly (FWL) —
+       asserted by `_lab/causal-measure.mjs` rather than trusted. */
+    const gx = ols(d.x, [d.z], tTailP);
+    const gy = ols(d.y, [d.z], tTailP);
+    const rx = d.x.map((v, i) => v - gx.beta[0] - gx.beta[1] * d.z[i]);
+    const ry = d.y.map((v, i) => v - gy.beta[0] - gy.beta[1] * d.z[i]);
+    const rq = (vals, p) => {
+      const s = [...vals].sort((a, b) => a - b);
+      return s[Math.floor(p * (N - 1))];
+    };
+    const rxDom = skewed ? [rq(rx, 0.005) * 1.08, rq(rx, 0.995) * 1.08] : padDomain(rx);
+    const ryDom = skewed ? [rq(ry, 0.005) * 1.08, rq(ry, 0.995) * 1.08] : padDomain(ry);
+    let beyondR = 0;
+    if (skewed) {
+      for (let i = 0; i < N; i += 1) {
+        if (rx[i] < rxDom[0] || rx[i] > rxDom[1] || ry[i] < ryDom[0] || ry[i] > ryDom[1]) beyondR += 1;
+      }
+    }
     return {
       structure,
       d,
@@ -258,6 +296,11 @@ defineWidget({
       xDom,
       yDom,
       beyond,
+      rx,
+      ry,
+      rxDom,
+      ryDom,
+      beyondR,
       zLo,
       zHi: zHi === zLo ? zLo + 1 : zHi,
     };
@@ -275,21 +318,33 @@ defineWidget({
     runLabel: null,
     init: ({ params }) => {
       const m = params.fit && params.adjust === "on" ? 1 : 0;
-      return { mix: m, mixT: m, easing: false, done: false };
+      const v = m && params.view === "resid" ? 1 : 0;
+      return { mix: m, mixT: m, vmix: v, vmixT: v, easing: false, done: false };
     },
+    /* Two independent eases chasing their own targets, odds-and-risk's
+       pattern: the adjusted line swinging (`mix`), and every patient sliding
+       between the data view and the residual view (`vmix`). Exponential, so
+       an interruption resumes from where the figure is. */
     advance: (anim, { dt }) => {
       const rate = Math.min(1, (dt / EASE_MS) * 2.6);
-      const gap = anim.mixT - anim.mix;
-      if (Math.abs(gap) < 0.004) {
-        anim.mix = anim.mixT;
-        return false;
+      let moving = false;
+      for (const key of ["mix", "vmix"]) {
+        const gap = anim[`${key}T`] - anim[key];
+        if (Math.abs(gap) < 0.004) {
+          anim[key] = anim[`${key}T`];
+          continue;
+        }
+        anim[key] += gap * rate;
+        moving = true;
       }
-      anim.mix += gap * rate;
-      return true;
+      return moving;
     },
     rebuild: (anim, { params }) => {
       anim.mixT = params.fit && params.adjust === "on" ? 1 : 0;
-      if (Math.abs(anim.mixT - anim.mix) > 0.004) anim.easing = true;
+      anim.vmixT = anim.mixT && params.view === "resid" ? 1 : 0;
+      if (Math.abs(anim.mixT - anim.mix) > 0.004 || Math.abs(anim.vmixT - anim.vmix) > 0.004) {
+        anim.easing = true;
+      }
     },
   },
 
@@ -375,18 +430,37 @@ defineWidget({
     ctx.restore();
 
     /* --- Scatter, right -------------------------------------------------- */
+    const vmix = anim?.vmix ?? (adjusted && params.view === "resid" ? 1 : 0);
     const rect = { x: DAG_W + 58, y: 30, w: w - DAG_W - 58 - 12, h: h - 90 };
-    const plot = makePlot({ ctx, colors, rect, xDomain: state.xDom, yDomain: state.yDom });
+    /* TWO COORDINATE FRAMES OVER ONE RECT — the data view and the residual
+       view — and each patient's pixel is a lerp between its position in the
+       two. The frame, axes and caption belong to whichever view is nearer,
+       so mid-slide the picture is honest about being in transit. */
+    const plotD = makePlot({ ctx, colors, rect, xDomain: state.xDom, yDomain: state.yDom });
+    const plotR = makePlot({ ctx, colors, rect, xDomain: state.rxDom, yDomain: state.ryDom });
+    const inResid = vmix >= 0.5;
+    const front = inResid ? plotR : plotD;
 
-    plot.axisX({ label: names.x });
-    plot.axisY({ label: names.y });
-    plot.caption(
-      params.fit
-        ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}`
-        : `1000 patients, drawn by the ${state.structure}`,
-    );
-    if (state.beyond > 0) {
-      plot.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
+    if (inResid) {
+      front.axisX({ label: `${names.x} — ${names.z} removed` });
+      front.axisY({ label: `${names.y} — ${names.z} removed` });
+      front.caption(`what ${names.z} does not explain`);
+      front.note(
+        state.beyondR > 0
+          ? `${state.beyondR} of 1000 past the frame — the fits use them all`
+          : "the slope of this cloud is the adjusted coefficient",
+      );
+    } else {
+      front.axisX({ label: names.x });
+      front.axisY({ label: names.y });
+      front.caption(
+        params.fit
+          ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}`
+          : `1000 patients, drawn by the ${state.structure}`,
+      );
+      if (state.beyond > 0) {
+        front.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
+      }
     }
 
     ctx.save();
@@ -400,42 +474,56 @@ defineWidget({
     };
     ctx.globalAlpha = 0.45;
     for (let i = 0; i < N; i += 1) {
+      const px = plotD.sx(state.d.x[i]) + (plotR.sx(state.rx[i]) - plotD.sx(state.d.x[i])) * vmix;
+      const py = plotD.sy(state.d.y[i]) + (plotR.sy(state.ry[i]) - plotD.sy(state.d.y[i])) * vmix;
       ctx.fillStyle = params.colour === "on" ? tint(state.d.z[i]) : colors.unknown;
       ctx.beginPath();
-      ctx.arc(plot.sx(state.d.x[i]), plot.sy(state.d.y[i]), 2, 0, 2 * Math.PI);
+      ctx.arc(px, py, 2, 0, 2 * Math.PI);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    /* Fitted lines, clipped to the frame (the mock-up's known blemish). The
-       adjusted line is drawn at the mean of the third variable, which is the
-       slice of the fitted plane the scatter can carry. */
-    const lineAt = (b0, b1, color, width, dash) => {
+    /* Fitted lines, clipped to the frame. Each view's lines fade with its
+       share of the slide, so no line claims a cloud that has left it. */
+    const lineAt = (plot, dom, b0, b1, color, width, dash) => {
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.setLineDash(dash ?? []);
       ctx.beginPath();
-      ctx.moveTo(plot.sx(state.xDom[0]), plot.sy(b0 + b1 * state.xDom[0]));
-      ctx.lineTo(plot.sx(state.xDom[1]), plot.sy(b0 + b1 * state.xDom[1]));
+      ctx.moveTo(plot.sx(dom[0]), plot.sy(b0 + b1 * dom[0]));
+      ctx.lineTo(plot.sx(dom[1]), plot.sy(b0 + b1 * dom[1]));
       ctx.stroke();
       ctx.setLineDash([]);
     };
 
-    if (params.truth === "on") {
-      lineAt(state.meanY - state.truth * state.meanX, state.truth, colors.reference, 1.5, [6, 5]);
-    }
-    if (params.fit) {
-      const ub0 = state.unadj.beta[0];
-      const ub1 = state.unadj.beta[1];
-      lineAt(ub0, ub1, colors.empirical, 2.5);
-      /* The adjusted line grows OUT of the unadjusted one: at mix 0 the two
-         coincide, at 1 it has swung to its own slope. Between them the pair
-         is visibly the same data read twice. */
-      if (mix > 0.004) {
-        const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
-        const ab1 = state.adj.beta[1];
-        lineAt(ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
+    if (vmix < 0.996) {
+      ctx.globalAlpha = 1 - vmix;
+      if (params.truth === "on") {
+        lineAt(plotD, state.xDom, state.meanY - state.truth * state.meanX, state.truth, colors.reference, 1.5, [6, 5]);
       }
+      if (params.fit) {
+        const ub0 = state.unadj.beta[0];
+        const ub1 = state.unadj.beta[1];
+        lineAt(plotD, state.xDom, ub0, ub1, colors.empirical, 2.5);
+        /* The adjusted line grows OUT of the unadjusted one: at mix 0 the two
+           coincide, at 1 it has swung to its own slope. */
+        if (mix > 0.004) {
+          const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
+          const ab1 = state.adj.beta[1];
+          lineAt(plotD, state.xDom, ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (vmix > 0.004) {
+      /* Residual view: both residuals are mean-zero, so the adjusted slope
+         passes through the origin exactly — and IS adj.beta[1], by FWL. */
+      ctx.globalAlpha = vmix;
+      if (params.truth === "on") {
+        lineAt(plotR, state.rxDom, 0, state.truth, colors.reference, 1.5, [6, 5]);
+      }
+      lineAt(plotR, state.rxDom, 0, state.adj.beta[1], colors.highlight, 2.5);
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   },

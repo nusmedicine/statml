@@ -3283,6 +3283,24 @@ Kenneth's two comments, one answered by measurement and one fixed:
   fits use them all" — because the window is where you look, not what the
   model saw.
 
+### ROUND 4 — the added-variable view ships as a View control
+
+Kenneth took recommendation (a). A **View** segmented — *Data / Third
+variable removed* — appears once the model is ADJUSTED (gated
+`when: adjust=on`, because the residual cloud IS the adjusted picture and a
+view of it beside an unadjusted readout would disagree with every tile).
+Every patient slides between its data position and its residual position — a
+second eased quantity beside the line-swing, odds-and-risk's two-ease
+pattern — with each view's lines fading with its share of the slide. In the
+residual view both residuals are mean-zero, so the adjusted slope is drawn
+through the origin and equals `adj.beta[1]` exactly (FWL); the note says
+"the slope of this cloud is the adjusted coefficient", and with the tint on
+the colours visibly stop running anywhere. The collider's residual frame is
+quantile-clipped like its data frame, with its own past-the-frame count.
+Verified: all three structures' residual captions and axis labels by text
+sweep, the readout consistent in every reachable state, and the View
+control disappearing when Adjust flips off (the cloud slides home).
+
 ---
 
 # PHM5005 · AI/ML for Precision Medicine
