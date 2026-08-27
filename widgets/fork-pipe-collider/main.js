@@ -128,6 +128,21 @@ function tailDomain(xs) {
 
 const meanOf = (xs) => xs.reduce((a, v) => a + v, 0) / xs.length;
 
+/* The one chrome rule `when` cannot express (widget 12's pattern — both
+   `hidden` AND `style.display`, because `hidden` loses to any explicit
+   display). The View slide belongs to the structures whose third variable is
+   CONTINUOUS; the collider's adjusted picture is drawn in place — one slope,
+   two intercepts — so a slide control there would be a control that changes
+   nothing (3.5). Kenneth's round-5 call: B for the collider, the slide for
+   fork and pipe. */
+function syncRail(params) {
+  const el = document.querySelector('button[data-param="view"]')?.closest(".w-field");
+  if (!el) return;
+  const hide = params.structure === "collider";
+  el.hidden = hide;
+  el.style.display = hide ? "none" : "";
+}
+
 defineWidget({
   slug: "fork-pipe-collider",
   title: "Causal Structures",
@@ -284,7 +299,19 @@ defineWidget({
         if (rx[i] < rxDom[0] || rx[i] > rxDom[1] || ry[i] < ryDom[0] || ry[i] > ryDom[1]) beyondR += 1;
       }
     }
+    /* The collider's adjusted picture: one slope, two intercepts — the pair
+       of parallel lines passes through each ICU group's centroid. The pooled
+       within-group slope IS adj.beta[1] to the digit (measured in
+       `_lab/causal-stage.html` round three: −0.1799 = −0.1799). */
+    const groups = skewed
+      ? [0, 1].map((g) => {
+          const ix = [];
+          for (let i = 0; i < N; i += 1) if (d.z[i] === g) ix.push(i);
+          return { mx: meanOf(ix.map((i) => d.x[i])), my: meanOf(ix.map((i) => d.y[i])) };
+        })
+      : null;
     return {
+      groups,
       structure,
       d,
       unadj,
@@ -318,7 +345,7 @@ defineWidget({
     runLabel: null,
     init: ({ params }) => {
       const m = params.fit && params.adjust === "on" ? 1 : 0;
-      const v = m && params.view === "resid" ? 1 : 0;
+      const v = m && params.view === "resid" && params.structure !== "collider" ? 1 : 0;
       return { mix: m, mixT: m, vmix: v, vmixT: v, easing: false, done: false };
     },
     /* Two independent eases chasing their own targets, odds-and-risk's
@@ -341,7 +368,7 @@ defineWidget({
     },
     rebuild: (anim, { params }) => {
       anim.mixT = params.fit && params.adjust === "on" ? 1 : 0;
-      anim.vmixT = anim.mixT && params.view === "resid" ? 1 : 0;
+      anim.vmixT = anim.mixT && params.view === "resid" && params.structure !== "collider" ? 1 : 0;
       if (Math.abs(anim.mixT - anim.mix) > 0.004 || Math.abs(anim.vmixT - anim.vmix) > 0.004) {
         anim.easing = true;
       }
@@ -349,6 +376,7 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, h, params, state, anim }) {
+    syncRail(params);
     const names = NAMES[state.structure];
     const adjusted = params.fit && params.adjust === "on";
     const mix = anim?.mix ?? (adjusted ? 1 : 0);
@@ -455,7 +483,7 @@ defineWidget({
       front.axisY({ label: names.y });
       front.caption(
         params.fit
-          ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}`
+          ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}${state.groups && adjusted ? " — one slope, two intercepts" : ""}`
           : `1000 patients, drawn by the ${state.structure}`,
       );
       if (state.beyond > 0) {
@@ -505,12 +533,23 @@ defineWidget({
         const ub0 = state.unadj.beta[0];
         const ub1 = state.unadj.beta[1];
         lineAt(plotD, state.xDom, ub0, ub1, colors.empirical, 2.5);
-        /* The adjusted line grows OUT of the unadjusted one: at mix 0 the two
-           coincide, at 1 it has swung to its own slope. */
+        /* The adjusted fit grows OUT of the unadjusted line: at mix 0 it
+           coincides, at 1 it has swung to its own slope. For the collider —
+           binary third variable — the adjusted model is ONE SLOPE WITH TWO
+           INTERCEPTS, so the pair of parallel lines splits apart from the
+           single line, each landing on its own group's centroid (Kenneth's
+           round-5 pick, candidate B in `_lab/causal-stage.html`). */
         if (mix > 0.004) {
-          const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
           const ab1 = state.adj.beta[1];
-          lineAt(plotD, state.xDom, ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
+          if (state.groups) {
+            for (const g of state.groups) {
+              const gb0 = g.my - ab1 * g.mx;
+              lineAt(plotD, state.xDom, ub0 + (gb0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
+            }
+          } else {
+            const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
+            lineAt(plotD, state.xDom, ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
+          }
         }
       }
       ctx.globalAlpha = 1;

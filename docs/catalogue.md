@@ -3301,6 +3301,27 @@ Verified: all three structures' residual captions and axis labels by text
 sweep, the readout consistent in every reachable state, and the View
 control disappearing when Adjust flips off (the cloud slides home).
 
+### ROUND 5 — the collider's blocks, ruled: B for the collider, the slide stays for fork and pipe
+
+Kenneth watched the collider's residual slide and asked why the block moves
+up, whether it should disappear, or be "distributed along the fitted line".
+The answer was measured before it was drawn (`causal-stage.html` round
+three): the slide IS the controlling (each ICU group minus its own
+averages), the blocks cannot honestly disappear, and his instinct has an
+exact form for a BINARY third variable — **one slope, two intercepts**,
+05-03's parallel lines, with the pooled within-group slope equal to the
+adjusted coefficient to the digit (−0.1799 = −0.1799). The groups' own
+separate fits are +0.13 / −0.21, so the pair is drawn as the model's
+single-slope claim and the caption says "one slope, two intercepts".
+
+**Shipped:** the collider's Adjust now swings the parallel PAIR apart from
+the unadjusted line, each landing on its own group centroid; its View
+control is hidden by widget 12's `syncRail` pattern (`when` cannot express
+"and not collider", and a slide control that changes nothing violates 3.5).
+Fork and pipe keep the residual slide unchanged — their third variables are
+continuous, where banding was measured to mislead and the residual clouds
+are clean ellipses.
+
 ---
 
 # PHM5005 · AI/ML for Precision Medicine
