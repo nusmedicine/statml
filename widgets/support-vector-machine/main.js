@@ -372,12 +372,20 @@ defineWidget({
   params: {
     /* Reading order is the instruction (3.1): what am I looking at, what is
        the model allowed to do, then the two dials that tune it. */
+    /* Headed The data / SVM in the 2026-08-27 rail-section sweep (Kenneth's
+       data/algorithm rule; candidates in `_lab/dimred-rail.html` round three).
+       A ONE-CONTROL data section, taken deliberately: the choice of data is
+       marked wherever it exists. The display pair at the end stays inside the
+       SVM block unheaded — it views the fitted machine. */
+    dsec: { type: "section", label: "The data" },
     data: {
       type: "segmented",
       label: "Samples",
       options: Object.entries(SETS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
       default: "blobs",
     },
+
+    fit: { type: "section", label: "SVM" },
     kernel: {
       type: "segmented",
       label: "Kernel",
