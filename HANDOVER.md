@@ -120,6 +120,129 @@ on `labels`, not a rebuild.**
 
 ---
 
+## NEXT SESSION: AUDIT THE 24 WIDGETS — consistency, and prose that reads written
+
+**Kenneth's brief, 2026-08-27**: the arc is 24 widgets deep and nothing has ever
+been reviewed *across* widgets. Two targets — **design consistency**, and
+**descriptions that are too AI-like and verbose**. This is not a build session.
+Nothing below is a decision already taken; it is the reconnaissance, so the
+session can start on the work instead of on the survey.
+
+### THE FIRST THING TO KNOW: most of this text is FREE to change
+
+`_lab/fingerprint.html` hashes **`px`** over the canvas and **`tx`** over
+`TEXT_PARTS = [".w-math", ".w-legend", ".w-readout"]` — and nothing else. The
+subtitle is `.w-subtitle`, the rail is `.w-controls`, and **neither is hashed**.
+So the surfaces split cleanly, and the split should decide the order of work:
+
+| surface | count | cost to rewrite |
+|---|---|---|
+| **subtitle** | 24 | **free** |
+| **control label** | 183 | **free** |
+| **control detail** | 179 | **free** |
+| **manifest blurb** (gallery card) | 24 | **free** — not hashed, not in a widget |
+| legend label | 80 | rebaseline `tx` |
+| readout tile label | 106 | rebaseline `tx` |
+| readout note | 31 | rebaseline `tx` |
+| canvas caption | ~206 call sites | rebaseline `px` |
+
+**410 of the free strings against 217 that cost a rebaseline.** Doing every free
+surface first means one rebaseline at the end rather than one per widget, and it
+means the prose pass can move fast and be reverted cheaply.
+
+**A full suite run is ~55 seconds and covers all 152 states.** Nothing in this
+audit should touch `widgets/core/`, but if it does, that is the one change that
+can reach a widget nobody is looking at — run the suite.
+
+### THE VERBOSITY MEASUREMENT, AND IT REVERSED ONCE
+
+**Do not trust a subtitle length measured with a single-line regex.** The first
+pass here read only the first quoted segment of each `subtitle:` expression and
+reported widgets 1–18 at ~70 chars against 19–24 at ~180 — a doubling that was
+**entirely an artifact of where each file happens to wrap its strings**. Measured
+across the `+` concatenation, the finding is the opposite:
+
+| | min | median | max | mean |
+|---|---|---|---|---|
+| widgets **1–18** | 173 | 227 | **398** | **252** |
+| widgets **19–24** | 140 | 178 | 238 | **184** |
+
+**The recent widgets are the terse ones. The early ones are the problem.** Six to
+cut first, longest down: `bootstrap` 398, `trees-and-ensembles` 363, `bayesian`
+355, `logistic-regression` 340, `permutation-test` 289, `confidence-interval`
+252.
+
+### WHAT "AI-LIKE" LOOKS LIKE HERE, with the widgets that do it
+
+Counted across the 24 subtitles. The counts are small — **this is a list of
+tics to recognise, not a scoreboard** — and the same habits are far commoner in
+the readout notes and canvas captions, which were not counted:
+
+| tic | widgets |
+|---|---|
+| em-dash aside dropped mid-sentence | `kmeans` |
+| cleft — *"X is what fixes that"* | `bootstrap`, `permutation-test`, `logistic-regression` |
+| negation-then-correction — *"It cannot say … "* | `bayesian` |
+| aphoristic closer — *"That is all a bell curve is."* | `galton-board` |
+| self-reference — *"what the numbers below are for"* | `bootstrap`, `logistic-regression` |
+| trailing *", which is …"* | `bootstrap` |
+
+`bootstrap` carries four of the six and is the longest. It is the worked example
+to do first:
+
+> In practice you get one sample, never a population. Draw a new sample of the
+> same size from the one you have — with replacement, so some observations appear
+> twice and others not at all — and the spread of the resampled means stands in
+> for a sampling distribution you can never observe. It stands in only as well as
+> your one sample represents the population, which is what the numbers below are
+> for.
+
+**Three sentences, 398 characters, an em-dash aside, a trailing relative clause
+and a pointer to the rail.** CLAUDE.md's own rule is *plain, specific, no
+filler*, and the arc's later subtitles already meet it — `pca` does the same job
+in 140.
+
+### DESIGN CONSISTENCY — what has never been checked across widgets
+
+Unaudited, and each is a question rather than a finding:
+
+- **Do the semantic colour roles mean the same thing everywhere?**
+  `--c-empirical` / `--c-theory` / `--c-highlight` / `--c-reference` are defined
+  by role in `tokens.css`, and no one has checked that widget 4's `--c-theory` is
+  playing the part widget 20's is.
+- **Do the drive verbs agree?** Widget 24 says *Mark the core points / Next point
+  / Play*; widget 23 says *Place the centroids / Iterate / Play*; others differ
+  again. A student meeting six widgets should not learn six vocabularies.
+- **Do the readout tiles agree on what a note is for?** 106 tiles, 31 notes — so
+  most tiles have none, and it is not clear the ones that do earned it.
+- **Is `--c-unknown` used only for "not measured yet"?** Its comment scopes it
+  narrowly and widget 24 had to route around it; other widgets may not have.
+- **Legend marks**: 80 entries across 24 widgets, and the `mark:` vocabulary
+  (`dot`, `line`, …) has grown without review.
+- **Height**: still recorded nowhere but `defineWidget`, and eight of nine were
+  once 190–310px wrong. A cross-widget pass is the moment to re-measure.
+
+### HOW TO RUN IT WITHOUT BREAKING ANYTHING
+
+1. **Inventory first, in one pass, into a `_lab/` page or a script** — the same
+   move that made the marks and reach decisions cheap. Put every subtitle, blurb
+   and legend label on one screen. **Nothing on this list can be judged one file
+   at a time**, which is exactly why it has never been done.
+2. **Do the free surfaces first** (subtitle, rail, blurb) and run `npm run
+   check`. No rebaseline, so a bad rewrite costs nothing to undo.
+3. **Then the hashed surfaces**, and rebaseline **once** at the end — three
+   determinism runs, then a confirming run, as widget 24 did.
+4. **Show Kenneth the prose before the hashes are frozen.** Reviewing a figure
+   is what changes it; freezing before review is backwards, and this session
+   would freeze 152 states.
+
+### AND TWO THINGS THIS AUDIT SHOULD NOT QUIETLY ABSORB
+
+- **`_lab/dbscan-drive.mjs` is still owed** — see the widget 24 section below.
+- **`_lab/index.html` is missing sixteen of its pages.** The standing note says
+  catching it up is *one change, not a line at a time*, and an audit session is
+  the natural place — but it is a separate change from the prose pass.
+
 ## WIDGET 24 IS SHIPPED — `dbscan`, built and baselined 2026-08-27
 
 **The full history is [docs/catalogue.md](docs/catalogue.md) § *Widget 24 ·

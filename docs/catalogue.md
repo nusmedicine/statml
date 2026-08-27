@@ -8260,6 +8260,26 @@ points, differing only by URL parameters and the chapter that embeds them.
 
 ---
 
+## The next session is an AUDIT, not a build
+
+**Kenneth, 2026-08-27**: with 24 widgets shipped, the arc has never been reviewed
+*across* widgets. The next session checks **design consistency** and rewrites
+**descriptions that read as AI-written and verbose**.
+
+**The brief, the measurements and the order of work are in
+[HANDOVER.md](../HANDOVER.md) § *NEXT SESSION*** — including which text surfaces
+are free to change and which cost a rebaseline (410 free against 217 hashed),
+and one measurement that reversed on a second look: subtitle length read with a
+single-line regex says the recent widgets are the verbose ones, and read across
+the string concatenation it says the opposite. **Widgets 1–18 average 252
+characters; 19–24 average 184.**
+
+Nothing about it belongs in this file yet, because this catalogue records what
+gets **built** and why. If the audit changes a widget's teaching claim rather
+than its wording, that belongs in that widget's section here.
+
+---
+
 ## What this catalogue still does not settle
 
 1. ~~**Sequencing against your actual teaching weeks.**~~ **Answered** in
