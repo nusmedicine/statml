@@ -110,6 +110,34 @@ export const sd = (xs) => {
   return Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / (xs.length || 1));
 };
 
+/** Least-squares line w ~ age over whichever patients are handed in. The
+    widget fits it to the WEIGHED only — the observed trend, the best guess the
+    visible data supports — and the measurement script asks how far the hidden
+    weights sit from it. One formula, both consumers (5.8). */
+export function fitLine(pts) {
+  const n = pts.length;
+  if (n < 2) return null;
+  const mx = mean(pts.map((p) => p.age));
+  const my = mean(pts.map((p) => p.w));
+  let sxx = 0, sxy = 0;
+  for (const p of pts) { sxx += (p.age - mx) ** 2; sxy += (p.age - mx) * (p.w - my); }
+  const slope = sxx ? sxy / sxx : 0;
+  return { slope, intercept: my - slope * mx };
+}
+
+/* The check panel's verdict on a FINISHED cohort, computed from the visible
+   data — keying it off the mechanism parameter would tell the student what a
+   study cannot know. Band contrast above the threshold reads "follows age".
+   Thresholds per rate from the measurement sweep (400 seeds each, misfires
+   across all three mechanisms): 0.1→22 (93/1200 — twelve missing patients is
+   genuinely too few for a reliable check, recorded in the catalogue), 0.2→34
+   (17/1200), 0.3→40 (2/1200), 0.4→44 (0), 0.5→46 (0). */
+export const VERDICT_T = { 0.1: 22, 0.2: 34, 0.3: 40, 0.4: 44, 0.5: 46 };
+export function checkVerdict(pts, rate) {
+  const bs = checkPanel(pts, 4).map((b) => (b.n ? (100 * b.missing) / b.n : 0));
+  return Math.max(...bs) - Math.min(...bs) > (VERDICT_T[rate] ?? 40) ? "sloped" : "flat";
+}
+
 /** The check you can run: % missing per age bin. The one diagnostic reality
     permits — it sees MAR and it cannot see MNAR. */
 export function checkPanel(pts, bins = 6) {

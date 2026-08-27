@@ -92,3 +92,42 @@ for (const rate of [0.1, 0.2, 0.3, 0.4, 0.5]) {
 let ts = 0;
 for (let s = 1; s <= REPS; s += 1) ts += M.sd(M.cohort(N, makeRng(s)).map((p) => p.w));
 console.log(`true SD of weight: ${(ts / REPS).toFixed(2)} kg`);
+
+/* --- 3. the observed trend, and where the hidden weights sit off it ---------
+   The reveal's second reading: fit w ~ age to the WEIGHED only, then measure
+   the mean residual of the HIDDEN points against that line. Near zero says a
+   prediction built from what you see would have been right for what you do
+   not (why conditional imputation works under MCAR/MAR); systematically
+   positive says the missing are exactly the ones no observed-data function
+   could find (MNAR). */
+console.log(`\n=== 3. hidden weights against the observed trend, rate ${RATE0}`);
+for (const mech of ["mcar", "mar", "mnar"]) {
+  let resid = 0, r2 = 0, pos = 0;
+  for (let s = 1; s <= REPS; s += 1) {
+    const pts = run(mech, RATE0, M.STEEP, s);
+    const fit = M.fitLine(pts.filter((p) => !p.miss));
+    const hidden = pts.filter((p) => p.miss);
+    const r = M.mean(hidden.map((p) => p.w - (fit.intercept + fit.slope * p.age)));
+    resid += r; r2 += r * r;
+    if (r > 1) pos += 1;
+  }
+  const m = resid / REPS;
+  console.log(`${mech.padEnd(5)} mean hidden residual ${m.toFixed(2).padStart(6)} ± ${Math.sqrt(r2 / REPS - m * m).toFixed(2)} kg   (> +1 kg on ${pos}/${REPS} cohorts)`);
+}
+
+/* --- 4. the dynamic caption's threshold -------------------------------------
+   The check panel names what it sees, computed from the VISIBLE data — a
+   caption keyed off the mechanism parameter would tell the student what a
+   study cannot know. Verdict rule: band contrast (max - min share missing,
+   4 bins) above T reads "follows age". Chosen so both misfires are rare. */
+console.log(`\n=== 4. caption threshold sweep, rate ${RATE0} (misfire rates over ${REPS} seeds)`);
+for (const T of [30, 35, 40, 45]) {
+  let fp = 0, fnr = 0, fpN = 0;
+  for (let s = 1; s <= REPS; s += 1) {
+    const c = (m2, off) => contrastOf(run(m2, RATE0, M.STEEP, s + off), 4);
+    if (c("mcar", 0) > T) fp += 1;
+    if (c("mar", 10000) <= T) fnr += 1;
+    if (c("mnar", 20000) > T) fpN += 1;
+  }
+  console.log(`T=${T}: MCAR reads sloped ${fp}/${REPS} · MAR reads flat ${fnr}/${REPS} · MNAR reads sloped ${fpN}/${REPS}`);
+}

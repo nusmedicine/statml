@@ -188,30 +188,41 @@ defineWidget({
       ctx.restore();
     }
 
-    /* Observed mean, and under truth the true mean beside it: adjacency is
-       the argument (2.7) — the gap between the two lines IS the bias. */
-    const hline = (v, stroke, dash, label, align) => {
+    /* THE OBSERVED TREND: w ~ age fitted to the weighed only — the best guess
+       the visible data supports. Under truth the TRUE trend joins it, and the
+       hollow marks pass verdict on the pair (2.7 — adjacency is the
+       argument): under MCAR and MAR the hidden weights straddle the observed
+       trend (mean residual −0.1 kg — a prediction built from what you see
+       would have been right for what you do not, which is what MAR leaves to
+       an imputer), and under MNAR they sit +10.0 ± 1.1 kg above it, on
+       400/400 measured cohorts — no function of the observed data could have
+       found them. */
+    const lineLabel = (text, stroke, atY) => {
       ctx.save();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1.4;
-      if (dash) ctx.setLineDash(dash);
-      const py = sc.sy(v);
-      ctx.beginPath();
-      ctx.moveTo(L.scatter.x, py);
-      ctx.lineTo(L.scatter.x + L.scatter.w, py);
-      ctx.stroke();
-      ctx.setLineDash([]);
       ctx.fillStyle = stroke;
       ctx.font = `${colors.fsXs} ${colors.font}`;
-      ctx.textAlign = align;
+      ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
-      ctx.fillText(label, align === "left" ? L.scatter.x + 4 : L.scatter.x + L.scatter.w - 4, py - 3);
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      ctx.strokeText(text, L.scatter.x + L.scatter.w - 3, atY - 2);
+      ctx.fillText(text, L.scatter.x + L.scatter.w - 3, atY - 2);
       ctx.restore();
     };
-    if (weighed.length >= 5) {
-      hline(meanOf(weighed.map((p) => p.w)), colors.empirical, [5, 4], "observed mean", "left");
+    const fit = weighed.length >= 10 ? M.fitLine(weighed) : null;
+    if (fit) {
+      const at = (a) => fit.intercept + fit.slope * a;
+      sc.curve([[M.AGE_LO, at(M.AGE_LO)], [M.AGE_HI, at(M.AGE_HI)]],
+        { stroke: colors.empirical, width: 1.7, dash: [6, 4] });
+      lineLabel("observed trend", colors.empirical, sc.sy(at(M.AGE_HI)));
     }
-    if (truth) hline(state.trueMean, colors.reference, null, "true mean", "right");
+    if (truth) {
+      const mid = (M.AGE_LO + M.AGE_HI) / 2;
+      const tr = (a) => M.W_BASE + M.W_SLOPE * (a - mid);
+      sc.curve([[M.AGE_LO, tr(M.AGE_LO)], [M.AGE_HI, tr(M.AGE_HI)]],
+        { stroke: colors.reference, width: 1.6 });
+      lineLabel("true trend", colors.reference, sc.sy(tr(M.AGE_HI)) + 16);
+    }
 
     /* --- the marginal pile of weights ------------------------------------ */
     const bins = Math.round((W_HI - W_LO) / BIN_W);
@@ -254,51 +265,70 @@ defineWidget({
     ctx.restore();
 
     /* --- the check panel: the one diagnostic reality permits --------------
-       A dot-and-line PROFILE, not bars. Bars under an age axis read as a
-       histogram of age — Kenneth read the first draft as "the age
-       distribution is bad" — and the panel's whole reading is flat-or-sloped,
-       which a profile against a dashed overall-rate line carries directly:
-       dots hugging the line say the mechanism left no trace, dots leaving it
-       say the missingness follows age. */
+       A COMPOSITION per age band, not a rate: blue weighed under grey
+       not-weighed, the same two meanings the scatter's dots and ticks carry,
+       so nothing has to be inverted in the head — the grey IS the holes'
+       share. (Round 1 drew a % - not - weighed profile and Kenneth read it as
+       "the age distribution is bad"; round 0 drew bars and they read as a
+       histogram of age.) It is also the shape of VIM::aggr, the plot the
+       PHM5003 lesson itself uses.
+
+       THE VERDICT is printed only for the finished cohort and only from the
+       visible data — a caption keyed off the mechanism parameter would tell
+       the student what a study cannot know. Thresholds and misfire rates are
+       measured in the model. */
     const ck = makePlot({
       ctx, colors, rect: L.check,
       xDomain: [M.AGE_LO - 2, M.AGE_HI + 2], yDomain: [0, 100],
     });
-    ck.caption("Share of patients not weighed, by age band");
+    ck.caption("Weighed and not, by age band");
     ck.axisX({ ticks: [20, 35, 50, 65, 80], label: "Age, years" });
 
     if (seen.length) {
       const overall = (100 * missing.length) / seen.length;
+      const bands = M.checkPanel(seen, CHECK_BINS).filter((b) => b.n > 0);
       ctx.save();
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "center";
+      for (const b of bands) {
+        const missPct = (100 * b.missing) / b.n;
+        const x0 = ck.sx(b.lo) + 4;
+        const bw = ck.sx(b.hi) - ck.sx(b.lo) - 8;
+        const split = ck.sy(100 - missPct);
+        ctx.fillStyle = colors.empirical;
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(x0, split + 1, bw, ck.sy(0) - split - 1);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = colors.unknown;
+        ctx.fillRect(x0, ck.sy(100), bw, split - ck.sy(100) - 1);
+        /* Label the grey — the missing share is the quantity — inside it when
+           it is tall enough to hold a line, on the blue otherwise. */
+        const greyH = split - ck.sy(100);
+        ctx.fillStyle = colors.surface;
+        ctx.textBaseline = "middle";
+        if (greyH >= 14) {
+          ctx.fillText(`${Math.round(missPct)}%`, x0 + bw / 2, ck.sy(100) + greyH / 2);
+        } else {
+          ctx.fillText(`${Math.round(missPct)}%`, x0 + bw / 2, split + 9);
+        }
+      }
+      /* The boundary every band would share if the mechanism left no trace. */
       ctx.strokeStyle = colors.ink3;
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
-      const oy = ck.sy(overall);
+      const oy = ck.sy(100 - overall);
       ctx.beginPath();
       ctx.moveTo(L.check.x, oy);
       ctx.lineTo(L.check.x + L.check.w, oy);
       ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = colors.ink3;
-      ctx.font = `${colors.fsXs} ${colors.font}`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(`overall ${Math.round(overall)}%`, L.check.x + L.check.w - 2, oy - 3);
       ctx.restore();
 
-      const bands = M.checkPanel(seen, CHECK_BINS).filter((b) => b.n > 0);
-      const pts = bands.map((b) => [(b.lo + b.hi) / 2, (100 * b.missing) / b.n]);
-      if (pts.length > 1) ck.curve(pts, { stroke: colors.unknown, width: 1.6 });
-      ctx.save();
-      ctx.font = `${colors.fsXs} ${colors.font}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      for (const [bx, pct] of pts) {
-        ck.dot(bx, pct, { fill: colors.unknown, r: 3.6 });
-        ctx.fillStyle = colors.ink2;
-        ctx.fillText(`${Math.round(pct)}%`, ck.sx(bx), ck.sy(pct) - 5);
+      if (idx >= N) {
+        const verdict = M.checkVerdict(seen, Number(params.rate)) === "sloped"
+          ? "the missing share follows age"
+          : "no pattern in age — MCAR and MNAR both look like this";
+        ck.note(verdict);
       }
-      ctx.restore();
     }
   },
 
