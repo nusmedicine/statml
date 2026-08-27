@@ -3320,7 +3320,34 @@ control is hidden by widget 12's `syncRail` pattern (`when` cannot express
 "and not collider", and a slide control that changes nothing violates 3.5).
 Fork and pipe keep the residual slide unchanged — their third variables are
 continuous, where banding was measured to mislead and the residual clouds
-are clean ellipses.
+are clean ellipses. **The hiding was SUPERSEDED in round 8, below.**
+
+### ROUNDS 6–8 — variant C lands, the slide is announced, and the collider gets the button back
+
+- **Round 6 (mock) and 7:** Kenneth picked **C** from `causal-stage.html`
+  round four — the ICU = 0 comparator DOTTED ([2,4], deliberately unlike the
+  truth line's [6,5] dashes), each line labelled `ICU = 0` / `ICU = 1`, and
+  the **gap bracket on the intercept axis** naming R's printed coefficient
+  as a distance ("effect of ICU = +1.30"). All annotations fade in with the
+  pair's split. His comprehension questions settled two teaching points now
+  in the record: R prints two intercepts as baseline + shift (05-03's
+  reference coding), and **adjusting removes comparisons across groups, not
+  patients** — restriction to one stratum is a different technique with a
+  different answer (+0.13 here, not −0.18).
+- **Round 7:** Kenneth adjusted the fork and read the slide as gone — it was
+  behind the View control and nothing on the figure said so. The figure's
+  note now reads **"switch View to remove age"** (drive-hint register) on
+  every adjusted data view.
+- **Round 8, superseding round 5's hiding:** with the labelled pair as the
+  collider's PRIMARY adjusted picture, Kenneth asked for **the same button
+  everywhere** — and the slide earns its place back as the second act: in
+  the residual view the two intercepts are REMOVED, so the pair collapses
+  into the one line through the origin and the round-5 confusion (recentred
+  blocks with no grounding) no longer applies. `syncRail` deleted; the
+  pair's labels and bracket fade out with the slide so no annotation
+  outlives the cloud it describes; the hint outranks the frame count while
+  adjusted (the count has held the slot since Fit and returns when Adjust
+  goes off).
 
 ---
 

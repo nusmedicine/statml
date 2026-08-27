@@ -128,20 +128,13 @@ function tailDomain(xs) {
 
 const meanOf = (xs) => xs.reduce((a, v) => a + v, 0) / xs.length;
 
-/* The one chrome rule `when` cannot express (widget 12's pattern — both
-   `hidden` AND `style.display`, because `hidden` loses to any explicit
-   display). The View slide belongs to the structures whose third variable is
-   CONTINUOUS; the collider's adjusted picture is drawn in place — one slope,
-   two intercepts — so a slide control there would be a control that changes
-   nothing (3.5). Kenneth's round-5 call: B for the collider, the slide for
-   fork and pipe. */
-function syncRail(params) {
-  const el = document.querySelector('button[data-param="view"]')?.closest(".w-field");
-  if (!el) return;
-  const hide = params.structure === "collider";
-  el.hidden = hide;
-  el.style.display = hide ? "none" : "";
-}
+/* The View control was HIDDEN for the collider between rounds 5 and 8 (a
+   syncRail on widget 12's pattern), because the recentred-blocks slide was
+   its only adjusted picture and it confused. Once the labelled pair and the
+   gap bracket became the collider's primary adjusted view, Kenneth asked for
+   the same button everywhere — and the slide earns its place back as the
+   second act: in the residual view the two intercepts are REMOVED, so the
+   pair collapses into the one line through the origin. */
 
 defineWidget({
   slug: "fork-pipe-collider",
@@ -345,7 +338,7 @@ defineWidget({
     runLabel: null,
     init: ({ params }) => {
       const m = params.fit && params.adjust === "on" ? 1 : 0;
-      const v = m && params.view === "resid" && params.structure !== "collider" ? 1 : 0;
+      const v = m && params.view === "resid" ? 1 : 0;
       return { mix: m, mixT: m, vmix: v, vmixT: v, easing: false, done: false };
     },
     /* Two independent eases chasing their own targets, odds-and-risk's
@@ -368,7 +361,7 @@ defineWidget({
     },
     rebuild: (anim, { params }) => {
       anim.mixT = params.fit && params.adjust === "on" ? 1 : 0;
-      anim.vmixT = anim.mixT && params.view === "resid" && params.structure !== "collider" ? 1 : 0;
+      anim.vmixT = anim.mixT && params.view === "resid" ? 1 : 0;
       if (Math.abs(anim.mixT - anim.mix) > 0.004 || Math.abs(anim.vmixT - anim.vmix) > 0.004) {
         anim.easing = true;
       }
@@ -376,7 +369,6 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, h, params, state, anim }) {
-    syncRail(params);
     const names = NAMES[state.structure];
     const adjusted = params.fit && params.adjust === "on";
     const mix = anim?.mix ?? (adjusted ? 1 : 0);
@@ -486,15 +478,16 @@ defineWidget({
           ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}${state.groups && adjusted ? " — one slope, two intercepts" : ""}`
           : `1000 patients, drawn by the ${state.structure}`,
       );
-      if (state.beyond > 0) {
-        front.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
-      } else if (adjusted && !state.groups) {
+      if (adjusted) {
         /* The slide is behind the View control, and nothing on the figure
            said so — Kenneth adjusted, saw only the line swing, and read the
            slide as gone (round 7). An instructional note in the drive-hint
-           register, shown only in the data view of the structures that HAVE
-           the slide. */
+           register, for every structure now that all three carry the slide;
+           it outranks the frame count here because the count has held the
+           slot since Fit and returns the moment Adjust goes off. */
         front.note(`switch View to remove ${names.z}`);
+      } else if (state.beyond > 0) {
+        front.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
       }
     }
 
@@ -565,9 +558,11 @@ defineWidget({
             });
             /* Labels and the gap bracket fade in with the split, so nothing
                names a line still riding the unadjusted slope. */
-            if (mix > 0.6) {
+            if (mix > 0.6 && vmix < 0.996) {
               ctx.save();
-              ctx.globalAlpha = (mix - 0.6) / 0.4;
+              /* Fades in with the split AND out with the slide — an
+                 annotation must not outlive the cloud it describes. */
+              ctx.globalAlpha = ((mix - 0.6) / 0.4) * (1 - vmix);
               ctx.font = `${colors.fsXs} ${colors.font}`;
               ctx.textAlign = "left";
 
