@@ -42,8 +42,11 @@ const SPEEDS = {
 const meanOf = M.mean;
 
 /* One layout function read by height and draw, so the two cannot drift. */
+/* BOT holds the x-axis label AND a reserved line for the check's verdict —
+   reserved whether or not a verdict is printed, so finishing the clinic does
+   not move the figure (3.4k). */
 const PAD_L = 48, PAD_R = 12, PILE_W = 84, GAP = 14, TOP = 16;
-const SCATTER_H = 248, CHECK_H = 66, CHECK_GAP = 30, BOT = 34;
+const SCATTER_H = 248, CHECK_H = 66, CHECK_GAP = 30, BOT = 52;
 function layout(w) {
   const scatterW = Math.max(120, w - PAD_L - GAP - PILE_W - PAD_R);
   const scatter = { x: PAD_L, y: TOP, w: scatterW, h: SCATTER_H };
@@ -95,6 +98,21 @@ defineWidget({
     },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    /* The reveal, as the clustering pair has it: a segmented Off/On directly
+       after Seed — the arc's one pattern for showing what a study never sees
+       (kmeans and dbscan's "True groups"). It was first built as a checkbox
+       below the drive row per 3.4j; Kenneth moved it here for consistency. */
+    truth: {
+      type: "segmented",
+      label: "True values",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+      default: "off",
+      display: true,
+    },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -104,16 +122,6 @@ defineWidget({
         { value: "fast", label: "Fast" },
       ],
       default: "medium",
-      display: true,
-      afterDrive: true,
-    },
-    /* The reveal, below the drive row (3.4j): the answer only means something
-       after holes exist, and 3.4j's rule keeps it out of the setup block. */
-    truth: {
-      type: "bool",
-      label: "True values",
-      detail: "the missing weights, the true mean, and the true pile — what reality never shows",
-      default: false,
       display: true,
       afterDrive: true,
     },
@@ -159,7 +167,7 @@ defineWidget({
     const seen = state.pts.slice(0, idx);
     const weighed = seen.filter((p) => !p.miss);
     const missing = seen.filter((p) => p.miss);
-    const truth = params.truth && idx > 0;
+    const truth = params.truth === "on" && idx > 0;
 
     /* --- the clinic scatter ---------------------------------------------- */
     const sc = makePlot({
@@ -258,6 +266,22 @@ defineWidget({
         ctx.strokeRect(L.pile.x + 0.5, y0 + 1, (L.pile.w * allC[b]) / maxC, y1 - y0 - 2);
       }
     }
+    /* The MEANS live on the pile, so the two mean tiles have a mark to match:
+       the observed mean as a dashed empirical rule across the column, the true
+       mean as a solid reference rule under True values. The scatter's lines
+       are the TRENDS; means belong to the marginal distribution. */
+    const pileRule = (v, stroke, dash) => {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.6;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(L.pile.x, sc.sy(v));
+      ctx.lineTo(L.pile.x + L.pile.w, sc.sy(v));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    if (weighed.length >= 5) pileRule(meanOf(weighed.map((p) => p.w)), colors.empirical, [4, 3]);
+    if (truth) pileRule(state.trueMean, colors.reference, null);
     ctx.fillStyle = colors.ink3;
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "left";
@@ -324,11 +348,20 @@ defineWidget({
       ctx.stroke();
       ctx.restore();
 
+      /* The verdict gets its own reserved line under the axis rather than the
+         caption's right end — note() dropped inside the panel and printed
+         through the columns. Only the finished cohort is judged. */
       if (idx >= N) {
         const verdict = M.checkVerdict(seen, Number(params.rate)) === "sloped"
           ? "the percentage missing is associated with age"
           : "no pattern in age: MCAR and MNAR both look like this";
-        ck.note(verdict);
+        ctx.save();
+        ctx.fillStyle = colors.ink2;
+        ctx.font = `${colors.fsXs} ${colors.font}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(verdict, L.check.x, L.check.y + L.check.h + 36);
+        ctx.restore();
       }
     }
   },
@@ -338,7 +371,7 @@ defineWidget({
     const seen = state.pts.slice(0, idx);
     const weighed = seen.filter((p) => !p.miss);
     const obsMean = weighed.length ? meanOf(weighed.map((p) => p.w)) : null;
-    const truth = params.truth && idx > 0;
+    const truth = params.truth === "on" && idx > 0;
     return [
       {
         label: "Weighed",
