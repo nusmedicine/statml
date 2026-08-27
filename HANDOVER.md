@@ -652,8 +652,10 @@ README's seven example URLs are the documented deployed paths.
 **`git commit` can die with `unable to write file .git/objects/…: Permission
 denied` while PowerShell writes the same path fine.** It is Dropbox racing
 git for the new object file — the same class as the `_site` delete retry —
-and it struck twice on 2026-08-27. **A retry a few seconds later cleared the
-second strike, so retry once before diagnosing anything.** The first strike
+and it struck three times on 2026-08-27. **Retry with backoff before
+diagnosing anything** — the second strike cleared in seconds, the third took
+~45 s (`git hash-object -w <file>` in a sleep-8 loop is a clean probe: the
+moment it writes, the commit goes through). The first strike
 persisted across retries from both shells and cleared only after
 `core.createObject rename` went into the repo config (Dropbox's filter driver
 can deny the hardlink git defaults to); the setting is still in place, and the
