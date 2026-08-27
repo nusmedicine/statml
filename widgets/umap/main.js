@@ -498,6 +498,15 @@ defineWidget({
   ],
 
   params: {
+    /* TWO BLOCKS, the shape kmeans and dbscan settled for the arc: the dials
+       that make the samples, then what UMAP was told. `seed` and the reveal
+       used to sit BELOW the gates — below the run buttons — while "moves every
+       sample" is a fact about the data; both rose into the data block. The
+       headings and the two pairs landed together, chosen from
+       `_lab/dimred-rail.html` (candidate C): the pairs pay for the headings
+       and the rail comes out 39px SHORTER than the unsectioned one. */
+    data: { type: "section", label: "The data" },
+
     /* SIX BY DEFAULT, because four can be flattened without losing them. See
        `spreadDirs` in model.js for the table: the flat map the descent starts
        from separates four clusters at silhouette 0.684 and six at 0.540, so at
@@ -513,6 +522,7 @@ defineWidget({
         { value: "6", label: "6", detail: "an octahedron" },
       ],
       default: "6",
+      row: { key: "stage" },
     },
     samples: {
       type: "choice",
@@ -523,7 +533,33 @@ defineWidget({
         { value: "12", label: "12" },
       ],
       default: "8",
+      row: { key: "stage" },
     },
+    seed: {
+      type: "int",
+      label: "Seed",
+      min: 1,
+      max: 200,
+      default: 1,
+      detail: "moves every sample, and where the flattening starts from",
+    },
+    /* After Seed, the arc's one position for the reveal (2026-08-27 sweep).
+       OFF BY DEFAULT, so the reader reads the clusters off the picture before
+       being told what they are — the notebook's own order (both hosts plot
+       every method twice, once bare and once coloured by type), and
+       non-negotiable 4 applied to knowledge rather than to the figure. */
+    labels: {
+      type: "segmented",
+      label: "True groups",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+      default: "off",
+      display: true,
+    },
+
+    fit: { type: "section", label: "UMAP" },
 
     /* THE FIRST OF THE LESSON'S TWO CONTROLS, and the one that changes what
        UMAP KNOWS. Swept 2 to 40 it moves 5-NN retention by +0.271, up on 10 of
@@ -539,6 +575,7 @@ defineWidget({
       max: 40,
       default: 15,
       detail: "n_neighbors",
+      row: { key: "dials" },
     },
 
     /* THE SECOND, and the one the widget is about. Over the same sweep it moves
@@ -559,6 +596,7 @@ defineWidget({
       step: 0.05,
       default: 0.1,
       detail: "min_dist",
+      row: { key: "dials" },
     },
 
     /* THE TWO GATES ARE CELL 41'S TWO NUMBERED STEPS, and Kenneth's own
@@ -582,30 +620,6 @@ defineWidget({
       label: "Flatten to 2-D",
       labelOff: "Back to the cloud",
       when: { param: "graph" },
-      display: true,
-    },
-
-    seed: {
-      type: "int",
-      label: "Seed",
-      min: 1,
-      max: 200,
-      default: 1,
-      detail: "moves every sample, and where the flattening starts from",
-    },
-    /* After Seed, the arc's one position for the reveal (2026-08-27 sweep).
-       OFF BY DEFAULT, so the reader reads the clusters off the picture before
-       being told what they are — the notebook's own order (both hosts plot
-       every method twice, once bare and once coloured by type), and
-       non-negotiable 4 applied to knowledge rather than to the figure. */
-    labels: {
-      type: "segmented",
-      label: "True groups",
-      options: [
-        { value: "off", label: "Off" },
-        { value: "on", label: "On" },
-      ],
-      default: "off",
       display: true,
     },
 
