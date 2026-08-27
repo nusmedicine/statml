@@ -236,6 +236,18 @@ tic-free and still read "too folksy". The voice is conventional textbook prose:
 - **Keep claims generalizable.** *"the confidence level"*, not *"the 95%"*,
   wherever the number is a parameter the reader can change.
 
+**And the gallery blurb is the compressed form of the same register** — settled
+in the same review, over all 24 cards. One declarative sentence naming the
+method or concept (`check` caps it at 120 characters); it informs, the page
+teaches. Three further rules, each cut from a shipped card:
+
+- **No control enumeration** — *"Four ways to correct that"*, *"C sets how wide
+  the corridor is"* describe the dashboard; the card says only the general idea.
+- **No editorializing** — *"The odds ratio always overstates"* became a neutral
+  statement of what the two ratios measure; the figure makes the argument.
+- **No counts that can date** — *"Eight distributions"* became *"Common
+  distributions"*, so the card stays true when a ninth arrives.
+
 ---
 
 ## 3 · Controls and layout
