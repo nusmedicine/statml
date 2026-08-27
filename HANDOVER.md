@@ -8,10 +8,22 @@ built, revised over NINE review rounds and promoted in one day, the first
 widget of the modeling arc (PHM5003 week 4, notebook 06-02). The full record
 is [docs/catalogue.md](docs/catalogue.md) § *Widget 26*. Its states were
 recorded with `_lab/causal-shoot.html`, which now automates the
-driven-vs-settled-sibling check. **Still owed: the 06-02 notebook link
-(Kenneth places it by hand — it will be the FIRST widget link in the
-notebooks) and judging it projected.** The arc's remaining six slots are
-proposed in the catalogue's modeling-arc table, awaiting his picks.
+driven-vs-settled-sibling check.
+
+## NEXT
+
+1. **Kenneth picks the modeling arc's next widget** from the catalogue's
+   modeling-arc table (§ *The modeling arc*): `least-squares`, `adjustment`,
+   `categorical-covariates`, `interaction-effect`, `censoring-km`,
+   `pseudoreplication`. The standing suggestion: the linear four in teaching
+   order, since they share one Framingham stage (the notebooks' own file,
+   n = 3547, every reference coefficient in stored output). Process as for
+   widget 26: measure first, mock in `_lab/`, one pick at a time, draft
+   until promoted, baseline with a causal-shoot-style page.
+2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
+   it by hand (it will be the FIRST widget link in any notebook); the line:
+   `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
+   — and judging it projected, which every widget from 11 on still awaits.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
