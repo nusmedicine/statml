@@ -3,12 +3,16 @@
 **Twenty-four widgets, all shipped, all on the gallery, and 152 fingerprint
 states recorded.**
 
-**The 2026-08-27 cross-widget audit has run its free-surface half** — eight
-subtitles rewritten, the deferred drive-label items closed, one name for the
-play-speed control, and the language rules solidified as design-principles 2.10
-and 3.7. **What remains waits on Kenneth**: the hashed-surface calls (legend
-casing, reference-role stretches, notes and captions) and two vocabulary picks.
-See *THE CROSS-WIDGET AUDIT* below.
+**The 2026-08-27 cross-widget audit's free-surface half is COMPLETE and
+Kenneth-reviewed line by line, on branch `audit-free-surfaces` (13 commits,
+NOT merged — merging publishes).** All 24 subtitles and all 24 blurbs settled
+one at a time with him; widget 7 retitled **Decision Making** (slug kept —
+students hold the URL; rename after the course ends); metas are now the blurb
+verbatim with `check` enforcing the match; the rail speaks one vocabulary
+(Play speed with Slow/Medium/Fast(/Fastest), True groups, Groups in the data);
+two titles re-cased. The register lives in design-principles **2.10** (and its
+two amendments) and **3.7**. **What remains is the hashed batch** — see *NEXT*
+below.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -159,29 +163,46 @@ how the first subtitle measurement reversed.)
 odds-and-risk's old Mac flakiness. If it DIFFERs alone again, suspect the flake
 before the change.
 
-### NEXT: Kenneth's calls, then ONE hashed-surface pass
+### The line-by-line review happened, and the register it settled
 
-Everything below either costs a rebaseline or is a taste call, so it waits for
-him; the hashed pass should then be ONE pass with ONE rebaseline at the end
-(three determinism runs + a confirming run, as widget 24 did).
+Everything free was reviewed with Kenneth one surface at a time on 2026-08-27
+and is on the branch. What the review added beyond the first pass, now codified
+in 2.10's amendments:
+
+- **Conventional textbook register, concept first** (often literally "We
+  can …"); the field's own terms over vivid ones ("assigned", not "claims") but
+  no more technical than the course has reached; never describe the dashboard;
+  **no lesson references in widget copy** (widgets must be reusable — the
+  lesson links to the widget, never the reverse); keep claims generalizable
+  ("the confidence level", not "the 95%").
+- **Blurb = one declarative sentence naming the method**; meta description =
+  blurb verbatim, and `check` now fails a drifted pair. The check caught its
+  first real drift the same day it landed (balancing-data, whose review also
+  fixed a real error: class weights do NOT rebalance data, they reweight the
+  fit).
+- **Two review artefacts**: the prose sheet (Artifact
+  <https://claude.ai/code/artifact/95289ad4-6c8a-459e-a391-e3cea4db6ca9>) and
+  `_lab/vocab-labels.html`, the four-frame mockup that settled the rail
+  vocabulary. `_lab/audit-inventory.mjs` regenerates the data.
+
+### NEXT: the hashed batch — ONE pass, ONE rebaseline at the end
+
+Three determinism runs + a confirming run, as widget 24 did. In it:
 
 1. **Legend casing** (tx): 11 entries start lowercase — probability-mechanisms
    (3), t-sne (3), umap (5) — against sentence case in the other 21 widgets.
-2. **Rail vocabulary, his pick (free once decided):** pca/mds/t-sne/umap say
-   `Labels` where kmeans/dbscan say `True groups`; the quartet says `Groups`
-   where the clustering pair says `Groups in the data`. The clustering pair's
-   wording is newer and reviewed; the quartet's is shorter.
+2. **Readout notes and canvas captions were never tic-audited** (31 notes, ~206
+   caption sites). The inventory JSON has the notes; captions need the fillText
+   sweep — and the 2.10 register now says what they should read like.
 3. **`--c-reference` stretches** (px if repainted): in practice it means "the
    fixed benchmark the moving thing is judged against" — the truth where one
    exists (CI, ML, bayesian, em), else a baseline: logistic's lm line,
    linear-regularization's unpenalised fit, umap's lower bound. Either bless
    that reading in tokens.css (free) or repaint the baselines.
-4. **multiple-testing's subtitle** keeps "That is not a finding, it is
-   arithmetic." — verdict-shaped, but it is also the widget's claim. His call.
-5. **Readout notes and canvas captions were never tic-audited** (31 notes, ~206
-   caption sites, both hashed). The inventory JSON has the notes; captions need
-   the fillText sweep.
-6. **Heights were not re-measured** — still the audit item it was.
+
+Separately: **heights were never re-measured** since the side-layout rollout,
+and **the slug rename `power-and-error` → something like `decision-making`
+waits for the course to end** (the source notes it beside `title:`).
 
 ### Working beside another session
 
