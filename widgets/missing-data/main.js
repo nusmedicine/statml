@@ -253,30 +253,53 @@ defineWidget({
     ctx.fillText("weights", L.pile.x, L.scatter.y - 4);
     ctx.restore();
 
-    /* --- the check panel: the one diagnostic reality permits -------------- */
+    /* --- the check panel: the one diagnostic reality permits --------------
+       A dot-and-line PROFILE, not bars. Bars under an age axis read as a
+       histogram of age — Kenneth read the first draft as "the age
+       distribution is bad" — and the panel's whole reading is flat-or-sloped,
+       which a profile against a dashed overall-rate line carries directly:
+       dots hugging the line say the mechanism left no trace, dots leaving it
+       say the missingness follows age. */
     const ck = makePlot({
       ctx, colors, rect: L.check,
       xDomain: [M.AGE_LO - 2, M.AGE_HI + 2], yDomain: [0, 100],
     });
-    ck.caption("The check you can run: % not weighed, by age band");
+    ck.caption("Share of patients not weighed, by age band");
     ck.axisX({ ticks: [20, 35, 50, 65, 80], label: "Age, years" });
 
-    const bands = M.checkPanel(seen, CHECK_BINS);
-    ctx.save();
-    for (const b of bands) {
-      if (!b.n) continue;
-      const pct = (100 * b.missing) / b.n;
-      const x0 = ck.sx(b.lo) + 3;
-      const x1 = ck.sx(b.hi) - 3;
-      ctx.fillStyle = colors.unknown;
-      ctx.fillRect(x0, ck.sy(pct), x1 - x0, ck.sy(0) - ck.sy(pct));
-      ctx.fillStyle = colors.ink2;
+    if (seen.length) {
+      const overall = (100 * missing.length) / seen.length;
+      ctx.save();
+      ctx.strokeStyle = colors.ink3;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      const oy = ck.sy(overall);
+      ctx.beginPath();
+      ctx.moveTo(L.check.x, oy);
+      ctx.lineTo(L.check.x + L.check.w, oy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = colors.ink3;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`overall ${Math.round(overall)}%`, L.check.x + L.check.w - 2, oy - 3);
+      ctx.restore();
+
+      const bands = M.checkPanel(seen, CHECK_BINS).filter((b) => b.n > 0);
+      const pts = bands.map((b) => [(b.lo + b.hi) / 2, (100 * b.missing) / b.n]);
+      if (pts.length > 1) ck.curve(pts, { stroke: colors.unknown, width: 1.6 });
+      ctx.save();
       ctx.font = `${colors.fsXs} ${colors.font}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText(`${Math.round(pct)}%`, (x0 + x1) / 2, ck.sy(pct) - 2);
+      for (const [bx, pct] of pts) {
+        ck.dot(bx, pct, { fill: colors.unknown, r: 3.6 });
+        ctx.fillStyle = colors.ink2;
+        ctx.fillText(`${Math.round(pct)}%`, ck.sx(bx), ck.sy(pct) - 5);
+      }
+      ctx.restore();
     }
-    ctx.restore();
   },
 
   readout({ params, state, anim }) {
@@ -299,7 +322,7 @@ defineWidget({
       {
         label: "True mean",
         value: truth ? `${state.trueMean.toFixed(1)} kg` : "—",
-        note: truth ? "all patients, weighed or not" : "reality never shows this",
+        note: truth ? "all patients, weighed or not" : "the widget knows it; a study never does",
       },
     ];
   },
