@@ -4,7 +4,7 @@
     {
       "slug": "galton-board",
       "title": "The Normal Distribution",
-      "blurb": "Many small random nudges, added together, land in a bell curve.",
+      "blurb": "A normal distribution arises when many small independent errors add together.",
       "course": "PHM5003",
       "topics": [
         "probability",
@@ -29,7 +29,7 @@
     {
       "slug": "bootstrap",
       "title": "Bootstrap Sampling",
-      "blurb": "Resample your one sample to see how uncertain its mean really is.",
+      "blurb": "The bootstrap estimates the uncertainty of a sample mean by resampling the sample itself.",
       "course": "PHM5003",
       "topics": [
         "resampling",
@@ -42,7 +42,7 @@
     {
       "slug": "confidence-interval",
       "title": "Confidence Intervals",
-      "blurb": "Three ways to cut an interval, and how often each one actually contains the truth.",
+      "blurb": "A confidence interval's level describes how often intervals constructed that way contain the true value.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -56,7 +56,7 @@
     {
       "slug": "permutation-test",
       "title": "Hypothesis Testing",
-      "blurb": "Shuffle the group labels to see what chance alone could have produced.",
+      "blurb": "A permutation test builds the null distribution by shuffling group labels and recomputing the difference.",
       "course": "PHM5003",
       "topics": [
         "hypothesis testing",
@@ -69,7 +69,7 @@
     {
       "slug": "multiple-testing",
       "title": "Multiple Testing",
-      "blurb": "Test twenty thousand genes and a thousand come back significant when none is different.",
+      "blurb": "Testing thousands of hypotheses inflates false positives; multiple-testing corrections control the error rate.",
       "course": "PHM5003",
       "topics": [
         "multiple testing",
@@ -97,7 +97,7 @@
     {
       "slug": "maximum-likelihood",
       "title": "Maximum Likelihood",
-      "blurb": "Try a candidate parameter and see how probable it makes the counts you actually got.",
+      "blurb": "Maximum likelihood chooses the parameter values that make the observed data most probable.",
       "course": "PHM5003",
       "topics": [
         "estimation",
@@ -128,7 +128,7 @@
     {
       "slug": "em-mixture",
       "title": "Expectation–Maximization",
-      "blurb": "Recover two populations from a mixture, and see which individuals it still gets wrong.",
+      "blurb": "Expectation–maximization recovers the component distributions of a mixture without knowing who belongs to which.",
       "course": "PHM5003",
       "topics": [
         "EM",
@@ -144,7 +144,7 @@
     {
       "slug": "probability-mechanisms",
       "title": "Probability Distributions",
-      "blurb": "Eight distributions on one decision tree: which you need is settled by what you measure.",
+      "blurb": "Common distributions, each chosen by the process that generates the measurement.",
       "course": "PHM5003",
       "topics": [
         "probability distributions",
@@ -165,7 +165,7 @@
     {
       "slug": "odds-and-risk",
       "title": "Odds Ratio and Relative Risk",
-      "blurb": "One table, two ratios. The odds ratio always overstates, and by how much is set by the base rate.",
+      "blurb": "The odds ratio and the relative risk quantify the association between exposure and outcome in a 2×2 table.",
       "course": "PHM5003",
       "topics": [
         "odds ratio",
@@ -182,7 +182,7 @@
     {
       "slug": "generalization",
       "title": "Fitting and Generalizing",
-      "blurb": "Every parameter you add fits your own patients better and generalizes worse.",
+      "blurb": "How well a model fits the data it was trained on, and how well it generalizes to data it has never seen.",
       "course": "PHM5005",
       "topics": [
         "overfitting",
@@ -196,7 +196,7 @@
     {
       "slug": "linear-regularization",
       "title": "Linear Models and Regularization",
-      "blurb": "One objective, two penalty dials. Only the diamond has corners, and only a corner sets a coefficient to exactly zero.",
+      "blurb": "A linear model is a weighted sum of features; regularization shrinks the weights to reduce overfitting.",
       "course": "PHM5005",
       "topics": [
         "linear regression",
@@ -242,7 +242,7 @@
     {
       "slug": "trees-and-ensembles",
       "title": "Trees and Ensembles",
-      "blurb": "A tree cuts the plane one threshold at a time. Resample the data and it picks a different one.",
+      "blurb": "Decision trees split data one threshold at a time; ensembles combine many trees to stabilise the fit.",
       "course": "PHM5005",
       "topics": [
         "decision tree",
@@ -259,7 +259,7 @@
     {
       "slug": "balancing-data",
       "title": "Balancing Data",
-      "blurb": "When one class is rare a model predicts it away. Four ways to correct that, and what each does to the data.",
+      "blurb": "Class imbalance biases a model toward the majority; resampling methods rebalance the training data.",
       "course": "PHM5005",
       "topics": [
         "imbalance",
@@ -273,7 +273,7 @@
     {
       "slug": "pca",
       "title": "Principal component analysis",
-      "blurb": "Any two genes keep exactly two thirds of the spread. Turn a direction to where it is largest and see what a plane keeps.",
+      "blurb": "Principal component analysis finds the directions of greatest variance and projects the data onto them.",
       "course": "PHM5005",
       "topics": [
         "PCA",
@@ -314,7 +314,7 @@
     {
       "slug": "umap",
       "title": "UMAP",
-      "blurb": "Six clusters on a sphere, flattened to 2-D. A flat map cannot keep them apart; the neighbour graph can.",
+      "blurb": "UMAP embeds high-dimensional data in 2-D by building a nearest-neighbour graph and laying it out.",
       "course": "PHM5003",
       "topics": [
         "dimensionality reduction",
@@ -342,7 +342,7 @@
     {
       "slug": "dbscan",
       "title": "DBSCAN",
-      "blurb": "No K — a radius instead. Clusters grow through overlapping discs, and what is never reached is noise.",
+      "blurb": "DBSCAN finds clusters as dense regions without choosing their number in advance.",
       "course": "PHM5005",
       "topics": [
         "clustering",
