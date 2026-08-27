@@ -148,12 +148,22 @@ defineWidget({
   height: 560,
 
   params: {
+    /* TWO BLOCKS, the collection's data/algorithm shape (2026-08-27 sweep,
+       candidates in `_lab/dimred-rail.html` round three): what makes the
+       samples, then how the intervals are cut from them. Seed rose from below
+       the method controls — it draws the samples, so it is a fact about the
+       data — and Play speed went below the buttons it governs, as kmeans's. */
+    data: { type: "section", label: "The data" },
     dist: { type: "select", label: "Population", options: distOptions, default: "normal" },
 
     /* Down to 3, because the whole t lesson lives at small n and is invisible
        above about 30. The default is 5: z undercovers by about seven points
        there, which is large enough to see in a hundred studies. */
     n: { type: "int", label: "Sample size n", min: 3, max: 40, default: 5 },
+
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+
+    fit: { type: "section", label: "The intervals" },
 
     /* THE CONTROL THIS WIDGET IS REALLY ABOUT, and it is a DISPLAY parameter.
        All three intervals are computed for every study, so switching re-cuts the
@@ -180,13 +190,13 @@ defineWidget({
       display: true,
     },
 
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
     speed: {
       type: "choice",
       label: "Play speed",
       options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
       default: "medium",
       display: true,
+      afterDrive: true,
     },
 
     shown: { type: "int", label: "Pre-filled studies", min: 0, max: 200, default: 0, hidden: true },
