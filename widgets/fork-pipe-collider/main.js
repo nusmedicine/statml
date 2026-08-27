@@ -488,6 +488,13 @@ defineWidget({
       );
       if (state.beyond > 0) {
         front.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
+      } else if (adjusted && !state.groups) {
+        /* The slide is behind the View control, and nothing on the figure
+           said so — Kenneth adjusted, saw only the line swing, and read the
+           slide as gone (round 7). An instructional note in the drive-hint
+           register, shown only in the data view of the structures that HAVE
+           the slide. */
+        front.note(`switch View to remove ${names.z}`);
       }
     }
 
