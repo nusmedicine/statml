@@ -10,9 +10,11 @@ one at a time with him; widget 7 retitled **Decision Making** (slug kept —
 students hold the URL; rename after the course ends); metas are now the blurb
 verbatim with `check` enforcing the match; the rail speaks one vocabulary
 (Play speed with Slow/Medium/Fast(/Fastest), True groups, Groups in the data);
-two titles re-cased. The register lives in design-principles **2.10** (and its
-two amendments) and **3.7**. **The hashed batch landed the same day** — the
-audit is CLOSED; see its section below for what it covered and kept.
+two titles re-cased. **Every decision is codified in design-principles**:
+the register in **2.10**, shared control vocabulary and the reveal pattern in
+**3.7** and **3.4j (amended)**, visible-data-only claims in **2.11**, and the
+meta-equals-blurb invariant in **5.8 (amended)**. **The hashed batch landed
+the same day** — the audit is CLOSED; see its section below.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which

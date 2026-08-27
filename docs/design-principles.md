@@ -248,6 +248,31 @@ teaches. Three further rules, each cut from a shipped card:
 - **No counts that can date** — *"Eight distributions"* became *"Common
   distributions"*, so the card stays true when a ninth arrives.
 
+### 2.11 The figure prints only what the visible data can support
+
+Two halves, both earned on widget 25 in one day.
+
+**A printed diagnosis is computed from the shown data, never from a hidden
+parameter.** The missing-data widget prints a verdict under its check panel —
+"the percentage missing is associated with age", or "no pattern in age: MCAR
+and MNAR both look like this". Keying that line off the `mechanism` parameter
+would have been one line of code and a lie: it would tell the student what a
+study cannot know, in a widget whose entire claim is that a study cannot know
+it. The verdict is computed from the drawn bands against a measured threshold,
+and its honest cost is stated where it is paid: at 10% missing the check
+misfires on ~8% of cohorts, because twelve missing patients is too few for any
+diagnostic — which is itself teaching.
+
+**A claim on a shared surface must be true in every state that shows it.** The
+Missing-vs-trend tile's note read *"the mean's bias is the percentage missing
+times this"* — printed, checked on screen, and retracted the same hour: the
+sign is wrong everywhere (the mean falls *because* the high values are
+missing), and under MAR it is false outright, since that mean's bias comes
+from composition rather than any residual gap. No phrasing was true in all
+three tabs, so the tile keeps its number and the prose stays silent. An
+identity that holds in one tab belongs in the lecture, not on a surface all
+tabs share.
+
 ---
 
 ## 3 · Controls and layout
@@ -925,10 +950,17 @@ vocabulary:
 | role | the one name | notes |
 |---|---|---|
 | the seed | **Seed** | always last in the setup block |
-| animation pace | **Play speed** | a display parameter; its options may differ per widget |
+| animation pace | **Play speed** | options **Slow / Medium / Fast**, plus **Fastest** for a fourth pace — settled 2026-08-27 after the audit found four dialects |
 | what is sampled from | **Population** | the statistics arc's setup control |
 | per-group count | **Samples per group** | when groups are the unit |
+| the group count in generated data | **Groups in the data** | contrasts with the K you *ask* for |
+| the truth reveal | **True \<noun\>** — True groups, True curve, True values | a **segmented Off/On directly after Seed** (or under the gate that creates the thing to reveal); see 3.4j's amendment for the three controls this replaced |
 | repeated step of a fit | **Iterate** (`em-mixture`, `kmeans`) / **Next \<noun\>** (`maximum-likelihood`, `dbscan`) | both name the act; pick whichever is honest |
+
+Two smaller conventions from the same audit: **gallery titles are Title Case**
+(two sentence-case stragglers were re-cased), and **legend labels are sentence
+case** — eleven lowercase entries were the only exceptions in 25 widgets and
+were normalised in the hashed batch.
 
 > *Earned:* the audit found thirteen widgets saying "Play speed",
 > `probability-mechanisms` saying "Speed" and `trees-and-ensembles` saying
@@ -1233,6 +1265,18 @@ The cheap version of this is worth paying for even when it costs something:
 throw away, purely so the landing value comes from the same function the animation
 uses. A transient array of at most thirty entries in exchange for deleting a
 duplicate formula.
+
+**Amended (2026-08-27): the rule covers PROSE with two consumers, and the fix
+there is a reader, not a comment.** A widget's title lives in three files and
+`check` asserts all three agree — that was the precedent. The audit found its
+unguarded sibling: every widget's `<meta description>` did the same job as its
+gallery blurb (one sentence saying what the page is — one copy for the card,
+one for search snippets and link previews) and had drifted unaudited for 24
+widgets: a lesson reference, an editorial claim the card had dropped, a stale
+framing under a retitled page. The metas are now the blurb **verbatim** and
+`check` fails a drifted pair — it caught its first real drift the same day it
+landed, mid-edit on balancing-data. Two copies of one sentence are only safe
+while something automatic reads them against each other.
 
 ---
 
