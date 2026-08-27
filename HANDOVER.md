@@ -1,7 +1,17 @@
 # Handover
 
-**Twenty-five widgets, all shipped, all on the gallery, and 159 fingerprint
+**Twenty-six widgets, all shipped, all on the gallery, and 167 fingerprint
 states recorded.**
+
+**Widget 26 · `fork-pipe-collider` SHIPPED 2026-08-27** — planned, measured,
+built, revised over NINE review rounds and promoted in one day, the first
+widget of the modeling arc (PHM5003 week 4, notebook 06-02). The full record
+is [docs/catalogue.md](docs/catalogue.md) § *Widget 26*. Its states were
+recorded with `_lab/causal-shoot.html`, which now automates the
+driven-vs-settled-sibling check. **Still owed: the 06-02 notebook link
+(Kenneth places it by hand — it will be the FIRST widget link in the
+notebooks) and judging it projected.** The arc's remaining six slots are
+proposed in the catalogue's modeling-arc table, awaiting his picks.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -124,6 +134,7 @@ is blind to.
 | 23 | `kmeans` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 | 24 | `dbscan` | shipped. Planned and measured on 2026-08-26, built and revised over two review rounds on 2026-08-27, then baselined with **eight** states — five settled, three driven |
 | 25 | `missing-data` | shipped. Planned, measured, built, revised over **seven** rounds, judged projected and promoted in ONE day (2026-08-27); seven states — five settled, one driven mid-beat, one interrupted. `node widgets/_lab/missing-drive.mjs` = 130 assertions |
+| 26 | `fork-pipe-collider` | shipped. Nine rounds in one day (2026-08-27); eight states — five settled, two driven mid-ease, one hit-driven. NOT yet judged projected; 06-02 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
