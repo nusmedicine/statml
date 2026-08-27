@@ -1,9 +1,7 @@
 /* ============================================================================
-   Missing data — widget 25. DRAFT: first buildable version for Kenneth to
-   drive; the layout has NOT had its mock-up round yet.
-
-   The plan, both hosts and every measured number are in docs/catalogue.md
-   § NEXT · Missing data. The claim on screen:
+   Missing data — widget 25, SHIPPED 2026-08-27 after seven review rounds in
+   one day. The plan, both hosts, the round history and every measured number
+   are in docs/catalogue.md § Widget 25. The claim on screen:
 
      MCAR — holes follow nothing.       Check flat, observed mean fair.
      MAR  — holes follow AGE.           Check sloped: you can SEE it.
@@ -16,10 +14,15 @@
 
    THE FIGURE, top to bottom: the clinic scatter (age against weight, one dot
    per weighed patient, a tick on the baseline for a patient seen but not
-   weighed), a marginal pile of observed weights on the right, and the CHECK
-   panel below — % not weighed per age band, the one diagnostic reality
-   permits. Scatter and check share the age axis, so a hole's position and the
+   weighed), a marginal pile of observed weights on the right — the mean rules
+   live there, so the mean tiles have marks to match — and the CHECK panel
+   below: a weighed/not-weighed composition per age band, the one diagnostic
+   reality permits, with its verdict computed from the visible data only.
+   Scatter and check share the age axis, so a missing patient's tick and the
    band it thickens line up by construction.
+
+   Drive it with no browser: node widgets/_lab/missing-drive.mjs (130
+   assertions — contract, engine, beats, NaN sweeps, the draw strings).
    ========================================================================= */
 
 import { defineWidget, makePlot } from "../core/index.js";
@@ -69,7 +72,7 @@ defineWidget({
     "Missingness can be completely at random (MCAR), depend on age (MAR), or " +
     "depend on the unrecorded weight itself (MNAR), and each biases the " +
     "observed data differently.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,
 

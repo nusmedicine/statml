@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · hash widget 25's states</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { font-family: var(--font); padding: var(--sp-4); }
+  pre { font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre-wrap; }
+  .frames { position: absolute; left: -99999px; top: 0; }
+</style>
+</head>
+<body>
+<h1>Hashing widget 25's states</h1>
+<p>Add the states below to <code>fingerprint-baseline.json</code>. NOT DEPLOYED.</p>
+<pre id="out">running…</pre>
+<div class="frames" id="frames"></div>
+
+<script type="module">
+/* ============================================================================
+   `fingerprint.html`'s `hash`, `figureText`, `drive` and `shoot`, COPIED
+   VERBATIM, so a new widget's states can be recorded without re-verifying the
+   139 already-known-good ones. HANDOVER's *NEVER BASELINE BY PLACEHOLDER-AND-
+   DIFF* prescribes exactly this and measures the alternative at three runs of
+   forty minutes to learn four numbers.
+
+   THE COPY IS PROVED BEFORE IT IS TRUSTED. The same recipe drifted from
+   `figureText` once — a different join, a plausible-looking `tx`, and a widget
+   that would have read MATCH against itself for ever while never agreeing with
+   the suite. So this page re-hashes three states from OTHER widgets first and
+   refuses to print anything if they do not reproduce their recorded values.
+   ========================================================================= */
+const FRAME_W = 900;
+const FRAME_H = 1200;
+const SETTLE_MS = 400;
+const TEXT_PARTS = [".w-math", ".w-legend", ".w-readout"];
+
+const frames = document.getElementById("frames");
+const out = document.getElementById("out");
+
+function hash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+function figureText(doc) {
+  return TEXT_PARTS
+    .map((sel) => [...doc.querySelectorAll(sel)].map((n) => n.textContent).join(" "))
+    .join(" | ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function drive(win, doc, spec) {
+  const queue = [];
+  win.requestAnimationFrame = (cb) => queue.push(cb);
+  let t = 1000;
+
+  const press = (key) => {
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`)
+      ?? doc.querySelector(`.w-gate-btn[data-key="${key}"]`);
+    if (!b) throw new Error(`no "${key}" drive button`);
+    if (b.disabled) throw new Error(`"${key}" button is disabled — wrong stage?`);
+    b.click();
+  };
+
+  const setParam = (name, value) => {
+    const seg = doc.querySelectorAll(`.w-seg-btn[data-param="${name}"]`);
+    if (seg.length) {
+      const b = [...seg].find((x) => x.dataset.value === String(value));
+      if (!b) {
+        throw new Error(`"${name}" has no option "${value}" (has ${[...seg].map((x) => x.dataset.value).join(", ")})`);
+      }
+      b.click();
+      return;
+    }
+    const el = doc.querySelector(`[data-param="${name}"]`);
+    if (!el) throw new Error(`no control for parameter "${name}"`);
+    const fire = (type) => el.dispatchEvent(new win.Event(type, { bubbles: true }));
+    if (el.dataset.options) {
+      const i = JSON.parse(el.dataset.options).indexOf(value);
+      if (i < 0) throw new Error(`"${name}" has no option "${value}"`);
+      el.value = String(i);
+      fire("input");
+    } else if (el.type === "checkbox") {
+      el.checked = Boolean(value);
+      fire("change");
+    } else if (el.tagName === "SELECT") {
+      el.value = String(value);
+      fire("change");
+    } else {
+      el.value = String(value);
+      fire("input");
+    }
+  };
+
+  const hitAt = ([x, y]) => {
+    const canvas = doc.querySelector(".w-figure canvas");
+    if (!canvas) throw new Error("hit: no canvas");
+    const r = canvas.getBoundingClientRect();
+    const k = r.width / (canvas.clientWidth || 1);
+    const clientX = r.left + x * k;
+    const clientY = r.top + y * k;
+    const send = (type) => canvas.dispatchEvent(
+      new win.PointerEvent(type, { bubbles: true, clientX, clientY })
+    );
+    send("pointermove");
+    if (canvas.style.cursor !== "pointer") {
+      throw new Error(`hit: (${x}, ${y}) is not over a region`);
+    }
+    send("pointerdown");
+  };
+
+  const act = (step) => {
+    for (const [k, v] of Object.entries(step.set ?? {})) setParam(k, v);
+    if (step.hit) hitAt(step.hit);
+    if (step.click) press(step.click);
+  };
+  const label = (step) =>
+    [Object.entries(step.set ?? {}).map(([k, v]) => `${k}=${v}`).join(","),
+      step.hit ? `hit(${step.hit.join(",")})` : "", step.click]
+      .filter(Boolean).join("+");
+
+  if (spec.lead) {
+    press("lead");
+    for (let i = 0; i < 200 && queue.length; i += 1) {
+      t += 64;
+      queue.shift()(t);
+    }
+  }
+
+  const dt = spec.dt ?? 32;
+
+  for (const step of spec.before ?? []) {
+    act(step);
+    for (let i = 0; i < (step.frames ?? 0); i += 1) {
+      const cb = queue.shift();
+      if (!cb) break;
+      t += dt;
+      cb(t);
+    }
+  }
+
+  act(spec.set || spec.click || spec.hit ? spec : { click: "step" });
+  let ran = 0;
+  for (let i = 0; i < spec.frames; i += 1) {
+    const cb = queue.shift();
+    if (!cb) break;
+    t += dt;
+    cb(t);
+    ran += 1;
+  }
+  const pre = (spec.before ?? []).map((s) => `${label(s)}+${s.frames}f→`).join("");
+  return `${spec.lead ? "lead→" : ""}${pre}${label(spec) || "step"} +${ran}f`;
+}
+
+async function shoot(entry) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W;
+  frame.height = FRAME_H;
+  frame.style.border = "0";
+  frame.src = `../${entry.slug}/${entry.state}`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  await new Promise((r) => setTimeout(r, entry.drive ? 150 : SETTLE_MS));
+
+  let px = "—";
+  let tx = "—";
+  let note = "";
+  try {
+    const win = frame.contentWindow;
+    const doc = frame.contentDocument;
+    if (entry.drive) note = drive(win, doc, entry.drive);
+    const canvas = doc.querySelector(".w-figure canvas");
+    px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
+    tx = hash(figureText(doc));
+    if (!entry.drive) {
+      note = [...doc.querySelectorAll(".w-stat-value")].map((n) => n.textContent).join(" | ");
+    }
+  } catch (e) {
+    px = "error";
+    tx = "error";
+    note = String(e.message ?? e);
+  }
+  frame.remove();
+  return { px, tx, note };
+}
+
+/* --- the states to record ------------------------------------------------ */
+const NEW = [
+  /* Settled. Each carries `shown=`, which `check` requires of a widget that
+     declares one — otherwise the state is not pinned and could drift. The
+     empty start, the three mechanisms at the finished clinic (MAR and MNAR
+     with the reveal on, so the trend pair, the hollow marks and the pile
+     rules are all in the hash), and a second rate and seed. */
+  { slug: "missing-data", state: "?theme=light&shown=0" },
+  { slug: "missing-data", state: "?theme=light&mechanism=mcar&shown=120" },
+  { slug: "missing-data", state: "?theme=light&mechanism=mar&truth=on&shown=120" },
+  { slug: "missing-data", state: "?theme=light&mechanism=mnar&truth=on&shown=120" },
+  { slug: "missing-data", state: "?theme=light&mechanism=mnar&rate=0.5&seed=7&shown=120" },
+
+  /* Driven: 8 frames at 32ms lands 256ms into the 340ms step beat — the
+     arriving patient in the highlight colour with its ring collapsing, the
+     frame class no settled state can see. */
+  { slug: "missing-data", state: "?theme=light&mechanism=mar", drive: { click: "step", frames: 8, dt: 32 } },
+
+  /* Interrupted: a step mid-beat when Play takes over at the speed that
+     declares no choreography. Three shipped bugs in this collection were
+     mid-animation states and the last needed two actions to reach. */
+  {
+    slug: "missing-data",
+    state: "?theme=light&speed=fast",
+    drive: { before: [{ click: "step", frames: 4 }], click: "run", frames: 12, dt: 32 },
+  },
+];
+
+/* --- prove the copy before trusting it ----------------------------------- */
+const baseline = await (await fetch("./fingerprint-baseline.json")).json();
+const PROOF = ["umap", "mds", "permutation-test"]
+  .map((slug) => baseline.states.find((s) => s.slug === slug && s.drive))
+  .filter(Boolean)
+  .concat(baseline.states.filter((s) => s.slug === "umap" && !s.drive).slice(0, 1));
+
+const lines = [];
+lines.push("PROVING THE COPY against states already in the baseline");
+let bad = 0;
+for (const s of PROOF) {
+  const got = await shoot(s);
+  const ok = got.px === s.px && got.tx === s.tx;
+  if (!ok) bad += 1;
+  lines.push(`  ${ok ? "MATCH " : "DIFFER"}  ${s.slug} ${s.state}`
+    + (ok ? "" : `\n           want ${s.px}/${s.tx}  got ${got.px}/${got.tx}`));
+}
+
+if (bad) {
+  lines.push(`\n${bad} of ${PROOF.length} DID NOT REPRODUCE — the copy has drifted from`);
+  lines.push("fingerprint.html. Do not record anything from this run.");
+  out.textContent = lines.join("\n");
+} else {
+  lines.push(`  ${PROOF.length}/${PROOF.length} reproduced — the copy is faithful.\n`);
+  lines.push("WIDGET 25'S STATES");
+  const done = [];
+  for (const s of NEW) {
+    const got = await shoot(s);
+    done.push({ ...s, px: got.px, tx: got.tx });
+    lines.push(`  ${got.px} ${got.tx}  ${s.state}${s.drive ? `   [${got.note}]` : ""}`);
+    if (got.px === "error" || got.tx === "error") lines.push(`     ERROR: ${got.note}`);
+  }
+  lines.push("\nJSON to splice into fingerprint-baseline.json:");
+  lines.push(JSON.stringify(done, null, 1));
+  out.textContent = lines.join("\n");
+  window.__states = done;
+}
+window.__done = true;
+</script>
+</body>
+</html>

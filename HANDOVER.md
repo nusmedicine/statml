@@ -1,6 +1,6 @@
 # Handover
 
-**Twenty-four widgets, all shipped, all on the gallery, and 152 fingerprint
+**Twenty-five widgets, all shipped, all on the gallery, and 159 fingerprint
 states recorded.**
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
@@ -30,7 +30,14 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 152 states, all matching — and widget 24 ran the full one
+## The suite: 159 states, all matching
+
+**Widget 25 added seven states on 2026-08-27 with `_lab/missing-shoot.html`**,
+on the kmeans-shoot pattern: the copy proved against four recorded hashes
+first, three byte-identical runs, spliced directly — no full-suite rerun owed,
+nothing in `widgets/core/` moved.
+
+### And widget 24 ran the full one
 
 **Widget 24 added eight states on 2026-08-27 by running the full suite three
 times**, then a fourth against the recorded hashes: **152 of 152 MATCH**. It did
@@ -93,14 +100,15 @@ is blind to.
 | 22 | `umap` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 | 23 | `kmeans` | shipped. Planned, measured, built and revised over four review rounds on 2026-08-26, then baselined with five states |
 | 24 | `dbscan` | shipped. Planned and measured on 2026-08-26, built and revised over two review rounds on 2026-08-27, then baselined with **eight** states — five settled, three driven |
+| 25 | `missing-data` | shipped. Planned, measured, built, revised over **seven** rounds, judged projected and promoted in ONE day (2026-08-27); seven states — five settled, one driven mid-beat, one interrupted. `node widgets/_lab/missing-drive.mjs` = 130 assertions |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
 why. Read the round headings there before changing anything.
 
 **Widget 15 still lacks the marginal-vs-conditional note** Kenneth asked for,
-and **no widget from 11 onward has been judged projected**. Both are old and
-neither blocks anything.
+and **no widget from 11 through 24 has been judged projected** (25 was, on its
+promotion day). Both are old and neither blocks anything.
 
 ### Still open on widget 20, and both are teaching calls
 
@@ -185,43 +193,31 @@ in 2.10's amendments:
   `_lab/vocab-labels.html`, the four-frame mockup that settled the rail
   vocabulary. `_lab/audit-inventory.mjs` regenerates the data.
 
-## WIDGET 25 IS PLANNED AND MEASURED: `missing-data` — build next
+## WIDGET 25 IS SHIPPED: `missing-data` — planned, built and promoted in ONE day
 
-**Kenneth's brief (2026-08-27): students cannot tell MCAR, MAR and MNAR apart;
-no imputation in this widget.** The full plan — two hosts (PHM5003 `05/02`,
-PHM5005 `03-4`), the clinic weight-against-age scenario he picked, the three
-settled design calls, and every measured number — is
-[docs/catalogue.md](docs/catalogue.md) § *NEXT · Missing data*. Read it before
-drawing anything. The short version:
+**The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 25* —
+the brief (MCAR/MAR/MNAR indistinguishable to students; NO imputation), the
+measured design (MNAR scored on the residual, verdict thresholds, the +10 kg
+hidden-residual number), and all seven review rounds.** What belongs here is
+only what a later session needs at hand:
 
-- `widgets/missing-data/model.js` EXISTS and is the engine: cohort, three
-  rate-calibrated mechanisms, check panel. `node
-  widgets/_lab/missing-measure.mjs` reproduces every number.
-- **MNAR is scored on the residual, not raw weight** — the first sweep showed
-  raw weight leaking a 40-point slope into the age check ("looks like MCAR"
-  held on 60/200 cohorts); the residual makes the check genuinely flat
-  (17.7 vs MCAR's 17.5 points) and IS the textbook definition.
-- At the default 30% missing: MAR bias +1.7 kg with a 72-point check slope;
-  MNAR bias −3.0 kg with a MCAR-identical check; MCAR bias 0.0. Reliable on
-  ~389/400 single cohorts. No dead stops on the rate range.
-- **THE DRAFT IS BUILT and has been through SIX rounds of Kenneth's review**
-  on 2026-08-27 — `/widget/missing-data/` (status draft: /lab/ lists it, the
-  gallery does not, no fingerprint states owed while it moves). The rounds, in
-  commit order: check panel bars→profile→**composition** (twice misread before
-  it stopped looking like a histogram of age), verdict line computed from the
-  visible data only, observed-trend line with the Missing-vs-trend tile (whose
-  arithmetic note was printed, found FALSE under MAR, and retracted — the
-  source comment records why), conventional terminology throughout, True
-  values as segmented Off/On after Seed (the kmeans/dbscan pattern; 3.4j's
-  below-the-drive-row placement was reversed by Kenneth), pacing beats with
-  arrival choreography, and projection-sized marks. **He has NOT yet judged it
-  from the back of a room.** Still owed before promotion:
-  the projected judgement (33% zoom two metres back approximates it); the
-  formal driver `_lab/missing-drive.mjs` (the 30-assertion inline version from
-  the build session was never saved — write it with the capability list, the
-  beat contract, and the NaN sweep); the catalogue round history; then
-  fingerprint states (settled + driven + the mid-beat interrupted case) and
-  the baseline, hashed directly per *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*.
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/missing-data/?mechanism=mnar&truth=on&shown=120
+node widgets/_lab/missing-drive.mjs      # 130 assertions, no browser, no clock
+node widgets/_lab/missing-measure.mjs    # every number the catalogue quotes
+```
+
+- **Seven states recorded with `_lab/missing-shoot.html`** (the kmeans-shoot
+  pattern): copy proved against four existing baseline hashes, three
+  byte-identical runs, spliced directly — no full-suite rerun owed, nothing in
+  `widgets/core/` moved. Baseline now **159 states**.
+- **The Missing-vs-trend tile deliberately carries no arithmetic note** — the
+  tidy identity is false under MAR; the source comment and catalogue round 5
+  record why. Do not reinstate it.
+- **The verdict line is computed from the VISIBLE data only** and is honestly
+  unreliable at 10% missing (93/1200 misfires — twelve missing patients is too
+  few for any check). Known, measured, accepted.
 
 ### NEXT AFTER THAT: the hashed batch — ONE pass, ONE rebaseline at the end
 

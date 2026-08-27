@@ -8288,7 +8288,60 @@ readout notes, canvas captions, `--c-reference`) is still owed —
 
 ---
 
-## NEXT · Missing data — PLANNED AND MEASURED 2026-08-27, not yet built
+## Widget 25 · `missing-data` — SHIPPED 2026-08-27
+
+**Planned, measured, built, revised over seven rounds of Kenneth's review and
+promoted in a single day** — the fastest widget in the collection, and the
+first planned for both courses since t-SNE. Judged projected the same day.
+Seven fingerprint states (five settled, one driven mid-beat, one interrupted),
+recorded with `_lab/missing-shoot.html` on the kmeans-shoot pattern: the copy
+proved against four existing baseline hashes first, three byte-identical runs,
+no full-suite rerun owed since nothing in `widgets/core/` moved.
+`node widgets/_lab/missing-drive.mjs` is the no-browser driver: 130 assertions.
+
+### The seven rounds, each begun by something Kenneth saw
+
+1. **The check panel read as "the age distribution is bad."** Grey bars under
+   an age axis look like a histogram of age. Bars became a dot-and-line
+   profile against a dashed overall-rate line.
+2. **His three questions became three features**: the profile still needed a
+   mental inversion, so it became a weighed/not-weighed **composition** per
+   band (the VIM::aggr shape the PHM5003 lesson itself uses); "can the data
+   tell you the mechanism?" became the **verdict line**, computed from the
+   visible data only — keying it off the mechanism parameter would tell the
+   student what a study cannot know (per-rate thresholds measured: misfires
+   2/1200 at the default rate, an honest 93/1200 at 10% where twelve missing
+   patients is genuinely too few); "why is MAR imputable?" became the
+   **observed trend** — hidden weights sit −0.1 kg off it under MCAR/MAR and
+   **+10.0 ± 1.1 kg above it under MNAR, 400/400 cohorts** — the reason
+   conditional imputation works, shown without an imputer.
+3. **Conventional terminology throughout** — "holes" and the dashboard
+   description out of every visible surface, "associated with" for "follows",
+   "Percentage missing" naming both the control and the panel.
+4. **True values moved after Seed** as a segmented Off/On — the clustering
+   pair's pattern; 3.4j's below-the-drive-row placement was reversed for arc
+   consistency. Verdict onto its own reserved line (3.4k). **Mean rules onto
+   the pile** so the mean tiles have marks to match — tiles are means, scatter
+   lines are trends, and each reading now has its surface.
+5. **The Missing-vs-trend tile, and its note retracted.** The tile quantifies
+   the trend picture (+9.6 kg at the default MNAR seed). Its note claimed "the
+   mean's bias is the percentage missing times this" — printed, checked on
+   screen, and found FALSE: wrong sign everywhere, and wrong outright under
+   MAR, where the mean's bias comes from age composition rather than any
+   residual gap. No phrasing is true in all three tabs, so the tile keeps the
+   number and the prose stays silent. The identity (bias = −share × gap) is
+   real for age-flat mechanisms and belongs in lecture, not on a shared
+   surface.
+6. **Pacing beats.** A step became one patient watched — a fixed 340ms unit
+   spanning frames — and Slow/Medium choreograph each arrival (highlight
+   colour, collapsing ring, final colour on landing) with Fast declaring none
+   (4.1). Verified by hand-pumping requestAnimationFrame: an interrupted
+   mid-beat step then Play runs clean to the end. Marks sized against widget
+   11's projection failures: 2.5×11px ticks, 3.8px dots, 2px rules.
+7. **The blurb was the gallery's only fragment** — now one declarative
+   sentence, meta synced under check's assertion.
+
+### The planning record (2026-08-27, pre-build)
 
 ### TWO HOSTS, one per course — the first widget planned for both since t-SNE
 
