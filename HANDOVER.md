@@ -11,8 +11,8 @@ students hold the URL; rename after the course ends); metas are now the blurb
 verbatim with `check` enforcing the match; the rail speaks one vocabulary
 (Play speed with Slow/Medium/Fast(/Fastest), True groups, Groups in the data);
 two titles re-cased. The register lives in design-principles **2.10** (and its
-two amendments) and **3.7**. **What remains is the hashed batch** — see *NEXT*
-below.
+two amendments) and **3.7**. **The hashed batch landed the same day** — the
+audit is CLOSED; see its section below for what it covered and kept.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
