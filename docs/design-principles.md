@@ -762,6 +762,25 @@ builds into a second control block under the buttons.
 As its own checkbox below the buttons it composes rather than competes: the fit
 stays whatever you were reading it as, and the truth lies over the top.
 
+**Amended (2026-08-27): the reveal's PLACEMENT half is superseded — the arc
+grew one pattern for it and consistency won.** By widget 25 the collection
+held ten reveal controls wearing three different clothes: segmented Off/On
+after Seed (the clustering widgets' "True groups"), checkboxes below the
+drive row (this principle's original, on em-mixture and generalization), and
+one checkbox mid-rail (bootstrap). Kenneth ruled for the segmented pattern —
+first on missing-data's review, then across the arc: **a reveal is a
+segmented Off/On named for what it shows ("True groups", "True curve", "True
+values"), directly after Seed** (or directly under the gate that creates the
+thing to reveal). A student meeting their sixth widget should not meet a
+third control for the same idea.
+
+What this amendment does NOT touch is the half that was the real lesson: **a
+revealed answer is a reference behind something, not a layer on its own** —
+it stays conditioned on there being a result to reveal, and it must never sit
+inside a control it can deselect. Both survive in every widget. The
+conversions kept URL values `"0"`/`"1"`, so shared `?truth=1` links and the
+recorded baseline states parse unchanged.
+
 **A sticky reveal must still respect a reset.** `display: true` keeps a
 parameter across a data change, which is right — but widget 10's true curves
 then stayed on screen over a figure that had just been reset to nothing, which

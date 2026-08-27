@@ -412,6 +412,28 @@ defineWidget({
       default: false,
     },
 
+    /* THE WITHHELD ANSWER. It was the third option of the colour control, and
+       two things were wrong with that: a reader met the answer in the setup
+       block before having asked a question, and choosing it visibly DESELECTED
+       the fit views. It then lived as a checkbox below the drive row (3.4j's
+       original), until the 2026-08-27 sweep found the arc's reveals wearing
+       three different controls — it is the arc's one pattern now, a segmented
+       Off/On directly under the gate, named for what it shows. Values stay
+       "0"/"1" so ?truth=1 links and the baseline states parse unchanged; the
+       reveal is still conditioned on a result existing (3.4j's surviving
+       half). */
+    truth: {
+      type: "segmented",
+      label: "True groups",
+      options: [
+        { value: "0", label: "Off" },
+        { value: "1", label: "On" },
+      ],
+      default: "0",
+      display: true,
+      when: { param: "sampled" },
+    },
+
     view: { type: "section", label: "Inference", when: { param: "sampled" } },
 
     /* THE MISCONCEPTION, AS A CONTROL. `responsibility` and `cluster` are the
@@ -463,20 +485,6 @@ defineWidget({
       default: "medium",
       display: true,
       when: { param: "sampled" },
-    },
-
-    /* THE WITHHELD ANSWER, AND IT SITS BELOW THE DRIVE ROW (3.4e's exception).
-       It was the third option of the colour control, and two things were wrong
-       with that. A reader met the answer in the setup block before having asked
-       a question — reported as confusing. And because a segmented control has
-       one selection, choosing it visibly DESELECTED `hard cluster` and `share`,
-       which made a reveal look like it had switched the fit off.
-
-       As its own checkbox it composes instead of competing: the fit stays
-       whatever you were reading it as, and the truth lies over the top. */
-    truth: {
-      type: "bool", label: "Show who they really were", default: false,
-      display: true, afterDrive: true, when: { param: "sampled" },
     },
 
     shown: { type: "int", label: "Iterations already run", min: 0, max: MAX_ITERS, default: 0, hidden: true },
@@ -790,7 +798,7 @@ defineWidget({
        there is nothing for them to be behind, and they come back by themselves
        the moment the first E-step runs. */
     const weighed = sampled && anim.leadDone && (i > 0 || inFlight);
-    const showTruth = weighed && Boolean(params.truth);
+    const showTruth = weighed && params.truth === "1";
 
     const plot = makePlot({
       ctx, colors,

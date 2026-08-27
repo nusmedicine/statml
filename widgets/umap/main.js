@@ -498,20 +498,6 @@ defineWidget({
   ],
 
   params: {
-    /* OFF BY DEFAULT, so the reader reads the clusters off the picture before
-       being told what they are — the notebook's own order (both hosts plot
-       every method twice, once bare and once coloured by type), and
-       non-negotiable 4 applied to knowledge rather than to the figure. */
-    labels: {
-      type: "segmented",
-      label: "True groups",
-      options: [
-        { value: "off", label: "Off" },
-        { value: "on", label: "On" },
-      ],
-      default: "off",
-      display: true,
-    },
     /* SIX BY DEFAULT, because four can be flattened without losing them. See
        `spreadDirs` in model.js for the table: the flat map the descent starts
        from separates four clusters at silhouette 0.684 and six at 0.540, so at
@@ -606,6 +592,21 @@ defineWidget({
       max: 200,
       default: 1,
       detail: "moves every sample, and where the flattening starts from",
+    },
+    /* After Seed, the arc's one position for the reveal (2026-08-27 sweep).
+       OFF BY DEFAULT, so the reader reads the clusters off the picture before
+       being told what they are — the notebook's own order (both hosts plot
+       every method twice, once bare and once coloured by type), and
+       non-negotiable 4 applied to knowledge rather than to the figure. */
+    labels: {
+      type: "segmented",
+      label: "True groups",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+      default: "off",
+      display: true,
     },
 
     /* Hidden, because the figure is their control — but parameters, so a shared

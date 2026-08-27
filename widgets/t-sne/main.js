@@ -507,19 +507,6 @@ defineWidget({
   ],
 
   params: {
-    /* OFF BY DEFAULT, so the reader reads the clusters off the picture before
-       being told what they are — the notebook's own order, and non-negotiable 4
-       applied to knowledge rather than to the figure. */
-    labels: {
-      type: "segmented",
-      label: "True groups",
-      options: [
-        { value: "off", label: "Off", detail: "how many clusters can you see?" },
-        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
-      ],
-      default: "off",
-      display: true,
-    },
     groups: {
       type: "choice",
       label: "Groups in the data",
@@ -562,6 +549,20 @@ defineWidget({
       max: 200,
       default: 1,
       detail: "moves every sample, and where the descent starts from",
+    },
+    /* OFF BY DEFAULT, so the reader reads the clusters off the picture before
+       being told what they are — the notebook's own order, and non-negotiable 4
+       applied to knowledge rather than to the figure. After Seed, the arc's one
+       position for the reveal (2026-08-27 sweep). */
+    labels: {
+      type: "segmented",
+      label: "True groups",
+      options: [
+        { value: "off", label: "Off", detail: "how many clusters can you see?" },
+        { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
+      ],
+      default: "off",
+      display: true,
     },
     /* `display: true`, for the reason widget 20 records: as a data gate this
        would be the one gate core animates, but shutting it would throw away a

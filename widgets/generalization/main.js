@@ -410,6 +410,21 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    /* The reveal, in the arc's one pattern: segmented Off/On after Seed. It
+       was a checkbox below the drive row until the 2026-08-27 sweep. Values
+       stay "0"/"1" so shared ?truth=1 links parse unchanged. */
+    truth: {
+      type: "segmented",
+      label: "True curve",
+      detail: "what the concentrations were actually drawn from",
+      options: [
+        { value: "0", label: "Off" },
+        { value: "1", label: "On" },
+      ],
+      default: "0",
+      display: true,
+    },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -420,15 +435,6 @@ defineWidget({
       ],
       default: "brisk",
       display: true,
-    },
-
-    truth: {
-      type: "bool",
-      label: "Show the true curve",
-      detail: "what the concentrations were actually drawn from",
-      default: false,
-      display: true,
-      afterDrive: true,
     },
 
     shown: { type: "int", min: 0, max: MAXP, default: 0, hidden: true },
@@ -592,7 +598,7 @@ defineWidget({
     sc.axisY({ ticks: [0, 5, 10, 15, 20, 25], label: "Concentration (mg/L)" });
     sc.axisX({ label: "Hours since dose" });
 
-    if (params.truth) {
+    if (params.truth === "1") {
       const g = [];
       for (let s = 0; s <= 160; s += 1) {
         const t = T_LO + ((T_HI - T_LO) * s) / 160;

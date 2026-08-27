@@ -184,6 +184,21 @@ defineWidget({
        the case that fails: included, not opened on. */
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 3 },
 
+    /* The reveal, in the arc's one pattern: segmented Off/On after Seed. It
+       was a checkbox mid-rail until the 2026-08-27 sweep found three widgets
+       each wearing a different reveal control. Values stay "0"/"1" so every
+       shared ?truth=1 link and baseline state still parses. */
+    truth: {
+      type: "segmented",
+      label: "True sampling distribution",
+      options: [
+        { value: "0", label: "Off" },
+        { value: "1", label: "On" },
+      ],
+      default: "1",
+      display: true,
+    },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -191,7 +206,6 @@ defineWidget({
       default: "medium",
       display: true,
     },
-    truth: { type: "bool", label: "True sampling distribution", default: true, display: true },
     smooth: { type: "bool", label: "Smoothed density", default: true, display: true },
 
     // Authoring escape hatch, deliberately not a visible control. The figure is
@@ -541,7 +555,7 @@ defineWidget({
        the pile should look like" in widget 2 meets the same convention here. It
        is also the payoff of this widget, and reference is `--ink-3` — the
        quietest ink in the system, and the first mark to vanish on a projector. */
-    if (params.truth && f.barMix > 0) {
+    if (params.truth === "1" && f.barMix > 0) {
       const scale = total * hist.width;
       pb.curve(state.truthDensity.map(([x, d]) => [x, d * scale]), {
         stroke: colors.theory,
