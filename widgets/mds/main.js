@@ -479,6 +479,13 @@ defineWidget({
 
        Neither detail says what the fit will do with the count, only what the
        INPUT is: how the centres sit, and how many distances there are. */
+    /* TWO BLOCKS, the shape the whole make-data-then-fit arc now shares
+       (kmeans settled it; pca landed in the same round as this). The MDS
+       heading is the milder half of the round-two call in
+       `_lab/dimred-rail.html`: the gate below it names an act, not the method,
+       and once it opens the heading also covers the Fit toggle, which the
+       unsectioned rail left floating. The groups+samples pair rides along. */
+    data: { type: "section", label: "The data" },
     groups: {
       type: "choice",
       label: "Groups in the data",
@@ -488,6 +495,7 @@ defineWidget({
         { value: "4", label: "4", detail: "four centres, spread through space" },
       ],
       default: "2",
+      row: { key: "stage" },
     },
     /* Per group, so the groups stay balanced whatever the count — the same
        reading widget 19 gives the same control. One is a real setting and not a
@@ -507,6 +515,7 @@ defineWidget({
         { value: "4", label: "4", detail: "four around each centre" },
       ],
       default: "3",
+      row: { key: "stage" },
     },
     /* ONE SEED, AND EVERYTHING DOWNSTREAM OF IT MOVES — the samples first, then
        the layout the fit starts from. It used to move only the second, which
@@ -536,6 +545,8 @@ defineWidget({
       default: "off",
       display: true,
     },
+
+    fit: { type: "section", label: "MDS" },
 
     /* `display: true`, and it has to be. As a data gate this would be the one
        gate core animates, which is convenient — but shutting it would then
