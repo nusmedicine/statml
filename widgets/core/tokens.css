@@ -440,6 +440,12 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
    secondary, and a full line of air above it rather than the gap between two
    fields. Four signals — colour, weight, rule, space — where there was one. */
 .w-section {
+  /* Full row, always. The controls grid goes multi-column in the stacked
+     layout, and as an ordinary grid item the heading's hairline spanned only
+     its own cell — a divider that stopped halfway across the block, reported
+     on mobile (2026-08-27). Spanning also puts the controls it heads BELOW it
+     rather than beside it, which is what a heading claims. */
+  grid-column: 1 / -1;
   margin: var(--sp-5) 0 var(--sp-1);
   padding-top: var(--sp-3);
   border-top: 1px solid var(--grid);
