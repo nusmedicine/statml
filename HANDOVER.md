@@ -185,7 +185,31 @@ in 2.10's amendments:
   `_lab/vocab-labels.html`, the four-frame mockup that settled the rail
   vocabulary. `_lab/audit-inventory.mjs` regenerates the data.
 
-### NEXT: the hashed batch — ONE pass, ONE rebaseline at the end
+## WIDGET 25 IS PLANNED AND MEASURED: `missing-data` — build next
+
+**Kenneth's brief (2026-08-27): students cannot tell MCAR, MAR and MNAR apart;
+no imputation in this widget.** The full plan — two hosts (PHM5003 `05/02`,
+PHM5005 `03-4`), the clinic weight-against-age scenario he picked, the three
+settled design calls, and every measured number — is
+[docs/catalogue.md](docs/catalogue.md) § *NEXT · Missing data*. Read it before
+drawing anything. The short version:
+
+- `widgets/missing-data/model.js` EXISTS and is the engine: cohort, three
+  rate-calibrated mechanisms, check panel. `node
+  widgets/_lab/missing-measure.mjs` reproduces every number.
+- **MNAR is scored on the residual, not raw weight** — the first sweep showed
+  raw weight leaking a 40-point slope into the age check ("looks like MCAR"
+  held on 60/200 cohorts); the residual makes the check genuinely flat
+  (17.7 vs MCAR's 17.5 points) and IS the textbook definition.
+- At the default 30% missing: MAR bias +1.7 kg with a 72-point check slope;
+  MNAR bias −3.0 kg with a MCAR-identical check; MCAR bias 0.0. Reliable on
+  ~389/400 single cohorts. No dead stops on the rate range.
+- **Next session is the LAYOUT MOCK-UP** (`_lab/` page, candidates at 550px):
+  scatter + observed-vs-true pile + check panel; the animation (patients
+  measured or skipped one at a time); the `True values` reveal (afterDrive,
+  3.4j); 4 check bins vs 3.
+
+### NEXT AFTER THAT: the hashed batch — ONE pass, ONE rebaseline at the end
 
 Three determinism runs + a confirming run, as widget 24 did. In it:
 

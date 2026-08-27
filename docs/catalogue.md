@@ -8273,23 +8273,117 @@ points, differing only by URL parameters and the chapter that embeds them.
 
 ---
 
-## The next session is an AUDIT, not a build
+## The cross-widget audit RAN on 2026-08-27, free surfaces shipped
 
-**Kenneth, 2026-08-27**: with 24 widgets shipped, the arc has never been reviewed
-*across* widgets. The next session checks **design consistency** and rewrites
-**descriptions that read as AI-written and verbose**.
+The prose half is merged and live: all 24 subtitles and blurbs rewritten in a
+register Kenneth settled line by line (design-principles **2.10** and **3.7**
+now carry it), metas locked to blurbs by a `check` assertion, widget 7 retitled
+**Decision Making** (slug kept until the course ends), and the rail unified
+(Play speed's paces, True groups, Groups in the data). One teaching claim
+changed and belongs here: **balancing-data's copy said class weights rebalance
+the training data; they do not — they reweight the fit.** Caught by Kenneth in
+review; blurb, subtitle and meta now say so. The hashed half (legend casing,
+readout notes, canvas captions, `--c-reference`) is still owed —
+[HANDOVER.md](../HANDOVER.md) § *NEXT* has the batch.
 
-**The brief, the measurements and the order of work are in
-[HANDOVER.md](../HANDOVER.md) § *NEXT SESSION*** — including which text surfaces
-are free to change and which cost a rebaseline (410 free against 217 hashed),
-and one measurement that reversed on a second look: subtitle length read with a
-single-line regex says the recent widgets are the verbose ones, and read across
-the string concatenation it says the opposite. **Widgets 1–18 average 252
-characters; 19–24 average 184.**
+---
 
-Nothing about it belongs in this file yet, because this catalogue records what
-gets **built** and why. If the audit changes a widget's teaching claim rather
-than its wording, that belongs in that widget's section here.
+## NEXT · Missing data — PLANNED AND MEASURED 2026-08-27, not yet built
+
+### TWO HOSTS, one per course — the first widget planned for both since t-SNE
+
+| course | notebook | what it does |
+|---|---|---|
+| PHM5003 | `05 / 02 — Missing Data and Imputation`, cells 1–23 | R. Simulated 50×10 omics matrix; MCAR by random deletion, MAR by batch (first five samples), **MNAR by detection limit** (`data < 3 → NA`); `VIM::aggr` pattern plots; mice imputation demo |
+| PHM5005 | `03-4 — Data Preprocessing`, cells 16–19 | Python. The MCAR/MAR/MNAR taxonomy, delete-vs-impute decision, sklearn imputers on `heart_failure_alpha_missing.csv` (measured: serum_creatinine 31% missing, MAR on ejection fraction; serum_sodium 10%, ~MCAR) |
+
+**The PHM5003 lesson's cell 19 states the widget's claim in its own words**:
+comparing the patterns visually, MAR shows its association with an observed
+factor, but *"it is difficult to distinguish MCAR from MNAR as the patterns
+appear random."* The widget makes that sentence operational — a check you can
+run that sees MAR and cannot see MNAR — and adds the half the lesson asserts
+without showing: that while MNAR *looks* like MCAR, its observed data are
+biased and MCAR's are not. Cell 23's "most cases in high-throughput data are
+MNAR" is why the distinction earns a widget. The lesson's MNAR is censoring
+from below (detection limit); the clinic scenario censors from above (the
+heavy avoid the scale) — same mechanism, opposite tail, and the widget stays
+lesson-agnostic per 2.10.
+
+**The misconception, named by Kenneth**: students cannot tell MCAR, MAR and
+MNAR apart. Not "students impute badly" — **imputation is explicitly out of
+scope** for this widget — but the taxonomy itself never becoming concrete. The
+widget exists to make the three mechanisms *visibly different things*, and to
+land the one fact about them that matters in practice:
+
+> **MNAR passes every check you can run.** MAR is diagnosable — the missingness
+> follows a variable you observed. MNAR follows the missing value itself, so
+> its diagnostics look exactly like MCAR's while the observed data are biased.
+> Only the truth view, which the widget has and reality never grants, shows the
+> damage — the same "you never see this" move as bootstrap's population and
+> permutation-test's true effect.
+
+### The scenario (Kenneth picked A)
+
+A clinic measuring **body weight against age**: age is always known (the
+booking), weight is the measurement that can go missing. One one-line story per
+mechanism: the scale was broken that day (MCAR); older patients get weighed
+more often at check-ups, so the young are missing (MAR); patients heavier than
+their age predicts avoid the scale (MNAR).
+
+### The three design calls already settled, one by measurement
+
+1. **Segmented mechanism control** — MCAR · MAR · MNAR are three alternative
+   readings, all worth seeing at rest (3.3). A rate control sets how much is
+   missing; **the mechanisms are calibrated by bisection to hit the same
+   overall rate**, because "the damage is set by the mechanism, not the
+   amount" is only honest if the amounts are equal.
+2. **The check panel is in scope** — % missing per age bin, the one diagnostic
+   reality permits. It is the panel that makes MAR ≠ MNAR operational rather
+   than definitional.
+3. **MNAR is scored on the RESIDUAL — weight minus what age predicts — not on
+   raw weight, and the first sweep is why.** Raw weight carries age, so MNAR
+   leaked a 40-point slope into the age diagnostic and "looks like MCAR" held
+   on only 60 of 200 cohorts. The residual is the textbook definition anyway
+   (MAR: missingness ⊥ value *given* the observed covariate; MNAR: still
+   depends on the value after conditioning) and is orthogonal to age by
+   construction. After the change, MNAR's check contrast is distributionally
+   identical to MCAR's (17.7 vs 17.5 points at 4 bins).
+
+### The numbers, measured through the shipping model
+
+`widgets/missing-data/model.js` exists and is imported, never copied, by
+`node widgets/_lab/missing-measure.mjs`. Cohort n = 120, age uniform 20–80,
+weight 78 + 0.25·(age − 50) ± 8 kg (true SD 8.97), steepness 2.0 — every one of
+those chosen by the sweep. At the default 30% missing, over 400 seeds:
+
+| mechanism | bias of observed mean | observed SD | check contrast (4 bins) |
+|---|---|---|---|
+| MCAR | +0.01 ± 0.56 kg | 8.95 | 17.5 pts |
+| MAR | **+1.70 ± 0.55 kg** | 8.67 | **71.8 pts** |
+| MNAR | **−2.98 ± 0.49 kg** | **7.82** | 17.7 pts |
+
+Single-cohort reliability at those constants — the widget shows one seeded
+cohort, so the pattern has to hold per seed, not on average: MAR's check
+visibly sloped (>2× MCAR's contrast) on **389/400** seeds; |MNAR bias| > 2 kg
+on **388/400**. MNAR also shrinks the observed SD (7.8 vs 9.0), a second
+reading the truth toggle can carry: the heavy tail is what went missing.
+
+The rate range 0.1–0.5 all carries the lesson (MAR bias 0.5→2.9 kg, MNAR
+−1.1→−4.8 kg, MCAR pinned at 0.0 throughout) — the slider has no dead stops.
+
+### Still open, for the layout session
+
+- **Panel arrangement**: scatter + observed-vs-true pile + check panel is
+  three pieces; the mock-up decides what sits where at 550px.
+- **The animation**: the mechanism as a process — patients measured or skipped
+  one at a time — with the standard drive row; whether the lead is "Recruit
+  the cohort" or the cohort is simply given.
+- **The truth reveal**: `True values` (matching the settled `True groups`
+  vocabulary), hollow marks where the missing weights really are; afterDrive
+  per 3.4j, conditioned on there being holes to reveal.
+- **Bins**: 4 bins beat 6 on the noise floor (MCAR's own max−min is 17.5 vs
+  26.8 points); 3 is more reliable still but draws no shape. Mock both.
+- **Slug**: `missing-data` (directory already exists with the model).
 
 ---
 
