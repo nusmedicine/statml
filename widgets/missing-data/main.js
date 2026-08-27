@@ -388,6 +388,28 @@ defineWidget({
         value: truth ? `${state.trueMean.toFixed(1)} kg` : "—",
         note: truth ? "all patients, weighed or not" : "never observable in a real study",
       },
+      /* The trend's own number, so both figure readings have a tile: the mean
+         tiles match the pile rules, this one matches the trend lines.
+
+         THE NOTE DELIBERATELY MAKES NO ARITHMETIC CLAIM. The first version
+         said "the mean's bias is the percentage missing times this", and on
+         screen that was wrong twice: the sign is minus (the mean FALLS
+         because the high weights are missing), and under MAR it is false
+         outright — there the mean's bias comes from age composition, not from
+         any residual gap, and this tile correctly reads ~0 ± noise. A note
+         must be true in every tab it can appear in. */
+      (() => {
+        const hidden = seen.filter((p) => p.miss);
+        const fit = weighed.length >= 10 ? M.fitLine(weighed) : null;
+        const gap = truth && fit && hidden.length
+          ? meanOf(hidden.map((p) => p.w - (fit.intercept + fit.slope * p.age)))
+          : null;
+        return {
+          label: "Missing vs trend",
+          value: gap === null ? "—" : `${gap >= 0 ? "+" : ""}${gap.toFixed(1)} kg`,
+          note: "average gap between a missing weight and the trend's prediction",
+        };
+      })(),
     ];
   },
 
