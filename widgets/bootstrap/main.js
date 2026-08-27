@@ -155,19 +155,18 @@ defineWidget({
      Those keep the student's work; the others make the data genuinely different
      data and start over. */
   params: {
+    /* TWO BLOCKS (2026-08-27 rail-section sweep, Kenneth's data/algorithm
+       rule): the population and the one sample drawn from it, then what the
+       bootstrap does with that sample. Kenneth named the first block "The
+       population" — this widget's choice of data IS the population — and sent
+       Play speed below the buttons it governs, as kmeans's. */
+    pop: { type: "section", label: "The population" },
     dist: { type: "select", label: "Population", options: distOptions, default: "exponential" },
 
     // n = 12 keeps the copies countable, which is the whole reason the resample
     // is drawn observation by observation. Drag it down to 3 and the bootstrap
     // visibly stops working; that case is one drag away on purpose.
     n: { type: "int", label: "Sample size n", min: 3, max: 60, default: 12 },
-
-    reps: {
-      type: "int", label: "Resamples to draw", min: 1, max: 2000, step: 1, default: 400,
-      // Extending the plan does not invalidate what is drawn: the first k
-      // resamples are the same k resamples whatever the target is.
-      display: true,
-    },
 
     /* Seed 3, not 1, and the reason is worth keeping so nobody tidies it back.
        The bootstrap SE tracks the OBSERVED sample's spread, s/√n, not σ/√n — so
@@ -184,10 +183,22 @@ defineWidget({
        the case that fails: included, not opened on. */
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 3 },
 
-    /* The reveal, in the arc's one pattern: segmented Off/On after Seed. It
-       was a checkbox mid-rail until the 2026-08-27 sweep found three widgets
-       each wearing a different reveal control. Values stay "0"/"1" so every
-       shared ?truth=1 link and baseline state still parses. */
+    boot: { type: "section", label: "The bootstrap" },
+
+    reps: {
+      type: "int", label: "Resamples to draw", min: 1, max: 2000, step: 1, default: 400,
+      // Extending the plan does not invalidate what is drawn: the first k
+      // resamples are the same k resamples whatever the target is.
+      display: true,
+    },
+
+    /* The reveal, in the arc's one control: segmented Off/On. It was a
+       checkbox mid-rail until the 2026-08-27 sweep found three widgets each
+       wearing a different reveal control. The section pass the same day moved
+       it HERE, out of the after-Seed position 3.4j names: what it reveals is
+       the curve the bootstrap pile is approximating, so it sits with that
+       pile's controls. Values stay "0"/"1" so every shared ?truth=1 link and
+       baseline state still parses. */
     truth: {
       type: "segmented",
       label: "True sampling distribution",
@@ -199,14 +210,16 @@ defineWidget({
       display: true,
     },
 
+    smooth: { type: "bool", label: "Smoothed density", default: true, display: true },
+
     speed: {
       type: "choice",
       label: "Play speed",
       options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
       default: "medium",
       display: true,
+      afterDrive: true,
     },
-    smooth: { type: "bool", label: "Smoothed density", default: true, display: true },
 
     // Authoring escape hatch, deliberately not a visible control. The figure is
     // spoiler-free by default; a lesson that wants a finished picture asks for
