@@ -512,7 +512,7 @@ defineWidget({
        applied to knowledge rather than to the figure. */
     labels: {
       type: "segmented",
-      label: "Labels",
+      label: "True groups",
       options: [
         { value: "off", label: "Off", detail: "how many clusters can you see?" },
         { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
@@ -522,7 +522,7 @@ defineWidget({
     },
     groups: {
       type: "choice",
-      label: "Groups",
+      label: "Groups in the data",
       options: [
         { value: "2", label: "2", detail: "two clusters" },
         { value: "3", label: "3", detail: "three clusters" },

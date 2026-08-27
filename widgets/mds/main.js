@@ -481,7 +481,7 @@ defineWidget({
        INPUT is: how the centres sit, and how many distances there are. */
     groups: {
       type: "choice",
-      label: "Groups",
+      label: "Groups in the data",
       options: [
         { value: "2", label: "2", detail: "two centres — they make a line" },
         { value: "3", label: "3", detail: "three centres — they make a plane" },
@@ -528,7 +528,7 @@ defineWidget({
        rather than a third category. */
     labels: {
       type: "segmented",
-      label: "Labels",
+      label: "True groups",
       options: [
         { value: "off", label: "Off", detail: "can you see the groups without being told?" },
         { value: "on", label: "On", detail: "colour shows the group each sample really came from" },

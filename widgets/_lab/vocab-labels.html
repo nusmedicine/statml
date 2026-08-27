@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · one vocabulary for groups and the reveal</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); margin: 0; padding: 24px; font: 14px/1.5 var(--font); color: var(--ink-1); }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.note { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
+  .grid { display: flex; gap: 20px; flex-wrap: wrap; }
+  figure { margin: 0; }
+  figcaption { font-size: 12px; color: var(--ink-2); margin: 0 0 6px; max-width: 340px; }
+  figcaption b { color: var(--ink-1); }
+  iframe { width: 360px; height: 460px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); }
+</style>
+</head>
+<body>
+<h1>One vocabulary for the group count and the reveal</h1>
+<p class="note">The real widgets at 360px (rail stacked on top), labels patched
+live. The question: pca/mds/t-sne/umap say <b>Groups</b> / <b>Labels</b> where
+kmeans/dbscan say <b>Groups in the data</b> / <b>True groups</b>. One
+vocabulary should win — in which direction?</p>
+<div class="grid">
+  <figure>
+    <figcaption><b>A · t-SNE as shipped</b> — "Groups", "Labels"</figcaption>
+    <iframe src="../t-sne/?theme=light" data-fix="none"></iframe>
+  </figure>
+  <figure>
+    <figcaption><b>B · t-SNE, clustering pair's words</b> — "Groups in the data", "True groups"</figcaption>
+    <iframe src="../t-sne/?theme=light" data-fix="long"></iframe>
+  </figure>
+  <figure>
+    <figcaption><b>C · kmeans as shipped</b> — the pair's own wording, for reference</figcaption>
+    <iframe src="../kmeans/?theme=light" data-fix="none"></iframe>
+  </figure>
+  <figure>
+    <figcaption><b>D · kmeans, quartet's words</b> — "Groups", "Labels" (the reverse unification)</figcaption>
+    <iframe src="../kmeans/?theme=light" data-fix="short"></iframe>
+  </figure>
+</div>
+<script type="module">
+  /* Patch only the caption text of the two controls, in the live DOM, so
+     everything else — type, ticks, spacing, neighbours — is the real widget. */
+  const SWAPS = {
+    long:  { groups: "Groups in the data", labels: "True groups" },
+    short: { groups: "Groups", labels: "Labels" },
+  };
+  for (const f of document.querySelectorAll("iframe")) {
+    const fix = SWAPS[f.dataset.fix];
+    if (!fix) continue;
+    f.addEventListener("load", () => {
+      const d = f.contentDocument;
+      for (const [param, text] of Object.entries(fix)) {
+        const el = d.querySelector(`[data-param="${param}"]`);
+        if (!el) continue;
+        const field = el.closest(".w-field") ?? el.parentElement;
+        const cap = field.querySelector("label span, .w-label");
+        if (cap) cap.textContent = text;
+      }
+    });
+  }
+</script>
+</body>
+</html>

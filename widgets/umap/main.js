@@ -504,7 +504,7 @@ defineWidget({
        non-negotiable 4 applied to knowledge rather than to the figure. */
     labels: {
       type: "segmented",
-      label: "Labels",
+      label: "True groups",
       options: [
         { value: "off", label: "Off" },
         { value: "on", label: "On" },
@@ -519,7 +519,7 @@ defineWidget({
        cluster colour the tokens file defines and no more. */
     groups: {
       type: "choice",
-      label: "Groups",
+      label: "Groups in the data",
       options: [
         { value: "2", label: "2", detail: "at the poles" },
         { value: "3", label: "3", detail: "round the equator" },

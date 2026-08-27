@@ -223,7 +223,7 @@ defineWidget({
   params: {
     groups: {
       type: "choice",
-      label: "Groups",
+      label: "Groups in the data",
       options: [2, 3, 4, 5, 6].map((v) => ({ value: String(v), label: String(v) })),
       default: "3",
     },
@@ -242,7 +242,7 @@ defineWidget({
        rather than a third category. */
     labels: {
       type: "segmented",
-      label: "Labels",
+      label: "True groups",
       options: [
         { value: "off", label: "Off", detail: "can you see the groups without being told?" },
         { value: "on", label: "On", detail: "colour shows the group each sample really came from" },
