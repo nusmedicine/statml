@@ -955,9 +955,10 @@ defineWidget({
   height: canvasHeight,
 
   subtitle:
-    "A tree splits the plane one threshold at a time, choosing the cut that "
-    + "leaves the two sides purest. A bag fits many trees to resamples and pools "
-    + "their votes; boosting fits each new tree to what the model still gets wrong.",
+    "A decision tree partitions the data one threshold at a time, choosing the "
+    + "split that best separates the two classes. Bagging fits many trees to "
+    + "bootstrap resamples and averages their votes; boosting fits each new tree "
+    + "to the current model's errors.",
 
   params: {
     /* Reading order is the instruction (3.1): which page, then what it is

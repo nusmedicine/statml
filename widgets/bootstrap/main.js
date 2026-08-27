@@ -143,10 +143,9 @@ defineWidget({
   layout: "side",
   title: "Bootstrap Sampling",
   subtitle:
-    "You get one sample, never the population. Resample it with replacement, " +
-    "and the spread of the resampled means estimates a sampling distribution " +
-    "you cannot observe. The estimate is only as good as the sample it is " +
-    "built from.",
+    "We can estimate uncertainty from a single sample. Resample it with " +
+    "replacement, take each resample's mean, and the spread of those means " +
+    "approximates the sampling distribution we cannot observe.",
   height: 540,
 
   /* Reading order of the setup block: what am I sampling from, how much of it,

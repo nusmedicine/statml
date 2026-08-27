@@ -141,10 +141,10 @@ defineWidget({
   layout: "side",
   title: "Confidence Intervals",
   subtitle:
-    "Every study gives one interval, and that interval either contains the true " +
-    "mean or it does not. The 95% describes the procedure: how often intervals " +
-    "made this way succeed. Build them three ways and watch how often each " +
-    "covers the truth.",
+    "We can express the uncertainty of an estimate as a confidence interval. " +
+    "Any one interval either contains the true mean or it does not; the " +
+    "confidence level refers to how often intervals constructed this way " +
+    "contain it across repeated studies.",
   height: 560,
 
   params: {

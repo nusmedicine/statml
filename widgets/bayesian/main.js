@@ -415,10 +415,9 @@ defineWidget({
   slug: "bayesian",
   title: "Bayesian Estimation",
   subtitle:
-    "The likelihood scores parameters but is not a probability over them. " +
-    "Multiply it by a prior and normalise, and the result is one: the posterior. " +
-    "Add counts one at a time and watch one prior get overwhelmed while the " +
-    "other holds.",
+    "Bayesian estimation treats the parameter itself as uncertain. Combining " +
+    "the likelihood with a prior gives the posterior, a probability " +
+    "distribution over the parameter, and each new data point updates it.",
   layout: "side",
   height: canvasHeight,
 

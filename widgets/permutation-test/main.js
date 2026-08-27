@@ -156,10 +156,10 @@ defineWidget({
   layout: "side",
   title: "Hypothesis Testing",
   subtitle:
-    "If the grouping meant nothing, any relabelling of the same numbers would " +
-    "be just as likely. Shuffle the labels, recompute the difference, and " +
-    "collect the pile chance alone produces. p is the share of that pile at " +
-    "least as far from zero as the difference you actually saw.",
+    "We can test a group difference by asking what chance alone would produce. " +
+    "Shuffling the group labels and recomputing the difference many times " +
+    "builds a null distribution, and p is the share of it at least as extreme " +
+    "as the observed difference.",
   height: 500,
 
   params: {

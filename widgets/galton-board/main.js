@@ -138,9 +138,10 @@ defineWidget({
   layout: "side",
   title: "The Normal Distribution",
   subtitle:
-    "Each row of pegs nudges the ball one step left or right. Where it lands is the " +
-    "sum of those independent nudges, and the pile of landings shows how far many " +
-    "small random errors, added together, stray from zero.",
+    "A normal distribution arises when many small independent errors add " +
+    "together. We can visualise this as a ball falling through a board of pegs: " +
+    "each row nudges it one step left or right, and the pile of landings forms " +
+    "the bell curve.",
   height: 520,
 
   params: {
