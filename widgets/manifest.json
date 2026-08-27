@@ -356,7 +356,7 @@
     {
       "slug": "missing-data",
       "title": "Missing Data",
-      "blurb": "How MCAR, MAR and MNAR differ, and which of them a study can detect.",
+      "blurb": "The mechanism of missingness (MCAR, MAR or MNAR) determines its bias and whether it can be detected.",
       "course": "PHM5003",
       "topics": [
         "missing data",
