@@ -3160,6 +3160,79 @@ machinery at all.
 
 ---
 
+## The modeling arc — proposed 2026-08-27, from PHM5003 week 4
+
+The week-4 notebooks (`04 - Introduction to Statistical Computing Part 2`,
+sections 05-01 → 06-02) are one continuous argument — *a line → more
+covariates → categories → interactions → other outcomes → other data shapes →
+which covariates belong at all* — and `logistic-regression` (05-05) is already
+its midpoint. Kenneth reviewed the seven-slot proposal on 2026-08-27 and
+**approved building `fork-pipe-collider` first**; the rest are proposed, not
+agreed, and three revive entries from the deferred table above
+(`interaction-effect`, `censoring-km`, `confounding-simpson`).
+
+| # | slug | notebook | misconception | evidence | status |
+|---|---|---|---|---|---|
+| 1 | `least-squares` | 05-01 | the fitted line is a formula's output, not the minimum of a surface you can stand on | reported; prerequisite for the arc | proposed |
+| 2 | `adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | proposed |
+| 3 | `categorical-covariates` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | proposed |
+| 4 | `interaction-effect` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | proposed (revives deferred slug) |
+| 5 | `censoring-km` | 05-06 | censored patients are missing data to discard | reported | proposed (revives deferred slug) |
+| 6 | `pseudoreplication` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | proposed |
+| 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **approved — NEXT** |
+
+No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
+ship includes adding its link to the MyST lesson.
+
+## NEXT · Widget 26 · `fork-pipe-collider` — PLANNED AND MEASURED
+
+**The brief:** one widget, a Structure control (Fork / Pipe / Collider) and one
+toggle — **Adjust for Z** — flipping between the notebook's own regression
+pairs. The vocabulary is exactly 06-02's: fork/pipe/collider, exposure,
+outcome, adjust, open/blocked paths. The notebook deliberately never says
+"backdoor" or "mediator", so neither does the widget.
+
+**The three generative models are VERBATIM from 06-02** (cells 8/22/37), in
+[`_lab/causal-model.js`](../widgets/_lab/causal-model.js), shared by the
+measure script, the mock-ups and eventually the widget — one OLS, one set of
+generators. Verified against the notebook's stored outputs at seed 1,
+n = 1000: fork unadjusted **−0.397** (notebook −0.401), adjusted **+0.110**
+(+0.082), collider unadjusted **0.003 n.s.** (0.024 n.s.), adjusted **−0.180**
+(−0.181).
+
+**Measured before design** (`node widgets/_lab/causal-measure.mjs`, 200 seeds
+per cell):
+
+- **n is 1000 and gets NO control.** The fragile arm is the fork's adjusted
+  effect: +0.1 against SE ≈ 1/√n is significant 11% of the time at n = 50,
+  32% at 200, 51% at 400, **87% at 1000**. A smaller, prettier n would teach
+  "adjusting made it go away" — the opposite of the lesson. The other traps
+  fire at every n (pipe 94–99%, collider 82–100% from n = 200).
+- **The sign flip itself is 100% at every n** — only the significance star on
+  +0.1 wavers, which argues for CI readouts over stars.
+- **The R² trap is real in both directions**: pipe 0.95 → 0.99 and collider
+  0.00 → 0.22 — the WRONG model fits better, which is the widget's kicker.
+
+**The design question for review — what does "adjust" LOOK like** — is drawn
+at the real 550px width in
+[`_lab/causal-stage.html`](../widgets/_lab/causal-stage.html): **A** two
+slopes on the scatter (unadjusted / adjusted / truth dashed), **B** the
+scatter coloured by Z with per-stratum fits (adjustment as comparing like
+with like; age quartiles for the fork, ICU groups for the collider), **C** a
+coefficient forest closest to the notebook's tables, plus the DAG panel in
+adjust-off/on states with ggdag's open/blocked path colouring. Known blemish
+to fix in the real widget: fitted lines need clipping to the plot frame.
+
+**Open questions for Kenneth:** which stage treatment (or combination — DAG +
+scatter + coefficient tiles is the current guess); whether the fork's
+continuous-Z strata may wear cluster colours (they are bins we assigned, which
+strains the token's "groups nobody assigned" reading); rail shape under the
+data/algorithm rule (Structure + Seed = the data; Adjust = the model, and
+Adjust is `display: true` — both fits computed per `compute()`, the toggle
+only re-reads them, exactly `confidence-interval`'s method pattern).
+
+---
+
 # PHM5005 · AI/ML for Precision Medicine
 
 **The notebooks are readable now, and that changed the plan.** They are on disk

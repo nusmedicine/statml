@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 26 stage — what does "adjust" look like?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 26 · fork-pipe-collider — three treatments of "adjust"</h1>
+
+  <p class="note">
+    The widget's one interaction is <b>Adjust for Z: Off / On</b>, flipping
+    between the notebook's own regression pairs. The design question is what
+    that flip <i>shows</i>. Three candidates, drawn on the real data
+    (<code>causal-model.js</code>, verbatim from 06-02, seed 1, n = 1000, the
+    550&nbsp;px canvas of the side layout): <b>A</b> two slopes on the scatter,
+    <b>B</b> the scatter coloured by the third variable with per-stratum lines
+    — "adjusting" as a picture of comparing like with like — and <b>C</b> a
+    coefficient forest, closest to the notebook's own tables. The fork row is
+    the hard case (Z = age, continuous); the collider row is the clean one
+    (Z = ICU, binary). Whatever wins must work for both.
+  </p>
+
+  <p class="note">
+    <b>The n ruling is already measured</b> (<code>causal-measure.mjs</code>,
+    200 seeds): the fork's adjusted arm (+0.1, SE ≈ 1/√n) is significant only
+    32% of the time at n = 200 and 87% at n = 1000 — so <b>n stays at the
+    notebook's 1000 and gets no control</b>; a smaller, prettier n would teach
+    "adjusting made it go away". The R² trap is confirmed: the WRONG model
+    fits better in both directions (pipe 0.95 → 0.99, collider 0.00 → 0.22).
+  </p>
+
+  <h2>Fork — Z is continuous (age): COPD against smoking</h2>
+  <div class="row" id="fork"></div>
+
+  <h2>Collider — Z is binary (ICU): AMI against DKA</h2>
+  <div class="row" id="collider"></div>
+
+  <h2>The DAG panel — adjust Off / On, path status coloured</h2>
+  <p class="note">
+    ggdag's language, drawn small: the adjusted node gets a box, an OPEN
+    non-causal path turns <b>warning-coloured</b>, a blocked one fades to the
+    grid. Fork: adjusting CLOSES the backdoor (good). Collider: adjusting
+    OPENS a path that was shut (the trap). The DAG sits beside the scatter in
+    the widget; here it is drawn alone to judge legibility at ~230&nbsp;px.
+  </p>
+  <div class="row" id="dags"></div>
+
+  <h2>Numbers on this seed</h2>
+  <div id="nums"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { tTailP } from "../core/stats.js";
+import { ols, fork, collider } from "./causal-model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  reference: css("--c-reference"), extreme: css("--c-extreme"),
+  unknown: css("--c-unknown"),
+  ga: css("--c-group-a"), gb: css("--c-group-b"),
+  clus: ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d"].map(css),
+};
+
+const W = 550, H = 300, PAD = { l: 46, r: 14, t: 14, b: 34 };
+const DPR = devicePixelRatio || 1;
+
+function panel(parent, title, sub, w = W, h = H) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+function frame(ctx, dom, w = W, h = H) {
+  const sx = (x) => PAD.l + ((x - dom.x0) / (dom.x1 - dom.x0)) * (w - PAD.l - PAD.r);
+  const sy = (y) => h - PAD.b - ((y - dom.y0) / (dom.y1 - dom.y0)) * (h - PAD.t - PAD.b);
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(PAD.l, PAD.t, w - PAD.l - PAD.r, h - PAD.t - PAD.b);
+  ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+  ctx.fillText(dom.xl, PAD.l + (w - PAD.l - PAD.r) / 2, h - 10);
+  ctx.save();
+  ctx.translate(13, PAD.t + (h - PAD.t - PAD.b) / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText(dom.yl, 0, 0);
+  ctx.restore();
+  return { sx, sy };
+}
+
+function dots(ctx, s, xs, ys, colorOf) {
+  for (let i = 0; i < xs.length; i++) {
+    ctx.fillStyle = colorOf ? colorOf(i) : C.unknown;
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    ctx.arc(s.sx(xs[i]), s.sy(ys[i]), 2, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function line(ctx, s, dom, b0, b1, color, width = 2, dash = []) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(s.sx(dom.x0), s.sy(b0 + b1 * dom.x0));
+  ctx.lineTo(s.sx(dom.x1), s.sy(b0 + b1 * dom.x1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* Adjusted line drawn at the mean of Z: intercept b0 + bz*mean(z), slope bx. */
+const meanOf = (xs) => xs.reduce((a, v) => a + v, 0) / xs.length;
+
+const rng = () => makeRng(1);
+const F = fork(rng(), 1000);
+const K = collider(rng(), 1000);
+const fitF_u = ols(F.y, [F.x], tTailP);
+const fitF_a = ols(F.y, [F.x, F.z], tTailP);
+const fitK_u = ols(K.y, [K.x], tTailP);
+const fitK_a = ols(K.y, [K.x, K.z], tTailP);
+
+const domF = { x0: 75, x1: 185, y0: 0, y1: 45, xl: "smoking", yl: "COPD" };
+const domK = { x0: 0, x1: 8, y0: 0, y1: 8, xl: "DKA", yl: "AMI" };
+
+/* ---- Fork row ---- */
+{
+  const host = document.getElementById("fork");
+
+  const a = panel(host, "A · two slopes",
+    "grey samples; unadjusted slope (empirical), adjusted slope at mean age (highlight), truth dashed (reference)");
+  let s = frame(a, domF);
+  dots(a, s, F.x, F.y);
+  line(a, s, domF, fitF_u.beta[0], fitF_u.beta[1], C.empirical, 2.5);
+  line(a, s, domF, fitF_a.beta[0] + fitF_a.beta[2] * meanOf(F.z), fitF_a.beta[1], C.highlight, 2.5);
+  const truthB0 = meanOf(F.y) - 0.1 * meanOf(F.x);
+  line(a, s, domF, truthB0, 0.1, C.reference, 1.5, [5, 4]);
+
+  const b = panel(host, "B · coloured by age, per-stratum lines",
+    "age quartiles as four colours; a thin fit inside each; the adjusted slope (highlight) is what the strata agree on");
+  s = frame(b, domF);
+  const qs = [...F.z].sort((p, q) => p - q);
+  const cut = (p) => qs[Math.floor(p * (qs.length - 1))];
+  const cuts = [cut(0.25), cut(0.5), cut(0.75)];
+  const band = (z) => (z < cuts[0] ? 0 : z < cuts[1] ? 1 : z < cuts[2] ? 2 : 3);
+  dots(b, s, F.x, F.y, (i) => C.clus[band(F.z[i])]);
+  for (let g = 0; g < 4; g++) {
+    const ix = F.z.map((z, i) => [z, i]).filter(([z]) => band(z) === g).map(([, i]) => i);
+    const fx = ix.map((i) => F.x[i]), fy = ix.map((i) => F.y[i]);
+    const fit = ols(fy, [fx], tTailP);
+    const lo = Math.min(...fx), hi = Math.max(...fx);
+    const sub = { ...domF, x0: lo, x1: hi };
+    line(b, s, sub, fit.beta[0], fit.beta[1], C.clus[g], 1.5);
+  }
+  line(b, s, domF, fitF_a.beta[0] + fitF_a.beta[2] * meanOf(F.z), fitF_a.beta[1], C.highlight, 2.5);
+
+  const c = panel(host, "C · coefficient forest",
+    "the effect of smoking, unadjusted and adjusted, CI whiskers; zero ruled, truth (0.1) in reference", W, 150);
+  drawForest(c, [
+    { label: "unadjusted", b: fitF_u.beta[1], se: fitF_u.se[1] },
+    { label: "adjusted for age", b: fitF_a.beta[1], se: fitF_a.se[1] },
+  ], 0.1, [-0.5, 0.3], W, 150);
+}
+
+/* ---- Collider row ---- */
+{
+  const host = document.getElementById("collider");
+
+  const a = panel(host, "A · two slopes",
+    "unadjusted slope is flat (the honest null); the adjusted slope tilts negative — an effect the adjustment made");
+  let s = frame(a, domK);
+  dots(a, s, K.x, K.y);
+  line(a, s, domK, fitK_u.beta[0], fitK_u.beta[1], C.empirical, 2.5);
+  line(a, s, domK, fitK_a.beta[0] + fitK_a.beta[2] * meanOf(K.z), fitK_a.beta[1], C.highlight, 2.5);
+  line(a, s, domK, meanOf(K.y), 0, C.reference, 1.5, [5, 4]);
+
+  const b = panel(host, "B · coloured by ICU, per-group lines",
+    "admitted (group-a) and not (group-b); inside EACH group the slope is negative — high DKA needs no AMI to be admitted");
+  s = frame(b, domK);
+  dots(b, s, K.x, K.y, (i) => (K.z[i] ? C.ga : C.gb));
+  for (const g of [0, 1]) {
+    const ix = K.z.map((z, i) => [z, i]).filter(([z]) => z === g).map(([, i]) => i);
+    const fx = ix.map((i) => K.x[i]), fy = ix.map((i) => K.y[i]);
+    const fit = ols(fy, [fx], tTailP);
+    line(b, s, domK, fit.beta[0], fit.beta[1], g ? C.ga : C.gb, 2);
+  }
+
+  const c = panel(host, "C · coefficient forest",
+    "unadjusted sits on zero; adjusted crosses into 'protective' — a finding that is pure structure", W, 150);
+  drawForest(c, [
+    { label: "unadjusted", b: fitK_u.beta[1], se: fitK_u.se[1] },
+    { label: "adjusted for ICU", b: fitK_a.beta[1], se: fitK_a.se[1] },
+  ], 0, [-0.35, 0.15], W, 150);
+}
+
+function drawForest(ctx, rows, truth, [lo, hi], w, h) {
+  const sx = (v) => 150 + ((v - lo) / (hi - lo)) * (w - 150 - 20);
+  ctx.strokeStyle = C.grid;
+  ctx.beginPath(); ctx.moveTo(sx(0), 14); ctx.lineTo(sx(0), h - 30); ctx.stroke();
+  ctx.strokeStyle = C.reference; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(sx(truth), 14); ctx.lineTo(sx(truth), h - 30); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = "12px system-ui";
+  rows.forEach((r, i) => {
+    const y = 40 + i * 44;
+    const half = 1.96 * r.se;
+    ctx.fillStyle = C.ink2; ctx.textAlign = "left";
+    ctx.fillText(r.label, 10, y + 4);
+    ctx.strokeStyle = i ? C.highlight : C.empirical; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx(r.b - half), y); ctx.lineTo(sx(r.b + half), y); ctx.stroke();
+    ctx.fillStyle = i ? C.highlight : C.empirical;
+    ctx.beginPath(); ctx.arc(sx(r.b), y, 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = C.ink3; ctx.textAlign = "center";
+    ctx.fillText(r.b.toFixed(2), sx(r.b), y - 10);
+  });
+  ctx.fillStyle = C.ink3; ctx.textAlign = "center"; ctx.font = "10px system-ui";
+  for (const v of [lo, 0, hi]) ctx.fillText(v.toFixed(1), sx(v), h - 14);
+}
+
+/* ---- DAG panels ---- */
+{
+  const host = document.getElementById("dags");
+  const DW = 240, DH = 190;
+  const P = { z: [120, 44], x: [46, 150], y: [194, 150] };
+
+  function dag(title, sub, edges, opts) {
+    const ctx = panel(host, title, sub, DW, DH);
+    ctx.font = "12px system-ui"; ctx.textAlign = "center";
+    const R = 20;
+    const arrow = (from, to, color, width) => {
+      const [x1, y1] = P[from], [x2, y2] = P[to];
+      const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+      const ux = dx / L, uy = dy / L;
+      const ax = x1 + ux * (R + 3), ay = y1 + uy * (R + 3);
+      const bx = x2 - ux * (R + 5), by = y2 - uy * (R + 5);
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx + ux * 6, by + uy * 6);
+      ctx.lineTo(bx - uy * 4, by + ux * 4);
+      ctx.lineTo(bx + uy * 4, by - ux * 4);
+      ctx.fill();
+    };
+    for (const [from, to, status] of edges) {
+      const color = status === "open" ? C.extreme : status === "blocked" ? C.grid : C.ink2;
+      arrow(from, to, color, status === "open" ? 2.5 : 1.5);
+    }
+    for (const k of ["z", "x", "y"]) {
+      const [x, y] = P[k];
+      ctx.fillStyle = C.surface;
+      ctx.strokeStyle = k === "z" && opts.adjusted ? C.ink1 : C.ink3;
+      ctx.lineWidth = k === "z" && opts.adjusted ? 2 : 1;
+      ctx.beginPath();
+      if (k === "z" && opts.adjusted) ctx.rect(x - R, y - R + 4, 2 * R, 2 * R - 8);
+      else ctx.arc(x, y, R, 0, 2 * Math.PI);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.ink1;
+      ctx.fillText(opts.names[k], x, y + 4);
+    }
+    if (opts.verdict) {
+      ctx.fillStyle = opts.bad ? C.extreme : C.ink2;
+      ctx.font = "11px system-ui";
+      ctx.fillText(opts.verdict, DW / 2, DH - 8);
+    }
+  }
+
+  const fnames = { z: "age", x: "smoke", y: "COPD" };
+  dag("fork · unadjusted", "the backdoor through age is OPEN",
+    [["z", "x", "open"], ["z", "y", "open"], ["x", "y", "plain"]],
+    { names: fnames, adjusted: false, verdict: "smoke → COPD reads −0.40", bad: true });
+  dag("fork · adjusted for age", "the backdoor is blocked; the direct path is what is left",
+    [["z", "x", "blocked"], ["z", "y", "blocked"], ["x", "y", "plain"]],
+    { names: fnames, adjusted: true, verdict: "smoke → COPD reads +0.08" });
+
+  const knames = { z: "ICU", x: "DKA", y: "AMI" };
+  dag("collider · unadjusted", "the path through ICU is SHUT on its own",
+    [["x", "z", "blocked"], ["y", "z", "blocked"]],
+    { names: knames, adjusted: false, verdict: "DKA → AMI reads 0.02, n.s." });
+  dag("collider · adjusted for ICU", "adjusting OPENS the path the structure had shut",
+    [["x", "z", "open"], ["y", "z", "open"]],
+    { names: knames, adjusted: true, verdict: "DKA → AMI reads −0.18", bad: true });
+}
+
+/* ---- Numbers table ---- */
+document.getElementById("nums").innerHTML = `
+  <table>
+    <tr><th>fit (seed 1, n = 1000)</th><th class="n">coefficient</th><th class="n">95% CI</th><th class="n">R²</th><th>notebook (set.seed 1896)</th></tr>
+    <tr><td>fork · COPD ~ smoking</td><td class="n">${fitF_u.beta[1].toFixed(3)}</td><td class="n">±${(1.96 * fitF_u.se[1]).toFixed(3)}</td><td class="n">${fitF_u.r2.toFixed(3)}</td><td>−0.401</td></tr>
+    <tr><td>fork · + age</td><td class="n">${fitF_a.beta[1].toFixed(3)}</td><td class="n">±${(1.96 * fitF_a.se[1]).toFixed(3)}</td><td class="n">${fitF_a.r2.toFixed(3)}</td><td>+0.082</td></tr>
+    <tr><td>collider · AMI ~ DKA</td><td class="n">${fitK_u.beta[1].toFixed(3)}</td><td class="n">±${(1.96 * fitK_u.se[1]).toFixed(3)}</td><td class="n">${fitK_u.r2.toFixed(3)}</td><td>0.024 (n.s.)</td></tr>
+    <tr><td>collider · + ICU</td><td class="n">${fitK_a.beta[1].toFixed(3)}</td><td class="n">±${(1.96 * fitK_a.se[1]).toFixed(3)}</td><td class="n">${fitK_a.r2.toFixed(3)}</td><td>−0.181</td></tr>
+  </table>`;
+</script>
+</body>
+</html>
