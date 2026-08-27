@@ -8107,12 +8107,25 @@ driven, identical across three consecutive full-suite runs, and the whole
 | `lead → step×34 → step +20f` | the same beat with the spokes out and the joins tinting |
 | `speed=fast, lead → run +14f` | the only path that draws no spokes at all |
 
-**`_lab/dbscan-drive.mjs` IS STILL OWED** — the offline assertion suite on the
-pattern of `kmeans-drive.mjs`: the contract, the canvas text sweep against a
-recording stub, and the geometry check at 320–900px. Every one of those checks
-was run **by hand in the browser** during the build and passed (at 320px: 98
-arcs drawn, **0 outside the canvas**, no horizontal scroll), but a check that
-lives in a transcript is not a check. Copy `kmeans-drive.mjs` wholesale.
+**`_lab/dbscan-drive.mjs` is written — 130 assertions, no browser and no
+clock.** It stubs `main.js`'s one import to capture the config, then drives
+`compute`, `animation.advance`, `readout` and `summary` directly, sweeps every
+string the widget paints against a recording stub, and checks that nothing is
+drawn off-canvas at 320–900px.
+
+**Its own first run failed on an assertion that was wrong, not on the widget.**
+The stage is `min(400, w − 32)` square, so it stops growing at w = 432 — well
+below the 550 every baseline is recorded at — and the assertion demanded it
+still grow between 550 and 694.
+
+**And it was mutation-tested, which found a hole in it.** Reverting the ARI tile
+to `adjustedRand` — undoing a decision Kenneth took explicitly — left every
+assertion green: three of them test that `adjustedRandNoiseAware` behaves
+correctly and none tested that the *widget* calls it. A guard now compares the
+printed tile against both readings on a stage where they differ (0.806 against
+sklearn's 0.788). **Testing a function is not testing the caller**, and the two
+mutants that were caught (border points being examined, the disc's travel
+removed) gave no hint that the third was not.
 
 ### THE ARC MOVE, WHICH THE NOTEBOOK STATES OUTRIGHT
 

@@ -238,10 +238,11 @@ Unaudited, and each is a question rather than a finding:
 
 ### AND TWO THINGS THIS AUDIT SHOULD NOT QUIETLY ABSORB
 
-- **`_lab/dbscan-drive.mjs` is still owed** — see the widget 24 section below.
-- **`_lab/index.html` is missing sixteen of its pages.** The standing note says
-  catching it up is *one change, not a line at a time*, and an audit session is
-  the natural place — but it is a separate change from the prose pass.
+- **Both are now done.** `_lab/dbscan-drive.mjs` is written, and
+  `_lab/index.html` lists **all 51 pages** in three sections — the harness,
+  decisions that belong to the shell, and the rest newest-first. It had drifted
+  to **thirty** missing, not the sixteen the old note claimed, which is the
+  argument for adding an entry when a page is written rather than in a catch-up.
 
 ## WIDGET 24 IS SHIPPED — `dbscan`, built and baselined 2026-08-27
 
@@ -281,11 +282,17 @@ DBSCAN does.** It now walks one point at a time:
   particular speed. Every settled state and every `?shown=N` link sails past it.
   The harness's own `drive()` does the same thing; borrow it.
 
-**`_lab/dbscan-drive.mjs` IS STILL OWED.** The contract assertions, the offline
-canvas text sweep and the geometry check at 320–900px were all run **by hand**
-during the build and passed — at 320px, 98 arcs drawn, 0 outside the canvas, no
-horizontal scroll — but a check that lives in a transcript is not a check. Copy
-`kmeans-drive.mjs` wholesale.
+**`_lab/dbscan-drive.mjs` is written** — 130 assertions, no browser and no
+clock: `node widgets/_lab/dbscan-drive.mjs`. Contract, the point-by-point walk,
+the one sentence measured through the shipping widget (the silhouette's own
+choice of `eps` fails on 22 of 24 runs), the canvas text sweep, and the
+geometry check at 320–900px.
+
+**Mutation-testing it found a hole worth remembering.** Reverting the ARI tile
+to `adjustedRand` left all 129 assertions green — three of them tested that
+`adjustedRandNoiseAware` behaves correctly and none tested that the widget calls
+it. **Testing a function is not testing the caller.** The guard is there now;
+the lesson generalises to every driver in `_lab/`.
 
 **And one default is worth a second opinion.** The eps discs are a toggle
 defaulting **off**, which trades directly against review round 1, where they were
