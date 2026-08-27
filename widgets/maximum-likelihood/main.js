@@ -294,6 +294,11 @@ defineWidget({
   height: canvasHeight,
 
   params: {
+    /* TWO BLOCKS, bayesian's own pair minus the prior — which is itself the
+       lesson the sibling pair teaches. Chosen in the 2026-08-27 rail-section
+       sweep; candidates in `_lab/dimred-rail.html`, round three. */
+    truth: { type: "section", label: "The population" },
+
     /* THE POPULATION, AND THE SIZE SLIDER IS THE BEST CONTROL HERE. Measured at
        n = 12: set it near 20 and the counts are barely overdispersed, the size
        tab finds a large size and reports that Poisson would have done nearly as
@@ -349,9 +354,7 @@ defineWidget({
        the first time. The raw axis needs no defending: its exponent is factored
        out into the label, so the plotted numbers are 0-2 whatever n is. */
 
-    factors: {
-      type: "bool", label: "Each count's factor", default: true, display: true,
-    },
+    inference: { type: "section", label: "The inference" },
 
     /* WHICH PARAMETER AM I ESTIMATING — the control the widget was missing, and
        the reason it read as confusing. A negative binomial HAS two parameters,
@@ -380,6 +383,11 @@ defineWidget({
       ],
       default: "mean",
       display: true,
+    },
+    /* Below "Estimating", so the inference block leads with WHAT is being
+       estimated and the per-count overlay follows. */
+    factors: {
+      type: "bool", label: "Each count's factor", default: true, display: true,
     },
 
     shown: { type: "int", label: "Pre-tried candidates", min: 0, max: GRID, default: 0, hidden: true },
