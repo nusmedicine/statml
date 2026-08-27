@@ -12,14 +12,29 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Kenneth picks the modeling arc's next widget** from the catalogue's
-   modeling-arc table (§ *The modeling arc*): `least-squares`, `adjustment`,
-   `categorical-covariates`, `interaction-effect`, `censoring-km`,
-   `pseudoreplication`. The standing suggestion: the linear four in teaching
-   order, since they share one Framingham stage (the notebooks' own file,
-   n = 3547, every reference coefficient in stored output). Process as for
-   widget 26: measure first, mock in `_lab/`, one pick at a time, draft
-   until promoted, baseline with a causal-shoot-style page.
+1. **Build the linear four as SEPARATE widgets, in teaching order** —
+   Kenneth ruled 2026-08-28 against one tabbed widget (the unsupervised arc's
+   precedent held) and picked the `lm-` prefix: `lm-least-squares`,
+   `lm-adjustment`, `lm-categorical`, `lm-interaction`, then `censoring-km`,
+   `pseudoreplication` (unprefixed — not `lm()` lessons). The naming rulings
+   are recorded in the catalogue's modeling-arc section. They share one
+   Framingham stage (the notebooks' own file, n = 3547, every reference
+   coefficient in stored output) via a shared module, the `causal-model.js`
+   pattern. `lm-least-squares` is ONE covariate; the second covariate is
+   `lm-adjustment`'s opening move. Process as for widget 26: measure first,
+   mock in `_lab/`, one pick at a time, draft until promoted, baseline with
+   a causal-shoot-style page.
+
+   **`lm-least-squares` is MEASURED (2026-08-28)** — the full record is
+   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 27*. The shared
+   stage is real: `_lab/lm-data.js` (generated, n = 3547, six columns for
+   the whole arc), `_lab/lm-model.js` (exact OLS), `_lab/lm-measure.mjs`
+   (**18 checks pass** — every 05-01 stored output to the printed digit).
+   The design facts: SS relief 44.5× but the teaching range is the bottom
+   10% (flat mean line is only 10.6% above the minimum — that gap IS R²),
+   the valley is a 13:1 diagonal trench, the raw 3547 points plot cleanly.
+   **Next step: mock-up page in `_lab/` for Kenneth's pick** — the open
+   questions are listed in the catalogue section.
 2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
    it by hand (it will be the FIRST widget link in any notebook); the line:
    `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
