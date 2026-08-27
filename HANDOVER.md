@@ -204,10 +204,24 @@ drawing anything. The short version:
 - At the default 30% missing: MAR bias +1.7 kg with a 72-point check slope;
   MNAR bias −3.0 kg with a MCAR-identical check; MCAR bias 0.0. Reliable on
   ~389/400 single cohorts. No dead stops on the rate range.
-- **A DRAFT IS BUILT and on the drafts page** — `/widget/missing-data/` (status draft, so /lab/ lists it and the gallery does not; no fingerprint states owed while it moves). Kenneth has not reviewed it. The layout mock-up round still applies to whatever he flags:
-  scatter + observed-vs-true pile + check panel; the animation (patients
-  measured or skipped one at a time); the `True values` reveal (afterDrive,
-  3.4j); 4 check bins vs 3.
+- **THE DRAFT IS BUILT and has been through SIX rounds of Kenneth's review**
+  on 2026-08-27 — `/widget/missing-data/` (status draft: /lab/ lists it, the
+  gallery does not, no fingerprint states owed while it moves). The rounds, in
+  commit order: check panel bars→profile→**composition** (twice misread before
+  it stopped looking like a histogram of age), verdict line computed from the
+  visible data only, observed-trend line with the Missing-vs-trend tile (whose
+  arithmetic note was printed, found FALSE under MAR, and retracted — the
+  source comment records why), conventional terminology throughout, True
+  values as segmented Off/On after Seed (the kmeans/dbscan pattern; 3.4j's
+  below-the-drive-row placement was reversed by Kenneth), pacing beats with
+  arrival choreography, and projection-sized marks. **He has NOT yet judged it
+  from the back of a room.** Still owed before promotion:
+  the projected judgement (33% zoom two metres back approximates it); the
+  formal driver `_lab/missing-drive.mjs` (the 30-assertion inline version from
+  the build session was never saved — write it with the capability list, the
+  beat contract, and the NaN sweep); the catalogue round history; then
+  fingerprint states (settled + driven + the mid-beat interrupted case) and
+  the baseline, hashed directly per *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*.
 
 ### NEXT AFTER THAT: the hashed batch — ONE pass, ONE rebaseline at the end
 
