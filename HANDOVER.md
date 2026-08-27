@@ -246,11 +246,30 @@ The notes and captions judged and deliberately KEPT: the bootstrap/permutation
 odds-and-risk's notes (Kenneth's own 2.9 rewrite), and instructional notes
 that serve as drive hints.
 
-### Still open, neither from the audit
+### Heights: MEASURED AND CLOSED 2026-08-27 — no stale height exists
 
-**Heights were never re-measured** since the side-layout rollout, and **the
-slug rename `power-and-error` → something like `decision-making` waits for the
-course to end** (the source notes it beside `title:`).
+`_lab/height-sweep.html` loaded all 102 settled baseline states at the
+harness's 900px frame and read the canvas pixels: the gap between the lowest
+inked row and each widget's declared bottom. **Every declared height is
+earning its pixels.** The findings that looked like defects and are not:
+
+- **pca (101px) and mds (294px) of blank canvas are deliberate reserve** — the
+  space their gated stages arrive into; with the gates open both gaps read a
+  normal 12px. A reserve is the worst case paid everywhere (3.4k).
+- **Bottom-edge ink is marks or sub-pixel descenders**, classified by colour:
+  dbscan's is the eps-disc wash, probability-mechanisms' is the code panel's
+  grid-coloured edge, and confidence-interval / multiple-testing /
+  logistic-regression have bottom axis labels whose glyph boxes touch the last
+  row by **under 1px** — a descender shave no reader can see.
+- The sweep's own two traps, for whoever re-runs it: filtering states on
+  `!s.$note` silently dropped 13 widgets (a note annotates a legitimate
+  state), and text-metric probes must skip **rotated labels** (their y is in
+  the rotated frame) and not `parseFloat` a weight-prefixed font string.
+
+### Still open
+
+**The slug rename `power-and-error` → something like `decision-making` waits
+for the course to end** (the source notes it beside `title:`).
 
 ### Working beside another session
 

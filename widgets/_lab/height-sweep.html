@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · declared height against drawn ink</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { font-family: var(--font); padding: var(--sp-4); color: var(--ink-1); background: var(--surface-2); }
+  pre { font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre-wrap; }
+  .frames { position: absolute; left: -99999px; top: 0; }
+  progress { width: 300px; }
+</style>
+</head>
+<body>
+<h1>Declared height against drawn ink</h1>
+<p>Every settled baseline state at the harness's 900px frame: how far the lowest
+inked canvas row sits above the declared bottom (BOT, in CSS px), and how far
+the highest sits below the top. A large BOT on every state of a widget is dead
+space its declared height is paying for; a zero is clipping. NOT DEPLOYED.</p>
+<p><progress id="bar" value="0" max="1"></progress> <span id="which">loading…</span></p>
+<pre id="out"></pre>
+<div class="frames" id="frames"></div>
+
+<script type="module">
+const FRAME_W = 900;
+const FRAME_H = 1400;
+const SETTLE_MS = 400;
+const frames = document.getElementById("frames");
+const out = document.getElementById("out");
+const bar = document.getElementById("bar");
+const which = document.getElementById("which");
+
+const baseline = await (await fetch("./fingerprint-baseline.json")).json();
+const SETTLED = baseline.states.filter((s) => !s.drive);
+
+/** Lowest and highest rows whose pixels differ from the widget's own surface
+    colour by more than a hair. Rows are converted to CSS px. */
+function inkExtent(canvas, doc) {
+  const cs = getComputedStyle(doc.documentElement).getPropertyValue("--surface-1").trim();
+  const m = cs.match(/^#(..)(..)(..)$/);
+  const bg = m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [252, 252, 251];
+  const ctx = canvas.getContext("2d");
+  const { width: W, height: H } = canvas;
+  const img = ctx.getImageData(0, 0, W, H).data;
+  const rowInk = (y) => {
+    for (let x = 0; x < W; x += 1) {
+      const i = (y * W + x) * 4;
+      if (img[i + 3] > 10 && (Math.abs(img[i] - bg[0]) > 8
+        || Math.abs(img[i + 1] - bg[1]) > 8 || Math.abs(img[i + 2] - bg[2]) > 8)) return true;
+    }
+    return false;
+  };
+  let low = -1;
+  for (let y = H - 1; y >= 0; y -= 1) if (rowInk(y)) { low = y; break; }
+  let high = -1;
+  for (let y = 0; y < H; y += 1) if (rowInk(y)) { high = y; break; }
+  const scale = canvas.clientHeight ? canvas.height / canvas.clientHeight : 1;
+  return {
+    cssH: Math.round(canvas.height / scale),
+    bot: low < 0 ? null : Math.round((canvas.height - 1 - low) / scale),
+    top: high < 0 ? null : Math.round(high / scale),
+  };
+}
+
+async function probe(entry) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W;
+  frame.height = FRAME_H;
+  frame.src = `../${entry.slug}/${entry.state}`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  await new Promise((r) => setTimeout(r, SETTLE_MS));
+  let res;
+  try {
+    const canvas = frame.contentDocument.querySelector(".w-figure canvas");
+    res = canvas ? inkExtent(canvas, frame.contentDocument) : { cssH: 0, bot: null, top: null };
+  } catch (e) {
+    res = { cssH: -1, bot: null, top: null, err: String(e.message ?? e) };
+  }
+  frame.remove();
+  return res;
+}
+
+const bySlug = new Map();
+const lines = [];
+for (let i = 0; i < SETTLED.length; i += 1) {
+  const s = SETTLED[i];
+  bar.value = i / SETTLED.length;
+  which.textContent = `${i + 1}/${SETTLED.length} ${s.slug}`;
+  const r = await probe(s);
+  if (!bySlug.has(s.slug)) bySlug.set(s.slug, []);
+  bySlug.get(s.slug).push({ state: s.state, ...r });
+}
+bar.value = 1;
+which.textContent = "done";
+
+lines.push("slug                     states  cssH     BOT gap (min..max)   TOP gap (min..max)");
+const flags = [];
+for (const [slug, rs] of bySlug) {
+  const bots = rs.map((r) => r.bot).filter((v) => v != null);
+  const tops = rs.map((r) => r.top).filter((v) => v != null);
+  const hs = [...new Set(rs.map((r) => r.cssH))].join("/");
+  const lo = Math.min(...bots), hi = Math.max(...bots);
+  const tlo = Math.min(...tops), thi = Math.max(...tops);
+  lines.push(`${slug.padEnd(24)} ${String(rs.length).padStart(4)}   ${hs.padEnd8 ? hs : String(hs).padEnd(7)} ${String(lo).padStart(5)}..${String(hi).padEnd(6)}      ${String(tlo).padStart(5)}..${String(thi)}`);
+  if (lo >= 40) flags.push(`${slug}: >=${lo}px blank under the ink in EVERY settled state — dead space`);
+  if (lo <= 1) {
+    const worst = rs.filter((r) => r.bot != null && r.bot <= 1).map((r) => r.state).join("  ");
+    flags.push(`${slug}: ink touches the bottom edge — ${worst}`);
+  }
+}
+lines.push("");
+lines.push(flags.length ? "FLAGS:\n  " + flags.join("\n  ") : "NO FLAGS: every widget's ink sits within 40px of its declared bottom and clear of the edge.");
+out.textContent = lines.join("\n");
+window.__done = true;
+window.__report = lines.join("\n");
+</script>
+</body>
+</html>
