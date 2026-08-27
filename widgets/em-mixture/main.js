@@ -322,10 +322,9 @@ defineWidget({
   slug: "em-mixture",
   title: "Expectation–Maximization",
   subtitle:
-    "Two hundred heights, and nobody recorded who was an adult and who was a " +
-    "child. Guess two curves, then let every point say how much it belongs to " +
-    "each — and let those shares refit the curves. The populations come back. " +
-    "The individuals do not.",
+    "Expectation–maximization recovers the components of a mixture: each point " +
+    "is weighted by how likely each curve makes it, and the weighted points " +
+    "refit the curves, repeating until they settle.",
   layout: "side",
   height: CANVAS_H,
 

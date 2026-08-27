@@ -210,7 +210,7 @@ const groupCol = (colors, g) => colors.clusters[g % colors.clusters.length];
 defineWidget({
   slug: "pca",
   title: "Principal component analysis",
-  subtitle: "Turn the cloud to see its shape. Then draw the two directions the samples spread along most, and flatten them onto the plane those two make.",
+  subtitle: "Principal component analysis finds the orthogonal directions along which the data varies most. There are as many components as dimensions; projecting onto the first two gives a 2-D view for visualisation.",
   status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,

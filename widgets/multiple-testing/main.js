@@ -184,9 +184,9 @@ defineWidget({
   layout: "side",
   title: "Multiple Testing",
   subtitle:
-    "Test twenty thousand genes at p < 0.05 and about a thousand come back " +
-    "significant even when not one of them is different. That is not a finding, " +
-    "it is arithmetic. Set the real effects to zero and watch it happen.",
+    "At p < 0.05, one test in twenty is significant by chance alone, so twenty " +
+    "thousand tests of null genes yield about a thousand false positives; " +
+    "corrections control the rate.",
   height: 700,
 
   params: {

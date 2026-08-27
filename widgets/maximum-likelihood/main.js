@@ -287,10 +287,9 @@ defineWidget({
   slug: "maximum-likelihood",
   title: "Maximum Likelihood",
   subtitle:
-    "Which parameter value makes what you actually saw most probable? Draw your " +
-    "counts once, then try a candidate: every count gets a height under it, and " +
-    "the heights multiply to one number. Do that for every candidate and the " +
-    "peak is the estimate.",
+    "Maximum likelihood chooses the parameter value that makes the observed " +
+    "data most probable. Each candidate assigns every observation a " +
+    "probability; their product is the likelihood, and the estimate is its peak.",
   layout: "side",
   height: canvasHeight,
 

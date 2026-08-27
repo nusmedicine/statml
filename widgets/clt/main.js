@@ -97,9 +97,8 @@ defineWidget({
   layout: "side",
   title: "Central Limit Theorem",
   subtitle:
-    "Each sample of size n has a mean. Collect enough of those means and they " +
-    "pile up into a normal distribution with standard deviation σ/√n — whatever " +
-    "shape the population has.",
+    "Sample means become normally distributed as samples accumulate, with " +
+    "standard deviation σ/√n, whatever the population's shape.",
   height: 430,
 
   /* Parameter order is the reading order of the setup block: what am I sampling

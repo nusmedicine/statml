@@ -327,9 +327,9 @@ defineWidget({
   slug: "generalization",
   title: "Fitting and Generalizing",
   subtitle:
-    "Every parameter you add fits the training patients better. Patients the model has "
-    + "never seen stop benefiting long before that — and rotating which patients are held "
-    + "out is how you find where, without ever touching the test set.",
+    "A model is fit to training data and evaluated on data it has never seen; "
+    + "cross-validation rotates the held-out portion to estimate generalization "
+    + "before the test set is used.",
   layout: "side",
   status: "shipped",
   height: 528,

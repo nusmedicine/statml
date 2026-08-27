@@ -343,7 +343,7 @@ function record(res, X, n) {
 defineWidget({
   slug: "dbscan",
   title: "DBSCAN",
-  subtitle: "No K. You choose a radius instead: a point with enough neighbours inside it seeds a cluster, the cluster grows through overlapping discs, and whatever is never reached is noise.",
+  subtitle: "DBSCAN clusters by density rather than a chosen K: a point with enough neighbours within a radius seeds a cluster, the cluster grows through overlapping neighbourhoods, and unreached points are labelled noise.",
   status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,

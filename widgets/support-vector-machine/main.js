@@ -363,9 +363,9 @@ defineWidget({
   slug: "support-vector-machine",
   title: "Support Vector Machines",
   subtitle:
-    "An SVM puts the widest corridor it can between the two classes. C is the price of "
-    + "letting a sample inside it, and the kernel decides what shape the corridor may be — "
-    + "a straight one, or one that bends around the data.",
+    "An SVM finds the boundary that separates two classes with the widest "
+    + "margin. The kernel determines what shape the boundary can take, and C "
+    + "sets the penalty for samples inside the margin.",
   layout: "side",
   height: heightFor,
 

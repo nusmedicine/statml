@@ -461,7 +461,7 @@ const RUN_MS = 100;
 defineWidget({
   slug: "mds",
   title: "Multidimensional scaling",
-  subtitle: "Drag the figure to turn it. Then measure the distance between every pair and set the coordinates aside: the picture is the arrangement whose distances come closest to that table.",
+  subtitle: "Multidimensional scaling arranges samples in 2-D so their distances match a measured table of pairwise distances as closely as possible.",
   status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,

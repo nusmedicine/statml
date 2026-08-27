@@ -259,7 +259,7 @@
     {
       "slug": "balancing-data",
       "title": "Balancing Data",
-      "blurb": "Class imbalance biases a model toward the majority; resampling methods rebalance the training data.",
+      "blurb": "Class imbalance biases a model toward the majority; rebalancing the data or reweighting the fit corrects it.",
       "course": "PHM5005",
       "topics": [
         "imbalance",

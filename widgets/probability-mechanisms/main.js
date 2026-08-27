@@ -555,9 +555,9 @@ const handle = defineWidget({
   slug: "probability-mechanisms",
   title: "Probability Distributions",
   subtitle:
-    "Eight distributions, and which one you need is settled by what you are " +
-    "measuring — not by the shape of the data. Walk the tree, watch the " +
-    "process, then read it with d, p, q and r.",
+    "Common distributions are chosen by the process that generates the " +
+    "measurement, not the shape of the data; R's d, p, q and r functions " +
+    "compute each one's density, cumulative probability, quantiles and draws.",
   layout: "side",
 
   /* Taller once a distribution is chosen, because the tree collapses to its

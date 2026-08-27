@@ -509,9 +509,9 @@ defineWidget({
   slug: "linear-regularization",
   title: "Linear Models and Regularization",
   subtitle:
-    "Ridge, lasso and elastic net are one objective with two penalty dials. α₁ draws a "
-    + "diamond around the origin and α₂ draws a circle, and only the diamond has corners "
-    + "— which is why only it sets a coefficient to exactly zero.",
+    "A linear model is a weighted sum of features. Regularization penalises the "
+    + "weights' size, and the choice of L1 penalty, L2 penalty, or both gives "
+    + "lasso, ridge or elastic net.",
   layout: "side",
   status: "shipped",
   height: canvasHeight,

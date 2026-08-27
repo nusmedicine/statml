@@ -475,7 +475,7 @@ const otherDisplay = (p) => `${p.turn},${p.tilt},${p.labels},${p.pick},${p.graph
 defineWidget({
   slug: "umap",
   title: "UMAP",
-  subtitle: "UMAP builds a weighted graph of each sample's nearest neighbours, then lays that graph out in two dimensions. Neighbours changes which neighbourhoods the graph records. Minimum distance changes only how closely the layout may pack points.",
+  subtitle: "UMAP assumes the data lie on a curved lower-dimensional surface, a manifold. It builds a weighted graph of each sample's nearest neighbours and lays that graph out flat, preserving local structure over global distances.",
   status: "shipped",
   layout: "side",
   height: ({ w, flatten }) => layout(w, !!flatten).height,

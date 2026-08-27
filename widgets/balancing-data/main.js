@@ -591,9 +591,9 @@ defineWidget({
      who does not know which class is being detected cannot read a single tile
      below the figure. Shorter than what it replaced. */
   subtitle:
-    "The job is to find the minority outcome. Start from a cohort with both, keep only some of "
-    + "the cases you managed to collect, and watch four corrections pull the boundary back "
-    + "towards where all of them put it.",
+    "When one class is rare, a classifier's boundary shifts toward predicting "
+    + "the majority. Oversampling, undersampling and SMOTE rebalance the "
+    + "training data; class weights reweight the fit instead.",
   status: "shipped",
   layout: "side",
   height: heightFor,

@@ -353,9 +353,9 @@ defineWidget({
   slug: "odds-and-risk",
   title: "Odds Ratio and Relative Risk",
   subtitle:
-    "The same deaths, divided by two different things. An odds divides them by the "
-    + "survivors and a risk divides them by everyone — so the odds ratio is always "
-    + "further from 1, and further still the commoner the outcome.",
+    "The odds ratio and the relative risk differ only in the denominator: odds "
+    + "divide events by non-events, risk divides them by the whole group, so the "
+    + "two diverge as the outcome becomes common.",
   layout: "side",
   status: "shipped",
   /* MEASURED, NOT GUESSED, and re-measured every time the figure moves: swept
