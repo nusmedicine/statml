@@ -542,10 +542,32 @@ defineWidget({
         if (mix > 0.004) {
           const ab1 = state.adj.beta[1];
           if (state.groups) {
-            for (const g of state.groups) {
+            state.groups.forEach((g, gi) => {
               const gb0 = g.my - ab1 * g.mx;
-              lineAt(plotD, state.xDom, ub0 + (gb0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
-            }
+              const cb0 = ub0 + (gb0 - ub0) * mix;
+              const cb1 = ub1 + (ab1 - ub1) * mix;
+              lineAt(plotD, state.xDom, cb0, cb1, colors.highlight, 2.5);
+              /* Each line named by the group it is drawn for — the pair is one
+                 model evaluated at ICU = 0 and ICU = 1, and the label is that
+                 evaluation. Fades in with the split so it never names a line
+                 still riding the unadjusted slope; anchored near the left edge
+                 because the pair descends out of the frame to the right. */
+              if (mix > 0.6) {
+                const lx = state.xDom[0] + (state.xDom[1] - state.xDom[0]) * 0.035;
+                const text = `${names.z} = ${gi}`;
+                ctx.save();
+                ctx.globalAlpha = (mix - 0.6) / 0.4;
+                ctx.font = `${colors.fsXs} ${colors.font}`;
+                ctx.textAlign = "left";
+                ctx.textBaseline = "bottom";
+                ctx.strokeStyle = colors.surface;
+                ctx.lineWidth = 3;
+                ctx.strokeText(text, plotD.sx(lx) + 2, plotD.sy(cb0 + cb1 * lx) - 4);
+                ctx.fillStyle = colors.ink2;
+                ctx.fillText(text, plotD.sx(lx) + 2, plotD.sy(cb0 + cb1 * lx) - 4);
+                ctx.restore();
+              }
+            });
           } else {
             const ab0 = state.adj.beta[0] + state.adj.beta[2] * state.meanZ;
             lineAt(plotD, state.xDom, ub0 + (ab0 - ub0) * mix, ub1 + (ab1 - ub1) * mix, colors.highlight, 2.5);
