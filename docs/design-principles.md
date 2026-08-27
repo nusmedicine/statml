@@ -199,11 +199,11 @@ the grammar around it:
 
 | tic | shipped example | fix |
 |---|---|---|
-| cleft — *"X is what fixes that"* | `logistic-regression`, `bootstrap` | say what X does: *"Model the log(odds) instead: p stays in (0, 1)"* |
+| cleft — *"X is what fixes that"* | `logistic-regression`, `bootstrap` | say what X does: *"Modelling the log(odds) instead keeps predictions in range"* |
 | self-reference to the page | `bootstrap` *"…which is what the numbers below are for"* | cut; the readout is beside the figure, it does not need an usher |
-| em-dash aside mid-sentence | `kmeans` *"Each centroid — the crosses — takes…"* | give the aside its own clause: *"Each cross is a centroid: it claims…"* |
+| em-dash aside mid-sentence | `kmeans` *"Each centroid — the crosses — takes…"* | give the idea its own clause, or cut the aside |
 | aphoristic closer | `galton-board` *"That is all a bell curve is."* | cut; a sentence that evaluates the other sentences is a verdict (2.9) |
-| negation-then-correction | `bayesian` *"It cannot say… — nothing holds the area at 1"* | state the positive claim once: *"The likelihood scores parameters but is not a probability over them."* |
+| negation-then-correction | `bayesian` *"It cannot say… — nothing holds the area at 1"* | state the positive claim once: *"Bayesian estimation treats the parameter itself as uncertain."* |
 | trailing *", which is…"* | `bootstrap` | end the sentence where the claim ends |
 
 Two consequences worth keeping. **Replacement wording must be shorter than what
@@ -212,6 +212,29 @@ shorter while naming the same quantities. And the same tics run through readout
 notes and canvas captions, which are hashed surfaces: rewriting those is a
 deliberate rebaselining decision, not a casual edit, which is exactly why the
 free surfaces (subtitle, rail, gallery blurb) get cleaned first.
+
+**Amended — the register, settled line by line in Kenneth's review of all eight
+rewrites (2026-08-27).** Cutting the tics is not enough; the first rewrites were
+tic-free and still read "too folksy". The voice is conventional textbook prose:
+
+- **Concept first, mechanism second** — open with the statistical claim, often
+  literally *"We can …"*: *"We can estimate uncertainty from a single sample."*
+  The peg-board mechanics, the resampling loop, the two k-means steps all moved
+  to sentence two.
+- **The field's own terms over vivid ones.** *"each point is assigned to the
+  nearest centroid"*, not *"it claims the points nearest it"* — assignment is
+  the step's actual name. Same call as 2.9, applied to verbs: vividness is a
+  cost, not a bonus. But no more technical than the course has reached:
+  *"best separates the two classes"* was chosen over *"most reduces impurity"*
+  because the subtitle meets students before Gini does.
+- **Do not describe the dashboard.** *"Build them three ways and watch…"*,
+  *"add counts one at a time and watch…"* — cut on sight. The rail shows what
+  can be done; the subtitle says what is true.
+- **No lesson or notebook references in widget copy.** `logistic-regression`
+  cited "05-05's own model" and it was cut: a widget must be reusable in any
+  course setting. The lesson links to the widget, never the reverse.
+- **Keep claims generalizable.** *"the confidence level"*, not *"the 95%"*,
+  wherever the number is a parameter the reader can change.
 
 ---
 
