@@ -465,10 +465,13 @@ defineWidget({
       front.axisX({ label: `${names.x} — ${names.z} removed` });
       front.axisY({ label: `${names.y} — ${names.z} removed` });
       front.caption(`what ${names.z} does not explain`);
+      /* The origin sentence, Kenneth's round 9: negative residuals confused
+         until 0 was named. It shares the line with the clipped count where
+         the collider has one. */
       front.note(
         state.beyondR > 0
-          ? `${state.beyondR} of 1000 past the frame — the fits use them all`
-          : "the slope of this cloud is the adjusted coefficient",
+          ? `0 = your group's average — ${state.beyondR} of 1000 past the frame`
+          : "0 = the average for the patient's own group",
       );
     } else {
       front.axisX({ label: names.x });
@@ -623,9 +626,23 @@ defineWidget({
       ctx.globalAlpha = 1;
     }
     if (vmix > 0.004) {
+      ctx.globalAlpha = vmix;
+      /* THE ORIGIN CROSSHAIR — 0 on each residual axis is "the average for
+         the patient's own group", and the crosshair is where every group's
+         average patient now sits. Faint on purpose: an anchor to read from,
+         not a mark competing with the fits. */
+      ctx.strokeStyle = colors.ink3;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = vmix * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(rect.x, plotR.sy(0));
+      ctx.lineTo(rect.x + rect.w, plotR.sy(0));
+      ctx.moveTo(plotR.sx(0), rect.y);
+      ctx.lineTo(plotR.sx(0), rect.y + rect.h);
+      ctx.stroke();
+      ctx.globalAlpha = vmix;
       /* Residual view: both residuals are mean-zero, so the adjusted slope
          passes through the origin exactly — and IS adj.beta[1], by FWL. */
-      ctx.globalAlpha = vmix;
       if (params.truth === "on") {
         lineAt(plotR, state.rxDom, 0, state.truth, colors.reference, 1.5, [6, 5]);
       }
