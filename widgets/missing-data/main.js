@@ -56,9 +56,10 @@ defineWidget({
   slug: "missing-data",
   title: "Missing Data",
   subtitle:
-    "Each patient's age is known; the weight can go missing. The mechanism " +
-    "sets where the holes fall: at random, following age, or following the " +
-    "weight itself. The check panel shows which of those a study can detect.",
+    "Weight is missing for some patients; age is recorded for all. " +
+    "Missingness can be completely at random (MCAR), depend on age (MAR), or " +
+    "depend on the unrecorded weight itself (MNAR), and each biases the " +
+    "observed data differently.",
   status: "draft",
   layout: "side",
   height: ({ w }) => layout(w).height,
@@ -74,15 +75,15 @@ defineWidget({
       type: "segmented",
       label: "Why weights go missing",
       options: [
-        { value: "mcar", label: "MCAR", detail: "the scale was broken now and then — holes follow nothing" },
-        { value: "mar", label: "MAR", detail: "younger patients skip check-ups — holes follow age, which is observed" },
-        { value: "mnar", label: "MNAR", detail: "patients heavier than their age predicts avoid the scale — holes follow the missing value itself" },
+        { value: "mcar", label: "MCAR", detail: "the scale was broken now and then: missing completely at random" },
+        { value: "mar", label: "MAR", detail: "younger patients skip check-ups: missingness is associated with age, which is observed" },
+        { value: "mnar", label: "MNAR", detail: "patients heavier than their age predicts avoid the scale: missingness is associated with the unrecorded weight itself" },
       ],
       default: "mcar",
     },
     rate: {
       type: "choice",
-      label: "Share not weighed",
+      label: "Percentage missing",
       options: [
         { value: "0.1", label: "10%" },
         { value: "0.2", label: "20%" },
@@ -281,7 +282,7 @@ defineWidget({
       ctx, colors, rect: L.check,
       xDomain: [M.AGE_LO - 2, M.AGE_HI + 2], yDomain: [0, 100],
     });
-    ck.caption("Weighed and not, by age band");
+    ck.caption("Percentage missing, by age band");
     ck.axisX({ ticks: [20, 35, 50, 65, 80], label: "Age, years" });
 
     if (seen.length) {
@@ -325,8 +326,8 @@ defineWidget({
 
       if (idx >= N) {
         const verdict = M.checkVerdict(seen, Number(params.rate)) === "sloped"
-          ? "the missing share follows age"
-          : "no pattern in age — MCAR and MNAR both look like this";
+          ? "the percentage missing is associated with age"
+          : "no pattern in age: MCAR and MNAR both look like this";
         ck.note(verdict);
       }
     }
@@ -352,7 +353,7 @@ defineWidget({
       {
         label: "True mean",
         value: truth ? `${state.trueMean.toFixed(1)} kg` : "—",
-        note: truth ? "all patients, weighed or not" : "the widget knows it; a study never does",
+        note: truth ? "all patients, weighed or not" : "never observable in a real study",
       },
     ];
   },
