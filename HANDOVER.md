@@ -16,6 +16,21 @@ the register in **2.10**, shared control vocabulary and the reveal pattern in
 meta-equals-blurb invariant in **5.8 (amended)**. **The hashed batch landed
 the same day** — the audit is CLOSED; see its section below.
 
+**The RAIL-SECTION SWEEP followed the same day and is COMPLETE and LIVE.**
+Kenneth's rule: where a rail carries a choice of data, it says so — a data
+section and an algorithm section. Eleven widgets gained their headings, one
+Kenneth pick at a time from mock-ups in `_lab/dimred-rail.html`; **16 of 25
+now carry sections and the 9 flat rails are flat for reasons recorded in the
+catalogue** (§ *The rail-section sweep*, under the audit entry — the rule, the
+picks, the boundary rulings, and bootstrap's reveal deliberately superseding
+3.4j's after-Seed position). One core change rode along: **`.w-section` now
+spans its grid row** — in the stacked layout the heading's hairline used to
+stop at one cell (reported from mobile); the full suite ran for it, **159 of
+159 MATCH**, and no state was rebaselined because the rail is outside both
+hashes. **Kenneth then reviewed the whole open-items docket and PARKED all of
+it** except deleting `widgets/_lab/index.html`, which is done — see *Deferred*
+below.
+
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
 > [docs/catalogue.md](docs/catalogue.md) already holds and holds better. The
@@ -33,6 +48,12 @@ npm run check                 # before every commit
 ---
 
 ## The suite: 159 states, all matching
+
+**The rail-section sweep's core change ran the full suite on 2026-08-27:
+159 of 159 MATCH.** `.w-section` gaining `grid-column: 1 / -1` is the only
+`widgets/core/` change the sweep made; the eleven per-widget rail edits are
+outside both hashes (`px` is the canvas, `tx` is `.w-math`/`.w-legend`/
+`.w-readout`, and the rail is neither), so nothing was rebaselined.
 
 **Widget 25 added seven states on 2026-08-27 with `_lab/missing-shoot.html`**,
 on the kmeans-shoot pattern: the copy proved against four recorded hashes
@@ -799,18 +820,20 @@ Each of these produced a wrong answer that looked right.
 
 ---
 
-## Deferred, ready to pick up individually
+## Deferred — Kenneth reviewed this whole docket on 2026-08-27 and PARKED it
 
-**Button labels.** A five-widget sweep was reverted (`a23be6b`) as too much to
-review at once. The observations still hold; each is a one-file change:
+**Everything below was elaborated for him item by item and consciously parked,
+not forgotten.** None of it blocks anything; pick up only what he asks for.
+The full docket he ruled on also included, from other sections of this file
+and the catalogue: the widget-20 default swap, widget 21's structureless-cloud
+`labels` option and its wireframe globe, widget 15's marginal-vs-conditional
+note, widget 17's 20 boosting rounds, dbscan's discs-off default, kmeans's
+unbuilt `shape` and `init` controls, and core's published-`step`-survives-a-
+data-change fix (the one item that owes a full fingerprint run).
 
-- `maximum-likelihood`'s step button reads "Step" — core's generic fallback, and
-  the only step button in fourteen widgets that names no act.
-- `bootstrap` and `permutation-test` grey out Step and Play until their lead has
-  run, and neither says why. The other lead-gated widgets have a `leadHint`.
-- `bayesian`'s `leadHint` says "Step and Play" while the button reads "Add a
-  count" or "Propose a move".
-- `em-mixture`'s lead reads "Start", the only lead label naming no act.
+*(The old "Button labels" block that led this section landed with the
+2026-08-27 audit — ML's "Next candidate", em-mixture's "Guess two curves",
+the bootstrap/permutation leadHints, bayesian's hint — and was removed.)*
 
 **Judge projected.** Widgets 11, 12, 13, 14 and 15 have never been seen from the
 back of a room. Widget 11's hypergeometric dots are ~4px at the narrow layout;
