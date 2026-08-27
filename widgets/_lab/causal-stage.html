@@ -94,6 +94,24 @@
     swing-of-the-line ease meaningful; (b) is one control fewer but conflates
     the two moves. Round two proposes (a).
   </p>
+
+  <h2>Round three — the collider's moving blocks (Kenneth: "why does that block move up?")</h2>
+  <p class="note">
+    The slide IS the controlling: removing ICU subtracts each group's own
+    averages from both axes, so the two groups land on a common centre and
+    the chi-square zero-floors ride along as hard edges. Honest, but it
+    <i>reads</i> as an arbitrary shift. For a BINARY third variable there is
+    an exact alternative that moves nothing: the adjusted model is one slope
+    with two intercepts (05-03's parallel lines), and the pooled within-group
+    slope equals the adjusted coefficient to the digit (−0.1799 = −0.1799,
+    measured). So the adjusted slope can be drawn <b>where each group sits</b>.
+    The blocks cannot honestly disappear — every dot is a patient — and
+    "distributed along the fitted line" is exactly what B draws. One caution,
+    measured: the groups' OWN slopes are +0.13 (not admitted) and −0.21
+    (admitted); the parallel pair is the model's single-slope claim, not two
+    separate fits, and the caption must say so.
+  </p>
+  <div class="row" id="round3"></div>
 </main>
 
 <script type="module">
@@ -418,6 +436,40 @@ document.getElementById("nums").innerHTML = `
     "exercise barely varies once HR is removed — the x axis collapses, which IS the erasure: nothing left to estimate from");
   av(K, domK, "collider · added-variable view",
     "conditioning on ICU tilts what is left — the manufactured −0.180, visible as a slope");
+
+  /* ---- Round three: the collider's two treatments ---- */
+  {
+    const host3 = document.getElementById("round3");
+    const t = tintOf(K.z);
+
+    // A · as ships: the recentred blocks.
+    {
+      const rx = resid(K.x, K.z), ry = resid(K.y, K.z);
+      const c = panel(host3, "A · as ships — the recentred blocks",
+        "each ICU group minus its own averages: the groups land on a common centre, the zero-floors ride along as hard edges");
+      const dom = { x0: pad(rx)[0], x1: pad(rx)[1], y0: pad(ry)[0], y1: pad(ry)[1], xl: "DKA — ICU removed", yl: "AMI — ICU removed" };
+      const s = frame(c, dom);
+      dots(c, s, rx, ry, (i) => t(K.z[i]));
+      const fit = ols(ry, [rx], tTailP);
+      line(c, s, dom, 0, fit.beta[1], C.highlight, 2.5);
+    }
+
+    // B · nothing moves: the adjusted slope drawn where each group sits.
+    {
+      const c = panel(host3, "B · nothing moves — one slope, two intercepts",
+        "the adjusted model IS parallel lines (05-03): slope −0.18 through each group's centre; the flat unadjusted line for contrast");
+      const s = frame(c, domK);
+      dots(c, s, K.x, K.y, (i) => t(K.z[i]));
+      const adj = ols(K.y, [K.x, K.z], tTailP);
+      line(c, s, domK, fitK_u.beta[0], fitK_u.beta[1], C.empirical, 2);
+      for (const g of [0, 1]) {
+        const ix = K.z.map((z, i) => [z, i]).filter(([z]) => z === g).map(([, i]) => i);
+        const mx = meanOf(ix.map((i) => K.x[i]));
+        const my = meanOf(ix.map((i) => K.y[i]));
+        line(c, s, domK, my - adj.beta[1] * mx, adj.beta[1], C.highlight, 2.5);
+      }
+    }
+  }
 }
 </script>
 </body>
