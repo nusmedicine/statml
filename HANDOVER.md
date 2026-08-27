@@ -1,13 +1,14 @@
 # Handover
 
-**Twenty-three widgets, all shipped, all on the gallery, and 144 fingerprint
+**Twenty-four widgets, all shipped, all on the gallery, and 152 fingerprint
 states recorded.**
 
-Widget 23 `kmeans` was reconnoitred, planned, measured, built and revised over
-four rounds of Kenneth's review on 2026-08-26 — its engine verified exactly
-against sklearn — then baselined with five states and promoted to the gallery the
-same day. **Widget 24 is DBSCAN: planned and measured on 2026-08-26, engine
-built and exact against sklearn, all four design calls settled, and no `main.js` yet.** See *NEXT*.
+**The 2026-08-27 cross-widget audit has run its free-surface half** — eight
+subtitles rewritten, the deferred drive-label items closed, one name for the
+play-speed control, and the language rules solidified as design-principles 2.10
+and 3.7. **What remains waits on Kenneth**: the hashed-surface calls (legend
+casing, reference-role stretches, notes and captions) and two vocabulary picks.
+See *THE CROSS-WIDGET AUDIT* below.
 
 > **This file was cut from 152 KB to this on 2026-08-26.** It had grown a
 > per-widget history of everything since widget 14, which
@@ -120,129 +121,73 @@ on `labels`, not a rebuild.**
 
 ---
 
-## NEXT SESSION: AUDIT THE 24 WIDGETS — consistency, and prose that reads written
+## THE CROSS-WIDGET AUDIT: free surfaces DONE, hashed surfaces AWAIT KENNETH
 
-**Kenneth's brief, 2026-08-27**: the arc is 24 widgets deep and nothing has ever
-been reviewed *across* widgets. Two targets — **design consistency**, and
-**descriptions that are too AI-like and verbose**. This is not a build session.
-Nothing below is a decision already taken; it is the reconnaissance, so the
-session can start on the work instead of on the survey.
+**Kenneth's 2026-08-27 brief — design consistency, and prose that is too
+AI-like — was run on 2026-08-27.** The inventory is
+`node widgets/_lab/audit-inventory.mjs --report`: it stub-imports all 24 configs
+and puts every subtitle, control label/detail, drive verb, legend entry and
+readout tile in one JSON. (Do not regex the source for these strings — that is
+how the first subtitle measurement reversed.)
 
-### THE FIRST THING TO KNOW: most of this text is FREE to change
+**Done, in commit `Audit, free surfaces` — nothing hashed was touched:**
 
-`_lab/fingerprint.html` hashes **`px`** over the canvas and **`tx`** over
-`TEXT_PARTS = [".w-math", ".w-legend", ".w-readout"]` — and nothing else. The
-subtitle is `.w-subtitle`, the rail is `.w-controls`, and **neither is hashed**.
-So the surfaces split cleanly, and the split should decide the order of work:
+- **Eight subtitles rewritten**, every one shorter, the tic struck rather than
+  the grammar compressed: bootstrap 398→224, trees 363→221, bayesian 355→228,
+  logistic 340→296, permutation 289→271, confidence 252→236, galton 225→209
+  (aphoristic closer cut), kmeans recast at 174. Arc now spans 140–296.
+- **The a23be6b deferred drive-label items**: ML `Step`→`Next candidate`
+  (honest in all three tabs), em-mixture lead `Start`→`Guess two curves`,
+  leadHints added to bootstrap and permutation-test, bayesian's hint no longer
+  names "Step" beside a button reading "Add a count" (it names the condition
+  alone — a static hint cannot follow a tab-dependent label).
+- **"Play speed" everywhere** — was "Speed" (prob-mechanisms) and "Pace" (trees).
+- **Rules solidified**: design-principles **2.10** (subtitle budget + the tics
+  table) and **3.7** (one name per repeated control; the leadHint pattern).
+  CLAUDE.md's token-role list corrected and completed; `tokens.css` now records
+  the audited reading of `--c-empirical` — **what the reader BUILT from the
+  data** (pile, likelihood, fit, arrangement, embedding), never "raw data".
+  Under that reading all 24 widgets are consistent; raw samples wear
+  group/outcome colours or `--c-unknown`, measured constraint tables wear ink.
+- **`--c-unknown` audit: CLEAN.** All seven users mean "not known yet".
+- **Verified live** (subtitles, hints, buttons, greying) and the full suite ran
+  twice for the tokens.css comment: second run **152 of 152 MATCH**.
 
-| surface | count | cost to rewrite |
-|---|---|---|
-| **subtitle** | 24 | **free** |
-| **control label** | 183 | **free** |
-| **control detail** | 179 | **free** |
-| **manifest blurb** (gallery card) | 24 | **free** — not hashed, not in a widget |
-| legend label | 80 | rebaseline `tx` |
-| readout tile label | 106 | rebaseline `tx` |
-| readout note | 31 | rebaseline `tx` |
-| canvas caption | ~206 call sites | rebaseline `px` |
+**FOUND, NOT FIXED — a flaky fingerprint state on Windows.** First suite run:
+`clt ?theme=light&dist=exponential&n=5&shown=12` DIFFERed on `px` only
+(`tx` identical); second run, all 152 matched. One-off, same shape as
+odds-and-risk's old Mac flakiness. If it DIFFERs alone again, suspect the flake
+before the change.
 
-**410 of the free strings against 217 that cost a rebaseline.** Doing every free
-surface first means one rebaseline at the end rather than one per widget, and it
-means the prose pass can move fast and be reverted cheaply.
+### NEXT: Kenneth's calls, then ONE hashed-surface pass
 
-**A full suite run is ~55 seconds and covers all 152 states.** Nothing in this
-audit should touch `widgets/core/`, but if it does, that is the one change that
-can reach a widget nobody is looking at — run the suite.
+Everything below either costs a rebaseline or is a taste call, so it waits for
+him; the hashed pass should then be ONE pass with ONE rebaseline at the end
+(three determinism runs + a confirming run, as widget 24 did).
 
-### THE VERBOSITY MEASUREMENT, AND IT REVERSED ONCE
+1. **Legend casing** (tx): 11 entries start lowercase — probability-mechanisms
+   (3), t-sne (3), umap (5) — against sentence case in the other 21 widgets.
+2. **Rail vocabulary, his pick (free once decided):** pca/mds/t-sne/umap say
+   `Labels` where kmeans/dbscan say `True groups`; the quartet says `Groups`
+   where the clustering pair says `Groups in the data`. The clustering pair's
+   wording is newer and reviewed; the quartet's is shorter.
+3. **`--c-reference` stretches** (px if repainted): in practice it means "the
+   fixed benchmark the moving thing is judged against" — the truth where one
+   exists (CI, ML, bayesian, em), else a baseline: logistic's lm line,
+   linear-regularization's unpenalised fit, umap's lower bound. Either bless
+   that reading in tokens.css (free) or repaint the baselines.
+4. **multiple-testing's subtitle** keeps "That is not a finding, it is
+   arithmetic." — verdict-shaped, but it is also the widget's claim. His call.
+5. **Readout notes and canvas captions were never tic-audited** (31 notes, ~206
+   caption sites, both hashed). The inventory JSON has the notes; captions need
+   the fillText sweep.
+6. **Heights were not re-measured** — still the audit item it was.
 
-**Do not trust a subtitle length measured with a single-line regex.** The first
-pass here read only the first quoted segment of each `subtitle:` expression and
-reported widgets 1–18 at ~70 chars against 19–24 at ~180 — a doubling that was
-**entirely an artifact of where each file happens to wrap its strings**. Measured
-across the `+` concatenation, the finding is the opposite:
+### Working beside another session
 
-| | min | median | max | mean |
-|---|---|---|---|---|
-| widgets **1–18** | 173 | 227 | **398** | **252** |
-| widgets **19–24** | 140 | 178 | 238 | **184** |
-
-**The recent widgets are the terse ones. The early ones are the problem.** Six to
-cut first, longest down: `bootstrap` 398, `trees-and-ensembles` 363, `bayesian`
-355, `logistic-regression` 340, `permutation-test` 289, `confidence-interval`
-252.
-
-### WHAT "AI-LIKE" LOOKS LIKE HERE, with the widgets that do it
-
-Counted across the 24 subtitles. The counts are small — **this is a list of
-tics to recognise, not a scoreboard** — and the same habits are far commoner in
-the readout notes and canvas captions, which were not counted:
-
-| tic | widgets |
-|---|---|
-| em-dash aside dropped mid-sentence | `kmeans` |
-| cleft — *"X is what fixes that"* | `bootstrap`, `permutation-test`, `logistic-regression` |
-| negation-then-correction — *"It cannot say … "* | `bayesian` |
-| aphoristic closer — *"That is all a bell curve is."* | `galton-board` |
-| self-reference — *"what the numbers below are for"* | `bootstrap`, `logistic-regression` |
-| trailing *", which is …"* | `bootstrap` |
-
-`bootstrap` carries four of the six and is the longest. It is the worked example
-to do first:
-
-> In practice you get one sample, never a population. Draw a new sample of the
-> same size from the one you have — with replacement, so some observations appear
-> twice and others not at all — and the spread of the resampled means stands in
-> for a sampling distribution you can never observe. It stands in only as well as
-> your one sample represents the population, which is what the numbers below are
-> for.
-
-**Three sentences, 398 characters, an em-dash aside, a trailing relative clause
-and a pointer to the rail.** CLAUDE.md's own rule is *plain, specific, no
-filler*, and the arc's later subtitles already meet it — `pca` does the same job
-in 140.
-
-### DESIGN CONSISTENCY — what has never been checked across widgets
-
-Unaudited, and each is a question rather than a finding:
-
-- **Do the semantic colour roles mean the same thing everywhere?**
-  `--c-empirical` / `--c-theory` / `--c-highlight` / `--c-reference` are defined
-  by role in `tokens.css`, and no one has checked that widget 4's `--c-theory` is
-  playing the part widget 20's is.
-- **Do the drive verbs agree?** Widget 24 says *Mark the core points / Next point
-  / Play*; widget 23 says *Place the centroids / Iterate / Play*; others differ
-  again. A student meeting six widgets should not learn six vocabularies.
-- **Do the readout tiles agree on what a note is for?** 106 tiles, 31 notes — so
-  most tiles have none, and it is not clear the ones that do earned it.
-- **Is `--c-unknown` used only for "not measured yet"?** Its comment scopes it
-  narrowly and widget 24 had to route around it; other widgets may not have.
-- **Legend marks**: 80 entries across 24 widgets, and the `mark:` vocabulary
-  (`dot`, `line`, …) has grown without review.
-- **Height**: still recorded nowhere but `defineWidget`, and eight of nine were
-  once 190–310px wrong. A cross-widget pass is the moment to re-measure.
-
-### HOW TO RUN IT WITHOUT BREAKING ANYTHING
-
-1. **Inventory first, in one pass, into a `_lab/` page or a script** — the same
-   move that made the marks and reach decisions cheap. Put every subtitle, blurb
-   and legend label on one screen. **Nothing on this list can be judged one file
-   at a time**, which is exactly why it has never been done.
-2. **Do the free surfaces first** (subtitle, rail, blurb) and run `npm run
-   check`. No rebaseline, so a bad rewrite costs nothing to undo.
-3. **Then the hashed surfaces**, and rebaseline **once** at the end — three
-   determinism runs, then a confirming run, as widget 24 did.
-4. **Show Kenneth the prose before the hashes are frozen.** Reviewing a figure
-   is what changes it; freezing before review is backwards, and this session
-   would freeze 152 states.
-
-### AND TWO THINGS THIS AUDIT SHOULD NOT QUIETLY ABSORB
-
-- **Both are now done.** `_lab/dbscan-drive.mjs` is written, and
-  `_lab/index.html` lists **all 51 pages** in three sections — the harness,
-  decisions that belong to the shell, and the rest newest-first. It had drifted
-  to **thirty** missing, not the sixteen the old note claimed, which is the
-  argument for adding an entry when a page is written rather than in a catch-up.
+`.claude/launch.json` now has **`widgets-alt` on 8011** beside `widgets` on
+8010: two sessions cannot share a pinned port, and the second lane keeps both
+deterministic. The 8010 pin and its rationale are unchanged.
 
 ## WIDGET 24 IS SHIPPED — `dbscan`, built and baselined 2026-08-27
 

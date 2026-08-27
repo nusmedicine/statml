@@ -180,6 +180,39 @@ that names the actual quantity. **Source comments are exempt** and should stay a
 vivid as they like: they are addressed to whoever changes the code next, and the
 history of what failed is the most valuable thing in them.
 
+### 2.10 The subtitle is two or three claims that read written
+
+The subtitle is the argument under the title: what the figure does, in sentences
+a person would say at the front of a room. Two or three claims, each naming a
+quantity or an act, and roughly 140–240 characters — the budget is not a taste,
+it is what every recent widget's subtitle measures once the tics below are gone.
+
+> *Earned:* the first cross-widget audit (2026-08-27, 24 widgets in). Measured
+> across the string concatenation — a single-line regex had reported the exact
+> opposite — widgets 1–18 averaged 252 characters against 184 for 19–24, and the
+> six longest were all early. The extra length was not extra teaching; it was a
+> set of recognisable machine tics, each of which survived review one file at a
+> time and was obvious the moment 24 subtitles sat on one screen.
+
+The tics, each with its shipped example — strike the tic rather than compressing
+the grammar around it:
+
+| tic | shipped example | fix |
+|---|---|---|
+| cleft — *"X is what fixes that"* | `logistic-regression`, `bootstrap` | say what X does: *"Model the log(odds) instead: p stays in (0, 1)"* |
+| self-reference to the page | `bootstrap` *"…which is what the numbers below are for"* | cut; the readout is beside the figure, it does not need an usher |
+| em-dash aside mid-sentence | `kmeans` *"Each centroid — the crosses — takes…"* | give the aside its own clause: *"Each cross is a centroid: it claims…"* |
+| aphoristic closer | `galton-board` *"That is all a bell curve is."* | cut; a sentence that evaluates the other sentences is a verdict (2.9) |
+| negation-then-correction | `bayesian` *"It cannot say… — nothing holds the area at 1"* | state the positive claim once: *"The likelihood scores parameters but is not a probability over them."* |
+| trailing *", which is…"* | `bootstrap` | end the sentence where the claim ends |
+
+Two consequences worth keeping. **Replacement wording must be shorter than what
+it replaced, or it is not an improvement** — every rewrite in the audit came in
+shorter while naming the same quantities. And the same tics run through readout
+notes and canvas captions, which are hashed surfaces: rewriting those is a
+deliberate rebaselining decision, not a casual edit, which is exactly why the
+free surfaces (subtitle, rail, gallery blurb) get cleaned first.
+
 ---
 
 ## 3 · Controls and layout
@@ -827,6 +860,37 @@ parameter that does not exist, and a value that is not one of its options. Both
 are code defects, so both fail where every other driver in this repo fails,
 rather than being coerced into the default — which would turn a click that does
 the wrong thing into a click that quietly does something else.
+
+### 3.7 A control the arc repeats keeps one name
+
+3.4c already governs what a drive label says *within* a widget. This is the
+cross-widget half: when the same control appears in many widgets, a student
+meeting the sixth widget must not meet a third name for it. The arc's settled
+vocabulary:
+
+| role | the one name | notes |
+|---|---|---|
+| the seed | **Seed** | always last in the setup block |
+| animation pace | **Play speed** | a display parameter; its options may differ per widget |
+| what is sampled from | **Population** | the statistics arc's setup control |
+| per-group count | **Samples per group** | when groups are the unit |
+| repeated step of a fit | **Iterate** (`em-mixture`, `kmeans`) / **Next \<noun\>** (`maximum-likelihood`, `dbscan`) | both name the act; pick whichever is honest |
+
+> *Earned:* the audit found thirteen widgets saying "Play speed",
+> `probability-mechanisms` saying "Speed" and `trees-and-ensembles` saying
+> "Pace" — three names for one control, none of the differences carrying any
+> meaning. Same shape as 3.4c's "Run the study" / "Run a study" collision:
+> nothing about either phrasing tells a student whether the difference matters,
+> so the difference must not exist unless it does.
+
+**And the lead hint follows a pattern.** A widget whose lead gates Step and Play
+authors a `leadHint`, and the arc's shape for it is
+*"\<step label\> and Play wake up once \<condition\>."* — `em-mixture`'s
+*"Iterate and Play wake up once the labels are gone."* When the step label
+follows a tab (a 3.4c map), the hint cannot name it honestly in every tab, so it
+names the condition alone: `bayesian`'s *"Nothing can run until the counts are
+drawn."* A hint that names a label the button does not currently wear is the
+mismatch, not a variant of the pattern.
 
 ---
 

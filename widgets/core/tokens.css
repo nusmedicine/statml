@@ -43,8 +43,16 @@
 
   /* --- semantic roles for teaching figures ------------------------------ *
    * Widgets reference THESE, not the numbered slots. One idea per role, so
-   * "empirical" is the same blue in all 40 widgets and students learn it.   */
-  --c-empirical: var(--series-1);    /* what we observed / simulated         */
+   * "empirical" is the same blue in all 40 widgets and students learn it.
+   *
+   * "Empirical" is what the reader BUILT from the data — a pile of collected
+   * draws, a likelihood, a fitted line, an arrangement, an embedding. It has
+   * never meant "raw data": raw samples wear group or outcome colours, or
+   * --c-unknown before anything is known about them, and the measured table a
+   * fit is checked against is ink (mds, t-sne). Audited across all 24 widgets
+   * on 2026-08-27 and consistent under exactly that reading — a claim brought
+   * from OUTSIDE the data is what --c-theory is for.                        */
+  --c-empirical: var(--series-1);    /* what the reader built from the data  */
   --c-theory:    var(--series-2);    /* the theoretical / asymptotic result  */
   --c-smoothed:  var(--series-3);    /* a smoothed reading of the empirical  */
   --c-highlight: var(--series-7);    /* the one thing to look at right now   */

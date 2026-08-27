@@ -56,14 +56,19 @@ change. This has already cost one debugging session.
    finished figure use `?shown=N`, which applies on first render only.
 5. **Never hardcode a colour, size or font.** Everything comes from
    `widgets/core/tokens.css`, and widgets reference the *semantic* roles rather
-   than the numbered series slots: `--c-empirical` (what we observed or
-   simulated), `--c-theory` (the curve the pile is checked against),
-   `--c-smoothed`, `--c-highlight` (moving right now), `--c-reference` (a true
-   parameter), `--c-group-a` / `--c-group-b` (two arms of a comparison),
-   `--c-extreme` (past a threshold — what a p-value counts), and
-   `--c-prior` / `--c-posterior` (what you believed before the data, and after).
-   Needing a role that does not exist is a signal to add one, not to reach for
-   `--series-n`.
+   than the numbered series slots: `--c-empirical` (what the reader built from
+   the data — a pile of draws, a fit, an embedding; audited 2026-08-27 as
+   consistent across all 24 widgets under that reading), `--c-theory` (the
+   claim it is checked against), `--c-smoothed`, `--c-highlight` (the one thing
+   to look at right now), `--c-reference` (truth: a parameter, a null value),
+   `--c-group-a` / `--c-group-b` (two arms of a comparison you decided),
+   `--c-cluster-a`…`f` (groups nobody assigned), `--c-extreme` (past a
+   threshold — what a p-value counts), `--c-event` / `--c-nonevent` (the
+   outcome happened to this person, or did not), `--c-unknown` (not measured
+   yet — never a third outcome), `--c-holdout` (data set aside, scored once),
+   and `--c-prior` / `--c-posterior` (what you believed before the data, and
+   after). Needing a role that does not exist is a signal to add one, not to
+   reach for `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.
 7. **Zero runtime dependencies, no build step for widgets.** `package.json` has no
