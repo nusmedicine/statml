@@ -329,6 +329,11 @@ defineWidget({
   height: CANVAS_H,
 
   params: {
+    /* Headed like bayesian's population block (2026-08-27 rail-section sweep):
+       the coloured rows already structured the pairs, the heading names what
+       the block IS — the truth EM will have to recover without the labels. */
+    pop: { type: "section", label: "The populations" },
+
     /* THE TWO CONTROLS THAT CARRY THE ARGUMENT, and between them they set the
        one quantity the widget is about: how far the groups overlap. Three
        regimes across their range, measured in the header comment at a child
@@ -434,7 +439,9 @@ defineWidget({
       when: { param: "sampled" },
     },
 
-    view: { type: "section", label: "Inference", when: { param: "sampled" } },
+    /* "The inference" — bayesian's word for its own third block (3.7: one name
+       per repeated thing), harmonised in the same sweep. */
+    view: { type: "section", label: "The inference", when: { param: "sampled" } },
 
     /* THE MISCONCEPTION, AS A CONTROL. `responsibility` and `cluster` are the
        SAME FIT read two ways — nothing is recomputed between them, and the
