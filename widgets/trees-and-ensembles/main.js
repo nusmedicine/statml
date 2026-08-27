@@ -1201,7 +1201,7 @@ defineWidget({
         note: `node Gini ${step.node.gini.toFixed(4)}` },
       { label: known ? "Lowest" : "Best so far",
         value: known ? best.score.toFixed(4) : "—",
-        note: known ? `${FEAT[best.feature]} ≤ ${fmtT(best.threshold)}` : "press to search" },
+        note: known ? `${FEAT[best.feature]} ≤ ${fmtT(best.threshold)}` : "no candidate scored yet" },
     ];
   },
 });

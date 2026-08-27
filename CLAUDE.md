@@ -60,7 +60,8 @@ change. This has already cost one debugging session.
    the data — a pile of draws, a fit, an embedding; audited 2026-08-27 as
    consistent across all 24 widgets under that reading), `--c-theory` (the
    claim it is checked against), `--c-smoothed`, `--c-highlight` (the one thing
-   to look at right now), `--c-reference` (truth: a parameter, a null value),
+   to look at right now), `--c-reference` (the fixed benchmark the moving thing is judged against — the
+   truth where one exists, else the baseline; audited 2026-08-27),
    `--c-group-a` / `--c-group-b` (two arms of a comparison you decided),
    `--c-cluster-a`…`f` (groups nobody assigned), `--c-extreme` (past a
    threshold — what a p-value counts), `--c-event` / `--c-nonevent` (the

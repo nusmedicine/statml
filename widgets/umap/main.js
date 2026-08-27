@@ -488,13 +488,13 @@ defineWidget({
      These have to read true with the labels BOTH off and on, because core takes
      the legend once at build time rather than per render. */
   legend: [
-    { token: "ink-2", label: "edge — the membership strength μ between two samples", mark: "line" },
-    { token: "empirical", label: "cross-entropy over all pairs", mark: "line" },
-    { token: "reference", label: "lower bound — the entropy of the graph itself", mark: "line" },
-    { token: "highlight", label: "selected sample", mark: "dot" },
+    { token: "ink-2", label: "Edge — the membership strength μ between two samples", mark: "line" },
+    { token: "empirical", label: "Cross-entropy over all pairs", mark: "line" },
+    { token: "reference", label: "Lower bound — the entropy of the graph itself", mark: "line" },
+    { token: "highlight", label: "Selected sample", mark: "dot" },
     /* The bottom-left panel's explanation lives here because the legend is DOM
        and wraps, where a canvas caption in a 192px cell cannot. */
-    { token: "ink-3", label: "one pair's cross-entropy against distance; the dot marks its minimum", mark: "line" },
+    { token: "ink-3", label: "One pair's cross-entropy against distance; the dot marks its minimum", mark: "line" },
   ],
 
   params: {

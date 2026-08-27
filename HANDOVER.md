@@ -133,7 +133,7 @@ on `labels`, not a rebuild.**
 
 ---
 
-## THE CROSS-WIDGET AUDIT: free surfaces DONE, hashed surfaces AWAIT KENNETH
+## THE CROSS-WIDGET AUDIT: COMPLETE — free surfaces and hashed batch both landed
 
 **Kenneth's 2026-08-27 brief — design consistency, and prose that is too
 AI-like — was run on 2026-08-27.** The inventory is
@@ -219,24 +219,38 @@ node widgets/_lab/missing-measure.mjs    # every number the catalogue quotes
   unreliable at 10% missing (93/1200 misfires — twelve missing patients is too
   few for any check). Known, measured, accepted.
 
-### NEXT AFTER THAT: the hashed batch — ONE pass, ONE rebaseline at the end
+### THE HASHED BATCH RAN 2026-08-27 — the audit is CLOSED
 
-Three determinism runs + a confirming run, as widget 24 did. In it:
+One pass, one rebaseline, Kenneth's picks throughout. What landed: **legend
+casing** (11 entries sentence-cased in probability-mechanisms, t-sne, umap);
+**em-mixture in conventional terms** — Set P, "membership probabilities":
+caption "A mixture of the two populations, labels unknown", the E/M-step
+notes, the stepTitle, and the legend pair "The left/right curve and its
+membership probabilities" (the "it claims" personification and the
+weigh/shares puns are gone); **power-and-error's** pre-run note "of 1000
+simulated studies"; **trees'** "no candidate scored yet"; and
+**`--c-reference` BLESSED**, not repainted — tokens.css now defines it as the
+benchmark a fit is judged against, truth where one exists, else the baseline.
 
-1. **Legend casing** (tx): 11 entries start lowercase — probability-mechanisms
-   (3), t-sne (3), umap (5) — against sentence case in the other 21 widgets.
-2. **Readout notes and canvas captions were never tic-audited** (31 notes, ~206
-   caption sites). The inventory JSON has the notes; captions need the fillText
-   sweep — and the 2.10 register now says what they should read like.
-3. **`--c-reference` stretches** (px if repainted): in practice it means "the
-   fixed benchmark the moving thing is judged against" — the truth where one
-   exists (CI, ML, bayesian, em), else a baseline: logistic's lm line,
-   linear-regularization's unpenalised fit, umap's lower bound. Either bless
-   that reading in tokens.css (free) or repaint the baselines.
+The rebaseline: 37 states moved — 37 `tx` and exactly 2 `px` (the two
+em-mixture states whose painted captions changed), confined to the six
+expected widgets. New hashes identical across three suite runs, then a
+confirming run read **159 of 159 MATCH**. One lesson for the next rebaseline:
+**the harness table prints the RECORDED pair before the GOT pair** — a
+determinism check that compares column 3 compares the baseline to itself and
+is vacuous; compare column 4. Caught here because a splice of column 3
+reported zero movement.
 
-Separately: **heights were never re-measured** since the side-layout rollout,
-and **the slug rename `power-and-error` → something like `decision-making`
-waits for the course to end** (the source notes it beside `title:`).
+The notes and captions judged and deliberately KEPT: the bootstrap/permutation
+"you never see this" motif (the arc's signature, echoed by missing-data),
+odds-and-risk's notes (Kenneth's own 2.9 rewrite), and instructional notes
+that serve as drive hints.
+
+### Still open, neither from the audit
+
+**Heights were never re-measured** since the side-layout rollout, and **the
+slug rename `power-and-error` → something like `decision-making` waits for the
+course to end** (the source notes it beside `title:`).
 
 ### Working beside another session
 

@@ -501,9 +501,9 @@ defineWidget({
      These have to be true with the labels BOTH off and on, because core takes
      the legend once at build time rather than per render. */
   legend: [
-    { token: "ink-2", label: "what the data says", mark: "line" },
-    { token: "empirical", label: "what the picture says", mark: "bar" },
-    { token: "reference", label: "perplexity — how many neighbours count", mark: "line" },
+    { token: "ink-2", label: "What the data says", mark: "line" },
+    { token: "empirical", label: "What the picture says", mark: "bar" },
+    { token: "reference", label: "Perplexity — how many neighbours count", mark: "line" },
   ],
 
   params: {

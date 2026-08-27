@@ -915,7 +915,7 @@ defineWidget({
         value: shown ? fmt(shown, 0) : "—",
         note: shown
           ? `${((100 * hits) / shown).toFixed(1)}% called significant · ${(100 * power).toFixed(1)}% predicted`
-          : `of ${REPS} — the check, not the claim`,
+          : `of ${REPS} simulated studies`,
       },
     ];
   },

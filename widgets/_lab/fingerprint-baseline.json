@@ -541,28 +541,28 @@
    "slug": "em-mixture",
    "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=resp&shown=160",
    "px": "4d4d66fb",
-   "tx": "63f74283"
+   "tx": "a9270286"
   },
   {
    "$note": "The same fit rounded off at 0.5 — the default reading, and the one to dislodge.",
    "slug": "em-mixture",
    "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=cluster&shown=160",
    "px": "7514d5d9",
-   "tx": "63f74283"
+   "tx": "a9270286"
   },
   {
    "$note": "The withheld labels, stacked children-first, so each column is a true mix.",
    "slug": "em-mixture",
    "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&truth=1&shown=160",
    "px": "f3531dc3",
-   "tx": "63f74283"
+   "tx": "a9270286"
   },
   {
    "$note": "The failing case: means 10cm apart, the components merge and the populations go wrong too.",
    "slug": "em-mixture",
    "state": "?theme=light&sampled=1&childMean=140&adultMean=150&n=100&seed=3&truth=1&shown=160",
    "px": "034be571",
-   "tx": "b75a5021"
+   "tx": "50252dba"
   },
   {
    "$note": "DRIVEN: first iteration, mid E-step — fill levels moving off half and half.",
@@ -574,8 +574,8 @@
     "frames": 8,
     "dt": 32
    },
-   "px": "feafd194",
-   "tx": "49a61139"
+   "px": "db8976fa",
+   "tx": "86c527e8"
   },
   {
    "$note": "DRIVEN: Play under way, curves sliding through an M-step.",
@@ -587,92 +587,92 @@
     "frames": 34,
     "dt": 32
    },
-   "px": "b1efc36a",
-   "tx": "c31ceb08"
+   "px": "27ce25c4",
+   "tx": "64a6d6a9"
   },
   {
    "$note": "Both spreads at 40: overlap made by widening rather than by closing in.",
    "slug": "em-mixture",
    "state": "?theme=light&sampled=1&childMean=120&childSd=40&adultMean=170&adultSd=40&n=100&seed=3&truth=1&shown=160",
    "px": "8babc3de",
-   "tx": "c57525fa"
+   "tx": "5e4250f5"
   },
   {
    "$note": "The populations stage: two curves, no sample drawn, no drive row.",
    "slug": "em-mixture",
    "state": "?theme=light&childMean=120&adultMean=170&n=100&seed=3&shown=0",
    "px": "c69b3471",
-   "tx": "e951426c"
+   "tx": "ed55576b"
   },
   {
    "$note": "The map with nothing chosen: eight endings visible, only the two live ones bright.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=map&shown=0",
    "px": "2c592af4",
-   "tx": "7e0fc69c"
+   "tx": "4f71133c"
   },
   {
    "$note": "The map answered: the path lit through to Poisson, and Clear in the corner.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=map&dist=pois&shown=0",
    "px": "d45acc0c",
-   "tx": "0631114a"
+   "tx": "78e4866a"
   },
   {
    "$note": "Binomial, settled. The attempts strip at rest and the theory dots over the pile.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=binom&seed=1&shown=200",
    "px": "7ecc90be",
-   "tx": "ea7b1bef"
+   "tx": "d746a88f"
   },
   {
    "$note": "Hypergeometric drawing 60% of the pool — the case where without-replacement bites.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&shown=200",
    "px": "ae77c273",
-   "tx": "824a517a"
+   "tx": "357e829a"
   },
   {
    "$note": "Poisson, settled. Half of the pair: a rate that never moves, var/mean at 1.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=pois&seed=1&shown=200",
    "px": "1822f02c",
-   "tx": "bf94e6aa"
+   "tx": "ca053aca"
   },
   {
    "$note": "Negative binomial on the SAME axis as the Poisson above — the pair's whole point.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=nbin&seed=1&shown=200",
    "px": "f290462d",
-   "tx": "f5e98cd4"
+   "tx": "8ab5ec74"
   },
   {
    "$note": "Log-normal: the measure strip, and a skew a normal cannot make.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=lnorm&seed=1&shown=200",
    "px": "65df67e6",
-   "tx": "27ce22fe"
+   "tx": "10648e9e"
   },
   {
    "$note": "Exponential: the gap mechanism, marking the wait between the Poisson's own arrivals.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=dist&dist=exp&seed=1&shown=200",
    "px": "33f02a41",
-   "tx": "1c37d261"
+   "tx": "fdab5a81"
   },
   {
    "$note": "R code on the Poisson: four cards, each led by the question its function answers.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=code&dist=pois&prob=0.95&shown=0",
    "px": "8ba9adcc",
-   "tx": "7609657c"
+   "tx": "026ad11c"
   },
   {
    "$note": "R code on a narrowed uniform, where dunif reads 5.0 — a density above 1, on a slider.",
    "slug": "probability-mechanisms",
    "state": "?theme=light&view=code&dist=unif&umax=0.2&prob=0.5&shown=0",
    "px": "074c1773",
-   "tx": "4194e080"
+   "tx": "0bbe2fe0"
   },
   {
    "$note": "DRIVEN: mid-pool. Plots pulsing and vanishing, P(next) moving — invisible at rest.",
@@ -684,7 +684,7 @@
     "dt": 32
    },
    "px": "82eecb45",
-   "tx": "6f215150"
+   "tx": "35ddbe70"
   },
   {
    "$note": "DRIVEN: mid-game. Attempts resolving one at a time under a chance that never moves.",
@@ -696,7 +696,7 @@
     "dt": 32
    },
    "px": "e1008a10",
-   "tx": "e080b905"
+   "tx": "2504cba5"
   },
   {
    "$note": "DRIVEN: Play under way, a window filling under a rate that was redrawn for it.",
@@ -708,42 +708,42 @@
     "dt": 32
    },
    "px": "21d2a63f",
-   "tx": "e2db42b5"
+   "tx": "8d969dd5"
   },
   {
    "$note": "The setup at the default: two curves, the line at 1.645, alpha and beta before any data.",
    "slug": "power-and-error",
    "state": "?theme=light&shown=0",
    "px": "db8e9d99",
-   "tx": "a1188c34"
+   "tx": "3d3dd95a"
   },
   {
    "$note": "Effect None: the two curves coincide exactly, and 5% still lands past the line.",
    "slug": "power-and-error",
    "state": "?theme=light&effect=none&shown=0",
    "px": "42344073",
-   "tx": "a5a8b320"
+   "tx": "2a155a6e"
   },
   {
    "$note": "n = 100 on the RAW axis, where sample size narrows BOTH curves — the motion z hides.",
    "slug": "power-and-error",
    "state": "?theme=light&n=100&shown=0",
    "px": "7b1ea6a3",
-   "tx": "e5684b45"
+   "tx": "aa676f59"
   },
   {
    "$note": "The test-statistic axis: the line pinned at 1.645 and only the alternative sliding.",
    "slug": "power-and-error",
    "state": "?theme=light&axis=z&n=40&shown=0",
    "px": "c82bf449",
-   "tx": "de854bf0"
+   "tx": "21ad5a3e"
   },
   {
    "$note": "alpha 0.001 against a small effect — alpha chosen, beta inherited, and beta is nearly all of it.",
    "slug": "power-and-error",
    "state": "?theme=light&effect=small&alpha=0.001&shown=0",
    "px": "f96c0de2",
-   "tx": "f368c49f"
+   "tx": "627e6bf3"
   },
   {
    "$note": "1000 studies run: the observed rates against the predicted ones they were told to check.",
@@ -783,7 +783,7 @@
     "dt": 32
    },
    "px": "a9aec1fc",
-   "tx": "a1188c34"
+   "tx": "3d3dd95a"
   },
   {
    "$note": "DRIVEN: Play under way, the pile filling under a threshold that never moves.",
@@ -813,7 +813,7 @@
     "dt": 32
    },
    "px": "8cfb3b63",
-   "tx": "a1188c34"
+   "tx": "3d3dd95a"
   },
   {
    "$note": "Study design at rest: both recruited pairs FULL, the cohort grey and the case-control already coloured.",
@@ -1117,7 +1117,7 @@
     "dt": 32
    },
    "px": "bb23a75a",
-   "tx": "30c58191"
+   "tx": "83f0976f"
   },
   {
    "slug": "balancing-data",
@@ -1174,7 +1174,7 @@
    "slug": "t-sne",
    "state": "?theme=light&step=40",
    "px": "2a123bd7",
-   "tx": "873a19f1"
+   "tx": "a2d65f11"
   },
   {
    "slug": "t-sne",
@@ -1185,7 +1185,7 @@
     "dt": 32
    },
    "px": "f0677cd7",
-   "tx": "064da7ff"
+   "tx": "65b9165f"
   },
   {
    "slug": "t-sne",
@@ -1199,19 +1199,19 @@
     "dt": 32
    },
    "px": "d4c94107",
-   "tx": "798b6a7e"
+   "tx": "e4cb4a1e"
   },
   {
    "slug": "umap",
    "state": "?theme=light",
    "px": "33e82282",
-   "tx": "174b83d0"
+   "tx": "ae66adf0"
   },
   {
    "slug": "umap",
    "state": "?theme=light&graph=1&flatten=1&step=15",
    "px": "36c4971f",
-   "tx": "2b04e4ff"
+   "tx": "8443bd1f"
   },
   {
    "slug": "umap",
@@ -1222,7 +1222,7 @@
     "dt": 32
    },
    "px": "8752005b",
-   "tx": "b49e05ac"
+   "tx": "f60917cc"
   },
   {
    "slug": "umap",
@@ -1236,7 +1236,7 @@
     "dt": 32
    },
    "px": "e4a74bf8",
-   "tx": "15cedddb"
+   "tx": "c6029dfb"
   },
   {
    "slug": "umap",
@@ -1247,7 +1247,7 @@
     "dt": 32
    },
    "px": "54cc5296",
-   "tx": "15cedddb"
+   "tx": "c6029dfb"
   },
   {
    "slug": "kmeans",

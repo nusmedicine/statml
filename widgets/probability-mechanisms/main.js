@@ -697,9 +697,9 @@ const handle = defineWidget({
   },
 
   legend: [
-    { token: "empirical", label: "draws so far", mark: "bar" },
-    { token: "theory", label: "the distribution", mark: "line" },
-    { token: "highlight", label: "this draw", mark: "dot" },
+    { token: "empirical", label: "Draws so far", mark: "bar" },
+    { token: "theory", label: "The distribution", mark: "line" },
+    { token: "highlight", label: "This draw", mark: "dot" },
   ],
 
   compute: ({ params, rng }) => {

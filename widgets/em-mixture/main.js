@@ -489,8 +489,8 @@ defineWidget({
      "half and half" by being half and half, which is the thing a colour ramp
      through --ink-3 could never do without also reading as "no data". */
   legend: [
-    { token: "group-b", label: "The left curve, and the share of each person it claims", mark: "dot" },
-    { token: "group-a", label: "The right curve, and the share it claims", mark: "dot" },
+    { token: "group-b", label: "The left curve and its membership probabilities", mark: "dot" },
+    { token: "group-a", label: "The right curve and its membership probabilities", mark: "dot" },
     { token: "reference", label: "The curves they really came from", mark: "line" },
   ],
 
@@ -648,7 +648,7 @@ defineWidget({
     leadTitle: "Take the labels away and put two curves down at random",
     leadHint: "Iterate and Play wake up once the labels are gone.",
     stepLabel: "Iterate",
-    stepTitle: "One E-step and one M-step: re-weigh every person, then refit both curves",
+    stepTitle: "One E-step and one M-step: compute membership probabilities, then refit both curves",
     runLabel: "Play",
     runTitle: "Iterate to convergence",
 
@@ -955,18 +955,18 @@ defineWidget({
        curves. A caption that describes a mark the frame does not contain is the
        same defect as a claim that is false on the first press. */
     plot.caption(!sampled ? "Two populations, and nobody sampled from them yet"
-      : !anim.leadDone ? "One pile of people, and no idea who is who"
+      : !anim.leadDone ? "A mixture of the two populations, labels unknown"
       : "Two curves, and the people they are claiming");
     if (!sampled) {
       plot.note("set them, then draw a sample");
     } else if (!anim.leadDone) {
       plot.note("no labels — nobody knows who was which");
     } else if (i === 0 && !inFlight) {
-      plot.note("two curves, guessed at random — nobody weighed yet");
+      plot.note("two curves, guessed at random — no membership probabilities yet");
     } else if (inFlight && anim.phase === "e") {
-      plot.note("E-step: re-weigh every person", { tone: colors.highlight });
+      plot.note("E-step: compute each person's membership probabilities", { tone: colors.highlight });
     } else if (inFlight) {
-      plot.note("M-step: refit both curves to those shares", { tone: colors.highlight });
+      plot.note("M-step: refit both curves from those probabilities", { tone: colors.highlight });
     } else {
       plot.note(`after ${i} iteration${i === 1 ? "" : "s"}`);
     }

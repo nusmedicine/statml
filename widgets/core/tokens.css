@@ -56,7 +56,15 @@
   --c-theory:    var(--series-2);    /* the theoretical / asymptotic result  */
   --c-smoothed:  var(--series-3);    /* a smoothed reading of the empirical  */
   --c-highlight: var(--series-7);    /* the one thing to look at right now   */
-  --c-reference: var(--ink-3);       /* truth: a parameter, a null value     */
+
+  /* The fixed benchmark the moving thing is judged against: the truth where
+     one exists (a true mean, a true parameter, the curves the data really
+     came from), else the baseline a fit is compared to (logistic's lm line,
+     linear-regularization's unpenalised fit, umap's entropy lower bound).
+     Audited across all 25 widgets on 2026-08-27: every use is one of those
+     two, so the wider reading was blessed rather than the baselines
+     repainted. It stays ink, not a series slot — a benchmark is not data. */
+  --c-reference: var(--ink-3);       /* the benchmark a fit is judged against */
 
   /* Two arms of a comparison. Widgets 4, 5 and 6 all put two groups on screen
      and none of the roles above means "group B", which was forcing widgets to
