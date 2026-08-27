@@ -115,6 +115,17 @@ function padDomain(xs) {
   return [lo - pad, hi + pad];
 }
 
+/* The collider's DKA and AMI are squared normals — a heavy right tail, so a
+   min-to-max window crushed 95% of the patients into the corner (Kenneth,
+   round 3). The frame stops at the 99th percentile instead, and the caption
+   counts what is past it; the FITS still use every patient — the window is
+   where you look, not what the model saw. */
+function tailDomain(xs) {
+  const s = [...xs].sort((a, b) => a - b);
+  const hi = s[Math.floor(0.99 * (s.length - 1))];
+  return [0, hi * 1.08];
+}
+
 const meanOf = (xs) => xs.reduce((a, v) => a + v, 0) / xs.length;
 
 defineWidget({
@@ -226,6 +237,15 @@ defineWidget({
     const zs = [...d.z].sort((a, b) => a - b);
     const zLo = zs[Math.floor(0.05 * (N - 1))];
     const zHi = zs[Math.floor(0.95 * (N - 1))];
+    const skewed = structure === "collider";
+    const xDom = skewed ? tailDomain(d.x) : padDomain(d.x);
+    const yDom = skewed ? tailDomain(d.y) : padDomain(d.y);
+    let beyond = 0;
+    if (skewed) {
+      for (let i = 0; i < N; i += 1) {
+        if (d.x[i] > xDom[1] || d.y[i] > yDom[1]) beyond += 1;
+      }
+    }
     return {
       structure,
       d,
@@ -235,8 +255,9 @@ defineWidget({
       meanZ: meanOf(d.z),
       meanX: meanOf(d.x),
       meanY: meanOf(d.y),
-      xDom: padDomain(d.x),
-      yDom: padDomain(d.y),
+      xDom,
+      yDom,
+      beyond,
       zLo,
       zHi: zHi === zLo ? zLo + 1 : zHi,
     };
@@ -364,6 +385,9 @@ defineWidget({
         ? `${names.y} ~ ${names.x}${adjusted ? ` + ${names.z}` : ""}`
         : `1000 patients, drawn by the ${state.structure}`,
     );
+    if (state.beyond > 0) {
+      plot.note(`${state.beyond} of 1000 past the frame — the fits use them all`);
+    }
 
     ctx.save();
     ctx.beginPath();

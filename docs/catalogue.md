@@ -3260,6 +3260,29 @@ a data change lands instantly by `init`. The ease answers Kenneth's "useful
 or distracting?" with the repo's own precedent rather than taste; if it reads
 as noise in review, deleting the `animation` block reverts it whole.
 
+### ROUND 3 — "the colors do what here?", and the squished collider
+
+Kenneth's two comments, one answered by measurement and one fixed:
+
+- **The band-line bridge is KILLED, measured before it was drawn.** The
+  obvious way to link colour to fit — thin fit lines inside each colour band
+  — teaches the OPPOSITE: within quartile bands the fork's slope is still
+  −0.38 to −0.30 (a 15-sd age is too wide to de-confound by quartile), and
+  the pipe's is 5–9 against an adjusted −0.04. In `causal-measure.mjs`,
+  ROUND TWO section. **The added-variable view is exact instead**: regress
+  both axes on the third variable and plot the residuals — the slope IS the
+  adjusted coefficient by Frisch–Waugh (0.110 / −0.040 / −0.180 to the
+  digit), and the tint visibly STOPS RUNNING anywhere, which is the proof
+  the third variable is out. Drawn for all three structures in
+  `causal-stage.html` round two, beside the killed candidate; the open
+  interaction choice ((a) a View control once fitted, dots tweening between
+  views, or (b) tied to Adjust) is stated on the page. Awaiting Kenneth.
+- **The collider's frame stops at the 99th percentile** (was min-to-max of a
+  squared normal, which crushed 95% of patients into the corner). The
+  caption counts what is past the frame — "18 of 1000 past the frame — the
+  fits use them all" — because the window is where you look, not what the
+  model saw.
+
 ---
 
 # PHM5005 · AI/ML for Precision Medicine

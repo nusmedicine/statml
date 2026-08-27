@@ -116,3 +116,28 @@ const show = (name, xs) => console.log(`  ${name.padEnd(9)} min ${f2(Math.min(..
   show("DKA", c.DKA); show("AMI", c.AMI);
   console.log(`  ICU share: ${f2(c.ICU.reduce((s, v) => s + v, 0) / 1000)}`);
 }
+
+/* --- Round two: how to SHOW the adjustment (Kenneth, 2026-08-27) ---------- *
+ * The obvious device — candidate B's per-band fit lines — was measured and
+ * KILLED: within quartile bands of the third variable the fork's slope is
+ * still firmly negative (the band is too wide to de-confound), and the
+ * pipe's is junk (within an HR band, exercise barely varies). The
+ * added-variable plot (regress BOTH axes on Z, plot the residuals) is exact
+ * in every structure — its slope IS the adjusted coefficient, by
+ * Frisch–Waugh — and is what round two proposes instead.                    */
+
+console.log("\nROUND TWO — band lines vs the added-variable plot (seed 1, n = 1000):");
+for (const key of ["fork", "pipe", "collider"]) {
+  const spec = (await import("../fork-pipe-collider/model.js")).STRUCTURES[key];
+  const d = spec.make(makeRng(1), 1000);
+  const adj = ols(d.y, [d.x, d.z]);
+  const idx = d.z.map((z, i) => [z, i]).sort((a, b) => a[0] - b[0]).map(([, i]) => i);
+  const slopes = [0, 1, 2, 3].map((b) => {
+    const ix = idx.slice(b * 250, (b + 1) * 250);
+    return ols(ix.map((i) => d.y[i]), [ix.map((i) => d.x[i])]).beta[1];
+  });
+  const rx = (() => { const g = ols(d.x, [d.z]); return d.x.map((v, i) => v - g.beta[0] - g.beta[1] * d.z[i]); })();
+  const ry = (() => { const g = ols(d.y, [d.z]); return d.y.map((v, i) => v - g.beta[0] - g.beta[1] * d.z[i]); })();
+  const av = ols(ry, [rx]);
+  console.log(`  ${key.padEnd(9)} adjusted ${f2(adj.beta[1])} | quartile bands ${slopes.map(f2).join(" ")} | AV plot ${f2(av.beta[1])}`);
+}
