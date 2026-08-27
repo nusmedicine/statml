@@ -57,7 +57,16 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 159 states, all matching
+## The suite: 167 states, all matching
+
+**Widget 26 added eight states on 2026-08-27 with `_lab/causal-shoot.html`** —
+the missing-shoot pattern, plus one improvement worth reusing: the shooter
+itself shoots every state THREE times in one run and refuses to print JSON on
+a flake, and shoots every driven state's bare URL beside it, flagging a drive
+that changed nothing. The copy proved 4/4 against recorded hashes; five
+settled, two driven mid-ease, one hit-driven on the DAG's third-variable
+node. No full-suite rerun owed — nothing in `widgets/core/` moved since its
+last green run.
 
 **The rail-section sweep's core change ran the full suite on 2026-08-27:
 159 of 159 MATCH.** `.w-section` gaining `grid-column: 1 / -1` is the only
