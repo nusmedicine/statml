@@ -8332,6 +8332,29 @@ review; blurb, subtitle and meta now say so. The hashed half (legend casing,
 readout notes, canvas captions, `--c-reference`) is still owed —
 [HANDOVER.md](../HANDOVER.md) § *NEXT* has the batch.
 
+### THE RAIL-SECTION SWEEP followed the same day — Kenneth's data/algorithm rule
+
+Kenneth: where a rail carries a **choice of data**, it should say so — a data
+section and an algorithm section. Candidates were drawn at the real width in
+[`_lab/dimred-rail.html`](../widgets/_lab/dimred-rail.html), three rounds, and
+he picked one at a time. Landed: **t-sne, umap, pca, mds** (per-widget entries
+above), then **maximum-likelihood** (*The population / The inference* —
+bayesian's pair minus the prior, "Estimating" leading the inference block),
+**confidence-interval** (*The data / The intervals*; seed rose into the data
+block, Play speed went below the buttons), and **em-mixture** (*The
+populations* headed; "Inference" harmonised to bayesian's *The inference*,
+3.7). The sweep also fixed core: `.w-section` now spans its grid row
+(`grid-column: 1 / -1`) — in the stacked layout the heading's hairline used to
+stop at one cell, reported from mobile; suite 159/159 after. **Left flat, each
+for a reason**: galton (no algorithm exists), multiple-testing (no testing
+knobs), missing-data (deliberately no algorithm), probability-mechanisms and
+odds-and-risk (view-switched rails), generalization / linear-regularization /
+logistic-regression (no data choice), trees (one method knob on one page).
+**bootstrap/clt/permutation-test are the drawn boundary** — a Population
+choice but an algorithm with no knobs, so the section would head
+watch-controls; svm is the one-control data section. Both mocked in round
+three, awaiting Kenneth's call.
+
 ---
 
 ## Widget 25 · `missing-data` — SHIPPED 2026-08-27
