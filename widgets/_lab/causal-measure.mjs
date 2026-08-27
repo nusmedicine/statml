@@ -25,9 +25,9 @@
 
 import { makeRng } from "../core/rng.js";
 import { tTailP } from "../core/stats.js";
-import { ols as olsShared, fork as forkShared, pipe as pipeShared, collider as colliderShared } from "./causal-model.js";
+import { ols as olsShared, fork as forkShared, pipe as pipeShared, collider as colliderShared } from "../fork-pipe-collider/model.js";
 
-/* The OLS and the three generators live in ./causal-model.js so the mock-ups
+/* The OLS and the three generators live in ../fork-pipe-collider/model.js so the mock-ups
    and the widget share ONE formula; this script only renames the triple's
    fields back to the notebook's variable names. */
 const ols = (y, xs) => olsShared(y, xs, tTailP);

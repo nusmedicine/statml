@@ -1,15 +1,15 @@
 /* ============================================================================
-   Shared model for widget 26 · fork-pipe-collider.
+   The model for widget 26 · fork-pipe-collider — the SHIPPING engine.
 
    The three generative models are VERBATIM from PHM5003 06-02 (Modeling for
    Explanation), cells 8/22/37 — same coefficients, same distributions — so
    the widget shows the notebook's own traps, not a retelling. The stored
    notebook outputs (fork unadjusted −0.401, adjusted +0.082; collider
    adjusted −0.181) are the reference this module was checked against in
-   `causal-measure.mjs`: our rng reproduces the same means across 200 seeds
-   (−0.40 / +0.10 / −0.22).
+   `_lab/causal-measure.mjs`: our rng reproduces the same means across 200
+   seeds (−0.40 / +0.10 / −0.22).
 
-   One OLS, used by the measure script, the mock-ups and the widget — the
+   One OLS, used by the widget, the measure script and the mock-ups — the
    two-copies-of-a-formula rule (see `deviationAfter` in galton-board).
    ========================================================================= */
 

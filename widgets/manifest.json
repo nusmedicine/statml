@@ -367,6 +367,20 @@
       ],
       "arc": 25,
       "status": "shipped"
+    },
+    {
+      "slug": "fork-pipe-collider",
+      "title": "Causal Structures",
+      "blurb": "The causal structure — fork, pipe or collider — decides whether adjusting for a covariate removes a bias or creates one.",
+      "course": "PHM5003",
+      "topics": [
+        "causal inference",
+        "confounding",
+        "DAG",
+        "adjustment"
+      ],
+      "arc": 26,
+      "status": "draft"
     }
   ]
 }
