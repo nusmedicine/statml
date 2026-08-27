@@ -112,6 +112,20 @@
     separate fits, and the caption must say so.
   </p>
   <div class="row" id="round3"></div>
+
+  <h2>Round four — the ICU = 0 line de-emphasised, the gap named on the intercept axis</h2>
+  <p class="note">
+    Kenneth's ask: keep the ICU = 0 line but render it <b>dotted</b>, and
+    annotate the <b>vertical gap</b> — the effect of ICU, R's printed
+    <code>ICU1</code> coefficient — on the intercept axis. The gap between
+    parallel lines is the same at every x, so the bracket sits at the left
+    edge where the intercepts live. Two variants of the de-emphasis, same
+    annotation: <b>C</b> dotted, as asked; <b>D</b> thin and faint but solid,
+    for comparison — worth a look because DASHES already carry a meaning in
+    this widget (the truth line is dashed, the DAG's blocked paths are
+    dashed), and a dotted fit line borrows that clothing.
+  </p>
+  <div class="row" id="round4"></div>
 </main>
 
 <script type="module">
@@ -468,6 +482,64 @@ document.getElementById("nums").innerHTML = `
         const my = meanOf(ix.map((i) => K.y[i]));
         line(c, s, domK, my - adj.beta[1] * mx, adj.beta[1], C.highlight, 2.5);
       }
+    }
+
+    /* ---- Round four: dotted vs faint ICU = 0, with the gap bracket ---- */
+    {
+      const host4 = document.getElementById("round4");
+      const adj = ols(K.y, [K.x, K.z], tTailP);
+      const b1 = adj.beta[1];
+      const cents = [0, 1].map((g) => {
+        const ix = K.z.map((z, i) => [z, i]).filter(([z]) => z === g).map(([, i]) => i);
+        return { b0: meanOf(ix.map((i) => K.y[i])) - b1 * meanOf(ix.map((i) => K.x[i])) };
+      });
+      const gap = cents[1].b0 - cents[0].b0; // = adj.beta[2], the ICU coefficient
+
+      const drawVariant = (title, sub, zeroStyle) => {
+        const c = panel(host4, title, sub);
+        const s = frame(c, domK);
+        dots(c, s, K.x, K.y, (i) => t(K.z[i]));
+        line(c, s, domK, fitK_u.beta[0], fitK_u.beta[1], C.empirical, 2);
+        // ICU = 1: solid, full weight. ICU = 0: the variant.
+        line(c, s, domK, cents[1].b0, b1, C.highlight, 2.5);
+        if (zeroStyle === "dotted") line(c, s, domK, cents[0].b0, b1, C.highlight, 2, [2, 4]);
+        else { c.globalAlpha = 0.55; line(c, s, domK, cents[0].b0, b1, C.highlight, 1.5); c.globalAlpha = 1; }
+        // line labels, right of the bracket
+        c.font = "11px system-ui"; c.textAlign = "left"; c.textBaseline = "bottom";
+        const lx = 0.85;
+        for (const [g, cb0] of [[0, cents[0].b0], [1, cents[1].b0]]) {
+          const text = `ICU = ${g}`;
+          c.strokeStyle = C.surface; c.lineWidth = 3;
+          c.strokeText(text, s.sx(lx) + 2, s.sy(cb0 + b1 * lx) - 3);
+          c.fillStyle = C.ink2;
+          c.fillText(text, s.sx(lx) + 2, s.sy(cb0 + b1 * lx) - 3);
+        }
+        // THE GAP BRACKET on the intercept axis: same at every x (parallel), so
+        // it sits at the left edge where the intercepts live.
+        const ax = 0.18;
+        const y0 = s.sy(cents[0].b0 + b1 * ax);
+        const y1 = s.sy(cents[1].b0 + b1 * ax);
+        const px = s.sx(ax);
+        c.strokeStyle = C.ink1; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(px, y0); c.lineTo(px, y1); c.stroke();
+        for (const [ye, dir] of [[y0, -1], [y1, 1]]) {
+          c.fillStyle = C.ink1;
+          c.beginPath();
+          c.moveTo(px, ye);
+          c.lineTo(px - 4, ye + dir * 6);
+          c.lineTo(px + 4, ye + dir * 6);
+          c.fill();
+        }
+        c.textBaseline = "middle";
+        const label = `effect of ICU = +${gap.toFixed(2)}`;
+        c.strokeStyle = C.surface; c.lineWidth = 3;
+        c.strokeText(label, px + 8, (y0 + y1) / 2);
+        c.fillStyle = C.ink1;
+        c.fillText(label, px + 8, (y0 + y1) / 2);
+      };
+
+      drawVariant("C · ICU = 0 dotted, gap named", "as asked — the caution: dashes already mean 'truth' and 'blocked' in this widget", "dotted");
+      drawVariant("D · ICU = 0 thin and faint, gap named", "same annotation; the de-emphasis by weight rather than by dashes", "faint");
     }
   }
 }
