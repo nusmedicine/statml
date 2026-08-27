@@ -5522,6 +5522,21 @@ is not installed here. The gap is narrow — sklearn's `method="exact"` and
 start above all), so a claim about *what the lesson's own code does* should say
 `Rtsne` and be checked against it, not inferred from sklearn.
 
+### THE RAIL GAINED SECTIONS — Kenneth, 2026-08-27
+
+Kenneth's sweep found the make-data-then-fit widgets inconsistent: kmeans and
+dbscan head their rails *The data* / method, t-SNE and UMAP did not. Three
+candidates per widget were drawn at the real 300px track in
+[`_lab/dimred-rail.html`](../widgets/_lab/dimred-rail.html) and he picked C for
+both: sections **plus** the kmeans pairs, which pay for the headings' height.
+
+The rail now reads **The data** (groups+samples on one row, seed, True groups)
+/ **t-SNE** (perplexity). Perplexity had sat beside `samples`, which sets its
+legal range; the heading won because the clamp already has a voice in the
+readout and the rail's two kinds of thing had none (3.4g). Cost measured in the
+mock-up: +32px against the unsectioned rail. Rail-only — both hashes untouched,
+no rebaseline.
+
 ---
 
 ## Widget 22 · `umap` — SHIPPED, planned and measured first
@@ -6455,6 +6470,18 @@ the *picture* while μ comes from the *data*.
 - **how the two notebooks' notation is reconciled.** PHM5003 writes the high-D
   membership as `μ(xᵢ,xⱼ)`, PHM5005 as `p_ij` with `q_ij` for the low-D one. The
   widget serves both and has to pick one and say which
+
+### THE RAIL GAINED SECTIONS — Kenneth, 2026-08-27
+
+Same sweep and same pick as widget 21's (candidate C in
+[`_lab/dimred-rail.html`](../widgets/_lab/dimred-rail.html)): **The data**
+(groups+samples on one row, seed, True groups) / **UMAP** (neighbours+min dist
+on one row, then the two gates). Two real fixes rode along: `seed` — "moves
+every sample" — no longer sits *below the run buttons*, and the True-groups
+reveal takes the arc's settled place directly after it. The pairs out-pay the
+headings: measured 39px *shorter* than the shipped rail. Gates keep their
+relative order, so core's `GATE_PARAM` (first gate in the spec) is untouched.
+Rail-only — both hashes untouched, no rebaseline.
 
 ### After UMAP
 
