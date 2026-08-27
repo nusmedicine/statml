@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 27 stage — what does the SS surface look like?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 27 · lm-least-squares — the line, the sum, the surface</h1>
+
+  <p class="note">
+    05-01's own pedagogy: pick b₀ and b₁ by hand, watch the sum of squares,
+    then see the fitted line as the <b>minimum of a surface</b>. Everything
+    below is drawn on the real data (<code>lm-data.js</code>, the notebooks'
+    own Framingham frame, n = 3547) with the reader's line at the notebook's
+    own hand-picked <b>b₀ = 70, b₁ = 2</b> (cell 11) — SS 1,762,150, 25% above
+    the minimum. The fitted answer is b₀ = 87.07, b₁ = 1.72, verified against
+    every stored output (<code>lm-measure.mjs</code>, 18 checks).
+  </p>
+  <p class="note">
+    <b>The measured constraint every candidate answers to:</b> the surface
+    spans 44.5× on the notebook's grid, but the whole teaching range is the
+    bottom 10% — the flat mean line (b₁ = 0) is only 10.6% above the minimum,
+    and that gap IS R². A linear scale washes the teaching range into one
+    band (§2 shows it). The valley is a 13:1 diagonal trench, not a bowl.
+  </p>
+
+  <h2>§1 · Stage composition — what the 550px canvas holds</h2>
+  <p class="note">
+    <b>A</b> scatter alone, SS as a meter strip — the surface never drawn;
+    <b>B</b> scatter beside the surface, "you are here" linked — one glance,
+    smaller panels; <b>C</b> scatter above the surface — both get width, the
+    widget gets taller (~500px, cf. the repo's usual ~330). All surface
+    panels here use the capped-relative scale that §2 argues for.
+  </p>
+  <div class="row" id="comp"></div>
+
+  <h2>§2 · The surface's scale — the design problem, drawn</h2>
+  <p class="note">
+    Same grid as the notebook (b₀ 0–150, b₁ 0–5), four treatments.
+    <b>Linear</b> is the notebook's own look and the wash is the measurement
+    made visible: everything below ~10× the minimum is one colour.
+    <b>Log</b> recovers the trench. <b>Capped at 3×</b> spends the whole ramp
+    on the teaching range (every line a reader would actually hold sits
+    under 3× the minimum). <b>Banded</b> is capped-with-levels — contour-like
+    without pretending precision. The minimum is crossed, the reader's line
+    dotted.
+  </p>
+  <div class="row" id="scales"></div>
+
+  <h2>§3 · The misfit on the scatter — what the SS number points at</h2>
+  <p class="note">
+    The notebook's diagram draws the vertical differences. At n = 3547:
+    <b>A</b> no marks (the SS tile carries it alone); <b>B</b> every residual
+    as a faint segment — misfit becomes a wash whose depth varies;
+    <b>C</b> a 60-patient systematic subsample wearing literal squares —
+    honest about <i>squared</i>, but the squares are screen-square (true
+    squares only under equal axis scaling) and the sum on screen is no longer
+    the SS the tile reports. 2.11 (visible-data-only claims) leans against C.
+  </p>
+  <div class="row" id="misfit"></div>
+
+  <h2>§4 · What "Fit" reveals — the walk downhill</h2>
+  <p class="note">
+    The notebook's <code>optim</code> is the argmin move. Two candidate
+    reveals: <b>snap</b> — the minimum appears, the line eases to it
+    (widget 12's mechanism, one beat); <b>walk</b> — a descent path drawn
+    step by step, the line swinging as the point slides. The path below is
+    coordinate descent from the notebook's own start (0, 0): b₀ then b₁,
+    each an exact one-dimensional minimisation. It reaches the trench in two
+    moves and then <b>crawls along it</b> — the 13:1 elongation is why, and
+    that crawl is itself the teaching (many near-equally-good lines).
+    The SS-per-step strip underneath is the same walk as a falling curve.
+  </p>
+  <div class="row" id="fit"></div>
+
+  <h2>Numbers on this data</h2>
+  <div id="nums"></div>
+
+  <h2>Open interaction questions (for review, not drawn)</h2>
+  <p class="note">
+    <b>How the reader holds the line:</b> b₀/b₁ sliders (honest, names the
+    parameters, no <code>regions</code> needed) vs dragging the line itself
+    (two handles — grab near an end to tilt, middle to shift; needs
+    <code>regions</code> and therefore a hit-driven fingerprint state).
+    Sliders are the notebook's own vocabulary (<code>c(b0, b1)</code>);
+    a drag is the surface metaphor made physical. Both can coexist —
+    drag as shortcut, sliders as record (5.6: a region is a faster way to
+    reach a parameter, never a second state of record).
+    <b>The gate:</b> the surface panel could arrive only after the reader
+    has held a line or two ("Where does my line sit among ALL lines?") —
+    3.4b's shape. C-composition + gate = A that grows into C.
+    <b>Axis window:</b> panels draw the full data range (the notebook's
+    look); the 1%–99% window (BMI 18.1–38.5, sysBP 96.5–197.5) doubles the
+    cloud's size but puts 130 patients off-stage while the SS tile still
+    counts them — 2.11 would demand a note.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP } from "./lm-data.js";
+import { ols, ssLine, ssQuad } from "./lm-model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  reference: css("--c-reference"), extreme: css("--c-extreme"),
+  unknown: css("--c-unknown"),
+  nonevent: css("--c-nonevent"), event: css("--c-event"),
+};
+const DPR = devicePixelRatio || 1;
+
+const fit = ols(SYSBP, BMI);
+const [B0, B1] = fit.b;                      // 87.068, 1.721
+const Q = ssQuad(BMI, SYSBP);
+// ssQuad must agree with 05-01's own sum_squares or every surface pixel lies.
+for (const [a, b] of [[0, 0], [70, 2], [150, 5]])
+  if (Math.abs(Q.ss(a, b) - ssLine(a, b, BMI, SYSBP)) > 1) throw new Error("ssQuad drifted from ssLine");
+const SSMIN = fit.ssRes;
+const PROBE = [70, 2];                       // cell 11's hand-picked line
+const ssProbe = Q.ss(...PROBE);
+const ssFlat = fit.ssTot;                    // b1 = 0 at b0 = mean(y)
+
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const ramp = (t) => hexLerp(C.nonevent, C.event, Math.max(0, Math.min(1, t)));
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- scatter into a rect, full data range like the notebook ---- */
+const XDOM = [14, 58], YDOM = [80, 300];
+function scatterInto(ctx, r, opts = {}) {
+  const sx = (x) => r.x + ((x - XDOM[0]) / (XDOM[1] - XDOM[0])) * r.w;
+  const sy = (y) => r.y + r.h - ((y - YDOM[0]) / (YDOM[1] - YDOM[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+  ctx.fillText("BMI", r.x + r.w / 2, r.y + r.h + 16);
+  ctx.save();
+  ctx.translate(r.x - 30, r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("sysBP", 0, 0);
+  ctx.restore();
+  ctx.textAlign = "right";
+  ctx.font = "9px system-ui";
+  for (const v of [100, 200, 300]) { ctx.fillText(v, r.x - 4, sy(v) + 3); }
+  ctx.textAlign = "center";
+  for (const v of [20, 40]) { ctx.fillText(v, sx(v), r.y + r.h + 10); }
+
+  if (opts.residuals) {
+    ctx.strokeStyle = C.extreme; ctx.globalAlpha = 0.05; ctx.lineWidth = 1;
+    for (let i = 0; i < N; i++) {
+      ctx.beginPath();
+      ctx.moveTo(sx(BMI[i]), sy(SYSBP[i]));
+      ctx.lineTo(sx(BMI[i]), sy(opts.residuals[0] + opts.residuals[1] * BMI[i]));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (opts.squares) {
+    const [b0, b1] = opts.squares;
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < N; i += 59) {           // deterministic 60-of-3547
+      const px = sx(BMI[i]), py = sy(SYSBP[i]), ly = sy(b0 + b1 * BMI[i]);
+      const side = Math.abs(ly - py);
+      ctx.fillStyle = C.extreme;
+      ctx.fillRect(px, Math.min(py, ly), side, side);
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.extreme; ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+    for (let i = 0; i < N; i += 59) {
+      ctx.beginPath();
+      ctx.moveTo(sx(BMI[i]), sy(SYSBP[i]));
+      ctx.lineTo(sx(BMI[i]), sy(b0 + b1 * BMI[i]));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.4;
+  for (let i = 0; i < N; i++) {
+    ctx.beginPath();
+    ctx.arc(sx(BMI[i]), sy(SYSBP[i]), 1.6, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const line = (b0, b1, color, width, dash = []) => {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();  // clip to frame (the causal-stage blemish, fixed)
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(sx(XDOM[0]), sy(b0 + b1 * XDOM[0]));
+    ctx.lineTo(sx(XDOM[1]), sy(b0 + b1 * XDOM[1]));
+    ctx.stroke();
+    ctx.restore();
+  };
+  if (opts.fitted) line(B0, B1, C.reference, 2, [6, 4]);
+  if (opts.probe) line(...PROBE, C.highlight, 2.5);
+  if (opts.handles) {
+    for (const x of [XDOM[0] + 5, XDOM[1] - 5]) {
+      ctx.fillStyle = C.highlight;
+      ctx.beginPath();
+      ctx.arc(sx(x), sy(PROBE[0] + PROBE[1] * x), 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = C.surface; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  }
+  return { sx, sy, line };
+}
+
+/* ---- SS surface into a rect over the notebook's grid ---- */
+const G0 = [0, 150], G1 = [0, 5];
+function surfaceInto(ctx, r, mode, opts = {}) {
+  const sx = (b0) => r.x + ((b0 - G0[0]) / (G0[1] - G0[0])) * r.w;
+  const sy = (b1) => r.y + r.h - ((b1 - G1[0]) / (G1[1] - G1[0])) * r.h;
+  const ssMax = Math.max(Q.ss(0, 5), Q.ss(150, 5), Q.ss(0, 0), Q.ss(150, 0));
+  const bands = [1, 1.05, 1.15, 1.3, 1.6, 2.2, 3.5, 6, 12, 25, 45];
+  const cell = 2;
+  for (let px = 0; px < r.w; px += cell) {
+    for (let py = 0; py < r.h; py += cell) {
+      const b0 = G0[0] + (px / r.w) * (G0[1] - G0[0]);
+      const b1 = G1[1] - (py / r.h) * (G1[1] - G1[0]);
+      const s = Q.ss(b0, b1);
+      let t;
+      if (mode === "linear") t = (s - SSMIN) / (ssMax - SSMIN);
+      else if (mode === "log") t = Math.log10(s / SSMIN) / Math.log10(ssMax / SSMIN);
+      else if (mode === "capped") t = (s / SSMIN - 1) / 2;             // 1x..3x
+      else { // banded
+        let k = bands.findIndex((b) => s / SSMIN < b);
+        if (k < 0) k = bands.length;
+        t = k / bands.length;
+      }
+      ctx.fillStyle = ramp(t);
+      ctx.fillRect(r.x + px, r.y + py, cell, cell);
+    }
+  }
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+  ctx.fillText("b0 (intercept)", r.x + r.w / 2, r.y + r.h + 16);
+  ctx.save();
+  ctx.translate(r.x - 30, r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("b1 (slope)", 0, 0);
+  ctx.restore();
+  ctx.font = "9px system-ui";
+  ctx.textAlign = "center";
+  for (const v of [0, 50, 100, 150]) ctx.fillText(v, sx(v), r.y + r.h + 10);
+  ctx.textAlign = "right";
+  for (const v of [0, 2.5, 5]) ctx.fillText(v, r.x - 4, sy(v) + 3);
+
+  if (opts.path) {
+    ctx.strokeStyle = C.ink1; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    opts.path.forEach(([b0, b1], i) => (i ? ctx.lineTo(sx(b0), sy(b1)) : ctx.moveTo(sx(b0), sy(b1))));
+    ctx.stroke();
+    ctx.fillStyle = C.ink1;
+    for (const [b0, b1] of opts.path.slice(0, 6)) {
+      ctx.beginPath(); ctx.arc(sx(b0), sy(b1), 2.5, 0, 2 * Math.PI); ctx.fill();
+    }
+  }
+  // the minimum, crossed
+  ctx.strokeStyle = C.ink1; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx(B0) - 6, sy(B1)); ctx.lineTo(sx(B0) + 6, sy(B1));
+  ctx.moveTo(sx(B0), sy(B1) - 6); ctx.lineTo(sx(B0), sy(B1) + 6);
+  ctx.stroke();
+  // the reader's line, a dot
+  if (opts.probe !== false) {
+    ctx.fillStyle = C.highlight;
+    ctx.beginPath(); ctx.arc(sx(PROBE[0]), sy(PROBE[1]), 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = C.surface; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  return { sx, sy };
+}
+
+/* ---- the SS meter strip ---- */
+function meterInto(ctx, r) {
+  const lo = SSMIN * 0.97, hi = ssProbe * 1.15;
+  const mx = (v) => r.x + ((v - lo) / (hi - lo)) * r.w;
+  const grad = ctx.createLinearGradient(r.x, 0, r.x + r.w, 0);
+  grad.addColorStop(0, ramp(0)); grad.addColorStop(1, ramp(1));
+  ctx.fillStyle = grad;
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.strokeStyle = C.grid; ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.font = "10px system-ui";
+  const tick = (v, label, color, above) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(mx(v), r.y - 3); ctx.lineTo(mx(v), r.y + r.h + 3); ctx.stroke();
+    ctx.fillStyle = color; ctx.textAlign = "center";
+    ctx.fillText(label, mx(v), above ? r.y - 7 : r.y + r.h + 14);
+  };
+  tick(SSMIN, "best possible 1,410,293", C.ink1, true);
+  tick(ssFlat, "flat mean line", C.ink3, false);
+  tick(ssProbe, "your line 1,762,150", C.highlight, true);
+}
+
+/* ================= §1 · composition ================= */
+{
+  const host = document.getElementById("comp");
+
+  const a = panel(host, "A · scatter + SS meter",
+    "the surface never drawn; SS is a needle on a strip (best possible | flat mean | your line) — cheapest, but the 2-D trade of b0 against b1 is invisible", 550, 340);
+  scatterInto(a, { x: 46, y: 14, w: 486, h: 240 }, { probe: true, fitted: true, handles: true });
+  meterInto(a, { x: 60, y: 296, w: 458, h: 12 });
+
+  const b = panel(host, "B · scatter beside the surface",
+    "one glance links the line to its point on the surface; each panel ~250px — the scatter loses half its width", 550, 310);
+  scatterInto(b, { x: 46, y: 14, w: 234, h: 240 }, { probe: true, fitted: true });
+  surfaceInto(b, { x: 336, y: 14, w: 196, h: 240 }, "capped");
+
+  const c = panel(host, "C · scatter above the surface",
+    "both get the full width; the widget grows to ~500px tall (bayesian-scale) — natural gate shape: the surface arrives when asked for", 550, 500);
+  scatterInto(c, { x: 46, y: 14, w: 486, h: 210 }, { probe: true, fitted: true });
+  surfaceInto(c, { x: 46, y: 268, w: 486, h: 190 }, "capped");
+}
+
+/* ================= §2 · scale ================= */
+{
+  const host = document.getElementById("scales");
+  const W = 270, H = 230, R = { x: 46, y: 10, w: 208, h: 180 };
+  surfaceInto(panel(host, "linear — the notebook's look",
+    "the wash, measured then drawn: the whole teaching range is one colour; only the far corners darken", W, H), R, "linear");
+  surfaceInto(panel(host, "log10",
+    "the trench appears; still spends half the ramp above 10x, where no reader's line ever goes", W, H), R, "log");
+  surfaceInto(panel(host, "capped at 3x the minimum",
+    "the whole ramp inside the range a held line visits; everything past 3x saturates — honest about where the story is", W, H), R, "capped");
+  surfaceInto(panel(host, "banded (capped, 11 levels)",
+    "contour-like without interpolation; the 13:1 trench reads as nested diagonal ellipses", W, H), R, "banded");
+}
+
+/* ================= §3 · misfit ================= */
+{
+  const host = document.getElementById("misfit");
+  const R = { x: 46, y: 14, w: 486, h: 240 };
+  scatterInto(panel(host, "A · no marks",
+    "the SS tile carries the number alone; the cloud stays a cloud", 550, 290), R, { probe: true });
+  scatterInto(panel(host, "B · every residual, faint",
+    "all 3547 vertical differences at 5% alpha — misfit as a wash whose depth varies along the line", 550, 290), R, { probe: true, residuals: PROBE });
+  scatterInto(panel(host, "C · 60 patients wear squares",
+    "every 59th patient; screen-square, so an illustration of 'squared', not the sum the tile reports", 550, 290), R, { probe: true, squares: PROBE });
+}
+
+/* ================= §4 · the walk ================= */
+{
+  const host = document.getElementById("fit");
+
+  // coordinate descent from the notebook's optim start (0,0); exact 1-D minimisations
+  const path = [[0, 0]];
+  let [b0, b1] = [0, 0];
+  let cycles = 0;
+  for (let i = 0; i < 2000; i++) {
+    const nb0 = (Q.Sy - b1 * Q.Sx) / Q.n;
+    path.push([nb0, b1]);
+    const nb1 = (Q.Sxy - nb0 * Q.Sx) / Q.Sxx;
+    path.push([nb0, nb1]);
+    cycles++;
+    if (Math.abs(nb0 - b0) < 1e-4 && Math.abs(nb1 - b1) < 1e-6) { b0 = nb0; b1 = nb1; break; }
+    b0 = nb0; b1 = nb1;
+  }
+
+  const a = panel(host, "the walk, drawn on the surface",
+    `coordinate descent from (0,0): two moves reach the trench, then ${cycles} cycles crawl along it to (87.07, 1.72) — the crawl IS the 13:1 elongation`, 550, 280);
+  surfaceInto(a, { x: 46, y: 10, w: 486, h: 230 }, "log", { path, probe: false });
+
+  const b = panel(host, "the same walk as SS per step",
+    "the first move does almost everything; the crawl is the long flat tail — an honest picture of why 'good enough' lines are many", 550, 200);
+  const r = { x: 60, y: 14, w: 472, h: 140 };
+  const ssPath = path.map(([p, q]) => Q.ss(p, q));
+  const lo = SSMIN * 0.98, hi = ssPath[0];
+  const sx = (i) => r.x + (Math.log10(1 + i) / Math.log10(ssPath.length)) * r.w;
+  const sy = (v) => r.y + r.h - ((Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))) * r.h;
+  b.strokeStyle = C.grid; b.strokeRect(r.x, r.y, r.w, r.h);
+  b.strokeStyle = C.reference; b.setLineDash([5, 4]);
+  b.beginPath(); b.moveTo(r.x, sy(SSMIN)); b.lineTo(r.x + r.w, sy(SSMIN)); b.stroke();
+  b.setLineDash([]);
+  b.strokeStyle = C.empirical; b.lineWidth = 2;
+  b.beginPath();
+  ssPath.forEach((v, i) => (i ? b.lineTo(sx(i), sy(v)) : b.moveTo(sx(i), sy(v))));
+  b.stroke();
+  b.fillStyle = C.ink3; b.font = "10px system-ui"; b.textAlign = "center";
+  b.fillText("step (log)", r.x + r.w / 2, r.y + r.h + 16);
+  b.textAlign = "left";
+  b.fillText("SS (log) — dashed: the minimum", r.x + 4, r.y + 12);
+}
+
+/* ================= numbers ================= */
+document.getElementById("nums").innerHTML = `
+  <table>
+    <tr><th>quantity</th><th class="n">computed here</th><th class="n">05-01 stored output</th></tr>
+    <tr><td>b0, b1</td><td class="n">${B0.toFixed(6)}, ${B1.toFixed(6)}</td><td class="n">87.068295, 1.721042</td></tr>
+    <tr><td>SE(b0), SE(b1)</td><td class="n">${fit.se[0].toFixed(6)}, ${fit.se[1].toFixed(8)}</td><td class="n">2.178396, 0.08373255</td></tr>
+    <tr><td>R², adj R²</td><td class="n">${fit.r2.toFixed(7)}, ${fit.adjR2.toFixed(6)}</td><td class="n">0.1064831, 0.106231</td></tr>
+    <tr><td>SS at the minimum</td><td class="n">${Math.round(SSMIN).toLocaleString("en")}</td><td class="n">—</td></tr>
+    <tr><td>SS at (70, 2), cell 11's line</td><td class="n">${Math.round(ssProbe).toLocaleString("en")}</td><td class="n">printed in cell 11's title</td></tr>
+    <tr><td>SS at (0, 0), the grid corner</td><td class="n">${Math.round(Q.ss(0, 0)).toLocaleString("en")}</td><td class="n">62,737,626</td></tr>
+    <tr><td>flat mean line vs minimum</td><td class="n">+${(100 * (ssFlat / SSMIN - 1)).toFixed(1)}%</td><td class="n">= R² by construction</td></tr>
+  </table>`;
+</script>
+</body>
+</html>

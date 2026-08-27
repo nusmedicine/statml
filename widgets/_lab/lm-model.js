@@ -59,6 +59,25 @@ export function ssLine(b0, b1, x, y) {
   return s;
 }
 
+// The same SS as a closed quadratic in (b0, b1) with the data sums folded in
+// once — O(1) per evaluation instead of O(n), which is what makes a surface
+// panel affordable (a 100x100 grid is 10k evaluations per repaint). Expanding
+// (b0 + b1*x - y)^2 and summing:
+//   SS = Sy2 + n*b0^2 + Sxx*b1^2 + 2*Sx*b0*b1 - 2*Sy*b0 - 2*Sxy*b1
+// Callers should spot-check it against ssLine at a point or two; the two are
+// one formula only if this expansion is right, and a silent disagreement here
+// would poison every surface pixel at once.
+export function ssQuad(x, y) {
+  const n = y.length;
+  let Sx = 0, Sy = 0, Sxx = 0, Sxy = 0, Sy2 = 0;
+  for (let i = 0; i < n; i++) {
+    Sx += x[i]; Sy += y[i]; Sxx += x[i] * x[i]; Sxy += x[i] * y[i]; Sy2 += y[i] * y[i];
+  }
+  const ss = (b0, b1) =>
+    Sy2 + n * b0 * b0 + Sxx * b1 * b1 + 2 * Sx * b0 * b1 - 2 * Sy * b0 - 2 * Sxy * b1;
+  return { ss, n, Sx, Sy, Sxx, Sxy };
+}
+
 function dot(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
 
 function invert(M) {

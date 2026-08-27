@@ -3267,13 +3267,23 @@ the mock-ups must answer to:
 - SS at the notebook's own hand-picked line (70, 2): 1 762 150 — 25% above
   the minimum, a good "close but standably wrong" opening.
 
-**Open design questions for the mock-ups** (next step — `_lab/` page,
-Kenneth picks): what the stage pairs with the scatter — the SS surface as
-heatmap/contour with a "you are here" mark, an SS meter beside a draggable
-line, or both in sequence behind a gate; whether the reader sets the line by
-dragging it or by b₀/b₁ sliders (drag needs `regions`); what "Fit" reveals —
-`optim`'s downhill walk animated, or the minimum arriving at once; and the
-SS scale ruling above.
+**The mock-up page is BUILT** —
+[`_lab/lm-stage.html`](../widgets/_lab/lm-stage.html), all candidates drawn
+on the real data with the reader's line at the notebook's own hand-picked
+(70, 2). Four sections, each a design question for Kenneth's pick:
+**§1 stage composition** (A scatter + SS meter strip; B scatter beside the
+surface at ~250px each; C scatter above the surface, ~500px tall — the
+natural gate shape); **§2 the surface's scale** (linear = the notebook's own
+wash, log, capped at 3× the minimum, banded — capped is what §1's panels
+wear); **§3 the misfit on the scatter** (no marks / all 3547 residuals at 5%
+alpha / 60-patient squares — the captions carry 2.11's case against the
+squares); **§4 what "Fit" reveals** (snap vs walk; the drawn walk is
+coordinate descent from the notebook's `optim` start (0, 0) — two moves
+reach the trench, then the crawl along it IS the 13:1 elongation, with the
+SS-per-step curve beneath). The open interaction questions (sliders vs
+dragging the line, the gate, the axis window and its 2.11 note) are prose at
+the page's foot. `ssQuad` joined `lm-model.js` for the surface panels —
+the O(1) closed quadratic, self-checked against `ssLine` at load.
 
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
