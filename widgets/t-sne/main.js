@@ -507,6 +507,12 @@ defineWidget({
   ],
 
   params: {
+    /* TWO BLOCKS, the shape kmeans and dbscan settled for the arc: the dials
+       that make the samples, then the one t-SNE was told. The headings and the
+       groups+samples pair landed together, chosen from `_lab/dimred-rail.html`
+       (candidate C) — the pair pays for most of the headings' height, so the
+       rail is 32px taller than the unsectioned one rather than 105. */
+    data: { type: "section", label: "The data" },
     groups: {
       type: "choice",
       label: "Groups in the data",
@@ -516,6 +522,7 @@ defineWidget({
         { value: "4", label: "4", detail: "four clusters, spread through space" },
       ],
       default: "4",
+      row: { key: "stage" },
     },
     /* Twelve per group is the default because that is where perplexity starts
        carrying an idea. Rtsne refuses to run at 3 * perplexity >= n - 1, so the
@@ -530,17 +537,7 @@ defineWidget({
         { value: "12", label: "12", detail: "the whole legal range of perplexity is reachable" },
       ],
       default: "12",
-    },
-    /* THE CONTROL THAT CARRIES THE IDEA, and the only one the R lesson names.
-       Its legal range is set by the sample count, not by taste: `compute`
-       clamps to Rtsne's own rule and the readout says when it has. */
-    perplexity: {
-      type: "int",
-      label: "Perplexity",
-      min: 2,
-      max: 15,
-      default: 5,
-      detail: "how many neighbours each sample is asked to care about",
+      row: { key: "stage" },
     },
     seed: {
       type: "int",
@@ -567,6 +564,22 @@ defineWidget({
     /* `display: true`, for the reason widget 20 records: as a data gate this
        would be the one gate core animates, but shutting it would throw away a
        descent the reader had stepped through. */
+
+    fit: { type: "section", label: "t-SNE" },
+    /* THE CONTROL THAT CARRIES THE IDEA, and the only one the R lesson names.
+       Its legal range is set by the sample count, not by taste: `compute`
+       clamps to Rtsne's own rule and the readout says when it has. It used to
+       sit beside `samples` for exactly that dependence; the heading won
+       because the clamp already has a voice in the readout and the rail's two
+       kinds of thing had no voice at all (3.4g). */
+    perplexity: {
+      type: "int",
+      label: "Perplexity",
+      min: 2,
+      max: 15,
+      default: 5,
+      detail: "how many neighbours each sample is asked to care about",
+    },
     turn: { type: "int", label: "Turn", min: -180, max: 180, default: TURN0, display: true, hidden: true },
     tilt: { type: "int", label: "Tilt", min: -80, max: 80, default: TILT0, display: true, hidden: true },
 
