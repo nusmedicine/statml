@@ -17,7 +17,7 @@
     {
       "slug": "clt",
       "title": "Central Limit Theorem",
-      "blurb": "The mean of a sample goes normal whatever the population looks like.",
+      "blurb": "Sample means become normally distributed, whatever the shape of the population.",
       "course": "PHM5003",
       "topics": [
         "sampling",
@@ -82,8 +82,8 @@
     },
     {
       "slug": "power-and-error",
-      "title": "Power and Error Rates",
-      "blurb": "You choose the false positive rate. You do not choose the other one.",
+      "title": "Decision Making",
+      "blurb": "A hypothesis test is a decision whose error rates are set by effect size, sample size and the significance threshold.",
       "course": "PHM5003",
       "topics": [
         "power",
@@ -112,7 +112,7 @@
     {
       "slug": "bayesian",
       "title": "Bayesian Estimation",
-      "blurb": "What the likelihood could not give you: a probability for the parameter itself.",
+      "blurb": "Bayesian estimation combines the likelihood with a prior to give a probability distribution over the parameter itself.",
       "course": "PHM5003",
       "topics": [
         "bayesian",
@@ -211,7 +211,7 @@
     {
       "slug": "logistic-regression",
       "title": "Logistic Regression",
-      "blurb": "A binary outcome has no line through it. Move the link to the left-hand side and the model is straight again.",
+      "blurb": "Logistic regression predicts a binary outcome by modelling the log(odds), so each coefficient is an odds ratio.",
       "course": "PHM5003",
       "topics": [
         "logistic regression",
@@ -225,7 +225,7 @@
     {
       "slug": "support-vector-machine",
       "title": "Support Vector Machines",
-      "blurb": "A straight boundary cannot carve out a ring. C sets how wide the corridor is; the kernel sets what shape it may be.",
+      "blurb": "An SVM finds the maximum-margin boundary between two classes; the kernel determines the shape it can take.",
       "course": "PHM5005",
       "topics": [
         "SVM",
@@ -286,7 +286,7 @@
     {
       "slug": "mds",
       "title": "Multidimensional scaling",
-      "blurb": "Fit a picture to a table of distances — or to nothing but their rank order, which is the non-metric one.",
+      "blurb": "Multidimensional scaling arranges samples so their distances match a measured distance table as closely as possible.",
       "course": "PHM5005",
       "topics": [
         "dimensionality reduction",
@@ -300,7 +300,7 @@
     {
       "slug": "t-sne",
       "title": "t-SNE",
-      "blurb": "Perplexity is how many neighbours a sample must care about. What survives into the picture is who is near whom.",
+      "blurb": "t-SNE embeds high-dimensional data in 2-D, preserving each sample's nearest neighbours rather than global distances.",
       "course": "PHM5003",
       "topics": [
         "dimensionality reduction",
@@ -328,7 +328,7 @@
     {
       "slug": "kmeans",
       "title": "K-Means",
-      "blurb": "Centroids claim the nearest points, then move to their mean. The objective falls at every K; the silhouette does not.",
+      "blurb": "K-means partitions data into K clusters, where the number of clusters must be chosen in advance.",
       "course": "PHM5005",
       "topics": [
         "clustering",

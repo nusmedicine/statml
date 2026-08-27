@@ -354,11 +354,15 @@ function halt(anim, { finished = false } = {}) {
 defineWidget({
   slug: "power-and-error",
   status: "shipped",
-  title: "Power and Error Rates",
+  /* "Decision Making" aligns with the lesson's own topic name (03/04-02). The
+     slug stays `power-and-error` until the course ends — the URL has been given
+     to students. */
+  title: "Decision Making",
   subtitle:
-    "You choose the false positive rate. You do not choose the other one. " +
-    "Change the effect, the sample size and the threshold, and watch which of " +
-    "the four outcomes at the foot actually responds to each.",
+    "A hypothesis test is a decision with four possible outcomes: true and " +
+    "false positives, true and false negatives. The significance threshold " +
+    "fixes the false positive rate; power depends on the effect size and the " +
+    "sample size.",
   /* Controls beside the figure, so the thing you change and the 2x2 it changes
      are on screen together. Measured before: the control block sat 848px above
      the table, which meant scrolling back past the whole figure to move a
