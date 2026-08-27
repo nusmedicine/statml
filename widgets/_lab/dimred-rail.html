@@ -84,6 +84,22 @@
   <div class="cands" id="rails2"></div>
   <div id="out2"></div>
   <div id="costs2"></div>
+
+  <h2>Round three: the rest of the collection, under the data/algorithm rule</h2>
+  <p class="note">
+    Kenneth's rule (2026-08-27): <b>where the rail carries a choice of data, it
+    should say so — a data section and an algorithm section.</b> Applying it to
+    the sixteen unsectioned widgets leaves four clean fits and one boundary
+    case, drawn below. The boundary is <b>bootstrap</b>: it has a Population
+    choice, but its "algorithm block" would hold only watch-controls — how many
+    resamples to draw, the reveal, the play speed — because resampling itself
+    has no parameter. Whatever bootstrap gets, <b>clt and permutation-test</b>
+    are the same shape and follow it. em-mixture is drawn with its sample
+    already taken, so the gated half of the rail is visible.
+  </p>
+  <div class="cands" id="rails3"></div>
+  <div id="out3"></div>
+  <div id="costs3"></div>
 </main>
 
 <script type="module">
@@ -241,7 +257,7 @@ const CANDS = [
 const defaults = (spec) => Object.fromEntries(
   Object.entries(spec)
     .filter(([, f]) => !["section", "readback"].includes(f.type))
-    .map(([n, f]) => [n, f.type === "gate" ? false : f.default])
+    .map(([n, f]) => [n, f.type === "gate" ? (f.default ?? false) : f.default])
 );
 
 const rails = document.getElementById("rails");
@@ -431,6 +447,222 @@ document.getElementById("costs2").innerHTML = `
     <tr><td><b>mds B</b></td><td><b>The milder case.</b> Its gate says "Measure every pair" — an act, not the
       method's name — so "MDS" above it is not a repetition, and once the gate opens the heading also covers the
       <i>Fit</i> toggle, which is a genuine method control the shipped rail leaves floating.</td></tr>
+  </table>`;
+
+/* ---- Round three: the data/algorithm rule over the rest. Specs verbatim. ---- */
+const ML_A = {
+  trueMu: { type: "int", label: "True mean", min: 100, max: 200, default: 150 },
+  trueSize: { type: "float", label: "True size", min: 0.5, max: 20, step: 0.5, default: 5, detail: "larger size = LESS spread" },
+  n: { type: "int", label: "Counts in the sample", min: 5, max: 60, default: 20, detail: "few enough to see each one's factor" },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+  factors: { type: "bool", label: "Each count's factor", default: false },
+  estimate: { type: "segmented", label: "Estimating",
+    options: [{ value: "mu", label: "mu" }, { value: "size", label: "size" }, { value: "both", label: "Both" }],
+    default: "mu" },
+};
+const ML_B = {
+  truth: { type: "section", label: "The population" },
+  trueMu: ML_A.trueMu,
+  trueSize: ML_A.trueSize,
+  n: ML_A.n,
+  seed: ML_A.seed,
+  inference: { type: "section", label: "The inference" },
+  estimate: ML_A.estimate,
+  factors: ML_A.factors,
+};
+const CI_A = {
+  dist: { type: "select", label: "Population",
+    options: ["Normal", "Exponential", "Bimodal", "Uniform", "Heavy-tailed", "Counts (neg. binomial)", "Proportion (beta)"]
+      .map((v) => ({ value: v.toLowerCase(), label: v })), default: "normal" },
+  n: { type: "int", label: "Sample size n", min: 5, max: 100, default: 30 },
+  method: { type: "segmented", label: "Interval from",
+    options: [{ value: "boot", label: "Bootstrap" }, { value: "z", label: "Normal (z)" }, { value: "t", label: "t" }],
+    default: "boot" },
+  reps: { type: "int", label: "Resamples per study", min: 50, max: 1000, default: 500 },
+  studies: { type: "int", label: "Studies to run", min: 1, max: 100, default: 20 },
+  view: { type: "segmented", label: "Show",
+    options: [{ value: "one", label: "This study" }, { value: "all", label: "All studies" }], default: "one" },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+  speed: { type: "choice", label: "Play speed",
+    options: [{ value: "slow", label: "Slow" }, { value: "medium", label: "Medium" }, { value: "fast", label: "Fast" }],
+    default: "medium" },
+};
+const CI_B = {
+  data: { type: "section", label: "The data" },
+  dist: CI_A.dist,
+  n: CI_A.n,
+  seed: CI_A.seed,
+  fit: { type: "section", label: "The intervals" },
+  method: CI_A.method,
+  reps: CI_A.reps,
+  studies: CI_A.studies,
+  view: CI_A.view,
+  speed: { ...CI_A.speed, afterDrive: true },
+};
+const SVM_A = {
+  data: { type: "segmented", label: "Samples",
+    options: [{ value: "blobs", label: "Two blobs" }, { value: "rings", label: "Rings" }, { value: "moons", label: "Crescents" }],
+    default: "rings" },
+  kernel: { type: "segmented", label: "Kernel",
+    options: [{ value: "linear", label: "Linear" }, { value: "poly", label: "Polynomial" }, { value: "rbf", label: "RBF" }],
+    default: "rbf" },
+  C: { type: "choice", label: "C — the price of one violation",
+    options: ["0.01", "0.1", "1", "10", "100"].map((v) => ({ value: v, label: v })), default: "1" },
+  degree: { type: "choice", label: "d — the degree",
+    options: ["2", "3", "4"].map((v) => ({ value: v, label: v })), default: "3",
+    when: { param: "kernel", equals: "poly" } },
+  gamma: { type: "choice", label: "γ — how far one sample reaches",
+    options: ["0.1", "0.3", "1", "3", "10", "30"].map((v) => ({ value: v, label: v })), default: "1",
+    when: { param: "kernel", equals: "rbf" } },
+  lift: { type: "segmented", label: "Looking at",
+    options: [{ value: "input", label: "Input space" }, { value: "kernel", label: "Kernel space" }], default: "input" },
+  marks: { type: "bool", label: "Ring the support vectors", default: false,
+    detail: "The samples the boundary depends on — every other one could be deleted." },
+};
+const SVM_B = {
+  dsec: { type: "section", label: "The data" },
+  data: SVM_A.data,
+  fit: { type: "section", label: "SVM" },
+  kernel: SVM_A.kernel,
+  C: SVM_A.C,
+  degree: SVM_A.degree,
+  gamma: SVM_A.gamma,
+  lift: SVM_A.lift,
+  marks: SVM_A.marks,
+};
+const EM_A = {
+  childMean: { type: "int", label: "average", min: 100, max: 140, default: 120,
+    row: { key: "child", label: "Children", token: "group-b" } },
+  childSd: { type: "int", label: "spread", min: 5, max: 40, default: 15, row: { key: "child" } },
+  adultMean: { type: "int", label: "average", min: 150, max: 220, default: 170,
+    row: { key: "adult", label: "Adults", token: "group-a" } },
+  adultSd: { type: "int", label: "spread", min: 5, max: 40, default: 30, row: { key: "adult" } },
+  n: { type: "int", label: "People in each group", min: 40, max: 100, default: 100 },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 3 },
+  sampled: { type: "gate", label: "Draw a sample from them", labelOff: "Change the populations",
+    detail: "the labels come off as they land", default: true },
+  truth: { type: "segmented", label: "True groups",
+    options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "off",
+    when: { param: "sampled" } },
+  view: { type: "section", label: "Inference", when: { param: "sampled" } },
+  colour: { type: "segmented", label: "Colour each person by",
+    options: [{ value: "hard", label: "hard cluster" }, { value: "share", label: "share" }], default: "hard",
+    when: { param: "sampled" } },
+  speed: { type: "choice", label: "Play speed",
+    options: [{ value: "slow", label: "Slow" }, { value: "medium", label: "Medium" }, { value: "fast", label: "Fast" }],
+    default: "medium", when: { param: "sampled" } },
+};
+const EM_B = {
+  pop: { type: "section", label: "The populations" },
+  ...EM_A,
+  view: { ...EM_A.view, label: "The inference" },
+};
+const BOOT_A = {
+  dist: { type: "select", label: "Population",
+    options: ["Normal", "Exponential", "Bimodal", "Uniform", "Heavy-tailed"]
+      .map((v) => ({ value: v.toLowerCase(), label: v })), default: "exponential" },
+  n: { type: "int", label: "Sample size n", min: 5, max: 100, default: 30 },
+  reps: { type: "int", label: "Resamples to draw", min: 20, max: 2000, default: 1000 },
+  seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+  truth: { type: "segmented", label: "True sampling distribution",
+    options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "off" },
+  speed: { type: "choice", label: "Play speed",
+    options: [{ value: "slow", label: "Slow" }, { value: "medium", label: "Medium" }, { value: "fast", label: "Fast" }],
+    default: "medium" },
+  smooth: { type: "bool", label: "Smoothed density", default: false },
+};
+const BOOT_B = {
+  data: { type: "section", label: "The data" },
+  dist: BOOT_A.dist,
+  n: BOOT_A.n,
+  seed: BOOT_A.seed,
+  fit: { type: "section", label: "The bootstrap" },
+  reps: BOOT_A.reps,
+  truth: BOOT_A.truth,
+  smooth: BOOT_A.smooth,
+  speed: { ...BOOT_A.speed, afterDrive: true },
+};
+
+DRIVES.ml = [
+  { key: "lead", text: "Draw the counts", primary: true, onClick: () => {} },
+  { key: "step", group: "pace", text: "Next candidate", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+DRIVES.ci = [
+  { key: "step", group: "pace", text: "New study", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+DRIVES.svm = [{ key: "reset", text: "Reset", onClick: () => {} }];
+DRIVES.em = [
+  { key: "lead", text: "Guess two curves", primary: true, onClick: () => {} },
+  { key: "step", group: "pace", text: "Iterate", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+DRIVES.boot = [
+  { key: "lead", text: "Sample", primary: true, onClick: () => {} },
+  { key: "step", group: "pace", text: "Resample", primary: true, onClick: () => {} },
+  { key: "run", group: "pace", text: "Play", primary: true, onClick: () => {} },
+  { key: "reset", text: "Reset", onClick: () => {} },
+];
+
+const CANDS3 = [
+  ["ml A", "as shipped", ML_A, "one flat list", "ml", false],
+  ["ml B", "sections", ML_B, "The population / The inference — bayesian's own pair", "ml", false],
+  ["ci A", "as shipped", CI_A, "seed below the method controls", "ci", false],
+  ["ci B", "sections", CI_B, "The data / The intervals; seed up, speed below the buttons", "ci", false],
+  ["svm A", "as shipped", SVM_A, "one flat list", "svm", false],
+  ["svm B", "sections", SVM_B, "The data (one control) / SVM", "svm", false],
+  ["em A", "as shipped, sample drawn", EM_A, "population rows unheaded; \"Inference\"", "em", false],
+  ["em B", "headed + harmonised", EM_B, "The populations / The inference", "em", false],
+  ["boot A", "as shipped", BOOT_A, "the boundary case", "boot", false],
+  ["boot B", "sections", BOOT_B, "The data / The bootstrap — an algorithm block of watch-controls", "boot", false],
+];
+const rails3 = document.getElementById("rails3");
+const rows3 = [];
+for (const c of CANDS3) renderRail(rails3, rows3, c);
+
+const base3 = (id) => rows3.find((r) => r.id === id.split(" ")[0] + " A");
+document.getElementById("out3").innerHTML = `
+  <table>
+    <tr>
+      <th>rail</th><th>candidate</th>
+      <th class="n">controls</th><th class="n">rail</th><th class="n">vs shipped</th>
+    </tr>
+    ${rows3.map((r) => {
+      const d = r.rail - base3(r.id).rail;
+      return `<tr>
+      <td><b>${r.id}</b></td><td>${r.name}</td>
+      <td class="n">${r.controls}</td>
+      <td class="n">${r.rail}</td>
+      <td class="n">${d === 0 ? "—" : (d >= 0 ? "+" : "−") + Math.abs(d)}</td>
+    </tr>`;
+    }).join("")}
+  </table>`;
+
+document.getElementById("costs3").innerHTML = `
+  <table>
+    <tr><th>candidate</th><th>the call</th></tr>
+    <tr><td><b>ml B</b></td><td><b>The cleanest fit.</b> Bayesian is its sibling and already reads
+      "The population / Your prior / The inference"; ML gets the same pair minus the prior — which is itself the
+      lesson. "Estimating" moves above the factors toggle so the inference block leads with what is being
+      estimated.</td></tr>
+    <tr><td><b>ci B</b></td><td><b>The strongest of the statistics arc.</b> "Interval from" is a genuine method
+      choice, so the algorithm block is real. Seed rises into the data block (it draws the samples), and Play
+      speed takes kmeans's place below the buttons.</td></tr>
+    <tr><td><b>svm B</b></td><td>A heading over ONE control ("Samples"). The rule says the choice of data should
+      be marked; the counter is kmeans round 4's "furniture" verdict on one-control headings. If taken, the
+      viewing controls (Looking at, Ring) sit unheaded inside the SVM block — they view the fitted machine, which
+      is honest.</td></tr>
+    <tr><td><b>em B</b></td><td><b>Two small harmonisations, no reorder.</b> "The populations" heads the block the
+      coloured rows already structure, and "Inference" becomes "The inference" — bayesian's word (3.7: one name
+      per repeated thing).</td></tr>
+    <tr><td><b>boot B</b></td><td><b>The boundary, drawn honestly.</b> "The bootstrap" would head: how many
+      resamples, the reveal, the smoother — watch-controls, because resampling has no parameter. If this reads as
+      structure, clt and permutation-test follow; if it reads as furniture, all three stay flat and the rule's
+      boundary is "the algorithm must have at least one parameter of its own".</td></tr>
   </table>`;
 </script>
 </body>
