@@ -8350,10 +8350,17 @@ for a reason**: galton (no algorithm exists), multiple-testing (no testing
 knobs), missing-data (deliberately no algorithm), probability-mechanisms and
 odds-and-risk (view-switched rails), generalization / linear-regularization /
 logistic-regression (no data choice), trees (one method knob on one page).
-**bootstrap/clt/permutation-test are the drawn boundary** — a Population
-choice but an algorithm with no knobs, so the section would head
-watch-controls; svm is the one-control data section. Both mocked in round
-three, awaiting Kenneth's call.
+**Kenneth then ruled the boundary the inclusive way**: the choice of data is
+marked wherever it exists, even when the algorithm block heads watch-controls
+(bootstrap) or the data section holds one control (svm). Landed the same day:
+**svm** (*The data / SVM*), **bootstrap** (*The population / The bootstrap*,
+Play speed below the buttons — and the truth reveal now sits with the pile it
+overlays rather than after Seed, superseding 3.4j's position for this widget;
+the source comment records it), **clt** (*The population / The sample means*)
+and **permutation-test** (*The population / The test*, True effect in the
+population block — a fact about the data the test never gets told). All four
+with Play speed below the buttons. Every make-data widget in the collection
+now marks its data block; the flat rails named above stay flat.
 
 ---
 
