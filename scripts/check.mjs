@@ -221,6 +221,19 @@ for (const w of manifest.widgets) {
     fail(`"${w.slug}": manifest card "${w.title}" but index.html <title> "${stat}"`);
   }
 
+  /* The meta description IS the blurb, verbatim. They do the same job — one
+     sentence saying what the page is, one for the gallery card and one for
+     search snippets and link previews — and the metas drifted unaudited for 24
+     widgets until the 2026-08-27 prose audit found them saying things the
+     cards had stopped saying (a lesson reference, an editorial claim, a stale
+     title). One sentence, two consumers, and this is the reader that keeps a
+     second copy honest. HTML-escape & and " the way the sync script does. */
+  const meta = html.match(/<meta name="description" content="([^"]*)">/)?.[1];
+  const blurbEsc = w.blurb.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  if (meta !== blurbEsc) {
+    fail(`"${w.slug}": meta description differs from the manifest blurb — they are one sentence with two consumers; copy the blurb over`);
+  }
+
   /* Status decides two independent things — whether the gallery lists it, and
      whether the page wears a draft bar — and they are read from different files.
      A draft recorded as shipped is exactly the failure that puts unfinished
@@ -250,7 +263,7 @@ for (const w of manifest.widgets) {
     fail(`"${w.slug}": manifest status "${w.status}" but main.js declares "${declared}" — the gallery and the draft bar would disagree`);
   }
 }
-ok(`${manifest.widgets.length} widgets: card, <h1> and <title> agree`);
+ok(`${manifest.widgets.length} widgets: card, <h1>, <title> and meta description agree`);
 
 /* --- fingerprint baseline is usable ------------------------------------ */
 
