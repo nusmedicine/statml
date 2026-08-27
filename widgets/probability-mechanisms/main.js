@@ -664,9 +664,9 @@ const handle = defineWidget({
       type: "choice",
       label: "Play speed",
       options: [
-        { value: "slow", label: "one at a time", detail: "every stage of a draw, slowly" },
-        { value: "brisk", label: "brisk", detail: "every stage of a draw" },
-        { value: "fast", label: "fast", detail: "arrivals only — the process is not drawn" },
+        { value: "slow", label: "Slow", detail: "every stage of a draw, slowly" },
+        { value: "brisk", label: "Medium", detail: "every stage of a draw" },
+        { value: "fast", label: "Fast", detail: "arrivals only — the process is not drawn" },
       ],
       default: "brisk",
       display: true,

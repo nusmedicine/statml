@@ -456,9 +456,9 @@ defineWidget({
     speed: {
       type: "choice", label: "Play speed",
       options: [
-        { value: "slow", label: "slow", detail: "both halves of every iteration, slowly" },
-        { value: "medium", label: "medium", detail: "both halves, quickly" },
-        { value: "fast", label: "fast", detail: "no choreography — results only" },
+        { value: "slow", label: "Slow", detail: "both halves of every iteration, slowly" },
+        { value: "medium", label: "Medium", detail: "both halves, quickly" },
+        { value: "fast", label: "Fast", detail: "no choreography — results only" },
       ],
       default: "medium",
       display: true,

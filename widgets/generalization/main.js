@@ -415,7 +415,7 @@ defineWidget({
       label: "Play speed",
       options: [
         { value: "slow", label: "Slow" },
-        { value: "brisk", label: "Brisk" },
+        { value: "brisk", label: "Medium" },
         { value: "fast", label: "Fast", detail: "no pause per fold — the only way to watch LOOCV" },
       ],
       default: "brisk",

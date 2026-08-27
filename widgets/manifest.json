@@ -272,7 +272,7 @@
     },
     {
       "slug": "pca",
-      "title": "Principal component analysis",
+      "title": "Principal Component Analysis",
       "blurb": "Principal component analysis finds the directions of greatest variance and projects the data onto them.",
       "course": "PHM5005",
       "topics": [
@@ -285,7 +285,7 @@
     },
     {
       "slug": "mds",
-      "title": "Multidimensional scaling",
+      "title": "Multidimensional Scaling",
       "blurb": "Multidimensional scaling arranges samples so their distances match a measured distance table as closely as possible.",
       "course": "PHM5005",
       "topics": [

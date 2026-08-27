@@ -209,7 +209,7 @@ const groupCol = (colors, g) => colors.clusters[g % colors.clusters.length];
 
 defineWidget({
   slug: "pca",
-  title: "Principal component analysis",
+  title: "Principal Component Analysis",
   subtitle: "Principal component analysis finds the orthogonal directions along which the data varies most. There are as many components as dimensions; projecting onto the first two gives a 2-D view for visualisation.",
   status: "shipped",
   layout: "side",

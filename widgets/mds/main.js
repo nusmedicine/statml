@@ -460,7 +460,7 @@ const RUN_MS = 100;
 
 defineWidget({
   slug: "mds",
-  title: "Multidimensional scaling",
+  title: "Multidimensional Scaling",
   subtitle: "Multidimensional scaling arranges samples in 2-D so their distances match a measured table of pairwise distances as closely as possible.",
   status: "shipped",
   layout: "side",

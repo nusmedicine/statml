@@ -551,9 +551,9 @@ const canvasHeight = ({ page, w }) => layoutOf(w, page).height;
    the animation decides about itself mid-run (README, "Pacing is chosen"). */
 const SPEEDS = [
   { key: "slow", label: "Slow", mult: 0.5, flip: false, detail: "every candidate, unhurried" },
-  { key: "steady", label: "Steady", mult: 1, flip: false, detail: "the default pace" },
-  { key: "brisk", label: "Brisk", mult: 2, flip: false, detail: "twice as fast, still drawn in full" },
-  { key: "flip", label: "Flipbook", mult: 4, flip: true, detail: "trees arrive whole — for watching the pool settle" },
+  { key: "steady", label: "Medium", mult: 1, flip: false, detail: "the default pace" },
+  { key: "brisk", label: "Fast", mult: 2, flip: false, detail: "twice as fast, still drawn in full" },
+  { key: "flip", label: "Fastest", mult: 4, flip: true, detail: "trees arrive whole — for watching the pool settle" },
 ];
 const speedOf = (params) => SPEEDS[Number(params.speed)] ?? SPEEDS[1];
 
