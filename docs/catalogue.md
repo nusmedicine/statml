@@ -3184,7 +3184,28 @@ agreed, and three revive entries from the deferred table above
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 26 · `fork-pipe-collider` — PLANNED AND MEASURED
+## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
+
+**Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —
+planned, measured, built, revised and shipped in a single session.** Eight
+fingerprint states recorded with `_lab/causal-shoot.html` (the missing-shoot
+pattern): the copy proved against four existing baseline hashes (4/4 MATCH),
+every state shot three times in one run and identical, and **every driven
+state checked against its settled sibling in the same run** — the shooter now
+automates the mds/balancing-data lesson. Five settled (the empty open, the
+fork dressed, the pipe residual view, the collider pair, the collider
+residual view), two driven mid-ease (the swing at mix ≈ 0.56, the slide at
+vmix ≈ 0.64), one **hit-driven** on the third variable's node at [94, 56].
+Baseline now **167 states**; no full-suite run owed — nothing in
+`widgets/core/` moved since its last green run.
+
+**Still owed:** the link from PHM5003 06-02's markdown (it would be the first
+widget link in the notebooks — Kenneth places it by hand), and judging it
+projected.
+
+The planning record follows as written.
+
+### The original plan — PLANNED AND MEASURED
 
 **The brief:** one widget, a Structure control (Fork / Pipe / Collider) and one
 toggle — **Adjust for Z** — flipping between the notebook's own regression

@@ -1434,6 +1434,84 @@
    },
    "px": "8570ab23",
    "tx": "16c1b985"
+  },
+  {
+   "$note": "SETTLED: the empty open — data and a question, nothing fitted (non-negotiable 4).",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light",
+   "px": "e50d7c8c",
+   "tx": "2e709290"
+  },
+  {
+   "$note": "SETTLED: the fork fully dressed — sign flip, tint, truth line.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&fit=1&adjust=on&colour=on&truth=on",
+   "px": "d99915b0",
+   "tx": "29f7b340"
+  },
+  {
+   "$note": "SETTLED: the pipe residual view — the collapsed exercise axis and the crosshair.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&structure=pipe&fit=1&adjust=on&view=resid&colour=on",
+   "px": "b8be36f7",
+   "tx": "adbf3105"
+  },
+  {
+   "$note": "SETTLED: the collider pair — dotted comparator, line labels, the gap bracket.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&structure=collider&fit=1&adjust=on&colour=on&truth=on",
+   "px": "cae71dca",
+   "tx": "f0b7eab3"
+  },
+  {
+   "$note": "SETTLED: the collider residual view — recentred groups, crosshair, combined note.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&structure=collider&fit=1&adjust=on&view=resid&colour=on",
+   "px": "7701012e",
+   "tx": "b46850af"
+  },
+  {
+   "$note": "DRIVEN: mid-swing at mix ~0.56 — the adjusted line partway between slopes.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "set": {
+     "adjust": "on"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "62eb39e8",
+   "tx": "23fcd821"
+  },
+  {
+   "$note": "DRIVEN: mid-slide at vmix ~0.64 — patients in flight between data and residual views.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&fit=1&adjust=on&colour=on",
+   "drive": {
+    "set": {
+     "view": "resid"
+    },
+    "frames": 5,
+    "dt": 32
+   },
+   "px": "40369c4c",
+   "tx": "23fcd821"
+  },
+  {
+   "$note": "HIT-DRIVEN: pointer on the third variable node at [94,56] flips adjust — the region geometry no pixel hash sees.",
+   "slug": "fork-pipe-collider",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "hit": [
+     94,
+     56
+    ],
+    "frames": 6,
+    "dt": 32
+   },
+   "px": "9ab33ed3",
+   "tx": "23fcd821"
   }
  ]
 }

@@ -146,7 +146,6 @@ defineWidget({
     "closed path in a collider.",
   layout: "side",
   height: 370,
-  status: "draft",
 
   params: {
     /* TWO BLOCKS, the collection's data/algorithm shape. The structure is the
