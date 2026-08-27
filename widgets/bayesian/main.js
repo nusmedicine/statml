@@ -415,11 +415,10 @@ defineWidget({
   slug: "bayesian",
   title: "Bayesian Estimation",
   subtitle:
-    "Maximum likelihood found the parameters that make your counts most probable. " +
-    "It cannot say how probable a parameter is — nothing holds the likelihood's " +
-    "area at 1. Multiply it by what you believed beforehand, divide by the total, " +
-    "and the curve that comes out does. Then add counts one at a time and watch " +
-    "one prior get overwhelmed while the other does not.",
+    "The likelihood scores parameters but is not a probability over them. " +
+    "Multiply it by a prior and normalise, and the result is one: the posterior. " +
+    "Add counts one at a time and watch one prior get overwhelmed while the " +
+    "other holds.",
   layout: "side",
   height: canvasHeight,
 
@@ -864,7 +863,11 @@ defineWidget({
        reached yet on screen as hollow rings. */
     leadLabel: "Draw the counts",
     leadTitle: "Deal your whole sample at once",
-    leadHint: "Step and Play wake up once you have counts to work through.",
+    /* The hint cannot name the step button: its label follows the tab (map
+       below), and a hint reading "Step and Play" beside a button reading "Add
+       a count" was the mismatch 3.4c warns about. So this one names the
+       condition alone — the greyed buttons are directly above it. */
+    leadHint: "Nothing can run until the counts are drawn.",
 
     /* THE FOURTH TAB DRIVES A DIFFERENT NOUN, so the label follows the tab.
        Three tabs advance the DATA by one observation and the sampler advances

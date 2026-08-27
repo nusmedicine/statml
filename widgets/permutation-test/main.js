@@ -157,9 +157,9 @@ defineWidget({
   title: "Hypothesis Testing",
   subtitle:
     "If the grouping meant nothing, any relabelling of the same numbers would " +
-    "be just as likely. So shuffle the labels, recompute the difference, and " +
-    "collect. That pile is what chance alone produces — and p is simply the " +
-    "share of it at least as far from zero as the difference you actually saw.",
+    "be just as likely. Shuffle the labels, recompute the difference, and " +
+    "collect the pile chance alone produces. p is the share of that pile at " +
+    "least as far from zero as the difference you actually saw.",
   height: 500,
 
   params: {
@@ -291,6 +291,7 @@ defineWidget({
   animation: {
     leadLabel: "Observe",
     leadTitle: "Observe the real study, once — the data you actually collected",
+    leadHint: "Shuffle and Play wake up once the study is observed.",
     stepLabel: "Shuffle",
     stepTitle: "Pool every observation and deal the group labels back at random",
     runLabel: "Play",

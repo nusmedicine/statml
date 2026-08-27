@@ -151,7 +151,7 @@ function labelsBefore(steps, idx) {
 defineWidget({
   slug: "kmeans",
   title: "K-Means",
-  subtitle: "Say how many clusters to look for. Each centroid — the crosses — takes the points nearest it, then moves to their mean, and the two repeat until no point changes hands.",
+  subtitle: "Say how many clusters to look for. Each cross is a centroid: it claims the points nearest it, then moves to their mean, and the two steps repeat until no point changes hands.",
   status: "shipped",
   layout: "side",
   height: ({ w }) => layout(w).height,

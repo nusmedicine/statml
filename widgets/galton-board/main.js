@@ -139,8 +139,8 @@ defineWidget({
   title: "The Normal Distribution",
   subtitle:
     "Each row of pegs nudges the ball one step left or right. Where it lands is the " +
-    "sum of those independent nudges, so the pile shows how far many small random " +
-    "errors, added together, stray from zero. That is all a bell curve is.",
+    "sum of those independent nudges, and the pile of landings shows how far many " +
+    "small random errors, added together, stray from zero.",
   height: 520,
 
   params: {

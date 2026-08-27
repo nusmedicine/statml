@@ -143,12 +143,10 @@ defineWidget({
   layout: "side",
   title: "Bootstrap Sampling",
   subtitle:
-    "In practice you get one sample, never a population. Draw a new sample of " +
-    "the same size from the one you have — with replacement, so some " +
-    "observations appear twice and others not at all — and the spread of the " +
-    "resampled means stands in for a sampling distribution you can never " +
-    "observe. It stands in only as well as your one sample represents the " +
-    "population, which is what the numbers below are for.",
+    "You get one sample, never the population. Resample it with replacement, " +
+    "and the spread of the resampled means estimates a sampling distribution " +
+    "you cannot observe. The estimate is only as good as the sample it is " +
+    "built from.",
   height: 540,
 
   /* Reading order of the setup block: what am I sampling from, how much of it,
@@ -289,6 +287,7 @@ defineWidget({
        that difference in the buttons does not confuse the two loops. */
     leadLabel: "Sample",
     leadTitle: "Draw your one sample from the population — in real life you only ever get to do this once",
+    leadHint: "Resample and Play wake up once your sample is drawn.",
     stepLabel: "Resample",
     stepTitle: "Resample your own sample, with replacement — the population is out of reach now",
     runLabel: "Play",

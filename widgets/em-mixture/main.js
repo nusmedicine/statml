@@ -643,7 +643,9 @@ defineWidget({
        back and guess again, by moving the seed — and it earns its place instead
        by making initialisation a visible event rather than a state the figure
        is simply found in. */
-    leadLabel: "Start",
+    /* "Start" for a long time — the only lead in the arc naming no act (3.4c).
+       Guessing is the act: two curves put down knowing nothing. */
+    leadLabel: "Guess two curves",
     leadTitle: "Take the labels away and put two curves down at random",
     leadHint: "Iterate and Play wake up once the labels are gone.",
     stepLabel: "Iterate",

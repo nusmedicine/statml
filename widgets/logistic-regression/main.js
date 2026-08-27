@@ -634,10 +634,10 @@ defineWidget({
   slug: "logistic-regression",
   title: "Logistic Regression",
   subtitle:
-    "A 0/1 outcome works fine as a covariate. Put one on the other side of the equation and a "
-    + "straight line starts predicting probabilities below 0 and above 1. The link function is "
-    + "what fixes that — and fixing it is what turns the coefficient into an odds ratio. "
-    + "The model is 05-05's own: TenYearCHD ~ BMI + age, on 3658 people from Framingham.",
+    "A 0/1 outcome works fine as a covariate. Put one on the left and a straight "
+    + "line predicts probabilities below 0 and above 1. Model the log(odds) instead: "
+    + "p stays in (0, 1) and the coefficient becomes an odds ratio. The model is "
+    + "05-05's own: TenYearCHD ~ BMI + age, on 3658 people from Framingham.",
   layout: "side",
 
   height: CANVAS_H,

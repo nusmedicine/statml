@@ -955,10 +955,9 @@ defineWidget({
   height: canvasHeight,
 
   subtitle:
-    "A decision tree splits the plane one axis-aligned cut at a time, choosing at each step the "
-    + "feature and the threshold that leave the two sides purest. A bag fits many such trees to "
-    + "resamples of the same data and pools their votes. Gradient boosting instead fits one small "
-    + "tree at a time to what the model still gets wrong, and adds it in shrunk by a learning rate.",
+    "A tree splits the plane one threshold at a time, choosing the cut that "
+    + "leaves the two sides purest. A bag fits many trees to resamples and pools "
+    + "their votes; boosting fits each new tree to what the model still gets wrong.",
 
   params: {
     /* Reading order is the instruction (3.1): which page, then what it is
@@ -1001,7 +1000,7 @@ defineWidget({
     },
     speed: {
       type: "choice",
-      label: "Pace",
+      label: "Play speed",
       options: SPEEDS.map((s, i) => ({ value: String(i), label: s.label, detail: s.detail })),
       default: "1",
       display: true,

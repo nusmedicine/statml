@@ -662,7 +662,7 @@ const handle = defineWidget({
 
     speed: {
       type: "choice",
-      label: "Speed",
+      label: "Play speed",
       options: [
         { value: "slow", label: "one at a time", detail: "every stage of a draw, slowly" },
         { value: "brisk", label: "brisk", detail: "every stage of a draw" },

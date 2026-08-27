@@ -547,9 +547,13 @@ defineWidget({
        `leadHint` says what is waiting on it. */
     leadLabel: "Draw the counts",
     leadTitle: "Draw your counts out of the distribution they come from — the only time you will ever see it",
-    leadHint: "Step and Play wake up once you have counts to score.",
-    stepLabel: "Step",
-    stepTitle: "Try the next candidate, or take the next move of the climb",
+    leadHint: "Next candidate and Play wake up once you have counts to score.",
+    /* One label for all three tabs, and it is honest in all three: the sweeps
+       try the grid's next value and the climb tries the next (size, mu) pair —
+       every press scores a candidate. It read "Step" for a long time, the only
+       step button in the arc naming no act (3.4c). */
+    stepLabel: "Next candidate",
+    stepTitle: "Score the next candidate — the sweep's next value, or the climb's next move",
     runLabel: "Play",
     runTitle: "Run the rest of it",
 

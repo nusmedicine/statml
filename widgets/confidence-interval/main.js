@@ -141,10 +141,10 @@ defineWidget({
   layout: "side",
   title: "Confidence Intervals",
   subtitle:
-    "Every study gives one interval, and that one either contains the true mean " +
-    "or it does not. The 95% is not about your interval — it is how often the " +
-    "procedure that made it succeeds. Build the intervals three ways and watch " +
-    "how often each actually works.",
+    "Every study gives one interval, and that interval either contains the true " +
+    "mean or it does not. The 95% describes the procedure: how often intervals " +
+    "made this way succeed. Build them three ways and watch how often each " +
+    "covers the truth.",
   height: 560,
 
   params: {
