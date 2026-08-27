@@ -163,6 +163,11 @@ defineWidget({
   height: 500,
 
   params: {
+    /* TWO BLOCKS (2026-08-27 rail-section sweep): what makes the two groups —
+       the true effect included, because it is a fact about the data the test
+       never gets told — then the test itself. Follows bootstrap's ruling; Play
+       speed goes below the buttons it governs. */
+    pop: { type: "section", label: "The population" },
     dist: { type: "select", label: "Population", options: distOptions, default: "normal" },
     n: { type: "int", label: "Group size n", min: 4, max: 40, default: 12 },
 
@@ -179,6 +184,10 @@ defineWidget({
       default: "moderate",
     },
 
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+
+    test: { type: "section", label: "The test" },
+
     /* 200, not 400. Without a fill-at-once speed, 400 shuffles is about a minute
        of watching; 200 halves that and costs nothing worth having, since p is a
        proportion and 200 draws pin it to about ±3%. A finished figure comes from
@@ -188,13 +197,13 @@ defineWidget({
       // The first k shuffles are the same k shuffles whatever the target is.
       display: true,
     },
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
     speed: {
       type: "choice",
       label: "Play speed",
       options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
       default: "medium",
       display: true,
+      afterDrive: true,
     },
 
     shown: { type: "int", label: "Pre-filled shuffles", min: 0, max: 2000, default: 0, hidden: true },
