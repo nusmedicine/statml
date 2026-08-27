@@ -204,7 +204,7 @@ drawing anything. The short version:
 - At the default 30% missing: MAR bias +1.7 kg with a 72-point check slope;
   MNAR bias −3.0 kg with a MCAR-identical check; MCAR bias 0.0. Reliable on
   ~389/400 single cohorts. No dead stops on the rate range.
-- **Next session is the LAYOUT MOCK-UP** (`_lab/` page, candidates at 550px):
+- **A DRAFT IS BUILT and on the drafts page** — `/widget/missing-data/` (status draft, so /lab/ lists it and the gallery does not; no fingerprint states owed while it moves). Kenneth has not reviewed it. The layout mock-up round still applies to whatever he flags:
   scatter + observed-vs-true pile + check panel; the animation (patients
   measured or skipped one at a time); the `True values` reveal (afterDrive,
   3.4j); 4 check bins vs 3.

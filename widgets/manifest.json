@@ -352,6 +352,21 @@
       ],
       "arc": 24,
       "status": "shipped"
+    },
+    {
+      "slug": "missing-data",
+      "title": "Missing Data",
+      "blurb": "How MCAR, MAR and MNAR differ, and which of them a study can detect.",
+      "course": "PHM5003",
+      "topics": [
+        "missing data",
+        "MCAR",
+        "MAR",
+        "MNAR",
+        "preprocessing"
+      ],
+      "arc": 25,
+      "status": "draft"
     }
   ]
 }
