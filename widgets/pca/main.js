@@ -221,11 +221,19 @@ defineWidget({
   ],
 
   params: {
+    /* TWO BLOCKS, the shape the whole make-data-then-fit arc now shares
+       (kmeans settled it, dbscan/t-sne/umap/mds carry it): the dials that make
+       the samples, then the method. The PCA heading knowingly sits above a
+       button already reading "Run PCA" — the repetition was drawn and judged
+       in `_lab/dimred-rail.html` (round two) and Kenneth took arc consistency
+       over avoiding it. The groups+samples pair rides along, as everywhere. */
+    data: { type: "section", label: "The data" },
     groups: {
       type: "choice",
       label: "Groups in the data",
       options: [2, 3, 4, 5, 6].map((v) => ({ value: String(v), label: String(v) })),
       default: "3",
+      row: { key: "stage" },
     },
     /* Per group, so the groups stay balanced whatever the count. */
     samples: {
@@ -233,6 +241,7 @@ defineWidget({
       label: "Samples per group",
       options: [3, 4, 6, 8, 12].map((v) => ({ value: String(v), label: String(v) })),
       default: "4",
+      row: { key: "stage" },
     },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
     /* LABELS OFF BY DEFAULT, so the reader reads the structure off the picture
@@ -251,6 +260,7 @@ defineWidget({
       display: true,
     },
 
+    fit: { type: "section", label: "PCA" },
 
     /* Both gates are `display: true`, which is what makes them animate: core
        gives its entry animation to `GATE_PARAM`, the first gate in the spec and
