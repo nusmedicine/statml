@@ -30,14 +30,20 @@ const W_LO = 46, W_HI = 112;   // fixed weight window; holds every seeded cohort
 const BIN_W = 4;               // kg per bin in the marginal pile
 const CHECK_BINS = 4;          // 4 beats 6 on the check panel's noise floor
 
-/* Pacing is chosen, not automatic (4.1): per-patient milliseconds. Past
-   "fast" there is nothing left to watch per patient, so it shows arrivals
-   only in the sense that they simply appear quickly. */
+/* Pacing is chosen, not automatic (4.1): per-patient milliseconds, and
+   whether the arrival is CHOREOGRAPHED — the arriving patient drawn in the
+   highlight colour with a collapsing ring, taking its final colour as it
+   lands. At fast there is nothing left to see per patient, so the
+   choreography is off as a declared property of the speed, never a decision
+   the animation takes mid-run. */
 const SPEEDS = {
-  slow: { ms: 300 },
-  medium: { ms: 100 },
-  fast: { ms: 26 },
+  slow: { ms: 340, chor: true },
+  medium: { ms: 110, chor: true },
+  fast: { ms: 26, chor: false },
 };
+/* A step is one patient WATCHED — a fixed beat, independent of Play speed,
+   long enough to follow at the front of a room. */
+const STEP_MS = 340;
 
 const meanOf = M.mean;
 
@@ -143,21 +149,55 @@ defineWidget({
     init: ({ params, fromScratch }) => ({
       idx: fromScratch ? 0 : Math.min(params.shown, N),
       t: 0,
+      /* The beat: which patient is ARRIVING and how far through (0..1). Set
+         only while a unit is genuinely in flight and cleared the moment it
+         completes, so nothing half-faded can outlive its motion — a frozen
+         highlight reads as a marked point, not a recent arrival. A user
+         pause may freeze mid-beat; that is a paused state, and Resume
+         finishes it. */
+      beatI: null,
+      beatP: 1,
       done: (fromScratch ? 0 : Math.min(params.shown, N)) >= N,
     }),
 
     advance(anim, { dt, params }) {
-      if (anim.idx >= N) { anim.done = true; return false; }
+      /* One step = one patient's whole beat, spanning frames: return true
+         while the unit is in flight, false when it lands (the unit is the
+         patient, not the frame). */
       if (anim.mode === "step") {
-        anim.idx += 1;
-        anim.done = anim.idx >= N;
+        if (anim.beatI === null) {
+          if (anim.idx >= N) { anim.done = true; return false; }
+          anim.beatI = anim.idx;
+          anim.beatP = 0;
+          anim.idx += 1;
+        }
+        anim.beatP += dt / STEP_MS;
+        if (anim.beatP >= 1) {
+          anim.beatI = null;
+          anim.beatP = 1;
+          anim.done = anim.idx >= N;
+          return false;
+        }
+        return true;
+      }
+
+      const sp = SPEEDS[params.speed] ?? SPEEDS.medium;
+      anim.t += dt;
+      while (anim.t >= sp.ms && anim.idx < N) { anim.t -= sp.ms; anim.idx += 1; }
+      if (anim.idx >= N) {
+        anim.beatI = null;
+        anim.beatP = 1;
+        anim.done = true;
         return false;
       }
-      anim.t += dt;
-      const ms = SPEEDS[params.speed]?.ms ?? 100;
-      while (anim.t >= ms && anim.idx < N) { anim.t -= ms; anim.idx += 1; }
-      anim.done = anim.idx >= N;
-      return !anim.done;
+      if (sp.chor && anim.idx > 0) {
+        anim.beatI = anim.idx - 1;
+        anim.beatP = Math.min(1, anim.t / sp.ms);
+      } else {
+        anim.beatI = null;
+        anim.beatP = 1;
+      }
+      return true;
     },
   },
 
@@ -179,19 +219,63 @@ defineWidget({
     sc.caption(`${idx} of ${N} patients seen`);
 
     /* A patient seen but not weighed: their age is a fact, so they sit on the
-       baseline as a tick — present, unmeasured. */
-    if (missing.length) sc.rug(missing.map((p) => p.age), { stroke: colors.unknown, height: 9 });
+       baseline as a tick — present, unmeasured. The ticks carry MAR's whole
+       visual story, so they are wider and taller than core's rug: a 1.5px
+       tick disappears at a lecture screen.
 
-    for (const p of weighed) sc.dot(p.age, p.w, { fill: colors.empirical, r: 3.4 });
+       THE ARRIVAL: the patient in flight is drawn in the highlight colour
+       with a collapsing ring and takes its final colour as it lands (the
+       arc's own arrival rule). `beatI` is null whenever no unit is in
+       flight, so nothing half-faded survives its motion. */
+    const beatI = anim?.beatI ?? null;
+    const beatP = anim?.beatP ?? 1;
+    const easeOut = (t) => 1 - (1 - t) ** 2;
+    const tick = (age, col, hgt, wdt) => {
+      ctx.save();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = wdt;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(sc.sx(age), L.scatter.y + L.scatter.h);
+      ctx.lineTo(sc.sx(age), L.scatter.y + L.scatter.h - hgt);
+      ctx.stroke();
+      ctx.restore();
+    };
+    for (let i = 0; i < idx; i += 1) {
+      const p = state.pts[i];
+      const arriving = i === beatI && beatP < 1;
+      const e = arriving ? easeOut(beatP) : 1;
+      if (p.miss) {
+        tick(p.age, arriving ? colors.highlight : colors.unknown, 4 + 7 * e, 2.5);
+      } else {
+        sc.dot(p.age, p.w, {
+          fill: arriving ? colors.highlight : colors.empirical,
+          r: 1.6 + 2.2 * e,
+        });
+      }
+      if (arriving) {
+        ctx.save();
+        ctx.strokeStyle = colors.highlight;
+        ctx.globalAlpha = 1 - beatP;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        const cy = p.miss ? L.scatter.y + L.scatter.h - 6 : sc.sy(p.w);
+        ctx.arc(sc.sx(p.age), cy, 5 + 10 * (1 - e), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
 
     if (truth) {
-      /* Hollow marks where the missing weights really are. */
+      /* Hollow marks where the missing weights really are. Sized and stroked
+         to match the filled dots at distance — a 1.6px ring at 3.4px radius
+         is a smudge from the back row. */
       ctx.save();
       ctx.strokeStyle = colors.reference;
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.8;
       for (const p of missing) {
         ctx.beginPath();
-        ctx.arc(sc.sx(p.age), sc.sy(p.w), 3.4, 0, Math.PI * 2);
+        ctx.arc(sc.sx(p.age), sc.sy(p.w), 3.8, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
@@ -222,14 +306,14 @@ defineWidget({
     if (fit) {
       const at = (a) => fit.intercept + fit.slope * a;
       sc.curve([[M.AGE_LO, at(M.AGE_LO)], [M.AGE_HI, at(M.AGE_HI)]],
-        { stroke: colors.empirical, width: 1.7, dash: [6, 4] });
+        { stroke: colors.empirical, width: 2, dash: [6, 4] });
       lineLabel("observed trend", colors.empirical, sc.sy(at(M.AGE_HI)));
     }
     if (truth) {
       const mid = (M.AGE_LO + M.AGE_HI) / 2;
       const tr = (a) => M.W_BASE + M.W_SLOPE * (a - mid);
       sc.curve([[M.AGE_LO, tr(M.AGE_LO)], [M.AGE_HI, tr(M.AGE_HI)]],
-        { stroke: colors.reference, width: 1.6 });
+        { stroke: colors.reference, width: 2 });
       lineLabel("true trend", colors.reference, sc.sy(tr(M.AGE_HI)) + 16);
     }
 
@@ -272,7 +356,7 @@ defineWidget({
        are the TRENDS; means belong to the marginal distribution. */
     const pileRule = (v, stroke, dash) => {
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 2;
       if (dash) ctx.setLineDash(dash);
       ctx.beginPath();
       ctx.moveTo(L.pile.x, sc.sy(v));
