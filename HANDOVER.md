@@ -821,15 +821,10 @@ which is what forces the loop in *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* above.
 A filter would make "record the new widget's states" a first-class thing the
 harness does rather than something worked around.
 
-**`widgets/_lab/index.html` has stopped being an index.** Sixteen of the
-twenty-nine lab pages are missing from it, including every mock-up made for
-widgets 13, 14 and 15 and all three drive-row pages. Adding one alone makes
-the list *more* misleading, not less, so this is one change: catch the index up in
-a single pass, or delete it. To list them:
-
-```bash
-for f in widgets/_lab/*.html; do b=$(basename "$f"); case $b in index.html|fingerprint.html) continue;; esac; grep -q "$b" widgets/_lab/index.html || echo "$b"; done
-```
+**`widgets/_lab/index.html` was DELETED on 2026-08-27** (Kenneth's call,
+delete over catch-up). It listed 13 of 32 pages, drifted with every mock-up,
+and the catalogue already names each lab page beside the decision it settled.
+**Do not recreate it** — a list nobody maintains reads as maintained.
 
 **`04 / 04-08` needs two corrections in `../jupyterbook/phm5003`**, by hand:
 

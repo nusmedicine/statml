@@ -24,9 +24,8 @@
        `widgets/support-vector-machine/main.js`, which calls `defineWidget` at
        module scope and would mount a whole widget if imported.
 
-   NOT ADDED TO `_lab/index.html`: that index lists 13 of the 32 pages here and
-   knows about neither SVM page. HANDOVER records catching it up as its own
-   single change.
+   The `_lab` index was deleted on 2026-08-27 (it listed 13 of the 32 pages
+   here and drifted with every mock-up); the catalogue names this page instead.
 
    SCREENSHOT SAFETY. HANDOVER, "a screenshot of a long page": the browser pane
    paints the top of the document, so a scrolled capture comes back black with
