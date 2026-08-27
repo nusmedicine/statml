@@ -3,9 +3,9 @@
 **Twenty-four widgets, all shipped, all on the gallery, and 152 fingerprint
 states recorded.**
 
-**The 2026-08-27 cross-widget audit's free-surface half is COMPLETE and
-Kenneth-reviewed line by line, on branch `audit-free-surfaces` (13 commits,
-NOT merged — merging publishes).** All 24 subtitles and all 24 blurbs settled
+**The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
+Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
+branch is deleted). All 24 subtitles and all 24 blurbs settled
 one at a time with him; widget 7 retitled **Decision Making** (slug kept —
 students hold the URL; rename after the course ends); metas are now the blurb
 verbatim with `check` enforcing the match; the rail speaks one vocabulary
