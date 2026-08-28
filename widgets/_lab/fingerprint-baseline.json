@@ -1706,6 +1706,105 @@
    },
    "px": "1c52d933",
    "tx": "e501c441"
+  },
+  {
+   "$note": "SETTLED: the empty open — patients coloured by sex, no model (non-negotiable 4).",
+   "slug": "lm-interaction",
+   "state": "?theme=light",
+   "px": "22d31557",
+   "tx": "9bbb8423"
+  },
+  {
+   "$note": "SETTLED: the independent fit — one slope, 5 apart; the probe at 60 reading the constant −5.0.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1",
+   "px": "402201f4",
+   "tx": "cf08f4eb"
+  },
+  {
+   "$note": "SETTLED: the interacting fit — the crossing at 46.9; the four-row equation card in tx.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&terms=times",
+   "px": "8252913b",
+   "tx": "7201b251"
+  },
+  {
+   "$note": "SETTLED: the extrapolation — the domain at [0,69], the shaded no-patients stretch, the +95.57 bracket.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&terms=times&zero=1",
+   "px": "9b2d3896",
+   "tx": "7201b251"
+  },
+  {
+   "$note": "SETTLED: the 2×2 parallel — one diabetes effect for everyone, the observed ticks visibly missed.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&concept=diabsex",
+   "px": "1f1cfffd",
+   "tx": "ae6124e2"
+  },
+  {
+   "$note": "SETTLED: the 2×2 pivoted — the lines on the means, the interaction bracket at 21.02.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&terms=times&concept=diabsex",
+   "px": "57bb7d67",
+   "tx": "6002d6f1"
+  },
+  {
+   "$note": "DRIVEN: mid-split — the lines partway between one-slope and crossing, the probe gap counting.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "set": {
+     "terms": "times"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "39e3f789",
+   "tx": "7201b251"
+  },
+  {
+   "$note": "DRIVEN: mid-slide — dots, lines and ticks sharing one lerped x-domain toward zero, the shade fading in.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&terms=times",
+   "drive": {
+    "set": {
+     "zero": true
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "ce3fb841",
+   "tx": "7201b251"
+  },
+  {
+   "$note": "DRIVEN: the 2×2 mid-pivot — the interaction plot between parallel and the means, slope labels counting.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&concept=diabsex",
+   "drive": {
+    "set": {
+     "terms": "times"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "d5fbae0a",
+   "tx": "6002d6f1"
+  },
+  {
+   "$note": "HIT-DRIVEN: the probe's year-40 region at [160,160] — the probe jumps and the bracket re-reads; an instant param flip, so zero frames, and still different from its bare URL: the per-year hit geometry proven.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&fit=1&terms=times",
+   "drive": {
+    "hit": [
+     160,
+     160
+    ],
+    "frames": 2,
+    "dt": 32
+   },
+   "px": "120b52c0",
+   "tx": "7201b251"
   }
  ]
 }

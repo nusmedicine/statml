@@ -3212,7 +3212,29 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 30 · `lm-interaction` — MEASURED 2026-08-28
+## Widget 30 · `lm-interaction` — SHIPPED 2026-08-28, two review rounds
+
+**Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,
+built and revised over two rounds in one session.** Title **Fitting an
+Interaction**. **Ten fingerprint states recorded with
+`_lab/lm-int-shoot.html`** (the lm-shoot pattern: copy proved 4/4, every
+state shot three times and identical, every drive non-inert): six
+settled (the empty open; the independent fit with the probe's constant
+−5.0; the crossing with the four-row card in tx; the extrapolation; the
+2×2 parallel; the 2×2 pivoted), three driven mid-ease (the split, the
+zero slide, the 2×2 pivot — each with counting labels), and one
+hit-driven on the probe's year-40 region — an instant param flip, so
+zero frames ran, and the hash still differs from its bare URL, which is
+the per-year hit geometry proven. Baseline now **198 states**; no
+full-suite rerun owed (nothing in `widgets/core/` moved).
+
+**Still owed:** the 05-04 notebook link (Kenneth places these by hand):
+`Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
+— and judging it projected, which every widget from 11 on awaits.
+
+The planning record follows as written.
+
+### The original planning record — MEASURED 2026-08-28
 
 **The brief:** 05-04 (Modeling — Interactions), catalogue slot 4: main
 effects can be read unconditionally when an interaction is present. The

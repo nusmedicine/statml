@@ -1,7 +1,20 @@
 # Handover
 
-**Twenty-nine widgets, all shipped, all on the gallery, and 188 fingerprint
+**Thirty widgets, all shipped, all on the gallery, and 198 fingerprint
 states recorded.**
+
+**Widget 30 · `lm-interaction` SHIPPED 2026-08-28 as "Fitting an
+Interaction"** — measured, mocked, built and promoted over two review
+rounds in one session on Kenneth's "tested ok". Round 1: the +/×
+toggle, the probe, the zero-extrapolation slide, two tabs. Round 2 (his
+"a bit hard to understand"): the equation card grew ONE ROW PER LINE
+(05-04's rearranging-the-terms move, group-coloured, the producing sums
+annotated) and the 2×2 became the canonical INTERACTION PLOT (parallel
+under +, pivoting onto the observed means under ×, the right-edge
+bracket naming the nonparallelism as the printed 21.02). Ten states via
+`_lab/lm-int-shoot.html`. Full record in
+[docs/catalogue.md](docs/catalogue.md) § *Widget 30*;
+`node widgets/_lab/lm-int-measure.mjs` = 33 checks.
 
 **Widget 29 · `lm-categorical` SHIPPED 2026-08-28 as "Fitting a
 Categorical Covariate"** — measured, mocked, built and promoted in ONE
@@ -58,28 +71,18 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 30 · `lm-interaction` is a DRAFT, rounds 1-2 done, awaiting
-   Kenneth's review** — he picked the probe, the extrapolation, and acts
-   2 + 3 as tabs (act 1 out). Built the same day: two Concept tabs
-   (Age × sex · Diabetes × sex), widget 26's gate, the Terms toggle
-   (+ independent · × interacting) easing lines/predictions between the
-   readings via three eased values (a/t/z — every printed gap computed
-   from the LERPED coefficients), the probe as slider + per-year click
-   regions, and Show age zero sliding the domain to bracket the printed
-   [sex] coefficient where it lives (−5.00 under +, +95.57 under ×).
-   Round 2: the equation card grew ONE ROW PER LINE (the notebook cell-23 rearrangement, group-coloured, sums annotated) and the 2x2 became the INTERACTION PLOT (parallel under +, pivoting onto the means under x, the bracket naming the nonparallelism as the printed 21.02). Height 356 both tabs; no rng. Review at
-   `http://localhost:8010/widgets/lm-interaction/` — gate, toggle ×,
-   Show age zero, then the Diabetes × sex tab. Full record in
-   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 30*. After
-   30: `censoring-km`, `pseudoreplication`.
-2. **Notebook links now owed for all FOUR shipped modeling widgets** —
+1. **The next widget: `censoring-km`** (05-06, revives the deferred
+   slug), then `pseudoreplication` — the agreed modeling-arc order.
+   Nothing started.
+2. **Notebook links now owed for all FIVE shipped modeling widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
    - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
+   - 05-04 (widget 30): `Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–29 included.
+   widgets 26–30 included.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -125,7 +128,18 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 188 states, all matching
+## The suite: 198 states, all matching
+
+**Widget 30 added ten states on 2026-08-28 with `_lab/lm-int-shoot.html`**
+(the lm-shoot pattern): copy proved 4/4, three-run stable, drives
+non-inert. Six settled, three driven mid-ease (`set` on the terms and
+zero controls — the split, the domain slide, the 2×2 pivot), one
+hit-driven on the probe's year-40 region at [160, 160]. That hit ran
+ZERO frames — the probe is an instant param flip with no ease, so the
+drive queue was empty — and the state still hashes different from its
+bare URL, which is all the region rule wants: the geometry, proven. No
+full-suite rerun owed — nothing in `widgets/core/` has moved since its
+last green run at 173.
 
 **Widget 29 added seven states on 2026-08-28 with `_lab/lm-cat-shoot.html`**
 (the lm-shoot pattern): copy proved 4/4, three-run stable, drives
@@ -255,6 +269,7 @@ is blind to.
 | 27 | `lm-least-squares` | shipped. NINE rounds over 2026-08-28 (rounds 7–9 post-ship: R² tile, the residual strip, grid-on default — each rebaselined same-commit and pushed); six states. NOT yet judged projected; 05-01 link not yet placed |
 | 28 | `lm-adjustment` | shipped as **Fitting Multiple Covariates**. TWELVE rounds across two sessions (2026-08-28), promoted on "tested ok" and pushed; eight states — five settled, one driven mid-slide, two hit-driven. NOT yet judged projected; 05-02 link not yet placed |
 | 29 | `lm-categorical` | shipped as **Fitting a Categorical Covariate**. ONE round in one session (2026-08-28); seven states — four settled, two driven, one hit-driven. NOT yet judged projected; 05-03 link not yet placed |
+| 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds in one session (2026-08-28); ten states — six settled, three driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

@@ -147,7 +147,7 @@ function renderEquation(kind, terms, groups) {
 defineWidget({
   slug: "lm-interaction",
   title: "Fitting an Interaction",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "An interaction term lets one covariate's effect depend on the level " +
     "of another. The main effects are then no longer unconditional: each " +
