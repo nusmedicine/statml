@@ -24,6 +24,21 @@
    minimisations, b0 then b1 — because its two opening moves are legible and
    its long crawl along the 13:1 trench is itself the teaching: many lines are
    nearly as good, which is why the slider can never quite find the bottom.
+
+   THE WALK IS NOT WHAT R RUNS, AND THE COPY MUST NEVER SAY IT IS (Kenneth's
+   round-3 question). 05-01's `optim` is Nelder-Mead — a tumbling simplex,
+   illegible at widget scale — and `lm()` walks nowhere: it solves the normal
+   equations in closed form. Nothing takes the shortest route (a straight
+   line to the minimum needs the answer first). Coordinate descent is drawn
+   because each move is statable in one sentence — "hold one, move the other
+   to its best value" — and the on-screen copy claims exactly that and only
+   that. The teaching (the fit is the surface's minimum, findable by walking
+   downhill) is algorithm-independent.
+
+   Round 3 also KEPT THE ROW LAYOUT (surface beside the scatter, height
+   constant, the surface nearly square — which helps the trench read) and
+   deleted the A/B param, and reframed the widget as LINEAR MODEL + FITTING:
+   the model is the arc's central theme, this widget is its fitting chapter.
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
@@ -46,14 +61,12 @@ const Y_DOM = [80, 300];
 const SURF_B0 = [0, 150];   // the notebook's own grid, cell 15
 const SURF_B1 = [0, 5];
 
-/* Stage geometry, one place. The scatter always shows; the surface panel
-   exists only while the gate is open, and the height function must agree
-   with draw() about where everything sits. */
+/* Stage geometry, one place. The scatter always shows; opening the gate
+   splits the width with the surface BESIDE it (Kenneth's round-3 pick over
+   the stack: height never moves, and the near-square surface panel is the
+   aspect the trench reads best at). */
 const SCATTER_H = 240;
-const SURF_H = 190;
-const SURF_TOP = 30 + SCATTER_H + 78;   // scatter, its axis labels, a gap
-const H_CLOSED = 30 + SCATTER_H + 88;
-const H_OPEN = SURF_TOP + SURF_H + 66;
+const HEIGHT = 30 + SCATTER_H + 88;
 
 /* The walk: coordinate descent from (b0, b1), each vertex one exact 1-D
    minimisation. Stops when a full cycle moves less than a pixel could show.
@@ -147,8 +160,8 @@ function renderEquation(b0, b1, done) {
   const yours = MATHML ? eqMathML(b0, b1) : eqPlain(b0, b1);
   const fit = MATHML ? eqMathML(FIT_B0, FIT_B1) : eqPlain(FIT_B0, FIT_B1);
   mathHost.innerHTML = done
-    ? row("your line", yours) + row("least squares", `<span style="color:var(--c-reference)">${fit}</span>`)
-    : row("your line", yours);
+    ? row("your model", yours) + row("least-squares fit", `<span style="color:var(--c-reference)">${fit}</span>`)
+    : row("your model", yours);
 }
 
 const hexLerp = (a, b, t) => {
@@ -190,15 +203,15 @@ const ssFmt = (v) => Math.round(v).toLocaleString("en-US");
 
 defineWidget({
   slug: "lm-least-squares",
-  title: "Least Squares",
+  title: "Fitting a Linear Model",
   status: "draft",
   subtitle:
-    "We can propose a line for the data by choosing an intercept and a slope, " +
-    "and score it by the sum of squared vertical differences. The " +
-    "least-squares fit is the choice that makes this sum smallest — the " +
-    "lowest point of a surface over every line you could draw.",
+    "A linear model describes the outcome as an intercept plus a slope " +
+    "times the covariate. Fitting it is a search: score any candidate line " +
+    "by its sum of squared vertical differences, and take the choice that " +
+    "makes the sum smallest — the lowest point of a surface over every line.",
   layout: "side",
-  height: ({ surface, arrange }) => (surface && arrange !== "row" ? H_OPEN : H_CLOSED),
+  height: HEIGHT,
 
   params: {
     /* The rail is flat: there is no choice of data to head a section with —
@@ -238,23 +251,14 @@ defineWidget({
     /* Authoring escape hatch: segments of the walk already taken, first
        render only. A large value publishes the finished fit. */
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
-    /* TEMPORARY, for one review round: ?arrange=row puts the surface BESIDE
-       the scatter (each panel ~half width, height stays shut-size) instead
-       of below it. Kenneth compares the two live; the loser is deleted and
-       the winner hardcoded — a layout A/B is not a reader control. */
-    arrange: {
-      type: "segmented",
-      options: [{ value: "stack", label: "Stack" }, { value: "row", label: "Row" }],
-      default: "stack",
-      hidden: true,
-      display: true,
-    },
   },
 
   legend: [
     { token: "unknown", label: "3547 patients from the Framingham study", mark: "dot" },
-    { token: "highlight", label: "Your line, and its differences from the data", mark: "line" },
+    { token: "highlight", label: "Your model's line, and its differences from the data", mark: "line" },
     { token: "reference", label: "The colour the line takes when the walk reaches the least-squares fit", mark: "line" },
+    { token: "cost-low", label: "A line with a small sum of squares", mark: "bar" },
+    { token: "cost-high", label: "A large sum — the colour saturates at 3× the least possible", mark: "bar" },
   ],
 
   compute({ params }) {
@@ -312,14 +316,18 @@ defineWidget({
     renderEquation(state.b0, state.b1, done);
 
     /* --- the scatter and the line -------------------------------------- */
-    const row = params.arrange === "row" && params.surface;
-    const rect = row
+    /* Gate shut: the scatter has the whole width. Gate open: it cedes the
+       right half to the surface and the height never moves. */
+    const rect = params.surface
       ? { x: 56, y: 30, w: Math.round((w - 70) * 0.52), h: SCATTER_H }
       : { x: 56, y: 30, w: w - 56 - 14, h: SCATTER_H };
     const plot = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
     plot.axisX({ label: "BMI" });
     plot.axisY({ label: "sysBP (mmHg)" });
-    if (!walked && !row) plot.note("every patient's vertical difference is squared and summed");
+    /* The note teaches on the opening screen only — once the gate is open
+       the scatter is half-width and this line would overrun it (the text
+       sweep's whole subject matter). */
+    if (!walked && !params.surface) plot.note("every patient's vertical difference is squared and summed");
 
     ctx.save();
     ctx.beginPath();
@@ -359,18 +367,11 @@ defineWidget({
     /* --- the surface, behind the gate ---------------------------------- */
     if (!params.surface) return;
 
-    const srect = row
-      ? { x: rect.x + rect.w + 56, y: 30, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H }
-      : { x: 56, y: SURF_TOP, w: w - 56 - 14, h: SURF_H };
+    const srect = { x: rect.x + rect.w + 56, y: 30, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H };
     const splot = makePlot({ ctx, colors, rect: srect, xDomain: SURF_B0, yDomain: SURF_B1 });
-    splot.caption(row ? "every line at once" : "every line at once — colour is its sum of squares");
+    splot.caption("every line at once");
     splot.axisX({ label: "intercept b₀" });
     splot.axisY({ label: "slope b₁" });
-    if (!row) {
-      splot.note(done
-        ? "the walk stopped where no move improves the sum"
-        : "red saturates at 3× the least possible sum");
-    }
 
     const dpr = window.devicePixelRatio || 1;
     ctx.drawImage(
@@ -433,7 +434,7 @@ defineWidget({
     const cur = walked ? walkAt(state, anim.t).pt : null;
     return [
       {
-        label: "Sum of squares — your line",
+        label: "Sum of squares — your model",
         value: ssFmt(state.ssYour),
         note: `b₀ ${fmt(state.b0, 0)}, b₁ ${fmt(state.b1, 2)}`,
       },
@@ -451,11 +452,11 @@ defineWidget({
 
   summary({ params, state, anim }) {
     const parts = [
-      `A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with the line sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI drawn through it.`,
+      `A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with the linear model sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI drawn through it.`,
       `Its sum of squared differences is ${ssFmt(state.ssYour)}.`,
     ];
     if (params.surface) {
-      parts.push("Below, the sum of squares is painted over every (b₀, b₁) pair.");
+      parts.push("Beside it, the sum of squares is painted over every (b₀, b₁) pair.");
     }
     if (anim?.done) {
       parts.push(`The walk downhill stopped at b₀ ${fmt(FIT_B0, 2)}, b₁ ${fmt(FIT_B1, 2)}, the least-squares fit.`);

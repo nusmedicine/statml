@@ -3351,6 +3351,33 @@ presses needs a cap is a review question.
    hardcoded — a layout A/B is not a reader control, so it never renders
    as one.
 
+### ROUND 3 — the row wins, the descent question, the reframe
+
+**Kenneth picked BESIDE.** The `arrange` param is deleted and the row is
+the only layout: gate shut, the scatter has the whole width; open, it cedes
+the right half to the near-square surface and the height never moves (358).
+The two notes the half-width panels could not hold moved to the legend —
+the cost ramp's two ends are legend entries now (`cost-low` / `cost-high`
+swatches), which also names the surface's colours somewhere permanent.
+
+**"Is the descent what is actually done, or the shortest route?" — neither,
+and the copy is audited to claim only what it draws.** The walk is
+coordinate descent (each move an exact 1-D minimisation — Step's title says
+exactly that). 05-01's `optim` is Nelder-Mead, a tumbling simplex that is
+illegible at widget scale; `lm()` walks nowhere (closed form); and nothing
+takes the shortest route, because a straight line to the minimum requires
+knowing the answer first. The teaching — the fit is the surface's minimum,
+findable by walking downhill — is algorithm-independent, and the main.js
+header now records the ruling so no later round makes the widget claim to
+be `optim`.
+
+**Reframed as LINEAR MODEL + FITTING** (Kenneth: the linear model is the
+arc's central theme; this widget is its fitting chapter). Title **Fitting a
+Linear Model**; subtitle opens by defining the model, then fitting as a
+search; blurb/meta re-paired; the equation card labels are "your model" /
+"least-squares fit"; tile 1 is "Sum of squares — your model". The slug
+stays `lm-least-squares` — it names the method that does the fitting.
+
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
 **Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —

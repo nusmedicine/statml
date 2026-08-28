@@ -384,8 +384,8 @@
     },
     {
       "slug": "lm-least-squares",
-      "title": "Least Squares",
-      "blurb": "Least squares picks the intercept and slope that make the sum of squared differences smallest.",
+      "title": "Fitting a Linear Model",
+      "blurb": "Fitting a linear model means choosing the intercept and slope that make the sum of squared differences smallest.",
       "course": "PHM5003",
       "topics": [
         "linear model",
