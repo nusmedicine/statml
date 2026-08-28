@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 27 + residual plot — where, and what it shows</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 27 + the residual plot — where it goes, what it can honestly show</h1>
+
+  <p class="note">
+    The framing that fits THIS widget's lesson: the residual view shows the
+    residuals of <b>the reader's own line</b>, live with the sliders. A wrong
+    intercept shows as the band sitting OFF ZERO (at (70, 2): +9.9 mmHg); a
+    wrong slope shows as a TILT in the trend (−0.28 mmHg per BMI unit); and
+    the least-squares fit is the line whose residuals are a flat band at zero
+    — which is literally where the walk stops. What this view CANNOT teach on
+    the real data: curvature or funnel patterns meaning "the model class is
+    wrong" — sysBP ~ BMI is an adequate fit, so that lesson stays with the
+    synthetic-data diagnostics widget if it is wanted.
+  </p>
+
+  <h2>§1 · What the residual view shows — your line, then the fit (full width)</h2>
+  <p class="note">
+    Residuals against fitted values, the notebook's own axes. The trend line
+    through the residuals is what makes offset and tilt legible (autoplot
+    draws a smoother for the same reason; this one is the linear trend, which
+    is exact here because the model is a line). Zero ruled. The right panel is
+    the honest fine print: at the FIT the trend is flat at zero by
+    construction, and what remains is the real data's mild wedge — visible,
+    unexplained, and deliberately uncaptioned.
+  </p>
+  <div class="row" id="views"></div>
+
+  <h2>§2 · Where it lives in the widget</h2>
+  <p class="note">
+    <b>A</b> — a View toggle on the scatter panel (Data / Residuals), the
+    panel transforming in place with the slide motion widgets 26/28 use;
+    drawn at the real gate-open width (~250px): still legible, because the
+    view is a band, not a cloud that needs width. Height unchanged.
+    <b>B</b> — a permanent strip under the scatter (~80px): always visible,
+    no toggle, live with the sliders — but it costs every state ~90px of
+    height and repeats the wash's information while the line is held.
+  </p>
+  <div class="row" id="places"></div>
+
+  <h2>Numbers</h2>
+  <div id="nums"></div>
+
+  <h2>The trade, stated</h2>
+  <p class="note">
+    What A adds to the widget's own lesson: <b>offset = b₀ wrong, tilt = b₁
+    wrong, flat at zero = fitted</b> — the residual view as a second reading
+    of the same search, and the stopping condition made visible. What it does
+    not add: the wrong-model-class patterns (curve, funnel) that 05-01 §2's
+    pictures are really about — the real data cannot produce them on demand.
+    If both are wanted, A here plus the synthetic diagnostics widget later do
+    not overlap: this one reads YOUR line's residuals, that one reads a
+    MODEL's.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  unknown: css("--c-unknown"),
+};
+const DPR = devicePixelRatio || 1;
+
+const FIT = ols(SYSBP, BMI);
+const [FB0, FB1] = FIT.b;
+const PROBE = [70, 2];
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* residuals of the line (b0, b1); plotted against that line's fitted values */
+function residPlot(ctx, r, b0, b1, opts = {}) {
+  const fit = BMI.map((x) => b0 + b1 * x);
+  const res = SYSBP.map((y, i) => y - fit[i]);
+  const fdm = opts.fdm ?? [Math.min(...fit) - 2, Math.max(...fit) + 2];
+  const rdm = opts.rdm ?? [-70, 110];
+  const sx = (v) => r.x + ((v - fdm[0]) / (fdm[1] - fdm[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - rdm[0]) / (rdm[1] - rdm[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  // zero, ruled
+  ctx.strokeStyle = C.ink3; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(r.x, sy(0)); ctx.lineTo(r.x + r.w, sy(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  if (opts.labels !== false) {
+    ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("fitted sysBP from your line", r.x + r.w / 2, r.y + r.h + 16);
+    ctx.save();
+    ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText("residual (mmHg)", 0, 0);
+    ctx.restore();
+    ctx.font = "9px system-ui"; ctx.textAlign = "right";
+    for (const v of [-50, 0, 50, 100]) if (v > rdm[0] && v < rdm[1]) ctx.fillText(v, r.x - 4, sy(v) + 3);
+  }
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.4;
+  const dotR = opts.dotR ?? 1.6;
+  for (let i = 0; i < N; i += 1) {
+    ctx.beginPath(); ctx.arc(sx(fit[i]), sy(res[i]), dotR, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // the linear trend through the residuals — offset and tilt made legible
+  const t = ols(res, fit);
+  ctx.strokeStyle = opts.trend ?? C.highlight;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(sx(fdm[0]), sy(t.b[0] + t.b[1] * fdm[0]));
+  ctx.lineTo(sx(fdm[1]), sy(t.b[0] + t.b[1] * fdm[1]));
+  ctx.stroke();
+  ctx.restore();
+  return { meanRes: res.reduce((s, v) => s + v, 0) / N, trend: t.b };
+}
+
+function scatterPlot(ctx, r, b0, b1, color, opts = {}) {
+  const xdm = [14, 58];
+  const ydm = [80, 300];
+  const sx = (x) => r.x + ((x - xdm[0]) / (xdm[1] - xdm[0])) * r.w;
+  const sy = (y) => r.y + r.h - ((y - ydm[0]) / (ydm[1] - ydm[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.strokeRect(r.x, r.y, r.w, r.h);
+  if (opts.labels !== false) {
+    ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("BMI", r.x + r.w / 2, r.y + r.h + 16);
+  }
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.05; ctx.lineWidth = 1;
+  for (let i = 0; i < N; i += 1) {
+    const px = sx(BMI[i]);
+    ctx.beginPath();
+    ctx.moveTo(px, sy(SYSBP[i]));
+    ctx.lineTo(px, sy(b0 + b1 * BMI[i]));
+    ctx.stroke();
+  }
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.4;
+  for (let i = 0; i < N; i += 1) {
+    ctx.beginPath(); ctx.arc(sx(BMI[i]), sy(SYSBP[i]), 1.6, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(sx(xdm[0]), sy(b0 + b1 * xdm[0]));
+  ctx.lineTo(sx(xdm[1]), sy(b0 + b1 * xdm[1]));
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ================= §1 · the two states, full width ================= */
+{
+  const host = document.getElementById("views");
+  let m;
+
+  const a = panel(host, "your line (70, 2) — the band sits off zero and tilts",
+    "offset +9.9 = the intercept is short; tilt −0.28/unit = the slope overshoots; both readable from the trend against the ruled zero", 550, 280);
+  m = residPlot(a, { x: 56, y: 14, w: 478, h: 210 }, ...PROBE);
+
+  const b = panel(host, "the fitted line — flat at zero, by construction",
+    "offset 0.000, tilt 0.000 — where the walk stops; the mild wedge that remains is the real data's own spread, not a fault of the line", 550, 280);
+  residPlot(b, { x: 56, y: 14, w: 478, h: 210 }, FB0, FB1, { trend: C.empirical });
+}
+
+/* ================= §2 · placements at real widget geometry ================= */
+{
+  const host = document.getElementById("places");
+
+  /* A · the View toggle at gate-open width: scatter | residuals in the same
+     ~250px slot the scatter holds when the grid is open. */
+  {
+    const ctx = panel(host, "A · View toggle on the scatter panel (drawn at gate-open width)",
+      "left: Data; right: Residuals — the same panel, flipped in place with the slide motion; height unchanged", 550, 280);
+    scatterPlot(ctx, { x: 56, y: 14, w: 210, h: 210 }, ...PROBE, C.highlight);
+    residPlot(ctx, { x: 330, y: 14, w: 204, h: 210 }, ...PROBE, { labels: false, dotR: 1.4 });
+    ctx.fillStyle = C.ink3; ctx.font = "10px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("View: Data", 161, 252);
+    ctx.fillText("View: Residuals (same slot)", 432, 252);
+  }
+
+  /* B · the permanent strip under the scatter. */
+  {
+    const ctx = panel(host, "B · a permanent strip under the scatter (~90px of height, every state)",
+      "always on, live with the sliders; no toggle to find — and it repeats the wash's story while the line is held", 550, 380);
+    scatterPlot(ctx, { x: 56, y: 14, w: 478, h: 210 }, ...PROBE, C.highlight);
+    residPlot(ctx, { x: 56, y: 268, w: 478, h: 80 }, ...PROBE, { labels: false, dotR: 1.2, rdm: [-70, 110] });
+    ctx.fillStyle = C.ink3; ctx.font = "10px system-ui"; ctx.textAlign = "left";
+    ctx.fillText("residuals of your line, zero ruled", 56, 264);
+  }
+}
+
+/* ================= numbers ================= */
+{
+  const stat = (b0, b1) => {
+    const fit = BMI.map((x) => b0 + b1 * x);
+    const res = SYSBP.map((y, i) => y - fit[i]);
+    const t = ols(res, fit);
+    const meanR = res.reduce((s, v) => s + v, 0) / N;
+    return { meanR, slope: t.b[1] };
+  };
+  const p = stat(...PROBE);
+  const f = stat(FB0, FB1);
+  const alt = stat(110, 0.6);
+  document.getElementById("nums").innerHTML = `
+    <table>
+      <tr><th>line</th><th class="n">mean residual (offset)</th><th class="n">trend slope per fitted mmHg</th></tr>
+      <tr><td>your line (70, 2)</td><td class="n">${p.meanR.toFixed(2)}</td><td class="n">${p.slope.toFixed(4)}</td></tr>
+      <tr><td>another line (110, 0.6)</td><td class="n">${alt.meanR.toFixed(2)}</td><td class="n">${alt.slope.toFixed(4)}</td></tr>
+      <tr><td>the fit (87.07, 1.72)</td><td class="n">${f.meanR.toFixed(4)}</td><td class="n">${f.slope.toFixed(6)}</td></tr>
+    </table>`;
+}
+</script>
+</body>
+</html>

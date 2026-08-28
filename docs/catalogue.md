@@ -3514,6 +3514,24 @@ change predicts, since the canvas is untouched — recorded by re-running
 `_lab/lm-shoot.html` (copy proved 4/4, three-run stable) and spliced in
 the same commit.
 
+### ROUND 8 (open) — a residual plot, mocked for Kenneth's ruling
+
+**[`_lab/lm-resid.html`](../widgets/_lab/lm-resid.html)** draws the
+residual plot Kenneth asked to see, with the framing that fits THIS
+widget's lesson: the residuals of the READER'S OWN LINE, live with the
+sliders — offset = b₀ wrong (+9.9 at the notebook's line), tilt = b₁ wrong
+(−0.14 per fitted mmHg; the shallow (110, 0.6) line tilts +1.87 the other
+way), flat at zero = fitted, which is literally the walk's stopping
+condition. Two placements drawn: **A** a View toggle on the scatter panel
+(Data / Residuals, the 26/28 slide, height unchanged — legible at the
+250px gate-open width because the view is a band, not a cloud) and **B** a
+permanent strip under the scatter (~90px of height on every state). What
+neither can teach on the real data: curve/funnel = wrong model class —
+sysBP ~ BMI is an adequate fit, so that lesson stays with the proposed
+synthetic-data diagnostics widget, and the two would not overlap (this
+reads a LINE's residuals, that reads a MODEL's). Awaiting Kenneth's pick:
+A, B, or neither.
+
 ### ROUND 6 — the generic form leads the card
 
 **`y = b₀ + b₁x` now heads the equation card**, muted, labelled "the
