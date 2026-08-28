@@ -1637,6 +1637,75 @@
    },
    "px": "2ba0ffe4",
    "tx": "4a228706"
+  },
+  {
+   "$note": "SETTLED: the empty open — four columns of dots, no model (non-negotiable 4).",
+   "slug": "lm-categorical",
+   "state": "?theme=light",
+   "px": "f4e86cf5",
+   "tx": "8e6fef3f"
+  },
+  {
+   "$note": "SETTLED: fitted at the default reference — rule, arrows, ladder, coding table; the indicator equation in tx.",
+   "slug": "lm-categorical",
+   "state": "?theme=light&fit=1",
+   "px": "9f5d2e50",
+   "tx": "9249957b"
+  },
+  {
+   "$note": "SETTLED: releveled to obese via URL — every coefficient negative, the zero row moved.",
+   "slug": "lm-categorical",
+   "state": "?theme=light&fit=1&ref=obese",
+   "px": "c9de75cb",
+   "tx": "e501c441"
+  },
+  {
+   "$note": "SETTLED: reference underweight — every coefficient positive.",
+   "slug": "lm-categorical",
+   "state": "?theme=light&fit=1&ref=underweight",
+   "px": "8619abc4",
+   "tx": "8605dc5f"
+  },
+  {
+   "$note": "DRIVEN: the gate mid-fade — rule, arrows and ladder at partial alpha.",
+   "slug": "lm-categorical",
+   "state": "?theme=light",
+   "drive": {
+    "click": "gate-fit",
+    "frames": 3,
+    "dt": 32
+   },
+   "px": "e4de91c3",
+   "tx": "9249957b"
+  },
+  {
+   "$note": "DRIVEN: mid-relevel via the segmented — the rule between the two means, arrows re-anchoring, labels counting along.",
+   "slug": "lm-categorical",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "set": {
+     "ref": "obese"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "1c52d933",
+   "tx": "e501c441"
+  },
+  {
+   "$note": "HIT-DRIVEN: the obese column at [300,160] sets ref and starts the ease — hashes identical to the set-driven state (same write, same door) and different from its bare URL, which is the region geometry proven.",
+   "slug": "lm-categorical",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "hit": [
+     300,
+     160
+    ],
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "1c52d933",
+   "tx": "e501c441"
   }
  ]
 }

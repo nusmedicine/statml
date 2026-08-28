@@ -136,7 +136,7 @@ function renderEquation(terms) {
 defineWidget({
   slug: "lm-categorical",
   title: "Fitting a Categorical Covariate",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A categorical covariate enters the model as indicator columns, one " +
     "per category beyond a reference level. Each coefficient is then the " +

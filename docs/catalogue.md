@@ -3212,7 +3212,32 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 29 · `lm-categorical` — MEASURED 2026-08-28
+## Widget 29 · `lm-categorical` — SHIPPED 2026-08-28, one review round
+
+**Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,
+built and shipped in ONE session and one round** (the picks — stage C,
+sex out of scope — landed the design whole; the arc's shared machinery
+did the rest). Title **Fitting a Categorical Covariate**. **Seven
+fingerprint states recorded with `_lab/lm-cat-shoot.html`** (the lm-shoot
+pattern: copy proved 4/4, every state shot three times and identical,
+every drive non-inert against its bare URL): four settled (the empty
+open; the fitted default; releveled to obese; reference underweight),
+one driven mid-fade (the gate at partial alpha), one driven mid-relevel
+(the rule between two means, arrows re-anchoring, labels counting), and
+one hit-driven on the obese COLUMN — which hashes identical to the
+set-driven state (the same parameter write through the same door, the
+same four frames) and different from its bare URL, which is exactly the
+region geometry proven. Baseline now **188 states**; no full-suite rerun
+owed (nothing in `widgets/core/` moved). `lm-cat-measure.mjs` was
+current at promotion — no stale block to update.
+
+**Still owed:** the 05-03 notebook link (Kenneth places these by hand):
+`Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
+— and judging it projected, which every widget from 11 on awaits.
+
+The planning record follows as written.
+
+### The original planning record — MEASURED 2026-08-28
 
 **The brief:** 05-03 (Modeling — Categorical Covariates), catalogue slot 3:
 dummy coefficients are group means, and the reference level is a finding

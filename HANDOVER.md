@@ -1,7 +1,21 @@
 # Handover
 
-**Twenty-eight widgets, all shipped, all on the gallery, and 181 fingerprint
+**Twenty-nine widgets, all shipped, all on the gallery, and 188 fingerprint
 states recorded.**
+
+**Widget 29 · `lm-categorical` SHIPPED 2026-08-28 as "Fitting a
+Categorical Covariate"** — measured, mocked, built and promoted in ONE
+session and one review round on Kenneth's picks (stage C: category
+columns with the coefficients as ARROWS from the reference's eased rule,
+beside a zoomed means ladder; SEX OUT OF SCOPE — its offset is 2.4px at
+panel scale) and his "tested ok". The relevel is the punchline: the rule
+eases, the arrows re-anchor with labels counting along, the equation and
+the coding table's zero row rewrite, and the means and R² refuse to
+move. Seven states via `_lab/lm-cat-shoot.html` (copy proved 4/4,
+three-run stable, drives non-inert): four settled, the gate mid-fade,
+the relevel mid-ease, and a hit on the obese column. Full record in
+[docs/catalogue.md](docs/catalogue.md) § *Widget 29*;
+`node widgets/_lab/lm-cat-measure.mjs` = 25 checks.
 
 **Widget 28 · `lm-adjustment` SHIPPED 2026-08-28 as "Fitting Multiple
 Covariates"** — measured, mocked, built and revised over TWELVE review
@@ -44,37 +58,17 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 29 · `lm-categorical` is a DRAFT, round 1 done, awaiting
-   Kenneth's review** — he picked stage C and ruled SEX OUT OF SCOPE;
-   the draft is built (gate opens the model; the coefficients are ARROWS
-   from the reference's eased rule to the fixed means, labels counting
-   along the ease; columns are click regions for the reference; the
-   coding table's zero row follows; heights 334/520). Review at
-   `http://localhost:8010/widgets/lm-categorical/` (gate, then relevel —
-   click a column or the segmented). Full record in
-   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 29*, which
-   also holds the planning entry — see [docs/catalogue.md](docs/catalogue.md)
-   § *NEXT · Widget 29* for the brief and every measured number.
-   `node widgets/_lab/lm-cat-measure.mjs` = 25 checks, every 05-03
-   stored output to the digit, plus the two identities asserted at 1e-9
-   (dummy coefficient = difference of group means; relevel moves every
-   coefficient while the fitted means and R² do not). The mock is
-   `_lab/lm-cat-stage.html` —
-   `http://localhost:8010/widgets/_lab/lm-cat-stage.html` — with the
-   picks at its section heads: stage A/B/C (C recommended: columns +
-   arrows beside a zoomed means ladder), the relevel as the punchline
-   interaction (segmented + category columns as click regions), the
-   category-rows coding table, and the SEX SCOPE RULING (its offset is
-   2.4px at panel scale — the mock draws the notebook's parallel lines
-   failing; proposed out of scope). After 29: `lm-interaction`,
-   `censoring-km`, `pseudoreplication`.
-2. **Notebook links now owed for all THREE shipped modeling widgets** —
+1. **The next widget: `lm-interaction`** (05-04, revives the deferred
+   `interaction-effect` under the lm- slug), then `censoring-km`,
+   `pseudoreplication` — the agreed modeling-arc order. Nothing started.
+2. **Notebook links now owed for all FOUR shipped modeling widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
+   - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–28 included.
+   widgets 26–29 included.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -120,7 +114,18 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 181 states, all matching
+## The suite: 188 states, all matching
+
+**Widget 29 added seven states on 2026-08-28 with `_lab/lm-cat-shoot.html`**
+(the lm-shoot pattern): copy proved 4/4, three-run stable, drives
+non-inert. Four settled by URL, the gate mid-fade (`click: "gate-fit"`),
+the relevel mid-ease (`set ref=obese` — the rule between two means,
+labels counting), and a hit on the obese column at [300, 160] — which
+hashes IDENTICAL to the set-driven state (same write, same door, same
+frames) and DIFFERENT from its bare URL: for a region that performs the
+same transaction as a control, that identity is the correct outcome and
+the bare-URL difference is the geometry proven. No full-suite rerun owed
+— nothing in `widgets/core/` has moved since its last green run at 173.
 
 **Widget 28 added eight states on 2026-08-28 with `_lab/lm-adjust-shoot.html`**
 (the lm-shoot pattern): copy proved 4/4 against recorded hashes, every
@@ -238,6 +243,7 @@ is blind to.
 | 26 | `fork-pipe-collider` | shipped. Nine rounds in one day (2026-08-27); eight states — five settled, two driven mid-ease, one hit-driven. NOT yet judged projected; 06-02 link not yet placed |
 | 27 | `lm-least-squares` | shipped. NINE rounds over 2026-08-28 (rounds 7–9 post-ship: R² tile, the residual strip, grid-on default — each rebaselined same-commit and pushed); six states. NOT yet judged projected; 05-01 link not yet placed |
 | 28 | `lm-adjustment` | shipped as **Fitting Multiple Covariates**. TWELVE rounds across two sessions (2026-08-28), promoted on "tested ok" and pushed; eight states — five settled, one driven mid-slide, two hit-driven. NOT yet judged projected; 05-02 link not yet placed |
+| 29 | `lm-categorical` | shipped as **Fitting a Categorical Covariate**. ONE round in one session (2026-08-28); seven states — four settled, two driven, one hit-driven. NOT yet judged projected; 05-03 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
