@@ -40,6 +40,11 @@ driven-vs-settled-sibling check.
    and the **three-model table** — catalogue § *NEXT · Widget 28* has both
    build records, the `anim.easing` lesson, and the baseline note (pills
    are buttons setParam cannot toggle; drive by URL or DAG hit).
+   **Round 5** (catalogue § ROUND 5): the table moved to Adjust with the
+   annotated forest; Fit gained fit-quality bars; Collinearity's twin
+   became **simulated WEIGHT** (unisex N(1.68, 0.05) — the sex-specific
+   version failed measurement by smuggling sex; r = 0.93, VIF 7.7, the
+   twins-vs-each-other scatter with the honesty note); Seed hidden.
    **Next: Kenneth reviews** —
    `http://localhost:8010/widgets/lm-adjustment/` (tabs:
    `?bmi=1&age=1&concept=adjust` / `?bmi=1&age=1&concept=collinear`).

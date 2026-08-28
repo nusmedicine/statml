@@ -3336,6 +3336,40 @@ sysBP node), and heights are per-concept (608 / 608 / 658).
 which the fingerprint's `setParam` cannot toggle — drive states by URL or
 by `hit` on the DAG's regions (which the hit rule wants exercised anyway).
 
+### ROUND 5 — the table moves to Adjust, and the twin becomes WEIGHT
+
+**From Kenneth's student/UX review (mocked in `_lab/lm-adjust3.html`):**
+
+1. **Fit and Adjust overlapped because the table was on the wrong tab.**
+   The three-model table is a COMPARISON — Table-2 material — and it
+   spoiled Adjust's punchline from the Fit tab. It now sits beside the
+   scatter on Adjust (compacted: short headers, no intercept row), and the
+   forest ANNOTATES the move ("1.72 → 1.50 when age enters", arrows on
+   every ghosted row; value labels moved below the whiskers to clear
+   them). Fit's right panel became **fit-quality bars** — R² against 1,
+   residual spread against the no-model 21.1 — what fitting owns.
+2. **Collinearity now shows its failure.** The DAG grows a fourth node on
+   that tab — **weight**, ringed and linked to BMI by a dashed
+   `--c-extreme` **r = 0.93**; the scatter slot shows THE TWINS AGAINST
+   EACH OTHER (the correlation graph itself); VIF bars stay. The
+   wandering-split panel (§2C) was drawn and DECLINED — Kenneth does not
+   want "seed" explained on screen — and the **Seed control is hidden**
+   (the parameter survives for URL and harness).
+3. **The twin became WEIGHT, and the construction is a measured ruling.**
+   Kenneth's framing: a data scientist includes every variable without
+   asking whether two carry the same information — and BMI IS
+   weight/height². The file has no weight column, so weight is simulated
+   as BMI × height². **Sex-specific heights FAILED the measurement**: the
+   weight/BMI ratio identifies sex, sex relates to sysBP, and weight came
+   out significantly NEGATIVE in 86% of seeds with VIF only 2.9 — the
+   widget would have taught that weight lowers blood pressure. **Unisex
+   N(1.68, 0.05)** instead: r = 0.933, VIF 7.7 ± 0.2, weight n.s. in
+   187/200 seeds, b(BMI) unbiased (1.502 ± 0.208 vs 1.499), CI ×2.76 —
+   and R² and residual sd IDENTICAL to four decimals with or without
+   weight: prediction untouched, attribution broken, which is the honest
+   name of the failure. The screen says "weight is simulated from BMI and
+   a plausible height" on the twins panel.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;
