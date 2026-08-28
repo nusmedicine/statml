@@ -3216,6 +3216,39 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 6 — the bars build with the sweep, and Step glides
+
+**Kenneth's two comments**: the histogram should animate as the sweep
+passes (and by bin, since the intervals are the unit), and Step should
+tween the curves instead of teleporting. Built:
+
+- **The interval bars grow WITH the sweep, inside their bins**: a bar's
+  height at cursor t is "events seen so far in this interval ÷ at risk at
+  its start" — true at every frame, equal to the final h once the cursor
+  clears the interval. Bins ahead of the cursor are absent. The computed
+  "disease sits above no-disease…" claim now WAITS for the sweep to clear
+  the last bin, so it never describes bars not yet on screen.
+- **One Step is a 350ms glide** to the next recorded time — `advance`
+  returns true while tweening and false on landing, which stays inside the
+  step contract because the glide stops at ONE time point (the widget-15
+  walk-the-whole-axis bug was stopping nowhere). Every panel reading t
+  tweens with it — both tabs' curves, tab 1's strip and product line, the
+  bars. Reduced motion is core's fastForward at dt = 400, which completes
+  a step in one pump — asserted in the drive script.
+- **Verified frame-free**, because the browser pane had stopped
+  compositing mid-session (not displayed — the HANDOVER limitation, worth
+  recognizing by its signature: every hash identical, clicks changing
+  nothing, a screenshot that times out; the FIRST reading of it as "the
+  widget is broken" was wrong). The drive script pumps the tween by hand
+  (mid-step the cursor sits strictly between times; landings exact:
+  5, 6, 7, 8, 10), and the bar growth was proven with settled `?shown`
+  states in iframes — 26/27/28 (t = 13/13.5/14) hash pairwise differently,
+  the bar growing INSIDE bin [12,14), and identical URLs reproduce
+  identically. Initial paints are synchronous, so shown-states need no
+  frames — the svm-sweep lesson, reused.
+
+Drive: 64 checks green.
+
 ### Round 5 — the groups tab's hazard panel rebuilt; the H4 pick unwound
 
 **Kenneth's review of Comparing groups: "what are the bars? the x axis is

@@ -100,14 +100,33 @@ console.log("\n== the sweep, pumped by hand ==");
 const anim = W.animation.init({ params: { ...values }, state, fromScratch: true });
 ck("starts at t = 0, not done", anim.t === 0 && !anim.done);
 anim.mode = "step";
+/* a step is a 350ms GLIDE now (round 6): advance returns true while
+   tweening and false when it lands, so one step is pumped to completion */
+W.animation.advance(anim, { dt: 16, params: { ...values }, state });
+ck("mid-step the cursor is between times (the tween exists)",
+  anim.t > 0 && anim.t < 5);
+const stepToLanding = () => {
+  let guard = 0;
+  while (W.animation.advance(anim, { dt: 50, params: { ...values }, state }) && guard < 100) guard += 1;
+};
 const seen = [];
-for (let i = 0; i < 10 && !anim.done; i += 1) {
-  W.animation.advance(anim, { dt: 16, params: { ...values }, state });
+stepToLanding();
+seen.push(anim.t);
+for (let i = 0; i < 9 && !anim.done; i += 1) {
+  stepToLanding();
   seen.push(anim.t);
 }
-ck("step walks the five recorded times exactly: 5, 6, 7, 8, 10",
+ck("step lands on the five recorded times exactly: 5, 6, 7, 8, 10",
   seen.join() === "5,6,7,8,10");
 ck("done after the last recorded time", anim.done === true);
+/* reduced motion is core's fastForward at dt = 400 — one pump must land */
+{
+  const rm = W.animation.init({ params: { ...values }, state, fromScratch: true });
+  rm.mode = "step";
+  const more = W.animation.advance(rm, { dt: 400, params: { ...values }, state });
+  ck("a dt=400 pump completes a step in one call (reduced motion)",
+    more === false && rm.t === 5);
+}
 
 const run = W.animation.init({ params: { ...values }, state, fromScratch: true });
 run.mode = "run";

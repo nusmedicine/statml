@@ -48,7 +48,17 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **ROUND 2 IS BUILT (2026-08-29) and awaits Kenneth's review.** He
+   **ROUNDS 3–6 (2026-08-29, Kenneth's live review): the Censoring tab
+   gained the treatment-following hazard strip with ghosts, the
+   `survival = product of (1 − h)` line, the direction line, the
+   `h = events ÷ at risk` chip and the "(B and E)" heading; the groups
+   tab's H4 rates panel was UNWOUND on his review ("what are the
+   bars? the x axis is not aligned") and rebuilt as interval hazard
+   in tab 1's own vocabulary ON the curve's axis; the bars now grow
+   with the sweep inside their bins and Step is a 350ms glide. Every
+   round's record and its rejected alternatives: catalogue § Widget
+   31 rounds 3–6.** Round 2's own record below still describes the
+   structure. ROUND 2 built the three-concept restructure. He
    stepped back to three questions and picked the 3-part structure,
    labels option B: **Censoring · Comparing groups · Finding
    factors**. Censoring = round 1's five-patient stage plus the

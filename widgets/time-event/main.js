@@ -331,7 +331,24 @@ defineWidget({
       const b0 = intervalHaz(groups[0].times, groups[0].status, lo, lo + 2);
       const b1 = intervalHaz(groups[1].times, groups[1].status, lo, lo + 2);
       if (b0.n < 10 || b1.n < 10) break;
-      hazBins.push({ lo, hi: lo + 2, h0: b0.h, h1: b1.h, ev0: b0.ev, ev1: b1.ev });
+      /* the event times inside the bin, sorted — the bars GROW as the sweep
+         passes each one (round 6), so a bar mid-frame reads "events so far
+         this interval ÷ at risk at its start", true at every t */
+      const evTimes = (g) => groups[g].times
+        .filter((tt, i) => groups[g].status[i] === 1 && tt >= lo && tt < lo + 2)
+        .sort((a, b) => a - b);
+      hazBins.push({
+        lo,
+        hi: lo + 2,
+        h0: b0.h,
+        h1: b1.h,
+        ev0: b0.ev,
+        ev1: b1.ev,
+        n0: b0.n,
+        n1: b1.n,
+        ev0T: evTimes(0),
+        ev1T: evTimes(1),
+      });
     }
 
     /* Every pill combination is fit here, once per data change, so a pill
@@ -430,10 +447,30 @@ defineWidget({
 
       const tEnd = state.tEnd[timeKey(params.concept)];
       if (anim.mode === "step") {
-        const next = state.stepTimes[timeKey(params.concept)].find((t) => t > anim.t + 1e-9);
-        anim.t = next !== undefined ? next : tEnd;
-        anim.done = anim.t >= tEnd;
-        return false;
+        /* One step = a 350ms GLIDE to the next recorded time (round 6 —
+           the cursor used to teleport and every curve snapped). Returning
+           true buys the frames; the glide stops at ONE time point, which
+           is what keeps this inside the step contract (the widget-15
+           walk-the-whole-axis bug was stopping nowhere). Reduced motion
+           is core's fastForward at dt = 400 — one pump completes it. */
+        if (anim.stepTarget === undefined) {
+          const next = state.stepTimes[timeKey(params.concept)].find((t) => t > anim.t + 1e-9);
+          anim.stepTarget = next !== undefined ? next : tEnd;
+          anim.stepFrom = anim.t;
+          anim.stepMs = 0;
+        }
+        anim.stepTarget = Math.min(anim.stepTarget, tEnd);
+        anim.stepMs += dt;
+        const p = Math.min(1, anim.stepMs / 350);
+        anim.t = anim.stepFrom + (anim.stepTarget - anim.stepFrom) * p;
+        if (p >= 1) {
+          anim.t = anim.stepTarget;
+          delete anim.stepTarget;
+          delete anim.stepFrom;
+          anim.done = anim.t >= tEnd;
+          return false;
+        }
+        return true;
       }
       anim.t = Math.min(tEnd, anim.t + (SPEEDS[params.speed].rate * dt) / 1000);
       if (anim.t >= tEnd) {
@@ -871,6 +908,7 @@ function drawGroups(ctx, colors, w, params, state, t) {
   const HR = state.fits.d.byName.disease.hr;
   const bins = state.hazBins;
   const allAbove = bins.every((b) => b.ev0 + b.ev1 === 0 || b.h1 >= b.h0);
+  const binsDone = bins.length && t >= bins[bins.length - 1].hi;
   ctx.save();
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
@@ -878,13 +916,16 @@ function drawGroups(ctx, colors, w, params, state, t) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillText("Hazard by interval — of those still at risk, the share who go now", left, HR_TOP);
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  /* the claim is COMPUTED from the drawn bins, so it cannot be false on
-     a seed where an interval flips */
-  ctx.fillText(
-    `disease sits above no-disease in ${allAbove ? "every interval" : "most intervals"}`,
-    left,
-    HR_TOP + 16,
-  );
+  /* the claim is COMPUTED from the drawn bins, so it cannot be false on a
+     seed where an interval flips — and it waits for the sweep to finish
+     the bins, so it never describes bars not yet on screen */
+  if (binsDone) {
+    ctx.fillText(
+      `disease sits above no-disease in ${allAbove ? "every interval" : "most intervals"}`,
+      left,
+      HR_TOP + 16,
+    );
+  }
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "right";
   ctx.fillText("h = events ÷ at risk", right, HR_TOP + 16);
@@ -907,14 +948,20 @@ function drawGroups(ctx, colors, w, params, state, t) {
   }
   ctx.textAlign = "center";
   for (const v of [0, 5, 10, 15, 20]) ctx.fillText(String(v), plot.sx(v), by(0) + 14);
+  /* the bars grow WITH the sweep: height = events seen so far in the
+     interval ÷ at risk at its start — true at every frame, and equal to
+     the final h once the cursor clears the interval */
   for (const b of bins) {
+    if (t <= b.lo) continue;
     const w2 = plot.sx(b.hi) - plot.sx(b.lo);
     const bw = Math.min(18, w2 / 2 - 4);
     const mid = (plot.sx(b.lo) + plot.sx(b.hi)) / 2;
+    const h0 = b.ev0T.filter((et) => et <= t).length / b.n0;
+    const h1 = b.ev1T.filter((et) => et <= t).length / b.n1;
     ctx.fillStyle = colors.groupA;
-    ctx.fillRect(mid - bw - 2, by(b.h0), bw, by(0) - by(b.h0));
+    ctx.fillRect(mid - bw - 2, by(h0), bw, by(0) - by(h0));
     ctx.fillStyle = colors.groupB;
-    ctx.fillRect(mid + 2, by(b.h1), bw, by(0) - by(b.h1));
+    ctx.fillRect(mid + 2, by(h1), bw, by(0) - by(h1));
   }
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
