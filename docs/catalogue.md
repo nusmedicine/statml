@@ -3419,6 +3419,14 @@ and **the pane's stray-input phantom is alive** — b₀ drifted 70 → 67 → 6
 between two probes with no action taken, which is why nothing here trusts
 a screenshot for a fact.
 
+### ROUND 6 — the generic form leads the card
+
+**`y = b₀ + b₁x` now heads the equation card**, muted, labelled "the
+model" — 05-01's own order (cell 5 states the generic form before any
+numbers exist), and it is what names b₀ and b₁ for a reader who arrives
+without the lesson. The card reads: the model (ink-2) / your model /
+least-squares fit (empirical, on walk completion).
+
 **RESOLVED — Kenneth: "it had the stop sign and dropped off", and now
 works.** The 🚫 cursor names the mechanism: a native drag-and-drop, not a
 slider drag. With any text or element selected on the page (a double-click

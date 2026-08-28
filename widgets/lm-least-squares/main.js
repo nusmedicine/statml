@@ -144,6 +144,14 @@ const eqMathML = (b0, b1) =>
 const eqPlain = (b0, b1) =>
   `sysBP = ${Number(b0).toFixed(b0 === Math.round(b0) ? 0 : 2)} + ${Number(b1).toFixed(2)} × BMI`;
 
+/* The generic form leads the card — 05-01's own order (cell 5 states
+   y = b0 + b1 x before any numbers exist), and it is what names b0 and b1
+   for a reader who arrives without the lesson (Kenneth, round 6). */
+const GENERIC_MATHML =
+  "<math><mrow><mi>y</mi><mo>=</mo><msub><mi>b</mi><mn>0</mn></msub>"
+  + "<mo>+</mo><msub><mi>b</mi><mn>1</mn></msub><mi>x</mi></mrow></math>";
+const GENERIC_PLAIN = "y = b₀ + b₁x";
+
 let mathHost = null;
 let mathKey = null;
 function renderEquation(b0, b1, done) {
@@ -159,11 +167,13 @@ function renderEquation(b0, b1, done) {
   mathKey = key;
   const row = (label, html) =>
     `<div class="w-math-eq" style="min-height:0"><span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>${html}</div>`;
+  const generic = `<span style="color:var(--ink-2)">${MATHML ? GENERIC_MATHML : GENERIC_PLAIN}</span>`;
   const yours = MATHML ? eqMathML(b0, b1) : eqPlain(b0, b1);
   const fit = MATHML ? eqMathML(FIT_B0, FIT_B1) : eqPlain(FIT_B0, FIT_B1);
   mathHost.innerHTML = done
-    ? row("your model", yours) + row("least-squares fit", `<span style="color:var(--c-empirical)">${fit}</span>`)
-    : row("your model", yours);
+    ? row("the model", generic) + row("your model", yours)
+      + row("least-squares fit", `<span style="color:var(--c-empirical)">${fit}</span>`)
+    : row("the model", generic) + row("your model", yours);
 }
 
 const hexLerp = (a, b, t) => {
