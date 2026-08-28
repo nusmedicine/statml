@@ -3395,6 +3395,31 @@ stays `lm-least-squares` — it names the method that does the fitting.
    cost-low blue (both alias series-1), so its surface-coloured ring went
    to 2px and the ink-1 cross still marks the minimum.
 
+### ROUND 5 — the notebook's word is GRID, and a drag report not reproduced
+
+**"Surface" → "grid" on every reader-facing surface** (Kenneth's catch):
+05-01 itself says "a grid of b0 and b1 values" (cell 14) and never says
+surface, so the widget now speaks the lesson's word — the param is `grid`
+(URL `?grid=1`, gate key `gate-grid`), the gate reads "Hide the grid" with
+detail "a grid of every (b₀, b₁) pair, coloured by its sum of squares", and
+the subtitle ends "…the sum smallest over a grid of every line you could
+draw." Source comments keep "surface" where they mean the mathematical
+object. The module also gained a typeof-window guard on the MathML probe so
+the node stub-drivers can load it.
+
+**Kenneth reported the slope slider would not drag, and it could not be
+reproduced by any driven path**: real pointer drag at two widths (b₁ moved
+2 → 3.95), synthetic input events, mid-walk, in the shown-done state; the
+input is uncovered (elementFromPoint at five points), enabled, and a change
+costs 1–2 ms. Two true findings came out of the sweep: **`shown` survives
+in the URL after a slider move** (`?b1=…&shown=999` — the figure is honest,
+the address is stale; same class as the deferred core item "a published
+`step` survives a data change", and the same core fix should clear both),
+and **the pane's stray-input phantom is alive** — b₀ drifted 70 → 67 → 69
+between two probes with no action taken, which is why nothing here trusts
+a screenshot for a fact. Awaiting Kenneth's failure mode before touching
+anything.
+
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
 **Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —

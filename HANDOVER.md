@@ -50,10 +50,14 @@ driven-vs-settled-sibling check.
    what it draws. **Round 4:** the ramp sentence became a colour-scale bar
    under the surface (1× → ≥3×), and the finished line moved to
    `--c-empirical` — reference's grey vanished into the dots, and empirical
-   is the audited role for a fit anyway. **Next: Kenneth's next review
-   round** —
+   is the audited role for a fit anyway. **Round 5:** "surface" → "grid"
+   everywhere a reader sees it (05-01's own word; URL is `?grid=1` now),
+   and Kenneth's can't-drag-the-slope-slider report could NOT be reproduced
+   by any driven path — findings and the two true warts it surfaced are in
+   the catalogue's ROUND 5; his failure mode is awaited. **Next: Kenneth's
+   next review round** —
    `http://localhost:8010/widgets/lm-least-squares/` (finished state:
-   `?surface=1&shown=999`). Not yet baselined — states are recorded only
+   `?grid=1&shown=999`). Not yet baselined — states are recorded only
    once the design settles.
 2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
    it by hand (it will be the FIRST widget link in any notebook); the line:

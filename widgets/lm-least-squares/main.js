@@ -122,7 +122,9 @@ function walkAt(state, t) {
    mount `.w-math` lazily from draw() because module scope runs before the
    shell exists, and memoise on the numbers. */
 function mathmlRenders() {
-  if (typeof window.MathMLElement !== "function") return false;
+  /* The typeof-window guard keeps this module loadable in node, where the
+     _lab drivers stub defineWidget and call compute/advance with no DOM. */
+  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
   const probe = document.createElement("div");
   probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
   probe.innerHTML = '<math id="lm-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
@@ -209,7 +211,7 @@ defineWidget({
     "A linear model describes the outcome as an intercept plus a slope " +
     "times the covariate. Fitting it is a search: score any candidate line " +
     "by its sum of squared vertical differences, and take the choice that " +
-    "makes the sum smallest — the lowest point of a surface over every line.",
+    "makes the sum smallest over a grid of every line you could draw.",
   layout: "side",
   height: HEIGHT,
 
@@ -237,14 +239,16 @@ defineWidget({
       default: 2,
       detail: "mmHg of sysBP per unit of BMI",
     },
-    /* The gate: the widget opens as a scatter and a held line, and the
-       surface arrives when asked for. `display: true` — everything the
-       surface shows is already computed; the gate only reveals it. */
-    surface: {
+    /* The gate: the widget opens as a scatter and a held line, and the grid
+       arrives when asked for. "Grid" is 05-01's own word for this object
+       (cell 14: "a grid of b0 and b1 values" — the notebook never says
+       surface; Kenneth, round 5). `display: true` — everything the grid
+       shows is already computed; the gate only reveals it. */
+    grid: {
       type: "gate",
       label: "Show every line at once",
-      labelOff: "Hide the surface",
-      detail: "the sum of squares over all (b₀, b₁) pairs — yours is one point on it",
+      labelOff: "Hide the grid",
+      detail: "a grid of every (b₀, b₁) pair, coloured by its sum of squares",
       default: false,
       display: true,
     },
@@ -320,7 +324,7 @@ defineWidget({
     /* --- the scatter and the line -------------------------------------- */
     /* Gate shut: the scatter has the whole width. Gate open: it cedes the
        right half to the surface and the height never moves. */
-    const rect = params.surface
+    const rect = params.grid
       ? { x: 56, y: 30, w: Math.round((w - 70) * 0.52), h: SCATTER_H }
       : { x: 56, y: 30, w: w - 56 - 14, h: SCATTER_H };
     const plot = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
@@ -329,7 +333,7 @@ defineWidget({
     /* The note teaches on the opening screen only — once the gate is open
        the scatter is half-width and this line would overrun it (the text
        sweep's whole subject matter). */
-    if (!walked && !params.surface) plot.note("every patient's vertical difference is squared and summed");
+    if (!walked && !params.grid) plot.note("every patient's vertical difference is squared and summed");
 
     ctx.save();
     ctx.beginPath();
@@ -367,7 +371,7 @@ defineWidget({
     ctx.restore();
 
     /* --- the surface, behind the gate ---------------------------------- */
-    if (!params.surface) return;
+    if (!params.grid) return;
 
     const srect = { x: rect.x + rect.w + 56, y: 30, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H };
     const splot = makePlot({ ctx, colors, rect: srect, xDomain: SURF_B0, yDomain: SURF_B1 });
@@ -483,7 +487,7 @@ defineWidget({
       `A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with the linear model sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI drawn through it.`,
       `Its sum of squared differences is ${ssFmt(state.ssYour)}.`,
     ];
-    if (params.surface) {
+    if (params.grid) {
       parts.push("Beside it, the sum of squares is painted over every (b₀, b₁) pair.");
     }
     if (anim?.done) {
