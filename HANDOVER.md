@@ -47,7 +47,11 @@ driven-vs-settled-sibling check.
    model is the arc's central theme, this is its fitting chapter); and the
    descent ruling is recorded — coordinate descent, deliberately neither
    `optim`'s Nelder-Mead nor a shortest route, copy audited to claim only
-   what it draws. **Next: Kenneth's next review round** —
+   what it draws. **Round 4:** the ramp sentence became a colour-scale bar
+   under the surface (1× → ≥3×), and the finished line moved to
+   `--c-empirical` — reference's grey vanished into the dots, and empirical
+   is the audited role for a fit anyway. **Next: Kenneth's next review
+   round** —
    `http://localhost:8010/widgets/lm-least-squares/` (finished state:
    `?surface=1&shown=999`). Not yet baselined — states are recorded only
    once the design settles.

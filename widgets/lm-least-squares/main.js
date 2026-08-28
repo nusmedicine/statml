@@ -160,7 +160,7 @@ function renderEquation(b0, b1, done) {
   const yours = MATHML ? eqMathML(b0, b1) : eqPlain(b0, b1);
   const fit = MATHML ? eqMathML(FIT_B0, FIT_B1) : eqPlain(FIT_B0, FIT_B1);
   mathHost.innerHTML = done
-    ? row("your model", yours) + row("least-squares fit", `<span style="color:var(--c-reference)">${fit}</span>`)
+    ? row("your model", yours) + row("least-squares fit", `<span style="color:var(--c-empirical)">${fit}</span>`)
     : row("your model", yours);
 }
 
@@ -256,9 +256,7 @@ defineWidget({
   legend: [
     { token: "unknown", label: "3547 patients from the Framingham study", mark: "dot" },
     { token: "highlight", label: "Your model's line, and its differences from the data", mark: "line" },
-    { token: "reference", label: "The colour the line takes when the walk reaches the least-squares fit", mark: "line" },
-    { token: "cost-low", label: "A line with a small sum of squares", mark: "bar" },
-    { token: "cost-high", label: "A large sum — the colour saturates at 3× the least possible", mark: "bar" },
+    { token: "empirical", label: "The colour the line takes when the walk reaches the least-squares fit", mark: "line" },
   ],
 
   compute({ params }) {
@@ -311,8 +309,12 @@ defineWidget({
        is the reader's line; during, it travels; at the end it IS the fit and
        says so by changing colour. The wash and the surface dot ride along —
        the wash visibly thinning as the line descends is the sum falling. */
+    /* The finished line wears --c-empirical — the audited role for a FIT the
+       reader built from the data. It was --c-reference first, which aliases
+       the same ink-3 grey as the 3547 --c-unknown dots, so the one line the
+       whole widget walks toward arrived invisible (Kenneth, round 4). */
     const cur = walked ? walkAt(state, anim.t).pt : [state.b0, state.b1];
-    const lineColor = done ? colors.reference : colors.highlight;
+    const lineColor = done ? colors.empirical : colors.highlight;
     renderEquation(state.b0, state.b1, done);
 
     /* --- the scatter and the line -------------------------------------- */
@@ -417,15 +419,41 @@ defineWidget({
     }
 
     /* The line as a point among every line — the same dot the scatter's line
-       is, so it travels with the walk and lands wearing the fit's colour. */
+       is, so it travels with the walk and lands wearing the fit's colour.
+       The ring is heavy because the landed dot is empirical blue on the
+       trench's cost-low blue: the ring is what separates them. */
     ctx.fillStyle = lineColor;
     ctx.beginPath();
     ctx.arc(splot.sx(cur[0]), splot.sy(cur[1]), 4.5, 0, 2 * Math.PI);
     ctx.fill();
     ctx.strokeStyle = colors.surface;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
+
+    /* The colour scale, in place of any sentence about the ramp (Kenneth,
+       round 4): a bar under the surface from 1x to 3x the least sum, the
+       cap shown rather than said. */
+    const bar = { x: srect.x, y: srect.y + srect.h + 46, w: srect.w, h: 8 };
+    const STEPS = 48;
+    for (let i = 0; i < STEPS; i += 1) {
+      ctx.fillStyle = hexLerp(colors.costLow, colors.costHigh, i / (STEPS - 1));
+      ctx.fillRect(bar.x + (i / STEPS) * bar.w, bar.y, bar.w / STEPS + 1, bar.h);
+    }
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
+    ctx.fillStyle = colors.ink3;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    ctx.fillText("1×", bar.x, bar.y + bar.h + 13);
+    ctx.textAlign = "right";
+    ctx.fillText("≥3×", bar.x + bar.w, bar.y + bar.h + 13);
+    if (bar.w >= 220) {
+      ctx.textAlign = "center";
+      ctx.fillText("sum of squares, × the least possible", bar.x + bar.w / 2, bar.y + bar.h + 13);
+    }
   },
 
   readout({ state, anim }) {

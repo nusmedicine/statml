@@ -3378,6 +3378,23 @@ search; blurb/meta re-paired; the equation card labels are "your model" /
 "least-squares fit"; tile 1 is "Sum of squares — your model". The slug
 stays `lm-least-squares` — it names the method that does the fitting.
 
+### ROUND 4 — a scale instead of a sentence, and the arrival made visible
+
+1. **The ramp's words became a colour scale.** The two cost legend entries
+   (round 3's "saturates at 3×…") are deleted; a gradient bar under the
+   surface runs 1× → ≥3×, captioned "sum of squares, × the least possible"
+   (the caption drops below 220px of bar, endpoint ticks stay). The cap is
+   shown, not said.
+2. **The finished line wears `--c-empirical`, not `--c-reference`.**
+   Reference aliases the same ink-3 grey as the 3547 unknown dots, so the
+   line the whole widget walks toward arrived invisible — Kenneth caught it
+   on screen. Empirical is also the audited ROLE for exactly this mark ("a
+   fit the reader built from the data"), so the fix is semantic, not
+   cosmetic: the fitted equation, the legend entry and the landed surface
+   dot all moved with it. The landed dot is empirical blue on the trench's
+   cost-low blue (both alias series-1), so its surface-coloured ring went
+   to 2px and the ink-1 cross still marks the minimum.
+
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
 **Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —
