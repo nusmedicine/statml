@@ -174,7 +174,7 @@
 </main>
 
 <script type="module">
-import { km, logrank, coxph } from "./time-event-model.js";
+import { km, logrank, coxph, simulate } from "../time-event/model.js";
 import { makeRng } from "../core/rng.js";
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -304,34 +304,8 @@ const fit5 = km(T5, S5);
   g.fillStyle = C.ink3; g.fillText("as events — 0.20", X(8.3), Y(0.22));
 }
 
-/* ---- §2/§3 data: the widget's generator, one seed -------------------------- */
-function simulateWidget(rng, n = 200) {
-  // the notebook's event process; censoring replaced by study-end (min(T, C))
-  const age = [], disease = [], snps = [], time = [], status = [], trueT = [];
-  for (let i = 0; i < n; i += 1) { age.push(rng.int(30, 80)); disease.push(rng.int(0, 1)); }
-  for (let i = 0; i < n; i += 1) {
-    const row = new Array(10);
-    if (disease[i] === 1) {
-      for (let j = 0; j < 3; j += 1) row[j] = rng.next() < 0.8 ? 1 : 0;
-      for (let j = 3; j < 10; j += 1) row[j] = rng.int(0, 1);
-    } else {
-      for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
-    }
-    snps.push(row);
-  }
-  for (let i = 0; i < n; i += 1) {
-    let t = 20 - 0.1 * age[i] - 2 * disease[i]
-      - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
-    t = Math.round(t * 2) / 2;
-    if (t < 0.5) t = 0.5;
-    const c = Math.round((20 - rng.uniform(0, 10)) * 2) / 2;
-    trueT.push(t);
-    time.push(Math.min(t, c));
-    status.push(t <= c ? 1 : 0);
-  }
-  return { age, disease, snps, time, status, trueT };
-}
-const D = simulateWidget(makeRng(1));
+/* ---- §2/§3 data: the widget's generator (now the shipping one), one seed --- */
+const D = simulate(makeRng(1));
 
 /* C — kept vs dropped vs truth */
 {

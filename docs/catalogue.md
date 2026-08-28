@@ -3214,7 +3214,55 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## Widget 31 · `time-event` — measured and mocked 2026-08-29, awaiting Kenneth's pick
+## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
+
+### Round 1 — the draft, from picks H1 + H4
+
+**Kenneth picked H1 and H4 on 2026-08-29; the draft went up the same day** as
+`widgets/time-event/` (status draft, on /lab/ only): title *Modeling
+Time-to-Event Data*, two tabs on the `concept` segmented control, one motion —
+a time cursor sweeps right and the curve builds under it, Step walking the
+recorded times one by one. **Five patients**: the notebook's table as lanes
+(event dots `--c-event`, censor marks open `--c-unknown`), the KM curve below,
+and pick H1 — the hazard strip, bars d/n at each event with no bar at a
+censoring, the censor tick on the strip's axis instead. **Two groups**: seed 3
+of the model's own generator (the lowest seed telling cell 17's exact story:
+Age, Disease, SNP_1–3 significant, all seven nulls quiet — seeds 1 and 2 each
+flag a null SNP), KM by disease with censor ticks, optional Greenwood bands
+and the truth overlay (`--c-reference`, dashed), and the Cox card — the
+12-covariate forest beside pick H4, per-bin event rates with the marginal
+claim (coxph ~ Disease, HR 3.36 on seed 3) as dashed outlines.
+
+Decisions the build made, each earned in the session:
+
+- **The `censored` control is `display: true`** — three readings of ONE
+  dataset, so toggling compares and never resets the sweep. Verified live:
+  three steps to t = 7, toggle to Dropped, survival re-reads 0.33 with the
+  cursor unmoved.
+- **`cox` is a bool, NOT a `gate`**: core hides the entire drive row while
+  any gate is shut (right for pca, whose gate opens the only thing there is
+  to drive), and this widget's sweep must keep its Play with the card
+  closed.
+- **`anim.done` is re-read against the new tab's end in `rebuild`**, so a
+  curve finished on Five patients keeps building when the reader moves to
+  Two groups instead of Play snapping back to zero.
+- **Group labels are pinned where each curve crosses S ≈ 0.6** and drawn
+  only once the sweep passes that point — labels that followed the curves'
+  ends stacked in the corner when both finished near zero.
+- **The Cox card's header and H4's title are two fsXs lines each** — the
+  one-line versions overran the 550px canvas every state is hashed at
+  (caught by the fillText sweep at a 920px viewport, 0 overruns after;
+  first sweep attempt raced a `location.href` navigation and silently swept
+  the OLD page — six states reading exactly 24 strings each was the tell).
+
+`_lab/time-event-drive.mjs` (45 checks, no browser): capabilities by name,
+cell 17's story on the default seed, the step walk 5/6/7/8/10, the tab
+hand-off, `?shown=44` opening finished, and 72 readout+summary states with
+no NaN/undefined/Infinity. Not yet judged: legibility at projection; the
+truth-overlay colour question (two group truths share one `--c-reference`
+dash); the `Survival` tile's treatment-following value.
+
+### The planning record — measured and mocked 2026-08-29
 
 **Slot 5 of the modeling arc (05-06, Time-to-Event Data). The misconception:
 censored patients are missing data to discard.** Planned on the 27–30 rhythm:

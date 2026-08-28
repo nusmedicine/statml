@@ -48,18 +48,22 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **Kenneth picked 2026-08-29: TWO TABS (Five patients · Two groups),
-   Cox as a CARD in the groups tab.** He then asked for research on
-   visual ways to illustrate the hazard function — done the same day,
-   four engine-drawn candidates in the mock's §4 (H1 paired hazard
-   strip under the five-patient curve — the Singer & Willett form at
-   human scale; H2 the drop annotated on the curve; H3 interval hazard
-   by group, ordering measured 100/100/100/98/78% per bin over 100
-   seeds; H4 the Cox claim as baseline-×-HR outlines on person-time
-   rates, bins [10,16) only — the record and the bin rulings are in
-   catalogue § Widget 31). **Awaiting his hazard pick, then build.**
-   Still open: a token role for the wrong-treatment curves. Mock URL:
-   `http://localhost:8010/widgets/_lab/time-event-stage.html`.
+   **THE DRAFT IS BUILT (2026-08-29, round 1) and awaits Kenneth's
+   review.** His picks: two tabs, Cox as a card in the groups tab,
+   hazard visuals H1 (the strip under the five-patient curve) and H4
+   (the ×HR claim beside the forest). `widgets/time-event/` — model.js
+   (the verified engine + the study-end generator), main.js, status
+   draft so it ships to /lab/ only; default seed 3 (measured: the
+   lowest seed telling cell 17's exact story with all null SNPs
+   quiet). `node widgets/_lab/time-event-drive.mjs` = 45 checks.
+   Build rulings recorded in catalogue § Widget 31 round 1 — the big
+   two: `cox` must stay a bool (a `gate` hides the whole drive row),
+   and `censored` is display:true so toggling readings never resets
+   the sweep. Review URL:
+   `http://localhost:8010/widgets/time-event/` (all states:
+   `?concept=groups&cox=1&truth=1&bands=1&shown=44`). Open judgement
+   calls: projection legibility, the two-truths-one-colour question,
+   whether the Survival tile should follow the chosen treatment.
 2. **Then `mixed-model`** (05-07, Hierarchical Data — 500 rows are 500
    observations; Hurlbert 1984). Last of the agreed arc.
 3. **Notebook links now owed for all FIVE shipped modeling widgets** —

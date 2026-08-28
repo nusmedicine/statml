@@ -437,6 +437,20 @@
       ],
       "arc": 30,
       "status": "shipped"
+    },
+    {
+      "slug": "time-event",
+      "title": "Modeling Time-to-Event Data",
+      "blurb": "The Kaplan-Meier estimate keeps censored patients in the risk set until they leave, using everything that was seen.",
+      "course": "PHM5003",
+      "topics": [
+        "survival",
+        "censoring",
+        "Kaplan-Meier",
+        "Cox regression"
+      ],
+      "arc": 31,
+      "status": "draft"
     }
   ]
 }

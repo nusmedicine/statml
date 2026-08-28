@@ -1,8 +1,7 @@
-/* time-event-model.js — survival algorithms for the time-event widget (05-06).
+/* model.js — survival algorithms for the time-event widget (05-06).
  *
- * Lives in _lab while the design moves; becomes widgets/time-event/model.js
- * when the widget is built. Pure functions, no DOM, no rng of their own —
- * exactly what a measure script and a compute() can share.
+ * Pure functions, no DOM, no rng of their own — what the widget's compute()
+ * and `_lab/time-event-measure.mjs` share, so what is verified is what runs.
  *
  * Conventions follow R's survival package, because the notebook's stored
  * outputs are what these must reproduce:
@@ -37,6 +36,49 @@ export const zTailP2 = (z) => erfc(Math.abs(z) / Math.SQRT2);
 
 /** P(chi²₁ > x). The log-rank and the Wald test with one constraint. */
 export const chi2Tail1 = (x) => (x <= 0 ? 1 : erfc(Math.sqrt(x / 2)));
+
+/* --- the widget's data ---------------------------------------------------- *
+ * The notebook's event process untouched; its censoring REPLACED. Cell 11
+ * draws Status ~ sample(0:1) independently of time, so a censored patient is
+ * censored AT the very time the event would have happened — measured over
+ * 100 seeds, KM on that design lies HIGH (+0.13) and discarding the censored
+ * is the unbiased choice, the OPPOSITE of the lesson. Study-end censoring
+ * (staggered entry, doors close at 20, observed = min(T, C)) restores the
+ * roles the lesson teaches: KM −0.0002 from truth, discarding −0.081.
+ * The full record is docs/catalogue.md § Widget 31.                          */
+export function simulate(rng, n = 200) {
+  const age = [];
+  const disease = [];
+  const snps = [];
+  const time = [];
+  const status = [];
+  const trueT = [];
+  for (let i = 0; i < n; i += 1) {
+    age.push(rng.int(30, 80));
+    disease.push(rng.int(0, 1));
+  }
+  for (let i = 0; i < n; i += 1) {
+    const row = new Array(10);
+    if (disease[i] === 1) {
+      for (let j = 0; j < 3; j += 1) row[j] = rng.next() < 0.8 ? 1 : 0;
+      for (let j = 3; j < 10; j += 1) row[j] = rng.int(0, 1);
+    } else {
+      for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
+    }
+    snps.push(row);
+  }
+  for (let i = 0; i < n; i += 1) {
+    let t = 20 - 0.1 * age[i] - 2 * disease[i]
+      - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
+    t = Math.round(t * 2) / 2;
+    if (t < 0.5) t = 0.5;
+    const c = Math.round((20 - rng.uniform(0, 10)) * 2) / 2;
+    trueT.push(t);
+    time.push(Math.min(t, c));
+    status.push(t <= c ? 1 : 0);
+  }
+  return { age, disease, snps, time, status, trueT };
+}
 
 /* --- Kaplan–Meier --------------------------------------------------------- */
 

@@ -21,7 +21,7 @@
 //      exists to dislodge only fires under time-dependent censoring
 //      (study end / dropout). That decides the widget's generator.
 
-import { km, kmMedian, logrank, coxph, chi2Tail1 } from "./time-event-model.js";
+import { km, kmMedian, logrank, coxph, chi2Tail1, simulate } from "../time-event/model.js";
 import { makeRng } from "../core/rng.js";
 
 let fails = 0;
@@ -338,38 +338,10 @@ console.log("\n== DESIGN: the widget's OWN generator — true process + study-en
 /* What the simulated arm becomes once the Status coin is ruled out: the
    notebook's event process untouched, censoring by staggered entry with the
    doors closing at 20. Everything the widget will print about groups and
-   hazards must hold under THIS design, so it is measured under this design. */
-function simulateWidget(rng, n = 200) {
-  const age = [];
-  const disease = [];
-  const snps = [];
-  const time = [];
-  const status = [];
-  for (let i = 0; i < n; i += 1) {
-    age.push(rng.int(30, 80));
-    disease.push(rng.int(0, 1));
-  }
-  for (let i = 0; i < n; i += 1) {
-    const row = new Array(10);
-    if (disease[i] === 1) {
-      for (let j = 0; j < 3; j += 1) row[j] = rng.next() < 0.8 ? 1 : 0;
-      for (let j = 3; j < 10; j += 1) row[j] = rng.int(0, 1);
-    } else {
-      for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
-    }
-    snps.push(row);
-  }
-  for (let i = 0; i < n; i += 1) {
-    let t = 20 - 0.1 * age[i] - 2 * disease[i]
-      - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
-    t = Math.round(t * 2) / 2;
-    if (t < 0.5) t = 0.5;
-    const c = Math.round((20 - rng.uniform(0, 10)) * 2) / 2;
-    time.push(Math.min(t, c));
-    status.push(t <= c ? 1 : 0);
-  }
-  return { age, disease, snps, time, status };
-}
+   hazards must hold under THIS design — and the generator measured here IS
+   the shipping one, imported from ../time-event/model.js, so what is
+   verified is what runs. */
+const simulateWidget = simulate;
 
 {
   const SEEDS = 100;
