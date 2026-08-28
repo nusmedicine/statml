@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 round 11 — the Collinearity tab, restructured</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · round 11 — the Collinearity tab: the diagnostic gets its own section</h1>
+
+  <p class="note">
+    <b>The complaint, diagnosed:</b> on the Collinearity tab the scatter slot
+    does double duty — the data until two covariates are in, then it is
+    silently REPLACED by the VIF regression. That is the same seam class the
+    merge fixed on tab 1: the reader's data view vanishes because the model
+    changed, and nothing announced the switch. <b>The notebook's own order
+    is the fix</b> (05-02 cells 32–53): first the act — fit the models,
+    notice "only one of the covariates is significant" — and then a separate
+    subsection, <i>"Using a variance inflation factor (VIF) to detect
+    collinearity"</i>, that walks EACH covariate in turn with the formula on
+    screen: <code>lm(age ~ BMI + BMI_related)</code>, R² → VIF = 1/(1−R²),
+    then <code>car::vif</code> and the bar plot against the dashed 5. Fit
+    first, then check — two steps, visibly two.
+  </p>
+  <p class="note">
+    <b>And a missing half-lesson the persistent panels repair:</b> the
+    measured punchline is "prediction untouched, attribution broken" (R² and
+    residual sd identical to four decimals with or without weight) — but the
+    current tab never SHOWS the untouched half. Below, the twins' panels
+    stay on screen: when both twins are in, <b>weight's panel draws a
+    near-flat model line under a cloud that plainly rises</b> — the model
+    saying "weight does nothing" against data saying otherwise. Attribution
+    broken, in data space, while R², the strip and the fitted lines barely
+    move. Also considered and NOT drawn: swapping the tab's panels to
+    BMI + age (tab 1's pair) — the panels would then switch content when
+    weight enters, which is the very complaint; this tab's fixed pair is
+    the TWINS, its subject.
+  </p>
+
+  <h2>§1 · Candidate A — the notebook's order as page order (the recommendation)</h2>
+  <p class="note">
+    DAG + forest, then the twins' two marginals (dots always; each panel
+    carries the model's reading of its covariate when it is in — others at
+    their means), then the section <b>"Detecting collinearity — VIF"</b>
+    with the formula written above the regression panel, VIF bars beside
+    it, and then the strip. Everything is on screen at once, in the
+    notebook's teaching order; nothing is replaced when a pill is clicked —
+    fits appear IN the fixed panels. The price is height: ~950px against
+    today's 688 (the deep-dive tab pays for its depth). In the widget the
+    VIF bars would be click regions choosing which covariate the formula
+    panel regresses — the notebook computes VIF for age, BMI and
+    BMI_related one at a time, and clicking a bar is that walk.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — model: BMI + weight + age (the broken state)</h3>
+      <p class="sub">weight's marginal: the cloud rises, the model's line is flat (0.01/kg) — attribution broken where the reader can see it; the section below detects it</p>
+      <canvas id="candA" width="550" height="952"></canvas>
+      <p class="cap">drawn at the real 550px stage · seed 1 · every number computed live</p>
+    </div>
+    <div class="cand">
+      <h3>The section alone, subject = age (one bar-click later)</h3>
+      <p class="sub">the same section after clicking age's bar: the others predict almost nothing, the cloud is a blob, VIF ≈ 1 — the contrast that defines the quantity</p>
+      <canvas id="candAge" width="550" height="300"></canvas>
+      <p class="cap">clicking a VIF bar sets the regression the panel and formula show</p>
+    </div>
+  </div>
+
+  <h2>§2 · Candidate B — the diagnostic behind a View (tab 1's grammar)</h2>
+  <p class="note">
+    Keep today's height: the panels row persists, and a <b>View: Data ·
+    Check VIF</b> segmented swaps that one row for the diagnostic — an
+    explicit, reader-driven switch instead of an automatic one, mirroring
+    tab 1's Data · Other removed. <b>For it:</b> no height cost, one thing
+    on screen at a time, the same View grammar in both tabs. <b>Against
+    it:</b> the formula section Kenneth asked to SEE becomes a state the
+    reader must find; the broken forest and the detection can be seen
+    together but never beside the data panels; and the notebook's
+    fit-then-check order becomes a toggle, not a page. Not drawn — it is
+    §1's rows with one row swapped; the ask ("explicitly put a section")
+    argues A.
+  </p>
+
+  <h2>§3 · What the section says, exactly</h2>
+  <p class="note">
+    The heading speaks the lesson's words ("Detecting collinearity — VIF",
+    from 05-02's own <i>"Using a VIF to detect collinearity"</i>). The
+    formula line is the notebook's recipe made concrete for the clicked
+    covariate: <code>weight ~ BMI + age</code> → R² 0.87 → VIF = 1/(1−0.87)
+    = 7.7, with the honesty note ("weight is simulated from BMI and a
+    plausible height") riding on the panel as it does today. The bars keep
+    the dashed 5 and gain the click. When fewer than two covariates are in,
+    the section's frame stays with the note "put two covariates in the
+    model to test for collinearity" — the section never appears or
+    vanishes, it fills in.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  highlight: css("--c-highlight"), empirical: css("--c-empirical"),
+  unknown: css("--c-unknown"), extreme: css("--c-extreme"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+const TQ = 1.960633;
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+/* weight, simulated exactly as the widget does (seed 1) */
+const rng = makeRng(1);
+const gauss = () => {
+  const u = Math.max(rng.next(), 1e-12);
+  const v = rng.next();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+const WGT = BMI.map((b) => { const ht = 1.68 + 0.05 * gauss(); return b * ht * ht; });
+
+/* fits */
+const fb = ols(SYSBP, BMI);
+const ft = ols(SYSBP, WGT);
+const fa = ols(SYSBP, AGE);
+const fbat = ols(SYSBP, BMI, WGT, AGE);
+const MEANS = { bmi: meanOf(BMI), wgt: meanOf(WGT), age: meanOf(AGE) };
+
+/* VIFs, per covariate, the notebook's own walk */
+const vifOf = (t, ...o) => { const f = ols(t, ...o); return { r2: f.r2, vif: 1 / (1 - f.r2), fit: f }; };
+const V = {
+  BMI: vifOf(BMI, WGT, AGE),
+  weight: vifOf(WGT, BMI, AGE),
+  age: vifOf(AGE, BMI, WGT),
+};
+
+const X_DOM = [14, 58], W_DOM = [38, 122], Y_DOM = [80, 300];
+
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return ctx;
+}
+function frame(ctx, r, xd, yd, xl, yl) {
+  const sx = (v) => r.x + ((v - xd[0]) / (xd[1] - xd[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  if (xl) ctx.fillText(xl, r.x + r.w / 2, r.y + r.h + 14);
+  if (yl) { ctx.save(); ctx.translate(r.x - 8, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return { sx, sy };
+}
+function cloud(ctx, r, p, xs, ys, alpha = 0.35, rad = 1.4) {
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = alpha;
+  for (let i = 0; i < N; i += 1) { ctx.beginPath(); ctx.arc(p.sx(xs[i]), p.sy(ys[i]), rad, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+}
+
+/* --- the 4-node DAG ------------------------------------------------------ */
+function dag4(ctx, x0, y0) {
+  const R = 22;
+  const P = { bmi: [x0 + 50, y0 + 22], wgt: [x0 + 50, y0 + 88], age: [x0 + 50, y0 + 154], y: [x0 + 168, y0 + 88] };
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("The covariates — click to include", x0 + 4, y0 - 12);
+  const arrow = (from) => {
+    const [x1, y1] = P[from], [x2, y2] = P.y;
+    const L = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+    ctx.strokeStyle = C.ink2; ctx.fillStyle = C.ink2; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1 + ux * (R + 3), y1 + uy * (R + 3)); ctx.lineTo(x2 - ux * (R + 6), y2 - uy * (R + 6)); ctx.stroke();
+    const bx = x2 - ux * (R + 5), by = y2 - uy * (R + 5);
+    ctx.beginPath(); ctx.moveTo(bx + ux * 5, by + uy * 5); ctx.lineTo(bx - uy * 4.5, by + ux * 4.5); ctx.lineTo(bx + uy * 4.5, by - ux * 4.5); ctx.fill();
+  };
+  arrow("bmi"); arrow("wgt"); arrow("age");
+  ctx.strokeStyle = C.extreme; ctx.setLineDash([4, 4]); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(P.bmi[0], P.bmi[1] + R + 4); ctx.lineTo(P.wgt[0], P.wgt[1] - R - 4); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.extreme; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("r = 0.93", P.bmi[0] + 9, (P.bmi[1] + P.wgt[1]) / 2 + 4);
+  const NODE = { bmi: "BMI", wgt: "weight", age: "age", y: "sysBP" };
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const k of ["bmi", "wgt", "age", "y"]) {
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = k === "y" ? C.ink2 : C.highlight; ctx.lineWidth = k === "y" ? 1.25 : 2;
+    ctx.beginPath(); ctx.arc(P[k][0], P[k][1], R, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.ink1; ctx.font = `12px ${C.font}`;
+    ctx.fillText(NODE[k], P[k][0], P[k][1] + 1);
+  }
+  ctx.textBaseline = "alphabetic";
+}
+
+/* --- the 3-row forest, bat model ----------------------------------------- */
+function forest3(ctx, fr) {
+  const DOM = [-0.6, 2];
+  const fx = (v) => fr.x + ((v - DOM[0]) / (DOM[1] - DOM[0])) * fr.w;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.strokeRect(fr.x, fr.y, fr.w, fr.h);
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = C.ink3;
+  ctx.beginPath(); ctx.moveTo(fx(0), fr.y); ctx.lineTo(fx(0), fr.y + fr.h); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+  for (const v of [-0.5, 0, 0.5, 1, 1.5, 2]) ctx.fillText(fmt(v, 1), fx(v), fr.y + fr.h + 13);
+  ctx.fillText("mmHg per unit of the covariate", fr.x + fr.w / 2, fr.y + fr.h + 27);
+  const rows = [
+    { name: "BMI", ghost: [fb.b[1], TQ * fb.se[1]], now: [fbat.b[1], TQ * fbat.se[1]] },
+    { name: "weight", ghost: [ft.b[1], TQ * ft.se[1]], now: [fbat.b[2], TQ * fbat.se[2]] },
+    { name: "age", ghost: [fa.b[1], TQ * fa.se[1]], now: [fbat.b[3], TQ * fbat.se[3]] },
+  ];
+  rows.forEach((r, i) => {
+    const y = fr.y + 36 + i * 52;
+    ctx.fillStyle = C.ink2; ctx.font = `12px ${C.font}`; ctx.textAlign = "right";
+    ctx.fillText(r.name, fr.x - 8, y + 4);
+    ctx.globalAlpha = 0.4; ctx.strokeStyle = C.empirical; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(fx(r.ghost[0] - r.ghost[1]), y); ctx.lineTo(fx(r.ghost[0] + r.ghost[1]), y); ctx.stroke();
+    ctx.fillStyle = C.empirical; ctx.beginPath(); ctx.arc(fx(r.ghost[0]), y, 3.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink2; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(fx(r.ghost[0]), y - 15); ctx.lineTo(fx(r.now[0]), y - 15); ctx.stroke();
+    const dir = r.now[0] < r.ghost[0] ? -1 : 1;
+    ctx.fillStyle = C.ink2;
+    ctx.beginPath(); ctx.moveTo(fx(r.now[0]), y - 15); ctx.lineTo(fx(r.now[0]) - dir * 6, y - 18.5); ctx.lineTo(fx(r.now[0]) - dir * 6, y - 11.5); ctx.fill();
+    ctx.fillStyle = C.ink1; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+    ctx.fillText(`${fmt(r.ghost[0])} → ${fmt(r.now[0])} when the others are added`, fx(0.7), y - 26);
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(fx(r.now[0] - r.now[1]), y); ctx.lineTo(fx(r.now[0] + r.now[1]), y); ctx.stroke();
+    ctx.fillStyle = C.highlight; ctx.beginPath(); ctx.arc(fx(r.now[0]), y, 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+    ctx.fillText(fmt(r.now[0]), fx(r.now[0]), y + 19);
+  });
+}
+
+/* --- the twins' marginals, model lines at others' means ------------------ */
+function twinPanels(ctx, slot) {
+  const gap = 56;
+  const pw = Math.round((slot.w - gap) / 2);
+  const spec = [
+    { xs: BMI, dom: X_DOM, label: "BMI", slope: fbat.b[1], b0: fbat.b[0] + fbat.b[2] * MEANS.wgt + fbat.b[3] * MEANS.age, x: slot.x },
+    { xs: WGT, dom: W_DOM, label: "weight (kg)", slope: fbat.b[2], b0: fbat.b[0] + fbat.b[1] * MEANS.bmi + fbat.b[3] * MEANS.age, x: slot.x + pw + gap },
+  ];
+  spec.forEach((s, pi) => {
+    const r = { x: s.x, y: slot.y, w: pw, h: slot.h };
+    const p = frame(ctx, r, s.dom, Y_DOM, s.label, pi === 0 ? "sysBP (mmHg)" : null);
+    cloud(ctx, r, p, s.xs, SYSBP, 0.4, 1.6);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(p.sx(s.dom[0]), p.sy(s.b0 + s.slope * s.dom[0]));
+    ctx.lineTo(p.sx(s.dom[1]), p.sy(s.b0 + s.slope * s.dom[1])); ctx.stroke();
+    ctx.restore();
+    if (pi === 0) {
+      ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+      ctx.fillText("the twins — the model's reading of each, others at their means", r.x, r.y - 8);
+    }
+    if (pi === 1) {
+      ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "right";
+      ctx.fillText(`the model's line: ${fmt(s.slope)} per kg`, r.x + r.w - 6, r.y + 16);
+    }
+  });
+}
+
+/* --- the VIF section ------------------------------------------------------ */
+function vifSection(ctx, top, subject) {
+  const v = V[subject];
+  const others = { BMI: ["weight", "age"], weight: ["BMI", "age"], age: ["BMI", "weight"] };
+  ctx.fillStyle = C.ink1; ctx.font = `600 13px ${C.font}`; ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("Detecting collinearity — VIF", 14, top);
+  ctx.fillStyle = C.ink2; ctx.font = `11px ${C.font}`;
+  ctx.fillText(`regress each covariate on the others:  ${subject} ~ ${others[subject].join(" + ")}   →   R² ${fmt(v.r2, 2)}   →   VIF = 1 ⁄ (1 − R²) = ${fmt(v.vif, 1)}`, 14, top + 20);
+
+  /* the regression panel */
+  const DOMS = { BMI: [14, 58], weight: [38, 122], age: [28, 72] };
+  const dom = DOMS[subject];
+  const arrs = { BMI, weight: WGT, age: AGE };
+  const sub = arrs[subject];
+  const oArrs = others[subject].map((n) => arrs[n]);
+  const f = ols(sub, ...oArrs);
+  const pred = sub.map((_, i) => oArrs.reduce((s, o, j) => s + f.b[j + 1] * o[i], f.b[0]));
+  const rect = { x: 56, y: top + 44, w: 264, h: 190 };
+  const p = frame(ctx, rect, dom, dom, `${subject}, predicted from the others`, `${subject}, actual`);
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.strokeStyle = C.ink3; ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(p.sx(dom[0]), p.sy(dom[0])); ctx.lineTo(p.sx(dom[1]), p.sy(dom[1])); ctx.stroke();
+  ctx.globalAlpha = 1;
+  cloud(ctx, rect, p, pred, sub, 0.35, 1.5);
+  ctx.restore();
+  if (subject === "weight") {
+    ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText("weight is simulated from BMI and a plausible height", rect.x, rect.y + rect.h + 30);
+  } else {
+    ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText("the others know almost nothing about it", rect.x, rect.y + rect.h + 30);
+  }
+
+  /* the bars, clickable in the widget */
+  const vrect = { x: 380, y: top + 44, w: 150, h: 190 };
+  const vy = (val) => vrect.y + vrect.h - (Math.min(val, 8) / 8) * vrect.h;
+  ctx.strokeStyle = C.grid; ctx.strokeRect(vrect.x, vrect.y, vrect.w, vrect.h);
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("VIF — click a bar", vrect.x, vrect.y - 8);
+  ctx.font = `10px ${C.font}`;
+  ctx.fillStyle = C.ink3; ctx.textAlign = "right";
+  for (const t of [0, 4, 8]) ctx.fillText(String(t), vrect.x - 4, vy(t) + 3);
+  const names = ["BMI", "weight", "age"];
+  names.forEach((name, i) => {
+    const bw = 30;
+    const bx = vrect.x + 14 + i * ((vrect.w - 20) / 3);
+    ctx.fillStyle = C.empirical;
+    ctx.globalAlpha = name === subject ? 1 : 0.45;
+    ctx.fillRect(bx, vy(V[name].vif), bw, vy(0) - vy(V[name].vif));
+    ctx.globalAlpha = 1;
+    if (name === subject) {
+      ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx - 2.5, vy(V[name].vif) - 2.5, bw + 5, vy(0) - vy(V[name].vif) + 2.5);
+    }
+    ctx.fillStyle = C.ink2; ctx.textAlign = "center";
+    ctx.fillText(name, bx + bw / 2, vrect.y + vrect.h + 13);
+    ctx.fillText(fmt(V[name].vif, 1), bx + bw / 2, vy(V[name].vif) - 5);
+  });
+  ctx.strokeStyle = C.extreme; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(vrect.x, vy(5)); ctx.lineTo(vrect.x + vrect.w, vy(5)); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* --- the strip ------------------------------------------------------------ */
+function strip(ctx, r) {
+  const p = frame(ctx, r, [90, 200], [-50, 70], "fitted sysBP", "residual");
+  ctx.strokeStyle = C.ink3; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(r.x + r.w, p.sy(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.35;
+  for (let i = 0; i < N; i += 1) {
+    const f = fbat.b[0] + fbat.b[1] * BMI[i] + fbat.b[2] * WGT[i] + fbat.b[3] * AGE[i];
+    ctx.beginPath(); ctx.arc(p.sx(f), p.sy(SYSBP[i] - f), 1.3, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* === Candidate A ========================================================== */
+{
+  const ctx = ctx2d("candA");
+  dag4(ctx, 8, 42);
+  forest3(ctx, { x: 300, y: 34, w: 232, h: 192 });
+  twinPanels(ctx, { x: 56, y: 292, w: 480, h: 210 });
+  vifSection(ctx, 566, "weight");
+  strip(ctx, { x: 56, y: 856, w: 480, h: 66 });
+}
+
+/* === the section with subject = age ====================================== */
+{
+  const ctx = ctx2d("candAge");
+  vifSection(ctx, 30, "age");
+}
+</script>
+</body>
+</html>
