@@ -30,11 +30,14 @@ driven-vs-settled-sibling check.
    200 seeds instead (twin n.s. 186/200, SE ×2.50, VIF 6.34 ± 0.12). The
    decisive design fact: **two slopes cannot carry this widget** — the
    1.721 → 1.499 move is 1.8–3.1px at panel scale; coefficients must be
-   marks, not slopes. **Next step: mock-up page in `_lab/` for Kenneth's
-   pick** — the open questions (forest vs FWL slide vs both; whether the
-   collinearity act gates into this widget or defers) are in the catalogue
-   section. After it: `lm-categorical`, `lm-interaction`, `censoring-km`,
-   `pseudoreplication`.
+   marks, not slopes. **Kenneth picked from `_lab/lm-adjust-stage.html`**
+   (eased forest + FWL slide + twin act in + two switches + the residual
+   strip) and **the DRAFT IS BUILT** — catalogue § *NEXT · Widget 28* has
+   the build record, including the `anim.easing` request-for-frames lesson.
+   **Next: Kenneth reviews the draft** —
+   `http://localhost:8010/widgets/lm-adjustment/` (full act:
+   `?bmi=1&age=1&twin=1`). Not yet baselined. After it: `lm-categorical`,
+   `lm-interaction`, `censoring-km`, `pseudoreplication`.
 2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth
    places notebook links by hand: 06-02's (widget 26, the line is in item 3
    below) and now 05-01's (widget 27):

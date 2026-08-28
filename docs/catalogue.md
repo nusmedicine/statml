@@ -3265,7 +3265,46 @@ act at seed 1 (the twin forest and the notebook's own VIF bars) for the
 scope ruling; plus the numbers table and the rail/ghost/seed/R² questions
 in prose.
 
-**Open questions for the mock-ups** (Kenneth picks): the stage —
+**ROUND 1 — Kenneth picked, 2026-08-28, all from the mock-ups:** **B eased
+marks** for the coefficient stage (the switches pick the model, a mark
+EASES to its new value, the alone-reading stays as a ghost); **the FWL
+slide in**, behind a View; **the collinearity act IN**, behind an "Add a
+twin covariate" gate — 05-02 stays whole in one widget; **two switches**
+for the rail (BMI in model / age in model — four states including the
+empty model); and, from the widget-27 session, **the residual strip rides
+along**: the current model's residuals against its fitted values, the
+cloud tightening as covariates enter (sd 21.1 → 19.9 → 18.7 — R² made
+physical). Build follows as a draft.
+
+### BUILT AS A DRAFT — the same day
+
+`widgets/lm-adjustment/` — imports the shared stage across widget dirs
+(widget 26's arrangement; `../lm-least-squares/data.js` + `model.js`). The
+shape: **two switches** build the model from empty (sysBP = 131.31, R² 0);
+the **forest** shows each coefficient as an eased mark with its CI, the
+alone-reading staying as a faint empirical ghost whenever the model holds
+more than that covariate — so 1.72 → 1.50 is a watched move on a fixed
+−0.6..2 axis; the **scatter** below carries the model's line (the 3px
+non-event, drawn because it is true) and slides to the **FWL view** behind
+View: Age removed — origin crosshair, the slope line drawn ONLY for the
+exact model (BMI + age, no twin) where FWL holds to 1e-9; **widget 27's
+residual strip** under the scatter, against fitted values (the empty model
+stands its residuals in one column — everyone predicted the same number);
+and the **twin act** behind a gate: a third forest row straddling zero,
+CIs ×2.5, the VIF panel with the extreme-dashed 5, a seeded Seed control
+(1–200) because the notebook's own jitter is unseeded. Tiles: R²,
+Residual spread (21.1 → 19.9 → 18.6), Largest VIF while the twin is in.
+The equation card is widget 27's, grown to many terms — one <math> per
+term (widget 14's wrapping lesson) and a negative coefficient folds its
+sign into the operator. Height is a function of the twin (590 / 642).
+
+**One core-contract lesson, earned twice now:** `anim.easing = true` in
+`rebuild` is the REQUEST FOR FRAMES — the first build omitted it and every
+mark stood at alpha 0 for ever while the ghosts drew, exactly the class of
+bug the fingerprint's driven states exist to catch. The main.js comment
+now says so.
+
+**The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;
 whether the collinearity act lives in this widget behind a gate ("Add a

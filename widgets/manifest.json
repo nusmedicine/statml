@@ -394,6 +394,21 @@
       ],
       "arc": 27,
       "status": "shipped"
+    },
+    {
+      "slug": "lm-adjustment",
+      "title": "Adjusting a Linear Model",
+      "blurb": "Adding a covariate to a linear model changes the other coefficients: each is the effect with the rest held constant.",
+      "course": "PHM5003",
+      "topics": [
+        "linear model",
+        "adjustment",
+        "multiple covariates",
+        "collinearity",
+        "VIF"
+      ],
+      "arc": 28,
+      "status": "draft"
     }
   ]
 }
