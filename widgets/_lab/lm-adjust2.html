@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 round 2 — pills, a diagram, the plane, and the structure</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table.m { border-collapse: collapse; font-size: var(--fs-xs); background: var(--surface-1); border: 1px solid var(--grid); }
+  table.m th, table.m td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--grid); font-family: var(--font-mono); }
+  table.m th { color: var(--ink-3); font-weight: 600; }
+  table.m td:first-child, table.m th:first-child { text-align: left; font-family: var(--font); }
+  .pillrow { display: flex; gap: 8px; align-items: center; background: var(--surface-1); border: 1px solid var(--grid); padding: 12px; width: fit-content; }
+  .pill { border: 1.5px solid var(--ink-3); border-radius: 999px; padding: 5px 14px; font-size: var(--fs-sm); color: var(--ink-2); background: transparent; cursor: default; }
+  .pill.on { border-color: var(--c-highlight); background: color-mix(in srgb, var(--c-highlight) 18%, transparent); color: var(--ink-1); font-weight: 600; }
+  .sq { border-radius: var(--radius); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · round 2 — the four comments, drawn</h1>
+
+  <h2>§1 · Covariate switches as pills</h2>
+  <p class="note">
+    Two dressings of the same two booleans. <b>Pills</b> read as "what is IN
+    the model" — membership, not settings — which is the right metaphor here.
+    Both keep the checkbox's contract (independent toggles, four states,
+    keyboard reachable); only the clothes change. This would be a small core
+    addition (a <code>pill</code> style on <code>bool</code>), so the full
+    suite runs when it lands — the rail is outside both hashes, but the rule
+    is about core, not hashes.
+  </p>
+  <div class="pillrow"><span style="font-size:var(--fs-sm);color:var(--ink-3)">In the model:</span>
+    <span class="pill on">BMI</span><span class="pill on">age</span></div>
+  <p class="cap">rounded pills — membership chips</p>
+  <div class="pillrow"><span style="font-size:var(--fs-sm);color:var(--ink-3)">In the model:</span>
+    <span class="pill sq on">BMI</span><span class="pill sq">age</span></div>
+  <p class="cap">square-cornered buttons, one off — reads closer to the segmented controls elsewhere</p>
+
+  <h2>§2 · The diagram — covariates as a picture, maybe as the control</h2>
+  <p class="note">
+    05-02's own cell 9 draws this triangle to say why one-at-a-time fits
+    mislead. Two treatments: <b>A</b> the diagram as a DISPLAY beside the
+    forest — solid arrows for covariates in the model, faint for out, and the
+    age–BMI link drawn as a dashed double-headed ASSOCIATION, labelled with
+    its measured r = 0.12 (an arrow age → BMI would claim a causal direction
+    this widget has no business asserting — that lesson lives in
+    fork-pipe-collider, and the dashing keeps the two widgets honest with
+    each other). <b>B</b> the same diagram as the CONTROL: covariate nodes
+    are click targets that toggle membership — widget 26's clickable-node
+    pattern — with the pills of §1 remaining as the keyboard path (5.6: a
+    region is a shortcut, never the only route). A would replace nothing; B
+    would replace nothing either — it adds regions and therefore a hit-driven
+    fingerprint state.
+  </p>
+  <div class="row" id="dags"></div>
+
+  <h2>§3 · "1D → 2D" — two readings of the ask, both drawn</h2>
+  <p class="note">
+    <b>Reading 1 — the model table:</b> the notebook's own closer, three
+    models side by side, the way <code>modelsummary</code> prints them. It
+    could open the widget (the "initial table") or sit as a readback in the
+    rail. <b>Reading 2 — the geometry:</b> one covariate fits a line; two
+    fit a PLANE, and over BMI the plane is a family of parallel lines, one
+    per age — <code>ggPredict</code>'s own picture, drawn here at ages 35 /
+    45 / 55 / 65 (same slope 1.499, lifted 0.836 per year). The family is
+    what "age held constant" LOOKS like, and it may do the 1D → 2D teaching
+    better than a table of numbers.
+  </p>
+  <div class="row" id="dim">
+    <div class="cand">
+      <h3>reading 1 · the three-model table</h3>
+      <p class="sub">estimates with 95% CIs; the BMI column's move 1.72 → 1.50 is the widget's whole lesson in one row</p>
+      <div id="mtable"></div>
+    </div>
+  </div>
+
+  <h2>§4 · The structure — gates, tabs, or a split (prose, for the call)</h2>
+  <p class="note">
+    The three concepts are one notebook, one dataset, one machinery — which
+    argues against a SPLIT into more widgets (the dimred split was four
+    algorithms and four optimisers; this is one model read three ways).
+    The current draft stages them by REVEAL: empty → covariates (fitting,
+    adjusting) → twin gate (collinearity). The crowding Kenneth feels is
+    real at the full act (forest + scatter + strip + VIF, 642px). The middle
+    road is a <b>concept strip</b> — a segmented control (Fit the model ·
+    Adjust · Collinearity) that stages WHAT IS SHOWN while the model
+    switches persist underneath: Fit shows scatter + line-family + equation
+    (+ the table); Adjust shows the forest + ghosts + FWL slide; Collinearity
+    shows the twin act. Each tab one idea at projector size; the machinery
+    and the reader's model survive tab changes (display param, 3.4c's map
+    for any per-tab labels). Cost: a real re-staging of draw(), and the
+    fingerprint needs states per tab. The cheap alternative — keep gates,
+    tighten signposting — is one more section heading and no new structure.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  unknown: css("--c-unknown"),
+};
+const DPR = devicePixelRatio || 1;
+const TQ = 1.960633;
+
+const fB = ols(SYSBP, BMI);
+const fA = ols(SYSBP, AGE);
+const fBA = ols(SYSBP, BMI, AGE);
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- §2 · the diagram, two model states ---- */
+{
+  const host = document.getElementById("dags");
+  const draw = (title, sub, inModel, clickable) => {
+    const ctx = panel(host, title, sub, 300, 210);
+    const P = { bmi: [70, 60], age: [70, 160], y: [230, 110] };
+    const R = 26;
+    const arrow = (from, to, on) => {
+      const [x1, y1] = P[from];
+      const [x2, y2] = P[to];
+      const L = Math.hypot(x2 - x1, y2 - y1);
+      const ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+      ctx.strokeStyle = on ? C.ink2 : C.grid;
+      ctx.fillStyle = on ? C.ink2 : C.grid;
+      ctx.lineWidth = on ? 2 : 1.25;
+      ctx.beginPath();
+      ctx.moveTo(x1 + ux * (R + 3), y1 + uy * (R + 3));
+      ctx.lineTo(x2 - ux * (R + 6), y2 - uy * (R + 6));
+      ctx.stroke();
+      const bx = x2 - ux * (R + 5), by = y2 - uy * (R + 5);
+      ctx.beginPath();
+      ctx.moveTo(bx + ux * 5, by + uy * 5);
+      ctx.lineTo(bx - uy * 4.5, by + ux * 4.5);
+      ctx.lineTo(bx + uy * 4.5, by - ux * 4.5);
+      ctx.fill();
+    };
+    arrow("bmi", "y", inModel.includes("bmi"));
+    arrow("age", "y", inModel.includes("age"));
+    /* the association, deliberately NOT an arrow */
+    ctx.strokeStyle = C.ink3;
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(P.bmi[0], P.bmi[1] + R + 4);
+    ctx.lineTo(P.age[0], P.age[1] - R - 4);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.ink3;
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText("associated,", P.bmi[0] + 8, (P.bmi[1] + P.age[1]) / 2 - 4);
+    ctx.fillText("r = 0.12", P.bmi[0] + 8, (P.bmi[1] + P.age[1]) / 2 + 8);
+    const NAME = { bmi: "BMI", age: "age", y: "sysBP" };
+    for (const k of ["bmi", "age", "y"]) {
+      const [x, y] = P[k];
+      const on = k === "y" || inModel.includes(k);
+      ctx.fillStyle = C.surface;
+      ctx.strokeStyle = on ? (k !== "y" && clickable ? C.highlight : C.ink2) : C.ink3;
+      ctx.lineWidth = on ? 2 : 1;
+      ctx.beginPath();
+      ctx.arc(x, y, R, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = on ? C.ink1 : C.ink3;
+      ctx.font = "12px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(NAME[k], x, y + 4);
+    }
+    if (clickable) {
+      ctx.fillStyle = C.ink3;
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("covariate nodes are click targets", 150, 200);
+    }
+  };
+  draw("A · display — model = BMI only", "age's arrow faint (out of the model); the dashed link says only 'associated'", ["bmi"], false);
+  draw("A · display — model = BMI + age", "both arrows solid; the dashed association is why the BMI coefficient moved", ["bmi", "age"], false);
+  draw("B · the control — click a node", "widget 26's pattern; the pills stay as the keyboard path", ["bmi", "age"], true);
+}
+
+/* ---- §3 reading 1 · the table ---- */
+{
+  const ci = (f, i) => `${(f.b[i] - TQ * f.se[i]).toFixed(2)}, ${(f.b[i] + TQ * f.se[i]).toFixed(2)}`;
+  document.getElementById("mtable").innerHTML = `
+    <table class="m">
+      <tr><th></th><th>~ BMI</th><th>~ age</th><th>~ BMI + age</th></tr>
+      <tr><td>Intercept</td><td>${fB.b[0].toFixed(2)}</td><td>${fA.b[0].toFixed(2)}</td><td>${fBA.b[0].toFixed(2)}</td></tr>
+      <tr><td>BMI</td><td><b>${fB.b[1].toFixed(2)}</b><br>(${ci(fB, 1)})</td><td>—</td><td><b>${fBA.b[1].toFixed(2)}</b><br>(${ci(fBA, 1)})</td></tr>
+      <tr><td>age</td><td>—</td><td><b>${fA.b[1].toFixed(2)}</b><br>(${ci(fA, 1)})</td><td><b>${fBA.b[2].toFixed(2)}</b><br>(${ci(fBA, 2)})</td></tr>
+      <tr><td>R²</td><td>${fB.r2.toFixed(3)}</td><td>${fA.r2.toFixed(3)}</td><td>${fBA.r2.toFixed(3)}</td></tr>
+    </table>`;
+}
+
+/* ---- §3 reading 2 · the plane as a family of lines ---- */
+{
+  const host = document.getElementById("dim");
+  const ctx = panel(host, "reading 2 · two covariates fit a plane",
+    "over BMI the plane is parallel lines, one per age (35/45/55/65): same slope 1.499, lifted 0.836 per year — 'age held constant', drawn", 550, 300);
+  const r = { x: 56, y: 14, w: 478, h: 230 };
+  const XD = [14, 58], YD = [80, 300];
+  const sx = (x) => r.x + ((x - XD[0]) / (XD[1] - XD[0])) * r.w;
+  const sy = (y) => r.y + r.h - ((y - YD[0]) / (YD[1] - YD[0])) * r.h;
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+  ctx.fillText("BMI", r.x + r.w / 2, r.y + r.h + 16);
+  ctx.save();
+  ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("sysBP", 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.35;
+  for (let i = 0; i < N; i += 1) {
+    ctx.beginPath(); ctx.arc(sx(BMI[i]), sy(SYSBP[i]), 1.6, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const ages = [35, 45, 55, 65];
+  ages.forEach((a, i) => {
+    const b0 = fBA.b[0] + fBA.b[2] * a;
+    ctx.strokeStyle = C.highlight;
+    ctx.globalAlpha = 0.45 + 0.55 * (i / (ages.length - 1));
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx(XD[0]), sy(b0 + fBA.b[1] * XD[0]));
+    ctx.lineTo(sx(XD[1]), sy(b0 + fBA.b[1] * XD[1]));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.ink2;
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "left";
+    const lx = 55.5;
+    ctx.fillText(`age ${a}`, sx(lx) + 3, sy(b0 + fBA.b[1] * lx) - 3);
+  });
+  ctx.restore();
+}
+</script>
+</body>
+</html>
