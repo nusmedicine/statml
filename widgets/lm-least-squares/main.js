@@ -219,9 +219,10 @@ defineWidget({
   status: "draft",
   subtitle:
     "A linear model describes the outcome as an intercept plus a slope " +
-    "times the covariate. Fitting it is a search: score any candidate line " +
-    "by its sum of squared vertical differences, and take the choice that " +
-    "makes the sum smallest over a grid of every line you could draw.",
+    "times the covariate: y = b₀ + b₁x. Fitting it is a search: score any " +
+    "candidate line by its sum of squared vertical differences, and take " +
+    "the choice that makes the sum smallest over a grid of every line you " +
+    "could draw.",
   layout: "side",
   height: HEIGHT,
 
