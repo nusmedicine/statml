@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 29 stage — lm-categorical candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 29 · <code>lm-categorical</code> — the stage, drawn before it is argued</h1>
+
+  <p class="note">
+    <b>The misconception (catalogue slot 3):</b> dummy coefficients are group
+    means, and the reference level is a finding rather than a choice.
+    <b>Measured first</b> (<code>node widgets/_lab/lm-cat-measure.mjs</code>,
+    25 checks, every 05-03 stored output to the digit): the identity
+    <i>group mean = intercept + coefficient</i> holds to 1e-9, so a dummy
+    coefficient IS a difference of means — drawable as an arrow from the
+    reference. Releveling to obese moves every coefficient
+    (healthy −17.72, overweight −9.30, underweight −25.08) while R² and the
+    fitted means are IDENTICAL to machine precision. R's default reference
+    (healthy) is chosen by the ALPHABET. The offsets are 7.7–18.5px at panel
+    scale — alive in data space, which widget 28's moves never were — but
+    the sex offset is <b>2.4px</b>, so the notebook's two-parallel-lines
+    picture cannot carry the sex act on our stage (§4).
+  </p>
+
+  <h2>§1 · The stage: dots, means, and the coefficients AS arrows</h2>
+  <p class="note">
+    <b>A</b> — the four category columns, every patient jittered, group-mean
+    bars, the reference's mean ruled across, and each coefficient drawn as
+    an ARROW from the rule to that group's mean, labelled with the signed
+    number. The offsets are big enough to read (underweight's thin column
+    of 48 patients also shows WHY its SE is 2.96). <b>B</b> — the same
+    means with the dots stripped and the window zoomed to 108–152: the
+    arithmetic is huge and legible, the data is gone. <b>C</b> — A and B
+    side by side, the zoom as a magnifier: data honesty on the left, the
+    arithmetic readable on the right, each mean connected across. C is the
+    recommendation if the width survives review; A alone if not.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — columns + arrows, full window</h3>
+      <p class="sub">reference = healthy (R's alphabetical default); the equation reads sysBP = 125.78 + 17.72·[obese] + 8.42·[overweight] − 7.36·[underweight]</p>
+      <canvas id="candA" width="550" height="330"></canvas>
+      <p class="cap">every offset visible: obese 18.5px, overweight 8.8px, underweight 7.7px</p>
+    </div>
+    <div class="cand">
+      <h3>B — the means alone, zoomed</h3>
+      <p class="sub">window 108–152; the sums written (125.78 + 17.72 = 143.50) — the identity on screen</p>
+      <canvas id="candB" width="550" height="330"></canvas>
+      <p class="cap">legible from the back row; no data on stage</p>
+    </div>
+    <div class="cand">
+      <h3>C — A beside B, the zoom as magnifier</h3>
+      <p class="sub">left: the data at full window; right: the means ladder zoomed, connected by guide lines</p>
+      <canvas id="candC" width="550" height="330"></canvas>
+      <p class="cap">both honesties at once — the likely pick</p>
+    </div>
+  </div>
+
+  <h2>§2 · The relevel — the widget's punchline, drawn as its two frames</h2>
+  <p class="note">
+    The reference control (a segmented, plus the category columns as click
+    regions) re-expresses every coefficient while the means stand still.
+    Drawn here as before/after at candidate A's geometry: reference healthy,
+    then reference obese — the rule JUMPS to obese's mean, every arrow
+    re-anchors and re-signs, the equation rewrites, and the four mean bars
+    DO NOT MOVE. In the widget the arrows ease (widget 12's motion, widget
+    28's forest ease — the arc's familiar move); R² sits in a tile refusing
+    to change. The reference is a choice; the model is not.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>reference = healthy</h3>
+      <p class="sub">the default — and the caption says WHY it is the default: the alphabet</p>
+      <canvas id="relA" width="550" height="330"></canvas>
+    </div>
+    <div class="cand">
+      <h3>reference = obese</h3>
+      <p class="sub">same means, same R² — every coefficient now negative-or-larger; underweight reads −25.08</p>
+      <canvas id="relB" width="550" height="330"></canvas>
+    </div>
+  </div>
+
+  <h2>§3 · The coding, shown once — the notebook's own model.matrix move</h2>
+  <p class="note">
+    05-03 prints <code>model.matrix</code> twice; its teaching content is one
+    small pattern: k categories become k−1 columns of 0/1, and the
+    reference row is ALL ZEROS — which is why its mean is the intercept.
+    Drawn as a compact category-rows table (not patient rows — six random
+    patients teach less than the four patterns do). Candidate position:
+    beside the equation card, or below the stage on a View; it follows the
+    reference control, so releveling visibly moves the zero row.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>the coding table, reference = healthy</h3>
+      <p class="sub">the reference row is all zeros — the intercept is its mean</p>
+      <canvas id="matrix" width="550" height="190"></canvas>
+    </div>
+  </div>
+
+  <h2>§4 · The sex act, at true scale — and the scope question</h2>
+  <p class="note">
+    The notebook's first act is sex inside the BMI + age model, drawn by
+    ggPredict as two parallel lines. At our panel the offset is
+    <b>2.4px</b> — drawn below, honestly. The line pair cannot be read;
+    only the forest/equation can carry −2.25 (and its significance: sex
+    alone is n.s. at t −1.90, adjusted it is significant at t −3.57 — but
+    that is widget 28's lesson, already taught). <b>Recommendation: the
+    widget is the BMI-category act alone.</b> Sex adds a second stage, a
+    second model family, and its one legible fact (an intercept offset) is
+    the k = 2 special case of what the four categories already teach
+    better. If review wants sex, the honest home is one line of caption on
+    the equation ("with two categories there is one dummy — the offset"),
+    not a panel.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>the notebook's parallel lines, at our scale</h3>
+      <p class="sub">sysBP ~ BMI + age + sex at age 50: the two lines are 2.4px apart</p>
+      <canvas id="sexPanel" width="550" height="300"></canvas>
+      <p class="cap">drawn to be seen failing — the reason sex is proposed OUT of scope</p>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE, SEX } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  highlight: css("--c-highlight"), empirical: css("--c-empirical"),
+  unknown: css("--c-unknown"), reference: css("--c-reference"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+
+/* the notebook's case_when, verbatim */
+const GROUPS = ["underweight", "healthy", "overweight", "obese"];
+const CAT = BMI.map((b) => (b < 18.5 ? "underweight" : b < 25 ? "healthy" : b < 30 ? "overweight" : "obese"));
+const BY = {};
+for (const g of GROUPS) {
+  const ys = SYSBP.filter((_, i) => CAT[i] === g);
+  BY[g] = { n: ys.length, mean: ys.reduce((s, v) => s + v, 0) / ys.length };
+}
+const R2CAT = ols(SYSBP,
+  CAT.map((c) => (c === "obese" ? 1 : 0)),
+  CAT.map((c) => (c === "overweight" ? 1 : 0)),
+  CAT.map((c) => (c === "underweight" ? 1 : 0))).r2;
+
+const Y_DOM = [80, 300];
+const rng = makeRng(1);
+const JIT = CAT.map(() => rng.next());
+
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return ctx;
+}
+function frameY(ctx, r, yd, yl) {
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+  const step = (yd[1] - yd[0]) > 100 ? 50 : 10;
+  for (let v = Math.ceil(yd[0] / step) * step; v <= yd[1]; v += step) {
+    ctx.fillText(String(v), r.x - 5, sy(v) + 3);
+  }
+  if (yl) { ctx.save(); ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return sy;
+}
+
+/* --- the columns + arrows stage (candidates A / relevel frames) ---------- */
+function colStage(ctx, r, ref, opts = {}) {
+  const sy = frameY(ctx, r, Y_DOM, "sysBP (mmHg)");
+  const colW = r.w / 4;
+  const cx = (gi) => r.x + gi * colW + colW / 2;
+
+  /* dots */
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.3;
+  for (let i = 0; i < N; i += 1) {
+    const gi = GROUPS.indexOf(CAT[i]);
+    const px = cx(gi) + (JIT[i] - 0.5) * (colW - 26);
+    ctx.beginPath(); ctx.arc(px, sy(SYSBP[i]), 1.5, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  /* the reference rule */
+  const refY = sy(BY[ref].mean);
+  ctx.strokeStyle = C.ink2; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(r.x, refY); ctx.lineTo(r.x + r.w, refY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* mean bars + arrows */
+  GROUPS.forEach((g, gi) => {
+    const my = sy(BY[g].mean);
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx(gi) - colW / 2 + 14, my); ctx.lineTo(cx(gi) + colW / 2 - 14, my); ctx.stroke();
+    if (g !== ref) {
+      const ax = cx(gi) + colW / 2 - 26;
+      const d = BY[g].mean - BY[ref].mean;
+      ctx.strokeStyle = C.highlight; ctx.fillStyle = C.highlight; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ax, refY); ctx.lineTo(ax, my); ctx.stroke();
+      const dir = my < refY ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(ax, my); ctx.lineTo(ax - 4, my - dir * 6); ctx.lineTo(ax + 4, my - dir * 6); ctx.fill();
+      /* the last column's label sits LEFT of its arrow — right of it the
+         clip ate the digits */
+      ctx.font = `600 10px ${C.font}`;
+      ctx.textAlign = gi === GROUPS.length - 1 ? "right" : "left";
+      ctx.fillText(`${d >= 0 ? "+" : "−"}${fmt(Math.abs(d))}`, ax + (gi === GROUPS.length - 1 ? -7 : 7), (refY + my) / 2 + 3);
+    }
+  });
+
+  ctx.restore();
+  /* labels under the axis */
+  ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+  GROUPS.forEach((g, gi) => {
+    ctx.fillText(g, cx(gi), r.y + r.h + 14);
+    ctx.fillStyle = C.ink3;
+    ctx.fillText(`n = ${BY[g].n}`, cx(gi), r.y + r.h + 27);
+    ctx.fillStyle = C.ink2;
+  });
+  if (!opts.noCaption) {
+    ctx.textAlign = "left"; ctx.font = `600 12px ${C.font}`;
+    ctx.fillStyle = C.ink2;
+    ctx.fillText(`reference = ${ref} — its mean is the intercept, ${fmt(BY[ref].mean)}`, r.x, r.y - 8);
+  }
+}
+
+/* --- the zoomed means ladder (candidate B / C right panel) ---------------- */
+function zoomStage(ctx, r, ref, showSums) {
+  const yd = [108, 152];
+  const sy = frameY(ctx, r, yd, null);
+  const refY = sy(BY[ref].mean);
+  ctx.strokeStyle = C.ink2; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(r.x, refY); ctx.lineTo(r.x + r.w, refY); ctx.stroke();
+  ctx.setLineDash([]);
+  GROUPS.forEach((g) => {
+    const my = sy(BY[g].mean);
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(r.x + 8, my); ctx.lineTo(r.x + 66, my); ctx.stroke();
+    ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+    /* surface halo so the reference's dashed rule does not strike its label */
+    ctx.strokeStyle = C.surface; ctx.lineWidth = 3;
+    ctx.strokeText(`${g}  ${fmt(BY[g].mean)}`, r.x + 72, my + 3);
+    ctx.fillStyle = C.ink2;
+    ctx.fillText(`${g}  ${fmt(BY[g].mean)}`, r.x + 72, my + 3);
+    if (g !== ref) {
+      const ax = r.x + 40;
+      const d = BY[g].mean - BY[ref].mean;
+      ctx.strokeStyle = C.highlight; ctx.fillStyle = C.highlight; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ax, refY); ctx.lineTo(ax, my); ctx.stroke();
+      const dir = my < refY ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(ax, my); ctx.lineTo(ax - 4, my - dir * 6); ctx.lineTo(ax + 4, my - dir * 6); ctx.fill();
+      if (showSums) {
+        ctx.font = `10px ${C.font}`; ctx.fillStyle = C.ink3; ctx.textAlign = "left";
+        ctx.fillText(`${fmt(BY[ref].mean)} ${d >= 0 ? "+" : "−"} ${fmt(Math.abs(d))} = ${fmt(BY[g].mean)}`, r.x + 210, my + 3);
+      }
+    }
+  });
+}
+
+/* === A ==================================================================== */
+{
+  const ctx = ctx2d("candA");
+  colStage(ctx, { x: 56, y: 30, w: 470, h: 250 }, "healthy");
+}
+/* === B ==================================================================== */
+{
+  const ctx = ctx2d("candB");
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the four means, and the sums the coefficients make", 56, 22);
+  zoomStage(ctx, { x: 56, y: 30, w: 470, h: 250 }, "healthy", true);
+}
+/* === C ==================================================================== */
+{
+  const ctx = ctx2d("candC");
+  colStage(ctx, { x: 56, y: 30, w: 280, h: 250 }, "healthy", { noCaption: true });
+  zoomStage(ctx, { x: 380, y: 30, w: 150, h: 250 }, "healthy", false);
+  /* guide lines connecting each mean across the panels */
+  const syL = (v) => 30 + 250 - ((v - Y_DOM[0]) / (Y_DOM[1] - Y_DOM[0])) * 250;
+  const syR = (v) => 30 + 250 - ((v - 108) / (152 - 108)) * 250;
+  ctx.strokeStyle = C.ink3; ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  for (const g of GROUPS) {
+    ctx.beginPath();
+    ctx.moveTo(336, syL(BY[g].mean));
+    ctx.lineTo(380, syR(BY[g].mean));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("reference = healthy — the zoom carries the arithmetic", 56, 22);
+}
+/* === relevel frames ======================================================= */
+{
+  colStage(ctx2d("relA"), { x: 56, y: 30, w: 470, h: 250 }, "healthy");
+  colStage(ctx2d("relB"), { x: 56, y: 30, w: 470, h: 250 }, "obese");
+}
+/* === the coding table ===================================================== */
+{
+  const ctx = ctx2d("matrix");
+  const ref = "healthy";
+  const dummies = GROUPS.filter((g) => g !== ref);
+  const labW = 120;
+  const colW = 100;
+  const x0 = 56;
+  const y0 = 44;
+  const rowH = 26;
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("how the categories are coded — k categories, k − 1 columns", x0, 22);
+  ctx.font = `10px ${C.font}`;
+  dummies.forEach((d, j) => {
+    ctx.fillStyle = C.ink3; ctx.textAlign = "center";
+    ctx.fillText(`[${d}]`, x0 + labW + j * colW + colW / 2, y0);
+  });
+  GROUPS.forEach((g, i) => {
+    const ry = y0 + 18 + i * rowH;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, ry - rowH + 9); ctx.lineTo(x0 + labW + dummies.length * colW, ry - rowH + 9); ctx.stroke();
+    ctx.fillStyle = g === ref ? C.ink1 : C.ink2; ctx.textAlign = "left";
+    ctx.font = `${g === ref ? "600 " : ""}10px ${C.font}`;
+    ctx.fillText(g + (g === ref ? "  (reference)" : ""), x0 + 4, ry);
+    dummies.forEach((d, j) => {
+      ctx.fillStyle = C.ink1; ctx.textAlign = "center"; ctx.font = `10px ${C.font}`;
+      ctx.fillText(g === d ? "1" : "0", x0 + labW + j * colW + colW / 2, ry);
+    });
+    if (g === ref) {
+      ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+      ctx.strokeRect(x0, ry - rowH + 9, labW + dummies.length * colW, rowH);
+    }
+  });
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the reference row is all zeros — its mean is the intercept", x0, y0 + 18 + 4 * rowH + 10);
+}
+/* === the sex act at true scale =========================================== */
+{
+  const ctx = ctx2d("sexPanel");
+  const r = { x: 56, y: 30, w: 470, h: 220 };
+  const sy = frameY(ctx, r, Y_DOM, "sysBP (mmHg)");
+  const X_DOM = [14, 58];
+  const sx = (v) => r.x + ((v - X_DOM[0]) / (X_DOM[1] - X_DOM[0])) * r.w;
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.3;
+  for (let i = 0; i < N; i += 1) {
+    ctx.beginPath(); ctx.arc(sx(BMI[i]), sy(SYSBP[i]), 1.5, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const f = ols(SYSBP, BMI, AGE, SEX);
+  const b0f = f.b[0] + f.b[2] * 50;          // female at age 50
+  const b0m = b0f + f.b[3];                  // male: 2.4px lower
+  for (const [b0, label] of [[b0f, "sex 0"], [b0m, "sex 1"]]) {
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx(X_DOM[0]), sy(b0 + f.b[1] * X_DOM[0]));
+    ctx.lineTo(sx(X_DOM[1]), sy(b0 + f.b[1] * X_DOM[1]));
+    ctx.stroke();
+    ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText(label, sx(X_DOM[1]) - 34, sy(b0 + f.b[1] * X_DOM[1]) + (label === "sex 0" ? -4 : 12));
+  }
+  ctx.restore();
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the sex offset, −2.25 mmHg: the pair of lines is 2.4px apart", r.x, r.y - 8);
+}
+</script>
+</body>
+</html>

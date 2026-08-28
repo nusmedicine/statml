@@ -3212,6 +3212,64 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
+## NEXT · Widget 29 · `lm-categorical` — MEASURED 2026-08-28
+
+**The brief:** 05-03 (Modeling — Categorical Covariates), catalogue slot 3:
+dummy coefficients are group means, and the reference level is a finding
+rather than a choice. The notebook's own arc: sex as a 0/1 dummy inside
+the BMI + age model (ggPredict's parallel lines, coefficient −2.25), the
+`model.matrix` coding shown twice, then BMI recoded to four categories
+(underweight < 18.5 / healthy / overweight / obese ≥ 30) with healthy as
+reference — 125.78, obese +17.72, overweight +8.42, underweight −7.36 —
+then modelsummary/ggcoefstats. **05-03's frame is 05-01's exactly**
+(filter(BPMeds==0) + drop_na, n = 3547), so the arc's shared stage
+(`lm-least-squares/data.js`, which carries SEX) serves unchanged.
+
+**Verified** (`node widgets/_lab/lm-cat-measure.mjs`): **25 checks pass** —
+every stored output in 05-03 to the digit (the sex model's full
+coefficient/SE/t/CI/R² block; the BMI_cat model's block), plus the two
+identities the widget stands on, asserted at 1e-9: **group mean =
+intercept + coefficient** (a dummy coefficient IS a difference of group
+means), and **the relevel changes every coefficient while R² and the
+fitted means are identical to machine precision** (reference = obese:
+intercept 143.50, healthy −17.72, overweight −9.30, underweight −25.08).
+
+**Measured before design:**
+
+- **The offsets are ALIVE in data space** — obese 18.5px, overweight
+  8.8px, underweight 7.7px at the arc's 230px/[80,300] panel — which
+  widget 28's moves never were. The coefficients can be drawn as ARROWS
+  from the reference's ruled mean; no forest is forced.
+- **The sex offset is 2.4px — two parallel lines cannot carry the sex
+  act.** The notebook's ggPredict picture fails at our scale (drawn
+  honestly in the mock's §4). Sex alone is n.s. (t −1.90), adjusted
+  significant (t −3.57) — but that is widget 28's lesson. **Proposed
+  scope: the widget is the BMI-category act alone**, sex at most a
+  caption line (k = 2 means one dummy — the offset).
+- **R's default reference is the ALPHABET** (healthy < obese <
+  overweight < underweight) — the opening gift: the default is literally
+  an accident, so "the reference is a choice" needs no argument.
+- **Group ns: 48 / 1595 / 1480 / 424** — underweight's thin column shows
+  WHY its SE is 2.96, and on relevel to obese that SE moves to 3.08: the
+  SE belongs to the PAIR being compared.
+- Categorising BMI loses 21.4% of the continuous R² (0.1065 → 0.0837) —
+  measured for honesty; whether it enters the widget is a scope call.
+
+**The mock-up page is BUILT** —
+[`_lab/lm-cat-stage.html`](../widgets/_lab/lm-cat-stage.html): **§1** the
+stage (A columns + mean bars + coefficient arrows at full window; B the
+means alone zoomed to 108–152 with the sums written; C = A beside B,
+the zoom as magnifier — the recommendation); **§2** the relevel drawn as
+before/after (reference healthy, then obese — every arrow re-anchors,
+the means stand still); **§3** the coding table, category-rows (the
+reference row all zeros — why its mean is the intercept); **§4** the sex
+act at true scale, drawn to be seen failing. Open questions for
+Kenneth's picks: A, B or C; the relevel control (segmented + the
+category columns as click regions); whether the coding table rides
+beside the equation or behind a View; the sex scope ruling; and whether
+the ease on relevel is the arrows re-anchoring (widget 12's motion) with
+the means deliberately still.
+
 ## Widget 28 · `lm-adjustment` — SHIPPED 2026-08-28, twelve review rounds
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — planned, measured,

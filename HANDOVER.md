@@ -44,9 +44,22 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **The next widget: `lm-categorical`**, then `lm-interaction`,
-   `censoring-km`, `pseudoreplication` — the agreed modeling-arc order
-   (catalogue). Nothing is started.
+1. **Widget 29 · `lm-categorical` is MEASURED and MOCKED, awaiting
+   Kenneth's picks** — see [docs/catalogue.md](docs/catalogue.md)
+   § *NEXT · Widget 29* for the brief and every measured number.
+   `node widgets/_lab/lm-cat-measure.mjs` = 25 checks, every 05-03
+   stored output to the digit, plus the two identities asserted at 1e-9
+   (dummy coefficient = difference of group means; relevel moves every
+   coefficient while the fitted means and R² do not). The mock is
+   `_lab/lm-cat-stage.html` —
+   `http://localhost:8010/widgets/_lab/lm-cat-stage.html` — with the
+   picks at its section heads: stage A/B/C (C recommended: columns +
+   arrows beside a zoomed means ladder), the relevel as the punchline
+   interaction (segmented + category columns as click regions), the
+   category-rows coding table, and the SEX SCOPE RULING (its offset is
+   2.4px at panel scale — the mock draws the notebook's parallel lines
+   failing; proposed out of scope). After 29: `lm-interaction`,
+   `censoring-km`, `pseudoreplication`.
 2. **Notebook links now owed for all THREE shipped modeling widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
