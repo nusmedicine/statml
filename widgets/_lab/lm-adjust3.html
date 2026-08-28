@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 round 4 — what Adjust owns, and how collinearity fails</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · round 4 — the two diagnoses, drawn</h1>
+
+  <h2>§1 · Fit and Adjust overlap because the TABLE is on the wrong tab</h2>
+  <p class="note">
+    The three-model table is a COMPARISON — it is Table-2-fallacy material,
+    and parking it on Fit spoils Adjust's punchline before the reader gets
+    there. The redistribution: <b>Fit keeps what fitting owns</b> (the plane
+    family, the equation, R² and residual spread — the 1D → 2D extension of
+    one model) and <b>Adjust collects every comparison</b>: the table, the
+    forest, and the FWL slide. And the forest stops whispering — the move is
+    ANNOTATED, so a reader who missed the ease still gets the sentence.
+  </p>
+  <div class="row" id="adjustRow"></div>
+
+  <h2>§2 · Collinearity — three ways to make the failure visible</h2>
+  <p class="note">
+    What actually fails is ATTRIBUTION, not prediction — R² and the
+    residuals do not move when the twin enters; the model just can no longer
+    say WHICH twin did it. Three additions, cheapest first: <b>A</b> the DAG
+    grows the twin node with its measured correlation on the dashed link —
+    the problem as a picture, in the panel the reader already watches;
+    <b>B</b> a small twin-against-BMI scatter — "the model cannot tell these
+    apart", the correlation graph itself; <b>C</b> the split WANDERS — the
+    same forest at three seeds: the twins trade one effect back and forth
+    (their SUM barely moves — bracketed), while R² stays identical. Reseed
+    without a twin and nothing anywhere changes; reseed with one and the
+    attribution scrambles. That contrast is the failure.
+  </p>
+  <div class="row" id="colRow"></div>
+  <div class="row" id="seedRow"></div>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  extreme: css("--c-extreme"), unknown: css("--c-unknown"),
+};
+const DPR = devicePixelRatio || 1;
+const TQ = 1.960633;
+
+const fB = ols(SYSBP, BMI);
+const fA = ols(SYSBP, AGE);
+const fBA = ols(SYSBP, BMI, AGE);
+
+const corr = (a, b) => {
+  const ma = a.reduce((s, v) => s + v, 0) / a.length;
+  const mb = b.reduce((s, v) => s + v, 0) / b.length;
+  let sab = 0;
+  let saa = 0;
+  let sbb = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    sab += (a[i] - ma) * (b[i] - mb);
+    saa += (a[i] - ma) ** 2;
+    sbb += (b[i] - mb) ** 2;
+  }
+  return sab / Math.sqrt(saa * sbb);
+};
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ================= §1 · the Adjust tab, recomposed ================= */
+{
+  const host = document.getElementById("adjustRow");
+  const ctx = panel(host, "Adjust owns every comparison — forest annotated, table beside",
+    "the arrow carries the sentence: 'when age enters, the BMI coefficient falls 1.72 → 1.50'; the table repeats it in the notebook's own format", 550, 300);
+
+  // forest, left
+  const fr = { x: 66, y: 30, w: 250, h: 130 };
+  const DOM = [0, 2];
+  const fx = (v) => fr.x + ((v - DOM[0]) / (DOM[1] - DOM[0])) * fr.w;
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(fr.x, fr.y, fr.w, fr.h);
+  ctx.fillStyle = C.ink3;
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "center";
+  for (const v of [0, 1, 2]) ctx.fillText(v.toFixed(0), fx(v), fr.y + fr.h + 13);
+  const row = (y, name, ghost, cur) => {
+    ctx.fillStyle = C.ink2;
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "right";
+    ctx.fillText(name, fr.x - 8, y + 4);
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = C.empirical;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(fx(ghost.b - ghost.h), y);
+    ctx.lineTo(fx(ghost.b + ghost.h), y);
+    ctx.stroke();
+    ctx.fillStyle = C.empirical;
+    ctx.beginPath();
+    ctx.arc(fx(ghost.b), y, 3.5, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // the annotated move
+    ctx.strokeStyle = C.ink2;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(fx(ghost.b), y - 14);
+    ctx.lineTo(fx(cur.b), y - 14);
+    ctx.stroke();
+    ctx.fillStyle = C.ink2;
+    ctx.beginPath();
+    const dir = cur.b < ghost.b ? -1 : 1;
+    ctx.moveTo(fx(cur.b), y - 14);
+    ctx.lineTo(fx(cur.b) - dir * 6, y - 17.5);
+    ctx.lineTo(fx(cur.b) - dir * 6, y - 10.5);
+    ctx.fill();
+    ctx.strokeStyle = C.highlight;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(fx(cur.b - cur.h), y);
+    ctx.lineTo(fx(cur.b + cur.h), y);
+    ctx.stroke();
+    ctx.fillStyle = C.highlight;
+    ctx.beginPath();
+    ctx.arc(fx(cur.b), y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+  };
+  row(fr.y + 40, "BMI",
+    { b: fB.b[1], h: TQ * fB.se[1] },
+    { b: fBA.b[1], h: TQ * fBA.se[1] });
+  ctx.fillStyle = C.ink1;
+  ctx.font = "11px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText("1.72 → 1.50 when age enters", fx(1.1), fr.y + 16);
+  row(fr.y + 100, "age",
+    { b: fA.b[1], h: TQ * fA.se[1] },
+    { b: fBA.b[2], h: TQ * fBA.se[2] });
+
+  // table, right
+  const tx0 = 350;
+  const cols = [
+    { head: "~BMI", cells: ["1.72", "—", "0.106"] },
+    { head: "~age", cells: ["—", "0.92", "0.139"] },
+    { head: "+both", cells: ["1.50", "0.84", "0.218"] },
+  ];
+  const rows = ["BMI", "age", "R²"];
+  ctx.font = "600 12px system-ui";
+  ctx.fillStyle = C.ink2;
+  ctx.textAlign = "left";
+  ctx.fillText("Three models", tx0, 40);
+  ctx.font = "11px system-ui";
+  cols.forEach((c, j) => {
+    ctx.fillStyle = C.ink3;
+    ctx.textAlign = "center";
+    ctx.fillText(c.head, tx0 + 60 + j * 52, 62);
+  });
+  rows.forEach((r, i) => {
+    const y = 84 + i * 24;
+    ctx.fillStyle = C.ink2;
+    ctx.textAlign = "left";
+    ctx.fillText(r, tx0, y);
+    cols.forEach((c, j) => {
+      ctx.fillStyle = C.ink1;
+      ctx.textAlign = "center";
+      ctx.fillText(c.cells[i], tx0 + 60 + j * 52, y);
+    });
+  });
+  ctx.strokeStyle = C.highlight;
+  ctx.strokeRect(tx0 + 60 + 2 * 52 - 24, 50, 48, 108);
+  ctx.fillStyle = C.ink3;
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "left";
+  ctx.fillText("Fit keeps: plane, equation, R², spread.", tx0, 200);
+  ctx.fillText("Adjust owns: forest, table, FWL slide.", tx0, 216);
+}
+
+/* ================= §2 A + B ================= */
+{
+  const host = document.getElementById("colRow");
+  const rng = makeRng(1);
+  const rel = BMI.map((v) => v + (rng.next() * 6 - 3));
+  const rTwin = corr(BMI, rel);
+
+  /* A · the DAG grown */
+  {
+    const ctx = panel(host, "A · the DAG grows the twin — the problem as a picture",
+      `the twin's dashed link carries its measured correlation r = ${rTwin.toFixed(2)}; age–BMI stays r = 0.12 for contrast`, 330, 240);
+    const R = 22;
+    const P = { bmi: [70, 50], twin: [70, 130], age: [70, 205], y: [250, 115] };
+    const arrow = (from) => {
+      const [x1, y1] = P[from];
+      const [x2, y2] = P.y;
+      const L = Math.hypot(x2 - x1, y2 - y1);
+      const ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+      ctx.strokeStyle = C.ink2;
+      ctx.fillStyle = C.ink2;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1 + ux * (R + 3), y1 + uy * (R + 3));
+      ctx.lineTo(x2 - ux * (R + 6), y2 - uy * (R + 6));
+      ctx.stroke();
+      const bx = x2 - ux * (R + 5), by = y2 - uy * (R + 5);
+      ctx.beginPath();
+      ctx.moveTo(bx + ux * 5, by + uy * 5);
+      ctx.lineTo(bx - uy * 4.5, by + ux * 4.5);
+      ctx.lineTo(bx + uy * 4.5, by - ux * 4.5);
+      ctx.fill();
+    };
+    arrow("bmi");
+    arrow("twin");
+    arrow("age");
+    const assoc = (a, b, label, strong) => {
+      ctx.strokeStyle = strong ? C.extreme : C.ink3;
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = strong ? 2 : 1.25;
+      ctx.beginPath();
+      ctx.moveTo(P[a][0], P[a][1] + R + 3);
+      ctx.lineTo(P[b][0], P[b][1] - R - 3);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = strong ? C.extreme : C.ink3;
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "left";
+      ctx.fillText(label, P[a][0] + 8, (P[a][1] + P[b][1]) / 2 + 3);
+    };
+    assoc("bmi", "twin", `r = ${rTwin.toFixed(2)}`, true);
+    assoc("twin", "age", "r = 0.12", false);
+    const NAME = { bmi: "BMI", twin: "twin", age: "age", y: "sysBP" };
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const k of Object.keys(P)) {
+      const [x, y] = P[k];
+      ctx.fillStyle = C.surface;
+      ctx.strokeStyle = k === "twin" ? C.extreme : k === "y" ? C.ink2 : C.highlight;
+      ctx.lineWidth = k === "y" ? 1.25 : 2;
+      ctx.beginPath();
+      ctx.arc(x, y, R, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = C.ink1;
+      ctx.font = "12px system-ui";
+      ctx.fillText(NAME[k], x, y + 1);
+    }
+    ctx.textBaseline = "alphabetic";
+  }
+
+  /* B · the twins, plotted against each other */
+  {
+    const ctx = panel(host, "B · the twins against each other — indistinguishable",
+      `every patient's BMI against its noisy copy; r = ${rTwin.toFixed(2)} — the model is asked to split credit between these two axes`, 330, 240);
+    const r = { x: 44, y: 14, w: 270, h: 180 };
+    const lo = 14, hi = 46;
+    const sx = (v) => r.x + ((v - lo) / (hi - lo)) * r.w;
+    const sy = (v) => r.y + r.h - ((v - lo) / (hi - lo)) * r.h;
+    ctx.strokeStyle = C.grid;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = C.ink3;
+    ctx.font = "11px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("BMI", r.x + r.w / 2, r.y + r.h + 16);
+    ctx.save();
+    ctx.translate(r.x - 28, r.y + r.h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("BMI twin", 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+    ctx.fillStyle = C.unknown;
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath();
+      ctx.arc(sx(BMI[i]), sy(rel[i]), 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+/* ================= §2 C · the split wanders ================= */
+{
+  const host = document.getElementById("seedRow");
+  const ctx = panel(host, "C · the split wanders with the seed; the sum does not, and neither does R²",
+    "three seeds, same data, same twins: the credit is divided differently every time — the bracket holds their sum, steady at ~1.50; without a twin, reseeding changes NOTHING", 760, 260);
+  const seeds = [1, 2, 3];
+  const DOM = [-0.6, 2.2];
+  const fr = { x: 90, y: 30, w: 640, h: 180 };
+  const fx = (v) => fr.x + ((v - DOM[0]) / (DOM[1] - DOM[0])) * fr.w;
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(fr.x, fr.y, fr.w, fr.h);
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = C.ink3;
+  ctx.beginPath();
+  ctx.moveTo(fx(0), fr.y);
+  ctx.lineTo(fx(0), fr.y + fr.h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.ink3;
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "center";
+  for (const v of [-0.5, 0, 0.5, 1, 1.5, 2]) ctx.fillText(v.toFixed(1), fx(v), fr.y + fr.h + 13);
+  seeds.forEach((s, i) => {
+    const rng = makeRng(s);
+    const rel = BMI.map((v) => v + (rng.next() * 6 - 3));
+    const f = ols(SYSBP, BMI, rel, AGE);
+    const y = fr.y + 34 + i * 56;
+    ctx.fillStyle = C.ink2;
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "right";
+    ctx.fillText(`seed ${s}`, fr.x - 8, y + 4);
+    const mark = (b, half, color) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(fx(b - half), y);
+      ctx.lineTo(fx(b + half), y);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(fx(b), y, 4.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(b.toFixed(2), fx(b), y - 9);
+    };
+    mark(f.b[1], TQ * f.se[1], C.highlight);
+    mark(f.b[2], TQ * f.se[2], C.extreme);
+    // the bracket: the twins' sum
+    const sum = f.b[1] + f.b[2];
+    ctx.strokeStyle = C.ink1;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(fx(sum), y + 10);
+    ctx.lineTo(fx(sum), y + 17);
+    ctx.stroke();
+    ctx.fillStyle = C.ink1;
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`together ${sum.toFixed(2)} · R² ${f.r2.toFixed(3)}`, fx(sum) + 6, y + 18);
+  });
+  ctx.fillStyle = C.highlight;
+  ctx.font = "11px system-ui";
+  ctx.textAlign = "left";
+  ctx.fillText("● BMI", fr.x + 8, fr.y + fr.h + 32);
+  ctx.fillStyle = C.extreme;
+  ctx.fillText("● twin", fr.x + 60, fr.y + fr.h + 32);
+}
+</script>
+</body>
+</html>
