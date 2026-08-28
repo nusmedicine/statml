@@ -409,6 +409,20 @@
       ],
       "arc": 28,
       "status": "shipped"
+    },
+    {
+      "slug": "lm-categorical",
+      "title": "Fitting a Categorical Covariate",
+      "blurb": "A categorical covariate fits group means: each coefficient is the difference from a reference level you choose.",
+      "course": "PHM5003",
+      "topics": [
+        "linear model",
+        "categorical covariates",
+        "dummy coding",
+        "reference level"
+      ],
+      "arc": 29,
+      "status": "draft"
     }
   ]
 }

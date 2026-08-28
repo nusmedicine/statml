@@ -44,8 +44,16 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 29 · `lm-categorical` is MEASURED and MOCKED, awaiting
-   Kenneth's picks** — see [docs/catalogue.md](docs/catalogue.md)
+1. **Widget 29 · `lm-categorical` is a DRAFT, round 1 done, awaiting
+   Kenneth's review** — he picked stage C and ruled SEX OUT OF SCOPE;
+   the draft is built (gate opens the model; the coefficients are ARROWS
+   from the reference's eased rule to the fixed means, labels counting
+   along the ease; columns are click regions for the reference; the
+   coding table's zero row follows; heights 334/520). Review at
+   `http://localhost:8010/widgets/lm-categorical/` (gate, then relevel —
+   click a column or the segmented). Full record in
+   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 29*, which
+   also holds the planning entry — see [docs/catalogue.md](docs/catalogue.md)
    § *NEXT · Widget 29* for the brief and every measured number.
    `node widgets/_lab/lm-cat-measure.mjs` = 25 checks, every 05-03
    stored output to the digit, plus the two identities asserted at 1e-9

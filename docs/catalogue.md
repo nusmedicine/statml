@@ -3263,12 +3263,37 @@ the zoom as magnifier — the recommendation); **§2** the relevel drawn as
 before/after (reference healthy, then obese — every arrow re-anchors,
 the means stand still); **§3** the coding table, category-rows (the
 reference row all zeros — why its mean is the intercept); **§4** the sex
-act at true scale, drawn to be seen failing. Open questions for
-Kenneth's picks: A, B or C; the relevel control (segmented + the
-category columns as click regions); whether the coding table rides
-beside the equation or behind a View; the sex scope ruling; and whether
-the ease on relevel is the arrows re-anchoring (widget 12's motion) with
-the means deliberately still.
+act at true scale, drawn to be seen failing.
+
+### ROUND 1 — Kenneth picked, and the draft is BUILT the same day
+
+**Stage C, and SEX IS OUT OF SCOPE** (not even a caption line — "don't
+overcomplicate", the round-9 rule). `widgets/lm-categorical/` — imports
+the shared stage; title **Fitting a Categorical Covariate**. The shape:
+the widget opens as data and a question (four jittered columns, no
+model — widget 26's gate, "Fit the model"); the gate reveals the mean
+bars, the reference's dashed rule, the coefficients as ARROWS from rule
+to means with their signed labels, the zoomed means ladder (108–152)
+beside the columns with guide lines carrying each mean across, the
+equation card (widget 27/28's machinery — indicator terms wear their
+category name in brackets, one <math> per term), and the coding table
+full-width below (category rows, the reference row all zeros and
+outlined). **The relevel is the punchline**: a Reference segmented (its
+healthy option's detail says "R's own default — first in the alphabet,
+not a medical choice") plus the category COLUMNS as click regions; on
+relevel the RULE eases to the new reference's mean (widget 12's ease,
+one value) and the arrows — drawn live from the eased rule to the fixed
+means — re-anchor with it, their labels the signed distance from the
+EASED rule so no printed number is false mid-frame; the equation and
+the zero row rewrite; the R² tile's note says "identical for every
+reference level — the model never changed". Term order everywhere is
+BMI order (cell 36's own order; R's alphabetical print is the same
+accident the reference teaches). The ladder drops below 400px of stage
+width (nothing to magnify into). Heights 334 shut / 520 open. Verified
+on screen: gate, relevel by column click (URL ref=obese, equation
+rewrites 143.50 − 25.08·[underweight] …, the ease caught mid-flight
+with labels counting), coding table follows, zero console errors,
+`check` green. Only randomness: the dots' x-jitter, seeded, hidden.
 
 ## Widget 28 · `lm-adjustment` — SHIPPED 2026-08-28, twelve review rounds
 
