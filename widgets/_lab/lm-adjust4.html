@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 round 6 — axes, twins apart, VIF drawn</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .pillrow { display: flex; gap: 8px; align-items: center; background: var(--surface-1); border: 1px solid var(--grid); padding: 10px 12px; width: fit-content; margin-bottom: 6px; }
+  .pill { border: 1.5px solid var(--ink-3); border-radius: 999px; padding: 4px 13px; font-size: var(--fs-sm); color: var(--ink-2); background: transparent; }
+  .pill.on { border-color: var(--c-highlight); background: color-mix(in srgb, var(--c-highlight) 18%, transparent); color: var(--ink-1); font-weight: 600; }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · round 6 — the three suggestions, drawn</h1>
+
+  <h2>§1 · The scatter's x-axis: both at once, or the reader's choice</h2>
+  <p class="note">
+    Age's relationship with sysBP (r = 0.37, the stronger of the two) is
+    currently never SEEN. <b>A</b> shows both marginals at once — 05-02's own
+    ggpairs move — two half-width panels, no control, but neither panel can
+    host the FWL slide or the plane family well at 250px. <b>B</b> gives the
+    scatter an <b>x-axis control</b> (x: BMI · age): one full panel, and
+    everything already built comes along — the plane family redraws over age
+    (lines per BMI band), and the FWL slide generalises to "the OTHER
+    covariate removed". B is the recommendation: one more segmented, nothing
+    else new.
+  </p>
+  <div class="row" id="axes"></div>
+
+  <h2>§2 · The twins, clickable APART — each is fine alone; together they break</h2>
+  <p class="note">
+    Weight becomes a third pill (and DAG node) on the Collinearity tab, so
+    the reader composes the model freely — and the lesson sharpens: BMI
+    alone works, <b>weight alone works too</b> (it is a real predictor —
+    measured below), and only BOTH together break. "Adding a variable that
+    carries the same information" becomes an act the reader performs, not a
+    demonstration they watch.
+  </p>
+  <div class="pillrow"><span style="font-size:var(--fs-sm);color:var(--ink-3)">In the model:</span>
+    <span class="pill on">BMI</span><span class="pill on">weight</span><span class="pill on">age</span></div>
+  <p class="cap">the Collinearity tab's rail: three pills, individually clickable</p>
+  <div class="row" id="twins"></div>
+
+  <h2>§3 · VIF, drawn instead of defined</h2>
+  <p class="note">
+    "Regress the covariate on the rest" IS a picture: the covariate against
+    what the others predict for it. For weight, the others predict it
+    tightly — the cloud hugs the diagonal, R² is high, and
+    VIF = 1 ⁄ (1 − R²) is large. For age, the others predict almost nothing
+    — the cloud is a blob, R² ≈ 0, VIF ≈ 1. The two panels side by side
+    teach the definition without a sentence; the arithmetic line under each
+    connects the picture to the bar. In the widget: <b>click a VIF bar</b>
+    (regions) to put that covariate's picture in the panel — the bar and its
+    explanation reading each other.
+  </p>
+  <div class="row" id="vif"></div>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  extreme: css("--c-extreme"), unknown: css("--c-unknown"),
+};
+const DPR = devicePixelRatio || 1;
+const TQ = 1.960633;
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+const rng = makeRng(1);
+const gauss = () => {
+  const u = Math.max(rng.next(), 1e-12);
+  const v = rng.next();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+const WGT = BMI.map((b) => { const h = 1.68 + 0.05 * gauss(); return b * h * h; });
+
+const fBA = ols(SYSBP, BMI, AGE);
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+function scatter(ctx, r, xs, ys, xdm, ydm, labels, lines) {
+  const sx = (v) => r.x + ((v - xdm[0]) / (xdm[1] - xdm[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - ydm[0]) / (ydm[1] - ydm[0])) * r.h;
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3;
+  ctx.font = "11px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText(labels[0], r.x + r.w / 2, r.y + r.h + 16);
+  ctx.save();
+  ctx.translate(r.x - 30, r.y + r.h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(labels[1], 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(r.x, r.y, r.w, r.h);
+  ctx.clip();
+  ctx.fillStyle = C.unknown;
+  ctx.globalAlpha = 0.35;
+  for (let i = 0; i < xs.length; i += 1) {
+    ctx.beginPath();
+    ctx.arc(sx(xs[i]), sy(ys[i]), 1.5, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  for (const L of lines ?? []) {
+    ctx.strokeStyle = L.color ?? C.highlight;
+    ctx.globalAlpha = L.alpha ?? 1;
+    ctx.lineWidth = L.width ?? 2;
+    ctx.beginPath();
+    ctx.moveTo(sx(xdm[0]), sy(L.b0 + L.b1 * xdm[0]));
+    ctx.lineTo(sx(xdm[1]), sy(L.b0 + L.b1 * xdm[1]));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (L.label) {
+      ctx.fillStyle = C.ink2;
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "left";
+      const lx = xdm[0] + (xdm[1] - xdm[0]) * 0.94;
+      ctx.fillText(L.label, sx(lx) + 2, sy(L.b0 + L.b1 * lx) - 3);
+    }
+  }
+  ctx.restore();
+  return { sx, sy };
+}
+
+/* ================= §1 · axes ================= */
+{
+  const host = document.getElementById("axes");
+
+  /* A · both marginals */
+  {
+    const ctx = panel(host, "A · both at once (ggpairs' move)",
+      "each covariate's own relationship with sysBP; the age panel is the stronger one (r = 0.37) — but 250px panels cannot host the slide or the family", 550, 280);
+    scatter(ctx, { x: 46, y: 14, w: 220, h: 210 }, BMI, SYSBP, [14, 58], [80, 300], ["BMI", "sysBP"],
+      [{ b0: fBA.b[0] + fBA.b[2] * meanOf(AGE), b1: fBA.b[1] }]);
+    scatter(ctx, { x: 320, y: 14, w: 220, h: 210 }, AGE, SYSBP, [30, 71], [80, 300], ["age", ""],
+      [{ b0: fBA.b[0] + fBA.b[1] * meanOf(BMI), b1: fBA.b[2] }]);
+  }
+
+  /* B · the x-axis control, drawn in its age state */
+  {
+    const ctx = panel(host, "B · an x-axis control — drawn at x = age (recommended)",
+      "x: BMI · age as a segmented control; the plane family redraws over age (one line per BMI 20/25/30/35), and the FWL slide becomes 'the other removed'", 550, 280);
+    const bmis = [20, 25, 30, 35];
+    scatter(ctx, { x: 46, y: 14, w: 488, h: 210 }, AGE, SYSBP, [30, 71], [80, 300], ["age", "sysBP"],
+      bmis.map((b, i) => ({
+        b0: fBA.b[0] + fBA.b[1] * b,
+        b1: fBA.b[2],
+        alpha: 0.45 + (0.55 * i) / (bmis.length - 1),
+        label: `BMI ${b}`,
+      })));
+  }
+}
+
+/* ================= §2 · the twins apart ================= */
+{
+  const host = document.getElementById("twins");
+  const DOM = [-0.6, 2];
+  const fW = ols(SYSBP, WGT, AGE);
+  const fBoth = ols(SYSBP, BMI, WGT, AGE);
+
+  const forest = (title, sub, rows) => {
+    const ctx = panel(host, title, sub, 420, 230);
+    const fr = { x: 76, y: 24, w: 320, h: 160 };
+    const fx = (v) => fr.x + ((v - DOM[0]) / (DOM[1] - DOM[0])) * fr.w;
+    ctx.strokeStyle = C.grid;
+    ctx.strokeRect(fr.x, fr.y, fr.w, fr.h);
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = C.ink3;
+    ctx.beginPath();
+    ctx.moveTo(fx(0), fr.y);
+    ctx.lineTo(fx(0), fr.y + fr.h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.ink3;
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    for (const v of [0, 1, 2]) ctx.fillText(v.toFixed(0), fx(v), fr.y + fr.h + 13);
+    rows.forEach((rw, i) => {
+      const y = fr.y + 30 + i * 50;
+      ctx.fillStyle = C.ink2;
+      ctx.font = "12px system-ui";
+      ctx.textAlign = "right";
+      ctx.fillText(rw.name, fr.x - 8, y + 4);
+      ctx.strokeStyle = rw.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(fx(rw.b - rw.h), y);
+      ctx.lineTo(fx(rw.b + rw.h), y);
+      ctx.stroke();
+      ctx.fillStyle = rw.color;
+      ctx.beginPath();
+      ctx.arc(fx(rw.b), y, 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(rw.b.toFixed(2), fx(rw.b), y + 18);
+    });
+  };
+
+  forest("weight alone (with age) — a perfectly good model",
+    `weight predicts sysBP fine on its own: ${fW.b[1].toFixed(2)} mmHg per kg, tight CI — nothing about the variable is broken`,
+    [
+      { name: "weight", b: fW.b[1], h: TQ * fW.se[1], color: C.highlight },
+      { name: "age", b: fW.b[2], h: TQ * fW.se[2], color: C.highlight },
+    ]);
+
+  forest("both twins — the same information twice, and the split breaks",
+    "the CIs blow up ×2.8 and weight straddles zero; neither variable failed — the COMBINATION did",
+    [
+      { name: "BMI", b: fBoth.b[1], h: TQ * fBoth.se[1], color: C.highlight },
+      { name: "weight", b: fBoth.b[2], h: TQ * fBoth.se[2], color: C.extreme },
+      { name: "age", b: fBoth.b[3], h: TQ * fBoth.se[3], color: C.highlight },
+    ]);
+}
+
+/* ================= §3 · VIF drawn ================= */
+{
+  const host = document.getElementById("vif");
+
+  const predPanel = (title, sub, target, others, dm, name) => {
+    const f = ols(target, ...others);
+    const pred = target.map((_, i) => others.reduce((s, o, j) => s + f.b[j + 1] * o[i], f.b[0]));
+    const r2 = f.r2;
+    const vif = 1 / (1 - r2);
+    const ctx = panel(host, title, sub, 420, 300);
+    scatter(ctx, { x: 60, y: 14, w: 340, h: 210 }, pred, target, dm, dm,
+      [`${name} predicted from the others`, `${name}, actual`],
+      [{ b0: 0, b1: 1, color: C.ink3, width: 1, alpha: 0.6 }]);
+    ctx.fillStyle = C.ink1;
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`R² = ${r2.toFixed(2)}   →   VIF = 1 ⁄ (1 − ${r2.toFixed(2)}) = ${vif.toFixed(1)}`, 60, 262);
+    ctx.fillStyle = C.ink3;
+    ctx.font = "10px system-ui";
+    ctx.fillText(vif > 5 ? "the others already know this variable" : "the others know almost nothing about it", 60, 280);
+  };
+
+  predPanel("weight — the others predict it tightly", "the cloud hugs the diagonal: BMI (and age) already contain weight",
+    WGT, [BMI, AGE], [40, 120], "weight");
+  predPanel("age — the others predict almost nothing", "a blob: age carries its own information, so it inflates nothing",
+    AGE, [BMI, WGT], [30, 71], "age");
+}
+</script>
+</body>
+</html>
