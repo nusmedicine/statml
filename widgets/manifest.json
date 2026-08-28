@@ -397,7 +397,7 @@
     },
     {
       "slug": "lm-adjustment",
-      "title": "Adjusting a Linear Model",
+      "title": "Fitting Multiple Covariates",
       "blurb": "Adding a covariate to a linear model changes the other coefficients: each is the effect with the rest held constant.",
       "course": "PHM5003",
       "topics": [

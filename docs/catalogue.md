@@ -3456,6 +3456,35 @@ the same day:
   the table title sat 8px under the panels' x-axis labels at +40; the
   gap is +56 now.
 
+### ROUND 9 — the tab says Fit and adjust, weight acts on its own tab, the title is the notebook's
+
+**Kenneth's three comments on the merge, same day, all in:**
+
+1. **The first tab is labelled "Fit and adjust"** (value `fit`, so the
+   round-3 legacy URLs land on it), not "Model" — the merge keeps both
+   words because both concepts live there; only the page split is gone.
+2. **Weight acts on the Collinearity tab ONLY** — round 7's cross-tab
+   persistence is REVERSED (Kenneth: the fit-adjust page demonstrates
+   BMI + age adjustment and nothing else; don't overcomplicate).
+   `twinActive` now requires `concept === "collinear"`, and `keyOf`/
+   `dagWide` follow it, so with `?weight=1` the first tab shows the
+   3-node DAG, the 2-row forest, the BMI + age equation and the `ba`
+   fits — while the `weight` parameter survives the tab switch and the
+   Collinearity tab restores the reader's composition. The VIF tile is
+   scoped to Collinearity too (the quiet ~1.0 added a number the first
+   tab does not teach), and its note now claims only what any
+   composition shows ("one covariate predicted by the rest" — the old
+   text said weight explains BMI even when weight was out). The
+   "take weight out" gate note died with the scoping; heights are now
+   fixed per tab, 778 / 688.
+3. **Title: "Fitting Multiple Covariates"** — 05-02's own name, the
+   sibling of widget 27's "Fitting a Linear Model" — with the subtitle
+   defining what that means (several covariates fitted together; each
+   coefficient read with the others held constant, a property of the
+   model, moving when the model changes). Blurb and meta unchanged —
+   they already describe the adjustment content; `check` green on the
+   title agreement across card, <h1>, <title>.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;

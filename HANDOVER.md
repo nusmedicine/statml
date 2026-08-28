@@ -27,31 +27,34 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 28 · `lm-adjustment` is a DRAFT through EIGHT review rounds,
+1. **Widget 28 · `lm-adjustment` is a DRAFT through NINE review rounds,
    awaiting Kenneth's next review pass** — all recorded round by round in
    [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 28* (read them
    before touching anything — several reversed an earlier decision).
-   **ROUND 8 (2026-08-28, second session) MERGED FIT AND ADJUST**: the
-   Concept strip is now TWO tabs — **Model · Collinearity** (`concept`
-   values `model`/`collinear`) — after the fit/adjust seam failed twice
-   (a band family IS the adjusted slope drawn; researched and mocked in
-   `_lab/lm-adjust5.html`, Kenneth picked M merged + table + FWL view).
-   Model = DAG + eased forest with ghosts and annotated moves ("1.72 →
-   1.50 when age enters") beside it, both marginals with three-band
-   families, the three-model table TRANSPOSED to a full-width row
-   (models as rows, current row outlined), the FWL slide on BOTH panels
-   (View: Data · Other removed — each residual slope exactly its
-   adjusted coefficient, 1.50 and 0.84; guarded to the exact BMI + age
-   model, panel notes name what to change), heights 778/858. The
-   fit-quality bars are deleted (they duplicated the tiles).
-   Collinearity is unchanged: the `weight` pill (simulated BMI ×
+   **Now titled "Fitting Multiple Covariates"** (round 9; title agreement
+   updated in manifest + index.html). **ROUND 8 (2026-08-28, second
+   session) MERGED FIT AND ADJUST** after the seam failed twice (a band
+   family IS the adjusted slope drawn; researched and mocked in
+   `_lab/lm-adjust5.html`); **ROUND 9 scoped weight to its own tab**.
+   The Concept strip is TWO tabs — **Fit and adjust · Collinearity**
+   (`concept` values `fit`/`collinear`). Fit and adjust = **BMI + age
+   ONLY** (`twinActive` requires the collinear tab; `?weight=1` is
+   invisible here and restored on Collinearity): DAG + eased forest with
+   ghosts and annotated moves ("1.72 → 1.50 when age enters"), both
+   marginals with three-band families, the three-model table as a
+   full-width row (models as rows, current row outlined), the FWL slide
+   on BOTH panels (View: Data · Other removed — residual slopes exactly
+   1.50 and 0.84, guarded to bmi+age). Fit-quality bars deleted
+   (duplicated the tiles); VIF tile scoped to Collinearity. Heights
+   778 / 688. Collinearity unchanged: the `weight` pill (simulated BMI ×
    height², unisex N(1.68, 0.05); twins clickable APART, 8 models
    computed) + VIF drawn as prediction-from-the-others + VIF bars.
    Residual strip on every tab. Review states:
    `http://localhost:8010/widgets/lm-adjustment/?bmi=1&age=1` ·
-   `…&view=resid` (the FWL slide) · `…&weight=1` (the gate note) ·
-   `…&weight=1&concept=collinear` · `?weight=1&concept=collinear`
-   (weight alone — a good model, the sharpened lesson).
+   `…&view=resid` (the FWL slide) ·
+   `?bmi=1&age=1&weight=1&concept=collinear` ·
+   `?weight=1&concept=collinear` (weight alone — a good model, the
+   sharpened lesson).
    **At promotion, remember:** the pills are `<button data-param>` the
    fingerprint's setParam cannot toggle — settled states by URL, driven
    states via `set` on the segmented controls (concept/view) or `hit` on

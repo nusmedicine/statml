@@ -21,7 +21,9 @@
    reader's model — the covariate PILLS, and the DAG whose covariate nodes
    are click targets — persists across both tabs.
 
-     Model            DAG + the forest (eased marks, the alone-reading as
+     Fit and adjust   BMI + age ONLY (round 9: weight acts on its own tab
+                      — this page demonstrates adjustment undistracted).
+                      DAG + the forest (eased marks, the alone-reading as
                       a ghost, the move annotated) · both marginals, the
                       model as a FAMILY OF LINES (the plane seen from each
                       side) · the three-model table, the notebook's own
@@ -106,7 +108,7 @@ const TABLE_H = 104;
 /* +56, not +40: the panels' x-axis labels reach ~48px below the frame, and
    at +40 the table's title sat 8px under them — caught on screen */
 const tableTop = (wide) => scatterTop(wide) + SCATTER_H + 56;
-const stripTop = (concept, wide) => (concept === "model"
+const stripTop = (concept, wide) => (concept === "fit"
   ? tableTop(wide) + TABLE_H + 24
   : scatterTop(wide) + SCATTER_H + STRIP_GAP);
 const HEIGHT = (concept, wide) => stripTop(concept, wide) + STRIP_H + 60;
@@ -227,25 +229,28 @@ const residOn = (v, z) => {
   return v.map((x, i) => x - g.b[0] - g.b[1] * z[i]);
 };
 
-/* Weight is a REAL member of the model (round 7, Kenneth: the twins are
-   clickable APART — each is fine alone; only both together break). Its
-   pill lives on the Collinearity tab, but membership persists across tabs
-   so the model never changes behind the reader's back. */
-const twinActive = (p) => Boolean(p.weight);
-const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (p.weight ? "t" : "");
-const dagWide = (p) => p.concept === "collinear" || Boolean(p.weight);
+/* Weight is a REAL member of the model (round 7: the twins are clickable
+   APART — each is fine alone; only both together break) — but it acts ON
+   THE COLLINEARITY TAB ONLY. Round 9 reversed round 7's cross-tab
+   persistence (Kenneth: the Fit-and-adjust page demonstrates BMI + age
+   adjustment and nothing else — don't overcomplicate). The `weight`
+   parameter survives a tab switch, so returning to Collinearity restores
+   the reader's composition; the fit-adjust tab simply never reads it. */
+const twinActive = (p) => Boolean(p.weight) && p.concept === "collinear";
+const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (twinActive(p) ? "t" : "");
+const dagWide = (p) => p.concept === "collinear";
 
 defineWidget({
   slug: "lm-adjustment",
-  title: "Adjusting a Linear Model",
+  title: "Fitting Multiple Covariates",
   status: "draft",
   subtitle:
-    "A linear model can hold several covariates, and each coefficient is " +
-    "then the effect of its covariate with the others held constant. So a " +
-    "coefficient is not a property of the variable — it is a property of " +
-    "the model it sits in, and it moves when the model changes.",
+    "A linear model can hold several covariates at once, and fitting it " +
+    "estimates their coefficients together. Each coefficient is then read " +
+    "with the others held constant — a property of the model it sits in, " +
+    "not of the variable, so it moves when the model changes.",
   layout: "side",
-  height: ({ concept, weight }) => HEIGHT(concept, concept === "collinear" || Boolean(weight)),
+  height: ({ concept }) => HEIGHT(concept, concept === "collinear"),
 
   params: {
     /* THE CONCEPT STRIP — round 8 merged Fit and Adjust into Model (they
@@ -256,10 +261,10 @@ defineWidget({
       type: "segmented",
       label: "Concept",
       options: [
-        { value: "model", label: "Model", detail: "covariates fit a plane, and each coefficient is read with the others held constant" },
+        { value: "fit", label: "Fit and adjust", detail: "covariates fit a plane, and each coefficient is read with the others held constant" },
         { value: "collinear", label: "Collinearity", detail: "add weight beside BMI — two covariates, one piece of information" },
       ],
-      default: "model",
+      default: "fit",
       display: true,
     },
 
@@ -306,7 +311,7 @@ defineWidget({
       ],
       default: "data",
       display: true,
-      when: { param: "concept", equals: "model" },
+      when: { param: "concept", equals: "fit" },
     },
 
     /* Weight needs no gate: the Collinearity tab IS the act — entering it
@@ -553,7 +558,7 @@ defineWidget({
       h: SCATTER_H,
     };
 
-    if (concept === "model") {
+    if (concept === "fit") {
       /* Round 7, Kenneth's pick A: BOTH marginals at once — 05-02's own
          ggpairs move — now carrying the FWL slide on both panels. */
       drawMarginals(ctx, colors, { x: 56, y: sTop, w: w - 70, h: SCATTER_H },
@@ -598,8 +603,8 @@ defineWidget({
       ctx.restore();
     }
 
-    /* --- the three-model table, full width (Model tab) ------------------ */
-    if (concept === "model") {
+    /* --- the three-model table, full width (Fit and adjust tab) --------- */
+    if (concept === "fit") {
       drawTable(ctx, colors, { x: 56, y: tableTop(wide), w: w - 70 }, state, key);
     }
 
@@ -685,13 +690,16 @@ defineWidget({
         note: "mmHg left over per patient — watch it shrink as covariates enter",
       },
     ];
+    /* the VIF tile is the Collinearity tab's — on Fit and adjust the
+       bmi + age pair's quiet ~1.0 would only add a number the tab does
+       not teach (round 9: don't overcomplicate) */
     const vifRows = state.vifs[key];
-    if (vifRows) {
+    if (vifRows && params.concept === "collinear") {
       const worst = Math.max(...vifRows.map(([, v]) => v));
       tiles.push({
         label: "Largest VIF",
         value: fmt(worst, 1),
-        note: "above 5 flags collinearity — weight and BMI explain each other",
+        note: "above 5 flags collinearity — one covariate predicted by the rest",
       });
     }
     return tiles;
@@ -928,10 +936,8 @@ function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn, vmix)
         front.caption(key === "" ? "3547 patients — no model yet"
           : params.bmi && params.age ? "the model, the other covariate held constant"
             : "the data, and the model's line");
-        if (params.view === "resid" && !(params.bmi && params.age && !twinOn)) {
-          front.note(!(params.bmi && params.age)
-            ? "put BMI and age in the model to remove the other"
-            : "shown for the exact BMI + age model — take weight out");
+        if (params.view === "resid" && !(params.bmi && params.age)) {
+          front.note("put BMI and age in the model to remove the other");
         }
       }
     }
@@ -1075,8 +1081,8 @@ function retarget(anim, params, state) {
   set("bmi", params.bmi, params.bmi ? fit.coefs.bmi : null);
   set("age", params.age, params.age ? fit.coefs.age : null);
   set("twin", twinOn, twinOn ? fit.coefs.twin : null);
-  anim.vmixT = params.concept === "model" && params.view === "resid"
-    && params.bmi && params.age && !twinOn ? 1 : 0;
+  anim.vmixT = params.concept === "fit" && params.view === "resid"
+    && params.bmi && params.age ? 1 : 0;
   for (const k of ["bmi", "age", "twin"]) {
     const m = anim[k];
     const t = anim[`${k}T`];
