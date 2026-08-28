@@ -144,5 +144,50 @@ console.log(`  SE(BMI) ${mean(seBMImixed).toFixed(4)} vs ${fBoth.se[1].toFixed(4
 console.log(`  VIF(BMI) ${mean(vifBMI).toFixed(2)} ± ${sd(vifBMI).toFixed(2)}, range ${Math.min(...vifBMI).toFixed(2)}-${Math.max(...vifBMI).toFixed(2)}   (notebook: 6.47; threshold 5)`);
 console.log(`  BMI_related n.s. in ${nsRel.reduce((a, v) => a + v, 0)}/${SEEDS} seeds; at least one twin n.s. in ${nsEither.reduce((a, v) => a + v, 0)}/${SEEDS}`);
 
+/* --- the SHIPPING twin: weight = BMI x height^2, unisex N(1.68, 0.05) ----
+   The widget does not ship the notebook's jitter twin (above) — round 5
+   replaced it with a simulated weight, and the construction must be
+   measured AS SHIPPED: the exact rng draw order of compute() (two draws
+   per patient, Box-Muller), 200 seeds. The catalogue's round-5/7 numbers
+   are asserted here so a drift in rng.js or the construction fails loudly. */
+console.log("\n== The shipping twin across 200 seeds: weight = BMI x height^2, height ~ N(1.68, 0.05) ==");
+const wgtFor = (seed) => {
+  const rng = makeRng(seed);
+  const gauss = () => {
+    const u = Math.max(rng.next(), 1e-12);
+    const v = rng.next();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  return BMI.map((b) => {
+    const ht = 1.68 + 0.05 * gauss();
+    return b * ht * ht;
+  });
+};
+const rBW = [];
+const vifW = [];
+const bBMIw = [];
+const nsWeight = [];
+const ciInfl = [];
+for (let s = 1; s <= SEEDS; s += 1) {
+  const wgt = wgtFor(s);
+  rBW.push(corr(BMI, wgt));
+  const fMix = ols(SYSBP, BMI, wgt, AGE);
+  bBMIw.push(fMix.b[1]);
+  nsWeight.push(Math.abs(fMix.t[2]) < tq ? 1 : 0);
+  ciInfl.push(fMix.se[1] / fBoth.se[1]);
+  vifW.push(1 / (1 - ols(wgt, BMI, AGE).r2));
+}
+const w1 = wgtFor(1);
+const f1 = ols(SYSBP, BMI, w1, AGE);
+console.log(`r(BMI, weight) ${mean(rBW).toFixed(3)} ± ${sd(rBW).toFixed(3)}   (seed 1: ${corr(BMI, w1).toFixed(3)})`);
+console.log(`VIF(weight) ${mean(vifW).toFixed(2)} ± ${sd(vifW).toFixed(2)}   (seed 1: ${vifW[0].toFixed(2)}; threshold 5)`);
+console.log(`b(BMI) with both twins ${mean(bBMIw).toFixed(3)} ± ${sd(bBMIw).toFixed(3)}   (unbiased against ${fBoth.b[1].toFixed(3)})`);
+console.log(`weight n.s. in ${nsWeight.reduce((a, v) => a + v, 0)}/${SEEDS} seeds; CI(BMI) inflation x${mean(ciInfl).toFixed(2)}`);
+console.log(`prediction untouched at seed 1: R2 ${f1.r2.toFixed(4)} vs ${fBoth.r2.toFixed(4)} without weight`);
+ck("shipping twin: mean r(BMI, weight)", mean(rBW), 0.933, 0.005);
+ck("shipping twin: mean VIF(weight)", mean(vifW), 7.7, 0.3);
+ck("shipping twin: b(BMI) unbiased", mean(bBMIw), fBoth.b[1], 0.05);
+ck("shipping twin: R2 with the twin (seed 1)", f1.r2, fBoth.r2, 5e-4);
+
 console.log(fails ? `\n${fails} FAILURES` : "\nall checks pass");
 process.exit(fails ? 1 : 0);

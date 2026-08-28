@@ -3212,7 +3212,41 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 28 · `lm-adjustment` — MEASURED 2026-08-28
+## Widget 28 · `lm-adjustment` — SHIPPED 2026-08-28, twelve review rounds
+
+**Promoted on 2026-08-28 after Kenneth's "tested ok" — planned, measured,
+mocked, built and revised over twelve recorded rounds across two
+sessions** (rounds 1–7 built the concept-strip draft; 8 merged Fit and
+Adjust; 9 scoped weight and retitled; 10 struck VIF from the first tab
+and made the move annotation symmetric; 11–12 rebuilt Collinearity as
+persistent twins + a VIF section and dropped its strip). Title
+**Fitting Multiple Covariates**. **Eight fingerprint states recorded
+with `_lab/lm-adjust-shoot.html`** (the lm-shoot pattern: copy proved
+4/4 against recorded hashes, every state shot three times in one run
+and identical, every drive checked non-inert against its bare URL):
+five settled by URL (the empty open; the merged page; the FWL end
+state; Collinearity at subject weight; subject age via `vifvar`), one
+driven mid-slide (`set view=resid`, vmix ≈ 0.64, both panels in
+flight), and two hit-driven — the DAG's age node at [60, 164] catching
+the forest marks MID-EASE (the pills are buttons `setParam` cannot
+drive, so the node is both the exercised region and the only driven
+path to the ease), and age's VIF bar at [500, 660], which hashes
+identical to the `vifvar=age` settled state and different from its bare
+URL — exactly what a region hit should do. Baseline now **181 states**;
+no full-suite rerun owed (nothing in `widgets/core/` moved since its
+last green run at 173). **The measure script gained the shipping-twin
+block at promotion** (`lm-adjust-measure.mjs`, 25 checks: the old
+±3-jitter block still verifies the notebook's own arm; the new block
+reproduces the widget's weight construction draw-for-draw — r 0.933,
+VIF 7.7 ± 0.2, weight n.s. 187/200, b(BMI) 1.502 ± 0.208, R² untouched
+to 4 dp at seed 1).
+
+**Still owed:** the 05-02 notebook link (Kenneth places these by hand),
+and judging it projected, which every widget from 11 on awaits.
+
+The planning record follows as written.
+
+### The original planning record — MEASURED 2026-08-28
 
 **The brief:** 05-02 (Multiple Covariates), the Table 2 fallacy — a
 coefficient is not THE effect of its variable; it is the effect *in this

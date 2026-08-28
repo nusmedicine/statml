@@ -1558,6 +1558,85 @@
    },
    "px": "8b88b389",
    "tx": "94907e26"
+  },
+  {
+   "$note": "SETTLED: the empty open — dots, empty forest, the 131.31 equation (non-negotiable 4).",
+   "slug": "lm-adjustment",
+   "state": "?theme=light",
+   "px": "6ca3d886",
+   "tx": "c6b7b185"
+  },
+  {
+   "$note": "SETTLED: the merged Fit-and-adjust page — ghosts, both move annotations, band families, the ba table row outlined.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1",
+   "px": "b1a57e4e",
+   "tx": "4e4e3d37"
+  },
+  {
+   "$note": "SETTLED: the FWL end state — both panels residualized, slopes 1.50/0.84, both y-axes labelled.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1&view=resid",
+   "px": "76cd8ca7",
+   "tx": "4e4e3d37"
+  },
+  {
+   "$note": "SETTLED: Collinearity with all three in — persistent twins, weight flat under a rising cloud, the VIF section at subject weight.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear",
+   "px": "f49976ac",
+   "tx": "4a228706"
+  },
+  {
+   "$note": "SETTLED: the section one bar-click later via URL — subject age, the blob at VIF 1.0.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear&vifvar=age",
+   "px": "2ba0ffe4",
+   "tx": "4a228706"
+  },
+  {
+   "$note": "DRIVEN: mid-slide at vmix ~0.64 — patients in flight between data and residual space on BOTH panels.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1",
+   "drive": {
+    "set": {
+     "view": "resid"
+    },
+    "frames": 5,
+    "dt": 32
+   },
+   "px": "e8fec0ec",
+   "tx": "4e4e3d37"
+  },
+  {
+   "$note": "HIT-DRIVEN: the DAG age node at [60,164] — age enters, the forest marks caught mid-ease (the pills are buttons setParam cannot drive).",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1",
+   "drive": {
+    "hit": [
+     60,
+     164
+    ],
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "7565cf8b",
+   "tx": "4e4e3d37"
+  },
+  {
+   "$note": "HIT-DRIVEN: age's VIF bar at [500,660] — vifvar flips, formula/panel/emphasis move; hashes identical to the vifvar=age settled state and differs from its bare URL.",
+   "slug": "lm-adjustment",
+   "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear",
+   "drive": {
+    "hit": [
+     500,
+     660
+    ],
+    "frames": 2,
+    "dt": 32
+   },
+   "px": "2ba0ffe4",
+   "tx": "4a228706"
   }
  ]
 }

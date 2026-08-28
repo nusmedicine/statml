@@ -1,7 +1,24 @@
 # Handover
 
-**Twenty-seven widgets, all shipped, all on the gallery, and 173 fingerprint
+**Twenty-eight widgets, all shipped, all on the gallery, and 181 fingerprint
 states recorded.**
+
+**Widget 28 · `lm-adjustment` SHIPPED 2026-08-28 as "Fitting Multiple
+Covariates"** — measured, mocked, built and revised over TWELVE review
+rounds across two sessions, promoted on Kenneth's "tested ok" and PUSHED
+(the first push since widget 27's round 9). The full record is
+[docs/catalogue.md](docs/catalogue.md) § *Widget 28*, including the two
+merges the review forced: Fit and Adjust became ONE tab (round 8 — a band
+family IS the adjusted slope drawn, so the seam between them kept
+leaking), and Collinearity became persistent-twins + an explicit
+"Detecting collinearity — VIF" section with clickable bars (rounds
+11–12, the notebook's own fit-then-check order). Eight states via
+`_lab/lm-adjust-shoot.html` (lm-shoot pattern: copy proved 4/4,
+three-run stable, drives non-inert): five settled, one driven mid-slide,
+two hit-driven (the DAG age node catching the forest MID-EASE — the
+pills are buttons `setParam` cannot drive — and age's VIF bar).
+`lm-adjust-measure.mjs` gained the shipping-twin block at promotion
+(25 checks — the weight construction reproduced draw-for-draw).
 
 **Widget 27 · `lm-least-squares` SHIPPED 2026-08-28** — measured, mocked,
 built and revised over SEVEN review rounds and promoted in one day: the
@@ -27,55 +44,16 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 28 · `lm-adjustment` is a DRAFT through TWELVE review rounds,
-   awaiting Kenneth's next review pass** — all recorded round by round in
-   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 28* (read them
-   before touching anything — several reversed an earlier decision).
-   **Now titled "Fitting Multiple Covariates"** (round 9; title agreement
-   updated in manifest + index.html). **ROUND 8 (2026-08-28, second
-   session) MERGED FIT AND ADJUST** after the seam failed twice (a band
-   family IS the adjusted slope drawn; researched and mocked in
-   `_lab/lm-adjust5.html`); **ROUND 9 scoped weight to its own tab**.
-   The Concept strip is TWO tabs — **Fit and adjust · Collinearity**
-   (`concept` values `fit`/`collinear`). Fit and adjust = **BMI + age
-   ONLY** (`twinActive` requires the collinear tab; `?weight=1` is
-   invisible here and restored on Collinearity): DAG + eased forest with
-   ghosts and annotated moves ("1.72 → 1.50 when age enters"), both
-   marginals with three-band families, the three-model table as a
-   full-width row (models as rows, current row outlined), the FWL slide
-   on BOTH panels (View: Data · Other removed — residual slopes exactly
-   1.50 and 0.84, guarded to bmi+age). Fit-quality bars deleted
-   (duplicated the tiles); VIF tile scoped to Collinearity. Heights
-   778 / 688. Collinearity unchanged: the `weight` pill (simulated BMI ×
-   height², unisex N(1.68, 0.05); twins clickable APART, 8 models
-   computed) + VIF drawn as prediction-from-the-others + VIF bars.
-   Round 11 rebuilt Collinearity: PERSISTENT twins panels (weight flat under a rising cloud) + a "Detecting collinearity - VIF" SECTION with the formula concrete and CLICKABLE bars (`vifvar` hidden, set via regions; vifLayout is the one copy of the bar geometry). Heights 778 / 852. The residual strip is the FIT TAB'S ONLY (round 12 - on Collinearity "residuals unchanged" is a non-event; the spread tile carries it). Review states:
-   `http://localhost:8010/widgets/lm-adjustment/?bmi=1&age=1` ·
-   `…&view=resid` (the FWL slide) ·
-   `?bmi=1&age=1&weight=1&concept=collinear` (the twins + the section) · `...&vifvar=age` (the blob at VIF 1.0) ·
-   `?weight=1&concept=collinear` (weight alone — a good model, the
-   sharpened lesson).
-   **At promotion, remember:** the pills are `<button data-param>` the
-   fingerprint's setParam cannot toggle — settled states by URL, driven
-   states via `set` on the segmented controls (concept/view) or `hit` on
-   the DAG's three regions, which the regions rule demands anyway; the
-   `seed` param is hidden but live for pinning. **Measure script:**
-   `node widgets/_lab/lm-adjust-measure.mjs` (21 checks; note its twin
-   block still measures the OLD ±3-jitter twin, not the weight
-   construction — update it or add the weight block at promotion).
-   **NOTHING SINCE WIDGET 27'S ROUND 9 IS PUSHED** — all of widget 28
-   (measure, mocks, draft, seven rounds) is local commits on `main`,
-   deliberately held until Kenneth's "tested ok" (a push would also
-   publish the draft to /lab/). After 28 ships: `lm-categorical`,
-   `lm-interaction`, `censoring-km`, `pseudoreplication`.
-2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth
-   places notebook links by hand: 06-02's (widget 26, the line is in item 3
-   below) and now 05-01's (widget 27):
-   `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
-3. **Widget 26's link line, for item 2:**
-   `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
+1. **The next widget: `lm-categorical`**, then `lm-interaction`,
+   `censoring-km`, `pseudoreplication` — the agreed modeling-arc order
+   (catalogue). Nothing is started.
+2. **Notebook links now owed for all THREE shipped modeling widgets** —
+   Kenneth places notebook links by hand:
+   - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
+   - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
+   - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26 and 27 included.
+   widgets 26–28 included.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -121,7 +99,23 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 173 states, all matching
+## The suite: 181 states, all matching
+
+**Widget 28 added eight states on 2026-08-28 with `_lab/lm-adjust-shoot.html`**
+(the lm-shoot pattern): copy proved 4/4 against recorded hashes, every
+state shot three times in one run and identical, every drive checked
+non-inert against its bare URL. Five settled by URL (the pills are
+`<button data-param>` the harness's setParam cannot toggle, so URLs do
+the settling — `vifvar` included), one driven mid-slide (`set
+view=resid`, vmix ≈ 0.64), two hit-driven: the DAG age node at
+[60, 164] (the forest marks mid-ease — the only driven path to the ease)
+and age's VIF bar at [500, 660], which hashes IDENTICAL to the
+`vifvar=age` settled state and DIFFERENT from its bare URL — for a
+region whose effect is an instant param flip, that identity is the
+correct outcome, not the mds/balancing-data failure (those drives
+changed *nothing*, including against their own bare URL). No full-suite
+rerun owed — nothing in `widgets/core/` has moved since its last green
+run at 173.
 
 **Widget 27 added six states on 2026-08-28 with `_lab/lm-shoot.html`** (the
 causal-shoot pattern): copy proved 4/4 against recorded hashes, every state
@@ -222,7 +216,7 @@ is blind to.
 | 25 | `missing-data` | shipped. Planned, measured, built, revised over **seven** rounds, judged projected and promoted in ONE day (2026-08-27); seven states — five settled, one driven mid-beat, one interrupted. `node widgets/_lab/missing-drive.mjs` = 130 assertions |
 | 26 | `fork-pipe-collider` | shipped. Nine rounds in one day (2026-08-27); eight states — five settled, two driven mid-ease, one hit-driven. NOT yet judged projected; 06-02 link not yet placed |
 | 27 | `lm-least-squares` | shipped. NINE rounds over 2026-08-28 (rounds 7–9 post-ship: R² tile, the residual strip, grid-on default — each rebaselined same-commit and pushed); six states. NOT yet judged projected; 05-01 link not yet placed |
-| 28 | `lm-adjustment` | **DRAFT, mid-review** — seven rounds on 2026-08-28, Kenneth has more fixes coming; see NEXT item 1. Not baselined, not pushed |
+| 28 | `lm-adjustment` | shipped as **Fitting Multiple Covariates**. TWELVE rounds across two sessions (2026-08-28), promoted on "tested ok" and pushed; eight states — five settled, one driven mid-slide, two hit-driven. NOT yet judged projected; 05-02 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

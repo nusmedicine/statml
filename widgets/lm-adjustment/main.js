@@ -267,7 +267,7 @@ const dagWide = (p) => p.concept === "collinear";
 defineWidget({
   slug: "lm-adjustment",
   title: "Fitting Multiple Covariates",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A linear model can hold several covariates at once, and fitting it " +
     "estimates their coefficients together. Each coefficient is then read " +
