@@ -27,7 +27,7 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 28 · `lm-adjustment` is a DRAFT through TEN review rounds,
+1. **Widget 28 · `lm-adjustment` is a DRAFT through ELEVEN review rounds,
    awaiting Kenneth's next review pass** — all recorded round by round in
    [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 28* (read them
    before touching anything — several reversed an earlier decision).
@@ -49,10 +49,10 @@ driven-vs-settled-sibling check.
    778 / 688. Collinearity unchanged: the `weight` pill (simulated BMI ×
    height², unisex N(1.68, 0.05); twins clickable APART, 8 models
    computed) + VIF drawn as prediction-from-the-others + VIF bars.
-   Residual strip on every tab. Review states:
+   Round 11 rebuilt Collinearity: PERSISTENT twins panels (weight flat under a rising cloud) + a "Detecting collinearity - VIF" SECTION with the formula concrete and CLICKABLE bars (`vifvar` hidden, set via regions; vifLayout is the one copy of the bar geometry). Heights 778 / 966. Residual strip on every tab. Review states:
    `http://localhost:8010/widgets/lm-adjustment/?bmi=1&age=1` ·
    `…&view=resid` (the FWL slide) ·
-   `?bmi=1&age=1&weight=1&concept=collinear` ·
+   `?bmi=1&age=1&weight=1&concept=collinear` (the twins + the section) · `...&vifvar=age` (the blob at VIF 1.0) ·
    `?weight=1&concept=collinear` (weight alone — a good model, the
    sharpened lesson).
    **At promotion, remember:** the pills are `<button data-param>` the

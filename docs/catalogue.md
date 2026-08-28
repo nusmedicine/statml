@@ -3508,6 +3508,65 @@ case) the sentence says "when the others are added". Verified by canvas
 text sweep: both fit-tab sentences and all three collinear variants
 paint; no collisions on screen; `check` green.
 
+### ROUND 11 — the Collinearity tab: persistent twins, and the VIF check becomes a SECTION
+
+**Kenneth's complaint: click weight and the scatter "suddenly switches"
+to the VIF regression** — the same seam class the merge fixed on tab 1
+(the data view replaced because the model changed, nothing announcing
+it). Researched against the notebook and mocked in
+`_lab/lm-adjust6.html`; **Kenneth picked candidate A** (candidate B —
+the diagnostic behind a View, tab 1's grammar — was argued in prose and
+declined by the pick). The authority is 05-02 itself, cells 32–53:
+first the act ("only one of the covariates is significant"), then a
+separate subsection *"Using a VIF to detect collinearity"* that walks
+EACH covariate with the formula visible — `lm(age ~ BMI +
+BMI_related)`, R² → VIF = 1/(1−R²) — then `car::vif` and the bar plot.
+Fit first, then check; the widget now keeps them as two visible steps.
+
+Built the same day:
+
+- **The twins' marginals are PERSISTENT** — sysBP against BMI and
+  against weight, dots always, the panels never swapped for a
+  diagnostic; each carries the model's reading of its covariate (others
+  at means). This also repairs a missing half-lesson: with both twins
+  in, **weight's line goes flat (0.01/kg) under a cloud that plainly
+  rises** — attribution broken in data space — while R², the strip and
+  the lines barely move (prediction untouched, previously only stated).
+  The panel says so: "the model's line: 0.01 per kg". Swapping the
+  panels to BMI + age when weight is out was considered and rejected —
+  panels switching content is the very complaint; this tab's fixed pair
+  is the twins, its subject.
+- **"Detecting collinearity — VIF" is a page section** below the
+  panels: recipe line ("regress each covariate on the others — what
+  they explain inflates its variance"), then the formula CONCRETE —
+  `weight ~ BMI + age → R² 0.87 → VIF = 1 ⁄ (1 − R²) = 7.7` — above the
+  prediction panel, VIF bars beside it. **The bars are click targets**
+  (`vifvar`, a hidden segmented set through `regions`; rects from
+  `vifLayout`, one copy of the arithmetic for draw and regions —
+  widget 26's lesson): clicking age's bar makes the section read
+  `age ~ BMI + weight → R² 0.02 → VIF = 1.0` over the blob — the
+  notebook's one-covariate-at-a-time walk (cells 44–49) as an
+  interaction, verified end-to-end (URL gains `vifvar=age`, formula and
+  panel and emphasis all move). An invalid subject falls back to the
+  largest VIF. With fewer than two covariates the section stays and
+  fills in ("put two covariates in the model to test for
+  collinearity") — it never appears or vanishes. The honesty note rides
+  under the panel, now VIF-conditional: high → "weight is simulated
+  from BMI and a plausible height", low → "the others know almost
+  nothing about it" (the old members-based text claimed weight explains
+  things even when the displayed subject was the quiet pair).
+- Heights: collinear 966 (was 688); fit unchanged at 778.
+- **One bug earned its comment**: `SUBJ_OF` as a module-scope const
+  BELOW the defineWidget call threw
+  `Cannot access before initialization` on first paint — core calls
+  draw() during defineWidget itself, so consts after that call are
+  still in the temporal dead zone. It lives inside the function now.
+  And the two stale console errors it left survived the fix in the
+  panel (the 50-cap trap) — a fresh `window.onerror` counter read 0.
+- Verified: canvas text sweep clean (formula, recipe, fill-in note, all
+  twins captions; no NaN); bar-click regions live; fit tab untouched;
+  `check` green.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;

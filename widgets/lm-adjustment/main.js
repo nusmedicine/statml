@@ -33,8 +33,15 @@
                       coefficient, drawn only where FWL is exact
      Collinearity     the twin act: weight simulated from BMI (seeded; the
                       notebook's own cell is unseeded), the twins splitting
-                      one effect, CIs ×2.5, VIF drawn as prediction-from-
-                      the-others, bars against the dashed 5
+                      one effect, CIs ×2.5. ROUND 11 (candidate A, mocked
+                      in _lab/lm-adjust6.html): the twins' marginals are
+                      PERSISTENT (weight's flat line under a rising cloud —
+                      attribution broken in data space), and the VIF check
+                      is its own SECTION below — the notebook's own
+                      fit-then-check order — with the formula concrete
+                      (subject ~ the others → R² → VIF) and the bars
+                      clickable to choose the subject (`vifvar`, hidden;
+                      the bars are the control)
 
    The residual strip (widget 27's) rides under the scatter in every tab.
    The DAG draws the age–BMI link as a dashed double-headed ASSOCIATION
@@ -86,6 +93,7 @@ const TQ = 1.960633;
 
 const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 const MEAN_AGE = meanOf(AGE);
+const MEAN_BMI = meanOf(BMI);
 const R_BMI_AGE = 0.12; // measured; the DAG's association label
 
 /* --- stage geometry, one place ------------------------------------------- */
@@ -108,12 +116,22 @@ const TABLE_H = 104;
 /* +56, not +40: the panels' x-axis labels reach ~48px below the frame, and
    at +40 the table's title sat 8px under them — caught on screen */
 const tableTop = (wide) => scatterTop(wide) + SCATTER_H + 56;
+/* The Collinearity tab (round 11, candidate A — mocked in
+   _lab/lm-adjust6.html): the twins' panels stay on screen and the VIF
+   check is its own SECTION below them, the notebook's own fit-then-check
+   order (05-02 § "Using a VIF to detect collinearity"). 48 after the
+   panels holds their x-axis labels; the section head is three lines
+   (title, recipe, formula) before its panel row. */
+const TWIN_H = 210;
+const DIAG_H = 190;
+const diagTop = () => scatterTop(true) + TWIN_H + 48;
 const stripTop = (concept, wide) => (concept === "fit"
   ? tableTop(wide) + TABLE_H + 24
-  : scatterTop(wide) + SCATTER_H + STRIP_GAP);
+  : diagTop() + 48 + DIAG_H + 56);
 const HEIGHT = (concept, wide) => stripTop(concept, wide) + STRIP_H + 60;
 
 const X_DOM = [14, 58];
+const W_DOM = [40, 120]; // the simulated weight's window, kg
 const Y_DOM = [80, 300];
 const RX_DOM = [-12, 26];
 const RY_DOM = [-70, 120];
@@ -320,6 +338,23 @@ defineWidget({
        screen should need "seed" explained); it stays a parameter so the
        URL and the harness can still pin it. */
     seed: { type: "int", min: 1, max: 200, default: 1, hidden: true },
+
+    /* Which covariate the VIF section regresses on the others — set by
+       CLICKING A VIF BAR (regions): the bars are the control, the way the
+       DAG's nodes are, so the rail carries no extra control for it. A
+       value naming a covariate not in the current model falls back to the
+       largest VIF, which is also what a fresh reader should see first. */
+    vifvar: {
+      type: "segmented",
+      options: [
+        { value: "bmi", label: "BMI" },
+        { value: "weight", label: "weight" },
+        { value: "age", label: "age" },
+      ],
+      default: "weight",
+      display: true,
+      hidden: true,
+    },
   },
 
   /* No VIF entry (round 10, Kenneth): the legend is static core-side, so
@@ -437,14 +472,17 @@ defineWidget({
   },
 
   /* The DAG's covariate nodes toggle membership — the same write the pills
-     perform, through the same door; the pills stay as the keyboard path. */
-  regions({ params }) {
+     perform, through the same door; the pills stay as the keyboard path.
+     On the Collinearity tab the VIF BARS are targets too (round 11),
+     setting which covariate the section regresses on the others; their
+     rects come from vifLayout, the same arithmetic draw() paints with. */
+  regions({ w, params }) {
     const wide = dagWide(params);
     const { P, R } = dagLayout(wide);
     const keys = wide ? ["bmi", "twin", "age"] : ["bmi", "age"];
     const PARAM = { bmi: "bmi", twin: "weight", age: "age" };
     const LABEL = { bmi: "BMI in the model", twin: "weight in the model", age: "age in the model" };
-    return keys.map((k) => ({
+    const out = keys.map((k) => ({
       x: P[k][0] - R - 4,
       y: P[k][1] - R - 4,
       w: 2 * (R + 4),
@@ -452,6 +490,28 @@ defineWidget({
       set: { [PARAM[k]]: !params[PARAM[k]] },
       label: LABEL[k],
     }));
+    if (params.concept === "collinear") {
+      const members = [
+        params.bmi && ["BMI", "bmi"],
+        params.weight && ["weight", "weight"],
+        params.age && ["age", "age"],
+      ].filter(Boolean);
+      if (members.length >= 2) {
+        const { bars } = vifLayout(w);
+        members.forEach(([name, value], i) => {
+          const { x, w: bw } = vifBarRect(bars, i, members.length);
+          out.push({
+            x: x - 6,
+            y: bars.y - 4,
+            w: bw + 12,
+            h: bars.h + 22,
+            set: { vifvar: value },
+            label: `VIF of ${name}`,
+          });
+        });
+      }
+    }
+    return out;
   },
 
   draw({ ctx, colors, w, h, params, state, anim }) {
@@ -552,57 +612,18 @@ defineWidget({
 
     /* --- the scatter row ----------------------------------------------- */
     const sTop = scatterTop(wide);
-    const vifRows = state.vifs[key];
-    const rect = {
-      x: 56,
-      y: sTop,
-      w: concept === "collinear" && vifRows ? Math.round((w - 70) * 0.55) : w - 56 - 14,
-      h: SCATTER_H,
-    };
 
     if (concept === "fit") {
       /* Round 7, Kenneth's pick A: BOTH marginals at once — 05-02's own
          ggpairs move — now carrying the FWL slide on both panels. */
       drawMarginals(ctx, colors, { x: 56, y: sTop, w: w - 70, h: SCATTER_H },
         params, state, fit, key, twinOn, anim?.vmix ?? 0);
-    } else if (vifRows) {
-      /* VIF, drawn instead of defined: the largest-VIF covariate against
-         what the others predict for it. The old twins-vs-each-other panel
-         is this same cloud with the arithmetic attached. */
-      drawPredPanel(ctx, colors, rect, state, key);
     } else {
-      /* Collinearity with fewer than two covariates: the plain scatter,
-         the model's line, and the note naming the missing ingredient. */
-      const plotD = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
-      plotD.axisX({ label: "BMI" });
-      plotD.axisY({ label: "sysBP (mmHg)" });
-      plotD.caption(key === "" ? "3547 patients — no model yet" : "the data, and the model's line");
-      plotD.note("put two covariates in the model to talk about collinearity");
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(rect.x, rect.y, rect.w, rect.h);
-      ctx.clip();
-      ctx.fillStyle = colors.unknown;
-      ctx.globalAlpha = 0.4;
-      for (let i = 0; i < N; i += 1) {
-        ctx.beginPath();
-        ctx.arc(plotD.sx(BMI[i]), plotD.sy(SYSBP[i]), 1.7, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      if (key !== "") {
-        const slope = params.bmi ? fit.coefs.bmi.b : 0;
-        const b0 = fit.b0
-          + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
-          + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
-        ctx.strokeStyle = colors.highlight;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(plotD.sx(X_DOM[0]), plotD.sy(b0 + slope * X_DOM[0]));
-        ctx.lineTo(plotD.sx(X_DOM[1]), plotD.sy(b0 + slope * X_DOM[1]));
-        ctx.stroke();
-      }
-      ctx.restore();
+      /* Round 11 (candidate A, _lab/lm-adjust6.html): the twins' panels
+         are PERSISTENT — no pill click ever swaps the data view for a
+         diagnostic — and the VIF check is its own section below. */
+      drawTwins(ctx, colors, { x: 56, y: sTop, w: w - 70, h: TWIN_H }, params, state, fit, key, twinOn);
+      drawVifSection(ctx, colors, w, params, state, key);
     }
 
     /* --- the three-model table, full width (Fit and adjust tab) --------- */
@@ -640,41 +661,6 @@ defineWidget({
     }
     ctx.globalAlpha = 1;
     ctx.restore();
-
-    /* --- the VIF panel, Collinearity tab, any ≥2-covariate model ------- */
-    if (!(concept === "collinear" && vifRows)) return;
-    const vrect = { x: rect.x + rect.w + 56, y: sTop, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H };
-    const rows = vifRows;
-    const vy = (v) => vrect.y + vrect.h - (v / 8) * vrect.h;
-    ctx.strokeStyle = colors.grid;
-    ctx.strokeRect(vrect.x, vrect.y, vrect.w, vrect.h);
-    ctx.fillStyle = colors.ink2;
-    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("VIF", vrect.x, vrect.y - 8);
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = colors.ink3;
-    ctx.textAlign = "right";
-    for (const v of [0, 4, 8]) ctx.fillText(String(v), vrect.x - 4, vy(v) + 3);
-    const bw = Math.min(44, (vrect.w - 16) / rows.length - 10);
-    rows.forEach(([name, v], i) => {
-      const bx = vrect.x + 12 + i * ((vrect.w - 20) / rows.length);
-      ctx.fillStyle = colors.empirical;
-      ctx.fillRect(bx, vy(Math.min(v, 8)), bw, vy(0) - vy(Math.min(v, 8)));
-      ctx.fillStyle = colors.ink2;
-      ctx.textAlign = "center";
-      ctx.fillText(name, bx + bw / 2, vrect.y + vrect.h + 13);
-      ctx.fillText(fmt(v, 1), bx + bw / 2, vy(Math.min(v, 8)) - 5);
-    });
-    ctx.strokeStyle = colors.extreme;
-    ctx.setLineDash([6, 5]);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(vrect.x, vy(5));
-    ctx.lineTo(vrect.x + vrect.w, vy(5));
-    ctx.stroke();
-    ctx.setLineDash([]);
   },
 
   readout({ params, state }) {
@@ -1029,48 +1015,235 @@ function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn, vmix)
   });
 }
 
-/* --- VIF, drawn instead of defined (Collinearity tab) --------------------
-   "Regress the covariate on the rest" IS a picture: the largest-VIF member
-   against what the other members predict for it. Weight's cloud hugs the
-   diagonal (R² 0.87 → VIF 7.7); with weight out, bmi + age's cloud is a
-   blob at VIF ≈ 1 — the contrast that defines the quantity. The honesty
-   note rides here: the file records no weight; it is simulated. */
-function drawPredPanel(ctx, colors, rect, state, key) {
-  const rows = state.vifs[key];
-  const worst = rows.reduce((a, b) => (b[1] > a[1] ? b : a));
-  const NAMED = { BMI: { arr: BMI, dom: [14, 58] }, weight: { arr: state.wgt, dom: [40, 120] }, age: { arr: AGE, dom: [30, 71] } };
-  const subject = NAMED[worst[0]];
-  const members = rows.map(([n]) => n);
-  const others = members.filter((n) => n !== worst[0]).map((n) => NAMED[n].arr);
-  const f = ols(subject.arr, ...others);
-  const pred = subject.arr.map((_, i) => others.reduce((s, o, j) => s + f.b[j + 1] * o[i], f.b[0]));
+/* --- the twins' marginals (Collinearity tab, round 11) -------------------
+   sysBP against BMI and against the simulated weight, side by side and
+   PERSISTENT — no pill click ever swaps the data view for a diagnostic
+   (the round-11 complaint; the tab's fixed pair is the TWINS, its
+   subject). Each panel carries the model's reading of its covariate when
+   it is in, the other members held at their means: with both twins in,
+   weight's line goes flat (≈ 0.01/kg) under a cloud that plainly rises —
+   attribution broken where the reader can see it, while R² and the strip
+   barely move (prediction untouched). */
+function drawTwins(ctx, colors, slot, params, state, fit, key, twinOn) {
+  const gap = 60;
+  const pw = Math.round((slot.w - gap) / 2);
+  const spec = [
+    {
+      xs: BMI, dom: X_DOM, label: "BMI", on: params.bmi,
+      slope: params.bmi ? fit.coefs.bmi.b : 0,
+      rest: (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
+        + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0),
+      x: slot.x,
+    },
+    {
+      xs: state.wgt, dom: W_DOM, label: "weight (kg)", on: twinOn,
+      slope: twinOn ? fit.coefs.twin.b : 0,
+      rest: (params.bmi ? fit.coefs.bmi.b * MEAN_BMI : 0)
+        + (params.age ? fit.coefs.age.b * MEAN_AGE : 0),
+      x: slot.x + pw + gap,
+    },
+  ];
+  spec.forEach((p, pi) => {
+    const rect = { x: p.x, y: slot.y, w: pw, h: slot.h };
+    const plot = makePlot({ ctx, colors, rect, xDomain: p.dom, yDomain: Y_DOM });
+    plot.axisX({ label: p.label });
+    if (pi === 0) {
+      plot.axisY({ label: "sysBP (mmHg)" });
+      plot.caption(key === ""
+        ? "the twins — no model yet"
+        : "the twins — the model's reading of each, others at their means");
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.fillStyle = colors.unknown;
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath();
+      ctx.arc(plot.sx(p.xs[i]), plot.sy(SYSBP[i]), 1.6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (p.on) {
+      const b0 = fit.b0 + p.rest;
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(plot.sx(p.dom[0]), plot.sy(b0 + p.slope * p.dom[0]));
+      ctx.lineTo(plot.sx(p.dom[1]), plot.sy(b0 + p.slope * p.dom[1]));
+      ctx.stroke();
+    }
+    ctx.restore();
+    if (pi === 1 && p.on) {
+      ctx.fillStyle = colors.ink2;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(`the model's line: ${fmt(p.slope, 2)} per kg`, rect.x + rect.w - 6, rect.y + 16);
+    }
+  });
+}
 
-  const plot = makePlot({ ctx, colors, rect, xDomain: subject.dom, yDomain: subject.dom });
-  plot.axisX({ label: `${worst[0]}, predicted from the others` });
-  plot.axisY({ label: `${worst[0]}, actual` });
-  plot.caption(`R² ${fmt(f.r2, 2)}  →  VIF = 1 ⁄ (1 − ${fmt(f.r2, 2)}) = ${fmt(worst[1], 1)}`);
-  plot.note(members.includes("weight")
-    ? "weight is simulated from BMI and a plausible height"
-    : "the others know almost nothing about it");
+/* --- the VIF section's geometry, ONE place -------------------------------
+   regions() must put the bar hit targets exactly where draw() paints the
+   bars — two copies of this arithmetic is how a target ends up six
+   columns from its node (widget 26's lesson, the harness's own
+   incident). */
+function vifLayout(w) {
+  const top = diagTop();
+  const pw = Math.round((w - 70) * 0.55);
+  return {
+    top,
+    panel: { x: 56, y: top + 48, w: pw, h: DIAG_H },
+    bars: { x: 56 + pw + 56, y: top + 48, w: w - (56 + pw + 56) - 14, h: DIAG_H },
+  };
+}
+function vifBarRect(bars, i, n) {
+  return {
+    x: bars.x + 12 + i * ((bars.w - 20) / n),
+    w: Math.min(44, (bars.w - 16) / n - 10),
+  };
+}
+
+/* --- the VIF section (Collinearity tab, round 11) ------------------------
+   The notebook's own detection subsection as a page section (05-02 §
+   "Using a VIF to detect collinearity"): the recipe, then the formula
+   CONCRETE for one covariate — subject ~ the others → R² → VIF — beside
+   the bars for every member. "Regress the covariate on the rest" IS a
+   picture: weight's cloud hugs the diagonal (R² 0.87 → VIF 7.7); age's
+   is a blob at VIF ≈ 1 — the contrast that defines the quantity.
+   Clicking a bar (regions) sets which regression the panel and formula
+   show — the notebook computes VIF for each covariate one cell at a time
+   (cells 44–49), and the click is that walk. With fewer than two
+   covariates the section stays and says what it needs: it fills in,
+   never appears or vanishes. */
+function drawVifSection(ctx, colors, w, params, state, key) {
+  /* declared here, not at module scope below defineWidget — core calls
+     draw() during the defineWidget call itself, and a const after that
+     call is still in its temporal dead zone at first paint */
+  const SUBJ_OF = { bmi: "BMI", weight: "weight", age: "age" };
+  const { top, panel, bars } = vifLayout(w);
+  const rows = state.vifs[key];
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.ink2;
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillText("Detecting collinearity — VIF", 14, top);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText("regress each covariate on the others — what they explain inflates its variance", 14, top + 16);
+
+  if (!rows) {
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+    ctx.strokeRect(bars.x, bars.y, bars.w, bars.h);
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "put two covariates in the model to test for collinearity",
+      panel.x + panel.w / 2,
+      panel.y + panel.h / 2,
+    );
+    ctx.restore();
+    return;
+  }
+
+  /* the subject: the clicked bar's covariate if it is in the model,
+     else the largest VIF — what a fresh reader should meet first */
+  const names = rows.map(([n]) => n);
+  const wanted = SUBJ_OF[params.vifvar];
+  const [subjName, subjVif] = names.includes(wanted)
+    ? rows[names.indexOf(wanted)]
+    : rows.reduce((a, b) => (b[1] > a[1] ? b : a));
+  const NAMED = { BMI: { arr: BMI, dom: X_DOM }, weight: { arr: state.wgt, dom: W_DOM }, age: { arr: AGE, dom: [30, 71] } };
+  const others = names.filter((n) => n !== subjName);
+  const f = ols(NAMED[subjName].arr, ...others.map((n) => NAMED[n].arr));
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText(
+    `${subjName} ~ ${others.join(" + ")}  →  R² ${fmt(f.r2, 2)}  →  VIF = 1 ⁄ (1 − R²) = ${fmt(subjVif, 1)}`,
+    14,
+    top + 32,
+  );
+
+  /* the regression panel */
+  const dom = NAMED[subjName].dom;
+  const sub = NAMED[subjName].arr;
+  const pred = sub.map((_, i) => others.reduce((s, n, j) => s + f.b[j + 1] * NAMED[n].arr[i], f.b[0]));
+  const plot = makePlot({ ctx, colors, rect: panel, xDomain: dom, yDomain: dom });
+  plot.axisX({ label: `${subjName}, predicted from the others` });
+  plot.axisY({ label: `${subjName}, actual` });
   ctx.save();
   ctx.beginPath();
-  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.rect(panel.x, panel.y, panel.w, panel.h);
   ctx.clip();
   ctx.strokeStyle = colors.ink3;
   ctx.globalAlpha = 0.6;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(plot.sx(subject.dom[0]), plot.sy(subject.dom[0]));
-  ctx.lineTo(plot.sx(subject.dom[1]), plot.sy(subject.dom[1]));
+  ctx.moveTo(plot.sx(dom[0]), plot.sy(dom[0]));
+  ctx.lineTo(plot.sx(dom[1]), plot.sy(dom[1]));
   ctx.stroke();
   ctx.globalAlpha = 0.35;
   ctx.fillStyle = colors.unknown;
   for (let i = 0; i < N; i += 1) {
     ctx.beginPath();
-    ctx.arc(plot.sx(pred[i]), plot.sy(subject.arr[i]), 1.5, 0, 2 * Math.PI);
+    ctx.arc(plot.sx(pred[i]), plot.sy(sub[i]), 1.5, 0, 2 * Math.PI);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
+  /* the honesty note (round 5's ruling rides here): a high VIF on this
+     stage is always the simulated twin's doing; a low one means the
+     others carry no real information about the subject */
+  ctx.fillStyle = colors.ink3;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "left";
+  ctx.fillText(
+    subjVif < 2
+      ? "the others know almost nothing about it"
+      : "weight is simulated from BMI and a plausible height",
+    panel.x,
+    panel.y + panel.h + 44,
+  );
+
+  /* the bars — click targets (regions), the chosen one emphasised */
+  const vy = (v) => bars.y + bars.h - (Math.min(v, 8) / 8) * bars.h;
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bars.x, bars.y, bars.w, bars.h);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "right";
+  for (const v of [0, 4, 8]) ctx.fillText(String(v), bars.x - 4, vy(v) + 3);
+  rows.forEach(([name, v], i) => {
+    const { x: bx, w: bw } = vifBarRect(bars, i, rows.length);
+    ctx.fillStyle = colors.empirical;
+    ctx.globalAlpha = name === subjName ? 1 : 0.45;
+    ctx.fillRect(bx, vy(v), bw, vy(0) - vy(v));
+    ctx.globalAlpha = 1;
+    if (name === subjName) {
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx - 2.5, vy(v) - 2.5, bw + 5, vy(0) - vy(v) + 2.5);
+    }
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "center";
+    ctx.fillText(name, bx + bw / 2, bars.y + bars.h + 13);
+    ctx.fillText(fmt(v, 1), bx + bw / 2, vy(v) - 5);
+  });
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "center";
+  ctx.fillText("click a bar to inspect it", bars.x + bars.w / 2, bars.y + bars.h + 28);
+  ctx.strokeStyle = colors.extreme;
+  ctx.setLineDash([6, 5]);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(bars.x, vy(5));
+  ctx.lineTo(bars.x + bars.w, vy(5));
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 }
 
