@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 stage — the coefficient that moves</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · lm-adjustment — a coefficient is the effect <i>in this model</i></h1>
+
+  <p class="note">
+    05-02's arithmetic is the lesson: BMI's coefficient is <b>1.721 alone and
+    1.499 with age in the model</b> (−12.9%), age's is 0.924 alone and 0.836
+    with BMI. The measured constraint every candidate answers to: drawn as two
+    slopes on the scatter, that move is <b>1.8–3.1px</b> — invisible. So the
+    coefficient must be a MARK. On a 0–2 axis at the real 550px width the same
+    move is <b>~53px</b>. All numbers from <code>lm-adjust-measure.mjs</code>
+    (21 checks; the shipped shared stage, n = 3547).
+  </p>
+
+  <h2>§1 · The coefficient stage — three treatments of the move</h2>
+  <p class="note">
+    The control is WHICH COVARIATES ARE IN THE MODEL (two switches: BMI, age
+    — four states, where the empty model is the flat mean line). <b>A</b>
+    shows both readings at once, paired per covariate — a finished comparison
+    figure; <b>B</b> shows the CURRENT model's marks with the alone-reading as
+    a ghost once both have been visited — the mark EASES when the model
+    changes (widget 12's motion; what ships would move, this drawing is its
+    end state); <b>C</b> a slopegraph across the notebook's own three-model
+    table — each covariate's line bends where the other enters.
+  </p>
+  <div class="row" id="stage"></div>
+
+  <h2>§2 · The mechanism — where 1.499 comes from (FWL, widget 26's slide)</h2>
+  <p class="note">
+    Adjusting is comparing like with like: regress BOTH axes on age and plot
+    what is left, and the residual cloud's slope IS the adjusted coefficient —
+    asserted exact (1e-9). In the widget this is ONE panel that slides between
+    the two views, the motion the student already knows from
+    fork-pipe-collider; drawn here as before/after. The slide answers "why did
+    the mark move?" — the forest alone only asserts that it did.
+  </p>
+  <div class="row" id="fwl"></div>
+
+  <h2>§3 · The collinearity act — in this widget behind a gate, or its own slot?</h2>
+  <p class="note">
+    05-02's second half: add a TWIN of BMI (jitter ±3) and the twins split the
+    coefficient — SE inflates ×2.50, the twin is n.s. in <b>186 of 200
+    seeds</b>, and VIF names the fault (6.3 against the threshold 5). Seed 1
+    drawn. <b>The scope ruling is Kenneth's:</b> a gate in this widget ("Add a
+    twin covariate") keeps 05-02 whole; deferring keeps one misconception per
+    widget — the catalogue row names only the Table 2 fallacy.
+  </p>
+  <div class="row" id="twin"></div>
+
+  <h2>Numbers on this data</h2>
+  <div id="nums"></div>
+
+  <h2>Open questions beyond the drawings</h2>
+  <p class="note">
+    <b>Rail:</b> two bool switches (BMI in model / age in model) vs one
+    segmented (BMI · age · both) — switches give the empty model (the flat
+    mean, a real teaching state: R² 0) and generalize to slot 3's third
+    covariate; the segmented control cannot say "neither".
+    <b>The ghost:</b> B needs the alone-reading to persist once seen, or the
+    comparison lives only in memory — a display toggle, or always-on after
+    first visit? <b>The twin's seed:</b> fixed (one honest draw, stated) vs a
+    Seed control (the instability IS the lesson — 14 of 200 seeds let the
+    twin reach significance). <b>R² tile:</b> the pair 0.106 → 0.218 is the
+    "why bother adjusting" counterweight and costs one tile.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), highlight: css("--c-highlight"),
+  reference: css("--c-reference"), extreme: css("--c-extreme"),
+  unknown: css("--c-unknown"),
+};
+const DPR = devicePixelRatio || 1;
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+const fBMI = ols(SYSBP, BMI);
+const fAge = ols(SYSBP, AGE);
+const fBoth = ols(SYSBP, BMI, AGE);
+const TQ = 1.960633;
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- a horizontal coefficient axis into a rect ---- */
+function coefAxis(ctx, r, [lo, hi], ticks) {
+  const sx = (v) => r.x + ((v - lo) / (hi - lo)) * r.w;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  if (lo < 0) {
+    ctx.strokeStyle = C.ink3; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(sx(0), r.y); ctx.lineTo(sx(0), r.y + r.h); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle = C.ink3; ctx.font = "10px system-ui"; ctx.textAlign = "center";
+  for (const v of ticks) ctx.fillText(v, sx(v), r.y + r.h + 14);
+  ctx.fillText("mmHg per unit of the covariate", r.x + r.w / 2, r.y + r.h + 28);
+  return sx;
+}
+
+function mark(ctx, sx, y, b, half, color, r = 5, ghost = false) {
+  ctx.globalAlpha = ghost ? 0.38 : 1;
+  ctx.strokeStyle = color; ctx.lineWidth = ghost ? 1.5 : 2.5;
+  ctx.beginPath(); ctx.moveTo(sx(b - half), y); ctx.lineTo(sx(b + half), y); ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(sx(b), y, ghost ? 3.5 : r, 0, 2 * Math.PI); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function rowLabel(ctx, x, y, text) {
+  ctx.fillStyle = C.ink2; ctx.font = "12px system-ui"; ctx.textAlign = "left";
+  ctx.fillText(text, x, y + 4);
+}
+
+function moveArrow(ctx, sx, y, from, to) {
+  ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(sx(from), y); ctx.lineTo(sx(to) + (from > to ? 7 : -7), y); ctx.stroke();
+  const dir = to > from ? 1 : -1;
+  ctx.fillStyle = C.ink3;
+  ctx.beginPath();
+  ctx.moveTo(sx(to) - dir * 5, y);
+  ctx.lineTo(sx(to) - dir * 11, y - 3.5);
+  ctx.lineTo(sx(to) - dir * 11, y + 3.5);
+  ctx.fill();
+}
+
+function valueText(ctx, sx, y, b, color, above = true) {
+  ctx.fillStyle = color; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+  ctx.fillText(b.toFixed(2), sx(b), above ? y - 10 : y + 18);
+}
+
+/* ================= §1 · the coefficient stage ================= */
+{
+  const host = document.getElementById("stage");
+  const DOM = [0, 2];
+  const TICKS = [0, 0.5, 1, 1.5, 2];
+
+  /* A · paired, both readings at once */
+  {
+    const ctx = panel(host, "A · paired — both readings at once",
+      "per covariate: alone (faint) and with the other in the model (solid); a finished comparison, nothing to build", 550, 220);
+    const r = { x: 96, y: 16, w: 434, h: 150 };
+    const sx = coefAxis(ctx, r, DOM, TICKS);
+    rowLabel(ctx, 8, 55, "BMI");
+    mark(ctx, sx, 45, fBMI.b[1], TQ * fBMI.se[1], C.unknown, 5, true);
+    mark(ctx, sx, 68, fBoth.b[1], TQ * fBoth.se[1], C.highlight);
+    valueText(ctx, sx, 45, fBMI.b[1], C.ink3);
+    valueText(ctx, sx, 68, fBoth.b[1], C.highlight, false);
+    rowLabel(ctx, 8, 122, "age");
+    mark(ctx, sx, 112, fAge.b[1], TQ * fAge.se[1], C.unknown, 5, true);
+    mark(ctx, sx, 135, fBoth.b[2], TQ * fBoth.se[2], C.highlight);
+    valueText(ctx, sx, 112, fAge.b[1], C.ink3);
+    valueText(ctx, sx, 135, fBoth.b[2], C.highlight, false);
+  }
+
+  /* B · the current model, eased; alone-reading ghosts */
+  {
+    const ctx = panel(host, "B · the current model's marks, eased",
+      "the switches pick the model; a mark EASES to its new value when the other covariate enters; the alone-reading stays as a ghost — drawn at model = BMI + age", 550, 220);
+    const r = { x: 96, y: 16, w: 434, h: 150 };
+    const sx = coefAxis(ctx, r, DOM, TICKS);
+    rowLabel(ctx, 8, 60, "BMI");
+    mark(ctx, sx, 60, fBMI.b[1], TQ * fBMI.se[1], C.unknown, 5, true);
+    moveArrow(ctx, sx, 60, fBMI.b[1], fBoth.b[1]);
+    mark(ctx, sx, 60, fBoth.b[1], TQ * fBoth.se[1], C.highlight);
+    valueText(ctx, sx, 60, fBoth.b[1], C.highlight);
+    rowLabel(ctx, 8, 125, "age");
+    mark(ctx, sx, 125, fAge.b[1], TQ * fAge.se[1], C.unknown, 5, true);
+    moveArrow(ctx, sx, 125, fAge.b[1], fBoth.b[2]);
+    mark(ctx, sx, 125, fBoth.b[2], TQ * fBoth.se[2], C.highlight);
+    valueText(ctx, sx, 125, fBoth.b[2], C.highlight);
+  }
+
+  /* C · slopegraph across the three-model table */
+  {
+    const ctx = panel(host, "C · the notebook's three models as a slopegraph",
+      "columns are models (~BMI, ~age, ~BMI+age); each covariate's line bends where the other enters — closest to modelsummary's table", 550, 260);
+    const r = { x: 60, y: 30, w: 440, h: 170 };
+    const cols = [r.x + 40, r.x + r.w / 2, r.x + r.w - 40];
+    const sy = (v) => r.y + r.h - (v / 2) * r.h;
+    ctx.strokeStyle = C.grid;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = C.ink3; ctx.font = "10px system-ui"; ctx.textAlign = "center";
+    ["sysBP ~ BMI", "sysBP ~ age", "sysBP ~ BMI + age"].forEach((t, i) => ctx.fillText(t, cols[i], r.y + r.h + 14));
+    ctx.textAlign = "right";
+    for (const v of [0, 1, 2]) { ctx.fillText(v.toFixed(1), r.x - 6, sy(v) + 3); }
+    // BMI: model 1 -> model 3
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cols[0], sy(fBMI.b[1])); ctx.lineTo(cols[2], sy(fBoth.b[1])); ctx.stroke();
+    ctx.setLineDash([]);
+    for (const [x, v] of [[cols[0], fBMI.b[1]], [cols[2], fBoth.b[1]]]) {
+      ctx.fillStyle = C.highlight;
+      ctx.beginPath(); ctx.arc(x, sy(v), 5, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.fillStyle = C.highlight; ctx.textAlign = "left"; ctx.font = "11px system-ui";
+    ctx.fillText("BMI", cols[0] + 10, sy(fBMI.b[1]) - 8);
+    // age: model 2 -> model 3
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cols[1], sy(fAge.b[1])); ctx.lineTo(cols[2], sy(fBoth.b[2])); ctx.stroke();
+    ctx.setLineDash([]);
+    for (const [x, v] of [[cols[1], fAge.b[1]], [cols[2], fBoth.b[2]]]) {
+      ctx.fillStyle = C.empirical;
+      ctx.beginPath(); ctx.arc(x, sy(v), 5, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.fillStyle = C.empirical;
+    ctx.fillText("age", cols[1] + 10, sy(fAge.b[1]) - 8);
+  }
+}
+
+/* ================= §2 · the FWL slide ================= */
+{
+  const host = document.getElementById("fwl");
+  const scatter = (title, sub, xs, ys, b0, b1, xdm, ydm, labels) => {
+    const ctx = panel(host, title, sub, 550, 270);
+    const r = { x: 56, y: 14, w: 478, h: 200 };
+    const sx = (x) => r.x + ((x - xdm[0]) / (xdm[1] - xdm[0])) * r.w;
+    const sy = (y) => r.y + r.h - ((y - ydm[0]) / (ydm[1] - ydm[0])) * r.h;
+    ctx.strokeStyle = C.grid; ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = C.ink3; ctx.font = "11px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(labels[0], r.x + r.w / 2, r.y + r.h + 16);
+    ctx.save();
+    ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText(labels[1], 0, 0);
+    ctx.restore();
+    if (labels[2]) { // origin crosshair for the residual view
+      ctx.strokeStyle = C.ink3; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(r.x, sy(0)); ctx.lineTo(r.x + r.w, sy(0));
+      ctx.moveTo(sx(0), r.y); ctx.lineTo(sx(0), r.y + r.h);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.4;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath(); ctx.arc(sx(xs[i]), sy(ys[i]), 1.6, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(sx(xdm[0]), sy(b0 + b1 * xdm[0]));
+    ctx.lineTo(sx(xdm[1]), sy(b0 + b1 * xdm[1]));
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  scatter("the data view", "sysBP against BMI, the ALONE fit: slope 1.721",
+    BMI, SYSBP, fBMI.b[0], fBMI.b[1], [14, 58], [80, 300], ["BMI", "sysBP"]);
+
+  const g = (v, z) => { const f = ols(v, z); return v.map((x, i) => x - f.b[0] - f.b[1] * z[i]); };
+  const rx = g(BMI, AGE);
+  const ry = g(SYSBP, AGE);
+  scatter("the residual view — age removed from BOTH axes",
+    "what age does not explain; the slope of what is left is EXACTLY the adjusted 1.499 (FWL, asserted to 1e-9)",
+    rx, ry, 0, fBoth.b[1], [-12, 26], [-60, 120], ["BMI — age removed", "sysBP — age removed", true]);
+}
+
+/* ================= §3 · the collinearity act ================= */
+{
+  const host = document.getElementById("twin");
+  const rng = makeRng(1);
+  const rel = BMI.map((v) => v + (rng.next() * 6 - 3));
+  const fMix = ols(SYSBP, BMI, rel, AGE);
+  const vif = (target, ...others) => 1 / (1 - ols(target, ...others).r2);
+  const vifs = [
+    ["BMI", vif(BMI, rel, AGE)],
+    ["BMI twin", vif(rel, BMI, AGE)],
+    ["age", vif(AGE, BMI, rel)],
+  ];
+
+  {
+    const ctx = panel(host, "the forest with the twin (seed 1)",
+      "the twins share one effect between them — CIs x2.5 wider, the twin's own straddles zero; age untouched", 550, 240);
+    const r = { x: 96, y: 16, w: 434, h: 170 };
+    const sx = coefAxis(ctx, r, [-0.6, 2], [-0.5, 0, 0.5, 1, 1.5, 2]);
+    rowLabel(ctx, 8, 45, "BMI");
+    mark(ctx, sx, 45, fBoth.b[1], TQ * fBoth.se[1], C.unknown, 5, true);
+    mark(ctx, sx, 45, fMix.b[1], TQ * fMix.se[1], C.highlight);
+    valueText(ctx, sx, 45, fMix.b[1], C.highlight);
+    rowLabel(ctx, 8, 105, "BMI twin");
+    mark(ctx, sx, 105, fMix.b[2], TQ * fMix.se[2], C.extreme);
+    valueText(ctx, sx, 105, fMix.b[2], C.extreme);
+    rowLabel(ctx, 8, 160, "age");
+    mark(ctx, sx, 160, fMix.b[3], TQ * fMix.se[3], C.empirical);
+    valueText(ctx, sx, 160, fMix.b[3], C.empirical);
+  }
+
+  {
+    const ctx = panel(host, "VIF, the notebook's own bars",
+      "each covariate regressed on the others; the twins clear the dashed 5, age does not — the detector the lesson hands out", 550, 220);
+    const r = { x: 66, y: 16, w: 440, h: 160 };
+    const sy = (v) => r.y + r.h - (v / 8) * r.h;
+    ctx.strokeStyle = C.grid; ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = C.ink3; ctx.font = "10px system-ui"; ctx.textAlign = "right";
+    for (const v of [0, 2, 4, 6, 8]) ctx.fillText(v, r.x - 5, sy(v) + 3);
+    vifs.forEach(([name, v], i) => {
+      const bx = r.x + 50 + i * 130;
+      ctx.fillStyle = C.empirical;
+      ctx.fillRect(bx, sy(v), 60, sy(0) - sy(v));
+      ctx.fillStyle = C.ink2; ctx.textAlign = "center"; ctx.font = "11px system-ui";
+      ctx.fillText(name, bx + 30, r.y + r.h + 14);
+      ctx.fillText(v.toFixed(2), bx + 30, sy(v) - 6);
+    });
+    ctx.strokeStyle = C.extreme; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(r.x, sy(5)); ctx.lineTo(r.x + r.w, sy(5)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  document.getElementById("nums").innerHTML = `
+    <table>
+      <tr><th>quantity</th><th class="n">computed here</th><th class="n">05-02 stored output</th></tr>
+      <tr><td>sysBP ~ BMI</td><td class="n">${fBMI.b[0].toFixed(4)} + ${fBMI.b[1].toFixed(4)}·BMI</td><td class="n">87.0683 + 1.7210</td></tr>
+      <tr><td>sysBP ~ age</td><td class="n">${fAge.b[0].toFixed(4)} + ${fAge.b[1].toFixed(4)}·age</td><td class="n">85.7252 + 0.9238</td></tr>
+      <tr><td>sysBP ~ BMI + age</td><td class="n">${fBoth.b[0].toFixed(4)} + ${fBoth.b[1].toFixed(4)}·BMI + ${fBoth.b[2].toFixed(4)}·age</td><td class="n">51.5288 + 1.4991 + 0.8358</td></tr>
+      <tr><td>R² alone → both</td><td class="n">${fBMI.r2.toFixed(4)} → ${fBoth.r2.toFixed(4)}</td><td class="n">0.1065 → 0.2184</td></tr>
+      <tr><td>twin model (seed 1)</td><td class="n">b(BMI) ${fMix.b[1].toFixed(3)}, b(twin) ${fMix.b[2].toFixed(3)}, b(age) ${fMix.b[3].toFixed(3)}</td><td class="n">one unseeded draw: 1.474 / 0.025 / 0.836</td></tr>
+      <tr><td>VIF (seed 1)</td><td class="n">${vifs.map(([n, v]) => v.toFixed(2)).join(" / ")}</td><td class="n">6.47 / 6.46 / 1.02 (one draw)</td></tr>
+      <tr><td>across 200 seeds</td><td class="n">twin n.s. 186/200 · SE(BMI) ×2.50 · VIF 6.34 ± 0.12</td><td class="n">—</td></tr>
+    </table>`;
+}
+</script>
+</body>
+</html>

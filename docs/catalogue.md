@@ -3256,7 +3256,16 @@ seeds instead — which is what a seeded widget can honestly claim.
 - n = 3547 fixed, same frame; the only randomness is the twin's jitter,
   which the widget would seed.
 
-**Open questions for the mock-ups** (next step, Kenneth picks): the stage —
+**The mock-up page is BUILT** —
+[`_lab/lm-adjust-stage.html`](../widgets/_lab/lm-adjust-stage.html): §1
+three coefficient-stage treatments (A paired forest, B eased marks with
+ghosts — widget 12's motion, drawn at its end state, C the three-model
+slopegraph); §2 the FWL slide drawn as before/after; §3 the collinearity
+act at seed 1 (the twin forest and the notebook's own VIF bars) for the
+scope ruling; plus the numbers table and the rail/ghost/seed/R² questions
+in prose.
+
+**Open questions for the mock-ups** (Kenneth picks): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;
 whether the collinearity act lives in this widget behind a gate ("Add a
