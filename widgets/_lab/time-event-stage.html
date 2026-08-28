@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 31 stage — time-event candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 560px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 31 · <code>time-event</code> — the stage, drawn before it is argued</h1>
+
+  <p class="note">
+    <b>The misconception (catalogue slot 5):</b> censored patients are missing
+    data to discard. <b>Measured first</b>
+    (<code>node widgets/_lab/time-event-measure.mjs</code>, 30 checks — the
+    five-patient KM to the digit against cell 8's stored plot; the Cox engine
+    against an independent naive likelihood and the tie-free
+    log-rank≡score identity, since cell 16 stored no output). The decisive
+    finding: <b>the notebook's own simulated arm cannot host the
+    lesson</b> — its <code>Status</code> is a fair coin drawn independently
+    of time, so a censored patient is censored AT the very time the event
+    would have happened; under that design KM lies HIGH (+0.13) and
+    discarding is the unbiased choice. With honest study-end censoring
+    (observed = min(T, C), doors close at 20) the roles are what the lesson
+    says: KM −0.0002 from truth, discarding −0.081, curve LIES LOW. And the
+    lesson's second half survives the honest design: log-rank by disease
+    p&nbsp;&lt;&nbsp;1e-4 on 100/100 widget seeds, Age significant in Cox on
+    100/100, the three causal SNPs jointly on 72/100.
+  </p>
+
+  <h2>§1 · Human scale — the five patients, and the at-risk set</h2>
+  <p class="note">
+    The notebook's own opening: five patients, A–E. <b>A</b> is the stage
+    mid-animation — a time cursor sweeps right; an event steps the curve
+    down by 1/(at risk), a censoring ends a lane with an open mark and
+    <i>shrinks the at-risk count without a step</i>. Here the cursor stands
+    at t = 7: E has just left, and the next event (D, t = 8) will halve the
+    curve — one of two still at risk. That halving IS the whole method.
+    <b>B</b> is the settled figure under the widget's core control, a
+    segmented <b>Censored: kept (KM) · dropped · counted as events</b> —
+    three curves from the same five patients: 0.30 vs 0.00 vs 0.20 beyond
+    t = 8, i.e. 90px and 60px apart at this axis. "Dropped" says everyone
+    dies by 8.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — mid-animation, cursor at t = 7</h3>
+      <p class="sub">lanes above, curve below; events filled (--c-event), censorings open (--c-unknown); at risk: 2</p>
+      <canvas id="a" width="550" height="360"></canvas>
+    </div>
+    <div class="cand">
+      <h3>B — the three treatments of the censored</h3>
+      <p class="sub">kept = KM 0.30 past t=8 · dropped = 0.00 ("all dead by 8") · as events = 0.20</p>
+      <canvas id="b" width="550" height="300"></canvas>
+      <p class="cap">token question to settle at build: KM wears --c-empirical; the two wrong
+      treatments here wear --c-highlight and a dashed ink — no semantic role exists yet for
+      "the method you were warned off".</p>
+    </div>
+  </div>
+
+  <h2>§2 · The same control at n = 200 — and the truth you never see</h2>
+  <p class="note">
+    The widget's simulated arm: the notebook's event process untouched,
+    censoring replaced by study-end (staggered entry, doors close at 20 —
+    event fraction 0.62). One representative seed drawn from the real
+    engine. The grey curve is the TRUTH — the same 200 patients with
+    nobody censored — the arc's "you never see this" motif
+    (--c-reference). KM tracks it; dropping the censored sags below it,
+    systematically, at every time. The five-patient table shows the
+    mechanism; this shows it is not an artefact of n = 5.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>C — kept vs dropped, against the truth</h3>
+      <p class="sub">truth (reference, never shown to the patient-level reader) · KM (empirical) · dropped (highlight)</p>
+      <canvas id="c" width="550" height="300"></canvas>
+      <p class="cap" id="c-cap"></p>
+    </div>
+  </div>
+
+  <h2>§3 · Two groups, the log-rank p — and the Cox forest scope question</h2>
+  <p class="note">
+    The lesson's second half. <b>D</b>: KM by disease group with censor
+    ticks and the log-rank p as a readout tile — the notebook's
+    KM-by-group figure, on the widget's own seed. <b>E</b>: the candidate
+    third panel — the notebook's <code>coxph</code> on all 12 covariates as
+    a forest of hazard ratios, log axis, reference at 1: the arc's
+    exp(β) reading returning from lm-adjustment and logistic-regression.
+    <b>The scope question for Kenneth:</b> does the widget end at the
+    log-rank p (two tabs: <i>Five patients</i> · <i>Two groups</i>), or
+    does Cox earn a third tab? The forest is one more figure but no new
+    machinery — the engine already fits it, verified.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>D — KM by disease group</h3>
+      <p class="sub">group tokens; ticks are censorings; the p is computed by the real engine on this seed</p>
+      <canvas id="d" width="550" height="300"></canvas>
+      <p class="cap" id="d-cap"></p>
+    </div>
+    <div class="cand">
+      <h3>E — the Cox forest (candidate third tab)</h3>
+      <p class="sub">HR = exp(β), log axis, reference at 1; filled = p &lt; 0.05 — Age and the three causal SNPs sit right of 1</p>
+      <canvas id="e" width="550" height="300"></canvas>
+      <p class="cap" id="e-cap"></p>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { km, logrank, coxph } from "./time-event-model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), reference: css("--c-reference"),
+  highlight: css("--c-highlight"), event: css("--c-event"),
+  unknown: css("--c-unknown"), groupA: css("--c-group-a"), groupB: css("--c-group-b"),
+};
+const mono = "10px " + css("--font-mono");
+
+function axes(g, X, Y, tMax, xTicks) {
+  g.strokeStyle = C.grid;
+  g.lineWidth = 1;
+  g.font = mono;
+  g.fillStyle = C.ink3;
+  for (const s of [0, 0.25, 0.5, 0.75, 1]) {
+    const y = Y(s);
+    g.beginPath(); g.moveTo(X(0), y); g.lineTo(X(tMax), y); g.stroke();
+    g.textAlign = "right";
+    g.fillText(s.toFixed(2), X(0) - 6, y + 3);
+  }
+  g.textAlign = "center";
+  for (const t of xTicks) g.fillText(String(t), X(t), Y(0) + 14);
+}
+
+/* step curve through km() steps; censor ticks as open circles on the curve */
+function drawKm(g, steps, censors, X, Y, color, { dash = [], toT = Infinity, ticks = true } = {}) {
+  g.strokeStyle = color;
+  g.lineWidth = 2;
+  g.setLineDash(dash);
+  g.beginPath();
+  let S = 1;
+  g.moveTo(X(0), Y(1));
+  for (const s of steps) {
+    if (s.t > toT) break;
+    g.lineTo(X(s.t), Y(S));
+    g.lineTo(X(s.t), Y(s.S));
+    S = s.S;
+  }
+  const end = Math.min(toT, steps[steps.length - 1].t);
+  g.lineTo(X(end), Y(S));
+  g.stroke();
+  g.setLineDash([]);
+  if (!ticks) return;
+  for (const c of censors) {
+    if (c.t > toT) continue;
+    g.beginPath();
+    g.arc(X(c.t), Y(c.S), 3.5, 0, Math.PI * 2);
+    g.fillStyle = C.surface;
+    g.fill();
+    g.strokeStyle = color;
+    g.lineWidth = 1.5;
+    g.stroke();
+  }
+}
+
+/* ---- §1 data: the notebook's five patients --------------------------------- */
+const IDS = ["A", "B", "C", "D", "E"];
+const T5 = [5, 10, 6, 8, 7];
+const S5 = [1, 0, 1, 1, 0];
+const fit5 = km(T5, S5);
+
+/* A — lanes + curve mid-build, cursor at t = 7 */
+{
+  const g = document.getElementById("a").getContext("2d");
+  const W = 550, H = 360, cursorT = 7;
+  const X = (t) => 46 + (t / 11) * (W - 66);
+  // lanes
+  const laneY = (i) => 24 + i * 22;
+  g.font = mono;
+  for (let i = 0; i < 5; i += 1) {
+    const y = laneY(i);
+    g.fillStyle = C.ink2;
+    g.textAlign = "right";
+    g.fillText(IDS[i], 38, y + 3);
+    g.strokeStyle = C.ink3;
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(X(0), y); g.lineTo(X(T5[i]), y); g.stroke();
+    if (S5[i] === 1) {
+      g.fillStyle = C.event;
+      g.beginPath(); g.arc(X(T5[i]), y, 4, 0, Math.PI * 2); g.fill();
+    } else {
+      g.fillStyle = C.surface;
+      g.strokeStyle = C.unknown;
+      g.lineWidth = 2;
+      g.beginPath(); g.arc(X(T5[i]), y, 4, 0, Math.PI * 2); g.fill(); g.stroke();
+    }
+  }
+  const atRisk = T5.filter((t) => t > cursorT).length;
+  g.fillStyle = C.ink2;
+  g.textAlign = "left";
+  g.fillText(`at risk beyond t = ${cursorT}: ${atRisk}`, 46, 148);
+  // curve panel
+  const Y = (s) => 336 - s * 160;
+  axes(g, X, Y, 11, [0, 2.5, 5, 7.5, 10]);
+  drawKm(g, fit5.steps, fit5.censors, X, Y, C.empirical, { toT: cursorT });
+  // cursor through both panels
+  g.strokeStyle = C.highlight;
+  g.lineWidth = 1;
+  g.setLineDash([4, 3]);
+  g.beginPath(); g.moveTo(X(cursorT), 12); g.lineTo(X(cursorT), Y(0)); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = C.highlight;
+  g.textAlign = "center";
+  g.fillText("t = 7", X(cursorT), 10);
+}
+
+/* B — the three treatments */
+{
+  const g = document.getElementById("b").getContext("2d");
+  const W = 550, H = 300;
+  const X = (t) => 46 + (t / 11) * (W - 66);
+  const Y = (s) => H - 28 - s * (H - 52);
+  axes(g, X, Y, 11, [0, 2.5, 5, 7.5, 10]);
+  const dropT = [5, 6, 8];
+  const dropFit = km(dropT, [1, 1, 1]);
+  const asEvFit = km(T5, [1, 1, 1, 1, 1]);
+  drawKm(g, asEvFit.steps, [], X, Y, C.ink3, { dash: [5, 4], ticks: false });
+  drawKm(g, dropFit.steps, [], X, Y, C.highlight, { ticks: false });
+  drawKm(g, fit5.steps, fit5.censors, X, Y, C.empirical);
+  g.font = mono;
+  g.textAlign = "left";
+  g.fillStyle = C.empirical; g.fillText("kept (KM) — 0.30", X(8.3), Y(0.32));
+  g.fillStyle = C.highlight; g.fillText("dropped — 0.00", X(8.3), Y(0.05));
+  g.fillStyle = C.ink3; g.fillText("as events — 0.20", X(8.3), Y(0.22));
+}
+
+/* ---- §2/§3 data: the widget's generator, one seed -------------------------- */
+function simulateWidget(rng, n = 200) {
+  // the notebook's event process; censoring replaced by study-end (min(T, C))
+  const age = [], disease = [], snps = [], time = [], status = [], trueT = [];
+  for (let i = 0; i < n; i += 1) { age.push(rng.int(30, 80)); disease.push(rng.int(0, 1)); }
+  for (let i = 0; i < n; i += 1) {
+    const row = new Array(10);
+    if (disease[i] === 1) {
+      for (let j = 0; j < 3; j += 1) row[j] = rng.next() < 0.8 ? 1 : 0;
+      for (let j = 3; j < 10; j += 1) row[j] = rng.int(0, 1);
+    } else {
+      for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
+    }
+    snps.push(row);
+  }
+  for (let i = 0; i < n; i += 1) {
+    let t = 20 - 0.1 * age[i] - 2 * disease[i]
+      - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
+    t = Math.round(t * 2) / 2;
+    if (t < 0.5) t = 0.5;
+    const c = Math.round((20 - rng.uniform(0, 10)) * 2) / 2;
+    trueT.push(t);
+    time.push(Math.min(t, c));
+    status.push(t <= c ? 1 : 0);
+  }
+  return { age, disease, snps, time, status, trueT };
+}
+const D = simulateWidget(makeRng(1));
+
+/* C — kept vs dropped vs truth */
+{
+  const g = document.getElementById("c").getContext("2d");
+  const W = 550, H = 300, tMax = 22;
+  const X = (t) => 46 + (t / tMax) * (W - 66);
+  const Y = (s) => H - 28 - s * (H - 52);
+  axes(g, X, Y, tMax, [0, 5, 10, 15, 20]);
+  const truth = km(D.trueT, D.trueT.map(() => 1));
+  const kept = km(D.time, D.status);
+  const droppedT = D.time.filter((_, i) => D.status[i] === 1);
+  const dropped = km(droppedT, droppedT.map(() => 1));
+  drawKm(g, truth.steps, [], X, Y, C.reference, { ticks: false });
+  drawKm(g, dropped.steps, [], X, Y, C.highlight, { ticks: false });
+  drawKm(g, kept.steps, kept.censors, X, Y, C.empirical);
+  g.font = mono; g.textAlign = "left";
+  g.fillStyle = C.reference; g.fillText("truth (no censoring)", X(0.6), Y(0.97));
+  g.fillStyle = C.empirical; g.fillText("kept (KM)", X(16.4), Y(0.62));
+  g.fillStyle = C.highlight; g.fillText("dropped", X(9.2), Y(0.36));
+  const nCens = D.status.filter((s) => s === 0).length;
+  document.getElementById("c-cap").textContent =
+    `seed 1: ${nCens} of 200 censored; the dropped curve reads low at every time — ` +
+    `measured mean bias −0.081 over 100 seeds, KM −0.0002.`;
+}
+
+/* D — by disease group, log-rank p */
+{
+  const g = document.getElementById("d").getContext("2d");
+  const W = 550, H = 300, tMax = 22;
+  const X = (t) => 46 + (t / tMax) * (W - 66);
+  const Y = (s) => H - 28 - s * (H - 52);
+  axes(g, X, Y, tMax, [0, 5, 10, 15, 20]);
+  for (const grp of [0, 1]) {
+    const t = D.time.filter((_, i) => D.disease[i] === grp);
+    const s = D.status.filter((_, i) => D.disease[i] === grp);
+    const f = km(t, s);
+    drawKm(g, f.steps, f.censors, X, Y, grp === 0 ? C.groupA : C.groupB);
+  }
+  const lr = logrank(D.time, D.status, D.disease);
+  g.font = mono; g.textAlign = "left";
+  g.fillStyle = C.groupA; g.fillText("no disease", X(17.5), Y(0.66));
+  g.fillStyle = C.groupB; g.fillText("disease", X(8.5), Y(0.30));
+  document.getElementById("d-cap").textContent =
+    `seed 1: log-rank χ² = ${lr.chi2.toFixed(1)}, p ${lr.p < 1e-4 ? "< 0.0001" : "= " + lr.p.toFixed(4)} ` +
+    `(the notebook's stored plot prints p < 0.0001; 100/100 widget seeds agree).`;
+}
+
+/* E — the Cox forest */
+{
+  const g = document.getElementById("e").getContext("2d");
+  const W = 550, H = 300;
+  const X6 = D.age.map((a, i) => [a, D.disease[i], ...D.snps[i]]);
+  const fit = coxph(D.time, D.status, X6);
+  const names = ["Age", "Disease", ...Array.from({ length: 10 }, (_, j) => `SNP_${j + 1}`)];
+  const lo = fit.beta.map((b, k) => Math.exp(b - 1.959964 * fit.se[k]));
+  const hi = fit.beta.map((b, k) => Math.exp(b + 1.959964 * fit.se[k]));
+  const hrMin = Math.min(0.5, ...lo), hrMax = Math.max(3, ...hi);
+  const X = (hr) => 90 + ((Math.log(hr) - Math.log(hrMin)) / (Math.log(hrMax) - Math.log(hrMin))) * (W - 120);
+  g.font = mono;
+  g.strokeStyle = C.grid;
+  for (const v of [0.5, 1, 2, 3]) {
+    if (v < hrMin || v > hrMax) continue;
+    g.beginPath(); g.moveTo(X(v), 16); g.lineTo(X(v), H - 24); g.stroke();
+    g.fillStyle = C.ink3; g.textAlign = "center"; g.fillText(String(v), X(v), H - 10);
+  }
+  g.strokeStyle = C.reference;
+  g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(X(1), 16); g.lineTo(X(1), H - 24); g.stroke();
+  names.forEach((nm, k) => {
+    const y = 26 + k * ((H - 56) / 11);
+    g.fillStyle = C.ink2; g.textAlign = "right"; g.fillText(nm, 84, y + 3);
+    g.strokeStyle = fit.p[k] < 0.05 ? C.empirical : C.ink3;
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(X(lo[k]), y); g.lineTo(X(hi[k]), y); g.stroke();
+    g.beginPath(); g.arc(X(fit.hr[k]), y, 3.5, 0, Math.PI * 2);
+    if (fit.p[k] < 0.05) { g.fillStyle = C.empirical; g.fill(); }
+    else { g.fillStyle = C.surface; g.fill(); g.stroke(); }
+  });
+  const sig = names.filter((_, k) => fit.p[k] < 0.05);
+  document.getElementById("e-cap").textContent =
+    `seed 1: significant at 0.05 — ${sig.join(", ")}; HR(Age) = ${fit.hr[0].toFixed(2)} per year. ` +
+    `Cell 17's own claim (age, SNP_1–3) on the widget's honest censoring.`;
+}
+</script>
+</body>
+</html>

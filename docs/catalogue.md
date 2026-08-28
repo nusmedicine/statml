@@ -3177,7 +3177,7 @@ agreed, and three revive entries from the deferred table above
 | 2 | `lm-adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | **SHIPPED 2026-08-28** |
 | 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | **SHIPPED 2026-08-28** |
 | 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | **SHIPPED 2026-08-28** (revived deferred `interaction-effect`) |
-| 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | proposed — **NEXT** (renamed from `censoring-km`, Kenneth 2026-08-28) |
+| 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | **measured and mocked 2026-08-29** — awaiting Kenneth's pick (renamed from `censoring-km`, Kenneth 2026-08-28) |
 | 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | proposed (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
 | 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **SHIPPED 2026-08-27** |
 
@@ -3213,6 +3213,71 @@ throughout. Rulings made with it, so they are not re-argued:
 
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
+
+## Widget 31 · `time-event` — measured and mocked 2026-08-29, awaiting Kenneth's pick
+
+**Slot 5 of the modeling arc (05-06, Time-to-Event Data). The misconception:
+censored patients are missing data to discard.** Planned on the 27–30 rhythm:
+notebook read with outputs, measure script first, mock second, nothing built.
+
+**What 05-06 stores, and what it does not.** Eighteen cells. The stored
+outputs are the five-patient table (cells 6/8 — ID A–E, Time 5/10/6/8/7,
+Status 1/0/1/1/0, and its KM plot), the `head` of the simulated 200-patient
+draw (cell 12), and the KM-by-disease plot with `p < 0.0001` painted in the
+image (cell 14). **Cell 16 — the `coxph` on all 12 covariates — stored NO
+output**, so there are no HR digits to verify against; cell 17's prose claims
+age and SNP_1–3 as significant. The five-patient KM is verified to the digit
+(S = 0.8, 0.6, 0.3 at t = 5, 6, 8; censor marks at (7, 0.6) and (10, 0.3);
+median 8; Greenwood log-scale CI 0.5161 at t = 5). The Cox engine is verified
+by an independent naive Efron likelihood, the tie-free log-rank ≡ score-test
+identity, and scale/shift/time-rescaling invariances instead — recorded in
+`_lab/time-event-measure.mjs` (30 checks, all pass).
+
+**THE GENERATOR RULING — the notebook's simulated arm cannot host the
+lesson.** Cell 11 draws `Status ~ sample(0:1)` independently of time, so a
+censored patient is censored AT the very time their event would have
+happened. Measured over 100 seeds against the truth (the same patients
+uncensored): **KM on the notebook's design lies HIGH by +0.13 and discarding
+the censored is the UNBIASED estimate** — a discard toggle on that data would
+teach the opposite of the lesson. With honest study-end censoring (staggered
+entry, doors close at 20: observed = min(T, C), event fraction 0.62) the
+roles are what the lesson says: KM −0.0002 from truth, discarding −0.081,
+consistently low. **So the widget's simulated arm keeps the notebook's event
+process and replaces the Status coin with min(T, C).** Under that honest
+design the second half of the lesson survives intact: log-rank by disease
+p < 1e-4 on 100/100 widget seeds (the notebook's own coin design managed
+94/100), Cox finds Age on 100/100 and all three causal SNPs jointly on
+72/100, null SNPs at the 5% floor. The five-patient arm needs none of this —
+it is hand-made data and fully deterministic.
+
+**Measured for the design:**
+
+- The five-patient stage carries the whole mechanism at human scale: the
+  t = 8 step is a halving (1 of 2 at risk) — the at-risk denominator made
+  visible. Under the two wrong treatments: dropped → S = 0.667, 0.333, 0
+  ("everyone dies by 8"); counted as events → 0.8, 0.6, 0.4, 0.2, 0. Gaps
+  beyond t = 8 are 0.30 and 0.20 — 90px and 60px at a 300px axis.
+- A 200-patient draw has ~23 distinct event times — a step curve, not a
+  staircase blur, at the 550px canvas.
+- Seed 1 of the widget generator: 81/200 censored, log-rank χ² = 51.1,
+  Cox flags Age, Disease, SNP_1–3 — and SNP_5, a 5%-floor false positive.
+  **Choose the default seed with the false positives in view.**
+
+**The mock is `_lab/time-event-stage.html`** (engine-drawn, no hand-placed
+numbers): §1 the five-patient stage — lanes above a building KM curve,
+cursor mid-animation at t = 7, then the settled figure under a segmented
+**Censored: kept (KM) · dropped · counted as events**; §2 the same control at
+n = 200 against the truth curve (`--c-reference`, the arc's "you never see
+this" motif); §3 KM by disease with the log-rank p as a readout, and the
+candidate Cox forest (HR = exp(β), log axis, reference at 1 — the exp(β)
+reading returning from lm-adjustment and logistic-regression).
+
+**Open for Kenneth's pick:** (1) tab structure — *Five patients* ·
+*Two groups*, with the discard control living in both, or a single stage
+with an n control; (2) does Cox earn a third tab, a card in the groups tab,
+or nothing — the engine already fits it either way; (3) a token role for
+"the method you were warned off" — the dropped/as-events curves have no
+semantic colour today (the mock borrows `--c-highlight` and dashed ink).
 
 ## Widget 30 · `lm-interaction` — SHIPPED 2026-08-28, two review rounds
 

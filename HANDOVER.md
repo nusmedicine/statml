@@ -29,27 +29,29 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-1. **The next widget: `time-event`** (05-06, Modeling — Time-to-Event
-   Data; the misconception: censored patients are missing data to
-   discard). **Kenneth RENAMED the last two slots on 2026-08-28:
-   `time-event` (was `censoring-km`) and `mixed-model` (was
-   `pseudoreplication`)** — recorded in the catalogue's arc table.
-   Nothing is started. The rhythm that shipped 27–30 in two days:
-   read the notebook with outputs (
-   `../jupyterbook/phm5003/notebook/04 - Introduction to Statistical
-   Computing Part 2/`), write `_lab/<slug>-measure.mjs` verifying every
-   stored output to the digit, measure the design constraints, mock the
-   candidates in `_lab/`, Kenneth picks, build the draft, iterate his
-   rounds, and baseline ONLY at his "tested ok" via a copied shooter.
-   **The stage: 05-06 does NOT use the Framingham frame** (checked
-   2026-08-28, 18 cells): it opens on a hand-made FIVE-PATIENT table
-   (ID A–E, Time, Status — the censoring mechanics at human scale),
-   then a SIMULATED 200-patient dataset (R `set.seed(0)`, age + 10
-   SNPs, disease groups) for KM-by-group, the log-rank p and `coxph`.
-   So the widget needs its own data, and R's seeded draw will not
-   reproduce in JS — the widget-28 jitter ruling applies: verify the
-   deterministic cells to the digit, re-measure the simulated arm
-   across the widget's own seeds, and claim only that.
+1. **`time-event` (05-06) is MEASURED AND MOCKED — awaiting Kenneth's
+   pick, then build.** Done 2026-08-29:
+   `_lab/time-event-model.js` (KM with survfit's log-scale Greenwood
+   CI, two-group log-rank, Cox with Efron ties — the times are rounded
+   to 0.5 so ties are everywhere), `_lab/time-event-measure.mjs`
+   (30 checks, all pass: the five-patient KM to the digit against cell
+   8's stored plot; the Cox engine against an independent naive
+   likelihood, the tie-free log-rank≡score identity and invariances,
+   because **cell 16 stored NO output** — there are no coxph digits to
+   match), and the mock `_lab/time-event-stage.html`, engine-drawn.
+   **The finding that shapes the build — THE GENERATOR RULING**: the
+   notebook's simulated arm draws `Status` independently of time, so
+   the censored are censored AT their own event times; under that
+   design KM lies HIGH (+0.13) and DISCARDING is unbiased — a discard
+   toggle there teaches the opposite lesson. The widget keeps the
+   notebook's event process and censors by study-end
+   (observed = min(T, C), doors close at 20): then KM is −0.0002 from
+   truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
+   100/100 widget seeds. Full record: catalogue § *Widget 31*.
+   **Kenneth's picks open**: tab structure (Five patients · Two
+   groups), whether Cox's forest earns a tab, and a token role for the
+   wrong-treatment curves. Mock URL:
+   `http://localhost:8010/widgets/_lab/time-event-stage.html`.
 2. **Then `mixed-model`** (05-07, Hierarchical Data — 500 rows are 500
    observations; Hurlbert 1984). Last of the agreed arc.
 3. **Notebook links now owed for all FIVE shipped modeling widgets** —
