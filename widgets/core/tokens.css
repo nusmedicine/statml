@@ -1002,6 +1002,28 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   min-width: 0;
 }
 
+/* A boolean wearing a membership chip — `style: "pill"` on a bool field.
+   The button's aria-pressed IS the visual state, so controls.js keeps no
+   class in sync. The on-state tints with --c-highlight because joining the
+   model is the thing to look at right now. */
+.w-pill {
+  border: 1.5px solid var(--ink-3);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.w-pill[aria-pressed="true"] {
+  border-color: var(--c-highlight);
+  background: color-mix(in srgb, var(--c-highlight) 18%, transparent);
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
 /* Descendant rather than child, now that a switch sits inside `.w-bool`. The
    two select the same elements for every widget that declares no bool detail,
    so nothing that exists today moves. */

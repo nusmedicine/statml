@@ -244,6 +244,41 @@ function build(host, spec, values, onChange, api) {
            what gives a detail somewhere to be. */
         const item = document.createElement("div");
         item.className = "w-bool";
+
+        /* `style: "pill"` — the same boolean wearing a membership chip: a
+           toggle button, aria-pressed carrying the state (the CSS reads it,
+           so there is no class to keep in sync). Chosen for widget 28's
+           covariates, where "in the model" is membership, not a setting.
+           NOTE FOR THE HARNESS: a pill is a <button data-param>, which the
+           fingerprint's setParam does not know how to toggle — drive a pill
+           widget's states by URL, by `hit` on a region, or teach setParam
+           the button first. */
+        if (field.style === "pill") {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.id = id;
+          b.className = "w-pill";
+          b.dataset.param = name;
+          b.textContent = field.label ?? name;
+          const paint = (v) => b.setAttribute("aria-pressed", String(Boolean(v)));
+          paint(values[name]);
+          b.addEventListener("click", () => {
+            const next = !values[name];
+            paint(next);
+            onChange(name, next);
+          });
+          item.appendChild(b);
+          if (field.detail) {
+            const d = document.createElement("p");
+            d.className = "w-detail";
+            d.textContent = field.detail;
+            item.appendChild(d);
+          }
+          group.appendChild(item);
+          setters[name] = (v) => paint(v);
+          continue;
+        }
+
         const label = document.createElement("label");
         label.setAttribute("for", id);
         const input = document.createElement("input");

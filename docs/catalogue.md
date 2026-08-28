@@ -3304,6 +3304,38 @@ mark stood at alpha 0 for ever while the ghosts drew, exactly the class of
 bug the fingerprint's driven states exist to catch. The main.js comment
 now says so.
 
+### ROUND 3 — pills, the clickable DAG, the plane, the table, and the strip becomes a CONCEPT strip
+
+**Kenneth's four comments (mocked in `_lab/lm-adjust2.html`), all in, plus
+the structure ruling.** The widget is now staged by a **Concept** segmented
+— Fit · Adjust · Collinearity — one idea per tab, while the reader's model
+persists: the covariate switches are **rounded PILLS** (`style: "pill"` on
+`bool`, a small core addition — a toggle button whose aria-pressed IS the
+state; the suite ran for it: **173 of 173 MATCH**), and the **DAG is the
+control** (05-02 cell 9's own triangle; covariate nodes are click targets
+through `regions`, the pills the keyboard path; the age–BMI link is a
+DASHED ASSOCIATION labelled r = 0.12 — a directed arrow would claim
+causality, which is fork-pipe-collider's lesson, not this widget's).
+Per tab: **Fit** = the three-model table (canvas-drawn, current column
+outlined to match the pills) and the scatter carrying **the plane as a
+family of lines** (one per age 35–65, same slope, lifted 0.836/year —
+"held constant", drawn); **Adjust** = the eased forest + ghosts + the FWL
+slide; **Collinearity** = the twin act, now UNGATED (entering the tab IS
+the act; the twin's Seed shows there). The residual strip rides under the
+scatter in every tab — and unlike widget 27 it does NOT share the
+scatter's x-axis (fitted ≠ BMI with multiple covariates), so the scatter
+kept its own BMI axis and the gap grew to hold it (caught on screen: the
+first cut left the scatter's x unlabelled). **The 3D plane was considered
+and declined**: pca's turn/tilt machinery makes it buildable, but
+held-constant-as-parallel-lines is strictly clearer in 2D at projector
+size, which is why ggPredict itself draws the family. Two blemishes fixed
+on sight: forest row labels right-aligned (they reached into the DAG's
+sysBP node), and heights are per-concept (608 / 608 / 658).
+
+**For the baseline, recorded now:** the pills are `<button data-param>`,
+which the fingerprint's `setParam` cannot toggle — drive states by URL or
+by `hit` on the DAG's regions (which the hit rule wants exercised anyway).
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;

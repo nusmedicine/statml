@@ -32,12 +32,19 @@ driven-vs-settled-sibling check.
    1.721 → 1.499 move is 1.8–3.1px at panel scale; coefficients must be
    marks, not slopes. **Kenneth picked from `_lab/lm-adjust-stage.html`**
    (eased forest + FWL slide + twin act in + two switches + the residual
-   strip) and **the DRAFT IS BUILT** — catalogue § *NEXT · Widget 28* has
-   the build record, including the `anim.easing` request-for-frames lesson.
-   **Next: Kenneth reviews the draft** —
-   `http://localhost:8010/widgets/lm-adjustment/` (full act:
-   `?bmi=1&age=1&twin=1`). Not yet baselined. After it: `lm-categorical`,
-   `lm-interaction`, `censoring-km`, `pseudoreplication`.
+   strip) and **the DRAFT IS BUILT**, then RESHAPED in round 3 around a
+   **Concept strip** (Fit · Adjust · Collinearity) with **pill switches**
+   (new core `style: "pill"` on bool — suite ran, **173 of 173 MATCH**),
+   the **DAG as the control** (cell 9's triangle, nodes clickable via
+   regions, association dashed r = 0.12), the **plane as a line family**,
+   and the **three-model table** — catalogue § *NEXT · Widget 28* has both
+   build records, the `anim.easing` lesson, and the baseline note (pills
+   are buttons setParam cannot toggle; drive by URL or DAG hit).
+   **Next: Kenneth reviews** —
+   `http://localhost:8010/widgets/lm-adjustment/` (tabs:
+   `?bmi=1&age=1&concept=adjust` / `?bmi=1&age=1&concept=collinear`).
+   Not yet baselined. After it: `lm-categorical`, `lm-interaction`,
+   `censoring-km`, `pseudoreplication`.
 2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth
    places notebook links by hand: 06-02's (widget 26, the line is in item 3
    below) and now 05-01's (widget 27):

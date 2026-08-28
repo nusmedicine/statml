@@ -2,35 +2,45 @@
    Widget 28 · Adjusting a Linear Model — the coefficient that moves.
 
    PHM5003 05-02 (Modeling — Multiple Covariates). The misconception is the
-   Table 2 fallacy (Westreich & Greenland 2013): a coefficient is read as THE
+   Table 2 fallacy (Westreich & Greenland 2013): a coefficient read as THE
    effect of its variable, when it is the effect IN THIS MODEL — BMI's is
-   1.721 alone and 1.499 with age beside it, and the widget's whole job is to
-   make that move watchable. Measured first (`_lab/lm-adjust-measure.mjs`,
-   21 checks): drawn as two slopes on the scatter the move is 1.8–3.1px, so
-   the COEFFICIENT IS A MARK on a 0-scale axis, where the same move is ~37px.
+   1.721 alone and 1.499 with age beside it. Measured first
+   (`_lab/lm-adjust-measure.mjs`, 21 checks): as two slopes that move is
+   1.8–3.1px, so the COEFFICIENT IS A MARK on a fixed axis, where it is ~37px.
 
-   Kenneth's picks, 2026-08-28, from `_lab/lm-adjust-stage.html`: B — the
-   switches choose the model and each mark EASES to its value in it, the
-   alone-reading staying as a faint ghost (widget 12's motion); the FWL
-   slide behind a View (widget 26's motion — age removed from both axes, and
-   the residual cloud's slope IS the adjusted 1.499, exact by Frisch–Waugh);
-   the collinearity act IN, behind an "Add a twin covariate" gate (the twins
-   split one effect, CIs ×2.5, VIF against the dashed 5); two bool switches
-   so the EMPTY model exists (the flat mean, R² 0); and widget 27's residual
-   strip rides along — the current model's residuals against its fitted
-   values, the cloud tightening as covariates enter (sd 21.1 → 19.9 → 18.7).
+   ROUND 3 RESHAPED THE WIDGET AROUND A CONCEPT STRIP (Kenneth's pick over
+   one dense page): a segmented control stages ONE idea at a time while the
+   reader's model — the two covariate PILLS, and the DAG whose covariate
+   nodes are click targets — persists across every tab.
+
+     Fit the model    scatter + the model drawn as a FAMILY OF LINES (two
+                      covariates fit a plane; over BMI the plane is parallel
+                      lines, one per age) + the three-model table, the
+                      notebook's own closer, current column marked
+     Adjust           the forest — eased marks with the alone-reading as a
+                      faint ghost — and the FWL slide (widget 26's motion):
+                      age removed from both axes, the residual slope IS the
+                      adjusted 1.499, drawn only where FWL is exact
+     Collinearity     the twin act: jitter(BMI, 3) SEEDED (the notebook's own
+                      cell is unseeded), the twins splitting one effect,
+                      CIs ×2.5, VIF bars against the dashed 5
+
+   The residual strip (widget 27's) rides under the scatter in every tab.
+   The DAG draws the age–BMI link as a dashed double-headed ASSOCIATION
+   labelled r = 0.12 — an arrow would claim a causal direction this widget
+   has no business asserting; that lesson lives in fork-pipe-collider.
 
    THE DATA IS THE ARC'S SHARED STAGE — ../lm-least-squares/data.js, 05-02's
-   own frame, n = 3547 — and every deterministic printed number in 05-02 is
-   reproduced to the digit by the same model.js this file imports. The one
-   random thing is the twin (the notebook's jitter(BMI, 3), which it left
-   UNSEEDED; here it is seeded, and every claim survives reseeding — the
-   twin is n.s. in 186 of 200 seeds).
+   frame, n = 3547 — and every deterministic printed number in 05-02 is
+   reproduced to the digit by the model.js this file imports.
 
-   The FWL view draws its slope line ONLY for the exact case (both BMI and
-   age in, no twin): there the residual slope equals the model's BMI
-   coefficient to 1e-9. For any other model the cloud is shown without a
-   line rather than with an approximate one.
+   `anim.easing = true` in rebuild is core's REQUEST FOR FRAMES — omitted in
+   the first build, and every mark stood at alpha 0 for ever while the
+   ghosts drew. Earned here; do not remove.
+
+   FOR THE BASELINE, LATER: the pills are <button data-param>, which the
+   fingerprint's setParam cannot toggle — drive states by URL, or by `hit`
+   on the DAG's regions (which the region rule wants exercised anyway).
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
@@ -38,30 +48,54 @@ import { makeRng } from "../core/rng.js";
 import { ols } from "../lm-least-squares/model.js";
 import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
 
-const TQ = 1.960633; // qt(0.975, df) at these df, to the notebook's own digits
+const TQ = 1.960633;
 
 const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
-const MEAN_BMI = meanOf(BMI);
 const MEAN_AGE = meanOf(AGE);
+const R_BMI_AGE = 0.12; // measured; the DAG's association label
 
 /* --- stage geometry, one place ------------------------------------------- */
-const FOREST_DOM = [-0.6, 2];       // fixed: the twin's CI dips below zero, and
-                                    // a domain that never moves keeps the eases honest
+const FOREST_DOM = [-0.6, 2];
 const F_ROW = 52;
-const forestH = (twin) => 34 + F_ROW * (twin ? 3 : 2) + 4;
-const scatterTop = (twin) => 30 + forestH(twin) + 44;
+const DAG_W = 218;
+const DAG_H = 170;
+const row1H = (concept) => (concept === "collinear" ? 220 : 170);
+const scatterTop = (concept) => 30 + row1H(concept) + 26;
 const SCATTER_H = 230;
 const STRIP_H = 78;
-const HEIGHT = (twin) => scatterTop(twin) + SCATTER_H + 14 + STRIP_H + 60;
+/* 44px between scatter and strip: unlike widget 27 the two do NOT share an
+   x-axis (the strip's is fitted sysBP, a different variable), so the scatter
+   keeps its own BMI axis and the gap holds it. */
+const STRIP_GAP = 44;
+const HEIGHT = (concept) => scatterTop(concept) + SCATTER_H + STRIP_GAP + STRIP_H + 60;
 
-const X_DOM = [14, 58];             // widget 27's frame, verbatim — one arc, one stage
+const X_DOM = [14, 58];
 const Y_DOM = [80, 300];
-const RX_DOM = [-12, 26];           // FWL residual windows, 1%-99% padded (measured)
+const RX_DOM = [-12, 26];
 const RY_DOM = [-70, 120];
-const FIT_DOM = [90, 200];          // the strip's fitted-value window
-const RES_DOM = [-50, 70];          // widget 27's strip window, verbatim
+const FIT_DOM = [90, 200];
+const RES_DOM = [-50, 70];
+const PLANE_AGES = [35, 45, 55, 65];
 
 const EASE_MS = 450;
+
+/* THE DAG'S GEOMETRY, ONCE — draw() paints it and regions() makes the two
+   covariate nodes click targets; two copies of this arithmetic is how a
+   target ends up six columns from its node (the fingerprint's own incident,
+   widget 26's own comment). */
+function dagLayout() {
+  const d = { x: 8, y: 30, w: DAG_W, h: DAG_H };
+  const R = 24;
+  return {
+    d,
+    R,
+    P: {
+      bmi: [d.x + 52, d.y + 36],
+      age: [d.x + 52, d.y + 134],
+      y: [d.x + DAG_W - 50, d.y + 85],
+    },
+  };
+}
 
 /* ---- the equation card, widget 27's machinery -------------------------- */
 function mathmlRenders() {
@@ -86,15 +120,14 @@ const GENERIC_MATHML =
   + "<mo>+</mo><mi>&#x2026;</mi></mrow></math>";
 const GENERIC_PLAIN = "y = b₀ + b₁x₁ + b₂x₂ + …";
 
-/* One <math> per term so the equation wraps at narrow widths — the MathML
-   linebreaking lesson from widget 14, applied before it bites. A negative
-   coefficient folds its sign into the operator (widget 14's convention):
-   "− 0.03 × BMI twin", never "+ -0.03 ×". */
+/* One <math> per term so the equation wraps (widget 14's lesson); a negative
+   coefficient folds its sign into the operator — never "+ -0.03 ×". */
 function eqHTML(terms) {
-  const sign = (v) => (v < 0 ? "−" : "+");
   const mag = (v) => fmt(Math.abs(v), 2);
   if (!MATHML) {
-    return terms.map((t, i) => (i === 0 ? `sysBP = ${fmt(t.num, 2)}` : `${sign(t.num)} ${mag(t.num)} × ${t.plain}`)).join(" ");
+    return terms.map((t, i) => (i === 0
+      ? `sysBP = ${fmt(t.num, 2)}`
+      : `${t.num < 0 ? "−" : "+"} ${mag(t.num)} × ${t.plain}`)).join(" ");
   }
   return terms.map((t, i) => (i === 0
     ? `<math><mrow><mi>sysBP</mi><mo>=</mo><mn>${fmt(t.num, 2)}</mn></mrow></math>`
@@ -135,9 +168,8 @@ const residOn = (v, z) => {
   return v.map((x, i) => x - g.b[0] - g.b[1] * z[i]);
 };
 
-/* The model key the three switches spell. The twin exists only beside BMI —
-   it is a twin OF BMI — and the control is hidden otherwise. */
-const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (p.twin && p.bmi ? "t" : "");
+const twinActive = (p) => p.concept === "collinear" && p.bmi;
+const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (twinActive(p) ? "t" : "");
 
 defineWidget({
   slug: "lm-adjustment",
@@ -149,28 +181,44 @@ defineWidget({
     "coefficient is not a property of the variable — it is a property of " +
     "the model it sits in, and it moves when the model changes.",
   layout: "side",
-  height: ({ twin, bmi }) => HEIGHT(Boolean(twin && bmi)),
+  height: ({ concept }) => HEIGHT(concept),
 
   params: {
+    /* THE CONCEPT STRIP — one idea per tab, staged; the reader's model (the
+       pills, the DAG) persists underneath. All display: the fits are all
+       computed regardless, and a tab change must never reset an ease. */
+    concept: {
+      type: "segmented",
+      label: "Concept",
+      options: [
+        { value: "fit", label: "Fit", detail: "two covariates fit a plane — drawn as a family of lines" },
+        { value: "adjust", label: "Adjust", detail: "each coefficient moves when the model changes" },
+        { value: "collinear", label: "Collinearity", detail: "twin covariates split one effect; VIF detects it" },
+      ],
+      default: "fit",
+      display: true,
+    },
+
     model: { type: "section", label: "The model" },
     bmi: {
       type: "bool",
-      label: "BMI in the model",
+      style: "pill",
+      label: "BMI",
       default: false,
       display: true,
-      detail: "sysBP gains a BMI term",
     },
     age: {
       type: "bool",
-      label: "Age in the model",
+      style: "pill",
+      label: "age",
       default: false,
       display: true,
-      detail: "sysBP gains an age term",
     },
+
     /* WHERE THE ADJUSTED NUMBER COMES FROM — widget 26's added-variable
-       view, verbatim in spirit: age removed from BOTH axes, and what is
-       left is the comparison the adjusted coefficient makes. Shown only
-       while age is in the model, because it is a reading of that model. */
+       view. Lives on the Adjust tab; its slide is guarded to age being in
+       the model (retarget), and the caption says what to add when it is
+       not. */
     view: {
       type: "segmented",
       label: "View",
@@ -180,22 +228,12 @@ defineWidget({
       ],
       default: "data",
       display: true,
-      when: { param: "age" },
+      when: { param: "concept", equals: "adjust" },
     },
 
-    problem: { type: "section", label: "A twin covariate", when: { param: "bmi" } },
-    /* The collinearity act, gated. The twin is the notebook's own
-       jitter(BMI, 3) — but SEEDED, because the notebook's cells are one
-       unseeded draw and a widget must reproduce itself. */
-    twin: {
-      type: "gate",
-      label: "Add a twin covariate",
-      labelOff: "Remove the twin",
-      detail: "a copy of BMI with noise (±3) — the twins then share one effect",
-      default: false,
-      display: true,
-      when: { param: "bmi" },
-    },
+    /* The twin needs no gate: the Collinearity tab IS the act — entering it
+       adds the twin beside BMI (when BMI is in the model). The seed is the
+       one data parameter in the widget. */
     seed: {
       type: "int",
       label: "Seed",
@@ -203,20 +241,17 @@ defineWidget({
       max: 200,
       default: 1,
       detail: "draws the twin's noise afresh",
-      when: { param: "twin" },
+      when: { param: "concept", equals: "collinear" },
     },
   },
 
   legend: [
     { token: "unknown", label: "3547 patients from the Framingham study", mark: "dot" },
-    { token: "highlight", label: "The current model — its coefficients, and its line on the data", mark: "line" },
+    { token: "highlight", label: "The current model — its coefficients, and its line(s) on the data", mark: "line" },
     { token: "empirical", label: "The same coefficient read from its covariate alone", mark: "line" },
     { token: "extreme", label: "The VIF threshold — above 5 flags collinearity", mark: "line" },
   ],
 
-  /* Everything is computed from the one data parameter (the twin's seed);
-     the switches only choose what is DISPLAYED, so a toggle re-reads this
-     state and the eases stay continuous (widget 26's arrangement). */
   compute({ params }) {
     const rng = makeRng(params.seed);
     const rel = BMI.map((v) => v + (rng.next() * 6 - 3));
@@ -242,9 +277,6 @@ defineWidget({
     };
   },
 
-  /* No drive buttons: the motion is eases chasing the switches, widget 26's
-     shape — marks glide to their value in the new model, the view slides,
-     and Reset alone sits in the drive row. */
   animation: {
     stepLabel: null,
     runLabel: null,
@@ -274,8 +306,6 @@ defineWidget({
       for (const k of ["bmi", "age", "twin"]) {
         const m = anim[k];
         const t = anim[`${k}T`];
-        /* A mark entering from nothing rises IN PLACE rather than gliding in
-           from wherever it last died. */
         if (m.a < 0.02 && t.a > 0) {
           m.v = t.v;
           m.h = t.h;
@@ -290,10 +320,25 @@ defineWidget({
     rebuild: (anim, { params, state }) => retarget(anim, params, state),
   },
 
+  /* The DAG's covariate nodes toggle membership — the same write the pills
+     perform, through the same door; the pills stay as the keyboard path. */
+  regions({ params }) {
+    const { P, R } = dagLayout();
+    return ["bmi", "age"].map((k) => ({
+      x: P[k][0] - R - 4,
+      y: P[k][1] - R - 4,
+      w: 2 * (R + 4),
+      h: 2 * (R + 4),
+      set: { [k]: !params[k] },
+      label: k === "bmi" ? "BMI in the model" : "age in the model",
+    }));
+  },
+
   draw({ ctx, colors, w, h, params, state, anim }) {
-    const twinOn = Boolean(params.twin && params.bmi);
+    const twinOn = twinActive(params);
     const key = keyOf(params);
     const fit = state.fits[key];
+    const concept = params.concept;
 
     /* the equation card */
     const terms = [{ num: fit.b0 }];
@@ -302,101 +347,108 @@ defineWidget({
     if (params.age) terms.push({ num: fit.coefs.age.b, name: "age", plain: "age" });
     renderEquation(terms);
 
-    /* --- the forest: coefficients as marks ----------------------------- */
-    const frect = { x: 96, y: 30, w: w - 96 - 14, h: forestH(twinOn) };
-    const fx = (v) => frect.x + ((v - FOREST_DOM[0]) / (FOREST_DOM[1] - FOREST_DOM[0])) * frect.w;
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(frect.x, frect.y, frect.w, frect.h);
-    ctx.setLineDash([4, 4]);
+    /* --- the DAG, every tab -------------------------------------------- */
+    const { d, R, P } = dagLayout();
+    ctx.save();
+    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("The covariates — click to include", d.x, d.y - 10);
+
+    const arrow = (from, on) => {
+      const [x1, y1] = P[from];
+      const [x2, y2] = P.y;
+      const L = Math.hypot(x2 - x1, y2 - y1);
+      const ux = (x2 - x1) / L;
+      const uy = (y2 - y1) / L;
+      ctx.strokeStyle = on ? colors.ink2 : colors.grid;
+      ctx.fillStyle = on ? colors.ink2 : colors.grid;
+      ctx.lineWidth = on ? 2 : 1.25;
+      ctx.beginPath();
+      ctx.moveTo(x1 + ux * (R + 3), y1 + uy * (R + 3));
+      ctx.lineTo(x2 - ux * (R + 6), y2 - uy * (R + 6));
+      ctx.stroke();
+      const bx = x2 - ux * (R + 5);
+      const by = y2 - uy * (R + 5);
+      ctx.beginPath();
+      ctx.moveTo(bx + ux * 5, by + uy * 5);
+      ctx.lineTo(bx - uy * 4.5, by + ux * 4.5);
+      ctx.lineTo(bx + uy * 4.5, by - ux * 4.5);
+      ctx.fill();
+    };
+    arrow("bmi", params.bmi);
+    arrow("age", params.age);
+
+    /* the association — dashed and double-headless on purpose: "these are
+       correlated" is measured (r = 0.12); a direction would be a causal
+       claim that belongs to fork-pipe-collider */
     ctx.strokeStyle = colors.ink3;
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(fx(0), frect.y);
-    ctx.lineTo(fx(0), frect.y + frect.h);
+    ctx.moveTo(P.bmi[0], P.bmi[1] + R + 4);
+    ctx.lineTo(P.age[0], P.age[1] - R - 4);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = colors.ink3;
     ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillText("r = " + fmt(R_BMI_AGE, 2), P.bmi[0] + 9, (P.bmi[1] + P.age[1]) / 2 + 4);
+
+    const NODE = { bmi: "BMI", age: "age", y: "sysBP" };
     ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    for (const v of [-0.5, 0, 0.5, 1, 1.5, 2]) ctx.fillText(fmt(v, 1), fx(v), frect.y + frect.h + 13);
-    ctx.fillText("mmHg per unit of the covariate", frect.x + frect.w / 2, frect.y + frect.h + 27);
-
-    const ROWS = twinOn ? ["bmi", "twin", "age"] : ["bmi", "age"];
-    const NAMES = { bmi: "BMI", twin: "BMI twin", age: "age" };
-    /* The alone-readings, drawn as static ghosts whenever the mark's model
-       holds more than that covariate — the comparison IS the lesson, and a
-       ghost derived from the params alone keeps the URL the only state. */
-    const GHOST = {
-      bmi: { v: state.fits.b.coefs.bmi.b, h: state.fits.b.coefs.bmi.half, show: params.bmi && (params.age || twinOn) },
-      age: { v: state.fits.a.coefs.age.b, h: state.fits.a.coefs.age.half, show: params.age && params.bmi },
-      twin: { show: false },
-    };
-    ROWS.forEach((k, i) => {
-      const y = frect.y + 34 + i * F_ROW;
-      ctx.fillStyle = colors.ink2;
+    ctx.textBaseline = "middle";
+    for (const k of ["bmi", "age", "y"]) {
+      const [nx, ny] = P[k];
+      const on = k === "y" || params[k];
+      ctx.fillStyle = colors.surface;
+      ctx.strokeStyle = k === "y" ? colors.ink2 : on ? colors.highlight : colors.ink3;
+      ctx.lineWidth = on && k !== "y" ? 2 : 1.25;
+      ctx.beginPath();
+      ctx.arc(nx, ny, R, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = on ? colors.ink1 : colors.ink3;
       ctx.font = `${colors.fsSm} ${colors.font}`;
-      ctx.textAlign = "left";
-      ctx.fillText(NAMES[k], 8, y + 4);
-      const g = GHOST[k];
-      if (g.show) {
-        ctx.globalAlpha = 0.4;
-        ctx.strokeStyle = colors.empirical;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(fx(g.v - g.h), y);
-        ctx.lineTo(fx(g.v + g.h), y);
-        ctx.stroke();
-        ctx.fillStyle = colors.empirical;
-        ctx.beginPath();
-        ctx.arc(fx(g.v), y, 3.5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-      const m = anim?.[k];
-      if (m && m.a > 0.02) {
-        ctx.globalAlpha = m.a;
-        ctx.strokeStyle = colors.highlight;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(fx(m.v - m.h), y);
-        ctx.lineTo(fx(m.v + m.h), y);
-        ctx.stroke();
-        ctx.fillStyle = colors.highlight;
-        ctx.beginPath();
-        ctx.arc(fx(m.v), y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.font = `${colors.fsXs} ${colors.font}`;
-        ctx.textAlign = "center";
-        ctx.fillText(fmt(m.v, 2), fx(m.v), y - 11);
-        ctx.globalAlpha = 1;
-      } else if (!g.show) {
-        ctx.fillStyle = colors.ink3;
-        ctx.font = `${colors.fsXs} ${colors.font}`;
-        ctx.textAlign = "center";
-        ctx.fillText("not in the model", fx(0.7), y + 4);
-      }
-    });
+      ctx.fillText(NODE[k], nx, ny + 1);
+    }
+    ctx.restore();
 
-    /* --- the scatter, with the FWL slide ------------------------------- */
-    const sTop = scatterTop(twinOn);
+    /* --- right of the DAG: the table (Fit) or the forest --------------- */
+    const rp = { x: d.x + DAG_W + 40, y: 30, w: w - (d.x + DAG_W + 40) - 14 };
+    if (concept === "fit") drawTable(ctx, colors, rp, state, key);
+    else drawForest(ctx, colors, { ...rp, h: 34 + F_ROW * (twinOn ? 3 : 2) }, params, state, anim, twinOn);
+
+    /* --- the scatter row ----------------------------------------------- */
+    const sTop = scatterTop(concept);
     const rect = {
       x: 56,
       y: sTop,
       w: twinOn ? Math.round((w - 70) * 0.55) : w - 56 - 14,
       h: SCATTER_H,
     };
-    const vmix = anim?.vmix ?? 0;
+    const vmix = concept === "adjust" ? anim?.vmix ?? 0 : 0;
     const plotD = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
     const plotR = makePlot({ ctx, colors, rect, xDomain: RX_DOM, yDomain: RY_DOM });
     const inResid = vmix >= 0.5;
     const front = inResid ? plotR : plotD;
     if (inResid) {
+      front.axisX({ label: "BMI — age removed" });
       front.axisY({ label: "sysBP — age removed" });
       front.caption("what age does not explain");
     } else {
+      front.axisX({ label: "BMI" });
       front.axisY({ label: "sysBP (mmHg)" });
-      front.caption(key === "" ? "3547 patients — no model yet" : "the data, and the model's line");
+      front.caption(
+        key === "" ? "3547 patients — no model yet"
+          : concept === "fit" && params.bmi && params.age ? "the plane over BMI — one line per age"
+            : "the data, and the model's line",
+      );
+      if (concept === "adjust" && !(params.bmi && params.age)) {
+        front.note("put BMI and age in the model to watch a coefficient move");
+      } else if (concept === "collinear" && !params.bmi) {
+        front.note("put BMI in the model to meet its twin");
+      }
     }
 
     ctx.save();
@@ -426,26 +478,40 @@ defineWidget({
     }
     ctx.globalAlpha = 1;
 
-    /* Data view: the model's line against BMI, drawn at the mean of the
-       other covariates. The 1.72 -> 1.50 change of slope is 3px here —
-       measured — which is exactly why the forest above exists. */
-    if (vmix < 0.996 && params.bmi) {
-      const slope = fit.coefs.bmi.b;
-      const b0 = fit.b0
-        + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
-        + (twinOn ? fit.coefs.twin.b * state.meanRel : 0);
-      ctx.globalAlpha = 1 - vmix;
+    const lineAt = (b0, b1, alpha, width) => {
+      ctx.globalAlpha = alpha;
       ctx.strokeStyle = colors.highlight;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = width;
       ctx.beginPath();
-      ctx.moveTo(plotD.sx(X_DOM[0]), plotD.sy(b0 + slope * X_DOM[0]));
-      ctx.lineTo(plotD.sx(X_DOM[1]), plotD.sy(b0 + slope * X_DOM[1]));
+      ctx.moveTo(plotD.sx(X_DOM[0]), plotD.sy(b0 + b1 * X_DOM[0]));
+      ctx.lineTo(plotD.sx(X_DOM[1]), plotD.sy(b0 + b1 * X_DOM[1]));
       ctx.stroke();
       ctx.globalAlpha = 1;
+    };
+
+    if (vmix < 0.996 && key !== "") {
+      const slope = params.bmi ? fit.coefs.bmi.b : 0;
+      if (concept === "fit" && params.age) {
+        /* THE PLANE, drawn: one line per age, same slope, lifted by the age
+           coefficient — "held constant" as a picture (ggPredict's own). */
+        ctx.globalAlpha = 1 - vmix;
+        PLANE_AGES.forEach((a, i) => {
+          const b0 = fit.b0 + fit.coefs.age.b * a + (twinOn ? fit.coefs.twin.b * state.meanRel : 0);
+          lineAt(b0, slope, (0.45 + (0.55 * i) / (PLANE_AGES.length - 1)) * (1 - vmix), 2);
+          ctx.fillStyle = colors.ink2;
+          ctx.font = `${colors.fsXs} ${colors.font}`;
+          ctx.textAlign = "left";
+          const lx = 55.2;
+          ctx.fillText(`age ${a}`, plotD.sx(lx) + 3, plotD.sy(b0 + slope * lx) - 3);
+        });
+        ctx.globalAlpha = 1;
+      } else if (params.bmi || params.age) {
+        const b0 = fit.b0
+          + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
+          + (twinOn ? fit.coefs.twin.b * state.meanRel : 0);
+        lineAt(b0, slope, 1 - vmix, 2.5);
+      }
     }
-    /* Residual view: the slope through the origin is drawn ONLY for the
-       exact model (BMI + age, no twin), where it IS the adjusted
-       coefficient by FWL — asserted at 1e-9 by the measure script. */
     if (vmix > 0.004 && key === "ba") {
       ctx.globalAlpha = vmix;
       ctx.strokeStyle = colors.highlight;
@@ -458,13 +524,10 @@ defineWidget({
     }
     ctx.restore();
 
-    /* --- the residual strip, widget 27's, against FITTED values --------
-       With several covariates the fitted value is the honest x (the
-       notebook's own axes). The empty model predicts one number for
-       everyone, so its residuals stand in a single column — R² 0, drawn. */
-    const strip = { x: rect.x, y: sTop + SCATTER_H + 14, w: rect.w, h: STRIP_H };
+    /* --- the residual strip, every tab --------------------------------- */
+    const strip = { x: rect.x, y: sTop + SCATTER_H + STRIP_GAP, w: rect.w, h: STRIP_H };
     const rplot = makePlot({ ctx, colors, rect: strip, xDomain: FIT_DOM, yDomain: RES_DOM });
-    rplot.axisX({ label: inResid ? "fitted sysBP — the model's, unchanged by the view" : "fitted sysBP" });
+    rplot.axisX({ label: "fitted sysBP" });
     rplot.axisY({ label: "residual", ticks: [-40, 0, 40] });
     ctx.strokeStyle = colors.ink3;
     ctx.setLineDash([4, 4]);
@@ -492,7 +555,7 @@ defineWidget({
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    /* --- the VIF panel, beside the scatter while the twin is in -------- */
+    /* --- the VIF panel, Collinearity tab with the twin in -------------- */
     if (!twinOn) return;
     const vrect = { x: rect.x + rect.w + 56, y: sTop, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H };
     const rows = params.age ? state.vifs.bat : state.vifs.bt;
@@ -502,6 +565,7 @@ defineWidget({
     ctx.fillStyle = colors.ink2;
     ctx.font = `600 ${colors.fsSm} ${colors.font}`;
     ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
     ctx.fillText("VIF", vrect.x, vrect.y - 8);
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.fillStyle = colors.ink3;
@@ -542,7 +606,7 @@ defineWidget({
         note: "mmHg left over per patient — watch it shrink as covariates enter",
       },
     ];
-    if (params.twin && params.bmi) {
+    if (twinActive(params)) {
       const rows = params.age ? state.vifs.bat : state.vifs.bt;
       const worst = Math.max(...rows.map(([, v]) => v));
       tiles.push({
@@ -559,10 +623,10 @@ defineWidget({
     const fit = state.fits[key];
     const parts = [];
     if (key === "") {
-      parts.push("A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with no model fitted yet.");
+      parts.push("A diagram of the candidate covariates, and a scatter of systolic blood pressure against BMI for 3547 Framingham patients, with no model fitted yet.");
     } else {
-      const names = [params.bmi ? "BMI" : null, params.twin && params.bmi ? "a noisy twin of BMI" : null, params.age ? "age" : null].filter(Boolean);
-      parts.push(`A linear model of systolic blood pressure on ${names.join(" and ")} for 3547 Framingham patients; its coefficients are drawn as marks with 95% confidence intervals.`);
+      const names = [params.bmi ? "BMI" : null, twinActive(params) ? "a noisy twin of BMI" : null, params.age ? "age" : null].filter(Boolean);
+      parts.push(`A linear model of systolic blood pressure on ${names.join(" and ")} for 3547 Framingham patients.`);
       if (params.bmi) parts.push(`The BMI coefficient reads ${fmt(fit.coefs.bmi.b, 2)} in this model.`);
     }
     parts.push(`R² is ${fmt(fit.r2, 2)}, and the residual spread is ${fmt(fit.sd, 1)} mmHg.`);
@@ -570,13 +634,139 @@ defineWidget({
   },
 });
 
-/* Targets for every ease, from the params alone — called by init and by
-   rebuild, so a display change retargets and never resets. `anim.easing`
-   is core's request-for-frames contract (widget.js consumes it after
-   rebuild); without it the marks would stand at their old values for ever,
-   which is exactly how this file's first build shipped only ghosts. */
+/* --- the forest (Adjust and Collinearity tabs) --------------------------- */
+function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
+  const fx = (v) => frect.x + ((v - FOREST_DOM[0]) / (FOREST_DOM[1] - FOREST_DOM[0])) * frect.w;
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(frect.x, frect.y, frect.w, frect.h);
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = colors.ink3;
+  ctx.beginPath();
+  ctx.moveTo(fx(0), frect.y);
+  ctx.lineTo(fx(0), frect.y + frect.h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = colors.ink3;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  for (const v of [-0.5, 0, 0.5, 1, 1.5, 2]) ctx.fillText(fmt(v, 1), fx(v), frect.y + frect.h + 13);
+  ctx.fillText("mmHg per unit of the covariate", frect.x + frect.w / 2, frect.y + frect.h + 27);
+
+  const ROWS = twinOn ? ["bmi", "twin", "age"] : ["bmi", "age"];
+  const NAMES = { bmi: "BMI", twin: "BMI twin", age: "age" };
+  const GHOST = {
+    bmi: { v: state.fits.b.coefs.bmi.b, h: state.fits.b.coefs.bmi.half, show: params.bmi && (params.age || twinOn) },
+    age: { v: state.fits.a.coefs.age.b, h: state.fits.a.coefs.age.half, show: params.age && params.bmi },
+    twin: { show: false },
+  };
+  ROWS.forEach((k, i) => {
+    const y = frect.y + 34 + i * F_ROW;
+    ctx.fillStyle = colors.ink2;
+    ctx.font = `${colors.fsSm} ${colors.font}`;
+    /* Right-aligned against the frame: a left-anchored column here reached
+       back into the DAG and sat on its sysBP node. */
+    ctx.textAlign = "right";
+    ctx.fillText(NAMES[k], frect.x - 8, y + 4);
+    const g = GHOST[k];
+    if (g.show) {
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = colors.empirical;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(fx(g.v - g.h), y);
+      ctx.lineTo(fx(g.v + g.h), y);
+      ctx.stroke();
+      ctx.fillStyle = colors.empirical;
+      ctx.beginPath();
+      ctx.arc(fx(g.v), y, 3.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    const m = anim?.[k];
+    if (m && m.a > 0.02) {
+      ctx.globalAlpha = m.a;
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(fx(m.v - m.h), y);
+      ctx.lineTo(fx(m.v + m.h), y);
+      ctx.stroke();
+      ctx.fillStyle = colors.highlight;
+      ctx.beginPath();
+      ctx.arc(fx(m.v), y, 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "center";
+      ctx.fillText(fmt(m.v, 2), fx(m.v), y - 11);
+      ctx.globalAlpha = 1;
+    } else if (!g.show) {
+      ctx.fillStyle = colors.ink3;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "center";
+      ctx.fillText("not in the model", fx(0.7), y + 4);
+    }
+  });
+}
+
+/* --- the three-model table (Fit tab) — the notebook's own closer --------- */
+function drawTable(ctx, colors, rp, state, key) {
+  const F = state.fits;
+  const cols = [
+    { key: "b", head: "~ BMI", cells: [F.b.b0, F.b.coefs.bmi.b, null, F.b.r2] },
+    { key: "a", head: "~ age", cells: [F.a.b0, null, F.a.coefs.age.b, F.a.r2] },
+    { key: "ba", head: "~ BMI + age", cells: [F.ba.b0, F.ba.coefs.bmi.b, F.ba.coefs.age.b, F.ba.r2] },
+  ];
+  const rows = ["Intercept", "BMI", "age", "R²"];
+  const labW = 64;
+  const colW = (rp.w - labW) / cols.length;
+  const rowH = 30;
+  const top = rp.y + 24;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = colors.ink2;
+  ctx.textAlign = "left";
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillText("Three models, side by side", rp.x, rp.y + 2);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  cols.forEach((c, j) => {
+    const cx = rp.x + labW + j * colW + colW / 2;
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "center";
+    ctx.fillText(c.head, cx, top + 12);
+  });
+  rows.forEach((r, i) => {
+    const ry = top + 34 + i * rowH;
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "left";
+    ctx.fillText(r, rp.x, ry);
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(rp.x, ry - rowH + 12);
+    ctx.lineTo(rp.x + rp.w, ry - rowH + 12);
+    ctx.stroke();
+    cols.forEach((c, j) => {
+      const cx = rp.x + labW + j * colW + colW / 2;
+      const v = c.cells[i];
+      ctx.fillStyle = colors.ink1;
+      ctx.textAlign = "center";
+      ctx.fillText(v === null ? "—" : fmt(v, i === 3 ? 3 : 2), cx, ry);
+    });
+  });
+  /* the column the pills currently spell, marked — the table and the model
+     switches reading each other */
+  const j = cols.findIndex((c) => c.key === key);
+  if (j >= 0) {
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(rp.x + labW + j * colW + 4, top + 2, colW - 8, 34 + rows.length * rowH - 22);
+  }
+}
+
 function retarget(anim, params, state) {
-  const twinOn = Boolean(params.twin && params.bmi);
+  const twinOn = twinActive(params);
   const key = keyOf(params);
   const fit = state.fits[key];
   const set = (k, on, coef) => {
@@ -587,7 +777,7 @@ function retarget(anim, params, state) {
   set("bmi", params.bmi, params.bmi ? fit.coefs.bmi : null);
   set("age", params.age, params.age ? fit.coefs.age : null);
   set("twin", twinOn, twinOn ? fit.coefs.twin : null);
-  anim.vmixT = params.age && params.view === "resid" ? 1 : 0;
+  anim.vmixT = params.concept === "adjust" && params.age && params.view === "resid" ? 1 : 0;
   for (const k of ["bmi", "age", "twin"]) {
     const m = anim[k];
     const t = anim[`${k}T`];
