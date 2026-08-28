@@ -3173,7 +3173,7 @@ agreed, and three revive entries from the deferred table above
 
 | # | slug | notebook | misconception | evidence | status |
 |---|---|---|---|---|---|
-| 1 | `lm-least-squares` | 05-01 | the fitted line is a formula's output, not the minimum of a surface you can stand on | reported; prerequisite for the arc | proposed |
+| 1 | `lm-least-squares` | 05-01 | the fitted line is a formula's output, not the minimum of a surface you can stand on | reported; prerequisite for the arc | **SHIPPED 2026-08-28** |
 | 2 | `lm-adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | proposed |
 | 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | proposed |
 | 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | proposed (revives deferred `interaction-effect` under the new slug) |
@@ -3212,7 +3212,29 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 27 · `lm-least-squares` — MEASURED 2026-08-28
+## Widget 27 · `lm-least-squares` — SHIPPED 2026-08-28, seven review rounds
+
+**Promoted on 2026-08-28 after Kenneth's "tested ok" — planned, measured,
+mocked, built and revised over seven review rounds in one day.** Six
+fingerprint states recorded with `_lab/lm-shoot.html` (the causal-shoot
+pattern): copy proved 4/4 against recorded hashes, every state shot three
+times and identical, both driven states checked against their settled
+sibling. Four settled (the open at the notebook's (70, 2); a second held
+line; the grid open, minimum unmarked; the finished walk via `shown=999` —
+whose `tx` hashes the three-row equation card), two driven (mid-crawl at
+t = 3000 of ~4000 via Fit; one exact minimisation via Step). The settled
+states carry `shown=0` because `check` requires a widget declaring `shown`
+to pin it. Baseline now **173 states**; no full-suite run owed — the one
+core change (`--c-cost-low/high` + `env.js`) ran the suite the day it
+landed, 167 of 167 MATCH, and nothing in core moved since.
+
+**Still owed:** the 05-01 notebook link (Kenneth places notebook links by
+hand — it joins 06-02's, still unplaced), and judging it projected, which
+every widget from 11 on awaits.
+
+The planning record follows as written.
+
+### The original planning record — MEASURED 2026-08-28
 
 **The brief:** 05-01's own pedagogy is the widget — pick a line by hand, watch
 the sum of squares, then see that the fitted line is the MINIMUM of a surface,

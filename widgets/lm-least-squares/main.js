@@ -216,7 +216,7 @@ const ssFmt = (v) => Math.round(v).toLocaleString("en-US");
 defineWidget({
   slug: "lm-least-squares",
   title: "Fitting a Linear Model",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A linear model describes the outcome as an intercept plus a slope " +
     "times the covariate: y = b₀ + b₁x. Fitting it is a search: score any " +

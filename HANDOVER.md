@@ -1,7 +1,16 @@
 # Handover
 
-**Twenty-six widgets, all shipped, all on the gallery, and 167 fingerprint
+**Twenty-seven widgets, all shipped, all on the gallery, and 173 fingerprint
 states recorded.**
+
+**Widget 27 · `lm-least-squares` SHIPPED 2026-08-28** — measured, mocked,
+built and revised over SEVEN review rounds and promoted in one day: the
+modeling arc's slot 1, **Fitting a Linear Model** (PHM5003 05-01). The full
+record is [docs/catalogue.md](docs/catalogue.md) § *Widget 27*, including
+the lm- slug rulings, the six mock-up picks, the descent ruling
+(coordinate descent, deliberately neither `optim` nor a shortest route) and
+the round-by-round changes. Six states via `_lab/lm-shoot.html`
+(causal-shoot pattern, copy proved 4/4, three-run stable, sibling-checked).
 
 **Widget 26 · `fork-pipe-collider` SHIPPED 2026-08-27** — planned, measured,
 built, revised over NINE review rounds and promoted in one day, the first
@@ -12,57 +21,25 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Build the linear four as SEPARATE widgets, in teaching order** —
-   Kenneth ruled 2026-08-28 against one tabbed widget (the unsupervised arc's
-   precedent held) and picked the `lm-` prefix: `lm-least-squares`,
-   `lm-adjustment`, `lm-categorical`, `lm-interaction`, then `censoring-km`,
-   `pseudoreplication` (unprefixed — not `lm()` lessons). The naming rulings
-   are recorded in the catalogue's modeling-arc section. They share one
-   Framingham stage (the notebooks' own file, n = 3547, every reference
-   coefficient in stored output) via a shared module, the `causal-model.js`
-   pattern. `lm-least-squares` is ONE covariate; the second covariate is
-   `lm-adjustment`'s opening move. Process as for widget 26: measure first,
-   mock in `_lab/`, one pick at a time, draft until promoted, baseline with
-   a causal-shoot-style page.
-
-   **`lm-least-squares` is MEASURED (2026-08-28)** — the full record is
-   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 27*. The shared
-   stage is real: `_lab/lm-data.js` (generated, n = 3547, six columns for
-   the whole arc), `_lab/lm-model.js` (exact OLS), `_lab/lm-measure.mjs`
-   (**18 checks pass** — every 05-01 stored output to the printed digit).
-   The design facts: SS relief 44.5× but the teaching range is the bottom
-   10% (flat mean line is only 10.6% above the minimum — that gap IS R²),
-   the valley is a 13:1 diagonal trench, the raw 3547 points plot cleanly.
-   **The mock-up page is built: `_lab/lm-stage.html`**, and Kenneth picked
-   all six design answers from it on 2026-08-28 (recorded in the catalogue's
-   ROUND 1). **The DRAFT IS BUILT the same day** — see the catalogue § *NEXT
-   · Widget 27* for the build record: gate → surface below the scatter,
-   b₀/b₁ sliders, the walk from the reader's own line, capped-at-3× surface,
-   the residual wash, `--c-cost-low/high` added to core (full suite ran:
-   **167 of 167 MATCH**). **Rounds 2 and 3 landed the same day** (catalogue
-   § ROUND 2 / ROUND 3): the equation is MathML in `.w-math`; the walk
-   moves THE line (colour flip to reference at the end); **Kenneth picked
-   the surface BESIDE the scatter** (height constant 358, A/B param
-   deleted); the widget is reframed as **Fitting a Linear Model** (the
-   model is the arc's central theme, this is its fitting chapter); and the
-   descent ruling is recorded — coordinate descent, deliberately neither
-   `optim`'s Nelder-Mead nor a shortest route, copy audited to claim only
-   what it draws. **Round 4:** the ramp sentence became a colour-scale bar
-   under the surface (1× → ≥3×), and the finished line moved to
-   `--c-empirical` — reference's grey vanished into the dots, and empirical
-   is the audited role for a fit anyway. **Round 5:** "surface" → "grid"
-   everywhere a reader sees it (05-01's own word; URL is `?grid=1` now),
-   and Kenneth's can't-drag-the-slope-slider report could NOT be reproduced
-   by any driven path — findings and the two true warts it surfaced are in
-   the catalogue's ROUND 5; his failure mode is awaited. **Next: Kenneth's
-   next review round** —
-   `http://localhost:8010/widgets/lm-least-squares/` (finished state:
-   `?grid=1&shown=999`). Not yet baselined — states are recorded only
-   once the design settles.
-2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
-   it by hand (it will be the FIRST widget link in any notebook); the line:
+1. **Kenneth picks the modeling arc's next widget.** The linear four
+   continue in teaching order, so the standing suggestion is
+   **`lm-adjustment`** (05-02, Multiple Covariates — the Table 2 fallacy);
+   after it `lm-categorical`, `lm-interaction`, then `censoring-km` and
+   `pseudoreplication`. The slug rulings and the separate-widgets decision
+   are in the catalogue's modeling-arc section. The shared Framingham stage
+   is already built and verified: `widgets/lm-least-squares/data.js` (six
+   columns for the whole arc, n = 3547) and `model.js` (exact OLS, k ≤ 5) —
+   siblings import across widget dirs, widget 26's pattern. Process as
+   before: measure first, mock in `_lab/`, one pick at a time, draft until
+   promoted, baseline with a shoot page.
+2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth
+   places notebook links by hand: 06-02's (widget 26, the line is in item 3
+   below) and now 05-01's (widget 27):
+   `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
+3. **Widget 26's link line, for item 2:**
    `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
-   — and judging it projected, which every widget from 11 on still awaits.
+   — and judging projected is still owed by every widget from 11 on,
+   widgets 26 and 27 included.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -108,7 +85,17 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 167 states, all matching
+## The suite: 173 states, all matching
+
+**Widget 27 added six states on 2026-08-28 with `_lab/lm-shoot.html`** (the
+causal-shoot pattern): copy proved 4/4 against recorded hashes, every state
+shot three times in one run and identical, both driven states checked
+against their settled siblings. Four settled, two driven (mid-crawl via
+Fit; one exact minimisation via Step). The settled states carry `shown=0` —
+`check` requires a widget declaring `shown` to pin it. No full-suite rerun
+owed: the one core change of the day (`--c-cost-low/high` + `env.js`) ran
+the suite when it landed, **167 of 167 MATCH**, and core has not moved
+since.
 
 **Widget 26 added eight states on 2026-08-27 with `_lab/causal-shoot.html`** —
 the missing-shoot pattern, plus one improvement worth reusing: the shooter
@@ -195,6 +182,7 @@ is blind to.
 | 24 | `dbscan` | shipped. Planned and measured on 2026-08-26, built and revised over two review rounds on 2026-08-27, then baselined with **eight** states — five settled, three driven |
 | 25 | `missing-data` | shipped. Planned, measured, built, revised over **seven** rounds, judged projected and promoted in ONE day (2026-08-27); seven states — five settled, one driven mid-beat, one interrupted. `node widgets/_lab/missing-drive.mjs` = 130 assertions |
 | 26 | `fork-pipe-collider` | shipped. Nine rounds in one day (2026-08-27); eight states — five settled, two driven mid-ease, one hit-driven. NOT yet judged projected; 06-02 link not yet placed |
+| 27 | `lm-least-squares` | shipped. Seven rounds in one day (2026-08-28); six states — four settled, two driven (mid-crawl, one step). NOT yet judged projected; 05-01 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
