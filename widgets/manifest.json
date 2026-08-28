@@ -423,6 +423,20 @@
       ],
       "arc": 29,
       "status": "shipped"
+    },
+    {
+      "slug": "lm-interaction",
+      "title": "Fitting an Interaction",
+      "blurb": "An interaction lets one covariate's effect depend on another, so a main effect is read at the other's zero.",
+      "course": "PHM5003",
+      "topics": [
+        "linear model",
+        "interaction",
+        "effect modification",
+        "main effects"
+      ],
+      "arc": 30,
+      "status": "draft"
     }
   ]
 }

@@ -3257,10 +3257,38 @@ function); **§2** the extrapolation drawn — the axis extended to zero,
 the fitted lines diverging across 32 shaded years of empty axis to the
 +95.57 bracket ("real, exact, and about nobody"); **§3** act 3 as a
 candidate second tab (means, per-group arrows, the independent model's
-one-size answer as ghost dashes). Open questions for Kenneth's picks:
-the probe in the main stage or behind a toggle; the extrapolation as a
-gate/toggle and its name ("Show where +95.57 lives"); the acts — 2
-alone, or 2 + 3 as tabs, with 1 out.
+one-size answer as ghost dashes).
+
+### ROUND 1 — Kenneth picked, and the draft is BUILT the same day
+
+**The probe IN, the extrapolation IN, acts 2 + 3 as TABS** (act 1 out).
+`widgets/lm-interaction/` — imports the shared stage; title **Fitting an
+Interaction**. The shape: two Concept tabs (**Age × sex · Diabetes ×
+sex**); widget 26's gate opens the model on the data; the core control
+is the notebook's own operator — **Terms: + independent · ×
+interacting** — and THREE eased values drive everything (widget 28's
+chase): `a` the gate's alpha, `t` the model mix (lines, prediction
+ticks, arrows and every printed gap are computed from the LERPED
+coefficients — widget 29's counting-label rule, so no number is false
+mid-frame), `z` the axis extension (dots, lines, ticks and the shaded
+no-patients stretch share one lerped x-domain — widget 28's slide).
+Age × sex: patients coloured by the group tokens, the two lines easing
+between one-slope-5-apart and crossing-at-46.9; the PROBE (slider, and
+the whole stage is click regions — one per year of age, the slider the
+keyboard path) brackets the live gap; **Show age zero** slides the
+domain to [0, 69] and brackets the printed [sex] coefficient where it
+lives — under `+` that bracket honestly reads −5.00 (the offset IS
+unconditional there), under `×` it reads +95.57. Diabetes × sex: the
+four observed cell means stand still while the model's prediction
+ticks ease between the one-size +10.18 and the saturated
++21.0-in-women/−0.02-in-men; the arrows read from the eased
+predictions. Tiles: R² and the interaction coefficient (em-dash under
+`+`, "no product term in this model"). Equation card: the generic row
+gains the b₃x₁x₂ term when × is chosen; concrete terms per tab.
+compute() is fully deterministic — no rng, no seed. Height 356, both
+tabs. Verified on screen: gate, both toggles' eases caught mid-flight
+(labels counting), the zero slide with its shaded stretch, both tabs'
+equations and tiles, zero console errors, `check` green.
 
 ## Widget 29 · `lm-categorical` — SHIPPED 2026-08-28, one review round
 
