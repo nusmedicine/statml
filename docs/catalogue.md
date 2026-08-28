@@ -3567,6 +3567,23 @@ Built the same day:
   twins captions; no NaN); bar-click regions live; fit tab untouched;
   `check` green.
 
+### ROUND 12 — the strip leaves the Collinearity tab
+
+**Kenneth: the residual plot should sit between the fit views and the
+section — or is it distracting and better deleted here? Deleted, with
+agreement**, reversing round 3's every-tab ruling for this tab only.
+The reasoning: on Collinearity the strip's whole message is "the
+residuals did not change when weight entered" — a NON-EVENT no reader
+can see without comparing two states from memory; the residual-spread
+tile states it as a number (18.6, unchanged to four decimals), the
+twins' stable lines show it in data space, and the detection section is
+the tab's rightful closer. On Fit and adjust the strip STAYS — there
+the cloud visibly tightens as covariates enter, which is that tab's
+lesson, so it earns its pixels. Heights: fit 778 (unchanged), collinear
+966 → **852**. Verified: fit tab still paints the strip ("fitted
+sysBP" in the text sweep), collinear ends on the section, no NaN,
+`check` green.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;

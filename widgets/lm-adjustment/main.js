@@ -43,7 +43,8 @@
                       clickable to choose the subject (`vifvar`, hidden;
                       the bars are the control)
 
-   The residual strip (widget 27's) rides under the scatter in every tab.
+   The residual strip (widget 27's) rides under the Fit-and-adjust page
+   only (round 12 — on Collinearity its message would be a non-event).
    The DAG draws the age–BMI link as a dashed double-headed ASSOCIATION
    labelled r = 0.12 — an arrow would claim a causal direction this widget
    has no business asserting; that lesson lives in fork-pipe-collider.
@@ -125,10 +126,15 @@ const tableTop = (wide) => scatterTop(wide) + SCATTER_H + 56;
 const TWIN_H = 210;
 const DIAG_H = 190;
 const diagTop = () => scatterTop(true) + TWIN_H + 48;
-const stripTop = (concept, wide) => (concept === "fit"
-  ? tableTop(wide) + TABLE_H + 24
-  : diagTop() + 48 + DIAG_H + 56);
-const HEIGHT = (concept, wide) => stripTop(concept, wide) + STRIP_H + 60;
+/* The residual strip is the FIT TAB'S only (round 12, reversing round 3's
+   every-tab ruling on Kenneth's call): on Collinearity its message would
+   be "the residuals did not change", a non-event no reader can see
+   without comparing states from memory — the residual-spread tile says
+   it as a number, and the section is the tab's closer. */
+const stripTop = (wide) => tableTop(wide) + TABLE_H + 24;
+const HEIGHT = (concept, wide) => (concept === "fit"
+  ? stripTop(wide) + STRIP_H + 60
+  : diagTop() + 48 + DIAG_H + 80);
 
 const X_DOM = [14, 58];
 const W_DOM = [40, 120]; // the simulated weight's window, kg
@@ -631,8 +637,9 @@ defineWidget({
       drawTable(ctx, colors, { x: 56, y: tableTop(wide), w: w - 70 }, state, key);
     }
 
-    /* --- the residual strip, every tab, full width --------------------- */
-    const strip = { x: 56, y: stripTop(concept, wide), w: w - 70, h: STRIP_H };
+    /* --- the residual strip, Fit and adjust only (round 12) ------------- */
+    if (concept !== "fit") return;
+    const strip = { x: 56, y: stripTop(wide), w: w - 70, h: STRIP_H };
     const rplot = makePlot({ ctx, colors, rect: strip, xDomain: FIT_DOM, yDomain: RES_DOM });
     rplot.axisX({ label: "fitted sysBP" });
     rplot.axisY({ label: "residual", ticks: [-40, 0, 40] });
