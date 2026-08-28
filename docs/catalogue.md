@@ -3328,6 +3328,29 @@ vertex per press — **229 presses to done from (70, 2)**, verified in node
 steps is expected to step a few times and press Fit; whether 229 available
 presses needs a cap is a review question.
 
+### ROUND 2 — Kenneth's three comments, same day
+
+1. **The equation is MathML now**, written the way 05-01 writes the lm
+   equation: a `.w-math` card above the figure (widget 14's machinery —
+   layout-probed, mounted lazily from `draw()`, memoised on the numbers,
+   plain-text fallback). "your line sysBP = 70 + 2.00 × BMI", joined at the
+   walk's end by "least squares sysBP = 87.07 + 1.72 × BMI" in the fit's
+   own colour. The canvas caption that carried the equation is gone.
+2. **ONE line, and the walk moves it.** The second (reference-coloured)
+   walking line is deleted: the reader's line itself travels the descent —
+   its residual wash and its surface dot ride along, so the wash visibly
+   thins as the sum falls — and it changes to `--c-reference` when it
+   arrives, which is also when the fitted equation appears. The fit tile is
+   live mid-walk ("walking — b₀ …, b₁ …"). A slider move still resets
+   everything to the reader's own line.
+3. **Stack vs beside is a live A/B behind a TEMPORARY hidden param**:
+   `?arrange=row` puts the surface beside the scatter (height stays
+   shut-size ~358; each panel ~half width; the surface goes nearly square,
+   which helps the trench) against the default stack (both panels full
+   width; open height ~686). The loser gets deleted and the winner
+   hardcoded — a layout A/B is not a reader control, so it never renders
+   as one.
+
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
 **Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —

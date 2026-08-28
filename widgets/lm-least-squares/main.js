@@ -102,6 +102,55 @@ function walkAt(state, t) {
   return { pt: [a0 + (b0 - a0) * f, a1 + (b1 - a1) * f], seg: k };
 }
 
+/* --- the equation, over the figure, in the lesson's own notation ----------
+   Kenneth's round-2 ask: the formula should be WRITTEN the way 05-01 writes
+   the lm equation, not painted as caption text. Widget 14's machinery,
+   verbatim: probe that MathML actually lays out (an interface test lies),
+   mount `.w-math` lazily from draw() because module scope runs before the
+   shell exists, and memoise on the numbers. */
+function mathmlRenders() {
+  if (typeof window.MathMLElement !== "function") return false;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  probe.innerHTML = '<math id="lm-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
+    + '<math id="lm-flat"><mn>1</mn></math>';
+  document.body.appendChild(probe);
+  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
+  const stacked = h("lm-frac");
+  const flat = h("lm-flat");
+  probe.remove();
+  return flat > 0 && stacked > flat * 1.4;
+}
+const MATHML = mathmlRenders();
+
+const eqMathML = (b0, b1) =>
+  `<math><mrow><mi>sysBP</mi><mo>=</mo><mn>${Number(b0).toFixed(b0 === Math.round(b0) ? 0 : 2)}</mn>`
+  + `<mo>+</mo><mn>${Number(b1).toFixed(2)}</mn><mo>&#xD7;</mo><mi>BMI</mi></mrow></math>`;
+const eqPlain = (b0, b1) =>
+  `sysBP = ${Number(b0).toFixed(b0 === Math.round(b0) ? 0 : 2)} + ${Number(b1).toFixed(2)} × BMI`;
+
+let mathHost = null;
+let mathKey = null;
+function renderEquation(b0, b1, done) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    figure.parentNode.insertBefore(mathHost, figure);
+  }
+  const key = `${b0},${b1},${done}`;
+  if (key === mathKey) return;
+  mathKey = key;
+  const row = (label, html) =>
+    `<div class="w-math-eq" style="min-height:0"><span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>${html}</div>`;
+  const yours = MATHML ? eqMathML(b0, b1) : eqPlain(b0, b1);
+  const fit = MATHML ? eqMathML(FIT_B0, FIT_B1) : eqPlain(FIT_B0, FIT_B1);
+  mathHost.innerHTML = done
+    ? row("your line", yours) + row("least squares", `<span style="color:var(--c-reference)">${fit}</span>`)
+    : row("your line", yours);
+}
+
 const hexLerp = (a, b, t) => {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
   const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
@@ -149,7 +198,7 @@ defineWidget({
     "least-squares fit is the choice that makes this sum smallest — the " +
     "lowest point of a surface over every line you could draw.",
   layout: "side",
-  height: ({ surface }) => (surface ? H_OPEN : H_CLOSED),
+  height: ({ surface, arrange }) => (surface && arrange !== "row" ? H_OPEN : H_CLOSED),
 
   params: {
     /* The rail is flat: there is no choice of data to head a section with —
@@ -189,12 +238,23 @@ defineWidget({
     /* Authoring escape hatch: segments of the walk already taken, first
        render only. A large value publishes the finished fit. */
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
+    /* TEMPORARY, for one review round: ?arrange=row puts the surface BESIDE
+       the scatter (each panel ~half width, height stays shut-size) instead
+       of below it. Kenneth compares the two live; the loser is deleted and
+       the winner hardcoded — a layout A/B is not a reader control. */
+    arrange: {
+      type: "segmented",
+      options: [{ value: "stack", label: "Stack" }, { value: "row", label: "Row" }],
+      default: "stack",
+      hidden: true,
+      display: true,
+    },
   },
 
   legend: [
     { token: "unknown", label: "3547 patients from the Framingham study", mark: "dot" },
     { token: "highlight", label: "Your line, and its differences from the data", mark: "line" },
-    { token: "reference", label: "The walk's line — the least-squares fit where it stops", mark: "line" },
+    { token: "reference", label: "The colour the line takes when the walk reaches the least-squares fit", mark: "line" },
   ],
 
   compute({ params }) {
@@ -243,15 +303,23 @@ defineWidget({
   draw({ ctx, colors, w, h, params, state, anim }) {
     const walked = (anim?.t ?? 0) > 0;
     const done = Boolean(anim?.done);
-    const cur = walked ? walkAt(state, anim.t).pt : null;
+    /* ONE LINE, and the walk moves IT (Kenneth's round 2): before the walk it
+       is the reader's line; during, it travels; at the end it IS the fit and
+       says so by changing colour. The wash and the surface dot ride along —
+       the wash visibly thinning as the line descends is the sum falling. */
+    const cur = walked ? walkAt(state, anim.t).pt : [state.b0, state.b1];
+    const lineColor = done ? colors.reference : colors.highlight;
+    renderEquation(state.b0, state.b1, done);
 
-    /* --- the scatter and the held line --------------------------------- */
-    const rect = { x: 56, y: 30, w: w - 56 - 14, h: SCATTER_H };
+    /* --- the scatter and the line -------------------------------------- */
+    const row = params.arrange === "row" && params.surface;
+    const rect = row
+      ? { x: 56, y: 30, w: Math.round((w - 70) * 0.52), h: SCATTER_H }
+      : { x: 56, y: 30, w: w - 56 - 14, h: SCATTER_H };
     const plot = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
     plot.axisX({ label: "BMI" });
     plot.axisY({ label: "sysBP (mmHg)" });
-    plot.caption(`your line:  sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI`);
-    if (!walked) plot.note("every patient's vertical difference is squared and summed");
+    if (!walked && !row) plot.note("every patient's vertical difference is squared and summed");
 
     ctx.save();
     ctx.beginPath();
@@ -261,14 +329,14 @@ defineWidget({
     /* Every residual, faint: per-segment strokes so overlaps deepen — the
        wash's depth is where the misfit lives (Kenneth's pick over squares:
        nothing invented, every patient counted). Drawn under the dots. */
-    ctx.strokeStyle = colors.highlight;
+    ctx.strokeStyle = lineColor;
     ctx.globalAlpha = 0.05;
     ctx.lineWidth = 1;
     for (let i = 0; i < N; i += 1) {
       const px = plot.sx(BMI[i]);
       ctx.beginPath();
       ctx.moveTo(px, plot.sy(SYSBP[i]));
-      ctx.lineTo(px, plot.sy(state.b0 + state.b1 * BMI[i]));
+      ctx.lineTo(px, plot.sy(cur[0] + cur[1] * BMI[i]));
       ctx.stroke();
     }
     ctx.globalAlpha = 0.4;
@@ -280,29 +348,29 @@ defineWidget({
     }
     ctx.globalAlpha = 1;
 
-    const lineAt = (b0, b1, color, width) => {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(plot.sx(X_DOM[0]), plot.sy(b0 + b1 * X_DOM[0]));
-      ctx.lineTo(plot.sx(X_DOM[1]), plot.sy(b0 + b1 * X_DOM[1]));
-      ctx.stroke();
-    };
-    if (cur) lineAt(cur[0], cur[1], colors.reference, 2.5);
-    lineAt(state.b0, state.b1, colors.highlight, 2.5);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(plot.sx(X_DOM[0]), plot.sy(cur[0] + cur[1] * X_DOM[0]));
+    ctx.lineTo(plot.sx(X_DOM[1]), plot.sy(cur[0] + cur[1] * X_DOM[1]));
+    ctx.stroke();
     ctx.restore();
 
     /* --- the surface, behind the gate ---------------------------------- */
     if (!params.surface) return;
 
-    const srect = { x: 56, y: SURF_TOP, w: w - 56 - 14, h: SURF_H };
+    const srect = row
+      ? { x: rect.x + rect.w + 56, y: 30, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H }
+      : { x: 56, y: SURF_TOP, w: w - 56 - 14, h: SURF_H };
     const splot = makePlot({ ctx, colors, rect: srect, xDomain: SURF_B0, yDomain: SURF_B1 });
-    splot.caption("every line at once — colour is its sum of squares");
+    splot.caption(row ? "every line at once" : "every line at once — colour is its sum of squares");
     splot.axisX({ label: "intercept b₀" });
     splot.axisY({ label: "slope b₁" });
-    splot.note(done
-      ? "the walk stopped where no move improves the sum"
-      : "red saturates at 3× the least possible sum");
+    if (!row) {
+      splot.note(done
+        ? "the walk stopped where no move improves the sum"
+        : "red saturates at 3× the least possible sum");
+    }
 
     const dpr = window.devicePixelRatio || 1;
     ctx.drawImage(
@@ -318,7 +386,7 @@ defineWidget({
     ctx.rect(srect.x, srect.y, srect.w, srect.h);
     ctx.clip();
 
-    /* The walk so far: the path already taken, and the walker. */
+    /* The walk so far: the path already taken behind the travelling dot. */
     if (walked) {
       const { seg } = walkAt(state, anim.t);
       ctx.strokeStyle = colors.ink1;
@@ -330,10 +398,6 @@ defineWidget({
       }
       ctx.lineTo(splot.sx(cur[0]), splot.sy(cur[1]));
       ctx.stroke();
-      ctx.fillStyle = colors.ink1;
-      ctx.beginPath();
-      ctx.arc(splot.sx(cur[0]), splot.sy(cur[1]), 3.5, 0, 2 * Math.PI);
-      ctx.fill();
     }
 
     /* The minimum is MARKED only once the walk has found it — the widget
@@ -351,10 +415,11 @@ defineWidget({
       ctx.stroke();
     }
 
-    /* You are here: the reader's own line as a point among every line. */
-    ctx.fillStyle = colors.highlight;
+    /* The line as a point among every line — the same dot the scatter's line
+       is, so it travels with the walk and lands wearing the fit's colour. */
+    ctx.fillStyle = lineColor;
     ctx.beginPath();
-    ctx.arc(splot.sx(state.b0), splot.sy(state.b1), 4.5, 0, 2 * Math.PI);
+    ctx.arc(splot.sx(cur[0]), splot.sy(cur[1]), 4.5, 0, 2 * Math.PI);
     ctx.fill();
     ctx.strokeStyle = colors.surface;
     ctx.lineWidth = 1.5;
@@ -364,6 +429,8 @@ defineWidget({
 
   readout({ state, anim }) {
     const done = Boolean(anim?.done);
+    const walked = (anim?.t ?? 0) > 0;
+    const cur = walked ? walkAt(state, anim.t).pt : null;
     return [
       {
         label: "Sum of squares — your line",
@@ -372,10 +439,12 @@ defineWidget({
       },
       {
         label: "Sum of squares — the fit",
-        value: done ? ssFmt(SS_MIN) : "—",
+        value: done ? ssFmt(SS_MIN) : walked ? ssFmt(ssOf(cur[0], cur[1])) : "—",
         note: done
           ? `b₀ ${fmt(FIT_B0, 2)}, b₁ ${fmt(FIT_B1, 2)} — the least possible`
-          : "press Fit to walk down to it",
+          : walked
+            ? `walking — b₀ ${fmt(cur[0], 1)}, b₁ ${fmt(cur[1], 2)}`
+            : "press Fit to walk down to it",
       },
     ];
   },

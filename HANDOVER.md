@@ -39,10 +39,14 @@ driven-vs-settled-sibling check.
    · Widget 27* for the build record: gate → surface below the scatter,
    b₀/b₁ sliders, the walk from the reader's own line, capped-at-3× surface,
    the residual wash, `--c-cost-low/high` added to core (full suite ran:
-   **167 of 167 MATCH**). **Next step: Kenneth reviews the draft** —
-   `http://localhost:8010/widgets/lm-least-squares/` (and
-   `?surface=1&shown=999` for the finished state). Not yet baselined —
-   states are recorded only once the design settles.
+   **167 of 167 MATCH**). **Round 2 landed the same day** (catalogue § ROUND
+   2): the equation is MathML in `.w-math`, the walk moves THE line (colour
+   flip to reference at the end), and stack-vs-beside is a live A/B on a
+   temporary hidden param. **Next step: Kenneth picks the arrangement and
+   reviews** — `http://localhost:8010/widgets/lm-least-squares/?surface=1&shown=999`
+   (stacked) vs `…/?arrange=row&surface=1&shown=999` (beside); the loser is
+   deleted and the param with it. Not yet baselined — states are recorded
+   only once the design settles.
 2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
    it by hand (it will be the FIRST widget link in any notebook); the line:
    `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
