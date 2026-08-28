@@ -27,7 +27,7 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 28 · `lm-adjustment` is a DRAFT through NINE review rounds,
+1. **Widget 28 · `lm-adjustment` is a DRAFT through TEN review rounds,
    awaiting Kenneth's next review pass** — all recorded round by round in
    [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 28* (read them
    before touching anything — several reversed an earlier decision).

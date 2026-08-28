@@ -322,11 +322,13 @@ defineWidget({
     seed: { type: "int", min: 1, max: 200, default: 1, hidden: true },
   },
 
+  /* No VIF entry (round 10, Kenneth): the legend is static core-side, so
+     an entry here would put "VIF" on the Fit-and-adjust page too; the
+     Collinearity tile's note names the threshold instead. */
   legend: [
     { token: "unknown", label: "3547 patients from the Framingham study", mark: "dot" },
     { token: "highlight", label: "The current model — its coefficients, and its line(s) on the data", mark: "line" },
     { token: "empirical", label: "The same coefficient read from its covariate alone", mark: "line" },
-    { token: "extreme", label: "The VIF threshold — above 5 flags collinearity", mark: "line" },
   ],
 
   compute({ params }) {
@@ -772,10 +774,14 @@ function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      /* THE MOVE, ANNOTATED (round 5): the ease whispers if the reader
-         arrives with both pills already on, so the arrow and the sentence
-         carry it — ghost to current value, named. BMI's row gets the words;
-         the other rows get the arrow alone. */
+      /* THE MOVE, ANNOTATED (round 5; round 10 made it symmetric): every
+         moved row carries the sentence, naming the covariate whose
+         arrival moved it. Click order is NOT a parameter — the same URL
+         must always draw the same figure — so the text cannot depend on
+         which pill was pressed first; instead BOTH rows are annotated,
+         and the contextual reading comes free: whichever covariate the
+         reader adds second, the row that eases is the one whose sentence
+         just appeared. */
       const target = fitNow.coefs[k]?.b;
       if (target !== undefined && Math.abs(target - g.v) > 0.02) {
         ctx.strokeStyle = colors.ink2;
@@ -791,19 +797,18 @@ function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
         ctx.lineTo(fx(target) - dir * 6, y - 18.5);
         ctx.lineTo(fx(target) - dir * 6, y - 11.5);
         ctx.fill();
-        if (k === "bmi") {
-          ctx.fillStyle = colors.ink1;
-          ctx.font = `${colors.fsXs} ${colors.font}`;
-          /* Centred in the axis' quiet left half, above the arrow — to the
-             right of the pair it overran the frame at the 550px canvas. */
-          ctx.textAlign = "center";
-          const other = twinOn ? "weight" : "age";
-          ctx.fillText(
-            `${fmt(g.v, 2)} → ${fmt(target, 2)} when ${other} enters`,
-            fx(0.7),
-            y - 26,
-          );
-        }
+        const IN = ROWS.filter((r) => r !== k && (r === "twin" ? twinOn : params[r]));
+        const cause = IN.length === 1 ? NAMES[IN[0]] : "the others";
+        ctx.fillStyle = colors.ink1;
+        ctx.font = `${colors.fsXs} ${colors.font}`;
+        /* Centred in the axis' quiet left half, above the arrow — to the
+           right of the pair it overran the frame at the 550px canvas. */
+        ctx.textAlign = "center";
+        ctx.fillText(
+          `${fmt(g.v, 2)} → ${fmt(target, 2)} when ${cause} ${IN.length === 1 ? "is" : "are"} added`,
+          fx(0.7),
+          y - 26,
+        );
       }
     }
     const m = anim?.[k];

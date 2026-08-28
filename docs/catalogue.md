@@ -3485,6 +3485,29 @@ the same day:
    they already describe the adjustment content; `check` green on the
    title agreement across card, <h1>, <title>.
 
+### ROUND 10 — no VIF on the first tab, and the annotation goes symmetric
+
+**Kenneth's three asks for the Fit-and-adjust page.** (1) **The legend's
+VIF entry is deleted** — the legend is static core-side, so any entry
+shows on every tab; the Collinearity tile's note names the threshold
+instead ("above 5 flags collinearity — one covariate predicted by the
+rest"). (2) **BMI and age were already off by default** — verified
+against the served bare URL (both pills aria-pressed false, the empty
+131.31 model); the review links' `?bmi=1&age=1` is what pre-builds the
+model. (3) **The move annotation is contextual by being SYMMETRIC, not
+by tracking click order** — order is not a parameter and parameters are
+the only state of record (non-negotiable 1: the same URL must always
+draw the same figure, and the fingerprint would read an order-dependent
+canvas as flaky). Every moved row now carries its own sentence naming
+the covariate that moved it: "1.72 → 1.50 when age is added" on the BMI
+row, "0.92 → 0.84 when BMI is added" on the age row — so whichever pill
+the reader clicks second, the row that eases is the one whose sentence
+just appeared, and both of Kenneth's orderings read correctly. With two
+or more others in the model (the Collinearity tab's three-covariate
+case) the sentence says "when the others are added". Verified by canvas
+text sweep: both fit-tab sentences and all three collinear variants
+paint; no collisions on screen; `check` green.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;
