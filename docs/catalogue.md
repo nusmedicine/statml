@@ -3216,6 +3216,35 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 3 — the Censoring tab's hazard follows the treatment
+
+**Kenneth's review of the Censoring page asked two questions**: how is the
+hazard explained, and does it change when the censored are dropped or kept;
+and what exactly distinguishes kept / dropped / as events. The review found
+the strip pinned to the KEPT reading whatever the control said — hiding
+that the hazard is precisely where the treatments differ, because they are
+operations on the numerator and the denominator. Approved and built, all
+tab-1-local:
+
+- **The strip follows the chosen treatment**, kept bars behind as ghosts
+  (the curve's own convention). Dropped inflates every bar — 1/3 for 1/5,
+  1/2 for 1/4, and the last patient always "dies" at 1/1; as-events grows
+  bars at 7 and 10 that never happened, each ending at 1/1. A bar reaching
+  the strip's top rail takes its label INSIDE in surface colour.
+- **The product line**: `survival = (1−1/5)(1−1/4)(1−1/2) = 0.30` printed
+  under the strip as the sweep collects factors — the bars ARE the curve's
+  factors, and the line always equals the Survival tile because it is the
+  same arithmetic. Dropped reads `(1−1/3)(1−1/2)(1−1/1) = 0.00`.
+- **The mechanism notes name numerator and denominator**, one per
+  treatment, kept included: kept — "B and E stay in the risk set until
+  they leave, and never enter the events"; dropped — "B and E leave both
+  the event count and the risk set — as if never enrolled"; as events —
+  "B and E enter the event count at their last visit".
+
+Verified: fillText sweep at the 550px canvas across all three treatments,
+0 overruns; the three product lines read to the digit; no console errors;
+drive still 60/60.
+
 ### Round 2 — restructured to three concepts (Kenneth's step-back)
 
 **Kenneth stepped back to first principles on 2026-08-29**: three questions —

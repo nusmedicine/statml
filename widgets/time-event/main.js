@@ -687,10 +687,11 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T1MAX], yDomain: [0, 1] });
   plot.axisX({ label: "time (years)", ticks: [0, 2.5, 5, 7.5, 10] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
-  /* the wrong treatments name their MECHANISM — what happened to B and E —
-     never a verdict (2.9) */
-  if (treatment === "dropped") plot.note("B and E's event-free years are discarded");
-  else if (treatment === "asevents") plot.note("B and E counted as events at their last visit");
+  /* every treatment names its MECHANISM — what happens to B and E in the
+     numerator and the denominator — never a verdict (2.9) */
+  if (treatment === "dropped") plot.note("B and E leave both the event count and the risk set — as if never enrolled");
+  else if (treatment === "asevents") plot.note("B and E enter the event count at their last visit");
+  else plot.note("B and E stay in the risk set until they leave, and never enter the events");
 
   const R = state.five;
   if (treatment !== "kept") {
@@ -700,10 +701,17 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     drawCurve(ctx, plot, R.kept.steps, R.kept.censors, t, colors.empirical, { width: 2.5, surface: colors.surface });
   }
 
-  /* the hazard strip — pick H1: of those still at risk, the share who go
+  /* The hazard strip — pick H1: of those still at risk, the share who go
      now. No bar at a censoring; the censor tick on the strip's axis marks
-     where the DENOMINATOR changed. */
+     where the DENOMINATOR changed. THE STRIP FOLLOWS THE CHOSEN TREATMENT
+     (round 3): the treatments are operations on the numerator and the
+     denominator, so the hazard is exactly where they differ — dropping the
+     censored inflates every bar (1/3 for 1/5, and the last patient always
+     "dies" at 1/1), and counting them as events grows bars at 7 and 10
+     that never happened. The kept bars stay behind as ghosts. */
   const hy = (v) => HAZ_Y + HAZ_H - v * HAZ_H;
+  const bars = R[treatment].steps;
+  const ghostBars = treatment === "kept" ? null : R.kept.steps;
   ctx.save();
   ctx.textBaseline = "alphabetic";
   ctx.font = `${colors.fsXs} ${colors.font}`;
@@ -721,16 +729,30 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     ctx.textAlign = "right";
     ctx.fillText(fmt(v, 1), left - 6, hy(v) + 3);
   }
-  for (const s of R.kept.steps) {
+  if (ghostBars) {
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = colors.event;
+    for (const s of ghostBars) {
+      if (s.events === 0 || s.t > t) continue;
+      ctx.fillRect(X(s.t) - 9, hy(s.events / s.atRisk), 8, hy(0) - hy(s.events / s.atRisk));
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (const s of bars) {
     if (s.events === 0 || s.t > t) continue;
     const hVal = s.events / s.atRisk;
-    ctx.fillStyle = colors.event;
-    ctx.fillRect(X(s.t) - 7, hy(hVal), 14, hy(0) - hy(hVal));
+    const bx = ghostBars ? X(s.t) + 1 : X(s.t) - 7;
+    const bw = ghostBars ? 8 : 14;
+    ctx.fillStyle = ghostBars ? colors.highlight : colors.event;
+    ctx.fillRect(bx, hy(hVal), bw, hy(0) - hy(hVal));
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "center";
-    ctx.fillText(`${s.events}/${s.atRisk}`, X(s.t), hy(hVal) - 5);
+    /* a 1/1 bar reaches the strip's top rail — its label goes inside */
+    const inside = hy(hVal) - 5 < HAZ_Y + 8;
+    if (inside) ctx.fillStyle = colors.surface;
+    ctx.fillText(`${s.events}/${s.atRisk}`, bx + bw / 2, inside ? hy(hVal) + 13 : hy(hVal) - 5);
   }
-  for (const c of R.kept.censors) {
+  for (const c of R[treatment].censors) {
     if (c.t > t) continue;
     ctx.strokeStyle = colors.unknown;
     ctx.lineWidth = 2;
@@ -738,6 +760,17 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     ctx.moveTo(X(c.t), hy(0) - 5);
     ctx.lineTo(X(c.t), hy(0) + 5);
     ctx.stroke();
+  }
+  /* the product line (round 3): the bars ARE the curve's factors, and the
+     identity is printed as the sweep collects them — it always equals the
+     Survival tile, because it is the same arithmetic */
+  const passed = bars.filter((s) => s.events > 0 && s.t <= t);
+  if (passed.length) {
+    const terms = passed.map((s) => `(1−${s.events}/${s.atRisk})`).join("");
+    const S = passed.reduce((acc, s) => acc * (1 - s.events / s.atRisk), 1);
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "left";
+    ctx.fillText(`survival = ${terms} = ${fmt(S, 2)}`, left, hy(0) + 24);
   }
   ctx.restore();
 
