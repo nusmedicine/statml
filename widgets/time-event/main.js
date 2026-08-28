@@ -86,7 +86,9 @@ const LANES_Y = 30;
 const LANES_H = LANE_GAP * 4 + 14;
 const CURVE1_Y = LANES_Y + LANES_H + 40;
 const CURVE1_H = 180;
-const HAZ_Y = CURVE1_Y + CURVE1_H + 64;
+/* 78, not 64: the strip's header is TWO lines — the title, then the
+   direction line (wrong treatments) beside the formula chip (round 4) */
+const HAZ_Y = CURVE1_Y + CURVE1_H + 78;
 const HAZ_H = 80;
 const PAT_HEIGHT = HAZ_Y + HAZ_H + 48;
 
@@ -203,7 +205,10 @@ defineWidget({
        so display: true — toggling compares, and must never reset the sweep. */
     censored: {
       type: "segmented",
-      label: "Censored patients",
+      /* "(B and E)" ties the control to the two lanes it acts on — the
+         abstraction gets names, and "Kept" inherits its meaning from the
+         stage (round 4, P1) */
+      label: "Censored patients (B and E)",
       options: [
         { value: "kept", label: "Kept", detail: "in the risk set until they leave — the Kaplan–Meier estimate" },
         { value: "dropped", label: "Dropped", detail: "removed from the data entirely" },
@@ -717,7 +722,25 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("Hazard at each event — of those still at risk, the share who go now", left, HAZ_Y - 10);
+  ctx.fillText("Hazard at each event — of those still at risk, the share who go now", left, HAZ_Y - 24);
+  /* the formula chip (round 4, F1): the words above, the letter here —
+     the same h the product line multiplies */
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "right";
+  ctx.fillText("h = events ÷ at risk", right, HAZ_Y - 10);
+  /* the direction line (F3) — a comparison against the visible kept bars,
+     never a claim about the unknowable truth (2.11) */
+  if (treatment !== "kept") {
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "left";
+    ctx.fillText(
+      treatment === "dropped"
+        ? "smaller risk sets: bars higher than kept, survival lower"
+        : "extra events: bars higher than kept, survival lower",
+      left,
+      HAZ_Y - 10,
+    );
+  }
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   for (const v of [0, 0.5, 1]) {
@@ -770,7 +793,7 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     const S = passed.reduce((acc, s) => acc * (1 - s.events / s.atRisk), 1);
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "left";
-    ctx.fillText(`survival = ${terms} = ${fmt(S, 2)}`, left, hy(0) + 24);
+    ctx.fillText(`survival = product of (1 − h): ${terms} = ${fmt(S, 2)}`, left, hy(0) + 24);
   }
   ctx.restore();
 

@@ -3216,6 +3216,43 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 4 — the implication, the formula, and the control's names
+
+**Kenneth's second Censoring-tab pass asked for the implication (does the
+hazard read high or low?) and a hazard formula, and for a review of the
+Kept · Dropped · As events labels.** The label review found "Kept" the weak
+label (kept WHERE is the whole content) and measured the rail's truncation
+limit (~13–15 chars per segmented option — the Concept control already
+renders "Comparing gr…"), which rules out the textbook-explicit forms.
+Approved and built as F1 + F2 + F3 + P1:
+
+- **F1, the formula chip**: `h = events ÷ at risk`, right-aligned on the
+  strip's header; the worded gloss stays. The header became two lines and
+  the strip moved 14px down for it.
+- **F2, the identity**: the product line now reads
+  `survival = product of (1 − h): (1−1/5)(1−1/4)(1−1/2) = 0.30` — the
+  chip's h and the product's h are one letter, closing strip → formula →
+  curve into one loop.
+- **F3, the direction line**, wrong treatments only: "smaller risk sets:
+  bars higher than kept, survival lower" / "extra events: bars higher than
+  kept, survival lower". COMPARATIVE ON PURPOSE — on this tab the truth is
+  unknowable (hand data), so "overestimates" would claim what the figure
+  cannot show (2.11); the licensed absolute claim lives where the truth
+  curve exists, on the groups tab. Both mistreatments push the SAME way,
+  which is itself teaching — students expect the two errors to oppose.
+  The rise-arrows variant was proposed and deliberately skipped: the ghost
+  pairs already show the rise.
+- **P1, the heading**: "Censored patients (B and E)" — ties the control to
+  the two lanes it acts on; the mechanism notes already speak in those
+  names, so rail and stage share one vocabulary. Rejected alternatives
+  recorded: verb labels (Keep · Drop · Count as events) read as drive
+  actions and sit at the truncation edge.
+
+Verified: fillText sweep across all three treatments at 550px — 0 overruns
+and 0 same-row collisions (the new chip shares its line with the direction
+text); the three product lines to the digit; no console errors; drive
+60/60.
+
 ### Round 3 — the Censoring tab's hazard follows the treatment
 
 **Kenneth's review of the Censoring page asked two questions**: how is the
