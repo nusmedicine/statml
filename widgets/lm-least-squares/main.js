@@ -73,8 +73,6 @@ const SCATTER_H = 240;
 const STRIP_TOP = 30 + SCATTER_H + 14;
 const STRIP_H = 80;
 const HEIGHT = STRIP_TOP + STRIP_H + 62;
-const MEAN_X = BMI.reduce((s, v) => s + v, 0) / N;
-const MEAN_Y = SYSBP.reduce((s, v) => s + v, 0) / N;
 
 /* The walk: coordinate descent from (b0, b1), each vertex one exact 1-D
    minimisation. Stops when a full cycle moves less than a pixel could show.
@@ -391,17 +389,19 @@ defineWidget({
     ctx.restore();
 
     /* --- the residual strip, permanent (round 8, Kenneth's pick B) -------
-       The line's residuals, live: the band sits OFF ZERO when b₀ is wrong,
-       the trend TILTS when b₁ is wrong, and both close to a flat band at
-       zero as the walk lands — the stopping condition made visible. The
-       trend has a closed form: regressing the residuals on BMI gives slope
-       (simple-fit b₁ − yours) and mean (ȳ − b₀ − b₁x̄), so no per-frame
-       regression is run. Fixed y-window: comparable across lines, and an
-       absurd line's band walking off the top is an honest reading. */
+       The DOTS are the whole story (round 9: no trend line — Kenneth wants
+       the cloud itself seen settling around the centre): each dot is that
+       patient's residual from the current line, so the band sits OFF ZERO
+       when b₀ is wrong, TILTS when b₁ is wrong, and settles around the
+       ruled zero as the walk lands. The y-window is deliberately tight —
+       at ±(50..70) a 10 mmHg offset is ~7px of visible drift; the wide
+       window that fit every absurd line made the motion invisible, which
+       defeated the strip. Dots a bad line pushes past the frame are
+       clipped, and that is an honest reading. */
     const strip = { x: rect.x, y: STRIP_TOP, w: rect.w, h: STRIP_H };
-    const rplot = makePlot({ ctx, colors, rect: strip, xDomain: X_DOM, yDomain: [-70, 130] });
+    const rplot = makePlot({ ctx, colors, rect: strip, xDomain: X_DOM, yDomain: [-50, 70] });
     rplot.axisX({ label: "BMI" });
-    rplot.axisY({ label: "residual", ticks: [-50, 0, 50, 100] });
+    rplot.axisY({ label: "residual", ticks: [-40, 0, 40] });
     ctx.strokeStyle = colors.ink3;
     ctx.setLineDash([4, 4]);
     ctx.lineWidth = 1;
@@ -422,14 +422,6 @@ defineWidget({
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    const tilt = FIT_B1 - cur[1];
-    const meanRes = MEAN_Y - cur[0] - cur[1] * MEAN_X;
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(rplot.sx(X_DOM[0]), rplot.sy(meanRes + tilt * (X_DOM[0] - MEAN_X)));
-    ctx.lineTo(rplot.sx(X_DOM[1]), rplot.sy(meanRes + tilt * (X_DOM[1] - MEAN_X)));
-    ctx.stroke();
     ctx.restore();
 
     /* --- the surface, behind the gate ---------------------------------- */
@@ -559,7 +551,7 @@ defineWidget({
     const parts = [
       `A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with the linear model sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI drawn through it.`,
       `Its sum of squared differences is ${ssFmt(state.ssYour)}.`,
-      "Below the scatter, each patient's residual from the line, with the trend through them and zero ruled.",
+      "Below the scatter, each patient's residual from the line, around a ruled zero.",
     ];
     if (params.grid) {
       parts.push("Beside it, the sum of squares is painted over every (b₀, b₁) pair.");

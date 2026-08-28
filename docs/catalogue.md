@@ -3532,6 +3532,18 @@ moved to that URL). The rebaseline: **6 px moved and exactly 0 tx** — the
 mirror of round 7's diff, as a canvas-only change predicts; re-shot by
 `lm-shoot.html`, copy proved 4/4, three-run stable, drives non-inert.
 
+### ROUND 9 — the strip loses its trend line; the dots carry it
+
+**Kenneth: no fitted line in the strip — the dots should move around the
+centre.** The trend line is deleted and the y-window tightened from
+[−70, 130] to **[−50, 70]**, which is what makes the dots' own drift
+legible (a 10 mmHg offset is now ~7px; in the wide window it was ~4px and
+the trend line was doing all the talking). Each dot is that patient's
+residual from the current line, so the cloud sits off the ruled zero for a
+wrong intercept, tilts for a wrong slope, and settles around zero as the
+walk lands. Dots an absurd line pushes past the frame are clipped — an
+honest reading. Rebaseline: **6 px, 0 tx** again, three-run stable.
+
 ### The round-8 mock, as it was drawn
 
 **[`_lab/lm-resid.html`](../widgets/_lab/lm-resid.html)** draws the
