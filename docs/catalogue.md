@@ -3212,6 +3212,56 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
+## NEXT · Widget 30 · `lm-interaction` — MEASURED 2026-08-28
+
+**The brief:** 05-04 (Modeling — Interactions), catalogue slot 4: main
+effects can be read unconditionally when an interaction is present. The
+notebook's three acts, all on totChol (the frame is the arc's, n = 3547):
+age × BMI (continuous × continuous), age × sex (continuous ×
+categorical, ggPredict's crossing lines), diabetes × sex (2 × 2). The
+old deferred-table caution — that this concept "may be technical rather
+than abstract" — dissolves on measurement: the whole lesson is two
+lines crossing.
+
+**Verified** (`node widgets/_lab/lm-int-measure.mjs`): **33 checks pass**
+— all six models' stored outputs to the digit, plus the saturated-2×2 =
+cell-means identity at 1e-9.
+
+**Measured before design:**
+
+- **Act 2 (age × sex) is the flagship.** With `age:sex` in, "the sex
+  effect" prints **+95.57** — and that number is the gap AT AGE ZERO,
+  32 years left of the youngest patient. In the data the gap runs +24.2
+  (age 35) through zero (the lines cross at 46.9) to −37.0 (age 65) —
+  **28–42px at panel scale, fully legible**. Slopes 2.29 (women) vs
+  0.25 (men). R² 0.074 → 0.113.
+- **The independent model is the setup, not filler**: its two lines are
+  5 units apart (sex1 = −5.0), so the `+`→`×` toggle SPLITS a
+  near-single line into opposite slopes — the ease has something big to
+  do.
+- **Act 3 (diabetes × sex)**: diabetes raises totChol by **+21.0 in
+  women and −0.02 in men**; the independent model's "+10.18" is an
+  average of 21 and nothing; the interaction (−21.02) IS the difference
+  of differences. Cell ns 1913/44/1543/47 — the honesty note.
+- **Act 1 (age × BMI)**: both slopes become functions (BMI slope flips
+  sign at age 57.2, age slope at BMI 37.2; "the age effect +4.27" lives
+  at BMI 0). Same lesson as act 2 with a fan of near-parallel lines in
+  place of a crossing — **proposed OUT**, its one extra fact (both
+  coefficients go conditional) a caption.
+
+**The mock-up page is BUILT** —
+[`_lab/lm-int-stage.html`](../widgets/_lab/lm-int-stage.html): **§1** the
+stage (A1/A2 the `+`/`×` frames the toggle eases between; B the PROBE —
+an age slider bracketing the live sex gap, the "effect" read as a
+function); **§2** the extrapolation drawn — the axis extended to zero,
+the fitted lines diverging across 32 shaded years of empty axis to the
++95.57 bracket ("real, exact, and about nobody"); **§3** act 3 as a
+candidate second tab (means, per-group arrows, the independent model's
+one-size answer as ghost dashes). Open questions for Kenneth's picks:
+the probe in the main stage or behind a toggle; the extrapolation as a
+gate/toggle and its name ("Show where +95.57 lives"); the acts — 2
+alone, or 2 + 3 as tabs, with 1 out.
+
 ## Widget 29 · `lm-categorical` — SHIPPED 2026-08-28, one review round
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,

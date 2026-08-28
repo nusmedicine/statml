@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 30 stage — lm-interaction candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 30 · <code>lm-interaction</code> — the stage, drawn before it is argued</h1>
+
+  <p class="note">
+    <b>The misconception (catalogue slot 4):</b> main effects can be read
+    unconditionally when an interaction is present. <b>Measured first</b>
+    (<code>node widgets/_lab/lm-int-measure.mjs</code>, 33 checks, every
+    05-04 stored output to the digit): with <code>age:sex</code> in the
+    model, "the sex effect" reads <b>+95.57</b> — and that number is the gap
+    AT AGE ZERO, 32 years left of the youngest patient. In the data the gap
+    runs +24.2 (age 35) through zero (the lines CROSS at 46.9) to −37.0
+    (age 65) — 28–42px at panel scale, fully legible. The independent
+    model's own picture is the setup: its two lines are 5 units apart
+    (sex1 = −5.0), so the toggle from <code>+</code> to <code>×</code>
+    SPLITS a near-single line into opposite slopes (2.29 vs 0.25). The
+    outcome is totChol throughout, the frame is the arc's (n = 3547), and
+    the old caution that this concept "may be technical rather than
+    abstract" dissolves on sight: the whole lesson is two lines crossing.
+  </p>
+
+  <h2>§1 · The stage, act 2 (age × sex): the toggle, and the probe</h2>
+  <p class="note">
+    The widget's core control is the notebook's own operator — a segmented
+    <b>Terms: independent (+) · interacting (×)</b> — and the lines EASE
+    between the two readings (the arc's familiar move). <b>A</b> shows the
+    two frames. <b>B</b> adds the <b>probe</b>: an age slider carrying a
+    vertical rule with the sex gap bracketed and its live number
+    (95.57 − 2.04 × age) — the "sex effect" read as what it now is, a
+    FUNCTION of age. Dots and lines wear the group tokens (two arms of a
+    comparison you decided: female group-a, male group-b).
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A1 — independent terms (+)</h3>
+      <p class="sub">totChol ~ age + sex: two lines 5 units apart, one slope — sex barely matters</p>
+      <canvas id="a1" width="550" height="320"></canvas>
+    </div>
+    <div class="cand">
+      <h3>A2 — interacting terms (×)</h3>
+      <p class="sub">totChol ~ age * sex: the same data, slopes 2.29 vs 0.25, crossing at age 46.9</p>
+      <canvas id="a2" width="550" height="320"></canvas>
+    </div>
+    <div class="cand">
+      <h3>B — the probe, at age 60</h3>
+      <p class="sub">the gap bracketed and numbered: −26.4 at 60; slide it and the "sex effect" changes sign before your eyes</p>
+      <canvas id="b" width="550" height="320"></canvas>
+    </div>
+  </div>
+
+  <h2>§2 · Where +95.57 lives — the extrapolation, drawn</h2>
+  <p class="note">
+    A reveal (gate or toggle: <b>"Show where +95.57 lives"</b>) extends the
+    age axis to zero. The fitted lines continue left across 32 years of
+    empty axis and diverge to the +95.57 gap at age 0 — the main effect is
+    real, exact, and about nobody. The data huddles at the right; the
+    empty stretch is shaded as what it is. This is the misconception's
+    dislodging picture, and no sentence needs to carry it.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>the axis extended to zero</h3>
+      <p class="sub">the bracket at x = 0 IS the sex1 coefficient; the shaded stretch holds no patients</p>
+      <canvas id="ext" width="550" height="320"></canvas>
+      <p class="cap">drawn at the interaction model; the probe's number at age 0 equals the printed +95.57</p>
+    </div>
+  </div>
+
+  <h2>§3 · Act 3 (diabetes × sex) — a candidate second tab</h2>
+  <p class="note">
+    The 2×2 version of the same lesson: the interaction is a DIFFERENCE OF
+    DIFFERENCES. Diabetes raises totChol by <b>+21.0 in women and by −0.02
+    in men</b>; the independent model's "+10.18 diabetes effect" is an
+    average of 21 and nothing, drawn as ghost marks. Cell sizes are the
+    honesty note (44 and 47 diabetics). <b>The scope question:</b> act 2
+    alone carries the misconception; this tab adds the categorical shape
+    of it (and the notebook's third section) at the cost of a second
+    scene. Act 1 (age × BMI) is proposed OUT: it is act 2's lesson again
+    with a fan of near-parallel lines in place of a crossing — the same
+    numbers with less legibility — and its one extra fact (BOTH
+    coefficients become conditional) fits in a caption.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>the 2×2 — means, arrows, and the averaged ghost</h3>
+      <p class="sub">left pair women, right pair men; solid arrows the real per-group effects, ghost the independent model's one-size answer</p>
+      <canvas id="act3" width="550" height="320"></canvas>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { N, AGE, SEX, TOTCHOL, DIABETES } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  highlight: css("--c-highlight"), unknown: css("--c-unknown"),
+  ga: css("--c-group-a"), gb: css("--c-group-b"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+const mul = (a, b) => a.map((v, i) => v * b[i]);
+
+const fInd = ols(TOTCHOL, AGE, SEX);
+const fInt = ols(TOTCHOL, AGE, SEX, mul(AGE, SEX));
+
+const Y_DOM = [140, 360];
+
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return ctx;
+}
+function frame(ctx, r, xd, yd, xl, yl) {
+  const sx = (v) => r.x + ((v - xd[0]) / (xd[1] - xd[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  if (xl) ctx.fillText(xl, r.x + r.w / 2, r.y + r.h + 26);
+  const xstep = xd[1] - xd[0] > 45 ? 10 : 5;
+  for (let v = Math.ceil(xd[0] / xstep) * xstep; v <= xd[1]; v += xstep) ctx.fillText(String(v), sx(v), r.y + r.h + 13);
+  ctx.textAlign = "right";
+  for (let v = 150; v <= 350; v += 50) ctx.fillText(String(v), r.x - 5, sy(v) + 3);
+  if (yl) { ctx.save(); ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return { sx, sy };
+}
+function dots(ctx, r, p) {
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < N; i += 1) {
+    ctx.fillStyle = SEX[i] === 0 ? C.ga : C.gb;
+    ctx.beginPath(); ctx.arc(p.sx(AGE[i]), p.sy(TOTCHOL[i]), 1.4, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.restore();
+}
+function line(ctx, p, xd, b0, b1, color, dashFrom) {
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(p.sx(xd[0]), p.sy(b0 + b1 * xd[0]));
+  ctx.lineTo(p.sx(xd[1]), p.sy(b0 + b1 * xd[1]));
+  ctx.stroke();
+}
+function sexLines(ctx, p, xd, f, withInt) {
+  const b0f = f.b[0];
+  const b1f = f.b[1];
+  const b0m = f.b[0] + f.b[2];
+  const b1m = withInt ? f.b[1] + f.b[3] : f.b[1];
+  line(ctx, p, xd, b0f, b1f, C.ga);
+  line(ctx, p, xd, b0m, b1m, C.gb);
+  ctx.font = `600 10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillStyle = C.ga;
+  ctx.fillText("sex 0", p.sx(xd[1]) - 36, p.sy(b0f + b1f * xd[1]) - 6);
+  ctx.fillStyle = C.gb;
+  ctx.fillText("sex 1", p.sx(xd[1]) - 36, p.sy(b0m + b1m * xd[1]) + 14);
+  return { b0f, b1f, b0m, b1m };
+}
+
+/* === A1 — independent ===================================================== */
+{
+  const ctx = ctx2d("a1");
+  const r = { x: 56, y: 30, w: 470, h: 240 };
+  const p = frame(ctx, r, [32, 69], Y_DOM, "age", "totChol");
+  dots(ctx, r, p);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  sexLines(ctx, p, [32, 69], fInd, false);
+  ctx.restore();
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("independent terms: one slope, a 5-unit offset — sex barely matters", r.x, r.y - 8);
+}
+/* === A2 — interaction ===================================================== */
+{
+  const ctx = ctx2d("a2");
+  const r = { x: 56, y: 30, w: 470, h: 240 };
+  const p = frame(ctx, r, [32, 69], Y_DOM, "age", "totChol");
+  dots(ctx, r, p);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  sexLines(ctx, p, [32, 69], fInt, true);
+  ctx.restore();
+  const crossAge = fInt.b[2] / -fInt.b[3];
+  ctx.strokeStyle = C.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(56 + ((crossAge - 32) / 37) * 470, r.y); ctx.lineTo(56 + ((crossAge - 32) / 37) * 470, r.y + r.h); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("interacting terms: slopes 2.29 and 0.25, crossing at age 46.9", r.x, r.y - 8);
+}
+/* === B — the probe ======================================================== */
+{
+  const ctx = ctx2d("b");
+  const r = { x: 56, y: 30, w: 470, h: 240 };
+  const p = frame(ctx, r, [32, 69], Y_DOM, "age", "totChol");
+  dots(ctx, r, p);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  const L = sexLines(ctx, p, [32, 69], fInt, true);
+  const probe = 60;
+  const yF = L.b0f + L.b1f * probe;
+  const yM = L.b0m + L.b1m * probe;
+  ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(p.sx(probe), r.y); ctx.lineTo(p.sx(probe), r.y + r.h); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(p.sx(probe), p.sy(yF)); ctx.lineTo(p.sx(probe), p.sy(yM)); ctx.stroke();
+  for (const y of [yF, yM]) {
+    ctx.beginPath(); ctx.moveTo(p.sx(probe) - 5, p.sy(y)); ctx.lineTo(p.sx(probe) + 5, p.sy(y)); ctx.stroke();
+  }
+  ctx.fillStyle = C.highlight; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText(`sex gap at ${probe}: ${fmt(yM - yF, 1)}`, p.sx(probe) + 8, p.sy((yF + yM) / 2) + 4);
+  ctx.restore();
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the probe: the “sex effect” is a function of age — read it where you like", r.x, r.y - 8);
+}
+/* === §2 — the extrapolation =============================================== */
+{
+  const ctx = ctx2d("ext");
+  const r = { x: 56, y: 30, w: 470, h: 240 };
+  const p = frame(ctx, r, [0, 69], Y_DOM, "age", "totChol");
+  /* the empty stretch, shaded */
+  ctx.fillStyle = C.grid;
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(r.x, r.y, p.sx(32) - r.x, r.h);
+  ctx.globalAlpha = 1;
+  dots(ctx, r, p);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  const L = sexLines(ctx, p, [0, 69], fInt, true);
+  /* the bracket at zero */
+  const yF0 = L.b0f;
+  const yM0 = L.b0m;
+  ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(p.sx(0) + 4, p.sy(yF0)); ctx.lineTo(p.sx(0) + 4, p.sy(yM0)); ctx.stroke();
+  for (const y of [yF0, yM0]) {
+    ctx.beginPath(); ctx.moveTo(p.sx(0), p.sy(y)); ctx.lineTo(p.sx(0) + 9, p.sy(y)); ctx.stroke();
+  }
+  ctx.fillStyle = C.highlight; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText(`+${fmt(fInt.b[2], 2)} — the printed sex1`, p.sx(0) + 12, p.sy((yF0 + yM0) / 2) + 4);
+  ctx.restore();
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+  ctx.fillText("no patients here — the youngest is 32", p.sx(16), r.y + r.h - 10);
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the main effect is the gap at age ZERO — real, exact, and about nobody", r.x, r.y - 8);
+}
+/* === §3 — act 3, the 2×2 ================================================= */
+{
+  const ctx = ctx2d("act3");
+  const r = { x: 56, y: 30, w: 470, h: 240 };
+  const yd = [225, 268];
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "right";
+  for (let v = 230; v <= 265; v += 10) ctx.fillText(String(v), r.x - 5, sy(v) + 3);
+  ctx.save(); ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("totChol (mean)", 0, 0); ctx.restore();
+
+  const cells = {};
+  for (const d of [0, 1]) for (const s of [0, 1]) {
+    const ys = TOTCHOL.filter((_, i) => DIABETES[i] === d && SEX[i] === s);
+    cells[`d${d}s${s}`] = { n: ys.length, mean: ys.reduce((a, v) => a + v, 0) / ys.length };
+  }
+  const X = { d0s0: r.x + 80, d1s0: r.x + 180, d0s1: r.x + 300, d1s1: r.x + 400 };
+  const NAME = { d0s0: "no diabetes", d1s0: "diabetes", d0s1: "no diabetes", d1s1: "diabetes" };
+  for (const k of Object.keys(X)) {
+    const col = k.endsWith("s0") ? C.ga : C.gb;
+    ctx.strokeStyle = col; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(X[k] - 26, sy(cells[k].mean)); ctx.lineTo(X[k] + 26, sy(cells[k].mean)); ctx.stroke();
+    ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+    ctx.fillText(NAME[k], X[k], r.y + r.h + 13);
+    ctx.fillStyle = C.ink3;
+    ctx.fillText(`n = ${cells[k].n}`, X[k], r.y + r.h + 26);
+    ctx.fillStyle = C.ink1; ctx.font = `600 10px ${C.font}`;
+    ctx.fillText(fmt(cells[k].mean, 1), X[k], sy(cells[k].mean) - 8);
+  }
+  /* the per-group effect arrows */
+  const arrow = (x, from, to, label) => {
+    ctx.strokeStyle = C.highlight; ctx.fillStyle = C.highlight; ctx.lineWidth = 2;
+    const big = Math.abs(sy(to) - sy(from)) > 8;
+    if (big) {
+      ctx.beginPath(); ctx.moveTo(x, sy(from)); ctx.lineTo(x, sy(to)); ctx.stroke();
+      const dir = sy(to) < sy(from) ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(x, sy(to)); ctx.lineTo(x - 4, sy(to) - dir * 6); ctx.lineTo(x + 4, sy(to) - dir * 6); ctx.fill();
+    }
+    ctx.font = `600 10px ${C.font}`; ctx.textAlign = "left";
+    /* halo, and a zero-length gap parks its label clear of the bars */
+    const ly = big ? (sy(from) + sy(to)) / 2 + 3 : sy(to) + 24;
+    ctx.strokeStyle = C.surface; ctx.lineWidth = 3;
+    ctx.strokeText(label, x + 9, ly);
+    ctx.fillStyle = C.highlight;
+    ctx.fillText(label, x + 9, ly);
+  };
+  /* the independent model's ghost answer — drawn FIRST so the arrow
+     labels' halos survive it (the +10.18 average lands exactly at the
+     women's arrow midpoint, because it IS the average) */
+  const fI = ols(TOTCHOL, DIABETES, SEX);
+  ctx.globalAlpha = 0.45;
+  for (const [k, v] of [["d1s0", fI.b[0] + fI.b[1]], ["d1s1", fI.b[0] + fI.b[1] + fI.b[2]]]) {
+    ctx.strokeStyle = C.ink2; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(X[k] - 26, sy(v)); ctx.lineTo(X[k] + 26, sy(v)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
+  arrow((X.d0s0 + X.d1s0) / 2 + 30, cells.d0s0.mean, cells.d1s0.mean, `+${fmt(cells.d1s0.mean - cells.d0s0.mean, 1)} in women`);
+  arrow((X.d0s1 + X.d1s1) / 2 + 30, cells.d0s1.mean, cells.d1s1.mean, `${fmt(cells.d1s1.mean - cells.d0s1.mean, 1)} in men`);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("dashed: the independent model's one-size +10.18, wrong in both groups", r.x + 8, r.y + 16);
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`;
+  ctx.fillText("the interaction is a difference of differences: 21.0 in women, nothing in men", r.x, r.y - 8);
+  ctx.fillStyle = C.ink2; ctx.font = `600 10px ${C.font}`; ctx.textAlign = "center";
+  ctx.fillText("women", (X.d0s0 + X.d1s0) / 2, r.y + r.h + 40);
+  ctx.fillText("men", (X.d0s1 + X.d1s1) / 2, r.y + r.h + 40);
+}
+</script>
+</body>
+</html>

@@ -58,9 +58,19 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **The next widget: `lm-interaction`** (05-04, revives the deferred
-   `interaction-effect` under the lm- slug), then `censoring-km`,
-   `pseudoreplication` — the agreed modeling-arc order. Nothing started.
+1. **Widget 30 · `lm-interaction` is MEASURED and MOCKED, awaiting
+   Kenneth's picks** — see [docs/catalogue.md](docs/catalogue.md)
+   § *NEXT · Widget 30*. `node widgets/_lab/lm-int-measure.mjs` = 33
+   checks, all six 05-04 models to the digit. The flagship is act 2
+   (age × sex on totChol): the `+`→`×` toggle splits a near-single line
+   into slopes 2.29 vs 0.25 crossing at age 46.9, and "the sex effect
+   +95.57" is the gap at age ZERO — 32 years left of the youngest
+   patient, drawn as an axis-extension reveal in the mock. The mock is
+   `_lab/lm-int-stage.html` —
+   `http://localhost:8010/widgets/_lab/lm-int-stage.html` — picks: the
+   probe (a slider bracketing the live gap), the extrapolation reveal,
+   and the acts (2 alone, or 2 + the diabetes×sex 2×2 as tabs; act 1
+   proposed out). After 30: `censoring-km`, `pseudoreplication`.
 2. **Notebook links now owed for all FOUR shipped modeling widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
