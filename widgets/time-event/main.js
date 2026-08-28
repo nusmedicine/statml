@@ -22,12 +22,15 @@
                        panel note (2.9: mechanism, never a verdict).
      Comparing groups  are the groups different? Two KM curves at n = 200,
                        censor ticks, the log-rank p, truth/bands overlays —
-                       and pick H4 moved HERE as the introduction of the
-                       hazard ratio: per-bin event rates with the dashed
-                       claim, no-disease × exp(b), ONE number at every
-                       time. It sat beside the 12-covariate forest before,
-                       where its marginal HR contradicted the forest's
-                       adjusted row on the same card.
+                       and the hazard BY INTERVAL below, in tab 1's own
+                       vocabulary (h = events ÷ at risk, per group, 2-year
+                       bins) drawn with the curve's own sx so the axes
+                       cannot disagree. Round 5 replaced pick H4 here: the
+                       person-time rates, dashed ×HR claim boxes and
+                       per-bin ratio labels were three new ideas at once
+                       and confused Kenneth's own review ("what are the
+                       bars? the x axis is not aligned"). The hazard ratio
+                       survives as one computed sentence and the tile.
      Finding factors   which factors are associated with the hazard? The
                        cohort named on screen, the group curves kept in
                        view (Play still has something to sweep), and the
@@ -92,11 +95,12 @@ const HAZ_Y = CURVE1_Y + CURVE1_H + 78;
 const HAZ_H = 80;
 const PAT_HEIGHT = HAZ_Y + HAZ_H + 48;
 
-/* Comparing groups tab: the curves, then the hazard-ratio section (pick H4) */
+/* Comparing groups tab: the curves, then the interval-hazard panel on the
+   SAME time axis (round 5 — tab 1's stacked-panels-share-an-axis contract) */
 const KM2_Y = 30;
 const KM2_H = 230;
 const HR_TOP = KM2_Y + KM2_H + 56;
-const HR_HEAD = 36;
+const HR_HEAD = 50; // title, the claim line beside the formula chip, the HR line
 const HR_H = 130;
 const GRP_HEIGHT = HR_TOP + HR_HEAD + HR_H + 74;
 
@@ -114,10 +118,6 @@ const forestTop = () => CARD_TOP + CARD_HEAD;
 const FACT_HEIGHT = (snps) =>
   forestTop() + 2 * ROW_BIG + (snps ? 10 * ROW_SNP : ROW_SNP) + 34 + 40;
 
-/* H4's bins: [10,16) only — [6,10) has zero baseline events on clean seeds
-   and [16,20) ~0 person-time in the disease arm (measured; catalogue). */
-const H4_BINS = [[10, 12], [12, 14], [14, 16]];
-
 /* S(t) read off a km() step list. */
 function readS(steps, t) {
   let S = 1;
@@ -128,16 +128,18 @@ function readS(steps, t) {
   return S;
 }
 
-/* events per person-time in [lo, hi) — the rate the hazard-ratio bars carry */
-function binRate(times, status, lo, hi) {
-  let d = 0;
-  let pt = 0;
+/* interval hazard in [lo, hi) — TAB 1'S OWN QUANTITY, h = events ÷ at risk
+   at the interval's start. One hazard definition, met twice (round 5). */
+function intervalHaz(times, status, lo, hi) {
+  let n = 0;
+  let ev = 0;
   for (let i = 0; i < times.length; i += 1) {
-    const t = times[i];
-    if (t >= lo && t < hi && status[i] === 1) d += 1;
-    if (t >= lo) pt += Math.min(t, hi) - lo;
+    if (times[i] >= lo) {
+      n += 1;
+      if (status[i] === 1 && times[i] < hi) ev += 1;
+    }
   }
-  return pt > 0 ? d / pt : NaN;
+  return { n, ev, h: n ? ev / n : NaN };
 }
 
 /* the three readings of one dataset — what the `censored` control chooses */
@@ -312,12 +314,25 @@ defineWidget({
       return {
         kept: km(t, s),
         truth: km(tt, tt.map(() => 1)),
-        rates: H4_BINS.map(([lo, hi]) => binRate(t, s, lo, hi)),
+        times: t,
+        status: s,
         n: t.length,
       };
     };
     const groups = [per(0), per(1)];
     const lr = logrank(sim.time, sim.status, sim.disease);
+
+    /* the groups tab's hazard panel: 2-year intervals on the curve's own
+       axis, stopping once EITHER group has fewer than 10 at risk — past
+       that the bars are denominators of 5 and 2, i.e. noise (measured;
+       catalogue round 5) */
+    const hazBins = [];
+    for (let lo = 0; lo < 20; lo += 2) {
+      const b0 = intervalHaz(groups[0].times, groups[0].status, lo, lo + 2);
+      const b1 = intervalHaz(groups[1].times, groups[1].status, lo, lo + 2);
+      if (b0.n < 10 || b1.n < 10) break;
+      hazBins.push({ lo, hi: lo + 2, h0: b0.h, h1: b1.h, ev0: b0.ev, ev1: b1.ev });
+    }
 
     /* Every pill combination is fit here, once per data change, so a pill
        click (display) costs nothing and an ease always has its target. */
@@ -364,6 +379,7 @@ defineWidget({
     return {
       five,
       groups,
+      hazBins,
       lr,
       fits,
       stepTimes,
@@ -844,56 +860,69 @@ function drawGroups(ctx, colors, w, params, state, t) {
   drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
   drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
 
-  /* pick H4, moved here from the Cox card: the hazard ratio INTRODUCED as
-     what it claims — one number scaling the event rate in every interval.
-     The HR is the disease-only model's, the same comparison the two curves
-     make; beside the 12-covariate forest its marginal number contradicted
-     the adjusted row on the same card. */
+  /* THE HAZARD BY INTERVAL (round 5, replacing the H4 rates panel on
+     Kenneth's review — "what are the bars? the x axis is not aligned").
+     Tab 1's own quantity, h = events ÷ at risk, per group per 2-year
+     interval, drawn with THE CURVE'S OWN sx SO THE AXES CANNOT DISAGREE —
+     the stacked-panels-share-an-axis contract tab 1 established. The
+     person-time rates, the dashed ×HR claim boxes and the per-bin ratio
+     labels are gone: three simultaneous new ideas that confused more than
+     they taught. The hazard ratio survives as one sentence and the tile. */
   const HR = state.fits.d.byName.disease.hr;
+  const bins = state.hazBins;
+  const allAbove = bins.every((b) => b.ev0 + b.ev1 === 0 || b.h1 >= b.h0);
   ctx.save();
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = colors.ink2;
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillText("The hazard ratio", left, HR_TOP);
+  ctx.fillText("Hazard by interval — of those still at risk, the share who go now", left, HR_TOP);
   ctx.font = `${colors.fsXs} ${colors.font}`;
+  /* the claim is COMPUTED from the drawn bins, so it cannot be false on
+     a seed where an interval flips */
+  ctx.fillText(
+    `disease sits above no-disease in ${allAbove ? "every interval" : "most intervals"}`,
+    left,
+    HR_TOP + 16,
+  );
   ctx.fillStyle = colors.ink3;
-  ctx.fillText("event rates per year at risk, by interval — the dashed claim is the no-disease rate", left, HR_TOP + 16);
-  ctx.fillText(`× ${fmt(HR, 2)}: one number, at every time. Cox regression estimates this number.`, left, HR_TOP + 30);
+  ctx.textAlign = "right";
+  ctx.fillText("h = events ÷ at risk", right, HR_TOP + 16);
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText(`Cox regression summarizes the ratio as one number: HR = ${fmt(HR, 2)}`, left, HR_TOP + 32);
 
-  const rates0 = state.groups[0].rates;
-  const rates1 = state.groups[1].rates;
-  const rMax = Math.max(...rates1, ...rates0.map((r) => r * HR)) * 1.2;
-  const bTop = HR_TOP + HR_HEAD + 14;
-  const bx = (v) => left + 30 + ((v - 10) / 6) * (right - left - 30);
-  const by = (r) => bTop + HR_H - (r / rMax) * HR_H;
+  const bTop = HR_TOP + HR_HEAD + 8;
+  const by = (v) => bTop + HR_H - v * HR_H;
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(bx(10), by(0));
-  ctx.lineTo(bx(16), by(0));
-  ctx.stroke();
-  ctx.fillStyle = colors.ink3;
+  for (const v of [0, 0.5, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(left, by(v));
+    ctx.lineTo(right, by(v));
+    ctx.stroke();
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "right";
+    ctx.fillText(fmt(v, 1), left - 6, by(v) + 3);
+  }
   ctx.textAlign = "center";
-  for (const v of [10, 12, 14, 16]) ctx.fillText(String(v), bx(v), by(0) + 14);
-  ctx.fillText("time (years)", (bx(10) + bx(16)) / 2, by(0) + 28);
-  H4_BINS.forEach(([lo, hi], k) => {
-    const bw = Math.min(44, (bx(hi) - bx(lo)) / 2 - 10);
-    const x0 = (bx(lo) + bx(hi)) / 2 - bw - 4;
-    const x1 = (bx(lo) + bx(hi)) / 2 + 4;
+  for (const v of [0, 5, 10, 15, 20]) ctx.fillText(String(v), plot.sx(v), by(0) + 14);
+  for (const b of bins) {
+    const w2 = plot.sx(b.hi) - plot.sx(b.lo);
+    const bw = Math.min(18, w2 / 2 - 4);
+    const mid = (plot.sx(b.lo) + plot.sx(b.hi)) / 2;
     ctx.fillStyle = colors.groupA;
-    ctx.fillRect(x0, by(rates0[k]), bw, by(0) - by(rates0[k]));
+    ctx.fillRect(mid - bw - 2, by(b.h0), bw, by(0) - by(b.h0));
     ctx.fillStyle = colors.groupB;
-    ctx.fillRect(x1, by(rates1[k]), bw, by(0) - by(rates1[k]));
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.strokeRect(x1, by(rates0[k] * HR), bw, by(0) - by(rates0[k] * HR));
-    ctx.setLineDash([]);
-    ctx.fillStyle = colors.ink2;
-    ctx.textAlign = "center";
-    ctx.fillText(`×${fmt(rates1[k] / rates0[k], 1)}`, x1 + bw / 2, by(Math.max(rates1[k], rates0[k] * HR)) - 6);
-  });
+    ctx.fillRect(mid + 2, by(b.h1), bw, by(0) - by(b.h1));
+  }
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "left";
+  ctx.fillText(
+    `intervals end at ${bins.length ? bins[bins.length - 1].hi : 0} years — beyond, fewer than 10 remain at risk in a group`,
+    left,
+    by(0) + 28,
+  );
   ctx.restore();
 }
 

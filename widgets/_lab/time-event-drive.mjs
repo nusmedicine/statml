@@ -87,8 +87,11 @@ ck("...and all seven null SNPs quiet",
   [4, 5, 6, 7, 8, 9, 10].every((j) => full[`snp${j}`].p >= 0.05));
 ck("the groups tab's HR is the disease-only model's",
   Number.isFinite(state.fits.d.byName.disease.hr) && state.fits.d.members.length === 1);
-ck("H4 rates are finite in all three bins, both groups",
-  state.groups.every((g) => g.rates.every(Number.isFinite)));
+ck("hazard bins exist and every drawn bin has both groups at 10+ at risk",
+  state.hazBins.length >= 4 && state.hazBins.every((b) => Number.isFinite(b.h0) && Number.isFinite(b.h1)));
+ck("disease at or above no-disease in every drawn bin (default seed)",
+  state.hazBins.every((b) => b.ev0 + b.ev1 === 0 || b.h1 >= b.h0));
+ck("the bins stop by 20 years", state.hazBins[state.hazBins.length - 1].hi <= 20);
 ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",
   state.tEnd.groups === Math.max(...state.stepTimes.groups));

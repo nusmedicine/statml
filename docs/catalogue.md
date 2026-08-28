@@ -3216,6 +3216,40 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 5 — the groups tab's hazard panel rebuilt; the H4 pick unwound
+
+**Kenneth's review of Comparing groups: "what are the bars? the x axis is
+not aligned to the curve? i am confused what this means."** The diagnosis:
+three failures at once. The bars panel sat under the curve in the visual
+language of a shared time axis while spanning [10,16] against the curve's
+[0,22] — breaking the stacked-panels-share-an-axis contract tab 1 itself
+established; the bars were person-time RATES, a quantity defined nowhere
+else in the widget, silently switching hazard definitions one tab after
+h = events ÷ at risk was taught; and four numbers stood in tension (the
+×3.36 claim, per-bin ×6.4/×3.1/×1.7 observed ratios, dashed boxes, solid
+bars). **Pick H4 is UNWOUND on this review** — the drawn proportionality
+claim confused more than it taught, and the record shows why.
+
+Built as option C: **the hazard by interval, in tab 1's own vocabulary, on
+the curve's own axis.** h = events ÷ at risk per 2-year interval, paired
+group-colour bars, drawn with the KM plot's own `sx` so the axes CANNOT
+disagree; the same title gloss and the same `h = events ÷ at risk` chip as
+tab 1 — one hazard definition, met twice, and the bars rise exactly under
+the stretch where the curves fall apart. Bins stop once either group has
+fewer than 10 at risk (seed 3: at 16 years — beyond, denominators of 5 and
+2 are noise; the cut is measured, catalogue round-2 planning, and named in
+a note under the panel). The hazard ratio survives as the tile and ONE
+sentence, and **the "disease sits above no-disease in every interval"
+claim is computed from the drawn bins** — on a seed where an interval
+flips, it prints "most intervals" instead, so the screen cannot carry a
+false claim (the widget-15 first-press incident class). Rejected
+alternatives recorded: aligning the rates panel (cures one failure of
+three), and cutting the bars entirely (tab 2 loses its mechanism picture).
+
+Verified: fillText sweep at 550px, 0 overruns, 0 same-row collisions; the
+five header/note strings read exactly; no console errors; drive updated —
+hazard-bin assertions replace the rate ones, 61 checks green.
+
 ### Round 4 — the implication, the formula, and the control's names
 
 **Kenneth's second Censoring-tab pass asked for the implication (does the
