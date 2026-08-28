@@ -3394,6 +3394,68 @@ which was the same cloud without the arithmetic; the honesty note
 click region; the DAG goes 4-node whenever weight is in the model or the
 tab is Collinearity; the strip is full-width on every tab.
 
+### ROUND 8 — Fit and Adjust merge into MODEL
+
+**Kenneth's question — the Fit tab's band families already show "held
+constant", so how is Adjust different? — was the seam failing a second
+time**, and the answer (researched, mocked in `_lab/lm-adjust5.html`,
+adversarially argued both ways) is that it cannot be drawn: **a band
+family IS the adjusted slope drawn**, so fitting and adjusting are one
+act seen in two spaces, and any seam between them leaks. Round 5 had
+already moved the table off Fit to stop the same overlap and invented
+fit-quality bars to fill the hole (which duplicated the R²/spread
+tiles) — two rounds of patching plus his own proposed fix (Adjust keeps
+both marginals, making Adjust a superset and Fit vestigial) is the
+evidence the seam was misplaced, not mis-drawn. The measured constraint
+that sorts the pieces: the 1.72 → 1.50 move is 1.8–3.1px in data space,
+so ONLY the forest can carry it, while the panels carry the conditional
+reading. The literature agrees on co-location: the 3D-confounding study
+(PMC1192815) got its gains from LINKING the crude/confounder/adjusted
+projections, not from 3D; Westreich & Greenland's Table 2 fallacy lives
+in the coefficient table read against a DAG; visreg/ggPredict treat the
+band family as the display of ONE model and the added-variable plot as
+what adjustment did. 05-02 itself has no page break between fitting and
+adjusting. Considered and killed in the mock's §4: stratified scatter
+(same 2–3px measurement), two slopes on one panel (dead since planning),
+3D (round 3's ruling stands), Venn (breaks under suppression).
+
+**Kenneth picked M merged, WITH the table, with the FWL view.** Built
+the same day:
+
+- **The Concept strip is two tabs — Model · Collinearity** (`concept`
+  values `model`/`collinear`; old `fit`/`adjust` URLs fall to the
+  default). One page, both spaces: a pill click fans the band families,
+  eases the forest mark off its ghost, moves the tiles, tightens the
+  strip — everything at once, on one screen. Staging is the empty start
+  and the pills, not tabs.
+- **The forest sits beside the DAG on BOTH tabs; the fit-quality bars
+  are deleted** (they duplicated the tiles — invented in round 5 only to
+  give Fit something to own, which was itself the tell).
+- **The three-model table is a full-width row under the marginals**,
+  transposed to models-as-rows (`~ BMI` · `~ age` · `~ BMI + age`
+  against b(BMI) / b(age) / R²) so a formula label survives every stage
+  width; the current model's row is outlined when it is one of the
+  three. A model holding weight has no row — its story is the forest's
+  and the Collinearity tab's. The merge's price is height: 778 (858
+  with weight in), against the old 608.
+- **The FWL slide rides on BOTH panels** (View: Data · Other removed):
+  each covariate and sysBP with the OTHER regressed out, each residual
+  slope exactly its adjusted coefficient — 1.50 left, 0.84 right; the
+  old Adjust showed the why for BMI only. Both y-axes are labelled in
+  residual space (they no longer share a variable). The slide is
+  guarded to the exact BMI + age model; otherwise the panel notes what
+  to change ("put BMI and age in the model…" / "…take weight out").
+  New right-panel window measured: age|BMI spans −18.4..20.9 →
+  `R2X_DOM [-20, 22]`; sysBP|BMI shares RY_DOM.
+- Collinearity is untouched (its <2-covariate fallback scatter was
+  inlined into draw() when the old shared branch dissolved).
+- Verified: canvas text sweep clean (no NaN; annotation, table, both
+  residual axis pairs all painted), forest/table numbers read 1.72/0.92
+  ghosts and 1.50/0.84/0.22 current, heights exact (778/858), no
+  console errors, `npm run check` green. One blemish caught on screen:
+  the table title sat 8px under the panels' x-axis labels at +40; the
+  gap is +56 now.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;

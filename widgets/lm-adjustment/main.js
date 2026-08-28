@@ -8,22 +8,31 @@
    (`_lab/lm-adjust-measure.mjs`, 21 checks): as two slopes that move is
    1.8–3.1px, so the COEFFICIENT IS A MARK on a fixed axis, where it is ~37px.
 
-   ROUND 3 RESHAPED THE WIDGET AROUND A CONCEPT STRIP (Kenneth's pick over
-   one dense page): a segmented control stages ONE idea at a time while the
-   reader's model — the two covariate PILLS, and the DAG whose covariate
-   nodes are click targets — persists across every tab.
+   ROUND 3 built a three-tab CONCEPT strip (Fit · Adjust · Collinearity).
+   ROUND 8 MERGED FIT AND ADJUST (mocked in _lab/lm-adjust5.html; Kenneth's
+   pick, with the table, with the FWL view). The seam between them failed
+   twice — round 5 moved the table off Fit to stop an overlap, round 7's
+   band families recreated it — because a band family IS the adjusted
+   slope, drawn: fitting and adjusting are one act seen in two spaces. The
+   move 1.72 → 1.50 is 1.8–3.1px in data space (measured), so only the
+   forest can carry it; the panels carry the conditional reading; one page
+   holds both, and a pill click moves everything at once. The fit-quality
+   bars died with the merge — they duplicated the R² and spread tiles. The
+   reader's model — the covariate PILLS, and the DAG whose covariate nodes
+   are click targets — persists across both tabs.
 
-     Fit the model    scatter + the model drawn as a FAMILY OF LINES (two
-                      covariates fit a plane; over BMI the plane is parallel
-                      lines, one per age) + the three-model table, the
-                      notebook's own closer, current column marked
-     Adjust           the forest — eased marks with the alone-reading as a
-                      faint ghost — and the FWL slide (widget 26's motion):
-                      age removed from both axes, the residual slope IS the
-                      adjusted 1.499, drawn only where FWL is exact
-     Collinearity     the twin act: jitter(BMI, 3) SEEDED (the notebook's own
-                      cell is unseeded), the twins splitting one effect,
-                      CIs ×2.5, VIF bars against the dashed 5
+     Model            DAG + the forest (eased marks, the alone-reading as
+                      a ghost, the move annotated) · both marginals, the
+                      model as a FAMILY OF LINES (the plane seen from each
+                      side) · the three-model table, the notebook's own
+                      closer · View: the FWL slide on BOTH panels (widget
+                      26's motion) — each covariate and sysBP with the
+                      OTHER removed; each residual slope IS its adjusted
+                      coefficient, drawn only where FWL is exact
+     Collinearity     the twin act: weight simulated from BMI (seeded; the
+                      notebook's own cell is unseeded), the twins splitting
+                      one effect, CIs ×2.5, VIF drawn as prediction-from-
+                      the-others, bars against the dashed 5
 
    The residual strip (widget 27's) rides under the scatter in every tab.
    The DAG draws the age–BMI link as a dashed double-headed ASSOCIATION
@@ -90,12 +99,25 @@ const STRIP_H = 78;
    x-axis (the strip's is fitted sysBP, a different variable), so the scatter
    keeps its own BMI axis and the gap holds it. */
 const STRIP_GAP = 44;
-const HEIGHT = (wide) => scatterTop(wide) + SCATTER_H + STRIP_GAP + STRIP_H + 60;
+/* The Model tab stacks a fourth row — the three-model table — between the
+   marginals and the strip; Collinearity keeps the three-row stack. Every
+   top is derived from the row above, so nothing is counted twice. */
+const TABLE_H = 104;
+/* +56, not +40: the panels' x-axis labels reach ~48px below the frame, and
+   at +40 the table's title sat 8px under them — caught on screen */
+const tableTop = (wide) => scatterTop(wide) + SCATTER_H + 56;
+const stripTop = (concept, wide) => (concept === "model"
+  ? tableTop(wide) + TABLE_H + 24
+  : scatterTop(wide) + SCATTER_H + STRIP_GAP);
+const HEIGHT = (concept, wide) => stripTop(concept, wide) + STRIP_H + 60;
 
 const X_DOM = [14, 58];
 const Y_DOM = [80, 300];
 const RX_DOM = [-12, 26];
 const RY_DOM = [-70, 120];
+/* the right panel's FWL window, measured: age|BMI spans −18.4..20.9, and
+   sysBP|BMI spans the same window as sysBP|age, so RY_DOM serves both */
+const R2X_DOM = [-20, 22];
 const FIT_DOM = [90, 200];
 const RES_DOM = [-50, 70];
 
@@ -223,21 +245,21 @@ defineWidget({
     "coefficient is not a property of the variable — it is a property of " +
     "the model it sits in, and it moves when the model changes.",
   layout: "side",
-  height: ({ concept, weight }) => HEIGHT(concept === "collinear" || Boolean(weight)),
+  height: ({ concept, weight }) => HEIGHT(concept, concept === "collinear" || Boolean(weight)),
 
   params: {
-    /* THE CONCEPT STRIP — one idea per tab, staged; the reader's model (the
-       pills, the DAG) persists underneath. All display: the fits are all
-       computed regardless, and a tab change must never reset an ease. */
+    /* THE CONCEPT STRIP — round 8 merged Fit and Adjust into Model (they
+       were one act split over two tabs); the reader's model (the pills,
+       the DAG) persists underneath. All display: the fits are all computed
+       regardless, and a tab change must never reset an ease. */
     concept: {
       type: "segmented",
       label: "Concept",
       options: [
-        { value: "fit", label: "Fit", detail: "two covariates fit a plane — drawn as a family of lines" },
-        { value: "adjust", label: "Adjust", detail: "each coefficient moves when the model changes" },
+        { value: "model", label: "Model", detail: "covariates fit a plane, and each coefficient is read with the others held constant" },
         { value: "collinear", label: "Collinearity", detail: "add weight beside BMI — two covariates, one piece of information" },
       ],
-      default: "fit",
+      default: "model",
       display: true,
     },
 
@@ -269,20 +291,22 @@ defineWidget({
       when: { param: "concept", equals: "collinear" },
     },
 
-    /* WHERE THE ADJUSTED NUMBER COMES FROM — widget 26's added-variable
-       view. Lives on the Adjust tab; its slide is guarded to age being in
-       the model (retarget), and the caption says what to add when it is
-       not. */
+    /* WHERE THE ADJUSTED NUMBERS COME FROM — widget 26's added-variable
+       view, on BOTH panels at once (round 8): each covariate and sysBP
+       with the OTHER covariate regressed out, so each residual slope IS
+       its adjusted coefficient. Exact only for the two-covariate model,
+       which is why retarget guards the slide to exactly BMI + age; the
+       panel note names the missing ingredient otherwise. */
     view: {
       type: "segmented",
       label: "View",
       options: [
         { value: "data", label: "Data", detail: "the measurements as recorded" },
-        { value: "resid", label: "Age removed", detail: "what age explains is taken out of both axes" },
+        { value: "resid", label: "Other removed", detail: "what the other covariate explains is taken out of both axes" },
       ],
       default: "data",
       display: true,
-      when: { param: "concept", equals: "adjust" },
+      when: { param: "concept", equals: "model" },
     },
 
     /* Weight needs no gate: the Collinearity tab IS the act — entering it
@@ -347,6 +371,8 @@ defineWidget({
       meanWgt: meanOf(wgt),
       rx: residOn(BMI, AGE),
       ry: residOn(SYSBP, AGE),
+      rx2: residOn(AGE, BMI),
+      ry2: residOn(SYSBP, BMI),
       /* VIFs for every ≥2-covariate model, keyed like the fits — the
          Collinearity tab's bars work for ANY composition, so bmi + age's
          quiet ~1.02 pair is on screen too, the contrast that makes 7.7
@@ -511,10 +537,11 @@ defineWidget({
     }
     ctx.restore();
 
-    /* --- right of the DAG: fit-quality bars (Fit) or the forest -------- */
+    /* --- right of the DAG: the forest, both tabs (round 8 — the merge
+       put the coefficient axis on the Model tab; the fit-quality bars it
+       displaced duplicated the R² and spread tiles and are gone) -------- */
     const rp = { x: d.x + DAG_W + 40, y: 30, w: w - (d.x + DAG_W + 40) - 14 };
-    if (concept === "fit") drawFitBars(ctx, colors, rp, state, key);
-    else drawForest(ctx, colors, { ...rp, h: 34 + F_ROW * (twinOn ? 3 : 2) }, params, state, anim, twinOn);
+    drawForest(ctx, colors, { ...rp, h: 34 + F_ROW * (twinOn ? 3 : 2) }, params, state, anim, twinOn);
 
     /* --- the scatter row ----------------------------------------------- */
     const sTop = scatterTop(wide);
@@ -522,109 +549,62 @@ defineWidget({
     const rect = {
       x: 56,
       y: sTop,
-      w: concept === "adjust" || (concept === "collinear" && vifRows)
-        ? Math.round((w - 70) * 0.55)
-        : w - 56 - 14,
+      w: concept === "collinear" && vifRows ? Math.round((w - 70) * 0.55) : w - 56 - 14,
       h: SCATTER_H,
     };
 
-    if (concept === "fit") {
+    if (concept === "model") {
       /* Round 7, Kenneth's pick A: BOTH marginals at once — 05-02's own
-         ggpairs move. Each panel carries the model's reading of its
-         covariate, the other members held at bands (three lines) or at
-         their means. */
-      drawMarginals(ctx, colors, { x: 56, y: sTop, w: w - 70, h: SCATTER_H }, params, state, fit, key, twinOn);
-    } else if (concept === "collinear" && vifRows) {
+         ggpairs move — now carrying the FWL slide on both panels. */
+      drawMarginals(ctx, colors, { x: 56, y: sTop, w: w - 70, h: SCATTER_H },
+        params, state, fit, key, twinOn, anim?.vmix ?? 0);
+    } else if (vifRows) {
       /* VIF, drawn instead of defined: the largest-VIF covariate against
          what the others predict for it. The old twins-vs-each-other panel
          is this same cloud with the arithmetic attached. */
       drawPredPanel(ctx, colors, rect, state, key);
     } else {
-    const vmix = concept === "adjust" ? anim?.vmix ?? 0 : 0;
-    const plotD = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
-    const plotR = makePlot({ ctx, colors, rect, xDomain: RX_DOM, yDomain: RY_DOM });
-    const inResid = vmix >= 0.5;
-    const front = inResid ? plotR : plotD;
-    if (inResid) {
-      front.axisX({ label: "BMI — age removed" });
-      front.axisY({ label: "sysBP — age removed" });
-      front.caption("what age does not explain");
-    } else {
-      front.axisX({ label: "BMI" });
-      front.axisY({ label: "sysBP (mmHg)" });
-      front.caption(key === "" ? "3547 patients — no model yet" : "the data, and the model's line");
-      if (concept === "adjust" && !(params.bmi && params.age)) {
-        front.note("put BMI and age in the model to watch a coefficient move");
-      } else if (concept === "collinear") {
-        front.note("put two covariates in the model to talk about collinearity");
+      /* Collinearity with fewer than two covariates: the plain scatter,
+         the model's line, and the note naming the missing ingredient. */
+      const plotD = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
+      plotD.axisX({ label: "BMI" });
+      plotD.axisY({ label: "sysBP (mmHg)" });
+      plotD.caption(key === "" ? "3547 patients — no model yet" : "the data, and the model's line");
+      plotD.note("put two covariates in the model to talk about collinearity");
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rect.x, rect.y, rect.w, rect.h);
+      ctx.clip();
+      ctx.fillStyle = colors.unknown;
+      ctx.globalAlpha = 0.4;
+      for (let i = 0; i < N; i += 1) {
+        ctx.beginPath();
+        ctx.arc(plotD.sx(BMI[i]), plotD.sy(SYSBP[i]), 1.7, 0, 2 * Math.PI);
+        ctx.fill();
       }
-    }
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(rect.x, rect.y, rect.w, rect.h);
-    ctx.clip();
-    if (vmix > 0.004) {
-      ctx.strokeStyle = colors.ink3;
-      ctx.globalAlpha = vmix * 0.5;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(rect.x, plotR.sy(0));
-      ctx.lineTo(rect.x + rect.w, plotR.sy(0));
-      ctx.moveTo(plotR.sx(0), rect.y);
-      ctx.lineTo(plotR.sx(0), rect.y + rect.h);
-      ctx.stroke();
       ctx.globalAlpha = 1;
-    }
-    ctx.fillStyle = colors.unknown;
-    ctx.globalAlpha = 0.4;
-    for (let i = 0; i < N; i += 1) {
-      const px = plotD.sx(BMI[i]) + (plotR.sx(state.rx[i]) - plotD.sx(BMI[i])) * vmix;
-      const py = plotD.sy(SYSBP[i]) + (plotR.sy(state.ry[i]) - plotD.sy(SYSBP[i])) * vmix;
-      ctx.beginPath();
-      ctx.arc(px, py, 1.7, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    const lineAt = (b0, b1, alpha, width) => {
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = colors.highlight;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(plotD.sx(X_DOM[0]), plotD.sy(b0 + b1 * X_DOM[0]));
-      ctx.lineTo(plotD.sx(X_DOM[1]), plotD.sy(b0 + b1 * X_DOM[1]));
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    };
-
-    if (vmix < 0.996 && key !== "") {
-      const slope = params.bmi ? fit.coefs.bmi.b : 0;
-      const b0 = fit.b0
-        + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
-        + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
-      lineAt(b0, slope, 1 - vmix, 2.5);
-    }
-    if (vmix > 0.004 && key === "ba") {
-      ctx.globalAlpha = vmix;
-      ctx.strokeStyle = colors.highlight;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(plotR.sx(RX_DOM[0]), plotR.sy(state.fits.ba.coefs.bmi.b * RX_DOM[0]));
-      ctx.lineTo(plotR.sx(RX_DOM[1]), plotR.sy(state.fits.ba.coefs.bmi.b * RX_DOM[1]));
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-    ctx.restore();
+      if (key !== "") {
+        const slope = params.bmi ? fit.coefs.bmi.b : 0;
+        const b0 = fit.b0
+          + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
+          + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
+        ctx.strokeStyle = colors.highlight;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(plotD.sx(X_DOM[0]), plotD.sy(b0 + slope * X_DOM[0]));
+        ctx.lineTo(plotD.sx(X_DOM[1]), plotD.sy(b0 + slope * X_DOM[1]));
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
-    /* --- beside the scatter: the three-model table (Adjust tab) -------- */
-    if (concept === "adjust") {
-      drawTable(ctx, colors, { x: rect.x + rect.w + 50, y: sTop, w: w - (rect.x + rect.w + 50) - 14 }, state, key);
+    /* --- the three-model table, full width (Model tab) ------------------ */
+    if (concept === "model") {
+      drawTable(ctx, colors, { x: 56, y: tableTop(wide), w: w - 70 }, state, key);
     }
 
     /* --- the residual strip, every tab, full width --------------------- */
-    const strip = { x: 56, y: sTop + SCATTER_H + STRIP_GAP, w: w - 70, h: STRIP_H };
+    const strip = { x: 56, y: stripTop(concept, wide), w: w - 70, h: STRIP_H };
     const rplot = makePlot({ ctx, colors, rect: strip, xDomain: FIT_DOM, yDomain: RES_DOM });
     rplot.axisX({ label: "fitted sysBP" });
     rplot.axisY({ label: "residual", ticks: [-40, 0, 40] });
@@ -733,7 +713,7 @@ defineWidget({
   },
 });
 
-/* --- the forest (Adjust and Collinearity tabs) --------------------------- */
+/* --- the forest (both tabs — round 8 put it beside the DAG everywhere) --- */
 function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
   const fx = (v) => frect.x + ((v - FOREST_DOM[0]) / (FOREST_DOM[1] - FOREST_DOM[0])) * frect.w;
   ctx.strokeStyle = colors.grid;
@@ -846,156 +826,168 @@ function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
   });
 }
 
-/* --- the three-model table (Adjust tab, beside the scatter) --------------
-   The notebook's own closer, compacted to its side slot (round 5 moved it
-   here from Fit: it is a COMPARISON, and it was spoiling Adjust's
-   punchline). Short headers because the slot is ~160px at the side canvas;
-   the Intercept row is dropped — the forest carries no intercept either. */
+/* --- the three-model table, full width (Model tab) -----------------------
+   The notebook's own closer — the literal "Table 2" the fallacy is named
+   after. Round 8 transposed it to models-as-rows and gave it its own
+   full-width row under the marginals (the merge's price, ~120px of
+   height, drawn and accepted in _lab/lm-adjust5.html): a formula label
+   reads at every stage width where three formula COLUMN heads did not.
+   The current model's row is outlined when it is one of the three; a
+   model holding weight has no row here — its story is the forest's and
+   the Collinearity tab's. */
 function drawTable(ctx, colors, rp, state, key) {
   const F = state.fits;
-  const cols = [
-    { key: "b", head: "~BMI", cells: [F.b.coefs.bmi.b, null, F.b.r2] },
-    { key: "a", head: "~age", cells: [null, F.a.coefs.age.b, F.a.r2] },
-    { key: "ba", head: "+both", cells: [F.ba.coefs.bmi.b, F.ba.coefs.age.b, F.ba.r2] },
+  const rows = [
+    { key: "b", label: "~ BMI", cells: [F.b.coefs.bmi.b, null, F.b.r2] },
+    { key: "a", label: "~ age", cells: [null, F.a.coefs.age.b, F.a.r2] },
+    { key: "ba", label: "~ BMI + age", cells: [F.ba.coefs.bmi.b, F.ba.coefs.age.b, F.ba.r2] },
   ];
-  const rows = ["BMI", "age", "R²"];
-  const labW = 34;
-  const colW = (rp.w - labW) / cols.length;
-  const rowH = 28;
-  const top = rp.y + 24;
+  const heads = ["b(BMI)", "b(age)", "R²"];
+  const labW = Math.min(120, Math.round(rp.w * 0.34));
+  const colW = (rp.w - labW) / heads.length;
+  const rowH = 22;
+  const top = rp.y + 14;
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillText("Three models", rp.x, rp.y + 2);
+  ctx.fillText("Three models of sysBP", rp.x, rp.y);
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  cols.forEach((c, j) => {
-    const cx = rp.x + labW + j * colW + colW / 2;
+  heads.forEach((hd, j) => {
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "center";
-    ctx.fillText(c.head, cx, top + 12);
+    ctx.fillText(hd, rp.x + labW + j * colW + colW / 2, top + 12);
   });
   rows.forEach((r, i) => {
-    const ry = top + 34 + i * rowH;
-    ctx.fillStyle = colors.ink2;
-    ctx.textAlign = "left";
-    ctx.fillText(r, rp.x, ry);
+    const ry = top + 30 + i * rowH;
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(rp.x, ry - rowH + 11);
-    ctx.lineTo(rp.x + rp.w, ry - rowH + 11);
+    ctx.moveTo(rp.x, ry - rowH + 7);
+    ctx.lineTo(rp.x + rp.w, ry - rowH + 7);
     ctx.stroke();
-    cols.forEach((c, j) => {
-      const cx = rp.x + labW + j * colW + colW / 2;
-      const v = c.cells[i];
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "left";
+    ctx.fillText(r.label, rp.x + 4, ry);
+    r.cells.forEach((v, j) => {
       ctx.fillStyle = colors.ink1;
       ctx.textAlign = "center";
-      ctx.fillText(v === null ? "—" : fmt(v, 2), cx, ry);
+      ctx.fillText(v === null ? "—" : fmt(v, 2), rp.x + labW + j * colW + colW / 2, ry);
     });
+    if (r.key === key) {
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(rp.x, ry - rowH + 7, rp.w, rowH);
+    }
   });
-  const j = cols.findIndex((c) => c.key === key);
-  if (j >= 0) {
-    ctx.strokeStyle = colors.highlight;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(rp.x + labW + j * colW + 3, top + 2, colW - 6, 34 + rows.length * rowH - 24);
-  }
 }
 
-/* --- fit-quality bars (Fit tab, beside the DAG) --------------------------
-   What fitting OWNS once the table left for Adjust: R², and the residual
-   spread against the no-model 21.1 — the two tiles' numbers as pictures,
-   moving as covariates enter. */
-function drawFitBars(ctx, colors, rp, state, key) {
-  const fit = state.fits[key];
-  const sd0 = state.fits[""].sd;
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = colors.ink2;
-  ctx.textAlign = "left";
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillText("How well this model fits", rp.x, rp.y + 2);
-  const bar = (y, frac, label, note) => {
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(rp.x, y, rp.w, 14);
-    ctx.fillStyle = colors.highlight;
-    ctx.fillRect(rp.x, y, Math.max(0, Math.min(1, frac)) * rp.w, 14);
-    ctx.fillStyle = colors.ink2;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "left";
-    ctx.fillText(label, rp.x, y - 6);
-    ctx.fillStyle = colors.ink3;
-    ctx.textAlign = "right";
-    ctx.fillText(note, rp.x + rp.w, y - 6);
-  };
-  bar(rp.y + 40, fit.r2, `R² ${fmt(fit.r2, 2)}`, "of 1");
-  bar(rp.y + 92, fit.sd / sd0, `residual spread ${fmt(fit.sd, 1)} mmHg`, `no model: ${fmt(sd0, 1)}`);
-  ctx.fillStyle = colors.ink3;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.fillText("covariates explain spread; what remains is the residual", rp.x, rp.y + 130);
-}
-
-/* --- both marginals at once (Fit tab, round 7 — Kenneth's pick A) --------
+/* --- both marginals at once (Model tab; round 7's pick A) ----------------
    05-02's own ggpairs move: sysBP against BMI and against age, side by
    side. Each panel draws the model's reading of ITS covariate with the
    other members held constant — at three bands when the other continuous
-   covariate is in (the plane, seen from each side), else at means. */
-function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn) {
+   covariate is in (the plane, seen from each side), else at means.
+
+   ROUND 8: the FWL slide rides on BOTH panels — View: Other removed sends
+   each panel to residual space, the OTHER covariate regressed out of both
+   axes, and each residual slope IS its adjusted coefficient (1.50 left,
+   0.84 right), exact only for the BMI + age model — retarget guards the
+   slide to exactly that model, and the note here names what is missing. */
+function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn, vmix) {
   const gap = 60;
   const pw = Math.round((slot.w - gap) / 2);
   const AGE_DOM = [30, 71];
   const AGE_BANDS = [35, 50, 65];
   const BMI_BANDS = [20, 27, 34];
+  const inResid = vmix >= 0.5;
 
   const panelSpec = [
-    { xs: BMI, dom: X_DOM, label: "BMI", self: "bmi", other: "age", bands: AGE_BANDS, x: slot.x },
-    { xs: AGE, dom: AGE_DOM, label: "age", self: "age", other: "bmi", bands: BMI_BANDS, x: slot.x + pw + gap },
+    { xs: BMI, dom: X_DOM, label: "BMI", self: "bmi", other: "age", bands: AGE_BANDS,
+      rx: state.rx, ry: state.ry, rdom: RX_DOM,
+      rXL: "BMI — age removed", rYL: "sysBP — age removed", x: slot.x },
+    { xs: AGE, dom: AGE_DOM, label: "age", self: "age", other: "bmi", bands: BMI_BANDS,
+      rx: state.rx2, ry: state.ry2, rdom: R2X_DOM,
+      rXL: "age — BMI removed", rYL: "sysBP — BMI removed", x: slot.x + pw + gap },
   ];
 
   panelSpec.forEach((p, pi) => {
     const rect = { x: p.x, y: slot.y, w: pw, h: slot.h };
-    const plot = makePlot({ ctx, colors, rect, xDomain: p.dom, yDomain: Y_DOM });
-    plot.axisX({ label: p.label });
-    if (pi === 0) {
-      plot.axisY({ label: "sysBP (mmHg)" });
-      plot.caption(key === "" ? "3547 patients — no model yet"
-        : params.bmi && params.age ? "the model, the other covariate held constant"
-          : "the data, and the model's line");
+    const plotD = makePlot({ ctx, colors, rect, xDomain: p.dom, yDomain: Y_DOM });
+    const plotR = makePlot({ ctx, colors, rect, xDomain: p.rdom, yDomain: RY_DOM });
+    const front = inResid ? plotR : plotD;
+    if (inResid) {
+      /* both y-axes are labelled here: unlike the data view the two panels
+         no longer share a y variable — each removed a different covariate */
+      front.axisX({ label: p.rXL });
+      front.axisY({ label: p.rYL });
+      if (pi === 0) front.caption("what the other covariate does not explain");
+    } else {
+      front.axisX({ label: p.label });
+      if (pi === 0) {
+        front.axisY({ label: "sysBP (mmHg)" });
+        front.caption(key === "" ? "3547 patients — no model yet"
+          : params.bmi && params.age ? "the model, the other covariate held constant"
+            : "the data, and the model's line");
+        if (params.view === "resid" && !(params.bmi && params.age && !twinOn)) {
+          front.note(!(params.bmi && params.age)
+            ? "put BMI and age in the model to remove the other"
+            : "shown for the exact BMI + age model — take weight out");
+        }
+      }
     }
+
     ctx.save();
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.w, rect.h);
     ctx.clip();
+
+    if (vmix > 0.004) {
+      ctx.strokeStyle = colors.ink3;
+      ctx.globalAlpha = vmix * 0.5;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(rect.x, plotR.sy(0));
+      ctx.lineTo(rect.x + rect.w, plotR.sy(0));
+      ctx.moveTo(plotR.sx(0), rect.y);
+      ctx.lineTo(plotR.sx(0), rect.y + rect.h);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     ctx.fillStyle = colors.unknown;
     ctx.globalAlpha = 0.4;
     for (let i = 0; i < N; i += 1) {
+      const px = plotD.sx(p.xs[i]) + (plotR.sx(p.rx[i]) - plotD.sx(p.xs[i])) * vmix;
+      const py = plotD.sy(SYSBP[i]) + (plotR.sy(p.ry[i]) - plotD.sy(SYSBP[i])) * vmix;
       ctx.beginPath();
-      ctx.arc(plot.sx(p.xs[i]), plot.sy(SYSBP[i]), 1.6, 0, 2 * Math.PI);
+      ctx.arc(px, py, 1.6, 0, 2 * Math.PI);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    if (params[p.self]) {
+    /* data space: the model's family, fading out as the slide leaves */
+    if (vmix < 0.996 && params[p.self]) {
+      const fade = 1 - vmix;
       const slope = fit.coefs[p.self].b;
       const otherIn = params[p.other];
       const line = (b0, alpha, label) => {
         ctx.strokeStyle = colors.highlight;
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = alpha * fade;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(plot.sx(p.dom[0]), plot.sy(b0 + slope * p.dom[0]));
-        ctx.lineTo(plot.sx(p.dom[1]), plot.sy(b0 + slope * p.dom[1]));
+        ctx.moveTo(plotD.sx(p.dom[0]), plotD.sy(b0 + slope * p.dom[0]));
+        ctx.lineTo(plotD.sx(p.dom[1]), plotD.sy(b0 + slope * p.dom[1]));
         ctx.stroke();
-        ctx.globalAlpha = 1;
         if (label) {
+          ctx.globalAlpha = fade;
           ctx.fillStyle = colors.ink2;
           ctx.font = `${colors.fsXs} ${colors.font}`;
           /* Right-aligned inside the frame — left-anchored at 0.9 the label
              ran into the clip and lost its last digit. */
           ctx.textAlign = "right";
-          ctx.fillText(label, plot.sx(p.dom[1]) - 4, plot.sy(b0 + slope * p.dom[1]) - 4);
+          ctx.fillText(label, plotD.sx(p.dom[1]) - 4, plotD.sy(b0 + slope * p.dom[1]) - 4);
         }
+        ctx.globalAlpha = 1;
       };
       const twinPart = twinOn ? fit.coefs.twin.b * state.meanWgt : 0;
       if (otherIn) {
@@ -1008,6 +1000,19 @@ function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn) {
       } else {
         line(fit.b0 + twinPart + (p.other === "age" && params.age ? fit.coefs.age.b * MEAN_AGE : 0), 1);
       }
+    }
+
+    /* residual space: the adjusted slope, drawn only for the exact model */
+    if (vmix > 0.004 && key === "ba") {
+      const slope = state.fits.ba.coefs[p.self].b;
+      ctx.globalAlpha = vmix;
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(plotR.sx(p.rdom[0]), plotR.sy(slope * p.rdom[0]));
+      ctx.lineTo(plotR.sx(p.rdom[1]), plotR.sy(slope * p.rdom[1]));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   });
@@ -1070,7 +1075,8 @@ function retarget(anim, params, state) {
   set("bmi", params.bmi, params.bmi ? fit.coefs.bmi : null);
   set("age", params.age, params.age ? fit.coefs.age : null);
   set("twin", twinOn, twinOn ? fit.coefs.twin : null);
-  anim.vmixT = params.concept === "adjust" && params.age && params.view === "resid" ? 1 : 0;
+  anim.vmixT = params.concept === "model" && params.view === "resid"
+    && params.bmi && params.age && !twinOn ? 1 : 0;
   for (const k of ["bmi", "age", "twin"]) {
     const m = anim[k];
     const t = anim[`${k}T`];

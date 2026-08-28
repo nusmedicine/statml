@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 28 round 8 — Fit and Adjust: one page or two?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .pillrow { display: flex; gap: 8px; align-items: center; background: var(--surface-1); border: 1px solid var(--grid); padding: 10px 12px; width: fit-content; margin-bottom: 6px; }
+  .pill { border: 1.5px solid var(--ink-3); border-radius: 999px; padding: 4px 13px; font-size: var(--fs-sm); color: var(--ink-2); background: transparent; }
+  .pill.on { border-color: var(--c-highlight); background: color-mix(in srgb, var(--c-highlight) 18%, transparent); color: var(--ink-1); font-weight: 600; }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+  table.crit { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); max-width: 100ch; }
+  table.crit th, table.crit td { border: 1px solid var(--grid); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.crit th { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 28 · round 8 — Fit and Adjust: one page or two?</h1>
+
+  <p class="note">
+    <b>The question Kenneth asked:</b> the Fit tab's band families already show
+    "the other held constant" — so what is Adjust for? <b>The measured fact
+    that decides where each idea CAN live:</b> putting age in the model moves
+    the BMI slope 1.72&nbsp;&rarr;&nbsp;1.50, which is <b>1.8–3.1&nbsp;px</b>
+    at panel scale (measured in planning). The coefficient move is INVISIBLE
+    in data space — no scatter can show it. So the pieces sort by space, not
+    by tab: <b>data space</b> (the panels) can show the model's conditional
+    reading and its fit; <b>coefficient space</b> (forest, table) is the only
+    place the move is visible; the <b>FWL view</b> is the why. The band
+    family IS the adjusted slope drawn — which is why any seam between "fit"
+    and "adjust" leaks: they are one act seen in two spaces.
+  </p>
+  <p class="note">
+    <b>The seam has now failed twice.</b> Round 5 moved the table off Fit to
+    stop the overlap, and had to invent fit-quality bars to fill the hole
+    (they duplicate the R² and spread tiles). Round 7 put band families on
+    Fit and recreated the overlap from the other side. And the requested fix
+    — Adjust keeps both marginal panels — makes Adjust a superset of Fit,
+    leaving Fit nothing of its own. Two rounds of patching plus a vestigial
+    tab is the evidence the seam is misplaced, not mis-drawn.
+  </p>
+
+  <h2>§1 · Candidate M — ONE page: both spaces react to the same click</h2>
+  <p class="note">
+    The Concept strip goes to two tabs — <b>Model</b> (fit &amp; adjust,
+    below) and <b>Collinearity</b> (unchanged: new node, new panels, a
+    different scene). One page, both spaces: DAG + forest on top, both
+    marginals mid, strip below. Clicking the age pill then does everything
+    AT ONCE, on one screen: the BMI panel fans into bands (held constant,
+    drawn), the forest's BMI mark eases 1.72&nbsp;&rarr;&nbsp;1.50 leaving
+    its ghost and the annotation, R² and spread tiles move, the strip
+    tightens. Progressive disclosure comes from the EMPTY START and the
+    pills — the reader stages the reveal by building the model, not by
+    walking tabs. Quality bars die (the tiles already carry both numbers).
+  </p>
+  <div class="pillrow"><span style="font-size:var(--fs-sm);color:var(--ink-3)">In the model:</span>
+    <span class="pill on">BMI</span><span class="pill on">age</span></div>
+  <div class="row">
+    <div class="cand">
+      <h3>M — merged, no table (~640px tall vs today's 608)</h3>
+      <p class="sub">the three-model comparison is carried by the forest's ghosts + annotation and the equation card; the table is cut</p>
+      <canvas id="m1" width="550" height="640"></canvas>
+      <p class="cap">drawn at the real 550px stage · model = BMI + age</p>
+    </div>
+    <div class="cand">
+      <h3>M+table — merged, compact table row (~750px tall)</h3>
+      <p class="sub">the notebook's closer kept, transposed to a full-width strip; the height cost is the honest price, drawn</p>
+      <canvas id="m2" width="550" height="750"></canvas>
+      <p class="cap">same page + the three models as rows · current model outlined</p>
+    </div>
+  </div>
+
+  <h2>§2 · The FWL view, generalised: BOTH panels, the other covariate removed</h2>
+  <p class="note">
+    On the merged page the View segmented (data · other removed) transforms
+    BOTH panels at once — each covariate and sysBP with the OTHER regressed
+    out. Each cloud's slope IS that adjusted coefficient: 1.50 on the left,
+    0.836 on the right, exact by FWL. The why of both moves, symmetric, in
+    one slide — today's Adjust shows it for BMI only.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>View: age removed / BMI removed — end state</h3>
+      <p class="sub">both marginals slid to residual space; the line drawn only for the exact two-covariate model, where FWL holds to 1e-9</p>
+      <canvas id="fwl" width="550" height="300"></canvas>
+      <p class="cap">left slope = adjusted b(BMI) = 1.50 · right slope = adjusted b(age) = 0.84</p>
+    </div>
+  </div>
+
+  <h2>§3 · Candidate S — keep two tabs, seam redrawn: "one model" vs "models compared"</h2>
+  <p class="note">
+    The honest two-tab seam is not fit/adjust but <b>data space vs
+    coefficient space</b>: tab 1 = panels + quality (what THIS model says),
+    tab 2 = forest + table + FWL (what happens ACROSS models). Steelman: it
+    stages a lecture (walk the tabs in order), keeps each screen sparse, and
+    the Adjust note choreographs a deliberate act — "toggle age and watch
+    the coefficient move". Against it: the pills sit on both tabs, so on
+    tab&nbsp;1 the punchline of a click still plays off-screen; the band
+    family still whispers "held constant" on tab&nbsp;1, so the seam still
+    leaks; and tab&nbsp;1's only exclusive content duplicates the tiles.
+    If S is picked, the fix is names and captions, not structure: tab 1
+    stops saying "fit" (say <b>The model</b>), tab 2 stops saying "adjust"
+    (say <b>Compare models</b>), and the band family's caption names the
+    slope it draws ("slope 1.50 at every age — this model's reading").
+  </p>
+
+  <h2>§4 · Considered and dead — measured or ruled, not taste</h2>
+  <table class="crit">
+    <tr><th>presentation</th><th>verdict</th></tr>
+    <tr><td>Two slopes (marginal vs adjusted) on one scatter</td>
+        <td>dead in planning: 1.8–3.1px apart at panel scale — invisible</td></tr>
+    <tr><td>Stratify by age bands, per-stratum fits (classic epi picture)</td>
+        <td>same measurement kills it: within-band slopes &asymp; 1.50 vs pooled 1.72 — the difference is the same invisible 2–3px; and r(BMI, age) = 0.12 means the strata barely shift sideways</td></tr>
+    <tr><td>3D plane, rotatable</td>
+        <td>declined round 3 (2D family strictly clearer at projector size). The PMC study that favours 3D got its gains from LINKING the 2D projections — which the DAG + two marginals + forest already do without the rotation cost</td></tr>
+    <tr><td>Venn diagram of shared variance</td>
+        <td>abstract (variance space, not data), and breaks under suppression — areas go negative exactly when the lesson gets interesting</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  highlight: css("--c-highlight"), empirical: css("--c-empirical"),
+  unknown: css("--c-unknown"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+const TQ = 1.960633;
+
+/* fits */
+const fb = ols(SYSBP, BMI);
+const fa = ols(SYSBP, AGE);
+const fba = ols(SYSBP, BMI, AGE);
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const MEAN_AGE = meanOf(AGE);
+const residOn = (v, z) => { const g = ols(v, z); return v.map((x, i) => x - g.b[0] - g.b[1] * z[i]); };
+
+const X_DOM = [14, 58], AGE_DOM = [30, 71], Y_DOM = [80, 300];
+const AGE_BANDS = [35, 50, 65], BMI_BANDS = [20, 27, 34];
+
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return [ctx, c.width, c.height];
+}
+
+function frame(ctx, r, xd, yd, xl, yl) {
+  const sx = (v) => r.x + ((v - xd[0]) / (xd[1] - xd[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  if (xl) ctx.fillText(xl, r.x + r.w / 2, r.y + r.h + 14);
+  if (yl) { ctx.save(); ctx.translate(r.x - 8, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return { sx, sy };
+}
+
+function dots(ctx, r, p, xs, ys, alpha = 0.35, rad = 1.4) {
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = alpha;
+  for (let i = 0; i < N; i += 1) { ctx.beginPath(); ctx.arc(p.sx(xs[i]), p.sy(ys[i]), rad, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+}
+
+/* --- the DAG, static ----------------------------------------------------- */
+function dag(ctx, x0, y0) {
+  const R = 24;
+  const P = { bmi: [x0 + 44, y0 + 26], age: [x0 + 44, y0 + 128], y: [x0 + 158, y0 + 77] };
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("The covariates — click to include", x0 + 4, y0 - 10);
+  const arrow = (from) => {
+    const [x1, y1] = P[from], [x2, y2] = P.y;
+    const L = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+    ctx.strokeStyle = C.ink2; ctx.fillStyle = C.ink2; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1 + ux * (R + 3), y1 + uy * (R + 3)); ctx.lineTo(x2 - ux * (R + 6), y2 - uy * (R + 6)); ctx.stroke();
+    const bx = x2 - ux * (R + 5), by = y2 - uy * (R + 5);
+    ctx.beginPath(); ctx.moveTo(bx + ux * 5, by + uy * 5); ctx.lineTo(bx - uy * 4.5, by + ux * 4.5); ctx.lineTo(bx + uy * 4.5, by - ux * 4.5); ctx.fill();
+  };
+  arrow("bmi"); arrow("age");
+  ctx.strokeStyle = C.ink3; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(P.bmi[0], P.bmi[1] + R + 4); ctx.lineTo(P.age[0], P.age[1] - R - 4); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("r = 0.12", P.bmi[0] + 9, (P.bmi[1] + P.age[1]) / 2 + 4);
+  const NODE = { bmi: "BMI", age: "age", y: "sysBP" };
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const k of ["bmi", "age", "y"]) {
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = k === "y" ? C.ink2 : C.highlight; ctx.lineWidth = k === "y" ? 1.25 : 2;
+    ctx.beginPath(); ctx.arc(P[k][0], P[k][1], R, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.ink1; ctx.font = `12px ${C.font}`;
+    ctx.fillText(NODE[k], P[k][0], P[k][1] + 1);
+  }
+  ctx.textBaseline = "alphabetic";
+}
+
+/* --- the forest with ghosts + annotation --------------------------------- */
+function forest(ctx, fr) {
+  const DOM = [-0.6, 2];
+  const fx = (v) => fr.x + ((v - DOM[0]) / (DOM[1] - DOM[0])) * fr.w;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.strokeRect(fr.x, fr.y, fr.w, fr.h);
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = C.ink3;
+  ctx.beginPath(); ctx.moveTo(fx(0), fr.y); ctx.lineTo(fx(0), fr.y + fr.h); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+  for (const v of [-0.5, 0, 0.5, 1, 1.5, 2]) ctx.fillText(fmt(v, 1), fx(v), fr.y + fr.h + 13);
+  ctx.fillText("mmHg per unit of the covariate", fr.x + fr.w / 2, fr.y + fr.h + 27);
+  const rows = [
+    { name: "BMI", ghost: [fb.b[1], TQ * fb.se[1]], now: [fba.b[1], TQ * fba.se[1]] },
+    { name: "age", ghost: [fa.b[1], TQ * fa.se[1]], now: [fba.b[2], TQ * fba.se[2]] },
+  ];
+  rows.forEach((r, i) => {
+    const y = fr.y + 40 + i * 52;
+    ctx.fillStyle = C.ink2; ctx.font = `12px ${C.font}`; ctx.textAlign = "right";
+    ctx.fillText(r.name, fr.x - 8, y + 4);
+    ctx.globalAlpha = 0.4; ctx.strokeStyle = C.empirical; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(fx(r.ghost[0] - r.ghost[1]), y); ctx.lineTo(fx(r.ghost[0] + r.ghost[1]), y); ctx.stroke();
+    ctx.fillStyle = C.empirical; ctx.beginPath(); ctx.arc(fx(r.ghost[0]), y, 3.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink2; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(fx(r.ghost[0]), y - 15); ctx.lineTo(fx(r.now[0]), y - 15); ctx.stroke();
+    const dir = r.now[0] < r.ghost[0] ? -1 : 1;
+    ctx.fillStyle = C.ink2;
+    ctx.beginPath(); ctx.moveTo(fx(r.now[0]), y - 15); ctx.lineTo(fx(r.now[0]) - dir * 6, y - 18.5); ctx.lineTo(fx(r.now[0]) - dir * 6, y - 11.5); ctx.fill();
+    if (i === 0) {
+      ctx.fillStyle = C.ink1; ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+      ctx.fillText(`${fmt(r.ghost[0])} → ${fmt(r.now[0])} when age enters`, fx(0.7), y - 26);
+    }
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(fx(r.now[0] - r.now[1]), y); ctx.lineTo(fx(r.now[0] + r.now[1]), y); ctx.stroke();
+    ctx.fillStyle = C.highlight; ctx.beginPath(); ctx.arc(fx(r.now[0]), y, 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.font = `10px ${C.font}`; ctx.textAlign = "center";
+    ctx.fillText(fmt(r.now[0]), fx(r.now[0]), y + 19);
+  });
+}
+
+/* --- both marginals with band families ----------------------------------- */
+function marginals(ctx, slot) {
+  const gap = 56;
+  const pw = Math.round((slot.w - gap) / 2);
+  const spec = [
+    { xs: BMI, dom: X_DOM, label: "BMI", slope: fba.b[1], oc: fba.b[2], bands: AGE_BANDS, bn: "age", x: slot.x },
+    { xs: AGE, dom: AGE_DOM, label: "age", slope: fba.b[2], oc: fba.b[1], bands: BMI_BANDS, bn: "BMI", x: slot.x + pw + gap },
+  ];
+  spec.forEach((s, pi) => {
+    const r = { x: s.x, y: slot.y, w: pw, h: slot.h };
+    const p = frame(ctx, r, s.dom, Y_DOM, s.label, pi === 0 ? "sysBP (mmHg)" : null);
+    dots(ctx, r, p, s.xs, SYSBP, 0.4, 1.6);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    s.bands.forEach((bv, i) => {
+      const b0 = fba.b[0] + s.oc * bv;
+      ctx.strokeStyle = C.highlight; ctx.globalAlpha = 0.45 + (0.55 * i) / 2; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.sx(s.dom[0]), p.sy(b0 + s.slope * s.dom[0]));
+      ctx.lineTo(p.sx(s.dom[1]), p.sy(b0 + s.slope * s.dom[1])); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "right";
+      ctx.fillText(`${s.bn} ${bv}`, p.sx(s.dom[1]) - 4, p.sy(b0 + s.slope * s.dom[1]) - 4);
+    });
+    ctx.restore();
+    if (pi === 0) {
+      ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+      ctx.fillText("the model, the other covariate held constant", r.x, r.y - 8);
+    }
+  });
+}
+
+/* --- the residual strip --------------------------------------------------- */
+function strip(ctx, r) {
+  const p = frame(ctx, r, [90, 200], [-50, 70], "fitted sysBP", "residual");
+  ctx.strokeStyle = C.ink3; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(r.x + r.w, p.sy(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+  ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.35;
+  for (let i = 0; i < N; i += 1) {
+    const f = fba.b[0] + fba.b[1] * BMI[i] + fba.b[2] * AGE[i];
+    ctx.beginPath(); ctx.arc(p.sx(f), p.sy(SYSBP[i] - f), 1.3, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* --- the compact transposed table (M+table only) -------------------------- */
+function tableRow(ctx, r) {
+  const cols = [
+    { head: "b(BMI)", cells: [fb.b[1], null, fba.b[1]] },
+    { head: "b(age)", cells: [null, fa.b[1], fba.b[2]] },
+    { head: "R²", cells: [fb.r2, fa.r2, fba.r2] },
+  ];
+  const rows = ["sysBP ~ BMI", "sysBP ~ age", "sysBP ~ BMI + age"];
+  const labW = 130;
+  const colW = (r.w - labW) / cols.length;
+  const rowH = 22;
+  ctx.fillStyle = C.ink2; ctx.font = `600 12px ${C.font}`; ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("Three models", r.x, r.y);
+  ctx.font = `10px ${C.font}`;
+  cols.forEach((c, j) => {
+    ctx.fillStyle = C.ink3; ctx.textAlign = "center";
+    ctx.fillText(c.head, r.x + labW + j * colW + colW / 2, r.y + 16);
+  });
+  rows.forEach((name, i) => {
+    const ry = r.y + 34 + i * rowH;
+    ctx.fillStyle = C.ink2; ctx.textAlign = "left";
+    ctx.fillText(name, r.x, ry);
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r.x, ry - rowH + 8); ctx.lineTo(r.x + r.w, ry - rowH + 8); ctx.stroke();
+    cols.forEach((c, j) => {
+      const v = c.cells[i];
+      ctx.fillStyle = C.ink1; ctx.textAlign = "center";
+      ctx.fillText(v === null ? "—" : fmt(v, 2), r.x + labW + j * colW + colW / 2, ry);
+    });
+  });
+  ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(r.x - 4, r.y + 34 + 2 * rowH - 15, r.w + 8, rowH);
+}
+
+/* === M — merged, no table ================================================= */
+{
+  const [ctx] = ctx2d("m1");
+  dag(ctx, 8, 30);
+  forest(ctx, { x: 300, y: 30, w: 232, h: 138 });
+  marginals(ctx, { x: 52, y: 246, w: 484, h: 230 });
+  strip(ctx, { x: 52, y: 536, w: 484, h: 72 });
+}
+
+/* === M+table — merged with the compact table row ========================== */
+{
+  const [ctx] = ctx2d("m2");
+  dag(ctx, 8, 30);
+  forest(ctx, { x: 300, y: 30, w: 232, h: 138 });
+  marginals(ctx, { x: 52, y: 246, w: 484, h: 230 });
+  tableRow(ctx, { x: 52, y: 528, w: 484 });
+  strip(ctx, { x: 52, y: 648, w: 484, h: 72 });
+}
+
+/* === FWL, both panels ===================================================== */
+{
+  const [ctx] = ctx2d("fwl");
+  const gap = 56;
+  const pw = Math.round((484 - gap) / 2);
+  const rBMI = residOn(BMI, AGE), rS_A = residOn(SYSBP, AGE);
+  const rAGE = residOn(AGE, BMI), rS_B = residOn(SYSBP, BMI);
+  const spec = [
+    { xs: rBMI, ys: rS_A, dom: [-12, 26], slope: fba.b[1], xl: "BMI — age removed", yl: "sysBP — age removed", x: 52 },
+    { xs: rAGE, ys: rS_B, dom: [-22, 26], slope: fba.b[2], xl: "age — BMI removed", yl: null, x: 52 + pw + gap },
+  ];
+  spec.forEach((s) => {
+    const r = { x: s.x, y: 30, w: pw, h: 220 };
+    const p = frame(ctx, r, s.dom, [-70, 120], s.xl, s.yl);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    ctx.strokeStyle = C.ink3; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(r.x + r.w, p.sy(0));
+    ctx.moveTo(p.sx(0), r.y); ctx.lineTo(p.sx(0), r.y + r.h); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.unknown; ctx.globalAlpha = 0.35;
+    for (let i = 0; i < N; i += 1) { ctx.beginPath(); ctx.arc(p.sx(s.xs[i]), p.sy(s.ys[i]), 1.5, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(p.sx(s.dom[0]), p.sy(s.slope * s.dom[0]));
+    ctx.lineTo(p.sx(s.dom[1]), p.sy(s.slope * s.dom[1])); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = C.ink2; ctx.font = `10px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText(`slope = ${fmt(s.slope)}`, r.x + 8, r.y + 16);
+  });
+}
+</script>
+</body>
+</html>
