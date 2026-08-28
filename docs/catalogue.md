@@ -3174,12 +3174,12 @@ agreed, and three revive entries from the deferred table above
 | # | slug | notebook | misconception | evidence | status |
 |---|---|---|---|---|---|
 | 1 | `lm-least-squares` | 05-01 | the fitted line is a formula's output, not the minimum of a surface you can stand on | reported; prerequisite for the arc | **SHIPPED 2026-08-28** |
-| 2 | `lm-adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | proposed |
-| 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | proposed |
-| 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | proposed (revives deferred `interaction-effect` under the new slug) |
-| 5 | `censoring-km` | 05-06 | censored patients are missing data to discard | reported | proposed (revives deferred slug) |
-| 6 | `pseudoreplication` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | proposed |
-| 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **approved — NEXT** |
+| 2 | `lm-adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | **SHIPPED 2026-08-28** |
+| 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | **SHIPPED 2026-08-28** |
+| 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | **SHIPPED 2026-08-28** (revived deferred `interaction-effect`) |
+| 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | proposed — **NEXT** (renamed from `censoring-km`, Kenneth 2026-08-28) |
+| 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | proposed (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
+| 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **SHIPPED 2026-08-27** |
 
 **The linear four wear an `lm-` prefix — agreed with Kenneth 2026-08-28.** The
 four widgets teach one model family on one shared Framingham stage, and the
@@ -3202,8 +3202,10 @@ throughout. Rulings made with it, so they are not re-argued:
 - **The two shipped relatives keep their unprefixed slugs** —
   `logistic-regression` and `linear-regularization` — students hold those URLs,
   the same reason `power-and-error`'s rename waits for course end. Slots 5 and
-  6 stay unprefixed too: `censoring-km` and `pseudoreplication` are not `lm()`
-  lessons.
+  6 stay unprefixed too — they are not `lm()` lessons — and were **RENAMED by
+  Kenneth on 2026-08-28: `time-event`** (was `censoring-km`) **and
+  `mixed-model`** (was `pseudoreplication`) — each names the data shape or the
+  method the lesson reaches for, not the failure it dislodges.
 - **This is the repo's first family prefix** and deliberately so: the dimred
   slugs (`pca`, `umap`, …) are self-identifying algorithm names, while
   `adjustment` alone says nothing about what it adjusts. Prefix where the bare

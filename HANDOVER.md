@@ -3,78 +3,56 @@
 **Thirty widgets, all shipped, all on the gallery, and 198 fingerprint
 states recorded.**
 
-**Widget 30 · `lm-interaction` SHIPPED 2026-08-28 as "Fitting an
-Interaction"** — measured, mocked, built and promoted over two review
-rounds in one session on Kenneth's "tested ok". Round 1: the +/×
-toggle, the probe, the zero-extrapolation slide, two tabs. Round 2 (his
-"a bit hard to understand"): the equation card grew ONE ROW PER LINE
-(05-04's rearranging-the-terms move, group-coloured, the producing sums
-annotated) and the 2×2 became the canonical INTERACTION PLOT (parallel
-under +, pivoting onto the observed means under ×, the right-edge
-bracket naming the nonparallelism as the printed 21.02). Ten states via
-`_lab/lm-int-shoot.html`. Full record in
-[docs/catalogue.md](docs/catalogue.md) § *Widget 30*;
-`node widgets/_lab/lm-int-measure.mjs` = 33 checks.
-
-**Widget 29 · `lm-categorical` SHIPPED 2026-08-28 as "Fitting a
-Categorical Covariate"** — measured, mocked, built and promoted in ONE
-session and one review round on Kenneth's picks (stage C: category
-columns with the coefficients as ARROWS from the reference's eased rule,
-beside a zoomed means ladder; SEX OUT OF SCOPE — its offset is 2.4px at
-panel scale) and his "tested ok". The relevel is the punchline: the rule
-eases, the arrows re-anchor with labels counting along, the equation and
-the coding table's zero row rewrite, and the means and R² refuse to
-move. Seven states via `_lab/lm-cat-shoot.html` (copy proved 4/4,
-three-run stable, drives non-inert): four settled, the gate mid-fade,
-the relevel mid-ease, and a hit on the obese column. Full record in
-[docs/catalogue.md](docs/catalogue.md) § *Widget 29*;
-`node widgets/_lab/lm-cat-measure.mjs` = 25 checks.
-
-**Widget 28 · `lm-adjustment` SHIPPED 2026-08-28 as "Fitting Multiple
-Covariates"** — measured, mocked, built and revised over TWELVE review
-rounds across two sessions, promoted on Kenneth's "tested ok" and PUSHED
-(the first push since widget 27's round 9). The full record is
-[docs/catalogue.md](docs/catalogue.md) § *Widget 28*, including the two
-merges the review forced: Fit and Adjust became ONE tab (round 8 — a band
-family IS the adjusted slope drawn, so the seam between them kept
-leaking), and Collinearity became persistent-twins + an explicit
-"Detecting collinearity — VIF" section with clickable bars (rounds
-11–12, the notebook's own fit-then-check order). Eight states via
-`_lab/lm-adjust-shoot.html` (lm-shoot pattern: copy proved 4/4,
-three-run stable, drives non-inert): five settled, one driven mid-slide,
-two hit-driven (the DAG age node catching the forest MID-EASE — the
-pills are buttons `setParam` cannot drive — and age's VIF bar).
-`lm-adjust-measure.mjs` gained the shipping-twin block at promotion
-(25 checks — the weight construction reproduced draw-for-draw).
-
-**Widget 27 · `lm-least-squares` SHIPPED 2026-08-28** — measured, mocked,
-built and revised over SEVEN review rounds and promoted in one day: the
-modeling arc's slot 1, **Fitting a Linear Model** (PHM5003 05-01). The full
-record is [docs/catalogue.md](docs/catalogue.md) § *Widget 27*, including
-the lm- slug rulings, the six mock-up picks, the descent ruling
-(coordinate descent, deliberately neither `optim` nor a shortest route) and
-the round-by-round changes. Six states via `_lab/lm-shoot.html`
-(causal-shoot pattern, copy proved 4/4, three-run stable, sibling-checked).
-**Three post-ship rounds landed and are LIVE the same day**: the R² tile
-(6 tx moved, 0 px), the permanent residual strip + grid-on default
-(6 px, 0 tx), and the strip's trend line removed with the window tightened
-to [−50, 70] (6 px, 0 tx) — each rebaselined in its own commit by
-re-running `lm-shoot.html`, and each diff exactly the shape its change
-predicts, which is what a rebaseline should look like.
-
-**Widget 26 · `fork-pipe-collider` SHIPPED 2026-08-27** — planned, measured,
-built, revised over NINE review rounds and promoted in one day, the first
-widget of the modeling arc (PHM5003 week 4, notebook 06-02). The full record
-is [docs/catalogue.md](docs/catalogue.md) § *Widget 26*. Its states were
-recorded with `_lab/causal-shoot.html`, which now automates the
-driven-vs-settled-sibling check.
+**THE MODELING ARC'S FIVE lm-/CAUSAL SLOTS ARE ALL SHIPPED AND LIVE**,
+built over 2026-08-27/28: widget 26 `fork-pipe-collider` (nine rounds),
+27 `lm-least-squares` **Fitting a Linear Model** (nine rounds incl.
+three post-ship), 28 `lm-adjustment` **Fitting Multiple Covariates**
+(twelve rounds across two sessions — Fit and Adjust merged into one tab,
+Collinearity rebuilt as persistent twins + a VIF section with clickable
+bars), 29 `lm-categorical` **Fitting a Categorical Covariate** (one
+round — the relevel as eased arrows, the means refusing to move), and
+30 `lm-interaction` **Fitting an Interaction** (two rounds — the +/×
+toggle, the probe, the axis-to-zero slide, the 2×2 as the canonical
+interaction plot with per-line formula rows on the card). **Every
+round-by-round record is in [docs/catalogue.md](docs/catalogue.md)**
+under its widget's section. Each shipped with its own shooter and
+measure script, the pattern now routine:
+`_lab/<slug>-shoot.html` (copy proved 4/4 against recorded hashes,
+three runs identical, every drive checked non-inert against its bare
+URL) and `_lab/lm-{adjust,cat,int}-measure.mjs` (25 / 25 / 33 checks —
+every notebook stored output to the digit). Two arc-wide conventions
+those sessions settled, worth reusing: **eased values lerp the model
+and every printed number is computed from the LERPED coefficients** (no
+label is false mid-frame), and **a hit-driven state that performs an
+instant param flip runs zero frames and still must differ from its bare
+URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-1. **The next widget: `censoring-km`** (05-06, revives the deferred
-   slug), then `pseudoreplication` — the agreed modeling-arc order.
-   Nothing started.
-2. **Notebook links now owed for all FIVE shipped modeling widgets** —
+1. **The next widget: `time-event`** (05-06, Modeling — Time-to-Event
+   Data; the misconception: censored patients are missing data to
+   discard). **Kenneth RENAMED the last two slots on 2026-08-28:
+   `time-event` (was `censoring-km`) and `mixed-model` (was
+   `pseudoreplication`)** — recorded in the catalogue's arc table.
+   Nothing is started. The rhythm that shipped 27–30 in two days:
+   read the notebook with outputs (
+   `../jupyterbook/phm5003/notebook/04 - Introduction to Statistical
+   Computing Part 2/`), write `_lab/<slug>-measure.mjs` verifying every
+   stored output to the digit, measure the design constraints, mock the
+   candidates in `_lab/`, Kenneth picks, build the draft, iterate his
+   rounds, and baseline ONLY at his "tested ok" via a copied shooter.
+   **The stage: 05-06 does NOT use the Framingham frame** (checked
+   2026-08-28, 18 cells): it opens on a hand-made FIVE-PATIENT table
+   (ID A–E, Time, Status — the censoring mechanics at human scale),
+   then a SIMULATED 200-patient dataset (R `set.seed(0)`, age + 10
+   SNPs, disease groups) for KM-by-group, the log-rank p and `coxph`.
+   So the widget needs its own data, and R's seeded draw will not
+   reproduce in JS — the widget-28 jitter ruling applies: verify the
+   deterministic cells to the digit, re-measure the simulated arm
+   across the widget's own seeds, and claim only that.
+2. **Then `mixed-model`** (05-07, Hierarchical Data — 500 rows are 500
+   observations; Hurlbert 1984). Last of the agreed arc.
+3. **Notebook links now owed for all FIVE shipped modeling widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
