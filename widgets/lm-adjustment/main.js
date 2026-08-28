@@ -82,15 +82,15 @@ const FOREST_DOM = [-0.6, 2];
 const F_ROW = 52;
 const DAG_W = 218;
 const DAG_H = 170;
-const row1H = (concept) => (concept === "collinear" ? 220 : 170);
-const scatterTop = (concept) => 30 + row1H(concept) + 26;
+const row1H = (wide) => (wide ? 220 : 170);
+const scatterTop = (wide) => 30 + row1H(wide) + 26;
 const SCATTER_H = 230;
 const STRIP_H = 78;
 /* 44px between scatter and strip: unlike widget 27 the two do NOT share an
    x-axis (the strip's is fitted sysBP, a different variable), so the scatter
    keeps its own BMI axis and the gap holds it. */
 const STRIP_GAP = 44;
-const HEIGHT = (concept) => scatterTop(concept) + SCATTER_H + STRIP_GAP + STRIP_H + 60;
+const HEIGHT = (wide) => scatterTop(wide) + SCATTER_H + STRIP_GAP + STRIP_H + 60;
 
 const X_DOM = [14, 58];
 const Y_DOM = [80, 300];
@@ -98,7 +98,6 @@ const RX_DOM = [-12, 26];
 const RY_DOM = [-70, 120];
 const FIT_DOM = [90, 200];
 const RES_DOM = [-50, 70];
-const PLANE_AGES = [35, 45, 55, 65];
 
 const EASE_MS = 450;
 
@@ -106,9 +105,9 @@ const EASE_MS = 450;
    covariate nodes click targets; two copies of this arithmetic is how a
    target ends up six columns from its node (the fingerprint's own incident,
    widget 26's own comment). The Collinearity tab's DAG holds a fourth node
-   (weight), so the layout is per concept and regions() uses the same one. */
-function dagLayout(concept) {
-  if (concept === "collinear") {
+   (weight), so the layout is per shape and regions() uses the same one. */
+function dagLayout(wide) {
+  if (wide) {
     const d = { x: 8, y: 30, w: DAG_W, h: 190 };
     const R = 22;
     return {
@@ -206,8 +205,13 @@ const residOn = (v, z) => {
   return v.map((x, i) => x - g.b[0] - g.b[1] * z[i]);
 };
 
-const twinActive = (p) => p.concept === "collinear" && p.bmi;
-const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (twinActive(p) ? "t" : "");
+/* Weight is a REAL member of the model (round 7, Kenneth: the twins are
+   clickable APART — each is fine alone; only both together break). Its
+   pill lives on the Collinearity tab, but membership persists across tabs
+   so the model never changes behind the reader's back. */
+const twinActive = (p) => Boolean(p.weight);
+const keyOf = (p) => (p.bmi ? "b" : "") + (p.age ? "a" : "") + (p.weight ? "t" : "");
+const dagWide = (p) => p.concept === "collinear" || Boolean(p.weight);
 
 defineWidget({
   slug: "lm-adjustment",
@@ -219,7 +223,7 @@ defineWidget({
     "coefficient is not a property of the variable — it is a property of " +
     "the model it sits in, and it moves when the model changes.",
   layout: "side",
-  height: ({ concept }) => HEIGHT(concept),
+  height: ({ concept, weight }) => HEIGHT(concept === "collinear" || Boolean(weight)),
 
   params: {
     /* THE CONCEPT STRIP — one idea per tab, staged; the reader's model (the
@@ -231,7 +235,7 @@ defineWidget({
       options: [
         { value: "fit", label: "Fit", detail: "two covariates fit a plane — drawn as a family of lines" },
         { value: "adjust", label: "Adjust", detail: "each coefficient moves when the model changes" },
-        { value: "collinear", label: "Collinearity", detail: "weight carries the same information as BMI; VIF detects it" },
+        { value: "collinear", label: "Collinearity", detail: "add weight beside BMI — two covariates, one piece of information" },
       ],
       default: "fit",
       display: true,
@@ -251,6 +255,18 @@ defineWidget({
       label: "age",
       default: false,
       display: true,
+    },
+    /* The third pill, visible on the Collinearity tab — a covariate like
+       any other, which is the point: nothing about weight is broken, and
+       the reader discovers that weight ALONE predicts fine; only both
+       twins together split the credit. Membership persists off-tab. */
+    weight: {
+      type: "bool",
+      style: "pill",
+      label: "weight",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "collinear" },
     },
 
     /* WHERE THE ADJUSTED NUMBER COMES FROM — widget 26's added-variable
@@ -304,8 +320,10 @@ defineWidget({
       "": pack(ols(SYSBP), []),
       b: pack(ols(SYSBP, BMI), ["bmi"]),
       a: pack(ols(SYSBP, AGE), ["age"]),
+      t: pack(ols(SYSBP, wgt), ["twin"]),
       ba: pack(ols(SYSBP, BMI, AGE), ["bmi", "age"]),
       bt: pack(ols(SYSBP, BMI, wgt), ["bmi", "twin"]),
+      at: pack(ols(SYSBP, wgt, AGE), ["twin", "age"]),
       bat: pack(ols(SYSBP, BMI, wgt, AGE), ["bmi", "twin", "age"]),
     };
     const vif = (t, ...o) => 1 / (1 - ols(t, ...o).r2);
@@ -329,8 +347,14 @@ defineWidget({
       meanWgt: meanOf(wgt),
       rx: residOn(BMI, AGE),
       ry: residOn(SYSBP, AGE),
+      /* VIFs for every ≥2-covariate model, keyed like the fits — the
+         Collinearity tab's bars work for ANY composition, so bmi + age's
+         quiet ~1.02 pair is on screen too, the contrast that makes 7.7
+         mean something. */
       vifs: {
+        ba: [["BMI", vif(BMI, AGE)], ["age", vif(AGE, BMI)]],
         bt: [["BMI", vif(BMI, wgt)], ["weight", vif(wgt, BMI)]],
+        at: [["weight", vif(wgt, AGE)], ["age", vif(AGE, wgt)]],
         bat: [["BMI", vif(BMI, wgt, AGE)], ["weight", vif(wgt, BMI, AGE)], ["age", vif(AGE, BMI, wgt)]],
       },
     };
@@ -382,14 +406,18 @@ defineWidget({
   /* The DAG's covariate nodes toggle membership — the same write the pills
      perform, through the same door; the pills stay as the keyboard path. */
   regions({ params }) {
-    const { P, R } = dagLayout(params.concept);
-    return ["bmi", "age"].map((k) => ({
+    const wide = dagWide(params);
+    const { P, R } = dagLayout(wide);
+    const keys = wide ? ["bmi", "twin", "age"] : ["bmi", "age"];
+    const PARAM = { bmi: "bmi", twin: "weight", age: "age" };
+    const LABEL = { bmi: "BMI in the model", twin: "weight in the model", age: "age in the model" };
+    return keys.map((k) => ({
       x: P[k][0] - R - 4,
       y: P[k][1] - R - 4,
       w: 2 * (R + 4),
       h: 2 * (R + 4),
-      set: { [k]: !params[k] },
-      label: k === "bmi" ? "BMI in the model" : "age in the model",
+      set: { [PARAM[k]]: !params[PARAM[k]] },
+      label: LABEL[k],
     }));
   },
 
@@ -407,7 +435,8 @@ defineWidget({
     renderEquation(terms);
 
     /* --- the DAG, every tab -------------------------------------------- */
-    const { d, R, P } = dagLayout(concept);
+    const wide = dagWide(params);
+    const { d, R, P } = dagLayout(wide);
     ctx.save();
     ctx.font = `600 ${colors.fsSm} ${colors.font}`;
     ctx.fillStyle = colors.ink2;
@@ -438,7 +467,7 @@ defineWidget({
     };
     arrow("bmi", params.bmi);
     arrow("age", params.age);
-    if (concept === "collinear") arrow("twin", twinOn);
+    if (wide) arrow("twin", params.weight);
 
     /* the associations — dashed and directionless on purpose: "these are
        correlated" is measured; a direction would be a causal claim that
@@ -459,20 +488,18 @@ defineWidget({
       ctx.textAlign = "left";
       ctx.fillText(label, P[a][0] + 9, (P[a][1] + P[b][1]) / 2 + 4);
     };
-    if (concept === "collinear") assoc("bmi", "twin", "r = " + fmt(state.corrBW, 2), true);
+    if (wide) assoc("bmi", "twin", "r = " + fmt(state.corrBW, 2), true);
     else assoc("bmi", "age", "r = " + fmt(R_BMI_AGE, 2), false);
 
     const NODE = { bmi: "BMI", twin: "weight", age: "age", y: "sysBP" };
-    const nodes = concept === "collinear" ? ["bmi", "twin", "age", "y"] : ["bmi", "age", "y"];
+    const nodes = wide ? ["bmi", "twin", "age", "y"] : ["bmi", "age", "y"];
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (const k of nodes) {
       const [nx, ny] = P[k];
-      const on = k === "y" || (k === "twin" ? twinOn : params[k]);
+      const on = k === "y" || (k === "twin" ? params.weight : params[k]);
       ctx.fillStyle = colors.surface;
-      ctx.strokeStyle = k === "y" ? colors.ink2
-        : k === "twin" ? (twinOn ? colors.extreme : colors.ink3)
-          : on ? colors.highlight : colors.ink3;
+      ctx.strokeStyle = k === "y" ? colors.ink2 : on ? colors.highlight : colors.ink3;
       ctx.lineWidth = on && k !== "y" ? 2 : 1.25;
       ctx.beginPath();
       ctx.arc(nx, ny, R, 0, 2 * Math.PI);
@@ -490,19 +517,28 @@ defineWidget({
     else drawForest(ctx, colors, { ...rp, h: 34 + F_ROW * (twinOn ? 3 : 2) }, params, state, anim, twinOn);
 
     /* --- the scatter row ----------------------------------------------- */
-    const sTop = scatterTop(concept);
+    const sTop = scatterTop(wide);
+    const vifRows = state.vifs[key];
     const rect = {
       x: 56,
       y: sTop,
-      w: twinOn || concept === "adjust" ? Math.round((w - 70) * 0.55) : w - 56 - 14,
+      w: concept === "adjust" || (concept === "collinear" && vifRows)
+        ? Math.round((w - 70) * 0.55)
+        : w - 56 - 14,
       h: SCATTER_H,
     };
 
-    /* On the Collinearity tab the sysBP scatter does no work — the panel
-       shows THE TWINS AGAINST EACH OTHER instead: the correlation graph
-       itself, with the honesty note that weight is simulated. */
-    if (concept === "collinear" && twinOn) {
-      drawWeightPanel(ctx, colors, rect, state);
+    if (concept === "fit") {
+      /* Round 7, Kenneth's pick A: BOTH marginals at once — 05-02's own
+         ggpairs move. Each panel carries the model's reading of its
+         covariate, the other members held at bands (three lines) or at
+         their means. */
+      drawMarginals(ctx, colors, { x: 56, y: sTop, w: w - 70, h: SCATTER_H }, params, state, fit, key, twinOn);
+    } else if (concept === "collinear" && vifRows) {
+      /* VIF, drawn instead of defined: the largest-VIF covariate against
+         what the others predict for it. The old twins-vs-each-other panel
+         is this same cloud with the arithmetic attached. */
+      drawPredPanel(ctx, colors, rect, state, key);
     } else {
     const vmix = concept === "adjust" ? anim?.vmix ?? 0 : 0;
     const plotD = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
@@ -516,15 +552,11 @@ defineWidget({
     } else {
       front.axisX({ label: "BMI" });
       front.axisY({ label: "sysBP (mmHg)" });
-      front.caption(
-        key === "" ? "3547 patients — no model yet"
-          : concept === "fit" && params.bmi && params.age ? "the plane over BMI — one line per age"
-            : "the data, and the model's line",
-      );
+      front.caption(key === "" ? "3547 patients — no model yet" : "the data, and the model's line");
       if (concept === "adjust" && !(params.bmi && params.age)) {
         front.note("put BMI and age in the model to watch a coefficient move");
-      } else if (concept === "collinear" && !params.bmi) {
-        front.note("put BMI in the model to meet its twin");
+      } else if (concept === "collinear") {
+        front.note("put two covariates in the model to talk about collinearity");
       }
     }
 
@@ -568,26 +600,10 @@ defineWidget({
 
     if (vmix < 0.996 && key !== "") {
       const slope = params.bmi ? fit.coefs.bmi.b : 0;
-      if (concept === "fit" && params.age) {
-        /* THE PLANE, drawn: one line per age, same slope, lifted by the age
-           coefficient — "held constant" as a picture (ggPredict's own). */
-        ctx.globalAlpha = 1 - vmix;
-        PLANE_AGES.forEach((a, i) => {
-          const b0 = fit.b0 + fit.coefs.age.b * a + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
-          lineAt(b0, slope, (0.45 + (0.55 * i) / (PLANE_AGES.length - 1)) * (1 - vmix), 2);
-          ctx.fillStyle = colors.ink2;
-          ctx.font = `${colors.fsXs} ${colors.font}`;
-          ctx.textAlign = "left";
-          const lx = 55.2;
-          ctx.fillText(`age ${a}`, plotD.sx(lx) + 3, plotD.sy(b0 + slope * lx) - 3);
-        });
-        ctx.globalAlpha = 1;
-      } else if (params.bmi || params.age) {
-        const b0 = fit.b0
-          + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
-          + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
-        lineAt(b0, slope, 1 - vmix, 2.5);
-      }
+      const b0 = fit.b0
+        + (params.age ? fit.coefs.age.b * MEAN_AGE : 0)
+        + (twinOn ? fit.coefs.twin.b * state.meanWgt : 0);
+      lineAt(b0, slope, 1 - vmix, 2.5);
     }
     if (vmix > 0.004 && key === "ba") {
       ctx.globalAlpha = vmix;
@@ -607,8 +623,8 @@ defineWidget({
       drawTable(ctx, colors, { x: rect.x + rect.w + 50, y: sTop, w: w - (rect.x + rect.w + 50) - 14 }, state, key);
     }
 
-    /* --- the residual strip, every tab --------------------------------- */
-    const strip = { x: rect.x, y: sTop + SCATTER_H + STRIP_GAP, w: rect.w, h: STRIP_H };
+    /* --- the residual strip, every tab, full width --------------------- */
+    const strip = { x: 56, y: sTop + SCATTER_H + STRIP_GAP, w: w - 70, h: STRIP_H };
     const rplot = makePlot({ ctx, colors, rect: strip, xDomain: FIT_DOM, yDomain: RES_DOM });
     rplot.axisX({ label: "fitted sysBP" });
     rplot.axisY({ label: "residual", ticks: [-40, 0, 40] });
@@ -638,10 +654,10 @@ defineWidget({
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    /* --- the VIF panel, Collinearity tab with the twin in -------------- */
-    if (!twinOn) return;
+    /* --- the VIF panel, Collinearity tab, any ≥2-covariate model ------- */
+    if (!(concept === "collinear" && vifRows)) return;
     const vrect = { x: rect.x + rect.w + 56, y: sTop, w: w - (rect.x + rect.w + 56) - 14, h: SCATTER_H };
-    const rows = params.age ? state.vifs.bat : state.vifs.bt;
+    const rows = vifRows;
     const vy = (v) => vrect.y + vrect.h - (v / 8) * vrect.h;
     ctx.strokeStyle = colors.grid;
     ctx.strokeRect(vrect.x, vrect.y, vrect.w, vrect.h);
@@ -689,9 +705,9 @@ defineWidget({
         note: "mmHg left over per patient — watch it shrink as covariates enter",
       },
     ];
-    if (twinActive(params)) {
-      const rows = params.age ? state.vifs.bat : state.vifs.bt;
-      const worst = Math.max(...rows.map(([, v]) => v));
+    const vifRows = state.vifs[key];
+    if (vifRows) {
+      const worst = Math.max(...vifRows.map(([, v]) => v));
       tiles.push({
         label: "Largest VIF",
         value: fmt(worst, 1),
@@ -741,8 +757,8 @@ function drawForest(ctx, colors, frect, params, state, anim, twinOn) {
   const NAMES = { bmi: "BMI", twin: "weight", age: "age" };
   const GHOST = {
     bmi: { v: state.fits.b.coefs.bmi.b, h: state.fits.b.coefs.bmi.half, show: params.bmi && (params.age || twinOn) },
-    age: { v: state.fits.a.coefs.age.b, h: state.fits.a.coefs.age.half, show: params.age && params.bmi },
-    twin: { show: false },
+    age: { v: state.fits.a.coefs.age.b, h: state.fits.a.coefs.age.half, show: params.age && (params.bmi || twinOn) },
+    twin: { v: state.fits.t.coefs.twin.b, h: state.fits.t.coefs.twin.half, show: twinOn && (params.bmi || params.age) },
   };
   const fitNow = state.fits[keyOf(params)];
   ROWS.forEach((k, i) => {
@@ -920,26 +936,122 @@ function drawFitBars(ctx, colors, rp, state, key) {
   ctx.fillText("covariates explain spread; what remains is the residual", rp.x, rp.y + 130);
 }
 
-/* --- the twins against each other (Collinearity tab) ---------------------
-   The correlation graph itself: weight against BMI, one dot per patient.
-   The note is the honesty line — the file records no weight, so it is
-   simulated, and the screen says so. */
-function drawWeightPanel(ctx, colors, rect, state) {
-  const W_DOM = [40, 120];
-  const plot = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: W_DOM });
-  plot.axisX({ label: "BMI" });
-  plot.axisY({ label: "weight (kg)" });
-  plot.caption(`the twins: r = ${fmt(state.corrBW, 2)}`);
-  plot.note("weight is simulated from BMI and a plausible height");
+/* --- both marginals at once (Fit tab, round 7 — Kenneth's pick A) --------
+   05-02's own ggpairs move: sysBP against BMI and against age, side by
+   side. Each panel draws the model's reading of ITS covariate with the
+   other members held constant — at three bands when the other continuous
+   covariate is in (the plane, seen from each side), else at means. */
+function drawMarginals(ctx, colors, slot, params, state, fit, key, twinOn) {
+  const gap = 60;
+  const pw = Math.round((slot.w - gap) / 2);
+  const AGE_DOM = [30, 71];
+  const AGE_BANDS = [35, 50, 65];
+  const BMI_BANDS = [20, 27, 34];
+
+  const panelSpec = [
+    { xs: BMI, dom: X_DOM, label: "BMI", self: "bmi", other: "age", bands: AGE_BANDS, x: slot.x },
+    { xs: AGE, dom: AGE_DOM, label: "age", self: "age", other: "bmi", bands: BMI_BANDS, x: slot.x + pw + gap },
+  ];
+
+  panelSpec.forEach((p, pi) => {
+    const rect = { x: p.x, y: slot.y, w: pw, h: slot.h };
+    const plot = makePlot({ ctx, colors, rect, xDomain: p.dom, yDomain: Y_DOM });
+    plot.axisX({ label: p.label });
+    if (pi === 0) {
+      plot.axisY({ label: "sysBP (mmHg)" });
+      plot.caption(key === "" ? "3547 patients — no model yet"
+        : params.bmi && params.age ? "the model, the other covariate held constant"
+          : "the data, and the model's line");
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.fillStyle = colors.unknown;
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath();
+      ctx.arc(plot.sx(p.xs[i]), plot.sy(SYSBP[i]), 1.6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    if (params[p.self]) {
+      const slope = fit.coefs[p.self].b;
+      const otherIn = params[p.other];
+      const line = (b0, alpha, label) => {
+        ctx.strokeStyle = colors.highlight;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(plot.sx(p.dom[0]), plot.sy(b0 + slope * p.dom[0]));
+        ctx.lineTo(plot.sx(p.dom[1]), plot.sy(b0 + slope * p.dom[1]));
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        if (label) {
+          ctx.fillStyle = colors.ink2;
+          ctx.font = `${colors.fsXs} ${colors.font}`;
+          /* Right-aligned inside the frame — left-anchored at 0.9 the label
+             ran into the clip and lost its last digit. */
+          ctx.textAlign = "right";
+          ctx.fillText(label, plot.sx(p.dom[1]) - 4, plot.sy(b0 + slope * p.dom[1]) - 4);
+        }
+      };
+      const twinPart = twinOn ? fit.coefs.twin.b * state.meanWgt : 0;
+      if (otherIn) {
+        const oc = fit.coefs[p.other].b;
+        p.bands.forEach((bv, i) => {
+          line(fit.b0 + oc * bv + twinPart,
+            0.45 + (0.55 * i) / (p.bands.length - 1),
+            `${p.other === "age" ? "age" : "BMI"} ${bv}`);
+        });
+      } else {
+        line(fit.b0 + twinPart + (p.other === "age" && params.age ? fit.coefs.age.b * MEAN_AGE : 0), 1);
+      }
+    }
+    ctx.restore();
+  });
+}
+
+/* --- VIF, drawn instead of defined (Collinearity tab) --------------------
+   "Regress the covariate on the rest" IS a picture: the largest-VIF member
+   against what the other members predict for it. Weight's cloud hugs the
+   diagonal (R² 0.87 → VIF 7.7); with weight out, bmi + age's cloud is a
+   blob at VIF ≈ 1 — the contrast that defines the quantity. The honesty
+   note rides here: the file records no weight; it is simulated. */
+function drawPredPanel(ctx, colors, rect, state, key) {
+  const rows = state.vifs[key];
+  const worst = rows.reduce((a, b) => (b[1] > a[1] ? b : a));
+  const NAMED = { BMI: { arr: BMI, dom: [14, 58] }, weight: { arr: state.wgt, dom: [40, 120] }, age: { arr: AGE, dom: [30, 71] } };
+  const subject = NAMED[worst[0]];
+  const members = rows.map(([n]) => n);
+  const others = members.filter((n) => n !== worst[0]).map((n) => NAMED[n].arr);
+  const f = ols(subject.arr, ...others);
+  const pred = subject.arr.map((_, i) => others.reduce((s, o, j) => s + f.b[j + 1] * o[i], f.b[0]));
+
+  const plot = makePlot({ ctx, colors, rect, xDomain: subject.dom, yDomain: subject.dom });
+  plot.axisX({ label: `${worst[0]}, predicted from the others` });
+  plot.axisY({ label: `${worst[0]}, actual` });
+  plot.caption(`R² ${fmt(f.r2, 2)}  →  VIF = 1 ⁄ (1 − ${fmt(f.r2, 2)}) = ${fmt(worst[1], 1)}`);
+  plot.note(members.includes("weight")
+    ? "weight is simulated from BMI and a plausible height"
+    : "the others know almost nothing about it");
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
-  ctx.fillStyle = colors.unknown;
+  ctx.strokeStyle = colors.ink3;
+  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(subject.dom[0]), plot.sy(subject.dom[0]));
+  ctx.lineTo(plot.sx(subject.dom[1]), plot.sy(subject.dom[1]));
+  ctx.stroke();
   ctx.globalAlpha = 0.35;
+  ctx.fillStyle = colors.unknown;
   for (let i = 0; i < N; i += 1) {
     ctx.beginPath();
-    ctx.arc(plot.sx(BMI[i]), plot.sy(state.wgt[i]), 1.5, 0, 2 * Math.PI);
+    ctx.arc(plot.sx(pred[i]), plot.sy(subject.arr[i]), 1.5, 0, 2 * Math.PI);
     ctx.fill();
   }
   ctx.globalAlpha = 1;

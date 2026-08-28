@@ -45,9 +45,13 @@ driven-vs-settled-sibling check.
    became **simulated WEIGHT** (unisex N(1.68, 0.05) — the sex-specific
    version failed measurement by smuggling sex; r = 0.93, VIF 7.7, the
    twins-vs-each-other scatter with the honesty note); Seed hidden.
-   **Next: Kenneth reviews** —
-   `http://localhost:8010/widgets/lm-adjustment/` (tabs:
-   `?bmi=1&age=1&concept=adjust` / `?bmi=1&age=1&concept=collinear`).
+   **Round 7** (catalogue § ROUND 7): both marginals on Fit (pick A), a
+   real `weight` pill — the twins clickable apart, 8 models computed —
+   and VIF drawn as the largest-VIF covariate against what the others
+   predict for it. **Next: Kenneth reviews** —
+   `http://localhost:8010/widgets/lm-adjustment/` (states: `?bmi=1&age=1`
+   / `?bmi=1&age=1&concept=adjust` /
+   `?bmi=1&age=1&weight=1&concept=collinear`).
    Not yet baselined. After it: `lm-categorical`, `lm-interaction`,
    `censoring-km`, `pseudoreplication`.
 2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth

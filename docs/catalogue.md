@@ -3370,6 +3370,30 @@ by `hit` on the DAG's regions (which the hit rule wants exercised anyway).
    name of the failure. The screen says "weight is simulated from BMI and
    a plausible height" on the twins panel.
 
+### ROUND 7 — both marginals, the twins apart, VIF drawn
+
+**Kenneth's picks from `_lab/lm-adjust4.html`, all in.** The Fit tab shows
+**BOTH MARGINALS at once** (his pick A over the x-axis control): sysBP
+against BMI and against age side by side — 05-02's own ggpairs move — each
+panel carrying the model's reading of its covariate with the other held at
+three bands (the plane seen from each side; band labels right-aligned
+inside the frame after the clip ate their last digit). **Weight is a real
+pill** (third bool, visible on the Collinearity tab, membership persisting
+across tabs so the model never changes behind the reader's back): the
+twins are clickable APART, and the lesson sharpened — weight ALONE is a
+perfectly good model (0.53 mmHg/kg, tight CI, its ghost in the forest);
+only both together break. All **8 models** are computed; VIFs for every
+≥2-covariate set, so bmi + age's quiet ~1.0 pair is the contrast that
+makes 7.7 mean something. **VIF is drawn, not defined**: the Collinearity
+panel shows the largest-VIF covariate against WHAT THE OTHERS PREDICT FOR
+IT — the cloud hugs the diagonal at R² 0.87 with the arithmetic in the
+caption (R² → VIF = 1/(1−R²) = 7.7); drop weight and the same panel shows
+the bmi–age blob at VIF ≈ 1. It replaced the twins-vs-each-other scatter,
+which was the same cloud without the arithmetic; the honesty note
+("weight is simulated…") rides on it. The weight DAG node is a third
+click region; the DAG goes 4-node whenever weight is in the model or the
+tab is Collinearity; the strip is full-width on every tab.
+
 **The original open questions** (superseded above): the stage —
 a coefficient forest that models enter and leave (the notebook's own
 closer), the FWL residual slide (widget 26's motion), or forest + scatter;
