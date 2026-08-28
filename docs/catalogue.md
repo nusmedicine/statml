@@ -3417,8 +3417,19 @@ the address is stale; same class as the deferred core item "a published
 `step` survives a data change", and the same core fix should clear both),
 and **the pane's stray-input phantom is alive** — b₀ drifted 70 → 67 → 69
 between two probes with no action taken, which is why nothing here trusts
-a screenshot for a fact. Awaiting Kenneth's failure mode before touching
-anything.
+a screenshot for a fact.
+
+**RESOLVED — Kenneth: "it had the stop sign and dropped off", and now
+works.** The 🚫 cursor names the mechanism: a native drag-and-drop, not a
+slider drag. With any text or element selected on the page (a double-click
+suffices), the next press-and-drag lifts the SELECTION as a drag ghost and
+the range input under it never sees the pointer; releasing "drops" it and
+everything looks dead. Stock browser behaviour, not widget code — which is
+why no driven path could reproduce it. If it recurs, the guard is
+`user-select: none` on the rail — one line in core's tokens.css, invisible
+to both hashes (the rail is outside them) but still a core change owing a
+suite run; not applied because a selection-drag is rare and the fix would
+also make control labels uncopyable.
 
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
