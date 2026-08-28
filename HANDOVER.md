@@ -21,17 +21,20 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Kenneth picks the modeling arc's next widget.** The linear four
-   continue in teaching order, so the standing suggestion is
-   **`lm-adjustment`** (05-02, Multiple Covariates — the Table 2 fallacy);
-   after it `lm-categorical`, `lm-interaction`, then `censoring-km` and
-   `pseudoreplication`. The slug rulings and the separate-widgets decision
-   are in the catalogue's modeling-arc section. The shared Framingham stage
-   is already built and verified: `widgets/lm-least-squares/data.js` (six
-   columns for the whole arc, n = 3547) and `model.js` (exact OLS, k ≤ 5) —
-   siblings import across widget dirs, widget 26's pattern. Process as
-   before: measure first, mock in `_lab/`, one pick at a time, draft until
-   promoted, baseline with a shoot page.
+1. **`lm-adjustment` is MEASURED (2026-08-28)** — the full record is
+   [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 28*.
+   `node widgets/_lab/lm-adjust-measure.mjs` = **21 checks pass**: every
+   deterministic 05-02 stored output to the digit on the shared stage
+   (`widgets/lm-least-squares/data.js` + `model.js`), FWL exact; the
+   collinearity cells are UNSEEDED in the notebook and are measured across
+   200 seeds instead (twin n.s. 186/200, SE ×2.50, VIF 6.34 ± 0.12). The
+   decisive design fact: **two slopes cannot carry this widget** — the
+   1.721 → 1.499 move is 1.8–3.1px at panel scale; coefficients must be
+   marks, not slopes. **Next step: mock-up page in `_lab/` for Kenneth's
+   pick** — the open questions (forest vs FWL slide vs both; whether the
+   collinearity act gates into this widget or defers) are in the catalogue
+   section. After it: `lm-categorical`, `lm-interaction`, `censoring-km`,
+   `pseudoreplication`.
 2. **Notebook links now owed for BOTH shipped modeling widgets** — Kenneth
    places notebook links by hand: 06-02's (widget 26, the line is in item 3
    below) and now 05-01's (widget 27):

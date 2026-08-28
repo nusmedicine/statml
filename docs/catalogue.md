@@ -3212,6 +3212,58 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
+## NEXT · Widget 28 · `lm-adjustment` — MEASURED 2026-08-28
+
+**The brief:** 05-02 (Multiple Covariates), the Table 2 fallacy — a
+coefficient is not THE effect of its variable; it is the effect *in this
+model*. The notebook's own arithmetic is the lesson: BMI's coefficient is
+**1.721 alone and 1.499 with age in the model** (−12.9%), age's is 0.924
+alone and 0.836 with BMI (−9.5%), and "held constant" is what the change
+means. Second act in the same notebook: collinearity — `BMI_related =
+jitter(BMI, 3)`, the twins split the coefficient, the SEs inflate, VIF
+detects it.
+
+**Verified** (`node widgets/_lab/lm-adjust-measure.mjs`, on the shipped
+shared stage `widgets/lm-least-squares/data.js` + `model.js`): **21 checks
+pass** — every deterministic 05-02 stored output to the digit (all three
+models' estimates, the full SE/t/CI/R² block for `sysBP ~ BMI + age`,
+df = 3544), plus FWL asserted exact (the age-residual scatter's slope IS
+1.4990839, to 1e-9). **The collinearity cells cannot be verified to the
+digit and the script does not pretend to**: the notebook's `jitter()` is
+unseeded (HANDOVER's standing warning), so the arm is measured across 200
+seeds instead — which is what a seeded widget can honestly claim.
+
+**Measured before design:**
+
+- **Two slopes on the scatter CANNOT carry this widget.** The unadjusted
+  and adjusted BMI lines differ by **1.8–3.1px** at widget 27's panel scale
+  (1.7–2.9 mmHg across the 1%–99% BMI window). Widget 26's candidate-A
+  treatment is dead here before being drawn; the −12.9% move needs a stage
+  where coefficients are marks, not slopes — the notebook's own closer is a
+  three-model `modelsummary` table and a `ggcoefstats` forest.
+- **r(BMI, age) = 0.125** — the confounding is real but the correlation is
+  modest; the move comes from age's strong link to sysBP (r = 0.373). A
+  design that implies "BMI and age are highly correlated" would lie.
+- **The FWL residual view is available and exact** (widget 26's motion,
+  reusable): regress both axes on age, and the residual cloud's slope is
+  the adjusted coefficient. Residual windows: BMI −7.6..12.7, sysBP
+  −36.6..61.0.
+- **The collinearity arm is stable across seeds** with `BMI + U(−3, 3)`:
+  the twin is n.s. in **186/200** seeds, b(BMI_related) = 0.002 ± 0.191
+  (the notebook's 0.0249 is one draw), SE(BMI) inflates ×2.50 — √VIF
+  predicts ×2.52 — and VIF(BMI) is 6.34 ± 0.12 against the threshold 5.
+  Every number the widget would print survives reseeding.
+- n = 3547 fixed, same frame; the only randomness is the twin's jitter,
+  which the widget would seed.
+
+**Open questions for the mock-ups** (next step, Kenneth picks): the stage —
+a coefficient forest that models enter and leave (the notebook's own
+closer), the FWL residual slide (widget 26's motion), or forest + scatter;
+whether the collinearity act lives in this widget behind a gate ("Add a
+twin covariate") or is deferred — 05-02 teaches both, but the catalogue row
+names only the Table 2 fallacy; and what the rail's data/model split is
+when the data never changes.
+
 ## Widget 27 · `lm-least-squares` — SHIPPED 2026-08-28, seven review rounds
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — planned, measured,
