@@ -42,16 +42,27 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
   ck(`declares \`${key}\``, W[key] != null);
 }
 const WANT = {
-  concept: "segmented", reading: "section", censored: "segmented", truth: "bool",
-  bands: "bool", cox: "bool", speed: "choice", seed: "int", shown: "int",
+  concept: "segmented", reading: "section", censored: "segmented",
+  curves: "section", truth: "bool", bands: "bool",
+  model: "section", disease: "bool", age: "bool", snps: "bool",
+  speed: "choice", seed: "int", shown: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
   Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-ck("cox is a bool, NOT a gate (a gate hides the drive row this widget needs)",
-  W.params.cox.type === "bool");
-ck("censored / truth / bands / cox / concept are display",
-  ["censored", "truth", "bands", "cox", "concept"].every((k) => W.params[k].display === true));
+ck("three concepts, option-B labels",
+  W.params.concept.options.map((o) => o.label).join("|") === "Censoring|Comparing groups|Finding factors");
+ck("the pills are pills",
+  ["disease", "age", "snps"].every((k) => W.params[k].style === "pill"));
+ck("censored / truth / bands / pills / concept are display",
+  ["censored", "truth", "bands", "disease", "age", "snps", "concept"]
+    .every((k) => W.params[k].display === true));
+ck("each tab's rail section is gated on its concept",
+  W.params.reading.when?.equals === "censoring"
+  && W.params.curves.when?.equals === "groups"
+  && W.params.model.when?.equals === "factors");
+ck("no gate anywhere (a gate hides the drive row this widget needs)",
+  !Object.values(W.params).some((f) => f.type === "gate"));
 ck("seed and shown are hidden", W.params.seed.hidden && W.params.shown.hidden);
 ck("default seed is 3 (the measured clean seed)", W.params.seed.default === 3);
 
@@ -66,14 +77,19 @@ ck("five-patient dropped curve ends at 0", state.five.dropped.steps[2].S === 0);
 ck("200 patients split into two groups",
   state.groups[0].n + state.groups[1].n === 200);
 ck("log-rank fires (p < 1e-4)", state.lr.p < 1e-4);
-ck("cox12 converged", state.cox12.converged);
-const sig = state.cox12.p.map((p) => p < 0.05);
+ck("all seven pill-combination fits present and converged",
+  ["d", "a", "s", "da", "ds", "as", "das"].every((k) => state.fits[k]?.converged));
+const full = state.fits.das.byName;
 ck("cell 17's story on the default seed: Age, Disease, SNP_1-3 significant",
-  sig[0] && sig[1] && sig[2] && sig[3] && sig[4]);
-ck("...and all seven null SNPs quiet", !sig.slice(5).some(Boolean));
+  full.age.p < 0.05 && full.disease.p < 0.05
+  && full.snp1.p < 0.05 && full.snp2.p < 0.05 && full.snp3.p < 0.05);
+ck("...and all seven null SNPs quiet",
+  [4, 5, 6, 7, 8, 9, 10].every((j) => full[`snp${j}`].p >= 0.05));
+ck("the groups tab's HR is the disease-only model's",
+  Number.isFinite(state.fits.d.byName.disease.hr) && state.fits.d.members.length === 1);
 ck("H4 rates are finite in all three bins, both groups",
   state.groups.every((g) => g.rates.every(Number.isFinite)));
-ck("tEnd.patients is 10", state.tEnd.patients === 10);
+ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",
   state.tEnd.groups === Math.max(...state.stepTimes.groups));
 
@@ -99,11 +115,13 @@ while (!run.done && frames < 5000) {
 }
 ck(`run reaches the end (${frames} frames at medium)`, run.done && frames < 1000);
 
-/* the tab hand-off: finished on Five patients, keeps building on Two groups */
-const cross = { t: 10, done: true };
+/* the tab hand-off: finished on Censoring, keeps building on Comparing groups */
+const cross = W.animation.init({ params: { ...values }, state, fromScratch: true });
+cross.t = 10;
+cross.done = true;
 W.animation.rebuild(cross, { params: { ...values, concept: "groups" }, state });
 ck("done is re-read on tab switch: 10 < tEnd.groups", cross.done === false);
-W.animation.rebuild(cross, { params: { ...values, concept: "patients" }, state });
+W.animation.rebuild(cross, { params: { ...values, concept: "censoring" }, state });
 ck("...and back", cross.done === true);
 
 /* shown lands where it claims */
@@ -112,31 +130,64 @@ const shown = W.animation.init({
 });
 ck("?shown=44 opens finished", shown.done === true);
 
+console.log("\n== the forest's ease, pumped by hand ==");
+{
+  const pf = { ...values, concept: "factors", disease: true };
+  const a = W.animation.init({ params: { ...values, concept: "factors" }, state, fromScratch: true });
+  ck("no pills: every row targets alpha 0",
+    Object.values(a.rowsT).every((r) => r.a === 0));
+  W.animation.rebuild(a, { params: pf, state });
+  ck("adding a pill requests frames (anim.easing)", a.easing === true);
+  a.mode = "ease";
+  let n = 0;
+  while (W.animation.advance(a, { dt: 16, params: pf, state }) && n < 500) n += 1;
+  const want = Math.log(state.fits.d.byName.disease.hr);
+  ck(`the disease row lands on the model's value in ${n} frames`,
+    Math.abs(a.rows.disease.v - want) < 1e-3 && Math.abs(a.rows.disease.a - 1) < 1e-3);
+  ck("...and easing is cleared", a.easing === false);
+  const pf2 = { ...pf, snps: true };
+  W.animation.rebuild(a, { params: pf2, state });
+  a.mode = "ease";
+  n = 0;
+  while (W.animation.advance(a, { dt: 16, params: pf2, state }) && n < 500) n += 1;
+  const want2 = Math.log(state.fits.ds.byName.disease.hr);
+  ck("adding the SNPs moves the disease row to the adjusted value",
+    Math.abs(a.rows.disease.v - want2) < 1e-3);
+  ck("a SNP row arrived with it", Math.abs(a.rows.snp1.a - 1) < 1e-3);
+}
+
 console.log("\n== readout and summary: no NaN, no undefined, anywhere ==");
 let dirty = 0;
-for (const concept of ["patients", "groups"]) {
-  for (const censored of ["kept", "dropped", "asevents"]) {
-    for (const cox of [false, true]) {
+let states = 0;
+const PILLS = [
+  {}, { disease: true }, { age: true }, { snps: true },
+  { disease: true, age: true, snps: true },
+];
+for (const concept of ["censoring", "groups", "factors"]) {
+  for (const censored of concept === "censoring" ? ["kept", "dropped", "asevents"] : ["kept"]) {
+    for (const pills of concept === "factors" ? PILLS : [{}]) {
       for (const t of [0, 5.2, 7, 10, 16, 22]) {
-        const p = { ...values, concept, censored, cox };
+        const p = { ...values, concept, censored, ...pills };
         const tiles = W.readout({ params: p, state, anim: { t } });
         const text = tiles.map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
           + " " + W.summary({ params: p, state, anim: { t } });
+        states += 1;
         if (/NaN|undefined|Infinity/.test(text)) {
           dirty += 1;
-          console.log(`    DIRTY at ${concept}/${censored}/cox=${cox}/t=${t}: ${text}`);
+          console.log(`    DIRTY at ${concept}/${censored}/${JSON.stringify(pills)}/t=${t}: ${text}`);
         }
       }
     }
   }
 }
-ck("all 72 readout+summary states clean", dirty === 0);
+ck(`all ${states} readout+summary states clean`, dirty === 0);
 
-const h1 = W.height({ concept: "patients", cox: false });
-const h2o = W.height({ concept: "groups", cox: true });
-const h2s = W.height({ concept: "groups", cox: false });
-ck(`heights are finite and ordered (patients ${h1}, groups ${h2s}/${h2o})`,
-  [h1, h2o, h2s].every(Number.isFinite) && h2o > h2s);
+const h1 = W.height({ concept: "censoring" });
+const h2 = W.height({ concept: "groups" });
+const h3off = W.height({ concept: "factors", snps: false });
+const h3on = W.height({ concept: "factors", snps: true });
+ck(`heights finite; SNPs grow the factors tab (${h1}, ${h2}, ${h3off} → ${h3on})`,
+  [h1, h2, h3off, h3on].every(Number.isFinite) && h3on > h3off);
 
 console.log(fails ? `\n${fails} FAILURES` : "\nall checks pass");
 process.exit(fails ? 1 : 0);

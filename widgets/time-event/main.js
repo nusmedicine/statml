@@ -7,30 +7,41 @@
    engine is verified against an independent naive likelihood plus the
    tie-free log-rank ≡ score identity, because cell 16 stored NO output.
 
-   TWO TABS (Kenneth's pick, 2026-08-29), one motion — a time cursor sweeps
-   right and the curve builds under it:
+   ROUND 2 RESTRUCTURED TO THREE CONCEPTS (Kenneth, 2026-08-29): one tab per
+   question, labels option B, and each tab got an adversarial fix:
 
-     Five patients   the notebook's own opening table (A–E) as lanes above
-                     a building KM curve; an event steps the curve down by
-                     1/(at risk), a censoring ends a lane with an open mark
-                     and shrinks the risk set WITHOUT a step — the t = 8
-                     drop is a halving, one of two still at risk. Below,
-                     the HAZARD STRIP (pick H1 — Singer & Willett's paired
-                     profile at human scale): bars d/n at each event time,
-                     no bar at a censoring; a censoring moves the strip's
-                     DENOMINATOR, which is the cell-2 bullet drawn.
-     Two groups      200 simulated patients, KM by disease group with the
-                     log-rank p; the Cox model behind a gate, as a CARD —
-                     the 12-covariate forest (the arc's exp(b) reading,
-                     back from lm-adjustment) beside pick H4: per-bin event
-                     rates with the one-covariate Cox claim as dashed
-                     outlines, every baseline bin × the same exp(b) — what
-                     "proportional" says, drawn.
+     Censoring         how time-to-event data is recorded. The notebook's
+                       five patients as lanes over a building KM curve, the
+                       hazard strip (pick H1 — bars d/n at events, none at a
+                       censoring), and the `censored` control: kept (KM) ·
+                       dropped · counted as events. FIXES: the two censored
+                       lanes name their reasons ("study ended", "dropped
+                       out") because an unlabelled open circle reads as
+                       "survived" — the misconception wearing a costume —
+                       and each wrong treatment states its MECHANISM in a
+                       panel note (2.9: mechanism, never a verdict).
+     Comparing groups  are the groups different? Two KM curves at n = 200,
+                       censor ticks, the log-rank p, truth/bands overlays —
+                       and pick H4 moved HERE as the introduction of the
+                       hazard ratio: per-bin event rates with the dashed
+                       claim, no-disease × exp(b), ONE number at every
+                       time. It sat beside the 12-covariate forest before,
+                       where its marginal HR contradicted the forest's
+                       adjusted row on the same card.
+     Finding factors   which factors are associated with the hazard? The
+                       cohort named on screen, the group curves kept in
+                       view (Play still has something to sweep), and the
+                       forest built BY THE READER with three pills —
+                       disease → + age → + SNPs — the lm-adjustment move
+                       two lessons back, rows easing in, the disease HR's
+                       shift annotated. The SNPs stop coming out of
+                       nowhere because the reader adds them.
 
-   The `censored` control is the misconception itself, on both tabs: kept
-   (KM) · dropped · counted as events. Dropped on five patients reads
-   "everyone dies by 8"; the honest curve holds 0.30. It is display: true —
-   three readings of ONE dataset, so toggling must never reset the sweep.
+   One motion throughout: a time cursor sweeps right and curves build under
+   it. The `censored` control is display: true — three readings of ONE
+   dataset, so toggling never resets the sweep. `anim.done` is re-read
+   against the new tab's end in `rebuild`, so a curve finished on Censoring
+   keeps building on Comparing groups.
 
    THE DATA: the five patients are the notebook's own; the 200 keep the
    notebook's event process but NOT its censoring — cell 11 draws Status
@@ -41,7 +52,7 @@
    R's seeded draw does not reproduce in JS, so nothing here claims R's
    numbers: the deterministic cells are verified to the digit, the
    simulated arm across this widget's own seeds (log-rank p < 1e-4 on
-   100/100). Seed 3 is the default — the lowest seed where the Cox fit
+   100/100). Seed 3 is the default — the lowest seed where the full Cox fit
    tells cell 17's exact story: Age, Disease, SNP_1–3 significant and all
    seven null SNPs quiet (seeds 1 and 2 each flag a null SNP at the 5%
    floor).
@@ -54,6 +65,9 @@ import { km, logrank, coxph, simulate } from "./model.js";
 const IDS = ["A", "B", "C", "D", "E"];
 const T5 = [5, 10, 6, 8, 7];
 const S5 = [1, 0, 1, 1, 0];
+/* the lesson's two causes of censoring, named on the lanes — an unlabelled
+   open circle reads as "survived", which is the misconception itself */
+const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
 
 const T1MAX = 11;
 const T2MAX = 22;
@@ -65,30 +79,42 @@ const SPEEDS = {
 };
 
 /* --- stage geometry, one place -------------------------------------------- */
-const LANE_GAP = 24;
+/* Censoring tab: lanes / curve / hazard strip. 26px lanes leave room for the
+   censoring reason under a lane's end mark. */
+const LANE_GAP = 26;
 const LANES_Y = 30;
-const LANES_H = LANE_GAP * 4 + 12;
+const LANES_H = LANE_GAP * 4 + 14;
 const CURVE1_Y = LANES_Y + LANES_H + 40;
 const CURVE1_H = 180;
 const HAZ_Y = CURVE1_Y + CURVE1_H + 64;
 const HAZ_H = 80;
 const PAT_HEIGHT = HAZ_Y + HAZ_H + 48;
 
+/* Comparing groups tab: the curves, then the hazard-ratio section (pick H4) */
 const KM2_Y = 30;
 const KM2_H = 230;
-const COX_TOP = KM2_Y + KM2_H + 56;
-const FOREST_ROW = 20;
-/* 50 above the forest: the card's header is a title and TWO fsXs lines —
-   one line overran the 550px canvas, the width every state is hashed at */
+const HR_TOP = KM2_Y + KM2_H + 56;
+const HR_HEAD = 36;
+const HR_H = 130;
+const GRP_HEIGHT = HR_TOP + HR_HEAD + HR_H + 74;
+
+/* Finding factors tab: the question, compact curves, then the forest card */
+const FQ_Y = 22;
+const FCURVE_Y = 40;
+const FCURVE_H = 120;
+const CARD_TOP = FCURVE_Y + FCURVE_H + 50;
 const CARD_HEAD = 50;
-const CARD_H = CARD_HEAD + 12 * FOREST_ROW + 46;
-const GRP_HEIGHT = (cox) => (cox ? COX_TOP + CARD_H + 36 : COX_TOP - 14);
+/* Disease and Age rows are tall enough to carry the ghost-and-move
+   annotation (lm-adjustment's F_ROW); SNP rows are plain and tight */
+const ROW_BIG = 46;
+const ROW_SNP = 20;
+const forestTop = () => CARD_TOP + CARD_HEAD;
+const FACT_HEIGHT = (snps) =>
+  forestTop() + 2 * ROW_BIG + (snps ? 10 * ROW_SNP : ROW_SNP) + 34 + 40;
 
 /* H4's bins: [10,16) only — [6,10) has zero baseline events on clean seeds
    and [16,20) ~0 person-time in the disease arm (measured; catalogue). */
 const H4_BINS = [[10, 12], [12, 14], [14, 16]];
-
-const treatmentOf = (p) => p.censored;
 
 /* S(t) read off a km() step list. */
 function readS(steps, t) {
@@ -100,7 +126,7 @@ function readS(steps, t) {
   return S;
 }
 
-/* events per person-time in [lo, hi) — the rate H4's bars carry */
+/* events per person-time in [lo, hi) — the rate the hazard-ratio bars carry */
 function binRate(times, status, lo, hi) {
   let d = 0;
   let pt = 0;
@@ -122,6 +148,26 @@ function readings(times, status) {
   };
 }
 
+/* which distinct-time list and sweep end a tab uses */
+const timeKey = (concept) => (concept === "censoring" ? "censoring" : "groups");
+
+/* the model key the pills spell, in the fixed order d, a, s */
+const keyOf = (p) => (p.disease ? "d" : "") + (p.age ? "a" : "") + (p.snps ? "s" : "");
+
+/* The forest's row identities and display names, in display order — ABOVE
+   defineWidget on purpose: core calls draw() during the defineWidget call
+   itself, so a const declared below it is still in its temporal dead zone
+   on a page that loads straight onto the Finding-factors tab (the
+   lm-adjustment incident, reproduced here before this comment existed). */
+const ROW_KEYS = ["disease", "age", ...Array.from({ length: 10 }, (_, j) => `snp${j + 1}`)];
+const ROW_NAMES = {
+  disease: "Disease",
+  age: "Age",
+  ...Object.fromEntries(Array.from({ length: 10 }, (_, j) => [`snp${j + 1}`, `SNP_${j + 1}`])),
+};
+
+const EASE_MS = 450;
+
 defineWidget({
   slug: "time-event",
   title: "Modeling Time-to-Event Data",
@@ -132,21 +178,27 @@ defineWidget({
     "the censored in the risk set until they leave, so the curve uses " +
     "everything that was seen.",
   layout: "side",
-  height: ({ concept, cox }) => (concept === "patients" ? PAT_HEIGHT : GRP_HEIGHT(cox)),
+  height: ({ concept, snps }) => (concept === "censoring" ? PAT_HEIGHT
+    : concept === "groups" ? GRP_HEIGHT : FACT_HEIGHT(snps)),
 
   params: {
     concept: {
       type: "segmented",
       label: "Concept",
       options: [
-        { value: "patients", label: "Five patients", detail: "the censoring mechanics at human scale — one curve, built one time point at a time" },
-        { value: "groups", label: "Two groups", detail: "200 simulated patients — compare survival by disease group, then fit the Cox model" },
+        { value: "censoring", label: "Censoring", detail: "how time-to-event data is recorded — five patients, one curve" },
+        { value: "groups", label: "Comparing groups", detail: "are the groups different? two Kaplan–Meier curves and the log-rank test" },
+        { value: "factors", label: "Finding factors", detail: "which factors are associated with the hazard? Cox regression, built a covariate at a time" },
       ],
-      default: "patients",
+      default: "censoring",
       display: true,
     },
 
-    reading: { type: "section", label: "Reading the data" },
+    reading: {
+      type: "section",
+      label: "Reading the data",
+      when: { param: "concept", equals: "censoring" },
+    },
     /* The misconception as a control. Three readings of the SAME dataset,
        so display: true — toggling compares, and must never reset the sweep. */
     censored: {
@@ -159,6 +211,13 @@ defineWidget({
       ],
       default: "kept",
       display: true,
+      when: { param: "concept", equals: "censoring" },
+    },
+
+    curves: {
+      type: "section",
+      label: "The curves",
+      when: { param: "concept", equals: "groups" },
     },
     truth: {
       type: "bool",
@@ -177,16 +236,38 @@ defineWidget({
       when: { param: "concept", equals: "groups" },
     },
 
-    /* A bool, NOT a `gate`: core hides the entire drive row while any gate
-       is shut (right for pca, whose gate opens the only thing to drive), and
-       this widget's sweep must keep its Play with the card closed. */
-    cox: {
+    /* THE MODEL — three pills, lm-adjustment's move: the reader builds the
+       Cox model a covariate at a time, and the SNPs arrive because the
+       reader adds them. All display: every fit is computed regardless, and
+       a pill click must never reset the sweep. */
+    model: {
+      type: "section",
+      label: "The model",
+      when: { param: "concept", equals: "factors" },
+    },
+    disease: {
       type: "bool",
-      label: "Cox model",
-      detail: "the fitted hazard ratios for age, disease and all ten SNPs",
+      style: "pill",
+      label: "disease",
       default: false,
       display: true,
-      when: { param: "concept", equals: "groups" },
+      when: { param: "concept", equals: "factors" },
+    },
+    age: {
+      type: "bool",
+      style: "pill",
+      label: "age",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "factors" },
+    },
+    snps: {
+      type: "bool",
+      style: "pill",
+      label: "SNPs",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "factors" },
     },
 
     speed: {
@@ -202,7 +283,7 @@ defineWidget({
        explained) — the lowest seed telling cell 17's exact story; see header. */
     seed: { type: "int", min: 1, max: 200, default: 3, hidden: true },
     /* the authoring escape hatch: cursor time × 2, so ?shown=44 is a finished
-       figure on either tab */
+       figure on any tab */
     shown: { type: "int", min: 0, max: 44, default: 0, hidden: true },
   },
 
@@ -224,7 +305,7 @@ defineWidget({
       const s = sim.status.filter((_, i) => sim.disease[i] === grp);
       const tt = sim.trueT.filter((_, i) => sim.disease[i] === grp);
       return {
-        ...readings(t, s),
+        kept: km(t, s),
         truth: km(tt, tt.map(() => 1)),
         rates: H4_BINS.map(([lo, hi]) => binRate(t, s, lo, hi)),
         n: t.length,
@@ -232,26 +313,54 @@ defineWidget({
     };
     const groups = [per(0), per(1)];
     const lr = logrank(sim.time, sim.status, sim.disease);
-    const X = sim.age.map((a, i) => [a, sim.disease[i], ...sim.snps[i]]);
-    const cox12 = coxph(sim.time, sim.status, X);
-    const cox1 = coxph(sim.time, sim.status, sim.disease.map((v) => [v]));
-    /* every distinct recorded time — what one Step advances to; a censoring
-       is a step of its own, because the risk set moving IS the lesson */
+
+    /* Every pill combination is fit here, once per data change, so a pill
+       click (display) costs nothing and an ease always has its target. */
+    const COLS = {
+      disease: [sim.disease, "disease"],
+      age: [sim.age, "age"],
+    };
+    for (let j = 0; j < 10; j += 1) {
+      COLS[`snp${j + 1}`] = [sim.snps.map((row) => row[j]), `SNP_${j + 1}`];
+    }
+    const MEMBERS = {
+      d: ["disease"],
+      a: ["age"],
+      s: ROW_KEYS.slice(2),
+      da: ["disease", "age"],
+      ds: ["disease", ...ROW_KEYS.slice(2)],
+      as: ["age", ...ROW_KEYS.slice(2)],
+      das: ["disease", "age", ...ROW_KEYS.slice(2)],
+    };
+    const fits = {};
+    for (const [key, members] of Object.entries(MEMBERS)) {
+      const X = sim.time.map((_, i) => members.map((m) => COLS[m][0][i]));
+      const f = coxph(sim.time, sim.status, X);
+      const byName = {};
+      members.forEach((m, k) => {
+        byName[m] = {
+          hr: f.hr[k],
+          lo: Math.exp(f.beta[k] - 1.959964 * f.se[k]),
+          hi: Math.exp(f.beta[k] + 1.959964 * f.se[k]),
+          p: f.p[k],
+        };
+      });
+      fits[key] = { converged: f.converged, byName, members };
+    }
+
     const stepTimes = {
-      patients: [...new Set(T5)].sort((a, b) => a - b),
+      censoring: [...new Set(T5)].sort((a, b) => a - b),
       groups: [...new Set(sim.time)].sort((a, b) => a - b),
     };
-    /* where the sweep ends: the last recorded time on each tab */
     const tEnd = {
-      patients: stepTimes.patients[stepTimes.patients.length - 1],
+      censoring: stepTimes.censoring[stepTimes.censoring.length - 1],
       groups: stepTimes.groups[stepTimes.groups.length - 1],
     };
     return {
       five,
       groups,
       lr,
-      cox12,
-      cox1,
+      fits,
       stepTimes,
       tEnd,
       events: sim.status.reduce((a, b) => a + b, 0),
@@ -265,12 +374,42 @@ defineWidget({
     runTitle: "Sweep time forward at the chosen speed",
     init: ({ params, state, fromScratch }) => {
       const t = fromScratch ? 0 : Math.min(params.shown / 2, T2MAX);
-      return { t, done: t >= state.tEnd[params.concept] };
+      const anim = { t, done: t >= state.tEnd[timeKey(params.concept)], rows: {} };
+      for (const k of ROW_KEYS) anim.rows[k] = { v: 0, lo: 0, hi: 0, a: 0 };
+      retargetForest(anim, params, state);
+      for (const k of ROW_KEYS) anim.rows[k] = { ...anim.rowsT[k] };
+      return anim;
     },
     advance: (anim, { dt, params, state }) => {
-      const tEnd = state.tEnd[params.concept];
+      /* the forest's ease, chased on every mode so a pill click mid-sweep
+         still lands; `easing` cleared once everything arrives */
+      const rate = Math.min(1, (dt / EASE_MS) * 2.6);
+      let moving = false;
+      for (const k of ROW_KEYS) {
+        const m = anim.rows[k];
+        const g = anim.rowsT[k];
+        /* a row entering from nothing appears AT its value rather than
+           sliding in from log(1) = 0 */
+        if (m.a < 0.02 && g.a > 0) {
+          m.v = g.v;
+          m.lo = g.lo;
+          m.hi = g.hi;
+        }
+        for (const f of ["v", "lo", "hi", "a"]) {
+          const gap = g[f] - m[f];
+          if (Math.abs(gap) < 0.002) m[f] = g[f];
+          else {
+            m[f] += gap * rate;
+            moving = true;
+          }
+        }
+      }
+      if (!moving) anim.easing = false;
+      if (anim.mode === "ease") return moving;
+
+      const tEnd = state.tEnd[timeKey(params.concept)];
       if (anim.mode === "step") {
-        const next = state.stepTimes[params.concept].find((t) => t > anim.t + 1e-9);
+        const next = state.stepTimes[timeKey(params.concept)].find((t) => t > anim.t + 1e-9);
         anim.t = next !== undefined ? next : tEnd;
         anim.done = anim.t >= tEnd;
         return false;
@@ -278,28 +417,30 @@ defineWidget({
       anim.t = Math.min(tEnd, anim.t + (SPEEDS[params.speed].rate * dt) / 1000);
       if (anim.t >= tEnd) {
         anim.done = true;
-        return false;
+        return moving;
       }
       return true;
     },
-    /* Display changes (tab, treatment, overlays) keep the sweep where it is;
-       `done` is re-read against the NEW tab's end, so a curve finished on
-       Five patients keeps building when the reader moves to Two groups. */
+    /* Display changes keep the sweep where it is; `done` is re-read against
+       the NEW tab's end, so a curve finished on Censoring keeps building on
+       Comparing groups; and a pill click retargets the forest's ease. */
     rebuild: (anim, { params, state }) => {
-      anim.done = anim.t >= state.tEnd[params.concept];
+      anim.done = anim.t >= state.tEnd[timeKey(params.concept)];
+      retargetForest(anim, params, state);
     },
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
     const t = anim?.t ?? 0;
-    if (params.concept === "patients") drawPatients(ctx, colors, w, params, state, t);
-    else drawGroups(ctx, colors, w, params, state, t);
+    if (params.concept === "censoring") drawCensoring(ctx, colors, w, params, state, t);
+    else if (params.concept === "groups") drawGroups(ctx, colors, w, params, state, t);
+    else drawFactors(ctx, colors, w, params, state, t, anim);
   },
 
   readout({ params, state, anim }) {
     const t = anim?.t ?? 0;
-    const treatment = treatmentOf(params);
-    if (params.concept === "patients") {
+    if (params.concept === "censoring") {
+      const treatment = params.censored;
       const atRisk = T5.filter((v) => v > t).length;
       const events = T5.filter((v, i) => S5[i] === 1 && v <= t).length;
       const S = readS(state.five[treatment].steps, t);
@@ -317,19 +458,40 @@ defineWidget({
         },
       ];
     }
+    if (params.concept === "groups") {
+      return [
+        { label: "Events", value: `${state.events} of 200`, note: "the rest are censored — the study ends before their event" },
+        {
+          label: "Log-rank p",
+          value: state.lr.p < 1e-4 ? "< 0.0001" : fmt(state.lr.p, 4),
+          note: "the two curves compared over every event time, censored kept in",
+        },
+        {
+          label: "Hazard ratio",
+          value: fmt(state.fits.d.byName.disease.hr, 2),
+          note: "the disease group's event rate multiplied — the same factor at every time",
+        },
+      ];
+    }
+    const key = keyOf(params);
+    const kIn = (params.disease ? 1 : 0) + (params.age ? 1 : 0) + (params.snps ? 10 : 0);
     const tiles = [
-      { label: "Events", value: `${state.events} of 200`, note: "the rest are censored — the study ends before their event" },
-      {
-        label: "Log-rank p",
-        value: state.lr.p < 1e-4 ? "< 0.0001" : fmt(state.lr.p, 4),
-        note: "the group curves compared, censored kept in the risk sets",
-      },
+      { label: "Covariates", value: `${kIn} of 12`, note: "disease, age, and the ten SNPs available to the model" },
     ];
-    if (params.cox) {
+    if (params.disease) {
       tiles.push({
         label: "HR (disease)",
-        value: fmt(state.cox12.hr[1], 2),
-        note: "hazard multiplied, adjusted for age and all ten SNPs",
+        value: fmt(state.fits[key].byName.disease.hr, 2),
+        note: kIn > 1 ? "with the other covariates held constant" : "the two-group comparison alone",
+      });
+    }
+    if (kIn > 0) {
+      const nSig = state.fits[key].members
+        .filter((m) => state.fits[key].byName[m].p < 0.05).length;
+      tiles.push({
+        label: "Significant",
+        value: String(nSig),
+        note: "covariates in this model with p below 0.05",
       });
     }
     return tiles;
@@ -337,13 +499,43 @@ defineWidget({
 
   summary({ params, state, anim }) {
     const t = anim?.t ?? 0;
-    if (params.concept === "patients") {
-      const S = readS(state.five[treatmentOf(params)].steps, t);
-      return `Five patients followed over time: three events, two censored. A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
+    if (params.concept === "censoring") {
+      const S = readS(state.five[params.censored].steps, t);
+      return `Five patients followed over time: three events, two censored (one dropped out, one reached the end of the study). A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
-    return `Kaplan–Meier curves for 200 simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}${params.cox ? `, and a Cox model whose adjusted hazard ratio for disease is ${fmt(state.cox12.hr[1], 2)}` : ""}.`;
+    if (params.concept === "groups") {
+      return `Kaplan–Meier curves for 200 simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the event rate in every interval.`;
+    }
+    const key = keyOf(params);
+    if (!key) {
+      return "Two hundred simulated patients with age, disease group and ten SNP genotypes; a Cox model with no covariates chosen yet.";
+    }
+    const names = state.fits[key].members.map((m) => (m.startsWith("snp") ? null : m)).filter(Boolean);
+    const label = [
+      names.includes("disease") ? "disease" : null,
+      names.includes("age") ? "age" : null,
+      params.snps ? "the ten SNPs" : null,
+    ].filter(Boolean).join(" and ");
+    return `A Cox model of the 200 simulated patients on ${label}, drawn as a forest of hazard ratios with the reference line at 1.`;
   },
 });
+
+/* --- the forest's ease targets, from the pills ---------------------------- */
+function retargetForest(anim, params, state) {
+  const key = keyOf(params);
+  const fit = key ? state.fits[key] : null;
+  anim.rowsT = {};
+  for (const k of ROW_KEYS) {
+    const c = fit?.byName[k];
+    anim.rowsT[k] = c
+      ? { v: Math.log(c.hr), lo: Math.log(c.lo), hi: Math.log(c.hi), a: 1 }
+      : { ...(anim.rows?.[k] ?? { v: 0, lo: 0, hi: 0 }), a: 0 };
+    const m = anim.rows?.[k];
+    if (m && ["v", "lo", "hi", "a"].some((f) => Math.abs(m[f] - anim.rowsT[k][f]) > 0.002)) {
+      anim.easing = true;
+    }
+  }
+}
 
 /* --- one KM curve, clipped to the cursor ---------------------------------- */
 function drawCurve(ctx, plot, steps, censors, tCut, color, {
@@ -438,12 +630,12 @@ function drawCursor(ctx, colors, x, yTop, yBot, t, tMax) {
   ctx.restore();
 }
 
-/* --- tab 1: five patients -------------------------------------------------- */
-function drawPatients(ctx, colors, w, params, state, t) {
+/* --- tab 1: Censoring ------------------------------------------------------ */
+function drawCensoring(ctx, colors, w, params, state, t) {
   const left = 56;
   const right = w - 14;
   const X = (v) => left + (v / T1MAX) * (right - left);
-  const treatment = treatmentOf(params);
+  const treatment = params.censored;
 
   /* the lanes — the notebook's table, drawn. Under "dropped" the censored
      lanes fade: removed from the data is something you can SEE. */
@@ -477,6 +669,15 @@ function drawPatients(ctx, colors, w, params, state, t) {
       ctx.fill();
       ctx.stroke();
     }
+    /* name the censoring, on the lane — the open circle alone reads as
+       "survived", which is the misconception this widget exists to break */
+    if (CENSOR_WHY[i]) {
+      ctx.fillStyle = colors.unknown;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "center";
+      ctx.fillText(CENSOR_WHY[i], X(T5[i]), y + 13);
+      ctx.font = `${colors.fsSm} ${colors.font}`;
+    }
     ctx.globalAlpha = 1;
   }
   ctx.restore();
@@ -486,6 +687,10 @@ function drawPatients(ctx, colors, w, params, state, t) {
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T1MAX], yDomain: [0, 1] });
   plot.axisX({ label: "time (years)", ticks: [0, 2.5, 5, 7.5, 10] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
+  /* the wrong treatments name their MECHANISM — what happened to B and E —
+     never a verdict (2.9) */
+  if (treatment === "dropped") plot.note("B and E's event-free years are discarded");
+  else if (treatment === "asevents") plot.note("B and E counted as events at their last visit");
 
   const R = state.five;
   if (treatment !== "kept") {
@@ -536,42 +741,29 @@ function drawPatients(ctx, colors, w, params, state, t) {
   }
   ctx.restore();
 
-  drawCursor(ctx, colors, X(Math.min(t, T1MAX)), LANES_Y - 12, hy(0), t, state.tEnd.patients);
+  drawCursor(ctx, colors, X(Math.min(t, T1MAX)), LANES_Y - 12, hy(0), t, state.tEnd.censoring);
 }
 
-/* --- tab 2: two groups ----------------------------------------------------- */
-function drawGroups(ctx, colors, w, params, state, t) {
-  const left = 56;
-  const right = w - 14;
-  const treatment = treatmentOf(params);
-  const rect = { x: left, y: KM2_Y, w: right - left, h: KM2_H };
-  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
-  plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15, 20] });
-  plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
-
+/* --- shared: the two group curves, clipped to the cursor ------------------- */
+function drawGroupCurves(ctx, colors, plot, state, t, { bands = false, truth = false, labels = true, ticks = true } = {}) {
   const groupColor = [colors.groupA, colors.groupB];
   state.groups.forEach((g, i) => {
-    if (params.bands && treatment === "kept") drawBand(ctx, plot, g.kept.steps, t, groupColor[i]);
-    if (treatment !== "kept") {
-      drawCurve(ctx, plot, g.kept.steps, g.kept.censors, t, groupColor[i], { alpha: 0.35, surface: colors.surface });
-      drawCurve(ctx, plot, g[treatment].steps, [], t, groupColor[i], { width: 2.5, ticks: false });
-    } else {
-      drawCurve(ctx, plot, g.kept.steps, g.kept.censors, t, groupColor[i], { width: 2.5, surface: colors.surface });
-    }
-    if (params.truth) {
+    if (bands) drawBand(ctx, plot, g.kept.steps, t, groupColor[i]);
+    drawCurve(ctx, plot, g.kept.steps, g.kept.censors, t, groupColor[i], { width: 2.5, ticks, surface: colors.surface });
+    if (truth) {
       drawCurve(ctx, plot, g.truth.steps, [], t, colors.reference, { dash: [5, 4], width: 1.5, ticks: false });
     }
   });
-  /* Group labels pinned where each curve crosses S ≈ 0.6, drawn once the
-     sweep has reached that point — labels that followed the curves' current
-     ends stacked in the corner when both curves finished near zero. The
-     disease curve is the left one, so its label sits left of its crossing
-     (under its own flat early stretch); no-disease right of its crossing. */
+  if (!labels) return;
+  /* labels pinned where each curve crosses S ≈ 0.6, drawn once the sweep
+     has reached that point — labels that followed the curves' ends stacked
+     in the corner when both finished near zero. The disease curve is the
+     left one, so its label sits left of its crossing. */
   ctx.save();
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textBaseline = "alphabetic";
   state.groups.forEach((g, i) => {
-    const cross = g[treatment].steps.find((s) => s.S <= 0.6);
+    const cross = g.kept.steps.find((s) => s.S <= 0.6);
     if (!cross || t < cross.t) return;
     ctx.fillStyle = groupColor[i];
     ctx.textAlign = i === 0 ? "left" : "right";
@@ -582,49 +774,132 @@ function drawGroups(ctx, colors, w, params, state, t) {
     );
   });
   ctx.restore();
-  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
-
-  if (!params.cox) return;
-  drawCoxCard(ctx, colors, w, state);
 }
 
-/* --- the Cox card: the forest, and pick H4 --------------------------------- */
-function drawCoxCard(ctx, colors, w, state) {
-  const left = 14;
+/* --- tab 2: Comparing groups ----------------------------------------------- */
+function drawGroups(ctx, colors, w, params, state, t) {
+  const left = 56;
   const right = w - 14;
+  const rect = { x: left, y: KM2_Y, w: right - left, h: KM2_H };
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
+  plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15, 20] });
+  plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
+  plot.caption("200 simulated patients, followed for up to 20 years");
+  drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
+  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
+
+  /* pick H4, moved here from the Cox card: the hazard ratio INTRODUCED as
+     what it claims — one number scaling the event rate in every interval.
+     The HR is the disease-only model's, the same comparison the two curves
+     make; beside the 12-covariate forest its marginal number contradicted
+     the adjusted row on the same card. */
+  const HR = state.fits.d.byName.disease.hr;
   ctx.save();
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = colors.ink2;
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillText("Cox proportional hazards", left, COX_TOP);
+  ctx.fillText("The hazard ratio", left, HR_TOP);
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
-  ctx.fillText("h(t) = h₀(t) × exp(b₁x₁ + … )", left, COX_TOP + 16);
-  ctx.fillText("each exp(b) multiplies the hazard by a constant factor, at every time", left, COX_TOP + 30);
+  ctx.fillText("event rates per year at risk, by interval — the dashed claim is the no-disease rate", left, HR_TOP + 16);
+  ctx.fillText(`× ${fmt(HR, 2)}: one number, at every time. Cox regression estimates this number.`, left, HR_TOP + 30);
 
-  const top = COX_TOP + CARD_HEAD;
-  const forestW = Math.round((right - left) * 0.52);
-  drawForest(ctx, colors, { x: left + 58, y: top, w: forestW - 58 }, state.cox12);
-  drawH4(ctx, colors, { x: left + forestW + 64, y: top, w: right - (left + forestW + 64) }, state);
+  const rates0 = state.groups[0].rates;
+  const rates1 = state.groups[1].rates;
+  const rMax = Math.max(...rates1, ...rates0.map((r) => r * HR)) * 1.2;
+  const bTop = HR_TOP + HR_HEAD + 14;
+  const bx = (v) => left + 30 + ((v - 10) / 6) * (right - left - 30);
+  const by = (r) => bTop + HR_H - (r / rMax) * HR_H;
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx(10), by(0));
+  ctx.lineTo(bx(16), by(0));
+  ctx.stroke();
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "center";
+  for (const v of [10, 12, 14, 16]) ctx.fillText(String(v), bx(v), by(0) + 14);
+  ctx.fillText("time (years)", (bx(10) + bx(16)) / 2, by(0) + 28);
+  H4_BINS.forEach(([lo, hi], k) => {
+    const bw = Math.min(44, (bx(hi) - bx(lo)) / 2 - 10);
+    const x0 = (bx(lo) + bx(hi)) / 2 - bw - 4;
+    const x1 = (bx(lo) + bx(hi)) / 2 + 4;
+    ctx.fillStyle = colors.groupA;
+    ctx.fillRect(x0, by(rates0[k]), bw, by(0) - by(rates0[k]));
+    ctx.fillStyle = colors.groupB;
+    ctx.fillRect(x1, by(rates1[k]), bw, by(0) - by(rates1[k]));
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x1, by(rates0[k] * HR), bw, by(0) - by(rates0[k] * HR));
+    ctx.setLineDash([]);
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "center";
+    ctx.fillText(`×${fmt(rates1[k] / rates0[k], 1)}`, x1 + bw / 2, by(Math.max(rates1[k], rates0[k] * HR)) - 6);
+  });
   ctx.restore();
 }
 
-function drawForest(ctx, colors, rp, fit) {
-  const names = ["Age", "Disease", ...Array.from({ length: 10 }, (_, j) => `SNP_${j + 1}`)];
+/* --- tab 3: Finding factors ------------------------------------------------ */
+function drawFactors(ctx, colors, w, params, state, t, anim) {
+  const left = 56;
+  const right = w - 14;
+
+  /* the cohort, named — the SNPs must not come out of nowhere */
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.ink2;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillText("Each patient carries an age, a disease group, and ten SNP genotypes.", left, FQ_Y);
+  ctx.restore();
+
+  /* the curves being modelled stay in view, compact */
+  const rect = { x: left, y: FCURVE_Y, w: right - left, h: FCURVE_H };
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
+  plot.axisX({ ticks: [0, 5, 10, 15, 20] });
+  plot.axisY({ ticks: [0, 0.5, 1] });
+  drawGroupCurves(ctx, colors, plot, state, t, { labels: false, ticks: false });
+  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
+
+  /* the card */
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.ink2;
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillText("Cox proportional hazards", 14, CARD_TOP);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText("h(t) = h₀(t) × exp(b₁x₁ + … )", 14, CARD_TOP + 16);
+  ctx.fillText("each exp(b) multiplies the hazard by a constant factor, at every time", 14, CARD_TOP + 30);
+  ctx.restore();
+
+  drawForest(ctx, colors, { x: 78, y: forestTop(), w: right - 78 - 6 }, params, state, anim);
+}
+
+/* --- the forest, built a pill at a time ------------------------------------ */
+function drawForest(ctx, colors, rp, params, state, anim) {
   const DOM = [0.4, 10];
   const fx = (hr) => rp.x
-    + ((Math.log(Math.max(hr, DOM[0])) - Math.log(DOM[0])) / (Math.log(DOM[1]) - Math.log(DOM[0]))) * rp.w;
-  const H = 12 * FOREST_ROW;
+    + ((Math.log(Math.min(Math.max(hr, DOM[0]), DOM[1])) - Math.log(DOM[0]))
+      / (Math.log(DOM[1]) - Math.log(DOM[0]))) * rp.w;
+  const fxLog = (v) => fx(Math.exp(v));
+  const snpsIn = Boolean(params.snps);
+  const H = 2 * ROW_BIG + (snpsIn ? 10 * ROW_SNP : ROW_SNP);
+
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
   for (const v of [0.5, 1, 2, 4, 8]) {
     ctx.beginPath();
     ctx.moveTo(fx(v), rp.y);
     ctx.lineTo(fx(v), rp.y + H);
     ctx.stroke();
     ctx.fillStyle = colors.ink3;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "center";
     ctx.fillText(String(v), fx(v), rp.y + H + 13);
   }
@@ -635,75 +910,125 @@ function drawForest(ctx, colors, rp, fit) {
   ctx.moveTo(fx(1), rp.y);
   ctx.lineTo(fx(1), rp.y + H);
   ctx.stroke();
-  names.forEach((nm, k) => {
-    const y = rp.y + FOREST_ROW * (k + 0.5);
-    const sig = fit.p[k] < 0.05;
-    ctx.fillStyle = sig ? colors.ink1 : colors.ink3;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "right";
-    ctx.fillText(nm, rp.x - 6, y + 3);
-    const lo = Math.exp(fit.beta[k] - 1.959964 * fit.se[k]);
-    const hi = Math.exp(fit.beta[k] + 1.959964 * fit.se[k]);
-    ctx.strokeStyle = sig ? colors.empirical : colors.ink3;
-    ctx.globalAlpha = sig ? 1 : 0.55;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(fx(Math.max(lo, DOM[0])), y);
-    ctx.lineTo(fx(Math.min(hi, DOM[1])), y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(fx(fit.hr[k]), y, 3.5, 0, 2 * Math.PI);
-    if (sig) {
-      ctx.fillStyle = colors.empirical;
-      ctx.fill();
-    } else {
-      ctx.fillStyle = colors.surface;
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  });
-}
 
-/* pick H4: the proportional-hazards claim on the hazard scale — every
-   baseline bin × the SAME exp(b), drawn as dashed outlines over the
-   disease bars. HR from coxph(~ disease) ALONE: the marginal claim the
-   two curves make, not the adjusted forest row (which holds the SNPs
-   fixed). */
-function drawH4(ctx, colors, rp, state) {
-  const rates0 = state.groups[0].rates;
-  const rates1 = state.groups[1].rates;
-  const HR = state.cox1.hr[0];
-  const rMax = Math.max(...rates1, ...rates0.map((r) => r * HR)) * 1.2;
-  const H = 12 * FOREST_ROW;
-  const bx = (t) => rp.x + ((t - 10) / 6) * rp.w;
-  const by = (r) => rp.y + H - (r / rMax) * (H - 26);
-  ctx.fillStyle = colors.ink2;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "left";
-  /* two lines — one overran the 550px canvas from this column's x */
-  ctx.fillText("events per year at risk", rp.x, rp.y - 6);
-  ctx.fillText("dashed: no-disease × " + fmt(HR, 2), rp.x, rp.y + 8);
-  ctx.strokeStyle = colors.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(bx(10), by(0));
-  ctx.lineTo(bx(16), by(0));
-  ctx.stroke();
-  ctx.fillStyle = colors.ink3;
-  ctx.textAlign = "center";
-  for (const v of [10, 12, 14, 16]) ctx.fillText(String(v), bx(v), rp.y + H + 13);
-  ctx.fillText("time (years)", (bx(10) + bx(16)) / 2, rp.y + H + 27);
-  H4_BINS.forEach(([lo, hi], k) => {
-    const bw = (bx(hi) - bx(lo)) / 2 - 8;
-    ctx.fillStyle = colors.groupA;
-    ctx.fillRect(bx(lo) + 5, by(rates0[k]), bw, by(0) - by(rates0[k]));
-    ctx.fillStyle = colors.groupB;
-    ctx.fillRect(bx(lo) + 5 + bw + 6, by(rates1[k]), bw, by(0) - by(rates1[k]));
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.strokeRect(bx(lo) + 5 + bw + 6, by(rates0[k] * HR), bw, by(0) - by(rates0[k] * HR));
-    ctx.setLineDash([]);
-  });
+  const key = keyOf(params);
+  if (!key) {
+    ctx.fillStyle = colors.ink3;
+    ctx.textAlign = "center";
+    ctx.fillText("choose covariates to fit the model", rp.x + rp.w / 2, rp.y + H / 2);
+    ctx.restore();
+    return;
+  }
+  const fit = state.fits[key];
+
+  /* row slots: Disease and Age tall (they carry the ghost-and-move
+     annotation), the SNPs tight — or one quiet line when they are out */
+  const rowY = { disease: rp.y + ROW_BIG * 0.62, age: rp.y + ROW_BIG * 1.62 };
+  const drawRow = (k, y, withValue) => {
+    const name = ROW_NAMES[k];
+    const c = fit.byName[k];
+    const m = anim?.rows?.[k];
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    if (!c) {
+      ctx.fillStyle = colors.ink3;
+      ctx.textAlign = "right";
+      ctx.fillText(name, rp.x - 6, y + 3);
+      ctx.textAlign = "left";
+      ctx.fillText("not in the model", fx(0.55), y + 3);
+      return;
+    }
+    const sig = c.p < 0.05;
+    ctx.fillStyle = sig ? colors.ink1 : colors.ink3;
+    ctx.textAlign = "right";
+    ctx.fillText(name, rp.x - 6, y + 3);
+
+    /* the ghost: this covariate's HR fitted ALONE, with the move annotated —
+       the coefficient is a property of the model it sits in (lm-adjustment's
+       lesson, returning). Drawn only when other covariates are in. */
+    const aloneKey = k === "disease" ? "d" : k === "age" ? "a" : null;
+    if (aloneKey && fit.members.length > 1) {
+      const g = state.fits[aloneKey].byName[k];
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = colors.empirical;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(fx(g.lo), y);
+      ctx.lineTo(fx(g.hi), y);
+      ctx.stroke();
+      ctx.fillStyle = colors.empirical;
+      ctx.beginPath();
+      ctx.arc(fx(g.hr), y, 3.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      if (Math.abs(Math.log(c.hr / g.hr)) > 0.03) {
+        ctx.strokeStyle = colors.ink2;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(fx(g.hr), y - 13);
+        ctx.lineTo(fx(c.hr), y - 13);
+        ctx.stroke();
+        const dir = c.hr > g.hr ? 1 : -1;
+        ctx.fillStyle = colors.ink2;
+        ctx.beginPath();
+        ctx.moveTo(fx(c.hr), y - 13);
+        ctx.lineTo(fx(c.hr) - dir * 6, y - 16.5);
+        ctx.lineTo(fx(c.hr) - dir * 6, y - 9.5);
+        ctx.fill();
+        ctx.fillStyle = colors.ink1;
+        ctx.textAlign = "left";
+        ctx.fillText(
+          `${fmt(g.hr, 2)} → ${fmt(c.hr, 2)} with the others held constant`,
+          rp.x + 4,
+          y - 20,
+        );
+      }
+    }
+
+    /* the eased mark — position from the LERPED values, so no mark is
+       false mid-frame */
+    if (m && m.a > 0.02) {
+      ctx.globalAlpha = m.a;
+      ctx.strokeStyle = sig ? colors.highlight : colors.ink3;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(fxLog(m.lo), y);
+      ctx.lineTo(fxLog(m.hi), y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(fxLog(m.v), y, 4, 0, 2 * Math.PI);
+      if (sig) {
+        ctx.fillStyle = colors.highlight;
+        ctx.fill();
+      } else {
+        ctx.fillStyle = colors.surface;
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (withValue) {
+        ctx.fillStyle = colors.ink2;
+        ctx.textAlign = "center";
+        ctx.fillText(fmt(Math.exp(m.v), 2), fxLog(m.v), y + 17);
+      }
+      ctx.globalAlpha = 1;
+    }
+  };
+
+  drawRow("disease", rowY.disease, true);
+  drawRow("age", rowY.age, true);
+  const snpTop = rp.y + 2 * ROW_BIG;
+  if (!snpsIn) {
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillStyle = colors.ink3;
+    /* "SNPs", not "SNP_1 … SNP_10" — the long form overran the label column
+       at the 550px canvas (left edge −9) */
+    ctx.textAlign = "right";
+    ctx.fillText("SNPs", rp.x - 6, snpTop + ROW_SNP * 0.5 + 3);
+    ctx.textAlign = "left";
+    ctx.fillText("the ten SNPs — not in the model", fx(0.55), snpTop + ROW_SNP * 0.5 + 3);
+  } else {
+    for (let j = 0; j < 10; j += 1) {
+      drawRow(`snp${j + 1}`, snpTop + ROW_SNP * (j + 0.5), false);
+    }
+  }
+  ctx.restore();
 }

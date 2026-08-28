@@ -3216,6 +3216,55 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 2 — restructured to three concepts (Kenneth's step-back)
+
+**Kenneth stepped back to first principles on 2026-08-29**: three questions —
+how we track time-to-event and what censoring is; how we determine whether
+groups differ (the KM curves); how we find factors associated with the
+hazard, where "the SNPs come out of nowhere". He asked for structure
+alternatives and an adversarial student-eye review; picked the **3-part
+structure with labels option B: Censoring · Comparing groups · Finding
+factors**. What round 2 changed:
+
+- **One tab per question.** Censoring keeps the round-1 stage (lanes, curve,
+  H1 strip, the `censored` control). Comparing groups keeps the two curves
+  and gains **H4, moved out of the Cox card and reframed as the
+  introduction of the hazard ratio** — the disease-only model's number,
+  "one number at every time", so HR exists before Cox is named. It had sat
+  beside the 12-covariate forest where its marginal 3.36 contradicted the
+  adjusted 4.37 on the same card — a student would see two disease HRs and
+  ask which is right.
+- **Finding factors is built BY the reader**: the cohort named on screen,
+  the group curves kept compact above (Play still sweeps something), and
+  three pills — disease · age · SNPs — the lm-adjustment move from two
+  lessons back. Forest rows EASE in (log-HR space, chased like widget 28's
+  marks); the Disease and Age rows carry the alone-fit ghost and the move
+  annotation ("3.36 → 4.37 with the others held constant"). The SNPs stop
+  coming out of nowhere because the reader adds them. All seven pill
+  combinations are fit in compute (one per data change), so a pill click
+  costs nothing and an ease always has its target.
+- **Adversarial fixes**: the two censored lanes name their reasons ("study
+  ended", "dropped out") — an unlabelled open circle reads as "survived",
+  the misconception in costume; the wrong treatments state their mechanism
+  in a panel note ("B and E's event-free years are discarded" / "counted as
+  events at their last visit") — mechanism, never a verdict (2.9); the
+  groups tab got its cohort caption.
+- **Two defects caught in the round**: the collapsed SNP row's label
+  "SNP_1 … SNP_10" overran the label column at 550px (now "SNPs"); and
+  `ROW_NAMES` declared below `defineWidget` hit the temporal dead zone on a
+  page loading straight onto the factors tab — core calls draw() during the
+  defineWidget call, the exact lm-adjustment incident, reproduced and
+  moved above. The drive script cannot see that class (it never calls
+  draw); loading each tab DIRECTLY by URL is the check that does.
+- Known judgement item: the per-bin observed ratios on seed 3 read 6.4,
+  3.1, 1.7 around the 3.36 claim — the generator is accelerated-time, so
+  PH holds only roughly, and the last bin visibly undershoots the dashed
+  claim. Recorded, for Kenneth's eye at review.
+
+`_lab/time-event-drive.mjs` rewritten for the structure: 60 checks — the
+option-B labels asserted, no gate anywhere, the forest ease pumped by hand
+to its targets, 54 readout states clean.
+
 ### Round 1 — the draft, from picks H1 + H4
 
 **Kenneth picked H1 and H4 on 2026-08-29; the draft went up the same day** as

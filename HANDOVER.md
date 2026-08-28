@@ -48,22 +48,29 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **THE DRAFT IS BUILT (2026-08-29, round 1) and awaits Kenneth's
-   review.** His picks: two tabs, Cox as a card in the groups tab,
-   hazard visuals H1 (the strip under the five-patient curve) and H4
-   (the ×HR claim beside the forest). `widgets/time-event/` — model.js
-   (the verified engine + the study-end generator), main.js, status
-   draft so it ships to /lab/ only; default seed 3 (measured: the
-   lowest seed telling cell 17's exact story with all null SNPs
-   quiet). `node widgets/_lab/time-event-drive.mjs` = 45 checks.
-   Build rulings recorded in catalogue § Widget 31 round 1 — the big
-   two: `cox` must stay a bool (a `gate` hides the whole drive row),
-   and `censored` is display:true so toggling readings never resets
-   the sweep. Review URL:
-   `http://localhost:8010/widgets/time-event/` (all states:
-   `?concept=groups&cox=1&truth=1&bands=1&shown=44`). Open judgement
-   calls: projection legibility, the two-truths-one-colour question,
-   whether the Survival tile should follow the chosen treatment.
+   **ROUND 2 IS BUILT (2026-08-29) and awaits Kenneth's review.** He
+   stepped back to three questions and picked the 3-part structure,
+   labels option B: **Censoring · Comparing groups · Finding
+   factors**. Censoring = round 1's five-patient stage plus the
+   adversarial fixes (censoring reasons named on the lanes, wrong
+   treatments state their mechanism). Comparing groups = the two
+   curves plus H4 REFRAMED as the hazard-ratio introduction (the
+   disease-only 3.36 — it no longer shares a card with the adjusted
+   4.37). Finding factors = the reader builds the Cox model with
+   three pills (disease · age · SNPs), forest rows easing in with
+   alone-fit ghosts and move annotations — the lm-adjustment echo;
+   all seven pill combos fit once per data change. `cox` the bool is
+   GONE; no gate anywhere. Drive script rewritten: 60 checks. Two
+   round-2 catches recorded in the catalogue: the TDZ trap (const
+   below defineWidget, hit by loading straight onto the factors tab —
+   test each tab BY DIRECT URL, the drive script cannot see it) and
+   the SNP row label overrun. Review URLs:
+   `http://localhost:8010/widgets/time-event/` ·
+   `?concept=groups&truth=1&bands=1&shown=44` ·
+   `?concept=factors&disease=1&age=1&snps=1&shown=44`. Open
+   judgement: projection legibility, the two-truths-one-colour
+   question, the H4 last bin visibly under the dashed claim (the
+   generator is AFT, PH only roughly).
 2. **Then `mixed-model`** (05-07, Hierarchical Data — 500 rows are 500
    observations; Hurlbert 1984). Last of the agreed arc.
 3. **Notebook links now owed for all FIVE shipped modeling widgets** —
