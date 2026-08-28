@@ -3290,6 +3290,36 @@ tabs. Verified on screen: gate, both toggles' eases caught mid-flight
 (labels counting), the zero slide with its shaded stretch, both tabs'
 equations and tiles, zero console errors, `check` green.
 
+### ROUND 2 — the formulas follow the lines, and the 2×2 becomes an interaction plot
+
+**Kenneth: a bit hard to understand — show the formulas that correspond
+to the graph's changes, and find a clearer 2×2.** Researched and mocked
+in `_lab/lm-int2.html`, both fixes picked and built the same day:
+
+1. **The equation card grows ONE ROW PER LINE on the graph** — the
+   notebook's own "rearranging the terms" move (05-04 cell 23) made
+   permanent: women's and men's equations in their line's group colour,
+   the men's row annotated with the sums that produced it
+   ("125.41 + 95.57, and 2.29 − 2.04"; on the 2×2 tab
+   "21.00 − 21.02: the effect is gone"). Toggle `+`/`×` and the rows
+   rewrite with the lines — the graph and the algebra are one object.
+2. **The 2×2 is redrawn as the INTERACTION PLOT** — the canonical
+   two-factor display (cell means joined by one line per group;
+   parallel = no interaction), which is also what the notebook's own
+   ggPredict draws in cell 36, and which gives BOTH tabs one picture
+   grammar: two lines per sex, the x-axis reduced from a continuum to
+   two positions. Under `+` the lines are parallel (both rise 10.18)
+   and visibly miss the observed ticks; under `×` they pivot onto the
+   means, and a right-edge bracket names the nonparallelism against a
+   dotted if-parallel ghost — the difference of the two rises IS the
+   printed interaction, 21.02, counting in with the ease. The observed
+   means are fixed group-coloured ticks; round 1's four floating bars,
+   per-bar prediction ticks and vertical arrows are DELETED — they were
+   the hard-to-read part. The legend's empirical entry went with them.
+   Verified on screen: group rows on both tabs and both readings, the
+   pivot caught mid-ease with counting labels, the parallel state's
+   missed ticks, zero console errors, `check` green.
+
 ## Widget 29 · `lm-categorical` — SHIPPED 2026-08-28, one review round
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,

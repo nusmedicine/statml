@@ -58,7 +58,7 @@ driven-vs-settled-sibling check.
 
 ## NEXT
 
-1. **Widget 30 · `lm-interaction` is a DRAFT, round 1 done, awaiting
+1. **Widget 30 · `lm-interaction` is a DRAFT, rounds 1-2 done, awaiting
    Kenneth's review** — he picked the probe, the extrapolation, and acts
    2 + 3 as tabs (act 1 out). Built the same day: two Concept tabs
    (Age × sex · Diabetes × sex), widget 26's gate, the Terms toggle
@@ -67,7 +67,7 @@ driven-vs-settled-sibling check.
    from the LERPED coefficients), the probe as slider + per-year click
    regions, and Show age zero sliding the domain to bracket the printed
    [sex] coefficient where it lives (−5.00 under +, +95.57 under ×).
-   Height 356 both tabs; no rng. Review at
+   Round 2: the equation card grew ONE ROW PER LINE (the notebook cell-23 rearrangement, group-coloured, sums annotated) and the 2x2 became the INTERACTION PLOT (parallel under +, pivoting onto the means under x, the bracket naming the nonparallelism as the printed 21.02). Height 356 both tabs; no rng. Review at
    `http://localhost:8010/widgets/lm-interaction/` — gate, toggle ×,
    Show age zero, then the Diabetes × sex tab. Full record in
    [docs/catalogue.md](docs/catalogue.md) § *NEXT · Widget 30*. After

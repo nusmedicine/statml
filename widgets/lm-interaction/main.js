@@ -103,7 +103,12 @@ function eqHTML(terms) {
 
 let mathHost = null;
 let mathKey = null;
-function renderEquation(kind, terms) {
+/* ROUND 2 (Kenneth): the card grows ONE ROW PER LINE ON THE GRAPH — the
+   notebook's own "rearranging the terms" move (05-04 cell 23), each row
+   in its line's group colour with the sum that produced it annotated, so
+   the graph and the algebra are the same object. `groups` is
+   { f: {b0, b1}, m: {b0, b1}, xname, note } or null while unfitted. */
+function renderEquation(kind, terms, groups) {
   if (!mathHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -111,7 +116,9 @@ function renderEquation(kind, terms) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = kind + (terms ? terms.map((t) => `${t.num}${t.name ?? ""}`).join(",") : "none");
+  const key = kind
+    + (terms ? terms.map((t) => `${t.num}${t.name ?? ""}`).join(",") : "none")
+    + (groups ? `${groups.f.b0}${groups.m.b0}${groups.m.b1}` : "");
   if (key === mathKey) return;
   mathKey = key;
   const row = (label, html) =>
@@ -121,7 +128,20 @@ function renderEquation(kind, terms) {
   const model = terms
     ? eqHTML(terms)
     : `<span style="color:var(--ink-3)">no model fitted yet</span>`;
-  mathHost.innerHTML = row("the model", generic) + row("this model", model);
+  let groupRows = "";
+  if (groups) {
+    const lineEq = (b, token) =>
+      `<span style="color:var(--c-group-${token})">${eqHTML([
+        { num: b.b0 },
+        { num: b.b1, name: groups.xname },
+      ])}</span>`;
+    const note = groups.note
+      ? ` <span style="color:var(--ink-3);font-size:var(--fs-xs)">— ${groups.note}</span>`
+      : "";
+    groupRows = row("women (sex 0)", lineEq(groups.f, "a"))
+      + row("men (sex 1)", lineEq(groups.m, "b") + note);
+  }
+  mathHost.innerHTML = row("the model", generic) + row("this model", model) + groupRows;
 }
 
 defineWidget({
@@ -198,10 +218,9 @@ defineWidget({
   },
 
   legend: [
-    { token: "group-a", label: "Women (sex 0, the reference) — their patients and their model line", mark: "dot" },
-    { token: "group-b", label: "Men (sex 1) — their patients and their model line", mark: "dot" },
-    { token: "highlight", label: "The effect being read from the model — a gap or a per-group difference", mark: "line" },
-    { token: "empirical", label: "Observed cell means (the 2 × 2 tab)", mark: "line" },
+    { token: "group-a", label: "Women (sex 0, the reference) — their patients, cell mean and model line", mark: "dot" },
+    { token: "group-b", label: "Men (sex 1) — their patients, cell mean and model line", mark: "dot" },
+    { token: "highlight", label: "The effect being read from the model — the probe's gap, or the interaction bracket", mark: "line" },
   ],
 
   compute() {
@@ -304,23 +323,40 @@ defineWidget({
     const r = stageRect(w);
 
     /* the equation card — the CHOSEN model's numbers, not the lerp (the
-       card is text, and snaps with the control; the canvas is what eases) */
+       card is text, and snaps with the control; the canvas is what
+       eases). The per-group rows carry the sums that produced them. */
     if (!params.fit) {
-      renderEquation(params.terms, null);
+      renderEquation(params.terms, null, null);
     } else if (params.concept === "agesex") {
       const f = params.terms === "times" ? state.aInt : state.aInd;
+      const withInt = params.terms === "times";
       renderEquation(params.terms, [
         { num: f.b[0] },
         { num: f.b[1], name: "age" },
         { num: f.b[2], name: "[sex]" },
-      ].concat(params.terms === "times" ? [{ num: f.b[3], name: "age × [sex]" }] : []));
+      ].concat(withInt ? [{ num: f.b[3], name: "age × [sex]" }] : []), {
+        xname: "age",
+        f: { b0: f.b[0], b1: f.b[1] },
+        m: { b0: f.b[0] + f.b[2], b1: f.b[1] + (withInt ? f.b[3] : 0) },
+        note: withInt
+          ? `${fmt(f.b[0], 2)} + ${fmt(f.b[2], 2)}, and ${fmt(f.b[1], 2)} ${f.b[3] < 0 ? "−" : "+"} ${fmt(Math.abs(f.b[3]), 2)}`
+          : `same slope, ${fmt(Math.abs(f.b[2]), 2)} ${f.b[2] < 0 ? "lower" : "higher"}`,
+      });
     } else {
       const f = params.terms === "times" ? state.dInt : state.dInd;
+      const withInt = params.terms === "times";
       renderEquation(params.terms, [
         { num: f.b[0] },
         { num: f.b[1], name: "[diabetes]" },
         { num: f.b[2], name: "[sex]" },
-      ].concat(params.terms === "times" ? [{ num: f.b[3], name: "[diabetes] × [sex]" }] : []));
+      ].concat(withInt ? [{ num: f.b[3], name: "[diabetes] × [sex]" }] : []), {
+        xname: "[diabetes]",
+        f: { b0: f.b[0], b1: f.b[1] },
+        m: { b0: f.b[0] + f.b[2], b1: f.b[1] + (withInt ? f.b[3] : 0) },
+        note: withInt
+          ? `${fmt(f.b[1], 2)} ${f.b[3] < 0 ? "−" : "+"} ${fmt(Math.abs(f.b[3]), 2)}: the effect is gone`
+          : `the same ${f.b[1] >= 0 ? "+" : ""}${fmt(f.b[1], 2)} for both`,
+      });
     }
 
     if (params.concept === "agesex") {
@@ -502,14 +538,23 @@ function drawAgeSex(ctx, colors, r, params, state, a, t, z) {
   ctx.restore();
 }
 
-/* --- act 3: diabetes × sex -------------------------------------------------
-   The observed cell means stand still (empirical bars); the MODEL'S four
-   predictions (highlight ticks) ease between the one-size reading and the
-   saturated one, and the per-group arrows are read from the eased
-   predictions — under + both say +10.18, under × they land on +21.0 and
-   −0.02. The counting labels are widget 29's rule again. */
+/* --- act 3: diabetes × sex — the INTERACTION PLOT (round 2) ---------------
+   The canonical two-factor display, and the notebook's own (ggPredict,
+   cell 36): the x-axis holds the two diabetes positions, each sex is ONE
+   LINE joining its model predictions — the same grammar as the age tab
+   with the continuum reduced to two positions. PARALLEL lines are the
+   independent model's claim (one diabetes effect for everyone); toggling
+   × pivots them onto the observed cell means, and the right-edge bracket
+   names the nonparallelism against a dotted if-parallel ghost: the
+   difference of the two rises IS the printed interaction coefficient.
+   The slope labels ride the lerped lines and count (widget 29's rule).
+   The observed means are fixed group-coloured ticks the lines land on or
+   miss; the four floating bars, per-bar prediction ticks and vertical
+   arrows of round 1 are deleted — they were the hard-to-read part. */
 function drawTwoByTwo(ctx, colors, r, params, state, a, t) {
   const sy = (v) => r.y + r.h - ((v - Y3_DOM[0]) / (Y3_DOM[1] - Y3_DOM[0])) * r.h;
+  const X0 = r.x + r.w * 0.22;
+  const X1 = r.x + r.w * 0.72;
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x, r.y, r.w, r.h);
@@ -524,93 +569,109 @@ function drawTwoByTwo(ctx, colors, r, params, state, a, t) {
   ctx.textAlign = "center";
   ctx.fillText("totChol (cell mean)", 0, 0);
   ctx.restore();
-
-  const keys = ["d0s0", "d1s0", "d0s1", "d1s1"];
-  const X = {
-    d0s0: r.x + r.w * 0.16,
-    d1s0: r.x + r.w * 0.36,
-    d0s1: r.x + r.w * 0.62,
-    d1s1: r.x + r.w * 0.82,
-  };
-  const NAME = { d0s0: "no diabetes", d1s0: "diabetes", d0s1: "no diabetes", d1s1: "diabetes" };
+  ctx.textAlign = "center";
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText("no diabetes", X0, r.y + r.h + 14);
+  ctx.fillText("diabetes", X1, r.y + r.h + 14);
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText(`n = ${state.cells.d0s0.n + state.cells.d0s1.n}`, X0, r.y + r.h + 27);
+  ctx.fillText(`n = ${state.cells.d1s0.n + state.cells.d1s1.n}`, X1, r.y + r.h + 27);
 
   ctx.fillStyle = colors.ink2;
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.textAlign = "left";
   ctx.fillText(!params.fit
-    ? "the four cells — no model yet"
+    ? "the four cell means — no model yet"
     : params.terms === "times"
-      ? "the saturated model lands on the cell means — +21.0 in women, nothing in men"
-      : "the independent model gives every patient the same diabetes effect",
+      ? "not parallel — the interaction is the difference of the two rises"
+      : "parallel — one diabetes effect for everyone, and the means disagree",
   r.x, r.y - 8);
 
-  for (const k of keys) {
-    const col = k.endsWith("s0") ? colors.groupA : colors.groupB;
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 4;
+  /* the observed cell means: fixed ticks in their group's colour */
+  const OBS = [["d0s0", X0, 0], ["d1s0", X1, 0], ["d0s1", X0, 1], ["d1s1", X1, 1]];
+  for (const [k, x, s] of OBS) {
+    ctx.strokeStyle = s === 0 ? colors.groupA : colors.groupB;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(X[k] - 30, sy(state.cells[k].mean));
-    ctx.lineTo(X[k] + 30, sy(state.cells[k].mean));
+    ctx.moveTo(x - 15, sy(state.cells[k].mean));
+    ctx.lineTo(x + 15, sy(state.cells[k].mean));
     ctx.stroke();
-    ctx.fillStyle = colors.ink2;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "center";
-    ctx.fillText(NAME[k], X[k], r.y + r.h + 14);
-    ctx.fillStyle = colors.ink3;
-    ctx.fillText(`n = ${state.cells[k].n}`, X[k], r.y + r.h + 27);
-    ctx.fillStyle = colors.ink1;
-    ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.fillText(fmt(state.cells[k].mean, 1), X[k], sy(state.cells[k].mean) - 8);
+    ctx.globalAlpha = 1;
   }
-  ctx.fillStyle = colors.ink2;
-  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "center";
-  ctx.fillText("women", (X.d0s0 + X.d1s0) / 2, r.y + r.h + 42);
-  ctx.fillText("men", (X.d0s1 + X.d1s1) / 2, r.y + r.h + 42);
 
   if (a <= 0.02) return;
 
-  /* the model's predictions, eased between the two readings */
+  /* the model's two lines, from the lerped predictions */
   const P = {};
-  for (const k of keys) P[k] = lerp(state.dsPred.plus[k], state.dsPred.times[k], t);
+  for (const k of ["d0s0", "d1s0", "d0s1", "d1s1"]) {
+    P[k] = lerp(state.dsPred.plus[k], state.dsPred.times[k], t);
+  }
   ctx.globalAlpha = a;
-  for (const k of keys) {
-    ctx.strokeStyle = colors.highlight;
+  const lineFor = (s, color, name) => {
+    const y0 = P[`d0s${s}`];
+    const y1 = P[`d1s${s}`];
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(X[k] - 16, sy(P[k]));
-    ctx.lineTo(X[k] + 16, sy(P[k]));
+    ctx.moveTo(X0, sy(y0));
+    ctx.lineTo(X1, sy(y1));
     ctx.stroke();
-  }
-  const arrow = (x, from, to, label) => {
-    ctx.strokeStyle = colors.highlight;
-    ctx.fillStyle = colors.highlight;
-    ctx.lineWidth = 2;
-    const big = Math.abs(sy(to) - sy(from)) > 8;
-    if (big) {
+    ctx.fillStyle = color;
+    for (const [x, y] of [[X0, y0], [X1, y1]]) {
       ctx.beginPath();
-      ctx.moveTo(x, sy(from));
-      ctx.lineTo(x, sy(to));
-      ctx.stroke();
-      const dir = sy(to) < sy(from) ? -1 : 1;
-      ctx.beginPath();
-      ctx.moveTo(x, sy(to));
-      ctx.lineTo(x - 4, sy(to) - dir * 6);
-      ctx.lineTo(x + 4, sy(to) - dir * 6);
+      ctx.arc(x, sy(y), 4, 0, 2 * Math.PI);
       ctx.fill();
     }
+    const rise = y1 - y0;
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "left";
-    const ly = big ? (sy(from) + sy(to)) / 2 + 3 : sy(to) + 24;
+    ctx.textAlign = "center";
+    const label = `${name}: ${rise >= 0 ? "+" : ""}${fmt(rise, 1)}`;
+    const mx = (X0 + X1) / 2;
+    const my = sy((y0 + y1) / 2) + (s === 0 ? -8 : 14);
     ctx.strokeStyle = colors.surface;
     ctx.lineWidth = 3;
-    ctx.strokeText(label, x + 9, ly);
-    ctx.fillStyle = colors.highlight;
-    ctx.fillText(label, x + 9, ly);
+    ctx.strokeText(label, mx, my);
+    ctx.fillStyle = color;
+    ctx.fillText(label, mx, my);
+    return rise;
   };
-  const dW = P.d1s0 - P.d0s0;
-  const dM = P.d1s1 - P.d0s1;
-  arrow((X.d0s0 + X.d1s0) / 2 + 36, P.d0s0, P.d1s0, `${dW >= 0 ? "+" : ""}${fmt(dW, 1)} in women`);
-  arrow((X.d0s1 + X.d1s1) / 2 + 36, P.d0s1, P.d1s1, `${dM >= 0 ? "+" : ""}${fmt(dM, 1)} in men`);
+  const riseW = lineFor(0, colors.groupA, "women");
+  const riseM = lineFor(1, colors.groupB, "men");
+
+  /* the nonparallelism, named: women's actual end against where their
+     line WOULD end if parallel to the men's — the bracket length is the
+     printed interaction coefficient, counting in with the ease */
+  if (t > 0.5) {
+    const ghostEnd = P.d0s0 + riseM;
+    const bx = X1 + 30;
+    ctx.globalAlpha = a * (t - 0.5) * 2;
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = colors.ink3;
+    ctx.beginPath();
+    ctx.moveTo(X0, sy(P.d0s0));
+    ctx.lineTo(bx, sy(ghostEnd));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx, sy(P.d1s0));
+    ctx.lineTo(bx, sy(ghostEnd));
+    ctx.stroke();
+    for (const y of [P.d1s0, ghostEnd]) {
+      ctx.beginPath();
+      ctx.moveTo(bx - 4, sy(y));
+      ctx.lineTo(bx + 4, sy(y));
+      ctx.stroke();
+    }
+    ctx.fillStyle = colors.highlight;
+    ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = "left";
+    ctx.fillText("the interaction:", bx + 8, sy((P.d1s0 + ghostEnd) / 2) - 3);
+    ctx.fillText(fmt(riseW - riseM, 2), bx + 8, sy((P.d1s0 + ghostEnd) / 2) + 11);
+    ctx.globalAlpha = a;
+  }
   ctx.globalAlpha = 1;
 }
