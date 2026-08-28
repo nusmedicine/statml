@@ -3514,7 +3514,25 @@ change predicts, since the canvas is untouched — recorded by re-running
 `_lab/lm-shoot.html` (copy proved 4/4, three-run stable) and spliced in
 the same commit.
 
-### ROUND 8 (open) — a residual plot, mocked for Kenneth's ruling
+### ROUND 8 — RESOLVED: the strip is in, and the grid opens by default
+
+**Kenneth picked B, plus grid-on default.** Built the same day: a permanent
+residual strip under the scatter (STRIP_H 80; height 426 everywhere), the
+line's own residuals live — band off zero = b₀ wrong, tilted trend = b₁
+wrong, and at the walk's end the trend lies flat on the ruled zero in the
+fit's colour: the stopping condition visible. **The strip shares the BMI
+axis** so each patient's residual sits directly below its dot, and it
+carries the x-axis for both panels (the mock drew vs fitted; for one
+covariate the two are affine-identical, and alignment wins under a stacked
+panel). The trend is closed-form (tilt = simple-fit b₁ − yours, offset =
+ȳ − b₀ − b₁x̄) — no per-frame regression. **`grid` now defaults ON**; the
+minimum stays unmarked until the walk, so the widget still does not open
+on its answer, and `?grid=0` keeps the scatter-alone state (settled state 3
+moved to that URL). The rebaseline: **6 px moved and exactly 0 tx** — the
+mirror of round 7's diff, as a canvas-only change predicts; re-shot by
+`lm-shoot.html`, copy proved 4/4, three-run stable, drives non-inert.
+
+### The round-8 mock, as it was drawn
 
 **[`_lab/lm-resid.html`](../widgets/_lab/lm-resid.html)** draws the
 residual plot Kenneth asked to see, with the framing that fits THIS

@@ -64,9 +64,17 @@ const SURF_B1 = [0, 5];
 /* Stage geometry, one place. The scatter always shows; opening the gate
    splits the width with the surface BESIDE it (Kenneth's round-3 pick over
    the stack: height never moves, and the near-square surface panel is the
-   aspect the trench reads best at). */
+   aspect the trench reads best at). Round 8 added the RESIDUAL STRIP under
+   the scatter — permanent, Kenneth's pick B — so the page grew once, for
+   every state. The strip shares the scatter's BMI axis (each patient's
+   residual directly below its dot; the notebook's residual-vs-fitted axes
+   are affine-identical for one covariate) and carries the x-axis for both. */
 const SCATTER_H = 240;
-const HEIGHT = 30 + SCATTER_H + 88;
+const STRIP_TOP = 30 + SCATTER_H + 14;
+const STRIP_H = 80;
+const HEIGHT = STRIP_TOP + STRIP_H + 62;
+const MEAN_X = BMI.reduce((s, v) => s + v, 0) / N;
+const MEAN_Y = SYSBP.reduce((s, v) => s + v, 0) / N;
 
 /* The walk: coordinate descent from (b0, b1), each vertex one exact 1-D
    minimisation. Stops when a full cycle moves less than a pixel could show.
@@ -260,7 +268,11 @@ defineWidget({
       label: "Show every line at once",
       labelOff: "Hide the grid",
       detail: "a grid of every (b₀, b₁) pair, coloured by its sum of squares",
-      default: false,
+      /* Open by default — Kenneth's round-8 call. The minimum is still
+         unmarked until the walk finds it, so the widget does not open on
+         its answer; the gate remains for a reader who wants the scatter
+         alone at full width. */
+      default: true,
       display: true,
     },
     /* Authoring escape hatch: segments of the walk already taken, first
@@ -339,12 +351,9 @@ defineWidget({
       ? { x: 56, y: 30, w: Math.round((w - 70) * 0.52), h: SCATTER_H }
       : { x: 56, y: 30, w: w - 56 - 14, h: SCATTER_H };
     const plot = makePlot({ ctx, colors, rect, xDomain: X_DOM, yDomain: Y_DOM });
-    plot.axisX({ label: "BMI" });
+    /* No x-axis here: the residual strip below shares this BMI axis and
+       carries the ticks and label for both panels. */
     plot.axisY({ label: "sysBP (mmHg)" });
-    /* The note teaches on the opening screen only — once the gate is open
-       the scatter is half-width and this line would overrun it (the text
-       sweep's whole subject matter). */
-    if (!walked && !params.grid) plot.note("every patient's vertical difference is squared and summed");
 
     ctx.save();
     ctx.beginPath();
@@ -378,6 +387,48 @@ defineWidget({
     ctx.beginPath();
     ctx.moveTo(plot.sx(X_DOM[0]), plot.sy(cur[0] + cur[1] * X_DOM[0]));
     ctx.lineTo(plot.sx(X_DOM[1]), plot.sy(cur[0] + cur[1] * X_DOM[1]));
+    ctx.stroke();
+    ctx.restore();
+
+    /* --- the residual strip, permanent (round 8, Kenneth's pick B) -------
+       The line's residuals, live: the band sits OFF ZERO when b₀ is wrong,
+       the trend TILTS when b₁ is wrong, and both close to a flat band at
+       zero as the walk lands — the stopping condition made visible. The
+       trend has a closed form: regressing the residuals on BMI gives slope
+       (simple-fit b₁ − yours) and mean (ȳ − b₀ − b₁x̄), so no per-frame
+       regression is run. Fixed y-window: comparable across lines, and an
+       absurd line's band walking off the top is an honest reading. */
+    const strip = { x: rect.x, y: STRIP_TOP, w: rect.w, h: STRIP_H };
+    const rplot = makePlot({ ctx, colors, rect: strip, xDomain: X_DOM, yDomain: [-70, 130] });
+    rplot.axisX({ label: "BMI" });
+    rplot.axisY({ label: "residual", ticks: [-50, 0, 50, 100] });
+    ctx.strokeStyle = colors.ink3;
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(strip.x, rplot.sy(0));
+    ctx.lineTo(strip.x + strip.w, rplot.sy(0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(strip.x, strip.y, strip.w, strip.h);
+    ctx.clip();
+    ctx.fillStyle = colors.unknown;
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath();
+      ctx.arc(rplot.sx(BMI[i]), rplot.sy(SYSBP[i] - cur[0] - cur[1] * BMI[i]), 1.4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    const tilt = FIT_B1 - cur[1];
+    const meanRes = MEAN_Y - cur[0] - cur[1] * MEAN_X;
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(rplot.sx(X_DOM[0]), rplot.sy(meanRes + tilt * (X_DOM[0] - MEAN_X)));
+    ctx.lineTo(rplot.sx(X_DOM[1]), rplot.sy(meanRes + tilt * (X_DOM[1] - MEAN_X)));
     ctx.stroke();
     ctx.restore();
 
@@ -508,6 +559,7 @@ defineWidget({
     const parts = [
       `A scatter of systolic blood pressure against BMI for 3547 Framingham patients, with the linear model sysBP = ${fmt(state.b0, 0)} + ${fmt(state.b1, 2)} × BMI drawn through it.`,
       `Its sum of squared differences is ${ssFmt(state.ssYour)}.`,
+      "Below the scatter, each patient's residual from the line, with the trend through them and zero ruled.",
     ];
     if (params.grid) {
       parts.push("Beside it, the sum of squares is painted over every (b₀, b₁) pair.");
