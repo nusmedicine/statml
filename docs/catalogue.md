@@ -3502,6 +3502,18 @@ and **the pane's stray-input phantom is alive** — b₀ drifted 70 → 67 → 6
 between two probes with no action taken, which is why nothing here trusts
 a screenshot for a fact.
 
+### ROUND 7 (post-ship) — the R² tile, from the sums already on stage
+
+**An R² tile joined the readout on Kenneth's ask**, revealed with the fit:
+0.11, noted "variance explained by the model — 1 − fit ⁄ flat-line sums".
+It is 05-01's goodness-of-fit section computed from the two numbers the
+reader has already watched (the fit's sum is SS_residual; the flat mean
+line's is SS_total), and it hands the baton to lm-adjustment's 0.106 →
+0.218. The rebaseline: **6 tx moved and exactly 0 px** — the diff the
+change predicts, since the canvas is untouched — recorded by re-running
+`_lab/lm-shoot.html` (copy proved 4/4, three-run stable) and spliced in
+the same commit.
+
 ### ROUND 6 — the generic form leads the card
 
 **`y = b₀ + b₁x` now heads the equation card**, muted, labelled "the

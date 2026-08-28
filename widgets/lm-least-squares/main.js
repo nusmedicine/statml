@@ -490,6 +490,17 @@ defineWidget({
             ? `walking — b₀ ${fmt(cur[0], 1)}, b₁ ${fmt(cur[1], 2)}`
             : "press Fit to walk down to it",
       },
+      /* R² from the two sums already on stage: SS at the fit is the residual
+         sum, SS at the flat mean line (b₁ = 0) is the total — so the tile is
+         05-01's goodness-of-fit section computed from what the reader has
+         watched. Kenneth's round 7; the note is widget 26's R² wording. */
+      {
+        label: "R²",
+        value: done ? fmt(FIT.r2, 2) : "—",
+        note: done
+          ? "variance explained by the model — 1 − fit ⁄ flat-line sums"
+          : "revealed with the fit",
+      },
     ];
   },
 

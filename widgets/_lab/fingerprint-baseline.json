@@ -1517,25 +1517,25 @@
    "slug": "lm-least-squares",
    "state": "?theme=light&shown=0",
    "px": "26e09955",
-   "tx": "8c26c906"
+   "tx": "fc27a442"
   },
   {
    "slug": "lm-least-squares",
    "state": "?theme=light&b0=110&b1=0.6&shown=0",
    "px": "6431b7aa",
-   "tx": "c81045d9"
+   "tx": "6268ad65"
   },
   {
    "slug": "lm-least-squares",
    "state": "?theme=light&grid=1&shown=0",
    "px": "396212b5",
-   "tx": "8c26c906"
+   "tx": "fc27a442"
   },
   {
    "slug": "lm-least-squares",
    "state": "?theme=light&grid=1&shown=999",
    "px": "9f8e3fb0",
-   "tx": "00894e59"
+   "tx": "02a666a3"
   },
   {
    "slug": "lm-least-squares",
@@ -1546,7 +1546,7 @@
     "dt": 200
    },
    "px": "d107bd1f",
-   "tx": "299be633"
+   "tx": "165a423f"
   },
   {
    "slug": "lm-least-squares",
@@ -1557,7 +1557,7 @@
     "dt": 32
    },
    "px": "11fd0803",
-   "tx": "ae4960f2"
+   "tx": "94907e26"
   }
  ]
 }
