@@ -33,10 +33,16 @@ driven-vs-settled-sibling check.
    The design facts: SS relief 44.5× but the teaching range is the bottom
    10% (flat mean line is only 10.6% above the minimum — that gap IS R²),
    the valley is a 13:1 diagonal trench, the raw 3547 points plot cleanly.
-   **The mock-up page is built: `_lab/lm-stage.html`** — four sections
-   (stage composition, surface scale, misfit marks, the Fit reveal), every
-   candidate on the real data. **Next step: Kenneth picks** —
-   `http://localhost:8010/widgets/_lab/lm-stage.html`.
+   **The mock-up page is built: `_lab/lm-stage.html`**, and Kenneth picked
+   all six design answers from it on 2026-08-28 (recorded in the catalogue's
+   ROUND 1). **The DRAFT IS BUILT the same day** — see the catalogue § *NEXT
+   · Widget 27* for the build record: gate → surface below the scatter,
+   b₀/b₁ sliders, the walk from the reader's own line, capped-at-3× surface,
+   the residual wash, `--c-cost-low/high` added to core (full suite ran:
+   **167 of 167 MATCH**). **Next step: Kenneth reviews the draft** —
+   `http://localhost:8010/widgets/lm-least-squares/` (and
+   `?surface=1&shown=999` for the finished state). Not yet baselined —
+   states are recorded only once the design settles.
 2. **Widget 26's two owed items:** the 06-02 notebook link — Kenneth places
    it by hand (it will be the FIRST widget link in any notebook); the line:
    `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`

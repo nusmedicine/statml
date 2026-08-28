@@ -381,6 +381,19 @@
       ],
       "arc": 26,
       "status": "shipped"
+    },
+    {
+      "slug": "lm-least-squares",
+      "title": "Least Squares",
+      "blurb": "Least squares picks the intercept and slope that make the sum of squared differences smallest.",
+      "course": "PHM5003",
+      "topics": [
+        "linear model",
+        "least squares",
+        "regression"
+      ],
+      "arc": 27,
+      "status": "draft"
     }
   ]
 }

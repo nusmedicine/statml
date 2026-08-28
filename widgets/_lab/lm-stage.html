@@ -117,8 +117,8 @@
 </main>
 
 <script type="module">
-import { N, BMI, SYSBP } from "./lm-data.js";
-import { ols, ssLine, ssQuad } from "./lm-model.js";
+import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
+import { ols, ssLine, ssQuad } from "../lm-least-squares/model.js";
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const C = {

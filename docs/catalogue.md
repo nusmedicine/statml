@@ -3285,6 +3285,49 @@ dragging the line, the gate, the axis window and its 2.11 note) are prose at
 the page's foot. `ssQuad` joined `lm-model.js` for the surface panels —
 the O(1) closed quadratic, self-checked against `ssLine` at load.
 
+**ROUND 1 — Kenneth picked, 2026-08-28, all six from the mock-ups:**
+**C behind a gate** (scatter + SS tile first; the surface opens below on
+request — 3.4b's shape); **sliders first** (b₀/b₁ are the notebook's own
+`c(b0, b1)`; dragging the line may join a later round as the 5.6 shortcut);
+**the walk** for Fit (a descent path, the line swinging as the point
+slides); **capped at 3×** for the surface's scale; **every residual, faint**
+for the misfit; **full range** axes (every patient on stage — no 2.11 note
+owed).
+
+### BUILT AS A DRAFT — the same day
+
+`widgets/lm-least-squares/` — `data.js` and `model.js` moved in from `_lab/`
+(the lab pages now import FROM the widget, widget 26's arrangement, so there
+is one copy). The shape: b₀/b₁ sliders (data parameters — moving one
+abandons a walk in progress, the honest reading), the residual wash always
+on under the dots, the gate opening the surface below (height 358 → 686),
+and the walk as the one animation — **coordinate descent from the reader's
+own line**, exact 1-D minimisations, Step = one of them, Fit = the whole
+walk on a fixed ~4 s schedule (two 700 ms opening moves, the crawl sharing
+2.6 s — equal time over shrinking moves is a deceleration, so the crawl
+reads as a crawl from any start; no speed control, widget 12's
+one-gesture-one-ease reasoning). The minimum's cross is drawn only once the
+walk has found it (non-negotiable 4 applied to the answer); `?shown=N`
+pre-walks N segments.
+
+**Two core additions rode along, and the full suite ran for them: 167 of
+167 MATCH.** `--c-cost-low` / `--c-cost-high` in tokens.css — a cost painted
+over a parameter space, the role the surface needed and no existing token
+honestly carried (nonevent/event are outcomes; extreme is past a threshold)
+— and their lines in `env.js` `readTokens`. The surface is rendered once
+per size/theme into an offscreen bitmap and blitted per frame (~10k O(1)
+`ssQuad` evaluations, never per-frame fillRects).
+
+**Verified before handover** (browser + the node stub-driver, no screenshots
+trusted for facts): tiles read the measured values exactly (your line at
+(70, 2) = 1,762,150; the fit = 1,410,293 at b₀ 87.07, b₁ 1.72); the gate
+toggle preserves a finished walk and a slider move resets it (invariant 3
+both ways); `?shown=999` lands the done state; Step advances exactly one
+vertex per press — **229 presses to done from (70, 2)**, verified in node
+(the pane's throttled rAF makes a browser count meaningless). A reader who
+steps is expected to step a few times and press Fit; whether 229 available
+presses needs a cap is a review question.
+
 ## Widget 26 · `fork-pipe-collider` — SHIPPED 2026-08-27, nine review rounds
 
 **Promoted on 2026-08-27 after nine rounds of Kenneth's review in one day —

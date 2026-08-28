@@ -122,6 +122,8 @@ export function readTokens() {
     nonevent: v("--c-nonevent"),
     unknown: v("--c-unknown"),
     holdout: v("--c-holdout"),
+    costLow: v("--c-cost-low"),
+    costHigh: v("--c-cost-high"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),

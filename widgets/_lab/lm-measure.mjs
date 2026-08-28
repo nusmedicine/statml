@@ -8,8 +8,8 @@
 //   2. DESIGN — measure the facts the design questions turn on (the SS
 //      surface's relief and elongation, overplotting, embed cost) BEFORE any
 //      mock-up argues from them.
-import { N, BMI, SYSBP } from "./lm-data.js";
-import { ols, ssLine } from "./lm-model.js";
+import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
+import { ols, ssLine } from "../lm-least-squares/model.js";
 
 let fails = 0;
 const ck = (name, got, want, tol) => {

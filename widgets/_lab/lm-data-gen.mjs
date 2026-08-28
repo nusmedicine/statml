@@ -62,7 +62,7 @@ const lines = [
   `export const DIABETES = [${col("diabetes").join(",")}];`,
   "",
 ];
-const out = join(dirname(fileURLToPath(import.meta.url)), "lm-data.js");
+const out = join(dirname(fileURLToPath(import.meta.url)), "..", "lm-least-squares", "data.js");
 writeFileSync(out, lines.join("\n"));
 
 // Totals, printed so the commit records them and a re-run can be diffed.

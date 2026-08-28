@@ -184,6 +184,19 @@
      has this same partition to name. */
   --c-holdout:   var(--series-8);    /* set aside, and scored once at the end */
 
+  /* A COST PAINTED OVER A PARAMETER SPACE — the two ends of a sequential ramp
+     for surfaces where every point is a model the reader could have picked and
+     the colour says how badly it fits (lm-least-squares' sum-of-squares
+     surface; any later loss landscape). Added rather than borrowed:
+     --c-nonevent/--c-event are outcomes that happened to a person, and
+     --c-extreme is past a threshold — a fit's cost is none of those. The ends
+     alias the same blue and red series slots those wear, because the KINSHIP
+     is real (calm where the fit is good, the warning colour where it is bad);
+     the ROLE is what is new. Widgets lerp between the two ends; the low end is
+     where the minimum lives, so it must recede next to --c-highlight marks. */
+  --c-cost-low:  var(--series-1);    /* a good fit — the trench, the minimum  */
+  --c-cost-high: var(--series-8);    /* a bad fit — far from every good line  */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */
