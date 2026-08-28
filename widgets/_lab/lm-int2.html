@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 30 round 2 — per-group formulas, and the 2×2 as an interaction plot</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; }
+  .card { background: var(--surface-1); border: 1px solid var(--grid); padding: 10px 14px; width: fit-content; min-width: 480px; margin-bottom: 4px; font-size: var(--fs-sm); }
+  .card .r { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
+  .card .l { color: var(--ink-3); font-size: var(--fs-xs); min-width: 84px; }
+  .card .ga { color: var(--c-group-a); font-weight: 600; }
+  .card .gb { color: var(--c-group-b); font-weight: 600; }
+  .card .comb { color: var(--ink-1); }
+  .card .muted { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 30 · round 2 — the formulas follow the lines, and the 2×2 becomes an interaction plot</h1>
+
+  <p class="note">
+    <b>Kenneth's two comments:</b> the widget is a bit hard to understand —
+    (1) show the formulas that correspond to the changes in the graph, and
+    (2) the diabetes × sex tab is hard to interpret; find a clearer way.
+    <b>Both answers already exist in the lesson's own materials.</b> (1) is
+    05-04's "rearranging the terms" move (cell 23): the combined equation
+    splits into ONE FORMULA PER LINE — women's and men's — each wearing its
+    line's colour, so the graph and the algebra are the same object. (2) is
+    the INTERACTION PLOT — the canonical display for two categorical
+    factors in every ANOVA text: cell means joined by one line per group,
+    and <i>parallel lines = no interaction; the departure from parallelism
+    IS the interaction</i>. It is also exactly what the notebook's own
+    ggPredict draws for this model (cell 36) — and it makes the 2×2 tab
+    speak the SAME picture language as the age × sex tab: two lines per
+    sex, the x-axis reduced from a continuum to two positions. One
+    grammar, two tabs.
+  </p>
+
+  <h2>§1 · The equation card grows per-group rows — the notebook's rearrangement</h2>
+  <p class="note">
+    The card keeps "the model" and "this model" (the printed lm output),
+    and adds one row per line ON the graph, coloured to match. The reader
+    sees the combined equation COLLAPSE into each group's own intercept
+    and slope — under <code>+</code> the two rows differ only in
+    intercept; under <code>×</code> they differ in both, and the men's
+    slope (0.25) is visibly the sum 2.29 − 2.04. Four states, mocked:
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>Age × sex, + independent</h3>
+      <div class="card">
+        <div class="r"><span class="l">this model</span><span class="comb">totChol = 170.82 + 1.37 × age − 5.00 × [sex]</span></div>
+        <div class="r"><span class="l">women (sex 0)</span><span class="ga">totChol = 170.82 + 1.37 × age</span></div>
+        <div class="r"><span class="l">men (sex 1)</span><span class="gb">totChol = 165.82 + 1.37 × age</span><span class="muted">— same slope, 5.00 lower</span></div>
+      </div>
+      <p class="cap">the offset moves the intercept; the slope is shared</p>
+    </div>
+    <div class="cand">
+      <h3>Age × sex, × interacting</h3>
+      <div class="card">
+        <div class="r"><span class="l">this model</span><span class="comb">totChol = 125.41 + 2.29 × age + 95.57 × [sex] − 2.04 × age × [sex]</span></div>
+        <div class="r"><span class="l">women (sex 0)</span><span class="ga">totChol = 125.41 + 2.29 × age</span></div>
+        <div class="r"><span class="l">men (sex 1)</span><span class="gb">totChol = 220.98 + 0.25 × age</span><span class="muted">— 125.41+95.57, and 2.29−2.04</span></div>
+      </div>
+      <p class="cap">each group has its own intercept AND slope — the sums shown</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>Diabetes × sex, + independent</h3>
+      <div class="card">
+        <div class="r"><span class="l">this model</span><span class="comb">totChol = 238.26 + 10.18 × [diabetes] − 5.38 × [sex]</span></div>
+        <div class="r"><span class="l">women (sex 0)</span><span class="ga">totChol = 238.26 + 10.18 × [diabetes]</span></div>
+        <div class="r"><span class="l">men (sex 1)</span><span class="gb">totChol = 232.89 + 10.18 × [diabetes]</span><span class="muted">— the same +10.18 for both</span></div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>Diabetes × sex, × interacting</h3>
+      <div class="card">
+        <div class="r"><span class="l">this model</span><span class="comb">totChol = 238.02 + 21.00 × [diabetes] − 4.83 × [sex] − 21.02 × [diabetes] × [sex]</span></div>
+        <div class="r"><span class="l">women (sex 0)</span><span class="ga">totChol = 238.02 + 21.00 × [diabetes]</span></div>
+        <div class="r"><span class="l">men (sex 1)</span><span class="gb">totChol = 233.19 − 0.02 × [diabetes]</span><span class="muted">— 21.00 − 21.02: the effect is gone</span></div>
+      </div>
+      <p class="cap">the men's diabetes coefficient is the SUM 21.00 − 21.02 — the interaction eats it</p>
+    </div>
+  </div>
+
+  <h2>§2 · The 2×2 redrawn as an interaction plot — one grammar for both tabs</h2>
+  <p class="note">
+    The x-axis holds the two diabetes positions; each sex is ONE LINE
+    joining its two model predictions, exactly as on the age tab. The
+    observed cell means are the fixed empirical ticks the model lines land
+    on (or miss). Under <code>+</code> the lines are PARALLEL — both rise
+    10.18, the model's claim that diabetes does the same thing to
+    everyone. Toggle <code>×</code> and the lines PIVOT about their left
+    ends: women's steepens to +21.0, men's flattens to −0.02 — and the
+    right-edge bracket names the nonparallelism: the difference of the
+    two rises is 21.02, the printed interaction coefficient. The slope
+    labels ride the lines and count during the ease, widget 29's rule.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>+ independent — parallel lines</h3>
+      <p class="sub">both lines rise exactly 10.18; the model has one diabetes effect. The observed means (ticks) disagree — the women's diabetic mean is missed low, the men's missed high</p>
+      <canvas id="p1" width="550" height="330"></canvas>
+    </div>
+    <div class="cand">
+      <h3>× interacting — the pivot</h3>
+      <p class="sub">the lines land on the cell means: +21.0 for women, −0.0 for men; the bracket at right is the interaction, 21.02, as a difference of rises</p>
+      <canvas id="p2" width="550" height="330"></canvas>
+    </div>
+  </div>
+  <p class="note">
+    <b>What is deleted from the current draft:</b> the four floating bars,
+    the separate prediction ticks per bar, and the two vertical arrows —
+    the interaction plot carries all of it with two lines and two ticks
+    per line, and the "hard to interpret" reading (why are there four
+    separate things?) goes away. The n labels stay under the axis
+    (44 and 47 diabetics remain the honesty note).
+  </p>
+</main>
+
+<script type="module">
+import { TOTCHOL, DIABETES, SEX } from "../lm-least-squares/data.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  highlight: css("--c-highlight"), empirical: css("--c-empirical"),
+  ga: css("--c-group-a"), gb: css("--c-group-b"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+const mul = (a, b) => a.map((v, i) => v * b[i]);
+
+const fInd = ols(TOTCHOL, DIABETES, SEX);
+const fInt = ols(TOTCHOL, DIABETES, SEX, mul(DIABETES, SEX));
+const cells = {};
+for (const d of [0, 1]) for (const s of [0, 1]) {
+  const ys = TOTCHOL.filter((_, i) => DIABETES[i] === d && SEX[i] === s);
+  cells[`d${d}s${s}`] = { n: ys.length, mean: ys.reduce((a, v) => a + v, 0) / ys.length };
+}
+
+const YD = [222, 270];
+
+function drawPlot(id, withInt) {
+  const ctx = document.getElementById(id).getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  const r = { x: 66, y: 30, w: 400, h: 240 };
+  const sy = (v) => r.y + r.h - ((v - YD[0]) / (YD[1] - YD[0])) * r.h;
+  const X0 = r.x + r.w * 0.22;
+  const X1 = r.x + r.w * 0.78;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+  for (let v = 230; v <= 265; v += 10) ctx.fillText(String(v), r.x - 5, sy(v) + 3);
+  ctx.save(); ctx.translate(r.x - 36, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("totChol", 0, 0); ctx.restore();
+  ctx.textAlign = "center";
+  ctx.fillStyle = C.ink2;
+  ctx.fillText("no diabetes", X0, r.y + r.h + 14);
+  ctx.fillText("diabetes", X1, r.y + r.h + 14);
+  ctx.fillStyle = C.ink3;
+  ctx.fillText(`n = ${cells.d0s0.n + cells.d0s1.n}`, X0, r.y + r.h + 27);
+  ctx.fillText(`n = ${cells.d1s0.n + cells.d1s1.n}`, X1, r.y + r.h + 27);
+
+  const f = withInt ? fInt : fInd;
+  const pred = (d, s) => f.b[0] + f.b[1] * d + f.b[2] * s + (withInt ? f.b[3] * d * s : 0);
+
+  /* observed cell means: the fixed empirical ticks */
+  const OBS = { d0s0: [X0, 0], d1s0: [X1, 0], d0s1: [X0, 1], d1s1: [X1, 1] };
+  for (const [k, [x, s]] of Object.entries(OBS)) {
+    ctx.strokeStyle = C.empirical;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 14, sy(cells[k].mean));
+    ctx.lineTo(x + 14, sy(cells[k].mean));
+    ctx.stroke();
+  }
+
+  /* the model's two lines — one per sex */
+  const lineFor = (s, color, name) => {
+    const y0 = pred(0, s);
+    const y1 = pred(1, s);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(X0, sy(y0));
+    ctx.lineTo(X1, sy(y1));
+    ctx.stroke();
+    for (const [x, y] of [[X0, y0], [X1, y1]]) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, sy(y), 4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    const rise = y1 - y0;
+    ctx.font = `600 10px ${C.font}`;
+    ctx.textAlign = "center";
+    const mx = (X0 + X1) / 2;
+    const my = sy((y0 + y1) / 2);
+    ctx.strokeStyle = C.surface; ctx.lineWidth = 3;
+    ctx.strokeText(`${name}: ${rise >= 0 ? "+" : ""}${fmt(rise, 1)}`, mx, my - 8);
+    ctx.fillStyle = color;
+    ctx.fillText(`${name}: ${rise >= 0 ? "+" : ""}${fmt(rise, 1)}`, mx, my - 8);
+    return rise;
+  };
+  const riseW = lineFor(0, C.ga, "women");
+  const riseM = lineFor(1, C.gb, "men");
+
+  /* the nonparallelism bracket at the right edge */
+  if (withInt) {
+    const bx = X1 + 34;
+    const yW = sy(pred(1, 0));
+    const yTop = sy(pred(0, 0) + riseM); // where women's line WOULD end if parallel to men's
+    ctx.strokeStyle = C.highlight;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bx, yW); ctx.lineTo(bx, yTop); ctx.stroke();
+    for (const y of [yW, yTop]) {
+      ctx.beginPath(); ctx.moveTo(bx - 4, y); ctx.lineTo(bx + 4, y); ctx.stroke();
+    }
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.ink3;
+    ctx.beginPath(); ctx.moveTo(X0, sy(pred(0, 0))); ctx.lineTo(bx, yTop); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.highlight;
+    ctx.font = `600 10px ${C.font}`;
+    ctx.textAlign = "left";
+    ctx.fillText(`the interaction:`, bx + 8, (yW + yTop) / 2 - 3);
+    ctx.fillText(`${fmt(riseW - riseM, 2)}`, bx + 8, (yW + yTop) / 2 + 11);
+  }
+
+  ctx.fillStyle = C.ink2;
+  ctx.font = `600 12px ${C.font}`;
+  ctx.textAlign = "left";
+  ctx.fillText(withInt
+    ? "not parallel — the interaction is the difference of the two rises"
+    : "parallel — one diabetes effect for everyone, and the means disagree",
+  r.x, r.y - 8);
+}
+
+drawPlot("p1", false);
+drawPlot("p2", true);
+</script>
+</body>
+</html>
