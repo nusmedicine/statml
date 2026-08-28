@@ -3272,12 +3272,57 @@ this" motif); §3 KM by disease with the log-rank p as a readout, and the
 candidate Cox forest (HR = exp(β), log axis, reference at 1 — the exp(β)
 reading returning from lm-adjustment and logistic-regression).
 
-**Open for Kenneth's pick:** (1) tab structure — *Five patients* ·
-*Two groups*, with the discard control living in both, or a single stage
-with an n control; (2) does Cox earn a third tab, a card in the groups tab,
-or nothing — the engine already fits it either way; (3) a token role for
-"the method you were warned off" — the dropped/as-events curves have no
-semantic colour today (the mock borrows `--c-highlight` and dashed ink).
+**Kenneth's picks, 2026-08-29:** (1) **two tabs** — *Five patients* ·
+*Two groups*; (2) **Cox as a card in the groups tab**, not a third tab.
+Still open: (3) a token role for "the method you were warned off" — the
+dropped/as-events curves have no semantic colour today (the mock borrows
+`--c-highlight` and dashed ink).
+
+### The hazard function, researched 2026-08-29 (Kenneth's ask)
+
+**What exists:** the established teaching visual is Singer & Willett's
+paired profile — hazard per interval drawn beside the survival curve, read
+as "when hazard is high the survivor drops fast" (Applied Longitudinal Data
+Analysis ch. 10; the bookdown reproduction confirms the form: hazard
+ĥ(t_j) and survival Ŝ(t_j) as side-by-side panels on a shared time axis).
+The analytic route — h(t) = −d/dt log S(t), cumulative hazard as summed
+risk (Rodríguez's GLM notes §7.1) — has no workable geometry at this
+course's level and is out. No explorable-explanation of hazard exists to
+borrow from; what the search surfaces (SurviVIS, CASAS, GraphPad guides)
+are analytics tools or prose with static shape galleries (bathtub curves —
+reliability framing, not this lesson). The speedometer metaphor for
+"instantaneous risk" is prose-only and 2.9 bars it from the canvas anyway.
+
+**The widget-native translation: the discrete hazard d/n is ALREADY ON
+SCREEN** — its denominator is tab 1's at-risk count, and cell 2's bullet
+(censored patients count in P(T ≥ t) until they leave) is precisely a
+statement about that denominator. Four candidates are mocked in
+`_lab/time-event-stage.html` §4, all engine-drawn:
+
+- **H1 — the paired hazard strip** (five patients): bars 1/5, 1/4, 1/2
+  under the KM curve on a shared time axis; censor times get a tick on the
+  strip's axis and NO bar — a censoring is a denominator change, not a
+  hazard. The t = 8 halving is the tallest bar. The literature-backed form
+  at human scale.
+- **H2 — the drop annotated on the curve itself**: each step bracketed
+  "d of n = %", no second panel, no new axis. Cheaper; conflates the S
+  scale with the h reading.
+- **H3 — interval hazard by group** (groups tab): life-table bins
+  [6,10), [10,12), [12,14), [14,16), [16,20), h = d/n at bin start.
+  Measured: disease sits above no-disease in every bin on seed 1, and the
+  ordering holds on 100/100/100/98/78 of 100 seeds per bin — the last bin
+  has 2 at risk (the small-denominator caveat, itself teachable). The
+  rising profile is real: an ageing cohort.
+- **H4 — the Cox claim on the hazard scale** (companion to the Cox card):
+  per-bin event rates per person-time, with the one-covariate Cox claim as
+  dashed outlines — every baseline bar × the same exp(β). Restricted to
+  bins [10,16): [6,10) has zero baseline events (an outline at 0 against a
+  visible bar reads as failure and is only an empty cell) and [16,20) has
+  ~0 person-time in the disease arm. Seed 1: HR = 4.24 marginal (it
+  absorbs the SNP effects the 12-covariate fit adjusts away), observed
+  per-bin ratios 6.8, 3.5, 4.4. **The generator is an accelerated-time
+  process, so PH holds only roughly** — right for a card that teaches what
+  "proportional" claims, wrong for a goodness-of-fit demonstration.
 
 ## Widget 30 · `lm-interaction` — SHIPPED 2026-08-28, two review rounds
 

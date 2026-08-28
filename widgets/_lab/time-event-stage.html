@@ -120,6 +120,57 @@
       <p class="cap" id="e-cap"></p>
     </div>
   </div>
+  <h2>§4 · The hazard function, drawn — research and four candidates</h2>
+  <p class="note">
+    <b>What the literature offers (researched 2026-08-29):</b> the established
+    teaching visual is Singer &amp; Willett's PAIRED PROFILE — hazard per
+    interval beside the survival curve, read as "when hazard is high the
+    survivor drops fast". The analytic route (h = −slope of log S, cumulative
+    hazard) has no good geometry and is beyond the course. No explorable
+    explanation of hazard exists to borrow from — the interactive tools out
+    there are analytics dashboards. The widget-native translation:
+    <b>the discrete hazard d/n is already on screen</b> — its denominator is
+    tab 1's at-risk count, and censoring's whole role (cell 2's bullet:
+    censored patients count in P(T ≥ t) until they leave) is a change to
+    that denominator. <b>H1</b> pairs a hazard strip under the five-patient
+    curve: bars 1/5, 1/4, 1/2 — nothing at censor times, and the t = 8
+    halving IS the tallest bar. <b>H2</b> keeps one panel and annotates each
+    step's relative drop on the curve itself. <b>H3</b> is the groups-tab
+    version: life-table bins, h = d/n at bin start — disease above
+    no-disease in every bin on seed 1, ordering held on 100/100/100/98/78 of
+    100 seeds per bin (the last bin has 2 at risk — the small-denominator
+    caveat, itself teachable). <b>H4</b> is the Cox card's own hazard
+    picture: per-bin rates (events per person-time — a rate, as cell 2
+    defines h), with the one-covariate Cox claim drawn over them: every
+    baseline bar × the SAME exp(β). Proportional means the whole strip
+    scales.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>H1 — the paired hazard strip (five patients)</h3>
+      <p class="sub">Singer &amp; Willett's profile at human scale: of those still here, the fraction who go now; censorings move the denominator, never a bar</p>
+      <canvas id="h1" width="550" height="360"></canvas>
+    </div>
+    <div class="cand">
+      <h3>H2 — hazard as the step's own relative drop</h3>
+      <p class="sub">one panel, no new axis: each event bracketed as "d of n at risk", the t = 8 step reading 1 of 2 = 50%</p>
+      <canvas id="h2" width="550" height="300"></canvas>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>H3 — interval hazard by group (groups tab)</h3>
+      <p class="sub">h = d/n per bin, group tokens; the rising profile is real (an ageing cohort), disease above at every bin</p>
+      <canvas id="h3" width="550" height="300"></canvas>
+      <p class="cap" id="h3-cap"></p>
+    </div>
+    <div class="cand">
+      <h3>H4 — the Cox claim on the hazard scale (card)</h3>
+      <p class="sub">bars: observed rates per bin; outline: baseline × exp(β), one number scaling every bin — that is all "proportional" says</p>
+      <canvas id="h4" width="550" height="300"></canvas>
+      <p class="cap" id="h4-cap"></p>
+    </div>
+  </div>
 </main>
 
 <script type="module">
@@ -363,6 +414,174 @@ const D = simulateWidget(makeRng(1));
   document.getElementById("e-cap").textContent =
     `seed 1: significant at 0.05 — ${sig.join(", ")}; HR(Age) = ${fit.hr[0].toFixed(2)} per year. ` +
     `Cell 17's own claim (age, SNP_1–3) on the widget's honest censoring.`;
+}
+
+/* ---- §4 — the hazard function candidates ----------------------------------- */
+
+/* H1 — paired profile: KM above, hazard strip below, shared time axis */
+{
+  const g = document.getElementById("h1").getContext("2d");
+  const W = 550;
+  const X = (t) => 46 + (t / 11) * (W - 66);
+  const Ys = (s) => 196 - s * 168;          // survival panel
+  const Yh = (h) => 336 - h * 100;          // hazard strip, 0..1 over 100px
+  axes(g, X, Ys, 11, []);
+  drawKm(g, fit5.steps, fit5.censors, X, Ys, C.empirical);
+  // hazard strip
+  g.font = mono;
+  g.strokeStyle = C.grid;
+  g.lineWidth = 1;
+  for (const h of [0, 0.5, 1]) {
+    g.beginPath(); g.moveTo(X(0), Yh(h)); g.lineTo(X(11), Yh(h)); g.stroke();
+    g.fillStyle = C.ink3; g.textAlign = "right"; g.fillText(h.toFixed(1), X(0) - 6, Yh(h) + 3);
+  }
+  g.textAlign = "center";
+  for (const t of [0, 2.5, 5, 7.5, 10]) g.fillText(String(t), X(t), Yh(0) + 14);
+  for (const s of fit5.steps) {
+    if (s.events === 0) continue;
+    const h = s.events / s.atRisk;
+    g.fillStyle = C.event;
+    g.fillRect(X(s.t) - 7, Yh(h), 14, Yh(0) - Yh(h));
+    g.fillStyle = C.ink2;
+    g.fillText(`${s.events}/${s.atRisk}`, X(s.t), Yh(h) - 5);
+  }
+  // censor times marked on the strip's axis: the denominator moved, no bar
+  for (const c of fit5.censors) {
+    g.strokeStyle = C.unknown;
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(X(c.t), Yh(0) - 5); g.lineTo(X(c.t), Yh(0) + 5); g.stroke();
+  }
+  g.fillStyle = C.ink3;
+  g.textAlign = "left";
+  g.fillText("h(t) — of those still at risk, the share who go now", X(0.2), Yh(1) - 6);
+}
+
+/* H2 — the relative drop annotated on the curve itself */
+{
+  const g = document.getElementById("h2").getContext("2d");
+  const W = 550, H = 300;
+  const X = (t) => 46 + (t / 11) * (W - 66);
+  const Y = (s) => H - 28 - s * (H - 52);
+  axes(g, X, Y, 11, [0, 2.5, 5, 7.5, 10]);
+  drawKm(g, fit5.steps, fit5.censors, X, Y, C.empirical);
+  g.font = mono;
+  let S = 1;
+  for (const s of fit5.steps) {
+    if (s.events > 0) {
+      // bracket the step: from prior S to new S, just right of the drop
+      const x = X(s.t) + 5;
+      g.strokeStyle = C.highlight;
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(x, Y(S)); g.lineTo(x + 4, Y(S));
+      g.moveTo(x + 4, Y(S)); g.lineTo(x + 4, Y(s.S));
+      g.moveTo(x, Y(s.S)); g.lineTo(x + 4, Y(s.S));
+      g.stroke();
+      g.fillStyle = C.highlight;
+      g.textAlign = "left";
+      g.fillText(`${s.events} of ${s.atRisk} = ${Math.round((s.events / s.atRisk) * 100)}%`, x + 9, (Y(S) + Y(s.S)) / 2 + 3);
+    }
+    S = s.S;
+  }
+}
+
+/* shared bins for H3/H4 */
+const BINS = [[6, 10], [10, 12], [12, 14], [14, 16], [16, 20]];
+const binStats = (times, status, lo, hi) => {
+  let nStart = 0, d = 0, pt = 0;
+  for (let i = 0; i < times.length; i += 1) {
+    const t = times[i];
+    if (t >= lo) nStart += 1;
+    if (t >= lo && t < hi && status[i] === 1) d += 1;
+    pt += Math.max(0, Math.min(t, hi) - lo) * (t >= lo ? 1 : 0);
+  }
+  return { nStart, d, h: nStart ? d / nStart : NaN, rate: pt ? d / pt : NaN };
+};
+const byGroup = (grp) => ({
+  t: D.time.filter((_, i) => D.disease[i] === grp),
+  s: D.status.filter((_, i) => D.disease[i] === grp),
+});
+const G0 = byGroup(0), G1 = byGroup(1);
+
+/* H3 — interval hazard by group, discrete d/n form */
+{
+  const g = document.getElementById("h3").getContext("2d");
+  const W = 550, H = 300;
+  const X = (t) => 46 + ((t - 6) / 14) * (W - 66);
+  const Y = (h) => H - 28 - h * (H - 60);
+  g.font = mono;
+  g.strokeStyle = C.grid;
+  for (const h of [0, 0.25, 0.5, 0.75, 1]) {
+    g.beginPath(); g.moveTo(X(6), Y(h)); g.lineTo(X(20), Y(h)); g.stroke();
+    g.fillStyle = C.ink3; g.textAlign = "right"; g.fillText(h.toFixed(2), X(6) - 6, Y(h) + 3);
+  }
+  g.textAlign = "center";
+  for (const [lo] of BINS) g.fillText(String(lo), X(lo), Y(0) + 14);
+  g.fillText("20", X(20), Y(0) + 14);
+  for (const [lo, hi] of BINS) {
+    const b0 = binStats(G0.t, G0.s, lo, hi);
+    const b1 = binStats(G1.t, G1.s, lo, hi);
+    const w = (X(hi) - X(lo)) / 2 - 6;
+    g.fillStyle = C.groupA;
+    g.fillRect(X(lo) + 4, Y(b0.h), w, Y(0) - Y(b0.h));
+    g.fillStyle = C.groupB;
+    g.fillRect(X(lo) + 4 + w + 4, Y(b1.h), w, Y(0) - Y(b1.h));
+  }
+  g.fillStyle = C.groupA; g.textAlign = "left"; g.fillText("no disease", X(6.4), Y(0.94));
+  g.fillStyle = C.groupB; g.fillText("disease", X(6.4), Y(0.86));
+  document.getElementById("h3-cap").textContent =
+    "seed 1: disease above no-disease in every bin; over 100 seeds the ordering holds " +
+    "100, 100, 100, 98, 78% per bin — the last bin has 2 at risk. The rise is real: an ageing cohort.";
+}
+
+/* H4 — observed rates vs the Cox claim: baseline × exp(β) at every bin.
+   Only the middle three bins: [6,10) has ZERO baseline events (a dashed
+   outline at 0 against a visible solid bar reads as failure and is only an
+   empty cell) and [16,20) has ~0 person-time in the disease arm (NaN). */
+{
+  const g = document.getElementById("h4").getContext("2d");
+  const W = 550, H = 300;
+  const HBINS = BINS.slice(1, 4);
+  const coxD = coxph(D.time, D.status, D.disease.map((v) => [v]));
+  const HR = coxD.hr[0];
+  const rates0 = HBINS.map(([lo, hi]) => binStats(G0.t, G0.s, lo, hi).rate);
+  const rates1 = HBINS.map(([lo, hi]) => binStats(G1.t, G1.s, lo, hi).rate);
+  const rMax = Math.max(...rates1, ...rates0.map((r) => r * HR)) * 1.15;
+  const X = (t) => 46 + ((t - 10) / 6) * (W - 66);
+  const Y = (r) => H - 28 - (r / rMax) * (H - 74);
+  g.font = mono;
+  g.strokeStyle = C.grid;
+  for (const r of [0, 0.5, 1]) {
+    if (r > rMax) continue;
+    g.beginPath(); g.moveTo(X(10), Y(r)); g.lineTo(X(16), Y(r)); g.stroke();
+    g.fillStyle = C.ink3; g.textAlign = "right"; g.fillText(r.toFixed(1), X(10) - 6, Y(r) + 3);
+  }
+  g.textAlign = "center";
+  for (const t of [10, 12, 14, 16]) g.fillText(String(t), X(t), Y(0) + 14);
+  HBINS.forEach(([lo, hi], k) => {
+    const w = (X(hi) - X(lo)) / 2 - 10;
+    g.fillStyle = C.groupA;
+    g.fillRect(X(lo) + 6, Y(rates0[k]), w, Y(0) - Y(rates0[k]));
+    g.fillStyle = C.groupB;
+    g.fillRect(X(lo) + 6 + w + 6, Y(rates1[k]), w, Y(0) - Y(rates1[k]));
+    // the claim: baseline × HR, as a dashed outline over the disease bar
+    g.strokeStyle = C.ink1;
+    g.lineWidth = 1.5;
+    g.setLineDash([4, 3]);
+    g.strokeRect(X(lo) + 6 + w + 6, Y(rates0[k] * HR), w, Y(0) - Y(rates0[k] * HR));
+    g.setLineDash([]);
+    g.fillStyle = C.ink2;
+    g.textAlign = "center";
+    g.fillText(`×${(rates1[k] / rates0[k]).toFixed(1)}`, X(lo) + 6 + w + 6 + w / 2, Y(Math.max(rates1[k], rates0[k] * HR)) - 6);
+  });
+  g.fillStyle = C.ink1; g.textAlign = "left";
+  g.fillText(`dashed = no-disease rate × ${HR.toFixed(2)} — the Cox claim, ONE number for every bin`, X(10.1), 16);
+  document.getElementById("h4-cap").textContent =
+    `seed 1, events per person-time, bins [10,16) — the ones with events in both arms: ` +
+    `coxph(~ Disease) gives HR = ${HR.toFixed(2)}; observed per-bin ratios ` +
+    `${rates1.map((r, k) => (r / rates0[k]).toFixed(1)).join(", ")}. The generator is an ` +
+    `accelerated-time process, so PH holds only roughly — right for a card that teaches ` +
+    `what "proportional" claims, not that this data obeys it.`;
 }
 </script>
 </body>

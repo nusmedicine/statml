@@ -395,6 +395,50 @@ function simulateWidget(rng, n = 200) {
   console.log(`     censoring design; a widget seed can be chosen at build time.`);
 }
 
+/* ========================================================================== */
+console.log("\n== DESIGN: is a per-interval hazard panel legible at n = 200, by group? ==");
+
+/* The hazard candidate for the groups tab: life-table bins, h = d / n_start
+   (the discrete-time teaching form — Singer & Willett's profile). Measured
+   question: does disease sit visibly ABOVE no-disease bin after bin on the
+   default seed, or does small-d noise drown the story? Also measured across
+   seeds: how often the ordering h1 > h0 holds per bin, and the bins' d. */
+{
+  const BINS = [[6, 10], [10, 12], [12, 14], [14, 16], [16, 20]];
+  const intervalHazard = (time, status, lo, hi) => {
+    const nStart = time.filter((t) => t >= lo).length;
+    const d = time.filter((t, i) => status[i] === 1 && t >= lo && t < hi).length;
+    return { nStart, d, h: nStart > 0 ? d / nStart : NaN };
+  };
+  const one = (seed) => {
+    const d = simulateWidget(makeRng(seed));
+    return BINS.map(([lo, hi]) => {
+      const g0 = intervalHazard(
+        d.time.filter((_, i) => d.disease[i] === 0),
+        d.status.filter((_, i) => d.disease[i] === 0), lo, hi);
+      const g1 = intervalHazard(
+        d.time.filter((_, i) => d.disease[i] === 1),
+        d.status.filter((_, i) => d.disease[i] === 1), lo, hi);
+      return { g0, g1 };
+    });
+  };
+  const s1 = one(1);
+  console.log("  seed 1, h = d/n at bin start (no disease vs disease):");
+  BINS.forEach(([lo, hi], k) => {
+    const { g0, g1 } = s1[k];
+    console.log(`    [${lo},${hi}): ${g0.h.toFixed(2)} (${g0.d}/${g0.nStart})  vs  ${g1.h.toFixed(2)} (${g1.d}/${g1.nStart})  ${g1.h > g0.h ? "disease higher" : "ORDER FLIPS"}`);
+  });
+  const SEEDS = 100;
+  const holds = new Array(BINS.length).fill(0);
+  for (let seed = 1; seed <= SEEDS; seed += 1) {
+    const r = one(seed);
+    r.forEach(({ g0, g1 }, k) => { if (g1.h > g0.h) holds[k] += 1; });
+  }
+  console.log(`  h(disease) > h(no disease) across ${SEEDS} seeds, per bin: ${holds.join(", ")}%`);
+  console.log(`  => the first bins carry the story; the last bin has few at risk in the`);
+  console.log(`     disease arm and flips often — bin choice is a design decision, not free.`);
+}
+
 console.log(`\nchi2Tail1 sanity: P(chi2_1 > 3.841) = ${chi2Tail1(3.841).toFixed(4)} (want 0.0500)`);
 
 console.log(fails ? `\n${fails} FAILURES` : "\nall checks pass");
