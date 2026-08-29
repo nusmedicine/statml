@@ -451,6 +451,20 @@
       ],
       "arc": 31,
       "status": "shipped"
+    },
+    {
+      "slug": "mixed-model",
+      "title": "Modeling Hierarchical Data",
+      "blurb": "A linear mixed model counts evidence in patients rather than rows, where repeated measurements are correlated.",
+      "course": "PHM5003",
+      "topics": [
+        "mixed models",
+        "random effects",
+        "repeated measures",
+        "pseudoreplication"
+      ],
+      "arc": 32,
+      "status": "draft"
     }
   ]
 }

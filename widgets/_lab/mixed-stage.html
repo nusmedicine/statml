@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 32 stage — mixed-model candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 560px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 32 · <code>mixed-model</code> — the stage, drawn before it is argued</h1>
+
+  <p class="note">
+    <b>The misconception (catalogue slot 6, Hurlbert 1984):</b> 500 rows are
+    500 observations. <b>Measured first</b>
+    (<code>node widgets/_lab/mixed-measure.mjs</code>, 59 checks — the engine
+    reproduces every printed number of 05-07's BP tables to the digit, lm at
+    1e-8 against R's own fit on the exactly-regenerated data; and
+    <code>mixed-design.mjs</code>, the sweeps every claim below cites).
+    The notebook's own story, confirmed on the regenerated data: the
+    medication does NOTHING, yet <code>lm</code> on 500 rows reports
+    −3.4 [−5.3, −1.5]; <code>lmer</code> with the patient as a random effect
+    reads −3.6 [−7.5, 0.2] — no effect, the correct conclusion. Over 100
+    widget seeds that is the rule, not the seed: <b>lm rejects on 38%</b> of
+    no-effect studies at the notebook's design, <b>lmer on 8%</b>.
+  </p>
+
+  <h2>§1 · The reveal — 500 dots become 100 patients</h2>
+  <p class="note">
+    The core beat, and the misconception dislodged by SEEING it. <b>A</b> is
+    the study the way <code>lm</code> sees it: 500 blood-pressure readings,
+    two arms, faceted like the notebook's own figure — and the card under it
+    reads significant. <b>B</b> is the SAME dots with each patient's five
+    visits joined (the notebook's spaghetti): the cloud collapses into 100
+    trajectories — high patients stay high, low stay low (ICC 0.8) — and the
+    honest card reads "no effect". Candidate widget beat: the join drawn as
+    the ease — press <i>Show the patients</i> and the lines grow through
+    their dots while the interval widens to honest. A pill pair
+    (rows&nbsp;·&nbsp;patients) carries the same move without animation.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — what lm sees: 500 independent rows</h3>
+      <p class="sub">two arms (group tokens), visits jittered; the interval card below is the real lm fit on this seed</p>
+      <canvas id="a" width="550" height="330"></canvas>
+      <p class="cap" id="a-cap"></p>
+    </div>
+    <div class="cand">
+      <h3>B — the same 500 rows, patients joined</h3>
+      <p class="sub">one line = one patient; the interval card is the real lmer fit — same data, honest denominator</p>
+      <canvas id="b" width="550" height="330"></canvas>
+      <p class="cap" id="b-cap"></p>
+    </div>
+  </div>
+
+  <h2>§2 · The interval pair — the widget's standing readout</h2>
+  <p class="note">
+    <b>C</b>: the medication effect as two intervals against the zero line,
+    whatever the dials say — the figure that MOVES when any control moves,
+    and the place the false certainty is visible as geometry (the narrow
+    interval sits clear of zero; the honest one straddles it). Token
+    question for the build, same one time-event hit: the mixed fit wears
+    <code>--c-empirical</code>; no semantic role exists yet for "the method
+    the lesson warns you off" — highlight is used here.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>C — one effect, two denominators</h3>
+      <p class="sub">real fits, seed 7, notebook design (100 × 5, effect 0, sdPatient 10); truth at 0 is --c-reference</p>
+      <canvas id="c" width="550" height="170"></canvas>
+    </div>
+  </div>
+
+  <h2>§3 · The dials, drawn from the measured sweeps</h2>
+  <p class="note">
+    <b>D — more visits of the same patients.</b> perPatient 1 → 5 → 20 at
+    100 patients: the lm interval tightens toward certainty about an effect
+    that does not exist (measured half-width 4.5 → 2.0 → 1.2, false-positive
+    5% → 38% → 57%) while the honest interval barely moves (~4.1
+    throughout). One sentence of caption: <i>more rows, same evidence</i>.
+    <b>E — the 500-row trade.</b> 500×1, 100×5, 25×20 all print
+    "Num.Obs. 500"; lm cannot tell them apart (half-width ≈ 2.0–2.5
+    everywhere) while the honest interval reads 2.0 / 4.1 / 8.4 — the
+    information is the patients, and the widget's two sliders make that a
+    thing you DO rather than read. At 500×1 the two fits agree — the
+    mixed model costs nothing when rows really are independent.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>D — visits per patient: 1 · 5 · 20 (100 patients)</h3>
+      <p class="sub">same seed throughout; lm narrows, lmer holds — the extra rows repeat the patients, they do not add patients</p>
+      <canvas id="d" width="550" height="300"></canvas>
+    </div>
+    <div class="cand">
+      <h3>E — three studies, every one "n = 500"</h3>
+      <p class="sub">500×1 · 100×5 · 25×20; where rows are truly independent the two models agree to the pixel</p>
+      <canvas id="e" width="550" height="300"></canvas>
+    </div>
+  </div>
+
+  <h2>§4 · The families tab candidate — the SNP forest, lm vs lmer</h2>
+  <p class="note">
+    The notebook's second example is a different hierarchy (patients inside
+    families) and the same failure. <b>F</b>: ten SNP effects as a paired
+    forest — the lm estimate and the lmer estimate per SNP, zero line
+    reference, causal truth marked. On this seed lm flags SNPs 2, 4 and 5;
+    lmer keeps only 5. Measured over 50 seeds at family SD 5: lm averages
+    <b>2.5 false SNPs of 9 and misses the real one 22% of the time</b>;
+    lmer: 0.64 false, finds SNP5 on 50/50 — modeling the families GAINS
+    power, it does not just cost false positives. Grammar continuity with
+    widget 31: the causal SNPs as a chip bitmask (students set the truth),
+    the family SD as the clustering dial (at 0 the two columns agree).
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>F — ten SNPs, two fits each</h3>
+      <p class="sub">seed 1003, families at notebook strength; filled = CI excludes 0; SNP5 is the truth (marked)</p>
+      <canvas id="f" width="550" height="330"></canvas>
+      <p class="cap" id="f-cap"></p>
+    </div>
+  </div>
+
+  <p class="note" id="status">computing — every figure on this page is the real engine…</p>
+</main>
+
+<script type="module">
+import { simulateBP, simulateSNP, designBP, designSNP, fitLM, fitLMM }
+  from "../mixed-model/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), reference: css("--c-reference"),
+  highlight: css("--c-highlight"),
+  groupA: css("--c-group-a"), groupB: css("--c-group-b"),
+};
+const mono = "10px " + css("--font-mono");
+const g2 = (id) => document.getElementById(id).getContext("2d");
+const sig3 = (fit, j) => fit.ci[j][0] > 0 || fit.ci[j][1] < 0;
+const fmtCI = (fit, j) =>
+  `${((fit.ci[j][0] + fit.ci[j][1]) / 2).toFixed(2)} [${fit.ci[j][0].toFixed(2)}, ${fit.ci[j][1].toFixed(2)}]`;
+
+/* ---- data: the widget's default seed, notebook design ---- */
+const SEED = 7;
+const d = simulateBP(makeRng(SEED), {});
+const X = designBP(d);
+const lm = fitLM(d.bp, X);
+const mm = fitLMM(d.bp, X, d.patientId, d.time);
+
+/* ---- panels A and B: faceted arms, dots vs spaghetti ---- */
+function facetPanel(g, joined, fit, label, color) {
+  const W = 550, H = 330, top = 26, bot = 46, lpad = 34, gap = 16;
+  const yLo = Math.min(...d.bp) - 3, yHi = Math.max(...d.bp) + 3;
+  const facetW = (W - lpad - gap - 8) / 2;
+  const Y = (v) => top + (yHi - v) / (yHi - yLo) * (H - top - bot);
+  const Xp = (arm, t, jit) =>
+    lpad + arm * (facetW + gap) + ((t - 1 + 0.5 + jit) / 5) * facetW;
+  g.clearRect(0, 0, W, H);
+  g.font = mono;
+  g.fillStyle = C.ink3;
+  g.textAlign = "center";
+  g.fillText("control", lpad + facetW / 2, 14);
+  g.fillText("medication", lpad + facetW + gap + facetW / 2, 14);
+  g.textAlign = "right";
+  for (const v of [100, 120, 140]) {
+    g.fillText(v, lpad - 6, Y(v) + 3);
+    g.strokeStyle = C.grid; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(lpad, Y(v)); g.lineTo(W - 8, Y(v)); g.stroke();
+  }
+  const jitFor = (i) => ((i * 2654435761 % 97) / 97 - 0.5) * 0.5;
+  if (joined) {
+    g.lineWidth = 1;
+    for (let p0 = 0; p0 < d.patientId.length; p0 += 5) {
+      const arm = d.med[p0];
+      g.strokeStyle = arm ? C.groupB : C.groupA;
+      g.globalAlpha = 0.45;
+      g.beginPath();
+      for (let k = 0; k < 5; k += 1) {
+        const i = p0 + k;
+        const x = Xp(arm, d.time[i], jitFor(d.patientId[i]));
+        if (k === 0) g.moveTo(x, Y(d.bp[i])); else g.lineTo(x, Y(d.bp[i]));
+      }
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+  for (let i = 0; i < d.bp.length; i += 1) {
+    const arm = d.med[i];
+    g.fillStyle = arm ? C.groupB : C.groupA;
+    g.globalAlpha = joined ? 0.8 : 0.65;
+    g.beginPath();
+    g.arc(Xp(arm, d.time[i], jitFor(d.patientId[i])), Y(d.bp[i]), 2, 0, 7);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+  // the interval card
+  const cy = H - 22;
+  g.fillStyle = C.ink2; g.textAlign = "left";
+  g.fillText(label, lpad, cy - 8);
+  const sc = (v) => lpad + 160 + (v + 9) / 18 * (W - lpad - 200);
+  g.strokeStyle = C.reference; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(sc(0), cy - 14); g.lineTo(sc(0), cy + 8); g.stroke();
+  g.setLineDash([]);
+  g.strokeStyle = color; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(sc(fit.ci[3][0]), cy); g.lineTo(sc(fit.ci[3][1]), cy); g.stroke();
+  g.fillStyle = color;
+  g.beginPath(); g.arc(sc(fit.coef[3]), cy, 3.5, 0, 7); g.fill();
+}
+facetPanel(g2("a"), false, lm, "medication (lm):", C.highlight);
+facetPanel(g2("b"), true, mm, "medication (lmer):", C.empirical);
+document.getElementById("a-cap").textContent =
+  `lm on this seed: medication ${fmtCI(lm, 3)} — "significant", and false`;
+document.getElementById("b-cap").textContent =
+  `lmer on the same rows: medication ${fmtCI(mm, 3)} — spans zero. SD(patient) ${mm.sdInt.toFixed(1)}, ICC ${mm.icc.toFixed(2)}`;
+
+/* ---- generic interval-pair drawer ---- */
+function pairs(g, W, H, rows, lo, hi) {
+  g.clearRect(0, 0, W, H);
+  g.font = mono;
+  const lpad = 150, rpad = 16, top = 18, rowH = (H - top - 24) / rows.length;
+  const sc = (v) => lpad + (v - lo) / (hi - lo) * (W - lpad - rpad);
+  g.strokeStyle = C.reference; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(sc(0), top - 6); g.lineTo(sc(0), H - 22); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = C.ink3; g.textAlign = "center";
+  g.fillText("0 = the truth", sc(0), H - 8);
+  rows.forEach((r, i) => {
+    const y = top + i * rowH + rowH / 2;
+    g.fillStyle = C.ink2; g.textAlign = "right";
+    g.fillText(r.label, lpad - 10, y + 3);
+    g.strokeStyle = r.color; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(sc(Math.max(r.ci[0], lo)), y);
+    g.lineTo(sc(Math.min(r.ci[1], hi)), y); g.stroke();
+    g.fillStyle = r.color;
+    g.beginPath(); g.arc(sc(r.est), y, 3.5, 0, 7);
+    if (r.open) { g.strokeStyle = r.color; g.lineWidth = 1.5; g.stroke(); }
+    else g.fill();
+  });
+}
+
+/* ---- C: the standing readout ---- */
+pairs(g2("c"), 550, 170, [
+  { label: "rows independent (lm)", est: lm.coef[3], ci: lm.ci[3], color: C.highlight },
+  { label: "patients modeled (lmer)", est: mm.coef[3], ci: mm.ci[3], color: C.empirical },
+], -10, 10);
+
+/* ---- D and E: the two sweeps, same seed ---- */
+function cell(patients, perPatient) {
+  const dd = simulateBP(makeRng(SEED), { patients, perPatient });
+  const XX = designBP(dd);
+  const l = fitLM(dd.bp, XX);
+  const m = perPatient >= 2 ? fitLMM(dd.bp, XX, dd.patientId, dd.time)
+                            : fitLMM(dd.bp, XX, dd.patientId, null);
+  return { l, m };
+}
+const dRows = [];
+for (const pp of [1, 5, 20]) {
+  const { l, m } = cell(100, pp);
+  dRows.push({ label: `${pp} visit${pp > 1 ? "s" : ""} — lm`, est: l.coef[3], ci: l.ci[3], color: C.highlight });
+  dRows.push({ label: `${pp} visit${pp > 1 ? "s" : ""} — lmer`, est: m.coef[3], ci: m.ci[3], color: C.empirical });
+}
+pairs(g2("d"), 550, 300, dRows, -11, 11);
+const eRows = [];
+for (const [pa, pp] of [[500, 1], [100, 5], [25, 20]]) {
+  const { l, m } = cell(pa, pp);
+  eRows.push({ label: `${pa} × ${pp} — lm`, est: l.coef[3], ci: l.ci[3], color: C.highlight });
+  eRows.push({ label: `${pa} × ${pp} — lmer`, est: m.coef[3], ci: m.ci[3], color: C.empirical });
+}
+pairs(g2("e"), 550, 300, eRows, -11, 11);
+
+/* ---- F: the SNP forest ---- */
+const ds = simulateSNP(makeRng(1003), {});
+const Xs = designSNP(ds);
+const lms = fitLM(ds.chol, Xs);
+const mms = fitLMM(ds.chol, Xs, ds.familyId, null);
+{
+  const g = g2("f"), W = 550, H = 330;
+  g.clearRect(0, 0, W, H);
+  g.font = mono;
+  const lpad = 64, rpad = 16, top = 20, rowH = (H - top - 26) / 10;
+  const lo = -1.2, hi = 1.8;
+  const sc = (v) => lpad + (v - lo) / (hi - lo) * (W - lpad - rpad);
+  g.strokeStyle = C.reference; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(sc(0), top - 6); g.lineTo(sc(0), H - 24); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = C.ink3; g.textAlign = "center"; g.fillText("0", sc(0), H - 10);
+  for (let j = 1; j <= 10; j += 1) {
+    const y = top + (j - 1) * rowH + rowH / 2;
+    g.fillStyle = j === 5 ? C.ink1 : C.ink3;
+    g.textAlign = "right";
+    g.fillText(`SNP${j}${j === 5 ? " ●" : ""}`, lpad - 8, y + 3);
+    for (const [fit, color, dy] of [[lms, C.highlight, -4], [mms, C.empirical, 4]]) {
+      const s = sig3(fit, j);
+      g.strokeStyle = color; g.lineWidth = 2; g.globalAlpha = s ? 1 : 0.45;
+      g.beginPath(); g.moveTo(sc(fit.ci[j][0]), y + dy); g.lineTo(sc(fit.ci[j][1]), y + dy); g.stroke();
+      g.fillStyle = color;
+      g.beginPath(); g.arc(sc(fit.coef[j]), y + dy, 3, 0, 7);
+      if (s) g.fill(); else { g.lineWidth = 1.5; g.stroke(); }
+      g.globalAlpha = 1;
+    }
+  }
+  const flags = (fit) => Array.from({ length: 10 }, (_, k) => k + 1).filter((k) => sig3(fit, k));
+  document.getElementById("f-cap").textContent =
+    `this seed: lm flags SNPs ${flags(lms).join(", ")} — lmer keeps ${flags(mms).join(", ")}. ` +
+    `SD(family) ${mms.sdInt.toFixed(2)} vs residual ${mms.sigma.toFixed(2)}`;
+}
+
+document.getElementById("status").textContent =
+  "every figure above is the real engine (model.js), computed on load.";
+</script>
+</body>
+</html>
