@@ -3214,7 +3214,31 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
+## Widget 31 · `time-event` — SHIPPED 2026-08-29, eighteen rounds in one day
+
+### Round 18 — promotion: the fingerprint catches its bug, the states go in
+
+**Kenneth's "tested ok" ("push to gallery, looks good"), and the
+promotion ran the widget-24 route — no shooter, the full suite three
+times.** The pane came up at the true DPR 1.25 mid-promotion, and the
+first whole-suite pass did two jobs at once: it CLEARED the rounds-14–16
+core-change debt (**198 of 198 pre-existing states MATCH** — the bits
+control, `bitsFrom`, `.w-seg-bits` and the pill fill reached no other
+widget), and its text column caught a real defect in the nine
+placeholder rows: **the groups HR tile printed 2381965155654895.00 at
+follow 5** — one event cannot pin a two-group Cox fit, and the honesty
+guard existed only on the factors card. The tile and the summary now
+refuse a runaway disease-only fit ("too few events to estimate a hazard
+ratio", value "—"); drive check added (132 total). Then the states:
+three full runs, the nine hashes byte-identical on each and the 198
+matching on each, spliced, and a confirming fourth run read
+**207 of 207 MATCH**. Seven settled states (the notebook table
+finished; ten patients four censored under dropped; the `shown=14`
+mid-build still; bands+shared; effect none; follow 5; the full model)
+and two driven mid-ease (`set age`, `set snps`). No regions, so no hit
+state owed; **the scrub remains untested geometry** — no harness verb
+drives a pointer drag; noted for whoever adds one to the harness.
+Manifest → shipped; the 05-06 link handed to Kenneth to place.
 
 ### Round 17 — Step and Play die; the scrub is the one time control
 

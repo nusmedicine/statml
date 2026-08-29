@@ -1805,6 +1805,83 @@
    },
    "px": "120b52c0",
    "tx": "7201b251"
+  },
+  {
+   "$note": "SETTLED: Censoring finished, B and E censored (the notebook table). All nine recorded 2026-08-29 at DPR 1.25: identical across three suite runs, with the 198 pre-existing states matching on every run.",
+   "slug": "time-event",
+   "state": "?theme=light&shown=0",
+   "px": "4d5f9b52",
+   "tx": "8b8107a6"
+  },
+  {
+   "$note": "SETTLED: ten patients, four censored (B E G J), the dropped reading — lanes faded, bars inflated.",
+   "slug": "time-event",
+   "state": "?theme=light&patients=10&cens=594&censored=dropped&shown=0",
+   "px": "049111fe",
+   "tx": "7697b9fa"
+  },
+  {
+   "$note": "SETTLED: the mid-build still — the repurposed shown places the cursor at t = 7.",
+   "slug": "time-event",
+   "state": "?theme=light&shown=14",
+   "px": "74a2abc7",
+   "tx": "6544eb56"
+  },
+  {
+   "$note": "SETTLED: Comparing with bands and the shared null curve on.",
+   "slug": "time-event",
+   "state": "?theme=light&concept=groups&bands=1&shared=1&shown=0",
+   "px": "182b4d93",
+   "tx": "8cfa76f6"
+  },
+  {
+   "$note": "SETTLED: effect none — what no difference looks like; the p tile holds.",
+   "slug": "time-event",
+   "state": "?theme=light&concept=groups&effect=none&shown=0",
+   "px": "b99948ba",
+   "tx": "7b5c0b77"
+  },
+  {
+   "$note": "SETTLED: follow 5 — the study not run long enough; almost no events, the honesty surfaces.",
+   "slug": "time-event",
+   "state": "?theme=light&concept=groups&follow=5&shown=0",
+   "px": "c4eba7ad",
+   "tx": "fdd5ae81"
+  },
+  {
+   "$note": "SETTLED: the full model — card above the figure, forest with truth dots, disease+age+SNPs.",
+   "slug": "time-event",
+   "state": "?theme=light&concept=factors&age=1&snps=1&shown=0",
+   "px": "73fde9e2",
+   "tx": "54588cba"
+  },
+  {
+   "$note": "DRIVEN mid-ease: the age pill arriving beside disease (set routes through the pill's own transaction).",
+   "slug": "time-event",
+   "state": "?theme=light&concept=factors",
+   "drive": {
+    "set": {
+     "age": 1
+    },
+    "frames": 5,
+    "dt": 32
+   },
+   "px": "215e49c4",
+   "tx": "e4ab3aa9"
+  },
+  {
+   "$note": "DRIVEN mid-ease: the ten SNP rows arriving, the disease row moving to its adjusted value. The scrub has no harness verb — untested geometry, recorded in the catalogue.",
+   "slug": "time-event",
+   "state": "?theme=light&concept=factors&age=1",
+   "drive": {
+    "set": {
+     "snps": 1
+    },
+    "frames": 5,
+    "dt": 32
+   },
+   "px": "5718855c",
+   "tx": "e8d03f8c"
   }
  ]
 }

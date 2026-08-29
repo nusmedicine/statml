@@ -175,6 +175,12 @@ console.log("\n== the play surface, at its corners ==");
   ck(`follow 5: almost no events (${s5.events} of 200), no time below 0.5`,
     s5.events < 15
     && Math.min(...s5.groups[0].times, ...s5.groups[1].times) >= 0.5);
+  {
+    const tiles = W.readout({ params: { ...values, follow: "5", concept: "groups" }, state: s5, anim: { t: 16 } });
+    const hr = tiles.find((x) => x.label === "Hazard ratio");
+    ck("follow 5: the HR tile refuses a runaway two-group fit (round 18's fingerprint catch)",
+      hr.value === "—" && hr.note.includes("too few events"));
+  }
   ck("follow 5: readout and summary stay clean on every tab",
     ["censoring", "groups", "factors"].every((concept) =>
       !/NaN|undefined|Infinity/.test(

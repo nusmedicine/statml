@@ -1,7 +1,7 @@
 # Handover
 
-**Thirty widgets, all shipped, all on the gallery, and 198 fingerprint
-states recorded.**
+**Thirty-one widgets, all shipped, all on the gallery, and 207
+fingerprint states recorded.**
 
 **THE MODELING ARC'S FIVE lm-/CAUSAL SLOTS ARE ALL SHIPPED AND LIVE**,
 built over 2026-08-27/28: widget 26 `fork-pipe-collider` (nine rounds),
@@ -29,168 +29,63 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-1. **`time-event` (05-06) is MEASURED AND MOCKED — awaiting Kenneth's
-   pick, then build.** Done 2026-08-29:
-   `_lab/time-event-model.js` (KM with survfit's log-scale Greenwood
-   CI, two-group log-rank, Cox with Efron ties — the times are rounded
-   to 0.5 so ties are everywhere), `_lab/time-event-measure.mjs`
-   (30 checks, all pass: the five-patient KM to the digit against cell
-   8's stored plot; the Cox engine against an independent naive
-   likelihood, the tie-free log-rank≡score identity and invariances,
-   because **cell 16 stored NO output** — there are no coxph digits to
-   match), and the mock `_lab/time-event-stage.html`, engine-drawn.
-   **The finding that shapes the build — THE GENERATOR RULING**: the
-   notebook's simulated arm draws `Status` independently of time, so
-   the censored are censored AT their own event times; under that
-   design KM lies HIGH (+0.13) and DISCARDING is unbiased — a discard
-   toggle there teaches the opposite lesson. The widget keeps the
-   notebook's event process and censors by study-end
-   (observed = min(T, C), doors close at 20): then KM is −0.0002 from
-   truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
-   100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **ROUND 17 IS BUILT (2026-08-29), Kenneth's realization: STEP AND
-   PLAY ARE GONE — the scrub is the one time control.** Every figure
-   opens finished and redraws finished on every parameter change;
-   `stepLabel: null` / `runLabel: null` (the widget-12 decline), the
-   speed control cut, round 14's inert superseded, the drive row Reset
-   alone, `?shown` repurposed to place the cursor mid-build (old links
-   still open finished). Drag from zero to watch the study build —
-   round 8's motif kept available, not imposed. Drive **131 checks**;
-   no core change in this round. Note for the eventual fingerprint
-   states: there is NO driven verb left but the pill-click ease — driven
-   states must come from `set` on the pills, and the scrub stays
-   untested geometry as already planned.
-   **ROUND 16 IS BUILT (2026-08-29), Kenneth's pick C1: WHO is censored
-   is a chip picker over the patient roster** — default B · E (the
-   notebook's table), replacing the Censored count, the fixed flip
-   order, the A-clamp and the Patient E's time slider; core's bits
-   control gained the declarative `bitsFrom` door (chip count follows
-   Patients via the existing gating-rebuild rule). All-censored is
-   reachable and honest ("—" on the dropped tile). Drive **135
-   checks**; 550px sweep clean; the suite-run debt covers this
-   controls.js line too. Kenneth has settled Modeling.
-   **ROUND 15 IS BUILT (2026-08-29): bands+ticks always on Modeling's
-   curves; pressed pills and chips FILL with --c-highlight (tokens.css —
-   also strengthens the lm arc's pills, flagged for Kenneth's veto);
-   Play speed left the Modeling tab. Drive 130 checks. The round-14
-   suite-run debt below covers this round's tokens.css line too.**
-   **ROUND 14 IS BUILT (2026-08-29) on Kenneth's round-13 review — TWO
-   THINGS REMAIN: THE FULL SUITE RUN (core moved — see below), then his
-   test pass.** The four asks: labels → **Censoring · Comparing ·
-   Modeling** (the old "Comparing groups" truncated; values unchanged);
-   **Causal SNPs became ten toggle chips** — one int bitmask
-   (`?causal=7` = SNPs 1–3, the default, ≡ the round-8 generator),
-   Modeling tab only, chosen SNPs wearing a --c-reference dot by their
-   forest rows; **core gained `style: "bits"` on int** (controls.js +
-   a `.w-seg-bits` rule in tokens.css); and **Modeling lost its clock**
-   — curves drawn complete, updating as data controls move, Step/Play
-   leaving the row via `anim.inert` (no core change for that part).
-   Drive: **129 checks** green; `npm run check` green; in-browser
-   verified (chips 300px, mask writes, inert row, no errors).
-   **THE 198-STATE SUITE RUN IS OWED FOR THE CORE CHANGE AND GATES THE
-   PUSH.** The attempt from the agent session hit the documented DPR
-   trap: every row DIFFER on `px`, `tx` IDENTICAL, `devicePixelRatio`
-   reading 1 instead of the baseline's 1.25 — the pane was not
-   displayed. Run `widgets/_lab/fingerprint.html` with the pane
-   DISPLAYED and DPR reading 1.25 (or in Kenneth's own browser at
-   125%); it auto-runs, NEVER click Run. Expect 198 of 198 — the new
-   controls.js branch is gated on `style: "bits"` which only widget 31
-   declares. Full record: catalogue § Widget 31 round 14.
-   **ROUND 13 WAS BUILT (2026-08-29) on Kenneth's round-12 review.** Four asks, all mocked/measured first
-   (mock §5; 100-seed grids): the factors card moved ABOVE the figure
-   whole (pick V2 — title, general exp form, pill-following ln row, and
-   the baseline note answering "is disease the intercept?": h₀(t) is);
-   **Causal SNPs 0/1/3/5** (default 3 ≡ the old generator bit for bit;
-   at k = 0 the Significant tile names the false-positive risk — 67/100
-   draws star a null SNP); **Follow-up re-pinned to 5/9/12/25** so a
-   too-short study genuinely fails on BOTH cohort tabs (5 y: 3 events,
-   log-rank 26%, Cox nothing, 88% of fits refuse) — which required
-   flooring the generator's censor time at 0.5 (model.js amendment 3);
-   and the **disease pill starts pressed**. Drive: **124 checks** green;
-   550px sweeps clean; `npm run check` green. Full record: catalogue
-   § Widget 31 round 13. The round-12 record below still describes what
-   round 13 amended.
-   **ROUND 12 WAS BUILT (2026-08-29) — CONSOLIDATED TO THE NOTEBOOK.** The round ran his way: an
-   adversarial notebook-vs-widget review first (his three bullets — the
-   censoring page helps; the hazard may not click and he could not say
-   which page carries it; no log-rank in the course), then every choice
-   mocked in `_lab/time-event-round12.html` before a line of the widget
-   moved. His picks, all built: the cuts (As events; Onset — Early baked
-   in, axis fixed at 16; the tab-2 truth overlay — settled cut on his own
-   criterion), the ln(h/h₀) bridge as **B with MathML, variant M1** — one
-   `.w-math` row above the Finding-factors figure that FOLLOWS THE PILLS,
-   resting at the notebook's symbols, `ln` not `log`, lm-interaction's
-   probe/fallback/per-term-wrap machinery, the lm arc's own position —
-   the forest's **L1** end labels ("← hazard lower · hazard higher →"
-   flanking the caption row), and "hazard" for "event rate" in the HR
-   tile and summary. One latent defect fixed in passing: the interval
-   panel's tick row painted a "20" off-plot since the axis became 16.
-   Drive re-pinned at **111 checks** (bridgeHTML's b-index logic pinned
-   through the fallback branch; `draw()` provably calls `renderBridge` —
-   the dbscan caller lesson); 550px fillText sweeps on all three tabs by
-   DIRECT URL: 0 overruns, 0 collisions, no console errors; `npm run
-   check` green. **NOW OWED: the test pass — Kenneth by hand** (all
-   three tabs at 550px and stacked width, scrub/hover, judge projected)
-   — and only at his "tested ok": shooter (`_lab/` copy of the lm-shoot
-   pattern), states (settled + driven mid-sweep + driven
-   mid-forest-ease; no regions so no hit state owed; scrub has no
-   harness verb — note it as untested geometry in the catalogue),
-   manifest → shipped, catalogue marked, 05-06 link for Kenneth to
-   place. Round-by-round record: catalogue § Widget 31 rounds 1–12.
-   **ROUND 8 (2026-08-29): THE PLAY SURFACE.** Kenneth called the fixed
-   curves "thin cosmetics"; the cohort tabs now share a data section —
-   Patients 30–200, Disease effect None/Small/Moderate/Large (the grid
-   measured per cell; None finally shows what no difference looks
-   like), Follow-up 12–25, Draw 1–50 — and the Censoring tab gained
-   "E drops out at". The generator BALANCED the SNPs (amendment 2 —
-   a clean None must silence every channel); default draw is now 1;
-   the obtuse Cox line left tab 2. **Core gained `when: {param,
-   oneOf}` and the full suite ran for it: 198 of 198 MATCH.** Drive
-   is 81 checks. Full record: catalogue § Widget 31 round 8.
-   **ROUNDS 3–6 (2026-08-29, Kenneth's live review): the Censoring tab
-   gained the treatment-following hazard strip with ghosts, the
-   `survival = product of (1 − h)` line, the direction line, the
-   `h = events ÷ at risk` chip and the "(B and E)" heading; the groups
-   tab's H4 rates panel was UNWOUND on his review ("what are the
-   bars? the x axis is not aligned") and rebuilt as interval hazard
-   in tab 1's own vocabulary ON the curve's axis; the bars now grow
-   with the sweep inside their bins and Step is a 350ms glide. Every
-   round's record and its rejected alternatives: catalogue § Widget
-   31 rounds 3–6.** Round 2's own record below still describes the
-   structure. ROUND 2 built the three-concept restructure. He
-   stepped back to three questions and picked the 3-part structure,
-   labels option B: **Censoring · Comparing groups · Finding
-   factors**. Censoring = round 1's five-patient stage plus the
-   adversarial fixes (censoring reasons named on the lanes, wrong
-   treatments state their mechanism). Comparing groups = the two
-   curves plus H4 REFRAMED as the hazard-ratio introduction (the
-   disease-only 3.36 — it no longer shares a card with the adjusted
-   4.37). Finding factors = the reader builds the Cox model with
-   three pills (disease · age · SNPs), forest rows easing in with
-   alone-fit ghosts and move annotations — the lm-adjustment echo;
-   all seven pill combos fit once per data change. `cox` the bool is
-   GONE; no gate anywhere. Drive script rewritten: 60 checks. Two
-   round-2 catches recorded in the catalogue: the TDZ trap (const
-   below defineWidget, hit by loading straight onto the factors tab —
-   test each tab BY DIRECT URL, the drive script cannot see it) and
-   the SNP row label overrun. Review URLs:
-   `http://localhost:8010/widgets/time-event/` ·
-   `?concept=groups&truth=1&bands=1&shown=44` ·
-   `?concept=factors&disease=1&age=1&snps=1&shown=44`. Open
-   judgement: projection legibility, the two-truths-one-colour
-   question, the H4 last bin visibly under the dashed claim (the
-   generator is AFT, PH only roughly).
-2. **Then `mixed-model`** (05-07, Hierarchical Data — 500 rows are 500
-   observations; Hurlbert 1984). Last of the agreed arc.
-3. **Notebook links now owed for all FIVE shipped modeling widgets** —
+1. **NEXT TASK: `mixed-model`** (05-07, Hierarchical Data — 500 rows
+   are 500 observations; Hurlbert 1984). **Last of the agreed arc.**
+   Start the usual way: read the 05-07 notebook cell by cell, measure
+   through a `model.js` + `-measure.mjs` pair in `_lab/`, mock the
+   stage before arguing it, and take Kenneth's picks from the mock —
+   widget 31's record (catalogue § Widget 31, rounds 1–18) is the
+   freshest full example of the rhythm, including what an adversarial
+   notebook-vs-widget review buys before any build.
+2. **Notebook links now owed for all SIX shipped modeling-arc widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
    - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
    - 05-04 (widget 30): `Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
+   - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–30 included.
+   widgets 26–31 included.
+
+**WIDGET 31 `time-event` SHIPPED AND PUSHED 2026-08-29** after EIGHTEEN
+rounds in one long day of Kenneth's live review — the full record, every
+round and its rejected alternatives, is catalogue § *Widget 31*. What a
+later session most needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/time-event/                       (Censoring)
+# .../?concept=groups&follow=5&shown=0                            (the too-short study)
+# .../?concept=factors&age=1&snps=1&shown=0                       (the full model)
+node widgets/_lab/time-event-drive.mjs     # 132 checks, no browser, no clock
+node widgets/_lab/time-event-measure.mjs   # the engine against the notebook
+```
+
+- **The widget has NO Step and NO Play** (round 17): every figure opens
+  finished and redraws finished on every parameter change; the SCRUB is
+  the one time control and `?shown` places the cursor mid-build. So its
+  driven fingerprint states come from `set` on the pills (the forest
+  ease) — there is no other harness verb — and **the scrub is untested
+  geometry**, recorded in the catalogue.
+- **Nine states recorded at promotion the honest way**: three identical
+  suite runs at DPR 1.25, spliced, then a confirming run read **207 of
+  207 MATCH** — which also cleared the rounds-14–16 core-change debt
+  (the bits control with `bitsFrom`, `.w-seg-bits`, the pill fill).
+  The recording only became possible when the Browser pane was DISPLAYED
+  — hidden, it reports DPR 1 and every `px` reads DIFFER while `tx`
+  matches; that signature is environmental, not a regression.
+- **The promotion fingerprint caught a real bug** (round 18): the groups
+  HR tile printed a runaway 2.4e15 at follow 5 — one event cannot pin a
+  two-group fit; the tile and summary now guard it ("too few events to
+  estimate a hazard ratio"). Reading the harness's own text column pays.
+- **No shooter page was built** — the states went in through the full
+  suite (the widget-24 route: the pane was already running whole-suite
+  passes, so three full runs were cheaper than proving a fresh copy).
+- Core gained three doors this widget earned: `style: "bits"` (an int
+  worn as toggle chips), `bitsFrom` (chip count follows another param
+  through the gating-rebuild rule), and — earlier — the pointer channel
+  (round 11). The pressed-pill highlight fill is repo-wide by design.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -236,7 +131,18 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 198 states, all matching
+## The suite: 207 states, all matching
+
+**Widget 31 added nine states on 2026-08-29 through the full suite**
+(the widget-24 route, no shooter): three whole-suite runs at DPR 1.25
+with the nine hashes identical on every run and the 198 pre-existing
+states matching on every run, spliced, then a confirming fourth run
+read **207 of 207 MATCH**. Seven settled (Censoring finished; ten
+patients four censored dropped; the `shown=14` mid-build still; groups
+with bands+shared; effect none; follow 5; the full factors model), two
+driven mid-ease (`set` on the age and snps pills). No regions, so no
+hit state owed; the scrub has no harness verb and is recorded as
+untested geometry.
 
 **Widget 30 added ten states on 2026-08-28 with `_lab/lm-int-shoot.html`**
 (the lm-shoot pattern): copy proved 4/4, three-run stable, drives
@@ -378,6 +284,7 @@ is blind to.
 | 28 | `lm-adjustment` | shipped as **Fitting Multiple Covariates**. TWELVE rounds across two sessions (2026-08-28), promoted on "tested ok" and pushed; eight states — five settled, one driven mid-slide, two hit-driven. NOT yet judged projected; 05-02 link not yet placed |
 | 29 | `lm-categorical` | shipped as **Fitting a Categorical Covariate**. ONE round in one session (2026-08-28); seven states — four settled, two driven, one hit-driven. NOT yet judged projected; 05-03 link not yet placed |
 | 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds in one session (2026-08-28); ten states — six settled, three driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
+| 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

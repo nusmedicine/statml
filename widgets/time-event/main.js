@@ -408,7 +408,7 @@ function renderBridge(params) {
 defineWidget({
   slug: "time-event",
   title: "Modeling Time-to-Event Data",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "We can follow each patient until the event occurs, or until observation " +
     "ends without it — a censored patient. The Kaplan–Meier estimate keeps " +
@@ -907,10 +907,17 @@ defineWidget({
         },
         {
           label: "Hazard ratio",
-          value: fmt(state.fits.d.byName.disease.hr, 2),
-          /* "hazard", not "event rate" (round 12) — the two panels above
-             this tile both label the quantity hazard; one word */
-          note: "the disease group's hazard multiplied — the same factor at every time",
+          /* the factors card's honesty guard, here too (round 18 — the
+             promotion fingerprint caught this tile printing 2.4e15 at
+             follow 5): one event cannot pin a two-group fit */
+          value: state.fits.d.byName.disease.hr > 50 || state.fits.d.byName.disease.hr < 0.02
+            ? fmt(NaN)
+            : fmt(state.fits.d.byName.disease.hr, 2),
+          note: state.fits.d.byName.disease.hr > 50 || state.fits.d.byName.disease.hr < 0.02
+            ? "too few events to estimate a hazard ratio"
+            /* "hazard", not "event rate" (round 12) — the two panels above
+               this tile both label the quantity hazard; one word */
+            : "the disease group's hazard multiplied — the same factor at every time",
         },
       ];
     }
@@ -952,7 +959,11 @@ defineWidget({
       return `${state.nPat} patients followed over time: ${state.nPat - state.nCens} events, ${state.nCens} censored. A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
     if (params.concept === "groups") {
-      return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the hazard in every interval.`;
+      const dHR = state.fits.d.byName.disease.hr;
+      const hrPhrase = dHR > 50 || dHR < 0.02
+        ? "too few events to estimate a hazard ratio"
+        : `the hazard ratio ${fmt(dHR, 2)} shown as one factor scaling the hazard in every interval`;
+      return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and ${hrPhrase}.`;
     }
     const key = keyOf(params);
     if (!key) {
