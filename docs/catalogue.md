@@ -3216,6 +3216,21 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 15 — three tweaks under Modeling
+
+Kenneth's pass over round 14: (1) the compact curves carry **confidence
+bands and censor ticks always** — no controls for them on the tab; (2)
+**a pressed pill or chip FILLS with `--c-highlight`** with
+surface-colour text (the 18% tint read as nothing at chip size) —
+tokens.css, and deliberately shared: the lm arc's model pills (28–30)
+strengthen identically, one control one look, **flagged to Kenneth for
+veto since it restyles rails he has already approved**; (3) **Play
+speed left the Modeling tab** (`when` on the speed param — no clock, no
+speed; it stays on the two sweep tabs). Drive 130 checks green; browser
+verified (fill computed on both pill and chip, speed absent on Modeling
+and present on Comparing, band wash painting in the compact panel); the
+round-14 suite-run debt covers this round's tokens.css line too.
+
 ### Round 14 — the chips: choose WHICH SNPs; the Modeling tab loses its clock
 
 **Kenneth's review of round 13, four asks.** Two needed no mock: Causal

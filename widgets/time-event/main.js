@@ -77,6 +77,13 @@
    tab via anim.inert (the widget-18 door), while the sweep on the other
    two tabs keeps its cross-tab hand-off.
 
+   ROUND 15 (Kenneth's tweaks under Modeling): the compact curves carry
+   confidence bands and censor ticks ALWAYS — no controls for them on
+   this tab; a pressed pill and a pressed chip now FILL with
+   --c-highlight (the 18% tint was hard to see — tokens.css, shared by
+   the lm arc's pills on purpose); and Play speed left the tab (no
+   clock, no speed).
+
    One motion throughout: a time cursor sweeps right and curves build under
    it. The `censored` control is display: true — three readings of ONE
    dataset, so toggling never resets the sweep. `anim.done` is re-read
@@ -621,6 +628,9 @@ defineWidget({
       default: "medium",
       display: true,
       afterDrive: true,
+      /* Modeling has no clock (round 14), so a speed for it is a dead
+         control (round 15) */
+      when: { param: "concept", oneOf: ["censoring", "groups"] },
     },
     /* the authoring escape hatch: cursor time × 2, so ?shown=44 is a finished
        figure on any tab */
@@ -1472,7 +1482,10 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
   plot.axisX({ ticks: [0, 5, 10, 15] });
   plot.axisY({ ticks: [0, 0.5, 1] });
-  drawGroupCurves(ctx, colors, plot, state, state.tEnd.groups, { labels: false, ticks: false });
+  /* bands and censor ticks always on here (round 15) — this tab has no
+     curve controls, and a Cox model should be read over the uncertainty
+     and the censoring it actually faces */
+  drawGroupCurves(ctx, colors, plot, state, state.tEnd.groups, { labels: false, bands: true });
 
   /* the card head is the .w-math card above the figure now (round 13);
      what stays on canvas is the one-line honesty slot. Small studies —

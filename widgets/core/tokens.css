@@ -1017,10 +1017,17 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   cursor: pointer;
   white-space: nowrap;
 }
+/* A FULL FILL, not a tint (widget 31 round 15 — Kenneth: the 18% wash
+   was hard to see which covariates were in). Membership is binary and
+   the pressed state is the one thing to look at, so it wears the
+   highlight outright, with surface-colour text — the same
+   text-on-highlight move the canvas bars use. Shared by every pill
+   rail (the lm arc's model pills included), deliberately: one control,
+   one look. */
 .w-pill[aria-pressed="true"] {
   border-color: var(--c-highlight);
-  background: color-mix(in srgb, var(--c-highlight) 18%, transparent);
-  color: var(--ink-1);
+  background: var(--c-highlight);
+  color: var(--surface-1);
   font-weight: 600;
 }
 
@@ -1091,11 +1098,17 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 }
 /* The bits chips (an int worn as toggles — controls.js): ten of them have
    to share one rail row, so the horizontal padding goes and a minimum
-   keeps a one-digit chip square enough to press. */
+   keeps a one-digit chip square enough to press. A pressed chip fills
+   with the highlight like a pressed pill does — both mean "in", and the
+   segmented grey was invisible at chip size (round 15). */
 .w-seg-bits .w-seg-btn {
   padding: 5px 0;
   min-width: 22px;
   font-size: var(--fs-xs);
+}
+.w-seg-bits .w-seg-btn[aria-pressed="true"] {
+  background: var(--c-highlight);
+  color: var(--surface-1);
 }
 
 .w-seg-btn:last-child { border-right: 0; }

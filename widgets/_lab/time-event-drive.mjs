@@ -93,6 +93,8 @@ ck("Causal SNPs is ten chips on the Modeling tab only (round 14)",
   && W.params.causal.min === 0 && W.params.causal.max === 1023
   && W.params.causal.when?.equals === "factors");
 ck("the disease pill starts pressed (round 13)", W.params.disease.default === true);
+ck("Play speed shows only where a clock exists (round 15)",
+  W.params.speed.when?.oneOf?.join() === "censoring,groups");
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)

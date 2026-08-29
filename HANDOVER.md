@@ -48,6 +48,11 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
+   **ROUND 15 IS BUILT (2026-08-29): bands+ticks always on Modeling's
+   curves; pressed pills and chips FILL with --c-highlight (tokens.css —
+   also strengthens the lm arc's pills, flagged for Kenneth's veto);
+   Play speed left the Modeling tab. Drive 130 checks. The round-14
+   suite-run debt below covers this round's tokens.css line too.**
    **ROUND 14 IS BUILT (2026-08-29) on Kenneth's round-13 review — TWO
    THINGS REMAIN: THE FULL SUITE RUN (core moved — see below), then his
    test pass.** The four asks: labels → **Censoring · Comparing ·
