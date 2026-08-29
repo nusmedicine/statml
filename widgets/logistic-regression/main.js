@@ -2,46 +2,26 @@
    Widget 15 · Logistic Regression — what goes wrong with a straight line, what
    the link does about it, and why that makes the coefficient an odds ratio.
 
-   Hosts at PHM5003 `04 / 05-05 — Modeling: Categorical Outcome`, and matches
-   that lesson's cell 4 — `log( p(Y) / (1 − p(Y)) ) = b0 + b1 x` — ONE
-   covariate. The lesson's own fitted model has two, and this widget carried
-   them until 2026-08-29, when the second covariate went on Kenneth's call:
-   "the main point is the link function". Its record, and the two-covariate
-   design's, is catalogue § Widget 15.
+   Hosts at PHM5003 05-05 and matches its cell 4:
+   `log( p(Y) / (1 − p(Y)) ) = b0 + b1 x`, one covariate.
 
-   ONE COVARIATE NEEDS THE RIGHT PAIR, and `prevalentHyp ~ sysBP` is the only
-   one in the file whose probability spans the axis: fitted p runs 0.0003 to
-   1.000, so the sigmoid saturates at BOTH ends on screen; the straight line
-   makes 794 of 4240 people (18.7%) impossible, leaving (0, 1) below 111 and
-   above 180 mmHg; and the fitted 50% point lands at 141.6 mmHg against the
-   clinical threshold of 140 — a self-check a reader can perform. It was
-   built for the first review, cut for matching the lesson's fitted model,
-   and revived when the equation to match became cell 4's.
+   `prevalentHyp ~ sysBP` is the one pair in the file whose fitted p spans
+   the axis (0.0003 to 1.000), so the sigmoid saturates at both ends on
+   screen, the straight line makes 794 of 4240 people impossible, and the
+   fitted 50% lands at 141.6 mmHg against the clinical 140. The design
+   history — including the two-covariate version this replaced on 2026-08-29
+   — is catalogue § Widget 15.
 
-   THREE THINGS, IN ORDER:
-     1. Fit a straight line to a 0/1 outcome and watch it leave the box. The
-        probability axis runs past 0 and 1 for exactly this reason: a line
-        clipped at the boundary hides the thing it is there to show.
-     2. Add the link. log(odds) is unbounded, so the straight line lives there
-        instead and the probability it implies never has to leave (0, 1).
-     3. Read what one step is worth on each scale. Only on log-odds is it a
-        constant, and that is what makes exp(b) an odds ratio — not anyone
-        choosing odds because they are easy to interpret.
-
-   AGGREGATES, NOT ROWS. Every panel is determined by (x, n, events), and for
-   a binomial GLM the counts at each distinct x are a sufficient statistic:
-   the fit from the aggregate is the fit from the rows, verified to 1e-8
-   (`_lab/logistic-1cov-measure.py` and its logit3 companion in _scratch).
-   234 distinct sysBP values for 4240 people.
+   AGGREGATES, NOT ROWS: for a binomial GLM the counts at each distinct x
+   are a sufficient statistic — fit from aggregate ≡ fit from rows, verified
+   to 1e-8 in `_lab/logistic-1cov-measure.py`. 234 distinct sysBP values.
    ========================================================================= */
 
 import { defineWidget, makePlot } from "../core/index.js";
 
-/* --- the model --------------------------------------------------------------
-   Coefficients are fixed rather than fitted in the browser; both were fitted
-   on the same 4240 rows (every person with a sysBP and a hypertension
-   status). The OLS line is least squares on the 0/1 outcome — the "linear
-   probability model", which is exactly what step 1 exists to discredit. */
+/* Coefficients are fixed rather than fitted in the browser; both fits are on
+   the same 4240 rows. OLS is least squares on the 0/1 outcome — the "linear
+   probability model", which is what step 1 exists to discredit. */
 const LOGIT = { b0: -19.97908154, b1: 0.14110315 };
 const OLS = { b0: -1.626123, b1: 0.01463293 };
 
@@ -49,9 +29,8 @@ const HYP_BY_SYSBP = "83.5,2,0;85,1,0;85.5,1,0;90,2,0;92,1,0;92.5,2,0;93,2,0;93.
 
 const parse = (s) => s.split(";").map((t) => t.split(",").map(Number));
 
-/* The axis stops at 215 mmHg; the 6 patients above it are in the FIT (the
-   coefficients are constants from all 4240 rows) and off the display, the
-   same trade the two-covariate version made with BMI above 45. */
+/* The axis stops at 215 mmHg; the 6 patients above it are in the fit and
+   off the display. */
 const AXIS = {
   label: "systolic blood pressure (mmHg)",
   rows: parse(HYP_BY_SYSBP), lo: 85, hi: 215, slot: 0.5,
@@ -59,19 +38,17 @@ const AXIS = {
   stepName: "one mmHg", coefName: "sysBP",
 };
 
-/* THE PROBABILITY AXIS RUNS PAST 0 AND 1 ON PURPOSE. Step 1 is that a straight
-   line predicts probabilities that are not probabilities; an axis stopping at
-   the boundary clips exactly that away. Here the line spans −0.40 to 1.45
-   over the visible axis, so both exits are on screen. */
+/* The probability axis runs past 0 and 1 on purpose: an axis stopping at the
+   boundary clips away exactly what step 1 exists to show. The line spans
+   −0.40 to 1.45 over the visible axis, so both exits are on screen. */
 const P_LO = -0.45, P_HI = 1.45;
 
 /* --- the three rungs -------------------------------------------------------
-   `of` maps a probability onto the rung. A non-finite or out-of-range result is
-   a point the panel CANNOT DRAW, and at step 1 that is the lesson: a prediction
-   outside (0, 1) has no odds and no log-odds, so the straight line is not
-   merely wrong on the other two panels — it is absent from them. The all-1
-   bins at high pressure are the same lesson from the data's side: a proportion
-   of exactly 1 has no log-odds either, and wears a caret at the panel edge. */
+   `of` maps a probability onto the rung. A non-finite or out-of-range result
+   is a point the panel cannot draw, and that is the lesson: a prediction
+   outside (0, 1) has no odds and no log-odds, so the straight line is absent
+   from the other two panels wherever it has left the box — and an all-1 bin
+   has no log-odds either, so it wears a caret at the panel edge. */
 const RUNGS = [
   {
     key: "p", title: "probability", axis: "p", range: "0 to 1", bounds: [0, 1],
@@ -115,7 +92,7 @@ function computeAll({ params }) {
   const pOls = (x) => OLS.b0 + OLS.b1 * x;
 
   /* Bins of five mmHg, anchored on multiples of the width — 130-134,
-     135-139 — which is how a person bins. */
+     135-139 — the way a person bins. */
   const map = new Map();
   let n = 0, events = 0;
   for (const [x, c, e] of A.rows) {
@@ -134,11 +111,9 @@ function computeAll({ params }) {
         ...b,
         x: b.sx / b.n,
         rate,
-        /* THE BINOMIAL FAMILY IS WHAT SAYS HOW FAR A DOT SHOULD BE FROM THE
-           CURVE. The link picks the scale the mean is linear on; the family
-           picks how each observation scatters around it, and for a 0/1 outcome
-           that is one Bernoulli trial per person — the sparse high-pressure
-           bins visibly wander and the dense mid-pressure ones do not. */
+        /* The binomial family is what says how far a dot should sit from the
+           curve: the link picks the scale the mean is linear on, the family
+           how each observation scatters around it. */
         lo: Math.max(1e-6, rate - 1.96 * se),
         hi: Math.min(1 - 1e-6, rate + 1.96 * se),
       };
@@ -151,21 +126,17 @@ function computeAll({ params }) {
     curveO.push([x, pOls(x)]);
   }
 
-  /* WHERE THE STRAIGHT LINE LEAVES THE BOX, as a property of the line: it is
-     below 0 for a third of the axis and above 1 for another quarter, so
-     unlike the CHD version there is no setting that hides it. */
+  /* Where the straight line leaves the box, as a property of the line. */
   const zeroAt = (0 - OLS.b0) / OLS.b1;
   const oneAt = (1 - OLS.b0) / OLS.b1;
   const outside = [];
   if (zeroAt > A.lo && zeroAt < A.hi) outside.push(`below ${zeroAt.toFixed(0)}`);
   if (oneAt > A.lo && oneAt < A.hi) outside.push(`above ${oneAt.toFixed(0)} mmHg`);
 
-  /* ONE STEP PER mmHg FOR THE STRIP, AND THE BARS BELONG TO WHICHEVER FIT IS
-     SHOWING. That is the comparison: a straight line asserts the RISK
-     DIFFERENCE is the same everywhere, so its probability strip is flat and
-     its log-odds strip is not. The link asserts the LOG-ODDS difference is
-     the same everywhere, so the silhouettes swap. Which assumption you are
-     making is the choice the checkbox makes. */
+  /* The strip's bars belong to whichever fit is showing, and that is the
+     comparison: a straight line asserts the risk difference is the same
+     everywhere, the link asserts the log-odds difference is — so toggling it
+     swaps which silhouette is flat. */
   const pFit = params.link ? pLogit : pOls;
   const steps = [];
   for (let x = Math.ceil(A.lo); x + 1 <= A.hi + 1e-9; x += 1) {
@@ -183,14 +154,11 @@ function computeAll({ params }) {
 }
 
 /* --- the raw outcomes, laid out once -----------------------------------------
-   Not jittered — SPREAD. A dense band either way, and a deterministic layout is
-   what stops the cloud shimmering every time a parameter moves. x is even
-   inside the value's own slot; y walks a golden-ratio sequence across a thin
-   band, which distributes without repeating and without randomness.
-
-   THE BANDS ARE CENTRED ON 0 AND 1, not tucked inside them. The axis runs past
-   both, so the data can sit exactly where it is and the two bounds can be ruled
-   through it. */
+   Not jittered — spread deterministically, which is what stops the cloud
+   shimmering every time a parameter moves: x is even inside the value's own
+   slot; y walks a golden-ratio sequence across a thin band. The bands are
+   centred on 0 and 1, not tucked inside them — the axis runs past both, so
+   the two bounds can be ruled through the data. */
 const STRIP_PTS = (() => {
   const yes = [], no = [];
   for (const [x, n, e] of AXIS.rows) {
@@ -226,17 +194,13 @@ function mathmlRenders() {
 }
 const MATHML = mathmlRenders();
 
-/* THE EQUATION IS 05-05's CELL 4, with this widget's fitted numbers in it:
-   log( p(Y) / (1 − p(Y)) ) = b0 + b1 x, one covariate.
-
-   ONE <math> PER TERM. A single <math> does not line-break — MathML Core treats
-   `white-space` as nowrap on every element and no engine implements automatic
-   linebreaking — so a multi-term equation in one <math> overflows rather than
-   wraps. Separate inline elements with real whitespace between them are atomic
-   inline boxes in an ordinary inline formatting context, so the break
-   opportunities are exactly the seams authored here. And that is why every sign
-   carries form="infix": first child of its own <math>, MathML would otherwise
-   set a leading + as a PREFIX operator, which is unary and unspaced. */
+/* The equation is 05-05's cell 4 with this widget's fitted numbers in it.
+   ONE <math> PER TERM: a single <math> does not line-break (MathML Core
+   treats white-space as nowrap and no engine implements linebreaking), so a
+   multi-term equation in one <math> overflows rather than wraps; separate
+   inline elements break at the seams authored here. Every sign carries
+   form="infix" because, first in its own <math>, a leading + would otherwise
+   be set as a prefix operator — unary and unspaced. */
 const mi = (t) => `<mi mathvariant="normal">${t}</mi>`;
 const sub = (v, s) => `<msub><mn>${v}</mn>${mi(s)}</msub>`;
 const LHS = `<math><mrow>${mi("log")}<mo>(</mo><mfrac>`
@@ -247,13 +211,10 @@ const EQ_HTML = `${LHS} <math><mrow><mo form="infix">−</mo>${sub("19.98", "int
   + `<math><mrow><mo form="infix">+</mo>${mi("sysBP")}<mo>×</mo>${sub("0.141", "sysBP")}</mrow></math>`;
 const EQ_PLAIN = "log( p(Y) / (1 − p(Y)) ) = −19.98 + sysBP × 0.141";
 
-/* THE LINK, DRAWN, ORIENTED THE WAY THE FIGURE BELOW IS.
-   The conventional plot puts p on the horizontal axis. Every panel under this
-   card puts it on the vertical one, and a 90-degree disagreement inside a single
-   figure costs more than departing from a convention in a 132px inset — so p
-   runs up the side here too, and the curve reads: for this probability, that is
-   the log-odds. The reader's own two probabilities are marked on it, which is
-   what turns the card from a definition into a reading. */
+/* The link, drawn, oriented the way the figure below is: p runs up the side
+   (the convention puts it across, but a 90-degree disagreement inside one
+   figure costs more than departing from a convention in a 132px inset). The
+   reader's own two probabilities are marked on it. */
 const FIG_W = 132, FIG_H = 74;
 const figX = (y) => 24 + ((y + 6) / 12) * 102;
 const figY = (p) => 62 - p * 52;
@@ -321,16 +282,13 @@ function renderFramework(cur) {
    is the dataset?" was a fair question once, and stays answered. */
 function caption(ctx, colors, w, state, params) {
   const warn = !params.link && state.outside.length;
+  /* The two bounds come off one at a time — the answer to "why log it";
+     and least squares on a 0/1 outcome fits E[Y|X], which for a binary Y IS
+     the probability, so a fitted value outside 0 and 1 is a defect, not a
+     curiosity. */
   const say = params.link
-      /* THE TWO BOUNDS COME OFF ONE AT A TIME, and saying which is which is the
-         answer to "why log it — doesn't 0/1 already map to p/(1−p)?". Odds
-         alone still cannot go below zero. */
       ? [`Odds removes the ceiling at 1; the log removes the floor at 0. Only then is the scale unbounded both ways.`,
         `Odds removes the ceiling; the log removes the floor.`]
-      /* Least squares on a 0/1 outcome fits E[Y|X], and for a binary Y that
-         IS P(Y = 1|X) — which is why a fitted value outside 0 and 1 is a
-         defect rather than a curiosity: the model has called it a
-         probability. */
       : [`Least squares on a 0/1 outcome fits the probability itself — and here it leaves 0 and 1 ${state.outside.join(" and ")}.`,
         `Predictions ${state.outside.join(" and ")}.`];
   const first = [
@@ -360,12 +318,10 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
   plot.grid(rung.ticks);
   plot.axisY({ ticks: rung.ticks, format: rung.fmt });
 
-  /* WHAT BOUNDS THIS SCALE, RULED — and the count of rules is the argument.
-     Probability has two, at 0 and at 1. Odds has ONE: dividing by (1 − p)
-     removes the ceiling and leaves the floor exactly where it was, which is why
-     odds is only half the fix and why this panel is here at all. Log-odds has
-     none, and its emptiness is the point: that is the only one of the three an
-     unbounded straight line can live on. */
+  /* What bounds this scale, ruled — and the count of rules is the argument:
+     probability has two, odds has one (dividing by 1 − p removes only the
+     ceiling), log-odds has none — the only scale of the three an unbounded
+     straight line can live on. */
   ctx.save();
   ctx.strokeStyle = colors.axis;
   ctx.lineWidth = 1;
@@ -404,9 +360,8 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "right";
-  /* THE RANGE OUTRANKS THE EXPRESSION when only one fits: the expression names
-     the scale, which the title already did, and the range is the thing the
-     three panels are being compared on. */
+  /* When only one fits, the range outranks the expression: the range is what
+     the three panels are compared on. */
   const room = rect.w - titleW - 10;
   const head = [`${rung.axis} · ${rung.range}`, rung.range, rung.axis]
     .find((t) => ctx.measureText(t).width < room);
@@ -446,11 +401,9 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
       plot.dot(b.x, v, { fill: colors.smoothed, r: Math.max(2.5, Math.sqrt(b.n) / 7) });
       continue;
     }
-    /* off this axis, and wholly inside the plot: an up-caret straddling the top
-       edge ran into the panel's own header, which no text check can see. The
-       all-1 bins above 170 mmHg wear these on odds and log-odds — a proportion
-       of exactly 1 has no finite position there, which is data making step 2's
-       point. */
+    /* off this axis, and wholly inside the plot: an up-caret straddling the
+       top edge once ran into the panel's own header, which no text check can
+       see. The all-1 bins above 170 mmHg wear these on odds and log-odds. */
     ctx.save();
     ctx.fillStyle = colors.smoothed;
     ctx.globalAlpha = 0.6;
@@ -466,10 +419,9 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
     ctx.restore();
   }
 
-  /* STAGE 1 — THE STRAIGHT LINE. On the probability panel it is drawn whole,
-     including the parts outside the box, because those parts are the point. On
-     the other two it stops wherever its prediction has left (0, 1), since such
-     a prediction has no odds to draw at all. */
+  /* The straight line: drawn whole on the probability panel, outside parts
+     included, because those parts are the point; on the other two it stops
+     wherever its prediction has left (0, 1). */
   const olsPts = state.curveO.map(([x, p]) => [x, rung.of(p)]).filter(([, v]) => on(v));
   if (olsPts.length > 1) {
     plot.curve(olsPts, {
@@ -484,11 +436,9 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
       { stroke: colors.theory });
   }
 
-  /* THE STEP, EVERYWHERE, ON A COMMON FLOOR. Each bar is what one mmHg is
-     worth at that pressure, in this panel's own units. Only log-odds is flat,
-     and that is the whole reason the model is fitted on that scale. The
-     ratio, which is the constant thing on the odds scale, is a number rather
-     than a shape and lives in the readout. */
+  /* Each bar is what one mmHg is worth at that pressure, in this panel's own
+     units. Only log-odds is flat, and that is the whole reason the model is
+     fitted on that scale. */
   /* Only steps whose values are ON this panel: the odds curve reaches ~20 000
      at the right edge, and one runaway Δ there flattened every visible bar
      into the floor with a scale line nobody could use. */
@@ -574,11 +524,13 @@ defineWidget({
   height: CANVAS_H,
 
   params: {
-    /* REVERSIBLE ON PURPOSE, which a drive button cannot be. Flipping the link
-       off and on again is how the reader sees that it is the same data read two
-       ways rather than a second model. */
+    /* Reversible on purpose, which a drive button cannot be: flipping the link
+       off and on is how the reader sees it is the same data read two ways.
+       A pill is a <button data-param> the fingerprint's setParam cannot
+       toggle — its states settle by URL. */
     link: {
       type: "bool",
+      style: "pill",
       label: "Add the link function",
       detail: "fit log(odds) instead of the probability itself",
       default: false,
