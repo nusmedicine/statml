@@ -1,20 +1,27 @@
 # Handover
 
-**Thirty-four widgets, all shipped, all on the gallery, and 237
-fingerprint states recorded.** Widget 34 `roc-auc` **Scoring a
-Classifier** (PHM5005, 04-2 Model Evaluation) shipped 2026-08-29 after
-SIX rounds in one day, grown from a D3 app Kenneth uploaded (kept as
-`_lab/roc-app-original.html`): one simulated cohort, overlaid score
-histograms with a strip-confined draggable threshold, the confusion
-matrix following the threshold live, the ROC curve traced patient by
-patient, and a momentary find-optimal button whose scan lands by
-MOVING the threshold to Youden's J (with a from-arrow as the receipt).
-Core gained `drag.hit` for it (round 5; suite run three times over a
-flake — see catalogue). **KENNETH'S POST-MIXED-MODEL QUEUE IS NOW
-EMPTY.** Widget 33 `lm-diagnostics` **Checking the Model Fit** (05-01)
-shipped the same day after three rounds; catalogue § Widget 33. THE
-AGREED MODELING ARC IS COMPLETE — widget 32 `mixed-model` (05-07, the
-arc's last slot) shipped the same day; see catalogue § Widget 32.
+**Thirty-four widgets, all shipped, all on the gallery, and 238
+fingerprint states recorded.** Two things happened on 2026-08-29:
+
+**Widget 34 `roc-auc` SHIPPED** — **Scoring a Classifier** (PHM5005,
+04-2 Model Evaluation), six rounds in one day, grown from a D3 app
+Kenneth uploaded (kept as `_lab/roc-app-original.html`): one simulated
+cohort, overlaid score histograms with a strip-confined draggable
+threshold, the confusion matrix following the threshold live, the ROC
+curve traced patient by patient, and a momentary find-optimal button
+whose scan lands by MOVING the threshold to Youden's J (with a
+from-arrow as the receipt). Core gained `drag.hit` for it (round 5;
+suite run three times over a flake — see catalogue).
+
+**Widget 15 `logistic-regression` was REBUILT ON ONE COVARIATE** the
+same day, three post-ship rounds on Kenneth's live review — see its
+section below and catalogue § Widget 15.
+
+**KENNETH'S POST-MIXED-MODEL QUEUE IS EMPTY.** Widget 33
+`lm-diagnostics` **Checking the Model Fit** (05-01) shipped the same
+day after three rounds; catalogue § Widget 33. THE AGREED MODELING ARC
+IS COMPLETE — widget 32 `mixed-model` (05-07, the arc's last slot)
+shipped the same day; see catalogue § Widget 32.
 
 **THE MODELING ARC'S FIVE lm-/CAUSAL SLOTS ARE ALL SHIPPED AND LIVE**,
 built over 2026-08-27/28: widget 26 `fork-pipe-collider` (nine rounds),
@@ -62,6 +69,38 @@ do should hold, not invent scope — prd §11 exists to be pointed at.
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    — and judging projected is still owed by every widget from 11 on,
    widgets 26–34 included.
+
+**WIDGET 15 `logistic-regression` REBUILT AND PUSHED 2026-08-29** on
+one covariate — Kenneth: 05-05's cell 4 introduces the logit as
+`b₀ + b₁x`, the two-covariate BMI/age stage confused, "the main point
+is the link function". Three rounds; the full record (the measured
+candidates, the cut, every pick) is catalogue § *Widget 15*. What a
+later session most needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/logistic-regression/        (identity link)
+# .../widgets/logistic-regression/?link=logit               (the sigmoid, landed)
+# _lab/logistic-1cov-measure.py (venv python) — the candidate measurements
+# _lab/logistic-shoot.html re-shoots its 5 states (copy-proof, triples)
+```
+
+- **The model is `glm(prevalentHyp ~ sysBP)` on all 4240 rows** — the
+  built-and-cut pair revived: fitted p spans 0.0003→1.000 (the S saturates
+  on screen), the straight line makes 794 people impossible, 50% at 141.6
+  mmHg vs the clinical 140, OR/mmHg 1.1515. The aggregate embeds DISTINCT
+  sysBP values (234) — a sufficient statistic, fit-from-aggregate ≡
+  fit-from-rows to 1e-8.
+- **The control is a segmented `Link function: Identity | Logit`** and
+  toggling it EASES the fitted curve between the two fits (~0.6 s, the
+  ease-request door; the widget's one motion — stepLabel and runLabel both
+  null). Every printed number comes from the BLENDED fit; the equation card
+  follows the chosen link, each side wearing its own fitted numbers.
+- **The three-rung ladder survived the rebuild** (probability · odds ·
+  log-odds); cut with the second covariate: the axis picker, both held
+  sliders, the card's links row, and the old marginal-vs-conditional open
+  item. A Δ strip only counts steps visible on its own panel — odds reaches
+  ~20 000 at the right edge and one runaway Δ flattened every visible bar.
 
 **WIDGET 34 `roc-auc` SHIPPED AND PUSHED 2026-08-29** as **Scoring a
 Classifier** — six rounds in one day, the full record (the app it grew
@@ -293,7 +332,20 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 237 states, all matching
+## The suite: 238 states, all matching
+
+**Widget 15's states were re-recorded TWICE on 2026-08-29 with
+`_lab/logistic-shoot.html`** (derived from roc-shoot, DPR gate included):
+once for the one-covariate rebuild (four settled, replacing four whose
+URLs died with `xvar`/`age`/`bmi`), and again for round 3's ease — where
+**all four settled `px` hashes came back IDENTICAL** (the ease lands
+exactly on the pictures the old toggle jumped to; only `tx` moved with
+the tile renames and the swapping equation card) and a fifth state went
+in, driven mid-bend (`set link=logit`, 8 frames, non-inert). The round-2
+pill change re-ran the shooter purely as proof: the rail is outside both
+hashes, and all four states read byte-identical. The same day's
+lm-interaction fix (rise labels to two decimals) re-shot all 13 of its
+states: exactly the three diabsex-tab states moved, px only.
 
 **Widget 34 added seven states on 2026-08-29 with `_lab/roc-shoot.html`**
 (the lm-shoot pattern, plus a DPR gate: the shooter WAITS for
@@ -500,9 +552,10 @@ is blind to.
 organised by widget, including the rounds that reversed an earlier decision and
 why. Read the round headings there before changing anything.
 
-**Widget 15 still lacks the marginal-vs-conditional note** Kenneth asked for,
-and **no widget from 11 through 24 has been judged projected** (25 was, on its
-promotion day). Both are old and neither blocks anything.
+**Widget 15's marginal-vs-conditional note is MOOT** — the 2026-08-29
+one-covariate rebuild removed the second covariate the note was about.
+**No widget from 11 through 24 has been judged projected** (25 was, on its
+promotion day); old, and blocks nothing.
 
 ### Still open on widget 20, and both are teaching calls
 

@@ -2657,6 +2657,32 @@ are in the fit and off the display. All four fingerprint states re-recorded
 via `_lab/logistic-shoot.html` (copy proved 4/4, triples stable); two old
 state URLs died with `xvar`/`age`/`bmi` and were replaced.
 
+**Round 2 (same day)**: the link toggle went checkbox → pill button on
+Kenneth's ask, and the source comments were cut to their load-bearing whys.
+The rail is outside both hashes and the shooter re-ran to prove it — all
+four states byte-identical.
+
+**Round 3 (same day), from Kenneth's annotated screenshot**: "what one mmHg
+is worth" rephrased ("where the one-mmHg step is read"); the card's links
+row CUT ("log → hazards, counts" not relevant here); and his two design
+calls — **the control became a segmented `Link function: Identity | Logit`**
+(a GLM as a choice of link, 05-05's own framing) and **toggling it EASES the
+fitted curve** from the straight line into the sigmoid (~0.6 s, core's
+ease-request door; the widget's first `animation` block — stepLabel and
+runLabel both null, the ease is its one motion). Every step bar and printed
+number is computed from the BLENDED fit, so no label is false mid-frame; the
+caption and the risk-difference note flip at the halfway point; the OR tile
+prints only once the ease lands. **The equation card follows the chosen
+link**, each side wearing its OWN fitted numbers — identity shows
+`p(Y) = −1.63 + sysBP × 0.0146`, logit shows cell 4's line — because
+printing the logit's coefficients over an identity fit is a claim the figure
+does not make. Tiles renamed *Identity link* / *Logit link*. Re-recorded
+(copy 4/4, triples): **all four settled `px` hashes IDENTICAL to the
+pre-ease recording** — the ease lands exactly on the pictures the toggle
+used to jump to — `tx` moved with the wording, and one driven mid-bend state
+(`set link=logit`, 8 frames) went in non-inert. The old
+marginal-vs-conditional open item died with the second covariate.
+
 The record below is the TWO-COVARIATE design's, kept for its decisions —
 the axis opening, the strips, the three-rung argument — most of which
 survive unchanged in the rebuild.
