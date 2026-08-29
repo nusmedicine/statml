@@ -10856,10 +10856,84 @@ decision after the mechanism half is reviewed.
 Unchanged below, and still the arc widget 13 belongs to. `generalization` is
 built and shipped against `04-1` and `04-4`.
 
-**`04-2 Model Evaluation` is designed but unbuilt** — a probability axis, one dot
-per patient, a threshold line whose four quadrants ARE the confusion matrix. Its
-evidence is `04-2`'s own cell 39: at threshold 0.50 and at Youden 0.31 the
-accuracy is 0.70 both times, while deaths missed goes from 9 to 3.
+**`04-2 Model Evaluation` is BUILDING as widget 34 `roc-auc`** — see § *Widget
+34* directly below. The one-paragraph sketch that sat here (a probability axis,
+one dot per patient, a threshold line whose four quadrants ARE the confusion
+matrix) became the shipped stage's left panel.
+
+## Widget 34 · `roc-auc` — Scoring a Classifier · IN REVIEW, round 1 built 2026-08-29
+
+**The misconception**: that the ROC curve is a static property of the model — a
+picture you look up — rather than the trace of every possible decision
+threshold, each point of it one whole confusion matrix; and that a good AUC (or
+a good accuracy) settles which threshold to act at. **The evidence is `04-2`'s
+own cell 39, measured 2026-08-29** (`_lab/roc-measure.py`, sklearn, the
+notebook's exact pipeline): at threshold 0.50 and at Youden 0.3137 the test
+accuracy is **0.70 both times**, while missed deaths go **9 → 3**. Accuracy
+cannot pick a threshold, and AUC does not try — the choice is a clinical
+trade-off the reader should make with a drag.
+
+**Provenance — Kenneth's D3 app.** The widget grew from an app Kenneth uploaded
+(kept verbatim as `_lab/roc-app-original.html`): threshold slider, class
+separation, noise, sample size, class balance, score distributions, ROC + AUC +
+Youden, confusion matrix. Cut in translation, each on a standing rule: unseeded
+`d3.randomNormal` (rule 6); regenerate-on-every-slider-move (rule 2 — same URL,
+same figure); the separate **Noise** slider (after the app's own min–max
+normalisation only separation ÷ noise survives — one Separation dial carries
+it, and the min–max rescale itself was replaced by a fixed logistic squash so
+the axis is not a function of the two most extreme draws); and opening with
+the optimal point already marked (rule 4 — Youden is a reveal).
+
+**The measured numbers, all reproduced to the digit from notebook 04-2 cells
+16–39** (`_lab/roc-measure.py` writes `_lab/roc-ref.json`; the widget embeds
+the 60 test probabilities in `roc-auc/model.js`): heart-failure logistic
+regression (class_weight balanced, random_state 42, stratified), test AUC
+**0.740693**, Youden threshold **0.313674** (TPR 0.842, FPR 0.366), cm at 0.50
+[[32,9],[9,10]] → at Youden [[26,15],[3,16]], train AUC 0.831. One geometry
+note: sklearn's `roc_curve` returns **24** points (drop_intermediate removes
+collinear ones); the per-patient walk has **61** — identical curves, and the
+walk is what the animation advances.
+
+### Round 0 — the mock, and Kenneth's six picks (2026-08-29)
+
+`_lab/roc-mock.html` drew four candidates from the real numbers: **A** the
+strip alone, **B** the linked strip + ROC pair, **C** the sweep-trace entry,
+**D** the simulated act. Kenneth picked: **(1)** B as the main stage; **(2)**
+TWO tabs — *Threshold* (real test set) · *What moves the curve* (simulated);
+**(3)** Youden as an **overlay toggle**, not a claim pill; **(4)** threshold as
+a **draggable line on the canvas** — no rail slider; **(5)** Sample size n
+**kept** as a control on the simulated tab (its lesson: the staircase gets
+chunky at small n); **(6)** title **Scoring a Classifier**. The trace-as-entry
+(C) rode along unopposed.
+
+### Round 1 — built (2026-08-29), the shape
+
+- **Stage**: strip left (one dot per patient, deaths above / survivors below,
+  quadrant counts at the threshold line — the four regions ARE the confusion
+  matrix), ROC square right. Below 640px canvas width the square drops under
+  the strip and the height function pays for it.
+- **The curve is never given away**: it opens untraced, and Step (**Next
+  patient**) / Play (**Trace**) sweep the threshold from 1 to 0, the staircase
+  growing one patient at a time — up for a positive, right for a negative,
+  which is AUC's own rank reading. AUC's tile reads "—" until the trace
+  lands; `?shown=999` publishes the finished figure. Mid-trace the sweep owns
+  the dashed line and the quadrant counts hide (they describe the reader's
+  parked threshold).
+- **The threshold is dragged** through core's drag channel (`ew-resize`,
+  ±strip-width relative, snapped to 0.01) — a display parameter, hidden from
+  the rail, still in the URL. Dragging it moves the dot ALONG the curve and
+  every tile except AUC; that stillness is the concept.
+- **Tab 2 simulates** n ∈ [60, 600] patients, latent Normal(±sep/2, 1)
+  squashed by a fixed logistic; per-class score histograms in COUNTS, not
+  densities, so the balance dial is visible in the picture. At sep 1.3 the
+  empirical AUC read 0.825 against the binormal Φ(1.3/√2) = 0.821.
+- **Youden** is an `afterDrive` toggle (the withheld-answer position, widget
+  10's rule): a `--c-theory` ring on the curve plus a tile, only once the
+  curve is traced.
+- Verified in the pane: the notebook numbers to the digit on the tiles, the
+  drag writing `?threshold=`, the trace running to Replay with a fresh
+  `window.onerror` counter clean. Draft status; placeholder fingerprint
+  states carry both zero hashes until promotion.
 
 My guess at the evaluation arc's spine, for you to overwrite:
 

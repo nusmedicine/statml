@@ -479,6 +479,20 @@
       ],
       "arc": 33,
       "status": "shipped"
+    },
+    {
+      "slug": "roc-auc",
+      "title": "Scoring a Classifier",
+      "blurb": "The ROC curve traces true and false positive rates across every threshold, and AUC summarises them in one number.",
+      "course": "PHM5005",
+      "topics": [
+        "classification",
+        "ROC curve",
+        "AUC",
+        "decision threshold"
+      ],
+      "arc": 34,
+      "status": "draft"
     }
   ]
 }
