@@ -686,13 +686,20 @@ function renderFormulas(params) {
         line("lm", "bp ~ age + gender + medication", active === "lm"),
         line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
       ];
-  const note = params.concept === "nested"
-    ? "(1 | family) is the random effect — which rows share a family"
+  const notes = params.concept === "nested"
+    ? ["(1 | family) is the random effect — which rows share a family"]
     : params.concept === "syntax"
-      ? "the pattern: (1 + ⟨variable for the slopes⟩ | ⟨grouping variable for the intercepts⟩) — the 1 is the baseline intercept"
-      : "(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend";
+      ? [
+        "the pattern: (1 + ⟨variable for the slopes⟩ | ⟨grouping variable for the intercepts⟩) — the 1 is the baseline intercept",
+        /* Kenneth's round-5 question, answered on the surface: the RHS of
+           the | is categorical BY ROLE — and the same ID misplaced as an
+           ordinary covariate silently becomes a number with a slope,
+           which is precisely the mistake worth inoculating against */
+        `right of the | the grouping variable is categorical — each distinct ${SCENARIOS[params.scenario]?.g ?? "G"} is one group; the same ID as an ordinary covariate would be fitted as a number, with a slope`,
+      ]
+      : ["(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend"];
   formulaHost.innerHTML = lmLine + mmLine
-    + `<div class="w-math-note" style="font-size:var(--fs-xs)">${note}</div>`;
+    + notes.map((n) => `<div class="w-math-note" style="font-size:var(--fs-xs)">${n}</div>`).join("");
 }
 
 /* --- the Repeated stage ---------------------------------------------------- */

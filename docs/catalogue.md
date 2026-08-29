@@ -3272,6 +3272,16 @@ studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
 pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
 (F_LO below defineWidget while a families-tab URL draws during it).
 
+### Round 5 — G is categorical, said where the formula is taught
+
+Kenneth: "is it clear that G has to be categorical?" It was not, anywhere —
+and it is the exact trap the notebook's own numeric family_id fell into.
+One note line added to the Syntax card, in the scenario's own word:
+"right of the | the grouping variable is categorical — each distinct
+school is one group; the same ID as an ordinary covariate would be fitted
+as a number, with a slope." No lesson reference (2.10); the inoculation
+is general.
+
 ### Round 4 — generic legend, and the scenarios
 
 Kenneth's two asks. **The legend went generic** — Group A · Group B, and
