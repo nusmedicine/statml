@@ -38,8 +38,19 @@ URL** — that difference is the region geometry proven.
      (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
      LEGEND, a core door — `legend` may be a function of the params).
    - **NEXT: `lm-diagnostics`**: a new widget supporting the 05-01
-     notebook. Start the usual way — read the notebook's diagnostics
-     material cell by cell, measure, mock, Kenneth picks.
+     notebook. Its material is cells 53–62 (+ the Application section
+     from 63): goodness of fit (R², adjusted R² with the bias argument)
+     and `autoplot(which = 1:2)` — **Residuals vs Fitted and the Q-Q
+     plot** — with three reading bullets (residuals hover around 0 =
+     linear fit appropriate; a horizontal band = equal variance, else
+     heteroskedasticity; no significant outliers). Start the usual way:
+     read 05-01 cell by cell (the shared Framingham stage and `ols` in
+     `widgets/lm-least-squares/` already exist — data.js carries all 16
+     columns), measure through `_lab/`, mock the stage, Kenneth picks.
+     Likely design questions: which fit (the notebook uses BMI models);
+     whether the widget lets the reader BREAK the assumptions (a curved
+     or fanning generator beside the real data) so the plots have
+     something to detect — that is the kind of thing to mock, not argue.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
@@ -62,6 +73,37 @@ URL** — that difference is the region geometry proven.
    § Widget 32 has the full measured comparison, including why
    fixed-effects adjustment is near-equivalent here and where mixed
    models genuinely win).
+
+**WIDGET 30 GREW ACT 1 AND CORE GREW A DOOR, both pushed 2026-08-29**
+(the queue's first item; catalogue § Widget 30 · *Act 1 revived*). What a
+later session needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/lm-interaction/?concept=agebmi&fit=1&terms=times
+node widgets/_lab/lm-int-measure.mjs   # 37 checks — both age×BMI fits to the digit
+# _lab/lm-int-shoot.html re-shoots all 13 of the widget's states
+```
+
+- **The age × BMI act** is the notebook's ggPredict picture: the model at
+  BMI 20/30/40 (parallel under +, a fan CROSSING at age 57.2 under ×) and
+  a probe reading the AGE SLOPE at a chosen BMI (+1.97 at 20 → −0.32 at
+  40, sign flip at 37.2). Both fits were already pinned at widget-30
+  planning; only the tab was ever missing.
+- **CORE: `legend` may now be a FUNCTION of the params** (`({ params }) =>
+  entries`), re-resolved in recompute(), static arrays byte-identical —
+  the suite proved it, 220 of 220. **The ruling that earned it** (memory
+  `legend-must-match-the-graph`): no legend entry may describe marks the
+  current tab does not draw. A generic "Group A/B" was shipped and
+  rejected within the hour — mixed-model's earlier "go generic" was
+  about wording WRONG on other tabs, not a taste for vagueness.
+- **A legend edit moves `tx` on every recorded state.** The 13
+  lm-interaction states were re-shot twice in one day (generic, then
+  live), each time with the splice ASSERTING px identical — that
+  assertion is what proves a wording change touched no pixels.
+- **The silent-replace trap struck again** (a node heredoc "edit" of this
+  file printed ok and changed nothing — git saw a clean tree). Grep for
+  the new text after scripted edits, or use an editor that fails loudly.
 
 **WIDGET 32 `mixed-model` SHIPPED AND PUSHED 2026-08-29** after SEVEN
 rounds in one day — the full record is catalogue § *Widget 32*. What a
@@ -184,10 +226,12 @@ npm run check                 # before every commit
 ## The suite: 220 states, all matching
 
 **Widget 30 re-baselined and extended on 2026-08-29** (the revived age ×
-BMI act + the generic legend): the ten recorded states re-shot in the
-same commit as the legend change — px identical on all ten, tx moved on
-all ten, asserted at splice — plus three act-1 states; confirming run
-**220 of 220 MATCH**.
+BMI act + the legend, TWICE — generic shipped and rejected, then the
+live per-tab legend through core's new function door): each re-shoot of
+the 13 states asserted px identical at splice (a legend is DOM-only) with
+tx moving; three act-1 states added; and the CORE change ran the full
+suite — **220 of 220 MATCH**, the 207 static-legend states proving the
+door touches nothing that does not open it.
 
 **Widget 32 added ten states on 2026-08-29 with `_lab/mixed-shoot.html`**
 (the lm-shoot pattern): copy proved 4/4 against recorded hashes, every
@@ -349,7 +393,7 @@ is blind to.
 | 27 | `lm-least-squares` | shipped. NINE rounds over 2026-08-28 (rounds 7–9 post-ship: R² tile, the residual strip, grid-on default — each rebaselined same-commit and pushed); six states. NOT yet judged projected; 05-01 link not yet placed |
 | 28 | `lm-adjustment` | shipped as **Fitting Multiple Covariates**. TWELVE rounds across two sessions (2026-08-28), promoted on "tested ok" and pushed; eight states — five settled, one driven mid-slide, two hit-driven. NOT yet judged projected; 05-02 link not yet placed |
 | 29 | `lm-categorical` | shipped as **Fitting a Categorical Covariate**. ONE round in one session (2026-08-28); seven states — four settled, two driven, one hit-driven. NOT yet judged projected; 05-03 link not yet placed |
-| 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds in one session (2026-08-28); ten states — six settled, three driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
+| 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds (2026-08-28), then act 1 (age × BMI, the fan) revived post-ship 2026-08-29 with the LIVE PER-TAB LEGEND; **13 states** — eight settled, four driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
 | 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
 | 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
 
