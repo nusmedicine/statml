@@ -53,6 +53,14 @@ export const chi2Tail1 = (x) => (x <= 0 ? 1 : erfc(Math.sqrt(x / 2)));
  *    would leave the "no difference" setting still different. One direct
  *    dial, every other channel silenced: at effect = 0 the groups genuinely
  *    share a curve (measured: log-rank rejects 3–6% at 0.05 across n).
+ * 3. The causal SNP COUNT is a parameter (round 13 — Kenneth: let students
+ *    set the ground truth and see what detection costs). `causal = k`
+ *    makes the first k of the ten SNPs subtract a year each; k = 3 is the
+ *    notebook's truth and reproduces the round-8 generator bit for bit
+ *    (verified on seed 32). And the censoring time is FLOORED at 0.5:
+ *    at the short follow-ups the round-13 ladder adds (doors at 5),
+ *    `follow − uniform(0,10)` goes negative — a time no axis can draw.
+ *    The floor touches nothing at follow ≥ 10.5.
  *
  * The play grid behind the option values (100 seeds each, % p < 0.05):
  *   effect none 3–6% at every n · small 24/31/53/89% at n = 30/60/100/200
@@ -63,7 +71,7 @@ export function simulate(rng, opts = {}) {
   /* `shift` is the onset control (round 10): it moves the whole event
      process earlier, so the curves need not idle through a flat head the
      reader cannot use. 0 keeps the round-8 behaviour. */
-  const { n = 200, effect = 2.5, follow = 20, shift = 0 } =
+  const { n = 200, effect = 2.5, follow = 20, shift = 0, causal = 3 } =
     typeof opts === "number" ? { n: opts } : opts;
   const age = [];
   const disease = [];
@@ -81,11 +89,14 @@ export function simulate(rng, opts = {}) {
     snps.push(row);
   }
   for (let i = 0; i < n; i += 1) {
+    let snpSum = 0;
+    for (let j = 0; j < causal; j += 1) snpSum += snps[i][j];
     let t = 20 - shift - 0.1 * age[i] - effect * disease[i]
-      - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
+      - snpSum + rng.uniform(0, 5);
     t = Math.round(t * 2) / 2;
     if (t < 0.5) t = 0.5;
-    const c = Math.round((follow - rng.uniform(0, 10)) * 2) / 2;
+    let c = Math.round((follow - rng.uniform(0, 10)) * 2) / 2;
+    if (c < 0.5) c = 0.5;
     trueT.push(t);
     time.push(Math.min(t, c));
     status.push(t <= c ? 1 : 0);

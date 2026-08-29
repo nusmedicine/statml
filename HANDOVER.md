@@ -48,8 +48,22 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **ROUND 12 IS BUILT (2026-08-29) — CONSOLIDATED TO THE NOTEBOOK;
-   KENNETH'S TEST PASS IS WHAT REMAINS.** The round ran his way: an
+   **ROUND 13 IS BUILT (2026-08-29) on Kenneth's round-12 review — his
+   test pass is what remains.** Four asks, all mocked/measured first
+   (mock §5; 100-seed grids): the factors card moved ABOVE the figure
+   whole (pick V2 — title, general exp form, pill-following ln row, and
+   the baseline note answering "is disease the intercept?": h₀(t) is);
+   **Causal SNPs 0/1/3/5** (default 3 ≡ the old generator bit for bit;
+   at k = 0 the Significant tile names the false-positive risk — 67/100
+   draws star a null SNP); **Follow-up re-pinned to 5/9/12/25** so a
+   too-short study genuinely fails on BOTH cohort tabs (5 y: 3 events,
+   log-rank 26%, Cox nothing, 88% of fits refuse) — which required
+   flooring the generator's censor time at 0.5 (model.js amendment 3);
+   and the **disease pill starts pressed**. Drive: **124 checks** green;
+   550px sweeps clean; `npm run check` green. Full record: catalogue
+   § Widget 31 round 13. The round-12 record below still describes what
+   round 13 amended.
+   **ROUND 12 WAS BUILT (2026-08-29) — CONSOLIDATED TO THE NOTEBOOK.** The round ran his way: an
    adversarial notebook-vs-widget review first (his three bullets — the
    censoring page helps; the hazard may not click and he could not say
    which page carries it; no log-rank in the course), then every choice

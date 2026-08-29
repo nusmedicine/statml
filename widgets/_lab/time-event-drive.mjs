@@ -11,6 +11,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { makeRng } from "../core/rng.js";
+import { simulate } from "../time-event/model.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 let src = await readFile(join(here, "../time-event/main.js"), "utf8");
@@ -48,7 +49,7 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
 const WANT = {
   concept: "segmented", people: "section", patients: "int", ncens: "int",
   etime: "int", reading: "section", censored: "segmented",
-  data: "section", n: "choice", effect: "choice", follow: "choice",
+  data: "section", n: "choice", effect: "choice", causal: "choice", follow: "choice",
   curves: "section", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
   speed: "choice", seed: "int", shown: "int",
@@ -76,13 +77,19 @@ ck("shown is hidden; seed is the visible Draw control",
 ck("default draw is 32 (the measured clean cohort at the round-10 defaults)",
   W.params.seed.default === 32);
 ck("the data section and its controls show on both cohort tabs (oneOf)",
-  ["data", "n", "effect", "follow", "seed"].every(
+  ["data", "n", "effect", "causal", "follow", "seed"].every(
     (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
 ck("the data controls are DATA parameters (moving one restarts the sweep)",
-  ["n", "effect", "follow", "seed", "etime"].every((k) => !W.params[k].display));
-ck("defaults: 200 patients, moderate effect, 12-year follow-up, E at 7",
+  ["n", "effect", "causal", "follow", "seed", "etime"].every((k) => !W.params[k].display));
+ck("defaults: 200 patients, moderate effect, 3 causal SNPs, 12-year follow-up, E at 7",
   W.params.n.default === "200" && W.params.effect.default === "moderate"
+  && W.params.causal.default === "3"
   && W.params.follow.default === "12" && W.params.etime.default === 7);
+ck("the follow ladder is 5/9/12/25 (round 13 — a too-short study must fail)",
+  W.params.follow.options.map((o) => o.value).join() === "5,9,12,25");
+ck("the causal ladder is 0/1/3/5",
+  W.params.causal.options.map((o) => o.value).join() === "0,1,3,5");
+ck("the disease pill starts pressed (round 13)", W.params.disease.default === true);
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)
@@ -153,6 +160,41 @@ console.log("\n== the play surface, at its corners ==");
     state.events < 200);
   const s25 = W.compute({ params: { ...values, follow: "25" }, rng: makeRng(values.seed) });
   ck(`follow 25: censoring dissolves (${s25.events} events of 200)`, s25.events === 200);
+  /* the round-13 corners: a 5-year study fails, honestly and cleanly */
+  const s5 = W.compute({ params: { ...values, follow: "5" }, rng: makeRng(values.seed) });
+  ck(`follow 5: almost no events (${s5.events} of 200), no time below 0.5`,
+    s5.events < 15
+    && Math.min(...s5.groups[0].times, ...s5.groups[1].times) >= 0.5);
+  ck("follow 5: readout and summary stay clean on every tab",
+    ["censoring", "groups", "factors"].every((concept) =>
+      !/NaN|undefined|Infinity/.test(
+        W.readout({ params: { ...values, follow: "5", concept }, state: s5, anim: { t: 16 } })
+          .map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
+        + W.summary({ params: { ...values, follow: "5", concept }, state: s5, anim: { t: 16 } }))));
+  /* the causal lever: 3 IS the old generator; 0 silences the SNP channel */
+  ck("causal 3 reproduces the pre-round-13 generator bit for bit (seed 7)",
+    JSON.stringify(simulate(makeRng(7), { n: 50, effect: 2.5, follow: 12, shift: 6 }))
+      === JSON.stringify(simulate(makeRng(7), { n: 50, effect: 2.5, follow: 12, shift: 6, causal: 3 })));
+  const s0k = W.compute({ params: { ...values, causal: "0" }, rng: makeRng(values.seed) });
+  ck("causal 0 and 3 draw different cohorts from one seed",
+    s0k.events !== state.events || JSON.stringify(s0k.groups[0].times) !== JSON.stringify(state.groups[0].times));
+  {
+    const tiles = W.readout({
+      params: { ...values, causal: "0", concept: "factors", snps: true },
+      state: s0k, anim: { t: 16 },
+    });
+    ck("causal 0 + SNPs in: the Significant tile names the false-positive risk",
+      tiles.find((x) => x.label === "Significant").note.includes("false positive"));
+    const tiles3 = W.readout({
+      params: { ...values, concept: "factors", snps: true },
+      state, anim: { t: 16 },
+    });
+    ck("...and at causal 3 it does not",
+      !tiles3.find((x) => x.label === "Significant").note.includes("false positive"));
+  }
+  const s5k = W.compute({ params: { ...values, causal: "5" }, rng: makeRng(values.seed) });
+  ck("causal 5 computes end to end, all seven fits converged",
+    ["d", "a", "s", "da", "ds", "as", "das"].every((k) => s5k.fits[k]?.converged));
   /* the patient table (round 9): defaults ARE the notebook; the controls
      extend and flip deterministically */
   ck("defaults reproduce the notebook's table exactly",
@@ -236,7 +278,9 @@ ck("?shown=44 opens finished", shown.done === true);
 console.log("\n== the forest's ease, pumped by hand ==");
 {
   const pf = { ...values, concept: "factors", disease: true };
-  const a = W.animation.init({ params: { ...values, concept: "factors" }, state, fromScratch: true });
+  /* disease defaults ON since round 13, so the empty forest needs it
+     explicitly off */
+  const a = W.animation.init({ params: { ...values, concept: "factors", disease: false }, state, fromScratch: true });
   ck("no pills: every row targets alpha 0",
     Object.values(a.rowsT).every((r) => r.a === 0));
   W.animation.rebuild(a, { params: pf, state });
@@ -320,7 +364,7 @@ console.log("\n== readout and summary: no NaN, no undefined, anywhere ==");
 let dirty = 0;
 let states = 0;
 const PILLS = [
-  {}, { disease: true }, { age: true }, { snps: true },
+  {}, { disease: false }, { disease: false, age: true }, { snps: true },
   { disease: true, age: true, snps: true },
 ];
 for (const concept of ["censoring", "groups", "factors"]) {

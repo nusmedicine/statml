@@ -186,6 +186,83 @@
     </div>
   </div>
 
+  <h2>§5 · ROUND 13 — the factors-page top, and the two new data levers (measured)</h2>
+  <p class="note">
+    <b>Kenneth's round-13 review, mocked and measured before the build.</b>
+    First the layout ask: the model on top, before the formula, and the
+    coefficient plot loses its own label/caption. Two variants of the one
+    card above the figure — both remove the canvas card head entirely (the
+    forest moves up ~50px). The note line answers the "is disease the
+    intercept?" question in place: <b>h₀(t) is the baseline hazard — the
+    intercept's role</b>; every exp(b) multiplies it.
+  </p>
+  <div class="row">
+    <div class="cand" style="max-width:590px">
+      <h3>V2 — the model, then the ln form (the ask as written)</h3>
+      <p class="sub">title · h(t) = h₀(t) × exp(…) · ln row following the pills · baseline note</p>
+      <div class="mml-frame"><div class="w-math" id="v2"></div></div>
+    </div>
+    <div class="cand" style="max-width:590px">
+      <h3>V1 — leaner: title + ln row only</h3>
+      <p class="sub">the exp form lives nowhere; one math line and the note</p>
+      <div class="mml-frame"><div class="w-math" id="v1"></div></div>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>The follow-up ladder, remeasured</b> (100 seeds per cell, n = 200,
+    moderate effect, the shipping generator): today's 12/15/20/25 has no
+    corner where a too-short study fails — detection is total from 12 up.
+    The proposal is <b>5 · 9 · 12 · 25</b>, four options, four lessons:
+  </p>
+  <p class="cap">
+    F=5 &nbsp;·&nbsp; 3 events — log-rank fires 26%, Cox finds NOTHING (0% disease, 0% age, 0% SNPs; 88% of fits refuse with the too-few-patients line). The study was not run long enough — on BOTH cohort tabs.<br>
+    F=9 &nbsp;·&nbsp; 33 events — log-rank 99%, disease and age 100%, but each SNP only ~55% and all three together 15%: the strong factors survive a short study, the weak ones vanish.<br>
+    F=12 · 83 events — the default: SNPs ~88% each, all three found on 70% of draws.<br>
+    F=25 · 200 events of 200 — censoring dissolves entirely; everything found.
+  </p>
+
+  <p class="note">
+    <b>The causal-SNPs lever, measured</b> (same cells): the generator
+    parameterised so the first k of the ten SNPs truly shorten survival —
+    k = 3 reproduces today's generator bit for bit (verified on seed 32),
+    so the clean default draw survives. Proposal: <b>Causal SNPs
+    0 · 1 · 3 · 5</b>, default 3, in the data section beside Disease effect.
+    Detection at F = 12: a lone causal SNP is found 76% of the time; each
+    of three ~88%; each of five ~93%. <b>One finding that needs a call:</b>
+    at k = 0 the twelve-covariate fit still stars at least one null SNP on
+    67% of draws (54 events across 12 covariates — the events-per-variable
+    problem). The honest move is a computed note when k = 0: "no SNP truly
+    shortens survival — a starred SNP here is a false positive", the same
+    licence as Disease effect None's "no real difference".
+  </p>
+
+  <div class="rails">
+    <div class="rail">
+      <h4>round 13 — the data section</h4>
+      <div class="sect">The data</div>
+      <div class="ctl"><span class="lbl">Patients</span>
+        <div class="seg"><b>30</b><b>60</b><b>100</b><b class="on">200</b></div></div>
+      <div class="ctl"><span class="lbl">Disease effect</span>
+        <div class="seg"><b>None</b><b>Small</b><b class="on">Moderate</b><b>Large</b></div></div>
+      <div class="ctl"><span class="lbl">Causal SNPs</span>
+        <div class="seg"><b>0</b><b>1</b><b class="on">3</b><b>5</b></div></div>
+      <div class="ctl"><span class="lbl">Follow-up</span>
+        <div class="seg"><b>5 y</b><b>9 y</b><b class="on">12 y</b><b>25 y</b></div></div>
+    </div>
+    <div class="rail">
+      <h4>round 13 — the model (disease starts IN)</h4>
+      <div class="sect">The model</div>
+      <div class="ctl">
+        <div class="seg"><b class="on">disease</b><b>age</b><b>SNPs</b></div>
+      </div>
+      <p class="cap" style="max-width:250px">the disease pill starts pressed —
+      the reader arrives from Comparing groups holding its HR; the tab's
+      question is which OTHER factors matter. h₀(t) stays the baseline and
+      the card's note says so.</p>
+    </div>
+  </div>
+
   <h2>§4 · The rail after the decided cuts — for confirmation, not re-argument</h2>
   <p class="note">
     <b>As events</b> leaves the Censoring tab (the notebook names one tempting
@@ -478,6 +555,12 @@ document.getElementById("m1-da").innerHTML = eqRow(M1.da);
 document.getElementById("m1-das").innerHTML = eqRow(M1.das);
 document.getElementById("m1-narrow").innerHTML = eqRow(M1.das);
 document.getElementById("m2").innerHTML = eqRow(EXP_ROW) + eqRow(M1.das);
+
+/* §5 — the round-13 card variants: title, model, ln row, baseline note */
+const cardTitle = '<div style="font-weight:600;font-size:var(--fs-sm);color:var(--ink-2);margin-bottom:4px">Cox proportional hazards</div>';
+const baselineNote = '<div class="w-math-note" style="font-size:var(--fs-xs)">h₀(t) is the baseline hazard — the intercept’s role: every exp(b) multiplies it, by the same factor at every time</div>';
+document.getElementById("v2").innerHTML = cardTitle + eqRow(EXP_ROW) + eqRow(M1.das) + baselineNote;
+document.getElementById("v1").innerHTML = cardTitle + eqRow(M1.das) + baselineNote;
 
 /* the fitted numbers behind every §1 canvas */
 const d = fits.d.byName.disease;

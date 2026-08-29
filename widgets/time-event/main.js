@@ -53,6 +53,18 @@
    The HR tile and summary now say "hazard" where they said "event rate"
    — one quantity, one word, closing the loop with the two hazard panels.
 
+   ROUND 13 (Kenneth's review of round 12, all four picks mocked and
+   measured first): the factors card moved ABOVE the figure whole — pick
+   V2: title, the general exp form, the pill-following ln row, and the
+   baseline note that answers "is disease the intercept?" (no — h₀(t)
+   is); the canvas keeps one reserved warning line. The generator's
+   ground truth became a lever — Causal SNPs 0/1/3/5 (k = 3 IS the old
+   generator, bit for bit) with the k = 0 false-positive note on the
+   Significant tile. The follow ladder re-pinned to 5/9/12/25 so a
+   too-short study genuinely fails (5 y: 3 events, log-rank 26%, Cox
+   nothing) — which needed the generator's censoring time floored at
+   0.5 (model.js amendment 3). And the disease pill starts PRESSED.
+
    One motion throughout: a time cursor sweeps right and curves build under
    it. The `censored` control is display: true — three readings of ONE
    dataset, so toggling never resets the sweep. `anim.done` is re-read
@@ -159,7 +171,12 @@ const FQ_Y = 22;
 const FCURVE_Y = 40;
 const FCURVE_H = 120;
 const CARD_TOP = FCURVE_Y + FCURVE_H + 50;
-const CARD_HEAD = 50;
+/* 20, not 50 (round 13): the card head — title, formula, gloss — moved
+   into the .w-math card ABOVE the figure (pick V2), so the canvas keeps
+   only a one-line slot for the too-few-patients warning. The slot is
+   reserved whether or not the warning fires, so a bad draw cannot jog
+   the forest (3.4d). */
+const CARD_HEAD = 20;
 /* Disease and Age rows are tall enough to carry the ghost-and-move
    annotation (lm-adjustment's F_ROW); SNP rows are plain and tight */
 const ROW_BIG = 46;
@@ -290,6 +307,25 @@ function bridgeHTML(params) {
   return `${LN_LEAD_MATH} ${terms.join(" ")}`;
 }
 
+/* ROUND 13 (Kenneth's pick V2): the card carries the MODEL on top — the
+   title, the exp form in its general shape (always true, so it can never
+   contradict the pills; it is also one un-wrappable <math>, which is why
+   the LIVE line below it is the per-term ln row), then the pill-following
+   ln row, then the baseline note. The note answers his own review
+   question in place — "is disease the intercept?": no, h₀(t) is. The
+   canvas card head (title, formula, gloss) is GONE; the forest stands on
+   its axis alone. */
+const EXP_ROW_MATH =
+  "<math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>"
+  + "<msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#xD7;</mo>"
+  + "<mi>exp</mi><mo>(</mo>"
+  + "<msub><mi>b</mi><mn>1</mn></msub><msub><mi>x</mi><mn>1</mn></msub>"
+  + "<mo>+</mo><msub><mi>b</mi><mn>2</mn></msub><msub><mi>x</mi><mn>2</mn></msub>"
+  + "<mo>+</mo><mo>&#x2026;</mo><mo>)</mo></mrow></math>";
+const EXP_ROW_PLAIN = "h(t) = h₀(t) × exp( b₁x₁ + b₂x₂ + … )";
+const BASELINE_NOTE =
+  "h₀(t) is the baseline hazard — the intercept’s role: every exp(b) multiplies it, by the same factor at every time";
+
 let bridgeHost = null;
 let bridgeKey = null;
 function renderBridge(params) {
@@ -313,7 +349,11 @@ function renderBridge(params) {
   const key = `${params.disease ? 1 : 0}${params.age ? 1 : 0}${params.snps ? 1 : 0}`;
   if (key === bridgeKey) return;
   bridgeKey = key;
-  bridgeHost.innerHTML = `<div class="w-math-eq" style="min-height:0">${bridgeHTML(params)}</div>`;
+  bridgeHost.innerHTML =
+    '<div style="font-weight:600;font-size:var(--fs-sm);color:var(--ink-2);margin-bottom:4px">Cox proportional hazards</div>'
+    + `<div class="w-math-eq" style="min-height:0">${MATHML ? EXP_ROW_MATH : EXP_ROW_PLAIN}</div>`
+    + `<div class="w-math-eq" style="min-height:0">${bridgeHTML(params)}</div>`
+    + `<div class="w-math-note" style="font-size:var(--fs-xs)">${BASELINE_NOTE}</div>`;
 }
 
 defineWidget({
@@ -437,13 +477,38 @@ defineWidget({
       default: "moderate",
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
+    /* THE GROUND TRUTH AS A LEVER (round 13 — Kenneth: let students set
+       how many SNPs truly matter and see what detection costs). Measured
+       at the defaults, 100 seeds per cell: a lone causal SNP is found
+       76% of the time, each of three ~88%, each of five ~93% — and at 0,
+       the fit still stars a null SNP on 67% of draws (54 events across
+       12 covariates), which the Significant tile names honestly. */
+    causal: {
+      type: "choice",
+      label: "Causal SNPs",
+      detail: "how many of the ten SNPs truly shorten survival",
+      options: [
+        { value: "0", label: "0", detail: "no SNP matters — any star is a false positive" },
+        { value: "1", label: "1" },
+        { value: "3", label: "3" },
+        { value: "5", label: "5" },
+      ],
+      default: "3",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    /* 5 · 9 · 12 · 25, re-pinned in round 13 (Kenneth: the old ladder had
+       no corner where a too-short study fails). Measured, 100 seeds per
+       cell at n = 200 moderate: 5 y → 3 events, log-rank fires 26%, Cox
+       finds NOTHING (88% of fits refuse); 9 y → the strong factors
+       survive (disease/age 100%) while each SNP drops to ~55%; 12 y →
+       the default; 25 y → censoring dissolves, 200 events of 200. */
     follow: {
       type: "choice",
       label: "Follow-up",
       options: [
+        { value: "5", label: "5 y" },
+        { value: "9", label: "9 y" },
         { value: "12", label: "12 y" },
-        { value: "15", label: "15 y" },
-        { value: "20", label: "20 y" },
         { value: "25", label: "25 y" },
       ],
       default: "12",
@@ -500,11 +565,16 @@ defineWidget({
       label: "The model",
       when: { param: "concept", equals: "factors" },
     },
+    /* disease starts PRESSED (round 13 — Kenneth: "should it not already
+       be included?"). The reader arrives from Comparing groups holding
+       the disease HR; this tab's question is which OTHER factors matter,
+       so the tab opens on tab 2's number re-met, not on its own answer —
+       the answer here is what age and the SNPs DO to it. */
     disease: {
       type: "bool",
       style: "pill",
       label: "disease",
-      default: false,
+      default: true,
       display: true,
       when: { param: "concept", equals: "factors" },
     },
@@ -558,6 +628,7 @@ defineWidget({
       effect: EFFECTS[params.effect],
       follow: Number(params.follow),
       shift: SHIFT,
+      causal: Number(params.causal),
     });
     const per = (grp) => {
       const t = sim.time.filter((_, i) => sim.disease[i] === grp);
@@ -835,7 +906,12 @@ defineWidget({
       tiles.push({
         label: "Significant",
         value: String(nSig),
-        note: "covariates in this model with p below 0.05",
+        /* at Causal SNPs 0 the truth is a generator setting the reader
+           chose, so the claim is licensed (the Disease effect: None
+           precedent) — and needed: 67 of 100 draws star a null SNP */
+        note: params.snps && params.causal === "0"
+          ? "no SNP truly shortens survival in this cohort — a starred SNP is a false positive"
+          : "covariates in this model with p below 0.05",
       });
     }
     return tiles;
@@ -1372,24 +1448,19 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
   drawGroupCurves(ctx, colors, plot, state, t, { labels: false, ticks: false });
   drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
 
-  /* the card */
+  /* the card head is the .w-math card above the figure now (round 13);
+     what stays on canvas is the one-line honesty slot. Small studies —
+     and now the 5-year follow-up — break a 12-coefficient fit (measured:
+     24/50 draws at n = 30, 88/100 at follow 5): when it happens, say so
+     rather than letting an off-axis whisker pass for a finding. */
   ctx.save();
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  ctx.fillStyle = colors.ink2;
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillText("Cox proportional hazards", 14, CARD_TOP);
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillStyle = colors.ink3;
-  ctx.fillText("h(t) = h₀(t) × exp(b₁x₁ + … )", 14, CARD_TOP + 16);
-  ctx.fillText("each exp(b) multiplies the hazard by a constant factor, at every time", 14, CARD_TOP + 30);
-  /* small studies break a 12-coefficient fit (measured: 24/50 draws at
-     n = 30 give a runaway HR) — when it happens here, say so rather than
-     letting an off-axis whisker pass for a finding */
   const keyNow = keyOf(params);
   if (keyNow && Object.values(state.fits[keyNow].byName).some((c) => c.hr > 50 || c.hr < 0.02)) {
     ctx.fillStyle = colors.extreme;
-    ctx.fillText("too few patients to pin this many coefficients — some intervals run off the axis", 14, CARD_TOP + 44);
+    ctx.fillText("too few patients to pin this many coefficients — some intervals run off the axis", 14, CARD_TOP);
   }
   ctx.restore();
 

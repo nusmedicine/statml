@@ -3216,6 +3216,67 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 13 — the ground truth becomes a lever; the model moves above the figure
+
+**Kenneth's review of round 12, four asks, every one mocked or measured
+before the build** (the mock page grew §5; the grids are 100 seeds per
+cell at n = 200 moderate, re-run through the shipping generator):
+
+- **The card above the figure (pick V2)**: title, the exp form in its
+  GENERAL shape, the pill-following ln row, and a baseline note — the
+  canvas card head (title, formula, gloss) is gone and the forest gained
+  its 30px back, keeping one RESERVED line for the too-few-patients
+  warning so a bad draw cannot jog the forest (3.4d). The exp row is
+  general on purpose: a name-carrying exp row goes false the moment the
+  pills disagree with it, and it is one un-wrappable `<math>` — the LIVE
+  line is the per-term ln row. The note answers Kenneth's own review
+  question in place ("is disease the intercept?"): **h₀(t) is the
+  baseline hazard — the intercept's role: every exp(b) multiplies it.**
+- **Causal SNPs 0 · 1 · 3 · 5** (default 3) in the data section — the
+  generator's ground truth as a data lever (model.js amendment 3):
+  the first k of the ten SNPs subtract a year each, and **k = 3
+  reproduces the round-8 generator bit for bit** (asserted on seed 7 in
+  the drive), so the clean default draw survives untouched. Measured
+  detection at the defaults: a lone causal SNP 76%, each of three ~88%,
+  each of five ~93%. **The k = 0 finding that needed a call**: 67 of 100
+  draws still star at least one null SNP (54 events across 12
+  covariates — events-per-variable, the honesty line's cousin), so the
+  Significant tile's note computes to "no SNP truly shortens survival in
+  this cohort — a starred SNP is a false positive" — licensed because
+  the truth is a generator setting the reader chose (the Disease
+  effect: None precedent).
+- **Follow-up re-pinned to 5 · 9 · 12 · 25** — Kenneth: the old ladder
+  (12/15/20/25) "doesn't really do anything"; measurement agreed —
+  detection was total from 12 up, no rung failed. The new ladder's four
+  lessons: **5 y — the study was not run long enough and NOTHING is
+  detectable on either cohort tab** (3 events median, log-rank fires
+  26%, Cox 0% on every covariate, 88% of fits refuse with the
+  too-few-patients line); 9 y — the strong factors survive (disease/age
+  100%) while each SNP drops to ~55% and all-three to 15%; 12 y — the
+  default (SNPs ~88%, all-three 70%); 25 y — censoring dissolves, 200
+  events of 200. The short rungs exposed a latent generator fault: the
+  staggered-entry censoring time `follow − uniform(0,10)` goes NEGATIVE
+  below follow 10.5 — a time no axis can draw — so it is floored at 0.5
+  (amendment 3's second half; touches nothing at the old ladder).
+- **The disease pill starts PRESSED.** Kenneth's confusion ("disease is
+  the baseline? it should already be included?") was the finding: the
+  reader arrives from Comparing groups holding the disease HR, and the
+  tab's question is which OTHER factors matter. Opening with tab 2's
+  number re-met is not opening on the tab's own answer — the answer is
+  what age and the SNPs do to it. The baseline note carries the
+  conceptual correction.
+
+Verified: drive re-pinned at **124 checks** (the ladders asserted
+option-for-option; the k = 3 ≡ legacy identity; the F = 5 floor; the
+false-positive note firing at k = 0 and not at k = 3; the
+disease-default fixes to the ease and readout sweeps); in-browser at
+550px — the factors sweep reads NO canvas title, 0 overruns, 0
+collisions, end labels present; F = 5 on groups reads "Events 1 of 200"
+with log-rank p 0.593 on the default draw; causal=0 shows the note; no
+console errors on any tab. `npm run check` green. The catalogue's
+round-12 numbers that changed: the follow options and disease default —
+everything else stands.
+
 ### Round 12 — consolidated to the notebook; the bridge drawn as MathML
 
 **The round opened with an adversarial notebook-vs-widget review against
