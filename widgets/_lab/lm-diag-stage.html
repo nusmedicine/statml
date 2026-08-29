@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 33 stage — lm-diagnostics candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 780px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 780px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 33 · <code>lm-diagnostics</code> — the stage, drawn before it is argued</h1>
+
+  <p class="note">
+    <b>The brief (05-01 cells 53–62 + the Application section):</b> how well
+    does the model fit — R² and adjusted R², then
+    <code>autoplot(which&nbsp;=&nbsp;1:2)</code>: <b>Residuals vs Fitted</b>
+    and the <b>Normal Q-Q</b>, with the notebook's three reading bullets
+    (residuals hover around 0 → the linear form is appropriate; a horizontal
+    band → equal variance; no significant outliers). The fit is the
+    notebook's own <code>sysBP ~ BMI</code> on the arc's shared frame
+    (n&nbsp;=&nbsp;3547). <b>Measured first</b>
+    (<code>node widgets/_lab/lm-diag-measure.mjs</code>, 20 checks): R²
+    0.1064831 and adjusted 0.106231 to the digit, and the three points the
+    stored autoplot labels (rows 404, 1003, 1668) are this pipeline's three
+    largest |standardized residuals| — residuals, sigma and leverage
+    verified against the notebook's own figure in one check.
+    <b>The fact the design leans on:</b> the real data <i>passes</i> the
+    first two readings (the smooth moves ~5px at panel scale; SD ratio 1.22
+    across fitted fifths) and <b>visibly fails the third check, normality</b>
+    — residual skewness 1.13, the Q-Q's right tail 0.9&nbsp;SD off the line
+    at theoretical +2. A real dataset that is mostly fine and gently wrong
+    is the honest opening state; the violations that are unmistakable come
+    from the generator in §2.
+  </p>
+
+  <h2>§1 · Stage composition — does the data panel earn its place?</h2>
+  <p class="note">
+    <b>A</b> is the notebook's own layout: the two diagnostic panels and
+    nothing else. <b>B</b> puts the data (scatter + fitted line) above them,
+    so a reader can trace one patient three times — the point, its residual,
+    its quantile; the three labelled outliers make that concrete. B is what
+    makes §2's generator legible (you SEE the curved data, then see what the
+    plots do with it), at ~260px more height. Both are drawn at the
+    side-layout stage width (~780px).
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — the diagnostic pair alone (the notebook's shape)</h3>
+      <p class="sub">Residuals vs Fitted beside Normal Q-Q, standardized residuals on the Q-Q as autoplot draws it</p>
+      <canvas id="compA" width="780" height="300"></canvas>
+    </div>
+    <div class="cand">
+      <h3>B — the data above its own diagnostics</h3>
+      <p class="sub">the same patient appears three times: in the data, as a residual, as a quantile — the labelled rows 404 / 1003 / 1668 drawn in all three</p>
+      <canvas id="compB" width="780" height="560"></canvas>
+    </div>
+  </div>
+
+  <h2>§2 · Breaking the assumptions — the generator, and what each plot detects</h2>
+  <p class="note">
+    The design question the handover flags: the real data's plots are
+    (mostly) healthy, so <b>the diagnostics have nothing to detect until the
+    reader can break an assumption</b>. The generator keeps the real fit's
+    own line (b₀ 87.07, b₁ 1.72, the real BMI values) and breaks exactly one
+    thing at a time — seeded, so every URL reproduces. Settings below are
+    the measured legibility thresholds. <b>Each row: the data, then what
+    Residuals-vs-Fitted sees, then what the Q-Q sees.</b> Note the cross-talk,
+    which is honest: strong curvature also bends the Q-Q (a wrong model
+    class makes big standardized residuals), and the fan thickens the Q-Q
+    tails. Frames are FIXED across all four rows (2.5) so a scenario switch
+    reads as the data changing, not the axes.
+  </p>
+  <div class="row"><div class="cand">
+    <h3>Framingham — the real data</h3>
+    <p class="sub" id="cap-real"></p>
+    <canvas id="sc-real" width="780" height="250"></canvas>
+  </div></div>
+  <div class="row"><div class="cand">
+    <h3>curved — the linear form is wrong (curve 0.2)</h3>
+    <p class="sub" id="cap-curve"></p>
+    <canvas id="sc-curve" width="780" height="250"></canvas>
+  </div></div>
+  <div class="row"><div class="cand">
+    <h3>fanning — unequal variance (fan 3)</h3>
+    <p class="sub" id="cap-fan"></p>
+    <canvas id="sc-fan" width="780" height="250"></canvas>
+  </div></div>
+  <div class="row"><div class="cand">
+    <h3>the envelope candidate — local ±2 SD rails, real data beside the fan</h3>
+    <p class="sub">BMI's density hides the funnel (most patients sit left, the wide right is sparse — judged on the row above), so the fan may need a MARK: rails at ±2 local SD. Flat rails = equal variance; a funnel = heteroskedasticity. On the real data the rails also carry the "horizontal band" bullet.</p>
+    <canvas id="sc-env" width="780" height="250"></canvas>
+  </div></div>
+  <div class="row"><div class="cand">
+    <h3>skewed noise — non-normal residuals (log-normal)</h3>
+    <p class="sub" id="cap-skew"></p>
+    <canvas id="sc-skew" width="780" height="250"></canvas>
+  </div></div>
+  <p class="note">
+    <b>The control question:</b> a segmented <b>Data</b> control naming the
+    scenarios (Framingham · curved · unequal spread · skewed noise — each a
+    named violation the reader diagnoses) versus <b>two dials</b> (curvature,
+    fanning) that bend one synthetic dataset continuously. The segmented
+    form matches the arc's vocabulary and keeps each violation clean; dials
+    let a reader watch a violation GROW into the plots, at the cost of a
+    two-parameter space where most corners break two assumptions at once.
+    A middle path: segmented scenario + one <b>strength</b> slider that
+    scales the chosen violation from 0 to the drawn setting.
+  </p>
+
+  <h2>§3 · The Residuals-vs-Fitted marks — what ships on the panel</h2>
+  <p class="note">
+    All candidates carry the dashed zero line (the reading is "hover around
+    0", so the 0 must be drawn). <b>M1</b> is dots alone. <b>M2</b> adds the
+    smoothed trend — the mark that turns "hovering" into a line a projector
+    can read (5px of movement on the real data, 24px when curved).
+    <b>M3</b> adds the three largest |standardized residuals| labelled by
+    row, as autoplot does, and a ±2&nbsp;SD guide band for the "no
+    significant outliers" bullet. <b>The y-scale question rides with M3:</b>
+    the real outlier at +141 stretches the axis to 7&nbsp;SD, squashing the
+    band the first two bullets are about (that is what the notebook's own
+    figure looks like); clamping at ±3&nbsp;SD keeps the band legible and
+    parks clipped outliers at the edge with a count — drawn as <b>M4</b>.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>M1 — dots and the zero line</h3>
+      <p class="sub">the notebook's panel minus the smooth</p>
+      <canvas id="m1" width="360" height="300"></canvas>
+    </div>
+    <div class="cand">
+      <h3>M2 — + the smoothed trend</h3>
+      <p class="sub">flat = linear form appropriate; the projector mark</p>
+      <canvas id="m2" width="360" height="300"></canvas>
+    </div>
+    <div class="cand">
+      <h3>M3 — + labels and the ±2 SD band</h3>
+      <p class="sub">full y-range: honest about +7.1 SD, thin about the band</p>
+      <canvas id="m3" width="360" height="300"></canvas>
+    </div>
+    <div class="cand">
+      <h3>M4 — M3 clamped at ±3 SD</h3>
+      <p class="sub">the band breathes; clipped outliers parked at the edge, counted</p>
+      <canvas id="m4" width="360" height="300"></canvas>
+    </div>
+  </div>
+
+  <h2>§4 · Adjusted R² — where the bias argument actually fires</h2>
+  <p class="note">
+    The notebook's claim: R² is biased upward as covariates are added;
+    adjusted R² accounts for it. <b>Measured: at n&nbsp;=&nbsp;3547 the bias
+    is invisible</b> — ten pure-noise covariates move R² from 0.106 to 0.109
+    while adjusted stays 0.106. At <b>n&nbsp;=&nbsp;30</b> the same ten move
+    R² from 0.15 to <b>0.45</b> while adjusted wanders around 0.11. So the
+    lesson has two candidate homes: <b>tiles only</b> (R² and adjusted R² in
+    the readout, always in agreement on this data — the bias stays a
+    sentence), or <b>a small-n act</b>: a seeded subsample of 30 patients,
+    a "junk covariates" stepper, and the two paths drawn live — R² climbing
+    on noise alone, adjusted refusing. The chart below is that act's figure,
+    drawn from one seed (the widget's Seed control would make the wander
+    part of the lesson).
+  </p>
+  <div class="row"><div class="cand">
+    <h3>the small-n act — R² climbs on pure noise, adjusted R² refuses</h3>
+    <p class="sub" id="cap-junk"></p>
+    <canvas id="junk" width="550" height="300"></canvas>
+  </div></div>
+
+  <p class="note">
+    <b>Open interaction questions, for the build session rather than this
+    page:</b> whether the diagnostics sit behind the arc's <b>Fit the
+    model</b> gate (the plots are properties of a fit; before it, the stage
+    is the data alone — widget 26's shape); whether a scenario switch eases
+    the dots to their new positions (a data change, so it resets any
+    animation — but the x positions never move, only y, which is exactly the
+    26/28 slide); what the readout holds (R², adjusted R², residual SD; the
+    verdict-line question from 2.11 — any printed reading must be computed
+    from the drawn residuals, not from the scenario parameter); and whether
+    the three reading bullets live as the caption cycling with the scenario
+    or as legend-adjacent prose.
+  </p>
+</main>
+
+<script type="module">
+import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
+import { makeRng } from "../core/rng.js";
+import { diagnostics, loessAt, makeSynth, qnorm } from "./lm-diag-model.js";
+import { ols } from "../lm-least-squares/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), theory: css("--c-theory"),
+  smoothed: css("--c-smoothed"), highlight: css("--c-highlight"),
+  unknown: css("--c-unknown"), extreme: css("--c-extreme"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const fmt = (v, d = 2) => v.toFixed(d);
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+
+/* the real fit and the generator, shared by every section */
+const REAL = diagnostics(SYSBP, BMI);
+const S0 = Math.sqrt(REAL.fit.sigma2);
+const synth = makeSynth(BMI, REAL.fit.b[0], REAL.fit.b[1], S0);
+const TOP3 = REAL.std.map((v, i) => i)
+  .sort((a, b) => Math.abs(REAL.std[b]) - Math.abs(REAL.std[a])).slice(0, 3);
+
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return ctx;
+}
+function frame(ctx, r, xd, yd, xl, yl, { xTicks, yTicks } = {}) {
+  const sx = (v) => r.x + ((v - xd[0]) / (xd[1] - xd[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `9px ${C.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  for (const v of xTicks ?? []) ctx.fillText(String(v), sx(v), r.y + r.h + 11);
+  if (xl) { ctx.font = `10px ${C.font}`; ctx.fillText(xl, r.x + r.w / 2, r.y + r.h + 24); ctx.font = `9px ${C.font}`; }
+  ctx.textAlign = "right";
+  for (const v of yTicks ?? []) ctx.fillText(String(v), r.x - 4, sy(v) + 3);
+  if (yl) { ctx.save(); ctx.translate(r.x - 30, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.font = `10px ${C.font}`; ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return { sx, sy };
+}
+function clip(ctx, r, fn) {
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip(); fn(); ctx.restore();
+}
+
+/* fixed frames across every scenario row (2.5) — sized to hold every
+   scenario's data (curve reaches y 344 / fitted 209; fan reaches y 10;
+   skew's residual 165), measured in-page before they were fixed */
+const DATA_Y = [10, 350];
+const RVF_Y = [-170, 170];
+const RVF_X = [105, 215];
+const QQ_X = [-3.85, 3.85]; /* qnorm((n−0.5)/n) = 3.63 at n = 3547 — the extremes must fit */
+const QQ_Y = [-4.5, 9];
+
+function drawData(ctx, r, y, d, { mark3 = false } = {}) {
+  const p = frame(ctx, r, [15, 57], DATA_Y, "BMI", "sysBP",
+    { xTicks: [20, 30, 40, 50], yTicks: [100, 200, 300] });
+  clip(ctx, r, () => {
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = C.unknown;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath(); ctx.arc(p.sx(BMI[i]), p.sy(y[i]), 1.2, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    /* the LINEAR fit to this data — what the diagnostics interrogate */
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.sx(15), p.sy(d.fit.b[0] + d.fit.b[1] * 15));
+    ctx.lineTo(p.sx(57), p.sy(d.fit.b[0] + d.fit.b[1] * 57));
+    ctx.stroke();
+    if (mark3) {
+      for (const i of TOP3) {
+        ctx.strokeStyle = C.highlight; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(p.sx(BMI[i]), p.sy(y[i]), 4, 0, 2 * Math.PI); ctx.stroke();
+        ctx.fillStyle = C.highlight; ctx.font = `600 9px ${C.font}`; ctx.textAlign = "left";
+        ctx.fillText(String(i + 1), p.sx(BMI[i]) + 6, p.sy(y[i]) + 3);
+      }
+    }
+  });
+  return p;
+}
+function drawRvf(ctx, r, d, { smooth = true, mark3 = false, band = false, envelope = false, yd = RVF_Y, clamp = false, std = false } = {}) {
+  const s = sd(d.resid);
+  const p = frame(ctx, r, RVF_X, yd, "fitted values", std ? "standardized residuals" : "residuals",
+    { xTicks: [120, 160, 200], yTicks: clamp ? [-2, 0, 2] : [-100, 0, 100] });
+  const val = (i) => (std ? d.std[i] : d.resid[i]);
+  clip(ctx, r, () => {
+    if (band) {
+      /* a slab at alpha 0.3 drowned the dots (judged on screen) — faint
+         fill, dashed edges carry the threshold */
+      const b = std ? 2 : 2 * s;
+      ctx.fillStyle = C.grid; ctx.globalAlpha = 0.12;
+      ctx.fillRect(r.x, p.sy(b), r.w, p.sy(-b) - p.sy(b));
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([2, 3]); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+      for (const e of [b, -b]) {
+        ctx.beginPath(); ctx.moveTo(r.x, p.sy(e)); ctx.lineTo(r.x + r.w, p.sy(e)); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    if (envelope) {
+      /* the local-spread envelope: ±2·sqrt(loess of resid²) — a flat pair
+         of rails = equal variance, a funnel = heteroskedasticity. The
+         candidate mark for the "horizontal band" bullet. Drawn over the
+         DENSE fitted window only (1%–99%): at the sparse edges the local
+         fit extrapolates and the rails blew up on one panel and pinched
+         to zero on the other (judged on screen). */
+      const sorted = d.fit.fitted.slice().sort((a, b) => a - b);
+      const [flo, fhi] = [sorted[Math.floor(0.01 * N)], sorted[Math.floor(0.99 * N)]];
+      const grid = Array.from({ length: 41 }, (_, i) => flo + ((fhi - flo) * i) / 40);
+      const v = loessAt(d.fit.fitted, d.resid.map((e) => e * e), 0.75, grid);
+      ctx.strokeStyle = C.theory; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      for (const sign of [2, -2]) {
+        ctx.beginPath();
+        grid.forEach((x, i) => {
+          const e = sign * Math.sqrt(Math.max(0, v[i])) / (std ? s : 1);
+          if (i === 0) ctx.moveTo(p.sx(x), p.sy(e)); else ctx.lineTo(p.sx(x), p.sy(e));
+        });
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(r.x + r.w, p.sy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.25; ctx.fillStyle = C.unknown;
+    let clipped = 0;
+    for (let i = 0; i < N; i += 1) {
+      let v = val(i);
+      if (clamp && (v < yd[0] || v > yd[1])) {
+        clipped += 1;
+        v = Math.max(yd[0] + (yd[1] - yd[0]) * 0.012, Math.min(yd[1] - (yd[1] - yd[0]) * 0.012, v));
+      }
+      ctx.beginPath(); ctx.arc(p.sx(d.fit.fitted[i]), p.sy(v), 1.2, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (smooth) {
+      /* the smooth is drawn over THIS fit's own fitted range — past it the
+         window degenerates and the line would be an extrapolation */
+      const [flo, fhi] = [Math.min(...d.fit.fitted), Math.max(...d.fit.fitted)];
+      const grid = Array.from({ length: 41 }, (_, i) => flo + ((fhi - flo) * i) / 40);
+      const g = loessAt(d.fit.fitted, d.resid, 0.75, grid);
+      ctx.strokeStyle = C.smoothed; ctx.lineWidth = 2;
+      ctx.beginPath();
+      grid.forEach((x, i) => {
+        const v = std ? g[i] / s : g[i];
+        if (i === 0) ctx.moveTo(p.sx(x), p.sy(v)); else ctx.lineTo(p.sx(x), p.sy(v));
+      });
+      ctx.stroke();
+    }
+    if (mark3) {
+      ctx.fillStyle = C.highlight; ctx.font = `600 9px ${C.font}`; ctx.textAlign = "left";
+      for (const i of TOP3) {
+        let v = val(i);
+        if (clamp) v = Math.min(yd[1] - (yd[1] - yd[0]) * 0.012, v);
+        ctx.fillText(String(i + 1), p.sx(d.fit.fitted[i]) + 4, p.sy(v) + 3);
+      }
+    }
+    if (clamp && clipped) {
+      ctx.fillStyle = C.ink3; ctx.font = `9px ${C.font}`; ctx.textAlign = "right";
+      ctx.fillText(`${clipped} beyond +3 SD, at the edge`, r.x + r.w - 6, r.y + 12);
+    }
+  });
+  return p;
+}
+function drawQq(ctx, r, d, { mark3 = false } = {}) {
+  const p = frame(ctx, r, QQ_X, QQ_Y, "theoretical quantiles", "standardized residuals",
+    { xTicks: [-2, 0, 2], yTicks: [-2, 0, 2, 4, 6, 8] });
+  clip(ctx, r, () => {
+    /* the quartile line — the theoretical claim the points are checked against */
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = C.theory; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.sx(QQ_X[0]), p.sy(d.line.inter + d.line.slope * QQ_X[0]));
+    ctx.lineTo(p.sx(QQ_X[1]), p.sy(d.line.inter + d.line.slope * QQ_X[1]));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.35; ctx.fillStyle = C.empirical;
+    for (const q of d.qq) {
+      ctx.beginPath(); ctx.arc(p.sx(q.th), p.sy(q.std), 1.3, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (mark3) {
+      ctx.fillStyle = C.highlight; ctx.font = `600 9px ${C.font}`; ctx.textAlign = "left";
+      for (const q of d.qq) {
+        if (TOP3.includes(q.idx)) ctx.fillText(String(q.idx + 1), p.sx(q.th) + 4, p.sy(q.std) + 3);
+      }
+    }
+  });
+  return p;
+}
+
+/* ---- §1 A — the pair alone ---------------------------------------------- */
+{
+  const ctx = ctx2d("compA");
+  drawRvf(ctx, { x: 50, y: 30, w: 300, h: 230 }, REAL, { smooth: true, mark3: true });
+  drawQq(ctx, { x: 445, y: 30, w: 300, h: 230 }, REAL, { mark3: true });
+  ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("Residuals vs Fitted", 50, 20);
+  ctx.fillText("Normal Q-Q", 445, 20);
+}
+/* ---- §1 B — data above the pair ------------------------------------------ */
+{
+  const ctx = ctx2d("compB");
+  drawData(ctx, { x: 50, y: 30, w: 695, h: 210 }, SYSBP, REAL, { mark3: true });
+  drawRvf(ctx, { x: 50, y: 300, w: 300, h: 220 }, REAL, { smooth: true, mark3: true });
+  drawQq(ctx, { x: 445, y: 300, w: 300, h: 220 }, REAL, { mark3: true });
+  ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("the data, and the fit the diagnostics interrogate", 50, 20);
+  ctx.fillText("Residuals vs Fitted", 50, 290);
+  ctx.fillText("Normal Q-Q", 445, 290);
+}
+
+/* ---- §2 — the scenario rows ---------------------------------------------- */
+function scenarioRow(canvasId, capId, y, capText) {
+  const d = diagnostics(y, BMI);
+  const ctx = ctx2d(canvasId);
+  drawData(ctx, { x: 50, y: 14, w: 190, h: 190 }, y, d);
+  drawRvf(ctx, { x: 310, y: 14, w: 190, h: 190 }, d, { smooth: true });
+  drawQq(ctx, { x: 570, y: 14, w: 190, h: 190 }, d);
+  /* the measured caption, computed live from the same functions */
+  const s = sd(d.resid);
+  const byFit = d.fit.fitted.map((v, i) => i).sort((a, b) => d.fit.fitted[a] - d.fit.fitted[b]);
+  const fifth = (k) => sd(byFit.slice(Math.floor((k * N) / 5), Math.floor(((k + 1) * N) / 5)).map((i) => d.resid[i]));
+  /* the caption's "smooth moves" is measured over the DENSE fitted window
+     (1%–99%) — the sparse right edge wanders and would overstate flatness's
+     opposite (the measure script does the same) */
+  const sorted = d.fit.fitted.slice().sort((a, b) => a - b);
+  const q01 = sorted[Math.floor(0.01 * N)];
+  const q99 = sorted[Math.floor(0.99 * N)];
+  const grid = Array.from({ length: 41 }, (_, i) => q01 + ((q99 - q01) * i) / 40);
+  const g = loessAt(d.fit.fitted, d.resid, 0.75, grid);
+  const bow = (Math.max(...g) - Math.min(...g)) / s;
+  document.getElementById(capId).textContent =
+    `${capText} — smooth moves ${fmt(bow, 2)} SD, SD ratio (5th/1st fitted fifth) ${fmt(fifth(4) / fifth(0), 2)}, `
+    + `max|stdres| ${fmt(Math.max(...d.std.map(Math.abs)), 1)}, R² ${fmt(d.fit.r2, 3)}`;
+}
+scenarioRow("sc-real", "cap-real", SYSBP,
+  "flat band, right tail lifts off the Q-Q line");
+scenarioRow("sc-curve", "cap-curve", synth(makeRng(1), { curve: 0.2 }),
+  "the smooth bows — the model needs a curve the line cannot give");
+scenarioRow("sc-fan", "cap-fan", synth(makeRng(1), { fan: 3 }),
+  "the band widens left to right — heteroskedasticity");
+/* the envelope candidate: real beside fan, rails drawn */
+{
+  const ctx = ctx2d("sc-env");
+  const yFan = synth(makeRng(1), { fan: 3 });
+  drawRvf(ctx, { x: 50, y: 14, w: 300, h: 190 }, REAL, { smooth: false, envelope: true });
+  drawRvf(ctx, { x: 445, y: 14, w: 300, h: 190 }, diagnostics(yFan, BMI), { smooth: false, envelope: true });
+  ctx.fillStyle = C.ink2; ctx.font = `600 10px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText("Framingham — the rails run level", 50, 10);
+  ctx.fillText("fan 3 — the rails open left to right", 445, 10);
+}
+scenarioRow("sc-skew", "cap-skew", synth(makeRng(1), { skewed: true }),
+  "band and smooth fine; only the Q-Q catches it");
+
+/* ---- §3 — the marks ------------------------------------------------------- */
+{
+  const r = { x: 50, y: 26, w: 290, h: 240 };
+  drawRvf(ctx2d("m1"), r, REAL, { smooth: false });
+  drawRvf(ctx2d("m2"), r, REAL, { smooth: true });
+  drawRvf(ctx2d("m3"), r, REAL, { smooth: true, mark3: true, band: true });
+  drawRvf(ctx2d("m4"), r, REAL, { smooth: true, mark3: true, band: true, std: true, clamp: true, yd: [-3.3, 3.3] });
+}
+
+/* ---- §4 — the junk-covariate act ----------------------------------------- */
+{
+  const NSUB = 30;
+  const KS = Array.from({ length: 11 }, (_, k) => k);
+  const rng = makeRng(7);
+  let ix = Array.from({ length: N }, (_, i) => i);
+  ix = rng.shuffle(ix).slice(0, NSUB);
+  const xs = ix.map((i) => BMI[i]);
+  const ys = ix.map((i) => SYSBP[i]);
+  /* junk columns accumulate, so each k extends the last — the stepper's
+     own behaviour, not a fresh draw per k */
+  const junk = [];
+  const path = KS.map((k) => {
+    while (junk.length < k) junk.push(xs.map(() => rng.normal()));
+    const fit = ols(ys, xs, ...junk.slice(0, k));
+    return { k, r2: fit.r2, adj: fit.adjR2 };
+  });
+  const ctx = ctx2d("junk");
+  const r = { x: 60, y: 30, w: 440, h: 220 };
+  /* y floor at −0.25: this seed's adjusted R² dips to −0.12, which is
+     itself the lesson's sharpest fact — adjusted can go NEGATIVE on junk */
+  const p = frame(ctx, r, [0, 10], [-0.25, 0.8], "unrelated covariates added", "R²",
+    { xTicks: [0, 2, 4, 6, 8, 10], yTicks: [-0.2, 0, 0.2, 0.4, 0.6, 0.8] });
+  ctx.setLineDash([4, 3]); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(r.x + r.w, p.sy(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  const pathLine = (key, color, label) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    path.forEach((q, i) => { if (i === 0) ctx.moveTo(p.sx(q.k), p.sy(q[key])); else ctx.lineTo(p.sx(q.k), p.sy(q[key])); });
+    ctx.stroke();
+    ctx.fillStyle = color;
+    for (const q of path) { ctx.beginPath(); ctx.arc(p.sx(q.k), p.sy(q[key]), 3, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.font = `600 10px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText(label, p.sx(10) - 90, p.sy(path[10][key]) - 8);
+  };
+  pathLine("r2", C.extreme, `R² — ${fmt(path[10].r2, 2)} on pure noise`);
+  pathLine("adj", C.empirical, `adjusted R² — ${fmt(path[10].adj, 2)}`);
+  ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+  ctx.fillText(`n = ${NSUB} patients, sysBP ~ BMI + noise columns (seed 7)`, r.x, 20);
+  document.getElementById("cap-junk").textContent =
+    `one seeded subsample: R² ${fmt(path[0].r2, 3)} → ${fmt(path[10].r2, 3)} across ten junk columns; `
+    + `adjusted ${fmt(path[0].adj, 3)} → ${fmt(path[10].adj, 3)} (mean over 20 seeds: 0.15 → 0.45 vs ~0.12 flat)`;
+}
+</script>
+</body>
+</html>

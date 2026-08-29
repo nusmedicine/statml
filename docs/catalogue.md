@@ -3214,6 +3214,102 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
+## NEXT · Widget 33 · `lm-diagnostics` — planned and measured 2026-08-29, mock built, awaiting Kenneth's picks
+
+**The brief (Kenneth's queue, after `lm-interaction`'s revived act):** a new
+widget supporting 05-01, cells 53–62 plus the Application section from 63 —
+goodness of fit (R², adjusted R² with the bias argument) and
+`autoplot(which = 1:2)`: **Residuals vs Fitted and the Normal Q-Q**, with
+the notebook's three reading bullets (residuals hover around 0 → the linear
+form is appropriate; a horizontal band → equal variance; no significant
+outliers). The fit is the notebook's own `sysBP ~ BMI` on the arc's shared
+frame (n = 3547). The scope boundary was drawn at widget 27's round 8 and
+holds: **lm-least-squares reads a LINE's residuals, this widget reads a
+MODEL's** — curve/funnel/skew as verdicts on the model class belong here
+and only here.
+
+**The machinery is built and verified** (the lm-model.js arrangement —
+planning copies in `_lab/`, one function per fact):
+
+- [`_lab/lm-diag-model.js`](../widgets/_lab/lm-diag-model.js) — `qnorm`
+  (Acklam, checked against R's), the diagnostic pipeline (`rstandard` via
+  closed-form simple-regression leverage; Q-Q positions via R's `ppoints`
+  with a = 1/2; the quartile line `qqline` draws), `loessAt` (local-linear
+  tricube — a mark, not a printed number), and `makeSynth`, the
+  assumption-breaking generator.
+- [`_lab/lm-diag-measure.mjs`](../widgets/_lab/lm-diag-measure.mjs) —
+  **20 checks, all passing**: R² 0.1064831 and adjusted 0.106231 to the
+  digit (cells 56/59), and — the check that ties residuals, sigma and
+  leverage together in one line — **the three rows the notebook's stored
+  autoplot labels (404, 1003, 1668) are this pipeline's three largest
+  |standardized residuals|**. The figure-read values (max stdres ~7.3, the
+  residual extremes) carry honest wide tolerances; the PNG is the source.
+
+**Measured before design** — the facts the mock answers to:
+
+- **The real data passes the first two readings and visibly fails the
+  third.** The residual smooth moves ~5px on a 250px panel (flat); the SD
+  ratio across fitted fifths is 1.22 (near-equal variance); but residual
+  skewness is 1.13 and the Q-Q's right tail sits **0.88 SD off the line at
+  theoretical +2** (1.87 SD at +3). A real dataset that is mostly fine and
+  gently wrong is the honest opening state — the notebook's own bullet
+  says "roughly normally distributed", and the widget can show exactly how
+  rough. The unmistakable violations come from the generator.
+- **Generator legibility thresholds** (same BMI xs, the real fit's own
+  line, one violation at a time, seeded): curvature 0.2 bows the smooth
+  24px at panel scale (0.1 gives 12px); the fan must ramp over the
+  **1%–99% BMI window** — ramped over the full range it spends itself on
+  the outlier tail and never shows (measured, the first version's
+  mistake) — and needs fan ≈ 3 (SD ratio 2.0) before the cloud itself
+  funnels, because BMI's density piles the points left; log-normal noise
+  lifts the Q-Q gap at +2 to 1.25 SD while leaving band and smooth clean.
+  Cross-talk is real and honest: strong curvature also inflates
+  |stdres| (6.5 at curve 0.2), so a curved model bends the Q-Q too.
+- **The adjusted-R² bias argument does not fire at n = 3547.** Ten
+  pure-noise covariates: R² 0.106 → 0.109, adjusted 0.106 flat (mean over
+  20 seeds). At **n = 30** the same ten take R² 0.15 → 0.45 while adjusted
+  wanders ~0.12 — and single seeds dip **negative** (seed 7: −0.12), which
+  is the sharpest version of the claim. So the bias lesson needs a
+  small-n act (seeded subsample + junk-covariate stepper) or it stays a
+  sentence; that is a Kenneth call, drawn in the mock's §4.
+- **Two edge artifacts worth not rediscovering**: the loess smooth and the
+  local-SD envelope both extrapolate at the sparse fitted edges — the
+  envelope blew up on the real data's right edge and pinched to zero on
+  the fan's left until both were restricted to the dense (1%–99%) window.
+
+**The mock-up page is BUILT** —
+[`_lab/lm-diag-stage.html`](../widgets/_lab/lm-diag-stage.html), every
+panel drawn from the shared module on the real data, captions computed
+live. Four sections, each a design question for Kenneth's pick:
+
+- **§1 stage composition**: A the notebook's own pair (RvF | Q-Q, nothing
+  else) vs **B** the data panel above the pair — the same patient traced
+  three times (point, residual, quantile), with the three labelled rows
+  ringed in all three panels; B is what makes the generator legible, at
+  ~260px more height.
+- **§2 the generator**: four scenario rows (Framingham · curved 0.2 ·
+  fan 3 · skewed noise), frames FIXED across rows (2.5) so a scenario
+  switch reads as the data changing; plus the **envelope candidate** —
+  rails at ±2 local SD, level on the real data, a funnel under fan 3 —
+  the mark that makes the fan legible where BMI's density hides it. The
+  control question: a segmented Data control naming the scenarios vs two
+  dials (curvature/fanning) vs segmented + one strength slider.
+- **§3 the RvF marks**: dots+zero / +smooth / +labels+±2 band (full
+  range — honest about +7.1 SD, thin about the band) / the same clamped
+  at ±3 SD with clipped outliers parked at the edge and counted. The
+  ±2 band is faint fill + dashed edges (a 0.3-alpha slab drowned the
+  dots, judged on screen).
+- **§4 adjusted R²**: the small-n act's figure — n = 30, junk covariates
+  0 → 10, R² climbing on pure noise while adjusted refuses (and this
+  seed goes negative) — against the tiles-only alternative.
+
+**Open interaction questions, deliberately left for the build session**:
+whether the diagnostics sit behind the arc's **Fit the model** gate;
+whether a scenario switch eases the dots (x never moves, only y — the
+26/28 slide); what the readout holds (R², adjusted R², residual SD — and
+2.11: any printed verdict must be computed from the drawn residuals,
+never from the scenario parameter); where the three reading bullets live.
+
 ## Widget 32 · `mixed-model` — SHIPPED 2026-08-29, seven rounds in one day
 
 **The misconception (slot 6, Hurlbert 1984): 500 rows are 500 observations.**

@@ -37,20 +37,29 @@ URL** — that difference is the region geometry proven.
    - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
      (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
      LEGEND, a core door — `legend` may be a function of the params).
-   - **NEXT: `lm-diagnostics`**: a new widget supporting the 05-01
-     notebook. Its material is cells 53–62 (+ the Application section
-     from 63): goodness of fit (R², adjusted R² with the bias argument)
-     and `autoplot(which = 1:2)` — **Residuals vs Fitted and the Q-Q
-     plot** — with three reading bullets (residuals hover around 0 =
-     linear fit appropriate; a horizontal band = equal variance, else
-     heteroskedasticity; no significant outliers). Start the usual way:
-     read 05-01 cell by cell (the shared Framingham stage and `ols` in
-     `widgets/lm-least-squares/` already exist — data.js carries all 16
-     columns), measure through `_lab/`, mock the stage, Kenneth picks.
-     Likely design questions: which fit (the notebook uses BMI models);
-     whether the widget lets the reader BREAK the assumptions (a curved
-     or fanning generator beside the real data) so the plots have
-     something to detect — that is the kind of thing to mock, not argue.
+   - **IN PROGRESS: `lm-diagnostics` — planned, measured, MOCK BUILT
+     2026-08-29; AWAITING KENNETH'S PICKS.** The full planning record is
+     catalogue § *NEXT · Widget 33*. At hand:
+
+     ```bash
+     node scripts/serve.mjs 8010
+     # http://localhost:8010/widgets/_lab/lm-diag-stage.html   ← the mock, four pick sections
+     node widgets/_lab/lm-diag-measure.mjs   # 20 checks — R²/adjR² to the digit, and the
+     #   stored autoplot's three labelled rows (404/1003/1668) are OUR three largest |stdres|
+     ```
+
+     The machinery is `_lab/lm-diag-model.js` (qnorm, rstandard pipeline,
+     loess, the seeded assumption-breaking generator) — the lm-model.js
+     arrangement, moves into the widget at build. The facts the picks
+     turn on: the real data is flat + equal-variance but **fails
+     normality visibly** (Q-Q +0.88 SD off at theoretical +2); the
+     generator needs curve 0.2 / fan 3 (dense-window ramp) / log-normal
+     noise to be legible; **the adjusted-R² bias argument does NOT fire
+     at n = 3547** and needs a small-n act (n = 30: R² 0.15 → 0.45 on ten
+     junk covariates, adjusted flat or negative) or stays a sentence.
+     §1 composition (pair alone vs data-above-pair), §2 scenario control
+     shape, §3 RvF marks (smooth/labels/band/clamp), §4 the bias act —
+     all drawn, each awaiting a pick.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
