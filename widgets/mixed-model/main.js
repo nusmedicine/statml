@@ -162,7 +162,7 @@ const reTerm = (sc, ranef) =>
 defineWidget({
   slug: "mixed-model",
   title: "Modeling Hierarchical Data",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "We can measure the same patient many times, but repeated measurements " +
     "are not independent. A linear mixed model gives each patient a random " +

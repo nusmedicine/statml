@@ -1882,6 +1882,97 @@
    },
    "px": "5718855c",
    "tx": "e8d03f8c"
+  },
+  {
+   "$note": "SETTLED: Repeated defaults at Independent — the misconception's own view; Draw 7's lm claims -2.4 [-4.3, -0.5] on a truth of zero. All ten recorded 2026-08-29 at DPR 1.25 with _lab/mixed-shoot.html: copy proved 4/4, three shots identical, every drive non-inert.",
+   "slug": "mixed-model",
+   "state": "?theme=light",
+   "px": "7b2a626b",
+   "tx": "a5f56dea"
+  },
+  {
+   "$note": "SETTLED: the Related view — trajectories joined, the honest interval across zero, the lmer formula leading the card.",
+   "slug": "mixed-model",
+   "state": "?theme=light&view=related",
+   "px": "94e8c1a7",
+   "tx": "27c05005"
+  },
+  {
+   "$note": "SETTLED: the 500-row trade corner (25 patients x 20 visits) — the honest interval at its widest.",
+   "slug": "mixed-model",
+   "state": "?theme=light&view=related&patients=25&visits=20",
+   "px": "4cb0ad59",
+   "tx": "16cfcb08"
+  },
+  {
+   "$note": "SETTLED: Nested at Independent — 1000 dots in collection order, lm alone in the forest, the lmer tile withheld.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=nested",
+   "px": "7c206fd1",
+   "tx": "07fe79bc"
+  },
+  {
+   "$note": "SETTLED: Nested Related with Family differences none — the flat band, the two fits agreeing.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=nested&view=related&famdiff=none",
+   "px": "e20f63b6",
+   "tx": "83f04441"
+  },
+  {
+   "$note": "SETTLED: Nested Related with the truth set to SNPs 5+6 (causal=48) — two reference dots in the forest.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=nested&view=related&causal=48",
+   "px": "80c70fbe",
+   "tx": "d19eb380"
+  },
+  {
+   "$note": "SETTLED: the Syntax hero — school scenario, Both intent, the 20px formula and its per-token key in tx.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=syntax&ranef=slope&scenario=school",
+   "px": "ae01cad5",
+   "tx": "7203aca8"
+  },
+  {
+   "$note": "DRIVEN: mid-join on Repeated — view set to Related, 4 frames; trajectories partway grown, the lmer interval printed from the lerped endpoints.",
+   "slug": "mixed-model",
+   "state": "?theme=light",
+   "drive": {
+    "set": {
+     "view": "related"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "291d6caf",
+   "tx": "867b62a8"
+  },
+  {
+   "$note": "DRIVEN: mid-travel on Nested — the thousand dots between collection order and their family columns, span bars and lmer rows fading in.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=nested",
+   "drive": {
+    "set": {
+     "view": "related"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "d7bb582e",
+   "tx": "7ee4352a"
+  },
+  {
+   "$note": "DRIVEN: mid-pivot on Syntax — intent set from Intercept to Both, 4 frames; the group lines partway to their own slopes, tiles printed from the eased lines.",
+   "slug": "mixed-model",
+   "state": "?theme=light&concept=syntax&ranef=intercept",
+   "drive": {
+    "set": {
+     "ranef": "slope"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "ccc82bf7",
+   "tx": "c7589379"
   }
  ]
 }

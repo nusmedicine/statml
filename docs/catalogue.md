@@ -3178,7 +3178,7 @@ agreed, and three revive entries from the deferred table above
 | 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | **SHIPPED 2026-08-28** |
 | 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | **SHIPPED 2026-08-28** (revived deferred `interaction-effect`) |
 | 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | **SHIPPED 2026-08-29** (renamed from `censoring-km`, Kenneth 2026-08-28) |
-| 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | **in review 2026-08-29** — draft built, two rounds (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
+| 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | **SHIPPED 2026-08-29** — seven rounds in one day (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
 | 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **SHIPPED 2026-08-27** |
 
 **The linear four wear an `lm-` prefix — agreed with Kenneth 2026-08-28.** The
@@ -3214,7 +3214,7 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## Widget 32 · `mixed-model` — in review (draft), started 2026-08-29
+## Widget 32 · `mixed-model` — SHIPPED 2026-08-29, seven rounds in one day
 
 **The misconception (slot 6, Hurlbert 1984): 500 rows are 500 observations.**
 Measured before anything was argued, the arc's rhythm:
@@ -3271,6 +3271,24 @@ fits are verified decision-identical to full fits (0 flips over 100+100
 studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
 pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
 (F_LO below defineWidget while a families-tab URL draws during it).
+
+### Round 7 — promotion: ten states through the shooter
+
+**Kenneth's "tested ok"** after confirming the defaults carry the
+notebook's finding (they do, by construction: Draw 7 at effect None is
+the pinned default story; Draws 5/6/8/10 vary it, Draw 3 fools both
+models — the honest caveat). Promotion ran the lm-shoot route:
+`_lab/mixed-shoot.html` proved its harness copy 4/4 against recorded
+baseline hashes, shot ten states three times each (all STABLE), and shot
+every driven state's bare URL beside it (all non-inert). Seven settled —
+both Repeated views, the 25×20 trade corner, the Nested cloud, the flat
+famdiff=none band, the two-causal-SNP forest (causal=48), the Syntax
+hero — and three driven mid-ease (`set view=related` on each data tab,
+`set ranef=slope` on Syntax). No regions, so no hit state owed. DPR
+checked at 1.25 before recording. The confirming full-suite run read
+**217 of 217 MATCH** — no `widgets/core/` change was ever made, and the
+207 pre-existing states held on the same run. Manifest and status →
+shipped; the 05-07 link handed to Kenneth to place.
 
 ### Round 6 — the code leads the Syntax page
 

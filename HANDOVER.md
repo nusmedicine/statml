@@ -1,7 +1,10 @@
 # Handover
 
-**Thirty-one widgets, all shipped, all on the gallery, and 207
-fingerprint states recorded.**
+**Thirty-two widgets, all shipped, all on the gallery, and 217
+fingerprint states recorded. THE AGREED MODELING ARC IS COMPLETE** —
+widget 32 `mixed-model` (05-07, the arc's last slot) shipped 2026-08-29
+after seven review rounds in one day; see its section below and
+catalogue § Widget 32.
 
 **THE MODELING ARC'S FIVE lm-/CAUSAL SLOTS ARE ALL SHIPPED AND LIVE**,
 built over 2026-08-27/28: widget 26 `fork-pipe-collider` (nine rounds),
@@ -29,15 +32,15 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-1. **NEXT TASK: `mixed-model`** (05-07, Hierarchical Data — 500 rows
-   are 500 observations; Hurlbert 1984). **Last of the agreed arc.**
-   Start the usual way: read the 05-07 notebook cell by cell, measure
-   through a `model.js` + `-measure.mjs` pair in `_lab/`, mock the
-   stage before arguing it, and take Kenneth's picks from the mock —
-   widget 31's record (catalogue § Widget 31, rounds 1–18) is the
-   freshest full example of the rhythm, including what an adversarial
-   notebook-vs-widget review buys before any build.
-2. **Notebook links now owed for all SIX shipped modeling-arc widgets** —
+1. **KENNETH'S QUEUE, in his order (stated 2026-08-29, saved to memory
+   as `after-mixed-model-queue`):**
+   - **`lm-interaction`**: add the two interacting CONTINUOUS variables
+     to match the 05-04 notebook — he thinks BMI and age; verify against
+     the notebook before building.
+   - **`lm-diagnostics`**: a new widget supporting the 05-01 notebook.
+   - **`roc-auc`**: to be based on an existing JS app Kenneth will
+     upload; DO NOT start until he provides it.
+2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
@@ -45,8 +48,53 @@ URL** — that difference is the region geometry proven.
    - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
    - 05-04 (widget 30): `Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
+   - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–31 included.
+   widgets 26–32 included.
+3. **05-07's own notebook fix, agreed with Kenneth 2026-08-29**: the SNP
+   `lm` adjusts for `family_id` as an INTEGER (one slope over the family
+   index — measured identical to no adjustment). The agreed edit: drop
+   `+ family_id` from the lm and reword its bullet to "ignoring the
+   family structure"; `as.factor` would also be correct but reaches
+   lmer's own conclusion and kills the lesson's contrast (catalogue
+   § Widget 32 has the full measured comparison, including why
+   fixed-effects adjustment is near-equivalent here and where mixed
+   models genuinely win).
+
+**WIDGET 32 `mixed-model` SHIPPED AND PUSHED 2026-08-29** after SEVEN
+rounds in one day — the full record is catalogue § *Widget 32*. What a
+later session most needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/mixed-model/                        (Repeated)
+# .../?concept=nested&view=related                                  (the family columns)
+# .../?concept=syntax&scenario=school&ranef=slope                   (the formula, large)
+node widgets/_lab/mixed-drive.mjs      # 97 checks, no browser, no clock
+node widgets/_lab/mixed-measure.mjs    # 89 checks — the engine against the notebook AND lme4
+node widgets/_lab/mixed-design.mjs     # the dial measurements (~2 min)
+```
+
+- **The engine is a zero-dependency REML fitter pinned to lme4 itself**
+  (criteria agree to ~1e-10 on both notebook examples; `_lab/mixed-ref.R`
+  regenerates the notebook's data exactly in base R and, with lme4 in the
+  user library at `%LOCALAPPDATA%/R/win-library/4.5`, writes lme4's own
+  fits into `mixed-ref.json`). R 4.5.2 is at `C:\Program Files\R\R-4.5.2`;
+  **Rscript needed a SimpleWall approval** (asked, Kenneth unblocked) and
+  **`Rscript -e` with long multiline strings SEGFAULTS on this machine —
+  always run a script file.**
+- **No Step, no Play, no gate**: figures open finished; the two eases
+  (Measurements Independent→Related on both data tabs, the Syntax line
+  pivots) run on core's easing-request door. The repeat-the-study tally
+  was built, measured, and CUT in round 3 on Kenneth's call — its
+  numbers (lm false-claims 34–44% at every n while agreement sits ~70%)
+  live in catalogue § Widget 32 for the lesson prose.
+- **The TDZ trap struck twice** (F_LO, then formulaHost): core calls
+  draw() during defineWidget, so every binding draw() touches sits above
+  it, with the warning attached.
+- Ten states recorded via `_lab/mixed-shoot.html` (copy proved 4/4,
+  three shots identical, drives non-inert); the confirming suite run
+  read **217 of 217 MATCH**.
 
 **WIDGET 31 `time-event` SHIPPED AND PUSHED 2026-08-29** after EIGHTEEN
 rounds in one long day of Kenneth's live review — the full record, every
@@ -131,7 +179,17 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 207 states, all matching
+## The suite: 217 states, all matching
+
+**Widget 32 added ten states on 2026-08-29 with `_lab/mixed-shoot.html`**
+(the lm-shoot pattern): copy proved 4/4 against recorded hashes, every
+state shot three times in one run and identical, every drive checked
+non-inert against its bare URL. Seven settled, three driven mid-ease
+(`set view=related` on each data tab, `set ranef=slope` on Syntax — the
+only harness verbs the widget has; no regions, so no hit state owed).
+The confirming full-suite run read **217 of 217 MATCH**; nothing in
+`widgets/core/` moved for this widget, and the 207 pre-existing states
+held on the same run.
 
 **Widget 31 added nine states on 2026-08-29 through the full suite**
 (the widget-24 route, no shooter): three whole-suite runs at DPR 1.25
@@ -285,6 +343,7 @@ is blind to.
 | 29 | `lm-categorical` | shipped as **Fitting a Categorical Covariate**. ONE round in one session (2026-08-28); seven states — four settled, two driven, one hit-driven. NOT yet judged projected; 05-03 link not yet placed |
 | 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds in one session (2026-08-28); ten states — six settled, three driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
 | 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
+| 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
