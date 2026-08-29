@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 15 — a one-covariate act, three candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 640px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 15 · <code>logistic-regression</code> — a one-covariate act, measured</h1>
+
+  <p class="note">
+    Kenneth (2026-08-29): the two-covariate BMI/age stage may confuse — 05-05's
+    cell 4 introduces the logit as <code>log(p/(1−p)) = b₀ + b₁x</code>, one
+    covariate — and the sigmoid should be SEEN spanning 0 to 1. Three candidates
+    below, each fitted today on framingham.csv (<code>_scratch/logit1.py</code>).
+    Every dot is a bin of real patients (area tracks the count); the straight
+    line is least squares on the same 0/1 outcome — the failure the widget's
+    step 1 exists to show.
+  </p>
+
+  <h2>A · One covariate, the lesson's outcome — CHD ~ age</h2>
+  <p class="note">
+    Stays on 05-05's own outcome, but both lessons go flat: the fitted
+    probability spans only <b>0.04 → 0.41</b> across the data (p = 0.5 lands at
+    age 74.8, past the oldest patient), so the sigmoid reads as a ramp — and the
+    straight line makes just <b>6 of 4221</b> people impossible, so the failure
+    step 1 needs is nearly invisible.
+  </p>
+  <div class="row"><div class="cand">
+    <h3>A — the ramp</h3>
+    <p class="sub">glm(TenYearCHD ~ age): b₀ = −5.542, b₁ = 0.074</p>
+    <canvas id="candA" width="640" height="360"></canvas>
+  </div></div>
+
+  <h2>B · One covariate with the whole sigmoid — prevalentHyp ~ sysBP</h2>
+  <p class="note">
+    The pair that was <b>built and cut at the first review</b> (catalogue
+    § Widget 15) — the only pair in the file whose probability spans
+    <b>0.0003 → 1.000</b>. The S-curve saturates at both ends inside the axis;
+    the straight line makes <b>794 of 4240 people (18.7%) impossible</b> and
+    predicts up to 269%; and the fitted 50% point lands at <b>141.6 mmHg</b>
+    against the clinical hypertension threshold of 140 — a self-check a reader
+    can perform. The equation card would read cell 4's own line:
+    <code>log( p / (1−p) ) = b₀ + b₁ × [sysBP]</code>.
+  </p>
+  <div class="row"><div class="cand">
+    <h3>B — the full S, and the line that leaves the box</h3>
+    <p class="sub">glm(prevalentHyp ~ sysBP): b₀ = −19.979, b₁ = 0.141 · p = 0.5 at 141.6 mmHg</p>
+    <canvas id="candB" width="640" height="360"></canvas>
+  </div></div>
+
+  <h2>C · Synthetic — dial b₀ and b₁</h2>
+  <p class="note">
+    The cleanest match to cell 4's algebra: sliders for b₀ and b₁, the sigmoid
+    always full, no dataset to explain. What it loses: the real-patient dots the
+    curve answers to, the straight-line failure (it needs data to make people
+    impossible), and the 140 mmHg self-check. Two settings shown.
+  </p>
+  <div class="row"><div class="cand">
+    <h3>C — the bare function at two slopes</h3>
+    <p class="sub">p = 1 / (1 + e^−(b₀ + b₁x)) at b₁ = 0.6 and b₁ = 1.6</p>
+    <canvas id="candC" width="640" height="360"></canvas>
+  </div></div>
+
+  <h2>The proposal</h2>
+  <p class="note">
+    <b>B as a new opening tab — "One covariate"</b> — with cell 4's equation on
+    the card, the dots, the failing straight line and the sigmoid the link buys;
+    the existing three-rung ladder with the lesson's
+    <code>CHD ~ BMI + age</code> becomes the second tab ("the lesson's model"),
+    unchanged. This revives measured work rather than inventing: B was cut only
+    because "matching 05-05 matters more", and an opening act that matches
+    cell 4 IS matching 05-05. Questions: 1) B over C (or C as a third,
+    slider-driven beat)? 2) does the one-covariate tab reuse the three-rung
+    ladder or stay a single probability panel? 3) tab names.
+    The final build would refit on the notebook's exact row set.
+  </p>
+</main>
+
+<script>
+const HYP = "84,3,0;86,1,0;90,2,0;92,5,0;94,5,0;96,35,0;98,19,1;100,62,0;102,43,0;104,87,0;106,35,0;108,164,1;110,106,1;112,214,4;114,87,3;116,215,1;118,120,3;120,255,8;122,128,9;124,266,24;126,103,8;128,260,31;130,121,15;132,232,43;134,81,14;136,177,47;138,82,25;140,157,93;142,74,46;144,136,93;146,60,38;148,113,88;150,58,42;152,80,70;154,34,30;156,77,60;158,37,35;160,71,65;162,22,22;164,65,61;166,16,15;168,40,37;170,22,20;172,35,34;174,12,12;176,34,34;178,11,11;180,28,28;182,14,14;184,18,18;186,6,5;188,17,16;190,9,9;192,14,13;194,1,1;196,18,18;198,5,5;200,10,8;202,3,3;204,5,5;206,5,5;208,4,4;210,4,4";
+const CHD_AGE = "32,1,0;33,5,0;34,14,0;35,33,2;36,77,2;37,80,4;38,124,7;39,147,6;40,167,11;41,145,10;42,161,14;43,137,11;44,143,11;45,140,13;46,166,13;47,114,18;48,149,17;49,116,20;50,123,19;51,123,26;52,129,24;53,116,21;54,119,18;55,123,19;56,105,24;57,108,24;58,97,27;59,100,28;60,98,25;61,91,20;62,91,24;63,96,29;64,80,18;65,46,14;66,34,13;67,38,17;68,16,7;69,5,1;70,1,0";
+const parse = (s) => s.split(";").map((t) => t.split(",").map(Number));
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-empirical","--c-theory","--c-highlight","--c-reference","--c-extreme",
+ "--ink-1","--ink-2","--ink-3","--grid","--surface-1"].forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+// probability panel: axis past 0/1 (the widget's own move), dots, OLS line, sigmoid
+function panel(id, { rows, xLo, xHi, ticks, xLabel, logit, ols, marks }) {
+  const ctx = document.getElementById(id).getContext("2d");
+  const x = 56, y = 24, w = 560, h = 300;
+  const P_LO = -0.45, P_HI = 1.3;
+  const sx = (v) => x + (v - xLo) / (xHi - xLo) * w;
+  const sy = (p) => y + h - (p - P_LO) / (P_HI - P_LO) * h;
+
+  ctx.strokeStyle = C["grid"]; ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  // the box: 0 and 1 ruled
+  for (const b of [0, 1]) {
+    ctx.strokeStyle = C["ink-3"]; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(x, sy(b)); ctx.lineTo(x + w, sy(b)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "right";
+  for (const p of [0, 0.5, 1]) ctx.fillText(p.toFixed(1), x - 6, sy(p) + 3);
+  ctx.textAlign = "center";
+  for (const t of ticks) ctx.fillText(String(t), sx(t), y + h + 14);
+  ctx.fillText(xLabel, x + w / 2, y + h + 30);
+  ctx.save(); ctx.translate(x - 36, y + h / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("probability", 0, 0); ctx.restore();
+
+  // the straight line (least squares on the 0/1 outcome)
+  ctx.strokeStyle = C["c-extreme"]; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx(xLo), sy(ols[0] + ols[1] * xLo));
+  ctx.lineTo(sx(xHi), sy(ols[0] + ols[1] * xHi));
+  ctx.stroke();
+
+  // the sigmoid
+  ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let i = 0; i <= 240; i += 1) {
+    const v = xLo + (i / 240) * (xHi - xLo);
+    const p = 1 / (1 + Math.exp(-(logit[0] + logit[1] * v)));
+    i ? ctx.lineTo(sx(v), sy(p)) : ctx.moveTo(sx(v), sy(p));
+  }
+  ctx.stroke();
+
+  // the binned patients
+  ctx.fillStyle = C["ink-2"];
+  ctx.globalAlpha = 0.75;
+  for (const [v, n, k] of rows) {
+    if (v < xLo || v > xHi) continue;
+    const r = Math.min(8, 2 + Math.sqrt(n) * 0.4);
+    ctx.beginPath(); ctx.arc(sx(v), sy(k / n), r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  for (const m of marks ?? []) {
+    ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(sx(m.x), y); ctx.lineTo(sx(m.x), y + h); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C["c-highlight"]; ctx.font = MONO_S; ctx.textAlign = "left";
+    ctx.fillText(m.label, sx(m.x) + 5, y + 14);
+  }
+
+  ctx.font = MONO; ctx.textAlign = "left";
+  ctx.fillStyle = C["c-empirical"]; ctx.fillText("logistic", x + 8, y + 16);
+  ctx.fillStyle = C["c-extreme"]; ctx.fillText("straight line", x + 8, y + 30);
+}
+
+panel("candA", {
+  rows: parse(CHD_AGE), xLo: 32, xHi: 70, ticks: [35, 45, 55, 65],
+  xLabel: "age", logit: [-5.54221, 0.07406], ols: [-0.3101, 0.00929],
+});
+panel("candB", {
+  rows: parse(HYP), xLo: 84, xHi: 210, ticks: [100, 125, 150, 175, 200],
+  xLabel: "systolic blood pressure (mmHg)",
+  logit: [-19.97908, 0.14110], ols: [-1.6261, 0.01463],
+  marks: [{ x: 141.6, label: "p = 0.5 at 141.6" }],
+});
+
+// C: the bare function, two slopes
+{
+  const ctx = document.getElementById("candC").getContext("2d");
+  const x = 56, y = 24, w = 560, h = 300;
+  const sx = (v) => x + (v + 6) / 12 * w;
+  const sy = (p) => y + h - p * (h - 20) - 10;
+  ctx.strokeStyle = C["grid"]; ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "right";
+  for (const p of [0, 0.5, 1]) ctx.fillText(p.toFixed(1), x - 6, sy(p) + 3);
+  ctx.textAlign = "center"; ctx.fillText("x", x + w / 2, y + h + 14);
+  for (const [b1, col] of [[0.6, C["c-empirical"]], [1.6, C["c-theory"]]]) {
+    ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 240; i += 1) {
+      const v = -6 + (i / 240) * 12;
+      const p = 1 / (1 + Math.exp(-b1 * v));
+      i ? ctx.lineTo(sx(v), sy(p)) : ctx.moveTo(sx(v), sy(p));
+    }
+    ctx.stroke();
+    ctx.fillStyle = col; ctx.font = MONO; ctx.textAlign = "left";
+    ctx.fillText(`b₁ = ${b1}`, sx(1.2 / b1) + 8, sy(1 / (1 + Math.exp(-1.2))) + (b1 > 1 ? -8 : 14));
+  }
+}
+</script>
+</body>
+</html>
