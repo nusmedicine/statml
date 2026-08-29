@@ -215,6 +215,9 @@ defineWidget({
     "the censored in the risk set until they leave, so the curve uses " +
     "everything that was seen.",
   layout: "side",
+  /* round 11: the hover inspector (a guide line and one reading of the
+     figure at the hovered year) and the scrub (drag the clock) */
+  pointer: true,
   height: ({ concept, patients, snps }) => (concept === "censoring" ? patHeight(patients)
     : concept === "groups" ? GRP_HEIGHT : FACT_HEIGHT(snps)),
 
@@ -654,12 +657,36 @@ defineWidget({
       anim.done = anim.t >= state.tEnd[timeKey(params.concept)];
       retargetForest(anim, params, state);
     },
+    /* THE SCRUB (round 11): dragging on a time panel hands the reader the
+       clock. anim only — no parameter is written; a playhead was never in
+       the URL. On Finding factors only the compact curves scrub — a drag
+       on the forest must not move time. */
+    scrubHit: ({ x, y, w, params }) => {
+      const left = 56;
+      const right = w - 14;
+      if (x < left - 8 || x > right + 8) return false;
+      if (params.concept === "factors") {
+        return y > FCURVE_Y - 14 && y < FCURVE_Y + FCURVE_H + 30;
+      }
+      return true;
+    },
+    scrub: (anim, { x, w, params, state }) => {
+      const left = 56;
+      const right = w - 14;
+      const axis = params.concept === "censoring" ? T1MAX : state.t2max;
+      const tEnd = state.tEnd[timeKey(params.concept)];
+      const tt = Math.max(0, Math.min(((x - left) / (right - left)) * axis, tEnd));
+      delete anim.stepTarget;
+      delete anim.stepFrom;
+      anim.t = tt;
+      anim.done = tt >= tEnd - 1e-9;
+    },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     const t = anim?.t ?? 0;
-    if (params.concept === "censoring") drawCensoring(ctx, colors, w, params, state, t);
-    else if (params.concept === "groups") drawGroups(ctx, colors, w, params, state, t);
+    if (params.concept === "censoring") drawCensoring(ctx, colors, w, params, state, t, pointer);
+    else if (params.concept === "groups") drawGroups(ctx, colors, w, params, state, t, pointer);
     else drawFactors(ctx, colors, w, params, state, t, anim);
   },
 
@@ -838,6 +865,42 @@ function drawBand(ctx, plot, steps, tCut, color) {
   ctx.restore();
 }
 
+/* --- the hover inspector (round 11) ---------------------------------------- *
+ * A guide line at the hovered year and ONE reading of the figure, composed
+ * of coloured segments. Clamped to the built portion of the curve — hovering
+ * ahead of the cursor must not leak the future. Everything it shows also
+ * lives in the tiles or on the marks: the lecture screen has no hover, so
+ * the inspector is a convenience, never the carrier. */
+function drawInspector(ctx, colors, { pointer, left, right, axis, tCap, yTop, yBot, textY, segsAt }) {
+  if (!pointer) return;
+  if (pointer.x < left - 4 || pointer.x > right + 4 || pointer.y < yTop || pointer.y > yBot) return;
+  const tt = Math.max(0, Math.min(((pointer.x - left) / (right - left)) * axis, tCap));
+  const gx = left + (tt / axis) * (right - left);
+  ctx.save();
+  ctx.strokeStyle = colors.ink3;
+  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(gx, yTop);
+  ctx.lineTo(gx, yBot);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textBaseline = "alphabetic";
+  const segs = segsAt(tt);
+  const total = segs.reduce((sum, [, txt]) => sum + ctx.measureText(txt).width, 0);
+  let sx = right - total;
+  ctx.textAlign = "left";
+  for (const [color, txt] of segs) {
+    ctx.fillStyle = color;
+    ctx.fillText(txt, sx, textY);
+    sx += ctx.measureText(txt).width;
+  }
+  ctx.restore();
+}
+
 /* --- the time cursor, hidden once the sweep is over ----------------------- */
 function drawCursor(ctx, colors, x, yTop, yBot, t, tMax) {
   if (t <= 0 || t >= tMax) return;
@@ -859,7 +922,7 @@ function drawCursor(ctx, colors, x, yTop, yBot, t, tMax) {
 }
 
 /* --- tab 1: Censoring ------------------------------------------------------ */
-function drawCensoring(ctx, colors, w, params, state, t) {
+function drawCensoring(ctx, colors, w, params, state, t, pointer) {
   const left = 56;
   const right = w - 14;
   const X = (v) => left + (v / T1MAX) * (right - left);
@@ -1028,6 +1091,25 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   ctx.restore();
 
   drawCursor(ctx, colors, X(Math.min(t, T1MAX)), LANES_Y - 12, hy(0), t, state.tEnd.censoring);
+
+  drawInspector(ctx, colors, {
+    pointer,
+    left,
+    right,
+    axis: T1MAX,
+    tCap: Math.min(t, state.tEnd.censoring),
+    yTop: LANES_Y - 6,
+    yBot: hy(0),
+    textY: curve1Y(state.nPat) + 14,
+    segsAt: (tt) => {
+      const inData = treatment === "dropped"
+        ? state.fiveT.filter((v, i) => state.fiveS[i] === 1)
+        : state.fiveT;
+      const risk = inData.filter((v) => v >= tt).length;
+      const S = readS(state.five[treatment].steps, tt);
+      return [[colors.ink2, `year ${fmt(tt, 1)} · at risk ${risk} · survival ${fmt(S, 2)}`]];
+    },
+  });
 }
 
 /* --- shared: the two group curves, clipped to the cursor ------------------- */
@@ -1063,7 +1145,7 @@ function drawGroupCurves(ctx, colors, plot, state, t, { bands = false, truth = f
 }
 
 /* --- tab 2: Comparing groups ----------------------------------------------- */
-function drawGroups(ctx, colors, w, params, state, t) {
+function drawGroups(ctx, colors, w, params, state, t, pointer) {
   const left = 56;
   const right = w - 14;
   const rect = { x: left, y: KM2_Y, w: right - left, h: KM2_H };
@@ -1081,6 +1163,31 @@ function drawGroups(ctx, colors, w, params, state, t) {
   }
   drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
   drawCursor(ctx, colors, plot.sx(Math.min(t, state.t2max)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
+
+  drawInspector(ctx, colors, {
+    pointer,
+    left,
+    right,
+    axis: state.t2max,
+    tCap: Math.min(t, state.tEnd.groups),
+    yTop: KM2_Y - 6,
+    yBot: HR_TOP + HR_HEAD + 8 + HR_H,
+    textY: KM2_Y + 14,
+    segsAt: (tt) => {
+      const risk = (g) => state.groups[g].times.filter((v) => v >= tt).length;
+      const S = (g) => readS(state.groups[g].kept.steps, tt);
+      return [
+        [colors.ink2, `year ${fmt(tt, 1)} · at risk `],
+        [colors.groupA, String(risk(0))],
+        [colors.ink2, " / "],
+        [colors.groupB, String(risk(1))],
+        [colors.ink2, ` · survival `],
+        [colors.groupA, fmt(S(0), 2)],
+        [colors.ink2, " / "],
+        [colors.groupB, fmt(S(1), 2)],
+      ];
+    },
+  });
 
   /* THE HAZARD BY INTERVAL (round 5, replacing the H4 rates panel on
      Kenneth's review — "what are the bars? the x axis is not aligned").

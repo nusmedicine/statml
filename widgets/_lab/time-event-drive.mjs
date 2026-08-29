@@ -253,6 +253,30 @@ console.log("\n== the forest's ease, pumped by hand ==");
   ck("a SNP row arrived with it", Math.abs(a.rows.snp1.a - 1) < 1e-3);
 }
 
+console.log("\n== the pointer channel (round 11) ==");
+{
+  ck("declares pointer: true (the hover inspector's repaints)", W.pointer === true);
+  ck("declares animation.scrub and scrubHit",
+    typeof W.animation.scrub === "function" && typeof W.animation.scrubHit === "function");
+  const sc = W.animation.init({ params: { ...values }, state, fromScratch: true });
+  sc.mode = "step";
+  W.animation.advance(sc, { dt: 16, params: { ...values }, state }); // a tween in flight
+  const hadTween = sc.stepTarget !== undefined;
+  W.animation.scrub(sc, { x: 56 + (900 - 70) / 2, y: 100, w: 900, params: { ...values }, state });
+  ck("scrub sets the clock mid-axis and cancels the step tween",
+    hadTween && sc.stepTarget === undefined && sc.t > 0 && sc.t < state.tEnd.censoring);
+  W.animation.scrub(sc, { x: 5000, y: 100, w: 900, params: { ...values }, state });
+  ck("scrub clamps to the sweep's end and reads done", sc.t === state.tEnd.censoring && sc.done === true);
+  W.animation.scrub(sc, { x: -5000, y: 100, w: 900, params: { ...values }, state });
+  ck("...and to zero", sc.t === 0 && sc.done === false);
+  const pf = { ...values, concept: "factors" };
+  ck("on Finding factors only the compact curves scrub (the forest does not)",
+    W.animation.scrubHit({ x: 300, y: 80, w: 900, params: pf }) === true
+    && W.animation.scrubHit({ x: 300, y: 400, w: 900, params: pf }) === false);
+  ck("the other tabs scrub anywhere on their stages",
+    W.animation.scrubHit({ x: 300, y: 500, w: 900, params: { ...values } }) === true);
+}
+
 console.log("\n== readout and summary: no NaN, no undefined, anywhere ==");
 let dirty = 0;
 let states = 0;

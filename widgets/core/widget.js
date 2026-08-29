@@ -305,6 +305,12 @@ export function defineWidget(config) {
     state = compute({ params: { ...values }, rng, colors });
   }
 
+  /* The pointer's position in DRAWING coordinates, or null — see the
+     pointer-channel block below. Declared here, above paint(), because
+     paint runs during the defineWidget call itself and a later `let` would
+     still be in its temporal dead zone at first paint. */
+  let pointerPos = null;
+
   function paint({ syncAddressBar = false } = {}) {
     /* A HEIGHT FUNCTION GETS THE PARAMETERS **AND THE WIDTH**, and resolving it
        is `resize`'s job. It used to resolve here, one line earlier, which was
@@ -317,7 +323,7 @@ export function defineWidget(config) {
       typeof height === "function" ? (cw) => height({ ...values, w: cw }) : null
     );
     surface.clear();
-    draw({ ctx: surface.ctx, colors, w, h, params: { ...values }, state, anim });
+    draw({ ctx: surface.ctx, colors, w, h, params: { ...values }, state, anim, pointer: pointerPos });
 
     if (readout) {
       renderReadout(dom.readout, readout({ params: { ...values }, state, anim, colors }));
@@ -643,6 +649,92 @@ export function defineWidget(config) {
     };
     surface.canvas.addEventListener("pointerup", release);
     surface.canvas.addEventListener("pointercancel", release);
+  }
+
+  /* --- the pointer channel -------------------------------------------------- *
+     Two opt-ins, both inert for a widget that does not declare them:
+
+       pointer: true      draw() receives `pointer` — the pointer's position
+                          in DRAWING coordinates, or null — and idle pointer
+                          movement repaints (coalesced to one rAF), so a
+                          widget can render a hover inspector. The inspector
+                          must stay an inspector: the lecture screen has no
+                          hover, so nothing may live ONLY there.
+       animation.scrub(anim, { x, y, w, h, params, state })
+                          dragging on the canvas hands the reader the clock:
+                          core stops any running animation, calls scrub per
+                          move, and repaints. The widget mutates `anim` — no
+                          parameter is written, because a playhead was never
+                          in the URL and must not start being (invariant 1).
+       animation.scrubHit({ x, y, w, h, params, state }) => bool
+                          where scrubbing is offered; gates the gesture and
+                          the resize cursor. Optional — default everywhere.
+
+     A region click wins over a scrub where they overlap, the same rule the
+     drag block enforces. The tracking block registers FIRST so `pointer`
+     is already current when a scrub's synchronous repaint reads it. */
+  const wantsPointer = Boolean(config.pointer);
+  const pointerCtx = (p) => ({
+    x: p.x,
+    y: p.y,
+    w: surface.width,
+    h: surface.height,
+    params: { ...values },
+    state,
+  });
+  const scrubHitAt = (p) => (animation?.scrubHit ? animation.scrubHit(pointerCtx(p)) : true);
+  if (wantsPointer || animation?.scrub) {
+    let pointerRaf = null;
+    surface.canvas.addEventListener("pointermove", (ev) => {
+      if (dragging) return;
+      const p = surface.pointAt(ev);
+      if (animation?.scrub && !(regions && at(ev))) {
+        surface.canvas.style.cursor = p && scrubHitAt(p) ? "ew-resize" : "default";
+      }
+      if (!wantsPointer) return;
+      pointerPos = p;
+      if (rafId === null && pointerRaf === null) {
+        pointerRaf = requestAnimationFrame(() => {
+          pointerRaf = null;
+          paint();
+        });
+      }
+    });
+    surface.canvas.addEventListener("pointerleave", () => {
+      if (!wantsPointer) return;
+      pointerPos = null;
+      if (rafId === null) paint();
+    });
+  }
+  if (animation?.scrub) {
+    let scrubbing = false;
+    const applyScrub = (p) => {
+      animation.scrub(anim, pointerCtx(p));
+      paint();
+      updateAnimButtons();
+    };
+    surface.canvas.addEventListener("pointerdown", (ev) => {
+      if (dragging || (regions && at(ev))) return;
+      const p = surface.pointAt(ev);
+      if (!p || !scrubHitAt(p)) return;
+      ev.preventDefault();
+      stopAnim(); // the reader takes the clock
+      scrubbing = true;
+      surface.canvas.setPointerCapture?.(ev.pointerId);
+      applyScrub(p);
+    });
+    surface.canvas.addEventListener("pointermove", (ev) => {
+      if (!scrubbing) return;
+      const p = surface.pointAt(ev);
+      if (p) applyScrub(p);
+    });
+    const endScrub = (ev) => {
+      if (!scrubbing) return;
+      scrubbing = false;
+      surface.canvas.releasePointerCapture?.(ev.pointerId);
+    };
+    surface.canvas.addEventListener("pointerup", endScrub);
+    surface.canvas.addEventListener("pointercancel", endScrub);
   }
 
   /* --- animation -------------------------------------------------------- */

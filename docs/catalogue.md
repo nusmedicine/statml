@@ -3216,6 +3216,50 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 11 — scrub and the hover inspector, on a new core pointer channel
+
+**From the round-10 UX review, both approved.** Core gained a POINTER
+CHANNEL — two opt-ins, inert for every widget that does not declare them:
+`pointer: true` hands draw() the pointer's drawing-coordinate position and
+repaints on idle movement (coalesced to one rAF), and
+`animation.scrub(anim, {x, y, w, h, params, state})` +
+`animation.scrubHit(...)` let a drag on the canvas hand the reader the
+clock — core stops any running animation, calls scrub per move, repaints.
+**The scrub writes `anim`, never a parameter**: a playhead was never in
+the URL and must not start being (invariant 1). A region click wins over
+a scrub where they overlap, the drag block's own rule. The tracking block
+registers before the scrub block so the inspector never reads a
+one-event-stale pointer.
+
+The widget's use:
+
+- **Scrub**: drag anywhere on a time panel — both directions, tween
+  cancelled, `done` re-read (so Play/Replay stays honest). On Finding
+  factors only the compact curves scrub; a drag on the forest must not
+  move time (asserted).
+- **The hover inspector**: a dashed guide at the hovered year and one
+  right-aligned reading composed of colour-coded segments — groups tab:
+  `year 8.2 · at risk 81 / 62 · survival 0.71 / 0.44` with the counts in
+  group colours; Censoring tab: the same for the chosen treatment's
+  curve (under "dropped", the at-risk count excludes the dropped).
+  **Clamped to the built portion of the sweep — hovering ahead of the
+  cursor does not leak the future.** No inspector on Finding factors (the
+  card is the focus). Everything the inspector shows also lives in tiles
+  or on marks: the lecture screen has no hover (prd §3), so it is a
+  convenience, never the carrier.
+
+Verified: drive 99 checks (scrub clamps both ends, cancels the tween,
+gates by tab; pointer declared); in-browser synthetic pointer sequence —
+scrub changed the hash, the cursor label moved 8.2 → 6.5, the inspector
+segments painted; **the full suite ran twice for the core change**. The
+first run read five lm-adjustment states DIFFER on `px` only, `tx`
+identical on all five; the second run read **198 of 198 identical
+including those five** — an environmental flake (the automation pane's
+stray-pointer input is HANDOVER's own documented phantom, and
+lm-adjustment is a regions widget), the same class as the recorded clt
+one-off, now with a five-state instance on record so the next reader
+re-runs before believing.
+
 ### Round 10 — the copy diet, and Onset as a control
 
 **Kenneth's asks**: strip self-explanatory descriptors, metacommentary and
