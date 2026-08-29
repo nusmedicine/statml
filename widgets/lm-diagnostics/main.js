@@ -1,90 +1,46 @@
 /* ============================================================================
    Widget 33 · Checking the Model Fit — lm-diagnostics. DRAFT.
 
-   PHM5003 05-01 cells 53–62 (+ the Application section from 63): goodness
-   of fit (R², adjusted R²) and autoplot(which = 1:2) — Residuals vs Fitted
-   and the Normal Q-Q — with the notebook's three reading bullets. Measured
-   first (`_lab/lm-diag-measure.mjs`): R² 0.1064831 / adjusted 0.106231 to
-   the digit against the notebook, and the three rows its stored autoplot
-   labels (404, 1003, 1668) are this pipeline's three largest |standardized
-   residuals| — residuals, sigma and leverage proven against the notebook's
-   own figure in one check.
+   PHM5003 05-01 cells 53–62 + the Application section: R², adjusted R²,
+   and autoplot(which = 1:2) — Residuals vs Fitted and the Normal Q-Q.
+   Round-by-round record: catalogue § Widget 33. Every printed number is
+   verified in `_lab/lm-diag-measure.mjs` (R²/adjusted to the digit; the
+   three rows the notebook's stored autoplot labels are this pipeline's
+   three largest |standardized residuals|).
 
-   KENNETH'S PICKS (2026-08-29, from _lab/lm-diag-stage.html): composition
-   B (the data panel ABOVE its two diagnostic panels — the same patient
-   traced three times); a segmented Data control naming the scenarios; RvF
-   marks = smoothed trend + labelled extremes + ±2 SD band (no envelope
-   rails, no clamp); and the SMALL-N ACT for adjusted R² (junk covariates:
-   R² climbs on pure noise, adjusted refuses — at n = 3547 the bias is
-   invisible, 0.106 → 0.109, measured).
+   THE STAGE IS ALL-SIMULATED (round 1): a study around the Framingham
+   fit's own line (b₀ 87.07, b₁ 1.72), real BMI values clipped to the
+   dense 18–40 window, n = 600, noise SD 12 — settings measured so each
+   violation is visible in the CLOUD, not just the plots. Scenario and
+   junk are display parameters over precomputed data (the lm-interaction
+   `terms` pattern); compute() draws everything from the one rng in
+   fixed order. The act's n = 60 / k = 20 and the default seed 6 are
+   measured choices — smaller n let a lucky junk column lift ADJUSTED
+   R² too, and seed 6 opens on the typical picture (see the measure
+   script's § round 1).
 
-   ROUND 1 (Kenneth, 2026-08-29): THE STAGE IS ALL-SIMULATED. The first
-   draft put the real Framingham data beside three simulated violations,
-   and both halves of that were wrong: mixing real and simulated data in
-   one control risked confusion, and at the real data's noise level the
-   curvature was invisible in the cloud ("i don't really see the curve in
-   the data" — measured: 1.5 noise SDs of bend, hidden). The simulated
-   study keeps the Framingham fit's own line (b₀ 87.07, b₁ 1.72) and the
-   real BMI distribution clipped to its dense 18–40 window, at n = 600
-   and noise SD 12 — so curve 0.4 bends the cloud 5.2 noise SDs off its
-   own best line (VISIBLE), the healthy Linear baseline reads R² ≈ 0.26,
-   and there is no sparse outlier tail to dominate the frames. A fourth
-   scenario, Linear, is the reference where every assumption holds. The
-   notebook's real autoplot stays in the lesson; the widget is the
-   controlled reading trainer beside it.
+   THE `fit` GATE IS NOT display, deliberately: core's entry door lives
+   on the data path (em-mixture's arrangement), and this widget has no
+   accumulated work for a gate-close to destroy. The entry (round 2, §A)
+   builds the residual plot — twelve travelling residual segments, then
+   the mass — and its flag follows em-mixture's one-shot contract, so a
+   shared ?fit=1 link opens finished. Hover then links the same patient
+   across all three panels (pointer channel; an inspector only).
 
-   ROUND 2 (Kenneth, 2026-08-29, picks from _lab/lm-diag-anim.html):
-   tab 2 reads "Model fit"; §A and §D were picked from four running
-   candidates (research record in catalogue § round 2 — Whitlock's
-   linked selection, the Regressomatic, ggMarginal; the textbook
-   bells-along-the-line diagram, apparently never animated before).
-   - §A · THE GATE'S ENTRY BUILDS THE RESIDUAL PLOT: twelve selected
-     patients (quantile-spread, the largest |stdres| included) — the
-     vertical segment grows dot-to-line, then dot-and-segment travel
-     into the RvF panel; the rest of the marks fade in en masse. Runs
-     on gate OPEN only (core's entry door — which is why the gate is
-     NOT display: core sends a non-display gate down the data path,
-     where the entry trigger lives; em-mixture's arrangement, and this
-     widget has no accumulated work for a gate-close to destroy). The
-     mock's 12 × 700 ms sequence took ~9 s; the shipped entry OVERLAPS
-     the patients (a conveyor) and lands in ~3.7 s.
-   - AFTERWARDS, HOVER LINKS THE PANELS (the Whitlock move, the arc's
-     pointer channel): the nearest patient lights up in all three
-     panels — segment to the line, segment to zero, ring on the Q-Q.
-     An inspector only: nothing lives exclusively on hover.
-   - §D · THE MODEL'S CLAIM, an overlay toggle on the data panel: three
-     sideways normal curves straddle the fitted line, staggered in, at
-     ONE claimed spread — the FIT's own residual SD (2.11: computed
-     from the fit, never from the hidden generator), so on Unequal
-     spread the bells are uniformly wrong against a widening cloud.
-   The residual is the VERTICAL distance to the line, not the
-   perpendicular (that is total least squares); every segment is drawn
-   vertical.
+   `claim` (round 2 §D, round 3: a pill) overlays three bells straddling
+   the fitted line at the FIT's own residual SD — computed from the fit,
+   never from the hidden generator (2.11).
 
-   THE SCOPE BOUNDARY (widget 27 round 8, recorded then): lm-least-squares
-   reads a LINE's residuals; this widget reads a MODEL's. Curve/funnel/skew
-   as verdicts on the model class live here and only here.
+   Residual segments are VERTICAL, not perpendicular: perpendicular
+   distance is a different quantity (total least squares).
 
-   EASED VALUES (widget 30's chase pattern): `m` (the scenario morph —
-   every dot, the fitted line, the smooth, the band and each point's Q-Q
-   position are drawn from values LERPED between the outgoing and
-   incoming scenario, so the switch reads as the data changing under
-   fixed frames, 2.5), `c` (the claim bells' stagger), and the entry
-   clock `et`. The card and the tiles are text and SNAP with the control.
+   EASED VALUES (widget 30's chase): `m` (scenario morph — every mark
+   drawn from values lerped between outgoing and incoming scenario,
+   under frames fixed across scenarios, 2.5), `c` (the bells' stagger),
+   and the entry clock `et`. The card and tiles are text and SNAP.
 
-   FRAMES ARE FIXED across scenarios and sized to the measured extents
-   over 30 seeds (`lm-diag-measure.mjs` § round 1); a rare seed can still
-   exceed them and the clip rect is the honest answer, as everywhere in
-   the arc.
-
-   compute() is seeded (the x draw, the four scenario draws and the
-   small-n pick come from the one rng, in fixed order) and scenario/junk
-   are DISPLAY parameters over precomputed data — the lm-interaction
-   `terms` pattern.
-
-   TDZ lesson (the arc's, earned THREE times now — RANK_DY was the
-   third): every module-scope const lives ABOVE defineWidget — core
-   calls draw() during the defineWidget call.
+   TDZ: every module-scope const lives ABOVE defineWidget — core calls
+   draw() during the defineWidget call (bitten three times in this arc).
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
@@ -92,7 +48,7 @@ import { BMI } from "../lm-least-squares/data.js";
 import { diagnostics, loessAt, makeSynth } from "./model.js";
 import { ols } from "../lm-least-squares/model.js";
 
-/* the simulated study — see the header and the measure script's § round 1 */
+/* the simulated study — measured in lm-diag-measure.mjs § round 1 */
 const POOL = BMI.filter((v) => v >= 18 && v <= 40);
 const SIM_N = 600;
 const SIGMA = 12;
@@ -100,15 +56,11 @@ const CURVE = 0.4;
 const FAN = 3;
 const B0 = 87.068295; /* the Framingham fit's own line, 05-01 cell 25 */
 const B1 = 1.721042;
-/* the act's setting and the default seed are MEASURED choices (the
-   measure script's § round 1): n = 30 / k = 10 misled on 13 of 60 seeds
-   (a lucky junk column lifts ADJUSTED too); n = 60 / k = 20 keeps the
-   climb and halves that tail, and seed 6 opens on the typical picture —
-   R² 0.25 → 0.51 with adjusted flat at 0.24 */
 const SUB_N = 60;
 const JUNK_MAX = 20;
 
-/* fixed frames (2.5) — set from the measured 30-seed extents */
+/* fixed frames (2.5) — set from the measured 30-seed extents; a rare
+   seed can exceed them and the clip rect is the honest answer */
 const X_BMI = [17, 41];
 const DATA_Y = [0, 320];
 const RVF_X = [108, 185];
@@ -116,7 +68,7 @@ const RVF_Y = [-160, 160];
 const QQ_X = [-3.4, 3.4]; /* qnorm((n−0.5)/n) = 3.14 at n = 600 */
 const QQ_Y = [-6, 10.5];
 const ADJ_X = [0, 20];
-const ADJ_Y = [-0.3, 0.9]; /* adjusted R² goes NEGATIVE on junk at n = 30 */
+const ADJ_Y = [-0.3, 0.9]; /* adjusted R² goes negative on junk at this n */
 
 const EASE_MS = 450;
 
@@ -128,12 +80,11 @@ const ENTRY_MASS = 450;
 const SEL_END = (SEL_N - 1) * ENTRY_STAG + ENTRY_PER;
 const ENTRY_TOTAL = SEL_END + ENTRY_MASS;
 
-/* the claim bells' positions (§D) */
 const BELL_AT = [21, 28, 35];
 
 const TOP = 26;
 const DATA_H = 186;
-const MID = 62; /* the data panel's axis row + the lower row's caption */
+const MID = 62;
 const P2_H = 196;
 const HEIGHT = TOP + DATA_H + MID + P2_H + 42;
 
@@ -143,7 +94,7 @@ const rvfRect = (w) => ({ x: 56, y: TOP + DATA_H + MID, w: panelW(w), h: P2_H })
 const qqRect = (w) => ({ x: 56 + panelW(w) + 60, y: TOP + DATA_H + MID, w: panelW(w), h: P2_H });
 const adjRect = (w) => ({ x: 60, y: 34, w: Math.min(w - 84, 560), h: HEIGHT - 34 - 44 });
 
-/* label stagger by rank — a const the TDZ rule applies to */
+/* label stagger by rank — two extremes can be near-coincident points */
 const RANK_DY = [3, 14, -8];
 
 const lerp = (a, b, m) => a + (b - a) * m;
@@ -161,12 +112,53 @@ const SCEN_CAPTION = {
   skew: "simulated — skewed noise around a straight line",
 };
 
-/* ---- the equation card ---------------------------------------------------
-   Plain text rows for the draft (the arc's MathML machinery can follow the
-   review — the card's CONTENT is what the rounds judge). */
+/* ---- the equation card, the arc's machinery ----------------------------- */
+function mathmlRenders() {
+  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  probe.innerHTML = '<math id="lmd-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
+    + '<math id="lmd-flat"><mn>1</mn></math>';
+  document.body.appendChild(probe);
+  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
+  const stacked = h("lmd-frac");
+  const flat = h("lmd-flat");
+  probe.remove();
+  return flat > 0 && stacked > flat * 1.4;
+}
+const MATHML = mathmlRenders();
+
+const GENERIC = {
+  plots: {
+    math: "<math><mrow><mi>y</mi><mo>=</mo><msub><mi>b</mi><mn>0</mn></msub>"
+      + "<mo>+</mo><msub><mi>b</mi><mn>1</mn></msub><mi>x</mi></mrow></math>",
+    plain: "y = b₀ + b₁x",
+  },
+  adjr2: {
+    math: "<math><mrow><mi>y</mi><mo>=</mo><msub><mi>b</mi><mn>0</mn></msub>"
+      + "<mo>+</mo><msub><mi>b</mi><mn>1</mn></msub><mi>x</mi>"
+      + "<mo>+</mo><msub><mi>b</mi><mn>2</mn></msub><msub><mi>z</mi><mn>1</mn></msub>"
+      + "<mo>+</mo><mo>&#x22EF;</mo></mrow></math>",
+    plain: "y = b₀ + b₁x + b₂z₁ + ⋯",
+  },
+};
+
+function eqHTML(terms) {
+  const mag = (v) => fmt(Math.abs(v), 2);
+  if (!MATHML) {
+    return terms.map((t, i) => (i === 0
+      ? `sysBP = ${fmt(t.num, 2)}`
+      : `${t.num < 0 ? "−" : "+"} ${mag(t.num)} × ${t.name}`)).join(" ");
+  }
+  return terms.map((t, i) => (i === 0
+    ? `<math><mrow><mi>sysBP</mi><mo>=</mo><mn>${fmt(t.num, 2)}</mn></mrow></math>`
+    : `<math><mrow><mo form="infix">${t.num < 0 ? "&#x2212;" : "+"}</mo><mn>${mag(t.num)}</mn><mo>&#xD7;</mo><mi>${t.name}</mi></mrow></math>`
+  )).join(" ");
+}
+
 let mathHost = null;
 let mathKey = null;
-function renderEquation(rows) {
+function renderEquation(kind, terms, note) {
   if (!mathHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -174,12 +166,18 @@ function renderEquation(rows) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = rows.map((r) => r.label + r.text).join("|");
+  const key = kind + (terms ? terms.map((t) => `${t.num}${t.name ?? ""}`).join(",") : "none") + (note ?? "");
   if (key === mathKey) return;
   mathKey = key;
-  mathHost.innerHTML = rows.map((r) =>
-    `<div class="w-math-eq" style="min-height:0"><span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${r.label}</span>`
-    + `<span style="color:${r.color ?? "var(--ink-2)"}">${r.text}</span></div>`).join("");
+  const row = (label, html) =>
+    `<div class="w-math-eq" style="min-height:0"><span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>${html}</div>`;
+  const g = GENERIC[kind];
+  const generic = `<span style="color:var(--ink-2)">${MATHML ? g.math : g.plain}</span>`;
+  const model = terms
+    ? `<span style="color:var(--c-empirical)">${eqHTML(terms)}</span>`
+      + (note ? ` <span style="color:var(--ink-3);font-size:var(--fs-xs)">${note}</span>` : "")
+    : `<span style="color:var(--ink-3)">no model fitted yet</span>`;
+  mathHost.innerHTML = row("the model", generic) + row("this model", model);
 }
 
 /* one scenario's precomputed bundle */
@@ -187,9 +185,7 @@ function pack(y, d, xs) {
   const len = y.length;
   const qqTh = new Array(len);
   for (let i = 0; i < d.qq.length; i += 1) qqTh[d.qq[i].idx] = d.qq[i].th;
-  /* the smooth over the FULL fitted range, as the notebook's own autoplot
-     draws it — the dense-window restriction stays on the measure script's
-     flatness numbers, where edge wander was the artifact */
+  /* the smooth over the FULL fitted range, as autoplot draws it */
   const lo = Math.min(...d.fit.fitted);
   const hi = Math.max(...d.fit.fitted);
   const smoothX = Array.from({ length: 41 }, (_, i) => lo + ((hi - lo) * i) / 40);
@@ -198,7 +194,7 @@ function pack(y, d, xs) {
     .sort((a, b) => Math.abs(d.std[b]) - Math.abs(d.std[a]));
   const top3 = byAbs.slice(0, 3);
   /* the entry's twelve: quantile-spread across x, the largest |stdres|
-     swapped into the middle so the extreme is one of the travellers */
+     among them */
   const byX = xs.map((v, i) => i).sort((a, b) => xs[a] - xs[b]);
   const sel = [];
   for (let q = 0; q < SEL_N - 1; q += 1) sel.push(byX[Math.floor(((q + 0.5) / (SEL_N - 1)) * len)]);
@@ -242,8 +238,8 @@ defineWidget({
       type: "segmented",
       label: "Concept",
       options: [
-        { value: "plots", label: "Diagnostic plots", detail: "Residuals vs Fitted and the Normal Q-Q — what each one detects" },
-        { value: "adjr2", label: "Model fit", detail: "R² climbs as covariates are added, even useless ones — adjusted R² allows for it" },
+        { value: "plots", label: "Diagnostic plots", detail: "Residuals vs Fitted, and the Normal Q-Q" },
+        { value: "adjr2", label: "Model fit", detail: "R² and adjusted R² as covariates are added" },
       ],
       default: "plots",
       display: true,
@@ -251,15 +247,12 @@ defineWidget({
 
     data: { type: "section", label: "The data" },
 
-    /* the generator: a simulated study around the Framingham fit's own
-       line, ONE assumption broken at a time, at the measured-visible
-       setting — visible in the data, then detected by the plots */
     scenario: {
       type: "segmented",
       label: "Data",
       options: [
-        { value: "linear", label: "Linear", detail: "a straight line with even, normal noise — every assumption holds" },
-        { value: "curve", label: "Curved", detail: "the true relationship curves, so a straight line is the wrong shape" },
+        { value: "linear", label: "Linear", detail: "a straight line with even, normal noise" },
+        { value: "curve", label: "Curved", detail: "the true relationship curves" },
         { value: "fan", label: "Unequal spread", detail: "the spread of the outcome grows with BMI" },
         { value: "skew", label: "Skewed noise", detail: "a straight line with skewed noise around it" },
       ],
@@ -272,23 +265,20 @@ defineWidget({
 
     model: { type: "section", label: "The model" },
 
-    /* the widget opens as data and a question (the arc's gate).
-       NOT display: the entry animation is triggered on core's data path
-       (see the header) — and there is no accumulated work for a
-       gate-close to destroy, every figure being a pure function of the
-       parameters. */
+    /* NOT display: core's entry door is on the data path, and no
+       accumulated work exists for a gate-close to destroy */
     fit: {
       type: "gate",
       label: "Fit the model",
       labelOff: "Clear the fit",
-      detail: "least squares, sysBP on BMI — the diagnostics are properties of this fit",
+      detail: "least squares, sysBP on BMI",
     },
 
-    /* §D — the model's claim, an overlay on the data panel */
     claim: {
       type: "bool",
-      label: "Show the model's claim",
-      detail: "at every BMI: normal around the line, with one spread — the fit's own residual SD",
+      style: "pill",
+      label: "Model's claim",
+      detail: "normal around the line at every BMI, with one spread",
       default: false,
       display: true,
       when: { param: "concept", equals: "plots" },
@@ -302,14 +292,13 @@ defineWidget({
       min: 0,
       max: JUNK_MAX,
       default: 0,
-      detail: "seeded noise columns with no relation to sysBP, added to the model one at a time",
+      detail: "seeded noise columns with no relation to sysBP",
       display: true,
       when: { param: "concept", equals: "adjr2" },
     },
   },
 
-  /* the legend follows the tab and the gate (core's live-legend door):
-     no entry may describe a mark the current state does not draw */
+  /* a live legend: no entry may describe a mark the state does not draw */
   legend: ({ params }) => {
     if (!params.fit) return [];
     if (params.concept !== "plots") {
@@ -332,9 +321,8 @@ defineWidget({
   },
 
   compute({ rng }) {
-    /* the simulated study's x values, then the four scenarios — drawn
-       from the one rng IN FIXED ORDER, so the stream is deterministic
-       whatever is displayed */
+    /* everything from the one rng IN FIXED ORDER, so the stream is
+       deterministic whatever is displayed */
     const xs = rng.shuffle(POOL).slice(0, SIM_N);
     const synth = makeSynth(xs, B0, B1, SIGMA);
     const sc = {};
@@ -348,9 +336,8 @@ defineWidget({
       sc[key] = pack(y, diagnostics(y, xs), xs);
     }
 
-    /* the small-n act: SUB_N of the simulated patients (the Linear
-       scenario's draws — the healthy study), then junk columns
-       accumulating one at a time, each k EXTENDING the last */
+    /* the act: SUB_N of the Linear scenario's patients, then junk
+       columns accumulating one at a time — each k extends the last */
     const pick = rng.shuffle(Array.from({ length: SIM_N }, (_, i) => i)).slice(0, SUB_N);
     const sxs = pick.map((i) => xs[i]);
     const sys = pick.map((i) => sc.linear.y[i]);
@@ -367,12 +354,9 @@ defineWidget({
     stepLabel: null,
     runLabel: null,
     init: ({ params }) => ({
-      /* the entry flag is the one-shot trigger (em-mixture's pattern):
-         set whenever the gate is open at init, consumed by advance's
-         first 'enter' frame. On a shared ?fit=1 link core never starts
-         the mode, so the flag is inert and the figure is simply there —
-         which keeps every link and fingerprint state spoiler-free of a
-         3.7 s wait. */
+      /* the one-shot entry flag (em-mixture's contract): consumed by
+         advance's first 'enter' frame; inert on a shared ?fit=1 link,
+         so links and fingerprint states open finished */
       entry: Boolean(params.fit),
       et: ENTRY_TOTAL,
       from: params.scenario,
@@ -402,9 +386,8 @@ defineWidget({
     },
     rebuild: (anim, { params }) => {
       if (params.scenario !== anim.to) {
-        /* a switch mid-ease snaps its origin to the outgoing target — a
-           450 ms window nobody re-clicks inside, traded for not
-           materialising a 600-value snapshot */
+        /* a switch mid-ease snaps its origin to the outgoing target —
+           traded for not materialising a 600-value snapshot */
         anim.from = anim.to;
         anim.to = params.scenario;
         anim.m = 0;
@@ -423,32 +406,18 @@ defineWidget({
 
     if (params.concept === "plots") {
       const S = state.sc[params.scenario];
-      renderEquation(!params.fit
-        ? [
-          { label: "the model", text: "y = b₀ + b₁x" },
-          { label: "this fit", text: "no model fitted yet", color: "var(--ink-3)" },
-        ]
-        : [
-          { label: "the model", text: "y = b₀ + b₁x" },
-          { label: "this fit", text: `sysBP = ${fmt(S.b0, 2)} + ${fmt(S.b1, 2)} × BMI`, color: "var(--c-empirical)" },
-        ]);
+      renderEquation("plots", params.fit
+        ? [{ num: S.b0 }, { num: S.b1, name: "BMI" }]
+        : null);
       drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer });
     } else {
       const P = state.path[params.junk];
-      renderEquation(!params.fit
-        ? [
-          { label: "the model", text: "y = b₀ + b₁x + noise columns" },
-          { label: "this fit", text: "no model fitted yet", color: "var(--ink-3)" },
-        ]
-        : [
-          { label: "the model", text: "y = b₀ + b₁x + noise columns" },
-          {
-            label: "this fit",
-            text: `sysBP = ${fmt(P.b0, 2)} + ${fmt(P.b1, 2)} × BMI`
-              + (params.junk ? ` + ${params.junk} noise term${params.junk > 1 ? "s" : ""}` : ""),
-            color: "var(--c-empirical)",
-          },
-        ]);
+      renderEquation("adjr2", params.fit
+        ? [{ num: P.b0 }, { num: P.b1, name: "BMI" }]
+        : null,
+      params.fit && params.junk
+        ? `+ ${params.junk} noise term${params.junk > 1 ? "s" : ""}`
+        : null);
       drawAdj(ctx, colors, w, params, state);
     }
   },
@@ -463,15 +432,15 @@ defineWidget({
     if (params.concept === "plots") {
       const S = state.sc[params.scenario];
       return [
-        { label: "R²", value: fmt(S.r2, 3), note: "variance explained — 1 − residual ⁄ total sums of squares" },
+        { label: "R²", value: fmt(S.r2, 3), note: "variance explained by the model" },
         { label: "Adjusted R²", value: fmt(S.adjR2, 3), note: "allows for the number of covariates" },
         { label: "Largest |standardized residual|", value: fmt(S.maxAbs, 1), note: "the three largest are labelled on the plots" },
       ];
     }
     const P = state.path[params.junk];
     return [
-      { label: "R²", value: fmt(P.r2, 3), note: "cannot fall as covariates are added" },
-      { label: "Adjusted R²", value: fmt(P.adjR2, 3), note: "penalised by the covariate count" },
+      { label: "R²", value: fmt(P.r2, 3), note: "never falls as covariates are added" },
+      { label: "Adjusted R²", value: fmt(P.adjR2, 3), note: "allows for the number of covariates" },
       { label: "Covariates", value: String(1 + params.junk), note: `BMI plus ${params.junk} noise column${params.junk === 1 ? "" : "s"}, on ${SUB_N} simulated patients` },
     ];
   },
@@ -483,7 +452,7 @@ defineWidget({
       else {
         const S = state.sc[params.scenario];
         parts.push(`The least-squares fit sysBP = ${fmt(S.b0, 1)} + ${fmt(S.b1, 2)} × BMI, its residuals against fitted values, and their normal Q-Q; R² ${fmt(S.r2, 3)}, largest |standardized residual| ${fmt(S.maxAbs, 1)}.`);
-        if (params.claim) parts.push("Overlaid: the model's claim — a normal curve of one spread straddling the line at three BMI values.");
+        if (params.claim) parts.push("Overlaid: normal curves of one spread straddling the line at three BMI values.");
       }
       return parts.join(" ");
     }
@@ -511,11 +480,11 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
   const yOf = (i) => lerp(from.y[i], to.y[i], m);
   const residOf = (i) => lerp(from.resid[i], to.resid[i], m);
   const on = Boolean(params.fit);
-  /* the entry's three beats: the line first, the travellers, the mass */
+  /* the entry's beats: the line, the travellers, the mass */
   const lineA = on ? clamp01(et / 300) : 0;
   const massA = on ? clamp01((et - SEL_END) / ENTRY_MASS) : 0;
   const entering = on && et < ENTRY_TOTAL;
-  const fadeIn = massA * Math.max(0, (m - 0.6) / 0.4); /* labels wait for both */
+  const fadeIn = massA * Math.max(0, (m - 0.6) / 0.4);
 
   const dr = dataRect(w);
   const rr = rvfRect(w);
@@ -524,13 +493,13 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
   const rp = makePlot({ ctx, colors, rect: rr, xDomain: RVF_X, yDomain: RVF_Y });
   const qp = makePlot({ ctx, colors, rect: qr, xDomain: QQ_X, yDomain: QQ_Y });
 
-  /* the hover link (the Whitlock move): the nearest patient within reach
-     of the pointer, in whichever panel holds it — inert mid-entry */
+  /* the hover link: the nearest patient within reach, in whichever panel
+     holds the pointer — inert mid-entry */
   let hot = -1;
   if (pointer && on && !entering) {
     const near = (px, py, posOf) => {
       let best = -1;
-      let bd = 90; /* squared px — a ~9.5px reach */
+      let bd = 90;
       for (let i = 0; i < len; i += 1) {
         const [x, y] = posOf(i);
         const d2 = (x - px) ** 2 + (y - py) ** 2;
@@ -567,7 +536,7 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    /* §D — the claim bells, staggered by c */
+    /* the claim bells, staggered by c, at the fit's own residual SD */
     if (on && c > 0.02) {
       const sig = lerp(from.sigma, to.sigma, m);
       BELL_AT.forEach((bx, k) => {
@@ -597,7 +566,7 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
     }
     if (on) {
       ringTop3(ctx, colors, dr, to, fadeIn, (i) => [dp.sx(xs[i]), dp.sy(to.y[i])]);
-      /* the entry's travellers, part one: the segment grows dot-to-line */
+      /* the travellers, part one: the segment grows dot-to-line */
       if (entering) {
         to.sel.forEach((i, k) => {
           const lt = clamp01((et - k * ENTRY_STAG) / ENTRY_PER);
@@ -642,8 +611,7 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
     if (massA > 0.02) {
-      /* the ±2 SD band: faint fill, dashed edges (a heavier slab drowned
-         the dots — judged on the mock) */
+      /* the ±2 SD band: faint fill, dashed edges */
       const band = 2 * lerp(from.sd, to.sd, m);
       ctx.fillStyle = colors.grid;
       ctx.globalAlpha = massA * 0.12;
@@ -680,8 +648,7 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
       labelTop3(ctx, colors, rr, to, fadeIn, (i) => [rp.sx(b0 + b1 * xs[i]), rp.sy(to.resid[i])]);
       ctx.globalAlpha = 1;
     }
-    /* the entry's travellers, part two: dot-and-segment land at
-       (fitted, residual) on the zero line */
+    /* the travellers, part two: dot-and-segment land at (fitted, residual) */
     if (entering) {
       to.sel.forEach((i, k) => {
         const lt = clamp01((et - k * ENTRY_STAG) / ENTRY_PER);
@@ -712,8 +679,7 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
   if (on) qp.caption("residual quantiles, against normal quantiles");
   clip(qr, () => {
     if (!on || massA <= 0.02) return;
-    /* the reference line — the normality claim the points are checked
-       against, through the quartiles as stats::qqline draws it */
+    /* the reference line, through the quartiles as stats::qqline draws it */
     const slope = lerp(from.line.slope, to.line.slope, m);
     const inter = lerp(from.line.inter, to.line.inter, m);
     ctx.globalAlpha = massA;
@@ -741,8 +707,8 @@ function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer 
   });
 }
 
-/* the hover link's mark: a ring, and a vertical segment to the reference
-   (the line, or zero) where one exists */
+/* the hover link's mark: a ring, and a segment to the reference where
+   one exists (the line, or zero) */
 function hotMark(ctx, colors, x, y, yRef) {
   ctx.strokeStyle = colors.highlight;
   ctx.lineWidth = 2;
@@ -757,11 +723,8 @@ function hotMark(ctx, colors, x, y, yRef) {
   ctx.stroke();
 }
 
-/* a label near a panel edge flips inward and clamps — a row number half
-   outside the clip read as a different number (judged on screen). Ranks
-   stagger vertically because two of the three extremes can be
-   near-coincident points, and their labels printed through each other.
-   RANK_DY lives at the top of the module — the TDZ rule. */
+/* a label near a panel edge flips inward and clamps; ranks stagger
+   vertically (RANK_DY, at module top — the TDZ rule) */
 function edgeLabel(ctx, colors, rect, x, y, text, rank) {
   const flip = x > rect.x + rect.w - 34;
   ctx.textAlign = flip ? "right" : "left";
@@ -836,8 +799,7 @@ function drawAdj(ctx, colors, w, params, state) {
       ctx.arc(p.sx(k), p.sy(q[key]), 3, 0, 2 * Math.PI);
       ctx.fill();
     });
-    /* the label rides the path's end and flips inside the frame near the
-       right edge — at the maximum a left-anchored label fell in the clip */
+    /* the end label flips inside the frame near the right edge */
     const last = upto[upto.length - 1];
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
     const atEdge = params.junk >= 16;

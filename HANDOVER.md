@@ -67,10 +67,15 @@ URL** — that difference is the region geometry proven.
      `claim` (display bool) overlays three theory-token bells straddling
      the fitted line at the fit's own residual SD. Catalogue § *ROUND 2*
      has the research record (Whitlock's linked selection, the
-     Regressomatic, ggMarginal) and the verification notes. Still owed
-     at promotion: fingerprint states (settled + driven — entry, ease
-     and claim all want driven coverage), a stub-driver, the 05-01
-     notebook link, and the copy pass.
+     Regressomatic, ggMarginal) and the verification notes. **ROUND 3
+     (same day, "looks nice"): `claim` is a PILL button (core's
+     style: "pill" — a `<button data-param>` the harness's setParam
+     cannot toggle, so claim states are driven by URL), the equation
+     card is MathML (lm-interaction's machinery, one `<math>` per
+     term), and the source header + visible copy were cut to size.**
+     Still owed at promotion: fingerprint states (settled + driven —
+     entry, ease and claim all want driven coverage), a stub-driver,
+     the 05-01 notebook link, and a final copy pass.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —

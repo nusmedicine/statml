@@ -3378,6 +3378,26 @@ shows the finished figure and the choreography waits for the first
 frame — em-mixture's exact structure, a sub-frame flash in a live
 browser.
 
+### ROUND 3 — Kenneth, 2026-08-29: the pill, the MathML, the copy pass
+
+"Looks nice" plus three: **the bell-curve toggle became a BUTTON** —
+core's `style: "pill"` bool (widget 28's membership chip), face
+"Model's claim", `aria-pressed` carrying the state. NOTE FOR THE
+HARNESS, inherited with the pill: it is a `<button data-param>` the
+fingerprint's setParam cannot toggle — drive claim states by URL.
+**The equation card is MathML** — the arc's machinery ported from
+lm-interaction (the render probe, one `<math>` per term so thirteen
+terms can wrap, plain-text fallback): rows "the model" (generic, ink-2)
+and "this model" (the fit's numbers, empirical), the act's card adding
+a muted "+ k noise terms" note and its generic form reading
+y = b₀ + b₁x + b₂z₁ + ⋯. **And the copy/comment pass**: the main.js
+header cut to the load-bearing whys (the round narrative lives here,
+not in the source), inline comments trimmed to their earned cores, and
+the visible copy tightened (control details lost their trailing
+clauses; the R² tile note is "variance explained by the model"; the
+act's is "never falls as covariates are added" — a fact of nested
+least squares, not a verdict).
+
 The planning record below stands as written.
 
 ### The planning record — MEASURED 2026-08-29, before the mock
