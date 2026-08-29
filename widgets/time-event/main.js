@@ -93,8 +93,16 @@
    now names a cause; all-censored is reachable and honest (dropped
    reads "—" — a study of nobody has no survival).
 
-   One motion throughout: a time cursor sweeps right and curves build under
-   it. The `censored` control is display: true — three readings of ONE
+   ROUND 17 (Kenneth's realization): STEP AND PLAY ARE GONE — the scrub
+   replaced them. Every figure opens FINISHED and updates instantly as
+   any parameter moves; dragging on a time panel is the one way to move
+   the clock, so watching the study build is available (drag from zero)
+   rather than imposed. Play speed went with the buttons; ?shown now
+   places the cursor mid-build instead of gating the finish; the drive
+   row is Reset alone, which returns the controls to their defaults and
+   the cursor to the finished figure.
+
+   One motion: the reader scrubs, and curves follow the cursor. The `censored` control is display: true — three readings of ONE
    dataset, so toggling never resets the sweep. `anim.done` is re-read
    against the new tab's end in `rebuild`, so a curve finished on Censoring
    keeps building on Comparing groups.
@@ -182,12 +190,6 @@ const SHIFT = 6;
 
 const T1MAX = 11;
 const T2MAX = 16;
-
-const SPEEDS = {
-  slow: { label: "Slow", rate: 1.2, detail: "about a year per second" },
-  medium: { label: "Medium", rate: 3.5, detail: "the curve builds in a few seconds" },
-  fast: { label: "Fast", rate: 9, detail: "straight to the finished curve" },
-};
 
 /* --- stage geometry, one place -------------------------------------------- */
 /* Censoring tab: lanes / curve / hazard strip, all functions of the patient
@@ -649,19 +651,10 @@ defineWidget({
     },
 
 
-    speed: {
-      type: "choice",
-      label: "Play speed",
-      options: Object.entries(SPEEDS).map(([value, s]) => ({ value, label: s.label, detail: s.detail })),
-      default: "medium",
-      display: true,
-      afterDrive: true,
-      /* Modeling has no clock (round 14), so a speed for it is a dead
-         control (round 15) */
-      when: { param: "concept", oneOf: ["censoring", "groups"] },
-    },
-    /* the authoring escape hatch: cursor time × 2, so ?shown=44 is a finished
-       figure on any tab */
+    /* the authoring hatch, REPURPOSED in round 17: every figure now opens
+       FINISHED, so shown places the cursor mid-build instead — cursor
+       time × 2, and 0 (the default) means complete. Old ?shown=44 links
+       still land on a finished figure. */
     shown: { type: "int", min: 0, max: 44, default: 0, hidden: true },
   },
 
@@ -792,28 +785,32 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Next time point",
-    stepTitle: "Advance to the next event or censoring",
-    runLabel: "Play",
-    runTitle: "Sweep time forward at the chosen speed",
+    /* STEP AND PLAY ARE DECLINED (round 17 — Kenneth: "the play function
+       is not useful as we have the scrub"). Every figure opens FINISHED
+       and updates instantly as parameters move; the SCRUB is the one
+       time control — drag from zero to watch the study build, which is
+       round 8's motif kept available rather than imposed. The widget-12
+       null: an explicit "nothing to step, nothing to play". Reset stays
+       and is genuinely useful — it returns the controls to their
+       defaults and the cursor to the finished figure. */
+    stepLabel: null,
+    runLabel: null,
     init: ({ params, state, fromScratch }) => {
-      const t = fromScratch ? 0 : Math.min(params.shown / 2, T2MAX);
-      const anim = {
-        t,
-        done: t >= state.tEnd[timeKey(params.concept)],
-        rows: {},
-        /* Modeling draws its curves complete (round 14), so Play and Step
-           leave the row there — core's anim.inert, the widget-18 door */
-        inert: params.concept === "factors",
-      };
+      const tEnd = state.tEnd[timeKey(params.concept)];
+      /* finished by default; ?shown places the cursor mid-build on first
+         render only (core's seededOnce) — 0 means complete */
+      const t = !fromScratch && params.shown > 0
+        ? Math.min(params.shown / 2, tEnd)
+        : tEnd;
+      const anim = { t, done: t >= tEnd, rows: {} };
       for (const k of ROW_KEYS) anim.rows[k] = { v: 0, lo: 0, hi: 0, a: 0 };
       retargetForest(anim, params, state);
       for (const k of ROW_KEYS) anim.rows[k] = { ...anim.rowsT[k] };
       return anim;
     },
-    advance: (anim, { dt, params, state }) => {
-      /* the forest's ease, chased on every mode so a pill click mid-sweep
-         still lands; `easing` cleared once everything arrives */
+    /* only the forest's ease needs frames now; `easing` is the request
+       and it is cleared once every row arrives */
+    advance: (anim, { dt }) => {
       const rate = Math.min(1, (dt / EASE_MS) * 2.6);
       let moving = false;
       for (const k of ROW_KEYS) {
@@ -836,54 +833,19 @@ defineWidget({
         }
       }
       if (!moving) anim.easing = false;
-      if (anim.mode === "ease") return moving;
-
-      const tEnd = state.tEnd[timeKey(params.concept)];
-      if (anim.mode === "step") {
-        /* One step = a 350ms GLIDE to the next recorded time (round 6 —
-           the cursor used to teleport and every curve snapped). Returning
-           true buys the frames; the glide stops at ONE time point, which
-           is what keeps this inside the step contract (the widget-15
-           walk-the-whole-axis bug was stopping nowhere). Reduced motion
-           is core's fastForward at dt = 400 — one pump completes it. */
-        if (anim.stepTarget === undefined) {
-          const next = state.stepTimes[timeKey(params.concept)].find((t) => t > anim.t + 1e-9);
-          anim.stepTarget = next !== undefined ? next : tEnd;
-          anim.stepFrom = anim.t;
-          anim.stepMs = 0;
-        }
-        anim.stepTarget = Math.min(anim.stepTarget, tEnd);
-        anim.stepMs += dt;
-        const p = Math.min(1, anim.stepMs / 350);
-        anim.t = anim.stepFrom + (anim.stepTarget - anim.stepFrom) * p;
-        if (p >= 1) {
-          anim.t = anim.stepTarget;
-          delete anim.stepTarget;
-          delete anim.stepFrom;
-          anim.done = anim.t >= tEnd;
-          return false;
-        }
-        return true;
-      }
-      anim.t = Math.min(tEnd, anim.t + (SPEEDS[params.speed].rate * dt) / 1000);
-      if (anim.t >= tEnd) {
-        anim.done = true;
-        return moving;
-      }
-      return true;
+      return moving;
     },
-    /* Display changes keep the sweep where it is; `done` is re-read against
-       the NEW tab's end, so a curve finished on Censoring keeps building on
-       Comparing groups; and a pill click retargets the forest's ease. */
+    /* Display changes keep the cursor where the reader scrubbed it;
+       `done` is re-read against the NEW tab's end, and a pill click
+       retargets the forest's ease. */
     rebuild: (anim, { params, state }) => {
       anim.done = anim.t >= state.tEnd[timeKey(params.concept)];
-      anim.inert = params.concept === "factors";
       retargetForest(anim, params, state);
     },
-    /* THE SCRUB (round 11): dragging on a time panel hands the reader the
-       clock. anim only — no parameter is written; a playhead was never in
-       the URL. Modeling has no clock at all since round 14 — its curves
-       are drawn complete — so nothing there scrubs. */
+    /* THE SCRUB (round 11; the ONLY time control since round 17):
+       dragging on a time panel hands the reader the clock. anim only —
+       no parameter is written; a playhead was never in the URL. Modeling
+       draws complete and has no clock, so nothing there scrubs. */
     scrubHit: ({ x, w, params }) => {
       if (params.concept === "factors") return false;
       const left = 56;
@@ -896,8 +858,6 @@ defineWidget({
       const axis = params.concept === "censoring" ? T1MAX : T2MAX;
       const tEnd = state.tEnd[timeKey(params.concept)];
       const tt = Math.max(0, Math.min(((x - left) / (right - left)) * axis, tEnd));
-      delete anim.stepTarget;
-      delete anim.stepFrom;
       anim.t = tt;
       anim.done = tt >= tEnd - 1e-9;
     },

@@ -48,6 +48,18 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
+   **ROUND 17 IS BUILT (2026-08-29), Kenneth's realization: STEP AND
+   PLAY ARE GONE — the scrub is the one time control.** Every figure
+   opens finished and redraws finished on every parameter change;
+   `stepLabel: null` / `runLabel: null` (the widget-12 decline), the
+   speed control cut, round 14's inert superseded, the drive row Reset
+   alone, `?shown` repurposed to place the cursor mid-build (old links
+   still open finished). Drag from zero to watch the study build —
+   round 8's motif kept available, not imposed. Drive **131 checks**;
+   no core change in this round. Note for the eventual fingerprint
+   states: there is NO driven verb left but the pill-click ease — driven
+   states must come from `set` on the pills, and the scrub stays
+   untested geometry as already planned.
    **ROUND 16 IS BUILT (2026-08-29), Kenneth's pick C1: WHO is censored
    is a chip picker over the patient roster** — default B · E (the
    notebook's table), replacing the Censored count, the fixed flip

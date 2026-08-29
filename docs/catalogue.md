@@ -3216,6 +3216,38 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 17 — Step and Play die; the scrub is the one time control
+
+**Kenneth's realization, and it completes what round 14 started**: "the
+play function is not useful as we have the scrub ability — this allows
+instant feedback on the curves as we change the parameters." Every
+figure now opens FINISHED and redraws finished on every parameter
+change; dragging on a time panel is the one way to move the clock.
+Round 8's watch-the-study-build motif is thereby kept AVAILABLE (drag
+from zero) rather than imposed (wait for a sweep after every change) —
+the reversal is deliberate and his.
+
+What went: the Step glide (round 6's 350ms tween and its landing
+contract), Play/Pause/Replay, the Play speed control and its SPEEDS
+table, and round 14's per-tab `anim.inert` (superseded — Step and Play
+are now DECLINED outright with the widget-12 `stepLabel: null` /
+`runLabel: null`, and the forest's ease needs no buttons: core grants
+frames on the `anim.easing` request). The drive row is **Reset alone**,
+which stays genuinely useful — it returns every control to its default
+and the cursor to the finished figure. `?shown` was REPURPOSED rather
+than cut: it places the cursor mid-build on first render (cursor time
+× 2; 0 = complete), so old `?shown=44` links still open a finished
+figure and an authoring link can now open a mid-build still.
+
+Verified: drive re-pinned at **131 checks** (opens finished on both
+sweep tabs; a data change lands finished — the instant feedback the
+round exists for; `?shown=14` opens the cursor at t = 7; the declines
+asserted; the scrub still clamps both ends and pulls the finished
+figure back mid-axis); in-browser — the drive row renders Reset alone,
+Play speed is gone, the censoring curve carries ink on load with no
+button pressed, and toggling Dropped redraws instantly; no console
+errors. `npm run check` green.
+
 ### Round 16 — who is censored, as a picker (pick C1)
 
 **Kenneth settled Modeling and turned to the Censoring rail: "the

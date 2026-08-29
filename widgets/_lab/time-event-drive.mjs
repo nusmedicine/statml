@@ -52,7 +52,7 @@ const WANT = {
   data: "section", n: "choice", effect: "choice", causal: "int", follow: "choice",
   curves: "section", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
-  speed: "choice", seed: "int", shown: "int",
+  seed: "int", shown: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
@@ -97,8 +97,8 @@ ck("Causal SNPs is ten chips on the Modeling tab only (round 14)",
   && W.params.causal.min === 0 && W.params.causal.max === 1023
   && W.params.causal.when?.equals === "factors");
 ck("the disease pill starts pressed (round 13)", W.params.disease.default === true);
-ck("Play speed shows only where a clock exists (round 15)",
-  W.params.speed.when?.oneOf?.join() === "censoring,groups");
+ck("Step and Play are DECLINED — the scrub is the one time control (round 17)",
+  W.animation.stepLabel === null && W.animation.runLabel === null);
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)
@@ -252,48 +252,23 @@ ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",
   state.tEnd.groups === Math.max(...state.stepTimes.groups));
 
-console.log("\n== the sweep, pumped by hand ==");
+console.log("\n== the clock: finished by default, scrubbed by hand (round 17) ==");
 const anim = W.animation.init({ params: { ...values }, state, fromScratch: true });
-ck("starts at t = 0, not done", anim.t === 0 && !anim.done);
-anim.mode = "step";
-/* a step is a 350ms GLIDE now (round 6): advance returns true while
-   tweening and false when it lands, so one step is pumped to completion */
-W.animation.advance(anim, { dt: 16, params: { ...values }, state });
-ck("mid-step the cursor is between times (the tween exists)",
-  anim.t > 0 && anim.t < 5);
-const stepToLanding = () => {
-  let guard = 0;
-  while (W.animation.advance(anim, { dt: 50, params: { ...values }, state }) && guard < 100) guard += 1;
-};
-const seen = [];
-stepToLanding();
-seen.push(anim.t);
-for (let i = 0; i < 9 && !anim.done; i += 1) {
-  stepToLanding();
-  seen.push(anim.t);
-}
-ck("step lands on the five recorded times exactly: 5, 6, 7, 8, 10",
-  seen.join() === "5,6,7,8,10");
-ck("done after the last recorded time", anim.done === true);
-/* reduced motion is core's fastForward at dt = 400 — one pump must land */
-{
-  const rm = W.animation.init({ params: { ...values }, state, fromScratch: true });
-  rm.mode = "step";
-  const more = W.animation.advance(rm, { dt: 400, params: { ...values }, state });
-  ck("a dt=400 pump completes a step in one call (reduced motion)",
-    more === false && rm.t === 5);
-}
+ck("opens FINISHED: t = tEnd, done", anim.t === state.tEnd.censoring && anim.done === true);
+const gInit = W.animation.init({ params: { ...values, concept: "groups" }, state, fromScratch: true });
+ck("...on the groups tab too", gInit.t === state.tEnd.groups && gInit.done === true);
+/* a data change re-inits — and lands finished, which is the instant
+   feedback the round exists for */
+const redraw = W.animation.init({ params: { ...values, effect: "large" }, state, fromScratch: true });
+ck("a data change opens finished too — no waiting for a sweep", redraw.done === true);
+/* ?shown places the cursor mid-build on first render */
+const still = W.animation.init({ params: { ...values, shown: 14 }, state, fromScratch: false });
+ck("?shown=14 opens the cursor at t = 7, mid-build", still.t === 7 && still.done === false);
+const shown44 = W.animation.init({ params: { ...values, shown: 44 }, state, fromScratch: false });
+ck("?shown=44 still opens finished (old links keep working)", shown44.done === true);
 
-const run = W.animation.init({ params: { ...values }, state, fromScratch: true });
-run.mode = "run";
-let frames = 0;
-while (!run.done && frames < 5000) {
-  W.animation.advance(run, { dt: 16, params: { ...values }, state });
-  frames += 1;
-}
-ck(`run reaches the end (${frames} frames at medium)`, run.done && frames < 1000);
-
-/* the tab hand-off: finished on Censoring, keeps building on Comparing groups */
+/* the tab hand-off: a scrubbed cursor keeps its place; done is re-read
+   against the new tab's end */
 const cross = W.animation.init({ params: { ...values }, state, fromScratch: true });
 cross.t = 10;
 cross.done = true;
@@ -301,12 +276,6 @@ W.animation.rebuild(cross, { params: { ...values, concept: "groups" }, state });
 ck("done is re-read on tab switch: 10 < tEnd.groups", cross.done === false);
 W.animation.rebuild(cross, { params: { ...values, concept: "censoring" }, state });
 ck("...and back", cross.done === true);
-
-/* shown lands where it claims */
-const shown = W.animation.init({
-  params: { ...values, shown: 44 }, state, fromScratch: false,
-});
-ck("?shown=44 opens finished", shown.done === true);
 
 console.log("\n== the forest's ease, pumped by hand ==");
 {
@@ -342,30 +311,19 @@ console.log("\n== the pointer channel (round 11) ==");
   ck("declares animation.scrub and scrubHit",
     typeof W.animation.scrub === "function" && typeof W.animation.scrubHit === "function");
   const sc = W.animation.init({ params: { ...values }, state, fromScratch: true });
-  sc.mode = "step";
-  W.animation.advance(sc, { dt: 16, params: { ...values }, state }); // a tween in flight
-  const hadTween = sc.stepTarget !== undefined;
   W.animation.scrub(sc, { x: 56 + (900 - 70) / 2, y: 100, w: 900, params: { ...values }, state });
-  ck("scrub sets the clock mid-axis and cancels the step tween",
-    hadTween && sc.stepTarget === undefined && sc.t > 0 && sc.t < state.tEnd.censoring);
+  ck("scrub pulls the finished figure back mid-axis",
+    sc.t > 0 && sc.t < state.tEnd.censoring && sc.done === false);
   W.animation.scrub(sc, { x: 5000, y: 100, w: 900, params: { ...values }, state });
-  ck("scrub clamps to the sweep's end and reads done", sc.t === state.tEnd.censoring && sc.done === true);
+  ck("scrub clamps to the end and reads done", sc.t === state.tEnd.censoring && sc.done === true);
   W.animation.scrub(sc, { x: -5000, y: 100, w: 900, params: { ...values }, state });
-  ck("...and to zero", sc.t === 0 && sc.done === false);
+  ck("...and to zero — the build can be watched from the start", sc.t === 0 && sc.done === false);
   const pf = { ...values, concept: "factors" };
   ck("Modeling never scrubs — its curves are complete (round 14)",
     W.animation.scrubHit({ x: 300, y: 80, w: 900, params: pf }) === false
     && W.animation.scrubHit({ x: 300, y: 400, w: 900, params: pf }) === false);
   ck("the other tabs scrub anywhere on their stages",
     W.animation.scrubHit({ x: 300, y: 500, w: 900, params: { ...values } }) === true);
-  /* the clock leaves the Modeling tab (round 14): anim.inert is core's
-     widget-18 door, and it must open again on the way back */
-  const ia = W.animation.init({ params: pf, state, fromScratch: true });
-  ck("Modeling opens inert — Play and Step leave the row", ia.inert === true);
-  W.animation.rebuild(ia, { params: { ...values, concept: "groups" }, state });
-  ck("...and the clock returns on the cohort tab", ia.inert === false);
-  const ic = W.animation.init({ params: { ...values }, state, fromScratch: true });
-  ck("Censoring opens with the clock live", ic.inert === false);
 }
 
 console.log("\n== the ln(h/h0) bridge row (round 12, pick M1) ==");
