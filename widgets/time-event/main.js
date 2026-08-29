@@ -65,16 +65,35 @@
 import { defineWidget, makePlot, fmt } from "../core/index.js";
 import { km, logrank, coxph, simulate } from "./model.js";
 
-/* --- the five patients — the notebook's own table ------------------------- *
- * E's time is a PARAMETER (round 8): dragging the censoring across the
- * events is the tab's play — when E leaves decides every later denominator,
- * and the strip, the product line and the tiles all re-derive. The other
- * four stay the notebook's. */
-const IDS = ["A", "B", "C", "D", "E"];
-const S5 = [1, 0, 1, 1, 0];
-const fiveTimes = (etime) => [5, 10, 6, 8, etime];
-/* the lesson's two causes of censoring, named on the lanes — an unlabelled
-   open circle reads as "survived", which is the misconception itself */
+/* --- the patients — the notebook's five, extendable (round 9) ------------- *
+ * The first five ARE the notebook's table (A–E, times 5/10/6/8/7), and the
+ * defaults reproduce it exactly: 5 patients, 2 censored. The Patients
+ * control extends the table with five more hand-fixed lanes (F–J — J ties
+ * C at t = 6, so ten patients include a tied event, d/n = 2/n), and the
+ * Censored control flips statuses in a FIXED order, E and B first, so the
+ * notebook's pair goes first and A is always an event. Deterministic on
+ * purpose — no draw on this tab: the human scale stays a table you can
+ * point at. E's time stays the round-8 lever. */
+const P_IDS = "ABCDEFGHIJ";
+const P_TIMES = [5, 10, 6, 8, 7, 3, 9, 4, 2, 6]; // slot 4 (E) overridden by etime
+const CENSOR_ORDER = [4, 1, 5, 6, 7, 2, 3]; // E, B, F, G, H, C, D
+function patientTable(nPat, cWant, etime) {
+  const times = P_TIMES.slice(0, nPat);
+  times[4] = etime;
+  const status = new Array(nPat).fill(1);
+  const order = CENSOR_ORDER.filter((i) => i < nPat);
+  const censoredIdx = order.slice(0, Math.min(cWant, order.length));
+  for (const i of censoredIdx) status[i] = 0;
+  return { times, status, censoredIdx };
+}
+/* "B and E", "E", "B, C and E" — the names the mechanism notes speak in */
+function namePhrase(idx) {
+  const names = [...idx].map((i) => P_IDS[i]).sort();
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+/* the lesson's two causes of censoring, named on the lanes when they apply */
 const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
 
 /* the Disease-effect ladder, in time units — values measured over 100 seeds
@@ -93,18 +112,19 @@ const SPEEDS = {
 };
 
 /* --- stage geometry, one place -------------------------------------------- */
-/* Censoring tab: lanes / curve / hazard strip. 26px lanes leave room for the
-   censoring reason under a lane's end mark. */
+/* Censoring tab: lanes / curve / hazard strip, all functions of the patient
+   count now that it is a control. 26px lanes leave room for the censoring
+   reason under a lane's end mark. */
 const LANE_GAP = 26;
 const LANES_Y = 30;
-const LANES_H = LANE_GAP * 4 + 14;
-const CURVE1_Y = LANES_Y + LANES_H + 40;
+const lanesH = (nPat) => LANE_GAP * (nPat - 1) + 14;
+const curve1Y = (nPat) => LANES_Y + lanesH(nPat) + 40;
 const CURVE1_H = 180;
 /* 78, not 64: the strip's header is TWO lines — the title, then the
    direction line (wrong treatments) beside the formula chip (round 4) */
-const HAZ_Y = CURVE1_Y + CURVE1_H + 78;
+const hazY = (nPat) => curve1Y(nPat) + CURVE1_H + 78;
 const HAZ_H = 80;
-const PAT_HEIGHT = HAZ_Y + HAZ_H + 48;
+const patHeight = (nPat) => hazY(nPat) + HAZ_H + 48;
 
 /* Comparing groups tab: the curves, then the interval-hazard panel on the
    SAME time axis (round 5 — tab 1's stacked-panels-share-an-axis contract) */
@@ -193,7 +213,7 @@ defineWidget({
     "the censored in the risk set until they leave, so the curve uses " +
     "everything that was seen.",
   layout: "side",
-  height: ({ concept, snps }) => (concept === "censoring" ? PAT_HEIGHT
+  height: ({ concept, patients, snps }) => (concept === "censoring" ? patHeight(patients)
     : concept === "groups" ? GRP_HEIGHT : FACT_HEIGHT(snps)),
 
   params: {
@@ -209,30 +229,57 @@ defineWidget({
       display: true,
     },
 
-    reading: {
+    /* THE PATIENTS — the Censoring tab's own data section (round 9).
+       Defaults reproduce the notebook's table exactly; the controls extend
+       it. Deterministic — no draw at human scale. */
+    people: {
       type: "section",
-      label: "Reading the data",
+      label: "The patients",
       when: { param: "concept", equals: "censoring" },
     },
-    /* the Censoring tab's play lever: when E leaves, relative to the
-       events, decides every later denominator */
+    patients: {
+      type: "int",
+      label: "Patients",
+      detail: "the notebook's five, then five more fixed lanes",
+      min: 5,
+      max: 10,
+      default: 5,
+      when: { param: "concept", equals: "censoring" },
+    },
+    ncens: {
+      type: "int",
+      label: "Censored",
+      detail: "how many never show their event — E and B first; at zero the three readings agree",
+      min: 0,
+      max: 7,
+      default: 2,
+      when: { param: "concept", equals: "censoring" },
+    },
+    /* the round-8 lever: when E leaves, relative to the events, decides
+       every later denominator */
     etime: {
       type: "int",
-      label: "E drops out at",
-      detail: "move the censoring across the events — every later at-risk count changes",
+      label: "Patient E's time",
+      detail: "move E across the others — every later at-risk count changes",
       min: 1,
       max: 10,
       default: 7,
+      when: { param: "concept", equals: "censoring" },
+    },
+
+    reading: {
+      type: "section",
+      label: "Reading the data",
       when: { param: "concept", equals: "censoring" },
     },
     /* The misconception as a control. Three readings of the SAME dataset,
        so display: true — toggling compares, and must never reset the sweep. */
     censored: {
       type: "segmented",
-      /* "(B and E)" ties the control to the two lanes it acts on — the
-         abstraction gets names, and "Kept" inherits its meaning from the
-         stage (round 4, P1) */
-      label: "Censored patients (B and E)",
+      /* round 4 tied this label to "(B and E)"; round 9 made the censored
+         SET a control, so the names moved to the lanes and the mechanism
+         notes, which compute them */
+      label: "Censored patients",
       options: [
         { value: "kept", label: "Kept", detail: "in the risk set until they leave — the Kaplan–Meier estimate" },
         { value: "dropped", label: "Dropped", detail: "removed from the data entirely" },
@@ -241,76 +288,6 @@ defineWidget({
       default: "kept",
       display: true,
       when: { param: "concept", equals: "censoring" },
-    },
-
-    curves: {
-      type: "section",
-      label: "The curves",
-      when: { param: "concept", equals: "groups" },
-    },
-    truth: {
-      type: "bool",
-      label: "True curves",
-      detail: "the same patients with nobody censored — never seen in practice",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "groups" },
-    },
-    bands: {
-      type: "bool",
-      label: "Confidence bands",
-      detail: "95% Greenwood bands around each Kaplan–Meier curve",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "groups" },
-    },
-    /* THE NULL, DRAWN (round 7): "if the groups shared one curve" is the
-       pooled Kaplan–Meier of all 200 — the curve the log-rank test splits
-       each event along, by the risk sets. The literature says this sentence
-       everywhere and draws it nowhere (Bland & Altman's BMJ note, PSU 509);
-       drawing the claim being tested is this repo's own move, and
-       --c-theory is the token that means exactly that. */
-    shared: {
-      type: "bool",
-      label: "One shared curve",
-      detail: "the pooled curve the log-rank test compares against — as if the groups did not differ",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "groups" },
-    },
-
-    /* THE MODEL — three pills, lm-adjustment's move: the reader builds the
-       Cox model a covariate at a time, and the SNPs arrive because the
-       reader adds them. All display: every fit is computed regardless, and
-       a pill click must never reset the sweep. */
-    model: {
-      type: "section",
-      label: "The model",
-      when: { param: "concept", equals: "factors" },
-    },
-    disease: {
-      type: "bool",
-      style: "pill",
-      label: "disease",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "factors" },
-    },
-    age: {
-      type: "bool",
-      style: "pill",
-      label: "age",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "factors" },
-    },
-    snps: {
-      type: "bool",
-      style: "pill",
-      label: "SNPs",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "factors" },
     },
 
     /* THE DATA — the play surface (round 8), shared by the two cohort tabs.
@@ -373,6 +350,77 @@ defineWidget({
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
 
+    curves: {
+      type: "section",
+      label: "The curves",
+      when: { param: "concept", equals: "groups" },
+    },
+    truth: {
+      type: "bool",
+      label: "True curves",
+      detail: "every true event time, censoring undone — never seen in practice",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "groups" },
+    },
+    bands: {
+      type: "bool",
+      label: "Confidence bands",
+      detail: "95% confidence bands — wider where fewer remain at risk",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "groups" },
+    },
+    /* THE NULL, DRAWN (round 7): "if the groups shared one curve" is the
+       pooled Kaplan–Meier of all 200 — the curve the log-rank test splits
+       each event along, by the risk sets. The literature says this sentence
+       everywhere and draws it nowhere (Bland & Altman's BMJ note, PSU 509);
+       drawing the claim being tested is this repo's own move, and
+       --c-theory is the token that means exactly that. */
+    shared: {
+      type: "bool",
+      label: "One shared curve",
+      detail: "all patients pooled — the one curve both groups would follow if the disease made no difference",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "groups" },
+    },
+
+    /* THE MODEL — three pills, lm-adjustment's move: the reader builds the
+       Cox model a covariate at a time, and the SNPs arrive because the
+       reader adds them. All display: every fit is computed regardless, and
+       a pill click must never reset the sweep. */
+    model: {
+      type: "section",
+      label: "The model",
+      when: { param: "concept", equals: "factors" },
+    },
+    disease: {
+      type: "bool",
+      style: "pill",
+      label: "disease",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "factors" },
+    },
+    age: {
+      type: "bool",
+      style: "pill",
+      label: "age",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "factors" },
+    },
+    snps: {
+      type: "bool",
+      style: "pill",
+      label: "SNPs",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "factors" },
+    },
+
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -398,8 +446,9 @@ defineWidget({
   ],
 
   compute({ params, rng }) {
-    const fiveT = fiveTimes(params.etime);
-    const five = readings(fiveT, S5);
+    const table = patientTable(params.patients, params.ncens, params.etime);
+    const fiveT = table.times;
+    const five = readings(fiveT, table.status);
     const sim = simulate(rng, {
       n: Number(params.n),
       effect: EFFECTS[params.effect],
@@ -496,6 +545,10 @@ defineWidget({
     return {
       five,
       fiveT,
+      fiveS: table.status,
+      nPat: params.patients,
+      censPhrase: namePhrase(table.censoredIdx),
+      nCens: table.censoredIdx.length,
       groups,
       pooled,
       hazBins,
@@ -603,7 +656,7 @@ defineWidget({
     if (params.concept === "censoring") {
       const treatment = params.censored;
       const atRisk = state.fiveT.filter((v) => v > t).length;
-      const events = state.fiveT.filter((v, i) => S5[i] === 1 && v <= t).length;
+      const events = state.fiveT.filter((v, i) => state.fiveS[i] === 1 && v <= t).length;
       const S = readS(state.five[treatment].steps, t);
       return [
         { label: "At risk", value: String(atRisk), note: "patients still being followed" },
@@ -664,7 +717,7 @@ defineWidget({
     const t = anim?.t ?? 0;
     if (params.concept === "censoring") {
       const S = readS(state.five[params.censored].steps, t);
-      return `Five patients followed over time: three events, two censored (one dropped out, one reached the end of the study). A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
+      return `${state.nPat} patients followed over time: ${state.nPat - state.nCens} events, ${state.nCens} censored. A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
     if (params.concept === "groups") {
       return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the event rate in every interval.`;
@@ -805,21 +858,21 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   ctx.save();
   ctx.textBaseline = "middle";
   ctx.font = `${colors.fsSm} ${colors.font}`;
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < state.nPat; i += 1) {
     const y = LANES_Y + i * LANE_GAP;
-    const gone = treatment === "dropped" && S5[i] === 0;
+    const gone = treatment === "dropped" && state.fiveS[i] === 0;
     ctx.globalAlpha = gone ? 0.25 : 1;
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "right";
-    ctx.fillText(IDS[i], left - 12, y);
+    ctx.fillText(P_IDS[i], left - 12, y);
     ctx.strokeStyle = colors.ink3;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(X(0), y);
     ctx.lineTo(X(state.fiveT[i]), y);
     ctx.stroke();
-    if (S5[i] === 1 || treatment === "asevents") {
-      ctx.fillStyle = S5[i] === 1 ? colors.event : colors.unknown;
+    if (state.fiveS[i] === 1 || treatment === "asevents") {
+      ctx.fillStyle = state.fiveS[i] === 1 ? colors.event : colors.unknown;
       ctx.beginPath();
       ctx.arc(X(state.fiveT[i]), y, 4, 0, 2 * Math.PI);
       ctx.fill();
@@ -834,7 +887,7 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     }
     /* name the censoring, on the lane — the open circle alone reads as
        "survived", which is the misconception this widget exists to break */
-    if (CENSOR_WHY[i]) {
+    if (CENSOR_WHY[i] && state.fiveS[i] === 0) {
       ctx.fillStyle = colors.unknown;
       ctx.font = `${colors.fsXs} ${colors.font}`;
       ctx.textAlign = "center";
@@ -846,15 +899,17 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   ctx.restore();
 
   /* the curve */
-  const rect = { x: left, y: CURVE1_Y, w: right - left, h: CURVE1_H };
+  const rect = { x: left, y: curve1Y(state.nPat), w: right - left, h: CURVE1_H };
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T1MAX], yDomain: [0, 1] });
   plot.axisX({ label: "time (years)", ticks: [0, 2.5, 5, 7.5, 10] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
-  /* every treatment names its MECHANISM — what happens to B and E in the
+  /* every treatment names its MECHANISM — what happens to the censored,
+     BY NAME (computed: the censored set is a control now), in the
      numerator and the denominator — never a verdict (2.9) */
-  if (treatment === "dropped") plot.note("B and E leave both the event count and the risk set — as if never enrolled");
-  else if (treatment === "asevents") plot.note("B and E enter the event count at their last visit");
-  else plot.note("B and E stay in the risk set until they leave, and never enter the events");
+  if (state.nCens === 0) plot.note("no patient is censored — the three readings agree");
+  else if (treatment === "dropped") plot.note(`${state.censPhrase} leave both the event count and the risk set — as if never enrolled`);
+  else if (treatment === "asevents") plot.note(`${state.censPhrase} enter the event count at the last visit`);
+  else plot.note(`${state.censPhrase} stay in the risk set until they leave, and never enter the events`);
 
   const R = state.five;
   if (treatment !== "kept") {
@@ -872,7 +927,8 @@ function drawCensoring(ctx, colors, w, params, state, t) {
      censored inflates every bar (1/3 for 1/5, and the last patient always
      "dies" at 1/1), and counting them as events grows bars at 7 and 10
      that never happened. The kept bars stay behind as ghosts. */
-  const hy = (v) => HAZ_Y + HAZ_H - v * HAZ_H;
+  const HY = hazY(state.nPat);
+  const hy = (v) => HY + HAZ_H - v * HAZ_H;
   const bars = R[treatment].steps;
   const ghostBars = treatment === "kept" ? null : R.kept.steps;
   ctx.save();
@@ -880,12 +936,12 @@ function drawCensoring(ctx, colors, w, params, state, t) {
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("Hazard at each event — of those still at risk, the share who go now", left, HAZ_Y - 24);
+  ctx.fillText("Hazard at each event — of those still at risk, the share who go now", left, HY - 24);
   /* the formula chip (round 4, F1): the words above, the letter here —
      the same h the product line multiplies */
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "right";
-  ctx.fillText("h = events ÷ at risk", right, HAZ_Y - 10);
+  ctx.fillText("h = events ÷ at risk", right, HY - 10);
   /* the direction line (F3) — a comparison against the visible kept bars,
      never a claim about the unknowable truth (2.11) */
   if (treatment !== "kept") {
@@ -896,7 +952,7 @@ function drawCensoring(ctx, colors, w, params, state, t) {
         ? "smaller risk sets: bars higher than kept, survival lower"
         : "extra events: bars higher than kept, survival lower",
       left,
-      HAZ_Y - 10,
+      HY - 10,
     );
   }
   ctx.strokeStyle = colors.grid;
@@ -929,7 +985,7 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "center";
     /* a 1/1 bar reaches the strip's top rail — its label goes inside */
-    const inside = hy(hVal) - 5 < HAZ_Y + 8;
+    const inside = hy(hVal) - 5 < HY + 8;
     if (inside) ctx.fillStyle = colors.surface;
     ctx.fillText(`${s.events}/${s.atRisk}`, bx + bw / 2, inside ? hy(hVal) + 13 : hy(hVal) - 5);
   }
@@ -947,11 +1003,15 @@ function drawCensoring(ctx, colors, w, params, state, t) {
      Survival tile, because it is the same arithmetic */
   const passed = bars.filter((s) => s.events > 0 && s.t <= t);
   if (passed.length) {
-    const terms = passed.map((s) => `(1−${s.events}/${s.atRisk})`).join("");
     const S = passed.reduce((acc, s) => acc * (1 - s.events / s.atRisk), 1);
+    /* expanded while it fits the 550px panel (measured: six factors is the
+       edge); past that the identity stays and the expansion goes */
+    const line = passed.length <= 5
+      ? `survival = product of (1 − h): ${passed.map((s) => `(1−${s.events}/${s.atRisk})`).join("")} = ${fmt(S, 2)}`
+      : `survival = product of (1 − h) over ${passed.length} events = ${fmt(S, 2)}`;
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "left";
-    ctx.fillText(`survival = product of (1 − h): ${terms} = ${fmt(S, 2)}`, left, hy(0) + 24);
+    ctx.fillText(line, left, hy(0) + 24);
   }
   ctx.restore();
 

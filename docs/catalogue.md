@@ -3216,6 +3216,51 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 9 — the Censoring tab plays too; the rail reads data-first
+
+**Kenneth's review of the round-8 controls asked for**: play controls on
+the Censoring page (number of patients, number censored); the data section
+FIRST in the comparing rail; the view options under their own section with
+their descriptors reviewed. Built:
+
+- **The patient table is a control surface, still deterministic**: the
+  first five ARE the notebook's table and the defaults reproduce it
+  exactly. **Patients (5–10)** extends with five hand-fixed lanes — J ties
+  C at t = 6, so ten patients include a tied event (d/n = 2/n on screen).
+  **Censored (0–7)** flips statuses in a FIXED order, E and B first, A
+  never; the count clamps to the flippable patients (asserted). No draw on
+  this tab — the human scale stays a table you can point at.
+- **Every "B and E" became computed**: the mechanism notes speak
+  `state.censPhrase` ("B, E, F and G leave both the event count and the
+  risk set"), the lane reasons apply only while that patient is censored,
+  and at zero censored the note says the true thing: "no patient is
+  censored — the three readings agree" (asserted: kept ≡ as-events
+  step-for-step at c = 0). The round-4 "(B and E)" heading reverted to
+  "Censored patients" — the parenthetical could now be false.
+- **The product line caps its expansion at five factors** (measured: six
+  overruns the 550px panel) and prints
+  `survival = product of (1 − h) over N events = X` past that.
+- **Rail order**: Concept → The patients (censoring) / The data (cohort
+  tabs) → Reading the data / The curves → The model — data before views,
+  the reading order of the setup.
+- **Descriptors de-jargoned**: "Greenwood" left the bands detail ("95%
+  confidence bands — wider where fewer remain at risk"); the shared curve
+  says what it is ("all patients pooled — the one curve both groups would
+  follow if the disease made no difference"); truth tightened ("every true
+  event time, censoring undone").
+- Geometry became functions of the patient count (lanes, curve, strip,
+  height).
+
+**Open question handed back (the flat head)**: Kenneth asked why nothing
+happens for the first ~6 years of the cohort curves and whether that could
+be a control. Recommendation pending his call: a control carries no idea
+there (3.5) — the honest fix is shifting the event process left in the
+generator, which re-measures the grid, the ladder, the follow-up options
+and the clean draw; a real but mechanical round.
+
+Drive: 87 checks green; iframe sweeps at 550px over the new corner states
+(n = 10 c = 4 dropped; c = 0), 0 overruns.
+
 ### Round 8 — the play surface: the widget stops being "thin cosmetics"
 
 **Kenneth's step-back: fixed patient curves were "just making the static

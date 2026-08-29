@@ -43,10 +43,11 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
   ck(`declares \`${key}\``, W[key] != null);
 }
 const WANT = {
-  concept: "segmented", reading: "section", etime: "int", censored: "segmented",
+  concept: "segmented", people: "section", patients: "int", ncens: "int",
+  etime: "int", reading: "section", censored: "segmented",
+  data: "section", n: "choice", effect: "choice", follow: "choice",
   curves: "section", truth: "bool", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
-  data: "section", n: "choice", effect: "choice", follow: "choice",
   speed: "choice", seed: "int", shown: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
@@ -144,6 +145,25 @@ console.log("\n== the play surface, at its corners ==");
   const s12 = W.compute({ params: { ...values, follow: "12" }, rng: makeRng(values.seed) });
   ck(`follow 12: most of the cohort is censored (${s12.events} events of 200)`,
     s12.events < 60);
+  /* the patient table (round 9): defaults ARE the notebook; the controls
+     extend and flip deterministically */
+  ck("defaults reproduce the notebook's table exactly",
+    state.fiveT.join() === "5,10,6,8,7" && state.fiveS.join() === "1,0,1,1,0"
+    && state.censPhrase === "B and E");
+  const s10 = W.compute({ params: { ...values, patients: 10, ncens: 4 }, rng: makeRng(values.seed) });
+  ck("ten patients, four censored: E, B, F, G in the fixed order",
+    s10.fiveT.length === 10 && s10.nCens === 4 && s10.censPhrase === "B, E, F and G");
+  ck("the tied event at t = 6 exists at n = 10 (C and J)",
+    s10.five.kept.steps.some((st) => st.t === 6 && st.events === 2));
+  const s0c = W.compute({ params: { ...values, ncens: 0 }, rng: makeRng(values.seed) });
+  ck("zero censored: the three readings are one curve",
+    JSON.stringify(s0c.five.kept.steps) === JSON.stringify(s0c.five.asevents.steps));
+  const sClamp = W.compute({ params: { ...values, ncens: 7 }, rng: makeRng(values.seed) });
+  ck("ncens clamps to the four flippable patients at n = 5 (A stays an event)",
+    sClamp.nCens === 4 && sClamp.fiveS[0] === 1);
+  ck("heights grow with the lanes",
+    W.height({ concept: "censoring", patients: 10 }) - W.height({ concept: "censoring", patients: 5 })
+      === 5 * 26);
 }
 ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",
@@ -257,7 +277,7 @@ for (const concept of ["censoring", "groups", "factors"]) {
 }
 ck(`all ${states} readout+summary states clean`, dirty === 0);
 
-const h1 = W.height({ concept: "censoring" });
+const h1 = W.height({ concept: "censoring", patients: 5 });
 const h2 = W.height({ concept: "groups" });
 const h3off = W.height({ concept: "factors", snps: false });
 const h3on = W.height({ concept: "factors", snps: true });
