@@ -146,12 +146,15 @@ let formulaKey = null;
  * into the formula card, the stage labels and the readout notes. Display:
  * the picture is the same picture, relabelled. ABOVE defineWidget — draw()
  * runs during it (the file's third brush with that dead zone). */
+/* short y names on purpose: the Syntax card sets the formula at the
+   stat-tile size (the page's subject gets the page's largest type), and a
+   hero line should not wrap at the default width */
 const SCENARIOS = {
   generic: { y: "Y", x: "X", g: "G", unit: "group", plural: "groups" },
   bp: { y: "bp", x: "time", g: "patient", unit: "patient", plural: "patients" },
-  chol: { y: "cholesterol", x: "age", g: "family", unit: "family", plural: "families" },
+  chol: { y: "chol", x: "age", g: "family", unit: "family", plural: "families" },
   school: { y: "score", x: "hours", g: "school", unit: "school", plural: "schools" },
-  mouse: { y: "tumor_size", x: "week", g: "mouse", unit: "mouse", plural: "mice" },
+  mouse: { y: "tumor", x: "week", g: "mouse", unit: "mouse", plural: "mice" },
 };
 const reTerm = (sc, ranef) =>
   ranef === "slope" ? `(1 + ${sc.x} | ${sc.g})` : `(1 | ${sc.g})`;
@@ -664,42 +667,51 @@ function renderFormulas(params) {
   const key = `${params.concept}|${active}|${params.ranef}|${params.scenario}`;
   if (key === formulaKey) return;
   formulaKey = key;
-  const mono = "font-family:var(--font-mono);font-size:var(--fs-xs)";
+  const mono = "font-family:var(--font-mono)";
   const dim = (on) => (on ? "" : "opacity:.45");
   const re = (t) => `<span style="color:var(--c-empirical)">${t}</span>`;
-  const line = (label, body, on) =>
-    `<div class="w-math-eq" style="min-height:0;${mono};${dim(on)}">${label}( ${body} )</div>`;
-  const [lmLine, mmLine] = params.concept === "nested"
-    ? [
-      line("lm", "cholesterol ~ SNP1 + … + SNP10", active === "lm"),
-      line("lmer", `cholesterol ~ SNP1 + … + SNP10 + ${re("(1 | family)")}`, active === "mm"),
-    ]
-    : params.concept === "syntax"
-      ? (() => {
-        const sc = SCENARIOS[params.scenario] ?? SCENARIOS.generic;
-        return [
-          line("lm", `${sc.y} ~ ${sc.x}`, active === "lm"),
-          line("lmer", `${sc.y} ~ ${sc.x} + ${re(reTerm(sc, params.ranef))}`, active === "mm"),
-        ];
-      })()
+  /* the ACTIVE formula is the page's largest type on the Syntax tab — the
+     tab's subject is the code, so the code leads (round 6); on the data
+     tabs both lines sit at the card's native size */
+  const line = (label, body, on, size = "") =>
+    `<div class="w-math-eq" style="min-height:0;${mono};${size};${dim(on)}">${label}( ${body} )</div>`;
+  /* a key row: the token, then one claim, attached to the term it
+     explains rather than paragraphed under the card (proximity) */
+  const kv = (token, text) =>
+    `<div class="w-math-note" style="font-size:var(--fs-xs)"><span style="${mono};color:var(--c-empirical)">${token}</span> — ${text}</div>`;
+  let html;
+  if (params.concept === "syntax") {
+    const sc = SCENARIOS[params.scenario] ?? SCENARIOS.generic;
+    const big = "font-size:var(--fs-fig)";
+    const small = "font-size:var(--fs-sm)";
+    html = line("lm", `${sc.y} ~ ${sc.x}`, active === "lm",
+      active === "lm" ? big : small)
+      + line("lmer", `${sc.y} ~ ${sc.x} + ${re(reTerm(sc, params.ranef))}`, active === "mm",
+        active === "mm" ? big : small);
+    if (active === "mm") {
+      html += kv("1", `its own level for each ${sc.unit}`);
+      if (params.ranef === "slope") html += kv(sc.x, `its own trend for each ${sc.unit}`);
+      /* Kenneth's round-5 question, compressed in round 6: categorical,
+         said in four words, with the numeric trap named in five */
+      html += kv(sc.g, "the grouping — categorical: labels, not numbers");
+    }
+  } else {
+    const [lmLine, mmLine] = params.concept === "nested"
+      ? [
+        line("lm", "cholesterol ~ SNP1 + … + SNP10", active === "lm"),
+        line("lmer", `cholesterol ~ SNP1 + … + SNP10 + ${re("(1 | family)")}`, active === "mm"),
+      ]
       : [
         line("lm", "bp ~ age + gender + medication", active === "lm"),
         line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
       ];
-  const notes = params.concept === "nested"
-    ? ["(1 | family) is the random effect — which rows share a family"]
-    : params.concept === "syntax"
-      ? [
-        "the pattern: (1 + ⟨variable for the slopes⟩ | ⟨grouping variable for the intercepts⟩) — the 1 is the baseline intercept",
-        /* Kenneth's round-5 question, answered on the surface: the RHS of
-           the | is categorical BY ROLE — and the same ID misplaced as an
-           ordinary covariate silently becomes a number with a slope,
-           which is precisely the mistake worth inoculating against */
-        `right of the | the grouping variable is categorical — each distinct ${SCENARIOS[params.scenario]?.g ?? "G"} is one group; the same ID as an ordinary covariate would be fitted as a number, with a slope`,
-      ]
-      : ["(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend"];
-  formulaHost.innerHTML = lmLine + mmLine
-    + notes.map((n) => `<div class="w-math-note" style="font-size:var(--fs-xs)">${n}</div>`).join("");
+    const note = params.concept === "nested"
+      ? "(1 | family) is the random effect — which rows share a family"
+      : "(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend";
+    html = lmLine + mmLine
+      + `<div class="w-math-note" style="font-size:var(--fs-xs)">${note}</div>`;
+  }
+  formulaHost.innerHTML = html;
 }
 
 /* --- the Repeated stage ---------------------------------------------------- */

@@ -3272,6 +3272,22 @@ studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
 pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
 (F_LO below defineWidget while a families-tab URL draws during it).
 
+### Round 6 — the code leads the Syntax page
+
+Kenneth: the note is wordy, and the code is small on a page whose focus
+is syntax. Both fixed by the same restructure, on three named principles:
+visual hierarchy (the ACTIVE formula is now the page's largest type —
+--fs-fig, the stat-tile size, with the inactive model small and dimmed
+above it), proximity (round 5's sentence became a per-token KEY attached
+to the term each line explains: 1 — its own level for each school ·
+hours — its own trend · school — the grouping — categorical: labels, not
+numbers), and progressive disclosure (a key line exists only when its
+token is in the active formula; at None there is no key). The abstract
+⟨pattern⟩ template line was cut as redundant — the scenario picker plus
+the key teach it concretely. Scenario y-names shortened (chol, tumor) so
+the hero line cannot wrap at the default width. Verified: 20px computed,
+one-line height, 97 drive checks.
+
 ### Round 5 — G is categorical, said where the formula is taught
 
 Kenneth: "is it clear that G has to be categorical?" It was not, anywhere —
