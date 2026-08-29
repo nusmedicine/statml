@@ -7,6 +7,10 @@
  * noticed — and drives compute/animation/readout across the corners: both
  * tabs, both views, gate open and shut, the dial extremes, and the tally's
  * fast-fit decisions against full fits. EDIT THIS FILE; do not regenerate it.
+ *
+ * Round 2 contract: Step and Play are DECLINED (stepLabel/runLabel null) —
+ * the gate opens onto the finished 100-study tally; the one animation is
+ * the Independent → Related ease on the easing-request door.
  */
 
 import { readFileSync } from "node:fs";
@@ -49,16 +53,20 @@ const WANT = {
   concept: "segmented", dataV: "section", patients: "choice", visits: "choice",
   differ: "choice", effect: "choice", reading: "section", view: "segmented",
   studies: "gate", dataF: "section", famdiff: "choice", causal: "int",
-  seed: "int", shown: "int",
+  seed: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
   Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
+ck("tabs are repeated · nested",
+  W.params.concept.options.map((o) => o.value).join() === "repeated,nested");
+ck("view is independent · related",
+  W.params.view.options.map((o) => o.value).join() === "independent,related");
 ck("view and studies and concept are display", W.params.view.display === true
   && W.params.studies.display === true && W.params.concept.display === true);
 ck("causal wears bits", W.params.causal.style === "bits" && W.params.causal.bits === 10);
-ck("step/run declared", W.animation.stepLabel != null && W.animation.runLabel != null);
-ck("shown hidden", W.params.shown.hidden === true);
+ck("step and run are DECLINED",
+  W.animation.stepLabel === null && W.animation.runLabel === null);
 
 const DEF = {};
 for (const [n, f] of Object.entries(W.params))
@@ -83,8 +91,8 @@ const clean = (tiles) => tiles.every((t) =>
   ck("defaults: 500 rows", state.nRows === 500);
   ck("defaults: no tally while gate shut", state.tally === null);
   const anim = W.animation.init({ params, state, fromScratch: true });
-  ck("opens on rows (mix 0)", anim.mix === 0);
-  ck("nothing to drive while gate shut", anim.done === true);
+  ck("opens on independent (mix 0)", anim.mix === 0);
+  ck("nothing to drive — figures open finished", anim.done === true);
   ck("readout clean at mix 0", clean(tilesOf(params, state, anim)));
   ck("lmer tile withheld at mix 0",
     tilesOf(params, state, anim)[2].value === "—");
@@ -98,7 +106,7 @@ const clean = (tiles) => tiles.every((t) =>
 {
   const { params, state } = compute();
   const anim = W.animation.init({ params, state, fromScratch: true });
-  W.animation.rebuild(anim, { params: { ...params, view: "patients" }, state });
+  W.animation.rebuild(anim, { params: { ...params, view: "related" }, state });
   ck("view flip requests the ease", anim.easing === true && anim.mixT === 1);
   let guard = 0;
   while (W.animation.advance(anim, { dt: 16, state }) && guard < 400) guard += 1;
@@ -107,50 +115,49 @@ const clean = (tiles) => tiles.every((t) =>
   ck("ease lands within budget", guard < 200);
 }
 
-/* --- the gate and the tally ------------------------------------------------- */
+/* --- the gate: the tally opens finished ------------------------------------- */
 {
   const { params, state } = compute({ studies: true });
   ck("gate open: tally computed", Array.isArray(state.tally) && state.tally.length === 100);
   const anim = W.animation.init({ params, state, fromScratch: true });
-  ck("tally starts unrevealed", anim.k === 0 && anim.done === false);
-  anim.mode = "step";
-  W.animation.advance(anim, { dt: 16, state });
-  ck("a step is one study", anim.k === 1);
-  anim.mode = "run";
-  let guard = 0;
-  while (W.animation.advance(anim, { dt: 60, state }) && guard < 400) guard += 1;
-  ck("run reveals every study", anim.k === 100 && anim.done === true);
+  ck("finished on arrival — nothing to drive", anim.done === true);
   ck("readout clean with tally", clean(tilesOf(params, state, anim)));
   const t = tilesOf(params, state, anim)[3];
-  ck("tally tile counts both models", /lm \d+ · lmer \d+ of 100/.test(t.value));
+  ck("tally tile counts both models", /^lm \d+ · lmer \d+ of 100$/.test(t.value));
   /* the measured story: lm claims often, lmer stays near the 5% floor */
   const a = state.tally.filter((s) => s.lm).length;
   const b = state.tally.filter((s) => s.mm).length;
   ck(`tally story holds (lm ${a}, lmer ${b})`, a >= 20 && b <= 15);
-  /* ?shown honours a mid-tally opening on first render */
-  const anim2 = W.animation.init({
-    params: { ...params, shown: 30 }, state, fromScratch: false,
-  });
-  ck("shown places the tally cursor", anim2.k === 30);
-  const anim3 = W.animation.init({
-    params: { ...params, shown: 30 }, state, fromScratch: true,
-  });
-  ck("Replay ignores shown", anim3.k === 0);
+  /* a different Draw rolls a different hundred */
+  const { state: s2 } = compute({ studies: true, seed: 8 });
+  ck("Draw re-rolls the tally",
+    JSON.stringify(s2.tally) !== JSON.stringify(state.tally));
 }
 
-/* --- the families tab ------------------------------------------------------- */
+/* --- the nested tab --------------------------------------------------------- */
 {
-  const { params, state } = compute({ concept: "families" });
+  const { params, state } = compute({ concept: "nested" });
   const flagged = (key) => state.snps.filter((s) => s[key].sig).map((s) => s.j);
-  ck("families: lmer keeps exactly the causal SNP",
+  ck("nested: lmer keeps exactly the causal SNP",
     flagged("mm").join() === "5");
-  ck("families: lm flags the truth plus extras",
+  ck("nested: lm flags the truth plus extras",
     flagged("lm").includes(5) && flagged("lm").length > 1);
-  ck("families: chips mark the truth",
+  ck("nested: chips mark the truth",
     state.snps.filter((s) => s.causal).map((s) => s.j).join() === "5");
   const anim = W.animation.init({ params, state, fromScratch: true });
-  ck("families is inert (no drive row)", anim.inert === true);
-  ck("families readout clean", clean(tilesOf(params, state, anim)));
+  ck("nested readout clean", clean(tilesOf(params, state, anim)));
+  /* the family strip: sorted, complete, and spanning the frame */
+  ck("strip covers every individual",
+    state.famStrip.reduce((s, f) => s + f.ys.length, 0) === 1000);
+  ck("strip is sorted by family mean",
+    state.famStrip.every((f, i, a) => i === 0 || a[i - 1].mean <= f.mean));
+  ck("strip frame holds the data",
+    state.cholLo < state.famStrip[0].lo && state.cholHi > state.famStrip.at(-1).hi);
+  /* at family differences none the ramp flattens: the spread of family
+     means collapses toward the residual scale */
+  const { state: flat } = compute({ concept: "nested", famdiff: "none" });
+  const spread = (st) => st.famStrip.at(-1).mean - st.famStrip[0].mean;
+  ck("famdiff none flattens the ramp", spread(flat) < spread(state) / 3);
 }
 
 /* --- corners ---------------------------------------------------------------- */
@@ -160,21 +167,16 @@ for (const over of [
   { differ: "none" },
   { effect: "large", studies: true },
   { visits: "1", studies: true },
-  { concept: "families", famdiff: "none" },
-  { concept: "families", causal: 0 },
-  { concept: "families", causal: 1023 },
+  { concept: "nested", famdiff: "none" },
+  { concept: "nested", causal: 0 },
+  { concept: "nested", causal: 1023 },
   { patients: "200", visits: "20", studies: true },
 ]) {
   const label = JSON.stringify(over);
   try {
     const { params, state } = compute(over);
     const anim = W.animation.init({ params, state, fromScratch: true });
-    if (state.tally) {
-      anim.mode = "run";
-      let guard = 0;
-      while (W.animation.advance(anim, { dt: 60, state }) && guard < 400) guard += 1;
-    }
-    anim.mix = params.view === "patients" ? 1 : 0;
+    anim.mix = params.view === "related" ? 1 : 0;
     ck(`corner ${label} readout clean`, clean(tilesOf(params, state, anim)));
     const h = W.height({ ...DEF, ...over, w: 900 });
     ck(`corner ${label} height finite`, Number.isFinite(h) && h > 200 && h < 900);

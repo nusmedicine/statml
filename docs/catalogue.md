@@ -3177,8 +3177,8 @@ agreed, and three revive entries from the deferred table above
 | 2 | `lm-adjustment` | 05-02 | a coefficient is THE effect of its variable regardless of the model — the Table 2 fallacy | **documented** (Westreich & Greenland 2013) | **SHIPPED 2026-08-28** |
 | 3 | `lm-categorical` | 05-03 | dummy coefficients are group means; the reference level is a finding rather than a choice | reported | **SHIPPED 2026-08-28** |
 | 4 | `lm-interaction` | 05-04 | main effects can be read unconditionally when an interaction is present | reported | **SHIPPED 2026-08-28** (revived deferred `interaction-effect`) |
-| 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | **measured and mocked 2026-08-29** — awaiting Kenneth's pick (renamed from `censoring-km`, Kenneth 2026-08-28) |
-| 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | proposed (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
+| 5 | `time-event` | 05-06 | censored patients are missing data to discard | reported | **SHIPPED 2026-08-29** (renamed from `censoring-km`, Kenneth 2026-08-28) |
+| 6 | `mixed-model` | 05-07 | 500 rows are 500 observations | **documented** (Hurlbert 1984) | **in review 2026-08-29** — draft built, two rounds (renamed from `pseudoreplication`, Kenneth 2026-08-28) |
 | 7 | `fork-pipe-collider` | 06-02 | more covariates is always safer — adjustment is a causal decision, not a statistical one | reported; absorbs deferred `confounding-simpson` | **SHIPPED 2026-08-27** |
 
 **The linear four wear an `lm-` prefix — agreed with Kenneth 2026-08-28.** The
@@ -3213,6 +3213,81 @@ throughout. Rulings made with it, so they are not re-argued:
 
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
+
+## Widget 32 · `mixed-model` — in review (draft), started 2026-08-29
+
+**The misconception (slot 6, Hurlbert 1984): 500 rows are 500 observations.**
+Measured before anything was argued, the arc's rhythm:
+
+- **The engine came first and is pinned to lme4 itself.**
+  `widgets/mixed-model/model.js` is a zero-dependency profiled REML fitter in
+  lme4's formulation (relative covariance factor, β and σ² profiled out,
+  Nelder–Mead over Λ's Cholesky, q ≤ 2 specialised to closed-form 2×2
+  algebra — the generic version allocated its way to ~30 ms a fit and priced
+  the tally out of compute()). `_lab/mixed-ref.R` regenerates the notebook's
+  two simulated datasets EXACTLY in base R (mutate evaluates sequentially, so
+  the RNG stream is six calls in order; head/tail rows proven against the
+  stored outputs) and, with lme4 installed, appends lme4's own fits to
+  `mixed-ref.json`. `_lab/mixed-measure.mjs` (89 checks): every printed
+  number of the BP tables to the digit — coefficients, t(n−p) Wald CIs
+  (measured off the printed half-widths: modelsummary's multiplier is
+  1.9647, not 1.96), SD(int) 9.918, SD(slope) 1.164, cor −0.255, σ 4.978,
+  ICC, AIC, BIC, RMSE — lm at 1e-8 against R, both lmer fits with REML
+  criteria agreeing to ~1e-10 (ours lands a hair LOWER on the BP fit).
+  KNOWN-DIFF: Nakagawa R² third-decimal only (Johnson 2014 verbatim vs
+  performance's bookkeeping).
+- **The design measurements** (`_lab/mixed-design.mjs`): visits 1→20 at 100
+  patients takes lm's false-positive rate 5%→57% while lmer holds 4–9% and
+  its half-CI ~4.1; 500×1 / 100×5 / 50×10 / 25×20 all print n = 500 while
+  the honest interval reads 2.0 / 4.1 / 5.9 / 8.4; the sdPatient ladder has
+  the fits agreeing at 0 and diverging monotonically; at family SD 5 the
+  flat fit averages 2.5 false SNPs of 9 AND misses the causal one 22% of
+  the time — lmer 0.64, never (modeling the families GAINS power).
+- **The notebook review found a real defect**: 05-07's SNP lm "adjusting
+  for family_id" enters it NUMERIC (coefficient 0.0038 — behaviourally
+  identical to no adjustment; measured). Kenneth's fix conversation
+  settled: drop the term and reword to "ignoring the family structure";
+  `as.factor` also works but reaches lmer's own conclusion (SNP5 alone,
+  1.233 vs 1.235) and kills the lesson's contrast. Measured for the
+  argument's honesty: fixed-effects adjustment is near-equivalent to lmer
+  HERE (SE ratio ≤ 1.09); the knockout cases are the BP design (medication
+  never varies within patient — rank-deficient, and R silently prints
+  order-dependent nonsense: −30.98*** one way, NA the other) and
+  unrecorded/crossed relatedness (household+clan sim: lm+factor 3.48 false
+  of 9, lmer(1|household) 3.42, lmer both levels 0.28) — judged TOO
+  COMPLICATED for the lesson and parked as prose.
+
+### Round 1 — built from four mock picks (2026-08-29)
+
+Kenneth picked all four recommendations off `_lab/mixed-stage.html` (every
+figure computed by the real engine): two tabs; the cloud→spaghetti reveal as
+an EASED DISPLAY FLIP, not a Step (round-17 spirit: data changes land
+finished, the ease runs only on the view flip); the repeat-the-study gate;
+the notebook-faithful one-level family design with widget 31's causal
+chips. Draw 7 is the measured default story on BOTH tabs; the families
+stream offset (900) is measured, not arbitrary — at the natural offset the
+default draw had lm MISSING the causal SNP. The tally's fast warm-started
+fits are verified decision-identical to full fits (0 flips over 100+100
+studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
+pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
+(F_LO below defineWidget while a families-tab URL draws during it).
+
+### Round 2 — the notebook's own vocabulary, and less machinery
+
+Kenneth's fixes, all four picks taken as offered: tabs renamed
+**Repeated · Nested** (the notebook's hierarchy types; values renamed too —
+draft, no URLs held); the confusing "Rows · Patients" toggle became
+**Measurements: Independent · Related** (his own mapping); the tally
+**opens finished** — Step and Play declined outright, the widget-31 ruling
+("may be too much"), Draw re-rolls the hundred; and the Nested stage
+gained **the family strip above the forest** — cholesterol as one thin
+column per family, families sorted by their mean, so the page opens on the
+DATA (a ramp of tight clusters at the notebook's strength, one flat band
+at none) rather than on the forest's answer. Both tabs gained the **R
+formula card** (his ask): both calls written out, the active one at full
+strength, the random-effect term wearing --c-empirical. The TDZ incident
+struck a second time (formulaHost); the file now carries the warning at
+the binding.
 
 ## Widget 31 · `time-event` — SHIPPED 2026-08-29, eighteen rounds in one day
 

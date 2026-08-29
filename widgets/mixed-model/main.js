@@ -33,8 +33,20 @@
    AND misses the real one 22% of the time (lmer: 0.64, never).
 
    Draw 7 is the measured default: lm rejects and lmer spans zero on the
-   Visits tab, and on Families lm flags 1, 2, 5, 9 while lmer keeps exactly
+   Repeated tab, and on Nested lm flags 2, 5, 6 while lmer keeps exactly
    the causal SNP 5.
+
+   ROUND 2 (Kenneth's four picks, all taken as offered): the tabs mirror
+   the notebook's two hierarchy TYPES — Repeated (over time) · Nested (in
+   families); the view toggle is his own mapping, Measurements:
+   Independent · Related; the repeat-the-study stage OPENS FINISHED (the
+   widget-31 ruling — Step and Play are declined outright, the gate is
+   the one door and Draw re-rolls the tally); the Nested stage gained the
+   family strip ABOVE the forest, so the page opens on the DATA — 1000
+   cholesterol values visibly clustering by family — rather than on its
+   own answer; and both tabs carry the R formula card, because "lm" and
+   "lmer" on screen should show the call they name, with the random-
+   effect term wearing the mixed-model colour.
    ========================================================================= */
 
 import { defineWidget, fmt } from "../core/index.js";
@@ -55,7 +67,6 @@ const EFFECTS = { none: 0, small: -2, moderate: -4, large: -8 };
 const FAMDIFF = { none: 0, small: 1, moderate: 2.5, large: 5 };
 
 const N_STUDIES = 100;
-const STUDY_MS = 55; // Play reveals ~18 studies a second, the whole tally in ~6 s
 const EASE_MS = 450;
 
 /* independent stream per surface, so opening the gate or flipping the tab
@@ -74,15 +85,19 @@ const SC_H = 238;
 const INT_GAP = 46;
 const INT_H = 116;
 const TALLY_GAP = 20;
-const TALLY_H = 150;
+const TALLY_H = 130;
 const V_BOT = 16;
-const visitsHeight = (studies) =>
+const repeatedHeight = (studies) =>
   SC_TOP + SC_H + INT_GAP + INT_H + (studies ? TALLY_GAP + TALLY_H : 0) + V_BOT;
 
-const F_TOP = 18;
+/* the Nested stage: the family strip — the DATA, above — then the forest */
+const STRIP_TOP = 22;
+const STRIP_H = 132;
+const STRIP_GAP = 46;
+const F_TOP = STRIP_TOP + STRIP_H + STRIP_GAP;
 const F_ROW = 27;
 const F_AXIS = 44;
-const famHeight = () => F_TOP + 10 * F_ROW + F_AXIS + 14;
+const nestedHeight = () => F_TOP + 10 * F_ROW + F_AXIS + 14;
 /* the forest's frame — ABOVE defineWidget on purpose: core calls draw()
    during the defineWidget call itself, so a const declared below it is
    still in its temporal dead zone on a page that opens straight onto the
@@ -114,6 +129,18 @@ const jitterOf = (id) => (((id * 2654435761) % 97) / 97 - 0.5) * 0.55;
 const claims = (fit, col) => fit.ci[col][1] < 0 || fit.ci[col][0] > 0;
 const ciText = (est, lo, hi) => `${fmt(est, 1)} [${fmt(lo, 1)}, ${fmt(hi, 1)}]`;
 
+/* --- the R formula card ---------------------------------------------------- *
+ * Round 2, Kenneth: "good to have the formula stated — the R code is
+ * confusing for lm and lmer". One `.w-math` card above the figure, both
+ * calls written out, the ACTIVE model at full strength and the other
+ * dimmed; the random-effect term wears the mixed-model colour, because it
+ * is the whole difference between the two lines. DOM, so it lands in the
+ * text hash. These bindings sit ABOVE defineWidget — core calls draw()
+ * during the defineWidget call itself, and this file has now hit that
+ * temporal dead zone twice (F_LO was the first). */
+let formulaHost = null;
+let formulaKey = null;
+
 defineWidget({
   slug: "mixed-model",
   title: "Modeling Hierarchical Data",
@@ -124,17 +151,20 @@ defineWidget({
     "effect, so the evidence is counted in patients rather than rows.",
   layout: "side",
   height: ({ concept, studies }) =>
-    concept === "families" ? famHeight() : visitsHeight(studies),
+    concept === "nested" ? nestedHeight() : repeatedHeight(studies),
 
   params: {
     concept: {
       type: "segmented",
       label: "Concept",
+      /* the notebook's two hierarchy types, in its own words (round 2):
+         repeated measurements from the same subject over time, and
+         individuals nested within families */
       options: [
-        { value: "visits", label: "Visits", detail: "one study, the same patients measured again and again" },
-        { value: "families", label: "Families", detail: "which SNPs move cholesterol, when the individuals come in families" },
+        { value: "repeated", label: "Repeated", detail: "the same patients measured over time — repeated measurements" },
+        { value: "nested", label: "Nested", detail: "individuals nested in families, sharing genetics and environment" },
       ],
-      default: "visits",
+      default: "repeated",
       display: true,
     },
 
@@ -143,7 +173,7 @@ defineWidget({
     dataV: {
       type: "section",
       label: "The data",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
     patients: {
       type: "choice",
@@ -155,7 +185,7 @@ defineWidget({
         { value: "200", label: "200" },
       ],
       default: "100",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
     visits: {
       type: "choice",
@@ -169,7 +199,7 @@ defineWidget({
         { value: "20", label: "20" },
       ],
       default: "5",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
     differ: {
       type: "choice",
@@ -182,7 +212,7 @@ defineWidget({
         { value: "large", label: "Large", detail: "the notebook's setting — most variation is between patients" },
       ],
       default: "large",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
     effect: {
       type: "choice",
@@ -195,27 +225,28 @@ defineWidget({
         { value: "large", label: "Large" },
       ],
       default: "none",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
 
     reading: {
       type: "section",
       label: "Reading the data",
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
     /* THE REVEAL. Two readings of the SAME rows, so display: true — the ease
        between them is what shows it is the same data (the widget-12 rule),
-       and the honest interval widens in as the patients join up. */
+       and the honest interval widens in as the patients join up. The
+       Independent · Related pair is Kenneth's own mapping (round 2). */
     view: {
       type: "segmented",
-      label: "See the rows as",
+      label: "Measurements",
       options: [
-        { value: "rows", label: "Rows", detail: "every measurement its own point — what lm assumes" },
-        { value: "patients", label: "Patients", detail: "each patient's visits joined — what the data actually is" },
+        { value: "independent", label: "Independent", detail: "every measurement its own point — what lm assumes" },
+        { value: "related", label: "Related", detail: "each patient's measurements joined — the correlation lmer models" },
       ],
-      default: "rows",
+      default: "independent",
       display: true,
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
 
     /* THE SECOND STAGE — one seed is an anecdote; the gate makes it a rate.
@@ -227,7 +258,7 @@ defineWidget({
       detail: "draw new studies from these same settings, counting what each model claims",
       default: false,
       display: true,
-      when: { param: "concept", equals: "visits" },
+      when: { param: "concept", equals: "repeated" },
     },
 
     /* THE DATA — the Families tab's. The causal chips are widget 31's move:
@@ -235,7 +266,7 @@ defineWidget({
     dataF: {
       type: "section",
       label: "The data",
-      when: { param: "concept", equals: "families" },
+      when: { param: "concept", equals: "nested" },
     },
     famdiff: {
       type: "choice",
@@ -248,7 +279,7 @@ defineWidget({
         { value: "large", label: "Large", detail: "the notebook's setting" },
       ],
       default: "large",
-      when: { param: "concept", equals: "families" },
+      when: { param: "concept", equals: "nested" },
     },
     causal: {
       type: "int",
@@ -259,7 +290,7 @@ defineWidget({
       min: 0,
       max: 1023,
       default: 16,
-      when: { param: "concept", equals: "families" },
+      when: { param: "concept", equals: "nested" },
     },
 
     seed: {
@@ -270,10 +301,6 @@ defineWidget({
       max: 50,
       default: 7,
     },
-
-    /* authoring hatch: how many repeated studies stand revealed on first
-       render (with the gate open in the URL) */
-    shown: { type: "int", min: 0, max: N_STUDIES, default: 0, hidden: true },
   },
 
   legend: [
@@ -348,6 +375,29 @@ defineWidget({
       mm: { est: mmF.coef[j + 1], lo: mmF.ci[j + 1][0], hi: mmF.ci[j + 1][1], sig: claims(mmF, j + 1) },
     }));
 
+    /* the family strip — every individual's cholesterol, families sorted by
+       their mean, so the nesting is the picture: tight vertical clusters on
+       a ramp when families differ, one flat band when they do not */
+    const byFam = new Map();
+    simF.familyId.forEach((f, i) => {
+      if (!byFam.has(f)) byFam.set(f, []);
+      byFam.get(f).push(simF.chol[i]);
+    });
+    const famStrip = [...byFam.values()]
+      .map((ys) => ({
+        ys,
+        mean: ys.reduce((a, b) => a + b, 0) / ys.length,
+        lo: Math.min(...ys),
+        hi: Math.max(...ys),
+      }))
+      .sort((a, b) => a.mean - b.mean);
+    let cLo = Infinity;
+    let cHi = -Infinity;
+    for (const v of simF.chol) {
+      if (v < cLo) cLo = v;
+      if (v > cHi) cHi = v;
+    }
+
     /* the scatter's frame, from the data of THIS draw — recomputed with the
        data, never per frame */
     let yLo = Infinity;
@@ -360,7 +410,9 @@ defineWidget({
     yHi = Math.ceil((yHi + 2) / 10) * 10;
 
     return {
-      sim, lm, mm, tally, snps,
+      sim, lm, mm, tally, snps, famStrip,
+      cholLo: Math.floor(cLo - 1),
+      cholHi: Math.ceil(cHi + 1),
       famSD: mmF.sdInt,
       famResid: mmF.sigma,
       famICC: mmF.icc,
@@ -371,71 +423,46 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Another study",
-    stepTitle: "Draw one more study from the same settings and fit both models",
-    runLabel: "Play",
-    runTitle: "Keep drawing studies",
-    init: ({ params, state, fromScratch }) => {
-      const N = state.tally ? state.tally.length : 0;
-      const anim = {
-        mix: params.view === "patients" ? 1 : 0,
-        mixT: params.view === "patients" ? 1 : 0,
-        k: !fromScratch ? Math.min(params.shown, N) : 0,
-        acc: 0,
-        inert: params.concept === "families",
-        easing: false,
-      };
-      anim.done = !state.tally || anim.k >= N;
-      return anim;
+    /* STEP AND PLAY ARE DECLINED (round 2 — the widget-31 ruling applied:
+       "may be too much"). Every figure opens FINISHED — the gate opens
+       onto the whole 100-study tally, and Draw re-rolls it. The one
+       animation left is the Independent → Related ease, which runs on
+       core's easing-request door, no buttons involved. */
+    stepLabel: null,
+    runLabel: null,
+    init: ({ params }) => {
+      const t = params.view === "related" ? 1 : 0;
+      return { mix: t, mixT: t, done: true, easing: false };
     },
-    advance: (anim, { dt, state }) => {
-      let moving = false;
+    advance: (anim, { dt }) => {
       const gap = anim.mixT - anim.mix;
       if (Math.abs(gap) > 0.004) {
         anim.mix += gap * Math.min(1, (dt / EASE_MS) * 2.6);
-        moving = true;
-      } else {
-        anim.mix = anim.mixT;
+        return true;
       }
-      const N = state.tally ? state.tally.length : 0;
-      if (state.tally && anim.k < N) {
-        if (anim.mode === "step") {
-          anim.k += 1;
-        } else if (anim.mode === "run") {
-          anim.acc += dt;
-          while (anim.acc >= STUDY_MS && anim.k < N) {
-            anim.k += 1;
-            anim.acc -= STUDY_MS;
-          }
-          if (anim.k < N) moving = true;
-        }
-      }
-      anim.done = !state.tally || anim.k >= N;
-      if (!moving) anim.easing = false;
-      return moving;
+      anim.mix = anim.mixT;
+      anim.easing = false;
+      return false;
     },
-    /* display changes: tab flip re-reads inert, a view flip requests the
-       ease, the gate re-clamps the tally cursor */
-    rebuild: (anim, { params, state }) => {
-      anim.inert = params.concept === "families";
-      const t = params.view === "patients" ? 1 : 0;
+    /* a view flip requests the ease; every other display change repaints
+       finished */
+    rebuild: (anim, { params }) => {
+      const t = params.view === "related" ? 1 : 0;
       if (t !== anim.mixT) {
         anim.mixT = t;
         anim.easing = true;
       }
-      const N = state.tally ? state.tally.length : 0;
-      anim.k = Math.min(anim.k, N);
-      anim.done = !state.tally || anim.k >= N;
     },
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
-    if (params.concept === "families") drawFamilies(ctx, colors, w, params, state);
-    else drawVisits(ctx, colors, w, params, state, anim);
+    renderFormulas(params);
+    if (params.concept === "nested") drawNested(ctx, colors, w, params, state);
+    else drawRepeated(ctx, colors, w, params, state, anim);
   },
 
   readout({ params, state, anim }) {
-    if (params.concept === "families") {
+    if (params.concept === "nested") {
       const list = (key) => {
         const hit = state.snps.filter((s) => s[key].sig).map((s) => s.j);
         return hit.length ? `SNP ${hit.join(", ")}` : "none";
@@ -483,33 +510,66 @@ defineWidget({
             lerp(lmCI[1], mmCI[1]),
           ),
         note: mix < 0.02
-          ? "see the rows as patients to fit it"
+          ? "set Measurements to Related to fit it"
           : Number(params.visits) === 1
-            ? "one visit each — the rows really are independent, and the fits agree"
+            ? "one visit each — the measurements really are independent, and the fits agree"
             : "patients as random effects — the evidence counted in patients",
       },
     ];
     if (state.tally) {
-      const k = Math.min(anim?.k ?? 0, state.tally.length);
-      const a = state.tally.slice(0, k).filter((s) => s.lm).length;
-      const b = state.tally.slice(0, k).filter((s) => s.mm).length;
+      const N = state.tally.length;
+      const a = state.tally.filter((s) => s.lm).length;
+      const b = state.tally.filter((s) => s.mm).length;
       tiles.push({
         label: "Claimed an effect",
-        value: k === 0 ? "—" : `lm ${a} · lmer ${b} of ${k}`,
-        note: k === 0
-          ? "press Another study"
-          : state.trueEffect === 0
-            ? "the medication does nothing here — every claim is false"
-            : `the true effect is ${state.trueEffect} — a claim here is a detection`,
+        value: `lm ${a} · lmer ${b} of ${N}`,
+        note: state.trueEffect === 0
+          ? "the medication does nothing here — every claim is false"
+          : `the true effect is ${state.trueEffect} — a claim here is a detection`,
       });
     }
     return tiles;
   },
 });
 
-/* --- the Visits stage ------------------------------------------------------ */
+function renderFormulas(params) {
+  if (typeof document === "undefined") return;
+  if (!formulaHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    formulaHost = document.createElement("div");
+    formulaHost.className = "w-math";
+    figure.parentNode.insertBefore(formulaHost, figure);
+  }
+  const active = params.concept === "nested" ? "mm"
+    : params.view === "related" ? "mm" : "lm";
+  const key = `${params.concept}|${active}`;
+  if (key === formulaKey) return;
+  formulaKey = key;
+  const mono = "font-family:var(--font-mono);font-size:var(--fs-xs)";
+  const dim = (on) => (on ? "" : "opacity:.45");
+  const re = (t) => `<span style="color:var(--c-empirical)">${t}</span>`;
+  const line = (label, body, on) =>
+    `<div class="w-math-eq" style="min-height:0;${mono};${dim(on)}">${label}( ${body} )</div>`;
+  const [lmLine, mmLine] = params.concept === "nested"
+    ? [
+      line("lm", "cholesterol ~ SNP1 + … + SNP10", active === "lm"),
+      line("lmer", `cholesterol ~ SNP1 + … + SNP10 + ${re("(1 | family)")}`, active === "mm"),
+    ]
+    : [
+      line("lm", "bp ~ age + gender + medication", active === "lm"),
+      line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
+    ];
+  const note = params.concept === "nested"
+    ? "(1 | family) is the random effect — which rows share a family"
+    : "(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend";
+  formulaHost.innerHTML = lmLine + mmLine
+    + `<div class="w-math-note" style="font-size:var(--fs-xs)">${note}</div>`;
+}
 
-function drawVisits(ctx, colors, w, params, state, anim) {
+/* --- the Repeated stage ---------------------------------------------------- */
+
+function drawRepeated(ctx, colors, w, params, state, anim) {
   const mix = anim?.mix ?? 0;
   const m = Number(params.visits);
   const { sim, yLo, yHi } = state;
@@ -584,9 +644,9 @@ function drawVisits(ctx, colors, w, params, state, anim) {
   const iy = SC_TOP + SC_H + INT_GAP;
   drawIntervalPanel(ctx, colors, w, params, state, mix, iy);
 
-  /* the tally, while the gate is open */
+  /* the tally, while the gate is open — finished, like every figure */
   if (state.tally) {
-    drawTally(ctx, colors, w, state, anim, iy + INT_H + TALLY_GAP);
+    drawTally(ctx, colors, w, state, iy + INT_H + TALLY_GAP);
   }
 }
 
@@ -673,54 +733,93 @@ function drawIntervalPanel(ctx, colors, w, params, state, mix, top) {
     ctx.textAlign = "right";
     ctx.fillText("lmer — patients modeled", IPAD - 10, y2 + 3);
     ctx.textAlign = "left";
-    ctx.fillText("see the rows as patients to fit it", IPAD, y2 + 3);
+    ctx.fillText("set Measurements to Related to fit it", IPAD, y2 + 3);
   }
 }
 
-function drawTally(ctx, colors, w, state, anim, top) {
+function drawTally(ctx, colors, w, state, top) {
   const fontXs = `${colors.fsXs}px ${colors.font}`;
   const N = state.tally.length;
-  const k = Math.min(anim?.k ?? 0, N);
   ctx.font = fontXs;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("The study, repeated from the same settings", IPAD, top + 2);
+  ctx.fillText("The study, repeated from the same settings — Draw rolls a fresh hundred", IPAD, top + 2);
 
   const slotW = (w - IPAD - 14) / N;
   const row = (y, key, color, label) => {
-    const hits = state.tally.slice(0, k).filter((s) => s[key]).length;
+    const hits = state.tally.filter((s) => s[key]).length;
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "right";
     ctx.fillText(label, IPAD - 10, y + 10);
-    for (let i = 0; i < k; i += 1) {
+    for (let i = 0; i < N; i += 1) {
       const x = IPAD + i * slotW;
       ctx.fillStyle = state.tally[i][key] ? colors.extreme : colors.grid;
       ctx.fillRect(x, y, Math.max(1.5, slotW - 1.2), 14);
     }
     ctx.fillStyle = color;
     ctx.textAlign = "left";
-    ctx.fillText(
-      k === 0 ? "" : `claimed an effect in ${hits} of ${k}`,
-      IPAD, y + 30,
-    );
+    ctx.fillText(`claimed an effect in ${hits} of ${N}`, IPAD, y + 30);
   };
   row(top + 16, "lm", colors.highlight, "lm");
-  row(top + 66, "mm", colors.empirical, "lmer");
-
-  if (k === 0) {
-    ctx.fillStyle = colors.ink3;
-    ctx.textAlign = "left";
-    ctx.fillText("each press draws a fresh study and fits both models", IPAD, top + 26);
-  }
+  row(top + 62, "mm", colors.empirical, "lmer");
 }
 
-/* --- the Families stage ---------------------------------------------------- */
+/* --- the Nested stage ------------------------------------------------------ */
 
-function drawFamilies(ctx, colors, w, params, state) {
+function drawNested(ctx, colors, w, params, state) {
   const fontXs = `${colors.fsXs}px ${colors.font}`;
   const lpad = 74;
   const sc = (v) => lpad + ((Math.min(Math.max(v, F_LO), F_HI) - F_LO) / (F_HI - F_LO)) * (w - lpad - 14);
   const bottom = F_TOP + 10 * F_ROW;
+
+  /* THE DATA FIRST (round 2): every individual's cholesterol, one thin
+     column per family, families sorted by their mean. The nesting IS the
+     picture — a ramp of tight vertical clusters at the notebook's family
+     strength, one flat band at none. The page opens on this, not on the
+     forest's answer. */
+  const strip = state.famStrip;
+  const nFam = strip.length;
+  const colW = (w - lpad - 14) / nFam;
+  const SY = (v) => STRIP_TOP
+    + ((state.cholHi - v) / (state.cholHi - state.cholLo)) * STRIP_H;
+  ctx.font = fontXs;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "left";
+  ctx.fillText("cholesterol, one column per family — families sorted by their mean", lpad, STRIP_TOP - 8);
+  ctx.textAlign = "right";
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  const tick = Math.ceil((state.cholHi - state.cholLo) / 40) * 10;
+  for (let v = Math.ceil(state.cholLo / tick) * tick; v <= state.cholHi; v += tick) {
+    const y = SY(v);
+    ctx.fillText(String(v), lpad - 6, y + 3);
+    ctx.beginPath();
+    ctx.moveTo(lpad, y);
+    ctx.lineTo(w - 14, y);
+    ctx.stroke();
+  }
+  for (let f = 0; f < nFam; f += 1) {
+    const x = lpad + (f + 0.5) * colW;
+    /* the family's span first, then its members — the bar under the dots
+       is what "these rows share a family" looks like */
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = Math.max(1, colW * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(x, SY(strip[f].lo));
+    ctx.lineTo(x, SY(strip[f].hi));
+    ctx.stroke();
+  }
+  ctx.fillStyle = colors.ink2;
+  for (let f = 0; f < nFam; f += 1) {
+    const x = lpad + (f + 0.5) * colW;
+    ctx.globalAlpha = 0.6;
+    for (const v of strip[f].ys) {
+      ctx.beginPath();
+      ctx.arc(x, SY(v), 1.3, 0, 7);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
 
   ctx.font = fontXs;
   ctx.strokeStyle = colors.ink3;
