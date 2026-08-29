@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive ROC Curve Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            font-size: 12px;
+            color: #555;
+        }
+        
+        .slider {
+            width: 150px;
+        }
+        
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .chart-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .chart-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .roc-curve {
+            fill: none;
+            stroke: #2196F3;
+            stroke-width: 3;
+        }
+        
+        .diagonal-line {
+            fill: none;
+            stroke: #999;
+            stroke-width: 1;
+            stroke-dasharray: 5,5;
+        }
+        
+        .threshold-point {
+            fill: #FF5722;
+            stroke: white;
+            stroke-width: 2;
+        }
+        
+        .optimal-point {
+            fill: #4CAF50;
+            stroke: white;
+            stroke-width: 3;
+        }
+        
+        .axis {
+            stroke: #666;
+        }
+        
+        .axis text {
+            fill: #666;
+            font-size: 11px;
+        }
+        
+        .grid line {
+            stroke: #e0e0e0;
+            stroke-width: 1;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .confusion-matrix {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            max-width: 200px;
+            margin: 10px auto;
+        }
+        
+        .cm-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        
+        .cm-header {
+            background: #666;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .cm-value {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+        }
+        
+        .cm-tp { background: #4CAF50; color: white; }
+        .cm-fp { background: #FF9800; color: white; }
+        .cm-fn { background: #FF5722; color: white; }
+        .cm-tn { background: #2196F3; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive ROC Curve Visualization</h1>
+        <p>Explore how different parameters affect ROC curves and classification performance.</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="threshold">Decision Threshold</label>
+                <input type="range" id="threshold" class="slider" min="0" max="1" step="0.01" value="0.5">
+                <span id="threshold-value">0.50</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="mean-diff">Class Separation</label>
+                <input type="range" id="mean-diff" class="slider" min="0.5" max="4" step="0.1" value="2">
+                <span id="mean-diff-value">2.0</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="noise">Noise Level</label>
+                <input type="range" id="noise" class="slider" min="0.1" max="2" step="0.1" value="1">
+                <span id="noise-value">1.0</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="sample-size">Sample Size</label>
+                <input type="range" id="sample-size" class="slider" min="100" max="1000" step="50" value="500">
+                <span id="sample-size-value">500</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="class-balance">Class Balance</label>
+                <input type="range" id="class-balance" class="slider" min="0.1" max="0.9" step="0.05" value="0.5">
+                <span id="class-balance-value">0.50</span>
+            </div>
+        </div>
+        
+        <div class="charts">
+            <div class="chart-container">
+                <div class="chart-title">ROC Curve</div>
+                <svg id="roc-chart" width="350" height="350"></svg>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Score Distributions</div>
+                <svg id="dist-chart" width="350" height="350"></svg>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="auc-value">0.85</div>
+                <div class="stat-label">AUC</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="accuracy-value">0.80</div>
+                <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="precision-value">0.75</div>
+                <div class="stat-label">Precision</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="recall-value">0.85</div>
+                <div class="stat-label">Recall</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="f1-value">0.80</div>
+                <div class="stat-label">F1 Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="optimal-threshold-value">0.50</div>
+                <div class="stat-label">Optimal Threshold</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">Confusion Matrix</div>
+            <div class="confusion-matrix">
+                <div class="cm-cell cm-header"></div>
+                <div class="cm-cell cm-header">Pred 0</div>
+                <div class="cm-cell cm-header">Pred 1</div>
+                <div class="cm-cell cm-header">True 0</div>
+                <div class="cm-cell cm-value cm-tn" id="tn-value">180</div>
+                <div class="cm-cell cm-value cm-fp" id="fp-value">20</div>
+                <div class="cm-cell cm-header">True 1</div>
+                <div class="cm-cell cm-value cm-fn" id="fn-value">30</div>
+                <div class="cm-cell cm-value cm-tp" id="tp-value">170</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ROCVisualization {
+            constructor() {
+                this.setupDimensions();
+                this.setupScales();
+                this.setupData();
+                this.setupCharts();
+                this.bindEvents();
+                this.update();
+            }
+            
+            setupDimensions() {
+                this.margin = { top: 20, right: 20, bottom: 40, left: 50 };
+                this.width = 350 - this.margin.left - this.margin.right;
+                this.height = 350 - this.margin.top - this.margin.bottom;
+            }
+            
+            setupScales() {
+                this.xScale = d3.scaleLinear()
+                    .domain([0, 1])
+                    .range([0, this.width]);
+                    
+                this.yScale = d3.scaleLinear()
+                    .domain([0, 1])
+                    .range([this.height, 0]);
+                    
+                this.xScaleDist = d3.scaleLinear()
+                    .domain([0, 1])
+                    .range([0, this.width]);
+                    
+                this.yScaleDist = d3.scaleLinear()
+                    .domain([0, 0.5])
+                    .range([this.height, 0]);
+            }
+            
+            setupData() {
+                this.params = {
+                    threshold: 0.5,
+                    meanDiff: 2,
+                    noise: 1,
+                    sampleSize: 500,
+                    classBalance: 0.5
+                };
+                
+                this.generateData();
+            }
+            
+            generateData() {
+                const { sampleSize, classBalance, meanDiff, noise } = this.params;
+                const numPositive = Math.floor(sampleSize * classBalance);
+                const numNegative = sampleSize - numPositive;
+                
+                // Generate raw scores for negative class (mean = 0)
+                const rawNegativeScores = Array.from({ length: numNegative }, () => 
+                    d3.randomNormal(0, noise)()
+                );
+                
+                // Generate raw scores for positive class (mean = meanDiff)
+                const rawPositiveScores = Array.from({ length: numPositive }, () => 
+                    d3.randomNormal(meanDiff, noise)()
+                );
+                
+                // Combine all raw scores to find global min/max
+                const allRawScores = [...rawNegativeScores, ...rawPositiveScores];
+                const minScore = d3.min(allRawScores);
+                const maxScore = d3.max(allRawScores);
+                const scoreRange = maxScore - minScore;
+                
+                // Transform scores to 0-1 range using min-max normalization
+                // This preserves the relative spreads of both distributions
+                this.negativeScores = rawNegativeScores.map(score => 
+                    (score - minScore) / scoreRange
+                );
+                
+                this.positiveScores = rawPositiveScores.map(score => 
+                    (score - minScore) / scoreRange
+                );
+                
+                this.calculateROCCurve();
+            }
+            
+            calculateROCCurve() {
+                // Combine all scores with their true labels
+                const allScores = [
+                    ...this.negativeScores.map(score => ({ score, label: 0 })),
+                    ...this.positiveScores.map(score => ({ score, label: 1 }))
+                ];
+                
+                // Sort by score descending
+                allScores.sort((a, b) => b.score - a.score);
+                
+                // Calculate ROC points
+                this.rocPoints = [];
+                let tp = 0, fp = 0;
+                const totalPositive = this.positiveScores.length;
+                const totalNegative = this.negativeScores.length;
+                
+                this.rocPoints.push({ fpr: 0, tpr: 0, threshold: Infinity });
+                
+                for (const item of allScores) {
+                    if (item.label === 1) {
+                        tp++;
+                    } else {
+                        fp++;
+                    }
+                    
+                    const tpr = tp / totalPositive;
+                    const fpr = fp / totalNegative;
+                    const tnr = 1 - fpr; // True Negative Rate
+                    const youdenJ = tpr + tnr - 1; // Youden's J statistic
+                    
+                    this.rocPoints.push({ fpr, tpr, threshold: item.score, youdenJ });
+                }
+                
+                // Find optimal threshold using Youden's J statistic
+                // Exclude the first point which has threshold = Infinity
+                const validPoints = this.rocPoints.filter(point => point.threshold !== Infinity);
+                this.optimalPoint = validPoints.reduce((best, current) => 
+                    current.youdenJ > best.youdenJ ? current : best
+                , validPoints[0] || this.rocPoints[1]);
+                
+                // Calculate AUC using trapezoidal rule
+                this.auc = this.calculateAUC();
+            }
+            
+            calculateAUC() {
+                let auc = 0;
+                for (let i = 1; i < this.rocPoints.length; i++) {
+                    const prev = this.rocPoints[i-1];
+                    const curr = this.rocPoints[i];
+                    auc += (curr.fpr - prev.fpr) * (curr.tpr + prev.tpr) / 2;
+                }
+                return auc;
+            }
+            
+            calculateMetricsAtThreshold() {
+                const threshold = this.params.threshold;
+                
+                let tp = 0, fp = 0, tn = 0, fn = 0;
+                
+                this.positiveScores.forEach(score => {
+                    if (score >= threshold) tp++;
+                    else fn++;
+                });
+                
+                this.negativeScores.forEach(score => {
+                    if (score >= threshold) fp++;
+                    else tn++;
+                });
+                
+                const total = tp + fp + tn + fn;
+                const accuracy = (tp + tn) / total;
+                const precision = tp / (tp + fp) || 0;
+                const recall = tp / (tp + fn) || 0;
+                const f1 = 2 * precision * recall / (precision + recall) || 0;
+                const fpr = fp / (fp + tn) || 0;
+                const tpr = recall;
+                
+                return { tp, fp, tn, fn, accuracy, precision, recall, f1, fpr, tpr };
+            }
+            
+            setupCharts() {
+                // ROC Chart
+                this.rocSvg = d3.select("#roc-chart")
+                    .append("g")
+                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+                
+                // Add grid
+                this.rocSvg.append("g")
+                    .attr("class", "grid")
+                    .selectAll("line")
+                    .data(d3.range(0, 1.1, 0.2))
+                    .enter()
+                    .append("line")
+                    .attr("x1", d => this.xScale(d))
+                    .attr("x2", d => this.xScale(d))
+                    .attr("y1", 0)
+                    .attr("y2", this.height);
+                    
+                this.rocSvg.append("g")
+                    .attr("class", "grid")
+                    .selectAll("line")
+                    .data(d3.range(0, 1.1, 0.2))
+                    .enter()
+                    .append("line")
+                    .attr("x1", 0)
+                    .attr("x2", this.width)
+                    .attr("y1", d => this.yScale(d))
+                    .attr("y2", d => this.yScale(d));
+                
+                // Add diagonal line
+                this.rocSvg.append("line")
+                    .attr("class", "diagonal-line")
+                    .attr("x1", 0)
+                    .attr("y1", this.height)
+                    .attr("x2", this.width)
+                    .attr("y2", 0);
+                
+                // Add axes
+                this.rocSvg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(0,${this.height})`)
+                    .call(d3.axisBottom(this.xScale));
+                    
+                this.rocSvg.append("g")
+                    .attr("class", "axis")
+                    .call(d3.axisLeft(this.yScale));
+                
+                // Add axis labels
+                this.rocSvg.append("text")
+                    .attr("x", this.width / 2)
+                    .attr("y", this.height + 35)
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .text("False Positive Rate");
+                    
+                this.rocSvg.append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", -35)
+                    .attr("x", -this.height / 2)
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .text("True Positive Rate");
+                
+                // Distribution Chart
+                this.distSvg = d3.select("#dist-chart")
+                    .append("g")
+                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+                
+                // Add axes for distribution chart
+                this.distSvg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(0,${this.height})`)
+                    .call(d3.axisBottom(this.xScaleDist));
+                    
+                this.distSvg.append("g")
+                    .attr("class", "axis")
+                    .call(d3.axisLeft(this.yScaleDist));
+                
+                // Add axis labels
+                this.distSvg.append("text")
+                    .attr("x", this.width / 2)
+                    .attr("y", this.height + 35)
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .text("Classifier Score");
+                    
+                this.distSvg.append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", -35)
+                    .attr("x", -this.height / 2)
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .text("Density");
+            }
+            
+            bindEvents() {
+                const controls = ['threshold', 'mean-diff', 'noise', 'sample-size', 'class-balance'];
+                
+                controls.forEach(control => {
+                    const slider = document.getElementById(control);
+                    const valueDisplay = document.getElementById(`${control}-value`);
+                    
+                    slider.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        valueDisplay.textContent = value.toFixed(2);
+                        
+                        switch (control) {
+                            case 'threshold':
+                                this.params.threshold = value;
+                                break;
+                            case 'mean-diff':
+                                this.params.meanDiff = value;
+                                this.generateData();
+                                break;
+                            case 'noise':
+                                this.params.noise = value;
+                                this.generateData();
+                                break;
+                            case 'sample-size':
+                                this.params.sampleSize = parseInt(value);
+                                this.generateData();
+                                break;
+                            case 'class-balance':
+                                this.params.classBalance = value;
+                                this.generateData();
+                                break;
+                        }
+                        
+                        this.update();
+                    });
+                });
+            }
+            
+            update() {
+                this.updateROCChart();
+                this.updateDistributionChart();
+                this.updateMetrics();
+            }
+            
+            updateROCChart() {
+                // Draw ROC curve
+                const line = d3.line()
+                    .x(d => this.xScale(d.fpr))
+                    .y(d => this.yScale(d.tpr))
+                    .curve(d3.curveLinear);
+                
+                this.rocSvg.selectAll(".roc-curve").remove();
+                this.rocSvg.append("path")
+                    .datum(this.rocPoints)
+                    .attr("class", "roc-curve")
+                    .attr("d", line);
+                
+                // Draw optimal threshold point (Youden's J)
+                this.rocSvg.selectAll(".optimal-point").remove();
+                if (this.optimalPoint) {
+                    this.rocSvg.append("circle")
+                        .attr("class", "optimal-point")
+                        .attr("cx", this.xScale(this.optimalPoint.fpr))
+                        .attr("cy", this.yScale(this.optimalPoint.tpr))
+                        .attr("r", 8);
+                }
+                
+                // Draw current threshold point
+                const metrics = this.calculateMetricsAtThreshold();
+                
+                this.rocSvg.selectAll(".threshold-point").remove();
+                this.rocSvg.append("circle")
+                    .attr("class", "threshold-point")
+                    .attr("cx", this.xScale(metrics.fpr))
+                    .attr("cy", this.yScale(metrics.tpr))
+                    .attr("r", 6);
+            }
+            
+            updateDistributionChart() {
+                // Create histogram data
+                const bins = 50;
+                const negativeHist = d3.histogram()
+                    .domain(this.xScaleDist.domain())
+                    .thresholds(bins)(this.negativeScores);
+                    
+                const positiveHist = d3.histogram()
+                    .domain(this.xScaleDist.domain())
+                    .thresholds(bins)(this.positiveScores);
+                
+                // Normalize to density
+                const negativeTotal = this.negativeScores.length;
+                const positiveTotal = this.positiveScores.length;
+                const binWidth = (this.xScaleDist.domain()[1] - this.xScaleDist.domain()[0]) / bins;
+                
+                negativeHist.forEach(bin => {
+                    bin.density = bin.length / (negativeTotal * binWidth);
+                });
+                
+                positiveHist.forEach(bin => {
+                    bin.density = bin.length / (positiveTotal * binWidth);
+                });
+                
+                // Update y scale domain
+                const maxDensity = Math.max(
+                    d3.max(negativeHist, d => d.density),
+                    d3.max(positiveHist, d => d.density)
+                );
+                this.yScaleDist.domain([0, maxDensity * 1.1]);
+                
+                // Update y axis
+                this.distSvg.select(".axis")
+                    .transition()
+                    .call(d3.axisLeft(this.yScaleDist));
+                
+                // Draw histograms
+                this.distSvg.selectAll(".negative-bar").remove();
+                this.distSvg.selectAll(".negative-bar")
+                    .data(negativeHist)
+                    .enter()
+                    .append("rect")
+                    .attr("class", "negative-bar")
+                    .attr("x", d => this.xScaleDist(d.x0))
+                    .attr("width", d => this.xScaleDist(d.x1) - this.xScaleDist(d.x0) - 1)
+                    .attr("y", d => this.yScaleDist(d.density))
+                    .attr("height", d => this.height - this.yScaleDist(d.density))
+                    .attr("fill", "rgba(244, 67, 54, 0.6)");
+                
+                this.distSvg.selectAll(".positive-bar").remove();
+                this.distSvg.selectAll(".positive-bar")
+                    .data(positiveHist)
+                    .enter()
+                    .append("rect")
+                    .attr("class", "positive-bar")
+                    .attr("x", d => this.xScaleDist(d.x0))
+                    .attr("width", d => this.xScaleDist(d.x1) - this.xScaleDist(d.x0) - 1)
+                    .attr("y", d => this.yScaleDist(d.density))
+                    .attr("height", d => this.height - this.yScaleDist(d.density))
+                    .attr("fill", "rgba(33, 150, 243, 0.6)");
+                
+                // Draw threshold line
+                this.distSvg.selectAll(".threshold-line").remove();
+                this.distSvg.append("line")
+                    .attr("class", "threshold-line")
+                    .attr("x1", this.xScaleDist(this.params.threshold))
+                    .attr("x2", this.xScaleDist(this.params.threshold))
+                    .attr("y1", 0)
+                    .attr("y2", this.height)
+                    .attr("stroke", "#FF5722")
+                    .attr("stroke-width", 3)
+                    .attr("stroke-dasharray", "5,5");
+            }
+            
+            updateMetrics() {
+                const metrics = this.calculateMetricsAtThreshold();
+                
+                // Update statistics
+                document.getElementById('auc-value').textContent = this.auc.toFixed(3);
+                document.getElementById('accuracy-value').textContent = metrics.accuracy.toFixed(3);
+                document.getElementById('precision-value').textContent = metrics.precision.toFixed(3);
+                document.getElementById('recall-value').textContent = metrics.recall.toFixed(3);
+                document.getElementById('f1-value').textContent = metrics.f1.toFixed(3);
+                document.getElementById('optimal-threshold-value').textContent = this.optimalPoint ? this.optimalPoint.threshold.toFixed(3) : 'N/A';
+                
+                // Update confusion matrix
+                document.getElementById('tp-value').textContent = metrics.tp;
+                document.getElementById('fp-value').textContent = metrics.fp;
+                document.getElementById('tn-value').textContent = metrics.tn;
+                document.getElementById('fn-value').textContent = metrics.fn;
+            }
+        }
+        
+        // Initialize the visualization when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ROCVisualization();
+        });
+    </script>
+</body>
+</html>

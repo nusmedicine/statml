@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 34 roc-auc — stage candidates, mocked before the build</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 760px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 760px; }
+
+  .tiles { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 10px 12px; width: 150px; }
+  .tile .t-label { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .t-value { font-size: var(--fs-lg); font-family: var(--font-mono); color: var(--ink-1); margin: 2px 0; }
+  .tile .t-note { font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.35; }
+  .tile .t-note b { color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 34 · <code>roc-auc</code> — the stage, mocked from the real numbers before the build</h1>
+
+  <p class="note">
+    Everything drawn here uses the <b>actual 60 test patients of 04-2's heart-failure model</b>
+    (logistic regression, class_weight balanced, the notebook's own split) — probabilities
+    reproduced today in <code>_scratch/roc1.py</code>, matching the notebook to the digit:
+    AUC <b>0.7407</b>, Youden threshold <b>0.3137</b>, and cell 39's punchline —
+    accuracy is <b>0.70 at both thresholds</b> while missed deaths go <b>9 → 3</b>.
+    Deaths wear <code>--c-event</code>, survivors <code>--c-nonevent</code>, the threshold
+    <code>--c-highlight</code>, the chance diagonal <code>--c-reference</code>, the curve
+    <code>--c-empirical</code> (a thing built from the data).
+    From your uploaded D3 app, translated to house rules: the threshold slider, the score
+    strip, the confusion-matrix-as-geometry, ROC + AUC, Youden. Cut in translation, each
+    for a standing rule: unseeded <code>d3.randomNormal</code> (rule 6 — seeded rng),
+    regenerate-on-every-slider-move (rule 2 — compute is seeded, so the same URL is the
+    same figure), the separate Noise slider (after the app's own min–max normalisation
+    only separation ÷ noise survives — one Separation control carries it), and opening
+    with the optimal point already marked (rule 4 — widgets start empty; Youden is a
+    reveal, not a default).
+  </p>
+
+  <h2>§1 · The main stage — the strip is the confusion matrix</h2>
+  <p class="note">
+    <b>A</b> is the catalogue sketch alone: one dot per patient on the probability axis,
+    survivors below, deaths above, and the threshold line cuts the strip into the four
+    quadrants — TN / FP under, FN / TP over. Counts live in the corners; no separate
+    matrix graphic anywhere. <b>B</b> is the proposed shipping stage: A's strip beside
+    the ROC square, linked — the threshold's (FPR, TPR) is the moving dot ON the curve,
+    which is the whole lesson in one linkage. Shown twice, at 0.50 and at Youden 0.31,
+    to preview what dragging does (nine deaths on the wrong side become three).
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — strip + quadrants only (threshold 0.50)</h3>
+      <p class="sub">the four regions ARE the matrix; no ROC yet — it would be tab 1 of 2</p>
+      <canvas id="candA" width="560" height="330"></canvas>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>B — the linked pair at threshold 0.50</h3>
+      <p class="sub">strip left, ROC right; the dot on the curve IS the current threshold's (FPR, TPR)</p>
+      <canvas id="candB1" width="760" height="380"></canvas>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>B at the Youden threshold 0.31 — what a drag of the slider does</h3>
+      <p class="sub">the dot slides up the staircase; FN 9 → 3, FP 9 → 15, accuracy unmoved at 0.70</p>
+      <canvas id="candB2" width="760" height="380"></canvas>
+    </div>
+  </div>
+
+  <h2>§2 · The entry — the curve is TRACED by the sweeping threshold</h2>
+  <p class="note">
+    No widget opens on its answer, and the ROC curve is the answer here. The entry
+    animation: the threshold line sweeps down the strip from 1 to 0, and every patient
+    it passes bends the path — <b>up</b> for a death, <b>right</b> for a survivor. The
+    curve is built one patient at a time, which is also what AUC means (a random death
+    ranking above a random survivor). Mid-sweep frame below: threshold at 0.45, the
+    path ahead ghosted.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>C — mid-trace, threshold sweeping past 0.45</h3>
+      <p class="sub">the staircase exists only where the sweep has been; each step is one patient</p>
+      <canvas id="candC" width="760" height="380"></canvas>
+    </div>
+  </div>
+
+  <h2>§3 · The simulated act — your app's Separation and Balance sliders live here</h2>
+  <p class="note">
+    The real model is one fixed curve; what BENDS a curve needs data you can move,
+    which is your app's real content. A separate tab: two score distributions with a
+    <b>Separation</b> slider (shown at d′ = 1.3, AUC 0.82) and a <b>Class balance</b>
+    slider — whose lesson is that the ROC curve and AUC barely move with prevalence
+    while accuracy and precision swing, the bridge to <code>balancing-data</code>.
+    Question to settle: keep Sample size n as a control (its lesson is sampling noise —
+    the staircase gets chunky at small n), or pin n and keep the tab clean?
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>D — simulated distributions + their curve (separation 1.3, balance 0.5)</h3>
+      <p class="sub">densities replace dots when the data is a population you dial, not 60 named patients</p>
+      <canvas id="candD" width="760" height="380"></canvas>
+    </div>
+  </div>
+
+  <h2>§4 · The readout at the two thresholds — cell 39 as tiles</h2>
+  <p class="note">
+    The notebook's closing comparison, as the widget's readout would print it. AUC sits
+    apart because it is the one number the threshold cannot move — that contrast is the
+    concept. "Missed deaths" is the tile that makes the trade-off clinical rather than
+    decimal.
+  </p>
+  <div class="tiles" id="tiles"></div>
+  <p class="cap" id="tile-cap"></p>
+
+  <h2>§5 · Open picks</h2>
+  <p class="note">
+    1) <b>Stage</b>: B as the main tab (A alone undersells; the linkage is the lesson)?<br>
+    2) <b>Tabs</b>: two or three — <i>Threshold</i> (B, real patients) · <i>What moves the
+    curve</i> (D, simulated) · and is Youden its own beat on tab 1 or a third tab?<br>
+    3) <b>Youden's point</b>: an overlay toggle, or an lm-diagnostics-style claim pill
+    ("Where is the best threshold?") — and which token does an "optimum" wear?<br>
+    4) <b>The threshold control</b>: rail slider, a draggable line on the canvas
+    (pointer channel), or both?<br>
+    5) <b>Sample size</b> on the simulated tab: keep or pin?<br>
+    6) <b>Title</b>: working title <i>Scoring a Classifier</i> vs <i>Choosing a
+    Threshold</i> — the first names the curve, the second names the decision.
+  </p>
+</main>
+
+<script>
+// ---- the real numbers: 04-2's test set, reproduced in _scratch/roc1.py today ----
+const PROB = [0.618693,0.437255,0.324323,0.640161,0.132661,0.152053,0.172219,0.206101,0.149348,0.725111,0.74622,0.438778,0.389591,0.300861,0.154251,0.642931,0.746998,0.450307,0.799956,0.215895,0.032317,0.47936,0.28854,0.066117,0.102334,0.773484,0.391266,0.963578,0.732587,0.279051,0.138426,0.332455,0.256659,0.891399,0.123224,0.429606,0.313674,0.496892,0.519047,0.721931,0.580567,0.225333,0.267684,0.04678,0.087138,0.117796,0.200472,0.079533,0.30966,0.87267,0.590528,0.720303,0.380045,0.216238,0.141445,0.807341,0.224757,0.737174,0.116428,0.163896];
+const LAB  = [0,0,0,0,0,0,0,1,0,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,1,0,0];
+const YOUDEN = 0.313674;
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-reference","--c-empirical","--c-theory",
+ "--ink-1","--ink-2","--ink-3","--grid","--surface-1"].forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+function metrics(th) {
+  let tp=0, fp=0, tn=0, fn=0;
+  for (let i = 0; i < PROB.length; i++) {
+    const pos = PROB[i] >= th;
+    if (LAB[i] === 1) { if (pos) tp++; else fn++; }
+    else { if (pos) fp++; else tn++; }
+  }
+  const acc = (tp+tn)/PROB.length, sens = tp/(tp+fn), spec = tn/(tn+fp);
+  const prec = tp+fp ? tp/(tp+fp) : 0;
+  return { tp, fp, tn, fn, acc, sens, spec, prec, fpr: fp/(fp+tn), tpr: sens };
+}
+
+// sklearn-style staircase: thresholds descending, one point per distinct score
+function rocPoints() {
+  const idx = PROB.map((p,i) => i).sort((a,b) => PROB[b]-PROB[a]);
+  const P = LAB.filter(l => l===1).length, N = LAB.length - P;
+  const pts = [{fpr:0, tpr:0, th:Infinity}];
+  let tp=0, fp=0;
+  for (let k = 0; k < idx.length; k++) {
+    if (LAB[idx[k]] === 1) tp++; else fp++;
+    const next = k+1 < idx.length ? PROB[idx[k+1]] : NaN;
+    if (PROB[idx[k]] !== next) pts.push({ fpr: fp/N, tpr: tp/P, th: PROB[idx[k]] });
+  }
+  return pts;
+}
+const ROC = rocPoints();
+const AUC = ROC.slice(1).reduce((a,p,i) => a + (p.fpr-ROC[i].fpr)*(p.tpr+ROC[i].tpr)/2, 0);
+
+// ---- drawing helpers ----
+function stripLayout(x, y, w, h) {
+  // two beeswarm rows: survivors lower half, deaths upper half
+  const bins = 46, bw = w/bins;
+  const stacks = {};
+  const dots = [];
+  for (let i = 0; i < PROB.length; i++) {
+    const b = Math.min(bins-1, Math.floor(PROB[i]*bins));
+    const key = LAB[i] + ":" + b;
+    const s = stacks[key] = (stacks[key] || 0) + 1;
+    const cx = x + (b+0.5)*bw;
+    const base = LAB[i] === 1 ? y + h*0.44 : y + h - 8;
+    dots.push({ cx, cy: base - (s-1)*11, died: LAB[i] === 1, p: PROB[i] });
+  }
+  return dots;
+}
+
+function drawStrip(ctx, x, y, w, h, th, m, opts = {}) {
+  ctx.save();
+  // midline splitting the two class rows
+  ctx.strokeStyle = C["grid"]; ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  ctx.beginPath(); ctx.moveTo(x, y + h*0.5); ctx.lineTo(x + w, y + h*0.5); ctx.stroke();
+  // axis
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) ctx.fillText(t.toFixed(2), x + t*w, y + h + 14);
+  ctx.fillText("predicted probability of death", x + w/2, y + h + 28);
+  ctx.textAlign = "left";
+  ctx.fillText("died", x + 4, y + 12);
+  ctx.fillText("survived", x + 4, y + h*0.5 + 12);
+  // dots
+  for (const d of stripLayout(x, y, w, h)) {
+    ctx.beginPath(); ctx.arc(d.cx, d.cy, 4.6, 0, Math.PI*2);
+    ctx.fillStyle = d.died ? C["c-event"] : C["c-nonevent"];
+    ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  // threshold line
+  const tx = x + th*w;
+  ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 2;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(tx, y - 4); ctx.lineTo(tx, y + h + 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C["c-highlight"]; ctx.font = MONO; ctx.textAlign = "center";
+  ctx.fillText("threshold " + th.toFixed(2), tx, y - 10);
+  // quadrant counts
+  if (opts.quadrants !== false) {
+    ctx.font = MONO; ctx.textAlign = "right";
+    ctx.fillStyle = C["ink-2"];
+    ctx.fillText("FN " + m.fn, tx - 8, y + 26);
+    ctx.fillText("TN " + m.tn, tx - 8, y + h*0.5 + 26);
+    ctx.textAlign = "left";
+    ctx.fillText("TP " + m.tp, tx + 8, y + 26);
+    ctx.fillText("FP " + m.fp, tx + 8, y + h*0.5 + 26);
+  }
+  ctx.restore();
+}
+
+function drawROC(ctx, x, y, s, opts = {}) {
+  ctx.save();
+  ctx.strokeStyle = C["grid"]; ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, s, s);
+  for (const t of [0.25, 0.5, 0.75]) {
+    ctx.beginPath(); ctx.moveTo(x + t*s, y); ctx.lineTo(x + t*s, y + s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y + t*s); ctx.lineTo(x + s, y + t*s); ctx.stroke();
+  }
+  // chance diagonal
+  ctx.strokeStyle = C["c-reference"]; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x, y + s); ctx.lineTo(x + s, y); ctx.stroke();
+  ctx.setLineDash([]);
+  // curve, possibly only up to a sweep threshold
+  const upTo = opts.upTo ?? -Infinity;
+  const done = ROC.filter(p => p.th >= upTo);
+  const path = (pts) => {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const px = x + p.fpr*s, py = y + s - p.tpr*s;
+      if (i === 0) ctx.moveTo(px, py);
+      else { ctx.lineTo(px, y + s - pts[i-1].tpr*s); ctx.lineTo(px, py); }
+    });
+    ctx.stroke();
+  };
+  if (opts.ghost) {
+    ctx.strokeStyle = C["grid"]; ctx.lineWidth = 2; path(ROC);
+  }
+  ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 2.5; path(done);
+  // frontier dot mid-sweep
+  if (opts.upTo != null && done.length) {
+    const f = done[done.length-1];
+    ctx.beginPath(); ctx.arc(x + f.fpr*s, y + s - f.tpr*s, 5, 0, Math.PI*2);
+    ctx.fillStyle = C["c-highlight"]; ctx.fill();
+  }
+  // the current-threshold dot on the finished curve
+  if (opts.at) {
+    const m = opts.at;
+    ctx.beginPath(); ctx.arc(x + m.fpr*s, y + s - m.tpr*s, 6, 0, Math.PI*2);
+    ctx.fillStyle = C["c-highlight"]; ctx.fill();
+    ctx.strokeStyle = C["surface-1"]; ctx.lineWidth = 2; ctx.stroke();
+  }
+  if (opts.youden) {
+    const m = metrics(YOUDEN);
+    ctx.beginPath(); ctx.arc(x + m.fpr*s, y + s - m.tpr*s, 5.5, 0, Math.PI*2);
+    ctx.strokeStyle = C["c-theory"]; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = C["c-theory"]; ctx.font = MONO_S; ctx.textAlign = "left";
+    ctx.fillText("Youden 0.31", x + m.fpr*s + 10, y + s - m.tpr*s - 8);
+  }
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("false positive rate", x + s/2, y + s + 26);
+  for (const t of [0, 0.5, 1]) ctx.fillText(t.toFixed(1), x + t*s, y + s + 13);
+  ctx.save(); ctx.translate(x - 26, y + s/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("true positive rate", 0, 0); ctx.restore();
+  ctx.textAlign = "right";
+  for (const t of [0.5, 1]) ctx.fillText(t.toFixed(1), x - 5, y + s - t*s + 4);
+  if (opts.auc !== false) {
+    ctx.font = MONO; ctx.fillStyle = C["ink-1"]; ctx.textAlign = "left";
+    ctx.fillText("AUC " + AUC.toFixed(3), x + s*0.55, y + s*0.88);
+  }
+  ctx.restore();
+}
+
+const ctx2d = (id) => document.getElementById(id).getContext("2d");
+
+// A — strip only
+{
+  const ctx = ctx2d("candA");
+  drawStrip(ctx, 50, 46, 470, 220, 0.5, metrics(0.5));
+}
+// B — linked pair, two thresholds
+for (const [id, th] of [["candB1", 0.5], ["candB2", YOUDEN]]) {
+  const ctx = ctx2d(id);
+  const m = metrics(th);
+  drawStrip(ctx, 40, 46, 370, 270, th, m);
+  drawROC(ctx, 470, 30, 300, { at: m, youden: th !== 0.5 });
+}
+// C — mid-trace
+{
+  const ctx = ctx2d("candC");
+  const sweep = 0.45;
+  drawStrip(ctx, 40, 46, 370, 270, sweep, metrics(sweep), { quadrants: false });
+  drawROC(ctx, 470, 30, 300, { upTo: sweep, ghost: true, auc: false });
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "left";
+  ctx.fillText("up = a death · right = a survivor", 560, 310);
+}
+// D — simulated densities + binormal curve
+{
+  const ctx = ctx2d("candD");
+  const x = 40, y = 40, w = 370, h = 250, d = 1.3, sd = 0.13;
+  const mu0 = 0.5 - d*sd/2, mu1 = 0.5 + d*sd/2;
+  const pdf = (v, mu) => Math.exp(-((v-mu)**2)/(2*sd*sd));
+  ctx.strokeStyle = C["grid"]; ctx.strokeRect(x, y, w, h + 30);
+  for (const [mu, col] of [[mu0, C["c-nonevent"]], [mu1, C["c-event"]]]) {
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const v = i/200, px = x + v*w, py = y + h + 26 - pdf(v, mu)*h*0.9;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.globalAlpha = 0.12; ctx.lineTo(x + w, y + h + 26); ctx.lineTo(x, y + h + 26);
+    ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("classifier score", x + w/2, y + h + 56);
+  ctx.fillStyle = C["ink-2"]; ctx.font = MONO; ctx.textAlign = "left";
+  ctx.fillText("separation d′ = 1.3", x + 8, y + 16);
+  // binormal ROC
+  const erf = (z) => { const t = 1/(1+0.3275911*Math.abs(z));
+    const p = 1 - t*(0.254829592 + t*(-0.284496736 + t*(1.421413741 + t*(-1.453152027 + t*1.061405429))))*Math.exp(-z*z);
+    return z < 0 ? -p : p; };
+  const Phi = (z) => 0.5*(1 + erf(z/Math.SQRT2));
+  const sx = 470, sy = 30, s = 300;
+  ctx.strokeStyle = C["grid"]; ctx.strokeRect(sx, sy, s, s);
+  ctx.strokeStyle = C["c-reference"]; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(sx, sy + s); ctx.lineTo(sx + s, sy); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath();
+  for (let i = 0; i <= 240; i++) {
+    const c = 4 - i/30; // sweep cut from +4sd to -4sd
+    const fpr = 1 - Phi(c), tpr = 1 - Phi(c - d);
+    const px = sx + fpr*s, py = sy + s - tpr*s;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = C["ink-1"]; ctx.font = MONO; ctx.textAlign = "left";
+  ctx.fillText("AUC " + Phi(d/Math.SQRT2).toFixed(3), sx + s*0.55, sy + s*0.88);
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("false positive rate", sx + s/2, sy + s + 26);
+  ctx.save(); ctx.translate(sx - 14, sy + s/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("true positive rate", 0, 0); ctx.restore();
+}
+
+// §4 tiles
+{
+  const m5 = metrics(0.5), mY = metrics(YOUDEN);
+  const rows = [
+    ["AUC", AUC.toFixed(3), "threshold-free — the one number the slider cannot move"],
+    ["Accuracy", m5.acc.toFixed(2) + " → " + mY.acc.toFixed(2), "identical — accuracy cannot pick your threshold"],
+    ["Sensitivity", m5.sens.toFixed(2) + " → " + mY.sens.toFixed(2), "recall of deaths"],
+    ["Specificity", m5.spec.toFixed(2) + " → " + mY.spec.toFixed(2), "the price paid"],
+    ["Missed deaths", m5.fn + " → " + mY.fn, "of 19 — the clinical trade"],
+  ];
+  document.getElementById("tiles").innerHTML = rows.map(([l, v, n]) =>
+    `<div class="tile"><div class="t-label">${l}</div><div class="t-value">${v}</div><div class="t-note">${n}</div></div>`).join("");
+  document.getElementById("tile-cap").textContent =
+    "0.50 → 0.31 (Youden). Computed live from the embedded probabilities; " +
+    "matches roc1.py / notebook cell 39 to the digit: cm [[32,9],[9,10]] → [[26,15],[3,16]].";
+}
+</script>
+</body>
+</html>
