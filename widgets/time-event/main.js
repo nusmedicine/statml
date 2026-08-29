@@ -46,31 +46,42 @@
    against the new tab's end in `rebuild`, so a curve finished on Censoring
    keeps building on Comparing groups.
 
-   THE DATA: the five patients are the notebook's own; the 200 keep the
-   notebook's event process but NOT its censoring — cell 11 draws Status
-   independently of time, and under that design discarding the censored is
-   UNBIASED while KM lies high (+0.13): the opposite lesson. model.js's
-   simulate() censors by study end instead (min(T, C), doors close at 20);
-   the ruling and its measurements are docs/catalogue.md § Widget 31.
-   R's seeded draw does not reproduce in JS, so nothing here claims R's
-   numbers: the deterministic cells are verified to the digit, the
-   simulated arm across this widget's own seeds (log-rank p < 1e-4 on
-   100/100). Seed 3 is the default — the lowest seed where the full Cox fit
-   tells cell 17's exact story: Age, Disease, SNP_1–3 significant and all
-   seven null SNPs quiet (seeds 1 and 2 each flag a null SNP at the 5%
-   floor).
+   THE DATA (round 8 made it a PLAY SURFACE — Kenneth: fixed curves were
+   "thin cosmetics"): the five patients are the notebook's own, except E's
+   time, which is the Censoring tab's lever. The cohort tabs share a data
+   section — Patients (30–200), Disease effect (the None/Small/Moderate/
+   Large ladder, values measured per cell), Follow-up (doors close at
+   12–25) and Draw — every one a DATA parameter, so moving it draws a new
+   study and the sweep starts over, which is the point. The generator keeps
+   the notebook's event process with two measured amendments (model.js
+   header): censoring by study end, not the Status coin; and SNPs BALANCED
+   across groups, because a clean "Disease effect: none" must silence every
+   channel. Draw 1 at the defaults is the measured clean cohort: cell 17's
+   exact story, all null SNPs quiet, every hazard bin ordered. R's seeded
+   draw does not reproduce in JS; the deterministic cells are verified to
+   the digit and the simulated arm across this widget's own seeds.
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
 import { km, logrank, coxph, simulate } from "./model.js";
 
-/* --- the five patients — the notebook's own table ------------------------- */
+/* --- the five patients — the notebook's own table ------------------------- *
+ * E's time is a PARAMETER (round 8): dragging the censoring across the
+ * events is the tab's play — when E leaves decides every later denominator,
+ * and the strip, the product line and the tiles all re-derive. The other
+ * four stay the notebook's. */
 const IDS = ["A", "B", "C", "D", "E"];
-const T5 = [5, 10, 6, 8, 7];
 const S5 = [1, 0, 1, 1, 0];
+const fiveTimes = (etime) => [5, 10, 6, 8, etime];
 /* the lesson's two causes of censoring, named on the lanes — an unlabelled
    open circle reads as "survived", which is the misconception itself */
 const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
+
+/* the Disease-effect ladder, in time units — values measured over 100 seeds
+   per cell (model.js header has the grid): none sits on the 5% floor at
+   every n, small is the power story (24% → 89% as n grows), moderate fires
+   at every n, large saturates */
+const EFFECTS = { none: 0, small: 1.2, moderate: 2.5, large: 4.5 };
 
 const T1MAX = 11;
 const T2MAX = 22;
@@ -100,7 +111,7 @@ const PAT_HEIGHT = HAZ_Y + HAZ_H + 48;
 const KM2_Y = 30;
 const KM2_H = 230;
 const HR_TOP = KM2_Y + KM2_H + 56;
-const HR_HEAD = 50; // title, the claim line beside the formula chip, the HR line
+const HR_HEAD = 36; // title, then the claim line beside the formula chip
 const HR_H = 130;
 const GRP_HEIGHT = HR_TOP + HR_HEAD + HR_H + 74;
 
@@ -203,6 +214,17 @@ defineWidget({
       label: "Reading the data",
       when: { param: "concept", equals: "censoring" },
     },
+    /* the Censoring tab's play lever: when E leaves, relative to the
+       events, decides every later denominator */
+    etime: {
+      type: "int",
+      label: "E drops out at",
+      detail: "move the censoring across the events — every later at-risk count changes",
+      min: 1,
+      max: 10,
+      default: 7,
+      when: { param: "concept", equals: "censoring" },
+    },
     /* The misconception as a control. Three readings of the SAME dataset,
        so display: true — toggling compares, and must never reset the sweep. */
     censored: {
@@ -291,6 +313,66 @@ defineWidget({
       when: { param: "concept", equals: "factors" },
     },
 
+    /* THE DATA — the play surface (round 8), shared by the two cohort tabs.
+       Every control is a DATA parameter: moving one draws a new study and
+       the sweep starts over, which is the point — the reader watches the
+       new study build. The five patients stay fixed: their tab teaches
+       mechanics at human scale. */
+    data: {
+      type: "section",
+      label: "The data",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    n: {
+      type: "choice",
+      label: "Patients",
+      options: [
+        { value: "30", label: "30", detail: "a small study — ragged curves, wide bands, a p that can fail" },
+        { value: "60", label: "60" },
+        { value: "100", label: "100" },
+        { value: "200", label: "200", detail: "the full cohort" },
+      ],
+      default: "200",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    effect: {
+      type: "choice",
+      label: "Disease effect",
+      options: [
+        { value: "none", label: "None", detail: "the groups genuinely share one curve — any gap on screen is chance" },
+        { value: "small", label: "Small", detail: "a real difference a small study usually misses" },
+        { value: "moderate", label: "Moderate", detail: "the default — a difference this cohort detects" },
+        { value: "large", label: "Large", detail: "unmistakable at any size" },
+      ],
+      default: "moderate",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    follow: {
+      type: "choice",
+      label: "Follow-up",
+      options: [
+        { value: "12", label: "12 y", detail: "the study ends early — most patients are censored before their event" },
+        { value: "15", label: "15 y" },
+        { value: "20", label: "20 y" },
+        { value: "25", label: "25 y", detail: "long follow-up — almost every event is seen" },
+      ],
+      default: "20",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    /* "Draw", not "seed" (the arc's ruling: nothing on screen should need
+       "seed" explained) — another cohort from the same population. Draw 1
+       is the measured clean default: cell 17's exact story, all null SNPs
+       quiet, every hazard bin ordered. */
+    seed: {
+      type: "int",
+      label: "Draw",
+      detail: "another cohort from the same population",
+      min: 1,
+      max: 50,
+      default: 1,
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -299,10 +381,6 @@ defineWidget({
       display: true,
       afterDrive: true,
     },
-
-    /* Seed 3, hidden (the arc's ruling: nothing on screen should need "seed"
-       explained) — the lowest seed telling cell 17's exact story; see header. */
-    seed: { type: "int", min: 1, max: 200, default: 3, hidden: true },
     /* the authoring escape hatch: cursor time × 2, so ?shown=44 is a finished
        figure on any tab */
     shown: { type: "int", min: 0, max: 44, default: 0, hidden: true },
@@ -320,8 +398,13 @@ defineWidget({
   ],
 
   compute({ params, rng }) {
-    const five = readings(T5, S5);
-    const sim = simulate(rng, 200);
+    const fiveT = fiveTimes(params.etime);
+    const five = readings(fiveT, S5);
+    const sim = simulate(rng, {
+      n: Number(params.n),
+      effect: EFFECTS[params.effect],
+      follow: Number(params.follow),
+    });
     const per = (grp) => {
       const t = sim.time.filter((_, i) => sim.disease[i] === grp);
       const s = sim.status.filter((_, i) => sim.disease[i] === grp);
@@ -403,7 +486,7 @@ defineWidget({
     }
 
     const stepTimes = {
-      censoring: [...new Set(T5)].sort((a, b) => a - b),
+      censoring: [...new Set(fiveT)].sort((a, b) => a - b),
       groups: [...new Set(sim.time)].sort((a, b) => a - b),
     };
     const tEnd = {
@@ -412,6 +495,7 @@ defineWidget({
     };
     return {
       five,
+      fiveT,
       groups,
       pooled,
       hazBins,
@@ -419,6 +503,7 @@ defineWidget({
       fits,
       stepTimes,
       tEnd,
+      nTotal: Number(params.n),
       events: sim.status.reduce((a, b) => a + b, 0),
     };
   },
@@ -517,8 +602,8 @@ defineWidget({
     const t = anim?.t ?? 0;
     if (params.concept === "censoring") {
       const treatment = params.censored;
-      const atRisk = T5.filter((v) => v > t).length;
-      const events = T5.filter((v, i) => S5[i] === 1 && v <= t).length;
+      const atRisk = state.fiveT.filter((v) => v > t).length;
+      const events = state.fiveT.filter((v, i) => S5[i] === 1 && v <= t).length;
       const S = readS(state.five[treatment].steps, t);
       return [
         { label: "At risk", value: String(atRisk), note: "patients still being followed" },
@@ -536,7 +621,7 @@ defineWidget({
     }
     if (params.concept === "groups") {
       return [
-        { label: "Events", value: `${state.events} of 200`, note: "the rest are censored — the study ends before their event" },
+        { label: "Events", value: `${state.events} of ${state.nTotal}`, note: "the rest are censored — the study ends before their event" },
         {
           label: "Log-rank p",
           value: state.lr.p < 1e-4 ? "< 0.0001" : fmt(state.lr.p, 4),
@@ -582,7 +667,7 @@ defineWidget({
       return `Five patients followed over time: three events, two censored (one dropped out, one reached the end of the study). A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
     if (params.concept === "groups") {
-      return `Kaplan–Meier curves for 200 simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the event rate in every interval.`;
+      return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the event rate in every interval.`;
     }
     const key = keyOf(params);
     if (!key) {
@@ -594,7 +679,7 @@ defineWidget({
       names.includes("age") ? "age" : null,
       params.snps ? "the ten SNPs" : null,
     ].filter(Boolean).join(" and ");
-    return `A Cox model of the 200 simulated patients on ${label}, drawn as a forest of hazard ratios with the reference line at 1.`;
+    return `A Cox model of the ${state.nTotal} simulated patients on ${label}, drawn as a forest of hazard ratios with the reference line at 1.`;
   },
 });
 
@@ -731,19 +816,19 @@ function drawCensoring(ctx, colors, w, params, state, t) {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(X(0), y);
-    ctx.lineTo(X(T5[i]), y);
+    ctx.lineTo(X(state.fiveT[i]), y);
     ctx.stroke();
     if (S5[i] === 1 || treatment === "asevents") {
       ctx.fillStyle = S5[i] === 1 ? colors.event : colors.unknown;
       ctx.beginPath();
-      ctx.arc(X(T5[i]), y, 4, 0, 2 * Math.PI);
+      ctx.arc(X(state.fiveT[i]), y, 4, 0, 2 * Math.PI);
       ctx.fill();
     } else {
       ctx.fillStyle = colors.surface;
       ctx.strokeStyle = colors.unknown;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(X(T5[i]), y, 4, 0, 2 * Math.PI);
+      ctx.arc(X(state.fiveT[i]), y, 4, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
     }
@@ -753,7 +838,7 @@ function drawCensoring(ctx, colors, w, params, state, t) {
       ctx.fillStyle = colors.unknown;
       ctx.font = `${colors.fsXs} ${colors.font}`;
       ctx.textAlign = "center";
-      ctx.fillText(CENSOR_WHY[i], X(T5[i]), y + 13);
+      ctx.fillText(CENSOR_WHY[i], X(state.fiveT[i]), y + 13);
       ctx.font = `${colors.fsSm} ${colors.font}`;
     }
     ctx.globalAlpha = 1;
@@ -913,7 +998,7 @@ function drawGroups(ctx, colors, w, params, state, t) {
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
   plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15, 20] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
-  plot.caption("200 simulated patients, followed for up to 20 years");
+  plot.caption(`${state.nTotal} simulated patients, followed for up to ${params.follow} years`);
   /* the CI's derivation intuition, one sentence (round 7) — the band is
      the same shrinking risk sets, expressed as doubt */
   if (params.bands) plot.note("each share is estimated from those still at risk — fewer patients, wider band");
@@ -933,9 +1018,9 @@ function drawGroups(ctx, colors, w, params, state, t) {
      person-time rates, the dashed ×HR claim boxes and the per-bin ratio
      labels are gone: three simultaneous new ideas that confused more than
      they taught. The hazard ratio survives as one sentence and the tile. */
-  const HR = state.fits.d.byName.disease.hr;
   const bins = state.hazBins;
-  const allAbove = bins.every((b) => b.ev0 + b.ev1 === 0 || b.h1 >= b.h0);
+  const withEvents = bins.filter((b) => b.ev0 + b.ev1 > 0);
+  const above = withEvents.filter((b) => b.h1 >= b.h0).length;
   const binsDone = bins.length && t >= bins[bins.length - 1].hi;
   ctx.save();
   ctx.textBaseline = "alphabetic";
@@ -944,12 +1029,15 @@ function drawGroups(ctx, colors, w, params, state, t) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillText("Hazard by interval — of those still at risk, the share who go now", left, HR_TOP);
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  /* the claim is COMPUTED from the drawn bins, so it cannot be false on a
-     seed where an interval flips — and it waits for the sweep to finish
-     the bins, so it never describes bars not yet on screen */
-  if (binsDone) {
+  /* the claim is COUNTED from the drawn bins, so it cannot be false on any
+     draw or effect setting (at None the count can honestly read "3 of 7")
+     — and it waits for the sweep to finish the bins, so it never describes
+     bars not yet on screen */
+  if (binsDone && withEvents.length) {
     ctx.fillText(
-      `disease sits above no-disease in ${allAbove ? "every interval" : "most intervals"}`,
+      above === withEvents.length
+        ? "disease sits above no-disease in every interval"
+        : `disease sits above no-disease in ${above} of ${withEvents.length} intervals`,
       left,
       HR_TOP + 16,
     );
@@ -959,7 +1047,6 @@ function drawGroups(ctx, colors, w, params, state, t) {
   ctx.fillText("h = events ÷ at risk", right, HR_TOP + 16);
   ctx.textAlign = "left";
   ctx.fillStyle = colors.ink2;
-  ctx.fillText(`Cox regression summarizes the ratio as one number: HR = ${fmt(HR, 2)}`, left, HR_TOP + 32);
 
   const bTop = HR_TOP + HR_HEAD + 8;
   const by = (v) => bTop + HR_H - v * HR_H;
@@ -994,7 +1081,9 @@ function drawGroups(ctx, colors, w, params, state, t) {
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
   ctx.fillText(
-    `intervals end at ${bins.length ? bins[bins.length - 1].hi : 0} years — beyond, fewer than 10 remain at risk in a group`,
+    bins.length
+      ? `intervals end at ${bins[bins.length - 1].hi} years — beyond, fewer than 10 remain at risk in a group`
+      : "too few still at risk for interval bars — a group starts below 10",
     left,
     by(0) + 28,
   );
@@ -1034,6 +1123,14 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
   ctx.fillStyle = colors.ink3;
   ctx.fillText("h(t) = h₀(t) × exp(b₁x₁ + … )", 14, CARD_TOP + 16);
   ctx.fillText("each exp(b) multiplies the hazard by a constant factor, at every time", 14, CARD_TOP + 30);
+  /* small studies break a 12-coefficient fit (measured: 24/50 draws at
+     n = 30 give a runaway HR) — when it happens here, say so rather than
+     letting an off-axis whisker pass for a finding */
+  const keyNow = keyOf(params);
+  if (keyNow && Object.values(state.fits[keyNow].byName).some((c) => c.hr > 50 || c.hr < 0.02)) {
+    ctx.fillStyle = colors.extreme;
+    ctx.fillText("too few patients to pin this many coefficients — some intervals run off the axis", 14, CARD_TOP + 44);
+  }
   ctx.restore();
 
   drawForest(ctx, colors, { x: 78, y: forestTop(), w: right - 78 - 6 }, params, state, anim);

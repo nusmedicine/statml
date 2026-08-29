@@ -3216,6 +3216,68 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 8 — the play surface: the widget stops being "thin cosmetics"
+
+**Kenneth's step-back: fixed patient curves were "just making the static
+notebook graphs move a bit… thin cosmetics" — research how students could
+understand by playing.** The research (a Shiny KM app varying n/censoring/
+benefit; The Stats Geek's generate-then-censor simulations; the SERC/CAUSE
+applet literature) converges on three causal levers — sample size, effect,
+censoring — and the arc's own tradition (CLT's n, power-and-error's effect
+ladder, rng.js calling the seed "a first-class pedagogical move") says the
+same. This widget was the arc's only one with a locked generator.
+
+**The data section** (both cohort tabs; the five patients stay fixed —
+their tab teaches mechanics at human scale): **Patients** 30/60/100/200 ·
+**Disease effect** None/Small/Moderate/Large · **Follow-up** 12/15/20/25 ·
+**Draw** 1–50. All DATA parameters: moving one draws a new study and the
+sweep restarts, which is the point. **The measured grid behind the option
+values** (100 seeds per cell, % log-rank p < 0.05): none 3–6% at every n
+(the 5% floor — the widget can finally show what NO difference looks
+like); small 24/31/53/89% at n = 30/60/100/200 (the power story);
+moderate 77→100%; large saturates. Follow-up at n = 200 moderate: doors
+at 12 → 7 events of 200, at 25 → 188. **Generator amendment 2** (model.js
+header): the SNPs are now BALANCED across groups — the notebook routes
+part of the disease effect through SNP prevalence, and a clean "None" must
+silence every channel. Default draw re-scanned under the new generator:
+**draw 1** (χ² 33.2, adjusted HR 3.85, cell 17's exact story, all nulls
+quiet, every bin ordered).
+
+**The Censoring tab's lever: "E drops out at" (1–10).** Moving the
+censoring across the events re-derives every later denominator — at
+etime 2 the product line reads (1−1/4)(1−1/3)(1−1/2) = 0.25, the first
+event now 1 of 4. E's time became a parameter; the four other patients
+stay the notebook's.
+
+**Also in the round:**
+- **The obtuse header line is GONE** — "Cox regression summarizes the
+  ratio as one number" named tab 3's method on tab 2 (Kenneth's catch);
+  the HR tile carries the idea method-free, and Cox is named where it is
+  taught.
+- **The interval claim is now COUNTED**: "disease sits above no-disease in
+  2 of 4 intervals" at effect none — the every/most wording could not
+  survive a null draw.
+- **Small-study honesty**: at n = 30 the 12-coefficient Cox fit runs away
+  on 24/50 draws (measured); the card prints "too few patients to pin this
+  many coefficients" when a fitted HR leaves [0.02, 50]. The bins panel
+  handles zero drawable bins.
+- **Core gained `when: { param, oneOf: [...] }`** — the one-line extension
+  controls.js's own comment promised, needed because the data section
+  shows on two of three concept tabs and `equals` cannot say that. **The
+  full fingerprint suite ran for it: 198 of 198 MATCH**, all pre-existing
+  states identical.
+- Every tile/caption/summary that said "200" now reads the live n
+  ("Events 23 of 30"); the p tile's derivation sentence holds at every
+  setting ("about 7 in the disease group; 12 happened" at n = 30).
+
+Verified: drive rewritten, 81 checks green, including the play corners
+(etime 3 → first event 1 of 4; effect none → p = 0.572 on draw 1;
+follow 12 → 5 events of 200; n = 30 clean readouts); iframe sweeps at
+550px across five corner states, 0 overruns; `npm run check` green. One
+tooling trap recorded: a heredoc batch edit's en-dashes reached Python as
+cp1252 mojibake and the asserts refused the write — PYTHONUTF8=1, and the
+all-or-nothing batch structure did its job.
+
 ### Round 7 — the null, drawn: how the p and the CI are derived
 
 **Kenneth asked how to illustrate the CI and the p-value calculation,

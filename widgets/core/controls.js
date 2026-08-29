@@ -41,19 +41,24 @@ import { optionEntries } from "./params.js";
  * `(values) => boolean` would force a rebuild on every change, and rebuilding
  * mid-drag drops the slider you are holding.
  *
- *   when: { param: "studies" }              shown while `studies` is truthy
- *   when: { param: "mode", equals: "raw" }  shown while `mode` === "raw"
+ *   when: { param: "studies" }                        shown while `studies` is truthy
+ *   when: { param: "mode", equals: "raw" }            shown while `mode` === "raw"
+ *   when: { param: "tab", oneOf: ["b", "c"] }         shown on either value
  *
  * AN `atLeast` FORM WAS ADDED AND THEN REMOVED. A staged widget seemed to need
  * "shown once `step` reaches 3, and stays" — until the stage was expressed as
  * GATES instead of as a numbered step, and a gate is a bool, so the truthy form
  * above already says it. Core carried a comparison nothing compared for exactly
  * one session. If a widget ever needs it again the line is one line; unused
- * machinery in a file every widget shares is not.
+ * machinery in a file every widget shares is not. `oneOf` is that promised
+ * one line, added when time-event's data controls had to show on two of its
+ * three concept tabs — a set membership is still declarative: the gating
+ * parameter is named, so the rebuild rule is unchanged.
  */
 export function fieldShowing(field, values) {
   const w = field.when;
   if (!w) return true;
+  if ("oneOf" in w) return w.oneOf.includes(values[w.param]);
   return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
 }
 

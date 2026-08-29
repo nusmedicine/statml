@@ -35,6 +35,7 @@ const ck = (name, ok) => {
   if (!ok) fails += 1;
   console.log(`  ${ok ? "ok " : "FAIL"} ${name}`);
 };
+const fmtP = (p) => (p < 1e-4 ? "<1e-4" : p.toFixed(3));
 
 console.log("== capabilities, by name ==");
 for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
@@ -42,9 +43,10 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
   ck(`declares \`${key}\``, W[key] != null);
 }
 const WANT = {
-  concept: "segmented", reading: "section", censored: "segmented",
+  concept: "segmented", reading: "section", etime: "int", censored: "segmented",
   curves: "section", truth: "bool", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
+  data: "section", n: "choice", effect: "choice", follow: "choice",
   speed: "choice", seed: "int", shown: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
@@ -63,8 +65,18 @@ ck("each tab's rail section is gated on its concept",
   && W.params.model.when?.equals === "factors");
 ck("no gate anywhere (a gate hides the drive row this widget needs)",
   !Object.values(W.params).some((f) => f.type === "gate"));
-ck("seed and shown are hidden", W.params.seed.hidden && W.params.shown.hidden);
-ck("default seed is 3 (the measured clean seed)", W.params.seed.default === 3);
+ck("shown is hidden; seed is the visible Draw control",
+  W.params.shown.hidden && !W.params.seed.hidden && W.params.seed.label === "Draw");
+ck("default draw is 1 (the measured clean cohort under the round-8 generator)",
+  W.params.seed.default === 1);
+ck("the data section and its controls show on both cohort tabs (oneOf)",
+  ["data", "n", "effect", "follow", "seed"].every(
+    (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
+ck("the data controls are DATA parameters (moving one restarts the sweep)",
+  ["n", "effect", "follow", "seed", "etime"].every((k) => !W.params[k].display));
+ck("defaults: 200 patients, moderate effect, 20-year follow-up, E at 7",
+  W.params.n.default === "200" && W.params.effect.default === "moderate"
+  && W.params.follow.default === "20" && W.params.etime.default === 7);
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)
@@ -107,6 +119,31 @@ ck("the bins stop by 20 years", state.hazBins[state.hazBins.length - 1].hi <= 20
   const note = tiles.find((x) => x.label === "Log-rank p").note;
   ck("the p tile's note carries the live observed and expected counts",
     note.includes(String(state.lr.obs[1])) && note.includes(String(Math.round(state.lr.exp[1]))));
+}
+
+console.log("\n== the play surface, at its corners ==");
+{
+  /* E's lever: leave before the first event and every denominator shifts */
+  const s3 = W.compute({ params: { ...values, etime: 3 }, rng: makeRng(values.seed) });
+  const first = s3.five.kept.steps.find((s) => s.t === 5);
+  ck("E gone at 3: the first event is 1 of 4, S = 0.75",
+    first.atRisk === 4 && Math.abs(first.S - 0.75) < 1e-12);
+  ck("...and the censor mark moved to t = 3", s3.five.kept.censors[0].t === 3);
+  /* effect: none — the groups genuinely share a curve on this draw */
+  const sNone = W.compute({ params: { ...values, effect: "none" }, rng: makeRng(values.seed) });
+  ck(`effect none: log-rank does not fire (p = ${fmtP(sNone.lr.p)})`, sNone.lr.p > 0.01);
+  /* a small study computes end to end, including all seven fits */
+  const s30 = W.compute({ params: { ...values, n: "30" }, rng: makeRng(values.seed) });
+  ck("n = 30: the two groups sum to 30", s30.groups[0].n + s30.groups[1].n === 30);
+  ck("n = 30: readout and summary stay clean",
+    !/NaN|undefined|Infinity/.test(
+      W.readout({ params: { ...values, n: "30", concept: "groups" }, state: s30, anim: { t: 22 } })
+        .map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
+      + W.summary({ params: { ...values, n: "30", concept: "groups" }, state: s30, anim: { t: 22 } })));
+  /* short follow-up: censoring dominates */
+  const s12 = W.compute({ params: { ...values, follow: "12" }, rng: makeRng(values.seed) });
+  ck(`follow 12: most of the cohort is censored (${s12.events} events of 200)`,
+    s12.events < 60);
 }
 ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",

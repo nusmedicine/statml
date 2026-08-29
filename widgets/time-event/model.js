@@ -38,15 +38,30 @@ export const zTailP2 = (z) => erfc(Math.abs(z) / Math.SQRT2);
 export const chi2Tail1 = (x) => (x <= 0 ? 1 : erfc(Math.sqrt(x / 2)));
 
 /* --- the widget's data ---------------------------------------------------- *
- * The notebook's event process untouched; its censoring REPLACED. Cell 11
- * draws Status ~ sample(0:1) independently of time, so a censored patient is
- * censored AT the very time the event would have happened — measured over
- * 100 seeds, KM on that design lies HIGH (+0.13) and discarding the censored
- * is the unbiased choice, the OPPOSITE of the lesson. Study-end censoring
- * (staggered entry, doors close at 20, observed = min(T, C)) restores the
- * roles the lesson teaches: KM −0.0002 from truth, discarding −0.081.
+ * The notebook's event process, twice amended, both amendments measured:
+ *
+ * 1. The censoring is REPLACED (round-1 ruling). Cell 11 draws Status ~
+ *    sample(0:1) independently of time, so a censored patient is censored AT
+ *    the very time the event would have happened — over 100 seeds, KM on
+ *    that design lies HIGH (+0.13) and discarding the censored is the
+ *    unbiased choice, the OPPOSITE of the lesson. Study-end censoring
+ *    (staggered entry over the first 10 years, doors close at `follow`)
+ *    restores the roles the lesson teaches: KM −0.0002, discarding −0.081.
+ * 2. The SNPs are BALANCED across groups (round-8 ruling). The notebook
+ *    routes part of the disease effect through SNP prevalence (0.8 in the
+ *    disease group); with a `Disease effect: none` control that channel
+ *    would leave the "no difference" setting still different. One direct
+ *    dial, every other channel silenced: at effect = 0 the groups genuinely
+ *    share a curve (measured: log-rank rejects 3–6% at 0.05 across n).
+ *
+ * The play grid behind the option values (100 seeds each, % p < 0.05):
+ *   effect none 3–6% at every n · small 24/31/53/89% at n = 30/60/100/200
+ *   · moderate 77→100% · large 98→100%; follow-up at n = 200 moderate:
+ *   doors at 12 → 7 events of 200, at 25 → 188.
  * The full record is docs/catalogue.md § Widget 31.                          */
-export function simulate(rng, n = 200) {
+export function simulate(rng, opts = {}) {
+  const { n = 200, effect = 2.5, follow = 20 } =
+    typeof opts === "number" ? { n: opts } : opts;
   const age = [];
   const disease = [];
   const snps = [];
@@ -59,20 +74,15 @@ export function simulate(rng, n = 200) {
   }
   for (let i = 0; i < n; i += 1) {
     const row = new Array(10);
-    if (disease[i] === 1) {
-      for (let j = 0; j < 3; j += 1) row[j] = rng.next() < 0.8 ? 1 : 0;
-      for (let j = 3; j < 10; j += 1) row[j] = rng.int(0, 1);
-    } else {
-      for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
-    }
+    for (let j = 0; j < 10; j += 1) row[j] = rng.int(0, 1);
     snps.push(row);
   }
   for (let i = 0; i < n; i += 1) {
-    let t = 20 - 0.1 * age[i] - 2 * disease[i]
+    let t = 20 - 0.1 * age[i] - effect * disease[i]
       - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
     t = Math.round(t * 2) / 2;
     if (t < 0.5) t = 0.5;
-    const c = Math.round((20 - rng.uniform(0, 10)) * 2) / 2;
+    const c = Math.round((follow - rng.uniform(0, 10)) * 2) / 2;
     trueT.push(t);
     time.push(Math.min(t, c));
     status.push(t <= c ? 1 : 0);

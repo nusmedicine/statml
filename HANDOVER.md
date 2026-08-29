@@ -48,6 +48,16 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
+   **ROUND 8 (2026-08-29): THE PLAY SURFACE.** Kenneth called the fixed
+   curves "thin cosmetics"; the cohort tabs now share a data section —
+   Patients 30–200, Disease effect None/Small/Moderate/Large (the grid
+   measured per cell; None finally shows what no difference looks
+   like), Follow-up 12–25, Draw 1–50 — and the Censoring tab gained
+   "E drops out at". The generator BALANCED the SNPs (amendment 2 —
+   a clean None must silence every channel); default draw is now 1;
+   the obtuse Cox line left tab 2. **Core gained `when: {param,
+   oneOf}` and the full suite ran for it: 198 of 198 MATCH.** Drive
+   is 81 checks. Full record: catalogue § Widget 31 round 8.
    **ROUNDS 3–6 (2026-08-29, Kenneth's live review): the Censoring tab
    gained the treatment-following hazard strip with ghosts, the
    `survival = product of (1 − h)` line, the direction line, the
