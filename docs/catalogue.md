@@ -2617,6 +2617,50 @@ shipping steps under *Then*.
 
 ## Widget 15 · `logistic-regression` — SHIPPED
 
+### 2026-08-29 · ONE COVARIATE — the second one cut on Kenneth's call
+
+Kenneth, reviewing post-ship: the two-covariate BMI/age stage may confuse —
+05-05's cell 4 introduces the logit as `log(p/(1−p)) = b₀ + b₁x`, ONE
+covariate — and the sigmoid should be SEEN spanning 0 to 1. Three candidates
+were measured and mocked (`_lab/logistic-1cov.html`,
+`_lab/logistic-1cov-measure.py`): `CHD ~ age` (a ramp — fitted p spans
+0.04–0.41, p = 0.5 at age 74.8 off the data, and only 6 of 4221 impossible
+under the straight line, so BOTH lessons go flat), the built-and-cut
+`prevalentHyp ~ sysBP`, and synthetic dials. **Kenneth picked B and cut the
+BMI + age stage entirely** — "do not retain the existing BMI + age as it
+would complicate things. the main point is the link function."
+
+**What the rebuild is**: the same three-rung ladder (probability · odds ·
+log-odds, the strips, the raw 0/1 bands, the binomial-CI binned dots, the
+link toggle, the equation card with the logit inset) on
+`glm(prevalentHyp ~ sysBP)` — fitted p spans **0.0003 → 1.000** so the S
+saturates at both ends on screen; the straight line leaves 0 below 111 and 1
+above 179 mmHg, making **794 of 4240 people (18.7%) impossible** with no
+setting that hides it (the old CHD version needed the held slider pulled to
+a corner to show 37); the fitted 50% lands at **141.6 mmHg against the
+clinical 140** — a self-check; OR per mmHg exp(0.14110) = **1.1515**. The
+equation card now reads cell 4 verbatim with the fitted numbers:
+`log(p(Y)/(1−p(Y))) = −19.98 + sysBP × 0.141`.
+
+**Cut with the second covariate**: the axis picker (`xvar`), both held
+sliders, the lit-term equation switching, the "adjusted for" material — and
+with them the old open item about a marginal-vs-conditional note, which a
+one-covariate model no longer needs. **Kept live**: one `at` slider reading
+what one mmHg is worth at a chosen pressure (the third lesson — constant
+only on log-odds). One new guard the new data forced: **a Δ strip only
+counts steps whose values are ON its own panel** — odds reaches ~20 000 at
+the right edge, and one runaway Δ flattened every visible bar with a scale
+line reading 4146.9. Data facts: the aggregate is by DISTINCT sysBP value
+(234 values, 4240 people), proven a sufficient statistic — fit from
+aggregate ≡ fit from rows to 1e-8; the 6 patients above the 215 mmHg axis
+are in the fit and off the display. All four fingerprint states re-recorded
+via `_lab/logistic-shoot.html` (copy proved 4/4, triples stable); two old
+state URLs died with `xvar`/`age`/`bmi` and were replaced.
+
+The record below is the TWO-COVARIATE design's, kept for its decisions —
+the axis opening, the strips, the three-rung argument — most of which
+survive unchanged in the rebuild.
+
 ### REDESIGNED AFTER REVIEW — this supersedes the staging notes below
 
 Shown as a built draft and the verdict was *"I don't get the intuition, what is

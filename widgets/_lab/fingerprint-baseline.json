@@ -1019,34 +1019,6 @@
    "tx": "c70e58d8"
   },
   {
-   "$note": "The opening state: the straight line alone, at the median BMI. Age on x, link off.",
-   "slug": "logistic-regression",
-   "state": "?theme=light",
-   "px": "29774e7e",
-   "tx": "df5c4096"
-  },
-  {
-   "$note": "The link added, nothing else moved. Both fits on all three rungs, and the three strips swap which one is flat.",
-   "slug": "logistic-regression",
-   "state": "?theme=light&link=true",
-   "px": "9d2c4d3f",
-   "tx": "735176d4"
-  },
-  {
-   "$note": "BMI on x with age held at its floor — where the straight line is negative over most of the axis, which is the one state that makes step 1 visible.",
-   "slug": "logistic-regression",
-   "state": "?theme=light&xvar=bmi&age=32",
-   "px": "710d8e9d",
-   "tx": "80e01bee"
-  },
-  {
-   "$note": "The held covariate at its ceiling, with the link. The curve sits well above the binned dots, because the dots are everyone at that age and the curve is one BMI of 45.",
-   "slug": "logistic-regression",
-   "state": "?theme=light&link=true&bmi=45",
-   "px": "594337de",
-   "tx": "10712389"
-  },
-  {
    "$note": "The opening state: two blobs, a straight kernel, the plane as measured.",
    "slug": "support-vector-machine",
    "state": "?theme=light",
@@ -2132,6 +2104,34 @@
    },
    "px": "e87f1394",
    "tx": "a56de37b"
+  },
+  {
+   "$note": "The opening state: the straight line alone, leaving 0 and 1 mid-axis.",
+   "slug": "logistic-regression",
+   "state": "?theme=light",
+   "px": "c615878a",
+   "tx": "fb89479c"
+  },
+  {
+   "$note": "The link added, nothing else moved. The sigmoid saturates at both ends; the three strips swap which one is flat.",
+   "slug": "logistic-regression",
+   "state": "?theme=light&link=true",
+   "px": "ae3800f6",
+   "tx": "ef38a0b6"
+  },
+  {
+   "$note": "The step read high on the S, straight line showing.",
+   "slug": "logistic-regression",
+   "state": "?theme=light&at=180",
+   "px": "01c32a92",
+   "tx": "890ce364"
+  },
+  {
+   "$note": "Link on, step read low - a small risk difference, the same log-odds step.",
+   "slug": "logistic-regression",
+   "state": "?theme=light&link=true&at=110",
+   "px": "f1e5a712",
+   "tx": "3478f579"
   }
  ]
 }
