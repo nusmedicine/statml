@@ -3344,9 +3344,39 @@ widget's own generator (seed 6, n = 600), each with a Replay:
   panel.
 
 A and B answer the construction ask; C and D answer the normality ask
-(C on the residual plot, D on the data). They compose — plausibly D on
-the data panel + A's entry + C as the RvF↔Q-Q bridge — but each is a
-pick, not a bundle. Awaiting Kenneth's choices.
+(C on the residual plot, D on the data).
+
+**KENNETH PICKED §A AND §D, and both are INTEGRATED the same day:**
+
+- **§A is the gate's entry** (core's door — which required the `fit`
+  gate to become NON-display: core sends a non-display gate down the
+  data path, where the entry trigger lives; em-mixture's arrangement,
+  and this widget has no accumulated work for a gate-close to destroy).
+  The twelve travellers now OVERLAP on a 250 ms stagger (~3.7 s total —
+  the mock's strict sequence took ~9 s); the zero line arrives with the
+  fitted line, the mass (dots, band, smooth, Q-Q, labels) fades in at
+  the end, and the traveller segments fade out into it. The entry flag
+  follows em-mixture's one-shot contract, so a shared `?fit=1` link and
+  every fingerprint state open FINISHED — no 3.7 s wait, no spoiler
+  question. **Afterwards hover links the panels** (the Whitlock move,
+  the pointer channel): the nearest patient within ~10px lights in all
+  three panels — segment to the line, segment to zero, ring on the
+  Q-Q — an inspector only, inert mid-entry, restoring exactly on leave
+  (hash-verified).
+- **§D is `claim`, a display bool** ("Show the model's claim") on the
+  data panel: three bells at BMI 21/28/35, staggered in on an eased
+  chase, drawn at the FIT's own residual SD (2.11: never the hidden
+  generator's), lerped through scenario switches; a `theory`-token
+  legend entry appears with it (the live-legend door).
+
+Verified: the entry runs on gate open and settles to a stable hash; a
+`?fit=1&claim=1` link is finished at rest; hover paints and restores
+byte-identically; the text sweep across scenarios × claim × gate ×
+junk × seed reads zero NaN; `npm run check` green. One environment
+note: with the Browser pane's compositor stalled the synchronous paint
+shows the finished figure and the choreography waits for the first
+frame — em-mixture's exact structure, a sub-frame flash in a live
+browser.
 
 The planning record below stands as written.
 

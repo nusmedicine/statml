@@ -58,15 +58,19 @@ URL** — that difference is the region geometry proven.
      own line, real BMI values clipped to 18–40, n = 600, SD 12; scenarios
      Linear (default) · Curved (0.4, a 5.2-SD bend) · Unequal spread
      (fan 3) · Skewed noise. **ROUND 2 (same day): tab 2 renamed "Model
-     fit"; four ANIMATION candidates built and running in
-     `_lab/lm-diag-anim.html`** (§A build-the-residual-plot with
-     travelling segments, §B lay-the-line-flat, §C the sideways
-     pile-vs-bell, §D the textbook bells straddling the line, animated) —
-     catalogue § *ROUND 2* has the research record (Whitlock's linked
-     selection, the Regressomatic, ggMarginal) and the integration notes.
-     **AWAITING KENNETH'S ANIMATION PICKS**; then integrate into the
-     widget. Still owed at promotion: fingerprint states (settled +
-     driven), a stub-driver, the 05-01 notebook link, and the copy pass.
+     fit"; Kenneth picked §A and §D from the four running candidates
+     (`_lab/lm-diag-anim.html`) and both are INTEGRATED**: the gate's
+     ENTRY builds the residual plot (twelve travelling residual segments
+     on a conveyor, ~3.7 s; the `fit` gate went NON-display for core's
+     entry door — em-mixture's arrangement) with HOVER linking the same
+     patient across all three panels afterwards (pointer channel), and
+     `claim` (display bool) overlays three theory-token bells straddling
+     the fitted line at the fit's own residual SD. Catalogue § *ROUND 2*
+     has the research record (Whitlock's linked selection, the
+     Regressomatic, ggMarginal) and the verification notes. Still owed
+     at promotion: fingerprint states (settled + driven — entry, ease
+     and claim all want driven coverage), a stub-driver, the 05-01
+     notebook link, and the copy pass.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —

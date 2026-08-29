@@ -14,9 +14,9 @@
    B (the data panel ABOVE its two diagnostic panels — the same patient
    traced three times); a segmented Data control naming the scenarios; RvF
    marks = smoothed trend + labelled extremes + ±2 SD band (no envelope
-   rails, no clamp); and the SMALL-N ACT for adjusted R² (junk covariates
-   0→10: R² climbs on pure noise, adjusted refuses — at n = 3547 the bias
-   is invisible, 0.106 → 0.109, measured).
+   rails, no clamp); and the SMALL-N ACT for adjusted R² (junk covariates:
+   R² climbs on pure noise, adjusted refuses — at n = 3547 the bias is
+   invisible, 0.106 → 0.109, measured).
 
    ROUND 1 (Kenneth, 2026-08-29): THE STAGE IS ALL-SIMULATED. The first
    draft put the real Framingham data beside three simulated violations,
@@ -33,16 +33,44 @@
    notebook's real autoplot stays in the lesson; the widget is the
    controlled reading trainer beside it.
 
+   ROUND 2 (Kenneth, 2026-08-29, picks from _lab/lm-diag-anim.html):
+   tab 2 reads "Model fit"; §A and §D were picked from four running
+   candidates (research record in catalogue § round 2 — Whitlock's
+   linked selection, the Regressomatic, ggMarginal; the textbook
+   bells-along-the-line diagram, apparently never animated before).
+   - §A · THE GATE'S ENTRY BUILDS THE RESIDUAL PLOT: twelve selected
+     patients (quantile-spread, the largest |stdres| included) — the
+     vertical segment grows dot-to-line, then dot-and-segment travel
+     into the RvF panel; the rest of the marks fade in en masse. Runs
+     on gate OPEN only (core's entry door — which is why the gate is
+     NOT display: core sends a non-display gate down the data path,
+     where the entry trigger lives; em-mixture's arrangement, and this
+     widget has no accumulated work for a gate-close to destroy). The
+     mock's 12 × 700 ms sequence took ~9 s; the shipped entry OVERLAPS
+     the patients (a conveyor) and lands in ~3.7 s.
+   - AFTERWARDS, HOVER LINKS THE PANELS (the Whitlock move, the arc's
+     pointer channel): the nearest patient lights up in all three
+     panels — segment to the line, segment to zero, ring on the Q-Q.
+     An inspector only: nothing lives exclusively on hover.
+   - §D · THE MODEL'S CLAIM, an overlay toggle on the data panel: three
+     sideways normal curves straddle the fitted line, staggered in, at
+     ONE claimed spread — the FIT's own residual SD (2.11: computed
+     from the fit, never from the hidden generator), so on Unequal
+     spread the bells are uniformly wrong against a widening cloud.
+   The residual is the VERTICAL distance to the line, not the
+   perpendicular (that is total least squares); every segment is drawn
+   vertical.
+
    THE SCOPE BOUNDARY (widget 27 round 8, recorded then): lm-least-squares
    reads a LINE's residuals; this widget reads a MODEL's. Curve/funnel/skew
    as verdicts on the model class live here and only here.
 
-   TWO EASED VALUES drive the plots tab (widget 30's chase pattern): `a`
-   (the fit gate's alpha) and `m` (the scenario morph — every dot, the
-   fitted line, the smooth, the band and each point's Q-Q position are
-   drawn from values LERPED between the outgoing and incoming scenario, so
-   the switch reads as the data changing under fixed frames, 2.5). The
-   card and the tiles are text and SNAP with the control.
+   EASED VALUES (widget 30's chase pattern): `m` (the scenario morph —
+   every dot, the fitted line, the smooth, the band and each point's Q-Q
+   position are drawn from values LERPED between the outgoing and
+   incoming scenario, so the switch reads as the data changing under
+   fixed frames, 2.5), `c` (the claim bells' stagger), and the entry
+   clock `et`. The card and the tiles are text and SNAP with the control.
 
    FRAMES ARE FIXED across scenarios and sized to the measured extents
    over 30 seeds (`lm-diag-measure.mjs` § round 1); a rare seed can still
@@ -54,8 +82,9 @@
    are DISPLAY parameters over precomputed data — the lm-interaction
    `terms` pattern.
 
-   TDZ lesson (the arc's, earned twice): every module-scope const lives
-   ABOVE defineWidget — core calls draw() during the defineWidget call.
+   TDZ lesson (the arc's, earned THREE times now — RANK_DY was the
+   third): every module-scope const lives ABOVE defineWidget — core
+   calls draw() during the defineWidget call.
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
@@ -91,6 +120,17 @@ const ADJ_Y = [-0.3, 0.9]; /* adjusted R² goes NEGATIVE on junk at n = 30 */
 
 const EASE_MS = 450;
 
+/* the entry: SEL_N patients on a conveyor, then the mass fade */
+const SEL_N = 12;
+const ENTRY_STAG = 250;
+const ENTRY_PER = 500;
+const ENTRY_MASS = 450;
+const SEL_END = (SEL_N - 1) * ENTRY_STAG + ENTRY_PER;
+const ENTRY_TOTAL = SEL_END + ENTRY_MASS;
+
+/* the claim bells' positions (§D) */
+const BELL_AT = [21, 28, 35];
+
 const TOP = 26;
 const DATA_H = 186;
 const MID = 62; /* the data panel's axis row + the lower row's caption */
@@ -103,12 +143,12 @@ const rvfRect = (w) => ({ x: 56, y: TOP + DATA_H + MID, w: panelW(w), h: P2_H })
 const qqRect = (w) => ({ x: 56 + panelW(w) + 60, y: TOP + DATA_H + MID, w: panelW(w), h: P2_H });
 const adjRect = (w) => ({ x: 60, y: 34, w: Math.min(w - 84, 560), h: HEIGHT - 34 - 44 });
 
-/* label stagger by rank — a const the TDZ rule applies to: draw() runs
-   during the defineWidget call, so this cannot live below it (it briefly
-   did, and threw exactly the ReferenceError the header warns about) */
+/* label stagger by rank — a const the TDZ rule applies to */
 const RANK_DY = [3, 14, -8];
 
 const lerp = (a, b, m) => a + (b - a) * m;
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t));
 const sdOf = (a) => {
   const mu = a.reduce((s, v) => s + v, 0) / a.length;
   return Math.sqrt(a.reduce((s, v) => s + (v - mu) ** 2, 0) / (a.length - 1));
@@ -123,8 +163,7 @@ const SCEN_CAPTION = {
 
 /* ---- the equation card ---------------------------------------------------
    Plain text rows for the draft (the arc's MathML machinery can follow the
-   review — the card's CONTENT is what the rounds judge). Rows: the generic
-   model, then this fit's numbers, which SNAP with the control. */
+   review — the card's CONTENT is what the rounds judge). */
 let mathHost = null;
 let mathKey = null;
 function renderEquation(rows) {
@@ -144,7 +183,7 @@ function renderEquation(rows) {
 }
 
 /* one scenario's precomputed bundle */
-function pack(y, d) {
+function pack(y, d, xs) {
   const len = y.length;
   const qqTh = new Array(len);
   for (let i = 0; i < d.qq.length; i += 1) qqTh[d.qq[i].idx] = d.qq[i].th;
@@ -155,8 +194,16 @@ function pack(y, d) {
   const hi = Math.max(...d.fit.fitted);
   const smoothX = Array.from({ length: 41 }, (_, i) => lo + ((hi - lo) * i) / 40);
   const smoothY = loessAt(d.fit.fitted, d.resid, 0.75, smoothX);
-  const top3 = d.std.map((v, i) => i)
-    .sort((a, b) => Math.abs(d.std[b]) - Math.abs(d.std[a])).slice(0, 3);
+  const byAbs = d.std.map((v, i) => i)
+    .sort((a, b) => Math.abs(d.std[b]) - Math.abs(d.std[a]));
+  const top3 = byAbs.slice(0, 3);
+  /* the entry's twelve: quantile-spread across x, the largest |stdres|
+     swapped into the middle so the extreme is one of the travellers */
+  const byX = xs.map((v, i) => i).sort((a, b) => xs[a] - xs[b]);
+  const sel = [];
+  for (let q = 0; q < SEL_N - 1; q += 1) sel.push(byX[Math.floor(((q + 0.5) / (SEL_N - 1)) * len)]);
+  if (!sel.includes(byAbs[0])) sel.splice(Math.floor(SEL_N / 2), 0, byAbs[0]);
+  else sel.push(byX[Math.floor(0.5 * len)]);
   return {
     y,
     b0: d.fit.b[0],
@@ -166,9 +213,11 @@ function pack(y, d) {
     qqTh,
     line: d.line,
     sd: sdOf(d.resid),
+    sigma: Math.sqrt(d.fit.sigma2),
     smoothX,
     smoothY,
     top3,
+    sel: sel.slice(0, SEL_N),
     maxAbs: Math.max(...d.std.map(Math.abs)),
     r2: d.fit.r2,
     adjR2: d.fit.adjR2,
@@ -186,6 +235,7 @@ defineWidget({
     "the covariate count.",
   layout: "side",
   height: HEIGHT,
+  pointer: true,
 
   params: {
     concept: {
@@ -222,13 +272,26 @@ defineWidget({
 
     model: { type: "section", label: "The model" },
 
-    /* the widget opens as data and a question (the arc's gate) */
+    /* the widget opens as data and a question (the arc's gate).
+       NOT display: the entry animation is triggered on core's data path
+       (see the header) — and there is no accumulated work for a
+       gate-close to destroy, every figure being a pure function of the
+       parameters. */
     fit: {
       type: "gate",
       label: "Fit the model",
       labelOff: "Clear the fit",
       detail: "least squares, sysBP on BMI — the diagnostics are properties of this fit",
+    },
+
+    /* §D — the model's claim, an overlay on the data panel */
+    claim: {
+      type: "bool",
+      label: "Show the model's claim",
+      detail: "at every BMI: normal around the line, with one spread — the fit's own residual SD",
+      default: false,
       display: true,
+      when: { param: "concept", equals: "plots" },
     },
 
     adding: { type: "section", label: "Adding covariates", when: { param: "concept", equals: "adjr2" } },
@@ -249,18 +312,23 @@ defineWidget({
      no entry may describe a mark the current state does not draw */
   legend: ({ params }) => {
     if (!params.fit) return [];
-    return params.concept === "plots"
-      ? [
-        { token: "unknown", label: "The simulated patients — sysBP against BMI", mark: "dot" },
-        { token: "empirical", label: "The fitted line, each point's residual, and its quantile", mark: "dot" },
-        { token: "smoothed", label: "Smoothed trend of the residuals", mark: "line" },
-        { token: "theory", label: "The normal reference line, through the quartiles", mark: "line" },
-        { token: "highlight", label: "The three largest standardized residuals, by row", mark: "dot" },
-      ]
-      : [
+    if (params.concept !== "plots") {
+      return [
         { token: "group-a", label: "R² as covariates are added", mark: "line" },
         { token: "group-b", label: "Adjusted R²", mark: "line" },
       ];
+    }
+    const entries = [
+      { token: "unknown", label: "The simulated patients — sysBP against BMI", mark: "dot" },
+      { token: "empirical", label: "The fitted line, each point's residual, and its quantile", mark: "dot" },
+      { token: "smoothed", label: "Smoothed trend of the residuals", mark: "line" },
+      { token: "theory", label: "The normal reference line, through the quartiles", mark: "line" },
+      { token: "highlight", label: "The three largest standardized residuals, by row", mark: "dot" },
+    ];
+    if (params.claim) {
+      entries.splice(4, 0, { token: "theory", label: "The model's claim — normal around the line, one spread", mark: "line" });
+    }
+    return entries;
   },
 
   compute({ rng }) {
@@ -277,10 +345,10 @@ defineWidget({
       ["skew", { skewed: true }],
     ]) {
       const y = synth(rng, opts);
-      sc[key] = pack(y, diagnostics(y, xs));
+      sc[key] = pack(y, diagnostics(y, xs), xs);
     }
 
-    /* the small-n act: 30 of the simulated patients (the Linear
+    /* the small-n act: SUB_N of the simulated patients (the Linear
        scenario's draws — the healthy study), then junk columns
        accumulating one at a time, each k EXTENDING the last */
     const pick = rng.shuffle(Array.from({ length: SIM_N }, (_, i) => i)).slice(0, SUB_N);
@@ -299,25 +367,40 @@ defineWidget({
     stepLabel: null,
     runLabel: null,
     init: ({ params }) => ({
-      a: params.fit ? 1 : 0,
-      aT: params.fit ? 1 : 0,
+      /* the entry flag is the one-shot trigger (em-mixture's pattern):
+         set whenever the gate is open at init, consumed by advance's
+         first 'enter' frame. On a shared ?fit=1 link core never starts
+         the mode, so the flag is inert and the figure is simply there —
+         which keeps every link and fingerprint state spoiler-free of a
+         3.7 s wait. */
+      entry: Boolean(params.fit),
+      et: ENTRY_TOTAL,
       from: params.scenario,
       to: params.scenario,
       m: 1,
+      c: params.claim ? 1 : 0,
+      cT: params.claim ? 1 : 0,
     }),
     advance: (anim, { dt }) => {
-      const rate = Math.min(1, (dt / EASE_MS) * 2.6);
+      if (anim.mode === "enter" && anim.entry) {
+        anim.entry = false;
+        anim.et = 0;
+      }
       let moving = false;
-      const gapA = anim.aT - anim.a;
-      if (Math.abs(gapA) < 0.0015) anim.a = anim.aT;
-      else { anim.a += gapA * rate; moving = true; }
+      if (anim.et < ENTRY_TOTAL) {
+        anim.et = Math.min(ENTRY_TOTAL, anim.et + dt);
+        moving = true;
+      }
+      const rate = Math.min(1, (dt / EASE_MS) * 2.6);
       const gapM = 1 - anim.m;
       if (Math.abs(gapM) < 0.0015) anim.m = 1;
       else { anim.m += gapM * rate; moving = true; }
+      const gapC = anim.cT - anim.c;
+      if (Math.abs(gapC) < 0.0015) anim.c = anim.cT;
+      else { anim.c += gapC * rate; moving = true; }
       return moving;
     },
     rebuild: (anim, { params }) => {
-      anim.aT = params.fit ? 1 : 0;
       if (params.scenario !== anim.to) {
         /* a switch mid-ease snaps its origin to the outgoing target — a
            450 ms window nobody re-clicks inside, traded for not
@@ -326,13 +409,15 @@ defineWidget({
         anim.to = params.scenario;
         anim.m = 0;
       }
-      if (Math.abs(anim.a - anim.aT) > 0.0015 || anim.m < 1) anim.easing = true;
+      anim.cT = params.claim ? 1 : 0;
+      if (anim.m < 1 || Math.abs(anim.c - anim.cT) > 0.0015) anim.easing = true;
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
-    const a = anim?.a ?? (params.fit ? 1 : 0);
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     const m = anim?.m ?? 1;
+    const et = anim?.et ?? ENTRY_TOTAL;
+    const c = anim?.c ?? (params.claim ? 1 : 0);
     const from = state.sc[anim?.from ?? params.scenario];
     const to = state.sc[anim?.to ?? params.scenario];
 
@@ -347,7 +432,7 @@ defineWidget({
           { label: "the model", text: "y = b₀ + b₁x" },
           { label: "this fit", text: `sysBP = ${fmt(S.b0, 2)} + ${fmt(S.b1, 2)} × BMI`, color: "var(--c-empirical)" },
         ]);
-      drawPlots(ctx, colors, w, params, state, { from, to, a, m });
+      drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer });
     } else {
       const P = state.path[params.junk];
       renderEquation(!params.fit
@@ -364,7 +449,7 @@ defineWidget({
             color: "var(--c-empirical)",
           },
         ]);
-      drawAdj(ctx, colors, w, params, state, a);
+      drawAdj(ctx, colors, w, params, state);
     }
   },
 
@@ -398,6 +483,7 @@ defineWidget({
       else {
         const S = state.sc[params.scenario];
         parts.push(`The least-squares fit sysBP = ${fmt(S.b0, 1)} + ${fmt(S.b1, 2)} × BMI, its residuals against fitted values, and their normal Q-Q; R² ${fmt(S.r2, 3)}, largest |standardized residual| ${fmt(S.maxAbs, 1)}.`);
+        if (params.claim) parts.push("Overlaid: the model's claim — a normal curve of one spread straddling the line at three BMI values.");
       }
       return parts.join(" ");
     }
@@ -408,7 +494,7 @@ defineWidget({
 });
 
 /* --- the plots tab: data above its two diagnostic panels ------------------ */
-function drawPlots(ctx, colors, w, params, state, { from, to, a, m }) {
+function drawPlots(ctx, colors, w, params, state, { from, to, m, et, c, pointer }) {
   const xs = state.xs;
   const len = xs.length;
   const clip = (r, fn) => {
@@ -421,103 +507,216 @@ function drawPlots(ctx, colors, w, params, state, { from, to, a, m }) {
   };
   const b0 = lerp(from.b0, to.b0, m);
   const b1 = lerp(from.b1, to.b1, m);
-  const fadeIn = Math.max(0, (m - 0.6) / 0.4); /* labels wait for the ease */
+  const fitOf = (i) => b0 + b1 * xs[i];
+  const yOf = (i) => lerp(from.y[i], to.y[i], m);
+  const residOf = (i) => lerp(from.resid[i], to.resid[i], m);
+  const on = Boolean(params.fit);
+  /* the entry's three beats: the line first, the travellers, the mass */
+  const lineA = on ? clamp01(et / 300) : 0;
+  const massA = on ? clamp01((et - SEL_END) / ENTRY_MASS) : 0;
+  const entering = on && et < ENTRY_TOTAL;
+  const fadeIn = massA * Math.max(0, (m - 0.6) / 0.4); /* labels wait for both */
+
+  const dr = dataRect(w);
+  const rr = rvfRect(w);
+  const qr = qqRect(w);
+  const dp = makePlot({ ctx, colors, rect: dr, xDomain: X_BMI, yDomain: DATA_Y });
+  const rp = makePlot({ ctx, colors, rect: rr, xDomain: RVF_X, yDomain: RVF_Y });
+  const qp = makePlot({ ctx, colors, rect: qr, xDomain: QQ_X, yDomain: QQ_Y });
+
+  /* the hover link (the Whitlock move): the nearest patient within reach
+     of the pointer, in whichever panel holds it — inert mid-entry */
+  let hot = -1;
+  if (pointer && on && !entering) {
+    const near = (px, py, posOf) => {
+      let best = -1;
+      let bd = 90; /* squared px — a ~9.5px reach */
+      for (let i = 0; i < len; i += 1) {
+        const [x, y] = posOf(i);
+        const d2 = (x - px) ** 2 + (y - py) ** 2;
+        if (d2 < bd) { bd = d2; best = i; }
+      }
+      return best;
+    };
+    const inR = (r) => pointer.x >= r.x && pointer.x <= r.x + r.w && pointer.y >= r.y && pointer.y <= r.y + r.h;
+    if (inR(dr)) hot = near(pointer.x, pointer.y, (i) => [dp.sx(xs[i]), dp.sy(yOf(i))]);
+    else if (inR(rr)) hot = near(pointer.x, pointer.y, (i) => [rp.sx(fitOf(i)), rp.sy(residOf(i))]);
+    else if (inR(qr)) hot = near(pointer.x, pointer.y, (i) => [qp.sx(lerp(from.qqTh[i], to.qqTh[i], m)), qp.sy(lerp(from.std[i], to.std[i], m))]);
+  }
 
   /* --- the data --- */
-  const dr = dataRect(w);
-  const dp = makePlot({ ctx, colors, rect: dr, xDomain: X_BMI, yDomain: DATA_Y });
   dp.axisX({ ticks: [20, 25, 30, 35, 40], label: "BMI" });
   dp.axisY({ ticks: [100, 200, 300], label: "sysBP (mmHg)" });
-  dp.caption(SCEN_CAPTION[params.scenario] + (params.fit ? "" : " — no model yet"));
+  dp.caption(SCEN_CAPTION[params.scenario] + (on ? "" : " — no model yet"));
   clip(dr, () => {
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = colors.unknown;
     for (let i = 0; i < len; i += 1) {
       ctx.beginPath();
-      ctx.arc(dp.sx(xs[i]), dp.sy(lerp(from.y[i], to.y[i], m)), 1.7, 0, 2 * Math.PI);
+      ctx.arc(dp.sx(xs[i]), dp.sy(yOf(i)), 1.7, 0, 2 * Math.PI);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    if (a > 0.02) {
-      ctx.globalAlpha = a;
+    if (lineA > 0.02) {
+      ctx.globalAlpha = lineA;
       ctx.strokeStyle = colors.empirical;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(dp.sx(X_BMI[0]), dp.sy(b0 + b1 * X_BMI[0]));
       ctx.lineTo(dp.sx(X_BMI[1]), dp.sy(b0 + b1 * X_BMI[1]));
       ctx.stroke();
-      ringTop3(ctx, colors, dr, to, a * fadeIn, (i) => [dp.sx(xs[i]), dp.sy(to.y[i])]);
       ctx.globalAlpha = 1;
+    }
+    /* §D — the claim bells, staggered by c */
+    if (on && c > 0.02) {
+      const sig = lerp(from.sigma, to.sigma, m);
+      BELL_AT.forEach((bx, k) => {
+        const lt = easeInOut(clamp01(c * 3 - k * 0.85));
+        if (lt <= 0.02) return;
+        const mu = b0 + b1 * bx;
+        const wpx = 46 * lt;
+        ctx.globalAlpha = lt;
+        ctx.strokeStyle = colors.theory;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(dp.sx(bx), dp.sy(mu - 3 * sig));
+        ctx.lineTo(dp.sx(bx), dp.sy(mu + 3 * sig));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        for (let q = 0; q <= 48; q += 1) {
+          const v = mu - 3 * sig + (6 * sig * q) / 48;
+          const off = Math.exp(-((v - mu) ** 2) / (2 * sig * sig)) * wpx;
+          if (q === 0) ctx.moveTo(dp.sx(bx) + off, dp.sy(v));
+          else ctx.lineTo(dp.sx(bx) + off, dp.sy(v));
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+    }
+    if (on) {
+      ringTop3(ctx, colors, dr, to, fadeIn, (i) => [dp.sx(xs[i]), dp.sy(to.y[i])]);
+      /* the entry's travellers, part one: the segment grows dot-to-line */
+      if (entering) {
+        to.sel.forEach((i, k) => {
+          const lt = clamp01((et - k * ENTRY_STAG) / ENTRY_PER);
+          if (lt <= 0) return;
+          const grow = easeInOut(Math.min(1, lt / 0.45));
+          const x = dp.sx(xs[i]);
+          const yDot = dp.sy(yOf(i));
+          const yLine = dp.sy(fitOf(i));
+          ctx.globalAlpha = 1 - massA;
+          ctx.strokeStyle = colors.highlight;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, yDot);
+          ctx.lineTo(x, lerp(yDot, yLine, grow));
+          ctx.stroke();
+          ctx.fillStyle = colors.highlight;
+          ctx.beginPath();
+          ctx.arc(x, yDot, 3, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+      }
+      if (hot >= 0) hotMark(ctx, colors, dp.sx(xs[hot]), dp.sy(yOf(hot)), dp.sy(fitOf(hot)));
     }
   });
 
   /* --- residuals vs fitted --- */
-  const rr = rvfRect(w);
-  const rp = makePlot({ ctx, colors, rect: rr, xDomain: RVF_X, yDomain: RVF_Y });
   rp.axisX({ ticks: [120, 150, 180], label: "fitted values" });
   rp.axisY({ ticks: [-100, 0, 100], label: "residuals" });
-  rp.caption(params.fit ? "each residual, against its fitted value" : "no model fitted yet");
+  rp.caption(on ? "each residual, against its fitted value" : "no model fitted yet");
   clip(rr, () => {
-    if (a <= 0.02) return;
-    ctx.globalAlpha = a;
-    /* the ±2 SD band: faint fill, dashed edges (a heavier slab drowned
-       the dots — judged on the mock) */
-    const band = 2 * lerp(from.sd, to.sd, m);
-    ctx.fillStyle = colors.grid;
-    ctx.globalAlpha = a * 0.12;
-    ctx.fillRect(rr.x, rp.sy(band), rr.w, rp.sy(-band) - rp.sy(band));
-    ctx.globalAlpha = a;
-    ctx.setLineDash([2, 3]);
+    if (!on) return;
+    /* the zero line arrives with the fitted line — it is the same claim */
+    ctx.globalAlpha = lineA;
+    ctx.setLineDash([4, 3]);
     ctx.strokeStyle = colors.ink3;
     ctx.lineWidth = 1;
-    for (const e of [band, -band]) {
-      ctx.beginPath();
-      ctx.moveTo(rr.x, rp.sy(e));
-      ctx.lineTo(rr.x + rr.w, rp.sy(e));
-      ctx.stroke();
-    }
-    /* the zero line the residuals hover around */
-    ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.moveTo(rr.x, rp.sy(0));
     ctx.lineTo(rr.x + rr.w, rp.sy(0));
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = a * 0.4;
-    ctx.fillStyle = colors.empirical;
-    for (let i = 0; i < len; i += 1) {
-      ctx.beginPath();
-      ctx.arc(rp.sx(b0 + b1 * xs[i]), rp.sy(lerp(from.resid[i], to.resid[i], m)), 1.5, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = colors.smoothed;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < to.smoothX.length; i += 1) {
-      const x = rp.sx(lerp(from.smoothX[i], to.smoothX[i], m));
-      const y = rp.sy(lerp(from.smoothY[i], to.smoothY[i], m));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    labelTop3(ctx, colors, rr, to, a * fadeIn, (i) => [rp.sx(b0 + b1 * xs[i]), rp.sy(to.resid[i])]);
     ctx.globalAlpha = 1;
+    if (massA > 0.02) {
+      /* the ±2 SD band: faint fill, dashed edges (a heavier slab drowned
+         the dots — judged on the mock) */
+      const band = 2 * lerp(from.sd, to.sd, m);
+      ctx.fillStyle = colors.grid;
+      ctx.globalAlpha = massA * 0.12;
+      ctx.fillRect(rr.x, rp.sy(band), rr.w, rp.sy(-band) - rp.sy(band));
+      ctx.globalAlpha = massA;
+      ctx.setLineDash([2, 3]);
+      ctx.strokeStyle = colors.ink3;
+      ctx.lineWidth = 1;
+      for (const e of [band, -band]) {
+        ctx.beginPath();
+        ctx.moveTo(rr.x, rp.sy(e));
+        ctx.lineTo(rr.x + rr.w, rp.sy(e));
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.globalAlpha = massA * 0.4;
+      ctx.fillStyle = colors.empirical;
+      for (let i = 0; i < len; i += 1) {
+        ctx.beginPath();
+        ctx.arc(rp.sx(fitOf(i)), rp.sy(residOf(i)), 1.5, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = massA;
+      ctx.strokeStyle = colors.smoothed;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < to.smoothX.length; i += 1) {
+        const x = rp.sx(lerp(from.smoothX[i], to.smoothX[i], m));
+        const y = rp.sy(lerp(from.smoothY[i], to.smoothY[i], m));
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      labelTop3(ctx, colors, rr, to, fadeIn, (i) => [rp.sx(b0 + b1 * xs[i]), rp.sy(to.resid[i])]);
+      ctx.globalAlpha = 1;
+    }
+    /* the entry's travellers, part two: dot-and-segment land at
+       (fitted, residual) on the zero line */
+    if (entering) {
+      to.sel.forEach((i, k) => {
+        const lt = clamp01((et - k * ENTRY_STAG) / ENTRY_PER);
+        const travel = easeInOut(Math.max(0, (lt - 0.5) / 0.5));
+        if (travel <= 0) return;
+        const x = rp.sx(fitOf(i));
+        const rv = residOf(i);
+        ctx.globalAlpha = (1 - massA) * 0.9 + 0.1;
+        ctx.strokeStyle = colors.highlight;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, rp.sy(0));
+        ctx.lineTo(x, rp.sy(rv * travel));
+        ctx.stroke();
+        ctx.fillStyle = colors.highlight;
+        ctx.beginPath();
+        ctx.arc(x, rp.sy(rv * travel), 3, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+    }
+    if (hot >= 0) hotMark(ctx, colors, rp.sx(fitOf(hot)), rp.sy(residOf(hot)), rp.sy(0));
   });
 
   /* --- normal Q-Q --- */
-  const qr = qqRect(w);
-  const qp = makePlot({ ctx, colors, rect: qr, xDomain: QQ_X, yDomain: QQ_Y });
   qp.axisX({ ticks: [-2, 0, 2], label: "theoretical quantiles" });
   qp.axisY({ ticks: [-4, 0, 4, 8], label: "standardized residuals" });
-  if (params.fit) qp.caption("residual quantiles, against normal quantiles");
+  if (on) qp.caption("residual quantiles, against normal quantiles");
   clip(qr, () => {
-    if (a <= 0.02) return;
+    if (!on || massA <= 0.02) return;
     /* the reference line — the normality claim the points are checked
        against, through the quartiles as stats::qqline draws it */
     const slope = lerp(from.line.slope, to.line.slope, m);
     const inter = lerp(from.line.inter, to.line.inter, m);
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = massA;
     ctx.setLineDash([4, 3]);
     ctx.strokeStyle = colors.theory;
     ctx.lineWidth = 1.5;
@@ -526,17 +725,36 @@ function drawPlots(ctx, colors, w, params, state, { from, to, a, m }) {
     ctx.lineTo(qp.sx(QQ_X[1]), qp.sy(inter + slope * QQ_X[1]));
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = a * 0.45;
+    ctx.globalAlpha = massA * 0.45;
     ctx.fillStyle = colors.empirical;
     for (let i = 0; i < len; i += 1) {
       ctx.beginPath();
       ctx.arc(qp.sx(lerp(from.qqTh[i], to.qqTh[i], m)), qp.sy(lerp(from.std[i], to.std[i], m)), 1.5, 0, 2 * Math.PI);
       ctx.fill();
     }
-    ctx.globalAlpha = a;
-    labelTop3(ctx, colors, qr, to, a * fadeIn, (i) => [qp.sx(to.qqTh[i]), qp.sy(to.std[i])]);
+    ctx.globalAlpha = massA;
+    labelTop3(ctx, colors, qr, to, fadeIn, (i) => [qp.sx(to.qqTh[i]), qp.sy(to.std[i])]);
     ctx.globalAlpha = 1;
+    if (hot >= 0) {
+      hotMark(ctx, colors, qp.sx(lerp(from.qqTh[hot], to.qqTh[hot], m)), qp.sy(lerp(from.std[hot], to.std[hot], m)), null);
+    }
   });
+}
+
+/* the hover link's mark: a ring, and a vertical segment to the reference
+   (the line, or zero) where one exists */
+function hotMark(ctx, colors, x, y, yRef) {
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 2;
+  if (yRef !== null) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, yRef);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, 4.5, 0, 2 * Math.PI);
+  ctx.stroke();
 }
 
 /* a label near a panel edge flips inward and clamps — a row number half
@@ -566,19 +784,22 @@ function ringTop3(ctx, colors, rect, S, alpha, posOf) {
     ctx.stroke();
     edgeLabel(ctx, colors, rect, x, y, String(i + 1), rank);
   });
+  ctx.globalAlpha = 1;
 }
 
 function labelTop3(ctx, colors, rect, S, alpha, posOf) {
   if (alpha <= 0.02) return;
+  const keep = ctx.globalAlpha;
   ctx.globalAlpha = alpha;
   S.top3.forEach((i, rank) => {
     const [x, y] = posOf(i);
     edgeLabel(ctx, colors, rect, x, y, String(i + 1), rank);
   });
+  ctx.globalAlpha = keep;
 }
 
-/* --- the adjusted-R² act: R² climbs on pure noise, adjusted refuses ------- */
-function drawAdj(ctx, colors, w, params, state, a) {
+/* --- the model-fit act: R² climbs on pure noise, adjusted refuses --------- */
+function drawAdj(ctx, colors, w, params, state) {
   const r = adjRect(w);
   const p = makePlot({ ctx, colors, rect: r, xDomain: ADJ_X, yDomain: ADJ_Y });
   p.axisX({ ticks: [0, 5, 10, 15, 20], label: "unrelated covariates added" });
@@ -586,12 +807,11 @@ function drawAdj(ctx, colors, w, params, state, a) {
   p.caption(params.fit
     ? `sysBP ~ BMI plus pure-noise columns, on ${SUB_N} simulated patients`
     : "no model fitted yet");
-  if (a <= 0.02) return;
+  if (!params.fit) return;
   ctx.save();
   ctx.beginPath();
   ctx.rect(r.x - 2, r.y, r.w + 4, r.h);
   ctx.clip();
-  ctx.globalAlpha = a;
   ctx.setLineDash([4, 3]);
   ctx.strokeStyle = colors.ink3;
   ctx.lineWidth = 1;
@@ -617,7 +837,7 @@ function drawAdj(ctx, colors, w, params, state, a) {
       ctx.fill();
     });
     /* the label rides the path's end and flips inside the frame near the
-       right edge — at k = 10 a left-anchored label fell in the clip */
+       right edge — at the maximum a left-anchored label fell in the clip */
     const last = upto[upto.length - 1];
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
     const atEdge = params.junk >= 16;
@@ -631,6 +851,5 @@ function drawAdj(ctx, colors, w, params, state, a) {
   };
   pathLine("r2", colors.groupA, `R² ${fmt(upto[upto.length - 1].r2, 2)}`);
   pathLine("adjR2", colors.groupB, `adjusted ${fmt(upto[upto.length - 1].adjR2, 2)}`);
-  ctx.globalAlpha = 1;
   ctx.restore();
 }
