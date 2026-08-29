@@ -54,7 +54,7 @@ const WANT = {
   concept: "segmented", dataV: "section", patients: "choice", visits: "choice",
   differ: "choice", effect: "choice", dataF: "section", famdiff: "choice",
   causal: "int", reading: "section", view: "segmented", model: "section",
-  ranef: "segmented", seed: "int",
+  scenario: "select", ranef: "segmented", seed: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
@@ -135,6 +135,14 @@ const clean = (tiles) => tiles.every((t) =>
     const a2 = W.animation.init({ params: pr, state, fromScratch: true });
     ck(`syntax readout clean at ${r}`, clean(tilesOf(pr, state, a2)));
   }
+  /* every scenario relabels cleanly (round 4) */
+  for (const sc of W.params.scenario.options.map((o) => o.value)) {
+    const pr = { ...params, scenario: sc, ranef: "slope" };
+    const a3 = W.animation.init({ params: pr, state, fromScratch: true });
+    ck(`scenario ${sc} readout clean`, clean(tilesOf(pr, state, a3)));
+  }
+  ck("legend groups are generic",
+    W.legend.filter((l) => l.token.startsWith("group")).every((l) => /^Group [AB]$/.test(l.label)));
   /* an intent flip retargets the lines and requests the ease */
   W.animation.rebuild(anim, { params: { ...params, ranef: "slope" }, state });
   ck("intent flip requests the ease", anim.easing === true

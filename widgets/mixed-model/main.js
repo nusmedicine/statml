@@ -138,6 +138,24 @@ const ciText = (est, lo, hi) => `${fmt(est, 1)} [${fmt(lo, 1)}, ${fmt(hi, 1)}]`;
 let formulaHost = null;
 let formulaKey = null;
 
+/* --- the Syntax tab's scenarios (round 4) ----------------------------------- *
+ * Kenneth: "help a student — examples, or let them input variables and it
+ * helps with the syntax". A picker of concrete situations rather than free
+ * text: the real skill is recognising WHICH variable is the grouping, and
+ * each scenario is that decision made and named. The chosen names flow
+ * into the formula card, the stage labels and the readout notes. Display:
+ * the picture is the same picture, relabelled. ABOVE defineWidget — draw()
+ * runs during it (the file's third brush with that dead zone). */
+const SCENARIOS = {
+  generic: { y: "Y", x: "X", g: "G", unit: "group", plural: "groups" },
+  bp: { y: "bp", x: "time", g: "patient", unit: "patient", plural: "patients" },
+  chol: { y: "cholesterol", x: "age", g: "family", unit: "family", plural: "families" },
+  school: { y: "score", x: "hours", g: "school", unit: "school", plural: "schools" },
+  mouse: { y: "tumor_size", x: "week", g: "mouse", unit: "mouse", plural: "mice" },
+};
+const reTerm = (sc, ranef) =>
+  ranef === "slope" ? `(1 + ${sc.x} | ${sc.g})` : `(1 | ${sc.g})`;
+
 defineWidget({
   slug: "mixed-model",
   title: "Modeling Hierarchical Data",
@@ -294,6 +312,24 @@ defineWidget({
       label: "The model",
       when: { param: "concept", equals: "syntax" },
     },
+    /* THE EXAMPLES (round 4): the same picture with a real situation's
+       names — recognising which variable is the grouping IS the syntax
+       skill, and each option is that recognition made for one study. */
+    scenario: {
+      type: "select",
+      label: "Scenario",
+      detail: "the same picture, with a study's own variable names",
+      options: [
+        { value: "generic", label: "Y, X and groups G" },
+        { value: "bp", label: "BP over time, in patients" },
+        { value: "chol", label: "Cholesterol vs age, in families" },
+        { value: "school", label: "Scores vs study hours, in schools" },
+        { value: "mouse", label: "Tumor size by week, in mice" },
+      ],
+      default: "generic",
+      display: true,
+      when: { param: "concept", equals: "syntax" },
+    },
     ranef: {
       type: "segmented",
       label: "Random effects",
@@ -317,11 +353,14 @@ defineWidget({
     },
   },
 
+  /* generic on purpose (round 4): the canvas names the groups where it
+     matters — the Repeated facets say control · medication, the Syntax
+     lines carry the scenario's own word */
   legend: [
-    { token: "group-a", label: "Control group", mark: "dot" },
-    { token: "group-b", label: "Medication group", mark: "dot" },
+    { token: "group-a", label: "Group A", mark: "dot" },
+    { token: "group-b", label: "Group B", mark: "dot" },
     { token: "highlight", label: "lm — every row treated as independent", mark: "line" },
-    { token: "empirical", label: "lmer — patients as random effects", mark: "line" },
+    { token: "empirical", label: "lmer — the grouping modeled as a random effect", mark: "line" },
     { token: "reference", label: "The true effect, set by the dial", mark: "line" },
   ],
 
@@ -553,6 +592,7 @@ defineWidget({
     if (params.concept === "syntax") {
       /* printed from the EASED lines — the numbers are the lines drawn */
       const L = anim?.syn ?? state.synLines[params.ranef];
+      const sc = SCENARIOS[params.scenario] ?? SCENARIOS.generic;
       const same = params.ranef === "none";
       const tiles = [
         {
@@ -560,14 +600,14 @@ defineWidget({
           value: same ? fmt(L[0][0], 1) : `${fmt(L[0][0], 1)} · ${fmt(L[1][0], 1)}`,
           note: same
             ? "one level for everyone"
-            : `one level per group — the 1 in ${params.ranef === "slope" ? "(1 + X | G)" : "(1 | G)"}`,
+            : `one level per ${sc.unit} — the 1 in ${reTerm(sc, params.ranef)}`,
         },
         {
           label: "Slopes",
           value: params.ranef === "slope" ? `${fmt(L[0][1], 2)} · ${fmt(L[1][1], 2)}` : fmt(L[0][1], 2),
           note: params.ranef === "slope"
-            ? "one trend per group — the X in (1 + X | G)"
-            : "one trend, shared by the groups",
+            ? `one trend per ${sc.unit} — the ${sc.x} in ${reTerm(sc, "slope")}`
+            : `one trend, shared by the ${sc.plural}`,
         },
       ];
       return tiles;
@@ -621,7 +661,7 @@ function renderFormulas(params) {
   const active = params.concept === "syntax"
     ? (params.ranef === "none" ? "lm" : "mm")
     : (params.view === "related" ? "mm" : "lm");
-  const key = `${params.concept}|${active}|${params.ranef}`;
+  const key = `${params.concept}|${active}|${params.ranef}|${params.scenario}`;
   if (key === formulaKey) return;
   formulaKey = key;
   const mono = "font-family:var(--font-mono);font-size:var(--fs-xs)";
@@ -635,10 +675,13 @@ function renderFormulas(params) {
       line("lmer", `cholesterol ~ SNP1 + … + SNP10 + ${re("(1 | family)")}`, active === "mm"),
     ]
     : params.concept === "syntax"
-      ? [
-        line("lm", "Y ~ X", active === "lm"),
-        line("lmer", `Y ~ X + ${re(params.ranef === "slope" ? "(1 + X | G)" : "(1 | G)")}`, active === "mm"),
-      ]
+      ? (() => {
+        const sc = SCENARIOS[params.scenario] ?? SCENARIOS.generic;
+        return [
+          line("lm", `${sc.y} ~ ${sc.x}`, active === "lm"),
+          line("lmer", `${sc.y} ~ ${sc.x} + ${re(reTerm(sc, params.ranef))}`, active === "mm"),
+        ];
+      })()
       : [
         line("lm", "bp ~ age + gender + medication", active === "lm"),
         line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
@@ -842,10 +885,14 @@ function drawSyntax(ctx, colors, w, params, state, anim) {
     ctx.lineTo(w - rpad, y);
     ctx.stroke();
   }
+  const sc2 = SCENARIOS[params.scenario] ?? SCENARIOS.generic;
   ctx.textAlign = "center";
-  ctx.fillText("X", (lpad + w - rpad) / 2, SYN_TOP + SYN_H + 28);
+  ctx.fillText(sc2.x, (lpad + w - rpad) / 2, SYN_TOP + SYN_H + 28);
   ctx.textAlign = "left";
-  ctx.fillText("Y — one point per observation, colour is the group G", lpad, SYN_TOP - 10);
+  ctx.fillText(
+    `${sc2.y} — one point per observation, colour separates two ${sc2.plural}`,
+    lpad, SYN_TOP - 10,
+  );
 
   /* the pooled lm line, always on stage — the reading every random effect
      is a departure from */
@@ -876,7 +923,8 @@ function drawSyntax(ctx, colors, w, params, state, anim) {
     if (alpha > 0.3) {
       ctx.fillStyle = groupColor[g];
       ctx.textAlign = "left";
-      ctx.fillText(`group ${g + 1}`, X(XMAX) + 6, Y(L[g][0] + L[g][1] * XMAX) + 3);
+      /* A and B, matching the legend's generic pair (round 4) */
+      ctx.fillText(`${sc2.unit} ${g ? "B" : "A"}`, X(XMAX) + 6, Y(L[g][0] + L[g][1] * XMAX) + 3);
     }
     ctx.globalAlpha = 1;
   }

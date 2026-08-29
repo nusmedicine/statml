@@ -3272,6 +3272,23 @@ studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
 pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
 (F_LO below defineWidget while a families-tab URL draws during it).
 
+### Round 4 — generic legend, and the scenarios
+
+Kenneth's two asks. **The legend went generic** — Group A · Group B, and
+the lmer line reworded to "the grouping modeled as a random effect" — with
+the canvas carrying the specific names where they matter (the Repeated
+facets say control · medication; the Syntax lines say the scenario's own
+unit). **The Syntax tab gained the Scenario picker**: five concrete
+studies (Y/X/G generic · BP over time in patients · cholesterol vs age in
+families · scores vs hours in schools · tumor size by week in mice) whose
+variable names flow into the formula card, the axis labels, the line
+labels (school A · school B) and the readout notes ("one level per school
+— the 1 in (1 + hours | school)"). A SELECT, not free text, on purpose:
+recognising WHICH variable is the grouping is the syntax skill, each
+option is that recognition made for one study, and params stay typed with
+the URL as the state of record. Display: true — the picture is the same
+picture, relabelled. Drive: 97 checks.
+
 ### Round 3 — the toggle everywhere, the repeat stage cut, Syntax born
 
 Kenneth's fixes plus two asked questions. **The Measurements toggle now
