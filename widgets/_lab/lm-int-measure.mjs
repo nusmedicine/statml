@@ -126,5 +126,15 @@ console.log(`  diabetes effect: in women ${dInWomen >= 0 ? "+" : ""}${dInWomen.t
 console.log(`  the interaction IS the difference of differences: ${(dInMen - dInWomen).toFixed(2)}`);
 console.log(`  the independent model's "+10.18 diabetes effect" is an average of ${dInWomen.toFixed(1)} and ${dInMen.toFixed(1)}`);
 
+/* --- the fan tab's own claims (act 1 revived 2026-08-29) ------------------ */
+console.log(`\nact 1's fan, the numbers the widget prints:`);
+const slopeAt = (B) => f1.b[1] + f1.b[3] * B;
+console.log(`  age slope at BMI 20 ${slopeAt(20).toFixed(2)}, 30 ${slopeAt(30).toFixed(2)}, 40 ${slopeAt(40).toFixed(2)} per year`);
+ck("slope flips sign inside the probe range", slopeAt(17) > 0 && slopeAt(45) < 0 ? 1 : 0, 1, 0);
+const flipB = -f1.b[1] / f1.b[3];
+console.log(`  the age slope passes zero at BMI ${flipB.toFixed(1)}; the fan crosses at age ${(-f1.b[2] / f1.b[3]).toFixed(1)} (where the BMI effect is zero)`);
+ck("the crossing age sits inside the drawn axis", -f1.b[2] / f1.b[3] > 32 && -f1.b[2] / f1.b[3] < 69 ? 1 : 0, 1, 0);
+ck("independent slope is flat in BMI", ols(TOTCHOL, AGE, BMI).b[1], f1i.b[1], 1e-12);
+
 console.log(fails ? `\n${fails} FAILURES` : "\nall checks pass");
 process.exit(fails ? 1 : 0);

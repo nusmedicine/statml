@@ -4246,6 +4246,27 @@ statement about that denominator. Four candidates are mocked in
 
 ## Widget 30 · `lm-interaction` — SHIPPED 2026-08-28, two review rounds
 
+### Act 1 revived — age × BMI, the fan (2026-08-29, Kenneth's queue)
+
+Round 1 cut the two-continuous act ("the same lesson with a fan in place
+of a crossing"); Kenneth revived it post-ship to mirror the notebook's
+three sections. The tab is the notebook's ggPredict picture (cell 13):
+totChol against age, the model drawn at BMI 20/30/40 — parallel under +,
+a fan CROSSING at age 57.2 under × (where the BMI effect passes zero) —
+plus a probe reading the AGE SLOPE at a chosen BMI: 1.97 at 20, −0.32 at
+40, sign flip at BMI 37.2, all measured additions to lm-int-measure.mjs
+(37 checks; the two fits themselves were verified to the digit at the
+original planning). The equation card gained a general per-level rows
+form; the legacy women/men output is BYTE-IDENTICAL and a full suite run
+proved it: **217 of 217 MATCH**, nothing recorded moved. The patients are
+one neutral cloud on this tab — BMI is on neither axis, which is why the
+model must carry it. Concept order now mirrors the notebook (act 1 first)
+with the default still agesex (the approved opening story). OPEN: the
+legend's women/men dot entries read wrong on the neutral-cloud tab —
+fixing them is a tx change to all ten recorded states (cheap rebaseline
+via the shooter, same-commit) and awaits Kenneth's wording; new states
+for the tab go in on his "tested ok".
+
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,
 built and revised over two rounds in one session.** Title **Fitting an
 Interaction**. **Ten fingerprint states recorded with

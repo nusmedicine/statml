@@ -41,7 +41,7 @@
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
 import { ols } from "../lm-least-squares/model.js";
-import { N, AGE, SEX, TOTCHOL, DIABETES } from "../lm-least-squares/data.js";
+import { N, AGE, SEX, TOTCHOL, DIABETES, BMI } from "../lm-least-squares/data.js";
 
 const X_DATA = [32, 69];
 const Y_DOM = [140, 360];
@@ -118,7 +118,9 @@ function renderEquation(kind, terms, groups) {
   }
   const key = kind
     + (terms ? terms.map((t) => `${t.num}${t.name ?? ""}`).join(",") : "none")
-    + (groups ? `${groups.f.b0}${groups.m.b0}${groups.m.b1}` : "");
+    + (groups ? (groups.rows
+      ? groups.rows.map((r) => `${r.label}${r.b0}${r.b1}`).join(";")
+      : `${groups.f.b0}${groups.m.b0}${groups.m.b1}`) : "");
   if (key === mathKey) return;
   mathKey = key;
   const row = (label, html) =>
@@ -130,16 +132,23 @@ function renderEquation(kind, terms, groups) {
     : `<span style="color:var(--ink-3)">no model fitted yet</span>`;
   let groupRows = "";
   if (groups) {
-    const lineEq = (b, token) =>
-      `<span style="color:var(--c-group-${token})">${eqHTML([
+    const lineEq = (b, color) =>
+      `<span style="color:${color}">${eqHTML([
         { num: b.b0 },
         { num: b.b1, name: groups.xname },
       ])}</span>`;
     const note = groups.note
       ? ` <span style="color:var(--ink-3);font-size:var(--fs-xs)">— ${groups.note}</span>`
       : "";
-    groupRows = row("women (sex 0)", lineEq(groups.f, "a"))
-      + row("men (sex 1)", lineEq(groups.m, "b") + note);
+    /* `rows` is the general form (act 1's per-BMI-level lines); the f/m
+       pair is the legacy shape, output byte-identical to before rows
+       existed — the recorded tx hashes depend on it */
+    groupRows = groups.rows
+      ? groups.rows.map((r, i) =>
+        row(r.label, lineEq(r, `var(--c-${r.token})`)
+          + (i === groups.rows.length - 1 ? note : ""))).join("")
+      : row("women (sex 0)", lineEq(groups.f, "var(--c-group-a)"))
+        + row("men (sex 1)", lineEq(groups.m, "var(--c-group-b)") + note);
   }
   mathHost.innerHTML = row("the model", generic) + row("this model", model) + groupRows;
 }
@@ -160,7 +169,12 @@ defineWidget({
     concept: {
       type: "segmented",
       label: "Concept",
+      /* the notebook's three acts, in its order (Kenneth 2026-08-29 —
+         act 1 was cut in round 1 and revived to match the notebook).
+         The default stays agesex: the crossing is the approved opening
+         story, and the recorded states carry it. */
       options: [
+        { value: "agebmi", label: "Age × BMI", detail: "two continuous covariates — each covariate's slope depends on the other's level" },
         { value: "agesex", label: "Age × sex", detail: "a continuous covariate interacting with a categorical one — two lines that may cross" },
         { value: "diabsex", label: "Diabetes × sex", detail: "two categorical covariates — the interaction is a difference of differences" },
       ],
@@ -190,6 +204,21 @@ defineWidget({
       ],
       default: "plus",
       display: true,
+    },
+
+    readingB: { type: "section", label: "Reading the age effect", when: { param: "concept", equals: "agebmi" } },
+
+    /* the two-continuous probe: the AGE SLOPE read at a chosen BMI — under
+       + it refuses to change (1.32 per year everywhere), under × it runs
+       1.97 → −0.32 and flips sign above BMI ≈ 37 */
+    probebmi: {
+      type: "int",
+      label: "At BMI",
+      min: 17,
+      max: 45,
+      default: 25,
+      display: true,
+      when: { param: "concept", equals: "agebmi" },
     },
 
     reading: { type: "section", label: "Reading the sex effect", when: { param: "concept", equals: "agesex" } },
@@ -225,6 +254,11 @@ defineWidget({
 
   compute() {
     const mul = (a, b) => a.map((v, i) => v * b[i]);
+    /* act 1 — two continuous covariates (cells 7 and 11; both fits are in
+       lm-int-measure.mjs to the digit). No per-level line table: the fan
+       is computed from the lerped coefficients at draw time. */
+    const bInd = ols(TOTCHOL, AGE, BMI);
+    const bInt = ols(TOTCHOL, AGE, BMI, mul(AGE, BMI));
     /* act 2 — per-sex lines under each reading */
     const aInd = ols(TOTCHOL, AGE, SEX);
     const aInt = ols(TOTCHOL, AGE, SEX, mul(AGE, SEX));
@@ -249,8 +283,12 @@ defineWidget({
       times: { d0s0: pred(dInt, 0, 0, 1), d1s0: pred(dInt, 1, 0, 1), d0s1: pred(dInt, 0, 1, 1), d1s1: pred(dInt, 1, 1, 1) },
     };
     return {
-      aInd, aInt, asLines, cells, dInd, dInt, dsPred,
-      r2: { agesex: { plus: aInd.r2, times: aInt.r2 }, diabsex: { plus: dInd.r2, times: dInt.r2 } },
+      aInd, aInt, asLines, cells, dInd, dInt, dsPred, bInd, bInt,
+      r2: {
+        agebmi: { plus: bInd.r2, times: bInt.r2 },
+        agesex: { plus: aInd.r2, times: aInt.r2 },
+        diabsex: { plus: dInd.r2, times: dInt.r2 },
+      },
     };
   },
 
@@ -327,6 +365,26 @@ defineWidget({
        eases). The per-group rows carry the sums that produced them. */
     if (!params.fit) {
       renderEquation(params.terms, null, null);
+    } else if (params.concept === "agebmi") {
+      const f = params.terms === "times" ? state.bInt : state.bInd;
+      const withInt = params.terms === "times";
+      const lvl = (B) => ({
+        label: `at BMI ${B}`,
+        b0: f.b[0] + f.b[2] * B,
+        b1: f.b[1] + (withInt ? f.b[3] * B : 0),
+        token: "empirical",
+      });
+      renderEquation(params.terms, [
+        { num: f.b[0] },
+        { num: f.b[1], name: "age" },
+        { num: f.b[2], name: "BMI" },
+      ].concat(withInt ? [{ num: f.b[3], name: "age × BMI" }] : []), {
+        xname: "age",
+        rows: [lvl(20), lvl(40)],
+        note: withInt
+          ? `the age slope is ${fmt(f.b[1], 2)} ${f.b[3] < 0 ? "−" : "+"} ${fmt(Math.abs(f.b[3]), 2)} × BMI`
+          : "the same age slope at every BMI",
+      });
     } else if (params.concept === "agesex") {
       const f = params.terms === "times" ? state.aInt : state.aInd;
       const withInt = params.terms === "times";
@@ -359,7 +417,9 @@ defineWidget({
       });
     }
 
-    if (params.concept === "agesex") {
+    if (params.concept === "agebmi") {
+      drawAgeBmi(ctx, colors, r, params, state, a, t);
+    } else if (params.concept === "agesex") {
       drawAgeSex(ctx, colors, r, params, state, a, t, z);
     } else {
       drawTwoByTwo(ctx, colors, r, params, state, a, t);
@@ -384,13 +444,16 @@ defineWidget({
       },
     ];
     if (params.terms === "times") {
-      const f = params.concept === "agesex" ? state.aInt : state.dInt;
+      const f = params.concept === "agebmi" ? state.bInt
+        : params.concept === "agesex" ? state.aInt : state.dInt;
       tiles.push({
         label: "Interaction",
         value: fmt(f.b[3], 2),
-        note: params.concept === "agesex"
-          ? "per year of age, the sex gap changes by this much"
-          : "the difference of differences — what one group gets that the other does not",
+        note: params.concept === "agebmi"
+          ? "per BMI unit, the age slope changes by this much"
+          : params.concept === "agesex"
+            ? "per year of age, the sex gap changes by this much"
+            : "the difference of differences — what one group gets that the other does not",
       });
     } else {
       tiles.push({
@@ -404,7 +467,14 @@ defineWidget({
 
   summary({ params, state }) {
     const parts = ["Total cholesterol for 3547 Framingham patients."];
-    if (params.concept === "agesex") {
+    if (params.concept === "agebmi") {
+      parts.push("The stage plots totChol against age, with the model drawn at sample BMI levels.");
+      if (params.fit) {
+        parts.push(params.terms === "times"
+          ? `With the age × BMI interaction the model lines fan and cross: the age slope is ${fmt(state.bInt.b[1], 2)} ${state.bInt.b[3] < 0 ? "−" : "+"} ${fmt(Math.abs(state.bInt.b[3]), 2)} per BMI unit, turning negative above BMI ${fmt(-state.bInt.b[1] / state.bInt.b[3], 0)}.`
+          : "With independent terms the BMI levels give parallel lines — one age slope everywhere.");
+      } else parts.push("No model fitted yet.");
+    } else if (params.concept === "agesex") {
       parts.push("The stage plots totChol against age, patients coloured by sex.");
       if (params.fit) {
         parts.push(params.terms === "times"
@@ -533,6 +603,90 @@ function drawAgeSex(ctx, colors, r, params, state, a, t, z) {
     if (z > 0.5) {
       bracket(0.6, `${gapAt(0) >= 0 ? "+" : ""}${fmt(gapAt(0), 2)} — the printed [sex] coefficient`, (z - 0.5) * 2);
     }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+/* --- act 1: age × BMI — the FAN (revived 2026-08-29 to match the notebook) -
+   Two continuous covariates, the notebook's own ggPredict picture (cell
+   13): totChol against age with the model drawn at sample BMI levels.
+   Under + the levels are parallel lines — one age slope everywhere; under
+   × they fan and CROSS (at age 57.2, where the BMI effect passes zero).
+   The probe is a BMI slider reading the AGE SLOPE at that level — the
+   same lesson as the sex-gap probe with both variables continuous: under
+   + the number refuses to move, under × it runs 1.97 → −0.32 per year
+   and flips sign above BMI 37. Every line and every printed slope comes
+   from the LERPED coefficients, so no label is false mid-frame. The
+   patients are one neutral cloud: BMI is on neither axis, which is
+   exactly why the model must carry it. */
+function drawAgeBmi(ctx, colors, r, params, state, a, t) {
+  const plot = makePlot({ ctx, colors, rect: r, xDomain: X_DATA, yDomain: Y_DOM });
+  plot.axisX({ label: "age" });
+  plot.axisY({ label: "totChol (mg/dL)" });
+  plot.caption(!params.fit
+    ? "3547 patients — BMI is on neither axis; the model will carry it"
+    : params.terms === "times"
+      ? "interacting terms — the age slope depends on BMI, and the levels cross"
+      : "independent terms — one age slope, BMI only shifts the line");
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(r.x, r.y, r.w, r.h);
+  ctx.clip();
+
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = colors.ink3;
+  for (let i = 0; i < N; i += 1) {
+    ctx.beginPath();
+    ctx.arc(plot.sx(AGE[i]), plot.sy(TOTCHOL[i]), 1.4, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if (a > 0.02) {
+    const bi = state.bInd.b;
+    const bx = state.bInt.b;
+    const b0 = lerp(bi[0], bx[0], t);
+    const b1 = lerp(bi[1], bx[1], t);
+    const b2 = lerp(bi[2], bx[2], t);
+    const b3 = lerp(0, bx[3], t);
+    const yAt = (B, age) => (b0 + b2 * B) + (b1 + b3 * B) * age;
+    const halo = (text, x, y, align) => {
+      ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = align;
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+    };
+    const lineAt = (B, color, width, alpha) => {
+      ctx.globalAlpha = a * alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(plot.sx(X_DATA[0]), plot.sy(yAt(B, X_DATA[0])));
+      ctx.lineTo(plot.sx(69), plot.sy(yAt(B, 69)));
+      ctx.stroke();
+    };
+    /* the sample levels, labelled at the left end — that is where the fan
+       is widest under BOTH readings, so the labels never collide */
+    for (const B of [20, 30, 40]) {
+      lineAt(B, colors.empirical, 2, 0.5);
+      ctx.fillStyle = colors.empirical;
+      halo(`BMI ${B}`, plot.sx(X_DATA[0]) + 4, plot.sy(yAt(B, X_DATA[0])) - 5, "left");
+    }
+    /* the probed level: the age slope, read where the reader chose, from
+       the lerped coefficients — the counting-label rule */
+    const slope = b1 + b3 * params.probebmi;
+    lineAt(params.probebmi, colors.highlight, 2.5, 1);
+    ctx.fillStyle = colors.highlight;
+    halo(
+      `BMI ${params.probebmi}: ${slope >= 0 ? "+" : ""}${fmt(slope, 2)} per year of age`,
+      plot.sx(69) - 6,
+      plot.sy(yAt(params.probebmi, 69)) - 8,
+      "right",
+    );
     ctx.globalAlpha = 1;
   }
   ctx.restore();
