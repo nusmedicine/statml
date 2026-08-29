@@ -3216,6 +3216,80 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 12 — consolidated to the notebook; the bridge drawn as MathML
+
+**The round opened with an adversarial notebook-vs-widget review against
+05-06's own spine**, seeded by Kenneth's three observations: the censoring
+page helps (the notebook explains why keeping the data gives good hazard
+estimates); the hazard's limit definition may not click and he could not
+say which page illustrates it; and the log-rank is never taught — the
+course goes straight to Cox. The review's findings: the material maps
+almost one-to-one; the hazard is taught twice but was not FINDABLE (the
+finding that settled "keep the interval-hazard panel"); and the log-rank
+tile is already at its minimum defensible size because **the notebook's
+own plot prints a log-rank p** (`pval = T`) that students would otherwise
+stare at unexplained. The p tile explains the number the notebook shows;
+nothing more was added.
+
+**Every choice was mocked before the build** (`_lab/time-event-round12.html`,
+engine-drawn at the shipping defaults — the same page also renders real
+MathML for the bridge candidates). Kenneth's picks: **B with MathML,
+variant M1** for the ln(h/h₀) bridge — ONE `.w-math` row above the
+Finding-factors figure that FOLLOWS THE PILLS (every name in the equation
+is a covariate the reader added; resting at the notebook's symbols
+b₁x₁ + b₂x₂ + … while no pill is in), `ln` not `log` (the notebook's own
+symbol beats the logistic widget's spelling), **L1** for the forest's
+direction labels ("← hazard lower · hazard ratio, exp(b) · hazard
+higher →", flanking the caption row), and yes to the one-word tile fix.
+The row uses lm-interaction's machinery verbatim — the MathML probe with
+a plain-text fallback, one `<math>` per term so the all-pills line wraps
+at narrow widths (verified wrapping at 340px in the mock) — and sits
+exactly where every lm-arc widget puts its formula, so the "we have done
+this move before" echo is positional as well as notational. The b-indices
+are positions in the CURRENT model, matching how the fit numbers them
+(age alone is b₁·age).
+
+**The decided cuts, executed**: "As events" left the `censored` control
+(the notebook names ONE tempting mistake — dropping; the second wrong
+treatment pushed the same way while doubling the notes), and the
+direction line, mechanism notes, lane drawing and readout simplified with
+it — at zero censored the note now says "the two readings agree", still
+asserted kept ≡ dropped step-for-step. Onset left the data section (Early
+baked in: `SHIFT = 6` in the generator, axis fixed at 16 — max event time
+at shift 6 is 20 − 0.1·30 − 6 + 5 = 16). The truth overlay left the
+Comparing-groups tab (notebook-absent; its misconception job lives on the
+Censoring tab, where the kept/dropped comparison IS the lesson) — the
+`--c-reference` legend entry went with it; the token's remaining use is
+the forest's reference line at 1. **The vocabulary closed**: the HR tile
+and the groups summary now say "hazard" where they said "event rate" —
+the two panels above the tile both label the quantity hazard, one word.
+
+**One latent defect found by the axis fix**: the interval panel's bottom
+tick row painted a "20" at `sx(20)` — off-plot since round 10 fixed the
+axis at 16 (at the 550px canvas it landed at x ≈ 656, off the canvas
+entirely, which is why no sweep flagged it). The row is [0, 5, 10, 15]
+now.
+
+Verified: drive re-pinned at **111 checks** — the parameter roster
+(onset/truth asserted ABSENT via the no-parameters-beyond-those check),
+kept,dropped the only options, follow 25 dissolving censoring (200 of
+200) replacing the late-onset corner, five bridgeHTML fixtures pinning
+the b-index logic through the fallback branch, and the dbscan caller
+lesson applied (`draw()` provably calls `renderBridge`). In-browser at
+550px: all three tabs by DIRECT URL (the TDZ trap), no console errors;
+the bridge row above the figure with a real `<mfrac>`, following pill
+clicks live, hidden and EMPTIED on the other tabs so the text hash reads
+nothing there; fillText sweeps on all three tabs — 0 overruns, 0
+same-row collisions, the end labels and direction line painted, no "20",
+the dropped product line reading (1−1/3)(1−1/2)(1−1/1) = 0.00 to the
+digit. (Two sweep notes for whoever reruns: a display-param click is the
+reliable repaint — the resize path yielded nothing under the pane; and
+the rotated y-axis label false-positives the overrun check, HANDOVER's
+own height-sweep trap.) `npm run check` green. **Still owed: Kenneth's
+test pass** (all three tabs at 550px and stacked width, scrub/hover by
+hand, judge projected), and only on his "tested ok": shooter, states,
+manifest, catalogue mark, the 05-06 link.
+
 ### Round 11 — scrub and the hover inspector, on a new core pointer channel
 
 **From the round-10 UX review, both approved.** Core gained a POINTER

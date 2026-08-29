@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 31 round 12 — the changed surfaces, mocked</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 560px; }
+
+  /* readout-tile mock, close enough to core's tiles to judge one word */
+  .tiles { display: flex; gap: var(--sp-3); }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 10px 12px; width: 240px; }
+  .tile .t-label { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .t-value { font-size: var(--fs-lg); font-family: var(--font-mono); color: var(--ink-1); margin: 2px 0; }
+  .tile .t-note { font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.35; }
+  .tile .t-note b { color: var(--ink-1); font-weight: 600; }
+
+  /* rail mock */
+  .rails { display: flex; gap: var(--sp-5); }
+  .rail { width: 280px; }
+  .rail h4 { font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); font-weight: 400; }
+  .sect { font-size: var(--fs-xs); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;
+          border-bottom: 1px solid var(--grid); padding-bottom: 3px; margin: var(--sp-3) 0 var(--sp-2); }
+  .ctl { margin: 0 0 var(--sp-2); }
+  .ctl .lbl { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin-bottom: 3px; }
+  .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; }
+  .seg b { font-weight: 400; font-size: var(--fs-xs); color: var(--ink-2); padding: 3px 9px; border-left: 1px solid var(--grid); }
+  .seg b:first-child { border-left: 0; }
+  .seg b.on { background: var(--surface-2, var(--grid)); color: var(--ink-1); font-weight: 600; }
+  .chk { font-size: var(--fs-xs); color: var(--ink-2); margin: 2px 0; }
+  .chk span { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--ink-3); border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+
+  /* frames for the MathML rows — the .w-math card itself is tokens.css's */
+  .mml-frame { margin: 0 0 var(--sp-3); }
+  .mml-tag { display: block; font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 31 · <code>time-event</code> — round 12, the changed surfaces mocked before the build</h1>
+
+  <p class="note">
+    Everything here is drawn by the <b>real engine at the shipping defaults</b>
+    (draw 32, n = 200, effect moderate, follow-up 12, onset early — the round-10
+    clean cohort). Settled and not re-argued here: cut the truth overlay on
+    Comparing groups (notebook-absent; its misconception job lives on the
+    Censoring tab), keep the Patients/Censored extension, keep the
+    interval-hazard panel (the notebook's hazard section is the abstraction
+    that may not click — the panel is its second, larger-scale meeting).
+    <b>Decisions recorded 2026-08-29:</b> §1 = B with MathML (see §1b — that
+    is the surface still being judged), spelling = ln, §2 = L1, §3 = yes.
+    §4 remains confirmation of the already-decided cuts.
+  </p>
+
+  <h2>§1 · The Cox card's bridge line — ln(h ÷ h₀) = the familiar linear combination</h2>
+  <p class="note">
+    The notebook's own move: take ln of the Cox model and the right side is
+    the linear predictor students met in lm and logistic regression. Three
+    candidates, each drawn in the full card at the das fit (all three pills
+    in). <b>REF</b> is the card as it ships today. <b>A</b> adds the ln line
+    in the notebook's symbols. <b>B</b> adds it spelled with the covariates
+    actually in the model — <i>the equation follows the pills</i> (shown at
+    two pill states). <b>C</b> replaces the exp form instead of adding: one
+    math line, and the gloss carries the adds-on-log / multiplies-hazard
+    duality. <b>One spelling question rides along:</b> the notebook writes
+    <code>ln</code>; the logistic widget writes <code>log(odds)</code>. The
+    mock uses <code>ln</code> throughout — flipping every candidate to
+    <code>log</code> is a one-string change; say which the echo should use.
+    All §1 canvases already carry §2's L1 end labels, ignore them until §2.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>REF — the card as shipped today (no bridge line)</h3>
+      <p class="sub">two head lines: the exp form and its gloss</p>
+      <canvas id="ref" width="550" height="430"></canvas>
+    </div>
+    <div class="cand">
+      <h3>A — add the ln line, notebook symbols</h3>
+      <p class="sub">ln( h(t) ÷ h₀(t) ) = b₁x₁ + b₂x₂ + … — the two math lines adjacent, gloss last</p>
+      <canvas id="a" width="550" height="430"></canvas>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>B — add the ln line, spelled with the model's covariates</h3>
+      <p class="sub">follows the pills: every name in the equation is a pill the reader pressed</p>
+      <canvas id="b" width="550" height="430"></canvas>
+    </div>
+    <div class="cand">
+      <h3>B at disease + age only — the line shrinks with the model</h3>
+      <p class="sub">the same candidate before SNPs are added</p>
+      <canvas id="b2" width="550" height="250"></canvas>
+      <h3 style="margin-top:14px">C — replace, one math line + duality gloss</h3>
+      <p class="sub">ln form only; "each b adds on the log scale — each exp(b) multiplies the hazard"</p>
+      <canvas id="c" width="550" height="416"></canvas>
+    </div>
+  </div>
+  <p class="cap" id="fit-cap"></p>
+
+  <h2>§1b · PICKED: B, as MathML — the rendering to judge</h2>
+  <p class="note">
+    Kenneth's pick: <b>B, but MathML</b>. MathML cannot be painted on canvas,
+    so the line becomes a <code>.w-math</code> row in the DOM — and core's
+    place for that row is <b>above the figure</b>, exactly where every lm-arc
+    widget puts its formula (lm-interaction's pattern: one
+    <code>&lt;math&gt;</code> per term so the line wraps at narrow widths, a
+    feature probe with plain-text fallback, covered by the <code>tx</code>
+    hash). The rows below are real MathML rendered by your browser, styled by
+    the shipping <code>.w-math</code> classes. <b>M1</b> is one row that
+    follows the pills — resting at the notebook's symbols when no pill is in.
+    <b>M2</b> adds the exp form as a first MathML row, so both halves of the
+    notebook's derivation live above the figure and the canvas card head
+    keeps only its title and gloss. Judge: the fraction's size, the resting
+    state, and whether M2's two rows are worth the height.
+  </p>
+
+  <div class="row">
+    <div class="cand" style="max-width:590px">
+      <h3>M1 — one row, follows the pills</h3>
+      <p class="sub">resting (no pills) · disease + age · all three pills — the same row at its three states</p>
+      <div class="mml-frame"><span class="mml-tag">no pills</span><div class="w-math" id="m1-none"></div></div>
+      <div class="mml-frame"><span class="mml-tag">disease + age</span><div class="w-math" id="m1-da"></div></div>
+      <div class="mml-frame"><span class="mml-tag">all pills</span><div class="w-math" id="m1-das"></div></div>
+    </div>
+    <div class="cand" style="max-width:590px">
+      <h3>M2 — the exp form joins it, two rows</h3>
+      <p class="sub">the notebook's derivation pair above the figure; the card head keeps title + gloss only</p>
+      <div class="mml-frame"><span class="mml-tag">all pills</span><div class="w-math" id="m2"></div></div>
+      <h3 style="margin-top:14px">M1 at 340px — the stacked-width wrap test</h3>
+      <p class="sub">one &lt;math&gt; per term, so the all-pills row wraps instead of overflowing</p>
+      <div class="mml-frame" style="width:340px"><span class="mml-tag">all pills, narrow</span><div class="w-math" id="m1-narrow"></div></div>
+    </div>
+  </div>
+
+  <h2>§2 · The forest axis reads its direction — "hazard lower / hazard higher"</h2>
+  <p class="note">
+    The decided add: the HR &gt; 1 / HR &lt; 1 reading drawn on the axis, so the
+    forest says which way is worse without a legend. Two placements, isolated
+    on a compact disease + age forest. <b>L1</b> flanks the axis caption row —
+    the labels sit where the eye already goes to read the axis. <b>L2</b> puts
+    them at the top corners of the forest, above the rows — read before the
+    marks, but a new row of ink above data.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>L1 — flanking the caption row</h3>
+      <p class="sub">← hazard lower · hazard ratio, exp(b) · hazard higher →</p>
+      <canvas id="l1" width="550" height="180"></canvas>
+    </div>
+    <div class="cand">
+      <h3>L2 — top corners, above the rows</h3>
+      <p class="sub">labels lead the forest; caption row stays as shipped</p>
+      <canvas id="l2" width="550" height="180"></canvas>
+    </div>
+  </div>
+
+  <h2>§3 · One word in the HR tile — "event rate" becomes "hazard"</h2>
+  <p class="note">
+    Comparing groups teaches <code>h = events ÷ at risk</code> twice and labels
+    it <b>hazard</b> in both panels — then the tile under them says "event
+    rate" for the same quantity. One vocabulary, one word. The value is the
+    live disease-only HR on this draw.
+  </p>
+  <div class="tiles">
+    <div class="tile">
+      <div class="t-label">Hazard ratio — as shipped</div>
+      <div class="t-value" id="hr-before">·</div>
+      <div class="t-note">the disease group's <b>event rate</b> multiplied — the same factor at every time</div>
+    </div>
+    <div class="tile">
+      <div class="t-label">Hazard ratio — round 12</div>
+      <div class="t-value" id="hr-after">·</div>
+      <div class="t-note">the disease group's <b>hazard</b> multiplied — the same factor at every time</div>
+    </div>
+  </div>
+
+  <h2>§4 · The rail after the decided cuts — for confirmation, not re-argument</h2>
+  <p class="note">
+    <b>As events</b> leaves the Censoring tab (the notebook names one tempting
+    mistake — dropping); the direction line and mechanism notes simplify with
+    it. <b>Onset</b> leaves the data section (Early baked into the generator,
+    axis fixed at 16). <b>True curves</b> leaves the curves section (the §0
+    settled cut). Left column is today's rail, right is round 12's.
+  </p>
+  <div class="rails">
+    <div class="rail">
+      <h4>as shipped today</h4>
+      <div class="sect">Reading the data</div>
+      <div class="ctl"><span class="lbl">Censored patients</span>
+        <div class="seg"><b class="on">Kept</b><b>Dropped</b><b>As events</b></div></div>
+      <div class="sect">The data</div>
+      <div class="ctl"><span class="lbl">Patients</span>
+        <div class="seg"><b>30</b><b>60</b><b>100</b><b class="on">200</b></div></div>
+      <div class="ctl"><span class="lbl">Disease effect</span>
+        <div class="seg"><b>None</b><b>Small</b><b class="on">Moderate</b><b>Large</b></div></div>
+      <div class="ctl"><span class="lbl">Onset</span>
+        <div class="seg"><b class="on">Early</b><b>Late</b></div></div>
+      <div class="ctl"><span class="lbl">Follow-up</span>
+        <div class="seg"><b class="on">12 y</b><b>15 y</b><b>20 y</b><b>25 y</b></div></div>
+      <div class="sect">The curves</div>
+      <div class="chk"><span></span>True curves</div>
+      <div class="chk"><span></span>Confidence bands</div>
+      <div class="chk"><span></span>One shared curve</div>
+    </div>
+    <div class="rail">
+      <h4>round 12</h4>
+      <div class="sect">Reading the data</div>
+      <div class="ctl"><span class="lbl">Censored patients</span>
+        <div class="seg"><b class="on">Kept</b><b>Dropped</b></div></div>
+      <div class="sect">The data</div>
+      <div class="ctl"><span class="lbl">Patients</span>
+        <div class="seg"><b>30</b><b>60</b><b>100</b><b class="on">200</b></div></div>
+      <div class="ctl"><span class="lbl">Disease effect</span>
+        <div class="seg"><b>None</b><b>Small</b><b class="on">Moderate</b><b>Large</b></div></div>
+      <div class="ctl"><span class="lbl">Follow-up</span>
+        <div class="seg"><b class="on">12 y</b><b>15 y</b><b>20 y</b><b>25 y</b></div></div>
+      <div class="sect">The curves</div>
+      <div class="chk"><span></span>Confidence bands</div>
+      <div class="chk"><span></span>One shared curve</div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { coxph, simulate } from "../time-event/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), reference: css("--c-reference"),
+  highlight: css("--c-highlight"),
+  font: css("--font"), fsXs: css("--fs-xs"), fsSm: css("--fs-sm"),
+};
+const fmt = (v, d = 2) => Number(v).toFixed(d);
+
+/* ---- the shipping defaults, the shipping engine ---- */
+const rng = makeRng(32);
+const sim = simulate(rng, { n: 200, effect: 2.5, follow: 12, shift: 6 });
+
+const ROW_KEYS = ["disease", "age", ...Array.from({ length: 10 }, (_, j) => `snp${j + 1}`)];
+const ROW_NAMES = {
+  disease: "Disease", age: "Age",
+  ...Object.fromEntries(Array.from({ length: 10 }, (_, j) => [`snp${j + 1}`, `SNP_${j + 1}`])),
+};
+const COLS = { disease: sim.disease, age: sim.age };
+for (let j = 0; j < 10; j += 1) COLS[`snp${j + 1}`] = sim.snps.map((row) => row[j]);
+const MEMBERS = {
+  d: ["disease"], a: ["age"],
+  da: ["disease", "age"],
+  das: ["disease", "age", ...ROW_KEYS.slice(2)],
+};
+const fits = {};
+for (const [key, members] of Object.entries(MEMBERS)) {
+  const X = sim.time.map((_, i) => members.map((m) => COLS[m][i]));
+  const f = coxph(sim.time, sim.status, X);
+  const byName = {};
+  members.forEach((m, k) => {
+    byName[m] = {
+      hr: f.hr[k],
+      lo: Math.exp(f.beta[k] - 1.959964 * f.se[k]),
+      hi: Math.exp(f.beta[k] + 1.959964 * f.se[k]),
+      p: f.p[k],
+    };
+  });
+  fits[key] = { byName, members };
+}
+
+/* ---- the forest, ported from main.js drawForest with anim at rest ---- */
+const ROW_BIG = 46;
+const ROW_SNP = 20;
+
+function drawForest(g, rp, key, { endLabels = "L1" } = {}) {
+  const DOM = [0.4, 10];
+  const fx = (hr) => rp.x
+    + ((Math.log(Math.min(Math.max(hr, DOM[0]), DOM[1])) - Math.log(DOM[0]))
+      / (Math.log(DOM[1]) - Math.log(DOM[0]))) * rp.w;
+  const snpsIn = key.includes("s");
+  const H = 2 * ROW_BIG + (snpsIn ? 10 * ROW_SNP : ROW_SNP);
+  const fit = fits[key];
+
+  g.save();
+  g.textBaseline = "alphabetic";
+  g.strokeStyle = C.grid;
+  g.lineWidth = 1;
+  g.font = `${C.fsXs} ${C.font}`;
+  for (const v of [0.5, 1, 2, 4, 8]) {
+    g.beginPath(); g.moveTo(fx(v), rp.y); g.lineTo(fx(v), rp.y + H); g.stroke();
+    g.fillStyle = C.ink3;
+    g.textAlign = "center";
+    g.fillText(String(v), fx(v), rp.y + H + 13);
+  }
+  g.fillStyle = C.ink3;
+  g.textAlign = "center";
+  g.fillText("hazard ratio, exp(b)", rp.x + rp.w / 2, rp.y + H + 27);
+  if (endLabels === "L1") {
+    g.textAlign = "left";
+    g.fillText("← hazard lower", rp.x, rp.y + H + 27);
+    g.textAlign = "right";
+    g.fillText("hazard higher →", rp.x + rp.w, rp.y + H + 27);
+  } else if (endLabels === "L2") {
+    g.textAlign = "left";
+    g.fillText("hazard lower", rp.x, rp.y - 6);
+    g.textAlign = "right";
+    g.fillText("hazard higher", rp.x + rp.w, rp.y - 6);
+  }
+  g.strokeStyle = C.reference;
+  g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(fx(1), rp.y); g.lineTo(fx(1), rp.y + H); g.stroke();
+
+  const rowY = { disease: rp.y + ROW_BIG * 0.62, age: rp.y + ROW_BIG * 1.62 };
+  const drawRow = (k, y, withValue) => {
+    const name = ROW_NAMES[k];
+    const c = fit.byName[k];
+    g.font = `${C.fsXs} ${C.font}`;
+    if (!c) {
+      g.fillStyle = C.ink3;
+      g.textAlign = "right";
+      g.fillText(name, rp.x - 6, y + 3);
+      g.textAlign = "left";
+      g.fillText("not in the model", fx(0.55), y + 3);
+      return;
+    }
+    const sig = c.p < 0.05;
+    g.fillStyle = sig ? C.ink1 : C.ink3;
+    g.textAlign = "right";
+    g.fillText(name, rp.x - 6, y + 3);
+
+    const aloneKey = k === "disease" ? "d" : k === "age" ? "a" : null;
+    if (aloneKey && fit.members.length > 1) {
+      const gh = fits[aloneKey].byName[k];
+      g.globalAlpha = 0.4;
+      g.strokeStyle = C.empirical;
+      g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(fx(gh.lo), y); g.lineTo(fx(gh.hi), y); g.stroke();
+      g.fillStyle = C.empirical;
+      g.beginPath(); g.arc(fx(gh.hr), y, 3.5, 0, 2 * Math.PI); g.fill();
+      g.globalAlpha = 1;
+      if (Math.abs(Math.log(c.hr / gh.hr)) > 0.03) {
+        g.strokeStyle = C.ink2;
+        g.lineWidth = 1;
+        g.beginPath(); g.moveTo(fx(gh.hr), y - 13); g.lineTo(fx(c.hr), y - 13); g.stroke();
+        const dir = c.hr > gh.hr ? 1 : -1;
+        g.fillStyle = C.ink2;
+        g.beginPath();
+        g.moveTo(fx(c.hr), y - 13);
+        g.lineTo(fx(c.hr) - dir * 6, y - 16.5);
+        g.lineTo(fx(c.hr) - dir * 6, y - 9.5);
+        g.fill();
+        g.fillStyle = C.ink1;
+        g.textAlign = "left";
+        g.fillText(`${fmt(gh.hr)} → ${fmt(c.hr)} with the others held constant`, rp.x + 4, y - 20);
+      }
+    }
+
+    g.strokeStyle = sig ? C.highlight : C.ink3;
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(fx(c.lo), y); g.lineTo(fx(c.hi), y); g.stroke();
+    g.beginPath(); g.arc(fx(c.hr), y, 4, 0, 2 * Math.PI);
+    if (sig) { g.fillStyle = C.highlight; g.fill(); }
+    else { g.fillStyle = C.surface; g.fill(); g.stroke(); }
+    if (withValue) {
+      g.fillStyle = C.ink2;
+      g.textAlign = "center";
+      g.fillText(fmt(c.hr), fx(c.hr), y + 17);
+    }
+  };
+
+  drawRow("disease", rowY.disease, true);
+  drawRow("age", rowY.age, true);
+  const snpTop = rp.y + 2 * ROW_BIG;
+  if (!snpsIn) {
+    g.font = `${C.fsXs} ${C.font}`;
+    g.fillStyle = C.ink3;
+    g.textAlign = "right";
+    g.fillText("SNPs", rp.x - 6, snpTop + ROW_SNP * 0.5 + 3);
+    g.textAlign = "left";
+    g.fillText("the ten SNPs — not in the model", fx(0.55), snpTop + ROW_SNP * 0.5 + 3);
+  } else {
+    for (let j = 0; j < 10; j += 1) drawRow(`snp${j + 1}`, snpTop + ROW_SNP * (j + 0.5), false);
+  }
+  g.restore();
+}
+
+/* ---- the card head, per bridge-line candidate ---- */
+const EXP_LINE = "h(t) = h₀(t) × exp(b₁x₁ + … )";
+const LN_SYM = "ln( h(t) ÷ h₀(t) ) = b₁x₁ + b₂x₂ + …";
+const LN_COV = {
+  da: "ln( h ÷ h₀ ) = b₁·disease + b₂·age",
+  das: "ln( h ÷ h₀ ) = b₁·disease + b₂·age + b₃·SNP_1 + … + b₁₂·SNP_10",
+};
+const GLOSS = "each exp(b) multiplies the hazard by a constant factor, at every time";
+const GLOSS_C = "each b adds on the log scale — each exp(b) multiplies the hazard, at every time";
+
+function drawCard(id, variant, key) {
+  const g = document.getElementById(id).getContext("2d");
+  const top = 24;
+  g.save();
+  g.textBaseline = "alphabetic";
+  g.textAlign = "left";
+  g.fillStyle = C.ink2;
+  g.font = `600 ${C.fsSm} ${C.font}`;
+  g.fillText("Cox proportional hazards", 14, top);
+  g.font = `${C.fsXs} ${C.font}`;
+  g.fillStyle = C.ink3;
+  const lines =
+    variant === "ref" ? [EXP_LINE, GLOSS]
+    : variant === "a" ? [EXP_LINE, LN_SYM, GLOSS]
+    : variant === "b" ? [EXP_LINE, LN_COV[key], GLOSS]
+    : [LN_SYM, GLOSS_C]; // c
+  lines.forEach((s, i) => g.fillText(s, 14, top + 16 + i * 14));
+  g.restore();
+  const y = top + 16 + lines.length * 14 + 20;
+  drawForest(g, { x: 78, y, w: 550 - 78 - 20 }, key, { endLabels: "L1" });
+}
+
+drawCard("ref", "ref", "das");
+drawCard("a", "a", "das");
+drawCard("b", "b", "das");
+drawCard("b2", "b", "da");
+drawCard("c", "c", "das");
+
+/* §2 — end-label placements, isolated */
+for (const [id, mode] of [["l1", "L1"], ["l2", "L2"]]) {
+  const g = document.getElementById(id).getContext("2d");
+  drawForest(g, { x: 78, y: 26, w: 550 - 78 - 20 }, "da", { endLabels: mode });
+}
+
+/* §3 — the tile value, live */
+const hr = fmt(fits.d.byName.disease.hr);
+document.getElementById("hr-before").textContent = hr;
+document.getElementById("hr-after").textContent = hr;
+
+/* §1b — the MathML rows, lm-interaction's per-term pattern so the line wraps */
+const LN_LEAD =
+  '<math><mrow><mi>ln</mi><mo>(</mo>'
+  + '<mfrac><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow>'
+  + '<mrow><msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo></mrow></mfrac>'
+  + '<mo>)</mo><mo>=</mo></mrow></math>';
+const covTerm = (i, name, first) =>
+  `<math><mrow>${first ? "" : '<mo form="infix">+</mo>'}`
+  + `<msub><mi>b</mi><mn>${i}</mn></msub><mo>&#xB7;</mo><mi>${name}</mi></mrow></math>`;
+const symTerm = (i, first) =>
+  `<math><mrow>${first ? "" : '<mo form="infix">+</mo>'}`
+  + `<msub><mi>b</mi><mn>${i}</mn></msub><msub><mi>x</mi><mn>${i}</mn></msub></mrow></math>`;
+const ELLIPSIS = '<math><mrow><mo form="infix">+</mo><mi>&#x2026;</mi></mrow></math>';
+
+const M1 = {
+  none: LN_LEAD + " " + symTerm(1, true) + " " + symTerm(2) + " " + ELLIPSIS,
+  da: LN_LEAD + " " + covTerm(1, "disease", true) + " " + covTerm(2, "age"),
+  das: LN_LEAD + " " + covTerm(1, "disease", true) + " " + covTerm(2, "age")
+    + " " + covTerm(3, "SNP_1") + " " + ELLIPSIS + " " + covTerm(12, "SNP_10"),
+};
+const EXP_ROW =
+  '<math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>'
+  + '<msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#xD7;</mo>'
+  + '<mi>exp</mi><mo>(</mo>'
+  + '<msub><mi>b</mi><mn>1</mn></msub><mo>&#xB7;</mo><mi>disease</mi>'
+  + '<mo>+</mo><msub><mi>b</mi><mn>2</mn></msub><mo>&#xB7;</mo><mi>age</mi>'
+  + '<mo>+</mo><mo>&#x2026;</mo><mo>)</mo></mrow></math>';
+
+const eqRow = (html) => `<div class="w-math-eq" style="min-height:0">${html}</div>`;
+document.getElementById("m1-none").innerHTML = eqRow(M1.none);
+document.getElementById("m1-da").innerHTML = eqRow(M1.da);
+document.getElementById("m1-das").innerHTML = eqRow(M1.das);
+document.getElementById("m1-narrow").innerHTML = eqRow(M1.das);
+document.getElementById("m2").innerHTML = eqRow(EXP_ROW) + eqRow(M1.das);
+
+/* the fitted numbers behind every §1 canvas */
+const d = fits.d.byName.disease;
+const das = fits.das.byName;
+const sigSnps = ROW_KEYS.slice(2).filter((k) => das[k].p < 0.05).map((k) => ROW_NAMES[k]);
+document.getElementById("fit-cap").textContent =
+  `engine on this page: disease alone ${fmt(d.hr)} → adjusted ${fmt(das.disease.hr)}; `
+  + `age alone ${fmt(fits.a.byName.age.hr)} → adjusted ${fmt(das.age.hr)}; `
+  + `significant SNPs in the full model: ${sigSnps.join(", ") || "none"}.`;
+</script>
+</body>
+</html>

@@ -14,14 +14,14 @@
                        five patients as lanes over a building KM curve, the
                        hazard strip (pick H1 — bars d/n at events, none at a
                        censoring), and the `censored` control: kept (KM) ·
-                       dropped · counted as events. FIXES: the two censored
+                       dropped. FIXES: the two censored
                        lanes name their reasons ("study ended", "dropped
                        out") because an unlabelled open circle reads as
                        "survived" — the misconception wearing a costume —
                        and each wrong treatment states its MECHANISM in a
                        panel note (2.9: mechanism, never a verdict).
      Comparing groups  are the groups different? Two KM curves at n = 200,
-                       censor ticks, the log-rank p, truth/bands overlays —
+                       censor ticks, the log-rank p, bands/shared overlays —
                        and the hazard BY INTERVAL below, in tab 1's own
                        vocabulary (h = events ÷ at risk, per group, 2-year
                        bins) drawn with the curve's own sx so the axes
@@ -39,6 +39,19 @@
                        two lessons back, rows easing in, the disease HR's
                        shift annotated. The SNPs stop coming out of
                        nowhere because the reader adds them.
+
+   ROUND 12 CONSOLIDATED TO THE NOTEBOOK (Kenneth's picks, 2026-08-29,
+   mocked first in `_lab/time-event-round12.html`): CUT "as events" (the
+   notebook names ONE tempting mistake — dropping), CUT the Onset control
+   (Early baked in: shift 6 in compute, axis fixed at 16), CUT the truth
+   overlay on Comparing groups (notebook-absent; the misconception's
+   home is the Censoring tab). ADDED the ln(h/h₀) bridge as a MathML row
+   above the Finding-factors figure — pick M1: ONE row that follows the
+   pills, resting at the notebook's symbols, in the lm arc's own position
+   and per-term wrap pattern — and the forest axis end labels
+   ("← hazard lower · hazard higher →", pick L1, flanking the caption).
+   The HR tile and summary now say "hazard" where they said "event rate"
+   — one quantity, one word, closing the loop with the two hazard panels.
 
    One motion throughout: a time cursor sweeps right and curves build under
    it. The `censored` control is display: true — three readings of ONE
@@ -101,11 +114,15 @@ const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
    every n, small is the power story (24% → 89% as n grows), moderate fires
    at every n, large saturates */
 const EFFECTS = { none: 0, small: 1.2, moderate: 2.5, large: 4.5 };
-/* the onset control's shifts: how much earlier the event process runs */
-const SHIFTS = { early: 6, late: 0 };
+/* Early onset is BAKED IN (round 12 cut the control): shift 6 moves the
+   whole event process earlier so the curves never idle through a flat
+   head, and every measured number (the effect ladder, the follow-up
+   span, draw 32) was taken at early. Max event time at shift 6 is 16
+   (20 − 0.1·30 − 6 + runif 5 at age 30), so the axis is fixed there. */
+const SHIFT = 6;
 
 const T1MAX = 11;
-const T2MAX = 22;
+const T2MAX = 16;
 
 const SPEEDS = {
   slow: { label: "Slow", rate: 1.2, detail: "about a year per second" },
@@ -175,13 +192,15 @@ function intervalHaz(times, status, lo, hi) {
   return { n, ev, h: n ? ev / n : NaN };
 }
 
-/* the three readings of one dataset — what the `censored` control chooses */
+/* the two readings of one dataset — what the `censored` control chooses.
+   "As events" was the third and was cut in round 12: the notebook names
+   ONE tempting mistake (dropping), and the second wrong treatment pushed
+   the same way while doubling the notes. */
 function readings(times, status) {
   const keptT = times.filter((_, i) => status[i] === 1);
   return {
     kept: km(times, status),
     dropped: keptT.length ? km(keptT, keptT.map(() => 1)) : { steps: [], censors: [] },
-    asevents: km(times, times.map(() => 1)),
   };
 }
 
@@ -204,6 +223,98 @@ const ROW_NAMES = {
 };
 
 const EASE_MS = 450;
+
+/* --- the ln(h/h₀) bridge row (round 12, Kenneth's pick M1) ----------------- *
+ * The notebook's own move: take ln of the Cox model and the right side is
+ * the linear predictor the lm arc taught. ONE `.w-math` row above the
+ * Finding-factors figure — the position and machinery every lm-arc widget
+ * uses (lm-interaction's: a MathML probe with a plain-text fallback, one
+ * <math> per term so the row wraps at narrow widths instead of
+ * overflowing — a single <math> never line-breaks). The row FOLLOWS THE
+ * PILLS: every name in it is a covariate the reader added, resting at the
+ * notebook's symbols while no pill is in. Factors tab only; hidden and
+ * emptied elsewhere so the text hash reads nothing on the other tabs. */
+function mathmlRenders() {
+  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  probe.innerHTML = '<math id="te-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
+    + '<math id="te-flat"><mn>1</mn></math>';
+  document.body.appendChild(probe);
+  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
+  const stacked = h("te-frac");
+  const flat = h("te-flat");
+  probe.remove();
+  return flat > 0 && stacked > flat * 1.4;
+}
+const MATHML = mathmlRenders();
+
+/* ln( h(t) / h₀(t) ) = — the notebook's left side, the fraction real */
+const LN_LEAD_MATH =
+  "<math><mrow><mi>ln</mi><mo>(</mo>"
+  + "<mfrac><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow>"
+  + "<mrow><msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo></mrow></mfrac>"
+  + "<mo>)</mo><mo>=</mo></mrow></math>";
+/* one term = one <math>: bᵢ·name, or the symbolic bᵢxᵢ when name is null */
+const mathTerm = (i, name, first) =>
+  `<math><mrow>${first ? "" : '<mo form="infix">+</mo>'}`
+  + `<msub><mi>b</mi><mn>${i}</mn></msub>`
+  + `${name ? `<mo>&#xB7;</mo><mi>${name}</mi>` : `<msub><mi>x</mi><mn>${i}</mn></msub>`}</mrow></math>`;
+const MATH_ELLIPSIS = '<math><mrow><mo form="infix">+</mo><mi>&#x2026;</mi></mrow></math>';
+const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+const sub = (n) => String(n).split("").map((d) => SUBS[+d]).join("");
+
+/* the row's terms from the pills, in the model's own order (d, a, s) —
+   the b-indices are positions in the CURRENT model, matching the fit */
+function bridgeHTML(params) {
+  const named = [];
+  if (params.disease) named.push("disease");
+  if (params.age) named.push("age");
+  const snpAt = named.length + 1;
+  if (!named.length && !params.snps) {
+    return MATHML
+      ? `${LN_LEAD_MATH} ${mathTerm(1, null, true)} ${mathTerm(2, null)} ${MATH_ELLIPSIS}`
+      : "ln( h(t) ÷ h₀(t) ) = b₁x₁ + b₂x₂ + …";
+  }
+  if (!MATHML) {
+    const parts = named.map((nm, i) => `b${sub(i + 1)}·${nm}`);
+    if (params.snps) parts.push(`b${sub(snpAt)}·SNP_1 + … + b${sub(snpAt + 9)}·SNP_10`);
+    return `ln( h(t) ÷ h₀(t) ) = ${parts.join(" + ")}`;
+  }
+  const terms = named.map((nm, i) => mathTerm(i + 1, nm, i === 0));
+  if (params.snps) {
+    terms.push(mathTerm(snpAt, "SNP_1", terms.length === 0));
+    terms.push(MATH_ELLIPSIS);
+    terms.push(mathTerm(snpAt + 9, "SNP_10", false));
+  }
+  return `${LN_LEAD_MATH} ${terms.join(" ")}`;
+}
+
+let bridgeHost = null;
+let bridgeKey = null;
+function renderBridge(params) {
+  if (typeof document === "undefined") return;
+  if (params.concept !== "factors") {
+    if (bridgeHost) {
+      bridgeHost.style.display = "none";
+      bridgeHost.innerHTML = "";
+      bridgeKey = null;
+    }
+    return;
+  }
+  if (!bridgeHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    bridgeHost = document.createElement("div");
+    bridgeHost.className = "w-math";
+    figure.parentNode.insertBefore(bridgeHost, figure);
+  }
+  bridgeHost.style.display = "";
+  const key = `${params.disease ? 1 : 0}${params.age ? 1 : 0}${params.snps ? 1 : 0}`;
+  if (key === bridgeKey) return;
+  bridgeKey = key;
+  bridgeHost.innerHTML = `<div class="w-math-eq" style="min-height:0">${bridgeHTML(params)}</div>`;
+}
 
 defineWidget({
   slug: "time-event",
@@ -286,7 +397,6 @@ defineWidget({
       options: [
         { value: "kept", label: "Kept", detail: "in the risk set until they leave — the Kaplan–Meier estimate" },
         { value: "dropped", label: "Dropped" },
-        { value: "asevents", label: "As events" },
       ],
       default: "kept",
       display: true,
@@ -327,16 +437,6 @@ defineWidget({
       default: "moderate",
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
-    onset: {
-      type: "choice",
-      label: "Onset",
-      options: [
-        { value: "early", label: "Early" },
-        { value: "late", label: "Late" },
-      ],
-      default: "early",
-      when: { param: "concept", oneOf: ["groups", "factors"] },
-    },
     follow: {
       type: "choice",
       label: "Follow-up",
@@ -366,14 +466,6 @@ defineWidget({
     curves: {
       type: "section",
       label: "The curves",
-      when: { param: "concept", equals: "groups" },
-    },
-    truth: {
-      type: "bool",
-      label: "True curves",
-      detail: "every true event time, censoring undone — never seen in practice",
-      default: false,
-      display: true,
       when: { param: "concept", equals: "groups" },
     },
     bands: {
@@ -451,8 +543,7 @@ defineWidget({
     { token: "event", label: "The event occurred", mark: "dot" },
     { token: "unknown", label: "Censored — followed this far, then unseen", mark: "dot" },
     { token: "empirical", label: "The Kaplan–Meier curve, censored kept in the risk set", mark: "line" },
-    { token: "highlight", label: "The same data with the censored dropped or counted as events", mark: "line" },
-    { token: "reference", label: "The true curves with nobody censored", mark: "line" },
+    { token: "highlight", label: "The same data with the censored dropped", mark: "line" },
     { token: "theory", label: "One shared curve — what the log-rank test compares against", mark: "line" },
     { token: "group-a", label: "No disease", mark: "line" },
     { token: "group-b", label: "Disease", mark: "line" },
@@ -466,15 +557,13 @@ defineWidget({
       n: Number(params.n),
       effect: EFFECTS[params.effect],
       follow: Number(params.follow),
-      shift: SHIFTS[params.onset],
+      shift: SHIFT,
     });
     const per = (grp) => {
       const t = sim.time.filter((_, i) => sim.disease[i] === grp);
       const s = sim.status.filter((_, i) => sim.disease[i] === grp);
-      const tt = sim.trueT.filter((_, i) => sim.disease[i] === grp);
       return {
         kept: km(t, s),
-        truth: km(tt, tt.map(() => 1)),
         times: t,
         status: s,
         n: t.length,
@@ -571,7 +660,6 @@ defineWidget({
       stepTimes,
       tEnd,
       nTotal: Number(params.n),
-      t2max: params.onset === "early" ? 16 : 22,
       events: sim.status.reduce((a, b) => a + b, 0),
     };
   },
@@ -673,7 +761,7 @@ defineWidget({
     scrub: (anim, { x, w, params, state }) => {
       const left = 56;
       const right = w - 14;
-      const axis = params.concept === "censoring" ? T1MAX : state.t2max;
+      const axis = params.concept === "censoring" ? T1MAX : T2MAX;
       const tEnd = state.tEnd[timeKey(params.concept)];
       const tt = Math.max(0, Math.min(((x - left) / (right - left)) * axis, tEnd));
       delete anim.stepTarget;
@@ -684,6 +772,7 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
+    renderBridge(params);
     const t = anim?.t ?? 0;
     if (params.concept === "censoring") drawCensoring(ctx, colors, w, params, state, t, pointer);
     else if (params.concept === "groups") drawGroups(ctx, colors, w, params, state, t, pointer);
@@ -705,9 +794,7 @@ defineWidget({
           value: fmt(S, 2),
           note: treatment === "kept"
             ? "the Kaplan–Meier estimate at the cursor"
-            : treatment === "dropped"
-              ? "with the censored removed — compare the kept curve"
-              : "with censoring times counted as events",
+            : "with the censored removed — compare the kept curve",
         },
       ];
     }
@@ -724,7 +811,9 @@ defineWidget({
         {
           label: "Hazard ratio",
           value: fmt(state.fits.d.byName.disease.hr, 2),
-          note: "the disease group's event rate multiplied — the same factor at every time",
+          /* "hazard", not "event rate" (round 12) — the two panels above
+             this tile both label the quantity hazard; one word */
+          note: "the disease group's hazard multiplied — the same factor at every time",
         },
       ];
     }
@@ -759,7 +848,7 @@ defineWidget({
       return `${state.nPat} patients followed over time: ${state.nPat - state.nCens} events, ${state.nCens} censored. A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
     if (params.concept === "groups") {
-      return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the event rate in every interval.`;
+      return `Kaplan–Meier curves for ${state.nTotal} simulated patients by disease group, ${state.events} events, log-rank p ${state.lr.p < 1e-4 ? "below 0.0001" : fmt(state.lr.p, 4)}, and the hazard ratio ${fmt(state.fits.d.byName.disease.hr, 2)} shown as one factor scaling the hazard in every interval.`;
     }
     const key = keyOf(params);
     if (!key) {
@@ -946,8 +1035,8 @@ function drawCensoring(ctx, colors, w, params, state, t, pointer) {
     ctx.moveTo(X(0), y);
     ctx.lineTo(X(state.fiveT[i]), y);
     ctx.stroke();
-    if (state.fiveS[i] === 1 || treatment === "asevents") {
-      ctx.fillStyle = state.fiveS[i] === 1 ? colors.event : colors.unknown;
+    if (state.fiveS[i] === 1) {
+      ctx.fillStyle = colors.event;
       ctx.beginPath();
       ctx.arc(X(state.fiveT[i]), y, 4, 0, 2 * Math.PI);
       ctx.fill();
@@ -981,9 +1070,8 @@ function drawCensoring(ctx, colors, w, params, state, t, pointer) {
   /* every treatment names its MECHANISM — what happens to the censored,
      BY NAME (computed: the censored set is a control now), in the
      numerator and the denominator — never a verdict (2.9) */
-  if (state.nCens === 0) plot.note("no patient is censored — the three readings agree");
+  if (state.nCens === 0) plot.note("no patient is censored — the two readings agree");
   else if (treatment === "dropped") plot.note(`${state.censPhrase} leave both the event count and the risk set — as if never enrolled`);
-  else if (treatment === "asevents") plot.note(`${state.censPhrase} enter the event count at the last visit`);
   else plot.note(`${state.censPhrase} stay in the risk set until they leave, and never enter the events`);
 
   const R = state.five;
@@ -1019,16 +1107,10 @@ function drawCensoring(ctx, colors, w, params, state, t, pointer) {
   ctx.fillText("h = events ÷ at risk", right, HY - 10);
   /* the direction line (F3) — a comparison against the visible kept bars,
      never a claim about the unknowable truth (2.11) */
-  if (treatment !== "kept") {
+  if (treatment === "dropped") {
     ctx.fillStyle = colors.ink2;
     ctx.textAlign = "left";
-    ctx.fillText(
-      treatment === "dropped"
-        ? "smaller risk sets: bars higher than kept, survival lower"
-        : "extra events: bars higher than kept, survival lower",
-      left,
-      HY - 10,
-    );
+    ctx.fillText("smaller risk sets: bars higher than kept, survival lower", left, HY - 10);
   }
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
@@ -1113,14 +1195,11 @@ function drawCensoring(ctx, colors, w, params, state, t, pointer) {
 }
 
 /* --- shared: the two group curves, clipped to the cursor ------------------- */
-function drawGroupCurves(ctx, colors, plot, state, t, { bands = false, truth = false, labels = true, ticks = true } = {}) {
+function drawGroupCurves(ctx, colors, plot, state, t, { bands = false, labels = true, ticks = true } = {}) {
   const groupColor = [colors.groupA, colors.groupB];
   state.groups.forEach((g, i) => {
     if (bands) drawBand(ctx, plot, g.kept.steps, t, groupColor[i]);
     drawCurve(ctx, plot, g.kept.steps, g.kept.censors, t, groupColor[i], { width: 2.5, ticks, surface: colors.surface });
-    if (truth) {
-      drawCurve(ctx, plot, g.truth.steps, [], t, colors.reference, { dash: [5, 4], width: 1.5, ticks: false });
-    }
   });
   if (!labels) return;
   /* labels pinned where each curve crosses S ≈ 0.6, drawn once the sweep
@@ -1149,8 +1228,8 @@ function drawGroups(ctx, colors, w, params, state, t, pointer) {
   const left = 56;
   const right = w - 14;
   const rect = { x: left, y: KM2_Y, w: right - left, h: KM2_H };
-  const plot = makePlot({ ctx, colors, rect, xDomain: [0, state.t2max], yDomain: [0, 1] });
-  plot.axisX({ label: "time (years)", ticks: state.t2max === 16 ? [0, 5, 10, 15] : [0, 5, 10, 15, 20] });
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
+  plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
   plot.caption(`${state.nTotal} simulated patients, followed for up to ${params.follow} years`);
   /* the CI's derivation intuition, one sentence (round 7) — the band is
@@ -1161,14 +1240,14 @@ function drawGroups(ctx, colors, w, params, state, t, pointer) {
   if (params.shared) {
     drawCurve(ctx, plot, state.pooled.steps, [], t, colors.theory, { dash: [6, 4], width: 1.5, ticks: false });
   }
-  drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
-  drawCursor(ctx, colors, plot.sx(Math.min(t, state.t2max)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
+  drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands });
+  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
 
   drawInspector(ctx, colors, {
     pointer,
     left,
     right,
-    axis: state.t2max,
+    axis: T2MAX,
     tCap: Math.min(t, state.tEnd.groups),
     yTop: KM2_Y - 6,
     yBot: HR_TOP + HR_HEAD + 8 + HR_H,
@@ -1241,7 +1320,9 @@ function drawGroups(ctx, colors, w, params, state, t, pointer) {
     ctx.fillText(fmt(v, 1), left - 6, by(v) + 3);
   }
   ctx.textAlign = "center";
-  for (const v of [0, 5, 10, 15, 20]) ctx.fillText(String(v), plot.sx(v), by(0) + 14);
+  /* [0..15], not [0..20] — the axis is fixed at 16 now (round 12); the 20
+     used to paint off-plot, right of the panel */
+  for (const v of [0, 5, 10, 15]) ctx.fillText(String(v), plot.sx(v), by(0) + 14);
   /* the bars grow WITH the sweep: height = events seen so far in the
      interval ÷ at risk at its start — true at every frame, and equal to
      the final h once the cursor clears the interval */
@@ -1285,11 +1366,11 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
 
   /* the curves being modelled stay in view, compact */
   const rect = { x: left, y: FCURVE_Y, w: right - left, h: FCURVE_H };
-  const plot = makePlot({ ctx, colors, rect, xDomain: [0, state.t2max], yDomain: [0, 1] });
-  plot.axisX({ ticks: state.t2max === 16 ? [0, 5, 10, 15] : [0, 5, 10, 15, 20] });
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
+  plot.axisX({ ticks: [0, 5, 10, 15] });
   plot.axisY({ ticks: [0, 0.5, 1] });
   drawGroupCurves(ctx, colors, plot, state, t, { labels: false, ticks: false });
-  drawCursor(ctx, colors, plot.sx(Math.min(t, state.t2max)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
+  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
 
   /* the card */
   ctx.save();
@@ -1340,6 +1421,12 @@ function drawForest(ctx, colors, rp, params, state, anim) {
     ctx.fillText(String(v), fx(v), rp.y + H + 13);
   }
   ctx.fillText("hazard ratio, exp(b)", rp.x + rp.w / 2, rp.y + H + 27);
+  /* the HR > 1 / HR < 1 reading, drawn (round 12, pick L1): the axis says
+     which way is worse, flanking the caption the eye already reads */
+  ctx.textAlign = "left";
+  ctx.fillText("← hazard lower", rp.x, rp.y + H + 27);
+  ctx.textAlign = "right";
+  ctx.fillText("hazard higher →", rp.x + rp.w, rp.y + H + 27);
   ctx.strokeStyle = colors.reference;
   ctx.lineWidth = 1.5;
   ctx.beginPath();

@@ -25,8 +25,8 @@ src = src.replace(
   /^import \{ km, logrank, coxph, simulate \} from "\.\/model\.js";$/m,
   `import { km, logrank, coxph, simulate } from ${JSON.stringify(pathToFileURL(join(here, "../time-event/model.js")).href)};`,
 );
-src += "\nexport { __cfg };\n";
-const { __cfg: W } = await import(
+src += "\nexport { __cfg, bridgeHTML, MATHML };\n";
+const { __cfg: W, bridgeHTML, MATHML } = await import(
   `data:text/javascript;base64,${Buffer.from(src, "utf8").toString("base64")}`
 );
 
@@ -42,11 +42,14 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
   "params", "legend", "compute", "animation", "draw", "readout", "summary"]) {
   ck(`declares \`${key}\``, W[key] != null);
 }
+/* onset and truth left this list in round 12 (Early baked in; the truth
+   overlay cut as notebook-absent) — their absence is asserted by the
+   no-parameters-beyond-those check below */
 const WANT = {
   concept: "segmented", people: "section", patients: "int", ncens: "int",
   etime: "int", reading: "section", censored: "segmented",
-  data: "section", n: "choice", effect: "choice", onset: "choice", follow: "choice",
-  curves: "section", truth: "bool", bands: "bool", shared: "bool",
+  data: "section", n: "choice", effect: "choice", follow: "choice",
+  curves: "section", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
   speed: "choice", seed: "int", shown: "int",
 };
@@ -57,9 +60,11 @@ ck("three concepts, option-B labels",
   W.params.concept.options.map((o) => o.label).join("|") === "Censoring|Comparing groups|Finding factors");
 ck("the pills are pills",
   ["disease", "age", "snps"].every((k) => W.params[k].style === "pill"));
-ck("censored / truth / bands / shared / pills / concept are display",
-  ["censored", "truth", "bands", "shared", "disease", "age", "snps", "concept"]
+ck("censored / bands / shared / pills / concept are display",
+  ["censored", "bands", "shared", "disease", "age", "snps", "concept"]
     .every((k) => W.params[k].display === true));
+ck("the censored control offers exactly kept and dropped (round 12)",
+  W.params.censored.options.map((o) => o.value).join() === "kept,dropped");
 ck("each tab's rail section is gated on its concept",
   W.params.reading.when?.equals === "censoring"
   && W.params.curves.when?.equals === "groups"
@@ -71,14 +76,13 @@ ck("shown is hidden; seed is the visible Draw control",
 ck("default draw is 32 (the measured clean cohort at the round-10 defaults)",
   W.params.seed.default === 32);
 ck("the data section and its controls show on both cohort tabs (oneOf)",
-  ["data", "n", "effect", "onset", "follow", "seed"].every(
+  ["data", "n", "effect", "follow", "seed"].every(
     (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
 ck("the data controls are DATA parameters (moving one restarts the sweep)",
-  ["n", "effect", "onset", "follow", "seed", "etime"].every((k) => !W.params[k].display));
-ck("defaults: 200 patients, moderate effect, early onset, 12-year follow-up, E at 7",
+  ["n", "effect", "follow", "seed", "etime"].every((k) => !W.params[k].display));
+ck("defaults: 200 patients, moderate effect, 12-year follow-up, E at 7",
   W.params.n.default === "200" && W.params.effect.default === "moderate"
-  && W.params.onset.default === "early" && W.params.follow.default === "12"
-  && W.params.etime.default === 7);
+  && W.params.follow.default === "12" && W.params.etime.default === 7);
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)
@@ -142,11 +146,13 @@ console.log("\n== the play surface, at its corners ==");
       W.readout({ params: { ...values, n: "30", concept: "groups" }, state: s30, anim: { t: 22 } })
         .map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
       + W.summary({ params: { ...values, n: "30", concept: "groups" }, state: s30, anim: { t: 22 } })));
-  /* short follow-up: censoring dominates */
-  const s12 = W.compute({ params: { ...values, onset: "late" }, rng: makeRng(values.seed) });
-  ck(`late onset at 12-year follow-up: almost nobody's event is seen (${s12.events} events of 200)`,
-    s12.events < 60);
-  ck("late onset stretches the axis back to 22", s12.t2max === 22 && state.t2max === 16);
+  /* the follow lever spans the censoring story (round 12: Early is baked
+     in, so follow is the one lever left on the doors): at the default 12
+     censoring is visible; at 25 it dissolves entirely */
+  ck(`follow 12 (default): censoring visible (${state.events} events of 200)`,
+    state.events < 200);
+  const s25 = W.compute({ params: { ...values, follow: "25" }, rng: makeRng(values.seed) });
+  ck(`follow 25: censoring dissolves (${s25.events} events of 200)`, s25.events === 200);
   /* the patient table (round 9): defaults ARE the notebook; the controls
      extend and flip deterministically */
   ck("defaults reproduce the notebook's table exactly",
@@ -158,8 +164,8 @@ console.log("\n== the play surface, at its corners ==");
   ck("the tied event at t = 6 exists at n = 10 (C and J)",
     s10.five.kept.steps.some((st) => st.t === 6 && st.events === 2));
   const s0c = W.compute({ params: { ...values, ncens: 0 }, rng: makeRng(values.seed) });
-  ck("zero censored: the three readings are one curve",
-    JSON.stringify(s0c.five.kept.steps) === JSON.stringify(s0c.five.asevents.steps));
+  ck("zero censored: the two readings are one curve",
+    JSON.stringify(s0c.five.kept.steps) === JSON.stringify(s0c.five.dropped.steps));
   const sClamp = W.compute({ params: { ...values, ncens: 7 }, rng: makeRng(values.seed) });
   ck("ncens clamps to the four flippable patients at n = 5 (A stays an event)",
     sClamp.nCens === 4 && sClamp.fiveS[0] === 1);
@@ -277,6 +283,39 @@ console.log("\n== the pointer channel (round 11) ==");
     W.animation.scrubHit({ x: 300, y: 500, w: 900, params: { ...values } }) === true);
 }
 
+console.log("\n== the ln(h/h0) bridge row (round 12, pick M1) ==");
+{
+  /* node has no window, so MATHML is false and bridgeHTML returns the
+     plain-text fallback — which is exactly the b-index logic to pin. The
+     MathML branch is the same indices in markup, judged in the browser. */
+  ck("no window here, so the fallback branch is under test", MATHML === false);
+  const at = (pills) => bridgeHTML({ concept: "factors", ...pills });
+  ck("resting (no pills): the notebook's symbols",
+    at({}) === "ln( h(t) ÷ h₀(t) ) = b₁x₁ + b₂x₂ + …");
+  ck("disease alone: b₁·disease",
+    at({ disease: true }) === "ln( h(t) ÷ h₀(t) ) = b₁·disease");
+  ck("disease + age: the indices follow the model's order",
+    at({ disease: true, age: true }) === "ln( h(t) ÷ h₀(t) ) = b₁·disease + b₂·age");
+  ck("all pills: the SNPs collapse as b₃·SNP_1 + … + b₁₂·SNP_10",
+    at({ disease: true, age: true, snps: true })
+      === "ln( h(t) ÷ h₀(t) ) = b₁·disease + b₂·age + b₃·SNP_1 + … + b₁₂·SNP_10");
+  ck("SNPs alone: the indices start at 1",
+    at({ snps: true }) === "ln( h(t) ÷ h₀(t) ) = b₁·SNP_1 + … + b₁₀·SNP_10");
+  /* the dbscan lesson: testing a function is not testing the caller */
+  ck("draw() actually calls renderBridge", /renderBridge\(params\);/.test(src));
+}
+
+console.log("\n== the vocabulary closes (round 12) ==");
+{
+  const tiles = W.readout({ params: { ...values, concept: "groups" }, state, anim: { t: 22 } });
+  const note = tiles.find((x) => x.label === "Hazard ratio").note;
+  ck("the HR tile says hazard, not event rate",
+    note.includes("hazard multiplied") && !note.includes("event rate"));
+  ck("the summary says hazard too",
+    W.summary({ params: { ...values, concept: "groups" }, state, anim: { t: 22 } })
+      .includes("scaling the hazard"));
+}
+
 console.log("\n== readout and summary: no NaN, no undefined, anywhere ==");
 let dirty = 0;
 let states = 0;
@@ -285,7 +324,7 @@ const PILLS = [
   { disease: true, age: true, snps: true },
 ];
 for (const concept of ["censoring", "groups", "factors"]) {
-  for (const censored of concept === "censoring" ? ["kept", "dropped", "asevents"] : ["kept"]) {
+  for (const censored of concept === "censoring" ? ["kept", "dropped"] : ["kept"]) {
     for (const pills of concept === "factors" ? PILLS : [{}]) {
       for (const t of [0, 5.2, 7, 10, 16, 22]) {
         const p = { ...values, concept, censored, ...pills };

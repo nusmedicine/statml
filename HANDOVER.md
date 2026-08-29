@@ -48,33 +48,34 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **NEXT SESSION: ROUND 12 — CONSOLIDATE TO THE NOTEBOOK, then test.**
-   Planned with Kenneth at the end of the 2026-08-29 sessions; the widget
-   is eleven rounds deep and the plan distills it against 05-06's own
-   spine (data+censoring → hazard → KM → groups+log-rank → Cox).
-   **DECIDED CUTS**: (a) the Onset control — bake Early in (shift 6
-   permanent in compute, axis fixed at 16, drop the Late path; every
-   measurement already exists at early); (b) the "As events" treatment —
-   the notebook names ONE tempting mistake (dropping); the control
-   becomes Kept · Dropped and the direction line and notes simplify.
-   **DECIDED ADDS**: (c) the ln(h/h₀) = b₁x₁ + … line on the Cox card —
-   the notebook's own "familiar linear combination" bridge to the lm
-   arc; (d) "hazard lower / higher" end labels on the forest axis — the
-   HR>1/HR<1 reading drawn. **KENNETH DECIDES AT SESSION START** (leans
-   recorded): truth overlay on tab 2 (lean cut — notebook-absent, its
-   misconception job lives on tab 1, CI-coverage demo already ruled
-   out; the cost is the arc's you-never-see-this motif); the tab-1
-   Patients/Censored extension (lean keep — his own round-9 ask); the
-   interval-hazard panel (lean keep — the one-hazard-twice spine).
-   After the cuts: re-pin the drive script, re-run the corner sweeps,
-   THEN the test pass — all three tabs at 550px and stacked width,
-   scrub/hover by hand, judge projected — and only at Kenneth's
-   "tested ok": shooter (`_lab/` copy of the lm-shoot pattern), states
-   (settled + driven mid-sweep + driven mid-forest-ease; no regions so
-   no hit state owed; scrub has no harness verb — note it as untested
-   geometry in the catalogue), manifest → shipped, catalogue marked,
-   05-06 link for Kenneth to place. Round-by-round record: catalogue
-   § Widget 31 rounds 1–11.
+   **ROUND 12 IS BUILT (2026-08-29) — CONSOLIDATED TO THE NOTEBOOK;
+   KENNETH'S TEST PASS IS WHAT REMAINS.** The round ran his way: an
+   adversarial notebook-vs-widget review first (his three bullets — the
+   censoring page helps; the hazard may not click and he could not say
+   which page carries it; no log-rank in the course), then every choice
+   mocked in `_lab/time-event-round12.html` before a line of the widget
+   moved. His picks, all built: the cuts (As events; Onset — Early baked
+   in, axis fixed at 16; the tab-2 truth overlay — settled cut on his own
+   criterion), the ln(h/h₀) bridge as **B with MathML, variant M1** — one
+   `.w-math` row above the Finding-factors figure that FOLLOWS THE PILLS,
+   resting at the notebook's symbols, `ln` not `log`, lm-interaction's
+   probe/fallback/per-term-wrap machinery, the lm arc's own position —
+   the forest's **L1** end labels ("← hazard lower · hazard higher →"
+   flanking the caption row), and "hazard" for "event rate" in the HR
+   tile and summary. One latent defect fixed in passing: the interval
+   panel's tick row painted a "20" off-plot since the axis became 16.
+   Drive re-pinned at **111 checks** (bridgeHTML's b-index logic pinned
+   through the fallback branch; `draw()` provably calls `renderBridge` —
+   the dbscan caller lesson); 550px fillText sweeps on all three tabs by
+   DIRECT URL: 0 overruns, 0 collisions, no console errors; `npm run
+   check` green. **NOW OWED: the test pass — Kenneth by hand** (all
+   three tabs at 550px and stacked width, scrub/hover, judge projected)
+   — and only at his "tested ok": shooter (`_lab/` copy of the lm-shoot
+   pattern), states (settled + driven mid-sweep + driven
+   mid-forest-ease; no regions so no hit state owed; scrub has no
+   harness verb — note it as untested geometry in the catalogue),
+   manifest → shipped, catalogue marked, 05-06 link for Kenneth to
+   place. Round-by-round record: catalogue § Widget 31 rounds 1–12.
    **ROUND 8 (2026-08-29): THE PLAY SURFACE.** Kenneth called the fixed
    curves "thin cosmetics"; the cohort tabs now share a data section —
    Patients 30–200, Disease effect None/Small/Moderate/Large (the grid
