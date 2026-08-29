@@ -43,7 +43,7 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
 }
 const WANT = {
   concept: "segmented", reading: "section", censored: "segmented",
-  curves: "section", truth: "bool", bands: "bool",
+  curves: "section", truth: "bool", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
   speed: "choice", seed: "int", shown: "int",
 };
@@ -54,8 +54,8 @@ ck("three concepts, option-B labels",
   W.params.concept.options.map((o) => o.label).join("|") === "Censoring|Comparing groups|Finding factors");
 ck("the pills are pills",
   ["disease", "age", "snps"].every((k) => W.params[k].style === "pill"));
-ck("censored / truth / bands / pills / concept are display",
-  ["censored", "truth", "bands", "disease", "age", "snps", "concept"]
+ck("censored / truth / bands / shared / pills / concept are display",
+  ["censored", "truth", "bands", "shared", "disease", "age", "snps", "concept"]
     .every((k) => W.params[k].display === true));
 ck("each tab's rail section is gated on its concept",
   W.params.reading.when?.equals === "censoring"
@@ -92,6 +92,22 @@ ck("hazard bins exist and every drawn bin has both groups at 10+ at risk",
 ck("disease at or above no-disease in every drawn bin (default seed)",
   state.hazBins.every((b) => b.ev0 + b.ev1 === 0 || b.h1 >= b.h0));
 ck("the bins stop by 20 years", state.hazBins[state.hazBins.length - 1].hi <= 20);
+/* the null, drawn: the pooled curve must sit between the group curves
+   where they have separated */
+{
+  const at = (steps, q) => { let S = 1; for (const s of steps) { if (s.t <= q) S = s.S; else break; } return S; };
+  const s0 = at(state.groups[0].kept.steps, 12);
+  const s1 = at(state.groups[1].kept.steps, 12);
+  const sp = at(state.pooled.steps, 12);
+  ck(`pooled curve between the groups at t=12 (${s1.toFixed(2)} < ${sp.toFixed(2)} < ${s0.toFixed(2)})`,
+    sp > Math.min(s0, s1) && sp < Math.max(s0, s1));
+}
+{
+  const tiles = W.readout({ params: { ...values, concept: "groups" }, state, anim: { t: 22 } });
+  const note = tiles.find((x) => x.label === "Log-rank p").note;
+  ck("the p tile's note carries the live observed and expected counts",
+    note.includes(String(state.lr.obs[1])) && note.includes(String(Math.round(state.lr.exp[1]))));
+}
 ck("tEnd.censoring is 10", state.tEnd.censoring === 10);
 ck("tEnd.groups is the last recorded time",
   state.tEnd.groups === Math.max(...state.stepTimes.groups));

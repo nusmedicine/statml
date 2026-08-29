@@ -242,6 +242,20 @@ defineWidget({
       display: true,
       when: { param: "concept", equals: "groups" },
     },
+    /* THE NULL, DRAWN (round 7): "if the groups shared one curve" is the
+       pooled Kaplan–Meier of all 200 — the curve the log-rank test splits
+       each event along, by the risk sets. The literature says this sentence
+       everywhere and draws it nowhere (Bland & Altman's BMJ note, PSU 509);
+       drawing the claim being tested is this repo's own move, and
+       --c-theory is the token that means exactly that. */
+    shared: {
+      type: "bool",
+      label: "One shared curve",
+      detail: "the pooled curve the log-rank test compares against — as if the groups did not differ",
+      default: false,
+      display: true,
+      when: { param: "concept", equals: "groups" },
+    },
 
     /* THE MODEL — three pills, lm-adjustment's move: the reader builds the
        Cox model a covariate at a time, and the SNPs arrive because the
@@ -300,6 +314,7 @@ defineWidget({
     { token: "empirical", label: "The Kaplan–Meier curve, censored kept in the risk set", mark: "line" },
     { token: "highlight", label: "The same data with the censored dropped or counted as events", mark: "line" },
     { token: "reference", label: "The true curves with nobody censored", mark: "line" },
+    { token: "theory", label: "One shared curve — what the log-rank test compares against", mark: "line" },
     { token: "group-a", label: "No disease", mark: "line" },
     { token: "group-b", label: "Disease", mark: "line" },
   ],
@@ -321,6 +336,8 @@ defineWidget({
     };
     const groups = [per(0), per(1)];
     const lr = logrank(sim.time, sim.status, sim.disease);
+    /* the null hypothesis as a curve: all 200 patients pooled */
+    const pooled = km(sim.time, sim.status);
 
     /* the groups tab's hazard panel: 2-year intervals on the curve's own
        axis, stopping once EITHER group has fewer than 10 at risk — past
@@ -396,6 +413,7 @@ defineWidget({
     return {
       five,
       groups,
+      pooled,
       hazBins,
       lr,
       fits,
@@ -522,7 +540,9 @@ defineWidget({
         {
           label: "Log-rank p",
           value: state.lr.p < 1e-4 ? "< 0.0001" : fmt(state.lr.p, 4),
-          note: "the two curves compared over every event time, censored kept in",
+          /* the derivation, in the literature's own sentence (Bland &
+             Altman), with the numbers computed from the test itself */
+          note: `if the groups shared one curve, each event would fall by the risk sets — about ${Math.round(state.lr.exp[1])} in the disease group; ${state.lr.obs[1]} happened`,
         },
         {
           label: "Hazard ratio",
@@ -894,6 +914,14 @@ function drawGroups(ctx, colors, w, params, state, t) {
   plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15, 20] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
   plot.caption("200 simulated patients, followed for up to 20 years");
+  /* the CI's derivation intuition, one sentence (round 7) — the band is
+     the same shrinking risk sets, expressed as doubt */
+  if (params.bands) plot.note("each share is estimated from those still at risk — fewer patients, wider band");
+  /* the null, under the group curves: both groups leave it, in opposite
+     directions, and the p is about how far */
+  if (params.shared) {
+    drawCurve(ctx, plot, state.pooled.steps, [], t, colors.theory, { dash: [6, 4], width: 1.5, ticks: false });
+  }
   drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
   drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
 

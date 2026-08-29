@@ -3216,6 +3216,49 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 7 — the null, drawn: how the p and the CI are derived
+
+**Kenneth asked how to illustrate the CI and the p-value calculation,
+then vetoed the first proposal (an observed-vs-expected ledger panel) as
+apparatus rather than intuition, and asked for research on how the
+log-rank is actually explained.** The research: the canonical teaching
+form is Bland & Altman's BMJ sentence — each death splits between the
+groups in proportion to the numbers at risk — repeated across PSU 509,
+the GRAPH courses, Real Statistics, StatsDirect. NOBODY draws it; no
+interactive log-rank explainer exists. But the standard presentations all
+compute the expected counts from "the pooled estimate under the null" —
+i.e. **the null hypothesis is itself a curve**, and drawing the claim
+being tested is this repo's own move. Kenneth picked B: sentence + the
+null drawn.
+
+- **`shared` toggle ("One shared curve")**: the pooled KM of all 200 in
+  `--c-theory` dashed — the token's exact meaning, its first use in this
+  widget — building with the sweep, under the group curves. Both groups
+  visibly leave it in opposite directions; the p is about how far.
+  Asserted in the drive script: pooled sits between the group curves at
+  t = 12 (0.50 < 0.67 < 0.84 on seed 3).
+- **The p tile's note is the derivation sentence with live numbers**: "if
+  the groups shared one curve, each event would fall by the risk sets —
+  about 44 in the disease group; 76 happened" — obs/exp computed from the
+  test itself, so the sentence holds on any seed.
+- **The CI's one sentence**, bands on: "each share is estimated from those
+  still at risk — fewer patients, wider band" (the panel note slot).
+- **Measured and REJECTED, recorded so it stays rejected**: the coverage
+  demonstration. The widget's own truth overlay cannot illustrate CI
+  coverage — it is the same 200 patients uncensored, correlated with the
+  estimate by construction (600/600 inside the band, a demo that always
+  "works" for the wrong reason). Against POPULATION truth (200k draws,
+  200 seeds) pointwise coverage is 92–98% at most probes but **42% at
+  t = 10 in the no-disease group**, where survival ≈ 0.995 and a typical
+  study has seen no events yet, so the band is a zero-width point at 1.00
+  missing a truth just below it — real, known, and too subtle for this
+  widget. No coverage claim appears on screen. The O−E ledger panel and
+  the per-event 2×2 walkthrough are also recorded as declined.
+
+Verified frame-free (the pane was not compositing): settled-state hashes
+differ with `shared` on, 0 overruns with every overlay on, the bands note
+paints once, the tile string exact. Drive: 68 checks green.
+
 ### Round 6 — the bars build with the sweep, and Step glides
 
 **Kenneth's two comments**: the histogram should animate as the sweep
