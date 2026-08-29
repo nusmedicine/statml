@@ -223,7 +223,7 @@ function pack(y, d, xs) {
 defineWidget({
   slug: "lm-diagnostics",
   title: "Checking the Model Fit",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "We can check how well a fitted model describes its data. Residuals " +
     "should sit in a level band around zero, their quantiles on the normal " +

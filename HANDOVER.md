@@ -1,10 +1,14 @@
 # Handover
 
-**Thirty-two widgets, all shipped, all on the gallery, and 220
-fingerprint states recorded. THE AGREED MODELING ARC IS COMPLETE** —
-widget 32 `mixed-model` (05-07, the arc's last slot) shipped 2026-08-29
-after seven review rounds in one day; see its section below and
-catalogue § Widget 32.
+**Thirty-three widgets, all shipped, all on the gallery, and 230
+fingerprint states recorded.** Widget 33 `lm-diagnostics` **Checking
+the Model Fit** (05-01's diagnostics section) shipped 2026-08-29 after
+three review rounds in one day — planned, measured, mocked, built,
+twice re-designed on review (all-simulated stage; the entry/hover/bells
+animations picked from four running candidates) and promoted on "looks
+good push to gallery"; catalogue § Widget 33 has every round. THE
+AGREED MODELING ARC IS COMPLETE — widget 32 `mixed-model` (05-07, the
+arc's last slot) shipped the same day; see catalogue § Widget 32.
 
 **THE MODELING ARC'S FIVE lm-/CAUSAL SLOTS ARE ALL SHIPPED AND LIVE**,
 built over 2026-08-27/28: widget 26 `fork-pipe-collider` (nine rounds),
@@ -37,45 +41,26 @@ URL** — that difference is the region geometry proven.
    - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
      (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
      LEGEND, a core door — `legend` may be a function of the params).
-   - **IN PROGRESS: `lm-diagnostics` — draft through ROUND 1
-     (2026-08-29), awaiting Kenneth's next look.** Round 1 made the stage
-     ALL-SIMULATED on his comment (real + simulated in one control risked
-     confusion; the curve was invisible in the cloud) — the full record,
-     with the measured act re-design (n = 60 / k = 20, default seed 6),
-     is catalogue § *NEXT · Widget 33 · ROUND 1*. Title "Checking the
-     Model Fit" is approved. At hand:
+   - ~~`lm-diagnostics`~~ — **SHIPPED AND PUSHED 2026-08-29** after
+     three rounds (all-simulated stage; entry/hover/bells picked from
+     running candidates; pill + MathML + copy pass); catalogue
+     § *Widget 33* has the full record and the promotion notes. At hand:
 
      ```bash
      node scripts/serve.mjs 8010
-     # http://localhost:8010/widgets/lm-diagnostics/             ← THE DRAFT (Linear default)
-     # .../widgets/lm-diagnostics/?fit=1&scenario=curve          (the banana, visible in the data)
-     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20   (R² 0.51 on noise; adjusted flat 0.24)
+     # http://localhost:8010/widgets/lm-diagnostics/              (press Fit — the entry)
+     # .../widgets/lm-diagnostics/?fit=1&scenario=curve           (the banana, visible in the data)
+     # .../widgets/lm-diagnostics/?fit=1&claim=1                  (the bells, pill settled by URL)
+     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20    (R² 0.51 on noise; adjusted flat)
      node widgets/_lab/lm-diag-measure.mjs   # verify + design + § round 1 sweeps
+     # _lab/lm-diag-shoot.html re-shoots its 10 states (copy-proof, triples, inert checks)
      ```
 
-     The machinery lives in `widgets/lm-diagnostics/model.js` (the lab
-     imports FROM the widget). The simulated study: the Framingham fit's
-     own line, real BMI values clipped to 18–40, n = 600, SD 12; scenarios
-     Linear (default) · Curved (0.4, a 5.2-SD bend) · Unequal spread
-     (fan 3) · Skewed noise. **ROUND 2 (same day): tab 2 renamed "Model
-     fit"; Kenneth picked §A and §D from the four running candidates
-     (`_lab/lm-diag-anim.html`) and both are INTEGRATED**: the gate's
-     ENTRY builds the residual plot (twelve travelling residual segments
-     on a conveyor, ~3.7 s; the `fit` gate went NON-display for core's
-     entry door — em-mixture's arrangement) with HOVER linking the same
-     patient across all three panels afterwards (pointer channel), and
-     `claim` (display bool) overlays three theory-token bells straddling
-     the fitted line at the fit's own residual SD. Catalogue § *ROUND 2*
-     has the research record (Whitlock's linked selection, the
-     Regressomatic, ggMarginal) and the verification notes. **ROUND 3
-     (same day, "looks nice"): `claim` is a PILL button (core's
-     style: "pill" — a `<button data-param>` the harness's setParam
-     cannot toggle, so claim states are driven by URL), the equation
-     card is MathML (lm-interaction's machinery, one `<math>` per
-     term), and the source header + visible copy were cut to size.**
-     Still owed at promotion: fingerprint states (settled + driven —
-     entry, ease and claim all want driven coverage), a stub-driver,
-     the 05-01 notebook link, and a final copy pass.
+     The machinery is `widgets/lm-diagnostics/model.js` (the lab imports
+     FROM the widget). Still owed post-ship: the 05-01 link (listed
+     below) and judging projected. A stub-driver was not built — the
+     measure script + shooter carry the coverage; the claim ease and the
+     hover link are recorded as untested geometry in the catalogue.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
@@ -85,6 +70,7 @@ URL** — that difference is the region geometry proven.
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
    - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
    - 05-04 (widget 30): `Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
+   - 05-01 (widget 33, beside cells 53–62): `Explore the diagnostics interactively: [Checking the Model Fit](https://nusmedicine.github.io/statml/widget/lm-diagnostics/)`
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    — and judging projected is still owed by every widget from 11 on,
@@ -248,7 +234,19 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 220 states, all matching
+## The suite: 230 states, all matching
+
+**Widget 33 added ten states on 2026-08-29 with `_lab/lm-diag-shoot.html`**
+(the lm-shoot pattern): DPR checked at 1.25 in the run's own output, copy
+proved 4/4 against recorded hashes, every state shot three times in one
+run and identical, every drive checked non-inert against its bare URL.
+Seven settled (claim via `?claim=1` — a pill is a `<button data-param>`
+setParam cannot toggle), three driven: the gate-click ENTRY at 30 frames
+(a gate counts as a drive button; its `tx` equals the settled fit's,
+correctly — mid-flight only the picture differs), the scenario morph at
+4 frames, and `set junk=12` at zero frames (an instant flip that still
+differs from its bare URL). No full-suite rerun owed — nothing in
+`widgets/core/` moved for this widget.
 
 **Widget 30 re-baselined and extended on 2026-08-29** (the revived age ×
 BMI act + the legend, TWICE — generic shipped and rejected, then the
@@ -421,6 +419,7 @@ is blind to.
 | 30 | `lm-interaction` | shipped as **Fitting an Interaction**. TWO rounds (2026-08-28), then act 1 (age × BMI, the fan) revived post-ship 2026-08-29 with the LIVE PER-TAB LEGEND; **13 states** — eight settled, four driven, one hit-driven. NOT yet judged projected; 05-04 link not yet placed |
 | 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
 | 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
+| 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

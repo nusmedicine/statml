@@ -3214,7 +3214,32 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 33 · `lm-diagnostics` — DRAFT BUILT 2026-08-29, awaiting Kenneth's live review
+## Widget 33 · `lm-diagnostics` — SHIPPED 2026-08-29, three review rounds in one day
+
+**Promoted on Kenneth's "looks good push to gallery" (2026-08-29), after
+round 3.** Ten fingerprint states recorded with `_lab/lm-diag-shoot.html`
+(the lm-shoot pattern): DPR checked at 1.25, copy proved 4/4 against
+recorded hashes, every state shot three times in one run and identical,
+every drive checked non-inert against its bare URL. Seven settled (the
+opening question; the finished Linear figure; the three violations; the
+bells via `?claim=1` — the pill is a `<button data-param>` setParam
+cannot toggle, so claim settles by URL and **the bells' stagger ease is
+untested geometry**, recorded here like time-event's scrub; the act at
+junk=20) and three driven (the ENTRY mid-conveyor via `click: "gate-fit"`
++ 30 frames — a gate counts as a drive button; the scenario morph
+mid-ease; the act's path via `set junk=12`, which ran zero frames — an
+instant flip that still differs from its bare URL, the lm-adjustment
+precedent). The entry drive's `tx` equals the settled fit's — correct,
+since mid-flight only the picture differs. Baseline now **230 states**;
+no full-suite rerun owed — nothing in `widgets/core/` moved for this
+widget. **Still owed: the 05-01 notebook link (Kenneth places links by
+hand) and judging it projected**, like every widget from 11 on. The
+hover link is pointer-only and untestable by the harness (no parameter
+moves — an inspector by design).
+
+The round-by-round record follows.
+
+### The rounds, as they ran (all 2026-08-29)
 
 **KENNETH PICKED, 2026-08-29, all four from the mock:** composition **B**
 (the data panel above its two diagnostic panels); **named scenarios** for

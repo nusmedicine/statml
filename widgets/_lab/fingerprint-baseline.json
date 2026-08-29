@@ -2001,6 +2001,85 @@
    },
    "px": "8f0033f5",
    "tx": "44f00d4c"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light",
+   "px": "837f4200",
+   "tx": "f161fe24"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1",
+   "px": "3a94240d",
+   "tx": "35e5acd7"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1&scenario=curve",
+   "px": "b808c647",
+   "tx": "07d6c10e"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1&scenario=fan",
+   "px": "2ab15743",
+   "tx": "b23371f3"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1&scenario=skew",
+   "px": "18a9e2a5",
+   "tx": "812b2ee2"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1&claim=1",
+   "px": "0821b3ca",
+   "tx": "2c317757"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&concept=adjr2&fit=1&junk=20",
+   "px": "f2798a35",
+   "tx": "467ae1b7"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light",
+   "drive": {
+    "click": "gate-fit",
+    "frames": 30,
+    "dt": 32
+   },
+   "px": "a9cd7e29",
+   "tx": "35e5acd7"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&fit=1",
+   "drive": {
+    "set": {
+     "scenario": "curve"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "76aa5ea4",
+   "tx": "07d6c10e"
+  },
+  {
+   "slug": "lm-diagnostics",
+   "state": "?theme=light&concept=adjr2&fit=1",
+   "drive": {
+    "set": {
+     "junk": 12
+    },
+    "frames": 2,
+    "dt": 32
+   },
+   "px": "12cd4aa0",
+   "tx": "fcf05e91"
   }
  ]
 }
