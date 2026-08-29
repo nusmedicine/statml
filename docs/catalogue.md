@@ -10967,6 +10967,25 @@ scan to ~7 s there — the known harness artifact, not the widget), `?youden=1`
 in the URL, `?youden=1&shown=999` opens found, fresh error counter clean.
 One placeholder state updated to `?theme=light&youden=1&shown=999`.
 
+### Round 3 — overlay, live matrix, matrix UX (Kenneth, 2026-08-29)
+
+Three fixes, all in: **(1)** the two histogram rows became ONE overlaid panel
+("hard to see overlap" — and the overlap IS the problem the threshold cannot
+solve); the quadrant counts at the line went with the rows, replaced by
+haloed "predicted −/+" side labels at the line's feet, the matrix now the
+counts' one home. **(2)** One EFFECTIVE threshold everywhere: mid-sweep the
+line, the matrix and the tiles all follow the sweep (verified: captions tick
+0.95→0.90…, sensitivity 0.07/specificity 0.99 early in the sweep), snapping
+back to the reader's 0.50 when the trace lands. **(3)** The matrix redrawn to
+the standard advice for these tables: sklearn's own orientation (rows = true
+class, negatives first — the folded-quadrant layout died with the split
+strip), spanning axis titles ("predicted" over the columns, "true" rotated at
+the rows) with the class names spelled out, each row washed in its class's
+histogram hue with wash strength = the cell's share of its row — a
+row-normalised heatmap, so TN and TP darken exactly as specificity and
+sensitivity rise — count large, "% of negatives/positives" small beneath
+(the TP cell's percentage IS sensitivity, the link to the tiles).
+
 My guess at the evaluation arc's spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on

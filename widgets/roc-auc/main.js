@@ -34,19 +34,19 @@ const SCAN_MS = 1400; // the find-optimal probe's sweep along the curve
 function layout(w, h) {
   if (w < 640) {
     const stripH = 150;
-    const matrixY = stripH + 96;
+    const matrixY = stripH + 114;
     const side = Math.min(300, w - 130);
     return {
       strip: { x: 46, y: 30, w: w - 66, h: stripH },
-      matrix: { x: 46, y: matrixY, w: 250, h: 110 },
-      roc: { x: 64, y: matrixY + 158, side },
+      matrix: { x: 46, y: matrixY, w: Math.min(320, w - 86), h: 150 },
+      roc: { x: 64, y: matrixY + 206, side },
     };
   }
   const side = Math.min(h - 116, 310);
-  const stripH = h - 274;
+  const stripH = h - 316;
   return {
     strip: { x: 46, y: 34, w: w - side - 126, h: stripH },
-    matrix: { x: 46, y: stripH + 100, w: 250, h: 110 },
+    matrix: { x: 46, y: stripH + 118, w: 320, h: 150 },
     roc: { x: w - side - 16, y: 34, side },
   };
 }
@@ -89,57 +89,36 @@ const midTrace = (anim, state) => Boolean(anim) && anim.pos > 0 && !traced(anim,
 const optimumFound = (params, anim, state) =>
   Boolean(params.youden && anim?.scan?.done) && traced(anim, state);
 
-/* --- the strip: the two classes' score histograms, split into rows --------- *
- * Positives above the midline, negatives below — the same two-row geometry
- * the round-1 dot strip had, so the threshold line still cuts the panel into
- * the four confusion-matrix quadrants. Counts share one y-scale across the
- * rows, deliberately not per-class densities: the class-balance dial has to
- * be VISIBLE here, and per-class normalisation would hide exactly that.      */
-function drawStrip(plot, { colors, params, state, anim }) {
+/* --- the strip: the two classes' score histograms, OVERLAID ---------------- *
+ * One panel, both classes semi-transparent (round 3 — the two-row split made
+ * the overlap invisible, and the overlap IS the problem the threshold cannot
+ * solve). Counts on one shared y-scale, deliberately not per-class
+ * densities: the class-balance dial has to be VISIBLE here, and per-class
+ * normalisation would hide exactly that. The four quadrant counts moved to
+ * the matrix panel below, which is now their one home.                       */
+function drawStrip(plot, { colors, params, state, anim }, effTh) {
   const { x, y, w, h } = plot;
   const ctx = plot.ctx;
 
   plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, 1], label: "classifier score" });
 
-  ctx.save();
-  ctx.strokeStyle = colors.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x, y + h * 0.5);
-  ctx.lineTo(x + w, y + h * 0.5);
-  ctx.stroke();
-  ctx.fillStyle = colors.ink3;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("positive class", x + 4, y + 11);
-  ctx.fillText("negative class", x + 4, y + h * 0.5 + 12);
-  ctx.restore();
-
   const yMax = Math.max(...state.histPos.counts, ...state.histNeg.counts, 1);
-  const top = makePlot({
+  const hp = makePlot({
     ctx, colors,
-    rect: { x, y: y + 16, w, h: h * 0.5 - 18 },
+    rect: { x, y: y + 8, w, h: h - 8 },
     xDomain: [0, 1],
     yDomain: [0, yMax * 1.05],
   });
-  top.bars(state.histPos.counts, {
-    lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.75,
+  hp.bars(state.histNeg.counts, {
+    lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.62,
   });
-  const bot = makePlot({
-    ctx, colors,
-    rect: { x, y: y + h * 0.5 + 16, w, h: h * 0.5 - 16 },
-    xDomain: [0, 1],
-    yDomain: [0, yMax * 1.05],
-  });
-  bot.bars(state.histNeg.counts, {
-    lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.75,
+  hp.bars(state.histPos.counts, {
+    lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.62,
   });
 
   /* The threshold line — the reader's while idle, the sweep's mid-trace. */
   const sweeping = midTrace(anim, state);
-  const th = sweeping ? sweepThresholdAt(state.walk, anim.pos) : params.threshold;
-  const tx = x + Math.max(0, Math.min(1, th)) * w;
+  const tx = x + Math.max(0, Math.min(1, effTh)) * w;
   ctx.save();
   ctx.strokeStyle = colors.highlight;
   ctx.lineWidth = 2;
@@ -154,44 +133,48 @@ function drawStrip(plot, { colors, params, state, anim }) {
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(
-    sweeping ? "sweeping" : `threshold ${fmt(params.threshold, 2)}`,
-    Math.max(x + 34, Math.min(x + w - 34, tx)), y - 10
+    `${sweeping ? "sweeping" : "threshold"} ${fmt(effTh, 2)}`,
+    Math.max(x + 40, Math.min(x + w - 40, tx)), y - 10
   );
-
-  /* Quadrant labels at the line: the four regions ARE the matrix, and the
-     matrix panel below repeats them in table form in the SAME positions.
-     Hidden while the sweep owns the line — they describe the reader's
-     threshold, which is parked mid-trace. */
-  if (!sweeping) {
-    const m = metricsAt(state.scores, state.labels, params.threshold);
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = colors.ink2;
-    ctx.textAlign = "right";
-    ctx.fillText(`FN ${m.fn}`, tx - 8, y + 24);
-    ctx.fillText(`TN ${m.tn}`, tx - 8, y + h * 0.5 + 24);
-    ctx.textAlign = "left";
-    ctx.fillText(`TP ${m.tp}`, tx + 8, y + 24);
-    ctx.fillText(`FP ${m.fp}`, tx + 8, y + h * 0.5 + 24);
-  }
+  /* Which side is which, said once at the line's feet — with the histograms
+     overlaid there is no quadrant geometry left to say it. */
+  ctx.strokeStyle = colors.surface; // halo — the labels sit over the bars
+  ctx.lineWidth = 3;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "right";
+  ctx.strokeText("predicted −", tx - 6, y + h - 6);
+  ctx.fillText("predicted −", tx - 6, y + h - 6);
+  ctx.textAlign = "left";
+  ctx.strokeText("predicted +", tx + 6, y + h - 6);
+  ctx.fillText("predicted +", tx + 6, y + h - 6);
   ctx.restore();
 }
 
-/* --- the confusion matrix, in the strip's own geometry --------------------- *
- * Rows follow the strip: true positives on TOP, and the predicted-negative
- * column on the LEFT — so the table is literally the four quadrants folded
- * inward, not sklearn's [[TN,FP],[FN,TP]] print order. A deliberate choice
- * to link the two panels; flip the rows if the notebook's order should win. */
+/* --- the confusion matrix -------------------------------------------------- *
+ * Round 3, after the two-row strip went: the notebook's own orientation
+ * (sklearn's print order — rows are the TRUE class, negatives first;
+ * columns the PREDICTED class), because that is the table students see in
+ * 04-2's output and the folded-quadrant rationale died with the split strip.
+ *
+ * The rendering follows the standard advice for reading these tables:
+ * spanning axis titles rather than four cryptic corner labels; each row
+ * washed in its class's own hue (the same hue its histogram wears above,
+ * which is the link between the panels); wash STRENGTH is the cell's share
+ * of its row, so the table is a row-normalised heatmap — the TN and TP
+ * cells darken exactly as specificity and sensitivity rise — with the raw
+ * count large and its row-share small beneath it.                            */
 function drawMatrix(ctx, colors, rect, m, th) {
   const { x, y, w, h } = rect;
-  const labelW = 52;
-  const headH = 18;
+  const labelW = 64;
+  const headH = 32;
   const cw = (w - labelW) / 2;
   const ch = (h - headH) / 2;
+  const rowN = [m.tn + m.fp, m.fn + m.tp];
   const cells = [
-    { row: 0, col: 0, key: "FN", n: m.fn, wash: colors.event },
-    { row: 0, col: 1, key: "TP", n: m.tp, wash: colors.event },
-    { row: 1, col: 0, key: "TN", n: m.tn, wash: colors.nonevent },
-    { row: 1, col: 1, key: "FP", n: m.fp, wash: colors.nonevent },
+    { row: 0, col: 0, key: "TN", n: m.tn, hue: colors.nonevent },
+    { row: 0, col: 1, key: "FP", n: m.fp, hue: colors.nonevent },
+    { row: 1, col: 0, key: "FN", n: m.fn, hue: colors.event },
+    { row: 1, col: 1, key: "TP", n: m.tp, hue: colors.event },
   ];
 
   ctx.save();
@@ -199,37 +182,57 @@ function drawMatrix(ctx, colors, rect, m, th) {
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`The confusion matrix · threshold ${fmt(th, 2)}`, x, y - 8);
+  ctx.fillText(`The confusion matrix · threshold ${fmt(th, 2)}`, x, y - 10);
 
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "center";
-  ctx.fillText("pred −", x + labelW + cw * 0.5, y + 12);
-  ctx.fillText("pred +", x + labelW + cw * 1.5, y + 12);
+  ctx.fillText("predicted", x + labelW + cw, y + 10);
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText("negative", x + labelW + cw * 0.5, y + headH - 6);
+  ctx.fillText("positive", x + labelW + cw * 1.5, y + headH - 6);
+
+  ctx.save();
+  ctx.translate(x + 10, y + headH + ch);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "center";
+  ctx.fillText("true", 0, 0);
+  ctx.restore();
+  ctx.fillStyle = colors.ink2;
   ctx.textAlign = "right";
-  ctx.fillText("true +", x + labelW - 8, y + headH + ch * 0.5 + 4);
-  ctx.fillText("true −", x + labelW - 8, y + headH + ch * 1.5 + 4);
+  ctx.fillText("negative", x + labelW - 8, y + headH + ch * 0.5 + 4);
+  ctx.fillText("positive", x + labelW - 8, y + headH + ch * 1.5 + 4);
 
   for (const c of cells) {
     const cx = x + labelW + c.col * cw;
     const cy = y + headH + c.row * ch;
-    ctx.globalAlpha = 0.1;
-    ctx.fillStyle = c.wash;
+    const share = rowN[c.row] ? c.n / rowN[c.row] : 0;
+    ctx.globalAlpha = 0.07 + 0.45 * share;
+    ctx.fillStyle = c.hue;
     ctx.fillRect(cx + 1, cy + 1, cw - 2, ch - 2);
     ctx.globalAlpha = 1;
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
+
     ctx.fillStyle = colors.ink3;
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(c.key, cx + 6, cy + 4);
+
     ctx.fillStyle = colors.ink1;
-    ctx.font = `${colors.fsMd ?? colors.fsSm} ${colors.fontMono ?? colors.font}`;
+    ctx.font = `600 ${colors.fsMd} ${colors.font}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(String(c.n), cx + cw * 0.58, cy + ch * 0.55);
+    ctx.fillText(String(c.n), cx + cw * 0.5, cy + ch * 0.42);
+    ctx.fillStyle = colors.ink2;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillText(
+      `${Math.round(share * 100)}% of ${c.row === 0 ? "negatives" : "positives"}`,
+      cx + cw * 0.5, cy + ch * 0.78
+    );
     ctx.textBaseline = "alphabetic";
   }
   ctx.restore();
@@ -316,7 +319,7 @@ defineWidget({
     + "threshold at all. Drag the dashed line to move the threshold.",
   layout: "side",
   status: "draft",
-  height: ({ w }) => (w && w < 640 ? 760 : 470),
+  height: ({ w }) => (w && w < 640 ? 810 : 470),
 
   params: {
     data: { type: "section", label: "The data" },
@@ -482,6 +485,13 @@ defineWidget({
   draw: ({ ctx, colors, w, h, params, state, anim }) => {
     const L = layout(w, h);
 
+    /* One effective threshold everywhere (round 3): while the sweep is
+       tracing, the line, the matrix and the tiles all follow IT — the
+       matrix churning through every threshold is the point of the sweep. */
+    const effTh = midTrace(anim, state)
+      ? sweepThresholdAt(state.walk, anim.pos)
+      : params.threshold;
+
     const strip = makePlot({
       ctx, colors,
       rect: L.strip,
@@ -490,10 +500,10 @@ defineWidget({
     });
     strip.caption("A simulated cohort");
     strip.note(`${state.scores.length} patients · ${state.nPos} positive`);
-    drawStrip(strip, { colors, params, state, anim });
+    drawStrip(strip, { colors, params, state, anim }, effTh);
 
     drawMatrix(ctx, colors, L.matrix,
-      metricsAt(state.scores, state.labels, params.threshold), params.threshold);
+      metricsAt(state.scores, state.labels, effTh), effTh);
 
     const roc = makePlot({
       ctx, colors,
@@ -507,7 +517,10 @@ defineWidget({
 
   readout: ({ params, state, anim }) => {
     const done = traced(anim, state);
-    const m = metricsAt(state.scores, state.labels, params.threshold);
+    const effTh = midTrace(anim, state)
+      ? sweepThresholdAt(state.walk, anim.pos)
+      : params.threshold;
+    const m = metricsAt(state.scores, state.labels, effTh);
     const tiles = [
       {
         label: "AUC",
