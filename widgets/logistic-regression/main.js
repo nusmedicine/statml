@@ -84,12 +84,28 @@ const PAD_L = 38, PAD_R = 14, PAD_T = 18, PAD_B = 34;
 const MAIN_H = 260, STRIP_H = 36, STRIP_GAP = 6;
 const CANVAS_H = NOTE_H + PAD_T + MAIN_H + STRIP_GAP + STRIP_H + PAD_B;
 
+const P_OLS = (x) => OLS.b0 + OLS.b1 * x;
+const P_LOGIT = (x) => 1 / (1 + Math.exp(-(LOGIT.b0 + LOGIT.b1 * x)));
+/* The eased fit: t = 0 is the identity link, t = 1 the logit, and every
+   drawn curve, step bar and printed number comes from the SAME blended
+   p — no label is false mid-frame. */
+const pMix = (t) => (x) => (1 - t) * P_OLS(x) + t * P_LOGIT(x);
+
+function stepsFor(p) {
+  const out = [];
+  for (let x = Math.ceil(AXIS.lo); x + 1 <= AXIS.hi + 1e-9; x += 1) {
+    out.push({ from: x, to: x + 1, p1: p(x), p2: p(x + 1) });
+  }
+  return out;
+}
+const curFor = (p, at) => ({ from: at, to: at + 1, p1: p(at), p2: p(at + 1) });
+
 /* --- compute --------------------------------------------------------------
    Pure and parameter-only; nothing here is random, so `rng` is unused. */
 function computeAll({ params }) {
   const A = AXIS;
-  const pLogit = (x) => 1 / (1 + Math.exp(-(LOGIT.b0 + LOGIT.b1 * x)));
-  const pOls = (x) => OLS.b0 + OLS.b1 * x;
+  const pLogit = P_LOGIT;
+  const pOls = P_OLS;
 
   /* Bins of five mmHg, anchored on multiples of the width — 130-134,
      135-139 — the way a person bins. */
@@ -133,20 +149,9 @@ function computeAll({ params }) {
   if (zeroAt > A.lo && zeroAt < A.hi) outside.push(`below ${zeroAt.toFixed(0)}`);
   if (oneAt > A.lo && oneAt < A.hi) outside.push(`above ${oneAt.toFixed(0)} mmHg`);
 
-  /* The strip's bars belong to whichever fit is showing, and that is the
-     comparison: a straight line asserts the risk difference is the same
-     everywhere, the link asserts the log-odds difference is — so toggling it
-     swaps which silhouette is flat. */
-  const pFit = params.link ? pLogit : pOls;
-  const steps = [];
-  for (let x = Math.ceil(A.lo); x + 1 <= A.hi + 1e-9; x += 1) {
-    steps.push({ from: x, to: x + 1, p1: pFit(x), p2: pFit(x + 1) });
-  }
-  const at = Math.min(params.at, A.hi - 1);
-  const cur = { from: at, to: at + 1, p1: pFit(at), p2: pFit(at + 1) };
-
   return {
-    A, bins, curveL, curveO, steps, cur, at, n, events, outside,
+    A, bins, curveL, curveO, n, events, outside,
+    at: Math.min(params.at, A.hi - 1),
     half: -LOGIT.b0 / LOGIT.b1,
     slope: LOGIT.b1,
     or: Math.exp(LOGIT.b1),
@@ -203,13 +208,26 @@ const MATHML = mathmlRenders();
    be set as a prefix operator — unary and unspaced. */
 const mi = (t) => `<mi mathvariant="normal">${t}</mi>`;
 const sub = (v, s) => `<msub><mn>${v}</mn>${mi(s)}</msub>`;
-const LHS = `<math><mrow>${mi("log")}<mo>(</mo><mfrac>`
+const LHS_LOGIT = `<math><mrow>${mi("log")}<mo>(</mo><mfrac>`
   + "<mrow><mi>p</mi><mo>(</mo><mi>Y</mi><mo>)</mo></mrow>"
   + "<mrow><mn>1</mn><mo>−</mo><mi>p</mi><mo>(</mo><mi>Y</mi><mo>)</mo></mrow>"
   + "</mfrac><mo>)</mo><mo>=</mo></mrow></math>";
-const EQ_HTML = `${LHS} <math><mrow><mo form="infix">−</mo>${sub("19.98", "intercept")}</mrow></math> `
-  + `<math><mrow><mo form="infix">+</mo>${mi("sysBP")}<mo>×</mo>${sub("0.141", "sysBP")}</mrow></math>`;
-const EQ_PLAIN = "log( p(Y) / (1 − p(Y)) ) = −19.98 + sysBP × 0.141";
+const LHS_ID = "<math><mrow><mi>p</mi><mo>(</mo><mi>Y</mi><mo>)</mo><mo>=</mo></mrow></math>";
+/* The equation follows the chosen link: each shows ITS OWN fitted numbers,
+   because the two links fit different coefficients and printing the logit's
+   beside an identity fit would be a claim the figure does not make. */
+const EQ = {
+  logit: {
+    html: `${LHS_LOGIT} <math><mrow><mo form="infix">−</mo>${sub("19.98", "intercept")}</mrow></math> `
+      + `<math><mrow><mo form="infix">+</mo>${mi("sysBP")}<mo>×</mo>${sub("0.141", "sysBP")}</mrow></math>`,
+    plain: "log( p(Y) / (1 − p(Y)) ) = −19.98 + sysBP × 0.141",
+  },
+  identity: {
+    html: `${LHS_ID} <math><mrow><mo form="infix">−</mo>${sub("1.63", "intercept")}</mrow></math> `
+      + `<math><mrow><mo form="infix">+</mo>${mi("sysBP")}<mo>×</mo>${sub("0.0146", "sysBP")}</mrow></math>`,
+    plain: "p(Y) = −1.63 + sysBP × 0.0146",
+  },
+};
 
 /* The link, drawn, oriented the way the figure below is: p runs up the side
    (the convention puts it across, but a 90-degree disagreement inside one
@@ -228,15 +246,10 @@ function figurePath() {
   return `M${pts.join("L")}`;
 }
 
-const LINKS = [
-  { link: "identity", to: "lm" },
-  { link: "logit", to: "this widget", here: true },
-  { link: "log", to: "hazards, counts" },
-];
-
 let cardHost = null;
+let eqKey = null;
 
-function renderFramework(cur) {
+function renderFramework(cur, link) {
   if (!cardHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -255,14 +268,17 @@ function renderFramework(cur) {
       + `<text x="20" y="${figY(0)}" font-size="8" fill="var(--ink-3)" text-anchor="end" dominant-baseline="middle">0</text>`
       + '<text x="6" y="36" font-size="8" fill="var(--ink-3)" text-anchor="middle" transform="rotate(-90 6 36)">p</text>'
       + '<text x="75" y="72" font-size="8" fill="var(--ink-3)" text-anchor="middle">log(odds)</text>'
-      + "</svg></div>"
-      + '<ul class="w-links">'
-      + LINKS.map((l) => `<li${l.here ? ' aria-current="true"' : ""}>${l.link} &rarr; ${l.to}</li>`).join("")
-      + "</ul>";
+      + "</svg></div>";
     figure.parentNode.insertBefore(cardHost, figure);
+  }
+
+  /* Memoised on the link: draw() runs per frame and rebuilding the <math>
+     elements costs ~0.7ms against the 0.004ms of a fillText line. */
+  if (eqKey !== link) {
+    eqKey = link;
     const eq = cardHost.querySelector(".w-link-eq");
-    if (MATHML) eq.innerHTML = EQ_HTML;
-    else eq.textContent = EQ_PLAIN;
+    if (MATHML) eq.innerHTML = EQ[link].html;
+    else eq.textContent = EQ[link].plain;
   }
 
   /* The two dots move on every frame, so they are MOVED rather than rebuilt:
@@ -280,13 +296,16 @@ function renderFramework(cur) {
 
 /* THE CAPTION NARRATES, and its first job is to say what is on screen — "what
    is the dataset?" was a fair question once, and stays answered. */
-function caption(ctx, colors, w, state, params) {
-  const warn = !params.link && state.outside.length;
+function caption(ctx, colors, w, state, t) {
+  /* Keyed on the EASED side, not the target, so the sentence flips as the
+     curve passes halfway rather than announcing a destination. */
+  const logit = t >= 0.5;
+  const warn = !logit && state.outside.length;
   /* The two bounds come off one at a time — the answer to "why log it";
      and least squares on a 0/1 outcome fits E[Y|X], which for a binary Y IS
      the probability, so a fitted value outside 0 and 1 is a defect, not a
      curiosity. */
-  const say = params.link
+  const say = logit
       ? [`Odds removes the ceiling at 1; the log removes the floor at 0. Only then is the scale unbounded both ways.`,
         `Odds removes the ceiling; the log removes the floor.`]
       : [`Least squares on a 0/1 outcome fits the probability itself — and here it leaves 0 and 1 ${state.outside.join(" and ")}.`,
@@ -307,7 +326,7 @@ function caption(ctx, colors, w, state, params) {
   ctx.restore();
 }
 
-function panel(ctx, colors, box, rung, state, params, isMiddle) {
+function panel(ctx, colors, box, rung, state, t, blend, isMiddle) {
   const { A } = state;
   const rect = { x: box.x + PAD_L, y: NOTE_H + PAD_T, w: box.w - PAD_L - PAD_R, h: MAIN_H };
   const stripRect = { x: rect.x, y: rect.y + MAIN_H + STRIP_GAP, w: rect.w, h: STRIP_H };
@@ -431,9 +450,13 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
     });
   }
 
-  if (params.link) {
-    plot.curve(state.curveL.map(([x, p]) => [x, rung.of(p)]).filter(([, v]) => on(v)),
-      { stroke: colors.theory });
+  /* The eased fit: at t = 0 it lies exactly on the straight line and is not
+     drawn twice; between, it is the one curve bending from the identity fit
+     into the sigmoid — the same data read two ways, watched changing hands. */
+  if (t > 0.001) {
+    const curveM = state.curveO.map(([x, po], i) =>
+      [x, rung.of((1 - t) * po + t * state.curveL[i][1])]);
+    plot.curve(curveM.filter(([, v]) => on(v)), { stroke: colors.theory });
   }
 
   /* Each bar is what one mmHg is worth at that pressure, in this panel's own
@@ -444,7 +467,7 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
      into the floor with a scale line nobody could use. */
   const visible = (s) => on(rung.of(s.p1)) && on(rung.of(s.p2));
   let maxD = 0;
-  for (const s of state.steps) {
+  for (const s of blend.steps) {
     if (!visible(s)) continue;
     const d = Math.abs(rung.of(s.p2) - rung.of(s.p1));
     if (Number.isFinite(d) && d > maxD) maxD = d;
@@ -452,7 +475,7 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
   const barW = Math.max(1, stripRect.w / (A.hi - A.lo) - 0.4);
   ctx.save();
   ctx.fillStyle = colors.highlight;
-  for (const s of state.steps) {
+  for (const s of blend.steps) {
     if (!visible(s)) continue;
     const d = Math.abs(rung.of(s.p2) - rung.of(s.p1));
     if (!Number.isFinite(d) || maxD === 0) continue;
@@ -477,7 +500,7 @@ function panel(ctx, colors, box, rung, state, params, isMiddle) {
   ctx.fillText(rung.scale(maxD), stripRect.x + 3, stripRect.y + 2);
   ctx.restore();
 
-  const { cur } = state;
+  const { cur } = blend;
   const v1 = rung.of(cur.p1), v2 = rung.of(cur.p2);
   if (!on(v1) || !on(v2)) return;
   plot.dot(cur.from, v1, { fill: colors.highlight, r: 3 });
@@ -524,25 +547,24 @@ defineWidget({
   height: CANVAS_H,
 
   params: {
-    /* Reversible on purpose, which a drive button cannot be: flipping the link
-       off and on is how the reader sees it is the same data read two ways.
-       A pill is a <button data-param> the fingerprint's setParam cannot
-       toggle — its states settle by URL. */
+    /* A GLM is a choice of link, and the control says so: identity is the
+       straight line (lm), logit is logistic regression. Toggling between
+       them eases the fitted curve from one to the other — the same data
+       read two ways, not a second model. */
     link: {
-      type: "bool",
-      style: "pill",
-      label: "Add the link function",
-      detail: "fit log(odds) instead of the probability itself",
-      default: false,
+      type: "segmented",
+      label: "Link function",
+      options: [
+        { value: "identity", label: "Identity", detail: "fit the probability itself — a straight line (lm)" },
+        { value: "logit", label: "Logit", detail: "fit the log(odds) — logistic regression (glm)" },
+      ],
+      default: "identity",
       display: true,
     },
-    /* WHERE THE STEP IS READ. One covariate leaves one thing to vary, and
-       varying it is the third lesson: the step's worth changes everywhere
-       except on log-odds. */
     at: {
       type: "int",
       label: "Read one step at",
-      detail: "what one mmHg is worth, at this pressure",
+      detail: "where the one-mmHg step is read",
       min: 85, max: 214, default: 140,
       display: true,
     },
@@ -559,44 +581,77 @@ defineWidget({
 
   compute: computeAll,
 
-  draw({ ctx, colors, w, params, state }) {
-    renderFramework(state.cur);
-    caption(ctx, colors, w, state, params);
+  /* No Step and no Play — the one motion is the ease between the two links,
+     on core's ease-request door: toggling the segmented control bends the
+     fitted curve from one reading into the other. */
+  animation: {
+    stepLabel: null,
+    runLabel: null,
+    init: ({ params }) => {
+      const t = params.link === "logit" ? 1 : 0;
+      return { t, target: t };
+    },
+    advance: (anim, { dt }) => {
+      const dir = Math.sign(anim.target - anim.t);
+      if (dir === 0) return false;
+      anim.t = Math.max(0, Math.min(1, anim.t + (dir * dt) / 600));
+      if ((dir > 0 && anim.t >= anim.target) || (dir < 0 && anim.t <= anim.target)) {
+        anim.t = anim.target;
+        return false;
+      }
+      return true;
+    },
+    rebuild: (anim, { params }) => {
+      const target = params.link === "logit" ? 1 : 0;
+      if (target !== anim.target) {
+        anim.target = target;
+        anim.easing = true;
+      }
+    },
+  },
+
+  draw({ ctx, colors, w, params, state, anim }) {
+    const t = anim?.t ?? (params.link === "logit" ? 1 : 0);
+    const p = pMix(t);
+    const blend = { steps: stepsFor(p), cur: curFor(p, state.at) };
+    renderFramework(blend.cur, params.link);
+    caption(ctx, colors, w, state, t);
     const cw = (w - GAP * 2) / 3;
     RUNGS.forEach((rung, i) => {
-      panel(ctx, colors, { x: i * (cw + GAP), w: cw }, rung, state, params, i === 1);
+      panel(ctx, colors, { x: i * (cw + GAP), w: cw }, rung, state, t, blend, i === 1);
     });
   },
 
-  readout: ({ params, state }) => {
-    const { cur } = state;
-    const which = params.link ? "with the link" : "the straight line";
+  readout: ({ params, state, anim }) => {
+    const t = anim?.t ?? (params.link === "logit" ? 1 : 0);
+    const cur = curFor(pMix(t), state.at);
+    const logit = t >= 0.5;
     return [
       {
-        label: "Straight line",
+        label: "Identity link",
         value: "leaves 0–1",
         note: `${state.outside.join(", ")} — 794 of ${state.n} people made impossible`,
       },
       {
-        label: "With the link",
-        value: params.link ? "always 0–1" : "—",
-        note: params.link
+        label: "Logit link",
+        value: t >= 1 ? "always 0–1" : "—",
+        note: t >= 1
           ? `50% at ${state.half.toFixed(1)} mmHg — the clinical threshold is 140`
           : "log(odds) is unbounded, so p never has to leave (0, 1)",
       },
       {
         label: "Risk difference, one mmHg",
         value: `${cur.p2 - cur.p1 >= 0 ? "+" : "−"}${(Math.abs(cur.p2 - cur.p1) * 100).toFixed(2)} pp`,
-        note: `sysBP ${cur.from} → ${cur.to}, on ${which}`,
+        note: `sysBP ${cur.from} → ${cur.to}, ${logit ? "logit" : "identity"} link`,
       },
       {
-        /* THE ODDS RATIO IS THE LINK'S NUMBER AND NOBODY ELSE'S. A straight line
-           has no constant one — it has a constant risk DIFFERENCE instead, which
-           is the tile above — so quoting exp(b) while the link is off would be
-           quoting a coefficient the model on screen does not have. */
+        /* The odds ratio is the logit link's number and nobody else's: a
+           straight line has no constant one — it has a constant risk
+           difference instead — so exp(b) prints only once the eased fit has
+           landed on the logit. */
         label: "Odds ratio, one mmHg",
-        value: params.link ? state.or.toFixed(4) : "—",
-        note: params.link
+        value: t >= 1 ? state.or.toFixed(4) : "—",
+        note: t >= 1
           ? `exp(${state.slope.toFixed(5)}) — the sysBP coefficient, and the same everywhere`
           : "a straight line has no constant one; it has a constant risk difference",
       },

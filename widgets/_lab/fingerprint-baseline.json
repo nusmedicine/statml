@@ -2106,32 +2106,46 @@
    "tx": "a56de37b"
   },
   {
-   "$note": "The opening state: the straight line alone, leaving 0 and 1 mid-axis.",
+   "$note": "The opening state: the identity link's straight line, leaving 0 and 1 mid-axis.",
    "slug": "logistic-regression",
    "state": "?theme=light",
    "px": "c615878a",
-   "tx": "fb89479c"
+   "tx": "22557da3"
   },
   {
-   "$note": "The link added, nothing else moved. The sigmoid saturates at both ends; the three strips swap which one is flat.",
+   "$note": "The logit link, landed. The sigmoid saturates at both ends; the three strips swap which one is flat.",
    "slug": "logistic-regression",
-   "state": "?theme=light&link=true",
+   "state": "?theme=light&link=logit",
    "px": "ae3800f6",
-   "tx": "ef38a0b6"
+   "tx": "c153f6cc"
   },
   {
-   "$note": "The step read high on the S, straight line showing.",
+   "$note": "The step read high on the S, identity link showing.",
    "slug": "logistic-regression",
    "state": "?theme=light&at=180",
    "px": "01c32a92",
-   "tx": "890ce364"
+   "tx": "eeb1223b"
   },
   {
-   "$note": "Link on, step read low - a small risk difference, the same log-odds step.",
+   "$note": "Logit link, step read low - a small risk difference, the same log-odds step.",
    "slug": "logistic-regression",
-   "state": "?theme=light&link=true&at=110",
+   "state": "?theme=light&link=logit&at=110",
    "px": "f1e5a712",
-   "tx": "3478f579"
+   "tx": "ffdda0e3"
+  },
+  {
+   "$note": "The ease mid-bend, identity toward logit - the one motion the widget has.",
+   "slug": "logistic-regression",
+   "state": "?theme=light",
+   "drive": {
+    "set": {
+     "link": "logit"
+    },
+    "frames": 8,
+    "dt": 32
+   },
+   "px": "f40fde50",
+   "tx": "ba905db2"
   }
  ]
 }

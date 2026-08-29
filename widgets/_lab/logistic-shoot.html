@@ -192,12 +192,14 @@ async function shoot(entry) {
 
 /* --- the states to record ------------------------------------------------ */
 const NEW = [
-  /* settled only - the widget declares no animation: the straight line; the
-     link added; the step read high on the S; link on, step read low */
+  /* settled: the identity link; the logit link; the step read high on the S;
+     logit with the step read low */
   { slug: "logistic-regression", state: "?theme=light" },
-  { slug: "logistic-regression", state: "?theme=light&link=true" },
+  { slug: "logistic-regression", state: "?theme=light&link=logit" },
   { slug: "logistic-regression", state: "?theme=light&at=180" },
-  { slug: "logistic-regression", state: "?theme=light&link=true&at=110" },
+  { slug: "logistic-regression", state: "?theme=light&link=logit&at=110" },
+  /* driven: the ease mid-bend, identity toward logit */
+  { slug: "logistic-regression", state: "?theme=light", drive: { set: { link: "logit" }, frames: 8, dt: 32 } },
 ];
 
 /* --- prove the copy before trusting it ----------------------------------- */
