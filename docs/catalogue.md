@@ -10935,6 +10935,38 @@ chunky at small n); **(6)** title **Scoring a Classifier**. The trace-as-entry
   `window.onerror` counter clean. Draft status; placeholder fingerprint
   states carry both zero hashes until promotion.
 
+### Round 2 — one page (Kenneth, 2026-08-29): "the first tab is duplicating the second"
+
+His four asks, all in: **(1) one page with the controls** — the real-test-set
+tab is CUT and the simulated cohort with its dials is the whole widget (the
+all-simulated precedent is lm-diagnostics; the 60 real patients stay in
+`model.js` and the measure script as the pinned reference, no longer drawn);
+**(2) the ROC sweep kept** unchanged; **(3) a confusion-matrix panel added**
+under the strip, its counts moving as the threshold is scrubbed — and its
+GEOMETRY follows the strip rather than sklearn's print order: true + on top,
+predicted − on the left, so the table is literally the strip's four quadrants
+folded inward ([[FN,TP],[TN,FP]] where sklearn prints [[TN,FP],[FN,TP]]) —
+flip the rows if the notebook's order should win; **(4) Youden became a
+FIND-OPTIMAL button** (`style: "pill"`, still the `afterDrive` withheld-answer
+position): pressing it completes the curve if it is untraced, then a probe
+scans along it carrying the vertical segment down to the chance line —
+Youden's J made visible — and lands on the longest one (ring + tile + the
+segment left standing). The scan runs on core's ease-request door
+(`anim.easing` in rebuild), ~1.4 s; Replay with the pill pressed retraces and
+then re-finds, because `advance` starts a missing scan whenever the trace
+lands with the pill on.
+
+The strip's dots became per-class HISTOGRAMS (counts, one shared y-scale —
+per-class densities would hide the balance dial) in the same two-row geometry,
+so the threshold line still cuts four quadrants and the quadrant counts kept
+their places. Tiles: AUC (withheld until traced) · Accuracy · Sensitivity ·
+Specificity, plus the Youden threshold once found; the Missed tile went — the
+matrix's FN cell carries it. Pane-verified: pill press from untraced completes
+and scans to the ring (the pane's ~300 ms rAF throttle stretches the 1.4 s
+scan to ~7 s there — the known harness artifact, not the widget), `?youden=1`
+in the URL, `?youden=1&shown=999` opens found, fresh error counter clean.
+One placeholder state updated to `?theme=light&youden=1&shown=999`.
+
 My guess at the evaluation arc's spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on

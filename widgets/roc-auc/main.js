@@ -1,46 +1,52 @@
 /* ============================================================================
    Widget 34 · roc-auc — Scoring a Classifier
 
-   The stage is Kenneth's pick from _lab/roc-mock.html (2026-08-29): candidate
-   B, the linked pair. Left, one dot per patient on the score axis with the
-   decision threshold cutting the strip into the four confusion-matrix
-   quadrants; right, the ROC square, where the threshold's (FPR, TPR) is a
-   dot ON the curve. The curve itself is never given away: the reader traces
-   it, one patient per step — up for a death, right for a survivor — which is
-   also what AUC means (a random positive outranking a random negative).
+   ROUND 2 (Kenneth, 2026-08-29): ONE page — round 1's two tabs duplicated the
+   stage, so the real-test-set tab was cut and the simulated cohort with its
+   dials is the whole widget (the all-simulated precedent is lm-diagnostics;
+   the notebook's own 60-patient numbers survive in model.js and the measure
+   script). Kept: the sweep that traces the ROC curve, and the dragged
+   threshold line. Added: the confusion matrix as its own panel, counts
+   moving as you scrub the threshold; and Youden as a FIND-OPTIMAL button —
+   a probe scans along the finished curve measuring the vertical distance to
+   the chance line, and lands on the longest one.
 
-   Two tabs. "Threshold" is the notebook's own held-out test set (04-2's
-   heart-failure model, 60 patients — model.js carries the provenance);
-   "What moves the curve" is a simulated cohort with the separation and
-   balance dials of the D3 app this widget grew from. The threshold is a
-   DRAGGED line, not a rail slider (Kenneth's pick 4); Youden's optimum is
-   an overlay toggle (pick 3).
+   The stage is still round 0's candidate B: score distributions left with
+   the threshold cutting them into the four quadrants, ROC square right,
+   the threshold's (FPR, TPR) a dot ON the curve. The curve is never given
+   away — the reader traces it, one patient per step, up for a positive and
+   right for a negative.
    ========================================================================= */
 
 import { defineWidget, makePlot, histogram, fmt } from "../core/index.js";
-import { REAL, rocWalk, aucOf, youdenOf, metricsAt, simulate } from "./model.js";
+import { rocWalk, aucOf, youdenOf, metricsAt, simulate } from "./model.js";
 
 /* Everything draw() touches lives ABOVE defineWidget: core paints during the
    defineWidget call itself, and a binding below it is still in its temporal
    dead zone on the first frame — the trap that has now struck three widgets. */
 
-const HIST_BINS = 36; // the simulated tab's per-class score histograms
+const HIST_BINS = 36;
+const SCAN_MS = 1400; // the find-optimal probe's sweep along the curve
 
 /* One source of geometry for draw() AND drag.value(): the same-geometry-twice
-   rule. Wide frames put the strip beside the ROC square; under 640px the
-   strip goes on top and the square below (the height function pays for it). */
+   rule. Wide frames put the strip and the matrix in a left column beside the
+   ROC square; under 640px the three stack and the height function pays. */
 function layout(w, h) {
   if (w < 640) {
-    const stripH = 168;
-    const side = Math.min(320, w - 130, h - stripH - 150);
+    const stripH = 150;
+    const matrixY = stripH + 96;
+    const side = Math.min(300, w - 130);
     return {
       strip: { x: 46, y: 30, w: w - 66, h: stripH },
-      roc: { x: 64, y: stripH + 104, side },
+      matrix: { x: 46, y: matrixY, w: 250, h: 110 },
+      roc: { x: 64, y: matrixY + 158, side },
     };
   }
-  const side = Math.min(h - 116, 300);
+  const side = Math.min(h - 116, 310);
+  const stripH = h - 274;
   return {
-    strip: { x: 46, y: 34, w: w - side - 126, h: h - 118 },
+    strip: { x: 46, y: 34, w: w - side - 126, h: stripH },
+    matrix: { x: 46, y: stripH + 100, w: 250, h: 110 },
     roc: { x: w - side - 16, y: 34, side },
   };
 }
@@ -55,130 +61,178 @@ function sweepThresholdAt(walk, pos) {
   return from + (to - from) * f;
 }
 
-/* The traced part of the staircase, with the segment in flight drawn
-   partially. Consecutive walk points differ in one coordinate, so a straight
-   lerp stays on the staircase. */
+/* A point part-way along the walk, for the trace frontier and the scan probe.
+   Consecutive walk points differ in one coordinate, so the lerp stays on the
+   staircase. */
+function walkPointAt(walk, pos) {
+  const k = Math.floor(pos);
+  const f = pos - k;
+  const a = walk[Math.min(k, walk.length - 1)];
+  if (f <= 0 || k + 1 >= walk.length) return { fpr: a.fpr, tpr: a.tpr };
+  const b = walk[k + 1];
+  return { fpr: a.fpr + (b.fpr - a.fpr) * f, tpr: a.tpr + (b.tpr - a.tpr) * f };
+}
+
 function tracePath(walk, pos) {
   const k = Math.floor(pos);
   const pts = [];
   for (let i = 0; i <= k && i < walk.length; i += 1) pts.push([walk[i].fpr, walk[i].tpr]);
-  const f = pos - k;
-  if (f > 0 && k + 1 < walk.length) {
-    const a = walk[k];
-    const b = walk[k + 1];
-    pts.push([a.fpr + (b.fpr - a.fpr) * f, a.tpr + (b.tpr - a.tpr) * f]);
+  if (pos - k > 0 && k + 1 < walk.length) {
+    const p = walkPointAt(walk, pos);
+    pts.push([p.fpr, p.tpr]);
   }
   return pts;
 }
 
 const traced = (anim, state) => Boolean(anim) && anim.pos >= state.walk.length - 1;
 const midTrace = (anim, state) => Boolean(anim) && anim.pos > 0 && !traced(anim, state);
+const optimumFound = (params, anim, state) =>
+  Boolean(params.youden && anim?.scan?.done) && traced(anim, state);
 
-/* --- the strip: one dot per patient, or the two class histograms ---------- */
-
+/* --- the strip: the two classes' score histograms, split into rows --------- *
+ * Positives above the midline, negatives below — the same two-row geometry
+ * the round-1 dot strip had, so the threshold line still cuts the panel into
+ * the four confusion-matrix quadrants. Counts share one y-scale across the
+ * rows, deliberately not per-class densities: the class-balance dial has to
+ * be VISIBLE here, and per-class normalisation would hide exactly that.      */
 function drawStrip(plot, { colors, params, state, anim }) {
   const { x, y, w, h } = plot;
   const ctx = plot.ctx;
-  const real = params.concept === "threshold";
 
-  plot.axisX({
-    ticks: [0, 0.25, 0.5, 0.75, 1],
-    label: real ? "predicted probability of death" : "classifier score",
+  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, 1], label: "classifier score" });
+
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h * 0.5);
+  ctx.lineTo(x + w, y + h * 0.5);
+  ctx.stroke();
+  ctx.fillStyle = colors.ink3;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("positive class", x + 4, y + 11);
+  ctx.fillText("negative class", x + 4, y + h * 0.5 + 12);
+  ctx.restore();
+
+  const yMax = Math.max(...state.histPos.counts, ...state.histNeg.counts, 1);
+  const top = makePlot({
+    ctx, colors,
+    rect: { x, y: y + 16, w, h: h * 0.5 - 18 },
+    xDomain: [0, 1],
+    yDomain: [0, yMax * 1.05],
   });
-
-  if (real) {
-    /* Two beeswarm rows — deaths above, survivors below — each stacking
-       upward from its own baseline, the midline splitting them. */
-    ctx.save();
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, y + h * 0.5);
-    ctx.lineTo(x + w, y + h * 0.5);
-    ctx.stroke();
-    ctx.fillStyle = colors.ink3;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("died", x + 4, y + 12);
-    ctx.fillText("survived", x + 4, y + h * 0.5 + 12);
-    ctx.restore();
-
-    const bins = 46;
-    const bw = w / bins;
-    const r = Math.max(3.2, Math.min(4.6, bw * 0.62));
-    const pitch = r * 2 + 1.6;
-    const stacks = {};
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    for (let i = 0; i < state.scores.length; i += 1) {
-      const died = state.labels[i] === 1;
-      const b = Math.min(bins - 1, Math.floor(state.scores[i] * bins));
-      const key = `${died}:${b}`;
-      const s = (stacks[key] = (stacks[key] ?? 0) + 1);
-      const base = died ? y + h * 0.5 - 10 : y + h - 8;
-      ctx.beginPath();
-      ctx.arc(x + (b + 0.5) * bw, base - (s - 1) * pitch, r, 0, Math.PI * 2);
-      ctx.fillStyle = died ? colors.event : colors.nonevent;
-      ctx.fill();
-    }
-    ctx.restore();
-  } else {
-    /* Counts, not densities: the class-balance dial has to be VISIBLE here,
-       and per-class density normalisation would hide exactly that. */
-    const yMax = Math.max(...state.histPos.counts, ...state.histNeg.counts, 1);
-    const hp = makePlot({
-      ctx, colors,
-      rect: { x, y, w, h },
-      xDomain: [0, 1],
-      yDomain: [0, yMax * 1.06],
-    });
-    hp.bars(state.histNeg.counts, {
-      lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.62,
-    });
-    hp.bars(state.histPos.counts, {
-      lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.62,
-    });
-  }
+  top.bars(state.histPos.counts, {
+    lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.75,
+  });
+  const bot = makePlot({
+    ctx, colors,
+    rect: { x, y: y + h * 0.5 + 16, w, h: h * 0.5 - 16 },
+    xDomain: [0, 1],
+    yDomain: [0, yMax * 1.05],
+  });
+  bot.bars(state.histNeg.counts, {
+    lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.75,
+  });
 
   /* The threshold line — the reader's while idle, the sweep's mid-trace. */
   const sweeping = midTrace(anim, state);
   const th = sweeping ? sweepThresholdAt(state.walk, anim.pos) : params.threshold;
   const tx = x + Math.max(0, Math.min(1, th)) * w;
-  const ctx2 = plot.ctx;
-  ctx2.save();
-  ctx2.strokeStyle = colors.highlight;
-  ctx2.lineWidth = 2;
-  ctx2.setLineDash([5, 4]);
-  ctx2.beginPath();
-  ctx2.moveTo(tx, y - 4);
-  ctx2.lineTo(tx, y + h);
-  ctx2.stroke();
-  ctx2.setLineDash([]);
-  ctx2.fillStyle = colors.highlight;
-  ctx2.font = `${colors.fsXs} ${colors.font}`;
-  ctx2.textAlign = "center";
-  ctx2.textBaseline = "alphabetic";
-  ctx2.fillText(
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(tx, y - 4);
+  ctx.lineTo(tx, y + h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = colors.highlight;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(
     sweeping ? "sweeping" : `threshold ${fmt(params.threshold, 2)}`,
     Math.max(x + 34, Math.min(x + w - 34, tx)), y - 10
   );
 
-  /* The quadrant counts ARE the confusion matrix; on the real tab their
-     geometry is the strip's own rows. Hidden while the sweep owns the line —
-     they describe the reader's threshold, which is parked mid-trace. */
-  if (real && !sweeping) {
+  /* Quadrant labels at the line: the four regions ARE the matrix, and the
+     matrix panel below repeats them in table form in the SAME positions.
+     Hidden while the sweep owns the line — they describe the reader's
+     threshold, which is parked mid-trace. */
+  if (!sweeping) {
     const m = metricsAt(state.scores, state.labels, params.threshold);
-    ctx2.font = `${colors.fsXs} ${colors.font}`;
-    ctx2.fillStyle = colors.ink2;
-    ctx2.textAlign = "right";
-    ctx2.fillText(`FN ${m.fn}`, tx - 8, y + 26);
-    ctx2.fillText(`TN ${m.tn}`, tx - 8, y + h * 0.5 + 26);
-    ctx2.textAlign = "left";
-    ctx2.fillText(`TP ${m.tp}`, tx + 8, y + 26);
-    ctx2.fillText(`FP ${m.fp}`, tx + 8, y + h * 0.5 + 26);
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.fillStyle = colors.ink2;
+    ctx.textAlign = "right";
+    ctx.fillText(`FN ${m.fn}`, tx - 8, y + 24);
+    ctx.fillText(`TN ${m.tn}`, tx - 8, y + h * 0.5 + 24);
+    ctx.textAlign = "left";
+    ctx.fillText(`TP ${m.tp}`, tx + 8, y + 24);
+    ctx.fillText(`FP ${m.fp}`, tx + 8, y + h * 0.5 + 24);
   }
-  ctx2.restore();
+  ctx.restore();
+}
+
+/* --- the confusion matrix, in the strip's own geometry --------------------- *
+ * Rows follow the strip: true positives on TOP, and the predicted-negative
+ * column on the LEFT — so the table is literally the four quadrants folded
+ * inward, not sklearn's [[TN,FP],[FN,TP]] print order. A deliberate choice
+ * to link the two panels; flip the rows if the notebook's order should win. */
+function drawMatrix(ctx, colors, rect, m, th) {
+  const { x, y, w, h } = rect;
+  const labelW = 52;
+  const headH = 18;
+  const cw = (w - labelW) / 2;
+  const ch = (h - headH) / 2;
+  const cells = [
+    { row: 0, col: 0, key: "FN", n: m.fn, wash: colors.event },
+    { row: 0, col: 1, key: "TP", n: m.tp, wash: colors.event },
+    { row: 1, col: 0, key: "TN", n: m.tn, wash: colors.nonevent },
+    { row: 1, col: 1, key: "FP", n: m.fp, wash: colors.nonevent },
+  ];
+
+  ctx.save();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(`The confusion matrix · threshold ${fmt(th, 2)}`, x, y - 8);
+
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "center";
+  ctx.fillText("pred −", x + labelW + cw * 0.5, y + 12);
+  ctx.fillText("pred +", x + labelW + cw * 1.5, y + 12);
+  ctx.textAlign = "right";
+  ctx.fillText("true +", x + labelW - 8, y + headH + ch * 0.5 + 4);
+  ctx.fillText("true −", x + labelW - 8, y + headH + ch * 1.5 + 4);
+
+  for (const c of cells) {
+    const cx = x + labelW + c.col * cw;
+    const cy = y + headH + c.row * ch;
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = c.wash;
+    ctx.fillRect(cx + 1, cy + 1, cw - 2, ch - 2);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
+    ctx.fillStyle = colors.ink3;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(c.key, cx + 6, cy + 4);
+    ctx.fillStyle = colors.ink1;
+    ctx.font = `${colors.fsMd ?? colors.fsSm} ${colors.fontMono ?? colors.font}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(c.n), cx + cw * 0.58, cy + ch * 0.55);
+    ctx.textBaseline = "alphabetic";
+  }
+  ctx.restore();
 }
 
 /* --- the ROC square ------------------------------------------------------- */
@@ -199,32 +253,55 @@ function drawRoc(plot, { colors, params, state, anim }) {
     plot.dot(fx, fy, { fill: colors.highlight, r: 5 });
   }
 
-  if (done) {
-    plot.note(`AUC ${fmt(state.auc, 3)}`);
-    const m = metricsAt(state.scores, state.labels, params.threshold);
-    plot.dot(m.fpr, m.tpr, { fill: colors.highlight, r: 6 });
+  if (!done) return;
 
-    if (params.youden && state.youden) {
-      const ctx = plot.ctx;
-      const px = plot.sx(state.youden.fpr);
-      const py = plot.sy(state.youden.tpr);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(px, py, 7, 0, Math.PI * 2);
-      ctx.strokeStyle = colors.theory;
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      ctx.fillStyle = colors.theory;
-      ctx.font = `${colors.fsXs} ${colors.font}`;
-      ctx.textAlign = state.youden.fpr < 0.55 ? "left" : "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(
-        `Youden ${fmt(state.youden.th, 2)}`,
-        px + (state.youden.fpr < 0.55 ? 11 : -11), py - 4
-      );
-      ctx.restore();
-    }
+  plot.note(`AUC ${fmt(state.auc, 3)}`);
+  const m = metricsAt(state.scores, state.labels, params.threshold);
+  plot.dot(m.fpr, m.tpr, { fill: colors.highlight, r: 6 });
+
+  /* THE FIND-OPTIMAL SCAN: a probe walks the finished curve, and the
+     vertical segment it carries — down to the chance line — is Youden's J
+     made visible. The longest segment is where it lands. */
+  const scanning = params.youden && anim?.scan && !anim.scan.done;
+  if (scanning) {
+    const p = walkPointAt(state.walk, anim.scan.t * (state.walk.length - 1));
+    segment(plot, colors, p, { dashed: true });
+    plot.dot(p.fpr, p.tpr, { fill: colors.theory, r: 4.5 });
   }
+
+  if (optimumFound(params, anim, state) && state.youden) {
+    const yd = state.youden;
+    segment(plot, colors, yd, { dashed: false });
+    const ctx = plot.ctx;
+    const px = plot.sx(yd.fpr);
+    const py = plot.sy(yd.tpr);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.strokeStyle = colors.theory;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = colors.theory;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = yd.fpr < 0.55 ? "left" : "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`Youden ${fmt(yd.th, 2)}`, px + (yd.fpr < 0.55 ? 11 : -11), py - 4);
+    ctx.restore();
+  }
+}
+
+/* The probe's vertical: from the chance line straight up to the curve. */
+function segment(plot, colors, p, { dashed }) {
+  const ctx = plot.ctx;
+  ctx.save();
+  ctx.strokeStyle = colors.theory;
+  ctx.lineWidth = 2;
+  if (dashed) ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(p.fpr), plot.sy(p.fpr));
+  ctx.lineTo(plot.sx(p.fpr), plot.sy(p.tpr));
+  ctx.stroke();
+  ctx.restore();
 }
 
 /* ========================================================================= */
@@ -239,60 +316,36 @@ defineWidget({
     + "threshold at all. Drag the dashed line to move the threshold.",
   layout: "side",
   status: "draft",
-  height: ({ w }) => (w && w < 640 ? 620 : 440),
+  height: ({ w }) => (w && w < 640 ? 760 : 470),
 
   params: {
-    concept: {
-      type: "segmented",
-      label: "Concept",
-      options: [
-        {
-          value: "threshold", label: "Threshold",
-          detail: "the notebook's heart-failure model on its 60 held-out patients",
-        },
-        {
-          value: "moves", label: "What moves the curve",
-          detail: "a simulated cohort — dial the separation and the class balance",
-        },
-      ],
-      default: "threshold",
-    },
-
-    data: {
-      type: "section",
-      label: "The data",
-      when: { param: "concept", equals: "moves" },
-    },
+    data: { type: "section", label: "The data" },
     sep: {
       type: "float",
       label: "Separation",
       detail: "how far apart the two classes' scores sit",
       min: 0.2, max: 3, step: 0.1, default: 1.3,
-      when: { param: "concept", equals: "moves" },
     },
     balance: {
       type: "float",
       label: "Class balance",
       detail: "the share of patients in the positive class",
       min: 0.1, max: 0.9, step: 0.05, default: 0.5,
-      when: { param: "concept", equals: "moves" },
     },
     n: {
       type: "int",
       label: "Sample size n",
       detail: "fewer patients, chunkier staircase",
       min: 60, max: 600, step: 20, default: 200,
-      when: { param: "concept", equals: "moves" },
     },
     seed: {
       type: "int",
       label: "Draw",
       detail: "another simulated cohort",
       min: 1, max: 200, default: 1,
-      when: { param: "concept", equals: "moves" },
     },
 
-    /* The threshold has no rail control (Kenneth's pick 4): the dashed line
+    /* The threshold has no rail control (round 0, pick 4): the dashed line
        on the strip is dragged, through core's drag channel, and the subtitle
        says so. Still a parameter — the URL must reproduce the figure. */
     threshold: {
@@ -303,13 +356,16 @@ defineWidget({
       hidden: true,
     },
 
-    /* THE WITHHELD ANSWER goes below the drive row (widget 10's rule):
-       Youden is where the curve says to stand, and the reader should sweep
-       the threshold themselves before being handed the optimum. */
+    /* THE WITHHELD ANSWER goes below the drive row (widget 10's rule), and
+       round 2 made it a BUTTON: pressing it completes the curve if needed and
+       sends the probe scanning for the longest distance above chance. A pill
+       is a <button data-param> the fingerprint's setParam cannot toggle —
+       drive its states by URL. */
     youden: {
       type: "bool",
-      label: "Youden's J optimum",
-      detail: "the threshold farthest above the chance line — argmax(TPR − FPR)",
+      style: "pill",
+      label: "Find the optimal threshold",
+      detail: "a probe scans the curve for the longest distance above the chance line — Youden's J",
       default: false,
       display: true,
       afterDrive: true,
@@ -319,40 +375,32 @@ defineWidget({
   },
 
   legend: ({ params }) => [
-    params.concept === "threshold"
-      ? { token: "event", label: "Died", mark: "dot" }
-      : { token: "event", label: "Positive class" },
-    params.concept === "threshold"
-      ? { token: "nonevent", label: "Survived", mark: "dot" }
-      : { token: "nonevent", label: "Negative class" },
+    { token: "event", label: "Positive class" },
+    { token: "nonevent", label: "Negative class" },
     { token: "empirical", label: "ROC curve, traced by the sweep", mark: "line" },
     { token: "reference", label: "Chance — a classifier with no information", mark: "line" },
     { token: "highlight", label: "Decision threshold — drag it", mark: "line" },
     ...(params.youden
-      ? [{ token: "theory", label: "Youden's J optimum", mark: "dot" }]
+      ? [{ token: "theory", label: "Youden's J — the distance above chance", mark: "line" }]
       : []),
   ],
 
   compute: ({ params, rng }) => {
-    const data = params.concept === "moves"
-      ? simulate(rng, { n: params.n, balance: params.balance, sep: params.sep })
-      : { scores: REAL.probs, labels: REAL.labels };
-    const walk = rocWalk(data.scores, data.labels);
-    const nPos = data.labels.reduce((a, l) => a + l, 0);
+    const { scores, labels } = simulate(rng, {
+      n: params.n, balance: params.balance, sep: params.sep,
+    });
+    const walk = rocWalk(scores, labels);
+    const nPos = labels.reduce((a, l) => a + l, 0);
     return {
-      scores: data.scores,
-      labels: data.labels,
+      scores,
+      labels,
       walk,
       auc: aucOf(walk),
       youden: youdenOf(walk),
       nPos,
-      nNeg: data.labels.length - nPos,
-      histPos: params.concept === "moves"
-        ? histogram(data.scores.filter((s, i) => data.labels[i] === 1), [0, 1], HIST_BINS)
-        : null,
-      histNeg: params.concept === "moves"
-        ? histogram(data.scores.filter((s, i) => data.labels[i] === 0), [0, 1], HIST_BINS)
-        : null,
+      nNeg: labels.length - nPos,
+      histPos: histogram(scores.filter((s, i) => labels[i] === 1), [0, 1], HIST_BINS),
+      histNeg: histogram(scores.filter((s, i) => labels[i] === 0), [0, 1], HIST_BINS),
     };
   },
 
@@ -365,26 +413,59 @@ defineWidget({
 
     init: ({ params, state, fromScratch }) => {
       const total = state.walk.length - 1;
-      const pos = fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), total);
-      return { pos, done: pos >= total };
+      /* Finding the optimum needs the whole curve, so a URL arriving with
+         youden=1 opens finished-and-found; Replay retraces and rescans. */
+      const pos = fromScratch ? 0
+        : params.youden ? total
+          : Math.min(Math.max(0, params.shown ?? 0), total);
+      return {
+        pos,
+        done: pos >= total,
+        youdenOn: Boolean(params.youden),
+        scan: params.youden && pos >= total ? { t: 1, done: true } : null,
+      };
     },
 
     advance: (anim, { dt, params, state }) => {
       const total = state.walk.length - 1;
-      if (anim.pos >= total) { anim.done = true; return false; }
-      const target = anim.mode === "step"
-        ? Math.min(total, Math.floor(anim.pos + 1e-9) + 1)
-        : total;
-      const rate = anim.mode === "step" ? 1 / 260 : total / 4500;
-      anim.pos = Math.min(target, anim.pos + dt * rate);
-      if (anim.pos >= total) { anim.pos = total; anim.done = true; return false; }
-      return anim.pos < target;
+      if (anim.pos < total) {
+        const target = anim.mode === "step"
+          ? Math.min(total, Math.floor(anim.pos + 1e-9) + 1)
+          : total;
+        const rate = anim.mode === "step" ? 1 / 260 : total / 4500;
+        anim.pos = Math.min(target, anim.pos + dt * rate);
+        if (anim.pos < target) return true;
+        if (anim.pos < total) return false; // a step landed short of the end
+      }
+      anim.done = true;
+      /* The trace has landed; if the optimum is asked for and not yet found,
+         the scan plays in the same breath — which is what makes Replay with
+         the pill pressed retrace and then re-find. */
+      if (params.youden) {
+        if (!anim.scan) anim.scan = { t: 0 };
+        if (!anim.scan.done) {
+          anim.scan.t = Math.min(1, anim.scan.t + dt / SCAN_MS);
+          if (anim.scan.t < 1) return true;
+          anim.scan.done = true;
+        }
+      }
+      return false;
     },
 
-    rebuild: (anim, { state }) => {
+    /* Display changes land here. Pressing the pill completes the curve
+       (finding an optimum on a partial curve would be a lie) and requests
+       ease frames for the scan; releasing it clears the probe. */
+    rebuild: (anim, { params, state }) => {
       const total = state.walk.length - 1;
       anim.pos = Math.min(anim.pos, total);
-      anim.done = anim.pos >= total;
+      if (params.youden && !anim.youdenOn) {
+        anim.pos = total;
+        anim.done = true;
+        anim.scan = { t: 0 };
+        anim.easing = true;
+      }
+      if (!params.youden) anim.scan = null;
+      anim.youdenOn = Boolean(params.youden);
     },
   },
 
@@ -407,9 +488,12 @@ defineWidget({
       xDomain: [0, 1],
       yDomain: [0, 1],
     });
-    strip.caption(params.concept === "threshold" ? "The held-out test set" : "A simulated cohort");
-    strip.note(`${state.scores.length} patients · ${state.nPos} ${params.concept === "threshold" ? "died" : "positive"}`);
+    strip.caption("A simulated cohort");
+    strip.note(`${state.scores.length} patients · ${state.nPos} positive`);
     drawStrip(strip, { colors, params, state, anim });
+
+    drawMatrix(ctx, colors, L.matrix,
+      metricsAt(state.scores, state.labels, params.threshold), params.threshold);
 
     const roc = makePlot({
       ctx, colors,
@@ -424,7 +508,6 @@ defineWidget({
   readout: ({ params, state, anim }) => {
     const done = traced(anim, state);
     const m = metricsAt(state.scores, state.labels, params.threshold);
-    const eventW = params.concept === "threshold" ? "deaths" : "positives";
     const tiles = [
       {
         label: "AUC",
@@ -441,20 +524,15 @@ defineWidget({
       {
         label: "Sensitivity",
         value: fmt(m.sensitivity, 2),
-        note: `${m.tp} of ${state.nPos} ${eventW} found`,
+        note: `${m.tp} of ${state.nPos} positives found`,
       },
       {
         label: "Specificity",
         value: fmt(m.specificity, 2),
         note: `${m.tn} of ${state.nNeg} negatives cleared`,
       },
-      {
-        label: params.concept === "threshold" ? "Missed deaths" : "Missed positives",
-        value: String(m.fn),
-        note: `of ${state.nPos} — called negative at this threshold`,
-      },
     ];
-    if (params.youden && done && state.youden) {
+    if (optimumFound(params, anim, state) && state.youden) {
       tiles.push({
         label: "Youden threshold",
         value: fmt(state.youden.th, 2),
