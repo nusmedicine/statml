@@ -3216,6 +3216,39 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 16 — who is censored, as a picker (pick C1)
+
+**Kenneth settled Modeling and turned to the Censoring rail: "the
+controls look a bit weird, as we have a specific one for patient E?
+should we have a picker (like the snps)?" Mocked first** (mock §7, both
+candidates as live chips), **picked C1: the picker replaces both.** One
+"Censored" chip row of patient letters — default B · E, the notebook's
+table exactly — replacing the Censored COUNT, its invisible fixed flip
+order (E, B, F, G, H, C, D), the "A stays an event" clamp (an artefact
+of that order, not a teaching decision), and the bespoke Patient E's
+time slider, whose lesson survives as CHOICE: censoring C (t = 6,
+mid-events) moves different denominators than censoring B (t = 10,
+after everything) — asserted, S(8) 0.30 → 0.40. E's time is the
+notebook's 7 for good.
+
+**Core: the bits control gained `bitsFrom`** — a chip count that follows
+another parameter, declared declaratively and registered in
+`gatingParams`, so the SAME rebuild rule that serves `when` re-renders
+the row when Patients moves (5.3's no-opaque-predicates line holds). A
+pick beyond the roster stays in the value — hide a patient and the
+pick is remembered, not erased (asserted). Every censored lane now
+names a cause (the round-2 fix extended to the full roster — the two
+notebook causes alternate; B and E keep theirs). The reachable
+all-censored corner is honest: zero events, the kept curve holds at 1,
+and the dropped reading of nobody says "—", not a number.
+
+Verified: drive re-pinned at **135 checks**; in-browser — the row grows
+A–E → A–G as Patients moves, pressing G writes `?cens=82`; 550px sweep
+at ten patients with four censored: 0 overruns, 0 collisions, all four
+reason labels painted, the mechanism phrase computed from the mask; no
+console errors. `npm run check` green. The standing suite-run debt
+covers this round's controls.js line too.
+
 ### Round 15 — three tweaks under Modeling
 
 Kenneth's pass over round 14: (1) the compact curves carry **confidence

@@ -186,6 +186,58 @@
     </div>
   </div>
 
+  <h2>§7 · ROUND 16 — the Censoring rail: who is censored, as a picker</h2>
+  <p class="note">
+    <b>Kenneth's read of the current rail: three controls where one idea
+    lives</b> — a Censored COUNT that flips patients in a fixed order the
+    reader cannot see, and a bespoke "Patient E's time" slider that singles
+    out one patient. The SNP chips suggest the shape: <b>press the patients
+    who are censored.</b> The count falls out of the picker; the fixed
+    order dies; and the E-time lesson (WHERE a censoring falls among the
+    events decides every later denominator) is taught by CHOICE instead —
+    censoring C (t = 6, mid-events) moves different denominators than
+    censoring B (t = 10, after everything). Defaults stay the notebook's
+    table exactly: B and E pressed. Both candidates below are live chips;
+    the second row shows the same control at ten patients.
+  </p>
+  <div class="rails">
+    <div class="rail">
+      <h4>C1 — the picker replaces both (recommended)</h4>
+      <div class="sect">The patients</div>
+      <div class="ctl"><span class="lbl">Patients</span>
+        <div class="seg"><b>5</b><b class="on">7</b><b>10</b></div></div>
+      <div class="ctl"><span class="lbl">Censored</span>
+        <div class="seg" id="pchips5"></div></div>
+      <p class="cap" style="max-width:250px" id="pchips5-cap"></p>
+      <div class="ctl"><span class="lbl">at ten patients</span>
+        <div class="seg" id="pchips10"></div></div>
+      <p class="cap" style="max-width:250px">the chip row FOLLOWS the patient
+      count — chips exist only for patients on the stage (the control
+      rebuilds when Patients moves; core's bits control gains a
+      count-follows-a-param door, or the widget re-declares it)</p>
+    </div>
+    <div class="rail">
+      <h4>C2 — the picker, and E's slider survives</h4>
+      <div class="sect">The patients</div>
+      <div class="ctl"><span class="lbl">Censored</span>
+        <div class="seg" id="pchips2"></div></div>
+      <div class="ctl"><span class="lbl">Patient E's time</span>
+        <div style="height:18px;background:linear-gradient(to right,var(--grid),var(--grid)) no-repeat center/100% 4px;position:relative"><span style="position:absolute;left:64%;top:2px;width:14px;height:14px;border-radius:50%;background:var(--ink-3)"></span></div></div>
+      <p class="cap" style="max-width:250px">keeps the round-8 continuous
+      lever (drag one censoring ACROSS the events), at the cost of the
+      exact E-shaped weirdness being reviewed</p>
+    </div>
+  </div>
+  <p class="note">
+    <b>What the build must handle if C1 is picked</b> (noted now, asserted
+    then): pressing EVERY chip leaves zero events — the curve holds at 1.0,
+    the product line is empty, and the dropped reading has no patients; all
+    three states must stay honest (the c = 0 "two readings agree" note
+    already exists at the other corner). A is pressable under C1 — the
+    "A stays an event" clamp was an artefact of the fixed flip order.
+    E's time returns to the notebook's 7 for good.
+  </p>
+
   <h2>§6 · ROUND 14 — the labels, the chips, and what needs no mock</h2>
   <p class="note">
     <b>Two of the four asks need no picture</b>: Causal SNPs becomes
@@ -613,6 +665,40 @@ document.getElementById("m1-da").innerHTML = eqRow(M1.da);
 document.getElementById("m1-das").innerHTML = eqRow(M1.das);
 document.getElementById("m1-narrow").innerHTML = eqRow(M1.das);
 document.getElementById("m2").innerHTML = eqRow(EXP_ROW) + eqRow(M1.das);
+
+/* §7 — the censored-patient pickers, live, with the highlight fill the
+   shipping chips wear since round 15 */
+function chipRow(hostId, letters, pressedSet, capId) {
+  const host = document.getElementById(hostId);
+  const on = new Set(pressedSet);
+  const update = () => {
+    [...host.children].forEach((b) => b.setAttribute("aria-pressed", String(on.has(b.textContent))));
+    if (capId) {
+      const names = [...on].sort();
+      document.getElementById(capId).textContent = names.length
+        ? `${names.join(", ")} censored — the mechanism notes and lanes follow`
+        : "no patient is censored — the two readings agree";
+    }
+  };
+  for (const L of letters) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = L;
+    b.style.cssText = "font-size:var(--fs-xs);padding:5px 0;min-width:24px;border:0;border-left:1px solid var(--grid);background:none;color:var(--ink-2);cursor:pointer";
+    b.addEventListener("click", () => { on.has(L) ? on.delete(L) : on.add(L); update(); });
+    host.appendChild(b);
+  }
+  update();
+}
+{
+  const fill = document.createElement("style");
+  fill.textContent = "#pchips5 button:first-child,#pchips10 button:first-child,#pchips2 button:first-child{border-left:0}"
+    + "#pchips5 button[aria-pressed='true'],#pchips10 button[aria-pressed='true'],#pchips2 button[aria-pressed='true']{background:var(--c-highlight);color:var(--surface-1);font-weight:600}";
+  document.head.appendChild(fill);
+  chipRow("pchips5", ["A", "B", "C", "D", "E", "F", "G"], ["B", "E", "F"], "pchips5-cap");
+  chipRow("pchips10", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], ["B", "E"], null);
+  chipRow("pchips2", ["A", "B", "C", "D", "E"], ["B", "E"], null);
+}
 
 /* §6 — the chip row, interactive so the width and the feel are judged live */
 {

@@ -48,6 +48,15 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
+   **ROUND 16 IS BUILT (2026-08-29), Kenneth's pick C1: WHO is censored
+   is a chip picker over the patient roster** — default B · E (the
+   notebook's table), replacing the Censored count, the fixed flip
+   order, the A-clamp and the Patient E's time slider; core's bits
+   control gained the declarative `bitsFrom` door (chip count follows
+   Patients via the existing gating-rebuild rule). All-censored is
+   reachable and honest ("—" on the dropped tile). Drive **135
+   checks**; 550px sweep clean; the suite-run debt covers this
+   controls.js line too. Kenneth has settled Modeling.
    **ROUND 15 IS BUILT (2026-08-29): bands+ticks always on Modeling's
    curves; pressed pills and chips FILL with --c-highlight (tokens.css —
    also strengthens the lm arc's pills, flagged for Kenneth's veto);

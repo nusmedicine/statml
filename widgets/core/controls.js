@@ -93,6 +93,12 @@ export function fieldShowing(field, values) {
 export function gatingParams(spec) {
   const names = new Set();
   for (const field of Object.values(spec)) if (field.when) names.add(field.when.param);
+  /* a bits control whose CHIP COUNT follows another parameter (round 16,
+     widget 31's censored-patient picker following Patients) declares it
+     declaratively — `bitsFrom: "patients"` — so the same rebuild rule
+     that serves `when` serves it: the block rebuilds when exactly that
+     parameter moves, and 5.3's no-opaque-predicates line holds */
+  for (const field of Object.values(spec)) if (field.bitsFrom) names.add(field.bitsFrom);
   return names;
 }
 
@@ -412,7 +418,14 @@ function build(host, spec, values, onChange, api) {
          stage is what you SEE — round 11's ruling), and one bool per bit
          (ten parameters for one idea). */
       if (labelled) wrap.appendChild(label);
-      const bits = field.bits ?? 8;
+      /* the chip count may follow another parameter (bitsFrom) — the
+         block rebuilds when that parameter moves, so reading it here at
+         build time is always current. Bits past the count keep their
+         place in the value: hide a patient and the pick is remembered,
+         not silently erased. */
+      const bits = field.bitsFrom
+        ? Math.max(1, Number(values[field.bitsFrom]) || 1)
+        : (field.bits ?? 8);
       const seg = document.createElement("div");
       seg.className = "w-seg w-seg-bits";
       seg.setAttribute("role", "group");

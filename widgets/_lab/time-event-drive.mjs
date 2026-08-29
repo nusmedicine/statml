@@ -47,8 +47,8 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
    overlay cut as notebook-absent) — their absence is asserted by the
    no-parameters-beyond-those check below */
 const WANT = {
-  concept: "segmented", people: "section", patients: "int", ncens: "int",
-  etime: "int", reading: "section", censored: "segmented",
+  concept: "segmented", people: "section", patients: "int", cens: "int",
+  reading: "section", censored: "segmented",
   data: "section", n: "choice", effect: "choice", causal: "int", follow: "choice",
   curves: "section", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
@@ -81,11 +81,15 @@ ck("the shared data controls show on both cohort tabs (oneOf)",
   ["data", "n", "effect", "follow", "seed"].every(
     (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
 ck("the data controls are DATA parameters (moving one restarts the sweep)",
-  ["n", "effect", "causal", "follow", "seed", "etime"].every((k) => !W.params[k].display));
-ck("defaults: 200 patients, moderate effect, SNPs 1-3 causal (mask 7), 12-year follow-up, E at 7",
+  ["n", "effect", "causal", "follow", "seed", "cens", "patients"].every((k) => !W.params[k].display));
+ck("defaults: 200 patients, moderate effect, SNPs 1-3 causal (mask 7), 12-year follow-up, B and E censored (mask 18)",
   W.params.n.default === "200" && W.params.effect.default === "moderate"
   && W.params.causal.default === 7
-  && W.params.follow.default === "12" && W.params.etime.default === 7);
+  && W.params.follow.default === "12" && W.params.cens.default === 18);
+ck("the censored picker is chips whose count follows Patients (round 16)",
+  W.params.cens.style === "bits" && W.params.cens.bitsFrom === "patients"
+  && W.params.cens.bitLabels.join("") === "ABCDEFGHIJ"
+  && W.params.cens.when?.equals === "censoring");
 ck("the follow ladder is 5/9/12/25 (round 13 — a too-short study must fail)",
   W.params.follow.options.map((o) => o.value).join() === "5,9,12,25");
 ck("Causal SNPs is ten chips on the Modeling tab only (round 14)",
@@ -141,12 +145,13 @@ ck("the bins stop by 20 years", state.hazBins[state.hazBins.length - 1].hi <= 20
 
 console.log("\n== the play surface, at its corners ==");
 {
-  /* E's lever: leave before the first event and every denominator shifts */
-  const s3 = W.compute({ params: { ...values, etime: 3 }, rng: makeRng(values.seed) });
-  const first = s3.five.kept.steps.find((s) => s.t === 5);
-  ck("E gone at 3: the first event is 1 of 4, S = 0.75",
-    first.atRisk === 4 && Math.abs(first.S - 0.75) < 1e-12);
-  ck("...and the censor mark moved to t = 3", s3.five.kept.censors[0].t === 3);
+  /* the picker teaches WHERE a censoring falls (round 16): swap B's
+     censoring (t=10, after everything) for C's (t=6, mid-events) and
+     the denominators past 6 shift — S(8) moves 0.30 → 0.40 */
+  const sC = W.compute({ params: { ...values, cens: 0b10100 }, rng: makeRng(values.seed) });
+  const at8 = (st) => { let S = 1; for (const s of st.steps) { if (s.t <= 8) S = s.S; else break; } return S; };
+  ck("censoring C instead of B moves the later denominators (S(8): 0.30 → 0.40)",
+    Math.abs(at8(state.five.kept) - 0.3) < 1e-12 && Math.abs(at8(sC.five.kept) - 0.4) < 1e-12);
   /* effect: none — the groups genuinely share a curve on this draw */
   const sNone = W.compute({ params: { ...values, effect: "none" }, rng: makeRng(values.seed) });
   ck(`effect none: log-rank does not fire (p = ${fmtP(sNone.lr.p)})`, sNone.lr.p > 0.01);
@@ -210,17 +215,35 @@ console.log("\n== the play surface, at its corners ==");
   ck("defaults reproduce the notebook's table exactly",
     state.fiveT.join() === "5,10,6,8,7" && state.fiveS.join() === "1,0,1,1,0"
     && state.censPhrase === "B and E");
-  const s10 = W.compute({ params: { ...values, patients: 10, ncens: 4 }, rng: makeRng(values.seed) });
-  ck("ten patients, four censored: E, B, F, G in the fixed order",
+  const s10 = W.compute({ params: { ...values, patients: 10, cens: 0b1110010 }, rng: makeRng(values.seed) });
+  ck("ten patients, picks B, E, F, G: the phrase computes from the mask",
     s10.fiveT.length === 10 && s10.nCens === 4 && s10.censPhrase === "B, E, F and G");
   ck("the tied event at t = 6 exists at n = 10 (C and J)",
     s10.five.kept.steps.some((st) => st.t === 6 && st.events === 2));
-  const s0c = W.compute({ params: { ...values, ncens: 0 }, rng: makeRng(values.seed) });
+  const s0c = W.compute({ params: { ...values, cens: 0 }, rng: makeRng(values.seed) });
   ck("zero censored: the two readings are one curve",
     JSON.stringify(s0c.five.kept.steps) === JSON.stringify(s0c.five.dropped.steps));
-  const sClamp = W.compute({ params: { ...values, ncens: 7 }, rng: makeRng(values.seed) });
-  ck("ncens clamps to the four flippable patients at n = 5 (A stays an event)",
-    sClamp.nCens === 4 && sClamp.fiveS[0] === 1);
+  /* round 16's new corners: any patient is pressable, high bits beyond
+     the roster are ignored, and a fully censored study stays honest */
+  const sA = W.compute({ params: { ...values, cens: 1 }, rng: makeRng(values.seed) });
+  ck("A is pressable now (the old clamp was a flip-order artefact)",
+    sA.censPhrase === "A" && sA.fiveS[0] === 0);
+  const sHi = W.compute({ params: { ...values, cens: 512 + 18 }, rng: makeRng(values.seed) });
+  ck("a pick beyond the roster is remembered, not applied (J's bit at 5 patients)",
+    sHi.nCens === 2 && sHi.censPhrase === "B and E");
+  const sAll = W.compute({ params: { ...values, cens: 31 }, rng: makeRng(values.seed) });
+  ck("all five censored: zero events, the kept curve holds at 1",
+    sAll.fiveS.every((s) => s === 0)
+    && sAll.five.kept.steps.every((st) => st.events === 0 && st.S === 1));
+  {
+    const tiles = W.readout({ params: { ...values, cens: 31, censored: "dropped" }, state: sAll, anim: { t: 10 } });
+    ck("...and the dropped reading of nobody says — , not a number",
+      tiles.find((x) => x.label === "Survival").value === "—");
+    ck("...readout and summary stay clean at the corner",
+      !/NaN|undefined|Infinity/.test(
+        tiles.map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
+        + W.summary({ params: { ...values, cens: 31, censored: "dropped" }, state: sAll, anim: { t: 10 } })));
+  }
   ck("heights grow with the lanes",
     W.height({ concept: "censoring", patients: 10 }) - W.height({ concept: "censoring", patients: 5 })
       === 5 * 26);

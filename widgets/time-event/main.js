@@ -84,6 +84,15 @@
    the lm arc's pills on purpose); and Play speed left the tab (no
    clock, no speed).
 
+   ROUND 16 (pick C1, mocked first): WHO is censored became a chip picker
+   over the roster — one bitmask, the chip count following the Patients
+   control (core's bits gained the declarative `bitsFrom` door,
+   registered as a gating param so the existing rebuild rule serves it).
+   The Censored count, its fixed flip order, the "A stays an event"
+   clamp and the Patient E's time slider are gone; every censored lane
+   now names a cause; all-censored is reachable and honest (dropped
+   reads "—" — a study of nobody has no survival).
+
    One motion throughout: a time cursor sweeps right and curves build under
    it. The `censored` control is display: true — three readings of ONE
    dataset, so toggling never resets the sweep. `anim.done` is re-read
@@ -111,23 +120,28 @@ import { km, logrank, coxph, simulate } from "./model.js";
 
 /* --- the patients — the notebook's five, extendable (round 9) ------------- *
  * The first five ARE the notebook's table (A–E, times 5/10/6/8/7), and the
- * defaults reproduce it exactly: 5 patients, 2 censored. The Patients
- * control extends the table with five more hand-fixed lanes (F–J — J ties
- * C at t = 6, so ten patients include a tied event, d/n = 2/n), and the
- * Censored control flips statuses in a FIXED order, E and B first, so the
- * notebook's pair goes first and A is always an event. Deterministic on
- * purpose — no draw on this tab: the human scale stays a table you can
- * point at. E's time stays the round-8 lever. */
+ * defaults reproduce it exactly: 5 patients, B and E censored. The
+ * Patients control extends the table with five more hand-fixed lanes
+ * (F–J — J ties C at t = 6, so ten patients include a tied event,
+ * d/n = 2/n), and WHO is censored is the reader's pick (round 16 — the
+ * chips replaced a count with a fixed flip order and a bespoke Patient
+ * E's time slider; Kenneth: "the controls look a bit weird"). The
+ * where-the-censoring-falls lesson survived the cut as CHOICE: censoring
+ * C (t = 6, mid-events) moves different denominators than censoring B
+ * (t = 10, after everything). Deterministic on purpose — no draw on
+ * this tab: the human scale stays a table you can point at. */
 const P_IDS = "ABCDEFGHIJ";
-const P_TIMES = [5, 10, 6, 8, 7, 3, 9, 4, 2, 6]; // slot 4 (E) overridden by etime
-const CENSOR_ORDER = [4, 1, 5, 6, 7, 2, 3]; // E, B, F, G, H, C, D
-function patientTable(nPat, cWant, etime) {
+const P_TIMES = [5, 10, 6, 8, 7, 3, 9, 4, 2, 6];
+function patientTable(nPat, censMask) {
   const times = P_TIMES.slice(0, nPat);
-  times[4] = etime;
   const status = new Array(nPat).fill(1);
-  const order = CENSOR_ORDER.filter((i) => i < nPat);
-  const censoredIdx = order.slice(0, Math.min(cWant, order.length));
-  for (const i of censoredIdx) status[i] = 0;
+  const censoredIdx = [];
+  for (let i = 0; i < nPat; i += 1) {
+    if ((censMask >> i) & 1) {
+      status[i] = 0;
+      censoredIdx.push(i);
+    }
+  }
   return { times, status, censoredIdx };
 }
 /* "B and E", "E", "B, C and E" — the names the mechanism notes speak in */
@@ -137,8 +151,22 @@ function namePhrase(idx) {
   if (names.length === 1) return names[0];
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
-/* the lesson's two causes of censoring, named on the lanes when they apply */
-const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
+/* every censored lane names its cause — an unlabelled open circle reads
+   as "survived", the misconception in costume (round 2's fix, extended to
+   the whole roster in round 16 now that ANY patient is pressable). The
+   lesson's two causes alternate; B and E keep the notebook's. */
+const CENSOR_WHY = {
+  0: "study ended",
+  1: "study ended",
+  2: "dropped out",
+  3: "study ended",
+  4: "dropped out",
+  5: "dropped out",
+  6: "study ended",
+  7: "dropped out",
+  8: "study ended",
+  9: "dropped out",
+};
 
 /* the Disease-effect ladder, in time units — values measured over 100 seeds
    per cell (model.js header has the grid): none sits on the 5% floor at
@@ -424,23 +452,23 @@ defineWidget({
       default: 5,
       when: { param: "concept", equals: "censoring" },
     },
-    ncens: {
+    /* WHO is censored, as chips (round 16, pick C1 — the SNP picker's
+       shape). One bitmask over the roster, the chip count following the
+       Patients control (bitsFrom). Default 18 = B and E, the notebook's
+       table. Replaces the Censored count, its invisible fixed flip
+       order, and the Patient E's time slider; a censoring's PLACE among
+       the events is now taught by choice — press C instead of B and
+       different denominators move. */
+    cens: {
       type: "int",
+      style: "bits",
+      bitsFrom: "patients",
+      bitLabels: [..."ABCDEFGHIJ"],
       label: "Censored",
-      detail: "how many never show their event",
+      detail: "press the patients whose event is never seen",
       min: 0,
-      max: 7,
-      default: 2,
-      when: { param: "concept", equals: "censoring" },
-    },
-    /* the round-8 lever: when E leaves, relative to the events, decides
-       every later denominator */
-    etime: {
-      type: "int",
-      label: "Patient E's time",
-      min: 1,
-      max: 10,
-      default: 7,
+      max: 1023,
+      default: 18,
       when: { param: "concept", equals: "censoring" },
     },
 
@@ -648,7 +676,7 @@ defineWidget({
   ],
 
   compute({ params, rng }) {
-    const table = patientTable(params.patients, params.ncens, params.etime);
+    const table = patientTable(params.patients, Number(params.cens));
     const fiveT = table.times;
     const five = readings(fiveT, table.status);
     const sim = simulate(rng, {
@@ -889,7 +917,12 @@ defineWidget({
       const treatment = params.censored;
       const atRisk = state.fiveT.filter((v) => v > t).length;
       const events = state.fiveT.filter((v, i) => state.fiveS[i] === 1 && v <= t).length;
-      const S = readS(state.five[treatment].steps, t);
+      /* every patient censored + dropped = a study of nobody: the tile
+         says "—" rather than a survival no data supports (round 16 —
+         the picker made the corner reachable) */
+      const S = treatment === "dropped" && !state.five.dropped.steps.length
+        ? NaN
+        : readS(state.five[treatment].steps, t);
       return [
         { label: "At risk", value: String(atRisk), note: "patients still being followed" },
         { label: "Events", value: String(events), note: "each steps the curve down by 1 over the number at risk" },
@@ -953,7 +986,9 @@ defineWidget({
   summary({ params, state, anim }) {
     const t = anim?.t ?? 0;
     if (params.concept === "censoring") {
-      const S = readS(state.five[params.censored].steps, t);
+      const S = params.censored === "dropped" && !state.five.dropped.steps.length
+        ? NaN
+        : readS(state.five[params.censored].steps, t);
       return `${state.nPat} patients followed over time: ${state.nPat - state.nCens} events, ${state.nCens} censored. A Kaplan–Meier curve built to time ${fmt(t, 1)}, survival ${fmt(S, 2)}, with a hazard bar at each event time showing the share of those at risk who had the event.`;
     }
     if (params.concept === "groups") {
