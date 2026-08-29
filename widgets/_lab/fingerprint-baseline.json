@@ -1708,49 +1708,49 @@
    "tx": "e501c441"
   },
   {
-   "$note": "SETTLED: the empty open — patients coloured by sex, no model (non-negotiable 4).",
+   "$note": "SETTLED: the empty open — patients coloured by sex, no model (non-negotiable 4). Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light",
    "px": "22d31557",
-   "tx": "9bbb8423"
+   "tx": "daecf791"
   },
   {
-   "$note": "SETTLED: the independent fit — one slope, 5 apart; the probe at 60 reading the constant −5.0.",
+   "$note": "SETTLED: the independent fit — one slope, 5 apart; the probe at 60 reading the constant −5.0. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1",
    "px": "402201f4",
-   "tx": "cf08f4eb"
+   "tx": "942463a1"
   },
   {
-   "$note": "SETTLED: the interacting fit — the crossing at 46.9; the four-row equation card in tx.",
+   "$note": "SETTLED: the interacting fit — the crossing at 46.9; the four-row equation card in tx. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times",
    "px": "8252913b",
-   "tx": "7201b251"
+   "tx": "cbbda99f"
   },
   {
-   "$note": "SETTLED: the extrapolation — the domain at [0,69], the shaded no-patients stretch, the +95.57 bracket.",
+   "$note": "SETTLED: the extrapolation — the domain at [0,69], the shaded no-patients stretch, the +95.57 bracket. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times&zero=1",
    "px": "9b2d3896",
-   "tx": "7201b251"
+   "tx": "cbbda99f"
   },
   {
-   "$note": "SETTLED: the 2×2 parallel — one diabetes effect for everyone, the observed ticks visibly missed.",
+   "$note": "SETTLED: the 2×2 parallel — one diabetes effect for everyone, the observed ticks visibly missed. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&concept=diabsex",
    "px": "1f1cfffd",
-   "tx": "ae6124e2"
+   "tx": "eeb462e6"
   },
   {
-   "$note": "SETTLED: the 2×2 pivoted — the lines on the means, the interaction bracket at 21.02.",
+   "$note": "SETTLED: the 2×2 pivoted — the lines on the means, the interaction bracket at 21.02. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times&concept=diabsex",
    "px": "57bb7d67",
-   "tx": "6002d6f1"
+   "tx": "94812029"
   },
   {
-   "$note": "DRIVEN: mid-split — the lines partway between one-slope and crossing, the probe gap counting.",
+   "$note": "DRIVEN: mid-split — the lines partway between one-slope and crossing, the probe gap counting. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1",
    "drive": {
@@ -1761,10 +1761,10 @@
     "dt": 32
    },
    "px": "39e3f789",
-   "tx": "7201b251"
+   "tx": "cbbda99f"
   },
   {
-   "$note": "DRIVEN: mid-slide — dots, lines and ticks sharing one lerped x-domain toward zero, the shade fading in.",
+   "$note": "DRIVEN: mid-slide — dots, lines and ticks sharing one lerped x-domain toward zero, the shade fading in. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times",
    "drive": {
@@ -1775,10 +1775,10 @@
     "dt": 32
    },
    "px": "ce3fb841",
-   "tx": "7201b251"
+   "tx": "cbbda99f"
   },
   {
-   "$note": "DRIVEN: the 2×2 mid-pivot — the interaction plot between parallel and the means, slope labels counting.",
+   "$note": "DRIVEN: the 2×2 mid-pivot — the interaction plot between parallel and the means, slope labels counting. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&concept=diabsex",
    "drive": {
@@ -1789,10 +1789,10 @@
     "dt": 32
    },
    "px": "d5fbae0a",
-   "tx": "6002d6f1"
+   "tx": "94812029"
   },
   {
-   "$note": "HIT-DRIVEN: the probe's year-40 region at [160,160] — the probe jumps and the bracket re-reads; an instant param flip, so zero frames, and still different from its bare URL: the per-year hit geometry proven.",
+   "$note": "HIT-DRIVEN: the probe's year-40 region at [160,160] — the probe jumps and the bracket re-reads; an instant param flip, so zero frames, and still different from its bare URL: the per-year hit geometry proven. Re-shot 2026-08-29 for the generic legend (tx only).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times",
    "drive": {
@@ -1804,7 +1804,7 @@
     "dt": 32
    },
    "px": "120b52c0",
-   "tx": "7201b251"
+   "tx": "cbbda99f"
   },
   {
    "$note": "SETTLED: Censoring finished, B and E censored (the notebook table). All nine recorded 2026-08-29 at DPR 1.25: identical across three suite runs, with the 198 pre-existing states matching on every run.",
@@ -1973,6 +1973,34 @@
    },
    "px": "ccc82bf7",
    "tx": "c7589379"
+  },
+  {
+   "$note": "SETTLED act 1 (revived 2026-08-29): the parallel BMI levels — one age slope everywhere, the probe at 25 reading +1.32.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&concept=agebmi&fit=1",
+   "px": "fff9204c",
+   "tx": "f240c962"
+  },
+  {
+   "$note": "SETTLED act 1: the fan — crossing at age 57.2, the probe at BMI 40 reading a NEGATIVE age slope, the per-level card rows in tx.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&concept=agebmi&fit=1&terms=times&probebmi=40",
+   "px": "c88ad1b2",
+   "tx": "d89b092f"
+  },
+  {
+   "$note": "DRIVEN act 1 mid-split: the levels partway from parallel to the fan, the probe slope counting from the lerped coefficients.",
+   "slug": "lm-interaction",
+   "state": "?theme=light&concept=agebmi&fit=1",
+   "drive": {
+    "set": {
+     "terms": "times"
+    },
+    "frames": 4,
+    "dt": 32
+   },
+   "px": "8f0033f5",
+   "tx": "d89b092f"
   }
  ]
 }

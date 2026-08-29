@@ -246,10 +246,15 @@ defineWidget({
     },
   },
 
+  /* generic (Kenneth 2026-08-29, the mixed-model ruling applied): the
+     canvas names the groups where they appear — the lines say women and
+     men on the sex tabs, the fan lines say their BMI level — and the
+     age × BMI tab's neutral cloud claims no group at all */
   legend: [
-    { token: "group-a", label: "Women (sex 0, the reference) — their patients, cell mean and model line", mark: "dot" },
-    { token: "group-b", label: "Men (sex 1) — their patients, cell mean and model line", mark: "dot" },
-    { token: "highlight", label: "The effect being read from the model — the probe's gap, or the interaction bracket", mark: "line" },
+    { token: "group-a", label: "Group A — its patients, cell mean and model line", mark: "dot" },
+    { token: "group-b", label: "Group B — its patients, cell mean and model line", mark: "dot" },
+    { token: "empirical", label: "The model drawn at sample BMI levels", mark: "line" },
+    { token: "highlight", label: "The effect being read from the model — the probe's reading, or the interaction bracket", mark: "line" },
   ],
 
   compute() {

@@ -1,6 +1,6 @@
 # Handover
 
-**Thirty-two widgets, all shipped, all on the gallery, and 217
+**Thirty-two widgets, all shipped, all on the gallery, and 220
 fingerprint states recorded. THE AGREED MODELING ARC IS COMPLETE** —
 widget 32 `mixed-model` (05-07, the arc's last slot) shipped 2026-08-29
 after seven review rounds in one day; see its section below and
@@ -179,7 +179,13 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 217 states, all matching
+## The suite: 220 states, all matching
+
+**Widget 30 re-baselined and extended on 2026-08-29** (the revived age ×
+BMI act + the generic legend): the ten recorded states re-shot in the
+same commit as the legend change — px identical on all ten, tx moved on
+all ten, asserted at splice — plus three act-1 states; confirming run
+**220 of 220 MATCH**.
 
 **Widget 32 added ten states on 2026-08-29 with `_lab/mixed-shoot.html`**
 (the lm-shoot pattern): copy proved 4/4 against recorded hashes, every

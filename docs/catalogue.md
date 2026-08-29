@@ -4261,11 +4261,15 @@ form; the legacy women/men output is BYTE-IDENTICAL and a full suite run
 proved it: **217 of 217 MATCH**, nothing recorded moved. The patients are
 one neutral cloud on this tab — BMI is on neither axis, which is why the
 model must carry it. Concept order now mirrors the notebook (act 1 first)
-with the default still agesex (the approved opening story). OPEN: the
-legend's women/men dot entries read wrong on the neutral-cloud tab —
-fixing them is a tx change to all ten recorded states (cheap rebaseline
-via the shooter, same-commit) and awaits Kenneth's wording; new states
-for the tab go in on his "tested ok".
+with the default still agesex (the approved opening story). The legend went GENERIC on
+Kenneth's "fix the legend" (the mixed-model ruling applied): Group A/B
+with the canvas naming the groups where they appear, an entry added for
+the fan's sample levels, and the highlight line reworded for the two
+probes. All ten recorded states re-shot in the same commit — the splice
+ASSERTED px identical on every one (the legend is DOM-only) and tx moved
+on every one — plus three new act-1 states (parallel levels; the fan
+with the probe at BMI 40 reading a negative slope; the mid-split ease).
+The confirming suite run read **220 of 220 MATCH**.
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,
 built and revised over two rounds in one session.** Title **Fitting an
