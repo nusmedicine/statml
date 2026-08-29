@@ -1,21 +1,11 @@
 /* ============================================================================
    Widget 34 · roc-auc — Scoring a Classifier
 
-   ROUND 2 (Kenneth, 2026-08-29): ONE page — round 1's two tabs duplicated the
-   stage, so the real-test-set tab was cut and the simulated cohort with its
-   dials is the whole widget (the all-simulated precedent is lm-diagnostics;
-   the notebook's own 60-patient numbers survive in model.js and the measure
-   script). Kept: the sweep that traces the ROC curve, and the dragged
-   threshold line. Added: the confusion matrix as its own panel, counts
-   moving as you scrub the threshold; and Youden as a FIND-OPTIMAL button —
-   a probe scans along the finished curve measuring the vertical distance to
-   the chance line, and lands on the longest one.
-
-   The stage is still round 0's candidate B: score distributions left with
-   the threshold cutting them into the four quadrants, ROC square right,
-   the threshold's (FPR, TPR) a dot ON the curve. The curve is never given
-   away — the reader traces it, one patient per step, up for a positive and
-   right for a negative.
+   One simulated cohort: overlaid score histograms with a draggable decision
+   threshold, the confusion matrix at that threshold, and the ROC square. The
+   curve opens untraced; the sweep traces it one patient at a time, and the
+   find-optimal button scans it for Youden's J and moves the threshold there.
+   Every design round and its reversals: docs/catalogue.md § Widget 34.
    ========================================================================= */
 
 import { defineWidget, makePlot, histogram, fmt } from "../core/index.js";
@@ -29,13 +19,10 @@ const HIST_BINS = 36;
 const SCAN_MS = 1400; // the find-optimal probe's sweep along the curve
 const TRACE_MS = { slow: 9000, medium: 4500, fast: 2200 }; // Play speed, whole sweep
 
-/* The widget's own handle on itself, for the one write the reader's press
-   asks for: when the find-optimal scan lands, the threshold MOVES to the
-   optimum (round 4 — the button is an action, not a toggle). The write goes
-   through the exported setParam — the door that syncs the rail first — and
-   the button releases itself in the same breath, so a later press runs the
-   search again. Deferred a beat so the landing is seen before the line moves;
-   the youden guard makes a stale timer harmless after Reset. */
+/* When the find-optimal scan lands, the threshold moves to the optimum and
+   the button releases itself — both through the exported setParam, the door
+   that syncs the rail. Deferred a beat so the landing is seen before the
+   line moves; the youden guard disarms a stale timer after Reset. */
 let widgetApi = null;
 function applyOptimum(th) {
   setTimeout(() => {
@@ -108,13 +95,9 @@ const midTrace = (anim, state) => Boolean(anim) && anim.pos > 0 && !traced(anim,
    them away with the rest of the animation. */
 const optimumFound = (anim, state) => Boolean(anim?.scan?.done) && traced(anim, state);
 
-/* --- the strip: the two classes' score histograms, OVERLAID ---------------- *
- * One panel, both classes semi-transparent (round 3 — the two-row split made
- * the overlap invisible, and the overlap IS the problem the threshold cannot
- * solve). Counts on one shared y-scale, deliberately not per-class
- * densities: the class-balance dial has to be VISIBLE here, and per-class
- * normalisation would hide exactly that. The four quadrant counts moved to
- * the matrix panel below, which is now their one home.                       */
+/* --- the strip: the two classes' score histograms, overlaid ---------------- *
+ * Counts on one shared y-scale, not per-class densities: the class-balance
+ * dial has to be visible here, and per-class normalisation would hide it.   */
 function drawStrip(plot, { colors, params, state, anim }, effTh) {
   const { x, y, w, h } = plot;
   const ctx = plot.ctx;
@@ -167,10 +150,9 @@ function drawStrip(plot, { colors, params, state, anim }, effTh) {
   ctx.strokeText("predicted +", tx + 6, y + h - 6);
   ctx.fillText("predicted +", tx + 6, y + h - 6);
 
-  /* The search's receipt: where the threshold stood when Find was pressed,
-     and the move it made. Anim state, so a data change clears it; a manual
-     drag away clears it in rebuild. Skipped when the move is too small to
-     draw honestly. */
+  /* Where the threshold stood when Find was pressed, and the move it made.
+     Anim state: a data change clears it, and rebuild clears it on a manual
+     drag away. Skipped when the move is too small to draw. */
   const f = anim?.found;
   if (f && anim.scan?.done && !sweeping && Math.abs(f.applied - f.from) > 0.02) {
     const ay = y + 20;
@@ -203,18 +185,10 @@ function drawStrip(plot, { colors, params, state, anim }, effTh) {
 }
 
 /* --- the confusion matrix -------------------------------------------------- *
- * Round 3, after the two-row strip went: the notebook's own orientation
- * (sklearn's print order — rows are the TRUE class, negatives first;
- * columns the PREDICTED class), because that is the table students see in
- * 04-2's output and the folded-quadrant rationale died with the split strip.
- *
- * The rendering follows the standard advice for reading these tables:
- * spanning axis titles rather than four cryptic corner labels; each row
- * washed in its class's own hue (the same hue its histogram wears above,
- * which is the link between the panels); wash STRENGTH is the cell's share
- * of its row, so the table is a row-normalised heatmap — the TN and TP
- * cells darken exactly as specificity and sensitivity rise — with the raw
- * count large and its row-share small beneath it.                            */
+ * sklearn's orientation (rows = true class, negatives first), the table the
+ * notebook prints. Each row wears its class's histogram hue, wash strength =
+ * the cell's share of its row, so TN and TP darken as specificity and
+ * sensitivity rise.                                                          */
 function drawMatrix(ctx, colors, rect, m, th) {
   const { x, y, w, h } = rect;
   const labelW = 64;
@@ -367,8 +341,8 @@ widgetApi = defineWidget({
   subtitle:
     "A classifier gives each patient a score, and a decision threshold turns "
     + "scores into predictions. Sweeping the threshold across every patient "
-    + "traces the ROC curve; the area under it scores the classifier with no "
-    + "threshold at all. Drag the dashed line to move the threshold.",
+    + "traces the ROC curve, and the area under it summarises performance "
+    + "across all thresholds.",
   layout: "side",
   status: "draft",
   height: ({ w }) => (w && w < 640 ? 810 : 470),
@@ -390,7 +364,6 @@ widgetApi = defineWidget({
     n: {
       type: "int",
       label: "Sample size n",
-      detail: "fewer patients, chunkier staircase",
       min: 60, max: 600, step: 20, default: 200,
     },
     seed: {
@@ -400,9 +373,9 @@ widgetApi = defineWidget({
       min: 1, max: 200, default: 1,
     },
 
-    /* The threshold has no rail control (round 0, pick 4): the dashed line
-       on the strip is dragged, through core's drag channel, and the subtitle
-       says so. Still a parameter — the URL must reproduce the figure. */
+    /* No rail control: the dashed line on the strip is dragged, through
+       core's drag channel. Still a parameter — the URL must reproduce the
+       figure. */
     threshold: {
       type: "float",
       label: "Decision threshold",
@@ -424,21 +397,16 @@ widgetApi = defineWidget({
       afterDrive: true,
     },
 
-    /* THE WITHHELD ANSWER goes below the drive row (widget 10's rule).
-       Round 4 made the pill MOMENTARY: pressing it completes the curve if
-       needed, sends the probe scanning for the longest distance above the
-       chance line, and when the scan lands the threshold MOVES to the
-       optimum and the pill releases itself — both writes through the
-       exported setParam, the door that syncs the rail. The lasting record
-       is the threshold parameter; the ring and the change-arrow are anim
-       state that the next data change clears. A pill is a
-       <button data-param> the fingerprint's setParam cannot toggle — drive
-       its states by URL. */
+    /* The withheld answer, below the drive row (widget 10's rule). The pill
+       is MOMENTARY: the scan's landing writes the threshold and releases the
+       pill through the exported setParam, so the lasting record is the
+       threshold parameter alone. A pill is a <button data-param> the
+       fingerprint's setParam cannot toggle — drive its states by URL. */
     youden: {
       type: "bool",
       style: "pill",
       label: "Find the optimal threshold",
-      detail: "scans the curve for the longest distance above the chance line — Youden's J — and moves the threshold there",
+      detail: "moves the threshold to the point maximising TPR − FPR (Youden's J)",
       default: false,
       display: true,
       afterDrive: true,
@@ -448,15 +416,14 @@ widgetApi = defineWidget({
   },
 
   /* Static, the theory entry included: the optimum's marks are anim state a
-     legend function of the parameters could not track, and the CLT precedent
-     lists an overlay whether or not it is currently on screen. */
+     legend function of the parameters could not track. */
   legend: [
     { token: "event", label: "Positive class" },
     { token: "nonevent", label: "Negative class" },
-    { token: "empirical", label: "ROC curve, traced by the sweep", mark: "line" },
-    { token: "reference", label: "Chance — a classifier with no information", mark: "line" },
-    { token: "highlight", label: "Decision threshold — drag it", mark: "line" },
-    { token: "theory", label: "Youden's J optimum — the farthest point above chance", mark: "line" },
+    { token: "empirical", label: "ROC curve", mark: "line" },
+    { token: "reference", label: "Random baseline", mark: "line" },
+    { token: "highlight", label: "Decision threshold", mark: "line" },
+    { token: "theory", label: "Youden's J optimum", mark: "line" },
   ],
 
   compute: ({ params, rng }) => {
@@ -561,11 +528,9 @@ widgetApi = defineWidget({
   drag: {
     params: ["threshold"],
     cursor: "ew-resize",
-    /* The strip only (round 5): with the whole canvas draggable, a casual
-       click-and-slip on the ROC square nudged the threshold ~0.02 per 8 px,
-       and the find-optimal arrow then honestly reported "from 0.48" the
-       reader never chose. Margins take in the label above and the axis row
-       below, so grabbing AT the line always works. */
+    /* The strip only: with the whole canvas draggable, a click-and-slip on
+       the ROC square nudged the threshold unnoticed (~0.02 per 8 px).
+       Margins take in the label above and the axis row below. */
     hit: ({ x, y, w, h }) => {
       const L = layout(w, h);
       return x >= L.strip.x && x <= L.strip.x + L.strip.w
@@ -623,31 +588,29 @@ widgetApi = defineWidget({
       {
         label: "AUC",
         value: done ? fmt(state.auc, 3) : "—",
-        note: done
-          ? "area under the curve — the one number no threshold moves"
-          : "trace the curve first",
+        note: done ? "area under the ROC curve" : "trace the curve first",
       },
       {
         label: "Accuracy",
         value: fmt(m.accuracy, 2),
-        note: `${m.tp + m.tn} of ${state.scores.length} calls correct`,
+        note: `${m.tp + m.tn} of ${state.scores.length} correct`,
       },
       {
         label: "Sensitivity",
         value: fmt(m.sensitivity, 2),
-        note: `${m.tp} of ${state.nPos} positives found`,
+        note: `${m.tp} of ${state.nPos} positives`,
       },
       {
         label: "Specificity",
         value: fmt(m.specificity, 2),
-        note: `${m.tn} of ${state.nNeg} negatives cleared`,
+        note: `${m.tn} of ${state.nNeg} negatives`,
       },
     ];
     if (optimumFound(anim, state) && state.youden) {
       tiles.push({
         label: "Youden threshold",
         value: fmt(state.youden.th, 2),
-        note: "maximises TPR − FPR — the point farthest above chance",
+        note: "maximises TPR − FPR",
       });
     }
     return tiles;
