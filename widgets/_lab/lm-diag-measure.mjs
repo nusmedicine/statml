@@ -26,7 +26,7 @@
 import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
 import { makeRng } from "../core/rng.js";
 import { ols } from "../lm-least-squares/model.js";
-import { qnorm, diagnostics, loessAt, makeSynth } from "./lm-diag-model.js";
+import { qnorm, diagnostics, loessAt, makeSynth } from "../lm-diagnostics/model.js";
 
 let fails = 0;
 const ck = (name, got, want, tol) => {

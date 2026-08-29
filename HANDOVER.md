@@ -37,29 +37,31 @@ URL** — that difference is the region geometry proven.
    - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
      (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
      LEGEND, a core door — `legend` may be a function of the params).
-   - **IN PROGRESS: `lm-diagnostics` — planned, measured, MOCK BUILT
-     2026-08-29; AWAITING KENNETH'S PICKS.** The full planning record is
-     catalogue § *NEXT · Widget 33*. At hand:
+   - **IN PROGRESS: `lm-diagnostics` — DRAFT BUILT 2026-08-29, awaiting
+     Kenneth's live review.** Kenneth picked all four from the mock
+     (composition B; named scenarios; smooth + labels + ±2 SD band; the
+     small-n adjusted-R² act) and the draft is built to them — catalogue
+     § *NEXT · Widget 33* has the picks, the build notes and the planning
+     record. At hand:
 
      ```bash
      node scripts/serve.mjs 8010
-     # http://localhost:8010/widgets/_lab/lm-diag-stage.html   ← the mock, four pick sections
+     # http://localhost:8010/widgets/lm-diagnostics/            ← THE DRAFT, for review
+     # .../widgets/lm-diagnostics/?fit=1&scenario=curve         (the bowing smooth)
+     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=10  (adjusted R² gone negative)
+     # http://localhost:8010/widgets/_lab/lm-diag-stage.html    (the mock it was built from)
      node widgets/_lab/lm-diag-measure.mjs   # 20 checks — R²/adjR² to the digit, and the
      #   stored autoplot's three labelled rows (404/1003/1668) are OUR three largest |stdres|
      ```
 
-     The machinery is `_lab/lm-diag-model.js` (qnorm, rstandard pipeline,
-     loess, the seeded assumption-breaking generator) — the lm-model.js
-     arrangement, moves into the widget at build. The facts the picks
-     turn on: the real data is flat + equal-variance but **fails
-     normality visibly** (Q-Q +0.88 SD off at theoretical +2); the
-     generator needs curve 0.2 / fan 3 (dense-window ramp) / log-normal
-     noise to be legible; **the adjusted-R² bias argument does NOT fire
-     at n = 3547** and needs a small-n act (n = 30: R² 0.15 → 0.45 on ten
-     junk covariates, adjusted flat or negative) or stays a sentence.
-     §1 composition (pair alone vs data-above-pair), §2 scenario control
-     shape, §3 RvF marks (smooth/labels/band/clamp), §4 the bias act —
-     all drawn, each awaiting a pick.
+     The machinery lives in `widgets/lm-diagnostics/model.js` (the lab
+     imports FROM the widget, widget 26's arrangement). Verified before
+     review: no console errors, every tile matches the measure script,
+     the canvas text sweep reads zero NaN across every scenario, gate
+     state, the junk sweep and a seed change. **Still owed at promotion:
+     fingerprint states (settled + driven — it has two eases), a
+     stub-driver, the 05-01 notebook link, and the title/copy pass**
+     (title "Checking the Model Fit" is a draft-round proposal).
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —

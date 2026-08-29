@@ -197,7 +197,7 @@
 <script type="module">
 import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
 import { makeRng } from "../core/rng.js";
-import { diagnostics, loessAt, makeSynth, qnorm } from "./lm-diag-model.js";
+import { diagnostics, loessAt, makeSynth, qnorm } from "../lm-diagnostics/model.js";
 import { ols } from "../lm-least-squares/model.js";
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();

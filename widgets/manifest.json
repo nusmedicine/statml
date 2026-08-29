@@ -465,6 +465,20 @@
       ],
       "arc": 32,
       "status": "shipped"
+    },
+    {
+      "slug": "lm-diagnostics",
+      "title": "Checking the Model Fit",
+      "blurb": "Residual diagnostic plots and R² assess how well a linear model fits the data.",
+      "course": "PHM5003",
+      "topics": [
+        "linear model",
+        "diagnostics",
+        "residuals",
+        "goodness of fit"
+      ],
+      "arc": 33,
+      "status": "draft"
     }
   ]
 }

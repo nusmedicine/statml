@@ -1,4 +1,4 @@
-// lm-diag-model.js — the lm-diagnostics machinery (planning copy).
+// model.js — the lm-diagnostics machinery.
 //
 // The lm-model.js arrangement: one copy that the measure script and the
 // mock-ups import, and that moves into widgets/lm-diagnostics/ when the

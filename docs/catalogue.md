@@ -3214,7 +3214,50 @@ throughout. Rulings made with it, so they are not re-argued:
 No week-4 notebook links a widget yet (grepped all seven: zero hits), so each
 ship includes adding its link to the MyST lesson.
 
-## NEXT · Widget 33 · `lm-diagnostics` — planned and measured 2026-08-29, mock built, awaiting Kenneth's picks
+## NEXT · Widget 33 · `lm-diagnostics` — DRAFT BUILT 2026-08-29, awaiting Kenneth's live review
+
+**KENNETH PICKED, 2026-08-29, all four from the mock:** composition **B**
+(the data panel above its two diagnostic panels); **named scenarios** for
+the generator (segmented Data: Framingham · Curved · Unequal spread ·
+Skewed noise — not dials, not scenario + strength); RvF marks =
+**smoothed trend + labelled extremes + ±2 SD band** (no envelope rails,
+no ±3 SD clamp — the full y-range, the notebook's own honesty about
++7 SD); and the **small-n act** for adjusted R² (n = 30, a junk-covariate
+slider 0→10). Built the same day as `widgets/lm-diagnostics/`
+(status draft, on the lab page, final URL from first commit):
+
+- **Two tabs** (Concept): *Diagnostic plots* — composition B with the
+  scenario control, behind the arc's **Fit the model** gate — and
+  *Adjusted R²* — the R²-vs-adjusted paths as noise columns accumulate,
+  the equation card showing the subsample fit's own b₀/b₁ wobbling as
+  junk is added. The gate is global: both tabs are properties of a fit.
+- **Two eased values** (widget 30's chase): the gate's alpha and the
+  scenario morph `m` — every dot, the fitted line, the smooth, the band,
+  and each patient's Q-Q position (theoretical quantile AND standardized
+  residual) lerp between outgoing and incoming scenario under fixed
+  frames, so a switch reads as the data changing (2.5). Scenario and
+  junk are display parameters over precomputed data (the lm-interaction
+  `terms` pattern); compute() draws all scenarios from the one rng in
+  fixed order, then the n = 30 subsample and ten junk columns.
+- **The smooth runs the FULL fitted range**, as the notebook's own
+  autoplot draws it (its blue line ticks up at the sparse right edge
+  too) — the first draft cut it at the dense window and the curved
+  scenario's right-side upturn vanished; the dense-window restriction
+  stays on the measure script's flatness numbers, where edge wander was
+  the artifact.
+- **Edge labels flip inward** — a row number half outside the panel clip
+  read as a different number (judged on screen; the adjusted-R² path's
+  end labels at k = 10 had the same fault, fixed the same way).
+- **Verified before review**: no console errors; every readout number
+  matches the measure script (R² 0.106/0.170 real/curved, max|stdres|
+  7.1, the adjusted path going negative on junk at n = 30); the canvas
+  text sweep across all scenarios, both gate states, the full junk sweep
+  and a seed change reads 65 distinct strings, zero NaN/undefined; URL
+  round-trips every state.
+
+The planning record below stands as written.
+
+### The planning record — MEASURED 2026-08-29, before the mock
 
 **The brief (Kenneth's queue, after `lm-interaction`'s revived act):** a new
 widget supporting 05-01, cells 53–62 plus the Application section from 63 —
