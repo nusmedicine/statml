@@ -1,12 +1,18 @@
 # Handover
 
-**Thirty-three widgets, all shipped, all on the gallery, and 230
-fingerprint states recorded.** Widget 33 `lm-diagnostics` **Checking
-the Model Fit** (05-01's diagnostics section) shipped 2026-08-29 after
-three review rounds in one day — planned, measured, mocked, built,
-twice re-designed on review (all-simulated stage; the entry/hover/bells
-animations picked from four running candidates) and promoted on "looks
-good push to gallery"; catalogue § Widget 33 has every round. THE
+**Thirty-four widgets, all shipped, all on the gallery, and 237
+fingerprint states recorded.** Widget 34 `roc-auc` **Scoring a
+Classifier** (PHM5005, 04-2 Model Evaluation) shipped 2026-08-29 after
+SIX rounds in one day, grown from a D3 app Kenneth uploaded (kept as
+`_lab/roc-app-original.html`): one simulated cohort, overlaid score
+histograms with a strip-confined draggable threshold, the confusion
+matrix following the threshold live, the ROC curve traced patient by
+patient, and a momentary find-optimal button whose scan lands by
+MOVING the threshold to Youden's J (with a from-arrow as the receipt).
+Core gained `drag.hit` for it (round 5; suite run three times over a
+flake — see catalogue). **KENNETH'S POST-MIXED-MODEL QUEUE IS NOW
+EMPTY.** Widget 33 `lm-diagnostics` **Checking the Model Fit** (05-01)
+shipped the same day after three rounds; catalogue § Widget 33. THE
 AGREED MODELING ARC IS COMPLETE — widget 32 `mixed-model` (05-07, the
 arc's last slot) shipped the same day; see catalogue § Widget 32.
 
@@ -36,26 +42,16 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**THERE IS NO BUILD TASK QUEUED.** Kenneth's post-mixed-model queue
-(memory `after-mixed-model-queue`) is done except its last item, and
-that one is BLOCKED on him:
+**THERE IS NO BUILD TASK QUEUED — the queue is EMPTY.** ~~`roc-auc`~~
+SHIPPED 2026-08-29 as widget 34 (its own section below has what to
+keep at hand). Everything open is KENNETH'S OWN, listed below so a
+session can remind him rather than act: the NINE notebook links, the
+05-07 notebook fix, and judging projected. A session with nothing to
+do should hold, not invent scope — prd §11 exists to be pointed at.
 
-1. **`roc-auc`** — to be based on an existing JS app Kenneth will
-   upload. **DO NOT start until he provides the app.** When he does:
-   the usual order (read the app and its host notebook, measure through
-   `_lab/`, mock the stage, Kenneth picks).
-2. Everything else open is KENNETH'S OWN, listed below so a session can
-   remind him rather than act: the eight notebook links, the 05-07
-   notebook fix, and judging projected. A session with nothing to do
-   should hold, not invent scope — prd §11 exists to be pointed at.
-
-Done from the queue, records in the catalogue: ~~`lm-interaction`
-age × BMI act~~ (§ Widget 30) and ~~`lm-diagnostics`~~ — **SHIPPED
-2026-08-29 as widget 33; its own section below has what to keep at
-hand.**
-
-3. **Notebook links now owed for all EIGHT shipped modeling-arc widgets** —
-   Kenneth places notebook links by hand:
+3. **Notebook links now owed for NINE shipped widgets** — Kenneth
+   places notebook links by hand:
+   - 04-2 (widget 34): `Explore the ROC curve interactively: [Scoring a Classifier](https://nusmedicine.github.io/statml/widget/roc-auc/)`
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
@@ -65,7 +61,40 @@ hand.**
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–33 included.
+   widgets 26–34 included.
+
+**WIDGET 34 `roc-auc` SHIPPED AND PUSHED 2026-08-29** as **Scoring a
+Classifier** — six rounds in one day, the full record (the app it grew
+from, every pick and reversal, the measured 04-2 numbers) in catalogue
+§ *Widget 34*. What a later session most needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/roc-auc/                (press Trace — the sweep)
+# .../widgets/roc-auc/?youden=1&shown=999               (found: ring, segment, tile)
+# .../widgets/roc-auc/?sep=0.6&balance=0.2&shown=999    (weak and imbalanced)
+# _lab/roc-measure.py (run with the _scratch venv's python) reproduces
+# notebook 04-2 to the digit and writes _lab/roc-ref.json
+# _lab/roc-shoot.html re-shoots its 7 states (copy-proof, triples, inert checks)
+```
+
+- **All-simulated stage** (round 2 cut the real-test-set tab as duplicate);
+  the notebook's 60 held-out patients stay pinned in `roc-auc/model.js` and
+  `_lab/roc-ref.json` — AUC 0.740693, Youden 0.313674, cell 39's
+  accuracy-0.70-both-ways with missed deaths 9 → 3.
+- **The find-optimal pill is MOMENTARY**: its scan lands by writing
+  `threshold` through the exported setParam and releasing itself — the URL
+  keeps only `?threshold=`. A pill is a `<button data-param>` the harness
+  cannot toggle: found states settle by URL.
+- **Core grew `drag.hit`** (round 5): gates the drag gesture and its cursor;
+  the widget confines the threshold drag to the strip. The suite ran three
+  times for it — run 1 flagged five lm-adjustment px-only states, the
+  stash-control and the re-run both read all-MATCH: the pane flake can
+  CLUSTER.
+- **The shooter waits for DPR 1.25** before shooting: the pane reports DPR 1
+  until displayed and can flap back between runs.
+- **Untested geometry, recorded**: the threshold drag (no harness verb) and
+  the find-optimal scan mid-flight plus its landing write.
 4. **05-07's own notebook fix, agreed with Kenneth 2026-08-29**: the SNP
    `lm` adjusts for `family_id` as an INTEGER (one slope over the family
    index — measured identical to no adjustment). The agreed edit: drop
@@ -264,7 +293,22 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 230 states, all matching
+## The suite: 237 states, all matching
+
+**Widget 34 added seven states on 2026-08-29 with `_lab/roc-shoot.html`**
+(the lm-shoot pattern, plus a DPR gate: the shooter WAITS for
+devicePixelRatio 1.25 before shooting — the pane reports 1 until it is
+displayed and can flap back to hidden between runs, and the first two
+attempts were refused by the copy-proof for exactly that). Copy proved
+4/4, every state shot three times in one run and identical, both drives
+non-inert. Five settled (`shown=0` untraced, `shown=999` traced,
+`youden=1&shown=999` found — the pill settles by URL, `threshold=0.7`,
+and a weak imbalanced cohort), two driven (`click: "run"` 40 frames
+mid-sweep, `click: "step"` 5 frames mid-step). The confirming full-suite
+run read **237 of 237 MATCH**. The round-5 core change (`drag.hit`) had
+already run the suite three times the same day — run 1's five
+lm-adjustment px-only DIFFERs matched on both the stash-control and the
+re-run: the pane flake, clustering.
 
 **Widget 33 added ten states on 2026-08-29 with `_lab/lm-diag-shoot.html`**
 (the lm-shoot pattern): DPR checked at 1.25 in the run's own output, copy
@@ -450,6 +494,7 @@ is blind to.
 | 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
 | 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
 | 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
+| 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2). SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. All-simulated; trace-the-curve sweep, live confusion matrix, momentary find-optimal that MOVES the threshold; core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected; 04-2 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

@@ -10861,7 +10861,7 @@ built and shipped against `04-1` and `04-4`.
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
 
-## Widget 34 · `roc-auc` — Scoring a Classifier · IN REVIEW, round 1 built 2026-08-29
+## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
 
 **The misconception**: that the ROC curve is a static property of the model — a
 picture you look up — rather than the trace of every possible decision
@@ -11008,6 +11008,35 @@ the rail convention, touching only the trace rate — the find-optimal scan
 keeps its fixed 1.4 s. Also: the patients note dropped inside the strip
 panel — on the caption line it collided with the threshold label whenever
 the threshold sat right of ~0.55.
+
+### Round 6 and promotion (Kenneth: "great, can push to gallery", 2026-08-29)
+
+Round 6 was copy polish on Kenneth's ask — no directions in the subtitle, no
+editorializing: the drag instruction left the subtitle (which now closes on
+the notebook's claim, "the area under it summarises performance across all
+thresholds"), the legend went to plain names ("Random baseline" is the
+notebook's own term for the diagonal), tile notes reduced to counts, the n
+slider's "chunkier staircase" quip cut, and the source comments trimmed to
+their load-bearing whys.
+
+**Promoted with seven states via `_lab/roc-shoot.html`** (the lm-shoot
+pattern): copy proved 4/4, every state shot three times in one run and
+identical, both drives non-inert against their bare URLs. Five settled — the
+untraced open (`shown=0`), the traced default, found-by-URL
+(`youden=1&shown=999` — the pill is a `<button data-param>` setParam cannot
+toggle), the threshold at 0.7, and a weak imbalanced n=320 cohort — plus two
+driven: the trace mid-sweep (`click: "run"`, 40 frames — line, matrix and
+tiles all following the sweep) and a single step mid-flight. The confirming
+full-suite run read **237 of 237 MATCH**. Untested geometry, recorded: the
+threshold drag (no harness verb), and the find-optimal scan's mid-flight
+probe plus its threshold-moving landing (reachable only through the pill).
+One shooter lesson: **the pane reports DPR 1 until it is DISPLAYED and can
+flap back to hidden between runs** — the shooter now waits for 1.25 before
+shooting rather than recording a mixed-environment pass its own copy-proof
+would refuse.
+
+Still owed post-ship: the 04-2 notebook link (Kenneth places links by hand)
+and the judged-projected review.
 
 ### Round 5 — the drag confined to the strip; core grows `drag.hit` (2026-08-29)
 

@@ -2083,15 +2083,55 @@
   },
   {
    "slug": "roc-auc",
+   "state": "?theme=light&shown=0",
+   "px": "1a383027",
+   "tx": "1c0b33a2"
+  },
+  {
+   "slug": "roc-auc",
    "state": "?theme=light&shown=999",
-   "px": "0",
-   "tx": "0"
+   "px": "632638cd",
+   "tx": "9ed63903"
   },
   {
    "slug": "roc-auc",
    "state": "?theme=light&youden=1&shown=999",
-   "px": "0",
-   "tx": "0"
+   "px": "b6f81fc2",
+   "tx": "00ad9d56"
+  },
+  {
+   "slug": "roc-auc",
+   "state": "?theme=light&threshold=0.7&shown=999",
+   "px": "c892c89d",
+   "tx": "7315e1d4"
+  },
+  {
+   "slug": "roc-auc",
+   "state": "?theme=light&sep=0.6&balance=0.2&n=320&seed=9&shown=999",
+   "px": "e00ec000",
+   "tx": "48ac99d9"
+  },
+  {
+   "slug": "roc-auc",
+   "state": "?theme=light",
+   "drive": {
+    "click": "run",
+    "frames": 40,
+    "dt": 32
+   },
+   "px": "54a5440f",
+   "tx": "b0d23111"
+  },
+  {
+   "slug": "roc-auc",
+   "state": "?theme=light",
+   "drive": {
+    "click": "step",
+    "frames": 5,
+    "dt": 32
+   },
+   "px": "e87f1394",
+   "tx": "a56de37b"
   }
  ]
 }

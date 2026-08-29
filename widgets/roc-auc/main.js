@@ -344,7 +344,6 @@ widgetApi = defineWidget({
     + "traces the ROC curve, and the area under it summarises performance "
     + "across all thresholds.",
   layout: "side",
-  status: "draft",
   height: ({ w }) => (w && w < 640 ? 810 : 470),
 
   params: {
