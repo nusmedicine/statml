@@ -187,5 +187,74 @@ for (const nSub of [3547, 100, 30]) {
   });
 }
 
+/* 5 · ROUND 1 (Kenneth, 2026-08-29): the stage goes ALL-SIMULATED — mixing
+   real and simulated data risked confusion, and at the real data's noise
+   the curve was invisible in the cloud ("i don't really see the curve in
+   the data"). The simulated study keeps the Framingham fit's own line
+   (b₀ 87.07, b₁ 1.72) and the real BMI distribution, but clipped to the
+   dense 18–40 window (no outlier tail to dominate the frames), n = 600,
+   noise SD 12, curve 0.4, fan 3, log-normal skew. Measured here: the
+   curve's bend vs its own least-squares line, and the frame extents over
+   30 seeds — the numbers the widget's fixed frames (2.5) are set from. */
+console.log("\n== ROUND 1: the all-simulated stage ==");
+const POOL = BMI.filter((v) => v >= 18 && v <= 40);
+console.log(`BMI pool 18–40: ${POOL.length} of ${N} values`);
+{
+  const xbar2 = mean(POOL);
+  const bend = POOL.map((x) => 0.4 * (x - xbar2) ** 2);
+  const bf = ols(bend, POOL);
+  const dev = POOL.map((x, i) => bend[i] - bf.fitted[i]);
+  console.log(`curve 0.4: bend vs its own line ${Math.min(...dev).toFixed(1)} … ${Math.max(...dev).toFixed(1)} — ${(Math.max(...dev) / 12).toFixed(1)} noise SDs at the right edge (SD 12): VISIBLE IN THE DATA`);
+}
+const ext = {};
+const track = (k, arr) => {
+  const lo = Math.min(...arr);
+  const hi = Math.max(...arr);
+  ext[k] = ext[k] ? [Math.min(ext[k][0], lo), Math.max(ext[k][1], hi)] : [lo, hi];
+};
+for (let seed = 1; seed <= 30; seed += 1) {
+  const rng = makeRng(seed);
+  const xs = rng.shuffle(POOL).slice(0, 600);
+  const synth2 = makeSynth(xs, 87.068295, 1.721042, 12);
+  for (const [key, opts] of [["linear", {}], ["curve", { curve: 0.4 }], ["fan", { fan: 3 }], ["skew", { skewed: true }]]) {
+    const y = synth2(rng, opts);
+    const d = diagnostics(y, xs);
+    track(`${key}.y`, y);
+    track(`${key}.fitted`, d.fit.fitted);
+    track(`${key}.resid`, d.resid);
+    track(`${key}.std`, d.std);
+    if (seed === 1) console.log(`  ${key.padEnd(6)} seed 1: R² ${d.fit.r2.toFixed(3)}, max|stdres| ${Math.max(...d.std.map(Math.abs)).toFixed(1)}`);
+  }
+}
+console.log("extents over 30 seeds (the widget's fixed frames must hold these, clip the rest):");
+for (const [k, v] of Object.entries(ext)) console.log(`  ${k.padEnd(13)} ${v[0].toFixed(1)} … ${v[1].toFixed(1)}`);
+
+/* The adjusted-R² act at the simulated noise level. The first draft's
+   n = 30 / k = 10 misled on 13 of 60 seeds (one lucky junk column lifts
+   ADJUSTED too — at SD 12 the base R² is high enough that luck survives
+   the df penalty). Measured grid: n = 60 with k = 20 keeps the climb
+   (54/60 seeds gain > 0.15, mean +0.26) and halves the misleading tail
+   (7/60). The DEFAULT SEED is then chosen to show the TYPICAL picture —
+   the claim is true in expectation, so the widget should not open on the
+   12% tail: seed 6 reads R² 0.25 → 0.51 with adjusted 0.24 → 0.24 flat,
+   and its four scenarios sit inside every frame. */
+console.log("\nthe act at n = 60, k = 20 (the shipped setting), by seed:");
+for (const s of [6, 1, 3]) {
+  const rng = makeRng(s);
+  const xs = rng.shuffle(POOL).slice(0, 600);
+  const synth2 = makeSynth(xs, 87.068295, 1.721042, 12);
+  const yLin = synth2(rng, {});
+  synth2(rng, { curve: 0.4 });
+  synth2(rng, { fan: 3 });
+  synth2(rng, { skewed: true });
+  const pick = rng.shuffle(Array.from({ length: 600 }, (_, i) => i)).slice(0, 60);
+  const sxs = pick.map((i) => xs[i]);
+  const sys = pick.map((i) => yLin[i]);
+  const junk = Array.from({ length: 20 }, () => sxs.map(() => rng.normal()));
+  const f0 = ols(sys, sxs);
+  const f20 = ols(sys, sxs, ...junk);
+  console.log(`  seed ${s}${s === 6 ? " (default)" : ""}: R² ${f0.r2.toFixed(2)} → ${f20.r2.toFixed(2)}, adjusted ${f0.adjR2.toFixed(2)} → ${f20.adjR2.toFixed(2)}`);
+}
+
 console.log(fails ? `\n${fails} FAILURES` : "\nall checks pass");
 process.exit(fails ? 1 : 0);

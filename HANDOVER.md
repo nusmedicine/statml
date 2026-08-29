@@ -37,31 +37,30 @@ URL** — that difference is the region geometry proven.
    - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
      (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
      LEGEND, a core door — `legend` may be a function of the params).
-   - **IN PROGRESS: `lm-diagnostics` — DRAFT BUILT 2026-08-29, awaiting
-     Kenneth's live review.** Kenneth picked all four from the mock
-     (composition B; named scenarios; smooth + labels + ±2 SD band; the
-     small-n adjusted-R² act) and the draft is built to them — catalogue
-     § *NEXT · Widget 33* has the picks, the build notes and the planning
-     record. At hand:
+   - **IN PROGRESS: `lm-diagnostics` — draft through ROUND 1
+     (2026-08-29), awaiting Kenneth's next look.** Round 1 made the stage
+     ALL-SIMULATED on his comment (real + simulated in one control risked
+     confusion; the curve was invisible in the cloud) — the full record,
+     with the measured act re-design (n = 60 / k = 20, default seed 6),
+     is catalogue § *NEXT · Widget 33 · ROUND 1*. Title "Checking the
+     Model Fit" is approved. At hand:
 
      ```bash
      node scripts/serve.mjs 8010
-     # http://localhost:8010/widgets/lm-diagnostics/            ← THE DRAFT, for review
-     # .../widgets/lm-diagnostics/?fit=1&scenario=curve         (the bowing smooth)
-     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=10  (adjusted R² gone negative)
-     # http://localhost:8010/widgets/_lab/lm-diag-stage.html    (the mock it was built from)
-     node widgets/_lab/lm-diag-measure.mjs   # 20 checks — R²/adjR² to the digit, and the
-     #   stored autoplot's three labelled rows (404/1003/1668) are OUR three largest |stdres|
+     # http://localhost:8010/widgets/lm-diagnostics/             ← THE DRAFT (Linear default)
+     # .../widgets/lm-diagnostics/?fit=1&scenario=curve          (the banana, visible in the data)
+     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20   (R² 0.51 on noise; adjusted flat 0.24)
+     node widgets/_lab/lm-diag-measure.mjs   # verify + design + § round 1 sweeps
      ```
 
      The machinery lives in `widgets/lm-diagnostics/model.js` (the lab
-     imports FROM the widget, widget 26's arrangement). Verified before
-     review: no console errors, every tile matches the measure script,
-     the canvas text sweep reads zero NaN across every scenario, gate
-     state, the junk sweep and a seed change. **Still owed at promotion:
-     fingerprint states (settled + driven — it has two eases), a
-     stub-driver, the 05-01 notebook link, and the title/copy pass**
-     (title "Checking the Model Fit" is a draft-round proposal).
+     imports FROM the widget). The simulated study: the Framingham fit's
+     own line, real BMI values clipped to 18–40, n = 600, SD 12; scenarios
+     Linear (default) · Curved (0.4, a 5.2-SD bend) · Unequal spread
+     (fan 3) · Skewed noise. **Still owed at promotion: fingerprint
+     states (settled + driven — it has two eases), a stub-driver, the
+     05-01 notebook link, and the copy pass.** Kenneth's "1)" numbering
+     suggests more comments may follow.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —

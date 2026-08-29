@@ -3255,6 +3255,42 @@ slider 0→10). Built the same day as `widgets/lm-diagnostics/`
   and a seed change reads 65 distinct strings, zero NaN/undefined; URL
   round-trips every state.
 
+### ROUND 1 — Kenneth, 2026-08-29: the stage goes ALL-SIMULATED
+
+**The comment:** mixing real and simulated data in one control risks
+confusing people — use simulation to illustrate what each kind of data
+looks like and how it appears in the diagnostic plots; *"i don't really
+see the curve in the data"* (title "Checking the Model Fit" approved).
+Both halves were measured before the fix:
+
+- **The curve really was invisible**: at the real data's noise (SD 19.9)
+  curve 0.2 bends the cloud ~1.5 noise SDs — chosen for the SMOOTH's
+  legibility, not the data's. The rebuilt stage is a simulated study
+  keeping the Framingham fit's own line (b₀ 87.07, b₁ 1.72) and the real
+  BMI distribution clipped to its dense 18–40 window: **n = 600, noise
+  SD 12, curve 0.4** — the bend is now 5.2 noise SDs off its own best
+  line, unmistakable in the cloud before any plot says so. Frames re-set
+  from measured 30-seed extents. Framingham left the scenario control;
+  a fourth scenario **Linear** ("every assumption holds", R² ≈ 0.26) is
+  the default and the reference the violations are read against. The
+  notebook's real autoplot stays in the lesson; the widget is the
+  controlled reading trainer beside it.
+- **The lower noise broke the adjusted-R² act and the fix was measured**:
+  at n = 30 / k = 10 junk columns, ADJUSTED also climbed (> 0.1) on 13
+  of 60 seeds — one lucky noise column survives the df penalty — and the
+  then-default seed 1 was one of them (0.30 → 0.40). The shipped setting
+  is **n = 60 / k = 20** (climb kept: 54/60 seeds gain > 0.15, mean
+  +0.26; misleading tail halved to 7/60), and the **default seed is 6**,
+  chosen to open on the TYPICAL picture — R² 0.25 → 0.51 with adjusted
+  flat at 0.24 — because the claim is true in expectation and a widget
+  should not open on the 12% tail. The seed control is what shows the
+  wander.
+- Two smaller fixes from driving it: near-coincident extreme rows mashed
+  their labels (staggered by rank), and **the TDZ trap struck a third
+  time** — the stagger table was declared below defineWidget and threw on
+  load; the stale-console trap then showed the error three times after it
+  was fixed (fresh `window.onerror` counter proved it clean).
+
 The planning record below stands as written.
 
 ### The planning record — MEASURED 2026-08-29, before the mock
