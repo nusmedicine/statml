@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 33 animations — residual candidates, running live</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: 8px; margin: 0 0 8px; }
+  button { font: 600 var(--fs-sm) var(--font-ui); padding: 6px 14px; border: 1px solid var(--grid);
+           border-radius: 6px; background: var(--surface-1); color: var(--ink-1); cursor: pointer; }
+  button[aria-pressed="true"] { border-color: var(--ink-2); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; max-width: 780px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 33 · the residual animations, RUNNING — candidates for Kenneth's pick</h1>
+  <p class="note">
+    Round 2's two asks, drawn as working animations on the widget's own
+    generator (seed 6, n = 600): <b>how the residual plot is built from the
+    data</b>, and <b>why the residuals should be normal</b>. Established
+    patterns found in the wild and borrowed from: Whitlock's <i>Visualizing
+    residuals</i> (click a point — its residual lights in both plots), the
+    <i>Regressomatic</i> (data beside diagnostic, changes propagate), and the
+    marginal-histogram edge panel (ggMarginal). The classic textbook diagram —
+    sideways normal curves straddling the fitted line — seems never to have
+    been animated; §C/§D are that. <b>One naming note:</b> the residual is the
+    VERTICAL distance to the line, not the perpendicular — perpendicular
+    distance is a different quantity (total least squares) — so every segment
+    here is drawn vertical.
+  </p>
+
+  <h2>§A · Build the residual plot — selected residuals travel</h2>
+  <p class="note">
+    Twelve selected patients (spread across BMI, the largest residual among
+    them), one at a time: the vertical segment grows from the dot to the
+    fitted line, then dot-and-segment TRAVEL into the lower panel to land at
+    (fitted, residual) on the zero line. The remaining 588 fade in at the
+    end. The residual plot is seen to BE the data plot with the line laid
+    flat. This would run as the gate's entry animation (core's door), with
+    Replay available.
+  </p>
+  <div class="bar"><button id="a-play">Replay §A</button></div>
+  <canvas id="a" width="780" height="520"></canvas>
+  <p class="cap">candidate integration: the gate-open entry; afterwards hover/click a dot to light its residual in both panels (the Whitlock move — the arc's pointer channel)</p>
+
+  <h2>§B · Lay the line flat — the whole cloud morphs</h2>
+  <p class="note">
+    The alternative in one move, no selection: press the toggle and the
+    fitted line rotates flat to zero while every dot carries its residual
+    with it — the data panel BECOMES the residual plot (for one covariate
+    the two share an x-axis). Cheaper than §A, covers all 600 dots, but
+    nothing is singled out and the two-panel link is gone.
+  </p>
+  <div class="bar"><button id="b-toggle" aria-pressed="false">Lay the line flat</button></div>
+  <canvas id="b" width="780" height="280"></canvas>
+  <p class="cap">candidate integration: a segmented Data / Residuals view on the data panel (the 26/28 slide), with the two lower panels unchanged</p>
+
+  <h2>§C · Why normal? — the residuals sweep into a sideways pile</h2>
+  <p class="note">
+    The residual plot's dots sweep to the right edge and STACK into a
+    sideways pile; the bell drawn over it (its width the residual SD) is
+    what the normality assumption claims the pile should look like. On the
+    skewed scenario the pile leans away from the bell — the thing the Q-Q
+    then measures point by point. Toggle the scenario, replay the sweep.
+  </p>
+  <div class="bar">
+    <button id="c-linear" aria-pressed="true">Linear</button>
+    <button id="c-skew" aria-pressed="false">Skewed noise</button>
+    <button id="c-play">Replay sweep</button>
+  </div>
+  <canvas id="c" width="780" height="280"></canvas>
+  <p class="cap">candidate integration: an overlay toggle on the RvF panel ("Pile the residuals"), or the bridge beat between RvF and the Q-Q</p>
+
+  <h2>§D · The model's claim, drawn on the data — bells straddle the line</h2>
+  <p class="note">
+    The textbook diagram, live: at three BMI values a sideways normal curve
+    straddles the fitted line — the model's claim that at EVERY x the
+    outcome is normal around the line with ONE spread. The bells fade in
+    with a stagger. On Unequal spread the fixed-width bells visibly disagree
+    with the widening cloud; on Skewed noise the cloud leans out of them.
+    This is the WHY the diagnostics check against, drawn where the data is.
+  </p>
+  <div class="bar">
+    <button id="d-linear" aria-pressed="true">Linear</button>
+    <button id="d-fan" aria-pressed="false">Unequal spread</button>
+    <button id="d-skew" aria-pressed="false">Skewed noise</button>
+    <button id="d-play">Replay</button>
+  </div>
+  <canvas id="d" width="780" height="280"></canvas>
+  <p class="cap">candidate integration: a "Model's claim" overlay on the data panel — display toggle, no clock needed (or a one-off stagger on toggle)</p>
+</main>
+
+<script type="module">
+import { BMI } from "../lm-least-squares/data.js";
+import { makeRng } from "../core/rng.js";
+import { diagnostics, makeSynth } from "../lm-diagnostics/model.js";
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"),
+  grid: css("--grid"), surface: css("--surface-1"),
+  empirical: css("--c-empirical"), theory: css("--c-theory"),
+  smoothed: css("--c-smoothed"), highlight: css("--c-highlight"),
+  unknown: css("--c-unknown"),
+  font: css("--font-ui") || "system-ui, sans-serif",
+};
+const lerp = (a, b, m) => a + (b - a) * m;
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t));
+
+/* the widget's own stage: seed 6, n = 600, SD 12 */
+const POOL = BMI.filter((v) => v >= 18 && v <= 40);
+const SIGMA = 12;
+const rng = makeRng(6);
+const xs = rng.shuffle(POOL).slice(0, 600);
+const synth = makeSynth(xs, 87.068295, 1.721042, SIGMA);
+const Y = { linear: synth(rng, {}) };
+synth(rng, { curve: 0.4 }); /* keep the widget's stream order */
+Y.fan = synth(rng, { fan: 3 });
+Y.skew = synth(rng, { skewed: true });
+const D = Object.fromEntries(Object.entries(Y).map(([k, y]) => [k, diagnostics(y, xs)]));
+const N = xs.length;
+
+const X_BMI = [17, 41];
+const DATA_Y = [60, 220];
+const RVF_X = [108, 185];
+const RVF_Y = [-60, 60];
+
+function frame(ctx, r, xd, yd, xl, yl, xt, yt) {
+  const sx = (v) => r.x + ((v - xd[0]) / (xd[1] - xd[0])) * r.w;
+  const sy = (v) => r.y + r.h - ((v - yd[0]) / (yd[1] - yd[0])) * r.h;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = C.ink3; ctx.font = `10px ${C.font}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  for (const v of xt) ctx.fillText(String(v), sx(v), r.y + r.h + 13);
+  if (xl) ctx.fillText(xl, r.x + r.w / 2, r.y + r.h + 26);
+  ctx.textAlign = "right";
+  for (const v of yt) ctx.fillText(String(v), r.x - 5, sy(v) + 3);
+  if (yl) { ctx.save(); ctx.translate(r.x - 34, r.y + r.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText(yl, 0, 0); ctx.restore(); }
+  return { sx, sy };
+}
+function ctx2d(id) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  ctx.font = `11px ${C.font}`;
+  return ctx;
+}
+function runAnim(draw, ms) {
+  const t0 = performance.now();
+  const tick = (ts) => {
+    const t = Math.min(1, (ts - t0) / ms);
+    draw(t);
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/* === §A — build the residual plot ======================================== */
+{
+  const d = D.linear;
+  /* twelve selected patients: quantile-spread across BMI + the largest |std| */
+  const byX = xs.map((v, i) => i).sort((a, b) => xs[a] - xs[b]);
+  const sel = [];
+  for (let q = 0; q < 11; q += 1) sel.push(byX[Math.floor(((q + 0.5) / 11) * N)]);
+  const big = d.std.map((v, i) => i).sort((a, b) => Math.abs(d.std[b]) - Math.abs(d.std[a]))[0];
+  if (!sel.includes(big)) sel[5] = big;
+  const selSet = new Set(sel);
+
+  const ctx = ctx2d("a");
+  const rd = { x: 56, y: 20, w: 700, h: 190 };
+  const rr = { x: 56, y: 290, w: 700, h: 190 };
+  const PER = 700; /* ms per selected patient */
+  const MASS = 500;
+
+  function draw(t) {
+    ctx.clearRect(0, 0, 780, 520);
+    const dp = frame(ctx, rd, X_BMI, DATA_Y, "BMI", "sysBP", [20, 30, 40], [100, 150, 200]);
+    const rp = frame(ctx, rr, RVF_X, RVF_Y, "fitted values", "residuals", [120, 150, 180], [-40, 0, 40]);
+    ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText("the data, and the fitted line", rd.x, rd.y - 6);
+    ctx.fillText("each residual, against its fitted value", rr.x, rr.y - 6);
+
+    /* data panel: cloud + line */
+    ctx.globalAlpha = 0.4; ctx.fillStyle = C.unknown;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath(); ctx.arc(dp.sx(xs[i]), dp.sy(Y.linear[i]), 1.6, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(dp.sx(X_BMI[0]), dp.sy(d.fit.b[0] + d.fit.b[1] * X_BMI[0]));
+    ctx.lineTo(dp.sx(X_BMI[1]), dp.sy(d.fit.b[0] + d.fit.b[1] * X_BMI[1]));
+    ctx.stroke();
+
+    /* zero line below */
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rr.x, rp.sy(0)); ctx.lineTo(rr.x + rr.w, rp.sy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const total = sel.length * PER + MASS;
+    const now = t * total;
+    sel.forEach((i, k) => {
+      const lt = Math.min(1, Math.max(0, (now - k * PER) / PER));
+      if (lt <= 0) return;
+      const fx = d.fit.b[0] + d.fit.b[1] * xs[i];
+      const grow = easeInOut(Math.min(1, lt / 0.45));
+      const travel = easeInOut(Math.max(0, (lt - 0.5) / 0.5));
+      /* 1: the vertical segment grows from the dot to the line */
+      const x1 = dp.sx(xs[i]);
+      const yDot = dp.sy(Y.linear[i]);
+      const yLine = dp.sy(fx);
+      ctx.strokeStyle = C.highlight; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x1, yDot); ctx.lineTo(x1, lerp(yDot, yLine, grow)); ctx.stroke();
+      ctx.fillStyle = C.highlight;
+      ctx.beginPath(); ctx.arc(x1, yDot, 3, 0, 2 * Math.PI); ctx.fill();
+      /* 2: dot and segment travel to (fitted, residual) below */
+      if (travel > 0) {
+        const x2 = rp.sx(fx);
+        const yTop = rp.sy(Math.max(0, d.resid[i]));
+        const yBot = rp.sy(Math.min(0, d.resid[i]));
+        const gx = lerp(x1, x2, travel);
+        const gTop = lerp(Math.min(yDot, yLine), yTop, travel);
+        const gBot = lerp(Math.max(yDot, yLine), yBot, travel);
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = C.highlight; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(gx, gTop); ctx.lineTo(gx, gBot); ctx.stroke();
+        ctx.beginPath(); ctx.arc(gx, lerp(yDot, rp.sy(d.resid[i]), travel), 3, 0, 2 * Math.PI); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    });
+
+    /* the rest fade in once the selected are home */
+    const mass = Math.max(0, (now - sel.length * PER) / MASS);
+    if (mass > 0) {
+      ctx.globalAlpha = 0.35 * mass; ctx.fillStyle = C.empirical;
+      for (let i = 0; i < N; i += 1) {
+        if (selSet.has(i)) continue;
+        const fx = d.fit.b[0] + d.fit.b[1] * xs[i];
+        ctx.beginPath(); ctx.arc(rp.sx(fx), rp.sy(d.resid[i]), 1.5, 0, 2 * Math.PI); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  document.getElementById("a-play").onclick = () => runAnim(draw, sel.length * 700 + 500);
+  draw(1);
+}
+
+/* === §B — lay the line flat ============================================== */
+{
+  const d = D.linear;
+  const ctx = ctx2d("b");
+  const r = { x: 56, y: 20, w: 700, h: 210 };
+  let flat = 0;
+  function draw(t) {
+    ctx.clearRect(0, 0, 780, 280);
+    /* the y-window morphs from the data's to a residual window around 140 */
+    const p = frame(ctx, r, X_BMI, DATA_Y, "BMI", t < 0.5 ? "sysBP" : "residual + 140", [20, 30, 40], [100, 150, 200]);
+    ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText(t < 0.02 ? "the data, and the fitted line" : t > 0.98 ? "the line laid flat — every dot keeps its residual" : "", r.x, r.y - 6);
+    const m = easeInOut(t);
+    const MID = 140;
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    ctx.globalAlpha = 0.4; ctx.fillStyle = C.unknown;
+    for (let i = 0; i < N; i += 1) {
+      const fx = d.fit.b[0] + d.fit.b[1] * xs[i];
+      const y = lerp(Y.linear[i], MID + d.resid[i], m);
+      ctx.beginPath(); ctx.arc(p.sx(xs[i]), p.sy(y), 1.6, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 2;
+    const yl = (x) => lerp(d.fit.b[0] + d.fit.b[1] * x, MID, m);
+    ctx.beginPath(); ctx.moveTo(p.sx(X_BMI[0]), p.sy(yl(X_BMI[0]))); ctx.lineTo(p.sx(X_BMI[1]), p.sy(yl(X_BMI[1]))); ctx.stroke();
+    ctx.restore();
+  }
+  const btn = document.getElementById("b-toggle");
+  btn.onclick = () => {
+    flat = 1 - flat;
+    btn.setAttribute("aria-pressed", String(flat === 1));
+    btn.textContent = flat ? "Put the line back" : "Lay the line flat";
+    const from = 1 - flat;
+    runAnim((t) => draw(lerp(from, flat, t)), 700);
+  };
+  draw(0);
+}
+
+/* === §C — the sideways pile against the bell ============================= */
+{
+  const ctx = ctx2d("c");
+  const r = { x: 56, y: 20, w: 540, h: 210 };
+  const MARG = { x: 620, w: 150 };
+  let scen = "linear";
+  const BIN = 6; /* mmHg per bin */
+  function pileOf(d) {
+    const bins = new Map();
+    const out = new Array(N);
+    let deepest = 1;
+    const byF = d.resid.map((v, i) => i).sort((a, b) => d.fit.fitted[a] - d.fit.fitted[b]);
+    for (const i of byF) {
+      const b = Math.floor(d.resid[i] / BIN);
+      const k = bins.get(b) ?? 0;
+      bins.set(b, k + 1);
+      deepest = Math.max(deepest, k + 1);
+      out[i] = { bin: b, rank: k };
+    }
+    return { out, deepest };
+  }
+  /* the window must hold the SKEW tail (+136) — that tail is the scenario's
+     whole point, and a ±70 window clipped it (judged on screen) */
+  const yd = [-75, 140];
+  function draw(t) {
+    const d = D[scen];
+    const { out: pile, deepest } = pileOf(d);
+    /* dot spacing shrinks so the DEEPEST bin fits the margin — at a fixed
+       2.2px the centre bins saturated against the edge and the pile read
+       as a barcode, not a bell (judged on screen) */
+    const step = Math.min(2.2, (MARG.w - 8) / deepest);
+    ctx.clearRect(0, 0, 780, 280);
+    const p = frame(ctx, r, RVF_X, yd, "fitted values", "residuals", [120, 150, 180], [-50, 0, 50, 100]);
+    ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText("the residuals sweep into a pile — the bell is the model's claim", r.x, r.y - 6);
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r.x, p.sy(0)); ctx.lineTo(MARG.x + MARG.w, p.sy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    const m = easeInOut(t);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y - 6, MARG.x + MARG.w - r.x, r.h + 12); ctx.clip();
+    ctx.fillStyle = C.empirical;
+    for (let i = 0; i < N; i += 1) {
+      const x0 = p.sx(d.fit.fitted[i]);
+      const px = MARG.x + 3 + pile[i].rank * step;
+      const y0 = p.sy(d.resid[i]);
+      const y1 = p.sy((pile[i].bin + 0.5) * BIN);
+      /* each dot leaves a ghost at home — a settled sweep otherwise left
+         the residual plot EMPTY, which read as broken (judged on screen) */
+      ctx.globalAlpha = 0.4 * (1 - m) + 0.18 * m;
+      ctx.beginPath(); ctx.arc(x0, y0, 1.6, 0, 2 * Math.PI); ctx.fill();
+      if (m > 0) {
+        ctx.globalAlpha = 0.7 * m;
+        ctx.beginPath(); ctx.arc(lerp(x0, px, m), lerp(y0, y1, m), 1.6, 0, 2 * Math.PI); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    /* the sideways bell: the normality claim at the residual SD, on the
+       same dots-per-bin scale as the pile it is judged against */
+    const s = Math.sqrt(d.fit.sigma2);
+    const scale = N * BIN * step / (Math.sqrt(2 * Math.PI) * s);
+    ctx.strokeStyle = C.theory; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    for (let k = 0; k <= 80; k += 1) {
+      const v = yd[0] + ((yd[1] - yd[0]) * k) / 80;
+      const px = MARG.x + 3 + Math.exp(-(v * v) / (2 * s * s)) * scale;
+      if (k === 0) ctx.moveTo(px, p.sy(v)); else ctx.lineTo(px, p.sy(v));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.theory; ctx.font = `600 10px ${C.font}`; ctx.textAlign = "right";
+    ctx.fillText("the claim: a bell this wide", MARG.x + MARG.w, r.y + 12);
+    ctx.restore();
+  }
+  const setScen = (s2) => {
+    scen = s2;
+    document.getElementById("c-linear").setAttribute("aria-pressed", String(s2 === "linear"));
+    document.getElementById("c-skew").setAttribute("aria-pressed", String(s2 === "skew"));
+    runAnim(draw, 900);
+  };
+  document.getElementById("c-linear").onclick = () => setScen("linear");
+  document.getElementById("c-skew").onclick = () => setScen("skew");
+  document.getElementById("c-play").onclick = () => runAnim(draw, 900);
+  draw(1);
+}
+
+/* === §D — the model's claim on the data ================================== */
+{
+  const ctx = ctx2d("d");
+  const r = { x: 56, y: 20, w: 700, h: 210 };
+  let scen = "linear";
+  const AT = [21, 28, 35];
+  function draw(t) {
+    const d = D[scen];
+    const y = Y[scen];
+    ctx.clearRect(0, 0, 780, 280);
+    const p = frame(ctx, r, X_BMI, [40, 260], "BMI", "sysBP", [20, 30, 40], [100, 150, 200, 250]);
+    ctx.fillStyle = C.ink2; ctx.font = `600 11px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText("the model's claim: at every BMI, normal around the line, ONE spread", r.x, r.y - 6);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+    ctx.globalAlpha = 0.4; ctx.fillStyle = C.unknown;
+    for (let i = 0; i < N; i += 1) {
+      ctx.beginPath(); ctx.arc(p.sx(xs[i]), p.sy(y[i]), 1.6, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.empirical; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.sx(X_BMI[0]), p.sy(d.fit.b[0] + d.fit.b[1] * X_BMI[0]));
+    ctx.lineTo(p.sx(X_BMI[1]), p.sy(d.fit.b[0] + d.fit.b[1] * X_BMI[1]));
+    ctx.stroke();
+    /* three sideways bells, staggered in */
+    AT.forEach((bx, k) => {
+      const lt = easeInOut(Math.min(1, Math.max(0, t * 3 - k * 0.85)));
+      if (lt <= 0) return;
+      const mu = d.fit.b[0] + d.fit.b[1] * bx;
+      const s = SIGMA; /* the CLAIMED spread — one number everywhere */
+      const wpx = 46 * lt;
+      ctx.globalAlpha = lt;
+      ctx.strokeStyle = C.theory; ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(p.sx(bx), p.sy(mu - 3 * s));
+      ctx.lineTo(p.sx(bx), p.sy(mu + 3 * s));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      for (let q = 0; q <= 48; q += 1) {
+        const v = mu - 3 * s + (6 * s * q) / 48;
+        const off = Math.exp(-((v - mu) ** 2) / (2 * s * s)) * wpx;
+        if (q === 0) ctx.moveTo(p.sx(bx) + off, p.sy(v)); else ctx.lineTo(p.sx(bx) + off, p.sy(v));
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+    ctx.restore();
+  }
+  const setScen = (s2) => {
+    scen = s2;
+    for (const id of ["d-linear", "d-fan", "d-skew"]) {
+      document.getElementById(id).setAttribute("aria-pressed", String(id === `d-${s2}`));
+    }
+    runAnim(draw, 1100);
+  };
+  document.getElementById("d-linear").onclick = () => setScen("linear");
+  document.getElementById("d-fan").onclick = () => setScen("fan");
+  document.getElementById("d-skew").onclick = () => setScen("skew");
+  document.getElementById("d-play").onclick = () => runAnim(draw, 1100);
+  draw(1);
+}
+</script>
+</body>
+</html>

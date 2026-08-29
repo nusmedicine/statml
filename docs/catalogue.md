@@ -3291,6 +3291,63 @@ Both halves were measured before the fix:
   load; the stale-console trap then showed the error three times after it
   was fixed (fresh `window.onerror` counter proved it clean).
 
+### ROUND 2 — Kenneth, 2026-08-29: rename the tab; animate the WHY — mock built, awaiting picks
+
+Three asks: the second tab should read **"Model fit"**, not "Adjusted R²"
+(renamed, value `adjr2` kept so shared URLs hold); can the widget ANIMATE
+why residuals should be normal ("overlay bell curve sideways on plot");
+and can the residual plot's construction be animated ("lines from dots
+extend to the perpendicular of the fit… linked to the residual plot… if
+too crowded, selected lines") — with a research pass on how others do it.
+
+**The research** (what exists, and what it settled): Whitlock's
+*Visualizing residuals* (UBC shiny) clicks a point and lights its
+residual in BOTH the scatterplot and the residual plot — the
+linked-selection pattern; the *Regressomatic 4000* (refsmmat.com) pairs
+each diagnostic with the data panel and lets the reader DRAG a point,
+diagnostics updating live — the propagation pattern; the marginal
+histogram on a plot's edge (ggExtra's ggMarginal) is the established home
+for "the distribution of what this axis shows"; and the classic textbook
+diagram — sideways normal curves straddling the fitted line — appears
+never to have been animated anywhere found. One naming correction folded
+in: the residual is the VERTICAL distance to the line, not the
+perpendicular (that is total least squares), so every candidate draws
+vertical segments.
+
+**The candidates are BUILT AND RUNNING** in
+[`_lab/lm-diag-anim.html`](../widgets/_lab/lm-diag-anim.html), all on the
+widget's own generator (seed 6, n = 600), each with a Replay:
+
+- **§A · Build the residual plot** — twelve selected patients
+  (quantile-spread, the largest residual included): the vertical segment
+  grows dot-to-line, then dot-and-segment TRAVEL into the panel below to
+  land at (fitted, residual); the remaining 588 fade in en masse.
+  Integration: the gate's entry animation (core's door), then
+  hover/click lights a patient in both panels (the Whitlock move, the
+  arc's pointer channel).
+- **§B · Lay the line flat** — one ease: the fitted line rotates flat
+  while every dot keeps its residual; the data panel BECOMES the
+  residual plot. Cheaper, all 600 dots, but nothing is singled out.
+- **§C · The sideways pile** — the residual plot's dots sweep to the
+  right margin and stack into a pile (leaving faint ghosts — a settled
+  sweep that emptied the plot read as broken); the sideways bell over it
+  (theory token) is the normality claim at the residual SD. On Skewed
+  noise the pile leans visibly off the bell. Two lessons from drawing
+  it: the dot spacing must shrink to fit the DEEPEST bin (a fixed
+  spacing saturated the centre bins into a barcode), and the y-window
+  must hold the skew tail (+136).
+- **§D · The model's claim on the data** — the textbook diagram
+  animated: three sideways bells straddle the fitted line at BMI
+  21/28/35, staggered in, ONE claimed spread (dashed, theory token). On
+  Unequal spread the fixed bells visibly disagree with the widening
+  cloud. Integration: a "Model's claim" overlay toggle on the data
+  panel.
+
+A and B answer the construction ask; C and D answer the normality ask
+(C on the residual plot, D on the data). They compose — plausibly D on
+the data panel + A's entry + C as the RvF↔Q-Q bridge — but each is a
+pick, not a bundle. Awaiting Kenneth's choices.
+
 The planning record below stands as written.
 
 ### The planning record — MEASURED 2026-08-29, before the mock

@@ -193,7 +193,7 @@ defineWidget({
       label: "Concept",
       options: [
         { value: "plots", label: "Diagnostic plots", detail: "Residuals vs Fitted and the Normal Q-Q — what each one detects" },
-        { value: "adjr2", label: "Adjusted R²", detail: "R² climbs as covariates are added, even useless ones — adjusted R² allows for it" },
+        { value: "adjr2", label: "Model fit", detail: "R² climbs as covariates are added, even useless ones — adjusted R² allows for it" },
       ],
       default: "plots",
       display: true,
