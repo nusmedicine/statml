@@ -11009,6 +11009,33 @@ keeps its fixed 1.4 s. Also: the patients note dropped inside the strip
 panel — on the caption line it collided with the threshold label whenever
 the threshold sat right of ~0.55.
 
+### Round 5 — the drag confined to the strip; core grows `drag.hit` (2026-08-29)
+
+Kenneth circled an arrow reading "from 0.48" and asked why not 0.50. The
+arrow was honest; the drag surface was not: `drag` covered the WHOLE canvas,
+so a casual click-and-slip on the ROC square nudged the threshold ~0.02 per
+8 px with nothing calling attention to it, and Find-optimal faithfully
+recorded the drift. **Core gained `drag.hit`** — optional, the `scrubHit`
+shape: `({ x, y, w, h, params, state }) => bool` gates both the gesture and
+the advertised cursor; absent, everything behaves exactly as before (and the
+cursor handler registers only when `hit` exists, because t-sne pairs an
+ungated drag with regions and relies on the regions handler's pointer
+cursor). The widget confines its threshold drag to the strip rect with
+margins for the label row and the axis. Verified: a 60 px drag on the ROC
+square moves nothing, the same drag on the strip moves the threshold, cursor
+`ew-resize` over the strip and `default` elsewhere, t-sne's cloud still
+turns.
+
+**The core change ran the full suite THREE times** (232 states; the two
+roc-auc placeholders read DIFFER by design). Run 1: five lm-adjustment
+states DIFFERed on `px` only, `tx` identical on all five. Run 2, with the
+core change stashed as a control: **all 230 real states MATCH** — the
+baseline was fine. Run 3, change restored: **all 230 MATCH again**. So the
+five were one occurrence of the documented pane flake (the audit's clt case
+had the same px-only/tx-identical signature), now seen striking five states
+of one widget in a single pass — worth knowing it can cluster. Nothing was
+rebaselined.
+
 My guess at the evaluation arc's spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on

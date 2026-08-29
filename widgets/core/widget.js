@@ -246,6 +246,8 @@ export function defineWidget(config) {
      *       params: ["turn", "tilt"],                // declared, not returned
      *       value: ({ dx, dy, start, params, state, w, h }) => ({ turn, tilt }),
      *       cursor: "grab",                          // optional, default "grab"
+     *       hit: ({ x, y, w, h, params, state }) => bool,  // optional: where the
+     *                                                // figure can be grabbed
      *     }
      *
        DECLARED rather than inferred from the return value, because core has to
@@ -619,13 +621,39 @@ export function defineWidget(config) {
       throw new Error(`drag on "${dragParams.join(", ")}" has no value() function`);
     }
     const grab = drag.cursor ?? "grab";
-    surface.canvas.style.cursor = grab;
+
+    /* WHERE THE FIGURE CAN BE GRABBED — optional, the scrubHit shape. Without
+       it every widget drags everywhere, which is right for a figure that IS
+       the draggable thing (t-sne's cloud) and wrong for a figure where the
+       draggable thing is one panel of three: widget 34's whole-canvas drag
+       meant a casual click on the ROC square nudged the threshold ~0.02 per
+       8 px, and the reader met the evidence later as an arrow reading "from
+       0.48" they never asked for. Gates the gesture AND the advertised
+       cursor; absent, both behave exactly as before. */
+    const dragHitAt = (p) =>
+      (drag.hit
+        ? drag.hit({ x: p.x, y: p.y, w: surface.width, h: surface.height, params: { ...values }, state })
+        : true);
+    if (drag.hit) {
+      /* Registered only when a hit-test exists: a widget with regions AND an
+         ungated drag (t-sne) relies on the regions handler's pointer cursor,
+         which a second unconditional handler here would overwrite. */
+      surface.canvas.addEventListener("pointermove", (ev) => {
+        if (dragging) return;
+        const p = surface.pointAt(ev);
+        surface.canvas.style.cursor = p && dragHitAt(p) ? grab : "default";
+      });
+    } else {
+      surface.canvas.style.cursor = grab;
+    }
 
     surface.canvas.addEventListener("pointerdown", (ev) => {
       /* A region click wins where the two overlap: it is a smaller target and
          a more specific intent, and a reader aiming at one does not expect the
          whole figure to swing. */
       if (regions && at(ev)) return;
+      const p = surface.pointAt(ev);
+      if (!p || !dragHitAt(p)) return;
       ev.preventDefault();
       dragging = {
         x: ev.clientX, y: ev.clientY,

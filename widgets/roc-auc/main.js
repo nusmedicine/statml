@@ -561,6 +561,16 @@ widgetApi = defineWidget({
   drag: {
     params: ["threshold"],
     cursor: "ew-resize",
+    /* The strip only (round 5): with the whole canvas draggable, a casual
+       click-and-slip on the ROC square nudged the threshold ~0.02 per 8 px,
+       and the find-optimal arrow then honestly reported "from 0.48" the
+       reader never chose. Margins take in the label above and the axis row
+       below, so grabbing AT the line always works. */
+    hit: ({ x, y, w, h }) => {
+      const L = layout(w, h);
+      return x >= L.strip.x && x <= L.strip.x + L.strip.w
+        && y >= L.strip.y - 16 && y <= L.strip.y + L.strip.h + 30;
+    },
     value: ({ dx, start, w, h }) => {
       const L = layout(w, h);
       const t = start.threshold + dx / L.strip.w;
