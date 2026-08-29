@@ -795,7 +795,10 @@ function drawTwoByTwo(ctx, colors, r, params, state, a, t) {
     const rise = y1 - y0;
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "center";
-    const label = `${name}: ${rise >= 0 ? "+" : ""}${fmt(rise, 1)}`;
+    /* two decimals, matching the equation card: at one decimal the men's
+       −0.02 printed as "−0.0", and the bracket's 21.02 = 21.00 − (−0.02)
+       stopped adding up on screen (reported 2026-08-29) */
+    const label = `${name}: ${rise >= 0 ? "+" : ""}${fmt(rise, 2)}`;
     const mx = (X0 + X1) / 2;
     const my = sy((y0 + y1) / 2) + (s === 0 ? -8 : 14);
     ctx.strokeStyle = colors.surface;

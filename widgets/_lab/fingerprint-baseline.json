@@ -1739,14 +1739,14 @@
    "$note": "SETTLED: the 2×2 parallel — one diabetes effect for everyone, the observed ticks visibly missed. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&concept=diabsex",
-   "px": "1f1cfffd",
+   "px": "13da6a2c",
    "tx": "589f7baa"
   },
   {
    "$note": "SETTLED: the 2×2 pivoted — the lines on the means, the interaction bracket at 21.02. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
    "slug": "lm-interaction",
    "state": "?theme=light&fit=1&terms=times&concept=diabsex",
-   "px": "57bb7d67",
+   "px": "cc16373e",
    "tx": "3468e925"
   },
   {
@@ -1788,7 +1788,7 @@
     "frames": 4,
     "dt": 32
    },
-   "px": "d5fbae0a",
+   "px": "1aa7a214",
    "tx": "3468e925"
   },
   {
