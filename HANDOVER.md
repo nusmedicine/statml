@@ -34,10 +34,12 @@ URL** — that difference is the region geometry proven.
 
 1. **KENNETH'S QUEUE, in his order (stated 2026-08-29, saved to memory
    as `after-mixed-model-queue`):**
-   - **`lm-interaction`**: add the two interacting CONTINUOUS variables
-     to match the 05-04 notebook — he thinks BMI and age; verify against
-     the notebook before building.
-   - **`lm-diagnostics`**: a new widget supporting the 05-01 notebook.
+   - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
+     (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
+     LEGEND, a core door — `legend` may be a function of the params).
+   - **NEXT: `lm-diagnostics`**: a new widget supporting the 05-01
+     notebook. Start the usual way — read the notebook's diagnostics
+     material cell by cell, measure, mock, Kenneth picks.
    - **`roc-auc`**: to be based on an existing JS app Kenneth will
      upload; DO NOT start until he provides it.
 2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
