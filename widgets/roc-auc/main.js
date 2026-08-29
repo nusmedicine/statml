@@ -27,6 +27,23 @@ import { rocWalk, aucOf, youdenOf, metricsAt, simulate } from "./model.js";
 
 const HIST_BINS = 36;
 const SCAN_MS = 1400; // the find-optimal probe's sweep along the curve
+const TRACE_MS = { slow: 9000, medium: 4500, fast: 2200 }; // Play speed, whole sweep
+
+/* The widget's own handle on itself, for the one write the reader's press
+   asks for: when the find-optimal scan lands, the threshold MOVES to the
+   optimum (round 4 — the button is an action, not a toggle). The write goes
+   through the exported setParam — the door that syncs the rail first — and
+   the button releases itself in the same breath, so a later press runs the
+   search again. Deferred a beat so the landing is seen before the line moves;
+   the youden guard makes a stale timer harmless after Reset. */
+let widgetApi = null;
+function applyOptimum(th) {
+  setTimeout(() => {
+    if (!widgetApi || !widgetApi.params.youden) return;
+    widgetApi.setParam("threshold", th);
+    widgetApi.setParam("youden", false);
+  }, 350);
+}
 
 /* One source of geometry for draw() AND drag.value(): the same-geometry-twice
    rule. Wide frames put the strip and the matrix in a left column beside the
@@ -86,8 +103,10 @@ function tracePath(walk, pos) {
 
 const traced = (anim, state) => Boolean(anim) && anim.pos >= state.walk.length - 1;
 const midTrace = (anim, state) => Boolean(anim) && anim.pos > 0 && !traced(anim, state);
-const optimumFound = (params, anim, state) =>
-  Boolean(params.youden && anim?.scan?.done) && traced(anim, state);
+/* The found-state is ANIM state, not a parameter: the ring and the arrow
+   persist after the button has released itself, and a data change sweeps
+   them away with the rest of the animation. */
+const optimumFound = (anim, state) => Boolean(anim?.scan?.done) && traced(anim, state);
 
 /* --- the strip: the two classes' score histograms, OVERLAID ---------------- *
  * One panel, both classes semi-transparent (round 3 — the two-row split made
@@ -147,6 +166,39 @@ function drawStrip(plot, { colors, params, state, anim }, effTh) {
   ctx.textAlign = "left";
   ctx.strokeText("predicted +", tx + 6, y + h - 6);
   ctx.fillText("predicted +", tx + 6, y + h - 6);
+
+  /* The search's receipt: where the threshold stood when Find was pressed,
+     and the move it made. Anim state, so a data change clears it; a manual
+     drag away clears it in rebuild. Skipped when the move is too small to
+     draw honestly. */
+  const f = anim?.found;
+  if (f && anim.scan?.done && !sweeping && Math.abs(f.applied - f.from) > 0.02) {
+    const ay = y + 20;
+    const x0 = x + f.from * w;
+    const x1 = x + f.applied * w;
+    const dir = Math.sign(x1 - x0);
+    ctx.strokeStyle = colors.theory;
+    ctx.fillStyle = colors.theory;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x0, ay - 5);
+    ctx.lineTo(x0, ay + 5); // the tick where it stood
+    ctx.moveTo(x0, ay);
+    ctx.lineTo(x1 - dir * 8, ay);
+    ctx.stroke();
+    ctx.beginPath(); // the head
+    ctx.moveTo(x1, ay);
+    ctx.lineTo(x1 - dir * 9, ay - 5);
+    ctx.lineTo(x1 - dir * 9, ay + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = dir > 0 ? "right" : "left";
+    ctx.strokeStyle = colors.surface;
+    ctx.lineWidth = 3;
+    ctx.strokeText(`from ${fmt(f.from, 2)}`, x0 - dir * 6, ay + 4);
+    ctx.fillText(`from ${fmt(f.from, 2)}`, x0 - dir * 6, ay + 4);
+  }
   ctx.restore();
 }
 
@@ -265,14 +317,14 @@ function drawRoc(plot, { colors, params, state, anim }) {
   /* THE FIND-OPTIMAL SCAN: a probe walks the finished curve, and the
      vertical segment it carries — down to the chance line — is Youden's J
      made visible. The longest segment is where it lands. */
-  const scanning = params.youden && anim?.scan && !anim.scan.done;
+  const scanning = anim?.scan && !anim.scan.done;
   if (scanning) {
     const p = walkPointAt(state.walk, anim.scan.t * (state.walk.length - 1));
     segment(plot, colors, p, { dashed: true });
     plot.dot(p.fpr, p.tpr, { fill: colors.theory, r: 4.5 });
   }
 
-  if (optimumFound(params, anim, state) && state.youden) {
+  if (optimumFound(anim, state) && state.youden) {
     const yd = state.youden;
     segment(plot, colors, yd, { dashed: false });
     const ctx = plot.ctx;
@@ -309,7 +361,7 @@ function segment(plot, colors, p, { dashed }) {
 
 /* ========================================================================= */
 
-defineWidget({
+widgetApi = defineWidget({
   slug: "roc-auc",
   title: "Scoring a Classifier",
   subtitle:
@@ -359,16 +411,34 @@ defineWidget({
       hidden: true,
     },
 
-    /* THE WITHHELD ANSWER goes below the drive row (widget 10's rule), and
-       round 2 made it a BUTTON: pressing it completes the curve if needed and
-       sends the probe scanning for the longest distance above chance. A pill
-       is a <button data-param> the fingerprint's setParam cannot toggle —
-       drive its states by URL. */
+    speed: {
+      type: "choice",
+      label: "Play speed",
+      options: [
+        { value: "slow", label: "Slow" },
+        { value: "medium", label: "Medium" },
+        { value: "fast", label: "Fast" },
+      ],
+      default: "medium",
+      display: true,
+      afterDrive: true,
+    },
+
+    /* THE WITHHELD ANSWER goes below the drive row (widget 10's rule).
+       Round 4 made the pill MOMENTARY: pressing it completes the curve if
+       needed, sends the probe scanning for the longest distance above the
+       chance line, and when the scan lands the threshold MOVES to the
+       optimum and the pill releases itself — both writes through the
+       exported setParam, the door that syncs the rail. The lasting record
+       is the threshold parameter; the ring and the change-arrow are anim
+       state that the next data change clears. A pill is a
+       <button data-param> the fingerprint's setParam cannot toggle — drive
+       its states by URL. */
     youden: {
       type: "bool",
       style: "pill",
       label: "Find the optimal threshold",
-      detail: "a probe scans the curve for the longest distance above the chance line — Youden's J",
+      detail: "scans the curve for the longest distance above the chance line — Youden's J — and moves the threshold there",
       default: false,
       display: true,
       afterDrive: true,
@@ -377,15 +447,16 @@ defineWidget({
     shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
   },
 
-  legend: ({ params }) => [
+  /* Static, the theory entry included: the optimum's marks are anim state a
+     legend function of the parameters could not track, and the CLT precedent
+     lists an overlay whether or not it is currently on screen. */
+  legend: [
     { token: "event", label: "Positive class" },
     { token: "nonevent", label: "Negative class" },
     { token: "empirical", label: "ROC curve, traced by the sweep", mark: "line" },
     { token: "reference", label: "Chance — a classifier with no information", mark: "line" },
     { token: "highlight", label: "Decision threshold — drag it", mark: "line" },
-    ...(params.youden
-      ? [{ token: "theory", label: "Youden's J — the distance above chance", mark: "line" }]
-      : []),
+    { token: "theory", label: "Youden's J optimum — the farthest point above chance", mark: "line" },
   ],
 
   compute: ({ params, rng }) => {
@@ -416,16 +487,19 @@ defineWidget({
 
     init: ({ params, state, fromScratch }) => {
       const total = state.walk.length - 1;
-      /* Finding the optimum needs the whole curve, so a URL arriving with
-         youden=1 opens finished-and-found; Replay retraces and rescans. */
+      /* A URL arriving with youden=1 (a link copied mid-search) opens
+         finished-and-found without moving the threshold — a URL shows what
+         it says. Replay starts the trace over. */
       const pos = fromScratch ? 0
         : params.youden ? total
           : Math.min(Math.max(0, params.shown ?? 0), total);
+      const done = pos >= total;
       return {
         pos,
-        done: pos >= total,
+        done,
         youdenOn: Boolean(params.youden),
-        scan: params.youden && pos >= total ? { t: 1, done: true } : null,
+        scan: params.youden && done ? { t: 1, done: true } : null,
+        found: null,
       };
     },
 
@@ -435,21 +509,25 @@ defineWidget({
         const target = anim.mode === "step"
           ? Math.min(total, Math.floor(anim.pos + 1e-9) + 1)
           : total;
-        const rate = anim.mode === "step" ? 1 / 260 : total / 4500;
+        const rate = anim.mode === "step"
+          ? 1 / 260
+          : total / (TRACE_MS[params.speed] ?? TRACE_MS.medium);
         anim.pos = Math.min(target, anim.pos + dt * rate);
         if (anim.pos < target) return true;
         if (anim.pos < total) return false; // a step landed short of the end
       }
       anim.done = true;
-      /* The trace has landed; if the optimum is asked for and not yet found,
-         the scan plays in the same breath — which is what makes Replay with
-         the pill pressed retrace and then re-find. */
-      if (params.youden) {
-        if (!anim.scan) anim.scan = { t: 0 };
-        if (!anim.scan.done) {
-          anim.scan.t = Math.min(1, anim.scan.t + dt / SCAN_MS);
-          if (anim.scan.t < 1) return true;
-          anim.scan.done = true;
+      /* The trace has landed; if the search is pending the scan plays in the
+         same breath, and its landing is what moves the threshold. */
+      if (params.youden && anim.scan && !anim.scan.done) {
+        anim.scan.t = Math.min(1, anim.scan.t + dt / SCAN_MS);
+        if (anim.scan.t < 1) return true;
+        anim.scan.done = true;
+        if (state.youden) {
+          const applied = Math.max(0.01, Math.min(0.99,
+            Math.round(state.youden.th * 100) / 100));
+          anim.found = { from: params.threshold, th: state.youden.th, applied };
+          applyOptimum(applied);
         }
       }
       return false;
@@ -457,7 +535,9 @@ defineWidget({
 
     /* Display changes land here. Pressing the pill completes the curve
        (finding an optimum on a partial curve would be a lie) and requests
-       ease frames for the scan; releasing it clears the probe. */
+       ease frames for the scan. The pill's own release and the threshold
+       write pass through afterwards and must not restart anything — that is
+       the youdenOn latch. */
     rebuild: (anim, { params, state }) => {
       const total = state.walk.length - 1;
       anim.pos = Math.min(anim.pos, total);
@@ -465,10 +545,16 @@ defineWidget({
         anim.pos = total;
         anim.done = true;
         anim.scan = { t: 0 };
+        anim.found = null;
         anim.easing = true;
       }
-      if (!params.youden) anim.scan = null;
       anim.youdenOn = Boolean(params.youden);
+      /* The reader dragged away from a found optimum: the arrow no longer
+         describes the line, so it goes; the ring stays — it marks a property
+         of the curve, not of the reader's threshold. */
+      if (anim.found && Math.abs(params.threshold - anim.found.applied) > 1e-9) {
+        anim.found = null;
+      }
     },
   },
 
@@ -499,7 +585,9 @@ defineWidget({
       yDomain: [0, 1],
     });
     strip.caption("A simulated cohort");
-    strip.note(`${state.scores.length} patients · ${state.nPos} positive`);
+    /* inside, or it shares the caption line with the threshold label and the
+       two collide whenever the threshold sits right of ~0.55 */
+    strip.note(`${state.scores.length} patients · ${state.nPos} positive`, { inside: true });
     drawStrip(strip, { colors, params, state, anim }, effTh);
 
     drawMatrix(ctx, colors, L.matrix,
@@ -545,7 +633,7 @@ defineWidget({
         note: `${m.tn} of ${state.nNeg} negatives cleared`,
       },
     ];
-    if (optimumFound(params, anim, state) && state.youden) {
+    if (optimumFound(anim, state) && state.youden) {
       tiles.push({
         label: "Youden threshold",
         value: fmt(state.youden.th, 2),

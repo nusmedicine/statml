@@ -10986,6 +10986,29 @@ row-normalised heatmap, so TN and TP darken exactly as specificity and
 sensitivity rise — count large, "% of negatives/positives" small beneath
 (the TP cell's percentage IS sensitivity, the link to the tiles).
 
+### Round 4 — the search is an action, and speed returns (Kenneth, 2026-08-29)
+
+**(1) Find-optimal is no longer a toggle.** The pill is now MOMENTARY: press
+it, the curve completes if untraced, the probe scans, and when it lands the
+THRESHOLD MOVES to the optimum — the widget writes `threshold` (and releases
+its own pill) through the exported `setParam`, the door that syncs the rail,
+deferred 350 ms so the landing is seen before the line moves. The lasting
+state of record is the threshold parameter alone (`?threshold=0.59` is what
+the URL keeps; `youden=1` appears only transiently). The strip draws the
+receipt: an arrow from where the line stood to where it landed, "from 0.50"
+at its tail — anim state, cleared by the next data change or by dragging the
+line away (the ring stays; it marks a property of the curve, not of the
+reader's threshold). A stale apply-timer is disarmed by a `params.youden`
+guard, so Reset inside the beat cannot be overwritten. The legend's theory
+entry went STATIC — the optimum's marks are anim state a legend function of
+the parameters cannot track, and the CLT precedent lists an overlay whether
+or not it is on screen. **(2) Play speed is back**: Slow / Medium / Fast
+(9 s / 4.5 s / 2.2 s whole-sweep), a display choice below the drive row per
+the rail convention, touching only the trace rate — the find-optimal scan
+keeps its fixed 1.4 s. Also: the patients note dropped inside the strip
+panel — on the caption line it collided with the threshold label whenever
+the threshold sat right of ~0.55.
+
 My guess at the evaluation arc's spine, for you to overwrite:
 
 > a model that fits → a model that generalises → an honest estimate of how well → a probability you can act on
