@@ -45,7 +45,7 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
 const WANT = {
   concept: "segmented", people: "section", patients: "int", ncens: "int",
   etime: "int", reading: "section", censored: "segmented",
-  data: "section", n: "choice", effect: "choice", follow: "choice",
+  data: "section", n: "choice", effect: "choice", onset: "choice", follow: "choice",
   curves: "section", truth: "bool", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
   speed: "choice", seed: "int", shown: "int",
@@ -68,16 +68,17 @@ ck("no gate anywhere (a gate hides the drive row this widget needs)",
   !Object.values(W.params).some((f) => f.type === "gate"));
 ck("shown is hidden; seed is the visible Draw control",
   W.params.shown.hidden && !W.params.seed.hidden && W.params.seed.label === "Draw");
-ck("default draw is 1 (the measured clean cohort under the round-8 generator)",
-  W.params.seed.default === 1);
+ck("default draw is 32 (the measured clean cohort at the round-10 defaults)",
+  W.params.seed.default === 32);
 ck("the data section and its controls show on both cohort tabs (oneOf)",
-  ["data", "n", "effect", "follow", "seed"].every(
+  ["data", "n", "effect", "onset", "follow", "seed"].every(
     (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
 ck("the data controls are DATA parameters (moving one restarts the sweep)",
-  ["n", "effect", "follow", "seed", "etime"].every((k) => !W.params[k].display));
-ck("defaults: 200 patients, moderate effect, 20-year follow-up, E at 7",
+  ["n", "effect", "onset", "follow", "seed", "etime"].every((k) => !W.params[k].display));
+ck("defaults: 200 patients, moderate effect, early onset, 12-year follow-up, E at 7",
   W.params.n.default === "200" && W.params.effect.default === "moderate"
-  && W.params.follow.default === "20" && W.params.etime.default === 7);
+  && W.params.onset.default === "early" && W.params.follow.default === "12"
+  && W.params.etime.default === 7);
 
 console.log("\n== compute, default seed ==");
 const values = Object.fromEntries(Object.entries(W.params)
@@ -109,10 +110,10 @@ ck("the bins stop by 20 years", state.hazBins[state.hazBins.length - 1].hi <= 20
    where they have separated */
 {
   const at = (steps, q) => { let S = 1; for (const s of steps) { if (s.t <= q) S = s.S; else break; } return S; };
-  const s0 = at(state.groups[0].kept.steps, 12);
-  const s1 = at(state.groups[1].kept.steps, 12);
-  const sp = at(state.pooled.steps, 12);
-  ck(`pooled curve between the groups at t=12 (${s1.toFixed(2)} < ${sp.toFixed(2)} < ${s0.toFixed(2)})`,
+  const s0 = at(state.groups[0].kept.steps, 8);
+  const s1 = at(state.groups[1].kept.steps, 8);
+  const sp = at(state.pooled.steps, 8);
+  ck(`pooled curve between the groups at t=8 (${s1.toFixed(2)} < ${sp.toFixed(2)} < ${s0.toFixed(2)})`,
     sp > Math.min(s0, s1) && sp < Math.max(s0, s1));
 }
 {
@@ -142,9 +143,10 @@ console.log("\n== the play surface, at its corners ==");
         .map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
       + W.summary({ params: { ...values, n: "30", concept: "groups" }, state: s30, anim: { t: 22 } })));
   /* short follow-up: censoring dominates */
-  const s12 = W.compute({ params: { ...values, follow: "12" }, rng: makeRng(values.seed) });
-  ck(`follow 12: most of the cohort is censored (${s12.events} events of 200)`,
+  const s12 = W.compute({ params: { ...values, onset: "late" }, rng: makeRng(values.seed) });
+  ck(`late onset at 12-year follow-up: almost nobody's event is seen (${s12.events} events of 200)`,
     s12.events < 60);
+  ck("late onset stretches the axis back to 22", s12.t2max === 22 && state.t2max === 16);
   /* the patient table (round 9): defaults ARE the notebook; the controls
      extend and flip deterministically */
   ck("defaults reproduce the notebook's table exactly",

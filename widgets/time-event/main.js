@@ -101,6 +101,8 @@ const CENSOR_WHY = { 1: "study ended", 4: "dropped out" };
    every n, small is the power story (24% → 89% as n grows), moderate fires
    at every n, large saturates */
 const EFFECTS = { none: 0, small: 1.2, moderate: 2.5, large: 4.5 };
+/* the onset control's shifts: how much earlier the event process runs */
+const SHIFTS = { early: 6, late: 0 };
 
 const T1MAX = 11;
 const T2MAX = 22;
@@ -221,7 +223,7 @@ defineWidget({
       type: "segmented",
       label: "Concept",
       options: [
-        { value: "censoring", label: "Censoring", detail: "how time-to-event data is recorded — five patients, one curve" },
+        { value: "censoring", label: "Censoring", detail: "how time-to-event data is recorded, and what censoring is" },
         { value: "groups", label: "Comparing groups", detail: "are the groups different? two Kaplan–Meier curves and the log-rank test" },
         { value: "factors", label: "Finding factors", detail: "which factors are associated with the hazard? Cox regression, built a covariate at a time" },
       ],
@@ -240,7 +242,6 @@ defineWidget({
     patients: {
       type: "int",
       label: "Patients",
-      detail: "the notebook's five, then five more fixed lanes",
       min: 5,
       max: 10,
       default: 5,
@@ -249,7 +250,7 @@ defineWidget({
     ncens: {
       type: "int",
       label: "Censored",
-      detail: "how many never show their event — E and B first; at zero the three readings agree",
+      detail: "how many never show their event",
       min: 0,
       max: 7,
       default: 2,
@@ -260,7 +261,6 @@ defineWidget({
     etime: {
       type: "int",
       label: "Patient E's time",
-      detail: "move E across the others — every later at-risk count changes",
       min: 1,
       max: 10,
       default: 7,
@@ -282,8 +282,8 @@ defineWidget({
       label: "Censored patients",
       options: [
         { value: "kept", label: "Kept", detail: "in the risk set until they leave — the Kaplan–Meier estimate" },
-        { value: "dropped", label: "Dropped", detail: "removed from the data entirely" },
-        { value: "asevents", label: "As events", detail: "their last-seen time counted as the event" },
+        { value: "dropped", label: "Dropped" },
+        { value: "asevents", label: "As events" },
       ],
       default: "kept",
       display: true,
@@ -304,10 +304,10 @@ defineWidget({
       type: "choice",
       label: "Patients",
       options: [
-        { value: "30", label: "30", detail: "a small study — ragged curves, wide bands, a p that can fail" },
+        { value: "30", label: "30" },
         { value: "60", label: "60" },
         { value: "100", label: "100" },
-        { value: "200", label: "200", detail: "the full cohort" },
+        { value: "200", label: "200" },
       ],
       default: "200",
       when: { param: "concept", oneOf: ["groups", "factors"] },
@@ -316,24 +316,34 @@ defineWidget({
       type: "choice",
       label: "Disease effect",
       options: [
-        { value: "none", label: "None", detail: "the groups genuinely share one curve — any gap on screen is chance" },
-        { value: "small", label: "Small", detail: "a real difference a small study usually misses" },
-        { value: "moderate", label: "Moderate", detail: "the default — a difference this cohort detects" },
-        { value: "large", label: "Large", detail: "unmistakable at any size" },
+        { value: "none", label: "None", detail: "no real difference between the groups" },
+        { value: "small", label: "Small" },
+        { value: "moderate", label: "Moderate" },
+        { value: "large", label: "Large" },
       ],
       default: "moderate",
+      when: { param: "concept", oneOf: ["groups", "factors"] },
+    },
+    onset: {
+      type: "choice",
+      label: "Onset",
+      options: [
+        { value: "early", label: "Early" },
+        { value: "late", label: "Late" },
+      ],
+      default: "early",
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
     follow: {
       type: "choice",
       label: "Follow-up",
       options: [
-        { value: "12", label: "12 y", detail: "the study ends early — most patients are censored before their event" },
+        { value: "12", label: "12 y" },
         { value: "15", label: "15 y" },
         { value: "20", label: "20 y" },
-        { value: "25", label: "25 y", detail: "long follow-up — almost every event is seen" },
+        { value: "25", label: "25 y" },
       ],
-      default: "20",
+      default: "12",
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
     /* "Draw", not "seed" (the arc's ruling: nothing on screen should need
@@ -346,7 +356,7 @@ defineWidget({
       detail: "another cohort from the same population",
       min: 1,
       max: 50,
-      default: 1,
+      default: 32,
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
 
@@ -453,6 +463,7 @@ defineWidget({
       n: Number(params.n),
       effect: EFFECTS[params.effect],
       follow: Number(params.follow),
+      shift: SHIFTS[params.onset],
     });
     const per = (grp) => {
       const t = sim.time.filter((_, i) => sim.disease[i] === grp);
@@ -557,6 +568,7 @@ defineWidget({
       stepTimes,
       tEnd,
       nTotal: Number(params.n),
+      t2max: params.onset === "early" ? 16 : 22,
       events: sim.status.reduce((a, b) => a + b, 0),
     };
   },
@@ -1055,8 +1067,8 @@ function drawGroups(ctx, colors, w, params, state, t) {
   const left = 56;
   const right = w - 14;
   const rect = { x: left, y: KM2_Y, w: right - left, h: KM2_H };
-  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
-  plot.axisX({ label: "time (years)", ticks: [0, 5, 10, 15, 20] });
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, state.t2max], yDomain: [0, 1] });
+  plot.axisX({ label: "time (years)", ticks: state.t2max === 16 ? [0, 5, 10, 15] : [0, 5, 10, 15, 20] });
   plot.axisY({ label: "survival probability", ticks: [0, 0.25, 0.5, 0.75, 1] });
   plot.caption(`${state.nTotal} simulated patients, followed for up to ${params.follow} years`);
   /* the CI's derivation intuition, one sentence (round 7) — the band is
@@ -1068,7 +1080,7 @@ function drawGroups(ctx, colors, w, params, state, t) {
     drawCurve(ctx, plot, state.pooled.steps, [], t, colors.theory, { dash: [6, 4], width: 1.5, ticks: false });
   }
   drawGroupCurves(ctx, colors, plot, state, t, { bands: params.bands, truth: params.truth });
-  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
+  drawCursor(ctx, colors, plot.sx(Math.min(t, state.t2max)), KM2_Y - 12, plot.sy(0), t, state.tEnd.groups);
 
   /* THE HAZARD BY INTERVAL (round 5, replacing the H4 rates panel on
      Kenneth's review — "what are the bars? the x axis is not aligned").
@@ -1166,11 +1178,11 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
 
   /* the curves being modelled stay in view, compact */
   const rect = { x: left, y: FCURVE_Y, w: right - left, h: FCURVE_H };
-  const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
-  plot.axisX({ ticks: [0, 5, 10, 15, 20] });
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, state.t2max], yDomain: [0, 1] });
+  plot.axisX({ ticks: state.t2max === 16 ? [0, 5, 10, 15] : [0, 5, 10, 15, 20] });
   plot.axisY({ ticks: [0, 0.5, 1] });
   drawGroupCurves(ctx, colors, plot, state, t, { labels: false, ticks: false });
-  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
+  drawCursor(ctx, colors, plot.sx(Math.min(t, state.t2max)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
 
   /* the card */
   ctx.save();

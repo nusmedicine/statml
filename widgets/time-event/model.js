@@ -60,7 +60,10 @@ export const chi2Tail1 = (x) => (x <= 0 ? 1 : erfc(Math.sqrt(x / 2)));
  *   doors at 12 → 7 events of 200, at 25 → 188.
  * The full record is docs/catalogue.md § Widget 31.                          */
 export function simulate(rng, opts = {}) {
-  const { n = 200, effect = 2.5, follow = 20 } =
+  /* `shift` is the onset control (round 10): it moves the whole event
+     process earlier, so the curves need not idle through a flat head the
+     reader cannot use. 0 keeps the round-8 behaviour. */
+  const { n = 200, effect = 2.5, follow = 20, shift = 0 } =
     typeof opts === "number" ? { n: opts } : opts;
   const age = [];
   const disease = [];
@@ -78,7 +81,7 @@ export function simulate(rng, opts = {}) {
     snps.push(row);
   }
   for (let i = 0; i < n; i += 1) {
-    let t = 20 - 0.1 * age[i] - effect * disease[i]
+    let t = 20 - shift - 0.1 * age[i] - effect * disease[i]
       - (snps[i][0] + snps[i][1] + snps[i][2]) + rng.uniform(0, 5);
     t = Math.round(t * 2) / 2;
     if (t < 0.5) t = 0.5;

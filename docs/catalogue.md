@@ -3216,6 +3216,39 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 10 — the copy diet, and Onset as a control
+
+**Kenneth's asks**: strip self-explanatory descriptors, metacommentary and
+notebook references from the screen; make the flat head a control ("the
+onset as the shift"). Built:
+
+- **The copy diet**: thirteen details removed or trimmed — everything that
+  restated its label ("removed from the data entirely" under "Dropped"),
+  predicted what the reader would see ("ragged curves, wide bands, a p
+  that can fail" — the controls exist so they SEE it), or referenced the
+  notebook ("the notebook's five, then five more fixed lanes"). What
+  survives carries content the label cannot: kept's "…the Kaplan–Meier
+  estimate", Draw's "another cohort from the same population", the three
+  curve-overlay meanings, effect-none's "no real difference between the
+  groups".
+- **Onset (Early · Late)** in the data section: `shift` in the generator
+  (6 or 0 years), moving the whole event process earlier. **Default
+  early** — the flagged dead head is gone from the default view — and the
+  time axis follows (16 at early, 22 at late; asserted). Measured at
+  early: the ladder holds (none 2–8%, small 15→66%, moderate 55→100%,
+  large saturates at F = 12), and the follow lever now spans "most
+  censored" (F = 12, 82 events of 200) to "censoring dissolves entirely"
+  (F = 25, 200 of 200 — long-enough follow-up as its own lesson).
+  **Follow-up default moved to 12** to keep censoring visible at the new
+  onset, and **Draw default is 32** — re-scanned: the one clean cohort at
+  the new defaults whose adjusted HR (4.77) also sits inside the forest's
+  axis rather than clamped at its edge (the other clean draws run 6–17).
+  Onset late + follow 12 remains reachable and extreme (5 events of 200) —
+  the corners teach.
+
+Drive: 92 checks green at the new defaults; iframe sweeps 0 overruns at
+both onsets; `npm run check` green.
+
 ### Round 9 — the Censoring tab plays too; the rail reads data-first
 
 **Kenneth's review of the round-8 controls asked for**: play controls on
