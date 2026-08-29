@@ -8,23 +8,24 @@
    medication does NOTHING, yet lm on 500 rows reports −3.4 [−5.3, −1.5];
    lmer with the patient as a random effect reads −3.6 [−7.5, 0.2].
 
-   Two tabs, Kenneth's picks 2026-08-29 (all four options taken as
-   recommended from `_lab/mixed-stage.html`):
+   Three tabs, settled over rounds 1–3 of Kenneth's review (the full record
+   is catalogue § Widget 32):
 
-     Visits    the longitudinal BP study. The stage opens as lm sees it —
+     Repeated  the longitudinal BP study. The stage opens as lm sees it —
                a cloud of rows in two arms — and the reveal is the reader
-               joining each patient's visits (an eased display flip, not a
-               Step): the cloud becomes trajectories, and the honest
-               interval widens in beside the narrow one. Behind a gate,
-               the study repeats: 100 fresh no-effect studies, counting
-               what each model claims (measured: lm 38%, lmer 8% at the
-               notebook design).
-     Families  the SNP panel. Ten effects as a paired forest, lm beside
-               lmer; the causal SNPs are chips (widget 31's move — the
-               reader sets the truth, then sees which fit recovers it);
-               the family-differences dial takes the confounding from
-               zero (the fits agree) to the notebook's strength (lm
-               sprouts false SNPs, lmer keeps the truth).
+               flipping Measurements to Related (an eased display flip,
+               not a Step): the cloud becomes trajectories, and the honest
+               interval widens in beside the narrow one.
+     Nested    the SNP panel. The DATA first — 1000 cholesterol values
+               travelling from collection order into family columns on the
+               same flip — then the paired forest, the lmer rows easing in
+               with the grouping; the causal SNPs are chips (widget 31's
+               move — the reader sets the truth, then sees which fit
+               recovers it).
+     Syntax    the notebook's random-effects block made live: say what
+               each group gets — nothing, its own intercept, its own
+               intercept and slope — and the formula assembles while the
+               real fitted lines pivot between the three readings.
 
    Design measurements behind every dial are in `_lab/mixed-design.mjs`:
    visits 1→20 takes lm's false-positive rate 5%→57% while lmer holds 4–9%;
@@ -36,17 +37,12 @@
    Repeated tab, and on Nested lm flags 2, 5, 6 while lmer keeps exactly
    the causal SNP 5.
 
-   ROUND 2 (Kenneth's four picks, all taken as offered): the tabs mirror
-   the notebook's two hierarchy TYPES — Repeated (over time) · Nested (in
-   families); the view toggle is his own mapping, Measurements:
-   Independent · Related; the repeat-the-study stage OPENS FINISHED (the
-   widget-31 ruling — Step and Play are declined outright, the gate is
-   the one door and Draw re-rolls the tally); the Nested stage gained the
-   family strip ABOVE the forest, so the page opens on the DATA — 1000
-   cholesterol values visibly clustering by family — rather than on its
-   own answer; and both tabs carry the R formula card, because "lm" and
-   "lmer" on screen should show the call they name, with the random-
-   effect term wearing the mixed-model colour.
+   ROUND 3 CUT THE REPEAT-STUDY STAGE (Kenneth's call, made knowing the
+   measured counter-argument — the tally was the one instrument showing
+   that ~70% agreement under the null coexists with lm false-claiming
+   34–44% at ANY sample size; those numbers live in the catalogue and the
+   design script, and the rate story now belongs to the lesson prose).
+   The same round put the Measurements toggle on Nested and added Syntax.
    ========================================================================= */
 
 import { defineWidget, fmt } from "../core/index.js";
@@ -66,7 +62,6 @@ const EFFECTS = { none: 0, small: -2, moderate: -4, large: -8 };
    one 22% of the time while lmer stays at 0.64 and never misses */
 const FAMDIFF = { none: 0, small: 1, moderate: 2.5, large: 5 };
 
-const N_STUDIES = 100;
 const EASE_MS = 450;
 
 /* independent stream per surface, so opening the gate or flipping the tab
@@ -77,18 +72,20 @@ const EASE_MS = 450;
    10 neighbouring draws — and it is far above Draw's 1..50, so the streams
    cannot collide */
 const FAM_SEED_OFFSET = 900;
-const TALLY_SEED_OFFSET = 5000;
+const SYN_SEED_OFFSET = 2000;
 
 /* --- stage geometry -------------------------------------------------------- */
 const SC_TOP = 22;
 const SC_H = 238;
 const INT_GAP = 46;
 const INT_H = 116;
-const TALLY_GAP = 20;
-const TALLY_H = 130;
 const V_BOT = 16;
-const repeatedHeight = (studies) =>
-  SC_TOP + SC_H + INT_GAP + INT_H + (studies ? TALLY_GAP + TALLY_H : 0) + V_BOT;
+const repeatedHeight = () => SC_TOP + SC_H + INT_GAP + INT_H + V_BOT;
+
+/* the Syntax stage: one panel, the notebook's diagram made live */
+const SYN_TOP = 24;
+const SYN_H = 300;
+const syntaxHeight = () => SYN_TOP + SYN_H + 52;
 
 /* the Nested stage: the family strip — the DATA, above — then the forest */
 const STRIP_TOP = 22;
@@ -107,7 +104,7 @@ const F_LO = -1.8;
 const F_HI = 2.6;
 
 const LPAD = 46; // scatter's y-axis gutter
-const IPAD = 168; // interval and tally rows: room for the model labels
+const IPAD = 168; // interval rows: room for the model labels
 
 /* the interval frame is a function of the DIALS, never of the fits — a frame
    conditioned on live estimates drifts under the reader (the coefficient-
@@ -150,8 +147,9 @@ defineWidget({
     "are not independent. A linear mixed model gives each patient a random " +
     "effect, so the evidence is counted in patients rather than rows.",
   layout: "side",
-  height: ({ concept, studies }) =>
-    concept === "nested" ? nestedHeight() : repeatedHeight(studies),
+  height: ({ concept }) =>
+    concept === "nested" ? nestedHeight()
+      : concept === "syntax" ? syntaxHeight() : repeatedHeight(),
 
   params: {
     concept: {
@@ -163,6 +161,7 @@ defineWidget({
       options: [
         { value: "repeated", label: "Repeated", detail: "the same patients measured over time — repeated measurements" },
         { value: "nested", label: "Nested", detail: "individuals nested in families, sharing genetics and environment" },
+        { value: "syntax", label: "Syntax", detail: "how the random-effects formula is written, built from what you intend" },
       ],
       default: "repeated",
       display: true,
@@ -228,41 +227,10 @@ defineWidget({
       when: { param: "concept", equals: "repeated" },
     },
 
-    reading: {
-      type: "section",
-      label: "Reading the data",
-      when: { param: "concept", equals: "repeated" },
-    },
-    /* THE REVEAL. Two readings of the SAME rows, so display: true — the ease
-       between them is what shows it is the same data (the widget-12 rule),
-       and the honest interval widens in as the patients join up. The
-       Independent · Related pair is Kenneth's own mapping (round 2). */
-    view: {
-      type: "segmented",
-      label: "Measurements",
-      options: [
-        { value: "independent", label: "Independent", detail: "every measurement its own point — what lm assumes" },
-        { value: "related", label: "Related", detail: "each patient's measurements joined — the correlation lmer models" },
-      ],
-      default: "independent",
-      display: true,
-      when: { param: "concept", equals: "repeated" },
-    },
-
-    /* THE SECOND STAGE — one seed is an anecdote; the gate makes it a rate.
-       display: true so closing it never destroys the reader's view state. */
-    studies: {
-      type: "gate",
-      label: "Repeat the study",
-      labelOff: "Back to one study",
-      detail: "draw new studies from these same settings, counting what each model claims",
-      default: false,
-      display: true,
-      when: { param: "concept", equals: "repeated" },
-    },
-
-    /* THE DATA — the Families tab's. The causal chips are widget 31's move:
-       the reader sets the ground truth, then sees which fit recovers it. */
+    /* THE DATA — the Nested tab's. Declared BEFORE the shared reading
+       section so its rail order is data first, reading second, same as
+       Repeated's. The causal chips are widget 31's move: the reader sets
+       the ground truth, then sees which fit recovers it. */
     dataF: {
       type: "section",
       label: "The data",
@@ -293,6 +261,52 @@ defineWidget({
       when: { param: "concept", equals: "nested" },
     },
 
+    reading: {
+      type: "section",
+      label: "Reading the data",
+      when: { param: "concept", oneOf: ["repeated", "nested"] },
+    },
+    /* THE REVEAL, on the two data tabs (round 3 — Kenneth: the Nested page
+       should carry the same contrast). Two readings of the SAME rows, so
+       display: true — the ease between them is what shows it is the same
+       data (the widget-12 rule). On Repeated the measurements join into
+       patients; on Nested the individuals travel to their family columns.
+       (The repeat-the-study gate lived here until round 3 — cut on
+       Kenneth's call; its measurements survive in the catalogue.) */
+    view: {
+      type: "segmented",
+      label: "Measurements",
+      options: [
+        { value: "independent", label: "Independent", detail: "every row its own observation — what lm assumes" },
+        { value: "related", label: "Related", detail: "rows share a patient or a family — the correlation lmer models" },
+      ],
+      default: "independent",
+      display: true,
+      when: { param: "concept", oneOf: ["repeated", "nested"] },
+    },
+
+    /* THE INTENT — the Syntax tab's one control, the notebook's own block
+       made live: say what each group gets, and the formula assembles. A
+       display parameter: the data holds still while the fitted lines ease
+       between the three readings. */
+    model: {
+      type: "section",
+      label: "The model",
+      when: { param: "concept", equals: "syntax" },
+    },
+    ranef: {
+      type: "segmented",
+      label: "Random effects",
+      options: [
+        { value: "none", label: "None", detail: "one line for everyone — plain lm" },
+        { value: "intercept", label: "Intercept", detail: "each group its own level — (1 | G)" },
+        { value: "slope", label: "Both", detail: "each group its own level and trend — (1 + X | G)" },
+      ],
+      default: "none",
+      display: true,
+      when: { param: "concept", equals: "syntax" },
+    },
+
     seed: {
       type: "int",
       label: "Draw",
@@ -309,7 +323,6 @@ defineWidget({
     { token: "highlight", label: "lm — every row treated as independent", mark: "line" },
     { token: "empirical", label: "lmer — patients as random effects", mark: "line" },
     { token: "reference", label: "The true effect, set by the dial", mark: "line" },
-    { token: "extreme", label: "A repeated study that claimed an effect", mark: "dot" },
   ],
 
   compute({ params, rng }) {
@@ -334,30 +347,39 @@ defineWidget({
       ? fitLMM(sim.bp, X, sim.patientId, sim.time)
       : fitLMM(sim.bp, X, sim.patientId, null);
 
-    /* the tally, only while the gate is open: 100 fresh studies from the
-       same settings on their own stream, each fit warm-started (fast mode
-       reaches the same reject/keep decision as the full fit on every study
-       of the drive script's tallies) */
-    let tally = null;
-    if (params.studies) {
-      const rngT = makeRng(seed + TALLY_SEED_OFFSET);
-      tally = [];
-      let theta = null;
-      for (let s = 0; s < N_STUDIES; s += 1) {
-        const d = simulateBP(rngT, {
-          patients: np,
-          perPatient: m,
-          effect: EFFECTS[params.effect],
-          sdPatient: DIFFER[params.differ],
-        });
-        const Xs = designBP(d);
-        const l = fitLM(d.bp, Xs);
-        const r = m >= 2
-          ? fitLMM(d.bp, Xs, d.patientId, d.time, { start: theta, fast: true })
-          : fitLMM(d.bp, Xs, d.patientId, null, { start: theta, fast: true });
-        theta = r.theta;
-        tally.push({ lm: claims(l, BP_MED_COL), mm: claims(r, BP_MED_COL) });
+    /* --- the Syntax diagram's data ---------------------------------------- *
+     * The notebook's Y-vs-X-by-G figure made live: two groups whose level
+     * and trend offsets are FIXED (this page is a diagram brought to life,
+     * not an inference demo — a draw where the groups happened to agree
+     * would teach nothing), only the points jitter with Draw. All three
+     * fits are the real engine, so the lines are earned, not sketched. */
+    const rngS = makeRng(seed + SYN_SEED_OFFSET);
+    const SYN_U0 = [-3.5, 3.5];
+    const SYN_U1 = [-0.22, 0.22];
+    const synPts = [];
+    for (let g = 0; g < 2; g += 1) {
+      for (let i = 0; i < 8; i += 1) {
+        const x = 0.5 + rngS.next() * 9;
+        const y = 5 + SYN_U0[g] + (0.55 + SYN_U1[g]) * x + rngS.normal(0, 1.2);
+        synPts.push({ x, y, g });
       }
+    }
+    const synX = synPts.map((p) => [1, p.x]);
+    const synY = synPts.map((p) => p.y);
+    const synG = synPts.map((p) => p.g);
+    const sLM = fitLM(synY, synX);
+    const sInt = fitLMM(synY, synX, synG, null);
+    const sSlp = fitLMM(synY, synX, synG, synPts.map((p) => p.x));
+    const synLines = {
+      none: [[sLM.coef[0], sLM.coef[1]], [sLM.coef[0], sLM.coef[1]]],
+      intercept: sInt.blups.map((u) => [sInt.coef[0] + u[0], sInt.coef[1]]),
+      slope: sSlp.blups.map((u) => [sSlp.coef[0] + u[0], sSlp.coef[1] + u[1]]),
+    };
+    let sLo = Infinity;
+    let sHi = -Infinity;
+    for (const p of synPts) {
+      if (p.y < sLo) sLo = p.y;
+      if (p.y > sHi) sHi = p.y;
     }
 
     /* --- the Families study ------------------------------------------------- */
@@ -377,20 +399,31 @@ defineWidget({
 
     /* the family strip — every individual's cholesterol, families sorted by
        their mean, so the nesting is the picture: tight vertical clusters on
-       a ramp when families differ, one flat band when they do not */
+       a ramp when families differ, one flat band when they do not. Each dot
+       keeps BOTH addresses — its collection-order index and its family
+       column — so the Independent → Related ease can move it between them
+       (round 3: the same reveal grammar as the Repeated tab). */
     const byFam = new Map();
     simF.familyId.forEach((f, i) => {
       if (!byFam.has(f)) byFam.set(f, []);
-      byFam.get(f).push(simF.chol[i]);
+      byFam.get(f).push(i);
     });
     const famStrip = [...byFam.values()]
-      .map((ys) => ({
-        ys,
-        mean: ys.reduce((a, b) => a + b, 0) / ys.length,
-        lo: Math.min(...ys),
-        hi: Math.max(...ys),
-      }))
+      .map((idxs) => {
+        const ys = idxs.map((i) => simF.chol[i]);
+        return {
+          idxs,
+          ys,
+          mean: ys.reduce((a, b) => a + b, 0) / ys.length,
+          lo: Math.min(...ys),
+          hi: Math.max(...ys),
+        };
+      })
       .sort((a, b) => a.mean - b.mean);
+    const famDots = [];
+    famStrip.forEach((fam, fi) => {
+      for (const i of fam.idxs) famDots.push({ y: simF.chol[i], ii: i, fi });
+    });
     let cLo = Infinity;
     let cHi = -Infinity;
     for (const v of simF.chol) {
@@ -410,7 +443,10 @@ defineWidget({
     yHi = Math.ceil((yHi + 2) / 10) * 10;
 
     return {
-      sim, lm, mm, tally, snps, famStrip,
+      sim, lm, mm, snps, famStrip, famDots,
+      synPts, synLines,
+      synLo: Math.floor(sLo - 1),
+      synHi: Math.ceil(sHi + 1),
       cholLo: Math.floor(cLo - 1),
       cholHi: Math.ceil(cHi + 1),
       famSD: mmF.sdInt,
@@ -423,33 +459,58 @@ defineWidget({
   },
 
   animation: {
-    /* STEP AND PLAY ARE DECLINED (round 2 — the widget-31 ruling applied:
-       "may be too much"). Every figure opens FINISHED — the gate opens
-       onto the whole 100-study tally, and Draw re-rolls it. The one
-       animation left is the Independent → Related ease, which runs on
-       core's easing-request door, no buttons involved. */
+    /* STEP AND PLAY ARE DECLINED (round 2; round 3 cut the repeat-study
+       gate itself — Kenneth's call, against the tally's own evidence,
+       recorded in the catalogue). Every figure opens FINISHED. The two
+       animations left — the Independent → Related ease and the Syntax
+       tab's line pivots — run on core's easing-request door, no buttons
+       involved. */
     stepLabel: null,
     runLabel: null,
-    init: ({ params }) => {
+    init: ({ params, state }) => {
       const t = params.view === "related" ? 1 : 0;
-      return { mix: t, mixT: t, done: true, easing: false };
+      const lines = state.synLines[params.ranef].map((l) => l.slice());
+      return {
+        mix: t, mixT: t,
+        syn: lines, synT: lines.map((l) => l.slice()),
+        done: true, easing: false,
+      };
     },
     advance: (anim, { dt }) => {
+      const rate = Math.min(1, (dt / EASE_MS) * 2.6);
+      let moving = false;
       const gap = anim.mixT - anim.mix;
       if (Math.abs(gap) > 0.004) {
-        anim.mix += gap * Math.min(1, (dt / EASE_MS) * 2.6);
-        return true;
+        anim.mix += gap * rate;
+        moving = true;
+      } else {
+        anim.mix = anim.mixT;
       }
-      anim.mix = anim.mixT;
-      anim.easing = false;
-      return false;
+      for (let g = 0; g < 2; g += 1) {
+        for (let k = 0; k < 2; k += 1) {
+          const d = anim.synT[g][k] - anim.syn[g][k];
+          if (Math.abs(d) > 0.002) {
+            anim.syn[g][k] += d * rate;
+            moving = true;
+          } else {
+            anim.syn[g][k] = anim.synT[g][k];
+          }
+        }
+      }
+      if (!moving) anim.easing = false;
+      return moving;
     },
-    /* a view flip requests the ease; every other display change repaints
-       finished */
-    rebuild: (anim, { params }) => {
+    /* a view flip or an intent flip requests the ease; every other display
+       change repaints finished */
+    rebuild: (anim, { params, state }) => {
       const t = params.view === "related" ? 1 : 0;
       if (t !== anim.mixT) {
         anim.mixT = t;
+        anim.easing = true;
+      }
+      const target = state.synLines[params.ranef];
+      if (target.some((l, g) => l.some((v, k) => v !== anim.synT[g][k]))) {
+        anim.synT = target.map((l) => l.slice());
         anim.easing = true;
       }
     },
@@ -457,12 +518,14 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim }) {
     renderFormulas(params);
-    if (params.concept === "nested") drawNested(ctx, colors, w, params, state);
+    if (params.concept === "nested") drawNested(ctx, colors, w, params, state, anim);
+    else if (params.concept === "syntax") drawSyntax(ctx, colors, w, params, state, anim);
     else drawRepeated(ctx, colors, w, params, state, anim);
   },
 
   readout({ params, state, anim }) {
     if (params.concept === "nested") {
+      const mixN = anim?.mix ?? 0;
       const list = (key) => {
         const hit = state.snps.filter((s) => s[key].sig).map((s) => s.j);
         return hit.length ? `SNP ${hit.join(", ")}` : "none";
@@ -475,8 +538,10 @@ defineWidget({
         },
         {
           label: "lmer flags",
-          value: list("mm"),
-          note: "with the families as random effects — the dotted SNPs are the truth you set",
+          value: mixN < 0.02 ? "—" : list("mm"),
+          note: mixN < 0.02
+            ? "set Measurements to Related to fit it"
+            : "with the families as random effects — the dotted SNPs are the truth you set",
         },
         {
           label: "Family SD",
@@ -484,6 +549,28 @@ defineWidget({
           note: `between families, against ${fmt(state.famResid, 1)} within — ICC ${fmt(state.famICC, 2)}`,
         },
       ];
+    }
+    if (params.concept === "syntax") {
+      /* printed from the EASED lines — the numbers are the lines drawn */
+      const L = anim?.syn ?? state.synLines[params.ranef];
+      const same = params.ranef === "none";
+      const tiles = [
+        {
+          label: "Intercepts",
+          value: same ? fmt(L[0][0], 1) : `${fmt(L[0][0], 1)} · ${fmt(L[1][0], 1)}`,
+          note: same
+            ? "one level for everyone"
+            : `one level per group — the 1 in ${params.ranef === "slope" ? "(1 + X | G)" : "(1 | G)"}`,
+        },
+        {
+          label: "Slopes",
+          value: params.ranef === "slope" ? `${fmt(L[0][1], 2)} · ${fmt(L[1][1], 2)}` : fmt(L[0][1], 2),
+          note: params.ranef === "slope"
+            ? "one trend per group — the X in (1 + X | G)"
+            : "one trend, shared by the groups",
+        },
+      ];
+      return tiles;
     }
     const mix = anim?.mix ?? 0;
     const lmCI = state.lm.ci[BP_MED_COL];
@@ -516,18 +603,6 @@ defineWidget({
             : "patients as random effects — the evidence counted in patients",
       },
     ];
-    if (state.tally) {
-      const N = state.tally.length;
-      const a = state.tally.filter((s) => s.lm).length;
-      const b = state.tally.filter((s) => s.mm).length;
-      tiles.push({
-        label: "Claimed an effect",
-        value: `lm ${a} · lmer ${b} of ${N}`,
-        note: state.trueEffect === 0
-          ? "the medication does nothing here — every claim is false"
-          : `the true effect is ${state.trueEffect} — a claim here is a detection`,
-      });
-    }
     return tiles;
   },
 });
@@ -541,9 +616,12 @@ function renderFormulas(params) {
     formulaHost.className = "w-math";
     figure.parentNode.insertBefore(formulaHost, figure);
   }
-  const active = params.concept === "nested" ? "mm"
-    : params.view === "related" ? "mm" : "lm";
-  const key = `${params.concept}|${active}`;
+  /* the card follows the toggle on the data tabs, and the intent on the
+     Syntax tab (round 3) */
+  const active = params.concept === "syntax"
+    ? (params.ranef === "none" ? "lm" : "mm")
+    : (params.view === "related" ? "mm" : "lm");
+  const key = `${params.concept}|${active}|${params.ranef}`;
   if (key === formulaKey) return;
   formulaKey = key;
   const mono = "font-family:var(--font-mono);font-size:var(--fs-xs)";
@@ -556,13 +634,20 @@ function renderFormulas(params) {
       line("lm", "cholesterol ~ SNP1 + … + SNP10", active === "lm"),
       line("lmer", `cholesterol ~ SNP1 + … + SNP10 + ${re("(1 | family)")}`, active === "mm"),
     ]
-    : [
-      line("lm", "bp ~ age + gender + medication", active === "lm"),
-      line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
-    ];
+    : params.concept === "syntax"
+      ? [
+        line("lm", "Y ~ X", active === "lm"),
+        line("lmer", `Y ~ X + ${re(params.ranef === "slope" ? "(1 + X | G)" : "(1 | G)")}`, active === "mm"),
+      ]
+      : [
+        line("lm", "bp ~ age + gender + medication", active === "lm"),
+        line("lmer", `bp ~ age + gender + medication + ${re("(1 + time | patient)")}`, active === "mm"),
+      ];
   const note = params.concept === "nested"
     ? "(1 | family) is the random effect — which rows share a family"
-    : "(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend";
+    : params.concept === "syntax"
+      ? "the pattern: (1 + ⟨variable for the slopes⟩ | ⟨grouping variable for the intercepts⟩) — the 1 is the baseline intercept"
+      : "(1 + time | patient) is the random effect — which rows share a patient, each with its own level and trend";
   formulaHost.innerHTML = lmLine + mmLine
     + `<div class="w-math-note" style="font-size:var(--fs-xs)">${note}</div>`;
 }
@@ -641,13 +726,7 @@ function drawRepeated(ctx, colors, w, params, state, anim) {
   ctx.globalAlpha = 1;
 
   /* the interval pair — the standing readout */
-  const iy = SC_TOP + SC_H + INT_GAP;
-  drawIntervalPanel(ctx, colors, w, params, state, mix, iy);
-
-  /* the tally, while the gate is open — finished, like every figure */
-  if (state.tally) {
-    drawTally(ctx, colors, w, state, iy + INT_H + TALLY_GAP);
-  }
+  drawIntervalPanel(ctx, colors, w, params, state, mix, SC_TOP + SC_H + INT_GAP);
 }
 
 function drawIntervalPanel(ctx, colors, w, params, state, mix, top) {
@@ -737,55 +816,110 @@ function drawIntervalPanel(ctx, colors, w, params, state, mix, top) {
   }
 }
 
-function drawTally(ctx, colors, w, state, top) {
+/* --- the Syntax stage ------------------------------------------------------- *
+ * The notebook's random-effects diagram, live: two groups of points, the
+ * pooled lm line always present (dashed, the naive fit's own colour), and
+ * the per-group lines easing between the three intents. The lines are the
+ * real engine's fits on this draw, so the picture is earned. */
+function drawSyntax(ctx, colors, w, params, state, anim) {
   const fontXs = `${colors.fsXs}px ${colors.font}`;
-  const N = state.tally.length;
+  const lpad = 46;
+  const rpad = 64; // room for the on-canvas group labels at the line ends
+  const XMAX = 10;
+  const X = (v) => lpad + (v / XMAX) * (w - lpad - rpad);
+  const Y = (v) => SYN_TOP
+    + ((state.synHi - v) / (state.synHi - state.synLo)) * SYN_H;
   ctx.font = fontXs;
-  ctx.fillStyle = colors.ink2;
+  ctx.fillStyle = colors.ink3;
+  ctx.textAlign = "right";
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  for (let v = Math.ceil(state.synLo / 4) * 4; v <= state.synHi; v += 4) {
+    const y = Y(v);
+    ctx.fillText(String(v), lpad - 6, y + 3);
+    ctx.beginPath();
+    ctx.moveTo(lpad, y);
+    ctx.lineTo(w - rpad, y);
+    ctx.stroke();
+  }
+  ctx.textAlign = "center";
+  ctx.fillText("X", (lpad + w - rpad) / 2, SYN_TOP + SYN_H + 28);
   ctx.textAlign = "left";
-  ctx.fillText("The study, repeated from the same settings — Draw rolls a fresh hundred", IPAD, top + 2);
+  ctx.fillText("Y — one point per observation, colour is the group G", lpad, SYN_TOP - 10);
 
-  const slotW = (w - IPAD - 14) / N;
-  const row = (y, key, color, label) => {
-    const hits = state.tally.filter((s) => s[key]).length;
-    ctx.fillStyle = colors.ink2;
-    ctx.textAlign = "right";
-    ctx.fillText(label, IPAD - 10, y + 10);
-    for (let i = 0; i < N; i += 1) {
-      const x = IPAD + i * slotW;
-      ctx.fillStyle = state.tally[i][key] ? colors.extreme : colors.grid;
-      ctx.fillRect(x, y, Math.max(1.5, slotW - 1.2), 14);
+  /* the pooled lm line, always on stage — the reading every random effect
+     is a departure from */
+  const pooled = state.synLines.none[0];
+  ctx.strokeStyle = colors.highlight;
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(X(0), Y(pooled[0]));
+  ctx.lineTo(X(XMAX), Y(pooled[0] + pooled[1] * XMAX));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* the per-group lines, eased between the intents; at None they sit ON
+     the pooled line and fade out */
+  const L = anim?.syn ?? state.synLines[params.ranef];
+  const groupColor = [colors.groupA, colors.groupB];
+  const apart = Math.abs(L[0][0] - L[1][0]) + Math.abs(L[0][1] - L[1][1]) * XMAX;
+  const alpha = Math.min(1, apart / 2.5);
+  for (let g = 0; g < 2; g += 1) {
+    ctx.strokeStyle = groupColor[g];
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(X(0), Y(L[g][0]));
+    ctx.lineTo(X(XMAX), Y(L[g][0] + L[g][1] * XMAX));
+    ctx.stroke();
+    if (alpha > 0.3) {
+      ctx.fillStyle = groupColor[g];
+      ctx.textAlign = "left";
+      ctx.fillText(`group ${g + 1}`, X(XMAX) + 6, Y(L[g][0] + L[g][1] * XMAX) + 3);
     }
-    ctx.fillStyle = color;
-    ctx.textAlign = "left";
-    ctx.fillText(`claimed an effect in ${hits} of ${N}`, IPAD, y + 30);
-  };
-  row(top + 16, "lm", colors.highlight, "lm");
-  row(top + 62, "mm", colors.empirical, "lmer");
+    ctx.globalAlpha = 1;
+  }
+
+  for (const p of state.synPts) {
+    ctx.fillStyle = groupColor[p.g];
+    ctx.beginPath();
+    ctx.arc(X(p.x), Y(p.y), 3, 0, 7);
+    ctx.fill();
+  }
 }
 
 /* --- the Nested stage ------------------------------------------------------ */
 
-function drawNested(ctx, colors, w, params, state) {
+function drawNested(ctx, colors, w, params, state, anim) {
+  const mix = anim?.mix ?? 0;
   const fontXs = `${colors.fsXs}px ${colors.font}`;
   const lpad = 74;
   const sc = (v) => lpad + ((Math.min(Math.max(v, F_LO), F_HI) - F_LO) / (F_HI - F_LO)) * (w - lpad - 14);
   const bottom = F_TOP + 10 * F_ROW;
 
-  /* THE DATA FIRST (round 2): every individual's cholesterol, one thin
-     column per family, families sorted by their mean. The nesting IS the
-     picture — a ramp of tight vertical clusters at the notebook's family
-     strength, one flat band at none. The page opens on this, not on the
-     forest's answer. */
+  /* THE DATA FIRST (round 2), and THE REVEAL on it (round 3): the same
+     1000 cholesterol values, drawn in collection order at Independent — no
+     visible structure — and travelling to their family columns at Related,
+     where the nesting IS the picture: a ramp of tight vertical clusters at
+     the notebook's family strength, one flat band at none. */
   const strip = state.famStrip;
   const nFam = strip.length;
+  const nInd = state.famDots.length;
   const colW = (w - lpad - 14) / nFam;
   const SY = (v) => STRIP_TOP
     + ((state.cholHi - v) / (state.cholHi - state.cholLo)) * STRIP_H;
+  const xIndep = (ii) => lpad + ((ii + 0.5) / nInd) * (w - lpad - 14);
+  const xFam = (fi) => lpad + (fi + 0.5) * colW;
   ctx.font = fontXs;
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
-  ctx.fillText("cholesterol, one column per family — families sorted by their mean", lpad, STRIP_TOP - 8);
+  ctx.fillText(
+    mix > 0.5
+      ? "cholesterol, one column per family — families sorted by their mean"
+      : "cholesterol, one dot per individual — in collection order",
+    lpad, STRIP_TOP - 8,
+  );
   ctx.textAlign = "right";
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
@@ -798,26 +932,28 @@ function drawNested(ctx, colors, w, params, state) {
     ctx.lineTo(w - 14, y);
     ctx.stroke();
   }
-  for (let f = 0; f < nFam; f += 1) {
-    const x = lpad + (f + 0.5) * colW;
-    /* the family's span first, then its members — the bar under the dots
-       is what "these rows share a family" looks like */
+  if (mix > 0.004) {
+    /* the family's span — the bar under the dots is what "these rows share
+       a family" looks like; it fades in with the grouping */
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = Math.max(1, colW * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(x, SY(strip[f].lo));
-    ctx.lineTo(x, SY(strip[f].hi));
-    ctx.stroke();
+    ctx.globalAlpha = mix;
+    for (let f = 0; f < nFam; f += 1) {
+      const x = xFam(f);
+      ctx.beginPath();
+      ctx.moveTo(x, SY(strip[f].lo));
+      ctx.lineTo(x, SY(strip[f].hi));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
   ctx.fillStyle = colors.ink2;
-  for (let f = 0; f < nFam; f += 1) {
-    const x = lpad + (f + 0.5) * colW;
-    ctx.globalAlpha = 0.6;
-    for (const v of strip[f].ys) {
-      ctx.beginPath();
-      ctx.arc(x, SY(v), 1.3, 0, 7);
-      ctx.fill();
-    }
+  ctx.globalAlpha = 0.6;
+  for (const d of state.famDots) {
+    const x = xIndep(d.ii) + (xFam(d.fi) - xIndep(d.ii)) * mix;
+    ctx.beginPath();
+    ctx.arc(x, SY(d.y), 1.3, 0, 7);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 
@@ -849,10 +985,14 @@ function drawNested(ctx, colors, w, params, state) {
       ctx.arc(lpad - 10, y, 2.5, 0, 7);
       ctx.fill();
     }
-    for (const [fit, color, dy] of [[s.lm, colors.highlight, -4.5], [s.mm, colors.empirical, 4.5]]) {
+    /* lm sits centred while alone; the lmer row eases in below it as the
+       grouping arrives (round 3 — the same reveal the Repeated tab makes) */
+    const rows = [[s.lm, colors.highlight, -4.5 * mix, 1]];
+    if (mix > 0.02) rows.push([s.mm, colors.empirical, 4.5, mix]);
+    for (const [fit, color, dy, a] of rows) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
-      ctx.globalAlpha = fit.sig ? 1 : 0.45;
+      ctx.globalAlpha = (fit.sig ? 1 : 0.45) * a;
       ctx.beginPath();
       ctx.moveTo(sc(fit.lo), y + dy);
       ctx.lineTo(sc(fit.hi), y + dy);

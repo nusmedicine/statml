@@ -5,12 +5,13 @@
  * Stubs the defineWidget import (the HANDOVER recipe), then asserts what the
  * widget must HAVE — capabilities by name, so a rewrite that deletes one is
  * noticed — and drives compute/animation/readout across the corners: both
- * tabs, both views, gate open and shut, the dial extremes, and the tally's
- * fast-fit decisions against full fits. EDIT THIS FILE; do not regenerate it.
+ * tabs, both views, the syntax intents, and the dial extremes. EDIT THIS
+ * FILE; do not regenerate it.
  *
- * Round 2 contract: Step and Play are DECLINED (stepLabel/runLabel null) —
- * the gate opens onto the finished 100-study tally; the one animation is
- * the Independent → Related ease on the easing-request door.
+ * Round 3 contract: Step and Play are DECLINED (stepLabel/runLabel null),
+ * the repeat-study gate is GONE (Kenneth's call), the Measurements toggle
+ * lives on both data tabs, and the Syntax tab builds the formula from
+ * intent while the real fitted lines pivot on the easing-request door.
  */
 
 import { readFileSync } from "node:fs";
@@ -51,27 +52,26 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
 ck("slug is mixed-model", W.slug === "mixed-model");
 const WANT = {
   concept: "segmented", dataV: "section", patients: "choice", visits: "choice",
-  differ: "choice", effect: "choice", reading: "section", view: "segmented",
-  studies: "gate", dataF: "section", famdiff: "choice", causal: "int",
-  seed: "int",
+  differ: "choice", effect: "choice", dataF: "section", famdiff: "choice",
+  causal: "int", reading: "section", view: "segmented", model: "section",
+  ranef: "segmented", seed: "int",
 };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
   Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-ck("tabs are repeated · nested",
-  W.params.concept.options.map((o) => o.value).join() === "repeated,nested");
+ck("tabs are repeated · nested · syntax",
+  W.params.concept.options.map((o) => o.value).join() === "repeated,nested,syntax");
 ck("view is independent · related",
   W.params.view.options.map((o) => o.value).join() === "independent,related");
-ck("view and studies and concept are display", W.params.view.display === true
-  && W.params.studies.display === true && W.params.concept.display === true);
+ck("view, ranef and concept are display", W.params.view.display === true
+  && W.params.ranef.display === true && W.params.concept.display === true);
 ck("causal wears bits", W.params.causal.style === "bits" && W.params.causal.bits === 10);
 ck("step and run are DECLINED",
   W.animation.stepLabel === null && W.animation.runLabel === null);
 
 const DEF = {};
 for (const [n, f] of Object.entries(W.params))
-  if (f.type !== "section" && f.type !== "gate") DEF[n] = f.default;
-DEF.studies = false;
+  if (f.type !== "section") DEF[n] = f.default;
 
 const compute = (over = {}) => {
   const params = { ...DEF, ...over };
@@ -89,7 +89,6 @@ const clean = (tiles) => tiles.every((t) =>
   ck("defaults: lmer spans zero",
     state.mm.ci[3][0] < 0 && state.mm.ci[3][1] > 0);
   ck("defaults: 500 rows", state.nRows === 500);
-  ck("defaults: no tally while gate shut", state.tally === null);
   const anim = W.animation.init({ params, state, fromScratch: true });
   ck("opens on independent (mix 0)", anim.mix === 0);
   ck("nothing to drive — figures open finished", anim.done === true);
@@ -115,23 +114,36 @@ const clean = (tiles) => tiles.every((t) =>
   ck("ease lands within budget", guard < 200);
 }
 
-/* --- the gate: the tally opens finished ------------------------------------- */
+/* --- the syntax tab --------------------------------------------------------- */
 {
-  const { params, state } = compute({ studies: true });
-  ck("gate open: tally computed", Array.isArray(state.tally) && state.tally.length === 100);
+  const { params, state } = compute({ concept: "syntax" });
+  ck("syntax: 16 points, two groups", state.synPts.length === 16
+    && new Set(state.synPts.map((pt) => pt.g)).size === 2);
+  const L = state.synLines;
+  ck("syntax: None is one shared line",
+    L.none[0][0] === L.none[1][0] && L.none[0][1] === L.none[1][1]);
+  ck("syntax: Intercept separates levels, shares the trend",
+    Math.abs(L.intercept[0][0] - L.intercept[1][0]) > 1
+    && L.intercept[0][1] === L.intercept[1][1]);
+  ck("syntax: Both separates levels and trends",
+    Math.abs(L.slope[0][0] - L.slope[1][0]) > 0.5
+    && Math.abs(L.slope[0][1] - L.slope[1][1]) > 0.05);
   const anim = W.animation.init({ params, state, fromScratch: true });
-  ck("finished on arrival — nothing to drive", anim.done === true);
-  ck("readout clean with tally", clean(tilesOf(params, state, anim)));
-  const t = tilesOf(params, state, anim)[3];
-  ck("tally tile counts both models", /^lm \d+ · lmer \d+ of 100$/.test(t.value));
-  /* the measured story: lm claims often, lmer stays near the 5% floor */
-  const a = state.tally.filter((s) => s.lm).length;
-  const b = state.tally.filter((s) => s.mm).length;
-  ck(`tally story holds (lm ${a}, lmer ${b})`, a >= 20 && b <= 15);
-  /* a different Draw rolls a different hundred */
-  const { state: s2 } = compute({ studies: true, seed: 8 });
-  ck("Draw re-rolls the tally",
-    JSON.stringify(s2.tally) !== JSON.stringify(state.tally));
+  ck("syntax opens on the pooled line", anim.syn[0][0] === L.none[0][0]);
+  for (const r of ["none", "intercept", "slope"]) {
+    const pr = { ...params, ranef: r };
+    const a2 = W.animation.init({ params: pr, state, fromScratch: true });
+    ck(`syntax readout clean at ${r}`, clean(tilesOf(pr, state, a2)));
+  }
+  /* an intent flip retargets the lines and requests the ease */
+  W.animation.rebuild(anim, { params: { ...params, ranef: "slope" }, state });
+  ck("intent flip requests the ease", anim.easing === true
+    && anim.synT[0][1] === L.slope[0][1]);
+  let guard = 0;
+  while (W.animation.advance(anim, { dt: 16, state }) && guard < 400) guard += 1;
+  ck("lines land on the slope fit",
+    Math.abs(anim.syn[1][0] - L.slope[1][0]) < 0.01
+    && Math.abs(anim.syn[1][1] - L.slope[1][1]) < 0.01);
 }
 
 /* --- the nested tab --------------------------------------------------------- */
@@ -146,9 +158,20 @@ const clean = (tiles) => tiles.every((t) =>
     state.snps.filter((s) => s.causal).map((s) => s.j).join() === "5");
   const anim = W.animation.init({ params, state, fromScratch: true });
   ck("nested readout clean", clean(tilesOf(params, state, anim)));
-  /* the family strip: sorted, complete, and spanning the frame */
+  /* the reveal mirrors Repeated (round 3): lmer withheld at Independent */
+  ck("nested lmer tile withheld at Independent",
+    tilesOf(params, state, anim)[1].value === "—");
+  anim.mix = 1;
+  ck("nested lmer tile printed at Related",
+    tilesOf(params, state, anim)[1].value === "SNP 5");
+  ck("nested readout clean at Related", clean(tilesOf(params, state, anim)));
+  /* the family strip: sorted, complete, spanning the frame, and every dot
+     carrying both addresses for the travel ease */
   ck("strip covers every individual",
     state.famStrip.reduce((s, f) => s + f.ys.length, 0) === 1000);
+  ck("every dot has both addresses",
+    state.famDots.length === 1000
+    && state.famDots.every((d) => Number.isFinite(d.y) && d.ii >= 0 && d.fi >= 0));
   ck("strip is sorted by family mean",
     state.famStrip.every((f, i, a) => i === 0 || a[i - 1].mean <= f.mean));
   ck("strip frame holds the data",
@@ -165,12 +188,13 @@ for (const over of [
   { visits: "1" },
   { visits: "20", patients: "25" },
   { differ: "none" },
-  { effect: "large", studies: true },
-  { visits: "1", studies: true },
+  { effect: "large" },
   { concept: "nested", famdiff: "none" },
   { concept: "nested", causal: 0 },
   { concept: "nested", causal: 1023 },
-  { patients: "200", visits: "20", studies: true },
+  { patients: "200", visits: "20" },
+  { concept: "syntax", ranef: "intercept", seed: 23 },
+  { concept: "syntax", ranef: "slope", seed: 44 },
 ]) {
   const label = JSON.stringify(over);
   try {

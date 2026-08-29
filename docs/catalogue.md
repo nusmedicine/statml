@@ -3272,6 +3272,35 @@ studies, re-pinned in the drive script at 40). `_lab/mixed-drive.mjs`
 pins the contract (80 checks). Build hit the lm-adjustment TDZ incident
 (F_LO below defineWidget while a families-tab URL draws during it).
 
+### Round 3 — the toggle everywhere, the repeat stage cut, Syntax born
+
+Kenneth's fixes plus two asked questions. **The Measurements toggle now
+lives on Nested too** (his ask — "would be nice to see the contrast"): at
+Independent the strip is 1000 dots in collection order with lm alone in
+the forest and the lmer tile withheld; at Related the dots TRAVEL to
+their family columns, the span bars and the lmer rows ease in, and the
+formula card dims lm — the same reveal grammar as Repeated, every dot
+carrying both addresses for the ease. **The repeat-the-study gate is
+CUT** — his call, made with the counter-argument in front of him: his own
+round-3 observation ("lm often reaches the same conclusion") was measured
+(150 draws/cell: agreement ~70% under the null at EVERY n from 50 to 400
+patients while lm false-claims 34–44%; 99% agreement only when a real
+effect meets a big sample) and the tally was the one instrument showing
+agreement and validity coming apart. The numbers stay here and in
+`mixed-design.mjs`; the rate story belongs to the lesson prose now.
+**The Syntax tab was added** (his floated idea, taken): the notebook's
+random-effects block live — Random effects: None · Intercept · Both
+builds `lm(Y ~ X)` → `lmer(Y ~ X + (1 | G))` → `(1 + X | G)` in the card
+(with the ⟨slopes⟩|⟨grouping⟩ template as the note), while the REAL
+engine's three fits pivot on stage: pooled lm always present as the
+dashed naive line, per-group lines easing between intents, groups with
+FIXED level/trend offsets (a diagram brought to life, not an inference
+demo — a draw where the groups agreed would teach nothing; only the
+points jitter with Draw). Also answered in-round: yes the integer
+family_id was wrong (drop it, not as.factor, to keep the lesson's
+contrast). OPEN: the legend's group entries say Control/Medication, wrong
+for Syntax's group 1/2 — a wording pick owed.
+
 ### Round 2 — the notebook's own vocabulary, and less machinery
 
 Kenneth's fixes, all four picks taken as offered: tabs renamed
