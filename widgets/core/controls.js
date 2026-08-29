@@ -401,7 +401,57 @@ function build(host, spec, values, onChange, api) {
        itself to assistive tech through its own aria-label. */
     const labelled = (field.label ?? name) !== "";
 
-    if (field.type === "int" || field.type === "float") {
+    if (field.type === "int" && field.style === "bits") {
+      /* AN INT WORN AS TOGGLE CHIPS (round 14, widget 31's Causal SNPs —
+         choose WHICH of ten SNPs are truly causal). The parameter is ONE
+         integer bitmask and chip j toggles bit j, so a subset is one URL
+         value, not ten booleans. Every chip visible at rest — the
+         segmented rule, with several pressed at once. The alternatives
+         considered and rejected are recorded in the widget's catalogue
+         entry: clicking the answer plot (the rail is what you SET, the
+         stage is what you SEE — round 11's ruling), and one bool per bit
+         (ten parameters for one idea). */
+      if (labelled) wrap.appendChild(label);
+      const bits = field.bits ?? 8;
+      const seg = document.createElement("div");
+      seg.className = "w-seg w-seg-bits";
+      seg.setAttribute("role", "group");
+      seg.setAttribute("aria-label", field.label ?? name);
+      /* the click needs the CURRENT value to flip one bit of; `values` is
+         the build-time snapshot, so the running value is tracked here and
+         refreshed through the same setter sync/URL writes go through */
+      let cur = Number(values[name]) || 0;
+      const chipEls = [];
+      const mark = (v) => {
+        cur = Number(v) || 0;
+        chipEls.forEach((b, j) => b.setAttribute("aria-pressed", String(Boolean((cur >> j) & 1))));
+      };
+      for (let j = 0; j < bits; j += 1) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "w-seg-btn";
+        b.dataset.param = name;
+        b.dataset.value = String(j);
+        b.textContent = field.bitLabels?.[j] ?? String(j + 1);
+        b.setAttribute("aria-label", `${field.label ?? name} ${b.textContent}`);
+        b.addEventListener("click", () => {
+          const next = cur ^ (1 << j);
+          mark(next);
+          onChange(name, next);
+        });
+        chipEls.push(b);
+        seg.appendChild(b);
+      }
+      wrap.appendChild(seg);
+      if (field.detail) {
+        const d = document.createElement("p");
+        d.className = "w-detail";
+        d.textContent = field.detail;
+        wrap.appendChild(d);
+      }
+      mark(values[name]);
+      setters[name] = mark;
+    } else if (field.type === "int" || field.type === "float") {
       const val = document.createElement("span");
       val.className = "val";
       label.appendChild(val);

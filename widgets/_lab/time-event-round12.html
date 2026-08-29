@@ -186,6 +186,64 @@
     </div>
   </div>
 
+  <h2>§6 · ROUND 14 — the labels, the chips, and what needs no mock</h2>
+  <p class="note">
+    <b>Two of the four asks need no picture</b>: Causal SNPs becomes
+    contextual (shown on Modeling only — the value still applies to the one
+    shared cohort, exactly as Patient E's time applies while you are on
+    another tab), and the Modeling tab's curves go STATIC — drawn complete,
+    updating instantly as the data controls move; the Play/Step row leaves
+    that tab (core's <code>anim.inert</code>, the widget-18 mechanism, so no
+    core change). The clock is untouched on the other two tabs and survives
+    the round trip.
+  </p>
+  <p class="note">
+    <b>The concept labels.</b> The current "Comparing groups" TRUNCATES in
+    the rail (round 4 measured the segmented limit at ~13–15 characters —
+    it renders "Comparing gr…"). Candidates, live at rail width below;
+    the details under each option keep carrying the full questions. The
+    round-4 precedent argues against bare verbs (they read as drive
+    actions), which is the case for the gerund row.
+  </p>
+  <div class="rails">
+    <div class="rail">
+      <h4>A — gerunds (recommended)</h4>
+      <div class="seg"><b class="on">Censoring</b><b>Comparing</b><b>Modeling</b></div>
+      <h4 style="margin-top:10px">B — Kenneth's data/compare/model</h4>
+      <div class="seg"><b class="on">Data</b><b>Compare</b><b>Model</b></div>
+      <h4 style="margin-top:10px">C — Kenneth's censor/compare/model</h4>
+      <div class="seg"><b class="on">Censor</b><b>Compare</b><b>Model</b></div>
+      <h4 style="margin-top:10px">today (truncates)</h4>
+      <div class="seg"><b class="on">Censoring</b><b>Comparing gr…</b><b>Finding fac…</b></div>
+    </div>
+    <div class="rail">
+      <h4>the chips — Causal SNPs as a pick, not a count</h4>
+      <div class="sect">The data</div>
+      <div class="ctl"><span class="lbl">Causal SNPs</span>
+        <div class="seg" id="chips" style="flex-wrap:wrap"></div></div>
+      <p class="cap" style="max-width:250px" id="chips-cap"></p>
+    </div>
+  </div>
+  <p class="note">
+    <b>The chips, researched against the repo's own rules.</b> Three ways a
+    reader could pick WHICH SNPs are causal: (1) a ten-chip toggle row in
+    the rail — one int parameter (a bitmask, <code>?causal=7</code> = SNPs
+    1–3, today's truth and the default), the rail stays what you SET; (2)
+    clicking the forest's SNP rows — rejected: round 11's ruling is the rail
+    is what you SET and the stage is what you SEE, and a data write hiding
+    in the answer plot is the confusion Kenneth just reported about the
+    disease pill, doubled; (3) ten checkbox bools — rejected: ten URL
+    parameters for one idea. The chip row is (1), rendered above at true
+    rail width. It needs one new controls.js rendering (an int worn as
+    toggle chips), which is a core change and owes the full 198-state
+    suite run. Statistics carry over from §5's grid by symmetry — the SNPs
+    are iid and balanced, so WHICH ones are causal changes nothing about
+    detection, only the count does (3 chips ≈ the measured k = 3 row).
+    <b>One open question:</b> should the forest mark the chosen SNPs (a
+    small ink-3 dot by the row name) so recovery reads at a glance — truth
+    on the label, verdict on the mark?
+  </p>
+
   <h2>§5 · ROUND 13 — the factors-page top, and the two new data levers (measured)</h2>
   <p class="note">
     <b>Kenneth's round-13 review, mocked and measured before the build.</b>
@@ -555,6 +613,31 @@ document.getElementById("m1-da").innerHTML = eqRow(M1.da);
 document.getElementById("m1-das").innerHTML = eqRow(M1.das);
 document.getElementById("m1-narrow").innerHTML = eqRow(M1.das);
 document.getElementById("m2").innerHTML = eqRow(EXP_ROW) + eqRow(M1.das);
+
+/* §6 — the chip row, interactive so the width and the feel are judged live */
+{
+  const chips = document.getElementById("chips");
+  let mask = 0b0000000111;
+  const update = () => {
+    [...chips.children].forEach((b, j) => b.setAttribute("aria-pressed", String(Boolean(mask >> j & 1))));
+    const on = [];
+    for (let j = 0; j < 10; j += 1) if (mask >> j & 1) on.push(j + 1);
+    document.getElementById("chips-cap").textContent =
+      `mask ${mask} → ?causal=${mask} — SNP ${on.join(", ") || "none"} truly shorten survival · row width ${Math.round(chips.getBoundingClientRect().width)}px`;
+  };
+  for (let j = 0; j < 10; j += 1) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = String(j + 1);
+    b.style.cssText = "font-size:var(--fs-xs);padding:3px 0;width:24px;border:0;border-left:1px solid var(--grid);background:none;color:var(--ink-2);cursor:pointer";
+    b.addEventListener("click", () => { mask ^= 1 << j; update(); });
+    chips.appendChild(b);
+  }
+  const style = document.createElement("style");
+  style.textContent = "#chips button:first-child{border-left:0} #chips button[aria-pressed='true']{background:var(--surface-2,var(--grid));color:var(--ink-1);font-weight:600}";
+  document.head.appendChild(style);
+  update();
+}
 
 /* §5 — the round-13 card variants: title, model, ln row, baseline note */
 const cardTitle = '<div style="font-weight:600;font-size:var(--fs-sm);color:var(--ink-2);margin-bottom:4px">Cox proportional hazards</div>';

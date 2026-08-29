@@ -49,7 +49,7 @@ for (const key of ["slug", "title", "status", "subtitle", "layout", "height",
 const WANT = {
   concept: "segmented", people: "section", patients: "int", ncens: "int",
   etime: "int", reading: "section", censored: "segmented",
-  data: "section", n: "choice", effect: "choice", causal: "choice", follow: "choice",
+  data: "section", n: "choice", effect: "choice", causal: "int", follow: "choice",
   curves: "section", bands: "bool", shared: "bool",
   model: "section", disease: "bool", age: "bool", snps: "bool",
   speed: "choice", seed: "int", shown: "int",
@@ -57,8 +57,9 @@ const WANT = {
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 ck("no parameters beyond those",
   Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-ck("three concepts, option-B labels",
-  W.params.concept.options.map((o) => o.label).join("|") === "Censoring|Comparing groups|Finding factors");
+ck("three concepts, the round-14 gerunds, values unchanged",
+  W.params.concept.options.map((o) => o.label).join("|") === "Censoring|Comparing|Modeling"
+  && W.params.concept.options.map((o) => o.value).join("|") === "censoring|groups|factors");
 ck("the pills are pills",
   ["disease", "age", "snps"].every((k) => W.params[k].style === "pill"));
 ck("censored / bands / shared / pills / concept are display",
@@ -76,19 +77,21 @@ ck("shown is hidden; seed is the visible Draw control",
   W.params.shown.hidden && !W.params.seed.hidden && W.params.seed.label === "Draw");
 ck("default draw is 32 (the measured clean cohort at the round-10 defaults)",
   W.params.seed.default === 32);
-ck("the data section and its controls show on both cohort tabs (oneOf)",
-  ["data", "n", "effect", "causal", "follow", "seed"].every(
+ck("the shared data controls show on both cohort tabs (oneOf)",
+  ["data", "n", "effect", "follow", "seed"].every(
     (k) => W.params[k].when?.oneOf?.join() === "groups,factors"));
 ck("the data controls are DATA parameters (moving one restarts the sweep)",
   ["n", "effect", "causal", "follow", "seed", "etime"].every((k) => !W.params[k].display));
-ck("defaults: 200 patients, moderate effect, 3 causal SNPs, 12-year follow-up, E at 7",
+ck("defaults: 200 patients, moderate effect, SNPs 1-3 causal (mask 7), 12-year follow-up, E at 7",
   W.params.n.default === "200" && W.params.effect.default === "moderate"
-  && W.params.causal.default === "3"
+  && W.params.causal.default === 7
   && W.params.follow.default === "12" && W.params.etime.default === 7);
 ck("the follow ladder is 5/9/12/25 (round 13 — a too-short study must fail)",
   W.params.follow.options.map((o) => o.value).join() === "5,9,12,25");
-ck("the causal ladder is 0/1/3/5",
-  W.params.causal.options.map((o) => o.value).join() === "0,1,3,5");
+ck("Causal SNPs is ten chips on the Modeling tab only (round 14)",
+  W.params.causal.style === "bits" && W.params.causal.bits === 10
+  && W.params.causal.min === 0 && W.params.causal.max === 1023
+  && W.params.causal.when?.equals === "factors");
 ck("the disease pill starts pressed (round 13)", W.params.disease.default === true);
 
 console.log("\n== compute, default seed ==");
@@ -171,29 +174,34 @@ console.log("\n== the play surface, at its corners ==");
         W.readout({ params: { ...values, follow: "5", concept }, state: s5, anim: { t: 16 } })
           .map((x) => `${x.label} ${x.value} ${x.note}`).join(" ")
         + W.summary({ params: { ...values, follow: "5", concept }, state: s5, anim: { t: 16 } }))));
-  /* the causal lever: 3 IS the old generator; 0 silences the SNP channel */
-  ck("causal 3 reproduces the pre-round-13 generator bit for bit (seed 7)",
+  /* the causal mask: 7 (SNPs 1-3) IS the notebook's truth and the default */
+  ck("the default mask and an explicit 7 are one generator (seed 7)",
     JSON.stringify(simulate(makeRng(7), { n: 50, effect: 2.5, follow: 12, shift: 6 }))
-      === JSON.stringify(simulate(makeRng(7), { n: 50, effect: 2.5, follow: 12, shift: 6, causal: 3 })));
-  const s0k = W.compute({ params: { ...values, causal: "0" }, rng: makeRng(values.seed) });
-  ck("causal 0 and 3 draw different cohorts from one seed",
+      === JSON.stringify(simulate(makeRng(7), { n: 50, effect: 2.5, follow: 12, shift: 6, causal: 7 })));
+  ck("the mask picks WHICH SNPs: masks 7 and 56 differ; 0 and 1023 differ (seed 7)",
+    JSON.stringify(simulate(makeRng(7), { n: 50, causal: 7 }).time)
+      !== JSON.stringify(simulate(makeRng(7), { n: 50, causal: 56 }).time)
+    && JSON.stringify(simulate(makeRng(7), { n: 50, causal: 0 }).time)
+      !== JSON.stringify(simulate(makeRng(7), { n: 50, causal: 1023 }).time));
+  const s0k = W.compute({ params: { ...values, causal: 0 }, rng: makeRng(values.seed) });
+  ck("no causal SNPs and the default draw different cohorts from one seed",
     s0k.events !== state.events || JSON.stringify(s0k.groups[0].times) !== JSON.stringify(state.groups[0].times));
   {
     const tiles = W.readout({
-      params: { ...values, causal: "0", concept: "factors", snps: true },
+      params: { ...values, causal: 0, concept: "factors", snps: true },
       state: s0k, anim: { t: 16 },
     });
-    ck("causal 0 + SNPs in: the Significant tile names the false-positive risk",
+    ck("no causal SNPs + SNPs in: the Significant tile names the false-positive risk",
       tiles.find((x) => x.label === "Significant").note.includes("false positive"));
     const tiles3 = W.readout({
       params: { ...values, concept: "factors", snps: true },
       state, anim: { t: 16 },
     });
-    ck("...and at causal 3 it does not",
+    ck("...and at the default mask it does not",
       !tiles3.find((x) => x.label === "Significant").note.includes("false positive"));
   }
-  const s5k = W.compute({ params: { ...values, causal: "5" }, rng: makeRng(values.seed) });
-  ck("causal 5 computes end to end, all seven fits converged",
+  const s5k = W.compute({ params: { ...values, causal: 0b11111 }, rng: makeRng(values.seed) });
+  ck("five causal SNPs compute end to end, all seven fits converged",
     ["d", "a", "s", "da", "ds", "as", "das"].every((k) => s5k.fits[k]?.converged));
   /* the patient table (round 9): defaults ARE the notebook; the controls
      extend and flip deterministically */
@@ -320,11 +328,19 @@ console.log("\n== the pointer channel (round 11) ==");
   W.animation.scrub(sc, { x: -5000, y: 100, w: 900, params: { ...values }, state });
   ck("...and to zero", sc.t === 0 && sc.done === false);
   const pf = { ...values, concept: "factors" };
-  ck("on Finding factors only the compact curves scrub (the forest does not)",
-    W.animation.scrubHit({ x: 300, y: 80, w: 900, params: pf }) === true
+  ck("Modeling never scrubs — its curves are complete (round 14)",
+    W.animation.scrubHit({ x: 300, y: 80, w: 900, params: pf }) === false
     && W.animation.scrubHit({ x: 300, y: 400, w: 900, params: pf }) === false);
   ck("the other tabs scrub anywhere on their stages",
     W.animation.scrubHit({ x: 300, y: 500, w: 900, params: { ...values } }) === true);
+  /* the clock leaves the Modeling tab (round 14): anim.inert is core's
+     widget-18 door, and it must open again on the way back */
+  const ia = W.animation.init({ params: pf, state, fromScratch: true });
+  ck("Modeling opens inert — Play and Step leave the row", ia.inert === true);
+  W.animation.rebuild(ia, { params: { ...values, concept: "groups" }, state });
+  ck("...and the clock returns on the cohort tab", ia.inert === false);
+  const ic = W.animation.init({ params: { ...values }, state, fromScratch: true });
+  ck("Censoring opens with the clock live", ic.inert === false);
 }
 
 console.log("\n== the ln(h/h0) bridge row (round 12, pick M1) ==");

@@ -3216,6 +3216,65 @@ ship includes adding its link to the MyST lesson.
 
 ## Widget 31 · `time-event` — DRAFT BUILT 2026-08-29, in review
 
+### Round 14 — the chips: choose WHICH SNPs; the Modeling tab loses its clock
+
+**Kenneth's review of round 13, four asks.** Two needed no mock: Causal
+SNPs became CONTEXTUAL (Modeling tab only — the value still governs the
+one shared cohort, as Patient E's time does from its tab), and the
+Modeling tab's compact curves went STATIC — drawn complete, updating
+instantly as the data controls move. The clock leaves that tab through
+core's existing `anim.inert` (the widget-18 door: Step and Play leave
+the row, Reset stays), so NO core change was needed there, and the
+cross-tab sweep hand-off survives — the widget just draws Modeling's
+curves at `tEnd` regardless of the clock, and `scrubHit` refuses the
+whole tab.
+
+**The labels** (picked from live-width mock candidates): **Censoring ·
+Comparing · Modeling** — "Comparing groups" had been truncating at the
+rail's measured ~13–15-char limit since round 2 ("Comparing gr…").
+Gerunds, not verbs: round 4's precedent is that bare verbs read as
+drive actions. The VALUES are unchanged — they are the URL.
+
+**The chips** (his ask: choose the individual SNPs "that we will try to
+recover later"; researched against the repo's own rules): Causal SNPs
+is now ONE int bitmask worn as ten toggle chips — `?causal=7` = SNPs
+1–3, the notebook's truth and the default, reproducing the round-8
+generator bit for bit (asserted). Alternatives recorded as rejected:
+clicking the forest's rows (round 11's ruling — the rail is what you
+SET, the stage is what you SEE; a data write hiding in the answer plot
+is the disease-pill confusion doubled) and ten bool params (ten URL
+parameters for one idea). **Core gained `style: "bits"` on int** — an
+int worn as toggle chips, chip j flipping bit j, segmented styling with
+a `.w-seg-bits` width modifier in tokens.css. The chosen SNPs wear a
+`--c-reference` dot beside their forest row names — truth on the label,
+the model's verdict on the mark, recovery at a glance (the reader set
+the truth, so it spoils nothing). Detection statistics carry over from
+the round-13 grid by symmetry: the SNPs are iid and balanced, so only
+the POPCOUNT matters, not which bits.
+
+Verified: drive re-pinned at **129 checks** (labels; the mask semantics
+— default ≡ 7, masks 7/56 and 0/1023 draw different cohorts; chips
+declared bits-10 factors-only; inert set on Modeling, cleared on the way
+back; Modeling never scrubs); in-browser — chips render at 300px in the
+rail, 1·2·3 pressed, a chip click writes `?causal=71` and redraws; Step
+and Play hidden with their group on Modeling, Reset remaining; the
+compact curves carry ink with the clock untouched; no console errors.
+`npm run check` green.
+
+**THE FULL SUITE RUN IS OWED AND BLOCKED — environmental, recorded
+here so nobody chases a phantom.** controls.js/tokens.css moved, so the
+198-state run is required. The attempt from this session read **every
+completed row DIFFER on `px` with `tx` IDENTICAL — and
+`devicePixelRatio` reads 1, not the baseline's 1.25** (the pane
+composites nothing and reports DPR 1 while not displayed; HANDOVER's
+px-tracks-DPR section is this exact signature). The tx invariant held
+on all 64 completed states. The run must happen with the pane
+DISPLAYED and reporting 1.25 (or in Kenneth's own browser at 125%),
+and it GATES THE PUSH. Reasoned blast radius, for the reader of that
+run: the new controls.js branch is gated on `field.style === "bits"`,
+which only this widget declares, and the CSS is scoped `.w-seg-bits` —
+and the rail is outside both hashes anyway.
+
 ### Round 13 — the ground truth becomes a lever; the model moves above the figure
 
 **Kenneth's review of round 12, four asks, every one mocked or measured

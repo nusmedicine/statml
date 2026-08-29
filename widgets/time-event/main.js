@@ -65,6 +65,18 @@
    nothing) — which needed the generator's censoring time floored at
    0.5 (model.js amendment 3). And the disease pill starts PRESSED.
 
+   ROUND 14 (Kenneth's review of round 13): the concept labels became
+   one-word gerunds — Censoring · Comparing · Modeling — because
+   "Comparing groups" truncated at the rail's measured limit (values
+   unchanged; they are the URL). Causal SNPs became a CHOICE of which,
+   not a count — one int bitmask worn as ten toggle chips (core gained
+   `style: "bits"` on int; full suite run owed and recorded), shown on
+   the Modeling tab only, the chosen SNPs wearing a --c-reference dot in
+   the forest. And Modeling lost its clock: the compact curves draw
+   COMPLETE and update as the data controls move; Play/Step leave the
+   tab via anim.inert (the widget-18 door), while the sweep on the other
+   two tabs keeps its cross-tab hand-off.
+
    One motion throughout: a time cursor sweeps right and curves build under
    it. The `censored` control is display: true — three readings of ONE
    dataset, so toggling never resets the sweep. `anim.done` is re-read
@@ -376,10 +388,14 @@ defineWidget({
     concept: {
       type: "segmented",
       label: "Concept",
+      /* one-word gerunds (round 14 — "Comparing groups" truncated to
+         "Comparing gr…" at the rail's measured ~13–15 char limit; verbs
+         were rejected in round 4 as reading like drive actions). The
+         values keep their old names — they are the URL. */
       options: [
         { value: "censoring", label: "Censoring", detail: "how time-to-event data is recorded, and what censoring is" },
-        { value: "groups", label: "Comparing groups", detail: "are the groups different? two Kaplan–Meier curves and the log-rank test" },
-        { value: "factors", label: "Finding factors", detail: "which factors are associated with the hazard? Cox regression, built a covariate at a time" },
+        { value: "groups", label: "Comparing", detail: "are the groups different? two Kaplan–Meier curves and the log-rank test" },
+        { value: "factors", label: "Modeling", detail: "which factors are associated with the hazard? Cox regression, built a covariate at a time" },
       ],
       default: "censoring",
       display: true,
@@ -477,24 +493,26 @@ defineWidget({
       default: "moderate",
       when: { param: "concept", oneOf: ["groups", "factors"] },
     },
-    /* THE GROUND TRUTH AS A LEVER (round 13 — Kenneth: let students set
-       how many SNPs truly matter and see what detection costs). Measured
-       at the defaults, 100 seeds per cell: a lone causal SNP is found
-       76% of the time, each of three ~88%, each of five ~93% — and at 0,
-       the fit still stars a null SNP on 67% of draws (54 events across
-       12 covariates), which the Significant tile names honestly. */
+    /* THE GROUND TRUTH AS A LEVER (round 13; round 14 made it a CHOICE of
+       which — Kenneth: pick the SNPs, then try to recover them — and
+       moved it to the Modeling tab only, where the SNPs live. One int
+       bitmask, worn as ten toggle chips; the value governs the shared
+       cohort from there like Patient E's time does from its tab.
+       Measured (100 seeds per cell; count is all that matters — the
+       SNPs are iid and balanced): one chip is recovered 76% of the
+       time, each of three ~88%, each of five ~93% — and at none, the
+       fit still stars a null SNP on 67% of draws (54 events across 12
+       covariates), which the Significant tile names honestly. */
     causal: {
-      type: "choice",
+      type: "int",
+      style: "bits",
+      bits: 10,
       label: "Causal SNPs",
-      detail: "how many of the ten SNPs truly shorten survival",
-      options: [
-        { value: "0", label: "0", detail: "no SNP matters — any star is a false positive" },
-        { value: "1", label: "1" },
-        { value: "3", label: "3" },
-        { value: "5", label: "5" },
-      ],
-      default: "3",
-      when: { param: "concept", oneOf: ["groups", "factors"] },
+      detail: "press to choose which SNPs truly shorten survival — they wear a dot in the forest; see if the model recovers them",
+      min: 0,
+      max: 1023,
+      default: 7,
+      when: { param: "concept", equals: "factors" },
     },
     /* 5 · 9 · 12 · 25, re-pinned in round 13 (Kenneth: the old ladder had
        no corner where a too-short study fails). Measured, 100 seeds per
@@ -742,7 +760,14 @@ defineWidget({
     runTitle: "Sweep time forward at the chosen speed",
     init: ({ params, state, fromScratch }) => {
       const t = fromScratch ? 0 : Math.min(params.shown / 2, T2MAX);
-      const anim = { t, done: t >= state.tEnd[timeKey(params.concept)], rows: {} };
+      const anim = {
+        t,
+        done: t >= state.tEnd[timeKey(params.concept)],
+        rows: {},
+        /* Modeling draws its curves complete (round 14), so Play and Step
+           leave the row there — core's anim.inert, the widget-18 door */
+        inert: params.concept === "factors",
+      };
       for (const k of ROW_KEYS) anim.rows[k] = { v: 0, lo: 0, hi: 0, a: 0 };
       retargetForest(anim, params, state);
       for (const k of ROW_KEYS) anim.rows[k] = { ...anim.rowsT[k] };
@@ -814,20 +839,18 @@ defineWidget({
        Comparing groups; and a pill click retargets the forest's ease. */
     rebuild: (anim, { params, state }) => {
       anim.done = anim.t >= state.tEnd[timeKey(params.concept)];
+      anim.inert = params.concept === "factors";
       retargetForest(anim, params, state);
     },
     /* THE SCRUB (round 11): dragging on a time panel hands the reader the
        clock. anim only — no parameter is written; a playhead was never in
-       the URL. On Finding factors only the compact curves scrub — a drag
-       on the forest must not move time. */
-    scrubHit: ({ x, y, w, params }) => {
+       the URL. Modeling has no clock at all since round 14 — its curves
+       are drawn complete — so nothing there scrubs. */
+    scrubHit: ({ x, w, params }) => {
+      if (params.concept === "factors") return false;
       const left = 56;
       const right = w - 14;
-      if (x < left - 8 || x > right + 8) return false;
-      if (params.concept === "factors") {
-        return y > FCURVE_Y - 14 && y < FCURVE_Y + FCURVE_H + 30;
-      }
-      return true;
+      return x >= left - 8 && x <= right + 8;
     },
     scrub: (anim, { x, w, params, state }) => {
       const left = 56;
@@ -906,10 +929,10 @@ defineWidget({
       tiles.push({
         label: "Significant",
         value: String(nSig),
-        /* at Causal SNPs 0 the truth is a generator setting the reader
+        /* at Causal SNPs none the truth is a generator setting the reader
            chose, so the claim is licensed (the Disease effect: None
            precedent) — and needed: 67 of 100 draws star a null SNP */
-        note: params.snps && params.causal === "0"
+        note: params.snps && Number(params.causal) === 0
           ? "no SNP truly shortens survival in this cohort — a starred SNP is a false positive"
           : "covariates in this model with p below 0.05",
       });
@@ -1440,13 +1463,16 @@ function drawFactors(ctx, colors, w, params, state, t, anim) {
   ctx.fillText("Each patient carries an age, a disease group, and ten SNP genotypes.", left, FQ_Y);
   ctx.restore();
 
-  /* the curves being modelled stay in view, compact */
+  /* the curves being modelled stay in view, compact — and STATIC since
+     round 14 (Kenneth: no need to animate here; the curves should just
+     change as the data controls move). Drawn complete regardless of the
+     clock; the clock itself is untouched, so the sweep resumes where it
+     was on the other tabs. */
   const rect = { x: left, y: FCURVE_Y, w: right - left, h: FCURVE_H };
   const plot = makePlot({ ctx, colors, rect, xDomain: [0, T2MAX], yDomain: [0, 1] });
   plot.axisX({ ticks: [0, 5, 10, 15] });
   plot.axisY({ ticks: [0, 0.5, 1] });
-  drawGroupCurves(ctx, colors, plot, state, t, { labels: false, ticks: false });
-  drawCursor(ctx, colors, plot.sx(Math.min(t, T2MAX)), FCURVE_Y - 10, plot.sy(0), t, state.tEnd.groups);
+  drawGroupCurves(ctx, colors, plot, state, state.tEnd.groups, { labels: false, ticks: false });
 
   /* the card head is the .w-math card above the figure now (round 13);
      what stays on canvas is the one-line honesty slot. Small studies —
@@ -1518,11 +1544,25 @@ function drawForest(ctx, colors, rp, params, state, anim) {
   /* row slots: Disease and Age tall (they carry the ghost-and-move
      annotation), the SNPs tight — or one quiet line when they are out */
   const rowY = { disease: rp.y + ROW_BIG * 0.62, age: rp.y + ROW_BIG * 1.62 };
+  /* the truth, marked (round 14): a SNP the reader chose as causal wears
+     a --c-reference dot by its name — truth on the label, the model's
+     verdict on the mark, so recovery reads at a glance. The reader set
+     it, so it spoils nothing. */
+  const truthDot = (k, y, name) => {
+    if (!k.startsWith("snp")) return;
+    const j = Number(k.slice(3)) - 1;
+    if (!((Number(params.causal) >> j) & 1)) return;
+    ctx.fillStyle = colors.reference;
+    ctx.beginPath();
+    ctx.arc(rp.x - 6 - ctx.measureText(name).width - 8, y, 2.5, 0, 2 * Math.PI);
+    ctx.fill();
+  };
   const drawRow = (k, y, withValue) => {
     const name = ROW_NAMES[k];
     const c = fit.byName[k];
     const m = anim?.rows?.[k];
     ctx.font = `${colors.fsXs} ${colors.font}`;
+    truthDot(k, y, name);
     if (!c) {
       ctx.fillStyle = colors.ink3;
       ctx.textAlign = "right";

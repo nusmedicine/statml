@@ -1089,6 +1089,14 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The bits chips (an int worn as toggles — controls.js): ten of them have
+   to share one rail row, so the horizontal padding goes and a minimum
+   keeps a one-digit chip square enough to press. */
+.w-seg-bits .w-seg-btn {
+  padding: 5px 0;
+  min-width: 22px;
+  font-size: var(--fs-xs);
+}
 
 .w-seg-btn:last-child { border-right: 0; }
 .w-seg-btn:hover { background: var(--surface-3); }

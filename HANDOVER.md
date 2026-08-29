@@ -48,8 +48,29 @@ URL** — that difference is the region geometry proven.
    (observed = min(T, C), doors close at 20): then KM is −0.0002 from
    truth, discarding −0.081, and log-rank by disease fires p < 1e-4 on
    100/100 widget seeds. Full record: catalogue § *Widget 31*.
-   **ROUND 13 IS BUILT (2026-08-29) on Kenneth's round-12 review — his
-   test pass is what remains.** Four asks, all mocked/measured first
+   **ROUND 14 IS BUILT (2026-08-29) on Kenneth's round-13 review — TWO
+   THINGS REMAIN: THE FULL SUITE RUN (core moved — see below), then his
+   test pass.** The four asks: labels → **Censoring · Comparing ·
+   Modeling** (the old "Comparing groups" truncated; values unchanged);
+   **Causal SNPs became ten toggle chips** — one int bitmask
+   (`?causal=7` = SNPs 1–3, the default, ≡ the round-8 generator),
+   Modeling tab only, chosen SNPs wearing a --c-reference dot by their
+   forest rows; **core gained `style: "bits"` on int** (controls.js +
+   a `.w-seg-bits` rule in tokens.css); and **Modeling lost its clock**
+   — curves drawn complete, updating as data controls move, Step/Play
+   leaving the row via `anim.inert` (no core change for that part).
+   Drive: **129 checks** green; `npm run check` green; in-browser
+   verified (chips 300px, mask writes, inert row, no errors).
+   **THE 198-STATE SUITE RUN IS OWED FOR THE CORE CHANGE AND GATES THE
+   PUSH.** The attempt from the agent session hit the documented DPR
+   trap: every row DIFFER on `px`, `tx` IDENTICAL, `devicePixelRatio`
+   reading 1 instead of the baseline's 1.25 — the pane was not
+   displayed. Run `widgets/_lab/fingerprint.html` with the pane
+   DISPLAYED and DPR reading 1.25 (or in Kenneth's own browser at
+   125%); it auto-runs, NEVER click Run. Expect 198 of 198 — the new
+   controls.js branch is gated on `style: "bits"` which only widget 31
+   declares. Full record: catalogue § Widget 31 round 14.
+   **ROUND 13 WAS BUILT (2026-08-29) on Kenneth's round-12 review.** Four asks, all mocked/measured first
    (mock §5; 100-seed grids): the factors card moved ABOVE the figure
    whole (pick V2 — title, general exp form, pill-following ln row, and
    the baseline note answering "is disease the intercept?": h₀(t) is);
