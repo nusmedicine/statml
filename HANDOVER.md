@@ -36,34 +36,25 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-1. **KENNETH'S QUEUE, in his order (stated 2026-08-29, saved to memory
-   as `after-mixed-model-queue`):**
-   - ~~`lm-interaction` age × BMI act~~ — DONE and pushed 2026-08-29
-     (catalogue § Widget 30: the revived act, and the LIVE PER-TAB
-     LEGEND, a core door — `legend` may be a function of the params).
-   - ~~`lm-diagnostics`~~ — **SHIPPED AND PUSHED 2026-08-29** after
-     three rounds (all-simulated stage; entry/hover/bells picked from
-     running candidates; pill + MathML + copy pass); catalogue
-     § *Widget 33* has the full record and the promotion notes. At hand:
+**THERE IS NO BUILD TASK QUEUED.** Kenneth's post-mixed-model queue
+(memory `after-mixed-model-queue`) is done except its last item, and
+that one is BLOCKED on him:
 
-     ```bash
-     node scripts/serve.mjs 8010
-     # http://localhost:8010/widgets/lm-diagnostics/              (press Fit — the entry)
-     # .../widgets/lm-diagnostics/?fit=1&scenario=curve           (the banana, visible in the data)
-     # .../widgets/lm-diagnostics/?fit=1&claim=1                  (the bells, pill settled by URL)
-     # .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20    (R² 0.51 on noise; adjusted flat)
-     node widgets/_lab/lm-diag-measure.mjs   # verify + design + § round 1 sweeps
-     # _lab/lm-diag-shoot.html re-shoots its 10 states (copy-proof, triples, inert checks)
-     ```
+1. **`roc-auc`** — to be based on an existing JS app Kenneth will
+   upload. **DO NOT start until he provides the app.** When he does:
+   the usual order (read the app and its host notebook, measure through
+   `_lab/`, mock the stage, Kenneth picks).
+2. Everything else open is KENNETH'S OWN, listed below so a session can
+   remind him rather than act: the eight notebook links, the 05-07
+   notebook fix, and judging projected. A session with nothing to do
+   should hold, not invent scope — prd §11 exists to be pointed at.
 
-     The machinery is `widgets/lm-diagnostics/model.js` (the lab imports
-     FROM the widget). Still owed post-ship: the 05-01 link (listed
-     below) and judging projected. A stub-driver was not built — the
-     measure script + shooter carry the coverage; the claim ease and the
-     hover link are recorded as untested geometry in the catalogue.
-   - **`roc-auc`**: to be based on an existing JS app Kenneth will
-     upload; DO NOT start until he provides it.
-2. **Notebook links now owed for all SEVEN shipped modeling-arc widgets** —
+Done from the queue, records in the catalogue: ~~`lm-interaction`
+age × BMI act~~ (§ Widget 30) and ~~`lm-diagnostics`~~ — **SHIPPED
+2026-08-29 as widget 33; its own section below has what to keep at
+hand.**
+
+3. **Notebook links now owed for all EIGHT shipped modeling-arc widgets** —
    Kenneth places notebook links by hand:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
@@ -74,8 +65,8 @@ URL** — that difference is the region geometry proven.
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    — and judging projected is still owed by every widget from 11 on,
-   widgets 26–32 included.
-3. **05-07's own notebook fix, agreed with Kenneth 2026-08-29**: the SNP
+   widgets 26–33 included.
+4. **05-07's own notebook fix, agreed with Kenneth 2026-08-29**: the SNP
    `lm` adjusts for `family_id` as an INTEGER (one slope over the family
    index — measured identical to no adjustment). The agreed edit: drop
    `+ family_id` from the lm and reword its bullet to "ignoring the
@@ -84,6 +75,45 @@ URL** — that difference is the region geometry proven.
    § Widget 32 has the full measured comparison, including why
    fixed-effects adjustment is near-equivalent here and where mixed
    models genuinely win).
+
+**WIDGET 33 `lm-diagnostics` SHIPPED AND PUSHED 2026-08-29** as
+**Checking the Model Fit** — three review rounds in one day, the full
+record (research, picks, measurements, the promotion) in catalogue
+§ *Widget 33*. What a later session most needs at hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/lm-diagnostics/              (press Fit — the entry plays)
+# .../widgets/lm-diagnostics/?fit=1&scenario=curve           (the banana, visible in the data)
+# .../widgets/lm-diagnostics/?fit=1&claim=1                  (the bells; the pill settles by URL)
+# .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20    (R² 0.51 on noise; adjusted flat 0.24)
+node widgets/_lab/lm-diag-measure.mjs   # verify vs 05-01 + every design number + § round 1 sweeps
+# _lab/lm-diag-shoot.html re-shoots its 10 states (copy-proof, triples, inert checks)
+```
+
+- **The stage is ALL-SIMULATED and every setting is a measured choice**
+  (round 1: mixing real and simulated data confused, and at the real
+  noise the curve was invisible): the Framingham fit's own line, real
+  BMI values clipped to 18–40, n = 600, SD 12, curve 0.4 (a 5.2-SD bend
+  in the cloud), fan 3, log-normal skew; the act runs n = 60 / k = 20
+  junk columns and **the default seed 6 was auditioned** so the widget
+  opens on the typical picture (a lucky junk column lifts ADJUSTED R²
+  too on ~12% of seeds — do not "fix" a strange-looking seed, vary it).
+- **The `fit` gate is deliberately NOT display**: core's entry door
+  lives on the data path (em-mixture's arrangement), and the entry flag
+  is the one-shot contract — a shared `?fit=1` link opens FINISHED.
+  The machinery is `widgets/lm-diagnostics/model.js`; the lab imports
+  FROM the widget.
+- **Two surfaces are untested geometry, recorded in the catalogue**: the
+  claim pill's stagger ease (a pill is a `<button data-param>` the
+  harness's setParam cannot toggle — claim settles by URL) and the
+  hover link (moves no parameter; an inspector by design). A node
+  stub-driver was not built; the measure script + shooter carry the
+  coverage.
+- **The TDZ trap struck a THIRD time** (RANK_DY below defineWidget) and
+  the stale-console trap re-confirmed itself the same hour — the fix
+  showed three errors after it landed; a fresh `window.onerror` counter
+  is the honest read.
 
 **WIDGET 30 GREW ACT 1 AND CORE GREW A DOOR, both pushed 2026-08-29**
 (the queue's first item; catalogue § Widget 30 · *Act 1 revived*). What a
