@@ -276,15 +276,34 @@ export function defineWidget(config) {
 
   const values = resolveParams(spec, new URLSearchParams(location.search));
   const host = document.querySelector(mount);
+  /* `legend` may be a FUNCTION of the parameters (lm-interaction's ask,
+     2026-08-29: "the legend should match the graph" — a tabbed widget's
+     marks change with the tab, and a legend describing another tab's
+     marks is worse than none). A static array renders exactly as it
+     always has; a function is resolved here for the first paint and
+     re-resolved on every parameter change in recompute(). */
+  const legendFor = (vals) =>
+    (typeof legend === "function" ? legend({ params: { ...vals } }) : legend);
+  let legendKey = JSON.stringify(legendFor(values));
   const dom = buildShell(host, {
     title,
     subtitle,
-    legend,
+    legend: legendFor(values),
+    legendLive: typeof legend === "function",
     status,
     layout,
     hasReadout: Boolean(readout),
     hasTable: Boolean(table),
   });
+  function refreshLegend() {
+    if (typeof legend !== "function" || !dom.legend) return;
+    const entries = legendFor(values);
+    const key = JSON.stringify(entries);
+    if (key === legendKey) return;
+    legendKey = key;
+    fillLegend(dom.legend, entries);
+    dom.legend.hidden = entries.length < 2;
+  }
 
   const surface = createCanvas(dom.figure, height);
   let colors = readTokens();
@@ -303,6 +322,10 @@ export function defineWidget(config) {
     colors = readTokens();
     const rng = makeRng(values.seed ?? 1);
     state = compute({ params: { ...values }, rng, colors });
+    /* a live legend follows the parameters; runs on every path that can
+       change them, and is a no-op for the static arrays every widget
+       before 2026-08-29 declares */
+    refreshLegend();
   }
 
   /* The pointer's position in DRAWING coordinates, or null — see the
@@ -1201,7 +1224,7 @@ export function defineWidget(config) {
  * top to bottom in the order they need to think about it, with no instruction
  * telling them to.
  */
-function buildShell(host, { title, subtitle, legend, status, layout = "stack", hasReadout, hasTable }) {
+function buildShell(host, { title, subtitle, legend, legendLive, status, layout = "stack", hasReadout, hasTable }) {
   host.className = "w-root";
   host.dataset.layout = layout;
   host.innerHTML = "";
@@ -1294,18 +1317,15 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   (stage ?? host).appendChild(figure);
 
   // A legend is always present for two or more series; one series needs none.
-  if (legend.length >= 2) {
-    const ul = el("ul", "w-legend");
-    for (const item of legend) {
-      const li = el("li");
-      const sw = el("span", "swatch");
-      sw.style.setProperty("--swatch", `var(--c-${item.token}, var(--${item.token}))`);
-      if (item.mark) sw.dataset.mark = item.mark;
-      li.appendChild(sw);
-      li.appendChild(el("span", null, item.label));
-      ul.appendChild(li);
-    }
-    (stage ?? host).appendChild(ul);
+  // A LIVE legend (a function of the parameters) gets its ul even when the
+  // first tab shows fewer than two — another tab may show more; the <2 rule
+  // is applied per render, as hidden.
+  let legendUl = null;
+  if (legend.length >= 2 || legendLive) {
+    legendUl = el("ul", "w-legend");
+    fillLegend(legendUl, legend);
+    if (legend.length < 2) legendUl.hidden = true;
+    (stage ?? host).appendChild(legendUl);
   }
 
   /* THE LEGEND AND THE READOUT GO WITH THE FIGURE, not below the whole split.
@@ -1329,7 +1349,22 @@ function buildShell(host, { title, subtitle, legend, status, layout = "stack", h
   const utility = el("div", "w-utility");
   host.appendChild(utility);
 
-  return { figure, readout, controls, controlsAfter, drive, driveHint, utility, headerTools, tableWrap };
+  return { figure, readout, controls, controlsAfter, drive, driveHint, utility, headerTools, tableWrap, legend: legendUl };
+}
+
+/* one item-builder for both the shell's first render and a live legend's
+   re-renders, so the two can never drift */
+function fillLegend(ul, entries) {
+  ul.innerHTML = "";
+  for (const item of entries) {
+    const li = el("li");
+    const sw = el("span", "swatch");
+    sw.style.setProperty("--swatch", `var(--c-${item.token}, var(--${item.token}))`);
+    if (item.mark) sw.dataset.mark = item.mark;
+    li.appendChild(sw);
+    li.appendChild(el("span", null, item.label));
+    ul.appendChild(li);
+  }
 }
 
 function el(tag, className, text) {

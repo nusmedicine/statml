@@ -246,16 +246,26 @@ defineWidget({
     },
   },
 
-  /* generic (Kenneth 2026-08-29, the mixed-model ruling applied): the
-     canvas names the groups where they appear — the lines say women and
-     men on the sex tabs, the fan lines say their BMI level — and the
-     age × BMI tab's neutral cloud claims no group at all */
-  legend: [
-    { token: "group-a", label: "Group A — its patients, cell mean and model line", mark: "dot" },
-    { token: "group-b", label: "Group B — its patients, cell mean and model line", mark: "dot" },
-    { token: "empirical", label: "The model drawn at sample BMI levels", mark: "line" },
-    { token: "highlight", label: "The effect being read from the model — the probe's reading, or the interaction bracket", mark: "line" },
-  ],
+  /* THE LEGEND FOLLOWS THE TAB (Kenneth 2026-08-29: "the legend should
+     match the graph" — a generic Group A/B was tried the same day and
+     rejected as saying nothing). A function of the parameters, through
+     core's live-legend door, which this ask opened. */
+  legend: ({ params }) => (params.concept === "agebmi"
+    ? [
+      { token: "empirical", label: "The model drawn at BMI 20, 30 and 40", mark: "line" },
+      { token: "highlight", label: "The age slope, read at the chosen BMI", mark: "line" },
+    ]
+    : params.concept === "agesex"
+      ? [
+        { token: "group-a", label: "Women (sex 0, the reference) — their patients and model line", mark: "dot" },
+        { token: "group-b", label: "Men (sex 1) — their patients and model line", mark: "dot" },
+        { token: "highlight", label: "The sex gap, read at the chosen age", mark: "line" },
+      ]
+      : [
+        { token: "group-a", label: "Women (sex 0, the reference) — their cell means and model line", mark: "dot" },
+        { token: "group-b", label: "Men (sex 1) — their cell means and model line", mark: "dot" },
+        { token: "highlight", label: "The interaction bracket — the difference of differences", mark: "line" },
+      ]),
 
   compute() {
     const mul = (a, b) => a.map((v, i) => v * b[i]);

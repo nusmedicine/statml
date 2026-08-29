@@ -37,6 +37,10 @@ defineWidget({
 
   params: { /* see below */ },
   legend: [{ token: "empirical", label: "…", mark: "bar" }],
+                                     // …or ({ params }) => entries, for a
+                                     // tabbed widget whose marks change with
+                                     // the tab — the legend must match the
+                                     // graph (lm-interaction, 2026-08-29)
 
   compute: ({ params, rng }) => state,                       // pure, seeded
   animation: { stepLabel, stepTitle, runLabel, init, advance, rebuild },

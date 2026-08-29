@@ -4261,15 +4261,23 @@ form; the legacy women/men output is BYTE-IDENTICAL and a full suite run
 proved it: **217 of 217 MATCH**, nothing recorded moved. The patients are
 one neutral cloud on this tab — BMI is on neither axis, which is why the
 model must carry it. Concept order now mirrors the notebook (act 1 first)
-with the default still agesex (the approved opening story). The legend went GENERIC on
-Kenneth's "fix the legend" (the mixed-model ruling applied): Group A/B
-with the canvas naming the groups where they appear, an entry added for
-the fan's sample levels, and the highlight line reworded for the two
-probes. All ten recorded states re-shot in the same commit — the splice
-ASSERTED px identical on every one (the legend is DOM-only) and tx moved
-on every one — plus three new act-1 states (parallel levels; the fan
-with the probe at BMI 40 reading a negative slope; the mid-split ease).
-The confirming suite run read **220 of 220 MATCH**.
+with the default still agesex (the approved opening story). THE LEGEND NOW FOLLOWS THE TAB.
+Kenneth's "fix the legend" was first read as the mixed-model generic
+ruling (Group A/B, canvas names the groups) — shipped, and REJECTED the
+same hour: "the legend should match the graph — now it's too generic."
+The real fix opened a core door: **legend may be a FUNCTION of the
+parameters** (widget.js — resolved at build, re-resolved in recompute(),
+a no-op for every static array; the item-builder is shared so the two
+render paths cannot drift; a live legend gets its ul even when one tab
+shows fewer than two entries, hidden per render). lm-interaction now
+declares three per-tab legends: the sex tabs name women and men and what
+the highlight reads there (the sex gap at the chosen age; the
+interaction bracket), the fan tab names the BMI levels and the probed
+slope. The 13 states were re-shot TWICE in one day (generic, then live —
+px identical both times, asserted at splice), three act-1 states added,
+and the core change ran the full suite: **220 of 220 MATCH**, the 207
+static-legend states proving the door touches nothing that does not
+open it.
 
 **Promoted on 2026-08-28 after Kenneth's "tested ok" — measured, mocked,
 built and revised over two rounds in one session.** Title **Fitting an
