@@ -283,6 +283,11 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
    resets training, so no figure stands still for it. */
 function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
   const L = netLayout(x0, y0, w, 0, k);
+  /* The sum and the output sit on the network's columns, so the magnified
+     unit stands above the units it explains. The INPUTS do not: aligning
+     them to the input column left a long empty run before the arrows, and
+     nothing is learned from an x1 lining up with an x1. */
+  const inX = L.xHid - Math.max(70, Math.min(110, (L.xHid - x0) * 0.5));
   const mid = y0 + 22 + 33;
   const box = Math.max(30, Math.min(66, L.xOut - L.xHid - 46));
   const boxX = L.xHid + 22;
@@ -318,11 +323,11 @@ function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
     { t: "xₙ", w: "wₙ", dy: 22 },
   ];
   for (const r of rows) {
-    label(ctx, colors, r.t, L.xIn - 6, mid + r.dy + 4, { align: "right", color: colors.ink2 });
+    label(ctx, colors, r.t, inX - 6, mid + r.dy + 4, { align: "right", color: colors.ink2 });
     if (r.t === "⋮") continue;
-    arrow(L.xIn, mid + r.dy, L.xHid - 11, mid + r.dy * 0.3);
+    arrow(inX, mid + r.dy, L.xHid - 11, mid + r.dy * 0.3);
     if (r.w) {
-      label(ctx, colors, r.w, (L.xIn + L.xHid) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
+      label(ctx, colors, r.w, (inX + L.xHid) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
     }
   }
 
@@ -750,8 +755,7 @@ widgetApi = defineWidget({
     reroll: {
       type: "bool",
       style: "pill",
-      label: "New starting weights",
-      detail: "the same data, a different random start — training begins again",
+      label: "Initialize weights",
       default: false,
       display: true,
     },
