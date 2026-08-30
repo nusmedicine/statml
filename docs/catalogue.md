@@ -3620,7 +3620,11 @@ Measured before anything was argued, the arc's rhythm:
   the fits agreeing at 0 and diverging monotonically; at family SD 5 the
   flat fit averages 2.5 false SNPs of 9 AND misses the causal one 22% of
   the time — lmer 0.64, never (modeling the families GAINS power).
-- **The notebook review found a real defect**: 05-07's SNP lm "adjusting
+- **The notebook review found a real defect** — *Kenneth reported it FIXED
+  on 2026-08-30 (naming it "05-06"); the copy at `../jupyterbook/phm5003`
+  still shows the defect and is unmodified since February, so he likely
+  edited a working copy this repo cannot see. HANDOVER's item 4 records
+  exactly what was checked.* The defect: 05-07's SNP lm "adjusting
   for family_id" enters it NUMERIC (coefficient 0.0038 — behaviourally
   identical to no adjustment; measured). Kenneth's fix conversation
   settled: drop the term and reword to "ignoring the family structure";

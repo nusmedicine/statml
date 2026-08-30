@@ -95,15 +95,12 @@ session can remind him rather than act: the NINE notebook links, the
 05-07 notebook fix, and judging projected. A session with nothing to
 do should hold, not invent scope — prd §11 exists to be pointed at.
 
-3. **Notebook links now owed for NINE shipped widgets** — Kenneth
-   places notebook links by hand:
-   - 04-2 (widget 35): `Explore the metrics interactively: [Scoring the Predictions](https://nusmedicine.github.io/statml/widget/metrics/)`
-     — and the notebook can land on any station:
-     `?outcome=categorical&view=matrix` or `&view=roc`. **This
-     supersedes the roc-auc link this line used to carry**: widget 34 is
-     UNLISTED as of 2026-08-30 and still reachable at
-     `…/widget/roc-auc/`, so link it too only if the deeper
-     threshold act is wanted beside this one.
+3. **Notebook links now owed for EIGHT shipped widgets** — Kenneth
+   places notebook links by hand. **04-2 (widget 35) is DONE**, placed
+   by him 2026-08-30; the line can land on any station if he wants one
+   (`?outcome=categorical&view=matrix`, `&view=roc`), and widget 34 is
+   UNLISTED but still reachable at `…/widget/roc-auc/` if the deeper
+   threshold act is ever wanted beside it. Still owed:
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
@@ -179,15 +176,33 @@ node scripts/serve.mjs 8010
   until displayed and can flap back between runs.
 - **Untested geometry, recorded**: the threshold drag (no harness verb) and
   the find-optimal scan mid-flight plus its landing write.
-4. **05-07's own notebook fix, agreed with Kenneth 2026-08-29**: the SNP
-   `lm` adjusts for `family_id` as an INTEGER (one slope over the family
-   index — measured identical to no adjustment). The agreed edit: drop
-   `+ family_id` from the lm and reword its bullet to "ignoring the
-   family structure"; `as.factor` would also be correct but reaches
-   lmer's own conclusion and kills the lesson's contrast (catalogue
-   § Widget 32 has the full measured comparison, including why
-   fixed-effects adjustment is near-equivalent here and where mixed
-   models genuinely win).
+4. **05-07's own notebook fix — Kenneth REPORTED IT DONE 2026-08-30,
+   and this repo's copy does not show it. Worth one look before it is
+   believed.** The issue: the SNP `lm` adjusts for `family_id` as an
+   INTEGER (one slope over the family index — measured identical to no
+   adjustment). The agreed edit was to drop `+ family_id` from the lm
+   and reword its bullet to "ignoring the family structure";
+   `as.factor` would also be correct but reaches lmer's own conclusion
+   and kills the lesson's contrast (catalogue § Widget 32 has the full
+   measured comparison).
+
+   **What was checked, 2026-08-30**, in
+   `../jupyterbook/phm5003/notebook/04 - Introduction to Statistical
+   Computing Part 2/05-07 - Modeling - Hierarchical Data.ipynb`:
+   - the model cell still reads `lm(cholesterol ~ SNP1 + … + SNP10 +
+     family_id, data = sim_data_snp)`, and `sim_data_snp$family_id` is
+     still the integer from `sample(1:families, …)`;
+   - its bullet still reads "`lm` linear model: adjusting for
+     `family_id`";
+   - the only `as.factor(family_id)` in the file is in the PLOTTING
+     cell that builds `data_long` for the boxplot — not the model data;
+   - every `05-0x` notebook there is unmodified since 2026-02-05.
+
+   He named it **05-06**, which is *Time-to-Event Data* and contains no
+   `family_id` at all — the SNP/`lmer` example is 05-07. So either he
+   edited a copy this repo cannot see (likely — he keeps working copies
+   elsewhere and places links by hand), or the edit has not landed. Ask
+   rather than assume, and do not re-do his work unasked.
 
 **WIDGET 33 `lm-diagnostics` SHIPPED AND PUSHED 2026-08-29** as
 **Checking the Model Fit** — three review rounds in one day, the full
