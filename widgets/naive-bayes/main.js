@@ -1,36 +1,28 @@
-/* Naive Bayes — PHM5005 04-3 § Probabilistic (Arc A slot 5).
+/* Naive Bayes — PHM5005 04-3 § Probabilistic.
  *
- * One patient scored feature by feature: the prior, then one likelihood per
- * feature, each drawn as its own ledger row — the readoff on the left (fitted
- * curves for a lab, fitted rates for a symptom), the evidence as a log-odds
- * bar on the right, and the running total at the bottom (Kenneth's pick:
- * ledger form A with the waterfall's running total as the last row).
+ * One new patient scored feature by feature: the prior, then one likelihood
+ * per feature, each a ledger row — the fitted readoff on the left, the
+ * evidence as a log-odds bar on the right, the running total at the bottom.
+ * Features are admitted by per-feature pills, so admission is URL state and
+ * the product commutes in the reader's hands; Step and Play are declined
+ * (4.5) and the bars ease on core's easing-request door. Two tabs, one per
+ * likelihood family: Continuous (GaussianNB on CRP + WBC) and Discrete
+ * (BernoulliNB on fever + chills), each with an Independent | Correlated
+ * comparison at the bottom of the rail.
  *
- * ROUND 2 (Kenneth): the features are admitted by PER-FEATURE PILLS, not a
- * generic Step — the reader chooses which likelihood to multiply in, in any
- * order (the product commutes, which the buttons quietly teach). Admission
- * is therefore URL state, not animation state; the bars ease in and out on
- * core's easing-request door, and Step/Play are declined (4.5). The
- * correlation gate sits at the BOTTOM of the rail, after the pills — the
- * caveat is discussed only once the calculation is understood.
+ * THE CORRELATED VIEW IMPOSES ITS CORRELATION ON THE FITTED MARGINALS; it
+ * never regenerates the cohort. Refitting on a resampled correlated cohort
+ * would jitter naive Bayes's posterior by sampling noise, and the claim is
+ * that it cannot move: its inputs are the marginals, which a correlation
+ * leaves untouched. The correct model is computed exactly from the same
+ * fitted marginals plus the imposed joint.
  *
- * Two tabs, one per likelihood family — Continuous (GaussianNB on CRP + WBC)
- * and Discrete (BernoulliNB on fever + chills) — and EACH tab carries a
- * correlation gate demonstrating the independence assumption double-counting.
- *
- * THE GATE IMPOSES THE CORRELATION ON THE FITTED MARGINALS; it never
- * regenerates the cohort. Refitting on a resampled correlated cohort would
- * jitter naive Bayes's posterior by sampling noise, and the entire claim is
- * that it CANNOT move: its inputs are the two marginals, and a correlation
- * leaves every marginal exactly where it was. The correct model is computed
- * exactly from the same fitted marginals plus the imposed joint.
- *
- * MEASURED (_lab/nb-design.py, vs sklearn to ~4e-16), and the trap recorded
- * there: the second feature must be REDUNDANT — matched standardized shifts
- * for the labs, matched rates for the symptoms — or the correct model
- * EXPLOITS the correlation (the residual turns class-informative and its
- * posterior runs to 1.0), which teaches the opposite of the caveat. The
- * population parameters below are load-bearing, not flavour.
+ * MEASURED in _lab/nb-design.py (closed form vs sklearn to ~4e-16), with a
+ * trap recorded there: the second feature must be REDUNDANT — matched
+ * standardized shifts for the labs, matched rates for the symptoms — or the
+ * correct model EXPLOITS the correlation (the residual turns
+ * class-informative and its posterior runs to 1.0), the opposite lesson.
+ * The population parameters below are load-bearing, not flavour.
  */
 
 import { defineWidget, fmt } from "../core/index.js";
@@ -215,9 +207,8 @@ const mn = (t) => `<mn>${t}</mn>`;
 const mo = (t) => `<mo>${t}</mo>`;
 const M = (inner) => `<math><mrow>${inner}</mrow></math>`;
 
-/* Posterior odds = prior odds x LR(feature) x LR(feature), the admitted
-   factors wearing their numbers and the pending ones their names — then the
-   odds converted to a probability, spelled out. The card follows the SETTLED
+/* Posterior odds as the product of the admitted factors, then the odds
+   converted to a probability, spelled out. The card follows the settled
    pill state; the canvas numbers follow the eased bars. */
 function formula(rows, params, total) {
   const parts = [];
@@ -328,11 +319,11 @@ function drawLabPanel(ctx, colors, state, k, x0, y0, patientV) {
 }
 
 /* A symptom's readoff: the FULL fitted Bernoulli distribution — for each
-   outcome (absent, present), one bar per class — STABLE whatever the patient
-   does. Round 7: the first version drew P(the patient's state | class), so
+   outcome (absent, present), one bar per class — stable whatever the
+   patient does. An earlier version drew P(the patient's state | class), so
    flipping the checkbox appeared to change the trained model. The patient's
-   outcome is framed in the highlight, the way the Gaussian panels mark the
-   patient's value with a rule; the model itself never moves. */
+   outcome is framed in the highlight, the analogue of the Gaussian panels'
+   patient rule. */
 function drawSymPanel(ctx, colors, state, k, x0, y0, present) {
   const hFull = PANEL_H - 16;
   const base = y0 + PANEL_H - 2;
@@ -416,9 +407,9 @@ function drawLedger(ctx, colors, w, params, state, anim) {
   label(ctx, colors, "evidence for disease →", zero + 8, 13);
   lineSeg(ctx, zero, HEAD_H - 4, zero, HEAD_H + MODEL_HEAD_H + 3 * ROW_H, colors.grid);
 
-  /* the feature panels are the MODEL, and the figure says so where they
-     begin (rounds 4–6, Kenneth): a heading in the same voice as "Prior",
-     with a quiet subtitle and no counts — generic over any cohort size */
+  /* the feature panels are the model, and the figure says so where they
+     begin: a heading in the same voice as "Prior", no counts (generic
+     over any cohort size) */
   label(ctx, colors, "Model", PANEL_X, HEAD_H + ROW_H + 14,
     { color: colors.ink1, font: `${colors.fsSm} ${colors.font}` });
   label(ctx, colors, "distributions fitted to the training data",
@@ -661,7 +652,7 @@ defineWidget({
     + "share is counted twice.",
   layout: "side",
 
-  height: ({ correlate }) => LEDGER_H + (correlate ? GATE_H : 0),
+  height: ({ correlate }) => LEDGER_H + (correlate === "correlated" ? GATE_H : 0),
 
   params: {
     family: {
@@ -711,11 +702,9 @@ defineWidget({
 
     calc: { type: "section", label: "The calculation" },
 
-    /* THE FEATURES ARE ADMITTED BY PILLS, one per feature (round 2, Kenneth:
-       "use buttons to select features to add"). Membership chips, so the
-       reader multiplies likelihoods in ANY order — the product commutes, and
-       the buttons let them discover that. URL state, not animation state: a
-       shared link opens with the same features in the product. */
+    /* One membership pill per feature: likelihoods multiply in any order,
+       and admission is URL state — a shared link opens with the same
+       features in the product. */
     addcrp: {
       type: "bool",
       style: "pill",
@@ -749,14 +738,18 @@ defineWidget({
       when: { param: "family", equals: "discrete" },
     },
 
-    /* LAST IN THE RAIL, below the pills (round 2, Kenneth): the caveat comes
-       after the calculation is understood. */
+    /* Last in the rail: the caveat comes after the calculation is understood. */
     correlate: {
-      type: "gate",
-      label: "Correlate the two features",
-      labelOff: "Hide the correlated view",
-      detail: "impose a correlation on the fitted marginals and compare the posteriors",
-      default: false,
+      type: "segmented",
+      label: "The two features",
+      options: [
+        { value: "independent", label: "Independent", detail: "what naive Bayes assumes" },
+        {
+          value: "correlated", label: "Correlated",
+          detail: "impose a correlation on the fitted marginals and compare the posteriors",
+        },
+      ],
+      default: "independent",
       display: true,
     },
     rho: {
@@ -770,7 +763,7 @@ defineWidget({
       ],
       default: "0.8",
       display: true,
-      when: { all: [{ param: "correlate" }, { param: "family", equals: "continuous" }] },
+      when: { all: [{ param: "correlate", equals: "correlated" }, { param: "family", equals: "continuous" }] },
     },
     lam: {
       type: "choice",
@@ -783,7 +776,7 @@ defineWidget({
       ],
       default: "0.8",
       display: true,
-      when: { all: [{ param: "correlate" }, { param: "family", equals: "discrete" }] },
+      when: { all: [{ param: "correlate", equals: "correlated" }, { param: "family", equals: "discrete" }] },
     },
   },
 
@@ -805,7 +798,7 @@ defineWidget({
     { token: "highlight", label: "The new patient — disease status unknown", mark: "line" },
     { token: "prior", label: "Prior evidence", mark: "bar" },
     { token: "posterior", label: "Evidence total", mark: "bar" },
-    ...(params.correlate
+    ...(params.correlate === "correlated"
       ? [
         { token: "empirical", label: "Naive Bayes posterior", mark: "line" },
         { token: "reference", label: "Correct-model posterior", mark: "line" },
@@ -854,10 +847,9 @@ defineWidget({
   },
 
   animation: {
-    /* STEP AND PLAY ARE DECLINED (4.5): the pills are the interaction loop,
-       and a dead Step beside live pills would teach that the pills are the
-       afterthought. The bars ease on core's easing-request door, chasing the
-       pill targets so an interruption resumes from where the figure is. */
+    /* Step and Play are declined (4.5): the pills are the interaction
+       loop. The bars chase the pill targets, so an interruption resumes
+       from where the figure is. */
     stepLabel: null,
     runLabel: null,
 
@@ -896,7 +888,7 @@ defineWidget({
   draw({ ctx, colors, w, params, state, anim }) {
     renderCard(state.rows, params);
     drawLedger(ctx, colors, w, params, state, anim);
-    if (params.correlate) drawGate(ctx, colors, w, params, state);
+    if (params.correlate === "correlated") drawGate(ctx, colors, w, params, state);
   },
 
   readout: ({ params, state, anim }) => {
@@ -919,7 +911,7 @@ defineWidget({
         note: nOn < N_FEATURES ? "the posterior so far" : "the posterior with both features",
       },
     ];
-    if (params.correlate) {
+    if (params.correlate === "correlated") {
       const greek = params.family === "continuous" ? "ρ" : "λ";
       tiles.push(
         { break: true },
