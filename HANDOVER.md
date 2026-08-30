@@ -49,27 +49,32 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 2 done 2026-08-30,
+**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 3 done 2026-08-30,
 awaiting Kenneth's review.** *Scoring the Predictions*, the second
-04-2 widget. Round 2 (his asks): formulas are a **MathML card** wearing
-the live numbers; the categorical half is widget 34's presentation —
-**score histograms with a strip-draggable threshold** — and **ROC is
-folded in as a third concept**, so one notebook link lands on any
-station: `?concept=numeric · threshold · roc`. The fold-in cost one
-identity: the trained model's probability is σ(d·z + logit(p)), so
-prob ≥ 0.5 IS round 0's plug-in rule — one generator serves cells,
-histograms and the curve, and the measure script re-ran byte-identical.
-The curve opens FINISHED here (widget 34 keeps the construction story)
-— flagged for review. Full record: catalogue § *Widget 35*. At hand:
+04-2 widget. Round 3 (his asks): selection is TWO-LEVEL (`Outcome`,
+then `Metric family` on categorical — deep links
+`?outcome=categorical&view=matrix|roc`); the categorical dials wear
+widget 34's names and ranges; the matrix view has a **positive-class
+pick that RENAMES the cells** (sklearn's per-class rows) plus
+Macro/Weighted avg tiles when a per-class metric is picked; and the
+ROC view carries **widget 34's whole act** — untraced curve, Next
+patient / Trace, Play speed, the strip drag, and the momentary
+find-optimal pill that moves the threshold to Youden. **CORE grew
+`when: { all: [...] }`** (a field gated on a gated field); the suite
+ran for it: **238 of 238 recorded states MATCH** (the two metrics
+placeholders DIFFER by design). MathML formulas ride the `.w-math`
+card with live numbers. Full record: catalogue § *Widget 35*. At hand:
 
 ```bash
 node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/metrics/                        (numeric, plain)
-# .../widgets/metrics/?metric=rmse&outliers=1                   (the outlier's square)
-# .../widgets/metrics/?metric=r2                                (the mean-model ease, landed)
-# .../widgets/metrics/?concept=threshold&cmetric=prec           (histograms + lit cells)
-# .../widgets/metrics/?concept=threshold&cmetric=acc&prev=0.1   (the accuracy trap)
-# .../widgets/metrics/?concept=roc&threshold=0.3                (dot on the curve, AUC still)
+# http://localhost:8010/widgets/metrics/                          (numeric, plain)
+# .../widgets/metrics/?metric=rmse&outliers=1                     (the outlier's square)
+# .../widgets/metrics/?metric=r2                                  (the mean-model ease)
+# .../widgets/metrics/?outcome=categorical&cmetric=rec            (matrix + lit cells + averages)
+# .../widgets/metrics/?outcome=categorical&positive=healthy&cmetric=rec  (the renamed cells)
+# .../widgets/metrics/?outcome=categorical&cmetric=acc&prev=0.1   (the accuracy trap)
+# .../widgets/metrics/?outcome=categorical&view=roc               (press Trace; then the pill)
+# .../widgets/metrics/?outcome=categorical&view=roc&shown=999     (published finished)
 node widgets/_lab/metrics-measure.mjs   # generators imported FROM the widget
 # _lab/metrics-mock.html — round 0's six candidates, still served
 ```

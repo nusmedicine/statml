@@ -2,14 +2,19 @@
    Widget 35 · Scoring the Predictions — what each evaluation metric is made
    of, for a numeric and a categorical outcome. Hosts at PHM5005 04-2.
 
-   Round 2 (Kenneth, 2026-08-30) reshaped the categorical half onto widget
-   34's presentation: one simulated cohort scored by the trained model's
-   probability, overlaid score histograms with a draggable decision threshold,
-   and the ROC curve FOLDED IN as a third concept — so one notebook link can
-   land on any of 04-2's stations: ?concept=numeric · threshold · roc, the
-   notebook's own split into threshold-dependent and threshold-independent
-   metrics. Formulas moved off the canvas into a MathML card (widget 15's
-   pattern), each wearing the live numbers of the state on screen.
+   Round 3 (Kenneth, 2026-08-30): the selection is TWO-LEVEL — Outcome
+   (Numeric · Categorical) first, and a categorical outcome then picks its
+   metric family (Confusion matrix · ROC curve, the notebook's
+   threshold-dependent / threshold-independent split); core's `when` grew an
+   `all` form for the fields that exist on one view of one outcome. The
+   categorical controls follow widget 34 (Separation, Class balance, Sample
+   size n); the matrix view gained a POSITIVE-CLASS pick — choosing the
+   target class RENAMES the cells rather than recounting them, sklearn's own
+   per-class reading — plus classification_report's macro and weighted
+   averages when a per-class metric is picked. The ROC view carries widget
+   34's whole act: the trace (Next patient / Trace), the strip-dragged
+   threshold, and the momentary find-optimal pill whose scan lands by MOVING
+   the threshold to Youden's J.
 
    Two misconceptions, one per outcome type:
    - numeric: that RMSE, MAE and R² are interchangeable summaries. One outlier
@@ -17,26 +22,21 @@
      R² is not an error at all but a comparison against predicting the mean.
    - categorical: that accuracy says how good a classifier is. Every
      threshold-dependent metric is a different ratio of the SAME four cells,
-     and under imbalance accuracy rises while recall collapses — at
-     separation 1.5, prevalence 0.5 -> 0.05 reads accuracy 0.77 -> 0.95,
-     recall 0.77 -> 0.14. AUC is the one number the threshold cannot move.
-
-   Widget 34 `roc-auc` keeps the threshold STORY (the trace, Youden, the
-   find-optimal scan); here the curve opens finished, because this widget's
-   concept is what the metrics ARE, not how the curve is built.
+     and under imbalance accuracy rises while recall collapses; AUC is the
+     one number the threshold cannot move.
    ========================================================================= */
 
-import { defineWidget, makePlot, histogram } from "../core/index.js";
+import { defineWidget, makePlot, histogram, fmt } from "../core/index.js";
 import {
-  NUM_LO, NUM_HI, NUM_N, CAT_N,
+  NUM_LO, NUM_HI, NUM_N,
   numericCohort, numericMetrics, categoricalPatients, cellsAt,
-  categoricalMetrics, rocOf,
+  categoricalMetrics, classCells, reportAverages, rocWalk, aucOf, youdenOf,
 } from "./model.js";
 
-/* --- layout ---------------------------------------------------------------
-   The numeric plot must be SQUARE: both axes are % body fat on one domain,
-   and a square drawn for a squared error is only honest if a unit of x and a
-   unit of y are the same number of pixels. */
+/* Everything draw() touches lives ABOVE defineWidget: core paints during the
+   defineWidget call itself, and a binding below it is still in its temporal
+   dead zone on the first frame — the trap that has struck three widgets. */
+
 const NOTE_H = 30;
 const PAD_T = 10, PAD_B = 44, PAD_L = 46, PAD_R = 16;
 
@@ -46,60 +46,87 @@ const NUM_TICKS = [0, 10, 20, 30, 40];
 const HIST_BINS = 36;
 const CELL_H = 96;
 const ROC_SIDE = 300;
+const SCAN_MS = 1400; // the find-optimal probe's sweep along the curve
+const TRACE_MS = { slow: 9000, medium: 4500, fast: 2200 }; // Play speed
 
-/* strip + matrix (concept "threshold"), strip + square (concept "roc");
-   the square drops under the strip below 640px, widget 34's breakpoint */
-function catLayout(w, concept) {
-  if (concept === "threshold") {
-    const strip = { x: 46, y: 64, w: w - 66, h: 132 };
-    /* 64 below the strip, not 48: the strip's own axis label needs its row
-       before the matrix's spanning "predicted:" titles begin */
+/* When the find-optimal scan lands, the threshold moves to the optimum and
+   the pill releases itself — both through the exported setParam (widget 34's
+   arrangement). Deferred a beat so the landing is seen before the line
+   moves; the youden guard disarms a stale timer after Reset. */
+let widgetApi = null;
+function applyOptimum(th) {
+  setTimeout(() => {
+    if (!widgetApi || !widgetApi.params.youden) return;
+    widgetApi.setParam("threshold", th);
+    widgetApi.setParam("youden", false);
+  }, 350);
+}
+
+/* One source of geometry for draw() AND drag.value(). */
+function catLayout(w, view) {
+  if (view === "matrix") {
+    const strip = { x: 46, y: 34, w: w - 66, h: 132 };
+    /* 64 below the strip: the strip's own axis label needs its row before
+       the matrix's spanning "predicted:" titles begin */
     return { strip, matrixY: strip.y + strip.h + 64 };
   }
   if (w < 640) {
     const side = Math.min(ROC_SIDE, w - 130);
-    const strip = { x: 46, y: 64, w: w - 66, h: 132 };
-    return { strip, roc: { x: (w - side) / 2 + 10, y: strip.y + strip.h + 44, side } };
+    const strip = { x: 46, y: 34, w: w - 66, h: 132 };
+    return { strip, roc: { x: (w - side) / 2 + 10, y: strip.y + strip.h + 56, side } };
   }
-  const side = ROC_SIDE;
   return {
-    strip: { x: 46, y: 64, w: w - side - 126, h: 228 },
-    roc: { x: w - side - 46, y: 48, side },
+    strip: { x: 46, y: 34, w: w - ROC_SIDE - 126, h: 228 },
+    roc: { x: w - ROC_SIDE - 46, y: 30, side: ROC_SIDE },
   };
 }
 
-function catHeight(w, concept) {
-  const L = catLayout(w, concept);
-  if (concept === "threshold") return L.matrixY + 2 * CELL_H + 46;
-  return Math.max(L.strip.y + L.strip.h, L.roc.y + L.roc.side) + 44;
+function catHeight(w, view) {
+  const L = catLayout(w, view);
+  if (view === "matrix") return L.matrixY + 2 * CELL_H + 46;
+  return Math.max(L.strip.y + L.strip.h, L.roc.y + L.roc.side) + 48;
 }
 
 const f2 = (x) => x.toFixed(2);
 const f3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : "—");
 
-/* --- compute ------------------------------------------------------------- */
+/* --- the trace walk, widget 34's helpers ---------------------------------- */
 
-function computeAll({ params, rng }) {
-  if (params.concept === "numeric") {
-    const cohort = numericCohort(rng, { sigma: params.noise, outliers: params.outliers });
-    const m = numericMetrics(cohort.actual, cohort.pred);
-    /* the same cohort before its outliers — same seed, same stream — so the
-       outlier tile reports the pull of exactly the misses the reader added */
-    const m0 = numericMetrics(cohort.actual, cohort.predBase);
-    return { cohort, m, m0 };
-  }
-  const patients = categoricalPatients(rng, { prev: params.prev, d: params.sep });
-  const probsOf = (want) => patients.filter((p) => p.disease === want).map((p) => p.prob);
-  const cells = cellsAt(patients, params.threshold);
-  return {
-    patients,
-    cells,
-    cm: categoricalMetrics(cells),
-    histPos: histogram(probsOf(true), [0, 1], HIST_BINS),
-    histNeg: histogram(probsOf(false), [0, 1], HIST_BINS),
-    roc: rocOf(patients),
-  };
+function sweepThresholdAt(walk, pos) {
+  const i = Math.floor(pos);
+  const f = pos - i;
+  const from = i === 0 ? 1 : walk[i].th;
+  const to = i + 1 < walk.length ? walk[i + 1].th : walk[i].th;
+  return from + (to - from) * f;
 }
+
+function walkPointAt(walk, pos) {
+  const k = Math.floor(pos);
+  const f = pos - k;
+  const a = walk[Math.min(k, walk.length - 1)];
+  if (f <= 0 || k + 1 >= walk.length) return { fpr: a.fpr, tpr: a.tpr };
+  const b = walk[k + 1];
+  return { fpr: a.fpr + (b.fpr - a.fpr) * f, tpr: a.tpr + (b.tpr - a.tpr) * f };
+}
+
+function tracePath(walk, pos) {
+  const k = Math.floor(pos);
+  const pts = [];
+  for (let i = 0; i <= k && i < walk.length; i += 1) pts.push([walk[i].fpr, walk[i].tpr]);
+  if (pos - k > 0 && k + 1 < walk.length) {
+    const p = walkPointAt(walk, pos);
+    pts.push([p.fpr, p.tpr]);
+  }
+  return pts;
+}
+
+const isRoc = (anim) => anim?.kind === "roc";
+const traced = (anim, state) => isRoc(anim) && anim.pos >= state.walk.length - 1;
+const midTrace = (anim, state) => isRoc(anim) && anim.pos > 0 && !traced(anim, state);
+const optimumFound = (anim, state) => Boolean(anim?.scan?.done) && traced(anim, state);
+
+const effThreshold = (params, state, anim) =>
+  (midTrace(anim, state) ? sweepThresholdAt(state.walk, anim.pos) : params.threshold);
 
 /* --- the formula card, in the DOM (widget 15's pattern) --------------------
    MathML where the engine sets it, the plain string otherwise. One <math>
@@ -111,9 +138,9 @@ function mathmlRenders() {
   box.style.cssText = "position:absolute;visibility:hidden;font-size:16px";
   box.innerHTML = "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>";
   document.body.appendChild(box);
-  const [frac, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
+  const [fr, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
   box.remove();
-  return frac > plain * 1.3;
+  return fr > plain * 1.3;
 }
 const MATHML = mathmlRenders();
 
@@ -153,23 +180,25 @@ function numericFormula(metric, m) {
   }
 }
 
+/* TP here means "true positive FOR THE CHOSEN CLASS" — the matrix's cell
+   names are relabelled by the same choice, so the formula and the lit cells
+   always agree. */
 function cellFormula(cmetric, cells, cm) {
-  const { tp, fp, tn, fn } = cells;
-  const cell = (t) => mi(t);
+  const { tp, fp, fn } = cells;
   switch (cmetric) {
     case "acc":
       return {
-        html: `${M(mi("Accuracy") + mo("="))} ${M(frac(`${cell("TP")}<mo>+</mo>${cell("TN")}`, mi("n")))} ${EQ} ${M(frac(mn(tp + tn), mn(cm.n)))} ${EQ} ${M(mn(f3(cm.acc)))}`,
-        plain: `Accuracy = (TP + TN) / n = ${tp + tn} / ${cm.n} = ${f3(cm.acc)}`,
+        html: `${M(mi("Accuracy") + mo("="))} ${M(frac(`${mi("TP")}<mo>+</mo>${mi("TN")}`, mi("n")))} ${EQ} ${M(frac(mn(tp + cells.tn), mn(cm.n)))} ${EQ} ${M(mn(f3(cm.acc)))}`,
+        plain: `Accuracy = (TP + TN) / n = ${tp + cells.tn} / ${cm.n} = ${f3(cm.acc)}`,
       };
     case "prec":
       return {
-        html: `${M(mi("Precision") + mo("="))} ${M(frac(cell("TP"), `${cell("TP")}<mo>+</mo>${cell("FP")}`))} ${EQ} ${M(frac(mn(tp), mn(tp + fp)))} ${EQ} ${M(mn(f3(cm.prec)))}`,
+        html: `${M(mi("Precision") + mo("="))} ${M(frac(mi("TP"), `${mi("TP")}<mo>+</mo>${mi("FP")}`))} ${EQ} ${M(frac(mn(tp), mn(tp + fp)))} ${EQ} ${M(mn(f3(cm.prec)))}`,
         plain: `Precision = TP / (TP + FP) = ${tp} / ${tp + fp} = ${f3(cm.prec)}`,
       };
     case "rec":
       return {
-        html: `${M(mi("Recall") + mo("="))} ${M(frac(cell("TP"), `${cell("TP")}<mo>+</mo>${cell("FN")}`))} ${EQ} ${M(frac(mn(tp), mn(tp + fn)))} ${EQ} ${M(mn(f3(cm.rec)))}`,
+        html: `${M(mi("Recall") + mo("="))} ${M(frac(mi("TP"), `${mi("TP")}<mo>+</mo>${mi("FN")}`))} ${EQ} ${M(frac(mn(tp), mn(tp + fn)))} ${EQ} ${M(mn(f3(cm.rec)))}`,
         plain: `Recall = TP / (TP + FN) = ${tp} / ${tp + fn} = ${f3(cm.rec)}`,
       };
     case "f1":
@@ -179,26 +208,27 @@ function cellFormula(cmetric, cells, cm) {
       };
     default:
       return {
-        html: `${M(mi("n") + mo("=") + `${cell("TP")}<mo>+</mo>${cell("FP")}<mo>+</mo>${cell("FN")}<mo>+</mo>${cell("TN")}`)} ${EQ} ${M(mn(cm.n))}`,
+        html: `${M(mi("n") + mo("=") + `${mi("TP")}<mo>+</mo>${mi("FP")}<mo>+</mo>${mi("FN")}<mo>+</mo>${mi("TN")}`)} ${EQ} ${M(mn(cm.n))}`,
         plain: `n = TP + FP + FN + TN = ${cm.n}`,
       };
   }
 }
 
-function rocFormula(cells, roc) {
+function rocFormula(cells, auc, done) {
   const { tp, fp, tn, fn } = cells;
   const tpr = tp + fn ? tp / (tp + fn) : NaN;
   const fpr = fp + tn ? fp / (fp + tn) : NaN;
+  const aucStr = done ? f3(auc) : "—";
   return {
-    html: `${M(mi("TPR") + mo("=") + frac(mi("TP"), `${mi("TP")}<mo>+</mo>${mi("FN")}`) + mo("=") + mn(f3(tpr)))}  ${M(mi("FPR") + mo("=") + frac(mi("FP"), `${mi("FP")}<mo>+</mo>${mi("TN")}`) + mo("=") + mn(f3(fpr)))}  ${M(mi("AUC") + mo("=") + mn(f3(roc.auc)))}`,
-    plain: `TPR = TP/(TP+FN) = ${f3(tpr)} · FPR = FP/(FP+TN) = ${f3(fpr)} · AUC = ${f3(roc.auc)}`,
+    html: `${M(mi("TPR") + mo("=") + frac(mi("TP"), `${mi("TP")}<mo>+</mo>${mi("FN")}`) + mo("=") + mn(f3(tpr)))}  ${M(mi("FPR") + mo("=") + frac(mi("FP"), `${mi("FP")}<mo>+</mo>${mi("TN")}`) + mo("=") + mn(f3(fpr)))}  ${M(mi("AUC") + mo("=") + (done ? mn(aucStr) : mi(aucStr)))}`,
+    plain: `TPR = TP/(TP+FN) = ${f3(tpr)} · FPR = FP/(FP+TN) = ${f3(fpr)} · AUC = ${aucStr}`,
   };
 }
 
 let cardHost = null;
 let cardKey = null;
 
-function renderCard(params, state) {
+function renderCard(params, state, anim) {
   if (!cardHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -206,19 +236,26 @@ function renderCard(params, state) {
     cardHost.className = "w-math";
     figure.parentNode.insertBefore(cardHost, figure);
   }
-  const eq = params.concept === "numeric"
-    ? numericFormula(params.metric, state.m)
-    : params.concept === "threshold"
-      ? cellFormula(params.cmetric, state.cells, state.cm)
-      : rocFormula(state.cells, state.roc);
-  const key = eq.plain;
-  if (key === cardKey) return;
-  cardKey = key;
+  let eq;
+  if (params.outcome === "numeric") {
+    eq = numericFormula(params.metric, state.m);
+  } else {
+    const effTh = effThreshold(params, state, anim);
+    const cells = cellsAt(state.patients, effTh);
+    if (params.view === "matrix") {
+      const c2 = classCells(cells, params.positive);
+      eq = cellFormula(params.cmetric, c2, categoricalMetrics(c2));
+    } else {
+      eq = rocFormula(cells, state.auc, traced(anim, state));
+    }
+  }
+  if (eq.plain === cardKey) return;
+  cardKey = eq.plain;
   if (MATHML) cardHost.innerHTML = eq.html;
   else cardHost.textContent = eq.plain;
 }
 
-/* --- shared caption ------------------------------------------------------- */
+/* --- numeric drawing ------------------------------------------------------ */
 
 function caption(ctx, colors, lines, w) {
   ctx.save();
@@ -234,8 +271,6 @@ function caption(ctx, colors, lines, w) {
   }
   ctx.restore();
 }
-
-/* --- numeric drawing ------------------------------------------------------ */
 
 /* One error square, grown TOWARD the diagonal: for a 45° line the horizontal
    distance to it equals the residual, so the far edge exactly touches the
@@ -356,44 +391,32 @@ function drawNumeric({ ctx, colors, w, params, state, anim }) {
   }
 }
 
-/* --- categorical drawing --------------------------------------------------
-   Widget 34's presentation, reused deliberately so the two widgets read as
-   siblings: overlaid score histograms in COUNTS (per-class densities would
-   hide the prevalence dial), the threshold line with "predicted −/+" said
-   once at its feet, and the matrix in sklearn orientation with row wash. */
-
-const CMETRICS = {
-  acc: { lit: { TN: "num", TP: "num", FP: "den", FN: "den" } },
-  prec: { lit: { TP: "num", FP: "den" } },
-  rec: { lit: { TP: "num", FN: "den" } },
-  f1: { lit: { TP: "num", FP: "den", FN: "den" } },
-};
-
-function cohortLine(params) {
-  return [
-    `Simulated screening cohort · ${CAT_N} patients · prevalence ${Math.round(params.prev * 100)}% · scores are the trained model's probability of disease`,
-    `Simulated screening cohort · ${CAT_N} patients · prevalence ${Math.round(params.prev * 100)}%`,
-  ];
-}
-
-function drawStrip(ctx, colors, L, params, state) {
+/* --- categorical: the strip (widget 34's, with a flip) --------------------- *
+ * Counts on one shared y-scale, not per-class densities: the class-balance
+ * dial has to be visible here. `flip` renames the line's feet when the
+ * positive class is "no disease" — predicted + is then LEFT of the line.    */
+function drawStrip(ctx, colors, L, { state, effTh, sweeping, flip, found }) {
   const { x, y, w, h } = L;
-  const yMax = Math.max(...state.histPos.counts, ...state.histNeg.counts, 1);
-  const hp = makePlot({
-    ctx, colors,
-    rect: { x, y, w, h },
-    xDomain: [0, 1],
-    yDomain: [0, yMax * 1.05],
-  });
-  hp.bars(state.histNeg.counts, { lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.62 });
-  hp.bars(state.histPos.counts, { lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.62 });
-  hp.axisX({
+  const plot = makePlot({ ctx, colors, rect: L, xDomain: [0, 1], yDomain: [0, 1] });
+  plot.caption("A simulated screening cohort");
+  plot.note(`${state.patients.length} patients · ${state.nPos} with disease`, { inside: true });
+  plot.axisX({
     ticks: [0, 0.25, 0.5, 0.75, 1],
     format: (v) => v.toFixed(2),
     label: "predicted probability of disease",
   });
 
-  const tx = x + Math.max(0, Math.min(1, params.threshold)) * w;
+  const yMax = Math.max(...state.histPos.counts, ...state.histNeg.counts, 1);
+  const hp = makePlot({
+    ctx, colors,
+    rect: { x, y: y + 8, w, h: h - 8 },
+    xDomain: [0, 1],
+    yDomain: [0, yMax * 1.05],
+  });
+  hp.bars(state.histNeg.counts, { lo: 0, width: 1 / HIST_BINS, fill: colors.nonevent, opacity: 0.62 });
+  hp.bars(state.histPos.counts, { lo: 0, width: 1 / HIST_BINS, fill: colors.event, opacity: 0.62 });
+
+  const tx = x + Math.max(0, Math.min(1, effTh)) * w;
   ctx.save();
   ctx.strokeStyle = colors.highlight;
   ctx.lineWidth = 2;
@@ -403,30 +426,69 @@ function drawStrip(ctx, colors, L, params, state) {
   ctx.lineTo(tx, y + h);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.highlight;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
   ctx.fillText(
-    `threshold ${f2(params.threshold)}`,
+    `${sweeping ? "sweeping" : "threshold"} ${fmt(effTh, 2)}`,
     Math.max(x + 40, Math.min(x + w - 40, tx)), y - 10,
   );
   /* which side is which, said once at the line's feet (widget 34 round 3) */
+  const left = flip ? "predicted +" : "predicted −";
+  const right = flip ? "predicted −" : "predicted +";
   ctx.strokeStyle = colors.surface;
   ctx.lineWidth = 3;
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "right";
-  ctx.strokeText("predicted −", tx - 6, y + h - 6);
-  ctx.fillText("predicted −", tx - 6, y + h - 6);
+  ctx.strokeText(left, tx - 6, y + h - 6);
+  ctx.fillText(left, tx - 6, y + h - 6);
   ctx.textAlign = "left";
-  ctx.strokeText("predicted +", tx + 6, y + h - 6);
-  ctx.fillText("predicted +", tx + 6, y + h - 6);
+  ctx.strokeText(right, tx + 6, y + h - 6);
+  ctx.fillText(right, tx + 6, y + h - 6);
+
+  /* where the threshold stood when Find was pressed, and the move it made */
+  if (found && !sweeping && Math.abs(found.applied - found.from) > 0.02) {
+    const ay = y + 20;
+    const x0 = x + found.from * w;
+    const x1 = x + found.applied * w;
+    const dir = Math.sign(x1 - x0);
+    ctx.strokeStyle = colors.theory;
+    ctx.fillStyle = colors.theory;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x0, ay - 5);
+    ctx.lineTo(x0, ay + 5);
+    ctx.moveTo(x0, ay);
+    ctx.lineTo(x1 - dir * 8, ay);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1, ay);
+    ctx.lineTo(x1 - dir * 9, ay - 5);
+    ctx.lineTo(x1 - dir * 9, ay + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = dir > 0 ? "right" : "left";
+    ctx.strokeStyle = colors.surface;
+    ctx.lineWidth = 3;
+    ctx.strokeText(`from ${fmt(found.from, 2)}`, x0 - dir * 6, ay + 4);
+    ctx.fillText(`from ${fmt(found.from, 2)}`, x0 - dir * 6, ay + 4);
+  }
   ctx.restore();
 }
 
-function drawMatrix(ctx, colors, { x0, y0, cw }, cells, lit) {
+/* --- the confusion matrix -------------------------------------------------- *
+ * sklearn orientation (rows = true class, negatives first), row wash = the
+ * cell's share of its row. The CELL NAMES follow the chosen positive class:
+ * calling "no disease" positive renames TN to TP and swaps which mistakes
+ * are false positives — nothing is recounted, which is the lesson.          */
+function drawMatrix(ctx, colors, { x0, y0, cw }, cells, positive, lit) {
   const { tp, fp, tn, fn } = cells;
   const grid = [[tn, fp], [fn, tp]];
-  const names = [["TN", "FP"], ["FN", "TP"]];
+  const names = positive === "disease"
+    ? [["TN", "FP"], ["FN", "TP"]]
+    : [["TP", "FN"], ["FP", "TN"]];
   const rowHue = [colors.nonevent, colors.event];
   const rowTotal = [tn + fp, fn + tp];
 
@@ -492,60 +554,117 @@ function drawMatrix(ctx, colors, { x0, y0, cw }, cells, lit) {
   ctx.restore();
 }
 
-function drawThreshold({ ctx, colors, w, params, state }) {
-  const L = catLayout(w, "threshold");
-  caption(ctx, colors, [[cohortLine(params)]], w);
-  drawStrip(ctx, colors, L.strip, params, state);
+const CMETRICS = {
+  acc: { lit: { TN: "num", TP: "num", FP: "den", FN: "den" } },
+  prec: { lit: { TP: "num", FP: "den" } },
+  rec: { lit: { TP: "num", FN: "den" } },
+  f1: { lit: { TP: "num", FP: "den", FN: "den" } },
+};
+
+function drawMatrixView({ ctx, colors, w, params, state }) {
+  const L = catLayout(w, "matrix");
+  drawStrip(ctx, colors, L.strip, {
+    state,
+    effTh: params.threshold,
+    sweeping: false,
+    flip: params.positive === "healthy",
+    found: null,
+  });
   const cw = Math.max(96, Math.min(180, (w - 140) / 2));
   drawMatrix(ctx, colors, { x0: (w - 2 * cw) / 2 + 14, y0: L.matrixY, cw },
-    state.cells, CMETRICS[params.cmetric]?.lit ?? null);
+    cellsAt(state.patients, params.threshold), params.positive,
+    CMETRICS[params.cmetric]?.lit ?? null);
 }
 
-function drawRocSquare(ctx, colors, { x, y, side }, state) {
+/* --- the ROC square (widget 34's act) -------------------------------------- */
+
+function drawRocSquare(ctx, colors, { x, y, side }, params, state, anim) {
   const plot = makePlot({
     ctx, colors,
     rect: { x, y, w: side, h: side },
     xDomain: [0, 1],
     yDomain: [0, 1],
   });
+  plot.caption("The ROC curve");
   plot.grid([0.25, 0.5, 0.75]);
-  plot.axisX({ ticks: [0, 0.5, 1], format: (v) => v.toFixed(1), label: "false positive rate" });
-  plot.axisY({ ticks: [0, 0.5, 1], format: (v) => v.toFixed(1), label: "true positive rate" });
-  plot.curve([[0, 0], [1, 1]], { stroke: colors.reference, dash: [6, 4] });
-  plot.curve(state.roc.pts.map((p) => [p.fpr, p.tpr]), { stroke: colors.empirical, width: 2 });
+  plot.axisX({ ticks: [0, 0.5, 1], label: "false positive rate" });
+  plot.axisY({ ticks: [0, 0.5, 1], label: "true positive rate" });
+  plot.curve([[0, 0], [1, 1]], { stroke: colors.reference, width: 1.5, dash: [5, 4] });
 
-  const { tp, fp, tn, fn } = state.cells;
-  const tpr = tp + fn ? tp / (tp + fn) : 0;
-  const fpr = fp + tn ? fp / (fp + tn) : 0;
-  plot.dot(fpr, tpr, { fill: colors.highlight, r: 4.5 });
+  const pts = tracePath(state.walk, anim?.pos ?? 0);
+  if (pts.length > 1) plot.curve(pts, { stroke: colors.empirical, width: 2.5 });
 
+  if (midTrace(anim, state) && pts.length) {
+    const [fx, fy] = pts[pts.length - 1];
+    plot.dot(fx, fy, { fill: colors.highlight, r: 5 });
+  }
+
+  if (!traced(anim, state)) return;
+
+  plot.note(`AUC ${f3(state.auc)}`);
+  const cells = cellsAt(state.patients, params.threshold);
+  const tpr = cells.tp + cells.fn ? cells.tp / (cells.tp + cells.fn) : 0;
+  const fpr = cells.fp + cells.tn ? cells.fp / (cells.fp + cells.tn) : 0;
+  plot.dot(fpr, tpr, { fill: colors.highlight, r: 6 });
+
+  /* THE FIND-OPTIMAL SCAN: a probe walks the finished curve, and the
+     vertical segment it carries — down to the chance line — is Youden's J
+     made visible. The longest segment is where it lands. */
+  const scanning = anim?.scan && !anim.scan.done;
+  if (scanning) {
+    const p = walkPointAt(state.walk, anim.scan.t * (state.walk.length - 1));
+    segment(plot, colors, p, { dashed: true });
+    plot.dot(p.fpr, p.tpr, { fill: colors.theory, r: 4.5 });
+  }
+
+  if (optimumFound(anim, state) && state.youden) {
+    const yd = state.youden;
+    segment(plot, colors, yd, { dashed: false });
+    const px = plot.sx(yd.fpr);
+    const py = plot.sy(yd.tpr);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.strokeStyle = colors.theory;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = colors.theory;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = yd.fpr < 0.55 ? "left" : "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`Youden ${fmt(yd.th, 2)}`, px + (yd.fpr < 0.55 ? 11 : -11), py - 4);
+    ctx.restore();
+  }
+}
+
+function segment(plot, colors, p, { dashed }) {
+  const ctx = plot.ctx;
   ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  ctx.lineWidth = 3;
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = colors.surface;
-  const lab = `AUC ${f3(state.roc.auc)}`;
-  ctx.strokeText(lab, x + side - 8, y + side - 14);
-  ctx.fillStyle = colors.ink1;
-  ctx.fillText(lab, x + side - 8, y + side - 14);
+  ctx.strokeStyle = colors.theory;
+  ctx.lineWidth = 2;
+  if (dashed) ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(p.fpr), plot.sy(p.fpr));
+  ctx.lineTo(plot.sx(p.fpr), plot.sy(p.tpr));
+  ctx.stroke();
   ctx.restore();
 }
 
-function drawRoc({ ctx, colors, w, params, state }) {
+function drawRocView({ ctx, colors, w, params, state, anim }) {
   const L = catLayout(w, "roc");
-  caption(ctx, colors, [
-    [cohortLine(params)],
-    ["drag the threshold: the dot moves ALONG the curve — the curve and AUC hold still", colors.ink2],
-  ], w);
-  drawStrip(ctx, colors, L.strip, params, state);
-  drawRocSquare(ctx, colors, L.roc, state);
+  drawStrip(ctx, colors, L.strip, {
+    state,
+    effTh: effThreshold(params, state, anim),
+    sweeping: midTrace(anim, state),
+    flip: false,
+    found: anim?.scan?.done ? anim.found : null,
+  });
+  drawRocSquare(ctx, colors, L.roc, params, state, anim);
 }
 
-/* --- the widget ----------------------------------------------------------- */
+/* ========================================================================= */
 
-defineWidget({
+widgetApi = defineWidget({
   slug: "metrics",
   title: "Scoring the Predictions",
   subtitle:
@@ -556,31 +675,37 @@ defineWidget({
   layout: "side",
   status: "draft",
 
-  height: ({ concept, w }) =>
-    (concept === "numeric" ? NOTE_H + PAD_T + numSide(w) + PAD_B : catHeight(w, concept)),
+  height: ({ outcome, view, w }) =>
+    (outcome === "numeric" ? NOTE_H + PAD_T + numSide(w) + PAD_B : catHeight(w, view)),
 
   params: {
-    /* One widget, three stations of 04-2, so a notebook link can land on
-       any of them: ?concept=numeric · threshold · roc. The grouped rows are
-       the notebook's own taxonomy — a categorical outcome is scored at one
-       threshold (the confusion matrix) or across all of them (ROC). */
-    concept: {
+    /* TWO-LEVEL, Kenneth's round 3: outcome first, and a categorical outcome
+       then picks its metric family — the notebook's threshold-dependent /
+       threshold-independent split, carried by the details. */
+    outcome: {
       type: "segmented",
-      label: "Outcome · metric family",
+      label: "Outcome",
       options: [
         { value: "numeric", label: "Numeric", detail: "predicting a measurement — % body fat" },
+        { value: "categorical", label: "Categorical", detail: "predicting a class — disease or not" },
+      ],
+      default: "numeric",
+    },
+    view: {
+      type: "segmented",
+      label: "Metric family",
+      options: [
         {
-          value: "threshold", label: "Confusion matrix",
+          value: "matrix", label: "Confusion matrix",
           detail: "threshold-dependent: the four cells at one chosen cutoff",
-          group: "categorical — disease or not",
         },
         {
           value: "roc", label: "ROC curve",
           detail: "threshold-independent: the trade-off across every cutoff",
-          group: "categorical — disease or not",
         },
       ],
-      default: "numeric",
+      default: "matrix",
+      when: { param: "outcome", equals: "categorical" },
     },
 
     data: { type: "section", label: "The data" },
@@ -590,29 +715,37 @@ defineWidget({
       label: "Model error σ",
       detail: "SD of the prediction errors, % body fat",
       min: 1, max: 8, step: 0.5, default: 3,
-      when: { param: "concept", equals: "numeric" },
+      when: { param: "outcome", equals: "numeric" },
     },
     outliers: {
       type: "int",
       label: "Outliers",
       detail: "patients the model badly mispredicts",
       min: 0, max: 3, default: 0,
-      when: { param: "concept", equals: "numeric" },
+      when: { param: "outcome", equals: "numeric" },
     },
 
-    prev: {
-      type: "float",
-      label: "Prevalence",
-      detail: "share of the cohort with the disease",
-      min: 0.05, max: 0.5, step: 0.05, default: 0.3,
-      when: { param: "concept", oneOf: ["threshold", "roc"] },
-    },
+    /* the categorical dials wear widget 34's names and ranges, so the two
+       widgets read as siblings */
     sep: {
       type: "float",
       label: "Separation",
       detail: "how far apart the model scores the two groups",
-      min: 1, max: 2.5, step: 0.25, default: 1.5,
-      when: { param: "concept", oneOf: ["threshold", "roc"] },
+      min: 0.2, max: 3, step: 0.1, default: 1.5,
+      when: { param: "outcome", equals: "categorical" },
+    },
+    prev: {
+      type: "float",
+      label: "Class balance",
+      detail: "the share of the cohort with the disease (prevalence)",
+      min: 0.05, max: 0.95, step: 0.05, default: 0.3,
+      when: { param: "outcome", equals: "categorical" },
+    },
+    n: {
+      type: "int",
+      label: "Sample size n",
+      min: 60, max: 600, step: 20, default: 200,
+      when: { param: "outcome", equals: "categorical" },
     },
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
@@ -630,7 +763,21 @@ defineWidget({
       ],
       default: "none",
       display: true,
-      when: { param: "concept", equals: "numeric" },
+      when: { param: "outcome", equals: "numeric" },
+    },
+    /* Which class the report row is about. Choosing it renames the matrix's
+       cells and re-reads every per-class metric — sklearn's per-class rows,
+       one at a time. */
+    positive: {
+      type: "segmented",
+      label: "Positive class",
+      options: [
+        { value: "disease", label: "Disease", detail: "score the model on finding the sick" },
+        { value: "healthy", label: "No disease", detail: "score the model on clearing the well" },
+      ],
+      default: "disease",
+      display: true,
+      when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "matrix" }] },
     },
     /* GROUPED ROWS, and the captions are the lesson: accuracy is the only
        metric read off everyone, and the other three all read the positive
@@ -643,18 +790,17 @@ defineWidget({
       options: [
         { value: "none", label: "None", detail: "the counts alone" },
         { value: "acc", label: "Accuracy", detail: "correct on everyone", group: "read off everyone" },
-        { value: "prec", label: "Precision", detail: "of predicted disease, how many real", group: "about the disease class" },
-        { value: "rec", label: "Recall", detail: "of true disease, how many found", group: "about the disease class" },
-        { value: "f1", label: "F1", detail: "harmonic mean of precision and recall", group: "about the disease class" },
+        { value: "prec", label: "Precision", detail: "of predicted positives, how many real", group: "about the positive class" },
+        { value: "rec", label: "Recall", detail: "of true positives, how many found", group: "about the positive class" },
+        { value: "f1", label: "F1", detail: "harmonic mean of precision and recall", group: "about the positive class" },
       ],
       default: "none",
       display: true,
-      when: { param: "concept", equals: "threshold" },
+      when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "matrix" }] },
     },
 
-    /* Dragged on the strip, never a rail slider — widget 34's decision,
-       kept: the threshold is a property of the figure. In the URL, so a
-       state is shareable; hidden from the rail. */
+    /* Dragged on the strip, never a rail slider — widget 34's decision. In
+       the URL, so a state is shareable; hidden from the rail. */
     threshold: {
       type: "float",
       label: "Decision threshold",
@@ -662,10 +808,41 @@ defineWidget({
       display: true,
       hidden: true,
     },
+
+    speed: {
+      type: "choice",
+      label: "Play speed",
+      options: [
+        { value: "slow", label: "Slow" },
+        { value: "medium", label: "Medium" },
+        { value: "fast", label: "Fast" },
+      ],
+      default: "medium",
+      display: true,
+      afterDrive: true,
+      when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "roc" }] },
+    },
+
+    /* The withheld answer, below the drive row (widget 10's rule). MOMENTARY,
+       widget 34's arrangement: the scan's landing writes the threshold and
+       releases the pill through the exported setParam, so the lasting record
+       is the threshold parameter alone. */
+    youden: {
+      type: "bool",
+      style: "pill",
+      label: "Find the optimal threshold",
+      detail: "moves the threshold to the point maximising TPR − FPR (Youden's J)",
+      default: false,
+      display: true,
+      afterDrive: true,
+      when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "roc" }] },
+    },
+
+    shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
   },
 
   legend: ({ params }) =>
-    (params.concept === "numeric"
+    (params.outcome === "numeric"
       ? [
         { token: "empirical", label: "Model prediction (one patient)", mark: "dot" },
         { token: "reference", label: "Perfect prediction (y = x)", mark: "line" },
@@ -678,40 +855,138 @@ defineWidget({
         { token: "event", label: "Disease present — model scores", mark: "bar" },
         { token: "nonevent", label: "Disease absent — model scores", mark: "bar" },
         { token: "highlight", label: "Decision threshold (drag it)", mark: "line" },
-        ...(params.concept === "roc"
+        ...(params.view === "roc"
           ? [
             { token: "empirical", label: "ROC curve", mark: "line" },
-            { token: "reference", label: "Chance — no discrimination", mark: "line" },
+            { token: "reference", label: "Random baseline", mark: "line" },
+            { token: "theory", label: "Youden's J optimum", mark: "line" },
           ] : []),
       ]),
 
-  compute: computeAll,
+  compute: ({ params, rng }) => {
+    if (params.outcome === "numeric") {
+      const cohort = numericCohort(rng, { sigma: params.noise, outliers: params.outliers });
+      const m = numericMetrics(cohort.actual, cohort.pred);
+      /* the same cohort before its outliers — same seed, same stream — so
+         the outlier tile reports the pull of exactly the misses added */
+      const m0 = numericMetrics(cohort.actual, cohort.predBase);
+      return { cohort, m, m0 };
+    }
+    const patients = categoricalPatients(rng, { n: params.n, prev: params.prev, d: params.sep });
+    const walk = rocWalk(patients);
+    const probsOf = (want) => patients.filter((p) => p.disease === want).map((p) => p.prob);
+    return {
+      patients,
+      walk,
+      auc: aucOf(walk),
+      youden: youdenOf(walk),
+      nPos: patients.filter((p) => p.disease).length,
+      histPos: histogram(probsOf(true), [0, 1], HIST_BINS),
+      histNeg: histogram(probsOf(false), [0, 1], HIST_BINS),
+    };
+  },
 
-  /* No Step and no Play — the one motion is the R² ease on core's
-     ease-request door: picking R² slides the model's predictions to the mean
-     line, the error squares growing on the way. */
   animation: {
-    stepLabel: null,
-    runLabel: null,
-    init: ({ params }) => {
-      const t = params.concept === "numeric" && params.metric === "r2" ? 1 : 0;
-      return { t, target: t };
-    },
-    advance: (anim, { dt }) => {
-      const dir = Math.sign(anim.target - anim.t);
-      if (dir === 0) return false;
-      anim.t = Math.max(0, Math.min(1, anim.t + (dir * dt) / 600));
-      if ((dir > 0 && anim.t >= anim.target) || (dir < 0 && anim.t <= anim.target)) {
-        anim.t = anim.target;
-        return false;
+    stepLabel: "Next patient",
+    stepTitle: "Move the sweep past one more patient — the curve steps up "
+      + "for a positive, right for a negative",
+    runLabel: "Trace",
+    runTitle: "Sweep the threshold from 1 to 0, tracing the whole curve",
+
+    init: ({ params, state, fromScratch }) => {
+      if (params.outcome === "categorical" && params.view === "roc") {
+        const total = state.walk.length - 1;
+        /* a URL arriving with youden=1 opens finished-and-found without
+           moving the threshold — a URL shows what it says (widget 34) */
+        const pos = fromScratch ? 0
+          : params.youden ? total
+            : Math.min(Math.max(0, params.shown ?? 0), total);
+        const done = pos >= total;
+        return {
+          kind: "roc",
+          pos,
+          done,
+          youdenOn: Boolean(params.youden),
+          scan: params.youden && done ? { t: 1, done: true } : null,
+          found: null,
+        };
       }
-      return true;
+      /* the numeric R² ease; inert hides Step and Trace on the two views
+         with nothing to drive (core's inert door) */
+      const t = params.outcome === "numeric" && params.metric === "r2" ? 1 : 0;
+      return { kind: "plain", inert: true, t, target: t };
     },
-    rebuild: (anim, { params }) => {
-      const target = params.concept === "numeric" && params.metric === "r2" ? 1 : 0;
-      if (target !== anim.target) {
-        anim.target = target;
+
+    advance: (anim, { dt, params, state }) => {
+      if (anim.kind === "plain") {
+        const dir = Math.sign(anim.target - anim.t);
+        if (dir === 0) return false;
+        anim.t = Math.max(0, Math.min(1, anim.t + (dir * dt) / 600));
+        if ((dir > 0 && anim.t >= anim.target) || (dir < 0 && anim.t <= anim.target)) {
+          anim.t = anim.target;
+          return false;
+        }
+        return true;
+      }
+
+      const total = state.walk.length - 1;
+      if (anim.pos < total) {
+        const target = anim.mode === "step"
+          ? Math.min(total, Math.floor(anim.pos + 1e-9) + 1)
+          : total;
+        const rate = anim.mode === "step"
+          ? 1 / 260
+          : total / (TRACE_MS[params.speed] ?? TRACE_MS.medium);
+        anim.pos = Math.min(target, anim.pos + dt * rate);
+        if (anim.pos < target) return true;
+        if (anim.pos < total) return false; // a step landed short of the end
+      }
+      anim.done = true;
+      /* the trace has landed; a pending search scans in the same breath,
+         and its landing is what moves the threshold */
+      if (params.youden && anim.scan && !anim.scan.done) {
+        anim.scan.t = Math.min(1, anim.scan.t + dt / SCAN_MS);
+        if (anim.scan.t < 1) return true;
+        anim.scan.done = true;
+        if (state.youden) {
+          const applied = Math.max(0.01, Math.min(0.99,
+            Math.round(state.youden.th * 100) / 100));
+          anim.found = { from: params.threshold, th: state.youden.th, applied };
+          applyOptimum(applied);
+        }
+      }
+      return false;
+    },
+
+    /* Display changes land here. Pressing the pill completes the curve
+       (finding an optimum on a partial curve would be a lie) and requests
+       ease frames for the scan; the pill's own release and the threshold
+       write pass through afterwards and must not restart anything — the
+       youdenOn latch (widget 34). */
+    rebuild: (anim, { params, state }) => {
+      if (anim.kind === "plain") {
+        const target = params.outcome === "numeric" && params.metric === "r2" ? 1 : 0;
+        if (target !== anim.target) {
+          anim.target = target;
+          anim.easing = true;
+        }
+        return;
+      }
+      const total = state.walk.length - 1;
+      anim.pos = Math.min(anim.pos, total);
+      if (params.youden && !anim.youdenOn) {
+        anim.pos = total;
+        anim.done = true;
+        anim.scan = { t: 0 };
+        anim.found = null;
         anim.easing = true;
+      }
+      anim.youdenOn = Boolean(params.youden);
+      /* dragged away from a found optimum: the arrow no longer describes
+         the line, so it goes; the ring stays — it marks a property of the
+         curve, not of the reader's threshold */
+      if (anim.found && Math.abs(params.threshold - anim.found.applied) > 1e-9) {
+        anim.found = null;
       }
     },
   },
@@ -720,39 +995,34 @@ defineWidget({
     params: ["threshold"],
     cursor: "ew-resize",
     /* the strip only (widget 34's rule: a click-and-slip on the ROC square
-       must not nudge the threshold), and only on the two concepts that
-       draw a strip at all */
+       must not nudge the threshold), and only where a strip is drawn */
     hit: ({ x, y, w, params }) => {
-      if (params.concept === "numeric") return false;
-      const L = catLayout(w, params.concept);
+      if (params.outcome !== "categorical") return false;
+      const L = catLayout(w, params.view);
       return x >= L.strip.x && x <= L.strip.x + L.strip.w
         && y >= L.strip.y - 16 && y <= L.strip.y + L.strip.h + 30;
     },
     value: ({ dx, start, w, params }) => {
-      const L = catLayout(w, params.concept);
+      const L = catLayout(w, params.view);
       const t = start.threshold + dx / L.strip.w;
       return { threshold: Math.max(0.01, Math.min(0.99, Math.round(t * 100) / 100)) };
     },
   },
 
   draw(args) {
-    renderCard(args.params, args.state);
-    if (args.params.concept === "numeric") drawNumeric(args);
-    else if (args.params.concept === "threshold") drawThreshold(args);
-    else drawRoc(args);
+    renderCard(args.params, args.state, args.anim);
+    if (args.params.outcome === "numeric") drawNumeric(args);
+    else if (args.params.view === "matrix") drawMatrixView(args);
+    else drawRocView(args);
   },
 
-  readout: ({ params, state }) => {
-    if (params.concept === "numeric") {
+  readout: ({ params, state, anim }) => {
+    if (params.outcome === "numeric") {
       const { m, m0 } = state;
       const tiles = [
         { label: "RMSE", value: `${f2(m.rmse)} %`, note: "typical error, large misses weighted up" },
         { label: "MAE", value: `${f2(m.mae)} %`, note: "typical error, every miss weighted alike" },
-        {
-          label: "R²",
-          value: f3(m.r2),
-          note: "share of the spread explained; 0 = the mean model",
-        },
+        { label: "R²", value: f3(m.r2), note: "share of the spread explained; 0 = the mean model" },
       ];
       if (params.outliers > 0) {
         const pull = (a, b) => `${b >= a ? "+" : "−"}${Math.abs((100 * (b - a)) / a).toFixed(0)}%`;
@@ -764,30 +1034,59 @@ defineWidget({
       }
       return tiles;
     }
-    const { cm } = state;
-    const at = `at threshold ${f2(params.threshold)}`;
-    if (params.concept === "roc") {
-      return [
+
+    if (params.view === "roc") {
+      const done = traced(anim, state);
+      const effTh = effThreshold(params, state, anim);
+      const cells = cellsAt(state.patients, effTh);
+      const cm = categoricalMetrics(cells);
+      const nNeg = state.patients.length - state.nPos;
+      const tiles = [
         {
           label: "AUC",
-          value: f3(state.roc.auc),
-          note: "area under the curve — the one number the threshold cannot move",
+          value: done ? f3(state.auc) : "—",
+          note: done ? "area under the ROC curve" : "trace the curve first",
         },
-        { label: "Accuracy", value: f3(cm.acc), note: at },
-        { label: "Recall (TPR)", value: f3(cm.rec), note: at },
-        { label: "Precision", value: f3(cm.prec), note: at },
+        { label: "Accuracy", value: f2(cm.acc), note: `${cells.tp + cells.tn} of ${state.patients.length} correct` },
+        { label: "Sensitivity", value: f2(Number.isFinite(cm.rec) ? cm.rec : 0), note: `${cells.tp} of ${state.nPos} with disease` },
+        {
+          label: "Specificity",
+          value: f2(cells.tn + cells.fp ? cells.tn / (cells.tn + cells.fp) : 0),
+          note: `${cells.tn} of ${nNeg} without`,
+        },
       ];
+      if (optimumFound(anim, state) && state.youden) {
+        tiles.push({ label: "Youden threshold", value: fmt(state.youden.th, 2), note: "maximises TPR − FPR" });
+      }
+      return tiles;
     }
-    return [
+
+    const cells = cellsAt(state.patients, params.threshold);
+    const c2 = classCells(cells, params.positive);
+    const cm = categoricalMetrics(c2);
+    const posName = params.positive === "disease" ? "disease" : "no disease";
+    const negName = params.positive === "disease" ? "no disease" : "disease";
+    const tiles = [
       { label: "Accuracy", value: f3(cm.acc), note: "correct on everyone" },
-      { label: "Precision", value: f3(cm.prec), note: "of predicted disease, how many real" },
-      { label: "Recall", value: f3(cm.rec), note: "of true disease, how many found" },
+      { label: "Precision", value: f3(cm.prec), note: `of predicted “${posName}”, how many real` },
+      { label: "Recall", value: f3(cm.rec), note: `of true “${posName}”, how many found` },
       { label: "F1", value: f3(cm.f1), note: "harmonic mean of precision and recall" },
       {
         label: "All-negative baseline",
         value: f3(cm.base),
-        note: "say “no disease” for everyone — accuracy has to beat this",
+        note: `say “${negName}” for everyone — accuracy has to beat this`,
       },
     ];
+    /* classification_report's two summary rows, only when a per-class
+       metric is picked — the crowd control Kenneth asked for */
+    const avKey = { prec: "prec", rec: "rec", f1: "f1" }[params.cmetric];
+    if (avKey) {
+      const av = reportAverages(cells)[avKey];
+      tiles.push(
+        { label: "Macro avg", value: f3(av.macro), note: "both classes weighted equally" },
+        { label: "Weighted avg", value: f3(av.weighted), note: "weighted by class size — can mask the minority" },
+      );
+    }
+    return tiles;
   },
 });

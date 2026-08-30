@@ -44,6 +44,8 @@ import { optionEntries } from "./params.js";
  *   when: { param: "studies" }                        shown while `studies` is truthy
  *   when: { param: "mode", equals: "raw" }            shown while `mode` === "raw"
  *   when: { param: "tab", oneOf: ["b", "c"] }         shown on either value
+ *   when: { all: [{ param: "a", equals: "x" },
+ *                 { param: "b", equals: "y" }] }      shown when every clause holds
  *
  * AN `atLeast` FORM WAS ADDED AND THEN REMOVED. A staged widget seemed to need
  * "shown once `step` reaches 3, and stays" — until the stage was expressed as
@@ -54,12 +56,24 @@ import { optionEntries } from "./params.js";
  * one line, added when time-event's data controls had to show on two of its
  * three concept tabs — a set membership is still declarative: the gating
  * parameter is named, so the rebuild rule is unchanged.
+ *
+ * `all` is the same promise kept a second time: widget 35's metric picker
+ * exists on one VIEW of one OUTCOME — a field gated on a field that is itself
+ * gated — and a single-clause `when` cannot say that (gating it on the view
+ * alone showed it under the numeric outcome, whose hidden view value was
+ * still "matrix"). A conjunction of the declarative forms is still
+ * declarative: every gating parameter is named, so the rebuild rule holds.
  */
+function clauseShowing(w, values) {
+  if ("oneOf" in w) return w.oneOf.includes(values[w.param]);
+  return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
+}
+
 export function fieldShowing(field, values) {
   const w = field.when;
   if (!w) return true;
-  if ("oneOf" in w) return w.oneOf.includes(values[w.param]);
-  return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
+  if ("all" in w) return w.all.every((c) => clauseShowing(c, values));
+  return clauseShowing(w, values);
 }
 
 /**
@@ -92,7 +106,10 @@ export function fieldShowing(field, values) {
 /** Parameters that some other parameter's visibility depends on. */
 export function gatingParams(spec) {
   const names = new Set();
-  for (const field of Object.values(spec)) if (field.when) names.add(field.when.param);
+  for (const field of Object.values(spec)) {
+    if (!field.when) continue;
+    for (const c of field.when.all ?? [field.when]) names.add(c.param);
+  }
   /* a bits control whose CHIP COUNT follows another parameter (round 16,
      widget 31's censored-patient picker following Patients) declares it
      declaratively — `bitsFrom: "patients"` — so the same rebuild rule

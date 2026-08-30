@@ -94,26 +94,77 @@ export function cellsAt(patients, thr) {
   return cells;
 }
 
-/* The per-patient staircase (widget 34's walk): probabilities descending,
-   up for a disease patient, right for a healthy one. AUC by trapezoids —
-   with continuous scores ties are measure-zero at teaching n. */
-export function rocOf(patients) {
+/* --- the ROC engine, widget 34's own (roc-auc/model.js), copied not
+   imported: a cross-widget import would let an edit over there silently
+   change the numbers here, and both copies answer to sklearn, not to each
+   other. The walk IS the curve: patients sorted by probability, highest
+   first, one point after each — up for a disease patient, right for a
+   healthy one; walk[i].th is that patient's own score, the threshold at
+   which they have just been called positive. ------------------------------ */
+
+export function rocWalk(patients) {
   const sorted = patients.slice().sort((a, b) => b.prob - a.prob);
-  const nPos = sorted.filter((p) => p.disease).length;
-  const nNeg = sorted.length - nPos;
-  const pts = [{ fpr: 0, tpr: 0 }];
+  const P = sorted.filter((p) => p.disease).length;
+  const N = sorted.length - P;
+  const walk = [{ fpr: 0, tpr: 0, th: Infinity, disease: null }];
   let tp = 0;
   let fp = 0;
-  let auc = 0;
   for (const p of sorted) {
     if (p.disease) tp += 1;
-    else {
-      fp += 1;
-      auc += tp; // each healthy step sweeps a column of height tp/nPos
-    }
-    pts.push({ fpr: nNeg ? fp / nNeg : 0, tpr: nPos ? tp / nPos : 0 });
+    else fp += 1;
+    walk.push({ fpr: N ? fp / N : 0, tpr: P ? tp / P : 0, th: p.prob, disease: p.disease });
   }
-  return { pts, auc: nPos && nNeg ? auc / (nPos * nNeg) : NaN, nPos, nNeg };
+  return walk;
+}
+
+/** Trapezoidal area under the walk — identical to sklearn's roc_auc_score. */
+export function aucOf(walk) {
+  let auc = 0;
+  for (let i = 1; i < walk.length; i += 1) {
+    auc += (walk[i].fpr - walk[i - 1].fpr) * (walk[i].tpr + walk[i - 1].tpr) / 2;
+  }
+  return auc;
+}
+
+/** The point maximising Youden's J = TPR − FPR, the notebook's argmax(tpr−fpr). */
+export function youdenOf(walk) {
+  let best = null;
+  for (const p of walk) {
+    if (p.th === Infinity) continue;
+    if (!best || p.tpr - p.fpr > best.tpr - best.fpr) best = p;
+  }
+  return best;
+}
+
+/* --- the positive class is a CHOICE, sklearn's own view ------------------- *
+ * The four cells are counted with "disease" as the positive class; calling
+ * "no disease" positive does not recount anything — it RENAMES the cells:
+ * the true negatives become that class's true positives, and which mistakes
+ * are "false positives" swaps with it. That renaming is the whole lesson of
+ * the pill, and it is why classification_report has one row per class.     */
+export function classCells(cells, positive) {
+  return positive === "disease"
+    ? cells
+    : { tp: cells.tn, fp: cells.fn, fn: cells.fp, tn: cells.tp };
+}
+
+/* classification_report's two summary rows: macro averages the two classes'
+   metrics equally; weighted weights them by support, which is what lets a
+   large healthy class mask a failing disease class. */
+export function reportAverages(cells) {
+  const a = categoricalMetrics(classCells(cells, "disease"));
+  const b = categoricalMetrics(classCells(cells, "healthy"));
+  const nA = cells.tp + cells.fn;
+  const nB = cells.tn + cells.fp;
+  const n = nA + nB;
+  /* sklearn's zero_division=0: an undefined ratio (no predicted positives)
+     enters the averages as 0, exactly as classification_report prints it */
+  const z = (v) => (Number.isFinite(v) ? v : 0);
+  const avg = (k) => ({
+    macro: (z(a[k]) + z(b[k])) / 2,
+    weighted: (nA * z(a[k]) + nB * z(b[k])) / n,
+  });
+  return { prec: avg("prec"), rec: avg("rec"), f1: avg("f1"), support: { disease: nA, healthy: nB } };
 }
 
 /* The round-0 sweep's door, kept so `_lab/metrics-measure.mjs` reads

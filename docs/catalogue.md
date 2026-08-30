@@ -11039,6 +11039,41 @@ narrow: all three concepts, the drag writing `?threshold=` (0.50 → 0.34
 moved TPR 0.545 → 0.773, FPR 0.112 → 0.201, AUC still 0.850), the trap
 state at prevalence 0.1, zero console errors.
 
+### Round 3 — Kenneth (2026-08-30): two-level selection, widget-34 parity, the positive-class pick, ROC's whole act
+
+His four asks, all in. **(1) Two-level selection**: `Outcome` (Numeric ·
+Categorical) first, then `Metric family` (Confusion matrix · ROC curve)
+appearing only on categorical — his posed alternative "threshold
+dependent/independent" lives in the options' details, so both vocabularies
+are on screen (my pick: concrete nouns on the buttons, the taxonomy in the
+detail line). Deep links became `?outcome=categorical&view=matrix|roc`.
+**CORE grew `when: { all: [...] }`** for it — the metric picker exists on one
+view of one outcome, a field gated on a field that is itself gated, and
+gating on the view alone showed it under the numeric outcome (whose hidden
+view value was still "matrix"). A conjunction of the declarative forms keeps
+the rebuild rule; the full suite ran for it: **238 of 238 recorded states
+MATCH** (the two metrics placeholders DIFFER by design, hashes "0").
+**(2) Widget-34 control parity**: Separation (0.2–3, roc-auc's range), Class
+balance (labelled so, detail keeping "prevalence"), Sample size n (60–600).
+**(3) The positive-class pick**: a `positive` segmented (Disease · No
+disease) that **RENAMES the matrix cells instead of recounting them** —
+sklearn's per-class rows one at a time; the strip's "predicted −/+" feet
+flip with it, the formula card and every per-class tile follow, and the
+all-negative baseline generalises ("say <other class> for everyone").
+Verified identity: weighted recall = accuracy (0.775 = 0.775 at the
+default). classification_report's **Macro avg and Weighted avg tiles appear
+only when a per-class metric is picked** — the crowd control he asked for.
+**(4) ROC's whole act, ported from widget 34**: the curve opens UNTRACED
+(AUC "—", "trace the curve first"), Next patient / Trace with Play speed,
+one effective threshold everywhere mid-sweep, the strip-confined drag, and
+the MOMENTARY find-optimal pill — scan, ring, from-arrow, landing by moving
+the threshold through the exported setParam (verified live: 0.50 → 0.29,
+pill self-released, URL kept only `?threshold=`). The walk engine
+(rocWalk/aucOf/youdenOf) is **copied from roc-auc/model.js, deliberately
+not imported**: a cross-widget import would let an edit there silently
+change the numbers here, and both copies answer to sklearn. `?shown=999`
+publishes the finished curve; `?youden=1&shown=999` opens found.
+
 ## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
 
 **The misconception**: that the ROC curve is a static property of the model — a

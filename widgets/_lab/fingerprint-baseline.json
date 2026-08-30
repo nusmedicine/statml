@@ -2149,14 +2149,14 @@
     },
     {
       "slug": "metrics",
-      "state": "?theme=light",
+      "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0",
       "$note": "placeholder until promotion"
     },
     {
       "slug": "metrics",
-      "state": "?theme=light&concept=threshold&cmetric=rec",
+      "state": "?theme=light&outcome=categorical&view=matrix&cmetric=rec&shown=0",
       "px": "0",
       "tx": "0",
       "$note": "placeholder until promotion"
