@@ -399,6 +399,23 @@ function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
 
   arrow(xBox + box + 3, mid, xBox + box + 24, mid);
   label(ctx, colors, "out", xBox + box + 28, mid + 4, { color: colors.ink2 });
+
+  /* The same statement as an equation, in the space the band has to spare.
+     Whether it fits is MEASURED, not guessed at from the panel width: a
+     guessed threshold suppressed it at widths where it fitted easily. */
+  const eqX = xBox + box + 46;
+  const room = x0 + w - 4 - eqX;
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const wide = ["out = σ(w₁x₁ + w₂x₂ + … + b)", "σ is the activation curve"];
+  const tight = ["out = σ(w·x + b)", "σ is the activation curve"];
+  const fits = (ls) => Math.max(...ls.map((t) => ctx.measureText(t).width)) <= room;
+  ctx.restore();
+  const eqLines = fits(wide) ? wide : (fits(tight) ? tight : null);
+  if (eqLines) {
+    label(ctx, colors, eqLines[0], eqX, mid - 4, { color: colors.ink1 });
+    label(ctx, colors, eqLines[1], eqX, mid + 12);
+  }
 }
 
 /* One edge per weight. Thickness is |w| scaled to the largest weight in
@@ -493,7 +510,7 @@ function drawNetwork(ctx, colors, x0, y0, w, h, net, fires, actKey, opts) {
    prediction meets the label, the error is carried back, and the weights
    move. Everything here is read from the stored trajectory and the sample's
    own forward pass — nothing extra is computed or stored to animate it. */
-function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, colorsOf) {
+function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
   const k = net.W2.length;
   const L = netLayout(x0, y0, w, h, k);
   const { f } = ACTS[actKey];
@@ -553,32 +570,83 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, colorsOf
 
     if (beat >= BEATS.compare) {
       const q = (beat - BEATS.compare) / (BEATS.backward - BEATS.compare);
-      /* the arc above the network: the error travelling back */
+
+      /* THE BACKWARD PASS LANDS ON THE HIDDEN UNITS, NOT THE INPUTS.
+         Backpropagation produces a gradient for every parameter; the inputs
+         are data and have none, so an arrow reaching them would promise an
+         update that never happens. In a one-hidden-layer network the signal
+         stops at the hidden units, because there is nothing beyond them to
+         change. Right angles rather than an arc: a curve from right to left
+         reads as another forward sweep, and the elbow reads as a return. */
+      const railY = y0 + INSET + 30;
+      const endY = L.yOf(0, k) - 15;
+      const pts = [
+        [L.xOut, L.yOf(0, 1) - 14],
+        [L.xOut, railY],
+        [L.xHid, railY],
+        [L.xHid, endY],
+      ];
+      const segs = [];
+      let total = 0;
+      for (let i = 1; i < pts.length; i += 1) {
+        const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        segs.push(d);
+        total += d;
+      }
+      const drawn = Math.min(1, q / 0.7) * total;
       ctx.save();
       ctx.strokeStyle = colors.highlight;
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.8;
       ctx.setLineDash([5, 4]);
-      ctx.lineDashOffset = -q * 40;
-      const arcY = y0 + INSET + 8;
       ctx.beginPath();
-      ctx.moveTo(L.xOut, L.yOf(0, 1) - 16);
-      ctx.quadraticCurveTo((L.xIn + L.xOut) / 2, arcY, L.xIn, L.yOf(0, 2) - 16);
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      let used = 0;
+      let head = pts[0];
+      for (let i = 0; i < segs.length; i += 1) {
+        const remaining = drawn - used;
+        if (remaining <= 0) break;
+        const t = Math.min(1, remaining / segs[i]);
+        head = [
+          pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t,
+          pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t,
+        ];
+        ctx.lineTo(head[0], head[1]);
+        used += segs[i];
+      }
       ctx.stroke();
       ctx.restore();
 
-      if (q < 0.5) {
-        const t = q / 0.5;
-        for (let j = 0; j < k; j += 1) {
-          const share = Math.min(1, Math.abs(err * net.W2[j]) * 4);
-          travel(L.xOut, L.yOf(0, 1), L.xHid, L.yOf(j, k), t, colors.highlight, 2 + 3 * share);
-        }
+      /* the head, pointing the way the signal is going */
+      ctx.save();
+      ctx.fillStyle = colors.highlight;
+      ctx.beginPath();
+      if (drawn >= total - 0.5) {
+        ctx.moveTo(L.xHid, endY + 4);
+        ctx.lineTo(L.xHid - 5, endY - 5);
+        ctx.lineTo(L.xHid + 5, endY - 5);
       } else {
-        const t = (q - 0.5) / 0.5;
+        ctx.arc(head[0], head[1], 3.4, 0, Math.PI * 2);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      /* no label on the rail: it sat on the column headings, and the caption
+         row already names the phase */
+
+      /* each live unit is told its share. A dead unit is not: it receives
+         zero gradient, which is why it cannot recover. */
+      if (q > 0.7) {
+        ctx.save();
+        ctx.strokeStyle = colors.highlight;
+        ctx.lineWidth = 2.2;
         for (let j = 0; j < k; j += 1) {
-          for (let i = 0; i < 2; i += 1) {
-            travel(L.xHid, L.yOf(j, k), L.xIn, L.yOf(i, 2), t, colors.highlight, 2.4);
-          }
+          if (fires[j] === 0 && actKey === "relu") continue;
+          ctx.beginPath();
+          ctx.arc(L.xHid, L.yOf(j, k), 11, 0, Math.PI * 2);
+          ctx.stroke();
         }
+        ctx.restore();
       }
     }
   }
@@ -849,7 +917,7 @@ widgetApi = defineWidget({
     let pass = null;
     if (stepping) {
       pass = drawStep(ctx, colors, xNet, TOP, nWidth, bSide, net, params.activation,
-        shown, beat);
+        shown, beat, fires);
     }
 
     const deadN = dead.filter(Boolean).length;
@@ -883,7 +951,7 @@ widgetApi = defineWidget({
         : beat < BEATS.compare
           ? `Predicted ${f2(pass.out)}, actual ${pass.target} — the gap is the error`
           : beat < BEATS.backward
-            ? "Backward: the error goes back, each weight learning its share"
+            ? "Backward: the error returns to the hidden units, each learning its share"
             : `Every sample makes this trip; the weights then move once — largest step ${fSig(update?.max ?? 0)}`;
       label(ctx, colors, said, xNet, capY + 15, { color: colors.highlight });
     } else if (update) {
