@@ -54,31 +54,48 @@ const INSET = 92;   // the activation inset, in a RESERVED band at the panel's
                     // the panel's full height with no gap at all.
 const HIT_R = 18;   // how close the pointer must come to a hidden unit
 
-const panelSide = (w) => Math.max(150, Math.min(300, (w - 2 * PAD_X - GAP) / 2));
-const stageHeight = (w) => TOP + panelSide(w) + CAP_H + LOSS_H + BOTTOM;
+/* One training step, choreographed, at Slow speed only. The beats are shares
+   of BEAT_MS: a sample travels forward, its prediction is compared with the
+   label, the error travels back, and the weights move.
+
+   THE WIDGET TRAINS FULL-BATCH, so the sample shown is one of the whole set
+   and the weights move once all of them have been through. The caption says
+   exactly that — the animation illustrates the trip every sample makes, and
+   must not imply the weights move per sample. */
+const BEAT_MS = 2000;
+const BEATS = { forward: 0.34, compare: 0.52, backward: 0.84, update: 1 };
+
+/* THE TWO PANELS SPLIT THE FULL WIDTH. Only the boundary has to be square —
+   it plots x1 against x2, and a distance needs equal units per pixel — so the
+   network takes whatever is left rather than being forced to match. Equal
+   halves capped at 300 left a band of dead canvas at every wide frame. */
+const boundSide = (w) => {
+  const avail = w - 2 * PAD_X - GAP;
+  return Math.max(180, Math.min(340, avail * 0.46));
+};
+const netWidth = (w) => w - 2 * PAD_X - GAP - boundSide(w);
+const stageHeight = (w) => TOP + boundSide(w) + CAP_H + LOSS_H + BOTTOM;
 
 /* Where every node sits: one function, because the hit test and the drawing
    have to agree about it (5.8). */
-function netLayout(x0, y0, side, k) {
+function netLayout(x0, y0, w, h, k) {
   const top = y0 + INSET + 26;
-  const usable = side - INSET - 34;
+  const usable = h - INSET - 34;
   const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
   return {
-    xIn: x0 + 30,
-    xHid: x0 + side / 2,
-    xOut: x0 + side - 30,
+    xIn: x0 + 34,
+    xHid: x0 + w / 2,
+    xOut: x0 + w - 34,
     yOf,
     labelY: y0 + INSET + 18,
-    hidden: Array.from({ length: k }, (_, j) => ({ x: x0 + side / 2, y: yOf(j, k) })),
-    insetX: x0 + 6,
-    insetY: y0 + 4,
+    hidden: Array.from({ length: k }, (_, j) => ({ x: x0 + w / 2, y: yOf(j, k) })),
   };
 }
 
 /** Which hidden unit the pointer is over, or null. */
-function unitAt(pointer, x0, y0, side, k) {
+function unitAt(pointer, x0, y0, w, h, k) {
   if (!pointer) return null;
-  const L = netLayout(x0, y0, side, k);
+  const L = netLayout(x0, y0, w, h, k);
   for (let j = 0; j < k; j += 1) {
     if (Math.hypot(pointer.x - L.hidden[j].x, pointer.y - L.hidden[j].y) < HIT_R) return j;
   }
@@ -87,6 +104,9 @@ function unitAt(pointer, x0, y0, side, k) {
 
 const f2 = (v) => fmt(v, 2);
 const f3 = (v) => fmt(v, 3);
+/* weight steps run from ~1e-5 early to ~1e-2 later, so a fixed number of
+   decimals prints 0.0000 for the first ones */
+const fSig = (v) => (v === 0 ? "0" : Number(v.toPrecision(2)).toString());
 
 /* ---- drawing ------------------------------------------------------------- */
 
@@ -132,7 +152,7 @@ function drawUnitLine(ctx, colors, x0, y0, side, net, j, strong) {
    at P = 0.5. */
 function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   const { f } = ACTS[actKey];
-  const { hoverUnit = null, showLines = false, pointer = null, dead = [] } = opts ?? {};
+  const { hoverUnit = null, showLines = false, pointer = null, dead = [], mark = null } = opts ?? {};
   const X = (v) => x0 + ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
   const Y = (v) => y0 + side - ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
 
@@ -207,6 +227,17 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     drawUnitLine(ctx, colors, x0, y0, side, net, hoverUnit, true);
   }
 
+  /* the sample currently being fed through the network */
+  if (mark) {
+    ctx.save();
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(X(mark.x[0]), Y(mark.x[1]), 6.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   /* the reading under the pointer, which makes the wash a quantity */
   if (pointer && pointer.x >= x0 && pointer.x <= x0 + side
       && pointer.y >= y0 && pointer.y <= y0 + side) {
@@ -252,10 +283,10 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
    entirely into ReLU's flat region is a dead one. A crossfade between
    activations was dropped: changing the activation is a data change, which
    resets training, so no figure stands still for it. */
-function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
-  const box = Math.min(66, Math.max(36, side * 0.29));
+function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
+  const box = Math.min(66, Math.max(36, INSET * 0.72));
   const xIn = x0 + 18;
-  const xSum = x0 + Math.max(52, side * 0.24);
+  const xSum = x0 + Math.max(52, w * 0.16);
   const xBox = xSum + 22;
   const mid = y0 + 22 + box / 2;
   const boxTop = y0 + 22;
@@ -374,10 +405,10 @@ function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
    this network rather than to a constant: the comparison is within one
    network, and a fixed scale would make a well-trained narrow network look
    empty beside a wide one. Colour is the sign. */
-function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
+function drawNetwork(ctx, colors, x0, y0, w, h, net, fires, actKey, opts) {
   const k = net.W2.length;
   const { hoverUnit = null, zs = null, update = null } = opts ?? {};
-  const L = netLayout(x0, y0, side, k);
+  const L = netLayout(x0, y0, w, h, k);
   const dead = deadUnits(fires, actKey);
   const max = Math.max(...[...net.W1.flat(), ...net.W2].map(Math.abs), 1e-6);
 
@@ -440,7 +471,7 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
     ctx.restore();
   };
 
-  const usable = side - INSET - 34;
+  const usable = h - INSET - 34;
   const rNode = Math.max(5, Math.min(10, usable / (k * 2.6)));
   node(L.xIn, L.yOf(0, 2), 11, "x₁");
   node(L.xIn, L.yOf(1, 2), 11, "x₂");
@@ -455,7 +486,103 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
     { align: "center" });
   label(ctx, colors, "output", L.xOut, L.labelY, { align: "center" });
 
-  drawNeuron(ctx, colors, x0, y0, side, actKey, zs);
+  drawNeuron(ctx, colors, x0, y0, w, actKey, zs);
+}
+
+/* ONE TRAINING STEP, DRAWN. A sample is fed forward along the edges, the
+   prediction meets the label, the error is carried back, and the weights
+   move. Everything here is read from the stored trajectory and the sample's
+   own forward pass — nothing extra is computed or stored to animate it. */
+function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, colorsOf) {
+  const k = net.W2.length;
+  const L = netLayout(x0, y0, w, h, k);
+  const { f } = ACTS[actKey];
+
+  const z1 = [];
+  const hv = [];
+  let z2 = net.b2;
+  for (let j = 0; j < k; j += 1) {
+    const z = net.W1[j][0] * sample.x[0] + net.W1[j][1] * sample.x[1] + net.b1[j];
+    z1.push(z);
+    const a = f(z);
+    hv.push(a);
+    z2 += net.W2[j] * a;
+  }
+  const out = 1 / (1 + Math.exp(-z2));
+  const target = sample.y > 0 ? 1 : 0;
+  const err = out - target;
+
+  const travel = (ax, ay, bx, by, t, colour, r) => {
+    const x = ax + (bx - ax) * t;
+    const y = ay + (by - ay) * t;
+    ctx.save();
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const cls = sample.y > 0 ? colors.event : colors.nonevent;
+
+  if (beat < BEATS.forward) {
+    /* forward: inputs to hidden, then hidden to output */
+    const p = beat / BEATS.forward;
+    if (p < 0.5) {
+      const t = p / 0.5;
+      for (let j = 0; j < k; j += 1) {
+        for (let i = 0; i < 2; i += 1) {
+          travel(L.xIn, L.yOf(i, 2), L.xHid, L.yOf(j, k), t, cls, 3);
+        }
+      }
+    } else {
+      const t = (p - 0.5) / 0.5;
+      for (let j = 0; j < k; j += 1) {
+        const mag = Math.min(1, Math.abs(hv[j]) / 2);
+        travel(L.xHid, L.yOf(j, k), L.xOut, L.yOf(0, 1), t, cls, 2 + 3 * mag);
+      }
+    }
+  } else if (beat < BEATS.backward) {
+    /* the prediction meets the label, then the error is carried back */
+    ctx.save();
+    ctx.fillStyle = colors.ink1;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = "center";
+    ctx.fillText(f2(out), L.xOut, L.yOf(0, 1) - 18);
+    ctx.restore();
+
+    if (beat >= BEATS.compare) {
+      const q = (beat - BEATS.compare) / (BEATS.backward - BEATS.compare);
+      /* the arc above the network: the error travelling back */
+      ctx.save();
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5, 4]);
+      ctx.lineDashOffset = -q * 40;
+      const arcY = y0 + INSET + 8;
+      ctx.beginPath();
+      ctx.moveTo(L.xOut, L.yOf(0, 1) - 16);
+      ctx.quadraticCurveTo((L.xIn + L.xOut) / 2, arcY, L.xIn, L.yOf(0, 2) - 16);
+      ctx.stroke();
+      ctx.restore();
+
+      if (q < 0.5) {
+        const t = q / 0.5;
+        for (let j = 0; j < k; j += 1) {
+          const share = Math.min(1, Math.abs(err * net.W2[j]) * 4);
+          travel(L.xOut, L.yOf(0, 1), L.xHid, L.yOf(j, k), t, colors.highlight, 2 + 3 * share);
+        }
+      } else {
+        const t = (q - 0.5) / 0.5;
+        for (let j = 0; j < k; j += 1) {
+          for (let i = 0; i < 2; i += 1) {
+            travel(L.xHid, L.yOf(j, k), L.xIn, L.yOf(i, 2), t, colors.highlight, 2.4);
+          }
+        }
+      }
+    }
+  }
+  return { out, target, err };
 }
 
 function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
@@ -633,15 +760,34 @@ widgetApi = defineWidget({
     init: ({ params, fromScratch }) => ({
       epoch: fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), EPOCHS),
       done: false,
-      phase: 0,
+      beat: 0,
+      sample: 0,
     }),
 
-    advance: (anim, { dt, params }) => {
-      anim.phase = ((anim.phase ?? 0) + dt * 0.05) % 8;
-      const perSec = { slow: 60, medium: 200, fast: 600 }[params.speed] ?? 200;
-      const target = anim.mode === "step"
-        ? Math.min(EPOCHS, anim.epoch + 1)
-        : EPOCHS;
+    advance: (anim, { dt, params, state }) => {
+      /* SLOW IS THE CHOREOGRAPHED PACE: one training step per BEAT_MS, with
+         a sample fed forward, compared, and its error carried back. Medium
+         and Fast just count epochs. Which pace choreographs is declared, not
+         decided mid-run (4.1). */
+      if (params.speed === "slow") {
+        if (anim.epoch >= EPOCHS) {
+          anim.done = true;
+          return false;
+        }
+        anim.beat += dt / BEAT_MS;
+        if (anim.beat < 1) return true;
+        anim.beat = 0;
+        anim.epoch += 1;
+        /* a different sample each step, striding so consecutive steps are not
+           neighbours in the generated order */
+        anim.sample = (anim.sample + 37) % state.data.length;
+        if (anim.epoch >= EPOCHS) anim.done = true;
+        return anim.mode !== "step" && !anim.done;
+      }
+
+      anim.beat = 0;
+      const perSec = { medium: 200, fast: 600 }[params.speed] ?? 200;
+      const target = anim.mode === "step" ? Math.min(EPOCHS, anim.epoch + 1) : EPOCHS;
       const rate = anim.mode === "step" ? 999 : (perSec * dt) / 1000;
       anim.epoch = Math.min(target, anim.epoch + Math.max(1, Math.round(rate)));
       if (anim.epoch >= EPOCHS) {
@@ -662,26 +808,27 @@ widgetApi = defineWidget({
     const ep = Math.min(anim?.epoch ?? 0, EPOCHS);
     const net = state.frames[ep];
     const fires = state.live[ep];
-    const side = panelSide(w);
+    const bSide = boundSide(w);
+    const nWidth = netWidth(w);
     const xNet = PAD_X;
-    const xBnd = PAD_X + side + GAP;
+    const xBnd = PAD_X + nWidth + GAP;
     const dead = deadUnits(fires, params.activation);
-    const hoverUnit = unitAt(pointer, xNet, TOP, side, state.k);
+    const hoverUnit = unitAt(pointer, xNet, TOP, nWidth, bSide, state.k);
 
-    /* the z values the hidden units actually receive at THIS epoch — the rug
-       under the activation inset, so it spreads as the weights grow */
+    /* the pre-activations the units receive at this epoch */
     const zs = [];
-    for (const p of state.data) {
+    for (const pt of state.data) {
       for (let j = 0; j < state.k; j += 1) {
-        zs.push(net.W1[j][0] * p.x[0] + net.W1[j][1] * p.x[1] + net.b1[j]);
+        zs.push(net.W1[j][0] * pt.x[0] + net.W1[j][1] * pt.x[1] + net.b1[j]);
       }
     }
 
-    /* The weight changes this epoch made, read off consecutive stored
-       weight vectors. Shown at Slow speed and after a single step, not at
-       Medium or Fast: per-step choreography is a declared property of the
-       chosen pace (4.1), not something the animation decides for itself. */
-    const wantsUpdate = ep > 0
+    /* the weight changes this epoch made, read off consecutive stored weight
+       vectors. Shown while a step is being choreographed and just after it */
+    const beat = anim?.beat ?? 0;
+    const choreo = params.speed === "slow" && (anim?.mode === "step" || anim?.mode === "run");
+    const stepping = choreo && beat > 0;
+    const wantsUpdate = ep > 0 && (!stepping || beat >= BEATS.backward)
       && (anim?.mode === "step" || params.speed === "slow");
     let update = null;
     if (wantsUpdate) {
@@ -689,18 +836,24 @@ widgetApi = defineWidget({
       const dW1 = net.W1.map((row, j) => row.map((v, i) => v - prev.W1[j][i]));
       const dW2 = net.W2.map((v, j) => v - prev.W2[j]);
       const mx = Math.max(...dW1.flat().map(Math.abs), ...dW2.map(Math.abs));
-      update = { dW1, dW2, max: mx, phase: anim?.phase ?? 0 };
+      update = { dW1, dW2, max: mx, phase: 0 };
     }
 
-    drawNetwork(ctx, colors, xNet, TOP, side, net, fires, params.activation,
-      { hoverUnit, zs, update });
-    drawBoundary(ctx, colors, xBnd, TOP, side, state.data, net, params.activation,
-      { hoverUnit, showLines: params.lines === "on", pointer, dead });
+    const shown = stepping ? state.data[anim.sample % state.data.length] : null;
 
-    /* the dead-unit caption — the mechanism behind the hidden-units ladder,
-       and nothing else on screen would tell the reader it happened */
+    drawNetwork(ctx, colors, xNet, TOP, nWidth, bSide, net, fires, params.activation,
+      { hoverUnit, zs, update });
+    drawBoundary(ctx, colors, xBnd, TOP, bSide, state.data, net, params.activation,
+      { hoverUnit, showLines: params.lines === "on", pointer, dead, mark: shown });
+
+    let pass = null;
+    if (stepping) {
+      pass = drawStep(ctx, colors, xNet, TOP, nWidth, bSide, net, params.activation,
+        shown, beat);
+    }
+
     const deadN = dead.filter(Boolean).length;
-    const capY = TOP + side + 16;
+    const capY = TOP + bSide + 16;
     if (hoverUnit !== null) {
       const wj = net.W1[hoverUnit];
       const detail = `w = (${f2(wj[0])}, ${f2(wj[1])}), bias ${f2(net.b1[hoverUnit])}`;
@@ -720,14 +873,26 @@ widgetApi = defineWidget({
         xNet, capY, { color: colors.ink2 });
     }
     label(ctx, colors, `${state.errors[ep]} of ${state.data.length} misclassified`,
-      xBnd + side, capY, { align: "right", color: colors.ink2 });
-    if (update) {
+      xBnd + bSide, capY, { align: "right", color: colors.ink2 });
+
+    /* what this beat is doing, in the caption row */
+    if (stepping && pass) {
+      const n = state.data.length;
+      const said = beat < BEATS.forward
+        ? `Forward: one of the ${n} samples goes through the network`
+        : beat < BEATS.compare
+          ? `Predicted ${f2(pass.out)}, actual ${pass.target} — the gap is the error`
+          : beat < BEATS.backward
+            ? "Backward: the error goes back, each weight learning its share"
+            : `Every sample makes this trip; the weights then move once — largest step ${fSig(update?.max ?? 0)}`;
+      label(ctx, colors, said, xNet, capY + 15, { color: colors.highlight });
+    } else if (update) {
       label(ctx, colors,
-        `Backpropagation: the error is sent back and every weight moves against it — largest step ${fmt(update.max, 4)}`,
+        `Backpropagation: the error is sent back and every weight moves against it — largest step ${fSig(update.max)}`,
         xNet, capY + 15, { color: colors.highlight });
     }
 
-    drawLoss(ctx, colors, PAD_X, TOP + side + CAP_H, w - 2 * PAD_X, LOSS_H, state.losses, ep);
+    drawLoss(ctx, colors, PAD_X, TOP + bSide + CAP_H, w - 2 * PAD_X, LOSS_H, state.losses, ep);
   },
 
   readout: ({ params, state, anim }) => {
