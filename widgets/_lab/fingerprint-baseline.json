@@ -3,7 +3,7 @@
   "states": [
     {
       "slug": "naive-bayes",
-      "state": "?theme=light&shown=0",
+      "state": "?theme=light",
       "px": "0",
       "tx": "0"
     },

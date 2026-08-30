@@ -6,6 +6,14 @@
  * bar on the right, and the running total at the bottom (Kenneth's pick:
  * ledger form A with the waterfall's running total as the last row).
  *
+ * ROUND 2 (Kenneth): the features are admitted by PER-FEATURE PILLS, not a
+ * generic Step — the reader chooses which likelihood to multiply in, in any
+ * order (the product commutes, which the buttons quietly teach). Admission
+ * is therefore URL state, not animation state; the bars ease in and out on
+ * core's easing-request door, and Step/Play are declined (4.5). The
+ * correlation gate sits at the BOTTOM of the rail, after the pills — the
+ * caveat is discussed only once the calculation is understood.
+ *
  * Two tabs, one per likelihood family — Continuous (GaussianNB on CRP + WBC)
  * and Discrete (BernoulliNB on fever + chills) — and EACH tab carries a
  * correlation gate demonstrating the independence assumption double-counting.
@@ -46,6 +54,9 @@ const SYMS = {
 const LAB_KEYS = ["crp", "wbc"];
 const SYM_KEYS = ["fever", "chills"];
 const N_FEATURES = 2;
+
+/* Which pill admits which ledger row. */
+const PILL_OF = { crp: "addcrp", wbc: "addwbc", fever: "addfever", chills: "addchills" };
 
 /* ---- geometry ------------------------------------------------------------ */
 
@@ -205,18 +216,22 @@ const M = (inner) => `<math><mrow>${inner}</mrow></math>`;
 
 /* Posterior odds = prior odds x LR(feature) x LR(feature), the admitted
    factors wearing their numbers and the pending ones their names — then the
-   odds converted to a probability, spelled out. */
-function formula(rows, admitted, total) {
+   odds converted to a probability, spelled out. The card follows the SETTLED
+   pill state; the canvas numbers follow the eased bars. */
+function formula(rows, params, total) {
   const parts = [];
   const plain = [];
   parts.push(M(mi("posterior odds") + mo("=")));
   plain.push("posterior odds =");
-  rows.forEach((r, i) => {
-    const on = i === 0 || i <= admitted;
+  /* only the factors actually IN the product — an equation with a symbolic
+     factor beside a numeric result would be false as read; the ledger is
+     what shows the features not yet admitted */
+  const inRows = rows.filter((r, i) => i === 0 || Boolean(params[PILL_OF[r.key]]));
+  inRows.forEach((r, i) => {
     const val = f2(Math.exp(r.lr));
     if (i > 0) { parts.push(M(mo("×"))); plain.push("×"); }
-    if (on) { parts.push(M(mn(val))); plain.push(val); }
-    else { parts.push(M(mi(`LR(${r.name})`))); plain.push(`LR(${r.name})`); }
+    parts.push(M(mn(val)));
+    plain.push(val);
   });
   const odds = f2(Math.exp(total));
   const post = sig(total);
@@ -231,7 +246,7 @@ function formula(rows, admitted, total) {
 let cardHost = null;
 let cardKey = null;
 
-function renderCard(rows, admitted, total) {
+function renderCard(rows, params) {
   if (!cardHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -239,7 +254,9 @@ function renderCard(rows, admitted, total) {
     cardHost.className = "w-math";
     figure.parentNode.insertBefore(cardHost, figure);
   }
-  const eq = formula(rows, admitted, total);
+  const total = rows.reduce(
+    (s, r, i) => s + (i === 0 || params[PILL_OF[r.key]] ? r.lr : 0), 0);
+  const eq = formula(rows, params, total);
   if (eq.plain === cardKey) return;
   cardKey = eq.plain;
   if (MATHML) cardHost.innerHTML = eq.html;
@@ -359,18 +376,20 @@ function drawEllipse(ctx, muA, muB, vA, vB, rho, mult, X, Y, color, dash) {
 
 /* ---- the two halves of draw() -------------------------------------------- */
 
-/* Running total in log-odds, the newest admitted row eased by grow — every
+/* Running total in log-odds, each admitted row weighted by its ease — every
    printed number comes from the LERPED total (the lm-arc convention). */
-function runningTotal(rows, admitted, grow) {
+function runningTotal(rows, tOf) {
   let total = rows[0].lr;
-  for (let i = 1; i <= admitted; i += 1) total += rows[i].lr * (i === admitted ? grow : 1);
+  for (let i = 1; i < rows.length; i += 1) total += rows[i].lr * tOf(rows[i].key);
   return total;
 }
 
+/* The ease weight for a row: 1 when no animation is running. */
+const easeOf = (anim) => (key) => anim?.t?.[key] ?? 1;
+
 function drawLedger(ctx, colors, w, params, state, anim) {
   const rows = state.rows;
-  const admitted = anim?.admitted ?? N_FEATURES;
-  const grow = anim?.grow ?? 1;
+  const tOf = easeOf(anim);
 
   const zoneL = PANEL_X + PANEL_W + 56;
   const zoneR = w - 12;
@@ -383,7 +402,8 @@ function drawLedger(ctx, colors, w, params, state, anim) {
 
   rows.forEach((r, i) => {
     const yTop = HEAD_H + i * ROW_H;
-    const on = i === 0 || i <= admitted;
+    const t = i === 0 ? 1 : tOf(r.key);
+    const on = t > 0.001;
     ctx.save();
     if (!on) ctx.globalAlpha = 0.35;
 
@@ -408,7 +428,7 @@ function drawLedger(ctx, colors, w, params, state, anim) {
     }
 
     if (on) {
-      const g = i === admitted && i > 0 ? grow : 1;
+      const g = i === 0 ? 1 : t;
       const wPx = Math.max(zoneL - zero, Math.min(zoneR - zero, r.lr * g * scale));
       const clipped = Math.abs(wPx) < Math.abs(r.lr * g * scale) - 0.5;
       const color = r.key === "prior" ? colors.prior : r.lr >= 0 ? colors.event : colors.nonevent;
@@ -430,7 +450,8 @@ function drawLedger(ctx, colors, w, params, state, anim) {
 
   const yT = HEAD_H + 3 * ROW_H + 8;
   lineSeg(ctx, PANEL_X, yT - 6, w - 12, yT - 6, colors.grid);
-  const total = runningTotal(rows, admitted, grow);
+  const total = runningTotal(rows, tOf);
+  const nOn = rows.slice(1).filter((r) => params[PILL_OF[r.key]]).length;
   const wPx = Math.max(-zero + zoneL, Math.min(zoneR - zero, total * scale));
   ctx.save();
   ctx.fillStyle = colors.posterior;
@@ -442,7 +463,7 @@ function drawLedger(ctx, colors, w, params, state, anim) {
   label(ctx, colors, `P(disease) = ${f3(sig(total))}`, zero + wPx + (total >= 0 ? 8 : -8), yT + 24,
     { color: colors.ink1, align: total >= 0 ? "left" : "right", font: `${colors.fsSm} ${colors.font}` });
   label(ctx, colors,
-    admitted < N_FEATURES ? `after ${admitted} of ${N_FEATURES} features` : "after both features",
+    nOn < N_FEATURES ? `with ${nOn} of ${N_FEATURES} features in the product` : "with both features in the product",
     PANEL_X, yT + 40);
 }
 
@@ -664,6 +685,48 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    calc: { type: "section", label: "The calculation" },
+
+    /* THE FEATURES ARE ADMITTED BY PILLS, one per feature (round 2, Kenneth:
+       "use buttons to select features to add"). Membership chips, so the
+       reader multiplies likelihoods in ANY order — the product commutes, and
+       the buttons let them discover that. URL state, not animation state: a
+       shared link opens with the same features in the product. */
+    addcrp: {
+      type: "bool",
+      style: "pill",
+      label: "Add CRP",
+      default: false,
+      display: true,
+      when: { param: "family", equals: "continuous" },
+    },
+    addwbc: {
+      type: "bool",
+      style: "pill",
+      label: "Add WBC",
+      default: false,
+      display: true,
+      when: { param: "family", equals: "continuous" },
+    },
+    addfever: {
+      type: "bool",
+      style: "pill",
+      label: "Add fever",
+      default: false,
+      display: true,
+      when: { param: "family", equals: "discrete" },
+    },
+    addchills: {
+      type: "bool",
+      style: "pill",
+      label: "Add chills",
+      default: false,
+      display: true,
+      when: { param: "family", equals: "discrete" },
+    },
+
+    /* LAST IN THE RAIL, below the pills (round 2, Kenneth): the caveat comes
+       after the calculation is understood. */
     correlate: {
       type: "gate",
       label: "Correlate the two features",
@@ -698,8 +761,6 @@ defineWidget({
       display: true,
       when: { all: [{ param: "correlate" }, { param: "family", equals: "discrete" }] },
     },
-
-    shown: { type: "int", min: 0, max: 2, default: 0, hidden: true },
   },
 
   legend: ({ params }) => [
@@ -769,38 +830,54 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: "Add a feature",
-    stepTitle: "Multiply the next feature's likelihood ratio into the evidence total",
+    /* STEP AND PLAY ARE DECLINED (4.5): the pills are the interaction loop,
+       and a dead Step beside live pills would teach that the pills are the
+       afterthought. The bars ease on core's easing-request door, chasing the
+       pill targets so an interruption resumes from where the figure is. */
+    stepLabel: null,
     runLabel: null,
 
-    init: ({ params, fromScratch }) => ({
-      admitted: fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), N_FEATURES),
-      grow: 1,
-    }),
+    init: ({ params }) => {
+      const t = {};
+      for (const k of [...LAB_KEYS, ...SYM_KEYS]) t[k] = params[PILL_OF[k]] ? 1 : 0;
+      return { t, done: true, easing: false };
+    },
 
-    advance: (anim, { dt }) => {
-      if (anim.grow >= 1 && anim.admitted < N_FEATURES
-          && (anim.mode === "step" || anim.mode === "run")) {
-        anim.admitted += 1;
-        anim.grow = 0;
+    advance: (anim, { dt, params }) => {
+      const rate = Math.min(1, dt / GROW_MS);
+      let moving = false;
+      for (const k of Object.keys(anim.t)) {
+        const target = params[PILL_OF[k]] ? 1 : 0;
+        const gap = target - anim.t[k];
+        if (Math.abs(gap) > 0.004) {
+          anim.t[k] += Math.sign(gap) * rate;
+          anim.t[k] = Math.max(0, Math.min(1, anim.t[k]));
+          moving = true;
+        } else {
+          anim.t[k] = target;
+        }
       }
-      anim.grow = Math.min(1, anim.grow + dt / GROW_MS);
-      return anim.grow < 1;
+      if (!moving) anim.easing = false;
+      return moving;
+    },
+
+    /* a pill flip requests the ease; every other display change repaints */
+    rebuild: (anim, { params }) => {
+      for (const k of Object.keys(anim.t)) {
+        if ((params[PILL_OF[k]] ? 1 : 0) !== anim.t[k]) anim.easing = true;
+      }
     },
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
-    const admitted = anim?.admitted ?? N_FEATURES;
-    const grow = anim?.grow ?? 1;
-    renderCard(state.rows, admitted, runningTotal(state.rows, admitted, grow));
+    renderCard(state.rows, params);
     drawLedger(ctx, colors, w, params, state, anim);
     if (params.correlate) drawGate(ctx, colors, w, params, state);
   },
 
   readout: ({ params, state, anim }) => {
-    const admitted = anim?.admitted ?? N_FEATURES;
-    const grow = anim?.grow ?? 1;
-    const total = runningTotal(state.rows, admitted, grow);
+    const total = runningTotal(state.rows, easeOf(anim));
+    const nOn = state.rows.slice(1).filter((r) => params[PILL_OF[r.key]]).length;
     const tiles = [
       {
         label: "Prior P(disease)",
@@ -810,12 +887,12 @@ defineWidget({
       {
         label: "Evidence total",
         value: signed(total),
-        note: `log odds after ${Math.min(admitted, N_FEATURES)} of ${N_FEATURES} features`,
+        note: `log odds, ${nOn} of ${N_FEATURES} features in the product`,
       },
       {
         label: "P(disease)",
         value: f3(sig(total)),
-        note: admitted < N_FEATURES ? "the posterior so far" : "the posterior after both features",
+        note: nOn < N_FEATURES ? "the posterior so far" : "the posterior with both features",
       },
     ];
     if (params.correlate) {
