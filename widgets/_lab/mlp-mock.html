@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 37 mlp — stage candidates, mocked from the measured numbers</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 900px; min-height: 13px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 900px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 37 candidate · <code>mlp</code> — the two acts, mocked from the measured numbers</h1>
+
+  <p class="note">
+    Settled 2026-08-30: <b>the SVM widget's stage</b> (its own three generators, its class
+    colours) and <b>two acts</b> — training bends the boundary, and the k × activation dials
+    with the identity collapse. Design numbers in <code>_lab/mlp-design.py</code>; everything
+    on this page is trained live by the same engine (2 → k → 1, seeded uniform init,
+    full-batch gradient descent with <b>momentum 0.9 at lr 0.05, 600 epochs</b> — picked on
+    WATCHABILITY, since every optimiser tried gave the same reliability table but this one
+    spreads the motion out: rings k = 4 goes 77 → 32 → 1 → 0 errors over epochs
+    20/60/150/300). The boundary is drawn as the class wash the network predicts; the wash
+    edge is the boundary.
+  </p>
+
+  <h2>§1 · Act 1 — training bends the boundary (rings, k = 4, relu)</h2>
+  <p class="note">
+    The Play: epochs revealed one at a time from a precomputed trajectory (the pure-seeded
+    contract — compute() trains once, the animation replays it). Four stills below; in the
+    widget this is ONE panel morphing, with the loss curve growing beside it and the error
+    count live.
+  </p>
+  <div class="row" id="film"></div>
+  <div class="row">
+    <div class="cand">
+      <h3>The loss curve beside the stage</h3>
+      <p class="sub">cross-entropy per epoch; markers at the four stills — the widget's second panel, or a strip under the stage?</p>
+      <canvas id="loss" width="460" height="180"></canvas>
+      <p class="cap" id="loss-cap"></p>
+    </div>
+  </div>
+
+  <h2>§2 · Act 2a — how many bent pieces does the boundary need? (600 epochs, relu)</h2>
+  <p class="note">
+    <b>A single seed is not a measurement</b>, and this act is where that bit. An early
+    draft of this page showed rings k = 3 reaching 0 errors and called 3 "the first k that
+    works"; a different data seed reached 24. Swept over 20 inits per cell — and identically
+    under every optimiser tried, so it is a property of the problem, not the step rule:
+  </p>
+  <p class="note" style="font-family: var(--font-mono); font-size: 11px">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;k=1&nbsp;&nbsp;&nbsp;&nbsp;k=2&nbsp;&nbsp;&nbsp;&nbsp;k=3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;k=4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;k=8<br>
+    rings&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0/20&nbsp;&nbsp;&nbsp;0/20&nbsp;&nbsp;10/20&nbsp;&nbsp;19/20&nbsp;&nbsp;20/20<br>
+    crescents&nbsp;0/20&nbsp;&nbsp;&nbsp;0/20&nbsp;&nbsp;&nbsp;3/20&nbsp;&nbsp;&nbsp;6/20&nbsp;&nbsp;17/20
+  </p>
+  <p class="note">
+    <b>Two facts, both worth teaching.</b> CAPACITY: k 1 and 2 can never close a ring or
+    thread two arcs — the panels below show a line and a wedge. OPTIMISATION: k 3 sometimes
+    can and usually does not; <b>width buys reliability, not just capacity</b>, because
+    spare units give gradient descent more ways down. So the Seed dial is a teaching
+    control here, and no caption may say "k ≥ 3 works". Blobs are solved at k 1 — a
+    straight line was always enough there, the SVM widget's own opening move.
+  </p>
+  <div class="row" id="kladder"></div>
+  <div class="row" id="kladder2"></div>
+
+  <h2>§3 · Act 2b — the nonlinearity lives in the activation (rings, 600 epochs)</h2>
+  <p class="note">
+    Identity at k = 8 collapses to ONE linear map — eight hidden units, still a straight
+    line, still ~81 errors. The activation dial is where the network's power comes from,
+    not the width.
+  </p>
+  <div class="row" id="acts"></div>
+
+  <h2>§4 · Open picks</h2>
+  <p class="note">
+    1) <b>The loss curve</b>: a second panel beside the stage (SVM has no second panel — the
+    sibling diverges here) or a low strip under it, or readout tiles only?<br>
+    2) <b>Drive labels</b>: Step <i>Next epoch</i> · Play <i>Train</i>, with a Play-speed
+    choice — epochs per second?<br>
+    3) <b>Dials</b>: Hidden units k as a choice ladder (1 / 2 / 3 / 4 / 8), Activation
+    segmented (Identity | ReLU | tanh) — does the learning rate get a dial too, or stay
+    fixed at the measured 0.05?<br>
+    4) <b>The wash vs a contour line</b>: SVM draws contours (boundary + margins); here the
+    wash also shows CONFIDENCE (the sigmoid), which the SVM stage never had. Wash, contour,
+    or both?<br>
+    5) <b>The failures are the lesson, or are they?</b> The table above says k 3 fails
+    most of the time and k 4 fails on crescents more often than not. Lean in — a caption
+    naming the Seed dial as the way to see it — or set the default to k 8 where training
+    is reliable and let the reader find the failures by turning k down?<br>
+    6) <b>Title</b>: working <i>Neural Network</i> — alternatives <i>Training a Neural
+    Network</i>, <i>The Multilayer Perceptron</i>. Slug <code>mlp</code>.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-reference","--ink-1","--ink-2","--ink-3","--grid","--surface-1"]
+  .forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+const N_PER_CLASS = 90;
+const DOM = [-2.6, 2.6];
+
+/* ---- widget 16's generators, verbatim shapes ---- */
+function makeData(kind, rng) {
+  const out = [];
+  if (kind === "blobs") {
+    for (const y of [-1, 1]) {
+      const cx = y * 0.95, cy = y * 0.8;
+      for (let i = 0; i < N_PER_CLASS; i += 1) out.push({ x: [rng.normal(cx, 0.42), rng.normal(cy, 0.42)], y });
+    }
+  } else if (kind === "rings") {
+    for (const [y, r] of [[-1, 0.75], [1, 1.72]]) {
+      for (let i = 0; i < N_PER_CLASS; i += 1) {
+        const t = rng.uniform(0, Math.PI * 2);
+        out.push({ x: [r * Math.cos(t) + rng.normal(0, 0.12), r * Math.sin(t) + rng.normal(0, 0.12)], y });
+      }
+    }
+  } else {
+    for (let i = 0; i < N_PER_CLASS; i += 1) {
+      const t = rng.uniform(0, Math.PI);
+      out.push({ x: [1.25 * (Math.cos(t) - 0.5) + rng.normal(0, 0.11), 1.25 * (Math.sin(t) - 0.25) + rng.normal(0, 0.11)], y: 1 });
+    }
+    for (let i = 0; i < N_PER_CLASS; i += 1) {
+      const t = rng.uniform(0, Math.PI);
+      out.push({ x: [1.25 * (0.5 - Math.cos(t)) + rng.normal(0, 0.11), 1.25 * (0.25 - Math.sin(t)) + rng.normal(0, 0.11)], y: -1 });
+    }
+  }
+  return out;
+}
+
+/* ---- the engine: the JS port of _lab/mlp-design.py's trainer ---- */
+const ACT = {
+  relu: [(z) => Math.max(0, z), (z) => (z > 0 ? 1 : 0)],
+  tanh: [Math.tanh, (z) => 1 - Math.tanh(z) ** 2],
+  identity: [(z) => z, () => 1],
+};
+
+function initNet(k, rng) {
+  const r1 = 1 / Math.sqrt(2), r2 = 1 / Math.sqrt(k);
+  const W1 = [], b1 = [], W2 = [];
+  for (let j = 0; j < k; j += 1) {
+    W1.push([rng.uniform(-r1, r1), rng.uniform(-r1, r1)]);
+    b1.push(rng.uniform(-r1, r1));
+    W2.push(rng.uniform(-r2, r2));
+  }
+  return { W1, b1, W2, b2: rng.uniform(-r2, r2) };
+}
+
+function forward(p, f, x) {
+  let z2 = p.b2;
+  for (let j = 0; j < p.W2.length; j += 1) {
+    z2 += p.W2[j] * f(p.W1[j][0] * x[0] + p.W1[j][1] * x[1] + p.b1[j]);
+  }
+  return z2;
+}
+
+function train(data, k, act, lr, epochs, rng, snapAt = [], mom = 0.9) {
+  const [f, df] = ACT[act];
+  const p = initNet(k, rng);
+  const v = { W1: p.W1.map(() => [0, 0]), b1: p.b1.map(() => 0), W2: p.W2.map(() => 0), b2: 0 };
+  const n = data.length;
+  const losses = [];
+  const snaps = {};
+  const copy = () => ({ W1: p.W1.map((w) => w.slice()), b1: p.b1.slice(), W2: p.W2.slice(), b2: p.b2 });
+  if (snapAt.includes(0)) snaps[0] = copy();
+  for (let ep = 1; ep <= epochs; ep += 1) {
+    const gW1 = p.W1.map(() => [0, 0]), gb1 = p.b1.map(() => 0), gW2 = p.W2.map(() => 0);
+    let gb2 = 0, loss = 0;
+    for (const s of data) {
+      const y = s.y > 0 ? 1 : 0;
+      const z1 = p.W1.map((w, j) => w[0] * s.x[0] + w[1] * s.x[1] + p.b1[j]);
+      const h = z1.map(f);
+      let z2 = p.b2;
+      for (let j = 0; j < k; j += 1) z2 += p.W2[j] * h[j];
+      const out = 1 / (1 + Math.exp(-z2));
+      loss += -(y * Math.log(out + 1e-12) + (1 - y) * Math.log(1 - out + 1e-12));
+      const d2 = (out - y) / n;
+      gb2 += d2;
+      for (let j = 0; j < k; j += 1) {
+        gW2[j] += d2 * h[j];
+        const d1 = d2 * p.W2[j] * df(z1[j]);
+        gW1[j][0] += d1 * s.x[0];
+        gW1[j][1] += d1 * s.x[1];
+        gb1[j] += d1;
+      }
+    }
+    losses.push(loss / n);
+    for (let j = 0; j < k; j += 1) {
+      v.W1[j][0] = mom * v.W1[j][0] - lr * gW1[j][0];
+      v.W1[j][1] = mom * v.W1[j][1] - lr * gW1[j][1];
+      v.b1[j] = mom * v.b1[j] - lr * gb1[j];
+      v.W2[j] = mom * v.W2[j] - lr * gW2[j];
+      p.W1[j][0] += v.W1[j][0];
+      p.W1[j][1] += v.W1[j][1];
+      p.b1[j] += v.b1[j];
+      p.W2[j] += v.W2[j];
+    }
+    v.b2 = mom * v.b2 - lr * gb2;
+    p.b2 += v.b2;
+    if (snapAt.includes(ep)) snaps[ep] = copy();
+  }
+  const errors = data.filter((s) => (forward(p, f, s.x) > 0) !== (s.y > 0)).length;
+  return { p, losses, snaps, errors };
+}
+
+const errorsOf = (p, f, data) => data.filter((s) => (forward(p, f, s.x) > 0) !== (s.y > 0)).length;
+
+/* ---- drawing ---- */
+function panel(host, title, sub, side = 210) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  box.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = side; cv.height = side;
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  box.appendChild(cap);
+  host.appendChild(box);
+  return { ctx: cv.getContext("2d"), cap, side };
+}
+
+function drawStage(ctx, side, data, p, act) {
+  const [f] = ACT[act];
+  const X = (v) => ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
+  const G = 52;
+  for (let i = 0; i < G; i += 1) {
+    for (let j = 0; j < G; j += 1) {
+      const x = DOM[0] + ((i + 0.5) / G) * (DOM[1] - DOM[0]);
+      const yv = DOM[0] + ((j + 0.5) / G) * (DOM[1] - DOM[0]);
+      const out = 1 / (1 + Math.exp(-forward(p, f, [x, yv])));
+      ctx.fillStyle = out > 0.5 ? C["c-event"] : C["c-nonevent"];
+      ctx.globalAlpha = 0.06 + 0.16 * Math.abs(out - 0.5) * 2;
+      ctx.fillRect((i / G) * side, side - ((j + 1) / G) * side, side / G + 0.5, side / G + 0.5);
+    }
+  }
+  ctx.globalAlpha = 1;
+  for (const s of data) {
+    ctx.beginPath();
+    ctx.arc(X(s.x[0]), side - X(s.x[1]), 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = s.y > 0 ? C["c-event"] : C["c-nonevent"];
+    ctx.fill();
+  }
+}
+
+window.__mlp = { train, makeData, makeRng };   // console audition hook, lab page only
+
+/* ---- §1 the filmstrip ---- */
+const LR = 0.05, EPOCHS = 600;   // the measured pick: gradual enough to watch
+const rings = makeData("rings", makeRng(11));
+const SNAPS = [0, 60, 150, 300];
+const film = train(rings, 4, "relu", LR, EPOCHS, makeRng(1), SNAPS);
+for (const ep of SNAPS) {
+  const p = film.snaps[ep];
+  const e = errorsOf(p, ACT.relu[0], rings);
+  const { ctx, cap, side } = panel(document.getElementById("film"), `epoch ${ep}`, "");
+  drawStage(ctx, side, rings, p, "relu");
+  cap.textContent = `${e} of ${rings.length} wrong`;
+}
+
+/* the loss curve */
+{
+  const cv = document.getElementById("loss");
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  const max = Math.max(...film.losses);
+  const LX = (ep) => 34 + (ep / EPOCHS) * (W - 46);
+  const LY = (l) => 10 + (1 - l / max) * (H - 34);
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(34, 10, W - 46, H - 34);
+  ctx.strokeStyle = C["c-highlight"];
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  film.losses.forEach((l, i) => { const x = LX(i + 1), y = LY(l); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.stroke();
+  ctx.fillStyle = C["ink-3"];
+  ctx.font = MONO_S;
+  for (const ep of SNAPS.slice(1)) {
+    ctx.fillRect(LX(ep) - 0.5, 10, 1, H - 34);
+    ctx.fillText(String(ep), LX(ep) - 8, H - 10);
+  }
+  ctx.fillText("cross-entropy", 34, 8);
+  ctx.fillText("epoch", W - 40, H - 10);
+  document.getElementById("loss-cap").textContent =
+    `loss ${film.losses[0].toFixed(3)} → ${film.losses.at(-1).toFixed(3)} over ${EPOCHS} epochs; final errors ${film.errors}`;
+}
+
+/* ---- §2 the k ladder ---- */
+for (const [kind, host, seed] of [["rings", "kladder", 1], ["moons", "kladder2", 1]]) {
+  const data = kind === "rings" ? rings : makeData("moons", makeRng(12));
+  for (const k of [1, 2, 4, 8]) {
+    const r = train(data, k, "relu", LR, EPOCHS, makeRng(seed));
+    const { ctx, cap, side } = panel(document.getElementById(host),
+      `${kind === "rings" ? "Rings" : "Crescents"} · k = ${k}`, "");
+    drawStage(ctx, side, data, r.p, "relu");
+    cap.textContent = `${r.errors} of ${data.length} wrong after ${EPOCHS} epochs`;
+  }
+}
+
+/* ---- §3 the activations ---- */
+for (const [act, k] of [["identity", 8], ["relu", 4], ["tanh", 4]]) {
+  const r = train(rings, k, act, LR, EPOCHS, makeRng(1));
+  const { ctx, cap, side } = panel(document.getElementById("acts"),
+    `${act} · k = ${k}`, act === "identity" ? "eight units, still one straight line" : "");
+  drawStage(ctx, side, rings, r.p, act);
+  cap.textContent = `${r.errors} of ${rings.length} wrong`;
+}
+</script>
+</body>
+</html>
