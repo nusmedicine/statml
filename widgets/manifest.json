@@ -493,6 +493,22 @@
       ],
       "arc": 34,
       "status": "shipped"
+    },
+    {
+      "slug": "metrics",
+      "title": "Scoring the Predictions",
+      "blurb": "Error metrics score a numeric outcome, and the confusion matrix scores a categorical one.",
+      "course": "PHM5005",
+      "topics": [
+        "model evaluation",
+        "RMSE",
+        "MAE",
+        "R-squared",
+        "confusion matrix",
+        "precision and recall"
+      ],
+      "arc": 35,
+      "status": "draft"
     }
   ]
 }

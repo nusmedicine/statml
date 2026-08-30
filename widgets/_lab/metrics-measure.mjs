@@ -25,10 +25,19 @@
    the honest one (a fixed cutoff holds every rate constant, no trap).
 
    Run: node widgets/_lab/metrics-measure.mjs
+
+   THE GENERATORS LIVE IN THE WIDGET (`widgets/metrics/model.js`) and this
+   script imports them — the lm-diagnostics rule: the lab imports FROM the
+   widget, so a catalogue number and an on-screen number cannot come from two
+   copies. The round-0 version of this file carried its own copies; they moved
+   into the widget unchanged when it was built.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
 import { mean, sd } from "../core/stats.js";
+import {
+  numericCohort, numericMetrics, categoricalCohort, categoricalMetrics,
+} from "../metrics/model.js";
 
 const erf = (x) => {
   // Abramowitz-Stegun 7.1.26, |err| < 1.5e-7 — plenty for design numbers
@@ -49,43 +58,6 @@ const f3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : "—");
 const pad = (s, w) => String(s).padStart(w);
 
 /* ---------------------------------------------------------------- numeric */
-
-function numericCohort(rng, { n, sigma, outliers = 0, mag = 18 }) {
-  const actual = [];
-  for (let i = 0; i < n; i += 1) {
-    let a = rng.normal(19, 8);
-    a = Math.min(40, Math.max(5, a));
-    actual.push(a);
-  }
-  const pred = actual.map((a) => a + rng.normal(0, sigma));
-  // outliers: the k largest-actual points get a big signed miss, so they sit
-  // in a consistent screen region rather than anywhere the seed likes
-  const order = actual.map((a, i) => [a, i]).sort((p, q) => q[0] - p[0]);
-  for (let k = 0; k < outliers && k < n; k += 1) {
-    const i = order[k][1];
-    pred[i] = actual[i] + (k % 2 === 0 ? -mag : mag);
-  }
-  // keep predictions in a plausible printable band (a negative body fat is
-  // exactly the bizarre value Kenneth ruled out)
-  for (let i = 0; i < n; i += 1) pred[i] = Math.min(48, Math.max(0, pred[i]));
-  return { actual, pred };
-}
-
-function numericMetrics(actual, pred) {
-  const n = actual.length;
-  let se = 0;
-  let ae = 0;
-  for (let i = 0; i < n; i += 1) {
-    const e = pred[i] - actual[i];
-    se += e * e;
-    ae += Math.abs(e);
-  }
-  const mse = se / n;
-  const ybar = mean(actual);
-  let sst = 0;
-  for (const a of actual) sst += (a - ybar) * (a - ybar);
-  return { mse, rmse: Math.sqrt(mse), mae: ae / n, r2: 1 - se / sst };
-}
 
 function sweepNumeric() {
   console.log("== NUMERIC ACT: body fat, pred = actual + N(0, sigma) ==\n");
@@ -162,36 +134,6 @@ function sweepNumeric() {
 }
 
 /* ------------------------------------------------------------ categorical */
-
-function categoricalCohort(rng, { n, prev, d, rule }) {
-  // rule "plugin": cutoff log((1-p)/p)/d on the latent scale (what a default
-  //               logistic regression trained at this prevalence does at 0.5)
-  // rule "mid":   cutoff 0 (a fixed midpoint — the comparison generator)
-  const cut = rule === "plugin" ? Math.log((1 - prev) / prev) / d : 0;
-  let tp = 0;
-  let fp = 0;
-  let tn = 0;
-  let fn = 0;
-  for (let i = 0; i < n; i += 1) {
-    const event = rng.next() < prev;
-    const z = rng.normal(event ? d / 2 : -d / 2, 1);
-    const predPos = z >= cut;
-    if (event && predPos) tp += 1;
-    else if (event) fn += 1;
-    else if (predPos) fp += 1;
-    else tn += 1;
-  }
-  return { tp, fp, tn, fn };
-}
-
-function categoricalMetrics({ tp, fp, tn, fn }) {
-  const n = tp + fp + tn + fn;
-  const acc = (tp + tn) / n;
-  const prec = tp + fp ? tp / (tp + fp) : NaN;
-  const rec = tp + fn ? tp / (tp + fn) : NaN;
-  const f1 = Number.isFinite(prec) && Number.isFinite(rec) && prec + rec > 0 ? (2 * prec * rec) / (prec + rec) : NaN;
-  return { acc, prec, rec, f1 };
-}
 
 function sweepCategorical() {
   console.log("\n\n== CATEGORICAL ACT: confusion matrix, plug-in rule at 0.5 ==\n");
