@@ -2,10 +2,88 @@
   "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all — that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
   "states": [
     {
+      "$note": "opens untrained: random weights, the boundary they happen to draw",
       "slug": "mlp",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "a76b8f3f",
+      "tx": "f8f083fd"
+    },
+    {
+      "slug": "mlp",
+      "state": "?theme=light&shown=600",
+      "px": "6552fc89",
+      "tx": "d6f6e0fb"
+    },
+    {
+      "$note": "each unit's line on the boundary — the pieces it is built from",
+      "slug": "mlp",
+      "state": "?theme=light&lines=on&shown=600",
+      "px": "8bd726fb",
+      "tx": "20c7f980"
+    },
+    {
+      "$note": "k=1: one unit can only draw a straight line",
+      "slug": "mlp",
+      "state": "?theme=light&hidden=1&shown=600",
+      "px": "ceade184",
+      "tx": "92a338b8"
+    },
+    {
+      "slug": "mlp",
+      "state": "?theme=light&hidden=8&activation=tanh&shown=600",
+      "px": "73f8b6f9",
+      "tx": "ad7d7b2b"
+    },
+    {
+      "$note": "the identity collapse: eight units, still one line",
+      "slug": "mlp",
+      "state": "?theme=light&activation=identity&hidden=8&shown=600",
+      "px": "26f2f0e3",
+      "tx": "ed2ff5e9"
+    },
+    {
+      "$note": "crescents at k=3: three units are enough HERE, on this starting point — the reliability table records that they usually are not (3 of 20 inits)",
+      "slug": "mlp",
+      "state": "?theme=light&dataset=moons&hidden=3&shown=600",
+      "px": "364e1da8",
+      "tx": "ca09aeba"
+    },
+    {
+      "slug": "mlp",
+      "state": "?theme=light&dataset=blobs&hidden=1&shown=600",
+      "px": "baf0746e",
+      "tx": "f356f9e9"
+    },
+    {
+      "$note": "a different starting point, same samples",
+      "slug": "mlp",
+      "state": "?theme=light&init=7&shown=600",
+      "px": "979818a4",
+      "tx": "2a27551b"
+    },
+    {
+      "$note": "DRIVEN mid-training at Medium: epochs counted, no choreography",
+      "slug": "mlp",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "43506340",
+      "tx": "25fcfe8c"
+    },
+    {
+      "$note": "DRIVEN mid-beat at Slow: ~0.6 through the FIRST training step, which is the backward phase of the choreography",
+      "slug": "mlp",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "run",
+        "frames": 12,
+        "dt": 100
+      },
+      "px": "c1dbe1db",
+      "tx": "f8f083fd"
     },
     {
       "$note": "opens empty: the prior alone, both pills off",

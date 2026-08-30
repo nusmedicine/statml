@@ -746,7 +746,6 @@ function rerollInit() {
 widgetApi = defineWidget({
   slug: "mlp",
   title: "Neural Networks (MLP)",
-  status: "draft",
   subtitle:
     "A multi-layer perceptron is built from artificial neurons, each weighting "
     + "its inputs and applying an activation function. Backpropagation adjusts "
