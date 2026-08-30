@@ -271,9 +271,35 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   ctx.restore();
 }
 
-/* One hidden unit, magnified, in the band at the panel's head, with its
-   parts on the network's own columns so it sits above the units it stands
-   for. The inputs are written generically, x1 … xn, because a unit's
+/* MATHEMATICAL LETTERING, drawn. MathML is DOM and this figure is painted, but
+   what MathML would buy is a convention a canvas can follow: a variable is
+   italic serif, everything that is not one is upright, and a subscript is
+   smaller and set below the baseline. Unicode's subscript characters sit ON
+   the baseline at the wrong size, which is why the band read as a caption. */
+const MATH_SERIF = "Georgia, 'Times New Roman', serif";
+
+function mathVar(ctx, colors, base, sub, x, y, { align = "left", color, size = 13 } = {}) {
+  ctx.save();
+  ctx.fillStyle = color ?? colors.ink2;
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `italic ${size}px ${MATH_SERIF}`;
+  const bw = ctx.measureText(base).width;
+  ctx.font = `${Math.round(size * 0.72)}px ${MATH_SERIF}`;
+  const sw = sub ? ctx.measureText(sub).width : 0;
+  const x0 = align === "right" ? x - (bw + sw) : align === "center" ? x - (bw + sw) / 2 : x;
+  ctx.textAlign = "left";
+  ctx.font = `italic ${size}px ${MATH_SERIF}`;
+  ctx.fillText(base, x0, y);
+  if (sub) {
+    ctx.font = `${Math.round(size * 0.72)}px ${MATH_SERIF}`;
+    ctx.fillText(sub, x0 + bw + 0.5, y + size * 0.26);
+  }
+  ctx.restore();
+}
+
+/* One hidden unit, magnified, in the band at the panel's head, with its sum
+   and output on the network's own columns so it sits above the units it
+   stands for. The inputs are written generically, x1 … xn, because a unit's
    arithmetic does not depend on there being two of them.
 
    The rug under the curve is the pre-activations the units receive at this
@@ -292,9 +318,21 @@ function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
   const box = Math.max(30, Math.min(66, L.xOut - L.xHid - 46));
   const boxX = L.xHid + 22;
   const boxTop = mid - box / 2;
+  const R = 10;
 
   label(ctx, colors, "Inside one hidden unit", x0 + 4, y0 + 11, { color: colors.ink2 });
 
+  const head = (bx, by, a) => {
+    ctx.save();
+    ctx.fillStyle = colors.ink3;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
+    ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
   const arrow = (ax, ay, bx, by) => {
     ctx.save();
     ctx.strokeStyle = colors.ink3;
@@ -303,31 +341,53 @@ function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
     ctx.moveTo(ax, ay);
     ctx.lineTo(bx, by);
     ctx.stroke();
-    const a = Math.atan2(by - ay, bx - ax);
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
-    ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
-    ctx.closePath();
-    ctx.fillStyle = colors.ink3;
-    ctx.fill();
     ctx.restore();
+    head(bx, by, Math.atan2(by - ay, bx - ax));
   };
 
-  /* only the outer arrows carry a weight label: they converge on the sum,
-     so a label on each would sit a few pixels from its neighbour */
+  /* EACH INPUT RUNS FLAT, THEN TURNS ONCE. The turn is deliberately close to
+     the sum: run the diagonal the whole way and four inputs inside a 92px
+     band make about 7 degrees, which reads as neither parallel nor
+     converging. A long flat stub and a short diagonal put the outer arrivals
+     near 30 degrees instead, and the weight label rides the flat part where
+     it is easiest to read. */
+  const turnX = Math.max(inX + 18, L.xHid - 42);
   const rows = [
-    { t: "x₁", w: "w₁", dy: -22 },
-    { t: "x₂", w: "", dy: -8 },
-    { t: "⋮", w: "", dy: 7 },
-    { t: "xₙ", w: "wₙ", dy: 22 },
+    { t: "1", dy: -22 }, { t: "2", dy: -8 }, { t: null, dy: 7 }, { t: "n", dy: 22 },
   ];
   for (const r of rows) {
-    label(ctx, colors, r.t, inX - 6, mid + r.dy + 4, { align: "right", color: colors.ink2 });
-    if (r.t === "⋮") continue;
-    arrow(inX, mid + r.dy, L.xHid - 11, mid + r.dy * 0.3);
-    if (r.w) {
-      label(ctx, colors, r.w, (inX + L.xHid) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
+    if (r.t === null) {
+      label(ctx, colors, "⋮", inX - 9, mid + r.dy + 5, { align: "right", color: colors.ink3 });
+      continue;
+    }
+    mathVar(ctx, colors, "x", r.t, inX - 6, mid + r.dy + 4, { align: "right" });
+    ctx.save();
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(inX, mid + r.dy);
+    ctx.lineTo(turnX, mid + r.dy);
+    ctx.stroke();
+    ctx.restore();
+    /* the diagonal stops on the circle, not at its centre */
+    const dx = L.xHid - turnX;
+    const dy = -r.dy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ex = L.xHid - (dx / len) * (R + 3);
+    const ey = mid - (dy / len) * (R + 3);
+    ctx.save();
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(turnX, mid + r.dy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.restore();
+    head(ex, ey, Math.atan2(ey - (mid + r.dy), ex - turnX));
+    if (r.t === "1" || r.t === "n") {
+      /* clear of its own line: the subscript descends below the baseline */
+      mathVar(ctx, colors, "w", r.t, (inX + turnX) / 2, mid + r.dy - 8,
+        { align: "center", size: 12, color: colors.ink3 });
     }
   }
 
@@ -335,17 +395,19 @@ function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
   ctx.strokeStyle = colors.ink3;
   ctx.fillStyle = colors.surface;
   ctx.beginPath();
-  ctx.arc(L.xHid, mid, 10, 0, Math.PI * 2);
+  ctx.arc(L.xHid, mid, R, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = colors.ink2;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.font = `13px ${MATH_SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("Σ", L.xHid, mid);
+  ctx.fillText("Σ", L.xHid, mid + 1);
   ctx.restore();
-  label(ctx, colors, "+ b", L.xHid, mid + 24, { align: "center" });
-  arrow(L.xHid + 11, mid, boxX - 3, mid);
+  /* the operator is upright, the bias is a variable */
+  label(ctx, colors, "+", L.xHid - 5, mid + 25, { color: colors.ink3 });
+  mathVar(ctx, colors, "b", "", L.xHid + 3, mid + 25, { size: 12, color: colors.ink3 });
+  arrow(L.xHid + R + 1, mid, boxX - 3, mid);
 
   const { f } = ACTS[actKey];
   const Z = 2.4;
