@@ -35,7 +35,7 @@
 
 import { defineWidget, fmt } from "../core/index.js";
 import {
-  DOM, SETS, ACTS, K_LADDER, EPOCHS, score, trainAll, deadUnits,
+  DOM, SETS, ACTS, K_LADDER, EPOCHS, score, trainAll, deadUnits, unitLine,
 } from "./model.js";
 
 /* ---- geometry ------------------------------------------------------------ */
@@ -47,8 +47,41 @@ const CAP_H = 44;   // the caption row, clear of the loss strip's own label
 const LOSS_H = 66;
 const BOTTOM = 8;
 
+const INSET = 82;   // the activation inset, in a RESERVED band at the panel's
+                    // foot: placed under the hidden column it landed on the
+                    // fourth node, and at k = 8 that column has no gap at all
+const HIT_R = 18;   // how close the pointer must come to a hidden unit
+
 const panelSide = (w) => Math.max(150, Math.min(300, (w - 2 * PAD_X - GAP) / 2));
 const stageHeight = (w) => TOP + panelSide(w) + CAP_H + LOSS_H + BOTTOM;
+
+/* Where every node sits. ONE function, because the hit test and the drawing
+   must agree about it — two copies is how a target comes to sit six columns
+   from the thing it selects (5.8). */
+function netLayout(x0, y0, side, k) {
+  const usable = side - 34 - INSET;
+  const top = y0 + 20;
+  const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
+  return {
+    xIn: x0 + 30,
+    xHid: x0 + side / 2,
+    xOut: x0 + side - 30,
+    yOf,
+    hidden: Array.from({ length: k }, (_, j) => ({ x: x0 + side / 2, y: yOf(j, k) })),
+    insetX: x0 + 6,
+    insetY: y0 + side - INSET - 2,
+  };
+}
+
+/** Which hidden unit the pointer is over, or null. */
+function unitAt(pointer, x0, y0, side, k) {
+  if (!pointer) return null;
+  const L = netLayout(x0, y0, side, k);
+  for (let j = 0; j < k; j += 1) {
+    if (Math.hypot(pointer.x - L.hidden[j].x, pointer.y - L.hidden[j].y) < HIT_R) return j;
+  }
+  return null;
+}
 
 const f2 = (v) => fmt(v, 2);
 const f3 = (v) => fmt(v, 3);
@@ -65,11 +98,39 @@ function label(ctx, colors, s, x, y, { color, align = "left", font } = {}) {
   ctx.restore();
 }
 
+/* One hidden unit's line, w·x + b = 0 — where it switches on, and under ReLU
+   exactly the crease it contributes to the boundary. Clipped by the panel. */
+function drawUnitLine(ctx, colors, x0, y0, side, net, j, strong) {
+  const { a, b, c } = unitLine(net, j);
+  if (Math.abs(a) < 1e-9 && Math.abs(b) < 1e-9) return;
+  const X = (v) => x0 + ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
+  const Y = (v) => y0 + side - ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, side, side);
+  ctx.clip();
+  ctx.strokeStyle = strong ? colors.highlight : colors.ink3;
+  ctx.lineWidth = strong ? 2.2 : 1;
+  ctx.setLineDash(strong ? [6, 4] : [3, 4]);
+  ctx.globalAlpha = strong ? 1 : 0.7;
+  ctx.beginPath();
+  if (Math.abs(b) > Math.abs(a)) {
+    ctx.moveTo(X(DOM[0]), Y(-(a * DOM[0] + c) / b));
+    ctx.lineTo(X(DOM[1]), Y(-(a * DOM[1] + c) / b));
+  } else {
+    ctx.moveTo(X(-(b * DOM[0] + c) / a), Y(DOM[0]));
+    ctx.lineTo(X(-(b * DOM[1] + c) / a), Y(DOM[1]));
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* The decision boundary: the wash is the network's CONFIDENCE (the sigmoid),
    which an SVM's decision value could not honestly give; the contour is the
    boundary itself, at P = 0.5, so it can be pointed at. */
-function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey) {
+function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   const { f } = ACTS[actKey];
+  const { hoverUnit = null, showLines = false, pointer = null, dead = [] } = opts ?? {};
   const X = (v) => x0 + ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
   const Y = (v) => y0 + side - ((v - DOM[0]) / (DOM[1] - DOM[0])) * side;
 
@@ -85,6 +146,14 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey) {
       ctx.globalAlpha = 0.05 + 0.34 * Math.abs(pr - 0.5) * 2;
       ctx.fillRect(x0 + i * cell, y0 + side - (j + 1) * cell, cell + 0.6, cell + 0.6);
       ctx.restore();
+    }
+  }
+
+  /* the unit lines: all of them on the toggle — the route a lecture screen
+     has, since it has no pointer — and the hovered one over the top */
+  if (showLines) {
+    for (let j = 0; j < net.W2.length; j += 1) {
+      if (!dead[j] && j !== hoverUnit) drawUnitLine(ctx, colors, x0, y0, side, net, j, false);
     }
   }
 
@@ -128,7 +197,41 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey) {
     ctx.beginPath();
     ctx.arc(X(s.x[0]), Y(s.x[1]), 2.7, 0, Math.PI * 2);
     ctx.fillStyle = s.y > 0 ? colors.event : colors.nonevent;
+    if (hoverUnit !== null) ctx.globalAlpha = 0.55;
     ctx.fill();
+    ctx.restore();
+  }
+
+  if (hoverUnit !== null && !dead[hoverUnit]) {
+    drawUnitLine(ctx, colors, x0, y0, side, net, hoverUnit, true);
+  }
+
+  /* the pointer's own reading: the wash is a probability, and this says so */
+  if (pointer && pointer.x >= x0 && pointer.x <= x0 + side
+      && pointer.y >= y0 && pointer.y <= y0 + side) {
+    const xv = DOM[0] + ((pointer.x - x0) / side) * (DOM[1] - DOM[0]);
+    const yv = DOM[0] + ((y0 + side - pointer.y) / side) * (DOM[1] - DOM[0]);
+    const pr = 1 / (1 + Math.exp(-score(net, f, xv, yv)));
+    ctx.save();
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pointer.x - 8, pointer.y);
+    ctx.lineTo(pointer.x + 8, pointer.y);
+    ctx.moveTo(pointer.x, pointer.y - 8);
+    ctx.lineTo(pointer.x, pointer.y + 8);
+    ctx.stroke();
+    const txt = `P = ${f3(pr)}`;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    const tw = ctx.measureText(txt).width + 10;
+    const bx = Math.min(pointer.x + 10, x0 + side - tw - 2);
+    const by = Math.max(y0 + 14, pointer.y - 10);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = colors.surface;
+    ctx.fillRect(bx, by - 11, tw, 15);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.ink1;
+    ctx.fillText(txt, bx + 5, by);
     ctx.restore();
   }
 
@@ -138,29 +241,85 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey) {
   ctx.restore();
 }
 
+/* THE ACTIVATION, SHOWN RATHER THAN NAMED: "Identity | ReLU | tanh" is three
+   words and no picture, and the shape is the whole idea — a diagonal, a
+   hinge, an S. The rug under it is the z values the hidden units ACTUALLY
+   receive on this data at this epoch, so it spreads as training runs and a
+   unit whose inputs slide entirely into ReLU's flat half is a dead unit being
+   born. That is the animation: it rides Play and needs no state of its own.
+   (A crossfade between activations was designed and dropped — changing the
+   activation is a data change, which resets training, so there is no figure
+   standing still for a crossfade to happen on.) */
+function drawActivationInset(ctx, colors, x, y, size, actKey, zs) {
+  const { f } = ACTS[actKey];
+  const Z = 2.4;
+  const X = (z) => x + ((z + Z) / (2 * Z)) * size;
+  const Y = (v) => y + size / 2 - (v / Z) * (size / 2);
+
+  ctx.save();
+  ctx.fillStyle = colors.surface;
+  ctx.globalAlpha = 0.75;
+  ctx.fillRect(x, y, size, size);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = colors.grid;
+  ctx.strokeRect(x, y, size, size);
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x, Y(0));
+  ctx.lineTo(x + size, Y(0));
+  ctx.moveTo(X(0), y);
+  ctx.lineTo(X(0), y + size);
+  ctx.stroke();
+  ctx.restore();
+
+  if (zs && zs.length) {
+    ctx.save();
+    ctx.strokeStyle = colors.highlight;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    for (const z of zs) {
+      const zx = X(Math.max(-Z, Math.min(Z, z)));
+      ctx.moveTo(zx, y + size - 1);
+      ctx.lineTo(zx, y + size - 6);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.strokeStyle = colors.ink1;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i += 1) {
+    const z = -Z + (i / 80) * 2 * Z;
+    const v = Math.max(-Z, Math.min(Z, f(z)));
+    if (i === 0) ctx.moveTo(X(z), Y(v));
+    else ctx.lineTo(X(z), Y(v));
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  label(ctx, colors, ACTS[actKey].label, x + 4, y + 11, { color: colors.ink2 });
+}
+
 /* One edge per weight: THICKNESS IS |w| scaled to the largest weight in this
    network, never to a constant — the picture is a comparison inside one net,
    and a fixed scale would make a well-trained small network look empty beside
    a wide one. Colour is the sign. */
-function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey) {
+function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
   const k = net.W2.length;
-  const xIn = x0 + 30;
-  const xHid = x0 + side / 2;
-  const xOut = x0 + side - 30;
-  const top = y0 + 20;
-  const usable = side - 34;
-  const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
+  const { hoverUnit = null, zs = null } = opts ?? {};
+  const L = netLayout(x0, y0, side, k);
   const dead = deadUnits(fires, actKey);
+  const max = Math.max(...[...net.W1.flat(), ...net.W2].map(Math.abs), 1e-6);
 
-  const all = [...net.W1.flat(), ...net.W2];
-  const max = Math.max(...all.map(Math.abs), 1e-6);
-
-  const edge = (ax, ay, bx, by, w, faded) => {
+  const edge = (ax, ay, bx, by, w, j) => {
     const t = Math.abs(w) / max;
+    const muted = hoverUnit !== null && hoverUnit !== j;
     ctx.save();
     ctx.lineWidth = 0.4 + 3.4 * t;
-    ctx.globalAlpha = faded ? 0.16 : 0.25 + 0.6 * t;
-    ctx.strokeStyle = faded ? colors.unknown : (w >= 0 ? colors.event : colors.nonevent);
+    ctx.globalAlpha = dead[j] ? 0.16 : (muted ? 0.12 : 0.25 + 0.6 * t);
+    ctx.strokeStyle = dead[j] ? colors.unknown : (w >= 0 ? colors.event : colors.nonevent);
     ctx.beginPath();
     ctx.moveTo(ax, ay);
     ctx.lineTo(bx, by);
@@ -169,16 +328,16 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey) {
   };
 
   for (let j = 0; j < k; j += 1) {
-    const hy = yOf(j, k);
-    for (let i = 0; i < 2; i += 1) edge(xIn, yOf(i, 2), xHid, hy, net.W1[j][i], dead[j]);
-    edge(xHid, hy, xOut, yOf(0, 1), net.W2[j], dead[j]);
+    const hy = L.yOf(j, k);
+    for (let i = 0; i < 2; i += 1) edge(L.xIn, L.yOf(i, 2), L.xHid, hy, net.W1[j][i], j);
+    edge(L.xHid, hy, L.xOut, L.yOf(0, 1), net.W2[j], j);
   }
 
   const node = (x, y, r, text, ring) => {
     ctx.save();
     ctx.fillStyle = colors.surface;
     ctx.strokeStyle = ring ?? colors.ink3;
-    ctx.lineWidth = ring ? 1.8 : 1;
+    ctx.lineWidth = ring ? 2 : 1;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -193,18 +352,22 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey) {
     ctx.restore();
   };
 
+  const usable = side - 34 - INSET;
   const rNode = Math.max(5, Math.min(10, usable / (k * 2.6)));
-  node(xIn, yOf(0, 2), 11, "x₁");
-  node(xIn, yOf(1, 2), 11, "x₂");
+  node(L.xIn, L.yOf(0, 2), 11, "x₁");
+  node(L.xIn, L.yOf(1, 2), 11, "x₂");
   for (let j = 0; j < k; j += 1) {
-    node(xHid, yOf(j, k), rNode, "", dead[j] ? colors.unknown : null);
+    node(L.xHid, L.yOf(j, k), hoverUnit === j ? rNode + 2 : rNode, "",
+      hoverUnit === j ? colors.highlight : (dead[j] ? colors.unknown : null));
   }
-  node(xOut, yOf(0, 1), 12, "P");
+  node(L.xOut, L.yOf(0, 1), 12, "P");
 
-  label(ctx, colors, "inputs", xIn, y0 + 12, { align: "center" });
+  label(ctx, colors, "inputs", L.xIn, y0 + 12, { align: "center" });
   label(ctx, colors, `${k} hidden ${k === 1 ? "unit" : "units"} · ${ACTS[actKey].label}`,
-    xHid, y0 + 12, { align: "center" });
-  label(ctx, colors, "output", xOut, y0 + 12, { align: "center" });
+    L.xHid, y0 + 12, { align: "center" });
+  label(ctx, colors, "output", L.xOut, y0 + 12, { align: "center" });
+
+  drawActivationInset(ctx, colors, L.insetX, L.insetY, INSET, actKey, zs);
 }
 
 function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
@@ -242,6 +405,11 @@ defineWidget({
     + "builds that boundary from hidden units, one straight piece each, and "
     + "training is what bends them into place.",
   layout: "side",
+  /* the hover inspector. Core's rule comes with it: an inspector must stay
+     ADDITIVE, because a lecture screen has no pointer — so everything hover
+     reveals has a second route (the unit lines have their own toggle, and
+     every number it prints is in the readout or the caption). */
+  pointer: true,
 
   height: ({ w }) => stageHeight(w),
 
@@ -279,6 +447,16 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    /* The pointer route to one unit's line exists too, but a projector has no
+       pointer: this is the route that does not need one (core's rule). */
+    lines: {
+      type: "bool",
+      label: "Show each unit's line",
+      detail: "where each hidden unit switches on — the pieces the boundary is bent from",
+      default: false,
+      display: true,
+    },
+
     speed: {
       type: "choice",
       label: "Play speed",
@@ -299,6 +477,9 @@ defineWidget({
     { token: "nonevent", label: "The other class, and a weight that pushes toward it", mark: "dot" },
     ...(params.activation === "relu"
       ? [{ token: "unknown", label: "A dead unit — it fires on no sample", mark: "dot" }]
+      : []),
+    ...(params.lines
+      ? [{ token: "reference", label: "Where a hidden unit switches on", mark: "line" }]
       : []),
     { token: "highlight", label: "Training loss", mark: "line" },
   ],
@@ -337,22 +518,43 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     const ep = Math.min(anim?.epoch ?? 0, EPOCHS);
     const net = state.frames[ep];
     const fires = state.live[ep];
     const side = panelSide(w);
     const xNet = PAD_X;
     const xBnd = PAD_X + side + GAP;
+    const dead = deadUnits(fires, params.activation);
+    const hoverUnit = unitAt(pointer, xNet, TOP, side, state.k);
 
-    drawNetwork(ctx, colors, xNet, TOP, side, net, fires, params.activation);
-    drawBoundary(ctx, colors, xBnd, TOP, side, state.data, net, params.activation);
+    /* the z values the hidden units actually receive at THIS epoch — the rug
+       under the activation inset, so it spreads as the weights grow */
+    const zs = [];
+    for (const p of state.data) {
+      for (let j = 0; j < state.k; j += 1) {
+        zs.push(net.W1[j][0] * p.x[0] + net.W1[j][1] * p.x[1] + net.b1[j]);
+      }
+    }
+
+    drawNetwork(ctx, colors, xNet, TOP, side, net, fires, params.activation,
+      { hoverUnit, zs });
+    drawBoundary(ctx, colors, xBnd, TOP, side, state.data, net, params.activation,
+      { hoverUnit, showLines: Boolean(params.lines), pointer, dead });
 
     /* the dead-unit caption — the mechanism behind the hidden-units ladder,
        and nothing else on screen would tell the reader it happened */
-    const deadN = deadUnits(fires, params.activation).filter(Boolean).length;
+    const deadN = dead.filter(Boolean).length;
     const capY = TOP + side + 16;
-    if (deadN > 0) {
+    if (hoverUnit !== null) {
+      const wj = net.W1[hoverUnit];
+      const detail = `w = (${f2(wj[0])}, ${f2(wj[1])}), bias ${f2(net.b1[hoverUnit])}`;
+      label(ctx, colors,
+        dead[hoverUnit]
+          ? `Unit ${hoverUnit + 1} is dead — it fires on no sample. ${detail}`
+          : `Unit ${hoverUnit + 1} fires on ${fires[hoverUnit]} of ${state.data.length}. ${detail}`,
+        xNet, capY, { color: colors.ink2 });
+    } else if (deadN > 0) {
       label(ctx, colors,
         deadN === 1
           ? "One unit is dead: it fires on no sample, so it adds nothing"
