@@ -621,7 +621,7 @@ function drawGate(ctx, colors, w, params, state) {
     label(ctx, colors, e.text, cx0 + 6, Math.min(e.y, cy0 + ch - 4),
       { color: e.color, font: `${colors.fsXs} ${colors.font}` });
   }
-  label(ctx, colors, "P(disease) for this patient, both features", cx0, cy0 - 8);
+  label(ctx, colors, "P(disease) for the new patient, both features", cx0, cy0 - 8);
 }
 
 /* ========================================================================== */
@@ -631,7 +631,7 @@ defineWidget({
   title: "Naive Bayes",
   status: "draft",
   subtitle:
-    "We can classify a patient by multiplying the prior with one likelihood "
+    "We can classify a new patient by multiplying the prior with one likelihood "
     + "per feature: a fitted curve for a lab result, a fitted rate for a "
     + "symptom. The features are treated as independent, so evidence they "
     + "share is counted twice.",
@@ -650,7 +650,7 @@ defineWidget({
       default: "continuous",
     },
 
-    patient: { type: "section", label: "The patient" },
+    patient: { type: "section", label: "A new patient" },
 
     crp: {
       type: "float",
@@ -778,7 +778,7 @@ defineWidget({
         : "No disease — fitted rate, and evidence toward it",
       mark: params.family === "continuous" ? "line" : "bar",
     },
-    { token: "highlight", label: "The patient", mark: "line" },
+    { token: "highlight", label: "The new patient — disease status unknown", mark: "line" },
     { token: "prior", label: "Prior evidence", mark: "bar" },
     { token: "posterior", label: "Evidence total", mark: "bar" },
     ...(params.correlate
