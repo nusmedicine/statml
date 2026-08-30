@@ -182,13 +182,13 @@ function numericFormula(metric, m) {
   switch (metric) {
     case "rmse":
       return {
-        html: `${M(mi("RMSE") + mo("="))} ${M(root(frac(`<mo>Σ</mo>${sq(`<mo>(</mo>${ERR}<mo>)</mo>`)}`, mi("n"))))} ${EQ} ${M(mn(f2(m.rmse)) + mi("%"))}`,
-        plain: `RMSE = √( Σ(predicted − actual)² / n ) = ${f2(m.rmse)} %`,
+        html: `${M(mi("RMSE") + mo("="))} ${M(root(frac(`<mo>Σ</mo>${sq(`<mo>(</mo>${ERR}<mo>)</mo>`)}`, mi("n"))))} ${EQ} ${M(mn(f2(m.rmse)))}`,
+        plain: `RMSE = √( Σ(predicted − actual)² / n ) = ${f2(m.rmse)}`,
       };
     case "mae":
       return {
-        html: `${M(mi("MAE") + mo("="))} ${M(frac(`<mo>Σ</mo><mo>|</mo>${ERR}<mo>|</mo>`, mi("n")))} ${EQ} ${M(mn(f2(m.mae)) + mi("%"))}`,
-        plain: `MAE = Σ|predicted − actual| / n = ${f2(m.mae)} %`,
+        html: `${M(mi("MAE") + mo("="))} ${M(frac(`<mo>Σ</mo><mo>|</mo>${ERR}<mo>|</mo>`, mi("n")))} ${EQ} ${M(mn(f2(m.mae)))}`,
+        plain: `MAE = Σ|predicted − actual| / n = ${f2(m.mae)}`,
       };
     case "r2":
       return {
@@ -1087,8 +1087,10 @@ widgetApi = defineWidget({
     if (params.outcome === "numeric") {
       const { m, m0 } = state;
       const tiles = [
-        { label: "RMSE", value: `${f2(m.rmse)} %`, note: "typical error; penalises large errors more" },
-        { label: "MAE", value: `${f2(m.mae)} %`, note: "typical error; all errors count equally" },
+        /* plain floats, the notebook's own print(); the unit leads the note
+           — "2.59 %" read as a RELATIVE error of 2.59%, which it is not */
+        { label: "RMSE", value: f2(m.rmse), note: "% body fat; penalises large errors more" },
+        { label: "MAE", value: f2(m.mae), note: "% body fat; all errors count equally" },
         { label: "R²", value: f3(m.r2), note: "share of the spread explained; 0 = the mean model" },
       ];
       if (params.outliers > 0) {
