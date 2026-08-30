@@ -10931,6 +10931,75 @@ built and shipped against `04-1` and `04-4`.
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
 
+## Widget 35 · `metrics` — Scoring the Predictions · DRAFT, building 2026-08-30
+
+**The second 04-2 widget, Kenneth's brief 2026-08-30**: widget 34 owns the
+threshold story; this one owes the METRICS themselves — scoring a numeric and
+a categorical outcome, the confusion matrix the centre of the categorical
+half. **No ROC anywhere, by his decision** ("maybe we leave out ROC for now …
+we have a widget already"): it never draws a curve and never moves a cutoff.
+
+**Two misconceptions, one per tab:**
+
+- **Numeric** (grade: reported): that RMSE, MAE and R² are interchangeable
+  summaries of one thing. Measured (`_lab/metrics-measure.mjs`, 60 seeds):
+  at σ 3 one outlier of 18 points moves **RMSE +38% and MAE +16%**; and R²
+  is not an error but a comparison against predicting the mean — the mean
+  model reads R² = 0.000 exactly, RMSE = SD(actual).
+- **Categorical** (grade: documented — 04-2's own cell 25 blames class
+  imbalance): that accuracy says how good a classifier is. Every metric is a
+  different ratio of the SAME four cells; measured at separation 1.5,
+  prevalence 0.5 → 0.05 sends **accuracy 0.77 → 0.95 while recall collapses
+  0.77 → 0.14**, the all-negative baseline nearly tying. The trap needs the
+  PLUG-IN rule (the cutoff a default logistic regression trained at that
+  prevalence applies at 0.5 — cutoff log((1−p)/p)/d on the latent scale): a
+  fixed midpoint cutoff holds every rate constant and shows no trap, measured
+  side by side.
+
+### Round 0 — measured and mocked (2026-08-30), Kenneth's seven picks
+
+`_lab/metrics-mock.html` drew six candidates from the measured numbers
+(A plain stage · B MSE-as-squares vs MAE-as-bars · C R² as model squares vs
+mean-model squares · D matrix counts+wash vs dot-per-patient · E per-metric
+cell lighting · F the trap at two prevalences). Kenneth picked: **(1)** the
+`metric` pick lights that metric's anatomy on the figure (a control, not
+hover-only); **(2)** matrix cells as counts + row wash (the widget-34
+convention); **(3)** the trap lives on the prevalence dial with an
+all-negative baseline tile, not a two-cohort view; **(4)** a screening frame
+("disease present/absent" — precision reads as PPV); **(5)** body fat % for
+the numeric act (04-2's own example; Normal(19, 8) clipped to [5, 40] matches
+bodyfat.csv's mean 19.2, SD 8.4); **(6)** the R² ease (the model's
+predictions slide to the mean line, errors growing on the way); **(7)** title
+**Scoring the Predictions**, slug `metrics`.
+
+### Round 1 — built as a draft (2026-08-30)
+
+One widget, two tabs on a segmented `target` (Numeric · Categorical, the
+notebook's own split). Generators live in `widgets/metrics/model.js` and the
+measure script imports FROM the widget (the lm-diagnostics rule) — re-run
+after the move, every number identical. No Step and no Play; the one motion
+is the R² ease on core's ease-request door (widget 15's shape). The numeric
+plot is SQUARE on one shared domain, because a drawn square is only an honest
+squared error if a unit of x and a unit of y are the same pixels; each error
+square grows TOWARD the diagonal, whose horizontal distance equals the
+residual, so the far edge touches the line and no square leaves the frame.
+The categorical `metric` control is three grouped rows (widget 9's door) and
+the captions are the lesson: **"read off everyone"** (Accuracy) against
+**"about the disease class"** (Precision · Recall · F1) — five segments in
+one row also truncate in the rail, so the grouping is both the fix and the
+teaching. Tiles: RMSE/MAE/R² plus an **Outlier pull** tile when outliers > 0;
+the four classification metrics plus the **all-negative baseline**
+("accuracy has to beat this"). Verified in the pane: seed-1 numbers to the
+digit against the measure script on both tabs, the ease landing with a clean
+error counter, the canvas text sweep clean at the trap state (prevalence
+0.10: cells 171/1/22/6, accuracy 0.885, recall 0.214) and at the σ 8 edge.
+
+One housekeeping note: the round-1 splice re-serialised
+`fingerprint-baseline.json` at indent 2 — which is what the harness's own
+Copy button emits (`fingerprint.html` line ~400), so the one-time whitespace
+churn in that commit is the file arriving AT the format future rebaselines
+will produce, not drift.
+
 ## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
 
 **The misconception**: that the ROC curve is a static property of the model — a

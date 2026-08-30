@@ -49,9 +49,32 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**THERE IS NO BUILD TASK QUEUED — the queue is EMPTY.** ~~`roc-auc`~~
-SHIPPED 2026-08-29 as widget 34 (its own section below has what to
-keep at hand). Everything open is KENNETH'S OWN, listed below so a
+**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 1 done 2026-08-30,
+awaiting Kenneth's review.** *Scoring the Predictions*, the second
+04-2 widget: the metrics themselves, numeric and categorical, the
+confusion matrix the categorical centre — and **NO ROC anywhere**
+(widget 34 owns the threshold story, Kenneth's call). One widget, two
+tabs; the `metric` pick lights that metric's anatomy; the one motion
+is the R² ease. Full record: catalogue § *Widget 35* (round 0's
+measured numbers and his seven picks, round 1's build). At hand:
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/metrics/                        (numeric, plain)
+# .../widgets/metrics/?metric=rmse&outliers=1                   (the outlier's square)
+# .../widgets/metrics/?metric=r2                                (the mean-model ease, landed)
+# .../widgets/metrics/?target=categorical&cmetric=prec          (lit cells + formula)
+# .../widgets/metrics/?target=categorical&cmetric=rec&prev=0.1  (the accuracy trap)
+node widgets/_lab/metrics-measure.mjs   # generators imported FROM the widget
+# _lab/metrics-mock.html — round 0's six candidates, still served
+```
+
+Two placeholder fingerprint states carry `"px":"0","tx":"0"` until
+promotion; the widget is on /lab/, off the gallery. The baseline JSON
+was re-serialised at indent 2 in the round-1 commit — that IS the
+harness Copy button's own format (catalogue § Widget 35 has the note).
+
+Beyond that, everything open is KENNETH'S OWN, listed below so a
 session can remind him rather than act: the NINE notebook links, the
 05-07 notebook fix, and judging projected. A session with nothing to
 do should hold, not invent scope — prd §11 exists to be pointed at.
