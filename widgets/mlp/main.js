@@ -53,6 +53,7 @@ const INSET = 92;   // the activation inset, in a RESERVED band at the panel's
                     // landed on the fourth node, and at k = 8 that column runs
                     // the panel's full height with no gap at all.
 const HIT_R = 18;   // how close the pointer must come to a hidden unit
+const BAND_GAP = 16;   // air and a hairline between the band and the network
 
 /* One training step, choreographed, at Slow speed only. The beats are shares
    of BEAT_MS: a sample travels forward, its prediction is compared with the
@@ -65,10 +66,9 @@ const HIT_R = 18;   // how close the pointer must come to a hidden unit
 const BEAT_MS = 2000;
 const BEATS = { forward: 0.34, compare: 0.52, backward: 0.84, update: 1 };
 
-/* THE TWO PANELS SPLIT THE FULL WIDTH. Only the boundary has to be square —
-   it plots x1 against x2, and a distance needs equal units per pixel — so the
-   network takes whatever is left rather than being forced to match. Equal
-   halves capped at 300 left a band of dead canvas at every wide frame. */
+/* Only the boundary has to be square — it plots x1 against x2, and a
+   distance needs equal units per pixel — so the network takes whatever is
+   left. Equal halves capped at 300 left dead canvas at every wide frame. */
 const boundSide = (w) => {
   const avail = w - 2 * PAD_X - GAP;
   return Math.max(180, Math.min(340, avail * 0.46));
@@ -79,20 +79,20 @@ const stageHeight = (w) => TOP + boundSide(w) + CAP_H + LOSS_H + BOTTOM;
 /* Where every node sits: one function, because the hit test and the drawing
    have to agree about it (5.8). */
 function netLayout(x0, y0, w, h, k) {
-  const top = y0 + INSET + 26;
-  const usable = h - INSET - 34;
+  const top = y0 + INSET + BAND_GAP + 26;
+  const usable = h - INSET - BAND_GAP - 34;
   const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
   return {
     xIn: x0 + 34,
     xHid: x0 + w / 2,
     xOut: x0 + w - 34,
     yOf,
-    labelY: y0 + INSET + 18,
+    labelY: y0 + INSET + BAND_GAP + 18,
+    dividerY: y0 + INSET + BAND_GAP / 2,
     hidden: Array.from({ length: k }, (_, j) => ({ x: x0 + w / 2, y: yOf(j, k) })),
   };
 }
 
-/** Which hidden unit the pointer is over, or null. */
 function unitAt(pointer, x0, y0, w, h, k) {
   if (!pointer) return null;
   const L = netLayout(x0, y0, w, h, k);
@@ -171,7 +171,6 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     }
   }
 
-  /* all unit lines on the toggle, and the hovered one over the top */
   if (showLines) {
     for (let j = 0; j < net.W2.length; j += 1) {
       if (!dead[j] && j !== hoverUnit) drawUnitLine(ctx, colors, x0, y0, side, net, j, false);
@@ -227,7 +226,6 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     drawUnitLine(ctx, colors, x0, y0, side, net, hoverUnit, true);
   }
 
-  /* the sample currently being fed through the network */
   if (mark) {
     ctx.save();
     ctx.strokeStyle = colors.highlight;
@@ -238,7 +236,7 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     ctx.restore();
   }
 
-  /* the reading under the pointer, which makes the wash a quantity */
+  /* the reading under the pointer: what makes the wash a quantity */
   if (pointer && pointer.x >= x0 && pointer.x <= x0 + side
       && pointer.y >= y0 && pointer.y <= y0 + side) {
     const xv = DOM[0] + ((pointer.x - x0) / side) * (DOM[1] - DOM[0]);
@@ -273,23 +271,22 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   ctx.restore();
 }
 
-/* One hidden unit, magnified, in the band at the panel's head. A curve on
-   its own is abstract; this shows where the activation sits in the
-   computation. The inputs are written generically, x1 … xn, because a
-   unit's arithmetic does not depend on there being two of them.
+/* One hidden unit, magnified, in the band at the panel's head, with its
+   parts on the network's own columns so it sits above the units it stands
+   for. The inputs are written generically, x1 … xn, because a unit's
+   arithmetic does not depend on there being two of them.
 
    The rug under the curve is the pre-activations the units receive at this
    epoch; it spreads as the weights grow, and a unit whose inputs move
    entirely into ReLU's flat region is a dead one. A crossfade between
    activations was dropped: changing the activation is a data change, which
    resets training, so no figure stands still for it. */
-function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
-  const box = Math.min(66, Math.max(36, INSET * 0.72));
-  const xIn = x0 + 18;
-  const xSum = x0 + Math.max(52, w * 0.16);
-  const xBox = xSum + 22;
-  const mid = y0 + 22 + box / 2;
-  const boxTop = y0 + 22;
+function drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs) {
+  const L = netLayout(x0, y0, w, 0, k);
+  const mid = y0 + 22 + 33;
+  const box = Math.max(30, Math.min(66, L.xOut - L.xHid - 46));
+  const boxX = L.xHid + 22;
+  const boxTop = mid - box / 2;
 
   label(ctx, colors, "Inside one hidden unit", x0 + 4, y0 + 11, { color: colors.ink2 });
 
@@ -312,22 +309,20 @@ function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
     ctx.restore();
   };
 
-  /* Only the OUTER arrows carry a weight label. The arrows converge on the
-     sum, so a label on each would sit a few pixels from its neighbour at
-     every panel width — measured colliding at 480px. w1 and wn with the
-     ellipsis between them say "one per input" without the crowding. */
+  /* only the outer arrows carry a weight label: they converge on the sum,
+     so a label on each would sit a few pixels from its neighbour */
   const rows = [
-    { t: "x₁", w: "w₁", dy: -box * 0.34 },
-    { t: "x₂", w: "", dy: -box * 0.12 },
-    { t: "⋮", w: "", dy: box * 0.1 },
-    { t: "xₙ", w: "wₙ", dy: box * 0.34 },
+    { t: "x₁", w: "w₁", dy: -22 },
+    { t: "x₂", w: "", dy: -8 },
+    { t: "⋮", w: "", dy: 7 },
+    { t: "xₙ", w: "wₙ", dy: 22 },
   ];
   for (const r of rows) {
-    label(ctx, colors, r.t, xIn - 5, mid + r.dy + 4, { align: "right", color: colors.ink2 });
+    label(ctx, colors, r.t, L.xIn - 6, mid + r.dy + 4, { align: "right", color: colors.ink2 });
     if (r.t === "⋮") continue;
-    arrow(xIn, mid + r.dy, xSum - 10, mid + r.dy * 0.3);
+    arrow(L.xIn, mid + r.dy, L.xHid - 11, mid + r.dy * 0.3);
     if (r.w) {
-      label(ctx, colors, r.w, (xIn + xSum) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
+      label(ctx, colors, r.w, (L.xIn + L.xHid) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
     }
   }
 
@@ -335,33 +330,33 @@ function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
   ctx.strokeStyle = colors.ink3;
   ctx.fillStyle = colors.surface;
   ctx.beginPath();
-  ctx.arc(xSum, mid, 10, 0, Math.PI * 2);
+  ctx.arc(L.xHid, mid, 10, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = colors.ink2;
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("Σ", xSum, mid);
+  ctx.fillText("Σ", L.xHid, mid);
   ctx.restore();
-  label(ctx, colors, "+ b", xSum, mid + 24, { align: "center" });
-  arrow(xSum + 11, mid, xBox - 3, mid);
+  label(ctx, colors, "+ b", L.xHid, mid + 24, { align: "center" });
+  arrow(L.xHid + 11, mid, boxX - 3, mid);
 
   const { f } = ACTS[actKey];
   const Z = 2.4;
-  const X = (z) => xBox + ((z + Z) / (2 * Z)) * box;
+  const X = (z) => boxX + ((z + Z) / (2 * Z)) * box;
   const Y = (v) => boxTop + box / 2 - (v / Z) * (box / 2);
   ctx.save();
   ctx.fillStyle = colors.surface;
   ctx.globalAlpha = 0.75;
-  ctx.fillRect(xBox, boxTop, box, box);
+  ctx.fillRect(boxX, boxTop, box, box);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = colors.grid;
-  ctx.strokeRect(xBox, boxTop, box, box);
+  ctx.strokeRect(boxX, boxTop, box, box);
   ctx.setLineDash([2, 3]);
   ctx.beginPath();
-  ctx.moveTo(xBox, Y(0));
-  ctx.lineTo(xBox + box, Y(0));
+  ctx.moveTo(boxX, Y(0));
+  ctx.lineTo(boxX + box, Y(0));
   ctx.moveTo(X(0), boxTop);
   ctx.lineTo(X(0), boxTop + box);
   ctx.stroke();
@@ -393,29 +388,11 @@ function drawNeuron(ctx, colors, x0, y0, w, actKey, zs) {
   }
   ctx.stroke();
   ctx.restore();
-  /* below the box: above it, the name collided with the band's heading */
-  label(ctx, colors, ACTS[actKey].label, xBox + box / 2, boxTop + box + 12,
+  label(ctx, colors, ACTS[actKey].label, boxX + box / 2, boxTop + box + 12,
     { align: "center", color: colors.ink2 });
 
-  arrow(xBox + box + 3, mid, xBox + box + 24, mid);
-  label(ctx, colors, "out", xBox + box + 28, mid + 4, { color: colors.ink2 });
-
-  /* The same statement as an equation, in the space the band has to spare.
-     Whether it fits is MEASURED, not guessed at from the panel width: a
-     guessed threshold suppressed it at widths where it fitted easily. */
-  const eqX = xBox + box + 46;
-  const room = x0 + w - 4 - eqX;
-  ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  const wide = ["out = σ(w₁x₁ + w₂x₂ + … + b)", "σ is the activation curve"];
-  const tight = ["out = σ(w·x + b)", "σ is the activation curve"];
-  const fits = (ls) => Math.max(...ls.map((t) => ctx.measureText(t).width)) <= room;
-  ctx.restore();
-  const eqLines = fits(wide) ? wide : (fits(tight) ? tight : null);
-  if (eqLines) {
-    label(ctx, colors, eqLines[0], eqX, mid - 4, { color: colors.ink1 });
-    label(ctx, colors, eqLines[1], eqX, mid + 12);
-  }
+  arrow(boxX + box + 3, mid, L.xOut - 14, mid);
+  label(ctx, colors, "out", L.xOut, mid + 4, { align: "center", color: colors.ink2 });
 }
 
 /* One edge per weight. Thickness is |w| scaled to the largest weight in
@@ -441,8 +418,7 @@ function drawNetwork(ctx, colors, x0, y0, w, h, net, fires, actKey, opts) {
     ctx.lineTo(bx, by);
     ctx.stroke();
     ctx.restore();
-    /* the change this epoch made to this weight, from the difference
-       between consecutive stored weight vectors — no gradient is stored */
+    /* the change this epoch made, from consecutive stored weight vectors */
     if (update && update.max > 1e-12) {
       const g = Math.abs(delta) / update.max;
       if (g > 0.04) {
@@ -488,7 +464,7 @@ function drawNetwork(ctx, colors, x0, y0, w, h, net, fires, actKey, opts) {
     ctx.restore();
   };
 
-  const usable = h - INSET - 34;
+  const usable = h - INSET - BAND_GAP - 34;
   const rNode = Math.max(5, Math.min(10, usable / (k * 2.6)));
   node(L.xIn, L.yOf(0, 2), 11, "x₁");
   node(L.xIn, L.yOf(1, 2), 11, "x₂");
@@ -498,18 +474,26 @@ function drawNetwork(ctx, colors, x0, y0, w, h, net, fires, actKey, opts) {
   }
   node(L.xOut, L.yOf(0, 1), 12, "P");
 
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0 + 4, L.dividerY);
+  ctx.lineTo(x0 + w - 4, L.dividerY);
+  ctx.stroke();
+  ctx.restore();
+
   label(ctx, colors, "inputs", L.xIn, L.labelY, { align: "center" });
   label(ctx, colors, `${k} hidden ${k === 1 ? "unit" : "units"}`, L.xHid, L.labelY,
     { align: "center" });
   label(ctx, colors, "output", L.xOut, L.labelY, { align: "center" });
 
-  drawNeuron(ctx, colors, x0, y0, w, actKey, zs);
+  drawNeuron(ctx, colors, x0, y0, w, k, actKey, zs);
 }
 
-/* ONE TRAINING STEP, DRAWN. A sample is fed forward along the edges, the
-   prediction meets the label, the error is carried back, and the weights
-   move. Everything here is read from the stored trajectory and the sample's
-   own forward pass — nothing extra is computed or stored to animate it. */
+/* One training step, drawn. Everything here comes from the stored
+   trajectory and the sample's own forward pass — nothing extra is computed
+   or stored to animate it. */
 function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
   const k = net.W2.length;
   const L = netLayout(x0, y0, w, h, k);
@@ -543,7 +527,6 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
   const cls = sample.y > 0 ? colors.event : colors.nonevent;
 
   if (beat < BEATS.forward) {
-    /* forward: inputs to hidden, then hidden to output */
     const p = beat / BEATS.forward;
     if (p < 0.5) {
       const t = p / 0.5;
@@ -560,7 +543,6 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
       }
     }
   } else if (beat < BEATS.backward) {
-    /* the prediction meets the label, then the error is carried back */
     ctx.save();
     ctx.fillStyle = colors.ink1;
     ctx.font = `${colors.fsXs} ${colors.font}`;
@@ -571,14 +553,12 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
     if (beat >= BEATS.compare) {
       const q = (beat - BEATS.compare) / (BEATS.backward - BEATS.compare);
 
-      /* THE BACKWARD PASS LANDS ON THE HIDDEN UNITS, NOT THE INPUTS.
-         Backpropagation produces a gradient for every parameter; the inputs
-         are data and have none, so an arrow reaching them would promise an
-         update that never happens. In a one-hidden-layer network the signal
-         stops at the hidden units, because there is nothing beyond them to
-         change. Right angles rather than an arc: a curve from right to left
-         reads as another forward sweep, and the elbow reads as a return. */
-      const railY = y0 + INSET + 30;
+      /* The backward pass stops at the hidden units. Backpropagation
+         produces a gradient for every parameter; the inputs are data and
+         have none, so an arrow reaching them would promise an update that
+         never happens. Right angles rather than an arc: a curve running
+         right to left reads as another forward sweep. */
+      const railY = y0 + INSET + BAND_GAP + 30;
       const endY = L.yOf(0, k) - 15;
       const pts = [
         [L.xOut, L.yOf(0, 1) - 14],
@@ -616,7 +596,6 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
       ctx.stroke();
       ctx.restore();
 
-      /* the head, pointing the way the signal is going */
       ctx.save();
       ctx.fillStyle = colors.highlight;
       ctx.beginPath();
@@ -631,11 +610,8 @@ function drawStep(ctx, colors, x0, y0, w, h, net, actKey, sample, beat, fires) {
       ctx.fill();
       ctx.restore();
 
-      /* no label on the rail: it sat on the column headings, and the caption
-         row already names the phase */
-
-      /* each live unit is told its share. A dead unit is not: it receives
-         zero gradient, which is why it cannot recover. */
+      /* a dead unit is never ringed: it receives zero gradient, which is
+         why it cannot recover */
       if (q > 0.7) {
         ctx.save();
         ctx.strokeStyle = colors.highlight;
@@ -673,7 +649,6 @@ function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
   }
   ctx.stroke();
   ctx.restore();
-  /* how far down the curve gradient descent has come */
   ctx.save();
   ctx.fillStyle = colors.highlight;
   ctx.beginPath();
@@ -730,7 +705,6 @@ widgetApi = defineWidget({
       ],
       default: "rings",
     },
-    /* seeds the samples; the starting weights have their own seed below */
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     net: { type: "section", label: "The network" },
@@ -799,13 +773,13 @@ widgetApi = defineWidget({
   },
 
   legend: ({ params }) => [
-    { token: "event", label: "One class, and a weight that pushes toward it", mark: "dot" },
-    { token: "nonevent", label: "The other class, and a weight that pushes toward it", mark: "dot" },
+    { token: "event", label: "One class, and weights toward it", mark: "dot" },
+    { token: "nonevent", label: "The other class, and weights toward it", mark: "dot" },
     ...(params.activation === "relu"
-      ? [{ token: "unknown", label: "A dead unit — it fires on no sample", mark: "dot" }]
+      ? [{ token: "unknown", label: "A dead unit — fires on no sample", mark: "dot" }]
       : []),
     ...(params.lines === "on"
-      ? [{ token: "reference", label: "Where a hidden unit switches on", mark: "line" }]
+      ? [{ token: "reference", label: "Where a unit switches on", mark: "line" }]
       : []),
     { token: "highlight", label: "Training loss", mark: "line" },
   ],
@@ -833,10 +807,9 @@ widgetApi = defineWidget({
     }),
 
     advance: (anim, { dt, params, state }) => {
-      /* SLOW IS THE CHOREOGRAPHED PACE: one training step per BEAT_MS, with
-         a sample fed forward, compared, and its error carried back. Medium
-         and Fast just count epochs. Which pace choreographs is declared, not
-         decided mid-run (4.1). */
+      /* Slow is the choreographed pace: one training step per BEAT_MS.
+         Medium and Fast just count epochs. Which pace choreographs is
+         declared, not decided mid-run (4.1). */
       if (params.speed === "slow") {
         if (anim.epoch >= EPOCHS) {
           anim.done = true;
@@ -846,8 +819,8 @@ widgetApi = defineWidget({
         if (anim.beat < 1) return true;
         anim.beat = 0;
         anim.epoch += 1;
-        /* a different sample each step, striding so consecutive steps are not
-           neighbours in the generated order */
+        /* striding, so consecutive steps are not neighbours in the
+           generated order */
         anim.sample = (anim.sample + 37) % state.data.length;
         if (anim.epoch >= EPOCHS) anim.done = true;
         return anim.mode !== "step" && !anim.done;
@@ -866,7 +839,6 @@ widgetApi = defineWidget({
       return anim.mode !== "step";
     },
 
-    /* display changes land here; only the pill acts */
     rebuild: (anim, { params }) => {
       if (params.reroll) rerollInit();
     },
@@ -883,7 +855,6 @@ widgetApi = defineWidget({
     const dead = deadUnits(fires, params.activation);
     const hoverUnit = unitAt(pointer, xNet, TOP, nWidth, bSide, state.k);
 
-    /* the pre-activations the units receive at this epoch */
     const zs = [];
     for (const pt of state.data) {
       for (let j = 0; j < state.k; j += 1) {
@@ -891,8 +862,7 @@ widgetApi = defineWidget({
       }
     }
 
-    /* the weight changes this epoch made, read off consecutive stored weight
-       vectors. Shown while a step is being choreographed and just after it */
+    /* shown while a step is being choreographed and just after it */
     const beat = anim?.beat ?? 0;
     const choreo = params.speed === "slow" && (anim?.mode === "step" || anim?.mode === "run");
     const stepping = choreo && beat > 0;
@@ -943,7 +913,6 @@ widgetApi = defineWidget({
     label(ctx, colors, `${state.errors[ep]} of ${state.data.length} misclassified`,
       xBnd + bSide, capY, { align: "right", color: colors.ink2 });
 
-    /* what this beat is doing, in the caption row */
     if (stepping && pass) {
       const n = state.data.length;
       const said = beat < BEATS.forward

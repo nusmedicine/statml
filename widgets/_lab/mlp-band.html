@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 37 mlp — aligning the magnified neuron to the network</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 430px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 440px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 37 · aligning the magnified neuron to the network — <code>mlp</code></h1>
+  <p class="note">
+    Kenneth 2026-08-30: <i>leave the equation out as it can be messy with width changes. Align
+    the neuron to the NN below, then move the relu diagram to the right — you can change the
+    lengths of the input/output arrows. Leave some space between the activation diagram and the
+    NN.</i> Each candidate draws the band <b>and the network beneath it</b> at the shipping
+    proportions, so the alignment is the thing on show. Rings, k = 4, trained, from
+    <code>widgets/mlp/model.js</code>.
+  </p>
+
+  <div class="row" id="cands"></div>
+
+  <h2>What each one does</h2>
+  <p class="note">
+    <b>A</b> is what ships: the neuron packed to the left, the curve immediately after the sum,
+    nothing lining up with the columns below. <b>B</b> puts the neuron's three parts on the
+    network's own columns — inputs over <code>inputs</code>, the sum over the hidden column,
+    the output over <code>output</code> — so the magnified unit sits above the units it
+    magnifies, and the curve lands in the gap between the sum and the output, which moves it
+    right. The input and output arrows stretch to whatever the alignment leaves them.
+    <b>C</b> is B with the curve pushed past the output column instead, keyed to the sum by a
+    line — furthest right, but the flow then reads out-of-order: out comes before the σ that
+    produces it.
+  </p>
+  <p class="note">
+    All three carry the <b>divider and the air</b> Kenneth asked for: a hairline under the band
+    with ~14px above and below it, so the magnified unit and the network read as two figures
+    rather than one crowded one.
+  </p>
+
+  <h2>What I would ship</h2>
+  <p class="note">
+    <b>B.</b> The alignment is the whole point — a reader can look straight down from the Σ to
+    the column it explains — and it moves the curve right without breaking the order of the
+    computation. C moves the curve further right but puts σ after the output it feeds, which
+    is the one thing the diagram exists to get right.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { SETS, ACTS, trainAll, deadUnits } from "../mlp/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-unknown","--ink-1","--ink-2","--ink-3","--grid","--surface-1"]
+  .forEach(k => C[k.slice(2)] = css(k));
+const MONO_S = "10px " + css("--font-mono");
+
+const rings = SETS.rings.make(makeRng(1));
+const run = trainAll(rings, 4, "relu", makeRng(1));
+const NET = run.frames[600];
+const DEAD = deadUnits(run.live[600], "relu");
+const K = 4;
+
+const W = 430, H = 330;          // the network panel, at shipping proportions
+const INSET = 92, DIV = 14;      // band height, and the air around its divider
+const xIn = 34, xHid = W / 2, xOut = W - 34;
+const labelY = INSET + DIV + 18;
+const top = INSET + DIV + 26;
+const usable = H - INSET - DIV - 34;
+const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
+
+function panel(title, sub) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  box.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  box.appendChild(cap);
+  document.getElementById("cands").appendChild(box);
+  return { ctx: cv.getContext("2d"), cap };
+}
+
+const lab = (ctx, t, x, y, al = "left", col = C["ink-3"]) => {
+  ctx.save(); ctx.fillStyle = col; ctx.font = MONO_S; ctx.textAlign = al;
+  ctx.textBaseline = "alphabetic"; ctx.fillText(t, x, y); ctx.restore();
+};
+const arrow = (ctx, ax, ay, bx, by) => {
+  ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  const a = Math.atan2(by - ay, bx - ax);
+  ctx.beginPath(); ctx.moveTo(bx, by);
+  ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
+  ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fillStyle = C["ink-3"]; ctx.fill(); ctx.restore();
+};
+
+function curveBox(ctx, x, y, size) {
+  const { f } = ACTS.relu;
+  const Z = 2.4;
+  const X = (z) => x + ((z + Z) / (2 * Z)) * size;
+  const Y = (v) => y + size / 2 - (v / Z) * (size / 2);
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.strokeRect(x, y, size, size);
+  ctx.setLineDash([2, 3]); ctx.beginPath();
+  ctx.moveTo(x, Y(0)); ctx.lineTo(x + size, Y(0));
+  ctx.moveTo(X(0), y); ctx.lineTo(X(0), y + size); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = C["ink-1"]; ctx.lineWidth = 1.8; ctx.beginPath();
+  for (let i = 0; i <= 70; i += 1) {
+    const z = -Z + (i / 70) * 2 * Z;
+    const v = Math.max(-Z, Math.min(Z, f(z)));
+    if (i === 0) ctx.moveTo(X(z), Y(v)); else ctx.lineTo(X(z), Y(v));
+  }
+  ctx.stroke(); ctx.restore();
+  lab(ctx, "ReLU", x + size / 2, y + size + 12, "center", C["ink-2"]);
+}
+
+function sumNode(ctx, x, y) {
+  ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.fillStyle = C["surface-1"];
+  ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Σ", x, y); ctx.restore();
+}
+
+function network(ctx) {
+  const max = Math.max(...[...NET.W1.flat(), ...NET.W2].map(Math.abs));
+  for (let j = 0; j < K; j += 1) {
+    for (let i = 0; i < 2; i += 1) {
+      const w = NET.W1[j][i];
+      ctx.save();
+      ctx.lineWidth = 0.4 + 3.4 * (Math.abs(w) / max);
+      ctx.globalAlpha = DEAD[j] ? 0.16 : 0.25 + 0.6 * (Math.abs(w) / max);
+      ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w >= 0 ? C["c-event"] : C["c-nonevent"]);
+      ctx.beginPath(); ctx.moveTo(xIn, yOf(i, 2)); ctx.lineTo(xHid, yOf(j, K)); ctx.stroke();
+      ctx.restore();
+    }
+    const w2 = NET.W2[j];
+    ctx.save();
+    ctx.lineWidth = 0.4 + 3.4 * (Math.abs(w2) / max);
+    ctx.globalAlpha = DEAD[j] ? 0.16 : 0.25 + 0.6 * (Math.abs(w2) / max);
+    ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w2 >= 0 ? C["c-event"] : C["c-nonevent"]);
+    ctx.beginPath(); ctx.moveTo(xHid, yOf(j, K)); ctx.lineTo(xOut, yOf(0, 1)); ctx.stroke();
+    ctx.restore();
+  }
+  const node = (x, y, r, t, ring) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"]; ctx.strokeStyle = ring ?? C["ink-3"];
+    ctx.lineWidth = ring ? 2 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (t) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y); }
+    ctx.restore();
+  };
+  node(xIn, yOf(0, 2), 11, "x₁"); node(xIn, yOf(1, 2), 11, "x₂");
+  const r = Math.max(5, Math.min(10, usable / (K * 2.6)));
+  for (let j = 0; j < K; j += 1) node(xHid, yOf(j, K), r, "", DEAD[j] ? C["c-unknown"] : null);
+  node(xOut, yOf(0, 1), 12, "P");
+  lab(ctx, "inputs", xIn, labelY, "center");
+  lab(ctx, "4 hidden units", xHid, labelY, "center");
+  lab(ctx, "output", xOut, labelY, "center");
+}
+
+function divider(ctx) {
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(8, INSET + DIV / 2); ctx.lineTo(W - 8, INSET + DIV / 2); ctx.stroke();
+  ctx.restore();
+}
+
+/* rows of generic inputs, shared by every candidate */
+function inputRows(ctx, xAt, mid, box, xTo) {
+  const rows = [
+    { t: "x₁", w: "w₁", dy: -box * 0.34 }, { t: "x₂", w: "", dy: -box * 0.12 },
+    { t: "⋮", w: "", dy: box * 0.1 }, { t: "xₙ", w: "wₙ", dy: box * 0.34 },
+  ];
+  for (const r of rows) {
+    lab(ctx, r.t, xAt - 6, mid + r.dy + 4, "right", C["ink-2"]);
+    if (r.t === "⋮") continue;
+    arrow(ctx, xAt, mid + r.dy, xTo - 11, mid + r.dy * 0.3);
+    if (r.w) lab(ctx, r.w, (xAt + xTo) / 2, mid + r.dy * 0.78 - 4, "center");
+  }
+}
+
+/* ---------- A: as shipped ---------- */
+{
+  const { ctx, cap } = panel("A — as shipped", "packed left; nothing lines up with the columns below");
+  const box = 66, mid = 22 + box / 2;
+  lab(ctx, "Inside one hidden unit", 4, 11, "left", C["ink-2"]);
+  const aIn = 18, aSum = 12 + Math.max(52, W * 0.16), aBox = aSum + 22;
+  inputRows(ctx, aIn, mid, box, aSum);
+  sumNode(ctx, aSum, mid);
+  lab(ctx, "+ b", aSum, mid + 24, "center");
+  arrow(ctx, aSum + 11, mid, aBox - 3, mid);
+  curveBox(ctx, aBox, 22, box);
+  arrow(ctx, aBox + box + 3, mid, aBox + box + 24, mid);
+  lab(ctx, "out", aBox + box + 28, mid + 4, "left", C["ink-2"]);
+  divider(ctx); network(ctx);
+  cap.textContent = "the Σ sits left of the hidden column it stands for";
+}
+
+/* ---------- B: aligned to the columns, curve between Σ and out ---------- */
+{
+  const { ctx, cap } = panel("B — aligned to the network's columns",
+    "inputs over inputs, Σ over the hidden column, out over output — the curve lands in the gap");
+  const mid = 22 + 33;
+  const box = Math.max(30, Math.min(66, xOut - xHid - 46));
+  lab(ctx, "Inside one hidden unit", 4, 11, "left", C["ink-2"]);
+  inputRows(ctx, xIn, mid, 66, xHid);
+  sumNode(ctx, xHid, mid);
+  lab(ctx, "+ b", xHid, mid + 24, "center");
+  const bx = xHid + 22;
+  arrow(ctx, xHid + 11, mid, bx - 3, mid);
+  curveBox(ctx, bx, mid - box / 2, box);
+  arrow(ctx, bx + box + 3, mid, xOut - 6, mid);
+  lab(ctx, "out", xOut, mid + 4, "center", C["ink-2"]);
+  divider(ctx); network(ctx);
+  cap.textContent = "look straight down from Σ to the units it stands for";
+}
+
+/* ---------- C: curve pushed past the output column ---------- */
+{
+  const { ctx, cap } = panel("C — curve past the output column",
+    "furthest right, but σ then sits after the out it produces");
+  const mid = 22 + 33;
+  const box = 52;
+  lab(ctx, "Inside one hidden unit", 4, 11, "left", C["ink-2"]);
+  inputRows(ctx, xIn, mid, 66, xHid);
+  sumNode(ctx, xHid, mid);
+  lab(ctx, "+ b", xHid, mid + 24, "center");
+  arrow(ctx, xHid + 11, mid, xOut - 6, mid);
+  lab(ctx, "out", xOut, mid + 4, "center", C["ink-2"]);
+  const cx = xOut + 24;
+  curveBox(ctx, cx, mid - box / 2, box);
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.moveTo(xHid + 12, mid - 14); ctx.lineTo(cx + box / 2, mid - box / 2 - 4); ctx.stroke();
+  ctx.restore();
+  divider(ctx); network(ctx);
+  cap.textContent = "the σ box no longer sits in the order the computation runs";
+}
+</script>
+</body>
+</html>
