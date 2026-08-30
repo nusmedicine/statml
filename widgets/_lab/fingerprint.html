@@ -170,6 +170,15 @@ function drive(win, doc, spec) {
     }
     const el = doc.querySelector(`[data-param="${name}"]`);
     if (!el) throw new Error(`no control for parameter "${name}"`);
+    /* A `style: "pill"` bool is a BUTTON wearing `data-param`, so it must be
+       caught before the generic branch below — writing `.value` to a button
+       is a silent no-op that hashes an untouched figure. Clicking toggles,
+       so click only when the pressed state differs from the target: setting
+       a value the pill already holds must not flip it off. */
+    if (el.classList.contains("w-pill")) {
+      if ((el.getAttribute("aria-pressed") === "true") !== Boolean(value)) el.click();
+      return;
+    }
     const fire = (type) => el.dispatchEvent(new win.Event(type, { bubbles: true }));
     if (el.dataset.options) {
       /* A `choice` slider holds an INDEX. Its option values ride along on the

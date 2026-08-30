@@ -644,7 +644,6 @@ function drawGate(ctx, colors, w, params, state) {
 defineWidget({
   slug: "naive-bayes",
   title: "Naive Bayes",
-  status: "draft",
   subtitle:
     "We can classify a new patient by multiplying the prior with one likelihood "
     + "per feature: a fitted curve for a lab result, a fitted rate for a "

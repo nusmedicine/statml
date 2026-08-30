@@ -2,10 +2,72 @@
   "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all — that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
   "states": [
     {
+      "$note": "opens empty: the prior alone, both pills off",
       "slug": "naive-bayes",
       "state": "?theme=light",
-      "px": "0",
-      "tx": "0"
+      "px": "ca4a85f4",
+      "tx": "f74b2abc"
+    },
+    {
+      "slug": "naive-bayes",
+      "state": "?theme=light&addcrp=1&addwbc=1",
+      "px": "cf0e99bb",
+      "tx": "5a5de010"
+    },
+    {
+      "$note": "a strongly conflicted patient: CRP high, WBC low",
+      "slug": "naive-bayes",
+      "state": "?theme=light&crp=32&wbc=6&addcrp=1&addwbc=1",
+      "px": "85b43757",
+      "tx": "f06f9dbf"
+    },
+    {
+      "$note": "the correlated view, continuous (rho 0.8 default)",
+      "slug": "naive-bayes",
+      "state": "?theme=light&addcrp=1&addwbc=1&correlate=correlated",
+      "px": "6ecdbcdb",
+      "tx": "dbec3d8e"
+    },
+    {
+      "slug": "naive-bayes",
+      "state": "?theme=light&family=discrete&addfever=1&addchills=1",
+      "px": "f6542ecc",
+      "tx": "5fd13fda"
+    },
+    {
+      "$note": "the discrete double-count: both symptoms present, lambda 0.95",
+      "slug": "naive-bayes",
+      "state": "?theme=light&family=discrete&chills=1&addfever=1&addchills=1&correlate=correlated&lam=0.95",
+      "px": "5d36ebdb",
+      "tx": "135c3785"
+    },
+    {
+      "$note": "DRIVEN BY A PILL mid-grow: no drive button exists (4.5); setParam was taught w-pill buttons for this",
+      "slug": "naive-bayes",
+      "state": "?theme=light",
+      "drive": {
+        "set": {
+          "addcrp": true
+        },
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "8d667536",
+      "tx": "12910246"
+    },
+    {
+      "$note": "DRIVEN BY A PILL mid-grow, discrete tab",
+      "slug": "naive-bayes",
+      "state": "?theme=light&family=discrete",
+      "drive": {
+        "set": {
+          "addfever": true
+        },
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "743ab9f1",
+      "tx": "5fa8665c"
     },
     {
       "slug": "clt",
@@ -1834,7 +1896,7 @@
       "tx": "54588cba"
     },
     {
-      "$note": "DRIVEN mid-ease: the age pill arriving beside disease (set routes through the pill's own transaction).",
+      "$note": "DRIVEN mid-ease: the age pill arriving beside disease (set routes through the pill's own transaction). REBASELINED 2026-08-30: this drive had been INERT since recording — the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
       "slug": "time-event",
       "state": "?theme=light&concept=factors",
       "drive": {
@@ -1844,11 +1906,11 @@
         "frames": 5,
         "dt": 32
       },
-      "px": "215e49c4",
-      "tx": "e4ab3aa9"
+      "px": "bbd307a6",
+      "tx": "e8d03f8c"
     },
     {
-      "$note": "DRIVEN mid-ease: the ten SNP rows arriving, the disease row moving to its adjusted value. The scrub has no harness verb — untested geometry, recorded in the catalogue.",
+      "$note": "DRIVEN mid-ease: the ten SNP rows arriving, the disease row moving to its adjusted value. The scrub has no harness verb — untested geometry, recorded in the catalogue. REBASELINED 2026-08-30: this drive had been INERT since recording — the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
       "slug": "time-event",
       "state": "?theme=light&concept=factors&age=1",
       "drive": {
@@ -1858,8 +1920,8 @@
         "frames": 5,
         "dt": 32
       },
-      "px": "5718855c",
-      "tx": "e8d03f8c"
+      "px": "94d17ecb",
+      "tx": "54588cba"
     },
     {
       "$note": "SETTLED: Repeated defaults at Independent — the misconception's own view; Draw 7's lm claims -2.4 [-4.3, -0.5] on a truth of zero. All ten recorded 2026-08-29 at DPR 1.25 with _lab/mixed-shoot.html: copy proved 4/4, three shots identical, every drive non-inert.",
