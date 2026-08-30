@@ -327,22 +327,37 @@ function drawLabPanel(ctx, colors, state, k, x0, y0, patientV) {
   lineSeg(ctx, x0, y0 + PANEL_H, x0 + PANEL_W, y0 + PANEL_H, colors.grid);
 }
 
-/* A symptom's readoff: P(the patient's state | class), one bar per class —
-   the exact pair of numbers the ledger divides. */
+/* A symptom's readoff: the FULL fitted Bernoulli distribution — for each
+   outcome (absent, present), one bar per class — STABLE whatever the patient
+   does. Round 7: the first version drew P(the patient's state | class), so
+   flipping the checkbox appeared to change the trained model. The patient's
+   outcome is framed in the highlight, the way the Gaussian panels mark the
+   patient's value with a rule; the model itself never moves. */
 function drawSymPanel(ctx, colors, state, k, x0, y0, present) {
-  const word = present ? "present" : "absent";
-  const bw = PANEL_W / 2 - 12;
-  [0, 1].forEach((y) => {
-    const p = present ? state.fit.rate[k][y] : 1 - state.fit.rate[k][y];
-    const bx = x0 + (y ? PANEL_W / 2 + 6 : 6);
-    const hFull = PANEL_H - 16;
-    ctx.save();
-    ctx.fillStyle = y ? colors.event : colors.nonevent;
-    ctx.fillRect(bx, y0 + PANEL_H - 2 - hFull * p, bw, hFull * p);
-    ctx.restore();
-    label(ctx, colors, `P(${word})=${f2(p)}`, bx + bw / 2, y0 + PANEL_H + 11, { align: "center" });
+  const hFull = PANEL_H - 16;
+  const base = y0 + PANEL_H - 2;
+  const groupW = PANEL_W / 2;
+  const bw = (groupW - 28) / 2;
+  [0, 1].forEach((o) => {                      // outcome: absent, then present
+    const gx = x0 + o * groupW + 10;
+    [0, 1].forEach((y) => {
+      const p = o ? state.fit.rate[k][y] : 1 - state.fit.rate[k][y];
+      ctx.save();
+      ctx.fillStyle = y ? colors.event : colors.nonevent;
+      ctx.fillRect(gx + y * (bw + 4), base - hFull * p, bw, hFull * p);
+      ctx.restore();
+    });
+    label(ctx, colors, o ? "present" : "absent", gx + bw + 2, y0 + PANEL_H + 11,
+      { align: "center" });
+    if ((present ? 1 : 0) === o) {
+      ctx.save();
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(gx - 5, y0 - 2, 2 * bw + 14, PANEL_H + 2);
+      ctx.restore();
+    }
   });
-  lineSeg(ctx, x0, y0 + PANEL_H - 2, x0 + PANEL_W, y0 + PANEL_H - 2, colors.grid);
+  lineSeg(ctx, x0, base, x0 + PANEL_W, base, colors.grid);
 }
 
 /* One tilted-covariance ellipse, drawn parametrically so the anisotropic
