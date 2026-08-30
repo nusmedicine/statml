@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 37 mlp — where the backward pass lands, and the neuron band</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 420px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 440px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 37 · where the backward pass lands, and the neuron band — <code>mlp</code></h1>
+  <p class="note">
+    Kenneth 2026-08-30: <i>the dashed arrow backward shouldn't land at the inputs? where should
+    it land? on the neurons that bear the weights? we can use 90 degree elbows also.</i> Drawn
+    against the shipping engine (<code>widgets/mlp/model.js</code>), rings, k = 4, trained.
+  </p>
+
+  <h2>§1 · He is right, and the reason is what the gradient is FOR</h2>
+  <p class="note">
+    Backpropagation computes a gradient <b>for every parameter</b> — the two layers of weights
+    and the biases. The inputs are data: they have no parameter and receive no update, so an
+    arrow landing on them promises something that never happens. What the backward pass
+    actually reaches, in a network with one hidden layer, is <b>the hidden units</b>: the error
+    at the output gives the gradient for the hidden→output weights directly, then it is carried
+    to each hidden unit, and each unit's share gives the gradient for its own input→hidden
+    weights. The signal stops there because there is nothing beyond it to change.
+  </p>
+  <div class="row" id="cands"></div>
+  <p class="note">
+    <b>A</b> is what ships now, and its arrow reaches the input nodes — the thing to fix.
+    <b>B</b> stops the arc at the hidden column. <b>C</b> routes the same path as a right-angled
+    elbow over the top, which reads as a return path rather than a second forward sweep — the
+    curve in A and B can be misread as another arc from left to right. <b>D</b> drops the
+    overhead route entirely and sends the error back along the edges themselves, which is
+    literally where the gradient flows, with each hidden unit ringed as it receives its share.
+  </p>
+
+  <h2>§2 · The neuron band, and the space to its right</h2>
+  <p class="note">
+    The band was drawn when the network panel was 300px; it is wider now, so the diagram sits
+    in the left third with empty canvas beside it. <b>E</b> pads it out by scaling. <b>F</b>
+    fills the space with the thing a reader would want next to the picture — the unit's own
+    equation, written the way the notebook writes it.
+  </p>
+  <div class="row" id="band"></div>
+
+  <h2>§3 · What I would ship</h2>
+  <p class="note">
+    <b>D for the backward pass</b>, with <b>C</b> as the fallback if the along-the-edge dots
+    read as ambiguous next to the forward ones. D is the only candidate that puts the error
+    where the gradient actually is — on the weights — instead of drawing a path beside them,
+    and ringing each hidden unit as its share arrives says "this unit is being told what it
+    contributed" without any arrow having to land anywhere misleading.<br>
+    <b>F for the band</b>: the equation earns the space, and it is the notebook's own line.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { SETS, ACTS, trainAll, deadUnits } from "../mlp/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-unknown","--ink-1","--ink-2","--ink-3","--grid","--surface-1"]
+  .forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+const rings = SETS.rings.make(makeRng(1));
+const run = trainAll(rings, 4, "relu", makeRng(1));
+const NET = run.frames[600];
+const DEAD = deadUnits(run.live[600], "relu");
+const K = 4;
+/* a dead ReLU receives zero gradient, so it is never among the units the
+   backward pass tells anything to — it stays unringed in every candidate */
+const LIVE = [0, 1, 2, 3].filter((j) => !DEAD[j]);
+
+function panel(host, title, sub, w, h) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  box.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  box.appendChild(cap);
+  host.appendChild(box);
+  return { ctx: cv.getContext("2d"), cap };
+}
+
+const W = 420, H = 240;
+const xIn = 46, xHid = W / 2, xOut = W - 46;
+const yOf = (i, n) => 40 + (H - 76) * ((i + 1) / (n + 1));
+
+function net(ctx, { dim = false } = {}) {
+  const max = Math.max(...[...NET.W1.flat(), ...NET.W2].map(Math.abs));
+  for (let j = 0; j < K; j += 1) {
+    for (let i = 0; i < 2; i += 1) {
+      const w = NET.W1[j][i];
+      ctx.save();
+      ctx.lineWidth = 0.4 + 3.2 * (Math.abs(w) / max);
+      ctx.globalAlpha = DEAD[j] ? 0.12 : (dim ? 0.14 : 0.28 + 0.5 * (Math.abs(w) / max));
+      ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w >= 0 ? C["c-event"] : C["c-nonevent"]);
+      ctx.beginPath(); ctx.moveTo(xIn, yOf(i, 2)); ctx.lineTo(xHid, yOf(j, K)); ctx.stroke();
+      ctx.restore();
+    }
+    const w2 = NET.W2[j];
+    ctx.save();
+    ctx.lineWidth = 0.4 + 3.2 * (Math.abs(w2) / max);
+    ctx.globalAlpha = DEAD[j] ? 0.12 : (dim ? 0.14 : 0.28 + 0.5 * (Math.abs(w2) / max));
+    ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w2 >= 0 ? C["c-event"] : C["c-nonevent"]);
+    ctx.beginPath(); ctx.moveTo(xHid, yOf(j, K)); ctx.lineTo(xOut, yOf(0, 1)); ctx.stroke();
+    ctx.restore();
+  }
+  const node = (x, y, r, t, ring) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"]; ctx.strokeStyle = ring ?? C["ink-3"];
+    ctx.lineWidth = ring ? 2.2 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (t) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y); }
+    ctx.restore();
+  };
+  return { node };
+}
+
+function nodes(ctx, ringHidden = []) {
+  const { node } = { node: (x, y, r, t, ring) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"]; ctx.strokeStyle = ring ?? C["ink-3"];
+    ctx.lineWidth = ring ? 2.2 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (t) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y); }
+    ctx.restore();
+  } };
+  node(xIn, yOf(0, 2), 11, "x₁"); node(xIn, yOf(1, 2), 11, "x₂");
+  for (let j = 0; j < K; j += 1) {
+    node(xHid, yOf(j, K), ringHidden.includes(j) ? 11 : 9, "",
+      ringHidden.includes(j) ? C["c-highlight"] : (DEAD[j] ? C["c-unknown"] : null));
+  }
+  node(xOut, yOf(0, 1), 12, "P");
+}
+
+const dashArc = (ctx, x1, y1, cx, cy, x2, y2) => {
+  ctx.save();
+  ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cx, cy, x2, y2); ctx.stroke();
+  ctx.restore();
+  // head
+  ctx.save(); ctx.fillStyle = C["c-highlight"];
+  const a = Math.atan2(y2 - cy, x2 - cx);
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+};
+
+/* A — as shipped: the arc reaches the inputs */
+{
+  const { ctx, cap } = panel(document.getElementById("cands"),
+    "A — as shipped: lands on the inputs", "the arrow promises an update to something that has no parameter", W, H);
+  net(ctx); nodes(ctx);
+  dashArc(ctx, xOut, yOf(0, 1) - 16, (xIn + xOut) / 2, 14, xIn, yOf(0, 2) - 16);
+  cap.textContent = "wrong: x1 and x2 are data — nothing about them changes";
+}
+
+/* B — the arc stops at the hidden column */
+{
+  const { ctx, cap } = panel(document.getElementById("cands"),
+    "B — arc stops at the hidden units", "the last place with parameters to update", W, H);
+  net(ctx); nodes(ctx, LIVE);
+  dashArc(ctx, xOut, yOf(0, 1) - 16, (xHid + xOut) / 2, 14, xHid, yOf(0, K) - 14);
+  cap.textContent = "correct endpoint, but the curve can read as another left-to-right sweep";
+}
+
+/* C — a right-angled elbow over the top */
+{
+  const { ctx, cap } = panel(document.getElementById("cands"),
+    "C — 90° elbow over the top", "reads as a return path, not a second forward sweep", W, H);
+  net(ctx); nodes(ctx, LIVE);
+  ctx.save();
+  ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(xOut, yOf(0, 1) - 16);
+  ctx.lineTo(xOut, 22);
+  ctx.lineTo(xHid, 22);
+  ctx.lineTo(xHid, yOf(0, K) - 16);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save(); ctx.fillStyle = C["c-highlight"];
+  ctx.beginPath(); ctx.moveTo(xHid, yOf(0, K) - 12);
+  ctx.lineTo(xHid - 5, yOf(0, K) - 21); ctx.lineTo(xHid + 5, yOf(0, K) - 21);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.fillStyle = C["c-highlight"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("the error, back to the units", (xHid + xOut) / 2, 16); ctx.restore();
+  cap.textContent = "same endpoint as B, unambiguous direction";
+}
+
+/* D — no overhead route: the error travels the edges themselves */
+{
+  const { ctx, cap } = panel(document.getElementById("cands"),
+    "D — back along the edges themselves", "where the gradient actually is: on the weights", W, H);
+  net(ctx, { dim: true });
+  ctx.save();
+  ctx.strokeStyle = C["c-highlight"];
+  ctx.setLineDash([5, 4]);
+  for (let j = 0; j < K; j += 1) {
+    if (DEAD[j]) continue;
+    const share = Math.min(1, Math.abs(NET.W2[j]) / 4);
+    ctx.lineWidth = 1 + 3 * share;
+    ctx.globalAlpha = 0.4 + 0.5 * share;
+    ctx.beginPath(); ctx.moveTo(xOut, yOf(0, 1)); ctx.lineTo(xHid, yOf(j, K)); ctx.stroke();
+  }
+  ctx.restore();
+  nodes(ctx, [0, 1, 2]);
+  ctx.save(); ctx.fillStyle = C["c-highlight"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("each unit's share of the error", xHid + 40, 20); ctx.restore();
+  cap.textContent = "thickness = that unit's share; the ring says the unit has been told";
+}
+
+/* ---- §2 the band ---- */
+const BW = 460, BH = 110;
+function neuron(ctx, x0, y0, w, box, withEq) {
+  const nxIn = x0 + 18;
+  const nxSum = x0 + Math.max(52, w * 0.16);
+  const nxBox = nxSum + 22;
+  const mid = y0 + 22 + box / 2;
+  const boxTop = y0 + 22;
+  const lab = (t, x, y, al = "left", col = C["ink-3"]) => {
+    ctx.save(); ctx.fillStyle = col; ctx.font = MONO_S; ctx.textAlign = al;
+    ctx.fillText(t, x, y); ctx.restore();
+  };
+  const arrow = (ax, ay, bx, by) => {
+    ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    const a = Math.atan2(by - ay, bx - ax);
+    ctx.beginPath(); ctx.moveTo(bx, by);
+    ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
+    ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
+    ctx.closePath(); ctx.fillStyle = C["ink-3"]; ctx.fill(); ctx.restore();
+  };
+  lab("Inside one hidden unit", x0 + 4, y0 + 11, "left", C["ink-2"]);
+  const rows = [
+    { t: "x₁", w: "w₁", dy: -box * 0.34 }, { t: "x₂", w: "", dy: -box * 0.12 },
+    { t: "⋮", w: "", dy: box * 0.1 }, { t: "xₙ", w: "wₙ", dy: box * 0.34 },
+  ];
+  for (const r of rows) {
+    lab(r.t, nxIn - 5, mid + r.dy + 4, "right", C["ink-2"]);
+    if (r.t === "⋮") continue;
+    arrow(nxIn, mid + r.dy, nxSum - 10, mid + r.dy * 0.3);
+    if (r.w) lab(r.w, (nxIn + nxSum) / 2, mid + r.dy * 0.78 - 4, "center");
+  }
+  ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.fillStyle = C["surface-1"];
+  ctx.beginPath(); ctx.arc(nxSum, mid, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Σ", nxSum, mid); ctx.restore();
+  lab("+ b", nxSum, mid + 24, "center");
+  arrow(nxSum + 11, mid, nxBox - 3, mid);
+  const { f } = ACTS.relu;
+  const Z = 2.4;
+  const X = (z) => nxBox + ((z + Z) / (2 * Z)) * box;
+  const Y = (v) => boxTop + box / 2 - (v / Z) * (box / 2);
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.strokeRect(nxBox, boxTop, box, box);
+  ctx.setLineDash([2, 3]); ctx.beginPath();
+  ctx.moveTo(nxBox, Y(0)); ctx.lineTo(nxBox + box, Y(0));
+  ctx.moveTo(X(0), boxTop); ctx.lineTo(X(0), boxTop + box); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = C["ink-1"]; ctx.lineWidth = 1.8; ctx.beginPath();
+  for (let i = 0; i <= 70; i += 1) {
+    const z = -Z + (i / 70) * 2 * Z;
+    const v = Math.max(-Z, Math.min(Z, f(z)));
+    if (i === 0) ctx.moveTo(X(z), Y(v)); else ctx.lineTo(X(z), Y(v));
+  }
+  ctx.stroke(); ctx.restore();
+  lab("ReLU", nxBox + box / 2, boxTop + box + 12, "center", C["ink-2"]);
+  arrow(nxBox + box + 3, mid, nxBox + box + 24, mid);
+  lab("out", nxBox + box + 28, mid + 4, "left", C["ink-2"]);
+  if (withEq) {
+    const ex = nxBox + box + 58;
+    lab("out = σ( w₁x₁ + w₂x₂ + … + b )", ex, mid - 4, "left", C["ink-1"]);
+    lab("σ is the activation — the curve on the left", ex, mid + 12, "left");
+  }
+}
+{
+  const { ctx, cap } = panel(document.getElementById("band"),
+    "E — as shipped, scaled to the panel", "the diagram grows, the space stays empty on the right", BW, BH);
+  neuron(ctx, 0, 0, BW, 66, false);
+  cap.textContent = "nothing wrong with it, but ~180px of the band carries nothing";
+}
+{
+  const { ctx, cap } = panel(document.getElementById("band"),
+    "F — the unit's equation fills the space", "the notebook's own line, beside the picture of it", BW, BH);
+  neuron(ctx, 0, 0, BW, 66, true);
+  cap.textContent = "the picture and the formula say the same thing, side by side";
+}
+</script>
+</body>
+</html>
