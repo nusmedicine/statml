@@ -11000,6 +11000,45 @@ Copy button emits (`fingerprint.html` line ~400), so the one-time whitespace
 churn in that commit is the file arriving AT the format future rebaselines
 will produce, not drift.
 
+### Round 2 — Kenneth (2026-08-30): MathML, the score histograms, and ROC folded in
+
+His three asks, all in: **(1) formulas in MathML**, consistent with widget
+15 — they moved off the canvas into a `.w-math` card above the figure
+(engine-checked with the compare-math-to-math probe, plain-text fallback,
+one `<math>` per term so the card wraps at the seams, memoised on its
+printed string because draw() runs per frame; the card is inside the `tx`
+hash, which is where formulas belong). Every formula wears the live numbers
+of the state on screen. **(2) The score histograms**, widget 34's overlaid
+strip (counts, one shared y — densities would hide the prevalence dial)
+with the threshold line at 0.5, "predicted −/+" said once at its feet, and
+the threshold DRAGGABLE on the strip only (`drag.hit` gates by concept and
+strip bounds). **(3) ROC folded in**: `target` became **`concept` —
+`numeric` · `threshold` · `roc`** — so one notebook link lands on any of
+04-2's stations (`?concept=threshold`, `?concept=roc`), the grouped
+segmented saying the taxonomy (Numeric / categorical: Confusion matrix ·
+ROC curve, captioned threshold-dependent vs -independent).
+
+**What made the fold-in one generator instead of two**: for latent
+z ~ N(±d/2, 1) the log-likelihood ratio is d·z, so the trained model's
+calibrated probability is σ(d·z + logit(p)) — and **cutting that at 0.5 is
+algebraically round 0's plug-in rule**. `model.js` now returns per-patient
+probabilities (`categoricalPatients`), the cells are `cellsAt(patients,
+threshold)`, and the round-0 measure script re-ran BYTE-IDENTICAL through
+the wrappers (the "mid" comparison rule maps to prob ≥ p). The ROC walk is
+widget 34's per-patient staircase; AUC by column sums.
+
+**The boundary with widget 34, decided here**: the curve opens FINISHED in
+this widget — its concept is what threshold-independence *means* (drag the
+threshold: the dot moves ALONG the curve, AUC's tile does not), while
+widget 34 keeps the construction story (the trace, Youden, find-optimal).
+Rule 4 is not offended because the curve is not this widget's withheld
+answer; flagged for Kenneth's review regardless. ROC tiles: AUC first
+("the one number the threshold cannot move"), then accuracy/recall/
+precision each noted "at threshold X". Verified in the pane at 1280 and
+narrow: all three concepts, the drag writing `?threshold=` (0.50 → 0.34
+moved TPR 0.545 → 0.773, FPR 0.112 → 0.201, AUC still 0.850), the trap
+state at prevalence 0.1, zero console errors.
+
 ## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
 
 **The misconception**: that the ROC curve is a static property of the model — a

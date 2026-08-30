@@ -49,22 +49,27 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 1 done 2026-08-30,
+**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 2 done 2026-08-30,
 awaiting Kenneth's review.** *Scoring the Predictions*, the second
-04-2 widget: the metrics themselves, numeric and categorical, the
-confusion matrix the categorical centre — and **NO ROC anywhere**
-(widget 34 owns the threshold story, Kenneth's call). One widget, two
-tabs; the `metric` pick lights that metric's anatomy; the one motion
-is the R² ease. Full record: catalogue § *Widget 35* (round 0's
-measured numbers and his seven picks, round 1's build). At hand:
+04-2 widget. Round 2 (his asks): formulas are a **MathML card** wearing
+the live numbers; the categorical half is widget 34's presentation —
+**score histograms with a strip-draggable threshold** — and **ROC is
+folded in as a third concept**, so one notebook link lands on any
+station: `?concept=numeric · threshold · roc`. The fold-in cost one
+identity: the trained model's probability is σ(d·z + logit(p)), so
+prob ≥ 0.5 IS round 0's plug-in rule — one generator serves cells,
+histograms and the curve, and the measure script re-ran byte-identical.
+The curve opens FINISHED here (widget 34 keeps the construction story)
+— flagged for review. Full record: catalogue § *Widget 35*. At hand:
 
 ```bash
 node scripts/serve.mjs 8010
 # http://localhost:8010/widgets/metrics/                        (numeric, plain)
 # .../widgets/metrics/?metric=rmse&outliers=1                   (the outlier's square)
 # .../widgets/metrics/?metric=r2                                (the mean-model ease, landed)
-# .../widgets/metrics/?target=categorical&cmetric=prec          (lit cells + formula)
-# .../widgets/metrics/?target=categorical&cmetric=rec&prev=0.1  (the accuracy trap)
+# .../widgets/metrics/?concept=threshold&cmetric=prec           (histograms + lit cells)
+# .../widgets/metrics/?concept=threshold&cmetric=acc&prev=0.1   (the accuracy trap)
+# .../widgets/metrics/?concept=roc&threshold=0.3                (dot on the curve, AUC still)
 node widgets/_lab/metrics-measure.mjs   # generators imported FROM the widget
 # _lab/metrics-mock.html — round 0's six candidates, still served
 ```

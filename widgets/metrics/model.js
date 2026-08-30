@@ -64,19 +64,63 @@ export function numericMetrics(actual, pred) {
   return { rmse: Math.sqrt(se / n), mae: ae / n, r2: 1 - se / sst, sse: se, sst, ybar };
 }
 
-export function categoricalCohort(rng, { n = CAT_N, prev, d, rule = "plugin" }) {
-  const cut = rule === "plugin" ? Math.log((1 - prev) / prev) / d : 0;
-  const cells = { tp: 0, fp: 0, tn: 0, fn: 0 };
+/* THE SCORE IS THE TRAINED MODEL'S CALIBRATED PROBABILITY. For latent
+   z ~ N(±d/2, 1) the log-likelihood ratio is d·z, so a logistic regression
+   trained at prevalence p outputs prob = σ(d·z + logit(p)) — and cutting
+   that probability at 0.5 is ALGEBRAICALLY the plug-in rule the round-0
+   sweep measured (prob ≥ 0.5 ⇔ z ≥ log((1−p)/p)/d). One generator
+   therefore serves the confusion-matrix act, the score histograms AND the
+   ROC curve: the cells are just cellsAt(patients, threshold). */
+export function categoricalPatients(rng, { n = CAT_N, prev, d }) {
+  const priorLogOdds = Math.log(prev / (1 - prev));
+  const out = [];
   for (let i = 0; i < n; i += 1) {
     const disease = rng.next() < prev;
     const z = rng.normal(disease ? d / 2 : -d / 2, 1);
-    const pos = z >= cut;
-    if (disease && pos) cells.tp += 1;
-    else if (disease) cells.fn += 1;
+    out.push({ prob: 1 / (1 + Math.exp(-(d * z + priorLogOdds))), disease });
+  }
+  return out;
+}
+
+export function cellsAt(patients, thr) {
+  const cells = { tp: 0, fp: 0, tn: 0, fn: 0 };
+  for (const p of patients) {
+    const pos = p.prob >= thr;
+    if (p.disease && pos) cells.tp += 1;
+    else if (p.disease) cells.fn += 1;
     else if (pos) cells.fp += 1;
     else cells.tn += 1;
   }
   return cells;
+}
+
+/* The per-patient staircase (widget 34's walk): probabilities descending,
+   up for a disease patient, right for a healthy one. AUC by trapezoids —
+   with continuous scores ties are measure-zero at teaching n. */
+export function rocOf(patients) {
+  const sorted = patients.slice().sort((a, b) => b.prob - a.prob);
+  const nPos = sorted.filter((p) => p.disease).length;
+  const nNeg = sorted.length - nPos;
+  const pts = [{ fpr: 0, tpr: 0 }];
+  let tp = 0;
+  let fp = 0;
+  let auc = 0;
+  for (const p of sorted) {
+    if (p.disease) tp += 1;
+    else {
+      fp += 1;
+      auc += tp; // each healthy step sweeps a column of height tp/nPos
+    }
+    pts.push({ fpr: nNeg ? fp / nNeg : 0, tpr: nPos ? tp / nPos : 0 });
+  }
+  return { pts, auc: nPos && nNeg ? auc / (nPos * nNeg) : NaN, nPos, nNeg };
+}
+
+/* The round-0 sweep's door, kept so `_lab/metrics-measure.mjs` reads
+   unchanged: "plugin" is probability 0.5 (see above); "mid" is the fixed
+   latent midpoint z ≥ 0, which on the probability scale is prob ≥ p. */
+export function categoricalCohort(rng, { n = CAT_N, prev, d, rule = "plugin" }) {
+  return cellsAt(categoricalPatients(rng, { n, prev, d }), rule === "plugin" ? 0.5 : prev);
 }
 
 export function categoricalMetrics({ tp, fp, tn, fn }) {

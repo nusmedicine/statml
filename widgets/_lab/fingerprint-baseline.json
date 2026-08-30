@@ -2156,7 +2156,7 @@
     },
     {
       "slug": "metrics",
-      "state": "?theme=light&target=categorical&cmetric=rec",
+      "state": "?theme=light&concept=threshold&cmetric=rec",
       "px": "0",
       "tx": "0",
       "$note": "placeholder until promotion"
