@@ -1,11 +1,11 @@
 # Handover
 
-**Thirty-five widgets shipped — 34 on the gallery, `roc-auc` UNLISTED
-(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 249
-fingerprint states recorded.** Widget 35 `metrics` **Scoring the
-Predictions** (PHM5005 04-2) shipped 2026-08-30 after five review
-rounds in one day; see NEXT below and catalogue § Widget 35. Earlier,
-on 2026-08-29:
+**Thirty-six widgets shipped — 35 on the gallery, `roc-auc` UNLISTED
+(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 257
+fingerprint states recorded.** Widget 36 `naive-bayes` **Naive Bayes**
+(PHM5005 04-3, Arc A slot 5) shipped and PUSHED 2026-08-30 after eight
+review rounds in one day; see NEXT below and catalogue § Widget 36.
+Widget 35 `metrics` shipped the same day. Earlier, on 2026-08-29:
 
 **Widget 34 `roc-auc` SHIPPED** — **Scoring a Classifier** (PHM5005,
 04-2 Model Evaluation), six rounds in one day, grown from a D3 app
@@ -51,44 +51,48 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT
+## NEXT: plan widget 37 — the shallow MLP, Arc A's LAST slot
 
-**WIDGET 35 `metrics` SHIPPED AND PUSHED 2026-08-30** as **Scoring the
-Predictions** (PHM5005 04-2, the metrics themselves) — five review
-rounds in one day, promoted on "push to gallery" with **eleven states
-(nine settled, two driven)** recorded via three clean suite runs and a
-confirming **249 of 249 MATCH**; the full record is catalogue
-§ Widget 35 (the rounds, the recording protocol, and the
-screenshot-wakes-the-pane DPR diagnosis). **`roc-auc` went UNLISTED in
-the same push** — off the gallery, alive at its URL, no draft bar;
-`status: "unlisted"` is a third status minted for it (check.mjs
-documents it; /lab/ lists drafts only, so unlisted appears nowhere).
-**THE QUEUE IS EMPTY AGAIN.** What the widget is: one figure, two
-outcomes — Numeric (predicted-vs-actual, each metric drawn as its own
-anatomy: squares for RMSE, bars for MAE, the mean model for R²) and
-Categorical, which then picks its metric family (Confusion matrix ·
-ROC curve, the notebook's threshold-dependent/independent split).
-MathML formulas ride a `.w-math` card with live numbers; the positive
-class RENAMES the cells rather than recounting them; the trace is a
-one-way door (`traced=1`) so the dials explore a finished curve.
-**Core gained three doors for it, each with a full suite run**:
-`when: { all: [...] }`, readout `{ break: true }`, and a segmented
-option's `token:` swatch. At hand:
+**Agreed with Kenneth 2026-08-30, planning to begin.** Hosts at PHM5005
+`04-3 Tour of Algorithms` § Neural Networks (MLP) — the notebook's
+content: h = σ(W⁽¹⁾x + b⁽¹⁾), ŷ = g(W⁽²⁾h + b⁽²⁾); activations named
+relu/tanh/logistic; the worked example is
+`MLPClassifier(hidden_layer_sizes=(100,), activation="relu",
+solver="adam")` on the heart failure data. Follow the house order:
+misconception first, then measurements (`_lab/`), then mock candidates,
+then Kenneth picks. **The SVM widget is the nearest sibling** (same
+notebook section shape, decision-boundary stage, kernels ≈ hidden
+layers as the "what bends the boundary" dial) — read catalogue
+§ Widget 16 before proposing a stage; its generated-data finding
+(no PHM5005 dataset shows a kernel doing anything) almost certainly
+applies to hidden units too, and its measured heart-failure numbers
+(RBF WORSE than linear on all features, 0.729 vs 0.736) are a warning
+against a real-data MLP stage.
+
+**WIDGET 36 `naive-bayes` SHIPPED AND PUSHED 2026-08-30** (PHM5005
+04-3 § Probabilistic, Arc A slot 5) — eight rounds in one day, the full
+record in catalogue § Widget 36. What a later session most needs:
 
 ```bash
 node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/metrics/                          (numeric, plain)
-# .../widgets/metrics/?metric=rmse&outliers=1                     (the outlier's square)
-# .../widgets/metrics/?metric=r2                                  (the mean-model ease)
-# .../widgets/metrics/?outcome=categorical&cmetric=rec            (matrix + lit cells + averages)
-# .../widgets/metrics/?outcome=categorical&positive=healthy&cmetric=rec  (the renamed cells)
-# .../widgets/metrics/?outcome=categorical&cmetric=acc&prev=0.1   (the accuracy trap)
-# .../widgets/metrics/?outcome=categorical&view=roc               (press Trace; then the pill)
-# .../widgets/metrics/?outcome=categorical&view=roc&shown=999     (published finished)
-node widgets/_lab/metrics-measure.mjs   # generators imported FROM the widget
-# _lab/metrics-mock.html   — round 0's six candidates, still served
-# _lab/metrics-units.html  — round 5's three unit candidates (B shipped)
+# http://localhost:8010/widgets/naive-bayes/                      (opens on the prior alone)
+# .../widgets/naive-bayes/?addcrp=1&addwbc=1                      (both labs in the product)
+# .../widgets/naive-bayes/?addcrp=1&addwbc=1&correlate=correlated (the ρ act)
+# .../widgets/naive-bayes/?family=discrete&chills=1&addfever=1&addchills=1&correlate=correlated&lam=0.95
+#                                                                 (the discrete double-count)
+"C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/venv/Scripts/python.exe" \
+    widgets/_lab/nb-design.py    # the measurements + THE TRAP (redundancy is load-bearing)
+# _lab/nb-mock.html — round 0's candidates, still served
 ```
+
+- **Per-feature pills are URL state** (`?addcrp=1` …), Step/Play declined;
+  the correlated view IMPOSES ρ/λ on the FITTED marginals (never
+  regenerates the cohort — naive Bayes must be exactly flat).
+- **The harness's setParam now toggles `style:"pill"` buttons** (clicks
+  only when aria-pressed differs). Recording widget 36 with it EXPOSED
+  time-event's two driven states as INERT since 2026-08-29 — both
+  rebaselined in the promotion commit; see § The suite below.
+- **`roc-auc` stays UNLISTED** (`status: "unlisted"`, minted 2026-08-30).
 
 Beyond that, everything open is KENNETH'S OWN, listed below so a
 session can remind him rather than act: the NINE notebook links, the
@@ -109,6 +113,7 @@ do should hold, not invent scope — prd §11 exists to be pointed at.
    - 05-01 (widget 33, beside cells 53–62): `Explore the diagnostics interactively: [Checking the Model Fit](https://nusmedicine.github.io/statml/widget/lm-diagnostics/)`
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
+   - 04-3 § Probabilistic (widget 36): `Explore naive Bayes interactively: [Naive Bayes](https://nusmedicine.github.io/statml/widget/naive-bayes/)`
    — and judging projected is still owed by every widget from 11 on,
    widgets 26–34 included.
 
@@ -392,7 +397,23 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 238 states, all matching
+## The suite: 257 states, all matching
+
+**Widget 36 added eight states on 2026-08-30 through the full suite**
+(the widget-24/31 route, no shooter): three whole-suite runs at DPR 1.25
+with all moved hashes byte-identical on every run and the 247
+pre-existing states matching on every run, spliced, then a confirming
+run read **257 of 257 MATCH**. Six settled (the empty open is legal —
+the widget declares no `shown`; admission lives in the pill params), two
+driven mid-grow via `set` on the pills. **The harness was taught pills
+for this** — setParam clicks a `.w-pill` only when its `aria-pressed`
+differs from the target — and that fix exposed a shipped silent no-op:
+**time-event's two driven states had been INERT since their 2026-08-29
+recording** (the old generic branch wrote `.value` to the pill button
+and fired an event nothing listened to, hashing an undriven figure —
+5.7's exact failure shape). Both were rebaselined in the promotion
+commit; each new `tx` equals its settled sibling's, the proof the param
+now actually flips. Their scrub-and-drag caveats are unchanged.
 
 **Widget 15's states were re-recorded TWICE on 2026-08-29 with
 `_lab/logistic-shoot.html`** (derived from roc-shoot, DPR gate included):
@@ -607,7 +628,8 @@ is blind to.
 | 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
 | 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
 | 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2), then **UNLISTED 2026-08-30** — off the gallery, live at its URL, no draft bar (`status: "unlisted"`), because widget 35 carries the ROC act. SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. Core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected |
-| 35 | `metrics` | shipped as **Scoring the Predictions** (PHM5005, 04-2). FIVE rounds in one day (2026-08-30); **eleven states** — nine settled, two driven. Two outcomes, and categorical picks matrix or ROC (`?outcome=`/`&view=`); MathML formula card, positive-class pick that renames the cells, macro/weighted averages, the trace as a one-way door. Core gained `when.all`, readout `{ break: true }`, segmented `token:`. The threshold drag, the Youden scan mid-flight and the positive-class flip mid-trace are untested geometry. NOT yet judged projected; 04-2 link not yet placed |
+| 35 | `metrics` | shipped as **Scoring the Predictions** (PHM5005, 04-2). FIVE rounds in one day (2026-08-30); **eleven states** — nine settled, two driven. Two outcomes, and categorical picks matrix or ROC (`?outcome=`/`&view=`); MathML formula card, positive-class pick that renames the cells, macro/weighted averages, the trace as a one-way door. Core gained `when.all`, readout `{ break: true }`, segmented `token:`. The threshold drag, the Youden scan mid-flight and the positive-class flip mid-trace are untested geometry. NOT yet judged projected; 04-2 link placed |
+| 36 | `naive-bayes` | shipped as **Naive Bayes** (PHM5005, 04-3 § Probabilistic — Arc A slot 5). EIGHT rounds in one day (2026-08-30); **eight states** — six settled, two driven mid-grow. Continuous · Discrete tabs (GaussianNB on CRP+WBC, BernoulliNB on fever+chills), per-feature pills as URL state, Independent \| Correlated segmented imposing ρ/λ on the FITTED marginals. The harness learned `style:"pill"` buttons at its promotion. NOT yet judged projected; 04-3 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

@@ -5834,8 +5834,8 @@ sections, each with a **Model** and an **Objective** — is the spine.
 | 2 | — | instance-based (kNN) | deferred, see below |
 | 3 | `support-vector-machine` | margin-based (SVM) | **built — shipped** |
 | 4 | `trees-and-ensembles` | tree-based and ensembles, one widget for tree → forest → boosting | **built — draft**, one page unreviewed |
-| 5 | — | probabilistic (naive Bayes) | planned |
-| 6 | — | neural networks (a shallow MLP) | planned |
+| 5 | `naive-bayes` | probabilistic (naive Bayes) | **built — shipped** |
+| 6 | — | neural networks (a shallow MLP) | **planning — the arc's last slot** |
 
 #### Widget 16 · `support-vector-machine` — SHIPPED
 
@@ -10934,6 +10934,87 @@ built and shipped against `04-1` and `04-4`.
 34* directly below. The one-paragraph sketch that sat here (a probability axis,
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
+
+## Widget 36 · `naive-bayes` — Naive Bayes · SHIPPED 2026-08-30
+
+**Arc A slot 5, PHM5005 `04-3 Tour of Algorithms` § Probabilistic — eight
+review rounds in one day.** The claim: P(y|x) ∝ P(y)·ΠP(xⱼ|y), a prior times
+one likelihood per feature, whatever shape each likelihood takes. Kenneth's
+structural picks (rounds 0–1, via AskUserQuestion then the mock):
+**synthetic data illustrating continuous AND discrete likelihoods**, both
+acts in scope, then **Continuous · Discrete as separate tabs, each with its
+own correlation act** — not the one mixed ledger the mock proposed — and
+**disease / no disease with real-name features**: CRP + WBC (Gaussian rows),
+fever + chills (Bernoulli rows). Ledger form A with C's running total, from
+the three mocked candidates in `_lab/nb-mock.html`; title *Naive Bayes* over
+the catchier options, his call.
+
+**Measured before anything was drawn** (`_lab/nb-design.py`, closed-form
+mixed NB vs sklearn to ~4e-16), **and the design's one real trap is recorded
+there**: the correlation act only tells the double-counting story when the
+second feature is REDUNDANT — matched standardized shifts for the labs
+(both move 1.333 pooled SD), matched rates for the symptoms (0.70/0.25
+twice). With mismatched shifts the CORRECT model *exploits* the correlation —
+the residual turns class-informative and its posterior runs to 1.000 at
+ρ 0.99 — which teaches "correlation is free information", the opposite of
+the notebook's caveat. The population parameters are load-bearing, not
+flavour. Measured act receipts: continuous, NB flat at 0.584 while correct
+relaxes to the one-lab 0.437; discrete with both symptoms present, NB 0.771
+flat against correct 0.545 at λ 1 — and λ is capped at 0.95 because at 1 a
+mixed cell (present, absent) has probability 0 in both classes.
+
+**The rounds, each its own commit:**
+
+1. **Build**: the ledger (readoff left, log-odds evidence bar right, prior +
+   two features + running total), fitted live on a seeded cohort (n 400,
+   prevalence 0.3); MathML card; correlation gate per tab.
+2. **Per-feature pills** — Kenneth: "use buttons to select features to add".
+   The generic Step died; each feature has a membership pill, admission is
+   URL state, the product visibly commutes, Step/Play declined (4.5), bars
+   ease on the request door. The gate moved BELOW the pills. Caught in the
+   same round: with one feature admitted the card printed
+   `0.37 × LR(CRP) × 0.56 = 0.21` — an equation false as read; it now prints
+   only the factors actually in the product.
+3. **"The patient" read as possibly ground truth** — renamed everywhere to
+   *A new patient*, disease status unknown; only the training cohort's
+   status is known.
+4. **The readoff column labelled as the trained model** (a header over the
+   panels), then
+5. **moved below the prior row** so it heads exactly the distributions, then
+6. **restyled as parallel headings** — *Prior* and *Model* in one voice,
+   subtitle "distributions fitted to the training data", counts dropped
+   (2.10: nothing that can date).
+7. **The symptom panels were quietly lying.** They drew P(patient's state |
+   class), so flipping the Fever checkbox changed bars sitting under the
+   "Model" heading — Kenneth: "I thought they are stable?" They are: each
+   Bernoulli panel now draws the FULL fitted distribution (absent and
+   present pairs, never moving) with the patient's outcome framed in the
+   highlight — the exact analogue of the Gaussian panels' patient rule.
+8. **Polish**: the gate became a segmented **The two features: Independent |
+   Correlated** (two readings of one fit — what a segmented is for), and a
+   comment sweep stripped round narration and editorial phrasing.
+
+**Promotion, and what recording it found.** Eight states — six settled, two
+driven mid-grow — via three full-suite runs at DPR 1.25, all moved hashes
+byte-identical across runs, spliced, confirming run **257 of 257 MATCH**.
+The pills are `<button data-param>` setParam could not toggle, so the
+harness was taught them (the third option controls.js's note sanctions):
+click only when `aria-pressed` differs from the target. **That fix exposed a
+shipped instance of 5.7's silent-no-op failure: time-event's two "driven"
+states (set on its age/snps pills) had been INERT since their 2026-08-29
+recording** — the old generic branch wrote `.value` to the button and fired
+an event nothing listened to, so both states had been photographing
+undriven figures. Rebaselined in the promotion commit, with the new tx of
+each equal to its settled sibling's — the proof the param now flips.
+
+**Recorded, not fixed**: the continuous act's default patient is discordant
+(CRP up, WBC down), and for a discordant patient the correct posterior
+RISES at high ρ — the mismatch between two supposedly-correlated labs is
+itself informative. Honest, measured, explorable; the caption's claim is
+the one true for every patient (the naive Bayes line is flat because its
+inputs, the marginals, never move). The overconfidence story appears when
+the reader raises WBC to concordance. Untested geometry: none — no regions,
+no drag; the pills' ease is covered by the two driven states.
 
 ## Widget 35 · `metrics` — Scoring the Predictions · SHIPPED 2026-08-30
 
