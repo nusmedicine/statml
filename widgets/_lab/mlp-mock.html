@@ -84,23 +84,62 @@
   </p>
   <div class="row" id="acts"></div>
 
-  <h2>§4 · Open picks</h2>
+  <h2>§4 · The network itself — weights as colour and thickness</h2>
   <p class="note">
-    1) <b>The loss curve</b>: a second panel beside the stage (SVM has no second panel — the
-    sibling diverges here) or a low strip under it, or readout tiles only?<br>
-    2) <b>Drive labels</b>: Step <i>Next epoch</i> · Play <i>Train</i>, with a Play-speed
-    choice — epochs per second?<br>
-    3) <b>Dials</b>: Hidden units k as a choice ladder (1 / 2 / 3 / 4 / 8), Activation
-    segmented (Identity | ReLU | tanh) — does the learning rate get a dial too, or stay
-    fixed at the measured 0.05?<br>
-    4) <b>The wash vs a contour line</b>: SVM draws contours (boundary + margins); here the
-    wash also shows CONFIDENCE (the sigmoid), which the SVM stage never had. Wash, contour,
-    or both?<br>
-    5) <b>The failures are the lesson, or are they?</b> The table above says k 3 fails
-    most of the time and k 4 fails on crescents more often than not. Lean in — a caption
-    naming the Seed dial as the way to see it — or set the default to k 8 where training
-    is reliable and let the reader find the failures by turning k down?<br>
-    6) <b>Title</b>: working <i>Neural Network</i> — alternatives <i>Training a Neural
+    Kenneth 2026-08-30: <i>students don't really get weights, so maybe network links can
+    reflect in terms of colour/thickness.</i> The notebook leads its section with exactly
+    this picture. Every edge below is a real fitted weight from the runs above — <b>thickness
+    is |w|</b> (scaled to the largest weight in the net, so the picture is a comparison
+    inside one network) and the three candidates differ only in how they show the SIGN.
+  </p>
+  <p class="note">
+    <b>A</b> signs by colour, borrowing the stage's two class colours: for the output layer
+    that is literal (a positive weight votes for the red class), for the input layer it means
+    the input excites or inhibits that unit. <b>B</b> uses one ink and shows the sign as
+    solid vs dashed — no colour claim at all. <b>C</b> is colour with the numbers printed,
+    for the reader who does want them.
+  </p>
+  <div class="row" id="netcands"></div>
+  <p class="note">
+    <b>The diagram explains the k ladder, which is more than decoration.</b> In candidate A
+    above, the fourth hidden unit is a ghost — and measured, it is <b>dead</b>: it fires on
+    <b>0 of 180</b> samples, its input weights have norm 0.21 against ~3.0 for the others.
+    <b>The ring is closed by three live units and a corpse.</b> That is the mechanism behind
+    §2's table: rings need three pieces, k = 3 works only when none of the three dies
+    (10/20), k = 4 carries a spare (19/20). A student can SEE why width buys reliability,
+    rather than being told.
+  </p>
+  <p class="note">
+    <b>And it learns on screen.</b> The same network at four epochs — the edges start
+    near-uniform (random init, largest |w| 0.70) and thicken into the shape that closes the
+    ring (3.17). In the widget this sits beside the boundary panel and moves with it as Play
+    runs.
+  </p>
+  <div class="row" id="netfilm"></div>
+
+  <h2>§5 · Open picks</h2>
+  <p class="note">
+    1) <b>The layout</b>: the network diagram (§4) and the boundary panel (§1) side by side,
+    both live and both moving as Play runs — or the diagram behind a "Looking at" toggle,
+    the SVM widget's input-space/kernel-space arrangement?<br>
+    2) <b>The edge rendering</b>: A (sign by colour), B (one ink, dashed negatives) or C
+    (colour plus numbers)?<br>
+    3) <b>The loss curve</b>: a third panel, a low strip under the stage, or readout tiles
+    only?<br>
+    4) <b>Changing the network</b>: Hidden units k as a choice ladder (1 / 2 / 3 / 4 / 8) and
+    Activation segmented (Identity | ReLU | tanh) are settled. Does <b>depth</b> join them —
+    a second hidden layer, the notebook's <code>(100, 50)</code>? It doubles the engine and
+    on these three shapes one hidden layer already solves everything, so it would be shown
+    for its own sake.<br>
+    5) <b>Learning rate</b>: a dial, or fixed at the measured 0.05?<br>
+    6) <b>The wash vs a contour</b>: the wash also shows CONFIDENCE (the sigmoid), which the
+    SVM stage never had. Wash, contour, or both?<br>
+    7) <b>The dead unit</b>: name it on screen — a caption, or the ghost node drawn in
+    <code>--c-unknown</code> — or leave it for the reader to notice?<br>
+    8) <b>The failures</b>: §2's table says k 3 usually gets stuck. Lean in with a caption
+    naming the Seed dial, or default to k 8 where training is reliable and let the reader
+    find the failures by turning k down?<br>
+    9) <b>Title</b>: working <i>Neural Network</i> — alternatives <i>Training a Neural
     Network</i>, <i>The Multilayer Perceptron</i>. Slug <code>mlp</code>.
   </p>
 </main>
@@ -322,6 +361,113 @@ for (const [act, k] of [["identity", 8], ["relu", 4], ["tanh", 4]]) {
     `${act} · k = ${k}`, act === "identity" ? "eight units, still one straight line" : "");
   drawStage(ctx, side, rings, r.p, act);
   cap.textContent = `${r.errors} of ${rings.length} wrong`;
+}
+
+/* ---- §4 the network diagram: an edge per weight -------------------------
+   THICKNESS IS |w| SCALED TO THE LARGEST WEIGHT IN THIS NET, never to a
+   global constant: the picture is a comparison inside one network, and a
+   fixed scale would make a well-trained small net look empty beside a big
+   one. Three candidates for the SIGN, which is the part with no settled
+   token: "signed" borrows the stage's class colours, "dash" keeps one ink
+   and dashes the negatives, "numbers" is signed colour plus the values. */
+function drawNet(ctx, W, H, p, k, mode) {
+  const xIn = 40, xHid = W / 2, xOut = W - 40;
+  const yOf = (i, n) => (H - 34) * ((i + 1) / (n + 1)) + 22;
+  const all = [...p.W1.flat(), ...p.W2];
+  const max = Math.max(...all.map(Math.abs), 1e-6);
+  const edge = (x1, y1, x2, y2, w) => {
+    const t = Math.abs(w) / max;
+    ctx.save();
+    ctx.lineWidth = 0.4 + 3.6 * t;
+    ctx.globalAlpha = 0.25 + 0.6 * t;
+    if (mode === "dash") {
+      ctx.strokeStyle = C["ink-2"];
+      ctx.setLineDash(w < 0 ? [3, 3] : []);
+    } else {
+      ctx.strokeStyle = w >= 0 ? C["c-event"] : C["c-nonevent"];
+    }
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+    if (mode === "numbers") {
+      ctx.save();
+      ctx.fillStyle = C["ink-3"];
+      ctx.font = MONO_S;
+      ctx.textAlign = "center";
+      ctx.fillText(w.toFixed(1), (x1 + x2) / 2, (y1 + y2) / 2 - 2);
+      ctx.restore();
+    }
+  };
+  for (let j = 0; j < k; j += 1) {
+    for (let i = 0; i < 2; i += 1) edge(xIn, yOf(i, 2), xHid, yOf(j, k), p.W1[j][i]);
+    edge(xHid, yOf(j, k), xOut, yOf(0, 1), p.W2[j]);
+  }
+  const node = (x, y, r, label) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"];
+    ctx.strokeStyle = C["ink-3"];
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (label) {
+      ctx.fillStyle = C["ink-2"];
+      ctx.font = MONO_S;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x, y);
+    }
+    ctx.restore();
+  };
+  for (let i = 0; i < 2; i += 1) node(xIn, yOf(i, 2), 11, i ? "x2" : "x1");
+  for (let j = 0; j < k; j += 1) node(xHid, yOf(j, k), 9, "");
+  node(xOut, yOf(0, 1), 12, "P");
+  ctx.save();
+  ctx.fillStyle = C["ink-3"];
+  ctx.font = MONO_S;
+  ctx.textAlign = "center";
+  ctx.fillText("inputs", xIn, 14);
+  ctx.fillText(`${k} hidden units`, xHid, 14);
+  ctx.fillText("output", xOut, 14);
+  ctx.restore();
+}
+
+function netPanel(host, title, sub, w, h) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  box.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  box.appendChild(cap);
+  host.appendChild(box);
+  return { ctx: cv.getContext("2d"), cap };
+}
+
+const trained4 = train(rings, 4, "relu", LR, EPOCHS, makeRng(1));
+for (const [mode, label, sub] of [
+  ["signed", "A — sign by colour", "red pushes toward the red class, blue toward blue"],
+  ["dash", "B — one ink, sign by dash", "no colour claim; dashed is negative"],
+  ["numbers", "C — colour and the numbers", "for the reader who wants the values"],
+]) {
+  const { ctx, cap } = netPanel(document.getElementById("netcands"), label, sub, 300, 230);
+  drawNet(ctx, 300, 230, trained4.p, 4, mode);
+  cap.textContent = `rings, k = 4, trained (${trained4.errors} of 180 wrong)`;
+}
+
+const NET_SNAPS = [0, 60, 150, 300];
+const filmNet = train(rings, 4, "relu", LR, EPOCHS, makeRng(1), NET_SNAPS);
+for (const ep of NET_SNAPS) {
+  const { ctx, cap } = netPanel(document.getElementById("netfilm"), `epoch ${ep}`, "", 250, 200);
+  drawNet(ctx, 250, 200, filmNet.snaps[ep], 4, "signed");
+  const e = errorsOf(filmNet.snaps[ep], ACT.relu[0], rings);
+  const big = Math.max(...[...filmNet.snaps[ep].W1.flat(), ...filmNet.snaps[ep].W2].map(Math.abs));
+  cap.textContent = `${e} of 180 wrong · largest |w| ${big.toFixed(2)}`;
 }
 </script>
 </body>
