@@ -396,6 +396,11 @@ function drawLedger(ctx, colors, w, params, state, anim) {
   const zero = (zoneL + zoneR) / 2;
   const scale = (zoneR - zero) / LR_MAX;
 
+  /* the readoff panels are the TRAINED MODEL, and the figure says so
+     (round 4, Kenneth) — the fitted curves and rates come from the training
+     cohort, the only patients whose disease status is known */
+  label(ctx, colors, `The trained model (${N_COHORT} patients)`, PANEL_X, 13,
+    { color: colors.ink2 });
   label(ctx, colors, "← evidence for no disease", zero - 8, 13, { align: "right" });
   label(ctx, colors, "evidence for disease →", zero + 8, 13);
   lineSeg(ctx, zero, HEAD_H - 4, zero, HEAD_H + 3 * ROW_H, colors.grid);
