@@ -5835,7 +5835,7 @@ sections, each with a **Model** and an **Objective** — is the spine.
 | 3 | `support-vector-machine` | margin-based (SVM) | **built — shipped** |
 | 4 | `trees-and-ensembles` | tree-based and ensembles, one widget for tree → forest → boosting | **built — draft**, one page unreviewed |
 | 5 | `naive-bayes` | probabilistic (naive Bayes) | **built — shipped** |
-| 6 | — | neural networks (a shallow MLP) | **planning — the arc's last slot** |
+| 6 | `mlp` | neural networks (a shallow MLP) | **built — shipped**; ARC A COMPLETE |
 
 #### Widget 16 · `support-vector-machine` — SHIPPED
 
@@ -10934,6 +10934,125 @@ built and shipped against `04-1` and `04-4`.
 34* directly below. The one-paragraph sketch that sat here (a probability axis,
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
+
+## Widget 37 · `mlp` — Neural Networks (MLP) · SHIPPED 2026-08-31
+
+**Arc A's last slot, and the arc is now complete.** PHM5005 `04-3 Tour of
+Algorithms` § Neural Networks (MLP) — ten review rounds across 2026-08-30/31.
+Kenneth's two structural picks up front: **the SVM widget's stage** (widget
+16's own three generators and its class colours, so kernels and hidden units
+answer one visible problem) and **both acts** — training bends the boundary,
+and the k × activation dials with the identity collapse.
+
+**A 2 → k → 1 network, trained by full-batch gradient descent with momentum
+0.9 at lr 0.05 over 600 epochs.** `compute()` trains once and keeps every
+epoch's weights; the animation reveals a trajectory rather than training per
+frame (1.4). Two panels, both live: the network, every edge a fitted weight
+(thickness |w|, colour its sign), and the decision boundary as a class wash
+with a contour at P = 0.5. A loss strip runs under both.
+
+### The reliability table, which is the design's real finding
+
+Measured in `_lab/mlp-design.py` over 20 inits per cell, and identically
+under every optimiser tried — so it is a property of the problem, not the
+step rule:
+
+| | k=1 | k=2 | k=3 | k=4 | k=8 |
+|---|---|---|---|---|---|
+| rings | 0/20 | 0/20 | 10/20 | 19/20 | 20/20 |
+| crescents | 0/20 | 0/20 | 3/20 | 6/20 | 17/20 |
+
+**It corrected a one-seed claim the mock had already made in prose**: an early
+draft showed rings k = 3 reaching 0 errors and called 3 "the first k that
+works"; a different data seed reached 24. Two facts fall out, and **no surface
+may claim "k ≥ 3 works"**: capacity (one and two units cannot close a ring —
+they produce a line and a wedge) and optimisation (k 3 usually converges to a
+local minimum; extra units make the optimisation more reliable, not only the
+model more expressive). The mechanism is visible as a **dead unit** — one that
+activates on no sample, drawn in `--c-unknown` — and the crescents at k = 3
+show it starkly: 1 of 3 units live. **The optimiser was then chosen on how much
+of the training stays visible**, since reliability did not separate the
+candidates: momentum 0.9 at lr 0.05 spreads rings k = 4 over 77 → 32 → 1 → 0
+errors at epochs 20/60/150/300, where lr 0.2 has converged before epoch 60.
+
+### The rounds
+
+1. **Build** — two panels, loss strip, k and activation dials.
+2. **The activation shown, not named** — an inset drawing the curve's shape,
+   with a rug of the pre-activations the units actually receive, so it spreads
+   as the weights grow and a unit sliding into ReLU's flat region is a dead one
+   being made. A crossfade between activations was designed and dropped:
+   changing the activation is a data change, which resets training, so no
+   figure stands still for it.
+3. **The hover inspector** on core's pointer channel: a hidden unit lights its
+   edges, prints its weights, and draws **its own straight piece** on the
+   boundary. Core's rule for that channel — an inspector must stay additive,
+   since a lecture screen has no pointer — is honoured rather than worked
+   around: *Each unit's line* puts all k lines on the boundary without one.
+4. **Backpropagation, first as a static overlay and then properly.** The
+   overlay was not what Kenneth meant; **Slow now choreographs one training
+   step** over two seconds — a sample is ringed on the boundary and travels the
+   edges, its prediction meets the label, the error returns, the weights move —
+   each phase naming itself. THE WIDGET TRAINS FULL-BATCH, so the last caption
+   says the weights move once after every sample has made the trip.
+5. **The panels fill the width.** Only the boundary must be square, so it takes
+   46% and the network takes the rest; equal halves capped at 300px had left
+   dead canvas at every wide frame.
+6. **The backward pass lands on the hidden units**, by right-angled elbow
+   (`_lab/mlp-backprop.html`, four candidates). Backpropagation produces a
+   gradient for every *parameter*; the inputs are data and have none, so an
+   arrow reaching them promised an update that never happens. **The dead unit
+   is never ringed** — it receives zero gradient, which is why it cannot
+   recover.
+7. **The magnified neuron aligns to the network's columns**
+   (`_lab/mlp-band.html`), sum over the hidden column and out over output, so a
+   reader can look straight down from the Σ to the units it explains. The
+   equation that briefly filled the spare width was cut: whether it fitted
+   depended on the width.
+8. **The neuron's lettering and fan-in** (`_lab/mlp-neuron.html`, three
+   lettering candidates and five line treatments). MathML is DOM and this figure
+   is painted, but the convention it would apply is one a canvas can follow: a
+   variable is italic serif, everything else upright, and a subscript is smaller
+   and set below the baseline — Unicode's subscripts sit ON the baseline at the
+   wrong size, which is why the band read as a caption. The fan-in became a long
+   flat stub and a short turn: the old shallowness was structural (four inputs
+   in a 92px band running the diagonal all the way can only make ~7°), and the
+   outer arrivals now measure 28°.
+9. **Core gained `style: "action"`** — a bool rendering as a full-width button
+   in the drive row's sizing, so *Initialize weights* sits as a sibling of Reset
+   (measured 626×35 against 626×35). The rule must sit AFTER `.w-btn` (equal
+   specificity, later wins) and the FIELD carries the flex basis, not the
+   button. The harness learned it the way it learned pills.
+10. **Retitled to the notebook's own heading** and the copy rewritten in its
+    vocabulary — "bending a boundary" was colloquial, and **the subtitle no
+    longer says classify**, since an MLP fits a continuous outcome as readily as
+    a categorical one.
+
+### The engine is pinned, and the pinning had to be designed
+
+The widget and the reference cannot share a random stream, so a shared seed
+would prove nothing. `_lab/mlp-verify.mjs` dumps the data AND the initial
+weights the widget produced; `_lab/mlp-verify.py` trains from those exact
+arrays. After 600 epochs across four cases the worst disagreement in any
+weight is **1.1e-15**, and every error count matches.
+
+### Promotion
+
+Eleven states — nine settled, two driven (one mid-training at Medium, one 0.6
+through the first step at Slow, in the backward phase) — via three full-suite
+runs at DPR 1.25, all eleven byte-identical on every run, then a confirming
+**268 of 268 MATCH**. The flake showed itself plainly: run 1 flagged five
+px-only DIFFERs across three widgets, run 2 flagged two, run 3 none, `tx`
+identical throughout. A different set each run is the pane.
+
+**Two sweep lessons worth carrying**, both found here and both the same shape.
+A state sweep that forces its repaint with a `resize` event, or with a
+one-pixel frame nudge, is **inert wherever the canvas width is capped** — it
+then hashes a canvas nobody repainted and reports either a vacuous pass or a
+false "PAINTED NOTHING". Toggle a display parameter instead, and print the
+string count. And a collision check that runs only settled states **never
+paints the choreography's captions**, which is how a label sitting on the
+column headings survived one round.
 
 ## Widget 36 · `naive-bayes` — Naive Bayes · SHIPPED 2026-08-30
 

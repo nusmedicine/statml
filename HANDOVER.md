@@ -1,11 +1,13 @@
 # Handover
 
-**Thirty-six widgets shipped — 35 on the gallery, `roc-auc` UNLISTED
-(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 257
-fingerprint states recorded.** Widget 36 `naive-bayes` **Naive Bayes**
-(PHM5005 04-3, Arc A slot 5) shipped and PUSHED 2026-08-30 after eight
-review rounds in one day; see NEXT below and catalogue § Widget 36.
-Widget 35 `metrics` shipped the same day. Earlier, on 2026-08-29:
+**Thirty-seven widgets shipped — 36 on the gallery, `roc-auc` UNLISTED
+(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 268
+fingerprint states recorded.** Widget 37 `mlp` **Neural Networks (MLP)**
+shipped and PUSHED 2026-08-31 after ten review rounds across two days,
+and **ARC A IS COMPLETE**: every algorithm-family slot of PHM5005 `04-3`
+is built. Widget 36 `naive-bayes` shipped 2026-08-30, widget 35
+`metrics` the same day. See NEXT below and catalogue §§ Widget 37, 36.
+Earlier, on 2026-08-29:
 
 **Widget 34 `roc-auc` SHIPPED** — **Scoring a Classifier** (PHM5005,
 04-2 Model Evaluation), six rounds in one day, grown from a D3 app
@@ -51,57 +53,59 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 37 `mlp` — MEASURED AND MOCKED, awaiting Kenneth's picks
+## NEXT: nothing is queued — ARC A IS COMPLETE
 
-**Arc A's LAST slot**, PHM5005 `04-3 Tour of Algorithms` § Neural
-Networks. **Kenneth settled the two structural questions 2026-08-30**:
-the widget reuses **the SVM widget's stage** (widget 16's own three
-generators — Two blobs · Rings · Crescents — and its class colours), and
-carries **both acts** — training bends the boundary (Play = epochs), and
-the k × activation dials with the identity collapse. Measurements and
-the mock are committed; **what is owed next is his review of
-`_lab/mlp-mock.html` and the six open picks in its §4.**
+**Widget 37 `mlp` shipped 2026-08-31 and with it the last slot of Arc A.**
+Every algorithm family in PHM5005 `04-3 Tour of Algorithms` now has its
+widget, and the earlier arcs are done. **What remains is Kenneth's own**,
+listed under item 3 below so a session can remind him rather than act:
+the notebook links (04-3's two now among them), the 05-07 notebook fix he
+reported done, and judging projected, which is still owed by every widget
+from 11 on. **A session with nothing to do should hold, not invent scope**
+— prd §11 exists to be pointed at.
+
+**WIDGET 37 `mlp` SHIPPED AND PUSHED 2026-08-31** as **Neural Networks
+(MLP)** — ten rounds across two days; the full record is catalogue
+§ Widget 37. What a later session most needs at hand:
 
 ```bash
 node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/_lab/mlp-mock.html      the two acts, trained live
+# http://localhost:8010/widgets/mlp/                      (untrained; press Train)
+# .../widgets/mlp/?shown=600&lines=on                     (trained, each unit's line)
+# .../widgets/mlp/?speed=slow                             (ONE step choreographed)
+# .../widgets/mlp/?activation=identity&hidden=8&shown=600 (eight units, still a line)
+# .../widgets/mlp/?dataset=moons&hidden=3&shown=600       (crescents at the threshold k)
+node widgets/_lab/mlp-verify.mjs > widgets/_lab/mlp-verify.json
 "C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/venv/Scripts/python.exe" \
-    widgets/_lab/mlp-design.py     # the reference engine and the reliability table
+    widgets/_lab/mlp-verify.py     # the engine pinned: worst |dw| 1.1e-15
+"C:/Users/.../python.exe" widgets/_lab/mlp-design.py   # the reliability table
+# _lab/mlp-mock.html · mlp-backprop.html · mlp-band.html · mlp-neuron.html
 ```
 
-- **The engine is 2 → k → 1**, seeded uniform init (r = 1/√fan_in),
-  full-batch gradient descent with **momentum 0.9 at lr 0.05, 600
-  epochs**. `mlp-design.py` is the SPECIFICATION; the mock runs its JS
-  port, and the widget's engine gets pinned to it to the digit at build
-  time. The whole trajectory precomputes in `compute()` and Play replays
-  it — the pure-seeded contract, unchanged.
-- **THE RELIABILITY TABLE IS THE DESIGN'S REAL FINDING, and it corrected
-  a one-seed claim the mock first made** (rings k = 3 reached 0 errors on
-  one data/init pair and 24 on another). Over 20 inits per cell, and
-  identically under every optimiser tried — so it is a property of the
-  problem, not the step rule:
-
-  | | k=1 | k=2 | k=3 | k=4 | k=8 |
-  |---|---|---|---|---|---|
-  | rings | 0/20 | 0/20 | 10/20 | 19/20 | 20/20 |
-  | crescents | 0/20 | 0/20 | 3/20 | 6/20 | 17/20 |
-
-  Two teachable facts: **capacity** (k 1 and 2 can never close a ring —
-  they draw a line and a wedge) and **optimisation** (k 3 usually gets
-  stuck; width buys reliability, not just capacity). **No caption may
-  claim "k ≥ 3 works"**, and the Seed dial is a teaching control.
-- **The optimiser was chosen on WATCHABILITY alone**, since reliability
-  did not separate the candidates: momentum 0.9 at lr 0.05 spreads rings
-  k = 4 over 77 → 32 → 1 → 0 errors at epochs 20/60/150/300, where lr 0.2
-  is over before epoch 60.
-- **The identity collapse is visually unmistakable** — eight identity
-  units on the rings still draw one straight line, 79 of 180 wrong,
-  against relu and tanh at 0.
-- **A real-data stage was ruled out before it was proposed**: widget 16
-  measured that no PHM5005 dataset shows a kernel doing anything (heart
-  failure: RBF *worse* than linear on all features, 0.729 vs 0.736), and
-  the same applies to hidden units. Generated data, as the SVM widget
-  argues in catalogue § Widget 16 — read it before reopening this.
+- **THE RELIABILITY TABLE IS THE THING TO READ FIRST** (catalogue § Widget
+  37): over 20 inits per cell, rings 0/0/10/19/20 and crescents 0/0/3/6/17
+  at k = 1/2/3/4/8. **No surface may claim "k ≥ 3 works"** — it corrected a
+  one-seed claim an early mock had already written into prose. Capacity and
+  optimisation are two different lessons, and the visible mechanism is a
+  DEAD unit, drawn in `--c-unknown`.
+- **Slow is the choreographed pace**: one training step per 2 s, forward →
+  compare → backward → update, each phase naming itself. Medium and Fast
+  merely count epochs, which is 4.1's rule that the choreographing pace is
+  declared rather than decided mid-run. **The widget trains full-batch**, so
+  the caption says the weights move once after every sample has made the
+  trip — the animation illustrates one sample's journey and must not imply
+  per-sample updates.
+- **CORE GAINED `style: "action"`** — a bool rendering as a full-width
+  button in the drive row's sizing, so a momentary control can sit as a
+  sibling of Reset. Its rule must be declared AFTER `.w-btn` and the FIELD,
+  not the button, carries the flex basis. The full suite ran for it and read
+  **257 of 257** before widget 37's own states went in.
+- **Two sweep traps, both found here, both the same shape.** A state sweep
+  that forces its repaint with a `resize` event or a one-pixel frame nudge
+  is INERT wherever the canvas width is capped, so it hashes a canvas nobody
+  repainted — a vacuous pass and a false "PAINTED NOTHING" are the same bug.
+  Toggle a display parameter and print the string count. And a collision
+  check over settled states never paints a choreography's captions.
 
 **WIDGET 36 `naive-bayes` SHIPPED AND PUSHED 2026-08-30** (PHM5005
 04-3 § Probabilistic, Arc A slot 5) — eight rounds in one day, the full
@@ -148,6 +152,7 @@ do should hold, not invent scope — prd §11 exists to be pointed at.
    - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    - 04-3 § Probabilistic (widget 36): `Explore naive Bayes interactively: [Naive Bayes](https://nusmedicine.github.io/statml/widget/naive-bayes/)`
+   - 04-3 § Neural Networks (widget 37): `Explore neural networks interactively: [Neural Networks (MLP)](https://nusmedicine.github.io/statml/widget/mlp/)`
    — and judging projected is still owed by every widget from 11 on,
    widgets 26–34 included.
 
@@ -431,7 +436,25 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 257 states, all matching
+## The suite: 268 states, all matching
+
+**Widget 37 added eleven states on 2026-08-31 through the full suite** (the
+widget-24/31 route, no shooter): three whole-suite runs at DPR 1.25 with all
+eleven hashes byte-identical on every run, spliced, then a confirming run read
+**268 of 268 MATCH**. Nine settled, two driven — one mid-training at Medium
+where epochs are merely counted, one 0.6 through the FIRST step at Slow, which
+lands in the backward phase of the choreography. No regions, so no hit state
+owed. **`check` refuses a driven state that also carries `shown=`**, which is
+right — `shown` fast-forwards, so nothing would be in flight — and both driven
+states start from scratch because of it.
+
+**The pane flake was unusually visible on the way**: run 1 flagged five px-only
+DIFFERs across lm-adjustment, roc-auc and naive-bayes, run 2 flagged two
+naive-bayes states, run 3 flagged none, and every `tx` half was identical
+throughout. A different set each run is the pane, not the widgets — and the
+confirming run agreed. **The core change (`style: "action"`) had already run
+the suite green at 257 of 257** before any widget-37 state went in, which is
+what proves it reached nothing that does not ask for it.
 
 **Widget 36 added eight states on 2026-08-30 through the full suite**
 (the widget-24/31 route, no shooter): three whole-suite runs at DPR 1.25
@@ -663,6 +686,7 @@ is blind to.
 | 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
 | 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2), then **UNLISTED 2026-08-30** — off the gallery, live at its URL, no draft bar (`status: "unlisted"`), because widget 35 carries the ROC act. SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. Core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected |
 | 35 | `metrics` | shipped as **Scoring the Predictions** (PHM5005, 04-2). FIVE rounds in one day (2026-08-30); **eleven states** — nine settled, two driven. Two outcomes, and categorical picks matrix or ROC (`?outcome=`/`&view=`); MathML formula card, positive-class pick that renames the cells, macro/weighted averages, the trace as a one-way door. Core gained `when.all`, readout `{ break: true }`, segmented `token:`. The threshold drag, the Youden scan mid-flight and the positive-class flip mid-trace are untested geometry. NOT yet judged projected; 04-2 link placed |
+| 37 | `mlp` | shipped as **Neural Networks (MLP)** (PHM5005, 04-3 § Neural Networks — Arc A's LAST slot). TEN rounds across 2026-08-30/31; **eleven states** — nine settled, two driven (mid-training at Medium; 0.6 through the first step at Slow, in the backward phase). Two live panels (network + boundary), a loss strip, a magnified neuron aligned to the network's columns, hover inspector, and Slow choreographing one training step. Engine pinned to the reference at 1.1e-15. Core gained `style: "action"`. NOT yet judged projected; 04-3 link not yet placed |
 | 36 | `naive-bayes` | shipped as **Naive Bayes** (PHM5005, 04-3 § Probabilistic — Arc A slot 5). EIGHT rounds in one day (2026-08-30); **eight states** — six settled, two driven mid-grow. Continuous · Discrete tabs (GaussianNB on CRP+WBC, BernoulliNB on fever+chills), per-feature pills as URL state, Independent \| Correlated segmented imposing ρ/λ on the FITTED marginals. The harness learned `style:"pill"` buttons at its promotion. NOT yet judged projected; 04-3 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
