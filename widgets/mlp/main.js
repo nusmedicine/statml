@@ -33,7 +33,7 @@
  * before epoch 60.
  */
 
-import { defineWidget, fmt } from "../core/index.js";
+import { defineWidget, fmt, makeRng } from "../core/index.js";
 import {
   DOM, SETS, ACTS, K_LADDER, EPOCHS, score, trainAll, deadUnits, unitLine,
 } from "./model.js";
@@ -47,9 +47,11 @@ const CAP_H = 44;   // the caption row, clear of the loss strip's own label
 const LOSS_H = 66;
 const BOTTOM = 8;
 
-const INSET = 82;   // the activation inset, in a RESERVED band at the panel's
-                    // foot: placed under the hidden column it landed on the
-                    // fourth node, and at k = 8 that column has no gap at all
+const INSET = 78;   // the activation inset, in a RESERVED band at the panel's
+                    // HEAD — nearest the rail, where the activation is chosen.
+                    // It cannot sit under the hidden column: placed there it
+                    // landed on the fourth node, and at k = 8 that column runs
+                    // the panel's full height with no gap at all.
 const HIT_R = 18;   // how close the pointer must come to a hidden unit
 
 const panelSide = (w) => Math.max(150, Math.min(300, (w - 2 * PAD_X - GAP) / 2));
@@ -59,17 +61,18 @@ const stageHeight = (w) => TOP + panelSide(w) + CAP_H + LOSS_H + BOTTOM;
    must agree about it — two copies is how a target comes to sit six columns
    from the thing it selects (5.8). */
 function netLayout(x0, y0, side, k) {
-  const usable = side - 34 - INSET;
-  const top = y0 + 20;
+  const top = y0 + INSET + 26;
+  const usable = side - INSET - 34;
   const yOf = (i, n) => top + usable * ((i + 1) / (n + 1));
   return {
     xIn: x0 + 30,
     xHid: x0 + side / 2,
     xOut: x0 + side - 30,
     yOf,
+    labelY: y0 + INSET + 18,
     hidden: Array.from({ length: k }, (_, j) => ({ x: x0 + side / 2, y: yOf(j, k) })),
     insetX: x0 + 6,
-    insetY: y0 + side - INSET - 2,
+    insetY: y0 + 4,
   };
 }
 
@@ -300,6 +303,15 @@ function drawActivationInset(ctx, colors, x, y, size, actKey, zs) {
   ctx.restore();
 
   label(ctx, colors, ACTS[actKey].label, x + 4, y + 11, { color: colors.ink2 });
+
+  /* the axes named, because "a curve" is not self-explanatory: what goes in
+     is a unit's weighted sum, what comes out is what it passes on */
+  label(ctx, colors, "output ↑", x + size + 10, y + 14, { color: colors.ink2 });
+  label(ctx, colors, "against input →", x + size + 10, y + 28, { color: colors.ink2 });
+  if (zs && zs.length) {
+    label(ctx, colors, "the ticks are the inputs", x + size + 10, y + 48);
+    label(ctx, colors, "these units actually receive", x + size + 10, y + 61);
+  }
 }
 
 /* One edge per weight: THICKNESS IS |w| scaled to the largest weight in this
@@ -352,7 +364,7 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
     ctx.restore();
   };
 
-  const usable = side - 34 - INSET;
+  const usable = side - INSET - 34;
   const rNode = Math.max(5, Math.min(10, usable / (k * 2.6)));
   node(L.xIn, L.yOf(0, 2), 11, "x₁");
   node(L.xIn, L.yOf(1, 2), 11, "x₂");
@@ -362,10 +374,10 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
   }
   node(L.xOut, L.yOf(0, 1), 12, "P");
 
-  label(ctx, colors, "inputs", L.xIn, y0 + 12, { align: "center" });
-  label(ctx, colors, `${k} hidden ${k === 1 ? "unit" : "units"} · ${ACTS[actKey].label}`,
-    L.xHid, y0 + 12, { align: "center" });
-  label(ctx, colors, "output", L.xOut, y0 + 12, { align: "center" });
+  label(ctx, colors, "inputs", L.xIn, L.labelY, { align: "center" });
+  label(ctx, colors, `${k} hidden ${k === 1 ? "unit" : "units"}`, L.xHid, L.labelY,
+    { align: "center" });
+  label(ctx, colors, "output", L.xOut, L.labelY, { align: "center" });
 
   drawActivationInset(ctx, colors, L.insetX, L.insetY, INSET, actKey, zs);
 }
@@ -394,9 +406,25 @@ function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
   label(ctx, colors, `epoch ${upto} of ${EPOCHS}`, x0 + w, y0 - 4, { align: "right" });
 }
 
+/* ---- the reroll, a MOMENTARY pill (widget 34/35's arrangement) ------------
+   Pressing it advances `init` and releases itself, both through the exported
+   setParam, so the lasting record in the URL is the starting weights alone.
+   `init` is a SEPARATE seed from `seed`: the data must hold still while the
+   starting weights change, or the reader cannot tell which of the two moved
+   the boundary. */
+let widgetApi = null;
+const INIT_MAX = 200;
+
+function rerollInit() {
+  if (!widgetApi || !widgetApi.params.reroll) return;
+  const next = (Number(widgetApi.params.init) % INIT_MAX) + 1;
+  widgetApi.setParam("init", next);
+  widgetApi.setParam("reroll", false);
+}
+
 /* ========================================================================== */
 
-defineWidget({
+widgetApi = defineWidget({
   slug: "mlp",
   title: "Neural Network",
   status: "draft",
@@ -447,6 +475,19 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    /* The starting weights, kept apart from `seed` so the data holds still
+       while they change. Hidden because the VALUE means nothing to a reader —
+       what matters is trying another, which the pill below does. */
+    init: { type: "int", min: 1, max: INIT_MAX, default: 1, hidden: true },
+    reroll: {
+      type: "bool",
+      style: "pill",
+      label: "New starting weights",
+      detail: "the same data, a different random start — training begins again",
+      default: false,
+      display: true,
+    },
+
     /* The pointer route to one unit's line exists too, but a projector has no
        pointer: this is the route that does not need one (core's rule). */
     lines: {
@@ -467,6 +508,7 @@ defineWidget({
       ],
       default: "medium",
       display: true,
+      afterDrive: true,
     },
 
     shown: { type: "int", min: 0, max: EPOCHS, default: 0, hidden: true },
@@ -487,7 +529,9 @@ defineWidget({
   compute: ({ params, rng }) => {
     const data = SETS[params.dataset].make(rng);
     const k = Number(params.hidden);
-    const run = trainAll(data, k, params.activation, rng);
+    /* the starting weights ride their OWN seeded stream, so rerolling them
+       leaves every sample exactly where it was */
+    const run = trainAll(data, k, params.activation, makeRng(Number(params.init)));
     return { data, k, ...run };
   },
 
@@ -515,6 +559,11 @@ defineWidget({
         return false;
       }
       return anim.mode !== "step";
+    },
+
+    /* display changes land here; the pill is the only one that does anything */
+    rebuild: (anim, { params }) => {
+      if (params.reroll) rerollInit();
     },
   },
 
