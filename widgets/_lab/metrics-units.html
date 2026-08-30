@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 35 — RMSE/MAE units, three candidates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-1); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 88ch; font-size: var(--fs-sm); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .w-readout { max-width: 560px; }
+  .w-math { margin: var(--sp-2) 0; max-width: 640px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 35 · RMSE and MAE — <code>%</code> or plain floating point</h1>
+  <p class="note">
+    The outcome is body fat <b>%</b>, so 2.59 is 2.59 percentage points of body fat —
+    the metric's value in the outcome's own units. The question is the DISPLAY:
+    "2.59&nbsp;%" can be misread as a <i>relative</i> error of 2.59%, and both the
+    notebook and sklearn print plain floats. Tile notes below already carry the
+    reworded copy (the "owns the sum" phrasing is gone widget-wide).
+  </p>
+
+  <h2>A — as shipped: the value wears %</h2>
+  <div class="w-readout">
+    <div><span class="w-stat-label">RMSE</span><span class="w-stat-value">2.59 %</span><span class="w-stat-note">typical error; penalises large errors more</span></div>
+    <div><span class="w-stat-label">MAE</span><span class="w-stat-value">2.03 %</span><span class="w-stat-note">typical error; all errors count equally</span></div>
+    <div><span class="w-stat-label">R²</span><span class="w-stat-value">0.881</span><span class="w-stat-note">share of the spread explained; 0 = the mean model</span></div>
+  </div>
+  <div class="w-math" id="cardA"></div>
+
+  <h2>B — plain float, the unit named in the note</h2>
+  <div class="w-readout">
+    <div><span class="w-stat-label">RMSE</span><span class="w-stat-value">2.59</span><span class="w-stat-note">% body fat; penalises large errors more</span></div>
+    <div><span class="w-stat-label">MAE</span><span class="w-stat-value">2.03</span><span class="w-stat-note">% body fat; all errors count equally</span></div>
+    <div><span class="w-stat-label">R²</span><span class="w-stat-value">0.881</span><span class="w-stat-note">share of the spread explained; 0 = the mean model</span></div>
+  </div>
+  <div class="w-math" id="cardB"></div>
+
+  <h2>C — plain float, the unit only in the label</h2>
+  <div class="w-readout">
+    <div><span class="w-stat-label">RMSE (% body fat)</span><span class="w-stat-value">2.59</span><span class="w-stat-note">typical error; penalises large errors more</span></div>
+    <div><span class="w-stat-label">MAE (% body fat)</span><span class="w-stat-value">2.03</span><span class="w-stat-note">typical error; all errors count equally</span></div>
+    <div><span class="w-stat-label">R²</span><span class="w-stat-value">0.881</span><span class="w-stat-note">share of the spread explained; 0 = the mean model</span></div>
+  </div>
+  <div class="w-math" id="cardC"></div>
+
+  <p class="note" style="margin-top: var(--sp-4)">
+    The card follows the tiles in each candidate: A ends "= 2.59 %", B and C end
+    "= 2.59" (B's unit lives in the tile note, C's in the tile label). The R² tile
+    never carries a unit — it is a ratio. My lean: <b>B</b> — the number matches the
+    notebook's own print(), and the unit is still one glance away.
+  </p>
+</main>
+
+<script>
+const rmse = (tail) =>
+  '<math><mrow><mi mathvariant="normal">RMSE</mi><mo>=</mo></mrow></math> '
+  + '<math><msqrt><mrow><mfrac><mrow><mo>Σ</mo><msup><mrow><mo>(</mo>'
+  + '<mi mathvariant="normal">predicted</mi><mo>−</mo><mi mathvariant="normal">actual</mi>'
+  + '<mo>)</mo></mrow><mn>2</mn></msup></mrow><mrow><mi mathvariant="normal">n</mi></mrow>'
+  + '</mfrac></mrow></msqrt></math> '
+  + '<math><mrow><mo form="infix">=</mo></mrow></math> '
+  + `<math><mrow>${tail}</mrow></math>`;
+document.getElementById("cardA").innerHTML = rmse('<mn>2.59</mn><mi mathvariant="normal">%</mi>');
+document.getElementById("cardB").innerHTML = rmse('<mn>2.59</mn>');
+document.getElementById("cardC").innerHTML = rmse('<mn>2.59</mn>');
+</script>
+</body>
+</html>

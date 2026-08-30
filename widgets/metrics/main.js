@@ -331,8 +331,8 @@ function drawNumeric({ ctx, colors, w, params, state, anim }) {
 
   const say = {
     none: "each segment is one patient's error: predicted − actual",
-    rmse: "each square's area is one squared error — the biggest miss owns the sum",
-    mae: "each bar's length is one absolute error — every miss weighted alike",
+    rmse: "each square's area is one squared error; large errors dominate the sum",
+    mae: "each bar's length is one absolute error; all errors count equally",
     r2: "the model's squares (SSE) against the mean model's (SST)",
   };
   caption(ctx, colors, [
@@ -785,7 +785,7 @@ widgetApi = defineWidget({
       label: "Metric",
       options: [
         { value: "none", label: "None", detail: "the errors alone" },
-        { value: "rmse", label: "RMSE", detail: "root mean SQUARED error — each error drawn as a square" },
+        { value: "rmse", label: "RMSE", detail: "root mean squared error — each error drawn as a square" },
         { value: "mae", label: "MAE", detail: "mean absolute error — each error drawn as a bar" },
         { value: "r2", label: "R²", detail: "the model's squares against the mean model's" },
       ],
@@ -803,8 +803,8 @@ widgetApi = defineWidget({
       type: "segmented",
       label: "Positive class",
       options: [
-        { value: "disease", label: "Disease", token: "event", detail: "score the model on finding the sick" },
-        { value: "healthy", label: "No disease", token: "nonevent", detail: "score the model on clearing the well" },
+        { value: "disease", label: "Disease", token: "event", detail: "disease counts as positive" },
+        { value: "healthy", label: "No disease", token: "nonevent", detail: "no disease counts as positive" },
       ],
       default: "disease",
       display: true,
@@ -1087,8 +1087,8 @@ widgetApi = defineWidget({
     if (params.outcome === "numeric") {
       const { m, m0 } = state;
       const tiles = [
-        { label: "RMSE", value: `${f2(m.rmse)} %`, note: "typical error, large misses weighted up" },
-        { label: "MAE", value: `${f2(m.mae)} %`, note: "typical error, every miss weighted alike" },
+        { label: "RMSE", value: `${f2(m.rmse)} %`, note: "typical error; penalises large errors more" },
+        { label: "MAE", value: `${f2(m.mae)} %`, note: "typical error; all errors count equally" },
         { label: "R²", value: f3(m.r2), note: "share of the spread explained; 0 = the mean model" },
       ];
       if (params.outliers > 0) {
@@ -1096,7 +1096,7 @@ widgetApi = defineWidget({
         tiles.push({
           label: "Outlier pull",
           value: `${pull(m0.rmse, m.rmse)} RMSE`,
-          note: `MAE ${pull(m0.mae, m.mae)} — squaring hands the big miss the sum`,
+          note: `MAE ${pull(m0.mae, m.mae)} — squaring amplifies the outlier`,
         });
       }
       return tiles;
@@ -1108,6 +1108,7 @@ widgetApi = defineWidget({
       const c2 = classCells(cellsAt(state.patients, effTh), params.positive);
       const cm = categoricalMetrics(c2);
       const posName = params.positive === "disease" ? "disease" : "no disease";
+      const negName = params.positive === "disease" ? "no disease" : "disease";
       const nPosCls = c2.tp + c2.fn;
       const nNegCls = c2.tn + c2.fp;
       const tiles = [
@@ -1125,7 +1126,7 @@ widgetApi = defineWidget({
         {
           label: "Specificity",
           value: f2(nNegCls ? c2.tn / nNegCls : 0),
-          note: `${c2.tn} of ${nNegCls} others cleared`,
+          note: `${c2.tn} of ${nNegCls} true “${negName}” correct`,
         },
       ];
       if (optimumFound(anim, state) && state.youden) {
