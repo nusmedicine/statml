@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 35 metrics — stage candidates, mocked before the build</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 760px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 760px; }
+
+  .tiles { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 10px 12px; width: 150px; }
+  .tile .t-label { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .t-value { font-size: var(--fs-lg); font-family: var(--font-mono); color: var(--ink-1); margin: 2px 0; }
+  .tile .t-note { font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.35; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 35 candidate · <code>metrics</code> — both acts, mocked from the measured numbers</h1>
+
+  <p class="note">
+    Settled 2026-08-30: <b>one widget, two tabs</b> (Numeric · Categorical, the notebook's own
+    split), <b>no ROC anywhere</b> (widget 34 owns the threshold story — this one never draws a
+    curve and never moves a cutoff by hand), <b>simulated data, healthcare-framed</b>. Every
+    number on this page comes from the same seeded generators as
+    <code>_lab/metrics-measure.mjs</code>, drawn live. The two misconceptions: numeric — that
+    RMSE, MAE and R² are interchangeable summaries (one outlier moves RMSE <b>+38%</b> and MAE
+    <b>+16%</b>, and R² is not an error but a comparison against predicting the mean);
+    categorical — that accuracy says how good a classifier is (at separation 1.5, dropping
+    prevalence 0.5 → 0.05 sends accuracy <b>0.77 → 0.95</b> while recall collapses
+    <b>0.77 → 0.14</b>, and "say nobody has it" nearly ties). Scenarios: numeric predicts
+    <b>body fat %</b> (04-2's own example, values 5–40%); categorical is a simulated prognosis
+    cohort, n = 200, whose model is what a default logistic regression trained at that
+    prevalence does at the 0.5 cutoff.
+  </p>
+
+  <h2>§1 · Numeric — the stage is predicted vs actual, and each metric is an overlay on the same residuals</h2>
+  <p class="note">
+    <b>A</b> is the plain stage: the notebook's scatter with the 45° perfect-prediction line
+    (<code>--c-reference</code>) and one residual segment per patient. <b>B</b> is the teaching
+    device: pick a metric and its <i>anatomy</i> appears on the same points — MSE draws each
+    error as a literal <b>square</b> (area = squared error, so the one outlier's square
+    dominates the sum), MAE draws the same errors as <b>bars</b> (lengths, all weighted alike).
+    Shown with one outlier ON so the split is visible on the tiles. <b>C</b> is R²'s anatomy:
+    the comparison model "predict the mean for everyone" appears on its horizontal line with its
+    own (large) squares — R² = 1 − model squares / mean-model squares, proposed as an ease
+    (points slide to the mean line and back).
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — the plain stage (σ 3, no outliers)</h3>
+      <p class="sub">one dot per patient; residual = vertical drop to the diagonal</p>
+      <canvas id="numA" width="470" height="430"></canvas>
+      <p class="cap" id="numA-cap"></p>
+    </div>
+    <div class="cand">
+      <h3>B — metric anatomy, one outlier on: MSE squares (left) vs MAE bars (right)</h3>
+      <p class="sub">same cohort twice; the outlier's square IS the +38%-vs-+16% asymmetry</p>
+      <canvas id="numB" width="780" height="430"></canvas>
+      <p class="cap" id="numB-cap"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>C — R² compares the model to predicting the mean</h3>
+      <p class="sub">left: the model's squares · right: the mean model's squares; R² = 1 − left/right</p>
+      <canvas id="numC" width="780" height="430"></canvas>
+      <p class="cap" id="numC-cap"></p>
+    </div>
+  </div>
+
+  <h2>§2 · Categorical — the confusion matrix is the stage, and each metric lights its cells</h2>
+  <p class="note">
+    <b>D</b> is the matrix two ways, same cohort (n 200, prevalence 0.3, separation 1.5, seed 1):
+    left the roc-auc convention (counts, rows washed by their share — TN and TP darken as
+    specificity and sensitivity rise), right each patient as a dot in their cell, coloured by
+    true class — the count made tangible. <b>E</b> is the teaching device: picking a metric
+    tile lights the cells it is made of — numerator solid, denominator outlined. Four metrics,
+    four different readings of the same four numbers. <b>F</b> is the trap on the prevalence
+    dial: the same separation at prevalence 0.3 and 0.1 — accuracy RISES as the disease gets
+    rarer while recall halves and the all-negative baseline nearly ties.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>D — the matrix: counts + row wash (left) vs one dot per patient (right)</h3>
+      <p class="sub">sklearn orientation, settled at widget 34 round 3: rows = true class, negatives first</p>
+      <canvas id="catD" width="780" height="360"></canvas>
+      <p class="cap" id="catD-cap"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>E — metric anatomy: the cells each metric is made of</h3>
+      <p class="sub">numerator solid, denominator outlined; in the widget this lights the ONE big matrix when a tile is picked</p>
+      <canvas id="catE" width="780" height="260"></canvas>
+      <p class="cap">accuracy reads the diagonal over everyone · precision reads the predicted-positive column · recall reads the event row · F1 balances the two — same four cells, four questions.</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>F — the accuracy trap, prevalence 0.3 → 0.1 at the same separation</h3>
+      <p class="sub">the model is the SAME quality; only the cohort changed — and accuracy went UP</p>
+      <canvas id="catF" width="780" height="380"></canvas>
+      <p class="cap" id="catF-cap"></p>
+    </div>
+  </div>
+
+  <h2>§3 · The readouts, as the widget would print them</h2>
+  <div class="tiles" id="tiles-num"></div>
+  <p class="cap">numeric tab, σ 3 with one outlier — RMSE and MAE in % body fat, same units as the outcome; MSE deliberately not a tile (wrong units — squared %; the squares carry it visually)</p>
+  <div class="tiles" id="tiles-cat"></div>
+  <p class="cap" id="tiles-cat-cap"></p>
+
+  <h2>§4 · Open picks</h2>
+  <p class="note">
+    1) <b>The central interaction</b>: a <code>metric</code> segmented control per tab whose pick
+    lights that metric's anatomy (B/E) — or hover-only, with no parameter?<br>
+    2) <b>Matrix cells</b>: counts + row wash (widget-34 sibling) or one-dot-per-patient — or
+    wash with a small dot-grid inside?<br>
+    3) <b>The trap</b>: does F live on the prevalence dial alone (one matrix, tiles moving, an
+    all-negative baseline tile as the tell) — or as an explicit two-cohort comparison view?<br>
+    4) <b>Outcome naming</b>: "event / no event" prognosis (roc-auc sibling) vs a screening
+    frame ("disease present / absent" — precision then reads as PPV)?<br>
+    5) <b>Numeric scenario</b>: body fat % (the notebook's own) — or a different measured
+    outcome (SBP in mmHg)?<br>
+    6) <b>R²'s ease (C)</b>: worth its motion, or is a static side-by-side enough?<br>
+    7) <b>Title</b>: working title <i>Choosing a Metric</i> — alternatives <i>Scoring the
+    Predictions</i>, <i>What a Metric Measures</i>. Slug candidate <code>metrics</code>.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean } from "../core/stats.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-reference","--c-empirical","--c-theory",
+ "--ink-1","--ink-2","--ink-3","--grid","--surface-1"].forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+/* ---- generators: byte-identical to _lab/metrics-measure.mjs ---- */
+
+function numericCohort(rng, { n, sigma, outliers = 0, mag = 18 }) {
+  const actual = [];
+  for (let i = 0; i < n; i += 1) actual.push(Math.min(40, Math.max(5, rng.normal(19, 8))));
+  const pred = actual.map((a) => a + rng.normal(0, sigma));
+  const order = actual.map((a, i) => [a, i]).sort((p, q) => q[0] - p[0]);
+  const flagged = [];
+  for (let k = 0; k < outliers && k < n; k += 1) {
+    const i = order[k][1];
+    pred[i] = actual[i] + (k % 2 === 0 ? -mag : mag);
+    flagged.push(i);
+  }
+  for (let i = 0; i < n; i += 1) pred[i] = Math.min(48, Math.max(0, pred[i]));
+  return { actual, pred, flagged };
+}
+function numericMetrics(actual, pred) {
+  const n = actual.length;
+  let se = 0, ae = 0;
+  for (let i = 0; i < n; i += 1) { const e = pred[i] - actual[i]; se += e * e; ae += Math.abs(e); }
+  const ybar = mean(actual);
+  let sst = 0;
+  for (const a of actual) sst += (a - ybar) * (a - ybar);
+  return { rmse: Math.sqrt(se / n), mae: ae / n, r2: 1 - se / sst, sse: se, sst };
+}
+
+function categoricalCohort(rng, { n, prev, d }) {
+  const cut = Math.log((1 - prev) / prev) / d;
+  const cells = { tp: 0, fp: 0, tn: 0, fn: 0 };
+  for (let i = 0; i < n; i += 1) {
+    const event = rng.next() < prev;
+    const z = rng.normal(event ? d / 2 : -d / 2, 1);
+    const pos = z >= cut;
+    if (event && pos) cells.tp += 1;
+    else if (event) cells.fn += 1;
+    else if (pos) cells.fp += 1;
+    else cells.tn += 1;
+  }
+  return cells;
+}
+const catMetrics = ({ tp, fp, tn, fn }) => {
+  const n = tp + fp + tn + fn;
+  const prec = tp + fp ? tp / (tp + fp) : NaN;
+  const rec = tp + fn ? tp / (tp + fn) : NaN;
+  return { acc: (tp + tn) / n, prec, rec,
+           f1: prec + rec > 0 ? (2 * prec * rec) / (prec + rec) : NaN,
+           base: (fp + tn) / n, n };
+};
+
+/* ---- shared numeric plot ---- */
+
+const NUM = { lo: 0, hi: 48 };
+function scatterFrame(ctx, x, y, s, title) {
+  ctx.strokeStyle = C["grid"]; ctx.lineWidth = 1; ctx.strokeRect(x, y, s, s);
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  for (const t of [10, 20, 30, 40]) {
+    const px = x + ((t - NUM.lo) / (NUM.hi - NUM.lo)) * s;
+    const py = y + s - ((t - NUM.lo) / (NUM.hi - NUM.lo)) * s;
+    ctx.fillText(t, px, y + s + 13);
+    ctx.textAlign = "right"; ctx.fillText(t, x - 5, py + 3); ctx.textAlign = "center";
+  }
+  ctx.fillText("actual body fat %", x + s / 2, y + s + 27);
+  ctx.save(); ctx.translate(x - 26, y + s / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("predicted %", 0, 0); ctx.restore();
+  if (title) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO; ctx.fillText(title, x + s / 2, y - 8); }
+  // the diagonal: perfect prediction
+  ctx.strokeStyle = C["c-reference"]; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(x, y + s); ctx.lineTo(x + s, y); ctx.stroke(); ctx.setLineDash([]);
+  const X = (v) => x + ((v - NUM.lo) / (NUM.hi - NUM.lo)) * s;
+  const Y = (v) => y + s - ((v - NUM.lo) / (NUM.hi - NUM.lo)) * s;
+  return { X, Y };
+}
+function drawPoints(ctx, m, actual, pred, flagged, mode) {
+  // mode: "seg" residual segments · "sq" squares · "bar" thick bars · "none"
+  for (let i = 0; i < actual.length; i += 1) {
+    const px = m.X(actual[i]), py = m.Y(pred[i]), dy = m.Y(actual[i]);
+    const side = Math.abs(py - dy);
+    if (mode === "sq" && side > 0.5) {
+      // square anchored at the point, growing TOWARD the diagonal — for a 45°
+      // line the horizontal distance to it equals the residual, so the far
+      // edge exactly touches the line: over-prediction grows right,
+      // under-prediction grows left, and no square leaves the frame
+      const left = px - (py < dy ? 0 : side);
+      const top = Math.min(py, dy);
+      ctx.fillStyle = C["c-empirical"]; ctx.globalAlpha = 0.16;
+      ctx.fillRect(left, top, side, side); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 1;
+      ctx.strokeRect(left, top, side, side);
+    }
+    if (mode === "bar") {
+      ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 4; ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, dy); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if (mode === "seg") {
+      ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, dy); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+  for (let i = 0; i < actual.length; i += 1) {
+    const out = flagged.includes(i);
+    ctx.beginPath(); ctx.arc(m.X(actual[i]), m.Y(pred[i]), out ? 5 : 3.6, 0, Math.PI * 2);
+    ctx.fillStyle = out ? C["c-highlight"] : C["c-empirical"];
+    ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+  }
+}
+
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+
+/* ---- §1 A ---- */
+{
+  const ctx = document.getElementById("numA").getContext("2d");
+  const { actual, pred, flagged } = numericCohort(makeRng(1), { n: 40, sigma: 3 });
+  const m = scatterFrame(ctx, 56, 26, 370, "");
+  drawPoints(ctx, m, actual, pred, flagged, "seg");
+  const r = numericMetrics(actual, pred);
+  document.getElementById("numA-cap").textContent =
+    `seed 1, n 40, σ 3 — RMSE ${f2(r.rmse)} · MAE ${f2(r.mae)} · R² ${f3(r.r2)}; residual segments in ink, points --c-empirical, diagonal --c-reference`;
+}
+
+/* ---- §1 B ---- */
+{
+  const ctx = document.getElementById("numB").getContext("2d");
+  const { actual, pred, flagged } = numericCohort(makeRng(1), { n: 40, sigma: 3, outliers: 1 });
+  const mL = scatterFrame(ctx, 56, 26, 370, "MSE — each error is a SQUARE");
+  drawPoints(ctx, mL, actual, pred, flagged, "sq");
+  const mR = scatterFrame(ctx, 56 + 370 + 44, 26, 370, "MAE — each error is a BAR");
+  drawPoints(ctx, mR, actual, pred, flagged, "bar");
+  const r = numericMetrics(actual, pred);
+  const r0 = numericMetrics(...(() => { const c = numericCohort(makeRng(1), { n: 40, sigma: 3 }); return [c.actual, c.pred]; })());
+  document.getElementById("numB-cap").textContent =
+    `one outlier (ringed, --c-highlight): RMSE ${f2(r0.rmse)} → ${f2(r.rmse)} while MAE ${f2(r0.mae)} → ${f2(r.mae)} — the square is why; R² ${f3(r0.r2)} → ${f3(r.r2)}`;
+}
+
+/* ---- §1 C ---- */
+{
+  const ctx = document.getElementById("numC").getContext("2d");
+  const { actual, pred, flagged } = numericCohort(makeRng(1), { n: 40, sigma: 3 });
+  const ybar = mean(actual);
+  const mL = scatterFrame(ctx, 56, 26, 370, "the model's squares (SSE)");
+  drawPoints(ctx, mL, actual, pred, flagged, "sq");
+  const mR = scatterFrame(ctx, 56 + 370 + 44, 26, 370, "predict the mean for everyone (SST)");
+  // the mean model: every prediction is ybar
+  ctx.strokeStyle = C["c-theory"]; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(mR.X(NUM.lo), mR.Y(ybar)); ctx.lineTo(mR.X(NUM.hi), mR.Y(ybar)); ctx.stroke();
+  ctx.fillStyle = C["c-theory"]; ctx.font = MONO_S; ctx.textAlign = "left";
+  ctx.fillText("ȳ = " + f2(ybar), mR.X(NUM.lo) + 4, mR.Y(ybar) - 5);
+  drawPoints(ctx, mR, actual, actual.map(() => ybar), [], "sq");
+  const r = numericMetrics(actual, pred);
+  document.getElementById("numC-cap").textContent =
+    `R² = 1 − SSE/SST = 1 − ${f2(r.sse)}/${f2(r.sst)} = ${f3(r.r2)} — “how much of the spread the model explains”; mean model in --c-theory (the comparison), R² = 0 exactly there`;
+}
+
+/* ---- categorical: shared matrix drawing ---- */
+
+// sklearn orientation (widget 34 round 3): rows = true class, negatives first
+// cell order: [ [TN, FP], [FN, TP] ]
+function drawMatrix(ctx, x, y, cw, ch, cells, opts = {}) {
+  const { tp, fp, tn, fn } = cells;
+  const grid = [[tn, fp], [fn, tp]];
+  const rowTotal = [tn + fp, fn + tp];
+  const names = [["TN", "FP"], ["FN", "TP"]];
+  const rowHue = [C["c-nonevent"], C["c-event"]];
+  ctx.font = MONO_S; ctx.textAlign = "center";
+  for (let r = 0; r < 2; r += 1) for (let c = 0; c < 2; c += 1) {
+    const cx = x + c * cw, cy = y + r * ch;
+    const share = rowTotal[r] ? grid[r][c] / rowTotal[r] : 0;
+    if (opts.wash !== false) {
+      ctx.fillStyle = rowHue[r]; ctx.globalAlpha = 0.08 + 0.42 * share;
+      ctx.fillRect(cx, cy, cw, ch); ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = C["grid"]; ctx.strokeRect(cx, cy, cw, ch);
+    if (opts.dots) {
+      // one dot per patient, a little grid filling the cell
+      const nDots = grid[r][c];
+      const cols = Math.ceil(Math.sqrt(nDots * (cw / ch)));
+      const gap = Math.min(11, (cw - 14) / Math.max(1, cols));
+      for (let i = 0; i < nDots; i += 1) {
+        const dx = cx + 9 + (i % cols) * gap;
+        const dy = cy + 12 + Math.floor(i / cols) * gap;
+        ctx.beginPath(); ctx.arc(dx, dy, 2.6, 0, Math.PI * 2);
+        ctx.fillStyle = rowHue[r]; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = C["ink-1"]; ctx.font = MONO;
+      ctx.fillText(`${names[r][c]} ${grid[r][c]}`, cx + cw / 2, cy + ch - 8);
+      ctx.font = MONO_S;
+    } else if (opts.namesOnly) {
+      ctx.fillStyle = C["ink-1"]; ctx.font = MONO;
+      ctx.fillText(names[r][c], cx + cw / 2, cy + ch / 2 + 4);
+    } else {
+      ctx.fillStyle = C["ink-1"]; ctx.font = "600 20px " + css("--font-mono");
+      ctx.fillText(grid[r][c], cx + cw / 2, cy + ch / 2 - 2);
+      ctx.font = MONO_S; ctx.fillStyle = C["ink-3"];
+      ctx.fillText(`${names[r][c]} · ${(100 * share).toFixed(0)}% of row`, cx + cw / 2, cy + ch / 2 + 16);
+    }
+    if (opts.lit) {
+      const role = opts.lit[names[r][c]];
+      if (role === "num") { ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 3; ctx.strokeRect(cx + 2, cy + 2, cw - 4, ch - 4); ctx.lineWidth = 1; }
+      if (role === "den") { ctx.strokeStyle = C["c-highlight"]; ctx.setLineDash([5, 4]); ctx.lineWidth = 2; ctx.strokeRect(cx + 2, cy + 2, cw - 4, ch - 4); ctx.setLineDash([]); ctx.lineWidth = 1; }
+    }
+  }
+  // axis titles — skipped on the small anatomy matrices, which have no room
+  if (opts.axes === false) return;
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S;
+  ctx.fillText("predicted: no event", x + cw / 2, y - 6);
+  ctx.fillText("predicted: event", x + cw + cw / 2, y - 6);
+  ctx.save(); ctx.translate(x - 10, y + ch / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("true: no event", 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(x - 10, y + ch + ch / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("true: event", 0, 0); ctx.restore();
+}
+
+/* ---- §2 D ---- */
+{
+  const ctx = document.getElementById("catD").getContext("2d");
+  const cells = categoricalCohort(makeRng(1), { n: 200, prev: 0.3, d: 1.5 });
+  drawMatrix(ctx, 70, 40, 140, 130, cells);
+  drawMatrix(ctx, 460, 40, 140, 130, cells, { dots: true, wash: false });
+  const r = catMetrics(cells);
+  document.getElementById("catD-cap").textContent =
+    `n 200, prevalence 0.3, separation 1.5, seed 1 — TP ${cells.tp} FP ${cells.fp} FN ${cells.fn} TN ${cells.tn}; rows wear their class hue (--c-event / --c-nonevent), wash = share of row, so TP darkens exactly as recall rises`;
+}
+
+/* ---- §2 E ---- */
+{
+  const ctx = document.getElementById("catE").getContext("2d");
+  const cells = categoricalCohort(makeRng(1), { n: 200, prev: 0.3, d: 1.5 });
+  const defs = [
+    ["Accuracy", { TN: "num", TP: "num", FP: "den", FN: "den" }, "(TP+TN) / everyone"],
+    ["Precision", { TP: "num", FP: "den" }, "TP / predicted events"],
+    ["Recall", { TP: "num", FN: "den" }, "TP / true events"],
+    ["F1", { TP: "num", FP: "den", FN: "den" }, "balances the two"],
+  ];
+  defs.forEach(([name, lit, formula], i) => {
+    const x = 60 + i * 190;
+    ctx.fillStyle = C["ink-1"]; ctx.font = MONO; ctx.textAlign = "center";
+    ctx.fillText(name, x + 70, 26);
+    drawMatrix(ctx, x, 46, 70, 70, cells, { lit, wash: false, namesOnly: true, axes: false });
+    ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S;
+    ctx.fillText(formula, x + 70, 216);
+  });
+  ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("solid ring = numerator · dashed = the rest of the denominator", 390, 244);
+}
+
+/* ---- §2 F ---- */
+{
+  const ctx = document.getElementById("catF").getContext("2d");
+  const a = categoricalCohort(makeRng(1), { n: 200, prev: 0.3, d: 1.5 });
+  const b = categoricalCohort(makeRng(1), { n: 200, prev: 0.1, d: 1.5 });
+  drawMatrix(ctx, 70, 46, 140, 100, a);
+  drawMatrix(ctx, 460, 46, 140, 100, b);
+  const ra = catMetrics(a), rb = catMetrics(b);
+  ctx.fillStyle = C["ink-2"]; ctx.font = MONO; ctx.textAlign = "center";
+  ctx.fillText("prevalence 0.30", 210, 26);
+  ctx.fillText("prevalence 0.10 — same model quality", 600, 26);
+  [["accuracy", ra.acc, rb.acc], ["recall", ra.rec, rb.rec], ["precision", ra.prec, rb.prec], ["F1", ra.f1, rb.f1]].forEach(([n, va, vb], i) => {
+    ctx.fillStyle = n === "accuracy" || n === "recall" ? C["ink-1"] : C["ink-3"];
+    ctx.fillText(`${n} ${f3(va)}`, 210, 278 + i * 20);
+    ctx.fillText(`${n} ${f3(vb)}`, 600, 278 + i * 20);
+  });
+  ctx.fillStyle = C["c-highlight"];
+  ctx.fillText(`say "no event" for everyone: accuracy ${f3(ra.base)}`, 210, 278 + 4 * 20 + 8);
+  ctx.fillText(`say "no event" for everyone: accuracy ${f3(rb.base)}`, 600, 278 + 4 * 20 + 8);
+  document.getElementById("catF-cap").textContent =
+    `accuracy ${f3(ra.acc)} → ${f3(rb.acc)} (UP) while recall ${f3(ra.rec)} → ${f3(rb.rec)}; the baseline row is the proposed tell — an all-negative “model” nearly matches`;
+}
+
+/* ---- §3 tiles ---- */
+{
+  const host = document.getElementById("tiles-num");
+  const c = numericCohort(makeRng(1), { n: 40, sigma: 3, outliers: 1 });
+  const r = numericMetrics(c.actual, c.pred);
+  const mk = (label, value, note) => {
+    const d = document.createElement("div"); d.className = "tile";
+    d.innerHTML = `<div class="t-label">${label}</div><div class="t-value">${value}</div><div class="t-note">${note}</div>`;
+    host.appendChild(d);
+  };
+  mk("RMSE", f2(r.rmse) + " %", "typical error, large misses weighted up");
+  mk("MAE", f2(r.mae) + " %", "typical error, every miss weighted alike");
+  mk("R²", f3(r.r2), "share of the spread explained; 0 = the mean model");
+}
+{
+  const host = document.getElementById("tiles-cat");
+  const cells = categoricalCohort(makeRng(1), { n: 200, prev: 0.3, d: 1.5 });
+  const r = catMetrics(cells);
+  const mk = (label, value, note) => {
+    const d = document.createElement("div"); d.className = "tile";
+    d.innerHTML = `<div class="t-label">${label}</div><div class="t-value">${value}</div><div class="t-note">${note}</div>`;
+    host.appendChild(d);
+  };
+  mk("Accuracy", f3(r.acc), "correct on everyone");
+  mk("Precision", f3(r.prec), "of predicted events, how many real");
+  mk("Recall", f3(r.rec), "of true events, how many found");
+  mk("F1", f3(r.f1), "harmonic mean of the two");
+  document.getElementById("tiles-cat-cap").textContent =
+    `categorical tab, prevalence 0.3 — proposed fifth tile: the all-negative baseline accuracy ${f3(r.base)}, the number accuracy has to beat`;
+}
+</script>
+</body>
+</html>
