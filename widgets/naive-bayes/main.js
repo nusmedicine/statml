@@ -61,7 +61,7 @@ const PILL_OF = { crp: "addcrp", wbc: "addwbc", fever: "addfever", chills: "addc
 /* ---- geometry ------------------------------------------------------------ */
 
 const HEAD_H = 22;        // the bar axis's direction labels
-const MODEL_HEAD_H = 20;  // the trained-model band between prior and features
+const MODEL_HEAD_H = 36;  // the Model heading + subtitle between prior and features
 const ROW_H = 96;         // one ledger row
 const TOTAL_H = 66;       // the running-total row
 const LEDGER_H = HEAD_H + MODEL_HEAD_H + 3 * ROW_H + TOTAL_H + 10;
@@ -401,11 +401,13 @@ function drawLedger(ctx, colors, w, params, state, anim) {
   label(ctx, colors, "evidence for disease →", zero + 8, 13);
   lineSeg(ctx, zero, HEAD_H - 4, zero, HEAD_H + MODEL_HEAD_H + 3 * ROW_H, colors.grid);
 
-  /* the feature panels are the TRAINED MODEL, and the figure says so where
-     they begin (rounds 4–5, Kenneth): a band between the prior row and the
-     feature rows, heading exactly the fitted distributions */
-  label(ctx, colors, `The trained model: distributions fitted to ${N_COHORT} patients`,
-    PANEL_X, HEAD_H + ROW_H + 13, { color: colors.ink2, font: `${colors.fsSm} ${colors.font}` });
+  /* the feature panels are the MODEL, and the figure says so where they
+     begin (rounds 4–6, Kenneth): a heading in the same voice as "Prior",
+     with a quiet subtitle and no counts — generic over any cohort size */
+  label(ctx, colors, "Model", PANEL_X, HEAD_H + ROW_H + 14,
+    { color: colors.ink1, font: `${colors.fsSm} ${colors.font}` });
+  label(ctx, colors, "distributions fitted to the training data",
+    PANEL_X, HEAD_H + ROW_H + 28);
 
   rows.forEach((r, i) => {
     const yTop = HEAD_H + i * ROW_H + (i > 0 ? MODEL_HEAD_H : 0);
