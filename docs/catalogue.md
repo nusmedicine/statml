@@ -11074,6 +11074,37 @@ not imported**: a cross-widget import would let an edit there silently
 change the numbers here, and both copies answer to sklearn. `?shown=999`
 publishes the finished curve; `?youden=1&shown=999` opens found.
 
+### Round 4 — Kenneth (2026-08-30): the averages row, the coloured pick, the trace as a one-way door
+
+Three tweaks, all in, two of them through small core doors (one suite run
+covered both: **238 of 238 recorded states MATCH**, metrics placeholders
+DIFFER by design). **(1)** Macro/Weighted avg tiles start their OWN row —
+core's readout accepts `{ break: true }`, a full-width zero-height grid cell
+(adds no text, so `tx` sees nothing): an average over both classes is a
+different KIND of number from the per-class tiles beside it. **(2)** The
+positive-class buttons wear their histogram hues — a segmented option may
+declare `token:` and core renders a swatch dot before the label (params.js
+passes it through; array-form options only, like `group`). **(3) The trace
+is a ONE-WAY DOOR, and the door is a PARAMETER.** His question: after
+animating the trace, should a data change reset the curves, or display
+instantly so students explore what bends a ROC curve? The answer is a
+hidden display param `traced`, written true through the exported setParam
+when the trace first lands (or the pill completes the curve, or a
+`shown=999` link opens finished): from then on every data change — n,
+balance, separation, seed, positive class — redraws the FINISHED curve
+instantly. Reset closes the door (it returns every parameter to default);
+**Replay still retraces**, via one interception in `advance`: with traced=1
+a fresh init opens finished, so a run/step arriving on a finished figure is
+the reader asking to watch the build again. A shared URL carries
+`traced=1` and opens the way it looked — invariant 1 kept.
+
+`positive` also widened to the ROC view: the walk is scored FOR the chosen
+class (score 1 − p, labels flipped), so flipping it point-reflects the
+curve while **AUC does not move** — verified live at balance 0.1: AUC 0.844
+both ways, sensitivity/specificity swapping 0.99/0.21 ↔ 0.21/0.99,
+accuracy unchanged. The Youden landing, the sweep line and the card all map
+the walk's score scale back to the strip's probability-of-disease axis.
+
 ## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
 
 **The misconception**: that the ROC curve is a static property of the model — a

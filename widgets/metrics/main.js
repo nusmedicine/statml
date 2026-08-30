@@ -62,6 +62,23 @@ function applyOptimum(th) {
   }, 350);
 }
 
+/* THE TRACE IS A ONE-WAY DOOR, and the door is a PARAMETER (Kenneth, round
+   4): once the reader has watched the curve built, every later data change —
+   sample size, balance, separation, seed, positive class — shows its new
+   curve INSTANTLY, so the dials explore what bends a ROC curve rather than
+   re-running the reveal. `traced=1` is written through the exported setParam
+   when the trace first lands, which keeps invariant 1: the URL says whether
+   the figure is revealed, a shared link opens the way it looked, and Reset —
+   which returns every parameter to its default — is what closes the door. */
+function markTraced() {
+  setTimeout(() => {
+    if (!widgetApi) return;
+    const p = widgetApi.params;
+    if (p.traced || p.outcome !== "categorical" || p.view !== "roc") return;
+    widgetApi.setParam("traced", true);
+  }, 0);
+}
+
 /* One source of geometry for draw() AND drag.value(). */
 function catLayout(w, view) {
   if (view === "matrix") {
@@ -125,8 +142,14 @@ const traced = (anim, state) => isRoc(anim) && anim.pos >= state.walk.length - 1
 const midTrace = (anim, state) => isRoc(anim) && anim.pos > 0 && !traced(anim, state);
 const optimumFound = (anim, state) => Boolean(anim?.scan?.done) && traced(anim, state);
 
-const effThreshold = (params, state, anim) =>
-  (midTrace(anim, state) ? sweepThresholdAt(state.walk, anim.pos) : params.threshold);
+/* The sweep's threshold lives on the WALK's score scale, which is 1 − prob
+   when "no disease" is the positive class; the strip's axis is always the
+   probability of disease, so the sweep position maps back through the flip. */
+const effThreshold = (params, state, anim) => {
+  if (!midTrace(anim, state)) return params.threshold;
+  const s = sweepThresholdAt(state.walk, anim.pos);
+  return state.posIsDisease ? s : 1 - s;
+};
 
 /* --- the formula card, in the DOM (widget 15's pattern) --------------------
    MathML where the engine sets it, the plain string otherwise. One <math>
@@ -246,7 +269,7 @@ function renderCard(params, state, anim) {
       const c2 = classCells(cells, params.positive);
       eq = cellFormula(params.cmetric, c2, categoricalMetrics(c2));
     } else {
-      eq = rocFormula(cells, state.auc, traced(anim, state));
+      eq = rocFormula(classCells(cells, params.positive), state.auc, traced(anim, state));
     }
   }
   if (eq.plain === cardKey) return;
@@ -602,9 +625,12 @@ function drawRocSquare(ctx, colors, { x, y, side }, params, state, anim) {
   if (!traced(anim, state)) return;
 
   plot.note(`AUC ${f3(state.auc)}`);
-  const cells = cellsAt(state.patients, params.threshold);
-  const tpr = cells.tp + cells.fn ? cells.tp / (cells.tp + cells.fn) : 0;
-  const fpr = cells.fp + cells.tn ? cells.fp / (cells.fp + cells.tn) : 0;
+  /* the axes are the POSITIVE class's rates, so the dot reads through the
+     same per-class remap the matrix view uses */
+  const c2 = classCells(cellsAt(state.patients, params.threshold),
+    state.posIsDisease ? "disease" : "healthy");
+  const tpr = c2.tp + c2.fn ? c2.tp / (c2.tp + c2.fn) : 0;
+  const fpr = c2.fp + c2.tn ? c2.fp / (c2.fp + c2.tn) : 0;
   plot.dot(fpr, tpr, { fill: colors.highlight, r: 6 });
 
   /* THE FIND-OPTIMAL SCAN: a probe walks the finished curve, and the
@@ -632,7 +658,9 @@ function drawRocSquare(ctx, colors, { x, y, side }, params, state, anim) {
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = yd.fpr < 0.55 ? "left" : "right";
     ctx.textBaseline = "bottom";
-    ctx.fillText(`Youden ${fmt(yd.th, 2)}`, px + (yd.fpr < 0.55 ? 11 : -11), py - 4);
+    /* printed on the strip's own scale — the threshold the landing writes */
+    const ydProb = state.posIsDisease ? yd.th : 1 - yd.th;
+    ctx.fillText(`Youden ${fmt(ydProb, 2)}`, px + (yd.fpr < 0.55 ? 11 : -11), py - 4);
     ctx.restore();
   }
 }
@@ -656,7 +684,7 @@ function drawRocView({ ctx, colors, w, params, state, anim }) {
     state,
     effTh: effThreshold(params, state, anim),
     sweeping: midTrace(anim, state),
-    flip: false,
+    flip: !state.posIsDisease,
     found: anim?.scan?.done ? anim.found : null,
   });
   drawRocSquare(ctx, colors, L.roc, params, state, anim);
@@ -765,19 +793,22 @@ widgetApi = defineWidget({
       display: true,
       when: { param: "outcome", equals: "numeric" },
     },
-    /* Which class the report row is about. Choosing it renames the matrix's
-       cells and re-reads every per-class metric — sklearn's per-class rows,
-       one at a time. */
+    /* Which class the report row is about, wearing its histogram's hue.
+       On the matrix view choosing it renames the cells and re-reads every
+       per-class metric — sklearn's per-class rows, one at a time. On the ROC
+       view it re-scores the walk (score 1 − p, labels flipped): the curve
+       point-reflects and AUC does not move, which is its own lesson —
+       relabelling the classes changes no discrimination. */
     positive: {
       type: "segmented",
       label: "Positive class",
       options: [
-        { value: "disease", label: "Disease", detail: "score the model on finding the sick" },
-        { value: "healthy", label: "No disease", detail: "score the model on clearing the well" },
+        { value: "disease", label: "Disease", token: "event", detail: "score the model on finding the sick" },
+        { value: "healthy", label: "No disease", token: "nonevent", detail: "score the model on clearing the well" },
       ],
       default: "disease",
       display: true,
-      when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "matrix" }] },
+      when: { param: "outcome", equals: "categorical" },
     },
     /* GROUPED ROWS, and the captions are the lesson: accuracy is the only
        metric read off everyone, and the other three all read the positive
@@ -838,6 +869,11 @@ widgetApi = defineWidget({
       when: { all: [{ param: "outcome", equals: "categorical" }, { param: "view", equals: "roc" }] },
     },
 
+    /* The one-way door: written true (through the exported setParam) when
+       the trace first lands, so later data changes redraw the finished curve
+       instantly and the dials explore what bends it. Reset closes it. */
+    traced: { type: "bool", default: false, display: true, hidden: true },
+
     shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
   },
 
@@ -873,10 +909,18 @@ widgetApi = defineWidget({
       return { cohort, m, m0 };
     }
     const patients = categoricalPatients(rng, { n: params.n, prev: params.prev, d: params.sep });
-    const walk = rocWalk(patients);
+    /* the walk is scored FOR the chosen positive class: score 1 − p and
+       flipped labels when "no disease" is positive, so the curve's axes are
+       always that class's TPR and FPR */
+    const posIsDisease = params.positive === "disease";
+    const scored = posIsDisease
+      ? patients
+      : patients.map((p) => ({ prob: 1 - p.prob, disease: !p.disease }));
+    const walk = rocWalk(scored);
     const probsOf = (want) => patients.filter((p) => p.disease === want).map((p) => p.prob);
     return {
       patients,
+      posIsDisease,
       walk,
       auc: aucOf(walk),
       youden: youdenOf(walk),
@@ -896,12 +940,16 @@ widgetApi = defineWidget({
     init: ({ params, state, fromScratch }) => {
       if (params.outcome === "categorical" && params.view === "roc") {
         const total = state.walk.length - 1;
-        /* a URL arriving with youden=1 opens finished-and-found without
-           moving the threshold — a URL shows what it says (widget 34) */
-        const pos = fromScratch ? 0
-          : params.youden ? total
-            : Math.min(Math.max(0, params.shown ?? 0), total);
+        /* traced=1 (the one-way door) and youden=1 open finished on ANY
+           init, data changes included — that is what lets the dials explore
+           a finished curve; a shown= head start applies to the first render
+           only, like every other widget's */
+        let pos;
+        if (params.traced || params.youden) pos = total;
+        else if (!fromScratch) pos = Math.min(Math.max(0, params.shown ?? 0), total);
+        else pos = 0;
         const done = pos >= total;
+        if (done) markTraced(); // no-op once traced=1 is in the URL
         return {
           kind: "roc",
           pos,
@@ -929,6 +977,18 @@ widgetApi = defineWidget({
         return true;
       }
 
+      /* REPLAY THROUGH THE KEPT CURVE: with traced=1 a fresh init opens
+         finished, so a run or step arriving on a finished figure is the
+         reader asking to watch the build again — the trace restarts and the
+         door stays open. The scan's frames arrive as mode "ease" and are
+         not this. */
+      if ((anim.mode === "run" || anim.mode === "step") && anim.done === true) {
+        anim.pos = 0;
+        anim.done = false;
+        anim.scan = null;
+        anim.found = null;
+      }
+
       const total = state.walk.length - 1;
       if (anim.pos < total) {
         const target = anim.mode === "step"
@@ -942,6 +1002,10 @@ widgetApi = defineWidget({
         if (anim.pos < total) return false; // a step landed short of the end
       }
       anim.done = true;
+      if (!anim.tracedMark) {
+        anim.tracedMark = true;
+        markTraced(); // the one-way door opens the first time the trace lands
+      }
       /* the trace has landed; a pending search scans in the same breath,
          and its landing is what moves the threshold */
       if (params.youden && anim.scan && !anim.scan.done) {
@@ -949,9 +1013,11 @@ widgetApi = defineWidget({
         if (anim.scan.t < 1) return true;
         anim.scan.done = true;
         if (state.youden) {
-          const applied = Math.max(0.01, Math.min(0.99,
-            Math.round(state.youden.th * 100) / 100));
-          anim.found = { from: params.threshold, th: state.youden.th, applied };
+          /* the walk's threshold is on the positive class's score scale;
+             what lands in the URL is the strip's probability-of-disease */
+          const thProb = state.posIsDisease ? state.youden.th : 1 - state.youden.th;
+          const applied = Math.max(0.01, Math.min(0.99, Math.round(thProb * 100) / 100));
+          anim.found = { from: params.threshold, th: thProb, applied };
           applyOptimum(applied);
         }
       }
@@ -980,6 +1046,7 @@ widgetApi = defineWidget({
         anim.scan = { t: 0 };
         anim.found = null;
         anim.easing = true;
+        markTraced(); // completing the curve for the search reveals it too
       }
       anim.youdenOn = Boolean(params.youden);
       /* dragged away from a found optimum: the arrow no longer describes
@@ -1038,25 +1105,35 @@ widgetApi = defineWidget({
     if (params.view === "roc") {
       const done = traced(anim, state);
       const effTh = effThreshold(params, state, anim);
-      const cells = cellsAt(state.patients, effTh);
-      const cm = categoricalMetrics(cells);
-      const nNeg = state.patients.length - state.nPos;
+      const c2 = classCells(cellsAt(state.patients, effTh), params.positive);
+      const cm = categoricalMetrics(c2);
+      const posName = params.positive === "disease" ? "disease" : "no disease";
+      const nPosCls = c2.tp + c2.fn;
+      const nNegCls = c2.tn + c2.fp;
       const tiles = [
         {
           label: "AUC",
           value: done ? f3(state.auc) : "—",
           note: done ? "area under the ROC curve" : "trace the curve first",
         },
-        { label: "Accuracy", value: f2(cm.acc), note: `${cells.tp + cells.tn} of ${state.patients.length} correct` },
-        { label: "Sensitivity", value: f2(Number.isFinite(cm.rec) ? cm.rec : 0), note: `${cells.tp} of ${state.nPos} with disease` },
+        { label: "Accuracy", value: f2(cm.acc), note: `${c2.tp + c2.tn} of ${state.patients.length} correct` },
+        {
+          label: "Sensitivity",
+          value: f2(Number.isFinite(cm.rec) ? cm.rec : 0),
+          note: `${c2.tp} of ${nPosCls} true “${posName}” found`,
+        },
         {
           label: "Specificity",
-          value: f2(cells.tn + cells.fp ? cells.tn / (cells.tn + cells.fp) : 0),
-          note: `${cells.tn} of ${nNeg} without`,
+          value: f2(nNegCls ? c2.tn / nNegCls : 0),
+          note: `${c2.tn} of ${nNegCls} others cleared`,
         },
       ];
       if (optimumFound(anim, state) && state.youden) {
-        tiles.push({ label: "Youden threshold", value: fmt(state.youden.th, 2), note: "maximises TPR − FPR" });
+        tiles.push({
+          label: "Youden threshold",
+          value: fmt(state.posIsDisease ? state.youden.th : 1 - state.youden.th, 2),
+          note: "maximises TPR − FPR",
+        });
       }
       return tiles;
     }
@@ -1078,11 +1155,14 @@ widgetApi = defineWidget({
       },
     ];
     /* classification_report's two summary rows, only when a per-class
-       metric is picked — the crowd control Kenneth asked for */
+       metric is picked, and on their OWN row (round 4): an average over
+       both classes is a different kind of number from the per-class tiles
+       beside it */
     const avKey = { prec: "prec", rec: "rec", f1: "f1" }[params.cmetric];
     if (avKey) {
       const av = reportAverages(cells)[avKey];
       tiles.push(
+        { break: true },
         { label: "Macro avg", value: f3(av.macro), note: "both classes weighted equally" },
         { label: "Weighted avg", value: f3(av.weighted), note: "weighted by class size — can mask the minority" },
       );

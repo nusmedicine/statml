@@ -49,8 +49,17 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 3 done 2026-08-30,
-awaiting Kenneth's review.** *Scoring the Predictions*, the second
+**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 4 done 2026-08-30,
+awaiting Kenneth's review.** Round 4: Macro/Weighted tiles on their own
+row (core readout `{ break: true }`), the positive-class buttons wear
+their histogram hues (core segmented option `token:`), `positive`
+widened to the ROC view (flip point-reflects the curve, AUC held —
+verified 0.844 both ways), and **the trace is a one-way door**: a
+hidden display param `traced` is written when the trace first lands,
+so every later data change redraws the finished curve instantly for
+exploration; Reset closes it, Replay still retraces. Two more core
+doors, one suite run: **238 of 238 MATCH** (placeholders DIFFER by
+design). Earlier rounds below. *Scoring the Predictions*, the second
 04-2 widget. Round 3 (his asks): selection is TWO-LEVEL (`Outcome`,
 then `Metric family` on categorical — deep links
 `?outcome=categorical&view=matrix|roc`); the categorical dials wear

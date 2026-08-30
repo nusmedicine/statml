@@ -808,7 +808,16 @@ function build(host, spec, values, onChange, api) {
         b.className = "w-seg-btn";
         b.dataset.param = name;
         b.dataset.value = o.value;
-        b.textContent = o.label;
+        /* an option's `token` renders as a swatch dot before the label, so a
+           choice between the figure's own series (widget 35's positive-class
+           pick) wears the same hue the histogram does */
+        if (o.token) {
+          const sw = document.createElement("span");
+          sw.className = "swatch";
+          sw.style.setProperty("--swatch", `var(--c-${o.token})`);
+          b.appendChild(sw);
+        }
+        b.appendChild(document.createTextNode(o.label));
         if (o.detail) b.title = o.detail;
         b.addEventListener("click", () => {
           mark(o.value);

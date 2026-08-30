@@ -906,6 +906,13 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   border-top: 1px solid var(--grid);
 }
 
+/* a readout row break (`{ break: true }` in a widget's tiles): a full-width
+   zero-height cell, so tiles of a different kind start their own row */
+.w-stat-break {
+  grid-column: 1 / -1;
+  height: 0;
+}
+
 .w-stat-label {
   display: block;
   color: var(--ink-2);
@@ -1113,6 +1120,18 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 
 .w-seg-btn:last-child { border-right: 0; }
 .w-seg-btn:hover { background: var(--surface-3); }
+
+/* an option wearing a semantic token (spec `token:`) carries a swatch dot,
+   so the button and the mark it selects share a hue */
+.w-seg-btn .swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--swatch, var(--ink-3));
+  vertical-align: -1px;
+}
 
 .w-seg-btn[aria-pressed="true"] {
   background: var(--surface-3);

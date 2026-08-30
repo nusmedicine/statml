@@ -1407,6 +1407,15 @@ function el(tag, className, text) {
 function renderReadout(host, tiles) {
   host.innerHTML = "";
   for (const tile of tiles) {
+    /* `{ break: true }` starts a new row: a full-width zero-height cell in the
+       readout grid. Earned by widget 35, whose classification-report averages
+       are a different KIND of number from the per-class tiles beside them —
+       letting them share a row said they were four of the same thing. Adds no
+       text, so the tx hash sees nothing. */
+    if (tile.break) {
+      host.appendChild(el("div", "w-stat-break"));
+      continue;
+    }
     const wrap = el("div");
     wrap.appendChild(el("span", "w-stat-label", tile.label));
     wrap.appendChild(el("span", "w-stat-value", tile.value));

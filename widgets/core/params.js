@@ -125,6 +125,10 @@ export function optionEntries(field) {
         : {
           value: item.value, label: item.label ?? item.value,
           detail: item.detail, group: item.group,
+          /* an option may wear a semantic colour token (widget 35's
+             positive-class pick matches its histogram hues); segmented
+             renders it as a swatch dot before the label */
+          token: item.token,
           /* `matrix` only. Where the option sits in the grid, and how dark the
              cell is drawn — 0 to 1. Carried on the option rather than in a
              parallel array, so a cell cannot come adrift from the value it
