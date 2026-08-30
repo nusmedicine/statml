@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 36 naive-bayes — stage candidates, mocked before the build</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 760px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 760px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 36 candidate · <code>naive-bayes</code> — both acts, mocked from the measured numbers</h1>
+
+  <p class="note">
+    Settled 2026-08-30: <b>synthetic data</b>, illustrating <b>continuous and discrete
+    likelihoods together</b> (Kenneth's pick), and <b>both acts in scope</b>. Hosts at PHM5005
+    <code>04-3 Tour of Algorithms</code> § Probabilistic — Arc A slot 5. The claim:
+    <b>P(y|x) ∝ P(y) · Π P(xⱼ|y)</b> — a prior times one likelihood per feature, whatever shape
+    each likelihood takes (Gaussian for a lab, Bernoulli for a symptom). Act 1 scores ONE patient
+    feature by feature; the model is fitted live on a seeded cohort (n 400, prevalence 0.3, two
+    labs, two symptoms), and the default patient is the <b>conflicted</b> one — evidence pulls
+    both ways and the posterior lands near ½. Act 2 is the caveat the notebook names: correlated
+    features double-count. Design numbers in <code>_lab/nb-design.py</code> — the mixed
+    Gaussian×Bernoulli arithmetic matches sklearn to 5e-16, and the ρ sweep only tells the
+    double-counting story when the second lab is <b>redundant</b> (matched standardized shifts);
+    mismatched shifts send the CORRECT posterior to 1.0 instead, the opposite lesson.
+  </p>
+
+  <h2>§1 · Act 1 — one patient, scored feature by feature</h2>
+  <p class="note">
+    <b>A</b> is the ledger: one row per term — the prior, then each feature — with the readoff on
+    the left (fitted curves or rates, the patient's value marked) and that term's evidence as a
+    bar in log-odds, left toward no disease, right toward disease. The animation admits one row
+    per Step; the total and the posterior sit at the bottom. <b>B</b> is panels-first: the four
+    fitted likelihood panels large, with the cohort behind the curves (the model is FIT, not
+    given), and a single posterior gauge — multiplication implicit. <b>C</b> is the waterfall:
+    the running log-odds walks down the steps, one riser per feature, with a focus panel showing
+    the feature just admitted; probability on the right axis.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — the evidence ledger (default: the conflicted patient)</h3>
+      <p class="sub">readoff left, evidence bar right; Gaussian rows and Bernoulli rows are the SAME kind of row</p>
+      <canvas id="candA" width="760" height="440"></canvas>
+      <p class="cap" id="capA"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>B — likelihood panels + posterior gauge</h3>
+      <p class="sub">the fit visible (cohort behind curves); the multiplication is a caption, not a picture</p>
+      <canvas id="candB" width="760" height="400"></canvas>
+      <p class="cap" id="capB"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cand">
+      <h3>C — the log-odds waterfall + focus panel</h3>
+      <p class="sub">multiplication drawn as addition; the focus panel swaps to the feature just admitted</p>
+      <canvas id="candC" width="760" height="440"></canvas>
+      <p class="cap" id="capC"></p>
+    </div>
+  </div>
+
+  <h2>§2 · Act 2 — the naive assumption double-counts</h2>
+  <p class="note">
+    Two labs with <b>matched standardized shifts</b>, a ρ dial, population parameters. Left: the
+    cohort tilts as ρ rises while naive Bayes's model of it — the axis-aligned ellipses, built
+    from marginals alone — cannot tilt. Right: the two posteriors for the elevated patient as ρ
+    moves. Naive Bayes never moves (its inputs are the marginals, and they never change); the
+    correct model relaxes to the one-lab answer as the second lab stops adding information. At
+    ρ 0.95: <b>NB 0.845 against correct 0.613</b>, the one-lab answer being 0.605.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>D — the tilting cohort vs the model that cannot tilt, and the ρ sweep</h3>
+      <p class="sub">left: scatter at ρ 0.8, NB's 1σ/2σ ellipses axis-aligned; right: posterior vs ρ, NB flat, correct relaxing</p>
+      <canvas id="candD" width="780" height="400"></canvas>
+      <p class="cap" id="capD"></p>
+    </div>
+  </div>
+
+  <h2>§3 · Open picks</h2>
+  <p class="note">
+    1) <b>Act 1's form</b>: ledger rows (A), panels + gauge (B), or waterfall + focus (C)? A and
+    C both draw the multiplication; B draws the fit best.<br>
+    2) <b>The running scale</b>: log-odds (additive, honest to the arithmetic) with probability
+    printed beside it — or probability only (familiar, but the steps stop being equal-sized)?<br>
+    3) <b>The patient</b>: two sliders + two checkboxes as data parameters, Step admits the next
+    feature — and does the admitted-features count live in <code>?shown=N</code>?<br>
+    4) <b>Act 2's home</b>: a second tab, or a gate under act 1? And does it reuse act 1's labs
+    (which would force act 1's labB to the matched-shift parameters) or carry its own pair?<br>
+    5) <b>Naming</b>: Lab A / Lab B / Symptom 1 / Symptom 2 (shape-first, the SVM precedent) —
+    or named generics (CRP-like) that risk reading as clinical findings?<br>
+    6) <b>Variant labels</b>: do the rows say "Gaussian" / "Bernoulli" on screen (the notebook's
+    variants table made visible), or does the shape alone carry it?<br>
+    7) <b>The formula card</b>: a <code>.w-math</code> MathML card with live numbers, as widget
+    35 — P(y|x) ∝ P(y)·ΠP(xⱼ|y) with the patient's own factors substituted?<br>
+    8) <b>Title</b>: working title <i>Multiplying the Evidence</i> — alternatives
+    <i>Classifying with Bayes' Rule</i>, <i>Naive Bayes</i>. Slug <code>naive-bayes</code>.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-reference","--c-empirical","--c-theory",
+ "--c-prior","--c-posterior","--ink-1","--ink-2","--ink-3","--grid","--surface-1"]
+  .forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+/* ---- the cohort and the fit (act 1) — what the widget's compute() will do ---- */
+
+const PRIOR = 0.3;
+const LABS = {           // mu1 sd1 (disease)   mu0 sd0 (no disease)
+  labA: { mu1: 62, sd1: 12, mu0: 48, sd0: 10, lo: 20, hi: 95, label: "Lab A" },
+  labB: { mu1: 5.8, sd1: 1.6, mu0: 4.8, sd0: 1.4, lo: 0.5, hi: 11, label: "Lab B" },
+};
+const SYMS = {
+  s1: { p1: 0.70, p0: 0.25, label: "Symptom 1" },
+  s2: { p1: 0.30, p0: 0.55, label: "Symptom 2" },
+};
+
+function makeCohort(seed, n) {
+  const rng = makeRng(seed);
+  const rows = [];
+  for (let i = 0; i < n; i += 1) {
+    const y = rng.next() < PRIOR ? 1 : 0;
+    const r = { y };
+    for (const k in LABS) {
+      const L = LABS[k];
+      r[k] = y ? rng.normal(L.mu1, L.sd1) : rng.normal(L.mu0, L.sd0);
+    }
+    for (const k in SYMS) {
+      const S = SYMS[k];
+      r[k] = rng.next() < (y ? S.p1 : S.p0) ? 1 : 0;
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+
+function fitNB(rows) {
+  const fit = { n: [0, 0], mu: {}, va: {}, rate: {} };
+  for (const r of rows) fit.n[r.y] += 1;
+  fit.prior = [fit.n[0] / rows.length, fit.n[1] / rows.length];
+  for (const k in LABS) {
+    fit.mu[k] = [0, 0]; fit.va[k] = [0, 0];
+    for (const r of rows) fit.mu[k][r.y] += r[k];
+    fit.mu[k] = fit.mu[k].map((s, y) => s / fit.n[y]);
+    for (const r of rows) fit.va[k][r.y] += (r[k] - fit.mu[k][r.y]) ** 2;
+    fit.va[k] = fit.va[k].map((s, y) => s / fit.n[y] + 1e-9);
+  }
+  for (const k in SYMS) {
+    const cnt = [0, 0];
+    for (const r of rows) cnt[r.y] += r[k];
+    fit.rate[k] = cnt.map((c, y) => (c + 1) / (fit.n[y] + 2));   // Laplace, alpha 1
+  }
+  return fit;
+}
+
+const gaussLL = (x, mu, va) => -0.5 * Math.log(2 * Math.PI * va) - (x - mu) ** 2 / (2 * va);
+
+function ledger(fit, patient) {
+  const rows = [{ key: "prior", label: "Prior", lr: Math.log(fit.prior[1] / fit.prior[0]) }];
+  for (const k in LABS) rows.push({
+    key: k, label: LABS[k].label + " " + fmtV(k, patient[k]),
+    lr: gaussLL(patient[k], fit.mu[k][1], fit.va[k][1]) - gaussLL(patient[k], fit.mu[k][0], fit.va[k][0]),
+  });
+  for (const k in SYMS) {
+    const yes = patient[k] === 1;
+    const num = yes ? fit.rate[k][1] : 1 - fit.rate[k][1];
+    const den = yes ? fit.rate[k][0] : 1 - fit.rate[k][0];
+    rows.push({ key: k, label: SYMS[k].label + (yes ? " present" : " absent"), lr: Math.log(num / den) });
+  }
+  const total = rows.reduce((s, r) => s + r.lr, 0);
+  return { rows, total, post: 1 / (1 + Math.exp(-total)) };
+}
+const fmtV = (k, v) => k === "labA" ? v.toFixed(0) : v.toFixed(1);
+
+const cohort = makeCohort(7, 400);
+const fit = fitNB(cohort);
+const PATIENT = { labA: 60, labB: 4.6, s1: 1, s2: 1 };   // the conflicted default
+const LED = ledger(fit, PATIENT);
+
+/* ---- shared drawing helpers ---- */
+
+function ctx2d(id) { const c = document.getElementById(id); return [c.getContext("2d"), c.width, c.height]; }
+function line(ctx, x1, y1, x2, y2, color, w = 1, dash = []) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function text(ctx, s, x, y, color, font = MONO, align = "left") {
+  ctx.save(); ctx.fillStyle = color; ctx.font = font; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+}
+
+/* Draw one lab's two fitted curves in a panel, patient value marked. */
+function labPanel(ctx, k, px, py, pw, ph, { hist = false } = {}) {
+  const L = LABS[k];
+  const X = (v) => px + ((v - L.lo) / (L.hi - L.lo)) * pw;
+  if (hist) {                       // cohort behind the curves, per class
+    const bins = 24;
+    for (const y of [0, 1]) {
+      const counts = new Array(bins).fill(0);
+      let max = 0;
+      for (const r of cohort) {
+        if (r.y !== y) continue;
+        const b = Math.min(bins - 1, Math.max(0, Math.floor(((r[k] - L.lo) / (L.hi - L.lo)) * bins)));
+        counts[b] += 1; max = Math.max(max, counts[b]);
+      }
+      ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = y ? C["c-event"] : C["c-nonevent"];
+      for (let b = 0; b < bins; b += 1) {
+        const h = (counts[b] / max) * (ph - 6);
+        ctx.fillRect(px + (b / bins) * pw + 0.5, py + ph - h, pw / bins - 1, h);
+      }
+      ctx.restore();
+    }
+  }
+  for (const y of [0, 1]) {
+    const mu = fit.mu[k][y], va = fit.va[k][y];
+    const peak = 1 / Math.sqrt(2 * Math.PI * va);
+    ctx.save(); ctx.strokeStyle = y ? C["c-event"] : C["c-nonevent"]; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i += 1) {
+      const v = L.lo + (i / 80) * (L.hi - L.lo);
+      const d = Math.exp(gaussLL(v, mu, va)) / peak;
+      const yy = py + ph - 3 - d * (ph - 10);
+      if (i === 0) ctx.moveTo(X(v), yy); else ctx.lineTo(X(v), yy);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+  line(ctx, X(PATIENT[k]), py, X(PATIENT[k]), py + ph, C["c-highlight"], 1.6);
+  line(ctx, px, py + ph, px + pw, py + ph, C.grid);
+}
+
+/* Draw P(the patient's state | class), one bar per class — the exact quantity
+   the ledger multiplies. */
+function symPanel(ctx, k, px, py, pw, ph) {
+  const yes = PATIENT[k] === 1;
+  const word = yes ? "present" : "absent";
+  const bw = pw / 2 - 14;
+  [0, 1].forEach((y) => {
+    const p = yes ? fit.rate[k][y] : 1 - fit.rate[k][y];
+    const x0 = px + (y ? pw / 2 + 7 : 7);
+    const hFull = ph - 14;
+    ctx.save(); ctx.fillStyle = y ? C["c-event"] : C["c-nonevent"];
+    ctx.fillRect(x0, py + ph - 4 - hFull * p, bw, hFull * p); ctx.restore();
+    text(ctx, "P(" + word + ")=" + p.toFixed(2), x0 + bw / 2, py + ph + 10, C["ink-3"], MONO_S, "center");
+  });
+  line(ctx, px, py + ph - 4, px + pw, py + ph - 4, C.grid);
+}
+
+/* ================= candidate A — the ledger ================= */
+{
+  const [ctx, W, H] = ctx2d("candA");
+  const rowY = [26, 96, 166, 236, 306];
+  const rowH = 56;
+  const panelX = 130, panelW = 170;
+  const zero = 470, span = 105;               // px per 1 log-odds unit... span*maxlr
+  const scale = 78;                            // px per log-odds unit
+  text(ctx, "evidence for no disease ←", zero - 10, 16, C["ink-3"], MONO_S, "right");
+  text(ctx, "→ evidence for disease", zero + 10, 16, C["ink-3"], MONO_S, "left");
+  line(ctx, zero, 20, zero, 356, C.grid);
+
+  LED.rows.forEach((r, i) => {
+    const y = rowY[i];
+    text(ctx, r.label, 12, y + 14, C["ink-1"], MONO);
+    if (r.key === "prior") {
+      // class split as one horizontal bar
+      const bw = panelW, bh = 14;
+      ctx.fillStyle = C["c-nonevent"]; ctx.fillRect(panelX, y + 22, bw * fit.prior[0], bh);
+      ctx.fillStyle = C["c-event"]; ctx.fillRect(panelX + bw * fit.prior[0], y + 22, bw * fit.prior[1], bh);
+      text(ctx, fit.prior[1].toFixed(2) + " of the cohort has the disease", panelX, y + 50, C["ink-3"], MONO_S);
+    } else if (LABS[r.key]) {
+      labPanel(ctx, r.key, panelX, y, panelW, rowH - 12);
+      text(ctx, "Gaussian", panelX + panelW + 8, y + 30, C["ink-3"], MONO_S);
+    } else {
+      symPanel(ctx, r.key, panelX, y, panelW, rowH - 16);
+      text(ctx, "Bernoulli", panelX + panelW + 8, y + 30, C["ink-3"], MONO_S);
+    }
+    // the evidence bar
+    const w = r.lr * scale;
+    const color = r.key === "prior" ? C["c-prior"] : (r.lr >= 0 ? C["c-event"] : C["c-nonevent"]);
+    ctx.save(); ctx.fillStyle = color; ctx.globalAlpha = 0.85;
+    ctx.fillRect(Math.min(zero, zero + w), y + 18, Math.abs(w), 18); ctx.restore();
+    text(ctx, (r.lr >= 0 ? "+" : "") + r.lr.toFixed(2), zero + w + (r.lr >= 0 ? 6 : -6),
+         y + 31, C["ink-2"], MONO, r.lr >= 0 ? "left" : "right");
+  });
+
+  // total + posterior
+  line(ctx, 12, 372, W - 12, 372, C.grid);
+  const w = LED.total * scale;
+  ctx.save(); ctx.fillStyle = C["c-posterior"];
+  ctx.fillRect(Math.min(zero, zero + w), 384, Math.abs(w), 20); ctx.restore();
+  text(ctx, "Sum " + LED.total.toFixed(2), 12, 399, C["ink-1"], MONO);
+  text(ctx, "P(disease | all four) = " + LED.post.toFixed(3), zero + 130, 399, C["ink-1"], MONO);
+  document.getElementById("capA").textContent =
+    "fitted on the seeded cohort (n 400); rows admitted one per Step. The conflicted default: " +
+    LED.rows.map((r) => r.lr.toFixed(2)).join(" ") + " → P " + LED.post.toFixed(3) + ".";
+}
+
+/* ================= candidate B — panels + gauge ================= */
+{
+  const [ctx, W, H] = ctx2d("candB");
+  const pw = 280, ph = 130;
+  const cells = [["labA", 20, 30], ["labB", 20, 220], ["s1", 330, 30], ["s2", 330, 220]];
+  for (const [k, x, y] of cells) {
+    const isLab = Boolean(LABS[k]);
+    text(ctx, (isLab ? LABS[k].label : SYMS[k].label) + (isLab ? " — Gaussian" : " — Bernoulli"),
+         x, y - 8, C["ink-1"], MONO);
+    if (isLab) labPanel(ctx, k, x, y, pw, ph, { hist: true });
+    else symPanel(ctx, k, x, y + 10, pw, ph - 30);
+    const r = LED.rows.find((q) => q.key === k);
+    text(ctx, "likelihood ratio " + Math.exp(r.lr).toFixed(2) + "×", x, y + ph + 26, C["ink-3"], MONO_S);
+  }
+  // gauge
+  const gx = 680, gy = 40, gh = 300;
+  line(ctx, gx, gy, gx, gy + gh, C.grid, 6);
+  const mark = (p, label, color) => {
+    const y = gy + gh * (1 - p);
+    line(ctx, gx - 12, y, gx + 12, y, color, 2.5);
+    text(ctx, label, gx + 18, y + 4, C["ink-2"], MONO_S);
+  };
+  [0, 0.5, 1].forEach((p) => text(ctx, p.toFixed(1), gx - 20, gy + gh * (1 - p) + 4, C["ink-3"], MONO_S, "right"));
+  mark(fit.prior[1], "prior " + fit.prior[1].toFixed(2), C["c-prior"]);
+  mark(LED.post, "posterior " + LED.post.toFixed(3), C["c-posterior"]);
+  text(ctx, "P(disease)", gx - 28, gy - 14, C["ink-1"], MONO);
+  document.getElementById("capB").textContent =
+    "the cohort is visible behind the curves — the model was fitted, not given. " +
+    "Multiplication lives in the captions (×" +
+    LED.rows.slice(1).map((r) => Math.exp(r.lr).toFixed(2)).join(" · ×") + ").";
+}
+
+/* ================= candidate C — the waterfall ================= */
+{
+  const [ctx, W, H] = ctx2d("candC");
+  const wx = 60, wy = 30, ww = 420, wh = 330;
+  const LO = -3.2, HI = 2.2;
+  const Y = (v) => wy + wh * (1 - (v - LO) / (HI - LO));
+  // axes: log-odds left, probability right
+  line(ctx, wx, wy, wx, wy + wh, C.grid);
+  line(ctx, wx + ww, wy, wx + ww, wy + wh, C.grid);
+  [-3, -2, -1, 0, 1, 2].forEach((v) => {
+    line(ctx, wx - 4, Y(v), wx + ww, Y(v), C.grid, v === 0 ? 1.2 : 0.5, v === 0 ? [] : [2, 4]);
+    text(ctx, String(v), wx - 10, Y(v) + 4, C["ink-3"], MONO_S, "right");
+  });
+  [0.05, 0.1, 0.27, 0.5, 0.73, 0.9].forEach((p) => {
+    const v = Math.log(p / (1 - p));
+    text(ctx, p.toFixed(2), wx + ww + 8, Y(v) + 4, C["ink-3"], MONO_S);
+  });
+  text(ctx, "log-odds", wx - 40, wy - 12, C["ink-3"], MONO_S);
+  text(ctx, "P(disease)", wx + ww + 4, wy - 12, C["ink-3"], MONO_S);
+
+  const stepW = ww / (LED.rows.length + 0.5);
+  let run = 0;
+  LED.rows.forEach((r, i) => {
+    const x0 = wx + 20 + i * stepW;
+    const from = i === 0 ? 0 : run;
+    run += r.lr;
+    const color = r.key === "prior" ? C["c-prior"] : (r.lr >= 0 ? C["c-event"] : C["c-nonevent"]);
+    if (i === 0) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x0, Math.min(Y(0), Y(run)), stepW - 16, Math.abs(Y(run) - Y(0)));
+    } else {
+      ctx.fillStyle = color;
+      ctx.fillRect(x0, Math.min(Y(from), Y(run)), stepW - 16, Math.abs(Y(run) - Y(from)));
+      line(ctx, x0 - stepW + 4 + stepW - 16 - 4, Y(from), x0 + stepW - 16, Y(from), C["ink-3"], 0.8, [2, 3]);
+    }
+    const short = r.key === "prior" ? "Prior" : (LABS[r.key] ? LABS[r.key].label : SYMS[r.key].label);
+    text(ctx, short, x0 + (stepW - 16) / 2, wy + wh + 16, C["ink-2"], MONO_S, "center");
+    text(ctx, (r.lr >= 0 ? "+" : "") + r.lr.toFixed(2), x0 + (stepW - 16) / 2,
+         (r.lr >= 0 ? Y(run) - 6 : Y(run) + 14), C["ink-2"], MONO_S, "center");
+  });
+  // the landing
+  line(ctx, wx + 20 + LED.rows.length * stepW - 10, Y(run), wx + ww, Y(run), C["c-posterior"], 2);
+  text(ctx, "P = " + LED.post.toFixed(3), wx + ww - 4, Y(run) + 18, C["c-posterior"], MONO, "right");
+
+  // focus panel: the last admitted feature (s2)
+  const fx = 540, fy = 60, fw = 190, fh = 100;
+  text(ctx, "Just admitted: " + SYMS.s2.label + " present", fx, fy - 10, C["ink-1"], MONO);
+  symPanel(ctx, "s2", fx, fy, fw, fh);
+  const r2 = LED.rows[4];
+  text(ctx, "P(present|dis) / P(present|no)", fx, fy + fh + 34, C["ink-3"], MONO_S);
+  text(ctx, "= " + Math.exp(r2.lr).toFixed(2) + "×  (log " + r2.lr.toFixed(2) + ")",
+       fx, fy + fh + 48, C["ink-2"], MONO);
+  document.getElementById("capC").textContent =
+    "each riser is one feature's log likelihood ratio; the walk starts at the prior and lands on " +
+    LED.total.toFixed(2) + " → P " + LED.post.toFixed(3) + ". Multiplying probabilities IS adding logs.";
+}
+
+/* ================= candidate D — act 2 ================= */
+{
+  const [ctx, W, H] = ctx2d("candD");
+  // matched-shift parameters, population (no fit) — from nb-design.py [3]
+  const sdA = 11, sdB = 1.5;
+  const muA0 = 48, muA1 = 62, muB0 = 4.8, muB1 = muB0 + (14 / sdA) * sdB;
+  const PROBE = { a: 66, b: muB0 + (66 - muA0) / sdA * sdB };
+  const RHO = 0.8;
+  const posts = (a, b, rho) => {
+    const det = sdA * sdA * sdB * sdB * (1 - rho * rho);
+    const si = [[sdB * sdB / det, -rho * sdA * sdB / det], [-rho * sdA * sdB / det, sdA * sdA / det]];
+    const lp = Math.log(PRIOR / (1 - PRIOR));
+    const q = (da, db) => si[0][0] * da * da + 2 * si[0][1] * da * db + si[1][1] * db * db;
+    const correct = lp - 0.5 * q(a - muA1, b - muB1) + 0.5 * q(a - muA0, b - muB0);
+    const nb = lp - (a - muA1) ** 2 / (2 * sdA * sdA) - (b - muB1) ** 2 / (2 * sdB * sdB)
+                  + (a - muA0) ** 2 / (2 * sdA * sdA) + (b - muB0) ** 2 / (2 * sdB * sdB);
+    const s = (z) => 1 / (1 + Math.exp(-z));
+    return [s(nb), s(correct)];
+  };
+
+  // left: scatter at rho 0.8
+  const sx = 40, sy = 30, sw = 330, sh = 330;
+  const AX = { lo: 15, hi: 95 }, BX = { lo: 0.5, hi: 11 };
+  const X = (a) => sx + ((a - AX.lo) / (AX.hi - AX.lo)) * sw;
+  const Yc = (b) => sy + sh * (1 - (b - BX.lo) / (BX.hi - BX.lo));
+  ctx.strokeStyle = C.grid; ctx.strokeRect(sx, sy, sw, sh);
+  ctx.save(); ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+  const rng = makeRng(11);
+  for (let i = 0; i < 220; i += 1) {
+    const y = rng.next() < PRIOR ? 1 : 0;
+    const z1 = rng.normal(), z2 = rng.normal();
+    const a = (y ? muA1 : muA0) + sdA * z1;
+    const b = (y ? muB1 : muB0) + sdB * (RHO * z1 + Math.sqrt(1 - RHO * RHO) * z2);
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = y ? C["c-event"] : C["c-nonevent"];
+    ctx.beginPath(); ctx.arc(X(a), Yc(b), 2.4, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  // NB's axis-aligned ellipses (1 and 2 sigma) per class
+  for (const y of [0, 1]) {
+    const cx = X(y ? muA1 : muA0), cy = Yc(y ? muB1 : muB0);
+    const rx = (sdA / (AX.hi - AX.lo)) * sw, ry = (sdB / (BX.hi - BX.lo)) * sh;
+    for (const m of [1, 2]) {
+      ctx.save(); ctx.strokeStyle = y ? C["c-event"] : C["c-nonevent"];
+      ctx.lineWidth = m === 1 ? 1.6 : 0.9; ctx.setLineDash(m === 1 ? [] : [3, 3]);
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx * m, ry * m, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  // the probe patient
+  ctx.save(); ctx.fillStyle = C["c-highlight"];
+  ctx.beginPath(); ctx.arc(X(PROBE.a), Yc(PROBE.b), 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  text(ctx, "the patient", X(PROBE.a) + 9, Yc(PROBE.b) + 4, C["ink-2"], MONO_S);
+  ctx.restore();   // end the panel clip
+  text(ctx, "Lab A", sx + sw / 2, sy + sh + 16, C["ink-3"], MONO_S, "center");
+  ctx.save(); ctx.translate(sx - 26, sy + sh / 2); ctx.rotate(-Math.PI / 2);
+  text(ctx, "Lab B", 0, 0, C["ink-3"], MONO_S, "center"); ctx.restore();
+  text(ctx, "ρ = " + RHO.toFixed(2) + " — the cloud tilts; the model's ellipses cannot", sx, 20, C["ink-2"], MONO_S);
+
+  // right: posterior vs rho
+  const px = 440, py = 40, pw = 310, ph = 300;
+  const RX = (r) => px + r * pw;
+  const PY = (p) => py + ph * (1 - p);
+  ctx.strokeStyle = C.grid; ctx.strokeRect(px, py, pw, ph);
+  [0, 0.25, 0.5, 0.75, 1].forEach((p) => {
+    line(ctx, px, PY(p), px + pw, PY(p), C.grid, 0.5, [2, 4]);
+    text(ctx, p.toFixed(2), px - 6, PY(p) + 4, C["ink-3"], MONO_S, "right");
+  });
+  [0, 0.5, 1].forEach((r) => text(ctx, r.toFixed(1), RX(r), py + ph + 14, C["ink-3"], MONO_S, "center"));
+  // curves
+  const oneLab = posts(PROBE.a, muB0 + 99, 0)[0]; // placeholder, computed properly below
+  let nbP = 0, okP = 0;
+  ctx.save(); ctx.lineWidth = 2;
+  for (const which of [0, 1]) {
+    ctx.strokeStyle = which ? C["c-reference"] : C["c-empirical"];
+    ctx.beginPath();
+    for (let i = 0; i <= 99; i += 1) {
+      const r = (i / 99) * 0.99;
+      const p = posts(PROBE.a, PROBE.b, r)[which];
+      if (i === 0) ctx.moveTo(RX(r), PY(p)); else ctx.lineTo(RX(r), PY(p));
+      if (i === 99) { if (which) okP = p; else nbP = p; }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // one-lab reference
+  const lp = Math.log(PRIOR / (1 - PRIOR));
+  const z1 = lp - (PROBE.a - muA1) ** 2 / (2 * sdA * sdA) + (PROBE.a - muA0) ** 2 / (2 * sdA * sdA);
+  const one = 1 / (1 + Math.exp(-z1));
+  line(ctx, px, PY(one), px + pw, PY(one), C["ink-3"], 1, [4, 4]);
+  text(ctx, "one lab alone " + one.toFixed(3), px + pw - 6, PY(one) + 14, C["ink-3"], MONO_S, "right");
+  const nb0 = posts(PROBE.a, PROBE.b, 0)[0];
+  text(ctx, "naive Bayes " + nb0.toFixed(3), px + 8, PY(nb0) - 8, C["c-empirical"], MONO);
+  text(ctx, "correct model", px + pw - 90, PY(okP) - 10, C["c-reference"], MONO);
+  text(ctx, "ρ (correlation of the two labs)", px + pw / 2, py + ph + 28, C["ink-3"], MONO_S, "center");
+  text(ctx, "P(disease) for the patient", px, py - 12, C["ink-1"], MONO);
+  const [nb95, ok95] = posts(PROBE.a, PROBE.b, 0.95);
+  document.getElementById("capD").textContent =
+    "population parameters, matched standardized shifts. NB is flat at " + nb0.toFixed(3) +
+    " because its inputs — the two marginals — do not move with ρ; the correct posterior " +
+    "relaxes to the one-lab answer " + one.toFixed(3) + " as Lab B becomes a copy. At ρ 0.95: NB " +
+    nb95.toFixed(3) + " vs correct " + ok95.toFixed(3) + ".";
+}
+</script>
+</body>
+</html>
