@@ -51,23 +51,57 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: plan widget 37 — the shallow MLP, Arc A's LAST slot
+## NEXT: widget 37 `mlp` — MEASURED AND MOCKED, awaiting Kenneth's picks
 
-**Agreed with Kenneth 2026-08-30, planning to begin.** Hosts at PHM5005
-`04-3 Tour of Algorithms` § Neural Networks (MLP) — the notebook's
-content: h = σ(W⁽¹⁾x + b⁽¹⁾), ŷ = g(W⁽²⁾h + b⁽²⁾); activations named
-relu/tanh/logistic; the worked example is
-`MLPClassifier(hidden_layer_sizes=(100,), activation="relu",
-solver="adam")` on the heart failure data. Follow the house order:
-misconception first, then measurements (`_lab/`), then mock candidates,
-then Kenneth picks. **The SVM widget is the nearest sibling** (same
-notebook section shape, decision-boundary stage, kernels ≈ hidden
-layers as the "what bends the boundary" dial) — read catalogue
-§ Widget 16 before proposing a stage; its generated-data finding
-(no PHM5005 dataset shows a kernel doing anything) almost certainly
-applies to hidden units too, and its measured heart-failure numbers
-(RBF WORSE than linear on all features, 0.729 vs 0.736) are a warning
-against a real-data MLP stage.
+**Arc A's LAST slot**, PHM5005 `04-3 Tour of Algorithms` § Neural
+Networks. **Kenneth settled the two structural questions 2026-08-30**:
+the widget reuses **the SVM widget's stage** (widget 16's own three
+generators — Two blobs · Rings · Crescents — and its class colours), and
+carries **both acts** — training bends the boundary (Play = epochs), and
+the k × activation dials with the identity collapse. Measurements and
+the mock are committed; **what is owed next is his review of
+`_lab/mlp-mock.html` and the six open picks in its §4.**
+
+```bash
+node scripts/serve.mjs 8010
+# http://localhost:8010/widgets/_lab/mlp-mock.html      the two acts, trained live
+"C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/venv/Scripts/python.exe" \
+    widgets/_lab/mlp-design.py     # the reference engine and the reliability table
+```
+
+- **The engine is 2 → k → 1**, seeded uniform init (r = 1/√fan_in),
+  full-batch gradient descent with **momentum 0.9 at lr 0.05, 600
+  epochs**. `mlp-design.py` is the SPECIFICATION; the mock runs its JS
+  port, and the widget's engine gets pinned to it to the digit at build
+  time. The whole trajectory precomputes in `compute()` and Play replays
+  it — the pure-seeded contract, unchanged.
+- **THE RELIABILITY TABLE IS THE DESIGN'S REAL FINDING, and it corrected
+  a one-seed claim the mock first made** (rings k = 3 reached 0 errors on
+  one data/init pair and 24 on another). Over 20 inits per cell, and
+  identically under every optimiser tried — so it is a property of the
+  problem, not the step rule:
+
+  | | k=1 | k=2 | k=3 | k=4 | k=8 |
+  |---|---|---|---|---|---|
+  | rings | 0/20 | 0/20 | 10/20 | 19/20 | 20/20 |
+  | crescents | 0/20 | 0/20 | 3/20 | 6/20 | 17/20 |
+
+  Two teachable facts: **capacity** (k 1 and 2 can never close a ring —
+  they draw a line and a wedge) and **optimisation** (k 3 usually gets
+  stuck; width buys reliability, not just capacity). **No caption may
+  claim "k ≥ 3 works"**, and the Seed dial is a teaching control.
+- **The optimiser was chosen on WATCHABILITY alone**, since reliability
+  did not separate the candidates: momentum 0.9 at lr 0.05 spreads rings
+  k = 4 over 77 → 32 → 1 → 0 errors at epochs 20/60/150/300, where lr 0.2
+  is over before epoch 60.
+- **The identity collapse is visually unmistakable** — eight identity
+  units on the rings still draw one straight line, 79 of 180 wrong,
+  against relu and tanh at 0.
+- **A real-data stage was ruled out before it was proposed**: widget 16
+  measured that no PHM5005 dataset shows a kernel doing anything (heart
+  failure: RBF *worse* than linear on all features, 0.729 vs 0.736), and
+  the same applies to hidden units. Generated data, as the SVM widget
+  argues in catalogue § Widget 16 — read it before reopening this.
 
 **WIDGET 36 `naive-bayes` SHIPPED AND PUSHED 2026-08-30** (PHM5005
 04-3 § Probabilistic, Arc A slot 5) — eight rounds in one day, the full
