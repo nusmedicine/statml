@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 37 mlp — the activation inset and the hover inspector</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 620px; min-height: 13px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 640px; }
+  .live { cursor: crosshair; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 37 · two refinements, mocked — <code>mlp</code></h1>
+  <p class="note">
+    Kenneth 2026-08-30: <i>(1) is there a place to show the activation types? students may
+    not understand this part … can be like an inset, with animation. (2) we can have a hover
+    function so students can inspect the value.</i> Both mocked here against the SHIPPING
+    engine — this page imports <code>widgets/mlp/model.js</code>, so nothing on it can drift
+    from the widget.
+  </p>
+
+  <h2>§1 · The activation, shown rather than named</h2>
+  <p class="note">
+    <b>The problem is real.</b> The control reads <i>Identity | ReLU | tanh</i> — three words
+    and no picture, and the notebook lists them as strings too. The one thing that makes
+    them mean something is the SHAPE: a diagonal, a hinge, an S. All three below are drawn
+    from the shipping <code>ACTS</code>, so the inset can never disagree with what the
+    network computed.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A — inset in the network panel, at the hidden layer</h3>
+      <p class="sub">σ acts AT the hidden units — but the hidden column owns the middle, so it goes in the free corner</p>
+      <canvas id="insetA" width="330" height="300"></canvas>
+      <p class="cap">~76px square in the free bottom-left corner; it costs no layout and fits at every k</p>
+    </div>
+    <div class="cand">
+      <h3>B — its own small panel in the caption row</h3>
+      <p class="sub">bigger and unmissable, but detached from the units it describes</p>
+      <canvas id="insetB" width="330" height="300"></canvas>
+      <p class="cap">roughly a third of the caption row's height, full legibility at lecture size</p>
+    </div>
+    <div class="cand">
+      <h3>C — A, plus where this data's inputs actually land</h3>
+      <p class="sub">the z values the hidden units really see, as a rug under the curve</p>
+      <canvas id="insetC" width="330" height="300"></canvas>
+      <p class="cap" id="capC"></p>
+    </div>
+  </div>
+  <p class="note">
+    <b>C is the one with a second idea in it.</b> The rug shows the z values the hidden units
+    actually receive, and under ReLU <b>everything left of 0 is flat</b> — which is exactly
+    where a dead unit lives. It connects the activation picture to the dead-unit caption the
+    widget already prints, so the two teach one thing instead of two.
+  </p>
+  <p class="note">
+    <b>Measured while placing it, and it decides A against B.</b> The inset cannot sit under
+    the hidden column: the first draft put it there and it landed on the fourth node, and at
+    k = 8 the column runs the panel's full height with no gap at all. In the free bottom-left
+    corner — under the two input nodes, which only ever occupy the middle third — it fits at
+    every k on the ladder. That is A's real cost: it is corner-constrained, so it cannot grow
+    beyond about 90px. B can be any size, and pays for it by sitting away from the units.
+  </p>
+  <p class="note">
+    <b>On the animation.</b> Switching activation should CROSSFADE the two curves, each with
+    its own name fading with it — not morph one shape into the other. A morph would draw
+    half-bent functions that are no activation at all and print a name that is false
+    mid-frame, which is the lm-arc's rule (every printed number comes from the lerped model)
+    read the other way. The crossfade is the SVM widget's own contour treatment.
+  </p>
+
+  <h2>§2 · The hover inspector — LIVE, move your pointer over the panels</h2>
+  <p class="note">
+    Core already carries the channel (<code>pointer: true</code>) with one rule attached:
+    <b>an inspector must stay additive</b>, because the lecture screen has no hover and a
+    touch screen has none either. So nothing below may be the only route to anything.
+  </p>
+  <p class="note">
+    Three things a pointer could inspect, in the order I would rank them:
+    <b>1) a hidden unit</b> — hover a node and its edges light up, its weights print, and
+    <b>its own straight piece draws on the boundary</b>. That is the widget's subtitle claim
+    ("one straight piece each") made pointable, and it is the strongest of the three by a
+    distance. <b>2) the boundary</b> — hover anywhere in the right panel and read P at that
+    point, which turns the wash from decoration into a quantity. <b>3) an edge</b> — hover a
+    link and read its weight; the least valuable, since a number on a link is the thing you
+    said students do not get, and thickness already carries it.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>Live: hover the hidden units, then the boundary panel</h3>
+      <p class="sub" id="hoverSub">rings, k = 4, trained — pointer over a node or the right panel</p>
+      <canvas id="live" class="live" width="880" height="330"></canvas>
+      <p class="cap" id="liveCap">move the pointer onto the figure</p>
+    </div>
+  </div>
+
+  <h2>§3 · What I would ship, and what I would not</h2>
+  <p class="note">
+    <b>Inset C</b>, in the network panel, crossfading on change — it answers the question you
+    raised and carries the dead-unit idea for free.<br>
+    <b>Unit hover, yes</b> — with the unit's line on the boundary panel. It is the one hover
+    that teaches rather than reports.<br>
+    <b>Boundary hover, yes</b> — cheap, and it makes the wash a quantity.<br>
+    <b>Edge hover, no</b> — it prints the number the diagram exists to avoid, and every edge
+    is already readable by thickness and colour.<br>
+    <b>And one addition the hover argues for:</b> if the unit's line is worth seeing on
+    hover, it is worth seeing without a pointer too. A <i>Show each unit's line</i> display
+    toggle would put the same k lines on the boundary for a lecture screen, with hover as the
+    fast path — which is the rule core states, honoured rather than worked around.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { SETS, ACTS, DOM, score, trainAll, deadUnits, unitLine } from "../mlp/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-event","--c-nonevent","--c-highlight","--c-unknown","--ink-1","--ink-2","--ink-3","--grid","--surface-1"]
+  .forEach(k => C[k.slice(2)] = css(k));
+const MONO = "11px " + css("--font-mono");
+const MONO_S = "10px " + css("--font-mono");
+
+const rings = SETS.rings.make(makeRng(1));
+const run = trainAll(rings, 4, "relu", makeRng(1));
+const NET = run.frames[600];
+const FIRES = run.live[600];
+const DEAD = deadUnits(FIRES, "relu");
+
+/* ---- §1 the activation inset ------------------------------------------- */
+
+function drawInset(ctx, x0, y0, size, actKey, rug) {
+  const { f } = ACTS[actKey];
+  const Z = 2.4;
+  const X = (z) => x0 + ((z + Z) / (2 * Z)) * size;
+  const Y = (v) => y0 + size / 2 - (v / Z) * (size / 2);
+  ctx.save();
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(x0, y0, size, size);
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x0, Y(0)); ctx.lineTo(x0 + size, Y(0));
+  ctx.moveTo(X(0), y0); ctx.lineTo(X(0), y0 + size);
+  ctx.stroke();
+  ctx.restore();
+
+  if (rug) {
+    ctx.save();
+    ctx.strokeStyle = C["c-highlight"];
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const s of rug) {
+      const zx = X(Math.max(-Z, Math.min(Z, s)));
+      ctx.moveTo(zx, y0 + size - 1);
+      ctx.lineTo(zx, y0 + size - 7);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.strokeStyle = C["ink-1"];
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 100; i += 1) {
+    const z = -Z + (i / 100) * 2 * Z;
+    const v = Math.max(-Z, Math.min(Z, f(z)));
+    const px = X(z), py = Y(v);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = C["ink-2"];
+  ctx.font = MONO_S;
+  ctx.fillText(ACTS[actKey].label, x0 + 4, y0 + 11);
+  ctx.restore();
+}
+
+/* the z values the hidden units actually see on this data */
+const zRug = [];
+for (const s of rings) {
+  for (let j = 0; j < 4; j += 1) {
+    zRug.push(NET.W1[j][0] * s.x[0] + NET.W1[j][1] * s.x[1] + NET.b1[j]);
+  }
+}
+
+/* a small network sketch, so the inset's placement can be judged in context */
+function sketchNet(ctx, x0, y0, w, h) {
+  const xIn = x0 + 26, xHid = x0 + w / 2, xOut = x0 + w - 26;
+  const yOf = (i, n) => y0 + 18 + (h - 46) * ((i + 1) / (n + 1));
+  const max = Math.max(...[...NET.W1.flat(), ...NET.W2].map(Math.abs));
+  for (let j = 0; j < 4; j += 1) {
+    for (let i = 0; i < 2; i += 1) {
+      const w1 = NET.W1[j][i];
+      ctx.save();
+      ctx.lineWidth = 0.4 + 3 * (Math.abs(w1) / max);
+      ctx.globalAlpha = DEAD[j] ? 0.16 : 0.3 + 0.5 * (Math.abs(w1) / max);
+      ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w1 >= 0 ? C["c-event"] : C["c-nonevent"]);
+      ctx.beginPath(); ctx.moveTo(xIn, yOf(i, 2)); ctx.lineTo(xHid, yOf(j, 4)); ctx.stroke();
+      ctx.restore();
+    }
+    const w2 = NET.W2[j];
+    ctx.save();
+    ctx.lineWidth = 0.4 + 3 * (Math.abs(w2) / max);
+    ctx.globalAlpha = DEAD[j] ? 0.16 : 0.3 + 0.5 * (Math.abs(w2) / max);
+    ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w2 >= 0 ? C["c-event"] : C["c-nonevent"]);
+    ctx.beginPath(); ctx.moveTo(xHid, yOf(j, 4)); ctx.lineTo(xOut, yOf(0, 1)); ctx.stroke();
+    ctx.restore();
+  }
+  const node = (x, y, r, t, ring) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"]; ctx.strokeStyle = ring ?? C["ink-3"];
+    ctx.lineWidth = ring ? 1.8 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (t) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y); }
+    ctx.restore();
+  };
+  node(xIn, yOf(0, 2), 10, "x1"); node(xIn, yOf(1, 2), 10, "x2");
+  for (let j = 0; j < 4; j += 1) node(xHid, yOf(j, 4), 8, "", DEAD[j] ? C["c-unknown"] : null);
+  node(xOut, yOf(0, 1), 11, "P");
+}
+
+{
+  const ctx = document.getElementById("insetA").getContext("2d");
+  sketchNet(ctx, 0, 0, 330, 300);
+  drawInset(ctx, 8, 214, 76, "relu");
+}
+{
+  const ctx = document.getElementById("insetB").getContext("2d");
+  sketchNet(ctx, 0, 0, 330, 210);
+  ctx.save(); ctx.strokeStyle = C.grid;
+  ctx.beginPath(); ctx.moveTo(0, 216); ctx.lineTo(330, 216); ctx.stroke(); ctx.restore();
+  drawInset(ctx, 12, 226, 66, "relu");
+  ctx.save(); ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S;
+  ctx.fillText("the activation, in the caption row", 90, 250);
+  ctx.fillText("beside the dead-unit line", 90, 264);
+  ctx.restore();
+}
+{
+  const ctx = document.getElementById("insetC").getContext("2d");
+  sketchNet(ctx, 0, 0, 330, 300);
+  drawInset(ctx, 8, 196, 92, "relu", zRug);
+  const off = zRug.filter((z) => z <= 0).length;
+  document.getElementById("capC").textContent =
+    `${(100 * off / zRug.length).toFixed(0)}% of the ${zRug.length} unit inputs land at or below 0, `
+    + "where ReLU is flat — the dead unit's whole input range is there";
+}
+
+/* ---- §2 the live hover demo -------------------------------------------- */
+
+const cv = document.getElementById("live");
+const ctx = cv.getContext("2d");
+const SIDE = 300;
+const NX = 10, NY = 15;          // network panel origin
+const BX = 400, BY = 15;         // boundary panel origin
+const xIn = NX + 40, xHid = NX + SIDE / 2, xOut = NX + SIDE - 40;
+const yOf = (i, n) => NY + 24 + (SIDE - 52) * ((i + 1) / (n + 1));
+const X = (v) => BX + ((v - DOM[0]) / (DOM[1] - DOM[0])) * SIDE;
+const Y = (v) => BY + SIDE - ((v - DOM[0]) / (DOM[1] - DOM[0])) * SIDE;
+
+function paint(hoverUnit, mouse) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  /* the boundary panel */
+  const G = 42, cell = SIDE / G;
+  for (let i = 0; i < G; i += 1) {
+    const xv = DOM[0] + ((i + 0.5) / G) * (DOM[1] - DOM[0]);
+    for (let j = 0; j < G; j += 1) {
+      const yv = DOM[0] + ((j + 0.5) / G) * (DOM[1] - DOM[0]);
+      const pr = 1 / (1 + Math.exp(-score(NET, ACTS.relu.f, xv, yv)));
+      ctx.save();
+      ctx.fillStyle = pr > 0.5 ? C["c-event"] : C["c-nonevent"];
+      ctx.globalAlpha = 0.05 + 0.32 * Math.abs(pr - 0.5) * 2;
+      ctx.fillRect(BX + i * cell, BY + SIDE - (j + 1) * cell, cell + 0.6, cell + 0.6);
+      ctx.restore();
+    }
+  }
+  for (const s of rings) {
+    ctx.save(); ctx.beginPath(); ctx.arc(X(s.x[0]), Y(s.x[1]), 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = s.y > 0 ? C["c-event"] : C["c-nonevent"]; ctx.globalAlpha = hoverUnit === null ? 1 : 0.5;
+    ctx.fill(); ctx.restore();
+  }
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.strokeRect(BX, BY, SIDE, SIDE); ctx.restore();
+
+  /* the hovered unit's own straight piece */
+  if (hoverUnit !== null) {
+    const { a, b, c } = unitLine(NET, hoverUnit);
+    ctx.save();
+    ctx.strokeStyle = C["c-highlight"];
+    ctx.lineWidth = 2.4;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    if (Math.abs(b) > Math.abs(a)) {
+      ctx.moveTo(X(DOM[0]), Y(-(a * DOM[0] + c) / b));
+      ctx.lineTo(X(DOM[1]), Y(-(a * DOM[1] + c) / b));
+    } else {
+      ctx.moveTo(X(-(b * DOM[0] + c) / a), Y(DOM[0]));
+      ctx.lineTo(X(-(b * DOM[1] + c) / a), Y(DOM[1]));
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = C["c-highlight"]; ctx.font = MONO;
+    ctx.fillText(`unit ${hoverUnit + 1}'s line`, BX + 6, BY + SIDE - 8);
+    ctx.restore();
+  }
+
+  /* the network */
+  const max = Math.max(...[...NET.W1.flat(), ...NET.W2].map(Math.abs));
+  for (let j = 0; j < 4; j += 1) {
+    const on = hoverUnit === null || hoverUnit === j;
+    for (let i = 0; i < 2; i += 1) {
+      const w1 = NET.W1[j][i];
+      ctx.save();
+      ctx.lineWidth = 0.4 + 3.4 * (Math.abs(w1) / max);
+      ctx.globalAlpha = DEAD[j] ? 0.14 : (on ? 0.3 + 0.6 * (Math.abs(w1) / max) : 0.1);
+      ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w1 >= 0 ? C["c-event"] : C["c-nonevent"]);
+      ctx.beginPath(); ctx.moveTo(xIn, yOf(i, 2)); ctx.lineTo(xHid, yOf(j, 4)); ctx.stroke();
+      ctx.restore();
+    }
+    const w2 = NET.W2[j];
+    ctx.save();
+    ctx.lineWidth = 0.4 + 3.4 * (Math.abs(w2) / max);
+    ctx.globalAlpha = DEAD[j] ? 0.14 : (on ? 0.3 + 0.6 * (Math.abs(w2) / max) : 0.1);
+    ctx.strokeStyle = DEAD[j] ? C["c-unknown"] : (w2 >= 0 ? C["c-event"] : C["c-nonevent"]);
+    ctx.beginPath(); ctx.moveTo(xHid, yOf(j, 4)); ctx.lineTo(xOut, yOf(0, 1)); ctx.stroke();
+    ctx.restore();
+  }
+  const node = (x, y, r, t, ring) => {
+    ctx.save();
+    ctx.fillStyle = C["surface-1"]; ctx.strokeStyle = ring ?? C["ink-3"];
+    ctx.lineWidth = ring ? 2.2 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (t) { ctx.fillStyle = C["ink-2"]; ctx.font = MONO_S; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y); }
+    ctx.restore();
+  };
+  node(xIn, yOf(0, 2), 11, "x1"); node(xIn, yOf(1, 2), 11, "x2");
+  for (let j = 0; j < 4; j += 1) {
+    node(xHid, yOf(j, 4), hoverUnit === j ? 11 : 9, "",
+      hoverUnit === j ? C["c-highlight"] : (DEAD[j] ? C["c-unknown"] : null));
+  }
+  node(xOut, yOf(0, 1), 12, "P");
+  drawInset(ctx, xHid - 40, NY + SIDE - 58, 76, "relu", zRug);
+
+  ctx.save(); ctx.fillStyle = C["ink-3"]; ctx.font = MONO_S; ctx.textAlign = "center";
+  ctx.fillText("4 hidden units · ReLU", xHid, NY + 12);
+  ctx.restore();
+
+  /* the boundary readout under the pointer */
+  if (mouse && mouse.x >= BX && mouse.x <= BX + SIDE && mouse.y >= BY && mouse.y <= BY + SIDE) {
+    const xv = DOM[0] + ((mouse.x - BX) / SIDE) * (DOM[1] - DOM[0]);
+    const yv = DOM[0] + ((BY + SIDE - mouse.y) / SIDE) * (DOM[1] - DOM[0]);
+    const pr = 1 / (1 + Math.exp(-score(NET, ACTS.relu.f, xv, yv)));
+    ctx.save();
+    ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mouse.x - 8, mouse.y); ctx.lineTo(mouse.x + 8, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y - 8); ctx.lineTo(mouse.x, mouse.y + 8);
+    ctx.stroke();
+    const txt = `P = ${pr.toFixed(3)}`;
+    ctx.font = MONO;
+    const tw = ctx.measureText(txt).width + 10;
+    const bx = Math.min(mouse.x + 10, BX + SIDE - tw), by = Math.max(BY + 12, mouse.y - 12);
+    ctx.fillStyle = C["surface-1"]; ctx.globalAlpha = 0.9;
+    ctx.fillRect(bx, by - 11, tw, 16);
+    ctx.globalAlpha = 1; ctx.fillStyle = C["ink-1"];
+    ctx.fillText(txt, bx + 5, by + 1);
+    ctx.restore();
+  }
+}
+
+const capEl = document.getElementById("liveCap");
+paint(null, null);
+
+cv.addEventListener("pointermove", (ev) => {
+  const r = cv.getBoundingClientRect();
+  const mx = (ev.clientX - r.left) * (cv.width / r.width);
+  const my = (ev.clientY - r.top) * (cv.height / r.height);
+  let hit = null;
+  for (let j = 0; j < 4; j += 1) {
+    if (Math.hypot(mx - xHid, my - yOf(j, 4)) < 18) hit = j;
+  }
+  paint(hit, { x: mx, y: my });
+  if (hit !== null) {
+    const w = NET.W1[hit], b = NET.b1[hit], o = NET.W2[hit];
+    capEl.textContent = DEAD[hit]
+      ? `unit ${hit + 1} is DEAD — fires on 0 of 180 samples; w = (${w[0].toFixed(2)}, ${w[1].toFixed(2)}), bias ${b.toFixed(2)}, out ${o.toFixed(2)}`
+      : `unit ${hit + 1}: fires on ${FIRES[hit]} of 180; w = (${w[0].toFixed(2)}, ${w[1].toFixed(2)}), bias ${b.toFixed(2)}, out ${o.toFixed(2)} — its line is dashed on the right`;
+  } else if (mx >= BX && mx <= BX + SIDE && my >= BY && my <= BY + SIDE) {
+    capEl.textContent = "the wash is a probability — the crosshair reads it at that point";
+  } else {
+    capEl.textContent = "move the pointer onto a hidden unit, or into the boundary panel";
+  }
+});
+cv.addEventListener("pointerleave", () => {
+  paint(null, null);
+  capEl.textContent = "move the pointer onto a hidden unit, or into the boundary panel";
+});
+</script>
+</body>
+</html>
