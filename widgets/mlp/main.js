@@ -47,7 +47,7 @@ const CAP_H = 44;   // the caption row, clear of the loss strip's own label
 const LOSS_H = 66;
 const BOTTOM = 8;
 
-const INSET = 78;   // the activation inset, in a RESERVED band at the panel's
+const INSET = 92;   // the activation inset, in a RESERVED band at the panel's
                     // HEAD — nearest the rail, where the activation is chosen.
                     // It cannot sit under the hidden column: placed there it
                     // landed on the fourth node, and at k = 8 that column runs
@@ -244,34 +244,90 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   ctx.restore();
 }
 
-/* THE ACTIVATION, SHOWN RATHER THAN NAMED: "Identity | ReLU | tanh" is three
-   words and no picture, and the shape is the whole idea — a diagonal, a
-   hinge, an S. The rug under it is the z values the hidden units ACTUALLY
-   receive on this data at this epoch, so it spreads as training runs and a
-   unit whose inputs slide entirely into ReLU's flat half is a dead unit being
-   born. That is the animation: it rides Play and needs no state of its own.
-   (A crossfade between activations was designed and dropped — changing the
-   activation is a data change, which resets training, so there is no figure
-   standing still for a crossfade to happen on.) */
-function drawActivationInset(ctx, colors, x, y, size, actKey, zs) {
+/* ONE HIDDEN UNIT, MAGNIFIED — the band at the panel's head, nearest the
+   rail where the activation is chosen. A curve on its own is abstract: this
+   shows WHERE the activation sits in the computation, which is what makes it
+   concrete. Inputs arrive weighted, the sum happens, the curve maps it, and
+   what comes out is what the unit passes on.
+
+   The rug under the curve is the z values the units ACTUALLY receive at this
+   epoch, so it spreads as the weights grow and a unit sliding entirely into
+   ReLU's flat half is a dead unit being born. That is the animation: it rides
+   Play and needs no state of its own. (A crossfade between activations was
+   designed and dropped — changing the activation is a data change, which
+   resets training, so there is no still figure for a crossfade to sit on.) */
+function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
+  const box = Math.min(56, Math.max(34, side * 0.25));
+  const xIn = x0 + 12;
+  const xSum = x0 + Math.max(42, side * 0.19);
+  const xBox = xSum + 20;
+  const xOut = xBox + box + 16;
+  const mid = y0 + 20 + box / 2;
+  const boxTop = y0 + 20;
+
+  label(ctx, colors, "Inside one hidden unit", x0 + 4, y0 + 11, { color: colors.ink2 });
+
+  const arrow = (ax, ay, bx, by) => {
+    ctx.save();
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    const a = Math.atan2(by - ay, bx - ax);
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
+    ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = colors.ink3;
+    ctx.fill();
+    ctx.restore();
+  };
+
+  /* the two weighted inputs */
+  for (const [i, dy] of [[0, -14], [1, 14]]) {
+    label(ctx, colors, i ? "x₂" : "x₁", xIn - 4, mid + dy + 4, { align: "right", color: colors.ink2 });
+    arrow(xIn, mid + dy, xSum - 9, mid + dy * 0.25);
+    label(ctx, colors, i ? "w₂" : "w₁", (xIn + xSum) / 2, mid + dy * 0.7 - 4, { align: "center" });
+  }
+
+  /* the sum */
+  ctx.save();
+  ctx.strokeStyle = colors.ink3;
+  ctx.fillStyle = colors.surface;
+  ctx.beginPath();
+  ctx.arc(xSum, mid, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = colors.ink2;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Σ", xSum, mid);
+  ctx.restore();
+  label(ctx, colors, "+ b", xSum, mid + 22, { align: "center" });
+  arrow(xSum + 10, mid, xBox - 3, mid);
+
+  /* the activation itself */
   const { f } = ACTS[actKey];
   const Z = 2.4;
-  const X = (z) => x + ((z + Z) / (2 * Z)) * size;
-  const Y = (v) => y + size / 2 - (v / Z) * (size / 2);
-
+  const X = (z) => xBox + ((z + Z) / (2 * Z)) * box;
+  const Y = (v) => boxTop + box / 2 - (v / Z) * (box / 2);
   ctx.save();
   ctx.fillStyle = colors.surface;
   ctx.globalAlpha = 0.75;
-  ctx.fillRect(x, y, size, size);
+  ctx.fillRect(xBox, boxTop, box, box);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = colors.grid;
-  ctx.strokeRect(x, y, size, size);
+  ctx.strokeRect(xBox, boxTop, box, box);
   ctx.setLineDash([2, 3]);
   ctx.beginPath();
-  ctx.moveTo(x, Y(0));
-  ctx.lineTo(x + size, Y(0));
-  ctx.moveTo(X(0), y);
-  ctx.lineTo(X(0), y + size);
+  ctx.moveTo(xBox, Y(0));
+  ctx.lineTo(xBox + box, Y(0));
+  ctx.moveTo(X(0), boxTop);
+  ctx.lineTo(X(0), boxTop + box);
   ctx.stroke();
   ctx.restore();
 
@@ -282,8 +338,8 @@ function drawActivationInset(ctx, colors, x, y, size, actKey, zs) {
     ctx.beginPath();
     for (const z of zs) {
       const zx = X(Math.max(-Z, Math.min(Z, z)));
-      ctx.moveTo(zx, y + size - 1);
-      ctx.lineTo(zx, y + size - 6);
+      ctx.moveTo(zx, boxTop + box - 1);
+      ctx.lineTo(zx, boxTop + box - 6);
     }
     ctx.stroke();
     ctx.restore();
@@ -293,24 +349,28 @@ function drawActivationInset(ctx, colors, x, y, size, actKey, zs) {
   ctx.strokeStyle = colors.ink1;
   ctx.lineWidth = 1.8;
   ctx.beginPath();
-  for (let i = 0; i <= 80; i += 1) {
-    const z = -Z + (i / 80) * 2 * Z;
+  for (let i = 0; i <= 70; i += 1) {
+    const z = -Z + (i / 70) * 2 * Z;
     const v = Math.max(-Z, Math.min(Z, f(z)));
     if (i === 0) ctx.moveTo(X(z), Y(v));
     else ctx.lineTo(X(z), Y(v));
   }
   ctx.stroke();
   ctx.restore();
+  /* the name goes BELOW the box: above it, it collided with the band's own
+     heading at every width */
+  label(ctx, colors, ACTS[actKey].label, xBox + box / 2, boxTop + box + 12,
+    { align: "center", color: colors.ink2 });
 
-  label(ctx, colors, ACTS[actKey].label, x + 4, y + 11, { color: colors.ink2 });
+  arrow(xBox + box + 3, mid, xOut - 4, mid);
+  label(ctx, colors, "out", xOut, mid + 4, { color: colors.ink2 });
 
-  /* the axes named, because "a curve" is not self-explanatory: what goes in
-     is a unit's weighted sum, what comes out is what it passes on */
-  label(ctx, colors, "output ↑", x + size + 10, y + 14, { color: colors.ink2 });
-  label(ctx, colors, "against input →", x + size + 10, y + 28, { color: colors.ink2 });
-  if (zs && zs.length) {
-    label(ctx, colors, "the ticks are the inputs", x + size + 10, y + 48);
-    label(ctx, colors, "these units actually receive", x + size + 10, y + 61);
+  /* the sentence only where there is room for it */
+  if (side >= 236) {
+    const tx = xOut + 24;
+    label(ctx, colors, "the sum goes in, the curve", tx, mid - 8);
+    label(ctx, colors, "maps it, and out comes what", tx, mid + 5);
+    label(ctx, colors, "this unit passes on", tx, mid + 18);
   }
 }
 
@@ -379,7 +439,7 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
     { align: "center" });
   label(ctx, colors, "output", L.xOut, L.labelY, { align: "center" });
 
-  drawActivationInset(ctx, colors, L.insetX, L.insetY, INSET, actKey, zs);
+  drawNeuron(ctx, colors, x0, y0, side, actKey, zs);
 }
 
 function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
@@ -442,9 +502,11 @@ widgetApi = defineWidget({
   height: ({ w }) => stageHeight(w),
 
   params: {
+    data: { type: "section", label: "The data" },
+
     dataset: {
       type: "segmented",
-      label: "Data",
+      label: "Shape",
       options: [
         { value: "blobs", label: "Two blobs", detail: "a straight line already separates these" },
         { value: "rings", label: "Rings", detail: "one class surrounds the other" },
@@ -452,6 +514,9 @@ widgetApi = defineWidget({
       ],
       default: "rings",
     },
+    /* the SAMPLES' seed, and it belongs with the samples — the starting
+       weights have their own, below, so each answers for one thing */
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     net: { type: "section", label: "The network" },
 
@@ -472,28 +537,33 @@ widgetApi = defineWidget({
       ],
       default: "relu",
     },
+    /* the arc's shape for a display reveal (3.4j amended): a segmented
+       Off/On named for what it shows, never a lone checkbox. The pointer
+       route to ONE unit's line exists too, but a projector has no pointer —
+       this is the route that needs none, which is core's rule for an
+       inspector honoured rather than worked around. */
+    lines: {
+      type: "segmented",
+      label: "Each unit's line",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On", detail: "where each hidden unit switches on" },
+      ],
+      default: "off",
+      display: true,
+    },
 
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    train: { type: "section", label: "Training" },
 
-    /* The starting weights, kept apart from `seed` so the data holds still
-       while they change. Hidden because the VALUE means nothing to a reader —
-       what matters is trying another, which the pill below does. */
+    /* The starting weights, on their own seeded stream so the data holds
+       still while they change. Hidden because the VALUE means nothing to a
+       reader — what matters is trying another, which the pill does. */
     init: { type: "int", min: 1, max: INIT_MAX, default: 1, hidden: true },
     reroll: {
       type: "bool",
       style: "pill",
       label: "New starting weights",
       detail: "the same data, a different random start — training begins again",
-      default: false,
-      display: true,
-    },
-
-    /* The pointer route to one unit's line exists too, but a projector has no
-       pointer: this is the route that does not need one (core's rule). */
-    lines: {
-      type: "bool",
-      label: "Show each unit's line",
-      detail: "where each hidden unit switches on — the pieces the boundary is bent from",
       default: false,
       display: true,
     },
@@ -520,7 +590,7 @@ widgetApi = defineWidget({
     ...(params.activation === "relu"
       ? [{ token: "unknown", label: "A dead unit — it fires on no sample", mark: "dot" }]
       : []),
-    ...(params.lines
+    ...(params.lines === "on"
       ? [{ token: "reference", label: "Where a hidden unit switches on", mark: "line" }]
       : []),
     { token: "highlight", label: "Training loss", mark: "line" },
@@ -589,7 +659,7 @@ widgetApi = defineWidget({
     drawNetwork(ctx, colors, xNet, TOP, side, net, fires, params.activation,
       { hoverUnit, zs });
     drawBoundary(ctx, colors, xBnd, TOP, side, state.data, net, params.activation,
-      { hoverUnit, showLines: Boolean(params.lines), pointer, dead });
+      { hoverUnit, showLines: params.lines === "on", pointer, dead });
 
     /* the dead-unit caption — the mechanism behind the hidden-units ladder,
        and nothing else on screen would tell the reader it happened */
