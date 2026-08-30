@@ -2,6 +2,12 @@
   "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all — that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
   "states": [
     {
+      "slug": "mlp",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "opens empty: the prior alone, both pills off",
       "slug": "naive-bayes",
       "state": "?theme=light",

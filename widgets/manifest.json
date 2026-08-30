@@ -528,6 +528,23 @@
       ],
       "arc": 36,
       "status": "shipped"
+    },
+    {
+      "slug": "mlp",
+      "title": "Neural Network",
+      "blurb": "A neural network bends its decision boundary by training, and the hidden units are the pieces it bends it from.",
+      "course": "PHM5005",
+      "topics": [
+        "neural network",
+        "MLP",
+        "hidden layer",
+        "activation function",
+        "gradient descent",
+        "training",
+        "decision boundary"
+      ],
+      "arc": 37,
+      "status": "draft"
     }
   ]
 }
