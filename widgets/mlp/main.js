@@ -745,12 +745,12 @@ function rerollInit() {
 
 widgetApi = defineWidget({
   slug: "mlp",
-  title: "Neural Network",
+  title: "Neural Networks (MLP)",
   status: "draft",
   subtitle:
-    "We can classify by bending a boundary until it fits. A neural network "
-    + "builds that boundary from hidden units, one straight piece each, and "
-    + "training is what bends them into place.",
+    "A multi-layer perceptron is built from artificial neurons, each weighting "
+    + "its inputs and applying an activation function. Backpropagation adjusts "
+    + "every weight to reduce the loss.",
   layout: "side",
   /* The hover inspector, which must stay additive: a lecture screen has no
      pointer, so everything hover reveals has a second route — the unit lines

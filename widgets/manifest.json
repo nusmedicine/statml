@@ -531,8 +531,8 @@
     },
     {
       "slug": "mlp",
-      "title": "Neural Network",
-      "blurb": "A neural network bends its decision boundary by training, and the hidden units are the pieces it bends it from.",
+      "title": "Neural Networks (MLP)",
+      "blurb": "A multi-layer perceptron composes artificial neurons, and backpropagation adjusts their weights to reduce the loss.",
       "course": "PHM5005",
       "topics": [
         "neural network",
