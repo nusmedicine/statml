@@ -141,6 +141,12 @@ function toCells(spec, values) {
       continue;
     }
     if (entry[1].type === "bool") {
+      /* an action button is full width, so it never shares the switch row */
+      if (entry[1].style === "action") {
+        bools = null;
+        cells.push({ kind: "bools", fields: [entry] });
+        continue;
+      }
       if (!bools) {
         bools = { kind: "bools", fields: [] };
         cells.push(bools);
@@ -281,6 +287,40 @@ function build(host, spec, values, onChange, api) {
            fingerprint's setParam does not know how to toggle — drive a pill
            widget's states by URL, by `hit` on a region, or teach setParam
            the button first. */
+        /* `style: "action"` — a bool wearing the drive row's own button, full
+           width and in Reset's plain weight rather than a chip. For a
+           MOMENTARY control that reads as something you press once (widget
+           37's "Initialize weights") a pill is the wrong shape: a chip says
+           membership, and this sets nothing that stays set.
+           NOTE FOR THE HARNESS: like a pill, this is a <button data-param>,
+           so setParam clicks it rather than writing a value. */
+        if (field.style === "action") {
+          item.classList.add("w-action-field");
+          const b = document.createElement("button");
+          b.type = "button";
+          b.id = id;
+          b.className = "w-btn w-action-btn";
+          b.dataset.param = name;
+          b.textContent = field.label ?? name;
+          const paint = (v) => b.setAttribute("aria-pressed", String(Boolean(v)));
+          paint(values[name]);
+          b.addEventListener("click", () => {
+            const next = !values[name];
+            paint(next);
+            onChange(name, next);
+          });
+          item.appendChild(b);
+          if (field.detail) {
+            const d = document.createElement("p");
+            d.className = "w-detail";
+            d.textContent = field.detail;
+            item.appendChild(d);
+          }
+          group.appendChild(item);
+          setters[name] = (v) => paint(v);
+          continue;
+        }
+
         if (field.style === "pill") {
           const b = document.createElement("button");
           b.type = "button";

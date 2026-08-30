@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 37 mlp — drawing one neuron: typography and the input lines</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 430px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 440px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 37 · drawing one neuron — <code>mlp</code></h1>
+  <p class="note">
+    Kenneth 2026-08-31: <i>use proper symbols like MathML for the neuron. The input lines look
+    ugly, maybe too shallow sloped. Research styles and propose nicer ones.</i>
+  </p>
+
+  <h2>§1 · The typography</h2>
+  <p class="note">
+    <b>MathML cannot go on a canvas</b> — it is DOM, and this figure is painted. But the thing
+    MathML would buy is a convention anyone can follow with a font: in mathematical typesetting
+    a <b>variable is italic serif</b> and everything that is not a variable — function names,
+    digits, the summation sign — is <b>upright</b>. What the band draws now is the UI sans face
+    with Unicode subscript characters, which is why it reads as a label rather than as
+    mathematics. Same three candidates below, drawn with the same geometry, so only the
+    lettering differs.
+  </p>
+  <div class="row" id="type"></div>
+
+  <h2>§2 · The input lines</h2>
+  <p class="note">
+    The lines are shallow because four inputs are squeezed into a band 92px tall and then run
+    ~90px sideways: about 7° of slope, which reads as neither parallel nor converging. The
+    standard fixes, in rough order of how common they are in textbooks:
+  </p>
+  <div class="row" id="lines"></div>
+  <p class="note">
+    <b>A</b> is what ships. <b>B</b> spreads the inputs over more height and shortens the run,
+    so the slope roughly doubles — the cheapest fix, and it costs the band nothing.
+    <b>C</b> keeps a short horizontal stub on each input before it turns, which is the
+    engineering-drawing convention: the eye reads a bundle rather than a fan. <b>D</b> curves
+    each line into the sum, the shape most published neuron figures use, and the curvature does
+    the converging so the entry angle stays shallow on purpose. <b>E</b> drops the separate
+    lines entirely: one brace, one arrow, labelled with the dot product — the compact form used
+    when the point is the unit rather than the fan-in.
+  </p>
+
+  <h2>§3 · What I would ship</h2>
+  <p class="note">
+    <b>Serif italic variables (§1 candidate T2) and lines D</b>. The typography change is free
+    and makes the band read as mathematics rather than as a caption; the curves are what most
+    published diagrams use, they hide the shallow entry angle by construction, and unlike B
+    they do not need the band to grow. <b>E is the one to pick instead if the fan-in is not
+    the point</b> — it is the tidiest of the five and says w·x + b in one mark, but it stops
+    showing that a unit takes many inputs, which is half of what the band is there for.
+  </p>
+</main>
+
+<script type="module">
+import { ACTS } from "../mlp/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+["--c-highlight","--ink-1","--ink-2","--ink-3","--grid","--surface-1"].forEach(k => C[k.slice(2)] = css(k));
+const SANS = css("--font");
+const MONO_S = "10px " + css("--font-mono");
+
+const W = 440, H = 150;
+const MID = 74;
+
+function panel(host, title, sub) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  box.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  box.appendChild(cap);
+  document.getElementById(host).appendChild(box);
+  return { ctx: cv.getContext("2d"), cap };
+}
+
+/* --- lettering ---------------------------------------------------------- *
+ * `mathText` draws "x_1" as an italic serif x with a smaller upright 1 set
+ * below the baseline — the convention MathML would apply, done by hand. */
+function mathText(ctx, base, sub, x, y, { align = "left", color = C["ink-2"], size = 13, italic = true, serif = true } = {}) {
+  const fam = serif ? "Georgia, 'Times New Roman', serif" : SANS;
+  const style = italic ? "italic " : "";
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${style}${size}px ${fam}`;
+  const bw = ctx.measureText(base).width;
+  ctx.font = `${size * 0.72}px ${fam}`;
+  const sw = sub ? ctx.measureText(sub).width : 0;
+  const total = bw + sw;
+  const x0 = align === "right" ? x - total : align === "center" ? x - total / 2 : x;
+  ctx.font = `${style}${size}px ${fam}`;
+  ctx.textAlign = "left";
+  ctx.fillText(base, x0, y);
+  if (sub) {
+    ctx.font = `${size * 0.72}px ${fam}`;
+    ctx.fillText(sub, x0 + bw + 0.5, y + size * 0.26);
+  }
+  ctx.restore();
+  return total;
+}
+
+const plain = (ctx, t, x, y, al = "left", col = C["ink-3"], font = MONO_S) => {
+  ctx.save(); ctx.fillStyle = col; ctx.font = font; ctx.textAlign = al;
+  ctx.textBaseline = "alphabetic"; ctx.fillText(t, x, y); ctx.restore();
+};
+
+function arrowHead(ctx, bx, by, a) {
+  ctx.save(); ctx.fillStyle = C["ink-3"];
+  ctx.beginPath(); ctx.moveTo(bx, by);
+  ctx.lineTo(bx - 5 * Math.cos(a - 0.4), by - 5 * Math.sin(a - 0.4));
+  ctx.lineTo(bx - 5 * Math.cos(a + 0.4), by - 5 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function line(ctx, ax, ay, bx, by, head = true) {
+  ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore();
+  if (head) arrowHead(ctx, bx, by, Math.atan2(by - ay, bx - ax));
+}
+
+function sumAndTail(ctx, xSum, label = true) {
+  ctx.save();
+  ctx.strokeStyle = C["ink-3"]; ctx.fillStyle = C["surface-1"];
+  ctx.beginPath(); ctx.arc(xSum, MID, 12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C["ink-2"]; ctx.font = "15px Georgia, 'Times New Roman', serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("Σ", xSum, MID + 1);
+  ctx.restore();
+  if (label) mathText(ctx, "+ b", "", xSum + 2, MID + 30, { align: "center", size: 12 });
+  const bx = xSum + 34, box = 52;
+  line(ctx, xSum + 13, MID, bx - 4, MID);
+  const { f } = ACTS.relu;
+  const Z = 2.4;
+  const X = (z) => bx + ((z + Z) / (2 * Z)) * box;
+  const Y = (v) => MID - box / 2 + box / 2 - (v / Z) * (box / 2);
+  ctx.save(); ctx.strokeStyle = C.grid; ctx.strokeRect(bx, MID - box / 2, box, box);
+  ctx.setLineDash([2, 3]); ctx.beginPath();
+  ctx.moveTo(bx, Y(0)); ctx.lineTo(bx + box, Y(0));
+  ctx.moveTo(X(0), MID - box / 2); ctx.lineTo(X(0), MID + box / 2); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = C["ink-1"]; ctx.lineWidth = 1.8; ctx.beginPath();
+  for (let i = 0; i <= 70; i += 1) {
+    const z = -Z + (i / 70) * 2 * Z;
+    const v = Math.max(-Z, Math.min(Z, f(z)));
+    if (i === 0) ctx.moveTo(X(z), Y(v)); else ctx.lineTo(X(z), Y(v));
+  }
+  ctx.stroke(); ctx.restore();
+  plain(ctx, "ReLU", bx + box / 2, MID + box / 2 + 13, "center", C["ink-3"]);
+  line(ctx, bx + box + 4, MID, bx + box + 26, MID);
+  plain(ctx, "out", bx + box + 30, MID + 4, "left", C["ink-2"], `12px ${SANS}`);
+}
+
+/* ---------------- §1 typography, geometry held constant ---------------- */
+const TYPE = [
+  ["T1 — as shipped: sans + Unicode subscripts", "reads as a caption, not as mathematics",
+   { serif: false, italic: false, uni: true }],
+  ["T2 — serif italic variables, set subscripts", "the convention MathML would apply",
+   { serif: true, italic: true, uni: false }],
+  ["T3 — serif upright", "tidy, but upright letters are reserved for non-variables",
+   { serif: true, italic: false, uni: false }],
+];
+for (const [title, sub, opt] of TYPE) {
+  const { ctx, cap } = panel("type", title, sub);
+  const xIn = 60, xSum = 190;
+  const rows = [[-26, "1"], [-9, "2"], [null, null], [26, "n"]];
+  for (const [dy, sub2] of rows) {
+    if (dy === null) { plain(ctx, "⋮", xIn - 8, MID + 8, "right", C["ink-3"], `13px ${SANS}`); continue; }
+    if (opt.uni) plain(ctx, "x" + (sub2 === "n" ? "ₙ" : sub2 === "1" ? "₁" : "₂"), xIn - 6, MID + dy + 4, "right", C["ink-2"], `12px ${SANS}`);
+    else mathText(ctx, "x", sub2, xIn - 6, MID + dy + 4, { align: "right", ...opt });
+    line(ctx, xIn, MID + dy, xSum - 14, MID + dy * 0.28);
+    if (sub2 !== "2") {
+      const wx = (xIn + xSum) / 2;
+      if (opt.uni) plain(ctx, "w" + (sub2 === "n" ? "ₙ" : "₁"), wx, MID + dy * 0.62 - 5, "center", C["ink-3"], `11px ${SANS}`);
+      else mathText(ctx, "w", sub2, wx, MID + dy * 0.62 - 5, { align: "center", size: 12, color: C["ink-3"], ...opt });
+    }
+  }
+  sumAndTail(ctx, xSum);
+  cap.textContent = opt.uni ? "Unicode subscripts sit on the baseline and are the wrong size"
+    : "subscripts are drawn: smaller, and set below the baseline";
+}
+
+/* ---------------- §2 the input lines ---------------- */
+function inputsLabelled(ctx, xIn, rows) {
+  for (const [dy, sub] of rows) {
+    if (dy === null) { plain(ctx, "⋮", xIn - 8, MID + 8, "right", C["ink-3"], `13px ${SANS}`); continue; }
+    mathText(ctx, "x", sub, xIn - 6, MID + dy + 4, { align: "right" });
+  }
+}
+const R4 = [[-26, "1"], [-9, "2"], [null, null], [26, "n"]];
+const R4WIDE = [[-40, "1"], [-14, "2"], [null, null], [40, "n"]];
+
+{ /* A — as shipped */
+  const { ctx, cap } = panel("lines", "A — as shipped", "four inputs in 92px, then ~90px sideways: about 7°");
+  const xIn = 60, xSum = 190;
+  inputsLabelled(ctx, xIn, R4);
+  for (const [dy] of R4) if (dy !== null) line(ctx, xIn, MID + dy, xSum - 14, MID + dy * 0.28);
+  sumAndTail(ctx, xSum);
+  cap.textContent = "neither parallel nor clearly converging";
+}
+{ /* B — spread and shorten */
+  const { ctx, cap } = panel("lines", "B — spread the inputs, shorten the run", "same drawing, roughly double the slope");
+  const xIn = 96, xSum = 190;
+  inputsLabelled(ctx, xIn, R4WIDE);
+  for (const [dy] of R4WIDE) if (dy !== null) line(ctx, xIn, MID + dy, xSum - 14, MID + dy * 0.22);
+  sumAndTail(ctx, xSum);
+  cap.textContent = "cheapest fix; needs the band ~20px taller";
+}
+{ /* C — stub then turn */
+  const { ctx, cap } = panel("lines", "C — a stub, then the turn", "the engineering-drawing convention: a bundle, not a fan");
+  const xIn = 60, xSum = 190, stub = 26;
+  inputsLabelled(ctx, xIn, R4);
+  for (const [dy] of R4) {
+    if (dy === null) continue;
+    ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xIn, MID + dy); ctx.lineTo(xIn + stub, MID + dy);
+    ctx.lineTo(xSum - 14, MID + dy * 0.28); ctx.stroke(); ctx.restore();
+    arrowHead(ctx, xSum - 14, MID + dy * 0.28, Math.atan2(dy * 0.28 - dy, xSum - 14 - xIn - stub));
+  }
+  sumAndTail(ctx, xSum);
+  cap.textContent = "reads as a bundle; the corner is another mark to explain";
+}
+{ /* D — curved */
+  const { ctx, cap } = panel("lines", "D — curved into the sum", "what most published neuron figures do");
+  const xIn = 60, xSum = 190;
+  inputsLabelled(ctx, xIn, R4);
+  for (const [dy, sub] of R4) {
+    if (dy === null) continue;
+    ctx.save(); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xIn, MID + dy);
+    ctx.quadraticCurveTo(xIn + 62, MID + dy, xSum - 14, MID + dy * 0.16);
+    ctx.stroke(); ctx.restore();
+    arrowHead(ctx, xSum - 14, MID + dy * 0.16, Math.atan2(dy * 0.16 - dy, 60));
+    if (sub !== "2") {
+      mathText(ctx, "w", sub, xIn + 42, MID + dy - 6, { align: "center", size: 12, color: C["ink-3"] });
+    }
+  }
+  sumAndTail(ctx, xSum);
+  cap.textContent = "the curve does the converging; entry stays flat by design";
+}
+{ /* E — one brace, one arrow */
+  const { ctx, cap } = panel("lines", "E — a brace and one arrow", "the compact form: the unit, not the fan-in");
+  const xIn = 66, xSum = 190;
+  inputsLabelled(ctx, xIn, R4);
+  ctx.save();
+  ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1;
+  const bx = xIn + 12;
+  ctx.beginPath();
+  ctx.moveTo(bx, MID - 34);
+  ctx.quadraticCurveTo(bx + 8, MID - 34, bx + 8, MID - 8);
+  ctx.quadraticCurveTo(bx + 8, MID, bx + 15, MID);
+  ctx.quadraticCurveTo(bx + 8, MID, bx + 8, MID + 8);
+  ctx.quadraticCurveTo(bx + 8, MID + 34, bx, MID + 34);
+  ctx.stroke();
+  ctx.restore();
+  line(ctx, bx + 17, MID, xSum - 14, MID);
+  mathText(ctx, "w", "", (bx + 20 + xSum) / 2 - 10, MID - 8, { align: "center", size: 12, color: C["ink-3"] });
+  plain(ctx, "·", (bx + 20 + xSum) / 2 - 1, MID - 8, "center", C["ink-3"], `12px ${SANS}`);
+  mathText(ctx, "x", "", (bx + 20 + xSum) / 2 + 7, MID - 8, { align: "center", size: 12, color: C["ink-3"] });
+  sumAndTail(ctx, xSum);
+  cap.textContent = "tidiest, but stops showing that a unit takes many inputs";
+}
+</script>
+</body>
+</html>

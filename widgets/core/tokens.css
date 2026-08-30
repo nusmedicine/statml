@@ -1178,6 +1178,21 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   cursor: pointer;
 }
 
+/* `style: "action"`: a bool that reads as a press rather than a chip. It takes
+   the drive row's sizing and the full width of its rail cell, so it sits as a
+   sibling of Reset. Declared AFTER `.w-btn` — at equal specificity the later
+   rule wins, and its padding and font-size are the ones being replaced — and
+   the FIELD carries the flex basis because the bools row that holds it is a
+   flex line and the field, not the button, is its item — styling the button
+   alone left it at content width. */
+.w-action-field { flex: 1 1 100%; }
+.w-action-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 7px 16px;
+  font-size: var(--fs-md);
+}
+
 /* Every button in the drive row is the SAME SIZE. They are pressed
    interchangeably, and a smaller Reset reads as a different class of control
    rather than a quieter member of the same one. Emphasis comes from weight and

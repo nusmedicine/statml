@@ -754,7 +754,7 @@ widgetApi = defineWidget({
     init: { type: "int", min: 1, max: INIT_MAX, default: 1, hidden: true },
     reroll: {
       type: "bool",
-      style: "pill",
+      style: "action",
       label: "Initialize weights",
       default: false,
       display: true,
