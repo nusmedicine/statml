@@ -2150,16 +2150,85 @@
     {
       "slug": "metrics",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0",
-      "$note": "placeholder until promotion"
+      "px": "c5121d3c",
+      "tx": "2fdb1ca7"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&metric=rmse&outliers=1&shown=0",
+      "px": "e0a906fb",
+      "tx": "38072ade"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&metric=r2&shown=0",
+      "px": "a1140b3a",
+      "tx": "0651a34d"
     },
     {
       "slug": "metrics",
       "state": "?theme=light&outcome=categorical&view=matrix&cmetric=rec&shown=0",
-      "px": "0",
-      "tx": "0",
-      "$note": "placeholder until promotion"
+      "px": "bce73a27",
+      "tx": "cf6b0937"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=matrix&positive=healthy&cmetric=prec&prev=0.1&shown=0",
+      "px": "21b3f17c",
+      "tx": "7b716f41"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=roc&shown=0",
+      "px": "b68ea65a",
+      "tx": "a5fa1a6b",
+      "$note": "untraced — the curve is not given away"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=roc&shown=999",
+      "px": "bc2a349d",
+      "tx": "78030db3"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=roc&youden=1&shown=999",
+      "px": "3f71e625",
+      "tx": "0d06a4c7",
+      "$note": "found: ring, segment, tile — the pill settles by URL"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=roc&traced=1&threshold=0.3&shown=0",
+      "px": "e9e13f61",
+      "tx": "bcd547b3",
+      "$note": "the one-way door open, the dot at 0.3"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light&outcome=categorical&view=roc",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "bfa59885",
+      "tx": "cae97f58",
+      "$note": "mid-trace"
+    },
+    {
+      "slug": "metrics",
+      "state": "?theme=light",
+      "drive": {
+        "set": {
+          "metric": "r2"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "78afb466",
+      "tx": "0651a34d",
+      "$note": "the R² ease mid-bend"
     }
   ]
 }

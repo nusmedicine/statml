@@ -10931,7 +10931,7 @@ built and shipped against `04-1` and `04-4`.
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
 
-## Widget 35 · `metrics` — Scoring the Predictions · DRAFT, building 2026-08-30
+## Widget 35 · `metrics` — Scoring the Predictions · SHIPPED 2026-08-30
 
 **The second 04-2 widget, Kenneth's brief 2026-08-30**: widget 34 owns the
 threshold story; this one owes the METRICS themselves — scoring a numeric and
@@ -11105,7 +11105,58 @@ both ways, sensitivity/specificity swapping 0.99/0.21 ↔ 0.21/0.99,
 accuracy unchanged. The Youden landing, the sweep line and the card all map
 the walk's score scale back to the strip's probability-of-disease axis.
 
-## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day
+### Round 5 — units and the last copy pass (Kenneth, 2026-08-30)
+
+RMSE and MAE print as **plain floats with the unit leading the note** ("%
+body fat; penalises large errors more") — his pick B from
+`_lab/metrics-units.html`, which drew the three candidates in real tile
+markup: the outcome happens to be measured in percent, so "2.59 %" read as
+a RELATIVE error of 2.59%, and the notebook's own print() shows plain
+floats. The card ends "= 2.59". His copy sweep landed the same hour: "the
+biggest miss owns the sum" → "large errors dominate the sum", "squaring
+hands the big miss the sum" → "squaring amplifies the outlier", "every miss
+weighted alike" → "all errors count equally", "finding the sick / clearing
+the well" → "disease / no disease counts as positive", "others cleared" →
+"true 'no disease' correct".
+
+### Promotion — 2026-08-30, on "push to gallery"
+
+**Eleven states recorded the honest way** (the widget-31 full-suite route):
+the eleven URLs went in as placeholders, THREE clean suite runs at DPR 1.25
+read the same eleven hash pairs with all 238 pre-existing states matching
+on every run, the hashes were spliced, and the confirming run read **249 of
+249 MATCH**. Nine settled (both numeric metric acts, the matrix with lit
+cells, the renamed-cells state at prevalence 0.1, the untraced ROC opening,
+`shown=999` traced, `youden=1&shown=999` found, and the one-way door at
+`traced=1&threshold=0.3`), two driven (`click: "run"` 40 frames mid-trace —
+tx moving with the sweep, the non-inert proof — and `set metric=r2` 8
+frames mid-bend, whose tx equals the settled state's, correctly: only the
+picture moves during the ease). Both drives differ from their bare URLs.
+**Untested geometry, recorded**: the threshold drag (no harness verb), the
+find-optimal scan mid-flight and its landing write, and the positive-class
+flip mid-trace.
+
+**One run was discarded, and the diagnosis is worth keeping**: the suite
+started while the Browser pane was HIDDEN — DPR 1, the first `clt` state
+hashed wrong px with identical tx (the documented environmental signature)
+— and **taking a screenshot is what DISPLAYS the pane**: DPR snapped to
+1.25 on the next probe. The clean-run protocol that followed: screenshot to
+wake the pane, verify DPR 1.25, THEN reload so the run starts clean, and
+trust a run only when the 238 pre-existing states all MATCH — that
+all-match is the proof the whole run stayed at 1.25.
+
+Shipped with 04-2's notebook link owed
+(`https://nusmedicine.github.io/statml/widget/metrics/`), judging projected
+owed like every widget since 10, and widget 34 UNLISTED in the same push —
+see its section.
+
+## Widget 34 · `roc-auc` — Scoring a Classifier · SHIPPED 2026-08-29, six rounds in one day · UNLISTED 2026-08-30
+
+**UNLISTED, not deleted (Kenneth, 2026-08-30)**: widget 35 `metrics` carries
+the ROC act now, so this widget left the gallery — but it stays at its URL
+(students hold links), wears no draft bar, and keeps its seven fingerprint
+states. `status: "unlisted"` is a third status minted for exactly this;
+`scripts/check.mjs` documents it.
 
 **The misconception**: that the ROC curve is a static property of the model — a
 picture you look up — rather than the trace of every possible decision

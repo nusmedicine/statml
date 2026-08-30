@@ -237,9 +237,15 @@ for (const w of manifest.widgets) {
   /* Status decides two independent things — whether the gallery lists it, and
      whether the page wears a draft bar — and they are read from different files.
      A draft recorded as shipped is exactly the failure that puts unfinished
-     teaching material on the front page. */
-  if (!["shipped", "draft"].includes(w.status)) {
-    fail(`"${w.slug}": status "${w.status}" is neither "shipped" nor "draft"`);
+     teaching material on the front page.
+
+     "unlisted" (2026-08-30, roc-auc when widget 35 absorbed its ground): a
+     FINISHED widget removed from the gallery but kept at its URL — students
+     hold links. It appears on neither the landing page (which lists shipped)
+     nor /lab/ (which lists drafts), wears no draft bar, and still owes
+     fingerprint states — unlisted is not untested. */
+  if (!["shipped", "draft", "unlisted"].includes(w.status)) {
+    fail(`"${w.slug}": status "${w.status}" is not "shipped", "draft" or "unlisted"`);
   }
   /* EXACTLY ONE WIDGET PER FILE, and this is here because a file with two of
      them passed every other check.

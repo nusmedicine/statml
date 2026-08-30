@@ -344,6 +344,10 @@ widgetApi = defineWidget({
     + "traces the ROC curve, and the area under it summarises performance "
     + "across all thresholds.",
   layout: "side",
+  /* Off the gallery since 2026-08-30 (Kenneth's call: widget 35 `metrics`
+     carries the ROC act now) but alive at its URL — students hold links.
+     Unlisted, not deleted, and its fingerprint states stay recorded. */
+  status: "unlisted",
   height: ({ w }) => (w && w < 640 ? 810 : 470),
 
   params: {

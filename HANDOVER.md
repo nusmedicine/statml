@@ -1,7 +1,11 @@
 # Handover
 
-**Thirty-four widgets, all shipped, all on the gallery, and 238
-fingerprint states recorded.** Two things happened on 2026-08-29:
+**Thirty-five widgets shipped — 34 on the gallery, `roc-auc` UNLISTED
+(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 249
+fingerprint states recorded.** Widget 35 `metrics` **Scoring the
+Predictions** (PHM5005 04-2) shipped 2026-08-30 after five review
+rounds in one day; see NEXT below and catalogue § Widget 35. Earlier,
+on 2026-08-29:
 
 **Widget 34 `roc-auc` SHIPPED** — **Scoring a Classifier** (PHM5005,
 04-2 Model Evaluation), six rounds in one day, grown from a D3 app
@@ -49,30 +53,27 @@ URL** — that difference is the region geometry proven.
 
 ## NEXT
 
-**WIDGET 35 `metrics` IS BUILDING — a DRAFT, round 4 done 2026-08-30,
-awaiting Kenneth's review.** Round 4: Macro/Weighted tiles on their own
-row (core readout `{ break: true }`), the positive-class buttons wear
-their histogram hues (core segmented option `token:`), `positive`
-widened to the ROC view (flip point-reflects the curve, AUC held —
-verified 0.844 both ways), and **the trace is a one-way door**: a
-hidden display param `traced` is written when the trace first lands,
-so every later data change redraws the finished curve instantly for
-exploration; Reset closes it, Replay still retraces. Two more core
-doors, one suite run: **238 of 238 MATCH** (placeholders DIFFER by
-design). Earlier rounds below. *Scoring the Predictions*, the second
-04-2 widget. Round 3 (his asks): selection is TWO-LEVEL (`Outcome`,
-then `Metric family` on categorical — deep links
-`?outcome=categorical&view=matrix|roc`); the categorical dials wear
-widget 34's names and ranges; the matrix view has a **positive-class
-pick that RENAMES the cells** (sklearn's per-class rows) plus
-Macro/Weighted avg tiles when a per-class metric is picked; and the
-ROC view carries **widget 34's whole act** — untraced curve, Next
-patient / Trace, Play speed, the strip drag, and the momentary
-find-optimal pill that moves the threshold to Youden. **CORE grew
-`when: { all: [...] }`** (a field gated on a gated field); the suite
-ran for it: **238 of 238 recorded states MATCH** (the two metrics
-placeholders DIFFER by design). MathML formulas ride the `.w-math`
-card with live numbers. Full record: catalogue § *Widget 35*. At hand:
+**WIDGET 35 `metrics` SHIPPED AND PUSHED 2026-08-30** as **Scoring the
+Predictions** (PHM5005 04-2, the metrics themselves) — five review
+rounds in one day, promoted on "push to gallery" with **eleven states
+(nine settled, two driven)** recorded via three clean suite runs and a
+confirming **249 of 249 MATCH**; the full record is catalogue
+§ Widget 35 (the rounds, the recording protocol, and the
+screenshot-wakes-the-pane DPR diagnosis). **`roc-auc` went UNLISTED in
+the same push** — off the gallery, alive at its URL, no draft bar;
+`status: "unlisted"` is a third status minted for it (check.mjs
+documents it; /lab/ lists drafts only, so unlisted appears nowhere).
+**THE QUEUE IS EMPTY AGAIN.** What the widget is: one figure, two
+outcomes — Numeric (predicted-vs-actual, each metric drawn as its own
+anatomy: squares for RMSE, bars for MAE, the mean model for R²) and
+Categorical, which then picks its metric family (Confusion matrix ·
+ROC curve, the notebook's threshold-dependent/independent split).
+MathML formulas ride a `.w-math` card with live numbers; the positive
+class RENAMES the cells rather than recounting them; the trace is a
+one-way door (`traced=1`) so the dials explore a finished curve.
+**Core gained three doors for it, each with a full suite run**:
+`when: { all: [...] }`, readout `{ break: true }`, and a segmented
+option's `token:` swatch. At hand:
 
 ```bash
 node scripts/serve.mjs 8010
@@ -85,13 +86,9 @@ node scripts/serve.mjs 8010
 # .../widgets/metrics/?outcome=categorical&view=roc               (press Trace; then the pill)
 # .../widgets/metrics/?outcome=categorical&view=roc&shown=999     (published finished)
 node widgets/_lab/metrics-measure.mjs   # generators imported FROM the widget
-# _lab/metrics-mock.html — round 0's six candidates, still served
+# _lab/metrics-mock.html   — round 0's six candidates, still served
+# _lab/metrics-units.html  — round 5's three unit candidates (B shipped)
 ```
-
-Two placeholder fingerprint states carry `"px":"0","tx":"0"` until
-promotion; the widget is on /lab/, off the gallery. The baseline JSON
-was re-serialised at indent 2 in the round-1 commit — that IS the
-harness Copy button's own format (catalogue § Widget 35 has the note).
 
 Beyond that, everything open is KENNETH'S OWN, listed below so a
 session can remind him rather than act: the NINE notebook links, the
@@ -100,7 +97,13 @@ do should hold, not invent scope — prd §11 exists to be pointed at.
 
 3. **Notebook links now owed for NINE shipped widgets** — Kenneth
    places notebook links by hand:
-   - 04-2 (widget 34): `Explore the ROC curve interactively: [Scoring a Classifier](https://nusmedicine.github.io/statml/widget/roc-auc/)`
+   - 04-2 (widget 35): `Explore the metrics interactively: [Scoring the Predictions](https://nusmedicine.github.io/statml/widget/metrics/)`
+     — and the notebook can land on any station:
+     `?outcome=categorical&view=matrix` or `&view=roc`. **This
+     supersedes the roc-auc link this line used to carry**: widget 34 is
+     UNLISTED as of 2026-08-30 and still reachable at
+     `…/widget/roc-auc/`, so link it too only if the deeper
+     threshold act is wanted beside this one.
    - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
    - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
    - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
@@ -588,7 +591,8 @@ is blind to.
 | 31 | `time-event` | shipped as **Modeling Time-to-Event Data**. EIGHTEEN rounds in one day (2026-08-29), every design change mocked in `_lab/time-event-round12.html` first; nine states — seven settled, two driven mid-ease. No Step/Play — the scrub is the time control. NOT yet judged projected; 05-06 link not yet placed |
 | 32 | `mixed-model` | shipped as **Modeling Hierarchical Data**. SEVEN rounds in one day (2026-08-29); ten states — seven settled, three driven mid-ease. Three tabs (Repeated · Nested · Syntax), no Step/Play/gate — figures open finished, two eases on the request door. NOT yet judged projected; 05-07 link not yet placed |
 | 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
-| 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2). SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. All-simulated; trace-the-curve sweep, live confusion matrix, momentary find-optimal that MOVES the threshold; core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected; 04-2 link not yet placed |
+| 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2), then **UNLISTED 2026-08-30** — off the gallery, live at its URL, no draft bar (`status: "unlisted"`), because widget 35 carries the ROC act. SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. Core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected |
+| 35 | `metrics` | shipped as **Scoring the Predictions** (PHM5005, 04-2). FIVE rounds in one day (2026-08-30); **eleven states** — nine settled, two driven. Two outcomes, and categorical picks matrix or ROC (`?outcome=`/`&view=`); MathML formula card, positive-class pick that renames the cells, macro/weighted averages, the trace as a one-way door. Core gained `when.all`, readout `{ break: true }`, segmented `token:`. The threshold drag, the Youden scan mid-flight and the positive-class flip mid-trace are untested geometry. NOT yet judged projected; 04-2 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and

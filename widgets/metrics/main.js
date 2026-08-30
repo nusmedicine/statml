@@ -701,7 +701,6 @@ widgetApi = defineWidget({
     + "categorical outcome by the confusion matrix at one chosen threshold, "
     + "or across every threshold at once with the ROC curve.",
   layout: "side",
-  status: "draft",
 
   height: ({ outcome, view, w }) =>
     (outcome === "numeric" ? NOTE_H + PAD_T + numSide(w) + PAD_B : catHeight(w, view)),
