@@ -61,9 +61,10 @@ const PILL_OF = { crp: "addcrp", wbc: "addwbc", fever: "addfever", chills: "addc
 /* ---- geometry ------------------------------------------------------------ */
 
 const HEAD_H = 22;        // the bar axis's direction labels
+const MODEL_HEAD_H = 20;  // the trained-model band between prior and features
 const ROW_H = 96;         // one ledger row
 const TOTAL_H = 66;       // the running-total row
-const LEDGER_H = HEAD_H + 3 * ROW_H + TOTAL_H + 10;
+const LEDGER_H = HEAD_H + MODEL_HEAD_H + 3 * ROW_H + TOTAL_H + 10;
 const GATE_H = 340;
 
 const PANEL_X = 8;        // readoff panel, inside a row
@@ -396,17 +397,18 @@ function drawLedger(ctx, colors, w, params, state, anim) {
   const zero = (zoneL + zoneR) / 2;
   const scale = (zoneR - zero) / LR_MAX;
 
-  /* the readoff panels are the TRAINED MODEL, and the figure says so
-     (round 4, Kenneth) — the fitted curves and rates come from the training
-     cohort, the only patients whose disease status is known */
-  label(ctx, colors, `The trained model (${N_COHORT} patients)`, PANEL_X, 13,
-    { color: colors.ink2 });
   label(ctx, colors, "← evidence for no disease", zero - 8, 13, { align: "right" });
   label(ctx, colors, "evidence for disease →", zero + 8, 13);
-  lineSeg(ctx, zero, HEAD_H - 4, zero, HEAD_H + 3 * ROW_H, colors.grid);
+  lineSeg(ctx, zero, HEAD_H - 4, zero, HEAD_H + MODEL_HEAD_H + 3 * ROW_H, colors.grid);
+
+  /* the feature panels are the TRAINED MODEL, and the figure says so where
+     they begin (rounds 4–5, Kenneth): a band between the prior row and the
+     feature rows, heading exactly the fitted distributions */
+  label(ctx, colors, `The trained model: distributions fitted to ${N_COHORT} patients`,
+    PANEL_X, HEAD_H + ROW_H + 13, { color: colors.ink2, font: `${colors.fsSm} ${colors.font}` });
 
   rows.forEach((r, i) => {
-    const yTop = HEAD_H + i * ROW_H;
+    const yTop = HEAD_H + i * ROW_H + (i > 0 ? MODEL_HEAD_H : 0);
     const t = i === 0 ? 1 : tOf(r.key);
     const on = t > 0.001;
     ctx.save();
@@ -453,7 +455,7 @@ function drawLedger(ctx, colors, w, params, state, anim) {
     ctx.restore();
   });
 
-  const yT = HEAD_H + 3 * ROW_H + 8;
+  const yT = HEAD_H + MODEL_HEAD_H + 3 * ROW_H + 8;
   lineSeg(ctx, PANEL_X, yT - 6, w - 12, yT - 6, colors.grid);
   const total = runningTotal(rows, tOf);
   const nOn = rows.slice(1).filter((r) => params[PILL_OF[r.key]]).length;
