@@ -8,7 +8,7 @@
  * table itself.
  */
 
-/* ---- the stage: widget 16's generators, shapes unchanged ---------------- */
+/* ---- the data: widget 16's generators, shapes unchanged ----------------- */
 
 export const N_PER_CLASS = 90;
 export const DOM = [-2.6, 2.6];
@@ -46,7 +46,7 @@ export const SETS = {
   },
   moons: {
     label: "Crescents",
-    /* the upper arc is +1, widget 16's own arrangement */
+    /* the upper arc is +1, as in widget 16 */
     make(rng) {
       const out = [];
       for (let i = 0; i < N_PER_CLASS; i += 1) {
@@ -110,10 +110,8 @@ export function score(p, f, x0, x1) {
   return z;
 }
 
-/**
- * Train, keeping every epoch's weights. The trajectory is the animation's
- * data — nothing is trained per frame (1.4).
- */
+/** Train, keeping every epoch's weights: the trajectory is the animation's
+    data, and nothing is trained per frame (1.4). */
 export function trainAll(data, k, actKey, rng) {
   const { f, df } = ACTS[actKey];
   const p = initNet(k, rng);
@@ -190,23 +188,22 @@ export function trainAll(data, k, actKey, rng) {
     errors.push(m.wrong);
     live.push(m.fires);
   }
-  /* the loss at the final weights, so every epoch index has one */
+  /* repeat the last loss so every epoch index has one */
   losses.push(losses[losses.length - 1]);
   return { frames, losses, errors, live };
 }
 
-/* DEADNESS IS A ReLU PHENOMENON AND NOTHING ELSE. A ReLU unit whose input is
-   negative on every sample outputs zero on every sample, so it contributes
-   nothing and its gradient is zero — it cannot recover. An identity or tanh
-   unit is never silent: tanh(z) and z are non-zero for z < 0, so the same
-   count would be a fact about a sign rather than about contribution. A state
-   sweep caught this claiming "7 of 8 live" under Identity, which was false.
-   This is the ONE place the rule lives (5.8). */
+/* Dead units are a ReLU phenomenon only. A ReLU unit whose pre-activation
+   is negative on every sample outputs zero on every sample and receives zero
+   gradient, so it cannot recover. Identity and tanh units are never silent:
+   both are non-zero for z < 0, so the same count there would describe a sign
+   rather than a contribution. A state sweep caught this reporting "7 of 8
+   live" under Identity, which was false. One definition, one place (5.8). */
 export const deadUnits = (fires, actKey) =>
   (actKey === "relu" ? fires.map((c) => c === 0) : fires.map(() => false));
 
-/** Hidden unit j switches on across this line: w·x + b = 0. Under ReLU it is
-    exactly the crease the unit contributes to the boundary. */
+/** Hidden unit j activates across this line: w·x + b = 0. Under ReLU it is
+    the crease the unit contributes to the boundary. */
 export function unitLine(net, j) {
   return { a: net.W1[j][0], b: net.W1[j][1], c: net.b1[j] };
 }

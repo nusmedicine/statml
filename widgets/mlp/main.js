@@ -1,11 +1,10 @@
 /* Neural Network — PHM5005 04-3 § Neural Networks (MLP). Arc A's last slot.
  *
- * A 2 → k → 1 network trained by full-batch gradient descent on the SVM
- * widget's own three generators, so kernels and hidden units answer one
- * visible problem and the arc reads as a single argument. Two panels side by
- * side, both live: the NETWORK, every edge a fitted weight (thickness |w|,
- * colour its sign), and the DECISION BOUNDARY as the class wash with a
- * contour at P = 0.5. A loss strip runs under both. Play trains.
+ * A 2 → k → 1 network trained by full-batch gradient descent, on the same
+ * three generators the SVM widget uses. Two panels, both live: the network,
+ * every edge a fitted weight (thickness |w|, colour its sign), and the
+ * decision boundary as a class wash with a contour at P = 0.5. A loss strip
+ * runs under both. Play trains.
  *
  * compute() trains ONCE and keeps the whole trajectory; the animation
  * reveals epochs already computed, so Play lands exactly on the picture the
@@ -20,17 +19,18 @@
  *   rings      0/20   0/20   10/20   19/20   20/20
  *   crescents  0/20   0/20    3/20    6/20   17/20
  *
- * Two facts, and NO SURFACE MAY CLAIM "k ≥ 3 works": capacity (one and two
- * units can never close a ring — they draw a line and a wedge) and
- * optimisation (k 3 usually gets stuck; width buys reliability because spare
- * units give gradient descent more ways down). The mechanism is visible in
- * the diagram: a DEAD unit, firing on no sample, drawn in --c-unknown. At
- * the default the ring is closed by three live units and a corpse.
+ * Two facts, and no surface may claim "k ≥ 3 works": capacity (one and two
+ * units cannot close a ring — they produce a line and a wedge) and
+ * optimisation (k 3 usually converges to a local minimum; extra units make
+ * the optimisation more reliable, not only the model more expressive). The
+ * mechanism is visible in the diagram as a dead unit — one that activates on
+ * no sample — drawn in --c-unknown. At the default, three of the four units
+ * are live.
  *
- * The optimiser was chosen on WATCHABILITY alone, since reliability did not
- * separate the candidates: momentum 0.9 at lr 0.05 spreads rings k = 4 over
- * 77 → 32 → 1 → 0 errors at epochs 20/60/150/300, where lr 0.2 is over
- * before epoch 60.
+ * The optimiser was chosen on how much of the training stays visible, since
+ * reliability did not separate the candidates: momentum 0.9 at lr 0.05
+ * spreads rings k = 4 over 77 → 32 → 1 → 0 errors at epochs 20/60/150/300,
+ * where lr 0.2 has converged before epoch 60.
  */
 
 import { defineWidget, fmt, makeRng } from "../core/index.js";
@@ -57,9 +57,8 @@ const HIT_R = 18;   // how close the pointer must come to a hidden unit
 const panelSide = (w) => Math.max(150, Math.min(300, (w - 2 * PAD_X - GAP) / 2));
 const stageHeight = (w) => TOP + panelSide(w) + CAP_H + LOSS_H + BOTTOM;
 
-/* Where every node sits. ONE function, because the hit test and the drawing
-   must agree about it — two copies is how a target comes to sit six columns
-   from the thing it selects (5.8). */
+/* Where every node sits: one function, because the hit test and the drawing
+   have to agree about it (5.8). */
 function netLayout(x0, y0, side, k) {
   const top = y0 + INSET + 26;
   const usable = side - INSET - 34;
@@ -128,9 +127,9 @@ function drawUnitLine(ctx, colors, x0, y0, side, net, j, strong) {
   ctx.restore();
 }
 
-/* The decision boundary: the wash is the network's CONFIDENCE (the sigmoid),
-   which an SVM's decision value could not honestly give; the contour is the
-   boundary itself, at P = 0.5, so it can be pointed at. */
+/* The decision boundary. The wash is the predicted probability, which an
+   SVM's decision value could not give; the contour is the boundary itself,
+   at P = 0.5. */
 function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   const { f } = ACTS[actKey];
   const { hoverUnit = null, showLines = false, pointer = null, dead = [] } = opts ?? {};
@@ -152,8 +151,7 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     }
   }
 
-  /* the unit lines: all of them on the toggle — the route a lecture screen
-     has, since it has no pointer — and the hovered one over the top */
+  /* all unit lines on the toggle, and the hovered one over the top */
   if (showLines) {
     for (let j = 0; j < net.W2.length; j += 1) {
       if (!dead[j] && j !== hoverUnit) drawUnitLine(ctx, colors, x0, y0, side, net, j, false);
@@ -209,7 +207,7 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
     drawUnitLine(ctx, colors, x0, y0, side, net, hoverUnit, true);
   }
 
-  /* the pointer's own reading: the wash is a probability, and this says so */
+  /* the reading under the pointer, which makes the wash a quantity */
   if (pointer && pointer.x >= x0 && pointer.x <= x0 + side
       && pointer.y >= y0 && pointer.y <= y0 + side) {
     const xv = DOM[0] + ((pointer.x - x0) / side) * (DOM[1] - DOM[0]);
@@ -244,26 +242,23 @@ function drawBoundary(ctx, colors, x0, y0, side, data, net, actKey, opts) {
   ctx.restore();
 }
 
-/* ONE HIDDEN UNIT, MAGNIFIED — the band at the panel's head, nearest the
-   rail where the activation is chosen. A curve on its own is abstract: this
-   shows WHERE the activation sits in the computation, which is what makes it
-   concrete. Inputs arrive weighted, the sum happens, the curve maps it, and
-   what comes out is what the unit passes on.
+/* One hidden unit, magnified, in the band at the panel's head. A curve on
+   its own is abstract; this shows where the activation sits in the
+   computation. The inputs are written generically, x1 … xn, because a
+   unit's arithmetic does not depend on there being two of them.
 
-   The rug under the curve is the z values the units ACTUALLY receive at this
-   epoch, so it spreads as the weights grow and a unit sliding entirely into
-   ReLU's flat half is a dead unit being born. That is the animation: it rides
-   Play and needs no state of its own. (A crossfade between activations was
-   designed and dropped — changing the activation is a data change, which
-   resets training, so there is no still figure for a crossfade to sit on.) */
+   The rug under the curve is the pre-activations the units receive at this
+   epoch; it spreads as the weights grow, and a unit whose inputs move
+   entirely into ReLU's flat region is a dead one. A crossfade between
+   activations was dropped: changing the activation is a data change, which
+   resets training, so no figure stands still for it. */
 function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
-  const box = Math.min(56, Math.max(34, side * 0.25));
-  const xIn = x0 + 12;
-  const xSum = x0 + Math.max(42, side * 0.19);
-  const xBox = xSum + 20;
-  const xOut = xBox + box + 16;
-  const mid = y0 + 20 + box / 2;
-  const boxTop = y0 + 20;
+  const box = Math.min(66, Math.max(36, side * 0.29));
+  const xIn = x0 + 18;
+  const xSum = x0 + Math.max(52, side * 0.24);
+  const xBox = xSum + 22;
+  const mid = y0 + 22 + box / 2;
+  const boxTop = y0 + 22;
 
   label(ctx, colors, "Inside one hidden unit", x0 + 4, y0 + 11, { color: colors.ink2 });
 
@@ -286,19 +281,30 @@ function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
     ctx.restore();
   };
 
-  /* the two weighted inputs */
-  for (const [i, dy] of [[0, -14], [1, 14]]) {
-    label(ctx, colors, i ? "x₂" : "x₁", xIn - 4, mid + dy + 4, { align: "right", color: colors.ink2 });
-    arrow(xIn, mid + dy, xSum - 9, mid + dy * 0.25);
-    label(ctx, colors, i ? "w₂" : "w₁", (xIn + xSum) / 2, mid + dy * 0.7 - 4, { align: "center" });
+  /* Only the OUTER arrows carry a weight label. The arrows converge on the
+     sum, so a label on each would sit a few pixels from its neighbour at
+     every panel width — measured colliding at 480px. w1 and wn with the
+     ellipsis between them say "one per input" without the crowding. */
+  const rows = [
+    { t: "x₁", w: "w₁", dy: -box * 0.34 },
+    { t: "x₂", w: "", dy: -box * 0.12 },
+    { t: "⋮", w: "", dy: box * 0.1 },
+    { t: "xₙ", w: "wₙ", dy: box * 0.34 },
+  ];
+  for (const r of rows) {
+    label(ctx, colors, r.t, xIn - 5, mid + r.dy + 4, { align: "right", color: colors.ink2 });
+    if (r.t === "⋮") continue;
+    arrow(xIn, mid + r.dy, xSum - 10, mid + r.dy * 0.3);
+    if (r.w) {
+      label(ctx, colors, r.w, (xIn + xSum) / 2, mid + r.dy * 0.78 - 4, { align: "center" });
+    }
   }
 
-  /* the sum */
   ctx.save();
   ctx.strokeStyle = colors.ink3;
   ctx.fillStyle = colors.surface;
   ctx.beginPath();
-  ctx.arc(xSum, mid, 9, 0, Math.PI * 2);
+  ctx.arc(xSum, mid, 10, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = colors.ink2;
@@ -307,10 +313,9 @@ function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
   ctx.textBaseline = "middle";
   ctx.fillText("Σ", xSum, mid);
   ctx.restore();
-  label(ctx, colors, "+ b", xSum, mid + 22, { align: "center" });
-  arrow(xSum + 10, mid, xBox - 3, mid);
+  label(ctx, colors, "+ b", xSum, mid + 24, { align: "center" });
+  arrow(xSum + 11, mid, xBox - 3, mid);
 
-  /* the activation itself */
   const { f } = ACTS[actKey];
   const Z = 2.4;
   const X = (z) => xBox + ((z + Z) / (2 * Z)) * box;
@@ -357,35 +362,26 @@ function drawNeuron(ctx, colors, x0, y0, side, actKey, zs) {
   }
   ctx.stroke();
   ctx.restore();
-  /* the name goes BELOW the box: above it, it collided with the band's own
-     heading at every width */
+  /* below the box: above it, the name collided with the band's heading */
   label(ctx, colors, ACTS[actKey].label, xBox + box / 2, boxTop + box + 12,
     { align: "center", color: colors.ink2 });
 
-  arrow(xBox + box + 3, mid, xOut - 4, mid);
-  label(ctx, colors, "out", xOut, mid + 4, { color: colors.ink2 });
-
-  /* the sentence only where there is room for it */
-  if (side >= 236) {
-    const tx = xOut + 24;
-    label(ctx, colors, "the sum goes in, the curve", tx, mid - 8);
-    label(ctx, colors, "maps it, and out comes what", tx, mid + 5);
-    label(ctx, colors, "this unit passes on", tx, mid + 18);
-  }
+  arrow(xBox + box + 3, mid, xBox + box + 24, mid);
+  label(ctx, colors, "out", xBox + box + 28, mid + 4, { color: colors.ink2 });
 }
 
-/* One edge per weight: THICKNESS IS |w| scaled to the largest weight in this
-   network, never to a constant — the picture is a comparison inside one net,
-   and a fixed scale would make a well-trained small network look empty beside
-   a wide one. Colour is the sign. */
+/* One edge per weight. Thickness is |w| scaled to the largest weight in
+   this network rather than to a constant: the comparison is within one
+   network, and a fixed scale would make a well-trained narrow network look
+   empty beside a wide one. Colour is the sign. */
 function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
   const k = net.W2.length;
-  const { hoverUnit = null, zs = null } = opts ?? {};
+  const { hoverUnit = null, zs = null, update = null } = opts ?? {};
   const L = netLayout(x0, y0, side, k);
   const dead = deadUnits(fires, actKey);
   const max = Math.max(...[...net.W1.flat(), ...net.W2].map(Math.abs), 1e-6);
 
-  const edge = (ax, ay, bx, by, w, j) => {
+  const edge = (ax, ay, bx, by, w, j, delta) => {
     const t = Math.abs(w) / max;
     const muted = hoverUnit !== null && hoverUnit !== j;
     ctx.save();
@@ -397,12 +393,32 @@ function drawNetwork(ctx, colors, x0, y0, side, net, fires, actKey, opts) {
     ctx.lineTo(bx, by);
     ctx.stroke();
     ctx.restore();
+    /* the change this epoch made to this weight, from the difference
+       between consecutive stored weight vectors — no gradient is stored */
+    if (update && update.max > 1e-12) {
+      const g = Math.abs(delta) / update.max;
+      if (g > 0.04) {
+        ctx.save();
+        ctx.lineWidth = 1 + 4 * g;
+        ctx.globalAlpha = 0.15 + 0.55 * g;
+        ctx.strokeStyle = colors.highlight;
+        ctx.setLineDash([4, 4]);
+        ctx.lineDashOffset = -update.phase;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(ax, ay);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   };
 
   for (let j = 0; j < k; j += 1) {
     const hy = L.yOf(j, k);
-    for (let i = 0; i < 2; i += 1) edge(L.xIn, L.yOf(i, 2), L.xHid, hy, net.W1[j][i], j);
-    edge(L.xHid, hy, L.xOut, L.yOf(0, 1), net.W2[j], j);
+    for (let i = 0; i < 2; i += 1) {
+      edge(L.xIn, L.yOf(i, 2), L.xHid, hy, net.W1[j][i], j, update?.dW1[j][i] ?? 0);
+    }
+    edge(L.xHid, hy, L.xOut, L.yOf(0, 1), net.W2[j], j, update?.dW2[j] ?? 0);
   }
 
   const node = (x, y, r, text, ring) => {
@@ -462,16 +478,22 @@ function drawLoss(ctx, colors, x0, y0, w, h, losses, upto) {
   }
   ctx.stroke();
   ctx.restore();
+  /* how far down the curve gradient descent has come */
+  ctx.save();
+  ctx.fillStyle = colors.highlight;
+  ctx.beginPath();
+  ctx.arc(LX(upto), LY(losses[upto]), 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
   label(ctx, colors, "training loss", x0 + 4, y0 - 4);
   label(ctx, colors, `epoch ${upto} of ${EPOCHS}`, x0 + w, y0 - 4, { align: "right" });
 }
 
-/* ---- the reroll, a MOMENTARY pill (widget 34/35's arrangement) ------------
+/* ---- the reroll, a momentary pill (widgets 34 and 35) --------------------
    Pressing it advances `init` and releases itself, both through the exported
-   setParam, so the lasting record in the URL is the starting weights alone.
-   `init` is a SEPARATE seed from `seed`: the data must hold still while the
-   starting weights change, or the reader cannot tell which of the two moved
-   the boundary. */
+   setParam, so the URL records only the starting weights. `init` is separate
+   from `seed` because the samples must hold still while the starting weights
+   change, or a moved boundary has two possible causes. */
 let widgetApi = null;
 const INIT_MAX = 200;
 
@@ -493,10 +515,9 @@ widgetApi = defineWidget({
     + "builds that boundary from hidden units, one straight piece each, and "
     + "training is what bends them into place.",
   layout: "side",
-  /* the hover inspector. Core's rule comes with it: an inspector must stay
-     ADDITIVE, because a lecture screen has no pointer — so everything hover
-     reveals has a second route (the unit lines have their own toggle, and
-     every number it prints is in the readout or the caption). */
+  /* The hover inspector, which must stay additive: a lecture screen has no
+     pointer, so everything hover reveals has a second route — the unit lines
+     have their own control, and its numbers are in the readout or caption. */
   pointer: true,
 
   height: ({ w }) => stageHeight(w),
@@ -514,8 +535,7 @@ widgetApi = defineWidget({
       ],
       default: "rings",
     },
-    /* the SAMPLES' seed, and it belongs with the samples — the starting
-       weights have their own, below, so each answers for one thing */
+    /* seeds the samples; the starting weights have their own seed below */
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     net: { type: "section", label: "The network" },
@@ -537,11 +557,10 @@ widgetApi = defineWidget({
       ],
       default: "relu",
     },
-    /* the arc's shape for a display reveal (3.4j amended): a segmented
-       Off/On named for what it shows, never a lone checkbox. The pointer
-       route to ONE unit's line exists too, but a projector has no pointer —
-       this is the route that needs none, which is core's rule for an
-       inspector honoured rather than worked around. */
+    /* a segmented Off/On named for what it shows (3.4j amended). Hover
+       reaches one unit's line as well, but a projector has no pointer, so
+       this is the route that needs none — core's rule that an inspector
+       must stay additive. */
     lines: {
       type: "segmented",
       label: "Each unit's line",
@@ -555,9 +574,9 @@ widgetApi = defineWidget({
 
     train: { type: "section", label: "Training" },
 
-    /* The starting weights, on their own seeded stream so the data holds
-       still while they change. Hidden because the VALUE means nothing to a
-       reader — what matters is trying another, which the pill does. */
+    /* The starting weights, on their own seeded stream so the samples hold
+       still while they change. Hidden because the value itself carries no
+       meaning; the pill below is the way to try another. */
     init: { type: "int", min: 1, max: INIT_MAX, default: 1, hidden: true },
     reroll: {
       type: "bool",
@@ -599,8 +618,8 @@ widgetApi = defineWidget({
   compute: ({ params, rng }) => {
     const data = SETS[params.dataset].make(rng);
     const k = Number(params.hidden);
-    /* the starting weights ride their OWN seeded stream, so rerolling them
-       leaves every sample exactly where it was */
+    /* the starting weights use their own seeded stream, so rerolling them
+       leaves every sample where it was */
     const run = trainAll(data, k, params.activation, makeRng(Number(params.init)));
     return { data, k, ...run };
   },
@@ -614,9 +633,11 @@ widgetApi = defineWidget({
     init: ({ params, fromScratch }) => ({
       epoch: fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), EPOCHS),
       done: false,
+      phase: 0,
     }),
 
     advance: (anim, { dt, params }) => {
+      anim.phase = ((anim.phase ?? 0) + dt * 0.05) % 8;
       const perSec = { slow: 60, medium: 200, fast: 600 }[params.speed] ?? 200;
       const target = anim.mode === "step"
         ? Math.min(EPOCHS, anim.epoch + 1)
@@ -631,7 +652,7 @@ widgetApi = defineWidget({
       return anim.mode !== "step";
     },
 
-    /* display changes land here; the pill is the only one that does anything */
+    /* display changes land here; only the pill acts */
     rebuild: (anim, { params }) => {
       if (params.reroll) rerollInit();
     },
@@ -656,8 +677,23 @@ widgetApi = defineWidget({
       }
     }
 
+    /* The weight changes this epoch made, read off consecutive stored
+       weight vectors. Shown at Slow speed and after a single step, not at
+       Medium or Fast: per-step choreography is a declared property of the
+       chosen pace (4.1), not something the animation decides for itself. */
+    const wantsUpdate = ep > 0
+      && (anim?.mode === "step" || params.speed === "slow");
+    let update = null;
+    if (wantsUpdate) {
+      const prev = state.frames[ep - 1];
+      const dW1 = net.W1.map((row, j) => row.map((v, i) => v - prev.W1[j][i]));
+      const dW2 = net.W2.map((v, j) => v - prev.W2[j]);
+      const mx = Math.max(...dW1.flat().map(Math.abs), ...dW2.map(Math.abs));
+      update = { dW1, dW2, max: mx, phase: anim?.phase ?? 0 };
+    }
+
     drawNetwork(ctx, colors, xNet, TOP, side, net, fires, params.activation,
-      { hoverUnit, zs });
+      { hoverUnit, zs, update });
     drawBoundary(ctx, colors, xBnd, TOP, side, state.data, net, params.activation,
       { hoverUnit, showLines: params.lines === "on", pointer, dead });
 
@@ -685,6 +721,11 @@ widgetApi = defineWidget({
     }
     label(ctx, colors, `${state.errors[ep]} of ${state.data.length} misclassified`,
       xBnd + side, capY, { align: "right", color: colors.ink2 });
+    if (update) {
+      label(ctx, colors,
+        `Backpropagation: the error is sent back and every weight moves against it — largest step ${fmt(update.max, 4)}`,
+        xNet, capY + 15, { color: colors.highlight });
+    }
 
     drawLoss(ctx, colors, PAD_X, TOP + side + CAP_H, w - 2 * PAD_X, LOSS_H, state.losses, ep);
   },
