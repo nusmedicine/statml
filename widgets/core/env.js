@@ -124,6 +124,8 @@ export function readTokens() {
     holdout: v("--c-holdout"),
     costLow: v("--c-cost-low"),
     costHigh: v("--c-cost-high"),
+    valueLow: v("--c-value-low"),
+    valueHigh: v("--c-value-high"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     fsXs: v("--fs-xs"),

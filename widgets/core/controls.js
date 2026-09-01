@@ -200,6 +200,18 @@ function build(host, spec, values, onChange, api) {
       h.className = "w-section";
       h.textContent = field.label ?? "";
       host.appendChild(h);
+      /* A SECTION MAY CARRY THE DESCRIPTION ITS WHOLE GROUP SHARES. Only the
+         label was rendered, and a `detail` set on a section was dropped in
+         silence — widget 38 had carried one since it was written and it had
+         never once been on screen. The alternative is what that widget did
+         instead: repeat the sentence on every slider with the letters changed,
+         which is three copies of one fact pretending to be three. */
+      if (field.detail) {
+        const d = document.createElement("p");
+        d.className = "w-detail";
+        d.textContent = field.detail;
+        host.appendChild(d);
+      }
       continue;
     }
 

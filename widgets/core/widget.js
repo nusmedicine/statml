@@ -126,7 +126,7 @@
    ========================================================================= */
 
 import { resolveParams, syncUrl, toQuery, optionKeys } from "./params.js";
-import { buildControls, buildActions, gatingParams } from "./controls.js";
+import { buildControls, buildActions, gatingParams, fieldShowing } from "./controls.js";
 import { createCanvas, hitTest } from "./canvas.js";
 import { makeRng } from "./rng.js";
 import {
@@ -867,16 +867,35 @@ export function defineWidget(config) {
 
   /* A label declared as { param, labels, default } resolves against the live
      value; a plain string resolves to itself. `labelSet` is every label the
-     button can ever hold, which is what the width reservation needs. */
-  function resolveLabel(spec, fallback) {
-    if (spec == null) return fallback;
-    if (typeof spec === "string") return spec;
-    return spec.labels?.[values[spec.param]] ?? spec.default ?? fallback;
+     button can ever hold, which is what the width reservation needs.
+
+     A LABEL MAY NOT BE CHOSEN BY A CONTROL THE READER CANNOT SEE. A `when`
+     gated field keeps its value while it is hidden — deliberately, so that
+     leaving a stage and coming back does not destroy the work — and a drive
+     label keyed on such a field would go on reporting a choice that is no
+     longer on screen. Widget 38 is the case: its second tab picks between one
+     patient and all sixty, exists only under the model page, and without this
+     line a reader who visited "all sixty" and returned to the abstract game
+     found a Step button offering to "Add one patient" while three players
+     walked into a ring. That is 3.4c's defect exactly, and the widget cannot
+     fix it from its side, because the value it would need to ignore is the one
+     core hands it.
+
+     `balancing-data` is the only shipped widget keying a label on a gated
+     field, and core hides the whole drive row while its gate is shut, so this
+     changes nothing anyone can see there. `labelSet` is deliberately untouched:
+     the width reservation must still cover every label the button can hold. */
+  function resolveLabel(decl, fallback) {
+    if (decl == null) return fallback;
+    if (typeof decl === "string") return decl;
+    const field = spec[decl.param];
+    if (field && !fieldShowing(field, values)) return decl.default ?? fallback;
+    return decl.labels?.[values[decl.param]] ?? decl.default ?? fallback;
   }
-  function labelSet(spec, fallback) {
-    if (spec == null) return [fallback];
-    if (typeof spec === "string") return [spec];
-    return [...Object.values(spec.labels ?? {}), spec.default ?? fallback];
+  function labelSet(decl, fallback) {
+    if (decl == null) return [fallback];
+    if (typeof decl === "string") return [decl];
+    return [...Object.values(decl.labels ?? {}), decl.default ?? fallback];
   }
 
   function updateAnimButtons() {
@@ -945,7 +964,7 @@ export function defineWidget(config) {
         ? "Pause"
         : done
           ? "Replay"
-          : animation.runLabel ?? "Play";
+          : resolveLabel(animation.runLabel, "Play");
       actions.run.setAttribute("aria-pressed", String(playing));
       actions.run.disabled = leadPending;
     }
@@ -1008,8 +1027,15 @@ export function defineWidget(config) {
     animation && animation.runLabel !== null && {
       key: "run",
       group: "pace",
-      text: animation.runLabel ?? "Play",
-      title: animation.runTitle ?? "Keep going at the chosen speed",
+      /* THE RUN LABEL TAKES THE MAP FORM TOO. It was the only drive label that
+         did not, and the reason the map exists applies to it exactly as it does
+         to `stepLabel`: a widget whose tabs run genuinely different nouns cannot
+         obey 3.4c with one word. Widget 38 walks six orders of arrival on one
+         page and adds sixty patients on the other, and "Walk every order" is
+         simply false on the second. `runLabel: null` still declines the button —
+         that check is on the raw value, above. */
+      text: resolveLabel(animation.runLabel, "Play"),
+      title: resolveLabel(animation.runTitle, "Keep going at the chosen speed"),
       primary: true,
       onClick: () => startAnim("run"),
     },
@@ -1099,7 +1125,7 @@ export function defineWidget(config) {
   function reserveDriveWidths() {
     /* Guarded: a widget that declined a button has no element to reserve for. */
     if (drive.run) {
-      reserveWidth(drive.run, [animation?.runLabel ?? "Play", "Pause", "Replay"], "--run-reserve");
+      reserveWidth(drive.run, [...labelSet(animation?.runLabel, "Play"), "Pause", "Replay"], "--run-reserve");
     }
     if (drive.step) {
       reserveWidth(drive.step, labelSet(animation?.stepLabel, "Draw one"), "--step-reserve");

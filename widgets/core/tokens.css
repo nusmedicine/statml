@@ -197,6 +197,27 @@
   --c-cost-low:  var(--series-1);    /* a good fit — the trench, the minimum  */
   --c-cost-high: var(--series-8);    /* a bad fit — far from every good line  */
 
+  /* WHERE A MEASURED VALUE FALLS IN ITS OWN RANGE — one variable, coloured from
+     its low end to its high end, so a figure can carry the DIRECTION of a
+     relationship and not only its size. Widget 38's SHAP swarm colours each
+     patient's dot by that patient's value of the feature the row is about; high
+     creatinine on the right and low on the left IS the reading.
+
+     Added rather than borrowed from --c-cost-low/high, which is the same shape
+     making a different claim: a cost ramp says how badly a model fits, and a
+     feature value is neither good nor bad — nobody's age is a worse fit. The
+     ends alias the same blue and red slots because the SHAP library's own
+     beeswarm is blue-low/red-high, and a student who has run
+     `shap.plots.beeswarm` should meet the same convention here.
+
+     A PANEL USING THIS MUST NOT ALSO COLOUR BY IDENTITY. Colour means one thing
+     at a time, and widget 38's swarm therefore drops the per-feature
+     --c-cluster-* hues its other page uses and labels its rows in ink: without
+     that, a low-Age dot and the Age row would be the same blue for two
+     unrelated reasons. */
+  --c-value-low:  var(--series-1);   /* the low end of one feature's range   */
+  --c-value-high: var(--series-8);   /* the high end of the same range       */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */
