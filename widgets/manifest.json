@@ -545,6 +545,22 @@
       ],
       "arc": 37,
       "status": "shipped"
+    },
+    {
+      "slug": "shap",
+      "title": "Explaining a Prediction",
+      "blurb": "A prediction is divided among its features by averaging what each one adds over every order of arrival.",
+      "course": "PHM5005",
+      "topics": [
+        "Shapley value",
+        "SHAP",
+        "model explanation",
+        "cooperative game",
+        "coalition",
+        "feature attribution"
+      ],
+      "arc": 38,
+      "status": "shipped"
     }
   ]
 }

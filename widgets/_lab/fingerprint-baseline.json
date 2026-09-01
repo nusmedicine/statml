@@ -2381,6 +2381,65 @@
       "px": "78afb466",
       "tx": "0651a34d",
       "$note": "the R² ease mid-bend"
+    },
+    {
+      "$note": "opens EMPTY — no walk taken, the answer not yet built",
+      "slug": "shap",
+      "state": "?theme=light&shown=0",
+      "px": "2a588c4d",
+      "tx": "730cc7d3"
+    },
+    {
+      "$note": "the game, all six orders walked: the additive default, every order agreeing",
+      "slug": "shap",
+      "state": "?theme=light&shown=23",
+      "px": "10496f13",
+      "tx": "8fc37386"
+    },
+    {
+      "$note": "a game with two live pair dividends, so the six orders disagree",
+      "slug": "shap",
+      "state": "?theme=light&shown=23&soloA=-40&soloB=60&soloC=0&pairAB=-40&pairAC=60&pairBC=-25",
+      "px": "7696f898",
+      "tx": "0e872d4e"
+    },
+    {
+      "$note": "INDIVIDUAL — patient 11's prediction taken apart, 0 to 1 scale",
+      "slug": "shap",
+      "state": "?theme=light&page=model&view=one&patient=11&shown=23",
+      "px": "e7a76a0a",
+      "tx": "5a93bfc1"
+    },
+    {
+      "$note": "GLOBAL — all 60 held-out patients piled up, dots coloured by feature value",
+      "slug": "shap",
+      "state": "?theme=light&page=model&view=all&shown=60",
+      "px": "179faa90",
+      "tx": "12f47b87"
+    },
+    {
+      "$note": "DRIVEN mid-walk: a player in flight, the route drawn only part way",
+      "slug": "shap",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "094736bf",
+      "tx": "730cc7d3"
+    },
+    {
+      "$note": "DRIVEN mid-pile: the OTHER animation — patients landing one at a time",
+      "slug": "shap",
+      "state": "?theme=light&page=model&view=all",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "1267fb20",
+      "tx": "35311e9b"
     }
   ]
 }
