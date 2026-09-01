@@ -10935,6 +10935,573 @@ built and shipped against `04-1` and `04-4`.
 one dot per patient, a threshold line whose four quadrants ARE the confusion
 matrix) became the shipped stage's left panel.
 
+## Widget 38 · `shap` — Explaining a Prediction · SHIPPED 2026-09-01
+
+PHM5005 `04-5 Model Explanation`, and the first widget for that notebook. **Both
+pages are built**: "the game", three players A, B, C and a payout the reader
+sets with six sliders; and "the model", the identical figure driven by a random
+forest's prediction for one held-out patient, with the three features as the
+players. Everything below the page switch is shared — same walk, same path
+diagram, same six rows, same bars — and only where the game COMES FROM changes,
+which is the structural claim the widget is making.
+
+**THE MISCONCEPTION:** that a feature's contribution is a single well-defined
+number, so averaging over orderings is bookkeeping. Grade: **inferred**, and
+unusually well supported by the notebook itself — `04-5` prints the weighted-sum
+formula and then demonstrates it on a **logistic regression**, which is the one
+model where the machinery cannot show. A second misconception rides along and is
+documented (Kumar et al. 2020, arXiv:2002.11097): that a SHAP value is the
+model's coefficient, or a general importance.
+
+### The measurement the design rests on
+
+Brute-force enumeration of all eight coalitions for every one of `04-5`'s 60
+test patients (`_lab/shap-ref.py` → `shap-ref.json`; the three-feature reduction
+is age · ejection fraction · serum creatinine, the last two being the pair
+Chicco & Jurman 2020 found sufficient on this same 299-patient data):
+
+| model · scale | spread of one feature's marginal contribution over the 6 orderings |
+|---|---|
+| LR · log-odds — **what `shap.Explainer(lr, X)` returns** | **exactly 0, for 60/60 patients** (max 1e-15) |
+| LR · probability | median 0.021, max 0.111 |
+| Decision tree, depth 3 · probability | median 0.092, **max 0.900 — a sign flip** |
+
+`phi_i = beta_i (x_i − xbar_i)` is the closed form `shap/explainers/_linear.py`
+computes in one line (`phi = (X - mean) * coef`, `feature_perturbation` defaults
+to `"interventional"`). **So the notebook's own worked example is the degenerate
+case.**
+
+### The black-box example the notebook declares and never fits
+
+Cell 6 builds `RandomForestClassifier(class_weight="balanced", n_estimators=300,
+max_depth=None, n_jobs=-1, random_state=42)` — and then calls `lr.fit` and only
+`lr.fit`. The forest is never fitted, never predicted with, never explained.
+Page 2 fits it, and the machinery finally has something to do: on the same 60
+held-out patients the six orders disagree by a **median of 16.9 and a maximum of
+43.1 percentage points**, against Shapley values in the low tens.
+
+**v(S) IS PINNED, NOT THE MODEL.** That forest is 35,326 nodes / 798 KB of JSON,
+and depth rather than tree count is where the interaction lives — 25/50/100/300
+trees at unlimited depth all give a spread near 0.16, and capping at depth 6
+halves it — so no "small forest" is a faithful stand-in and shrinking it the
+cheap way destroys the effect being taught. But the widget only ever needs v(S)
+for one patient, which is 60 x 8 numbers: `_lab/shap-page2-ref.py` writes
+`widgets/shap/model.js`, **6.9 KB**, holding the notebook's actual forest exactly.
+The cost is that a reader picks one of the 60 rather than inventing a patient,
+which is the honest constraint anyway: every dot is then a real person.
+
+**ONE MODEL SHIPS** (Kenneth, 2026-09-01: *"you can use only one model for
+simplicity i.e. random forest. unless you had a reason for multiple models?"*).
+There was a reason and it did not survive being stated: the logistic regression
+would have shown that the notebook's own example is the case where none of this
+is needed — but **page 1 already lets a reader reach that case by hand**, by
+setting the three pair sliders to zero, and doing it beats being shown it. The
+generator still fits the LR and prints the collapse, so the measurement stays
+reproducible; it is simply not written into `model.js`.
+
+Second finding, and it decided the two-page split: **the redundancy caveat cannot
+be shown on this data.** The strongest correlation among the eleven features is
+sex↔smoking at 0.45, and among the three used on page 2 it is 0.16. Page 1's
+`duplicates` cell shows it exactly. **Page 1 is therefore not a warm-up; it
+teaches what page 2 structurally cannot.**
+
+### How the design got here — Kenneth's review, 2026-08-31
+
+Recorded because five of the six turns changed the widget, and three of them
+reversed something.
+
+1. **"Looks complicated"** — an eight-section lab page of seven coalition
+   depictions was cut to two pages: the abstract game, then the data.
+2. **"Animate using A, B, C with circles like in the diagram"** — the visual
+   language is his own `04-5` figure. What his two figures cannot show is the
+   part that moves, and the widget adds exactly three things: a token outside
+   the enclosure is being *averaged over*, his four-panel figure stops short of
+   the average, and nothing in either says the order matters.
+3. **"Link it to the path diagram"** — the path diagram is **drawn by the
+   walking**: each arrival adds one node and one edge, so the reader builds the
+   lattice rather than being shown one. That is the widget's one real idea.
+4. **"So we ADD players and not subtract them?"** — the same subtraction from
+   opposite ends. Adding is right for the animation: one walk yields all three
+   contributions at once where removal needs twelve before/after pairs, and
+   **efficiency is only visible on a route** from `v({})` to `v({A,B,C})`.
+5. **"These options seem arbitrary"** (twice) — a row of five named games became
+   a 3×3 grid, and then the grid gained a third axis. The non-arbitrary framing
+   is the **Harsanyi dividend parameterisation**: any three-player game is what
+   each brings alone plus what each pair creates on top, and
+   `phi_i = solo_i + ½ Σ pair_ij` — every dividend split equally among whoever
+   made it. All four axioms the notebook states and never demonstrates then land
+   on one page: **efficiency** (the scores sum to the payout), **symmetry**
+   (A&C and B&C give identical grids — checked on screen, difference 0),
+   **dummy** (`adds nothing` scores exactly 0), **additivity** (the nine φ_C are
+   an exact plane — largest deviation 0, asserted rather than claimed).
+6. **"The table values change depending on the dial?"** — they did not, and two
+   of the six sliders genuinely move φ_C. The grid is live now, and the deeper
+   fault it exposed is worth carrying: **a matrix's axis headers are OPTIONS,
+   not readouts.** "C alone: +30 / 0 / −30" beside a C slider reading 0 looks
+   like a contradiction until the live row is marked and the columns carry their
+   own numbers.
+7. **"Chooser then summary"** — the cells lost their digits, because a number in
+   a cell made the chooser read as a summary of the game you were already in.
+8. **"If I set up the game, why do I get a whole grid of other combinations I
+   don't care about?"** — the nine kinds stopped being a chooser and became a
+   `readback` naming what the sliders produced.
+9. **"The paired sliders individually — the segmented design doesn't let me see
+   the whole picture"**, and **"the grid is confusing: I thought rows would be
+   one pair and columns the other"**. THESE TWO ARE THE SAME CHANGE, and it is
+   worth recording why the second could not be fixed on its own. The nine kinds
+   were "what C brings alone" against "what share C takes from THE pair", which
+   only reads while exactly one pair is live; his expectation — one pair per axis
+   — cannot be built either, because three pairs do not fit two axes. **Once all
+   three pair dividends are sliders a game can be two things at once (A&B
+   complementary while A&C duplicate), so it has no single kind and the table has
+   nothing true to say.** Naming kinds needed the toggle; seeing the whole game
+   needed the sliders; they were never both available. The table is gone.
+
+   What replaces it is a **decomposition, on the stage rather than the rail**:
+   per player, what it brought alone, what it took as its share of the pairs it
+   is in, and the score those add to. It is the one-line rule made visible, it
+   is well defined for any setting of the six, and it is checked — `compute`
+   throws if the split and the subset enumeration disagree by more than 1e-9,
+   because two routes to one number is how the halves of a figure come apart.
+
+10. **Four more, on the built widget.** (a) *"Are the descriptors supposed to
+    change with the values?"* — a control `detail` is static text core writes
+    once, so it must say what the control IS; three different general facts
+    across three pair sliders read as three readings of three pairs. They now
+    say the same thing three times, varying only in who splits it, and the
+    general facts moved to the section. (b) *"The animation is a bit jarring — the
+    path starts again from the previous node."* A walk is **four units now, not
+    three**: three arrivals and a CLEAR-OUT in which the players ease back to the
+    queue and the finished route fades into the pile. The sixth walk has no
+    clear-out, so the figure ends full. (c) *"The circles are not centred radially
+    in the coalition circle."* They were not: an isosceles triangle put two
+    players 32 from the centre and one at 23. **The seats are 120° apart at one
+    radius now**, and the outline is the smallest shape holding them — a circle
+    when they are equidistant, the notebook's capsule for a stacked pair. An
+    equilateral triangle has no square bounding box, so one box rule could not
+    give both a centred ring and this arrangement. (d) *"Are the contributions
+    the same as the SHAP graph, sorted by magnitude with − and + either side?"*
+    They are now: the closing block is **sorted by |φ|, signed against a zero
+    line, biggest at the top** — `shap.plots.bar`'s own shape — with each bar's
+    two ingredients printed under it. Page 1 ends on the picture page 2 opens
+    with.
+
+11. **Where the score bars go — mocked, then picked.** *"The plots bar looks nice
+    but small… any other place to put it?"* Five placements at the real canvas
+    width in `_lab/shap-bars.html`, and the tension named before choosing: as a
+    reading of the table the bars belong under "the average" in those three
+    columns, which makes them vertical and A-B-C ordered; as
+    `shap.plots.bar` they are horizontal and sorted by magnitude, which is what
+    page 2 opens with. **Kenneth picked 3** — walks table left, bars right — for
+    no extra canvas height and roughly treble the travel (226px → 586px at
+    1080). Its cost, stated at the time: reading order reverses, the conclusion
+    sitting right of the working. What it buys is that each column of the figure
+    now reads top to bottom as one thought — coalition then its record on the
+    left, path plot then its conclusion on the right.
+
+    **A headless-only artefact worth not chasing twice.** At narrow widths the
+    Edge screenshots showed the coalition ring as an ellipse. It is not: core's
+    canvas is `width: 100%` with its height pinned in px, so a frame painted
+    before the 60 ms-debounced ResizeObserver catches up is stretched in x and
+    not in y — `core/canvas.js` documents exactly this above `pointAt`. Measured
+    in a real browser at 746px the two scales are 1.250 and 1.251. **Trust the
+    programmatic read over the screenshot** (5.4), including when the screenshot
+    comes from headless rather than the automation pane.
+
+### What is built, and what is owed
+
+Built: `widgets/shap/` — **six `int` sliders that ARE the game** (three solo
+dividends, three pair dividends) and nothing else that sets it; the coalition
+filling on the left, the path diagram drawn by the walking on the right, and
+below them two blocks on one baseline — the decomposition of each score, and the
+six walks as they are taken. Four readout tiles (three scores plus `Together`,
+so efficiency is adjacent to what it is a claim about). **Nothing on the figure
+is clickable**; the sliders are the only state of record.
+
+**Page 2**: one control, the patient. `v(S)` comes from `model.js` in
+**percentage points**, which is not cosmetic — it puts page 2's numbers in the
+same range as page 1's tens and units, so a reader crossing the tabs reads one
+figure at one scale, and "+13.6" is a sentence a clinician can finish. The
+circles keep their three colours and take the feature codes Age / EF / Cr; the
+patient's own values go in the **legend**, which already carries a swatch beside
+a name and costs the figure no space. `v(∅)` is the average prediction and
+`v({all})` this patient's, so the axis ends are labelled as such. Each bar's
+sublabel is the **range across the six orders** rather than page 1's dividend
+split — page 2's game has a three-way dividend as well, so no two-column split
+accounts for it, and the spread is the thing worth knowing about a number that
+only exists as an average. `compute` asserts **efficiency** on both pages.
+
+The default is **patient 11**: 48 years old, ejection fraction 30%, creatinine
+1.6, and the patient died. Young age pulls the risk down against two findings
+that push it up, and its two bad features are far worse together than apart —
+each alone barely moves the prediction, the pair takes it from 38.6% to 70.3%.
+That interaction is why one feature's contribution ranges from +2.5 to +31.5
+across the six orders, and it is exactly what the notebook's linear example
+could never show.
+
+### Round 12 — what the model page was not saying (Kenneth, 2026-09-01)
+
+Three questions, and the third named a real hole. *"For the model, how does the
+score arise from the prediction? The output is 0–1 but how does it translate to
+the scores?"* and *"I see +/- a number but don't know what it means."*
+
+**A score is a difference of two probabilities.** `v(S)` is the model's average
+output over the 239 training patients with the features in S pinned to this
+patient, so `v(∅) = 38.6%` is what it predicts knowing nothing about anyone and
+`v({all}) = 54.2%` is what it predicts for this person. The three scores are
+percentage points and they sum to exactly the distance between those two. That
+identity is the whole of what SHAP promises and the figure was stating it in one
+readout tile's note. It now says it on the stage, in two lines under the path
+plot: what the model is, and `average prediction 38.6% → this patient 54.2% ·
+the features must explain the +15.60 points between them`. The score caption
+carries the unit and so does every readout tile.
+
+**Global as well as individual** — a third block, under the bars: every one of
+the 60 held-out patients as one dot per feature, this patient's marked, with
+mean |contribution| in a right-hand column. That is `shap.plots.beeswarm` and
+`shap.plots.bar` in one, and the point of putting it here rather than on a page
+of its own is that a global explanation only means something beside the
+individual it aggregates: **the bar above and the marked dot below are the same
+number twice.** Its axis is FIXED to the extremes over all 180 values while the
+bars above rescale to whoever is selected — deliberate, and most of why the block
+earns its space: sweep the patient slider and the cloud holds still while the
+marker moves through it. Feature order follows this patient's, not mean size, so
+the two blocks line up row for row; when the two orders differ, that is itself
+the lesson.
+
+Lanes are **deterministic, not jittered** — `rng` belongs to `compute` and never
+reaches `draw`, and a swarm that resettled every repaint would be a different
+figure each frame. Dots are laid out in value order and stacked within a 5px
+bucket. Page 2's path plot gives up 16px of height to make room for the two
+sentences; page 1 has nothing to put there and keeps the taller plot. Canvas:
+614 side / 747 stacked on the model page, 530 / 620 on the game page.
+
+**`highlight` now does two jobs on page 2** — the live route and the marked dot
+— so the legend names both. A legend that named only the first would be
+describing half of the mark.
+
+**Two overruns the estimate missed and the sweep caught.** The swarm caption ran
+105px off a 535px canvas because a character count is not a width; it is two
+lines now. And sizing the block off the score bars alone put its caption 8px
+into the walks table's *the average* row, which at wide widths is the lower of
+the two blocks — it clears both. Re-verified over 65 states x 3 canvas widths.
+
+### Round 16 — which rows, and copy that says it
+
+**The train/test question, mocked up rather than argued** (`_lab/shap-dataset.html`,
+fed by `_lab/shap-train-ref.py`). Kenneth read the test-set global as "building
+the model on test data", which it is not: the forest is fitted on the 239
+training rows and those same 239 are the BACKGROUND, so every v(S) on every page
+is already their mean output. The only choice is which rows get a phi.
+
+Building it his way is entirely feasible — 239 x 8 pinned values is 24.9 KB and
+55 s. It was dropped on what the mockup shows instead:
+
+| | TRAIN (239) | TEST (60) |
+|---|---|---|
+| forest AUC on these rows | **0.9996** | 0.7895 |
+| predictions pinned at 0 or 1 | 38% | 18% |
+| ranking by mean \|phi\| | **EF > Cr > Age** | **Cr > EF > Age** |
+| value ↔ phi correlation, Cr | 0.566 | **0.815** |
+| value ↔ phi correlation, Age | 0.426 | **0.750** |
+
+**The headline answer flips**, and the colour story — the whole reason the value
+ramp was added — is measurably muddier on the rows the forest memorised: on the
+train line blue and red are stirred together, on the test line they separate.
+Kept as it was. The mockup stays in `_lab/` as the artefact for the overfitting
+lesson, which is a different lesson from SHAP.
+
+**And the copy says where the model came from now**: the model tab reads *"a
+random forest trained on 239 patients, inspected on the 60 held out"*, and the
+figure *"random forest, 300 trees, trained on 239 patients — scored here on the
+60 held out, 0 to 1 for death"*. The global page opens *"trained on 239 patients
+· inspected here on all 60 held out, one at a time"*.
+
+**A SECTION MAY CARRY THE DESCRIPTION ITS WHOLE GROUP SHARES** (`widgets/core/`).
+The three pair sliders each repeated one sentence with the letters changed — "A
+and B split this between them", twice more — which is three copies of one fact
+pretending to be three. Hoisting it to the section revealed that core rendered
+only a section's `label` and **dropped `detail` in silence**: widget 38 had
+carried one since it was written and it had never once been on screen. Sections
+render it now. It is the only section detail in the repo, so exactly one string
+lit up; full suite after: all 268 states identical.
+
+Worth naming as a method: the hoist was verified by reading the RENDERED RAIL,
+not the source. A grep would have said the sentence was there.
+
+**Checked against practice, since the choice was made on measurement alone.**
+There is no settled convention, which is itself worth knowing:
+
+- The SHAP library's own beeswarm example explains the **whole dataset** the
+  model was trained on — `explainer = shap.Explainer(model, X)` then
+  `explainer(X)`. The library is not fussy about it.
+- Molnar's *Interpretable Machine Learning* does not address the train/test
+  choice for summary plots at all.
+- **scikit-learn's permutation-importance guide gives the clearest reasoning**
+  for the same question: *"Using a held-out set makes it possible to highlight
+  which features contribute the most to the generalization power of the
+  inspected model. Features that are important on the training set but not on
+  the held-out set might cause the model to overfit."*
+- Production tooling defaults to held out — Qlik AutoML: *"The SHAP importance
+  chart ... visualizes the SHAP data from the model predictions created on the
+  holdout (test) data."*
+
+So the widget is on the majority side for a global picture, and this data set is
+a live instance of sklearn's warning: **ejection fraction is important on the
+training rows and less so on the held-out ones**, which is exactly the sentence
+that describes a feature the model is overfitting through. The BACKGROUND is a
+separate question with a settled answer, and it is training data either way.
+
+**The pair descriptor rewritten for a student**, from *"on top of what its
+members bring alone, and reaching nobody outside it"* — where "reaching nobody
+outside it" was the model's phrasing, not a reader's — to *"Value that appears
+only when both are in the coalition, on top of what each brings alone. The two
+split it equally, and the third player gets none of it. Negative means they get
+in each other's way."* One clause per idea, and it borrows "coalition" from the
+figure rather than inventing a word.
+
+### Round 15 — the notebook's own words, its own units, and its own dataset
+
+**Individual / Global**, from 04-5 itself: §1 contrasts *"Global explanations:
+which features are most influential across the entire dataset"* with *"Local
+explanations: why a specific prediction was made for one individual"*, and the
+cells are commented `# Plot global explanation` / `# Plot individual
+explanation`.
+
+**THE 0 TO 1 SCALE, not percentage points.** Points read better and put page 2's
+numbers in page 1's range, which is why they were tried first — but a SHAP value
+has the UNITS OF THE MODEL OUTPUT, and a summary printing a prediction of 0.542
+beside a contribution of +13.6 makes the reader convert before they can add up.
+It is also what `shap_values` holds, so the widget and the notebook now print the
+same numbers.
+
+**The summary starts with the thing being explained** (Kenneth: it *"reports the
+different contributions, but I was expecting what is the prediction, then
+followed by the shap scores"*). `Predicted risk 0.542`, noted
+`0.386 before any feature · the three add +0.156`, then the three scores. The
+baseline and the total ride in that note rather than taking a fifth tile,
+because five tiles wrap at the 535px canvas every fingerprint state is hashed at.
+
+**The global view stays on the TEST set, against the request, because the
+notebook does.** Kenneth asked for the training data; 04-5 runs
+`explainer = shap.Explainer(model, X_train)` then `shap_values = explainer(X_test)`
+and plots BOTH the beeswarm and the waterfall from that one array. X_train is
+the BACKGROUND — it is already in every `v(S)` the widget computes, as the set
+the expectation averages over — and X_test is what gets explained. Measured, the
+swap would also be a bad idea on its own terms: this forest scores **AUC 0.9996
+on its own training data against 0.7895 held out** (14% of training predictions
+above 0.95, against 3% on test), so a training-set global explains memorisation
+and inflates every feature — mean |phi| for EF 15.7 against 11.8, Age 9.5
+against 7.4. Keeping the test set also keeps the link the two views are built
+on: the individual's dot is one of the dots in the global swarm.
+
+**Two defects the scale change exposed, both invisible at tens.**
+`const mx = Math.max(1, ...)` was a divide-by-zero guard, and a no-op while a
+score was tens of points — on a 0 to 1 scale every |phi| is under 1, so the
+floor BECAME the scale: every bar shrank to a stub and both end reserves divided
+by a fraction and put the axis ticks off the canvas. **A guard must not be a
+bound.** And the two end reserves needed backstops for the all-zero game, where
+both fractions are zero, every reserve is Infinity, and the ticks are drawn off
+both edges at once.
+
+**And a mangled escape that four checks walked past.** `sed` does not interpret
+`—`, so an em-dash became the literal string `"2014"`, painted on the global
+page's mean column before any patient is added. `node --check` passed it, `npm
+run check` passed it, the text sweep passed it — it is not a NaN, not an
+overflow, not a collision — and the verification grep looked for `u2014`, which
+no longer matched. The sweep now fails any bare four-digit codepoint on the
+canvas. Rule: **when a shell rewrites source, grep for what should be there, not
+for what should not.**
+
+### Round 14 — the tabs nest after all, and core stops a stale label
+
+Round 13 flattened to three peers to dodge a label defect. Kenneth asked for the
+nesting back, and an adversarial review of his own proposal is what settled it:
+**gating a segmented on a segmented is the house pattern** — `metrics`,
+`mixed-model`, `lm-diagnostics`, `odds-and-risk` and `lm-adjustment` all do it —
+and three peers assert a flatness the material does not have. The notebook's own
+headings are the game and the model; individual and global are both readings OF
+the model.
+
+**The defect that forced the flattening is fixed where it belonged.** Drive
+labels are chosen by a PARAMETER NAME, and a `when`-gated field keeps its value
+while hidden (deliberately — leaving a stage must not destroy the work), so a
+label keyed on such a field goes on reporting a choice that is no longer on
+screen. `balancing-data` has the same shape and is safe only because core hides
+the whole drive row behind its gate; widget 38's buttons are visible on every
+page. So core now reads a hidden control's label as its default:
+**a label may not be chosen by a control the reader cannot see.** One line in
+`resolveLabel`, `labelSet` deliberately untouched so the width reservation still
+covers every label the button can hold, and no shipped widget moves.
+
+**The `new patient` tab was reviewed and dropped**, and not for cost — pinning
+v(S) on an 8-level grid is 4,096 numbers, 28 KB, entirely shippable. It was
+dropped because **67% of such a grid sits more than 1 SD from the nearest of the
+239 training patients** (46% beyond 1.5 SD), and three free sliders make the
+empty corners trivial to reach: *young, very low EF, very high creatinine* is
+3.21 SD from the nearest real patient with zero neighbours within 1 SD, against
+46 for the default patient 11. Interventional v(S) would then average the forest
+over coordinate combinations that never occur and return a confident, well
+formatted, meaningless explanation. **A widget about explaining a black box
+honestly must not ship a control whose main affordance is manufacturing
+dishonest explanations** — and clamping the sliders does not help, because the
+problem is the combinations, not the ranges. It also costs the claim the widget
+currently has: that `model.js` is the notebook's forest, exactly. The deployment
+lesson worth building instead is that **the explanation depends on the
+background set** — deploy the same unchanged model among sicker patients and
+every phi moves because the baseline moved. That is its own page or its own
+widget.
+
+**And a second one, in the fingerprint suite itself.** The first run after the
+core change reported **6 states DIFFER** — five `lm-adjustment`, one `roc-auc`.
+The code said that was impossible: `lm-adjustment` declines both drive buttons
+(`stepLabel: null`, `runLabel: null`), so the resolver under suspicion never
+runs there. Re-run with the Browser pane VISIBLE: all 268 identical. Both
+widgets size their canvas from a height FUNCTION, so a suspended ResizeObserver
+in a hidden pane is enough to move the hash. Recorded in HANDOVER: read the code
+before rebaselining, and re-run visible before believing a DIFFER.
+
+**A harness artefact that nearly became a bug fix.** Stepping the pile appeared
+to do nothing: zero paints, zero frames, the counter stuck at 0 of 60. The
+control experiment settled it — **the game page's walk did nothing either**, and
+the Browser pane was hidden, so its `requestAnimationFrame` never fired. Driven
+by hand with the fingerprint harness's own queue-and-pump (5.4: replace rAF,
+feed fixed timestamps), every press advances exactly one patient and Run reaches
+60 of 60. Two lessons re-earned: an animation cannot be tested through a hidden
+pane, and a suspected regression needs a control before it needs a fix. A
+second one the same hour: the first measurement after an iframe width change is
+taken mid-resize and reported a 535x368 canvas the widget can never ask for —
+sizes now come after a discarded warm-up load.
+
+### Round 13 — one picture per page, and colour that means direction
+
+*"It's confusing when both are presented together. Can we show how the global
+was built on one sub-page? Then the patient one can remain on a different
+sub-page?"* Round 12's swarm went under the individual bars and Kenneth cut it in
+one turn. He was right, and the reason is sharper than clutter: **the two
+pictures cannot share an axis.** The bars rescale to whoever is selected, which
+is what keeps them legible; the swarm must not, or the cloud would move under the
+marker. Two axes stacked in one figure is a figure that has to be read twice.
+
+**THREE TABS, NOT TWO WITH A TOGGLE INSIDE ONE.** He described a sub-page and the
+flat control is how that gets built here. A nested toggle keeps its own value
+when you leave the page it belongs to, and drive labels are chosen by a
+PARAMETER — so a reader who visited the global view and returned to the game
+would find a Step button reading *Add one patient* while three players walked
+into a ring, which is exactly the 3.4c defect. One control, three values, no
+stale second axis, and the rail stays one row.
+
+**THE GLOBAL PAGE BUILDS.** A global explanation is nothing but the pile of
+individual ones, so the honest way to show it is to add them: one step, one
+patient, three dots. `mean size` beside each row is the mean so far, from a
+prefix table computed once at load — a running mean recomputed per frame would be
+per-frame work painting the same 183 numbers. Rows are ranked by the FINISHED
+pile, as `shap.plots.beeswarm` ranks its own, and fixed for the whole build so a
+dot never changes row under the reader; early on the ranking and the numbers can
+therefore disagree, which is the ranking settling and worth watching.
+
+**A NEW COLOUR ROLE: `--c-value-low` / `--c-value-high`.** Where a measured value
+falls in its own range, so a figure can carry the DIRECTION of a relationship and
+not only its size. Added rather than borrowed from `--c-cost-low/high`, which is
+the same shape making a different claim — a cost ramp says how badly a model
+fits, and a feature value is neither good nor bad; nobody's age is a worse fit.
+The ends alias the same blue and red slots because the SHAP library's own
+beeswarm is blue-low/red-high, and a student who has run `shap.plots.beeswarm`
+should meet the same convention. Values are clipped at the 5th and 95th
+percentiles before mapping, which is also what the library does and for its
+reason: one creatinine of 9.4 against a median of 1.1 would put everyone else
+inside the same tenth of the ramp.
+
+**A PANEL USING IT MUST NOT ALSO COLOUR BY IDENTITY.** The individual page paints
+Age blue, EF amber and Cr red because there the question is *which feature*; on
+the global page the row already says which, and the open question is *which
+direction* — so the dots take the value ramp and the row labels go to ink.
+Without that, a low-Age dot and the Age row would be the same blue for two
+unrelated reasons. The rule is written into the token's own comment.
+
+And it reads: on `Cr` the blues sit left and the reds right, on `EF` that
+inverts — low ejection fraction pushes the risk **up** — and on `Age` young is
+left. That is the relationship, and no arrangement of grey dots could show it.
+
+**`runLabel` now takes the map form `stepLabel` always had** (`widgets/core/`).
+It was the only drive label that did not, and the reasoning in core's own comment
+applies to it identically: a widget whose tabs run genuinely different nouns
+cannot obey 3.4c with one word. `resolveLabel` on a plain string returns the
+string, so no existing widget moves; `runLabel: null` still declines the button,
+because that check is on the raw value.
+
+**The temporal-dead-zone trap the file header warns about, hit for real.**
+`G_ORDER` ranks the swarm's rows from `GLOBAL.runMean` at module-eval time, and
+`GLOBAL` was declared below it — *Cannot access 'GLOBAL' before initialization*,
+a blank canvas, and no widget at all. It lives above the geometry section now.
+`gameFromModel` is a function DECLARATION and hoists, which is the only reason
+calling it from `GLOBAL` works; making it a `const` arrow would break the file at
+load.
+
+Verified: 60 patients x 2 canvas widths on the individual page, six build stages
+on the global one, plus the game page's defaults and extremes — 0 overflows,
+collisions or labels-on-markers. Core changed, so the **full fingerprint suite
+ran: all 268 states identical.**
+
+**The page switch is `display: true`**, deliberately: the animation's whole
+state is one index into six walks of three arrivals, and that index means the
+identical thing on both pages. Stop halfway through the fourth order, change
+page, and the same walk is halfway through against a different game. Resetting
+would make the tab a restart instead of a comparison. It survives round 13
+because `game` and `one` still run the same walk;
+`all` runs a different animation, and `animation.rebuild` — which core calls on
+exactly this kind of change — empties the pile when the KIND changes rather than
+reinterpreting a walk index as a patient count. `patient` is data and does reset.
+
+Owed before it ships: a colour role for "one of the p players" (the draft
+borrows `--c-cluster-a/b/c`, whose documented meaning is "groups nobody
+assigned", which a chosen player is not); fingerprint states including a driven
+one; the notebook link; and judging projected. **The true outcome is
+deliberately absent from page 2** — SHAP explains the model's output, and
+printing "this one died" beside it invites the reading that a wrong prediction
+has a wrong explanation.
+
+**Fixed, 2026-09-01 — the near-tie labels** that page 1 left as "known, not
+fixed". Page 2 forces the issue: this patient's `{EF}` is 38.8 and `{Age}` 36.9,
+nine pixels apart in the same column, and no leader line can distinguish two
+dots at the same place. The rule generalises from "equal value" to
+"indistinguishable on this axis" — **CLEAR** is a dot's radius plus half the
+9px ink, two dots can hold separate labels only if they are `2 x CLEAR` apart,
+and a merged cluster gets **one short line per member stacked above the top
+dot** rather than one long joined line. Joining read fine for two and broke for
+three: patient 1 puts all three pairs within 10px and
+`"Age+EF 31.8 · Age+Cr 29.3 · EF+Cr 28.7"` is 250px of label across a 155px
+column. A block then reaches further up than the single line it was sized for
+and can hit the dot above, so placement runs, finds what did not fit, merges it
+upward and runs again. Verified over **all 60 patients x 3 canvas widths**, plus
+page 1's default and extreme games, for overflow, label collision and
+label-over-marker: 0 failures. Page 1's own labels are byte-identical; two of
+them merely moved 4px into the free band they were overlapping.
+
+**Fixed, 2026-09-01 — the bottom half at narrow widths.** Candidate 3 gives the
+walks table the left half and the bars the right, which is what trebles the
+bars' travel at 770px. At 550 — **the width every fingerprint state is hashed
+at** — the same rule left the bars 13px of half-span on page 1 and 4px on page
+2, with page 2's sublabel 42px off the right edge. Below 700 the two blocks
+stack instead and the canvas grows from 530 to 620; the wide reading is
+untouched. The badge also got its own gutter: a long negative bar puts its
+number just left of the bar, which cleared a one-letter badge by 4px and landed
+on a three-letter one. Two lanes, so the clearance is structural rather than a
+coincidence of two constants. Reserving both ends of the bar unconditionally
+then cost a third of the travel, so only the end a bar actually reaches pays for
+its label — one of the two fractions is always exactly 1.
+
+### The lab pages, and what each settled
+
+| page | what it is for |
+|---|---|
+| `_lab/shap-explainer.html` | **the live prototype** page 1 grew from — six dividend sliders, the grid, the walk, and a six-step derivation ending at the one-line rule. Carries the assertions: the plane's flatness, the A&C ≡ B&C swap, and the general rule against the six-walk average |
+| `_lab/shap-mock.html` | round 0 — the notebook's model measured, the collapse in three panels, the waterfall against the coefficient, the beeswarm |
+| `_lab/shap-coalitions.html` | seven ways to draw eight coalitions, compared on one page: path plot · cube · ordering tree · weighted bars · 6×3 matrix · running mean · rows and lattice |
+| `_lab/shap-groups.html` | the notebook figure animated — the stand-in deal, his 2×2 in motion, the queue |
+| `_lab/shap-design{,2,3,4}.py` | the measurements above |
+| `_lab/shap-page2-ref.py` | **generates `widgets/shap/model.js`** — fits both models, writes only the forest's v(S), and prints the LR collapse and the forest's spread so the decision above stays checkable. No pandas: the CSV is twelve columns and `csv` reads it in the same row order, so the stratified split is bit-identical |
+
 ## Widget 37 · `mlp` — Neural Networks (MLP) · SHIPPED 2026-08-31
 
 **Arc A's last slot, and the arc is now complete.** PHM5005 `04-3 Tour of

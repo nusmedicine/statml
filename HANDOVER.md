@@ -1,8 +1,20 @@
 # Handover
 
-**Thirty-seven widgets shipped — 36 on the gallery, `roc-auc` UNLISTED
-(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 268
-fingerprint states recorded.** Widget 37 `mlp` **Neural Networks (MLP)**
+**Thirty-eight widgets shipped — 37 on the gallery, `roc-auc` UNLISTED
+(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 275
+fingerprint states recorded.** Widget 38 `shap` **Explaining a
+Prediction** (PHM5005 `04-5 Model Explanation`) shipped 2026-09-01 after
+sixteen review rounds: two pages and three tabs — an abstract three-player
+game whose six dividend sliders ARE the game, then the random forest 04-5
+declares and never fits, explained for one held-out patient and then for
+all sixty. It is the first widget for that notebook. **THE LAB PAGE IS
+EMPTY**: nothing is in draft. Catalogue § Widget 38 carries all sixteen
+rounds; four core changes came out of it — a new `--c-value-low/high`
+colour role, `runLabel` taking the map form `stepLabel` had, a hidden
+control no longer choosing a drive label, and sections rendering their
+`detail`.
+
+Widget 37 `mlp` **Neural Networks (MLP)**
 shipped and PUSHED 2026-08-31 after ten review rounds across two days,
 and **ARC A IS COMPLETE**: every algorithm-family slot of PHM5005 `04-3`
 is built. Widget 36 `naive-bayes` shipped 2026-08-30, widget 35
@@ -1615,6 +1627,32 @@ is what you SEE, and a control's own label is not a reading of the figure.
 **Run the full suite when you touch `widgets/core/`.** That is the only kind of
 change that can reach a widget you are not looking at. A run takes about five
 minutes.
+
+**THE SUITE IS FLAKY FOR FUNCTION-HEIGHT WIDGETS, and the flakiness has a
+signature.** Five runs of the SAME code on 2026-09-01 reported 0, 6, 0, 4 and 8
+differing states, drawn from `lm-adjustment`, `roc-auc` and `naive-bayes` — all
+three of which compute `height` as a FUNCTION of the parameters or the width, so
+their canvas is sized by a ResizeObserver callback, and the browser suspends the
+rendering lifecycle for an offscreen iframe (worse when the pane is hidden).
+
+**Three tells, and all three must point the same way before you believe a
+DIFFER:**
+
+1. **`tx` is unchanged and only `px` moves.** The text of the figure is
+   identical and only the pixels differ — the drawing did not change, the
+   SURFACE did. A real rendering change almost always moves both, and a change
+   that moves only `px` should be one you can name.
+2. **The set varies between runs.** Run it again. A regression is the same
+   states every time; noise is not.
+3. **The code you touched cannot reach them.** `lm-adjustment` declines both
+   drive buttons (`stepLabel: null`, `runLabel: null`), so a change to the label
+   resolver — the suspect at the time — could not run there at all.
+
+Run with the pane VISIBLE and do not poll it from another tab: switching tabs
+mid-run backgrounds the harness and is itself a cause. **Read the code before
+rebaselining anything.** Fixing this properly means having the harness wait for
+the canvas to settle before it hashes, which is a change to `fingerprint.html`
+and has not been made.
 
 Three kinds of state:
 

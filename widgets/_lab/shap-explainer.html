@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 38 shap — page 1, the game with A B C</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); line-height: 1.55; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 8px 0 0; max-width: 800px; line-height: 1.5; }
+  .ctl { display: flex; gap: 6px; margin: var(--sp-2) 0; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; font-size: var(--fs-sm); padding: 4px 11px; border-radius: 5px;
+           border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  button.on { border-color: var(--c-empirical); color: var(--c-empirical); }
+  button.pri { background: var(--c-empirical); border-color: var(--c-empirical); color: var(--surface-1); }
+  button.perm { font-family: var(--font-mono); letter-spacing: 1px; }
+  .ctl span.lbl { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 2px 0 8px; }
+  label.sl { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-sm); }
+  label.sl .nm { font-family: var(--font-mono); color: var(--ink-2); min-width: 26px; text-align: right; }
+  label.sl .val { font-family: var(--font-mono); color: var(--ink-1); min-width: 28px; }
+  label.sl input[type=range] { width: 86px; accent-color: var(--c-empirical); }
+  table.grid { border-collapse: separate; border-spacing: 3px; margin: var(--sp-2) 0 0; }
+  table.grid th, table.grid td { padding: 0; }
+  table.grid th { font-weight: 400; font-size: 11px; color: var(--ink-2); text-align: center; padding-bottom: 2px; }
+  table.grid th.rw { text-align: right; padding-right: 8px; white-space: nowrap; line-height: 1.25; }
+  table.grid th.rw .q { font-family: var(--font-mono); color: var(--ink-3); font-size: 10px; }
+  table.grid td.ax { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); text-align: left; }
+  button.cell { width: 148px; display: flex; flex-direction: column; align-items: flex-start;
+                gap: 1px; padding: 5px 8px; border-color: var(--grid); }
+  button.cell .nm { font-size: 11px; color: var(--ink-1); }
+  button.cell .sc { font-family: var(--font-mono); font-size: 15px; color: var(--ink-1); }
+  button.cell.on { border-color: var(--c-highlight); box-shadow: 0 0 0 1px var(--c-highlight); }
+  p.detail { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 92ch; }
+  p.detail b { color: var(--ink-1); }
+  table.grid th.live, table.grid th[data-col].live { color: var(--c-highlight); }
+  table.grid th.live .q { color: var(--c-highlight); }
+  p.gridhead { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 0; max-width: 96ch; }
+  p.gridhead b { color: var(--ink-1); }
+  p.scores { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 0;
+             padding: 8px 10px; border: 1px solid var(--grid); border-radius: 6px;
+             background: var(--surface-1); }
+  p.scores .lab { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin-right: 4px; }
+  p.scores .chip { display: inline-flex; width: 22px; height: 22px; border-radius: 50%;
+                   align-items: center; justify-content: center; color: var(--surface-1);
+                   font-weight: 600; font-size: 12px; }
+  p.scores .v { font-family: var(--font-mono); font-size: 17px; color: var(--ink-1); margin-right: 10px; }
+  p.scores .tot { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  p.legend { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 96ch; line-height: 1.5; }
+  p.legend b { color: var(--ink-1); }
+  p.legend .m { font-family: var(--font-mono); color: var(--ink-3); font-size: 11px; }
+  p.flat { font-size: 11px; font-family: var(--font-mono); color: var(--ink-3);
+           border-left: 3px solid var(--c-empirical); padding-left: 9px; margin: 8px 0 0; max-width: 92ch; }
+  p.flat b { color: var(--ink-1); }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-3) 0; }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.n { font-family: var(--font-mono); text-align: right; }
+  table.m tr.live td { background: color-mix(in srgb, var(--c-highlight) 16%, transparent); }
+  table.m tr.live td:first-child { box-shadow: inset 3px 0 0 var(--c-highlight); }
+  /* the house pattern: raw MathML in a .w-math card (widget 14 onward). The
+     fingerprint's tx hash reads .w-math's textContent, which is why an equation
+     lives in the DOM here and never on the canvas. */
+  .w-math { margin: 10px 0 0; padding: 12px 10px; background: var(--surface-1);
+            border: 1px solid var(--grid); border-radius: 6px; color: var(--ink-1);
+            font-size: var(--fs-xs); line-height: 1.55; }
+  .w-math math { font-size: 1.5em; }
+  .w-math .row { margin: 0 0 6px; }
+  .w-math .row:last-child { margin-bottom: 0; }
+  .w-math-note { margin: 4px 0 0; color: var(--ink-3); font-size: var(--fs-xs); }
+  .w-math .fb { font-family: var(--font-mono); font-size: 13px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 38 &middot; page 1 &mdash; the game, with A B C</h1>
+
+  <p class="note">
+    Kenneth, 2026-08-31: <i>&ldquo;simplify first &mdash; an explainer page where we animate using A, B, C
+    with circles like in the diagram&hellip; animate any permutations&hellip; link it to the path diagram.
+    Once they understand it, another page with example data.&rdquo;</i>
+  </p>
+  <p class="note">
+    So: <b>no patients, no model, no features &mdash; three players and a payout</b>, exactly as
+    <code>04-5</code> introduces it. One figure, two halves. On the left your diagram, in motion:
+    the players queue up and walk into the coalition one at a time. On the right the path diagram,
+    <b>drawn by the walking</b> &mdash; each arrival adds a node and an edge, so by the end the reader has
+    built the lattice rather than been shown one. Six walks, six routes, and the Shapley value is
+    the average of a column.
+  </p>
+  <p class="note">
+    <b>The game is a GRID, not a menu.</b> A player's relation to the rest is exactly two things:
+    what it brings <i>alone</i>, and what it creates <i>with</i> somebody. Three settings each is
+    nine cells, and every named case is one of the nine; the sliders underneath reach everything
+    between. <b>The left column is what a linear model looks like</b> &mdash; with no pair term the
+    six orderings always agree, and one square right or left they disagree by exactly the size of
+    the pair dividend. That is page 2's central claim, visible as a column.
+  </p>
+  <p class="note">
+    <b>WHICH pair interacts is the third control, and the three settings are three different
+    lessons, not three repetitions.</b> Put the interaction on <i>A and C</i> or on <i>B and C</i>
+    and the nine numbers are <b>identical</b> &mdash; only half the dividend moves to whichever of A
+    and B is now in the group, because C never notices which partner it has, only that it has one.
+    <b>That is symmetry, triggered rather than asserted.</b> Put it on <i>A and B</i> instead and
+    the three columns collapse to one: <b>a dividend you are not in is not yours</b>, whatever its
+    size. The cells rename themselves in each case, so no label ever says &ldquo;beside A&rdquo;
+    while the interacting pair is B and C.
+  </p>
+
+  <div id="stage"></div>
+
+  <h2>&ldquo;Don't we need the other pairs too?&rdquo;</h2>
+  <p class="note">
+    <b>Half of that question is now a control</b> &mdash; press <i>A and C</i> against <i>B and C</i>
+    and watch the nine numbers not move. A game where B and C interact is a game where A and C
+    interact, relabelled; the same symmetry that makes &ldquo;A does nothing&rdquo; and &ldquo;C does
+    nothing&rdquo; one case, applied to pairs instead of players. It is checked on screen rather than
+    claimed here.
+  </p>
+  <p class="note">
+    <b>The other half cannot be a control, and it is the more important one:</b> what about two
+    interactions at once? The grid only ever has one pair live.
+  </p>
+  <p class="note">
+    <b>It is not a new phenomenon, because the score is LINEAR in the dividends.</b> <code>&#x3D5;<sub>i</sub></code> is a sum over the groups containing <i>i</i>,
+    and each term is that group's own dividend divided by its size &mdash; so turning up A&amp;C does
+    exactly one thing to exactly two scores, and turning up B&amp;C at the same time does its own one
+    thing on top. They never combine into a third effect. That is the notebook's fourth axiom,
+    <b>additivity</b>, and it is the one the other three sections do not reach.
+  </p>
+  <p class="note">
+    <b>And it is visible in the grid, which is why the cells carry &phi;<sub>C</sub> as a shade.</b>
+    The nine numbers are an exact plane: every step down a row is &minus;30, every step to the bonus
+    column is +15 and to the penalty column &minus;15, <i>whichever row you are on</i>. No cell
+    deviates. A surface that flat is one you only need two edges of &mdash; which is precisely why a
+    two-dial slice teaches the whole seven-number space, and why the sliders underneath are enough
+    for everything in between.
+  </p>
+  <p class="note">
+    Where the four axioms live on this page, since the notebook states all four and demonstrates
+    none: <b>efficiency</b> is step 5 &middot; <b>symmetry</b> is the <i>complements</i> cell, where
+    the bonus splits evenly &middot; <b>dummy</b> is <i>adds nothing</i>, which scores exactly zero
+    &middot; <b>additivity</b> is the flatness just described.
+  </p>
+
+  <h2>One group at a time &mdash; the general statement</h2>
+  <p class="note">
+    <b>It is not &ldquo;fix everything except one player&rdquo;</b> &mdash; that is a different and
+    weaker claim. A dividend belongs to a <i>group</i>, not to a player, and what the grid varies is
+    two groups: <code>{C}</code> down the rows and <code>{A,C}</code> across the columns. Varying
+    <code>{B}</code> and <code>{B,C}</code> instead redraws the same nine cells with the letters
+    swapped, because the Shapley value does not know the players' names.
+  </p>
+  <p class="note">
+    The general statement is simpler than either, and it is the whole theory:
+  </p>
+  <p class="note" style="font-size:var(--fs-md);color:var(--ink-1);border-left:3px solid var(--c-highlight);padding-left:12px">
+    Every game is a stack of <b>one-group games</b>. A one-group game says
+    &ldquo;this group, all together, creates <i>m</i>&rdquo; &mdash; and its Shapley value is
+    <b>m/k to each of the k members, and zero to everybody else</b>. Scores add across the stack.
+  </p>
+  <p class="note">
+    Both halves of that are axioms you have already watched: <b>additivity</b> is why the stack adds,
+    <b>symmetry</b> is why the split inside a group is equal. So you never need two groups at once,
+    and two groups of the same size are the same lesson &mdash; <b>the only thing that distinguishes a
+    group is its size</b>. Three players have groups of size 1, 2 and 3, so three axes would be a
+    complete picture; the grid carries the first two, and the third splits three ways and teaches
+    no new kind, which is why it is held at zero.
+  </p>
+  <table class="m" id="sizes"></table>
+  <p class="note">
+    <b>And this is the bridge to page 2.</b> A LINEAR MODEL is exactly the game whose every group of
+    size 2 or more has dividend zero &mdash; the grid's <i>left column</i>, generalized. Nothing is
+    ever created jointly, so <code>&#x3D5;<sub>i</sub></code> is just that feature's own term, every
+    ordering agrees, and the whole apparatus collapses to one multiplication. That is not a
+    coincidence about notebook <code>04-5</code>; it is what &ldquo;linear&rdquo; means in this
+    language.
+  </p>
+
+  <h2>&ldquo;So we ADD players, and not subtract them?&rdquo;</h2>
+  <p class="note">
+    Both &mdash; they are the same subtraction seen from opposite ends. Your figure holds a
+    coalition WITH player 1 beside the same coalition WITHOUT, and takes the difference. The walk
+    above starts from the coalition without, lets the player in, and shows the payout move. <b>The
+    step you watch IS your subtraction.</b> The card under the figure prints it in your notation at
+    every arrival, so the two readings are never more than one line apart.
+  </p>
+  <p class="note">
+    Adding is the right way round for the <i>animation</i>, for two reasons that removal cannot
+    match. <b>One walk produces all three players' contributions at once</b> &mdash; three steps, three
+    numbers, one row of the table &mdash; where removal needs a separate before-and-after pair for each
+    of the twelve (player, coalition) combinations. And <b>efficiency is only visible on a walk</b>:
+    every route starts at v({ }) and ends at v({A,B,C}), so the steps must sum to the difference.
+    A removal figure has no route in it.
+  </p>
+
+  <h2>Next: from six walks to three Shapley scores</h2>
+  <p class="note">
+    Six steps. The third <b>is your second figure</b>, rebuilt out of the table rather than drawn by
+    hand; the sixth is the general rule, which turns out to be <b>the six sliders divided up</b>.
+    Press <b>Next step</b>.
+  </p>
+  <div id="derive"></div>
+
+  <h2>All nine cells, and why nine is the right number</h2>
+  <p class="note">
+    <b>There is no finite set of &ldquo;all combinations&rdquo; to enumerate</b> &mdash; a three-player
+    game is seven free numbers, so the space is continuous. What makes the grid non-arbitrary is
+    the <b>parameterisation</b>, not the count: any such game is what each player brings alone plus
+    what each pair creates on top (plus a trio term, held at zero here). Those are the Harsanyi
+    dividends, and the Shapley value written in them is one line &mdash; <b>every extra is split
+    equally among whoever made it</b>, which is step 6 above. Two dividends, three signs each,
+    <b>nine cells; the sliders are the continuum between them.</b>
+  </p>
+  <p class="note">
+    Note what does NOT need a cell. <b>&ldquo;A does nothing&rdquo; is &ldquo;C does nothing&rdquo;
+    with the circles renamed</b> &mdash; relabelling players is a symmetry of the game, not a new case,
+    so a widget carrying both would teach one thing twice while looking like it taught two. And
+    <b>&phi;<sub>B</sub> is 20 in all nine rows below</b>: B is in no dividend that any cell changes,
+    which is the same fact said from the other side.
+  </p>
+  <table class="m" id="games"></table>
+
+  <p class="note" id="foot"></p>
+</main>
+
+<script type="module">
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const L = ["A", "B", "C"];
+const COL = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c"];
+const SUBSETS = [[],[0],[1],[2],[0,1],[0,2],[1,2],[0,1,2]];
+const PERMS = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+const key = S => S.length ? S.slice().sort().join("") : "-";
+const nm  = S => "v({" + S.slice().sort().map(i=>L[i]).join(",") + "})";
+
+/* THE GAME IS SIX NUMBERS, NOT A MENU.
+   Any three-player game can be written as: what each player brings ALONE, plus
+   what each PAIR creates over and above that (plus a trio term, held at 0 here).
+   Those six numbers are the Harsanyi dividends, and the Shapley value in terms
+   of them is one line — every dividend is split equally among whoever created it:
+
+       phi_i = solo_i + (1/2) * sum over j of pair_ij
+
+   So the named games below are POSITIONS OF SIX SLIDERS, not a list to learn. */
+/* opens on the grid's top-left cell, so a cell is always lit */
+const STATE = { solo: [30,20,30], pair: {"01":0,"02":0,"12":0} };
+/* NOT A LIST — A GRID. The dividend parameterisation says a player's relation to
+   the rest is exactly two signs: what it brings ALONE, and what it creates WITH
+   somebody. Three values each (+ / 0 / -) is nine games, and every named case in
+   the literature is one of the nine. A and B are held fixed at +30 and +20 with
+   no synergy, so only C's two dials move — and B's score never budges, which is
+   itself the lesson that a score depends only on the dividends you are in. */
+const SOLO_C = [30, 0, -30], PAIR_AC = [0, 30, -30];
+/* WHICH PAIR carries the interaction is the third choice — Kenneth, 2026-08-31,
+   so symmetry is something the reader triggers rather than reads. Three settings
+   x nine cells, and the three grids are NOT three repetitions:
+     A&C  the columns move C's score
+     B&C  numerically IDENTICAL for phi_C — only A's and B's scores trade places
+     A&B  the columns go inert for phi_C, because C is not in that group
+   Switching moves the interaction's SIZE to the new pair and clears the old, so
+   the three are the same dividend on different members and nothing else. */
+const PAIRS = [
+  { k: "01", lab: "A and B", inC: false },
+  { k: "02", lab: "A and C", inC: true },
+  { k: "12", lab: "B and C", inC: true },
+];
+let pairIdx = 1;
+const pairKey = () => PAIRS[pairIdx].k;
+/* C is player 2. Its partner is the other member of the chosen pair — or nobody,
+   when the chosen pair is A&B. Every cell string carries {P} for that letter, so
+   a label can never say "beside A" while the interacting pair is B and C. */
+const partner = () => PAIRS[pairIdx].inC ? (pairKey() === "02" ? "A" : "B") : null;
+/* when C is not in the pair the columns say nothing about C, so the cells stop
+   describing C's relationship and describe the pair's own */
+const COLS_NO_C = [
+  { name: "no interaction", blurb: "Nobody's value depends on anybody else's." },
+  { name: "{X} and {Y} complement", blurb: "{X} and {Y} are worth more together than apart — and none of it reaches C." },
+  { name: "{X} and {Y} duplicate", blurb: "{X} and {Y} do the same job, so having both is worth no more than one — and none of it reaches C." },
+];
+function cellInfo(r, c){
+  const P = partner();
+  const sub = t => t.replace(/\{P\}/g, P || "?")
+                    .replace(/\{X\}/g, PAIRS[pairIdx].lab.split(" and ")[0])
+                    .replace(/\{Y\}/g, PAIRS[pairIdx].lab.split(" and ")[1]);
+  if (P) { const g = GRID[r][c]; return { name: sub(g.name), blurb: sub(g.blurb), teaches: sub(g.teaches) }; }
+  const g = COLS_NO_C[c];
+  return { name: sub(g.name), blurb: sub(g.blurb),
+    teaches: "A DIVIDEND YOU ARE NOT IN IS NOT YOURS. C's score is the same in all three columns, "
+      + "because C is not a member of the group the columns are paying." };
+}
+const ROW_LAB = ["C is worth something alone", "C is worth nothing alone", "C costs something alone"];
+const COL_LAB = ["nothing extra", "a bonus", "a penalty"];
+const GRID = [
+  [ { name: "no interaction",
+      blurb: "Nobody's value depends on anybody else's.",
+      teaches: "Every ordering gives the same answer, so the average has nothing to average — and this is the case a LINEAR MODEL is in." },
+    { name: "complements",
+      blurb: "C is worth something alone and worth more still beside {P}.",
+      teaches: "The bonus is split evenly: {P} and C each take half of what neither could have made alone. That even split is the SYMMETRY axiom." },
+    { name: "duplicates",
+      blurb: "C does the same job {P} does, so having both is worth no more than having one.",
+      teaches: "THE ONE THE CLINICAL DATA CANNOT SHOW: two redundant players SPLIT the credit, and each ends up looking half as important as either would alone. {P} drops from 30 to 15 without doing anything differently." } ],
+  [ { name: "adds nothing",
+      blurb: "C changes no coalition's payout, ever.",
+      teaches: "DUMMY: a player who adds nothing to any coalition scores exactly zero — not a small number, zero." },
+    { name: "only with {P}",
+      blurb: "C is worthless on its own but unlocks something alongside {P}.",
+      teaches: "A score can be positive for a player whose solo value is zero. All of C's 15 comes from half a bonus it could not have made without {P}." },
+    { name: "only costs",
+      blurb: "C brings nothing of its own and gets in {P}'s way.",
+      teaches: "A NEGATIVE SCORE WITHOUT A NEGATIVE SOLO VALUE — C is worth 0 alone and still scores below zero, because half the penalty is charged to it." } ],
+  [ { name: "subtracts",
+      blurb: "C lowers the payout of whatever it joins.",
+      teaches: "A SCORE CAN BE NEGATIVE, and on page 2 that is the ordinary case — a feature whose value pushes the prediction DOWN. None of the arithmetic changes; the bar points the other way and the three still sum to the whole." },
+    { name: "helped by {P}",
+      blurb: "C costs something alone, but pays back part of it beside {P}.",
+      teaches: "The two dials pull opposite ways and the score lands between them: -30 alone plus half a +30 bonus is -15." },
+    { name: "worse with {P}",
+      blurb: "C costs something alone and costs more again beside {P}.",
+      teaches: "Both dials point down, so the score is the lowest the grid reaches. The three scores still sum to the whole payout — efficiency does not care about signs." } ],
+];
+/* THE GRID OWNS EXACTLY TWO OF THE SIX DIALS — C's solo and the A&C pair. The
+   other four are context, and clicking a cell leaves them where the reader put
+   them, so the two controls compose instead of one clobbering the other. */
+const CANON = { soloA: 30, soloB: 20, pairAB: 0, pairBC: 0 };
+function cellState(r, c){
+  const pair = Object.assign({}, STATE.pair);
+  pair[pairKey()] = PAIR_AC[c];
+  return { solo: [STATE.solo[0], STATE.solo[1], SOLO_C[r]], pair };
+}
+/* phi_C at a cell, GIVEN the other four dials as they now stand. B&C shifts every
+   cell by half itself — the whole grid slides and none of it bends, which is
+   additivity said a third way. */
+/* phi_C at a cell: C's own solo, plus half of every pair C belongs to — the
+   chosen pair at this column's value, the other two as they stand. */
+function phiGridFor(pIdx){
+  const chosen = PAIRS[pIdx].k, carriedFrom = pairKey();
+  return [0,1,2].map(r => [0,1,2].map(c => {
+    let v = SOLO_C[r];
+    for (const P of PAIRS){
+      if (P.k.indexOf("2") < 0) continue;            /* C is player index 2 */
+      /* the chosen pair takes the column's value; the pair the interaction would
+         be CARRIED AWAY FROM goes to zero, exactly as pressing the button does —
+         forgetting that second half made the symmetry check double-count. */
+      const m = P.k === chosen ? PAIR_AC[c] : (P.k === carriedFrom ? 0 : STATE.pair[P.k]);
+      v += m / 2;
+    }
+    return v;
+  }));
+}
+const phiCat = (r, c) => phiGridFor(pairIdx)[r][c];
+/* the reference table at the foot is the CANONICAL grid, so it stays comparable */
+const PRESETS = GRID.flatMap((row, r) => row.map((g, c) => Object.assign({}, g, {
+  solo: [CANON.soloA, CANON.soloB, SOLO_C[r]],
+  pair: { "01": CANON.pairAB, "02": PAIR_AC[c], "12": CANON.pairBC }, r, c })));
+function vTable(g){
+  const out = {};
+  for (const S of SUBSETS){
+    let s = 0;
+    for (const i of S) s += g.solo[i];
+    for (let a=0;a<3;a++) for (let b=a+1;b<3;b++)
+      if (S.indexOf(a)>=0 && S.indexOf(b)>=0) s += g.pair[""+a+b];
+    out[key(S)] = s;
+  }
+  return out;
+}
+function shapley(V){
+  const phi = [0,0,0];
+  for (let i=0;i<3;i++){
+    const rest = [0,1,2].filter(k=>k!==i);
+    const sets = [[], [rest[0]], [rest[1]], rest], w = [1/3,1/6,1/6,1/3];
+    sets.forEach((S,q)=>{ phi[i] += w[q] * (V[key(S.concat([i]))] - V[key(S)]); });
+  }
+  /* SNAP THE FLOATING-POINT DUST. The weights are thirds and sixths, so a score
+     that should be 50 arrives as 49.999999999999993 — and a "is the fraction
+     near zero" test then reads its fraction as 0.99999 and prints "50.0".
+     Every score here is a multiple of 2.5, so six decimals is far past any real
+     value and short of any noise. */
+  return phi.map(v => Math.round(v * 1e6) / 1e6);
+}
+function rowOf(V, perm){
+  let cur = V["-"], S = [], d = [0,0,0];
+  for (const i of perm){ S = S.concat([i]); const n = V[key(S)]; d[i] = n - cur; cur = n; }
+  return d;
+}
+/* the shares the one-line rule hands out: a solo dividend goes whole to its
+   owner, a pair dividend is halved. Checked against shapley() every redraw. */
+function shares(i){
+  const out = [{ T: [i], m: STATE.solo[i], share: STATE.solo[i] }];
+  for (const j of [0,1,2]) if (j !== i){
+    const k2 = [i,j].sort().join("");
+    out.push({ T: [i,j].sort(), m: STATE.pair[k2], share: STATE.pair[k2]/2 });
+  }
+  return out;
+}
+/* a cell is matched on the two dials the grid owns, not on all six — otherwise
+   nudging an unrelated slider would un-light a cell the reader is still on */
+function matchedPreset(){
+  const r = SOLO_C.indexOf(STATE.solo[2]), c = PAIR_AC.indexOf(STATE.pair[pairKey()]);
+  const others = PAIRS.filter(P => P.k !== pairKey()).every(P => STATE.pair[P.k] === 0);
+  return (r < 0 || c < 0 || !others) ? -1 : r*3 + c;
+}
+/* ...and whether the other four are still at the canonical setting, which is
+   what the foot table shows */
+/* "off canonical" means the dials the GRID DOES NOT OWN have moved — so which
+   pair is currently chosen is not itself a departure. */
+const offCanon = () => STATE.solo[0] !== CANON.soloA || STATE.solo[1] !== CANON.soloB
+  || PAIRS.some(P => P.k !== pairKey() && STATE.pair[P.k] !== 0);
+
+/* ------------------------------ the figure --------------------------------- */
+const host = document.getElementById("stage");
+const ctl = document.createElement("div"); ctl.className = "ctl"; host.appendChild(ctl);
+const ctl2 = document.createElement("div"); ctl2.className = "ctl"; host.appendChild(ctl2);
+const W = 800, H = 520;
+const cv = document.createElement("canvas");
+const dpr = window.devicePixelRatio || 1;
+cv.width = W*dpr; cv.height = H*dpr; cv.style.width = W+"px"; cv.style.height = H+"px";
+host.appendChild(cv);
+const mathCard = document.createElement("div"); mathCard.className = "w-math"; host.appendChild(mathCard);
+const cap = document.createElement("p"); cap.className = "cap"; host.appendChild(cap);
+
+/* ---- MathML, with the house feature probe (widget 30's mathmlRenders) ------ */
+function mathmlRenders(){
+  if (typeof window.MathMLElement !== "function") return false;
+  const p = document.createElement("div");
+  p.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  p.innerHTML = '<math id="sx-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math id="sx-flat"><mn>1</mn></math>';
+  document.body.appendChild(p);
+  const h = id => p.querySelector("#"+id)?.getBoundingClientRect().height ?? 0;
+  const st = h("sx-frac"), fl = h("sx-flat"); p.remove();
+  return fl > 0 && st > fl*1.4;
+}
+const MATHML = mathmlRenders();
+const setC = S => "<mo>{</mo>" + S.slice().sort().map(i=>"<mi>"+L[i]+"</mi>").join("<mo>,</mo>") + "<mo>}</mo>";
+const setT = S => "{" + S.slice().sort().map(i=>L[i]).join(",") + "}";
+const vC   = S => "<mi>v</mi><mo>(</mo>" + setC(S) + "<mo>)</mo>";
+const vT   = S => "v(" + setT(S) + ")";
+const num  = n => "<mn>" + Math.abs(n) + "</mn>";
+const sgn  = n => n < 0 ? "<mo form=\"infix\">&#x2212;</mo>" : "<mo form=\"infix\">+</mo>";
+/* every equation ships a plain-text twin, so a browser without MathML still
+   reads a true sentence rather than a pile of loose numerals */
+function eq(ml, txt){ return MATHML ? "<math>" + ml + "</math>" : '<span class="fb">' + txt + "</span>"; }
+const PHI_L = "<msub><mi>&#x3D5;</mi><mi>i</mi></msub>";
+const FORMULA = eq(
+  "<mrow>" + PHI_L + "<mo>=</mo><munder><mo>&#x2211;</mo><mrow><mi>S</mi><mo>&#x2286;</mo><mi>N</mi>"
+  + "<mo>&#x2216;</mo><mo>{</mo><mi>i</mi><mo>}</mo></mrow></munder><mi>w</mi><mo>(</mo><mi>S</mi><mo>)</mo>"
+  + "<mo>[</mo><mi>v</mi><mo>(</mo><mi>S</mi><mo>&#x222A;</mo><mo>{</mo><mi>i</mi><mo>}</mo><mo>)</mo>"
+  + "<mo>&#x2212;</mo><mi>v</mi><mo>(</mo><mi>S</mi><mo>)</mo><mo>]</mo></mrow>",
+  "phi_i = sum over S subset of N\\{i} of w(S) [ v(S u {i}) - v(S) ]");
+const WEIGHT = eq(
+  "<mrow><mi>w</mi><mo>(</mo><mi>S</mi><mo>)</mo><mo>=</mo><mfrac>"
+  + "<mrow><mo>|</mo><mi>S</mi><mo>|</mo><mo>!</mo><mo>(</mo><mi>n</mi><mo>&#x2212;</mo><mo>|</mo><mi>S</mi>"
+  + "<mo>|</mo><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>!</mo></mrow><mrow><mi>n</mi><mo>!</mo></mrow>"
+  + "</mfrac></mrow>",
+  "w(S) = |S|! (n - |S| - 1)! / n!");
+const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr); ctx.textBaseline = "middle";
+const mono = s => s + "px " + css("--font-mono");
+const sans = s => s + "px " + css("--font");
+const ease = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+
+let perm = 0, k = 0, t = 0, playing = false, playAll = false, stepOnce = false, last = 0;
+let rows = new Array(6).fill(null);
+let V = vTable(STATE), PHI = shapley(V);
+
+function btn(bar, label, cls, fn){
+  const b = document.createElement("button"); b.textContent = label;
+  if (cls) b.className = cls; b.onclick = fn; bar.appendChild(b); return b;
+}
+function lbl(bar, text){
+  const s = document.createElement("span"); s.className = "lbl"; s.textContent = text; bar.appendChild(s);
+}
+/* SIX SLIDERS, and the named games are positions of them. */
+const ctl0 = document.createElement("div"); ctl0.className = "ctl";
+host.insertBefore(ctl0, ctl);
+const sliders = [];
+function slider(bar, label, get, set){
+  const w = document.createElement("label"); w.className = "sl";
+  const nm2 = document.createElement("span"); nm2.className = "nm"; nm2.textContent = label;
+  const inp = document.createElement("input");
+  inp.type = "range"; inp.min = -40; inp.max = 60; inp.step = 5; inp.value = get();
+  const show = v => (v > 0 ? "+" : "") + v;
+  const out = document.createElement("span"); out.className = "val"; out.textContent = show(get());
+  inp.oninput = () => { set(+inp.value); out.textContent = show(+inp.value);
+    V = vTable(STATE); PHI = shapley(V); syncPresets(); reset(); refreshDerive(); };
+  w.append(nm2, inp, out); bar.appendChild(w);
+  sliders.push(() => { inp.value = get(); out.textContent = show(get()); });
+}
+lbl(ctl0, "brings alone");
+[0,1,2].forEach(i => slider(ctl0, L[i], () => STATE.solo[i], v => STATE.solo[i] = v));
+lbl(ctl0, "extra together");
+[["01","A&B"],["02","A&C"],["12","B&C"]].forEach(([k2, nm2]) =>
+  slider(ctl0, nm2, () => STATE.pair[k2], v => STATE.pair[k2] = v));
+
+/* THE GRID AS A SHADED MATRIX, which is the repo's own `matrix` control shape.
+   The shade is phi_C, the score of the player whose two dials these are — and it
+   comes out an EXACT PLANE: row effect plus column effect, no cell deviating.
+   That flatness is not decoration, it is the additivity axiom, and it is the
+   answer to "don't we need every other pair too?" — see the section below. */
+const gb = [], cellDetail = document.createElement("p"), flat = document.createElement("p"),
+      legend = document.createElement("p"), scores = document.createElement("p");
+const pairBar = document.createElement("div"); pairBar.className = "ctl";
+const colAx = document.createElement("td");
+{
+  lbl(pairBar, "which pair interacts");
+  PAIRS.forEach((P, i) => {
+    const b = document.createElement("button");
+    b.textContent = P.lab; b.className = i === pairIdx ? "on" : "";
+    b.onclick = () => {
+      /* carry the interaction's size across to the new pair, clear the old one,
+         so the three grids differ only in WHO is in the group */
+      const carried = STATE.pair[pairKey()];
+      STATE.pair[pairKey()] = 0;
+      pairIdx = i;
+      STATE.pair[pairKey()] = carried;
+      [...pairBar.querySelectorAll("button")].forEach((x,q)=>x.className = q===i ? "on" : "");
+      V = vTable(STATE); PHI = shapley(V);
+      sliders.forEach(f=>f()); syncPresets(); reset(); refreshDerive();
+    };
+    pairBar.appendChild(b);
+  });
+  const tb = document.createElement("table"); tb.className = "grid";
+  const head = document.createElement("tr");
+  colAx.className = "ax"; colAx.colSpan = 3;
+  head.innerHTML = "<td></td>"; head.appendChild(colAx);
+  tb.appendChild(head);
+  const head2 = document.createElement("tr");
+  head2.innerHTML = "<td class='ax'>what C brings ALONE &darr;</td>"
+    + COL_LAB.map((t, c) => "<th data-col='" + c + "'>" + t
+        + "<br><span class='q'>" + (PAIR_AC[c] > 0 ? "+" : "") + PAIR_AC[c] + "</span></th>").join("");
+  tb.appendChild(head2);
+  GRID.forEach((row, r) => {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th"); th.className = "rw"; th.dataset.row = r;
+    th.innerHTML = ROW_LAB[r] + "<br><span class='q'>" + (SOLO_C[r] > 0 ? "+" : "") + SOLO_C[r] + "</span>";
+    tr.appendChild(th);
+    row.forEach((g, c) => {
+      const td = document.createElement("td");
+      const b = document.createElement("button"); b.className = "cell";
+      b.dataset.r = r; b.dataset.c = c;
+      b.onclick = () => {
+        const st = cellState(r, c);
+        STATE.solo = st.solo.slice(); STATE.pair = Object.assign({}, st.pair);
+        V = vTable(STATE); PHI = shapley(V);
+        sliders.forEach(f=>f()); syncPresets(); reset(); refreshDerive();
+      };
+      gb.push(b); td.appendChild(b); tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  const gridHead = document.createElement("p"); gridHead.className = "gridhead";
+  gridHead.innerHTML = "<b>PICK A GAME.</b> Every cell is a different game, not a summary of the one "
+    + "you are in &mdash; the number is what C <i>would</i> score there. The game you have actually set "
+    + "is the ringed cell, and its three scores are on the strip below.";
+  host.insertBefore(gridHead, ctl0);
+  host.insertBefore(pairBar, ctl0);
+  host.insertBefore(tb, ctl0);
+  legend.className = "legend";
+  host.insertBefore(legend, ctl0);
+  scores.className = "scores";
+  host.insertBefore(scores, ctl0);
+  cellDetail.className = "detail";
+  host.insertBefore(cellDetail, ctl0);
+  flat.className = "flat";
+  host.insertBefore(flat, ctl0);
+}
+/* THE CELLS ARE LIVE. Each shows phi_C as it would be if C's two dials were set
+   to that cell, with the other four sliders exactly where they now are — so the
+   grid answers "what would happen if" rather than reciting a fixed table. */
+function refreshGrid(){
+  let worst = 0;
+  const g9 = [0,1,2].map(r => [0,1,2].map(c => phiCat(r, c)));
+  for (let r=0;r<3;r++) for (let c=0;c<3;c++)
+    worst = Math.max(worst, Math.abs(g9[r][c] - (g9[r][0] + g9[0][c] - g9[0][0])));
+  gb.forEach(b => {
+    const r = +b.dataset.r, c = +b.dataset.c, v = phiCat(r, c);
+    b.style.background = "color-mix(in srgb, var(" + (v >= 0 ? "--c-event" : "--c-nonevent")
+      + ") " + Math.round(Math.min(1, Math.abs(v)/45) * 62) + "%, transparent)";
+    b.innerHTML = "<span class='nm'>" + cellInfo(r, c).name + "</span><span class='sc'>"
+      + fmtS(v) + "</span>";
+  });
+  colAx.innerHTML = "what " + PAIRS[pairIdx].lab.toUpperCase() + " create TOGETHER &rarr;";
+  /* THE HEADERS ARE OPTIONS, NOT READOUTS — their numbers are what clicking that
+     row or column would SET a slider to, which is why the live pair must be
+     marked. Without it "+30 / 0 / -30" beside a C slider reading 0 looks like a
+     contradiction rather than a menu with the middle item chosen. */
+  const mrow = SOLO_C.indexOf(STATE.solo[2]), mcol = PAIR_AC.indexOf(STATE.pair[pairKey()]);
+  document.querySelectorAll("th.rw").forEach(t => t.classList.toggle("live", +t.dataset.row === mrow));
+  document.querySelectorAll("th[data-col]").forEach(t => t.classList.toggle("live", +t.dataset.col === mcol));
+  legend.innerHTML =
+    "<b>row</b> sets C's own slider <span class='m'>(now " + fmtS(STATE.solo[2]) + ")</span>"
+    + " &nbsp;·&nbsp; <b>column</b> sets the " + PAIRS[pairIdx].lab + " slider "
+    + "<span class='m'>(now " + fmtS(STATE.pair[pairKey()]) + ")</span>"
+    + " &nbsp;·&nbsp; <b>the number in a cell is C's SCORE &phi;<sub>C</sub></b>, which is the two "
+    + "combined: " + fmtS(STATE.solo[2]) + " and half of " + fmtS(STATE.pair[pairKey()]) + " makes "
+    + "<b>" + fmtS(STATE.solo[2] + STATE.pair[pairKey()]/2) + "</b>."
+    + (mrow < 0 || mcol < 0 ? " <i>Off the grid — no row or column is the live one.</i>" : "");
+  /* the symmetry claim, checked rather than asserted: swapping the interacting
+     pair between the two that contain C must leave every cell alone */
+  const other = PAIRS.find(P => P.inC && P.k !== pairKey());
+  let swapDiff = 0;
+  if (other){
+    const cur = phiGridFor(pairIdx), alt = phiGridFor(PAIRS.indexOf(other));
+    for (let r=0;r<3;r++) for (let c=0;c<3;c++) swapDiff = Math.max(swapDiff, Math.abs(cur[r][c]-alt[r][c]));
+  }
+  const dead = !PAIRS[pairIdx].inC;
+  const outside = PAIRS.filter(P => P.inC && P.k !== pairKey() && STATE.pair[P.k] !== 0);
+  const shift = outside.reduce((a,P)=>a + STATE.pair[P.k]/2, 0);
+  flat.innerHTML = "each cell is <b>&phi;<sub>C</sub></b> if C's solo and this pair were set there, "
+    + "with the other sliders as they stand. "
+    + (dead
+       ? ("<b>The three columns are identical</b> — C is not in " + PAIRS[pairIdx].lab
+          + ", so that group's dividend cannot reach C's score. A dividend you are not in is not "
+          + "yours, whatever its size.")
+       : ("The nine are an exact plane — row value plus column value minus the corner, <b>largest "
+          + "deviation " + (Math.abs(worst) < 1e-12 ? 0 : worst) + "</b>."
+          + " Swap to " + other.lab + " and every cell is unchanged (<b>largest difference "
+          + (Math.abs(swapDiff) < 1e-12 ? 0 : swapDiff) + "</b>) — half the dividend simply moves to "
+          + "whichever of A and B is now in the group. C never notices which partner it has, only "
+          + "that it has one, and that is SYMMETRY."))
+    + (shift ? " " + outside.map(P=>P.lab).join(" and ") + " has slid the whole grid by <b>"
+               + fmtS(shift) + "</b> without bending it." : "");
+}
+function syncPresets(){
+  const m = matchedPreset();
+  gb.forEach((b,i)=> b.classList.toggle("on", i === m));
+  refreshGrid();
+  markLiveRow();
+  scores.innerHTML = "<span class='lab'>the game you have set &mdash; its three scores</span>"
+    + [0,1,2].map(i => "<span class='chip' style='background:var(" + COL[i] + ")'>" + L[i] + "</span>"
+        + "<span class='v'>" + fmtS(PHI[i]) + "</span>").join("")
+    + "<span class='tot'>together " + fmtS(PHI.reduce((a,b)=>a+b,0)) + " = v({A,B,C})</span>";
+  cellDetail.innerHTML = m >= 0
+    ? ("<b>" + cellInfo(PRESETS[m].r, PRESETS[m].c).name + "</b>"
+       + (offCanon() ? " (other dials moved)" : "") + " — " + cellInfo(PRESETS[m].r, PRESETS[m].c).blurb
+       + " &nbsp; scores: A " + fmtS(PHI[0]) + " · B " + fmtS(PHI[1]) + " · C " + fmtS(PHI[2]))
+    : ("<b>off the grid</b> — six sliders, and the scores follow: A " + fmtS(PHI[0])
+       + " · B " + fmtS(PHI[1]) + " · C " + fmtS(PHI[2]));
+}
+const fmtS = v => (v > 0 ? "+" : "") + (Math.abs(v % 1) < 1e-9 ? v : v.toFixed(1));
+/* the reference table below is the NINE CELLS, not the live state — so it marks
+   which cell the sliders are currently sitting on, and marks none when they are
+   off the grid. Without that it reads as a table that failed to update. */
+function markLiveRow(){
+  const tbl = document.getElementById("games"); if (!tbl) return;
+  const m = matchedPreset();
+  tbl.querySelectorAll("tr[data-cell]").forEach(tr => tr.classList.remove("live"));
+  if (m >= 0) tbl.querySelector("tr[data-cell='" + PRESETS[m].r + "-" + PRESETS[m].c + "']")
+                  ?.classList.add("live");
+}
+let refreshDerive = () => {};
+lbl(ctl2, "order");
+const pb = PERMS.map((p,i)=> btn(ctl2, p.map(q=>L[q]).join(""), "perm" + (i===0?" on":""), ()=>{
+  playAll = false; playing = false; perm = i; k = 0; t = 0; syncPerm(); draw();
+}));
+/* THE STEP TWEENS TOO — it starts the same flight the play loop runs and stops
+   after one arrival, so a reader who steps sees the group make room and the
+   ring open out, rather than a jump cut. */
+btn(ctl2, "Let one in", "", ()=>{
+  playAll = false;
+  if (k < 3){ k++; t = 0; stepOnce = true; playing = true; last = performance.now(); requestAnimationFrame(step); }
+  else if (perm < 5){ perm++; k = 0; t = 1; playing = false; syncPerm(); draw(); }
+});
+btn(ctl2, "Play all six", "pri", ()=>{
+  if (rows.every(r=>r)) reset();
+  playAll = true; playing = true; last = performance.now(); requestAnimationFrame(step);
+});
+btn(ctl2, "Reset", "", reset);
+function syncPerm(){ pb.forEach((b,i)=> b.className = "perm" + (i===perm?" on":"")); }
+function reset(){ playing = false; playAll = false; stepOnce = false; perm = 0; k = 0; t = 0;
+  rows = new Array(6).fill(null); syncPerm(); draw(); }
+function advance(){
+  if (k < 3){ k++; t = 0; return; }
+  if (playAll && perm < 5){ perm++; k = 0; t = 0; syncPerm(); }
+  else { playing = false; t = 1; }        /* hold the finished picture */
+}
+/* The row is recorded when the THIRD player LANDS, not when it sets off — and
+   the walk then holds for half a beat, so the completed coalition is a frame
+   the reader actually sees rather than one the next walk paints over. */
+function step(now){
+  const dt = Math.min(64, now - last); last = now;
+  t += dt / 700;
+  if (k === 3 && t >= 1 && !rows[perm]) rows[perm] = rowOf(V, PERMS[perm]);
+  if (t >= 1 && stepOnce){ stepOnce = false; playing = false; t = 1; }
+  else if (t >= (k === 3 ? 1.6 : 1)) advance();
+  draw();
+  if (playing) requestAnimationFrame(step);
+}
+
+/* one player: your circle, with the letter in it */
+function circle(x, y, i, r, dim){
+  ctx.save(); ctx.globalAlpha = dim ? 0.30 : 1;
+  ctx.fillStyle = css(COL[i]);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.fillStyle = css("--surface-1"); ctx.font = "600 " + sans(Math.round(r*0.95));
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(L[i], x, y + 1); ctx.textAlign = "left";
+  ctx.restore();
+}
+/* ONE RULE FOR THE OUTLINE, and it reproduces all three shapes in the notebook
+   figure: a dashed stadium hugging whatever is inside, cornered at half the
+   shorter side. One player is a square box, so it draws a CIRCLE; two stacked
+   are a tall box, so it draws the capsule; three in a triangle are near-square
+   again, so it draws a circle. Nothing is special-cased by count. */
+function enclosure(b){
+  ctx.save(); ctx.setLineDash([5,4]); ctx.lineWidth = 2; ctx.strokeStyle = css("--ink-1");
+  ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, Math.min(b.w, b.h)/2); ctx.stroke(); ctx.restore();
+}
+const R = 21, CXC = 96, CYC = 150, PAD = 13;
+/* the seats, in the figure's own arrangements: one in the middle, two stacked,
+   three as a triangle pointing right. THE TRIANGLE IS ISOSCELES WITH EQUAL
+   HALF-WIDTH AND HALF-HEIGHT (24, 24) — an equilateral one is 15% wider than
+   it is tall, so its outline came out as a slightly wide stadium sitting off
+   the group's centre. At a = b the outline is an exact circle. */
+const TRI = 24, STACK = 26;
+function seats(n){
+  if (n <= 1) return [[CXC, CYC]];
+  if (n === 2) return [[CXC, CYC-STACK], [CXC, CYC+STACK]];
+  return [[CXC-TRI, CYC-TRI], [CXC+TRI, CYC], [CXC-TRI, CYC+TRI]];
+}
+/* SYMMETRIC ABOUT THE CENTRE, not a bounding box of the seats: a triangle's
+   bounding box is not centred on the triangle, which is what pushed the ring
+   off. Half-extents are taken as the largest reach in each direction. */
+function boxOf(pts){
+  let hw = 0, hh = 0;
+  for (const q of pts){ hw = Math.max(hw, Math.abs(q[0]-CXC)); hh = Math.max(hh, Math.abs(q[1]-CYC)); }
+  hw += R + PAD; hh += R + PAD;
+  return { x: CXC-hw, y: CYC-hh, w: 2*hw, h: 2*hh };
+}
+const lerpBox = (a, b, f) => ({ x: a.x+(b.x-a.x)*f, y: a.y+(b.y-a.y)*f,
+                                w: a.w+(b.w-a.w)*f, h: a.h+(b.h-a.h)*f });
+const LABEL_Y = 250;            /* fixed, so a growing coalition never moves it */
+const QY = 300, QX = 40;
+const PX = [286, 424, 562, 700], PY0 = 62, PY1 = 268;
+
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  const P = PERMS[perm], p = t >= 1 ? 1 : ease(t);
+  /* SETTLED, not "so far": a player still in flight is visibly outside the box,
+     and a label reading v({A,B}) while B is mid-air is a false claim on screen. */
+  const inside = P.slice(0, p >= 1 ? k : Math.max(0, k - 1));
+  /* ---------------- left: the coalition, filling ---------------- */
+  /* s = how many have LANDED; f = the flight in progress. The seated players
+     ease toward the arrangement the newcomer will need, so the group visibly
+     makes room, and the outline is derived from the seats rather than set. */
+  const s = (p >= 1) ? k : Math.max(0, k - 1);
+  const f = (p >= 1 || k < 1) ? 0 : p;
+  const from = seats(s), to = seats(Math.min(3, s + 1));
+  enclosure(lerpBox(boxOf(s ? from : []), boxOf(to), f));
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+  ctx.fillText("the coalition S", 40, 76);
+  for (let r=0;r<3;r++){
+    const i = P[r];
+    let x, y, dim = false;
+    if (r < s){                                          /* seated, making room */
+      const a = from[r], b = to[r] || a;
+      x = a[0] + (b[0]-a[0])*f; y = a[1] + (b[1]-a[1])*f;
+    } else if (r === s && f > 0){                        /* in flight */
+      const qx = QX + r*62, qy = QY, b = to[r];
+      x = qx + (b[0]-qx)*f; y = qy + (b[1]-qy)*f;
+    } else { x = QX + r*62; y = QY; dim = true; }
+    circle(x, y, i, R, dim);
+  }
+  /* the queue rail */
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+  ctx.fillText("waiting, in this order", QX - 14, QY + 40);
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(QX - 14, QY + 27.5); ctx.lineTo(QX + 170, QY + 27.5); ctx.stroke();
+  ctx.setLineDash([]);
+  /* the notebook's own label for what is in the box */
+  ctx.fillStyle = css("--ink-1"); ctx.font = mono(14);
+  ctx.fillText(inside.length ? nm(inside) : "v({ })", 26, LABEL_Y);
+  ctx.font = mono(12); ctx.fillStyle = css("--c-highlight");
+  ctx.fillText("= " + V[key(inside)], 136, LABEL_Y);
+  /* ---------------- right: the path diagram, drawn by the walk -------------- */
+  const vals = SUBSETS.map(S=>V[key(S)]);
+  const lo = Math.min.apply(null, vals) - 6, hi = Math.max.apply(null, vals) + 6;
+  const ay = v => PY1 - (v - lo)/(hi - lo)*(PY1 - PY0);
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+  for (const x of PX){ ctx.beginPath(); ctx.moveTo(x+0.5, PY0-16); ctx.lineTo(x+0.5, PY1+14); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+  ["0 players in", "1", "2", "3 — all in"].forEach((s,i)=>ctx.fillText(s, PX[i], PY1 + 28));
+  ctx.textAlign = "left";
+  ctx.save(); ctx.translate(PX[0] - 46, (PY0+PY1)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10); ctx.textAlign = "center";
+  ctx.fillText("payout v(S)", 0, 0); ctx.restore(); ctx.textAlign = "left";
+  /* every route walked so far, faint; the current one lit */
+  const seen = new Set(["-"]);
+  const routes = [];
+  for (let q=0;q<6;q++) if (rows[q]) routes.push({ perm: PERMS[q], upto: 3, live: false });
+  if (!rows[perm]) routes.push({ perm: P, upto: k, live: true, frac: p });
+  else routes.push({ perm: P, upto: 3, live: true, frac: 1 });
+  for (const rt of routes){
+    let S = [], prev = { x: PX[0], y: ay(V["-"]) };
+    for (let r=0;r<rt.upto;r++){
+      const i = rt.perm[r]; S = S.concat([i]);
+      const node = { x: PX[S.length], y: ay(V[key(S)]) };
+      const f = (rt.live && r === rt.upto-1 && rt.frac !== undefined) ? rt.frac : 1;
+      const nx = prev.x + (node.x - prev.x)*f, ny = prev.y + (node.y - prev.y)*f;
+      ctx.strokeStyle = rt.live ? css("--c-highlight") : css("--ink-3");
+      ctx.lineWidth = rt.live ? 2.6 : 1.2; ctx.globalAlpha = rt.live ? 1 : 0.34;
+      ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(nx, ny); ctx.stroke();
+      ctx.globalAlpha = 1;
+      if (rt.live && f > 0.02){
+        ctx.fillStyle = css("--c-highlight"); ctx.font = mono(10); ctx.textAlign = "center";
+        const d = (V[key(S)] - V[key(S.slice(0,-1))]) * f;
+        ctx.fillText((d>=0?"+":"") + Math.round(d), (prev.x+nx)/2, (prev.y+ny)/2 - 10);
+        ctx.textAlign = "left";
+      }
+      if (f >= 1) seen.add(key(S));
+      prev = { x: nx, y: ny };
+      if (f < 1) break;
+    }
+  }
+  /* nodes: only the ones the walking has reached */
+  for (const S of SUBSETS){
+    if (!seen.has(key(S))) continue;
+    const x = PX[S.length], y = ay(V[key(S)]);
+    const end = S.length === 0 || S.length === 3;
+    ctx.fillStyle = end ? css("--c-reference") : css("--c-empirical");
+    ctx.beginPath(); ctx.arc(x, y, end ? 6 : 4.6, 0, 7); ctx.fill();
+    ctx.fillStyle = css("--ink-2"); ctx.font = mono(9);
+    if (S.length === 0){ ctx.textAlign = "right"; ctx.fillText(String(V["-"]), x-10, y); ctx.textAlign = "left"; }
+    else if (S.length === 3){ ctx.fillText(String(V[key(S)]), x+10, y); }
+    else {
+      ctx.textAlign = "center";
+      ctx.fillText(S.map(i=>L[i]).join("") + " " + V[key(S)], x, y - 14);
+      ctx.textAlign = "left";
+    }
+  }
+  ctx.fillStyle = css("--c-reference"); ctx.font = mono(9); ctx.textAlign = "center";
+  ctx.fillText("nobody in", PX[0], PY0 - 26); ctx.fillText("everybody in", PX[3], PY0 - 26);
+  ctx.textAlign = "left";
+  /* ---------------- bottom: the six rows, and the column average ------------ */
+  const TY = 386, CX = 300, CW = 132;
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+  ctx.fillText("order", 26, TY - 16);
+  for (let c=0;c<3;c++){ ctx.textAlign = "center"; ctx.fillStyle = css(COL[c]);
+    ctx.font = "600 " + sans(11); ctx.fillText("player " + L[c], CX + c*CW + CW/2, TY - 16); }
+  ctx.textAlign = "left";
+  for (let q=0;q<6;q++){
+    const y = TY + q*18, done = !!rows[q];
+    ctx.globalAlpha = done ? 1 : (q === perm ? 0.8 : 0.28);
+    ctx.fillStyle = q === perm ? css("--c-highlight") : css("--ink-3"); ctx.font = mono(10);
+    ctx.fillText(PERMS[q].map(i=>L[i]).join(" "), 26, y);
+    if (done) for (let c=0;c<3;c++){
+      ctx.fillStyle = css("--ink-1"); ctx.textAlign = "center";
+      ctx.fillText((rows[q][c]>=0?"+":"") + rows[q][c], CX + c*CW + CW/2, y); ctx.textAlign = "left";
+    }
+    ctx.globalAlpha = 1;
+  }
+  const allDone = rows.every(r=>r);
+  const yA = TY + 6*18 + 12;
+  if (allDone){
+    ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(CX, yA - 12.5); ctx.lineTo(CX + 3*CW, yA - 12.5); ctx.stroke();
+    ctx.fillStyle = css("--ink-1"); ctx.font = mono(11);
+    ctx.fillText("the average", 26, yA);
+    for (let c=0;c<3;c++){
+      ctx.fillStyle = css("--c-highlight"); ctx.font = "600 " + mono(12); ctx.textAlign = "center";
+      ctx.fillText((PHI[c]>=0?"+":"") + (Math.abs(PHI[c]%1) < 1e-9 ? PHI[c] : PHI[c].toFixed(2)),
+                   CX + c*CW + CW/2, yA);
+      ctx.textAlign = "left";
+    }
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText("phi, and it sums to " + Math.round(PHI.reduce((a,b)=>a+b,0)) + " = v({A,B,C})", 26, yA + 18);
+  }
+  /* THE ARRIVAL, WRITTEN AS YOUR SUBTRACTION. The step drawn on the path is
+     v(S u {i}) - v(S); printing it here is the whole answer to "do we add or
+     subtract?" — one line, at every arrival. */
+  const arriving = (!allDone && k >= 1 && k <= 3) ? P[k-1] : -1;
+  if (arriving >= 0){
+    const before = P.slice(0, k-1), after = P.slice(0, k);
+    const d = V[key(after)] - V[key(before)];
+    mathCard.innerHTML =
+      '<div class="row">' + eq(
+        "<mrow>" + vC(after) + "<mo>&#x2212;</mo>" + (before.length ? vC(before) : "<mi>v</mi><mo>(</mo><mo>{</mo><mo>}</mo><mo>)</mo>")
+        + "<mo>=</mo>" + num(V[key(after)]) + "<mo>&#x2212;</mo>" + num(V[key(before)])
+        + "<mo>=</mo>" + sgn(d) + num(d) + "</mrow>",
+        vT(after) + " - " + (before.length ? vT(before) : "v({})") + " = " + V[key(after)]
+        + " - " + V[key(before)] + " = " + (d>=0?"+":"") + d) + "</div>"
+      + '<p class="w-math-note">player <b>' + L[arriving] + "</b> joining " +
+        (before.length ? setT(before) : "an empty coalition")
+        + " &mdash; the step on the path, and the subtraction in the four-panel figure, are this one number.</p>";
+  } else {
+    mathCard.innerHTML = '<div class="row">' + FORMULA + "</div>"
+      + '<div class="row">' + WEIGHT + "</div>"
+      + '<p class="w-math-note">' + (allDone
+          ? ("all six walks done &mdash; &#x3D5; = (" + PHI.map(v=>Math.abs(v%1)<1e-9?v:v.toFixed(2)).join(", ")
+             + "), and they sum to " + Math.round(PHI.reduce((a,b)=>a+b,0)) + " = " + vT([0,1,2]) + ".")
+          : "let a player in, and this card shows that arrival written as a difference.") + "</p>";
+  }
+  /* the caption reports only what is on screen */
+  const mi = matchedPreset(), g = mi >= 0 ? cellInfo(PRESETS[mi].r, PRESETS[mi].c) : null;
+  const title = g ? g.name : "your own game";
+  if (!allDone){
+    cap.innerHTML = "<b>" + title + "</b> &mdash; " + (g ? g.blurb
+        : "six sliders, and the coalition's payout is whatever they add up to.")
+      + " &nbsp;·&nbsp; walk " + (perm+1) + " of 6, " + (p >= 1 ? k : Math.max(0, k-1))
+      + " of 3 players in. Each step is what that player was worth <i>given who was already inside</i>.";
+  } else {
+    const sp = [0,1,2].map(c => Math.max.apply(null, rows.map(r=>r[c])) - Math.min.apply(null, rows.map(r=>r[c])));
+    cap.innerHTML = "<b>" + title + "</b> &mdash; all six walks done. Spread of a player's own step down the "
+      + "column: A <b>" + sp[0] + "</b>, B <b>" + sp[1] + "</b>, C <b>" + sp[2] + "</b>. "
+      + (Math.max.apply(null, sp) === 0
+         ? "<b>Every row identical &mdash; the order never mattered, so the average was never needed.</b> "
+         : "")
+      + (g ? g.teaches : "Every pair slider you move off zero makes the orderings disagree by exactly that "
+             + "much; leave all three at zero and they never can.");
+  }
+}
+syncPresets();
+reset();
+
+/* ===================================================================== */
+/*  From six walks to three Shapley scores — five steps, your figure at 3 */
+/* ===================================================================== */
+{
+  const dh = document.getElementById("derive");
+  const dc1 = document.createElement("div"); dc1.className = "ctl"; dh.appendChild(dc1);
+  const DW = 800, DH = 380;
+  const dcv = document.createElement("canvas");
+  dcv.width = DW*dpr; dcv.height = DH*dpr; dcv.style.width = DW+"px"; dcv.style.height = DH+"px";
+  dh.appendChild(dcv);
+  const dmath = document.createElement("div"); dmath.className = "w-math"; dh.appendChild(dmath);
+  const dcap = document.createElement("p"); dcap.className = "cap"; dh.appendChild(dcap);
+  const d = dcv.getContext("2d"); d.scale(dpr, dpr); d.textBaseline = "middle";
+
+  let stage = 0, who = 0;
+  lbl(dc1, "score for");
+  const wb = [0,1,2].map(i => btn(dc1, "player " + L[i], i===0?"on":"", ()=>{
+    who = i; wb.forEach((b,q)=>b.className = q===i?"on":""); ddraw(); }));
+  btn(dc1, "Next step", "pri", ()=>{ stage = (stage+1) % 6; ddraw(); });
+  btn(dc1, "Back to step 1", "", ()=>{ stage = 0; ddraw(); });
+  refreshDerive = () => ddraw();
+
+  const STEPS = [
+    "1 · six walks, eighteen numbers",
+    "2 · everything about one player is in one column",
+    "3 · the six take only FOUR values — this is your figure",
+    "4 · average them, and the counts ARE the weights",
+    "5 · the three scores add up to the whole payout",
+    "6 · the general rule — and it is the six sliders, divided up",
+  ];
+  /* the four distinct situations player i can join into, in your figure's order */
+  function quads(i){
+    const rest = [0,1,2].filter(q=>q!==i);
+    const sets = [[], [rest[0]], [rest[1]], rest];
+    return sets.map((S,q)=>({ S, before: S, after: S.concat([i]).sort(),
+      d: V[key(S.concat([i]))] - V[key(S)], n: [2,1,1,2][q] }));
+  }
+  /* the same one rule as the main figure: seats by count, outline hugging them,
+     cornered at half the shorter side — so one player draws a circle, two draw
+     the capsule, three draw a circle. Returns the box so the caller can hang
+     the arrow off its right edge. */
+  function miniSeats(cx, cy, n, r){
+    const g2 = Math.round(r*1.24);
+    if (n <= 1) return [[cx, cy]];
+    if (n === 2) return [[cx, cy-g2], [cx, cy+g2]];
+    return [[cx-Math.round(r*0.98), cy-g2], [cx+Math.round(r*1.16), cy], [cx-Math.round(r*0.98), cy+g2]];
+  }
+  function miniGroup(cx, cy, S, r){
+    const pts = miniSeats(cx, cy, S.length, r), pad = r + 9;
+    let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+    for (const q of pts){ x0=Math.min(x0,q[0]); y0=Math.min(y0,q[1]); x1=Math.max(x1,q[0]); y1=Math.max(y1,q[1]); }
+    const b = { x: x0-pad, y: y0-pad, w: (x1-x0)+2*pad, h: (y1-y0)+2*pad };
+    d.save(); d.setLineDash([4,3]); d.lineWidth = 1.7; d.strokeStyle = css("--ink-1");
+    d.beginPath(); d.roundRect(b.x, b.y, b.w, b.h, Math.min(b.w, b.h)/2); d.stroke(); d.restore();
+    S.forEach((i2, q)=>{
+      d.fillStyle = css(COL[i2]);
+      d.beginPath(); d.arc(pts[q][0], pts[q][1], r, 0, 7); d.fill();
+      d.fillStyle = css("--surface-1"); d.font = "600 " + sans(Math.round(r*1.05));
+      d.textAlign = "center"; d.fillText(L[i2], pts[q][0], pts[q][1]+1); d.textAlign = "left";
+    });
+    return b;
+  }
+  function ddraw(){
+    d.clearRect(0,0,DW,DH);
+    const allRows = PERMS.map(p2 => rowOf(V, p2));
+    const q4 = quads(who), phi = PHI[who];
+    d.fillStyle = css("--ink-1"); d.font = "600 " + sans(13);
+    d.fillText(STEPS[stage], 18, 24);
+    if (stage <= 1){
+      const CX = 200, CW = 150, TY = 66;
+      d.font = mono(10); d.fillStyle = css("--ink-3");
+      d.fillText("walk", 30, TY - 20);
+      for (let c=0;c<3;c++){
+        d.textAlign = "center";
+        d.fillStyle = (stage === 1 && c !== who) ? css("--ink-3") : css(COL[c]);
+        d.globalAlpha = (stage === 1 && c !== who) ? 0.35 : 1;
+        d.font = "600 " + sans(12); d.fillText("player " + L[c], CX + c*CW + CW/2, TY - 20);
+        d.globalAlpha = 1; d.textAlign = "left";
+      }
+      for (let r=0;r<6;r++){
+        const y = TY + r*26;
+        d.fillStyle = css("--ink-3"); d.font = mono(11);
+        d.fillText(PERMS[r].map(i=>L[i]).join(" "), 30, y);
+        for (let c=0;c<3;c++){
+          const dim = stage === 1 && c !== who;
+          d.globalAlpha = dim ? 0.22 : 1;
+          d.fillStyle = css("--ink-1"); d.font = mono(12); d.textAlign = "center";
+          d.fillText((allRows[r][c]>=0?"+":"") + allRows[r][c], CX + c*CW + CW/2, y);
+          d.textAlign = "left"; d.globalAlpha = 1;
+        }
+      }
+      if (stage === 1){
+        const x0 = CX + who*CW + 8, x1 = CX + who*CW + CW - 8;
+        d.strokeStyle = css("--c-highlight"); d.lineWidth = 2;
+        d.beginPath(); d.roundRect(x0, TY - 14, x1-x0, 6*26 - 4, 6); d.stroke();
+        d.fillStyle = css("--c-highlight"); d.font = mono(11); d.textAlign = "center";
+        d.fillText("player " + L[who] + "'s six contributions", (x0+x1)/2, TY + 6*26 + 12);
+        d.textAlign = "left";
+      }
+    } else if (stage === 2){
+      /* YOUR SECOND FIGURE, rebuilt from the column above */
+      const CELL = [[16,44],[404,44],[16,206],[404,206]];
+      for (let q=0;q<4;q++){
+        const x = CELL[q][0], y = CELL[q][1], o = q4[q], cy = y + 52;
+        miniGroup(x + 52, cy, o.after, 15);
+        d.strokeStyle = css("--ink-1"); d.lineWidth = 2;
+        d.beginPath(); d.moveTo(x+98, cy); d.lineTo(x+120, cy); d.stroke();
+        d.beginPath(); d.moveTo(x+122, cy); d.lineTo(x+113, cy-5); d.lineTo(x+113, cy+5);
+        d.closePath(); d.fillStyle = css("--ink-1"); d.fill();
+        if (o.before.length) miniGroup(x + 162, cy, o.before, 15);
+        else { d.fillStyle = css("--ink-3"); d.font = mono(11); d.fillText("nobody", x+134, cy); }
+        d.fillStyle = css("--ink-2"); d.font = mono(12);
+        d.fillText(vT(o.after) + (o.before.length ? " - " + vT(o.before) : ""), x+212, cy-14);
+        d.fillStyle = css("--ink-1"); d.font = "600 " + mono(15);
+        d.fillText((o.d>=0?"+":"") + o.d, x+212, cy+12);
+        d.fillStyle = css("--c-highlight"); d.font = mono(11);
+        d.fillText("in " + o.n + " of the 6 walks", x+256, cy+12);
+      }
+    } else if (stage === 3){
+      const TX = 120, TW = 560, TY = 74, TOT = 190;
+      const mx = Math.max.apply(null, q4.map(o=>Math.abs(o.d)).concat([Math.abs(phi), 1])) * 1.25;
+      const at = v => TX + (v+mx)/(2*mx)*TW;
+      d.strokeStyle = css("--grid"); d.lineWidth = 1;
+      d.beginPath(); d.moveTo(at(0)+0.5, TY-8); d.lineTo(at(0)+0.5, TY+TOT+8); d.stroke();
+      let y = TY;
+      for (const o of q4){
+        const h = (o.n/6) * TOT;
+        d.fillStyle = o.d >= 0 ? css("--c-event") : css("--c-nonevent");
+        d.globalAlpha = 0.8;
+        d.fillRect(Math.min(at(0), at(o.d)), y+1, Math.abs(at(o.d)-at(0)), h-2);
+        d.globalAlpha = 1;
+        d.fillStyle = css("--ink-2"); d.font = mono(10); d.textAlign = "right";
+        d.fillText("after " + (o.before.length ? setT(o.before) : "{}"), TX-10, y+h/2-7);
+        d.fillStyle = css("--c-highlight");
+        d.fillText(o.n + "/6 of the walks", TX-10, y+h/2+7);
+        d.textAlign = "left";
+        d.fillStyle = css("--ink-1"); d.font = mono(12);
+        d.fillText((o.d>=0?"+":"") + o.d, (o.d>=0 ? at(o.d)+8 : at(o.d)-34), y+h/2);
+        y += h;
+      }
+      d.strokeStyle = css("--c-highlight"); d.lineWidth = 2.6;
+      d.beginPath(); d.moveTo(at(phi), TY-20); d.lineTo(at(phi), TY+TOT+20); d.stroke();
+      d.fillStyle = css("--c-highlight"); d.font = "600 " + mono(14); d.textAlign = "center";
+      d.fillText("phi(" + L[who] + ") = " + (Math.abs(phi%1)<1e-9 ? phi : phi.toFixed(2)), at(phi), TY-32);
+      d.textAlign = "left";
+      d.fillStyle = css("--ink-3"); d.font = mono(10);
+      d.fillText("bar length = the contribution · bar HEIGHT = how many of the six walks give it", TX-100, TY+TOT+34);
+    } else if (stage === 5){
+      /* THE GENERAL RULE, drawn: every dividend split equally among its makers */
+      const TY = 62, RH2 = 40, X0 = 300, XW = 420;
+      const all = [];
+      for (let i2=0;i2<3;i2++) all.push({ T:[i2], m: STATE.solo[i2] });
+      for (const [k2,a,b] of [["01",0,1],["02",0,2],["12",1,2]]) all.push({ T:[a,b], m: STATE.pair[k2] });
+      const mx = Math.max(10, Math.max.apply(null, all.map(o=>Math.abs(o.m)))) * 1.15;
+      const at = v => X0 + (v+mx)/(2*mx)*XW;
+      d.strokeStyle = css("--grid"); d.lineWidth = 1;
+      d.beginPath(); d.moveTo(at(0)+0.5, TY-10); d.lineTo(at(0)+0.5, TY+6*RH2); d.stroke();
+      d.fillStyle = css("--ink-3"); d.font = mono(9);
+      d.fillText("who made it", 26, TY-18); d.fillText("what it is worth, split equally", X0, TY-18);
+      all.forEach((o, r) => {
+        const y = TY + r*RH2 + RH2/2 - 4;
+        for (let q=0;q<o.T.length;q++){
+          d.fillStyle = css(COL[o.T[q]]);
+          d.beginPath(); d.arc(34 + q*26, y, 11, 0, 7); d.fill();
+          d.fillStyle = css("--surface-1"); d.font = "600 " + sans(11); d.textAlign = "center";
+          d.fillText(L[o.T[q]], 34 + q*26, y+1); d.textAlign = "left";
+        }
+        d.fillStyle = css("--ink-3"); d.font = mono(10);
+        d.fillText(o.T.length === 1 ? "alone" : "together", 96, y);
+        d.fillStyle = css("--ink-1"); d.font = mono(11);
+        d.fillText((o.m>=0?"+":"") + o.m, 168, y);
+        if (o.m === 0){
+          d.fillStyle = css("--ink-3"); d.font = mono(10);
+          d.fillText("nothing to split", at(0)+8, y); return;
+        }
+        /* one block per maker, each the same size — that IS the rule */
+        const per = o.m / o.T.length;
+        for (let q=0;q<o.T.length;q++){
+          const a0 = at(per*q), a1 = at(per*(q+1));
+          d.fillStyle = css(COL[o.T[q]]); d.globalAlpha = 0.85;
+          d.fillRect(Math.min(a0,a1), y-11, Math.abs(a1-a0), 22); d.globalAlpha = 1;
+          d.fillStyle = css("--surface-1"); d.font = "600 " + mono(10); d.textAlign = "center";
+          if (Math.abs(a1-a0) > 26) d.fillText((per>=0?"+":"") + per, (a0+a1)/2, y);
+          d.textAlign = "left";
+        }
+      });
+      d.fillStyle = css("--ink-3"); d.font = mono(10);
+      d.fillText("a solo dividend goes whole to its owner · a pair dividend is halved", 26, TY+6*RH2+16);
+    } else {
+      const TX = 160, TW = 520, TY = 92, BH2 = 46;
+      const tot = V[key([0,1,2])] - V["-"];
+      const at = v => TX + (v/tot)*TW;
+      let acc = 0;
+      for (let c=0;c<3;c++){
+        const y = TY + c*(BH2+14);
+        d.fillStyle = css(COL[c]); d.globalAlpha = 0.85;
+        d.fillRect(at(0), y, Math.max(2, at(PHI[c])-at(0)), BH2); d.globalAlpha = 1;
+        d.fillStyle = css("--ink-1"); d.font = "600 " + sans(12); d.textAlign = "right";
+        d.fillText("player " + L[c], TX-12, y+BH2/2); d.textAlign = "left";
+        d.font = mono(13);
+        d.fillText((PHI[c]>=0?"+":"") + (Math.abs(PHI[c]%1)<1e-9?PHI[c]:PHI[c].toFixed(2)),
+                   at(PHI[c])+10, y+BH2/2);
+        acc += PHI[c];
+      }
+      const sy = TY + 3*(BH2+14) + 16;
+      d.strokeStyle = css("--c-highlight"); d.lineWidth = 2;
+      d.beginPath(); d.moveTo(TX, sy); d.lineTo(TX + TW, sy); d.stroke();
+      d.fillStyle = css("--c-highlight"); d.font = "600 " + mono(13);
+      d.fillText("together: " + Math.round(acc) + " = " + vT([0,1,2]) + " - v({}) = "
+                 + V[key([0,1,2])] + " - " + V["-"], TX, sy+18);
+    }
+    /* the equations, per step */
+    const rows2 = [];
+    if (stage === 0) rows2.push(eq("<mrow><mn>6</mn><mo>&#xD7;</mo><mn>3</mn><mo>=</mo><mn>18</mn>"
+      + "<mtext>&#xA0;marginal contributions</mtext></mrow>", "6 x 3 = 18 marginal contributions"));
+    if (stage === 1) rows2.push(eq("<mrow><msub><mi>&#x394;</mi><mi>i</mi></msub><mo>(</mo><mi>S</mi><mo>)</mo>"
+      + "<mo>=</mo><mi>v</mi><mo>(</mo><mi>S</mi><mo>&#x222A;</mo><mo>{</mo><mi>i</mi><mo>}</mo><mo>)</mo>"
+      + "<mo>&#x2212;</mo><mi>v</mi><mo>(</mo><mi>S</mi><mo>)</mo></mrow>",
+      "Delta_i(S) = v(S u {i}) - v(S)"));
+    if (stage === 2) q4.forEach(o => rows2.push(eq(
+      "<mrow>" + vC(o.after) + (o.before.length ? "<mo>&#x2212;</mo>" + vC(o.before) : "")
+      + "<mo>=</mo>" + sgn(o.d) + num(o.d) + "<mspace width='1.2em'/><mtext>in&#xA0;</mtext>"
+      + "<mfrac><mn>" + o.n + "</mn><mn>6</mn></mfrac><mtext>&#xA0;of the walks</mtext></mrow>",
+      vT(o.after) + (o.before.length ? " - " + vT(o.before) : "") + " = " + (o.d>=0?"+":"") + o.d
+      + "   in " + o.n + "/6 of the walks")));
+    if (stage === 3){
+      rows2.push(eq("<mrow><msub><mi>&#x3D5;</mi><mi>" + L[who] + "</mi></msub><mo>=</mo>"
+        + q4.map(o => "<mfrac><mn>" + o.n + "</mn><mn>6</mn></mfrac><mo>&#xD7;</mo><mo>(</mo>"
+            + sgn(o.d) + num(o.d) + "<mo>)</mo>").join("<mo>+</mo>")
+        + "<mo>=</mo>" + sgn(phi) + "<mn>" + (Math.abs(phi%1)<1e-9 ? Math.abs(phi) : Math.abs(phi).toFixed(2))
+        + "</mn></mrow>",
+        "phi_" + L[who] + " = " + q4.map(o=>o.n + "/6 x (" + (o.d>=0?"+":"") + o.d + ")").join(" + ")
+        + " = " + (phi>=0?"+":"") + (Math.abs(phi%1)<1e-9?phi:phi.toFixed(2))));
+      rows2.push(WEIGHT);
+    }
+    if (stage === 5){
+      const sh = shares(who);
+      rows2.push(eq(
+        "<mrow><msub><mi>&#x3D5;</mi><mi>i</mi></msub><mo>=</mo><munder><mo>&#x2211;</mo>"
+        + "<mrow><mi>T</mi><mo>&#x220B;</mo><mi>i</mi></mrow></munder><mfrac><mrow><mi>m</mi><mo>(</mo>"
+        + "<mi>T</mi><mo>)</mo></mrow><mrow><mo>|</mo><mi>T</mi><mo>|</mo></mrow></mfrac></mrow>",
+        "phi_i = sum over every group T containing i of m(T)/|T|"));
+      rows2.push(eq(
+        "<mrow><msub><mi>&#x3D5;</mi><mi>" + L[who] + "</mi></msub><mo>=</mo>"
+        + sh.map((o,q) => (q ? "<mo>+</mo>" : "") + (o.T.length === 1
+            ? "<mo>(</mo>" + sgn(o.m) + num(o.m) + "<mo>)</mo>"
+            : "<mfrac><mrow><mo>(</mo>" + sgn(o.m) + num(o.m) + "<mo>)</mo></mrow><mn>2</mn></mfrac>")).join("")
+        + "<mo>=</mo>" + sgn(phi) + "<mn>" + (Math.abs(phi%1)<1e-9 ? Math.abs(phi) : Math.abs(phi).toFixed(2))
+        + "</mn></mrow>",
+        "phi_" + L[who] + " = " + sh.map(o => o.T.length === 1 ? "(" + (o.m>=0?"+":"") + o.m + ")"
+            : "(" + (o.m>=0?"+":"") + o.m + ")/2").join(" + ")
+          + " = " + (phi>=0?"+":"") + (Math.abs(phi%1)<1e-9?phi:phi.toFixed(2))));
+    }
+    if (stage === 4) rows2.push(eq("<mrow><munderover><mo>&#x2211;</mo><mrow><mi>i</mi></mrow><mrow></mrow>"
+      + "</munderover><msub><mi>&#x3D5;</mi><mi>i</mi></msub><mo>=</mo><mi>v</mi><mo>(</mo><mi>N</mi><mo>)</mo>"
+      + "<mo>&#x2212;</mo><mi>v</mi><mo>(</mo><mo>&#x2205;</mo><mo>)</mo><mo>=</mo>"
+      + "<mn>" + (V[key([0,1,2])] - V["-"]) + "</mn></mrow>",
+      "sum of phi_i = v(N) - v(empty) = " + (V[key([0,1,2])] - V["-"])));
+    const NOTE = [
+      "Each walk is one ordering; each step is one player's contribution given who was already inside.",
+      "The other two columns are the other two players' scores — they are computed the same way and never interact with this one.",
+      "Six numbers, four values. Two orderings that leave the SAME players ahead of " + L[who]
+        + " give the SAME contribution — which is why the ends are worth two walks each and the middles one.",
+      "The counts over six ARE w(S): 2/6 = 1/3 and 1/6. Nothing in the formula is an extra assumption — it is the bookkeeping of who could have gone first.",
+      "This is the efficiency axiom, and on page 2 it is what makes a waterfall plot close.",
+      "NOTHING HERE IS A NEW GAME. Any three-player game is six numbers — what each brings alone, "
+        + "and what each pair creates on top — and the score is every one of those split equally "
+        + "among whoever made it. The named games are positions of those six sliders, not a list "
+        + "to memorise.",
+    ];
+    /* the general rule must agree with the definition, every redraw */
+    const chk = Math.max.apply(null, [0,1,2].map(i2 =>
+      Math.abs(shares(i2).reduce((s,o)=>s+o.share, 0) - PHI[i2])));
+    dmath.innerHTML = rows2.map(r=>'<div class="row">' + r + "</div>").join("")
+      + '<p class="w-math-note">' + NOTE[stage]
+      + (stage === 5 ? "  <b>Checked against the six walks: worst disagreement " + chk.toExponential(1)
+                       + ".</b>" : "") + "</p>";
+    const mi2 = matchedPreset();
+    dcap.innerHTML = "<b>" + (mi2 >= 0 ? cellInfo(PRESETS[mi2].r, PRESETS[mi2].c).name : "your own game")
+      + "</b>, player <b>"
+      + L[who] + "</b> &mdash; step " + (stage+1) + " of 6. The numbers follow the sliders at the top "
+      + "of the page, so moving one and stepping through again shows the same six moves landing on a "
+      + "different split.";
+  }
+  ddraw();
+  /* the derivation follows the game picked above */
+  /* refreshDerive is wired into the sliders and the presets above */
+}
+
+/* the games table */
+{
+  let h = "<tr><th>cell</th><th>v(A)</th><th>v(B)</th><th>v(C)</th><th>v(AB)</th><th>v(AC)</th><th>v(BC)</th>"
+        + "<th>v(ABC)</th><th>&phi;<sub>A</sub></th><th>&phi;<sub>B</sub></th><th>&phi;<sub>C</sub></th>"
+        + "<th>orders that disagree</th></tr>";
+  for (const g of PRESETS){
+    const Vg = vTable(g), ph = shapley(Vg);
+    const sp = Math.max.apply(null, [0,1,2].map(c => {
+      const ds = PERMS.map(p=>rowOf(Vg,p)[c]);
+      return Math.max.apply(null, ds) - Math.min.apply(null, ds); }));
+    h += "<tr data-cell='" + g.r + "-" + g.c + "'><td><b>" + g.name.replace(/\{P\}/g, "A") + "</b><br><span style='color:var(--ink-3);font-size:11px'>"
+      + "C alone " + (g.solo[2]>0?"+":"") + g.solo[2] + " · with A " + (g.pair["02"]>0?"+":"") + g.pair["02"]
+      + "</span></td>"
+      + [["0"],["1"],["2"],["0","1"],["0","2"],["1","2"],["0","1","2"]]
+          .map(s=>'<td class="n">' + Vg[s.join("")] + "</td>").join("")
+      + ph.map(v=>'<td class="n">' + (Math.abs(v%1)<1e-9 ? v : v.toFixed(2)) + "</td>").join("")
+      + '<td class="n">' + (sp === 0 ? "none" : "spread " + sp) + "</td></tr>";
+  }
+  document.getElementById("games").innerHTML = h;
+  markLiveRow();
+  /* how many groups of each size, for three players and for the notebook's eleven */
+  {
+    const C = (n,k) => { let r = 1; for (let i=0;i<k;i++) r = r*(n-i)/(i+1); return Math.round(r); };
+    let h2 = "<tr><th>group size k</th><th>each member gets</th><th>how many such groups, p = 3</th>"
+           + "<th>how many, p = 11 (page 2)</th></tr>";
+    for (let k=1;k<=11;k++){
+      if (k > 3 && k < 10) { if (k === 4) h2 += "<tr><td colspan='4' style='color:var(--ink-3)'>&hellip;</td></tr>"; continue; }
+      h2 += "<tr><td>" + k + (k===1 ? " — one player alone" : k===2 ? " — a pair" : "") + "</td>"
+          + "<td class='n'>m / " + k + "</td>"
+          + "<td class='n'>" + (k <= 3 ? C(3,k) : "—") + "</td>"
+          + "<td class='n'>" + C(11,k) + "</td></tr>";
+    }
+    h2 += "<tr><td><b>all sizes</b></td><td class='n'>&mdash;</td><td class='n'><b>7</b></td>"
+        + "<td class='n'><b>2047</b></td></tr>";
+    document.getElementById("sizes").innerHTML = h2;
+  }
+  document.getElementById("foot").innerHTML =
+    "Every game totals <b>60</b>, so efficiency is a constant of the figure and the only thing the control "
+    + "changes is the split. <b>C duplicates A</b> is the one worth arguing about: it is the redundancy caveat, "
+    + "it is why two correlated features can each look unimportant, and page 2's clinical data cannot show it "
+    + "&mdash; the strongest correlation among those eleven features is sex&harr;smoking at 0.45, and among the three "
+    + "used on page 2 it is 0.16. <b>So the abstract page is not a warm-up for the data page; it teaches "
+    + "something the data page structurally cannot.</b>";
+}
+</script>
+</body>
+</html>

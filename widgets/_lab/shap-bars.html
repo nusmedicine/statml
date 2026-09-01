@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 38 shap — where the score bars go</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1300px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); line-height: 1.55; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .cand { margin: 0 0 var(--sp-5); }
+  .cand .sub { font-size: 11px; color: var(--ink-3); margin: 0 0 6px; max-width: 100ch; line-height: 1.5; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; line-height: 1.5; }
+  .cap b { color: var(--ink-1); }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-3) 0; }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 38 · where the score bars go</h1>
+  <p class="note">
+    Kenneth, 2026-08-31: <i>"the plots bar looks nice but small… any other place to put it? at
+    bottom after the summary?"</i> Five placements for the same block, all drawn at the widget's
+    real canvas width (1080) from <b>the game in his screenshot</b> — A 45, B &minus;5, C 15 alone;
+    A&amp;B 15, A&amp;C 25, B&amp;C &minus;15 together; scores <b>+65 &middot; &minus;5 &middot; +20</b>,
+    together 80.
+  </p>
+  <p class="note">
+    <b>The tension worth naming before choosing.</b> Two things want different layouts. As a reading
+    of the table it belongs directly under &ldquo;the average&rdquo;, sharing those three columns &mdash;
+    which makes the bars <i>vertical</i> and keeps them in A B C order. As
+    <code>shap.plots.bar</code> it is <i>horizontal</i> and <b>sorted by magnitude</b>, which is what
+    page 2 opens with. Candidates 4 and 5 take the first side; 1, 2 and 3 take the second.
+  </p>
+  <div id="out"></div>
+
+  <h2>What each one costs</h2>
+  <table class="m" id="score"></table>
+</main>
+
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const L = ["A", "B", "C"];
+const TOK = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c"];
+const PERMS = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+const SUBSETS = [[],[0],[1],[2],[0,1],[0,2],[1,2],[0,1,2]];
+const key = (S) => (S.length ? S.slice().sort().join("") : "-");
+
+/* the game in his screenshot */
+const SOLO = [45, -5, 15];
+const PAIR = { "01": 15, "02": 25, "12": -15 };
+const V = {};
+for (const S of SUBSETS) {
+  let s = 0;
+  for (const i of S) s += SOLO[i];
+  for (let a=0;a<3;a++) for (let b=a+1;b<3;b++) if (S.includes(a) && S.includes(b)) s += PAIR[""+a+b];
+  V[key(S)] = s;
+}
+const rowOf = (perm) => { let cur = V["-"]; const S=[]; const d=[0,0,0];
+  for (const i of perm){ S.push(i); const n = V[key(S)]; d[i] = n - cur; cur = n; } return d; };
+const ROWS = PERMS.map(rowOf);
+const PHI = [0,1,2].map((i) => SOLO[i] + [ [0,1],[0,2],[1,2] ]
+  .filter((p) => p.includes(i)).reduce((a,p)=>a + PAIR[""+p[0]+p[1]]/2, 0));
+const SPLIT = [0,1,2].map((i) => ({
+  alone: SOLO[i],
+  share: [[0,1],[0,2],[1,2]].filter((p)=>p.includes(i)).reduce((a,p)=>a+PAIR[""+p[0]+p[1]]/2,0),
+}));
+const ORDER = [0,1,2].slice().sort((a,b)=>Math.abs(PHI[b])-Math.abs(PHI[a]));
+const MX = Math.max(...PHI.map(Math.abs));
+const sgn = (v, d=1) => (v>=0?"+":"") + (Math.abs(v%1)<1e-9 ? v : v.toFixed(d));
+
+const W = 1080;
+function cand(title, sub, h, draw){
+  const d = document.createElement("div"); d.className = "cand";
+  const t = document.createElement("h3"); t.textContent = title; d.appendChild(t);
+  const s = document.createElement("p"); s.className = "sub"; s.textContent = sub; d.appendChild(s);
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = W*dpr; c.height = h*dpr; c.style.width = W+"px"; c.style.height = h+"px";
+  d.appendChild(c);
+  const cap = document.createElement("p"); cap.className = "cap"; d.appendChild(cap);
+  document.getElementById("out").appendChild(d);
+  const g = c.getContext("2d"); g.scale(dpr,dpr); g.textBaseline = "middle";
+  draw(g, cap);
+}
+const font = (px, w) => `${w?w+" ":""}${px}px ${css("--font")}`;
+
+/* the walks table, at the widget's own geometry */
+function walksTable(g, x0, y0, colW, opts = {}){
+  g.fillStyle = css("--ink-3"); g.font = font(9);
+  g.textAlign = "left"; g.fillText("walks you have taken", x0, y0 - 30);
+  g.fillText("order", x0, y0 - 14);
+  for (let c=0;c<3;c++){
+    g.textAlign = "center"; g.fillStyle = css(TOK[c]); g.font = font(11, 600);
+    g.fillText("player " + L[c], x0 + 62 + c*colW + colW/2, y0 - 14);
+  }
+  g.textAlign = "left";
+  for (let q=0;q<6;q++){
+    const y = y0 + q*17;
+    g.fillStyle = css("--ink-3"); g.font = font(10);
+    g.fillText(PERMS[q].map(i=>L[i]).join(" "), x0, y);
+    for (let c=0;c<3;c++){
+      g.fillStyle = css("--ink-1"); g.textAlign = "center";
+      g.fillText(sgn(ROWS[q][c]), x0 + 62 + c*colW + colW/2, y);
+      g.textAlign = "left";
+    }
+  }
+  const ya = y0 + 6*17 + 12;
+  g.strokeStyle = css("--c-highlight"); g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(x0+62, ya-12.5); g.lineTo(x0+62+3*colW, ya-12.5); g.stroke();
+  g.fillStyle = css("--ink-1"); g.font = font(11);
+  g.fillText("the average", x0, ya);
+  if (!opts.noAverage) for (let c=0;c<3;c++){
+    g.fillStyle = css("--c-highlight"); g.font = font(12,600); g.textAlign = "center";
+    g.fillText(sgn(PHI[c],2), x0 + 62 + c*colW + colW/2, ya);
+    g.textAlign = "left";
+  }
+  return ya;
+}
+
+/* the horizontal, sorted bar — shap.plots.bar's shape */
+function barsH(g, x0, y0, width, rowH, opts = {}){
+  const zero = x0 + width * 0.42;
+  const half = Math.min(zero - x0 - 30, x0 + width - zero - 64);
+  const at = (v) => zero + (v/MX)*half;
+  g.fillStyle = css("--ink-3"); g.font = font(9); g.textAlign = "left";
+  g.fillText(opts.title ?? "what each player scored", x0, y0 - 26);
+  g.textAlign = "center";
+  g.fillText("−", zero - half - 8, y0 - 12);
+  g.fillText("0", zero, y0 - 12);
+  g.fillText("+", zero + half + 8, y0 - 12);
+  g.textAlign = "left";
+  g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(zero+0.5, y0-6); g.lineTo(zero+0.5, y0 + 3*rowH - rowH/2); g.stroke();
+  ORDER.forEach((i, r) => {
+    const y = y0 + r*rowH;
+    const bh = Math.min(20, rowH - 12);
+    if (opts.stacked){
+      /* the score as its two ingredients, laid end to end from zero */
+      let cur = 0;
+      for (const [val, alpha] of [[SPLIT[i].alone, 0.85], [SPLIT[i].share, 0.4]]) {
+        if (val === 0) continue;
+        const a = at(cur), b = at(cur + val);
+        g.fillStyle = css(TOK[i]); g.globalAlpha = alpha;
+        g.fillRect(Math.min(a,b), y - bh/2, Math.max(1.5, Math.abs(b-a)), bh);
+        g.globalAlpha = 1;
+        cur += val;
+      }
+      g.strokeStyle = css("--ink-1"); g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(at(PHI[i]), y - bh/2 - 3); g.lineTo(at(PHI[i]), y + bh/2 + 3); g.stroke();
+    } else {
+      g.fillStyle = css(TOK[i]); g.globalAlpha = 0.85;
+      g.fillRect(Math.min(zero, at(PHI[i])), y - bh/2, Math.max(1.5, Math.abs(at(PHI[i]) - zero)), bh);
+      g.globalAlpha = 1;
+    }
+    g.fillStyle = css(TOK[i]);
+    g.beginPath(); g.arc(x0 + 9, y, 9, 0, 7); g.fill();
+    g.fillStyle = css("--surface-1"); g.font = font(11,600); g.textAlign = "center";
+    g.fillText(L[i], x0 + 9, y + 1);
+    g.fillStyle = css("--ink-1"); g.font = font(13,600);
+    g.textAlign = PHI[i] >= 0 ? "left" : "right";
+    g.fillText(sgn(PHI[i],1), PHI[i] >= 0 ? at(PHI[i]) + 8 : at(PHI[i]) - 8, y);
+    g.textAlign = "left";
+    if (opts.showSplit){
+      g.fillStyle = css("--ink-3"); g.font = font(9);
+      g.fillText(`alone ${sgn(SPLIT[i].alone)} · shares ${sgn(SPLIT[i].share,1)}`, x0 + 24, y + bh/2 + 9);
+    }
+  });
+}
+
+/* the vertical version, aligned to the table's three player columns */
+function barsV(g, x0, y0, colW, height){
+  const zeroY = y0 + height * 0.62;
+  const at = (v) => zeroY - (v/MX) * (height * 0.5);
+  g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0 + 62, zeroY + 0.5); g.lineTo(x0 + 62 + 3*colW, zeroY + 0.5); g.stroke();
+  g.fillStyle = css("--ink-3"); g.font = font(9); g.textAlign = "right";
+  g.fillText("0", x0 + 58, zeroY);
+  g.textAlign = "left";
+  for (let c=0;c<3;c++){
+    const cx = x0 + 62 + c*colW + colW/2, bw = Math.min(58, colW*0.44);
+    const yv = at(PHI[c]);
+    g.fillStyle = css(TOK[c]); g.globalAlpha = 0.85;
+    g.fillRect(cx - bw/2, Math.min(zeroY, yv), bw, Math.max(1.5, Math.abs(yv - zeroY)));
+    g.globalAlpha = 1;
+    g.fillStyle = css("--ink-1"); g.font = font(13,600); g.textAlign = "center";
+    g.fillText(sgn(PHI[c],2), cx, yv + (PHI[c] >= 0 ? -12 : 12));
+    g.fillStyle = css("--ink-3"); g.font = font(9);
+    g.fillText(`alone ${sgn(SPLIT[c].alone)} · shares ${sgn(SPLIT[c].share,1)}`, cx, zeroY + 34);
+    g.textAlign = "left";
+  }
+}
+
+/* ------------------------------ the five ---------------------------------- */
+
+cand("1 · as built — bars bottom-left, table to the right",
+  "the bar block shares the bottom band with the walks table, so it gets 226px of the 1080.",
+  200, (g, cap) => {
+    barsH(g, 24, 40, 226, 30, { showSplit: true });
+    walksTable(g, 268, 40, Math.max(96, (1080 - 330 - 24)/3));
+    cap.innerHTML = "<b>Cheapest and smallest.</b> The bars are 60px of travel at their longest, so "
+      + "a &minus;5 next to a +65 is nearly invisible, and the split line under each one crowds the "
+      + "zero rule. It reads as a legend for the table rather than the figure's conclusion.";
+  });
+
+cand("2 · full width, below the table — the answer last",
+  "the walks table keeps the band it has; the bars take a new one underneath, the full 1080.",
+  310, (g, cap) => {
+    walksTable(g, 268, 34, Math.max(96, (1080 - 330 - 24)/3));
+    g.strokeStyle = css("--grid"); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(24, 176.5); g.lineTo(1056, 176.5); g.stroke();
+    barsH(g, 24, 218, 1032, 34, { showSplit: true });
+    cap.innerHTML = "<b>Six times the travel, and it reads last</b> — which is where a conclusion "
+      + "belongs. Costs ~120px of canvas height and leaves the bottom-left of the band empty. The "
+      + "&minus;5 is now a visible bar rather than a sliver.";
+  });
+
+cand("3 · bars right, walks table left — swap the two",
+  "the table is narrow but complete; the bars take the wider half.",
+  210, (g, cap) => {
+    walksTable(g, 24, 40, 108);
+    g.strokeStyle = css("--grid"); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(430.5, 20); g.lineTo(430.5, 190); g.stroke();
+    barsH(g, 470, 40, 586, 34, { showSplit: true });
+    cap.innerHTML = "<b>No extra height, and the bars roughly treble.</b> But the walks table is the "
+      + "thing being built and now sits in the corner, and its three columns at 108px are tight for "
+      + "a &minus;20. Reading order also reverses: the conclusion is to the right of the working.";
+  });
+
+cand("4 · vertical, under the average — the table's own row, drawn",
+  "same three columns as the table, so a column reads six steps, then the average, then the bar.",
+  330, (g, cap) => {
+    const colW = Math.max(96, (1080 - 330 - 24)/3);
+    const ya = walksTable(g, 268, 34, colW);
+    barsV(g, 268, ya + 14, colW, 150);
+    cap.innerHTML = "<b>The strongest adjacency on the page</b> — the bar IS the average above it, "
+      + "and a reader can follow one column from six walks down to one bar. But it is NOT "
+      + "<code>shap.plots.bar</code>: vertical, and locked to A B C order rather than sorted by "
+      + "magnitude, so page 2 would open on a different picture.";
+  });
+
+cand("5 · full width, stacked — the score built from its two parts",
+  "each bar is laid end to end: what the player brought alone, then its share of the pairs. The tick is the score.",
+  310, (g, cap) => {
+    walksTable(g, 268, 34, Math.max(96, (1080 - 330 - 24)/3));
+    g.strokeStyle = css("--grid"); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(24, 176.5); g.lineTo(1056, 176.5); g.stroke();
+    barsH(g, 24, 218, 1032, 34, { stacked: true, title: "what each player scored — solid is its own, pale is its share of the pairs" });
+    cap.innerHTML = "<b>Candidate 2 with the derivation inside the bar</b> instead of printed under "
+      + "it. B is the case that makes it: &minus;5 of its own and no net share, so the bar is short "
+      + "and honest. A shows +45 solid then +20 pale. <b>This is a waterfall in miniature</b>, which "
+      + "is exactly what page 2 needs — but it asks the reader to learn one more encoding here.";
+  });
+
+/* the scoreboard */
+{
+  const rows = [
+    ["1 · as built", "0", "226px", "sorted, horizontal", "smallest bar 5px; reads as a legend"],
+    ["2 · full width below", "+120px", "1032px", "sorted, horizontal", "empty bottom-left; conclusion reads last ✓"],
+    ["3 · swapped halves", "0", "586px", "sorted, horizontal", "working sits right of the conclusion"],
+    ["4 · vertical under the average", "+90px", "3 × 250px", "A B C order, vertical", "best adjacency; NOT the shap shape"],
+    ["5 · full width, stacked", "+120px", "1032px", "sorted, horizontal", "carries the split; one more encoding"],
+  ];
+  let h = "<tr><th>candidate</th><th>extra canvas height</th><th>bar travel</th><th>shape</th><th>what it costs</th></tr>";
+  for (const r of rows) h += "<tr><td>" + r.join("</td><td>") + "</td></tr>";
+  document.getElementById("score").innerHTML = h;
+}
+</script>
+</body>
+</html>

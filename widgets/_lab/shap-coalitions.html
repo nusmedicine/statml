@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 38 shap — seven ways to draw the same eight coalitions</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); line-height: 1.5; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 620px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 620px; line-height: 1.45; }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-4); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td b { color: var(--ink-1); }
+  .verify { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); border-left: 3px solid var(--c-empirical); padding-left: 10px; margin: 0 0 var(--sp-4); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 38 · seven ways to draw the same eight coalitions</h1>
+
+  <p class="note">
+    Kenneth, 2026-08-31: <i>&ldquo;is there another way to depict the coalitions?&rdquo;</i> &mdash; yes, six more.
+    <b>Every panel below is the same eight numbers</b>, for the same patient, under the same model:
+    patient <b>#50</b> (age 85, ejection fraction 60%, serum creatinine 3.2 mg/dL, <b>survived</b>),
+    decision tree, predicted risk of death. The eight <code>v(S)</code> are brute-forced in
+    <code>_lab/shap-ref.py</code> and re-derived by this page's own JS. Nothing here needs extra
+    compute: pick on what a reader can <i>see</i>, not on cost.
+  </p>
+  <div class="verify" id="verify">checking&hellip;</div>
+
+  <table class="m" id="scoreboard"></table>
+
+  <h2>&sect;A &middot; The path plot &mdash; v(S) on a real axis, |S| across</h2>
+  <p class="note">
+    The one thing the lattice throws away is <b>the value</b>: its nodes are boxes in arbitrary
+    positions. Here the vertical axis <i>is</i> the prediction, the horizontal axis is how many
+    features have been revealed, and the eight coalitions sit where their prediction puts them.
+    Every ordering is a path from the single left node to the single right node &mdash; so
+    <b>efficiency is the shape of the figure</b>, and the spread between the highest and lowest
+    path at rank 1 and 2 is the disagreement, at a glance.
+  </p>
+  <div class="row" id="sA"></div>
+
+  <h2>&sect;B &middot; The cube &mdash; one axis per feature</h2>
+  <p class="note">
+    With three features the lattice <i>is</i> a cube, and its three directions are the three
+    features. Age's four marginal contributions are the four edges parallel to the age axis;
+    their weights (&#8531;, &#8537;, &#8537;, &#8531;) are how many of the six corner-to-corner
+    routes use each. It is the most memorable object on this page and the least extensible:
+    <b>four features has no picture</b>.
+  </p>
+  <div class="row" id="sB"></div>
+
+  <h2>&sect;C &middot; The ordering tree &mdash; where the factorials come from</h2>
+  <p class="note">
+    One root, three ways to pick who joins first, two ways after that: <b>1 &rarr; 3 &rarr; 6</b>.
+    An edge near the root is shared by two of the six orderings; an edge near a leaf by one.
+    That <i>is</i> <code>w(S) = |S|!(n&minus;|S|&minus;1)!/n!</code> &mdash; count the leaves below an edge and
+    divide by six. No other depiction on this page derives the weight rather than asserting it.
+  </p>
+  <div class="row" id="sC"></div>
+
+  <h2>&sect;D &middot; The weighted average, drawn &mdash; one feature at a time</h2>
+  <p class="note">
+    Four distinct marginal contributions, four weights. Bar length is &Delta;, row <b>height</b> is
+    the weight, and &phi; is the line that balances them. This is the formula and nothing else &mdash;
+    it does not show the coalitions at all, so it is a <b>companion panel</b>, not a stage.
+  </p>
+  <div class="row" id="sD"></div>
+
+  <h2>&sect;E &middot; The 6 &times; 3 matrix &mdash; and the column you average</h2>
+  <p class="note">
+    Six orderings down, three features across, every cell a &Delta;. The Shapley value is the
+    bottom row. Compact enough to sit in a <b>readout</b> beside a bigger figure, and the only
+    depiction where all eighteen marginal contributions are legible at once.
+  </p>
+  <div class="row" id="sE"></div>
+
+  <h2>&sect;F &middot; Orderings arriving one at a time &mdash; what the library actually does</h2>
+  <p class="note">
+    Eleven features have 39,916,800 orderings, so <code>shap</code> <b>samples</b> them and averages.
+    With three you can exhaust the list, and the running mean walking onto the exact answer is the
+    honest picture of an estimate. <b>This is the one candidate that gives Play something true to
+    do</b> &mdash; every other panel here is finished the moment it is drawn.
+  </p>
+  <div class="row" id="sF"></div>
+
+  <h2>&sect;G &middot; For reference &mdash; the two already mocked</h2>
+  <p class="note">
+    From <a href="shap-mock.html">shap-mock.html</a>, redrawn here so all seven sit on one page.
+  </p>
+  <div class="row" id="sG"></div>
+</main>
+
+<script type="module">
+const R = await (await fetch("shap-ref.json")).json();
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const INIT = ["A", "E", "C"];
+const SHORTLAB = ["Age", "Ejection fx", "Creatinine"];
+const LONGLAB = ["age", "ejection fraction", "serum creatinine"];
+
+const margin = z => R.lr.intercept + z[0]*R.lr.coef[0] + z[1]*R.lr.coef[1] + z[2]*R.lr.coef[2];
+function treeP(z){ let n = R.tree.root; while(!n.leaf) n = (z[n.f] <= n.thr_std) ? n.L : n.R; return n.p; }
+const MODELS = {
+  tree_prob: { f: treeP,  name: "Decision tree",       out: "risk of death",     axis:[0,1] },
+  lr_margin: { f: margin, name: "Logistic regression", out: "log-odds of death", axis:[-4,3] },
+};
+const SUBSETS = [[],[0],[1],[2],[0,1],[0,2],[1,2],[0,1,2]];
+const PERMS = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+const key = S => S.length ? S.slice().sort().join("") : "-";
+function vOf(mk, x){
+  const f = MODELS[mk].f, out = {};
+  for (const S of SUBSETS){
+    let s = 0;
+    for (const z of R.train.std){ const w = z.slice(); for (const k of S) w[k] = x[k]; s += f(w); }
+    out[key(S)] = s / R.train.std.length;
+  }
+  return out;
+}
+const PT = j => R.patients[j];
+const J = 50, MK = "tree_prob";
+const V = vOf(MK, PT(J).std);
+const PHI = PT(J).models[MK].phi;
+{
+  let worst = 0;
+  for (const k of Object.keys(V)) worst = Math.max(worst, Math.abs(V[k] - PT(J).models[MK].v[k]));
+  document.getElementById("verify").textContent =
+    "patient #50, decision tree — JS v(S) vs the python fixture, all 8 coalitions: worst |diff| = "
+    + worst.toExponential(2) + "   ·   phi = [" + PHI.map(v=>v.toFixed(4)).join(", ")
+    + "]   ·   base " + V["-"].toFixed(4) + "  f(x) " + V["012"].toFixed(4);
+}
+/* the four distinct marginal contributions of feature i, with their weights */
+function deltas(V, i){
+  const rest = [0,1,2].filter(k=>k!==i);
+  const sets = [[], [rest[0]], [rest[1]], rest];
+  const wts  = [1/3, 1/6, 1/6, 1/3];
+  return sets.map((S,q)=>({ S, w: wts[q], n: [2,1,1,2][q],
+    d: V[key(S.concat([i]))] - V[key(S)] }));
+}
+
+/* ---- canvas plumbing ------------------------------------------------------- */
+function cand(host, title, sub, w, h){
+  const d = document.createElement("div"); d.className = "cand";
+  const t = document.createElement("h3"); t.textContent = title; d.appendChild(t);
+  const s = document.createElement("p"); s.className = "sub"; s.textContent = sub; d.appendChild(s);
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w*dpr; c.height = h*dpr; c.style.width = w+"px"; c.style.height = h+"px";
+  d.appendChild(c);
+  const cap = document.createElement("p"); cap.className = "cap"; d.appendChild(cap);
+  document.getElementById(host).appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.font = "11px " + css("--font"); ctx.textBaseline = "middle";
+  return { ctx, w, h, cap };
+}
+const mono = s => s + "px " + css("--font-mono");
+function vaxis(ctx, x, y0, y1, lo, hi, ticks, label){
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x+0.5, y0); ctx.lineTo(x+0.5, y1); ctx.stroke();
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "right";
+  for (const t of ticks){ const y = y1 - (t-lo)/(hi-lo)*(y1-y0);
+    ctx.beginPath(); ctx.moveTo(x-4, y+0.5); ctx.lineTo(x, y+0.5); ctx.stroke();
+    ctx.fillText(String(t), x-7, y); }
+  ctx.textAlign = "left";
+  if (label){ ctx.save(); ctx.translate(x-40, (y0+y1)/2); ctx.rotate(-Math.PI/2);
+    ctx.textAlign = "center"; ctx.fillText(label, 0, 0); ctx.restore(); }
+}
+function haxis(ctx, x0, x1, y, lo, hi, ticks, label){
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y+0.5); ctx.lineTo(x1, y+0.5); ctx.stroke();
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+  for (const t of ticks){ const x = x0 + (t-lo)/(hi-lo)*(x1-x0);
+    ctx.beginPath(); ctx.moveTo(x+0.5, y); ctx.lineTo(x+0.5, y+4); ctx.stroke();
+    ctx.fillText(String(t), x, y+11); }
+  ctx.textAlign = "left";
+  if (label) ctx.fillText(label, x0, y+24);
+}
+function chips(ctx, x, y, S, cw){
+  cw = cw || 13;
+  for (let k=0;k<3;k++){
+    const on = S.indexOf(k) >= 0;
+    ctx.strokeStyle = on ? css("--c-empirical") : css("--grid"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x + k*(cw+3), y-6, cw, 12, 2);
+    if (on){ ctx.fillStyle = css("--c-empirical"); ctx.fill(); }
+    ctx.stroke();
+    ctx.fillStyle = on ? css("--surface-1") : css("--ink-3"); ctx.font = mono(8);
+    ctx.textAlign = "center"; ctx.fillText(INIT[k], x + k*(cw+3) + cw/2, y); ctx.textAlign = "left";
+  }
+  return 3*(cw+3);
+}
+
+/* ============================== §A the path plot ============================ */
+function pathPlot(host, mk, follow, title, sub, W, H){
+  const Vm = vOf(mk, PT(J).std), M = MODELS[mk];
+  const g = cand(host, title, sub, W || 560, H || 360);
+  const ctx = g.ctx, w = g.w;
+  const vals = SUBSETS.map(S=>Vm[key(S)]);
+  let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  const pad = (hi-lo)*0.18 || 0.1; lo -= pad; hi += pad;
+  const X = [72, 220, 372, 505], Y0 = 34, Y1 = g.h - 74;
+  const at = v => Y1 - (v-lo)/(hi-lo)*(Y1-Y0);
+  const ticks = (M.axis[0] < 0 ? [-3,-2,-1,0,1,2,3] : [0,0.2,0.4,0.6,0.8,1]).filter(t=>t>lo&&t<hi);
+  vaxis(ctx, 56, Y0, Y1, lo, hi, ticks, "v(S) — average " + M.out);
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+  ["0 features", "1", "2", "3 — f(x)"].forEach((t,i)=>ctx.fillText(t, X[i], g.h-52));
+  ctx.textAlign = "left";
+  ctx.strokeStyle = css("--grid"); ctx.setLineDash([2,3]);
+  for (const x of X){ ctx.beginPath(); ctx.moveTo(x+0.5, Y0); ctx.lineTo(x+0.5, Y1); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const pos = new Map();
+  for (const S of SUBSETS) pos.set(key(S), { x: X[S.length], y: at(Vm[key(S)]) });
+  /* edges */
+  for (const S of SUBSETS) for (let i=0;i<3;i++){
+    if (S.indexOf(i) >= 0) continue;
+    const T = S.concat([i]).sort();
+    const a = pos.get(key(S)), b = pos.get(key(T)), isF = i === follow;
+    ctx.strokeStyle = isF ? css("--c-highlight") : css("--ink-3");
+    ctx.lineWidth = isF ? 2.4 : 1; ctx.globalAlpha = isF ? 1 : 0.30;
+    ctx.beginPath(); ctx.moveTo(a.x+5, a.y); ctx.lineTo(b.x-5, b.y); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (isF){
+      const d = Vm[key(T)] - Vm[key(S)];
+      ctx.fillStyle = css("--c-highlight"); ctx.font = mono(9); ctx.textAlign = "center";
+      const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      ctx.save(); ctx.fillStyle = css("--surface-1"); ctx.fillRect(mx-19, my-6, 38, 12); ctx.restore();
+      ctx.fillStyle = css("--c-highlight");
+      ctx.fillText((d>=0?"+":"") + d.toFixed(3), mx, my); ctx.textAlign = "left";
+    }
+  }
+  /* nodes */
+  for (const S of SUBSETS){
+    const q = pos.get(key(S)), v = Vm[key(S)];
+    const end = S.length === 0 || S.length === 3;
+    ctx.fillStyle = end ? css("--c-reference") : css("--c-empirical");
+    ctx.beginPath(); ctx.arc(q.x, q.y, end ? 5.5 : 4, 0, 7); ctx.fill();
+    ctx.font = mono(9); ctx.fillStyle = css("--ink-2");
+    if (S.length === 0){ ctx.textAlign = "right"; ctx.fillText(v.toFixed(3), q.x-9, q.y); ctx.textAlign="left"; }
+    else if (S.length === 3){ ctx.fillText(v.toFixed(3), q.x+9, q.y); }
+    else {
+      const cx = q.x + 10;
+      chips(ctx, cx, q.y, S, 12);
+      ctx.fillStyle = css("--ink-2"); ctx.font = mono(9);
+      ctx.fillText(v.toFixed(3), cx + 48, q.y);
+    }
+  }
+  ctx.fillStyle = css("--c-reference"); ctx.font = mono(9); ctx.textAlign = "center";
+  ctx.fillText("base", X[0], Y0-14); ctx.fillText("f(x)", X[3], Y0-14); ctx.textAlign = "left";
+  /* the answer */
+  const yA = g.h - 26;
+  ctx.strokeStyle = css("--grid"); ctx.beginPath(); ctx.moveTo(8, yA-14); ctx.lineTo(w-8, yA-14); ctx.stroke();
+  const ph = MODELS[mk] && PT(J).models[mk].phi;
+  ctx.font = mono(10);
+  ctx.fillStyle = css("--ink-1"); ctx.fillText("phi", 8, yA);
+  for (let k=0;k<3;k++){
+    ctx.fillStyle = k===follow ? css("--c-highlight") : css("--ink-3");
+    ctx.fillText(SHORTLAB[k] + " " + (ph[k]>=0?"+":"") + ph[k].toFixed(3), 40 + k*150, yA);
+  }
+  return g;
+}
+pathPlot("sA", "tree_prob", 0,
+  "A1 · the path plot — following AGE",
+  "eight nodes at their own predicted value; twelve edges; six routes from base to f(x). Age's four edges are lit.");
+pathPlot("sA", "tree_prob", 2,
+  "A2 · the same plot — following SERUM CREATININE",
+  "one control moves the highlight; the nodes never move.");
+pathPlot("sA", "lr_margin", 0,
+  "A3 · THE COLLAPSE, in this idiom — logistic regression, log-odds",
+  "the notebook's own model. The nodes still fan out; what changes is that a feature's four edges become parallel and equal.");
+document.querySelectorAll("#sA .cap")[0].innerHTML =
+  "<b>The fan between the top and bottom node of a rank IS the disagreement</b>, with no second figure and "
+  + "no arithmetic. Age's four edges here are +0.357, +0.291, +0.109 and &minus;0.543: four different lengths, "
+  + "and one of them points the other way.";
+document.querySelectorAll("#sA .cap")[2].innerHTML =
+  "<b>All four age edges are +0.883 &mdash; same length, same direction &mdash; so the figure closes into a "
+  + "parallelogram</b> (the cube of &sect;B, seen flat). Which route you take cannot change what age "
+  + "contributes, so the average has nothing to average. This is what additivity looks like, and it needs "
+  + "no caption to say so.";
+
+/* ================================= §B the cube ============================== */
+function cube(host, follow){
+  const g = cand(host, "B · the cube — one axis per feature",
+    "vertex (a,e,c) = which features are revealed. The four edges parallel to the highlighted axis are that feature's four marginal contributions.",
+    470, 360);
+  const ctx = g.ctx;
+  const O = [70, 268], AX = [[132,0],[62,-46],[0,-108]];   /* age, ejection fx, creatinine */
+  const P = (a,e,c) => [O[0] + a*AX[0][0] + e*AX[1][0] + c*AX[2][0],
+                        O[1] + a*AX[0][1] + e*AX[1][1] + c*AX[2][1]];
+  const bits = S => [S.indexOf(0)>=0?1:0, S.indexOf(1)>=0?1:0, S.indexOf(2)>=0?1:0];
+  /* axis legend */
+  ctx.font = mono(9);
+  for (let k=0;k<3;k++){
+    const b = [[1,0,0],[0,1,0],[0,0,1]][k], p = P(b[0],b[1],b[2]);
+    ctx.strokeStyle = k===follow ? css("--c-highlight") : css("--grid");
+    ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(O[0], O[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.fillStyle = css("--ink-3");
+  ctx.fillText("+ " + LONGLAB[0], O[0]+30, O[1]+22);
+  ctx.fillText("+ " + LONGLAB[1], O[0]+70, O[1]-34);
+  ctx.save(); ctx.translate(O[0]-16, O[1]-54); ctx.rotate(-Math.PI/2);
+  ctx.textAlign = "center"; ctx.fillText("+ " + LONGLAB[2], 0, 0); ctx.restore(); ctx.textAlign = "left";
+  /* edges */
+  for (const S of SUBSETS) for (let i=0;i<3;i++){
+    if (S.indexOf(i) >= 0) continue;
+    const T = S.concat([i]).sort();
+    const a = bits(S), b = bits(T);
+    const p = P(a[0],a[1],a[2]), q = P(b[0],b[1],b[2]);
+    const isF = i === follow;
+    ctx.strokeStyle = isF ? css("--c-highlight") : css("--ink-3");
+    ctx.lineWidth = isF ? 2.6 : 1.2; ctx.globalAlpha = isF ? 1 : 0.4;
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (isF){
+      const d = V[key(T)] - V[key(S)];
+      const n = [2,1,1,2][ S.length === 0 ? 0 : (S.length === 2 ? 3 : 1) ];
+      const mx = (p[0]+q[0])/2, my = (p[1]+q[1])/2;
+      ctx.fillStyle = css("--surface-1"); ctx.fillRect(mx-24, my-13, 48, 14);
+      ctx.fillStyle = css("--c-highlight"); ctx.font = mono(9); ctx.textAlign = "center";
+      ctx.fillText((d>=0?"+":"") + d.toFixed(3) + "  " + n + "/6", mx, my-6); ctx.textAlign = "left";
+    }
+  }
+  /* vertices */
+  for (const S of SUBSETS){
+    const b = bits(S), p = P(b[0],b[1],b[2]);
+    const end = S.length === 0 || S.length === 3;
+    ctx.fillStyle = css("--surface-1"); ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, 7); ctx.fill();
+    ctx.strokeStyle = end ? css("--c-reference") : css("--c-empirical");
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 4.4, 0, 7); ctx.stroke();
+    ctx.font = mono(9); ctx.fillStyle = css("--ink-2"); ctx.textAlign = "center";
+    ctx.fillText(V[key(S)].toFixed(3), p[0], p[1] + 14); ctx.textAlign = "left";
+  }
+  ctx.fillStyle = css("--c-reference"); ctx.font = mono(9);
+  ctx.fillText("base " , O[0]-30, O[1]-12);
+  const t = P(1,1,1); ctx.fillText("f(x)", t[0]-10, t[1]-14);
+  g.cap.innerHTML = "The six corner-to-corner routes are the six orderings. <b>Weights read straight off the "
+    + "solid: the two edges on the outer faces are used by two routes each, the two in the middle by one</b>. "
+    + "Memorable, and it dies at four features &mdash; which may be the honest lesson, or may be a trap.";
+}
+cube("sB", 0);
+
+/* ============================ §C the ordering tree ========================== */
+function orderTree(host, follow){
+  const g = cand(host, "C · the ordering tree — 1 → 3 → 6",
+    "who joins first, then second, then third. Every root-to-leaf path is one ordering; every edge is a marginal contribution.",
+    620, 360);
+  const ctx = g.ctx;
+  const X = [40, 170, 330, 500], LH = 46, TOP = 40;
+  /* leaves in PERMS order */
+  const leafY = i => TOP + i*LH;
+  const nodes = [];      /* {depth, S, y} */
+  const rootY = TOP + 2.5*LH;
+  nodes.push({ depth:0, S:[], y: rootY, leaves:[0,1,2,3,4,5] });
+  for (let a=0;a<3;a++){
+    const ls = PERMS.map((p,i)=>({p,i})).filter(o=>o.p[0]===a).map(o=>o.i);
+    nodes.push({ depth:1, S:[a], y: ls.reduce((s,i)=>s+leafY(i),0)/ls.length, leaves: ls });
+    for (const b of [0,1,2]){
+      if (b===a) continue;
+      const ls2 = PERMS.map((p,i)=>({p,i})).filter(o=>o.p[0]===a && o.p[1]===b).map(o=>o.i);
+      nodes.push({ depth:2, S:[a,b], y: ls2.reduce((s,i)=>s+leafY(i),0)/ls2.length, leaves: ls2 });
+      const c = [0,1,2].find(k=>k!==a && k!==b);
+      nodes.push({ depth:3, S:[a,b,c], y: leafY(ls2[0]), leaves: ls2 });
+    }
+  }
+  const find = (depth, S) => nodes.find(n=>n.depth===depth && n.S.join()===S.join());
+  for (const n of nodes){
+    if (n.depth === 0) continue;
+    const parent = find(n.depth-1, n.S.slice(0, n.depth-1));
+    const i = n.S[n.depth-1];
+    const d = V[key(n.S.slice().sort())] - V[key(n.S.slice(0,n.depth-1).sort())];
+    const isF = i === follow;
+    ctx.strokeStyle = isF ? css("--c-highlight") : css("--ink-3");
+    ctx.lineWidth = isF ? 2.4 : 1; ctx.globalAlpha = isF ? 1 : 0.30;
+    ctx.beginPath(); ctx.moveTo(X[n.depth-1]+8, parent.y);
+    ctx.bezierCurveTo((X[n.depth-1]+X[n.depth])/2, parent.y, (X[n.depth-1]+X[n.depth])/2, n.y, X[n.depth]-8, n.y);
+    ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.font = mono(9); ctx.textAlign = "center";
+    const mx = (X[n.depth-1]+X[n.depth])/2, my = (parent.y+n.y)/2;
+    if (isF){
+      ctx.fillStyle = css("--surface-1"); ctx.fillRect(mx-30, my-14, 60, 15);
+      ctx.fillStyle = css("--c-highlight");
+      ctx.fillText((d>=0?"+":"") + d.toFixed(3) + " (" + n.leaves.length + "/6)", mx, my-7);
+    }
+    ctx.textAlign = "left";
+    ctx.fillStyle = isF ? css("--c-highlight") : css("--ink-3"); ctx.font = mono(10);
+    ctx.fillText(INIT[i], X[n.depth]-4, n.y);
+  }
+  ctx.fillStyle = css("--c-reference"); ctx.beginPath(); ctx.arc(X[0], rootY, 5, 0, 7); ctx.fill();
+  ctx.font = mono(9); ctx.fillStyle = css("--ink-3"); ctx.textAlign = "center";
+  ctx.fillText("base", X[0], rootY+15); ctx.fillText(V["-"].toFixed(3), X[0], rootY+26);
+  ctx.textAlign = "left";
+  for (let i=0;i<6;i++){
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText(PERMS[i].map(k=>INIT[k]).join(""), X[3]+16, leafY(i));
+    ctx.fillStyle = css("--c-highlight");
+    ctx.fillText(V["012"].toFixed(3), X[3]+50, leafY(i));
+  }
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+  ["joins 1st","2nd","3rd"].forEach((t,i)=>ctx.fillText(t, X[i+1]-24, 20));
+  ctx.fillText("every leaf lands on f(x)", X[3]+16, g.h-18);
+  const dl = deltas(V, follow);
+  g.cap.innerHTML = "<b>The weight is a leaf count.</b> Age joining first is one edge under two leaves (2/6); "
+    + "joining second is two edges under one leaf each (1/6 + 1/6); joining last is two edges under one leaf "
+    + "each &mdash; and both carry the same &Delta; = " + dl[3].d.toFixed(3) + ", which is the &#8531; in the formula. "
+    + "&phi; = " + PHI[follow].toFixed(3) + ".";
+}
+orderTree("sC", 0);
+
+/* ==================== §D the weighted average drawn ==================== */
+function weightBars(host, follow){
+  const g = cand(host, "D · the weighted average, drawn",
+    "four distinct marginal contributions; bar length is delta, row height is the weight w(S). phi is the line that balances them.",
+    470, 300);
+  const ctx = g.ctx;
+  const dl = deltas(V, follow);
+  const mx = Math.max.apply(null, dl.map(o=>Math.abs(o.d)).concat([Math.abs(PHI[follow])])) * 1.25;
+  const X0 = 132, X1 = 430, Y0 = 44, TOTAL = 168;
+  const at = v => X0 + (v+mx)/(2*mx)*(X1-X0);
+  ctx.strokeStyle = css("--grid"); ctx.beginPath();
+  ctx.moveTo(at(0)+0.5, Y0-10); ctx.lineTo(at(0)+0.5, Y0+TOTAL+10); ctx.stroke();
+  let y = Y0;
+  for (const o of dl){
+    const h = o.w * TOTAL;
+    ctx.fillStyle = o.d > 0 ? css("--c-event") : css("--c-nonevent");
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(Math.min(at(0), at(o.d)), y+1, Math.abs(at(o.d)-at(0)), h-2);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = css("--ink-2"); ctx.font = mono(9); ctx.textAlign = "right";
+    ctx.fillText("after", X0-64, y+h/2);
+    ctx.textAlign = "left";
+    chips(ctx, X0-58, y+h/2, o.S, 12);
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText("w " + (o.n===2 ? "1/3" : "1/6"), X0-58, y+h/2+15);
+    ctx.fillStyle = css("--ink-1"); ctx.font = mono(10);
+    const lx = o.d > 0 ? at(o.d)+6 : at(o.d)-40;
+    ctx.fillText((o.d>=0?"+":"") + o.d.toFixed(3), lx, y+h/2);
+    y += h;
+  }
+  ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(at(PHI[follow]), Y0-16); ctx.lineTo(at(PHI[follow]), Y0+TOTAL+16); ctx.stroke();
+  ctx.fillStyle = css("--c-highlight"); ctx.font = mono(10); ctx.textAlign = "center";
+  ctx.fillText("phi = " + PHI[follow].toFixed(3), at(PHI[follow]), Y0-26); ctx.textAlign = "left";
+  haxis(ctx, X0, X1, Y0+TOTAL+22, -mx, mx, [-0.6,-0.3,0,0.3,0.6].filter(t=>Math.abs(t)<mx),
+        "marginal contribution of " + LONGLAB[follow]);
+  g.cap.innerHTML = "Only four rows, because a feature has only four distinct marginal contributions however "
+    + "many orderings there are. <b>The two tall rows are joining first and joining last</b> &mdash; the ends "
+    + "of the formula carry twice the weight of the middle. Shows the arithmetic, shows no coalitions.";
+}
+weightBars("sD", 0);
+weightBars("sD", 2);
+
+/* ==================== §E the 6x3 matrix ==================== */
+function matrix(host){
+  const g = cand(host, "E · six orderings x three features",
+    "every marginal contribution in the problem, eighteen of them, plus the column averages.",
+    470, 300);
+  const ctx = g.ctx;
+  const X0 = 96, CW = 108, Y0 = 52, RH = 30;
+  let mxv = 0;
+  const cells = PERMS.map(perm => {
+    let cur = V["-"], S = [], row = [0,0,0];
+    for (const i of perm){ S = S.concat([i]); const n = V[key(S)]; row[i] = n - cur; cur = n; }
+    for (const v of row) mxv = Math.max(mxv, Math.abs(v));
+    return row;
+  });
+  ctx.fillStyle = css("--ink-2"); ctx.font = mono(10);
+  for (let k=0;k<3;k++){ ctx.textAlign = "center"; ctx.fillText(SHORTLAB[k], X0 + k*CW + CW/2, 24); }
+  ctx.textAlign = "left"; ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+  ctx.fillText("order", 12, 24);
+  for (let r=0;r<6;r++){
+    const y = Y0 + r*RH;
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText(PERMS[r].map(k=>INIT[k]).join(" "), 12, y);
+    for (let k=0;k<3;k++){
+      const v = cells[r][k], t = Math.abs(v)/mxv;
+      ctx.fillStyle = "color-mix(in srgb, " + (v>0 ? css("--c-event") : css("--c-nonevent"))
+                    + " " + Math.round(t*72) + "%, transparent)";
+      ctx.fillRect(X0 + k*CW + 3, y-13, CW-6, 26);
+      ctx.fillStyle = css("--ink-1"); ctx.font = mono(10); ctx.textAlign = "center";
+      ctx.fillText((v>=0?"+":"") + v.toFixed(3), X0 + k*CW + CW/2, y);
+      ctx.textAlign = "left";
+    }
+  }
+  const yA = Y0 + 6*RH + 6;
+  ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(X0, yA-15.5); ctx.lineTo(X0+3*CW, yA-15.5); ctx.stroke();
+  ctx.fillStyle = css("--ink-1"); ctx.font = mono(10);
+  ctx.fillText("phi", 12, yA);
+  for (let k=0;k<3;k++){
+    ctx.fillStyle = css("--c-highlight"); ctx.textAlign = "center";
+    ctx.fillText((PHI[k]>=0?"+":"") + PHI[k].toFixed(3), X0 + k*CW + CW/2, yA);
+    ctx.textAlign = "left";
+  }
+  g.cap.innerHTML = "The average is <b>a column mean</b> and nothing more, which is the plainest true statement "
+    + "about a Shapley value. Every row sums to f(x) &minus; base = " + (V["012"]-V["-"]).toFixed(3)
+    + ". Too dense to be a stage; exactly right as a table view or a second tab.";
+}
+matrix("sE");
+
+/* ==================== §F sampled orderings, running mean ==================== */
+function running(host, mk, title, sub){
+  const Vm = vOf(mk, PT(J).std), M = MODELS[mk];
+  const g = cand(host, title, sub, 470, 300);
+  const ctx = g.ctx;
+  const seq = [3,0,5,1,4,2];                 /* one fixed shuffle of the six orderings */
+  const run = [[],[],[]];
+  const acc = [0,0,0];
+  for (let s=0;s<seq.length;s++){
+    const perm = PERMS[seq[s]];
+    let cur = Vm["-"], S = [];
+    for (const i of perm){ S = S.concat([i]); const n = Vm[key(S)]; acc[i] += n-cur; cur = n; }
+    for (let k=0;k<3;k++) run[k].push(acc[k]/(s+1));
+  }
+  const phi = PT(J).models[mk].phi;
+  let lo = Math.min.apply(null, run.flat().concat(phi));
+  let hi = Math.max.apply(null, run.flat().concat(phi));
+  const pad = (hi-lo)*0.2 || 0.1; lo -= pad; hi += pad;
+  const X0 = 60, X1 = 400, Y0 = 32, Y1 = 226;
+  const ax = s => X0 + s/5*(X1-X0), ay = v => Y1 - (v-lo)/(hi-lo)*(Y1-Y0);
+  vaxis(ctx, X0-6, Y0, Y1, lo, hi, [-0.4,-0.2,0,0.2,0.4].filter(t=>t>lo&&t<hi), "running mean of delta");
+  haxis(ctx, X0, X1, Y1+6, 1, 6, [1,2,3,4,5,6], "orderings drawn");
+  for (let k=0;k<3;k++){
+    ctx.strokeStyle = css("--c-reference"); ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(X0, ay(phi[k])); ctx.lineTo(X1+22, ay(phi[k])); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = [css("--c-empirical"), css("--c-highlight"), css("--c-event")][k];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    run[k].forEach((v,s)=> s ? ctx.lineTo(ax(s), ay(v)) : ctx.moveTo(ax(s), ay(v)));
+    ctx.stroke();
+    for (let s=0;s<6;s++){ ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath(); ctx.arc(ax(s), ay(run[k][s]), 2.6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = ctx.strokeStyle; ctx.font = mono(9);
+    ctx.fillText(SHORTLAB[k], X1+26, ay(run[k][5]));
+  }
+  ctx.fillStyle = css("--c-reference"); ctx.font = mono(9);
+  ctx.fillText("exact phi", X1+26, ay(phi[0]) - 12);
+  g.cap.innerHTML = "One fixed shuffle of the six. <b>The estimate is wrong until the last ordering lands</b> &mdash; "
+    + "which is the state real SHAP is permanently in on eleven features, and the reason the library's numbers "
+    + "wobble between runs.";
+}
+running("sF", "tree_prob", "F1 · the running mean — decision tree",
+  "the six orderings dealt in a shuffled order; each line is one feature's estimate so far, converging on its exact phi.");
+running("sF", "lr_margin", "F2 · the same, on the notebook's model",
+  "logistic regression, log-odds: the estimate is exact after ONE ordering and never moves again.");
+document.querySelectorAll("#sF .cap")[1].innerHTML =
+  "<b>Flat from the first draw.</b> This is the collapse said a third way &mdash; on an additive model, "
+  + "sampling orderings is wasted work, and one ordering is the whole answer. It is also why "
+  + "<code>shap.Explainer</code> does not sample for a linear model: it uses the closed form.";
+
+/* ==================== §G the two already mocked ==================== */
+function coalitionRows(host){
+  const g = cand(host, "G1 · the eight coalitions as rows (already mocked)",
+    "subsets down the page, v(S) on a shared axis.", 470, 300);
+  const ctx = g.ctx, M = MODELS[MK];
+  const CX = 14, X0 = 108, X1 = 452, Y0 = 36;
+  const at = v => X0 + (v-M.axis[0])/(M.axis[1]-M.axis[0])*(X1-X0);
+  const ord = SUBSETS.slice().sort((a,b)=>a.length-b.length);
+  haxis(ctx, X0, X1, Y0 + ord.length*29 + 8, M.axis[0], M.axis[1], [0,0.25,0.5,0.75,1], "v(S)");
+  for (let r=0;r<ord.length;r++){
+    const S = ord[r], y = Y0 + r*29;
+    chips(ctx, CX, y, S, 15);
+    ctx.strokeStyle = css("--grid"); ctx.beginPath();
+    ctx.moveTo(X0, y+0.5); ctx.lineTo(X1, y+0.5); ctx.stroke();
+    ctx.fillStyle = (S.length===0||S.length===3) ? css("--c-reference") : css("--c-empirical");
+    ctx.beginPath(); ctx.arc(at(V[key(S)]), y, 4.4, 0, 7); ctx.fill();
+    ctx.fillStyle = css("--ink-2"); ctx.font = mono(10);
+    ctx.fillText(V[key(S)].toFixed(3), Math.min(at(V[key(S)])+9, X1-36), y);
+  }
+  g.cap.innerHTML = "Complete, compact, and it never shows the average being taken.";
+}
+function hasse(host, follow){
+  const g = cand(host, "G2 · the Hasse lattice (already mocked)",
+    "the same eight nodes in four ranks, positions arbitrary.", 560, 300);
+  const ctx = g.ctx;
+  const ranks = [[[]],[[0],[1],[2]],[[0,1],[0,2],[1,2]],[[0,1,2]]];
+  const X = [60, 210, 360, 500], pos = new Map();
+  ranks.forEach((rk, ri) => rk.forEach((S, si) =>
+    pos.set(key(S), { x: X[ri], y: 46 + (rk.length===1 ? 92 : si*92) })));
+  for (const S of SUBSETS) for (let i=0;i<3;i++){
+    if (S.indexOf(i) >= 0) continue;
+    const T = S.concat([i]).sort(), a = pos.get(key(S)), b = pos.get(key(T));
+    const isF = i === follow;
+    ctx.strokeStyle = isF ? css("--c-highlight") : css("--grid");
+    ctx.lineWidth = isF ? 2.2 : 1;
+    ctx.beginPath(); ctx.moveTo(a.x+23, a.y); ctx.lineTo(b.x-23, b.y); ctx.stroke();
+    if (isF){
+      const d = V[key(T)] - V[key(S)], mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      ctx.fillStyle = css("--surface-1"); ctx.fillRect(mx-26, my-14, 52, 15);
+      ctx.fillStyle = css("--c-highlight"); ctx.font = mono(9); ctx.textAlign = "center";
+      ctx.fillText((d>=0?"+":"") + d.toFixed(3), mx, my-7); ctx.textAlign = "left";
+    }
+  }
+  for (const S of SUBSETS){
+    const q = pos.get(key(S));
+    ctx.fillStyle = css("--surface-1"); ctx.strokeStyle = css("--ink-3"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(q.x-23, q.y-16, 46, 32, 5); ctx.fill(); ctx.stroke();
+    ctx.font = mono(8); ctx.textAlign = "center"; ctx.fillStyle = css("--ink-3");
+    ctx.fillText(S.length ? S.map(k=>INIT[k]).join("") : "none", q.x, q.y-6);
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-1");
+    ctx.fillText(V[key(S)].toFixed(3), q.x, q.y+6); ctx.textAlign = "left";
+  }
+  g.cap.innerHTML = "<b>The vertical position means nothing</b>, which is the whole difference between this and "
+    + "&sect;A. Everything it shows, the path plot shows with the value added.";
+}
+coalitionRows("sG");
+hasse("sG", 0);
+
+/* ============================== scoreboard ================================= */
+{
+  const rows = [
+    ["&sect;A path plot", "v(S) plotted at its own value; |S| across", "<b>the disagreement is the fan</b>; efficiency is the shape; scales to 4+ features as a spaghetti plot", "three middle nodes can collide in y"],
+    ["&sect;B cube", "one axis per feature", "<b>the three directions ARE the features</b>; weights are face counts", "no picture beyond 3 features; oblique projection to read"],
+    ["&sect;C ordering tree", "1 &rarr; 3 &rarr; 6 branching", "<b>derives w(S) as a leaf count</b> instead of asserting it", "shows the same &Delta; twice; wide for the space it uses"],
+    ["&sect;D weighted bars", "4 rows, height = weight", "<b>the formula, exactly</b>; only four rows however many orderings", "no coalitions in it at all — a companion, not a stage"],
+    ["&sect;E 6&times;3 matrix", "orderings &times; features", "<b>&phi; is a column mean</b>; all 18 numbers legible", "a table, not a figure"],
+    ["&sect;F running mean", "estimate vs orderings drawn", "<b>the only one Play can drive</b>; it is what the library does", "needs a second panel to say what is being averaged"],
+    ["&sect;G1 coalition rows", "8 rows, v(S) on one axis", "complete and compact", "never shows the average being taken"],
+    ["&sect;G2 Hasse lattice", "4 ranks of boxes", "the formula's literal shape", "vertical position carries no meaning"],
+  ];
+  let h = "<tr><th>candidate</th><th>what it plots</th><th>what only it earns</th><th>what it costs</th></tr>";
+  for (const r of rows) h += "<tr><td>" + r.join("</td><td>") + "</td></tr>";
+  document.getElementById("scoreboard").innerHTML = h;
+}
+</script>
+</body>
+</html>

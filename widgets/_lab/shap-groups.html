@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 38 shap — the notebook's own coalition diagram, animated</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); line-height: 1.5; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .cand { margin: 0 0 var(--sp-4); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 700px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 6px 0 12px; max-width: 700px; line-height: 1.45; }
+  .ctl { display: flex; gap: 6px; margin: var(--sp-2) 0; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; font-size: var(--fs-sm); padding: 4px 11px; border-radius: var(--r-sm, 5px);
+           border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  button.on { border-color: var(--c-empirical); color: var(--c-empirical); }
+  button.pri { background: var(--c-empirical); border-color: var(--c-empirical); color: var(--surface-1); }
+  .ctl span.lbl { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin-right: 4px; }
+  .verify { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); border-left: 3px solid var(--c-empirical); padding-left: 10px; margin: 0 0 var(--sp-4); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 38 · your coalition diagram, in motion</h1>
+
+  <p class="note">
+    Kenneth, 2026-08-31, with the two figures from <code>04-5</code> cell 2: <i>&ldquo;is there a way to
+    animate features in groups and changing them?&rdquo;</i> &mdash; yes, and <b>your two figures already
+    fix the visual language</b>; what neither can show is the part that moves. The dashed enclosure,
+    the tokens, the grouping are all yours. Three things are added, and each is a thing a still
+    picture cannot say:
+  </p>
+  <p class="note">
+    <b>1. A token outside the enclosure is not gone &mdash; it is being averaged over.</b> Your
+    <code>v({2,3})</code> has no player 1 in it, but the model still needs a number for feature 1.
+    It takes one from another patient, and <code>v(S)</code> is the mean over every such
+    substitution. &sect;H deals those substitutions one at a time and the payoff <i>walks</i> onto
+    <code>v(S)</code>. <b>2. Your second figure is four subtractions and no average</b> &mdash; &sect;J
+    animates each subtraction and then collects the four into the weighted mean that is &phi;.
+    <b>3. Nothing in either figure says the order matters</b> &mdash; &sect;K queues the tokens up and
+    walks them in, six times.
+  </p>
+  <p class="note">
+    Real numbers throughout: patient <b>#50</b> (age 85, ejection fraction 60%, serum creatinine
+    3.2 mg/dL, <b>survived</b>), the depth-3 decision tree, predicted risk of death; 239 background
+    patients. <b>Every panel is live &mdash; press the buttons.</b>
+  </p>
+  <div class="verify" id="verify">checking&hellip;</div>
+
+  <h2>&sect;H &middot; The enclosure, live &mdash; and what &ldquo;outside it&rdquo; means</h2>
+  <p class="note">
+    Your first figure with one enclosure instead of seven. Click a token to move it in or out.
+    <b>A token outside keeps its slot and starts taking values from other patients</b>; each
+    substitution paints one tick on the strip and the running mean walks along. The printed number
+    is the mean of the ticks actually on screen, so it is true at every frame and exact when the
+    deal finishes.
+  </p>
+  <div class="cand" id="H"></div>
+
+  <h2>&sect;J &middot; Your second figure, animated &mdash; and the average it stops short of</h2>
+  <p class="note">
+    Your four panels are the four distinct contributions of one player: <code>v({1})</code>,
+    <code>v({1,2})&minus;v({2})</code>, <code>v({1,3})&minus;v({3})</code>,
+    <code>v({1,2,3})&minus;v({2,3})</code>. Here the token <b>leaves</b> each group and the payoff
+    drops by that much, one panel at a time &mdash; then the four drops are collected into the tray,
+    at the weights the formula gives them, and &phi; is where they balance.
+  </p>
+  <div class="cand" id="J"></div>
+
+  <h2>&sect;K &middot; The queue &mdash; the same tokens, arriving in an order</h2>
+  <p class="note">
+    The tokens wait outside and walk in one at a time. Each arrival steps the payoff, and the step
+    is recorded. Then the queue reshuffles and it runs again: <b>six queues, six rows, and the
+    Shapley value is the column average.</b> Switch the model to the notebook's logistic regression
+    and every row comes out identical &mdash; which is the one thing about SHAP that the notebook's own
+    example can never show.
+  </p>
+  <div class="cand" id="K"></div>
+</main>
+
+<script type="module">
+const R = await (await fetch("shap-ref.json")).json();
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const NAMES  = ["Age", "Ejection fx", "Serum creat"];
+const UNITS  = ["yrs", "%", "mg/dL"];
+const TOKCOL = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c"];
+
+const margin = z => R.lr.intercept + z[0]*R.lr.coef[0] + z[1]*R.lr.coef[1] + z[2]*R.lr.coef[2];
+function treeP(z){ let n = R.tree.root; while(!n.leaf) n = (z[n.f] <= n.thr_std) ? n.L : n.R; return n.p; }
+const MODELS = {
+  tree_prob: { f: treeP,  name: "Decision tree",       out: "risk of death",     axis:[0,1] },
+  lr_margin: { f: margin, name: "Logistic regression", out: "log-odds of death", axis:[-3.2,2.6] },
+};
+const SUBSETS = [[],[0],[1],[2],[0,1],[0,2],[1,2],[0,1,2]];
+const PERMS = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+const key = S => S.length ? S.slice().sort().join("") : "-";
+const J = 50, P = R.patients[J];
+const BG = R.train.std, BGR = R.train.raw, NBG = BG.length;
+
+/* every prediction for every coalition, kept per background row so a deal can
+   be revealed one row at a time (the pure-then-reveal contract, 1.4) */
+const DEALS = {}, VTAB = {};
+for (const mk of Object.keys(MODELS)){
+  DEALS[mk] = {}; VTAB[mk] = {};
+  for (const S of SUBSETS){
+    const f = MODELS[mk].f, arr = new Array(NBG);
+    for (let r=0;r<NBG;r++){ const w = BG[r].slice(); for (const k of S) w[k] = P.std[k]; arr[r] = f(w); }
+    DEALS[mk][key(S)] = arr;
+    VTAB[mk][key(S)] = arr.reduce((a,b)=>a+b,0)/NBG;
+  }
+}
+{
+  let worst = 0;
+  for (const k of Object.keys(VTAB.tree_prob)) worst = Math.max(worst, Math.abs(VTAB.tree_prob[k] - P.models.tree_prob.v[k]));
+  document.getElementById("verify").textContent =
+    "patient #50 — JS v(S) from the per-row deals vs the python fixture, all 8 coalitions: worst |diff| = "
+    + worst.toExponential(2) + "   ·   tree phi = [" + P.models.tree_prob.phi.map(v=>v.toFixed(4)).join(", ")
+    + "]   ·   lr(log-odds) phi = [" + P.models.lr_margin.phi.map(v=>v.toFixed(4)).join(", ") + "]";
+}
+function phiOf(mk){ return P.models[mk].phi; }
+function deltas(mk, i){
+  const V = VTAB[mk], rest = [0,1,2].filter(k=>k!==i);
+  const sets = [[], [rest[0]], [rest[1]], rest];
+  return sets.map((S,q)=>({ S, w: [1/3,1/6,1/6,1/3][q], n: [2,1,1,2][q],
+    d: V[key(S.concat([i]))] - V[key(S)] }));
+}
+
+/* ---------------------------- canvas plumbing ------------------------------ */
+function panel(host, title, sub, w, h){
+  const d = document.createElement("div");
+  const t = document.createElement("h3"); t.textContent = title; d.appendChild(t);
+  const s = document.createElement("p"); s.className = "sub"; s.textContent = sub; d.appendChild(s);
+  const ctl = document.createElement("div"); ctl.className = "ctl"; d.appendChild(ctl);
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w*dpr; c.height = h*dpr; c.style.width = w+"px"; c.style.height = h+"px";
+  d.appendChild(c);
+  const cap = document.createElement("p"); cap.className = "cap"; d.appendChild(cap);
+  document.getElementById(host).appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.textBaseline = "middle";
+  return { ctx, w, h, cap, ctl, el: c };
+}
+const mono = s => s + "px " + css("--font-mono");
+const sans = s => s + "px " + css("--font");
+function btn(ctl, label, cls, fn){
+  const b = document.createElement("button"); b.textContent = label;
+  if (cls) b.className = cls; b.onclick = fn; ctl.appendChild(b); return b;
+}
+function lbl(ctl, text){
+  const s = document.createElement("span"); s.className = "lbl"; s.textContent = text; ctl.appendChild(s);
+}
+/* a dashed enclosure in the notebook figure's style */
+function enclosure(ctx, x, y, w, h, r){
+  ctx.save(); ctx.setLineDash([5,4]); ctx.lineWidth = 2;
+  ctx.strokeStyle = css("--ink-1");
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r === undefined ? Math.min(w,h)/2 : r); ctx.stroke();
+  ctx.restore();
+}
+/* one feature token: the notebook's coloured circle, grown into a pill that
+   can carry the value, because our players have names and measurements */
+function token(ctx, x, y, i, value, unit, dim, w){
+  w = w || 132;
+  const h = 30;
+  ctx.save();
+  ctx.globalAlpha = dim ? 0.42 : 1;
+  ctx.fillStyle = css(TOKCOL[i]);
+  ctx.beginPath(); ctx.roundRect(x, y-h/2, w, h, h/2); ctx.fill();
+  ctx.fillStyle = css("--surface-1");
+  ctx.font = sans(11); ctx.textAlign = "left";
+  ctx.fillText(NAMES[i], x + 12, y - 5);
+  ctx.font = mono(11);
+  ctx.fillText(value + " " + unit, x + 12, y + 8);
+  ctx.restore();
+}
+const ease = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+
+/* ================================ §H the enclosure ========================= */
+function sectionH(){
+  const g = panel("H", "H · one enclosure, three tokens, and the deal",
+    "click a token to move it in or out of the coalition. Out-tokens take values from other patients; each substitution is a tick.",
+    780, 390);
+  const ctx = g.ctx;
+  let mk = "tree_prob";
+  let inSet = [0,1,2].map(()=>true);            /* target membership */
+  let pos   = [1,1,1];                          /* eased membership 0..1 */
+  let dealt = 0, dealing = false, last = 0;
+  const BX = 28, BY = 66, BW = 168, BH = 198;
+  const IN_X = BX + 16, OUT_X = BX + 206;
+  const slotY = i => BY + 40 + i*60;
+  const tokX  = i => IN_X + (1-pos[i]) * (OUT_X - IN_X);
+
+  const ctl = g.ctl;
+  lbl(ctl, "model");
+  const bT = btn(ctl, "Decision tree", "on", ()=>{ mk="tree_prob"; bT.className="on"; bL.className=""; restart(); });
+  const bL = btn(ctl, "Logistic regression · log-odds", "", ()=>{ mk="lr_margin"; bL.className="on"; bT.className=""; restart(); });
+  lbl(ctl, "  coalition");
+  const tb = [0,1,2].map(i => btn(ctl, NAMES[i], "on", ()=>{ inSet[i] = !inSet[i]; tb[i].className = inSet[i] ? "on" : ""; restart(); }));
+  btn(ctl, "Deal all", "pri", ()=>{ dealt = NBG; dealing = false; draw(); });
+
+  function restart(){ dealt = 0; dealing = true; last = performance.now(); requestAnimationFrame(step); }
+  function step(now){
+    const dt = Math.min(64, now - last); last = now;
+    let moving = false;
+    for (let i=0;i<3;i++){
+      const target = inSet[i] ? 1 : 0;
+      if (Math.abs(pos[i]-target) > 0.002){ pos[i] += (target-pos[i]) * (1-Math.pow(0.002, dt/380)); moving = true; }
+      else pos[i] = target;
+    }
+    if (dealing){ dealt = Math.min(NBG, dealt + dt * 0.26); if (dealt >= NBG){ dealt = NBG; dealing = false; } }
+    draw();
+    if (moving || dealing) requestAnimationFrame(step);
+  }
+  function draw(){
+    const M = MODELS[mk], S = [0,1,2].filter(i=>inSet[i]);
+    const arr = DEALS[mk][key(S)];
+    const n = Math.max(1, Math.round(dealt));
+    let sum = 0; for (let r=0;r<n;r++) sum += arr[r];
+    const runMean = sum/n;
+    ctx.clearRect(0,0,g.w,g.h);
+    enclosure(ctx, BX, BY, BW, BH, 24);
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(10); ctx.textAlign = "left";
+    ctx.fillText("the coalition S", BX, BY-14);
+    ctx.fillText("outside — averaged over", OUT_X, BY-14);
+    /* tokens */
+    for (let i=0;i<3;i++){
+      const out = pos[i] < 0.5;
+      let val;
+      if (pos[i] > 0.5) val = P.raw[i];
+      else { const r = Math.min(NBG-1, Math.max(0, Math.round(dealt)-1)); val = BGR[r][i]; }
+      token(ctx, tokX(i), slotY(i), i, val, UNITS[i], out, 128);
+      if (out){
+        ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+        ctx.fillText("patient " + Math.min(NBG, Math.max(1, Math.round(dealt))) + " of " + NBG,
+                     tokX(i), slotY(i) + 25);
+      }
+    }
+    /* the payoff strip */
+    const lo = M.axis[0], hi = M.axis[1];
+    const SX = 430, X1 = 762;
+    const atv = v => SX + (v-lo)/(hi-lo)*(X1-SX);
+    const RY = 292;
+    ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(SX, RY+0.5); ctx.lineTo(X1, RY+0.5); ctx.stroke();
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+    const ticks = lo < 0 ? [-3,-2,-1,0,1,2] : [0,0.25,0.5,0.75,1];
+    for (const t of ticks){ if (t<lo||t>hi) continue;
+      ctx.beginPath(); ctx.moveTo(atv(t)+0.5, RY); ctx.lineTo(atv(t)+0.5, RY+4); ctx.stroke();
+      ctx.fillText(String(t), atv(t), RY+13); }
+    ctx.textAlign = "left"; ctx.fillText("predicted " + M.out, SX, RY+26);
+    /* one tick per substitution dealt */
+    ctx.strokeStyle = css("--c-empirical"); ctx.lineWidth = 1; ctx.globalAlpha = 0.30;
+    ctx.beginPath();
+    for (let r=0;r<n;r++){ const x = atv(arr[r]); ctx.moveTo(x+0.5, RY-86); ctx.lineTo(x+0.5, RY-4); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    /* the running mean */
+    ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(atv(runMean), RY-102); ctx.lineTo(atv(runMean), RY+2); ctx.stroke();
+    ctx.fillStyle = css("--c-highlight"); ctx.font = mono(13); ctx.textAlign = "center";
+    ctx.fillText(runMean.toFixed(3), atv(runMean), RY-116);
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-2");
+    ctx.fillText("mean of the " + n + " ticks", atv(runMean), RY-130);
+    ctx.textAlign = "left";
+    /* the label, in the notebook's notation */
+    ctx.fillStyle = css("--ink-1"); ctx.font = mono(15);
+    const nm = S.length ? S.map(i=>["1","2","3"][i]).join(",") : "";
+    ctx.fillText("v({" + nm + "})", SX, BY - 2);
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-3");
+    ctx.fillText(S.length ? S.map(i=>NAMES[i]).join(" + ") + " kept" : "nothing kept — this is the base value",
+                 SX, BY + 18);
+    g.cap.innerHTML = "Coalition <b>{" + (nm || "&empty;") + "}</b> &middot; "
+      + (n < NBG ? ("<b>" + n + " of " + NBG + " substitutions dealt</b> — the number on screen is the mean of "
+                    + "what is drawn, and it is still moving")
+                 : ("all " + NBG + " dealt — <b>v(S) = " + VTAB[mk][key(S)].toFixed(4) + "</b>, exact"))
+      + ". Take every token out and the mean lands on the base value; put every token in and every tick "
+      + "collapses onto f(x), because there is nothing left to average.";
+  }
+  g.el.style.cursor = "pointer";
+  g.el.onclick = (e) => {
+    const r = g.el.getBoundingClientRect();
+    const y = (e.clientY - r.top);
+    for (let i=0;i<3;i++) if (Math.abs(y - slotY(i)) < 22){ inSet[i] = !inSet[i]; tb[i].className = inSet[i] ? "on" : ""; restart(); }
+  };
+  restart();
+}
+sectionH();
+
+/* ============ §J your second figure, animated, and the average ============= */
+function sectionJ(){
+  const g = panel("J", "J · the four contributions of one feature, then the average",
+    "your 2x2, animated: the token leaves the group and the payoff moves by that much. Then the four drops are weighted and balanced.",
+    780, 600);
+  const ctx = g.ctx;
+  let mk = "tree_prob", who = 0;
+  let phase = 0;            /* 0..4 panels revealed, 5 = tray, 6 = phi */
+  let t = 0, playing = false, last = 0;
+  const ctl = g.ctl;
+  lbl(ctl, "model");
+  const bT = btn(ctl, "Decision tree", "on", ()=>{ mk="tree_prob"; bT.className="on"; bL.className=""; reset(); });
+  const bL = btn(ctl, "Logistic regression · log-odds", "", ()=>{ mk="lr_margin"; bL.className="on"; bT.className=""; reset(); });
+  lbl(ctl, "  contributions of");
+  const wb = [0,1,2].map(i => btn(ctl, NAMES[i], i===0?"on":"", ()=>{ who=i; wb.forEach((b,k)=>b.className = k===i?"on":""); reset(); }));
+  btn(ctl, "Play", "pri", ()=>{ if (phase>=6) reset(); playing = true; last = performance.now(); requestAnimationFrame(step); });
+  btn(ctl, "Step", "", ()=>{ playing = false; phase = Math.min(6, phase+1); t = 1; draw(); });
+  btn(ctl, "Reset", "", reset);
+  function reset(){ playing = false; phase = 0; t = 0; draw(); }
+  function step(now){
+    const dt = Math.min(64, now-last); last = now;
+    t += dt/900;
+    if (t >= 1){ t = 0; phase++; if (phase >= 6){ phase = 6; t = 1; playing = false; } }
+    draw();
+    if (playing) requestAnimationFrame(step);
+  }
+  function draw(){
+    const M = MODELS[mk], V = VTAB[mk], dl = deltas(mk, who), phi = phiOf(mk)[who];
+    ctx.clearRect(0,0,g.w,g.h);
+    const lo = M.axis[0], hi = M.axis[1];
+    const CELL = [[14,42],[398,42],[14,272],[398,272]];   /* your 2x2 */
+    for (let q=0;q<4;q++){
+      const x = CELL[q][0], gy = CELL[q][1];
+      const revealed = phase > q ? 1 : (phase === q ? ease(Math.min(1,t)) : 0);
+      const withS = dl[q].S.concat([who]).sort(), without = dl[q].S;
+      const inH = 30, gap = 6, nW = withS.length, nO = without.length;
+      if (revealed <= 0){
+        ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1; ctx.setLineDash([2,4]);
+        ctx.beginPath(); ctx.roundRect(x, gy, 350, 170, 8); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = css("--ink-3"); ctx.font = mono(10); ctx.textAlign = "center";
+        ctx.fillText("not yet", x+175, gy+85); ctx.textAlign = "left";
+        continue;
+      }
+      /* the group WITH the feature */
+      enclosure(ctx, x, gy, 116, nW*(inH+gap)+10, 16);
+      withS.forEach((i,r)=> token(ctx, x+8, gy+12+r*(inH+gap)+3, i, P.raw[i], UNITS[i], false, 100));
+      /* the arrow, and the group WITHOUT — your figure's move */
+      const ax = x + 124;
+      ctx.strokeStyle = css("--ink-1"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ax, gy+22); ctx.lineTo(ax+22*revealed, gy+22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ax+22*revealed, gy+22); ctx.lineTo(ax+15*revealed, gy+18);
+      ctx.lineTo(ax+15*revealed, gy+26); ctx.closePath(); ctx.fillStyle = css("--ink-1"); ctx.fill();
+      ctx.globalAlpha = revealed;
+      if (nO === 0){
+        ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+        ctx.fillText("nobody", ax+30, gy+22);
+      } else {
+        enclosure(ctx, ax+30, gy, 100, nO*(inH+gap)+10, 16);
+        without.forEach((i,r)=> token(ctx, ax+36, gy+12+r*(inH+gap)+3, i, P.raw[i], UNITS[i], false, 88));
+      }
+      ctx.globalAlpha = 1;
+      /* your caption, in your notation */
+      const ny = gy + 130;
+      ctx.fillStyle = css("--ink-2"); ctx.font = mono(12);
+      const nm = s => "{" + s.map(i=>["1","2","3"][i]).join(",") + "}";
+      ctx.fillText(nO ? ("v(" + nm(withS) + ") - v(" + nm(without) + ")") : ("v(" + nm(withS) + ")"), x, ny);
+      ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+      ctx.fillText("weight " + (dl[q].n === 2 ? "1/3" : "1/6"), x + 224, ny);
+      /* the payoff difference, as a bar on a scale shared by all four cells */
+      const by = gy + 178, BW2 = 322, bx = x + 6;
+      const at = v => bx + (v-lo)/(hi-lo)*BW2;
+      ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bx, by+0.5); ctx.lineTo(bx+BW2, by+0.5); ctx.stroke();
+      const a = V[key(without)], b = V[key(withS)];
+      const bNow = a + (b-a)*revealed;
+      ctx.strokeStyle = css("--ink-3"); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(at(a), by-15); ctx.lineTo(at(a), by+5); ctx.stroke();
+      ctx.fillStyle = (b-a) > 0 ? css("--c-event") : css("--c-nonevent");
+      ctx.globalAlpha = 0.6;
+      ctx.fillRect(Math.min(at(a), at(bNow)), by-13, Math.abs(at(bNow)-at(a)), 12);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(at(bNow), by-22); ctx.lineTo(at(bNow), by+5); ctx.stroke();
+      ctx.fillStyle = css("--ink-1"); ctx.font = mono(11); ctx.textAlign = "center";
+      ctx.fillText(((bNow-a)>=0?"+":"") + (bNow-a).toFixed(3), (at(a)+at(bNow))/2, by+17);
+      ctx.textAlign = "left";
+    }
+    /* the tray: the four drops, at their weights */
+    const TY = 505, TX = 40, TW = 700;
+    if (phase >= 5){
+      const rev = phase > 5 ? 1 : ease(Math.min(1,t));
+      const mx = Math.max.apply(null, dl.map(o=>Math.abs(o.d)).concat([Math.abs(phi)])) * 1.3;
+      const at2 = v => TX + (v+mx)/(2*mx)*TW;
+      ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(at2(0)+0.5, TY-4); ctx.lineTo(at2(0)+0.5, TY+62); ctx.stroke();
+      let y = TY;
+      for (const o of dl){
+        const h = o.w * 60;
+        ctx.fillStyle = o.d > 0 ? css("--c-event") : css("--c-nonevent");
+        ctx.globalAlpha = 0.8 * rev;
+        ctx.fillRect(Math.min(at2(0), at2(o.d)), y+1, Math.abs(at2(o.d)-at2(0)), h-2);
+        ctx.globalAlpha = 1;
+        y += h;
+      }
+      ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+      ctx.fillText("bar length = the drop, bar height = its weight", TX, TY+74);
+      if (phase >= 6){
+        ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(at2(phi), TY-12); ctx.lineTo(at2(phi), TY+68); ctx.stroke();
+        ctx.fillStyle = css("--c-highlight"); ctx.font = mono(13); ctx.textAlign = "center";
+        ctx.fillText("phi = " + phi.toFixed(3), at2(phi), TY-24); ctx.textAlign = "left";
+      }
+    }
+    const spread = Math.max.apply(null, dl.map(o=>o.d)) - Math.min.apply(null, dl.map(o=>o.d));
+    g.cap.innerHTML = "<b>" + NAMES[who] + "</b>, " + MODELS[mk].name.toLowerCase() + ": the four drops are "
+      + dl.map(o=>(o.d>=0?"+":"")+o.d.toFixed(3)).join(", ") + " &mdash; a spread of <b>" + spread.toFixed(3)
+      + "</b>" + (spread < 1e-9 ? " &mdash; <b>all four identical, so the average is the only value there ever was</b>."
+                                : ", and phi = " + phi.toFixed(3) + " is where they balance.");
+  }
+  reset();
+}
+sectionJ();
+
+/* ======================= §K the queue, six orderings ======================= */
+function sectionK(){
+  const g = panel("K", "K · the queue — six orderings, six rows",
+    "the tokens wait outside and walk in one at a time. Each arrival steps the payoff; the step is recorded in the row.",
+    780, 440);
+  const ctx = g.ctx;
+  let mk = "tree_prob";
+  let row = 0, k = 0, t = 0, playing = false, last = 0;
+  const rows = [];                       /* completed rows of three deltas */
+  const ctl = g.ctl;
+  lbl(ctl, "model");
+  const bT = btn(ctl, "Decision tree", "on", ()=>{ mk="tree_prob"; bT.className="on"; bL.className=""; reset(); });
+  const bL = btn(ctl, "Logistic regression · log-odds", "", ()=>{ mk="lr_margin"; bL.className="on"; bT.className=""; reset(); });
+  btn(ctl, "Play all six", "pri", ()=>{ if (row>=6) reset(); playing = true; last = performance.now(); requestAnimationFrame(step); });
+  btn(ctl, "Next arrival", "", ()=>{ playing = false; advance(); draw(); });
+  btn(ctl, "Reset", "", reset);
+  function reset(){ playing=false; row=0; k=0; t=0; rows.length=0; draw(); }
+  function advance(){
+    if (row >= 6) return;
+    k++; t = 0;
+    if (k > 3){ rows.push(rowDeltas(row)); row++; k = 0; if (row >= 6) { playing = false; } }
+  }
+  function rowDeltas(r){
+    const V = VTAB[mk], perm = PERMS[r];
+    let cur = V["-"], S = [], d = [0,0,0];
+    for (const i of perm){ S = S.concat([i]); const n = V[key(S)]; d[i] = n-cur; cur = n; }
+    return d;
+  }
+  function step(now){
+    const dt = Math.min(64, now-last); last = now;
+    t += dt/620;
+    if (t >= 1) advance();
+    draw();
+    if (playing && row < 6) requestAnimationFrame(step);
+    else if (row >= 6){ playing = false; draw(); }
+  }
+  function draw(){
+    const M = MODELS[mk], V = VTAB[mk];
+    ctx.clearRect(0,0,g.w,g.h);
+    const perm = PERMS[Math.min(5,row)];
+    const arrived = perm.slice(0, Math.min(3,k));
+    const inFlight = k >= 1 && k <= 3 ? perm[k-1] : -1;
+    const settled = perm.slice(0, Math.max(0, Math.min(3,k)-1));
+    /* the enclosure */
+    const BX = 22, BY = 50, BW = 140, BH = 178;
+    const OUT_DX = BW + 32;
+    enclosure(ctx, BX, BY, BW, BH, 22);
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+    ctx.fillText("the coalition, filling up", BX, BY-14);
+    ctx.fillText("waiting", BX + 10 + OUT_DX, BY-14);
+    const p = t >= 1 ? 1 : ease(t);
+    for (let r=0;r<3;r++){
+      const i = perm[r];
+      const flying = (r === k-1) && k<=3;
+      let x, dim;
+      if (r < k-1){ x = BX+10; dim = false; }
+      else if (flying){ x = BX+10 + (1-p)*OUT_DX; dim = p < 0.5; }
+      else { x = BX+10 + OUT_DX; dim = true; }
+      token(ctx, x, BY+28+r*56, i, dim ? "…" : P.raw[i], dim ? "" : UNITS[i], dim, 120);
+    }
+    /* the payoff needle */
+    const SX = 384, SW = 376, RY = 232;
+    const lo = M.axis[0], hi = M.axis[1];
+    const at = v => SX + (v-lo)/(hi-lo)*SW;
+    ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(SX, RY+0.5); ctx.lineTo(SX+SW, RY+0.5); ctx.stroke();
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+    for (const tk of (lo<0?[-3,-2,-1,0,1,2]:[0,0.25,0.5,0.75,1])){ if (tk<lo||tk>hi) continue;
+      ctx.beginPath(); ctx.moveTo(at(tk)+0.5, RY); ctx.lineTo(at(tk)+0.5, RY+4); ctx.stroke();
+      ctx.fillText(String(tk), at(tk), RY+13); }
+    ctx.textAlign = "left"; ctx.fillText("predicted " + M.out, SX, RY+27);
+    /* the walk so far, as steps down the panel */
+    let cur = V["-"], S = [];
+    ctx.strokeStyle = css("--c-reference"); ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(at(cur), BY-6); ctx.lineTo(at(cur), RY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = css("--c-reference"); ctx.font = mono(9); ctx.textAlign = "center";
+    ctx.fillText("base " + cur.toFixed(3), at(cur), BY-16); ctx.textAlign = "left";
+    for (let r=0;r<Math.min(3,k);r++){
+      const i = perm[r]; S = S.concat([i]);
+      const nxt = V[key(S)];
+      const frac = (r === k-1) ? p : 1;
+      const shown = cur + (nxt-cur)*frac;
+      const y = BY + 20 + r*56;
+      ctx.strokeStyle = css(TOKCOL[i]); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(at(cur), y); ctx.lineTo(at(shown), y); ctx.stroke();
+      ctx.fillStyle = css(TOKCOL[i]);
+      const dir = (shown-cur) >= 0 ? 1 : -1;
+      ctx.beginPath(); ctx.moveTo(at(shown), y); ctx.lineTo(at(shown)-dir*6, y-4.5);
+      ctx.lineTo(at(shown)-dir*6, y+4.5); ctx.closePath(); ctx.fill();
+      ctx.font = mono(10); ctx.textAlign = "center";
+      ctx.fillText(((shown-cur)>=0?"+":"") + (shown-cur).toFixed(3), (at(cur)+at(shown))/2, y-11);
+      ctx.textAlign = "left";
+      cur = nxt;
+    }
+    /* the rows recorded so far */
+    const TY = 292, CX = 88, CW2 = 128;
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText("order", 12, TY-14);
+    for (let c=0;c<3;c++){ ctx.textAlign="center"; ctx.fillStyle = css(TOKCOL[c]);
+      ctx.fillText(NAMES[c], CX + c*CW2 + CW2/2, TY-14); }
+    ctx.textAlign = "left";
+    for (let r=0;r<6;r++){
+      const y = TY + r*17;
+      const done = r < rows.length;
+      ctx.fillStyle = done ? css("--ink-2") : css("--ink-3");
+      ctx.globalAlpha = done ? 1 : (r === row ? 0.85 : 0.30);
+      ctx.font = mono(9);
+      ctx.fillText(PERMS[r].map(i=>["1","2","3"][i]).join(" "), 12, y);
+      if (done) for (let c=0;c<3;c++){
+        ctx.fillStyle = css("--ink-1"); ctx.font = mono(10); ctx.textAlign = "center";
+        ctx.fillText((rows[r][c]>=0?"+":"") + rows[r][c].toFixed(3), CX + c*CW2 + CW2/2, y);
+        ctx.textAlign = "left";
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (rows.length === 6){
+      const y = TY + 6*17 + 10;
+      ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(CX, y-11.5); ctx.lineTo(CX+3*CW2, y-11.5); ctx.stroke();
+      ctx.fillStyle = css("--ink-1"); ctx.font = mono(10); ctx.fillText("phi", 12, y);
+      for (let c=0;c<3;c++){
+        const m = rows.reduce((s,r2)=>s+r2[c],0)/6;
+        ctx.fillStyle = css("--c-highlight"); ctx.textAlign = "center";
+        ctx.fillText((m>=0?"+":"") + m.toFixed(3), CX + c*CW2 + CW2/2, y); ctx.textAlign = "left";
+      }
+    }
+    const done6 = rows.length === 6;
+    const sp = done6 ? [0,1,2].map(c => Math.max.apply(null, rows.map(r=>r[c])) - Math.min.apply(null, rows.map(r=>r[c]))) : null;
+    g.cap.innerHTML = done6
+      ? ("Six queues done. Spread of a feature's own step across the six rows: "
+         + sp.map((v,c)=>NAMES[c] + " <b>" + v.toFixed(3) + "</b>").join(", ")
+         + (Math.max.apply(null, sp) < 1e-9
+            ? " &mdash; <b>every row identical. The queue never mattered, so the average was never needed.</b>"
+            : " &mdash; <b>the same token is worth different amounts depending on when it walks in.</b>"))
+      : ("Queue " + (row+1) + " of 6, " + Math.min(3,k) + " of 3 arrived. Each arrow is what that token was worth "
+         + "<i>given who was already inside</i>.");
+  }
+  reset();
+  return { play: () => { playing = true; last = performance.now(); requestAnimationFrame(step); } };
+}
+const K = sectionK();
+
+/* A lab page about animation that sits still answers nothing, so J and K play
+   themselves once on load. Reset puts either back to empty. */
+setTimeout(()=>{ [...document.querySelectorAll("#J button")].find(b=>b.textContent==="Play").click(); }, 600);
+setTimeout(()=>K.play(), 6800);
+</script>
+</body>
+</html>

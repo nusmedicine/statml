@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 38 shap — stage candidates, mocked from the measured numbers</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); line-height: 1.5; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 640px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 640px; line-height: 1.45; }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 3px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  .verify { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); border-left: 3px solid var(--c-empirical); padding-left: 10px; margin: 0 0 var(--sp-4); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 38 candidates · <code>shap</code> — mocked from notebook 04-5's own model</h1>
+
+  <p class="note">
+    Every number on this page is computed by <b>brute-force enumeration of all eight
+    coalitions</b> (<code>_lab/shap-ref.py</code> &rarr; <code>shap-ref.json</code>), and redrawn here
+    by JS that re-evaluates the model itself &mdash; so a candidate cannot quietly disagree with the
+    definition. Data: <b>heart_failure_alpha.csv</b>, the 299 patients of Chicco &amp; Jurman
+    (2020), split exactly as notebook 04-5 splits it (239 train / 60 test, <code>random_state=42</code>,
+    stratified). Three features, because <b>three features have six orderings and eight coalitions
+    and both are countable</b>; the notebook's own eleven have 39,916,800 and 2,048.
+    Serum creatinine and ejection fraction are the two Chicco &amp; Jurman found sufficient on
+    their own, so the reduction is published rather than a caricature.
+  </p>
+  <div class="verify" id="verify">checking the JS against the fixture&hellip;</div>
+
+  <h2>&sect;0 &middot; The models on the table, measured</h2>
+  <p class="note">
+    <b>The tree is not a strawman</b> &mdash; on these three features it out-scores the notebook's own
+    logistic regression, and both out-score the notebook's eleven-feature model on its own test
+    set. So "the complex model" earns its place by being better, which is the only honest reason
+    to want it explained.
+  </p>
+  <div id="models"></div>
+
+  <h2>&sect;1 &middot; What "the model without this feature" actually means</h2>
+  <p class="note">
+    The notebook writes <code>&Delta;i = f(features with xi) &minus; f(features without xi)</code> and stops.
+    <b>There is no model without a feature.</b> A feature outside the coalition takes its value
+    from <i>somebody else</i>, and <code>v(S)</code> is the average prediction over the whole
+    background. This is the step every SHAP tutorial skips, and it is the one that makes
+    "removing a feature" a thing you can watch. Candidate A shows the stand-ins; candidate B
+    shows only what the formula consumes.
+  </p>
+  <div class="row" id="s1"></div>
+
+  <h2>&sect;2 &middot; Six orderings &mdash; and the average that is the Shapley value</h2>
+  <p class="note">
+    Patient <b>#50</b>: age 85, ejection fraction 60%, serum creatinine 3.2 mg/dL &mdash; and this
+    patient <b>survived</b>. Under the tree, age's marginal contribution runs from
+    <b>+0.357 to &minus;0.543</b> depending on who is already in the room: the widest disagreement in
+    the whole test set, and a <b>sign flip</b>. Follow one feature down the rows and the
+    averaging stops looking like bookkeeping.
+  </p>
+  <div class="row" id="s2a"></div>
+  <p class="note">
+    The same eight numbers as a lattice. This is the shape the notebook's formula is literally
+    written over &mdash; a sum across subsets <code>S &sube; N\{i}</code> &mdash; and it is where the weight
+    <code>w(S) = |S|!(|N|&minus;|S|&minus;1)!/|N|!</code> stops being arbitrary: it is <b>how many of the six
+    orderings cross that edge</b>, over six. Same numbers, second reading.
+  </p>
+  <div class="row" id="s2b"></div>
+
+  <h2>&sect;3 &middot; THE COLLAPSE &mdash; the notebook's own model is the case where none of this shows</h2>
+  <p class="note">
+    <b>Measured over all 60 test patients.</b> On the notebook's model, on the scale the SHAP
+    library actually returns for it, <b>every one of the six orderings gives the identical
+    number &mdash; for every patient, to 1e-15.</b> The coalitions, the weights, the average: all of it
+    collapses to <code>phi_i = beta_i (x_i &minus; xbar_i)</code>, which is the closed form
+    <code>shap/explainers/_linear.py</code> computes in one line. Put a sigmoid in front of the
+    same model and the orderings part company; use a tree and they part company hard.
+    <b>That is the control this widget is built around.</b>
+  </p>
+  <div class="row" id="s3"></div>
+
+  <h2>&sect;4 &middot; One patient &mdash; the waterfall, and the coefficient it is not</h2>
+  <p class="note">
+    <b>Patient #42</b>: age 60, ejection fraction 35%, serum creatinine 1.40 mg/dL. Serum
+    creatinine has the model's <b>largest coefficient</b> (+0.860 per SD) and its attribution for
+    this patient is <b>+0.007</b> &mdash; because 1.40 mg/dL is the training mean to within a hundredth
+    of an SD. A coefficient is per unit of the feature; an attribution is per unit <i>times how
+    far this patient is from average</i>. Candidate B puts the two bars in the same panel so the
+    reader cannot read one as the other.
+  </p>
+  <div class="row" id="s4"></div>
+
+  <h2>&sect;5 &middot; Every patient &mdash; the beeswarm the notebook prints, and what a row of it is</h2>
+  <p class="note">
+    The notebook's own eleven-feature model, its own <code>shap.plots.beeswarm</code>. Each row is
+    one feature; each dot is <b>one patient's phi</b>, i.e. one bar lifted out of that patient's
+    waterfall. Rows are sorted by mean |phi| &mdash; <b>and that order is not the coefficient order</b>:
+    <code>age</code> is 6th by |beta| and 3rd by mean |phi|, because a coefficient is per SD and a
+    binary feature only ever moves by about half of one.
+  </p>
+  <div class="row" id="s5"></div>
+  <div id="rank"></div>
+</main>
+
+<script type="module">
+const R = await (await fetch("shap-ref.json")).json();
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const UNI = R.units;
+const SHORTLAB = ["Age", "Ejection fx", "Creatinine"];
+const INIT = ["A", "E", "C"];
+
+/* ---- the two models, re-implemented so the mock checks itself -------------- */
+const margin = z => R.lr.intercept + z[0]*R.lr.coef[0] + z[1]*R.lr.coef[1] + z[2]*R.lr.coef[2];
+const sig = t => 1/(1+Math.exp(-t));
+function treeP(z){ let n = R.tree.root; while(!n.leaf) n = (z[n.f] <= n.thr_std) ? n.L : n.R; return n.p; }
+const MODELS = {
+  tree_prob: { f: treeP,               name: "Decision tree",       out: "risk of death",     axis:[0,1] },
+  lr_prob:   { f: z => sig(margin(z)), name: "Logistic regression", out: "risk of death",     axis:[0,1] },
+  lr_margin: { f: margin,              name: "Logistic regression", out: "log-odds of death", axis:[-4,3] },
+};
+const SUBSETS = [[],[0],[1],[2],[0,1],[0,2],[1,2],[0,1,2]];
+const key = S => S.length ? S.slice().sort().join("") : "-";
+function vOf(mk, x){                       /* v(S) for all eight subsets, recomputed here */
+  const f = MODELS[mk].f, out = {};
+  for (const S of SUBSETS){
+    let s = 0;
+    for (const z of R.train.std){ const w = z.slice(); for (const k of S) w[k] = x[k]; s += f(w); }
+    out[key(S)] = s / R.train.std.length;
+  }
+  return out;
+}
+{
+  let worst = 0;
+  for (const mk of Object.keys(MODELS))
+    for (const p of R.patients){ const V = vOf(mk, p.std);
+      for (const k of Object.keys(V)) worst = Math.max(worst, Math.abs(V[k] - p.models[mk].v[k])); }
+  document.getElementById("verify").textContent =
+    "JS re-evaluation of v(S) vs the python fixture, 3 models x 60 patients x 8 coalitions: worst |diff| = "
+    + worst.toExponential(2);
+}
+const PT = j => R.patients[j];
+
+/* ---- canvas plumbing ------------------------------------------------------- */
+function cand(host, title, sub, w, h){
+  const d = document.createElement("div"); d.className = "cand";
+  const t = document.createElement("h3"); t.textContent = title; d.appendChild(t);
+  const s = document.createElement("p"); s.className = "sub"; s.textContent = sub; d.appendChild(s);
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w*dpr; c.height = h*dpr; c.style.width = w+"px"; c.style.height = h+"px";
+  d.appendChild(c);
+  const cap = document.createElement("p"); cap.className = "cap"; d.appendChild(cap);
+  document.getElementById(host).appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.font = "11px " + css("--font"); ctx.textBaseline = "middle";
+  return { ctx, w, h, cap };
+}
+const mono = s => s + "px " + css("--font-mono");
+function axis(ctx, x0, x1, y, lo, hi, ticks, label){
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y+0.5); ctx.lineTo(x1, y+0.5); ctx.stroke();
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+  for (const t of ticks){ const x = x0 + (t-lo)/(hi-lo)*(x1-x0);
+    ctx.beginPath(); ctx.moveTo(x+0.5, y); ctx.lineTo(x+0.5, y+4); ctx.stroke();
+    ctx.fillText(String(t), x, y+11); }
+  ctx.textAlign = "left";
+  if (label){ ctx.fillText(label, x0, y+23); }
+}
+const arrowhead = (ctx, x, y, dir, s) => { ctx.beginPath(); ctx.moveTo(x, y);
+  ctx.lineTo(x-dir*s, y-s*0.8); ctx.lineTo(x-dir*s, y+s*0.8); ctx.closePath(); ctx.fill(); };
+
+/* ============================ §0 the models ================================= */
+{
+  const t = document.createElement("table"); t.className = "m";
+  t.innerHTML =
+    "<tr><th>model</th><th>features</th><th>test AUC</th><th>what SHAP explains</th><th>orderings that disagree</th></tr>"
+  + "<tr><td>Logistic regression (the notebook's)</td><td>11</td><td>" + R.full11.auc.toFixed(4) + "</td><td>log-odds</td><td>0 of 39,916,800 &mdash; none can</td></tr>"
+  + "<tr><td>Logistic regression</td><td>3</td><td>" + R.lr.auc.toFixed(4) + "</td><td>log-odds</td><td><b>0 of 6, for all 60 patients</b></td></tr>"
+  + "<tr><td>Logistic regression</td><td>3</td><td>" + R.lr.auc.toFixed(4) + "</td><td>probability</td><td>spread median 0.021, max 0.111</td></tr>"
+  + "<tr><td>Decision tree, depth 3 (" + R.tree.leaves + " leaves)</td><td>3</td><td>" + R.tree.auc.toFixed(4) + "</td><td>probability</td><td>spread median 0.092, <b>max 0.900</b></td></tr>";
+  document.getElementById("models").appendChild(t);
+  const p = document.createElement("p"); p.className = "cap";
+  p.innerHTML = "beta on standardized features: age <b>+" + R.lr.coef[0].toFixed(3) + "</b>, ejection fraction <b>"
+    + R.lr.coef[1].toFixed(3) + "</b>, serum creatinine <b>+" + R.lr.coef[2].toFixed(3) + "</b>; intercept "
+    + R.lr.intercept.toFixed(4) + ", which IS the base value v(&empty;) because the features are centred. "
+    + "The tree splits creatinine at 1.4, then ejection fraction at 27.5 or age at 71 &mdash; the same feature at "
+    + "two thresholds in two branches, which is exactly why order matters.";
+  document.getElementById("models").appendChild(p);
+}
+
+/* ==================== §1A the stand-ins ==================== */
+function drawStandins(host){
+  const NROW = 10, mk = "tree_prob", j = 50, p = PT(j), S = [2];
+  const g = cand(host, "A · the stand-ins, drawn",
+    "coalition = {serum creatinine}. The other two features take another patient's values — ten of the 239, then the average over all of them.", 560, 330);
+  const ctx = g.ctx;
+  const X0 = 12, COLW = 78, DOTX0 = 274, DOTX1 = 540, y0 = 60;
+  ctx.fillStyle = css("--ink-2"); ctx.font = mono(10);
+  ctx.fillText("this patient  #50", X0, 16);
+  ctx.fillStyle = css("--ink-1"); ctx.font = "600 11px " + css("--font");
+  for (let k=0;k<3;k++) ctx.fillText(SHORTLAB[k] + " " + p.raw[k], X0 + k*COLW, 32);
+  ctx.font = mono(9); ctx.fillStyle = css("--ink-3");
+  ctx.fillText("from someone else", X0, 46); ctx.fillText("kept", X0 + 2*COLW, 46);
+  const V = vOf(mk, p.std), f = MODELS[mk].f;
+  const lo = MODELS[mk].axis[0], hi = MODELS[mk].axis[1];
+  const at = v => DOTX0 + (v-lo)/(hi-lo)*(DOTX1-DOTX0);
+  axis(ctx, DOTX0, DOTX1, y0 + NROW*22 + 30, lo, hi, [0,0.25,0.5,0.75,1], "predicted risk of death");
+  for (let r=0;r<NROW;r++){
+    const z = R.train.std[r].slice(), raw = R.train.raw[r].slice();
+    for (const k of S){ z[k] = p.std[k]; raw[k] = p.raw[k]; }
+    const y = y0 + r*22;
+    for (let k=0;k<3;k++){
+      const kept = S.indexOf(k) >= 0;
+      ctx.fillStyle = kept ? css("--ink-1") : css("--ink-3");
+      ctx.font = kept ? ("600 11px " + css("--font")) : ("11px " + css("--font"));
+      ctx.fillText(String(raw[k]), X0 + k*COLW, y);
+      if (kept){ ctx.strokeStyle = css("--c-highlight"); ctx.lineWidth = 1;
+        ctx.strokeRect(X0 + k*COLW - 4.5, y-8.5, 42, 17); }
+    }
+    ctx.fillStyle = css("--c-empirical"); ctx.beginPath(); ctx.arc(at(f(z)), y, 3.4, 0, 7); ctx.fill();
+  }
+  const vS = V[key(S)];
+  ctx.strokeStyle = css("--c-reference"); ctx.setLineDash([4,3]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(at(vS), y0-16); ctx.lineTo(at(vS), y0+NROW*22+2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = css("--ink-1"); ctx.font = mono(10); ctx.textAlign = "center";
+  ctx.fillText("v(S) = " + vS.toFixed(3), at(vS), y0-26); ctx.textAlign = "left";
+  ctx.fillStyle = css("--ink-3");
+  ctx.fillText("average over all 239", DOTX0, y0+NROW*22+14);
+  g.cap.innerHTML = "The dashed line is <b>v(S)</b>: not one prediction but the mean of 239 of them. "
+    + "Ten shown; the widget would deal them one at a time. <b>This is the panel that answers "
+    + "&quot;without the feature &mdash; without it <i>how</i>?&quot;</b>";
+}
+
+/* ==================== §1B the eight coalitions ==================== */
+function drawCoalitions(host, mk, j){
+  const p = PT(j), V = vOf(mk, p.std), M = MODELS[mk];
+  const lo = M.axis[0], hi = M.axis[1];
+  const g = cand(host, "B · all eight coalitions",
+    "every subset of {age, ejection fraction, serum creatinine}, with v(S) — the eight numbers the whole formula is built from. " + M.name + ", " + M.out + ".",
+    560, 330);
+  const ctx = g.ctx;
+  const CX = 16, CW = 15, X0 = 120, X1 = 540, y0 = 40;
+  const at = v => X0 + (v-lo)/(hi-lo)*(X1-X0);
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+  ctx.fillText("coalition S", CX, 18);
+  const ord = SUBSETS.slice().sort((a,b)=>a.length-b.length);
+  axis(ctx, X0, X1, y0 + ord.length*32 + 10, lo, hi,
+       lo<0?[-3,-2,-1,0,1,2,3]:[0,0.25,0.5,0.75,1], "v(S) — average " + M.out);
+  for (let r=0;r<ord.length;r++){
+    const S = ord[r], y = y0 + r*32;
+    for (let k=0;k<3;k++){
+      const on = S.indexOf(k) >= 0;
+      ctx.strokeStyle = on ? css("--c-empirical") : css("--grid"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(CX + k*(CW+4), y-7, CW, 14, 3);
+      if (on){ ctx.fillStyle = css("--c-empirical"); ctx.fill(); }
+      ctx.stroke();
+      ctx.fillStyle = on ? css("--surface-1") : css("--ink-3"); ctx.font = mono(9);
+      ctx.textAlign = "center"; ctx.fillText(INIT[k], CX + k*(CW+4) + CW/2, y); ctx.textAlign = "left";
+    }
+    const v = V[key(S)];
+    ctx.strokeStyle = css("--grid"); ctx.beginPath();
+    ctx.moveTo(X0, y+0.5); ctx.lineTo(X1, y+0.5); ctx.stroke();
+    ctx.fillStyle = S.length===0 ? css("--c-reference") : (S.length===3 ? css("--c-highlight") : css("--c-empirical"));
+    ctx.beginPath(); ctx.arc(at(v), y, 4.4, 0, 7); ctx.fill();
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-2");
+    ctx.fillText(v.toFixed(3), Math.min(at(v)+9, X1-36), y);
+    if (S.length===0){ ctx.fillStyle = css("--ink-3"); ctx.fillText("base value", CX+3*(CW+4)+8, y); }
+    if (S.length===3){ ctx.fillStyle = css("--ink-3"); ctx.fillText("f(x)", CX+3*(CW+4)+8, y); }
+  }
+  g.cap.innerHTML = "A = age, E = ejection fraction, C = serum creatinine. Complete and compact &mdash; "
+    + "but it shows the <i>inputs</i> to the average, never the average being taken. It is what &sect;2 draws over.";
+}
+
+/* ==================== §2A the six orderings ==================== */
+const PERMS = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+function drawOrderRows(host, mk, j, follow, W, H, title, sub){
+  const p = PT(j), V = vOf(mk, p.std), M = MODELS[mk];
+  const lo = M.axis[0], hi = M.axis[1];
+  const g = cand(host, title, sub, W, H);
+  const ctx = g.ctx;
+  const X0 = 116, X1 = W-16, y0 = 52, RH = 30;
+  const at = v => X0 + (v-lo)/(hi-lo)*(X1-X0);
+  const base = V["-"], fx = V["012"];
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+  ctx.fillText("order the features arrive", 8, 16);
+  const marks = [[base,"base v(0)",css("--c-reference")],[fx,"f(x)",css("--c-highlight")]];
+  for (const m of marks){
+    ctx.strokeStyle = m[2]; ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(at(m[0]), y0-14); ctx.lineTo(at(m[0]), y0 + 6*RH + 20); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = m[2]; ctx.font = mono(9); ctx.textAlign = "center";
+    ctx.fillText(m[1], at(m[0]), y0-24); ctx.fillText(m[0].toFixed(3), at(m[0]), y0+6*RH+32);
+    ctx.textAlign = "left";
+  }
+  axis(ctx, X0, X1, y0 + 6*RH + 6, lo, hi, lo<0?[-3,-2,-1,0,1,2,3]:[0,0.25,0.5,0.75,1], null);
+  const phi = [0,0,0];
+  for (let r=0;r<6;r++){
+    const perm = PERMS[r], y = y0 + r*RH;
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText(perm.map(k=>INIT[k]).join(" > "), 8, y);
+    let cur = base, S = [];
+    for (const i of perm){
+      S = S.concat([i]);
+      const nxt = V[key(S)], d = nxt - cur;
+      phi[i] += d/6;
+      const isF = i === follow;
+      const col = isF ? css("--c-highlight") : (d>0 ? css("--c-event") : css("--c-nonevent"));
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = isF ? 3 : 1.6;
+      ctx.globalAlpha = isF ? 1 : 0.4;
+      const dir = d >= 0 ? 1 : -1;
+      ctx.beginPath(); ctx.moveTo(at(cur), y); ctx.lineTo(at(nxt) - dir*4, y); ctx.stroke();
+      arrowhead(ctx, at(nxt), y, dir, isF ? 5 : 4);
+      if (isF){ ctx.font = mono(9); ctx.textAlign = "center";
+        ctx.fillText((d>=0?"+":"") + d.toFixed(3), (at(cur)+at(nxt))/2, y-11); ctx.textAlign = "left"; }
+      ctx.globalAlpha = 1; cur = nxt;
+    }
+  }
+  const yA = y0 + 6*RH + 48;
+  ctx.strokeStyle = css("--grid"); ctx.beginPath(); ctx.moveTo(8, yA-16); ctx.lineTo(X1, yA-16); ctx.stroke();
+  ctx.fillStyle = css("--ink-1"); ctx.font = mono(10);
+  ctx.fillText("phi = the average", 8, yA);
+  for (let k=0;k<3;k++){
+    ctx.fillStyle = k===follow ? css("--c-highlight") : css("--ink-2");
+    ctx.fillText(SHORTLAB[k] + " " + (phi[k]>=0?"+":"") + phi[k].toFixed(3), X0 + k*((X1-X0)/3), yA);
+  }
+  const sp = [0,1,2].map(i => {
+    const ds = PERMS.map(perm => { let cur = base, S=[], d=0;
+      for (const q of perm){ S=S.concat([q]); const n=V[key(S)]; if (q===i) d = n-cur; cur = n; } return d; });
+    return Math.max.apply(null, ds) - Math.min.apply(null, ds); });
+  g.cap.innerHTML = "Every row starts at the base value and ends at <b>f(x)</b> &mdash; that is efficiency, "
+    + "and it is visible rather than asserted. Spread of a feature's own arrow across the six rows: age <b>"
+    + sp[0].toFixed(3) + "</b>, ejection fraction <b>" + sp[1].toFixed(3) + "</b>, creatinine <b>"
+    + sp[2].toFixed(3) + "</b>.";
+  return g;
+}
+
+/* ==================== §2B the lattice ==================== */
+function drawLattice(host, mk, j, follow){
+  const p = PT(j), V = vOf(mk, p.std);
+  const g = cand(host, "B · the same eight numbers as a lattice",
+    "ranks are |S| = 0,1,2,3. Every edge is a marginal contribution; the highlighted edges are the ones that add the followed feature, labelled with how many of the six orderings cross it.", 600, 330);
+  const ctx = g.ctx;
+  const ranks = [[[]],[[0],[1],[2]],[[0,1],[0,2],[1,2]],[[0,1,2]]];
+  const X = [66, 220, 380, 534], pos = new Map();
+  ranks.forEach((rk, ri) => rk.forEach((S, si) => {
+    pos.set(key(S), { x: X[ri], y: 52 + (rk.length===1 ? 105 : si*105) });
+  }));
+  for (const S of SUBSETS) for (let i=0;i<3;i++){
+    if (S.indexOf(i) >= 0) continue;
+    const T = S.concat([i]).sort();
+    const a = pos.get(key(S)), b = pos.get(key(T));
+    const d = V[key(T)] - V[key(S)], isF = i === follow;
+    const n = [2, 1, 2][S.length];
+    ctx.strokeStyle = isF ? css("--c-highlight") : css("--grid");
+    ctx.lineWidth = isF ? 2.2 : 1;
+    ctx.beginPath(); ctx.moveTo(a.x+23, a.y); ctx.lineTo(b.x-23, b.y); ctx.stroke();
+    if (isF){
+      const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      ctx.fillStyle = css("--surface-1"); ctx.fillRect(mx-28, my-15, 56, 22);
+      ctx.fillStyle = css("--c-highlight"); ctx.font = mono(9); ctx.textAlign = "center";
+      ctx.fillText((d>=0?"+":"") + d.toFixed(3), mx, my-7);
+      ctx.fillStyle = css("--ink-3"); ctx.fillText(n + " of 6", mx, my+4); ctx.textAlign = "left";
+    }
+  }
+  for (const S of SUBSETS){
+    const q = pos.get(key(S)), v = V[key(S)];
+    ctx.fillStyle = css("--surface-1"); ctx.strokeStyle = css("--ink-3"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(q.x-23, q.y-16, 46, 32, 5); ctx.fill(); ctx.stroke();
+    ctx.font = mono(8); ctx.textAlign = "center"; ctx.fillStyle = css("--ink-3");
+    ctx.fillText(S.length ? S.map(k=>INIT[k]).join("") : "none", q.x, q.y-6);
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-1");
+    ctx.fillText(v.toFixed(3), q.x, q.y+6); ctx.textAlign = "left";
+  }
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(9); ctx.textAlign = "center";
+  ["|S| = 0","1","2","3"].forEach((t,i)=>ctx.fillText(t, X[i], 24));
+  ctx.textAlign = "left";
+  g.cap.innerHTML = "The two outer ranks are crossed by 2 of the 6 orderings each and the middle rank by 1 &mdash; "
+    + "which is all <code>w(S) = |S|!(n&minus;|S|&minus;1)!/n!</code> says. <b>The lattice earns the weight formula; "
+    + "the rows earn the average.</b> Same eight numbers, so one widget can carry both on a control and no extra compute.";
+}
+
+/* ==================== §4 the waterfall ==================== */
+function drawWaterfall(host, mk, j, withBeta){
+  const p = PT(j), V = vOf(mk, p.std), M = MODELS[mk];
+  const phi = p.models[mk].phi, base = V["-"], fx = V["012"];
+  const W = withBeta ? 570 : 470;
+  const g = cand(host,
+    withBeta ? "B · the waterfall, with the coefficient beside it" : "A · the waterfall the notebook prints",
+    withBeta ? "same panel, two bars per feature: beta (the model's, fixed) and phi (this patient's). One moves when the patient changes; the other never does."
+             : "shap.plots.waterfall — base value, one bar per feature, f(x).",
+    W, 260);
+  const ctx = g.ctx;
+  const X0 = 152, X1 = W-58, y0 = 76, RH = 36;
+  const lo = Math.min(base, fx) - 1.0, hi = Math.max(base, fx) + 1.0;
+  const at = v => X0 + (v-lo)/(hi-lo)*(X1-X0);
+  ctx.fillStyle = css("--ink-3"); ctx.font = mono(10);
+  ctx.fillText("patient #" + j + "   " + p.raw.map((v,k)=>SHORTLAB[k] + " " + v).join("   "), 8, 16);
+  ctx.fillText(p.died ? "died within follow-up" : "survived follow-up", 8, 30);
+  const ordIdx = [0,1,2].sort((a,b)=>Math.abs(phi[b])-Math.abs(phi[a]));
+  let cur = base;
+  for (let r=0;r<3;r++){
+    const i = ordIdx[r], y = y0 + r*RH, d = phi[i];
+    ctx.font = "11px " + css("--font"); ctx.textAlign = "right";
+    ctx.fillStyle = css("--ink-1"); ctx.fillText(SHORTLAB[i], X0-58, y-13);
+    ctx.fillStyle = css("--ink-2"); ctx.fillText(p.raw[i] + " " + UNI[i], X0-58, y+1);
+    ctx.textAlign = "left";
+    const xa = at(cur), xb = at(cur+d);
+    ctx.fillStyle = d > 0 ? css("--c-event") : css("--c-nonevent");
+    ctx.beginPath(); ctx.roundRect(Math.min(xa,xb), y-10, Math.abs(xb-xa), withBeta ? 10 : 20, 2); ctx.fill();
+    if (withBeta){
+      const bb = R.lr.coef[i], xc = at(cur), xd = at(cur + bb);
+      ctx.fillStyle = css("--c-unknown");
+      ctx.beginPath(); ctx.roundRect(Math.min(xc,xd), y+2, Math.abs(xd-xc), 10, 2); ctx.fill();
+    }
+    ctx.font = mono(10); ctx.fillStyle = css("--ink-1");
+    ctx.fillText((d>=0?"+":"") + d.toFixed(3), Math.max(xa,xb)+7, y-5);
+    if (withBeta){ ctx.fillStyle = css("--ink-3");
+      ctx.fillText("b " + (R.lr.coef[i]>=0?"+":"") + R.lr.coef[i].toFixed(3), Math.max(xa,xb)+7, y+7); }
+    cur += d;
+  }
+  const marks = [[base,"E[f(x)]",css("--c-reference")],[fx,"f(x)",css("--c-highlight")]];
+  for (const m of marks){
+    ctx.strokeStyle = m[2]; ctx.setLineDash([3,3]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(at(m[0]), y0-26); ctx.lineTo(at(m[0]), y0+3*RH-6); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = m[2]; ctx.font = mono(9); ctx.textAlign = "center";
+    ctx.fillText(m[1] + " " + m[0].toFixed(3), at(m[0]), y0-34); ctx.textAlign = "left";
+  }
+  axis(ctx, X0, X1, y0+3*RH+4, lo, hi, [-2,-1,0,1,2].filter(t=>t>lo&&t<hi), M.out);
+  g.cap.innerHTML = withBeta
+    ? "Grey is beta, colour is phi. <b>Creatinine's beta is the biggest of the three and its phi is +"
+      + phi[2].toFixed(3) + "</b> &mdash; 1.40 mg/dL is the training mean. The reader moves the value and only "
+      + "one of the two bars moves."
+    : "The bars sum to f(x) &minus; E[f(x)] exactly: " + (fx-base).toFixed(4) + " = "
+      + phi.map(v=>(v>=0?"+":"") + v.toFixed(3)).join(" ") + ". <b>The numbers are log-odds, not probabilities</b> "
+      + "&mdash; which is why they can be added at all.";
+}
+
+/* ==================== §5 the beeswarm ==================== */
+function drawBeeswarm(host){
+  const N = R.full11;
+  const names = N.names.map(s => s.replace(/_/g," ").replace(/ Y$/," (yes)").replace(/ M$/," (male)"));
+  const P = N.phi_test, Xs = N.x_test, n = P.length, p = names.length;
+  const meanAbs = names.map((_,i)=>P.reduce((s,r)=>s+Math.abs(r[i]),0)/n);
+  const ordr = names.map((_,i)=>i).sort((a,b)=>meanAbs[b]-meanAbs[a]);
+  const g = cand(host, "the beeswarm, the notebook's own eleven features",
+    "one row per feature, one dot per test patient; x = that patient's phi, colour = where the patient's value sits in that feature's range. Rows sorted by mean |phi|.",
+    640, 356);
+  const ctx = g.ctx;
+  const X0 = 176, X1 = 574, y0 = 30, RH = 27;
+  let mx = 0; for (const r of P) for (const v of r) mx = Math.max(mx, Math.abs(v));
+  mx = Math.ceil(mx*10)/10;
+  const at = v => X0 + (v+mx)/(2*mx)*(X1-X0);
+  ctx.strokeStyle = css("--grid"); ctx.beginPath();
+  ctx.moveTo(at(0)+0.5, y0-10); ctx.lineTo(at(0)+0.5, y0+p*RH-8); ctx.stroke();
+  for (let r=0;r<p;r++){
+    const i = ordr[r], y = y0 + r*RH;
+    ctx.fillStyle = css("--ink-1"); ctx.font = "11px " + css("--font"); ctx.textAlign = "right";
+    ctx.fillText(names[i], X0-12, y); ctx.textAlign = "left";
+    const col = Xs.map(z=>z[i]);
+    const clo = Math.min.apply(null, col), chi = Math.max.apply(null, col);
+    const buckets = new Map();
+    for (let q=0;q<n;q++){
+      const x = at(P[q][i]), b = Math.round(x/3);
+      const c = buckets.get(b) || 0; buckets.set(b, c+1);
+      const dy = ((c % 7) - 3) * 2.6;
+      const t = (col[q]-clo)/((chi-clo) || 1);
+      ctx.fillStyle = "color-mix(in srgb, " + css("--c-cost-high") + " " + Math.round(t*100) + "%, " + css("--c-cost-low") + ")";
+      ctx.beginPath(); ctx.arc(x, y+dy, 2.1, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = css("--ink-3"); ctx.font = mono(9);
+    ctx.fillText("b " + (N.coef[i]>=0?"+":"") + N.coef[i].toFixed(2), X1+8, y);
+  }
+  axis(ctx, X0, X1, y0+p*RH+2, -mx, mx, [-2,-1,0,1,2].filter(t=>Math.abs(t)<mx),
+       "phi — contribution to this patient's log-odds of death");
+  g.cap.innerHTML = "Colour is the feature's own value, low &rarr; high. <b>The row order is not the coefficient "
+    + "order</b> (beta printed at the right): the binary features carry big coefficients and small spreads, so they "
+    + "rank high on beta and low on phi. This plot is sixty waterfalls turned on their side.";
+}
+
+/* ============================== build ====================================== */
+drawStandins("s1");
+drawCoalitions("s1", "tree_prob", 50);
+drawOrderRows("s2a", "tree_prob", 50, 0, 620, 350,
+  "A · six orderings, one row each — following AGE",
+  "decision tree, risk of death. Age's arrow is highlighted in every row; the others recede.");
+drawOrderRows("s2a", "tree_prob", 50, 2, 620, 350,
+  "A · the same six rows — following SERUM CREATININE",
+  "one control moves the highlight. Nothing else about the figure changes.");
+drawLattice("s2b", "tree_prob", 50, 0);
+drawOrderRows("s3", "tree_prob", 50, 0, 480, 350,
+  "Decision tree · probability", "orderings disagree, and for age they disagree about the SIGN.");
+drawOrderRows("s3", "lr_prob", 50, 0, 480, 350,
+  "Logistic regression · probability", "the same model as the notebook's, read through the sigmoid: a small fan.");
+drawOrderRows("s3", "lr_margin", 50, 0, 480, 350,
+  "Logistic regression · log-odds  <- THE NOTEBOOK",
+  "what shap.Explainer(lr, X_train) returns. Six rows, drawn exactly on top of one another.");
+drawWaterfall("s4", "lr_margin", 42, false);
+drawWaterfall("s4", "lr_margin", 42, true);
+drawBeeswarm("s5");
+
+{
+  const N = R.full11, names = N.names.map(s=>s.replace(/_/g," "));
+  const mp = names.map((_,i)=>N.phi_test.reduce((s,r)=>s+Math.abs(r[i]),0)/N.phi_test.length);
+  const byB = names.map((_,i)=>i).sort((a,b)=>Math.abs(N.coef[b])-Math.abs(N.coef[a]));
+  const byP = names.map((_,i)=>i).sort((a,b)=>mp[b]-mp[a]);
+  const t = document.createElement("table"); t.className = "m";
+  let html = "<tr><th>#</th><th>ranked by |beta|</th><th>|beta|</th><th>ranked by mean |phi|</th><th>mean |phi|</th></tr>";
+  for (let i=0;i<names.length;i++)
+    html += "<tr><td>" + (i+1) + "</td><td>" + names[byB[i]] + "</td><td>" + Math.abs(N.coef[byB[i]]).toFixed(3)
+         + "</td><td>" + names[byP[i]] + "</td><td>" + mp[byP[i]].toFixed(3) + "</td></tr>";
+  t.innerHTML = html;
+  document.getElementById("rank").appendChild(t);
+}
+</script>
+</body>
+</html>
