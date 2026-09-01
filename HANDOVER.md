@@ -1628,31 +1628,38 @@ is what you SEE, and a control's own label is not a reading of the figure.
 change that can reach a widget you are not looking at. A run takes about five
 minutes.
 
-**THE SUITE IS FLAKY FOR FUNCTION-HEIGHT WIDGETS, and the flakiness has a
-signature.** Five runs of the SAME code on 2026-09-01 reported 0, 6, 0, 4 and 8
-differing states, drawn from `lm-adjustment`, `roc-auc` and `naive-bayes` — all
-three of which compute `height` as a FUNCTION of the parameters or the width, so
-their canvas is sized by a ResizeObserver callback, and the browser suspends the
-rendering lifecycle for an offscreen iframe (worse when the pane is hidden).
+**THE SUITE WAS FLAKY UNTIL 2026-09-01, AND THE CAUSE WAS A SCROLLBAR.** Five
+runs of the same code reported 0, 6, 0, 4 and 8 differing states, always drawn
+from `lm-adjustment`, `roc-auc` and `naive-bayes`.
 
-**Three tells, and all three must point the same way before you believe a
-DIFFER:**
+**A figure taller than the frame gives the framed document a scrollbar; the
+scrollbar takes ~15px off the width; and a canvas sized from that width
+re-renders narrower.** That second layout pass is what a fixed 400ms wait caught
+sometimes and missed sometimes. Measured before fixing: every flaky state was
+hashed **688** backing pixels wide where its baseline holds the settled **669**,
+and only the ELEVEN states tall enough to scroll were ever affected. The
+baselines were already the settled value, so the fix cost no rebaselining.
 
-1. **`tx` is unchanged and only `px` moves.** The text of the figure is
-   identical and only the pixels differ — the drawing did not change, the
-   SURFACE did. A real rendering change almost always moves both, and a change
-   that moves only `px` should be one you can name.
-2. **The set varies between runs.** Run it again. A regression is the same
-   states every time; noise is not.
+`shoot()` now calls `settle()`, which polls the canvas's dimensions until they
+hold still for two consecutive 50ms samples — comfortably past core's
+60ms-debounced ResizeObserver — with a floor of the old wait and a 4s cap. A
+state that never settles is hashed anyway and says **NEVER SETTLED** in its note
+rather than passing quietly. **Every row now carries the size it was hashed at**
+in `tr.title` and `tr.dataset.size`, because the first question about a px-only
+difference is whether the canvas was even the same shape.
+
+**If a DIFFER ever appears again, three tells say it is measurement and not
+code, and all three must point the same way:**
+
+1. **`tx` unchanged and only `px` moves** — same text, different pixels: the
+   drawing did not change, the SURFACE did. Check `dataset.size` first.
+2. **The set varies between runs.** A regression is the same states every time.
 3. **The code you touched cannot reach them.** `lm-adjustment` declines both
-   drive buttons (`stepLabel: null`, `runLabel: null`), so a change to the label
-   resolver — the suspect at the time — could not run there at all.
+   drive buttons (`stepLabel: null`, `runLabel: null`), so the label resolver —
+   the suspect at the time — could not run there at all.
 
 Run with the pane VISIBLE and do not poll it from another tab: switching tabs
-mid-run backgrounds the harness and is itself a cause. **Read the code before
-rebaselining anything.** Fixing this properly means having the harness wait for
-the canvas to settle before it hashes, which is a change to `fingerprint.html`
-and has not been made.
+mid-run backgrounds the harness. **Read the code before rebaselining anything.**
 
 Three kinds of state:
 

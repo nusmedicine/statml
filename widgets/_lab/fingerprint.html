@@ -322,6 +322,43 @@ function figureText(doc) {
     .trim();
 }
 
+/**
+ * Wait until the canvas STOPS CHANGING SIZE, not for a fixed number of ms.
+ *
+ * A figure taller than the frame gives the framed document a scrollbar; the
+ * scrollbar takes ~15px off the width; a canvas sized from that width
+ * re-renders narrower. That is a SECOND layout pass, and a fixed timeout caught
+ * it sometimes and missed it sometimes — which is the whole of the flakiness
+ * that five identical runs reported as 0, 6, 0, 4 and 8 differing states.
+ *
+ * Measured before fixing: every flaky state was hashed 688 backing pixels wide
+ * where its baseline holds the settled 669, and only the eleven states tall
+ * enough to scroll were ever affected. The baselines are the SETTLED value, so
+ * waiting for it costs no rebaselining.
+ *
+ * Geometry is the right thing to watch: it is what the scrollbar moves, and a
+ * repaint at an unchanged size cannot change the hash. Returns whether it gave
+ * up, so a state that genuinely never settles says so instead of being hashed
+ * mid-flight.
+ */
+async function settle(frame, minMs, maxMs = 4000) {
+  const t0 = Date.now();
+  let last = null;
+  let still = 0;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 50));
+    const c = frame.contentDocument?.querySelector(".w-figure canvas");
+    const now = c ? `${c.width}x${c.height}` : null;
+    still = now !== null && now === last ? still + 1 : 0;
+    last = now;
+    const waited = Date.now() - t0;
+    if (waited >= maxMs) return { size: last, timedOut: true };
+    /* two identical samples is 100ms of stillness, comfortably past core's
+       60ms-debounced ResizeObserver */
+    if (waited >= minMs && still >= 2) return { size: last, timedOut: false };
+  }
+}
+
 async function shoot(entry) {
   const frame = document.createElement("iframe");
   frame.width = FRAME_W;
@@ -330,11 +367,12 @@ async function shoot(entry) {
   frame.src = `../${entry.slug}/${entry.state}`;
   frames.appendChild(frame);
   await new Promise((r) => frame.addEventListener("load", r));
-  await new Promise((r) => setTimeout(r, entry.drive ? 150 : SETTLE_MS));
+  const rest = await settle(frame, entry.drive ? 150 : SETTLE_MS);
 
   let px = "—";
   let tx = "—";
   let note = "";
+  let size = rest.size;
   try {
     const win = frame.contentWindow;
     const doc = frame.contentDocument;
@@ -350,8 +388,9 @@ async function shoot(entry) {
     tx = "error";
     note = String(e.message ?? e);
   }
+  if (rest.timedOut) note = `${note} · NEVER SETTLED at ${rest.size}`.trim();
   frame.remove();
-  return { px, tx, note };
+  return { px, tx, note, size };
 }
 
 async function run() {
@@ -373,7 +412,7 @@ async function run() {
   let fresh = 0;
 
   for (const entry of baseline.states) {
-    const { px, tx, note } = await shoot(entry);
+    const { px, tx, note, size } = await shoot(entry);
     latest.push({ ...entry, px, tx });
 
     /* BOTH must be known and BOTH must match. A state whose baseline predates
@@ -393,6 +432,12 @@ async function run() {
       `<td class="state">${entry.state}<br><span style="color:var(--ink-3)">${note}</span></td>` +
       `<td class="hash">${entry.px || "—"}<br>${entry.tx || "—"}</td>` +
       `<td class="hash">${px}<br>${tx}</td>`;
+    /* THE SIZE IT WAS HASHED AT, on the row, because a px-only difference is
+       almost always a difference of surface rather than of drawing and the
+       first thing worth knowing is whether the canvas was the same shape.
+       Hover, or read it out of the DOM — it costs the table nothing. */
+    tr.title = `hashed at ${size ?? "no canvas"}`;
+    tr.dataset.size = size ?? "";
     rows.appendChild(tr);
   }
 

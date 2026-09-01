@@ -11352,14 +11352,23 @@ background set** — deploy the same unchanged model among sicker patients and
 every phi moves because the baseline moved. That is its own page or its own
 widget.
 
-**And a second one, in the fingerprint suite itself.** The first run after the
-core change reported **6 states DIFFER** — five `lm-adjustment`, one `roc-auc`.
-The code said that was impossible: `lm-adjustment` declines both drive buttons
-(`stepLabel: null`, `runLabel: null`), so the resolver under suspicion never
-runs there. Re-run with the Browser pane VISIBLE: all 268 identical. Both
-widgets size their canvas from a height FUNCTION, so a suspended ResizeObserver
-in a hidden pane is enough to move the hash. Recorded in HANDOVER: read the code
-before rebaselining, and re-run visible before believing a DIFFER.
+**And a second one, in the fingerprint suite itself — since diagnosed and
+FIXED.** The first run after the core change reported **6 states DIFFER** — five
+`lm-adjustment`, one `roc-auc`. The code said that was impossible:
+`lm-adjustment` declines both drive buttons (`stepLabel: null`,
+`runLabel: null`), so the resolver under suspicion never runs there. Five runs
+of identical code then gave 0, 6, 0, 4 and 8.
+
+**The cause was a scrollbar.** A figure taller than the frame gives the framed
+document a scrollbar, the scrollbar takes ~15px off the width, and a canvas
+sized from that width re-renders narrower — a second layout pass that a fixed
+400ms wait caught sometimes and missed sometimes. Every flaky state was hashed
+**688** backing pixels wide where its baseline holds the settled **669**, and
+only the ELEVEN states tall enough to scroll were ever affected. The baselines
+were already the settled value, so the fix cost no rebaselining. `shoot()` now
+waits for the canvas dimensions to hold still rather than for a number of
+milliseconds, says NEVER SETTLED instead of hashing mid-flight, and puts the
+size it hashed at on every row. Three clean runs after. Details in HANDOVER.
 
 **A harness artefact that nearly became a bug fix.** Stepping the pile appeared
 to do nothing: zero paints, zero frames, the counter stuck at 0 of 60. The
