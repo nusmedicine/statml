@@ -10,7 +10,7 @@
 
 import {
   simulate, apply, summarise, NORMALIZE, median,
-} from "./norm-model.js";
+} from "../normalization/model.js";
 
 const f = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : "—");
 const pad = (s, n) => String(s).padEnd(n);
@@ -29,7 +29,7 @@ function row(name, cols) {
 }
 
 const header = () => {
-  console.log([pad("method", 26), rpad("skew", 7), rpad("rho", 7), rpad("spread", 7), "sample medians"].join(" | "));
+  console.log([pad("method", 26), rpad("skew", 7), rpad("rho", 7), rpad("scale", 7), "sample medians"].join(" | "));
   console.log("-".repeat(96));
 };
 

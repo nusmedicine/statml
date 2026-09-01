@@ -3355,8 +3355,63 @@ Log-normal was the obvious continuous stage. **Measured, it is degenerate.**
   notebook's numbers, collapses quantile normalisation to exactly 0, and is
   describable in one honest sentence.
 
-**Still open after round 0**: the title, the subtitle, and the gene/sample
-counts. All three are better settled against a running widget than in advance.
+#### BUILT AS A DRAFT the same day — and four defects the checks found
+
+```bash
+node scripts/serve.mjs 8011
+# http://localhost:8011/widgets/normalization/                     (raw, unequal samples)
+# .../widgets/normalization/?normalize=median                      (the staircase collapses)
+# .../widgets/normalization/?normalize=minmax                      (0 – 1, and NOTHING else moves)
+# .../widgets/normalization/?transform=log1p                       (the fan collapses, the staircase does not)
+# .../widgets/normalization/?normalize=quantile&transform=log1p    (both, composed)
+# .../widgets/normalization/?spread=0                              (the notebook's stage: nothing to correct)
+node widgets/_lab/norm-verify.mjs      # 12 algebraic identities on the shipping engine
+node widgets/_lab/norm-measure.mjs     # every number in this section
+```
+
+**The canvas text sweep and `norm-verify.mjs` between them found four things no
+screenshot would have**, and two of them were false claims already written into
+the source:
+
+- **The scale tile's denominator was shift-sensitive.** It divided the range of
+  the sample medians by the grand median, which survives a rescaling but not a
+  shift — so z-score read **1.299** where raw and min-max read 0.717, three
+  answers for three affine maps that all leave the samples equally unequal. The
+  denominator is now the **pooled IQR**: a ratio of two differences, so it
+  survives any `y = ax + b` exactly. Raw, min-max and z-score now agree to
+  4.4e-16, and *that equality is the lesson*.
+- **The panel printed the whisker range, not the data range**, so min-max read
+  `0.010 – 0.245` instead of `0 – 1`. The axis is still fitted to p5–p95 so the
+  boxes stay readable; the note now says where all the values are, which is the
+  number the ask-3 pick exists to show.
+- **Box-Cox after z-score silently deleted 6,729 of 10,000 values** and drew a
+  figure from what was left. The notebook does this too — cell 25 ends
+  `na.omit()` — and says nothing. The figure now prints the count and the
+  reason, and the ρ tile counts the genes that survived rather than the 1000 it
+  started with.
+- **λ → 0 approaches log(y), not log(1+y)** — the source comment claimed the
+  second, on a number borrowed from the integer-count stage where the smallest
+  value is 0 and the "+1" barely matters. The gamma stage runs down to 2.35e-6
+  with 0.33% of values below 1, which separates the three outright: log(y) skew
+  −0.665, Box-Cox at 0.02 −0.446, log(1+y) −0.061. Dragging λ toward zero walks
+  *past* the log(1+y) button rather than onto it.
+
+Two smaller ones: `kept.map(quantiles)` passed the array index into the
+quantile-list argument (map's second parameter), and the x-axis label "sample"
+printed through the pipeline line — measured at y=388 x=[201..223] against
+y=398 x=[46..223]. The label is deleted; the caption already says "per sample".
+
+`_lab/norm-verify.mjs` is the record: 12 identities over 3 spreads × 3 seeds,
+including the two that are **deliberately allowed to fail** — Box-Cox at λ = 1
+is `y − 1` and must land back on the untransformed row, and it does for none,
+median and quantile (1e-15) while breaking for min-max (1 value) and z-score
+(6827). A claim true on three of five paths and silently false on the other two
+is worse than no claim.
+
+**Still open**: the title, the subtitle, and the gene/sample counts, all better
+settled against the running widget than in advance. **Not baselined** — a draft
+owes no fingerprint states, and a baseline recorded before the design settles
+gets thrown away.
 
 ### The notebook hands over its own figure
 
@@ -3373,9 +3428,10 @@ normalisation moves only the first, a transformation moves both.
 **MEASURED 2026-09-01**, on the notebook's own generator reproduced exactly
 (1000 genes, 10 samples, means ~ U(10,100), `rnbinom(mu, size = 1/disp)`,
 `disp = mu/100`) using `core/stats.js`'s `nbDraw`. The engine is
-`_lab/norm-model.js` and it **moves to `widgets/normalization/model.js` when the
-widget exists**; `_lab/norm-measure.mjs` imports it and prints every number
-below, so what is measured is what would ship.
+`widgets/normalization/model.js` — written as `_lab/norm-model.js` for the mock
+round and moved when the widget was built. `_lab/norm-measure.mjs` and
+`_lab/norm-mock.html` both import it and print every number below, so what is
+measured is what ships.
 
 ```bash
 node widgets/_lab/norm-measure.mjs
@@ -3439,17 +3495,23 @@ Five things that came out of measuring rather than reasoning:
   sampling noise on 1000 genes and not a depth difference. Give sample *j* a
   depth factor and the methods separate the way they are supposed to —
 
-  | stage | raw median range | after median norm | after quantile | after min-max |
-  |---|---|---|---|---|
-  | `spread = 0` (the notebook) | 5.0 | **0.0** | 1.1 | 0.007 (rescaled 5.0) |
-  | `spread = 0.5` | 30.0 | **0.0** | 1.5 | 0.040 (rescaled 30.0) |
-  | `spread = 1.0` | 53.0 | **0.0** | 2.4 | 0.054 (rescaled 53.0) |
+  The **scale gap** below is the widget's own first tile — the range of the
+  sample medians over the pooled IQR, a ratio of two differences and therefore
+  unmoved by any affine map. Raw and min-max read the same number by
+  construction, which is the point:
 
-  Min-max's last column is the lesson in one number: it makes the *range* small
-  and leaves the samples exactly as unequal as it found them. On the notebook's
-  own stage that is invisible, because there was nothing to equalise. **A
-  per-sample depth spread is what makes normalisation mean anything**, and it
-  is a stage decision, so it goes to the mock-up.
+  | stage | raw median range | scale gap: raw | after median norm | after quantile | after min-max |
+  |---|---|---|---|---|---|
+  | `spread = 0` (the notebook) | 5.0 | 0.096 | **0.000** | 0.022 | **0.096 — unchanged** |
+  | `spread = 0.5` | 30.0 | 0.545 | **0.000** | 0.027 | **0.545 — unchanged** |
+  | `spread = 1.0` | 53.0 | 0.815 | **0.000** | 0.038 | **0.815 — unchanged** |
+
+  Min-max's last column is the lesson in one number: it makes the raw *range*
+  small — 30.0 down to 0.040 — and leaves the samples **exactly** as unequal as
+  it found them. On the notebook's own stage that is nearly invisible, because
+  there was almost nothing to equalise. **A per-sample depth spread is what
+  makes normalisation mean anything**, and it is a stage decision, so it goes to
+  the mock-up.
 
   It also exposes what "affine" does and does not cover: median normalisation
   is affine *per sample* but is not one affine map over the table, so it does

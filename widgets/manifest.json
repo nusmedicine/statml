@@ -561,6 +561,23 @@
       ],
       "arc": 38,
       "status": "shipped"
+    },
+    {
+      "slug": "normalization",
+      "title": "Normalization and Transformation",
+      "blurb": "Normalization puts samples on one scale; transformation changes the shape. Neither does the other's job.",
+      "course": "PHM5003",
+      "topics": [
+        "normalization",
+        "transformation",
+        "quantile",
+        "Box-Cox",
+        "heteroskedasticity",
+        "preprocessing",
+        "omics"
+      ],
+      "arc": 39,
+      "status": "draft"
     }
   ]
 }

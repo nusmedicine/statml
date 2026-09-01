@@ -65,7 +65,41 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: the high-throughput arc — FIVE SLOTS PROPOSED, none picked
+## NEXT: widget 39 `normalization` IS A DRAFT — awaiting Kenneth's review
+
+**Built 2026-09-01 after the eight asks were answered in one pass.** It is on
+`/lab/`, not the gallery, and owes no fingerprint states until promotion.
+
+```bash
+node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions
+# http://localhost:8011/widgets/normalization/                  (raw, unequal samples)
+# .../widgets/normalization/?normalize=median                   (the staircase collapses)
+# .../widgets/normalization/?normalize=minmax                   (0 – 1, and NOTHING else moves)
+# .../widgets/normalization/?transform=log1p                    (the fan collapses, the staircase does not)
+# .../widgets/normalization/?normalize=quantile&transform=log1p (both, composed)
+# .../widgets/normalization/?spread=0                           (the notebook's stage: nothing to correct)
+node widgets/_lab/norm-verify.mjs    # 12 identities on the shipping engine
+node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
+```
+
+- **The engine is `widgets/normalization/model.js`**, imported by the widget,
+  the measurement script, the verifier and the mock page. No second copy.
+- **THE CHECKS FOUND FOUR DEFECTS AND TWO WERE FALSE CLAIMS IN THE SOURCE** —
+  the scale tile's denominator was shift-sensitive (z-score read 1.299 where
+  min-max read 0.717, for two maps that change nothing about the inequality),
+  the panel printed the whisker range so min-max read `0.010 – 0.245` instead of
+  `0 – 1`, Box-Cox after z-score deleted 6,729 of 10,000 values silently, and
+  λ → 0 approaches log(y) rather than log(1+y). Catalogue § Slot 1 has all six.
+- **The sweep's `resize` repaint was inert**, exactly as this file warns: 45
+  states came back with zero strings and it looked like a clean pass. Clear the
+  buffer BEFORE the parameter write, not after, and split on the caption because
+  one state can cause several repaints. **And rAF is throttled to ~1 frame per
+  300 ms here**, so a 45-state sweep on `requestAnimationFrame` times out — use
+  `setTimeout(0)` and run it in chunks of 15.
+- **No animation** (4.5), following `linear-regularization`. The quantile
+  procedure as an act is round 2 if Kenneth wants it.
+
+## The high-throughput arc — FOUR SLOTS STILL PROPOSED
 
 **Kenneth asked for a plan for PHM5003 `05 - Introduction to High Throughput
 Data` on 2026-09-01, and it is in catalogue § *The high-throughput arc*.**
@@ -76,18 +110,16 @@ and `01 Experimental Design` is out of scope. That leaves five:
 
 | slot | slug | notebook | the claim |
 |---|---|---|---|
-| 1 | `normalization` | 05 / 03 | scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
+| 1 | `normalization` | 05 / 03 | **DRAFT, built 2026-09-01** — scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
 | 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation. **A hole in an arc this repo called complete** |
 | 3 | `batch-effect` | 05 / 05 | the danger is confounding, not noise — correct a confounded design and the biology goes with it |
 | 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
 | 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
 
-**NOTHING IS PICKED AND NOTHING IS DRAFTED.** The catalogue section carries
-five open calls that are Kenneth's to close — the build order first, then
-slot 4's scope, slot 5's shape (one widget with tabs or two), whether
-`05 / 06` needs a `p ≫ n` act widget 14 does not have, and a citation to
-verify. Slot 1 is **measured** (the affine invariance holds to 7e-14 and the
-right readout is Spearman ρ, not the log–log slope); the other four are
+**SLOT 1 IS PICKED, ASKED, BUILT AND DRAFTED** — see NEXT above. The catalogue
+section still carries four open calls that are Kenneth's to close: slot 4's
+scope, slot 5's shape (one widget with tabs or two), whether `05 / 06` needs a
+`p ≫ n` act widget 14 does not have, and a citation to verify. Slots 2–5 are
 planned but not measured, and § 5.1 says mock up before implementing.
 
 **The four already-hosted lessons owe notebook links too.** Zero of the nine

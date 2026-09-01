@@ -1,11 +1,14 @@
 /* ============================================================================
-   The engine behind widget-slot 1, `normalization` (PHM5003 HTD `05 / 03`).
+   The engine behind widget 39, `normalization` (PHM5003 HTD `05 / 03`).
 
-   Lives in _lab/ until the widget exists, then MOVES to
-   widgets/normalization/model.js and this file is deleted — the widget-22
-   lesson, applied from the first line: the measurement script and the mock
-   page IMPORT the shipping code, they never carry a second copy of it. Two
-   copies of a formula is how the halves of a figure come to disagree.
+   Written as `_lab/norm-model.js` during the mock round and MOVED here on
+   2026-09-01 when the widget was built — the widget-22 lesson applied from the
+   first line: `_lab/norm-measure.mjs` and `_lab/norm-mock.html` both IMPORT
+   this file, so neither carries a second copy of a formula. Two copies is how
+   the halves of a figure come to disagree.
+
+   Everything the widget knows about the data lives here and nothing about how
+   it is drawn. `main.js` is the figure.
 
    The generator reproduces the notebook's `simulate_data` exactly:
 
@@ -272,14 +275,31 @@ export function skew(cols) {
   return mean(a.map((x) => ((x - m) / s) ** 3));
 }
 
-/** Are the samples on one scale? The spread of the sample medians, as a
-    fraction of the grand median, so it survives a rescaling and can be
-    compared across methods. */
+/**
+ * Are the samples on one scale? The spread of the sample medians, measured in
+ * units of how spread the values themselves are.
+ *
+ * THE DENOMINATOR IS THE POOLED IQR, AND IT USED TO BE THE GRAND MEDIAN. That
+ * was wrong in a way the canvas text sweep caught: dividing by the grand median
+ * is invariant under a rescaling but NOT under a shift, and z-score shifts by
+ * the mean of a right-skewed table, which drags the grand median toward zero
+ * and inflates the ratio. So raw read 0.717, min-max read 0.717, and z-score
+ * read 1.299 — three answers for three affine maps, none of which changes how
+ * unequal the samples are.
+ *
+ * Range and IQR both carry the data's units and both are differences, so their
+ * ratio survives ANY affine map y = a*x + b exactly. Raw, min-max and z-score
+ * now agree to the digit, which is the lesson: a rescaling does not put samples
+ * on one scale. Median and quantile normalisation take it to 0.
+ */
 export function sampleSpread(cols) {
-  const meds = cols.map((c) => median(c.filter(Number.isFinite)));
-  const grand = median(meds);
+  const kept = cols.map((c) => c.filter(Number.isFinite));
+  const meds = kept.map(median);
   const range = Math.max(...meds) - Math.min(...meds);
-  return { meds, range, relative: Math.abs(grand) > 1e-12 ? range / Math.abs(grand) : NaN };
+  const all = kept.flat();
+  const [q1, q3] = quantiles(all, [0.25, 0.75]);
+  const iqr = q3 - q1;
+  return { meds, range, iqr, relative: iqr > 1e-12 ? range / iqr : NaN };
 }
 
 /** Per-gene mean and variance ACROSS samples — the second panel's points. */

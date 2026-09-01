@@ -55,7 +55,7 @@
     those two panels, and the readouts are the notebook's own claims.
   </p>
   <p class="note">
-    Everything below is drawn from <code>_lab/norm-model.js</code> — the engine that would
+    Everything below is drawn from <code>widgets/normalization/model.js</code> — the engine that would
     ship, imported and not copied. Every number in a caption is computed on this page, live.
     <code>node widgets/_lab/norm-measure.mjs</code> prints the same values as a table.
   </p>
@@ -207,7 +207,7 @@
 <script type="module">
 import {
   simulate, apply, summarise, quantiles, median, NORMALIZE,
-} from "./norm-model.js";
+} from "../normalization/model.js";
 
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const C = {};
@@ -427,7 +427,7 @@ after median norm: range ${f(sn.range, 3)}`,
       `<tr><td>Stage ${k}</td><td>${f(a, 1)}</td><td class="hit">${f(b, 3)}</td>`
       + `<td>${f(c2, 1)}</td><td>${f(d, 3)}</td></tr>`).join("")
     + `<tr><td colspan="5" style="text-align:left;color:var(--ink-3)">`
-    + `min–max is shown RELATIVE (range / grand median) because it rescales the axis: the absolute range shrinks, the inequality does not.</td></tr>`;
+    + `min–max is shown as the SCALE GAP (median range ÷ pooled IQR), which survives any affine map: the absolute range shrinks, the inequality does not.</td></tr>`;
 }
 
 /* ======================================================================== §2 */
