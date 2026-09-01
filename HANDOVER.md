@@ -65,16 +65,42 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: nothing is queued — ARC A IS COMPLETE
+## NEXT: the high-throughput arc — FIVE SLOTS PROPOSED, none picked
+
+**Kenneth asked for a plan for PHM5003 `05 - Introduction to High Throughput
+Data` on 2026-09-01, and it is in catalogue § *The high-throughput arc*.**
+All nine of that week's notebooks were read. **Four already have a shipped
+host** — `missing-data` (02), `linear-regularization` (06),
+`multiple-testing` (07) and the four dimensionality-reduction widgets (04) —
+and `01 Experimental Design` is out of scope. That leaves five:
+
+| slot | slug | notebook | the claim |
+|---|---|---|---|
+| 1 | `normalization` | 05 / 03 | scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
+| 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation. **A hole in an arc this repo called complete** |
+| 3 | `batch-effect` | 05 / 05 | the danger is confounding, not noise — correct a confounded design and the biology goes with it |
+| 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
+| 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
+
+**NOTHING IS PICKED AND NOTHING IS DRAFTED.** The catalogue section carries
+five open calls that are Kenneth's to close — the build order first, then
+slot 4's scope, slot 5's shape (one widget with tabs or two), whether
+`05 / 06` needs a `p ≫ n` act widget 14 does not have, and a citation to
+verify. Slot 1 is **measured** (the affine invariance holds to 7e-14 and the
+right readout is Spearman ρ, not the log–log slope); the other four are
+planned but not measured, and § 5.1 says mock up before implementing.
+
+**The four already-hosted lessons owe notebook links too.** Zero of the nine
+carry one — grepped 2026-09-01 — so item 3 below gains four rows.
+
+**What else remains is Kenneth's own**, listed under item 3: the notebook
+links, the 05-07 notebook fix he reported done, and judging projected, which
+is still owed by every widget from 11 on. **A session with nothing picked
+should hold, not invent scope** — prd §11 exists to be pointed at.
 
 **Widget 37 `mlp` shipped 2026-08-31 and with it the last slot of Arc A.**
 Every algorithm family in PHM5005 `04-3 Tour of Algorithms` now has its
-widget, and the earlier arcs are done. **What remains is Kenneth's own**,
-listed under item 3 below so a session can remind him rather than act:
-the notebook links (04-3's two now among them), the 05-07 notebook fix he
-reported done, and judging projected, which is still owed by every widget
-from 11 on. **A session with nothing to do should hold, not invent scope**
-— prd §11 exists to be pointed at.
+widget, and the earlier arcs are done.
 
 **WIDGET 37 `mlp` SHIPPED AND PUSHED 2026-08-31** as **Neural Networks
 (MLP)** — ten rounds across two days; the full record is catalogue
@@ -165,6 +191,15 @@ do should hold, not invent scope — prd §11 exists to be pointed at.
    - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
    - 04-3 § Probabilistic (widget 36): `Explore naive Bayes interactively: [Naive Bayes](https://nusmedicine.github.io/statml/widget/naive-bayes/)`
    - 04-3 § Neural Networks (widget 37): `Explore neural networks interactively: [Neural Networks (MLP)](https://nusmedicine.github.io/statml/widget/mlp/)`
+
+   **And FOUR more found on 2026-09-01** — `05 - Introduction to High
+   Throughput Data` carries no widget link at all, though four of its nine
+   lessons already have a shipped host:
+   - HTD `02 — Missing Data and Imputation` (widget 25): `Explore the mechanisms interactively: [Missing Data](https://nusmedicine.github.io/statml/widget/missing-data/)`
+   - HTD `04 — Dimensionality Reduction` (widgets 19–22, one per heading): `[Principal Component Analysis](https://nusmedicine.github.io/statml/widget/pca/)` · `[Multidimensional Scaling](https://nusmedicine.github.io/statml/widget/mds/)` · `[t-SNE](https://nusmedicine.github.io/statml/widget/t-sne/)` · `[UMAP](https://nusmedicine.github.io/statml/widget/umap/)`
+   - HTD `06 — Regularization and Fitting` (widget 14): `Explore regularization interactively: [Linear Models and Regularization](https://nusmedicine.github.io/statml/widget/linear-regularization/)`
+   - HTD `07 — Multiple Test Correction` (widget 6): `Explore the correction interactively: [Multiple Testing](https://nusmedicine.github.io/statml/widget/multiple-testing/)`
+
    — and judging projected is still owed by every widget from 11 on,
    widgets 26–34 included.
 

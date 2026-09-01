@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *NEXT · DBSCAN*, near the end |
+| what to build next | § *The high-throughput arc*, five proposed slots — the only open queue |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -3227,6 +3227,262 @@ misconception named above the line in git history.
 `forking-paths` is worth noting as the natural #7 alternative: it is #6's lesson
 applied to analytic choices rather than to formal tests, and it needs no new
 machinery at all.
+
+---
+
+## The high-throughput arc — proposed 2026-09-01, from PHM5003 week 5
+
+`05 - Introduction to High Throughput Data` is nine notebooks, and it is the
+first PHM5003 week where **most of the widgets already exist**. Four of its nine
+lessons have a shipped host, three of those built for PHM5005 and inherited.
+Reading all nine end to end says the gap is **five slots**, and one of the five
+is a hole in an arc this file already called complete.
+
+The week is one continuous argument, and it is the omics pipeline in order:
+*design it → find the holes → put the samples on one scale → look at it → find
+out the machine did that, not the biology → fit when p ≫ n → stop believing
+twenty thousand p-values → group what is left → say what the group means.*
+
+### What is already covered — read this before proposing anything
+
+| # | notebook | host widget | state |
+|---|---|---|---|
+| 01 | Review of Experimental Design | — | randomisation, blinding, replication. No widget proposed; `fork-pipe-collider` touches the confounding half. **Out of scope for this arc** |
+| 02 | Missing Data and Imputation | **25 `missing-data`** ✅ | already recorded as this notebook's widget, cells 1–23 |
+| 03 | Normalization and Transformation | — | **SLOT 1** |
+| 04 | Dimensionality Reduction | **19 `pca`, 20 `mds`, 21 `t-sne`, 22 `umap`** ✅ | four of five headings. `## 2 NMF` has none — **SLOT 2** |
+| 05 | Batch Effect Correction | — | **SLOT 3** |
+| 06 | Regularization and Fitting | **14 `linear-regularization`** ✅ | ridge / lasso / elastic net. The notebook adds `p ≫ n` and `findCorrelation`; see the open call below |
+| 07 | Multiple Test Correction | **6 `multiple-testing`** ✅ | prd §7 already names this notebook as its lesson |
+| 08 | Hierarchical Clustering | — | `kmeans` and `dbscan` are different methods, and § *Widget 23* records that **this notebook mentions K-Means zero times**. **SLOT 4** |
+| 09 | Enrichment Analysis | — | **SLOT 5** |
+
+**Not one of the nine carries a widget link.** Grepped the whole `phm5003`
+notebook tree on 2026-09-01: zero hits for `nusmedicine.github.io/statml`,
+anywhere. So the four already-hosted lessons owe links exactly as the week-4
+ones do — see HANDOVER § *NEXT* item 3, which this adds four rows to.
+
+### The five slots
+
+| # | slug | notebook | misconception | evidence | status |
+|---|---|---|---|---|---|
+| 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **proposed** |
+| 2 | `nmf` | 05 / 04 `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **proposed** |
+| 3 | `batch-effect` | 05 / 05 | a batch effect is noise you subtract. The danger is **confounding**, and correcting a confounded design deletes the biology | documented — citation NOT yet verified | **proposed** |
+| 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. It is a consequence of two choices and a cut, and pure noise produces a handsome one | reported | **proposed** |
+| 5 | `enrichment` | 05 / 09 | a significant pathway is an activated pathway; and the p-value is a property of your gene list, when the **background** and the **cutoff** move it just as hard | reported | **proposed** |
+
+**Slug rulings, on the precedents already in this file.** Kenneth renamed
+`censoring-km → time-event` and `pseudoreplication → mixed-model` on 2026-08-28,
+so the revealed rule is *name the method or the data shape, not the failure* —
+which is why slot 1 is `normalization` and not `scaling-vs-transform`, and slot 3
+is `batch-effect` and not `confounded-batch`. Slot 2 takes the bare algorithm
+name because `pca` / `mds` / `t-sne` / `umap` already do and it joins them. Slot 5
+drops its trailing noun by the `lm-categorical` ruling — shorter URLs read better
+from a slide.
+
+### Slot 2 earns its place by the rule that gave t-SNE and UMAP theirs
+
+§ *NEXT · t-SNE* read `04 - Dimensionality Reduction`'s headings and settled
+one-algorithm-one-widget by reading rather than by taste:
+
+```
+## 1. Principal Component Analysis (PCA)          cells  7–14   <- widget 19
+## 2. Non-negative Matrix Factorization (NMF)      cells 15–23   <- NOTHING
+## 3. Multidimensional Scaling (classical + NMDS)  cells 24–38   <- widget 20
+## 4. t-SNE                                        cells 39–45   <- widget 21
+## 5. UMAP                                         cells 46–53   <- widget 22
+```
+
+**So the dimensionality-reduction arc was declared closed with a gap in it.**
+The closing note under § *After UMAP* moved on to PHM5005's clustering half and
+never came back to `## 2`; the manifest's four DR widgets are four of five.
+
+The lesson states the claim twice and both times in the same words — a
+**parts-based representation**. `V ≈ W × H` with everything non-negative, `W`
+holding the patterns and `H` how much of each pattern each sample carries. That
+is a different object from PCA's rotation, and the difference is what the widget
+is for: PCA's components are signed, orthogonal, ordered by variance and unique;
+NMF's parts are none of those four. The notebook admits the last one itself —
+cell 17's worked answer is "a possible outcome (depending on initialization and
+optimization)" — so **the seed giving a different `W`, not merely a different
+picture, is in the lesson already** and needs only to be shown.
+
+### Slot 1 · `normalization` — the notebook hands over its own figure
+
+Every method in `05 / 03` is judged in the same two-panel picture — a boxplot per
+sample, and a mean-versus-variance scatter over genes — and the notebook writes
+the verdict underneath each one as two bullets, **Effect on: Distribution** and
+**Effect on: Mean-Variance Relationship**. That is a widget: one method picker,
+two panels, two readouts, and the readouts are the notebook's own claims.
+
+The argument is that the six methods fall into **three** classes and the two
+panels are what tell them apart — a rescaling moves neither panel, quantile
+normalisation moves only the first, a transformation moves both.
+
+**MEASURED 2026-09-01**, on the notebook's own generator reproduced exactly
+(1000 genes, 10 samples, means ~ U(10,100), `rnbinom(mu, size = 1/disp)`,
+`disp = mu/100`) using `core/stats.js`'s `nbDraw` — the widget would import the
+same function. Rebuild as `_lab/norm-measure.mjs` when the slot is built; it was
+run from the scratchpad and is not in the repo.
+
+| method | skew | ρ(gene mean, gene variance) | sample medians, min..max |
+|---|---|---|---|
+| raw | 2.978 | 0.948 | 32.0 .. 37.0 |
+| min-max, global | **2.978** | **0.948** | 0.048 .. 0.055 |
+| z-score, global | **2.978** | **0.948** | −0.374 .. −0.289 |
+| quantile | 2.902 | **0.948** | 33.8 .. 34.9 |
+| log1p | −0.165 | 0.462 | 3.50 .. 3.64 |
+| Box-Cox λ=0.02 | −0.145 | **0.092** | 3.59 .. 3.74 |
+| Box-Cox λ=0.10 | 0.089 | 0.220 | 4.14 .. 4.35 |
+| Box-Cox λ=0.25 | 0.506 | 0.434 | 5.51 .. 5.87 |
+| Box-Cox λ=0.50 | 1.207 | 0.671 | 9.31 .. 10.17 |
+| Box-Cox λ=1.00 | 2.978 | 0.865 | 31.0 .. 36.0 |
+
+Four things that came out of measuring rather than reasoning:
+
+- **The invariance is exact, not approximate.** Min-max and z-score leave the
+  skew unchanged to **7e-14** — float noise. Both are one affine map applied to
+  every value in the table, so the shape *cannot* move, and a widget can say so
+  without hedging. This is the whole lesson and it is a number.
+- **The right second readout is Spearman ρ(mean, variance), not the log–log
+  slope**, which was the obvious choice and is wrong twice over: z-score makes
+  most values negative so `log(var)` is undefined for 558 of 1000 genes, and
+  log1p leaves the slope at 2.58 while ρ has already fallen to 0.46. ρ is
+  rank-based, so it is provably invariant under any affine map and moves only
+  when the map is non-linear — which is exactly the distinction being taught.
+- **λ is a control that carries an idea** (3.5): ρ runs 0.092 → 0.865 across
+  λ = 0.02 → 1, monotonically, with λ=1 landing back on the raw data. The
+  notebook's prose says "e.g. 0.5" and its code runs `lambda = 0.02`; at λ=0.5
+  ρ is still 0.671, so the prose and the code do not agree about whether the
+  variance was stabilised. A slider settles it on screen.
+- **Quantile normalisation needs a continuous stage to show its one job.** On
+  the notebook's integer counts there are only ~190 distinct values per sample
+  across 1000 genes, so ties dominate and the sample medians still span 1.0
+  after normalising. On continuous data the spread collapses to **exactly 0**.
+  If the stage stays integer, the boxplots visibly fail to line up and the
+  widget argues against itself.
+
+Second act, if it earns one: **the quantile procedure itself** — rank, average
+across samples at each rank, assign back — is three numbered steps in cell 16
+that no student can picture, and it is a countable thing while the count is
+small (2.3).
+
+### Slot 3 · `batch-effect` — the stage is already written, and it hides its own assumption
+
+Cells 3–7 are a complete widget: 50 genes × 40 samples, a disease effect of 0.8
+on genes 1–25 of the even-numbered samples, a **+2 shift on samples 21–40**, and
+one PCA scatter coloured twice — by batch, then by condition. Correct the shift
+and the colourings swap over.
+
+**The assumption the notebook never states is the one that matters.** Condition
+alternates (even = Disease) and batch splits at sample 20, so **every batch is
+10 healthy and 10 disease** — perfectly balanced. That balance is why the
+correction works, and nothing on screen says so. Batch effect 2 against disease
+effect 0.8 is also why PC1 is batch: the artefact is 2.5× the biology.
+
+So the one control that carries the whole widget is **how far batch and
+condition overlap**, from balanced to fully confounded. At balanced, correction
+reveals the biology. At confounded, correction *removes* it and the estimated
+effect goes to zero — a failing case in the sense of 2.6, and the most
+consequential design error in high-throughput work. The readout is the estimated
+disease effect against the true 0.8; that number is what the correction is
+*for*, and it is what collapses.
+
+Three notes for the build:
+
+- **Method scope.** The notebook runs ComBat, SVA and RUV. Three is a tour, not
+  an argument, and only ComBat's model is written out (cell 10). Recommend
+  building the mechanism — subtract a per-batch location, optionally rescale —
+  and leaving the package names as prose. RUV is worth one sentence for a
+  different reason: its control genes are `26:50`, which are **exactly** the
+  genes carrying no disease effect. The truth was used to pick the controls.
+- **A colour-role question, and it may need a new role.** Two categorical splits
+  live on the same points. `--c-group-a` / `--c-group-b` is right for condition —
+  two arms of a comparison you decided. Batch is *also* assigned and *also* not a
+  cluster, so neither `--c-cluster-*` nor the group pair is honest for it. The
+  notebook's two-panel form (same points, coloured twice) sidesteps this by giving
+  each panel its own split; if a single-panel form wins the mock-up, this is a
+  request to add a role, not to reach for `--series-n`.
+- **Reuse.** PCA of a gene × sample matrix is widget 19's engine.
+
+### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
+
+The claim: **a dendrogram is not a finding.** Every dataset yields one, including
+a cloud with no groups in it; the tree's shape is a consequence of a distance, a
+linkage and a cut, none of which the data chose. This is the same shape of claim
+as t-SNE's failure #1, and § *NEXT · t-SNE* measured that one on a generated
+stage — the precedent for how to establish it is in this file. **It is not yet
+measured here**, and it must be before it goes on a screen.
+
+The mechanism is a countable one: N singletons, merge the closest pair, repeat.
+`shown` is **the number of merges performed**, and the dendrogram grows one join
+upward per step at the merge height. Switch the linkage with the distances held
+fixed and a different tree comes out of the same numbers — which is the argument,
+made by a control.
+
+Two scope calls, both real, both flagged below rather than decided:
+
+- The notebook gives **five distance measures** their own section with five
+  formulas, and then uses Euclidean for everything that follows. Cosine, Pearson
+  and Jaccard need a different data shape to mean anything (profiles, or binary
+  sets), so a single stage cannot show all five honestly.
+- Cell 15's stage is **1-D** (20 log-fold-changes) — which makes the distance
+  trivial and the linkage the whole story. Its comment says 50 genes and it
+  generates 20. A 2-D stage lets both controls matter and gives the classic
+  points-beside-dendrogram pair, but it is no longer the notebook's figure.
+
+The `pheatmap` half (cells 31–43 — rows and columns clustered, `cutree_rows`,
+`cutree_cols`) is a second act and probably a second decision.
+
+### Slot 5 · `enrichment` — the cutoff and the background, both invisible in the code
+
+ORA's whole answer turns on two numbers a student never sees themselves choose:
+
+- **the background.** Cell 3 writes `d <- 10000 - (a + b + c)` with no comment.
+  Change the universe from 20,000 to 2,000 and the same overlap changes verdict.
+- **the cutoff** for "differentially expressed". GSEA exists *because* that
+  cutoff is arbitrary — the notebook says so in its own opening — and that is
+  the pairing the widget can show: one ranked list, ORA's verdict flickering as
+  the threshold moves, GSEA's running sum unmoved because it never needed one.
+
+The GSEA running sum is the second animation of this arc and a good one: walk the
+ranked list, step up inside the set, step down outside it, and the ES is the
+largest deviation. Cell 6's figure already names the three cases — enriched at the
+top, random, enriched at the bottom — so the failing case (2.6) is the notebook's
+own middle panel.
+
+Reuse is unusually high: the 2×2 and its natural-frequency grid are widget 12's,
+the p-value machinery and the BH step are widget 6's, and the permutation null is
+widget 5's.
+
+**One thing to record about the notebook**: cell 3's `sample()` is unseeded, so
+the ORA example prints a different p-value on every run. That is a lesson bug the
+widget's seeded `rng` would not reproduce, and worth mentioning to Kenneth
+separately from the widget.
+
+### Open calls — for Kenneth, not to be decided by a session
+
+1. **Build order.** Notebook order starts at `normalization`; evidence order
+   starts at `batch-effect`, which has the strongest misconception and a genuine
+   failing case. Both are defensible and the pick is his.
+2. **Slot 4's scope** — linkage only, or distance too; 1-D like the notebook, or
+   2-D points beside the tree.
+3. **Slot 5's shape** — one widget with an ORA tab and a GSEA tab on one shared
+   ranked list, or two widgets. The heading rule that gave t-SNE and UMAP
+   separate widgets argues for two; the teaching argument is the *pairing*, which
+   argues for one. `shap` shipped three tabs on 2026-09-01, so the multi-tab form
+   is established.
+4. **Whether `05 / 06` is fully covered.** Widget 14 teaches ridge / lasso /
+   elastic net on a low-dimensional stage. This notebook's point is different:
+   `p ≫ n`, where plain `lm()` returns **NA coefficients** because there is not
+   enough information to estimate them, and `findCorrelation` shows why. That is
+   a real second claim and it may be a widget-14 extension rather than a slot.
+5. **Citations.** The batch-confounding misconception is graded **documented** on
+   the strength of a literature this session did not open. Verify before any of
+   it reaches a screen — the standing rule in HANDOVER is that a number not
+   re-measured is one draw from a possibly unseeded model, and the same applies
+   to a citation not re-read.
 
 ---
 
