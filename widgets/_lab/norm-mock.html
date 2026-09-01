@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 1 normalization — stage, panels and rail, mocked from the measured numbers</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 92ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 820px; min-height: 13px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 820px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.hit { color: var(--c-highlight); }
+  .rail { width: 250px; border: 1px solid var(--grid); background: var(--surface-1); padding: var(--sp-3); font-size: var(--fs-sm); }
+  .rail .sec { color: var(--ink-2); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em;
+               margin: var(--sp-3) 0 var(--sp-1); padding-top: var(--sp-2); border-top: 1px solid var(--grid); }
+  .rail .sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .rail label { display: block; color: var(--ink-1); margin: 0 0 2px; }
+  .rail select, .rail input { width: 100%; font: inherit; font-family: var(--font-mono); font-size: 11px;
+                              margin: 0 0 var(--sp-2); background: var(--surface-2); color: var(--ink-1);
+                              border: 1px solid var(--grid); padding: 3px 4px; }
+  .rail .det { color: var(--ink-3); font-size: 10px; margin: -4px 0 var(--sp-2); }
+  .tiles { display: flex; gap: var(--sp-3); margin: var(--sp-2) 0 0; flex-wrap: wrap; }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 6px 10px; min-width: 140px; }
+  .tile .l { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .v { font-size: var(--fs-fig); font-family: var(--font-mono); color: var(--ink-1); line-height: 1.2; }
+  .tile .n { font-size: 10px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 1 candidate · <code>normalization</code> — the stage, the two panels, and the rail</h1>
+
+  <p class="note">
+    PHM5003 <code>05 - Introduction to High Throughput Data / 03 - Normalization and
+    Transformation</code>. The misconception: <b>that "normalising" makes data normal — that
+    scaling and transforming are one operation with one purpose.</b> The lesson judges every
+    method in the same two-panel picture (a boxplot per sample, a mean-versus-variance
+    scatter over genes) and writes the verdict underneath as two bullets, <i>Effect on:
+    Distribution</i> and <i>Effect on: Mean-Variance Relationship</i>. So the widget is
+    those two panels, and the readouts are the notebook's own claims.
+  </p>
+  <p class="note">
+    Everything below is drawn from <code>_lab/norm-model.js</code> — the engine that would
+    ship, imported and not copied. Every number in a caption is computed on this page, live.
+    <code>node widgets/_lab/norm-measure.mjs</code> prints the same values as a table.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§1 · THE STAGE — the notebook's own has nothing for a normaliser to correct</h2>
+  <p class="note">
+    <code>simulate_data</code> draws every sample from the <b>same</b> mean vector, so the
+    ten samples are exchangeable before anything is done to them. Their boxplots already
+    line up: the raw medians span 32–37, which is sampling noise on 1000 genes and not a
+    depth difference. <b>A method whose whole job is putting samples on one scale is being
+    shown on samples that are already on one scale.</b>
+  </p>
+  <p class="note">
+    <code>spread</code> gives sample <i>j</i> a depth factor — sequencing depth, or injected
+    sample amount. Three stages below, each raw and then median-normalised.
+  </p>
+  <div class="row" id="stage"></div>
+  <table class="m" id="stage-table"></table>
+  <p class="ask">
+    <b>ASK 1.</b> Stage A (the notebook, <code>spread = 0</code>), stage B
+    (<code>0.5</code>) or stage C (<code>1.0</code>)? B and C depart from the lesson's own
+    figure; A is faithful and shows nothing being fixed. If B or C, is <code>spread</code>
+    a slider the reader can turn to zero, or a fixed property of the stage?
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§2 · PANEL 1 — three ways to draw "did the distribution move?"</h2>
+  <p class="note">
+    Six states of the same data. <b>A</b> is the notebook's boxplot per sample. <b>B</b>
+    overlays one density curve per sample. <b>C</b> overlays the ECDFs — the most direct
+    picture of <i>the distributions are now identical</i>, which is quantile normalisation's
+    one claim. All three drawn on stage B, at the width the widget's figure would get.
+  </p>
+  <div class="row" id="panel1"></div>
+  <p class="ask">
+    <b>ASK 2.</b> Boxplots, densities or ECDFs — and does quantile normalisation read as
+    "identical" in the one you pick?
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§3 · THE AXIS QUESTION — the lesson is that nothing happened, and an autoscale hides it</h2>
+  <p class="note">
+    Min-max sends the data to [0, 1] and <b>changes nothing else</b>: the pooled skew is
+    unchanged to 7e-14, which is float noise. That is the whole lesson, and it is also a
+    drawing problem. <b>Fit the axis</b> and the picture is pixel-identical to raw, so a
+    reader concludes the control is broken. <b>Fix the axis</b> and the scaled data
+    collapses to an unreadable sliver at the bottom.
+  </p>
+  <div class="row" id="axis"></div>
+  <p class="ask">
+    <b>ASK 3.</b> A (fit, with the range printed loudly), B (fixed), C (fit, with a
+    range ribbon under the panel showing where the data used to sit), or D (a
+    <code>Same axes / Fit axes</code> toggle — one control, and it does carry an idea)?
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§4 · PANEL 2 — mean versus variance, and where the obvious readout breaks</h2>
+  <p class="note">
+    The notebook plots raw mean against raw variance and the cloud is a fan. <b>The
+    obvious readout — the slope of log(variance) on log(mean) — is wrong twice over</b>, and
+    that is why the tiles print Spearman ρ instead. Both are drawn below with their numbers.
+  </p>
+  <div class="row" id="panel2"></div>
+  <p class="ask">
+    <b>ASK 4.</b> Raw axes (the notebook's) or log–log? Log–log makes the relationship a
+    straight line you can see the slope of, and is undefined for 558 of 1000 genes the
+    moment the reader picks z-score.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§5 · THE RAIL — one picker of ten, or two controls in sequence</h2>
+  <p class="note">
+    <b>This is the design claim, not a layout preference.</b> The misconception is that
+    scaling and transforming are one operation. Rail A offers one <code>select</code> of ten
+    methods grouped the way the notebook groups them — the two operations are a heading.
+    Rail B is <b>two controls applied in order</b>, so the reader can compose them
+    (quantile, <i>then</i> log) and can see that neither does the other's job. The shape of
+    the rail makes the argument before any caption does — principle 2.7.
+  </p>
+  <div class="row" id="rails"></div>
+  <p class="note">
+    Composition, measured on stage C. <code>spread</code> is what normalisation moves;
+    <code>skew</code> and <code>ρ</code> are what transformation moves. <b>No cell has both
+    columns fixed by one control.</b>
+  </p>
+  <table class="m" id="compose"></table>
+  <p class="ask">
+    <b>ASK 5.</b> Rail A or rail B? And if B: Box-Cox λ visible always, or only when
+    Box-Cox is chosen (<code>when:</code>)? Note Box-Cox is undefined at or below zero, so
+    it cannot follow z-score — the rail has to say so somehow.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§6 · THE READOUT — three tiles, one per question</h2>
+  <p class="note">
+    Each tile answers one of the panels' questions, and each is the notebook's own claim
+    turned into a number. Shown at four states of rail B.
+  </p>
+  <div id="tiles"></div>
+  <p class="ask">
+    <b>ASK 6.</b> Three tiles, or two? <code>Samples on one scale</code> is the only one
+    panel 1 can be read for directly; <code>Skew</code> and <code>ρ</code> are the
+    notebook's two "Effect on:" bullets.
+  </p>
+
+  <h2>§7 · What is NOT on this page</h2>
+  <p class="note">
+    <b>The quantile procedure as an animation</b> — rank, average across samples at each
+    rank, assign back — is three numbered steps in cell 16 that no student can picture, and
+    it is a countable thing while the count is small (2.3). It is the obvious second act and
+    it is deliberately not mocked here, because the first six asks decide the stage it would
+    animate. <b>TPM</b> is also absent: it needs a gene-length column the stage does not
+    have, and its formula is a within-sample ratio the median tile already shows.
+  </p>
+</main>
+
+<script type="module">
+import {
+  simulate, apply, summarise, quantiles, median, NORMALIZE,
+} from "./norm-model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+for (const k of ["ink-1", "ink-2", "ink-3", "grid", "surface-1", "surface-2",
+                 "c-empirical", "c-theory", "c-highlight", "c-reference",
+                 "c-smoothed", "c-group-a", "c-group-b"]) C[k] = css(`--${k}`);
+
+const FIG = 760;                       // what the widget's figure column gets
+const f = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+
+/* ---- stages, computed once ---------------------------------------------- */
+const STAGES = {
+  A: simulate({ seed: 1, spread: 0 }).cols,
+  B: simulate({ seed: 1, spread: 0.5 }).cols,
+  C: simulate({ seed: 1, spread: 1.0 }).cols,
+};
+
+function mk(parent, { title, sub, w, h, cap }) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || "&nbsp;"}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  d.appendChild(cv);
+  const p = document.createElement("p");
+  p.className = "cap";
+  p.textContent = cap || "";
+  d.appendChild(p);
+  parent.appendChild(d);
+  return { ctx: cv.getContext("2d"), cap: p, w, h };
+}
+
+/* ---- primitives ---------------------------------------------------------- */
+function frame(ctx, w, h, pad) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, h - pad.b); ctx.lineTo(w - pad.r, h - pad.b);
+  ctx.stroke();
+}
+function ylabels(ctx, pad, w, h, lo, hi, n = 4) {
+  ctx.fillStyle = C["ink-3"]; ctx.font = `10px ${css("--font-mono")}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let i = 0; i <= n; i += 1) {
+    const v = lo + (hi - lo) * (i / n);
+    const y = h - pad.b - (h - pad.b - pad.t) * (i / n);
+    ctx.fillText(fmtTick(v), pad.l - 5, y);
+    ctx.strokeStyle = C.grid; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+const fmtTick = (v) => (Math.abs(v) >= 100 ? v.toFixed(0)
+  : Math.abs(v) >= 1 ? v.toFixed(1) : v.toFixed(2));
+
+/* ---- panel 1a · boxplots ------------------------------------------------- */
+function boxplots(ctx, w, h, cols, { lo, hi, label } = {}) {
+  const pad = { l: 46, r: 10, t: 14, b: 26 };
+  const qs = cols.map((c) => quantiles(c));
+  if (lo === undefined) { lo = Math.min(...qs.map((q) => q[0])); hi = Math.max(...qs.map((q) => q[4])); }
+  const span = hi - lo || 1;
+  frame(ctx, w, h, pad);
+  ylabels(ctx, pad, w, h, lo, hi);
+  const Y = (v) => h - pad.b - ((v - lo) / span) * (h - pad.b - pad.t);
+  const bw = (w - pad.l - pad.r) / cols.length;
+  cols.forEach((c, i) => {
+    const [p5, q1, med, q3, p95] = qs[i];
+    const x = pad.l + bw * (i + 0.5);
+    const half = Math.min(bw * 0.32, 16);
+    ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, Y(p5)); ctx.lineTo(x, Y(p95)); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - half * 0.5, Y(p5)); ctx.lineTo(x + half * 0.5, Y(p5));
+    ctx.moveTo(x - half * 0.5, Y(p95)); ctx.lineTo(x + half * 0.5, Y(p95));
+    ctx.stroke();
+    ctx.fillStyle = C["surface-2"];
+    ctx.fillRect(x - half, Y(q3), half * 2, Y(q1) - Y(q3));
+    ctx.strokeRect(x - half, Y(q3), half * 2, Y(q1) - Y(q3));
+    ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x - half, Y(med)); ctx.lineTo(x + half, Y(med)); ctx.stroke();
+  });
+  ctx.fillStyle = C["ink-3"]; ctx.font = `10px ${css("--font-mono")}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText(label || "sample", pad.l + (w - pad.l - pad.r) / 2, h - pad.b + 6);
+}
+
+/* ---- panel 1b · densities ------------------------------------------------ */
+function densities(ctx, w, h, cols) {
+  const pad = { l: 46, r: 10, t: 14, b: 26 };
+  const all = cols.flat().filter(Number.isFinite);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const NB = 90, bw = (hi - lo) / NB || 1;
+  const curves = cols.map((c) => {
+    const k = new Array(NB).fill(0);
+    for (const v of c) { const b = Math.min(NB - 1, Math.max(0, Math.floor((v - lo) / bw))); k[b] += 1; }
+    // three-pass box smooth, so ten overlaid curves stay readable
+    let s = k;
+    for (let p = 0; p < 3; p += 1) s = s.map((_, i) => (s[Math.max(0, i - 1)] + s[i] + s[Math.min(NB - 1, i + 1)]) / 3);
+    return s;
+  });
+  const peak = Math.max(...curves.flat());
+  frame(ctx, w, h, pad);
+  const X = (i) => pad.l + ((i + 0.5) / NB) * (w - pad.l - pad.r);
+  const Y = (v) => h - pad.b - (v / peak) * (h - pad.b - pad.t);
+  ylabels(ctx, pad, w, h, lo, hi, 4);
+  // relabel: y is density, x is value — redraw x ticks
+  ctx.fillStyle = C.surface1;
+  curves.forEach((s, j) => {
+    ctx.strokeStyle = C["c-empirical"]; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    s.forEach((v, i) => (i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))));
+    ctx.stroke(); ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = C["ink-3"]; ctx.font = `10px ${css("--font-mono")}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let i = 0; i <= 4; i += 1) {
+    const v = lo + (hi - lo) * (i / 4);
+    ctx.fillText(fmtTick(v), pad.l + (w - pad.l - pad.r) * (i / 4), h - pad.b + 6);
+  }
+}
+
+/* ---- panel 1c · ECDFs ---------------------------------------------------- */
+function ecdfs(ctx, w, h, cols) {
+  const pad = { l: 46, r: 10, t: 14, b: 26 };
+  const all = cols.flat().filter(Number.isFinite);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  frame(ctx, w, h, pad);
+  const X = (v) => pad.l + ((v - lo) / (hi - lo || 1)) * (w - pad.l - pad.r);
+  const Y = (p) => h - pad.b - p * (h - pad.b - pad.t);
+  ctx.fillStyle = C["ink-3"]; ctx.font = `10px ${css("--font-mono")}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i += 1) {
+    ctx.fillText((i / 4).toFixed(2), pad.l - 5, Y(i / 4));
+    ctx.strokeStyle = C.grid; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(i / 4)); ctx.lineTo(w - pad.r, Y(i / 4)); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  cols.forEach((c) => {
+    const s = c.slice().sort((a, b) => a - b);
+    ctx.strokeStyle = C["c-empirical"]; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    const STEP = Math.max(1, Math.floor(s.length / 260));
+    for (let i = 0; i < s.length; i += STEP) {
+      const x = X(s[i]), y = Y(i / (s.length - 1));
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+  });
+  ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = C["ink-3"];
+  for (let i = 0; i <= 4; i += 1) {
+    ctx.fillText(fmtTick(lo + (hi - lo) * (i / 4)), pad.l + (w - pad.l - pad.r) * (i / 4), h - pad.b + 6);
+  }
+}
+
+/* ---- panel 2 · mean vs variance ------------------------------------------ */
+function meanVar(ctx, w, h, pts, { log = false } = {}) {
+  const pad = { l: 54, r: 10, t: 14, b: 28 };
+  let P = pts;
+  if (log) P = pts.filter(([m, v]) => m > 0 && v > 0).map(([m, v]) => [Math.log10(m), Math.log10(v)]);
+  const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = log ? Math.min(...ys) : 0, y1 = Math.max(...ys);
+  frame(ctx, w, h, pad);
+  const X = (v) => pad.l + ((v - x0) / (x1 - x0 || 1)) * (w - pad.l - pad.r);
+  const Y = (v) => h - pad.b - ((v - y0) / (y1 - y0 || 1)) * (h - pad.b - pad.t);
+  ctx.fillStyle = C["ink-3"]; ctx.font = `10px ${css("--font-mono")}`;
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i += 1) {
+    const v = y0 + (y1 - y0) * (i / 4);
+    ctx.fillText(log ? `1e${v.toFixed(1)}` : fmtTick(v), pad.l - 5, Y(v));
+    ctx.strokeStyle = C.grid; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(w - pad.r, Y(v)); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = C["c-empirical"]; ctx.globalAlpha = 0.42;
+  for (const [m, v] of P) { ctx.beginPath(); ctx.arc(X(m), Y(v), 1.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = C["ink-3"]; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let i = 0; i <= 4; i += 1) {
+    const v = x0 + (x1 - x0) * (i / 4);
+    ctx.fillText(log ? `1e${v.toFixed(1)}` : fmtTick(v), X(v), h - pad.b + 6);
+  }
+  ctx.fillText(log ? "log10 mean" : "gene mean", pad.l + (w - pad.l - pad.r) / 2, h - pad.b + 17);
+}
+
+/* ======================================================================== §1 */
+{
+  const host = document.getElementById("stage");
+  const rows = [];
+  for (const [key, name, spread] of [["A", "the notebook", 0], ["B", "depth ±50%", 0.5], ["C", "depth ±100%", 1.0]]) {
+    const raw = STAGES[key];
+    const norm = apply(raw, { normalize: "median" });
+    const sr = summarise(raw).spread, sn = summarise(norm).spread;
+    const c = mk(host, {
+      title: `Stage ${key} — ${name} (spread = ${spread})`,
+      sub: "top: raw · bottom: after median normalisation (per sample)",
+      w: 360, h: 330,
+      cap: `raw medians ${f(Math.min(...sr.meds), 1)}–${f(Math.max(...sr.meds), 1)}, range ${f(sr.range, 1)}
+after median norm: range ${f(sn.range, 3)}`,
+    });
+    const lo = Math.min(...raw.flat()), hi = quantiles(raw.flat(), [0.995])[0];
+    boxplots(c.ctx, 360, 160, raw, { lo, hi, label: "raw" });
+    c.ctx.save(); c.ctx.translate(0, 165);
+    boxplots(c.ctx, 360, 160, norm, { lo, hi, label: "median-normalised" });
+    c.ctx.restore();
+    rows.push([key, sr.range, sn.range,
+      summarise(apply(raw, { normalize: "quantile" })).spread.range,
+      summarise(apply(raw, { normalize: "minmax" })).spread.relative]);
+  }
+  const t = document.getElementById("stage-table");
+  t.innerHTML = `<tr><th>stage</th><th>raw median range</th><th>after median norm</th>`
+    + `<th>after quantile</th><th>after min–max, RELATIVE</th></tr>`
+    + rows.map(([k, a, b, c2, d]) =>
+      `<tr><td>Stage ${k}</td><td>${f(a, 1)}</td><td class="hit">${f(b, 3)}</td>`
+      + `<td>${f(c2, 1)}</td><td>${f(d, 3)}</td></tr>`).join("")
+    + `<tr><td colspan="5" style="text-align:left;color:var(--ink-3)">`
+    + `min–max is shown RELATIVE (range / grand median) because it rescales the axis: the absolute range shrinks, the inequality does not.</td></tr>`;
+}
+
+/* ======================================================================== §2 */
+{
+  const host = document.getElementById("panel1");
+  const states = [
+    ["raw", { normalize: "none" }],
+    ["quantile", { normalize: "quantile" }],
+    ["log(1+y)", { transform: "log1p" }],
+  ];
+  for (const [name, fn, label] of [[ "A · boxplots (the notebook)", boxplots], ["B · densities", densities], ["C · ECDFs", ecdfs]]) {
+    const c = mk(host, { title: name, sub: "stage B · raw, quantile, log(1+y), stacked", w: 500, h: 340, cap: "" });
+    states.forEach(([sname, opts], i) => {
+      const cols = apply(STAGES.B, opts);
+      c.ctx.save(); c.ctx.translate(0, i * 113);
+      fn(c.ctx, 500, 112, cols);
+      c.ctx.restore();
+      c.ctx.fillStyle = C["ink-2"]; c.ctx.font = `10px ${css("--font-mono")}`;
+      c.ctx.textAlign = "right"; c.ctx.textBaseline = "top";
+      c.ctx.fillText(sname, 494, i * 113 + 4);
+    });
+    const q = summarise(apply(STAGES.B, { normalize: "quantile" })).spread;
+    c.cap.textContent = `quantile row: median range ${f(q.range, 2)} — NOT zero, because 1000 integer counts hold only ~190 distinct values and the ties block an exact match.`;
+  }
+}
+
+/* ======================================================================== §3 */
+{
+  const host = document.getElementById("axis");
+  const raw = STAGES.B;
+  const mm = apply(raw, { normalize: "minmax" });
+  const sRaw = summarise(raw), sMM = summarise(mm);
+  const rawLo = Math.min(...raw.flat()), rawHi = quantiles(raw.flat(), [0.995])[0];
+
+  let c = mk(host, { title: "A · fit the axis, print the range", sub: "raw above, min–max below — the shapes are identical", w: 400, h: 300,
+    cap: `skew ${f(sRaw.skew)} -> ${f(sMM.skew)}  |delta| ${Math.abs(sRaw.skew - sMM.skew).toExponential(2)}` });
+  boxplots(c.ctx, 400, 145, raw, { lo: rawLo, hi: rawHi, label: `raw · 0 – ${f(rawHi, 0)}` });
+  c.ctx.save(); c.ctx.translate(0, 150);
+  boxplots(c.ctx, 400, 145, mm, { label: "min–max · 0 – 1" });
+  c.ctx.restore();
+
+  c = mk(host, { title: "B · one fixed axis for both", sub: "honest about scale, and the second panel is a sliver", w: 400, h: 300, cap: "the reader can see the numbers moved and nothing else about them." });
+  boxplots(c.ctx, 400, 145, raw, { lo: rawLo, hi: rawHi, label: "raw" });
+  c.ctx.save(); c.ctx.translate(0, 150);
+  boxplots(c.ctx, 400, 145, mm, { lo: rawLo, hi: rawHi, label: "min–max, same axis" });
+  c.ctx.restore();
+
+  c = mk(host, { title: "C · fit, with a range ribbon", sub: "the ribbon carries the half the autoscale threw away", w: 400, h: 300, cap: "the ribbon is where this panel's data sits on the RAW axis." });
+  boxplots(c.ctx, 400, 128, raw, { lo: rawLo, hi: rawHi, label: "raw" });
+  ribbon(c.ctx, 400, 130, 18, rawLo, rawHi, rawLo, rawHi, "0 – " + f(rawHi, 0));
+  c.ctx.save(); c.ctx.translate(0, 152);
+  boxplots(c.ctx, 400, 128, mm, { label: "min–max" });
+  c.ctx.restore();
+  ribbon(c.ctx, 400, 282, 18, rawLo, rawHi, rawLo, rawLo + (rawHi - rawLo) * 0.004, "0 – 1, drawn on the raw axis");
+
+  function ribbon(ctx, w, y, h, aLo, aHi, dLo, dHi, label) {
+    const pad = { l: 46, r: 10 };
+    ctx.fillStyle = C["surface-2"];
+    ctx.fillRect(pad.l, y, w - pad.l - pad.r, h);
+    ctx.strokeStyle = C.grid; ctx.strokeRect(pad.l, y, w - pad.l - pad.r, h);
+    const X = (v) => pad.l + ((v - aLo) / (aHi - aLo || 1)) * (w - pad.l - pad.r);
+    ctx.fillStyle = C["c-highlight"];
+    ctx.fillRect(X(dLo), y + 3, Math.max(1.5, X(dHi) - X(dLo)), h - 6);
+    ctx.fillStyle = C["ink-3"]; ctx.font = `9px ${css("--font-mono")}`;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(label, pad.l + 4, y + h / 2);
+  }
+}
+
+/* ======================================================================== §4 */
+{
+  const host = document.getElementById("panel2");
+  const cases = [
+    ["raw", {}], ["z-score", { normalize: "zscore" }],
+    ["log(1+y)", { transform: "log1p" }], ["Box–Cox λ=0.5", { transform: "boxcox", lambda: 0.5 }],
+  ];
+  for (const [mode, log] of [["A · raw axes (the notebook)", false], ["B · log–log", true]]) {
+    const c = mk(host, { title: mode, sub: "stage B · four states, side by side", w: 760, h: 200, cap: "" });
+    const notes = [];
+    cases.forEach(([name, opts], i) => {
+      const s = summarise(apply(STAGES.B, opts));
+      const kept = s.pts.filter(([m, v]) => m > 0 && v > 0).length;
+      c.ctx.save(); c.ctx.translate(i * 190, 0);
+      meanVar(c.ctx, 190, 200, s.pts, { log });
+      c.ctx.restore();
+      c.ctx.fillStyle = C["ink-2"]; c.ctx.font = `10px ${css("--font-mono")}`;
+      c.ctx.textAlign = "left"; c.ctx.textBaseline = "top";
+      c.ctx.fillText(name, i * 190 + 58, 4);
+      notes.push(log ? `${name}: ${kept}/1000 genes drawable` : `${name}: rho ${f(s.rho)}`);
+    });
+    c.cap.textContent = notes.join("   ·   ")
+      + (log ? "\nz-score loses 558 of 1000 — log of a negative. The panel goes half-empty the moment the reader picks it." : "");
+  }
+}
+
+/* ======================================================================== §5 */
+{
+  const host = document.getElementById("rails");
+  const a = document.createElement("div");
+  a.className = "cand";
+  a.innerHTML = `<h3>Rail A · one picker of ten</h3><p class="sub">the two operations are an optgroup heading</p>
+    <div class="rail">
+      <div class="sec">The data</div>
+      <label>Samples</label><input value="10" disabled>
+      <label>Seed</label><input value="1" disabled>
+      <div class="sec">Method</div>
+      <label>Preprocessing</label>
+      <select disabled>
+        <optgroup label="Reference-based"><option>None (raw counts)</option><option>Median, per sample</option></optgroup>
+        <optgroup label="Scaling"><option>Min–max → [0, 1]</option><option>Z-score → mean 0, sd 1</option></optgroup>
+        <optgroup label="Quantile"><option>Quantile</option></optgroup>
+        <optgroup label="Transformation"><option selected>log(1 + y)</option><option>Box–Cox</option></optgroup>
+      </select>
+      <p class="det">One thing happened. The reader cannot compose two.</p>
+      <label>Box–Cox λ</label><input value="0.50" disabled>
+    </div>`;
+  host.appendChild(a);
+
+  const b = document.createElement("div");
+  b.className = "cand";
+  b.innerHTML = `<h3>Rail B · two controls, applied in order</h3><p class="sub">the sequence IS the claim — normalise, then transform</p>
+    <div class="rail">
+      <div class="sec">The data</div>
+      <label>Samples</label><input value="10" disabled>
+      <label>Depth spread</label><input value="0.5" disabled>
+      <label>Seed</label><input value="1" disabled>
+      <div class="sec">1 · Normalize — put the samples on one scale</div>
+      <select disabled><option>None</option><option selected>Median, per sample</option><option>Min–max → [0, 1]</option><option>Z-score → mean 0, sd 1</option><option>Quantile</option></select>
+      <div class="sec">2 · Transform — change the shape</div>
+      <select disabled><option>None</option><option selected>log(1 + y)</option><option>Box–Cox λ</option></select>
+      <label>λ</label><input value="0.50" disabled>
+      <p class="det">Box–Cox needs y &gt; 0, so it cannot follow Z-score.</p>
+    </div>`;
+  host.appendChild(b);
+
+  const t = document.getElementById("compose");
+  const combos = [["none", "none"], ["median", "none"], ["quantile", "none"],
+                  ["none", "log1p"], ["median", "log1p"], ["quantile", "log1p"]];
+  t.innerHTML = `<tr><th>normalize</th><th>transform</th><th>spread (samples on one scale)</th><th>skew (shape)</th><th>ρ (variance vs mean)</th></tr>`
+    + combos.map(([n, tr]) => {
+      const s = summarise(apply(STAGES.C, { normalize: n, transform: tr }));
+      return `<tr><td>${NORMALIZE[n].label}</td><td>${tr}</td>`
+        + `<td class="${s.spread.relative < 0.1 ? "hit" : ""}">${f(s.spread.relative)}</td>`
+        + `<td class="${Math.abs(s.skew) < 0.5 ? "hit" : ""}">${f(s.skew)}</td>`
+        + `<td class="${s.rho < 0.6 ? "hit" : ""}">${f(s.rho)}</td></tr>`;
+    }).join("");
+}
+
+/* ======================================================================== §6 */
+{
+  const host = document.getElementById("tiles");
+  const states = [
+    ["None + none", { normalize: "none", transform: "none" }],
+    ["Min–max + none", { normalize: "minmax", transform: "none" }],
+    ["Median + none", { normalize: "median", transform: "none" }],
+    ["Median + log(1+y)", { normalize: "median", transform: "log1p" }],
+  ];
+  for (const [name, opts] of states) {
+    const s = summarise(apply(STAGES.C, opts));
+    const d = document.createElement("div");
+    d.innerHTML = `<h3 style="margin-top:12px">${name}</h3>
+      <div class="tiles">
+        <div class="tile"><div class="l">Samples on one scale</div><div class="v">${f(s.spread.relative)}</div><div class="n">median range ÷ grand median</div></div>
+        <div class="tile"><div class="l">Skew</div><div class="v">${f(s.skew, 2)}</div><div class="n">0 is symmetric</div></div>
+        <div class="tile"><div class="l">Variance vs mean</div><div class="v">${f(s.rho, 2)}</div><div class="n">Spearman ρ over ${s.pts.length} genes</div></div>
+      </div>`;
+    host.appendChild(d);
+  }
+}
+</script>
+</body>
+</html>

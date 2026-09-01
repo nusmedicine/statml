@@ -3322,24 +3322,39 @@ normalisation moves only the first, a transformation moves both.
 
 **MEASURED 2026-09-01**, on the notebook's own generator reproduced exactly
 (1000 genes, 10 samples, means ~ U(10,100), `rnbinom(mu, size = 1/disp)`,
-`disp = mu/100`) using `core/stats.js`'s `nbDraw` — the widget would import the
-same function. Rebuild as `_lab/norm-measure.mjs` when the slot is built; it was
-run from the scratchpad and is not in the repo.
+`disp = mu/100`) using `core/stats.js`'s `nbDraw`. The engine is
+`_lab/norm-model.js` and it **moves to `widgets/normalization/model.js` when the
+widget exists**; `_lab/norm-measure.mjs` imports it and prints every number
+below, so what is measured is what would ship.
+
+```bash
+node widgets/_lab/norm-measure.mjs
+```
 
 | method | skew | ρ(gene mean, gene variance) | sample medians, min..max |
 |---|---|---|---|
 | raw | 2.978 | 0.948 | 32.0 .. 37.0 |
+| median, per sample | 3.014 | 0.948 | 34.9 .. 34.9 |
 | min-max, global | **2.978** | **0.948** | 0.048 .. 0.055 |
 | z-score, global | **2.978** | **0.948** | −0.374 .. −0.289 |
 | quantile | 2.902 | **0.948** | 33.8 .. 34.9 |
 | log1p | −0.165 | 0.462 | 3.50 .. 3.64 |
-| Box-Cox λ=0.02 | −0.145 | **0.092** | 3.59 .. 3.74 |
-| Box-Cox λ=0.10 | 0.089 | 0.220 | 4.14 .. 4.35 |
-| Box-Cox λ=0.25 | 0.506 | 0.434 | 5.51 .. 5.87 |
-| Box-Cox λ=0.50 | 1.207 | 0.671 | 9.31 .. 10.17 |
-| Box-Cox λ=1.00 | 2.978 | 0.865 | 31.0 .. 36.0 |
+| Box-Cox λ=0.02 | −0.145 | 0.450 | 3.59 .. 3.74 |
+| Box-Cox λ=0.10 | 0.089 | 0.555 | 4.14 .. 4.35 |
+| Box-Cox λ=0.25 | 0.506 | 0.708 | 5.51 .. 5.87 |
+| Box-Cox λ=0.50 | 1.207 | 0.853 | 9.31 .. 10.17 |
+| Box-Cox λ=1.00 | **2.978** | **0.948** | 31.0 .. 36.0 |
 
-Four things that came out of measuring rather than reasoning:
+> **The ρ column for Box-Cox was wrong when this section was first committed**
+> (0.092 / 0.220 / 0.434 / 0.671 / 0.865), and writing the measurement as a
+> repo file is what caught it. The scratch version compacted each COLUMN's
+> NaNs independently — Box-Cox sends a zero count to NaN — which shifts gene
+> indices in that column only and silently misaligns every per-gene row after
+> the first zero. **λ=1 is the check that fails loudly**: Box-Cox at λ=1 is
+> `y − 1`, an affine map, so it MUST land exactly on the raw row. It did not.
+> A self-checking row belongs in every table of this shape.
+
+Five things that came out of measuring rather than reasoning:
 
 - **The invariance is exact, not approximate.** Min-max and z-score leave the
   skew unchanged to **7e-14** — float noise. Both are one affine map applied to
@@ -3351,17 +3366,45 @@ Four things that came out of measuring rather than reasoning:
   log1p leaves the slope at 2.58 while ρ has already fallen to 0.46. ρ is
   rank-based, so it is provably invariant under any affine map and moves only
   when the map is non-linear — which is exactly the distinction being taught.
-- **λ is a control that carries an idea** (3.5): ρ runs 0.092 → 0.865 across
-  λ = 0.02 → 1, monotonically, with λ=1 landing back on the raw data. The
-  notebook's prose says "e.g. 0.5" and its code runs `lambda = 0.02`; at λ=0.5
-  ρ is still 0.671, so the prose and the code do not agree about whether the
-  variance was stabilised. A slider settles it on screen.
+- **λ is a control that carries an idea** (3.5): ρ runs 0.450 → 0.948 across
+  λ = 0.02 → 1, monotonically, with λ=1 landing back **exactly** on the raw row
+  because at λ=1 Box-Cox is affine. The notebook's prose says "e.g. 0.5" and its
+  code runs `lambda = 0.02`; at λ=0.5 ρ is **0.853**, barely off the raw 0.948,
+  so the prose and the code do not agree about whether the variance was
+  stabilised, and the code is the one that is right. A slider settles it on
+  screen. λ=0.02 lands on 0.450 against log1p's 0.462, which is the other thing
+  the slider teaches: λ → 0 *is* the log.
 - **Quantile normalisation needs a continuous stage to show its one job.** On
   the notebook's integer counts there are only ~190 distinct values per sample
   across 1000 genes, so ties dominate and the sample medians still span 1.0
-  after normalising. On continuous data the spread collapses to **exactly 0**.
-  If the stage stays integer, the boxplots visibly fail to line up and the
+  after normalising — and averaging the tied blocks instead of min-ranking them
+  only gets it to 0.997, so this is the data's fault, not the implementation's.
+  On continuous data the spread collapses to **exactly 0**, under either tie
+  rule. If the stage stays integer, the boxplots visibly fail to line up and the
   widget argues against itself.
+- **The notebook's stage has nothing for a normaliser to correct**, and this is
+  the biggest design finding of the five. `simulate_data` draws every sample
+  from the *same* mean vector, so the ten samples are exchangeable before
+  anything is done to them: the raw sample medians span 32..37, which is
+  sampling noise on 1000 genes and not a depth difference. Give sample *j* a
+  depth factor and the methods separate the way they are supposed to —
+
+  | stage | raw median range | after median norm | after quantile | after min-max |
+  |---|---|---|---|---|
+  | `spread = 0` (the notebook) | 5.0 | **0.0** | 1.1 | 0.007 (rescaled 5.0) |
+  | `spread = 0.5` | 30.0 | **0.0** | 1.5 | 0.040 (rescaled 30.0) |
+  | `spread = 1.0` | 53.0 | **0.0** | 2.4 | 0.054 (rescaled 53.0) |
+
+  Min-max's last column is the lesson in one number: it makes the *range* small
+  and leaves the samples exactly as unequal as it found them. On the notebook's
+  own stage that is invisible, because there was nothing to equalise. **A
+  per-sample depth spread is what makes normalisation mean anything**, and it
+  is a stage decision, so it goes to the mock-up.
+
+  It also exposes what "affine" does and does not cover: median normalisation
+  is affine *per sample* but is not one affine map over the table, so it does
+  move the pooled skew — 2.978 → 3.014. Small, real, and the reason the widget
+  should say *scaling* rather than *affine* on screen.
 
 Second act, if it earns one: **the quantile procedure itself** — rank, average
 across samples at each rank, assign back — is three numbered steps in cell 16
