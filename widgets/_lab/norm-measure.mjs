@@ -36,7 +36,7 @@ const header = () => {
 /* -- 1 · the notebook's own stage, every method it names ------------------- */
 console.log("\n=== 1 · THE NOTEBOOK'S STAGE (1000 genes x 10 samples, equal depth) ===");
 console.log("rnbinom(mu ~ U(10,100), size = 1/disp), disp = mu/100 — simulate_data, cell 4\n");
-const nb = simulate({ seed: 1 }).cols;
+const nb = simulate({ seed: 1, spread: 0, stage: "counts" }).cols;
 header();
 console.log(row("raw", nb));
 for (const key of ["median", "minmax", "zscore", "quantile"]) {
@@ -88,7 +88,7 @@ const distinct = nb.map((c) => new Set(c).size);
 console.log(`  distinct values per sample, integer counts: ${distinct.join(", ")}  (of 1000 genes)`);
 for (const [stage, cols] of [
   ["integer counts", nb],
-  ["continuous", simulate({ seed: 1, continuous: true }).cols],
+  ["gamma (continuous)", simulate({ seed: 1, spread: 0, stage: "gamma" }).cols],
 ]) {
   for (const ties of ["min", "average"]) {
     const q = apply(cols, { normalize: "quantile", ties });
@@ -98,6 +98,28 @@ for (const [stage, cols] of [
 console.log("  -> on the notebook's own stage the boxplots visibly fail to line up, which is");
 console.log("     the ONE thing quantile normalisation exists to do.");
 
+/* -- 4b · which continuous stage, and why not the obvious one -------------- */
+console.log("\n=== 4b · THE STAGE CHOICE — gamma, not log-normal (Kenneth, ask 7) ===");
+console.log("Boxplots are the distribution panel, so quantile's claim is checked by eye.\n");
+console.log([pad("stage", 22), rpad("raw skew", 9), rpad("raw rho", 9), rpad("quantile spread", 16), rpad("rho after log1p", 16)].join(" | "));
+console.log("-".repeat(84));
+for (const [name, key] of [
+  ["rnbinom (notebook)", "counts"], ["log-normal", "lognorm"], ["gamma", "gamma"],
+]) {
+  const cols = simulate({ seed: 1, spread: 0.5, stage: key }).cols;
+  const raw = summarise(cols);
+  const q = summarise(apply(cols, { normalize: "quantile" }));
+  const lg = summarise(apply(cols, { transform: "log1p" }));
+  console.log([
+    pad(name, 22), rpad(f(raw.skew), 9), rpad(f(raw.rho), 9),
+    rpad(q.spread.range.toExponential(2), 16), rpad(f(lg.rho), 16),
+  ].join(" | "));
+}
+console.log("\n  -> counts FAIL the quantile claim (1.5, not 0). log-normal fixes that and");
+console.log("     breaks the lesson: log1p inverts the generator, so rho -> 0.063 by");
+console.log("     CONSTRUCTION. Gamma is the negative binomial's own mixing distribution —");
+console.log("     the same model without the Poisson counting step — and keeps both.");
+
 /* -- 5 · the notebook's stage has nothing for a normaliser to correct ------ */
 console.log("\n=== 5 · THE NOTEBOOK'S STAGE HAS NOTHING FOR A NORMALISER TO CORRECT ===");
 console.log("simulate_data draws every sample from the SAME mean vector, so the ten samples");
@@ -105,7 +127,7 @@ console.log("are exchangeable before anything is done to them. `spread` adds a p
 console.log("depth factor — sequencing depth, or injected amount.\n");
 header();
 for (const spread of [0, 0.5, 1.0]) {
-  const cols = simulate({ seed: 1, spread }).cols;
+  const cols = simulate({ seed: 1, spread, stage: "counts" }).cols;
   console.log(row(`raw, spread = ${spread.toFixed(1)}`, cols));
   console.log(row(`  + median norm`, apply(cols, { normalize: "median" })));
   console.log(row(`  + quantile`, apply(cols, { normalize: "quantile" })));
@@ -117,7 +139,7 @@ console.log("     separate from the global ones, which is what normalisation IS.
 
 /* -- 6 · composing the two operations -------------------------------------- */
 console.log("\n=== 6 · THE TWO OPERATIONS COMPOSE, WHICH IS THE ARGUMENT ===");
-const staged = simulate({ seed: 1, spread: 1.0 }).cols;
+const staged = simulate({ seed: 1, spread: 1.0, stage: "counts" }).cols;
 header();
 for (const [n, t] of [
   ["none", "none"], ["quantile", "none"], ["none", "log1p"], ["quantile", "log1p"],

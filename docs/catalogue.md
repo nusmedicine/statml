@@ -3308,7 +3308,57 @@ cell 17's worked answer is "a possible outcome (depending on initialization and
 optimization)" — so **the seed giving a different `W`, not merely a different
 picture, is in the lesson already** and needs only to be shown.
 
-### Slot 1 · `normalization` — the notebook hands over its own figure
+### Slot 1 · `normalization` — ROUND 0 SETTLED, all eight asks answered 2026-09-01
+
+**Kenneth picked this slot first and then answered every question on
+[`_lab/norm-mock.html`](../widgets/_lab/norm-mock.html) in one pass.** Recorded
+here so they are not re-argued; the mock page carries the same list under § *The
+picks*.
+
+| # | question | ANSWER |
+|---|---|---|
+| 1 | the stage | **Depth spread is a slider**, default ±50%, and the reader can turn it to 0 — which *is* the notebook's stage. The control carries the idea directly: with no depth differences, every normaliser has nothing to do |
+| 5 | the rail | **Two controls in sequence** — *1 · Normalize* then *2 · Transform* — and Box-Cox λ appears only when Box-Cox is chosen, via `when:`. The rail's shape is the argument (2.7) |
+| 2 | panel 1 | **Boxplots**, the notebook's own figure. The median line is what the scale tile measures, so panel and readout answer one question in one unit |
+| 3 | the axis | **Fit it, and print the range.** The labels read 0–468 before and 0–1 after, which is the half an autoscale throws away. The range ribbon and the Same/Fit toggle were both declined |
+| 7 | counts or intensities | **Continuous intensities** — see the stage table below, which is where this pick had a consequence nobody predicted |
+| 4 | panel 2 | **Raw axes.** Log–log loses 558 of 1000 genes the moment the reader picks Z-score, and the ρ tile already carries the number the slope would have |
+| 6 | the readout | **Three tiles** — *Samples on one scale · Skew · Variance vs mean*. No single control moves all three, which is the argument in numbers |
+| 8 | animation | **None, for now.** `linear-regularization` is the one precedent and is the closest structural sibling. The quantile procedure as an act stays a clean round-2 decision |
+
+#### The pick at ask 7 forced a stage question, and the obvious answer was wrong
+
+Boxplots plus intensities means quantile normalisation's one claim — *every
+sample's distribution is now identical* — is something the reader checks by eye.
+Log-normal was the obvious continuous stage. **Measured, it is degenerate.**
+
+| stage | raw skew | raw ρ | quantile median range | ρ after log1p |
+|---|---|---|---|---|
+| `rnbinom` (the notebook) | 3.201 | 0.950 | **1.50 — the claim fails** | 0.432 |
+| log-normal | 1.923 | 0.913 | 0.00 | **0.063 — circular** |
+| **gamma** | **3.030** | **0.955** | **0.00** | **0.529** |
+
+- **Counts cannot carry the claim.** 1000 genes hold only ~198 distinct values,
+  ties dominate, and the medians still span 1.5 after normalising. Averaging the
+  tied blocks instead of min-ranking gets it to 0.997, so it is the data's
+  fault. And it does **not** go away by raising the count scale: `nbDraw` caps at
+  `k = 4000`, which starts biting at U(50,500) — 62 draws saturated, 345 at
+  U(100,1000) — while compute climbs 53 ms → 419 ms, past what a slider can feel.
+- **Log-normal fixes the ties and breaks the lesson.** `log1p` inverts the
+  generator almost exactly, so ρ falls to 0.063 and *the log stabilises the
+  variance* becomes true by construction rather than demonstrated. Its raw skew
+  is also only 1.923 — a much milder fan than the lesson's picture.
+- **Gamma is the negative binomial's own mixing distribution** — the same
+  gamma-Poisson model with the Poisson counting step left off. `shape = 1/disp`,
+  `scale = μ·disp` gives mean μ and variance μ³/100, which is exactly the
+  notebook's overdispersion term without its Poisson part. It keeps the
+  notebook's numbers, collapses quantile normalisation to exactly 0, and is
+  describable in one honest sentence.
+
+**Still open after round 0**: the title, the subtitle, and the gene/sample
+counts. All three are better settled against a running widget than in advance.
+
+### The notebook hands over its own figure
 
 Every method in `05 / 03` is judged in the same two-panel picture — a boxplot per
 sample, and a mean-versus-variance scatter over genes — and the notebook writes

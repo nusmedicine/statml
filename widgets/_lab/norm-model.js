@@ -35,12 +35,66 @@ import { nbDraw } from "../core/stats.js";
    spread = 0 reproduces the notebook exactly. Above 0, sample j's counts are
    scaled by a factor spanning [1/(1+spread), 1+spread] across the samples.
    ------------------------------------------------------------------------ */
+/**
+ * Gamma variate, Marsaglia-Tsang, off the seeded stream.
+ *
+ * Here to make `stage: "gamma"` possible — see `simulate`. Rejection sampling,
+ * so the number of draws it takes varies; that costs nothing for reproducibility
+ * (one seed, one sequence) but it does mean the stage changes if this loop ever
+ * does.
+ */
+function gammaDraw(rng, shape, scale) {
+  if (shape < 1) return gammaDraw(rng, shape + 1, scale) * rng.next() ** (1 / shape);
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x;
+    let v;
+    do { x = rng.normal(); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v;
+    const u = rng.next();
+    if (u < 1 - 0.0331 * x * x * x * x) return d * v * scale;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+  }
+}
+
+/**
+ * THE STAGE IS GAMMA, NOT COUNTS — decided with Kenneth 2026-09-01, ask 7.
+ *
+ * The three candidates and why the middle one lost:
+ *
+ *   stage      raw skew   raw rho   quantile spread   rho after log1p
+ *   rnbinom      3.201     0.950      1.50  FAILS         0.432
+ *   log-normal   1.923     0.913      0.00               0.063  DEGENERATE
+ *   gamma        3.030     0.955      0.00                0.529
+ *
+ * Boxplots are the distribution panel, so quantile normalisation's one claim —
+ * every sample's distribution is now identical — is something the reader checks
+ * by eye. On integer counts it visibly fails: 1000 genes hold only ~198 distinct
+ * values, ties dominate, and the medians still span 1.5. That is not an
+ * implementation fault (averaging the tied blocks gets it to 0.997) and it does
+ * not go away by raising the count scale, because `nbDraw` caps at k = 4000 and
+ * compute time climbs 53 ms -> 419 ms on the way.
+ *
+ * Log-normal fixes the ties and breaks the lesson: log1p inverts the generator
+ * almost exactly, taking rho to 0.063, so "the log stabilises the variance"
+ * becomes true by construction rather than demonstrated.
+ *
+ * GAMMA IS THE NEGATIVE BINOMIAL'S OWN MIXING DISTRIBUTION — the same
+ * gamma-Poisson model with the Poisson counting step left off. shape = 1/disp
+ * and scale = mu*disp give mean = mu and var = mu^3/100, which is exactly the
+ * notebook's overdispersion term without its Poisson part. So it keeps the
+ * notebook's numbers, collapses quantile normalisation to exactly 0, and is
+ * describable in one honest sentence.
+ *
+ * `stage: "counts"` keeps the notebook's own generator, for measurement.
+ */
 export function simulate({
   seed = 1,
   genes = 1000,
   samples = 10,
-  spread = 0,
-  continuous = false,
+  spread = 0.5,
+  stage = "gamma",
 } = {}) {
   const rng = makeRng(seed);
   const means = Array.from({ length: genes }, () => rng.uniform(10, 100));
@@ -54,13 +108,12 @@ export function simulate({
   });
 
   const cols = depth.map((d) =>
-    means.map((mu) =>
-      continuous
-        // A log-normal stage with the same mean-variance climb, used to show
-        // quantile normalisation collapsing the samples EXACTLY — on integer
-        // counts, ties stop it (see `TIES` below).
-        ? d * mu * Math.exp(rng.normal(0, 0.45))
-        : nbDraw(rng, 100 / mu, d * mu)),               // size = 1/disp = 100/mu
+    means.map((mu) => {
+      const m = d * mu;
+      if (stage === "counts") return nbDraw(rng, 100 / mu, m);  // size = 1/disp
+      if (stage === "lognorm") return m * Math.exp(rng.normal(0, 0.45));
+      return gammaDraw(rng, 100 / mu, (m * mu) / 100);          // mean m, var m^2*mu/100
+    }),
   );
 
   return { cols, means, depth };

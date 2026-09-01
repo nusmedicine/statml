@@ -162,7 +162,38 @@
     notebook's two "Effect on:" bullets.
   </p>
 
-  <h2>§7 · What is NOT on this page</h2>
+  <h2>§7 · THE PICKS — SETTLED with Kenneth 2026-09-01</h2>
+  <p class="note">
+    All eight asked in one pass and answered in order. <b>Stage</b>: depth spread is a
+    <b>slider</b>, default ±50%, and turning it to 0 <i>is</i> the notebook's stage — with
+    no depth differences every normaliser has nothing to do, which is the idea the control
+    carries. <b>Rail</b>: <b>two controls in sequence</b>, <i>1 · Normalize</i> then
+    <i>2 · Transform</i>, with Box–Cox λ appearing only when Box–Cox is chosen
+    (<code>when:</code>). <b>Panel 1</b>: boxplots — the notebook's own figure, and its
+    median line is what the scale tile measures. <b>Axis</b>: fit it and print the range;
+    the ribbon and the Same/Fit toggle both declined. <b>Data</b>: continuous intensities.
+    <b>Panel 2</b>: raw axes. <b>Readout</b>: three tiles. <b>Animation</b>: none for now —
+    <code>linear-regularization</code> is the precedent, and the quantile act stays a
+    round-2 decision.
+  </p>
+  <p class="note">
+    <b>The data pick forced a stage question, and the obvious answer was wrong.</b>
+    Boxplots plus intensities means quantile normalisation's claim is checked by eye, so
+    the stage has to land it exactly. Log-normal does — and <b>inverts under the log</b>,
+    taking ρ to 0.063, which makes <i>the log stabilises the variance</i> true by
+    construction. <b>Gamma is the negative binomial's own mixing distribution</b> — the same
+    gamma–Poisson model without the Poisson counting step, <code>shape = 1/disp</code> and
+    <code>scale = μ·disp</code> — so it keeps the notebook's numbers and still collapses
+    quantile to 0. The three, measured on the same seed:
+  </p>
+  <table class="m" id="stagepick"></table>
+  <p class="note">
+    Counts cannot be rescued by using bigger numbers: <code>nbDraw</code> caps at
+    <code>k = 4000</code>, which starts saturating draws at U(50,500), while compute climbs
+    53 ms → 419 ms — past what a slider can feel.
+  </p>
+
+  <h2>§8 · What is NOT on this page</h2>
   <p class="note">
     <b>The quantile procedure as an animation</b> — rank, average across samples at each
     rank, assign back — is three numbered steps in cell 16 that no student can picture, and
@@ -187,11 +218,14 @@ for (const k of ["ink-1", "ink-2", "ink-3", "grid", "surface-1", "surface-2",
 const FIG = 760;                       // what the widget's figure column gets
 const f = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : "—");
 
-/* ---- stages, computed once ---------------------------------------------- */
+/* ---- stages, computed once ----------------------------------------------
+   §§1-6 stay on the NOTEBOOK'S COUNTS, which is the stage the eight asks were
+   put on. They are the record of the round and are deliberately not re-drawn
+   on the stage the round chose; §7 carries that comparison instead. */
 const STAGES = {
-  A: simulate({ seed: 1, spread: 0 }).cols,
-  B: simulate({ seed: 1, spread: 0.5 }).cols,
-  C: simulate({ seed: 1, spread: 1.0 }).cols,
+  A: simulate({ seed: 1, spread: 0, stage: "counts" }).cols,
+  B: simulate({ seed: 1, spread: 0.5, stage: "counts" }).cols,
+  C: simulate({ seed: 1, spread: 1.0, stage: "counts" }).cols,
 };
 
 function mk(parent, { title, sub, w, h, cap }) {
@@ -540,6 +574,30 @@ after median norm: range ${f(sn.range, 3)}`,
         + `<td class="${Math.abs(s.skew) < 0.5 ? "hit" : ""}">${f(s.skew)}</td>`
         + `<td class="${s.rho < 0.6 ? "hit" : ""}">${f(s.rho)}</td></tr>`;
     }).join("");
+}
+
+/* ======================================================================== §7 */
+{
+  const t = document.getElementById("stagepick");
+  const rows = [
+    ["rnbinom (the notebook)", "counts"],
+    ["log-normal", "lognorm"],
+    ["gamma — PICKED", "gamma"],
+  ].map(([name, key]) => {
+    const cols = simulate({ seed: 1, spread: 0.5, stage: key }).cols;
+    const raw = summarise(cols);
+    const q = summarise(apply(cols, { normalize: "quantile" }));
+    const lg = summarise(apply(cols, { transform: "log1p" }));
+    return [name, raw.skew, raw.rho, q.spread.range, lg.rho];
+  });
+  t.innerHTML = `<tr><th>stage</th><th>raw skew</th><th>raw ρ</th>`
+    + `<th>quantile median range</th><th>ρ after log(1+y)</th></tr>`
+    + rows.map(([n, sk, rho, qr, lr]) =>
+      `<tr><td>${n}</td><td>${f(sk)}</td><td>${f(rho)}</td>`
+      + `<td class="${qr < 1e-9 ? "hit" : ""}">${qr.toExponential(2)}</td>`
+      + `<td class="${lr < 0.2 ? "hit" : ""}">${f(lr)}</td></tr>`).join("")
+    + `<tr><td colspan="5" style="text-align:left;color:var(--ink-3)">`
+    + `counts fail the quantile claim. log-normal lands it and takes ρ to 0.063 BY CONSTRUCTION — the log inverts the generator. gamma keeps both.</td></tr>`;
 }
 
 /* ======================================================================== §6 */
