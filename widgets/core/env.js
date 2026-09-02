@@ -89,6 +89,38 @@ export function resolveTheme() {
   return applyTheme();
 }
 
+/**
+ * Does this browser actually LAY OUT MathML, or merely parse it?
+ *
+ * `window.MathMLElement` existing is not the question — a browser can expose the
+ * interface and still render <mfrac> as two numbers side by side, which turns an
+ * equation into nonsense rather than into a fallback. So the probe measures: a
+ * fraction must come out meaningfully taller than a bare number. A widget that
+ * gets `false` emits its plain-text form instead.
+ *
+ * MOVED HERE FROM THE WIDGETS ON 2026-09-02, on the third copy. It was written
+ * in `lm-interaction`, copied verbatim into `lm-diagnostics` with only the probe
+ * element ids changed, and widget 39's formula card would have been the third —
+ * which is the trigger this repo uses (5.8). The ids are gone with the move:
+ * they existed to keep two copies from colliding, and one function has nothing
+ * to collide with.
+ *
+ * Called once per widget at module load, and it touches the DOM, so it must not
+ * run before `document.body` exists — every widget imports this from a module
+ * script, which is deferred, so it always does.
+ */
+export function mathmlRenders() {
+  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
+  probe.innerHTML = "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>";
+  document.body.appendChild(probe);
+  const stacked = probe.children[0]?.getBoundingClientRect().height ?? 0;
+  const flat = probe.children[1]?.getBoundingClientRect().height ?? 0;
+  probe.remove();
+  return flat > 0 && stacked > flat * 1.4;
+}
+
 export function isEmbedded() {
   const q = new URLSearchParams(location.search).get("embed");
   return q === "1" || q === "true";

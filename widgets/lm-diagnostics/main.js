@@ -43,7 +43,7 @@
    draw() during the defineWidget call (bitten three times in this arc).
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import { BMI } from "../lm-least-squares/data.js";
 import { diagnostics, loessAt, makeSynth } from "./model.js";
 import { ols } from "../lm-least-squares/model.js";
@@ -113,19 +113,6 @@ const SCEN_CAPTION = {
 };
 
 /* ---- the equation card, the arc's machinery ----------------------------- */
-function mathmlRenders() {
-  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="lmd-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="lmd-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("lmd-frac");
-  const flat = h("lmd-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 const GENERIC = {
