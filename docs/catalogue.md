@@ -4254,6 +4254,124 @@ NaN, `-0`, an unfinished draw and uncaught errors. None. The ease still eases
 re-measured and raised from 8.2em to **12em**: the key row took the natural
 height to 105–128px, a 23px jog, now 0. `npm run check` 10/10. Not pushed.
 
+#### ROUND 6 — the slot becomes TWO PAGES, and this one drops the corrections
+
+Kenneth, 2026-09-02: *"let's not do correction here yet — we toggle between
+ground truth (i.e. without batch effect) and observed (with batch effect)"*, and
+*"for modeling, let's postpone to correction page. it doesn't make sense now"*.
+Then the question that settles the split: *"in the notebook I didn't show how we
+could add the batch correction covariate in prediction because we were concerned
+with how the data looks, not at the final prediction — so I guess these 2
+concepts can be conflated? can you discuss with me"*.
+
+**They were conflated, and the tell was in the code.** `covariate` does not
+change the data — that is its defining property — so to draw it on a scatter it
+had to be given a transformation it does not have (residualise each gene on the
+fitted batch term). A model-based method was made to produce a picture. Round
+5's own finding is the same error from the other side: `remove` produces a
+picture and then a dishonest interval.
+
+**The two frames prescribe OPPOSITE actions on the same matrix:**
+
+| | looking at the data | estimating an effect |
+|---|---|---|
+| output | PCA, clustering, heatmap | β̂ per gene, p-values |
+| batch handled by | **transforming the matrix** — ComBat, RUV | **the design matrix**, `~ batch + condition` |
+| why not the other | a PCA has nowhere to put a covariate | correcting then testing understates the variance |
+
+That second row is the practical rule the notebook's structure implies and never
+states. There is a known result on the failure — Nygaard, Rødland & Hovig,
+*Biostatistics* 2016, on removing batch effects while retaining group
+differences producing exaggerated confidence. **The citation is unverified
+offline and must be checked before it reaches a lesson.**
+
+**Prediction is a THIRD frame and reduces to neither.** For a new sample from an
+unseen batch there is no coefficient to apply, so the covariate trick is not
+available at all; the requirement becomes correcting inside the training fold,
+or not confounding the design. That is a leakage lesson and belongs with
+PHM5005's train/test material, not the HTD arc.
+
+**So the slot splits.** Page 1 `batch-effect` is cells 3–6: what a batch effect
+does to the data. Page 2 (unbuilt) is cells 7–22: the four methods, the formula
+card and the forest plot of intervals, all of which survive in `model.js` and in
+the widget's history at commit `e7f909d`. `_lab/batch-measure.mjs` exercises the
+correction half so it stays honest while it waits.
+
+**GROUND TRUTH IS SETTLED BY MEASUREMENT, not by taste.** The alternative
+reading — the systematic part alone, no measurement noise — is not a dataset:
+every healthy sample becomes identical and so does every diseased one, so the
+PCA has **2 distinct points**, PC1 carries 100% of the variance, PC2 exactly 0,
+and the separation statistic divides by a pooled sd of zero. Ground truth is the
+observed matrix minus the batch shift, which is cell 7's own object. It is the
+same arithmetic as `CORRECTIONS.known` and is written **once**, exported as
+`withoutBatch` — one definition, two names, because the two pages frame it
+differently and two copies is how they would come to disagree.
+
+**LAYOUT A, CHOSEN FROM A MOCK** (`_lab/batch-truth-mock.html`, three
+candidates): two panels, coloured by batch and by condition, with a toggle that
+eases the points between the two states.
+
+**ONE SHARED FRAME, and the measurement is lopsided.** The notebook refits
+`prcomp` per figure and lets ggplot rescale, so per-state is what the lesson
+does — but:
+
+| | mean displacement | max | character |
+|---|---|---|---|
+| one shared | 67.0 px | 67.0 px | **one value for all forty samples** |
+| per state | 61.2 px | 133.4 px | 0–133 px, 3 points barely move |
+
+On one frame there is exactly **one displacement value**, because the batch
+shift is a rigid translation: the motion *is* the shift. Refitting the frame
+scatters it from 0 to 133 px, since the panel zooms while the points move.
+Per-state also hides the collapse — the cloud is 20.4 units wide observed and
+6.7 without the batch, and two separately scaled figures cannot show that. The
+legibility worry does not hold: in the ground-truth panel the healthy and
+diseased centres are **30.9 px apart with a group sd of 10.1 px**, a 3.1 sd gap
+inside a 227 px panel.
+
+**THE DESIGN BLOCK MOVED ABOVE THE PANELS AND NOW READS ITSELF OUT** (Kenneth:
+*"include dynamic descriptors about the design so students can read what the
+table is trying to say"*). Beside the 2 × 2 it carries the **phi coefficient** —
+the Pearson correlation between two binary variables, which is exactly what the
+dial moves: **0.00 / 0.20 / 0.50 / 0.70 / 1.00** across the ladder, red at 1.00
+beside the zero cells that cause it. Then two sentences computed from the cells,
+not written per option, so a new rung cannot arrive without a reading:
+
+- *balanced* — "Each batch holds the same mix of healthy and diseased samples. A
+  difference between the batches cannot come from the biology, so whatever you
+  see between them is the batch."
+- *complete* — "Batch 1 is entirely healthy and batch 2 entirely diseased. Batch
+  and condition are one variable, and nothing you can measure separates them."
+
+**On the canvas rather than in a card, and that turns out to matter**: the
+reading wraps to 3 lines in four of the five states and 2 in `slight`, but the
+panels sit at a fixed `y`, so a shorter reading leaves a gap rather than moving
+the figure. A DOM card would have needed a measured reserve, which the formula
+card cost twice.
+
+**The readout is descriptive only** (Kenneth's pick): separation by batch,
+separation by condition, and PC1's share. The first two cross over — 7.80 / 0.44
+observed against 0.32 / 3.23 without the batch, at the notebook's own settings.
+
+**TWO DEFECTS THE SWEEP CAUGHT AND THE SCREENSHOT DID NOT.** The state badge sat
+on the left panel's caption in every one of 50 states, and the shared axis label
+ran 5px off the bottom of the canvas. Both were invisible in a screenshot taken
+before the reorder. **And the sweep first reported all 50 states as "draw did not
+finish"** — because moving the badge after the axis label silently made it the
+last painted string. The axis label is now painted last on purpose, with a
+comment saying why, since a terminator that moves is a terminator that lies.
+
+Verified: **50 states** — 5 confoundings × 5 batch shifts × 2 views — for
+collisions, crowding, off-canvas runs, NaN, `-0`, an unfinished draw and uncaught
+errors. None, over 80 distinct strings. The ease eases (canvas hash
+mid-transition differs from both endpoints) and the URL tracks the toggle.
+`npm run check` 10/10. Not pushed.
+
+**Still open**: the title (`Batch Effects` is a topic label, not a claim), and
+whether `seed` earns its place. **Not baselined**; it declares an `animation`, so
+at promotion it owes a driven state, naturally
+`drive: { set: { view: "truth" }, frames, dt }`.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

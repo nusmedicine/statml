@@ -65,67 +65,74 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` IS A DRAFT — five rounds in, awaiting review
+## NEXT: widget 40 `batch-effect` IS A DRAFT — SPLIT IN TWO, page 1 built
 
-**Kenneth picked `batch-effect` on 2026-09-02**; planning measurements, the mock
-picks and rounds 1–5 are in catalogue § Slot 3.
+**THE SLOT IS NOW TWO PAGES** (Kenneth, 2026-09-02). Page 1 `batch-effect` is
+cells 3-6: what a batch effect DOES to the data, a toggle between ground truth
+and observed, no correction and no model. **Page 2 is unbuilt** and takes cells
+7-22: the four methods, the formula card and the forest plot of intervals.
+
+**Why the split, in one line: correcting the data and modelling the batch
+prescribe OPPOSITE actions on the same matrix.** A PCA has nowhere to put a
+covariate, so it needs the matrix transformed; a per-gene test must not have the
+matrix transformed, or the interval it reports is too narrow. The tell was in
+the code - `covariate` does not change the data, so to draw it on a scatter it
+had been given a transformation it does not have. Catalogue § Slot 3 § ROUND 6
+has the full argument, including where prediction sits (a third frame, and
+PHM5005's).
+
+**Nothing from rounds 1-5 was thrown away.** `model.js` keeps `CORRECTIONS`,
+`correct`, `estimateWithSE`, `nullEffect` and `projectAll`, and
+`_lab/batch-measure.mjs` runs all of them, so the correction half stays honest
+while it waits. The figure code it fed is in the widget's history at **commit
+`e7f909d`** - lift the formula card and `drawForest` from there when page 2 is
+built.
 
 ```bash
 node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/                       (balanced; the batch owns PC1)
-# .../widgets/batch-effect/?correct=remove                          (the batch collapses, the condition emerges)
-# .../widgets/batch-effect/?overlap=0.75                            (confounded, uncorrected: 2.23 for a 0.80 effect)
-# .../widgets/batch-effect/?overlap=0.75&correct=remove             (the naive fix: 0.44 — the biology went too)
-# .../widgets/batch-effect/?overlap=0.75&correct=covariate          (batch in the model: 0.87, and the interval widens)
-# .../widgets/batch-effect/?overlap=0.75&correct=known              (the oracle: 0.82)
-# .../widgets/batch-effect/?overlap=1&correct=covariate             (not estimable)
-# .../widgets/batch-effect/?shift=0                                 (nothing to correct)
-node widgets/_lab/batch-measure.mjs      # every number in the catalogue section
+# http://localhost:8011/widgets/batch-effect/                (balanced, observed: the batch owns PC1, 7.80 sd)
+# .../widgets/batch-effect/?view=truth                       (the same samples without the shift: 0.32 by batch, 3.23 by condition)
+# .../widgets/batch-effect/?overlap=0.75                     (strong confounding, correlation 0.70)
+# .../widgets/batch-effect/?overlap=1                        (complete: correlation 1.00, and the two panels are the SAME picture)
+# .../widgets/batch-effect/?shift=0                          (no batch effect: the toggle does nothing)
+# .../widgets/_lab/batch-truth-mock.html                     (the three layouts, and the frame trade)
+node widgets/_lab/batch-measure.mjs                          # every number in the catalogue section
 ```
 
-- **THE STAGE IS THE NOTEBOOK'S OWN ARRAY**: cell 3's 50 genes × 40 samples,
-  effect 0.8 on genes 1–25, +2 shift on samples 21–40. `overlap` moves which
-  samples are diseased and leaves the dimensions alone. The gene and sample
-  counts are on screen in the formula card's index line.
-- **BALANCED IS NOT "NO BATCH EFFECT", and the slider used to say it was.** Two
-  dials: the batch shift decides whether an artefact exists, the confounding
-  decides whether it can be told apart from the biology. At `balanced` with the
-  notebook's shift, PC1 still separates the batches by **7.80 sd**. The label is
-  now **Batch–condition confounding**, ticks `balanced … complete`.
-- **THE POINT ESTIMATE IS NOT THE STORY.** Three failures, different shapes —
-  `none` reports the batch as biology narrowly; `remove` takes the batch out of
-  the DATA and the comparison that follows has no idea, so it stays just as
-  narrow while the estimate walks to zero; `covariate` spends the information
-  inside the model, so it **widens**. Power at α=.05 falls 68% → 27% → 0% across
-  the ladder. **That is the answer to "why is the covariate insufficient": the
-  confounding does not bias it, it spends your sample size.**
-- **THE ESTIMATE STRIP IS A FOREST PLOT**, all four at once with 95% intervals,
-  against the truth and a zero line, domain fixed at −1 to 6 (measured: interval
-  ends run −0.702 to 5.488 over every state at seeds 1–200 step 37).
-- **`overlap = 1` MUST NOT PRINT A NUMBER for `covariate`** — and it no longer
-  needs telling: `ols` returns null on the singular design, so the estimate is
-  NaN and the tile blanks itself. The ridge is gone.
-- **THE SAME POINTS, COLOURED TWICE** — two panels, batch on the left and
-  condition on the right, which is the lesson's own figure. **The palette is
-  shared on purpose**: the panels converge as the confounding rises and at
-  `complete` they are the same picture. The count says it — 20 / 24 / 30 / 34 /
-  40 of 40 samples the same colour in both.
-- **THE PROJECTION IS FIXED** to the uncorrected data's loadings, and so is the
-  FRAME. Refitting the basis per correction rotates the axes (PC1 correlations
-  0.213 / 0.167 / 0.133); refitting the *domain* per correction hid a 3× collapse
-  (20.4 units wide to 6.7) because the cloud refilled the panel every time.
-- **THE FORMULA CARD** carries cell 10's model, a `where` row naming all six
-  symbols, then what the chosen correction does to it. **X is the measurement
-  and Y is the condition** — cell 10's convention, and the lesson swaps its own
-  letters in the SVA and RUV sections. Reserved at **12em**, up from 8.2em when
-  the key row arrived; jog 0 at 534px and 770px.
+- **GROUND TRUTH IS THE OBSERVED MATRIX MINUS THE BATCH SHIFT**, settled by
+  measurement: the alternative reading (systematic part only, no noise) gives a
+  PCA with **2 distinct points**, PC1 at 100% of the variance and a separation
+  statistic dividing by zero. Written once as `withoutBatch` and aliased by
+  `CORRECTIONS.known`, since the two pages frame the same arithmetic
+  differently.
+- **ONE SHARED FRAME, and the notebook does the opposite.** On one frame every
+  sample moves **exactly 67.0 px** - one displacement value for all forty,
+  because the batch shift is a rigid translation, so the motion IS the shift.
+  Per state it scatters 0-133 px and hides the 3x collapse (20.4 units wide
+  observed, 6.7 without). Legibility holds: the ground-truth panel's group
+  centres are 30.9 px apart with a group sd of 10.1 px.
+- **THE DESIGN BLOCK IS ABOVE THE PANELS AND READS ITSELF OUT.** The 2 x 2, the
+  **phi coefficient** (0.00 / 0.20 / 0.50 / 0.70 / 1.00 across the ladder, red
+  at 1.00), and two sentences computed from the cells. **On the canvas, not in a
+  card** - the panels sit at a fixed y, so a 2-line reading leaves a gap instead
+  of moving the figure, and no reserve has to be measured.
+- **BALANCED IS NOT "NO BATCH EFFECT".** Two dials: the shift decides whether an
+  artefact exists, the confounding whether it can be told apart. At `balanced`
+  with the notebook's shift, PC1 still separates the batches by 7.80 sd.
+- **THE READOUT IS DESCRIPTIVE ONLY** (Kenneth's pick): separation by batch,
+  separation by condition, PC1's share. The first two cross over, 7.80 / 0.44
+  against 0.32 / 3.23.
+- **TWO DEFECTS THE SWEEP CAUGHT AND THE SCREENSHOT DID NOT**: the state badge
+  sat on the left panel's caption in all 50 states, and the shared axis label ran
+  5px off the canvas. And **the sweep first failed all 50 as "draw did not
+  finish"**, because moving the badge after the axis label silently made it the
+  last painted string. The axis label is painted last on purpose now, with a
+  comment saying so.
 
-**Still open on widget 40**: the title, the subtitle, whether `seed` earns its
-place, and how to show the methods that do not need the batch labels — ComBat
-and SVA without spike-ins, RUV with control genes (cell 21 picks genes 26–50,
-which are exactly the genes with no disease effect). **Not baselined**; it
-declares an `animation`, so at promotion it owes a driven state, naturally
-`drive: { set: { correct: "remove" }, frames, dt }`.
+**Still open on widget 40**: the title - `Batch Effects` is a topic label rather
+than a claim - and whether `seed` earns its place. **Not baselined**; it declares
+an `animation`, so at promotion it owes a driven state, naturally
+`drive: { set: { view: "truth" }, frames, dt }`.
 
 - The three remaining slots are `nmf`, `hierarchical-clustering` and
   `enrichment`, none picked.

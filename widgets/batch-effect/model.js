@@ -11,6 +11,20 @@
 
    with one addition: `overlap`, which controls how far batch and condition
    line up. The notebook's own design sits at overlap = 0, and it never says so.
+
+   ---------------------------------------------------------------------------
+   IT SERVES TWO PAGES, and only one of them exists yet. `batch-effect` asks
+   what a batch effect DOES to the data and reads `simulate`, `withoutBatch`,
+   `projectOnto`, `design` and `separation`. The correction page will read
+   `CORRECTIONS`, `correct`, `estimateWithSE`, `nullEffect` and `projectAll` —
+   built and reviewed through round 5, then set aside when Kenneth split the
+   two, because correcting the data and modelling the batch prescribe opposite
+   things and one page cannot say both.
+
+   None of that half is dead: `_lab/batch-measure.mjs` runs all of it and
+   prints the numbers the catalogue quotes, so it stays honest while it waits.
+   The figure code it fed — the formula card and the forest plot of intervals —
+   is in the widget's own history at commit e7f909d.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -93,11 +107,7 @@ export const CORRECTIONS = {
      correction that still works when the design is fully confounded: at overlap
      1 it returns 0.771 while every estimable method has nothing to work with.
      Its job here is to show that cell 7's success is borrowed. */
-  known: {
-    label: "Subtract the known shift",
-    fn: ({ X, batch, shift }) => X.map((row) =>
-      row.map((v, j) => v - (batch[j] === 1 ? shift : 0))),
-  },
+  known: { label: "Subtract the known shift", fn: withoutBatch },
 
   remove: {
     label: "Remove the batch from the data",
@@ -148,6 +158,20 @@ function solve3(A, y, ridge) {
 }
 
 export const correct = (sim, key) => CORRECTIONS[key].fn(sim);
+
+/**
+ * The same samples without the batch shift — what the study would have
+ * measured if every sample had gone through one run.
+ *
+ * ONE DEFINITION, TWO NAMES, and the names are the point. On the batch-effect
+ * page this is GROUND TRUTH: a thing only a simulation can hand you. On the
+ * correction page the identical arithmetic is `CORRECTIONS.known`, an oracle
+ * offered as a method so that its success can be shown to be borrowed. Writing
+ * it twice is how the two pages would come to disagree.
+ */
+export function withoutBatch({ X, batch, shift }) {
+  return X.map((row) => row.map((v, j) => v - (batch[j] === 1 ? shift : 0)));
+}
 
 /* --- what the reader is meant to read off it ------------------------------ */
 
@@ -347,12 +371,19 @@ export function project(X, basis) {
  * It departs from the notebook, which runs `prcomp` on the corrected data each
  * time, so the axis has to be labelled "of the uncorrected data".
  */
-export function projectAll(sim) {
+export function projectOnto(sim, mats) {
   const raw = pca(sim.X);
   const basis = loadings(sim.X, raw.scores);
   const out = {};
-  for (const key of Object.keys(CORRECTIONS)) out[key] = project(correct(sim, key), basis);
+  for (const key of Object.keys(mats)) out[key] = project(mats[key], basis);
   return { points: out, share: raw.share };
+}
+
+/** Every correction on the observed data's axes — the correction page's door. */
+export function projectAll(sim) {
+  const mats = {};
+  for (const key of Object.keys(CORRECTIONS)) mats[key] = correct(sim, key);
+  return projectOnto(sim, mats);
 }
 
 /**
