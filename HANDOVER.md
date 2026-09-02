@@ -65,7 +65,7 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: `batch-effect` is PICKED and MEASURED, not yet mocked
+## NEXT: widget 40 `batch-effect` IS A DRAFT — awaiting Kenneth's review
 
 **Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's
 "tested ok, push it to gallery" — four review rounds across two days, eight
@@ -94,8 +94,27 @@ node widgets/_lab/batch-measure.mjs      # every number in that section
 - **The batch shift earns a second control**: the crossover where the batch
   takes PC1 from the condition is near 1.0, not the notebook's 2.
 
-The three remaining slots are `nmf`, `hierarchical-clustering` and
-`enrichment`, none picked.
+**BUILT AS A DRAFT 2026-09-02**, after seven picks from `_lab/batch-mock.html`:
+one panel with colour = condition and shape = batch, a picker of three
+corrections, tiles plus an estimate strip, a 2 x 2 design table, a batch-shift
+slider, and an ease between corrections with no drive buttons.
+
+```bash
+node scripts/serve.mjs 8011
+# http://localhost:8011/widgets/batch-effect/               (balanced)
+# .../widgets/batch-effect/?overlap=0.75                    (confounded: 2.23 for a 0.80 effect)
+# .../widgets/batch-effect/?overlap=0.75&correct=batchMean  (the naive fix: 0.42)
+# .../widgets/batch-effect/?overlap=0.75&correct=preserve   (keeping condition: 0.83)
+# .../widgets/batch-effect/?overlap=1&correct=preserve      (not estimable)
+```
+
+- **ONLY `preserve` GOES BLANK on a confounded design.** The first version
+  blanked all three tiles, which threw away the conclusion: at total overlap the
+  uncorrected estimate is 2.81 with 2.06 on genes that have no effect, and the
+  naive correction returns 0.00 having deleted everything. Both are well defined
+  and both are wrong, which is the point.
+- The three remaining slots are `nmf`, `hierarchical-clustering` and
+  `enrichment`, none picked.
 
 ```bash
 node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions

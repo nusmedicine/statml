@@ -186,6 +186,71 @@ export function pca(X) {
   };
 }
 
+/**
+ * The gene-space directions of a PCA's first two components, so other tables
+ * can be projected onto the same axes.
+ */
+export function loadings(X, scores) {
+  const centred = X.map((row) => {
+    const m = mean(row);
+    return row.map((v) => v - m);
+  });
+  return [0, 1].map((k) => {
+    const w = centred.map((row) => row.reduce((s, v, j) => s + v * scores[j][k], 0));
+    const norm = Math.sqrt(w.reduce((s, v) => s + v * v, 0)) || 1;
+    return w.map((v) => v / norm);
+  });
+}
+
+/** Sample coordinates of `X` on a fixed pair of gene-space directions. */
+export function project(X, basis) {
+  const n = X[0].length;
+  const centred = X.map((row) => {
+    const m = mean(row);
+    return row.map((v) => v - m);
+  });
+  return Array.from({ length: n }, (_, j) =>
+    basis.map((vec) => centred.reduce((s, row, g) => s + row[j] * vec[g], 0)));
+}
+
+/**
+ * Every correction on ONE set of axes — the uncorrected data's.
+ *
+ * Refitting the PCA per correction rotates the axes rather than merely flipping
+ * them: correlation between the uncorrected and corrected scores runs 0.213 /
+ * 0.167 / 0.133 on PC1 across overlap 0 / 0.5 / 0.75. Removing the batch removes
+ * the dominant direction, so PC1 becomes a different thing and any motion
+ * between two such states is about the axes rather than the data. Principle 2.5
+ * one level up: a basis refitted per state hides the collapse that is the point.
+ *
+ * On the fixed basis the story is sharper anyway. At overlap 0, separation along
+ * PC1 goes from 7.694 by batch and 0.446 by condition to 0.000 and 3.504 — the
+ * batch separation collapses to exactly zero and the condition emerges on the
+ * same axis.
+ *
+ * It departs from the notebook, which runs `prcomp` on the corrected data each
+ * time, so the axis has to be labelled "of the uncorrected data".
+ */
+export function projectAll(sim) {
+  const raw = pca(sim.X);
+  const basis = loadings(sim.X, raw.scores);
+  const out = {};
+  for (const key of Object.keys(CORRECTIONS)) out[key] = project(correct(sim, key), basis);
+  return { points: out, share: raw.share };
+}
+
+/**
+ * Is the disease effect estimable at all? Batch and condition are collinear the
+ * moment one cell of their 2 x 2 is empty, and then no model can separate them.
+ * Measured: only overlap = 1 reaches that; at 0.90 one sample still sits in each
+ * cell and the estimate holds.
+ */
+export function design(sim) {
+  const cell = (b, d) => sim.batch.filter((x, j) => x === b && sim.disease[j] === d).length;
+  const cells = [[cell(0, false), cell(0, true)], [cell(1, false), cell(1, true)]];
+  return { cells, smallest: Math.min(...cells.flat()), estimable: Math.min(...cells.flat()) > 0 };
+}
+
 /** How well a split is separated along one axis: the difference in group means
     over the pooled sd. 0 is no separation. */
 export function separation(values, flags) {

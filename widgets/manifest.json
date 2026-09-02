@@ -578,6 +578,23 @@
       ],
       "arc": 39,
       "status": "shipped"
+    },
+    {
+      "slug": "batch-effect",
+      "title": "Batch Effects",
+      "blurb": "A batch effect is not noise to subtract: when batch and condition overlap, correcting one removes the other.",
+      "course": "PHM5003",
+      "topics": [
+        "batch effect",
+        "confounding",
+        "ComBat",
+        "study design",
+        "PCA",
+        "preprocessing",
+        "omics"
+      ],
+      "arc": 40,
+      "status": "draft"
     }
   ]
 }

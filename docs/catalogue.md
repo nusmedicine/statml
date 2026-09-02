@@ -3940,6 +3940,37 @@ data each time, and the axis label has to say so — *PC1 of the uncorrected
 data*. It follows from the pick at ask 7: an ease is only honest on a fixed
 frame.
 
+#### BUILT AS A DRAFT 2026-09-02
+
+```bash
+node scripts/serve.mjs 8011
+# http://localhost:8011/widgets/batch-effect/                      (balanced; the batch owns PC1)
+# .../widgets/batch-effect/?correct=batchMean                      (the batch collapses, the condition emerges)
+# .../widgets/batch-effect/?overlap=0.75                           (confounded, uncorrected: 2.23 for a 0.80 effect)
+# .../widgets/batch-effect/?overlap=0.75&correct=batchMean         (the naive fix: 0.42 — the biology went too)
+# .../widgets/batch-effect/?overlap=0.75&correct=preserve          (keeping condition: 0.83)
+# .../widgets/batch-effect/?overlap=1&correct=preserve             (not estimable)
+# .../widgets/batch-effect/?shift=0                                (nothing to correct)
+node widgets/_lab/batch-measure.mjs
+```
+
+**ONE DEFECT, AND IT COST THE WIDGET ITS BEST NUMBERS.** The first version
+blanked all three tiles whenever the design was inestimable. Only the
+condition-preserving fit is: the other two are perfectly well defined at total
+overlap and they *are* the conclusion — uncorrected you would report **2.81** as
+the disease effect and **2.06** on genes that have none, and the naive correction
+returns **0.00** having deleted everything. Blanking those said the widget could
+not answer, when what it has to say is that both answers are wrong.
+
+Also: a correction that removes exactly as much as it should lands on −1e-16, and
+`fmt` renders that as `-0.00`. Zero has no sign; `zeroed()` handles it, and the
+sweep now fails on the string.
+
+**Still open**: the title, the subtitle, and whether the seed earns its place —
+the argument is about the design rather than about sampling noise. **Not
+baselined**; it declares an `animation`, so at promotion it owes a driven state,
+naturally `drive: { set: { correct: "batchMean" }, frames, dt }`.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

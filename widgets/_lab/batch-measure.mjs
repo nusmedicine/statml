@@ -9,7 +9,7 @@
 import {
   simulate, correct, CORRECTIONS, estimatedEffect, nullEffect, pca, separation,
   GENES, SAMPLES, AFFECTED, TRUE_EFFECT, BATCH_SHIFT,
-} from "./batch-model.js";
+} from "../batch-effect/model.js";
 
 const f = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : "—");
 const pad = (s, n) => String(s).padEnd(n);
