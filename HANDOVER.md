@@ -1,18 +1,28 @@
 # Handover
 
-**Thirty-eight widgets shipped — 37 on the gallery, `roc-auc` UNLISTED
-(live at its URL, off the cards; Kenneth's call, 2026-08-30) — and 275
-fingerprint states recorded.** Widget 38 `shap` **Explaining a
-Prediction** (PHM5005 `04-5 Model Explanation`) shipped 2026-09-01 after
-sixteen review rounds: two pages and three tabs — an abstract three-player
-game whose six dividend sliders ARE the game, then the random forest 04-5
-declares and never fits, explained for one held-out patient and then for
-all sixty. It is the first widget for that notebook. **THE LAB PAGE IS
-EMPTY**: nothing is in draft. Catalogue § Widget 38 carries all sixteen
-rounds; four core changes came out of it — a new `--c-value-low/high`
-colour role, `runLabel` taking the map form `stepLabel` had, a hidden
-control no longer choosing a drive label, and sections rendering their
-`detail`.
+**Forty widgets shipped — 39 on the gallery, `roc-auc` UNLISTED (live at its
+URL, off the cards; Kenneth's call, 2026-08-30) — and 294 fingerprint states
+recorded. THE LAB PAGE IS EMPTY: nothing is in draft.**
+
+**Widget 40 `batch-effect` shipped and PUSHED 2026-09-02** after eleven review
+rounds in one day. One gated widget: ground truth permanently beside the
+observed data, and behind the gate four correction methods, a forest plot of
+intervals and four dials — disease effect, batch effect, confounding, seed. See
+NEXT below; catalogue § Slot 3 carries every round, including the five that
+built the wrong widget.
+
+**Widget 39 `normalization` shipped and PUSHED 2026-09-02** after four rounds
+across two days — scaling and transforming as two operations, with a quantile
+walkthrough behind a gate. Catalogue § Slot 1.
+
+**Widget 38 `shap` Explaining a Prediction** (PHM5005 `04-5 Model Explanation`)
+shipped 2026-09-01 after sixteen review rounds: two pages and three tabs — an
+abstract three-player game whose six dividend sliders ARE the game, then the
+random forest 04-5 declares and never fits, explained for one held-out patient
+and then for all sixty. Catalogue § Widget 38 carries all sixteen rounds; four
+core changes came out of it — a new `--c-value-low/high` colour role,
+`runLabel` taking the map form `stepLabel` had, a hidden control no longer
+choosing a drive label, and sections rendering their `detail`.
 
 Widget 37 `mlp` **Neural Networks (MLP)**
 shipped and PUSHED 2026-08-31 after ten review rounds across two days,
@@ -65,341 +75,62 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` — ROUND 11, awaiting review
+## NEXT: pick the next HTD slot — three remain, none picked
 
-**ROUND 11 was a copy pass** (Kenneth: *"remove any that are self-explanatory or
-editorial, use standard nomenclature, don't invent your own cutesy terms"*).
-Nineteen student-facing strings changed and the header comment came out of the
-epigram register; every measurement and failed-approach note stayed. Catalogue
-§ Slot 3 § ROUND 11 lists the swaps.
-
-**THE SUBTITLE IS GENERIC ABOUT THE METHODS NOW**, Kenneth's pick of six:
-*"Samples processed in different batches differ systematically for
-non-biological reasons. Batch correction estimates that variation, from the data
-or from reference genes, and removes it."* 186 chars against 213, so 2.11 holds.
-"From the data or from reference genes" is the split that actually separates the
-three methods — ComBat and SVA both work from the data, only RUV needs
-references — and it is descriptive rather than concluding, where the old one
-asserted "every method fails".
-
-**AND THE PASS FOUND A BROKEN LAB SCRIPT.** `_lab/batch-measure.mjs` had not run
-since round 8: it still imported `CORRECTIONS`, `estimatedEffect` and
-`nullEffect`, all renamed or removed when the methods were rewritten, so it threw
-on import — and both `model.js`'s header and this file point readers at it. It
-was missed because only the newer `batch-methods.mjs` was being run after each
-change. **A lab script that a comment points at should be run whenever the API
-it reads changes**, not only the one you happen to be using.
-
-## Round 10: the rail as a story, the diagnostic back, RUV conceptual
-
-**ROUND 10, three tweaks from Kenneth.** Catalogue § Slot 3 § ROUND 10.
+**WIDGET 40 `batch-effect` SHIPPED AND PUSHED 2026-09-02** on Kenneth's "tested
+ok, push it to gallery". Eleven review rounds in one day. The full record is
+catalogue § Slot 3; what follows is only what a future session needs.
 
 ```bash
 node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/?colourBy=batch&shift=4&overlap=0.5     (the diagnostic: truth mixed, observed in two clusters)
-# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=random      (0.54 for a 0.80 effect, interval crossing zero)
-# .../widgets/batch-effect/?correcting=1&overlap=0.75&shift=4&effect=3&method=ruv    (turn the signal up and the picture separates)
+# http://localhost:8011/widgets/batch-effect/                                   (balanced, observed)
+# .../widgets/batch-effect/?colourBy=batch&shift=4                              (the diagnostic)
+# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=combat&mod=null    (the biology removed)
+# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=random (0.54 for a 0.80 effect)
+node widgets/_lab/batch-methods.mjs     # the method tables
+node widgets/_lab/batch-measure.mjs     # the planning measurements
+# _lab/batch-shoot.html — the shooter that recorded its eleven states
 ```
 
-- **THE RAIL IS SIGNAL, THEN ARTEFACT, THEN DESIGN**: disease effect, batch
-  effect, confounding, seed. The two magnitudes are adjacent because their RATIO
-  is what governs legibility, so it is readable off the rail.
-- **THE COLOUR TOGGLE IS BACK** and round 8 was wrong to drop it: with both
-  panels coloured by condition there is no way to ask "do the samples separate
-  by BATCH", which is the lesson's first figure and the actual diagnostic. Both
-  panels follow one toggle.
-- **RUV'S REFERENCE SET IS Housekeeping or Random**, conceptual rather than by
-  gene index. Truth 0.80: housekeeping 0.79-1.01 across the ladder, random
-  0.46-0.59 — about 40% of the truth lost at EVERY setting. BOTH FIND THE BATCH
-  (0.982 vs 0.967); what separates them is the factor's correlation with the
-  CONDITION, 0.019 against 0.172 at a balanced design. A reference set carrying
-  biology points the factor at the thing it is meant to preserve.
-- **A NEAR-MISS WORTH THE HABIT**: renaming the control-set keys left
-  `default: "nulls"` in the widget and `?? CONTROL_SETS.nulls` in the model's
-  fallback, both resolving to `undefined`. Found by grepping the old key, the
-  same move that caught round 9's three hardcoded 0.80s.
+**THE ONE THING WORTH CARRYING FORWARD, because it cost five rounds:** correcting
+the data and modelling a nuisance variable prescribe OPPOSITE actions on the same
+matrix. A PCA has nowhere to put a covariate, so looking at the data needs the
+matrix transformed; a per-gene test must NOT have it transformed, or the interval
+is too narrow. The tell was in the code — a covariate method had been given a
+transformation it does not have, purely so a scatter had something to draw. Any
+widget that puts a picture and an estimate on the same page can make this
+mistake.
 
-## Round 9: one ComBat, and a dial for the signal
+**Still open on widget 40**, both cosmetic and neither blocking:
 
-**ROUND 9 answered two questions with measurement** (four parallel probes, each
-with an adversarial verifier; two probe conclusions were refuted while their
-arithmetic held). Catalogue § Slot 3 § ROUND 9.
+- With both panels coloured by condition, nothing says the two clusters in the
+  observed panel ARE the batches. The colour toggle answers it, but only if the
+  reader presses it.
+- RUV's cleaned picture disagrees with its own estimate — condition separation
+  1.23 against a fit of 0.94 at strong confounding — because the same W is used
+  to clean the panel and to fit the model. It is explained in a comment and
+  nowhere on the figure.
 
-- **ComBat is ONE picker entry with a `mod` sub-control now**, defaulting to
-  cell 11's `~condition`. The two variants agree at 0.01 and 0.14 up to slight
-  confounding and part from `half` on (0.50 / 1.10 / 2.65), failing in OPPOSITE
-  directions — but the copy table lists every method regardless of the picker,
-  so nothing is hidden, and four entries tile a clean 2 x 2 where five needed
-  `None` to span.
-- **THE DISEASE EFFECT IS A DIAL**, ladder `none / 0.8 / 1.5 / 2.0 / 3.0`.
-  Legibility tracks the RATIO batchShift/effect and not either alone: effect 1.5
-  with shift 2 gives 41.8px between the condition groups in a 227px panel, and
-  effect 3.0 with shift 4 gives 42.0px. The notebook's 0.8 against shift 4 is a
-  ratio of 5 and 13.4px; a ratio of 2 is 30.1px.
-- **THE TRUTH IS A PARAMETER**, and it was the literal 0.80 in three places —
-  the legend, the readout note and the forest's dashed rule. Found by grepping
-  for the constant BEFORE writing the slider.
-- **THE FOREST'S DOMAIN IS -2 TO 8**, measured over 6,125 states: the old -1 to
-  6 needed a caret in 15.1% of them, this needs one in 7.2%, and -2 to 10 buys
-  nothing (7.0%). Ticks every 2.
-- **THE FRAME POLICY STAYS.** `none`/`sva` occupy 86.2% of the shared frame in
-  every cell, but a pixel-accurate recount says the frame is only 23% blank at
-  shift 4 (13.2% at shift 2), and ~14 points of that is the padding every policy
-  adds — about 9% attributable to the shared frame. Not worth losing the fixed
-  comparison for.
-- **AND SOME OF THE POOR SEPARATION IS REAL**: at overlap 0.75 shift 4, ComBat
-  and RUV stay under 15px even at the wide column because their actual
-  separation has fallen to 1.33 and 1.30. Correcting a confounded design removes
-  condition structure from the picture. That is the lesson, not a defect.
+**Kenneth still owes the notebook links.** Ten widgets have no link from the
+MyST lessons that host them, `batch-effect` (HTD 05/05) and `normalization`
+(HTD 05/03) now among them. They are his to place — see prd §4 for what works.
 
-## The gated shape, from round 8
+**THE ACTUAL NEXT TASK: Kenneth picks one of three.** None is started, and the
+catalogue's § *The high-throughput arc* has a planning section for each.
 
-**THE TWO-PAGE SPLIT IS UNDONE** (Kenneth, 2026-09-02). `batch-correction` is
-deleted and everything lives in `batch-effect` behind a gate. Catalogue § Slot 3
-§ ROUND 8 has the argument; the short version is that with GROUND TRUTH
-permanently on the left panel, the shut figure IS the open figure minus the
-estimates - so the correction stage serves the same picture rather than
-replacing it, which is what 3.4b's gate is for. The split also declared
-`overlap`, `shift` and `seed` twice.
+| slot | slug | notebook | the claim |
+|---|---|---|---|
+| 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation — and a hole in an arc this repo already called complete |
+| 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
+| 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
 
-```bash
-node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/                                  (shut: ground truth beside observed)
-# .../widgets/batch-effect/?overlap=0.75                                       (strong confounding, correlation 0.70)
-# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=combat            (a clean picture, and 0.47 for a 0.80 effect)
-# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=sva               (nothing moves except the interval)
-# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=ruv               (0.88, and the control-gene picker appears)
-# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=affected   (-0.00: the wrong controls delete everything)
-node widgets/_lab/batch-methods.mjs        # every table below, from the shipping engine
-```
+The rhythm that has worked for the last four widgets, and which Kenneth expects:
+**measure the notebook's own stage first** and say what the numbers force, then
+**mock anything that would otherwise be argued about** in `_lab/`, then ask the
+decision questions, then build a draft, then iterate on his review, and push
+only on "tested ok".
 
-- **THE LESSON'S OWN FIVE METHODS, FOUR DIFFERENT FAILURES.** `ComBat(mod=NULL)`
-  - cell 12's actual call - deletes the biology, 0.82 to 0.12.
-  `ComBat(mod=~condition)` protects the biology AND the confounded part of the
-  batch with it, 0.82 to 2.77: they fail in OPPOSITE directions. RUV holds
-  0.79-0.94 until the design is singular.
-- **SVA NEVER MOVES THE ESTIMATE**, at any setting - its row is identical to
-  None's, because the surrogate variable is orthogonal to the condition by
-  construction. What it moves is the SE: 0.450 to 0.316 at balanced (real
-  power), and 0.315 against the true batch covariate's 0.446 at strong
-  confounding - a TIGHTER interval around a wrong answer. That is why the
-  intervals are on screen.
-- **WHY, AS A READOUT**: |correlation| between what each method found and the
-  true batch. SVA 0.991 / 0.856 / 0.701 / 0.000 across the ladder; RUV 0.982
-  throughout.
-- **RUV'S CONTROL GENES ARE A PARAMETER**: 0.838 for the lesson's 26-50,
-  -0.003 for genes that all carry the effect, 0.467 for 25 at random.
-- **RUV IS THE ONE METHOD THAT DOES BOTH.** Cell 21's `naiveRandRUV` returns
-  corrected data (the panel); cell 19's `Y = X beta + W gamma + eps` puts W in
-  the model (the estimate). Residualising on W and then testing gives 0.79 /
-  0.62 / 0.49 - it deletes the biology exactly as ComBat does. Same W.
-- **TWO COMBAT BUGS, both found by measuring**: standardising by the total
-  rather than the within-batch sd (0.825 -> 1.365), and the inverse-gamma shape
-  written `(2 dBar^2 + s2)/s2` instead of `(2 s2 + dBar^2)/s2`, which degenerates
-  to dBar/2 and inflates everything by sqrt(2).
-- **THE FOREST HAS A VALUE COLUMN** on the right, and clips at the axis with a
-  caret: the reachable interval ends are -9.16 and 13.96, both in the
-  complete-confounding corner at shift 4.
-- **THE TICK ROW WENT OFF THE CANVAS FOR THE THIRD TIME** when the forest grew a
-  fifth row. Heights are measured, not carried: SHUT_H 336, OPEN_H 504.
-
-**Still open**: whether the panels need a batch marker now that both are
-coloured by condition - the two clumps in the observed panel ARE the batches and
-nothing says so - and whether RUV's cleaned picture disagreeing with its own
-estimate needs saying on the figure. **Not baselined**; it declares an
-`animation`, so at promotion it owes a driven state, naturally
-`drive: { set: { method: "combat" }, frames, dt }` with the gate open.
-
-## What the batch pages settled along the way
-
-**THE SLOT IS NOW TWO PAGES** (Kenneth, 2026-09-02). Page 1 `batch-effect` is
-cells 3-6: what a batch effect DOES to the data, a toggle between ground truth
-and observed, no correction and no model. **Page 2 is unbuilt** and takes cells
-7-22: the four methods, the formula card and the forest plot of intervals.
-
-**Why the split, in one line: correcting the data and modelling the batch
-prescribe OPPOSITE actions on the same matrix.** A PCA has nowhere to put a
-covariate, so it needs the matrix transformed; a per-gene test must not have the
-matrix transformed, or the interval it reports is too narrow. The tell was in
-the code - `covariate` does not change the data, so to draw it on a scatter it
-had been given a transformation it does not have. Catalogue § Slot 3 § ROUND 6
-has the full argument, including where prediction sits (a third frame, and
-PHM5005's).
-
-**Nothing from rounds 1-5 was thrown away.** `model.js` keeps `CORRECTIONS`,
-`correct`, `estimateWithSE`, `nullEffect` and `projectAll`, and
-`_lab/batch-measure.mjs` runs all of them, so the correction half stays honest
-while it waits. The figure code it fed is in the widget's history at **commit
-`e7f909d`** - lift the formula card and `drawForest` from there when page 2 is
-built.
-
-```bash
-node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/                (balanced, observed: the batch owns PC1, 7.80 sd)
-# .../widgets/batch-effect/?view=truth                       (the same samples without the shift: 0.32 by batch, 3.23 by condition)
-# .../widgets/batch-effect/?overlap=0.75                     (strong confounding, correlation 0.70)
-# .../widgets/batch-effect/?overlap=1                        (complete: correlation 1.00, and the two panels are the SAME picture)
-# .../widgets/batch-effect/?shift=0                          (no batch effect: the toggle does nothing)
-# .../widgets/_lab/batch-truth-mock.html                     (the three layouts, and the frame trade)
-node widgets/_lab/batch-measure.mjs                          # every number in the catalogue section
-```
-
-- **GROUND TRUTH IS THE OBSERVED MATRIX MINUS THE BATCH SHIFT**, settled by
-  measurement: the alternative reading (systematic part only, no noise) gives a
-  PCA with **2 distinct points**, PC1 at 100% of the variance and a separation
-  statistic dividing by zero. Written once as `withoutBatch` and aliased by
-  `CORRECTIONS.known`, since the two pages frame the same arithmetic
-  differently.
-- **ONE SHARED FRAME, and the notebook does the opposite.** On one frame every
-  sample moves **exactly 67.0 px** - one displacement value for all forty,
-  because the batch shift is a rigid translation, so the motion IS the shift.
-  Per state it scatters 0-133 px and hides the 3x collapse (20.4 units wide
-  observed, 6.7 without). Legibility holds: the ground-truth panel's group
-  centres are 30.9 px apart with a group sd of 10.1 px.
-- **THE DESIGN BLOCK IS ABOVE THE PANELS AND READS ITSELF OUT.** The 2 x 2, the
-  **phi coefficient** (0.00 / 0.20 / 0.50 / 0.70 / 1.00 across the ladder, red
-  at 1.00), and two sentences computed from the cells. **On the canvas, not in a
-  card** - the panels sit at a fixed y, so a 2-line reading leaves a gap instead
-  of moving the figure, and no reserve has to be measured.
-- **BALANCED IS NOT "NO BATCH EFFECT".** Two dials: the shift decides whether an
-  artefact exists, the confounding whether it can be told apart. At `balanced`
-  with the notebook's shift, PC1 still separates the batches by 7.80 sd.
-- **THE READOUT IS DESCRIPTIVE ONLY** (Kenneth's pick): separation by batch,
-  separation by condition, PC1's share. The first two cross over, 7.80 / 0.44
-  against 0.32 / 3.23.
-- **TWO DEFECTS THE SWEEP CAUGHT AND THE SCREENSHOT DID NOT**: the state badge
-  sat on the left panel's caption in all 50 states, and the shared axis label ran
-  5px off the canvas. And **the sweep first failed all 50 as "draw did not
-  finish"**, because moving the badge after the axis label silently made it the
-  last painted string. The axis label is painted last on purpose now, with a
-  comment saying so.
-
-**Still open on widget 40**: the title - `Batch Effects` is a topic label rather
-than a claim - and whether `seed` earns its place. **Not baselined**; it declares
-an `animation`, so at promotion it owes a driven state, naturally
-`drive: { set: { view: "truth" }, frames, dt }`.
-
-- The three remaining slots are `nmf`, `hierarchical-clustering` and
-  `enrichment`, none picked.
-
-**Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's "tested
-ok, push it to gallery" — four review rounds across two days, eight fingerprint
-states (seven settled, one driven), suite **283 of 283**. Catalogue § Slot 1 has
-the record; what is worth carrying forward is below.
-
-```bash
-node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions
-# http://localhost:8011/widgets/normalization/                  (raw, unequal samples)
-# .../widgets/normalization/?normalize=median                   (the staircase collapses)
-# .../widgets/normalization/?normalize=minmax                   (0 – 1, and NOTHING else moves)
-# .../widgets/normalization/?transform=log1p                    (the fan collapses, the staircase does not)
-# .../widgets/normalization/?normalize=quantile&transform=log1p (both, composed)
-# .../widgets/normalization/?spread=0                           (the notebook's stage: nothing to correct)
-# .../widgets/normalization/?act=1                              (the walkthrough, at step 0 — press Play)
-# .../widgets/normalization/?act=1&shown=3                      (the walkthrough, finished)
-node widgets/_lab/norm-verify.mjs    # 12 identities on the shipping engine
-node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
-# _lab/norm-round2.html — the picker candidates, built by core at both rail widths
-```
-
-- **The engine is `widgets/normalization/model.js`**, imported by the widget,
-  the measurement script, the verifier and the mock page. No second copy.
-- **THE CHECKS FOUND FOUR DEFECTS AND TWO WERE FALSE CLAIMS IN THE SOURCE** —
-  the scale tile's denominator was shift-sensitive (z-score read 1.299 where
-  min-max read 0.717, for two maps that change nothing about the inequality),
-  the panel printed the whisker range so min-max read `0.010 – 0.245` instead of
-  `0 – 1`, Box-Cox after z-score deleted 6,729 of 10,000 values silently, and
-  λ → 0 approaches log(y) rather than log(1+y). Catalogue § Slot 1 has all six.
-- **ROUND 1 landed 2026-09-02** — three questions from Kenneth, all three acted
-  on; catalogue § Slot 1 § *ROUND 1* has the measurements. Panel 1 now uses
-  **Tukey whiskers, outlier dots and a FULL-RANGE axis** (min-max's axis reads
-  0–1, and the raw box is 6% of the panel against 19% after the log, so the
-  transform's job is visible in panel 1 at last). The depth control is now
-  **Technical variation between samples**, the lesson's own words. And the
-  ordering question is researched: **normalize → transform, sequentially**, on
-  the evidence of this course's own DESeq2 and tidymass pipelines — with the MS
-  proteomics exception (log2 first) recorded, and the fact that **for a scaling
-  normaliser the two orders are the same operation** (agree to 2.3e-7 in skew,
-  exactly 0 in ρ; the `+1` in log1p is what breaks it).
-- **SWEEP TRAPS (a)-(i), AND MOST ARE ONE SHAPE: a silent no-op reads as a pass.**
-  (a) The `resize` repaint is inert — 45 states came back with zero strings and
-  looked clean; clear the buffer BEFORE the parameter write, not after, and
-  split on the caption because one state can cause several repaints. (b) rAF is
-  throttled to ~1 frame per 300 ms here, so a 45-state sweep on
-  `requestAnimationFrame` times out — use `setTimeout(0)`, in chunks of 15.
-  (c) **A `const` in its temporal dead zone made `draw` throw and abort after
-  panel 2, and the collision sweep PASSED because the two lines it would have
-  collided with were never painted.** Any sweep must assert that the LAST thing
-  `draw` paints is present in every state, or it is checking a partial figure.
-  (d) **A `const` in its temporal dead zone has now done this TWICE** — `SHORT`
-  in `normalization`, `byBatch` in `batch-effect` — and the second time the
-  sweep passed, because its terminator was the x-axis label and `axisX` paints
-  that BEFORE the caption and note. **A sweep's terminator must be the last
-  thing `draw` paints**, not merely something late in it.
-  (e) **An ease running in the background leaks frames into the next state's
-  capture**, and every string then collides with ITSELF — 80 findings, all
-  spurious. (f) **Split the buffer on the LAST thing a paint draws, never the
-  first.** Slicing on panel 1's caption worked until the walkthrough started
-  drawing above it, at which point the slice ate the previous paint's tail and
-  reported `values -2.00 – 7.10` colliding with `values -11.7 – 7.1`. The
-  pipeline line is the terminator here.
-  (g) **A `const` in its temporal dead zone, THIRD time** — `axisFmt` in
-  `batch-effect`, declared beside `ticksOf` at the foot of the file. `draw` runs
-  while the module is still evaluating, so **every helper below `defineWidget`
-  must be a `function` declaration**, which hoists. Two of the three were caught
-  only by opening the page.
-  (h) **A SWEEP THAT NEVER RELOADED TESTS THE PREVIOUS VERSION.** 60 states came
-  back clean while the current module threw on every render, because the page
-  had been loaded before the edit. `npm run dev` sends `no-store`, but nothing
-  reloads for you. **Navigate first, and make the sweep fail on any uncaught
-  error** — one `window.onerror` listener is the whole fix.
-  (i) **A collision test cannot see CROWDING.** Two axis labels 23px apart with
-  no overlap passed, and read as one run-on string. A sweep should also fail a
-  gap under about 10px between strings sharing a baseline. This is the case for
-  judgement: the assertions were right and the picture was still wrong.
-- **ROUND 2 landed 2026-09-02** — the picker, a formula card, and the quantile
-  act; catalogue § Slot 1 § *ROUND 2* has all of it. **The split picker stays,
-  measured**: five long-named options get 45px of segment at the narrow rail and
-  "Min–max" needs 65, and the `choice` slider that does fit is the wrong shape
-  because these options are not a magnitude. **A `.w-math` formula card** sits
-  above the figure, one row per rail step, reserved at 7.8em after it jogged
-  23px. **The quantile walkthrough** is a `gate` below the panels on its own
-  6 × 4 stage, four phases, cells easing between their gene row and their rank
-  row.
-- **ROUND 3 landed 2026-09-02.** Panel 1 now draws the **pooled mean dashed**
-  beside the solid median rule — z-score DOES centre the mean (`0.0000`); the
-  boxes sit at −0.337 because a box draws the median, and on skew 3.03 that is a
-  third of an sd below. The gap closes to −0.008 after the log, so the two rules
-  converge and the picture answers the question. `data-mark="dash"` added to
-  `tokens.css` for the legend (additive; suite **275 of 275 MATCH**).
-- **ROUND 4 landed 2026-09-02.** The normalize picker is now a **2 × 2 of
-  buttons under a full-width None** — five segments in one ROW are impossible
-  (45px each, `Min–max` needs 61), but a grid gives 111px at the narrow rail.
-  Core gained **`style: "grid"` on `segmented`** and `span: true` on an option;
-  suite **275 of 275 MATCH**. Candidates and their measured widths are in
-  `_lab/norm-picker.html`. Also a comment pass over both widget files: editorial
-  phrasing and invented labels out, measurements and failed approaches kept.
-- **THE DRIVE ROW IS GONE AGAIN.** The walkthrough's gate sits under the
-  Normalize dropdown, shown only when Quantile is chosen, and the walk is a
-  `step` choice slider beside it — eased through **core's ease-request door**,
-  the `logistic-regression` pattern. Core fixes the drive row at the foot of the
-  rail (3.4e) and `afterDrive` cannot move it, because **Reset travels with it**.
-  The act also moved ABOVE the panels, under the formula card.
-- **EIGHT STATES RECORDED** via `_lab/norm-shoot.html` (copy proved 4/4, every
-  state shot three times, the driven one checked against its settled sibling).
-  The driven state is `drive: { set: { step: "2" }, frames: 8, dt: 32 }` on
-  `?normalize=quantile&act=1`, catching the walkthrough's ease mid-flight. Its
-  `tx` equals the settled `step=3` state's, because only the canvas moves
-  during the walk — that is correct, not a copy-paste.
-- **`mathmlRenders()` IS CORE'S NOW** (own commit, 2026-09-02). It was copied
-  verbatim in `lm-interaction` and `lm-diagnostics`, and this card would have
-  been the third — 5.8's trigger. The full suite read **275 of 275 MATCH**.
-- **Reset closes the gate**, because Reset returns every parameter to its
-  default and `act` defaults to false. Correct, and it cost a sweep: any
-  harness that walks the act must open the gate itself rather than reaching for
-  Reset between states.
-
-## The high-throughput arc — FOUR SLOTS STILL PROPOSED
+## The high-throughput arc — THREE SLOTS LEFT, none picked
 
 **Kenneth asked for a plan for PHM5003 `05 - Introduction to High Throughput
 Data` on 2026-09-01, and it is in catalogue § *The high-throughput arc*.**
@@ -410,9 +141,9 @@ and `01 Experimental Design` is out of scope. That leaves five:
 
 | slot | slug | notebook | the claim |
 |---|---|---|---|
-| 1 | `normalization` | 05 / 03 | **DRAFT, built 2026-09-01** — scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
+| 1 | `normalization` | 05 / 03 | **SHIPPED 2026-09-02** — scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
 | 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation. **A hole in an arc this repo called complete** |
-| 3 | `batch-effect` | 05 / 05 | the danger is confounding, not noise — correct a confounded design and the biology goes with it |
+| 3 | `batch-effect` | 05 / 05 | **SHIPPED 2026-09-02** — the danger is confounding, not noise; correct a confounded design and the disease effect goes with it |
 | 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
 | 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
 
@@ -430,346 +161,33 @@ links, the 05-07 notebook fix he reported done, and judging projected, which
 is still owed by every widget from 11 on. **A session with nothing picked
 should hold, not invent scope** — prd §11 exists to be pointed at.
 
-**Widget 37 `mlp` shipped 2026-08-31 and with it the last slot of Arc A.**
-Every algorithm family in PHM5005 `04-3 Tour of Algorithms` now has its
-widget, and the earlier arcs are done.
+**Widgets 30-38 shipped between 2026-08-29 and 2026-09-01**, all pushed, all
+recorded in the catalogue under their own `§ Widget N` sections. Their
+per-widget histories used to sit here and were moved out on 2026-09-02 under
+this file's own rule: HANDOVER is current state and the next task, the catalogue
+is the record.
 
-**WIDGET 37 `mlp` SHIPPED AND PUSHED 2026-08-31** as **Neural Networks
-(MLP)** — ten rounds across two days; the full record is catalogue
-§ Widget 37. What a later session most needs at hand:
+| widget | slug | shipped | catalogue |
+|---|---|---|---|
+| 38 | `shap` | 2026-09-01, sixteen rounds | § Widget 38 |
+| 37 | `mlp` | 2026-08-31, ten rounds — completed Arc A | § Widget 37 |
+| 36 | `naive-bayes` | 2026-08-30 | § Widget 36 |
+| 35 | `metrics` | 2026-08-30, five rounds | § Widget 35 |
+| 34 | `roc-auc` | 2026-08-29, six rounds — UNLISTED on the gallery | § Widget 34 |
+| 33 | `lm-diagnostics` | 2026-08-29, three rounds | § Widget 33 |
+| 32 | `mixed-model` | 2026-08-29, seven rounds | § Widget 32 |
+| 31 | `time-event` | 2026-08-29, eighteen rounds | § Widget 31 |
+| 30 | `causal-dag` | act 1 added 2026-08-29 | § Widget 30 |
+| 15 | `logistic-regression` | rebuilt on one covariate 2026-08-29 | § Widget 15 |
 
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/mlp/                      (untrained; press Train)
-# .../widgets/mlp/?shown=600&lines=on                     (trained, each unit's line)
-# .../widgets/mlp/?speed=slow                             (ONE step choreographed)
-# .../widgets/mlp/?activation=identity&hidden=8&shown=600 (eight units, still a line)
-# .../widgets/mlp/?dataset=moons&hidden=3&shown=600       (crescents at the threshold k)
-node widgets/_lab/mlp-verify.mjs > widgets/_lab/mlp-verify.json
-"C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/venv/Scripts/python.exe" \
-    widgets/_lab/mlp-verify.py     # the engine pinned: worst |dw| 1.1e-15
-"C:/Users/.../python.exe" widgets/_lab/mlp-design.py   # the reliability table
-# _lab/mlp-mock.html · mlp-backprop.html · mlp-band.html · mlp-neuron.html
-```
-
-- **THE RELIABILITY TABLE IS THE THING TO READ FIRST** (catalogue § Widget
-  37): over 20 inits per cell, rings 0/0/10/19/20 and crescents 0/0/3/6/17
-  at k = 1/2/3/4/8. **No surface may claim "k ≥ 3 works"** — it corrected a
-  one-seed claim an early mock had already written into prose. Capacity and
-  optimisation are two different lessons, and the visible mechanism is a
-  DEAD unit, drawn in `--c-unknown`.
-- **Slow is the choreographed pace**: one training step per 2 s, forward →
-  compare → backward → update, each phase naming itself. Medium and Fast
-  merely count epochs, which is 4.1's rule that the choreographing pace is
-  declared rather than decided mid-run. **The widget trains full-batch**, so
-  the caption says the weights move once after every sample has made the
-  trip — the animation illustrates one sample's journey and must not imply
-  per-sample updates.
-- **CORE GAINED `style: "action"`** — a bool rendering as a full-width
-  button in the drive row's sizing, so a momentary control can sit as a
-  sibling of Reset. Its rule must be declared AFTER `.w-btn` and the FIELD,
-  not the button, carries the flex basis. The full suite ran for it and read
-  **257 of 257** before widget 37's own states went in.
-- **Two sweep traps, both found here, both the same shape.** A state sweep
-  that forces its repaint with a `resize` event or a one-pixel frame nudge
-  is INERT wherever the canvas width is capped, so it hashes a canvas nobody
-  repainted — a vacuous pass and a false "PAINTED NOTHING" are the same bug.
-  Toggle a display parameter and print the string count. And a collision
-  check over settled states never paints a choreography's captions.
-
-**WIDGET 36 `naive-bayes` SHIPPED AND PUSHED 2026-08-30** (PHM5005
-04-3 § Probabilistic, Arc A slot 5) — eight rounds in one day, the full
-record in catalogue § Widget 36. What a later session most needs:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/naive-bayes/                      (opens on the prior alone)
-# .../widgets/naive-bayes/?addcrp=1&addwbc=1                      (both labs in the product)
-# .../widgets/naive-bayes/?addcrp=1&addwbc=1&correlate=correlated (the ρ act)
-# .../widgets/naive-bayes/?family=discrete&chills=1&addfever=1&addchills=1&correlate=correlated&lam=0.95
-#                                                                 (the discrete double-count)
-"C:/Users/Admin/Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/venv/Scripts/python.exe" \
-    widgets/_lab/nb-design.py    # the measurements + THE TRAP (redundancy is load-bearing)
-# _lab/nb-mock.html — round 0's candidates, still served
-```
-
-- **Per-feature pills are URL state** (`?addcrp=1` …), Step/Play declined;
-  the correlated view IMPOSES ρ/λ on the FITTED marginals (never
-  regenerates the cohort — naive Bayes must be exactly flat).
-- **The harness's setParam now toggles `style:"pill"` buttons** (clicks
-  only when aria-pressed differs). Recording widget 36 with it EXPOSED
-  time-event's two driven states as INERT since 2026-08-29 — both
-  rebaselined in the promotion commit; see § The suite below.
-- **`roc-auc` stays UNLISTED** (`status: "unlisted"`, minted 2026-08-30).
-
-Beyond that, everything open is KENNETH'S OWN, listed below so a
-session can remind him rather than act: the NINE notebook links, the
-05-07 notebook fix, and judging projected. A session with nothing to
-do should hold, not invent scope — prd §11 exists to be pointed at.
-
-3. **Notebook links now owed for EIGHT shipped widgets** — Kenneth
-   places notebook links by hand. **04-2 (widget 35) is DONE**, placed
-   by him 2026-08-30; the line can land on any station if he wants one
-   (`?outcome=categorical&view=matrix`, `&view=roc`), and widget 34 is
-   UNLISTED but still reachable at `…/widget/roc-auc/` if the deeper
-   threshold act is ever wanted beside it. Still owed:
-   - 06-02 (widget 26): `Explore these structures interactively: [Causal Structures](https://nusmedicine.github.io/statml/widget/fork-pipe-collider/)`
-   - 05-01 (widget 27): `Explore the fit interactively: [Fitting a Linear Model](https://nusmedicine.github.io/statml/widget/lm-least-squares/)`
-   - 05-02 (widget 28): `Explore adjustment interactively: [Fitting Multiple Covariates](https://nusmedicine.github.io/statml/widget/lm-adjustment/)`
-   - 05-03 (widget 29): `Explore dummy coding interactively: [Fitting a Categorical Covariate](https://nusmedicine.github.io/statml/widget/lm-categorical/)`
-   - 05-04 (widget 30): `Explore interacting covariates: [Fitting an Interaction](https://nusmedicine.github.io/statml/widget/lm-interaction/)`
-   - 05-01 (widget 33, beside cells 53–62): `Explore the diagnostics interactively: [Checking the Model Fit](https://nusmedicine.github.io/statml/widget/lm-diagnostics/)`
-   - 05-06 (widget 31): `Explore survival analysis interactively: [Modeling Time-to-Event Data](https://nusmedicine.github.io/statml/widget/time-event/)`
-   - 05-07 (widget 32): `Explore hierarchical data interactively: [Modeling Hierarchical Data](https://nusmedicine.github.io/statml/widget/mixed-model/)`
-   - 04-3 § Probabilistic (widget 36): `Explore naive Bayes interactively: [Naive Bayes](https://nusmedicine.github.io/statml/widget/naive-bayes/)`
-   - 04-3 § Neural Networks (widget 37): `Explore neural networks interactively: [Neural Networks (MLP)](https://nusmedicine.github.io/statml/widget/mlp/)`
-
-   **And FOUR more found on 2026-09-01** — `05 - Introduction to High
-   Throughput Data` carries no widget link at all, though four of its nine
-   lessons already have a shipped host:
-   - HTD `02 — Missing Data and Imputation` (widget 25): `Explore the mechanisms interactively: [Missing Data](https://nusmedicine.github.io/statml/widget/missing-data/)`
-   - HTD `04 — Dimensionality Reduction` (widgets 19–22, one per heading): `[Principal Component Analysis](https://nusmedicine.github.io/statml/widget/pca/)` · `[Multidimensional Scaling](https://nusmedicine.github.io/statml/widget/mds/)` · `[t-SNE](https://nusmedicine.github.io/statml/widget/t-sne/)` · `[UMAP](https://nusmedicine.github.io/statml/widget/umap/)`
-   - HTD `06 — Regularization and Fitting` (widget 14): `Explore regularization interactively: [Linear Models and Regularization](https://nusmedicine.github.io/statml/widget/linear-regularization/)`
-   - HTD `07 — Multiple Test Correction` (widget 6): `Explore the correction interactively: [Multiple Testing](https://nusmedicine.github.io/statml/widget/multiple-testing/)`
-
-   — and judging projected is still owed by every widget from 11 on,
-   widgets 26–34 included.
-
-**WIDGET 15 `logistic-regression` REBUILT AND PUSHED 2026-08-29** on
-one covariate — Kenneth: 05-05's cell 4 introduces the logit as
-`b₀ + b₁x`, the two-covariate BMI/age stage confused, "the main point
-is the link function". Three rounds; the full record (the measured
-candidates, the cut, every pick) is catalogue § *Widget 15*. What a
-later session most needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/logistic-regression/        (identity link)
-# .../widgets/logistic-regression/?link=logit               (the sigmoid, landed)
-# _lab/logistic-1cov-measure.py (venv python) — the candidate measurements
-# _lab/logistic-shoot.html re-shoots its 5 states (copy-proof, triples)
-```
-
-- **The model is `glm(prevalentHyp ~ sysBP)` on all 4240 rows** — the
-  built-and-cut pair revived: fitted p spans 0.0003→1.000 (the S saturates
-  on screen), the straight line makes 794 people impossible, 50% at 141.6
-  mmHg vs the clinical 140, OR/mmHg 1.1515. The aggregate embeds DISTINCT
-  sysBP values (234) — a sufficient statistic, fit-from-aggregate ≡
-  fit-from-rows to 1e-8.
-- **The control is a segmented `Link function: Identity | Logit`** and
-  toggling it EASES the fitted curve between the two fits (~0.6 s, the
-  ease-request door; the widget's one motion — stepLabel and runLabel both
-  null). Every printed number comes from the BLENDED fit; the equation card
-  follows the chosen link, each side wearing its own fitted numbers.
-- **The three-rung ladder survived the rebuild** (probability · odds ·
-  log-odds); cut with the second covariate: the axis picker, both held
-  sliders, the card's links row, and the old marginal-vs-conditional open
-  item. A Δ strip only counts steps visible on its own panel — odds reaches
-  ~20 000 at the right edge and one runaway Δ flattened every visible bar.
-
-**WIDGET 34 `roc-auc` SHIPPED AND PUSHED 2026-08-29** as **Scoring a
-Classifier** — six rounds in one day, the full record (the app it grew
-from, every pick and reversal, the measured 04-2 numbers) in catalogue
-§ *Widget 34*. What a later session most needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/roc-auc/                (press Trace — the sweep)
-# .../widgets/roc-auc/?youden=1&shown=999               (found: ring, segment, tile)
-# .../widgets/roc-auc/?sep=0.6&balance=0.2&shown=999    (weak and imbalanced)
-# _lab/roc-measure.py (run with the _scratch venv's python) reproduces
-# notebook 04-2 to the digit and writes _lab/roc-ref.json
-# _lab/roc-shoot.html re-shoots its 7 states (copy-proof, triples, inert checks)
-```
-
-- **All-simulated stage** (round 2 cut the real-test-set tab as duplicate);
-  the notebook's 60 held-out patients stay pinned in `roc-auc/model.js` and
-  `_lab/roc-ref.json` — AUC 0.740693, Youden 0.313674, cell 39's
-  accuracy-0.70-both-ways with missed deaths 9 → 3.
-- **The find-optimal pill is MOMENTARY**: its scan lands by writing
-  `threshold` through the exported setParam and releasing itself — the URL
-  keeps only `?threshold=`. A pill is a `<button data-param>` the harness
-  cannot toggle: found states settle by URL.
-- **Core grew `drag.hit`** (round 5): gates the drag gesture and its cursor;
-  the widget confines the threshold drag to the strip. The suite ran three
-  times for it — run 1 flagged five lm-adjustment px-only states, the
-  stash-control and the re-run both read all-MATCH: the pane flake can
-  CLUSTER.
-- **The shooter waits for DPR 1.25** before shooting: the pane reports DPR 1
-  until displayed and can flap back between runs.
-- **Untested geometry, recorded**: the threshold drag (no harness verb) and
-  the find-optimal scan mid-flight plus its landing write.
-4. **05-07's own notebook fix — Kenneth REPORTED IT DONE 2026-08-30,
-   and this repo's copy does not show it. Worth one look before it is
-   believed.** The issue: the SNP `lm` adjusts for `family_id` as an
-   INTEGER (one slope over the family index — measured identical to no
-   adjustment). The agreed edit was to drop `+ family_id` from the lm
-   and reword its bullet to "ignoring the family structure";
-   `as.factor` would also be correct but reaches lmer's own conclusion
-   and kills the lesson's contrast (catalogue § Widget 32 has the full
-   measured comparison).
-
-   **What was checked, 2026-08-30**, in
-   `../jupyterbook/phm5003/notebook/04 - Introduction to Statistical
-   Computing Part 2/05-07 - Modeling - Hierarchical Data.ipynb`:
-   - the model cell still reads `lm(cholesterol ~ SNP1 + … + SNP10 +
-     family_id, data = sim_data_snp)`, and `sim_data_snp$family_id` is
-     still the integer from `sample(1:families, …)`;
-   - its bullet still reads "`lm` linear model: adjusting for
-     `family_id`";
-   - the only `as.factor(family_id)` in the file is in the PLOTTING
-     cell that builds `data_long` for the boxplot — not the model data;
-   - every `05-0x` notebook there is unmodified since 2026-02-05.
-
-   He named it **05-06**, which is *Time-to-Event Data* and contains no
-   `family_id` at all — the SNP/`lmer` example is 05-07. So either he
-   edited a copy this repo cannot see (likely — he keeps working copies
-   elsewhere and places links by hand), or the edit has not landed. Ask
-   rather than assume, and do not re-do his work unasked.
-
-**WIDGET 33 `lm-diagnostics` SHIPPED AND PUSHED 2026-08-29** as
-**Checking the Model Fit** — three review rounds in one day, the full
-record (research, picks, measurements, the promotion) in catalogue
-§ *Widget 33*. What a later session most needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/lm-diagnostics/              (press Fit — the entry plays)
-# .../widgets/lm-diagnostics/?fit=1&scenario=curve           (the banana, visible in the data)
-# .../widgets/lm-diagnostics/?fit=1&claim=1                  (the bells; the pill settles by URL)
-# .../widgets/lm-diagnostics/?concept=adjr2&fit=1&junk=20    (R² 0.51 on noise; adjusted flat 0.24)
-node widgets/_lab/lm-diag-measure.mjs   # verify vs 05-01 + every design number + § round 1 sweeps
-# _lab/lm-diag-shoot.html re-shoots its 10 states (copy-proof, triples, inert checks)
-```
-
-- **The stage is ALL-SIMULATED and every setting is a measured choice**
-  (round 1: mixing real and simulated data confused, and at the real
-  noise the curve was invisible): the Framingham fit's own line, real
-  BMI values clipped to 18–40, n = 600, SD 12, curve 0.4 (a 5.2-SD bend
-  in the cloud), fan 3, log-normal skew; the act runs n = 60 / k = 20
-  junk columns and **the default seed 6 was auditioned** so the widget
-  opens on the typical picture (a lucky junk column lifts ADJUSTED R²
-  too on ~12% of seeds — do not "fix" a strange-looking seed, vary it).
-- **The `fit` gate is deliberately NOT display**: core's entry door
-  lives on the data path (em-mixture's arrangement), and the entry flag
-  is the one-shot contract — a shared `?fit=1` link opens FINISHED.
-  The machinery is `widgets/lm-diagnostics/model.js`; the lab imports
-  FROM the widget.
-- **Two surfaces are untested geometry, recorded in the catalogue**: the
-  claim pill's stagger ease (a pill is a `<button data-param>` the
-  harness's setParam cannot toggle — claim settles by URL) and the
-  hover link (moves no parameter; an inspector by design). A node
-  stub-driver was not built; the measure script + shooter carry the
-  coverage.
-- **The TDZ trap struck a THIRD time** (RANK_DY below defineWidget) and
-  the stale-console trap re-confirmed itself the same hour — the fix
-  showed three errors after it landed; a fresh `window.onerror` counter
-  is the honest read.
-
-**WIDGET 30 GREW ACT 1 AND CORE GREW A DOOR, both pushed 2026-08-29**
-(the queue's first item; catalogue § Widget 30 · *Act 1 revived*). What a
-later session needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/lm-interaction/?concept=agebmi&fit=1&terms=times
-node widgets/_lab/lm-int-measure.mjs   # 37 checks — both age×BMI fits to the digit
-# _lab/lm-int-shoot.html re-shoots all 13 of the widget's states
-```
-
-- **The age × BMI act** is the notebook's ggPredict picture: the model at
-  BMI 20/30/40 (parallel under +, a fan CROSSING at age 57.2 under ×) and
-  a probe reading the AGE SLOPE at a chosen BMI (+1.97 at 20 → −0.32 at
-  40, sign flip at 37.2). Both fits were already pinned at widget-30
-  planning; only the tab was ever missing.
-- **CORE: `legend` may now be a FUNCTION of the params** (`({ params }) =>
-  entries`), re-resolved in recompute(), static arrays byte-identical —
-  the suite proved it, 220 of 220. **The ruling that earned it** (memory
-  `legend-must-match-the-graph`): no legend entry may describe marks the
-  current tab does not draw. A generic "Group A/B" was shipped and
-  rejected within the hour — mixed-model's earlier "go generic" was
-  about wording WRONG on other tabs, not a taste for vagueness.
-- **A legend edit moves `tx` on every recorded state.** The 13
-  lm-interaction states were re-shot twice in one day (generic, then
-  live), each time with the splice ASSERTING px identical — that
-  assertion is what proves a wording change touched no pixels.
-- **The silent-replace trap struck again** (a node heredoc "edit" of this
-  file printed ok and changed nothing — git saw a clean tree). Grep for
-  the new text after scripted edits, or use an editor that fails loudly.
-
-**WIDGET 32 `mixed-model` SHIPPED AND PUSHED 2026-08-29** after SEVEN
-rounds in one day — the full record is catalogue § *Widget 32*. What a
-later session most needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/mixed-model/                        (Repeated)
-# .../?concept=nested&view=related                                  (the family columns)
-# .../?concept=syntax&scenario=school&ranef=slope                   (the formula, large)
-node widgets/_lab/mixed-drive.mjs      # 97 checks, no browser, no clock
-node widgets/_lab/mixed-measure.mjs    # 89 checks — the engine against the notebook AND lme4
-node widgets/_lab/mixed-design.mjs     # the dial measurements (~2 min)
-```
-
-- **The engine is a zero-dependency REML fitter pinned to lme4 itself**
-  (criteria agree to ~1e-10 on both notebook examples; `_lab/mixed-ref.R`
-  regenerates the notebook's data exactly in base R and, with lme4 in the
-  user library at `%LOCALAPPDATA%/R/win-library/4.5`, writes lme4's own
-  fits into `mixed-ref.json`). R 4.5.2 is at `C:\Program Files\R\R-4.5.2`;
-  **Rscript needed a SimpleWall approval** (asked, Kenneth unblocked) and
-  **`Rscript -e` with long multiline strings SEGFAULTS on this machine —
-  always run a script file.**
-- **No Step, no Play, no gate**: figures open finished; the two eases
-  (Measurements Independent→Related on both data tabs, the Syntax line
-  pivots) run on core's easing-request door. The repeat-the-study tally
-  was built, measured, and CUT in round 3 on Kenneth's call — its
-  numbers (lm false-claims 34–44% at every n while agreement sits ~70%)
-  live in catalogue § Widget 32 for the lesson prose.
-- **The TDZ trap struck twice** (F_LO, then formulaHost): core calls
-  draw() during defineWidget, so every binding draw() touches sits above
-  it, with the warning attached.
-- Ten states recorded via `_lab/mixed-shoot.html` (copy proved 4/4,
-  three shots identical, drives non-inert); the confirming suite run
-  read **217 of 217 MATCH**.
-
-**WIDGET 31 `time-event` SHIPPED AND PUSHED 2026-08-29** after EIGHTEEN
-rounds in one long day of Kenneth's live review — the full record, every
-round and its rejected alternatives, is catalogue § *Widget 31*. What a
-later session most needs at hand:
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/time-event/                       (Censoring)
-# .../?concept=groups&follow=5&shown=0                            (the too-short study)
-# .../?concept=factors&age=1&snps=1&shown=0                       (the full model)
-node widgets/_lab/time-event-drive.mjs     # 132 checks, no browser, no clock
-node widgets/_lab/time-event-measure.mjs   # the engine against the notebook
-```
-
-- **The widget has NO Step and NO Play** (round 17): every figure opens
-  finished and redraws finished on every parameter change; the SCRUB is
-  the one time control and `?shown` places the cursor mid-build. So its
-  driven fingerprint states come from `set` on the pills (the forest
-  ease) — there is no other harness verb — and **the scrub is untested
-  geometry**, recorded in the catalogue.
-- **Nine states recorded at promotion the honest way**: three identical
-  suite runs at DPR 1.25, spliced, then a confirming run read **207 of
-  207 MATCH** — which also cleared the rounds-14–16 core-change debt
-  (the bits control with `bitsFrom`, `.w-seg-bits`, the pill fill).
-  The recording only became possible when the Browser pane was DISPLAYED
-  — hidden, it reports DPR 1 and every `px` reads DIFFER while `tx`
-  matches; that signature is environmental, not a regression.
-- **The promotion fingerprint caught a real bug** (round 18): the groups
-  HR tile printed a runaway 2.4e15 at follow 5 — one event cannot pin a
-  two-group fit; the tile and summary now guard it ("too few events to
-  estimate a hazard ratio"). Reading the harness's own text column pays.
-- **No shooter page was built** — the states went in through the full
-  suite (the widget-24 route: the pane was already running whole-suite
-  passes, so three full runs were cheaper than proving a fresh copy).
-- Core gained three doors this widget earned: `style: "bits"` (an int
-  worn as toggle chips), `bitsFrom` (chip count follows another param
-  through the gating-rebuild rule), and — earlier — the pointer channel
-  (round 11). The pressed-pill highlight fill is repo-wide by design.
+**THE CORE DOORS THOSE SESSIONS ADDED**, which are the part a new widget needs
+to know about — each is documented at its own definition in `widgets/core/`:
+`style: "action"` (a bool rendering as a full-width button), `style: "bits"` (an
+int as a row of toggles), `legend` as a FUNCTION of the params, `drag.hit` (a
+pointer drag confined to a strip), `--c-value-low/high` as a colour role,
+`runLabel` taking the map form `stepLabel` had, sections rendering their
+`detail`, `style: "grid"` on segmented with `span` on an option, and
+`mathmlRenders()` moving into `core/env.js`.
 
 **The 2026-08-27 cross-widget audit's free-surface half is COMPLETE,
 Kenneth-reviewed line by line, MERGED and LIVE** (pushed the same day; the
@@ -815,7 +233,19 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 268 states, all matching
+## The suite: 294 states, all matching
+
+**Widget 40 added eleven on 2026-09-02 through `_lab/batch-shoot.html`** — nine
+settled across both gate states, two driven easing between correction methods in
+each direction. Each shot three times in one run and refused if the triple
+disagreed; the shooter's copy proved 4/4 against known-good states first; both
+drives checked against their settled sibling. **One driven state's `tx` equals a
+settled state's on purpose**: the readout prints the target state's numbers while
+only the canvas eases, so the text is already at its destination when the picture
+is halfway there. Widget 39's driven state has the same shape.
+
+**Widget 39 added eight on 2026-09-02** through `_lab/norm-shoot.html`, seven
+settled and one driven.
 
 **Widget 37 added eleven states on 2026-08-31 through the full suite** (the
 widget-24/31 route, no shooter): three whole-suite runs at DPR 1.25 with all
@@ -1160,241 +590,48 @@ in 2.10's amendments:
   `_lab/vocab-labels.html`, the four-frame mockup that settled the rail
   vocabulary. `_lab/audit-inventory.mjs` regenerates the data.
 
-## WIDGET 25 IS SHIPPED: `missing-data` — planned, built and promoted in ONE day
+## Open items on already-shipped widgets
 
-**The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 25* —
-the brief (MCAR/MAR/MNAR indistinguishable to students; NO imputation), the
-measured design (MNAR scored on the residual, verdict thresholds, the +10 kg
-hidden-residual number), and all seven review rounds.** What belongs here is
-only what a later session needs at hand:
+These are the things a past session recorded and did NOT fix. Each is a
+deliberate deferral, not a bug list — the full reasoning is in the catalogue
+under each widget's own section.
 
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/missing-data/?mechanism=mnar&truth=on&shown=120
-node widgets/_lab/missing-drive.mjs      # 130 assertions, no browser, no clock
-node widgets/_lab/missing-measure.mjs    # every number the catalogue quotes
-```
+**NOT YET JUDGED PROJECTED** — widgets 22 (`tsne`) and 23 (`umap`) have never
+been looked at from the back of a lecture room. Principle: thin strokes and
+small tick labels are what fail at distance.
 
-- **Seven states recorded with `_lab/missing-shoot.html`** (the kmeans-shoot
-  pattern): copy proved against four existing baseline hashes, three
-  byte-identical runs, spliced directly — no full-suite rerun owed, nothing in
-  `widgets/core/` moved. Baseline now **159 states**.
-- **The Missing-vs-trend tile deliberately carries no arithmetic note** — the
-  tidy identity is false under MAR; the source comment and catalogue round 5
-  record why. Do not reinstate it.
-- **The verdict line is computed from the VISIBLE data only** and is honestly
-  unreliable at 10% missing (93/1200 misfires — twelve missing patients is too
-  few for any check). Known, measured, accepted.
+**Widget 24 `kmeans`, three recorded and not fixed:**
 
-### THE HASHED BATCH RAN 2026-08-27 — the audit is CLOSED
-
-One pass, one rebaseline, Kenneth's picks throughout. What landed: **legend
-casing** (11 entries sentence-cased in probability-mechanisms, t-sne, umap);
-**em-mixture in conventional terms** — Set P, "membership probabilities":
-caption "A mixture of the two populations, labels unknown", the E/M-step
-notes, the stepTitle, and the legend pair "The left/right curve and its
-membership probabilities" (the "it claims" personification and the
-weigh/shares puns are gone); **power-and-error's** pre-run note "of 1000
-simulated studies"; **trees'** "no candidate scored yet"; and
-**`--c-reference` BLESSED**, not repainted — tokens.css now defines it as the
-benchmark a fit is judged against, truth where one exists, else the baseline.
-
-The rebaseline: 37 states moved — 37 `tx` and exactly 2 `px` (the two
-em-mixture states whose painted captions changed), confined to the six
-expected widgets. New hashes identical across three suite runs, then a
-confirming run read **159 of 159 MATCH**. One lesson for the next rebaseline:
-**the harness table prints the RECORDED pair before the GOT pair** — a
-determinism check that compares column 3 compares the baseline to itself and
-is vacuous; compare column 4. Caught here because a splice of column 3
-reported zero movement.
-
-The notes and captions judged and deliberately KEPT: the bootstrap/permutation
-"you never see this" motif (the arc's signature, echoed by missing-data),
-odds-and-risk's notes (Kenneth's own 2.9 rewrite), and instructional notes
-that serve as drive hints.
-
-### Heights: MEASURED AND CLOSED 2026-08-27 — no stale height exists
-
-`_lab/height-sweep.html` loaded all 102 settled baseline states at the
-harness's 900px frame and read the canvas pixels: the gap between the lowest
-inked row and each widget's declared bottom. **Every declared height is
-earning its pixels.** The findings that looked like defects and are not:
-
-- **pca (101px) and mds (294px) of blank canvas are deliberate reserve** — the
-  space their gated stages arrive into; with the gates open both gaps read a
-  normal 12px. A reserve is the worst case paid everywhere (3.4k).
-- **Bottom-edge ink is marks or sub-pixel descenders**, classified by colour:
-  dbscan's is the eps-disc wash, probability-mechanisms' is the code panel's
-  grid-coloured edge, and confidence-interval / multiple-testing /
-  logistic-regression have bottom axis labels whose glyph boxes touch the last
-  row by **under 1px** — a descender shave no reader can see.
-- The sweep's own two traps, for whoever re-runs it: filtering states on
-  `!s.$note` silently dropped 13 widgets (a note annotates a legitimate
-  state), and text-metric probes must skip **rotated labels** (their y is in
-  the rotated frame) and not `parseFloat` a weight-prefixed font string.
-
-### Still open
-
-**The slug rename `power-and-error` → something like `decision-making` waits
-for the course to end** (the source notes it beside `title:`).
-
-### Working beside another session
-
-`.claude/launch.json` now has **`widgets-alt` on 8011** beside `widgets` on
-8010: two sessions cannot share a pinned port, and the second lane keeps both
-deterministic. The 8010 pin and its rationale are unchanged.
-
-## WIDGET 24 IS SHIPPED — `dbscan`, built and baselined 2026-08-27
-
-**The full history is [docs/catalogue.md](docs/catalogue.md) § *Widget 24 ·
-`dbscan`*** — four design calls, two review rounds, and the two mock-up pages
-that settled them. Read that before changing anything. What belongs here is only
-what would cost time to rediscover:
-
-**Two review rounds each rewrote the animation, and the second was the real
-one.** The first build made the reach a beat you PERFORM ("Draw the reach"), so
-`eps` — a data parameter — re-initialised the animation on every drag and the
-discs vanished while the widget's most important slider moved. The second build
-grew one ring per **BFS layer**, which drew four rings at once, moved nothing,
-and never showed a neighbourhood being counted; Kenneth reported those as three
-separate questions and they were one fault. **A breadth-first front is not what
-DBSCAN does.** It now walks one point at a time:
-
-```
-0.00 - 0.44   the disc TRAVELS from the point just examined to this one
-0.38 - 0.74   spokes grow from it to every point inside the disc
-0.62 - 1.00   the ones it pulls in take the cluster colour
-```
-
-**Three things worth not rediscovering:**
-
-- **A mark drawn with `globalAlpha` over a wash takes its colour from the
-  wash.** Grammar G's border weight was measured at 97% distinct from core *on a
-  bare surface* and shipped as an alpha; on the figure it sat on ten overlapping
-  eps discs and read 79,135,202 against core's 57,135,229 — nothing like 97%,
-  and varying across the stage. It is a mixed opaque colour now. **A mark whose
-  appearance depends on what is behind it is not a mark.**
-- **`--grid` is the wrong token for anything that must read as a region.** It is
-  a hairline colour chosen to be nearly invisible and the eps disc vanished
-  outright in dark mode. `--ink-3` is `#898781` in *both* themes.
-- **Hand-pumping `requestAnimationFrame` is how the animation was checked**, and
-  it caught a `ReferenceError` that fires only on a mid-beat frame at a
-  particular speed. Every settled state and every `?shown=N` link sails past it.
-  The harness's own `drive()` does the same thing; borrow it.
-
-**`_lab/dbscan-drive.mjs` is written** — 130 assertions, no browser and no
-clock: `node widgets/_lab/dbscan-drive.mjs`. Contract, the point-by-point walk,
-the one sentence measured through the shipping widget (the silhouette's own
-choice of `eps` fails on 22 of 24 runs), the canvas text sweep, and the
-geometry check at 320–900px.
-
-**Mutation-testing it found a hole worth remembering.** Reverting the ARI tile
-to `adjustedRand` left all 129 assertions green — three of them tested that
-`adjustedRandNoiseAware` behaves correctly and none tested that the widget calls
-it. **Testing a function is not testing the caller.** The guard is there now;
-the lesson generalises to every driver in `_lab/`.
-
-**And one default is worth a second opinion.** The eps discs are a toggle
-defaulting **off**, which trades directly against review round 1, where they were
-made permanent precisely so dragging `eps` had something to move. What moves now
-is the caption's live core count and the travelling disc. Flipping that one
-default is the whole fix if it turns out to be too little.
-
-## WIDGET 23 IS SHIPPED — and one review is owed
-
-**On the gallery, five fingerprint states, 144 in the baseline.** Planned,
-measured, built and revised over **four rounds** of Kenneth's review on
-2026-08-26, then baselined and promoted.
-
-```bash
-node scripts/serve.mjs 8010
-# http://localhost:8010/widgets/kmeans/
-# http://localhost:8010/widgets/kmeans/?labels=on&start=4&restarts=10&shown=99
-node widgets/_lab/kmeans-drive.mjs     # 77 assertions, incl. the canvas text sweep
-node widgets/_lab/kmeans-verify.mjs    # 8 cases against sklearn 1.9.0, ALL MATCH
-node widgets/_lab/kmeans-measure.mjs   # every number the catalogue quotes
-```
-
-**The five states were recorded with `_lab/kmeans-shoot.html`, not by running
-the suite** — HANDOVER's *NEVER BASELINE BY PLACEHOLDER-AND-DIFF* prescribes
-exactly that, and the shooter first reproduced four existing baseline hashes to
-prove its copy of the harness had not drifted. All five were identical across
-three runs. **The full suite was not re-run and did not need to be**: nothing in
-`widgets/core/` was touched, so no change could reach a widget nobody was
-looking at — and the four states the shooter re-hashed still match.
-
-**STILL OWED: it has not been judged PROJECTED**, at lecture size from the back
-of a room. **Neither has anything since widget 10.** It is the cheapest review
-left in the repo and the one nothing here can do.
-
-The full record is [docs/catalogue.md](docs/catalogue.md) § *NEXT · K-Means*,
-including four review rounds and **two panels that were built and cut** — read
-those before proposing a third.
-
-### Three things recorded and NOT fixed
-
-- **The objective is not monotone in K on a single start.** On 16 of 60 walks a
-  reader could take, the within-cluster SS tile goes *up* as K goes up, because
-  "falls at every K" is a claim about the global optimum. The `n_init` control
-  is the cure and it is now on the widget, defaulted to 1 so the lesson still
-  fires; the claim itself is not made on screen.
-- **`shape` was never built.** The elongation cliff is measured — nothing breaks
-  at 3:1, 11 of 30 runs break at 4:1, 30 of 30 at 8:1 — and
-  `blobs(rng, { aspect })` is written and exported. One control.
-- **The widget runs Forgy; the notebook's code runs k-means++.** Cell 52's step
-  1 says "randomly", which is Forgy, and `sklearn`'s default is not. Both are
+- The objective is not monotone in K on a single start. On 16 of 60 walks a
+  reader could take, the within-cluster SS tile goes UP as K goes up, because
+  "falls at every K" is a claim about the global optimum. `n_init` is the cure
+  and is on the widget, defaulted to 1 so the lesson still fires; the claim
+  itself is not made on screen.
+- `shape` was never built. The elongation cliff is measured — nothing breaks at
+  3:1, 11 of 30 runs break at 4:1, 30 of 30 at 8:1 — and `blobs(rng, { aspect })`
+  is written and exported. One control.
+- The widget runs Forgy; the reference implementation runs k-means++. Both are
   exported and verified; an `init` control showing the pair is one segmented
   control.
 
----
+**Widgets 21-22 (`tsne`, `umap`), two recorded and not fixed:**
 
-## WIDGET 22 IS SHIPPED — and one review is still owed
+- A published `step` survives a data change in the URL but not in the figure.
+  Measured: `?step=40` reads KL 0.157, then moving `perplexity` reads 1.727
+  while the URL still says `step=40`. Core's `seededOnce` is deliberate; leaving
+  the parameter in the address bar is not. **The fix is core's and owes a full
+  fingerprint run.**
+- Widget 21 draws the same wireframe globe over samples that fill the BALL.
+  Widget 22's sit on the sphere and its globe is a surface; widget 21's is not,
+  and implies one its data is not on. It never claims a manifold, so it is the
+  smaller version of the same problem.
 
-**On the gallery, five fingerprint states, suite GREEN at 139 of 139.** Promoted
-on 2026-08-26 after four rounds of Kenneth's review; the states were recorded
-only once he promoted it, which is the order the catalogue argues for.
+**Widget 25 `missing-data`:** the slug rename `power-and-error` →
+`decision-making` waits for the course to end (noted at its `title:`).
 
-```bash
-node scripts/serve.mjs 8017
-# http://localhost:8017/widgets/umap/?graph=1&flatten=1&labels=on   then press Optimise
-node widgets/_lab/umap-verify.mjs     # the shipping module against umap-learn
-node widgets/_lab/umap-landing.mjs    # the flattening lands on frame 0, 2.2e-16
-node widgets/_lab/umap-measure.mjs    # every number the catalogue quotes
-```
-
-**STILL OWED: it has not been judged PROJECTED**, at lecture size from the back
-of a room. Neither has any widget from 11 onward — it is the cheapest review
-left in the repo and the one nothing here can do.
-
-The full record is [docs/catalogue.md](docs/catalogue.md) § *Widget 22 · `umap`*.
-
-### Two things recorded and NOT fixed
-
-- **A published `step` survives a data change in the URL but not in the figure,
-  and widget 21 does it too.** Measured there: `?step=40` reads KL 0.157, then
-  moving `perplexity` reads 1.727 while the URL still says `step=40`. Core's
-  `seededOnce` is deliberate; leaving the parameter in the address bar is not.
-  **The fix is core's and owes a full fingerprint run.**
-- **Widget 21 draws the same wireframe globe over samples that fill the BALL.**
-  Widget 22's now sit on the sphere and its globe is a surface; widget 21's is
-  not, and implies one its data is not on. It never claims a manifold, so it is
-  the smaller version of the same problem.
-
-### What baselining widget 22 taught, for widget 23
-
-- **The hit coordinate is measured, never guessed.** A pointer sweep of the whole
-  canvas at the harness's 900px frame found 959 live targets, and `[140, 188]`
-  was checked to set `pick=44` before it went into the baseline. Widget 21's was
-  guessed and hit nothing.
-- **Check every driven state against its settled sibling.** `mds` and
-  `balancing-data` once hashed IDENTICALLY settled and driven, which passes
-  `check` and covers nothing.
-- **A gate counts as a drive button**: `click: "gate-flatten"` is what captures
-  an entry animation, and it is how the flattening tween got a state at all.
-- **The harness needs the tab FRONTED** — it composites no frames otherwise — and
-  a full pass over 139 states takes about 40 seconds here.
-
----
+**Widgets 22-25 shipped 2026-08-27**, all pushed, all recorded in the catalogue.
+The cross-widget audit and the height sweep that ran alongside them are both
+CLOSED — see the audit section above.
 
 ## `px` TRACKS THE DEVICE PIXEL RATIO — the baseline is now Windows
 
@@ -1464,6 +701,12 @@ CoreText rasterise text differently, so it solves the smaller half.
 ---
 
 ## Working on Windows
+
+### Working beside another session
+
+`.claude/launch.json` has **`widgets-alt` on 8011** beside `widgets` on 8010:
+two sessions cannot share a pinned port, and the second lane keeps both
+deterministic. The 8010 pin and its rationale are unchanged.
 
 ### Python is installed — and ASK before working around a blocked network
 
@@ -1688,6 +931,58 @@ atomic inline box in an ordinary inline formatting context.
 ## Traps that cost time
 
 Each of these produced a wrong answer that looked right.
+
+### Text-sweep traps (a)-(i) — most are one shape: a silent no-op reads as a pass
+
+A "text sweep" here means wrapping `CanvasRenderingContext2D.prototype.fillText`
+to collect every string a widget paints, driving it through its states, and
+checking the collected boxes for collisions, overflow and bad numbers. It is the
+cheapest check in the repo and it has failed silently nine distinct ways.
+
+**(a)** The `resize` repaint is inert — 45 states came back with zero strings and
+looked clean; clear the buffer BEFORE the parameter write, not after, and
+split on the caption because one state can cause several repaints.
+
+**(b)** rAF is throttled to ~1 frame per 300 ms here, so a 45-state sweep on
+`requestAnimationFrame` times out — use `setTimeout(0)`, in chunks of 15.
+
+**(c)** A `const` in its temporal dead zone made `draw` throw and abort after
+panel 2, and the collision sweep PASSED because the two lines it would have
+collided with were never painted. Any sweep must assert that the LAST thing
+`draw` paints is present in every state, or it is checking a partial figure.
+
+**(d)** A `const` in its temporal dead zone has now done this TWICE — `SHORT`
+in `normalization`, `byBatch` in `batch-effect` — and the second time the
+sweep passed, because its terminator was the x-axis label and `axisX` paints
+that BEFORE the caption and note. **A sweep's terminator must be the last
+thing `draw` paints**, not merely something late in it.
+
+**(e)** An ease running in the background leaks frames into the next state's
+capture, and every string then collides with ITSELF — 80 findings, all
+spurious.
+
+**(f)** Split the buffer on the LAST thing a paint draws, never the first.
+Slicing on panel 1's caption worked until the walkthrough started drawing above
+it, at which point the slice ate the previous paint's tail and
+reported `values -2.00 – 7.10` colliding with `values -11.7 – 7.1`. The
+pipeline line is the terminator here.
+
+**(g)** A `const` in its temporal dead zone, THIRD time — `axisFmt` in
+`batch-effect`, declared beside `ticksOf` at the foot of the file. `draw` runs
+while the module is still evaluating, so **every helper below `defineWidget`
+must be a `function` declaration**, which hoists. Two of the three were caught
+only by opening the page.
+
+**(h)** A sweep that never reloaded tests the PREVIOUS version. 60 states came
+back clean while the current module threw on every render, because the page
+had been loaded before the edit. `npm run dev` sends `no-store`, but nothing
+reloads for you. **Navigate first, and make the sweep fail on any uncaught
+error** — one `window.onerror` listener is the whole fix.
+
+**(i)** A collision test cannot see CROWDING. Two axis labels 23px apart with
+no overlap passed, and read as one run-on string. A sweep should also fail a
+gap under about 10px between strings sharing a baseline. This is the case for
+judgement: the assertions were right and the picture was still wrong.
 
 **From widget 15's session:**
 

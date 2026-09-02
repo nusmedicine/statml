@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The high-throughput arc*, five proposed slots — the only open queue |
+| what to build next | § *The high-throughput arc* — three slots left of five, the only open queue |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -3237,6 +3237,10 @@ first PHM5003 week where **most of the widgets already exist**. Four of its nine
 lessons have a shipped host, three of those built for PHM5005 and inherited.
 Reading all nine end to end says the gap is **five slots**, and one of the five
 is a hole in an arc this file already called complete.
+
+**Two of the five shipped on 2026-09-02** — Slot 1 `normalization` and Slot 3
+`batch-effect`. Three remain and none is picked: `nmf`, `hierarchical-clustering`
+and `enrichment`.
 
 The week is one continuous argument, and it is the omics pipeline in order:
 *design it → find the holes → put the samples on one scale → look at it → find
