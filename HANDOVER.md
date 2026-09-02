@@ -78,8 +78,11 @@ node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions
 # .../widgets/normalization/?transform=log1p                    (the fan collapses, the staircase does not)
 # .../widgets/normalization/?normalize=quantile&transform=log1p (both, composed)
 # .../widgets/normalization/?spread=0                           (the notebook's stage: nothing to correct)
+# .../widgets/normalization/?act=1                              (the walkthrough, at step 0 — press Play)
+# .../widgets/normalization/?act=1&shown=3                      (the walkthrough, finished)
 node widgets/_lab/norm-verify.mjs    # 12 identities on the shipping engine
 node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
+# _lab/norm-round2.html — the picker candidates, built by core at both rail widths
 ```
 
 - **The engine is `widgets/normalization/model.js`**, imported by the widget,
@@ -111,8 +114,26 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   panel 2, and the collision sweep PASSED because the two lines it would have
   collided with were never painted.** Any sweep must assert that the LAST thing
   `draw` paints is present in every state, or it is checking a partial figure.
-- **No animation** (4.5), following `linear-regularization`. The quantile
-  procedure as an act is round 2 if Kenneth wants it.
+- **ROUND 2 landed 2026-09-02** — the picker, a formula card, and the quantile
+  act; catalogue § Slot 1 § *ROUND 2* has all of it. **The split picker stays,
+  measured**: five long-named options get 45px of segment at the narrow rail and
+  "Min–max" needs 65, and the `choice` slider that does fit is the wrong shape
+  because these options are not a magnitude. **A `.w-math` formula card** sits
+  above the figure, one row per rail step, reserved at 7.8em after it jogged
+  23px. **The quantile walkthrough** is a `gate` below the panels on its own
+  6 × 4 stage, four phases, cells easing between their gene row and their rank
+  row.
+- **THE WIDGET NOW DECLARES AN `animation`**, so at promotion it owes at least
+  one **driven** fingerprint state as well as the settled ones — `check.mjs`
+  fails without it. `?act=1&shown=N` is the settled route; `drive: { click,
+  frames, dt }` on the Step button is the driven one.
+- **`mathmlRenders()` IS CORE'S NOW** (own commit, 2026-09-02). It was copied
+  verbatim in `lm-interaction` and `lm-diagnostics`, and this card would have
+  been the third — 5.8's trigger. The full suite read **275 of 275 MATCH**.
+- **Reset closes the gate**, because Reset returns every parameter to its
+  default and `act` defaults to false. Correct, and it cost a sweep: any
+  harness that walks the act must open the gate itself rather than reaching for
+  Reset between states.
 
 ## The high-throughput arc — FOUR SLOTS STILL PROPOSED
 

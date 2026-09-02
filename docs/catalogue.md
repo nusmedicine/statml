@@ -3485,10 +3485,78 @@ never painted.** A silent abort and a clean pass look identical, which is the
 `resize`-repaint trap in a new costume. The sweep now asserts the *last* thing
 `draw` paints is present in every state.
 
+#### ROUND 2 — Kenneth, 2026-09-02: the picker, the formula, the quantile act
+
+Mocked in [`_lab/norm-round2.html`](../widgets/_lab/norm-round2.html), which
+builds every candidate with `core/controls.js` itself at both rail widths.
+
+**1 · The picker stays split, and the measurement is the reason.** Normalize is
+a `select` and Transform a `segmented`, which looked like an inconsistency:
+
+| shape | rail | options | share each | widest label needs | |
+|---|---|---|---|---|---|
+| segmented | 250 | 3 | 75px | `log(1 + y)` 68px | fits |
+| segmented | 250 | **5** | **45px** | `Min–max` **65px** | **no** |
+| segmented | 300 | **5** | **55px** | `Min–max` **65px** | **no** |
+| choice | 250 | 5 | ticks at 13/51/98/153/200 | 14px apart | fits |
+
+Segments are `flex: 1`, so each gets an equal share whatever its label needs.
+Shortening does not rescue it — 45px of button is about 29px of text and
+`Min–max` is 49px — and nor does cutting an option, since four segments get
+56px. The `choice` slider fits and is still wrong: 3.3 reserves it for options
+forming a **magnitude**, and these five read 0.481 / 0.481 / 0.481 / 0.000 /
+0.000 on the scale tile, which is a two-valued fact. **So the split is
+load-bearing**: five long-named options cannot be a button group at any width
+this layout reaches, and three short ones must not be a dropdown, because a
+dropdown hides that a second operation is on offer at all.
+
+**2 · The formula card.** One row per rail step, above the figure in the figure
+column — so it survives into the exported PNG, which the rail does not. Both
+rows always, greyed when the step is None, and the Box-Cox row prints the λ the
+slider is actually on. Two things it settled the hard way:
+
+- **The card jogged 23px** (60px to 83px across the 45 states) until the reserve
+  went in, which is the fault "both rows always" was chosen to avoid. `7.8em`
+  covers the worst case at the **narrowest** column, 535px, where the quantile
+  row wraps to two lines. Flat at 86px at both 535 and 770 now.
+- **The Transform row read "the samples are left as they are"** — the *other*
+  step's claim, from a shared `none` string. Normalisation is about the samples;
+  transformation is about the shape. Two strings now.
+
+Quantile has **no closed form**, so its row carries the notebook's own three
+steps as prose. That is also the argument for the third item.
+
+**3 · The quantile act is built**, behind a `gate` below the two panels, on its
+own six-by-four stage from the same generator, seed and technical variation.
+Four phases — the table, rank within each sample, average at each rank, assign
+back — with the cells **travelling between their gene row and their rank row**,
+eased. That motion is the mechanism: quantile normalisation is the claim that a
+value's rank is the only thing about it that survives, and 4.3 says motion
+should read as the thing it depicts.
+
+Three defects came out of building it:
+
+- **The last phase never ran.** `if (phase >= last) return false` at the top of
+  `advance` fired the moment the phase became 3, with `t` still 0, so the
+  assign-back motion never played and the settled figure showed phase 2's
+  picture under phase 3's caption. The terminal condition is the last phase
+  **completed**, not reached.
+- **The note printed through the column headers** — measured, the note's box ran
+  441–452 and the headers' 442–454. The grid moved from `y0 + 44` to `y0 + 62`.
+- **A separate payoff line was redundant with the phase note** and silently was
+  not drawing. Its one distinct claim — *in a different order* — is folded into
+  the note, because without it a reader can leave thinking the samples were made
+  identical. They were not; only their distributions were.
+
+**And `mathmlRenders()` moved into core first**, as its own commit — the third
+copy was the trigger (5.8), and the full fingerprint suite read **275 of 275
+MATCH** to prove the move changed nothing.
+
 **Still open**: the title, the subtitle, and the gene/sample counts, all better
 settled against the running widget than in advance. **Not baselined** — a draft
 owes no fingerprint states, and a baseline recorded before the design settles
-gets thrown away.
+gets thrown away. When it is promoted it now owes a **driven** state too, since
+it declares an `animation`.
 
 ### The notebook hands over its own figure
 
