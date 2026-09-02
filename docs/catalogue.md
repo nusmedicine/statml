@@ -3888,11 +3888,57 @@ a shift of 2 against an effect of 0.8. The crossover is lower than that:
 Below about 0.5 the condition still owns PC1. So "is the batch bigger than the
 biology" is a question with a threshold, and the shift earns a control.
 
-**Open for the mock-up**: whether the correction picker carries all three
-options or folds the first into a toggle; whether both PCA colourings show at
-once (the notebook's two panels) or one panel with a colour-by control, which is
-the colour-role question above; and whether the effect estimate is a tile, a
-strip, or drawn on the figure.
+#### ROUND 0 SETTLED 2026-09-02 — seven picks from `_lab/batch-mock.html`
+
+| # | question | ANSWER |
+|---|---|---|
+| 2 | the PCA panel | **One panel: colour = condition, shape = batch.** The standard form for two categorical splits on one scatter, and it dissolves the colour-role question rather than working around it — batch never needs a hue |
+| 3 | the correction picker | **One picker of three** — None / Batch mean / Keep condition — as a grid. The middle option is the mistake being taught, and it should be chosen rather than landed on |
+| 4 | the estimate | **Tiles plus a strip**: the tiles carry the numbers, the strip draws all three corrections against the known 0.80 on one axis |
+| 5 | the singular state | **The slider reaches 1 and the estimate says *not estimable*.** That boundary is the argument's own conclusion |
+| 1 | the design | **A 2 × 2 count table beside the scatter.** Confounding is a property of the design, and a reader seeing only the scatter cannot tell an unbalanced design from a large batch effect (2.7) |
+| 6 | the batch shift | **A `choice` slider.** The crossover is measured at ≈ 1.0, not the notebook's 2, so the control carries an idea (3.5) |
+| 7 | the motion | **Ease between corrections**, on core's ease-request door. No drive buttons |
+
+#### The ease forces a fixed projection, and that is 2.5 one level up
+
+**Refitting the PCA per correction does not merely flip the axes, it rotates
+them.** Correlation between the uncorrected scores and the corrected ones, seed 1:
+
+| overlap | PC1 | PC2 |
+|---|---|---|
+| 0.00 | 0.213 | −0.492 |
+| 0.50 | 0.167 | 0.302 |
+| 0.75 | 0.133 | −0.522 |
+
+Removing the batch removes the dominant direction, so PC1 becomes something
+else entirely. **An ease between two such states shows motion that is about the
+axes rather than about the data** — which is exactly the fault 2.5 records for a
+rescaled axis, one level up: a basis refitted per state hides the collapse that
+is the point.
+
+So every correction is **projected onto the uncorrected data's axes**, and the
+axis is labelled as such. Measured, that tells the story better than a refit
+would:
+
+| overlap | correction | PC1 by batch | PC1 by condition |
+|---|---|---|---|
+| 0.00 | none | **7.694** | 0.446 |
+| 0.00 | either | **0.000** | **3.504** |
+| 0.50 | none | 9.084 | 1.696 |
+| 0.50 | batch mean | 0.000 | 2.151 |
+| 0.50 | keep condition | 0.968 | **3.813** |
+| 1.00 | none | 18.022 | 18.022 |
+| 1.00 | batch mean | 0.000 | 0.000 |
+
+The batch separation collapses to **exactly zero** and the condition emerges on
+the same axis, so the ease is one motion: the points slide together along PC1
+and re-separate by colour.
+
+**It is a departure from the notebook**, which runs `prcomp` on the corrected
+data each time, and the axis label has to say so — *PC1 of the uncorrected
+data*. It follows from the pick at ask 7: an ease is only honest on a fixed
+frame.
 
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
