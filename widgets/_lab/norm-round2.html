@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 39 round 2 — the picker, the formula card, the quantile act</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 94ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 94ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 13px; max-width: 300px; }
+  .railbox { border: 1px dashed var(--grid); padding: var(--sp-3); background: var(--surface-2); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; white-space: pre-wrap; max-width: 320px; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 39 round 2 · <code>normalization</code> — the picker, the formula card, the quantile act</h1>
+  <p class="note">
+    Three of Kenneth's, 2026-09-02. Every control below is built by
+    <code>core/controls.js</code> itself, at the real rail widths (250px is the narrow
+    end of <code>minmax(250px, 300px)</code>, 300px the wide end), so the widths under each
+    candidate are measured and not guessed.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§1 · THE PICKER — normalize is a dropdown, transform is a button group</h2>
+  <p class="note">
+    They are two steps of one pipeline and the rail's parallelism is half the argument
+    (2.7), so two different shapes is a real inconsistency. It happened for a reason:
+    <b>five options do not fit a segmented group in a 250px rail</b> — the segments are
+    <code>flex: 1</code>, so each gets a fifth of the width whatever its label needs. The
+    measured widths are printed under each candidate; a candidate whose longest label
+    exceeds its segment share is marked.
+  </p>
+  <div class="row" id="pickers"></div>
+  <table class="m" id="pickfit"></table>
+  <table class="m" id="tickfit"></table>
+  <p class="note">
+    <b>What the measurements settle.</b> <b>B and E are out</b>: five segments get 45px at
+    the narrow rail and 55px at the wide one, and "Min–max" needs 65px at the button's own
+    font. Shortening does not rescue it — 45px of button is about 29px of text, and
+    "Min–max" is 49px. Cutting an option does not either: four segments get 56px.
+    <b>D fits</b> — five tick labels at 13 / 51 / 98 / 153 / 200 with about 14px between
+    them, comfortably inside 250px — <b>but it is the wrong shape</b>: 3.3 wants a
+    <code>choice</code> slider for options that form a MAGNITUDE, and these do not.
+    Their own scale-gap readings are 0.481 / 0.481 / 0.481 / 0.000 / 0.000 — a
+    two-valued fact, not a ramp, so left-to-right would carry nothing.
+  </p>
+  <p class="note">
+    Which leaves <b>A</b> and <b>C</b>, and the difference is what a dropdown hides. This
+    widget's whole argument is that there is a SECOND operation; putting the transform's
+    three options behind a dropdown hides that the choice exists at all, which is exactly
+    the case 3.3 reserves <code>segmented</code> for. <b>So the inconsistency is
+    load-bearing rather than an oversight</b> — five long-named options cannot be a button
+    group at any rail width this layout reaches, and three short ones should not be a
+    dropdown. My recommendation is A, unchanged, with this measurement recorded so it is
+    not re-argued.
+  </p>
+  <p class="ask">
+    <b>ASK 1.</b> A (keep the split, now with a reason), C (both dropdowns, parallel but
+    the transform's options hidden), or D (accept the slider despite 3.3)?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§2 · THE FORMULA CARD</h2>
+  <p class="note">
+    <code>.w-math</code> already exists in core and two widgets use it —
+    <code>lm-interaction</code> and <code>lm-diagnostics</code> — as a card inserted
+    <b>above</b> the figure, in the figure column. So it lands in the exported PNG, which
+    the rail does not. Every formula below is the notebook's own, verbatim from
+    <code>05 / 03</code>.
+  </p>
+  <p class="note">
+    <b>Quantile normalisation has no closed form</b> and the notebook gives it as three
+    numbered steps instead. That is the one row where a formula would have to be invented,
+    which is also the argument for §3.
+  </p>
+  <div class="row" id="cards"></div>
+  <p class="ask">
+    <b>ASK 2.</b> A (both rows always, greyed when None), B (only the active steps —
+    the card shrinks to nothing at None + None), or C (both rows, and the second row
+    shows the λ actually in force)?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§3 · THE QUANTILE ACT — would an animation help?</h2>
+  <p class="note">
+    <b>Yes, and it is the only step in this widget a reader cannot picture.</b> Min–max and
+    z-score are one arithmetic line each; the log is a curve everyone has seen. Quantile
+    normalisation is a three-step procedure over the whole table, and the notebook writes it
+    out as prose (cell 16) precisely because it does not reduce to a formula.
+  </p>
+  <p class="note">
+    The problem is scale: 1000 genes × 10 samples is not a countable thing (2.3). So the act
+    needs its OWN small stage — <b>6 genes × 4 samples</b> below, real numbers from the same
+    gamma generator — behind a <code>gate</code> (3.4b), with the main figure untouched.
+    Four steps, drawn as a filmstrip:
+  </p>
+  <div class="row" id="film"></div>
+  <p class="note">
+    <b>And the payoff is checkable on the small stage</b>: after step 4 the four columns hold
+    the same six values in a different order, so every sample's distribution is identical —
+    which is the claim the main figure's boxplots make at 1000 genes and cannot show you
+    arriving at.
+  </p>
+  <table class="m" id="qcheck"></table>
+  <p class="ask">
+    <b>ASK 3.</b> Build it? And if so: a <code>gate</code> that opens a second stage below
+    the two panels (my recommendation — the main figure keeps its meaning and the act is
+    opt-in), or a third tab?
+  </p>
+
+  <h2>§4 · One thing found while building this page</h2>
+  <p class="note">
+    <code>mathmlRenders()</code> — the feature probe that decides whether to emit MathML or
+    a plain-text fallback — is <b>copied verbatim in two widgets</b>,
+    <code>lm-interaction</code> and <code>lm-diagnostics</code>. A third copy here would be
+    the third, which is usually when this repo moves something into core (5.8). Flagged, not
+    done: core changes need the full fingerprint suite and this is a draft.
+  </p>
+</main>
+
+<script type="module">
+import { buildControls } from "../core/controls.js";
+import { simulate, apply, quantiles, median } from "../normalization/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+for (const k of ["ink-1","ink-2","ink-3","grid","surface-1","surface-2","c-empirical",
+                 "c-highlight","c-reference","c-theory"]) C[k] = css(`--${k}`);
+
+/* ---- §1 · picker candidates, built by core at the real rail widths ------- */
+const FULL = [
+  { value: "none", label: "None" },
+  { value: "median", label: "Median, per sample" },
+  { value: "minmax", label: "Min–max → [0, 1]" },
+  { value: "zscore", label: "Z-score → mean 0, sd 1" },
+  { value: "quantile", label: "Quantile" },
+];
+const SHORT = [
+  { value: "none", label: "None" },
+  { value: "median", label: "Median" },
+  { value: "minmax", label: "Min–max" },
+  { value: "zscore", label: "Z-score" },
+  { value: "quantile", label: "Quantile" },
+];
+const TRANS = [
+  { value: "none", label: "None" },
+  { value: "log1p", label: "log(1 + y)" },
+  { value: "boxcox", label: "Box–Cox" },
+];
+
+const CANDS = [
+  { key: "A", title: "A · select + segmented (current)", sub: "two shapes for two steps of one pipeline",
+    spec: { norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
+            normalize: { type: "select", label: "Method", options: FULL, default: "none" },
+            tran: { type: "section", label: "2 · Transform", detail: "change the shape of the distribution" },
+            transform: { type: "segmented", label: "Method", options: TRANS, default: "none" } } },
+  { key: "B", title: "B · segmented + segmented", sub: "five segments, flex:1 — each gets a fifth of the rail",
+    spec: { norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
+            normalize: { type: "segmented", label: "Method", options: SHORT, default: "none" },
+            tran: { type: "section", label: "2 · Transform", detail: "change the shape of the distribution" },
+            transform: { type: "segmented", label: "Method", options: TRANS, default: "none" } } },
+  { key: "C", title: "C · select + select", sub: "parallel, and neither shows its options at rest",
+    spec: { norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
+            normalize: { type: "select", label: "Method", options: FULL, default: "none" },
+            tran: { type: "section", label: "2 · Transform", detail: "change the shape of the distribution" },
+            transform: { type: "select", label: "Method", options: TRANS, default: "none" } } },
+  { key: "D", title: "D · choice slider + segmented", sub: "all five visible; but 3.3 wants a magnitude, and these are not one",
+    spec: { norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
+            normalize: { type: "choice", label: "Method", options: SHORT, default: "none" },
+            tran: { type: "section", label: "2 · Transform", detail: "change the shape of the distribution" },
+            transform: { type: "segmented", label: "Method", options: TRANS, default: "none" } } },
+  { key: "E", title: "E · segmented, initials + detail", sub: "the detail line carries the full name of whichever is pressed",
+    spec: { norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
+            normalize: { type: "segmented", label: "Method",
+              options: SHORT.map((o) => ({ ...o, label: o.value === "none" ? "None"
+                : o.value === "median" ? "Med" : o.value === "minmax" ? "Min–max"
+                : o.value === "zscore" ? "Z" : "Quant" })),
+              detail: "Median, per sample — divide each sample by its own median",
+              default: "none" },
+            tran: { type: "section", label: "2 · Transform", detail: "change the shape of the distribution" },
+            transform: { type: "segmented", label: "Method", options: TRANS, default: "none" } } },
+];
+
+const host1 = document.getElementById("pickers");
+const fitRows = [];
+for (const w of [250, 300]) {
+  for (const c of CANDS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    d.innerHTML = `<h3>${c.title} — ${w}px</h3><p class="sub">${c.sub}</p>`;
+    const box = document.createElement("div");
+    box.className = "railbox w-rail";
+    box.style.width = `${w}px`;
+    d.appendChild(box);
+    host1.appendChild(d);
+    buildControls(box, c.spec, { normalize: "none", transform: "none" }, () => {});
+  }
+}
+/* measure: does the longest label fit its segment's share? */
+requestAnimationFrame(() => {
+  const rows = [];
+  for (const box of document.querySelectorAll("#pickers .railbox")) {
+    const w = box.style.width;
+    const segs = [...box.querySelectorAll("button[data-value]")];
+    if (!segs.length) continue;
+    const groups = new Map();
+    for (const s of segs) {
+      const g = s.parentElement;
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(s);
+    }
+    for (const [g, list] of groups) {
+      const share = Math.round(g.getBoundingClientRect().width / list.length);
+      let worst = null;
+      for (const s of list) {
+        const r = document.createElement("span");
+        r.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;"
+          + `font:${getComputedStyle(s).font}`;
+        r.textContent = s.textContent;
+        document.body.appendChild(r);
+        const need = Math.ceil(r.getBoundingClientRect().width) + 16;   // + button padding
+        r.remove();
+        if (!worst || need > worst.need) worst = { label: s.textContent, need };
+      }
+      rows.push({ w, n: list.length, share, worst });
+    }
+  }
+  const t = document.getElementById("pickfit");
+  const seen = new Set();
+  t.innerHTML = `<tr><th colspan="5">SEGMENTED — each segment is flex:1, so it gets an equal share whatever its label needs</th></tr>`
+    + `<tr><th>rail</th><th>segments</th><th>share each</th><th>widest label needs</th><th>fits?</th></tr>`
+    + rows.filter((r) => { const k = `${r.w}|${r.n}`; if (seen.has(k)) return false; seen.add(k); return true; })
+      .map((r) => `<tr><td>${r.w}</td><td>${r.n}</td><td>${r.share}px</td>`
+        + `<td>"${r.worst.label}" ${r.worst.need}px</td>`
+        + `<td class="${r.worst.need > r.share ? "bad" : "hit"}">`
+        + `${r.worst.need > r.share ? "NO — truncates or overflows" : "yes"}</td></tr>`).join("");
+
+  /* Candidate D's options are TICK LABELS, not segments — a different question
+     and the fit table above cannot answer it. Measure where they actually land. */
+  const trows = [];
+  for (const box of document.querySelectorAll("#pickers .railbox")) {
+    if (!box.querySelector("input[type=range]")) continue;
+    /* The rail also holds a `.val` readout and, in this candidate, the transform's
+       segmented buttons — both match the same text. Tick labels are the unclassed
+       spans that are not inside a button. */
+    const labs = [...box.querySelectorAll("span")].filter((e) => e.children.length === 0
+      && !e.className && !e.closest("button")
+      && /^(None|Median|Min–max|Z-score|Quantile)$/.test((e.textContent || "").trim()));
+    if (labs.length !== 5) continue;
+    const left = box.getBoundingClientRect().left;
+    const pos = labs.map((e) => { const r = e.getBoundingClientRect();
+      return { s: e.textContent.trim(), l: Math.round(r.left - left), w: Math.round(r.width) }; });
+    let minGap = Infinity;
+    for (let i = 1; i < pos.length; i += 1) minGap = Math.min(minGap, pos[i].l - (pos[i - 1].l + pos[i - 1].w));
+    trows.push({ w: box.style.width, pos, minGap, over: pos[4].l + pos[4].w > parseInt(box.style.width, 10) });
+  }
+  document.getElementById("tickfit").innerHTML =
+    `<tr><th colspan="4">CHOICE SLIDER — the five options render as tick labels instead</th></tr>`
+    + `<tr><th>rail</th><th>label positions</th><th>tightest gap</th><th>fits?</th></tr>`
+    + trows.map((r) => `<tr><td>${r.w}</td><td>${r.pos.map((p) => p.l).join(" / ")}</td>`
+      + `<td>${r.minGap}px</td><td class="${r.over || r.minGap < 4 ? "bad" : "hit"}">`
+      + `${r.over || r.minGap < 4 ? "NO" : "yes — but see 3.3 below"}</td></tr>`).join("");
+});
+
+/* ---- §2 · the formula card ---------------------------------------------- */
+const M = {
+  median: "<math><mrow><msup><mi>x</mi><mo>&#x2032;</mo></msup><mo>=</mo>"
+    + "<mfrac><mi>x</mi><mrow><mi>median</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mfrac></mrow></math>",
+  minmax: "<math><mrow><msup><mi>x</mi><mo>&#x2032;</mo></msup><mo>=</mo>"
+    + "<mfrac><mrow><mi>x</mi><mo>&#x2212;</mo><mi>min</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
+    + "<mrow><mi>max</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>&#x2212;</mo><mi>min</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mfrac></mrow></math>",
+  zscore: "<math><mrow><mi>Z</mi><mo>=</mo>"
+    + "<mfrac><mrow><mi>x</mi><mo>&#x2212;</mo><mi>&#x3BC;</mi></mrow><mi>&#x3C3;</mi></mfrac></mrow></math>",
+  quantile: null,
+  log1p: "<math><mrow><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>=</mo>"
+    + "<mi>log</mi><mo>(</mo><mi>y</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></math>",
+  boxcox: (lam) => "<math><mrow><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>=</mo>"
+    + `<mfrac><mrow><msup><mi>y</mi><mn>${lam}</mn></msup><mo>&#x2212;</mo><mn>1</mn></mrow><mn>${lam}</mn></mfrac></mrow></math>`,
+};
+const QWORDS = "rank the values in each sample · average across samples at each rank · assign each value the average for its rank";
+
+function card(rows) {
+  const d = document.createElement("div");
+  d.className = "w-math";
+  d.style.width = "460px";
+  d.innerHTML = rows.map(([label, html, tone]) =>
+    `<div class="w-math-eq" style="min-height:0;padding-left:5.6em;text-indent:-5.6em">`
+    + `<span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>`
+    + `<span style="color:${tone || "var(--ink-1)"}">${html}</span></div>`).join("");
+  return d;
+}
+const host2 = document.getElementById("cards");
+for (const [title, sub, rows] of [
+  ["A · both rows always", "greyed when the step is None — the card never changes height",
+    [["1 · Normalize", "<span style='color:var(--ink-3)'>none — the samples are left as they are</span>", "var(--ink-3)"],
+     ["2 · Transform", M.log1p]]],
+  ["B · only the active steps", "at None + None the card is empty, so the figure moves up",
+    [["2 · Transform", M.log1p]]],
+  ["C · both rows, λ in force", "the second row shows the λ the slider is actually on",
+    [["1 · Normalize", M.minmax],
+     ["2 · Transform", M.boxcox("0.5")]]],
+  ["the quantile row", "no closed form — the notebook's own three steps instead",
+    [["1 · Normalize", `<span style="font-size:var(--fs-xs);color:var(--ink-2)">${QWORDS}</span>`],
+     ["2 · Transform", "<span style='color:var(--ink-3)'>none</span>", "var(--ink-3)"]]],
+]) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  d.appendChild(card(rows));
+  host2.appendChild(d);
+}
+
+/* ---- §3 · the quantile act, on a countable stage ------------------------ */
+const G = 6, S = 4;
+const { cols: big } = simulate({ seed: 5, genes: G, samples: S, spread: 0.8, stage: "gamma" });
+const V = big.map((c) => c.map((x) => Math.round(x)));
+
+const order = (c) => c.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]).map(([, i]) => i);
+const RANKOF = V.map((c) => { const o = order(c); const r = new Array(G); o.forEach((gi, k) => { r[gi] = k; }); return r; });
+const SORTED = V.map((c) => c.slice().sort((a, b) => a - b));
+const REF = Array.from({ length: G }, (_, r) => SORTED.reduce((s, c) => s + c[r], 0) / S);
+const OUT = V.map((c, s) => c.map((_, g) => REF[RANKOF[s][g]]));
+
+function grid(ctx, x0, y0, cw, rh, colsData, opts = {}) {
+  const { head = [], rowHead = [], mark = null, dim = null, fmt = (v) => String(Math.round(v * 10) / 10) } = opts;
+  ctx.font = `11px ${css("--font-mono")}`;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  head.forEach((h, j) => { ctx.fillStyle = C["ink-3"]; ctx.fillText(h, x0 + cw * (j + 0.5), y0 - 10); });
+  rowHead.forEach((h, i) => { ctx.fillStyle = C["ink-3"]; ctx.textAlign = "right"; ctx.fillText(h, x0 - 6, y0 + rh * (i + 0.5)); ctx.textAlign = "center"; });
+  colsData.forEach((col, j) => col.forEach((v, i) => {
+    const cx = x0 + cw * (j + 0.5), cy = y0 + rh * (i + 0.5);
+    const on = mark ? mark(j, i) : false;
+    if (on) { ctx.fillStyle = C["c-highlight"]; ctx.globalAlpha = 0.18;
+      ctx.fillRect(x0 + cw * j + 1, y0 + rh * i + 1, cw - 2, rh - 2); ctx.globalAlpha = 1; }
+    ctx.fillStyle = dim && dim(j, i) ? C["ink-3"] : (on ? C["c-highlight"] : C["ink-1"]);
+    ctx.fillText(fmt(v), cx, cy);
+  }));
+  ctx.strokeStyle = C.grid;
+  for (let j = 0; j <= colsData.length; j += 1) { ctx.beginPath(); ctx.moveTo(x0 + cw * j + .5, y0); ctx.lineTo(x0 + cw * j + .5, y0 + rh * G); ctx.stroke(); }
+  for (let i = 0; i <= G; i += 1) { ctx.beginPath(); ctx.moveTo(x0, y0 + rh * i + .5); ctx.lineTo(x0 + cw * colsData.length, y0 + rh * i + .5); ctx.stroke(); }
+}
+
+const FRAMES = [
+  ["1 · the table", "6 genes × 4 samples, raw. Sample 4 reads high throughout.",
+    (ctx) => grid(ctx, 60, 34, 56, 24, V, { head: ["S1", "S2", "S3", "S4"], rowHead: ["g1","g2","g3","g4","g5","g6"] })],
+  ["2 · rank within each sample", "each column sorted on its own — the ranks, not the genes, line up",
+    (ctx) => { grid(ctx, 60, 34, 56, 24, SORTED, { head: ["S1", "S2", "S3", "S4"], rowHead: ["r1","r2","r3","r4","r5","r6"] }); }],
+  ["3 · average across samples, at each rank", "the reference distribution — one value per rank",
+    (ctx) => { grid(ctx, 34, 34, 44, 24, SORTED, { head: ["S1","S2","S3","S4"] });
+      ctx.fillStyle = C["ink-3"]; ctx.font = `13px ${css("--font-mono")}`; ctx.fillText("→", 226, 34 + 24 * 3);
+      grid(ctx, 250, 34, 56, 24, [REF], { head: ["mean"], rowHead: ["r1","r2","r3","r4","r5","r6"] }); }],
+  ["4 · assign each value its rank's average", "back in the original positions — every column now holds the SAME six numbers",
+    (ctx) => grid(ctx, 60, 34, 56, 24, OUT, { head: ["S1", "S2", "S3", "S4"], rowHead: ["g1","g2","g3","g4","g5","g6"] })],
+];
+
+const host3 = document.getElementById("film");
+for (const [title, sub, paint] of FRAMES) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = 330; cv.height = 190;
+  d.appendChild(cv);
+  host3.appendChild(d);
+  paint(cv.getContext("2d"));
+}
+
+/* the payoff, checked rather than asserted */
+{
+  const t = document.getElementById("qcheck");
+  const same = OUT.every((c) => {
+    const a = c.slice().sort((x, y) => x - y), b = OUT[0].slice().sort((x, y) => x - y);
+    return a.every((v, i) => Math.abs(v - b[i]) < 1e-12);
+  });
+  const med = (a) => { const b = a.slice().sort((x, y) => x - y); const n = b.length;
+    return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+  t.innerHTML = `<tr><th></th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>median range</th></tr>`
+    + `<tr><td>raw median</td>${V.map((c) => `<td>${med(c).toFixed(1)}</td>`).join("")}`
+    + `<td class="bad">${(Math.max(...V.map(med)) - Math.min(...V.map(med))).toFixed(1)}</td></tr>`
+    + `<tr><td>after step 4</td>${OUT.map((c) => `<td>${med(c).toFixed(1)}</td>`).join("")}`
+    + `<td class="hit">${(Math.max(...OUT.map(med)) - Math.min(...OUT.map(med))).toFixed(3)}</td></tr>`
+    + `<tr><td colspan="6" style="text-align:left;color:var(--ink-3)">`
+    + `every column holds the same six values: ${same ? "YES" : "NO"} — which is the claim, verified on the stage the reader can count.</td></tr>`;
+}
+</script>
+</body>
+</html>
