@@ -98,15 +98,36 @@ console.log("     control genes, which carry it whatever the design does.");
 
 /* ==== 4 · RUV is only as good as its control genes ======================== */
 console.log();
-console.log("=== 4 · RUV DEPENDS ENTIRELY ON WHICH GENES YOU CALL CONTROLS ===");
-console.log(`estimated effect, overlap 0.5, truth ${TRUE_EFFECT}`);
+console.log("=== 4 · RUV IS ONLY AS GOOD AS ITS REFERENCE GENES ===");
+console.log(`estimated effect and what the factor found, truth ${TRUE_EFFECT}, 5 seeds.`);
+console.log("At a BALANCED design the mechanism is clean: the batch is orthogonal to the");
+console.log("condition, so only a reference set carrying biology can drag the factor onto it.");
 console.log();
-for (const key of Object.keys(CONTROL_SETS)) {
-  const v = SEEDS.map((seed) =>
-    estimateWithSE(simulate({ seed, overlap: 0.5 }), "ruv", { controls: key }).beta);
-  console.log(" ", pad(CONTROL_SETS[key].label, 16), rpad(f(mean(v)), 8),
-    ` ${CONTROL_SETS[key].detail}`);
+console.log([pad("design", 12), pad("reference set", 16), rpad("estimate", 10),
+  rpad("|corr| batch", 14), rpad("|corr| condition", 18)].join(" | "));
+console.log("-".repeat(78));
+for (const [name, overlap] of [["balanced", 0], ["half", 0.5]]) {
+  for (const key of Object.keys(CONTROL_SETS)) {
+    const est = SEEDS.map((seed) =>
+      estimateWithSE(simulate({ seed, overlap }), "ruv", { controls: key }).beta);
+    const cb = [];
+    const cc = [];
+    for (const seed of SEEDS) {
+      const sim = simulate({ seed, overlap });
+      const w = estimatedVariable(sim, "ruv", { controls: key });
+      cb.push(alignment(w, sim.batch.map((b) => b === 1)));
+      cc.push(alignment(w, sim.disease));
+    }
+    console.log([pad(name, 12), pad(CONTROL_SETS[key].label, 16), rpad(f(mean(est)), 10),
+      rpad(f(mean(cb)), 14), rpad(f(mean(cc)), 18)].join(" | "));
+  }
 }
+console.log();
+console.log("  -> BOTH SETS FIND THE BATCH. What separates them is the last column: a");
+console.log("     reference set that carries biology gives RUV a factor pointing at the");
+console.log("     very thing it is meant to preserve, so the correction removes the");
+console.log("     effect along with the artefact. Random costs about 40% of the truth,");
+console.log("     at every confounding and every batch shift.");
 
 /* ==== 5 · what each method leaves on the screen =========================== */
 console.log();

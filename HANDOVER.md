@@ -65,7 +65,36 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` — ROUND 9, awaiting review
+## NEXT: widget 40 `batch-effect` — ROUND 10, awaiting review
+
+**ROUND 10, three tweaks from Kenneth.** Catalogue § Slot 3 § ROUND 10.
+
+```bash
+node scripts/serve.mjs 8011
+# http://localhost:8011/widgets/batch-effect/?colourBy=batch&shift=4&overlap=0.5     (the diagnostic: truth mixed, observed in two clusters)
+# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=random      (0.54 for a 0.80 effect, interval crossing zero)
+# .../widgets/batch-effect/?correcting=1&overlap=0.75&shift=4&effect=3&method=ruv    (turn the signal up and the picture separates)
+```
+
+- **THE RAIL IS SIGNAL, THEN ARTEFACT, THEN DESIGN**: disease effect, batch
+  effect, confounding, seed. The two magnitudes are adjacent because their RATIO
+  is what governs legibility, so it is readable off the rail.
+- **THE COLOUR TOGGLE IS BACK** and round 8 was wrong to drop it: with both
+  panels coloured by condition there is no way to ask "do the samples separate
+  by BATCH", which is the lesson's first figure and the actual diagnostic. Both
+  panels follow one toggle.
+- **RUV'S REFERENCE SET IS Housekeeping or Random**, conceptual rather than by
+  gene index. Truth 0.80: housekeeping 0.79-1.01 across the ladder, random
+  0.46-0.59 — about 40% of the truth lost at EVERY setting. BOTH FIND THE BATCH
+  (0.982 vs 0.967); what separates them is the factor's correlation with the
+  CONDITION, 0.019 against 0.172 at a balanced design. A reference set carrying
+  biology points the factor at the thing it is meant to preserve.
+- **A NEAR-MISS WORTH THE HABIT**: renaming the control-set keys left
+  `default: "nulls"` in the widget and `?? CONTROL_SETS.nulls` in the model's
+  fallback, both resolving to `undefined`. Found by grepping the old key, the
+  same move that caught round 9's three hardcoded 0.80s.
+
+## Round 9: one ComBat, and a dial for the signal
 
 **ROUND 9 answered two questions with measurement** (four parallel probes, each
 with an adversarial verifier; two probe conclusions were refuted while their

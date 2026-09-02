@@ -52,12 +52,15 @@
    covariate's 0.446 at strong confounding: a TIGHTER interval around a wrong
    answer. That is why the intervals are on screen and not just the points.
 
-   RUV holds, because its factor comes from control genes that carry the batch
+   RUV holds, because its factor comes from reference genes that carry the batch
    and nothing else — correlation with the true batch 0.982 at every setting,
    where SVA's falls 0.991 / 0.856 / 0.701 / 0.000. And it holds only as far as
-   the controls are right: 0.838 for the lesson's genes 26-50, -0.003 for genes
-   that all carry the effect, 0.467 for 25 at random. The control set is a
-   parameter, so the assumption is the thing a reader can break.
+   the references are right: 0.79-1.01 across the ladder with housekeeping
+   genes, 0.46-0.59 with a random set. BOTH FIND THE BATCH — 0.982 against 0.977
+   — and what separates them is that the random set's factor also correlates
+   0.172 with the CONDITION against housekeeping's 0.019, so the correction
+   removes the effect along with the artefact. The reference set is a parameter,
+   so the assumption is the thing a reader can break.
 
    ---------------------------------------------------------------------------
    THE PANEL AND THE ESTIMATE ARE DIFFERENT QUESTIONS, and RUV is where that
@@ -132,7 +135,7 @@ const METHOD_DETAIL = {
   none: "the batch shift is still in the data",
   combat: "estimate each batch's shift per gene and subtract it, shrunk toward the batch's own average",
   sva: "estimate a stand-in for the batch from the data, without ever being told it",
-  ruv: "estimate it from control genes assumed to carry no biology",
+  ruv: "estimate it from reference genes assumed to carry no biology",
 };
 
 /* THE SIGNAL, against the artefact above it. Measured, the corrected picture's
@@ -202,7 +205,7 @@ const STEP = {
       + `${SUB("&#x3B2;", "i")}${SUB("Y", "j")}<mo>+</mo>${SUB("&#x3BB;", "i")}`
       + `${SUB("W", "j")}<mo>+</mo>${SUB2("&#x3B5;")}</mrow></math>`,
     plain: "X(i,j) = a(i) + b(i)·Y(j) + l(i)·W(j) + e(i,j)",
-    note: "W estimated from the control genes; it cleans the picture and goes in the model",
+    note: "W estimated from the reference genes; it cleans the picture and goes in the model",
   },
 };
 
@@ -235,13 +238,16 @@ defineWidget({
   params: {
     data: { type: "section", label: "The study" },
 
-    overlap: {
+    /* THE SIGNAL FIRST, THEN THE ARTEFACT, THEN THE DESIGN (Kenneth). The two
+       magnitudes sit next to each other because it is their RATIO that governs
+       everything downstream — measured, the corrected picture's legibility
+       tracks batchShift/effect and not either alone. The design follows,
+       because it decides whether the two can be told apart at all. */
+    effect: {
       type: "choice",
-      /* NOT "overlap": `none` under a label naming batch and condition reads as
-         "no batch effect", and it is a different dial. */
-      label: "Batch–condition confounding",
-      options: OVERLAPS.map(({ value, label, detail }) => ({ value, label, detail })),
-      default: "0",
+      label: "Size of the disease effect",
+      options: EFFECTS.map(({ value, label, detail }) => ({ value, label, detail })),
+      default: "0.8",
     },
 
     shift: {
@@ -251,14 +257,34 @@ defineWidget({
       default: "2",
     },
 
-    effect: {
+    overlap: {
       type: "choice",
-      label: "Size of the disease effect",
-      options: EFFECTS.map(({ value, label, detail }) => ({ value, label, detail })),
-      default: "0.8",
+      /* NOT "overlap": `none` under a label naming batch and condition reads as
+         "no batch effect", and it is a different dial. */
+      label: "Batch–condition confounding",
+      options: OVERLAPS.map(({ value, label, detail }) => ({ value, label, detail })),
+      default: "0",
     },
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+
+    /* BACK BY REQUEST (Kenneth, 2026-09-02), and it was wrong to drop it: with
+       both panels coloured by condition there is no way to ask "do the samples
+       separate by BATCH", which is the lesson's own first figure and the actual
+       diagnostic. Both panels follow one toggle, so ground truth and the
+       corrected data are always asked the same question. */
+    colourBy: {
+      type: "segmented",
+      label: "Colour the samples by",
+      options: [
+        { value: "condition", label: "Condition",
+          detail: "healthy against disease — the comparison the study is for" },
+        { value: "batch", label: "Batch",
+          detail: "which run each sample was processed in — the diagnostic" },
+      ],
+      default: "condition",
+      display: true,
+    },
 
     /* THE SECOND STAGE (3.4b). Shut, the widget asks what a batch effect does;
        open, what happens when you try to take it out. Ground truth stays on the
@@ -308,11 +334,11 @@ defineWidget({
        0.80: 0.838 / -0.003 / 0.467. */
     controls: {
       type: "segmented",
-      label: "Control genes",
+      label: "Reference genes",
       options: Object.keys(CONTROL_SETS).map((k) => ({
         value: k, label: CONTROL_SETS[k].label, detail: CONTROL_SETS[k].detail,
       })),
-      default: "nulls",
+      default: "housekeeping",
       display: true,
       when: { all: [{ param: "correcting" }, { param: "method", equals: "ruv" }] },
     },
@@ -322,16 +348,22 @@ defineWidget({
      one: this label, the readout's note, and the forest's dashed rule. It was
      the literal 0.80 in all three, which is exactly how a figure comes to
      disagree with its own axis. */
-  legend: ({ params }) => (params.correcting
-    ? [
-      { token: "group-a", label: "Healthy", mark: "dot" },
-      { token: "group-b", label: "Disease", mark: "dot" },
-      { token: "reference", label: `The true effect, ${effectOf(params.effect).toFixed(2)}`, mark: "dash" },
-    ]
-    : [
-      { token: "group-a", label: "Healthy", mark: "dot" },
-      { token: "group-b", label: "Disease", mark: "dot" },
-    ]),
+  legend: ({ params }) => {
+    /* The legend names what the colours ARE right now. A generic pair would
+       survive both settings and say nothing. */
+    const dots = params.colourBy === "batch"
+      ? [
+        { token: "group-a", label: "Batch 1", mark: "dot" },
+        { token: "group-b", label: "Batch 2", mark: "dot" },
+      ]
+      : [
+        { token: "group-a", label: "Healthy", mark: "dot" },
+        { token: "group-b", label: "Disease", mark: "dot" },
+      ];
+    if (!params.correcting) return dots;
+    return [...dots,
+      { token: "reference", label: `The true effect, ${effectOf(params.effect).toFixed(2)}`, mark: "dash" }];
+  },
 
   compute: ({ params }) => {
     const truth = effectOf(params.effect);
@@ -445,9 +477,11 @@ defineWidget({
       plot.caption(panel.title);
       if (panel.note) plot.note(panel.note);
 
+      const byBatch = params.colourBy === "batch";
       ctx.save();
       for (let j = 0; j < panel.pts.length; j += 1) {
-        ctx.fillStyle = state.sim.disease[j] ? colors.groupB : colors.groupA;
+        const second = byBatch ? state.sim.batch[j] === 1 : state.sim.disease[j];
+        ctx.fillStyle = second ? colors.groupB : colors.groupA;
         ctx.beginPath();
         ctx.arc(plot.sx(panel.pts[j][0]), plot.sy(panel.pts[j][1]), 3.4, 0, Math.PI * 2);
         ctx.fill();

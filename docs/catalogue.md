@@ -4632,6 +4632,68 @@ and uncaught errors. None, over 196 distinct strings. Card reserve **13.8em**
 (natural 124–146px), jog 0. `OPEN_H` back to 486 with the forest at four rows.
 `npm run check` 10/10. Not pushed.
 
+#### ROUND 10 — the rail reads as a story, the diagnostic comes back, RUV goes conceptual
+
+Three tweaks from Kenneth: *"the disease effect size slider should be before the
+controls for batch effect"*, *"what happened to my toggle to color by
+health/disease and batch? i can diagnose batch effect by visualization now"*,
+and *"for RUV, simplify — offer housekeeping? reference? genes and random… keep
+it conceptual — we want to demonstrate that no proper reference will not allow
+us to correct properly"*.
+
+**1 · THE RAIL IS SIGNAL, THEN ARTEFACT, THEN DESIGN.** Size of the disease
+effect · size of the batch effect · batch–condition confounding · seed. The two
+magnitudes now sit next to each other because it is their **ratio** that governs
+everything downstream — round 9 measured that legibility tracks
+`batchShift / effect` and not either dial alone, so putting them adjacent makes
+the governing quantity readable off the rail. The design follows, because it
+decides whether the two can be told apart at all.
+
+**2 · THE COLOUR TOGGLE IS BACK, and dropping it in round 8 was a mistake.**
+With both panels coloured by condition there is no way to ask *"do the samples
+separate by batch?"* — the lesson's own first figure, and the actual diagnostic.
+Both panels follow one toggle, so ground truth and the corrected data are always
+asked the same question: coloured by batch, ground truth shows the batches mixed
+and the observed panel shows two clean clusters, which is the whole diagnosis in
+one comparison. The legend follows through the function door.
+
+**3 · RUV'S REFERENCE SET IS CONCEPTUAL NOW: Housekeeping or Random.** The third
+option — genes 1–25, all of which carry the effect — is gone; it read as a trick
+question, and the point is that *without a proper reference you cannot correct
+properly*, not which rows of this particular simulation happen to be quiet.
+Measured, truth 0.80, 5 seeds:
+
+| design | reference set | estimate | \|corr\| batch | \|corr\| condition |
+|---|---|---|---|---|
+| balanced | Housekeeping | 0.794 | 0.982 | **0.019** |
+| balanced | Random | **0.483** | 0.967 | **0.172** |
+| half | Housekeeping | 0.838 | 0.982 | 0.506 |
+| half | Random | **0.467** | 0.972 | 0.621 |
+
+**BOTH SETS FIND THE BATCH** — 0.982 against 0.967. What separates them is the
+last column: a reference set that carries biology gives RUV a factor pointing at
+the very thing it is meant to preserve, so the correction removes the effect
+along with the artefact. **Random costs about 40% of the truth at every
+confounding and every batch shift** — the failure is stable, not a corner case,
+and at half confounding its interval crosses zero while the null genes report
+−0.24, an effect in the wrong direction on genes that have none.
+
+The balanced row is where the mechanism is cleanest: with the batch orthogonal
+to the condition, only a reference set carrying biology can drag the factor onto
+it — 0.019 against 0.172.
+
+**One near-miss worth recording**: renaming the control-set keys left
+`default: "nulls"` in the widget and `?? CONTROL_SETS.nulls` in the model's
+fallback. Both would have resolved to `undefined` and thrown on the first RUV
+render. Found by grepping the old key rather than by loading the page — the same
+move that caught the three hardcoded 0.80s in round 9.
+
+Verified: **210 states** at 534px — disease effect × batch shift × confounding ×
+both colourings × (gate shut + 4 methods + the `mod` variant + the random
+reference set) — for collisions, crowding, off-canvas runs, NaN, `-0`, an
+unfinished draw and uncaught errors. None, over 111 distinct strings.
+`npm run check` 10/10. Not pushed.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

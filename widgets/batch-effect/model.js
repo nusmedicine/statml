@@ -110,30 +110,40 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  * -------------------------------------------------------------------------- */
 
 /**
- * Which genes a reader may call controls for RUV.
+ * The reference set RUV is handed, and it IS the method.
  *
- * The lesson picks `26:50`, which are exactly the genes it simulated with no
- * disease effect — the truth choosing the controls. Measured at overlap 0.5,
- * truth 0.80: 0.838 for the true nulls, -0.003 for genes that all carry the
- * effect, 0.467 for 25 at random. The assumption is the method.
+ * Kept conceptual rather than by gene index (Kenneth, 2026-09-02): the point is
+ * that without a proper reference you cannot correct properly, not which rows
+ * of this particular simulation happen to be quiet. Cell 21 picks `26:50`,
+ * which are exactly the genes the lesson simulated with no disease effect — the
+ * truth choosing the controls.
+ *
+ * Measured, truth 0.80, 5 seeds:
+ *
+ *                     estimate       |corr| with     |corr| with
+ *                   (across the      the batch       the condition
+ *                      ladder)
+ *     housekeeping   0.79 - 1.01        0.982            0.019
+ *     random         0.46 - 0.59        0.977            0.172
+ *
+ * BOTH SETS FIND THE BATCH. What separates them is the second column: a
+ * reference set that carries biology gives RUV a factor pointing at the very
+ * thing it is supposed to preserve, so the correction removes the effect along
+ * with the artefact. Random references cost about 40% of the truth at every
+ * setting — the failure is stable, not a corner case.
  */
 export const CONTROL_SETS = {
-  nulls: {
-    label: "Genes 26–50",
-    detail: "the lesson's choice — and exactly the genes it simulated with no disease effect",
+  housekeeping: {
+    label: "Housekeeping",
+    detail: "genes assumed to carry no biological signal, so the factor finds the batch and nothing else",
     genes: () => range(AFFECTED, GENES),
   },
-  affected: {
-    label: "Genes 1–25",
-    detail: "every one of them carries the disease effect, so RUV removes the biology",
-    genes: () => range(0, AFFECTED),
-  },
   random: {
-    label: "25 at random",
-    detail: "half of them carry the effect, which is what picking controls without knowing looks like",
+    label: "Random",
+    detail: "no proper reference — about half of them carry the disease effect, and the correction takes the biology with the batch",
     genes: () => {
-      /* Fixed, not per-seed: the control set is a decision the analyst made
-         once, not another draw. */
+      /* Fixed, not per-seed: which genes an analyst nominates as references is a
+         decision made once, not another draw. */
       const rng = makeRng(7);
       const all = range(0, GENES);
       for (let i = all.length - 1; i > 0; i -= 1) {
@@ -144,7 +154,6 @@ export const CONTROL_SETS = {
     },
   },
 };
-
 /**
  * Every method, by what it DOES.
  *
@@ -335,7 +344,7 @@ function surrogateVariable(sim) {
 
 /** RUV's factor: the leading direction of the control genes, whatever they are. */
 function unwantedVariable(sim, opts) {
-  const set = CONTROL_SETS[opts?.controls ?? "nulls"] ?? CONTROL_SETS.nulls;
+  const set = CONTROL_SETS[opts?.controls] ?? CONTROL_SETS.housekeeping;
   return topDirection(set.genes().map((g) => sim.X[g]));
 }
 
