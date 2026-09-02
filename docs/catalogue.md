@@ -4445,6 +4445,105 @@ page 1 explains it at length, and whether `Ground truth` sitting in a picker of
 `animation`, so at promotion it owes a driven state, naturally
 `drive: { set: { correct: "remove" }, frames, dt }`.
 
+#### ROUND 8 — the split is undone, and the methods become the lesson's own
+
+Kenneth, on the two-page build: *"no don't be lazy and reuse the old widget"*,
+*"you should show the ground truth as a separate graph to remind students of the
+actual signal"*, *"the method would be none, then combat, sva… am not sure if
+need ruv"*, and *"review if it would be better to have one single widget that
+demonstrates the effect, then gated to correction"*.
+
+**The reuse charge is fair.** Page 2 was the round-5 figure with one option
+removed, and `Ground truth` sitting in a picker of *methods* was the visible
+symptom of designing nothing new.
+
+**ONE WIDGET, AND THE GROUND-TRUTH PANEL IS WHAT DECIDES IT.** With ground truth
+permanently on the left, page 1's figure *is* page 2's minus the estimates — so
+the correction stage serves the same picture rather than replacing it, which is
+what 3.4b's gate is for and what the split failed. The split also declared
+`overlap`, `shift` and `seed` twice, so a reader set the study up once to see
+the effect and again to see what correcting it costs. `batch-correction` is
+deleted; `height` is a function of the gate.
+
+**THE LESSON'S OWN FIVE METHODS, AND THEY FAIL IN FOUR DIFFERENT WAYS.**
+Estimated disease effect, truth 0.80, mean of 5 seeds:
+
+| confounding | none | ComBat | ComBat+mod | SVA | RUV |
+|---|---|---|---|---|---|
+| balanced | 0.825 | 0.819 | 0.825 | 0.825 | 0.794 |
+| half | 1.808 | **0.633** | **1.131** | 1.808 | 0.838 |
+| strong | 2.219 | **0.495** | **1.599** | 2.219 | 0.941 |
+| complete | 2.771 | 0.122 | 2.771 | 2.771 | 2.803 |
+
+- **`ComBat(mod = NULL)`**, which is what cell 12 runs, deletes the biology.
+- **`ComBat(mod = ~condition)`**, cell 11's "optional but recommended", protects
+  the biology *and the confounded part of the batch with it*. The two fail in
+  **opposite directions**.
+- **SVA never moves the estimate at all** — its row is identical to None's at
+  every setting. The surrogate variable is built from the residuals after the
+  condition is removed, so it is orthogonal to the condition by construction.
+  What it moves is the **standard error**: 0.450 → 0.316 at a balanced design,
+  real power, and 0.315 against the true batch covariate's 0.446 at strong
+  confounding — **a tighter interval around a wrong answer**. Kenneth's pick was
+  to include it and make that the point, which only works with the intervals on
+  screen.
+- **RUV holds** and fails only at complete confounding.
+
+**AND THE FIGURE SAYS WHY.** |correlation| between each method's estimated
+variable and the true batch, which neither is told: SVA **0.991 / 0.856 / 0.701
+/ 0.000** across the ladder, RUV **0.982 throughout**. SVA residualises the
+condition away first, so the confounded part of the batch goes with it; RUV
+reads the batch off control genes, which carry it whatever the design does. That
+number is a readout tile when SVA or RUV is chosen.
+
+**THE CONTROL GENES ARE A PARAMETER** (Kenneth's pick), so RUV's assumption is
+the thing a reader can break. At overlap 0.5, truth 0.80: **0.838** for the
+lesson's genes 26–50, **−0.003** for genes that all carry the effect — it
+deletes the biology entirely — and **0.467** for 25 at random. Cell 21 picked
+exactly the genes it had simulated with no effect.
+
+**TWO BUGS IN THE COMBAT IMPLEMENTATION, both found by measuring.**
+Standardising by the TOTAL residual sd instead of the WITHIN-BATCH one took the
+disease effect from 0.825 to 1.365 at a balanced design. And the inverse-gamma
+prior's shape was `(2 d̄² + s²)/s²` instead of `(2 s² + d̄²)/s²`, so as the
+spread of δ goes to zero the ratio tends to d̄/2 rather than 1 — on a stage
+where every gene has the same batch variance, that divides by √0.5 and inflates
+everything by 1.41. Both are commented at the line.
+
+**RUV IS THE ONE METHOD THAT DOES BOTH, and the notebook says so in two places.**
+Cell 21's `naiveRandRUV` returns corrected data, which cell 22 runs a PCA on —
+that is the panel. Cell 19's own formulation is `Y = Xβ + Wγ + ε`, W in the
+MODEL — that is the estimate. It matters: residualising on W and then testing
+gives 0.793 / 0.623 / 0.489, deleting the biology exactly as ComBat does,
+because W carries the confounded part of the condition too. Same W, and only
+where it is used differs.
+
+**THE FOREST GOT A PROPER LAYOUT.** Names left, axis middle, a fixed value
+column right. Putting each number beside its own interval end worked until an
+interval filled the axis — then there was no room on the right, the fallback put
+it on the left, and it landed on the row's name. The domain stays −1 to 6 and
+**clips with a caret**, because the reachable ends are −9.16 and 13.96, both in
+the complete-confounding corner at batch shift 4 where RUV's W is collinear with
+the condition; a domain wide enough for that squeezes the readable range into a
+sliver.
+
+**THE SWEEP CAUGHT THE TICK ROW OFF THE CANVAS FOR THE THIRD TIME** — the forest
+grew a fifth row, `OPEN_H` 486 clipped every open state by 11px. Heights are
+measured, not carried.
+
+Verified: **120 states** at 534px and 72 at 770px — 5 confoundings × 3 batch
+shifts × (gate shut + 5 methods + 2 further control sets) — for collisions,
+crowding, off-canvas runs, NaN, `-0`, an unfinished draw and uncaught errors.
+None. Card reserve **13.8em** (natural 124–146px), jog 0. `_lab/batch-methods.mjs`
+imports the shipping engine, so its tables are the widget's numbers.
+`npm run check` 10/10, 40 widgets. Not pushed.
+
+**Still open**: whether the panels need a batch marker now that both are
+coloured by condition — the two clumps in the observed panel are the batches and
+nothing says so — and whether RUV's cleaned picture disagreeing with its own
+estimate (condition separation 1.23 against a fit of 0.94) needs saying on the
+figure rather than only in the header comment.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

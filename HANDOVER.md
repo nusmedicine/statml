@@ -65,48 +65,65 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: BOTH batch pages are DRAFTS — 40 pushed, 41 awaiting review
+## NEXT: widget 40 `batch-effect` IS ONE GATED WIDGET — awaiting review
 
-**WIDGET 40 `batch-effect` PUSHED 2026-09-02** on Kenneth's "tested ok". It is a
-draft, so it is live at `/statml/lab/` and not on the gallery.
-
-**WIDGET 41 `batch-correction` BUILT the same day** — page 2, cells 7-22, from
-four picks. Catalogue § Slot 3 § ROUND 7.
+**THE TWO-PAGE SPLIT IS UNDONE** (Kenneth, 2026-09-02). `batch-correction` is
+deleted and everything lives in `batch-effect` behind a gate. Catalogue § Slot 3
+§ ROUND 8 has the argument; the short version is that with GROUND TRUTH
+permanently on the left panel, the shut figure IS the open figure minus the
+estimates - so the correction stage serves the same picture rather than
+replacing it, which is what 3.4b's gate is for. The split also declared
+`overlap`, `shift` and `seed` twice.
 
 ```bash
 node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-correction/?overlap=0.75            (None: 2.23 for a 0.80 effect)
-# .../widgets/batch-correction/?overlap=0.75&correct=remove               (a PERFECT picture, batch sep 0.00, and 0.42)
-# .../widgets/batch-correction/?overlap=0.75&correct=covariate            (the picture is UNCHANGED, and 0.83)
-# .../widgets/batch-correction/?overlap=1&correct=covariate               (not estimable)
+# http://localhost:8011/widgets/batch-effect/                                  (shut: ground truth beside observed)
+# .../widgets/batch-effect/?overlap=0.75                                       (strong confounding, correlation 0.70)
+# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=combat            (a clean picture, and 0.47 for a 0.80 effect)
+# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=sva               (nothing moves except the interval)
+# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=ruv               (0.88, and the control-gene picker appears)
+# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=affected   (-0.00: the wrong controls delete everything)
+node widgets/_lab/batch-methods.mjs        # every table below, from the shipping engine
 ```
 
-- **ONE BEAT: the method with the best picture gives the worst answer.** At
-  strong confounding `remove` drives the batch separation to exactly 0.00 and
-  reports 0.42; `covariate` leaves the picture at 10.58 - it never edits the
-  matrix - and reports 0.83 with an interval too wide to act on.
-- **`CORRECTIONS.covariate.fn` IS THE IDENTITY NOW.** It used to residualise
-  each gene purely so a scatter would have something to draw. The estimate is
-  unchanged (Frisch-Waugh-Lovell); `solve3` went with the fabrication.
-- **AND THAT EXPOSED A SECOND ONE**: "Genes with no effect" took a two-group
-  difference off the matrix, so for `covariate` it reported **1.49** where that
-  method's own model says **0.09**. `nullWithSE` goes through the same fit as
-  the effect tile. `nullEffect` stays for the lab pages, which describe the DATA
-  rather than a model.
-- **THE UNKNOWN-BATCH METHODS ARE PROSE**, below the figure and at the end of
-  the stage - in the card they added 89px, and straight after the figure they
-  sat between it and its own legend.
-- **`known` IS "Ground truth" ON BOTH PAGES**, one name for one thing.
-- **The sweep caught the forest's tick row 2px off the canvas in every state.**
-  `FIG_H` is 392. Card reserve **13.8em**, measured; page 1's is 12em, because a
-  reserve is measured per widget rather than carried over.
+- **THE LESSON'S OWN FIVE METHODS, FOUR DIFFERENT FAILURES.** `ComBat(mod=NULL)`
+  - cell 12's actual call - deletes the biology, 0.82 to 0.12.
+  `ComBat(mod=~condition)` protects the biology AND the confounded part of the
+  batch with it, 0.82 to 2.77: they fail in OPPOSITE directions. RUV holds
+  0.79-0.94 until the design is singular.
+- **SVA NEVER MOVES THE ESTIMATE**, at any setting - its row is identical to
+  None's, because the surrogate variable is orthogonal to the condition by
+  construction. What it moves is the SE: 0.450 to 0.316 at balanced (real
+  power), and 0.315 against the true batch covariate's 0.446 at strong
+  confounding - a TIGHTER interval around a wrong answer. That is why the
+  intervals are on screen.
+- **WHY, AS A READOUT**: |correlation| between what each method found and the
+  true batch. SVA 0.991 / 0.856 / 0.701 / 0.000 across the ladder; RUV 0.982
+  throughout.
+- **RUV'S CONTROL GENES ARE A PARAMETER**: 0.838 for the lesson's 26-50,
+  -0.003 for genes that all carry the effect, 0.467 for 25 at random.
+- **RUV IS THE ONE METHOD THAT DOES BOTH.** Cell 21's `naiveRandRUV` returns
+  corrected data (the panel); cell 19's `Y = X beta + W gamma + eps` puts W in
+  the model (the estimate). Residualising on W and then testing gives 0.79 /
+  0.62 / 0.49 - it deletes the biology exactly as ComBat does. Same W.
+- **TWO COMBAT BUGS, both found by measuring**: standardising by the total
+  rather than the within-batch sd (0.825 -> 1.365), and the inverse-gamma shape
+  written `(2 dBar^2 + s2)/s2` instead of `(2 s2 + dBar^2)/s2`, which degenerates
+  to dBar/2 and inflates everything by sqrt(2).
+- **THE FOREST HAS A VALUE COLUMN** on the right, and clips at the axis with a
+  caret: the reachable interval ends are -9.16 and 13.96, both in the
+  complete-confounding corner at shift 4.
+- **THE TICK ROW WENT OFF THE CANVAS FOR THE THIRD TIME** when the forest grew a
+  fifth row. Heights are measured, not carried: SHUT_H 336, OPEN_H 504.
 
-**Still open on 41**: whether the design 2 x 2 earns its place when page 1
-explains it at length, and whether `Ground truth` in a picker of *methods* reads
-as something anyone could run. Neither page is baselined; both declare an
-`animation` and owe a driven state at promotion.
+**Still open**: whether the panels need a batch marker now that both are
+coloured by condition - the two clumps in the observed panel ARE the batches and
+nothing says so - and whether RUV's cleaned picture disagreeing with its own
+estimate needs saying on the figure. **Not baselined**; it declares an
+`animation`, so at promotion it owes a driven state, naturally
+`drive: { set: { method: "combat" }, frames, dt }` with the gate open.
 
-## Widget 40 `batch-effect` — what page 1 settled
+## What the batch pages settled along the way
 
 **THE SLOT IS NOW TWO PAGES** (Kenneth, 2026-09-02). Page 1 `batch-effect` is
 cells 3-6: what a batch effect DOES to the data, a toggle between ground truth

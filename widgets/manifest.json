@@ -580,26 +580,9 @@
       "status": "shipped"
     },
     {
-      "slug": "batch-correction",
-      "title": "Correcting a Batch Effect",
-      "blurb": "The method that makes the picture look best gives the worst answer, and the right answer leaves the picture alone.",
-      "course": "PHM5003",
-      "topics": [
-        "batch effect",
-        "ComBat",
-        "confounding",
-        "covariate adjustment",
-        "study design",
-        "PCA",
-        "omics"
-      ],
-      "arc": 41,
-      "status": "draft"
-    },
-    {
       "slug": "batch-effect",
       "title": "Batch Effects",
-      "blurb": "The same samples with and without the batch shift: what the instrument added, and how far it outweighs the biology.",
+      "blurb": "The same samples with and without the batch shift, then what each correction method does to the answer.",
       "course": "PHM5003",
       "topics": [
         "batch effect",

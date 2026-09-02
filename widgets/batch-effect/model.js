@@ -79,153 +79,334 @@ export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
 
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 
-/* --- corrections ---------------------------------------------------------- *
- * The two things anyone actually does with a known batch, in the notebook's own
- * order:
+/* --- the lesson's methods -------------------------------------------------- *
+ * The notebook's own five, and they fail in four different ways. Estimated
+ * disease effect, truth 0.80, mean of 5 seeds — `_lab/batch-methods.mjs`
+ * prints this table:
  *
- * `remove`     take the batch out of the DATA — subtract each batch's own mean,
- *              per gene. This is `ComBat(dat, batch, mod = NULL)`, which cell 12
- *              runs, and cell 7's "simple batch correction" estimated from the
- *              data rather than from knowing the answer.
- * `covariate`  leave the data alone and put batch in the MODEL — estimate the
- *              condition effect from `y ~ condition + batch`. Equivalent to
- *              `ComBat(mod = model.matrix(~ condition))`, and the form the
- *              notebook's SVA and RUV sections teach: "the identified surrogate
- *              variables are included in statistical models for downstream
- *              analyses".
+ *     confounding    none   ComBat   ComBat+mod    SVA     RUV
+ *      balanced      0.825   0.819      0.825     0.825   0.794
+ *      half          1.808   0.633      1.131     1.808   0.838
+ *      strong        2.219   0.495      1.599     2.219   0.941
+ *      complete      2.771   0.122      2.771     2.771   2.803
  *
- * Implemented by residualising on the batch term, which gives the coefficient
- * `lm(y ~ condition + batch)` reports — Frisch-Waugh-Lovell, and verified: the
- * two agree at 0.847 / 0.826 / 0.868 / 0.874 across overlap 0.25 to 0.90.
+ * ComBat with `mod = NULL`, which is what cell 12 runs, DELETES the biology in
+ * proportion to the confounding. ComBat with `mod = ~condition`, cell 11's
+ * "optional but recommended", protects the biology and protects the confounded
+ * part of the batch WITH it. The two fail in opposite directions.
+ *
+ * SVA NEVER MOVES THE ESTIMATE. Its surrogate variable is built from the
+ * residuals after the condition has been removed, so it is orthogonal to the
+ * condition by construction and cannot touch that coefficient. What it moves is
+ * the standard error — 0.450 to 0.316 at a balanced design, real power, and
+ * 0.315 against the true batch covariate's 0.446 at strong confounding: a
+ * TIGHTER interval around a wrong answer.
+ *
+ * RUV holds 0.79 to 0.94 and fails only at complete confounding, because its
+ * factor comes from control genes that carry the batch and nothing else. The
+ * correlation between each method's estimated variable and the true batch says
+ * why: SVA runs 0.991 / 0.856 / 0.701 / 0.000 across the ladder while RUV holds
+ * 0.982 throughout.
  * -------------------------------------------------------------------------- */
-export const CORRECTIONS = {
-  none: { label: "None", fn: ({ X }) => X },
-
-  /* CELL 7, AND IT IS AN ORACLE. The notebook subtracts `batch_effect_size`
-     itself — "we know what the batch effect was and thus could correct for it".
-     That is information the data does not contain, which is why it is the only
-     correction that still works when the design is fully confounded: at overlap
-     1 it returns 0.771 while every estimable method has nothing to work with.
-     Its job here is to show that cell 7's success is borrowed. */
-  known: { label: "Ground truth", fn: withoutBatch },
-
-  remove: {
-    label: "Remove the batch from the data",
-    fn: ({ X, batch }) => X.map((row) => {
-      const m = [0, 1].map((b) => mean(row.filter((_, j) => batch[j] === b)));
-      return row.map((v, j) => v - m[batch[j]]);
-    }),
-  },
-
-  /* IT DOES NOT TOUCH THE MATRIX, and that is its defining property rather
-     than an omission. A covariate changes the MODEL: the batch gets a column
-     in the design and the condition coefficient is read off the same fit.
-
-     This used to residualise each gene on the fitted batch term, purely so
-     that a scatter would have something to draw — a model-based method dressed
-     as a data transformation, which is the conflation that split this slot in
-     two. `estimateWithSE` reads the raw gene and fits `y ~ condition + batch`,
-     so nothing is lost: the estimate is identical (Frisch-Waugh-Lovell), and
-     the picture is now honest.
-
-     What that buys the correction page is its sharpest comparison. At strong
-     confounding `remove` shows a perfect picture — batch separation exactly
-     0.00 — and reports 0.42 for an effect of 0.80. `covariate` leaves the
-     picture at 10.58, untouched and ugly, and reports 0.83. The method with
-     the best picture gives the worst answer. */
-  covariate: { label: "Batch as a covariate", fn: ({ X }) => X },
-};
-
-export const correct = (sim, key) => CORRECTIONS[key].fn(sim);
 
 /**
- * The same samples without the batch shift — what the study would have
- * measured if every sample had gone through one run.
+ * Which genes a reader may call controls for RUV.
  *
- * ONE DEFINITION, TWO NAMES, and the names are the point. On the batch-effect
- * page this is GROUND TRUTH: a thing only a simulation can hand you. On the
- * correction page the identical arithmetic is `CORRECTIONS.known`, an oracle
- * offered as a method so that its success can be shown to be borrowed. Writing
- * it twice is how the two pages would come to disagree.
+ * The lesson picks `26:50`, which are exactly the genes it simulated with no
+ * disease effect — the truth choosing the controls. Measured at overlap 0.5,
+ * truth 0.80: 0.838 for the true nulls, -0.003 for genes that all carry the
+ * effect, 0.467 for 25 at random. The assumption is the method.
+ */
+export const CONTROL_SETS = {
+  nulls: {
+    label: "Genes 26–50",
+    detail: "the lesson's choice — and exactly the genes it simulated with no disease effect",
+    genes: () => range(AFFECTED, GENES),
+  },
+  affected: {
+    label: "Genes 1–25",
+    detail: "every one of them carries the disease effect, so RUV removes the biology",
+    genes: () => range(0, AFFECTED),
+  },
+  random: {
+    label: "25 at random",
+    detail: "half of them carry the effect, which is what picking controls without knowing looks like",
+    genes: () => {
+      /* Fixed, not per-seed: the control set is a decision the analyst made
+         once, not another draw. */
+      const rng = makeRng(7);
+      const all = range(0, GENES);
+      for (let i = all.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng.next() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      return all.slice(0, AFFECTED).sort((a, b) => a - b);
+    },
+  },
+};
+
+/**
+ * Every method, by what it DOES.
+ *
+ * `data` returns the matrix a reader would go on to look at and test. `covar`
+ * returns extra columns for the model instead, and a method that has one does
+ * NOT edit the matrix — that is the difference between correcting the data and
+ * modelling the nuisance, and giving a covariate method a fake transformation
+ * so a scatter had something to draw is what cost this widget three rounds.
+ */
+export const METHODS = {
+  none: {
+    label: "None",
+    data: ({ X }) => X,
+    covar: null,
+  },
+
+  combat: {
+    label: "ComBat",
+    /* Cell 12 exactly: `ComBat(dat, batch, mod = NULL)`. */
+    data: (sim) => combat(sim, { keepCondition: false }),
+    covar: null,
+  },
+
+  combatMod: {
+    label: "ComBat + mod",
+    /* Cell 11's "optional but recommended", which cell 12 does not pass. */
+    data: (sim) => combat(sim, { keepCondition: true }),
+    covar: null,
+  },
+
+  sva: {
+    label: "SVA",
+    /* IT DOES NOT TOUCH THE MATRIX. The surrogate variable goes in the model,
+       which is the whole claim: you never learn the batch, you estimate a
+       stand-in for it and adjust for that. */
+    data: ({ X }) => X,
+    covar: (sim) => [surrogateVariable(sim)],
+  },
+
+  ruv: {
+    label: "RUV",
+    /* THE ONLY METHOD THAT DOES BOTH, and the notebook says so in two places.
+       Cell 21's `naiveRandRUV` returns CORRECTED DATA, which cell 22 runs a PCA
+       on — that is the panel. Cell 19's own problem formulation is
+       `Y = X beta + W gamma + eps`, W in the MODEL — that is the estimate.
+       W is estimated once from the control genes and used for both.
+
+       It matters. Residualising on W and then running a two-group test gives
+       0.793 / 0.623 / 0.489 / 0.102 across the ladder — it deletes the biology
+       exactly as ComBat does, because W carries the confounded part of the
+       condition too. W in the model gives 0.794 / 0.838 / 0.941, holding until
+       the design is singular. Same W, and the difference is only where it is
+       used. */
+    data: (sim, opts) => residualiseOn(sim.X, [unwantedVariable(sim, opts)]),
+    covar: (sim, opts) => [unwantedVariable(sim, opts)],
+  },
+};
+
+/** The matrix a method leaves behind, for the panel and for the test. */
+export const applyMethod = (sim, key, opts) => METHODS[key].data(sim, opts);
+
+/**
+ * The same samples without the batch shift — GROUND TRUTH, and a thing only a
+ * simulation can hand you. Cell 7 subtracts exactly this and calls it a
+ * correction; the widget shows it as the benchmark it really is.
  */
 export function withoutBatch({ X, batch, shift }) {
   return X.map((row) => row.map((v, j) => v - (batch[j] === 1 ? shift : 0)));
 }
 
+/* --- the methods, implemented --------------------------------------------- */
+
+const range = (a, b) => Array.from({ length: b - a }, (_, i) => a + i);
+
+/** Residuals of every gene on `cols`, or the row itself if the fit is singular. */
+function residualsOn(X, cols) {
+  return X.map((row) => {
+    const beta = ols(cols, row);
+    if (!beta) return row.slice();
+    return row.map((v, j) => v - cols.reduce((s, u, a) => s + u[j] * beta[a], 0));
+  });
+}
+
+/** The same, but keeping the gene's own mean so the picture stays in units. */
+function residualiseOn(X, extra) {
+  const n = X[0].length;
+  const cols = [new Array(n).fill(1), ...extra];
+  return X.map((row) => {
+    const beta = ols(cols, row);
+    if (!beta) return row.slice();
+    /* only the extra terms come out; the intercept is the gene's own level */
+    return row.map((v, j) => v - extra.reduce((s, u, a) => s + u[j] * beta[a + 1], 0));
+  });
+}
+
+/**
+ * ComBat: location AND scale, with the empirical-Bayes shrinkage that is the
+ * method's whole point. Two things here were wrong before they were measured.
+ *
+ * `sigma-hat` is the WITHIN-BATCH residual sd, so the batch term is fitted for
+ * it even when `mod` does not keep it. Standardising by the total sd instead
+ * took the disease effect from 0.825 to 1.365 at a balanced design.
+ *
+ * The inverse-gamma prior's shape is `(2 s2 + dBar^2) / s2`. Written the other
+ * way round, the ratio bPrior/aPrior tends to dBar/2 rather than 1 as the
+ * spread of delta goes to zero — and on a stage where every gene has the same
+ * batch variance, that divides by sqrt(0.5) and inflates everything by 1.41.
+ *
+ * The shrinkage is a real gain on gamma itself: it cuts the error in the
+ * per-gene shift by 41% when every gene shares one, falling to 7% when they
+ * differ. It still does not move the disease effect.
+ */
+function combat(sim, { keepCondition }) {
+  const { X, batch, disease } = sim;
+  const n = X[0].length;
+  const cols = keepCondition
+    ? [new Array(n).fill(1), disease.map(Number)]
+    : [new Array(n).fill(1)];
+  const withBatch = [...cols, batch.map(Number)];
+
+  const fitted = X.map((row) => {
+    const beta = ols(cols, row);
+    return row.map((v, j) => cols.reduce((s, u, a) => s + u[j] * beta[a], 0));
+  });
+  const resid = X.map((row, g) => row.map((v, j) => v - fitted[g][j]));
+
+  const sd = X.map((row) => {
+    /* At complete confounding [1, condition, batch] is singular — which is what
+       complete confounding MEANS — so the model without the batch is all there
+       is to take a residual from. */
+    const b = ols(withBatch, row);
+    const use = b ? withBatch : cols;
+    const beta = b || ols(cols, row);
+    const r = row.map((v, j) => v - use.reduce((s, u, a) => s + u[j] * beta[a], 0));
+    return Math.sqrt(mean(r.map((v) => v * v))) || 1;
+  });
+  const z = resid.map((r, g) => r.map((v) => v / sd[g]));
+
+  const idxOf = (b) => range(0, n).filter((j) => batch[j] === b);
+  const gamma = [];
+  const delta = [];
+  for (let b = 0; b < 2; b += 1) {
+    const idx = idxOf(b);
+    gamma.push(z.map((r) => mean(idx.map((j) => r[j]))));
+    delta.push(z.map((r, g) => mean(idx.map((j) => (r[j] - gamma[b][g]) ** 2)) || 1));
+  }
+
+  const gStar = [];
+  const dStar = [];
+  for (let b = 0; b < 2; b += 1) {
+    const idx = idxOf(b);
+    const nB = idx.length;
+    const gBar = mean(gamma[b]);
+    const tau2 = mean(gamma[b].map((v) => (v - gBar) ** 2)) || 1e-9;
+    gStar.push(gamma[b].map((v, g) => (nB * tau2 * v + delta[b][g] * gBar)
+      / (nB * tau2 + delta[b][g])));
+    const dBar = mean(delta[b]);
+    const s2 = mean(delta[b].map((v) => (v - dBar) ** 2)) || 1e-9;
+    const aPrior = (2 * s2 + dBar ** 2) / s2;
+    const bPrior = (dBar * s2 + dBar ** 3) / s2;
+    dStar.push(delta[b].map((_, g) => {
+      const ss = idx.reduce((s, j) => s + (z[g][j] - gStar[b][g]) ** 2, 0);
+      return (0.5 * ss + bPrior) / (nB / 2 + aPrior - 1);
+    }));
+  }
+
+  return X.map((row, g) => row.map((v, j) => {
+    const b = batch[j];
+    return ((z[g][j] - gStar[b][g]) / Math.sqrt(dStar[b][g])) * sd[g] + fitted[g][j];
+  }));
+}
+
+/**
+ * SVA's surrogate variable: the leading direction of the residuals after the
+ * condition is removed. THE BATCH IS NEVER USED, which is the point — and it is
+ * also why the result is orthogonal to the condition and cannot move its
+ * coefficient.
+ */
+function surrogateVariable(sim) {
+  const n = sim.X[0].length;
+  const cols = [new Array(n).fill(1), sim.disease.map(Number)];
+  return topDirection(residualsOn(sim.X, cols));
+}
+
+/** RUV's factor: the leading direction of the control genes, whatever they are. */
+function unwantedVariable(sim, opts) {
+  const set = CONTROL_SETS[opts?.controls ?? "nulls"] ?? CONTROL_SETS.nulls;
+  return topDirection(set.genes().map((g) => sim.X[g]));
+}
+
+/** Leading sample-space direction of a genes x samples matrix, genes centred. */
+function topDirection(X) {
+  const n = X[0].length;
+  const C = X.map((row) => { const m = mean(row); return row.map((v) => v - m); });
+  let v = Array.from({ length: n }, (_, i) => Math.sin(i + 1));
+  for (let it = 0; it < 300; it += 1) {
+    const t = C.map((row) => row.reduce((s, x, j) => s + x * v[j], 0));
+    const w = Array.from({ length: n }, (_, j) => C.reduce((s, row, g) => s + row[j] * t[g], 0));
+    const nrm = Math.sqrt(w.reduce((s, x) => s + x * x, 0)) || 1;
+    v = w.map((x) => x / nrm);
+  }
+  return v;
+}
+
+/** How far a sample-space direction lines up with a split, |correlation|. */
+export function alignment(v, flags) {
+  const x = flags.map(Number);
+  const mv = mean(v);
+  const mx = mean(x);
+  const num = v.reduce((s, a, i) => s + (a - mv) * (x[i] - mx), 0);
+  const dv = Math.sqrt(v.reduce((s, a) => s + (a - mv) ** 2, 0));
+  const dx = Math.sqrt(x.reduce((s, a) => s + (a - mx) ** 2, 0));
+  return Math.abs(num / (dv * dx || 1));
+}
+
+/** The variable a method estimated, for the widget to draw against the truth. */
+export function estimatedVariable(sim, key, opts) {
+  if (key === "sva") return surrogateVariable(sim);
+  if (key === "ruv") return unwantedVariable(sim, opts);
+  return null;
+}
+
 /* --- what the reader is meant to read off it ------------------------------ */
 
-/** The estimated disease effect: mean(disease) - mean(healthy) over the 25
-    genes that carry one. The truth is `effect`, 0.8 by default. */
-export function estimatedEffect(X, disease) {
-  const d = [];
-  for (let g = 0; g < AFFECTED; g += 1) {
-    const yes = X[g].filter((_, j) => disease[j]);
-    const no = X[g].filter((_, j) => !disease[j]);
-    d.push(mean(yes) - mean(no));
-  }
-  return mean(d);
-}
-
 /**
- * The per-gene estimate AND its uncertainty, which is what separates two
- * corrections that a point estimate makes look equally good.
+ * The per-gene estimate AND its uncertainty, tested the way that method's own
+ * workflow tests it.
  *
- * Each correction is tested the way a reader would test it: the ones that
- * change the DATA are followed by a two-group comparison on the corrected
- * values, and `covariate` is the coefficient of `condition` in
- * `y ~ condition + batch` on the raw values. So the interval a reader sees is
- * the interval their own workflow would report.
+ * A method that edits the DATA is followed by a two-group comparison on the
+ * edited values, and the comparison has no idea a correction happened — so its
+ * interval stays narrow while the estimate moves. A method that supplies a
+ * COVARIATE is fitted with that column in the model, and pays for it honestly
+ * in the standard error. That difference is the point rather than a shortcut.
  *
- * That is the point rather than a shortcut. `remove` subtracts each batch's
- * mean and the t-test that follows has no idea a correction happened, so it
- * reports a NARROW interval around a shifted estimate — confidently wrong.
- * `covariate` spends the same information inside the model, so its interval
- * WIDENS instead. Measured at overlap 0.9, batch shift 2, five seeds:
- *
- *     none        2.590  +/- 0.677   [ 1.91, 3.27]   misses the truth
- *     known       0.790  +/- 0.624   [ 0.17, 1.41]
- *     remove      0.166  +/- 0.631   [-0.47, 0.80]   misses the truth
- *     covariate   0.874  +/- 1.428   [-0.55, 2.30]   covers it, and says nothing
- *
- * The averaging is over the 25 genes that carry an effect, so the interval is
- * the one a SINGLE gene's estimate carries, not the interval of their mean.
- * A gene is what gets tested in a real analysis, and the mean of 25 would have
- * an interval small enough to hide the whole story.
+ * The averaging is over a gene RANGE, so the interval is the one a single
+ * gene's estimate carries. A gene is what gets tested in a real analysis, and
+ * the interval of the mean of 25 would hide the whole story.
  */
-export function estimateWithSE(sim, key) {
-  return estimateOver(sim, key, 0, AFFECTED);
+export function estimateWithSE(sim, key, opts) {
+  return estimateOver(sim, key, 0, AFFECTED, opts);
 }
 
-/**
- * The same, over the genes that carry NO effect — a false-positive check that
- * should sit at 0 whatever the method does.
- *
- * IT HAS TO GO THROUGH THE SAME FIT, and getting that wrong shipped a lie for
- * one state: `nullEffect` took a two-group difference off the matrix, which for
- * `covariate` is the UNCORRECTED matrix, so the widget reported 1.49 on genes
- * with no effect for a method whose own model reports 0.04. Two estimators, one
- * tile each, disagreeing about which method they described.
- */
-export function nullWithSE(sim, key) {
-  return estimateOver(sim, key, AFFECTED, GENES);
+/** The same over the genes that carry NO effect — a false-positive check. */
+export function nullWithSE(sim, key, opts) {
+  return estimateOver(sim, key, AFFECTED, GENES, opts);
 }
 
-/** One fit, one gene range. Both tiles read this and nothing else. */
-function estimateOver(sim, key, from, to) {
-  const X = correct(sim, key);
-  const withBatch = key === "covariate";
-  const n = SAMPLES;
-  const cols = [
-    new Array(n).fill(1),
-    sim.disease.map(Number),
-    ...(withBatch ? [sim.batch.map(Number)] : []),
-  ];
+function estimateOver(sim, key, from, to, opts) {
+  const method = METHODS[key];
+  const n = sim.X[0].length;
+  const covar = method.covar ? method.covar(sim, opts) : [];
+  /* A method with a covariate is fitted on the RAW data with that column in the
+     design — which is the honest way to spend the information. Everything else
+     is tested on the matrix it produced, and pays for that in a narrow interval
+     the test does not know it should widen. */
+  const X = covar.length ? sim.X : method.data(sim, opts);
+  const cols = [new Array(n).fill(1), sim.disease.map(Number), ...covar];
+
   const bs = [];
   const ses = [];
   for (let g = from; g < to; g += 1) {
-    /* The covariate fit reads the RAW gene: its whole claim is that the batch
-       is handled inside the model rather than taken out of the data first. */
-    const r = ols(cols, withBatch ? sim.X[g] : X[g]);
+    const r = fitWithSE(cols, X[g]);
     if (!r) continue;
     bs.push(r.beta[1]);
     ses.push(r.se[1]);
@@ -237,65 +418,42 @@ function estimateOver(sim, key, from, to) {
 }
 
 /**
- * Least squares for a design of two or three columns, returning each
- * coefficient and its standard error. Small and explicit rather than general:
- * the inverse is needed for the standard errors, and at this size a cofactor
- * inverse is clearer than a factorisation.
+ * Least squares returning every coefficient and its standard error.
  *
- * Returns null on a singular design, which is what full confounding is — the
- * caller prints "not estimable" rather than a number from a ridge.
+ * Gauss-Jordan on [X'X | X'y | I] in one pass, so the inverse the standard
+ * errors need comes out of the same elimination as the fit. Returns null on a
+ * singular design, which is what complete confounding is — the caller prints
+ * "not estimable" rather than a number from a ridge.
  */
-function ols(cols, y) {
+function fitWithSE(cols, y) {
   const k = cols.length;
   const n = y.length;
   const A = cols.map((u) => cols.map((v) => u.reduce((s, x, i) => s + x * v[i], 0)));
   const b = cols.map((u) => u.reduce((s, x, i) => s + x * y[i], 0));
-  const inv = invert(A);
-  if (!inv) return null;
-  const beta = inv.map((row) => row.reduce((s, v, j) => s + v * b[j], 0));
+  const M = A.map((r, i) => [...r, b[i], ...r.map((_, j) => (i === j ? 1 : 0))]);
+  for (let c = 0; c < k; c += 1) {
+    let p = c;
+    for (let r = c + 1; r < k; r += 1) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    if (Math.abs(M[c][c]) < 1e-8) return null;
+    const piv = M[c][c];
+    for (let j = c; j < M[c].length; j += 1) M[c][j] /= piv;
+    for (let r = 0; r < k; r += 1) {
+      if (r === c) continue;
+      const t = M[r][c];
+      for (let j = c; j < M[r].length; j += 1) M[r][j] -= t * M[c][j];
+    }
+  }
+  const beta = M.map((r) => r[k]);
   const resid = y.map((v, i) => v - cols.reduce((s, u, a) => s + u[i] * beta[a], 0));
   const s2 = resid.reduce((s, r) => s + r * r, 0) / (n - k);
-  return { beta, se: beta.map((_, a) => Math.sqrt(s2 * inv[a][a])) };
+  return { beta, se: beta.map((_, a) => Math.sqrt(s2 * M[a][k + 1 + a])) };
 }
 
-/** Cofactor inverse of a 2x2 or 3x3, or null if it is singular. */
-function invert(A) {
-  const k = A.length;
-  if (k === 2) {
-    const det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
-    if (Math.abs(det) < 1e-8) return null;
-    return [[A[1][1] / det, -A[0][1] / det], [-A[1][0] / det, A[0][0] / det]];
-  }
-  const det = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1])
-    - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
-    + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
-  if (Math.abs(det) < 1e-8) return null;
-  return [0, 1, 2].map((i) => [0, 1, 2].map((j) => {
-    const sub = [0, 1, 2].filter((a) => a !== j).map((a) =>
-      [0, 1, 2].filter((c) => c !== i).map((c) => A[a][c]));
-    const c = sub[0][0] * sub[1][1] - sub[0][1] * sub[1][0];
-    return ((i + j) % 2 ? -c : c) / det;
-  }));
-}
-
-/**
- * The same over the 25 genes that carry NO effect, as a plain two-group
- * difference on whatever matrix it is handed.
- *
- * NOT WHAT A WIDGET SHOULD PRINT beside a model's estimate: for `covariate` the
- * matrix is the uncorrected one, so this returns 1.488 where the covariate
- * model itself reports 0.087. `nullWithSE` goes through the same fit as the
- * effect tile and is what the figures read. This one stays because the lab
- * pages describe the DATA rather than a model.
- */
-export function nullEffect(X, disease) {
-  const d = [];
-  for (let g = AFFECTED; g < GENES; g += 1) {
-    const yes = X[g].filter((_, j) => disease[j]);
-    const no = X[g].filter((_, j) => !disease[j]);
-    d.push(mean(yes) - mean(no));
-  }
-  return mean(d);
+/** Coefficients only, or null on a singular design. */
+function ols(cols, y) {
+  const r = fitWithSE(cols, y);
+  return r ? r.beta : null;
 }
 
 /** PCA of the samples: centre each gene, then power-iterate the sample
@@ -383,13 +541,6 @@ export function projectOnto(sim, mats) {
   const out = {};
   for (const key of Object.keys(mats)) out[key] = project(mats[key], basis);
   return { points: out, share: raw.share };
-}
-
-/** Every correction on the observed data's axes — the correction page's door. */
-export function projectAll(sim) {
-  const mats = {};
-  for (const key of Object.keys(CORRECTIONS)) mats[key] = correct(sim, key);
-  return projectOnto(sim, mats);
 }
 
 /**
