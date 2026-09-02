@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 3 batch-effect — the panel, the picker, the estimate</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 96ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 400px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; white-space: pre-wrap; max-width: 400px; }
+  .railbox { border: 1px dashed var(--grid); padding: var(--sp-3); background: var(--surface-2); width: 250px; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: var(--sp-2) 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+  .tiles { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-2) 0 0; }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 6px 10px; min-width: 150px; }
+  .tile .l { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .v { font-size: var(--fs-fig); font-family: var(--font-mono); color: var(--ink-1); line-height: 1.2; }
+  .tile .n { font-size: 10px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 3 candidate · <code>batch-effect</code></h1>
+  <p class="note">
+    PHM5003 <code>05 - Introduction to High Throughput Data / 05 - Batch Effect
+    Correction</code>. The misconception: <b>that a batch effect is noise you subtract.</b>
+    The danger is confounding, and correcting a confounded design deletes the biology.
+    Everything below is drawn from <code>_lab/batch-model.js</code> — the notebook's cell 3
+    plus <code>overlap</code> — and every number in a caption is computed on this page.
+    <code>node widgets/_lab/batch-measure.mjs</code> prints the same values.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§1 · THE CONTROL — how far batch and condition line up</h2>
+  <p class="note">
+    The notebook sits at <code>overlap = 0</code> and never says so: condition alternates
+    while batch splits at sample 20, so every batch is 10 healthy and 10 diseased. The
+    design, as a 2 × 2, is the thing the reader has to see change.
+  </p>
+  <div class="row" id="designs"></div>
+  <p class="ask">
+    <b>ASK 1.</b> Does the 2 × 2 count table belong on screen as its own small panel, or is
+    the PCA scatter enough to show the design?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§2 · THE PCA PANEL — two colourings, one set of points</h2>
+  <p class="note">
+    The notebook draws the same scatter twice, coloured by batch and then by condition.
+    That is two panels for one set of points. <b>A</b> keeps it. <b>B</b> uses one panel and
+    a colour-by control. <b>C</b> uses one panel with <b>colour for condition and shape for
+    batch</b>, which is the standard way to put two categorical splits on one scatter — and
+    it removes the colour-role problem rather than working around it, since batch never
+    needs a hue.
+  </p>
+  <div class="row" id="panels"></div>
+  <p class="ask">
+    <b>ASK 2.</b> A (the notebook's two panels), B (one panel, colour-by control) or
+    C (one panel, colour = condition, shape = batch)?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§3 · THE CORRECTION PICKER</h2>
+  <p class="note">
+    Three options, and the third is the lesson: <code>ComBat(mod = ~condition)</code> is
+    named in cell 11 as "optional but recommended" and cell 12 does not use it. The measured
+    difference is the whole widget.
+  </p>
+  <table class="m" id="effects"></table>
+  <div class="row" id="pickers"></div>
+  <p class="ask">
+    <b>ASK 3.</b> All three as one picker (A), or a correction on/off toggle plus a
+    "protect the condition" checkbox (B)? B is two controls for what is really three
+    settings, and the middle one is the mistake being taught.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§4 · WHERE THE ESTIMATE GOES</h2>
+  <p class="note">
+    The estimated disease effect against its known truth of 0.80 is what the correction is
+    <i>for</i>, and it is the number that collapses. Three placements.
+  </p>
+  <div class="row" id="estimates"></div>
+  <p class="ask">
+    <b>ASK 4.</b> Tiles (A), a strip drawn under the scatter with the truth marked (B), or
+    both — tiles for the numbers and the strip for the comparison (C)?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§5 · THE END OF THE ARGUMENT — a design nothing can fix</h2>
+  <p class="note">
+    At <code>overlap = 1</code> batch and condition are the same variable. The design matrix
+    drops to rank 2 and no model can separate them; a fit still returns a number (1.385) and
+    it is an artefact of the ridge, not an estimate. <b>Measured, only overlap 1 is
+    singular</b> — 0.90 still has one sample in each cell.
+  </p>
+  <div class="row" id="singular"></div>
+  <p class="ask">
+    <b>ASK 5.</b> At overlap 1: blank the estimate and say <i>not estimable</i> (A), or
+    keep the slider from reaching 1 at all (B)? A teaches the boundary; B hides it.
+  </p>
+</main>
+
+<script type="module">
+import { buildControls } from "../core/controls.js";
+import {
+  simulate, correct, CORRECTIONS, estimatedEffect, nullEffect, pca, separation,
+  AFFECTED, TRUE_EFFECT,
+} from "./batch-model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+for (const k of ["ink-1","ink-2","ink-3","grid","axis","surface-1","surface-2",
+                 "c-group-a","c-group-b","c-reference","c-highlight","c-extreme"]) C[k] = css(`--${k}`);
+const MONO = css("--font-mono");
+const f = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+
+const OVERLAPS = [0, 0.5, 1];
+const SIMS = Object.fromEntries(OVERLAPS.map((o) => [o, simulate({ seed: 1, overlap: o })]));
+
+function mk(host, { title, sub, w, h, cap }) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || "&nbsp;"}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  d.appendChild(cv);
+  const p = document.createElement("p");
+  p.className = "cap";
+  p.textContent = cap || "";
+  d.appendChild(p);
+  host.appendChild(d);
+  return { ctx: cv.getContext("2d"), cap: p, w, h };
+}
+
+/* ---- the scatter, in three forms ---------------------------------------- */
+function scatter(ctx, x0, y0, w, h, sim, X, opts) {
+  const { colourBy = "condition", shapeBatch = false, title = "" } = opts;
+  const p = pca(X);
+  const xs = p.scores.map((s) => s[0]);
+  const ys = p.scores.map((s) => s[1]);
+  const pad = (a) => { const lo = Math.min(...a), hi = Math.max(...a), m = (hi - lo) * 0.1 || 1;
+    return [lo - m, hi + m]; };
+  const [ax0, ax1] = pad(xs);
+  const [ay0, ay1] = pad(ys);
+  const SX = (v) => x0 + 30 + ((v - ax0) / (ax1 - ax0)) * (w - 40);
+  const SY = (v) => y0 + h - 24 - ((v - ay0) / (ay1 - ay0)) * (h - 40);
+
+  ctx.strokeStyle = C.grid;
+  ctx.strokeRect(x0 + 30.5, y0 + 12.5, w - 40, h - 36);
+  ctx.font = `${css("--fs-sm")} ${css("--font")}`;
+  ctx.fillStyle = C["ink-2"];
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  if (title) ctx.fillText(title, x0 + 30, y0 + 6);
+  ctx.font = `10px ${MONO}`;
+  ctx.fillStyle = C["ink-3"];
+  ctx.textAlign = "center";
+  ctx.fillText(`PC1 · ${(p.share[0] * 100).toFixed(0)}%`, x0 + 30 + (w - 40) / 2, y0 + h - 6);
+
+  for (let j = 0; j < xs.length; j += 1) {
+    const flag = colourBy === "batch" ? sim.batch[j] === 1 : sim.disease[j];
+    ctx.fillStyle = flag ? C["c-group-b"] : C["c-group-a"];
+    const cx = SX(xs[j]);
+    const cy = SY(ys[j]);
+    if (shapeBatch && sim.batch[j] === 1) {
+      ctx.fillRect(cx - 3.2, cy - 3.2, 6.4, 6.4);          // batch 2: square
+    } else {
+      ctx.beginPath(); ctx.arc(cx, cy, 3.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  return p;
+}
+
+/* ---- §1 · the design as a 2x2, beside its scatter ----------------------- */
+{
+  const host = document.getElementById("designs");
+  for (const o of OVERLAPS) {
+    const sim = SIMS[o];
+    const count = (b, d) => sim.batch.filter((x, j) => x === b && sim.disease[j] === d).length;
+    const cells = [[count(0, false), count(0, true)], [count(1, false), count(1, true)]];
+    const min = Math.min(...cells.flat());
+    const c = mk(host, {
+      title: `overlap = ${o.toFixed(2)}${o === 0 ? " — the notebook" : ""}`,
+      sub: o === 1 ? "one cell empty: batch and condition are the same variable"
+        : "every cell filled: the design is estimable",
+      w: 330, h: 250,
+      cap: `smallest cell ${min}${min === 0 ? "  — NOT ESTIMABLE" : ""}`,
+    });
+    const ctx = c.ctx;
+    /* the 2 x 2 */
+    ctx.font = `11px ${MONO}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const gx = 96, gy = 34, cw = 74, rh = 26;
+    ctx.fillStyle = C["ink-3"];
+    ctx.fillText("Healthy", gx + cw * 0.5, gy - 10);
+    ctx.fillText("Disease", gx + cw * 1.5, gy - 10);
+    ctx.textAlign = "right";
+    ctx.fillText("Batch 1", gx - 8, gy + rh * 0.5);
+    ctx.fillText("Batch 2", gx - 8, gy + rh * 1.5);
+    ctx.textAlign = "center";
+    for (let r = 0; r < 2; r += 1) for (let cc = 0; cc < 2; cc += 1) {
+      const v = cells[r][cc];
+      ctx.strokeStyle = C.grid;
+      ctx.strokeRect(gx + cw * cc + 0.5, gy + rh * r + 0.5, cw, rh);
+      ctx.fillStyle = v === 0 ? C["c-extreme"] : C["ink-1"];
+      ctx.fillText(String(v), gx + cw * (cc + 0.5), gy + rh * (r + 0.5));
+    }
+    scatter(ctx, 0, 96, 330, 150, sim, sim.X, { colourBy: "batch", title: "uncorrected, coloured by batch" });
+  }
+}
+
+/* ---- §2 · the three panel forms ----------------------------------------- */
+{
+  const host = document.getElementById("panels");
+  const sim = SIMS[0];
+  const X = correct(sim, "none");
+
+  let c = mk(host, { title: "A · the notebook's two panels", sub: "same points, coloured twice", w: 500, h: 210,
+    cap: "two panels for one set of points; each split gets group-a / group-b in its own panel" });
+  scatter(c.ctx, 0, 8, 250, 200, sim, X, { colourBy: "batch", title: "by batch" });
+  scatter(c.ctx, 250, 8, 250, 200, sim, X, { colourBy: "condition", title: "by condition" });
+
+  c = mk(host, { title: "B · one panel, colour-by control", sub: "half the width, and only one split visible at a time", w: 250, h: 210,
+    cap: "the reader must toggle to compare, and the toggle is a display parameter" });
+  scatter(c.ctx, 0, 8, 250, 200, sim, X, { colourBy: "batch", title: "by batch" });
+
+  c = mk(host, { title: "C · colour = condition, shape = batch", sub: "both splits at once, and batch needs no colour role", w: 250, h: 210,
+    cap: "circle = batch 1, square = batch 2; hue = condition. The standard form for two categorical splits." });
+  scatter(c.ctx, 0, 8, 250, 200, sim, X, { colourBy: "condition", shapeBatch: true, title: "both, at once" });
+}
+
+/* ---- §3 · the effect table and the picker candidates -------------------- */
+{
+  const keys = Object.keys(CORRECTIONS);
+  const rows = [0, 0.25, 0.5, 0.75, 1].map((o) => {
+    const s = simulate({ seed: 1, overlap: o });
+    return { o, vals: keys.map((k) => estimatedEffect(correct(s, k), s.disease)),
+      nulls: keys.map((k) => nullEffect(correct(s, k), s.disease)),
+      singular: Math.min(...[[0, false], [0, true], [1, false], [1, true]]
+        .map(([b, d]) => s.batch.filter((x, j) => x === b && s.disease[j] === d).length)) === 0 };
+  });
+  document.getElementById("effects").innerHTML =
+    `<tr><th rowspan="2">overlap</th><th colspan="3">estimated effect (truth 0.80)</th>`
+    + `<th colspan="3">the 25 genes with NO effect</th></tr>`
+    + `<tr>${keys.map((k) => `<th>${CORRECTIONS[k].label}</th>`).join("")}`
+    + `${keys.map((k) => `<th>${CORRECTIONS[k].label}</th>`).join("")}</tr>`
+    + rows.map((r) => `<tr><td>${r.o.toFixed(2)}</td>`
+      + r.vals.map((v, i) => `<td class="${r.singular && keys[i] === "preserve" ? "bad" : Math.abs(v - TRUE_EFFECT) < 0.12 ? "hit" : ""}">`
+        + `${r.singular && keys[i] === "preserve" ? "not estimable" : f(v)}</td>`).join("")
+      + r.nulls.map((v) => `<td class="${Math.abs(v) > 0.2 ? "bad" : ""}">${f(v)}</td>`).join("")
+      + `</tr>`).join("")
+    + `<tr><td colspan="7" style="text-align:left;color:var(--ink-3)">one seed, so these differ slightly from batch-measure.mjs, which averages five.</td></tr>`;
+
+  const host = document.getElementById("pickers");
+  const SPECS = [
+    { title: "A · one picker of three", sub: "the middle option is the mistake being taught",
+      spec: { sec: { type: "section", label: "Correction" },
+        method: { type: "segmented", style: "grid", label: "Method", default: "none",
+          options: [
+            { value: "none", label: "None", span: true, detail: "the batch shift is still in the data" },
+            { value: "batchMean", label: "Batch mean", detail: "subtract each batch's mean, per gene" },
+            { value: "preserve", label: "Keep condition", detail: "fit condition alongside batch and remove only the batch term" },
+          ] } } },
+    { title: "B · a toggle and a checkbox", sub: "two controls for three settings",
+      spec: { sec: { type: "section", label: "Correction" },
+        on: { type: "bool", label: "Correct the batch effect", default: false },
+        keep: { type: "bool", label: "Keep condition in the model", default: false } } },
+  ];
+  for (const s of SPECS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    d.innerHTML = `<h3>${s.title}</h3><p class="sub">${s.sub}</p>`;
+    const box = document.createElement("div");
+    box.className = "railbox w-rail";
+    d.appendChild(box);
+    host.appendChild(d);
+    buildControls(box, s.spec, { method: "none", on: false, keep: false }, () => {});
+  }
+}
+
+/* ---- §4 · where the estimate goes --------------------------------------- */
+{
+  const host = document.getElementById("estimates");
+  const sim = simulate({ seed: 1, overlap: 0.75 });
+  const est = Object.fromEntries(Object.keys(CORRECTIONS)
+    .map((k) => [k, estimatedEffect(correct(sim, k), sim.disease)]));
+
+  const tiles = document.createElement("div");
+  tiles.className = "cand";
+  tiles.innerHTML = `<h3>A · readout tiles</h3><p class="sub">the collection's default; three numbers, no picture</p>
+    <div class="tiles">
+      <div class="tile"><div class="l">Estimated effect</div><div class="v">${f(est.batchMean, 2)}</div><div class="n">the truth is 0.80</div></div>
+      <div class="tile"><div class="l">Genes with no effect</div><div class="v">${f(nullEffect(correct(sim, "batchMean"), sim.disease), 2)}</div><div class="n">should be 0</div></div>
+      <div class="tile"><div class="l">Design</div><div class="v">17 / 3</div><div class="n">smallest cell 3 — estimable</div></div>
+    </div>`;
+  host.appendChild(tiles);
+
+  const c = mk(host, { title: "B · a strip under the scatter", sub: "the truth marked, the three corrections as ticks on it", w: 420, h: 84,
+    cap: `at overlap 0.75: none ${f(est.none, 2)}, batch mean ${f(est.batchMean, 2)}, keeping condition ${f(est.preserve, 2)}` });
+  {
+    const ctx = c.ctx;
+    const x0 = 20, x1 = 400, y = 62;
+    const lo = 0, hi = 2.6;
+    const SX = (v) => x0 + ((v - lo) / (hi - lo)) * (x1 - x0);
+    ctx.strokeStyle = C.axis; ctx.beginPath(); ctx.moveTo(x0, y + 0.5); ctx.lineTo(x1, y + 0.5); ctx.stroke();
+    ctx.font = `10px ${MONO}`; ctx.fillStyle = C["ink-3"]; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const v of [0, 0.5, 1, 1.5, 2, 2.5]) { ctx.fillText(v.toFixed(1), SX(v), y + 6); }
+    /* the truth */
+    ctx.strokeStyle = C["c-reference"]; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(SX(TRUE_EFFECT), y - 26); ctx.lineTo(SX(TRUE_EFFECT), y); ctx.stroke();
+    ctx.fillStyle = C["c-reference"]; ctx.textBaseline = "alphabetic"; ctx.textAlign = "center";
+    ctx.fillText("truth 0.80", SX(TRUE_EFFECT), y - 30);
+    const marks = [["none", C["c-extreme"]], ["batchMean", C["c-group-a"]], ["preserve", C["c-group-b"]]];
+    marks.forEach(([k, col], i) => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(SX(est[k]), y - 8 - i * 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.font = `9px ${MONO}`; ctx.textAlign = "center";
+      ctx.fillText(CORRECTIONS[k].label.split(",")[0], SX(est[k]), y - 14);
+    });
+  }
+
+  const both = document.createElement("div");
+  both.className = "cand";
+  both.innerHTML = `<h3>C · both</h3><p class="sub">tiles carry the numbers, the strip carries the comparison to the truth</p>
+    <div class="tiles"><div class="tile"><div class="l">Estimated effect</div><div class="v">${f(est.batchMean, 2)}</div><div class="n">the truth is 0.80</div></div></div>
+    <p class="cap">the strip above, plus one tile — the readout is the accessible reading of the figure either way (prd §11)</p>`;
+  host.appendChild(both);
+}
+
+/* ---- §5 · the singular state -------------------------------------------- */
+{
+  const host = document.getElementById("singular");
+  const sim = SIMS[1];
+  const c = mk(host, { title: "overlap = 1, corrected keeping condition", sub: "batch and condition are one variable; the scatter cannot separate what the design did not", w: 330, h: 210,
+    cap: `a fit still returns ${f(estimatedEffect(correct(sim, "preserve"), sim.disease), 3)} on this seed — an artefact of the ridge, not an estimate` });
+  scatter(c.ctx, 0, 8, 330, 200, sim, correct(sim, "preserve"), { colourBy: "condition", shapeBatch: true, title: "colour = condition, shape = batch" });
+
+  const t = document.createElement("div");
+  t.className = "cand";
+  t.innerHTML = `<h3>what the tiles would say</h3><p class="sub">A: name it. B: never let the slider get here.</p>
+    <div class="tiles">
+      <div class="tile"><div class="l">Estimated effect</div><div class="v" style="color:var(--c-extreme)">—</div><div class="n">not estimable: batch and condition are the same variable</div></div>
+      <div class="tile"><div class="l">Design</div><div class="v" style="color:var(--c-extreme)">20 / 0</div><div class="n">an empty cell</div></div>
+    </div>`;
+  host.appendChild(t);
+}
+</script>
+</body>
+</html>
