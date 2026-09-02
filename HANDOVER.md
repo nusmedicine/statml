@@ -65,56 +65,69 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` IS A DRAFT — awaiting Kenneth's review
+## NEXT: widget 40 `batch-effect` IS A DRAFT — four rounds in, awaiting review
 
-**Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's
-"tested ok, push it to gallery" — four review rounds across two days, eight
-fingerprint states recorded (seven settled, one driven), suite **283 of 283**.
-The full record is catalogue § Slot 1.
-
-**Kenneth picked `batch-effect` next on 2026-09-02** and the planning
-measurements are done — catalogue § Slot 3, § *PICKED NEXT AND MEASURED*.
-
-```bash
-node widgets/_lab/batch-measure.mjs      # every number in that section
-```
-
-- **THE PLANNED TWO-WAY STORY WAS WRONG and the measurement is better.** There
-  are THREE outcomes, not two: no correction reports the batch as biology
-  (0.83 -> 2.77 against a truth of 0.80); the naive correction removes the
-  biology in proportion to the confounding (0.813 / 0.620 / 0.443 / 0.000);
-  and keeping condition in the model holds 0.83-0.87 across every estimable
-  design. The third is `ComBat(mod = ~condition)`, which cell 11 names as
-  "optional but recommended" and cell 12 does not use.
-- **THE NOTEBOOK'S DESIGN IS BALANCED, confirmed**: 10 healthy and 10 diseased
-  in each batch, and nothing in the lesson says so.
-- **`overlap = 1` MUST NOT PRINT A NUMBER.** The design drops to rank 2 there
-  and the fit returns 1.385, an artefact of the ridge. Only overlap 1 is
-  singular; 0.90 still has one sample per cell. The widget says *not estimable*.
-- **The batch shift earns a second control**: the crossover where the batch
-  takes PC1 from the condition is near 1.0, not the notebook's 2.
-
-**BUILT AS A DRAFT 2026-09-02**, after seven picks from `_lab/batch-mock.html`:
-one panel with colour = condition and shape = batch, a picker of three
-corrections, tiles plus an estimate strip, a 2 x 2 design table, a batch-shift
-slider, and an ease between corrections with no drive buttons.
+**Kenneth picked `batch-effect` on 2026-09-02**; planning measurements, the mock
+picks and rounds 1–4 are in catalogue § Slot 3.
 
 ```bash
 node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/               (balanced)
-# .../widgets/batch-effect/?overlap=0.75                    (confounded: 2.23 for a 0.80 effect)
-# .../widgets/batch-effect/?overlap=0.75&correct=batchMean  (the naive fix: 0.42)
-# .../widgets/batch-effect/?overlap=0.75&correct=preserve   (keeping condition: 0.83)
-# .../widgets/batch-effect/?overlap=1&correct=preserve      (not estimable)
+# http://localhost:8011/widgets/batch-effect/                       (balanced; the batch owns PC1)
+# .../widgets/batch-effect/?correct=remove                          (the batch collapses, the condition emerges)
+# .../widgets/batch-effect/?overlap=0.75                            (confounded, uncorrected: 2.23 for a 0.80 effect)
+# .../widgets/batch-effect/?overlap=0.75&correct=remove             (the naive fix: 0.44 — the biology went too)
+# .../widgets/batch-effect/?overlap=0.75&correct=covariate          (batch in the model: 0.87)
+# .../widgets/batch-effect/?overlap=0.75&correct=known              (the oracle: 0.82)
+# .../widgets/batch-effect/?overlap=1&correct=covariate             (not estimable)
+# .../widgets/batch-effect/?colourBy=batch                          (the other split)
+# .../widgets/batch-effect/?shift=0                                 (nothing to correct)
+node widgets/_lab/batch-measure.mjs      # every number in the catalogue section
 ```
 
-- **ONLY `preserve` GOES BLANK on a confounded design.** The first version
-  blanked all three tiles, which threw away the conclusion: at total overlap the
-  uncorrected estimate is 2.81 with 2.06 on genes that have no effect, and the
-  naive correction returns 0.00 having deleted everything. Both are well defined
-  and both are wrong, which is the point.
+- **THE STAGE IS THE NOTEBOOK'S OWN ARRAY**: cell 3's 50 genes × 40 samples,
+  effect 0.8 on genes 1–25, +2 shift on samples 21–40. `overlap` moves which
+  samples are diseased and leaves the dimensions alone. The gene and sample
+  counts are on screen in the formula card's index line.
+- **THE PLANNED TWO-WAY STORY WAS WRONG.** There are FOUR options and three
+  outcomes: no correction reports the batch as biology (0.83 → 2.77 against a
+  truth of 0.80); removing the batch from the data removes the biology in
+  proportion to the confounding (0.813 / 0.620 / 0.443 / 0.000); batch as a
+  covariate holds 0.83–0.87 across every estimable design; and the oracle —
+  cell 7's *subtract the known shift* — is the only one that survives total
+  overlap, because it was handed a number the data does not contain.
+- **`overlap = 1` MUST NOT PRINT A NUMBER for `covariate`.** The design drops to
+  rank 2 there and the fit returns 1.385, an artefact of the ridge. Only overlap
+  1 is singular; 0.90 still has one sample per cell. **Only that one tile
+  blanks** — the other three are well defined at total overlap and they *are*
+  the conclusion.
+- **ONE SPLIT AT A TIME**: `colourBy` switches the scatter between condition and
+  batch, and the legend follows through core's function door. Hue for one and
+  fill for the other put two questions on one mark.
+- **THE PROJECTION IS FIXED** to the uncorrected data's loadings, and the axis
+  says so. Refitting per correction rotates the axes (PC1 correlations 0.213 /
+  0.167 / 0.133), so the ease would be about the basis rather than the data.
+- **THE STRIP'S AXIS IS FIXED AT 0–5**, measured: the estimate runs −0.000 to
+  4.826 across every reachable state at five seeds.
+- **THE FORMULA CARD** carries cell 10's model once —
+  `X_ij = α_i + β_i Y_j + γ_ij + ε_ij`, noted `i = 1…50 genes, j = 1…40
+  samples` — then one row for what the chosen correction does to it. The
+  difference between `remove` and `covariate` is visible in the notation and
+  nowhere else. Reserved at **8.2em** after it jogged 22px; jog is now 0 at both
+  535px and 755px.
+
+**Still open on widget 40**: the title, the subtitle, whether `seed` earns its
+place, and how to show the methods that do not need the batch labels — ComBat
+and SVA without spike-ins, RUV with control genes. **Not baselined**; it declares
+an `animation`, so at promotion it owes a driven state, naturally
+`drive: { set: { correct: "remove" }, frames, dt }`.
+
 - The three remaining slots are `nmf`, `hierarchical-clustering` and
   `enrichment`, none picked.
+
+**Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's "tested
+ok, push it to gallery" — four review rounds across two days, eight fingerprint
+states (seven settled, one driven), suite **283 of 283**. Catalogue § Slot 1 has
+the record; what is worth carrying forward is below.
 
 ```bash
 node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions

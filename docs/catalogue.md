@@ -4084,6 +4084,56 @@ SVA without spike-ins, RUV with control genes. **Not baselined**; it declares an
 `animation`, so at promotion it owes a driven state, naturally
 `drive: { set: { correct: "remove" }, frames, dt }`.
 
+#### ROUND 4 — the formula card, and the three questions the gene index answers
+
+Kenneth: *"build the formula card and let's review — can we also indicate how
+many genes in the simulation? are we using the equivalent of the notebook gene
+expression data? also how do we see it in the formula?"*
+
+**Yes, it is the notebook's own array.** `simulate()` builds cell 3 exactly:
+50 genes × 40 samples, a disease effect of 0.8 on genes 1–25, a +2 shift on
+samples 21–40, condition alternating. The only thing added is `overlap`, which
+moves which samples are diseased and leaves the dimensions alone.
+
+**One card answers all three questions, because the index is where the size
+lives.** The card carries cell 10's model —
+
+    X_ij = α_i + β_i Y_j + γ_ij + ε_ij     i = 1…50 genes, j = 1…40 samples
+
+— and that index line does three jobs at once: it states the simulation's size,
+it names 50 as *genes* rather than as a number on a slider, and it says `i` is
+the gene, so every correction below it is applied **per gene**. Putting the count
+in the subtitle or a stat tile would have stated the first and none of the rest.
+
+**The model once, then what the correction does to it.** The four options are
+four things to do with one model, so row 2 changes and row 1 does not:
+
+| option | row 2 | its note |
+|---|---|---|
+| None | prose | the batch term is still in every measurement |
+| Subtract known | X′ = X − γ | γ = 2.0, following the shift slider |
+| Remove from data | X′ = X − γ̂ₖ | γ̂ is batch k's own mean, per gene, **β left out** |
+| Batch as covariate | report β̂ᵢ | the data is left alone; β and γ fit together |
+
+**The last two differ in the notation and nowhere else on screen** — both are
+"handle the batch", both move the scatter, and only `γ̂` estimated without `β`
+versus `β̂` estimated alongside `γ` says why one destroys the biology and the
+other does not. That is the card's real job; the gene count is the easy half.
+
+`γ` follows the shift slider rather than being written as a constant, because the
+oracle's number is one the reader is setting — a card reading `X − γ` with γ = 2
+while the slider says 4 would be the widget lying about itself.
+
+**Reserved height, measured.** Natural height runs 65–87px across the reachable
+card states at the narrowest column the side layout reaches, a 22px jog under the
+figure as the correction changes (3.4d). `min-height: 8.2em` against the card's
+11px type covers 87px with room for a font substitution; measured after, the jog
+is **0** at both 535px and 755px.
+
+Verified: 120 states — 5 overlaps × 3 batch shifts × 2 colourings × 4
+corrections — swept again with the card present for collisions, off-canvas runs,
+NaN, `-0.00` and an unfinished draw. None. `npm run check` 10/10.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

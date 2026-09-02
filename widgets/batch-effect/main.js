@@ -55,7 +55,7 @@
    forty samples, and a jump only asserts that.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import {
   simulate, correct, CORRECTIONS, estimatedEffect, nullEffect,
   projectAll, design, TRUE_EFFECT, AFFECTED, GENES, SAMPLES,
@@ -65,6 +65,12 @@ const FIG_H = 452;
 const EASE_MS = 600;
 /* The estimate strip's fixed upper end — see `drawStrip`. */
 const STRIP_MAX = 5;
+/* The formula card's reserved height. Natural height runs 65px to 87px across
+   the 20 states at the narrowest column the side layout reaches (535px), a 22px
+   jog under the figure as a control moves (3.4d). 87px is 7.91em against this
+   card's 11px type; 8.2em covers it with the usual few percent for a font
+   substitution. */
+const CARD_EM = "8.2em";
 
 /* The design ladder. A magnitude — how far batch and condition line up — with
    the notebook's own balanced design at the left end. The right end is the
@@ -92,6 +98,96 @@ const SHIFTS = [
   { value: "4", amount: 4, label: "4.0", detail: "the batch dominates completely" },
 ];
 const shiftOf = (k) => SHIFTS.find((s) => s.value === k)?.amount ?? 2;
+
+/* ---- the formula card ---------------------------------------------------
+   The notebook's own model, cell 10:
+
+       X_ij = alpha_i + beta_i Y_j + gamma_ij + epsilon_ij
+
+   i indexes GENES and j SAMPLES, which is where the simulation's size lives
+   and the reason the card states both ranges: 50 genes and 40 samples are the
+   lesson's own dimensions, and every correction below is applied per gene.
+
+   The four options are four things to do with that one model, so the card
+   shows it once and then says what the chosen correction does to it. The
+   difference between the last two is visible in the notation and nowhere else:
+   `remove` estimates gamma with beta LEFT OUT of the model, `covariate` fits
+   both and reports beta-hat. */
+const MATHML = mathmlRenders();
+const SUB = (v, sub) => `<msub><mi>${v}</mi><mi>${sub}</mi></msub>`;
+const SUB2 = (v) => `<msub><mi>${v}</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>`;
+const HAT = (v) => `<mover accent="true"><mi>${v}</mi><mo>&#x5E;</mo></mover>`;
+
+const MODEL = {
+  math: `<math><mrow>${SUB2("X")}<mo>=</mo>${SUB("&#x3B1;", "i")}<mo>+</mo>`
+    + `${SUB("&#x3B2;", "i")}${SUB("Y", "j")}<mo>+</mo>${SUB2("&#x3B3;")}`
+    + `<mo>+</mo>${SUB2("&#x3B5;")}</mrow></math>`,
+  plain: "X(i,j) = a(i) + b(i)·Y(j) + g(i,j) + e(i,j)",
+};
+
+const STEP = {
+  none: {
+    math: null,
+    plain: "nothing is removed; the batch term is still in every measurement",
+  },
+  known: {
+    math: `<math><mrow><msup>${SUB2("X")}<mo>&#x2032;</mo></msup><mo>=</mo>`
+      + `${SUB2("X")}<mo>&#x2212;</mo><mi>&#x3B3;</mi></mrow></math>`,
+    plain: "X'(i,j) = X(i,j) − g",
+    note: "γ itself, which the lesson knows because it simulated the data",
+  },
+  remove: {
+    math: `<math><mrow><msup>${SUB2("X")}<mo>&#x2032;</mo></msup><mo>=</mo>`
+      + `${SUB2("X")}<mo>&#x2212;</mo><msub>${HAT("&#x3B3;")}<mi>k</mi></msub></mrow></math>`,
+    plain: "X'(i,j) = X(i,j) − ĝ(k)",
+    note: "γ̂ estimated as batch k's own mean, per gene, with β left out of the model",
+  },
+  covariate: {
+    math: `<math><mrow><mtext>report&#xA0;</mtext>${SUB(HAT("&#x3B2;"), "i")}`
+      + `<mtext>&#xA0;from the model above</mtext></mrow></math>`,
+    plain: "report b̂(i) from the model above",
+    note: "the data is left alone; β and γ are estimated together",
+  },
+};
+
+let cardHost = null;
+let cardKey = null;
+
+function renderCard(params, shift) {
+  if (!cardHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    cardHost = document.createElement("div");
+    cardHost.className = "w-math";
+    cardHost.style.minHeight = CARD_EM;
+    figure.parentNode.insertBefore(cardHost, figure);
+  }
+  /* Only the oracle's row shows the shift, so only it keys on one — otherwise
+     every tick of the slider rewrites the card's MathML mid-drag. */
+  const key = params.correct === "known" ? `known|${shift}` : params.correct;
+  if (key === cardKey) return;
+  cardKey = key;
+
+  const row = (label, body, note) =>
+    `<div class="w-math-eq" style="min-height:0;padding-left:6.4em;text-indent:-6.4em">`
+    + `<span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>`
+    + `<span>${body}</span>`
+    + (note ? `<span style="color:var(--ink-3);font-size:var(--fs-xs)">&nbsp;&nbsp;${note}</span>` : "")
+    + `</div>`;
+
+  const step = STEP[params.correct];
+  const stepBody = MATHML && step.math
+    ? step.math
+    : `<span style="font-size:var(--fs-xs);color:var(--ink-3)">${step.plain}</span>`;
+  const stepNote = params.correct === "known"
+    ? `γ = ${shift.toFixed(1)} — ${step.note}`
+    : step.note;
+
+  cardHost.innerHTML =
+    row("The model", MATHML ? MODEL.math : `<span style="font-size:var(--fs-xs)">${MODEL.plain}</span>`,
+      `i = 1…${GENES} genes, j = 1…${SAMPLES} samples`)
+    + row("The correction", stepBody, stepNote);
+}
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -239,6 +335,7 @@ defineWidget({
   },
 
   draw: ({ ctx, colors, w, h, params, state, anim }) => {
+    renderCard(params, state.sim.shift);
     const pts = blend(anim, state);
     const { design: d, share } = state;
     /* Declared here, not beside the loop that draws the points: `plot.note`
