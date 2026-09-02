@@ -39,12 +39,15 @@
    WHY MIN-MAX AND Z-SCORE DRAW A PICTURE THAT DOES NOT MOVE, and why that is
    the point rather than a bug. Both are ONE affine map applied to every value
    in the table, so the shape cannot move: measured, the pooled skew is
-   unchanged to 7e-14, which is float noise. The axis labels are what carry the
-   other half — they read 0-468 before and 0-1 after — which is why the y axis
-   FITS the data rather than staying fixed, and why the panel prints its own
-   span. A fixed axis was drawn in the mock and makes the scaled data an
-   unreadable sliver; a fit axis with no printed range makes the control look
-   broken.
+   unchanged to 7e-14, which is float noise. The AXIS LABELS carry the other
+   half — 0 to 806 before, 0 to 1 after — and they only do so because panel 1's
+   axis holds every value rather than the middle 90%. It was fitted to p5..p95
+   at first and min-max's axis then topped out at 0.41, so the one method that
+   states its own output range in its name never showed it (Kenneth, 2026-09-02:
+   "why doesn't the y-axis scale change"). Fitting per state also rescaled the
+   SKEW away, which is why raw and log(1+y) drew near-identical pictures while
+   the tiles read 3.03 against -0.06. Tukey whiskers and a full-range axis put
+   both back: the box is 6% of the panel on raw and 19% after the log.
 
    Median normalisation is the exception that proves what "affine" is doing
    here: it is affine PER SAMPLE and is not one map over the table, so it does
@@ -52,15 +55,15 @@
    screen says "affine" — it says "scaling".
 
    ---------------------------------------------------------------------------
-   THE STAGE IS GAMMA AND THE DEPTH SPREAD IS A CONTROL. Both settled on
+   THE STAGE IS GAMMA AND THE TECHNICAL VARIATION IS A CONTROL. Both settled on
    measurement; the full record and the losing candidates are in
    `docs/catalogue.md` § Slot 1, and `model.js` carries the stage table. The
    short version:
 
      - The notebook's `simulate_data` draws every sample from the SAME mean
        vector, so its ten samples are already on one scale and every normaliser
-       has nothing to correct. `spread` gives sample j a depth factor. Turning
-       it to none IS the notebook's stage, which is why it is a control and not
+       has nothing to correct. `spread` gives sample j a multiplier. Turning it
+       to none IS the notebook's stage, which is why it is a control and not
        a constant: the reader can see the methods stop separating.
      - Counts cannot carry quantile normalisation's one claim. 1000 genes hold
        only ~198 distinct integer values, ties dominate, and the medians still
@@ -86,7 +89,7 @@
 
 import { defineWidget, makePlot, fmt } from "../core/index.js";
 import {
-  simulate, apply, summarise, quantiles, median, NORMALIZE, TRANSFORM,
+  simulate, apply, summarise, boxStats, median, TRANSFORM,
 } from "./model.js";
 
 /* The notebook's own dimensions. 1000 genes x 10 samples costs 6.2 ms through
@@ -95,16 +98,24 @@ import {
 const GENES = 1000;
 const SAMPLES = 10;
 
-/* The depth ladder. A magnitude, so a `choice` slider with tick labels rather
-   than a dropdown (3.3): left-to-right carries "how unequal are the samples",
-   and the leftmost position is the notebook's own stage. */
+/* A magnitude, so a `choice` slider with tick labels rather than a dropdown
+   (3.3): left-to-right carries "how unequal are the samples", and the leftmost
+   position is the notebook's own stage.
+
+   IT IS "TECHNICAL VARIATION", NOT "DEPTH DIFFERENCE" — Kenneth, 2026-09-02:
+   depth is not taught in this lesson. The lesson's own first cell names the
+   problem in exactly these words: "Technical Variability: Increased technical
+   variations due to multiple steps in high-throughput technologies". Sequencing
+   depth is one instance of it and injected sample amount is another; the widget
+   should not pick one and make the reader translate. Widget copy is
+   lesson-independent (2.10), and this is the lesson's vocabulary anyway. */
 const SPREADS = [
   { value: "0", amount: 0, label: "none",
-    detail: "every sample the same depth — the notebook's own stage, where no normalizer has anything to correct" },
-  { value: "0.25", amount: 0.25, label: "±25%", detail: "a mild depth difference between samples" },
-  { value: "0.5", amount: 0.5, label: "±50%", detail: "the deepest sample yields about 2.3× the shallowest" },
-  { value: "0.75", amount: 0.75, label: "±75%", detail: "the deepest sample yields about 3.1× the shallowest" },
-  { value: "1", amount: 1, label: "±100%", detail: "the deepest sample yields about 4× the shallowest" },
+    detail: "every sample measured identically — the notebook's own stage, where no normalizer has anything to correct" },
+  { value: "0.25", amount: 0.25, label: "±25%", detail: "a mild systematic difference between samples" },
+  { value: "0.5", amount: 0.5, label: "±50%", detail: "one sample's values run about 2.3× another's" },
+  { value: "0.75", amount: 0.75, label: "±75%", detail: "one sample's values run about 3.1× another's" },
+  { value: "1", amount: 1, label: "±100%", detail: "one sample's values run about 4× another's" },
 ];
 const spreadOf = (key) => SPREADS.find((s) => s.value === key)?.amount ?? 0.5;
 
@@ -133,6 +144,20 @@ const spreadOf = (key) => SPREADS.find((s) => s.value === key)?.amount ?? 0.5;
    precondition on the other two. Both are worth having and neither is a bug. */
 const LAMBDAS = [0.02, 0.1, 0.25, 0.5, 0.75, 1];
 
+/* SHORT NAMES FOR THE FIGURE, full ones for the rail. A dropdown option has to
+   say what it does — "Min–max → [0, 1]" earns its arrow there — but the figure's
+   own line competes for width with a 51-character loss note beneath it, and
+   "Z-score → mean 0, sd 1, then Box–Cox λ = 0.5" is 44 characters of which 14
+   restate the option's own name. Same quantity, two registers.
+
+   UP HERE, NOT BESIDE `pipelineLabel` AT THE BOTTOM OF THE FILE. It was a const
+   declared after `defineWidget`, and `draw` runs synchronously inside that call
+   — so every render threw `Cannot access 'SHORT' before initialization` and
+   aborted after panel 2. The helpers next to it are `function` declarations,
+   which hoist; a const does not. Module constants belong above the call that
+   can reach them. */
+const SHORT = { median: "Median", minmax: "Min–max", zscore: "Z-score", quantile: "Quantile" };
+
 /* Which panel each tile belongs to, so the readout reads left to right in the
    same order the figure does (3.1). */
 const PANEL_GAP = 26;
@@ -146,7 +171,7 @@ defineWidget({
     + "order, and neither one does the other's job.",
   layout: "side",
   status: "draft",
-  height: 400,
+  height: 416,
 
   params: {
     /* --- THE DATA ------------------------------------------------------- */
@@ -154,7 +179,7 @@ defineWidget({
 
     spread: {
       type: "choice",
-      label: "Depth difference between samples",
+      label: "Technical variation between samples",
       options: SPREADS.map(({ value, label, detail }) => ({ value, label, detail })),
       default: "0.5",
     },
@@ -241,10 +266,10 @@ defineWidget({
        are compared to. Computed here rather than in draw() so the panel and
        the tile cannot disagree about what the median is (5.8). */
     const kept = cols.map((c) => c.filter(Number.isFinite));
-    // NOT `kept.map(quantiles)` — map passes (el, i, arr), so the index lands
-    // in the `qs` argument and quantiles tries to map over 0.
-    const boxes = kept.map((c) => quantiles(c));
-    const grand = median(boxes.map((b) => b[2]));
+    // NOT `kept.map(boxStats)` — map passes (el, i, arr), and a bare reference
+    // hands the index to the second parameter.
+    const boxes = kept.map((c) => boxStats(c));
+    const grand = median(boxes.map((b) => b.med));
 
     /* THE FULL RANGE, not the whisker range, because this is the number that
        carries the lesson: min-max reads exactly 0 – 1 and z-score does not.
@@ -272,15 +297,22 @@ defineWidget({
        The left gets the larger share because it holds ten boxes across; the
        right is a cloud and reads at any width. */
     const top = 26;
-    const bottom = h - 34;
+    const bottom = h - 50;   // two lines of figure copy live below the panels
     const leftW = Math.round((w - PANEL_GAP) * 0.54);
     const padL = 46;
     const padR = 8;
 
-    /* --- panel 1 · the distribution, per sample ------------------------- */
-    const lo = Math.min(...boxes.map((b) => b[0]));
-    const hi = Math.max(...boxes.map((b) => b[4]));
-    const padY = (hi - lo) * 0.06 || 1;
+    /* --- panel 1 · the distribution, per sample -------------------------- *
+     * THE AXIS HOLDS EVERY VALUE, not the middle 90%. That is what lets
+     * min-max's axis read 0 to 1 — the one method that states its own output
+     * range in its name — and it is also what makes the skew visible: fitting
+     * each state to its own interquantile span rescaled the skew away, so raw
+     * and log(1+y) drew the same picture while the tiles read 3.03 and -0.06.
+     * Kenneth, 2026-09-02: "why doesn't the y-axis scale change". It did; it
+     * just never showed the number the method promises. */
+    const lo = state.lo;
+    const hi = state.hi;
+    const padY = (hi - lo) * 0.04 || 1;
 
     const p1 = makePlot({
       ctx,
@@ -327,13 +359,25 @@ defineWidget({
     const band = p1.w / SAMPLES;
     const half = Math.min(band * 0.34, 15);
     ctx.save();
-    ctx.strokeStyle = colors.empirical;
-    ctx.fillStyle = colors.surface2;
     ctx.lineWidth = 1;
-    boxes.forEach(([p5, q1, med, q3, p95], i) => {
+    boxes.forEach((b, i) => {
       const cx = Math.round(p1.x + band * (i + 0.5)) + 0.5;
-      const yl = p1.sy(p5);
-      const yh = p1.sy(p95);
+
+      /* Outliers first, under the box: everything past 1.5 x IQR, drawn faint
+         because there can be 683 of them on raw data and 55 after the log —
+         a count that is itself a reading of the skew. */
+      ctx.fillStyle = colors.empirical;
+      ctx.globalAlpha = 0.3;
+      for (const v of b.out) {
+        ctx.beginPath();
+        ctx.arc(cx, p1.sy(v), 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = colors.empirical;
+      const yl = p1.sy(b.lo);
+      const yh = p1.sy(b.hi);
       ctx.beginPath();
       ctx.moveTo(cx, yl);
       ctx.lineTo(cx, yh);
@@ -343,18 +387,21 @@ defineWidget({
       ctx.lineTo(cx + half * 0.45, yh);
       ctx.stroke();
 
-      const y3 = p1.sy(q3);
-      const boxH = Math.max(1, p1.sy(q1) - y3);
+      const y3 = p1.sy(b.q3);
+      const boxH = Math.max(1, p1.sy(b.q1) - y3);
+      ctx.fillStyle = colors.surface2;
       ctx.fillRect(cx - half, y3, half * 2, boxH);
       ctx.strokeRect(cx - half, y3, half * 2, boxH);
 
       /* The median is the mark the scale tile measures, so it is the heaviest
-         thing in the box and it is what the reader compares to the rule. */
+         thing in the box and it is what the reader compares to the rule. On raw
+         data the box is 6% of the panel, so this line and the rule behind it
+         are most of what panel 1 has to say. */
       ctx.save();
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(cx - half, Math.round(p1.sy(med)) + 0.5);
-      ctx.lineTo(cx + half, Math.round(p1.sy(med)) + 0.5);
+      ctx.moveTo(cx - half, Math.round(p1.sy(b.med)) + 0.5);
+      ctx.lineTo(cx + half, Math.round(p1.sy(b.med)) + 0.5);
       ctx.stroke();
       ctx.restore();
     });
@@ -384,12 +431,6 @@ defineWidget({
     p2.axisY({ ticks: niceFour(0, y1 * 1.06), format: axisFmt(y1) });
     p2.axisX({ label: "mean, per gene", format: axisFmt(x1 - x0) });
     p2.caption("Variance against mean");
-    /* Said out loud, because the notebook's own Box-Cox cell ends `na.omit()`
-       and never mentions it. A figure drawn from half the table with nothing
-       saying so is the defect 2.11 exists to prevent. */
-    if (state.dropped > 0) {
-      p2.note(`${state.dropped.toLocaleString("en")} of ${state.total.toLocaleString("en")} values dropped — Box–Cox needs y > 0`);
-    }
 
     ctx.save();
     ctx.fillStyle = colors.empirical;
@@ -401,15 +442,33 @@ defineWidget({
     }
     ctx.restore();
 
-    /* One line under both panels, naming what is on screen. It is the pipeline
-       the rail just built, in the rail's own words, because the figure has two
-       captions and neither can say what was DONE to the data. */
+    /* TWO LINES UNDER BOTH PANELS, and the second one is why they are down here
+       rather than in a panel's note.
+
+       The first names the pipeline the rail just built — the figure has two
+       captions and neither can say what was DONE to the data, and the exported
+       PNG has no rail beside it.
+
+       The second is the loss. It began as panel 2's note and MEASURED, at the
+       narrowest canvas (535px, where panel 2 gets about 200), it printed
+       through the caption, the note above it and a tick label — six collisions
+       across four states. It is 51 characters and no panel is that wide; the
+       full canvas is. Drawn in `--c-highlight` rather than muted, because when
+       two thirds of the table has just been deleted that IS the one thing to
+       look at (2.11: the figure prints only what the visible data supports). */
     ctx.save();
-    ctx.fillStyle = colors.ink3;
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "bottom";
-    ctx.fillText(pipelineLabel(params), padL, h - 2);
+    ctx.fillStyle = colors.ink3;
+    ctx.fillText(pipelineLabel(params), padL, h - 18);
+    if (state.dropped > 0) {
+      ctx.fillStyle = colors.highlight;
+      ctx.fillText(
+        `${state.dropped.toLocaleString("en")} of ${state.total.toLocaleString("en")} values dropped — Box–Cox needs y > 0`,
+        padL, h - 2,
+      );
+    }
     ctx.restore();
   },
 
@@ -434,10 +493,14 @@ defineWidget({
     },
   ],
 
+  /* The boxplot's own five numbers plus the outlier count, which is the one
+     thing on the canvas a reader cannot count for themselves. */
   table: ({ state }) => ({
-    columns: ["Sample", "5%", "25%", "Median", "75%", "95%"],
+    columns: ["Sample", "Low whisker", "25%", "Median", "75%", "High whisker", "Outliers"],
     rows: state.boxes.map((b, i) => [
-      `Sample ${i + 1}`, ...b.map((v) => fmt(v, 2)),
+      `Sample ${i + 1}`,
+      fmt(b.lo, 2), fmt(b.q1, 2), fmt(b.med, 2), fmt(b.q3, 2), fmt(b.hi, 2),
+      String(b.out.length),
     ]),
   }),
 });
@@ -469,11 +532,11 @@ function axisFmt(span) {
   return (v) => v.toExponential(1);
 }
 
-/** "Raw intensities" / "Quantile, then log(1+y)" — the pipeline, in the rail's
+/** "Raw intensities" / "Quantile, then log(1 + y)" — the pipeline, in the rail's
     own words. `λ` is spelled out because Box-Cox at 0.02 and at 1 are two
     different pictures and the caption has to say which one is on screen. */
 function pipelineLabel(params) {
-  const n = params.normalize === "none" ? null : NORMALIZE[params.normalize].label;
+  const n = params.normalize === "none" ? null : SHORT[params.normalize];
   const t = params.transform === "none"
     ? null
     : params.transform === "boxcox"

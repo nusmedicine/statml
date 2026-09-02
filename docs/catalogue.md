@@ -3408,6 +3408,83 @@ median and quantile (1e-15) while breaking for min-max (1 value) and z-score
 (6827). A claim true on three of five paths and silently false on the other two
 is worse than no claim.
 
+#### ROUND 1 — Kenneth, 2026-09-02: three questions, and the third was research
+
+**1 · "Why doesn't the y-axis scale change when I try different normalization
+methods?"** It did — raw `−11…288`, min-max `−0.016…0.413`, z-score
+`−1.08…3.51` — but the question exposed a defect. The axis was fitted to
+**p5–p95**, so **min-max's axis topped out at 0.41 rather than 1**: the one
+method that states its own output range in its name never showed it. And
+fitting each state to its own interquantile span **rescales the skew away**, so
+raw and log(1+y) drew near-identical pictures while the tiles read 3.03 against
+−0.06 — panel 1 was mute about the very thing panel 2 and the skew tile were
+shouting.
+
+Panel 1 now uses **Tukey whiskers with outlier dots and a full-range axis** —
+`geom_boxplot`'s own grammar, and the notebook's own figure. Measured:
+
+| state | box height, p5–p95 axis | box height, full axis | outliers |
+|---|---|---|---|
+| raw | 28% of the panel | **6%** | 683 of 10,000 |
+| log(1+y) | 41% | **19%** | **55** |
+
+So the transform's job is now visible *in panel 1*: a sliver with a dense tail
+becomes a box filling a fifth of the panel, and the outlier count falls
+twelvefold. Under the old axis the two states differed by 1.5×; they now differ
+by 3×, and min-max's axis reads `−0.04 … 1.04`.
+
+**2 · "Do we normalize → transform, or choose one or the other?"** **Both,
+sequentially — and the course's own downstream notebooks are the evidence**, not
+this lesson, which presents them as a menu and applies each to the raw data
+independently (`data_normalized`, `data_standardized`, `data_vst` are all
+`data_simulated %>% mutate(…)`).
+
+| pipeline | order |
+|---|---|
+| `08 / 01-2` RNA-seq, DESeq2 | size-factor **normalisation** (`x_ij / SF_i`) → **`vst()`** variance-stabilising transform; the heatmap cell says "normalized and transformed data" |
+| `09 / 02-3` metabolomics, tidymass | `normalize_data(method = "median")` → "Transform the values using log + 1" → "Scale the data" |
+| `09 / 01-3` proteomics, tidyproteomics | `normalize(.method = c('median', …))`, best method selected on variance and dynamic range |
+
+The canonical framing in metabolomics is the same three steps in that order —
+normalisation is **row-wise**, transformation **element-wise**, scaling
+**column-wise**.
+
+**But MS proteomics commonly reverses the first two**: log2 first, *then*
+median-centre, because the error is multiplicative, the log makes it additive,
+and normalisation on the log scale is then a shift rather than a ratio.
+
+**AND FOR A SCALING NORMALISER THE TWO ORDERS ARE THE SAME OPERATION.**
+Measured on the widget's own engine: `log(y/m) = log(y) − log(m)` and
+`median(log y) = log(median y)` because the log is monotone, so
+median-then-log and log-then-median-centre agree to **2.3e-7 in skew and
+exactly 0.0 in ρ**. The `+1` is what breaks it — with `log(1+y)` the same pair
+differs by 6.5e-3. **The order only matters because of the pseudocount**, and
+because quantile normalisation is not a scaling at all.
+
+*Decision*: the rail keeps its fixed `1 · Normalize → 2 · Transform` order. It
+is the dominant convention, it is what every pipeline in this course does, and
+for the scaling methods the alternative is provably the same answer. An
+order-reversal control would be a control that mostly changes nothing — 3.5.
+The proteomics exception is recorded here rather than on screen.
+
+**3 · "Depth difference is not taught in detail — simplify to something more
+generic."** Done, using the lesson's own vocabulary: cell 1 names the problem as
+"**Technical Variability**: Increased technical variations due to multiple steps
+in high-throughput technologies". The control is now **Technical variation
+between samples**, and the option details say "one sample's values run about
+2.3× another's" rather than naming sequencing depth — which is one instance of
+it, injected sample amount being another.
+
+**A THIRD DEFECT CAME OUT OF FIXING THE FIRST, and it is the one worth
+remembering.** `SHORT`, a `const` added at the bottom of `main.js` beside the
+function that used it, sat in its temporal dead zone when `draw` ran — `draw`
+executes synchronously inside `defineWidget`, which the module body has not
+finished evaluating. Every render threw and aborted after panel 2. **The
+collision sweep passed, because the two lines it would have collided with were
+never painted.** A silent abort and a clean pass look identical, which is the
+`resize`-repaint trap in a new costume. The sweep now asserts the *last* thing
+`draw` paints is present in every state.
+
 **Still open**: the title, the subtitle, and the gene/sample counts, all better
 settled against the running widget than in advance. **Not baselined** — a draft
 owes no fingerprint states, and a baseline recorded before the design settles

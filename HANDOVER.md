@@ -90,12 +90,27 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   the panel printed the whisker range so min-max read `0.010 – 0.245` instead of
   `0 – 1`, Box-Cox after z-score deleted 6,729 of 10,000 values silently, and
   λ → 0 approaches log(y) rather than log(1+y). Catalogue § Slot 1 has all six.
-- **The sweep's `resize` repaint was inert**, exactly as this file warns: 45
-  states came back with zero strings and it looked like a clean pass. Clear the
-  buffer BEFORE the parameter write, not after, and split on the caption because
-  one state can cause several repaints. **And rAF is throttled to ~1 frame per
-  300 ms here**, so a 45-state sweep on `requestAnimationFrame` times out — use
-  `setTimeout(0)` and run it in chunks of 15.
+- **ROUND 1 landed 2026-09-02** — three questions from Kenneth, all three acted
+  on; catalogue § Slot 1 § *ROUND 1* has the measurements. Panel 1 now uses
+  **Tukey whiskers, outlier dots and a FULL-RANGE axis** (min-max's axis reads
+  0–1, and the raw box is 6% of the panel against 19% after the log, so the
+  transform's job is visible in panel 1 at last). The depth control is now
+  **Technical variation between samples**, the lesson's own words. And the
+  ordering question is researched: **normalize → transform, sequentially**, on
+  the evidence of this course's own DESeq2 and tidymass pipelines — with the MS
+  proteomics exception (log2 first) recorded, and the fact that **for a scaling
+  normaliser the two orders are the same operation** (agree to 2.3e-7 in skew,
+  exactly 0 in ρ; the `+1` in log1p is what breaks it).
+- **THREE SWEEP TRAPS, ALL THE SAME SHAPE: a silent no-op reads as a pass.**
+  (a) The `resize` repaint is inert — 45 states came back with zero strings and
+  looked clean; clear the buffer BEFORE the parameter write, not after, and
+  split on the caption because one state can cause several repaints. (b) rAF is
+  throttled to ~1 frame per 300 ms here, so a 45-state sweep on
+  `requestAnimationFrame` times out — use `setTimeout(0)`, in chunks of 15.
+  (c) **A `const` in its temporal dead zone made `draw` throw and abort after
+  panel 2, and the collision sweep PASSED because the two lines it would have
+  collided with were never painted.** Any sweep must assert that the LAST thing
+  `draw` paints is present in every state, or it is checking a partial figure.
 - **No animation** (4.5), following `linear-regularization`. The quantile
   procedure as an act is round 2 if Kenneth wants it.
 

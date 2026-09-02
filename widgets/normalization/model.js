@@ -257,6 +257,37 @@ export function median(a) {
   return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2;
 }
 
+/**
+ * One boxplot, on `geom_boxplot`'s own grammar: box at the quartiles, whiskers
+ * to the furthest point within 1.5 x IQR, everything beyond drawn as a dot.
+ *
+ * IT USED TO BE p5..p95 WHISKERS AND NO OUTLIERS, and that hid two things at
+ * once. With the panel fitted to the middle 90% of each state, min-max's axis
+ * topped out at 0.41 instead of 1 — so the one method whose name states its own
+ * output range never showed it — and every state was fitted to its own
+ * interquantile span, which normalises the skew away: raw and log(1+y) drew
+ * near-identical pictures while the skew tile read 3.03 against -0.06.
+ *
+ * Tukey whiskers plus a full-range axis put both back. The box is 6% of the
+ * panel on raw and 19% after the log, and the outlier count moves 683 -> 55, so
+ * panel 1 finally shows what the transform is for instead of only saying it.
+ */
+export function boxStats(values) {
+  const v = values.filter(Number.isFinite);
+  const [q1, med, q3] = quantiles(v, [0.25, 0.5, 0.75]);
+  const w = 1.5 * (q3 - q1);
+  let lo = Infinity;
+  let hi = -Infinity;
+  const out = [];
+  for (const x of v) {
+    if (x < q1 - w || x > q3 + w) { out.push(x); continue; }
+    if (x < lo) lo = x;
+    if (x > hi) hi = x;
+  }
+  if (lo === Infinity) { lo = q1; hi = q3; }
+  return { lo, q1, med, q3, hi, out };
+}
+
 export function quantiles(a, qs = [0.05, 0.25, 0.5, 0.75, 0.95]) {
   const b = a.slice().sort((x, y) => x - y);
   return qs.map((q) => {
