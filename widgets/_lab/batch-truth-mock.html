@@ -88,22 +88,27 @@
   </p>
 
   <!-- ================================================================== -->
-  <h2>§1 · CANDIDATE A — two panels, and the toggle moves the points</h2>
+  <h2>§1 · CANDIDATE A — CHOSEN. Design on top, then the two panels</h2>
   <p class="note">
     Panels stay <i>coloured by batch</i> and <i>coloured by condition</i>. The toggle swaps
     the data underneath and the points <b>ease</b> between the two, so the motion is the
     batch effect arriving. Both toggle states are drawn below; in the widget this is one
-    pair of panels.
+    pair of panels. <b>The design block now sits above the graphs</b> and reads itself out:
+    the 2 × 2 counts, the batch-condition correlation, and two sentences saying what those
+    four numbers mean. The correlation is the phi coefficient — the Pearson correlation
+    between two binary variables, which is exactly what "how far batch and condition line
+    up" means. It runs 0.00 / 0.20 / 0.50 / 0.70 / 1.00 across the ladder.
   </p>
   <div class="row" id="candA"></div>
   <p class="ask">
-    <b>ASK A.</b> The motion is the strongest reading of "the instrument pushed one group
-    away" — but only one state is on screen at a time, so truth and observed are never
-    adjacent. Is the ease worth that?
+    <b>ASK A1.</b> Two sentences, or is one enough? The reserve is three lines at the narrow
+    column, which is what the longest state needs.<br>
+    <b>ASK A2.</b> Does the correlation earn its place beside the table, or is it a second
+    way of saying what the four counts already say?
   </p>
 
   <!-- ================================================================== -->
-  <h2>§2 · CANDIDATE B — a 2 × 2 of panels, nothing hidden</h2>
+  <h2>§2 · CANDIDATE B — not chosen, kept for the record</h2>
   <p class="note">
     Rows are ground truth and observed, columns are the two colourings. Same points, same
     axes throughout. No toggle, no motion; the argument is read off the grid.
@@ -115,7 +120,7 @@
   </p>
 
   <!-- ================================================================== -->
-  <h2>§3 · CANDIDATE C — truth beside observed, colouring behind a toggle</h2>
+  <h2>§3 · CANDIDATE C — not chosen, kept for the record</h2>
   <p class="note">
     Puts the comparison you care about most side by side, at the cost of hiding the
     colouring — which is the control round 5 removed for exactly that reason.
@@ -270,6 +275,110 @@ function panel(ctx, rect, pts, sim, { by, title, note, frame, ticks = true, r = 
   ctx.restore();
 }
 
+
+/* ---------------------------------------------------------------------------
+   The design, read out loud.
+
+   phi is the Pearson correlation between two binary variables, which is what
+   "how far batch and condition line up" means. Measured across the ladder it
+   runs 0.00 / 0.20 / 0.50 / 0.70 / 1.00, and 1.00 is the singular design. */
+function phiOf(cells) {
+  const [[a, b], [c, d]] = cells;
+  const den = Math.sqrt((a + b) * (c + d) * (a + c) * (b + d));
+  return den ? (a * d - b * c) / den : NaN;
+}
+
+/* Two sentences: what shape the counts are, and what that costs. They say what
+   the four numbers MEAN rather than restating them - the table is right there. */
+function describe(cells) {
+  const [[b1h, b1d], [b2h, b2d]] = cells;
+  const lean = b1h >= b1d ? ["healthy", "diseased"] : ["diseased", "healthy"];
+  const phi = phiOf(cells);
+  if (phi === 0) {
+    return "Each batch holds the same mix of healthy and diseased samples. "
+      + "A difference between the batches cannot come from the biology, so whatever "
+      + "you see between them is the batch.";
+  }
+  if (Math.abs(phi) >= 1) {
+    return `Batch 1 is entirely ${lean[0]} and batch 2 entirely ${lean[1]}. `
+      + "Batch and condition are one variable, and nothing you can measure separates "
+      + "them.";
+  }
+  if (Math.abs(phi) < 0.5) {
+    return `Batch 1 leans ${lean[0]} and batch 2 leans ${lean[1]}. `
+      + "Most of a difference between the batches is still the batch, but no longer "
+      + "all of it.";
+  }
+  return `Batch 1 is mostly ${lean[0]} and batch 2 mostly ${lean[1]}. `
+    + "A difference between the batches is now part batch and part biology, and the "
+    + "data does not say which part is which.";
+}
+
+function wrap(ctx, text, maxW) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxW && line) { lines.push(line); line = word; }
+    else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/* The whole block: title, the 2 x 2, the correlation, and the reading. */
+function designBlock(ctx, x, y, w, d) {
+  const cw = 58;
+  const rh = 22;
+  const gx = x + 52;
+  const gy = y + 20;
+  ctx.save();
+  ctx.font = `600 ${css("--fs-sm")} ${FONT}`;
+  ctx.fillStyle = C["ink-2"];
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("The design", x, y - 6);
+
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = C["ink-3"];
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Healthy", gx + cw * 0.5, gy - 9);
+  ctx.fillText("Disease", gx + cw * 1.5, gy - 9);
+  ctx.textAlign = "right";
+  ctx.fillText("Batch 1", gx - 8, gy + rh * 0.5);
+  ctx.fillText("Batch 2", gx - 8, gy + rh * 1.5);
+  ctx.textAlign = "center";
+  for (let r = 0; r < 2; r += 1) {
+    for (let c = 0; c < 2; c += 1) {
+      const v = d.cells[r][c];
+      ctx.strokeStyle = C.grid;
+      ctx.strokeRect(gx + cw * c + 0.5, gy + rh * r + 0.5, cw, rh);
+      ctx.fillStyle = v === 0 ? C["c-extreme"] : C["ink-1"];
+      ctx.font = `${v === 0 ? "600 " : ""}${css("--fs-sm")} ${FONT}`;
+      ctx.fillText(String(v), gx + cw * (c + 0.5), gy + rh * (r + 0.5));
+    }
+  }
+
+  /* the reading, to the right of the table */
+  const tx = gx + cw * 2 + 22;
+  const tw = x + w - tx;
+  const phi = phiOf(d.cells);
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = C["ink-3"];
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("Batch and condition correlate", tx, y - 12);
+  ctx.font = `${css("--fs-fig")} ${MONO}`;
+  ctx.fillStyle = Math.abs(phi) >= 1 ? C["c-extreme"] : C["ink-1"];
+  ctx.fillText(phi.toFixed(2), tx, y + 2);
+
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = C["ink-2"];
+  const lines = wrap(ctx, describe(d.cells), tw);
+  lines.forEach((ln, i) => ctx.fillText(ln, tx, y + 26 + i * 14));
+  ctx.restore();
+  return lines.length;
+}
+
 /* The 2 x 2 design table, as it sits on the figure today. */
 function designTable(ctx, x, y, d, compact) {
   const cw = compact ? 50 : 62;
@@ -350,25 +459,33 @@ function render() {
   /* --- §1 candidate A: two panels, one toggle state each ---------------- */
   {
     const host = document.getElementById("candA");
-    const H = 366;
-    for (const which of ["truth", "observed"]) {
-      const { ctx } = mk(host, {
-        title: which === "truth" ? "A · toggle at “Ground truth”" : "A · toggle at “Observed”",
-        sub: `534px column · two panels 227 x 196 · in the widget these are ONE pair, eased`,
-        w: W, h: H,
-        cap: `sep along PC1 — by batch ${f(separation(pts[which].map((p) => p[0]),
-          sim.batch.map((b) => b === 1)))} · by condition ${f(separation(pts[which].map((p) => p[0]),
-          sim.disease))}   ·   this cloud fills ${(fill(which) * 100).toFixed(0)}% of the shared frame`,
-      });
-      const pad = 34; const gap = 22; const right = 12;
-      const pw = (W - pad - gap - right) / 2;
-      panel(ctx, { x: pad, y: 24, w: pw, h: 170 }, pts[which], sim,
-        { by: "batch", title: "Coloured by batch", frame: frames[which] });
-      panel(ctx, { x: pad + pw + gap, y: 24, w: pw, h: 170 }, pts[which], sim,
-        { by: "condition", title: "Coloured by condition", frame: frames[which] });
-      xLabel(ctx, pad + (2 * pw + gap) / 2, 208, share[0]);
-      designTable(ctx, 0, 250, d, false);
+    const H = 350;
+    let lineCount = 0;
+    for (const w of [W, WIDE]) {
+      for (const which of ["truth", "observed"]) {
+        const { ctx } = mk(host, {
+          title: `A · ${w}px · toggle at “${which === "truth" ? "Ground truth" : "Observed"}”`,
+          sub: `design on top, then the two panels · in the widget these are ONE pair, eased`,
+          w, h: H,
+          cap: `sep along PC1 — by batch ${f(separation(pts[which].map((p) => p[0]),
+            sim.batch.map((b) => b === 1)))} · by condition ${f(separation(pts[which].map((p) => p[0]),
+            sim.disease))}   ·   this cloud fills ${(fill(which) * 100).toFixed(0)}% of the shared frame`,
+        });
+        lineCount = Math.max(lineCount, designBlock(ctx, 0, 22, w, d));
+        const pad = 34; const gap = 22; const right = 12;
+        const pw = (w - pad - gap - right) / 2;
+        const top = 132;
+        panel(ctx, { x: pad, y: top, w: pw, h: 168 }, pts[which], sim,
+          { by: "batch", title: "Coloured by batch", frame: frames[which] });
+        panel(ctx, { x: pad + pw + gap, y: top, w: pw, h: 168 }, pts[which], sim,
+          { by: "condition", title: "Coloured by condition", frame: frames[which] });
+        xLabel(ctx, pad + (2 * pw + gap) / 2, top + 168 + 20, share[0]);
+      }
     }
+    const p = document.createElement("p");
+    p.className = "cap";
+    p.textContent = `the reading wraps to ${lineCount} line(s) in this state`;
+    host.appendChild(p);
   }
 
   /* --- §2 candidate B: the 2 x 2 grid ----------------------------------- */
