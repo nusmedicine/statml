@@ -1,23 +1,17 @@
 /* ============================================================================
    The engine behind widget 39, `normalization` (PHM5003 HTD `05 / 03`).
 
-   Written as `_lab/norm-model.js` during the mock round and MOVED here on
-   2026-09-01 when the widget was built — the widget-22 lesson applied from the
-   first line: `_lab/norm-measure.mjs` and `_lab/norm-mock.html` both IMPORT
-   this file, so neither carries a second copy of a formula. Two copies is how
-   the halves of a figure come to disagree.
+   The data and nothing about how it is drawn; `main.js` is the figure.
+   `_lab/norm-measure.mjs`, `_lab/norm-verify.mjs` and `_lab/norm-mock.html`
+   import this file rather than copying it.
 
-   Everything the widget knows about the data lives here and nothing about how
-   it is drawn. `main.js` is the figure.
-
-   The generator reproduces the notebook's `simulate_data` exactly:
+   The generator reproduces the notebook's `simulate_data`:
 
        means <- runif(genes, 10, 100)
        disp  <- means / 100
        data  <- rnbinom(n = genes, mu = means, size = 1 / disp)
 
-   with one addition the notebook does not have and probably should — see
-   `depth` below.
+   with one addition, `spread` — see below.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -26,25 +20,18 @@ import { nbDraw } from "../core/stats.js";
 /* ---------------------------------------------------------------------------
    The stage.
 
-   `spread` is the one thing here the notebook does not do, and it is the
-   reason to look twice at its stage. `simulate_data` draws every sample from
-   the SAME mean vector, so the ten samples are exchangeable: their boxplots
-   already line up, and nothing on screen needs normalising. That makes the
-   lesson's own figure a demonstration of methods on data that does not need
-   them. A per-sample depth factor is what sequencing depth or injected sample
-   amount actually looks like, and it is what a reference-based method exists
-   to remove.
+   `simulate_data` draws every sample from the same mean vector, so its ten
+   samples are exchangeable and nothing on screen needs normalising. `spread`
+   adds the per-sample multiplier that sequencing depth or injected sample
+   amount produces, which is what a reference-based method removes.
 
-   spread = 0 reproduces the notebook exactly. Above 0, sample j's counts are
-   scaled by a factor spanning [1/(1+spread), 1+spread] across the samples.
+   spread = 0 reproduces the notebook. Above 0, sample j is scaled by a factor
+   spanning [1/(1+spread), 1+spread] across the samples.
    ------------------------------------------------------------------------ */
 /**
- * Gamma variate, Marsaglia-Tsang, off the seeded stream.
- *
- * Here to make `stage: "gamma"` possible — see `simulate`. Rejection sampling,
- * so the number of draws it takes varies; that costs nothing for reproducibility
- * (one seed, one sequence) but it does mean the stage changes if this loop ever
- * does.
+ * Gamma variate, Marsaglia-Tsang, off the seeded stream. Rejection sampling, so
+ * the number of draws varies — reproducible from one seed, but the stage changes
+ * if this loop ever does.
  */
 function gammaDraw(rng, shape, scale) {
   if (shape < 1) return gammaDraw(rng, shape + 1, scale) * rng.next() ** (1 / shape);
@@ -62,35 +49,30 @@ function gammaDraw(rng, shape, scale) {
 }
 
 /**
- * THE STAGE IS GAMMA, NOT COUNTS — decided with Kenneth 2026-09-01, ask 7.
- *
- * The three candidates and why the middle one lost:
+ * The stage is gamma, not counts. Three candidates, measured:
  *
  *   stage      raw skew   raw rho   quantile spread   rho after log1p
- *   rnbinom      3.201     0.950      1.50  FAILS         0.432
- *   log-normal   1.923     0.913      0.00               0.063  DEGENERATE
+ *   rnbinom      3.201     0.950      1.50  fails         0.432
+ *   log-normal   1.923     0.913      0.00               0.063  degenerate
  *   gamma        3.030     0.955      0.00                0.529
  *
- * Boxplots are the distribution panel, so quantile normalisation's one claim —
- * every sample's distribution is now identical — is something the reader checks
- * by eye. On integer counts it visibly fails: 1000 genes hold only ~198 distinct
- * values, ties dominate, and the medians still span 1.5. That is not an
- * implementation fault (averaging the tied blocks gets it to 0.997) and it does
- * not go away by raising the count scale, because `nbDraw` caps at k = 4000 and
- * compute time climbs 53 ms -> 419 ms on the way.
+ * The distribution panel is boxplots, so quantile normalisation's claim — every
+ * sample's distribution is now identical — is checked by eye. Integer counts
+ * fail it: 1000 genes hold only ~198 distinct values, so ties leave the medians
+ * spanning 1.5. Averaging the tied blocks gets it to 0.997, and raising the
+ * count scale does not help — `nbDraw` caps at k = 4000 and compute climbs
+ * 53 ms -> 419 ms.
  *
- * Log-normal fixes the ties and breaks the lesson: log1p inverts the generator
- * almost exactly, taking rho to 0.063, so "the log stabilises the variance"
- * becomes true by construction rather than demonstrated.
+ * Log-normal fixes the ties and makes the transform circular: log1p inverts the
+ * generator, taking rho to 0.063, so "the log stabilises the variance" holds by
+ * construction rather than by demonstration.
  *
- * GAMMA IS THE NEGATIVE BINOMIAL'S OWN MIXING DISTRIBUTION — the same
- * gamma-Poisson model with the Poisson counting step left off. shape = 1/disp
- * and scale = mu*disp give mean = mu and var = mu^3/100, which is exactly the
- * notebook's overdispersion term without its Poisson part. So it keeps the
- * notebook's numbers, collapses quantile normalisation to exactly 0, and is
- * describable in one honest sentence.
+ * Gamma is the negative binomial's mixing distribution — the same gamma-Poisson
+ * model without the Poisson step. shape = 1/disp and scale = mu*disp give mean
+ * mu and variance mu^3/100, the notebook's overdispersion term without its
+ * Poisson part.
  *
- * `stage: "counts"` keeps the notebook's own generator, for measurement.
+ * `stage: "counts"` keeps the notebook's generator, for measurement.
  */
 export function simulate({
   seed = 1,
@@ -123,11 +105,9 @@ export function simulate({
 }
 
 /* ---------------------------------------------------------------------------
-   Normalisation — a map over the whole table, applied BEFORE any transform.
-
-   Everything in this group except `quantile` is affine, and that is the whole
-   lesson: an affine map cannot move a shape. Measured — min-max and z-score
-   leave the pooled skew unchanged to 7e-14, which is float noise.
+   Normalisation, applied before any transform. Everything here except
+   `quantile` is affine, and an affine map cannot move a shape: measured,
+   min-max and z-score leave the pooled skew unchanged to 7e-14.
    ------------------------------------------------------------------------ */
 const flat = (cols) => cols.flat();
 export const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
@@ -137,18 +117,15 @@ export const varOf = (a) => {
 };
 
 export const NORMALIZE = {
-  /* `affine` means ONE affine map over the whole table, which is the property
-     that makes the shape unmovable. Median normalisation is affine per sample
-     and is NOT one map over the table — pooling ten differently-rescaled
-     samples does move the pooled skew, 2.978 -> 3.014. Small, real, and the
-     reason on-screen copy should say "scaling" rather than "affine". */
+  /* `affine` means one map over the whole table. Median normalisation is affine
+     per sample and is not one map over the table, so it does move the pooled
+     skew, 2.978 -> 3.014 — which is why on-screen copy says "scaling". */
   none: { label: "None", affine: true, fn: (cols) => cols },
 
-  /* Reference-based, and the only one here that is PER SAMPLE. The notebook
-     names it under proteomics/metabolomics ("divide each peak by the median of
-     all peaks in the sample"); it is the same idea as a library-size factor.
-     It is the method whose job the notebook's own stage gives it nothing to
-     do, because every sample there has the same depth. */
+  /* Reference-based, and the only method here that works per sample. The
+     notebook introduces it for proteomics and metabolomics — "divide each peak
+     by the median of all the peaks in the sample" — and it is the same idea as
+     a library-size factor. */
   median: {
     label: "Median (per sample)",
     affine: false,                      // per sample, not over the table
@@ -185,11 +162,10 @@ export const NORMALIZE = {
   },
 
   /* The notebook's `quantile_normalize_custom`, cell 17, including its
-     ties.method = "min". TIES ARE NOT A DETAIL HERE: 1000 negative-binomial
-     counts hold only ~190 distinct values per sample, so min-ranking leaves
-     the sample medians still spanning ~1.0 after normalising — the one thing
-     quantile normalisation exists to make identical. `ties: "average"` on a
-     continuous stage collapses the spread to exactly 0. */
+     ties.method = "min". Ties matter: 1000 negative-binomial counts hold only
+     ~190 distinct values per sample, so min-ranking leaves the sample medians
+     spanning ~1.0 after normalising. On a continuous stage the spread is
+     exactly 0 under either tie rule. */
   quantile: {
     label: "Quantile",
     affine: false,
@@ -219,12 +195,9 @@ export const NORMALIZE = {
 };
 
 /* ---------------------------------------------------------------------------
-   Transformation — applied AFTER normalisation, and a different operation.
-
-   Keeping these in a second table rather than one list of ten methods is the
-   design claim itself: the misconception this slot targets is that scaling and
-   transforming are one thing. Two controls in sequence say otherwise by their
-   shape, before any caption does (principle 2.7).
+   Transformation, applied after normalisation. A second table rather than one
+   list of ten methods, because the misconception this widget targets is that
+   the two are one operation (2.7).
    ------------------------------------------------------------------------ */
 export const TRANSFORM = {
   none: { label: "None", fn: (v) => v },
@@ -247,9 +220,7 @@ export function apply(cols, { normalize = "none", transform = "none", lambda = 0
   return out.map((c) => c.map((v) => (transform === "boxcox" ? t.fn(v, lambda) : t.fn(v))));
 }
 
-/* ---------------------------------------------------------------------------
-   The three readouts, one per question the two panels ask.
-   ------------------------------------------------------------------------ */
+/* --- the three readouts --------------------------------------------------- */
 export function median(a) {
   const b = a.slice().sort((x, y) => x - y);
   const n = b.length;
@@ -258,19 +229,16 @@ export function median(a) {
 }
 
 /**
- * One boxplot, on `geom_boxplot`'s own grammar: box at the quartiles, whiskers
- * to the furthest point within 1.5 x IQR, everything beyond drawn as a dot.
+ * One boxplot on `geom_boxplot`'s grammar: box at the quartiles, whiskers to
+ * the furthest point within 1.5 x IQR, everything beyond drawn as a dot.
  *
- * IT USED TO BE p5..p95 WHISKERS AND NO OUTLIERS, and that hid two things at
- * once. With the panel fitted to the middle 90% of each state, min-max's axis
- * topped out at 0.41 instead of 1 — so the one method whose name states its own
- * output range never showed it — and every state was fitted to its own
- * interquantile span, which normalises the skew away: raw and log(1+y) drew
- * near-identical pictures while the skew tile read 3.03 against -0.06.
- *
- * Tukey whiskers plus a full-range axis put both back. The box is 6% of the
- * panel on raw and 19% after the log, and the outlier count moves 683 -> 55, so
- * panel 1 finally shows what the transform is for instead of only saying it.
+ * It was p5..p95 whiskers with no outliers, which hid two things. Fitted to the
+ * middle 90% of each state, min-max's axis topped out at 0.41 rather than 1;
+ * and fitting each state to its own interquantile span rescaled the skew away,
+ * so raw and log(1+y) drew near-identical pictures while the skew tile read
+ * 3.03 against -0.06. With Tukey whiskers and a full-range axis the box is 6%
+ * of the panel on raw and 19% after the log, and the outlier count moves
+ * 683 -> 55.
  */
 export function boxStats(values) {
   const v = values.filter(Number.isFinite);
@@ -298,7 +266,7 @@ export function quantiles(a, qs = [0.05, 0.25, 0.5, 0.75, 0.95]) {
   });
 }
 
-/** Pooled skew — "did the SHAPE move?" An affine map cannot change it. */
+/** Pooled skew: did the shape move? An affine map cannot change it. */
 export function skew(cols) {
   const a = flat(cols).filter(Number.isFinite);
   const m = mean(a);
@@ -310,18 +278,16 @@ export function skew(cols) {
  * Are the samples on one scale? The spread of the sample medians, measured in
  * units of how spread the values themselves are.
  *
- * THE DENOMINATOR IS THE POOLED IQR, AND IT USED TO BE THE GRAND MEDIAN. That
- * was wrong in a way the canvas text sweep caught: dividing by the grand median
- * is invariant under a rescaling but NOT under a shift, and z-score shifts by
- * the mean of a right-skewed table, which drags the grand median toward zero
- * and inflates the ratio. So raw read 0.717, min-max read 0.717, and z-score
- * read 1.299 — three answers for three affine maps, none of which changes how
- * unequal the samples are.
+ * The denominator is the pooled IQR. It was the grand median, which is
+ * invariant under a rescaling but not under a shift: z-score shifts by the mean
+ * of a right-skewed table, dragging the grand median toward zero and inflating
+ * the ratio, so raw and min-max read 0.717 while z-score read 1.299 — three
+ * answers for three affine maps, none of which changes how unequal the samples
+ * are.
  *
- * Range and IQR both carry the data's units and both are differences, so their
- * ratio survives ANY affine map y = a*x + b exactly. Raw, min-max and z-score
- * now agree to the digit, which is the lesson: a rescaling does not put samples
- * on one scale. Median and quantile normalisation take it to 0.
+ * Range and IQR are both differences in the data's units, so their ratio
+ * survives any affine map exactly. Raw, min-max and z-score now agree; median
+ * and quantile normalisation take it to 0.
  */
 export function sampleSpread(cols) {
   const kept = cols.map((c) => c.filter(Number.isFinite));
@@ -360,15 +326,13 @@ function rankOf(a) {                                    // average ranks, 1-base
 }
 
 /**
- * Spearman ρ between each gene's mean and its variance — "does the variance
- * still climb with the mean?"
+ * Spearman ρ between each gene's mean and its variance: does the variance still
+ * climb with the mean?
  *
- * THIS REPLACED THE OBVIOUS CHOICE, and the obvious choice was wrong twice
- * over. A log–log slope of variance on mean is undefined for 558 of 1000 genes
- * after z-score (most values go negative), and it reads 2.58 after log1p while
- * the relationship has already gone. ρ is rank-based, so it is provably
- * invariant under any affine map and moves only when the map is not one —
- * which is exactly the distinction the widget teaches.
+ * Not the log–log slope of variance on mean, which fails twice: it is undefined
+ * for 558 of 1000 genes after z-score, and reads 2.58 after log1p when the
+ * relationship has gone. ρ is rank-based, so it is invariant under any affine
+ * map and moves only when the map is not one.
  */
 export function spearman(pts) {
   const rx = rankOf(pts.map((p) => p[0]));

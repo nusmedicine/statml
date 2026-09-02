@@ -3613,6 +3613,40 @@ into the previous paint's tail, which reported `values -2.00 – 7.10` colliding
 with `values -11.7 – 7.1`. A paint's boundary is the **last** thing it draws —
 here the pipeline line — and nothing else is safe to split on.
 
+#### ROUND 4 — Kenneth, 2026-09-02: the picker as a grid, and a comment pass
+
+**The normalize picker is a 2 × 2 of buttons under a full-width None.** Round 2
+measured five segments in one row as impossible — they get 45px and `Min–max`
+needs 61 — and concluded a dropdown was the only option. That was true of one
+*row*; a grid was not tried. Measured in
+[`_lab/norm-picker.html`](../widgets/_lab/norm-picker.html):
+
+| candidate | 250px cell | 300px cell | height | |
+|---|---|---|---|---|
+| 2 columns, 5 cells | 111px | 136px | 87px | fits, one empty cell |
+| **None spanning, then 2 × 2** | **111px** | **136px** | **87px** | **fits, no empty cell** |
+| same with the dropdown's full labels | 111px | 136px | 87px | truncates at 250 (`Z-score → mean 0, sd 1` needs 136) |
+| 3 columns, 5 cells | 74px | 91px | 58px | fits, one empty cell |
+| one row of five | 45px | 55px | 30px | truncates at both |
+
+The winner costs 57px of rail against the dropdown's 30px and buys every option
+visible at rest, which is what 3.3 asks for wherever the width allows. The
+option details moved onto the buttons, so `Min–max` carries "rescale the whole
+table to [0, 1]" as its detail line instead of in the label.
+
+**Core gained `style: "grid"` on `segmented`**, plus `span: true` on an option
+to take a full row — the two-column CSS, and nothing else changed. Suite **275
+of 275 MATCH**.
+
+**And a comment pass over both widget files.** Editorial phrasing out
+(*"worse than no claim at all"*, *"the invariant working rather than a wart"*,
+*"the trap in a new costume"*), invented labels out — `sortedness` became
+`toRank` — dated attributions out of the source and left in this file, and the
+long banners cut where they duplicated the header or this record. main.js went
+1021 → 898 lines and model.js 398 → 362, with the measurements and the failed
+approaches kept: those are the part CLAUDE.md calls the most valuable thing in a
+module.
+
 **Still open**: the title, the subtitle, and the gene/sample counts, all better
 settled against the running widget than in advance. **Not baselined** — a draft
 owes no fingerprint states, and a baseline recorded before the design settles

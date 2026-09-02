@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 39 — the normalize picker as a grid</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 94ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 280px; min-height: 26px; }
+  .railbox { border: 1px dashed var(--grid); padding: var(--sp-3); background: var(--surface-2); }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: var(--sp-3) 0; }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+
+  /* CANDIDATE CSS ONLY — not in core. A segmented group laid out as a grid
+     instead of one row. Each variant sets its own column count. */
+  .w-seg.grid2 { display: grid; grid-template-columns: 1fr 1fr; }
+  .w-seg.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .w-seg.grid2 .w-seg-btn,
+  .w-seg.grid3 .w-seg-btn { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+  .w-seg.grid2 .w-seg-btn:nth-child(2n),
+  .w-seg.grid3 .w-seg-btn:nth-child(3n) { border-right: 0; }
+  .w-seg.grid2 .w-seg-btn.span2 { grid-column: 1 / -1; border-right: 0; }
+  .w-seg.grid2 .w-seg-btn.last-row,
+  .w-seg.grid3 .w-seg-btn.last-row { border-bottom: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 39 · the normalize picker as a grid of buttons</h1>
+  <p class="note">
+    Five options — None, Median, Min–max, Z-score, Quantile — in a rail that is
+    <code>minmax(250px, 300px)</code>. One row of five gives each segment 45px and
+    <code>Min–max</code> needs 65, which is why the control is a dropdown today. A grid
+    gives each option a whole cell instead. Every group below is core's own
+    <code>.w-seg</code> markup with only the layout changed; the widths under each are
+    measured, not estimated.
+  </p>
+
+  <h2>Candidates, at 250px (the narrow rail) and 300px (the wide one)</h2>
+  <div class="row" id="cands"></div>
+  <table class="m" id="fit"></table>
+
+  <h2>What the measurements say</h2>
+  <p class="note" id="verdict"></p>
+</main>
+
+<script type="module">
+const OPTS = [
+  { v: "none", short: "None", full: "None" },
+  { v: "median", short: "Median", full: "Median, per sample" },
+  { v: "minmax", short: "Min–max", full: "Min–max → [0, 1]" },
+  { v: "zscore", short: "Z-score", full: "Z-score → mean 0, sd 1" },
+  { v: "quantile", short: "Quantile", full: "Quantile" },
+];
+
+/* Each candidate: how many columns, which label set, and whether "None" takes a
+   row of its own so the remaining four form a true 2 x 2. */
+const CANDS = [
+  { key: "A", cls: "grid2", label: "short", spanFirst: false,
+    title: "A · 2 columns, 5 cells", sub: "3 rows; the last cell is empty" },
+  { key: "B", cls: "grid2", label: "short", spanFirst: true,
+    title: "B · None full width, then 2 × 2", sub: "the four real methods form the grid; None is the way out of it" },
+  { key: "C", cls: "grid2", label: "full", spanFirst: true,
+    title: "C · same, full labels", sub: "the dropdown's own wording, two per row" },
+  { key: "D", cls: "grid3", label: "short", spanFirst: false,
+    title: "D · 3 columns, 5 cells", sub: "2 rows; the last cell is empty" },
+  { key: "E", cls: "", label: "short", spanFirst: false,
+    title: "E · one row of five (today's rejected form)", sub: "shown for scale — each segment gets a fifth" },
+];
+
+const host = document.getElementById("cands");
+for (const w of [250, 300]) {
+  for (const c of CANDS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    d.innerHTML = `<h3>${c.title} — ${w}px</h3><p class="sub">${c.sub}</p>`;
+    const box = document.createElement("div");
+    box.className = "railbox";
+    box.style.width = `${w}px`;
+    const lab = document.createElement("label");
+    lab.textContent = "Method";
+    lab.style.cssText = "display:block;font-size:var(--fs-sm);color:var(--ink-1);margin:0 0 4px";
+    box.appendChild(lab);
+
+    const seg = document.createElement("div");
+    seg.className = `w-seg ${c.cls}`.trim();
+    seg.dataset.cand = c.key;
+    seg.dataset.width = w;
+    OPTS.forEach((o, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "w-seg-btn";
+      b.dataset.value = o.v;
+      b.setAttribute("aria-pressed", String(i === 0));
+      b.textContent = c.label === "full" ? o.full : o.short;
+      if (c.spanFirst && i === 0) b.classList.add("span2");
+      seg.appendChild(b);
+    });
+    /* clear the bottom border on whatever ends up in the last row */
+    box.appendChild(seg);
+    d.appendChild(box);
+    host.appendChild(d);
+  }
+}
+
+requestAnimationFrame(() => {
+  /* mark the last visual row so its bottom border can go */
+  for (const seg of document.querySelectorAll(".w-seg[data-cand]")) {
+    const btns = [...seg.children];
+    const maxTop = Math.max(...btns.map((b) => b.getBoundingClientRect().top));
+    for (const b of btns) if (b.getBoundingClientRect().top === maxTop) b.classList.add("last-row");
+  }
+
+  const rows = [];
+  for (const seg of document.querySelectorAll(".w-seg[data-cand]")) {
+    const btns = [...seg.children];
+    let worst = null;
+    for (const b of btns) {
+      const probe = document.createElement("span");
+      probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;"
+        + `font:${getComputedStyle(b).font}`;
+      probe.textContent = b.textContent;
+      document.body.appendChild(probe);
+      const need = Math.ceil(probe.getBoundingClientRect().width) + 12;  // 6px padding each side
+      probe.remove();
+      const cell = Math.round(b.getBoundingClientRect().width);
+      const over = need - cell;
+      if (!worst || over > worst.over) worst = { label: b.textContent, need, cell, over };
+    }
+    rows.push({
+      cand: seg.dataset.cand, w: seg.dataset.width,
+      h: Math.round(seg.getBoundingClientRect().height),
+      worst,
+    });
+  }
+
+  document.getElementById("fit").innerHTML =
+    `<tr><th>candidate</th><th>rail</th><th>height</th><th>tightest cell</th>`
+    + `<th>widest label needs</th><th>fits?</th></tr>`
+    + rows.map((r) => `<tr><td>${r.cand}</td><td>${r.w}px</td><td>${r.h}px</td>`
+      + `<td>${r.worst.cell}px</td><td>"${r.worst.label}" ${r.worst.need}px</td>`
+      + `<td class="${r.worst.over > 0 ? "bad" : "hit"}">`
+      + `${r.worst.over > 0 ? `NO — ${r.worst.over}px short` : "yes"}</td></tr>`).join("");
+
+  const ok = rows.filter((r) => r.worst.over <= 0).map((r) => `${r.cand}@${r.w}`);
+  const bad = rows.filter((r) => r.worst.over > 0).map((r) => `${r.cand}@${r.w}`);
+  const dropdownH = 30;
+  const heights = Object.fromEntries(rows.filter((r) => r.w === "250").map((r) => [r.cand, r.h]));
+  document.getElementById("verdict").innerHTML =
+    `<b>Fits at both widths:</b> ${ok.join(", ") || "none"}. <b>Truncates:</b> ${bad.join(", ") || "none"}.<br>`
+    + `<b>Rail height at 250px</b> — a dropdown is about ${dropdownH}px: `
+    + Object.entries(heights).map(([k, v]) => `${k} ${v}px`).join(" · ")
+    + `. Every grid costs rail height that the dropdown does not, and buys showing all five options at rest.`;
+});
+</script>
+</body>
+</html>

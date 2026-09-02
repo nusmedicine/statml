@@ -844,7 +844,13 @@ function build(host, spec, values, onChange, api) {
       for (const o of options) {
         if (!run || run.key !== o.group) {
           run = { key: o.group, seg: document.createElement("div") };
-          run.seg.className = "w-seg";
+          /* `style: "grid"` lays the options out in two columns instead of one
+             row. A row divides the rail by the option count, so five options
+             get 45px at a 250px rail while "Min-max" needs 61 — measured in
+             `_lab/norm-picker.html`, along with the two-column form that fits
+             at 111px. An option marked `span: true` takes a full row, which is
+             what lets four methods form a 2x2 under a full-width "None". */
+          run.seg.className = field.style === "grid" ? "w-seg w-seg-grid" : "w-seg";
           run.seg.setAttribute("role", "group");
           run.seg.setAttribute("aria-label", o.group ?? field.label ?? name);
           wrap.appendChild(run.seg);
@@ -857,7 +863,7 @@ function build(host, spec, values, onChange, api) {
         }
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "w-seg-btn";
+        b.className = o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn";
         b.dataset.param = name;
         b.dataset.value = o.value;
         /* an option's `token` renders as a swatch dot before the label, so a

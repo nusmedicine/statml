@@ -1163,6 +1163,23 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   color: var(--surface-1);
 }
 
+/* TWO COLUMNS INSTEAD OF ONE ROW, for an option list too long to share a rail
+   row. A row is `flex: 1`, so it divides the rail by the option count: five
+   options get 45px at a 250px rail and "Min-max" needs 61. Two columns give
+   each option 111px at the same width. Measured in `_lab/norm-picker.html`.
+
+   The cost is rail height — 87px against a dropdown's 30 — and what it buys is
+   every option visible at rest, which is what 3.3 asks for whenever the width
+   allows it. An option marked `span: true` takes a full row. */
+.w-seg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.w-seg-grid .w-seg-btn { border-bottom: 1px solid var(--grid); }
+.w-seg-grid .w-seg-btn:nth-child(2n) { border-right: 0; }
+.w-seg-grid .w-seg-btn--span { grid-column: 1 / -1; border-right: 0; }
+/* The container clips its own outer edge, so the final row's bottom border and
+   the last column's right border fall outside it and no rule doubles up. */
 .w-seg-btn:last-child { border-right: 0; }
 .w-seg-btn:hover { background: var(--surface-3); }
 

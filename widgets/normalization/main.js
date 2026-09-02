@@ -6,91 +6,67 @@
    that "normalising" makes data normal — that scaling and transforming are one
    operation with one purpose.
 
-   ---------------------------------------------------------------------------
-   THE LESSON HANDS OVER ITS OWN FIGURE. Every method in `05 / 03` is judged in
-   the same two-panel picture — a boxplot per sample, and a mean-versus-variance
-   scatter over genes — and the notebook writes the verdict underneath each one
-   as two bullets, "Effect on: Distribution" and "Effect on: Mean-Variance
-   Relationship". So the widget is those two panels and the tiles are the
-   notebook's own claims, turned into numbers.
+   The full design record is in `docs/catalogue.md` § Slot 1.
 
-   THE RAIL IS THE ARGUMENT. Two controls applied in order — Normalize, then
-   Transform — rather than one picker of ten methods. The reader can compose
-   them (quantile, THEN log) and watch that neither does the other's job. The
-   widget's own opening stage, seed 1:
+   ---------------------------------------------------------------------------
+   TWO PANELS, FROM THE LESSON. `05 / 03` judges every method in the same
+   figure — a boxplot per sample and a mean-versus-variance scatter over genes —
+   and states the verdict as two bullets, "Effect on: Distribution" and "Effect
+   on: Mean-Variance Relationship". The readout tiles are those two claims plus
+   the one the boxplot panel can be read for directly.
+
+   TWO CONTROLS APPLIED IN ORDER, not one picker of ten methods, so the reader
+   can compose them and see that neither does the other's job. On the opening
+   stage, seed 1:
 
                        scale    skew     rho
        None   + none    0.481   3.030   0.955
-       Median + none    0.000   2.990   0.953  <- normalize moved SCALE only
-       None   + log     0.549  -0.061   0.529  <- transform moved skew and rho
+       Median + none    0.000   2.990   0.953   normalize moves scale only
+       None   + log     0.549  -0.061   0.529   transform moves skew and rho
        Median + log     0.000  -0.078   0.543
 
-   No single control moves all three. That is principle 2.7 — adjacency is the
-   argument — spent on the control block rather than on the figure.
-
-   AND THE THREE SCALINGS ALL READ 0.481, exactly. None, min-max and z-score
-   agree to six decimal places because the scale tile is a ratio of two
-   differences and therefore survives any affine map. That equality IS the
-   lesson, and it only exists because the tile's denominator was fixed: see
-   `sampleSpread` in model.js for the version that got it wrong and how the
-   canvas text sweep caught it.
+   None, min-max and z-score all read 0.481 to six decimals, because the scale
+   tile is a ratio of two differences and survives any affine map.
 
    ---------------------------------------------------------------------------
-   WHY MIN-MAX AND Z-SCORE DRAW A PICTURE THAT DOES NOT MOVE, and why that is
-   the point rather than a bug. Both are ONE affine map applied to every value
-   in the table, so the shape cannot move: measured, the pooled skew is
-   unchanged to 7e-14, which is float noise. The AXIS LABELS carry the other
-   half — 0 to 806 before, 0 to 1 after — and they only do so because panel 1's
-   axis holds every value rather than the middle 90%. It was fitted to p5..p95
-   at first and min-max's axis then topped out at 0.41, so the one method that
-   states its own output range in its name never showed it (Kenneth, 2026-09-02:
-   "why doesn't the y-axis scale change"). Fitting per state also rescaled the
-   SKEW away, which is why raw and log(1+y) drew near-identical pictures while
-   the tiles read 3.03 against -0.06. Tukey whiskers and a full-range axis put
-   both back: the box is 6% of the panel on raw and 19% after the log.
+   MIN-MAX AND Z-SCORE LEAVE THE PICTURE UNCHANGED. Each is one affine map over
+   the whole table, so the pooled skew cannot move — measured, it holds to
+   7e-14. The axis labels carry the difference (0 to 806 before, 0 to 1 after),
+   which works only because panel 1's axis holds every value: fitted to p5..p95
+   it topped out at 0.41 under min-max, and fitting each state to its own
+   interquantile span also rescaled the skew away, so raw and log(1+y) drew the
+   same picture while the tiles read 3.03 and -0.06.
 
-   Median normalisation is the exception that proves what "affine" is doing
-   here: it is affine PER SAMPLE and is not one map over the table, so it does
-   move the pooled skew, 2.978 -> 3.014. Small, real, and the reason nothing on
-   screen says "affine" — it says "scaling".
+   Median normalisation is affine per sample but is not one map over the table,
+   so it does move the pooled skew, 2.978 -> 3.014. On-screen copy says
+   "scaling" rather than "affine" for that reason.
 
    ---------------------------------------------------------------------------
-   THE STAGE IS GAMMA AND THE TECHNICAL VARIATION IS A CONTROL. Both settled on
-   measurement; the full record and the losing candidates are in
-   `docs/catalogue.md` § Slot 1, and `model.js` carries the stage table. The
-   short version:
+   THE STAGE IS GAMMA, and the technical variation is a control:
 
-     - The notebook's `simulate_data` draws every sample from the SAME mean
-       vector, so its ten samples are already on one scale and every normaliser
-       has nothing to correct. `spread` gives sample j a multiplier. Turning it
-       to none IS the notebook's stage, which is why it is a control and not
-       a constant: the reader can see the methods stop separating.
-     - Counts cannot carry quantile normalisation's one claim. 1000 genes hold
-       only ~198 distinct integer values, ties dominate, and the medians still
-       span 1.5 after normalising — visible in a boxplot, and not fixable by
-       scaling up (`nbDraw` caps at 4000). Gamma is the negative binomial's own
-       mixing distribution, so the stage is the same model without the Poisson
-       counting step, and quantile lands exactly.
+     - `simulate_data` draws every sample from the same mean vector, so the
+       notebook's own ten samples are already on one scale and no normaliser has
+       anything to correct. `spread` gives sample j a multiplier; setting it to
+       none reproduces the notebook's stage.
+     - Counts cannot show quantile normalisation working. 1000 genes hold only
+       ~198 distinct integer values, so ties leave the sample medians spanning
+       1.5, and raising the count scale does not help (`nbDraw` caps at 4000).
+       Gamma is the negative binomial's mixing distribution — the same model
+       without the Poisson step — and quantile lands exactly.
 
    ---------------------------------------------------------------------------
-   NO DRIVE BUTTONS, principle 4.5. The two panels are one `compute()` away from
-   any state the rail can reach, so there is no accumulation and no sequence to
-   reveal — the pickers ARE the motion, as in `linear-regularization`.
+   NO DRIVE BUTTONS (4.5). The two panels are one `compute()` away from any
+   state the rail can reach.
 
-   THE WALKTHROUGH DOES MOVE, and it still has no buttons. Core puts the drive
-   row at the foot of the rail (3.4e), which is right when the buttons drive THE
-   figure and wrong here: Step and Play would have driven one option's sub-stage
-   from three sections away, and `afterDrive` cannot fix it because Reset travels
-   with the drive row and would land mid-rail. So the walk is a `step` parameter
-   sitting beside the gate that opened it, and the motion comes from core's
-   ease-request door — the same door `logistic-regression` uses, and for the same
-   reason: a transition between two readings of ONE table, where easing is what
-   shows the values did not change while their positions did. It also puts the
-   walk in the URL, which a drive button cannot.
+   The walkthrough does move, and still has no buttons. Core fixes the drive row
+   at the foot of the rail (3.4e), which would have put Step and Play three
+   sections from the sub-stage they drive; `afterDrive` cannot move them because
+   Reset travels with the drive row. So the walk is a `step` parameter beside
+   the gate that opens it, eased through core's ease-request door — the
+   `logistic-regression` pattern, and for the same reason: a transition between
+   two readings of one table. It also puts the walk in the URL.
 
-   The widget opens at None + None: raw intensities, unequal samples, a fan in
-   the second panel. That is the problem the lesson is about, not its answer
-   (2.1).
+   The widget opens at None + None (2.1).
    ========================================================================= */
 
 import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
@@ -104,17 +80,13 @@ import {
 const GENES = 1000;
 const SAMPLES = 10;
 
-/* A magnitude, so a `choice` slider with tick labels rather than a dropdown
-   (3.3): left-to-right carries "how unequal are the samples", and the leftmost
-   position is the notebook's own stage.
+/* A magnitude, so a `choice` slider (3.3), with the notebook's own stage at the
+   left end.
 
-   IT IS "TECHNICAL VARIATION", NOT "DEPTH DIFFERENCE" — Kenneth, 2026-09-02:
-   depth is not taught in this lesson. The lesson's own first cell names the
-   problem in exactly these words: "Technical Variability: Increased technical
-   variations due to multiple steps in high-throughput technologies". Sequencing
-   depth is one instance of it and injected sample amount is another; the widget
-   should not pick one and make the reader translate. Widget copy is
-   lesson-independent (2.10), and this is the lesson's vocabulary anyway. */
+   "Technical variation", not "depth difference": sequencing depth is one
+   instance of it and injected sample amount is another, and the lesson's first
+   cell names the general case — "Technical Variability: Increased technical
+   variations due to multiple steps in high-throughput technologies". */
 const SPREADS = [
   { value: "0", amount: 0, label: "none",
     detail: "every sample measured identically — the notebook's own stage, where no normalizer has anything to correct" },
@@ -125,68 +97,50 @@ const SPREADS = [
 ];
 const spreadOf = (key) => SPREADS.find((s) => s.value === key)?.amount ?? 0.5;
 
-/* Box-Cox's ladder. lambda = 1 is kept deliberately even though it looks like a
-   wasted position: at lambda = 1 the transform is (y - 1), an affine map, so
-   every tile lands back on the untransformed row — the self-checking end of the
-   slider.
+/* Box-Cox's ladder, keeping both ends deliberately.
 
-   THE OTHER END APPROACHES log(y), NOT log(1+y), and this comment said the
-   wrong one until `_lab/norm-verify.mjs` caught it. The stage runs down to
-   2.35e-6 and 0.33% of its values sit below 1, which is enough for the "+1" to
-   separate the three outright: log(y) skew -0.665, Box-Cox at 0.02 -0.446,
-   log(1+y) -0.061. So dragging lambda toward zero does NOT converge on the
-   log(1+y) button; it walks past it toward a different transform, and that gap
-   is the "+1" doing visible work at the small end of the data.
+   At lambda = 1 the transform is (y - 1), an affine map, so every tile lands
+   back on the untransformed row. That identity holds only where every value is
+   strictly positive — the precondition the figure prints. Measured over 3
+   spreads x 3 seeds by `_lab/norm-verify.mjs`:
 
-   THE IDENTITY HOLDS ONLY WHERE EVERY VALUE IS STRICTLY POSITIVE, which is the
-   same precondition the figure already prints. Measured over 3 spreads x 3
-   seeds by `_lab/norm-verify.mjs`:
+       none / median / quantile   1e-15, 0 dropped
+       min-max                    4.5e-5, 1 dropped   (the global minimum)
+       z-score                    5.9e-1, 6827 dropped
 
-       none      1e-15   median  1e-15   quantile  1e-15     <- exact
-       min-max   4.5e-5                  1 value dropped     <- the global min
-       z-score   5.9e-1                  6827 dropped        <- half the table
-
-   So it is a self-check on three of the five paths and a demonstration of the
-   precondition on the other two. Both are worth having and neither is a bug. */
+   The other end approaches log(y), not log(1+y). The stage runs down to 2.35e-6
+   with 0.33% of its values below 1, which separates the three: log(y) skew
+   -0.665, Box-Cox at 0.02 -0.446, log(1+y) -0.061. */
 const LAMBDAS = [0.02, 0.1, 0.25, 0.5, 0.75, 1];
 
-/* SHORT NAMES FOR THE FIGURE, full ones for the rail. A dropdown option has to
-   say what it does — "Min–max → [0, 1]" earns its arrow there — but the figure's
-   own line competes for width with a 51-character loss note beneath it, and
-   "Z-score → mean 0, sd 1, then Box–Cox λ = 0.5" is 44 characters of which 14
-   restate the option's own name. Same quantity, two registers.
+/* Short names for the figure's own line, which competes for width with the
+   51-character loss note beneath it.
 
-   UP HERE, NOT BESIDE `pipelineLabel` AT THE BOTTOM OF THE FILE. It was a const
-   declared after `defineWidget`, and `draw` runs synchronously inside that call
-   — so every render threw `Cannot access 'SHORT' before initialization` and
-   aborted after panel 2. The helpers next to it are `function` declarations,
-   which hoist; a const does not. Module constants belong above the call that
-   can reach them. */
+   Declared above `defineWidget`, not beside `pipelineLabel` at the foot of the
+   file: `draw` runs synchronously inside that call, so a const declared after it
+   is still in its temporal dead zone and every render threw. Function
+   declarations hoist; a const does not. */
 const SHORT = { median: "Median", minmax: "Min–max", zscore: "Z-score", quantile: "Quantile" };
 
 /* ---- the formula card ---------------------------------------------------
-   Kenneth, 2026-09-02: put the formula on the figure to remind students. It
-   goes ABOVE the figure in the figure column, which is where `lm-interaction`
-   and `lm-diagnostics` put theirs — and, unlike the rail, that is inside the
-   exported PNG.
+   Above the figure in the figure column, where `lm-interaction` and
+   `lm-diagnostics` put theirs, so it is inside the exported PNG.
 
-   BOTH ROWS ALWAYS, greyed when the step is None, so the card holds a constant
-   height and the figure below never jogs as a control moves (3.4d). And the
-   Box-Cox row prints the lambda the slider is ACTUALLY on, because Box-Cox at
-   0.02 and at 1 are two different pictures and a card showing a generic symbol
-   would not say which one is on screen.
+   Both rows always, greyed when the step is None, so the card holds a constant
+   height and the figure below does not jog as a control moves (3.4d). The
+   Box-Cox row prints the lambda in force: at 0.02 and at 1 it is two different
+   transforms.
 
-   Every formula is the notebook's own, from `05 / 03`. Each carries a `plain`
-   twin for browsers that parse MathML without laying it out — `mathmlRenders`
-   is the probe, and it is core's since 2026-09-02. */
+   Formulas are the notebook's own, from `05 / 03`. Each carries a `plain` twin
+   for browsers that parse MathML without laying it out; `mathmlRenders` is the
+   probe. */
 const MATHML = mathmlRenders();
 
 const PRIME = "<mo>&#x2032;</mo>";
 const FORMULA = {
-  /* Two "none"s, because the two rows are not saying the same thing. The card
-     first shared one string and the Transform row then read "the samples are
-     left as they are", which is the OTHER step's claim — normalisation is about
-     the samples, transformation is about the shape. */
+  /* Two "none"s: normalisation is about the samples, transformation about the
+     shape, and one shared string had the Transform row stating the other
+     step's claim. */
   none: {
     math: null,
     plain: "the samples are left as they are",
@@ -212,10 +166,9 @@ const FORMULA = {
       + "<mfrac><mrow><mi>x</mi><mo>&#x2212;</mo><mi>&#x3BC;</mi></mrow><mi>&#x3C3;</mi></mfrac></mrow></math>",
     plain: "Z = (x − μ) / σ",
   },
-  /* THE ONE ROW WITH NO FORMULA, and it is not an omission. Quantile
-     normalisation is a procedure over the whole table, which is why the
-     notebook writes it as three numbered steps (cell 16) and why the widget
-     has an act for it rather than an equation. */
+  /* No closed form: quantile normalisation is a procedure over the whole
+     table, which is why the notebook gives it as three numbered steps (cell 16)
+     and why the widget walks it rather than printing an equation. */
   quantile: {
     math: null,
     plain: "rank within each sample · average across samples at each rank · assign each value its rank's average",
@@ -243,18 +196,14 @@ function renderCard(params) {
     if (!figure || !figure.parentNode) return;
     cardHost = document.createElement("div");
     cardHost.className = "w-math";
-    /* A FLOOR, MEASURED, NOT GUESSED. Without it the card ran 60px to 83px
-       across the 45 states and the whole figure jogged 23px as a dropdown moved
-       — which is the fault "both rows always" was chosen to avoid (3.4d).
-       The tall case is quantile, whose row is prose rather than a formula and
-       wraps to two lines; the short case is any two one-line formulas.
+    /* A measured floor. Without it the card ran 60px to 83px across the 45
+       states and the figure below jogged 23px as a control moved (3.4d). The
+       tall case is quantile, whose row is prose and wraps to two lines.
 
-       83px is the worst case at the NARROWEST column the side layout reaches
-       (535px), and the reserve has to cover that because it is one number for
-       every width — so a wide frame carries some slack inside the card, exactly
-       as `.w-math-eq`'s own reserve does. 7.8em against this card's 11px type
-       is 85.8px, about 3% over, which is roughly what a font substitution on
-       another platform costs. */
+       83px is the worst case at the narrowest column the side layout reaches
+       (535px); the reserve is one number for every width, so it has to cover
+       that and a wide frame carries slack. 7.8em against this card's 11px type
+       is 85.8px, ~3% over, roughly the cost of a font substitution. */
     cardHost.style.minHeight = "7.8em";
     figure.parentNode.insertBefore(cardHost, figure);
   }
@@ -281,28 +230,25 @@ function renderCard(params) {
     + row("2 · Transform", params.transform, 2);
 }
 
-/* Which panel each tile belongs to, so the readout reads left to right in the
-   same order the figure does (3.1). */
 const PANEL_GAP = 26;
 
 /* ---- the quantile walkthrough ------------------------------------------- *
- * Its own stage, deliberately tiny: 1000 genes x 10 samples is not a countable
- * thing (2.3), and the whole point of this act is that the reader can follow six
- * values through three steps and check the answer by eye. Same generator, same
- * seed, same technical variation as the main figure, so it is the same story at
- * a size you can count.
+ * Six genes and four samples, from the same generator at the same seed and
+ * technical variation as the main figure. 1000 x 10 is not a countable thing
+ * (2.3); at this size the reader can follow six values through and check the
+ * result.
  *
- * THE PHASES ARE THE NOTEBOOK'S OWN THREE STEPS (cell 16), plus the table they
+ * The phases are the notebook's three steps (cell 16), plus the table they
  * start from:
  *
- *   0  the table            raw, and the samples visibly differ
- *   1  rank within a sample each column sorted on its own
- *   2  average at each rank the reference distribution, one value per rank
- *   3  assign back          each value takes its rank's average, in place
+ *   0  the table             raw
+ *   1  rank within a sample  each column sorted on its own
+ *   2  average at each rank  the reference distribution
+ *   3  assign back           each value takes its rank's average, in place
  *
- * The move from 0 to 1 and from 2 to 3 are the same motion in reverse — cells
- * travelling between their gene row and their rank row — which is exactly the
- * mechanism, so it is eased rather than cut (4.3). */
+ * 0 -> 1 and 2 -> 3 are the same motion reversed: cells moving between their
+ * gene row and their rank row. Eased rather than cut, because that movement is
+ * the mechanism (4.3). */
 const ACT_GENES = 6;
 const ACT_SAMPLES = 4;
 const ACT_H = 234;
@@ -312,21 +258,18 @@ const PHASES = [
   { caption: "The table", note: "six genes, four samples — the samples read at different levels" },
   { caption: "1 · Rank the values within each sample", note: "each column sorted on its own; the ranks line up, the genes no longer do" },
   { caption: "2 · Average across samples, at each rank", note: "one value per rank — the reference distribution" },
-  /* "in a different order" is the half that matters and it nearly got dropped.
-     A separate payoff line said it, sat under the grid, and was redundant with
-     this note — so it is folded in rather than repeated. Without it a reader can
-     leave thinking the samples were made identical; they were not, only their
-     DISTRIBUTIONS were. */
+  /* "in a different order" matters: the samples were not made identical, only
+     their distributions were. It was a separate line under the grid, redundant
+     with this note, so it is folded in. */
   { caption: "3 · Give each value its rank's average", note: "back in place: every sample now holds the same six values, in a different order" },
 ];
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
-/* THE GATE CAN BE OPEN AND THE METHOD NOT QUANTILE. `when` only hides the
-   control; `act` keeps its value, so a reader who opens the walkthrough and then
-   picks Median would still get the stage. One predicate, used by both the height
-   and the draw, so they cannot disagree about whether it is there. */
+/* `when` hides the gate but `act` keeps its value, so the walkthrough can be
+   open with the method no longer Quantile. One predicate for the height and the
+   draw, so the two cannot disagree about whether the stage is there. */
 const actOn = (params) => Boolean(params.act) && params.normalize === "quantile";
 
 defineWidget({
@@ -338,9 +281,7 @@ defineWidget({
     + "order, and neither one does the other's job.",
   layout: "side",
   status: "draft",
-  /* A FUNCTION, because the walkthrough is a stage the reader may not have
-     entered — and a panel that can be hidden has to give its pixels back, or
-     the gate saves nothing anyone can see (3.4b). */
+  /* A function: a stage that can be hidden has to give its pixels back (3.4b). */
   height: ({ act, normalize }) => (actOn({ act, normalize }) ? FIG_H + ACT_H : FIG_H),
 
   params: {
@@ -357,37 +298,32 @@ defineWidget({
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     /* --- 1 · NORMALIZE --------------------------------------------------- *
-     * A `select` rather than a `segmented`: five options whose names run to
-     * nine characters, in a rail 250-300px wide, would give each segment about
-     * 50px and "Quantile" does not fit. 3.3's own escape clause — the list is
-     * too long for the shape that would show every option at rest. */
+     * Two columns, not one row: a row divides the rail by the option count and
+     * gives each of five 45px, where "Min-max" needs 61. Two columns give 111px
+     * at the same 250px rail. "None" spans a row, so the four methods form a
+     * 2x2 under it. Measured in `_lab/norm-picker.html`. */
     norm: { type: "section", label: "1 · Normalize", detail: "put the samples on one scale" },
 
     normalize: {
-      type: "select",
+      type: "segmented",
+      style: "grid",
       label: "Method",
       options: [
-        { value: "none", label: "None" },
-        { value: "median", label: "Median, per sample" },
-        { value: "minmax", label: "Min–max → [0, 1]" },
-        { value: "zscore", label: "Z-score → mean 0, sd 1" },
-        { value: "quantile", label: "Quantile" },
+        { value: "none", label: "None", span: true,
+          detail: "the samples are left as they are" },
+        { value: "median", label: "Median", detail: "divide each sample by its own median" },
+        { value: "minmax", label: "Min–max", detail: "rescale the whole table to [0, 1]" },
+        { value: "zscore", label: "Z-score", detail: "rescale the whole table to mean 0, sd 1" },
+        { value: "quantile", label: "Quantile", detail: "give every sample the same distribution" },
       ],
       default: "none",
     },
 
-    /* --- THE QUANTILE ACT ------------------------------------------------- *
-     * UNDER THE METHOD THAT NEEDS IT, not at the foot of the rail — Kenneth,
-     * 2026-09-02. Quantile is the one method here with no formula: the notebook
-     * writes it as three numbered steps (cell 16) because it does not reduce to
-     * one. So the walkthrough belongs to that option, appears only when it is
-     * chosen, and sits directly under the dropdown that chose it (2.7).
-     *
-     * A whole stage the reader has not entered (3.4b), so it hides behind one
-     * button and gives its pixels back when shut. And it needs its OWN data:
-     * 1000 genes x 10 samples is not a countable thing (2.3), so it runs on SIX
-     * genes and FOUR samples from the same generator at the same seed and the
-     * same technical variation — the same story at a size you can check by eye. */
+    /* --- THE QUANTILE WALKTHROUGH ----------------------------------------- *
+     * Quantile is the one method with no closed form, so the walkthrough belongs
+     * to that option: it appears only when Quantile is chosen and sits directly
+     * under the control that chose it (2.7). Behind a gate, because it is a
+     * stage the reader has not entered (3.4b). */
     act: {
       type: "gate",
       label: "Show how quantile normalization works",
@@ -398,22 +334,9 @@ defineWidget({
       when: { param: "normalize", equals: "quantile" },
     },
 
-    /* THE STEP IS A PARAMETER, NOT A DRIVE BUTTON, and that is the second half
-     * of the same call. Core puts the drive row at the foot of the rail (3.4e),
-     * which is right when the buttons drive THE figure — and here they would
-     * have driven one option's sub-stage from three sections away. `afterDrive`
-     * cannot fix it either: Reset travels with the drive row and would land
-     * mid-rail.
-     *
-     * So the phase is a `choice` slider beside the gate that opened it, and the
-     * motion comes from core's ease-request door instead — the same door
-     * `logistic-regression` uses to bend its fitted curve, and for the same
-     * reason: this is a transition between two readings of one table, so easing
-     * it shows that the values did not change while their positions did.
-     *
-     * It also puts the walk in the URL, which a drive button cannot: `?act=1&
-     * step=3` is a link to the finished picture, and `shown` is no longer
-     * needed for it. */
+    /* A parameter rather than Step and Play — see the header. It keeps the
+     * control beside the stage it drives and puts the walk in the URL:
+     * `?normalize=quantile&act=1&step=3`. */
     step: {
       type: "choice",
       label: "Step",
@@ -489,12 +412,11 @@ defineWidget({
        are compared to. Computed here rather than in draw() so the panel and
        the tile cannot disagree about what the median is (5.8). */
     const kept = cols.map((c) => c.filter(Number.isFinite));
-    /* THE POOLED MEAN, because a boxplot cannot show it and z-score is defined
-       by it. Kenneth, 2026-09-02: "why doesn't z-score centre the mean?" It
-       does — exactly, to 0.0000 — but the boxes sit at -0.337 because a box
-       draws the MEDIAN, and on a table with skew 3.03 the median is a third of
-       a standard deviation below the mean. Drawing both makes that gap visible,
-       and the gap IS the skew: after log(1+y) it closes to -0.008. */
+    /* The pooled mean: a boxplot cannot show it and z-score is defined by it.
+       Z-score does centre the mean, exactly, but the boxes sit at -0.337
+       because a box draws the median, and on a table with skew 3.03 the median
+       is a third of a standard deviation below the mean. Drawing both shows
+       that gap, which closes to -0.008 after log(1+y). */
     const flatKept = kept.flat();
     const pooledMean = flatKept.reduce((s, v) => s + v, 0) / flatKept.length;
     // NOT `kept.map(boxStats)` — map passes (el, i, arr), and a bare reference
@@ -502,24 +424,21 @@ defineWidget({
     const boxes = kept.map((c) => boxStats(c));
     const grand = median(boxes.map((b) => b.med));
 
-    /* THE FULL RANGE, not the whisker range, because this is the number that
-       carries the lesson: min-max reads exactly 0 – 1 and z-score does not.
-       The panel's AXIS is p5–p95 so the boxes stay readable; the note says
-       where all the values actually are, and says which it is. */
+    /* The full range, not the whisker range: min-max then reads exactly
+       0 – 1, which is the number the note exists to show. */
     const flat = kept.flat();
     const lo = Math.min(...flat);
     const hi = Math.max(...flat);
 
-    /* BOX-COX IS UNDEFINED AT OR BELOW ZERO, so after z-score it silently
-       deletes about half the table. The notebook does this too — cell 25 ends
-       `na.omit()` — and says nothing. Counting it here is what lets the figure
-       print only what the visible data supports (2.11). */
+    /* Box-Cox is undefined at or below zero, so after z-score it deletes about
+       two thirds of the table. The notebook does the same — cell 25 ends
+       `na.omit()` — without saying so. Counted here so the figure can print it
+       (2.11). */
     const dropped = cols.length * cols[0].length - flat.length;
 
-    /* The walkthrough's own six-by-four table, from the same generator at the
-       same seed and technical variation. Computed always rather than only when
-       the gate is open: 24 gamma draws is unmeasurable, and a state that only
-       exists sometimes is a state that gets forgotten. */
+    /* The walkthrough's six-by-four table, from the same generator at the same
+       seed and technical variation. Computed unconditionally; 24 gamma draws is
+       unmeasurable. */
     const small = simulate({
       seed: params.seed,
       genes: ACT_GENES,
@@ -528,10 +447,9 @@ defineWidget({
       stage: "gamma",
     }).cols.map((c) => c.map((v) => Math.round(v)));
 
-    /* rank[s][g] is where gene g sits in sample s once that sample is sorted;
-       ref[r] is the mean of every sample's r-th smallest. `after` is the answer,
-       and it is derived here so the animation only ever REVEALS it (invariant
-       2) rather than recomputing it per frame. */
+    /* rank[s][g] is where gene g sits once sample s is sorted; ref[r] is the
+       mean of every sample's r-th smallest; `after` is the result. Derived here
+       so the animation only reveals it (invariant 2). */
     const rank = small.map((c) => {
       const ord = c.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
       const r = new Array(ACT_GENES);
@@ -548,22 +466,10 @@ defineWidget({
       ...summarise(cols) };
   },
 
-  /* THE WALKTHROUGH IS THE ONLY MOVING THING IN THE WIDGET. The two panels are
-     one `compute()` away from any state the rail can reach, which is why the
-     figure itself declines drive buttons (4.5) — but a three-step procedure is
-     a sequence, and a sequence is what an animation is for.
-
-     A DATA CHANGE RESETS IT, and that is the invariant working rather than a
-     wart. Changing `normalize` does not alter the walkthrough's own table, so
-     the reset looks gratuitous — but preserving the phase across a parameter
-     change would mean the same URL showed different pictures depending on what
-     the reader had clicked first, which is exactly what invariant 1 forbids.
-     `?act=1&shown=3` is how a lesson links to the finished picture. */
+  /* The walkthrough is the only moving thing here, and its one motion is the
+     ease between two settings of `step`. An explicit null declines each drive
+     button rather than taking the default (4.5). */
   animation: {
-    /* NO STEP AND NO PLAY. The two panels are one `compute()` away from any
-       state the rail can reach, so the figure has nothing to drive (4.5); the
-       walkthrough's one motion is the ease between two settings of `step`, and
-       an explicit null is a widget saying so rather than getting a default. */
     stepLabel: null,
     runLabel: null,
 
@@ -572,10 +478,9 @@ defineWidget({
       return { p, target: p };
     },
 
-    /* `p` is a CONTINUOUS phase in [0, 3] — the walkthrough's whole state. The
-       first version counted whole phases and needed a special case for the last
-       one, which is the bug that let phase 3's motion never play at all. A
-       number that eases toward a target has no last phase to forget. */
+    /* `p` is a continuous phase in [0, 3]. An earlier version counted whole
+       phases and needed a special case for the last one, which is how phase 3's
+       motion came to never play. */
     advance: (anim, { dt }) => {
       const dir = Math.sign(anim.target - anim.p);
       if (dir === 0) return false;
@@ -597,10 +502,8 @@ defineWidget({
   },
 
   draw: ({ ctx, colors, w, h, params, state, anim }) => {
-    /* The card is DOM, not canvas, so it is updated from here rather than
-       painted — the same door `lm-interaction` uses. It early-returns on an
-       unchanged key, so this costs nothing on a repaint that did not move a
-       control. */
+    /* The card is DOM, not canvas, so it is updated rather than painted — the
+       `lm-interaction` pattern. It early-returns on an unchanged key. */
     renderCard(params);
 
     const { boxes, grand, pts } = state;
@@ -609,11 +512,9 @@ defineWidget({
        the left panel is what step 1 moves, the right is what step 2 moves.
        The left gets the larger share because it holds ten boxes across; the
        right is a cloud and reads at any width. */
-    /* THE WALKTHROUGH SITS ABOVE THE PANELS, under the formula card — Kenneth,
-       2026-09-02: it is a mock-up of how the method works, so it belongs where
-       the method is explained rather than under the result. The panels keep
-       FIG_H whatever the gate does; opening it pushes them down rather than
-       squashing the figure it is explaining. */
+    /* The walkthrough sits above the panels, under the formula card: it shows
+       how the method works, so it belongs with the explanation rather than
+       under the result. The panels keep FIG_H whatever the gate does. */
     const showAct = actOn(params);
     if (showAct) drawAct(ctx, colors, w, 0, state.act, anim);
     const figTop = showAct ? ACT_H : 0;
@@ -625,13 +526,10 @@ defineWidget({
     const padR = 8;
 
     /* --- panel 1 · the distribution, per sample -------------------------- *
-     * THE AXIS HOLDS EVERY VALUE, not the middle 90%. That is what lets
-     * min-max's axis read 0 to 1 — the one method that states its own output
-     * range in its name — and it is also what makes the skew visible: fitting
-     * each state to its own interquantile span rescaled the skew away, so raw
-     * and log(1+y) drew the same picture while the tiles read 3.03 and -0.06.
-     * Kenneth, 2026-09-02: "why doesn't the y-axis scale change". It did; it
-     * just never showed the number the method promises. */
+     * The axis holds every value, not the middle 90%. Fitted to p5..p95 it
+     * topped out at 0.41 under min-max, and fitting each state to its own
+     * interquantile span rescaled the skew away, so raw and log(1+y) drew the
+     * same picture while the tiles read 3.03 and -0.06. */
     const lo = state.lo;
     const hi = state.hi;
     const padY = (hi - lo) * 0.04 || 1;
@@ -646,28 +544,22 @@ defineWidget({
 
     p1.grid(p1.yDomain.length ? niceFour(lo - padY, hi + padY) : []);
     p1.axisY({ ticks: niceFour(lo - padY, hi + padY), format: axisFmt(hi - lo) });
-    /* NO AXIS LABEL. It said "sample", and MEASURED it painted at y=388
-       x=[201..239] while the pipeline line below painted at y=398 x=[46..223] —
-       ten pixels apart and overlapping by 22, so the two printed through each
-       other. The caption already says "per sample", so the shorter fix is to
-       delete the label rather than to find it a new home. */
+    /* No axis label. It said "sample" and painted at y=388 x=[201..239] while
+       the pipeline line below painted at y=398 x=[46..223] — 22px of overlap.
+       The caption already says "per sample". */
     p1.axisX({ ticks: [] });
     p1.caption("Distribution, per sample");
-    /* THE RANGE, PRINTED. Min-max and z-score change the numbers and nothing
-       else, so without this the panel is pixel-identical before and after and
-       the control reads as broken. It is the range of ALL the values, not of
-       the whiskers the axis is fitted to — which is what makes min-max read
-       exactly 0 – 1 and is the whole reason the note is here. */
+    /* Min-max and z-score change the numbers and nothing else, so without this
+       the panel is pixel-identical before and after and the control reads as
+       broken. */
     const rf = axisFmt(state.hi - state.lo);
     p1.note(`values ${rf(state.lo)} – ${rf(state.hi)}`);
 
-    /* The benchmark first, so the boxes sit over it.
+    /* The reference rules first, so the boxes sit over them.
 
-       1.5px rather than the hairline `spanningRule` defaults to. `--c-reference`
-       resolves to the same grey as `--ink-3`, which is deliberately recessive —
-       and this is the mark the reader compares ten medians against, so it is
-       the one line in the panel that has to survive a projector (prd §3). Same
-       call spanningRule's own comment records for widget 7. */
+       1.5px rather than the hairline `spanningRule` defaults to: `--c-reference`
+       resolves to the same grey as `--ink-3`, and this is the mark ten medians
+       are compared against, so it has to survive a projector (prd §3). */
     ctx.save();
     ctx.strokeStyle = colors.reference;
     ctx.lineWidth = 1.5;
@@ -677,16 +569,10 @@ defineWidget({
     ctx.lineTo(p1.x + p1.w, gy);
     ctx.stroke();
 
-    /* THE MEAN, DASHED, over the same rule. Both are references — the fixed
-       benchmarks the ten samples are judged against — so both take
-       `--c-reference` and the dash is what tells them apart, which is the
-       distinction `spanningRule` already offers for this exact case.
-
-       It is here because a boxplot cannot show a mean and z-score is DEFINED by
-       one: without it, "Z-score → mean 0, sd 1" is a claim with nothing on
-       screen to check. With it, the reader sees the mean land on 0 while the
-       boxes stay below, and sees the two lines converge once the log has taken
-       the skew out. */
+    /* The mean, dashed. Both marks are references, so both take
+       `--c-reference` and the dash distinguishes them — the same option
+       `spanningRule` takes. Without it, "Z-score → mean 0, sd 1" is a claim
+       with nothing on screen to check against. */
     ctx.setLineDash([4, 3]);
     ctx.lineWidth = 1;
     const my = Math.round(p1.sy(state.pooledMean)) + 0.5;
@@ -703,9 +589,8 @@ defineWidget({
     boxes.forEach((b, i) => {
       const cx = Math.round(p1.x + band * (i + 0.5)) + 0.5;
 
-      /* Outliers first, under the box: everything past 1.5 x IQR, drawn faint
-         because there can be 683 of them on raw data and 55 after the log —
-         a count that is itself a reading of the skew. */
+      /* Outliers first, under the box: everything past 1.5 x IQR. Faint
+         because there are 683 on raw data against 55 after the log. */
       ctx.fillStyle = colors.empirical;
       ctx.globalAlpha = 0.3;
       for (const v of b.out) {
@@ -733,10 +618,9 @@ defineWidget({
       ctx.fillRect(cx - half, y3, half * 2, boxH);
       ctx.strokeRect(cx - half, y3, half * 2, boxH);
 
-      /* The median is the mark the scale tile measures, so it is the heaviest
-         thing in the box and it is what the reader compares to the rule. On raw
-         data the box is 6% of the panel, so this line and the rule behind it
-         are most of what panel 1 has to say. */
+      /* The median is what the scale tile measures and what the rule behind it
+         is compared against, so it is the heaviest mark in the box. On raw data
+         the box is 6% of the panel. */
       ctx.save();
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -782,20 +666,16 @@ defineWidget({
     }
     ctx.restore();
 
-    /* TWO LINES UNDER BOTH PANELS, and the second one is why they are down here
-       rather than in a panel's note.
+    /* Two lines under both panels. The first names the pipeline, because the
+       two captions cannot say what was done to the data and the exported PNG
+       has no rail beside it.
 
-       The first names the pipeline the rail just built — the figure has two
-       captions and neither can say what was DONE to the data, and the exported
-       PNG has no rail beside it.
-
-       The second is the loss. It began as panel 2's note and MEASURED, at the
-       narrowest canvas (535px, where panel 2 gets about 200), it printed
-       through the caption, the note above it and a tick label — six collisions
-       across four states. It is 51 characters and no panel is that wide; the
-       full canvas is. Drawn in `--c-highlight` rather than muted, because when
-       two thirds of the table has just been deleted that IS the one thing to
-       look at (2.11: the figure prints only what the visible data supports). */
+       The second is the count of dropped values. It was panel 2's note and, at
+       the narrowest canvas (535px, where panel 2 gets about 200), its 51
+       characters printed through the caption, the note above it and a tick
+       label — six collisions across four states. Only the full canvas is wide
+       enough. `--c-highlight` rather than muted, because a figure drawn from a
+       third of the table is the thing to look at (2.11). */
     ctx.save();
     ctx.font = `${colors.fsXs} ${colors.font}`;
     ctx.textAlign = "left";
@@ -825,16 +705,15 @@ defineWidget({
     },
     {
       /* `state.pts.length`, not GENES: Box-Cox after z-score deletes genes, and
-         a tile that says "over 1000 genes" while the panel holds 604 is exactly
-         the kind of number that survives review because nobody recomputes it. */
+         the tile must not say 1000 while the panel holds 604. */
       label: "Variance vs mean",
       value: fmt(state.rho, 2),
       note: `Spearman ρ over ${state.pts.length.toLocaleString("en")} genes`,
     },
   ],
 
-  /* The boxplot's own five numbers plus the outlier count, which is the one
-     thing on the canvas a reader cannot count for themselves. */
+  /* The boxplot's five numbers plus the outlier count, which is the one thing
+     on the canvas a reader cannot count. */
   table: ({ state }) => ({
     columns: ["Sample", "Low whisker", "25%", "Median", "75%", "High whisker", "Outliers"],
     rows: state.boxes.map((b, i) => [
@@ -883,13 +762,13 @@ function drawAct(ctx, colors, w, y0, act, anim) {
   ctx.fillStyle = colors.ink3;
   ctx.fillText(ph.note, gridX - 40, y0 + 36);
 
-  /* `sortedness` is how far each cell has travelled from its gene row toward its
+  /* `toRank` is how far each cell has travelled from its gene row toward its
      rank row: up over [0,1], held over [1,2], back over [2,3]. `refFade` is the
      reference column arriving over [1,2]. `assigned` is whether the cells are
      carrying the reference value yet — flipped at the midpoint of the last
      move, so the number changes while the cell is travelling rather than on
      arrival, which is what makes the swap visible. */
-  const sortedness = clamp01(p) - easeInOut(clamp01(p - 2)) * clamp01(p);
+  const toRank = clamp01(p) - easeInOut(clamp01(p - 2)) * clamp01(p);
   const refFade = clamp01(p - 1);
   const assigned = p > 2.5;
 
@@ -907,7 +786,7 @@ function drawAct(ctx, colors, w, y0, act, anim) {
     ctx.textAlign = "right";
     /* The row axis IS the thing that changes: genes while the table is in its
        own order, ranks once it is sorted. Crossfaded so the swap is visible. */
-    const g = 1 - sortedness;
+    const g = 1 - toRank;
     ctx.globalAlpha = Math.max(0, g);
     ctx.fillText(`gene ${r + 1}`, gridX - 8, gridY + rh * (r + 0.5));
     ctx.globalAlpha = Math.max(0, 1 - g);
@@ -932,7 +811,7 @@ function drawAct(ctx, colors, w, y0, act, anim) {
   for (let s = 0; s < ACT_SAMPLES; s += 1) {
     for (let g = 0; g < ACT_GENES; g += 1) {
       const r = rank[s][g];
-      const row = g + (r - g) * sortedness;
+      const row = g + (r - g) * toRank;
       const cx = gridX + cw * (s + 0.5);
       const cy = gridY + rh * (row + 0.5);
       const shown = assigned ? after[s][g] : small[s][g];

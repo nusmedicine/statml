@@ -136,6 +136,13 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   third of an sd below. The gap closes to −0.008 after the log, so the two rules
   converge and the picture answers the question. `data-mark="dash"` added to
   `tokens.css` for the legend (additive; suite **275 of 275 MATCH**).
+- **ROUND 4 landed 2026-09-02.** The normalize picker is now a **2 × 2 of
+  buttons under a full-width None** — five segments in one ROW are impossible
+  (45px each, `Min–max` needs 61), but a grid gives 111px at the narrow rail.
+  Core gained **`style: "grid"` on `segmented`** and `span: true` on an option;
+  suite **275 of 275 MATCH**. Candidates and their measured widths are in
+  `_lab/norm-picker.html`. Also a comment pass over both widget files: editorial
+  phrasing and invented labels out, measurements and failed approaches kept.
 - **THE DRIVE ROW IS GONE AGAIN.** The walkthrough's gate sits under the
   Normalize dropdown, shown only when Quantile is chosen, and the walk is a
   `step` choice slider beside it — eased through **core's ease-request door**,
