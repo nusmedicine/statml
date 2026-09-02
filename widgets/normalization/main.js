@@ -1,5 +1,5 @@
 /* ============================================================================
-   Normalization and Transformation — widget 39. DRAFT.
+   Normalization and Transformation — widget 39.
 
    Hosts at PHM5003 `05 - Introduction to High Throughput Data / 03 -
    Normalization and Transformation`. The misconception it exists to dislodge:
@@ -283,7 +283,7 @@ defineWidget({
     + "and their variance grows with their size. Normalization corrects the "
     + "first, transformation the second.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   /* A function: a stage that can be hidden has to give its pixels back (3.4b). */
   height: ({ act, normalize }) => (actOn({ act, normalize }) ? FIG_H + ACT_H : FIG_H),
 

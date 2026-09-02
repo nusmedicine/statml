@@ -65,10 +65,13 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 39 `normalization` IS A DRAFT — awaiting Kenneth's review
+## NEXT: nothing is queued — widget 39 SHIPPED, four HTD slots remain
 
-**Built 2026-09-01 after the eight asks were answered in one pass.** It is on
-`/lab/`, not the gallery, and owes no fingerprint states until promotion.
+**Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's
+"tested ok, push it to gallery" — four review rounds across two days, eight
+fingerprint states recorded (seven settled, one driven), suite **283 of 283**.
+The full record is catalogue § Slot 1. **Four HTD slots remain and none is
+picked**: `nmf`, `batch-effect`, `hierarchical-clustering`, `enrichment`.
 
 ```bash
 node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions
@@ -149,10 +152,12 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   the `logistic-regression` pattern. Core fixes the drive row at the foot of the
   rail (3.4e) and `afterDrive` cannot move it, because **Reset travels with it**.
   The act also moved ABOVE the panels, under the formula card.
-- **THE WIDGET STILL DECLARES AN `animation`**, so at promotion it owes at least
-  one **driven** fingerprint state — `check.mjs` fails without it. The natural
-  one is now `drive: { set: { step: "3" }, frames, dt }`, catching the ease
-  mid-flight; `?normalize=quantile&act=1&step=N` is the settled route.
+- **EIGHT STATES RECORDED** via `_lab/norm-shoot.html` (copy proved 4/4, every
+  state shot three times, the driven one checked against its settled sibling).
+  The driven state is `drive: { set: { step: "2" }, frames: 8, dt: 32 }` on
+  `?normalize=quantile&act=1`, catching the walkthrough's ease mid-flight. Its
+  `tx` equals the settled `step=3` state's, because only the canvas moves
+  during the walk — that is correct, not a copy-paste.
 - **`mathmlRenders()` IS CORE'S NOW** (own commit, 2026-09-02). It was copied
   verbatim in `lm-interaction` and `lm-diagnostics`, and this card would have
   been the third — 5.8's trigger. The full suite read **275 of 275 MATCH**.

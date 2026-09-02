@@ -3266,7 +3266,7 @@ ones do — see HANDOVER § *NEXT* item 3, which this adds four rows to.
 
 | # | slug | notebook | misconception | evidence | status |
 |---|---|---|---|---|---|
-| 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **proposed** |
+| 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **SHIPPED 2026-09-02** |
 | 2 | `nmf` | 05 / 04 `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **proposed** |
 | 3 | `batch-effect` | 05 / 05 | a batch effect is noise you subtract. The danger is **confounding**, and correcting a confounded design deletes the biology | documented — citation NOT yet verified | **proposed** |
 | 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. It is a consequence of two choices and a cut, and pure noise produces a handsome one | reported | **proposed** |
@@ -3308,7 +3308,7 @@ cell 17's worked answer is "a possible outcome (depending on initialization and
 optimization)" — so **the seed giving a different `W`, not merely a different
 picture, is in the lesson already** and needs only to be shown.
 
-### Slot 1 · `normalization` — ROUND 0 SETTLED, all eight asks answered 2026-09-01
+### Slot 1 · `normalization` — SHIPPED 2026-09-02, four review rounds in two days
 
 **Kenneth picked this slot first and then answered every question on
 [`_lab/norm-mock.html`](../widgets/_lab/norm-mock.html) in one pass.** Recorded

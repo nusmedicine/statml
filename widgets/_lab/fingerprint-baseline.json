@@ -2440,6 +2440,69 @@
       },
       "px": "1267fb20",
       "tx": "35311e9b"
+    },
+    {
+      "$note": "The opening state: raw intensities, the sample medians a visible staircase.",
+      "slug": "normalization",
+      "state": "?theme=light",
+      "px": "5dcf1746",
+      "tx": "feeaf299"
+    },
+    {
+      "$note": "Median normalisation. The staircase collapses; the boxes keep their shape and their skew.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=median",
+      "px": "03d8e36f",
+      "tx": "70dba6d2"
+    },
+    {
+      "$note": "Min-max. The axis reads 0 to 1 and nothing else about the picture moves.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=minmax",
+      "px": "fcbbd222",
+      "tx": "da7892ae"
+    },
+    {
+      "$note": "log(1 + y). The fan in panel 2 collapses; the staircase does not.",
+      "slug": "normalization",
+      "state": "?theme=light&transform=log1p",
+      "px": "3a1c4d59",
+      "tx": "3941852e"
+    },
+    {
+      "$note": "Both steps composed, which is what the two rail sections are for.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=median&transform=log1p",
+      "px": "2e6c5076",
+      "tx": "0c824d76"
+    },
+    {
+      "$note": "Box-Cox after z-score: two thirds of the table is undefined, and the figure says so.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=zscore&transform=boxcox",
+      "px": "02955b78",
+      "tx": "fb3839fc"
+    },
+    {
+      "$note": "The quantile walkthrough at its last step, every sample holding the same six values.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=quantile&act=1&step=3",
+      "px": "15eba87c",
+      "tx": "0a4c6011"
+    },
+    {
+      "$note": "DRIVEN mid-ease: the walkthrough moving from ranked toward the reference column. The tx matches the settled step=3 state because only the canvas moves during the walk.",
+      "slug": "normalization",
+      "state": "?theme=light&normalize=quantile&act=1",
+      "drive": {
+        "set": {
+          "step": "2"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "e770e1cc",
+      "tx": "0a4c6011"
     }
   ]
 }
