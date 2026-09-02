@@ -138,10 +138,10 @@ defineWidget({
       options: [
         { value: "none", label: "None", span: true,
           detail: "the batch shift is still in the data" },
-        { value: "batchMean", label: "Batch mean",
-          detail: "subtract each batch's own mean, per gene" },
-        { value: "preserve", label: "Keep condition",
-          detail: "fit condition alongside batch, and remove only the batch term" },
+        { value: "remove", label: "Remove from data",
+          detail: "subtract each batch's own mean, per gene — ComBat with mod = NULL, which is what the lesson runs" },
+        { value: "covariate", label: "Batch as covariate",
+          detail: "leave the data alone and estimate the condition effect from y ~ condition + batch" },
       ],
       default: "none",
       display: true,
@@ -270,7 +270,7 @@ defineWidget({
      having deleted it. Blanking those said the widget could not answer, when
      what it has to say is that both answers are wrong. */
   readout: ({ state, params }) => {
-    const blank = params.correct === "preserve" && !state.design.estimable;
+    const blank = params.correct === "covariate" && !state.design.estimable;
     return [
       {
         label: "Estimated disease effect",
@@ -298,8 +298,8 @@ defineWidget({
     columns: ["Correction", "Estimated effect", "Genes with no effect"],
     rows: Object.keys(CORRECTIONS).map((k) => [
       CORRECTIONS[k].label,
-      k === "preserve" && !state.design.estimable ? "not estimable" : zeroed(state.effect[k], 3),
-      k === "preserve" && !state.design.estimable ? "not estimable" : zeroed(state.nulls[k], 3),
+      k === "covariate" && !state.design.estimable ? "not estimable" : zeroed(state.effect[k], 3),
+      k === "covariate" && !state.design.estimable ? "not estimable" : zeroed(state.nulls[k], 3),
     ]),
   }),
 });
@@ -420,7 +420,7 @@ function drawStrip(ctx, colors, x, y, w, state, params) {
 
   const chosen = params.correct;
   for (const key of Object.keys(CORRECTIONS)) {
-    if (key === "preserve" && !state.design.estimable) continue;
+    if (key === "covariate" && !state.design.estimable) continue;
     const v = state.effect[key];
     const on = key === chosen;
     ctx.globalAlpha = on ? 1 : 0.35;

@@ -3966,10 +3966,59 @@ Also: a correction that removes exactly as much as it should lands on −1e-16, 
 `fmt` renders that as `-0.00`. Zero has no sign; `zeroed()` handles it, and the
 sweep now fails on the string.
 
+#### ROUND 1 — Kenneth, 2026-09-02: three questions about the model
+
+**1 · "What is the purpose of batch mean?"** It is `ComBat(dat, batch, mod =
+NULL)` — literally what cell 12 runs, and the estimated-from-data form of cell
+7's "simple batch correction". Its purpose is to be the mistake: it is correct
+on a balanced design and degrades in proportion to the confounding. The label
+did not say any of that, so it is now **Remove from data**, with the detail
+naming `mod = NULL`.
+
+**2 · "In the notebook we correct by including batch as a covariate."** The
+notebook removes batch from the data for ComBat, and includes the estimated
+nuisance variable as a covariate in its SVA and RUV sections — *"the identified
+surrogate variables are included in statistical models for downstream
+analyses"*. **The covariate form is the one a reader recognises, and the widget
+was already computing it without saying so.** Residualising on the fitted batch
+term returns exactly the coefficient `lm(y ~ condition + batch)` reports — 
+Frisch-Waugh-Lovell — and measured they agree at every estimable design:
+
+| overlap | `lm(y ~ condition + batch)` | residualise on batch |
+|---|---|---|
+| 0.25 | 0.847 | 0.847 |
+| 0.50 | 0.826 | 0.826 |
+| 0.75 | 0.868 | 0.868 |
+| 0.90 | 0.874 | 0.874 |
+
+So the fix is naming, not arithmetic: the option is **Batch as covariate** and
+its detail reads *y ~ condition + batch*. The two options are now the two things
+anyone actually does with a known batch — take it out of the **data**, or put it
+in the **model**.
+
+**3 · "Should we illustrate how ComBat works?"** **Measured, there is nothing
+for it to do on this stage.** ComBat adds two things to a per-batch mean:
+empirical-Bayes shrinkage of the per-gene batch shifts, and a scale step. Here
+the true batch shift is **identical for every gene** and both batches have the
+**same variance**:
+
+| overlap | per-gene shift, sd | RMS error raw → fully shrunk | batch variance ratio |
+|---|---|---|---|
+| 0.00 | 0.320 | 0.322 → 0.038 | 0.962 |
+| 0.50 | 0.366 | 0.436 → 0.238 | 0.996 |
+
+The shrinkage is a real gain **in the γ estimates** and it does not move the
+disease effect, which is what this widget is about; the scale step has nothing
+to correct at a variance ratio of 1.0. Illustrating ComBat would need a stage
+where the batch effect **varies by gene** and the batches have different spread
+— a different lesson, *how ComBat estimates*, rather than *when correction
+destroys the biology*. **Recorded as a candidate for its own slot rather than
+built here.**
+
 **Still open**: the title, the subtitle, and whether the seed earns its place —
 the argument is about the design rather than about sampling noise. **Not
 baselined**; it declares an `animation`, so at promotion it owes a driven state,
-naturally `drive: { set: { correct: "batchMean" }, frames, dt }`.
+naturally `drive: { set: { correct: "remove" }, frames, dt }`.
 
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 

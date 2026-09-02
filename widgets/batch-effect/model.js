@@ -1,9 +1,6 @@
 /* ============================================================================
    The engine for HTD slot 3, `batch-effect` (PHM5003 HTD `05 / 05`).
 
-   In _lab/ during the planning round; it moves to
-   widgets/batch-effect/model.js if the slot is built.
-
    The generator reproduces the notebook's cell 3:
 
        expression_data <- matrix(rnorm(50 * 40, 0, 1), ncol = 40)
@@ -69,32 +66,46 @@ export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 
 /* --- corrections ---------------------------------------------------------- *
- * `none`      the data as measured
- * `batchMean` subtract each batch's own mean, per gene. This is ComBat's
- *             location step and the notebook's `ComBat(mod = NULL)`.
- * `preserve`  the same, but fitting condition alongside batch and adding the
- *             condition term back. This is `ComBat(mod = model.matrix(~
- *             condition))`, which the notebook mentions and does not use.
+ * The two things anyone actually does with a known batch, in the notebook's own
+ * order:
+ *
+ * `remove`     take the batch out of the DATA — subtract each batch's own mean,
+ *              per gene. This is `ComBat(dat, batch, mod = NULL)`, which cell 12
+ *              runs, and cell 7's "simple batch correction" estimated from the
+ *              data rather than from knowing the answer.
+ * `covariate`  leave the data alone and put batch in the MODEL — estimate the
+ *              condition effect from `y ~ condition + batch`. Equivalent to
+ *              `ComBat(mod = model.matrix(~ condition))`, and the form the
+ *              notebook's SVA and RUV sections teach: "the identified surrogate
+ *              variables are included in statistical models for downstream
+ *              analyses".
+ *
+ * Implemented by residualising on the batch term, which gives the coefficient
+ * `lm(y ~ condition + batch)` reports — Frisch-Waugh-Lovell, and verified: the
+ * two agree at 0.847 / 0.826 / 0.868 / 0.874 across overlap 0.25 to 0.90.
  * -------------------------------------------------------------------------- */
 export const CORRECTIONS = {
   none: { label: "None", fn: ({ X }) => X },
 
-  batchMean: {
-    label: "Subtract each batch's mean",
+  remove: {
+    label: "Remove the batch from the data",
     fn: ({ X, batch }) => X.map((row) => {
       const m = [0, 1].map((b) => mean(row.filter((_, j) => batch[j] === b)));
       return row.map((v, j) => v - m[batch[j]]);
     }),
   },
 
-  preserve: {
-    label: "Subtract each batch's mean, keeping condition",
+  covariate: {
+    label: "Batch as a covariate",
     fn: ({ X, batch, disease }) => X.map((row) => {
-      /* Least squares on [intercept, batch, condition]; remove only the batch
-         term. With batch and condition collinear the design is singular, which
-         is exactly what full confounding means — the pseudo-inverse then puts
-         the shared signal wherever the ridge sends it, so the failure is
-         graceful rather than an exception. */
+      /* Least squares on [intercept, batch, condition], removing only the batch
+         term. Residualising this way returns the coefficient `lm(y ~ condition
+         + batch)` reports, so the data the panel draws and the estimate the
+         tile prints come from one fit rather than two.
+
+         With batch and condition collinear the design is singular, which is
+         what full confounding means; the ridge keeps the arithmetic finite and
+         `design()` is what tells the widget not to print the result. */
       const n = row.length;
       const b = batch.map(Number);
       const c = disease.map(Number);
