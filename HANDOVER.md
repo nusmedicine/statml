@@ -65,10 +65,10 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` IS A DRAFT — four rounds in, awaiting review
+## NEXT: widget 40 `batch-effect` IS A DRAFT — five rounds in, awaiting review
 
 **Kenneth picked `batch-effect` on 2026-09-02**; planning measurements, the mock
-picks and rounds 1–4 are in catalogue § Slot 3.
+picks and rounds 1–5 are in catalogue § Slot 3.
 
 ```bash
 node scripts/serve.mjs 8011
@@ -76,10 +76,9 @@ node scripts/serve.mjs 8011
 # .../widgets/batch-effect/?correct=remove                          (the batch collapses, the condition emerges)
 # .../widgets/batch-effect/?overlap=0.75                            (confounded, uncorrected: 2.23 for a 0.80 effect)
 # .../widgets/batch-effect/?overlap=0.75&correct=remove             (the naive fix: 0.44 — the biology went too)
-# .../widgets/batch-effect/?overlap=0.75&correct=covariate          (batch in the model: 0.87)
+# .../widgets/batch-effect/?overlap=0.75&correct=covariate          (batch in the model: 0.87, and the interval widens)
 # .../widgets/batch-effect/?overlap=0.75&correct=known              (the oracle: 0.82)
 # .../widgets/batch-effect/?overlap=1&correct=covariate             (not estimable)
-# .../widgets/batch-effect/?colourBy=batch                          (the other split)
 # .../widgets/batch-effect/?shift=0                                 (nothing to correct)
 node widgets/_lab/batch-measure.mjs      # every number in the catalogue section
 ```
@@ -88,37 +87,44 @@ node widgets/_lab/batch-measure.mjs      # every number in the catalogue section
   effect 0.8 on genes 1–25, +2 shift on samples 21–40. `overlap` moves which
   samples are diseased and leaves the dimensions alone. The gene and sample
   counts are on screen in the formula card's index line.
-- **THE PLANNED TWO-WAY STORY WAS WRONG.** There are FOUR options and three
-  outcomes: no correction reports the batch as biology (0.83 → 2.77 against a
-  truth of 0.80); removing the batch from the data removes the biology in
-  proportion to the confounding (0.813 / 0.620 / 0.443 / 0.000); batch as a
-  covariate holds 0.83–0.87 across every estimable design; and the oracle —
-  cell 7's *subtract the known shift* — is the only one that survives total
-  overlap, because it was handed a number the data does not contain.
-- **`overlap = 1` MUST NOT PRINT A NUMBER for `covariate`.** The design drops to
-  rank 2 there and the fit returns 1.385, an artefact of the ridge. Only overlap
-  1 is singular; 0.90 still has one sample per cell. **Only that one tile
-  blanks** — the other three are well defined at total overlap and they *are*
-  the conclusion.
-- **ONE SPLIT AT A TIME**: `colourBy` switches the scatter between condition and
-  batch, and the legend follows through core's function door. Hue for one and
-  fill for the other put two questions on one mark.
-- **THE PROJECTION IS FIXED** to the uncorrected data's loadings, and the axis
-  says so. Refitting per correction rotates the axes (PC1 correlations 0.213 /
-  0.167 / 0.133), so the ease would be about the basis rather than the data.
-- **THE STRIP'S AXIS IS FIXED AT 0–5**, measured: the estimate runs −0.000 to
-  4.826 across every reachable state at five seeds.
-- **THE FORMULA CARD** carries cell 10's model once —
-  `X_ij = α_i + β_i Y_j + γ_ij + ε_ij`, noted `i = 1…50 genes, j = 1…40
-  samples` — then one row for what the chosen correction does to it. The
-  difference between `remove` and `covariate` is visible in the notation and
-  nowhere else. Reserved at **8.2em** after it jogged 22px; jog is now 0 at both
-  535px and 755px.
+- **BALANCED IS NOT "NO BATCH EFFECT", and the slider used to say it was.** Two
+  dials: the batch shift decides whether an artefact exists, the confounding
+  decides whether it can be told apart from the biology. At `balanced` with the
+  notebook's shift, PC1 still separates the batches by **7.80 sd**. The label is
+  now **Batch–condition confounding**, ticks `balanced … complete`.
+- **THE POINT ESTIMATE IS NOT THE STORY.** Three failures, different shapes —
+  `none` reports the batch as biology narrowly; `remove` takes the batch out of
+  the DATA and the comparison that follows has no idea, so it stays just as
+  narrow while the estimate walks to zero; `covariate` spends the information
+  inside the model, so it **widens**. Power at α=.05 falls 68% → 27% → 0% across
+  the ladder. **That is the answer to "why is the covariate insufficient": the
+  confounding does not bias it, it spends your sample size.**
+- **THE ESTIMATE STRIP IS A FOREST PLOT**, all four at once with 95% intervals,
+  against the truth and a zero line, domain fixed at −1 to 6 (measured: interval
+  ends run −0.702 to 5.488 over every state at seeds 1–200 step 37).
+- **`overlap = 1` MUST NOT PRINT A NUMBER for `covariate`** — and it no longer
+  needs telling: `ols` returns null on the singular design, so the estimate is
+  NaN and the tile blanks itself. The ridge is gone.
+- **THE SAME POINTS, COLOURED TWICE** — two panels, batch on the left and
+  condition on the right, which is the lesson's own figure. **The palette is
+  shared on purpose**: the panels converge as the confounding rises and at
+  `complete` they are the same picture. The count says it — 20 / 24 / 30 / 34 /
+  40 of 40 samples the same colour in both.
+- **THE PROJECTION IS FIXED** to the uncorrected data's loadings, and so is the
+  FRAME. Refitting the basis per correction rotates the axes (PC1 correlations
+  0.213 / 0.167 / 0.133); refitting the *domain* per correction hid a 3× collapse
+  (20.4 units wide to 6.7) because the cloud refilled the panel every time.
+- **THE FORMULA CARD** carries cell 10's model, a `where` row naming all six
+  symbols, then what the chosen correction does to it. **X is the measurement
+  and Y is the condition** — cell 10's convention, and the lesson swaps its own
+  letters in the SVA and RUV sections. Reserved at **12em**, up from 8.2em when
+  the key row arrived; jog 0 at 534px and 770px.
 
 **Still open on widget 40**: the title, the subtitle, whether `seed` earns its
 place, and how to show the methods that do not need the batch labels — ComBat
-and SVA without spike-ins, RUV with control genes. **Not baselined**; it declares
-an `animation`, so at promotion it owes a driven state, naturally
+and SVA without spike-ins, RUV with control genes (cell 21 picks genes 26–50,
+which are exactly the genes with no disease effect). **Not baselined**; it
+declares an `animation`, so at promotion it owes a driven state, naturally
 `drive: { set: { correct: "remove" }, frames, dt }`.
 
 - The three remaining slots are `nmf`, `hierarchical-clustering` and
@@ -163,7 +169,7 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   proteomics exception (log2 first) recorded, and the fact that **for a scaling
   normaliser the two orders are the same operation** (agree to 2.3e-7 in skew,
   exactly 0 in ρ; the `+1` in log1p is what breaks it).
-- **THREE SWEEP TRAPS, ALL THE SAME SHAPE: a silent no-op reads as a pass.**
+- **SWEEP TRAPS (a)-(i), AND MOST ARE ONE SHAPE: a silent no-op reads as a pass.**
   (a) The `resize` repaint is inert — 45 states came back with zero strings and
   looked clean; clear the buffer BEFORE the parameter write, not after, and
   split on the caption because one state can cause several repaints. (b) rAF is
@@ -180,11 +186,25 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   thing `draw` paints**, not merely something late in it.
   (e) **An ease running in the background leaks frames into the next state's
   capture**, and every string then collides with ITSELF — 80 findings, all
-  spurious. (e) **Split the buffer on the LAST thing a paint draws, never the
+  spurious. (f) **Split the buffer on the LAST thing a paint draws, never the
   first.** Slicing on panel 1's caption worked until the walkthrough started
   drawing above it, at which point the slice ate the previous paint's tail and
   reported `values -2.00 – 7.10` colliding with `values -11.7 – 7.1`. The
   pipeline line is the terminator here.
+  (g) **A `const` in its temporal dead zone, THIRD time** — `axisFmt` in
+  `batch-effect`, declared beside `ticksOf` at the foot of the file. `draw` runs
+  while the module is still evaluating, so **every helper below `defineWidget`
+  must be a `function` declaration**, which hoists. Two of the three were caught
+  only by opening the page.
+  (h) **A SWEEP THAT NEVER RELOADED TESTS THE PREVIOUS VERSION.** 60 states came
+  back clean while the current module threw on every render, because the page
+  had been loaded before the edit. `npm run dev` sends `no-store`, but nothing
+  reloads for you. **Navigate first, and make the sweep fail on any uncaught
+  error** — one `window.onerror` listener is the whole fix.
+  (i) **A collision test cannot see CROWDING.** Two axis labels 23px apart with
+  no overlap passed, and read as one run-on string. A sweep should also fail a
+  gap under about 10px between strings sharing a baseline. This is the case for
+  judgement: the assertions were right and the picture was still wrong.
 - **ROUND 2 landed 2026-09-02** — the picker, a formula card, and the quantile
   act; catalogue § Slot 1 § *ROUND 2* has all of it. **The split picker stays,
   measured**: five long-named options get 45px of segment at the narrow rail and

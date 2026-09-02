@@ -7,7 +7,8 @@
    ========================================================================= */
 
 import {
-  simulate, correct, CORRECTIONS, estimatedEffect, nullEffect, pca, separation,
+  simulate, correct, CORRECTIONS, estimatedEffect, estimateWithSE, nullEffect,
+  pca, separation, projectAll,
   GENES, SAMPLES, AFFECTED, TRUE_EFFECT, BATCH_SHIFT,
 } from "../batch-effect/model.js";
 
@@ -115,4 +116,69 @@ for (const shift of [0, 0.25, 0.5, 1, 2, 4]) {
 }
 console.log("\n  -> the notebook picks 2, which is 2.5x the biology. Below about 0.5 the");
 console.log("     condition still owns PC1, so the shift is worth a control of its own.");
+console.log();
+
+/* -- 6 · the point estimate is not the story; the interval is -------------- */
+console.log();
+console.log("=== 6 · WHY THE COVARIATE IS NOT ENOUGH ===");
+console.log("Per-gene estimate of the disease effect and its 95% interval, averaged over");
+console.log(`the ${AFFECTED} genes that carry one, ${SEEDS.length} seeds, batch shift ${BATCH_SHIFT}. Truth ${TRUE_EFFECT}.`);
+console.log();
+console.log([pad("confounding", 12), pad("correction", 12), rpad("estimate", 9),
+  rpad("interval", 18), "reads"].join(" | "));
+console.log("-".repeat(72));
+for (const overlap of OVERLAPS) {
+  for (const key of Object.keys(CORRECTIONS)) {
+    let b = 0;
+    let lo = 0;
+    let hi = 0;
+    let ok = 0;
+    for (const seed of SEEDS) {
+      const r = estimateWithSE(simulate({ seed, overlap }), key);
+      if (!Number.isFinite(r.beta)) continue;
+      b += r.beta; lo += r.lo; hi += r.hi; ok += 1;
+    }
+    if (!ok) {
+      console.log([rpad(overlap.toFixed(2), 12), pad(key, 12), rpad("—", 9),
+        rpad("—", 18), "not estimable"].join(" | "));
+      continue;
+    }
+    b /= ok; lo /= ok; hi /= ok;
+    const reads = [lo > 0 ? "excludes 0" : "CROSSES 0",
+      Math.abs(b - TRUE_EFFECT) < (hi - lo) / 2 ? "covers the truth" : "MISSES the truth"].join(", ");
+    console.log([rpad(overlap.toFixed(2), 12), pad(key, 12), rpad(f(b), 9),
+      rpad(`${f(lo, 2)} to ${f(hi, 2)}`, 18), reads].join(" | "));
+  }
+}
+console.log();
+console.log("  -> `remove` takes the batch out of the DATA and the comparison that follows");
+console.log("     has no idea a correction happened, so it stays NARROW while the estimate");
+console.log("     moves: confidently wrong. `covariate` spends the same information inside");
+console.log("     the model, so it WIDENS instead — the right answer, and no power left to");
+console.log("     act on it. A point estimate makes those two look like near neighbours.");
+
+/* -- 7 · the frame the two panels share ------------------------------------ */
+console.log();
+console.log("=== 7 · THE CLOUD COLLAPSES, AND A PER-STATE AXIS HID IT ===");
+console.log("Width of the point cloud on the fixed frame, overlap 0, batch shift 2.");
+console.log();
+{
+  const sim = simulate({ seed: 1, overlap: 0 });
+  const { points } = projectAll(sim);
+  const all = Object.values(points).flat();
+  const span = Math.max(...all.map((q) => q[0])) - Math.min(...all.map((q) => q[0]));
+  console.log([pad("correction", 12), rpad("cloud width", 12), rpad("of the frame", 14),
+    rpad("PC1 by batch", 14), rpad("PC1 by condition", 17)].join(" | "));
+  console.log("-".repeat(76));
+  for (const key of Object.keys(points)) {
+    const xs = points[key].map((q) => q[0]);
+    const w = Math.max(...xs) - Math.min(...xs);
+    console.log([pad(key, 12), rpad(f(w, 1), 12), rpad(`${(100 * w / span).toFixed(0)}%`, 14),
+      rpad(f(separation(xs, sim.batch.map((x) => x === 1)), 2), 14),
+      rpad(f(separation(xs, sim.disease), 2), 17)].join(" | "));
+  }
+}
+console.log();
+console.log("  -> the axis used to be fitted to the CURRENT correction, so the cloud");
+console.log("     refilled the panel every time and this 3x collapse was invisible.");
 console.log();

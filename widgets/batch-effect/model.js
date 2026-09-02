@@ -163,6 +163,99 @@ export function estimatedEffect(X, disease) {
   return mean(d);
 }
 
+/**
+ * The per-gene estimate AND its uncertainty, which is what separates two
+ * corrections that a point estimate makes look equally good.
+ *
+ * Each correction is tested the way a reader would test it: the ones that
+ * change the DATA are followed by a two-group comparison on the corrected
+ * values, and `covariate` is the coefficient of `condition` in
+ * `y ~ condition + batch` on the raw values. So the interval a reader sees is
+ * the interval their own workflow would report.
+ *
+ * That is the point rather than a shortcut. `remove` subtracts each batch's
+ * mean and the t-test that follows has no idea a correction happened, so it
+ * reports a NARROW interval around a shifted estimate — confidently wrong.
+ * `covariate` spends the same information inside the model, so its interval
+ * WIDENS instead. Measured at overlap 0.9, batch shift 2, five seeds:
+ *
+ *     none        2.590  +/- 0.677   [ 1.91, 3.27]   misses the truth
+ *     known       0.790  +/- 0.624   [ 0.17, 1.41]
+ *     remove      0.166  +/- 0.631   [-0.47, 0.80]   misses the truth
+ *     covariate   0.874  +/- 1.428   [-0.55, 2.30]   covers it, and says nothing
+ *
+ * The averaging is over the 25 genes that carry an effect, so the interval is
+ * the one a SINGLE gene's estimate carries, not the interval of their mean.
+ * A gene is what gets tested in a real analysis, and the mean of 25 would have
+ * an interval small enough to hide the whole story.
+ */
+export function estimateWithSE(sim, key) {
+  const X = correct(sim, key);
+  const withBatch = key === "covariate";
+  const n = SAMPLES;
+  const cols = [
+    new Array(n).fill(1),
+    sim.disease.map(Number),
+    ...(withBatch ? [sim.batch.map(Number)] : []),
+  ];
+  const bs = [];
+  const ses = [];
+  for (let g = 0; g < AFFECTED; g += 1) {
+    /* The covariate fit reads the RAW gene: its whole claim is that the batch
+       is handled inside the model rather than taken out of the data first. */
+    const r = ols(cols, withBatch ? sim.X[g] : X[g]);
+    if (!r) continue;
+    bs.push(r.beta[1]);
+    ses.push(r.se[1]);
+  }
+  if (!bs.length) return { beta: NaN, se: NaN, lo: NaN, hi: NaN };
+  const beta = mean(bs);
+  const se = mean(ses);
+  return { beta, se, lo: beta - 1.96 * se, hi: beta + 1.96 * se };
+}
+
+/**
+ * Least squares for a design of two or three columns, returning each
+ * coefficient and its standard error. Small and explicit rather than general:
+ * the inverse is needed for the standard errors, and at this size a cofactor
+ * inverse is clearer than a factorisation.
+ *
+ * Returns null on a singular design, which is what full confounding is — the
+ * caller prints "not estimable" rather than a number from a ridge.
+ */
+function ols(cols, y) {
+  const k = cols.length;
+  const n = y.length;
+  const A = cols.map((u) => cols.map((v) => u.reduce((s, x, i) => s + x * v[i], 0)));
+  const b = cols.map((u) => u.reduce((s, x, i) => s + x * y[i], 0));
+  const inv = invert(A);
+  if (!inv) return null;
+  const beta = inv.map((row) => row.reduce((s, v, j) => s + v * b[j], 0));
+  const resid = y.map((v, i) => v - cols.reduce((s, u, a) => s + u[i] * beta[a], 0));
+  const s2 = resid.reduce((s, r) => s + r * r, 0) / (n - k);
+  return { beta, se: beta.map((_, a) => Math.sqrt(s2 * inv[a][a])) };
+}
+
+/** Cofactor inverse of a 2x2 or 3x3, or null if it is singular. */
+function invert(A) {
+  const k = A.length;
+  if (k === 2) {
+    const det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+    if (Math.abs(det) < 1e-8) return null;
+    return [[A[1][1] / det, -A[0][1] / det], [-A[1][0] / det, A[0][0] / det]];
+  }
+  const det = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1])
+    - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
+    + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+  if (Math.abs(det) < 1e-8) return null;
+  return [0, 1, 2].map((i) => [0, 1, 2].map((j) => {
+    const sub = [0, 1, 2].filter((a) => a !== j).map((a) =>
+      [0, 1, 2].filter((c) => c !== i).map((c) => A[a][c]));
+    const c = sub[0][0] * sub[1][1] - sub[0][1] * sub[1][0];
+    return ((i + j) % 2 ? -c : c) / det;
+  }));
+}
+
 /** The same over the 25 genes that carry NO effect — a false-positive check.
     It should sit at 0 whatever the correction does. */
 export function nullEffect(X, disease) {

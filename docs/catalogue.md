@@ -4134,6 +4134,126 @@ Verified: 120 states — 5 overlaps × 3 batch shifts × 2 colourings × 4
 corrections — swept again with the card present for collisions, off-canvas runs,
 NaN, `-0.00` and an unfinished draw. None. `npm run check` 10/10.
 
+#### ROUND 5 — three questions from Kenneth, and two of them were defects
+
+*"If there is no overlap between batch and condition, does that mean no batch
+effect? I still see the separation by batch in PCA."* · *"For the formula, we
+didn't explain what the symbols are — I thought it was Y = disease, X1, X2 are
+genes."* · *"When I subtract the known systematic bias, PCA doesn't seem to
+separate them by condition?"* · *"Adversarial review from the perspective of a
+student who wants to understand why correction by including the batch covariate
+may be insufficient."*
+
+**1 · THE CONTROL WAS LYING.** `Overlap between batch and condition · none`
+reads as *no batch effect*, and it is a different dial: the batch shift decides
+whether an artefact exists, the confounding decides whether it can be told apart
+from the biology. At `balanced` with the notebook's shift, separation along PC1
+is still **7.80 sd by batch** against 0.44 by condition — which is the lesson's
+own opening figure, on a perfectly balanced design. Now **Batch–condition
+confounding**, ticks `balanced / slight / half / strong / complete`.
+
+**2 · THE FORMULA HAD NO KEY, AND THE LESSON SWAPS ITS OWN LETTERS.** The card
+was cell 10 verbatim but dropped the definitions that sit under it. Cell 10 is a
+regression **per gene with the expression as the response**: X is the
+measurement, Y is the condition — so Kenneth's `Y = disease` was right, and the
+missing half was that X is not a predictor. Worse, cells 14 (SVA) and 19 (RUV)
+write `Y = Xβ + Wγ + ε` with **Y the expression matrix and X the design**, so a
+student reading straight through meets X = expression on one page and X = design
+on the next. The card now carries a `where` row naming all six symbols in words.
+
+**3 · THE PAY-OFF WAS BEHIND A TOGGLE NOBODY PRESSED.** Coloured by condition,
+subtract-known takes separation from **0.44 → 3.39 sd** while batch goes
+7.80 → 0.32. The condition emerges exactly as the notebook shows. But `colourBy`
+defaulted to **batch**, because that is what the opening claim needs — so
+pressing a correction showed the batch merging, and the conclusion sat one click
+away, unmentioned.
+
+**The panels are now drawn twice, side by side** (Kenneth's pick), which is the
+lesson's own figure and removes the toggle. **The palette is shared on purpose**:
+blue is Batch 1 on the left and Healthy on the right, so the two panels converge
+as the confounding rises and at `complete` they are the same picture — which is
+what "batch and condition are one variable" looks like. Measured, the count of
+samples carrying the same colour in both runs **20 / 24 / 30 / 34 / 40 of 40**
+across the ladder, and it is printed on the right panel.
+
+**AND A SECOND DEFECT FELL OUT OF CHECKING IT: the scatter's axes were fitted to
+the current correction's points**, so the cloud refilled the panel every time and
+the collapse was invisible. Measured at the notebook's own settings the cloud
+goes **20.4 units wide to 6.7 — a 3× collapse** — and the frame hid all of it.
+The same fault 2.5 records, and the same one the estimate strip had in round 3,
+one panel over. The frame is now the union over all four corrections.
+
+**4 · THE ADVERSARIAL REVIEW, AND THE WIDGET WAS THE OVER-CONFIDENT ONE.** It
+said the covariate holds 0.83–0.87 across every estimable design, so a reader
+leaves thinking *put the batch in the model and you are fine*. It printed point
+estimates and could not show the cost. Per-gene estimate with its 95% interval,
+5 seeds, truth 0.80:
+
+| confounding | none | remove | covariate |
+|---|---|---|---|
+| balanced | 0.83 [−0.06, 1.71] | 0.83 [0.21, 1.44] | 0.83 [0.20, 1.45] |
+| half | 1.81 [0.98, 2.63] | 0.62 [−0.01, 1.25] | 0.83 [0.10, 1.55] |
+| strong | 2.22 [1.46, 2.98] | 0.44 [−0.19, 1.08] | 0.87 [−0.01, 1.74] |
+| complete | 2.77 [2.14, 3.40] | 0.00 [−0.63, 0.63] | not estimable |
+
+**Three failures, and they are different shapes.** `none` reports the batch as
+biology, narrowly. `remove` takes the batch out of the DATA and the comparison
+that follows has no idea a correction happened, so it stays **just as narrow**
+while the estimate walks to zero — confidently wrong. `covariate` spends the same
+information inside the model, so it **widens** instead: the right answer, and by
+`strong` no power left to act on it. Power at α = .05 over the 25 affected genes
+falls **68% / 74% / 53% / 43% / 27% / 0%** across the ladder.
+
+**So the honest answer to "why is the covariate insufficient" is that confounding
+does not bias it — it spends your sample size.** That cannot be said with a point
+estimate, and on points alone `remove` and `covariate` look like near
+neighbours. The strip is now a **forest plot**: all four corrections at once,
+each with its interval, against the truth and a zero line, on a domain fixed at
+−1 to 6 (measured: interval ends run −0.702 to 5.488 over every state at seeds
+1–200 step 37).
+
+**Four more insufficiencies**, only the first of which this stage can show:
+
+- **`remove` and `covariate` are the same operation on a balanced design** —
+  measured, the two point clouds are identical to 0.000000 at `balanced` and
+  separate only as confounding grows. Which is why `ComBat(mod = NULL)` looks
+  fine in the lesson, and why nobody notices the difference matters.
+- **You have to know the batch.** All four options need the labels. Real batches
+  are frequently unrecorded — run date, technician, reagent lot, plate position.
+- **One additive term per batch.** The lesson's shift is +2 on every gene and
+  both batches have the same spread; real ones vary by gene and change the
+  scale, which is what ComBat's per-gene γ and δ are for.
+- **The correction gets judged by what it changed.** Cell 21's RUV uses genes
+  26–50 as controls — exactly the genes with no disease effect.
+
+**ONE ESTIMATOR, NOT TWO.** `estimatedEffect` and the new `estimateWithSE` were
+both on screen computing the same number two ways; they agreed to **6e-9**,
+which is how two copies of a formula start out. The widget reads only
+`estimateWithSE`, which also removed the ridge: at complete confounding the fit
+returns *not estimable* on its own rather than being told to by `design()`.
+
+**THREE PROCESS DEFECTS, ALL RECORDED IN HANDOVER'S TRAP LIST:**
+
+- **A `const` in its temporal dead zone, for the THIRD time** — `axisFmt`,
+  declared beside `ticksOf` at the foot of the file and read by `draw`, which
+  runs while the module is still evaluating. Every helper below `defineWidget`
+  is now a `function` declaration, so the shape cannot recur.
+- **A sweep that never reloaded passed 60 states against a stale module** while
+  the current one threw on every render. `npm run dev` sends `no-store`, but
+  nothing reloads the page for you. The sweep now also fails on any uncaught
+  error, which is what would have caught it.
+- **A collision test cannot see crowding.** The two panels' axis labels sat 23px
+  apart with no overlap, passed the sweep, and read as a single run-on string.
+  The sweep now also fails a gap under 10px between strings on the same
+  baseline; the label is drawn once, centred under both panels.
+
+Verified: **120 states** — 5 confoundings × 3 batch shifts × 4 corrections — at
+both column widths (534px and 770px), for collisions, crowding, off-canvas runs,
+NaN, `-0`, an unfinished draw and uncaught errors. None. The ease still eases
+(the canvas hash mid-transition differs from both endpoints). Card reserve
+re-measured and raised from 8.2em to **12em**: the key row took the natural
+height to 105–128px, a 23px jog, now 0. `npm run check` 10/10. Not pushed.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including
