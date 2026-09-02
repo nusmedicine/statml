@@ -220,9 +220,9 @@ defineWidget({
   slug: "batch-effect",
   title: "Batch Effects",
   subtitle:
-    "Samples processed in different batches carry a systematic difference that "
-    + "has nothing to do with the biology. Correcting it is not subtraction: on a "
-    + "confounded design every method fails, and they fail differently.",
+    "Samples processed in different batches differ systematically for "
+    + "non-biological reasons. Batch correction estimates that variation, from "
+    + "the data or from reference genes, and removes it.",
   layout: "side",
   status: "draft",
   /* Core calls this with the VALUES object spread, plus `w` — not `{ params }`.

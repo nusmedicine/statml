@@ -65,7 +65,32 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` — ROUND 10, awaiting review
+## NEXT: widget 40 `batch-effect` — ROUND 11, awaiting review
+
+**ROUND 11 was a copy pass** (Kenneth: *"remove any that are self-explanatory or
+editorial, use standard nomenclature, don't invent your own cutesy terms"*).
+Nineteen student-facing strings changed and the header comment came out of the
+epigram register; every measurement and failed-approach note stayed. Catalogue
+§ Slot 3 § ROUND 11 lists the swaps.
+
+**THE SUBTITLE IS GENERIC ABOUT THE METHODS NOW**, Kenneth's pick of six:
+*"Samples processed in different batches differ systematically for
+non-biological reasons. Batch correction estimates that variation, from the data
+or from reference genes, and removes it."* 186 chars against 213, so 2.11 holds.
+"From the data or from reference genes" is the split that actually separates the
+three methods — ComBat and SVA both work from the data, only RUV needs
+references — and it is descriptive rather than concluding, where the old one
+asserted "every method fails".
+
+**AND THE PASS FOUND A BROKEN LAB SCRIPT.** `_lab/batch-measure.mjs` had not run
+since round 8: it still imported `CORRECTIONS`, `estimatedEffect` and
+`nullEffect`, all renamed or removed when the methods were rewritten, so it threw
+on import — and both `model.js`'s header and this file point readers at it. It
+was missed because only the newer `batch-methods.mjs` was being run after each
+change. **A lab script that a comment points at should be run whenever the API
+it reads changes**, not only the one you happen to be using.
+
+## Round 10: the rail as a story, the diagnostic back, RUV conceptual
 
 **ROUND 10, three tweaks from Kenneth.** Catalogue § Slot 3 § ROUND 10.
 

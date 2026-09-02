@@ -4694,6 +4694,61 @@ reference set) — for collisions, crowding, off-canvas runs, NaN, `-0`, an
 unfinished draw and uncaught errors. None, over 111 distinct strings.
 `npm run check` 10/10. Not pushed.
 
+#### ROUND 11 — a copy pass, and the subtitle stops naming the methods
+
+Kenneth: *"check all comments or descriptors and remove any that are
+self-explanatory or editorial. use standard nomenclature, don't invent your own
+cutesy terms"*, then *"for the correction, can we write something more generic
+like 'batch correction attempt to remove these effect by modeling them or using
+references'"*.
+
+**Nineteen student-facing strings changed**, invented shorthand out and the
+standard term in. The representative ones:
+
+| was | now |
+|---|---|
+| "estimate a stand-in for the batch, without ever being told it" | "surrogate variables estimated from the residuals; the batch labels are not used" |
+| "shrunk toward the batch's own average" | "empirical Bayes estimate of each batch's shift per gene" |
+| "it cleans the picture and goes in the model" | "W estimated from the reference genes, then included in the model" |
+| "the honest answer is 0" | "the true value is 0" |
+| "zero is not the same as correct" | "in the corrected data, along PC1, in pooled sd" |
+| "about the crossover" | "the batch and the disease effect contribute about equally to PC1" |
+| "Try to correct it" | "Correct the batch effect" |
+| "Batch and condition correlate" | "Batch–condition correlation" |
+
+The header comment came out of the epigram register too — *"a thing only a
+simulation can hand you"*, *"confidently wrong"*, *"the truth choosing the
+controls"*, *"a terminator that moves is a terminator that lies"* — while every
+measurement and every failed-approach note stayed, which is what the repo's own
+style rule asks for.
+
+**THE PASS FOUND A REAL DEFECT: `_lab/batch-measure.mjs` had not run since round
+8.** It still imported `CORRECTIONS`, `estimatedEffect` and `nullEffect`, all
+renamed or removed when the methods were rewritten, so it threw on import — and
+both `model.js`'s header and HANDOVER point readers at it. It was missed because
+only the newer `batch-methods.mjs` was being run after each change. Repaired
+against the current API, and its readings brought back into agreement with its
+own tables: section 2's prose still claimed *"subtracting each batch's mean
+fixes that"*, which is `mod = NULL`'s behaviour, while the table printed the
+`mod = ~condition` default. Sections 6 and 7 were deleted rather than fixed —
+`batch-methods.mjs` covers the intervals and the frame, and two scripts printing
+one table is how they come to disagree.
+
+**THE SUBTITLE IS GENERIC ABOUT THE METHODS NOW** (Kenneth chose B of six):
+
+> Samples processed in different batches differ systematically for
+> non-biological reasons. Batch correction estimates that variation, from the
+> data or from reference genes, and removes it.
+
+186 characters against the previous 213, so 2.11 holds, and three lines instead
+of four at the narrow column. Two things decided it. **"From the data or from
+reference genes" is the split that actually separates the three methods** —
+ComBat models a batch you name and SVA a surrogate for one you never name, so
+both work from the data, while only RUV needs references; *"modelling the
+batch"* would have left SVA on the wrong side. And it is **descriptive rather
+than concluding**: the previous subtitle asserted *"every method fails"*, which
+is the thing the confounding dial exists for the reader to find.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including
