@@ -38,9 +38,10 @@
    exactly.
 
    ---------------------------------------------------------------------------
-   ONE PANEL, TWO SPLITS. Colour is the condition, shape is the batch — the
-   standard form for two categorical splits on one scatter, and it means batch
-   never needs a colour role of its own.
+   ONE PANEL, TWO SPLITS. Colour is the condition and fill is the batch — one
+   circle, filled or open. Batch never needs a colour role of its own, and a
+   filled circle beside an open one reads as one thing in two states where a
+   square beside a circle read as two kinds of thing.
 
    THE PROJECTION IS FIXED, and that follows from the ease rather than from
    taste; `projectAll` in model.js has the measurements. Refitting the PCA per
@@ -135,11 +136,16 @@ defineWidget({
       type: "segmented",
       style: "grid",
       label: "Method",
+      /* Four options, so the grid is a plain 2 x 2 and nothing spans. They are
+         the lesson's own sequence: do nothing, subtract the shift you were
+         handed, estimate it from the data, or put the batch in the model. */
       options: [
-        { value: "none", label: "None", span: true,
+        { value: "none", label: "None",
           detail: "the batch shift is still in the data" },
+        { value: "known", label: "Subtract known",
+          detail: "subtract the true shift — which the lesson can do because it simulated the data, and nobody can do in a real study" },
         { value: "remove", label: "Remove from data",
-          detail: "subtract each batch's own mean, per gene — ComBat with mod = NULL, which is what the lesson runs" },
+          detail: "estimate each batch's own mean and subtract it — ComBat with mod = NULL, which is what the lesson runs" },
         { value: "covariate", label: "Batch as covariate",
           detail: "leave the data alone and estimate the condition effect from y ~ condition + batch" },
       ],
@@ -237,19 +243,26 @@ defineWidget({
       label: `PC1 of the uncorrected data · ${(share[0] * 100).toFixed(0)}% of its variance`,
     });
     plot.caption("Samples");
-    plot.note(`shape: circle = batch 1, square = batch 2`);
+    plot.note("filled = batch 1, open = batch 2");
 
+    /* Colour is the condition, FILL is the batch: one circle either filled or
+       open. Two categorical splits on one mark, and a filled circle beside an
+       open one of the same size and hue reads as the same thing in two states,
+       where a square beside a circle read as two kinds of thing. */
     ctx.save();
+    ctx.lineWidth = 1.6;
     for (let j = 0; j < pts.length; j += 1) {
       const cx = plot.sx(pts[j][0]);
       const cy = plot.sy(pts[j][1]);
-      ctx.fillStyle = state.sim.disease[j] ? colors.groupB : colors.groupA;
-      if (state.sim.batch[j] === 1) {
-        ctx.fillRect(cx - 3.4, cy - 3.4, 6.8, 6.8);
-      } else {
-        ctx.beginPath();
-        ctx.arc(cx, cy, 3.8, 0, Math.PI * 2);
+      const hue = state.sim.disease[j] ? colors.groupB : colors.groupA;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3.8, 0, Math.PI * 2);
+      if (state.sim.batch[j] === 0) {
+        ctx.fillStyle = hue;
         ctx.fill();
+      } else {
+        ctx.strokeStyle = hue;
+        ctx.stroke();
       }
     }
     ctx.restore();

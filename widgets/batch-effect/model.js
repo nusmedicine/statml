@@ -60,7 +60,7 @@ export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
     for (let g = 0; g < GENES; g += 1) X[g][j] += batchShift;
   }
 
-  return { X, batch, disease };
+  return { X, batch, disease, shift: batchShift };
 }
 
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
@@ -86,6 +86,18 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  * -------------------------------------------------------------------------- */
 export const CORRECTIONS = {
   none: { label: "None", fn: ({ X }) => X },
+
+  /* CELL 7, AND IT IS AN ORACLE. The notebook subtracts `batch_effect_size`
+     itself — "we know what the batch effect was and thus could correct for it".
+     That is information the data does not contain, which is why it is the only
+     correction that still works when the design is fully confounded: at overlap
+     1 it returns 0.771 while every estimable method has nothing to work with.
+     Its job here is to show that cell 7's success is borrowed. */
+  known: {
+    label: "Subtract the known shift",
+    fn: ({ X, batch, shift }) => X.map((row) =>
+      row.map((v, j) => v - (batch[j] === 1 ? shift : 0))),
+  },
 
   remove: {
     label: "Remove the batch from the data",

@@ -4015,10 +4015,48 @@ where the batch effect **varies by gene** and the batches have different spread
 destroys the biology*. **Recorded as a candidate for its own slot rather than
 built here.**
 
-**Still open**: the title, the subtitle, and whether the seed earns its place —
-the argument is about the design rather than about sampling noise. **Not
-baselined**; it declares an `animation`, so at promotion it owes a driven state,
-naturally `drive: { set: { correct: "remove" }, frames, dt }`.
+#### ROUND 2 — "does adding the covariate help, given we do not know the shift?"
+
+Kenneth's own question, and measuring it produced the widget's fourth option.
+Cell 7 subtracts `batch_effect_size` itself — *"we know what the batch effect was
+and thus could correct for it"* — which is information the data does not contain.
+Estimated effect, truth 0.80, mean of 5 seeds:
+
+| overlap | subtract the known shift | batch as covariate | remove from data | none |
+|---|---|---|---|---|
+| 0.00 | 0.825 | 0.825 | 0.825 | 0.825 |
+| 0.25 | 0.840 | 0.847 | 0.813 | 1.240 |
+| 0.50 | 0.808 | 0.826 | 0.620 | 1.808 |
+| 0.75 | 0.819 | 0.868 | 0.443 | 2.219 |
+| 0.90 | 0.790 | **0.874** | 0.166 | 2.590 |
+| 1.00 | **0.771** | *not estimable* | 0.000 | 2.771 |
+
+**Yes, it helps, and it gets almost all the way to the oracle without knowing
+the shift** — only the batch *labels*, which you do have. Across every estimable
+design the covariate tracks the oracle to within about 0.08.
+
+**And the one place they part is the answer to the second half of the question.**
+At total overlap only the oracle survives, because it was handed a number the
+data does not contain. So *knowing the batch* is not one thing: knowing the
+labels is enough while the design is estimable, and nothing short of knowing the
+effect itself works once it is not. That is the boundary the widget already
+draws, now with the oracle beside it to show what would be needed to cross it.
+
+**Cell 7 is therefore a fourth option rather than a fiction to leave out.** Its
+job is to show that its own success is borrowed. The picker is a plain 2 x 2 with
+no span: None / Subtract known / Remove from data / Batch as covariate, in the
+lesson's own order; measured, the widest label needs 110px against a 149px cell.
+
+**And the marker is one circle, filled or open** (Kenneth): colour is the
+condition, fill is the batch. A filled circle beside an open one of the same
+size and hue reads as one thing in two states, where a square beside a circle
+read as two kinds of thing.
+
+**Still open**: the title, the subtitle, whether the seed earns its place, and
+how to show the methods that do not need the batch labels at all — ComBat and
+SVA without spike-ins, RUV with control genes. **Not baselined**; it declares an
+`animation`, so at promotion it owes a driven state, naturally
+`drive: { set: { correct: "remove" }, frames, dt }`.
 
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
