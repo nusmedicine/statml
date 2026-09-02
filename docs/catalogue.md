@@ -3552,11 +3552,73 @@ Three defects came out of building it:
 copy was the trigger (5.8), and the full fingerprint suite read **275 of 275
 MATCH** to prove the move changed nothing.
 
+#### ROUND 3 — Kenneth, 2026-09-02: three placements, and one question with a number for an answer
+
+**1 · "Why doesn't z-score centre the mean?"** It does, exactly — the pooled
+mean is `0.0000`. The boxes sit at **−0.337** because a boxplot draws the
+**median**, and on a table with skew 3.03 the median is a third of a standard
+deviation below the mean. Nothing on screen said so, and a claim in a dropdown
+label — *Z-score → mean 0, sd 1* — with no mark to check it against is a claim
+the figure cannot support (2.11).
+
+**Panel 1 now draws the pooled mean too**, dashed, over the solid median rule.
+Both are `--c-reference` — both are the fixed benchmark the ten samples are
+judged against — and the dash is the distinction, which is what `spanningRule`
+already takes as an argument. What it buys:
+
+| state | pooled mean | pooled median | gap, in sd |
+|---|---|---|---|
+| raw | 59.33 | 36.85 | −0.337 |
+| z-score | **0.0000** | −0.3369 | −0.337 |
+| log(1+y) | 3.6413 | 3.6335 | **−0.008** |
+
+So the reader sees the mean land on 0 while the boxes stay below it, and sees
+the two lines **converge once the log has taken the skew out**. The gap is a
+second reading of the number the skew tile prints.
+
+**The legend had no word for a dashed rule** — only `line` and `dot` — so two
+references would have shown two identical swatches. `data-mark="dash"` added to
+`tokens.css`, additive (nothing else sets it), suite **275 of 275 MATCH**.
+
+**2 · The walkthrough's controls moved to the method that needs them.** The gate
+now sits directly under the Normalize dropdown and appears only when Quantile is
+chosen — quantile is the one method with no formula, so the walkthrough belongs
+to that option rather than to the foot of the rail.
+
+**The Step and Play buttons are gone entirely**, and that is the same call. Core
+fixes the drive row at the foot of the rail (3.4e), which is right when the
+buttons drive THE figure and wrong here: they would have driven one option's
+sub-stage from three sections away. `afterDrive` cannot fix it either — **Reset
+travels with the drive row** and would have landed mid-rail. So the walk is a
+`step` choice slider beside the gate that opened it, and the motion comes from
+**core's ease-request door**, the same one `logistic-regression` uses to bend
+its fitted curve. Three things fall out: the control sits beside what it
+controls (2.7), the widget declines drive buttons again (4.5), and **the walk is
+in the URL** — `?normalize=quantile&act=1&step=3` — which a drive button cannot
+do. `shown` was deleted; the parameter replaces it.
+
+Rewriting the phase as **one continuous number in [0, 3]** also deleted round
+2's worst bug by construction: a number easing toward a target has no last phase
+to forget.
+
+**3 · The walkthrough moved above the panels**, under the formula card — it is a
+mock-up of how the method works, so it belongs where the method is explained
+rather than under the result.
+
+**Two sweep traps, both new, both the same family as the old ones.** An ease
+running in the background leaks frames into the next state's capture, so
+*every* string collided with **itself** — 80 findings, all spurious. And once
+the act draws BEFORE the panel caption, slicing the buffer on that caption cuts
+into the previous paint's tail, which reported `values -2.00 – 7.10` colliding
+with `values -11.7 – 7.1`. A paint's boundary is the **last** thing it draws —
+here the pipeline line — and nothing else is safe to split on.
+
 **Still open**: the title, the subtitle, and the gene/sample counts, all better
 settled against the running widget than in advance. **Not baselined** — a draft
 owes no fingerprint states, and a baseline recorded before the design settles
-gets thrown away. When it is promoted it now owes a **driven** state too, since
-it declares an `animation`.
+gets thrown away. When it is promoted it owes a **driven** state too, since it
+declares an `animation`; the natural one is `drive: { set: { step: "3" }, frames,
+dt }`, catching the ease mid-flight the way `logistic-regression`'s does.
 
 ### The notebook hands over its own figure
 

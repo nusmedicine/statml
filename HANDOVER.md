@@ -114,6 +114,13 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   panel 2, and the collision sweep PASSED because the two lines it would have
   collided with were never painted.** Any sweep must assert that the LAST thing
   `draw` paints is present in every state, or it is checking a partial figure.
+  (d) **An ease running in the background leaks frames into the next state's
+  capture**, and every string then collides with ITSELF — 80 findings, all
+  spurious. (e) **Split the buffer on the LAST thing a paint draws, never the
+  first.** Slicing on panel 1's caption worked until the walkthrough started
+  drawing above it, at which point the slice ate the previous paint's tail and
+  reported `values -2.00 – 7.10` colliding with `values -11.7 – 7.1`. The
+  pipeline line is the terminator here.
 - **ROUND 2 landed 2026-09-02** — the picker, a formula card, and the quantile
   act; catalogue § Slot 1 § *ROUND 2* has all of it. **The split picker stays,
   measured**: five long-named options get 45px of segment at the narrow rail and
@@ -123,10 +130,22 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   23px. **The quantile walkthrough** is a `gate` below the panels on its own
   6 × 4 stage, four phases, cells easing between their gene row and their rank
   row.
-- **THE WIDGET NOW DECLARES AN `animation`**, so at promotion it owes at least
-  one **driven** fingerprint state as well as the settled ones — `check.mjs`
-  fails without it. `?act=1&shown=N` is the settled route; `drive: { click,
-  frames, dt }` on the Step button is the driven one.
+- **ROUND 3 landed 2026-09-02.** Panel 1 now draws the **pooled mean dashed**
+  beside the solid median rule — z-score DOES centre the mean (`0.0000`); the
+  boxes sit at −0.337 because a box draws the median, and on skew 3.03 that is a
+  third of an sd below. The gap closes to −0.008 after the log, so the two rules
+  converge and the picture answers the question. `data-mark="dash"` added to
+  `tokens.css` for the legend (additive; suite **275 of 275 MATCH**).
+- **THE DRIVE ROW IS GONE AGAIN.** The walkthrough's gate sits under the
+  Normalize dropdown, shown only when Quantile is chosen, and the walk is a
+  `step` choice slider beside it — eased through **core's ease-request door**,
+  the `logistic-regression` pattern. Core fixes the drive row at the foot of the
+  rail (3.4e) and `afterDrive` cannot move it, because **Reset travels with it**.
+  The act also moved ABOVE the panels, under the formula card.
+- **THE WIDGET STILL DECLARES AN `animation`**, so at promotion it owes at least
+  one **driven** fingerprint state — `check.mjs` fails without it. The natural
+  one is now `drive: { set: { step: "3" }, frames, dt }`, catching the ease
+  mid-flight; `?normalize=quantile&act=1&step=N` is the settled route.
 - **`mathmlRenders()` IS CORE'S NOW** (own commit, 2026-09-02). It was copied
   verbatim in `lm-interaction` and `lm-diagnostics`, and this card would have
   been the third — 5.8's trigger. The full suite read **275 of 275 MATCH**.

@@ -917,6 +917,30 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   border-radius: 50%;
 }
 
+/* A DASHED RULE, for the second reference line in one panel.
+
+   Added 2026-09-02, for widget 39: it draws the median of all samples solid and
+   the mean of all samples dashed, in one colour, because both are the fixed
+   benchmark the ten samples are judged against and the dash is what tells them
+   apart — the same distinction `spanningRule` already takes as an argument. The
+   legend had no way to say it, so two references would have shown two identical
+   swatches and the reader could not have told which line was which.
+
+   A repeating-linear-gradient rather than a border, so the dash keeps the
+   swatch's own colour token and needs no second variable. 3px on, 3px off,
+   matching the canvas's `setLineDash([4, 3])` closely enough at 12px wide that
+   the swatch reads as the same kind of line. Purely additive: nothing else in
+   the collection sets `data-mark="dash"`, so no existing legend can move. */
+.w-legend .swatch[data-mark="dash"] {
+  height: 3px;
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    to right,
+    var(--swatch, var(--ink-3)) 0 3px,
+    transparent 3px 6px
+  );
+}
+
 /* --- readout: stat tiles. Also the accessible text of the figure. -------- */
 .w-readout {
   display: grid;

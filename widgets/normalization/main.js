@@ -73,14 +73,20 @@
        counting step, and quantile lands exactly.
 
    ---------------------------------------------------------------------------
-   NO DRIVE BUTTONS, principle 4.5, and `linear-regularization` is the
-   precedent — the other widget in the collection whose whole argument is in its
-   controls. There is no accumulation here and no sequence to reveal: the two
-   pickers ARE the motion, and every state they reach is one `compute()` away.
-   The quantile procedure — rank, average across samples at each rank, assign
-   back — is the one thing here that would repay an animation, and it is
-   deliberately left for a later round rather than bolted on to a figure whose
-   design has just been agreed.
+   NO DRIVE BUTTONS, principle 4.5. The two panels are one `compute()` away from
+   any state the rail can reach, so there is no accumulation and no sequence to
+   reveal — the pickers ARE the motion, as in `linear-regularization`.
+
+   THE WALKTHROUGH DOES MOVE, and it still has no buttons. Core puts the drive
+   row at the foot of the rail (3.4e), which is right when the buttons drive THE
+   figure and wrong here: Step and Play would have driven one option's sub-stage
+   from three sections away, and `afterDrive` cannot fix it because Reset travels
+   with the drive row and would land mid-rail. So the walk is a `step` parameter
+   sitting beside the gate that opened it, and the motion comes from core's
+   ease-request door — the same door `logistic-regression` uses, and for the same
+   reason: a transition between two readings of ONE table, where easing is what
+   shows the values did not change while their positions did. It also puts the
+   walk in the URL, which a drive button cannot.
 
    The widget opens at None + None: raw intensities, unequal samples, a fan in
    the second panel. That is the problem the lesson is about, not its answer
@@ -315,6 +321,13 @@ const PHASES = [
 ];
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+/* THE GATE CAN BE OPEN AND THE METHOD NOT QUANTILE. `when` only hides the
+   control; `act` keeps its value, so a reader who opens the walkthrough and then
+   picks Median would still get the stage. One predicate, used by both the height
+   and the draw, so they cannot disagree about whether it is there. */
+const actOn = (params) => Boolean(params.act) && params.normalize === "quantile";
 
 defineWidget({
   slug: "normalization",
@@ -328,7 +341,7 @@ defineWidget({
   /* A FUNCTION, because the walkthrough is a stage the reader may not have
      entered — and a panel that can be hidden has to give its pixels back, or
      the gate saves nothing anyone can see (3.4b). */
-  height: ({ act }) => (act ? FIG_H + ACT_H : FIG_H),
+  height: ({ act, normalize }) => (actOn({ act, normalize }) ? FIG_H + ACT_H : FIG_H),
 
   params: {
     /* --- THE DATA ------------------------------------------------------- */
@@ -363,6 +376,58 @@ defineWidget({
       default: "none",
     },
 
+    /* --- THE QUANTILE ACT ------------------------------------------------- *
+     * UNDER THE METHOD THAT NEEDS IT, not at the foot of the rail — Kenneth,
+     * 2026-09-02. Quantile is the one method here with no formula: the notebook
+     * writes it as three numbered steps (cell 16) because it does not reduce to
+     * one. So the walkthrough belongs to that option, appears only when it is
+     * chosen, and sits directly under the dropdown that chose it (2.7).
+     *
+     * A whole stage the reader has not entered (3.4b), so it hides behind one
+     * button and gives its pixels back when shut. And it needs its OWN data:
+     * 1000 genes x 10 samples is not a countable thing (2.3), so it runs on SIX
+     * genes and FOUR samples from the same generator at the same seed and the
+     * same technical variation — the same story at a size you can check by eye. */
+    act: {
+      type: "gate",
+      label: "Show how quantile normalization works",
+      labelOff: "Hide the walkthrough",
+      detail: "six genes, four samples — the same data at a size you can count",
+      default: false,
+      display: true,
+      when: { param: "normalize", equals: "quantile" },
+    },
+
+    /* THE STEP IS A PARAMETER, NOT A DRIVE BUTTON, and that is the second half
+     * of the same call. Core puts the drive row at the foot of the rail (3.4e),
+     * which is right when the buttons drive THE figure — and here they would
+     * have driven one option's sub-stage from three sections away. `afterDrive`
+     * cannot fix it either: Reset travels with the drive row and would land
+     * mid-rail.
+     *
+     * So the phase is a `choice` slider beside the gate that opened it, and the
+     * motion comes from core's ease-request door instead — the same door
+     * `logistic-regression` uses to bend its fitted curve, and for the same
+     * reason: this is a transition between two readings of one table, so easing
+     * it shows that the values did not change while their positions did.
+     *
+     * It also puts the walk in the URL, which a drive button cannot: `?act=1&
+     * step=3` is a link to the finished picture, and `shown` is no longer
+     * needed for it. */
+    step: {
+      type: "choice",
+      label: "Step",
+      options: [
+        { value: "0", label: "table", detail: PHASES[0].note },
+        { value: "1", label: "rank", detail: PHASES[1].note },
+        { value: "2", label: "average", detail: PHASES[2].note },
+        { value: "3", label: "assign", detail: PHASES[3].note },
+      ],
+      default: "0",
+      display: true,
+      when: { all: [{ param: "normalize", equals: "quantile" }, { param: "act" }] },
+    },
+
     /* --- 2 · TRANSFORM --------------------------------------------------- *
      * Three short options, so this one CAN show all three at rest, and it
      * should: the whole widget is about there being a second operation, and
@@ -384,35 +449,6 @@ defineWidget({
       default: "none",
     },
 
-    /* --- THE QUANTILE ACT, behind a gate ---------------------------------- *
-     * A whole stage the reader has not entered (3.4b), so it hides behind one
-     * button and gives its pixels back when shut — the widget's height is a
-     * function of this parameter.
-     *
-     * IT NEEDS ITS OWN DATA and that is the whole reason it is a separate act.
-     * Quantile normalisation is the one method here with no formula — the
-     * notebook writes it as three numbered steps (cell 16) — and the only step
-     * a reader cannot picture. But 1000 genes x 10 samples is not a countable
-     * thing (2.3), so the act runs on SIX genes and FOUR samples, drawn from
-     * the same generator at the same seed and the same technical variation, so
-     * it is the same story at a size you can check by eye.
-     *
-     * It does NOT set `normalize`. A gate that also wrote another parameter
-     * would be a two-parameter transaction, and the reader can pick Quantile in
-     * the rail whenever they want to see it on the real table. */
-    act: {
-      type: "gate",
-      label: "Show how quantile normalization works",
-      labelOff: "Hide the walkthrough",
-      detail: "six genes, four samples — the same data at a size you can count",
-      default: false,
-      display: true,
-    },
-
-    /* An authored head start for the walkthrough, first render only, so a
-       lesson can link straight to the finished picture: `?act=1&shown=3`. */
-    shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
-
     /* Gated on Box-Cox, declaratively (`when`), so core rebuilds the block only
        when `transform` moves rather than on every value change. */
     lambda: {
@@ -427,7 +463,8 @@ defineWidget({
 
   legend: [
     { token: "empirical", label: "One sample's values", mark: "bar" },
-    { token: "reference", label: "The median of all samples", mark: "line" },
+    { token: "reference", label: "Median of all samples", mark: "line" },
+    { token: "reference", label: "Mean of all samples", mark: "dash" },
   ],
 
   /* Pure and seeded: same params, same table, every time. Runs on parameter
@@ -452,6 +489,14 @@ defineWidget({
        are compared to. Computed here rather than in draw() so the panel and
        the tile cannot disagree about what the median is (5.8). */
     const kept = cols.map((c) => c.filter(Number.isFinite));
+    /* THE POOLED MEAN, because a boxplot cannot show it and z-score is defined
+       by it. Kenneth, 2026-09-02: "why doesn't z-score centre the mean?" It
+       does — exactly, to 0.0000 — but the boxes sit at -0.337 because a box
+       draws the MEDIAN, and on a table with skew 3.03 the median is a third of
+       a standard deviation below the mean. Drawing both makes that gap visible,
+       and the gap IS the skew: after log(1+y) it closes to -0.008. */
+    const flatKept = kept.flat();
+    const pooledMean = flatKept.reduce((s, v) => s + v, 0) / flatKept.length;
     // NOT `kept.map(boxStats)` — map passes (el, i, arr), and a bare reference
     // hands the index to the second parameter.
     const boxes = kept.map((c) => boxStats(c));
@@ -498,7 +543,7 @@ defineWidget({
       sorted.reduce((s, c) => s + c[r], 0) / ACT_SAMPLES);
     const after = small.map((c, s) => c.map((_, g) => ref[rank[s][g]]));
 
-    return { cols, boxes, grand, lo, hi, dropped, total: cols.length * cols[0].length,
+    return { cols, boxes, grand, pooledMean, lo, hi, dropped, total: cols.length * cols[0].length,
       act: { small, rank, sorted, ref, after },
       ...summarise(cols) };
   },
@@ -515,36 +560,39 @@ defineWidget({
      the reader had clicked first, which is exactly what invariant 1 forbids.
      `?act=1&shown=3` is how a lesson links to the finished picture. */
   animation: {
-    stepLabel: "Next step",
-    stepTitle: "Carry out the next step of quantile normalization",
-    runLabel: "Play",
-    runTitle: "Run all three steps of quantile normalization",
+    /* NO STEP AND NO PLAY. The two panels are one `compute()` away from any
+       state the rail can reach, so the figure has nothing to drive (4.5); the
+       walkthrough's one motion is the ease between two settings of `step`, and
+       an explicit null is a widget saying so rather than getting a default. */
+    stepLabel: null,
+    runLabel: null,
 
-    /* An authored head start lands on the phase COMPLETED, `t = 1`, because a
-       reader following a link wants the finished step and not its first
-       frame — the same reason `shown` exists at all (2.1 in reverse: the
-       author may publish an answer, the reader must build one). */
-    init: ({ params, fromScratch }) => {
-      const phase = fromScratch ? 0 : Math.min(params.shown, PHASES.length - 1);
-      return { phase, t: phase > 0 ? 1 : 0, done: phase >= PHASES.length - 1 };
+    init: ({ params }) => {
+      const p = Number(params.step);
+      return { p, target: p };
     },
 
-    /* THE LAST PHASE HAS TO RUN, and the obvious guard stopped it before it
-       started. `if (phase >= last) return false` at the top fires the moment
-       phase becomes 3 — with t still 0 — so the assign-back motion never
-       played and the settled figure showed phase 2's picture under phase 3's
-       caption. The terminal condition is the last phase COMPLETED, not
-       reached. */
+    /* `p` is a CONTINUOUS phase in [0, 3] — the walkthrough's whole state. The
+       first version counted whole phases and needed a special case for the last
+       one, which is the bug that let phase 3's motion never play at all. A
+       number that eases toward a target has no last phase to forget. */
     advance: (anim, { dt }) => {
-      if (anim.done) return false;
-      anim.t += dt / PHASE_MS;
-      if (anim.t < 1) return true;
-      if (anim.phase >= PHASES.length - 1) { anim.t = 1; anim.done = true; return false; }
-      anim.t = 0;
-      anim.phase += 1;
-      /* One press of Step is one step of the procedure — the reader is meant to
-         read the caption before the next one starts. Play keeps going. */
-      return anim.mode !== "step";
+      const dir = Math.sign(anim.target - anim.p);
+      if (dir === 0) return false;
+      anim.p += (dir * dt) / PHASE_MS;
+      if ((dir > 0 && anim.p >= anim.target) || (dir < 0 && anim.p <= anim.target)) {
+        anim.p = anim.target;
+        return false;
+      }
+      return true;
+    },
+
+    rebuild: (anim, { params }) => {
+      const target = Number(params.step);
+      if (target !== anim.target) {
+        anim.target = target;
+        anim.easing = true;          // a request for frames; core consumes it
+      }
     },
   },
 
@@ -561,10 +609,17 @@ defineWidget({
        the left panel is what step 1 moves, the right is what step 2 moves.
        The left gets the larger share because it holds ten boxes across; the
        right is a cloud and reads at any width. */
-    const top = 26;
-    /* The panels keep FIG_H whatever the gate does; the walkthrough is added
-       below, so opening it does not squash the figure it is explaining. */
-    const bottom = FIG_H - 50;   // two lines of figure copy live below the panels
+    /* THE WALKTHROUGH SITS ABOVE THE PANELS, under the formula card — Kenneth,
+       2026-09-02: it is a mock-up of how the method works, so it belongs where
+       the method is explained rather than under the result. The panels keep
+       FIG_H whatever the gate does; opening it pushes them down rather than
+       squashing the figure it is explaining. */
+    const showAct = actOn(params);
+    if (showAct) drawAct(ctx, colors, w, 0, state.act, anim);
+    const figTop = showAct ? ACT_H : 0;
+
+    const top = figTop + 26;
+    const bottom = figTop + FIG_H - 50;   // two lines of copy live below the panels
     const leftW = Math.round((w - PANEL_GAP) * 0.54);
     const padL = 46;
     const padR = 8;
@@ -620,6 +675,24 @@ defineWidget({
     ctx.beginPath();
     ctx.moveTo(p1.x, gy);
     ctx.lineTo(p1.x + p1.w, gy);
+    ctx.stroke();
+
+    /* THE MEAN, DASHED, over the same rule. Both are references — the fixed
+       benchmarks the ten samples are judged against — so both take
+       `--c-reference` and the dash is what tells them apart, which is the
+       distinction `spanningRule` already offers for this exact case.
+
+       It is here because a boxplot cannot show a mean and z-score is DEFINED by
+       one: without it, "Z-score → mean 0, sd 1" is a claim with nothing on
+       screen to check. With it, the reader sees the mean land on 0 while the
+       boxes stay below, and sees the two lines converge once the log has taken
+       the skew out. */
+    ctx.setLineDash([4, 3]);
+    ctx.lineWidth = 1;
+    const my = Math.round(p1.sy(state.pooledMean)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, my);
+    ctx.lineTo(p1.x + p1.w, my);
     ctx.stroke();
     ctx.restore();
 
@@ -728,17 +801,15 @@ defineWidget({
     ctx.textAlign = "left";
     ctx.textBaseline = "bottom";
     ctx.fillStyle = colors.ink3;
-    ctx.fillText(pipelineLabel(params), padL, FIG_H - 18);
+    ctx.fillText(pipelineLabel(params), padL, figTop + FIG_H - 18);
     if (state.dropped > 0) {
       ctx.fillStyle = colors.highlight;
       ctx.fillText(
         `${state.dropped.toLocaleString("en")} of ${state.total.toLocaleString("en")} values dropped — Box–Cox needs y > 0`,
-        padL, FIG_H - 2,
+        padL, figTop + FIG_H - 2,
       );
     }
     ctx.restore();
-
-    if (params.act) drawAct(ctx, colors, w, FIG_H, state.act, anim);
   },
 
   readout: ({ state }) => [
@@ -786,10 +857,11 @@ defineWidget({
  *   phase 2 -> 3   rank row  -> gene row   (assigning back)
  * Phase 1 -> 2 moves nothing; the reference column fades in beside the grid. */
 function drawAct(ctx, colors, w, y0, act, anim) {
-  const { small, rank, sorted, ref, after } = act;
-  const phase = anim?.phase ?? 0;
-  const t = anim?.t ?? 0;
-  const ph = PHASES[phase];
+  const { small, rank, ref, after } = act;
+  /* One continuous number carries the whole walk: 0 the table, 1 sorted, 2 the
+     reference column, 3 assigned back. Everything below is read off it. */
+  const p = anim?.p ?? 0;
+  const ph = PHASES[Math.max(0, Math.min(PHASES.length - 1, Math.round(p)))];
 
   const cw = Math.min(62, Math.max(40, (w - 210) / (ACT_SAMPLES + 1)));
   const rh = 22;
@@ -811,9 +883,15 @@ function drawAct(ctx, colors, w, y0, act, anim) {
   ctx.fillStyle = colors.ink3;
   ctx.fillText(ph.note, gridX - 40, y0 + 36);
 
-  /* How far each cell is between its two rows, and which number it shows. */
-  const moving = phase === 1 ? easeInOut(t) : phase >= 2 ? 1 : 0;
-  const back = phase === 3 ? easeInOut(t) : 0;
+  /* `sortedness` is how far each cell has travelled from its gene row toward its
+     rank row: up over [0,1], held over [1,2], back over [2,3]. `refFade` is the
+     reference column arriving over [1,2]. `assigned` is whether the cells are
+     carrying the reference value yet — flipped at the midpoint of the last
+     move, so the number changes while the cell is travelling rather than on
+     arrival, which is what makes the swap visible. */
+  const sortedness = clamp01(p) - easeInOut(clamp01(p - 2)) * clamp01(p);
+  const refFade = clamp01(p - 1);
+  const assigned = p > 2.5;
 
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textAlign = "center";
@@ -829,7 +907,7 @@ function drawAct(ctx, colors, w, y0, act, anim) {
     ctx.textAlign = "right";
     /* The row axis IS the thing that changes: genes while the table is in its
        own order, ranks once it is sorted. Crossfaded so the swap is visible. */
-    const g = 1 - moving + back;
+    const g = 1 - sortedness;
     ctx.globalAlpha = Math.max(0, g);
     ctx.fillText(`gene ${r + 1}`, gridX - 8, gridY + rh * (r + 0.5));
     ctx.globalAlpha = Math.max(0, 1 - g);
@@ -854,21 +932,18 @@ function drawAct(ctx, colors, w, y0, act, anim) {
   for (let s = 0; s < ACT_SAMPLES; s += 1) {
     for (let g = 0; g < ACT_GENES; g += 1) {
       const r = rank[s][g];
-      const row = g + (r - g) * (moving - back);
+      const row = g + (r - g) * sortedness;
       const cx = gridX + cw * (s + 0.5);
       const cy = gridY + rh * (row + 0.5);
-      /* The value only changes at the last moment of phase 3, when the cell
-         arrives home carrying the reference value rather than its own. */
-      const shown = back > 0.5 ? after[s][g] : small[s][g];
-      ctx.fillStyle = back > 0.5 ? colors.highlight : colors.ink1;
-      ctx.fillText(fmt(shown, back > 0.5 ? 1 : 0), cx, cy);
+      const shown = assigned ? after[s][g] : small[s][g];
+      ctx.fillStyle = assigned ? colors.highlight : colors.ink1;
+      ctx.fillText(fmt(shown, assigned ? 1 : 0), cx, cy);
     }
   }
 
-  /* the reference column, from phase 2 */
-  if (phase >= 2) {
-    const fade = phase === 2 ? Math.min(1, t * 2) : 1;
-    ctx.globalAlpha = fade;
+  /* the reference column, arriving over [1, 2] */
+  if (refFade > 0) {
+    ctx.globalAlpha = refFade;
     ctx.fillStyle = colors.ink3;
     ctx.fillText("mean", refX + cw * 0.5, gridY - 12);
     ctx.strokeStyle = colors.grid;
