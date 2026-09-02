@@ -3764,7 +3764,30 @@ across samples at each rank, assign back — is three numbered steps in cell 16
 that no student can picture, and it is a countable thing while the count is
 small (2.3).
 
-### Slot 3 · `batch-effect` — the stage is already written, and it hides its own assumption
+### Slot 3 · `batch-effect` — SHIPPED 2026-09-02, eleven review rounds in one day
+
+**PROMOTED on Kenneth's "tested ok, push it to gallery".** Eleven fingerprint
+states recorded — nine settled across both gate states and two driven, easing
+between correction methods in each direction — each shot three times, the copy
+proved 4/4 against known-good states first, and both drives confirmed to move
+their figure. Suite **294 of 294**. The one thing worth knowing about the
+baseline: the first driven state's `tx` equals the settled RUV state's, because
+the readout prints the target state's numbers while only the canvas eases. That
+is correct, not a copy-paste.
+
+`_lab/batch-shoot.html` is the shooter; `_lab/batch-methods.mjs` and
+`_lab/batch-measure.mjs` print every number quoted below from the shipping
+engine.
+
+**What it ended up being**: one gated widget with ground truth permanently on
+the left, four methods and five settings behind the gate, a forest plot of
+intervals, and four dials — disease effect, batch effect, confounding, seed.
+The rounds below are the record of how it got there, and the short version is
+that the first five rounds built the wrong widget: they conflated correcting the
+data with modelling the batch, which is why `covariate` had to be given a
+transformation it does not have.
+
+#### The original plan, before any of that
 
 Cells 3–7 are a complete widget: 50 genes × 40 samples, a disease effect of 0.8
 on genes 1–25 of the even-numbered samples, a **+2 shift on samples 21–40**, and

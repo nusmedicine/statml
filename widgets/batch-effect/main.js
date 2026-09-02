@@ -1,5 +1,5 @@
 /* ============================================================================
-   Batch Effects — widget 40. DRAFT.
+   Batch Effects — widget 40.
 
    PHM5003 HTD `05 / 05`. The misconception: that a batch effect is noise you
    subtract. Design record in `docs/catalogue.md` § Slot 3.
@@ -211,7 +211,7 @@ defineWidget({
     + "non-biological reasons. Batch correction estimates that variation, from "
     + "the data or from reference genes, and removes it.",
   layout: "side",
-  status: "draft",
+
   /* Core calls this with the VALUES object spread, plus `w` — not `{ params }`.
      The gate gives its pixels back when it is shut (3.4b): the forest is 150px
      that mean nothing until a method is chosen. */

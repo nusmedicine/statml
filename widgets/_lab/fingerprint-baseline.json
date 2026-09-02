@@ -2503,6 +2503,97 @@
       },
       "px": "e770e1cc",
       "tx": "0a4c6011"
+    },
+    {
+      "$note": "Balanced, observed, coloured by condition: the opening state — the batch owns PC1 while the conditions are mixed.",
+      "slug": "batch-effect",
+      "state": "?theme=light",
+      "px": "68615aec",
+      "tx": "52197d91"
+    },
+    {
+      "$note": "The diagnostic: coloured by batch at the largest shift, ground truth mixed and observed in two clusters.",
+      "slug": "batch-effect",
+      "state": "?theme=light&colourBy=batch&shift=4",
+      "px": "f4bf3ee8",
+      "tx": "2dfcc225"
+    },
+    {
+      "$note": "Strong confounding, gate shut: the 2 x 2 at 17/3 and 3/17, correlation 0.70, and its reading.",
+      "slug": "batch-effect",
+      "state": "?theme=light&overlap=0.75",
+      "px": "4ee8c7b4",
+      "tx": "b8410c92"
+    },
+    {
+      "$note": "ComBat with mod = NULL on a confounded design: the cleanest picture and the worst estimate.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75&method=combat&mod=null",
+      "px": "afff4389",
+      "tx": "71e948b8"
+    },
+    {
+      "$note": "SVA: the panel is the uncorrected one and the estimate is unchanged, so only the interval moves.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75&method=sva",
+      "px": "00cd17bb",
+      "tx": "23d181bd"
+    },
+    {
+      "$note": "RUV with housekeeping references, the one method that holds on a confounded design.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75&method=ruv",
+      "px": "ba23f2b2",
+      "tx": "2082edd8"
+    },
+    {
+      "$note": "RUV with random references: the factor correlates with the condition, so the correction removes disease effect too.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.5&method=ruv&controls=random",
+      "px": "17017d13",
+      "tx": "08642a62"
+    },
+    {
+      "$note": "Complete confounding: an empty design cell, correlation 1.00, and the covariate row not estimable.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=1",
+      "px": "2600303d",
+      "tx": "43a73426"
+    },
+    {
+      "$note": "The disease-effect dial at 3.0 against a batch shift of 4: the corrected panel separates where at 0.8 it cannot.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75&shift=4&effect=3&method=ruv",
+      "px": "dd659def",
+      "tx": "bb8ab2e0"
+    },
+    {
+      "$note": "DRIVEN mid-ease, none toward RUV. Its tx equals the settled RUV state's because the readout prints the target state while only the canvas eases.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75",
+      "drive": {
+        "set": {
+          "method": "ruv"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "d1849a85",
+      "tx": "2082edd8"
+    },
+    {
+      "$note": "DRIVEN mid-ease the other way, RUV back toward none, caught earlier in the transition.",
+      "slug": "batch-effect",
+      "state": "?theme=light&correcting=1&overlap=0.75&method=ruv",
+      "drive": {
+        "set": {
+          "method": "none"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "14568ba8",
+      "tx": "37ecbd5e"
     }
   ]
 }
