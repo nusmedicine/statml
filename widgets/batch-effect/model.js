@@ -9,22 +9,12 @@
        batch <- c(rep("Batch1", 20), rep("Batch2", 20))
        expression_data[, 21:40] <- expression_data[, 21:40] + 2
 
-   with one addition: `overlap`, which controls how far batch and condition
-   line up. The notebook's own design sits at overlap = 0, and it never says so.
+   with two additions the notebook does not have: `overlap`, which controls how
+   far batch and condition line up, and `effect`, the size of the disease effect
+   itself. The notebook's own design sits at overlap = 0, and it never says so.
 
-   ---------------------------------------------------------------------------
-   IT SERVES TWO PAGES, and only one of them exists yet. `batch-effect` asks
-   what a batch effect DOES to the data and reads `simulate`, `withoutBatch`,
-   `projectOnto`, `design` and `separation`. The correction page will read
-   `CORRECTIONS`, `correct`, `estimateWithSE`, `nullEffect` and `projectAll` —
-   built and reviewed through round 5, then set aside when Kenneth split the
-   two, because correcting the data and modelling the batch prescribe opposite
-   things and one page cannot say both.
-
-   None of that half is dead: `_lab/batch-measure.mjs` runs all of it and
-   prints the numbers the catalogue quotes, so it stays honest while it waits.
-   The figure code it fed — the formula card and the forest plot of intervals —
-   is in the widget's own history at commit e7f909d.
+   `_lab/batch-measure.mjs` and `_lab/batch-methods.mjs` both run against this
+   file, so the tables they print are the numbers the widget draws.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -90,17 +80,18 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  *      strong        2.219   0.495      1.599     2.219   0.941
  *      complete      2.771   0.122      2.771     2.771   2.803
  *
- * ComBat with `mod = NULL`, which is what cell 12 runs, DELETES the biology in
- * proportion to the confounding. ComBat with `mod = ~condition`, cell 11's
- * "optional but recommended", protects the biology and protects the confounded
- * part of the batch WITH it. The two fail in opposite directions.
+ * ComBat with `mod = NULL`, which is what cell 12 runs, removes the disease
+ * effect in proportion to the confounding. ComBat with `mod = ~condition`,
+ * cell 11's "optional but recommended", retains the disease effect and the
+ * confounded part of the batch with it. The two diverge in opposite
+ * directions.
  *
- * SVA NEVER MOVES THE ESTIMATE. Its surrogate variable is built from the
+ * SVA does not change the estimate. Its surrogate variable is built from the
  * residuals after the condition has been removed, so it is orthogonal to the
- * condition by construction and cannot touch that coefficient. What it moves is
- * the standard error — 0.450 to 0.316 at a balanced design, real power, and
- * 0.315 against the true batch covariate's 0.446 at strong confounding: a
- * TIGHTER interval around a wrong answer.
+ * condition by construction and cannot alter that coefficient. What it changes
+ * is the standard error: 0.450 to 0.316 at a balanced design, and 0.315 against
+ * the true batch covariate's 0.446 at strong confounding — a narrower interval
+ * around a biased estimate.
  *
  * RUV holds 0.79 to 0.94 and fails only at complete confounding, because its
  * factor comes from control genes that carry the batch and nothing else. The
@@ -110,13 +101,12 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  * -------------------------------------------------------------------------- */
 
 /**
- * The reference set RUV is handed, and it IS the method.
+ * The reference set RUV is given, which determines what it can remove.
  *
- * Kept conceptual rather than by gene index (Kenneth, 2026-09-02): the point is
- * that without a proper reference you cannot correct properly, not which rows
- * of this particular simulation happen to be quiet. Cell 21 picks `26:50`,
- * which are exactly the genes the lesson simulated with no disease effect — the
- * truth choosing the controls.
+ * Named by kind rather than by gene index (Kenneth, 2026-09-02): the claim is
+ * that without a valid reference set the correction is not valid, not which
+ * rows of this particular simulation are quiet. Cell 21 picks `26:50`, which
+ * are exactly the genes the lesson simulated with no disease effect.
  *
  * Measured, truth 0.80, 5 seeds:
  *
@@ -126,11 +116,11 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  *     housekeeping   0.79 - 1.01        0.982            0.019
  *     random         0.46 - 0.59        0.977            0.172
  *
- * BOTH SETS FIND THE BATCH. What separates them is the second column: a
- * reference set that carries biology gives RUV a factor pointing at the very
- * thing it is supposed to preserve, so the correction removes the effect along
- * with the artefact. Random references cost about 40% of the truth at every
- * setting — the failure is stable, not a corner case.
+ * Both sets recover the batch. What separates them is the second column: a
+ * reference set carrying disease-affected genes gives RUV a factor correlated
+ * with the condition, so the correction removes disease effect along with the
+ * batch. Random references lose about 40% of the true effect at every
+ * setting.
  */
 export const CONTROL_SETS = {
   housekeeping: {
@@ -191,8 +181,8 @@ export const METHODS = {
   sva: {
     label: "SVA",
     /* IT DOES NOT TOUCH THE MATRIX. The surrogate variable goes in the model,
-       which is the whole claim: you never learn the batch, you estimate a
-       stand-in for it and adjust for that. */
+       the batch labels are never read; a surrogate variable is estimated from
+       the residuals and adjusted for instead. */
     data: ({ X }) => X,
     covar: (sim) => [surrogateVariable(sim)],
   },
@@ -220,9 +210,9 @@ export const METHODS = {
 export const applyMethod = (sim, key, opts) => METHODS[key].data(sim, opts);
 
 /**
- * The same samples without the batch shift — GROUND TRUTH, and a thing only a
- * simulation can hand you. Cell 7 subtracts exactly this and calls it a
- * correction; the widget shows it as the benchmark it really is.
+ * The same samples without the batch shift: the ground truth, available only
+ * because the data is simulated. Cell 7 subtracts exactly this and calls it a
+ * correction; the widget draws it as a reference panel instead.
  */
 export function withoutBatch({ X, batch, shift }) {
   return X.map((row) => row.map((v, j) => v - (batch[j] === 1 ? shift : 0)));
@@ -332,9 +322,8 @@ function combat(sim, { keepCondition }) {
 
 /**
  * SVA's surrogate variable: the leading direction of the residuals after the
- * condition is removed. THE BATCH IS NEVER USED, which is the point — and it is
- * also why the result is orthogonal to the condition and cannot move its
- * coefficient.
+ * condition is removed. The batch labels are never read, which is also why the
+ * result is orthogonal to the condition and cannot change its coefficient.
  */
 function surrogateVariable(sim) {
   const n = sim.X[0].length;
@@ -387,14 +376,14 @@ export function estimatedVariable(sim, key, opts) {
  * workflow tests it.
  *
  * A method that edits the DATA is followed by a two-group comparison on the
- * edited values, and the comparison has no idea a correction happened — so its
- * interval stays narrow while the estimate moves. A method that supplies a
- * COVARIATE is fitted with that column in the model, and pays for it honestly
- * in the standard error. That difference is the point rather than a shortcut.
+ * edited values, and that comparison does not account for the correction — so
+ * its interval stays narrow while the estimate moves. A method that supplies a
+ * COVARIATE is fitted with that column in the model, and the cost appears in
+ * the standard error.
  *
  * The averaging is over a gene RANGE, so the interval is the one a single
- * gene's estimate carries. A gene is what gets tested in a real analysis, and
- * the interval of the mean of 25 would hide the whole story.
+ * gene's estimate carries. A gene is what gets tested in a real analysis; the
+ * interval of the mean of 25 would be far narrower than any of them.
  */
 export function estimateWithSE(sim, key, opts) {
   return estimateOver(sim, key, 0, AFFECTED, opts);
@@ -410,9 +399,8 @@ function estimateOver(sim, key, from, to, opts) {
   const n = sim.X[0].length;
   const covar = method.covar ? method.covar(sim, opts) : [];
   /* A method with a covariate is fitted on the RAW data with that column in the
-     design — which is the honest way to spend the information. Everything else
-     is tested on the matrix it produced, and pays for that in a narrow interval
-     the test does not know it should widen. */
+     design. Everything else is tested on the matrix it produced, so its
+     interval does not account for the correction. */
   const X = covar.length ? sim.X : method.data(sim, opts);
   const cols = [new Array(n).fill(1), sim.disease.map(Number), ...covar];
 
@@ -435,8 +423,8 @@ function estimateOver(sim, key, from, to, opts) {
  *
  * Gauss-Jordan on [X'X | X'y | I] in one pass, so the inverse the standard
  * errors need comes out of the same elimination as the fit. Returns null on a
- * singular design, which is what complete confounding is — the caller prints
- * "not estimable" rather than a number from a ridge.
+ * singular design, which is what complete confounding produces — the caller
+ * prints "not estimable" rather than a number from a ridge.
  */
 function fitWithSE(cols, y) {
   const k = cols.length;
@@ -538,7 +526,7 @@ export function project(X, basis) {
  * 0.167 / 0.133 on PC1 across overlap 0 / 0.5 / 0.75. Removing the batch removes
  * the dominant direction, so PC1 becomes a different thing and any motion
  * between two such states is about the axes rather than the data. Principle 2.5
- * one level up: a basis refitted per state hides the collapse that is the point.
+ * one level up: a basis refitted per state hides the collapse in spread.
  *
  * On the fixed basis the story is sharper anyway. At overlap 0, separation along
  * PC1 goes from 7.694 by batch and 0.446 by condition to 0.000 and 3.504 — the
