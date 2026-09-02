@@ -107,7 +107,7 @@ export const CORRECTIONS = {
      correction that still works when the design is fully confounded: at overlap
      1 it returns 0.771 while every estimable method has nothing to work with.
      Its job here is to show that cell 7's success is borrowed. */
-  known: { label: "Subtract the known shift", fn: withoutBatch },
+  known: { label: "Ground truth", fn: withoutBatch },
 
   remove: {
     label: "Remove the batch from the data",
@@ -117,45 +117,24 @@ export const CORRECTIONS = {
     }),
   },
 
-  covariate: {
-    label: "Batch as a covariate",
-    fn: ({ X, batch, disease }) => X.map((row) => {
-      /* Least squares on [intercept, batch, condition], removing only the batch
-         term. Residualising this way returns the coefficient `lm(y ~ condition
-         + batch)` reports, so the data the panel draws and the estimate the
-         tile prints come from one fit rather than two.
+  /* IT DOES NOT TOUCH THE MATRIX, and that is its defining property rather
+     than an omission. A covariate changes the MODEL: the batch gets a column
+     in the design and the condition coefficient is read off the same fit.
 
-         With batch and condition collinear the design is singular, which is
-         what full confounding means; the ridge keeps the arithmetic finite and
-         `design()` is what tells the widget not to print the result. */
-      const n = row.length;
-      const b = batch.map(Number);
-      const c = disease.map(Number);
-      const cols = [new Array(n).fill(1), b, c];
-      const XtX = cols.map((u) => cols.map((v) => u.reduce((s, x, i) => s + x * v[i], 0)));
-      const Xty = cols.map((u) => u.reduce((s, x, i) => s + x * row[i], 0));
-      const beta = solve3(XtX, Xty, 1e-8);
-      return row.map((v, j) => v - beta[1] * b[j]);
-    }),
-  },
+     This used to residualise each gene on the fitted batch term, purely so
+     that a scatter would have something to draw — a model-based method dressed
+     as a data transformation, which is the conflation that split this slot in
+     two. `estimateWithSE` reads the raw gene and fits `y ~ condition + batch`,
+     so nothing is lost: the estimate is identical (Frisch-Waugh-Lovell), and
+     the picture is now honest.
+
+     What that buys the correction page is its sharpest comparison. At strong
+     confounding `remove` shows a perfect picture — batch separation exactly
+     0.00 — and reports 0.42 for an effect of 0.80. `covariate` leaves the
+     picture at 10.58, untouched and ugly, and reports 0.83. The method with
+     the best picture gives the worst answer. */
+  covariate: { label: "Batch as a covariate", fn: ({ X }) => X },
 };
-
-/** 3x3 solve with a ridge, so a singular design returns something finite. */
-function solve3(A, y, ridge) {
-  const M = A.map((r, i) => r.map((v, j) => v + (i === j ? ridge : 0)).concat(y[i]));
-  for (let c = 0; c < 3; c += 1) {
-    let p = c;
-    for (let r = c + 1; r < 3; r += 1) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
-    [M[c], M[p]] = [M[p], M[c]];
-    if (Math.abs(M[c][c]) < 1e-12) continue;
-    for (let r = 0; r < 3; r += 1) {
-      if (r === c) continue;
-      const f = M[r][c] / M[c][c];
-      for (let k = c; k < 4; k += 1) M[r][k] -= f * M[c][k];
-    }
-  }
-  return [0, 1, 2].map((i) => (Math.abs(M[i][i]) < 1e-12 ? 0 : M[i][3] / M[i][i]));
-}
 
 export const correct = (sim, key) => CORRECTIONS[key].fn(sim);
 
@@ -214,6 +193,25 @@ export function estimatedEffect(X, disease) {
  * an interval small enough to hide the whole story.
  */
 export function estimateWithSE(sim, key) {
+  return estimateOver(sim, key, 0, AFFECTED);
+}
+
+/**
+ * The same, over the genes that carry NO effect — a false-positive check that
+ * should sit at 0 whatever the method does.
+ *
+ * IT HAS TO GO THROUGH THE SAME FIT, and getting that wrong shipped a lie for
+ * one state: `nullEffect` took a two-group difference off the matrix, which for
+ * `covariate` is the UNCORRECTED matrix, so the widget reported 1.49 on genes
+ * with no effect for a method whose own model reports 0.04. Two estimators, one
+ * tile each, disagreeing about which method they described.
+ */
+export function nullWithSE(sim, key) {
+  return estimateOver(sim, key, AFFECTED, GENES);
+}
+
+/** One fit, one gene range. Both tiles read this and nothing else. */
+function estimateOver(sim, key, from, to) {
   const X = correct(sim, key);
   const withBatch = key === "covariate";
   const n = SAMPLES;
@@ -224,7 +222,7 @@ export function estimateWithSE(sim, key) {
   ];
   const bs = [];
   const ses = [];
-  for (let g = 0; g < AFFECTED; g += 1) {
+  for (let g = from; g < to; g += 1) {
     /* The covariate fit reads the RAW gene: its whole claim is that the batch
        is handled inside the model rather than taken out of the data first. */
     const r = ols(cols, withBatch ? sim.X[g] : X[g]);
@@ -280,8 +278,16 @@ function invert(A) {
   }));
 }
 
-/** The same over the 25 genes that carry NO effect — a false-positive check.
-    It should sit at 0 whatever the correction does. */
+/**
+ * The same over the 25 genes that carry NO effect, as a plain two-group
+ * difference on whatever matrix it is handed.
+ *
+ * NOT WHAT A WIDGET SHOULD PRINT beside a model's estimate: for `covariate` the
+ * matrix is the uncorrected one, so this returns 1.488 where the covariate
+ * model itself reports 0.087. `nullWithSE` goes through the same fit as the
+ * effect tile and is what the figures read. This one stays because the lab
+ * pages describe the DATA rather than a model.
+ */
 export function nullEffect(X, disease) {
   const d = [];
   for (let g = AFFECTED; g < GENES; g += 1) {

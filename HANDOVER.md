@@ -65,7 +65,48 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` IS A DRAFT — SPLIT IN TWO, page 1 built
+## NEXT: BOTH batch pages are DRAFTS — 40 pushed, 41 awaiting review
+
+**WIDGET 40 `batch-effect` PUSHED 2026-09-02** on Kenneth's "tested ok". It is a
+draft, so it is live at `/statml/lab/` and not on the gallery.
+
+**WIDGET 41 `batch-correction` BUILT the same day** — page 2, cells 7-22, from
+four picks. Catalogue § Slot 3 § ROUND 7.
+
+```bash
+node scripts/serve.mjs 8011
+# http://localhost:8011/widgets/batch-correction/?overlap=0.75            (None: 2.23 for a 0.80 effect)
+# .../widgets/batch-correction/?overlap=0.75&correct=remove               (a PERFECT picture, batch sep 0.00, and 0.42)
+# .../widgets/batch-correction/?overlap=0.75&correct=covariate            (the picture is UNCHANGED, and 0.83)
+# .../widgets/batch-correction/?overlap=1&correct=covariate               (not estimable)
+```
+
+- **ONE BEAT: the method with the best picture gives the worst answer.** At
+  strong confounding `remove` drives the batch separation to exactly 0.00 and
+  reports 0.42; `covariate` leaves the picture at 10.58 - it never edits the
+  matrix - and reports 0.83 with an interval too wide to act on.
+- **`CORRECTIONS.covariate.fn` IS THE IDENTITY NOW.** It used to residualise
+  each gene purely so a scatter would have something to draw. The estimate is
+  unchanged (Frisch-Waugh-Lovell); `solve3` went with the fabrication.
+- **AND THAT EXPOSED A SECOND ONE**: "Genes with no effect" took a two-group
+  difference off the matrix, so for `covariate` it reported **1.49** where that
+  method's own model says **0.09**. `nullWithSE` goes through the same fit as
+  the effect tile. `nullEffect` stays for the lab pages, which describe the DATA
+  rather than a model.
+- **THE UNKNOWN-BATCH METHODS ARE PROSE**, below the figure and at the end of
+  the stage - in the card they added 89px, and straight after the figure they
+  sat between it and its own legend.
+- **`known` IS "Ground truth" ON BOTH PAGES**, one name for one thing.
+- **The sweep caught the forest's tick row 2px off the canvas in every state.**
+  `FIG_H` is 392. Card reserve **13.8em**, measured; page 1's is 12em, because a
+  reserve is measured per widget rather than carried over.
+
+**Still open on 41**: whether the design 2 x 2 earns its place when page 1
+explains it at length, and whether `Ground truth` in a picker of *methods* reads
+as something anyone could run. Neither page is baselined; both declare an
+`animation` and owe a driven state at promotion.
+
+## Widget 40 `batch-effect` — what page 1 settled
 
 **THE SLOT IS NOW TWO PAGES** (Kenneth, 2026-09-02). Page 1 `batch-effect` is
 cells 3-6: what a batch effect DOES to the data, a toggle between ground truth

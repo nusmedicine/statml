@@ -4372,6 +4372,79 @@ whether `seed` earns its place. **Not baselined**; it declares an `animation`, s
 at promotion it owes a driven state, naturally
 `drive: { set: { view: "truth" }, frames, dt }`.
 
+#### ROUND 7 — page 2 built: `batch-correction`, widget 41
+
+Kenneth: *"tested ok, let's do the correction page next"*, then four picks.
+
+**THE PAGE HAS ONE BEAT AND IT FALLS OUT OF FIXING THE CONFLATION.** Now that
+`covariate` no longer pretends to transform the data, the four methods separate
+cleanly. At strong confounding, batch shift 2:
+
+| method | batch separation *in the picture* | estimate | 95% interval |
+|---|---|---|---|
+| None | 10.58 | 2.23 | [1.44, 3.02] |
+| Ground truth | 1.76 | 0.83 | [0.18, 1.48] |
+| Remove from data | **0.00** | **0.42** | [−0.24, 1.08] |
+| Batch as covariate | **10.58** | **0.83** | [−0.08, 1.74] |
+
+**The method with the best picture gives the worst answer, and the one that
+gets the answer right leaves the picture alone.** `remove` drives the batch
+separation to exactly zero and reports 0.42 for an effect of 0.80, narrowly.
+`covariate` never edits the matrix, so its panel is the uncorrected one — and
+it reports 0.83 with an interval too wide to act on. Neither is visible without
+both halves of the figure.
+
+**`CORRECTIONS.covariate.fn` IS NOW THE IDENTITY** (Kenneth's pick). It used to
+residualise each gene on the fitted batch term purely so a scatter would have
+something to draw. `estimateWithSE` reads the raw gene and fits
+`y ~ condition + batch`, so the estimate is unchanged by Frisch–Waugh–Lovell and
+the picture is honest. The ridge solver `solve3` went with it — the only caller
+was the fabrication, and the singular design now falls out of `ols` returning
+null. **The panel says "the data is unchanged"**, because a reader who has just
+pressed a button will otherwise read an unchanged picture as a bug.
+
+**AND THAT EXPOSED A SECOND FABRICATION.** "Genes with no effect" took a plain
+two-group difference off the matrix, which for `covariate` is the *uncorrected*
+matrix — so the tile reported **1.49** for a method whose own model reports
+**0.09**. Two estimators, one tile each, disagreeing about which method they
+described. `nullWithSE` now goes through the same fit as the effect tile;
+`nullEffect` stays for the lab pages, which describe the data rather than a
+model, with a comment saying so.
+
+**ONE PANEL, COLOURED BY CONDITION** (Kenneth). Page 1 needs two because the
+question there is which split the data falls along; here it is whether the
+biology came back, so the panel is coloured by the thing being recovered and
+the width goes to the card and the intervals.
+
+**THE UNKNOWN-BATCH METHODS ARE PROSE, NOT CONTROLS** (Kenneth) — round 1
+measured that ComBat's empirical-Bayes step has nothing to do on this stage.
+The note names what each needs: ComBat the labels, SVA nothing, RUV control
+genes, *"and cell 21 picks genes 26–50, which are exactly the genes with no
+disease effect"*. **It sits BELOW the figure, not in the card**: in the card it
+added 89px and took the natural height from 128 to 217, a block of static prose
+pushing the figure down every time anyone looked at it. And not straight after
+the figure either — `nextSibling` there is the legend, and a footnote wedged
+between a figure and the legend that labels it separates the two. It goes at
+the end of the stage.
+
+**`known` IS "Ground truth" ON BOTH PAGES** (Kenneth), one name for one thing, so
+a student moving between them is not asked to notice that the arithmetic is the
+same. `withoutBatch` is the single definition; `CORRECTIONS.known` aliases it.
+
+Verified: **100 states** — 5 confoundings × 5 batch shifts × 4 methods — at
+534px, plus 120 at 770px, for collisions, crowding, off-canvas runs, NaN, `-0`,
+an unfinished draw and uncaught errors. None. **The sweep caught the forest's
+tick row 2px off the canvas in every state**, which is what a measured height
+is for; `FIG_H` is 392. Card reserve measured at **13.8em** (natural 124–147px),
+jog 0 — page 1's is 12em, and a reserve is measured per widget rather than
+carried over. The ease eases. `npm run check` 10/10, 41 widgets. Not pushed.
+
+**Still open on widget 41**: whether the design 2 × 2 earns its place here when
+page 1 explains it at length, and whether `Ground truth` sitting in a picker of
+*methods* reads as a method anyone could run. **Not baselined**; it declares an
+`animation`, so at promotion it owes a driven state, naturally
+`drive: { set: { correct: "remove" }, frames, dt }`.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including
