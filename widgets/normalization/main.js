@@ -275,10 +275,13 @@ const actOn = (params) => Boolean(params.act) && params.normalize === "quantile"
 defineWidget({
   slug: "normalization",
   title: "Normalization and Transformation",
+  /* The lesson's own two problems, then the two fixes — 2.10's concept first,
+     mechanism second. The clause it replaced said the two were different
+     operations, which the rail's shape already says. */
   subtitle:
-    "Normalization puts the samples on one scale. Transformation changes the "
-    + "shape of the distribution. They are two different operations applied in "
-    + "order, and neither one does the other's job.",
+    "High-throughput measurements carry technical variation between samples, "
+    + "and their variance grows with their size. Normalization corrects the "
+    + "first, transformation the second.",
   layout: "side",
   status: "draft",
   /* A function: a stage that can be hidden has to give its pixels back (3.4b). */

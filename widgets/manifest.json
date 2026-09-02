@@ -565,7 +565,7 @@
     {
       "slug": "normalization",
       "title": "Normalization and Transformation",
-      "blurb": "Normalization puts samples on one scale; transformation changes the shape. Neither does the other's job.",
+      "blurb": "Normalization corrects technical variation between samples; transformation stabilises variance that grows with size.",
       "course": "PHM5003",
       "topics": [
         "normalization",
