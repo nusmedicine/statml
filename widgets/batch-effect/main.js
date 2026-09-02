@@ -1,32 +1,26 @@
 /* ============================================================================
    Batch Effects — widget 40. DRAFT.
 
-   PHM5003 HTD `05 / 05`, cells 3-22, in one page with a gate. The
-   misconception: that a batch effect is noise you subtract.
-
-   The full design record is in `docs/catalogue.md` § Slot 3.
+   PHM5003 HTD `05 / 05`. The misconception: that a batch effect is noise you
+   subtract. Design record in `docs/catalogue.md` § Slot 3.
 
    ---------------------------------------------------------------------------
-   ONE WIDGET RATHER THAN TWO, because of the ground-truth panel. It was split
-   into `batch-effect` and `batch-correction` for a day; with ground truth
-   permanently on the left, the gate-shut figure is the gate-open figure minus
-   the estimates, so the correction stage serves the same picture rather than
-   replacing it (3.4b). The split also declared `overlap`, `shift` and `seed`
-   twice, so a reader set the study up once to see the effect and again to see
-   what correcting it costs.
+   ONE WIDGET WITH A GATE, not two pages. Ground truth is permanently the left
+   panel, so the gate-shut figure is the gate-open figure minus the estimates:
+   the correction stage adds to the same picture rather than replacing it
+   (3.4b). Two pages also declared `overlap`, `shift` and `seed` twice.
 
    ---------------------------------------------------------------------------
-   THE SIMULATION IS THE LESSON'S OWN, plus two controls it does not have. Cell
-   3 builds 50 genes x 40 samples, a disease effect of 0.8 on genes 1-25 of the
-   diseased samples, and a +2 shift on samples 21-40. Condition alternates while
-   batch splits at sample 20, so every batch holds 10 healthy and 10 diseased —
-   the design is balanced, and the lesson never says so.
+   THE SIMULATION: 50 genes x 40 samples, a disease effect on genes 1-25 of the
+   diseased samples, and a shift applied to samples 21-40. Condition alternates
+   while batch splits at sample 20, so at `balanced` every batch holds 10
+   healthy and 10 diseased.
 
    The confounding dial was labelled "Overlap", whose `none` setting reads as
    "no batch effect". It is a different quantity: the batch effect dial decides
    whether an artefact exists, the confounding dial decides whether it can be
-   distinguished from the condition. At `balanced` with the notebook's shift,
-   PC1 still separates the batches by 7.80 pooled sd.
+   distinguished from the condition. At `balanced` with a shift of 2, PC1 still
+   separates the batches by 7.80 pooled sd.
 
    ---------------------------------------------------------------------------
    FOUR METHODS, FIVE SETTINGS. Estimated disease effect, truth 0.80, mean of 5
@@ -41,9 +35,8 @@
 
    `mod` is a sub-control rather than a second method: two picker entries both
    labelled ComBat is a poor picker, the copy table lists every method anyway,
-   and four entries tile a 2 x 2. `mod = NULL` is what cell 12 runs and it
-   removes the disease effect along with the batch; `mod = ~condition` is cell
-   11's "optional but recommended" and it retains the disease effect and the
+   and four entries tile a 2 x 2. `mod = NULL` removes the disease effect along
+   with the batch; `mod = ~condition` retains the disease effect and the
    confounded part of the batch with it. They diverge only from half
    confounding on — 0.01 and 0.14 apart at balanced and slight.
 
@@ -52,30 +45,28 @@
    to the condition by construction. What it changes is the standard error:
    0.450 to 0.316 at a balanced design, and 0.315 against the true batch
    covariate's 0.446 at strong confounding — a narrower interval around a
-   biased estimate. That is why the intervals are drawn and not only the points.
+   biased estimate. Hence the intervals are drawn and not only the points.
 
    RUV holds because its factor comes from reference genes carrying the batch
    and not the condition: correlation with the batch 0.982 at every setting,
    where SVA's falls 0.991 / 0.856 / 0.701 / 0.000. It holds only as far as the
-   references are right — 0.79-1.01 across the ladder with housekeeping genes,
-   0.46-0.59 with a random set. Both sets find the batch (0.982 against 0.977);
-   the random set's factor also correlates 0.172 with the condition against
-   housekeeping's 0.019, so its correction removes disease effect with the
-   artefact. The reference set is a parameter, so the assumption is testable.
+   references are right — 0.79-1.01 with housekeeping genes, 0.46-0.59 with a
+   random set. Both sets recover the batch (0.982 against 0.977); the random
+   set's factor also correlates 0.172 with the condition against housekeeping's
+   0.019, so its correction removes disease effect with the batch.
 
-   RUV IS ALSO WHERE THE PANEL AND THE ESTIMATE COME APART. Its W is used twice
-   — to clean the data for cell 22's PCA, and in the model for cell 19's fit. At
-   strong confounding the cleaned picture separates the conditions by 1.23 while
-   the fit using the same W returns 0.94 against a truth of 0.80.
+   RUV also separates the panel from the estimate: its W both cleans the data
+   for the scatter and enters the model for the fit. At strong confounding the
+   cleaned picture separates the conditions by 1.23 while the fit using the same
+   W returns 0.94 against a truth of 0.80.
 
    ---------------------------------------------------------------------------
    THE DISEASE EFFECT IS A DIAL because legibility of the corrected panel tracks
    the ratio batchShift/effect rather than either alone: effect 1.5 with shift 2
    puts the condition groups 41.8px apart in a 227px panel, and effect 3.0 with
-   shift 4 puts them 42.0px apart. The notebook's 0.8 against a shift of 4 is a
-   ratio of 5, which is 13px; a ratio of 2 is 30px.
+   shift 4 puts them 42.0px apart. A ratio of 5 is 13px; a ratio of 2 is 30px.
 
-   That made the true effect a parameter, and it had been written literally as
+   The true effect is therefore a parameter, and had been written literally as
    0.80 in three places — the legend, the readout's note and the forest's dashed
    rule. All three read `state.truth`.
 
@@ -100,13 +91,11 @@ const CARD_EM = "13.8em";
 
 const METHOD_KEYS = Object.keys(METHODS);
 
-/* The design ladder. A magnitude — how far batch and condition line up — with
-   the notebook's own balanced design at the left end. The right end is the only
-   setting where nothing can separate them, kept because that boundary is the
-   argument's conclusion (2.6). */
+/* How far batch and condition line up. The right end is the only setting where
+   nothing can separate them, kept as the failing case (2.6). */
 const OVERLAPS = [
   { value: "0", amount: 0, label: "balanced",
-    detail: "10 healthy and 10 diseased in each batch — the notebook's design" },
+    detail: "10 healthy and 10 diseased in each batch" },
   { value: "0.25", amount: 0.25, label: "slight", detail: "12 and 8, against 8 and 12" },
   { value: "0.5", amount: 0.5, label: "half", detail: "15 and 5, against 5 and 15" },
   { value: "0.75", amount: 0.75, label: "strong", detail: "17 and 3, against 3 and 17" },
@@ -114,14 +103,14 @@ const OVERLAPS = [
     detail: "one batch entirely healthy, the other entirely diseased — batch and condition are now the same variable" },
 ];
 
-/* The batch shift, against a disease effect of 0.8. The crossover where the
-   batch takes PC1 from the condition is measured near 1.0, not the notebook's
-   2 — separations of 3.53 against 0.97 there, and 1.43 against 2.16 at 0.5. */
+/* Measured against a disease effect of 0.8: the batch takes PC1 from the
+   condition near a shift of 1.0 — separations of 3.53 against 0.97 there, and
+   1.43 against 2.16 at 0.5. */
 const SHIFTS = [
   { value: "0", amount: 0, label: "none", detail: "no batch effect" },
   { value: "0.5", amount: 0.5, label: "0.5", detail: "smaller than the disease effect" },
   { value: "1", amount: 1, label: "1.0", detail: "the batch and the disease effect contribute about equally to PC1" },
-  { value: "2", amount: 2, label: "2.0", detail: "the notebook's setting — 2.5x the disease effect" },
+  { value: "2", amount: 2, label: "2.0", detail: "2.5x the default disease effect" },
   { value: "4", amount: 4, label: "4.0", detail: "the batch accounts for most of the variance" },
 ];
 
@@ -136,14 +125,13 @@ const METHOD_DETAIL = {
 };
 
 /* Legibility of the corrected panel tracks the ratio batchShift/effect, not
-   either dial alone: at effect 1.5 with shift 2 the condition groups sit 41.8px
-   apart in a 227px panel, and at effect 3.0 with shift 4 they sit 42.0px apart.
-   The notebook's 0.8 against a shift of 4 is a ratio of 5, which is 13px; a
-   ratio of 2 is 30px. */
+   either dial alone: effect 1.5 with shift 2 puts the condition groups 41.8px
+   apart in a 227px panel, and effect 3.0 with shift 4 puts them 42.0px apart.
+   A ratio of 5 is 13px; a ratio of 2 is 30px. */
 const EFFECTS = [
   { value: "0", amount: 0, label: "none",
     detail: "no disease effect; any estimate away from zero is error" },
-  { value: "0.8", amount: 0.8, label: "0.8", detail: "the notebook's setting" },
+  { value: "0.8", amount: 0.8, label: "0.8", detail: "small against a batch effect of 2.0 or more" },
   { value: "1.5", amount: 1.5, label: "1.5", detail: "comparable to a batch effect of 1.0 or 2.0" },
   { value: "2", amount: 2, label: "2.0", detail: "half the largest batch effect" },
   { value: "3", amount: 3, label: "3.0", detail: "larger than every batch effect except 4.0" },
@@ -156,11 +144,10 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 
 /* ---- the formula card, shown only once the gate is open ------------------
-   Cell 10's model. The key row exists because this is a regression per gene
-   with the expression as the RESPONSE and the condition as the predictor —
-   the opposite direction from "predict disease from genes", which two readers
-   have assumed. Cells 14 and 19 then write `Y = X beta + W gamma + eps` with Y
-   the expression matrix and X the design, swapping both letters. */
+   The key row exists because this is a regression per gene with the expression
+   as the RESPONSE and the condition as the predictor — the opposite direction
+   from "predict disease from genes", which readers assume. The SVA and RUV
+   formulations write `Y = X beta + W gamma + eps`, swapping both letters. */
 const MATHML = mathmlRenders();
 const SUB = (v, sub) => `<msub><mi>${v}</mi>`
   + (sub.length > 1 ? `<mrow>${[...sub].map((c) => `<mi>${c}</mi>`).join("")}</mrow>` : `<mi>${sub}</mi>`)
@@ -233,11 +220,9 @@ defineWidget({
   params: {
     data: { type: "section", label: "The study" },
 
-    /* THE SIGNAL FIRST, THEN THE ARTEFACT, THEN THE DESIGN (Kenneth). The two
-       magnitudes sit next to each other because it is their RATIO that governs
-       everything downstream — measured, the corrected picture's legibility
-       tracks batchShift/effect and not either alone. The design follows,
-       because it decides whether the two can be told apart at all. */
+    /* Signal, then artefact, then design. The two magnitudes are adjacent
+       because their ratio governs the corrected panel's legibility; the design
+       follows because it decides whether the two can be separated at all. */
     effect: {
       type: "choice",
       label: "Size of the disease effect",
@@ -263,11 +248,9 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
-    /* BACK BY REQUEST (Kenneth, 2026-09-02), and it was wrong to drop it: with
-       both panels coloured by condition there is no way to ask "do the samples
-       separate by BATCH", which is the lesson's own first figure and the actual
-       diagnostic. Both panels follow one toggle, so ground truth and the
-       corrected data are always asked the same question. */
+    /* With both panels coloured by condition there is no way to ask whether the
+       samples separate by BATCH, which is the diagnostic. Both panels follow
+       one toggle, so they are always asked the same question. */
     colourBy: {
       type: "segmented",
       label: "Colour the samples by",
@@ -307,26 +290,25 @@ defineWidget({
       when: { param: "correcting" },
     },
 
-    /* ComBat's `mod`, as a sub-control rather than a second entry in the picker
-       (Kenneth): two rows both labelled ComBat is a bad picker, and the copy
-       table lists every method anyway, so nothing is hidden. Default is cell
-       11's "optional but recommended"; cell 12 runs the other one. */
+    /* A sub-control rather than a second picker entry: two rows both labelled
+       ComBat is a poor picker, and the copy table lists every method anyway.
+       The default is the recommended setting. */
     mod: {
       type: "segmented",
       label: "ComBat model",
       options: [
         { value: "condition", label: "mod = ~condition",
-          detail: "cell 11's “optional but recommended” — the condition is kept in the model, so standardising does not remove it" },
+          detail: "the condition is kept in the model, so standardising does not remove it — the recommended setting" },
         { value: "null", label: "mod = NULL",
-          detail: "what cell 12 actually runs — the condition is left out, and on a confounded design it goes with the batch" },
+          detail: "the condition is left out, so on a confounded design it is removed along with the batch" },
       ],
       default: "condition",
       display: true,
       when: { all: [{ param: "correcting" }, { param: "method", equals: "combat" }] },
     },
 
-    /* RUV's assumption, made into a control. Measured at overlap 0.5, truth
-       0.80: 0.838 / -0.003 / 0.467. */
+    /* RUV's assumption as a control. Measured at overlap 0.5, truth 0.80:
+       housekeeping 0.838, random 0.467. */
     controls: {
       type: "segmented",
       label: "Reference genes",
@@ -452,7 +434,7 @@ defineWidget({
     /* GROUND TRUTH IS ALWAYS ON THE LEFT. It is the signal the study is trying
        to recover, and every other panel is judged against it — a benchmark
        nobody can compute from real data, which is why it is a panel and not a
-       method (Kenneth, 2026-09-02). */
+       method. */
     const panels = [
       { pts: state.points.truth, title: "Ground truth", note: "no batch effect" },
       { pts, title: panelTitle(params), note: panelNote(params) },
@@ -591,8 +573,8 @@ function panelTitle(params) {
 
 /**
  * SVA never edits the matrix, so its panel is the observed one — said on the
- * figure, because a reader who has just pressed a button will otherwise read an
- * unchanged picture as a bug.
+ * figure: an unchanged picture after pressing a button otherwise reads as a
+ * defect.
  */
 function panelNote(params) {
   if (!params.correcting || params.method === "none") return "with the batch effect";
@@ -710,8 +692,8 @@ function drawDesign(ctx, colors, x, y, w, d) {
       ctx.strokeStyle = colors.grid;
       ctx.lineWidth = 1;
       ctx.strokeRect(gx + cw * c + 0.5, gy + rh * r + 0.5, cw, rh);
-      /* The empty cell is the cause and the correlation is the consequence, so
-         it is marked rather than left to be counted. */
+      /* An empty cell is what makes the correlation 1.00, so it is marked
+         rather than left to be counted. */
       ctx.fillStyle = v === 0 ? colors.extreme : colors.ink1;
       ctx.font = `${v === 0 ? "600 " : ""}${colors.fsSm} ${colors.font}`;
       ctx.fillText(String(v), gx + cw * (c + 0.5), gy + rh * (r + 0.5));

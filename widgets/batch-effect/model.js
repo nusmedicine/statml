@@ -1,7 +1,7 @@
 /* ============================================================================
    The engine for HTD slot 3, `batch-effect` (PHM5003 HTD `05 / 05`).
 
-   The generator reproduces the notebook's cell 3:
+   The generator reproduces this R, which is the specification:
 
        expression_data <- matrix(rnorm(50 * 40, 0, 1), ncol = 40)
        condition <- ifelse(seq(1, 40) %% 2 == 0, "Disease", "Healthy")
@@ -9,9 +9,8 @@
        batch <- c(rep("Batch1", 20), rep("Batch2", 20))
        expression_data[, 21:40] <- expression_data[, 21:40] + 2
 
-   with two additions the notebook does not have: `overlap`, which controls how
-   far batch and condition line up, and `effect`, the size of the disease effect
-   itself. The notebook's own design sits at overlap = 0, and it never says so.
+   `overlap` and `effect` are added on top of it: how far batch and condition
+   line up, and the size of the disease effect. That R is overlap = 0.
 
    `_lab/batch-measure.mjs` and `_lab/batch-methods.mjs` both run against this
    file, so the tables they print are the numbers the widget draws.
@@ -26,23 +25,20 @@ export const TRUE_EFFECT = 0.8;
 export const BATCH_SHIFT = 2;
 
 /**
- * `overlap` is the one control the notebook does not have.
- *
  * Condition is assigned so batch 1 holds (1 + overlap) / 2 of its samples as
  * healthy and batch 2 the mirror. At 0 every batch is 10 healthy and 10
- * disease — the notebook's design, where the batches are balanced and the
- * correction can work. At 1 batch 1 is entirely healthy and batch 2 entirely
- * disease, so batch and condition are the same variable and no correction can
- * separate them.
+ * diseased, so the batches are balanced and a correction can work. At 1 batch 1
+ * is entirely healthy and batch 2 entirely diseased, so batch and condition are
+ * the same variable and no correction can separate them.
  */
 export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
   effect = TRUE_EFFECT } = {}) {
   const rng = makeRng(seed);
   const half = SAMPLES / 2;
 
-  /* Which samples are diseased. At overlap = 0 they alternate, as in the
-     notebook; as overlap rises they migrate into batch 2. Deterministic, so
-     the reader sees a design change rather than another draw. */
+  /* At overlap = 0 the diseased samples alternate; as overlap rises they
+     migrate into batch 2. Deterministic, so moving the dial changes the design
+     rather than redrawing the data. */
   const nDiseaseInB1 = Math.round((half / 2) * (1 - overlap));
   const disease = new Array(SAMPLES).fill(false);
   for (let i = 0; i < nDiseaseInB1; i += 1) disease[i * 2 + 1] = true;
@@ -51,7 +47,7 @@ export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
 
   const batch = Array.from({ length: SAMPLES }, (_, j) => (j < half ? 0 : 1));
 
-  /* genes x samples, the notebook's own orientation */
+  /* genes x samples */
   const X = Array.from({ length: GENES }, () =>
     Array.from({ length: SAMPLES }, () => rng.normal(0, 1)));
 
@@ -69,10 +65,9 @@ export function simulate({ seed = 1, overlap = 0, batchShift = BATCH_SHIFT,
 
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 
-/* --- the lesson's methods -------------------------------------------------- *
- * The notebook's own five, and they fail in four different ways. Estimated
- * disease effect, truth 0.80, mean of 5 seeds — `_lab/batch-methods.mjs`
- * prints this table:
+/* --- the methods ----------------------------------------------------------- *
+ * Estimated disease effect, truth 0.80, mean of 5 seeds — printed by
+ * `_lab/batch-methods.mjs`:
  *
  *     confounding    none   ComBat   ComBat+mod    SVA     RUV
  *      balanced      0.825   0.819      0.825     0.825   0.794
@@ -80,10 +75,9 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
  *      strong        2.219   0.495      1.599     2.219   0.941
  *      complete      2.771   0.122      2.771     2.771   2.803
  *
- * ComBat with `mod = NULL`, which is what cell 12 runs, removes the disease
- * effect in proportion to the confounding. ComBat with `mod = ~condition`,
- * cell 11's "optional but recommended", retains the disease effect and the
- * confounded part of the batch with it. The two diverge in opposite
+ * ComBat with `mod = NULL` removes the disease effect in proportion to the
+ * confounding. ComBat with `mod = ~condition` retains the disease effect and
+ * the confounded part of the batch with it. The two diverge in opposite
  * directions.
  *
  * SVA does not change the estimate. Its surrogate variable is built from the
@@ -103,10 +97,10 @@ const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 /**
  * The reference set RUV is given, which determines what it can remove.
  *
- * Named by kind rather than by gene index (Kenneth, 2026-09-02): the claim is
- * that without a valid reference set the correction is not valid, not which
- * rows of this particular simulation are quiet. Cell 21 picks `26:50`, which
- * are exactly the genes the lesson simulated with no disease effect.
+ * Named by kind rather than by gene index: the claim is that without a valid
+ * reference set the correction is not valid, not which rows of this particular
+ * simulation are quiet. The housekeeping set is genes 26-50, which are exactly
+ * the genes simulated with no disease effect.
  *
  * Measured, truth 0.80, 5 seeds:
  *
@@ -147,11 +141,11 @@ export const CONTROL_SETS = {
 /**
  * Every method, by what it DOES.
  *
- * `data` returns the matrix a reader would go on to look at and test. `covar`
- * returns extra columns for the model instead, and a method that has one does
- * NOT edit the matrix — that is the difference between correcting the data and
- * modelling the nuisance, and giving a covariate method a fake transformation
- * so a scatter had something to draw is what cost this widget three rounds.
+ * `data` returns the matrix that is then looked at and tested. `covar` returns
+ * extra columns for the model instead, and a method that has one does NOT edit
+ * the matrix — the difference between correcting the data and modelling the
+ * nuisance. Giving a covariate method a transformation it does not have, so a
+ * scatter had something to draw, was a defect this file used to carry.
  */
 export const METHODS = {
   none: {
@@ -163,44 +157,37 @@ export const METHODS = {
   combat: {
     label: "ComBat",
     /* ONE ENTRY, TWO SETTINGS, and `mod` is a sub-control rather than a second
-       method (Kenneth, 2026-09-02). `mod = ~condition` is cell 11's "optional
-       but recommended" and the default here; `mod = NULL` is what cell 12
-       actually runs.
+       method. `mod = ~condition` is the recommended setting and the default
+       here; `mod = NULL` is the common one.
 
-       They agree where it would not matter and part where it does. Estimated
-       effect, truth 0.80, 5 seeds: 0.819 against 0.825 at a balanced design and
-       0.791 against 0.933 at slight confounding — a difference of 0.01 and 0.14
-       — then 0.633 / 1.131 at half, 0.495 / 1.599 at strong, and 0.122 / 2.771
-       at complete. They do not merely differ, they fail in OPPOSITE directions:
-       one decays toward zero, deleting the biology, and the other inflates past
-       the true effect and eventually past the batch shift itself. */
+       Estimated effect, truth 0.80, 5 seeds: 0.819 against 0.825 at balanced
+       and 0.791 against 0.933 at slight — 0.01 and 0.14 apart — then
+       0.633 / 1.131 at half, 0.495 / 1.599 at strong, 0.122 / 2.771 at
+       complete. They diverge in opposite directions: one decays toward zero,
+       the other inflates past the true effect and past the batch shift. */
     data: (sim, opts) => combat(sim, { keepCondition: (opts?.mod ?? "condition") !== "null" }),
     covar: null,
   },
 
   sva: {
     label: "SVA",
-    /* IT DOES NOT TOUCH THE MATRIX. The surrogate variable goes in the model,
-       the batch labels are never read; a surrogate variable is estimated from
-       the residuals and adjusted for instead. */
+    /* It does not touch the matrix: the batch labels are never read, and a
+       surrogate variable estimated from the residuals goes in the model. */
     data: ({ X }) => X,
     covar: (sim) => [surrogateVariable(sim)],
   },
 
   ruv: {
     label: "RUV",
-    /* THE ONLY METHOD THAT DOES BOTH, and the notebook says so in two places.
-       Cell 21's `naiveRandRUV` returns CORRECTED DATA, which cell 22 runs a PCA
-       on — that is the panel. Cell 19's own problem formulation is
-       `Y = X beta + W gamma + eps`, W in the MODEL — that is the estimate.
-       W is estimated once from the control genes and used for both.
+    /* The only method that does both. W is estimated once from the reference
+       genes, then used to clean the matrix for the panel AND included in the
+       model for the estimate.
 
-       It matters. Residualising on W and then running a two-group test gives
-       0.793 / 0.623 / 0.489 / 0.102 across the ladder — it deletes the biology
-       exactly as ComBat does, because W carries the confounded part of the
-       condition too. W in the model gives 0.794 / 0.838 / 0.941, holding until
-       the design is singular. Same W, and the difference is only where it is
-       used. */
+       Where it is used matters. Residualising on W and then running a two-group
+       test gives 0.793 / 0.623 / 0.489 / 0.102 across the ladder — it removes
+       the disease effect exactly as ComBat does, because W carries the
+       confounded part of the condition. W in the model gives
+       0.794 / 0.838 / 0.941, holding until the design is singular. */
     data: (sim, opts) => residualiseOn(sim.X, [unwantedVariable(sim, opts)]),
     covar: (sim, opts) => [unwantedVariable(sim, opts)],
   },
@@ -533,8 +520,8 @@ export function project(X, basis) {
  * batch separation collapses to exactly zero and the condition emerges on the
  * same axis.
  *
- * It departs from the notebook, which runs `prcomp` on the corrected data each
- * time, so the axis has to be labelled "of the uncorrected data".
+ * The usual practice is to run the PCA again on the corrected data, so the
+ * axis is labelled "of the observed data" to say which basis this is.
  */
 export function projectOnto(sim, mats) {
   const raw = pca(sim.X);
