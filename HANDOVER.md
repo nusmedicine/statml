@@ -65,13 +65,37 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: nothing is queued — widget 39 SHIPPED, four HTD slots remain
+## NEXT: `batch-effect` is PICKED and MEASURED, not yet mocked
 
 **Widget 39 `normalization` SHIPPED AND PUSHED 2026-09-02** on Kenneth's
 "tested ok, push it to gallery" — four review rounds across two days, eight
 fingerprint states recorded (seven settled, one driven), suite **283 of 283**.
-The full record is catalogue § Slot 1. **Four HTD slots remain and none is
-picked**: `nmf`, `batch-effect`, `hierarchical-clustering`, `enrichment`.
+The full record is catalogue § Slot 1.
+
+**Kenneth picked `batch-effect` next on 2026-09-02** and the planning
+measurements are done — catalogue § Slot 3, § *PICKED NEXT AND MEASURED*.
+
+```bash
+node widgets/_lab/batch-measure.mjs      # every number in that section
+```
+
+- **THE PLANNED TWO-WAY STORY WAS WRONG and the measurement is better.** There
+  are THREE outcomes, not two: no correction reports the batch as biology
+  (0.83 -> 2.77 against a truth of 0.80); the naive correction removes the
+  biology in proportion to the confounding (0.813 / 0.620 / 0.443 / 0.000);
+  and keeping condition in the model holds 0.83-0.87 across every estimable
+  design. The third is `ComBat(mod = ~condition)`, which cell 11 names as
+  "optional but recommended" and cell 12 does not use.
+- **THE NOTEBOOK'S DESIGN IS BALANCED, confirmed**: 10 healthy and 10 diseased
+  in each batch, and nothing in the lesson says so.
+- **`overlap = 1` MUST NOT PRINT A NUMBER.** The design drops to rank 2 there
+  and the fit returns 1.385, an artefact of the ridge. Only overlap 1 is
+  singular; 0.90 still has one sample per cell. The widget says *not estimable*.
+- **The batch shift earns a second control**: the crossover where the batch
+  takes PC1 from the condition is near 1.0, not the notebook's 2.
+
+The three remaining slots are `nmf`, `hierarchical-clustering` and
+`enrichment`, none picked.
 
 ```bash
 node scripts/serve.mjs 8011          # 8010 and 8012 were held by other sessions

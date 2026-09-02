@@ -3802,6 +3802,98 @@ Three notes for the build:
   request to add a role, not to reach for `--series-n`.
 - **Reuse.** PCA of a gene × sample matrix is widget 19's engine.
 
+#### PICKED NEXT and MEASURED 2026-09-02 — and the argument is three-way, not two
+
+```bash
+node widgets/_lab/batch-measure.mjs      # every number below
+```
+
+`_lab/batch-model.js` reproduces cell 3 exactly and adds `overlap`, the control
+the notebook does not have. **The notebook's own design sits at `overlap = 0`,
+confirmed**: 10 healthy and 10 diseased in each batch, every time.
+
+| overlap | batch 1 | batch 2 |
+|---|---|---|
+| 0.00 — *the notebook* | 10 / 10 | 10 / 10 |
+| 0.25 | 12 / 8 | 8 / 12 |
+| 0.50 | 15 / 5 | 5 / 15 |
+| 0.75 | 17 / 3 | 3 / 17 |
+| 1.00 | 20 / 0 | 0 / 20 |
+
+**THE PLANNED TWO-WAY STORY WAS WRONG, AND THE MEASUREMENT IS BETTER.** The
+plan above said: correct at balance and it works, correct when confounded and it
+deletes the biology. True — but there is a third column, and it is the one the
+notebook mentions and does not use. `ComBat(mod = NULL)` is what cell 12 runs;
+`ComBat(mod = model.matrix(~ condition))` is named in cell 11 as "optional but
+recommended". Estimated disease effect, truth **0.80**, mean of 5 seeds:
+
+| overlap | no correction | subtract each batch's mean | …keeping condition |
+|---|---|---|---|
+| 0.00 | 0.825 | 0.825 | 0.825 |
+| 0.25 | 1.240 | 0.813 | 0.847 |
+| 0.50 | 1.808 | **0.620** | 0.826 |
+| 0.75 | 2.219 | **0.443** | 0.868 |
+| 1.00 | 2.771 | **0.000** | *not estimable* |
+
+Three outcomes, each a different mistake:
+
+- **No correction** reports the batch as biology — 0.83 becomes 2.77.
+- **The naive correction** removes the batch and takes the biology with it, in
+  proportion to the confounding: 0.813 → 0.620 → 0.443 → 0.000.
+- **Keeping condition in the model** holds 0.83–0.87 across every estimable
+  design, and then stops, because at `overlap = 1` there is nothing to hold.
+
+**And the clinical number is the null genes.** Genes 26–50 carry no effect at
+all; uncorrected, they report one anyway:
+
+| overlap | 0.00 | 0.25 | 0.50 | 0.75 | 1.00 |
+|---|---|---|---|---|---|
+| no correction | 0.036 | 0.409 | 1.024 | 1.413 | **2.000** |
+| either correction | 0.036 | 0.009 | 0.024 | 0.012 | 0.000 / 1.000 |
+
+2.000 is the batch shift, exactly. That row is the false-positive mechanism in
+one number and it belongs on screen.
+
+**`overlap = 1` MUST NOT PRINT A NUMBER.** Batch and condition are then the same
+variable, the design matrix drops to rank 2, and the condition-preserving fit
+returns 1.385 — an artefact of the ridge, not an estimate. Measured, only
+`overlap = 1` is singular; 0.90 still has one sample in each cell and is
+estimable. The widget says *not estimable* there, which is the honest end of its
+own argument: **no correction can separate two variables that are the same
+variable.**
+
+**PC1 confirms the picture the notebook draws.** Separation along PC1, as
+|difference in group means| ÷ pooled sd:
+
+| overlap | correction | PC1 share | by batch | by condition |
+|---|---|---|---|---|
+| 0.00 | none | 0.526 | **7.694** | 0.446 |
+| 0.00 | either | 0.131 | 0.000 | **3.667** |
+| 1.00 | none | 0.616 | 18.022 | 18.022 |
+| 1.00 | naive | 0.084 | 0.000 | 0.000 |
+
+At full confounding the two columns are identical, because the two questions
+have the same answer.
+
+**A second control, and it is measured rather than assumed.** The notebook picks
+a shift of 2 against an effect of 0.8. The crossover is lower than that:
+
+| batch shift | PC1 by batch | PC1 by condition |
+|---|---|---|
+| 0.00 | 0.072 | 3.634 |
+| 0.50 | 1.429 | 2.156 |
+| **1.00** | **3.531** | **0.971** |
+| 2.00 | 7.694 | 0.446 |
+
+Below about 0.5 the condition still owns PC1. So "is the batch bigger than the
+biology" is a question with a threshold, and the shift earns a control.
+
+**Open for the mock-up**: whether the correction picker carries all three
+options or folds the first into a toggle; whether both PCA colourings show at
+once (the notebook's two panels) or one panel with a colour-by control, which is
+the colour-role question above; and whether the effect estimate is a tile, a
+strip, or drawn on the figure.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including
