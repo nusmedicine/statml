@@ -27,18 +27,23 @@
    all, the confounding decides whether it can be told apart from the biology.
 
    ---------------------------------------------------------------------------
-   FIVE METHODS, FOUR DIFFERENT FAILURES. Estimated disease effect, truth 0.80,
-   mean of 5 seeds — `_lab/batch-methods.mjs` prints it from this same engine:
+   FOUR METHODS, FIVE SETTINGS, FOUR DIFFERENT FAILURES. Estimated disease
+   effect, truth 0.80, mean of 5 seeds — `_lab/batch-methods.mjs` prints it:
 
-       confounding    none   ComBat   ComBat+mod    SVA     RUV
-        balanced      0.825   0.819      0.825     0.825   0.794
-        half          1.808   0.633      1.131     1.808   0.838
-        strong        2.219   0.495      1.599     2.219   0.941
-        complete      2.771   0.122      2.771     2.771   2.803
+       confounding    none   ComBat    ComBat     SVA     RUV
+                            mod=NULL  mod=~cond
+        balanced      0.825   0.819     0.825    0.825   0.794
+        half          1.808   0.633     1.131    1.808   0.838
+        strong        2.219   0.495     1.599    2.219   0.941
+        complete      2.771   0.122     2.771    2.771   2.803
 
-   ComBat with `mod = NULL`, which is what cell 12 runs, deletes the biology.
-   ComBat with `mod = ~condition` protects the biology and the confounded part
-   of the batch with it. They fail in OPPOSITE directions.
+   `mod` IS A SUB-CONTROL, NOT A SECOND METHOD (Kenneth): two picker entries
+   both labelled ComBat is a bad picker, the copy table lists every method
+   regardless, and four entries tile a clean 2 x 2. `mod = NULL` is what cell 12
+   runs and it deletes the biology; `mod = ~condition` is cell 11's "optional
+   but recommended" and it protects the biology and the confounded part of the
+   batch with it. They fail in OPPOSITE directions, and they only diverge from
+   half confounding on — 0.01 and 0.14 apart at balanced and slight.
 
    SVA NEVER MOVES THE ESTIMATE, at any setting. Its surrogate variable is built
    from the residuals after the condition is removed, so it is orthogonal to the
@@ -61,6 +66,18 @@
    separates the conditions by 1.23 while the fit that used the same W returns
    0.94 against a truth of 0.80. Same W; only where you put it differs.
 
+   ---------------------------------------------------------------------------
+   THE DISEASE EFFECT IS A DIAL TOO, and it had to become one. The corrected
+   picture's legibility tracks the RATIO batchShift/effect rather than either
+   alone: measured, effect 1.5 with shift 2 puts the condition groups 41.8px
+   apart in a 227px panel and effect 3.0 with shift 4 puts them 42.0px apart —
+   the same ratio, the same pixels. The notebook's 0.8 against a shift of 4 is a
+   ratio of 5, which is 13px and cramped; a ratio of 2 is 30px.
+
+   IT ALSO MADE THE TRUTH A PARAMETER, and 0.80 was written literally in three
+   places — the legend, the readout's note and the forest's dashed rule. All
+   three read `state.truth` now.
+
    NO DRIVE BUTTONS (4.5). The one motion is the ease between states.
    ========================================================================= */
 
@@ -77,7 +94,7 @@ const EASE_MS = 600;
    clipped every open state — the same 2px-and-you-do-not-see-it defect the
    sweep has now caught three times. */
 const SHUT_H = 336;
-const OPEN_H = 504;
+const OPEN_H = 486;
 const CARD_EM = "13.8em";
 
 const METHOD_KEYS = Object.keys(METHODS);
@@ -113,13 +130,28 @@ const SHIFTS = [
    times in this collection. */
 const METHOD_DETAIL = {
   none: "the batch shift is still in the data",
-  combat: "ComBat(dat, batch, mod = NULL) — what cell 12 runs",
-  combatMod: "ComBat with mod = ~condition — cell 11's “optional but recommended”",
+  combat: "estimate each batch's shift per gene and subtract it, shrunk toward the batch's own average",
   sva: "estimate a stand-in for the batch from the data, without ever being told it",
   ruv: "estimate it from control genes assumed to carry no biology",
 };
 
+/* THE SIGNAL, against the artefact above it. Measured, the corrected picture's
+   legibility tracks the RATIO batchShift/effect and not either dial alone: at
+   effect 1.5 with shift 2 the condition groups sit 41.8px apart in a 227px
+   panel, and at effect 3.0 with shift 4 they sit 42.0px apart — same ratio,
+   same pixels to within a fifth of one. The notebook's 0.8 against a shift of
+   4 is a ratio of 5, which is 13px and cramped; a ratio of 2 is 30px. */
+const EFFECTS = [
+  { value: "0", amount: 0, label: "none",
+    detail: "no disease effect at all — anything a method reports is an artefact" },
+  { value: "0.8", amount: 0.8, label: "0.8", detail: "the notebook's setting" },
+  { value: "1.5", amount: 1.5, label: "1.5", detail: "comparable to a batch shift of 1 or 2" },
+  { value: "2", amount: 2, label: "2.0", detail: "half the largest batch shift" },
+  { value: "3", amount: 3, label: "3.0", detail: "the biology dominates unless the batch is at its largest" },
+];
+
 const overlapOf = (k) => OVERLAPS.find((o) => o.value === k)?.amount ?? 0;
+const effectOf = (k) => EFFECTS.find((e) => e.value === k)?.amount ?? TRUE_EFFECT;
 const shiftOf = (k) => SHIFTS.find((s) => s.value === k)?.amount ?? 2;
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
@@ -150,13 +182,13 @@ const STEP = {
     math: `<math><mrow><msup>${SUB2("X")}<mo>&#x2032;</mo></msup><mo>=</mo>`
       + `${SUB2("X")}<mo>&#x2212;</mo><msub>${HAT("&#x3B3;")}<mi>k</mi></msub></mrow></math>`,
     plain: "X'(i,j) = X(i,j) − g-hat(k)",
-    note: "γ̂ shrunk toward the batch's own average, with β left out of the model",
-  },
-  combatMod: {
-    math: `<math><mrow><msup>${SUB2("X")}<mo>&#x2032;</mo></msup><mo>=</mo>`
-      + `${SUB2("X")}<mo>&#x2212;</mo><msub>${HAT("&#x3B3;")}<mi>k</mi></msub></mrow></math>`,
-    plain: "X'(i,j) = X(i,j) − g-hat(k)",
-    note: "the same, with β kept in the model so the condition survives the standardising",
+    /* THE NOTE FOLLOWS THE SUB-CONTROL. One arithmetic, two standardisings, and
+       the difference is the whole reason `mod` is a control — a card that said
+       "β left out" while the rail said `mod = ~condition` would be the figure
+       contradicting its own settings. */
+    noteFor: (mod) => (mod === "null"
+      ? "γ̂ shrunk toward the batch's own average, with β left OUT of the standardising"
+      : "the same, with β kept in, so the condition survives the standardising"),
   },
   sva: {
     math: `<math><mrow>${SUB2("X")}<mo>=</mo>${SUB("&#x3B1;", "i")}<mo>+</mo>`
@@ -219,6 +251,13 @@ defineWidget({
       default: "2",
     },
 
+    effect: {
+      type: "choice",
+      label: "Size of the disease effect",
+      options: EFFECTS.map(({ value, label, detail }) => ({ value, label, detail })),
+      default: "0.8",
+    },
+
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     /* THE SECOND STAGE (3.4b). Shut, the widget asks what a batch effect does;
@@ -228,7 +267,7 @@ defineWidget({
       type: "gate",
       label: "Try to correct it",
       labelOff: "Hide the corrections",
-      detail: "the lesson's five methods, and what each one costs",
+      detail: "the lesson's methods, and what each one costs",
       default: false,
       display: true,
     },
@@ -237,13 +276,32 @@ defineWidget({
       type: "segmented",
       style: "grid",
       label: "Method",
+      /* Four entries tile a plain 2 x 2, so nothing spans. It was five with the
+         two ComBats, and `None` had to span to make three fit. */
       options: METHOD_KEYS.map((k) => ({
         value: k, label: METHODS[k].label, detail: METHOD_DETAIL[k],
-        ...(k === "none" ? { span: true } : {}),
       })),
       default: "none",
       display: true,
       when: { param: "correcting" },
+    },
+
+    /* ComBat's `mod`, as a sub-control rather than a second entry in the picker
+       (Kenneth): two rows both labelled ComBat is a bad picker, and the copy
+       table lists every method anyway, so nothing is hidden. Default is cell
+       11's "optional but recommended"; cell 12 runs the other one. */
+    mod: {
+      type: "segmented",
+      label: "ComBat model",
+      options: [
+        { value: "condition", label: "mod = ~condition",
+          detail: "cell 11's “optional but recommended” — the condition is kept in the model, so standardising does not remove it" },
+        { value: "null", label: "mod = NULL",
+          detail: "what cell 12 actually runs — the condition is left out, and on a confounded design it goes with the batch" },
+      ],
+      default: "condition",
+      display: true,
+      when: { all: [{ param: "correcting" }, { param: "method", equals: "combat" }] },
     },
 
     /* RUV's assumption, made into a control. Measured at overlap 0.5, truth
@@ -260,11 +318,15 @@ defineWidget({
     },
   },
 
+  /* THE TRUTH IS A PARAMETER NOW, so every place that names it reads the same
+     one: this label, the readout's note, and the forest's dashed rule. It was
+     the literal 0.80 in all three, which is exactly how a figure comes to
+     disagree with its own axis. */
   legend: ({ params }) => (params.correcting
     ? [
       { token: "group-a", label: "Healthy", mark: "dot" },
       { token: "group-b", label: "Disease", mark: "dot" },
-      { token: "reference", label: "The true effect, 0.80", mark: "dash" },
+      { token: "reference", label: `The true effect, ${effectOf(params.effect).toFixed(2)}`, mark: "dash" },
     ]
     : [
       { token: "group-a", label: "Healthy", mark: "dot" },
@@ -272,12 +334,14 @@ defineWidget({
     ]),
 
   compute: ({ params }) => {
+    const truth = effectOf(params.effect);
     const sim = simulate({
       seed: params.seed,
       overlap: overlapOf(params.overlap),
       batchShift: shiftOf(params.shift),
+      effect: truth,
     });
-    const opts = { controls: params.controls };
+    const opts = { controls: params.controls, mod: params.mod };
 
     /* Ground truth, the observed data, and what every method leaves behind —
        all on ONE basis, the observed data's, so a change moves the points and
@@ -309,7 +373,7 @@ defineWidget({
       found[k] = v ? alignment(v, isB2) : NaN;
     }
 
-    return { sim, points, share, frame, est, nulls, found, design: design(sim) };
+    return { sim, points, share, frame, est, nulls, found, truth, design: design(sim) };
   },
 
   animation: {
@@ -445,7 +509,7 @@ defineWidget({
         value: blank ? "—" : zeroed(r.beta),
         note: blank
           ? "not estimable: batch and condition are the same variable"
-          : `95% interval ${zeroed(r.lo)} to ${zeroed(r.hi)}, against a truth of ${TRUE_EFFECT.toFixed(2)}`,
+          : `95% interval ${zeroed(r.lo)} to ${zeroed(r.hi)}, against a truth of ${state.truth.toFixed(2)}`,
       },
       {
         label: "Genes with no effect",
@@ -670,15 +734,18 @@ function drawForest(ctx, colors, x, y, w, state, params) {
   /* A FIXED DOMAIN, for the reason 2.5 records: an axis refitted per state puts
      0.79 at a balanced design and 2.23 at a confounded one in the same place.
 
-     -1 TO 6 DOES NOT COVER EVERYTHING, and that is deliberate. Measured over
-     every state at seeds 1..200 step 17 the interval ends reach -9.16 and
-     13.96, both in the same corner: complete confounding at batch shift 4,
-     where RUV's W is collinear with the condition and the fit comes apart. A
-     domain wide enough for that would squeeze the whole readable range into a
-     sliver. So the ends are CLIPPED and marked with a caret, which is what a
-     forest plot does. */
-  const LO = -1;
-  const HI = 6;
+     -2 TO 8 DOES NOT COVER EVERYTHING, and that is deliberate. Measured over
+     6,125 states — every confounding, batch shift, disease effect, method, mod
+     setting and control set at seeds 1..200 step 29 — the interval ends reach
+     -12.62 and 15.87, both at complete confounding with the batch at 4 and the
+     effect at 3, where RUV's factor is collinear with the condition and the fit
+     comes apart. A domain wide enough for that squeezes the readable range into
+     a sliver, so the ends are CLIPPED with a caret, which is what a forest plot
+     does. The domain was -1 to 6 before the effect became a parameter; at that
+     width 15.1% of states needed a caret against 7.2% here, and widening
+     further buys almost nothing (7.0% at -2 to 10). */
+  const LO = -2;
+  const HI = 8;
   const clamp = (v) => Math.min(HI, Math.max(LO, v));
   const SX = (v) => x0 + ((clamp(v) - LO) / (HI - LO)) * (x1 - x0);
 
@@ -706,8 +773,8 @@ function drawForest(ctx, colors, x, y, w, state, params) {
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  ctx.moveTo(SX(TRUE_EFFECT), y + 8);
-  ctx.lineTo(SX(TRUE_EFFECT), axis);
+  ctx.moveTo(SX(state.truth), y + 8);
+  ctx.lineTo(SX(state.truth), axis);
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -766,7 +833,9 @@ function drawForest(ctx, colors, x, y, w, state, params) {
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  for (let v = LO; v <= HI; v += 1) ctx.fillText(String(v), SX(v), axis + 5);
+  /* every second unit: eleven labels on a ten-unit axis crowd at the narrow
+     column, and the axis is read for position rather than for values. */
+  for (let v = LO; v <= HI; v += 2) ctx.fillText(String(v), SX(v), axis + 5);
   ctx.restore();
 }
 
@@ -801,7 +870,7 @@ function renderCard(params, shift) {
     cardKey = null;
   }
 
-  const key = `${params.method}|${shift}`;
+  const key = `${params.method}|${params.mod}|${shift}`;
   if (key === cardKey) return;
   cardKey = key;
 
@@ -825,10 +894,11 @@ function renderCard(params, shift) {
   const stepBody = MATHML && step.math
     ? step.math
     : `<span style="font-size:var(--fs-xs);color:var(--ink-3)">${step.plain}</span>`;
+  const stepNote = step.noteFor ? step.noteFor(params.mod) : (step.note || "");
 
   cardHost.innerHTML =
     row("The model", MATHML ? MODEL.math : `<span style="font-size:var(--fs-xs)">${MODEL.plain}</span>`,
       `i = 1…${GENES} genes, j = 1…${SAMPLES} samples`)
     + KEY
-    + row("The method", stepBody, step.note || "");
+    + row("The method", stepBody, stepNote);
 }

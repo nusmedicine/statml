@@ -4544,6 +4544,94 @@ nothing says so — and whether RUV's cleaned picture disagreeing with its own
 estimate (condition separation 1.23 against a fit of 0.94) needs saying on the
 figure rather than only in the header comment.
 
+#### ROUND 9 — one ComBat, and a dial for the signal
+
+Kenneth, on the round-8 build: *"why is there combat + mod? maybe by default we
+include it? if not students will see two options"* and *"why is the separation on
+PCA so poor after correction? did you mention using shared scale? or do we need
+an effect size slider?"* — with a screenshot circling the RUV panel at strong
+confounding and batch shift 4.
+
+**Both were answered by measurement**, run as four parallel probes with an
+adversarial verifier on each. Two of the four probe conclusions were refuted by
+their verifiers while the arithmetic held — recorded below, because the
+refutations changed the answer.
+
+**1 · THE TWO COMBATS BECOME ONE ENTRY AND A SUB-CONTROL.** They agree where it
+would not matter and part where it does. Estimated effect, truth 0.80, 5 seeds:
+
+| confounding | mod = NULL | mod = ~condition | difference |
+|---|---|---|---|
+| balanced | 0.819 | 0.825 | 0.01 |
+| slight | 0.791 | 0.933 | 0.14 |
+| half | 0.633 | 1.131 | 0.50 |
+| strong | 0.495 | 1.599 | 1.10 |
+| complete | 0.122 | 2.771 | **2.65** |
+
+They fail in opposite directions — one decays toward zero, the other inflates
+past the true effect and eventually past the injected batch shift itself (4.77
+at shift 4). **But the copy table lists every method as its own row regardless
+of the picker**, so collapsing the entries costs no numeric comparison, only the
+side-by-side scatter, which is one click either way. Four entries also tile a
+clean 2 × 2 where five needed `None` to span. Labels measured against the
+documented 111px cell: `mod = ~condition` 84px, `mod = NULL` 57px — both fit.
+
+**2 · THE POOR POST-CORRECTION SEPARATION IS THREE THINGS.**
+
+- **The frame is sized by the uncorrected cloud.** `none` and `sva` occupy
+  **86.2% of the shared frame in every single cell** — they are the only states
+  still carrying the raw batch shift, so every corrected panel is drawn on an
+  axis built for uncorrected data. At shift 4 the corrected clouds get 16–19%.
+- **The circled state is borderline, and the probe's flat verdict was refuted.**
+  At overlap 0.5, shift 4, RUV the separation is **1.88 pooled sd** — solid, all
+  five seeds between 1.68 and 2.11 — but only **12.9px** between group centres
+  in a 227px panel. The verifier caught that the probe applied its 15px
+  legibility floor at the narrow column only: at 345px the same state is
+  **19.6px** and reads. So it is framing, at one of the two column widths.
+- **Some of it is real.** At overlap 0.75, shift 4, ComBat and RUV stay under
+  15px even at the wide column (14.5, 14.9) because their actual separation has
+  fallen to 1.33 and 1.30. Correcting a confounded design genuinely removes
+  condition structure from the picture, and the figure should say so.
+
+**3 · THE FRAME POLICY STAYS, and the case for changing it was overstated.** The
+probe recommending it reported the shared frame as 64% empty at shift 4; a
+pixel-accurate recount by the verifier — rasterising at the real 227px geometry
+with the real 3.4px dot radius — gives **23% blank at shift 4 and 13.2% at
+shift 2**, of which about 13.8 points is the 8% padding *every* policy adds. The
+Policy-A-attributable waste is about **9%**, not 64%. `none`'s cloud fills the
+outer region; it is not dead space. Not worth the fixed-frame comparison.
+
+**4 · SO THE DISEASE EFFECT BECOMES A DIAL** (Kenneth's own suggestion, and the
+measurement backs it). **Legibility tracks the RATIO batchShift/effect, not
+either dial alone**: effect 1.5 with shift 2 puts the condition groups 41.8px
+apart in a 227px panel, and effect 3.0 with shift 4 puts them 42.0px apart — the
+same ratio, the same pixels to within a fifth of one. The notebook's 0.8 against
+a shift of 4 is a ratio of 5, which is 13.4px; a ratio of 2 is 30.1px. The
+ladder is `none / 0.8 / 1.5 / 2.0 / 3.0`, with 0 kept because a study with no
+biology in it is a failing case worth having (2.6): anything a method reports
+there is an artefact.
+
+**THE TRUTH IS A PARAMETER NOW, and it was written literally in three places** —
+the legend's "The true effect, 0.80", the readout's note and the forest's dashed
+rule. All three read `state.truth`. That was found before writing any code, by
+grepping for the constant; it is the same defect as two copies of a formula.
+
+**THE FOREST'S DOMAIN MOVED, measured over 6,125 states** — every confounding,
+batch shift, disease effect, method, `mod` setting and control set at seeds
+1–200 step 29. The ends reach −12.62 and 15.87, both at complete confounding
+with the batch at 4 and the effect at 3. At the old −1 to 6, **15.1%** of states
+needed a caret; at **−2 to 8** it is 7.2%, and widening further buys almost
+nothing (7.0% at −2 to 10). Ticks every 2 units, because eleven labels crowd the
+narrow column. One probe called the overflow a defect needing a wider domain;
+its verifier refuted that — the caret is the documented mechanism and it works.
+
+Verified: **360 states at 534px and 84 at 770px** — confounding × batch shift ×
+disease effect × (gate shut + 4 methods + the `mod` variant + 2 further control
+sets) — for collisions, crowding, off-canvas runs, NaN, `-0`, an unfinished draw
+and uncaught errors. None, over 196 distinct strings. Card reserve **13.8em**
+(natural 124–146px), jog 0. `OPEN_H` back to 486 with the forest at four rows.
+`npm run check` 10/10. Not pushed.
+
 ### Slot 4 · `hierarchical-clustering` — the merge sequence is the animation
 
 The claim: **a dendrogram is not a finding.** Every dataset yields one, including

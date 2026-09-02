@@ -1,5 +1,6 @@
 /* ============================================================================
-   The lesson's five methods, measured on the shipping engine.
+   The lesson's methods, measured on the shipping engine: four in the picker,
+   five settings once ComBat's `mod` sub-control is counted.
 
        node widgets/_lab/batch-methods.mjs
 
@@ -21,18 +22,27 @@ const pad = (s, n) => String(s).padEnd(n);
 const rpad = (s, n) => String(s).padStart(n);
 const OV = [0, 0.5, 0.75, 1];
 const SEEDS = [1, 2, 3, 4, 5];
+/* Four methods, five settings: ComBat's `mod` is a sub-control rather than a
+   second entry, so the tables carry it as an extra column. */
 const KEYS = Object.keys(METHODS);
+const COLS = [
+  ["none", {}, "None"],
+  ["combat", { mod: "null" }, "ComBat NULL"],
+  ["combat", { mod: "condition" }, "ComBat ~cond"],
+  ["sva", {}, "SVA"],
+  ["ruv", {}, "RUV"],
+];
 
 /* ==== 1 · four different failures ========================================= */
 console.log();
 console.log("=== 1 · THE NOTEBOOK'S STAGE: +2 on EVERY gene, both batches equal spread ===");
 console.log(`estimated disease effect, truth ${TRUE_EFFECT}, mean of ${SEEDS.length} seeds`);
 console.log();
-console.log([pad("confounding", 12), ...KEYS.map((k) => rpad(METHODS[k].label, 12))].join(" | "));
-console.log("-".repeat(12 + KEYS.length * 15));
+console.log([pad("confounding", 12), ...COLS.map(([, , n]) => rpad(n, 12))].join(" | "));
+console.log("-".repeat(12 + COLS.length * 15));
 for (const overlap of OV) {
-  const row = KEYS.map((k) => {
-    const v = SEEDS.map((seed) => estimateWithSE(simulate({ seed, overlap }), k).beta)
+  const row = COLS.map(([k, opts]) => {
+    const v = SEEDS.map((seed) => estimateWithSE(simulate({ seed, overlap }), k, opts).beta)
       .filter(Number.isFinite);
     return rpad(v.length ? f(mean(v)) : "n/a", 12);
   });
@@ -49,11 +59,11 @@ console.log();
 console.log("=== 2 · SVA CANNOT MOVE THE ESTIMATE. What it moves is the interval ===");
 console.log("mean standard error of the per-gene condition coefficient");
 console.log();
-console.log([pad("confounding", 12), ...KEYS.map((k) => rpad(METHODS[k].label, 12))].join(" | "));
-console.log("-".repeat(12 + KEYS.length * 15));
+console.log([pad("confounding", 12), ...COLS.map(([, , n]) => rpad(n, 12))].join(" | "));
+console.log("-".repeat(12 + COLS.length * 15));
 for (const overlap of OV) {
-  const row = KEYS.map((k) => {
-    const v = SEEDS.map((seed) => estimateWithSE(simulate({ seed, overlap }), k).se)
+  const row = COLS.map(([k, opts]) => {
+    const v = SEEDS.map((seed) => estimateWithSE(simulate({ seed, overlap }), k, opts).se)
       .filter(Number.isFinite);
     return rpad(v.length ? f(mean(v)) : "n/a", 12);
   });
@@ -106,13 +116,13 @@ console.log();
 {
   const sim = simulate({ seed: 1, overlap: 0.75 });
   const mats = { truth: withoutBatch(sim) };
-  for (const k of KEYS) mats[k] = applyMethod(sim, k);
+  for (const [k, opts, name] of COLS) mats[name] = applyMethod(sim, k, opts);
   const { points } = projectOnto(sim, mats);
   console.log([pad("panel", 14), rpad("by batch", 10), rpad("by condition", 14)].join(" | "));
   console.log("-".repeat(42));
-  for (const k of ["truth", ...KEYS]) {
+  for (const k of ["truth", ...COLS.map(([, , n]) => n)]) {
     const xs = points[k].map((p) => p[0]);
-    console.log([pad(k === "truth" ? "ground truth" : METHODS[k].label, 14),
+    console.log([pad(k === "truth" ? "ground truth" : k, 14),
       rpad(f(separation(xs, sim.batch.map((b) => b === 1)), 2), 10),
       rpad(f(separation(xs, sim.disease), 2), 14)].join(" | "));
   }

@@ -163,15 +163,19 @@ export const METHODS = {
 
   combat: {
     label: "ComBat",
-    /* Cell 12 exactly: `ComBat(dat, batch, mod = NULL)`. */
-    data: (sim) => combat(sim, { keepCondition: false }),
-    covar: null,
-  },
+    /* ONE ENTRY, TWO SETTINGS, and `mod` is a sub-control rather than a second
+       method (Kenneth, 2026-09-02). `mod = ~condition` is cell 11's "optional
+       but recommended" and the default here; `mod = NULL` is what cell 12
+       actually runs.
 
-  combatMod: {
-    label: "ComBat + mod",
-    /* Cell 11's "optional but recommended", which cell 12 does not pass. */
-    data: (sim) => combat(sim, { keepCondition: true }),
+       They agree where it would not matter and part where it does. Estimated
+       effect, truth 0.80, 5 seeds: 0.819 against 0.825 at a balanced design and
+       0.791 against 0.933 at slight confounding — a difference of 0.01 and 0.14
+       — then 0.633 / 1.131 at half, 0.495 / 1.599 at strong, and 0.122 / 2.771
+       at complete. They do not merely differ, they fail in OPPOSITE directions:
+       one decays toward zero, deleting the biology, and the other inflates past
+       the true effect and eventually past the batch shift itself. */
+    data: (sim, opts) => combat(sim, { keepCondition: (opts?.mod ?? "condition") !== "null" }),
     covar: null,
   },
 

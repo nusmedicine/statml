@@ -65,7 +65,40 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: widget 40 `batch-effect` IS ONE GATED WIDGET — awaiting review
+## NEXT: widget 40 `batch-effect` — ROUND 9, awaiting review
+
+**ROUND 9 answered two questions with measurement** (four parallel probes, each
+with an adversarial verifier; two probe conclusions were refuted while their
+arithmetic held). Catalogue § Slot 3 § ROUND 9.
+
+- **ComBat is ONE picker entry with a `mod` sub-control now**, defaulting to
+  cell 11's `~condition`. The two variants agree at 0.01 and 0.14 up to slight
+  confounding and part from `half` on (0.50 / 1.10 / 2.65), failing in OPPOSITE
+  directions — but the copy table lists every method regardless of the picker,
+  so nothing is hidden, and four entries tile a clean 2 x 2 where five needed
+  `None` to span.
+- **THE DISEASE EFFECT IS A DIAL**, ladder `none / 0.8 / 1.5 / 2.0 / 3.0`.
+  Legibility tracks the RATIO batchShift/effect and not either alone: effect 1.5
+  with shift 2 gives 41.8px between the condition groups in a 227px panel, and
+  effect 3.0 with shift 4 gives 42.0px. The notebook's 0.8 against shift 4 is a
+  ratio of 5 and 13.4px; a ratio of 2 is 30.1px.
+- **THE TRUTH IS A PARAMETER**, and it was the literal 0.80 in three places —
+  the legend, the readout note and the forest's dashed rule. Found by grepping
+  for the constant BEFORE writing the slider.
+- **THE FOREST'S DOMAIN IS -2 TO 8**, measured over 6,125 states: the old -1 to
+  6 needed a caret in 15.1% of them, this needs one in 7.2%, and -2 to 10 buys
+  nothing (7.0%). Ticks every 2.
+- **THE FRAME POLICY STAYS.** `none`/`sva` occupy 86.2% of the shared frame in
+  every cell, but a pixel-accurate recount says the frame is only 23% blank at
+  shift 4 (13.2% at shift 2), and ~14 points of that is the padding every policy
+  adds — about 9% attributable to the shared frame. Not worth losing the fixed
+  comparison for.
+- **AND SOME OF THE POOR SEPARATION IS REAL**: at overlap 0.75 shift 4, ComBat
+  and RUV stay under 15px even at the wide column because their actual
+  separation has fallen to 1.33 and 1.30. Correcting a confounded design removes
+  condition structure from the picture. That is the lesson, not a defect.
+
+## The gated shape, from round 8
 
 **THE TWO-PAGE SPLIT IS UNDONE** (Kenneth, 2026-09-02). `batch-correction` is
 deleted and everything lives in `batch-effect` behind a gate. Catalogue § Slot 3
