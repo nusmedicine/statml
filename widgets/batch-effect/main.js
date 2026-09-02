@@ -38,10 +38,11 @@
    exactly.
 
    ---------------------------------------------------------------------------
-   ONE PANEL, TWO SPLITS. Colour is the condition and fill is the batch — one
-   circle, filled or open. Batch never needs a colour role of its own, and a
-   filled circle beside an open one reads as one thing in two states where a
-   square beside a circle read as two kinds of thing.
+   ONE PANEL, ONE SPLIT AT A TIME. The reader colours by condition or by batch,
+   and the legend follows. Both at once — hue for one, fill or shape for the
+   other — put two questions on one mark; "do the samples separate by batch?" is
+   a question you ask on its own, and the lesson's own figure asks it that way,
+   drawing the same points twice.
 
    THE PROJECTION IS FIXED, and that follows from the ease rather than from
    taste; `projectAll` in model.js has the measurements. Refitting the PCA per
@@ -62,6 +63,8 @@ import {
 
 const FIG_H = 452;
 const EASE_MS = 600;
+/* The estimate strip's fixed upper end — see `drawStrip`. */
+const STRIP_MAX = 5;
 
 /* The design ladder. A magnitude — how far batch and condition line up — with
    the notebook's own balanced design at the left end. The right end is the
@@ -127,6 +130,21 @@ defineWidget({
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
+    /* One split coloured at a time, chosen. Colouring both at once — hue for
+       the condition, fill for the batch — put two questions on one mark and
+       neither was quick to read; "do the samples separate by batch?" is a
+       question you ask on its own. Display-only. */
+    colourBy: {
+      type: "segmented",
+      label: "Colour the samples by",
+      options: [
+        { value: "condition", label: "Condition", detail: "healthy against disease — the comparison the study is for" },
+        { value: "batch", label: "Batch", detail: "which run each sample was processed in" },
+      ],
+      default: "batch",
+      display: true,
+    },
+
     corr: { type: "section", label: "Correction" },
 
     /* Display, not data: all three corrections are computed together and the
@@ -154,11 +172,20 @@ defineWidget({
     },
   },
 
-  legend: [
-    { token: "group-a", label: "Healthy", mark: "dot" },
-    { token: "group-b", label: "Disease", mark: "dot" },
-    { token: "reference", label: "The true effect, 0.80", mark: "line" },
-  ],
+  /* The legend names what the colours ARE right now. A generic pair — "group
+     one", "group two" — would survive both settings and tell the reader
+     nothing, so it goes through the function door instead. */
+  legend: ({ params }) => (params.colourBy === "batch"
+    ? [
+      { token: "group-a", label: "Batch 1", mark: "dot" },
+      { token: "group-b", label: "Batch 2", mark: "dot" },
+      { token: "reference", label: "The true effect, 0.80", mark: "line" },
+    ]
+    : [
+      { token: "group-a", label: "Healthy", mark: "dot" },
+      { token: "group-b", label: "Disease", mark: "dot" },
+      { token: "reference", label: "The true effect, 0.80", mark: "line" },
+    ]),
 
   compute: ({ params }) => {
     const sim = simulate({
@@ -214,6 +241,11 @@ defineWidget({
   draw: ({ ctx, colors, w, h, params, state, anim }) => {
     const pts = blend(anim, state);
     const { design: d, share } = state;
+    /* Declared here, not beside the loop that draws the points: `plot.note`
+       reads it earlier, and a const is in its temporal dead zone until its own
+       line runs. Second time in this collection — see `SHORT` in
+       widgets/normalization/main.js. */
+    const byBatch = params.colourBy === "batch";
 
     const top = 26;
     const scatterBottom = h - 108;
@@ -243,27 +275,16 @@ defineWidget({
       label: `PC1 of the uncorrected data · ${(share[0] * 100).toFixed(0)}% of its variance`,
     });
     plot.caption("Samples");
-    plot.note("filled = batch 1, open = batch 2");
+    plot.note(byBatch ? "coloured by batch" : "coloured by condition");
 
-    /* Colour is the condition, FILL is the batch: one circle either filled or
-       open. Two categorical splits on one mark, and a filled circle beside an
-       open one of the same size and hue reads as the same thing in two states,
-       where a square beside a circle read as two kinds of thing. */
+    /* One split, one encoding. The reader picks which. */
     ctx.save();
-    ctx.lineWidth = 1.6;
     for (let j = 0; j < pts.length; j += 1) {
-      const cx = plot.sx(pts[j][0]);
-      const cy = plot.sy(pts[j][1]);
-      const hue = state.sim.disease[j] ? colors.groupB : colors.groupA;
+      const second = byBatch ? state.sim.batch[j] === 1 : state.sim.disease[j];
+      ctx.fillStyle = second ? colors.groupB : colors.groupA;
       ctx.beginPath();
-      ctx.arc(cx, cy, 3.8, 0, Math.PI * 2);
-      if (state.sim.batch[j] === 0) {
-        ctx.fillStyle = hue;
-        ctx.fill();
-      } else {
-        ctx.strokeStyle = hue;
-        ctx.stroke();
-      }
+      ctx.arc(plot.sx(pts[j][0]), plot.sy(pts[j][1]), 3.8, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
 
@@ -395,9 +416,13 @@ function drawStrip(ctx, colors, x, y, w, state, params) {
   const pad = 46;
   const x0 = x + pad;
   const x1 = x + w - 12;
-  const vals = Object.values(state.effect);
-  const hi = Math.max(TRUE_EFFECT * 1.6, ...vals) * 1.05;
-  const SX = (v) => x0 + (v / hi) * (x1 - x0);
+  /* A FIXED DOMAIN. It was `max(...vals) * 1.05`, which rescaled the axis on
+     every state — and then 0.79 at a balanced design and 2.23 at a confounded
+     one sat at the same place on screen, which is exactly the fault 2.5
+     records. Measured over every reachable state at five seeds, the estimate
+     runs -0.000 to 4.826 (overlap 1, batch shift 4, uncorrected), so 5 covers
+     it with the truth at a sixth of the way along. */
+  const SX = (v) => x0 + (v / STRIP_MAX) * (x1 - x0);
 
   ctx.save();
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
@@ -418,10 +443,7 @@ function drawStrip(ctx, colors, x, y, w, state, params) {
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  for (let i = 0; i <= 4; i += 1) {
-    const v = (hi * i) / 4;
-    ctx.fillText(v.toFixed(1), SX(v), axis + 5);
-  }
+  for (let i = 0; i <= 5; i += 1) ctx.fillText(String(i), SX(i), axis + 5);
 
   /* the truth, which is the thing every mark is judged against */
   ctx.strokeStyle = colors.reference;

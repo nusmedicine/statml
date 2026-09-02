@@ -160,7 +160,12 @@ node widgets/_lab/norm-measure.mjs   # every number in the catalogue section
   panel 2, and the collision sweep PASSED because the two lines it would have
   collided with were never painted.** Any sweep must assert that the LAST thing
   `draw` paints is present in every state, or it is checking a partial figure.
-  (d) **An ease running in the background leaks frames into the next state's
+  (d) **A `const` in its temporal dead zone has now done this TWICE** — `SHORT`
+  in `normalization`, `byBatch` in `batch-effect` — and the second time the
+  sweep passed, because its terminator was the x-axis label and `axisX` paints
+  that BEFORE the caption and note. **A sweep's terminator must be the last
+  thing `draw` paints**, not merely something late in it.
+  (e) **An ease running in the background leaks frames into the next state's
   capture**, and every string then collides with ITSELF — 80 findings, all
   spurious. (e) **Split the buffer on the LAST thing a paint draws, never the
   first.** Slicing on panel 1's caption worked until the walkthrough started

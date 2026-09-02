@@ -4052,6 +4052,32 @@ condition, fill is the batch. A filled circle beside an open one of the same
 size and hue reads as one thing in two states, where a square beside a circle
 read as two kinds of thing.
 
+#### ROUND 3 — one split at a time, and two things the change exposed
+
+**Colour by condition OR by batch, chosen** (Kenneth). Hue for one split and
+fill for the other put two questions on one mark, and *"do the samples separate
+by batch?"* is a question you ask on its own — which is why the lesson's own
+figure draws the same points twice. The legend goes through the function door so
+it names what the colours mean at that setting; a generic pair would survive both
+and say nothing.
+
+**Two defects came out of it, and both are repeats:**
+
+- **A `const` in its temporal dead zone, for the second time in two widgets.**
+  `byBatch` was declared beside the loop that draws the points and read earlier
+  by `plot.note`, so every render threw and the scatter came up empty. The first
+  was `SHORT` in `normalization`. **And the sweep would have passed**: its
+  terminator was the x-axis label, which `axisX` paints *before* the caption and
+  note — so a throw after it left a partial figure that still had the string the
+  sweep looked for. A terminator has to be the LAST thing `draw` paints; it is
+  now the estimate strip's title, which comes after the whole scatter.
+- **The strip's axis rescaled per state.** It was `max(estimates) * 1.05`, so
+  0.79 at a balanced design and 2.23 at a confounded one sat at the same place
+  on screen — 2.5's own fault, one panel over. Measured across every reachable
+  state at five seeds the estimate runs −0.000 to 4.826 (overlap 1, batch shift
+  4, uncorrected), so the domain is fixed at 0–5 with the truth a sixth of the
+  way along.
+
 **Still open**: the title, the subtitle, whether the seed earns its place, and
 how to show the methods that do not need the batch labels at all — ComBat and
 SVA without spike-ins, RUV with control genes. **Not baselined**; it declares an
