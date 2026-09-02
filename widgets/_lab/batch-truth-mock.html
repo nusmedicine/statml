@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · batch-effect page 1 — ground truth against observed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 100ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3);
+               margin: 0 0 var(--sp-2); max-width: 560px; min-height: 28px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3);
+         margin: 4px 0 12px; white-space: pre-wrap; max-width: 560px; }
+  .bar { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+         border: 1px dashed var(--grid); background: var(--surface-2);
+         padding: var(--sp-3); margin: 0 0 var(--sp-4); position: sticky; top: 0; z-index: 2; }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-3); margin-right: 6px; }
+  .bar button { font: inherit; font-size: var(--fs-xs); background: var(--surface-1);
+                color: var(--ink-2); border: 1px solid var(--grid); padding: 4px 10px; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1);
+                border-color: var(--ink-3); }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px;
+            margin: var(--sp-2) 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Page 1 · <code>batch-effect</code> — ground truth against observed</h1>
+  <p class="note">
+    New scope, Kenneth 2026-09-02: <b>no correction on this page, and no modelling.</b>
+    A toggle between the data as it would have been and the data you actually got.
+    The corrections, the formula card and the forest plot move to a second page.
+    Everything here is drawn from <code>widgets/batch-effect/model.js</code> — the
+    notebook's cell 3 plus the confounding dial — and every number in a caption is
+    computed on this page.
+  </p>
+  <p class="note">
+    <b>Settled already:</b> descriptive numbers only (PC1's share, and how far each split
+    is separated along it), and the 2 × 2 design table stays on the figure so the balance
+    is visible. <b>Open:</b> what ground truth means, and how the panels are arranged.
+  </p>
+
+  <div class="bar">
+    <span><label>Confounding</label><span id="ov"></span></span>
+    <span><label>Batch effect</label><span id="sh"></span></span>
+    <span><label>Seed</label><span id="sd"></span></span>
+    <span><label>Frame</label><span id="fr"></span></span>
+  </div>
+  <p class="note" style="margin-top:calc(-1 * var(--sp-2))">
+    <b>The frame is the trade, and it is worth flipping.</b> On <i>one shared</i> frame the
+    ground-truth cloud fills only <b>28%</b> of the panel against the observed 86% — which
+    IS the measurement, the artefact is three times the spread of the biology — but the
+    condition splits inside a small blob. On a <i>per-state</i> frame each picture is
+    legible and the size of the batch effect stops being visible at all.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§0 · WHY "the noiseless biology" IS NOT ON THE TABLE</h2>
+  <p class="note">
+    One of the two candidate meanings of <i>ground truth</i> was the systematic part alone —
+    gene mean plus disease effect, no measurement noise. Measured, it is not a dataset:
+    every healthy sample becomes identical and so does every diseased one, so the PCA has
+    <b>2 distinct points</b>, PC1 carries 100% of the variance, PC2 exactly 0, and the
+    separation statistic divides by a pooled sd of zero.
+  </p>
+  <div id="why"></div>
+  <p class="note">
+    So <b>ground truth = the observed matrix minus the batch shift</b>, which is cell 7's
+    own object. It keeps every bit of biological noise; the only thing removed is the
+    thing the instrument added.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§1 · CANDIDATE A — two panels, and the toggle moves the points</h2>
+  <p class="note">
+    Panels stay <i>coloured by batch</i> and <i>coloured by condition</i>. The toggle swaps
+    the data underneath and the points <b>ease</b> between the two, so the motion is the
+    batch effect arriving. Both toggle states are drawn below; in the widget this is one
+    pair of panels.
+  </p>
+  <div class="row" id="candA"></div>
+  <p class="ask">
+    <b>ASK A.</b> The motion is the strongest reading of "the instrument pushed one group
+    away" — but only one state is on screen at a time, so truth and observed are never
+    adjacent. Is the ease worth that?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§2 · CANDIDATE B — a 2 × 2 of panels, nothing hidden</h2>
+  <p class="note">
+    Rows are ground truth and observed, columns are the two colourings. Same points, same
+    axes throughout. No toggle, no motion; the argument is read off the grid.
+  </p>
+  <div class="row" id="candB"></div>
+  <p class="ask">
+    <b>ASK B.</b> Four panels at the narrow column are 227 × 118 each. Legible projected, or
+    too small?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§3 · CANDIDATE C — truth beside observed, colouring behind a toggle</h2>
+  <p class="note">
+    Puts the comparison you care about most side by side, at the cost of hiding the
+    colouring — which is the control round 5 removed for exactly that reason.
+  </p>
+  <div class="row" id="candC"></div>
+  <p class="ask">
+    <b>ASK C.</b> This one makes truth-vs-observed adjacent and the two colourings
+    sequential. Round 5 went the other way. Which comparison deserves the adjacency?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§4 · THE NUMBERS THIS PAGE WOULD CARRY</h2>
+  <p class="note">
+    Descriptive only — a reading of the picture, not a fit. All three are computed on the
+    <b>fixed basis</b>: the loadings of the observed data, so that the toggle moves the
+    points rather than the axes.
+  </p>
+  <div id="tiles"></div>
+  <p class="ask">
+    <b>ASK D.</b> On candidates A and C these are three tiles that change with the toggle.
+    On B they have to be a small two-row table, because both states are on screen. Does
+    that settle it?
+  </p>
+</main>
+
+<script type="module">
+import {
+  simulate, correct, pca, loadings, project, separation, design,
+  GENES, SAMPLES, AFFECTED, TRUE_EFFECT,
+} from "../batch-effect/model.js";
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+for (const k of ["ink-1", "ink-2", "ink-3", "grid", "axis", "surface-1", "surface-2",
+  "c-group-a", "c-group-b", "c-reference", "c-highlight", "c-extreme"]) C[k] = css(`--${k}`);
+const MONO = css("--font-mono");
+const FONT = css("--font");
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+
+/* the rail, as three button rows */
+const STATE = { overlap: 0, shift: 2, seed: 1, frame: "shared" };
+const CHOICES = {
+  overlap: [["balanced", 0], ["slight", 0.25], ["half", 0.5], ["strong", 0.75], ["complete", 1]],
+  shift: [["none", 0], ["0.5", 0.5], ["1.0", 1], ["2.0", 2], ["4.0", 4]],
+  seed: [["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5]],
+  frame: [["one shared", "shared"], ["per state", "per"]],
+};
+for (const [key, host] of [["overlap", "ov"], ["shift", "sh"], ["seed", "sd"], ["frame", "fr"]]) {
+  const box = document.getElementById(host);
+  for (const [label, value] of CHOICES[key]) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(STATE[key] === value));
+    b.onclick = () => {
+      STATE[key] = value;
+      [...box.children].forEach((c) => c.setAttribute("aria-pressed", String(c === b)));
+      render();
+    };
+    box.appendChild(b);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The stage. Ground truth is the observed matrix minus the batch shift, and
+   both are projected onto ONE basis — the observed data's loadings — so a
+   toggle moves the points and never the axes. */
+function stage() {
+  const sim = simulate({ seed: STATE.seed, overlap: STATE.overlap, batchShift: STATE.shift });
+  const observedX = sim.X;
+  const truthX = correct(sim, "known");
+  const raw = pca(observedX);
+  const basis = loadings(observedX, raw.scores);
+  const pts = { truth: project(truthX, basis), observed: project(observedX, basis) };
+  const pad = (a) => { const lo = Math.min(...a); const hi = Math.max(...a);
+    const m = (hi - lo) * 0.08 || 1; return [lo - m, hi + m]; };
+  const frameOf = (list) => ({ x: pad(list.map((p) => p[0])), y: pad(list.map((p) => p[1])) });
+  /* One frame for both states, or one each — the trade the top bar flips. */
+  const shared = frameOf([...pts.truth, ...pts.observed]);
+  const frames = STATE.frame === "shared"
+    ? { truth: shared, observed: shared }
+    : { truth: frameOf(pts.truth), observed: frameOf(pts.observed) };
+  const fill = (key) => {
+    const xs = pts[key].map((p) => p[0]);
+    const [lo, hi] = shared.x;
+    return (Math.max(...xs) - Math.min(...xs)) / (hi - lo);
+  };
+  return { sim, pts, frames, fill, share: raw.share, d: design(sim) };
+}
+
+function mk(host, { title, sub, w, h, cap }) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || "&nbsp;"}</p>`;
+  const cv = document.createElement("canvas");
+  const dpr = devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  d.appendChild(cv);
+  const p = document.createElement("p");
+  p.className = "cap";
+  p.textContent = cap || "";
+  d.appendChild(p);
+  host.appendChild(d);
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+/* One scatter, drawn inside whichever frame it was handed. */
+function panel(ctx, rect, pts, sim, { by, title, note, frame, ticks = true, r = 3.2 }) {
+  const { x, y, w, h } = rect;
+  const [ax0, ax1] = frame.x;
+  const [ay0, ay1] = frame.y;
+  const SX = (v) => x + ((v - ax0) / (ax1 - ax0)) * w;
+  const SY = (v) => y + h - ((v - ay0) / (ay1 - ay0)) * h;
+
+  ctx.save();
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (ticks) {
+    ctx.font = `9px ${MONO}`;
+    ctx.fillStyle = C["ink-3"];
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let i = 0; i <= 4; i += 1) {
+      const v = ax0 + ((ax1 - ax0) * i) / 4;
+      ctx.fillText(Math.abs(v) < 0.5 ? "0" : v.toFixed(0), SX(v), y + h + 4);
+    }
+  }
+  if (title) {
+    ctx.font = `${css("--fs-xs")} ${FONT}`;
+    ctx.fillStyle = C["ink-2"];
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(title, x, y - 5);
+  }
+  if (note) {
+    ctx.font = `9px ${MONO}`;
+    ctx.fillStyle = C["ink-3"];
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(note, x + w, y - 5);
+  }
+  for (let j = 0; j < pts.length; j += 1) {
+    const second = by === "batch" ? sim.batch[j] === 1 : sim.disease[j];
+    ctx.fillStyle = second ? C["c-group-b"] : C["c-group-a"];
+    ctx.beginPath();
+    ctx.arc(SX(pts[j][0]), SY(pts[j][1]), r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* The 2 x 2 design table, as it sits on the figure today. */
+function designTable(ctx, x, y, d, compact) {
+  const cw = compact ? 50 : 62;
+  const rh = compact ? 22 : 26;
+  const gx = x + (compact ? 48 : 58);
+  const gy = y + 22;
+  ctx.save();
+  ctx.font = `600 ${css("--fs-sm")} ${FONT}`;
+  ctx.fillStyle = C["ink-2"];
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("The design", x, y - 8);
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = C["ink-3"];
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Healthy", gx + cw * 0.5, gy - 10);
+  ctx.fillText("Disease", gx + cw * 1.5, gy - 10);
+  ctx.textAlign = "right";
+  ctx.fillText("Batch 1", gx - 8, gy + rh * 0.5);
+  ctx.fillText("Batch 2", gx - 8, gy + rh * 1.5);
+  ctx.textAlign = "center";
+  for (let r = 0; r < 2; r += 1) {
+    for (let c = 0; c < 2; c += 1) {
+      const v = d.cells[r][c];
+      ctx.strokeStyle = C.grid;
+      ctx.strokeRect(gx + cw * c + 0.5, gy + rh * r + 0.5, cw, rh);
+      ctx.fillStyle = v === 0 ? C["c-extreme"] : C["ink-1"];
+      ctx.font = `${v === 0 ? "600 " : ""}${css("--fs-sm")} ${FONT}`;
+      ctx.fillText(String(v), gx + cw * (c + 0.5), gy + rh * (r + 0.5));
+    }
+  }
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = d.estimable ? C["ink-3"] : C["c-extreme"];
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText(d.estimable ? "every batch holds both conditions" : "a batch with only one condition",
+    x, gy + rh * 2 + 10);
+  ctx.restore();
+}
+
+function xLabel(ctx, cx, y, share) {
+  ctx.save();
+  ctx.font = `${css("--fs-xs")} ${FONT}`;
+  ctx.fillStyle = C["ink-3"];
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText(`PC1 of the observed data · ${(share * 100).toFixed(0)}% of its variance`, cx, y);
+  ctx.restore();
+}
+
+const W = 534;          // the narrowest column the side layout reaches
+const WIDE = 770;
+
+function render() {
+  const { sim, pts, frames, fill, share, d } = stage();
+  for (const id of ["why", "candA", "candB", "candC", "tiles"]) {
+    document.getElementById(id).innerHTML = "";
+  }
+
+  /* --- §0 the degenerate alternative ------------------------------------ */
+  {
+    const noiseless = Array.from({ length: GENES }, (_, g) =>
+      Array.from({ length: SAMPLES }, (_, j) =>
+        (g < AFFECTED && sim.disease[j]) ? TRUE_EFFECT : 0));
+    const r = pca(noiseless);
+    const distinct = new Set(r.scores.map((s) => `${s[0].toFixed(2)},${s[1].toFixed(2)}`)).size;
+    const host = document.getElementById("why");
+    const t = document.createElement("table");
+    t.className = "m";
+    t.innerHTML = `<tr><th>candidate</th><th>PC1 share</th><th>PC2 share</th>
+      <th>distinct points</th><th>verdict</th></tr>`
+      + `<tr><td>observed</td><td>${f(share[0], 3)}</td><td>${f(share[1], 3)}</td>
+         <td>${SAMPLES} of ${SAMPLES}</td><td>the data you got</td></tr>`
+      + `<tr><td>minus the batch shift</td><td colspan="2">projected on the observed basis</td>
+         <td>${SAMPLES} of ${SAMPLES}</td><td class="hit">a dataset</td></tr>`
+      + `<tr><td>noiseless biology</td><td>${f(r.share[0], 3)}</td><td>${f(r.share[1], 3)}</td>
+         <td class="bad">${distinct} of ${SAMPLES}</td><td class="bad">a diagram, not data</td></tr>`;
+    host.appendChild(t);
+  }
+
+  /* --- §1 candidate A: two panels, one toggle state each ---------------- */
+  {
+    const host = document.getElementById("candA");
+    const H = 366;
+    for (const which of ["truth", "observed"]) {
+      const { ctx } = mk(host, {
+        title: which === "truth" ? "A · toggle at “Ground truth”" : "A · toggle at “Observed”",
+        sub: `534px column · two panels 227 x 196 · in the widget these are ONE pair, eased`,
+        w: W, h: H,
+        cap: `sep along PC1 — by batch ${f(separation(pts[which].map((p) => p[0]),
+          sim.batch.map((b) => b === 1)))} · by condition ${f(separation(pts[which].map((p) => p[0]),
+          sim.disease))}   ·   this cloud fills ${(fill(which) * 100).toFixed(0)}% of the shared frame`,
+      });
+      const pad = 34; const gap = 22; const right = 12;
+      const pw = (W - pad - gap - right) / 2;
+      panel(ctx, { x: pad, y: 24, w: pw, h: 170 }, pts[which], sim,
+        { by: "batch", title: "Coloured by batch", frame: frames[which] });
+      panel(ctx, { x: pad + pw + gap, y: 24, w: pw, h: 170 }, pts[which], sim,
+        { by: "condition", title: "Coloured by condition", frame: frames[which] });
+      xLabel(ctx, pad + (2 * pw + gap) / 2, 208, share[0]);
+      designTable(ctx, 0, 250, d, false);
+    }
+  }
+
+  /* --- §2 candidate B: the 2 x 2 grid ----------------------------------- */
+  {
+    const host = document.getElementById("candB");
+    for (const w of [W, WIDE]) {
+      const H = 440;
+      const { ctx } = mk(host, {
+        title: `B · 2 × 2 grid — ${w}px column`,
+        sub: `four panels, same axes, no toggle and no motion`,
+        w, h: H,
+        cap: `panels ${Math.round((w - 34 - 22 - 12) / 2)} x 112 each · truth fills `
+          + `${(fill("truth") * 100).toFixed(0)}% of the shared frame, observed `
+          + `${(fill("observed") * 100).toFixed(0)}%`,
+      });
+      const pad = 34; const gap = 22; const right = 12;
+      const pw = (w - pad - gap - right) / 2;
+      const ph = 112;
+      const rows = [["truth", "Ground truth"], ["observed", "Observed"]];
+      rows.forEach(([key, label], i) => {
+        const y = 26 + i * (ph + 34);
+        panel(ctx, { x: pad, y, w: pw, h: ph }, pts[key], sim,
+          { by: "batch", title: i === 0 ? "Coloured by batch" : "", note: label,
+            frame: frames[key], ticks: i === 1, r: 2.8 });
+        panel(ctx, { x: pad + pw + gap, y, w: pw, h: ph }, pts[key], sim,
+          { by: "condition", title: i === 0 ? "Coloured by condition" : "", note: label,
+            frame: frames[key], ticks: i === 1, r: 2.8 });
+      });
+      xLabel(ctx, pad + (2 * pw + gap) / 2, 26 + 2 * ph + 34 + 10, share[0]);
+      designTable(ctx, 0, 336, d, w === W);
+    }
+  }
+
+  /* --- §3 candidate C: truth beside observed ---------------------------- */
+  {
+    const host = document.getElementById("candC");
+    const H = 366;
+    for (const by of ["batch", "condition"]) {
+      const { ctx } = mk(host, {
+        title: `C · toggle at “Coloured by ${by}”`,
+        sub: `534px column · truth and observed adjacent, colouring behind a toggle`,
+        w: W, h: H,
+        cap: `the two panels differ by the batch shift alone`,
+      });
+      const pad = 34; const gap = 22; const right = 12;
+      const pw = (W - pad - gap - right) / 2;
+      panel(ctx, { x: pad, y: 24, w: pw, h: 170 }, pts.truth, sim,
+        { by, title: "Ground truth", frame: frames.truth });
+      panel(ctx, { x: pad + pw + gap, y: 24, w: pw, h: 170 }, pts.observed, sim,
+        { by, title: "Observed", frame: frames.observed });
+      xLabel(ctx, pad + (2 * pw + gap) / 2, 208, share[0]);
+      designTable(ctx, 0, 250, d, false);
+    }
+  }
+
+  /* --- §4 the descriptive numbers --------------------------------------- */
+  {
+    const host = document.getElementById("tiles");
+    const sep = (key, flags) => separation(pts[key].map((p) => p[0]), flags);
+    const byBatch = sim.batch.map((b) => b === 1);
+    const t = document.createElement("table");
+    t.className = "m";
+    t.innerHTML = `<tr><th></th><th>PC1 share of variance</th>
+        <th>separation by batch</th><th>separation by condition</th></tr>`
+      + `<tr><td>Ground truth</td><td>${(share[0] * 100).toFixed(0)}%</td>
+         <td>${f(sep("truth", byBatch))} sd</td>
+         <td class="hit">${f(sep("truth", sim.disease))} sd</td></tr>`
+      + `<tr><td>Observed</td><td>${(share[0] * 100).toFixed(0)}%</td>
+         <td class="hit">${f(sep("observed", byBatch))} sd</td>
+         <td>${f(sep("observed", sim.disease))} sd</td></tr>`;
+    host.appendChild(t);
+    const p = document.createElement("p");
+    p.className = "cap";
+    p.textContent = "PC1's share is a property of the observed data and does not move with "
+      + "the toggle; the two separations do, and they cross over.";
+    host.appendChild(p);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
