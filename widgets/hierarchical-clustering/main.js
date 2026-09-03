@@ -628,7 +628,11 @@ defineWidget({
             : `${straddling} of ${params.cutCols} boxes mix the two conditions` },
         { label: `Rows cut into ${params.cutRows}`,
           value: countsOf(rowLab).join(" / "),
-          note: params.truth
+          /* GUARDED AT SEPARATION 0, where every gene's truth is the same
+             `null` and so every box trivially holds one of it — the tile read
+             "8 of 8 boxes hold one real block" over a matrix with no blocks in
+             it, which is the exact false finding this widget is about. */
+          note: params.truth && params.separation !== "0"
             ? `${agreement(rowLab, state.heat.planted).pure} of ${params.cutRows}`
               + " boxes hold one real block"
             : "pheatmap draws each of these as a box" },
@@ -914,15 +918,35 @@ function drawWitness(ctx, colors, pts, objects, node, params, box, t = 1) {
    ------------------------------------------------------------------------ */
 function drawDendrogram(ctx, colors, box, {
   tree, shown, labels, k, orient = "up", flight = null, truth = null,
+  leafFrac = null,
 }) {
   const { x, y, w, h } = box;
   const { rank, nodeX } = dendroLayout(tree);
   const hmax = Math.max(...tree.height) * 1.08;
   const n = tree.n;
 
-  const place = orient === "up"
-    ? (r, hv) => [x + (w * (r + 0.5)) / n, y + h - (h * hv) / hmax]
-    : (r, hv) => [x + w - (w * hv) / hmax, y + (h * (r + 0.5)) / n];
+  /* WHERE LEAF `r` SITS along the leaf axis, as a fraction of it. Even spacing
+     unless a caller says otherwise — the heatmap's matrix is broken into
+     blocks by the cut, and its two trees have to follow those blocks or the
+     figure stops being column-aligned, which is the only reason the trees are
+     on it.
+
+     A node's rank is the mean of its children's, so this is called with
+     fractional ranks and interpolates. */
+  const even = (r) => (r + 0.5) / n;
+  const frac = leafFrac
+    ? (r) => {
+      const lo = clamp(Math.floor(r), 0, n - 1);
+      const hi = clamp(Math.ceil(r), 0, n - 1);
+      const a = leafFrac(lo);
+      return a + (leafFrac(hi) - a) * (r - Math.floor(r));
+    }
+    : even;
+
+  const at = orient === "up"
+    ? (f, hv) => [x + w * f, y + h - (h * hv) / hmax]
+    : (f, hv) => [x + w - (w * hv) / hmax, y + h * f];
+  const place = (r, hv) => at(frac(r), hv);
 
   const rOf = (c) => (c.a ? nodeX[c.id - 1] : rank.get(c.leaves[0]));
   const hOf = (c) => (c.a ? c.height : 0);
@@ -994,8 +1018,8 @@ function drawDendrogram(ctx, colors, box, {
      landing in a flat run of merges LOOKS like it landed in one — the argument
      stated in geometry rather than in a caption. */
   if (k !== null && k >= 2 && k <= n - 1) {
-    const [ax, ay] = place(-0.5, cutHeight(tree, k));
-    const [bx, by] = place(n - 0.5, cutHeight(tree, k));
+    const [ax, ay] = at(0, cutHeight(tree, k));
+    const [bx, by] = at(1, cutHeight(tree, k));
     ctx.save();
     ctx.setLineDash([4, 4]);
     ctx.strokeStyle = colors.highlight;
@@ -1038,18 +1062,15 @@ function drawDendrogram(ctx, colors, box, {
       ctx.fillRect(place(r, 0)[0] - tick / 2, y + h + 3, tick, tick);
     });
 
+    /* A SOLID BAR PER GROUP, not an outline. A 1.5px bracket in ink over a
+       dark ground was invisible — the enclosure has to be a MARK, and the gap
+       between two bars is doing as much work as the bars are. */
     const by = y + h + 6 + tick;
-    ctx.strokeStyle = colors.reference;
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = colors.reference;
     for (const [from, to] of runs(tree.order.map((leaf) => labels[leaf]))) {
       const a = place(from, 0)[0] - tick / 2;
       const b = place(to - 1, 0)[0] + tick / 2;
-      ctx.beginPath();
-      ctx.moveTo(a + 0.5, by + 4);
-      ctx.lineTo(a + 0.5, by + 0.5);
-      ctx.lineTo(b - 0.5, by + 0.5);
-      ctx.lineTo(b - 0.5, by + 4);
-      ctx.stroke();
+      ctx.fillRect(a + 1, by, b - a - 2, 5);
     }
   }
   ctx.restore();
@@ -1281,9 +1302,10 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
      so the cells stay the size they were. */
   const TREE_ROW = 42;             // the row tree's width
   const TREE_COL = 92;             // the column tree's height
-  const LABEL = 76;                // between the row tree and the matrix
+  const LABEL = 100;               // between the row tree and the matrix
   const ANNO = 11;                 // one annotation row
   const ANNO_GAP = 3;
+  const GAP = 7;                   // between two blocks of the cut
   /* THE ANNOTATION BAND HOLDS THE TRUTH AND NOTHING ELSE.
 
      It carried a `cutree_cols` strip from the cluster ramp, stacked directly
@@ -1299,16 +1321,45 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const annoY = y + TREE_COL + 5;
   const gy = annoY + (showTruth ? ANNO + 6 : 0);
   const gh = h - (gy - y);
-  const cellH = gh / heat.rows.length;
-  const cellW = gw / HEAT_SAMPLES;
+
+  /* THE CUT IS A GAP, which is what `cutree_rows` and `cutree_cols` do to a
+     `pheatmap` and what an outline over a dense matrix could not do here: at
+     1.5px in ink the column boxes were invisible against the cells, reported
+     as exactly that. Separation cannot be invisible. The boxes stay on top of
+     it, because a box is what carries the red on a block holding no
+     structured gene at all.
+
+     Everything on the matrix is offset by these, INCLUDING BOTH TREES — a
+     tree that kept even spacing while the matrix opened up would stop being
+     column-aligned with it, and being column-aligned is the whole reason the
+     trees are on the figure. */
+  const gapsAlong = (labels, order) => {
+    const off = [];
+    let total = 0;
+    let prev = null;
+    for (const o of order) {
+      if (prev !== null && labels[o] !== prev) total += GAP;
+      off.push(total);
+      prev = labels[o];
+    }
+    return { off, total };
+  };
+  const colGaps = gapsAlong(colLab, colOrder);
+  const rowGaps = gapsAlong(rowLab, rowOrder);
+  const cellW = (gw - colGaps.total) / HEAT_SAMPLES;
+  const cellH = (gh - rowGaps.total) / heat.rows.length;
+  const colX = (ci) => gx + ci * cellW + colGaps.off[ci];
+  const rowY = (ri) => gy + ri * cellH + rowGaps.off[ri];
 
   drawDendrogram(ctx, colors, { x, y: gy, w: TREE_ROW, h: gh },
     { tree: rowTree, shown: rowTree.height.length, labels: null,
-      k: params.cutRows, orient: "left" });
+      k: params.cutRows, orient: "left",
+      leafFrac: (r) => (rowY(r) - gy + cellH / 2) / gh });
 
   drawDendrogram(ctx, colors, { x: gx, y, w: gw, h: TREE_COL },
     { tree: colTree, shown: colTree.height.length, labels: null,
-      k: params.cutCols, orient: "up" });
+      k: params.cutCols, orient: "up",
+      leafFrac: (r) => (colX(r) - gx + cellW / 2) / gw });
 
   /* THE COLUMN ANNOTATION, the way `annotation_col` draws it: strips above the
      matrix, one cell per column, in the column tree's own order.
@@ -1323,7 +1374,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const annoRow = (yy, colourOf) => {
     colOrder.forEach((s, ci) => {
       ctx.fillStyle = colourOf(s);
-      ctx.fillRect(gx + ci * cellW, yy, cellW + 0.5, ANNO);
+      ctx.fillRect(colX(ci), yy, cellW + 0.5, ANNO);
     });
   };
   /* TWO TRUTHS, BOTH COLOURED: the two real conditions across the columns and
@@ -1345,7 +1396,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   if (showTruth) {
     rowOrder.forEach((g, ri) => {
       ctx.fillStyle = truthColour(colors, heat.planted[g]);
-      ctx.fillRect(gx - ANNO - ANNO_GAP, gy + ri * cellH, ANNO, cellH + 0.5);
+      ctx.fillRect(gx - ANNO - ANNO_GAP, rowY(ri), ANNO, cellH + 0.5);
     });
   }
 
@@ -1358,34 +1409,47 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
       ctx.fillStyle = t >= 0
         ? mixColour(ctx, colors.surface3, colors.valueHigh, t)
         : mixColour(ctx, colors.surface3, colors.valueLow, -t);
-      ctx.fillRect(gx + ci * cellW, gy + ri * cellH, cellW + 0.5, cellH + 0.5);
+      ctx.fillRect(colX(ci), rowY(ri), cellW + 0.5, cellH + 0.5);
     });
   });
 
-  /* The boxes. A run of adjacent rows sharing a cut label is one box, which is
-     what `cutree_rows` draws — and the point is that a box around nothing is
-     drawn identically to a box around a real gene module. So it is drawn
-     identically, and then named. */
+  /* The boxes, on top of the gaps. A run of adjacent rows sharing a cut label
+     is one box, which is what `cutree_rows` draws — and the point is that a
+     box around nothing is drawn identically to a box around a real gene
+     module. So it is drawn identically, and then named. */
   ctx.lineWidth = 1.5;
   for (const [from, to, label] of runs(rowOrder.map((g) => rowLab[g]))) {
     const isEmpty = empty.has(label);
+    const top = rowY(from);
+    const boxH = (to - from) * cellH;
     ctx.strokeStyle = isEmpty ? colors.extreme : colors.ink3;
-    ctx.strokeRect(gx + 0.5, gy + from * cellH + 0.5, gw - 1, (to - from) * cellH - 1);
-    const mid = gy + ((from + to) / 2) * cellH + 4;
-    if ((to - from) * cellH >= 13) {
+    ctx.strokeRect(gx + 0.5, top + 0.5, gw - 1, boxH - 1);
+
+    /* THE LABEL WRAPS RATHER THAN OVERFLOWING. "3 genes, no real pattern" on
+       one line ran left out of the gutter and over the row tree, which is what
+       "no real pattern annotation clashes with heatmap" was. The count and the
+       verdict are two lines now, and the second is only drawn where the block
+       is tall enough to hold it — otherwise the red outline says it alone. */
+    if (boxH >= 13) {
       ctx.fillStyle = isEmpty ? colors.extreme : colors.ink2;
       ctx.textAlign = "right";
       // a box can be one gene wide at cutree_rows = 8, and "1 genes" is wrong
       const nGenes = to - from;
       const noun = `${nGenes} gene${nGenes === 1 ? "" : "s"}`;
-      ctx.fillText(isEmpty ? `${noun}, no real pattern` : noun, labelRight, mid);
+      const mid = top + boxH / 2;
+      if (isEmpty && boxH >= 30) {
+        ctx.fillText(noun, labelRight, mid - 2);
+        ctx.fillText("no real pattern", labelRight, mid + 12);
+      } else {
+        ctx.fillText(noun, labelRight, mid + 4);
+      }
     }
   }
 
   ctx.strokeStyle = colors.ink3;
   ctx.lineWidth = 1.5;
   for (const [from, to] of runs(colOrder.map((s) => colLab[s]))) {
-    ctx.strokeRect(gx + from * cellW + 0.5, gy + 0.5, (to - from) * cellW - 1, gh - 1);
+    ctx.strokeRect(colX(from) + 0.5, gy + 0.5, (to - from) * cellW - 1, gh - 1);
   }
 
   ctx.restore();
