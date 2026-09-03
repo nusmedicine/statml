@@ -25,16 +25,13 @@ import {
 
 const OFFERED = ["average", "complete", "ward.D2"];
 
-/* The scatter's extent is FIXED, not fitted to the data. Fitting it would
-   rescale the picture as the Structure dial moves and hide the very thing the
-   dial does — the groups would look equally far apart at every setting.
+/* FIXED, not fitted. Fitting the extent to the data would rescale the picture
+   as the Structure dial moves and hide the very thing the dial does.
 
-   PER METRIC, because they are not on the same scale. Measured over 40 seeds
-   x 4 structure settings x both axes: Euclidean MDS coordinates reach 9.46,
-   Manhattan 33.69 — three and a half times further. One shared extent of 9.8
-   put every Manhattan point outside the panel and over the dendrogram beside
-   it, which is what "the scatter goes full width and collides" was. The panel
-   is also clipped now, so a future metric cannot do the same thing quietly. */
+   Per metric, because they are not on one scale: Euclidean MDS coordinates
+   reach 9.46 and Manhattan 33.69. A shared extent of 9.8 put every Manhattan
+   point outside the panel and over the dendrogram. The panel is clipped too,
+   so a future metric cannot do it quietly. */
 const EXTENT = { euclidean: 9.8, manhattan: 35 };
 
 /* What a real pair of groups scores on this stage, as the 10th to 90th
@@ -94,19 +91,15 @@ const transpose = (m) => m[0].map((_, j) => m.map((row) => row[j]));
 const easeInOut = (t) => t * t * (3 - 2 * t);
 
 /**
- * THE MERGE BEING SHOWN, decided ONCE and handed to both panels.
+ * THE MERGE BEING SHOWN, decided ONCE and handed to every panel.
  *
- * While something is moving it is the merge in flight, at the fraction the
- * clock has reached. At rest it is the merge just made, complete — so the
- * marks stay on screen to be read rather than vanishing the instant motion
- * stops, and nothing is ever left half-drawn.
+ * Moving, it is the merge in flight at the fraction the clock has reached; at
+ * rest it is the merge just made, complete, so the marks stay to be read
+ * rather than vanishing the instant motion stops.
  *
- * Both panels take this same object: computing it twice is how the scatter
- * would come to mark one merge while the dendrogram highlighted another.
- *
- * Exported so `_lab/hc-anim.mjs` can assert on the SAME predicate the figure
- * draws with. A driver that re-derived "is it tweening?" would be testing its
- * own copy of the rule, which is how a test comes to agree with a bug.
+ * Computing it twice is how the scatter would come to mark one merge while the
+ * dendrogram highlighted another. Exported so a driver can assert on the same
+ * predicate rather than on its own copy of the rule.
  */
 export function flightFor({ anim, params, tree, shown, built }) {
   if (built) return null;
@@ -119,14 +112,8 @@ export function flightFor({ anim, params, tree, shown, built }) {
   return shown > 0 ? { node: tree.nodes[shown - 1], t: 1 } : null;
 }
 
-/* ---------------------------------------------------------------------------
-   Dendrogram geometry, in ONE place.
-
-   The tree is drawn three times — this tab's, and the heatmap's row and column
-   trees — and the cut line has to land between the same two merges the
-   colouring uses. Two copies of that arithmetic is how the halves of a figure
-   come to disagree.
-   ------------------------------------------------------------------------ */
+/* Dendrogram geometry in ONE place: the tree is drawn three times and the cut
+   line has to land between the same two merges the colouring uses. */
 function dendroLayout(tree) {
   const rank = new Map();
   tree.order.forEach((leaf, i) => rank.set(leaf, i));
@@ -159,13 +146,9 @@ defineWidget({
   height: ({ view }) => (view === "heatmap" ? 690 : 790),
 
   params: {
-    /* TWO TABS: the idea, then the thing people actually run.
-
-       It was one figure with the matrix behind an action button, which put
-       three cut controls and two stacked dendrograms on screen at once — and
-       there the columns control looked broken, because a reader moving it was
-       watching the OTHER tree. Tabs make the question each view answers
-       explicit and give the matrix the whole canvas.
+    /* One figure with the matrix behind an action button put three cut controls
+       and two stacked dendrograms on screen at once, and there the columns
+       control looked broken: a reader moving it was watching the OTHER tree.
 
        `display: true` so a reader can build the tree, look at the matrix and
        come back to a tree still built. */
@@ -272,19 +255,15 @@ defineWidget({
       when: { param: "view", equals: "cluster" },
     },
 
-    /* AFTER the axis toggle, which is what decides WHICH tree this cuts:
-       reading it first asked for a number of groups of something not yet
-       chosen.
+    /* AFTER the axis toggle, which decides WHICH tree this cuts.
 
-       ONE VERB, THREE TREES. Every cut here is "cut tree", because every one
-       is the same operation — `cutree` — applied to a different tree: this
-       tab's twenty objects, the heatmap's twenty genes, its twenty samples.
-       Naming them alike is what makes them comparable. One shared control
-       instead conflated three datasets into one number.
+       ONE VERB, THREE TREES: every cut here is "cut tree", the same `cutree`
+       on a different tree. Naming them alike is what makes them comparable —
+       one shared control instead conflated three datasets into one number.
 
-       `display` on purpose: the cut does not change the tree, so moving it
-       must not discard a tree the reader has just watched being built. That
-       is the widget's claim, made by the control's own behaviour. */
+       `display` on purpose: moving the cut must not discard a tree the reader
+       has just watched being built. That is the widget's claim, made by the
+       control's own behaviour. */
     k: {
       type: "int",
       label: "Cut tree into k clusters",
@@ -411,13 +390,11 @@ defineWidget({
     const objects = cols ? heat.cols : heat.rows;
 
     /* An object with twenty numbers is not a point, so it is placed by
-       classical scaling on the very distance matrix the tree is built from:
-       plotted separation approximates real separation, and the scatter and the
-       distance matrix agree by construction rather than by coincidence.
+       classical scaling on the very distance matrix the tree is built from —
+       the scatter and the distance matrix then agree by construction.
 
-       THE WHOLE TRUTH, not a yes/no. Clustering the rows, an object is a gene
-       and the truth is WHICH of the four planted blocks it belongs to, or none
-       — five readings. Clustering the columns it is one of two conditions.
+       THE WHOLE TRUTH, not a yes/no: which of the four planted blocks a gene
+       belongs to, or none, and which of two conditions a sample came from.
        Collapsing the rows case to planted/unplanted threw away three quarters
        of what there was to check the clustering against. */
     const pts = mds(objects, params.distance).map((p, i) => ({
@@ -516,7 +493,6 @@ defineWidget({
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "left";
 
-    /* ------------------------------------------------------------------ */
     if (params.view === "heatmap") {
       /* JUST THE HEATMAP. It carried a distance matrix and a schematic until
          the Cluster tab became the place the pipeline is explained. By the
@@ -532,17 +508,13 @@ defineWidget({
       return;
     }
 
-    /* ------------------------------------------------------------------
-       THE CLUSTER TAB.
+    /* THE CLUSTER TAB.
 
          data matrix   --dist()-->   distance matrix
          scatter                     tree
 
-       Three of these four are square by nature — a 20 x 20 table, its 20 x 20
-       distances, and a plane of 20 points — and only the tree wants width. So
-       the squares are sized to the row and the tree takes what is left. The
-       figure is tall enough that "sized to the row" is 340px; at a 470px
-       canvas it was 202. */
+       Three of the four are square by nature and only the tree wants width, so
+       the squares are sized to the row and the tree takes what is left. */
     const cols = params.axis === "columns";
     const n = state.objects.length;
 
@@ -559,7 +531,6 @@ defineWidget({
     const row1 = top;
     const row2 = row1 + rowH + CAP + 6;
 
-    /* Row 1: two squares as large as the row, the arrow between them. */
     const sq1 = Math.min(rowH, Math.floor((w - 2 * PAD - ARROW) / 2));
     const dataX = PAD;
     const distX = dataX + sq1 + ARROW;
@@ -605,7 +576,6 @@ defineWidget({
         + `${shown} merge${shown === 1 ? "" : "s"} boxed`,
     });
 
-    /* Row 2: the scatter square, the tree taking every pixel that is left. */
     const sq2 = Math.min(rowH, Math.floor(w * 0.42));
     drawScatter(ctx, colors, { x: PAD, y: row2, w: sq2, h: sq2 },
       { pts: state.pts, objects: state.objects, tree: state.tree, shown, labels, params, flight });
@@ -789,19 +759,11 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
 /**
  * Renumber a labelling by FIRST APPEARANCE along a display order.
  *
- * Two labellings of the same twenty samples sit stacked on the heatmap — the
- * cut's groups and the real conditions — and they are numbered independently:
- * `cut` numbers by input index, and a condition is 0 or 1 by which half of the
- * shuffled table a sample came from. Nothing ties the two origins together, so
- * a PERFECT recovery came out with the strips in opposite colours: measured
- * over five seeds, 0 of 20 positions shared a hue on four of them and 20 of 20
- * on the fifth. A reader comparing the strips would read a perfect result as a
- * total failure four times out of five.
- *
- * Renumbering both by first appearance across the displayed columns ties them
- * to the one thing they share — the order the figure draws them in — so the
- * leftmost group is the first colour in each. A perfect recovery now looks
- * identical and a real mismatch is the only thing that shows as one.
+ * The two stacked strips are numbered independently — `cut` by input index, a
+ * condition by which half of the shuffled table it came from — so a PERFECT
+ * recovery came out in opposite colours: over five seeds, 0 of 20 positions
+ * shared a hue on four of them. Renumbering both by first appearance ties them
+ * to the one thing they share, the order the figure draws them in.
  */
 function byAppearance(labels, order) {
   const rank = new Map();
@@ -924,16 +886,12 @@ function drawWitness(ctx, colors, pts, objects, node, params, box, t = 1) {
 }
 
 /* ---------------------------------------------------------------------------
-   The dendrogram — drawn THREE times, in two orientations.
+   The dendrogram — drawn THREE times, in two orientations, from one function.
 
-   The Cluster tab's tree grows upward from a row of leaves. The Heatmap tab's
-   row tree grows leftward from the matrix's left edge and its column tree
-   upward from the top, which is where `pheatmap` puts them. All three are this
-   function: a merge is the same shape in every orientation once the two axes
-   are named, and the cut line is the same line. Writing the rotated one
-   separately is how the two tabs would come to disagree about where a cut sits.
-
-   `place(rank, height)` is the whole difference between them.
+   A merge is the same shape in every orientation once the two axes are named,
+   and `place(rank, height)` is the whole difference between them. Writing the
+   rotated one separately is how the two tabs would come to disagree about
+   where a cut sits.
    ------------------------------------------------------------------------ */
 function drawDendrogram(ctx, colors, box, {
   tree, shown, labels, k, orient = "up", flight = null, truth = null,
@@ -1030,16 +988,14 @@ function drawDendrogram(ctx, colors, box, {
     ctx.restore();
   }
 
-  /* A TICK UNDER EVERY LEAF, and it carries whatever the dots carry.
+  /* A TICK UNDER EVERY LEAF, carrying whatever the dots carry: the cut's
+     groups until the reader asks for the truth, and then the truth. Otherwise
+     the ticks would be cut colours from the same ramp as the dots beside them,
+     and matching a tick to a dot of the same hue would mean matching a found
+     cluster to a real block.
 
-     The cut's groups until the reader asks for the truth, and then the truth —
-     otherwise the ticks would be cut colours from the same ramp as the dots
-     beside them, and a reader matching a tick to a dot of the same hue would
-     be matching a found cluster to a real block. That is the confusion the
-     coloured truth exists to remove, one panel over.
-
-     Read against the truth it is the widget's sharpest picture: a subtree
-     whose ticks are all one colour recovered a real group. */
+     Read against the truth it is the sharpest picture here: a subtree whose
+     ticks are all one colour recovered a real group. */
   if (labels && orient === "up") {
     ctx.strokeStyle = colors.axis;
     ctx.lineWidth = 1;
@@ -1047,11 +1003,15 @@ function drawDendrogram(ctx, colors, box, {
     ctx.moveTo(x, y + h);
     ctx.lineTo(x + w, y + h);
     ctx.stroke();
+    /* SIZED TO THE LEAF SPACING, capped. At a fixed 4 x 5 they were too small
+       to read at all; at twenty leaves across 500px each leaf owns 25px, so
+       there is room for a mark you can actually see the colour of. */
+    const tick = Math.max(4, Math.min(Math.floor(w / n) - 5, 11));
     tree.order.forEach((leaf, r) => {
       ctx.fillStyle = truth
         ? truthColour(colors, truth[leaf])
         : colors.clusters[(labels[leaf] - 1) % colors.clusters.length];
-      ctx.fillRect(place(r, 0)[0] - 2, y + h + 2, 4, 5);
+      ctx.fillRect(place(r, 0)[0] - tick / 2, y + h + 3, tick, tick);
     });
   }
   ctx.restore();
@@ -1064,17 +1024,13 @@ function drawDistance(ctx, colors, outer, {
   rows, distance, order = null, cells = null, groups = null, caption = "",
   truth = null,
 }) {
-  /* THE TRUTH STRIP, and why it belongs on THIS panel.
+  /* THE TRUTH STRIP belongs on THIS panel because the matrix is held in the
+     finished tree's leaf order: a cluster is a contiguous run with its box on
+     the diagonal, so a strip of true groups down the same rows lines up with
+     those boxes. A box whose rows are one colour found a real group.
 
-     The matrix is held in the finished tree's leaf order, so every cluster the
-     build forms is a contiguous run and its box sits on the diagonal. A strip
-     of true groups down the same rows therefore lines up with those boxes, and
-     the comparison the toggle exists for becomes one glance: a box whose rows
-     are all one colour found a real group, and a box holding two colours cut
-     one in half or welded two together.
-
-     A left gutter rather than the empty upper triangle: a strip up there would
-     be a staircase, and it would not sit against the boxes. */
+     A left gutter rather than the empty upper triangle, where it would be a
+     staircase and would not sit against the boxes. */
   const GUT = truth ? 12 : 0;
   const box = { x: outer.x + GUT, y: outer.y, w: outer.w - GUT, h: outer.h };
   const { D, n, max } = distanceMatrix(rows, distance);
@@ -1099,9 +1055,7 @@ function drawDistance(ctx, colors, outer, {
     }
   }
 
-  /* A BOX ROUND EACH CLUSTER FORMED SO FAR. Drawn in the same order the matrix
-     is, so a cluster is always a contiguous run and its box sits on the
-     diagonal. Watching them grow is watching the algorithm sort the table. */
+  // watching the boxes grow is watching the algorithm sort the table
   if (groups) {
     ctx.strokeStyle = colors.unknown;
     ctx.lineWidth = 1;
@@ -1172,9 +1126,8 @@ function drawDistance(ctx, colors, outer, {
    spread, so neither has two lines to outline and neither pretends to.
    ------------------------------------------------------------------------ */
 function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
-  /* The gutter holds TWO things and they must not share pixels: the axis name,
-     then the membership ticks against the matrix edge. At 15 and 13 the
-     rotated "genes" ran straight through its own ticks. */
+  /* Two things share the gutter and must not share pixels: at 15 and 13 the
+     rotated axis name ran straight through its own ticks. */
   const GUT = 21;                      // 0-10 the rotated row label, 14-19 ticks
   const TOP = 19;                      // baseline at 9, ticks 12-17
   const x = box.x + GUT;
@@ -1200,8 +1153,7 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
     }
   }
 
-  /* THE TWO CLUSTERS BEING MERGED, at their real size. Along the clustered
-     axis, because that is the axis whose entries are the objects. */
+  /* Along the clustered axis, which is the one whose entries are the objects. */
   if (marks) {
     const band = (i, colour) => {
       ctx.fillStyle = colour;
@@ -1225,7 +1177,6 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 
-  /* The axis being clustered reads bright, the other one stays quiet. */
   ctx.textAlign = "center";
   ctx.fillStyle = cols ? colors.ink1 : colors.ink3;
   ctx.fillText(`${nC} samples (columns)`, x + w / 2, box.y + 9);
@@ -1245,7 +1196,6 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
   ctx.restore();
 }
 
-/** A labelled arrow from one panel to the next. */
 function arrow(ctx, colors, x0, y, x1, label) {
   ctx.save();
   ctx.strokeStyle = colors.ink3;
@@ -1322,17 +1272,13 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   /* THE COLUMN ANNOTATION, the way `annotation_col` draws it: strips above the
      matrix, one cell per column, in the column tree's own order.
 
-     Two rows, and the pairing is the argument. One is what `cutree_cols`
-     decided; the other is what the samples REALLY are. They are
-     column-aligned with the matrix and with the tree above them, so a reader
-     can run a finger down and see a cut boundary land inside a condition — or
-     see the cut carve two real groups into six tidy ones, which it will do the
-     moment you ask it for six.
+     The pairing is the argument. One strip is what `cutree_cols` decided, the
+     other what the samples REALLY are, and both are column-aligned with the
+     matrix and the tree — so a reader can run a finger down and see a cut
+     boundary land inside a condition.
 
-     This replaced a row of "H"/"D" letters under the columns. Letters could
-     only be drawn every other column before they collided, so half the samples
-     went unlabelled, and they sat at the far end of the matrix from the tree
-     that ordered them. */
+     A row of "H"/"D" letters instead could only be drawn every other column
+     before they collided, leaving half the samples unlabelled. */
   const annoRow = (yy, colourOf) => {
     colOrder.forEach((s, ci) => {
       ctx.fillStyle = colourOf(s);

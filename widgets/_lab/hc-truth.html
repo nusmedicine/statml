@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 — showing a found grouping against a true one</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 100ch; }
+  p.bad { border-left-color: var(--c-extreme); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); margin: 0 0 4px; }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 14px; max-width: 900px; white-space: pre-wrap; }
+  .seedrow { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-4); font-size: var(--fs-sm); }
+  .seedrow input { width: 260px; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; color: var(--ink-2); }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.z { color: var(--ink-3); }
+  table.m td.hit { color: var(--c-highlight); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 · showing a found grouping against a true one</h1>
+
+  <p class="note">
+    The problem, stated exactly: <b>a cut's group numbers are arbitrary and the truth's are not.</b>
+    <code>cutree</code> numbers the groups in whatever order it meets them, so cluster 1 might as
+    well have been called cluster 3 — a comparison between the two has to be invariant to that
+    relabelling, and <b>colour is not</b>. Paint both from one ramp and a perfect recovery can
+    come out in different colours, which reads as a failure.
+  </p>
+  <p class="note">
+    Below: the defect, then three ways out, on the real stage and the real engine. Move the seed —
+    the point is what happens <em>across</em> seeds, not on any one.
+  </p>
+
+  <div class="seedrow">
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"></label>
+    <span id="seedv">1</span>
+    <label>cut into <input type="range" id="k" min="2" max="6" value="2"></label>
+    <span id="kv">2</span>
+  </div>
+
+  <h2>The defect — two colour scales, one ramp</h2>
+  <p class="note">
+    Two strips over the same twenty samples: the cut on top, the truth below. Same six hues.
+  </p>
+  <canvas id="c-bad" width="1180" height="86"></canvas>
+  <div class="cap" id="cap-bad"></div>
+  <p class="ask bad">
+    At <code>k = 2</code> the cut recovers the two conditions on essentially every seed, and the
+    strips still disagree on colour most of the time. A student reading colour reads a perfect
+    result as a total failure.
+  </p>
+
+  <h2>A — one colour scale, the cut as enclosure &nbsp;<small>(recommended)</small></h2>
+  <p class="note">
+    Colour carries the <b>truth</b> and nothing else. The cut is drawn as <b>gaps and boxes</b> —
+    the grouping is a grouping, so it gets the channel that means grouping. The reading is one
+    sentence: <b>does each box hold one colour?</b>
+  </p>
+  <canvas id="c-a" width="1180" height="86"></canvas>
+  <div class="cap" id="cap-a"></div>
+  <p class="ask">
+    Nothing can mis-match, because only one thing is coloured. It is also what
+    <code>pheatmap</code> itself does — <code>annotation_col</code> carries known groups in colour,
+    <code>cutree_cols</code> splits the matrix into blocks — so the student meets this exact
+    division of labour in the tool.
+  </p>
+
+  <h2>B — matched colours</h2>
+  <p class="note">
+    Keep two coloured strips, but renumber the cut to best-match the truth first, so a colour
+    mismatch is a real mismatch.
+  </p>
+  <canvas id="c-b" width="1180" height="86"></canvas>
+  <div class="cap" id="cap-b"></div>
+  <p class="ask bad">
+    Works at <code>k = 2</code> and breaks above it: push the cut to 4 and two cut groups have to
+    share the truth's one colour, so the strip stops showing that they are different groups.
+    It also quietly teaches that a cluster number means something.
+  </p>
+
+  <h2>C — agreement only</h2>
+  <p class="note">
+    Drop both identities. Mark each object by whether it landed in a cut group that is
+    <b>pure</b> for its own true group.
+  </p>
+  <canvas id="c-c" width="1180" height="86"></canvas>
+  <div class="cap" id="cap-c"></div>
+  <p class="ask bad">
+    Unambiguous and permutation-invariant, but it answers a yes/no where the interesting question
+    is <em>which</em> group got split into what. It throws away the thing the four blocks are for.
+  </p>
+
+  <h2>D — the number, whichever picture wins</h2>
+  <p class="note">
+    Whatever the figure does, the readout should state the comparison as a number, because a
+    number is permutation-invariant by construction and the eye's verdict is not. A contingency
+    table of true groups against cut groups is the honest form; one line of it fits a stat tile.
+  </p>
+  <div id="tab"></div>
+  <p class="ask">
+    Purity has a known failure — it goes to 1 if you ask for enough clusters — so the tile has to
+    print <em>k</em> beside it, which this widget's readout already does.
+  </p>
+
+  <h2>The dendrogram's leaf ticks, same three treatments</h2>
+  <p class="note">
+    The ticks are the other place two partitions met. Bigger than the shipped 4 × 5px either way —
+    they were too small to read.
+  </p>
+  <canvas id="c-tree" width="1180" height="300"></canvas>
+  <div class="cap" id="cap-tree"></div>
+</main>
+
+<script type="module">
+import {
+  cluster, cut, heatStage, HEAT_SAMPLES,
+} from "../hierarchical-clustering/model.js";
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const RAMP = T.clusters;
+const CUTINK = T.reference;
+
+function truthColour(t) {
+  return (t === null || t === undefined) ? T.unknown : RAMP[t % RAMP.length];
+}
+
+/** Maximal runs of equal values along a sequence. */
+function runs(seq) {
+  const out = [];
+  let from = 0;
+  for (let i = 1; i <= seq.length; i += 1) {
+    if (i === seq.length || seq[i] !== seq[from]) { out.push([from, i, seq[from]]); from = i; }
+  }
+  return out;
+}
+
+/** Renumber by first appearance along a display order. */
+function byAppearance(labels, order) {
+  const rank = new Map();
+  for (const i of order) if (!rank.has(labels[i])) rank.set(labels[i], rank.size);
+  return labels.map((l) => rank.get(l));
+}
+
+/** Greedy best-overlap match: cut group -> the truth group it mostly holds. */
+function matchToTruth(cutLab, truth) {
+  const tally = new Map();
+  cutLab.forEach((c, i) => {
+    const key = `${c}|${truth[i]}`;
+    tally.set(key, (tally.get(key) ?? 0) + 1);
+  });
+  const best = new Map();
+  for (const c of new Set(cutLab)) {
+    let bt = null;
+    let bn = -1;
+    for (const t of new Set(truth)) {
+      const n = tally.get(`${c}|${t}`) ?? 0;
+      if (n > bn) { bn = n; bt = t; }
+    }
+    best.set(c, bt);
+  }
+  return cutLab.map((c) => best.get(c));
+}
+
+/** Is every member of this object's cut group from the same true group? */
+function purePerObject(cutLab, truth) {
+  const members = new Map();
+  cutLab.forEach((c, i) => {
+    if (!members.has(c)) members.set(c, []);
+    members.get(c).push(i);
+  });
+  const pure = new Map();
+  for (const [c, idx] of members) pure.set(c, new Set(idx.map((i) => truth[i])).size === 1);
+  return cutLab.map((c) => pure.get(c));
+}
+
+const CW = 52;                     // one sample column
+const X0 = 96;
+const H = 15;
+
+function label(ctx, text, y) {
+  ctx.fillStyle = T.ink2;
+  ctx.font = `11px ${T.font}`;
+  ctx.textAlign = "right";
+  ctx.fillText(text, X0 - 8, y + 11);
+  ctx.textAlign = "left";
+}
+
+/* The defect: cut strip and truth strip, both from the ramp, each numbered by
+   its own origin — `cutree` by the order it met the groups, a condition by
+   which half of the table it came from. This is what the widget drew before
+   `byAppearance`, and it is what Kenneth is describing. */
+function drawBad(ctx, st) {
+  const { colOrder, colLab, condition } = st;
+  ctx.clearRect(0, 0, 1180, 86);
+  label(ctx, "cutree_cols", 14);
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = RAMP[(colLab[s] - 1) % RAMP.length];
+    ctx.fillRect(X0 + ci * CW, 14, CW - 1, H);
+  });
+  label(ctx, "condition", 40);
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = truthColour(condition[s]);
+    ctx.fillRect(X0 + ci * CW, 40, CW - 1, H);
+  });
+}
+
+/** A: colour is the truth; the cut is gaps and a bracket. */
+function drawA(ctx, st) {
+  const { colOrder, colLab, condition } = st;
+  ctx.clearRect(0, 0, 1180, 86);
+
+  label(ctx, "condition", 26);
+  const spans = runs(colOrder.map((s) => colLab[s]));
+  const GAP = 14;
+  const xOf = (ci) => {
+    let g = 0;
+    for (const [from] of spans) if (ci >= from && from > 0) g += 1;
+    return X0 + ci * CW + g * GAP;
+  };
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = truthColour(condition[s]);
+    ctx.fillRect(xOf(ci), 26, CW - 1, H);
+  });
+
+  /* The cut, as enclosure: a box round each run of columns it kept together. */
+  ctx.strokeStyle = CUTINK;
+  ctx.lineWidth = 1.5;
+  ctx.font = `10px ${T.font}`;
+  ctx.textAlign = "center";
+  for (const [from, to] of spans) {
+    const x = xOf(from) - 3;
+    const w = xOf(to - 1) + CW - 1 - x + 2;
+    ctx.strokeRect(x + 0.5, 22.5, w, H + 8);
+    ctx.fillStyle = T.ink3;
+    ctx.fillText(`${to - from}`, x + w / 2, 60);
+  }
+  ctx.textAlign = "left";
+  label(ctx, "cutree_cols", 44);
+}
+
+/** B: the cut relabelled to best-match the truth, both coloured. */
+function drawB(ctx, st) {
+  const { colOrder, colLab, condition } = st;
+  const matched = matchToTruth(colLab, condition);
+  ctx.clearRect(0, 0, 1180, 86);
+  label(ctx, "cutree_cols", 14);
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = truthColour(matched[s]);
+    ctx.fillRect(X0 + ci * CW, 14, CW - 1, H);
+  });
+  label(ctx, "condition", 40);
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = truthColour(condition[s]);
+    ctx.fillRect(X0 + ci * CW, 40, CW - 1, H);
+  });
+  /* Where two cut groups collapsed onto one colour, the strip has stopped
+     saying they are different groups — so the boundary is drawn anyway. */
+  ctx.strokeStyle = T.ink1;
+  ctx.lineWidth = 1;
+  for (const [from] of runs(colOrder.map((s) => colLab[s]))) {
+    if (from === 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(X0 + from * CW - 0.5, 12);
+    ctx.lineTo(X0 + from * CW - 0.5, 31);
+    ctx.stroke();
+  }
+}
+
+/** C: agreement only. */
+function drawC(ctx, st) {
+  const { colOrder, colLab, condition } = st;
+  const pure = purePerObject(colLab, condition);
+  ctx.clearRect(0, 0, 1180, 86);
+  label(ctx, "pure?", 26);
+  colOrder.forEach((s, ci) => {
+    ctx.fillStyle = pure[s] ? T.reference : T.extreme;
+    ctx.fillRect(X0 + ci * CW, 26, CW - 1, H);
+  });
+}
+
+/* ------------------------------------------------------------------------
+   The leaf ticks, three ways, at a readable size.
+   --------------------------------------------------------------------- */
+function drawTree(ctx, st) {
+  const { rowTree, planted, rowLab } = st;
+  ctx.clearRect(0, 0, 1180, 300);
+  const n = rowTree.n;
+  const W = 1000;
+  const x0 = 150;
+  const step = W / n;
+  const R = Math.min(step - 6, 13);        // the tick, shipped at 4 x 5
+
+  const rank = new Map();
+  rowTree.order.forEach((leaf, i) => rank.set(leaf, i));
+
+  const band = (y, colourOf, name, brackets) => {
+    ctx.fillStyle = T.ink2;
+    ctx.font = `11px ${T.font}`;
+    ctx.textAlign = "right";
+    ctx.fillText(name, x0 - 10, y + R / 2 + 4);
+    ctx.textAlign = "left";
+    rowTree.order.forEach((leaf, r) => {
+      ctx.fillStyle = colourOf(leaf);
+      ctx.beginPath();
+      ctx.roundRect(x0 + r * step + (step - R) / 2, y, R, R, 3);
+      ctx.fill();
+    });
+    if (brackets) {
+      ctx.strokeStyle = CUTINK;
+      ctx.lineWidth = 2;
+      for (const [from, to] of runs(rowTree.order.map((g) => rowLab[g]))) {
+        const a = x0 + from * step + 3;
+        const b = x0 + (to - 1) * step + step - 3;
+        ctx.beginPath();
+        ctx.moveTo(a, y + R + 9);
+        ctx.lineTo(a, y + R + 5);
+        ctx.lineTo(b, y + R + 5);
+        ctx.lineTo(b, y + R + 9);
+        ctx.stroke();
+      }
+    }
+  };
+
+  ctx.font = `11px ${T.font}`;
+  ctx.fillStyle = T.ink3;
+  ctx.fillText("shipped — 4 x 5px, and the ticks are the CUT's groups", x0, 14);
+  rowTree.order.forEach((g, r) => {
+    ctx.fillStyle = RAMP[(rowLab[g] - 1) % RAMP.length];
+    ctx.fillRect(x0 + r * step + step / 2 - 2, 22, 4, 5);
+  });
+
+  ctx.fillStyle = T.ink3;
+  ctx.fillText("A — bigger, the ticks are the TRUTH, the cut is a bracket", x0, 66);
+  band(76, (leaf) => truthColour(planted[leaf]), "truth", true);
+
+  ctx.fillStyle = T.ink3;
+  ctx.fillText("B — bigger, the cut matched to the truth, no bracket", x0, 146);
+  const matched = matchToTruth(rowLab, planted);
+  band(156, (leaf) => truthColour(matched[leaf]), "cut", false);
+
+  ctx.fillStyle = T.ink3;
+  ctx.fillText("C — bigger, agreement only", x0, 216);
+  const pure = purePerObject(rowLab, planted);
+  band(226, (leaf) => (pure[leaf] ? T.reference : T.extreme), "pure?", false);
+}
+
+/* ------------------------------------------------------------------------ */
+function contingency(cutLab, truth, order) {
+  const cuts = [...new Set(order.map((i) => cutLab[i]))];
+  const truths = [...new Set(truth)].sort();
+  const cell = (c, t) => cutLab.filter((cc, i) => cc === c && truth[i] === t).length;
+  let html = '<table class="m"><tr><th>true \\ cut</th>';
+  cuts.forEach((_, i) => { html += `<th>cluster ${i + 1}</th>`; });
+  html += "</tr>";
+  for (const t of truths) {
+    html += `<tr><td>${t === null ? "no block" : `group ${t}`}</td>`;
+    for (const c of cuts) {
+      const v = cell(c, t);
+      html += `<td class="${v === 0 ? "z" : "hit"}">${v || "·"}</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</table>";
+
+  // purity: the biggest true group in each cut group, summed
+  let hit = 0;
+  for (const c of cuts) {
+    let best = 0;
+    for (const t of truths) best = Math.max(best, cell(c, t));
+    hit += best;
+  }
+  html += `<p class="cap">purity ${(hit / cutLab.length).toFixed(2)} at k = ${cuts.length}`
+    + ` — ${cuts.filter((c) => { const m = new Set(truth.filter((_, i) => cutLab[i] === c)); return m.size === 1; }).length}`
+    + ` of ${cuts.length} clusters hold one true group</p>`;
+  return html;
+}
+
+function build() {
+  const seed = Number(document.getElementById("seed").value);
+  const k = Number(document.getElementById("k").value);
+  document.getElementById("seedv").textContent = String(seed);
+  document.getElementById("kv").textContent = String(k);
+
+  const heat = heatStage({ lift: 2 }, makeRng(seed));
+  const colTree = cluster(heat.cols, "ward.D2", "euclidean");
+  const rowTree = cluster(heat.rows, "ward.D2", "euclidean");
+  const colLab = cut(colTree, k);
+  const rowLab = cut(rowTree, 5);
+  const st = {
+    colOrder: colTree.order,
+    colLab,
+    condition: heat.condition,
+    cutRank: byAppearance(colLab, colTree.order),
+    condRank: byAppearance(heat.condition, colTree.order),
+    rowTree,
+    rowLab,
+    planted: heat.planted,
+  };
+
+  const g = (id) => document.getElementById(id).getContext("2d");
+  drawBad(g("c-bad"), st);
+  drawA(g("c-a"), st);
+  drawB(g("c-b"), st);
+  drawC(g("c-c"), st);
+  drawTree(g("c-tree"), st);
+
+  const same = colTree.order.filter(
+    (s) => RAMP[(colLab[s] - 1) % RAMP.length] === truthColour(heat.condition[s]),
+  ).length;
+  document.getElementById("cap-bad").textContent =
+    `seed ${seed}, k = ${k} — ${same} of ${HEAT_SAMPLES} columns share a hue between the two strips.`
+    + ` The cut is ${new Set(colLab).size} groups over ${new Set(heat.condition).size} real conditions.`;
+  document.getElementById("cap-a").textContent =
+    `one ramp, one meaning. ${runs(colTree.order.map((s) => colLab[s])).length} boxes;`
+    + " a box holding two colours is the cut disagreeing with the truth.";
+  document.getElementById("cap-b").textContent =
+    `${new Set(matchToTruth(colLab, heat.condition)).size} distinct colours for`
+    + ` ${new Set(colLab).size} cut groups — the shortfall is what the match cannot show.`;
+  document.getElementById("cap-c").textContent =
+    "grey = this sample's cut group holds one condition only; red = it mixes them.";
+  document.getElementById("cap-tree").textContent =
+    `leaf ticks at ${Math.min(1000 / rowTree.n - 6, 13).toFixed(0)}px against the shipped 4 x 5.`;
+  document.getElementById("tab").innerHTML = contingency(rowLab, heat.planted, rowTree.order);
+}
+
+document.getElementById("seed").addEventListener("input", build);
+document.getElementById("k").addEventListener("input", build);
+build();
+</script>
+</body>
+</html>
