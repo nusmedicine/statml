@@ -115,7 +115,7 @@ export { LINKAGES };
 export const DISTANCES = {
   euclidean: {
     label: "Euclidean",
-    detail: "straight-line distance — the usual choice",
+    detail: "straight-line distance between two profiles",
     fn: (a, b) => {
       let s = 0;
       for (let i = 0; i < a.length; i += 1) { const d = a[i] - b[i]; s += d * d; }
@@ -124,7 +124,7 @@ export const DISTANCES = {
   },
   manhattan: {
     label: "Manhattan",
-    detail: "the coordinate differences added up — less swayed by one big gap",
+    detail: "the absolute differences summed — less affected by one large one",
     fn: (a, b) => {
       let s = 0;
       for (let i = 0; i < a.length; i += 1) s += Math.abs(a[i] - b[i]);

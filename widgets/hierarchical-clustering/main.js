@@ -58,10 +58,10 @@ const EXTENT = { euclidean: 9.8, manhattan: 35 };
    one tab it left the Heatmap a fixed demo that could only ever show the
    method working, which is the half of the lesson that needs no widget. */
 const SEPARATIONS = [
-  { value: "3", label: "Clear", detail: "groups a reader can see without any of this" },
-  { value: "2", label: "Slight", detail: "overlapping, but they are really there" },
-  { value: "1", label: "Faint", detail: "barely a signal — and mostly not recovered" },
-  { value: "0", label: "None", detail: "nothing was planted at all. There is nothing to find" },
+  { value: "3", label: "Clear", detail: "well-separated groups" },
+  { value: "2", label: "Slight", detail: "the groups overlap, but they are real" },
+  { value: "1", label: "Faint", detail: "a weak signal, usually not recovered" },
+  { value: "0", label: "None", detail: "no groups at all — a single population" },
 ];
 
 /* The matrix's planted effect, from the shared dial: at the top setting a
@@ -77,7 +77,7 @@ const LINKAGE_LABEL = { average: "Average", complete: "Complete", "ward.D2": "Wa
    per-merge choreography switches off — but as a declared property of the
    chosen speed, never something the animation decides mid-run. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "slow enough to follow one merge", ms: 1100, choreo: true },
+  slow: { label: "Slow", detail: "one merge at a time, slowly", ms: 1100, choreo: true },
   medium: { label: "Medium", detail: "every merge drawn as it happens", ms: 420, choreo: true },
   fast: { label: "Fast", detail: "the merges, without the lines between them", ms: 120, choreo: false },
   fastest: { label: "Fastest", detail: "the whole tree at once", ms: 0, choreo: false },
@@ -159,7 +159,7 @@ defineWidget({
       label: "View",
       options: [
         { value: "cluster", label: "Cluster",
-          detail: "what a distance and a linkage do, and what a cut decides" },
+          detail: "how a distance and a linkage build the tree, and what cutting it decides" },
         { value: "heatmap", label: "Heatmap",
           detail: "the same operation on a real gene-expression matrix" },
       ],
@@ -175,7 +175,7 @@ defineWidget({
        of the time at the bottom. */
     separation: {
       type: "choice",
-      label: "Structure really in the data",
+      label: "Group structure",
       options: SEPARATIONS,
       default: "3",
     },
@@ -187,7 +187,7 @@ defineWidget({
        says so instead of colouring points that came from one distribution. */
     truth: {
       type: "bool",
-      label: "Show what was really there",
+      label: "Show the ground truth",
       default: false,
       display: true,
     },
@@ -203,10 +203,15 @@ defineWidget({
       options: OFFERED.map((k) => ({
         value: k,
         label: LINKAGE_LABEL[k],
+        /* WARD, IN THE TEXTBOOK'S WORDS. "whichever merge adds least to the
+           within-cluster spread" did not land — Ward's method is the minimum
+           variance method, and saying so is both shorter and the term a
+           student will meet again. */
         detail: {
           average: "the mean distance between all pairs across the two clusters",
-          complete: "the distance between their two furthest members",
-          "ward.D2": "whichever merge adds least to the within-cluster spread",
+          complete: "the largest distance between any two of their members",
+          "ward.D2": "minimum variance — the merge that increases total "
+            + "within-cluster variance least",
         }[k],
       })),
       default: "ward.D2",
@@ -249,9 +254,9 @@ defineWidget({
       label: "Cluster the",
       options: [
         { value: "rows", label: "Rows",
-          detail: "each gene is one object, its twenty sample readings" },
+          detail: "each gene is one observation, measured across 20 samples" },
         { value: "columns", label: "Columns",
-          detail: "each sample is one object, its twenty gene readings" },
+          detail: "each sample is one observation, measured across 20 genes" },
       ],
       default: "rows",
       when: { param: "view", equals: "cluster" },
@@ -315,16 +320,18 @@ defineWidget({
        marks beside a matrix that draws none. */
     if (params.view === "heatmap") {
       const entries = [
-        { token: "value-high", label: "above this gene's baseline", mark: "bar" },
-        { token: "value-low", label: "below it — pale is neither", mark: "bar" },
+        { token: "value-high", label: "above average for this gene", mark: "bar" },
+        { token: "value-low", label: "below average — near zero is unshaded", mark: "bar" },
         { token: "reference", label: "what the clustering found — one box per group, both ways", mark: "line" },
         { token: "highlight", label: "where each tree is cut", mark: "dash" },
-        { token: "extreme", label: "a box holding no structured gene at all", mark: "line" },
       ];
+      /* The empty-cluster mark went behind the toggle with the thing it
+         reports, so it is only in the legend when it is on the figure. */
       if (truth) {
         entries.push(
-          { token: "cluster-a", label: "the two real conditions, and the four real gene blocks", mark: "bar" },
-          { token: "unknown", label: "a gene with nothing added to it", mark: "bar" },
+          { token: "cluster-a", label: "the two conditions, and the four true gene groups", mark: "bar" },
+          { token: "unknown", label: "a gene that is not differentially expressed", mark: "bar" },
+          { token: "extreme", label: "a cluster with no differentially expressed genes", mark: "line" },
         );
       }
       return entries;
@@ -334,9 +341,9 @@ defineWidget({
        reader has chosen. A single "what the linkage measures" would be true of
        all three and describe none. */
     const measures = {
-      average: "every pair across the two clusters — average takes their mean",
-      complete: "the two furthest members — the only pair complete looks at",
-      "ward.D2": "each member to the centre they would form — Ward's spread",
+      average: "every pair across the two clusters, whose mean is the linkage",
+      complete: "the two furthest members — the only pair complete uses",
+      "ward.D2": "each member to the centroid of the merged cluster",
     }[params.linkage];
 
     /* THE TOGGLE CHANGES WHAT COLOUR MEANS, so the legend says which reading
@@ -345,7 +352,7 @@ defineWidget({
        rings and the bracket. */
     if (truth && Number(separation) === 0) {
       return [
-        { token: "unknown", label: "one population — there were no real groups to show", mark: "dot" },
+        { token: "unknown", label: "a single population — there are no true groups", mark: "dot" },
         { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
         { token: "highlight", label: measures, mark: "line" },
         { token: "highlight", label: "where the tree is cut", mark: "dash" },
@@ -355,11 +362,11 @@ defineWidget({
     if (truth) {
       return [
         { token: "cluster-a", label: params.axis === "columns"
-          ? "which of the two conditions a sample really came from"
-          : "which of the four blocks was really planted in a gene", mark: "dot" },
-        { token: "unknown", label: params.axis === "columns"
-          ? "a sample from neither" : "a gene with nothing added to it", mark: "dot" },
-        { token: "reference", label: "what the CLUSTERING found — a ring, and a bar under the leaves", mark: "area" },
+          ? "the condition a sample came from"
+          : "the true gene group a gene belongs to", mark: "dot" },
+        ...(params.axis === "columns" ? [] : [{ token: "unknown",
+          label: "a gene that is not differentially expressed", mark: "dot" }]),
+        { token: "reference", label: "what the clustering found — a ring, and a bar under the leaves", mark: "area" },
         { token: "highlight", label: measures, mark: "line" },
         { token: "highlight", label: "where the tree is cut", mark: "dash" },
       ];
@@ -602,24 +609,29 @@ defineWidget({
         const inBox = state.heat.condition.filter((_, i) => colLab[i] === c);
         return new Set(inBox).size > 1;
       }).length;
-      return [
-        { label: "Sample groups", value: `${params.cutCols}`,
+      const tiles = [
+        { label: "Sample clusters", value: `${params.cutCols}`,
           note: straddling === 0
-            ? "each one sits inside a single condition — and there are only two"
+            ? "each holds samples from one condition — and there are only two"
             : `${straddling} of them mix the two conditions` },
-        { label: "Gene groups", value: `${params.cutRows}`,
+        { label: "Gene clusters", value: `${params.cutRows}`,
           /* GUARDED AT SEPARATION 0, where every gene's truth is the same
-             `null` and every box therefore holds one of it — the tile read
-             "8 of 8 hold one real block" over a matrix with no blocks in it,
+             `null` and every cluster therefore holds one of it — the tile read
+             "8 of 8 match a true group" over a matrix with no groups in it,
              which is the exact false finding this widget is about. */
           note: params.truth && params.separation !== "0"
-            ? `${agreement(rowLab, state.heat.planted).pure} of them are really one group`
+            ? `${agreement(rowLab, state.heat.planted).pure} of them match a true gene group`
             : `of ${listOf(countsOf(rowLab))} genes` },
-        { label: "Boxes around nothing", value: `${empty.length} of ${params.cutRows}`,
-          note: empty.length
-            ? `${genes} genes with nothing added, boxed and named a finding`
-            : "every box holds genes that really were changed" },
       ];
+      /* BEHIND THE TOGGLE, with the mark it describes. */
+      if (params.truth) {
+        tiles.push({ label: "Clusters with no real signal",
+          value: `${empty.length} of ${params.cutRows}`,
+          note: empty.length
+            ? `${genes} genes that are not differentially expressed, clustered and boxed`
+            : "every cluster holds differentially expressed genes" });
+      }
+      return tiles;
     }
 
     const total = state.tree.height.length;
@@ -657,13 +669,13 @@ defineWidget({
        are the only reading of this figure a screen reader has. So they say in
        plain words what the picture says. */
     const tiles = [
-      { label: "It returned", value: `${k} groups`,
+      { label: "It returned", value: `${k} clusters`,
         note: `of ${listOf(countsOf(labels))} — the number you asked for, `
           + "whether or not they exist" },
       { label: "Average, complete and Ward", value: agree ? "agree" : "disagree",
         note: agree
-          ? "all three cut these objects the same way"
-          : "the same objects, three different answers" },
+          ? "all three linkages give the same clusters"
+          : "the same data, three different answers" },
     ];
 
     /* THE COMPARISON AS A NUMBER, once the reader has asked for the truth. The
@@ -674,11 +686,11 @@ defineWidget({
     if (params.truth && params.separation !== "0") {
       const a = agreement(labels, state.pts.map((p) => p.truth));
       tiles.push({
-        label: "Groups that are really one group",
+        label: "Clusters matching a true group",
         value: `${a.pure} of ${a.total}`,
         note: a.pure === a.total
-          ? "every group it made is one of the real ones"
-          : "the rest mix objects that were never together",
+          ? "every cluster holds one true group and nothing else"
+          : "the rest mix members of different true groups",
       });
     }
     return tiles;
@@ -1234,8 +1246,8 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
   ctx.fillText(marks
-    ? (cols ? "the two groups of columns being merged" : "the two groups of rows being merged")
-    : (cols ? "each column is one object" : "each row is one object"),
+    ? (cols ? "the two clusters of columns being merged" : "the two clusters of rows being merged")
+    : (cols ? "each column is one observation" : "each row is one observation"),
   box.x, box.y + box.h + 13);
   ctx.restore();
 }
@@ -1400,9 +1412,21 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
      is one box — and the point is that a box around nothing is drawn
      identically to a box around a real gene module. So it is drawn
      identically, and then named. */
+  /* THE EMPTY-CLUSTER MARK IS BEHIND THE TOGGLE, and that is the point.
+
+     Nothing in real practice flags a cluster that holds no real signal: there
+     is no ground truth, no p-value and no residual plot to catch a bad fit,
+     which is exactly why clustering is so easy to over-read. This figure can
+     mark one only because it knows what was planted, so marking it unasked
+     handed over the answer before the question had been put — and it did so
+     while the rest of the truth sat behind a toggle, which was inconsistent
+     as well as too generous.
+
+     Off, the figure is what a real analysis looks like: clusters, boxes, and
+     no verdict. On, it says which box was noise. */
   ctx.lineWidth = 1.5;
   for (const [from, to, label] of runs(rowOrder.map((g) => rowLab[g]))) {
-    const isEmpty = empty.has(label);
+    const isEmpty = showTruth && empty.has(label);
     const top = rowY(from);
     const boxH = (to - from) * cellH;
     ctx.strokeStyle = isEmpty ? colors.extreme : colors.ink3;
@@ -1422,7 +1446,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
       const mid = top + boxH / 2;
       if (isEmpty && boxH >= 30) {
         ctx.fillText(noun, labelRight, mid - 2);
-        ctx.fillText("no real pattern", labelRight, mid + 12);
+        ctx.fillText("no real signal", labelRight, mid + 12);
       } else {
         ctx.fillText(noun, labelRight, mid + 4);
       }
