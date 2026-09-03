@@ -1,41 +1,36 @@
 /* ============================================================================
-   The engine behind slot 4, `hierarchical-clustering` (PHM5003 HTD `05 / 08`).
+   The engine behind `hierarchical-clustering`.
 
    The data and nothing about how it is drawn; `main.js` is the figure.
-   `_lab/hc-measure.mjs`, `_lab/hc-verify.mjs` and `_lab/hc-mock.html` import
-   this file rather than copying it.
 
-   WHAT THE MEASUREMENT FORCED, and why the stage is not the notebook's.
+   WHY THE STAGE IS TWO-DIMENSIONAL, which the measurement decided.
 
-   The notebook's own stage (cell 15, seed 42) is twenty log-fold-changes in
-   ONE dimension, two groups at +-1.5 with sd 0.5. Measured in R 4.5.2: all
-   five linkages — average, complete, ward.D2, single, centroid — return the
-   same 10/10 split, 20 of 20 correct. They first disagree at k = 3. So on
-   that stage a linkage control is INERT at the cut anyone looks at, and a
-   distance control is worse than inert: in one dimension every distance is
-   |x - y| up to a monotone transform, so the tree cannot move at all.
+   In ONE dimension — twenty log-fold-changes, two groups at ±1.5 with sd 0.5 —
+   all five linkages (average, complete, ward.D2, single, centroid) return the
+   same 10/10 split, 20 of 20 correct, and first disagree at k = 3. So a
+   linkage control would be INERT at the cut anyone looks at, and a distance
+   control worse than inert: in one dimension every distance is |x - y| up to a
+   monotone transform, so the tree cannot move at all.
 
-   Two dimensions fixes both and sharpens the argument: the three linkages
-   agree on only 16% of 2-D noise runs against 36% in 1-D, and it is what makes
-   a distance control possible at all — Euclidean against Manhattan gives a
+   Two dimensions fixes both and sharpens the argument. The three linkages
+   agree on only 16% of 2-D noise runs against 36% in 1-D, and a distance
+   control becomes possible at all — Euclidean against Manhattan gives a
    different tree on essentially every seed, and a k = 2 cut that agrees 95% of
    the time when the groups are real and 53% when they are not. Two arbitrary
    choices, both irrelevant to real structure and both decisive without it.
 
-   THE CLAIM, restated after measuring. The catalogue proposed "pure noise
-   produces a handsome dendrogram". By the height of the tree that is false —
-   on this stage real groups (separation 3) score a final-merge gap of 4.20
-   [3.28 .. 5.18] and pure noise 1.39 [1.15 .. 1.78], with 0 of 400 noise runs
-   reaching the 10th percentile of the real ones. What noise does produce is a
-   handsome CUT: ask Ward for two clusters in pure noise and 56% of the time it
-   hands back a balanced split.
+   THE CLAIM, restated after measuring. "Pure noise produces a handsome
+   dendrogram" is false by the height of the tree: real groups score a
+   final-merge gap of 4.20 [3.28 .. 5.18] and pure noise 1.39 [1.15 .. 1.78],
+   with 0 of 400 noise runs reaching the 10th percentile of the real ones. What
+   noise does produce is a handsome CUT — ask Ward for two clusters in pure
+   noise and 56% of the time it hands back a balanced split.
 
-   So the reader is not being set up to be fooled by the tree — in two
+   So the reader is not being set up to be fooled by the tree; in two
    dimensions the tree is honest and rather hard to misread. They are being set
-   up to be fooled by the ANSWER, which is the thing a pipeline prints.
-
-   So the tree carries the evidence and the cut throws it away, which is why
-   the two are separate here — `shown` builds the tree, `k` cuts it.
+   up to be fooled by the ANSWER, which is the thing a pipeline prints. The
+   tree carries the evidence and the cut throws it away, which is why the two
+   are separate controls: `shown` builds the tree, `k` cuts it.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -44,14 +39,13 @@ import { makeRng } from "../core/rng.js";
    The stage.
 
    Twenty points in two dimensions, in two planted groups displaced along x by
-   `separation`. Within-group sd is 0.5, the notebook's own. separation = 0 is
-   one Gaussian and no groups at all — the case the widget exists for; the
-   planted labels still exist in the data and the figure must never show them
-   as an answer, only as a check the reader asks for.
+   `separation`, with within-group sd 0.5. separation = 0 is one Gaussian and
+   no groups at all — the case the widget exists for; the planted labels still
+   exist in the data and the figure must never show them as an answer, only as
+   a check the reader asks for.
 
-   Measured through THIS engine, 400 seeds per column —
-   `node widgets/_lab/hc-measure.mjs` reprints it, and it is the file the
-   widget's captions must agree with:
+   Measured through THIS engine, 400 seeds per column, and the numbers the
+   widget's captions have to agree with:
 
      separation           0.0   1.0   2.0   3.0   4.0
      ward gap            1.39  1.62  2.71  4.20  5.58
@@ -59,10 +53,9 @@ import { makeRng } from "../core/rng.js";
      ward recovers         0%    3%   49%   93%  100%
      cut looks balanced    56%   73%   99%  100%  100%
 
-   The R script that first found this worked in the notebook's 1-D and got
-   softer numbers throughout (34% agreement on noise, not 16%). Two dimensions
-   makes every one of these sharper, which is the measurement that chose the
-   stage.
+   The same sweep in one dimension gives softer numbers throughout — 34%
+   agreement on noise, not 16%. Two dimensions makes every one of these
+   sharper.
    ------------------------------------------------------------------------ */
 export const N_POINTS = 20;
 
@@ -92,9 +85,9 @@ export function stage({ separation = 3 } = {}, rng = makeRng(1)) {
    reason ward.D2 can be expressed at all.
 
    `single` and `centroid` are implemented because R has them and the verifier
-   checks all five, but the widget offers only the notebook's three. Single
-   was measured and dropped as a control: at n = 20 its failure is not the
-   textbook chain but an isolate, a 19/1 split, which teaches nothing.
+   checks all five, but the widget offers three. Single was measured and
+   dropped as a control: at n = 20 its failure is not the textbook chain but an
+   isolate, a 19/1 split, which teaches nothing.
    ------------------------------------------------------------------------ */
 const LINKAGES = ["average", "complete", "ward.D2", "single", "centroid"];
 
@@ -103,29 +96,26 @@ export { LINKAGES };
 /* ---------------------------------------------------------------------------
    The distance.
 
-   The notebook gives five measures their own section — Euclidean, Manhattan,
-   cosine, Pearson, Jaccard — and then uses Euclidean for everything after it.
-   Two of the five are offered here, and the reason is measured rather than a
-   matter of taste (`node widgets/_lab/hc-distance.mjs`):
+   Euclidean, Manhattan, cosine, Pearson and Jaccard are the five a student
+   meets. Two of them are offered here, and the reason is measured rather than
+   a matter of taste:
 
-     PEARSON IS DEGENERATE on a 2-D stage. A correlation between two vectors of
-     length two is always ±1, so over the 190 pairs of act 1 it takes THREE
+     PEARSON IS DEGENERATE on a plane. A correlation between two vectors of
+     length two is always ±1, so over 190 pairs of points it takes THREE
      distinct values where Euclidean takes 190. It cannot be a control on a
      picture of points.
 
      COSINE is non-degenerate but measures the angle from the ORIGIN, so it
-     separates act 1 only because the two groups happen to straddle zero. Shift
-     the cloud and it collapses. Euclidean and Manhattan are the two that do
-     not care where the origin is, which is what a plotted point cloud needs.
+     separates this stage only because the two groups happen to straddle zero.
+     Shift the cloud and it collapses. Euclidean and Manhattan are the two that
+     do not care where the origin is, which is what a point cloud needs.
 
-   Both are honest on act 2's gene profiles as well, so one control serves both
-   acts. Cosine and Pearson are named in the control's own detail text as
-   belonging to profiles rather than to points.
+   Both are honest on gene profiles as well, so one control serves both tabs.
    ------------------------------------------------------------------------ */
 export const DISTANCES = {
   euclidean: {
     label: "Euclidean",
-    detail: "straight-line distance — the default in `dist`, and the notebook's",
+    detail: "straight-line distance — the default in `dist`",
     fn: (a, b) => {
       let s = 0;
       for (let i = 0; i < a.length; i += 1) { const d = a[i] - b[i]; s += d * d; }
@@ -143,7 +133,7 @@ export const DISTANCES = {
   },
 };
 
-/** The act-1 stage as plain vectors, which is what `cluster` consumes. */
+/** Points as plain vectors, which is what `cluster` consumes. */
 export function pointVectors(pts) {
   return pts.map((p) => [p.x, p.y]);
 }
@@ -152,9 +142,9 @@ export function pointVectors(pts) {
  * Lance-Williams update: the distance from cluster k to the merger of i and j.
  *
  * ward.D2 and centroid recur on SQUARED distances and take the root at the
- * end — which is exactly why R distinguishes ward.D from ward.D2. ward.D
+ * end, which is exactly why R distinguishes ward.D from ward.D2: ward.D
  * applies the same coefficients to unsquared distances and is not Ward's
- * criterion at all; the notebook calls `ward.D2` and so do we.
+ * criterion at all.
  */
 function lanceWilliams(method, dki, dkj, dij, ni, nj, nk) {
   switch (method) {
@@ -184,10 +174,10 @@ function lanceWilliams(method, dki, dkj, dij, ni, nj, nk) {
 /**
  * Cluster `rows` — an array of numeric vectors — returning the merge sequence.
  *
- * Act 1 passes twenty 2-vectors and act 2 passes fifty 20-vectors and twenty
- * 50-vectors, all through here. One implementation on purpose: the heatmap's
- * row tree and the scatter's tree are the same algorithm, and two copies of it
- * is how the two halves of a widget come to disagree.
+ * Everything the widget clusters goes through here — the Cluster tab's
+ * objects, the heatmap's genes and its samples. One implementation on purpose:
+ * the heatmap's row tree and the scatter's tree are the same algorithm, and
+ * two copies of it is how the two halves of a widget come to disagree.
  *
  * The return shape follows R's `hclust` closely enough to be checked against
  * it directly: `merge[m] = [a, b]` where a NEGATIVE entry -i is the singleton
@@ -359,13 +349,11 @@ export function gapAt(tree, k) {
  * This is the difference between the three methods, and until it is drawn the
  * difference is invisible: a merge rendered as one line between two cluster
  * centres looks the same whichever rule chose it, so the linkage control
- * appears to do nothing to the scatter. Kenneth reported exactly that.
+ * appears to do nothing to the scatter.
  *
- * The notebook draws this itself, in the three diagrams at cells 18, 22 and
- * 25 — complete gets ONE line between the two furthest members, average gets
- * EVERY cross pair, and Ward gets spokes from each member to its cluster
- * centre. The shapes below are those diagrams, so a student meets the same
- * picture twice.
+ * So each rule gets the marks that ARE its definition: complete gets ONE line
+ * between the two furthest members, average gets EVERY cross pair, and Ward
+ * gets spokes from each member to the centre it would form.
  *
  * Returns `{ kind, pairs, centres }` in point indices; the figure decides how
  * to paint them.
@@ -509,14 +497,13 @@ export function partialOrder(tree, shown) {
 /**
  * The distance matrix — the step between the data and the tree.
  *
- * `dist()` in the notebook, and the object the whole pipeline turns on: the
- * linkage reads it, the tree is built from it, and the cut is a line across
- * the tree it produced. The widget drew the data, the tree and the cut and
- * skipped this, which is also where the rows-versus-columns question lives:
- * clustering the rows of a 50 x 20 matrix means a 50 x 50 of gene-to-gene
- * distances, clustering the columns means a 20 x 20 of sample-to-sample ones.
- * Different objects, different sizes, and a student cannot see that from a
- * dendrogram.
+ * `dist()`, and the object the whole pipeline turns on: the linkage reads it,
+ * the tree is built from it, and the cut is a line across the tree it
+ * produced. Drawing the data, the tree and the cut but not this skips the step
+ * where the rows-versus-columns question lives — clustering the rows of a
+ * 50 x 20 matrix means a 50 x 50 of gene-to-gene distances and clustering its
+ * columns means a 20 x 20 of sample-to-sample ones. Different objects,
+ * different sizes, and a student cannot see that from a dendrogram.
  */
 export function distanceMatrix(rows, distance = "euclidean") {
   const fn = DISTANCES[distance].fn;
@@ -572,37 +559,35 @@ export function linkagesAgree(rows, k, methods = ["average", "complete", "ward.D
 }
 
 /* ---------------------------------------------------------------------------
-   ACT 2 — the notebook's own heatmap stage, cells 34-43.
+   THE MATRIX STAGE — the Heatmap tab, and the Cluster tab's objects.
 
-   Fifty genes by twenty samples. Genes 1-40 are four planted blocks of ten
-   (over- and under-expressed in each condition in turn); GENES 41-50 HAVE
-   NOTHING ADDED AT ALL. That last detail is the act, and it is the notebook's,
-   not an invention: cell 41 calls `cutree_rows = 5` and four of its five boxes
-   are the planted blocks, so the fifth is a box drawn around noise, unremarked.
+   Genes in four planted blocks, over- and under-expressed in each condition in
+   turn, plus GENES WITH NOTHING ADDED AT ALL. That last detail is the whole
+   point of the tab: ask for five row boxes and four of them are the planted
+   blocks, so the fifth is a box drawn around noise — drawn and labelled
+   exactly like the others.
 
-   Measured in R on the notebook's own seed: at 5 boxes one is pure noise, at 8
-   two are. On the sample side, a stage with exactly two groups subdivides into
-   3, 4, 5 and 6 boxes with every box still inside a single condition. And the
-   row dendrogram's top merge heights — 16.29, 13.01, 12.43, 10.70, then 8.95,
-   8.57, 8.52, 8.28 — fall off a cliff after the fourth merge, which is the
-   evidence the boxes throw away.
+   Measured: at 5 boxes one is pure noise, at 8 two are. On the sample side, a
+   stage with exactly two real groups subdivides into 3, 4, 5 and 6 boxes with
+   every box still inside a single condition. And the row dendrogram's top
+   merge heights fall off a cliff after the fourth merge, which is the evidence
+   the boxes throw away.
    ------------------------------------------------------------------------ */
-/* TWENTY GENES BY TWENTY SAMPLES, not the notebook's fifty by twenty. Measured in `_lab/hc-size.mjs`: at
-   fifty the matrix rows are 6px and the gene distance matrix is 5px a cell,
-   both too small to read, and the box-around-nothing the act depends on turns
-   up in only 73% of seeds. At thirty the rows are 10px, the cells 8.3px, and
-   that box turns up in 91%. Twenty is more legible still but makes the gene
-   matrix 20 x 20 — the same size as the sample matrix, which erases the
-   difference the rows/columns control exists to show. */
+/* TWENTY GENES BY TWENTY SAMPLES. Measured: at fifty genes the matrix rows are
+   6px and the gene distance matrix 5px a cell, both too small to read, and the
+   box-around-nothing the tab depends on turns up in only 73% of seeds. At
+   thirty the rows are 10px, the cells 8.3px, and that box turns up in 91%. At
+   twenty it is 86%, everything is legible, and the gene matrix comes out
+   20 x 20 — the same size as the sample matrix, so the rows/columns control is
+   symmetric. */
 export const HEAT_GENES = 20;
 export const HEAT_SAMPLES = 20;
 export const HEAT_PLANTED = 16;      // genes past this have no structure
 
 /**
- * `perBlock` and `noise` size the matrix. The notebook's own is 10 and 10,
- * giving 50 genes; smaller values keep the same four-block structure with
- * fewer rows, which is a legibility question and not a statistical one —
- * `_lab/hc-size.mjs` measures what survives at each size.
+ * `perBlock` and `noise` size the matrix, keeping the same four-block
+ * structure at any number of rows. It is a legibility question and not a
+ * statistical one.
  */
 export function heatStage({ lift = 2, perBlock = 4, noise = 4 } = {}, rng = makeRng(1)) {
   const half = HEAT_SAMPLES / 2;
@@ -614,8 +599,7 @@ export function heatStage({ lift = 2, perBlock = 4, noise = 4 } = {}, rng = make
     for (let s = 0; s < HEAT_SAMPLES; s += 1) row.push(rng.normal(0, 1));
     rows.push(row);
   }
-  // The notebook's four blocks, in its order: over then under in disease,
-  // then over then under in healthy.
+  // Four blocks: over then under in one condition, then the same in the other.
   const block = (lo, hi, from, to, delta) => {
     for (let g = lo; g < hi; g += 1) for (let s = from; s < to; s += 1) rows[g][s] += delta;
   };
@@ -667,7 +651,7 @@ export function heatStage({ lift = 2, perBlock = 4, noise = 4 } = {}, rng = make
      * added to anything, the readout counted five boxes against forty
      * imaginary blocks and reported "0 of 5 hold no structure" over a matrix
      * that is nothing but noise. Exactly backwards, and finite, so no NaN
-     * sweep would have seen it. Measured in `_lab/hc-lift.mjs`.
+     * sweep would have seen it.
      */
     planted: gOrder.map(plantedOf),
   };
@@ -680,9 +664,9 @@ function transpose(m) {
 /**
  * Which of the k boxes contain no planted gene at all.
  *
- * THE act-2 readout. A box of unstructured genes is drawn and labelled exactly
- * like a real one, and nothing on a heatmap distinguishes them — so the widget
- * has to say it, and it can, because `planted` is ground truth it holds.
+ * A box of unstructured genes is drawn and labelled exactly like a real one,
+ * and nothing on a heatmap distinguishes them — so the widget has to say it,
+ * and it can, because `planted` is ground truth it holds.
  */
 export function noiseBoxes(labels, planted) {
   const members = new Map();
