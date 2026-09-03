@@ -2594,6 +2594,79 @@
       },
       "px": "14568ba8",
       "tx": "37ecbd5e"
+    },
+    {
+      "$note": "NMF as it opens: the matrix alone, nothing factorised yet. `shown=0` is explicit because a widget with a shown parameter must pin it.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=0",
+      "px": "d5331d28",
+      "tx": "adfffafb"
+    },
+    {
+      "$note": "NMF settled at rank 2 on two real patterns — the method working, and two starts agreeing exactly.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17",
+      "px": "3d7bf5b3",
+      "tx": "979c249d"
+    },
+    {
+      "$note": "NMF asked for six signatures when the data holds three: the fit improves while agreement between starts collapses.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17&programmes=3&rank=6",
+      "px": "9aa6abd0",
+      "tx": "06e381f7"
+    },
+    {
+      "$note": "NMF under KL rather than squared error, three patterns, three signatures.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17&programmes=3&rank=3&algorithm=kl",
+      "px": "7bada862",
+      "tx": "2a8fa1d7"
+    },
+    {
+      "$note": "NMF geometry: two signatures as rays from the origin, and the cone the samples lie in.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17&programmes=3&rank=2&view=geometry",
+      "px": "7a20d196",
+      "tx": "540cbc05"
+    },
+    {
+      "$note": "PCA settled at three components: the centred matrix, both factors signed, and a lower residual than NMF's.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17&method=pca&programmes=3&components=3",
+      "px": "c11db207",
+      "tx": "098319ae"
+    },
+    {
+      "$note": "PCA geometry: components as double-headed axes through the mean, and the plane they span.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&shown=17&method=pca&programmes=3&components=2&view=geometry",
+      "px": "6cf2a6c3",
+      "tx": "8df4b07b"
+    },
+    {
+      "$note": "DRIVEN mid-descent: four multiplicative updates in, W and H still forming.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&programmes=3&rank=3",
+      "drive": {
+        "click": "run",
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "581c3e14",
+      "tx": "c3225ac0"
+    },
+    {
+      "$note": "DRIVEN, PCA: one frame of Solve reaches the finished answer, so these hashes match the settled PCA state deliberately — the closed form has nothing to iterate.",
+      "slug": "matrix-factorization",
+      "state": "?theme=light&method=pca&programmes=3&components=3",
+      "drive": {
+        "click": "run",
+        "frames": 1,
+        "dt": 32
+      },
+      "px": "c11db207",
+      "tx": "098319ae"
     }
   ]
 }

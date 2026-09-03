@@ -595,6 +595,23 @@
       ],
       "arc": 40,
       "status": "shipped"
+    },
+    {
+      "slug": "matrix-factorization",
+      "title": "Matrix Factorization",
+      "blurb": "Both NMF and PCA split one matrix into two smaller ones; only one of them is allowed a minus sign.",
+      "course": "PHM5003",
+      "topics": [
+        "NMF",
+        "PCA",
+        "signatures",
+        "dimensionality reduction",
+        "matrix factorization",
+        "unsupervised",
+        "omics"
+      ],
+      "arc": 41,
+      "status": "shipped"
     }
   ]
 }

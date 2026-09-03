@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · matrix-factorization — record its fingerprint states</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { font-family: var(--font-mono); font-size: 12px; padding: 16px; }
+  pre { white-space: pre-wrap; user-select: all; background: var(--surface-1);
+        border: 1px solid var(--grid); padding: 10px; }
+  table { border-collapse: collapse; font-size: 11px; margin: 12px 0; }
+  th, td { border: 1px solid var(--grid); padding: 2px 8px; text-align: left; }
+  .ok { color: var(--c-empirical); }
+  .bad { color: var(--c-extreme); }
+  .frames { position: absolute; left: -99999px; top: 0; }
+</style>
+</head>
+<body>
+<h1>matrix-factorization — record its states</h1>
+<p>Hashes this widget's states DIRECTLY, three times each, and prints the JSON to
+paste into <code>fingerprint-baseline.json</code>. It does not touch the other
+widgets: they are baselined once and after that you only ever ADD. Driven states
+are only reported once all three runs agree.</p>
+<p id="status">running…</p>
+<table id="out"></table>
+<pre id="json"></pre>
+<div class="frames" id="frames"></div>
+
+<script type="module">
+/* FRAME_W / FRAME_H / SETTLE_MS are fingerprint.html's, and must stay its:
+   the canvas width feeds the hash, and 900 is 20px above the 880px stacking
+   breakpoint, so every state is hashed with the rail still beside the figure. */
+const FRAME_W = 900, FRAME_H = 1200, SETTLE_MS = 400;
+const frames = document.getElementById("frames");
+
+const hash = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, "0");
+};
+const figureText = (doc) => [".w-math", ".w-legend", ".w-readout"]
+  .map((sel) => [...doc.querySelectorAll(sel)].map((n) => n.textContent).join(" "))
+  .join(" | ").replace(/\s+/g, " ").trim();
+
+async function settle(frame, minMs, maxMs = 4000) {
+  const t0 = Date.now();
+  let last = null, still = 0;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 50));
+    const c = frame.contentDocument?.querySelector(".w-figure canvas");
+    const now = c ? `${c.width}x${c.height}` : null;
+    still = now !== null && now === last ? still + 1 : 0;
+    last = now;
+    const waited = Date.now() - t0;
+    if (waited >= maxMs) return { size: last, timedOut: true };
+    if (waited >= minMs && still >= 2) return { size: last, timedOut: false };
+  }
+}
+
+/* fingerprint.html's `drive`, reduced to the verbs these states use. The
+   browser's own frame clock is throttled in automation and varies run to run,
+   so a mid-animation hash taken against real time is noise; replacing rAF with
+   a queue fed fixed timestamps makes the frame exactly reproducible. */
+function drive(win, doc, spec) {
+  const queue = [];
+  win.requestAnimationFrame = (cb) => queue.push(cb);
+  let t = 0;
+  /* by `data-key`, never by position (5.7) */
+  const press = (key) => {
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`)
+      ?? doc.querySelector(`.w-btn[data-key="${key}"]`);
+    if (!b) throw new Error(`no "${key}" drive button`);
+    b.click();
+  };
+  const setParam = (name, value) => {
+    const el = doc.querySelector(`[data-param="${name}"]`);
+    if (!el) throw new Error(`no control for "${name}"`);
+    const seg = el.querySelector?.(`.w-btn[data-value="${value}"]`);
+    if (seg) { seg.click(); return; }
+    el.value = value;
+    el.dispatchEvent(new win.Event("input", { bubbles: true }));
+  };
+  const act = (step) => {
+    for (const [k, v] of Object.entries(step.set ?? {})) setParam(k, v);
+    if (step.click) press(step.click);
+  };
+  const dt = spec.dt ?? 32;
+  for (const step of spec.before ?? []) {
+    act(step);
+    for (let i = 0; i < (step.frames ?? 0); i += 1) {
+      const cb = queue.shift(); if (!cb) break; t += dt; cb(t);
+    }
+  }
+  act(spec.set || spec.click ? spec : { click: "step" });
+  let ran = 0;
+  for (let i = 0; i < spec.frames; i += 1) {
+    const cb = queue.shift(); if (!cb) break; t += dt; cb(t); ran += 1;
+  }
+  return ran;
+}
+
+async function shoot(entry) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W; frame.height = FRAME_H; frame.style.border = "0";
+  frame.src = `../${entry.slug}/${entry.state}`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  const rest = await settle(frame, entry.drive ? 150 : SETTLE_MS);
+  let px = "error", tx = "error", ran = null;
+  try {
+    if (entry.drive) ran = drive(frame.contentWindow, frame.contentDocument, entry.drive);
+    const canvas = frame.contentDocument.querySelector(".w-figure canvas");
+    px = canvas ? hash(canvas.toDataURL("image/png")) : "no canvas";
+    tx = hash(figureText(frame.contentDocument));
+  } catch (e) {
+    px = tx = "error"; ran = String(e.message ?? e);
+  }
+  frame.remove();
+  return { px, tx, ran, size: rest.size, timedOut: rest.timedOut };
+}
+
+/* ---- the states ------------------------------------------------------- */
+const S = "matrix-factorization";
+const STATES = [
+  { $note: "NMF as it opens: the matrix alone, nothing factorised yet.",
+    slug: S, state: "?theme=light&shown=0" },
+  { $note: "NMF settled at rank 2 on two real patterns — the method working, and two starts agreeing exactly.",
+    slug: S, state: "?theme=light&shown=17" },
+  { $note: "NMF asked for six signatures when the data holds three: the fit improves while agreement between starts collapses.",
+    slug: S, state: "?theme=light&shown=17&programmes=3&rank=6" },
+  { $note: "NMF under KL rather than squared error, three patterns, three signatures.",
+    slug: S, state: "?theme=light&shown=17&programmes=3&rank=3&algorithm=kl" },
+  { $note: "NMF geometry: two signatures as rays from the origin, and the cone the samples lie in.",
+    slug: S, state: "?theme=light&shown=17&programmes=3&rank=2&view=geometry" },
+  { $note: "PCA settled at three components: the centred matrix, both factors signed, and a lower residual than NMF's.",
+    slug: S, state: "?theme=light&shown=17&method=pca&programmes=3&components=3" },
+  { $note: "PCA geometry: components as double-headed axes through the mean, and the plane they span.",
+    slug: S, state: "?theme=light&shown=17&method=pca&programmes=3&components=2&view=geometry" },
+  { $note: "DRIVEN mid-descent: four multiplicative updates in, W and H still forming.",
+    slug: S, state: "?theme=light&programmes=3&rank=3", drive: { click: "run", frames: 4, dt: 32 } },
+  /* ONE frame, not four, and its hashes deliberately equal the settled PCA
+     state above: that IS the assertion. PCA has a closed form, so a single
+     frame of Solve reaches the finished answer, and if it ever grew a
+     multi-step reveal this state would stop matching its twin. */
+  { $note: "DRIVEN, PCA: one frame of Solve reaches the finished answer, so these hashes match the settled PCA state deliberately — the closed form has nothing to iterate.",
+    slug: S, state: "?theme=light&method=pca&programmes=3&components=3", drive: { click: "run", frames: 1, dt: 32 } },
+  /* AN INTERRUPTED STATE WAS TRIED AND DROPPED: `before` run 3 frames, then
+     `set: { view: "geometry" }`, then 3 measured frames. It was stable across
+     three runs HERE and still disagreed with fingerprint.html, which reported
+     "+0f" — no rAF callback was pending by the time the measured phase began,
+     so the harness hashed the settled geometry picture while this page hashed a
+     mid-flight one. Both hashes differed, not just `px`, so it was a real
+     disagreement about what state the widget was in rather than the scrollbar
+     flake. A check that two harnesses read differently is worse than none. */
+];
+
+const out = document.getElementById("out");
+out.innerHTML = "<tr><th>state</th><th>px</th><th>tx</th><th>size</th><th>runs agree</th></tr>";
+const final = [];
+let allOk = true;
+
+for (const st of STATES) {
+  /* THREE RUNS, and a driven state is only recorded if all three agree. A flaky
+     check is worse than none. */
+  const runs = [];
+  for (let i = 0; i < 3; i += 1) runs.push(await shoot(st));
+  const same = runs.every((r) => r.px === runs[0].px && r.tx === runs[0].tx);
+  const bad = runs[0].px === "error" || runs[0].px === "no canvas" || !same || runs[0].timedOut;
+  if (bad) allOk = false;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${st.state}${st.drive ? " <b>DRIVEN</b>" : ""}</td>`
+    + `<td>${runs[0].px}</td><td>${runs[0].tx}</td><td>${runs[0].size}</td>`
+    + `<td class="${bad ? "bad" : "ok"}">${same ? "yes" : runs.map((r) => r.px).join(" / ")}`
+    + `${runs[0].timedOut ? " NEVER SETTLED" : ""}${runs[0].ran !== null ? ` · ${runs[0].ran}f` : ""}</td>`;
+  out.appendChild(tr);
+  const rec = { $note: st.$note, slug: st.slug, state: st.state };
+  if (st.drive) rec.drive = st.drive;
+  rec.px = runs[0].px; rec.tx = runs[0].tx;
+  final.push(rec);
+}
+
+document.getElementById("status").textContent =
+  allOk ? `all ${STATES.length} states stable across three runs` : "SOMETHING IS UNSTABLE — do not baseline";
+document.getElementById("status").className = allOk ? "ok" : "bad";
+document.getElementById("json").textContent = JSON.stringify(final, null, 2);
+</script>
+</body>
+</html>

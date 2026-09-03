@@ -1,8 +1,14 @@
 # Handover
 
-**Forty widgets shipped — 39 on the gallery, `roc-auc` UNLISTED (live at its
-URL, off the cards; Kenneth's call, 2026-08-30) — and 294 fingerprint states
+**Forty-one widgets shipped — 40 on the gallery, `roc-auc` UNLISTED (live at
+its URL, off the cards; Kenneth's call, 2026-08-30) — and 303 fingerprint states
 recorded. THE LAB PAGE IS EMPTY: nothing is in draft.**
+
+**Widget 41 `matrix-factorization` shipped and PUSHED 2026-09-03** after three
+review rounds in one day. Two tabs, NMF and PCA, factorising the same matrix
+into the same two pieces; two views, the decomposition and the geometry. It
+began as `nmf` and was renamed and restructured mid-review. Catalogue § Slot 2
+carries every round.
 
 **Widget 40 `batch-effect` shipped and PUSHED 2026-09-02** after eleven review
 rounds in one day. One gated widget: ground truth permanently beside the
@@ -75,60 +81,93 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: pick the next HTD slot — three remain, none picked
+## NEXT: nothing is picked — two HTD slots remain
 
-**WIDGET 40 `batch-effect` SHIPPED AND PUSHED 2026-09-02** on Kenneth's "tested
-ok, push it to gallery". Eleven review rounds in one day. The full record is
-catalogue § Slot 3; what follows is only what a future session needs.
+**Widget 41 shipped and pushed 2026-09-03.** The lab page is empty again.
 
 ```bash
-node scripts/serve.mjs 8011
-# http://localhost:8011/widgets/batch-effect/                                   (balanced, observed)
-# .../widgets/batch-effect/?colourBy=batch&shift=4                              (the diagnostic)
-# .../widgets/batch-effect/?correcting=1&overlap=0.75&method=combat&mod=null    (the biology removed)
-# .../widgets/batch-effect/?correcting=1&overlap=0.5&method=ruv&controls=random (0.54 for a 0.80 effect)
-node widgets/_lab/batch-methods.mjs     # the method tables
-node widgets/_lab/batch-measure.mjs     # the planning measurements
-# _lab/batch-shoot.html — the shooter that recorded its eleven states
+node scripts/serve.mjs 8012
+W=http://localhost:8012/widgets/matrix-factorization
+# $W/                                                (empty, as it opens)
+# $W/?shown=17&programmes=3&rank=3                   (NMF, solved)
+# $W/?shown=17&method=pca&programmes=3&components=3  (PCA, the same matrix)
+# $W/?shown=17&programmes=3&rank=2&view=geometry     (the cone)
+# $W/?shown=17&method=pca&components=2&view=geometry (the plane — one tab away)
+# $W/?shown=17&programmes=2&rank=6                   (agreement collapses)
+node widgets/_lab/mf-drive.mjs     # 1103 assertions + a 288-state sweep, no browser
+node widgets/_lab/mf-nesting.mjs   # the two tabs measured against each other
+# _lab/mf-shoot.html — the shooter that recorded its nine states
 ```
 
-**THE ONE THING WORTH CARRYING FORWARD, because it cost five rounds:** correcting
-the data and modelling a nuisance variable prescribe OPPOSITE actions on the same
-matrix. A PCA has nowhere to put a covariate, so looking at the data needs the
-matrix transformed; a per-gene test must NOT have it transformed, or the interval
-is too narrow. The tell was in the code — a covariate method had been given a
-transformation it does not have, purely so a scatter had something to draw. Any
-widget that puts a picture and an estimate on the same page can make this
-mistake.
+**THE TWO THINGS WORTH CARRYING FORWARD.**
 
-**Still open on widget 40**, both cosmetic and neither blocking:
+**One: printing a number is what caught both real bugs, and no picture would
+have.** PCA's residual came out 6.8 and rising with k (a centred reconstruction
+scored against an uncentred matrix), then 19 and still rising (`load × scoresᵀ`
+overshoots by the singular value, because `load` already carries it — the
+factorization needs the UNIT eigenvector). Both heatmaps looked entirely
+plausible throughout. Separately, the PCA readout printed *"NMF took 1 updates"*
+because it read the iteration counter off the PCA snapshot: **a wrong but finite
+number is invisible to the NaN sweep**, and nothing automated in this repo could
+have caught it. Read the readout on every round.
 
-- With both panels coloured by condition, nothing says the two clusters in the
-  observed panel ARE the batches. The colour toggle answers it, but only if the
-  reader presses it.
-- RUV's cleaned picture disagrees with its own estimate — condition separation
-  1.23 against a fit of 0.94 at strong confounding — because the same W is used
-  to clean the panel and to fit the model. It is explained in a comment and
-  nowhere on the figure.
+**Two: two checks were passing while broken, and both are now real.** The canvas
+text sweep capped string *length*, which says nothing about fit — a 63-character
+note starting at x = 470 ran to 828px on a 770px stage and passed. It now records
+**x and the alignment** and computes the right edge, and needed the stub to track
+`save`/`restore`/`rotate` or the rotated axis label cried wolf at every state.
+And a new assertion re-draws each rank through a stub recording the lowest
+painted rectangle, comparing it with the declared height — which caught `height`
+being a constant while the layout depended on the rank. **A test written against
+the implementation agrees with the implementation's bugs**: the driver's legend
+assertions called `W.legend()` flat, the same wrong way the widget destructured
+it, and passed while every view showed the wrong legend.
 
-**Kenneth still owes the notebook links.** Ten widgets have no link from the
-MyST lessons that host them, `batch-effect` (HTD 05/05) and `normalization`
-(HTD 05/03) now among them. They are his to place — see prd §4 for what works.
+### Still open on widget 41, none of it blocking
 
-**THE ACTUAL NEXT TASK: Kenneth picks one of three.** None is started, and the
-catalogue's § *The high-throughput arc* has a planning section for each.
+- **The ray labels crowd at k = 5 and 6** in the geometry view, where five or six
+  midpoints converge near the origin.
+- **The stage is generic** — 24 genes by 12 samples, with no host-specific
+  shape.
+- **Switching tabs resets the animation**, because `method` changes what is
+  computed and so is a data parameter. Solve is pressed once per tab. Holding
+  both fits in `state` would let a reader flip between two solved pictures.
+- **The two tabs never appear side by side.** A retired mid-review panel did
+  that; the tabs are a cleaner structure but they trade simultaneity for it.
+- **An interrupted fingerprint state was tried and dropped** as flaky — the
+  shooter and `fingerprint.html` disagreed about it. Catalogue § Slot 2 has the
+  diagnosis.
+- **Not judged projected**, which every widget from 11 on still owes.
 
-| slot | slug | notebook | the claim |
-|---|---|---|---|
-| 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation — and a hole in an arc this repo already called complete |
-| 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
-| 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
+### The suite is flaky again in the known way — five DIFFERs, and they are not yours
 
-The rhythm that has worked for the last four widgets, and which Kenneth expects:
-**measure the notebook's own stage first** and say what the numbers force, then
+The last full run reported five, drawn from `naive-bayes` and `lm-adjustment`.
+All three of the recorded tells point at measurement rather than code: `tx`
+identical with only `px` moving, the set changing between runs (nine on one pass,
+five on the next, different members), and nothing in widget 41 can reach those
+widgets. **Do not rebaseline them.** § *The fingerprint harness* has the
+scrollbar diagnosis.
+
+### THE ACTUAL NEXT TASK: Kenneth picks, or holds
+
+Two HTD slots remain and **neither is picked**:
+
+| slot | slug | the claim |
+|---|---|---|
+| 4 | `hierarchical-clustering` | a dendrogram is a consequence of two choices and a cut, not a finding |
+| 5 | `enrichment` | ORA's answer moves with the background and the cutoff, neither of which the student chose |
+
+Catalogue § *The high-throughput arc* has a planning section for each, and both
+carry open scope calls that are Kenneth's to close. The rhythm he expects:
+**measure the lesson's own stage first** and say what the numbers force, then
 **mock anything that would otherwise be argued about** in `_lab/`, then ask the
-decision questions, then build a draft, then iterate on his review, and push
-only on "tested ok".
+decision questions, then build a draft, then iterate, and push only on his word.
+
+**A session with nothing picked should hold, not invent scope** — prd §11 exists
+to be pointed at.
+
+**Kenneth still owes the notebook links.** Eleven widgets now have no link from
+the lessons that host them. They are his to place — see prd §4 for what works.
 
 ## The high-throughput arc — THREE SLOTS LEFT, none picked
 
@@ -142,12 +181,12 @@ and `01 Experimental Design` is out of scope. That leaves five:
 | slot | slug | notebook | the claim |
 |---|---|---|---|
 | 1 | `normalization` | 05 / 03 | **SHIPPED 2026-09-02** — scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
-| 2 | `nmf` | 05 / 04 `## 2` | a decomposition into parts you add up, not a rotation. **A hole in an arc this repo called complete** |
+| 2 | `matrix-factorization` | 05 / 04 | **SHIPPED 2026-09-03** — NMF and PCA as two tabs; the constraint, and what it costs |
 | 3 | `batch-effect` | 05 / 05 | **SHIPPED 2026-09-02** — the danger is confounding, not noise; correct a confounded design and the disease effect goes with it |
 | 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
 | 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
 
-**SLOT 1 IS PICKED, ASKED, BUILT AND DRAFTED** — see NEXT above. The catalogue
+**SLOTS 1, 2 AND 3 HAVE SHIPPED.** The catalogue
 section still carries four open calls that are Kenneth's to close: slot 4's
 scope, slot 5's shape (one widget with tabs or two), whether `05 / 06` needs a
 `p ≫ n` act widget 14 does not have, and a citation to verify. Slots 2–5 are

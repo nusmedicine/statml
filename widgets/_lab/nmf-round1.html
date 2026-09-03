@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · nmf round 1 — Solve, the vocabulary, and PCA as a decomposition</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 104ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 470px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; white-space: pre-wrap; max-width: 500px; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: var(--sp-2) 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+  .rail { border: 1px dashed var(--grid); padding: var(--sp-3); background: var(--surface-2); width: 260px; }
+  .rail .lab2 { font-size: var(--fs-sm); color: var(--ink-1); }
+  .rail .det { font-size: 10px; color: var(--ink-3); margin: 1px 0 10px; }
+  .btnrow { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .btn { border: 1px solid var(--border, var(--grid)); background: var(--surface-3); color: var(--ink-1);
+         border-radius: var(--radius); padding: 6px 10px; font-size: var(--fs-sm); text-align: center; }
+  .tiles { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-2) 0 var(--sp-3); }
+  .tile { border: 1px solid var(--grid); background: var(--surface-1); padding: 6px 10px; min-width: 156px; }
+  .tile .l { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .v { font-size: var(--fs-fig); font-family: var(--font-mono); color: var(--ink-1); line-height: 1.2; }
+  .tile .n { font-size: 10px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 41 <code>nmf</code> · round 1 — research and mock-ups, nothing changed yet</h1>
+  <p class="note">
+    Everything drawn here imports <code>../nmf/model.js</code>, the widget's own
+    stage and solver, so no number on this page is a reimplementation that could
+    drift from the figure. <code>node widgets/_lab/mf-nesting.mjs</code> reprints
+    them all. The draft itself is unchanged and still at
+    <code>/widgets/nmf/</code>.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§1 · "Solve" instead of Step and Play</h2>
+  <p class="note">
+    Straightforward, and core already supports it: <code>stepLabel: null</code>
+    <em>declines</em> the Step button for the life of the widget (widget.js
+    line 1009 says so in as many words), leaving the run button alone. So the
+    drive row becomes one button plus Reset.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>now</h3>
+      <p class="sub">three buttons; the descent is something you scrub through</p>
+      <div class="rail">
+        <div class="btnrow">
+          <div class="btn">Update</div><div class="btn">Play</div><div class="btn">Reset</div>
+        </div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>proposed</h3>
+      <p class="sub">one button; the descent is something that happens</p>
+      <div class="rail">
+        <div class="btnrow">
+          <div class="btn">Solve</div><div class="btn">Reset</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    <b>One thing worth deciding with it.</b> The descent still animates — the
+    snapshots are already computed — so "Solve" would <em>run</em> it rather than
+    jump. If you would rather it land instantly, that is a different change and
+    the animation comes out entirely, which also removes the widget's only
+    driven fingerprint state.
+  </p>
+  <p class="ask">
+    <b>ASK 1.</b> "Solve" runs the descent as an animation (one press, it plays
+    out), or "Solve" lands on the answer immediately with no motion at all?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§2 · The vocabulary — and your own course already has the word</h2>
+  <p class="note">
+    <b><code>07 - Cancer Mutation Analysis / 01-4 - Cohort - Mutational Signatures</code>
+    runs this exact algorithm on this exact matrix shape.</b> Its cell 19 writes
+    the model as <code>M ≈ S · W</code> — "<em>M is the original trinucleotide
+    matrix, S is the matrix of signatures, and W is the matrix of exposures</em>"
+    — and its three steps are <em>calculate the matrix</em>, <em>estimate the
+    number of signatures</em>, <em>extract signatures</em>. Cell 21 is
+    <code>library(NMF)</code>. The matrix is even called
+    <code>tnm$nmf_matrix</code>.
+  </p>
+  <p class="note">
+    So the word you were reaching for is in your own notebook, and this widget
+    can host <b>two</b> lessons the way widgets 20, 21 and 22 each host two.
+    Two things follow. <b>One:</b> that notebook's step 2 chooses the rank by how
+    <em>stable</em> the decomposition is across repeated runs (cophenetic
+    correlation), which is the same quantity as the draft's <em>agreement
+    between starts</em> — measured in §3 below, and it elbows in the right place.
+    <b>Two:</b> the two notebooks disagree on letters — 05/04 calls the basis
+    <code>W</code>, 07/01-4 calls the exposures <code>W</code>. The widget should
+    pick one and probably name the objects rather than the letters.
+  </p>
+  <div class="row" id="vocab"></div>
+  <p class="ask">
+    <b>ASK 2.</b> Which vocabulary? And should the widget name 07/01-4 as a
+    second host, which would make its stage the trinucleotide case as well as
+    the gene case?
+  </p>
+
+  <h3 style="margin-top:var(--sp-4)">…and this is what makes the reduction visible</h3>
+  <p class="note">
+    Your other half of the question — <em>how do students see that it reduces
+    dimensions?</em> The honest answer is a count, and it is not currently on
+    screen anywhere: <code>V</code> is 288 numbers; <code>W</code> and
+    <code>H</code> together are 36 per part.
+  </p>
+  <div class="tiles" id="compress"></div>
+  <table class="m" id="comptab"></table>
+
+  <!-- ================================================================== -->
+  <h2>§3 · PCA <em>is</em> a matrix decomposition — and your instinct about the difference is right</h2>
+  <p class="note">
+    PCA is <code>V ≈ L × S</code> exactly as NMF is <code>V ≈ W × H</code>: same
+    three matrices, same shapes. Drawing only the loadings hid that. <b>But the
+    difference you named is the real one, and it is sharper than
+    signed-versus-not:</b> PCA does one eigendecomposition and hands back every
+    component, so choosing 2 or 6 is a choice about <em>how many to keep</em>;
+    NMF has to be told the number <em>before it starts</em> and refits
+    everything when you change it.
+  </p>
+  <div class="row" id="decomp"></div>
+  <p class="note">
+    Below: the first two components of each, computed once asking for 2 and once
+    asking for 6. Nothing is asserted — the cosines are computed on this page.
+  </p>
+  <table class="m" id="nesttab"></table>
+  <p class="note" id="nestnote"></p>
+  <p class="ask">
+    <b>ASK 3.</b> Does the PCA view become this — both as <code>V ≈ · × ·</code>
+    triples with a "now ask for one more" comparison — replacing the loadings
+    bars, or sitting above them?
+  </p>
+
+<script type="module">
+import { makeStage, fitTrace, pcaOf, cosine, col, GENES, SAMPLES } from "../matrix-factorization/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+function mk(host, w, h, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  c.width = w * DPR; c.height = h * DPR; c.style.width = w + "px"; c.style.height = h + "px";
+  d.appendChild(c);
+  const cap = document.createElement("div"); cap.className = "cap"; d.appendChild(cap);
+  host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `11px ${css("--font-mono")}`;
+  return { ctx, cap, w, h };
+}
+const label = (ctx, s, x, y, colour, align = "left") => {
+  ctx.save(); ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+};
+
+/* one stage for the page, the widget's own */
+const PROG = 3;
+const ST = makeStage(PROG, makeRng(1));
+const fitAt = (r) => { const t = fitTrace(ST.V, r, 1, "frobenius", makeRng(1)); return t[t.length - 1]; };
+
+/* ---------- ramps ---------- */
+const rgb = (ctx, c) => {
+  ctx.fillStyle = c; const s = ctx.fillStyle;
+  if (s[0] === "#") return s.length === 4
+    ? [1, 2, 3].map((i) => parseInt(s[i] + s[i], 16))
+    : [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+  const m = s.match(/[\d.]+/g) || [0, 0, 0];
+  return [Number(m[0]), Number(m[1]), Number(m[2])];
+};
+const mix = (ctx, lo, hi, t) => {
+  const a = rgb(ctx, lo), b = rgb(ctx, hi), u = Math.max(0, Math.min(1, t));
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * u)).join(",")})`;
+};
+/* magnitudes: one-sided. signed: two-sided about zero — and needing a different
+   ramp at all is itself the difference the panel is about. */
+const seq = (ctx, t) => mix(ctx, css("--surface-3"), css("--c-value-high"), t);
+const div = (ctx, t) => (t >= 0
+  ? mix(ctx, css("--surface-3"), css("--c-value-high"), t)
+  : mix(ctx, css("--surface-3"), css("--c-value-low"), -t));
+
+function heat(ctx, M, x, y, cw, ch, signed) {
+  const flat = M.flat();
+  const mxAbs = Math.max(...flat.map(Math.abs)) || 1;
+  const sorted = flat.slice().sort((a, b) => a - b);
+  const p98 = sorted[Math.floor(0.98 * (sorted.length - 1))] || 1;
+  M.forEach((row, i) => row.forEach((v, j) => {
+    ctx.fillStyle = signed ? div(ctx, v / mxAbs) : seq(ctx, v / p98);
+    ctx.fillRect(x + j * cw, y + i * ch, cw - 1, ch - 1);
+  }));
+}
+
+/* ================================================== §2 vocabulary */
+{
+  const host = document.getElementById("vocab");
+  const SETS = [
+    { name: "A · as drafted", truth: "Real programmes", rank: "Parts to fit",
+      W: "parts", H: "weights", note: "generic; nothing in either notebook uses it" },
+    { name: "B · your 07 notebook, verbatim", truth: "Real processes", rank: "Signatures to extract",
+      W: "signatures", H: "exposures",
+      note: "07/01-4 cell 19's own words. A mutational PROCESS is the real thing;\na SIGNATURE is the spectrum NMF extracts to stand for it — so the\ntruth/estimate split the widget needs is already in the language." },
+    { name: "C · 05/04's own words", truth: "Real programmes", rank: "Rank",
+      W: "basis", H: "coefficients",
+      note: "05/04 cell 20: `basis` and `coef` are the R function names.\nAccurate, and says nothing about what the columns MEAN." },
+    { name: "D · hybrid", truth: "Real signatures", rank: "Signatures to find",
+      W: "signatures", H: "how much of each", note: "one word throughout; the truth dial and the rank\ndial then differ only by 'real'" },
+  ];
+
+  for (const s of SETS) {
+    const C = mk(host, 470, 250, s.name, "");
+    const { ctx } = C;
+    const cw = 8, ch = 6, top = 40, r = 3;
+    const snap = fitAt(r);
+    const x0 = 30;
+    heat(ctx, ST.V, x0, top, cw, ch, false);
+    label(ctx, "V", x0 + SAMPLES * cw / 2, top - 8, css("--ink-1"), "center");
+    label(ctx, "samples", x0 + SAMPLES * cw / 2, top + GENES * ch + 13, css("--ink-3"), "center");
+    const xW = x0 + SAMPLES * cw + 24;
+    label(ctx, "≈", xW - 12, top + GENES * ch / 2, css("--ink-2"), "center");
+    heat(ctx, snap.W, xW, top, cw, ch, false);
+    label(ctx, s.W, xW + r * cw / 2, top - 8, css("--ink-1"), "center");
+    const xH = xW + r * cw + 24;
+    label(ctx, "×", xH - 12, top + GENES * ch / 2, css("--ink-2"), "center");
+    heat(ctx, snap.H, xH, top, cw, ch, false);
+    label(ctx, s.H, xH + SAMPLES * cw / 2, top - 8, css("--ink-1"), "center");
+
+    /* the two rail labels, as they would read */
+    label(ctx, `rail:  ${s.truth}   ·   ${s.rank}`, x0, top + GENES * ch + 34, css("--ink-2"));
+    /* Two lines, not one: at 400px the single line ran off the canvas and the
+       readout label it was demonstrating was the half that got cut. */
+    label(ctx, `readout:  "Agreement between starts"`, x0, top + GENES * ch + 50, css("--ink-3"));
+    label(ctx, `          "Match to the real ${s.W}"`, x0, top + GENES * ch + 64, css("--ink-3"));
+    C.cap.textContent = s.note;
+  }
+}
+
+/* ================================================== §2b compression */
+{
+  const tiles = document.getElementById("compress");
+  const r = PROG;
+  const snap = fitAt(r);
+  const stored = GENES * r + r * SAMPLES;
+  const mk2 = (l, v, n) => {
+    const d = document.createElement("div"); d.className = "tile";
+    d.innerHTML = `<div class="l">${l}</div><div class="v">${v}</div><div class="n">${n}</div>`;
+    tiles.appendChild(d);
+  };
+  mk2("The matrix", `${GENES * SAMPLES}`, `${GENES} genes × ${SAMPLES} samples`);
+  mk2("Kept", `${stored}`, `${GENES}×${r} + ${r}×${SAMPLES}`);
+  mk2("Of the original", `${Math.round(100 * stored / (GENES * SAMPLES))}%`, "and that is the reduction");
+  mk2("Unexplained", `${(100 * snap.rel).toFixed(1)}%`, "what it cost to throw the rest away");
+
+  const t = document.getElementById("comptab");
+  let rows = "<tr><th>parts</th><th>numbers kept</th><th>of the original</th><th>unexplained</th></tr>";
+  for (let k = 1; k <= 6; k += 1) {
+    const s = fitAt(k), st = GENES * k + k * SAMPLES;
+    rows += `<tr><td>${k}${k === PROG ? " (= the truth)" : ""}</td><td>${st}</td>`
+      + `<td>${Math.round(100 * st / (GENES * SAMPLES))}%</td>`
+      + `<td class="${k === PROG ? "hit" : ""}">${(100 * s.rel).toFixed(1)}%</td></tr>`;
+  }
+  t.innerHTML = rows;
+}
+
+/* ================================================== §3 both as decompositions */
+{
+  const host = document.getElementById("decomp");
+  const r = 3;
+  const snap = fitAt(r);
+  const pcs = pcaOf(ST.V, 6);
+  /* PCA as V ≈ L × S: L is genes × r (loadings), S is r × samples (scores). */
+  const L = Array.from({ length: GENES }, (_, g) => pcs.slice(0, r).map((p) => p.load[g]));
+  const S = pcs.slice(0, r).map((p) => p.scores);
+
+  const draw = (title, sub, Wm, Hm, wName, hName, signed) => {
+    const C = mk(host, 420, 300, title, sub);
+    const { ctx } = C;
+    const cw = 9, ch = 7, top = 44, x0 = 34;
+    heat(ctx, ST.V, x0, top, cw, ch, false);
+    label(ctx, "V", x0 + SAMPLES * cw / 2, top - 10, css("--ink-1"), "center");
+    label(ctx, "the same matrix", x0 + SAMPLES * cw / 2, top + GENES * ch + 14, css("--ink-3"), "center");
+    const xW = x0 + SAMPLES * cw + 26;
+    label(ctx, "≈", xW - 13, top + GENES * ch / 2, css("--ink-2"), "center");
+    heat(ctx, Wm, xW, top, cw, ch, signed);
+    label(ctx, wName, xW + r * cw / 2, top - 10, css("--ink-1"), "center");
+    const xH = xW + r * cw + 26;
+    label(ctx, "×", xH - 13, top + GENES * ch / 2, css("--ink-2"), "center");
+    heat(ctx, Hm, xH, top, cw, ch, signed);
+    label(ctx, hName, xH + SAMPLES * cw / 2, top - 10, css("--ink-1"), "center");
+    const neg = Wm.flat().filter((v) => v < 0).length;
+    label(ctx, signed ? "red positive, blue negative" : "one-sided: nothing is ever negative",
+      x0, top + GENES * ch + 36, css("--ink-3"));
+    label(ctx, `negative entries: ${neg} of ${GENES * r}`, x0, top + GENES * ch + 52, css("--ink-3"));
+    return C;
+  };
+  const A = draw("PCA · V ≈ L × S", "one eigendecomposition; you choose how many columns to KEEP",
+    L, S, "loadings", "scores", true);
+  A.cap.textContent = "the same three matrices, the same shapes.\nIt needs a two-sided ramp, and that is the whole of the sign story.";
+  const B = draw("NMF · V ≈ W × H", "told the number first; refits everything when you change it",
+    snap.W, snap.H, "signatures", "exposures", false);
+  B.cap.textContent = "one-sided, so a single ramp suffices.\nAsk for a different number and every column is refit.";
+}
+
+/* ================================================== §3b nesting */
+{
+  const pcsA = pcaOf(ST.V, 2), pcsB = pcaOf(ST.V, 6);
+  const nmfA = fitAt(2), nmfB = fitAt(6);
+  const t = document.getElementById("nesttab");
+  let rows = "<tr><th></th><th>asked for 2</th><th>asked for 6</th><th>cosine</th><th></th></tr>";
+  for (let k = 0; k < 2; k += 1) {
+    const c = cosine(pcsA[k].load, pcsB[k].load);
+    rows += `<tr><td>PCA · PC${k + 1}</td><td>${(100 * pcsA[k].share).toFixed(1)}% of variance</td>`
+      + `<td>${(100 * pcsB[k].share).toFixed(1)}%</td><td class="hit">${c.toFixed(6)}</td>`
+      + `<td>${c > 0.999999 ? "the same vector" : "moved"}</td></tr>`;
+  }
+  for (let k = 0; k < 2; k += 1) {
+    let best = -1, at = -1;
+    for (let l = 0; l < 6; l += 1) {
+      const c = cosine(col(nmfA.W, k), col(nmfB.W, l));
+      if (c > best) { best = c; at = l + 1; }
+    }
+    rows += `<tr><td>NMF · part ${k + 1}</td><td>one of 2</td><td>closest is part ${at} of 6</td>`
+      + `<td class="${best < 0.99 ? "bad" : ""}">${best.toFixed(6)}</td><td>refit</td></tr>`;
+  }
+  t.innerHTML = rows;
+  document.getElementById("nestnote").innerHTML =
+    "So the sentence the widget can put on screen is: <b>PCA gives you all of them "
+    + "and you choose where to stop; NMF only gives you the number you asked for, "
+    + "and asking for a different number gives you different ones.</b> "
+    + "That is also why 07/01-4 has to spend a whole step estimating the number "
+    + "before it can extract anything — a step PCA has no equivalent of.";
+}
+</script>
+</main>
+</body>
+</html>

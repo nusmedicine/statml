@@ -3238,9 +3238,9 @@ lessons have a shipped host, three of those built for PHM5005 and inherited.
 Reading all nine end to end says the gap is **five slots**, and one of the five
 is a hole in an arc this file already called complete.
 
-**Two of the five shipped on 2026-09-02** — Slot 1 `normalization` and Slot 3
-`batch-effect`. Three remain and none is picked: `nmf`, `hierarchical-clustering`
-and `enrichment`.
+**Three of the five have shipped** — Slot 1 `normalization` and Slot 3
+`batch-effect` on 2026-09-02, and Slot 2 as `matrix-factorization` on
+2026-09-03. Two remain unpicked: `hierarchical-clustering` and `enrichment`.
 
 The week is one continuous argument, and it is the omics pipeline in order:
 *design it → find the holes → put the samples on one scale → look at it → find
@@ -3271,7 +3271,7 @@ ones do — see HANDOVER § *NEXT* item 3, which this adds four rows to.
 | # | slug | notebook | misconception | evidence | status |
 |---|---|---|---|---|---|
 | 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **SHIPPED 2026-09-02** |
-| 2 | `nmf` | 05 / 04 `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **proposed** |
+| 2 | `matrix-factorization` | 05 / 04 `## 1` and `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **SHIPPED 2026-09-03** |
 | 3 | `batch-effect` | 05 / 05 | a batch effect is noise you subtract. The danger is **confounding**, and correcting a confounded design deletes the biology | documented — citation NOT yet verified | **proposed** |
 | 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. It is a consequence of two choices and a cut, and pure noise produces a handsome one | reported | **proposed** |
 | 5 | `enrichment` | 05 / 09 | a significant pathway is an activated pathway; and the p-value is a property of your gene list, when the **background** and the **cutoff** move it just as hard | reported | **proposed** |
@@ -3311,6 +3311,489 @@ NMF's parts are none of those four. The notebook admits the last one itself —
 cell 17's worked answer is "a possible outcome (depending on initialization and
 optimization)" — so **the seed giving a different `W`, not merely a different
 picture, is in the lesson already** and needs only to be shown.
+
+#### PICKED NEXT and MEASURED 2026-09-02 — and the planned claim turned out false
+
+Kenneth picked slot 2 over `hierarchical-clustering` and `enrichment`. Measured
+before anything was drawn, on the lesson's own airway matrix
+(`node widgets/_lab/nmf-measure.mjs <airway_count_matrix.csv>` — cell 4's CSV,
+33469 × 8) and on a simulated stage whose truth is known
+(`nmf-sim.mjs`, `nmf-probe.mjs`).
+
+**The PCA implementation is verified against the lesson's own printed output.**
+`nmf-measure.mjs` § 3 reproduces cell 12's `pcaResults$x` exactly — and
+sign-flipped on both components, which is the eigenvector sign convention
+appearing unbidden in the one place it can be checked. PC1 is **36.2%** of the
+variance and separates treatment by d = **0.35**; PC2 is **16.9%** and separates
+it by **4.80**. Ordered by variance is not ordered by interest, and the lesson's
+own data says so.
+
+**On the lesson's matrix the NMF figure is one draw.** Twelve seeds, rank 2,
+Frobenius: the relative residual moves **0.65%** (0.19141 to 0.19266), the parts
+agree between seeds only to cosine **0.77**, and the strongest treatment
+separation any component reaches swings **0.68 to 4.21**. Cell 23's scatter is
+not reproducible, and `nrun = 1` is why.
+
+**The R package does not run the algorithm the widget would.** `nmf(x, rank,
+nrun = 1)` defaults to `method = "brunet"` — multiplicative updates on the **KL
+divergence**, not the Frobenius norm. On counts the two disagree visibly: KL
+reproduces the clean two-group split of cell 21's printed `coefMatrix`
+(separations 3.41 and −6.19), Frobenius does not (−1.63 and 0.65). The lesson
+never says which it uses. **Both are implemented in `_lab/nmf-measure.mjs`;
+which one the widget runs is ASK 6 below.**
+
+##### The planned claim was "change the seed and W changes", and as stated it is false
+
+§ *Slot 2 earns its place* above reads cell 17's "a possible outcome (depending
+on initialization and optimization)" as the lesson already conceding
+non-uniqueness, needing only to be shown. **It is not that simple, and the
+measurement says so.** On a simulated stage with exactly two real programmes,
+fitted at rank 2: twelve seeds give a residual spread of **0.00%** and every run
+recovering the truth to cosine **0.966–0.990**. A correctly-specified NMF is
+reproducible. A widget built on "NMF is random" would have taught something
+untrue.
+
+The first hypothesis for the difference — that the airway matrix is
+*under*-specified, many programmes summarised by two — was also wrong, and in
+the useful direction. Holding the rank at 2 and adding true programmes leaves
+the fit stable (worst seed-to-seed cosine 0.9955 at six programmes). What breaks
+reproducibility is asking for **more parts than the data holds**. Truth fixed at
+six programmes, eight independent stages, six seeds each, `nmf-probe.mjs` § D:
+
+| rank asked for | 2 | 3 | 4 | 5 | 6 (= the truth) | 7 |
+|---|---|---|---|---|---|---|
+| median worst seed-to-seed cosine | 0.973 | 0.960 | 0.919 | 0.853 | **0.536** | **0.470** |
+| residual spread across seeds | 0.00% | 0.02% | 0.08% | 2.34% | 3.87% | 5.58% |
+
+Monotone, and it replicates. **That is a better lesson than the one planned**:
+non-uniqueness is not a property of NMF in the abstract, it is what you buy by
+asking for more parts than are there — and the fit barely improves while you buy
+it. It also explains the airway result without special pleading: 2 parts from 8
+columns of a matrix with no block structure is already the over-asking case.
+
+##### The four properties, all four measured on one 24 × 12 matrix
+
+| | PCA | NMF |
+|---|---|---|
+| signed | 11 of 24 loadings negative on PC1 | **0 of 48** entries of `W` negative — cannot be otherwise |
+| orthogonal | PC1 · PC2 = 2.8e-16, exactly | part 1 · part 2 = **0.370** |
+| ordered | 81.5% and 7.4% of variance | no variance to order by; the parts arrive unranked |
+| unique | one eigendecomposition, so PC1 is identical whether you keep 2 or 5 | rank-2 parts vs rank-3 parts on the airway matrix: cosine 0.936 and 0.977 — they move |
+
+`_lab/nmf-mock.html` § 2 draws the first three of these as one bar per gene, and
+**the contrast needs no caption**: PCA's bars run both ways from zero and every
+gene is in every component; NMF's sit on one side and each part is mostly one
+block.
+
+##### Two defects in the lesson, both in cell 17 — for Kenneth, separately from the widget
+
+Cell 17 is the one worked example a student can follow by hand, and it is wrong
+twice.
+
+1. **The arithmetic.** With the `W` and `H` the cell prints, `W × H` is
+   `[[1, 1.5], [5, 8.5], [9, 15.5]]`. The cell prints
+   `[[1, 1.5], [3, 3.5], [5, 5.5]]` — only the first row is right. The printed
+   matrix is a good approximation of `V` (Frobenius error 0.866 against 11.435
+   for the true product), so it looks like the answer; it is simply not the
+   product of the two matrices above it. Reproduced in
+   `_lab/nmf-measure.mjs`-adjacent scratch and stated here so it is not
+   re-derived.
+2. **The transposition.** The cell says "the matrix `W` represents the reduced
+   2D representation … Each column in `W` corresponds to a sample". Cell 16
+   defines `W` as m × r — rows are features, columns are components — and the
+   same cell 17 then heads its own result **"Resulting 2D Representation: H"**,
+   and cells 19–23 plot `coef`, which is `H`. Three of the four agree; the
+   sentence naming `W` is the odd one out.
+
+This is the same kind of find as slot 5's unseeded `sample()`, and like it,
+it is the lesson's to fix rather than the widget's to work around.
+
+##### The mock, and the asks
+
+`_lab/nmf-mock.html` — five sections, every number computed on the page from
+`_lab/nmf-model.js`, which is also what `nmf-sim.mjs` and `nmf-probe.mjs`
+import. That sharing is load-bearing and was earned within the hour: the mock
+first built its own six-programme stage by summing three two-programme ones, and
+because those share a block layout the sum has a true rank nearer 2 than 6 — so
+the page showed a **cliff at rank 3** that the measurement does not have. A mock
+that computes its own stage is a mock that can disagree with the measurement it
+illustrates.
+
+- **ASK 1 — the stage.** A: `V ≈ W × H` as three heatmaps, which is Kenneth's own
+  `nmf-matrix.png` from cell 16. B: three genes as three axes — the notebook's
+  `nmf-high.png`, and widget 19 `pca`'s stage exactly, which lets the picture
+  carry the geometry (PCA fits a **plane through the middle** with signed
+  coordinates; NMF fits two **rays out of the origin** and the data must lie in
+  the wedge between). Or both, B behind a gate.
+- **ASK 2 — is PCA drawn beside NMF at all?** § 2 is the strongest panel in the
+  mock and it is also the only place in the collection where two methods would
+  share a figure. Widget 19 already teaches PCA.
+- **ASK 3 — does `W` get drawn?** The lesson plots only `H` (cell 23) and
+  extracts `W` in cell 21 without ever showing it. The parts claim lives in `W`.
+- **ASK 4 — is rank the second act?** The measured claim is *ask for more parts
+  than are there and the answer stops being reproducible*, with the seed as the
+  second control. The lesson only ever runs `rank = 2`.
+- **ASK 5 — does the descent animate?** NMF has no closed form; the
+  reconstruction at iteration 12 is a real state of the algorithm, not a tween.
+  Mock § 5 draws `V` beside iterations 1, 4, 20 and 300.
+- **ASK 6 — Frobenius or KL?** KL is what the lesson's R actually runs and what
+  reproduces its printed numbers; Frobenius is the one every textbook
+  derivation uses and the simpler update to explain.
+
+```bash
+node scripts/serve.mjs 8012
+# http://localhost:8012/widgets/_lab/nmf-mock.html
+node widgets/_lab/nmf-sim.mjs      # the simulated stage
+node widgets/_lab/nmf-probe.mjs    # the rank sweep, and why the plan changed
+node widgets/_lab/nmf-measure.mjs <airway_count_matrix.csv>   # the lesson's own
+```
+
+##### ANSWERED, and BUILT AS A DRAFT the same night (2026-09-02)
+
+Kenneth's picks: **ASK 1** both — the three heatmaps as the stage with the 3-D
+geometry as a second view; **ASK 2** revealed, NMF first; **ASK 4** yes, rank is
+the main control and the seed the second; **ASK 6** both objectives, as a
+control; plus, asked separately, **the descent animates** with Step and Play,
+and **a truth dial goes in the rail** so "more parts than the data holds" is
+something the reader can set rather than be told.
+
+**ASK 3 was answered by ASK 1**: the three-heatmap stage draws `W`, so the
+parts are on screen without a separate decision.
+
+**ONE PICK COULD NOT BE HONOURED AS ASKED, and the reason is in core.** He chose
+gates for the geometry and the PCA comparison. `widget.js` finds `GATE_PARAM`
+with a `.find`, so a widget may have exactly one gate — and `updateAnimButtons`
+hides the entire drive row while that gate is shut. This widget's descent is
+drivable from its default state, so either gate would have shipped it with a
+dead Step and Play: `maximum-likelihood`'s recorded bug verbatim, and the
+comment at that `.find` says a third widget in this shape should reach for a
+segmented control. The views are therefore a segmented control defaulting to
+the decomposition, which keeps his reading — NMF first, the comparison one press
+away — but it is a tab rather than a reveal, and it is his to overrule.
+
+**The truth dial defaults to 2, matching the rank.** At 3 against a rank of 2
+the opening readout said *Match to the real programmes 0.485*, and a number that
+low on first sight reads as NMF having failed rather than as having been asked
+for fewer parts than exist. The tile now says which of the two it is.
+
+##### Four defects the checks caught, and what found each
+
+None of them was visible in a screenshot, and two were false claims on the face
+of the figure — the class this repo cares most about.
+
+| defect | found by |
+|---|---|
+| `compute` read `.W` off the array `fitTrace` returns, so `state` was null and the figure never drew | the browser console, on first load |
+| `legend` is called as `({ params })`; destructured flat as `({ view, rank })` both names were `undefined`, every branch fell through, and **all three views showed the decomposition's legend** — heatmap swatches captioning a scatter | reading the rendered `.w-legend` after the geometry view looked wrong |
+| the geometry caption said **"no sample can lie outside the cone they span"** while three sat outside it. The wedge was drawn to a fixed 0.86 of a unit ray, so it stopped short of the data — and the claim was never true of `V` anyway, only of `W × H`, the gap being the residual | looking at the drawn figure |
+| `--c-value-low` and `--c-cluster-a` are both `--series-1`, so **part 1's bars were the same blue as "a small measurement"** in one panel, for two unrelated reasons | tokens.css's own note on that role, which forbids exactly this |
+
+The colour fix follows widget 38's precedent: the panel carrying the value ramp
+labels its parts in ink, and the two panels that carry no ramp are free to
+colour by identity — the geometry view's rays take `--c-highlight` (they are
+what that view exists to show, and `--c-cluster-a/b` ARE `--c-group-a/b`, so
+parts and sample groups would otherwise arrive in the same two colours), and
+the PCA view uses the two-arm roles for its two methods.
+
+##### The driver, and a test that was testing the bug
+
+`_lab/nmf-drive.mjs` runs 490 assertions over 48 parameter cells with no
+browser and no clock, and **the canvas text sweep runs in node too** — this
+widget's `draw` uses no `measureText`, no gradient and no `makePlot`, so a
+recording stub context is enough for all 216 states.
+
+That matters, because the sweep was written as a browser page first and was
+useless. The hook goes on after the widget has already painted, so something
+must force a fresh paint, and neither a synthetic `resize` event nor a real
+width change does so reliably when the automation browser throttles `rAF` to
+about one frame per 300 ms: it reported 24 of 38 states "painted NO text at
+all" on one run and 38 of 38 on the next, in a pattern with no relation to the
+parameters. The page was deleted.
+
+**And the driver's own legend assertions passed while the legend was broken**,
+because they called `W.legend({ ...defaults, view })` — flat, the same wrong way
+the widget destructured it. A test written against the implementation agrees
+with the implementation's bugs. It now calls it the way core does.
+
+#### ROUND 1 — Kenneth, 2026-09-03: three points, researched and mocked, nothing changed
+
+He asked for research and a mock-up before any change, so the draft is untouched.
+`_lab/nmf-round1.html`, and it **imports `widgets/nmf/model.js`** — the widget's
+own stage and solver, extracted into a sibling module for exactly this reason
+(`widgets/kmeans/model.js` is the precedent). The pre-build mock computed its own
+stage and disagreed with the measurement it illustrated; that cannot happen now.
+`node widgets/_lab/mf-nesting.mjs` reprints every number on the page.
+
+##### His point 2 has an answer in his own course, and it is a second host
+
+**`07 - Cancer Mutation Analysis / 01-4 - Cohort - Mutational Signatures` runs
+this algorithm on this matrix shape.** Cell 21 is `library(NMF)`; the matrix is
+called `tnm$nmf_matrix`; and cell 19 writes the model as
+
+> `M ≈ S · W` — *M is the original trinucleotide matrix, S is the matrix of
+> signatures, and W is the matrix of exposures.*
+
+So **signatures** and **exposures** are Kenneth's own words for `W`'s columns and
+`H`'s rows, and his instinct that "one of them should be useful like a signature"
+was pointing at his own notebook. Three consequences:
+
+1. **This widget can host two lessons**, as widgets 20, 21 and 22 each do.
+2. **The two notebooks disagree on letters.** 05/04 calls the basis `W`;
+   07/01-4 calls the *exposures* `W`. The widget should name the objects rather
+   than the letters.
+3. **07/01-4's step 2 is this widget's rank control.** `estimateSignatures`
+   chooses the number of signatures by how *stable* the decomposition is across
+   repeated runs — cophenetic correlation — which is the same quantity as the
+   draft's *agreement between starts*. Measured on the widget's own stage with
+   three real programmes, that column reads 1.000, 1.000, 0.995, **0.613**,
+   0.695, 0.649 for ranks 1–6: it elbows exactly where the truth is. The widget
+   reproduces the notebook's own model-selection criterion without being built
+   to.
+
+Four vocabularies are drawn in situ in § 2 of the mock: as-drafted
+(programmes / parts), 07/01-4 verbatim (processes / signatures / exposures),
+05/04's R names (basis / coef), and a one-word hybrid.
+
+##### And the reduction was never on screen
+
+His other half — *how do students see it reduce dimensions?* — wants a count,
+and the draft has none. `V` is 288 numbers; `W` and `H` together are 36 per
+part. At the truth, 108 numbers for 38% of the original and 13.3% unexplained.
+The lesson's own matrices for scale: airway 267,752 → 66,954 at rank 2; a
+96-context trinucleotide matrix over 100 tumours 9,600 → 980 at five signatures.
+
+##### His point 3 is right, and sharper than the draft's version
+
+Both **are** matrix decompositions — PCA is `V ≈ L × S` with exactly NMF's three
+matrices and shapes, and drawing only the loadings hid that. The mock draws both
+as heatmap triples; PCA's two factors need a **two-sided ramp** and NMF's do not,
+which is the sign story told by the picture rather than by a caption.
+
+But the difference he named is the better one, and it is measured:
+
+| | asked for 2 | asked for 6 | cosine |
+|---|---|---|---|
+| PCA · PC1 | 56.8% of variance | 56.8% | **1.000000** — the same vector |
+| PCA · PC2 | 29.4% | 29.4% | **1.000000** |
+| NMF · part 1 | one of 2 | closest is part 1 of 6 | 0.977 — refit |
+| NMF · part 2 | one of 2 | closest is **part 5** of 6 | **0.883** — refit and relabelled |
+
+**PCA hands back every component and you choose where to stop; NMF only gives
+you the number you asked for, and asking for a different number gives you
+different ones.** That is also why 07/01-4 must spend a whole step estimating
+the number before it can extract anything — a step PCA has no equivalent of.
+
+##### Point 1 is mechanically free
+
+`stepLabel: null` **declines** the Step button for the life of the widget
+(`widget.js` line 1009 says so), leaving the run button alone, so the drive row
+becomes Solve + Reset. The open question is whether Solve *runs* the descent or
+*lands* on the answer — the second removes the animation entirely, and with it
+the widget's only driven fingerprint state.
+
+##### One thing the mock settled without being asked
+
+The mock draws its magnitude heatmaps on a **sequential** ramp
+(`--surface-3` → `--c-value-high`) rather than the draft's blue-to-red, and the
+block structure is markedly easier to read. That was already listed as an open
+item; the mock is the evidence for changing it.
+
+##### BUILT, 2026-09-03 — his picks, and what they cost
+
+**ASK 1: Solve runs the descent.** `stepLabel: null` declines the Step button;
+`runLabel: "Solve"`. The drive row is Solve + Reset.
+
+**ASK 2: vocabulary D — one word throughout.** The rail reads *Real
+signatures* / *Signatures to find*; `W`'s columns are **signatures** and `H`'s
+rows are **how much of each**. The header now names both hosts.
+
+**Point 3: the PCA view gained the matrix form above the loadings**, since he
+asked for it "besides only the loadings". Both decompositions are drawn as
+`V ≈ · × ·` triples, PCA's factors on a **two-sided ramp** and NMF's on a
+one-sided one — which is the sign story told by the picture. Beside them, the
+sentence the view exists for, with its live half: *ask for r + 1 instead of r,
+and the least durable of these r then matches its closest at N*.
+
+##### Four things that fell out of the build, three of them checks
+
+1. **The rail said "Play speed" beside a button called Solve.** Renamed to
+   *Solve speed* — a deliberate divergence from the collection's shared wording
+   (3.7), because a speed control naming a button that does not exist is 3.4c's
+   failure. The shared vocabulary exists to prevent confusion, not to require it.
+
+2. **`height` and the drawing disagreed about the PCA view.** `height` was the
+   constant 690 while the strips below the loadings were sized from the rank, so
+   at rank 3 they came out 10px tall. Both now read one `pcaLayout(rank)` — the
+   skill's rule that geometry known to two callers is written once. **The driver
+   now asserts it**: it re-draws each rank through a stub that records the lowest
+   painted rectangle and compares it with the declared height. Nothing else in
+   the repo checks that; a pixel hash sees an identical picture whether the
+   bottom strip is inside the canvas or clipped off it.
+
+3. **THE TEXT SWEEP WAS MEASURING THE WRONG THING.** It capped painted strings
+   at 78 characters, which says nothing about whether they fit: a 63-character
+   note starting at x = 470 ran to 828px on a 770px stage and passed. The sweep
+   now records **x and the alignment** and computes the right edge. It
+   immediately found that note plus four geometry captions. It also needed the
+   stub to track `save`/`restore`/`rotate`, because the rotated "Measurements"
+   label reported as overrunning at every state — and a check that cries wolf at
+   every state is a check somebody switches off.
+
+4. **The value ramp changed from blue-to-red to sequential** (`--surface-3` →
+   `--c-value-high`), which was already an open item and which the round-1 mock
+   settled: on a matrix of magnitudes the two-hue ramp read as diverging, saying
+   there was a middle when there is not one. The two-sided ramp now appears in
+   exactly one place — PCA's factors — where there *is* a middle.
+
+#### ROUND 2 — Kenneth, 2026-09-03: the widget becomes TWO TABS, and is renamed
+
+Five changes, and together they are a restructure rather than an edit:
+
+1. **Renamed `Matrix Factorization`**, slug `matrix-factorization`. Done now
+   rather than at ship time because this file's own rule is that a draft lives
+   at its final URL, so a link shared while building never breaks. The old
+   `nmf` slug was never shipped and never linked.
+2. **NMF and PCA are two tabs**, not one method with a comparison view.
+3. **Each tab's control follows its own notebook**: NMF's is `Rank`, PCA's is
+   `Components`. Two controls rather than one renaming itself — partly because
+   core reads `field.label` as a plain value and cannot rename per tab, but
+   mostly because *the two names are the lesson*. NMF must be TOLD its rank
+   before it starts; PCA computes every component and you choose how many to
+   KEEP.
+4. **Both tabs Solve; the speed control is gone.**
+5. **The view control is Decomposition / Geometry**, and the old "Beside PCA"
+   view is retired — PCA is a tab now.
+
+##### The restructure made the geometry view the best panel in the widget
+
+It is now the same three gene-axes on both tabs, and one press swaps **a cone
+anchored at the origin** for **a plane through the middle of the cloud**. That
+is the whole constraint in one switch: NMF may not use a minus sign, so it
+cannot centre and its factors are rays from the origin; PCA may, so it centres
+first and its components are double-headed axes through the centroid with the
+mean marked. Nothing has to be asserted.
+
+##### Two numbers now make the trade visible, and they point opposite ways
+
+Scored on one denominator (both against `V`, PCA's reconstruction being
+`mean + L × S`), measured at three real signatures:
+
+| k | NMF unexplained | PCA unexplained | NMF match to truth | PCA match to truth |
+|---|---|---|---|---|
+| 1 | 37.1% | **26.2%** | 0.702 | 0.218 |
+| 2 | 24.3% | **14.8%** | 0.485 | 0.218 |
+| 3 | 13.3% | **12.0%** | **0.958** | 0.590 |
+| 4 | 11.6% | **10.0%** | 0.902 | 0.590 |
+| 6 | 7.6% | **6.6%** | 0.316 | 0.590 |
+
+**PCA reconstructs better at every k and matches the real signatures far
+worse.** It must reconstruct better — a truncated SVD plus the mean is the best
+rank-k approximation there is — and NMF gives up exactly that much fit to get
+factors that add rather than cancel. *Fitting the matrix and recovering what
+built it are not the same job*, and the widget now says so with two tiles.
+
+**And NMF's match to the truth peaks at k = 3, the true value** — 0.702, 0.485,
+**0.958**, 0.902, 0.821, 0.316. A third independent signal pointing at the right
+rank, alongside the agreement elbow and 07/01-4's cophenetic criterion.
+
+##### Nesting, finally clean
+
+With PCA drawn as a factorization at any k, the claim can be measured directly
+rather than argued (`_lab/mf-nesting.mjs` § B):
+
+| k → k+1 | 1→2 | 2→3 | 3→4 | 4→5 | 5→6 |
+|---|---|---|---|---|---|
+| PCA, worst surviving cosine | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| NMF, worst surviving cosine | 0.914 | 0.935 | 0.931 | 0.940 | 0.848 |
+
+##### Three defects, and the one the checks could not have found
+
+- **PCA's residual was 6.8 and RISING with k.** `pcaOf` centres, so scoring
+  `L × S` against the uncentred `V` compared a centred reconstruction with an
+  uncentred matrix. The PCA tab now draws and scores the centred matrix,
+  labelled `V − mean`, and the readout adds the mean back so both tabs share one
+  denominator.
+- **Then it was 19 and still rising.** `scores` is the unit eigenvector scaled
+  by the singular value, and `load` already carries that singular value — so
+  `load × scoresᵀ` overshoots by exactly that factor. The factorization needs
+  the UNIT vector, and `pcaOf` now returns `vec` alongside `scores` (which is
+  kept, because `scores` is what the lesson plots).
+- **The PCA tab's readout printed "NMF took 1 updates".** It read the iteration
+  count off the PCA snapshot, whose own counter is 1. **A wrong but finite
+  number is invisible to the NaN sweep** — no automated check in this repo could
+  have caught it, and it was found by reading the readout on screen. The driver
+  now asserts the string directly.
+
+Both residual bugs would have been invisible as pictures: the heatmaps looked
+entirely plausible throughout. What caught them was printing the number and
+noticing it moved the wrong way.
+
+#### SHIPPED 2026-09-03, after three review rounds in one day
+
+41 widgets on the gallery, 303 fingerprint states. **Nine states**: seven settled
+across both tabs and both views, and two driven — NMF four multiplicative updates
+into its descent, and PCA one frame of Solve, whose hashes match its settled twin
+deliberately because a closed form has nothing to iterate.
+
+**An interrupted state was tried and dropped.** `before` ran the descent three
+frames, then switched the view to geometry, then measured three more. It was
+stable across three runs in the shooter and still disagreed with
+`fingerprint.html`, which reported `+0f` — no rAF callback was pending when the
+measured phase began, so the harness hashed the settled geometry picture while
+the shooter hashed a mid-flight one. **Both hashes differed, not just `px`**, so
+it was a real disagreement about what state the widget was in rather than the
+scrollbar flake. A check two harnesses read differently is worse than none.
+
+**The suite's five remaining DIFFERs are the known measurement flake**, and all
+three of its tells point the same way: `tx` identical with only `px` moving, the
+set changing between runs (nine on one pass, five on the next, different
+members), and the widgets are `naive-bayes` and `lm-adjustment`, which nothing in
+this change can reach. All nine of this widget's own states MATCH.
+
+#### ROUND 3 — Kenneth, 2026-09-03: the rail's reading order, and one word
+
+**The rail now reads what you are looking at, then what you do to it, then how
+you want to look at the result** — *The data* (Real patterns, Seed), *The
+factorization* (Method, Rank or Components, and on the NMF tab Objective and
+Random start), then **Solve / Reset**, then *How to look at it* (View). It used
+to open with the method, which asked the reader to choose a factorization before
+being told there was a matrix.
+
+The view sits below the drive row through `afterDrive: true`, which is core's
+own door for it: fields carrying it build into the block under the buttons,
+everything else above. The order is otherwise just declaration order, so **the
+driver now asserts the whole key list** — reordering a spec is a one-line
+accident and nothing else in the repo would notice.
+
+##### "Real patterns", and why the word is doing work
+
+The truth dial was "Real signatures", which is NMF's word: on the PCA tab the
+readout then said *Match to the real signatures* about components, quietly
+making one method's vocabulary the standard the other was failing to meet.
+
+Kenneth's pick splits truth from estimate in the language itself. **The data is
+built from PATTERNS. NMF's estimate of one is a SIGNATURE; PCA's is a
+COMPONENT.** Both tabs are scored on *Match to the real patterns*, and neither
+is scored in the other's terms. It is the same distinction 07/01-4 already makes
+between a mutational *process* and the *signature* extracted to stand for it.
+
+##### Still open on the draft
+
+- **The lesson's own scatter is not drawn.** Cell 23 plots the two rows of `H`
+  as a sample scatter and that is the figure a student takes away; the draft
+  shows `H` only as a heatmap strip inside `V ≈ W × H`. Adding it is a fourth
+  view, or a panel that exists only at rank 2.
+- **The ray labels crowd at k = 5 and 6** in the geometry view, where five or
+  six midpoints converge near the origin.
+- **The stage is generic** — 24 genes by 12 samples. Now that 07/01-4 is a host,
+  it could be the 96-context trinucleotide shape instead, or offer both.
+- **Switching tabs resets the animation**, because `method` changes what is
+  computed and so is a data parameter. Solve is pressed once per tab. Holding
+  both fits in `state` would let a reader flip between two solved pictures.
+- **The two tabs never appear side by side.** Round 1's retired "Beside PCA"
+  view did that; the tabs are a cleaner structure but they trade simultaneity
+  for it.
+- **Not judged projected**, which every widget from 11 on still owes.
 
 ### Slot 1 · `normalization` — SHIPPED 2026-09-02, four review rounds in two days
 

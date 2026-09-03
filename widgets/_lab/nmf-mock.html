@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 2 nmf — the stage, the parts, the rank</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 100ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 460px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 4px 0 12px; white-space: pre-wrap; max-width: 460px; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: var(--sp-2) 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 2 candidate · <code>nmf</code> — widget 41</h1>
+  <p class="note">
+    PHM5003 <code>05 - Introduction to High Throughput Data / 04 - Dimensionality
+    Reduction</code>, heading <code>## 2</code>, cells 15–23 — the one heading of
+    that lesson with no widget. The misconception: <b>that NMF is PCA with the
+    minus signs banned</b> — a rotation. It is a decomposition into parts you
+    add up, and its parts are not signed, not orthogonal, not ordered and
+    not unique.
+  </p>
+  <p class="note">
+    Every picture and every number below is computed on this page from
+    <code>_lab/nmf-model.js</code>. <code>node widgets/_lab/nmf-sim.mjs</code>
+    and <code>nmf-probe.mjs</code> reprint them;
+    <code>node widgets/_lab/nmf-measure.mjs &lt;airway.csv&gt;</code> measures the
+    lesson's own 33469 × 8 matrix.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§1 · THE STAGE — which matrix the reader looks at</h2>
+  <p class="note">
+    <b>A</b> is Kenneth's own diagram, <code>nmf-matrix.png</code> in cell 16:
+    <code>V ≈ W × H</code> as three heatmaps, Measurements × Samples.
+    <b>B</b> is the notebook's other figure, <code>nmf-high.png</code> in cell 17
+    — three genes as three axes, which is widget 19 <code>pca</code>'s stage
+    exactly and so puts the two methods on one picture. B can show the
+    <em>cone</em>: PCA fits a plane through the middle of the cloud and the
+    coordinates on it carry signs; NMF fits two rays out of the origin and every
+    sample is a non-negative mix of them, so the data must lie in the wedge
+    between. <b>The stage is 24 genes × 12 samples in both.</b>
+  </p>
+  <div class="row" id="stage"></div>
+  <p class="ask">
+    <b>ASK 1.</b> A (three heatmaps, the lesson's own diagram), B (three genes in
+    3-D, comparable with widget 19), or both — A as the main stage and B behind
+    a gate?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§2 · THE CLAIM — parts, not a rotation</h2>
+  <p class="note">
+    The same matrix, decomposed twice, drawn as one bar per gene. <b>This is the
+    whole widget in one picture</b>, and nothing has to be asserted: PCA's
+    loadings run both ways from zero and every gene is in every component; NMF's
+    parts sit on one side of zero and each is mostly one block. The numbers under
+    each panel are counted from the bars above them.
+  </p>
+  <div class="row" id="loads"></div>
+  <p class="ask">
+    <b>ASK 2.</b> Does PCA get drawn beside NMF in this widget at all? Widget 19
+    already teaches PCA — this panel would be the only place in the collection
+    where two methods share a figure. The alternative is NMF alone, with the
+    contrast carried by words.
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§3 · THE SAMPLE PICTURE — the only figure the lesson actually plots</h2>
+  <p class="note">
+    Cell 23 plots <code>t(coef)</code>: the two rows of <code>H</code>, one point
+    per sample. That is the figure a student takes away, and <b>it is the half
+    that hides the claim</b> — the parts live in <code>W</code>, which the lesson
+    extracts in cell 21 and never draws. Left: the lesson's figure. Right: the
+    PCA scatter from cell 14, same samples.
+  </p>
+  <div class="row" id="scatter"></div>
+  <p class="ask">
+    <b>ASK 3.</b> The lesson draws only <code>H</code>. Does the widget draw
+    <code>W</code> as a first-class panel (§2), or keep the lesson's framing and
+    show <code>W</code> only on demand?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§4 · THE RANK — where "not unique" actually comes from</h2>
+  <p class="note">
+    <b>The planned claim was "change the seed and W changes", and as stated it is
+    false.</b> Measured on this stage: twelve seeds, rank 2, two real programmes
+    — residual spread <b>0.00%</b> and every run agreeing to cosine 0.966–0.990.
+    A correctly-specified NMF is reproducible.
+  </p>
+  <p class="note">
+    What is not reproducible is an NMF asked for <b>more parts than the data
+    holds</b>. Truth fixed at six programmes, six independent stages, five seeds
+    each; the number is the worst agreement between any two of those seeds'
+    parts. <code>nmf-probe.mjs</code> § D runs it wider — eight stages, six
+    seeds, more iterations — and lands in the same place.
+  </p>
+  <table class="m" id="ranktab"></table>
+  <div class="row" id="rankfig"></div>
+  <p class="note">
+    And on the lesson's own matrix the instability is already there at rank 2:
+    33469 × 8 is 2 parts from 8 columns, twelve seeds give a residual flat to
+    <b>0.65%</b>, parts agreeing only to <b>0.77</b>, and the treatment
+    separation of the best component swinging <b>0.68 to 4.21</b>. The figure in
+    cell 23 is one draw.
+  </p>
+  <p class="ask">
+    <b>ASK 4.</b> Rank is then the widget's main control and the seed is a
+    second. Is that the second act — <em>ask for more parts than are there and
+    the answer stops being reproducible</em> — or is it one act too many for a
+    lesson that only ever runs <code>rank = 2</code>?
+  </p>
+
+  <!-- ================================================================== -->
+  <h2>§5 · THE ANIMATION — multiplicative updates</h2>
+  <p class="note">
+    NMF has no closed form. It starts from a random <code>W</code> and
+    <code>H</code> and multiplies them into shape, and <b>that descent is a real
+    animation rather than a reveal</b>: the picture at iteration 12 is a state
+    of the algorithm. Below, the reconstruction <code>W × H</code> at four points
+    of the same run, against <code>V</code> on the left.
+  </p>
+  <div class="row" id="anim"></div>
+  <p class="ask">
+    <b>ASK 5.</b> Does the descent animate, or does the widget jump to the answer
+    and spend its interaction on rank and seed instead?
+  </p>
+
+<script type="module">
+import { makeStage, makeStageK, partAgreement, nmf, pca, matchTruth, groupSep, cosine, col } from "./nmf-model.js";
+
+const css = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+function mk(host, w, h, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  c.width = w * DPR; c.height = h * DPR; c.style.width = w + "px"; c.style.height = h + "px";
+  d.appendChild(c);
+  const cap = document.createElement("div"); cap.className = "cap"; d.appendChild(cap);
+  host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `10px ${css("--font-mono")}`;
+  return { ctx, cap, w, h };
+}
+
+/* one shared stage for the whole page */
+const ST = makeStage({ genes: 24, samples: 12, seed: 1 });
+const FIT = nmf(ST.V, 2, 1);
+const PCS = pca(ST.V);
+
+/* value ramp between the two value-role tokens */
+function ramp(t) {
+  const lo = css("--c-value-low"), hi = css("--c-value-high");
+  return `color-mix(in srgb, ${hi} ${Math.round(100 * Math.max(0, Math.min(1, t)))}%, ${lo})`;
+}
+/* Scaled to the 98th percentile, not the maximum: one very large gene
+   otherwise compresses every other cell into the bottom of the ramp and the
+   block structure the stage was built to show stops being visible. */
+function heat(ctx, M, x, y, cw, ch, max) {
+  const flat = M.flat().slice().sort((a, b) => a - b);
+  const mx = max || flat[Math.floor(0.98 * (flat.length - 1))] || 1;
+  M.forEach((row, i) => row.forEach((v, j) => {
+    ctx.fillStyle = ramp(v / mx);
+    ctx.fillRect(x + j * cw, y + i * ch, cw - 1, ch - 1);
+  }));
+}
+function label(ctx, s, x, y, colour, align = "left") {
+  ctx.fillStyle = colour || css("--ink-3"); ctx.textAlign = align; ctx.fillText(s, x, y);
+  ctx.textAlign = "left";
+}
+
+/* ---------------------------------------------------- §1 candidate A */
+{
+  const host = document.getElementById("stage");
+  const A = mk(host, 460, 300, "A · V ≈ W × H, the lesson's own diagram",
+    "cell 16 nmf-matrix.png, redrawn with this stage's numbers");
+  const { ctx } = A;
+  const ch = 9, cw = 9;
+  const vh = ST.genes * ch;
+  let x = 46, y = 34;
+  heat(ctx, ST.V, x, y, cw, ch);
+  label(ctx, "Samples", x + (ST.samples * cw) / 2, y + vh + 14, css("--ink-2"), "center");
+  ctx.save(); ctx.translate(x - 8, y + vh / 2); ctx.rotate(-Math.PI / 2);
+  label(ctx, "Measurements", 0, 0, css("--ink-2"), "center"); ctx.restore();
+  label(ctx, "V", x + (ST.samples * cw) / 2, y - 8, css("--ink-1"), "center");
+
+  let x2 = x + ST.samples * cw + 26;
+  label(ctx, "≈", x2 - 13, y + vh / 2, css("--ink-2"), "center");
+  heat(ctx, FIT.W, x2, y, cw, ch);
+  label(ctx, "W", x2 + cw, y - 8, css("--ink-1"), "center");
+  label(ctx, "Rank", x2 + cw, y + vh + 14, css("--ink-2"), "center");
+
+  let x3 = x2 + 2 * cw + 26;
+  label(ctx, "×", x3 - 13, y + vh / 2, css("--ink-2"), "center");
+  heat(ctx, FIT.H, x3, y, cw, ch);
+  label(ctx, "H", x3 + (ST.samples * cw) / 2, y - 8, css("--ink-1"), "center");
+  label(ctx, "Samples", x3 + (ST.samples * cw) / 2, y - 20, css("--ink-3"), "center");
+  label(ctx, "Rank", x3 + ST.samples * cw + 6, y + ch, css("--ink-2"));
+  A.cap.textContent = `24 genes x 12 samples, two real programmes, a shared block.
+residual ${FIT.trace.at(-1).toFixed(4)}   W matches the truth to ${matchTruth(FIT.W, ST.Wtrue).score.toFixed(3)}`;
+
+  /* ------------------------------------------------ §1 candidate B */
+  const B = mk(host, 460, 300, "B · three genes as three axes",
+    "cell 17 nmf-high.png, and widget 19 pca's stage exactly");
+  const b = B.ctx;
+  /* An isometric-ish projection of the POSITIVE OCTANT — the only part of the
+     space NMF can use. Gene 3 straight up, gene 1 to the lower right, gene 2 to
+     the upper right; the constants are chosen so all three axis tips land
+     inside 460 x 300 with room for a label, which the first pair did not:
+     gene 2's tip fell at y = 303 on a 300px canvas and its label was clipped. */
+  const O = [70, 215], SCL = 112;
+  /* THE THREE BASIS VECTORS ARE UNIT LENGTH ON SCREEN, so all three axes draw
+     the same length. Un-normalised, gene 2's axis was the shortest of the three
+     and its label landed on top of the part that points along it. The map stays
+     linear either way, so the cone still maps to a cone and the samples still
+     land inside the wedge — only the per-axis scale changes, and this is a
+     schematic. */
+  const ax = [[0.92, 0.38], [0.66, -0.30], [0, -1]]
+    .map(([u, v]) => { const n = Math.hypot(u, v); return [u / n, v / n]; });
+  const P = (v) => [O[0] + SCL * (v[0] * ax[0][0] + v[1] * ax[1][0] + v[2] * ax[2][0]),
+                    O[1] + SCL * (v[0] * ax[0][1] + v[1] * ax[1][1] + v[2] * ax[2][1])];
+  /* three genes of the stage, scaled into [0,1] */
+  const gi = [0, ST.block, 2 * ST.block];
+  const raw = ST.label.map((_, j) => gi.map((g) => ST.V[g][j]));
+  const mx = Math.max(...raw.flat());
+  const pts = raw.map((v) => v.map((t) => t / mx));
+  b.strokeStyle = css("--grid"); b.lineWidth = 1;
+  for (const a of [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) {
+    b.beginPath(); const s = P([0, 0, 0]), e = P(a);
+    b.moveTo(s[0], s[1]); b.lineTo(e[0], e[1]); b.stroke();
+  }
+  /* Axis labels sit further out than the part rays below (1.16 against 0.86).
+     A part that loads mostly on one gene points nearly along that gene's axis —
+     which is the picture working, not a fault — and at equal lengths the two
+     labels land on top of each other. */
+  label(b, "Gene 1", ...P([1.16, 0, 0]), css("--ink-3"));
+  label(b, "Gene 2", ...P([0, 1.16, 0]), css("--ink-3"));
+  label(b, "Gene 3", ...P([0, 0, 1.10]), css("--ink-3"));
+  /* the two NMF parts, as rays from the origin */
+  const partDir = [0, 1].map((k) => {
+    const v = gi.map((g) => FIT.W[g][k]);
+    const n = Math.hypot(...v) || 1; return v.map((t) => (t / n) * 0.86);
+  });
+  b.lineWidth = 2;
+  partDir.forEach((d, k) => {
+    b.strokeStyle = css(k ? "--c-cluster-b" : "--c-cluster-a");
+    b.beginPath(); const s = P([0, 0, 0]), e = P(d);
+    b.moveTo(s[0], s[1]); b.lineTo(e[0], e[1]); b.stroke();
+    /* labelled at the ray's MIDPOINT, not its tip: the tips are where the axis
+       labels are, and a part that loads on one gene points nearly along it. */
+    const mid = P(d.map((t) => t * 0.5));
+    label(b, `part ${k + 1}`, mid[0] + (k ? -6 : 6), mid[1] + (k ? -6 : 12),
+      css(k ? "--c-cluster-b" : "--c-cluster-a"), k ? "right" : "left");
+  });
+  /* the wedge between them — where every non-negative mix must land */
+  b.fillStyle = css("--c-wash");
+  b.beginPath();
+  const o = P([0, 0, 0]), p0 = P(partDir[0]), p1 = P(partDir[1]);
+  b.moveTo(o[0], o[1]); b.lineTo(p0[0], p0[1]); b.lineTo(p1[0], p1[1]); b.closePath(); b.fill();
+  pts.forEach((v, j) => {
+    const p = P(v);
+    b.fillStyle = css(ST.label[j] ? "--c-group-b" : "--c-group-a");
+    b.beginPath(); b.arc(p[0], p[1], 3.2, 0, 7); b.fill();
+  });
+  B.cap.textContent = `every sample is a non-negative mix of the two rays, so the
+cloud lies inside the wedge. PCA would fit a PLANE through the
+middle of the cloud instead, and its coordinates carry signs.`;
+}
+
+/* ---------------------------------------------------- §2 loadings */
+{
+  const host = document.getElementById("loads");
+  const bars = (title, sub, series, colours, signed) => {
+    const C = mk(host, 460, 250, title, sub);
+    const { ctx } = C;
+    /* 48, not 34: the row labels are right-aligned at x0 - 4 and "part 1" is
+       wider than "PC1", so at 34 the NMF panel clipped both of its labels. */
+    const x0 = 48, w = 386, top = 22, rowH = 96;
+    series.forEach((vals, k) => {
+      const yMid = top + k * rowH + (signed ? rowH / 2 - 12 : rowH - 30);
+      const mx = Math.max(...vals.map(Math.abs)) || 1;
+      ctx.strokeStyle = css("--grid");
+      ctx.beginPath(); ctx.moveTo(x0, yMid); ctx.lineTo(x0 + w, yMid); ctx.stroke();
+      const bw = w / vals.length;
+      vals.forEach((v, g) => {
+        const hgt = (v / mx) * (signed ? rowH / 2 - 16 : rowH - 44);
+        ctx.fillStyle = css(colours[k]);
+        ctx.fillRect(x0 + g * bw + 1, yMid - Math.max(0, hgt), bw - 2, Math.abs(hgt));
+        if (hgt < 0) ctx.fillRect(x0 + g * bw + 1, yMid, bw - 2, -hgt);
+      });
+      label(ctx, signed ? `PC${k + 1}` : `part ${k + 1}`, x0 - 4, yMid + 3, css("--ink-2"), "right");
+      /* the block boundaries of the truth */
+      ctx.strokeStyle = css("--c-reference"); ctx.setLineDash([2, 3]);
+      for (const g of [ST.block, 2 * ST.block]) {
+        ctx.beginPath(); ctx.moveTo(x0 + g * bw, yMid - rowH / 2 + 6); ctx.lineTo(x0 + g * bw, yMid + rowH / 2 - 12); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    });
+    label(ctx, "one bar per gene   |   dashed: where the real programmes change", x0, top + 2 * rowH + 22, css("--ink-3"));
+    return C;
+  };
+  const P1 = bars("PCA · loadings", "prcomp on the same matrix, centred",
+    [PCS[0].load, PCS[1].load], ["--c-empirical", "--c-empirical"], true);
+  const negs = [PCS[0].load, PCS[1].load].map((v) => v.filter((x) => x < 0).length);
+  P1.cap.textContent = `negative loadings: PC1 ${negs[0]}/24, PC2 ${negs[1]}/24
+PC1 . PC2 = ${cosine(PCS[0].load, PCS[1].load).toExponential(1)}  — orthogonal, exactly
+variance: PC1 ${(100 * PCS[0].share).toFixed(1)}%, PC2 ${(100 * PCS[1].share).toFixed(1)}%  — and ordered`;
+
+  const P2 = bars("NMF · the two parts", "rank 2, same matrix, W scaled to sum to one",
+    [col(FIT.W, 0), col(FIT.W, 1)], ["--c-cluster-a", "--c-cluster-b"], false);
+  P2.cap.textContent = `negative entries in W: ${FIT.W.flat().filter((v) => v < 0).length}/48  — cannot be otherwise
+part 1 . part 2 = ${cosine(col(FIT.W, 0), col(FIT.W, 1)).toFixed(3)}  — not orthogonal
+no variance to order by: the parts arrive unranked`;
+}
+
+/* ---------------------------------------------------- §3 scatters */
+{
+  const host = document.getElementById("scatter");
+  const scat = (title, sub, xs, ys, xlab, ylab, originAtZero) => {
+    const C = mk(host, 340, 300, title, sub);
+    const { ctx } = C;
+    const pad = 42, w = 340 - pad - 18, h = 300 - pad - 30;
+    const lo = (a) => (originAtZero ? 0 : Math.min(...a)), hi = (a) => Math.max(...a);
+    const padX = (hi(xs) - lo(xs)) * 0.12 || 1, padY = (hi(ys) - lo(ys)) * 0.12 || 1;
+    const X = (v) => pad + ((v - (lo(xs) - padX)) / ((hi(xs) + padX) - (lo(xs) - padX))) * w;
+    const Y = (v) => 22 + h - ((v - (lo(ys) - padY)) / ((hi(ys) + padY) - (lo(ys) - padY))) * h;
+    ctx.strokeStyle = css("--grid");
+    ctx.beginPath(); ctx.moveTo(pad, 22); ctx.lineTo(pad, 22 + h); ctx.lineTo(pad + w, 22 + h); ctx.stroke();
+    if (!originAtZero) {
+      ctx.setLineDash([2, 3]); ctx.strokeStyle = css("--c-reference");
+      if (lo(xs) - padX < 0 && hi(xs) + padX > 0) { ctx.beginPath(); ctx.moveTo(X(0), 22); ctx.lineTo(X(0), 22 + h); ctx.stroke(); }
+      if (lo(ys) - padY < 0 && hi(ys) + padY > 0) { ctx.beginPath(); ctx.moveTo(pad, Y(0)); ctx.lineTo(pad + w, Y(0)); ctx.stroke(); }
+      ctx.setLineDash([]);
+    }
+    xs.forEach((v, j) => {
+      ctx.fillStyle = css(ST.label[j] ? "--c-group-b" : "--c-group-a");
+      ctx.beginPath(); ctx.arc(X(v), Y(ys[j]), 4, 0, 7); ctx.fill();
+    });
+    label(ctx, xlab, pad + w / 2, 22 + h + 22, css("--ink-2"), "center");
+    ctx.save(); ctx.translate(12, 22 + h / 2); ctx.rotate(-Math.PI / 2);
+    label(ctx, ylab, 0, 0, css("--ink-2"), "center"); ctx.restore();
+    return C;
+  };
+  const S1 = scat("NMF · the lesson's figure (cell 23)", "the two rows of H, one point per sample",
+    FIT.H[0], FIT.H[1], "Component 1", "Component 2", true);
+  S1.cap.textContent = `both axes start at zero and can never go below it.
+group separation: part 1 ${groupSep(FIT.H[0], ST.label).toFixed(2)}, part 2 ${groupSep(FIT.H[1], ST.label).toFixed(2)}`;
+  const S2 = scat("PCA · the same samples (cell 14)", "scores on the first two components",
+    PCS[0].scores, PCS[1].scores, "PC1", "PC2", false);
+  S2.cap.textContent = `centred on the cloud, so half the scores are negative.
+group separation: PC1 ${groupSep(PCS[0].scores, ST.label).toFixed(2)}, PC2 ${groupSep(PCS[1].scores, ST.label).toFixed(2)}`;
+}
+
+/* ---------------------------------------------------- §4 the rank */
+{
+  /* The probe's section D, recomputed here — same generator, same pairing rule,
+     so the page and `node nmf-probe.mjs` cannot drift apart. */
+  const rows = [];
+  for (const rk of [2, 3, 4, 5, 6, 7]) {
+    const per = [];
+    for (let ss = 1; ss <= 6; ss += 1) {
+      const st = makeStageK({ genes: 30, samples: 16, K: 6, seed: ss });
+      const Ws = [];
+      for (let s = 1; s <= 5; s += 1) Ws.push(nmf(st.V, rk, s, 260).W);
+      let worst = 1;
+      for (let i = 0; i < Ws.length; i += 1) for (let j = i + 1; j < Ws.length; j += 1)
+        worst = Math.min(worst, partAgreement(Ws[i], Ws[j], rk));
+      per.push(worst);
+    }
+    const sorted = [...per].sort((a, b) => a - b);
+    rows.push({ rk, per, med: (sorted[2] + sorted[3]) / 2 });
+  }
+  const t = document.getElementById("ranktab");
+  t.innerHTML = "<tr><th>rank asked for</th>" +
+    rows[0].per.map((_, i) => `<th>stage ${i + 1}</th>`).join("") + "<th>median</th></tr>" +
+    rows.map((r) => `<tr><td>${r.rk}${r.rk === 6 ? " (= the truth)" : ""}</td>` +
+      r.per.map((v) => `<td>${v.toFixed(2)}</td>`).join("") +
+      `<td class="${r.med < 0.7 ? "bad" : "hit"}">${r.med.toFixed(3)}</td></tr>`).join("");
+
+  const host = document.getElementById("rankfig");
+  const C = mk(host, 460, 230, "the same run at two ranks", "six real programmes; W drawn as bars, one per gene");
+  const { ctx } = C;
+  const V6 = makeStageK({ genes: 30, samples: 16, K: 6, seed: 1 }).V;
+  const a2 = nmf(V6, 2, 1, 260), b2 = nmf(V6, 2, 7, 260);
+  const a6 = nmf(V6, 6, 1, 260), b6 = nmf(V6, 6, 7, 260);
+  const strip = (W, k, x, y, w, h, colour) => {
+    const vals = col(W, k), mx = Math.max(...vals) || 1, bw = w / vals.length;
+    ctx.fillStyle = css(colour);
+    vals.forEach((v, g) => ctx.fillRect(x + g * bw + 0.5, y + h - (v / mx) * h, bw - 1, (v / mx) * h));
+  };
+  label(ctx, "rank 2 — two seeds", 34, 16, css("--ink-2"));
+  strip(a2.W, 0, 34, 22, 180, 34, "--c-cluster-a");
+  strip(b2.W, 0, 240, 22, 180, 34, "--c-cluster-a");
+  label(ctx, `agree to ${Math.max(cosine(col(a2.W, 0), col(b2.W, 0)), cosine(col(a2.W, 0), col(b2.W, 1))).toFixed(3)}`, 34, 70, css("--ink-3"));
+  label(ctx, "rank 6 — the same two seeds", 34, 100, css("--ink-2"));
+  strip(a6.W, 0, 34, 106, 180, 34, "--c-cluster-b");
+  strip(b6.W, 0, 240, 106, 180, 34, "--c-cluster-b");
+  const best6 = Math.max(...[0, 1, 2, 3, 4, 5].map((k) => cosine(col(a6.W, 0), col(b6.W, k))));
+  label(ctx, `the best-matching of the six agrees to only ${best6.toFixed(3)}`, 34, 154, css("--ink-3"));
+  label(ctx, "seed 1", 34, 186, css("--ink-3"));
+  label(ctx, "seed 7", 240, 186, css("--ink-3"));
+  /* The comparison is BETWEEN SEEDS AT ONE RANK. Across ranks the residual moves
+     a great deal — that is what asking for more parts buys — and an earlier
+     caption put those two numbers side by side under "the fit barely moves",
+     which read as a claim about the rank and was false. */
+  C.cap.textContent = `rank 2, seeds 1 and 7: residual ${a2.trace.at(-1).toFixed(4)} and ${b2.trace.at(-1).toFixed(4)}
+rank 6, seeds 1 and 7: residual ${a6.trace.at(-1).toFixed(4)} and ${b6.trace.at(-1).toFixed(4)}
+at either rank the two seeds fit equally well. Only at rank 6
+do they fit equally well with DIFFERENT parts.`;
+}
+
+/* ---------------------------------------------------- §5 the descent */
+{
+  const host = document.getElementById("anim");
+  const V = ST.V, mx = Math.max(...V.flat());
+  const C0 = mk(host, 130, 270, "V", "the matrix");
+  heat(C0.ctx, V, 20, 24, 8, 9, mx);
+  C0.cap.textContent = "the target";
+  for (const it of [1, 4, 20, 300]) {
+    const f = nmf(V, 2, 1, it);
+    const R = V.map((row, i) => row.map((_, j) => f.W[i][0] * f.H[0][j] + f.W[i][1] * f.H[1][j]));
+    const C = mk(host, 130, 270, `iteration ${it}`, "");
+    heat(C.ctx, R, 20, 24, 8, 9, mx);
+    C.cap.textContent = `residual ${f.trace.at(-1).toFixed(4)}`;
+  }
+}
+</script>
+</main>
+</body>
+</html>
