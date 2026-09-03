@@ -1,5 +1,5 @@
 {
-  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut — a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan — every candidate concept, its target misconception and evidence — lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd §6) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently — by the time it was measured, eight of the nine were 190–310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
+  "$comment": "Registry of BUILT widgets, consumed by the gallery page and scripts/build.mjs. `title` is the gallery card AND the page heading: they used to be allowed to differ, the card naming the topic and the page asking the question, and that split was cut \u2014 a student who clicked \"Hypothesis Testing\" should land on a page that says so. `npm run check` asserts manifest.title === defineWidget({title}) === the index.html <title> prefix; the question belongs in `subtitle`. `blurb` is gallery copy and nothing else reads it. The plan \u2014 every candidate concept, its target misconception and evidence \u2014 lives in docs/catalogue.md; see that file for why the two are separate. A widget marked shipped there must appear here, and vice versa. NO HEIGHT IS RECORDED HERE, and adding one back needs a reader for it first. It used to live in three files and drift; deleting the embedders (prd \u00a76) left one copy that nothing consumed, and a number nothing reads is a number that drifts silently \u2014 by the time it was measured, eight of the nine were 190\u2013310px wrong. Heights are also no longer one number per widget: `bayesian` returns a different one per tab. README's iframe recipe says how to get a correct one.",
   "widgets": [
     {
       "slug": "galton-board",
@@ -127,8 +127,8 @@
     },
     {
       "slug": "em-mixture",
-      "title": "Expectation–Maximization",
-      "blurb": "Expectation–maximization recovers the component distributions of a mixture without knowing who belongs to which.",
+      "title": "Expectation\u2013Maximization",
+      "blurb": "Expectation\u2013maximization recovers the component distributions of a mixture without knowing who belongs to which.",
       "course": "PHM5003",
       "topics": [
         "EM",
@@ -165,7 +165,7 @@
     {
       "slug": "odds-and-risk",
       "title": "Odds Ratio and Relative Risk",
-      "blurb": "The odds ratio and the relative risk quantify the association between exposure and outcome in a 2×2 table.",
+      "blurb": "The odds ratio and the relative risk quantify the association between exposure and outcome in a 2\u00d72 table.",
       "course": "PHM5003",
       "topics": [
         "odds ratio",
@@ -371,7 +371,7 @@
     {
       "slug": "fork-pipe-collider",
       "title": "Causal Structures",
-      "blurb": "The causal structure — fork, pipe or collider — decides whether adjusting for a covariate removes a bias or creates one.",
+      "blurb": "The causal structure \u2014 fork, pipe or collider \u2014 decides whether adjusting for a covariate removes a bias or creates one.",
       "course": "PHM5003",
       "topics": [
         "causal inference",
@@ -469,7 +469,7 @@
     {
       "slug": "lm-diagnostics",
       "title": "Checking the Model Fit",
-      "blurb": "Residual diagnostic plots and R² assess how well a linear model fits the data.",
+      "blurb": "Residual diagnostic plots and R\u00b2 assess how well a linear model fits the data.",
       "course": "PHM5003",
       "topics": [
         "linear model",
@@ -615,14 +615,13 @@
     },
     {
       "slug": "hierarchical-clustering",
-      "title": "Finding Groups",
+      "title": "Hierarchical Clustering",
       "blurb": "A dendrogram is built by a rule and cut by a choice. Ask for two clusters and you get two, whether or not any exist.",
       "course": "PHM5003",
       "topics": [
         "hierarchical clustering",
         "dendrogram",
         "linkage",
-        "cutree",
         "heatmap",
         "unsupervised",
         "omics"

@@ -132,11 +132,11 @@ defineWidget({
   /* `check` asserts this agrees with manifest.json, so the gallery and the
      draft bar cannot disagree. */
   status: "draft",
-  title: "Finding Groups",
+  title: "Hierarchical Clustering",
   subtitle:
-    "Hierarchical clustering merges the closest pair, over and over, and the "
-    + "tree records every join. Cutting that tree is a separate decision — and "
-    + "it returns the number of groups you asked for, whether or not they exist.",
+    "Hierarchical clustering merges the closest pair of observations repeatedly, "
+    + "and the dendrogram records the height of every join. Cutting that tree is "
+    + "a separate decision, and it returns k clusters whether or not k groups exist.",
   layout: "side",
 
   /* Core calls this with the values SPREAD, plus `w` — not `{ params }`, which
@@ -158,10 +158,8 @@ defineWidget({
       type: "segmented",
       label: "View",
       options: [
-        { value: "cluster", label: "Cluster",
-          detail: "how a distance and a linkage build the tree, and what cutting it decides" },
-        { value: "heatmap", label: "Heatmap",
-          detail: "the same operation on a real gene-expression matrix" },
+        { value: "cluster", label: "Cluster" },
+        { value: "heatmap", label: "Heatmap" },
       ],
       default: "cluster",
       display: true,
