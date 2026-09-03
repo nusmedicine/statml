@@ -616,7 +616,7 @@
     {
       "slug": "hierarchical-clustering",
       "title": "Hierarchical Clustering",
-      "blurb": "Hierarchical clustering builds a dendrogram from a distance and a linkage rule, then cuts it into k clusters.",
+      "blurb": "Hierarchical clustering builds a dendrogram from the distances between observations, then cuts it into k clusters.",
       "course": "PHM5003",
       "topics": [
         "hierarchical clustering",
@@ -627,7 +627,7 @@
         "omics"
       ],
       "arc": 42,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

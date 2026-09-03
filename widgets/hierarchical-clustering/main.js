@@ -131,7 +131,7 @@ defineWidget({
   slug: "hierarchical-clustering",
   /* `check` asserts this agrees with manifest.json, so the gallery and the
      draft bar cannot disagree. */
-  status: "draft",
+  status: "shipped",
   title: "Hierarchical Clustering",
   subtitle:
     "A distance measure scores every pair of observations and a linkage rule "
