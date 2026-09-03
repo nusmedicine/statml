@@ -355,13 +355,12 @@ defineWidget({
         { token: "highlight", label: "where each tree is cut", mark: "dash" },
         { token: "extreme", label: "a box holding no structured gene at all", mark: "line" },
       ];
-      /* Only when the reader has asked for it. The strip takes the roles for a
-         comparison the STUDY decided rather than a cluster hue, which would
-         say the widget had found it. */
       if (truth) {
-        entries.push({ token: "reference",
-          label: "the condition a sample really came from — solid, then pale",
-          mark: "bar" });
+        entries.push(
+          { token: "cluster-a", label: "the two real conditions — the `condition` strip", mark: "bar" },
+          { token: "cluster-a", label: "the four real gene blocks — the strip left of the matrix", mark: "bar" },
+          { token: "unknown", label: "a gene with nothing added to it", mark: "bar" },
+        );
       }
       return entries;
     }
@@ -375,34 +374,41 @@ defineWidget({
       "ward.D2": "each member to the centre they would form — Ward's spread",
     }[params.linkage];
 
-    const entries = [
+    /* THE TOGGLE CHANGES WHAT COLOUR MEANS, so the legend has to say which
+       reading is on screen. Colour is the clustering's answer until the reader
+       asks for the truth, and then it is the truth and the clustering's answer
+       becomes the ink ring round it. Two partitions of twenty objects, one
+       ramp: the alternative is a second ramp of five more hues nobody can tell
+       apart from the first. */
+    if (truth && Number(separation) === 0) {
+      return [
+        { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
+        { token: "highlight", label: measures, mark: "line" },
+        { token: "unknown", label: "one population — there were no real groups to show", mark: "dot" },
+        { token: "highlight", label: "where the tree is cut", mark: "dash" },
+      ];
+    }
+
+    if (truth) {
+      const real = params.axis === "columns"
+        ? "which of the two conditions a sample really came from"
+        : "which of the four blocks was really planted in a gene";
+      return [
+        { token: "cluster-a", label: real, mark: "dot" },
+        { token: "unknown", label: params.axis === "columns"
+          ? "a sample from neither" : "a gene with nothing added to it", mark: "dot" },
+        { token: "reference", label: "what the clustering found — one ring per cluster", mark: "area" },
+        { token: "highlight", label: measures, mark: "line" },
+        { token: "highlight", label: "where the tree is cut", mark: "dash" },
+      ];
+    }
+
+    return [
       { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
       { token: "highlight", label: measures, mark: "line" },
       { token: "unknown", label: "a cluster already formed", mark: "area" },
       { token: "highlight", label: "where the tree is cut", mark: "dash" },
     ];
-    /* WHAT THE RING MEANS DEPENDS ON WHICH AXIS IS BEING CLUSTERED, and until
-       now it said neither: "the group a point was really drawn from" describes
-       a sample, and on the default axis a point is a GENE, which is not drawn
-       from a group at all — it either had a block planted in it or it did not.
-       Kenneth asked outright what the circles were. */
-    if (truth) {
-      if (Number(separation) === 0) {
-        entries.push({ token: "reference",
-          label: "one population — there was nothing to show", mark: "ring-dash" });
-      } else if (params.axis === "columns") {
-        entries.push(
-          { token: "reference", label: "a sample from one of the two conditions", mark: "ring" },
-          { token: "reference", label: "a sample from the other", mark: "ring-dash" },
-        );
-      } else {
-        entries.push(
-          { token: "reference", label: "a gene that really had a block planted in it", mark: "ring" },
-          { token: "reference", label: "a gene with nothing added — noise only", mark: "ring-dash" },
-        );
-      }
-    }
-    return entries;
   },
 
   compute: ({ params, rng }) => {
@@ -422,9 +428,14 @@ defineWidget({
        it is placed by classical scaling on the very distance matrix the tree
        is built from — plotted separation approximates real separation, and the
        two panels agree by construction. */
+    /* THE WHOLE TRUTH, not a yes/no. Clustering the rows, an object is a gene
+       and the truth is WHICH of the four planted blocks it belongs to, or none
+       — five readings. Clustering the columns it is one of two conditions.
+       This used to collapse the rows case to planted/unplanted, which threw
+       away three quarters of what there was to check the clustering against. */
     const pts = mds(objects, params.distance).map((p, i) => ({
       ...p,
-      group: cols ? heat.condition[i] : (heat.planted[i] === null ? 0 : 1),
+      truth: cols ? heat.condition[i] : heat.planted[i],
     }));
 
     const trees = {};
@@ -603,6 +614,8 @@ defineWidget({
       order: state.tree.order,
       groups,
       cells: wt && wt.kind !== "spokes" ? wt.pairs : null,
+      truth: params.truth && params.separation !== "0"
+        ? state.pts.map((p) => p.truth) : null,
       caption: `${n} x ${n} — every pair of ${cols ? "samples" : "genes"}, `
         + `${shown} merge${shown === 1 ? "" : "s"} boxed`,
     });
@@ -731,6 +744,27 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
      last "cluster formed so far" is every point at once, and a single grey
      disc over the entire scatter is both meaningless and opaque enough to hide
      the data under it. */
+  /* WHICH PARTITION GETS THE COLOUR.
+
+     Two partitions of the same twenty objects are on this panel — the one the
+     clustering found and the one that is real — and only one of them can have
+     the cluster ramp. `truth` decides which.
+
+     Off: the dots are the clusters, as before.
+
+     On: the dots are the TRUTH, and the clusters become ink outlines. That way
+     round because the truth needs the hues and the clusters do not: on the row
+     axis the truth is five readings — four planted blocks and the genes with
+     nothing added — while a found cluster is already visible as a group of
+     dots sitting together, so a hue tells the reader nothing they cannot see.
+     "Does each ring hold one colour?" is then the whole question the toggle
+     exists to ask.
+
+     Told apart by stroke instead — a ring, dashed for the second arm — and
+     Kenneth's reading of that was "the symbols just confuse me". They also
+     could not carry five categories at all. */
+  const showTruth = Boolean(params.truth) && params.separation !== "0";
+
   if (labels) {
     const byLabel = new Map();
     labels.forEach((l, i) => {
@@ -739,7 +773,8 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
     });
     for (const [l, g] of byLabel) {
       if (g.length < 2) continue;
-      blob(ctx, pts, g, colors.clusters[(l - 1) % colors.clusters.length], box, 0.12, ex);
+      blob(ctx, pts, g, showTruth ? colors.reference
+        : colors.clusters[(l - 1) % colors.clusters.length], box, showTruth ? 0.2 : 0.12, ex);
     }
   } else {
     for (const g of clustersAfter(tree, shown)) {
@@ -751,9 +786,13 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
 
   if (inFlight) {
     /* The two blobs come UP as the merge runs, so a reader watching at Slow
-       sees the pair being considered before the lines reach across them. */
-    blob(ctx, pts, inFlight.a.leaves, colors.clusters[0], box, 0.06 + 0.12 * t, ex);
-    blob(ctx, pts, inFlight.b.leaves, colors.clusters[1], box, 0.06 + 0.12 * t, ex);
+       sees the pair being considered before the lines reach across them.
+       Ink when the dots have the truth, so the pair is still marked and the
+       marking cannot be read as a group. */
+    const cA = showTruth ? colors.reference : colors.clusters[0];
+    const cB = showTruth ? colors.reference : colors.clusters[1];
+    blob(ctx, pts, inFlight.a.leaves, cA, box, 0.06 + 0.14 * t, ex);
+    blob(ctx, pts, inFlight.b.leaves, cB, box, 0.06 + 0.14 * t, ex);
     drawWitness(ctx, colors, pts, objects, inFlight, params, box, t);
   }
 
@@ -761,55 +800,54 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
   const inB = inFlight ? new Set(inFlight.b.leaves) : null;
 
   pts.forEach((p, i) => {
-    /* Three readings, in order of what is on screen: the finished cut, then
-       the pair being merged, then neither. A point in no cluster of interest
-       stays unknown rather than borrowing a hue that means nothing yet. */
-    ctx.fillStyle = labels
-      ? colors.clusters[(labels[i] - 1) % colors.clusters.length]
-      : inA && inA.has(i) ? colors.clusters[0]
-        : inB && inB.has(i) ? colors.clusters[1]
-          : colors.unknown;
+    ctx.fillStyle = showTruth
+      ? truthColour(colors, p.truth)
+      : labels
+        ? colors.clusters[(labels[i] - 1) % colors.clusters.length]
+        : inA && inA.has(i) ? colors.clusters[0]
+          : inB && inB.has(i) ? colors.clusters[1]
+            : colors.unknown;
     ctx.beginPath();
-    ctx.arc(px(p.x), py(p.y), 4, 0, Math.PI * 2);
+    ctx.arc(px(p.x), py(p.y), showTruth ? 5 : 4, 0, Math.PI * 2);
     ctx.fill();
 
-    if (params.truth) {
-      /* THE TRUTH IS A BENCHMARK, SO IT IS DRAWN IN INK.
-
-         It was --c-group-a / --c-group-b, which ALIAS --c-cluster-a and
-         --c-cluster-b — the same two series slots. So the ring round a point
-         was painted in the exact colour of the cut's own fill, and "what the
-         algorithm found" and "what was really there" were the same two hues on
-         the same twenty dots. Reported as "what are the circles? there are
-         similar colors" (Kenneth, round 11).
-
-         tokens.css says why the collision was not obvious: it reasons that the
-         cluster ramp may share hues with the other roles because "a cluster
-         figure has no p-value tail and no theoretical curve in it". This is the
-         widget that breaks that assumption — it puts a FOUND partition and a
-         TRUE one on one set of marks, which no widget had done before. The
-         fix is not a seventh hue but the role that already means this:
-         --c-reference, "the truth where one exists", and ink rather than a
-         series slot because a benchmark is not data.
-
-         One colour, so the two arms are told apart by the STROKE — the same
-         device widget 39 uses for its two reference lines, and the reason the
-         legend now has a dashed-ring swatch. Solid is the arm something was
-         done to; dashed is the one nothing was done to. */
-      const neutral = params.separation === "0";
-      ctx.strokeStyle = colors.reference;
-      ctx.lineWidth = 2;
-      /* At separation 0 the halves are draws from ONE distribution, so telling
-         them apart at all would be a lie about the data: every ring is dashed
-         and the legend says there was nothing to show. */
-      if (neutral || p.group === 0) ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      ctx.arc(px(p.x), py(p.y), 7, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
   });
   ctx.restore();
+}
+
+/**
+ * Renumber a labelling by FIRST APPEARANCE along a display order.
+ *
+ * Two labellings of the same twenty samples sit stacked on the heatmap — the
+ * cut's groups and the real conditions — and they are numbered independently:
+ * `cut` numbers by input index, and a condition is 0 or 1 by which half of the
+ * shuffled table a sample came from. Nothing ties the two origins together, so
+ * a PERFECT recovery came out with the strips in opposite colours. Measured
+ * over five seeds before this existed: 0 of 20 positions shared a hue on four
+ * of them, and 20 of 20 on the fifth. A reader comparing the strips would have
+ * read a perfect result as a total failure four times out of five.
+ *
+ * Renumbering both by first appearance across the displayed columns ties them
+ * to the one thing they share — the order the figure draws them in — so the
+ * leftmost group is the first colour in each. A perfect recovery now looks
+ * identical and a real mismatch is the only thing that shows as one.
+ */
+function byAppearance(labels, order) {
+  const rank = new Map();
+  for (const i of order) if (!rank.has(labels[i])) rank.set(labels[i], rank.size);
+  return labels.map((l) => rank.get(l));
+}
+
+/**
+ * The colour of a true group.
+ *
+ * `null` means a gene with nothing added to it, which is not a fifth group —
+ * --c-unknown is the role for "not measured", and here it reads as "there was
+ * nothing here to find".
+ */
+function truthColour(colors, t) {
+  if (t === null || t === undefined) return colors.unknown;
+  return colors.clusters[t % colors.clusters.length];
 }
 
 /** The clusters standing after `shown` merges, as arrays of point indices. */
@@ -1040,9 +1078,23 @@ function drawDendrogram(ctx, colors, box, { tree, shown, labels, k, orient = "up
 /* ---------------------------------------------------------------------------
    The distance matrix — `dist()`, drawn.
    ------------------------------------------------------------------------ */
-function drawDistance(ctx, colors, box, {
+function drawDistance(ctx, colors, outer, {
   rows, distance, order = null, cells = null, groups = null, caption = "",
+  truth = null,
 }) {
+  /* THE TRUTH STRIP, and why it belongs on THIS panel.
+
+     The matrix is held in the finished tree's leaf order, so every cluster the
+     build forms is a contiguous run and its box sits on the diagonal. A strip
+     of true groups down the same rows therefore lines up with those boxes, and
+     the comparison the toggle exists for becomes one glance: a box whose rows
+     are all one colour found a real group, and a box holding two colours cut
+     one in half or welded two together.
+
+     A left gutter rather than the empty upper triangle: a strip up there would
+     be a staircase, and it would not sit against the boxes. */
+  const GUT = truth ? 12 : 0;
+  const box = { x: outer.x + GUT, y: outer.y, w: outer.w - GUT, h: outer.h };
   const { D, n, max } = distanceMatrix(rows, distance);
   const idx = order ?? Array.from({ length: n }, (_, i) => i);
   const pos = new Map();
@@ -1099,13 +1151,20 @@ function drawDistance(ctx, colors, box, {
     }
   }
 
+  if (truth) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = truthColour(colors, truth[idx[i]]);
+      ctx.fillRect(outer.x, box.y + i * cell + 0.5, 6, cell - 1);
+    }
+  }
+
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(box.x + 0.5, box.y + 0.5, n * cell - 1, n * cell - 1);
   if (caption) {
     ctx.fillStyle = colors.ink3;
     ctx.textAlign = "left";
-    ctx.fillText(caption, box.x, box.y + n * cell + 13);
+    ctx.fillText(caption, outer.x, box.y + n * cell + 13);
   }
   ctx.restore();
   return cell;
@@ -1305,33 +1364,25 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
       ctx.fillRect(gx + ci * cellW, yy, cellW + 0.5, ANNO);
     });
   };
-  annoRow(annoY, (s) => colors.clusters[(colLab[s] - 1) % colors.clusters.length]);
+  const cutRank = byAppearance(colLab, colOrder);
+  const condRank = byAppearance(heat.condition, colOrder);
+  annoRow(annoY, (s) => colors.clusters[cutRank[s] % colors.clusters.length]);
   /* THE SAME COLLISION, ON THE STRIP. The cut's strip is painted from the
      cluster ramp and the truth strip beneath it was --c-group-a/b — the same
      two slots — so the two stacked strips were the same two colours and the
      figure invited a comparison it had made impossible. The truth strip is
      now ink: solid for one condition and pale for the other, which is the
      strip's reading of the scatter's solid-and-dashed ring. */
+  /* THE TWO TRUTHS, BOTH COLOURED. Two conditions across the columns and four
+     planted blocks down the rows, and the cuts they are checked against are
+     the ink boxes on the matrix — so the hues are free and the comparison is
+     one glance: does a box hold one colour?
+
+     Ink and two intensities were tried first, to keep the cluster ramp for the
+     cut strip alone. Two greys cannot carry four blocks, and the strip read as
+     one thing shading into another rather than as two categories. */
   if (showTruth) {
-    /* SOLID AND PALE, one ink. Outlining the second condition instead was
-       tried first, to match the scatter's dashed ring exactly, and twenty 1px
-       boxes in a 9px band read as a barcode rather than as half a strip. Two
-       intensities is what pheatmap's own annotations look like, and the
-       boundary between them — which is the only thing this strip is for — is
-       what the eye lands on. The whole band is outlined so the pale half
-       cannot be mistaken for empty. */
-    const ty = annoY + ANNO + ANNO_GAP;
-    ctx.save();
-    colOrder.forEach((s, ci) => {
-      ctx.globalAlpha = heat.condition[s] === 1 ? 1 : 0.3;
-      ctx.fillStyle = colors.reference;
-      ctx.fillRect(gx + ci * cellW, ty, cellW + 0.5, ANNO);
-    });
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = colors.reference;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(gx + 0.5, ty + 0.5, gw - 1, ANNO - 1);
-    ctx.restore();
+    annoRow(annoY + ANNO + ANNO_GAP, (s) => truthColour(colors, condRank[s]));
   }
 
   /* The strip is named for the call that produced it, not for what it might
@@ -1343,6 +1394,20 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   ctx.fillText("cutree_cols", gx - 8, annoY + ANNO - 1);
   if (showTruth) ctx.fillText("condition", gx - 8, annoY + ANNO + ANNO_GAP + ANNO - 1);
   ctx.textAlign = "left";
+
+  /* THE GENE SIDE OF THE SAME QUESTION: which of the four blocks a gene really
+     belongs to, or none, as one column of cells against the matrix's left
+     edge, in the row tree's order. It reads against the cutree_rows boxes the
+     way the condition strip reads against the column boxes, and it is what
+     makes "a box holding no structured gene at all" checkable rather than
+     asserted by a caption. */
+  const labelRight = gx - (showTruth ? ANNO + ANNO_GAP + 8 : 8);
+  if (showTruth) {
+    rowOrder.forEach((g, ri) => {
+      ctx.fillStyle = truthColour(colors, heat.planted[g]);
+      ctx.fillRect(gx - ANNO - ANNO_GAP, gy + ri * cellH, ANNO, cellH + 0.5);
+    });
+  }
 
   const scale = heatScale(heat.rows);
 
@@ -1374,7 +1439,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
          defect a sweep of string LENGTHS would never have reported. */
       const nGenes = to - from;
       const noun = `${nGenes} gene${nGenes === 1 ? "" : "s"}`;
-      ctx.fillText(isEmpty ? `${noun}, no real pattern` : noun, gx - 8, mid);
+      ctx.fillText(isEmpty ? `${noun}, no real pattern` : noun, labelRight, mid);
     }
   }
 
