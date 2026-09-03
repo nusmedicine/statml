@@ -249,27 +249,6 @@ defineWidget({
       default: "euclidean",
     },
 
-    /* `display` on purpose. The cut does not change the tree, so moving it
-        must not discard a tree the reader has just watched being built —
-        which is also the widget's claim, made by the control's own behaviour. */
-    /* ONE VERB, THREE TREES. Every cut on this widget is "cut tree", because
-       every one of them is the same operation — `cutree` — applied to a
-       different tree: these twenty points, the matrix's fifty genes, its
-       twenty samples. Naming them alike is what makes them comparable; it was
-       briefly one shared control instead, and that conflated three datasets
-       into one number (Kenneth reversed it: a student should meet the two
-       pheatmap arguments as the two separate things they are). */
-    k: {
-      type: "int",
-      label: "Cut tree into k clusters",
-      detail: "the twenty points — `cutree(hclust(...), k)`",
-      min: 2,
-      max: 6,
-      default: 2,
-      display: true,
-      when: { param: "view", equals: "cluster" },
-    },
-
     /* BELOW the buttons it governs — literally, now: `afterDrive` puts it under
        the drive row, which is where clt and bootstrap place theirs and where a
        speed control belongs, since it means nothing until something is playing.
@@ -295,11 +274,37 @@ defineWidget({
       label: "Cluster the",
       options: [
         { value: "rows", label: "Rows",
-          detail: "20 objects, two numbers each — a 20 x 20 distance matrix" },
+          detail: "each gene is one object, its twenty sample readings" },
         { value: "columns", label: "Columns",
-          detail: "2 objects, twenty numbers each — a 2 x 2, and one merge" },
+          detail: "each sample is one object, its twenty gene readings" },
       ],
       default: "rows",
+      when: { param: "view", equals: "cluster" },
+    },
+
+    /* AFTER the axis toggle, which is what decides WHICH tree this cuts
+       (Kenneth, round 10): the cut is the last step of the pipeline above it,
+       and reading it before "cluster the rows or the columns" asked for a
+       number of groups of something not yet chosen.
+
+       `display` on purpose. The cut does not change the tree, so moving it
+        must not discard a tree the reader has just watched being built —
+        which is also the widget's claim, made by the control's own behaviour. */
+    /* ONE VERB, THREE TREES. Every cut on this widget is "cut tree", because
+       every one of them is the same operation — `cutree` — applied to a
+       different tree: this tab's twenty objects, the heatmap's twenty genes,
+       its twenty samples. Naming them alike is what makes them comparable; it was
+       briefly one shared control instead, and that conflated three datasets
+       into one number (Kenneth reversed it: a student should meet the two
+       pheatmap arguments as the two separate things they are). */
+    k: {
+      type: "int",
+      label: "Cut tree into k clusters",
+      detail: "the tree above — `cutree(hclust(...), k)`",
+      min: 2,
+      max: 6,
+      default: 2,
+      display: true,
       when: { param: "view", equals: "cluster" },
     },
 
@@ -320,7 +325,7 @@ defineWidget({
     cutRows: {
       type: "int",
       label: "Cut tree (rows)",
-      detail: "the 50 genes — pheatmap's `cutree_rows`",
+      detail: "the 20 genes — pheatmap's `cutree_rows`",
       min: 2,
       max: 8,
       default: 5,
@@ -548,10 +553,21 @@ defineWidget({
       ? witness(state.objects, flight.node.a.leaves, flight.node.b.leaves,
         params.linkage, params.distance)
       : null;
-    const pair = wt && wt.kind !== "spokes" && wt.pairs.length ? wt.pairs[0] : [0, 1];
+
+    /* WHAT THE DATA MATRIX MARKS: the two clusters, at their real size, and an
+       outline only where the linkage names two objects. `extreme` is complete
+       linkage, whose value IS one pair's distance; `all` is average and
+       `spokes` is Ward, and neither has a pair to point at. Nothing in flight
+       marks nothing — this used to fall back to `[0, 1]` and leave the first
+       two rows of the table outlined at rest. */
+    const marks = flight ? {
+      a: flight.node.a.leaves,
+      b: flight.node.b.leaves,
+      pair: wt && wt.kind === "extreme" && wt.pairs[0] ? wt.pairs[0] : null,
+    } : null;
 
     drawDataMatrix(ctx, colors, { x: dataX, y: row1, w: sq1, h: sq1 }, {
-      vecs: state.heat.rows, cols, pair,
+      vecs: state.heat.rows, cols, marks,
     });
     arrow(ctx, colors, dataX + sq1 + 10, row1 + sq1 / 2, distX - 10, "dist()");
 
@@ -569,7 +585,8 @@ defineWidget({
       order: state.tree.order,
       groups,
       cells: wt && wt.kind !== "spokes" ? wt.pairs : null,
-      caption: `${n} x ${n} — every pair, ${shown} merge${shown === 1 ? "" : "s"} boxed`,
+      caption: `${n} x ${n} — every pair of ${cols ? "samples" : "genes"}, `
+        + `${shown} merge${shown === 1 ? "" : "s"} boxed`,
     });
 
     /* Row 2: the scatter square, the tree taking every pixel that is left. */
@@ -813,9 +830,20 @@ function drawWitness(ctx, colors, pts, objects, node, params, box, t = 1) {
   ctx.strokeStyle = colors.highlight;
 
   if (wt.kind === "spokes") {
-    const [c] = wt.centres;
-    const cx = x + w * (0.5 + c[0] / (2 * EXTENT));
-    const cy = y + h * (0.5 - c[1] / (2 * EXTENT));
+    /* THE CENTRE IS COMPUTED IN THE PLANE, from the plotted points.
+
+       Two bugs lived on this line and between them Ward's marks never drew at
+       all — reported as "ward animation linkage looks missing". First, it read
+       `2 * EXTENT` where EXTENT is the per-metric TABLE, not a number, so both
+       coordinates were NaN and canvas discards a NaN path silently: no spokes,
+       no centre, no error. Second, `wt.centres[0]` is the centroid in DATA
+       space — twenty gene values — so even with the right extent its first two
+       entries are two expression levels and not a position on this stage. The
+       centre of the plotted members is the thing Ward's spokes reach for, and
+       it is the same mean `blob()` already takes. */
+    const xy = wt.members.map(P);
+    const cx = xy.reduce((a, q) => a + q[0], 0) / xy.length;
+    const cy = xy.reduce((a, q) => a + q[1], 0) / xy.length;
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.75 * t;
     /* Each spoke REACHES from its member toward the centre as the merge runs,
@@ -1045,13 +1073,37 @@ function drawDistance(ctx, colors, box, {
 /* ---------------------------------------------------------------------------
    The data matrix — the table the whole pipeline starts from.
 
-   Twenty rows, two columns. The two objects being compared are outlined: two
-   ROWS when the rows are being clustered, two COLUMNS when the columns are.
-   That outline is the answer to "what is a distance between?", and it is the
-   step a dendrogram gives no sight of.
+   Twenty genes by twenty samples, and BOTH AXES ARE NAMED: a row is a gene and
+   a column is a sample whichever way the clustering is pointed, and the axis
+   being clustered is the one written in ink1. Without those two words the
+   rows/columns toggle asked the reader to hold in their head which of the
+   table's two directions the distances were between (Kenneth, round 10).
+
+   What is marked on it is the merge in flight, and it is marked at the size the
+   merge actually is. It used to outline exactly two lines — `witness().pairs[0]`
+   — which for average is an arbitrary cross pair and for Ward is nothing at all,
+   so the code fell back to a hardcoded `[0, 1]` and the figure sat there
+   outlining the first two rows of the table for reasons no reader could
+   recover. Reported as "the boxes change but only single rows even though we
+   are comparing larger and larger groups", which is exactly what it did.
+
+   Now: a TICK PER MEMBER in the gutter, in the two cluster colours the scatter
+   uses, so a 4-against-6 merge looks like four against six; and the outline is
+   kept for the one linkage that names a pair — complete, whose value IS the
+   distance between the two objects outlined. Average measures every cross pair
+   (the distance matrix lights them all) and Ward measures a spread, so neither
+   has two lines to outline and neither pretends to.
    ------------------------------------------------------------------------ */
-function drawDataMatrix(ctx, colors, box, { vecs, cols, pair }) {
-  const { x, y, w, h } = box;
+function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
+  /* The gutter holds TWO things and they must not share pixels: the axis name,
+     then the membership ticks against the matrix edge. At 15 and 13 the
+     rotated "genes" ran straight through its own ticks. */
+  const GUT = 21;                      // 0-10 the rotated row label, 14-19 ticks
+  const TOP = 19;                      // baseline at 9, ticks 12-17
+  const x = box.x + GUT;
+  const y = box.y + TOP;
+  const w = box.w - GUT;
+  const h = box.h - TOP;
   const nR = vecs.length;
   const nC = vecs[0].length;
   const cw = w / nC;
@@ -1071,19 +1123,48 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, pair }) {
     }
   }
 
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  for (const p of pair) {
-    if (cols) ctx.strokeRect(x + p * cw, y, cw, h);
-    else ctx.strokeRect(x, y + p * ch, w, ch);
+  /* THE TWO CLUSTERS BEING MERGED, at their real size. Along the clustered
+     axis, because that is the axis whose entries are the objects. */
+  if (marks) {
+    const band = (i, colour) => {
+      ctx.fillStyle = colour;
+      if (cols) ctx.fillRect(x + i * cw + 0.5, box.y + TOP - 7, cw - 1, 5);
+      else ctx.fillRect(box.x + GUT - 7, y + i * ch + 0.5, 5, ch - 1);
+    };
+    for (const i of marks.a) band(i, colors.clusters[0]);
+    for (const i of marks.b) band(i, colors.clusters[1]);
+
+    if (marks.pair) {
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 2;
+      for (const p of marks.pair) {
+        if (cols) ctx.strokeRect(x + p * cw, y, cw, h);
+        else ctx.strokeRect(x, y + p * ch, w, ch);
+      }
+    }
   }
 
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+  /* The axis being clustered reads bright, the other one stays quiet. */
+  ctx.textAlign = "center";
+  ctx.fillStyle = cols ? colors.ink1 : colors.ink3;
+  ctx.fillText(`${nC} samples (columns)`, x + w / 2, box.y + 9);
+  ctx.save();
+  ctx.translate(box.x + 6, y + h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = cols ? colors.ink3 : colors.ink1;
+  ctx.fillText(`${nR} genes (rows)`, 0, 0);
+  ctx.restore();
+
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
-  ctx.fillText(cols ? "two columns" : "two rows", x, y + h + 13);
+  ctx.fillText(marks
+    ? (cols ? "the two groups of columns being merged" : "the two groups of rows being merged")
+    : (cols ? "each column is one object" : "each row is one object"),
+  box.x, box.y + box.h + 13);
   ctx.restore();
 }
 
