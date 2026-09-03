@@ -616,7 +616,7 @@
     {
       "slug": "hierarchical-clustering",
       "title": "Hierarchical Clustering",
-      "blurb": "A dendrogram is built by a rule and cut by a choice. Ask for two clusters and you get two, whether or not any exist.",
+      "blurb": "Hierarchical clustering builds a dendrogram from a distance and a linkage rule, then cuts it into k clusters.",
       "course": "PHM5003",
       "topics": [
         "hierarchical clustering",

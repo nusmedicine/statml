@@ -134,9 +134,9 @@ defineWidget({
   status: "draft",
   title: "Hierarchical Clustering",
   subtitle:
-    "Hierarchical clustering merges the closest pair of observations repeatedly, "
-    + "and the dendrogram records the height of every join. Cutting that tree is "
-    + "a separate decision, and it returns k clusters whether or not k groups exist.",
+    "A distance measure scores every pair of observations and a linkage rule "
+    + "extends it to pairs of clusters. Merging the closest pair at each step "
+    + "builds a dendrogram, which is cut at a chosen height to give k clusters.",
   layout: "side",
 
   /* Core calls this with the values SPREAD, plus `w` — not `{ params }`, which
