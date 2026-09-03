@@ -13,6 +13,25 @@
    evidence the cut discards — which is why `shown` builds the tree and `k`
    cuts it, as two controls and not one.
 
+   ONE COLOUR SCALE, AND WHY. Two partitions of the same objects are on this
+   figure — the one the clustering found and the one that is real — and a cut's
+   group numbers are ARBITRARY where the truth's are not. `cutree` numbers
+   groups in the order it meets them, so a comparison between the two has to be
+   invariant to relabelling, and colour is not: measured over five seeds at
+   k = 2, where the cut recovers both conditions exactly, 0 of 20 columns
+   shared a hue between a cut strip and a truth strip on four of them. A reader
+   comparing colour would read a perfect result as a total failure.
+
+   So COLOUR NEVER CARRIES TWO GROUPINGS AT ONCE. The truth gets the ramp when
+   the reader asks for it, and what the clustering found is drawn as ENCLOSURE
+   — boxes on the distance matrix and the heatmap, rings on the scatter, a
+   bracket under the dendrogram's leaves. Grouping gets the channel that means
+   grouping, and the reading is one sentence: does each enclosure hold one
+   colour? `pheatmap` divides the work the same way, so a student meets it
+   twice: `annotation_col` colours known groups, `cutree_cols` splits the
+   matrix. `agreement()` prints the same comparison as a number, because a
+   number is invariant to relabelling where the eye's verdict is not.
+
    `model.js` carries the engine, verified against R's `hclust`.
    ========================================================================= */
 
@@ -20,7 +39,7 @@ import { defineWidget, makeRng, fmt } from "../core/index.js";
 import {
   cluster, cut, gapAt, cutHeight, canonical, witness,
   distanceMatrix, mds,
-  heatStage, noiseBoxes, DISTANCES, HEAT_GENES, HEAT_SAMPLES,
+  heatStage, noiseBoxes, agreement, DISTANCES, HEAT_GENES, HEAT_SAMPLES,
 } from "./model.js";
 
 const OFFERED = ["average", "complete", "ward.D2"];
@@ -316,14 +335,13 @@ defineWidget({
       const entries = [
         { token: "value-high", label: "above this gene's baseline", mark: "bar" },
         { token: "value-low", label: "below it — pale is neither", mark: "bar" },
-        { token: "cluster-a", label: "the column cut's groups", mark: "bar" },
+        { token: "reference", label: "what cutree found — one box per group, both ways", mark: "line" },
         { token: "highlight", label: "where each tree is cut", mark: "dash" },
         { token: "extreme", label: "a box holding no structured gene at all", mark: "line" },
       ];
       if (truth) {
         entries.push(
-          { token: "cluster-a", label: "the two real conditions — the `condition` strip", mark: "bar" },
-          { token: "cluster-a", label: "the four real gene blocks — the strip left of the matrix", mark: "bar" },
+          { token: "cluster-a", label: "the two real conditions, and the four real gene blocks", mark: "bar" },
           { token: "unknown", label: "a gene with nothing added to it", mark: "bar" },
         );
       }
@@ -339,30 +357,27 @@ defineWidget({
       "ward.D2": "each member to the centre they would form — Ward's spread",
     }[params.linkage];
 
-    /* THE TOGGLE CHANGES WHAT COLOUR MEANS, so the legend has to say which
-       reading is on screen. Colour is the clustering's answer until the reader
-       asks for the truth, and then it is the truth and the clustering's answer
-       becomes the ink ring round it. Two partitions of twenty objects, one
-       ramp: the alternative is a second ramp of five more hues nobody can tell
-       apart from the first. */
+    /* THE TOGGLE CHANGES WHAT COLOUR MEANS, so the legend says which reading
+       is on screen: the clustering's answer until the reader asks for the
+       truth, and then the truth, with the clustering's answer moved to the
+       rings and the bracket. */
     if (truth && Number(separation) === 0) {
       return [
+        { token: "unknown", label: "one population — there were no real groups to show", mark: "dot" },
         { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
         { token: "highlight", label: measures, mark: "line" },
-        { token: "unknown", label: "one population — there were no real groups to show", mark: "dot" },
         { token: "highlight", label: "where the tree is cut", mark: "dash" },
       ];
     }
 
     if (truth) {
-      const real = params.axis === "columns"
-        ? "which of the two conditions a sample really came from"
-        : "which of the four blocks was really planted in a gene";
       return [
-        { token: "cluster-a", label: real, mark: "dot" },
+        { token: "cluster-a", label: params.axis === "columns"
+          ? "which of the two conditions a sample really came from"
+          : "which of the four blocks was really planted in a gene", mark: "dot" },
         { token: "unknown", label: params.axis === "columns"
           ? "a sample from neither" : "a gene with nothing added to it", mark: "dot" },
-        { token: "reference", label: "what the clustering found — one ring per cluster", mark: "area" },
+        { token: "reference", label: "what the CLUSTERING found — a ring, and a bracket under the leaves", mark: "area" },
         { token: "highlight", label: measures, mark: "line" },
         { token: "highlight", label: "where the tree is cut", mark: "dash" },
       ];
@@ -370,8 +385,8 @@ defineWidget({
 
     return [
       { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
+      { token: "reference", label: "the cut's groups again, as a bracket under the leaves", mark: "area" },
       { token: "highlight", label: measures, mark: "line" },
-      { token: "unknown", label: "a cluster already formed", mark: "area" },
       { token: "highlight", label: "where the tree is cut", mark: "dash" },
     ];
   },
@@ -610,10 +625,13 @@ defineWidget({
           value: countsOf(colLab).join(" / "),
           note: straddling === 0
             ? "every box sits inside one condition — and there are only two"
-            : `${straddling} box(es) mix the two conditions` },
+            : `${straddling} of ${params.cutCols} boxes mix the two conditions` },
         { label: `Rows cut into ${params.cutRows}`,
           value: countsOf(rowLab).join(" / "),
-          note: "pheatmap draws each of these as a box" },
+          note: params.truth
+            ? `${agreement(rowLab, state.heat.planted).pure} of ${params.cutRows}`
+              + " boxes hold one real block"
+            : "pheatmap draws each of these as a box" },
         { label: "Gene boxes holding no structure",
           value: `${empty.length} of ${params.cutRows}`,
           note: empty.length
@@ -646,8 +664,8 @@ defineWidget({
     const agree = parts.every((p) => p === parts[0]);
     const labels = cut(state.tree, k);
 
-    return [
-      { label: `Points cut into ${k}`, value: countsOf(labels).join(" / "),
+    const tiles = [
+      { label: `Objects cut into ${k}`, value: countsOf(labels).join(" / "),
         note: "the sizes it returned — it returns k of them either way" },
       /* THE DIAGNOSTIC, printed as a comparison and never as a verdict. The
          reference range is checkable on this very figure: move the separation
@@ -659,6 +677,22 @@ defineWidget({
           ? "average, complete and Ward return the same split"
           : "the same points, three different answers" },
     ];
+
+    /* THE COMPARISON AS A NUMBER, once the reader has asked for the truth.
+       The figure can only ask "does each ring hold one colour?", which is a
+       judgement by eye; this counts it, and counts it without ever reading a
+       cut label's value, so it cannot be thrown off by the arbitrary numbering
+       that makes the colours unsafe to compare in the first place. `k` is
+       printed beside it because purity climbs to 1 as k climbs to n. */
+    if (params.truth && params.separation !== "0") {
+      const a = agreement(labels, state.pts.map((p) => p.truth));
+      tiles.push({
+        label: "Clusters holding one real group",
+        value: `${a.pure} of ${a.total}`,
+        note: `purity ${fmt(a.purity, 2)} at k = ${k} — and purity reaches 1 at k = ${state.objects.length}`,
+      });
+    }
+    return tiles;
   },
 });
 
@@ -754,21 +788,6 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
     ctx.fill();
   });
   ctx.restore();
-}
-
-/**
- * Renumber a labelling by FIRST APPEARANCE along a display order.
- *
- * The two stacked strips are numbered independently — `cut` by input index, a
- * condition by which half of the shuffled table it came from — so a PERFECT
- * recovery came out in opposite colours: over five seeds, 0 of 20 positions
- * shared a hue on four of them. Renumbering both by first appearance ties them
- * to the one thing they share, the order the figure draws them in.
- */
-function byAppearance(labels, order) {
-  const rank = new Map();
-  for (const i of order) if (!rank.has(labels[i])) rank.set(labels[i], rank.size);
-  return labels.map((l) => rank.get(l));
 }
 
 /**
@@ -988,14 +1007,21 @@ function drawDendrogram(ctx, colors, box, {
     ctx.restore();
   }
 
-  /* A TICK UNDER EVERY LEAF, carrying whatever the dots carry: the cut's
-     groups until the reader asks for the truth, and then the truth. Otherwise
-     the ticks would be cut colours from the same ramp as the dots beside them,
-     and matching a tick to a dot of the same hue would mean matching a found
-     cluster to a real block.
+  /* A TICK UNDER EVERY LEAF, and A BRACKET UNDER THE CUT'S GROUPS.
 
-     Read against the truth it is the sharpest picture here: a subtree whose
-     ticks are all one colour recovered a real group. */
+     The ticks carry whatever the dots carry — the cut until the reader asks
+     for the truth, and then the truth. The bracket carries the cut EITHER WAY,
+     which is what lets the ticks change hands: the cut is a grouping and gets
+     the channel that means grouping, so the two never compete for the ramp.
+
+     Drawn even when the ticks are the cut's own colours, so a reader learns
+     what a bracket is while it is still saying the same thing the colour says.
+     Then the truth arrives, the colour changes hands, and the bracket has not
+     moved.
+
+     Sized to the leaf spacing and capped: at a fixed 4 x 5 the ticks were too
+     small to see the colour of, and twenty leaves across 500px give each one
+     25px to sit in. */
   if (labels && orient === "up") {
     ctx.strokeStyle = colors.axis;
     ctx.lineWidth = 1;
@@ -1003,9 +1029,7 @@ function drawDendrogram(ctx, colors, box, {
     ctx.moveTo(x, y + h);
     ctx.lineTo(x + w, y + h);
     ctx.stroke();
-    /* SIZED TO THE LEAF SPACING, capped. At a fixed 4 x 5 they were too small
-       to read at all; at twenty leaves across 500px each leaf owns 25px, so
-       there is room for a mark you can actually see the colour of. */
+
     const tick = Math.max(4, Math.min(Math.floor(w / n) - 5, 11));
     tree.order.forEach((leaf, r) => {
       ctx.fillStyle = truth
@@ -1013,6 +1037,20 @@ function drawDendrogram(ctx, colors, box, {
         : colors.clusters[(labels[leaf] - 1) % colors.clusters.length];
       ctx.fillRect(place(r, 0)[0] - tick / 2, y + h + 3, tick, tick);
     });
+
+    const by = y + h + 6 + tick;
+    ctx.strokeStyle = colors.reference;
+    ctx.lineWidth = 1.5;
+    for (const [from, to] of runs(tree.order.map((leaf) => labels[leaf]))) {
+      const a = place(from, 0)[0] - tick / 2;
+      const b = place(to - 1, 0)[0] + tick / 2;
+      ctx.beginPath();
+      ctx.moveTo(a + 0.5, by + 4);
+      ctx.lineTo(a + 0.5, by + 0.5);
+      ctx.lineTo(b - 0.5, by + 0.5);
+      ctx.lineTo(b - 0.5, by + 4);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -1244,19 +1282,22 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const TREE_ROW = 42;             // the row tree's width
   const TREE_COL = 92;             // the column tree's height
   const LABEL = 76;                // between the row tree and the matrix
-  const ANNO = 9;                  // one annotation row, as pheatmap draws them
+  const ANNO = 11;                 // one annotation row
   const ANNO_GAP = 3;
-  /* CLUSTERING IS UNSUPERVISED, so by default the only strip is the one the
-     cut produced. The true condition ships behind the `truth` toggle — the
-     same control that reveals the planted groups on the scatter, and for the
-     same reason: the reader asks for the answer rather than meeting it beside
-     the question. */
+  /* THE ANNOTATION BAND HOLDS THE TRUTH AND NOTHING ELSE.
+
+     It carried a `cutree_cols` strip from the cluster ramp, stacked directly
+     above the condition strip and painted from the same six hues — two
+     labellings, one ramp, and a perfect recovery could come out in opposite
+     colours. The cut does not need the band: it is already drawn as boxes
+     across the matrix, on both axes, which is the channel a grouping belongs
+     in and is how `cutree_cols` shows itself in `pheatmap` too. Dropping the
+     strip removes the collision and one row of the figure at the same time. */
   const showTruth = Boolean(params.truth);
-  const annoH = showTruth ? ANNO * 2 + ANNO_GAP : ANNO;
   const gx = x + TREE_ROW + LABEL;
   const gw = w - TREE_ROW - LABEL;
   const annoY = y + TREE_COL + 5;
-  const gy = annoY + annoH + 5;
+  const gy = annoY + (showTruth ? ANNO + 6 : 0);
   const gh = h - (gy - y);
   const cellH = gh / heat.rows.length;
   const cellW = gw / HEAT_SAMPLES;
@@ -1285,34 +1326,21 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
       ctx.fillRect(gx + ci * cellW, yy, cellW + 0.5, ANNO);
     });
   };
-  const cutRank = byAppearance(colLab, colOrder);
-  const condRank = byAppearance(heat.condition, colOrder);
-  annoRow(annoY, (s) => colors.clusters[cutRank[s] % colors.clusters.length]);
-  /* THE TWO TRUTHS, BOTH COLOURED: two conditions across the columns and four
-     planted blocks down the rows. Ink and two intensities were tried first, to
-     keep the cluster ramp for the cut strip alone; two greys cannot carry four
-     blocks, and the strip read as one thing shading into another rather than
-     as two categories. */
-  if (showTruth) {
-    annoRow(annoY + ANNO + ANNO_GAP, (s) => truthColour(colors, condRank[s]));
-  }
+  /* TWO TRUTHS, BOTH COLOURED: the two real conditions across the columns and
+     the four planted blocks down the rows. The hues are free because the cut
+     is the boxes. */
+  if (showTruth) annoRow(annoY, (s) => truthColour(colors, heat.condition[s]));
 
-  /* The strip is named for the call that produced it, not for what it might
-     mean. "Column cut" beside "Condition" read as two findings of equal
-     standing, where `cutree_cols` names the control in the rail and the
-     argument a student would write, and claims nothing. */
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "right";
-  ctx.fillText("cutree_cols", gx - 8, annoY + ANNO - 1);
-  if (showTruth) ctx.fillText("condition", gx - 8, annoY + ANNO + ANNO_GAP + ANNO - 1);
+  if (showTruth) ctx.fillText("condition", gx - 8, annoY + ANNO - 2);
   ctx.textAlign = "left";
 
   /* THE GENE SIDE OF THE SAME QUESTION: which of the four blocks a gene really
-     belongs to, or none, as one column of cells against the matrix's left edge
-     in the row tree's order. It reads against the `cutree_rows` boxes the way
-     the condition strip reads against the column ones, and it is what makes
-     "a box holding no structured gene at all" checkable rather than asserted
-     by a caption. */
+     belongs to, or none, against the matrix's left edge in the row tree's
+     order. It reads against the `cutree_rows` boxes the way the condition
+     strip reads against the column ones, and it is what makes "a box holding
+     no structured gene at all" checkable rather than asserted by a caption. */
   const labelRight = gx - (showTruth ? ANNO + ANNO_GAP + 8 : 8);
   if (showTruth) {
     rowOrder.forEach((g, ri) => {

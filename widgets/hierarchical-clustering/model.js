@@ -662,6 +662,36 @@ function transpose(m) {
 }
 
 /**
+ * How well a cut recovered a known grouping, as a number.
+ *
+ * The figure can only ever ASK "does each box hold one colour?" — a judgement
+ * by eye, over a comparison whose two labellings are numbered independently.
+ * This states the same thing exactly, and it is invariant to relabelling
+ * because it never looks at a label's value: for each cut group it counts the
+ * largest true group inside it.
+ *
+ * `pure` is the count of cut groups that hold exactly one true group and
+ * `purity` the fraction of objects in their group's majority. Purity goes to 1
+ * if you ask for enough clusters, so a caller must print `k` beside it.
+ */
+export function agreement(labels, truth) {
+  const members = new Map();
+  labels.forEach((l, i) => {
+    if (!members.has(l)) members.set(l, []);
+    members.get(l).push(i);
+  });
+  let hit = 0;
+  let pure = 0;
+  for (const idx of members.values()) {
+    const tally = new Map();
+    for (const i of idx) tally.set(truth[i], (tally.get(truth[i]) ?? 0) + 1);
+    hit += Math.max(...tally.values());
+    if (tally.size === 1) pure += 1;
+  }
+  return { pure, total: members.size, purity: hit / labels.length };
+}
+
+/**
  * Which of the k boxes contain no planted gene at all.
  *
  * A box of unstructured genes is drawn and labelled exactly like a real one,
