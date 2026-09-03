@@ -3238,9 +3238,9 @@ lessons have a shipped host, three of those built for PHM5005 and inherited.
 Reading all nine end to end says the gap is **five slots**, and one of the five
 is a hole in an arc this file already called complete.
 
-**Three of the five have shipped** — Slot 1 `normalization` and Slot 3
-`batch-effect` on 2026-09-02, and Slot 2 as `matrix-factorization` on
-2026-09-03. Two remain unpicked: `hierarchical-clustering` and `enrichment`.
+**Four of the five have shipped** — Slot 1 `normalization` and Slot 3
+`batch-effect` on 2026-09-02, Slot 2 as `matrix-factorization` and Slot 4
+`hierarchical-clustering` on 2026-09-03. One remains unpicked: `enrichment`.
 
 The week is one continuous argument, and it is the omics pipeline in order:
 *design it → find the holes → put the samples on one scale → look at it → find
@@ -3273,7 +3273,7 @@ ones do — see HANDOVER § *NEXT* item 3, which this adds four rows to.
 | 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **SHIPPED 2026-09-02** |
 | 2 | `matrix-factorization` | 05 / 04 `## 1` and `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **SHIPPED 2026-09-03** |
 | 3 | `batch-effect` | 05 / 05 | a batch effect is noise you subtract. The danger is **confounding**, and correcting a confounded design deletes the biology | documented — citation NOT yet verified | **proposed** |
-| 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. Measured 2026-09-03: the TREE is honest and the CUT is not — see § Widget 42 | reported | **in draft 2026-09-03** |
+| 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. Measured 2026-09-03: the TREE is honest and the CUT is not — see § Widget 42 | reported | **SHIPPED 2026-09-03** |
 | 5 | `enrichment` | 05 / 09 | a significant pathway is an activated pathway; and the p-value is a property of your gene list, when the **background** and the **cutoff** move it just as hard | reported | **proposed** |
 
 **Slug rulings, on the precedents already in this file.** Kenneth renamed
@@ -5339,13 +5339,12 @@ separately from the widget.
 
 ---
 
-## Widget 42 · `hierarchical-clustering` — IN DRAFT, 2026-09-03
+## Widget 42 · `hierarchical-clustering` — SHIPPED 2026-09-03
 
 Slot 4 of the high-throughput arc, PHM5003 `05 / 08`. Picked by Kenneth on
-2026-09-03 and reviewed through nine rounds the same day. Committed locally,
-unpushed, not baselined. HANDOVER § *NEXT* carries the live state and the open
-items; this section is the record of what was measured and why the design is
-what it is.
+2026-09-03 and reviewed through fourteen rounds across two sessions the same
+day. Shipped with 11 fingerprint states. Titled **Hierarchical Clustering**;
+it was *Finding Groups* until round 14.
 
 ### The claim, after measuring — the planned one was false
 
@@ -5502,18 +5501,101 @@ compares **8400 values** over 35 stages x 5 linkages x 2 distances — heights t
 | 7 | three separate cuts all named "Cut tree"; two tabs, Cluster and Heatmap |
 | 8 | distance matrix on the figure; rows/columns toggle; 20 genes |
 | 9 | 20 x 20 square table; scatter kept via MDS; figure sized to the rail |
+| 10 | axis labels on the data matrix; marks sized to the merge; Ward's marks fixed; the cut moved below the axis toggle |
+| 11 | the ground truth is coloured and the cut becomes enclosure — see § *The colour question* |
+| 12 | the enclosure is a gap and a bar, not a hairline |
+| 13 | the readout says sentences; no user-facing text names a function |
+| 14 | conventional terms throughout; the empty-cluster mark goes behind the toggle; renamed |
 
 Round 6 and round 7 contradict each other and that is deliberate: sharing one
 cut count across two datasets read as coherent until the two pheatmap arguments
 had to be met as the separate things a student types.
 
+### The colour question — rounds 11 to 14, and the rule that came out of it
+
+**The defect.** A cut's group numbers are arbitrary and a truth's are not.
+`cut` numbers groups in the order it meets them; a planted condition is 0 or 1
+by its own origin. Nothing ties the two, so a comparison between them must be
+invariant to relabelling — **and colour is not**. Measured over five seeds at
+k = 2, where the cut recovers both conditions exactly: **0 of 20 columns shared
+a hue between the cut strip and the truth strip on four of them, and 20 of 20
+on the fifth.** A student reading colour would read a perfect result as a total
+failure four times in five.
+
+The root cause is in `tokens.css` rather than in the widget. `--c-group-a` and
+`--c-group-b` ALIAS `--c-cluster-a` and `--c-cluster-b` — the same two series
+slots — and the file says why that was thought safe: the cluster ramp may share
+hues with the other roles because *"a cluster figure has no p-value tail and no
+theoretical curve in it"*. **This is the first widget to put a FOUND partition
+and a TRUE one on the same marks**, which is the case that reasoning does not
+cover.
+
+**Two attempts that failed.** Ink for the truth, its two arms told apart by a
+solid and a dashed ring: cannot carry the five-valued row truth (four planted
+gene groups plus the genes with nothing added), and Kenneth read it as *"the
+symbols just confuse me"*. Then `byAppearance`, renumbering both labellings by
+first appearance along the display order: correct at k = 2 and broken above it,
+where two cut groups collapse onto one truth hue and the strip stops saying
+they are different groups. It also teaches that a cluster number means
+something, which is the misconception.
+
+**The rule, chosen from a four-way mock-up in `_lab/hc-truth.html`:**
+
+> Colour never carries two groupings at once. The truth gets the ramp when it
+> is asked for; what the clustering found is drawn as ENCLOSURE — boxes on the
+> distance matrix and the heatmap, rings on the scatter, a bar under the
+> dendrogram's leaves.
+
+Grouping gets the channel that means grouping, which is what Gestalt
+*enclosure* is for and what *similarity* is not; the perception literature is
+explicit that two nominal fields over the same marks makes targets harder to
+find, not easier. A clustered heatmap already divides the work this way —
+known groups in a coloured annotation strip, a cut splitting the matrix into
+blocks — so a student meets the division twice.
+
+**And the number, because the eye's verdict is not invariant either.**
+`agreement()` counts, for each cut group, the largest true group inside it. It
+never reads a group's NUMBER, so the arbitrary numbering cannot throw it off.
+Purity climbs to 1 as k climbs to n, so the tile prints k and the n where it
+would.
+
+### Three defects the colour work uncovered
+
+- **Ward's linkage marks had never drawn at all.** Two bugs on one line:
+  `2 * EXTENT` multiplied by the per-metric TABLE rather than the metric's
+  number, so both coordinates were NaN and canvas discards a NaN path in
+  silence; and `witness().centres[0]` is the centroid in DATA space, whose
+  first two of twenty entries are two expression values rather than a position
+  on the stage.
+- **The data matrix marked two rows however large the merge.** It outlined
+  `witness().pairs[0]`, which for average is an arbitrary cross pair and for
+  Ward is nothing, so it fell back to a hardcoded `[0, 1]`. Reported as *"the
+  boxes change but only single rows even though we are comparing larger and
+  larger groups"*.
+- **The purity tile printed a false finding at separation 0**, where every
+  gene's truth is the same `null` and every cluster therefore holds one of it:
+  *"8 of 8 boxes hold one real block"* over a matrix with no blocks in it —
+  the precise claim the widget exists to warn about, printed by the widget.
+
+### Is it conventional to flag a cluster with no real structure? No
+
+Asked in round 14, researched, and the answer changed the design. **It is not
+conventional and it cannot be**: in practice there is no ground truth, no
+p-value and no residual plot to catch a bad fit, which is exactly why cluster
+heatmaps are so easy to over-read and why methods find clusters in null data
+drawn from a single unimodal distribution. This figure can mark such a cluster
+only because it holds the ground truth — so marking it unasked handed over the
+answer before the question had been put, while the rest of the truth sat behind
+a toggle.
+
+The mark, its label and its readout tile all moved behind the toggle. **Off,
+the figure is what a real analysis looks like: clusters, boxes and no verdict.**
+
 ### Still open
 
-Listed in HANDOVER § *NEXT* — not baselined, the ground-truth toggle is
-undiscoverable, Ward's empty distance-matrix highlight is unremarked, narrow
-widths unchecked since the canvas grew, not judged projected. Kenneth closed the
-session with "some things need fixing" without enumerating them; ask before
-guessing.
+- **Narrow widths unchecked** since the canvas grew to 790 tall; last measured
+  at 375px when it was 400.
+- **Not judged projected**, which every widget from 11 on still owes.
 
 ---
 
