@@ -15,7 +15,7 @@
 
    ONE COLOUR SCALE, AND WHY. Two partitions of the same objects are on this
    figure — the one the clustering found and the one that is real — and a cut's
-   group numbers are ARBITRARY where the truth's are not. `cutree` numbers
+   group numbers are ARBITRARY where the truth's are not. A cut numbers its
    groups in the order it meets them, so a comparison between the two has to be
    invariant to relabelling, and colour is not: measured over five seeds at
    k = 2, where the cut recovers both conditions exactly, 0 of 20 columns
@@ -27,17 +27,18 @@
    — boxes on the distance matrix and the heatmap, rings on the scatter, a
    bracket under the dendrogram's leaves. Grouping gets the channel that means
    grouping, and the reading is one sentence: does each enclosure hold one
-   colour? `pheatmap` divides the work the same way, so a student meets it
-   twice: `annotation_col` colours known groups, `cutree_cols` splits the
-   matrix. `agreement()` prints the same comparison as a number, because a
-   number is invariant to relabelling where the eye's verdict is not.
+   colour? A clustered heatmap divides the work the same way — known groups go
+   in a coloured annotation strip, a cut splits the matrix into blocks — so a
+   student meets the division twice. `agreement()` prints the same comparison
+   as a number, because a number is invariant to relabelling where the eye's
+   verdict is not.
 
    `model.js` carries the engine, verified against R's `hclust`.
    ========================================================================= */
 
-import { defineWidget, makeRng, fmt } from "../core/index.js";
+import { defineWidget, makeRng } from "../core/index.js";
 import {
-  cluster, cut, gapAt, cutHeight, canonical, witness,
+  cluster, cut, cutHeight, canonical, witness,
   distanceMatrix, mds,
   heatStage, noiseBoxes, agreement, DISTANCES, HEAT_GENES, HEAT_SAMPLES,
 } from "./model.js";
@@ -52,24 +53,6 @@ const OFFERED = ["average", "complete", "ward.D2"];
    point outside the panel and over the dendrogram. The panel is clipped too,
    so a future metric cannot do it quietly. */
 const EXTENT = { euclidean: 9.8, manhattan: 35 };
-
-/* What a real pair of groups scores on this stage, as the 10th to 90th
-   percentile over 400 seeds at separation 3.
-
-   Keyed by linkage AND distance, because it is a property of both. An
-   average-linkage tree on real groups scores about 2.2 where Ward scores 4.2,
-   so one range for all three would call a true finding noise; and Manhattan is
-   a different metric rather than a rescaling of Euclidean, so it moves the
-   ratio again — Ward reads 3.3-5.2 under one and 2.9-4.6 under the other.
-   `node widgets/_lab/hc-measure.mjs` reprints the whole table. */
-const GAP_REFERENCE = {
-  "average|euclidean": [1.8, 2.8],
-  "average|manhattan": [1.7, 2.5],
-  "complete|euclidean": [1.8, 2.7],
-  "complete|manhattan": [1.6, 2.4],
-  "ward.D2|euclidean": [3.3, 5.2],
-  "ward.D2|manhattan": [2.9, 4.6],
-};
 
 /* ONE DIAL FOR BOTH TABS: how much structure is really in the data. Gated to
    one tab it left the Heatmap a fixed demo that could only ever show the
@@ -94,9 +77,9 @@ const LINKAGE_LABEL = { average: "Average", complete: "Complete", "ward.D2": "Wa
    per-merge choreography switches off — but as a declared property of the
    chosen speed, never something the animation decides mid-run. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "every merge drawn as it happens", ms: 1100, choreo: true },
+  slow: { label: "Slow", detail: "slow enough to follow one merge", ms: 1100, choreo: true },
   medium: { label: "Medium", detail: "every merge drawn as it happens", ms: 420, choreo: true },
-  fast: { label: "Fast", detail: "merges only, no reaching", ms: 120, choreo: false },
+  fast: { label: "Fast", detail: "the merges, without the lines between them", ms: 120, choreo: false },
   fastest: { label: "Fastest", detail: "the whole tree at once", ms: 0, choreo: false },
 };
 
@@ -176,9 +159,9 @@ defineWidget({
       label: "View",
       options: [
         { value: "cluster", label: "Cluster",
-          detail: "twenty points: what a distance and a linkage do, and what a cut decides" },
+          detail: "what a distance and a linkage do, and what a cut decides" },
         { value: "heatmap", label: "Heatmap",
-          detail: "the same operation on a real matrix — pheatmap's own figure" },
+          detail: "the same operation on a real gene-expression matrix" },
       ],
       default: "cluster",
       display: true,
@@ -276,7 +259,7 @@ defineWidget({
 
     /* AFTER the axis toggle, which decides WHICH tree this cuts.
 
-       ONE VERB, THREE TREES: every cut here is "cut tree", the same `cutree`
+       ONE VERB, THREE TREES: every cut here is "cut tree", the same operation
        on a different tree. Naming them alike is what makes them comparable —
        one shared control instead conflated three datasets into one number.
 
@@ -286,7 +269,6 @@ defineWidget({
     k: {
       type: "int",
       label: "Cut tree into k clusters",
-      detail: "the tree above — `cutree(hclust(...), k)`",
       min: 2,
       max: 6,
       default: 2,
@@ -294,13 +276,13 @@ defineWidget({
       when: { param: "view", equals: "cluster" },
     },
 
-    /* COLUMNS BEFORE ROWS, and both spelled out. A student meets these as
-       `cutree_cols` and `cutree_rows` in a `pheatmap` call, so the label says
-       what the control does and the detail names the argument it is. */
+    /* COLUMNS BEFORE ROWS, and both spelled out, because the two cuts are two
+       separate decisions over two separate trees and a student meets them as
+       two separate arguments. */
     cutCols: {
       type: "int",
       label: "Cut tree (columns)",
-      detail: "the 20 samples — pheatmap's `cutree_cols`",
+      detail: "the tree across the top — the 20 samples",
       min: 2,
       max: 6,
       default: 2,
@@ -311,7 +293,7 @@ defineWidget({
     cutRows: {
       type: "int",
       label: "Cut tree (rows)",
-      detail: "the 20 genes — pheatmap's `cutree_rows`",
+      detail: "the tree down the side — the 20 genes",
       min: 2,
       max: 8,
       default: 5,
@@ -335,7 +317,7 @@ defineWidget({
       const entries = [
         { token: "value-high", label: "above this gene's baseline", mark: "bar" },
         { token: "value-low", label: "below it — pale is neither", mark: "bar" },
-        { token: "reference", label: "what cutree found — one box per group, both ways", mark: "line" },
+        { token: "reference", label: "what the clustering found — one box per group, both ways", mark: "line" },
         { token: "highlight", label: "where each tree is cut", mark: "dash" },
         { token: "extreme", label: "a box holding no structured gene at all", mark: "line" },
       ];
@@ -377,7 +359,7 @@ defineWidget({
           : "which of the four blocks was really planted in a gene", mark: "dot" },
         { token: "unknown", label: params.axis === "columns"
           ? "a sample from neither" : "a gene with nothing added to it", mark: "dot" },
-        { token: "reference", label: "what the CLUSTERING found — a ring, and a bracket under the leaves", mark: "area" },
+        { token: "reference", label: "what the CLUSTERING found — a ring, and a bar under the leaves", mark: "area" },
         { token: "highlight", label: measures, mark: "line" },
         { token: "highlight", label: "where the tree is cut", mark: "dash" },
       ];
@@ -385,7 +367,7 @@ defineWidget({
 
     return [
       { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
-      { token: "reference", label: "the cut's groups again, as a bracket under the leaves", mark: "area" },
+      { token: "reference", label: "the cut's groups again, as a bar under the leaves", mark: "area" },
       { token: "highlight", label: measures, mark: "line" },
       { token: "highlight", label: "where the tree is cut", mark: "dash" },
     ];
@@ -525,7 +507,7 @@ defineWidget({
 
     /* THE CLUSTER TAB.
 
-         data matrix   --dist()-->   distance matrix
+         data matrix   --distance-->   distance matrix
          scatter                     tree
 
        Three of the four are square by nature and only the tree wants width, so
@@ -570,7 +552,7 @@ defineWidget({
     drawDataMatrix(ctx, colors, { x: dataX, y: row1, w: sq1, h: sq1 }, {
       vecs: state.heat.rows, cols, marks,
     });
-    arrow(ctx, colors, dataX + sq1 + 10, row1 + sq1 / 2, distX - 10, "dist()");
+    arrow(ctx, colors, dataX + sq1 + 10, row1 + sq1 / 2, distX - 10, "distance");
 
     /* THE MATRIX DOES NOT MOVE. Re-ordering it on every merge made the blocks
        assemble themselves on the diagonal, but the cells jumped about while
@@ -621,26 +603,22 @@ defineWidget({
         return new Set(inBox).size > 1;
       }).length;
       return [
-        { label: `Columns cut into ${params.cutCols}`,
-          value: countsOf(colLab).join(" / "),
+        { label: "Sample groups", value: `${params.cutCols}`,
           note: straddling === 0
-            ? "every box sits inside one condition — and there are only two"
-            : `${straddling} of ${params.cutCols} boxes mix the two conditions` },
-        { label: `Rows cut into ${params.cutRows}`,
-          value: countsOf(rowLab).join(" / "),
+            ? "each one sits inside a single condition — and there are only two"
+            : `${straddling} of them mix the two conditions` },
+        { label: "Gene groups", value: `${params.cutRows}`,
           /* GUARDED AT SEPARATION 0, where every gene's truth is the same
-             `null` and so every box trivially holds one of it — the tile read
-             "8 of 8 boxes hold one real block" over a matrix with no blocks in
-             it, which is the exact false finding this widget is about. */
+             `null` and every box therefore holds one of it — the tile read
+             "8 of 8 hold one real block" over a matrix with no blocks in it,
+             which is the exact false finding this widget is about. */
           note: params.truth && params.separation !== "0"
-            ? `${agreement(rowLab, state.heat.planted).pure} of ${params.cutRows}`
-              + " boxes hold one real block"
-            : "pheatmap draws each of these as a box" },
-        { label: "Gene boxes holding no structure",
-          value: `${empty.length} of ${params.cutRows}`,
+            ? `${agreement(rowLab, state.heat.planted).pure} of them are really one group`
+            : `of ${listOf(countsOf(rowLab))} genes` },
+        { label: "Boxes around nothing", value: `${empty.length} of ${params.cutRows}`,
           note: empty.length
-            ? `${genes} genes with nothing added, boxed and named a module`
-            : `all ${params.cutRows} boxes contain planted genes` },
+            ? `${genes} genes with nothing added, boxed and named a finding`
+            : "every box holds genes that really were changed" },
       ];
     }
 
@@ -662,38 +640,45 @@ defineWidget({
     /* Clustering 2 columns cannot be cut into 6. The control keeps its range —
        it belongs to the rows case — and the figure clamps. */
     const k = Math.min(params.k, state.objects.length);
-    const gap = gapAt(state.tree, k);
-    const [lo, hi] = GAP_REFERENCE[`${params.linkage}|${params.distance}`];
     const parts = OFFERED.map((m) => canonical(cut(state.trees[m], k)));
     const agree = parts.every((p) => p === parts[0]);
     const labels = cut(state.tree, k);
 
+    /* THREE SENTENCES, NOT FOUR NUMBERS.
+
+       This was four tiles carrying a merge-height gap against a per-linkage
+       reference range and a purity figure, and it read as a panel of
+       statistics rather than as the figure's own words. The height gap in
+       particular asked a reader to hold a range in their head; the dendrogram
+       shows the same thing directly, in how far the cut line falls from the
+       join above it.
+
+       It cannot go altogether: canvas is not screen-readable, so these tiles
+       are the only reading of this figure a screen reader has. So they say in
+       plain words what the picture says. */
     const tiles = [
-      { label: `Objects cut into ${k}`, value: countsOf(labels).join(" / "),
-        note: "the sizes it returned — it returns k of them either way" },
-      /* THE DIAGNOSTIC, printed as a comparison and never as a verdict. The
-         reference range is checkable on this very figure: move the separation
-         dial and watch the gap cross it. */
-      { label: "Height gap at the cut", value: gap === null ? "—" : fmt(gap, 2),
-        note: `real groups here score ${lo}-${hi} on this linkage` },
-      { label: "The three linkages", value: agree ? "agree" : "disagree",
+      { label: "It returned", value: `${k} groups`,
+        note: `of ${listOf(countsOf(labels))} — the number you asked for, `
+          + "whether or not they exist" },
+      { label: "Average, complete and Ward", value: agree ? "agree" : "disagree",
         note: agree
-          ? "average, complete and Ward return the same split"
-          : "the same points, three different answers" },
+          ? "all three cut these objects the same way"
+          : "the same objects, three different answers" },
     ];
 
-    /* THE COMPARISON AS A NUMBER, once the reader has asked for the truth.
-       The figure can only ask "does each ring hold one colour?", which is a
-       judgement by eye; this counts it, and counts it without ever reading a
-       cut label's value, so it cannot be thrown off by the arbitrary numbering
-       that makes the colours unsafe to compare in the first place. `k` is
-       printed beside it because purity climbs to 1 as k climbs to n. */
+    /* THE COMPARISON AS A NUMBER, once the reader has asked for the truth. The
+       figure can only ask "does each ring hold one colour?", which is a
+       judgement by eye. This counts it without ever reading a cut group's
+       NUMBER, so the arbitrary numbering that makes the colours unsafe to
+       compare cannot throw it off either. */
     if (params.truth && params.separation !== "0") {
       const a = agreement(labels, state.pts.map((p) => p.truth));
       tiles.push({
-        label: "Clusters holding one real group",
+        label: "Groups that are really one group",
         value: `${a.pure} of ${a.total}`,
-        note: `purity ${fmt(a.purity, 2)} at k = ${k} — and purity reaches 1 at k = ${state.objects.length}`,
+        note: a.pure === a.total
+          ? "every group it made is one of the real ones"
+          : "the rest mix objects that were never together",
       });
     }
     return tiles;
@@ -1077,7 +1062,7 @@ function drawDendrogram(ctx, colors, box, {
 }
 
 /* ---------------------------------------------------------------------------
-   The distance matrix — `dist()`, drawn.
+   The distance matrix, drawn.
    ------------------------------------------------------------------------ */
 function drawDistance(ctx, colors, outer, {
   rows, distance, order = null, cells = null, groups = null, caption = "",
@@ -1288,7 +1273,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const colLab = cut(colTree, params.cutCols);
   const empty = new Set(noiseBoxes(rowLab, heat.planted).map((b) => b.label));
 
-  /* `pheatmap`'s arrangement: the row tree down the left, the column tree
+  /* The standard arrangement: the row tree down the left, the column tree
      across the top, the matrix between them. The trees are not decoration —
      the tab's whole claim is that the boxes discard what the merge heights
      say, so the merge heights have to be on the figure for the claim to be
@@ -1308,13 +1293,13 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const GAP = 7;                   // between two blocks of the cut
   /* THE ANNOTATION BAND HOLDS THE TRUTH AND NOTHING ELSE.
 
-     It carried a `cutree_cols` strip from the cluster ramp, stacked directly
-     above the condition strip and painted from the same six hues — two
-     labellings, one ramp, and a perfect recovery could come out in opposite
-     colours. The cut does not need the band: it is already drawn as boxes
-     across the matrix, on both axes, which is the channel a grouping belongs
-     in and is how `cutree_cols` shows itself in `pheatmap` too. Dropping the
-     strip removes the collision and one row of the figure at the same time. */
+     It carried a strip of the CUT's groups from the cluster ramp, stacked
+     directly above the condition strip and painted from the same six hues —
+     two labellings, one ramp, and a perfect recovery could come out in
+     opposite colours. The cut does not need the band: it is already drawn as
+     boxes across the matrix on both axes, which is the channel a grouping
+     belongs in. Dropping the strip removes the collision and one row of the
+     figure at the same time. */
   const showTruth = Boolean(params.truth);
   const gx = x + TREE_ROW + LABEL;
   const gw = w - TREE_ROW - LABEL;
@@ -1322,12 +1307,12 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   const gy = annoY + (showTruth ? ANNO + 6 : 0);
   const gh = h - (gy - y);
 
-  /* THE CUT IS A GAP, which is what `cutree_rows` and `cutree_cols` do to a
-     `pheatmap` and what an outline over a dense matrix could not do here: at
-     1.5px in ink the column boxes were invisible against the cells, reported
-     as exactly that. Separation cannot be invisible. The boxes stay on top of
-     it, because a box is what carries the red on a block holding no
-     structured gene at all.
+  /* THE CUT IS A GAP, which is what a clustered heatmap normally does with one
+     and what an outline over a dense matrix could not do here: at 1.5px in ink
+     the column boxes were invisible against the cells, reported as exactly
+     that. Separation cannot be invisible. The boxes stay on top of it, because
+     a box is what carries the red on a block holding no structured gene at
+     all.
 
      Everything on the matrix is offset by these, INCLUDING BOTH TREES — a
      tree that kept even spacing while the matrix opened up would stop being
@@ -1361,13 +1346,11 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
       k: params.cutCols, orient: "up",
       leafFrac: (r) => (colX(r) - gx + cellW / 2) / gw });
 
-  /* THE COLUMN ANNOTATION, the way `annotation_col` draws it: strips above the
-     matrix, one cell per column, in the column tree's own order.
+  /* THE COLUMN ANNOTATION: a strip above the matrix, one cell per column, in
+     the column tree's own order.
 
-     The pairing is the argument. One strip is what `cutree_cols` decided, the
-     other what the samples REALLY are, and both are column-aligned with the
-     matrix and the tree — so a reader can run a finger down and see a cut
-     boundary land inside a condition.
+     It is column-aligned with the matrix and with the tree, so a reader can
+     run a finger down and see a cut boundary land inside a condition.
 
      A row of "H"/"D" letters instead could only be drawn every other column
      before they collided, leaving half the samples unlabelled. */
@@ -1389,9 +1372,9 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
 
   /* THE GENE SIDE OF THE SAME QUESTION: which of the four blocks a gene really
      belongs to, or none, against the matrix's left edge in the row tree's
-     order. It reads against the `cutree_rows` boxes the way the condition
-     strip reads against the column ones, and it is what makes "a box holding
-     no structured gene at all" checkable rather than asserted by a caption. */
+     order. It reads against the row boxes the way the condition strip reads
+     against the column ones, and it is what makes "a box holding no structured
+     gene at all" checkable rather than asserted by a caption. */
   const labelRight = gx - (showTruth ? ANNO + ANNO_GAP + 8 : 8);
   if (showTruth) {
     rowOrder.forEach((g, ri) => {
@@ -1414,9 +1397,9 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   });
 
   /* The boxes, on top of the gaps. A run of adjacent rows sharing a cut label
-     is one box, which is what `cutree_rows` draws — and the point is that a
-     box around nothing is drawn identically to a box around a real gene
-     module. So it is drawn identically, and then named. */
+     is one box — and the point is that a box around nothing is drawn
+     identically to a box around a real gene module. So it is drawn
+     identically, and then named. */
   ctx.lineWidth = 1.5;
   for (const [from, to, label] of runs(rowOrder.map((g) => rowLab[g]))) {
     const isEmpty = empty.has(label);
@@ -1433,7 +1416,7 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
     if (boxH >= 13) {
       ctx.fillStyle = isEmpty ? colors.extreme : colors.ink2;
       ctx.textAlign = "right";
-      // a box can be one gene wide at cutree_rows = 8, and "1 genes" is wrong
+      // a box can be one gene wide at eight groups, and "1 genes" is wrong
       const nGenes = to - from;
       const noun = `${nGenes} gene${nGenes === 1 ? "" : "s"}`;
       const mid = top + boxH / 2;
@@ -1453,6 +1436,12 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
   }
 
   ctx.restore();
+}
+
+/** "8, 4, 4 and 4" — `join(" and ")` gave "8 and 4 and 4 and 4". */
+function listOf(xs) {
+  if (xs.length < 2) return String(xs[0] ?? "");
+  return `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
 }
 
 /** Maximal runs of equal values: [[from, toExclusive, value], …]. */

@@ -115,7 +115,7 @@ export { LINKAGES };
 export const DISTANCES = {
   euclidean: {
     label: "Euclidean",
-    detail: "straight-line distance — the default in `dist`",
+    detail: "straight-line distance — the usual choice",
     fn: (a, b) => {
       let s = 0;
       for (let i = 0; i < a.length; i += 1) { const d = a[i] - b[i]; s += d * d; }
@@ -282,7 +282,7 @@ function leafOrder(root) {
 /* ---------------------------------------------------------------------------
    The cut.
 
-   `cutree(tree, k)` — keep the first n-k merges and label what is left. This
+   Keep the first n-k merges and label what is left. This
    is a separate operation from building the tree ON PURPOSE: the whole claim
    is that the tree is evidence and the cut is a choice laid over it, and a
    widget that folded the cut into the animation would blur exactly that.
@@ -473,7 +473,7 @@ export function mds(rows, distance = "euclidean") {
  * The leaf order after `shown` merges: clusters formed so far kept together,
  * everything else in its original position.
  *
- * At `shown = 0` this is 0, 1, 2, ... — the raw order `dist()` hands back. At
+ * At `shown = 0` this is 0, 1, 2, ... — the order the objects arrived in. At
  * the end it is the tree's own leaf order. In between, the distance matrix
  * drawn in this order SORTS ITSELF into blocks as the merges happen, which is
  * the clearest available statement of what the algorithm is doing: it is not
@@ -497,7 +497,7 @@ export function partialOrder(tree, shown) {
 /**
  * The distance matrix — the step between the data and the tree.
  *
- * `dist()`, and the object the whole pipeline turns on: the linkage reads it,
+ * The object the whole pipeline turns on: the linkage reads it,
  * the tree is built from it, and the cut is a line across the tree it
  * produced. Drawing the data, the tree and the cut but not this skips the step
  * where the rows-versus-columns question lives — clustering the rows of a
