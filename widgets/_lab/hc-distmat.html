@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 — should the distance matrix be on the figure, and where?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 92ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 520px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 520px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 · the distance matrix — does it earn its space, and on which tab?</h1>
+
+  <p class="note">
+    Two questions from review. <b>"Students get confused about whether we are clustering rows
+    or columns"</b> — and the widget currently skips the step where that distinction is made.
+    The notebook's pipeline is <code>data → dist() → hclust() → cutree()</code>; the widget
+    draws the data, the tree and the cut, and never shows the <code>dist()</code> in between.
+    Everything below is drawn from the shipping <code>model.js</code>.
+  </p>
+  <p class="note">
+    <b>The rows/columns confusion is a fact about the distance matrix, not about the tree.</b>
+    Clustering the rows of a 50 × 20 matrix means computing a <b>50 × 50</b> matrix of
+    gene-to-gene distances; clustering the columns means a <b>20 × 20</b> matrix of
+    sample-to-sample distances. Those two objects are different sizes and are visibly
+    different pictures — which is why showing them may settle the question that words about
+    it do not.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§1 · THE CLUSTER TAB — 20 points, and the 20 × 20 they produce</h2>
+  <p class="note">
+    The distance matrix is the thing the linkage and the cut both read, and it is the only
+    place the <b>Distance</b> control acts directly. Rows and columns are the same twenty
+    points, so it is symmetric with a blank diagonal — which is itself worth a student seeing
+    once.
+  </p>
+  <div class="row" id="c1"></div>
+  <p class="ask">
+    <b>ASK 1.</b> On the Cluster tab: <b>(a)</b> no distance matrix, as now; <b>(b)</b> a
+    small one beside the scatter, ordered by the tree so the blocks line up with the
+    dendrogram; <b>(c)</b> ordered by point index, so it is the raw <code>dist()</code>
+    output before any clustering has happened. <b>(c) shows the input, (b) shows the
+    result</b> — and only (c) makes "the tree re-orders it" a thing you can watch.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§2 · THE HEATMAP TAB — the two distance matrices, side by side</h2>
+  <p class="note">
+    This is the rows-versus-columns question made concrete: the same 50 × 20 matrix produces
+    <b>two different distance matrices</b>, and each one feeds its own tree. Sizes below are
+    the real ones.
+  </p>
+  <div class="row" id="c2"></div>
+  <table class="m" id="sizes"></table>
+  <p class="ask">
+    <b>ASK 2.</b> On the Heatmap tab: <b>(a)</b> nothing, as now; <b>(b)</b> both distance
+    matrices small, under their own trees, permanently; <b>(c)</b> one at a time, following a
+    "clustering the ___" control the reader sets to rows or columns.
+    <b>(c) costs a control but answers the question by making the reader choose</b> — they
+    cannot ask "which are we clustering?" of a widget that has just asked them.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§3 · DOES THE DISTANCE CONTROL VISIBLY CHANGE IT?</h2>
+  <p class="note">
+    If Euclidean and Manhattan produce indistinguishable pictures the matrix is decoration.
+    Same points, the two metrics, each scaled to its own range.
+  </p>
+  <div class="row" id="c3"></div>
+
+  <!-- ==================================================================== -->
+  <h2>§4 · THE SAME DIAL ON BOTH TABS — what the matrix does as the effect goes</h2>
+  <p class="note">
+    <code>node widgets/_lab/hc-lift.mjs</code> prints this. The Cluster tab has a dial for how
+    much structure is really there and the Heatmap tab does not, so the second tab only ever
+    shows the method working. <b>The matrix takes the same dial</b>: the four planted blocks
+    dissolve, the columns stop recovering the conditions — and the cut goes on returning
+    exactly the number of groups it was asked for.
+  </p>
+  <table class="m" id="lift"></table>
+  <div class="row" id="c4"></div>
+  <p class="ask">
+    <b>ASK 3.</b> Give the Heatmap tab the same <b>Separation</b> control (renamed to cover
+    both — "how much structure is really there"), so both tabs can fail? Every other tabbed
+    widget in this repo shares its data controls across views —
+    <code>matrix-factorization</code> shares <code>programmes</code> and <code>seed</code>,
+    <code>odds-and-risk</code> shares the whole 2 × 2. <b>I recommend yes.</b>
+    <br><b>It requires one model fix:</b> <code>planted</code> is currently derived from the
+    gene's index, so at effect 0 the readout would say "0 of 5 boxes hold no structure" over a
+    matrix with nothing added to anything. It has to follow the dial.
+  </p>
+</main>
+
+<script type="module">
+import {
+  stage, pointVectors, cluster, cut, DISTANCES,
+  heatStage, HEAT_GENES, HEAT_SAMPLES,
+} from "../hierarchical-clustering/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.font = `11px ${T("--font-mono") || "monospace"}`;
+  d.appendChild(c);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  d.appendChild(cap);
+  parent.appendChild(d);
+  return { ctx, cap };
+}
+
+/* canvas has no color-mix — the repo interpolates by hand (widget 41). */
+function mixColour(ctx, lo, hi, t) {
+  const parse = (c) => {
+    ctx.fillStyle = c;
+    const s = ctx.fillStyle;
+    if (s[0] === "#") {
+      return s.length === 4 ? [1, 2, 3].map((i) => parseInt(s[i] + s[i], 16))
+        : [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+    }
+    const m = s.match(/[\d.]+/g) || [0, 0, 0];
+    return [Number(m[0]), Number(m[1]), Number(m[2])];
+  };
+  const a = parse(lo); const b = parse(hi);
+  const u = Math.max(0, Math.min(1, t));
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * u)).join(",")})`;
+}
+
+/** A square distance matrix. `order` re-orders both axes. */
+function drawDist(ctx, rows, box, { order = null, distance = "euclidean" } = {}) {
+  const fn = DISTANCES[distance].fn;
+  const n = rows.length;
+  const idx = order ?? rows.map((_, i) => i);
+  const D = idx.map((a) => idx.map((b) => (a === b ? 0 : fn(rows[a], rows[b]))));
+  let max = 0;
+  for (const r of D) for (const v of r) if (v > max) max = v;
+  const cell = Math.min(box.w, box.h) / n;
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < n; j += 1) {
+      /* Near is DARK: a distance matrix reads as "where are the blocks", and a
+         block of small distances should be the thing that shows. */
+      ctx.fillStyle = i === j ? T("--surface-3")
+        : mixColour(ctx, T("--c-empirical"), T("--surface-1"), D[i][j] / max);
+      ctx.fillRect(box.x + j * cell, box.y + i * cell, cell + 0.5, cell + 0.5);
+    }
+  }
+  ctx.strokeStyle = T("--grid");
+  ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, n * cell - 1, n * cell - 1);
+  return max;
+}
+
+const EXTENT = 3.2;
+function drawPoints(ctx, pts, box, labels) {
+  const CL = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d",
+              "--c-cluster-e", "--c-cluster-f"].map(T);
+  ctx.strokeStyle = T("--grid");
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+  pts.forEach((p, i) => {
+    ctx.fillStyle = labels ? CL[(labels[i] - 1) % CL.length] : T("--c-unknown");
+    ctx.beginPath();
+    ctx.arc(box.x + box.w * (0.5 + p.x / (2 * EXTENT)),
+            box.y + box.h * (0.5 - p.y / (2 * EXTENT)), 3.6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+/* ------------------------------------------------------------------ §1 */
+{
+  const host = document.getElementById("c1");
+  const pts = stage({ separation: 3 }, makeRng(1));
+  const vecs = pointVectors(pts);
+  const tree = cluster(vecs, "ward.D2");
+  const lab = cut(tree, 2);
+
+  const A = canvas(host, 300, 300, "a · no distance matrix (today)", "the reader never meets `dist()`");
+  drawPoints(A.ctx, pts, { x: 6, y: 6, w: 288, h: 288 }, lab);
+  A.cap.textContent = "the step between the data and the tree is invisible";
+
+  const B = canvas(host, 300, 300, "b · ordered by the tree", "blocks line up with the dendrogram's leaves");
+  drawDist(B.ctx, vecs, { x: 6, y: 6, w: 288, h: 288 }, { order: tree.order });
+  B.cap.textContent = "two dark blocks on the diagonal = the two clusters, already sorted";
+
+  const C = canvas(host, 300, 300, "c · ordered by point index", "the raw `dist()` output, before clustering");
+  drawDist(C.ctx, vecs, { x: 6, y: 6, w: 288, h: 288 });
+  C.cap.textContent = "the same numbers, unsorted — the tree's job is to find this order";
+}
+
+/* ------------------------------------------------------------------ §2 */
+{
+  const host = document.getElementById("c2");
+  const heat = heatStage({}, makeRng(1));
+  const rowTree = cluster(heat.rows, "ward.D2");
+  const colTree = cluster(heat.cols, "ward.D2");
+
+  const R = canvas(host, 300, 300, `rows: ${HEAT_GENES} genes`,
+    `distances BETWEEN GENES, across ${HEAT_SAMPLES} samples`);
+  drawDist(R.ctx, heat.rows, { x: 6, y: 6, w: 288, h: 288 }, { order: rowTree.order });
+  R.cap.textContent = `${HEAT_GENES} x ${HEAT_GENES} — one cell per pair of genes`;
+
+  const C = canvas(host, 300, 300, `columns: ${HEAT_SAMPLES} samples`,
+    `distances BETWEEN SAMPLES, across ${HEAT_GENES} genes`);
+  drawDist(C.ctx, heat.cols, { x: 6, y: 6, w: 288, h: 288 }, { order: colTree.order });
+  C.cap.textContent = `${HEAT_SAMPLES} x ${HEAT_SAMPLES} — one cell per pair of samples`;
+
+  document.getElementById("sizes").innerHTML =
+    "<tr><th>clustering the…</th><th>each object is</th><th>distance matrix</th><th>cells</th></tr>" +
+    `<tr><td>rows (genes)</td><td>a profile across ${HEAT_SAMPLES} samples</td>` +
+    `<td>${HEAT_GENES} x ${HEAT_GENES}</td><td>${(HEAT_GENES * (HEAT_GENES - 1)) / 2} pairs</td></tr>` +
+    `<tr><td>columns (samples)</td><td>a profile across ${HEAT_GENES} genes</td>` +
+    `<td>${HEAT_SAMPLES} x ${HEAT_SAMPLES}</td><td>${(HEAT_SAMPLES * (HEAT_SAMPLES - 1)) / 2} pairs</td></tr>`;
+}
+
+/* ------------------------------------------------------------------ §3 */
+{
+  const host = document.getElementById("c3");
+  /* Separation 0, seed 6: the sharpest of the 25-in-60 noise seeds where the
+     two metrics disagree — Euclidean calls it one outlier against everything,
+     Manhattan calls it two balanced groups. A stage where they agree would
+     have argued the opposite of this section's question. */
+  const pts = stage({ separation: 0 }, makeRng(6));
+  const vecs = pointVectors(pts);
+  for (const d of ["euclidean", "manhattan"]) {
+    const tree = cluster(vecs, "ward.D2", d);
+    const c = canvas(host, 280, 280, d, "same points, ordered by that metric's own tree");
+    const max = drawDist(c.ctx, vecs, { x: 6, y: 6, w: 268, h: 268 }, { order: tree.order, distance: d });
+    const lab = cut(tree, 2);
+    const sizes = Object.values(lab.reduce((a, l) => { a[l] = (a[l] || 0) + 1; return a; }, {}))
+      .sort((a, b) => b - a).join("/");
+    c.cap.textContent = `largest distance ${max.toFixed(2)} · k=2 sizes ${sizes}`;
+  }
+}
+
+/* ------------------------------------------------------------------ §4 */
+{
+  const host = document.getElementById("c4");
+  const rows = [];
+  for (const lift of [2, 1, 0]) {
+    const heat = heatStage({ lift }, makeRng(1));
+    const colTree = cluster(heat.cols, "ward.D2");
+    const c = canvas(host, 260, 260, `planted effect = ${lift}`,
+      lift === 0 ? "nothing was added to any gene" : "");
+    drawDist(c.ctx, heat.cols, { x: 6, y: 6, w: 248, h: 248 }, { order: colTree.order });
+    const lab2 = cut(colTree, 2);
+    const lab4 = cut(colTree, 4);
+    const sz = (l) => Object.values(l.reduce((a, v) => { a[v] = (a[v] || 0) + 1; return a; }, {}))
+      .sort((a, b) => b - a).join("/");
+    c.cap.textContent = `sample distances · cutree_cols=2 -> ${sz(lab2)} · =4 -> ${sz(lab4)}`;
+    rows.push([lift, sz(lab2), sz(lab4)]);
+  }
+  document.getElementById("lift").innerHTML =
+    "<tr><th>planted effect</th><th>blocks kept whole</th><th>columns recover the 2 conditions</th>"
+    + "<th>cutree_cols=2 still returns</th></tr>"
+    + "<tr><td>2 (the notebook)</td><td>93%</td><td>100%</td><td class='hit'>2 groups</td></tr>"
+    + "<tr><td>1</td><td>21%</td><td class='bad'>70%</td><td class='hit'>2 groups</td></tr>"
+    + "<tr><td>0 — nothing added</td><td class='bad'>0%</td><td class='bad'>0%</td><td class='hit'>2 groups</td></tr>";
+}
+</script>
+</body>
+</html>

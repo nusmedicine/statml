@@ -3273,7 +3273,7 @@ ones do — see HANDOVER § *NEXT* item 3, which this adds four rows to.
 | 1 | `normalization` | 05 / 03 | "normalising" makes data normal — that scaling and transforming are one operation with one purpose | reported | **SHIPPED 2026-09-02** |
 | 2 | `matrix-factorization` | 05 / 04 `## 1` and `## 2` | NMF is PCA with the minus signs banned — a rotation, not a decomposition into parts you add up | reported | **SHIPPED 2026-09-03** |
 | 3 | `batch-effect` | 05 / 05 | a batch effect is noise you subtract. The danger is **confounding**, and correcting a confounded design deletes the biology | documented — citation NOT yet verified | **proposed** |
-| 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. It is a consequence of two choices and a cut, and pure noise produces a handsome one | reported | **proposed** |
+| 4 | `hierarchical-clustering` | 05 / 08 | the dendrogram is a finding. Measured 2026-09-03: the TREE is honest and the CUT is not — see § Widget 42 | reported | **in draft 2026-09-03** |
 | 5 | `enrichment` | 05 / 09 | a significant pathway is an activated pathway; and the p-value is a property of your gene list, when the **background** and the **cutoff** move it just as hard | reported | **proposed** |
 
 **Slug rulings, on the precedents already in this file.** Kenneth renamed
@@ -5336,6 +5336,184 @@ separately from the widget.
    it reaches a screen — the standing rule in HANDOVER is that a number not
    re-measured is one draw from a possibly unseeded model, and the same applies
    to a citation not re-read.
+
+---
+
+## Widget 42 · `hierarchical-clustering` — IN DRAFT, 2026-09-03
+
+Slot 4 of the high-throughput arc, PHM5003 `05 / 08`. Picked by Kenneth on
+2026-09-03 and reviewed through nine rounds the same day. Committed locally,
+unpushed, not baselined. HANDOVER § *NEXT* carries the live state and the open
+items; this section is the record of what was measured and why the design is
+what it is.
+
+### The claim, after measuring — the planned one was false
+
+The arc plan proposed *"a dendrogram is a consequence of two choices and a cut,
+not a finding — pure noise produces a handsome one"*. Measured in R 4.5.2 and
+again through the shipping engine, **the second half is false**: on a 2-D stage
+of twenty points, real groups score a final-merge height gap of 4.20
+[3.28 .. 5.18] and pure noise 1.39 [1.15 .. 1.78], with **0 of 400 noise runs
+reaching the 10th percentile of the real ones**. The tree is honest.
+
+What noise does produce is a handsome **CUT**. Ask Ward for two clusters in
+twenty points drawn from one Gaussian and **56% of the time it returns a
+balanced split** that looks exactly like a finding. So the claim the widget
+makes is:
+
+> The tree carries the evidence — the height of the last merge against the rest
+> — and the cut throws it away and returns the number of groups you asked for.
+
+That is why `shown` builds the tree and `k` cuts it, as two controls and not
+one: conflating them would blur the distinction the widget exists to teach.
+
+### What the notebook's own stage could not do
+
+Cell 15 is twenty log-fold-changes in **one** dimension. Measured: **all five
+linkages — average, complete, ward.D2, single, centroid — return the identical
+10/10 split, 20 of 20 correct.** They first disagree at k = 3. So on the
+notebook's stage a linkage control is inert at the cut anyone looks at, and a
+distance control cannot move the tree at all, because in 1-D every distance is
+|x − y| up to a monotone transform. The notebook's own cell 28 says as much and
+is confirmed exactly.
+
+Two dimensions sharpens everything: the three linkages agree on only 16% of 2-D
+noise runs against 36% in 1-D.
+
+### Why only Euclidean and Manhattan
+
+`_lab/hc-distance.mjs`. **Pearson is degenerate on a stage of points** — a
+correlation between two 2-vectors is always ±1, so across 190 pairs it takes
+three distinct values where Euclidean takes 190. **Cosine measures the angle
+from the origin**, so it separates a centred cloud only because the groups
+straddle zero; shift the cloud and it collapses. Euclidean and Manhattan are
+the two that do not care where the origin is.
+
+Manhattan is not cosmetic: against Euclidean it gives a different tree on
+essentially every seed, and a k = 2 cut that agrees **95% of the time when the
+groups are real and 53% when they are not**. Two arbitrary choices, both
+irrelevant to real structure and both decisive without it.
+
+### The gap reference is per linkage AND per distance
+
+The figure prints the height gap beside what real groups score. That range is a
+property of both controls, not one:
+
+| linkage | Euclidean | Manhattan |
+|---|---|---|
+| average | 1.8 – 2.8 | 1.7 – 2.5 |
+| complete | 1.8 – 2.7 | 1.6 – 2.4 |
+| ward.D2 | 3.3 – 5.2 | 2.9 – 4.6 |
+
+Quoting one combination's range under another would call a true finding noise.
+`GAP_REFERENCE` in `main.js`; `_lab/hc-measure.mjs` reprints the table.
+
+### The stage: 20 x 20, square, and shuffled
+
+Twenty genes by twenty samples — four planted blocks of four, four genes with
+nothing added at all, two sample conditions of ten.
+
+**Square because the rows/columns toggle has to be symmetric.** An earlier
+20 x 2 table made the columns side two objects and a single merge, which is not
+a lesson. Square gives 20 objects and a 20 x 20 distance matrix whichever way it
+is pointed.
+
+**Shuffled because the raw matrix must not arrive pre-sorted.** Built in order,
+genes 0–3 are one block and samples 0–9 one condition, so the data matrix shows
+its structure on the diagonal before anything has clustered it. Kenneth reported
+exactly that. Both axes are permuted from the seeded stream, with `planted` and
+`condition` permuted along.
+
+**Twenty genes rather than the notebook's fifty** (`_lab/hc-size.mjs`). At 50
+the matrix rows are 6px and the box round the unstructured genes appears in 73%
+of seeds; at 20 the rows are 15px and it appears in 86%. Everything survives at
+every size measured; the choice is legibility.
+
+### The scatter survives a square matrix by classical scaling
+
+A point needs two numbers and an object here has twenty, so `mds()` places the
+objects by classical scaling on the distance matrix the tree is built from —
+plotted separation approximates real separation, and the scatter and the
+distance matrix agree by construction. Verified: the two sample conditions sit
+at −4.06 and +4.06 on the x axis with structure and −0.13 and +0.13 without.
+
+It starts from a fixed vector. A random one would rotate the plane on every
+render and the same seed would not draw the same picture.
+
+**The extent is per metric.** MDS coordinates reach 9.46 under Euclidean and
+**33.69 under Manhattan**; one shared extent put every Manhattan point outside
+its panel and over the dendrogram beside it.
+
+### The linkage is drawn the way the notebook draws it
+
+The scatter used to draw every merge as one line between two cluster centres —
+which is what *centroid* linkage measures and none of the three on offer, so
+average, complete and Ward produced an identical picture and the control looked
+inert. Reported in review, and the notebook already had the answer: cells 18, 22
+and 25 draw a pale blob per cluster, the points coloured by cluster, and the
+lines the rule actually measures — every cross pair for average, the two
+furthest members for complete, spokes to the centre for Ward.
+
+`witness()` in `model.js` decides which pairs; the figure paints them, and the
+distance matrix lights the same cells. Measured highlighted pixels: **average
+2024, complete 121, Ward 0** — Ward reads a spread rather than a pair, so it has
+nothing to light, which is honest and still unremarked on the figure.
+
+### The second act: the notebook's own figure contains the failing case
+
+Planning said act 2 would need an invented stage. It does not. Cell 41 calls
+`cutree_rows = 5` and, on the notebook's own seed, **four of its five boxes are
+the planted blocks and the fifth is genes with nothing added at all**. Ask for
+eight boxes and two of them are pure noise. On the sample side a stage with
+exactly two groups subdivides into 3, 4, 5 and 6 tidy boxes, every one still
+inside a single condition. And the row dendrogram's merge heights fall off a
+cliff after the fourth merge — the evidence is on the figure and the boxes
+discard it.
+
+`planted` **follows the effect dial**. Derived from the gene index alone it
+called genes planted at every setting, so with nothing added anywhere the
+readout said *"0 of 5 boxes hold no structure"* over a matrix of pure noise —
+finite, plausible and exactly backwards. It now reports 5 of 5.
+
+### The engine is checked against R
+
+`_lab/hc-ref.R` writes a reference from R's own `hclust`; `hc-verify.mjs`
+compares **8400 values** over 35 stages x 5 linkages x 2 distances — heights to
+1e-9 and cuts exactly. Two findings from that pass:
+
+- **A CRLF file made 3325 comparisons pass on nothing.** R writes CRLF, the
+  trailing carriage return rode on the last header field, `r.value` was
+  `undefined`, and `Math.abs(NaN − x) > tol` is FALSE. The verifier now rejects
+  a non-finite value outright rather than comparing it.
+- **The reference was wrong, not the engine.** All 594 remaining failures were
+  `centroid`, and the JS matched `hclust(d^2, …)` with heights square-rooted
+  exactly — `?hclust` documents that centroid needs squared dissimilarities.
+
+### The review, round by round
+
+| round | what Kenneth changed |
+|---|---|
+| 1 | picked 2-D over the notebook's 1-D; act 2 = the heatmap behind a gate |
+| 2 | — (build) |
+| 3 | scatter design C; Euclidean + Manhattan on both acts; linkage marks the notebook's way |
+| 4 | Play speed and sub-merge tweening; the dendrogram shows the same merge |
+| 5 | matrix button below the drive row; annotation unsupervised by default |
+| 6 | `k` shared with `cutree_cols` — reversed the next round |
+| 7 | three separate cuts all named "Cut tree"; two tabs, Cluster and Heatmap |
+| 8 | distance matrix on the figure; rows/columns toggle; 20 genes |
+| 9 | 20 x 20 square table; scatter kept via MDS; figure sized to the rail |
+
+Round 6 and round 7 contradict each other and that is deliberate: sharing one
+cut count across two datasets read as coherent until the two pheatmap arguments
+had to be met as the separate things a student types.
+
+### Still open
+
+Listed in HANDOVER § *NEXT* — not baselined, the ground-truth toggle is
+undiscoverable, Ward's empty distance-matrix highlight is unremarked, narrow
+widths unchecked since the canvas grew, not judged projected. Kenneth closed the
+session with "some things need fixing" without enumerating them; ask before
+guessing.
 
 ---
 

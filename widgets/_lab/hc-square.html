@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 — a square data matrix, and what replaces the scatter</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 96ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 620px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 620px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.bad { color: var(--c-extreme); }
+  table.m td.hit { color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 · a square data matrix, and what replaces the scatter</h1>
+
+  <p class="note">
+    It can be 20 × 20, and that fixes the lopsided toggle: 20 objects whichever axis you pick,
+    both with real structure, both giving a 20 × 20 distance matrix. The stage already exists —
+    <code>heatStage({ perBlock: 4, noise: 4 })</code> is 20 genes × 20 samples with four gene
+    blocks and two sample conditions.
+  </p>
+  <p class="note">
+    <b>The one cost is the scatter.</b> A point needs two numbers; with a square matrix every
+    object has twenty. So the question is not really the matrix size — it is what goes in the
+    bottom-left panel once a scatter is impossible.
+  </p>
+  <table class="m" id="cmp"></table>
+
+  <!-- =============================================================== -->
+  <h2>§1 · WHAT THE TOGGLE LOOKS LIKE AT 20 × 20</h2>
+  <p class="note">
+    The same table read both ways. Rows are genes with a profile across 20 samples; columns
+    are samples with a profile across 20 genes. Both distance matrices below are 20 × 20 and
+    both have block structure — four blocks one way, two the other.
+  </p>
+  <div class="row" id="s1"></div>
+
+  <!-- =============================================================== -->
+  <h2>§2 · WHAT REPLACES THE SCATTER</h2>
+  <p class="note">
+    Three candidates for the bottom-left panel. All show the same twenty objects.
+  </p>
+  <div class="row" id="s2"></div>
+  <p class="ask">
+    <b>ASK 1.</b> (a) profile plot — each object a line across its measurements, coloured by
+    the cut; (b) nothing, and the tree takes the whole bottom row; (c) keep a 20 × 2 matrix and
+    keep the scatter, as now.
+    <b>(a).</b> It is the picture omics actually uses, it works for either axis, and clusters
+    of similar shape are visible in it — which is what the distances are measuring.
+  </p>
+
+  <!-- =============================================================== -->
+  <h2>§3 · THE TWO LAYOUTS, FULL SIZE</h2>
+  <p class="note">
+    Both at the widget's real width (770 × 470), so this is what would ship.
+  </p>
+  <div class="row" id="s3"></div>
+  <p class="ask">
+    <b>ASK 2.</b> Layout A keeps your two rows with the profile plot bottom-left. Layout B
+    drops the fourth panel and gives the tree the whole bottom row, which makes the tree
+    twice the size. <b>A</b>, unless the tree is the thing you most want big.
+  </p>
+</main>
+
+<script type="module">
+import {
+  heatStage, cluster, cut, distanceMatrix, partialOrder, stage, pointVectors,
+} from "../hierarchical-clustering/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+const CL = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d",
+            "--c-cluster-e", "--c-cluster-f"].map(T);
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.font = `11px ${T("--font-mono") || "monospace"}`;
+  d.appendChild(c);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  d.appendChild(cap);
+  parent.appendChild(d);
+  return { ctx, cap };
+}
+
+function mix(ctx, lo, hi, t) {
+  const parse = (c) => {
+    ctx.fillStyle = c; const s = ctx.fillStyle;
+    if (s[0] === "#") {
+      return s.length === 4 ? [1, 2, 3].map((i) => parseInt(s[i] + s[i], 16))
+        : [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+    }
+    const m = s.match(/[\d.]+/g) || [0, 0, 0];
+    return [Number(m[0]), Number(m[1]), Number(m[2])];
+  };
+  const a = parse(lo), b = parse(hi), u = Math.max(0, Math.min(1, t));
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * u)).join(",")})`;
+}
+
+const HEAT = heatStage({ perBlock: 4, noise: 4 }, makeRng(1));
+const objectsOf = (axis) => (axis === "columns" ? HEAT.cols : HEAT.rows);
+
+function drawData(ctx, box, { axis, pair }) {
+  const rows = HEAT.rows;
+  const nR = rows.length, nC = rows[0].length;
+  const cw = box.w / nC, ch = box.h / nR;
+  let max = 0; for (const r of rows) for (const v of r) max = Math.max(max, Math.abs(v));
+  for (let i = 0; i < nR; i += 1) {
+    for (let j = 0; j < nC; j += 1) {
+      const t = rows[i][j] / max;
+      ctx.fillStyle = t >= 0 ? mix(ctx, T("--surface-3"), T("--c-value-high"), t)
+        : mix(ctx, T("--surface-3"), T("--c-value-low"), -t);
+      ctx.fillRect(box.x + j * cw, box.y + i * ch, cw + 0.5, ch + 0.5);
+    }
+  }
+  if (pair) {
+    ctx.strokeStyle = T("--c-highlight"); ctx.lineWidth = 2;
+    for (const p of pair) {
+      if (axis === "columns") ctx.strokeRect(box.x + p * cw, box.y, cw, box.h);
+      else ctx.strokeRect(box.x, box.y + p * ch, box.w, ch);
+    }
+  }
+  ctx.strokeStyle = T("--grid"); ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+}
+
+function drawDist(ctx, rows, box, { order = null, cells = null, groups = null } = {}) {
+  const { D, n, max } = distanceMatrix(rows, "euclidean");
+  const idx = order ?? rows.map((_, i) => i);
+  const pos = new Map(); idx.forEach((leaf, r) => pos.set(leaf, r));
+  const cell = Math.min(Math.min(box.w, box.h) / n, 22);
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j <= i; j += 1) {
+      ctx.fillStyle = i === j ? T("--surface-3")
+        : mix(ctx, T("--c-empirical"), T("--surface-1"), D[idx[i]][idx[j]] / (max || 1));
+      ctx.fillRect(box.x + j * cell, box.y + i * cell, cell + 0.5, cell + 0.5);
+    }
+  }
+  if (groups) {
+    ctx.strokeStyle = T("--c-unknown"); ctx.lineWidth = 1;
+    for (const g of groups) {
+      if (g.length < 2) continue;
+      const rs = g.map((l) => pos.get(l)).sort((a, b) => a - b);
+      if (rs[rs.length - 1] - rs[0] !== rs.length - 1) continue;
+      ctx.strokeRect(box.x + rs[0] * cell + 0.5, box.y + rs[0] * cell + 0.5,
+        rs.length * cell - 1, rs.length * cell - 1);
+    }
+  }
+  if (cells) {
+    ctx.fillStyle = T("--c-highlight");
+    for (const [a, b] of cells) {
+      const ra = pos.get(a), rb = pos.get(b);
+      if (ra === undefined || rb === undefined) continue;
+      ctx.fillRect(box.x + Math.min(ra, rb) * cell, box.y + Math.max(ra, rb) * cell, cell + 0.5, cell + 0.5);
+    }
+  }
+  ctx.strokeStyle = T("--grid"); ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, n * cell - 1, n * cell - 1);
+  return n * cell;
+}
+
+/** Each object as a line across its measurements — the omics profile plot. */
+function drawProfiles(ctx, objs, box, labels) {
+  let lo = Infinity, hi = -Infinity;
+  for (const o of objs) for (const v of o) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const m = objs[0].length;
+  const X = (j) => box.x + (box.w * j) / (m - 1);
+  const Y = (v) => box.y + box.h - (box.h * (v - lo)) / (hi - lo);
+  ctx.strokeStyle = T("--grid"); ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+  ctx.save();
+  objs.forEach((o, i) => {
+    ctx.strokeStyle = labels ? CL[(labels[i] - 1) % CL.length] : T("--c-unknown");
+    ctx.globalAlpha = labels ? 0.85 : 0.5;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    o.forEach((v, j) => (j ? ctx.lineTo(X(j), Y(v)) : ctx.moveTo(X(j), Y(v))));
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawTree(ctx, tree, box, labels) {
+  const rank = new Map(); tree.order.forEach((l, i) => rank.set(l, i));
+  const nodeX = [];
+  tree.nodes.forEach((nd, m) => {
+    const xOf = (c) => (c.a ? nodeX[c.id - 1] : rank.get(c.leaves[0]));
+    nodeX[m] = (xOf(nd.a) + xOf(nd.b)) / 2;
+  });
+  const hmax = Math.max(...tree.height) * 1.08;
+  const lx = (r) => box.x + (box.w * (r + 0.5)) / tree.n;
+  const hy = (v) => box.y + box.h - (box.h * v) / hmax;
+  ctx.strokeStyle = T("--c-empirical"); ctx.lineWidth = 1.4;
+  tree.nodes.forEach((nd) => {
+    const rOf = (c) => (c.a ? nodeX[c.id - 1] : rank.get(c.leaves[0]));
+    const hOf = (c) => (c.a ? c.height : 0);
+    const xa = lx(rOf(nd.a)), xb = lx(rOf(nd.b)), yy = hy(nd.height);
+    ctx.beginPath();
+    ctx.moveTo(xa, hy(hOf(nd.a))); ctx.lineTo(xa, yy); ctx.lineTo(xb, yy); ctx.lineTo(xb, hy(hOf(nd.b)));
+    ctx.stroke();
+  });
+  if (labels) {
+    tree.order.forEach((leaf, r) => {
+      ctx.fillStyle = CL[(labels[leaf] - 1) % CL.length];
+      ctx.fillRect(lx(r) - 2, box.y + box.h + 2, 4, 4);
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ table */
+{
+  const rows2 = pointVectors(stage({ separation: 3 }, makeRng(1)));
+  const t = (m) => m[0].map((_, j) => m.map((r) => r[j]));
+  document.getElementById("cmp").innerHTML =
+    "<tr><th>data matrix</th><th>cluster rows</th><th>cluster columns</th><th>scatter possible?</th></tr>"
+    + `<tr><td>20 x 2 (today)</td><td>20 objects, 20 x 20</td>`
+    + `<td class='bad'>2 objects, 2 x 2, one merge</td><td class='hit'>yes — rows have 2 numbers</td></tr>`
+    + `<tr><td>20 x 20</td><td class='hit'>20 objects, 20 x 20</td>`
+    + `<td class='hit'>20 objects, 20 x 20</td><td class='bad'>no — every object has 20 numbers</td></tr>`;
+}
+
+/* ------------------------------------------------------------------ §1 */
+{
+  const host = document.getElementById("s1");
+  for (const axis of ["rows", "columns"]) {
+    const objs = objectsOf(axis);
+    const tree = cluster(objs, "ward.D2");
+    const lab = cut(tree, axis === "rows" ? 5 : 2);
+    const c = canvas(host, 420, 250, axis === "rows" ? "Cluster the ROWS (genes)" : "Cluster the COLUMNS (samples)",
+      axis === "rows" ? "each gene is a profile across 20 samples" : "each sample is a profile across 20 genes");
+    drawData(c.ctx, { x: 6, y: 6, w: 120, h: 230 }, { axis, pair: [2, 14] });
+    const sz = drawDist(c.ctx, objs, { x: 140, y: 6, w: 230, h: 230 }, { order: tree.order });
+    c.cap.textContent = `${objs.length} objects -> ${objs.length} x ${objs.length} distances`
+      + ` · cut into ${axis === "rows" ? 5 : 2}: ${Object.values(lab.reduce((a, l) => { a[l] = (a[l] || 0) + 1; return a; }, {})).sort((a, b) => b - a).join("/")}`;
+  }
+}
+
+/* ------------------------------------------------------------------ §2 */
+{
+  const host = document.getElementById("s2");
+  const objs = objectsOf("rows");
+  const tree = cluster(objs, "ward.D2");
+  const lab = cut(tree, 5);
+
+  const A = canvas(host, 300, 220, "a · profile plot", "each gene a line across the 20 samples, coloured by the cut");
+  drawProfiles(A.ctx, objs, { x: 6, y: 6, w: 288, h: 208 }, lab);
+  A.cap.textContent = "clusters are lines with the same shape — which is what the distance measures";
+
+  const B = canvas(host, 300, 220, "b · nothing — tree takes the row", "the bottom row is one wide dendrogram");
+  drawTree(B.ctx, tree, { x: 6, y: 6, w: 288, h: 196 }, lab);
+  B.cap.textContent = "twice the tree, one fewer idea on screen";
+
+  const pts = stage({ separation: 3 }, makeRng(1));
+  const vecs = pointVectors(pts);
+  const t2 = cluster(vecs, "ward.D2");
+  const lab2 = cut(t2, 2);
+  const C = canvas(host, 300, 220, "c · keep 20 x 2 and the scatter", "what ships today — but columns mode stays trivial");
+  const EX = 3.2;
+  C.ctx.strokeStyle = T("--grid");
+  C.ctx.strokeRect(6.5, 6.5, 287, 207);
+  pts.forEach((p, i) => {
+    C.ctx.fillStyle = CL[(lab2[i] - 1) % CL.length];
+    C.ctx.beginPath();
+    C.ctx.arc(6 + 288 * (0.5 + p.x / (2 * EX)), 6 + 208 * (0.5 - p.y / (2 * EX)), 3.6, 0, Math.PI * 2);
+    C.ctx.fill();
+  });
+  C.cap.textContent = "the only option where a distance is a length you can see";
+}
+
+/* ------------------------------------------------------------------ §3 */
+{
+  const host = document.getElementById("s3");
+  const W = 770, H = 470, PAD = 10;
+  const objs = objectsOf("rows");
+  const tree = cluster(objs, "ward.D2");
+  const lab = cut(tree, 5);
+  const po = partialOrder(tree, 14);
+
+  const A = canvas(host, W, H, "Layout A · your two rows, profile plot bottom-left", "data -> distance on top, profiles and tree below");
+  {
+    const ctx = A.ctx;
+    ctx.fillStyle = T("--ink-3"); ctx.textAlign = "left";
+    ctx.fillText("a 20 x 20 table — clustering its 20 rows", PAD, PAD + 11);
+    const LEFT = 196, rightX = PAD + LEFT + 18, rightW = W - PAD - rightX;
+    const rowH = Math.floor((H - PAD - 20 - 26 - PAD) / 2);
+    const row1 = PAD + 20, row2 = row1 + rowH + 26;
+    drawData(ctx, { x: PAD, y: row1, w: 92, h: rowH }, { axis: "rows", pair: [2, 14] });
+    ctx.strokeStyle = T("--ink-3"); ctx.beginPath();
+    ctx.moveTo(PAD + 102, row1 + rowH / 2); ctx.lineTo(rightX - 8, row1 + rowH / 2); ctx.stroke();
+    ctx.fillText("dist()", PAD + 118, row1 + rowH / 2 - 7);
+    drawDist(ctx, objs, { x: rightX, y: row1, w: Math.min(rightW, rowH), h: rowH },
+      { order: po.order, groups: po.groups });
+    drawProfiles(ctx, objs, { x: PAD, y: row2, w: LEFT, h: rowH }, lab);
+    drawTree(ctx, tree, { x: rightX, y: row2, w: rightW, h: rowH - 8 }, lab);
+  }
+  A.cap.textContent = "770 x 470 — the widget's real size";
+
+  const B = canvas(host, W, H, "Layout B · no fourth panel, tree full width", "data -> distance on top, one wide tree below");
+  {
+    const ctx = B.ctx;
+    ctx.fillStyle = T("--ink-3"); ctx.textAlign = "left";
+    ctx.fillText("a 20 x 20 table — clustering its 20 rows", PAD, PAD + 11);
+    const rowH = Math.floor((H - PAD - 20 - 26 - PAD) / 2);
+    const row1 = PAD + 20, row2 = row1 + rowH + 26;
+    drawData(ctx, { x: PAD, y: row1, w: 92, h: rowH }, { axis: "rows", pair: [2, 14] });
+    ctx.strokeStyle = T("--ink-3"); ctx.beginPath();
+    ctx.moveTo(PAD + 102, row1 + rowH / 2); ctx.lineTo(PAD + 150, row1 + rowH / 2); ctx.stroke();
+    ctx.fillText("dist()", PAD + 108, row1 + rowH / 2 - 7);
+    drawDist(ctx, objs, { x: PAD + 160, y: row1, w: rowH, h: rowH }, { order: po.order, groups: po.groups });
+    drawTree(ctx, tree, { x: PAD, y: row2, w: W - 2 * PAD, h: rowH - 8 }, lab);
+  }
+  B.cap.textContent = "the tree is twice as wide; nothing shows the objects themselves";
+}
+</script>
+</body>
+</html>

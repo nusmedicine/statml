@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 hierarchical-clustering — the stage, the cut, and what the tree already knew</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 92ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 860px; min-height: 13px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 860px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.hit { color: var(--c-highlight); }
+  table.m td.bad { color: var(--c-extreme); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 candidate · <code>hierarchical-clustering</code> — the stage, the cut, and what the tree already knew</h1>
+
+  <p class="note">
+    PHM5003 <code>05 - Introduction to High Throughput Data / 08 - Hierarchical Clustering</code>.
+    Everything below is drawn from <code>widgets/hierarchical-clustering/model.js</code> — the engine that
+    would ship, imported and not copied. It is verified against R's own <code>hclust</code>:
+    <code>node widgets/_lab/hc-verify.mjs</code>, 4200 comparisons over 35 stages and five
+    linkages, heights to 1e-9 and cuts exactly. <code>node widgets/_lab/hc-measure.mjs</code>
+    prints every number quoted here.
+  </p>
+  <p class="note">
+    <b>The claim, after measuring — it is not the one the catalogue proposed.</b> The plan said
+    <i>"pure noise produces a handsome dendrogram"</i>. It does not: on this stage real groups
+    score a final-merge gap of 4.20 and noise 1.39, and <b>0 of 400 noise runs reached the 10th
+    percentile of the real ones</b>. The tree is honest. What noise produces is a handsome
+    <b>cut</b> — ask Ward for two clusters in pure noise and <b>56% of the time it hands back a
+    balanced split</b> that looks exactly like a finding. So the widget is not about being fooled
+    by a picture. It is about the picture carrying the evidence and the answer throwing it away.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§1 · THE STAGE — why not the notebook's own</h2>
+  <p class="note">
+    Cell 15 is twenty log-fold-changes in <b>one</b> dimension, two groups at ±1.5 with sd 0.5.
+    Measured in R: <b>all five linkages return the identical 10/10 split, 20 of 20 correct.</b>
+    They first disagree at k = 3. On that stage a linkage control does nothing at the cut anyone
+    looks at, and a distance control cannot do anything at all — in 1-D every distance is
+    |x − y| up to a monotone transform. Two dimensions fixes both: the three linkages agree on
+    only 16% of 2-D noise runs against 36% in 1-D.
+  </p>
+  <div class="row" id="stage"></div>
+
+  <p class="ask">
+    <b>ASK 1 — the layout.</b> A and B are the same data and the same tree, differing only in
+    where the dendrogram sits. A puts it to the right, so a merge is a horizontal move from the
+    scatter; B puts it below, so the leaves line up under the points they belong to. B costs
+    height, which this repo pays for in a taller widget. <b>Which?</b>
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§2 · THE MERGE SEQUENCE IS THE ANIMATION</h2>
+  <p class="note">
+    <code>shown</code> is the number of merges performed: N singletons, merge the closest pair,
+    repeat. The dendrogram grows one join upward per step at the merge height, and the scatter
+    draws a link between the two clusters that just joined. Four moments from one run below.
+  </p>
+  <div class="row" id="merges"></div>
+  <p class="note">
+    <b>The animation and the cut are deliberately separate.</b> After m merges you have N − m
+    clusters, so "stop the animation at step 18" and "cut the finished tree at k = 2" reach the
+    same partition — and folding them into one control would blur exactly the distinction the
+    widget teaches. The tree is evidence; the cut is a choice laid over it. So <code>shown</code>
+    builds the tree and <code>k</code> cuts it, and <code>k</code> is a <code>display</code>
+    parameter that does not reset the animation.
+  </p>
+  <p class="ask">
+    <b>ASK 2 — one control or two.</b> Above is two: build the whole tree, then move the cut.
+    The alternative is one — <code>shown</code> alone, with "where you stopped" being the answer.
+    One control is simpler and makes the merge count and the cluster count visibly the same
+    number; two matches <code>hclust</code> then <code>cutree</code>, which is what the notebook
+    writes, and lets a reader move the cut on a finished tree without rebuilding it.
+    <b>I recommend two.</b>
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§3 · THE SEPARATION SLIDER — the whole argument on one control</h2>
+  <p class="note">
+    Every column is the same seed and the same linkage; only the separation moves. Read the
+    bottom row: <b>the cut keeps answering long after there is anything to answer about.</b>
+  </p>
+  <div class="row" id="sep"></div>
+  <table class="m" id="sep-table"></table>
+
+  <!-- ==================================================================== -->
+  <h2>§4 · THE FAILING CASE — pure noise, and a cut that looks like a finding</h2>
+  <p class="note">
+    Separation 0. One Gaussian, no groups at all. Below is the seed measured as the most
+    convincing of 200 — a balanced split with the highest gap noise produced — beside two
+    ordinary noise seeds. <b>All three are answers to "give me two clusters" and none of them
+    is a finding.</b>
+  </p>
+  <div class="row" id="noise"></div>
+  <p class="ask">
+    <b>ASK 3 — how hard should the readout push?</b> Three registers, in rising order of how
+    much the widget does for the reader:
+    <br>(a) print the gap and nothing else — <code>gap 1.39</code> — and let them learn to read it;
+    <br>(b) print the gap beside what real groups score — <code>gap 1.39 · real groups here score 3.3-5.2</code>;
+    <br>(c) print a verdict — <code>this cut is not supported</code>.
+    <br>Principle 2.11 says a widget claims only what is on screen, which rules out (c) on a
+    single draw. <b>I recommend (b)</b>: it is a comparison, not a verdict, and the reader can
+    check it by moving the slider. But it does put a number on screen that this stage alone
+    does not show.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§5 · THE LINKAGE — inert on real groups, decisive on noise</h2>
+  <p class="note">
+    Top row: separation 3, the three linkages the notebook teaches. They agree — 94% of seeds
+    agree at this separation, so a reader moving this control on real groups sees almost nothing,
+    which is the honest lesson and not a defect. Bottom row: separation 0, where they agree on
+    only 16% of seeds. <b>The control does nothing when there is something to find, and
+    everything when there is not.</b>
+  </p>
+  <div class="row" id="link-real"></div>
+  <div class="row" id="link-noise"></div>
+
+  <!-- ==================================================================== -->
+  <h2>§6 · ACT 2 — the notebook's own heatmap, and the box around nothing</h2>
+  <p class="note">
+    Cells 34-43: 50 genes by 20 samples, four planted blocks of ten, and <b>genes 41-50 with
+    nothing added at all</b>. Cell 41 calls <code>cutree_rows = 5</code> and says nothing about
+    the fifth box. Measured in R on the notebook's own seed: four boxes are the planted blocks
+    and <b>the fifth is nine unstructured genes</b>. Ask for eight and two boxes are pure noise.
+    The row dendrogram's top merge heights are 16.29, 13.01, 12.43, 10.70, then 8.95, 8.57,
+    8.52, 8.28 — <b>it falls off a cliff after the fourth merge and the boxes do not care</b>.
+  </p>
+  <div class="row" id="act2"></div>
+  <p class="ask">
+    <b>ASK 4 — act 2's control.</b> The sketch above moves <code>cutree_rows</code> only. The
+    notebook also moves <code>cutree_cols</code>, where the same thing happens on the sample
+    side: a stage with exactly two groups subdivides into 3, 4, 5, 6 tidy boxes, every one
+    still inside a single condition. <b>One cut control or two?</b> Two doubles the argument at
+    no conceptual cost, but it is a second slider on a panel that already carries the gate.
+  </p>
+
+  <p class="note" style="margin-top: var(--sp-5)">
+    <b>Still open, and not mocked here:</b> the subtitle; whether the planted groups are ever
+    revealable (a "show the truth" toggle is how widget 40 handled it, and the same argument
+    applies); and act 2's stage generator, which is not yet written — §6 is drawn from the
+    R measurement, not from the engine.
+  </p>
+</main>
+
+<script type="module">
+import { stage, pointVectors, cluster, cut, gapAt, canonical, N_POINTS } from "../hierarchical-clustering/model.js";
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+const CLUSTER = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d",
+                 "--c-cluster-e", "--c-cluster-f"].map(T);
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.font = `11px ${T("--font-mono") || "monospace"}`;
+  d.appendChild(c);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  d.appendChild(cap);
+  parent.appendChild(d);
+  return { ctx, cap, w, h };
+}
+
+/* Dendrogram geometry. Leaves sit at their rank in `order`; an internal node
+   sits at the midpoint of its two children. Computed in merge order, so a
+   node's children always already have a position. */
+function dendroLayout(tree) {
+  const rank = new Map();
+  tree.order.forEach((leaf, i) => rank.set(leaf, i));
+  const nodeX = [];
+  tree.nodes.forEach((nd, m) => {
+    const xOf = (c) => (c.a ? nodeX[c.id - 1] : rank.get(c.leaves[0]));
+    nodeX[m] = (xOf(nd.a) + xOf(nd.b)) / 2;
+  });
+  return { rank, nodeX };
+}
+
+function drawDendro(ctx, tree, box, opts = {}) {
+  const { shown = tree.n - 1, k = null, labels = null, horizontal = false } = opts;
+  const { x, y, w, h } = box;
+  const { rank, nodeX } = dendroLayout(tree);
+  const hmax = Math.max(...tree.height) * 1.06;
+  const n = tree.n;
+
+  // leaf position -> pixel along the leaf axis; height -> pixel along the other
+  const lx = (r) => x + (w * (r + 0.5)) / n;
+  const hy = (v) => y + h - (h * v) / hmax;
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = T("--c-empirical");
+  for (let m = 0; m < Math.min(shown, tree.height.length); m += 1) {
+    const nd = tree.nodes[m];
+    const xOf = (c) => (c.a ? nodeX[c.id - 1] : rank.get(c.leaves[0]));
+    const hOf = (c) => (c.a ? c.height : 0);
+    const xa = lx(xOf(nd.a));
+    const xb = lx(xOf(nd.b));
+    const ya = hy(hOf(nd.a));
+    const yb = hy(hOf(nd.b));
+    const yy = hy(nd.height);
+    ctx.beginPath();
+    ctx.moveTo(xa, ya); ctx.lineTo(xa, yy);
+    ctx.lineTo(xb, yy); ctx.lineTo(xb, yb);
+    ctx.stroke();
+  }
+
+  // the cut, drawn between the last merge kept and the first refused
+  if (k !== null && k >= 2 && k <= n - 1) {
+    const above = tree.height[n - k];
+    const below = tree.height[n - k - 1];
+    const mid = hy((above + below) / 2);
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = T("--c-highlight");
+    ctx.beginPath(); ctx.moveTo(x, mid); ctx.lineTo(x + w, mid); ctx.stroke();
+    ctx.restore();
+  }
+
+  // leaf ticks, coloured by the cut
+  if (labels) {
+    tree.order.forEach((leaf, r) => {
+      ctx.fillStyle = CLUSTER[(labels[leaf] - 1) % CLUSTER.length];
+      ctx.fillRect(lx(r) - 1.5, y + h - 2, 3, 4);
+    });
+  }
+  ctx.strokeStyle = T("--axis");
+  ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();
+}
+
+function drawScatter(ctx, pts, box, opts = {}) {
+  const { labels = null, shown = null, tree = null } = opts;
+  const { x, y, w, h } = box;
+  // fixed extent so the picture does not rescale as separation moves
+  const EX = 3.2;
+  const px = (v) => x + w * (0.5 + v / (2 * EX));
+  const py = (v) => y + h * (0.5 - v / (2 * EX)) ;
+
+  ctx.strokeStyle = T("--grid");
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+  // links drawn for the merges performed so far, cluster centroid to centroid
+  if (tree && shown !== null) {
+    ctx.strokeStyle = T("--c-reference");
+    ctx.lineWidth = 1;
+    for (let m = 0; m < Math.min(shown, tree.nodes.length); m += 1) {
+      const nd = tree.nodes[m];
+      const mean = (c) => {
+        const xs = c.leaves.map((i) => pts[i].x);
+        const ys = c.leaves.map((i) => pts[i].y);
+        return [xs.reduce((a, b) => a + b, 0) / xs.length,
+                ys.reduce((a, b) => a + b, 0) / ys.length];
+      };
+      const [ax, ay] = mean(nd.a);
+      const [bx, by] = mean(nd.b);
+      ctx.beginPath(); ctx.moveTo(px(ax), py(ay)); ctx.lineTo(px(bx), py(by)); ctx.stroke();
+    }
+  }
+
+  pts.forEach((p, i) => {
+    ctx.fillStyle = labels ? CLUSTER[(labels[i] - 1) % CLUSTER.length] : T("--c-unknown");
+    ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 3.2, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+const fmt = (v) => (v === null || v === undefined ? "—" : v.toFixed(2));
+function sizes(labels) {
+  const t = {};
+  for (const l of labels) t[l] = (t[l] || 0) + 1;
+  return Object.values(t).sort((a, b) => b - a).join("/");
+}
+
+/* ------------------------------------------------------------------ §1 */
+{
+  const host = document.getElementById("stage");
+  const pts = stage({ separation: 3, seed: 1 });
+  const tree = cluster(pointVectors(pts), "ward.D2");
+  const lab = cut(tree, 2);
+
+  const A = canvas(host, 620, 300, "A · dendrogram to the right",
+    "a merge reads as a horizontal move from the scatter into the tree");
+  drawScatter(A.ctx, pts, { x: 8, y: 8, w: 284, h: 284 }, { labels: lab });
+  drawDendro(A.ctx, tree, { x: 308, y: 8, w: 300, h: 284 }, { k: 2, labels: lab });
+  A.cap.textContent = `separation 3 · ward.D2 · k=2 · sizes ${sizes(lab)} · gap ${fmt(gapAt(tree, 2))}`;
+
+  const B = canvas(host, 320, 600, "B · dendrogram below",
+    "a square scatter and a full-width tree; costs height");
+  drawScatter(B.ctx, pts, { x: 8, y: 8, w: 304, h: 304 }, { labels: lab });
+  drawDendro(B.ctx, tree, { x: 8, y: 328, w: 304, h: 264 }, { k: 2, labels: lab });
+  B.cap.textContent = "the same data, the same tree — note the leaves do NOT sit under " +
+    "their points: leaf order is the tree's, and in 2-D there is no x to align to";
+}
+
+/* ------------------------------------------------------------------ §2 */
+{
+  const host = document.getElementById("merges");
+  const pts = stage({ separation: 3, seed: 1 });
+  const tree = cluster(pointVectors(pts), "ward.D2");
+  for (const shown of [0, 6, 14, 19]) {
+    const k = N_POINTS - shown;
+    const lab = cut(tree, Math.max(1, k));
+    const c = canvas(host, 400, 230, `shown = ${shown}`,
+      shown === 0 ? "every point its own cluster" : `${N_POINTS - shown} clusters remain`);
+    drawScatter(c.ctx, pts, { x: 6, y: 6, w: 216, h: 216 }, { labels: shown ? lab : null, shown, tree });
+    drawDendro(c.ctx, tree, { x: 234, y: 6, w: 160, h: 216 }, { shown, labels: shown ? lab : null });
+    c.cap.textContent = shown === 0 ? "no merge yet" :
+      `last merge at height ${tree.height[shown - 1].toFixed(2)}`;
+  }
+}
+
+/* ------------------------------------------------------------------ §3 */
+{
+  const host = document.getElementById("sep");
+  const rows = [];
+  for (const separation of [0, 1, 2, 3]) {
+    const pts = stage({ separation, seed: 3 });
+    const tree = cluster(pointVectors(pts), "ward.D2");
+    const lab = cut(tree, 2);
+    const g = gapAt(tree, 2);
+    const parts = ["average", "complete", "ward.D2"].map((m) => canonical(cut(cluster(pointVectors(pts), m), 2)));
+    const agree = parts.every((p) => p === parts[0]);
+    const c = canvas(host, 400, 230, `separation = ${separation}`,
+      separation === 0 ? "one Gaussian — there are no groups here" : "");
+    drawScatter(c.ctx, pts, { x: 6, y: 6, w: 216, h: 216 }, { labels: lab });
+    drawDendro(c.ctx, tree, { x: 234, y: 6, w: 160, h: 216 }, { k: 2, labels: lab });
+    c.cap.textContent = `k=2 · sizes ${sizes(lab)} · gap ${fmt(g)} · three linkages agree: ${agree}`;
+    rows.push({ separation, sizes: sizes(lab), gap: g, agree });
+  }
+  const t = document.getElementById("sep-table");
+  t.innerHTML =
+    "<tr><th>separation</th><th>k=2 sizes</th><th>gap</th><th>3 linkages agree</th></tr>" +
+    rows.map((r) => `<tr><td>${r.separation}</td><td>${r.sizes}</td>` +
+      `<td class="${r.gap < 2 ? "bad" : "hit"}">${fmt(r.gap)}</td><td>${r.agree}</td></tr>`).join("");
+}
+
+/* ------------------------------------------------------------------ §4 */
+{
+  const host = document.getElementById("noise");
+  for (const [seed, note] of [[21, "the most convincing of 200 noise seeds"],
+                              [2, "an ordinary noise seed"],
+                              [7, "another"]]) {
+    const pts = stage({ separation: 0, seed });
+    const tree = cluster(pointVectors(pts), "ward.D2");
+    const lab = cut(tree, 2);
+    const c = canvas(host, 400, 230, `seed ${seed}`, note);
+    drawScatter(c.ctx, pts, { x: 6, y: 6, w: 216, h: 216 }, { labels: lab });
+    drawDendro(c.ctx, tree, { x: 234, y: 6, w: 160, h: 216 }, { k: 2, labels: lab });
+    c.cap.textContent = `k=2 · sizes ${sizes(lab)} · gap ${fmt(gapAt(tree, 2))}` +
+      ` · real groups here score 3.3-5.2`;
+  }
+}
+
+/* ------------------------------------------------------------------ §5 */
+for (const [hostId, separation, seed] of [["link-real", 3, 5], ["link-noise", 0, 5]]) {
+  const host = document.getElementById(hostId);
+  const pts = stage({ separation, seed });
+  for (const method of ["average", "complete", "ward.D2"]) {
+    const tree = cluster(pointVectors(pts), method);
+    const lab = cut(tree, 2);
+    const c = canvas(host, 400, 216, `${method} · separation ${separation}`, "");
+    drawScatter(c.ctx, pts, { x: 6, y: 6, w: 202, h: 202 }, { labels: lab });
+    drawDendro(c.ctx, tree, { x: 220, y: 6, w: 174, h: 202 }, { k: 2, labels: lab });
+    c.cap.textContent = `k=2 · sizes ${sizes(lab)} · gap ${fmt(gapAt(tree, 2))}`;
+  }
+}
+
+/* ------------------------------------------------------------------ §6
+   A SKETCH ONLY. The row order and the boxes come from the R measurement of
+   the notebook's own seed, hard-coded here; act 2 has no engine yet. It is
+   drawn so the shape can be judged, not so the numbers can be trusted. */
+{
+  const host = document.getElementById("act2");
+  // block membership after clustering: four planted blocks then the noise nine
+  const BOXES = { 5: [11, 10, 10, 10, 9], 8: [10, 10, 9, 7, 6, 4, 3, 1] };
+  const NOISE_BOX = { 5: [4], 8: [3, 7] };   // which boxes are pure noise genes
+  for (const k of [5, 8]) {
+    const c = canvas(host, 430, 320, `cutree_rows = ${k}`,
+      k === 5 ? "the notebook's own call, cell 41" : "ask for more and it keeps dividing");
+    const { ctx } = c;
+    // The gutter has to hold "no structure", which is the whole point of the
+    // panel; at 60 it clipped to "structure" and the failure lost its name.
+    const x0 = 96, y0 = 10, w = 264, h = 280;
+    const boxes = BOXES[k];
+    const total = boxes.reduce((a, b) => a + b, 0);
+    let y = y0;
+    boxes.forEach((size, bi) => {
+      const bh = (h * size) / total;
+      const isNoise = NOISE_BOX[k].includes(bi);
+      // rows of the block, as a value ramp
+      for (let r = 0; r < size; r += 1) {
+        const rh = bh / size;
+        for (let s = 0; s < 20; s += 1) {
+          // planted blocks alternate high/low by half; the noise box is flat
+          const v = isNoise ? 0.5 + 0.18 * Math.sin(r * 2.7 + s * 1.9)
+                            : (s < 10 ? (bi % 2 ? 0.12 : 0.88) : (bi % 2 ? 0.88 : 0.12));
+          ctx.fillStyle = `color-mix(in srgb, ${T("--c-value-high")} ${Math.round(v * 100)}%, ${T("--c-value-low")})`;
+          ctx.fillRect(x0 + (w * s) / 20, y + rh * r, w / 20 + 0.5, rh + 0.5);
+        }
+      }
+      ctx.strokeStyle = isNoise ? T("--c-extreme") : T("--ink-3");
+      ctx.lineWidth = isNoise ? 2 : 1;
+      ctx.strokeRect(x0 + 0.5, y + 0.5, w - 1, bh - 1);
+      // A box thinner than a line of text gets no label rather than a collision;
+      // at cutree_rows = 8 the last boxes are one and three genes tall.
+      if (bh >= 13) {
+        ctx.fillStyle = isNoise ? T("--c-extreme") : T("--ink-2");
+        ctx.textAlign = "right";
+        ctx.fillText(isNoise ? "no structure" : `block ${bi + 1}`, x0 - 6, y + bh / 2 + 4);
+      }
+      y += bh;
+    });
+    ctx.textAlign = "left";
+    ctx.fillStyle = T("--ink-3");
+    ctx.fillText("Healthy", x0, y0 + h + 14);
+    ctx.fillText("Disease", x0 + w / 2, y0 + h + 14);
+    c.cap.textContent = k === 5
+      ? "four boxes are the planted blocks; the fifth is nine genes with nothing added"
+      : "two of the eight boxes are made entirely of unstructured genes — the second " +
+        "is a single gene, too thin to carry its own label here";
+  }
+}
+</script>
+</body>
+</html>

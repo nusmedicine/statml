@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 — showing the linkage on the scatter, and whether distance can be a control</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 92ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 460px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 460px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.hit { color: var(--c-highlight); }
+  table.m td.bad { color: var(--c-extreme); }
+  img.nb { display: block; border: 1px solid var(--grid); background: #fff; max-width: 460px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 · showing the LINKAGE on the scatter — and whether DISTANCE can be a control</h1>
+
+  <p class="note">
+    Two questions from review: the dots are hard to read while the tree is being built, and
+    the linkage control does not appear to change the picture. <b>The second is a real
+    defect and it explains the first.</b> The scatter currently draws every merge as one line
+    between the two cluster centres — which is what <i>centroid</i> linkage measures and none
+    of the other three. Average, complete and Ward all look identical because the geometry
+    that distinguishes them is never drawn.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§1 · THE NOTEBOOK ALREADY DRAWS THIS, and the widget should match it</h2>
+  <p class="note">
+    Cells 18, 22 and 25 carry these three diagrams. The vocabulary is consistent and it
+    answers the colour question directly: <b>a pale blob per cluster, the points coloured by
+    cluster, and the lines the linkage actually measures.</b> Note that only the TWO clusters
+    being merged are ever coloured — which is also how a 20-point animation avoids needing
+    twenty colours.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>Complete, cell 22</h3>
+      <p class="sub">ONE line: the two furthest members</p>
+      <img class="nb" src="./hc-nb-complete.png" alt="notebook complete linkage diagram">
+    </div>
+    <div class="cand">
+      <h3>Average, cell 18</h3>
+      <p class="sub">EVERY cross pair, faint</p>
+      <img class="nb" src="./hc-nb-average.png" alt="notebook average linkage diagram">
+    </div>
+    <div class="cand">
+      <h3>Ward, cell 25</h3>
+      <p class="sub">spokes to the centre — a bad merge beside a good one</p>
+      <img class="nb" src="./hc-nb-ward.png" alt="notebook ward linkage diagram">
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <h2>§2 · THE SAME MERGE, THE THREE LINKAGES — drawn the notebook's way</h2>
+  <p class="note">
+    One moment in one run, with the two clusters about to join. Every panel is the same data
+    and the same step; only the linkage differs. <b>This is what the control should look like
+    when it is doing something.</b>
+  </p>
+  <div class="row" id="witness"></div>
+
+  <!-- ==================================================================== -->
+  <h2>§3 · CANDIDATES FOR THE SCATTER MID-BUILD</h2>
+  <p class="note">
+    Same state in all three — thirteen merges done, the fourteenth in flight.
+    A is what ships today, and is the panel that was circled.
+  </p>
+  <div class="row" id="cands"></div>
+  <p class="ask">
+    <b>ASK 1.</b> A (today), B (notebook-style: the two clusters in play coloured and
+    blobbed, the linkage's own lines drawn) or C (B, plus every other formed cluster shown
+    as a faint blob so the whole partition is visible at once)?
+    <b>I recommend B</b> — C shows more but the faint blobs compete with the two that matter,
+    and the notebook's own figure deliberately shows only the pair being merged.
+  </p>
+
+  <!-- ==================================================================== -->
+  <h2>§4 · DISTANCE — measured, and it is not the same answer for both acts</h2>
+  <p class="note">
+    <code>node widgets/_lab/hc-distance.mjs</code> prints all of this.
+    <b>Pearson is degenerate on act 1 and cannot be offered there:</b> a correlation between
+    two 2-vectors is always ±1, so over 190 point pairs it takes <b>three</b> distinct values
+    (0, −0, 2) where Euclidean takes 190. Cosine is non-degenerate but measures the angle from
+    the ORIGIN, so it separates this stage only because the groups sit either side of zero —
+    shift the cloud and it collapses. Euclidean and Manhattan are the two that are honest on
+    a plotted point cloud, being the two that do not care where the origin is.
+  </p>
+  <table class="m" id="degen"></table>
+
+  <p class="note">
+    And Manhattan is not cosmetic: against Euclidean it produces a <b>different tree on
+    essentially every seed</b>, while the CUT it lands on agrees 95% of the time when the
+    groups are real and 53% when they are not. <b>That is the widget's own claim again,
+    made by a second control</b> — two arbitrary choices, neither of which matters when the
+    structure is real and both of which decide the answer when it is not.
+  </p>
+  <table class="m" id="dist"></table>
+
+  <div class="row" id="distpix"></div>
+
+  <p class="note">
+    On act 2 all four are meaningful, because a gene row is a profile across twenty samples —
+    which is exactly the case the notebook says cosine and Pearson are for. Measured at
+    <code>cutree_rows = 5</code>: Euclidean and Pearson and cosine keep all four planted
+    blocks whole, Manhattan keeps three — but under cosine and Pearson <b>the ten
+    unstructured genes stop sharing a box</b>, so act 2's headline readout changes with the
+    distance too.
+  </p>
+  <table class="m" id="act2"></table>
+
+  <p class="ask">
+    <b>ASK 2 — does distance become a control, and where?</b>
+    <br>(a) <b>No distance control.</b> Linkage alone carries the argument; the notebook's five
+    measures stay in the notebook.
+    <br>(b) <b>Euclidean and Manhattan, both acts.</b> Honest everywhere, one extra segmented
+    control, and it reinforces the claim with a second arbitrary choice.
+    <br>(c) <b>Euclidean and Manhattan on act 1; all four once the matrix is open</b>, where
+    profiles make cosine and Pearson mean something. Truest to the notebook and the most
+    build — the option list has to change with the act.
+    <br><b>I recommend (b)</b>, with cosine and Pearson named in the control's own detail text
+    as belonging to profiles rather than to points.
+  </p>
+
+  <p class="note" style="margin-top: var(--sp-5)">
+    <b>Not decided here:</b> whether Ward's spokes are legible at twenty points (the notebook
+    draws six), and whether the merge already made should keep its faint line at all once the
+    linkage marks are carrying the story.
+  </p>
+</main>
+
+<script type="module">
+import { stage, pointVectors, cluster, cut, witness, canonical } from "../hierarchical-clustering/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.font = `11px ${T("--font-mono") || "monospace"}`;
+  d.appendChild(c);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  d.appendChild(cap);
+  parent.appendChild(d);
+  return { ctx, cap, w, h };
+}
+
+const EXTENT = 3.2;
+const PTS = stage({ separation: 3 }, makeRng(4));
+const VECS = pointVectors(PTS);
+
+const px = (v, x, w) => x + w * (0.5 + v / (2 * EXTENT));
+const py = (v, y, h) => y + h * (0.5 - v / (2 * EXTENT));
+
+/** The clusters present after `shown` merges, as arrays of leaf indices. */
+function clustersAfter(tree, shown) {
+  const parts = tree.nodes.slice(0, shown);
+  const live = new Map();
+  for (let i = 0; i < tree.n; i += 1) live.set(`-${i + 1}`, [i]);
+  parts.forEach((nd, m) => {
+    live.delete(String(nd.a.id));
+    live.delete(String(nd.b.id));
+    live.set(String(m + 1), nd.leaves);
+  });
+  return [...live.values()];
+}
+
+/** A soft blob around a set of points — the notebook's pale halo. */
+function blob(ctx, leaves, colour, box, alpha = 0.16) {
+  const { x, y, w, h } = box;
+  const xs = leaves.map((i) => px(PTS[i].x, x, w));
+  const ys = leaves.map((i) => py(PTS[i].y, y, h));
+  const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+  let r = 0;
+  for (let i = 0; i < xs.length; i += 1) r = Math.max(r, Math.hypot(xs[i] - cx, ys[i] - cy));
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r + 13, r + 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function frame(ctx, box) {
+  ctx.strokeStyle = T("--grid");
+  ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+}
+
+function dots(ctx, box, colourOf) {
+  PTS.forEach((p, i) => {
+    ctx.fillStyle = colourOf(i);
+    ctx.beginPath();
+    ctx.arc(px(p.x, box.x, box.w), py(p.y, box.y, box.h), 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+/** Merges already made, drawn faintly centroid to centroid (today's mark). */
+function pastLinks(ctx, tree, shown, box, upTo) {
+  ctx.strokeStyle = T("--c-reference");
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.55;
+  for (let m = 0; m < upTo; m += 1) {
+    const nd = tree.nodes[m];
+    const mid = (ls) => [
+      ls.reduce((a, i) => a + PTS[i].x, 0) / ls.length,
+      ls.reduce((a, i) => a + PTS[i].y, 0) / ls.length,
+    ];
+    const [ax, ay] = mid(nd.a.leaves);
+    const [bx, by] = mid(nd.b.leaves);
+    ctx.beginPath();
+    ctx.moveTo(px(ax, box.x, box.w), py(ay, box.y, box.h));
+    ctx.lineTo(px(bx, box.x, box.w), py(by, box.y, box.h));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+const LABEL = { average: "Average", complete: "Complete", "ward.D2": "Ward" };
+
+/** The linkage's own marks for the merge in flight. */
+function drawWitness(ctx, tree, step, method, box) {
+  const nd = tree.nodes[step];
+  return drawWitnessOn(ctx, nd.a.leaves, nd.b.leaves, method, box);
+}
+
+/** The same, for any two clusters — which is what §2 needs. */
+function drawWitnessOn(ctx, leavesA, leavesB, method, box) {
+  const wt = witness(VECS, leavesA, leavesB, method);
+  const P = (i) => [px(PTS[i].x, box.x, box.w), py(PTS[i].y, box.y, box.h)];
+
+  if (wt.kind === "spokes") {
+    const [c] = wt.centres;
+    const cx = px(c[0], box.x, box.w);
+    const cy = py(c[1], box.y, box.h);
+    ctx.strokeStyle = T("--c-highlight");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.8;
+    for (const [i] of wt.pairs) {
+      const [ax, ay] = P(i);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cx, cy); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = T("--c-highlight");
+    ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+    return `ward · spokes from all ${wt.pairs.length} members to the centre they would form`;
+  }
+
+  ctx.strokeStyle = T("--c-highlight");
+  if (wt.kind === "all") {
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.35;
+    for (const [i, j] of wt.pairs) {
+      const [ax, ay] = P(i); const [bx, by] = P(j);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    return `average · all ${wt.pairs.length} cross pairs, and the mean of them is the distance`;
+  }
+
+  ctx.lineWidth = 2;
+  const [[i, j]] = wt.pairs;
+  const [ax, ay] = P(i); const [bx, by] = P(j);
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  return `complete · one pair: the two FURTHEST members`;
+}
+
+/* ------------------------------------------------------------------ §2
+   TWO FIXED CLUSTERS, not a step from three different runs.
+
+   "The same merge" is not well defined across linkages: by step 13 the three
+   have built different trees, so the same step number joins different clusters
+   and the panels would be comparing three things at once. The notebook avoids
+   this the same way — its diagrams are two fixed blobs and what each rule
+   measures between them. These two are complete's step-15 pair, 4 and 4. */
+{
+  const host = document.getElementById("witness");
+  /* Four points from each planted group at a clear separation, so the two
+     blobs sit apart the way the notebook's do. Complete's own step-15 pair was
+     tried first and the two clusters interpenetrated, which made all three
+     marks land in the same small patch and told the reader nothing. */
+  const A = [0, 1, 2, 3];
+  const B = [10, 11, 12, 13];
+  const inA = new Set(A); const inB = new Set(B);
+
+  for (const method of ["average", "complete", "ward.D2"]) {
+    const c = canvas(host, 300, 300, LABEL[method],
+      `the same two clusters, ${A.length} and ${B.length} points`);
+    const box = { x: 6, y: 6, w: 288, h: 288 };
+    frame(c.ctx, box);
+    blob(c.ctx, A, T("--c-cluster-a"), box);
+    blob(c.ctx, B, T("--c-cluster-b"), box);
+    const note = drawWitnessOn(c.ctx, A, B, method, box);
+    dots(c.ctx, box, (i) => (inA.has(i) ? T("--c-cluster-a") : inB.has(i) ? T("--c-cluster-b") : T("--c-unknown")));
+    c.cap.textContent = note;
+  }
+}
+
+/* ------------------------------------------------------------------ §3 */
+{
+  const host = document.getElementById("cands");
+  const STEP = 13;
+  const method = "complete";
+  const tree = cluster(VECS, method);
+  const nd = tree.nodes[STEP];
+  const inA = new Set(nd.a.leaves); const inB = new Set(nd.b.leaves);
+
+  const A = canvas(host, 300, 300, "A · what ships today", "everything grey; one line between the two cluster centres");
+  let box = { x: 6, y: 6, w: 288, h: 288 };
+  frame(A.ctx, box);
+  pastLinks(A.ctx, tree, STEP, box, STEP);
+  A.ctx.strokeStyle = T("--c-highlight"); A.ctx.lineWidth = 2;
+  {
+    const mid = (ls) => [ls.reduce((a,i)=>a+PTS[i].x,0)/ls.length, ls.reduce((a,i)=>a+PTS[i].y,0)/ls.length];
+    const [ax, ay] = mid(nd.a.leaves); const [bx, by] = mid(nd.b.leaves);
+    A.ctx.beginPath();
+    A.ctx.moveTo(px(ax,box.x,box.w), py(ay,box.y,box.h));
+    A.ctx.lineTo(px(bx,box.x,box.w), py(by,box.y,box.h));
+    A.ctx.stroke();
+  }
+  dots(A.ctx, box, () => T("--c-unknown"));
+  A.cap.textContent = "the same mark whichever linkage is chosen";
+
+  const B = canvas(host, 300, 300, "B · the notebook's picture", "the two clusters in play coloured and blobbed; the linkage's own lines");
+  box = { x: 6, y: 6, w: 288, h: 288 };
+  frame(B.ctx, box);
+  blob(B.ctx, nd.a.leaves, T("--c-cluster-a"), box);
+  blob(B.ctx, nd.b.leaves, T("--c-cluster-b"), box);
+  pastLinks(B.ctx, tree, STEP, box, STEP);
+  B.cap.textContent = drawWitness(B.ctx, tree, STEP, method, box);
+  dots(B.ctx, box, (i) => (inA.has(i) ? T("--c-cluster-a") : inB.has(i) ? T("--c-cluster-b") : T("--c-unknown")));
+
+  const C = canvas(host, 300, 300, "C · B, plus every other cluster", "each formed cluster gets a faint blob, so the whole partition shows");
+  box = { x: 6, y: 6, w: 288, h: 288 };
+  frame(C.ctx, box);
+  for (const g of clustersAfter(tree, STEP)) {
+    if (g.length > 1 && g !== nd.a.leaves && g !== nd.b.leaves) blob(C.ctx, g, T("--c-unknown"), box, 0.13);
+  }
+  blob(C.ctx, nd.a.leaves, T("--c-cluster-a"), box);
+  blob(C.ctx, nd.b.leaves, T("--c-cluster-b"), box);
+  pastLinks(C.ctx, tree, STEP, box, STEP);
+  C.cap.textContent = drawWitness(C.ctx, tree, STEP, method, box);
+  dots(C.ctx, box, (i) => (inA.has(i) ? T("--c-cluster-a") : inB.has(i) ? T("--c-cluster-b") : T("--c-unknown")));
+}
+
+/* ------------------------------------------------------------------ §4 */
+{
+  const DIST = {
+    euclidean: (a, b) => Math.hypot(...a.map((v, i) => v - b[i])),
+    manhattan: (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0),
+    cosine: (a, b) => {
+      const dot = a.reduce((s, v, i) => s + v * b[i], 0);
+      return 1 - dot / ((Math.hypot(...a) * Math.hypot(...b)) || 1);
+    },
+    pearson: (a, b) => {
+      const m = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+      const ma = m(a), mb = m(b);
+      let num = 0, da = 0, db = 0;
+      for (let i = 0; i < a.length; i += 1) {
+        num += (a[i] - ma) * (b[i] - mb); da += (a[i] - ma) ** 2; db += (b[i] - mb) ** 2;
+      }
+      return 1 - num / (Math.sqrt(da * db) || 1);
+    },
+  };
+  const distinct = (fn) => {
+    const s = new Set();
+    for (let i = 0; i < VECS.length; i += 1)
+      for (let j = i + 1; j < VECS.length; j += 1) s.add(fn(VECS[i], VECS[j]).toFixed(6));
+    return s.size;
+  };
+  document.getElementById("degen").innerHTML =
+    "<tr><th>on act 1's 2-D points</th><th>distinct values over 190 pairs</th><th>usable?</th></tr>" +
+    Object.entries(DIST).map(([k, fn]) => {
+      const n = distinct(fn);
+      const verdict = n <= 4 ? "DEGENERATE" : (k === "cosine" ? "origin-dependent" : "yes");
+      return `<tr><td>${k}</td><td class="${n <= 4 ? "bad" : "hit"}">${n}</td><td>${verdict}</td></tr>`;
+    }).join("");
+
+  // Euclidean vs Manhattan across the separation slider — the measured table.
+  const rows = [];
+  for (const separation of [0, 1, 2, 3]) {
+    let sameCut = 0, sameTree = 0;
+    const N = 120;
+    for (let seed = 1; seed <= N; seed += 1) {
+      const p = stage({ separation }, makeRng(seed));
+      const v = pointVectors(p);
+      const te = clusterWith(v, DIST.euclidean), tm = clusterWith(v, DIST.manhattan);
+      if (canonical(cut(te, 2)) === canonical(cut(tm, 2))) sameCut += 1;
+      if (JSON.stringify(te.merge) === JSON.stringify(tm.merge)) sameTree += 1;
+    }
+    rows.push([separation, Math.round(100 * sameTree / N), Math.round(100 * sameCut / N)]);
+  }
+  document.getElementById("dist").innerHTML =
+    "<tr><th>separation</th><th>same tree as Euclidean</th><th>same k=2 cut</th></tr>" +
+    rows.map(([s, t, c]) =>
+      `<tr><td>${s}</td><td class="bad">${t}%</td><td class="${c < 70 ? "bad" : "hit"}">${c}%</td></tr>`).join("");
+
+  document.getElementById("act2").innerHTML =
+    "<tr><th>on act 2's gene profiles</th><th>meaningful?</th><th>planted blocks whole</th><th>noise genes in one box</th></tr>" +
+    "<tr><td>euclidean</td><td>yes</td><td>4/4</td><td>yes</td></tr>" +
+    "<tr><td>manhattan</td><td>yes</td><td>3/4</td><td>yes</td></tr>" +
+    "<tr><td>cosine</td><td>yes — a profile has an angle</td><td>4/4</td><td class='bad'>no</td></tr>" +
+    "<tr><td>pearson</td><td>yes — 20 samples to correlate</td><td>4/4</td><td class='bad'>no</td></tr>";
+
+  // Two scatters: the same points, the two distances, cut at 2.
+  const host = document.getElementById("distpix");
+  for (const [name, fn] of [["euclidean", DIST.euclidean], ["manhattan", DIST.manhattan]]) {
+    /* Seed 6: the sharpest of the 25-in-60 noise seeds where the two distances
+       disagree. Euclidean calls it one outlier against everything else;
+       Manhattan calls it two balanced groups. Same twenty points. */
+    const p = stage({ separation: 0 }, makeRng(6));
+    const v = pointVectors(p);
+    const t = clusterWith(v, fn);
+    const lab = cut(t, 2);
+    const c = canvas(host, 300, 300, name + " · separation 0", "same twenty points, same linkage, different distance");
+    const box = { x: 6, y: 6, w: 288, h: 288 };
+    frame(c.ctx, box);
+    p.forEach((q, i) => {
+      c.ctx.fillStyle = lab[i] === 1 ? T("--c-cluster-a") : T("--c-cluster-b");
+      c.ctx.beginPath();
+      c.ctx.arc(px(q.x, box.x, box.w), py(q.y, box.y, box.h), 4, 0, Math.PI * 2);
+      c.ctx.fill();
+    });
+    const sizes = {}; lab.forEach((l) => { sizes[l] = (sizes[l] || 0) + 1; });
+    c.cap.textContent = `k=2 sizes ${Object.values(sizes).sort((a, b) => b - a).join("/")}`;
+  }
+
+  /* Ward on an arbitrary distance — a probe, matching hc-distance.mjs. */
+  function clusterWith(rows, dist) {
+    const n = rows.length;
+    const active = [];
+    for (let i = 0; i < n; i += 1) active.push({ slot: i, size: 1, id: -(i + 1), leaves: [i] });
+    const D = [];
+    for (let i = 0; i < n; i += 1) {
+      D.push(new Float64Array(n));
+      for (let j = 0; j < n; j += 1) D[i][j] = i === j ? 0 : dist(rows[i], rows[j]);
+    }
+    const merge = [];
+    for (let step = 1; step <= n - 1; step += 1) {
+      let best = Infinity, bi = -1, bj = -1;
+      for (let a = 0; a < active.length; a += 1)
+        for (let b = a + 1; b < active.length; b += 1) {
+          const d = D[active[a].slot][active[b].slot];
+          if (d < best) { best = d; bi = a; bj = b; }
+        }
+      const ci = active[bi], cj = active[bj];
+      merge.push(ci.id < cj.id ? [ci.id, cj.id] : [cj.id, ci.id]);
+      const merged = { slot: ci.slot, size: ci.size + cj.size, id: step, leaves: ci.leaves.concat(cj.leaves) };
+      for (const ck of active) {
+        if (ck === ci || ck === cj) continue;
+        const N = ci.size + cj.size + ck.size;
+        const d = Math.sqrt(((ci.size + ck.size) * D[ci.slot][ck.slot] ** 2
+          + (cj.size + ck.size) * D[cj.slot][ck.slot] ** 2 - ck.size * best * best) / N);
+        D[merged.slot][ck.slot] = d; D[ck.slot][merged.slot] = d;
+      }
+      active.splice(bj, 1); active.splice(bi, 1, merged);
+    }
+    return { merge, n };
+  }
+}
+</script>
+</body>
+</html>

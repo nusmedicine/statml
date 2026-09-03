@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 4 — matrix size, panel order, the triangle, and the link during clustering</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 96ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 2px 0 12px; max-width: 560px; white-space: pre-wrap; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 2px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.hit { color: var(--c-highlight); }
+  table.m td.bad { color: var(--c-extreme); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 4 · matrix size, panel order, the triangle, and what the matrix does while the tree builds</h1>
+
+  <p class="note">
+    Four questions from review. Everything is drawn from the shipping
+    <code>model.js</code>; <code>node widgets/_lab/hc-size.mjs</code> prints the size table.
+  </p>
+
+  <!-- =============================================================== -->
+  <h2>§1 · HOW MANY GENES</h2>
+  <p class="note">
+    Fifty rows over 300px is six pixels a row, and a 50 × 50 distance matrix in a 250px
+    square is five pixels a cell. Everything below still works statistically at every size —
+    the blocks survive a cut into five, the unstructured genes still gather — so this is a
+    legibility choice. <b>One structural point: at 20 genes the gene matrix is 20 × 20, the
+    same as the sample matrix</b>, which removes the size difference the rows-versus-columns
+    control exists to show.
+  </p>
+  <table class="m" id="sizes"></table>
+  <div class="row" id="s1"></div>
+  <p class="ask">
+    <b>ASK 1.</b> 50 (the notebook), 30 (4 × 6 + 6), or 20 (4 × 4 + 4)?
+    <b>30.</b> Ten-pixel rows, 8.3px distance cells, the highest rate for the pure-noise box
+    at 91%, and a 30 × 30 that is visibly not the 20 × 20.
+  </p>
+
+  <!-- =============================================================== -->
+  <h2>§2 · PANEL ORDER, AND THE TRIANGLE</h2>
+  <p class="note">
+    The pipeline is <code>data → dist() → hclust() → cutree()</code>. Reading order should
+    match it. The matrix is symmetric with a zero diagonal, so the upper half repeats the
+    lower half — half the ink says nothing new.
+  </p>
+  <div class="row" id="s2"></div>
+  <p class="ask">
+    <b>ASK 2.</b> (a) points → matrix → tree, as now; (b) matrix → points → tree;
+    (c) full square; (d) lower triangle only.
+    <b>(a) and (d).</b> The points are the data and should come first; the triangle drops
+    the redundant half and lets the same panel be ~40% larger for the same footprint.
+  </p>
+
+  <!-- =============================================================== -->
+  <h2>§3 · WHAT THE MATRIX DOES WHILE THE TREE BUILDS</h2>
+  <p class="note">
+    The linkage reads the distance matrix. Which cells it reads is already computed — it is
+    the same <code>witness()</code> the scatter draws its marks from — so the matrix can show
+    the merge being decided rather than sitting still beside it.
+  </p>
+  <div class="row" id="s3"></div>
+  <p class="ask">
+    <b>ASK 3.</b> (a) matrix static; (b) highlight the cells the linkage read for the merge in
+    flight; (c) (b) plus a box round each cluster formed so far, growing as merges happen.
+    <b>(c).</b> The boxes make the tree's job legible — it is sorting the matrix into blocks —
+    and the cells show which numbers each linkage actually consults, which is the difference
+    between average, complete and Ward stated in the matrix rather than in a caption.
+  </p>
+
+  <!-- =============================================================== -->
+  <h2>§4 · HOW A DATA MATRIX BECOMES A DISTANCE MATRIX</h2>
+  <p class="note">
+    The step students lose. A 30 × 20 table of numbers is not a distance matrix; you pick an
+    axis, take two of those things, and compare them. Choosing <b>samples</b> takes two
+    columns and produces one cell of a 20 × 20; choosing <b>genes</b> takes two rows and
+    produces one cell of a 30 × 30.
+  </p>
+  <div class="row" id="s4"></div>
+  <p class="ask">
+    <b>ASK 4.</b> Show this schematic (a) never, (b) permanently above the distance panel,
+    (c) only while the reader is hovering or has just switched the rows/columns control.
+    <b>(b), small.</b> It is the sentence the tab exists to make, and it costs about 60px.
+  </p>
+</main>
+
+<script type="module">
+import {
+  stage, pointVectors, cluster, cut, witness, distanceMatrix,
+  heatStage, HEAT_SAMPLES,
+} from "../hierarchical-clustering/model.js";
+import { makeRng } from "../core/rng.js";
+
+const css = getComputedStyle(document.documentElement);
+const T = (n) => css.getPropertyValue(n).trim();
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub || ""}</p>`;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.font = `11px ${T("--font-mono") || "monospace"}`;
+  d.appendChild(c);
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  d.appendChild(cap);
+  parent.appendChild(d);
+  return { ctx, cap };
+}
+
+function mixColour(ctx, lo, hi, t) {
+  const parse = (c) => {
+    ctx.fillStyle = c; const s = ctx.fillStyle;
+    if (s[0] === "#") {
+      return s.length === 4 ? [1, 2, 3].map((i) => parseInt(s[i] + s[i], 16))
+        : [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+    }
+    const m = s.match(/[\d.]+/g) || [0, 0, 0];
+    return [Number(m[0]), Number(m[1]), Number(m[2])];
+  };
+  const a = parse(lo), b = parse(hi), u = Math.max(0, Math.min(1, t));
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * u)).join(",")})`;
+}
+
+/** Distance matrix. `tri` draws the lower triangle only. */
+function drawDist(ctx, rows, box, { order = null, distance = "euclidean", tri = false,
+                                    cells = null, groups = null } = {}) {
+  const { D, n, max } = distanceMatrix(rows, distance);
+  const idx = order ?? rows.map((_, i) => i);
+  const cell = Math.min(box.w, box.h) / n;
+  const pos = new Map(); idx.forEach((leaf, r) => pos.set(leaf, r));
+
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < n; j += 1) {
+      if (tri && j > i) continue;
+      ctx.fillStyle = i === j ? T("--surface-3")
+        : mixColour(ctx, T("--c-empirical"), T("--surface-1"), D[idx[i]][idx[j]] / (max || 1));
+      ctx.fillRect(box.x + j * cell, box.y + i * cell, cell + 0.5, cell + 0.5);
+    }
+  }
+
+  // a box round each cluster formed so far
+  if (groups) {
+    ctx.strokeStyle = T("--c-unknown"); ctx.lineWidth = 1;
+    for (const g of groups) {
+      if (g.length < 2) continue;
+      const rs = g.map((leaf) => pos.get(leaf)).sort((a, b) => a - b);
+      const contiguous = rs[rs.length - 1] - rs[0] === rs.length - 1;
+      if (!contiguous) continue;
+      ctx.strokeRect(box.x + rs[0] * cell + 0.5, box.y + rs[0] * cell + 0.5,
+        rs.length * cell - 1, rs.length * cell - 1);
+    }
+  }
+
+  // the cells the linkage read
+  if (cells) {
+    ctx.fillStyle = T("--c-highlight");
+    for (const [a, b] of cells) {
+      const ra = pos.get(a), rb = pos.get(b);
+      if (ra === undefined || rb === undefined) continue;
+      for (const [r, c] of [[ra, rb], [rb, ra]]) {
+        if (tri && c > r) continue;
+        ctx.fillRect(box.x + c * cell, box.y + r * cell, cell + 0.5, cell + 0.5);
+      }
+    }
+  }
+
+  ctx.strokeStyle = T("--grid"); ctx.lineWidth = 1;
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, n * cell - 1, n * cell - 1);
+  return cell;
+}
+
+const EXTENT = 3.2;
+const CL = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d",
+            "--c-cluster-e", "--c-cluster-f"].map(T);
+function drawPoints(ctx, pts, box, labels) {
+  ctx.strokeStyle = T("--grid");
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+  pts.forEach((p, i) => {
+    ctx.fillStyle = labels ? CL[(labels[i] - 1) % CL.length] : T("--c-unknown");
+    ctx.beginPath();
+    ctx.arc(box.x + box.w * (0.5 + p.x / (2 * EXTENT)),
+            box.y + box.h * (0.5 - p.y / (2 * EXTENT)), 3.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function heatRows(ctx, heat, box, order) {
+  const flat = heat.rows.flat().map(Math.abs).sort((a, b) => a - b);
+  const scale = flat[Math.floor(0.98 * (flat.length - 1))] || 1;
+  const ch = box.h / heat.rows.length, cw = box.w / HEAT_SAMPLES;
+  order.forEach((g, ri) => {
+    for (let s = 0; s < HEAT_SAMPLES; s += 1) {
+      const t = heat.rows[g][s] / scale;
+      ctx.fillStyle = t >= 0 ? mixColour(ctx, T("--surface-3"), T("--c-value-high"), t)
+        : mixColour(ctx, T("--surface-3"), T("--c-value-low"), -t);
+      ctx.fillRect(box.x + s * cw, box.y + ri * ch, cw + 0.5, ch + 0.5);
+    }
+  });
+  ctx.strokeStyle = T("--grid");
+  ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+  return { ch, cw };
+}
+
+/* ------------------------------------------------------------------ §1 */
+{
+  const host = document.getElementById("s1");
+  const rows = [];
+  for (const [perBlock, noise] of [[10, 10], [6, 6], [4, 4]]) {
+    const genes = 4 * perBlock + noise;
+    const heat = heatStage({ perBlock, noise }, makeRng(1));
+    const rowTree = cluster(heat.rows, "ward.D2");
+    const c = canvas(host, 300, 330, `${genes} genes — 4 x ${perBlock} + ${noise}`,
+      `matrix rows ${(300 / genes).toFixed(1)}px · distance cells ${(250 / genes).toFixed(1)}px`);
+    heatRows(c.ctx, heat, { x: 6, y: 6, w: 130, h: 300 }, rowTree.order);
+    drawDist(c.ctx, heat.rows, { x: 148, y: 6, w: 146, h: 146 }, { order: rowTree.order, tri: true });
+    c.cap.textContent = `left: the matrix. right: its ${genes} x ${genes} distances, lower triangle`;
+    rows.push([genes, (300 / genes).toFixed(1), (250 / genes).toFixed(1)]);
+  }
+  document.getElementById("sizes").innerHTML =
+    "<tr><th>genes</th><th>row height</th><th>gene-dist cell</th><th>blocks whole</th>"
+    + "<th>noise in one box</th><th>pure-noise box exists</th></tr>"
+    + "<tr><td>50 (notebook)</td><td class='bad'>6.0px</td><td class='bad'>5.0px</td><td>92%</td><td>95%</td><td class='bad'>73%</td></tr>"
+    + "<tr><td>30</td><td class='hit'>10.0px</td><td class='hit'>8.3px</td><td>98%</td><td>86%</td><td class='hit'>91%</td></tr>"
+    + "<tr><td>20</td><td>15.0px</td><td>12.5px</td><td>96%</td><td>90%</td><td>86%</td></tr>";
+}
+
+/* ------------------------------------------------------------------ §2 */
+{
+  const host = document.getElementById("s2");
+  const pts = stage({ separation: 3 }, makeRng(1));
+  const vecs = pointVectors(pts);
+  const tree = cluster(vecs, "ward.D2");
+  const lab = cut(tree, 2);
+
+  const A = canvas(host, 420, 210, "a + c · points → full square → tree", "what ships today");
+  drawPoints(A.ctx, pts, { x: 6, y: 6, w: 190, h: 190 }, lab);
+  drawDist(A.ctx, vecs, { x: 204, y: 6, w: 150, h: 150 }, {});
+  A.cap.textContent = "the square repeats itself across the diagonal";
+
+  const B = canvas(host, 420, 210, "a + d · points → lower triangle → tree", "the same footprint, a bigger matrix");
+  drawPoints(B.ctx, pts, { x: 6, y: 6, w: 190, h: 190 }, lab);
+  drawDist(B.ctx, vecs, { x: 204, y: 6, w: 200, h: 200 }, { tri: true });
+  B.cap.textContent = "half the ink removed, panel 33% larger for the same space";
+
+  const C = canvas(host, 420, 210, "b · matrix first, then the points", "reading order follows dist() → hclust()");
+  drawDist(C.ctx, vecs, { x: 6, y: 6, w: 200, h: 200 }, { tri: true });
+  drawPoints(C.ctx, pts, { x: 214, y: 6, w: 190, h: 190 }, lab);
+  C.cap.textContent = "puts the derived object before the data it came from";
+}
+
+/* ------------------------------------------------------------------ §3 */
+{
+  const host = document.getElementById("s3");
+  const pts = stage({ separation: 3 }, makeRng(1));
+  const vecs = pointVectors(pts);
+  const STEP = 16;
+
+  const clustersAfter = (tree, shown) => {
+    const live = new Map();
+    for (let i = 0; i < tree.n; i += 1) live.set(`-${i + 1}`, [i]);
+    tree.nodes.slice(0, shown).forEach((nd, m) => {
+      live.delete(String(nd.a.id)); live.delete(String(nd.b.id));
+      live.set(String(m + 1), nd.leaves);
+    });
+    return [...live.values()];
+  };
+
+  for (const [method, label] of [["average", "Average"], ["complete", "Complete"], ["ward.D2", "Ward"]]) {
+    const tree = cluster(vecs, method);
+    const nd = tree.nodes[STEP];
+    const wt = witness(vecs, nd.a.leaves, nd.b.leaves, method);
+    const cells = wt.kind === "spokes" ? [] : wt.pairs;
+    const c = canvas(host, 250, 290, label, "the same merge, the cells that rule reads");
+    drawDist(c.ctx, vecs, { x: 6, y: 6, w: 238, h: 238 }, {
+      order: tree.order, tri: true, cells, groups: clustersAfter(tree, STEP),
+    });
+    c.cap.textContent = wt.kind === "spokes"
+      ? "Ward reads no single pair — it is a spread, so nothing lights up"
+      : `${cells.length} cell${cells.length === 1 ? "" : "s"} lit — ${
+        method === "complete" ? "the furthest pair" : "every cross pair"}`;
+  }
+}
+
+/* ------------------------------------------------------------------ §4 */
+{
+  const host = document.getElementById("s4");
+  const heat = heatStage({ perBlock: 6, noise: 6 }, makeRng(1));
+  const genes = heat.rows.length;
+
+  for (const [axis, title] of [["columns", "Distances between SAMPLES"], ["rows", "Distances between GENES"]]) {
+    const c = canvas(host, 460, 250, title,
+      axis === "columns" ? "take two columns, compare them, fill one cell of a 20 x 20"
+        : `take two rows, compare them, fill one cell of a ${genes} x ${genes}`);
+    const ctx = c.ctx;
+    const box = { x: 8, y: 22, w: 150, h: 190 };
+    const { ch, cw } = heatRows(ctx, heat, box, heat.rows.map((_, i) => i));
+
+    ctx.fillStyle = T("--ink-3");
+    ctx.textAlign = "left";
+    ctx.fillText(`${genes} genes x ${HEAT_SAMPLES} samples`, box.x, 16);
+
+    // highlight the two things being compared
+    ctx.strokeStyle = T("--c-highlight"); ctx.lineWidth = 2;
+    if (axis === "columns") {
+      ctx.strokeRect(box.x + 3 * cw, box.y, cw, box.h);
+      ctx.strokeRect(box.x + 14 * cw, box.y, cw, box.h);
+    } else {
+      ctx.strokeRect(box.x, box.y + 2 * ch, box.w, ch);
+      ctx.strokeRect(box.x, box.y + 20 * ch, box.w, ch);
+    }
+
+    // arrow
+    ctx.strokeStyle = T("--ink-3"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(170, 110); ctx.lineTo(232, 110); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(232, 110); ctx.lineTo(226, 106); ctx.lineTo(226, 114); ctx.closePath();
+    ctx.fillStyle = T("--ink-3"); ctx.fill();
+    ctx.fillText("dist()", 180, 104);
+
+    // the resulting matrix, with the one cell lit
+    const src = axis === "columns" ? heat.cols : heat.rows;
+    const dbox = { x: 244, y: 22, w: 200, h: 200 };
+    const cell = drawDist(ctx, src, dbox, { tri: true });
+    const [a, b] = axis === "columns" ? [14, 3] : [20, 2];
+    ctx.fillStyle = T("--c-highlight");
+    ctx.fillRect(dbox.x + b * cell, dbox.y + a * cell, cell + 0.5, cell + 0.5);
+    ctx.fillStyle = T("--ink-3");
+    ctx.fillText(`${src.length} x ${src.length}`, dbox.x, 16);
+    c.cap.textContent = "one lit cell = one comparison. the whole triangle is every pair.";
+  }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,12 @@
 
 **Forty-one widgets shipped — 40 on the gallery, `roc-auc` UNLISTED (live at
 its URL, off the cards; Kenneth's call, 2026-08-30) — and 303 fingerprint states
-recorded. THE LAB PAGE IS EMPTY: nothing is in draft.**
+recorded.**
+
+**WIDGET 42 `hierarchical-clustering` IS IN DRAFT AND IS THE WHOLE OF THE
+NEXT TASK.** Committed locally, NOT pushed, NOT baselined. Kenneth ended the
+session with "some things need fixing" and did not enumerate them — the NEXT
+section below says what is known to be open and what to ask him first.**
 
 **Widget 41 `matrix-factorization` shipped and PUSHED 2026-09-03** after three
 review rounds in one day. Two tabs, NMF and PCA, factorising the same matrix
@@ -81,95 +86,162 @@ label is false mid-frame), and **a hit-driven state that performs an
 instant param flip runs zero frames and still must differ from its bare
 URL** — that difference is the region geometry proven.
 
-## NEXT: nothing is picked — two HTD slots remain
+## NEXT: widget 42 `hierarchical-clustering`, in draft, mid-review
 
-**Widget 41 shipped and pushed 2026-09-03.** The lab page is empty again.
+**Slot 4 of the high-throughput arc. Kenneth picked it on 2026-09-03 and
+reviewed it through nine rounds the same day.** It is a local commit on `main`,
+unpushed, `status: "draft"`, listed on the lab page and not on the gallery.
 
 ```bash
-node scripts/serve.mjs 8012
-W=http://localhost:8012/widgets/matrix-factorization
-# $W/                                                (empty, as it opens)
-# $W/?shown=17&programmes=3&rank=3                   (NMF, solved)
-# $W/?shown=17&method=pca&programmes=3&components=3  (PCA, the same matrix)
-# $W/?shown=17&programmes=3&rank=2&view=geometry     (the cone)
-# $W/?shown=17&method=pca&components=2&view=geometry (the plane — one tab away)
-# $W/?shown=17&programmes=2&rank=6                   (agreement collapses)
-node widgets/_lab/mf-drive.mjs     # 1103 assertions + a 288-state sweep, no browser
-node widgets/_lab/mf-nesting.mjs   # the two tabs measured against each other
-# _lab/mf-shoot.html — the shooter that recorded its nine states
+node scripts/serve.mjs 8013            # :8000 and :8010-8012 are other sessions'
+W=http://localhost:8013/widgets/hierarchical-clustering
+# $W/?view=cluster&axis=rows                    the pipeline, clustering genes
+# $W/?view=cluster&axis=columns                 the same table, clustering samples
+# $W/?view=cluster&distance=manhattan           the metric that used to overflow
+# $W/?view=heatmap&cutCols=2&cutRows=5          the second tab
+# $W/?separation=0&view=heatmap                 nothing planted: 5 of 5 boxes are noise
+node widgets/_lab/hc-verify.mjs        # 8400 comparisons against R's hclust
+node widgets/_lab/hc-drive.mjs         # 30731 assertions
+node widgets/_lab/hc-anim.mjs          # 4308 — the tween, the tabs, the axis
+node widgets/_lab/hc-measure.mjs       # every number the figure prints
+node widgets/_lab/hc-size.mjs          # what survives as the matrix shrinks
+node widgets/_lab/hc-lift.mjs          # what the matrix does as the effect goes
+node widgets/_lab/hc-distance.mjs      # why cosine and Pearson are not offered
 ```
 
-**THE TWO THINGS WORTH CARRYING FORWARD.**
+### ASK KENNETH FIRST: what still needs fixing
 
-**One: printing a number is what caught both real bugs, and no picture would
-have.** PCA's residual came out 6.8 and rising with k (a centred reconstruction
-scored against an uncentred matrix), then 19 and still rising (`load × scoresᵀ`
-overshoots by the singular value, because `load` already carries it — the
-factorization needs the UNIT eigenvector). Both heatmaps looked entirely
-plausible throughout. Separately, the PCA readout printed *"NMF took 1 updates"*
-because it read the iteration counter off the PCA snapshot: **a wrong but finite
-number is invisible to the NaN sweep**, and nothing automated in this repo could
-have caught it. Read the readout on every round.
+He closed with **"ok some things need fixing"** and asked for a handover rather
+than listing them. Do not guess — ask. What is known to be open:
 
-**Two: two checks were passing while broken, and both are now real.** The canvas
-text sweep capped string *length*, which says nothing about fit — a 63-character
-note starting at x = 470 ran to 828px on a 770px stage and passed. It now records
-**x and the alignment** and computes the right edge, and needed the stub to track
-`save`/`restore`/`rotate` or the rotated axis label cried wolf at every state.
-And a new assertion re-draws each rank through a stub recording the lowest
-painted rectangle, comparing it with the declared height — which caught `height`
-being a constant while the layout depended on the rank. **A test written against
-the implementation agrees with the implementation's bugs**: the driver's legend
-assertions called `W.legend()` flat, the same wrong way the widget destructured
-it, and passed while every view showed the wrong legend.
-
-### Still open on widget 41, none of it blocking
-
-- **The ray labels crowd at k = 5 and 6** in the geometry view, where five or six
-  midpoints converge near the origin.
-- **The stage is generic** — 24 genes by 12 samples, with no host-specific
-  shape.
-- **Switching tabs resets the animation**, because `method` changes what is
-  computed and so is a data parameter. Solve is pressed once per tab. Holding
-  both fits in `state` would let a reader flip between two solved pictures.
-- **The two tabs never appear side by side.** A retired mid-review panel did
-  that; the tabs are a cleaner structure but they trade simultaneity for it.
-- **An interrupted fingerprint state was tried and dropped** as flaky — the
-  shooter and `fingerprint.html` disagreed about it. Catalogue § Slot 2 has the
-  diagnosis.
+- **Not baselined.** No fingerprint states, and `npm run check` passes only
+  because a draft is exempt. Baseline LAST, once the design stops moving.
+- **The ground-truth toggle is undiscoverable.** "Show what was really there"
+  works on both tabs, and Kenneth twice thought it had been removed — on the
+  Heatmap tab its whole effect is one extra 9px annotation strip. A per-tab
+  label was proposed and never decided.
+- **Ward lights no cells in the distance matrix.** Average lights every cross
+  pair, complete lights one; Ward reads a spread rather than a pair, so there
+  is nothing to light. Honest, but the figure says nothing about the absence.
+- **Narrow widths unchecked since the canvas grew to 790.** It was last
+  measured at 375px when the canvas was 400 tall.
 - **Not judged projected**, which every widget from 11 on still owes.
+- **No catalogue section yet.** This handover is the only record; the catalogue
+  is where it belongs once the design settles.
 
-### The suite is flaky again in the known way — five DIFFERs, and they are not yours
+### What it is
 
-The last full run reported five, drawn from `naive-bayes` and `lm-adjustment`.
-All three of the recorded tells point at measurement rather than code: `tx`
-identical with only `px` moving, the set changing between runs (nine on one pass,
-five on the next, different members), and nothing in widget 41 can reach those
-widgets. **Do not rebaseline them.** § *The fingerprint harness* has the
-scrollbar diagnosis.
+Two tabs over **one 20 x 20 table** — 20 genes by 20 samples, four planted gene
+blocks of four and four genes with nothing added, two sample conditions. Both
+axes are shuffled from the seeded stream, so the raw matrix does not arrive
+with its structure already sorted onto the diagonal.
 
-### THE ACTUAL NEXT TASK: Kenneth picks, or holds
+**Cluster tab** — the pipeline, as two rows:
 
-Two HTD slots remain and **neither is picked**:
+```
+data matrix   --dist()-->   distance matrix
+scatter                     tree
+```
 
-| slot | slug | the claim |
-|---|---|---|
-| 4 | `hierarchical-clustering` | a dendrogram is a consequence of two choices and a cut, not a finding |
-| 5 | `enrichment` | ORA's answer moves with the background and the cutoff, neither of which the student chose |
+`Cluster the: Rows | Columns` decides what the distances are between. The table
+is square, so both give 20 objects and a 20 x 20 and the toggle is symmetric.
+The two objects being compared are outlined in the data matrix and lit in the
+distance matrix, from the same `witness()` the scatter draws its marks from.
+The distance matrix is fixed in the finished tree's leaf order and never
+re-sorts; only the boxes and the lit cells change.
 
-Catalogue § *The high-throughput arc* has a planning section for each, and both
-carry open scope calls that are Kenneth's to close. The rhythm he expects:
-**measure the lesson's own stage first** and say what the numbers force, then
-**mock anything that would otherwise be argued about** in `_lab/`, then ask the
-decision questions, then build a draft, then iterate, and push only on his word.
+**Heatmap tab** — just the heatmap, both trees, `cutree_rows` / `cutree_cols`,
+and a `cutree_cols` annotation strip. Kenneth's instruction was "keep it simple,
+they know the concept already".
 
-**A session with nothing picked should hold, not invent scope** — prd §11 exists
-to be pointed at.
+### The decisions, and who made them
 
-**Kenneth still owes the notebook links.** Eleven widgets now have no link from
-the lessons that host them. They are his to place — see prd §4 for what works.
+Every one was Kenneth's, and several reverse an earlier one. **Do not re-open
+them without him.**
 
-## The high-throughput arc — THREE SLOTS LEFT, none picked
+| decision | round |
+|---|---|
+| 2-D stage over the notebook's 1-D | 1 |
+| act 2 = the notebook's own heatmap, behind a gate | 1 |
+| scatter design C: faint blobs on every formed cluster | 3 |
+| Euclidean + Manhattan on both acts; no cosine or Pearson | 3 |
+| linkage marks drawn the notebook's way | 3 |
+| speed control and sub-merge tweening | 4 |
+| matrix button below the drive row, Play speed above it | 5 |
+| annotation unsupervised by default, truth behind the toggle | 5 |
+| `k` shared with `cutree_cols` — **reversed the next round** | 6 |
+| three separate cuts, all named "Cut tree" | 7 |
+| two tabs, Cluster and Heatmap | 7 |
+| distance matrix on the figure, rows/columns toggle | 8 |
+| 20 x 20 square table, scatter kept via MDS | 9 |
+| figure sized to the rail: 790 tall, not 470 | 9 |
+
+### The engine, and what it is checked against
+
+`model.js` is verified against R's own `hclust` — **8400 comparisons** over 35
+stages x 5 linkages x 2 distances, heights to 1e-9 and cuts exactly.
+`_lab/hc-ref.R` writes the reference, `hc-verify.mjs` compares.
+
+`mds()` places objects for the scatter by classical scaling on the distance
+matrix, so plotted separation approximates the real thing. It starts from a
+fixed vector: a random one would rotate the plane on every render.
+
+### What the measurements settled
+
+- **The catalogue's proposed claim was false.** "Pure noise produces a handsome
+  dendrogram" — it does not; the gap separates real from fake with 0% overlap.
+  What survived: noise produces a handsome **CUT**. Ask Ward for two clusters
+  in one Gaussian and 56% of the time it returns a balanced split.
+- **The notebook's 1-D stage cannot carry a linkage control.** All five
+  linkages return the identical 10/10 split on it; they first differ at k = 3.
+- **Pearson is degenerate on 2-D points** — three distinct values over 190
+  pairs — and cosine is origin-dependent. Hence Euclidean and Manhattan only.
+- **The gap reference range is per linkage AND per distance.** Ward reads
+  3.3-5.2 under Euclidean and 2.9-4.6 under Manhattan; average reads 1.8-2.8.
+  One range for all six would print a false claim. `GAP_REFERENCE` in main.js.
+- **20 genes, not the notebook's 50.** At 50 the rows are 6px and the box round
+  the unstructured genes appears in 73% of seeds; at 20 the rows are 15px and
+  it appears in 86%.
+- **MDS coordinates are not on one scale across metrics.** Euclidean reaches
+  9.46, Manhattan 33.69. One shared extent put every Manhattan point outside
+  its panel and over the dendrogram.
+
+### Traps this widget already paid for
+
+- **`parseFloat(canvas.style.width)` returns 100** — the style is `"100%"`.
+  Every pixel probe built on it measured a 100px canvas. Use
+  `getBoundingClientRect()`.
+- **A CRLF reference file made 3325 comparisons pass on nothing.** R writes
+  CRLF; the trailing carriage return rode on the last header field, `r.value`
+  was `undefined`, and `Math.abs(NaN - x) > tol` is FALSE. The verifier now
+  rejects a non-finite value outright.
+- **`Reset` restores every control to its default**, not just the animation. A
+  driver that set a parameter then pressed Reset tested the default three times
+  and reported agreement.
+- **A `choice` control's range input takes the option INDEX, not its value**,
+  and a `segmented` is a `<button>` with no `.value` at all. Both produced
+  probes reporting the widget inverted or inert when it was neither.
+- **`legend` is handed `{ params }`; `height` is handed the values SPREAD.**
+  Destructuring the first like the second silently dropped two legend entries.
+- **Canvas has no `color-mix`** — widget 41 recorded this too. `fillStyle`
+  refuses it silently and keeps the previous colour.
+- **A test that pins one seed for a rate.** "cutree_rows = 5 boxes the
+  unstructured genes" holds in 86% of seeds; seed 1 is in the other 14%.
+- **Assertions that assume layout order.** The stage shuffles both axes, so
+  "genes past index 16 are unplanted" and "points 0-9 are one condition" are
+  both false. Check membership by label.
+
+### The lab pages, in the order they were made
+
+| file | what it settled |
+|---|---|
+| `hc-mock.html` | the stage, the cut, the first four asks |
+| `hc-linkage.html` | the notebook's own linkage diagrams, extracted from the `.ipynb` attachments |
+| `hc-distmat.html` | whether the distance matrix earns its space |
+| `hc-layout.html` | matrix size, panel order, the triangle, the link during clustering |
+| `hc-square.html` | 20 x 20 against 20 x 2, and what replaces the scatter |
+
+## The high-throughput arc — SLOT 4 IN DRAFT, ONE SLOT LEFT
 
 **Kenneth asked for a plan for PHM5003 `05 - Introduction to High Throughput
 Data` on 2026-09-01, and it is in catalogue § *The high-throughput arc*.**
@@ -183,22 +255,25 @@ and `01 Experimental Design` is out of scope. That leaves five:
 | 1 | `normalization` | 05 / 03 | **SHIPPED 2026-09-02** — scaling and transforming are different operations; min-max and z-score leave the shape **exactly** unchanged |
 | 2 | `matrix-factorization` | 05 / 04 | **SHIPPED 2026-09-03** — NMF and PCA as two tabs; the constraint, and what it costs |
 | 3 | `batch-effect` | 05 / 05 | **SHIPPED 2026-09-02** — the danger is confounding, not noise; correct a confounded design and the disease effect goes with it |
-| 4 | `hierarchical-clustering` | 05 / 08 | a dendrogram is a consequence of two choices and a cut, not a finding |
+| 4 | `hierarchical-clustering` | 05 / 08 | **IN DRAFT 2026-09-03** — the tree is evidence, the cut is a choice, and the cut answers whether or not there is anything to answer |
 | 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
 
-**SLOTS 1, 2 AND 3 HAVE SHIPPED.** The catalogue
-section still carries four open calls that are Kenneth's to close: slot 4's
-scope, slot 5's shape (one widget with tabs or two), whether `05 / 06` needs a
-`p ≫ n` act widget 14 does not have, and a citation to verify. Slots 2–5 are
-planned but not measured, and § 5.1 says mock up before implementing.
+**SLOTS 1, 2 AND 3 HAVE SHIPPED; SLOT 4 IS IN DRAFT** — see *NEXT* above,
+which is the whole of the current task. The catalogue section still carries
+three open calls that are Kenneth's to close: slot 5's shape (one widget with
+tabs or two), whether `05 / 06` needs a `p ≫ n` act widget 14 does not have,
+and a citation to verify. Slot 4's scope was closed across nine review rounds
+on 2026-09-03 and its decisions are tabulated in *NEXT*. Slot 5 is planned but
+not measured, and § 5.1 says mock up before implementing.
 
 **The four already-hosted lessons owe notebook links too.** Zero of the nine
 carry one — grepped 2026-09-01 — so item 3 below gains four rows.
 
 **What else remains is Kenneth's own**, listed under item 3: the notebook
 links, the 05-07 notebook fix he reported done, and judging projected, which
-is still owed by every widget from 11 on. **A session with nothing picked
-should hold, not invent scope** — prd §11 exists to be pointed at.
+is still owed by every widget from 11 on. **Widget 42 is picked and in draft,
+so this session is not one with nothing picked** — but the rule still holds
+for anything beyond it, and prd §11 exists to be pointed at.
 
 **Widgets 30-38 shipped between 2026-08-29 and 2026-09-01**, all pushed, all
 recorded in the catalogue under their own `§ Widget N` sections. Their

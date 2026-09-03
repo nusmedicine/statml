@@ -612,6 +612,23 @@
       ],
       "arc": 41,
       "status": "shipped"
+    },
+    {
+      "slug": "hierarchical-clustering",
+      "title": "Finding Groups",
+      "blurb": "A dendrogram is built by a rule and cut by a choice. Ask for two clusters and you get two, whether or not any exist.",
+      "course": "PHM5003",
+      "topics": [
+        "hierarchical clustering",
+        "dendrogram",
+        "linkage",
+        "cutree",
+        "heatmap",
+        "unsupervised",
+        "omics"
+      ],
+      "arc": 42,
+      "status": "draft"
     }
   ]
 }
