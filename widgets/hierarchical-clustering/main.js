@@ -160,7 +160,7 @@ defineWidget({
   /* MEASURED, not guessed. The rail runs to 942px and the stage column (figure
      + legend + readout) was 604 — 337px of headroom going to waste, with the
      panels squeezed into half the width they could have had. These fill it. */
-  height: ({ view }) => (view === "heatmap" ? 640 : 790),
+  height: ({ view }) => (view === "heatmap" ? 690 : 790),
 
   params: {
     /* TWO TABS: the idea, then the thing people actually run.
@@ -352,14 +352,16 @@ defineWidget({
         { token: "value-high", label: "above this gene's baseline", mark: "bar" },
         { token: "value-low", label: "below it — pale is neither", mark: "bar" },
         { token: "cluster-a", label: "the column cut's groups", mark: "bar" },
-        { token: "highlight", label: "where each tree is cut", mark: "dashed" },
+        { token: "highlight", label: "where each tree is cut", mark: "dash" },
         { token: "extreme", label: "a box holding no structured gene at all", mark: "line" },
       ];
       /* Only when the reader has asked for it. The strip takes the roles for a
          comparison the STUDY decided rather than a cluster hue, which would
          say the widget had found it. */
       if (truth) {
-        entries.push({ token: "group-a", label: "the condition a sample really came from", mark: "bar" });
+        entries.push({ token: "reference",
+          label: "the condition a sample really came from — solid, then pale",
+          mark: "bar" });
       }
       return entries;
     }
@@ -377,12 +379,28 @@ defineWidget({
       { token: "cluster-a", label: "the two clusters being merged, and the cut's groups", mark: "dot" },
       { token: "highlight", label: measures, mark: "line" },
       { token: "unknown", label: "a cluster already formed", mark: "area" },
-      { token: "highlight", label: "where the tree is cut", mark: "dashed" },
+      { token: "highlight", label: "where the tree is cut", mark: "dash" },
     ];
+    /* WHAT THE RING MEANS DEPENDS ON WHICH AXIS IS BEING CLUSTERED, and until
+       now it said neither: "the group a point was really drawn from" describes
+       a sample, and on the default axis a point is a GENE, which is not drawn
+       from a group at all — it either had a block planted in it or it did not.
+       Kenneth asked outright what the circles were. */
     if (truth) {
-      entries.push(Number(separation) === 0
-        ? { token: "unknown", label: "one population — there were no groups to show", mark: "dot" }
-        : { token: "group-a", label: "the group a point was really drawn from", mark: "dot" });
+      if (Number(separation) === 0) {
+        entries.push({ token: "reference",
+          label: "one population — there was nothing to show", mark: "ring-dash" });
+      } else if (params.axis === "columns") {
+        entries.push(
+          { token: "reference", label: "a sample from one of the two conditions", mark: "ring" },
+          { token: "reference", label: "a sample from the other", mark: "ring-dash" },
+        );
+      } else {
+        entries.push(
+          { token: "reference", label: "a gene that really had a block planted in it", mark: "ring" },
+          { token: "reference", label: "a gene with nothing added — noise only", mark: "ring-dash" },
+        );
+      }
     }
     return entries;
   },
@@ -756,16 +774,39 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
     ctx.fill();
 
     if (params.truth) {
-      /* At separation 0 the two halves are draws from ONE distribution, so
-         colouring them as two groups would be a lie about the data. The ring
-         goes neutral and the legend says why. */
-      ctx.strokeStyle = params.separation === "0"
-        ? colors.unknown
-        : (p.group === 0 ? colors.groupA : colors.groupB);
+      /* THE TRUTH IS A BENCHMARK, SO IT IS DRAWN IN INK.
+
+         It was --c-group-a / --c-group-b, which ALIAS --c-cluster-a and
+         --c-cluster-b — the same two series slots. So the ring round a point
+         was painted in the exact colour of the cut's own fill, and "what the
+         algorithm found" and "what was really there" were the same two hues on
+         the same twenty dots. Reported as "what are the circles? there are
+         similar colors" (Kenneth, round 11).
+
+         tokens.css says why the collision was not obvious: it reasons that the
+         cluster ramp may share hues with the other roles because "a cluster
+         figure has no p-value tail and no theoretical curve in it". This is the
+         widget that breaks that assumption — it puts a FOUND partition and a
+         TRUE one on one set of marks, which no widget had done before. The
+         fix is not a seventh hue but the role that already means this:
+         --c-reference, "the truth where one exists", and ink rather than a
+         series slot because a benchmark is not data.
+
+         One colour, so the two arms are told apart by the STROKE — the same
+         device widget 39 uses for its two reference lines, and the reason the
+         legend now has a dashed-ring swatch. Solid is the arm something was
+         done to; dashed is the one nothing was done to. */
+      const neutral = params.separation === "0";
+      ctx.strokeStyle = colors.reference;
       ctx.lineWidth = 2;
+      /* At separation 0 the halves are draws from ONE distribution, so telling
+         them apart at all would be a lie about the data: every ring is dashed
+         and the legend says there was nothing to show. */
+      if (neutral || p.group === 0) ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.arc(px(p.x), py(p.y), 7, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
   });
   ctx.restore();
@@ -1207,7 +1248,15 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
      act 2's whole claim is that the boxes discard what the merge heights say,
      so the merge heights have to be on the figure for the claim to be
      checkable rather than asserted. */
-  const TREE = 42;                 // the row tree's width, and the column tree's height
+  /* TWO SIZES, NOT ONE. Both trees were 42 off a single constant, and 42px is
+     enough for the row tree — which has 76px of labels beside it and only has
+     to show where the cut falls — but not for the column tree, whose whole job
+     here is the merge heights the boxes discard. At 42 its nineteen joins
+     stacked into a band and the reader could not see which pair joined last
+     (Kenneth, round 11). The tab's height pays for the extra rather than the
+     matrix: 640 -> 690, so the cells stay the size they were. */
+  const TREE_ROW = 42;             // the row tree's width
+  const TREE_COL = 92;             // the column tree's height
   const LABEL = 76;                // between the row tree and the matrix
   const ANNO = 9;                  // one annotation row, as pheatmap draws them
   const ANNO_GAP = 3;
@@ -1220,19 +1269,19 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
      for. */
   const showTruth = Boolean(params.truth);
   const annoH = showTruth ? ANNO * 2 + ANNO_GAP : ANNO;
-  const gx = x + TREE + LABEL;
-  const gw = w - TREE - LABEL;
-  const annoY = y + TREE + 5;
+  const gx = x + TREE_ROW + LABEL;
+  const gw = w - TREE_ROW - LABEL;
+  const annoY = y + TREE_COL + 5;
   const gy = annoY + annoH + 5;
   const gh = h - (gy - y);
   const cellH = gh / heat.rows.length;
   const cellW = gw / HEAT_SAMPLES;
 
-  drawDendrogram(ctx, colors, { x, y: gy, w: TREE, h: gh },
+  drawDendrogram(ctx, colors, { x, y: gy, w: TREE_ROW, h: gh },
     { tree: rowTree, shown: rowTree.height.length, labels: null,
       k: params.cutRows, orient: "left" });
 
-  drawDendrogram(ctx, colors, { x: gx, y, w: gw, h: TREE },
+  drawDendrogram(ctx, colors, { x: gx, y, w: gw, h: TREE_COL },
     { tree: colTree, shown: colTree.height.length, labels: null,
       k: params.cutCols, orient: "up" });
 
@@ -1257,9 +1306,32 @@ function drawHeatmap(ctx, colors, box, { state, params }) {
     });
   };
   annoRow(annoY, (s) => colors.clusters[(colLab[s] - 1) % colors.clusters.length]);
+  /* THE SAME COLLISION, ON THE STRIP. The cut's strip is painted from the
+     cluster ramp and the truth strip beneath it was --c-group-a/b — the same
+     two slots — so the two stacked strips were the same two colours and the
+     figure invited a comparison it had made impossible. The truth strip is
+     now ink: solid for one condition and pale for the other, which is the
+     strip's reading of the scatter's solid-and-dashed ring. */
   if (showTruth) {
-    annoRow(annoY + ANNO + ANNO_GAP,
-      (s) => (heat.condition[s] === 0 ? colors.groupA : colors.groupB));
+    /* SOLID AND PALE, one ink. Outlining the second condition instead was
+       tried first, to match the scatter's dashed ring exactly, and twenty 1px
+       boxes in a 9px band read as a barcode rather than as half a strip. Two
+       intensities is what pheatmap's own annotations look like, and the
+       boundary between them — which is the only thing this strip is for — is
+       what the eye lands on. The whole band is outlined so the pale half
+       cannot be mistaken for empty. */
+    const ty = annoY + ANNO + ANNO_GAP;
+    ctx.save();
+    colOrder.forEach((s, ci) => {
+      ctx.globalAlpha = heat.condition[s] === 1 ? 1 : 0.3;
+      ctx.fillStyle = colors.reference;
+      ctx.fillRect(gx + ci * cellW, ty, cellW + 0.5, ANNO);
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = colors.reference;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(gx + 0.5, ty + 0.5, gw - 1, ANNO - 1);
+    ctx.restore();
   }
 
   /* The strip is named for the call that produced it, not for what it might
