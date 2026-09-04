@@ -2,12 +2,49 @@
 
 **Forty-two widgets shipped — 41 on the gallery, `roc-auc` UNLISTED (live at
 its URL, off the cards; Kenneth's call, 2026-08-30) — and 314 fingerprint states
-recorded.**
+recorded. A forty-third, `enrichment`, is a DRAFT in review; see below.**
 
-**THERE IS NO ASSIGNED NEXT TASK. Ask Kenneth what to build.** The obvious
-candidate is the high-throughput arc's last slot, `enrichment`, which is
-proposed and unpicked — catalogue § *Slot 5*. Do not start it unprompted; every
-slot so far was picked by him.
+**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT — five commits, NOT PUSHED.**
+Kenneth picked slot 5 on 2026-09-04 and reviewed it through four rounds the
+same day. It is on the drafts page at `/lab/`, not the gallery; `npm run check`
+passes on all 43; the working tree is clean at `9b07a21`.
+
+```bash
+node scripts/serve.mjs 8010
+# /widgets/enrichment/                    tab 1: Venn, 2 x 2, eight pathways, BH
+# /widgets/enrichment/?view=gsea&shown=400   tab 2: the ranking and the walk
+node widgets/_lab/enr-measure.mjs        # nine sections; §§ 7-9 are this widget's
+# widgets/_lab/enr-shape.html            # the three shapes, one of which he picked
+```
+
+**WHAT IS STILL OPEN, in the order it matters:**
+
+1. **Fingerprint states — none yet, and deliberately.** Baselining comes after
+   the design stops moving, and it moved four times in one day. `check` exempts
+   a draft; the moment it goes `shipped` it needs settled states, a driven one
+   (it animates) and a **hit-driven** one (it declares `regions` — the results
+   table's rows).
+2. **The ranking metric on tab 2.** The score's own invisible choice, and
+   without it the arc reads as "sophistication removes arbitrary choices",
+   which is false. Costed at the foot of `widgets/enrichment/main.js`: the
+   stage must simulate an experiment rather than hand out one number per gene,
+   and every rate in §§ 4-7 would need re-measuring.
+3. **Not judged projected**, which every widget from 11 on still owes.
+4. **The notebook link**, which no PHM5003 lesson carries — see item 3 of NEXT.
+
+**FOUR THINGS THE REVIEW SETTLED that no measurement could have.** Kenneth
+picked the figure from three drawn at the real width; then made it two tabs in
+the lesson's order; then took the ranking off the ORA tab entirely; then cut
+that tab back to a Venn, a 2 x 2 and eight pathways. **A shape mock-up settles
+what a figure looks like, not what the teaching sequence is** — ask for the
+sequence too, next time.
+
+**TWO PROCESS SLIPS FROM THAT SESSION, both worth not repeating.** Python's
+`io.open(path, "w")` truncates before it validates its arguments, and emptied
+`model.js` — recoverable only because it was committed; write to a temp file
+and `os.replace`. And an R `p.adjust` output quoted from memory flagged a
+CORRECT Benjamini-Hochberg implementation as wrong; § 8 of the measure script
+now implements R's four documented lines independently instead.
 
 **Widget 42 `hierarchical-clustering` shipped and PUSHED 2026-09-03** after
 fourteen review rounds across two sessions the same day. Two tabs over one
