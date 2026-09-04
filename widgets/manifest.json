@@ -632,7 +632,7 @@
     {
       "slug": "enrichment",
       "title": "Enrichment Analysis",
-      "blurb": "Overrepresentation cuts a ranking at a threshold and tests the overlap with a gene set; the enrichment score does not.",
+      "blurb": "Overrepresentation uses threshold-based gene selection; the enrichment score ranks the entire expression profile.",
       "course": "PHM5003",
       "topics": [
         "enrichment",
