@@ -168,6 +168,15 @@ commit** as the change, so the diff records that the rendering moved. Before
 baselining a new driven state, confirm it is identical across three runs — a flaky
 check is worse than none.
 
+**Then run the suite once more and confirm every state reads MATCH — principle
+5.10.** "Copy new baseline" writes whatever `latest` holds, and nothing checks
+that it matches what the widget draws; `check` validates the file's shape, not
+its contents. Widget 42 shipped 9 hashes it had never produced, and they read as
+somebody else's regression for two days. If a state does fail and no diff
+explains it, serve the baseline's own commit in a detached worktree and render
+there: a value that will not reproduce from the tree that recorded it was wrong
+when written, not drifted.
+
 ## Where things live
 
 ```

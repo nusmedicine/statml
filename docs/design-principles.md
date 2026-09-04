@@ -1319,6 +1319,38 @@ What stays — and is the reason the exemption existed at all — is **the histo
 of what failed**, at whatever length it takes. That is a record of measurements
 and dead ends. It is not a story about the people who hit them.
 
+### 5.10 A baseline is not recorded until a clean re-run confirms it
+
+"Copy new baseline" writes whatever `latest` holds. **Nothing checks that what it
+wrote is what the widget produces.** So after copying and before committing, run
+the suite once more: every state must read MATCH. One extra run, and it is the
+only thing standing between a bad copy and a permanently wrong baseline.
+
+> *Earned:* widget 42 shipped with 9 of its 11 states carrying hashes the widget
+> has never produced, and they reported DIFFER on every run for two days while
+> being read as somebody else's regression. The likely cause is the hazard
+> CLAUDE.md already names — clicking Run starts a second concurrent pass into the
+> same `latest` array, so the copy takes a set no single render produced. Note
+> which states survived: the two heatmaps, and neither of the two that would have
+> been checked first.
+
+**A wrong baseline is worse than no baseline**, because it reads as a regression
+in somebody else's change. The `check` script cannot catch it: it validates the
+file's shape, not whether the hashes correspond to anything.
+
+**To tell a bad baseline from a real regression, serve the baseline's own commit
+and render the widget there.** `git worktree add --detach <dir> <commit>`, run
+`scripts/serve.mjs` from it, and hash the state. If it does not reproduce from
+the very tree that recorded it, the value was wrong when written and no amount of
+looking at the current diff will explain it. Ninety seconds, and it replaces
+every hypothesis about environments, device pixel ratios and rasterisers — all
+three of which were wrong here.
+
+**Split failures by what a state draws before theorising.** Widget 42's two
+passing states were exactly its two filled-rectangle heatmaps; all nine failures
+drew a dendrogram, and `tx` matched on all eleven. That partition localised the
+fault faster than any argument about the environment could.
+
 ---
 
 ## 6 · Known costs
