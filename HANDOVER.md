@@ -4,18 +4,26 @@
 its URL, off the cards; Kenneth's call, 2026-08-30) — and 314 fingerprint states
 recorded. A forty-third, `enrichment`, is a DRAFT in review; see below.**
 
-**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT — twelve commits on `main`,
-NOT PUSHED.** Kenneth picked slot 5 on 2026-09-04 and reviewed it through four
-rounds the same day. It is on the drafts page at `/lab/`, not the gallery;
-`npm run check` passes on all 43 and the working tree is clean. Six of those
-twelve commits are widget 43's; the rest came from a parallel session and are
-summarised in the next block.
+**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT.** Kenneth picked slot 5 on
+2026-09-04 and reviewed it through four rounds the same day, then picked the
+ranking-metric rebuild the same evening. It is on the drafts page at `/lab/`,
+not the gallery; `npm run check` passes on all 43.
+
+**THE DRAFT IS PUSHED AND LIVE, contrary to what this file said until
+2026-09-04.** A parallel session working in the `batch-effect-sva` worktree
+pushed everything — all six of widget 43's first commits plus five of its own —
+at 05:24 UTC, and the `Deploy site` run for `f29cf28` succeeded. So the draft
+has been publicly reachable at `/widget/enrichment/` since then. Off the
+gallery cards, but not private. **The ranking-metric round that came after it
+is committed and NOT pushed.**
 
 ```bash
-node scripts/serve.mjs 8010
-# /widgets/enrichment/                    tab 1: Venn, 2 x 2, eight pathways, BH
+node scripts/serve.mjs 8010   # 8010-8012 are often taken; launch.json goes to 8014
+# /widgets/enrichment/                       tab 1: Venn, 2 x 2, eight pathways, BH
 # /widgets/enrichment/?view=gsea&shown=400   tab 2: the ranking and the walk
-node widgets/_lab/enr-measure.mjs        # nine sections; §§ 7-9 are this widget's
+# /widgets/enrichment/?effect=none&metric=fc vs &metric=sig — the metric's own cost
+node widgets/_lab/enr-measure.mjs        # nine sections; §§ 4-7 re-measured 2026-09-04
+node widgets/_lab/enr-metric.mjs         # five sections; why the OBVIOUS metric design was wrong
 # widgets/_lab/enr-shape.html            # the three shapes, one of which he picked
 ```
 
@@ -79,13 +87,42 @@ everything is in a commit.
    314. And the harness **auto-runs on load — never click Run**: a second
    concurrent pass into the same `latest` array is the likeliest cause of the
    widget 42 damage.
-2. **The ranking metric on tab 2.** The score's own invisible choice, and
-   without it the arc reads as "sophistication removes arbitrary choices",
-   which is false. Costed at the foot of `widgets/enrichment/main.js`: the
-   stage must simulate an experiment rather than hand out one number per gene,
-   and every rate in §§ 4-7 would need re-measuring.
-3. **Not judged projected**, which every widget from 11 on still owes.
-4. **The notebook link**, which no PHM5003 lesson carries — see item 3 of NEXT.
+2. **The ranking metric — BUILT 2026-09-04, and it cost a stage rebuild.**
+   The stage is now an experiment: four samples per arm, a gene-specific noise
+   level, and a fold change AND a t-test p from the same draws. `metric` is a
+   data parameter on BOTH tabs, because ORA's list is the top k of the same
+   ranking and hiding it on tab 1 would leave that tab computing under a
+   setting nobody could see.
+   **THE OBVIOUS VERSION WAS MEASURED AND DISCARDED, and that is the part worth
+   not repeating.** Adding the control to the old constant-shift stage makes
+   signed significance strictly BETTER — 86% against 92% at moderate noise
+   spread, 65% against 98% at high — because a constant shift is exactly what a
+   t-test is built to detect. It would have taught that sophistication DOES
+   remove the arbitrary choice. The fix is two KINDS of planted pathway, loud
+   and quiet, so each metric wins on one. `_lab/enr-metric.mjs` §§ 1-3.
+   **The default seed moved 12 → 174**, searched over 400 seeds for four things
+   at once — see the `seed` param in `main.js`. Nothing on it prints within
+   0.004 of the 0.05 line, which was a criterion: the first candidate had an
+   adjusted p of 0.050014 and a row reading "0.050" that is not highlighted
+   reads as a bug rather than a threshold.
+   **What is left of this item is the PERMUTATION SCHEME**, the score's other
+   invisible choice — `gseaNull` permutes set membership where the real thing
+   permutes sample labels and re-ranks. It is now buildable and was not before,
+   because the stage finally has an expression matrix; the cost is at the foot
+   of `main.js`.
+3. **A `choice` control silently drops its field-level `detail`** — found while
+   building the metric control, and it is NOT enrichment's alone. `controls.js`
+   drives the one `.w-detail` element from the SELECTED OPTION, so a field-level
+   `detail` on a `choice` is copy no student can read. **Nine of them exist
+   across five SHIPPED widgets**: `dbscan/samples`, `mixed-model` ×4,
+   `mlp/hidden`, `normalization/lambda`, `enrichment/background`. Enrichment's
+   `metric` was written with one, and it now carries a comment saying why there
+   is none. This is the same defect `controls.js` records fixing twice before
+   for other control types; `choice` was missed. A background task is queued.
+   The rail is not fingerprinted, so the fix should move ZERO hashes — if it
+   moves any, that is a real finding.
+4. **Not judged projected**, which every widget from 11 on still owes.
+5. **The notebook link**, which no PHM5003 lesson carries — see item 3 of NEXT.
 
 **FOUR THINGS THE REVIEW SETTLED that no measurement could have.** Kenneth
 picked the figure from three drawn at the real width; then made it two tabs in

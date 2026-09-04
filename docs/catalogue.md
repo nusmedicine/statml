@@ -5314,6 +5314,64 @@ the ORA example prints a different p-value on every run. That is a lesson bug th
 widget's seeded `rng` would not reproduce, and worth mentioning to Kenneth
 separately from the widget.
 
+#### The ranking metric — picked 2026-09-04, and it rebuilt the stage
+
+Kenneth picked the full version over a narrower one after the measurements were
+put to him. The round is worth recording because **the obvious design was
+measured and thrown away**, and the measurement is the only thing that could
+have caught it.
+
+**What was wrong with the obvious design.** The stage handed out one number per
+gene — `mu + rng.normal()` — and every ranking metric over one number is the
+same order, so a metric control on it would have done nothing. The apparent fix
+is to give each gene a fold change and a p, keep the constant shift, and let the
+reader choose. Measured over 200 seeds, that makes signed significance strictly
+better: the planted pathway is found 86% of the time by fold change against 92%
+by significance at moderate noise spread, and 65% against 98% at high. It is not
+a bias in the test — a constant shift applied to every gene of a pathway
+regardless of its own noise is exactly the alternative a t-test is built to
+detect, so on that stage significance is the right answer and a student would
+correctly conclude so. The tab would have taught that sophistication removes the
+arbitrary choice, which is the one thing this arc must not say.
+
+**The control that proves the mechanism.** With one variance for every gene, the
+two metrics still disagree about 12 genes of a top-60 list — but the genes each
+one prefers have identical mean noise, 1.00 against 1.00. That disagreement is
+sampling error in the pooled SD and carries no reading a reader could name. Gene-
+level variance is what turns it into a distinction; at the widget's spread, fold
+change's exclusive picks are 2.7x noisier than signed significance's.
+
+**What replaced it.** Two KINDS of planted pathway, so each metric wins on one:
+
+| | loud pathway found | quiet pathway found |
+|---|---|---|
+| fold change | 100% | 0% |
+| signed significance | 57% | 88% |
+
+*loud* is a big average change in genes that are noisy anyway; *quiet* is a small
+change in genes held tightly. Fold change's blindness to the quiet one is
+structural rather than tuned — the list is the top k **by magnitude**, and a
+small change is small however many times it repeats.
+
+**The result the round was worth building for.** Hold every true change at
+exactly zero, so nothing is differentially expressed, and make one pathway's
+genes only noisier. Ranking on fold change calls it significant on 4% / 25% /
+63% / 81% / 89% of seeds as its noise goes 1.0x to 3.2x a normal gene's; signed
+significance stays flat at 2%. The first row is the control, at the nominal 5%.
+
+**What it cost.** Every rate in §§ 4-7 of `enr-measure.mjs` was re-measured, and
+two inherited prose claims turned out to be false of the new tables and were
+rewritten: the "most changed in either direction" fix costs the loud pathway
+almost nothing under fold change (100% → 98%) though it is ruinous under
+significance (58% → 7%), and BH is close to free under fold change (50% → 49%)
+while it bites under significance (71% → 51%). The default seed moved 12 → 174.
+
+**The claim that survived untouched** is the widget's best one: ORA on a top-k
+list never sees a coordinately down-regulated set, 0% under both metrics. It was
+always structural rather than a property of the stage.
+
+Full working in `widgets/_lab/enr-metric.mjs`, five sections.
+
 ### Open calls — for Kenneth, not to be decided by a session
 
 1. **Build order.** Notebook order starts at `normalization`; evidence order
