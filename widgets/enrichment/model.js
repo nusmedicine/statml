@@ -98,34 +98,88 @@ export function oddsRatioCmle(a, b, c, d) {
 
 /* --- the stage ------------------------------------------------------------- */
 
-/* One ranked list, and gene sets planted into it at known positions. The three
-   cases are the lesson's own: cell 6's figure names them — enriched at the top,
-   random, enriched at the bottom — so the failing case is the notebook's own
-   middle panel and the invisible case is its bottom one. */
-export const SET_KEYS = ["a", "b", "c"];
-export const PLANT = { a: "up", b: "none", c: "down" };
+/* ONE RANKED LIST AND A COLLECTION OF PATHWAYS, which is what enrichment
+   analysis is actually run on. The widget tested three named sets until
+   multiple test correction arrived on the ORA tab, and correcting one p-value
+   is what the notebook's own cell 5 does — it says so itself, "in this case,
+   no correction as there is only one p-value". A collection is the smallest
+   stage on which the correction is not a no-op.
 
-export function makeStage(rng, { genes = 400, setSize = 30, shift = 0.6 } = {}) {
-  const order = rng.shuffle([...Array(genes).keys()]);
-  const sets = {};
-  SET_KEYS.forEach((key, i) => {
-    sets[key] = new Set(order.slice(i * setSize, (i + 1) * setSize));
-  });
+   TWO OF THEM ARE PLANTED, at seeded positions rather than fixed ones. Fixed
+   indices would teach "pathway 1 is always the answer"; seeded ones leave the
+   reader where a real analysis leaves them, reading the panel to find out.
+   The two are the lesson's own outer cases — cell 6's figure names enriched at
+   the top, random, and enriched at the bottom — and the eighteen unplanted
+   ones supply the middle case eighteen times over, which is what makes the
+   correction worth doing.
+
+   THE UNPLANTED PATHWAYS ARE NOT PURE NULLS, and that is deliberate rather
+   than sloppy: they overlap the planted ones by chance, so a few come out
+   mildly enriched. That is exactly the population BH exists to handle. */
+export const N_SETS = 20;
+const SIZE_MIN = 12;
+const SIZE_MAX = 45;
+
+/* TWO UP AND ONE DOWN, and the counts are measured rather than chosen. With one
+   planted pathway the default state has a median of ONE raw-significant result
+   and ZERO surviving BH, so the correction panel opens empty and demonstrates
+   nothing. With two, the median is 2 raw and 1 corrected: a couple of bars over
+   the 0.05 line, one of them still standing after the correction, and the rest
+   of the collection where it belongs. Measured over 200 seeds at the defaults —
+   `_lab/enr-measure.mjs` § 7.
+
+   A PLANTED PATHWAY IS ALSO BIGGER than an unplanted one, 28-45 against 12-45.
+   Not to flatter the method: a 14-gene pathway at a 0.6 shift is under-powered,
+   so small planted pathways make the panel a coin toss rather than a lesson. */
+const N_UP = 2;
+const N_DOWN = 1;
+const PLANTED_MIN = 28;
+
+export function makeStage(rng, { genes = 400, shift = 0.6 } = {}) {
+  const all = [...Array(genes).keys()];
+
+  /* Which ones carry real signal, drawn before the members so the stream is
+     consumed in a fixed order whatever the sizes turn out to be. */
+  const order = rng.shuffle([...Array(N_SETS).keys()]);
+  const upAt = order.slice(0, N_UP);
+  const downAt = order.slice(N_UP, N_UP + N_DOWN);
+
+  const sets = [];
+  for (let i = 0; i < N_SETS; i += 1) {
+    const planted = upAt.includes(i) ? "up" : downAt.includes(i) ? "down" : null;
+    const lo = planted ? PLANTED_MIN : SIZE_MIN;
+    const size = lo + Math.floor(rng.next() * (SIZE_MAX - lo + 1));
+    sets.push({
+      index: i,
+      label: `Pathway ${i + 1}`,
+      members: new Set(rng.shuffle(all).slice(0, size)),
+      size,
+      planted,
+    });
+  }
 
   /* The ranking metric. The lesson ranks by log2 fold change (cell 9) and
      names -log10(p) x sign(logFC) as the alternative (cell 6); either way it
-     is one signed number per gene, which is all the running sum needs. */
+     is one signed number per gene, which is all the running sum needs.
+
+     A gene in several planted pathways ACCUMULATES their shifts, and one in
+     both an up and a down pathway nets to zero rather than taking whichever
+     was applied last. Two pathways of thirty out of four hundred share about
+     two genes, so this is a handful either way — but "up and down at once" has
+     no honest reading other than no effect. */
   const score = [];
   for (let g = 0; g < genes; g += 1) {
     let mu = 0;
-    if (sets.a.has(g)) mu = shift;
-    if (sets.c.has(g)) mu = -shift;
+    for (const s of sets) {
+      if (s.planted === "up" && s.members.has(g)) mu += shift;
+      if (s.planted === "down" && s.members.has(g)) mu -= shift;
+    }
     score.push(mu + rng.normal());
   }
   const rank = [...Array(genes).keys()].sort((x, y) => score[y] - score[x]);
   const rankOf = new Array(genes);
   rank.forEach((g, i) => { rankOf[g] = i; });
-  return { genes, setSize, shift, score, rank, rankOf, sets };
+  return { genes, shift, score, rank, rankOf, sets, upAt, downAt };
 }
 
 /* --- ORA ------------------------------------------------------------------- */
@@ -153,8 +207,8 @@ export function listPositions(stage, k, mode = "top") {
 /* `universe` is the number the lesson writes as a bare 10000 with no comment,
    and it enters ONLY through d — which is exactly why it is invisible on a
    screen and exactly why it moves the answer. */
-export function ora(stage, setKey, k, universe, mode = "top") {
-  const set = stage.sets[setKey];
+export function ora(stage, setIndex, k, universe, mode = "top") {
+  const set = stage.sets[setIndex].members;
   const list = listPositions(stage, k, mode);
   const a = list.filter((g) => set.has(g)).length;
   const b = list.length - a;
@@ -177,9 +231,9 @@ export function ora(stage, setKey, k, universe, mode = "top") {
    statistic is the unweighted Kolmogorov-Smirnov one, where only membership
    counts and the metric's magnitude does not — worth having as a control,
    because it separates "near the top" from "large". */
-export function gsea(stage, setKey, weight = 1) {
+export function gsea(stage, setIndex, weight = 1) {
   const { score, rank, genes } = stage;
-  const set = stage.sets[setKey];
+  const set = stage.sets[setIndex].members;
   const ns = set.size;
   let norm = 0;
   for (const g of rank) if (set.has(g)) norm += Math.abs(score[g]) ** weight;
@@ -201,10 +255,10 @@ export function gsea(stage, setKey, weight = 1) {
    genes that gene permutation destroys. The notebook's own step 3 says
    "permuting the labels of the dataset", so the widget owes that difference a
    line on screen rather than a silent substitution. */
-export function gseaNull(stage, setKey, rng, runs = 1000, weight = 1) {
-  const obs = gsea(stage, setKey, weight).es;
+export function gseaNull(stage, setIndex, rng, runs = 1000, weight = 1) {
+  const obs = gsea(stage, setIndex, weight).es;
   const all = [...Array(stage.genes).keys()];
-  const size = stage.sets[setKey].size;
+  const size = stage.sets[setIndex].size;
   const draws = new Array(runs);
   let ge = 0;
   for (let r = 0; r < runs; r += 1) {
@@ -234,6 +288,44 @@ function esOnly(stage, set, weight) {
     if (Math.abs(run) > Math.abs(es)) es = run;
   }
   return es;
+}
+
+/* --- every pathway at once, and the correction that needs ------------------ */
+
+/* ORA OVER THE WHOLE COLLECTION. This is the shape enrichment analysis is
+   actually run in, and the shape cell 5 cannot demonstrate: `p.adjust` on a
+   vector of length one is the identity function, and the notebook says so. */
+export function oraAll(stage, k, universe, mode = "top") {
+  const raw = stage.sets.map((set) => ora(stage, set.index, k, universe, mode));
+  const padj = benjaminiHochberg(raw.map((r) => r.p));
+  return raw.map((r, i) => ({
+    ...r,
+    index: i,
+    label: stage.sets[i].label,
+    size: stage.sets[i].size,
+    planted: stage.sets[i].planted,
+    padj: padj[i],
+  }));
+}
+
+/* Benjamini-Hochberg, matching R's `p.adjust(method = "BH")`: scale each p by
+   n / its rank, then take the running minimum from the LARGEST p downwards so
+   the adjusted values cannot decrease where the raw ones increase. Without
+   that second pass a pathway can come out with a smaller adjusted p than one
+   that beat it on the raw value, which is the classic wrong implementation and
+   is invisible until two of them straddle 0.05. */
+export function benjaminiHochberg(p) {
+  const n = p.length;
+  if (n === 0) return [];
+  const desc = [...Array(n).keys()].sort((a, b) => p[b] - p[a]);
+  const out = new Array(n);
+  let running = Infinity;
+  desc.forEach((idx, j) => {
+    const rank = n - j;                    /* 1-based rank in ASCENDING order */
+    running = Math.min(running, (p[idx] * n) / rank);
+    out[idx] = Math.min(1, running);
+  });
+  return out;
 }
 
 /* --- what the rail offers -------------------------------------------------- */
