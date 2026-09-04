@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 5 — one widget with two tabs, or one stage carrying both</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 2px; color: var(--ink-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.ask { color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-2) 0 var(--sp-3);
+          border-left: 3px solid var(--c-highlight); padding-left: var(--sp-3); max-width: 100ch; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); margin: 0 0 4px; }
+  .cap { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3);
+         margin: 2px 0 14px; max-width: 900px; white-space: pre-wrap; }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-4); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid); position: sticky;
+          top: 0; z-index: 2; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 150px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3.5em; }
+  .tabs { display: flex; gap: 0; margin: 0 0 6px; }
+  .tabs button { font: inherit; font-size: var(--fs-sm); padding: 4px 14px; cursor: pointer;
+                 background: var(--surface-2); color: var(--ink-2);
+                 border: 1px solid var(--grid); border-bottom: none; }
+  .tabs button[aria-pressed=true] { background: var(--surface-1); color: var(--ink-1); font-weight: 600; }
+  table.m { border-collapse: collapse; font-family: var(--font-mono); font-size: 11px;
+            margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; color: var(--ink-2); }
+  table.m th { color: var(--ink-2); font-weight: 500; }
+  table.m td.hit { color: var(--c-highlight); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 5 · one widget with two tabs, or one stage carrying both</h1>
+
+  <p class="note">
+    The open call is the <b>shape</b>: ORA and GSEA as two tabs of one widget, or as two widgets.
+    <code>node widgets/_lab/enr-measure.mjs</code> answered the substance first, and the answer
+    bears on the shape: <b>every claim that survived measurement is a statement about one ranked
+    list scored two ways.</b> ORA's verdict moves with a cutoff and a background nobody chose;
+    GSEA needs neither. Split across two widgets, not one of those comparisons can be made.
+  </p>
+  <p class="note">
+    So the real choice is narrower than the call assumed — <b>two tabs, or one stage showing both
+    at once.</b> Both are drawn below at the true figure width (770 px, measured on a live widget),
+    on the real engine. Move the cutoff and watch which numbers move.
+  </p>
+
+  <div class="rail">
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+    <label>effect <input type="range" id="shift" min="0" max="20" value="6"><output id="shiftv">0.6</output></label>
+    <label>gene set
+      <select id="set"><option value="a">A</option><option value="b">B</option><option value="c">C</option></select>
+    </label>
+    <label>cutoff k <input type="range" id="cut" min="5" max="240" value="60"><output id="cutv">60</output></label>
+    <label>background
+      <select id="uni">
+        <option value="400" selected>400 · the genes here (the honest one)</option>
+        <option value="2000">2 000 · a panel</option>
+        <option value="12000">12 000 · detected</option>
+        <option value="20000">20 000 · protein-coding</option>
+        <option value="60000">60 000 · all transcripts</option>
+      </select>
+    </label>
+    <label>gene list
+      <select id="mode">
+        <option value="top">top k (the lesson)</option>
+        <option value="abs">most changed, either way</option>
+      </select>
+    </label>
+  </div>
+
+  <h2>Shape A — two tabs on one shared list</h2>
+  <p class="note">
+    Each method gets the whole figure. The tab you are not on is not on screen.
+  </p>
+  <div class="tabs" id="tabs">
+    <button data-tab="ora" aria-pressed="true">Overrepresentation</button>
+    <button data-tab="gsea" aria-pressed="false">Enrichment score</button>
+  </div>
+  <canvas id="c-a"></canvas>
+  <div class="cap" id="cap-a"></div>
+  <p class="ask">
+    Costs: the comparison is a memory test. You move the cutoff on the ORA tab, switch, and have
+    to remember what the score was. Buys: the 2×2 is big enough to read from the back of a room,
+    and each tab is one idea.
+  </p>
+
+  <h2>Shape B — one stage, both methods on it</h2>
+  <p class="note">
+    One cutoff line through one ranked list. Everything above the line is ORA's; everything below
+    it is GSEA's.
+  </p>
+  <canvas id="c-b"></canvas>
+  <div class="cap" id="cap-b"></div>
+  <p class="ask">
+    Costs: denser, and the 2×2 shrinks to a strip. Buys: <b>the whole claim is one gesture.</b>
+    Drag the cutoff and the p-value swings while the curve underneath does not move a pixel.
+  </p>
+
+  <h2>Shape C — one stage, three strips on one axis, numbers in the readout</h2>
+  <p class="note">
+    Shape B with its two answer panels taken off the canvas. The figure becomes what it actually
+    is — <b>three readings of one ranked list, sharing one x axis</b> — and the numbers go where
+    every other widget in this collection puts them, in the readout tiles under the figure. The
+    2×2 and the permutation null are then a gated second stage rather than permanent furniture.
+  </p>
+  <canvas id="c-c"></canvas>
+  <div class="w-readout" id="ro-c" style="max-width:770px"></div>
+  <div class="cap" id="cap-c"></div>
+  <p class="ask">
+    Costs: the 2×2 is behind a gate, so the mechanism of ORA is one click away rather than on
+    screen. Buys: <b>every stroke on the canvas is the ranked list</b>, the strips are twice as
+    tall as in shape B, and the numbers are the size the readout draws them — which is the size
+    that has survived projection in forty-two widgets.
+  </p>
+
+  <p class="note">
+    <b>The null is two humps, and that is correct.</b> The score is the largest deviation of a
+    walk from zero, so a walk that never deviates is the rarest outcome, not the commonest —
+    which is also why GSEA normalises the positive and negative sides separately before comparing
+    sets. A student seeing this for the first time will ask; the widget should answer on screen.
+  </p>
+
+  <h2>What moves, measured on what is on screen right now</h2>
+  <p class="note">
+    The same list, the same set, at eight cutoffs and five backgrounds. Neither column is
+    something the student picked from the biology.
+  </p>
+  <table class="m" id="grid"></table>
+  <p class="note" id="verdict"></p>
+</main>
+
+<script type="module">
+import { makeStage, ora, gsea, gseaNull, fisherGreater, PLANT } from "../enrichment/model.js";
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const W = 770;                     /* measured on a live widget at a 1200px viewport */
+const PAD = { l: 48, r: 16 };
+const PW = W - PAD.l - PAD.r;
+const PERMS = 1000;      /* the number the caption prints; they must not drift */
+
+/* --- state ---------------------------------------------------------------- */
+
+const el = (id) => document.getElementById(id);
+const ui = {
+  seed: el("seed"), shift: el("shift"), set: el("set"),
+  cut: el("cut"), uni: el("uni"), mode: el("mode"),
+};
+let tab = "ora";
+
+function values() {
+  return {
+    seed: +ui.seed.value,
+    shift: +ui.shift.value / 10,
+    setKey: ui.set.value,
+    k: +ui.cut.value,
+    universe: +ui.uni.value,
+    mode: ui.mode.value,
+  };
+}
+
+/* The two-sided gene list, measured in enr-measure.mjs § 6: the fix a
+   practitioner reaches for, which rescues the down-regulated set a little and
+   costs the up-regulated one most of its power. */
+function listOf(st, v) {
+  if (v.mode === "top") return st.rank.slice(0, v.k);
+  const byAbs = [...Array(st.genes).keys()]
+    .sort((x, y) => Math.abs(st.score[y]) - Math.abs(st.score[x]));
+  return byAbs.slice(0, v.k);
+}
+
+function oraOf(st, v) {
+  if (v.mode === "top") return ora(st, v.setKey, v.k, v.universe);
+  const set = st.sets[v.setKey];
+  const list = listOf(st, v);
+  const a = list.filter((g) => set.has(g)).length;
+  const b = v.k - a, c = set.size - a, d = Math.max(0, v.universe - (a + b + c));
+  return { a, b, c, d, universe: v.universe, p: fisherGreater(a, b, c, d) };
+}
+
+/* --- canvas helpers -------------------------------------------------------- */
+
+function fit(cv, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = `${W}px`;
+  cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  ctx.font = `11px ${T.font}`;
+  ctx.textBaseline = "middle";
+  return ctx;
+}
+
+const xAt = (i, n) => PAD.l + (PW * i) / n;
+
+function label(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour;
+  ctx.textAlign = align;
+  ctx.font = `${weight} ${size}px ${T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+
+/* The ranking metric, sorted, as an area from the zero line. This is the data,
+   so --c-empirical. */
+function profile(ctx, y0, h, st, v, { showCut = true } = {}) {
+  const s = st.rank.map((g) => st.score[g]);
+  const hi = Math.max(...s), lo = Math.min(...s);
+  const span = Math.max(hi, -lo);
+  const yFor = (t) => y0 + h / 2 - (h / 2 - 4) * (t / span);
+  const zero = yFor(0);
+
+  /* the gene list, shaded — past the threshold is what --c-extreme names */
+  if (showCut) {
+    const inList = new Set(listOf(st, v));
+    ctx.fillStyle = T.extreme;
+    ctx.globalAlpha = 0.12;
+    let run = null;
+    st.rank.forEach((g, i) => {
+      const hit = inList.has(g);
+      if (hit && run === null) run = i;
+      if ((!hit || i === st.genes - 1) && run !== null) {
+        ctx.fillRect(xAt(run, st.genes), y0, xAt(i, st.genes) - xAt(run, st.genes), h);
+        run = null;
+      }
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.strokeStyle = T.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, zero); ctx.lineTo(PAD.l + PW, zero); ctx.stroke();
+
+  ctx.fillStyle = T.empirical;
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, zero);
+  s.forEach((t, i) => ctx.lineTo(xAt(i, st.genes), yFor(t)));
+  ctx.lineTo(PAD.l + PW, zero);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  if (showCut) {
+    ctx.strokeStyle = T.extreme;
+    ctx.lineWidth = 1.5;
+    const cx = xAt(v.mode === "top" ? v.k : 0, st.genes);
+    if (v.mode === "top") {
+      ctx.beginPath(); ctx.moveTo(cx, y0); ctx.lineTo(cx, y0 + h); ctx.stroke();
+    }
+  }
+
+  label(ctx, PAD.l - 6, y0 + 6, span.toFixed(1), T.ink3, "right", 10);
+  label(ctx, PAD.l - 6, zero, "0", T.ink3, "right", 10);
+  label(ctx, PAD.l - 6, y0 + h - 6, (-span).toFixed(1), T.ink3, "right", 10);
+  return { zero, yFor };
+}
+
+/* Which genes are in the set — the one thing to look at, so --c-highlight. */
+function barcode(ctx, y0, h, st, setKey) {
+  const set = st.sets[setKey];
+  ctx.fillStyle = T.surface2;
+  ctx.fillRect(PAD.l, y0, PW, h);
+  ctx.fillStyle = T.highlight;
+  st.rank.forEach((g, i) => {
+    if (set.has(g)) ctx.fillRect(xAt(i, st.genes), y0, Math.max(1, PW / st.genes), h);
+  });
+  label(ctx, PAD.l - 6, y0 + h / 2, "set", T.ink3, "right", 10);
+}
+
+function running(ctx, y0, h, st, v) {
+  const g = gsea(st, v.setKey);
+  const span = Math.max(0.35, Math.abs(g.es) * 1.15);
+  const yFor = (t) => y0 + h / 2 - (h / 2 - 6) * (t / span);
+  ctx.strokeStyle = T.grid;
+  ctx.beginPath(); ctx.moveTo(PAD.l, yFor(0)); ctx.lineTo(PAD.l + PW, yFor(0)); ctx.stroke();
+
+  ctx.strokeStyle = T.empirical;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  g.trace.forEach((t, i) => (i ? ctx.lineTo(xAt(i, st.genes), yFor(t)) : ctx.moveTo(xAt(i, st.genes), yFor(t))));
+  ctx.stroke();
+
+  const px = xAt(g.esAt - 1, st.genes);
+  ctx.strokeStyle = T.highlight;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.moveTo(px, yFor(0)); ctx.lineTo(px, yFor(g.es)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = T.highlight;
+  ctx.beginPath(); ctx.arc(px, yFor(g.es), 3, 0, 2 * Math.PI); ctx.fill();
+  label(ctx, px + 6, yFor(g.es), `ES ${g.es.toFixed(3)}`, T.highlight, "left", 11, "600");
+  label(ctx, PAD.l - 6, y0 + 6, `+${span.toFixed(2)}`, T.ink3, "right", 10);
+  label(ctx, PAD.l - 6, y0 + h - 6, `-${span.toFixed(2)}`, T.ink3, "right", 10);
+  return g;
+}
+
+function axis(ctx, y, st) {
+  ctx.strokeStyle = T.axis;
+  ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + PW, y); ctx.stroke();
+  for (const r of [0, 100, 200, 300, 400]) {
+    if (r > st.genes) continue;
+    const x = xAt(r, st.genes);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
+    label(ctx, x, y + 12, String(r), T.ink3, "center", 10);
+  }
+  label(ctx, PAD.l + PW, y + 12, "rank", T.ink3, "right", 10);
+}
+
+/* The 2 x 2. `scale` 1 is the tab version, 0.72 the strip version. */
+function table2x2(ctx, x0, y0, o, scale = 1) {
+  const cw = 96 * scale, ch = 26 * scale, hw = 116 * scale;
+  const cells = [[o.a, o.b], [o.c, o.d]];
+  const rowsL = ["in the gene list", "not in the list"];
+  const colsL = ["in the set", "not in the set"];
+  label(ctx, x0 + hw + cw / 2, y0, colsL[0], T.ink2, "center", 11 * scale);
+  label(ctx, x0 + hw + cw * 1.5, y0, colsL[1], T.ink2, "center", 11 * scale);
+  for (let r = 0; r < 2; r += 1) {
+    const y = y0 + 12 * scale + r * ch;
+    label(ctx, x0 + hw - 8, y + ch / 2, rowsL[r], T.ink2, "right", 11 * scale);
+    for (let c = 0; c < 2; c += 1) {
+      const x = x0 + hw + c * cw;
+      ctx.strokeStyle = T.grid;
+      ctx.strokeRect(x, y, cw, ch);
+      const isA = r === 0 && c === 0;
+      if (isA) {
+        ctx.fillStyle = T.highlight;
+        ctx.globalAlpha = 0.14;
+        ctx.fillRect(x, y, cw, ch);
+        ctx.globalAlpha = 1;
+      }
+      label(ctx, x + cw / 2, y + ch / 2, String(cells[r][c]),
+        isA ? T.highlight : T.ink1, "center", 12 * scale, isA ? "600" : "");
+    }
+  }
+  const yEnd = y0 + 12 * scale + 2 * ch;
+  label(ctx, x0 + hw, yEnd + 16 * scale,
+    `d = background − (a+b+c),  background = ${o.universe.toLocaleString()}`,
+    T.ink3, "left", 10 * scale);
+  return yEnd + 26 * scale;
+}
+
+/* The permutation null. --c-theory: the distribution the observed is judged
+   against. The observed ES takes --c-highlight, as on the running sum. */
+function nullPanel(ctx, x0, y0, w, h, nul) {
+  const lo = Math.min(-0.85, ...nul.draws), hi = Math.max(0.85, ...nul.draws);
+  const bins = 46, counts = new Array(bins).fill(0);
+  for (const d of nul.draws) {
+    counts[Math.min(bins - 1, Math.max(0, Math.floor(((d - lo) / (hi - lo)) * bins)))] += 1;
+  }
+  const top = Math.max(...counts);
+  const bx = (t) => x0 + (w * (t - lo)) / (hi - lo);
+  ctx.fillStyle = T.theory;
+  ctx.globalAlpha = 0.8;
+  counts.forEach((c, i) => {
+    const bh = (h - 16) * (c / top);
+    ctx.fillRect(bx(lo + ((hi - lo) * i) / bins), y0 + h - 16 - bh,
+      Math.max(1, w / bins - 1), bh);
+  });
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = T.axis;
+  ctx.beginPath(); ctx.moveTo(x0, y0 + h - 16); ctx.lineTo(x0 + w, y0 + h - 16); ctx.stroke();
+  const ox = bx(nul.obs);
+  ctx.strokeStyle = T.highlight;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(ox, y0); ctx.lineTo(ox, y0 + h - 16); ctx.stroke();
+  label(ctx, x0, y0 + h - 5, lo.toFixed(1), T.ink3, "left", 10);
+  label(ctx, x0 + w, y0 + h - 5, hi.toFixed(1), T.ink3, "right", 10);
+  label(ctx, ox, y0 + h - 5, `p = ${nul.p.toFixed(3)}`,
+    T.highlight, ox > x0 + w / 2 ? "right" : "left", 10, "600");
+}
+
+/* --- shape A: two tabs ----------------------------------------------------- */
+
+function drawA(st, v) {
+  const h = tab === "ora" ? 300 : 396;
+  const ctx = fit(el("c-a"), h);
+  label(ctx, PAD.l, 16,
+    tab === "ora"
+      ? "Overrepresentation — cut the list, count the overlap"
+      : "Enrichment score — walk the list, no cut anywhere",
+    T.ink1, "left", 13, "600");
+
+  profile(ctx, 26, 92, st, v, { showCut: tab === "ora" });
+  barcode(ctx, 122, 18, st, v.setKey);
+
+  if (tab === "ora") {
+    axis(ctx, 144, st);
+    const o = oraOf(st, v);
+    table2x2(ctx, PAD.l, 178, o);
+    label(ctx, PAD.l, 276, `Fisher's exact test, one-sided:  p = ${fmtP(o.p)}`,
+      o.p < 0.05 ? T.highlight : T.ink1, "left", 13, "600");
+    return { o };
+  }
+  const g = running(ctx, 148, 108, st, v);
+  axis(ctx, 262, st);
+  const nul = gseaNull(st, v.setKey, makeRng(1000 + v.seed), PERMS);
+  label(ctx, PAD.l, 292, "1 000 permuted sets, the ranking held still",
+    T.ink2, "left", 11);
+  nullPanel(ctx, PAD.l, 300, PW, 88, nul);
+  return { g, nul };
+}
+
+/* --- shape B: one stage ---------------------------------------------------- */
+
+function drawB(st, v) {
+  const H = 424;
+  const ctx = fit(el("c-b"), H);
+  const o = oraOf(st, v);
+  label(ctx, PAD.l, 15, "One ranked list. Above the line: cut it and count. Below: walk it.",
+    T.ink1, "left", 12, "600");
+
+  profile(ctx, 24, 84, st, v);
+  barcode(ctx, 112, 16, st, v.setKey);
+  const g = running(ctx, 132, 96, st, v);
+  axis(ctx, 234, st);
+
+  /* the two answers, side by side, on one baseline */
+  ctx.strokeStyle = T.grid;
+  ctx.beginPath(); ctx.moveTo(PAD.l, 262); ctx.lineTo(PAD.l + PW, 262); ctx.stroke();
+  label(ctx, PAD.l, 278, "MOVES WITH THE CUTOFF", T.extreme, "left", 10, "600");
+  table2x2(ctx, PAD.l - 10, 292, o, 0.72);
+  label(ctx, PAD.l, 392, `p = ${fmtP(o.p)}`,
+    o.p < 0.05 ? T.highlight : T.ink1, "left", 13, "600");
+
+  const rx = PAD.l + PW / 2 + 24;
+  label(ctx, rx, 278, "DOES NOT", T.ink2, "left", 10, "600");
+  const nul = gseaNull(st, v.setKey, makeRng(1000 + v.seed), PERMS);
+  nullPanel(ctx, rx, 292, PW / 2 - 24, 84, nul);
+  label(ctx, rx, 392, `ES = ${g.es.toFixed(3)}   p = ${nul.p.toFixed(3)}`,
+    nul.p < 0.05 ? T.highlight : T.ink1, "left", 13, "600");
+  return { o, g, nul };
+}
+
+/* --- shape C: one stage, numbers in the readout ---------------------------- */
+
+function drawC(st, v) {
+  const H = 300;
+  const ctx = fit(el("c-c"), H);
+  const o = oraOf(st, v);
+  label(ctx, PAD.l, 15, "The ranking, who is in the set, and the walk — one axis for all three",
+    T.ink1, "left", 12, "600");
+
+  profile(ctx, 24, 104, st, v);
+  barcode(ctx, 132, 22, st, v.setKey);
+  const g = running(ctx, 158, 108, st, v);
+  axis(ctx, 272, st);
+
+  const nul = gseaNull(st, v.setKey, makeRng(1000 + v.seed), PERMS);
+  /* the real markup core builds: a bare div holding three spans */
+  const tile = (lab, val, note, hot) =>
+    `<div><span class="w-stat-label">${lab}</span>`
+    + `<span class="w-stat-value"${hot ? ` style="color:var(--c-highlight)"` : ""}>${val}</span>`
+    + `<span class="w-stat-note">${note}</span></div>`;
+  el("ro-c").innerHTML =
+    tile("Genes in the list", `${o.a + o.b}`, `of ${st.genes} ranked`, false)
+    + tile("In the list and the set", `${o.a}`, `of ${st.setSize} in the set`, false)
+    + tile("Overrepresentation", fmtP(o.p), `Fisher, background ${o.universe.toLocaleString()}`, o.p < 0.05)
+    + tile("Enrichment score", g.es.toFixed(3), `peak at rank ${g.esAt}`, false)
+    + tile("Score, permuted", nul.p.toFixed(3), `${PERMS.toLocaleString()} random sets`, nul.p < 0.05);
+  return { o, g, nul };
+}
+
+/* --- the grid of what moves ------------------------------------------------ */
+
+const CUTS = [10, 20, 40, 60, 100, 150, 200, 240];
+const UNIS = [400, 2000, 12000, 20000, 60000];
+
+function grid(st, v) {
+  const t = el("grid");
+  const head = `<tr><th>background \\ cutoff k</th>${
+    CUTS.map((k) => `<th>${k}</th>`).join("")}</tr>`;
+  const body = UNIS.map((u) => {
+    const cells = CUTS.map((k) => {
+      const o = oraOf(st, { ...v, k, universe: u });
+      const hit = o.p < 0.05;
+      return `<td class="${hit ? "hit" : ""}">${hit ? fmtP(o.p) : "—"}</td>`;
+    }).join("");
+    return `<tr><td>${u.toLocaleString()}</td>${cells}</tr>`;
+  }).join("");
+  t.innerHTML = head + body;
+
+  const flat = UNIS.flatMap((u) => CUTS.map((k) => oraOf(st, { ...v, k, universe: u }).p < 0.05));
+  const yes = flat.filter(Boolean).length;
+  const nul = gseaNull(st, v.setKey, makeRng(1000 + v.seed), PERMS);
+  el("verdict").innerHTML =
+    `Set ${v.setKey.toUpperCase()} is planted <b>${
+      { up: "high in the ranking", none: "at random", down: "low in the ranking" }[PLANT[v.setKey]]
+    }</b>. ORA calls it significant in <b>${yes} of ${flat.length}</b> cutoff × background`
+    + ` combinations on this seed — and it is the same data in every one of them.`
+    + ` GSEA, which has neither knob, returns <b>ES ${gsea(st, v.setKey).es.toFixed(3)},`
+    + ` p = ${nul.p.toFixed(3)}</b>.`;
+}
+
+/* --- captions and wiring --------------------------------------------------- */
+
+function fmtP(p) {
+  if (p >= 0.001) return p.toFixed(4);
+  return p.toExponential(1);
+}
+
+function render() {
+  const v = values();
+  el("seedv").value = v.seed;
+  el("shiftv").value = v.shift.toFixed(1);
+  el("cutv").value = v.k;
+  const st = makeStage(makeRng(v.seed), { shift: v.shift });
+  const a = drawA(st, v);
+  const b = drawB(st, v);
+  drawC(st, v);
+  const o = b.o, g = b.g;
+  const line = `set ${v.setKey.toUpperCase()} (${PLANT[v.setKey]})  seed ${v.seed}  shift ${
+    v.shift.toFixed(1)}  k ${v.k}  background ${v.universe.toLocaleString()}  `
+    + `list "${v.mode === "top" ? "top k" : "most changed"}"`;
+  el("cap-a").textContent = `${line}\noverlap a = ${o.a} of ${st.setSize}   ORA p = ${
+    fmtP(o.p)}   ES = ${g.es.toFixed(3)} at rank ${g.esAt}`;
+  el("cap-b").textContent = el("cap-a").textContent;
+  el("cap-c").textContent = el("cap-a").textContent;
+  grid(st, v);
+}
+
+for (const c of Object.values(ui)) c.addEventListener("input", render);
+el("tabs").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  tab = btn.dataset.tab;
+  for (const b of el("tabs").querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.tab === tab));
+  }
+  render();
+});
+render();
+</script>
+</body>
+</html>
