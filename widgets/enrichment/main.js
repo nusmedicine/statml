@@ -2,25 +2,42 @@
    Enrichment Analysis — PHM5003 `05 - Introduction to High Throughput Data`,
    notebook `09 - Enrichment Analysis`. Slot 5 of the high-throughput arc.
 
-   ONE RANKED LIST, READ THREE WAYS, ON ONE X AXIS: how much each gene changed,
-   which genes are in the set you asked about, and the walk that accumulates
-   the second against the first. Overrepresentation cuts the ranking; the
-   enrichment score does not cut it at all.
+   TWO TABS OVER ONE RANKED LIST, IN THE NOTEBOOK'S OWN ORDER. Overrepresentation
+   cuts the ranking at a threshold and tests the overlap; the enrichment score
+   walks the whole thing and cuts nothing. The lesson motivates the second BY the
+   first — "without needing a predefined threshold for gene selection" is its own
+   phrase — so the two are a sequence rather than a pair, and the tabs are that
+   sequence.
 
-   WHY THE FIGURE IS SHAPED LIKE THIS. Three shapes were drawn at the real
-   width against this engine (`_lab/enr-shape.html`): two tabs, one stage with
-   both answers drawn on the canvas, and this one — three strips sharing an
-   axis with every number in the readout. Kenneth picked this one. What it buys
-   is that every stroke on the canvas is the ranked list, so the strips are
-   twice as tall as the version that also drew its own answer panels; what it
-   costs is that ORA's 2 x 2 and GSEA's null are behind a toggle rather than
-   permanently on screen.
+   WHAT EACH TAB IS FOR, which is not the same as what each method is.
 
-   AND WHY THERE IS ONE WIDGET RATHER THAN TWO, which was an open call in the
-   catalogue. Every claim that survived measurement is a statement about ONE
-   ranked list scored two ways — the cutoff moving one number and not the
-   other, the down-regulated set that ORA cannot see and GSEA can. Split across
-   two widgets, not one of them can be made.
+   Tab 1 is not "how ORA works". It is the COMPLAINT: ORA's answer moves with two
+   numbers nobody chose, and both of them live inside ORA, so the complaint is
+   complete with GSEA nowhere on screen. Measured (`_lab/enr-measure.mjs`): the
+   eight cutoffs disagree with each other on 67% of seeds at a moderate effect,
+   and the background moves p across twenty orders of magnitude with the data
+   held fixed. Without that, tab 2's "it needs no threshold" is a relief from a
+   pain the reader never felt.
+
+   Tab 2 is GSEA, with ORA present only as a FOIL: the cutoff line is drawn
+   ghosted, and ORA's verdict is one readout tile. That is what carries the
+   result the whole widget is for — set C is genuinely enriched, ORA says
+   p = 0.96, the score says p = 0.002 — which needs both numbers visible at once
+   and would otherwise be lost to the split.
+
+   THE SHAPE WAS PICKED FROM DRAWINGS, not from argument. `_lab/enr-shape.html`
+   holds three at the real width against this engine: two tabs, one stage with
+   both answers on the canvas, and three strips with the numbers in the readout.
+   The third was built first; the tabs came back as Kenneth's pedagogical call,
+   and the split then paid for itself — with only one method per tab there is
+   room for its mechanism permanently on screen, so the toggle that used to hide
+   the 2 x 2 and the null is gone.
+
+   WHAT THE ARC MUST NOT SAY is that sophistication removes arbitrary choices.
+   ORA's two are the cutoff and the background; GSEA drops both and picks up the
+   ranking metric and the permutation scheme. The choices move, they do not
+   disappear — the same shape as widget 42, where the tree is evidence and the
+   cut is a choice. See NOT YET BUILT at the foot of this file.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
@@ -60,51 +77,54 @@ let grabbedPastMiddle = false;
    Keyed on the parameters it depends on; see `compute`. */
 const nullCache = { key: null, value: null };
 
+const isOra = (params) => params.view === "ora";
+
 /* --- geometry ------------------------------------------------------------- *
  * Everything is derived from `w` and `h`, so a narrow phone gets the same
  * figure rather than a clipped one.
  *
- * THE TWO TEST PANELS SIT SIDE BY SIDE WHERE THERE IS ROOM AND STACK WHERE
- * THERE IS NOT, so their height depends on the WIDTH — and `height` reads the
- * same function, which is the point of having one. With the canvas height
- * fixed at a single number, a phone opening the toggle took 210px out of the
- * three strips and left the walk 84px tall. Now the canvas grows instead. */
-const STRIPS_H = 266;
+ * ONE METHOD PER TAB MEANS ONE MECHANISM PER TAB, and each one now has the
+ * room the other tab's panels used to take: ORA's 2 x 2 where the walk was,
+ * GSEA's null where the table was. Neither is behind a toggle any more. */
 const AXIS_H = 20;
+const TITLE_H = 26;
 
-/* The 2 x 2 panel is 103px from its heading to the foot of its second caption,
-   MEASURED off the fillText boxes rather than counted off the source. Stacked,
-   the null panel starts one clear line below that; side by side, both fit in
-   the taller of the two plus room for the caption under the histogram. */
-const PANEL_H = 103;
-const STACK_AT = PANEL_H + 15;
-function gateHeight(w, gateOpen) {
-  if (!gateOpen) return 0;
-  return w < 560 ? STACK_AT + 106 : 132;
+/* The 2 x 2 from its heading to the foot of its second caption, and the null
+   from its heading to the foot of its caption. Both MEASURED off the fillText
+   boxes rather than counted off the source. */
+const TABLE_H = 103;
+const NULL_H = 96;
+
+function canvasHeight(w, view) {
+  return view === "ora"
+    ? TITLE_H + 180 + AXIS_H + 12 + TABLE_H + 8
+    : TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8;
 }
-const canvasHeight = (w, gateOpen) =>
-  26 + STRIPS_H + AXIS_H + (gateOpen ? gateHeight(w, gateOpen) + 8 : 0);
 
-function layout(w, h, gateOpen) {
+function layout(w, h, view) {
   const padL = w < 460 ? 34 : 46;
   const padR = w < 460 ? 8 : 14;
   const x0 = padL;
   const pw = w - padL - padR;
+  const ora = view === "ora";
 
-  const axisH = AXIS_H;
-  const gateH = gateHeight(w, gateOpen);
-  const strips = h - 26 - axisH - (gateOpen ? gateH + 8 : 0);
-  const profileH = Math.round(strips * 0.44);
-  const codeH = Math.max(14, Math.round(strips * 0.10));
-  const walkH = strips - profileH - codeH - 10;
+  const panelH = ora ? TABLE_H : NULL_H;
+  const strips = h - TITLE_H - AXIS_H - 12 - panelH - 8;
 
-  const profileY = 26;
+  /* ORA HAS NO WALK, so its ranking gets the whole strip budget and stands
+     nearly twice as tall as the version that carried both. That extra height
+     is the whole of what the tab split buys the figure. */
+  const profileH = ora ? strips - 26 - 5 : Math.round(strips * 0.42);
+  const codeH = ora ? 26 : Math.max(14, Math.round(strips * 0.09));
+  const walkH = ora ? 0 : strips - profileH - codeH - 10;
+
+  const profileY = TITLE_H;
   const codeY = profileY + profileH + 5;
-  const walkY = codeY + codeH + 5;
-  const axisY = walkY + walkH;
+  const walkY = ora ? codeY + codeH : codeY + codeH + 5;
+  const axisY = ora ? codeY + codeH : walkY + walkH;
   return {
     x0, pw, profileY, profileH, codeY, codeH, walkY, walkH, axisY,
-    gateY: axisY + axisH + 8, gateH, narrow: w < 560,
+    panelY: axisY + AXIS_H + 12, narrow: w < 560,
   };
 }
 
@@ -133,6 +153,12 @@ const supMinus = (e) => String(Number(e)).split("").map((c) => SUPS[c] ?? c).joi
    for one idea on one figure. */
 const signed = (v, digits = 3) => v.toFixed(digits).replace("-", "−");
 
+const peakSoFar = (trace, shown) => {
+  let es = 0;
+  for (let i = 0; i < shown; i += 1) if (Math.abs(trace[i]) > Math.abs(es)) es = trace[i];
+  return es;
+};
+
 /* --- the widget ------------------------------------------------------------ */
 
 defineWidget({
@@ -148,15 +174,30 @@ defineWidget({
   layout: "side",
 
   /* Core hands `height` the values SPREAD, plus `w` — where `legend` gets
-     `{ params }`. Both arguments are load-bearing here: the toggle adds a
-     stage, and how tall that stage is depends on whether it fits in two
-     columns. */
-  height: ({ tests, w }) => canvasHeight(w, Boolean(tests)),
+     `{ params }`. The two tabs are different heights because they hold
+     different panels, not because either was tuned to look right. */
+  height: ({ view, w }) => canvasHeight(w, view),
 
   params: {
-    /* THE QUESTION COMES FIRST: which gene set are we asking about. A data
-       parameter, because a different set is a different walk — the trace the
-       animation reveals is a walk OF this set, not a view of one. */
+    /* THE TAB FIRST, and the order of its options is the lesson's order. A
+       reader who works left to right meets ORA's complaint before the method
+       that answers it, which is the whole argument of the notebook's § 2. */
+    view: {
+      type: "segmented",
+      label: "Method",
+      options: [
+        { value: "ora", label: "Overrepresentation",
+          detail: "cut the ranking, count the overlap, test it with Fisher's exact test" },
+        { value: "gsea", label: "Enrichment score",
+          detail: "walk the whole ranking; no cut anywhere in it" },
+      ],
+      default: "ora",
+      display: true,
+    },
+
+    /* WHICH GENE SET ARE WE ASKING ABOUT. A data parameter, because a different
+       set is a different walk — the trace the animation reveals is a walk OF
+       this set, not a view of one. */
     setKey: {
       type: "segmented",
       label: "Gene set",
@@ -184,10 +225,15 @@ defineWidget({
 
     test: { type: "section", label: "The test" },
 
-    /* `display: true`, and it is the widget's claim made by the control's own
-       behaviour: moving the cutoff must leave a walk the reader has just built
-       exactly where it was. Core recomputes the state and keeps the animation,
-       so ORA's numbers move under a curve that does not. */
+    /* ON BOTH TABS, and deliberately — this is the one control widget 42's rule
+       about hiding an inert control does NOT cover. On the enrichment tab it
+       looks like it should do nothing, and that IS the lesson: it moves ORA's
+       verdict in the foil tile and leaves the score untouched. A control the
+       reader watches fail to matter is not the same as a dead one.
+
+       `display: true`, so moving it leaves a walk the reader has just built
+       exactly where it was. The widget's claim, made by the control's own
+       behaviour rather than asserted in a caption. */
     cutoff: {
       type: "int",
       label: "Gene list: the top k",
@@ -201,7 +247,12 @@ defineWidget({
     /* The fix a reader proposes within a minute of meeting the first one.
        Offered rather than applied, because § 6 measured it making ORA worse:
        it rescues the down-regulated set from 0% to 5-13% and costs the
-       up-regulated one 95% -> 20%. */
+       up-regulated one 95% -> 20%.
+
+       ORA'S TAB ONLY. It and the background are how ORA cuts and what ORA
+       counts against; on the enrichment tab they would be two more controls
+       for a method that reads neither. The cutoff earns its place there
+       because watching it not matter is the point; these two do not. */
     listMode: {
       type: "segmented",
       label: "Cut the ranking",
@@ -211,6 +262,7 @@ defineWidget({
       ],
       default: "top",
       display: true,
+      when: { param: "view", equals: "ora" },
     },
 
     /* `d <- 10000 - (a + b + c)`, which is cell 3 of the notebook with no
@@ -225,24 +277,7 @@ defineWidget({
       })),
       default: "400",
       display: true,
-    },
-
-    /* ONE TOGGLE FOR BOTH MECHANISMS. The 2 x 2 and the permutation null are
-       the same kind of object — how each of the two numbers in the readout was
-       arrived at — so they open together or the reader has to find two doors
-       to the same room.
-
-       NOT `type: "gate"`, which was tried first and is wrong here: core takes
-       step, run and reset out of the rail while a gate is shut, because a gate
-       means the animation belongs to the stage behind it. Here the walk IS the
-       main stage and these two panels are its footnotes, so gating them hid
-       the Walk button behind a door that has nothing to do with it. */
-    tests: {
-      type: "bool",
-      label: "Show how each p-value is computed",
-      detail: "the 2 × 2 Fisher's test reads, and the scores a thousand random gene sets reach",
-      default: false,
-      display: true,
+      when: { param: "view", equals: "ora" },
     },
 
     speed: {
@@ -254,28 +289,32 @@ defineWidget({
       default: "medium",
       display: true,
       afterDrive: true,
+      when: { param: "view", equals: "gsea" },
     },
 
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
   },
 
-  /* The legend follows the figure: the null histogram is only drawn when the
-     gate is open, so its entry is only in the legend then. */
+  /* ONE TAB'S MARKS AT A TIME. Sharing a legend across both would describe a
+     running sum beside a figure that draws none — the rule widget 30 earned
+     and widget 42 restated. */
   legend: ({ params }) => {
-    const entries = [
+    const shared = [
       { token: "empirical", label: "how much each gene changed, ranked", mark: "bar" },
       { token: "highlight", label: `the thirty genes of set ${params.setKey.toUpperCase()}`, mark: "bar" },
-      { token: "extreme", label: "the cutoff, and the gene list it makes", mark: "line" },
-      { token: "empirical", label: "the running sum: up inside the set, down outside", mark: "line" },
     ];
-    if (params.tests) {
-      entries.push({
-        token: "theory",
-        label: `the score ${PERMS.toLocaleString()} random gene sets of the same size reach`,
-        mark: "bar",
-      });
+    if (isOra(params)) {
+      return [
+        ...shared,
+        { token: "extreme", label: "the cutoff, and the gene list it makes", mark: "line" },
+      ];
     }
-    return entries;
+    return [
+      ...shared,
+      { token: "empirical", label: "the running sum: up inside the set, down outside", mark: "line" },
+      { token: "extreme", label: "the cutoff — drawn, but the score never reads it", mark: "dash" },
+      { token: "theory", label: `the score ${PERMS.toLocaleString()} random gene sets of the same size reach`, mark: "bar" },
+    ];
   },
 
   compute: ({ params, rng }) => {
@@ -299,7 +338,7 @@ defineWidget({
        the whole state on every DISPLAY change — so dragging the cutoff on the
        figure paid for it once per pointermove. Measured at 15.5 ms a frame
        against a 16.7 ms budget: not broken, but with nothing left over, and the
-       drag is the one gesture this widget exists for.
+       drag is the one gesture this widget exists for. Now 2.5 ms.
 
        The key is every parameter the null depends on. It cannot go stale
        because `compute` is pure and seeded: the same three values give the same
@@ -315,20 +354,18 @@ defineWidget({
 
   /* THE CUTOFF IS DRAGGED ON THE FIGURE, and this is the gesture the widget is
      for: take hold of the line, pull it, and watch one number move while the
-     curve under it does not. The rail slider stays — it is the keyboard and
+     other does not. The rail slider stays — it is the keyboard and
      screen-reader route to the same parameter, and principle 5.7's rule for
      regions applies here for the same reason.
 
      THE STRIP ONLY, not the whole canvas. Widget 34 paid for the ungated
      version: a casual click on another panel nudged its threshold by ~0.02 per
-     8px and the reader met the evidence later as a number they never set. Here
-     the walk panel sits directly below and is the thing a reader is most likely
-     to click on while watching it. */
+     8px and the reader met the evidence later as a number they never set. */
   drag: {
     params: ["cutoff"],
     cursor: "ew-resize",
     hit: ({ x, y, w, h, params }) => {
-      const L = layout(w, h, Boolean(params.tests));
+      const L = layout(w, h, params.view);
       const on = x >= L.x0 && x <= L.x0 + L.pw
         && y >= L.profileY - 6 && y <= L.codeY + L.codeH + 4;
       /* WHICH HALF THE POINTER IS IN, remembered here because `value` is handed
@@ -353,7 +390,7 @@ defineWidget({
          on the right-hand edge therefore reads its dx backwards, or that edge
          runs away from the pointer instead of following it. */
     value: ({ dx, start, params, state, w, h }) => {
-      const L = layout(w, h, Boolean(params.tests));
+      const L = layout(w, h, params.view);
       const perGene = L.pw / state.stage.genes;
       const both = params.listMode === "both";
       const dir = both && grabbedPastMiddle ? -1 : 1;
@@ -374,6 +411,10 @@ defineWidget({
       shown: fromScratch ? 0 : clamp(params.shown, 0, state.stage.genes),
       acc: 0,
       done: false,
+      /* Core takes step and run out of the rail when a widget says there is
+         nothing to drive. ORA's tab draws no walk, so a live Walk button there
+         would build a curve the reader cannot see. */
+      inert: isOra(params),
     }),
 
     advance: (anim, { dt, params, state }) => {
@@ -402,18 +443,19 @@ defineWidget({
       return true;
     },
 
-    /* Nothing downstream of a display change: the trace belongs to the set and
-       the seed, and both are data parameters. Only the clamp is real — a seed
-       change re-inits, but `shown` is carried across a `rebuild` and the stage
-       is always the same length, so this is a guard rather than a fix. */
-    rebuild: (anim, { state }) => {
+    /* SWITCHING TABS MUST NOT DISCARD THE WALK. `view` is a display parameter,
+       so core rebuilds rather than re-inits, and the only thing that actually
+       changes is whether there is anything to drive. */
+    rebuild: (anim, { params, state }) => {
       anim.shown = clamp(anim.shown, 0, state.stage.genes);
+      anim.inert = isOra(params);
     },
   },
 
   draw: ({ ctx, colors, w, h, params, state, anim }) => {
     const { stage, walk, nul } = state;
-    const L = layout(w, h, params.tests);
+    const ora1 = isOra(params);
+    const L = layout(w, h, params.view);
     const shown = clamp(anim?.shown ?? 0, 0, stage.genes);
     ctx.__font = colors.font;
     ctx.save();
@@ -424,8 +466,12 @@ defineWidget({
 
     /* ---- 1. the ranking ---------------------------------------------------- */
 
-    text(ctx, "Every gene, ranked by how much it changed", L.x0, 12,
-      { fill: colors.ink2, size: 11 });
+    /* Both captions fit the NARROWEST canvas, 286px, measured rather than
+       judged: the first pair ran off a phone by 30px each. */
+    text(ctx, ora1
+      ? "Every gene ranked, and where the list is cut"
+      : "Every gene ranked — the score reads all of it",
+      L.x0, 12, { fill: colors.ink2, size: 11 });
 
     const sorted = stage.rank.map((g) => stage.score[g]);
     const span = Math.max(...sorted.map(Math.abs));
@@ -434,9 +480,14 @@ defineWidget({
 
     /* THE GENE LIST, as runs of shaded columns rather than one rectangle. At
        "both ends" the list is two blocks with the middle of the ranking
-       between them, and a single rectangle would quietly claim otherwise. */
+       between them, and a single rectangle would quietly claim otherwise.
+
+       ON THE ENRICHMENT TAB IT IS A GHOST. Drawing nothing there would be
+       tidier and would lose the argument: the score's independence from the
+       cutoff is only visible against a cutoff. */
+    const listAlpha = ora1 ? 0.13 : 0.05;
     ctx.fillStyle = colors.extreme;
-    ctx.globalAlpha = 0.13;
+    ctx.globalAlpha = listAlpha;
     let runFrom = null;
     for (let i = 0; i <= stage.genes; i += 1) {
       const hit = i < stage.genes && inList.has(stage.rank[i]);
@@ -462,13 +513,18 @@ defineWidget({
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    /* The cutoff edges, drawn on top of the shading they bound, each with a
-       grip at the top. The grip is the affordance: an `ew-resize` cursor only
-       appears once the pointer is already over the strip, so without a mark
-       there is nothing to tell a reader the line can be taken hold of. */
+    /* The cutoff edges, drawn on top of the shading they bound; on ORA's tab
+       each carries a grip at the top. The grip is the affordance — an
+       `ew-resize` cursor only appears once the pointer is already over the
+       strip, so without a mark there is nothing to say the line can be taken
+       hold of. On the enrichment tab the line is dashed and ungripped: still
+       draggable, because watching it not matter is the lesson, but no longer
+       advertising itself as the thing to touch. */
     ctx.strokeStyle = colors.extreme;
     ctx.fillStyle = colors.extreme;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = ora1 ? 1.5 : 1;
+    ctx.globalAlpha = ora1 ? 1 : 0.55;
+    if (!ora1) ctx.setLineDash([3, 3]);
     for (let i = 1; i < stage.genes; i += 1) {
       if (inList.has(stage.rank[i - 1]) !== inList.has(stage.rank[i])) {
         const x = xAt(i);
@@ -476,9 +532,11 @@ defineWidget({
         ctx.moveTo(x, L.profileY);
         ctx.lineTo(x, L.profileY + L.profileH + 5 + L.codeH);
         ctx.stroke();
-        ctx.fillRect(x - 3, L.profileY - 4, 6, 6);
+        if (ora1) ctx.fillRect(x - 3, L.profileY - 4, 6, 6);
       }
     }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
 
     text(ctx, `+${span.toFixed(1)}`, L.x0 - 5, L.profileY + 6,
       { fill: colors.ink3, align: "right", size: 10 });
@@ -498,54 +556,54 @@ defineWidget({
     text(ctx, `set ${params.setKey.toUpperCase()}`, L.x0 - 5, L.codeY + L.codeH / 2,
       { fill: colors.ink3, align: "right", size: 10 });
 
-    /* ---- 3. the walk ------------------------------------------------------- */
+    /* ---- 3. the walk, on the enrichment tab only --------------------------- */
 
-    const wSpan = Math.max(0.35, Math.abs(walk.es) * 1.2);
-    const wFor = (t) => L.walkY + L.walkH / 2 - (L.walkH / 2 - 6) * (t / wSpan);
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(L.x0, wFor(0)); ctx.lineTo(L.x0 + L.pw, wFor(0)); ctx.stroke();
-    text(ctx, `+${wSpan.toFixed(2)}`, L.x0 - 5, L.walkY + 6,
-      { fill: colors.ink3, align: "right", size: 10 });
-    text(ctx, `−${wSpan.toFixed(2)}`, L.x0 - 5, L.walkY + L.walkH - 6,
-      { fill: colors.ink3, align: "right", size: 10 });
-
-    if (shown === 0) {
-      /* THE WIDGET OPENS ON ITS DATA, NOT ITS ANSWER. The ranking and the set
-         are given; the walk is the thing the reader builds. */
-      text(ctx, "Press Walk to step through the ranking",
-        L.x0 + L.pw / 2, L.walkY + L.walkH / 2,
-        { fill: colors.ink3, align: "center", size: 12 });
-    } else {
-      ctx.strokeStyle = colors.empirical;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(L.x0, wFor(0));
-      for (let i = 0; i < shown; i += 1) ctx.lineTo(xAt(i + 1), wFor(walk.trace[i]));
-      ctx.stroke();
-
-      /* THE PEAK SO FAR, not the peak of the finished walk. A widget that
-         printed the final score while the line was still climbing would be
-         telling the reader the answer it is asking them to find. */
-      let es = 0, esAt = 0;
-      for (let i = 0; i < shown; i += 1) {
-        if (Math.abs(walk.trace[i]) > Math.abs(es)) { es = walk.trace[i]; esAt = i + 1; }
-      }
-      const px = xAt(esAt);
-      ctx.strokeStyle = colors.empirical;
-      ctx.setLineDash([2, 3]);
+    if (!ora1) {
+      const wSpan = Math.max(0.35, Math.abs(walk.es) * 1.2);
+      const wFor = (t) => L.walkY + L.walkH / 2 - (L.walkH / 2 - 6) * (t / wSpan);
+      ctx.strokeStyle = colors.grid;
       ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(px, wFor(0)); ctx.lineTo(px, wFor(es)); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = colors.empirical;
-      ctx.beginPath(); ctx.arc(px, wFor(es), 3, 0, 2 * Math.PI); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(L.x0, wFor(0)); ctx.lineTo(L.x0 + L.pw, wFor(0)); ctx.stroke();
+      text(ctx, `+${wSpan.toFixed(2)}`, L.x0 - 5, L.walkY + 6,
+        { fill: colors.ink3, align: "right", size: 10 });
+      text(ctx, `−${wSpan.toFixed(2)}`, L.x0 - 5, L.walkY + L.walkH - 6,
+        { fill: colors.ink3, align: "right", size: 10 });
 
-      /* The label goes on whichever side of the peak has room. */
-      const right = px < L.x0 + L.pw - 90;
-      text(ctx, `${shown >= stage.genes ? "ES" : "so far"} ${signed(es)}`,
-        px + (right ? 7 : -7), wFor(es) + (es > 0 ? -9 : 9),
-        { fill: colors.empirical, align: right ? "left" : "right", size: 11, weight: "600" });
+      if (shown === 0) {
+        /* THE WIDGET OPENS ON ITS DATA, NOT ITS ANSWER. The ranking and the set
+           are given; the walk is the thing the reader builds. */
+        text(ctx, "Press Walk to step through the ranking",
+          L.x0 + L.pw / 2, L.walkY + L.walkH / 2,
+          { fill: colors.ink3, align: "center", size: 12 });
+      } else {
+        ctx.strokeStyle = colors.empirical;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(L.x0, wFor(0));
+        for (let i = 0; i < shown; i += 1) ctx.lineTo(xAt(i + 1), wFor(walk.trace[i]));
+        ctx.stroke();
+
+        /* THE PEAK SO FAR, not the peak of the finished walk. A widget that
+           printed the final score while the line was still climbing would be
+           telling the reader the answer it is asking them to find. */
+        const es = peakSoFar(walk.trace, shown);
+        let esAt = 0;
+        for (let i = 0; i < shown; i += 1) if (walk.trace[i] === es) { esAt = i + 1; break; }
+        const px = xAt(esAt);
+        ctx.strokeStyle = colors.empirical;
+        ctx.setLineDash([2, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, wFor(0)); ctx.lineTo(px, wFor(es)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = colors.empirical;
+        ctx.beginPath(); ctx.arc(px, wFor(es), 3, 0, 2 * Math.PI); ctx.fill();
+
+        const right = px < L.x0 + L.pw - 90;
+        text(ctx, `${shown >= stage.genes ? "ES" : "so far"} ${signed(es)}`,
+          px + (right ? 7 : -7), wFor(es) + (es > 0 ? -9 : 9),
+          { fill: colors.empirical, align: right ? "left" : "right", size: 11, weight: "600" });
+      }
     }
 
     /* ---- the shared axis --------------------------------------------------- */
@@ -568,17 +626,14 @@ defineWidget({
     text(ctx, `rank ${stage.genes}`, L.x0 + L.pw, L.axisY + 12,
       { fill: colors.ink3, align: "right", size: 10 });
 
-    /* ---- the gate: the two mechanisms -------------------------------------- */
+    /* ---- the tab's own mechanism, permanently on screen -------------------- */
 
-    if (params.tests) {
-      const o = ora(stage, params.setKey, params.cutoff, Number(params.background), params.listMode);
-      const half = L.narrow ? L.pw : L.pw / 2 - 14;
-      const leftX = L.x0;
-      const rightX = L.narrow ? L.x0 : L.x0 + L.pw / 2 + 14;
-      const rightY = L.narrow ? L.gateY + STACK_AT : L.gateY;
-      drawTable(ctx, colors, leftX, L.gateY, half, o);
-      drawNull(ctx, colors, rightX, rightY, half, shown >= stage.genes ? nul : null,
-        shown >= stage.genes ? walk.es : null);
+    if (ora1) {
+      drawTable(ctx, colors, L.x0, L.panelY, L.pw,
+        ora(stage, params.setKey, params.cutoff, Number(params.background), params.listMode));
+    } else {
+      drawNull(ctx, colors, L.x0, L.panelY, L.pw,
+        shown >= stage.genes ? nul : null, shown >= stage.genes ? walk.es : null);
     }
 
     ctx.restore();
@@ -590,52 +645,58 @@ defineWidget({
     const done = shown >= stage.genes;
     const o = ora(stage, params.setKey, params.cutoff, Number(params.background), params.listMode);
 
-    const tiles = [
-      { label: "Genes in the list", value: `${o.k}`, note: `of ${stage.genes} ranked` },
-      { label: "In the list and the set", value: `${o.a}`,
-        note: `of ${stage.sets[params.setKey].size} in set ${params.setKey.toUpperCase()}` },
-      { label: "Overrepresentation", value: fmtP(o.p),
-        note: `Fisher's exact test against ${o.universe.toLocaleString()} genes` },
-      { break: true },
-    ];
-
-    if (!done) {
-      tiles.push({
-        label: "Enrichment score",
-        value: shown === 0 ? "—" : `${signed(peakSoFar(walk.trace, shown))}…`,
-        note: shown === 0
-          ? "press Walk — it needs no cutoff and no background"
-          : `${shown} of ${stage.genes} genes walked`,
-      });
-      return tiles;
+    if (isOra(params)) {
+      return [
+        { label: "Genes in the list", value: `${o.k}`, note: `of ${stage.genes} ranked` },
+        { label: "In the list and the set", value: `${o.a}`,
+          note: `of ${stage.sets[params.setKey].size} in set ${params.setKey.toUpperCase()}` },
+        { label: "Overrepresentation", value: fmtP(o.p),
+          note: `Fisher's exact test against ${o.universe.toLocaleString()} genes` },
+      ];
     }
 
-    tiles.push(
+    /* ORA AS A FOIL, one tile. This is what the tab split would otherwise cost:
+       the result the widget is for — set C, genuinely enriched, ORA p = 0.96
+       and the score p = 0.002 — needs both numbers on one screen, and this is
+       the screen where the second one is being taught. */
+    const foil = {
+      label: "Overrepresentation said",
+      value: fmtP(o.p),
+      note: `cut at ${o.k}, against ${o.universe.toLocaleString()} genes`,
+    };
+
+    if (!done) {
+      return [
+        foil,
+        { break: true },
+        { label: "Enrichment score",
+          value: shown === 0 ? "—" : `${signed(peakSoFar(walk.trace, shown))}…`,
+          note: shown === 0
+            ? "press Walk — it reads neither of those numbers"
+            : `${shown} of ${stage.genes} genes walked` },
+      ];
+    }
+    return [
+      foil,
+      { break: true },
       { label: "Enrichment score", value: signed(walk.es),
         note: `the walk's furthest point from zero, at rank ${walk.esAt}` },
       { label: "Score, permuted", value: nul.p.toFixed(3),
         note: `${PERMS.toLocaleString()} random sets of the same size` },
-    );
-    return tiles;
+    ];
   },
 });
 
-function peakSoFar(trace, shown) {
-  let es = 0;
-  for (let i = 0; i < shown; i += 1) if (Math.abs(trace[i]) > Math.abs(es)) es = trace[i];
-  return es;
-}
+/* --- each tab's mechanism --------------------------------------------------- */
 
-/* --- the gate's two panels -------------------------------------------------- */
-
-/* ORA's mechanism: the 2 x 2 Fisher's test reads. `d` is written as the
-   subtraction it is, because the whole of the background claim is that this
-   cell was filled in by a number nobody looked at. */
+/* ORA's: the 2 x 2 Fisher's test reads. `d` is written as the subtraction it
+   is, because the whole of the background claim is that this cell was filled in
+   by a number nobody looked at. */
 function drawTable(ctx, colors, x0, y0, w, o) {
-  const labW = Math.min(112, w * 0.42);
-  const cw = (w - labW) / 2;
+  const labW = Math.min(120, w * 0.30);
+  const cw = Math.min(150, (w - labW) / 2);
   const ch = 22;
-  text(ctx, "Overrepresentation: one 2 × 2", x0, y0 - 2,
+  text(ctx, "What Fisher's exact test is handed", x0, y0 - 2,
     { fill: colors.ink2, size: 11, weight: "600" });
   text(ctx, "in the set", x0 + labW + cw / 2, y0 + 16,
     { fill: colors.ink3, align: "center", size: 10 });
@@ -666,23 +727,21 @@ function drawTable(ctx, colors, x0, y0, w, o) {
       });
     }
   }
-  /* BOTH LINES START AT THE PANEL'S OWN LEFT EDGE, not under the table. Set in
-     from `labW` they were 271px long in a 341px half and ran under the
-     histogram beside them. Both were shortened again after measuring them
-     against a 286px canvas — the narrowest phone — where they ran 8px and 34px
-     past its right edge. */
+  /* BOTH LINES START AT THE PANEL'S OWN LEFT EDGE, not under the table, and
+     both were shortened after measuring them against a 286px canvas — the
+     narrowest phone — where they ran past its right edge. */
   text(ctx, `d = ${o.universe.toLocaleString()} − (${o.a} + ${o.b} + ${o.c}) = ${o.d}`,
     x0, y0 + 26 + 2 * ch + 13, { fill: colors.ink3, size: 10 });
   text(ctx, "the background is the only number nobody measured",
     x0, y0 + 26 + 2 * ch + 27, { fill: colors.ink3, size: 10 });
 }
 
-/* GSEA's mechanism: what a thousand random sets of the same size score.
+/* GSEA's: what a thousand random sets of the same size score.
    The null is TWO HUMPS and that is correct — the score is the furthest a walk
    gets from zero, so a walk that stays near zero is the rarest outcome and not
    the commonest. The caption says so, because every reader asks. */
 function drawNull(ctx, colors, x0, y0, w, nul, obs) {
-  text(ctx, `Enrichment score: ${PERMS.toLocaleString()} random sets`, x0, y0 - 2,
+  text(ctx, `What ${PERMS.toLocaleString()} random gene sets score`, x0, y0 - 2,
     { fill: colors.ink2, size: 11, weight: "600" });
   const h = 68;
   if (!nul) {
@@ -721,3 +780,26 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
   text(ctx, "two humps: a score is how far a walk gets from zero",
     x0, y0 + 16 + h + 6, { fill: colors.ink3, size: 10 });
 }
+
+/* ============================================================================
+   NOT YET BUILT, and recorded here because the sequence is incomplete without
+   it rather than because it would be nice to have.
+
+   THE RANKING METRIC IS GSEA'S OWN INVISIBLE CHOICE, the one that replaces the
+   cutoff rather than abolishing it — and the notebook contains the problem
+   already without remarking on it. Cell 6 defines the rank as
+   -log10(p) x sign(logFC); cell 9 then ranks by plain log2FoldChange. Two
+   metrics, two rankings, two enrichment scores, one lesson.
+
+   Building it means the stage must simulate an experiment rather than hand out
+   one number per gene: n samples per arm, a fold change AND a t-test p per
+   gene, so both metrics are available and genuinely disagree — logFC favours
+   large changes however noisy, signed -log10(p) favours consistent ones however
+   small. `makeStage` currently draws `mu + rng.normal()` and stops.
+
+   The qualitative claims in `_lab/enr-measure.mjs` survive that change — the
+   background arithmetic is untouched, and ORA's blindness to a down-regulated
+   set is structural — but every RATE in §§ 4-6 is measured on the present stage
+   and would have to be measured again. That is the cost, and it is the reason
+   this is a separate round rather than a quiet addition.
+   ========================================================================= */
