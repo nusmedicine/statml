@@ -637,7 +637,11 @@ defineWidget({
     const foil = {
       label: "Overrepresentation p",
       value: fmtP(mine.p),
-      note: `cut at ${mine.k}; ${fmtP(mine.padj)} after correction`,
+      /* NO ADJUSTED p HERE EITHER. This tile is one pathway's number on a
+         one-pathway page, and Benjamini-Hochberg over eight has no standing
+         beside it. What the note owes the reader is what ORA's p was computed
+         from, which is the size of the list. */
+      note: `from a list of ${mine.k} genes`,
     };
 
     const collection = isAll(params)
