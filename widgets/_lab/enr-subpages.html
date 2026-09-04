@@ -1,0 +1,230 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Enrichment · sub-pages mock-up</title>
+<!--
+  WHAT THIS IS FOR. Kenneth asked on 2026-09-04 for each method to split into
+  two sub-pages: one pathway, and all pathways. That is a structural change with
+  five sub-decisions inside it, and this page exists so those get decided by
+  looking rather than by me guessing. Nothing here is built yet.
+
+  Not deployed — widgets/_lab/ never is.
+-->
+<style>
+  :root {
+    --bg: #16161a; --panel: #1e1e24; --line: #33333d;
+    --ink1: #f2f2f5; --ink2: #b9b9c4; --ink3: #85858f;
+    --accent: #4a9eff; --warn: #e8a33d; --new: #7ee081;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 32px 60px; background: var(--bg); color: var(--ink1);
+    font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 34px 0 10px; color: var(--ink2); font-weight: 600; }
+  p.lede { color: var(--ink2); margin: 0 0 20px; max-width: 70ch; }
+  .grid { display: grid; grid-template-columns: 210px 1fr; gap: 22px; align-items: start; }
+
+  /* the rail */
+  .rail { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .rail .lab { font-size: 11px; color: var(--ink2); margin: 12px 0 4px; }
+  .rail .lab:first-child { margin-top: 0; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg span { flex: 1; text-align: center; padding: 5px 4px; font-size: 11px; color: var(--ink2); }
+  .seg span.on { background: #2c2c36; color: var(--ink1); font-weight: 600; }
+  .sec { font-size: 11px; font-weight: 700; margin: 16px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .ctl { font-size: 11px; color: var(--ink2); padding: 3px 0; }
+  .ctl.gone { color: #5a5a63; text-decoration: line-through; }
+  .ctl.newly { color: var(--new); }
+
+  /* the stage */
+  .stage { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .panel { border: 1px dashed var(--line); border-radius: 5px; padding: 10px 12px; margin-bottom: 9px; }
+  .panel .t { font-size: 12px; font-weight: 600; }
+  .panel .d { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+  .panel.tall { padding-bottom: 34px; }
+  .readout { display: flex; gap: 24px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .readout div { font-size: 11px; color: var(--ink3); }
+  .readout b { display: block; font-size: 17px; color: var(--ink1); font-weight: 600; }
+  .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 1px; }
+  .tag.new { background: #1e3a22; color: var(--new); }
+  .tag.moved { background: #3a3320; color: var(--warn); }
+
+  table.mock { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+  table.mock th { text-align: right; color: var(--ink3); font-weight: 400; padding: 2px 4px; }
+  table.mock th:first-child, table.mock td:first-child { text-align: left; }
+  table.mock td { text-align: right; padding: 2px 4px; color: var(--ink2); }
+  table.mock tr.hot td { color: var(--ink1); font-weight: 600; background: #2a2a34; }
+
+  .q { background: #22222a; border-left: 3px solid var(--warn); padding: 12px 16px; margin: 10px 0; border-radius: 0 5px 5px 0; }
+  .q b { color: var(--warn); }
+  .q p { margin: 6px 0 0; color: var(--ink2); font-size: 13px; }
+</style>
+
+<h1>Enrichment — four sub-pages</h1>
+<p class="lede">
+  Method × view, as asked. What is <span style="color:var(--new)">green</span> is new,
+  what is <span style="color:var(--warn)">amber</span> moved, struck-through is removed.
+  Panels are drawn to their real proportions, not their real contents.
+</p>
+
+<h2>1 · Overrepresentation → One pathway</h2>
+<div class="grid">
+  <div class="rail">
+    <div class="lab">Method</div>
+    <div class="seg"><span class="on">Overrepresentation</span><span>Enrichment score</span></div>
+    <div class="lab">View <span class="tag new">new</span></div>
+    <div class="seg"><span class="on">One pathway</span><span>All pathways</span></div>
+    <div class="sec">The data</div>
+    <div class="ctl">Differential expression</div>
+    <div class="ctl">Seed</div>
+    <div class="sec">The test</div>
+    <div class="ctl gone">Rank the genes by</div>
+    <div class="ctl">Genes in the list</div>
+    <div class="ctl">Pathway</div>
+    <div class="ctl">Background</div>
+  </div>
+  <div class="stage">
+    <div class="panel tall"><div class="t">Venn — your list, the pathway, the overlap</div>
+      <div class="d">areas are gene counts, and so is the overlap</div></div>
+    <div class="panel"><div class="t">The same four numbers, as a 2 × 2</div>
+      <div class="d">d = 400 − (a + b + c); the background is chosen, not measured</div></div>
+    <div class="readout">
+      <div>Genes in the list<b>60</b>of 400 measured</div>
+      <div>In the list and the pathway<b>19</b>of 45 in Pathway 3</div>
+      <div>Overrepresentation<b>1.9 × 10⁻⁶</b>Fisher's exact test</div>
+    </div>
+  </div>
+</div>
+
+<h2>2 · Overrepresentation → All pathways</h2>
+<div class="grid">
+  <div class="rail">
+    <div class="lab">Method</div>
+    <div class="seg"><span class="on">Overrepresentation</span><span>Enrichment score</span></div>
+    <div class="lab">View <span class="tag new">new</span></div>
+    <div class="seg"><span>One pathway</span><span class="on">All pathways</span></div>
+    <div class="sec">The data</div>
+    <div class="ctl">Differential expression</div>
+    <div class="ctl">Seed</div>
+    <div class="sec">The test</div>
+    <div class="ctl gone">Rank the genes by</div>
+    <div class="ctl">Genes in the list</div>
+    <div class="ctl">Pathway <span class="tag moved">picks the highlighted row</span></div>
+    <div class="ctl">Background</div>
+  </div>
+  <div class="stage">
+    <div class="panel"><div class="t">Every pathway, tested and corrected</div>
+      <table class="mock">
+        <tr><th></th><th>genes</th><th>in list</th><th>p</th><th>after BH</th></tr>
+        <tr><td>Pathway 1</td><td>19</td><td>4</td><td>0.314</td><td>0.502</td></tr>
+        <tr><td>Pathway 2</td><td>41</td><td>1</td><td>0.999</td><td>0.999</td></tr>
+        <tr class="hot"><td>Pathway 3</td><td>45</td><td>19</td><td>2e⁻⁶</td><td>2e⁻⁵</td></tr>
+        <tr><td>Pathway 4</td><td>37</td><td>10</td><td>0.034</td><td>0.093</td></tr>
+        <tr><td>…</td><td></td><td></td><td></td><td></td></tr>
+      </table>
+      <div class="d" style="margin-top:8px">3 of 8 reach 0.05; 1 still does after correcting for 8 tests</div>
+    </div>
+    <div class="readout">
+      <div>Pathways significant<b>3 → 1</b>at 0.05, before and after correcting</div>
+      <div>Pathway 3, after correction<b>1.5 × 10⁻⁵</b>Benjamini–Hochberg over 8</div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · Enrichment score → One pathway</h2>
+<div class="grid">
+  <div class="rail">
+    <div class="lab">Method</div>
+    <div class="seg"><span>Overrepresentation</span><span class="on">Enrichment score</span></div>
+    <div class="lab">View <span class="tag new">new</span></div>
+    <div class="seg"><span class="on">One pathway</span><span>All pathways</span></div>
+    <div class="sec">The data</div>
+    <div class="ctl">Differential expression</div>
+    <div class="ctl">Seed</div>
+    <div class="sec">The test</div>
+    <div class="ctl">Rank the genes by</div>
+    <div class="ctl">Genes in the list</div>
+    <div class="ctl">Pathway</div>
+    <div class="ctl newly">Walk one · Walk · Reset</div>
+    <div class="ctl">Play speed</div>
+  </div>
+  <div class="stage">
+    <div class="panel tall"><div class="t">Every gene ranked by fold change</div>
+      <div class="d">the profile, the pathway's genes as a strip, the cutoff ghosted</div></div>
+    <div class="panel tall"><div class="t">The running sum</div>
+      <div class="d">up inside the pathway, down outside — ES is its furthest point from zero</div></div>
+    <div class="panel"><div class="t">What 1,000 random pathways score</div>
+      <div class="d">up-regulated ← 0 → down-regulated</div></div>
+    <div class="readout">
+      <div>Overrepresentation said<b>0.9991</b>cut at 60</div>
+      <div>Enrichment score<b>−0.574</b>furthest point from zero</div>
+      <div>Score, permuted<b>0.001</b>1,000 random pathways</div>
+    </div>
+  </div>
+</div>
+
+<h2>4 · Enrichment score → All pathways</h2>
+<div class="grid">
+  <div class="rail">
+    <div class="lab">Method</div>
+    <div class="seg"><span>Overrepresentation</span><span class="on">Enrichment score</span></div>
+    <div class="lab">View <span class="tag new">new</span></div>
+    <div class="seg"><span>One pathway</span><span class="on">All pathways</span></div>
+    <div class="sec">The data</div>
+    <div class="ctl">Differential expression</div>
+    <div class="ctl">Seed</div>
+    <div class="sec">The test</div>
+    <div class="ctl">Rank the genes by</div>
+    <div class="ctl">Genes in the list</div>
+    <div class="ctl">Pathway <span class="tag moved">picks the highlighted row</span></div>
+  </div>
+  <div class="stage">
+    <div class="panel"><div class="t">Every pathway, scored and corrected</div>
+      <table class="mock">
+        <tr><th></th><th>genes</th><th>ES</th><th>NES</th><th>p</th><th>after BH</th></tr>
+        <tr><td>Pathway 1</td><td>19</td><td>0.387</td><td>1.11</td><td>0.165</td><td>0.220</td></tr>
+        <tr class="hot"><td>Pathway 2</td><td>41</td><td>−0.574</td><td>−2.12</td><td>1e⁻³</td><td>0.004</td></tr>
+        <tr><td>Pathway 3</td><td>45</td><td>0.525</td><td>1.84</td><td>1e⁻³</td><td>0.004</td></tr>
+        <tr><td>Pathway 4</td><td>37</td><td>0.433</td><td>1.47</td><td>0.028</td><td>0.075</td></tr>
+        <tr><td>…</td><td></td><td></td><td></td><td></td><td></td></tr>
+      </table>
+      <div class="d" style="margin-top:8px">3 of 8 reach 0.05; 2 still do after correcting for 8 tests<br>
+        NES divides ES by what a random set of that size scores</div>
+    </div>
+    <div class="readout">
+      <div>Overrepresentation said<b>0.9991</b>on this pathway, cut at 60</div>
+      <div>Pathways significant<b>3 → 2</b>at 0.05, before and after correcting</div>
+    </div>
+  </div>
+</div>
+
+<h2>Five things this needs you to settle</h2>
+
+<div class="q"><b>1 · Does the gate survive the split?</b>
+  <p>Right now the score table blanks until the walk finishes, so it cannot spoil the
+  walk. With All pathways as its own page the reader has chosen to go there, which
+  is already an opt-in. Keep the gate (they must walk once, on page 3, before page 4
+  fills in), or drop it now that arriving is deliberate?</p></div>
+
+<div class="q"><b>2 · Does removing the metric from ORA make ORA independent of it?</b>
+  <p>Hiding the control does not change what it does: ORA's list is still the top 60
+  of whatever ranking the metric picked, so a reader who sets Signed significance on
+  page 3 and returns to page 1 gets different ORA numbers with no visible cause.
+  The clean fix is to <b>pin ORA to fold change</b> — which also matches cell 9 —
+  and let the metric belong to the score alone. Or leave it silent.</p></div>
+
+<div class="q"><b>3 · Where does the view control go?</b>
+  <p>Drawn here as a second segmented group under Method. The alternative is one
+  four-way control, or putting the view switch on the stage as tabs above the figure
+  rather than in the rail.</p></div>
+
+<div class="q"><b>4 · What does the readout say on a table page?</b>
+  <p>Drawn as collection-level numbers rather than the selected pathway's. The
+  alternative is to keep it identical across both views so nothing moves under the
+  reader.</p></div>
+
+<div class="q"><b>5 · Does the widget get taller or shorter?</b>
+  <p>Splitting halves the vertical load: page 3 loses the table, page 4 loses the
+  profile, walk and histogram. That is the main win beyond clarity — the score tab
+  is currently ~610px and would drop to roughly 420 and 240.</p></div>

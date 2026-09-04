@@ -277,7 +277,19 @@ export function makeStage(rng, { genes = 400, scale = 1, metric = "fc" } = {}) {
   const rank = [...Array(genes).keys()].sort((x, y) => score[y] - score[x]);
   const rankOf = new Array(genes);
   rank.forEach((g, i) => { rankOf[g] = i; });
-  return { genes, scale, metric, n, logFC, pVal, signed, geneSd, score, rank, rankOf, sets };
+
+  /* A SECOND ORDER, ALWAYS BY FOLD CHANGE, AND ORA CUTS ITS LIST FROM THIS ONE.
+     The metric belongs to the enrichment score; overrepresentation is the simple
+     test the lesson opens with, and it ranks on log2FoldChange in cell 9. Left
+     sharing `rank`, ORA's p-values moved whenever the score tab's metric moved —
+     with the control not even on ORA's page after 2026-09-04, that is a number
+     changing for a reason the reader cannot see. `rankFc` is what makes hiding
+     the control honest rather than merely tidy. */
+  const rankFc = metric === "sig"
+    ? [...Array(genes).keys()].sort((x, y) => logFC[y] - logFC[x])
+    : rank;
+
+  return { genes, scale, metric, n, logFC, pVal, signed, geneSd, score, rank, rankOf, rankFc, sets };
 }
 
 /* --- ORA ------------------------------------------------------------------- */
@@ -286,17 +298,22 @@ export function makeStage(rng, { genes = 400, scale = 1, metric = "fc" } = {}) {
    `sort(gene_list, decreasing = TRUE)` and take the head. `both` is the fix a
    reader proposes within a minute of meeting the first one, and § 6 of the
    measurement says it makes ORA worse rather than better — which is why it is
-   a control to try and not a correction applied quietly. */
+   a control to try and not a correction applied quietly.
+
+   ON `rankFc` AND `logFC`, NOT on whichever metric the score tab is showing.
+   This function is ORA's alone; see the note at `rankFc` in `makeStage`. */
 export function listPositions(stage, k, mode = "top") {
   const n = Math.min(k, stage.genes);
-  if (mode === "top") return stage.rank.slice(0, n);
+  const rank = stage.rankFc;
+  const value = stage.logFC;
+  if (mode === "top") return rank.slice(0, n);
   /* The most changed either way: walk in from both ends of the ranking at
      once, so the list is still exactly `k` long and the two modes compare. */
   const out = [];
   let lo = 0, hi = stage.genes - 1;
   while (out.length < n) {
-    const gLo = stage.rank[lo], gHi = stage.rank[hi];
-    if (Math.abs(stage.score[gLo]) >= Math.abs(stage.score[gHi])) { out.push(gLo); lo += 1; }
+    const gLo = rank[lo], gHi = rank[hi];
+    if (Math.abs(value[gLo]) >= Math.abs(value[gHi])) { out.push(gLo); lo += 1; }
     else { out.push(gHi); hi -= 1; }
   }
   return out;

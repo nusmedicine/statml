@@ -79,6 +79,7 @@ const ALPHA = 0.05;
 const nullCache = { key: null, value: null };
 
 const isOra = (params) => params.view === "ora";
+const isAll = (params) => params.page === "all";
 const setIndex = (params) => clamp(Number(params.pathway) || 0, 0, N_SETS - 1);
 
 /* --- geometry ------------------------------------------------------------- *
@@ -111,29 +112,36 @@ const GSEA_ROWS_DY = 32;
    nowhere to go but under the picture. */
 const sideBySide = (pw) => pw >= 620;
 
-function layoutOra(w) {
+/* FOUR PAGES, AND EACH ONE IS ONLY ITS OWN PANELS. A table page starts at the
+   heading rather than below a figure it does not draw, which is where the
+   height comes back: the score tab was 610px carrying everything at once and
+   is now roughly 420 and 240. */
+function layoutOra(w, page) {
   const padL = w < 460 ? 10 : 14;
   const x0 = padL;
   const pw = w - padL - (w < 460 ? 8 : 14);
+  const narrow = pw < 380;
+  if (page === "all") return { x0, pw, narrow, resultsY: TITLE_H };
   const two = sideBySide(pw);
   const topY = TITLE_H;
   const topH = two ? Math.max(VENN_H, TABLE_H) : VENN_H + 14 + TABLE_H;
   return {
-    x0, pw, topY, two,
+    x0, pw, topY, topH, two,
     vennW: two ? pw * 0.44 : pw,
     tableX: two ? x0 + pw * 0.52 : x0,
     tableY: two ? topY : topY + VENN_H + 14,
     tableW: two ? pw * 0.48 : pw,
-    resultsY: topY + topH + 18,
-    narrow: pw < 380,
+    narrow,
   };
 }
 
-function layoutGsea(w, h) {
+function layoutGsea(w, h, page) {
   const padL = w < 460 ? 34 : 46;
   const x0 = padL;
   const pw = w - padL - (w < 460 ? 8 : 14);
-  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8 - GSEA_TABLE_H;
+  const narrow = w < 560;
+  if (page === "all") return { x0, pw, narrow, tableY: TITLE_H };
+  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8;
   const profileH = Math.round(strips * 0.42);
   const codeH = Math.max(14, Math.round(strips * 0.09));
   const walkH = strips - profileH - codeH - 10;
@@ -144,14 +152,18 @@ function layoutGsea(w, h) {
   return {
     x0, pw, profileY, profileH, codeY, codeH, walkY, walkH, axisY,
     panelY: axisY + AXIS_H + 12,
-    tableY: axisY + AXIS_H + 12 + NULL_H + 16,
-    narrow: w < 560,
+    narrow,
   };
 }
 
-function canvasHeight(w, view) {
-  if (view !== "ora") return TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8 + GSEA_TABLE_H;
-  return layoutOra(w).resultsY + RESULTS_H;
+function canvasHeight(w, view, page) {
+  if (view === "ora") {
+    if (page === "all") return TITLE_H + RESULTS_H;
+    const L = layoutOra(w, "one");
+    return L.topY + L.topH + 12;
+  }
+  if (page === "all") return TITLE_H + GSEA_TABLE_H;
+  return TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8;
 }
 
 /* --- small drawing helpers ------------------------------------------------- */
@@ -204,7 +216,7 @@ defineWidget({
     + "whole ranking, up inside the pathway and down outside.",
   layout: "side",
 
-  height: ({ view, w }) => canvasHeight(w, view),
+  height: ({ view, page, w }) => canvasHeight(w, view, page),
 
   params: {
     view: {
@@ -217,6 +229,28 @@ defineWidget({
           detail: "the whole ranking, walked; no list and no cut" },
       ],
       default: "ora",
+      display: true,
+    },
+
+    /* THE SECOND AXIS OF THE FIGURE. Each method has a page that shows ONE
+       pathway and a page that shows the collection, because the two answer
+       different questions and competing for one screen made both cramped —
+       the score tab was carrying a profile, a walk, a null and a table at
+       once. Kenneth asked for the split on 2026-09-04.
+
+       `display: true`: changing page changes what is drawn, not what was
+       computed, and a walk the reader has just built must survive a trip to
+       the table and back. */
+    page: {
+      type: "segmented",
+      label: "View",
+      options: [
+        { value: "one", label: "One pathway",
+          detail: "one pathway on its own" },
+        { value: "all", label: "All pathways",
+          detail: "every pathway, tested and corrected" },
+      ],
+      default: "one",
       display: true,
     },
 
@@ -283,6 +317,12 @@ defineWidget({
         value, label: m.label, detail: m.detail,
       })),
       default: "fc",
+      /* THE SCORE'S CONTROL, NOT ORA'S. It confused overrepresentation, which
+         is the simple test the lesson opens with. Hiding it is only honest
+         because `makeStage` also keeps `rankFc`: ORA cuts its list on fold
+         change whatever this is set to, so nothing moves under the reader
+         while the control is off screen. */
+      when: { param: "view", equals: "gsea" },
     },
 
     /* ON BOTH TABS, and deliberately — the one control widget 42's rule about
@@ -348,7 +388,8 @@ defineWidget({
       default: "medium",
       display: true,
       afterDrive: true,
-      when: { param: "view", equals: "gsea" },
+      /* The walk lives on one page of one method, so its speed does too. */
+      when: { all: [{ param: "view", equals: "gsea" }, { param: "page", equals: "one" }] },
     },
 
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
@@ -359,18 +400,26 @@ defineWidget({
      widget 30 earned and widget 42 restated. */
   legend: ({ params }) => {
     const name = `Pathway ${setIndex(params) + 1}`;
+    /* BOTH TABLES CARRY THE SAME TWO MARKS, which is the point of drawing them
+       to one shape: a reader comparing the pages is comparing results, not
+       re-learning a key. */
+    if (isAll(params)) {
+      return [
+        { token: "highlight", label: `${name} — the row you picked`, mark: "bar" },
+        { token: "theory", label: "a pathway that survives the correction", mark: "bar" },
+      ];
+    }
     if (isOra(params)) {
       return [
         { token: "extreme", label: "your gene list", mark: "bar" },
         { token: "highlight", label: `${name}, and where the two overlap`, mark: "bar" },
-        { token: "theory", label: "a pathway that survives the correction", mark: "bar" },
       ];
     }
     return [
       { token: "empirical", label: `every gene, ranked by ${METRICS[params.metric].label.toLowerCase()}`, mark: "bar" },
       { token: "highlight", label: `the genes of ${name}`, mark: "bar" },
       { token: "empirical", label: "the running sum: up inside the pathway, down outside", mark: "line" },
-      { token: "extreme", label: "the cutoff — where overrepresentation would cut", mark: "dash" },
+      { token: "extreme", label: "the cutoff — the top of this ranking", mark: "dash" },
       { token: "theory", label: `the score ${PERMS.toLocaleString()} random pathways of the same size reach`, mark: "bar" },
     ];
   },
@@ -431,12 +480,17 @@ defineWidget({
     /* BOTH TABLES ARE CLICKABLE, and on the score tab that is worth more than
        on ORA's: picking a row there used to mean a thousand fresh permutations,
        and since the null cache stopped keying on the pathway it is free. */
-    const L = isOra(params) ? layoutOra(w) : layoutGsea(w, h);
-    const top = isOra(params) ? L.resultsY + 16 : L.tableY + GSEA_ROWS_DY;
+    /* ONLY THE TABLE PAGES HAVE ROWS TO HIT. On a one-pathway page there is no
+       table, so an empty map is the correct answer rather than eight targets
+       over a Venn. */
+    if (!isAll(params)) return [];
+    const ora = isOra(params);
+    const L = ora ? layoutOra(w, "all") : layoutGsea(w, h, "all");
+    const top = ora ? L.resultsY + 16 : L.tableY + GSEA_ROWS_DY;
     return state.stage.sets.map((s, i) => ({
       x: L.x0,
       y: top + i * ROW_H,
-      w: isOra(params) ? L.pw : L.pw,
+      w: L.pw,
       h: ROW_H,
       set: { pathway: String(i) },
       label: s.label,
@@ -450,15 +504,15 @@ defineWidget({
     params: ["cutoff"],
     cursor: "ew-resize",
     hit: ({ x, y, w, h, params }) => {
-      if (isOra(params)) return false;
-      const L = layoutGsea(w, h);
+      if (isOra(params) || isAll(params)) return false;
+      const L = layoutGsea(w, h, "one");
       return x >= L.x0 && x <= L.x0 + L.pw
         && y >= L.profileY - 6 && y <= L.codeY + L.codeH + 4;
     },
     /* Relative to where the gesture began, which is core's contract and also
        what stops a slow drag accumulating rounding drift. */
     value: ({ dx, start, state, w, h }) => {
-      const L = layoutGsea(w, h);
+      const L = layoutGsea(w, h, "one");
       const perGene = L.pw / state.stage.genes;
       return { cutoff: clamp(Math.round(start.cutoff + dx / perGene), 5, 200) };
     },
@@ -474,7 +528,7 @@ defineWidget({
       shown: fromScratch ? 0 : clamp(params.shown, 0, state.stage.genes),
       acc: 0,
       done: false,
-      inert: isOra(params),
+      inert: isOra(params) || isAll(params),
     }),
 
     advance: (anim, { dt, params, state }) => {
@@ -504,11 +558,14 @@ defineWidget({
        changes is whether there is anything to drive. */
     rebuild: (anim, { params, state }) => {
       anim.shown = clamp(anim.shown, 0, state.stage.genes);
-      anim.inert = isOra(params);
+      anim.inert = isOra(params) || isAll(params);
     },
   },
 
-  draw: (args) => (isOra(args.params) ? drawOra(args) : drawGsea(args)),
+  draw: (args) => {
+    if (isOra(args.params)) return isAll(args.params) ? drawOraAll(args) : drawOraOne(args);
+    return isAll(args.params) ? drawGseaAll(args) : drawGseaOne(args);
+  },
 
   readout: ({ params, state, anim }) => {
     const { stage, walk, nul } = state;
@@ -517,9 +574,22 @@ defineWidget({
     const all = oraAll(stage, params.cutoff, universe);
     const mine = all[i];
 
+    const rawHits = all.filter((r) => r.p < ALPHA).length;
+    const adjHits = all.filter((r) => r.padj < ALPHA).length;
+
+    /* A TABLE PAGE READS THE COLLECTION, a one-pathway page reads the pathway.
+       The tiles are the accessible reading of whatever is on the canvas, so
+       they follow the canvas rather than staying put. */
+    if (isOra(params) && isAll(params)) {
+      return [
+        { label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
+          note: "at 0.05, before and after correcting" },
+        { label: `Pathway ${i + 1}, after correction`, value: fmtP(mine.padj),
+          note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
+      ];
+    }
+
     if (isOra(params)) {
-      const rawHits = all.filter((r) => r.p < ALPHA).length;
-      const adjHits = all.filter((r) => r.padj < ALPHA).length;
       return [
         { label: "Genes in the list", value: `${mine.k}`, note: `of ${stage.genes} measured` },
         { label: "In the list and the pathway", value: `${mine.a}`,
@@ -529,8 +599,6 @@ defineWidget({
         { break: true },
         { label: "After correction", value: fmtP(mine.padj),
           note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
-        { label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
-          note: "at 0.05, before and after correcting" },
       ];
     }
 
@@ -546,6 +614,17 @@ defineWidget({
       value: fmtP(mine.p),
       note: `cut at ${mine.k}; ${fmtP(mine.padj)} after correction`,
     };
+
+    if (isAll(params)) {
+      const gRaw = state.rows.filter((r) => r.p < ALPHA).length;
+      const gAdj = state.rows.filter((r) => r.padj < ALPHA).length;
+      return [
+        foil,
+        { break: true },
+        { label: "Pathways significant", value: `${gRaw} → ${gAdj}`,
+          note: "at 0.05, before and after correcting" },
+      ];
+    }
 
     if (!done) {
       return [
@@ -571,21 +650,36 @@ defineWidget({
 
 /* --- tab 1: overrepresentation --------------------------------------------- */
 
-function drawOra({ ctx, colors, w, params, state }) {
+function drawOraOne({ ctx, colors, w, params, state }) {
   const { stage } = state;
-  const L = layoutOra(w);
+  const L = layoutOra(w, "one");
   const i = setIndex(params);
-  const all = oraAll(stage, params.cutoff, Number(params.background));
-  const o = all[i];
+  const o = oraAll(stage, params.cutoff, Number(params.background))[i];
   ctx.__font = colors.font;
   ctx.save();
 
   text(ctx, "Your gene list, one pathway, and the genes in both",
     L.x0, 12, { fill: colors.ink2, size: 11 });
 
-  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, o, i, METRICS[params.metric].label);
+  /* ALWAYS FOLD CHANGE, not whatever the score tab is set to. ORA cuts its
+     list from `rankFc`, so naming any other metric here would be a caption
+     describing a ranking this test did not use. */
+  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, o, i, METRICS.fc.label);
   drawTable(ctx, colors, L.tableX, L.tableY, L.tableW, o);
-  drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, i, L.narrow);
+
+  ctx.restore();
+}
+
+function drawOraAll({ ctx, colors, w, params, state }) {
+  const { stage } = state;
+  const L = layoutOra(w, "all");
+  const all = oraAll(stage, params.cutoff, Number(params.background));
+  ctx.__font = colors.font;
+  ctx.save();
+
+  text(ctx, "Every pathway, tested and corrected",
+    L.x0, 12, { fill: colors.ink2, size: 11 });
+  drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, setIndex(params), L.narrow);
 
   ctx.restore();
 }
@@ -770,9 +864,18 @@ function drawResults(ctx, colors, x0, y0, w, all, index, narrow) {
 
 /* --- tab 2: the enrichment score -------------------------------------------- */
 
-function drawGsea({ ctx, colors, w, h, params, state, anim }) {
+function drawGseaAll({ ctx, colors, w, h, params, state }) {
+  const L = layoutGsea(w, h, "all");
+  ctx.__font = colors.font;
+  ctx.save();
+  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows,
+    setIndex(params), L.narrow);
+  ctx.restore();
+}
+
+function drawGseaOne({ ctx, colors, w, h, params, state, anim }) {
   const { stage, walk, nul } = state;
-  const L = layoutGsea(w, h);
+  const L = layoutGsea(w, h, "one");
   const i = setIndex(params);
   const shown = clamp(anim?.shown ?? 0, 0, stage.genes);
   ctx.__font = colors.font;
@@ -905,8 +1008,6 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
   text(ctx, `rank ${stage.genes}`, L.x0 + L.pw, L.axisY + 12,
     { fill: colors.ink3, align: "right", size: 10 });
 
-  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows, i, L.narrow,
-    shown >= stage.genes);
   drawNull(ctx, colors, L.x0, L.panelY, L.pw,
     shown >= stage.genes ? nul : null, shown >= stage.genes ? walk.es : null);
 
@@ -929,11 +1030,12 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
    comparison it cannot support. `model.js` carries the measurement, including
    the 90% of seeds on which normalising reorders these eight rows.
 
-   SURVIVORS ARE MARKED IN WEIGHT, NOT COLOUR, and that is the one place this
-   table departs from ORA's. Over there a surviving pathway takes --c-theory.
-   Here --c-theory is already the permutation histogram directly above, and a
-   colour cannot mean the null distribution and a verdict on the same tab. */
-function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow, done) {
+   SURVIVORS TAKE --c-theory, exactly as ORA's table does. That was not
+   possible while this table sat under the permutation histogram, which owns
+   that token on the score figure — a colour cannot mean the null distribution
+   and a verdict on one screen. Its own page frees the token, and the two
+   tables now read identically. */
+function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow) {
   const rawHits = rows.filter((r) => r.p < ALPHA).length;
   const adjHits = rows.filter((r) => r.padj < ALPHA).length;
 
@@ -974,30 +1076,24 @@ function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow, done) {
     text(ctx, r.label, x0 + 4, my,
       { fill: i === index ? colors.ink1 : colors.ink2, size: 10,
         weight: i === index ? "600" : "" });
-    /* THE ROWS ARE ALWAYS DRAWN AND THE ANSWERS ARE NOT. Three surfaces above
-       this one withhold the score until the walk finishes — the walk panel, the
-       null histogram and the readout — and a table that printed every p-value
-       on arrival made all three pointless: the reader could read the selected
-       pathway's answer instead of building it. Non-negotiable 4.
-
-       BLANKED RATHER THAN HIDDEN, and that is not a cosmetic choice. `regions`
-       is handed `params` and `state` but never `anim`, and `anim.shown` does
-       not write back to a parameter, so the hit table cannot know whether the
-       walk has finished. A hidden table would leave eight live click targets
-       under an empty panel. Names and sizes are not answers, so the rows can
-       stay and stay clickable. */
+    /* NOTHING IS WITHHELD HERE, AND THAT IS THE PAGE'S DOING. While this table
+       shared a canvas with the walk it had to blank its result columns, or it
+       answered the question the walk was asking. On its own page, choosing to
+       come here IS the opt-in — the same reason a results table in any tool
+       shows its numbers. The one-pathway page still withholds everything until
+       the walk finishes, so the sequence survives for anyone following it. */
     const val = {
       size: String(r.size),
-      es: done ? signed(r.es, 3) : "—",
-      nes: done && Number.isFinite(r.nes) ? signed(r.nes, 2) : "—",
-      p: done ? fmtPShort(r.p) : "—",
-      q: done ? fmtPShort(r.padj) : "—",
+      es: signed(r.es, 3),
+      nes: Number.isFinite(r.nes) ? signed(r.nes, 2) : "—",
+      p: fmtPShort(r.p),
+      q: fmtPShort(r.padj),
     };
     cols.forEach((c, j) => {
       if (c.k === "name") return;
-      const hot = done && ((c.k === "p" && raw) || (c.k === "q" && survives));
+      const hot = (c.k === "p" && raw) || (c.k === "q" && survives);
       text(ctx, val[c.k], right[j] - 4, my, {
-        fill: hot ? colors.ink1 : colors.ink3,
+        fill: c.k === "q" && survives ? colors.theory : hot ? colors.ink1 : colors.ink3,
         align: "right", size: 10, weight: hot ? "600" : "",
       });
     });
@@ -1007,10 +1103,8 @@ function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow, done) {
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x0, y - 8); ctx.lineTo(x0 + w, y - 8); ctx.stroke();
-  text(ctx, done
-    ? `${rawHits} of ${rows.length} reach ${ALPHA}; `
-      + `${adjHits} still ${adjHits === 1 ? "does" : "do"} after correcting for ${rows.length} tests`
-    : "walk the ranking to score all eight",
+  text(ctx, `${rawHits} of ${rows.length} reach ${ALPHA}; `
+    + `${adjHits} still ${adjHits === 1 ? "does" : "do"} after correcting for ${rows.length} tests`,
     x0, y + 2, { fill: colors.ink2, size: 10 });
 
   /* NES had no definition anywhere on the figure, which left a column of
