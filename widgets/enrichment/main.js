@@ -212,11 +212,23 @@ defineWidget({
   slug: "enrichment",
   status: "draft",
   title: "Enrichment Analysis",
+  /* THE NOTEBOOK'S OWN VOCABULARY, cell 0: enrichment analysis is "a statistical
+     approach to determine whether a specific set of genes ... is overrepresented",
+     ORA is "based on discrete gene/protein sets and threshold-based selections",
+     and GSEA "considers the entire gene/protein expression profile ... by ranking
+     genes". A student meets the same terms in both places.
+
+     NO MENTION OF MULTIPLE TEST CORRECTION, and its absence is deliberate twice
+     over. It came out because correction happens AFTER enrichment is found, so
+     it belongs to the results tables rather than to the setup. And the version
+     before it was wrong: it attributed correction to overrepresentation alone,
+     when both methods test every pathway and the notebook's own GSEA step 4
+     says "multiple test correction is performed for all the p-values". */
   subtitle:
-    "Enrichment analysis asks which pathways a gene list is concentrated in. "
-    + "Overrepresentation tests each pathway against a background, so its "
-    + "p-values need correcting. The enrichment score is computed from the "
-    + "whole ranking, not a list.",
+    "Enrichment analysis determines whether a gene set is overrepresented more "
+    + "than expected by chance. Overrepresentation uses threshold-based gene "
+    + "selection; the enrichment score considers the entire expression profile "
+    + "by ranking genes.",
   layout: "side",
 
   height: ({ view, page, w }) => canvasHeight(w, view, page),
