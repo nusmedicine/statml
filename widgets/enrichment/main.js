@@ -102,7 +102,7 @@ const NULL_H = 112;       /* the histogram, the two regions, and the caption */
    must agree about it: the picture is identical whether a row's hit box sits
    where it is drawn or a row away, so nothing but this shared number catches
    the drift. */
-const GSEA_TABLE_H = 26 + RESULTS_H;
+const GSEA_TABLE_H = 40 + RESULTS_H;
 const GSEA_ROWS_DY = 32;
 
 /* THE VENN AND THE 2 x 2 ARE THE SAME FOUR NUMBERS, so they sit side by side
@@ -905,7 +905,8 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
   text(ctx, `rank ${stage.genes}`, L.x0 + L.pw, L.axisY + 12,
     { fill: colors.ink3, align: "right", size: 10 });
 
-  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows, i, L.narrow);
+  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows, i, L.narrow,
+    shown >= stage.genes);
   drawNull(ctx, colors, L.x0, L.panelY, L.pw,
     shown >= stage.genes ? nul : null, shown >= stage.genes ? walk.es : null);
 
@@ -932,19 +933,24 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
    table departs from ORA's. Over there a surviving pathway takes --c-theory.
    Here --c-theory is already the permutation histogram directly above, and a
    colour cannot mean the null distribution and a verdict on the same tab. */
-function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow) {
+function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow, done) {
   const rawHits = rows.filter((r) => r.p < ALPHA).length;
   const adjHits = rows.filter((r) => r.padj < ALPHA).length;
 
   text(ctx, "Every pathway, scored and corrected", x0, y0 + 4,
     { fill: colors.ink2, size: 11, weight: "600" });
 
+  /* BOTH SCORES, because the raw one is what the walk above just built and a
+     reader who watched it reach 0.525 needs to find that number here before
+     trusting the column beside it. NES is what the column can be COMPARED on:
+     a random 12-gene set reaches 0.379 and a random 150-gene one 0.227, so ES
+     down a column is partly set size. */
   const cols = narrow
-    ? [{ k: "name", w: 0.34 }, { k: "nes", w: 0.22 },
-      { k: "p", w: 0.22 }, { k: "q", w: 0.22 }]
-    : [{ k: "name", w: 0.32 }, { k: "size", w: 0.13 }, { k: "nes", w: 0.16 },
-      { k: "p", w: 0.195 }, { k: "q", w: 0.195 }];
-  const head = { name: "", size: "genes", nes: "NES", p: "p", q: "after BH" };
+    ? [{ k: "name", w: 0.28 }, { k: "es", w: 0.17 }, { k: "nes", w: 0.17 },
+      { k: "p", w: 0.19 }, { k: "q", w: 0.19 }]
+    : [{ k: "name", w: 0.28 }, { k: "size", w: 0.11 }, { k: "es", w: 0.145 },
+      { k: "nes", w: 0.145 }, { k: "p", w: 0.165 }, { k: "q", w: 0.165 }];
+  const head = { name: "", size: "genes", es: "ES", nes: "NES", p: "p", q: "after BH" };
   let acc = 0;
   const right = cols.map((c) => { acc += c.w; return x0 + w * acc; });
 
@@ -968,15 +974,28 @@ function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow) {
     text(ctx, r.label, x0 + 4, my,
       { fill: i === index ? colors.ink1 : colors.ink2, size: 10,
         weight: i === index ? "600" : "" });
+    /* THE ROWS ARE ALWAYS DRAWN AND THE ANSWERS ARE NOT. Three surfaces above
+       this one withhold the score until the walk finishes — the walk panel, the
+       null histogram and the readout — and a table that printed every p-value
+       on arrival made all three pointless: the reader could read the selected
+       pathway's answer instead of building it. Non-negotiable 4.
+
+       BLANKED RATHER THAN HIDDEN, and that is not a cosmetic choice. `regions`
+       is handed `params` and `state` but never `anim`, and `anim.shown` does
+       not write back to a parameter, so the hit table cannot know whether the
+       walk has finished. A hidden table would leave eight live click targets
+       under an empty panel. Names and sizes are not answers, so the rows can
+       stay and stay clickable. */
     const val = {
       size: String(r.size),
-      nes: Number.isFinite(r.nes) ? signed(r.nes, 2) : "—",
-      p: fmtPShort(r.p),
-      q: fmtPShort(r.padj),
+      es: done ? signed(r.es, 3) : "—",
+      nes: done && Number.isFinite(r.nes) ? signed(r.nes, 2) : "—",
+      p: done ? fmtPShort(r.p) : "—",
+      q: done ? fmtPShort(r.padj) : "—",
     };
     cols.forEach((c, j) => {
       if (c.k === "name") return;
-      const hot = (c.k === "p" && raw) || (c.k === "q" && survives);
+      const hot = done && ((c.k === "p" && raw) || (c.k === "q" && survives));
       text(ctx, val[c.k], right[j] - 4, my, {
         fill: hot ? colors.ink1 : colors.ink3,
         align: "right", size: 10, weight: hot ? "600" : "",
@@ -988,9 +1007,16 @@ function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow) {
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x0, y - 8); ctx.lineTo(x0 + w, y - 8); ctx.stroke();
-  text(ctx, `${rawHits} of ${rows.length} reach ${ALPHA}; `
-    + `${adjHits} still ${adjHits === 1 ? "does" : "do"} after correcting for ${rows.length} tests`,
+  text(ctx, done
+    ? `${rawHits} of ${rows.length} reach ${ALPHA}; `
+      + `${adjHits} still ${adjHits === 1 ? "does" : "do"} after correcting for ${rows.length} tests`
+    : "walk the ranking to score all eight",
     x0, y + 2, { fill: colors.ink2, size: 10 });
+
+  /* NES had no definition anywhere on the figure, which left a column of
+     numbers a reader could rank but not read. */
+  text(ctx, "NES divides ES by what a random set of that size scores",
+    x0, y + 18, { fill: colors.ink3, size: 10 });
 }
 
 function drawNull(ctx, colors, x0, y0, w, nul, obs) {
