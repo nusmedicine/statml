@@ -29,13 +29,25 @@
    ORA's are the cutoff and the background; the score drops both and picks up
    the ranking metric and the permutation scheme. The choices move, they do not
    disappear — the same shape as widget 42, where the tree is evidence and the
-   cut is a choice. See NOT YET BUILT at the foot of this file.
+   cut is a choice.
+
+   THE RANKING METRIC IS ON BOTH TABS, and that is the honest placement rather
+   than a convenience. It reads as the score's own invisible choice, and it is
+   — but ORA's list is the top k of the SAME ranking, so a metric control shown
+   only on tab 2 would leave tab 1 quietly computing its p-values under a
+   setting the reader could not see. On the default state it changes ORA's
+   answer from one pathway to a different one.
+
+   The stage it needs is an experiment rather than one number per gene, and the
+   two KINDS of planted pathway that make the choice a real one were forced by
+   measurement — `model.js` carries both, and `_lab/enr-metric.mjs` §§ 1-3 is
+   the record of the design this replaced.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
 import {
   makeStage, oraAll, gsea, gseaNull, listPositions, solveD,
-  EFFECTS, BACKGROUNDS, N_SETS,
+  EFFECTS, BACKGROUNDS, METRICS, N_SETS,
 } from "./model.js";
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -223,16 +235,51 @@ defineWidget({
       default: "moderate",
     },
 
-    /* SEED 12, AND CHOSEN RATHER THAN LEFT AT 1. It is the state where the
-       correction does both of its jobs at once: it keeps a genuinely enriched
-       pathway (p = 0.00029) and removes one that carries nothing and got under
-       0.05 anyway (p = 0.019). Twelve of the first sixty seeds show both at the
-       defaults; seed 1 shows a real finding lost and nothing left, which is the
-       same lesson with half the evidence on screen. Every other outcome is one
-       drag of this control away, which is the point of leaving it reachable. */
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 12 },
+    /* SEED 174, AND CHOSEN RATHER THAN LEFT AT 1. Searched over 400 seeds for
+       a state where four things are true at once, and 12 of them are:
+
+         - the correction KEEPS a genuinely enriched pathway (3, padj 1.5e-5);
+         - it REMOVES one that carries nothing and got under 0.05 anyway
+           (4, raw p 0.034);
+         - it also COSTS a real finding — pathway 8 is planted, comes in at
+           raw p 0.035, and goes out at the same adjusted 0.093 as the false
+           positive beside it. The two are indistinguishable from the numbers,
+           which is the honest thing about BH and the reason this seed beats
+           one where the correction only does the flattering half;
+         - and flipping the metric moves the answer from pathway 3 to pathway 8
+           — two different real pathways, neither of them the wrong answer.
+
+       NOTHING ON IT PRINTS WITHIN 0.004 OF THE LINE, which was a search
+       criterion rather than luck: the first candidate had an adjusted p of
+       0.050014, and a row reading "0.050" that is not highlighted reads as a
+       bug rather than as a threshold. Every other outcome is one drag of this
+       control away, which is the point of leaving it reachable. */
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 174 },
 
     test: { type: "section", label: "The test" },
+
+    /* UPSTREAM OF THE CUTOFF, and placed first for that reason: the list is the
+       top k of this ranking, so choosing the metric happens before choosing how
+       many. On BOTH tabs, because both methods read the ranking — the score
+       walks all of it and ORA cuts it. Hiding it on tab 1 would leave that
+       tab's p-values depending on a setting the reader cannot see.
+
+       A DATA PARAMETER, not a display one: a different metric is a different
+       ranking, and a walk built along the old one no longer describes the
+       figure. Resetting the animation is correct here. */
+    metric: {
+      type: "choice",
+      label: "Rank the genes by",
+      /* NO FIELD-LEVEL `detail` HERE, and that is not an omission: a `choice`
+         renders one detail line and drives it from the SELECTED OPTION, so a
+         field-level one is copy nobody can read. The experiment behind the two
+         metrics — four samples per arm, one t-test over the same eight values
+         — is in the option details instead, where it reaches the reader. */
+      options: Object.entries(METRICS).map(([value, m]) => ({
+        value, label: m.label, detail: m.detail,
+      })),
+      default: "fc",
+    },
 
     /* ON BOTH TABS, and deliberately — the one control widget 42's rule about
        hiding an inert control does NOT cover. On the enrichment tab it looks
@@ -245,7 +292,7 @@ defineWidget({
     cutoff: {
       type: "int",
       label: "Genes in the list",
-      detail: "how many of the most changed genes you call differentially expressed",
+      detail: "how many genes from the top of the ranking you call differentially expressed",
       min: 5,
       max: 200,
       default: 60,
@@ -296,7 +343,7 @@ defineWidget({
       ];
     }
     return [
-      { token: "empirical", label: "how much each gene changed, ranked", mark: "bar" },
+      { token: "empirical", label: `every gene, ranked by ${METRICS[params.metric].label.toLowerCase()}`, mark: "bar" },
       { token: "highlight", label: `the genes of ${name}`, mark: "bar" },
       { token: "empirical", label: "the running sum: up inside the pathway, down outside", mark: "line" },
       { token: "extreme", label: "the cutoff — drawn, but the score never reads it", mark: "dash" },
@@ -305,7 +352,10 @@ defineWidget({
   },
 
   compute: ({ params, rng }) => {
-    const stage = makeStage(rng, { shift: EFFECTS[params.effect]?.shift ?? 0.6 });
+    const stage = makeStage(rng, {
+      scale: EFFECTS[params.effect]?.scale ?? 1,
+      metric: params.metric,
+    });
     const i = setIndex(params);
     const walk = gsea(stage, i);
 
@@ -318,7 +368,7 @@ defineWidget({
        for a thousand permutations per pointermove: 15.5 ms a frame against a
        16.7 ms budget, now 2.5 ms. It cannot go stale — `compute` is pure and
        seeded, so the same three values give the same thousand draws. */
-    const key = `${params.seed}|${params.effect}|${i}`;
+    const key = `${params.seed}|${params.effect}|${params.metric}|${i}`;
     if (nullCache.key !== key) {
       nullCache.key = key;
       nullCache.value = gseaNull(stage, i, rng, PERMS);
@@ -486,7 +536,7 @@ function drawOra({ ctx, colors, w, params, state }) {
   text(ctx, "Your gene list, one pathway, and the genes in both",
     L.x0, 12, { fill: colors.ink2, size: 11 });
 
-  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, o, i);
+  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, o, i, METRICS[params.metric].label);
   drawTable(ctx, colors, L.tableX, L.tableY, L.tableW, o);
   drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, i, L.narrow);
 
@@ -511,7 +561,7 @@ function drawOra({ ctx, colors, w, params, state }) {
  * are pure geometry with an exact answer, and putting them there is what lets
  * `_lab/enr-measure.mjs` § 9 check the inverse over every shape this widget can
  * actually draw. A number this figure asserts should be checkable. */
-function drawVenn(ctx, colors, x0, y0, w, o, index) {
+function drawVenn(ctx, colors, x0, y0, w, o, index, metricLabel) {
   const nList = o.a + o.b;
   const nPath = o.a + o.c;
   const rA = Math.sqrt(nList / Math.PI);
@@ -561,7 +611,7 @@ function drawVenn(ctx, colors, x0, y0, w, o, index) {
       { fill: colors.highlight, align: "center", size: 13, weight: "600" });
   }
 
-  text(ctx, `your list — ${nList}`, x0, y0 + 8,
+  text(ctx, `your list — top ${nList} by ${metricLabel.toLowerCase()}`, x0, y0 + 8,
     { fill: colors.extreme, size: 10, weight: "600" });
   text(ctx, `Pathway ${index + 1} — ${nPath}`, x0 + w, y0 + 8,
     { fill: colors.highlight, align: "right", size: 10, weight: "600" });
@@ -684,8 +734,8 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
 
   const xAt = (j) => L.x0 + (L.pw * j) / stage.genes;
 
-  text(ctx, "Every gene ranked — the score reads all of it",
-    L.x0, 12, { fill: colors.ink2, size: 11 });
+  text(ctx, `Every gene ranked by ${METRICS[params.metric].label.toLowerCase()}`
+    + " — the score reads all of it", L.x0, 12, { fill: colors.ink2, size: 11 });
 
   const sorted = stage.rank.map((g) => stage.score[g]);
   const span = Math.max(...sorted.map(Math.abs));
@@ -860,25 +910,44 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
 }
 
 /* ============================================================================
-   NOT YET BUILT, and recorded here because the sequence is incomplete without
-   it rather than because it would be nice to have.
+   THE RANKING METRIC, AND WHAT IT COST — built 2026-09-04, and recorded here
+   because the version that was NOT built is the more useful half of it.
 
-   THE RANKING METRIC IS THE ENRICHMENT SCORE'S OWN INVISIBLE CHOICE, the one
-   that replaces the cutoff rather than abolishing it. Ranking by fold change
-   and ranking by signed significance are different orders over the same genes
-   and give different scores; a reader who has just been shown that ORA's
-   answer moves with a number nobody chose should meet the score's version of
-   the same problem rather than be left with "this one has none".
+   THE OBVIOUS DESIGN WAS MEASURED AND DISCARDED. Keeping the shipped stage —
+   one constant shift per planted pathway — and adding the control to it makes
+   signed significance strictly BETTER, 86% against 92% at moderate noise
+   spread and 65% against 98% at high. A constant shift applied to every gene
+   regardless of its own noise is exactly the alternative a t-test is built to
+   detect, so on that stage ranking on significance is simply the right answer
+   and a student would have correctly concluded so. The tab would then have
+   taught that sophistication DOES remove the arbitrary choice, which is the
+   one thing the arc must not say.
 
-   Building it means the stage must simulate an experiment rather than hand out
-   one number per gene: n samples per arm, a fold change AND a t-test p per
-   gene, so both metrics exist and genuinely disagree — fold change favours
-   large moves however noisy, signed significance favours consistent ones
-   however small. `makeStage` currently draws `mu + rng.normal()` and stops.
+   WHAT REPLACED IT is in `model.js`: an experiment (four samples per arm, a
+   gene-specific noise level, a fold change and a t-test p from the same draws)
+   and two kinds of planted pathway, loud and quiet, so that each metric wins
+   somewhere. Neither is wrong; they answer different questions.
 
-   The qualitative claims in `_lab/enr-measure.mjs` survive that change — the
-   background arithmetic is untouched, and ORA's blindness to a down-regulated
-   pathway is structural — but every RATE in §§ 4-7 is measured on the present
-   stage and would have to be measured again. That is the cost, and it is why
-   this is a separate round rather than a quiet addition.
+   THE CONTROL THAT PROVES THE MECHANISM is worth keeping in mind before anyone
+   simplifies the stage back: with ONE variance for every gene the two metrics
+   still disagree about 12 genes of a top-60 list, but the genes each prefers
+   have identical mean noise, 1.00 against 1.00. A disagreement with no reading
+   is not a teaching control. `_lab/enr-metric.mjs` § 1.
+
+   STILL OPEN, and deliberately not built here:
+
+   THE PERMUTATION SCHEME is the score's OTHER invisible choice, and the widget
+   still substitutes one for the other silently. `gseaNull` permutes which genes
+   are in the set and holds the ranking still; the real thing permutes sample
+   labels and re-ranks, which preserves the correlation between genes that gene
+   permutation destroys. The notebook's own step 3 says "permuting the labels of
+   the dataset".
+
+   THAT SUBSTITUTION IS NOW BUILDABLE and was not before: sample permutation
+   needs an expression matrix, and as of this change the stage HAS one — it
+   draws `n` samples per arm per gene. What it does not yet have is those draws
+   RETAINED (only the fold change and the p survive the loop) and a per-gene
+   correlation structure, without which the two schemes would differ by
+   arithmetic and not by the thing that makes them differ in practice. That is
+   the next round, and it is a round rather than an addition.
    ========================================================================= */

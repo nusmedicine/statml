@@ -4,7 +4,9 @@
 
      node widgets/_lab/enr-measure.mjs
 
-   Eight questions the widget's design turns on:
+   Eight questions the widget's design turns on. §§ 4-7 were RE-MEASURED on
+   2026-09-04 when the ranking metric arrived and the stage became an
+   experiment; `enr-metric.mjs` carries that change's own five sections:
 
      1. does this project's Fisher's exact test reproduce the lesson's own
         printed output (cell 3: p = 0.00089982, odds ratio 2345.052);
@@ -163,20 +165,35 @@ console.log(`   universe is also the most flattering one.`);
 
 /* --- the stage's own vocabulary, now that pathways are a collection -------- */
 
-/* §§ 4-7 all ask the same question of three KINDS of pathway, and the stage
-   plants two up and one down among twenty. `pick` finds one of each on a given
-   seed, so a claim is always measured on the same kind of object even though
-   which index that is moves with the seed. */
+/* §§ 4-7 all ask the same question of the FOUR KINDS of pathway the stage
+   holds. `pick` finds one of each on a given seed, so a claim is always
+   measured on the same kind of object even though which index that is moves
+   with the seed.
+
+   THE KINDS CHANGED when the ranking metric arrived, and every rate below was
+   re-measured because of it. There used to be two "up" pathways differing only
+   in which genes they held; there are now a LOUD one and a QUIET one, which
+   differ in the thing the two metrics disagree about. `_lab/enr-metric.mjs`
+   § 2 is why — on the old stage, signed significance was simply the better
+   metric and the widget would have taught that the choice does not matter. */
 function pick(stage) {
-  const up = stage.sets.find((s) => s.planted === "up");
-  const down = stage.sets.find((s) => s.planted === "down");
-  const none = stage.sets.find((s) => s.planted === null);
-  return { up: up.index, down: down.index, none: none.index };
+  const of = (k) => stage.sets.find((s) => s.planted === k).index;
+  return { loud: of("loud"), quiet: of("quiet"), down: of("down"),
+    none: stage.sets.find((s) => s.planted === null).index };
 }
-const KINDS = ["up", "none", "down"];
+const KINDS = ["loud", "quiet", "none", "down"];
 const PLANTED_AS = {
-  up: "high in the ranking", none: "at random", down: "low in the ranking",
+  loud: "a big change in noisy genes",
+  quiet: "a small change in tightly-held genes",
+  none: "nothing — the false-positive check",
+  down: "a big change downwards",
 };
+
+/* Every § below runs at the widget's DEFAULT metric unless it says otherwise.
+   That is fold change, which is what the lesson's cell 9 ranks on. Where the
+   metric moves a rate, the § says so and prints both. */
+const DEFAULT_METRIC = "fc";
+const METRIC_NAME = { fc: "fold change", sig: "signed significance" };
 
 /* --- 4. the cutoff, and whether GSEA sits still while it moves ------------- */
 
@@ -185,22 +202,23 @@ ${"=".repeat(78)}`);
 console.log("4. THE CUTOFF — one ranked list, ORA re-run at each threshold");
 console.log("=".repeat(78));
 
-/* Shift 0.6, not the 1.6 this first ran at: § 5 measures that at 1.6 the
+/* `moderate`, not `strong`: § 5 measures that at the top of the ladder the
    planted pathway is so obvious that every cutoff finds it, and the cutoff
-   claim is FALSE in that regime. 0.6 is where it lives. */
-const SHIFT = 0.6;
+   claim is FALSE in that regime. This is where it lives. */
+const SCALE = 1;
 const CUTOFFS = [10, 20, 40, 60, 80, 100, 150, 200];
-const st1 = makeStage(makeRng(1), { shift: SHIFT });
+const st1 = makeStage(makeRng(1), { scale: SCALE, metric: DEFAULT_METRIC });
 const p1 = pick(st1);
 console.log(`
-   ${st1.genes} genes, ${N_SETS} pathways, shift ${SHIFT}, seed 1.
-   Universe held at ${st1.genes} — § 3 is where the universe moves.
+   ${st1.genes} genes, ${N_SETS} pathways, effect scale ${SCALE}, seed 1,
+   ranked on ${METRIC_NAME[DEFAULT_METRIC]}. Universe held at ${st1.genes} —
+   § 3 is where the universe moves.
 `);
 for (const kind of KINDS) {
   const i = p1[kind];
   const g = gsea(st1, i);
   const nul = gseaNull(st1, i, makeRng(7), 2000);
-  console.log(`   ${st1.sets[i].label} (${st1.sets[i].size} genes) — planted ${PLANTED_AS[kind]}`);
+  console.log(`   ${st1.sets[i].label} (${st1.sets[i].size} genes) — ${PLANTED_AS[kind]}`);
   console.log(`      cutoff k    in both    p            verdict`);
   for (const k of CUTOFFS) {
     const o = ora(st1, i, k, st1.genes);
@@ -219,18 +237,19 @@ console.log(`${"=".repeat(78)}`);
 console.log("5. THE SWEEP — over effect size, does the cutoff flip ORA's verdict?");
 console.log("=".repeat(78));
 console.log(`
-   ${CUTOFFS.length} cutoffs from ${CUTOFFS[0]} to ${CUTOFFS.at(-1)}, 60 seeds each.
+   ${CUTOFFS.length} cutoffs from ${CUTOFFS[0]} to ${CUTOFFS.at(-1)}, 60 seeds each,
+   ranked on ${METRIC_NAME[DEFAULT_METRIC]}.
    "flips" = the eight cutoffs do not all return the same verdict.
    GSEA is run once per pathway: it has no cutoff to flip on.
 `);
-console.log("   shift   planted   ORA sig at k = 20 / 60 / 150    flips    GSEA p<0.05");
+console.log("   scale   pathway   ORA sig at k = 20 / 60 / 150    flips    GSEA p<0.05");
 const SEEDS = 60, PERMS = 400;
-for (const shift of [0.4, 0.6, 0.8, 1.0, 1.6]) {
+for (const scale of [0, 0.4, 1, 1.7]) {
   for (const kind of KINDS) {
     let flip = 0, gHit = 0;
     const at = { 20: 0, 60: 0, 150: 0 };
     for (let s = 1; s <= SEEDS; s += 1) {
-      const st = makeStage(makeRng(s), { shift });
+      const st = makeStage(makeRng(s), { scale, metric: DEFAULT_METRIC });
       const i = pick(st)[kind];
       const verdicts = CUTOFFS.map((k) => ora(st, i, k, st.genes).p < 0.05);
       if (new Set(verdicts).size > 1) flip += 1;
@@ -239,7 +258,7 @@ for (const shift of [0.4, 0.6, 0.8, 1.0, 1.6]) {
     }
     const r = (v) => `${Math.round(100 * v / SEEDS)}%`.padStart(4);
     console.log(
-      `   ${shift.toFixed(1)}     ${kind.padEnd(6)}`
+      `   ${scale.toFixed(1)}     ${kind.padEnd(6)}`
       + `    ${r(at[20])} ${r(at[60])} ${r(at[150])}             ${r(flip)}       ${r(gHit)}`,
     );
   }
@@ -247,15 +266,21 @@ for (const shift of [0.4, 0.6, 0.8, 1.0, 1.6]) {
 }
 console.log(`   READ THE TABLE THIS WAY:
 
-   - The cutoff claim is LIVE at shift 0.4-0.8 and DEAD at 1.6. At 1.6 the
-     planted pathway is so obvious that all eight cutoffs find it, so a widget
-     whose default effect is strong would demonstrate nothing.
+   - The cutoff claim is LIVE in the middle of the ladder and DEAD at the top.
+     At scale 1.7 the loud pathway is so obvious that all eight cutoffs find
+     it, so a widget whose default effect is strong would demonstrate nothing.
    - The DOWN pathway needs no tuning: genuinely enriched, and ORA on a top-k
      list never sees it at ANY effect size or ANY cutoff, because the list is
-     the top of the ranking and the pathway is at the bottom.
-   - The unplanted pathway is the false-positive check. GSEA fires on it about
-     7% of the time against a nominal 5% — gene-set permutation is mildly
-     liberal, which is a real property of the substitute null and not a bug.`);
+     the top of the ranking and the pathway is at the bottom. Unchanged by the
+     rebuild, and unchanged by the metric — see § 6.
+   - SCALE 0 IS NOT A NULL ROW. Every true change is zero there, and the loud
+     pathway is still called significant, because its genes are noisier and a
+     ranking on fold change is a ranking on magnitude. That rate is measured
+     properly in \`_lab/enr-metric.mjs\` § 4: 63% at the widget's own noise
+     multiplier, against 2% for signed significance.
+   - The unplanted pathway is the false-positive check for GSEA. It fires
+     above the nominal 5% — gene-set permutation is mildly liberal, which is a
+     real property of the substitute null and not a bug.`);
 
 /* --- 6. the fix a practitioner would reach for ----------------------------- */
 
@@ -272,37 +297,46 @@ console.log('6. THE FAIR VERSION — a gene list of "most changed", either direc
 console.log("=".repeat(78));
 console.log(`
    60 seeds. Same list, same pathways, same universe; only how the list is cut.
+   Run under BOTH metrics, because the down-regulated claim is the widget's
+   strongest and it should not rest on one ranking.
 `);
-console.log("   shift  planted   top-k sig at 20/60/150   most-changed at 20/60/150   GSEA");
-for (const shift of [0.6, 1.0]) {
+console.log("   metric  pathway   top-k sig at 20/60/150   most-changed at 20/60/150");
+for (const metric of ["fc", "sig"]) {
   for (const kind of KINDS) {
     const one = { 20: 0, 60: 0, 150: 0 }, two = { 20: 0, 60: 0, 150: 0 };
-    let g = 0;
     for (let s = 1; s <= 60; s += 1) {
-      const st = makeStage(makeRng(s), { shift });
+      const st = makeStage(makeRng(s), { scale: 1, metric });
       const i = pick(st)[kind];
       for (const k of [20, 60, 150]) {
         one[k] += ora(st, i, k, st.genes, "top").p < 0.05 ? 1 : 0;
         two[k] += ora(st, i, k, st.genes, "both").p < 0.05 ? 1 : 0;
       }
-      g += gseaNull(st, i, makeRng(1000 + s), 400).p < 0.05 ? 1 : 0;
     }
     const r = (v) => `${Math.round(100 * v / 60)}%`.padStart(5);
     console.log(
-      `   ${shift.toFixed(1)}    ${kind.padEnd(6)}`
+      `   ${metric.padEnd(6)} ${kind.padEnd(6)}`
       + ` ${r(one[20])}${r(one[60])}${r(one[150])}         `
-      + ` ${r(two[20])}${r(two[60])}${r(two[150])}       ${r(g)}`,
+      + ` ${r(two[20])}${r(two[60])}${r(two[150])}`,
     );
   }
   console.log("");
 }
-console.log(`   THE FIX MAKES ORA WORSE, and this is a finding the widget is for.
+console.log(`   THE FIX HELPS ONE PATHWAY AND CHARGES A DIFFERENT PATHWAY FOR IT, and what
+   it charges depends on the metric — which is a finding the widget is for.
 
-   Taking the most-changed genes in either direction does rescue the down
-   pathway a little, and it costs the up one most of its power, because the
-   list now holds both and each is only half of it. There is no cutoff, and no
-   way of cutting, at which ORA sees both. GSEA sees both and has nothing to
-   cut.`);
+   Read the k = 60 column. Taking the most-changed genes in either direction
+   partly rescues the down pathway, 0% to 38% on fold change and 0% to 32% on
+   signed significance. What it costs is not the same bill twice: on fold
+   change the loud pathway barely notices, 100% to 98%, because its genes are
+   large in magnitude whichever direction you sort from; on signed significance
+   it is ruinous, 58% to 7% for the loud pathway and 83% to 37% for the quiet
+   one, because the list now holds both ends and each is only half of it.
+
+   NO SETTING FINDS ALL THREE. At k = 60 the four combinations of metric and
+   cutting rule give loud/quiet/down as 100/0/0, 98/0/38, 58/83/0 and 7/37/32.
+   The best that sees all three sees none of them well. That is the claim the
+   pairing is for, and it survives the rebuild: GSEA finds them and has nothing
+   to cut.`);
 
 /* --- 7. the correction, which is why the tab tests a COLLECTION ------------ */
 
@@ -316,43 +350,64 @@ console.log(`
    on which the correction is not the identity function, which is why the ORA
    tab tests all ${N_SETS} pathways rather than the one on screen.
 
-   200 seeds at the widget's defaults — cutoff 60, background 400.
+   200 seeds at the widget's defaults — cutoff 60, background 400 — under both
+   metrics, because which pathway the correction is deciding about depends on
+   which ranking produced the list.
 `);
-console.log("   shift   significant at 0.05     the planted UP pathways found");
-console.log("           raw  median   BH  median    raw       after BH");
-for (const shift of [0.4, 0.6, 1.0]) {
-  const raw = [], adj = [];
-  let upRaw = 0, upAdj = 0, upN = 0;
-  for (let s = 1; s <= 200; s += 1) {
-    const st = makeStage(makeRng(s), { shift });
-    const all = oraAll(st, 60, st.genes, "top");
-    raw.push(all.filter((r) => r.p < 0.05).length);
-    adj.push(all.filter((r) => r.padj < 0.05).length);
-    for (const r of all) {
-      if (r.planted !== "up") continue;
-      upN += 1;
-      if (r.p < 0.05) upRaw += 1;
-      if (r.padj < 0.05) upAdj += 1;
+console.log("   metric  scale   significant at 0.05      the PLANTED pathways found");
+console.log("                   raw  median   BH  median     raw       after BH");
+for (const metric of ["fc", "sig"]) {
+  for (const scale of [0.4, 1, 1.7]) {
+    const raw = [], adj = [];
+    let pRaw = 0, pAdj = 0, pN = 0;
+    for (let s = 1; s <= 200; s += 1) {
+      const st = makeStage(makeRng(s), { scale, metric });
+      const all = oraAll(st, 60, st.genes, "top");
+      raw.push(all.filter((r) => r.p < 0.05).length);
+      adj.push(all.filter((r) => r.padj < 0.05).length);
+      for (const r of all) {
+        /* the down pathway is excluded on purpose: § 6 has just shown ORA
+           cannot see it at all, so counting it here would report the cutoff's
+           blindness as the correction's cost */
+        if (r.planted !== "loud" && r.planted !== "quiet") continue;
+        pN += 1;
+        if (r.p < 0.05) pRaw += 1;
+        if (r.padj < 0.05) pAdj += 1;
+      }
     }
+    const mean = (a) => (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2);
+    const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+    console.log(
+      `   ${metric.padEnd(6)}  ${scale.toFixed(1)}    ${mean(raw).padStart(5)}  ${String(med(raw)).padStart(4)}`
+      + `  ${mean(adj).padStart(5)} ${String(med(adj)).padStart(4)}`
+      + `     ${(100 * pRaw / pN).toFixed(0).padStart(4)}%     ${(100 * pAdj / pN).toFixed(0).padStart(4)}%`,
+    );
   }
-  const mean = (a) => (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2);
-  const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
-  console.log(
-    `   ${shift.toFixed(1)}    ${mean(raw).padStart(5)}  ${String(med(raw)).padStart(4)}`
-    + `  ${mean(adj).padStart(5)} ${String(med(adj)).padStart(4)}`
-    + `    ${(100 * upRaw / upN).toFixed(0).padStart(4)}%     ${(100 * upAdj / upN).toFixed(0).padStart(4)}%`,
-  );
+  console.log("");
 }
-console.log(`
-   WHY THE DEFAULT IS TWO PLANTED UP AND ONE DOWN. With one planted pathway the
-   median at the defaults is 1 significant raw and 0 after correcting, so the
-   results table opens with nothing in it. With two it is 2 and 1: two pathways
-   past 0.05, one of them still standing after the correction.
+console.log(`   WHAT THE CORRECTION COSTS IS A PROPERTY OF THE METRIC, which is the thing
+   this table gained when the ranking metric arrived.
 
-   AND THE HONEST HALF OF THE LESSON is in the last two columns. The correction
-   is not free — it removes real findings along with the false ones, and at the
-   default effect it costs about half of the genuinely enriched pathways ORA
-   had found.`);
+   On fold change the correction is close to free at every effect size — 50%
+   of planted pathways found raw and 49% after BH at scale 1. Not because BH
+   is gentle, but because on this metric the loud pathway comes in at 1e-6 and
+   nothing else comes near the line, so there is little in the middle for a
+   correction to decide about. On signed significance the middle is populated
+   and BH bites: 71% raw down to 51% after, and at the weak end 21% down to 5%.
+
+   SO THE SAME CORRECTION LOOKS HARMLESS OR EXPENSIVE depending on a control
+   two rows above it in the rail, and neither reading is the wrong one. A
+   reader who meets only the fold-change column would learn that multiple test
+   correction costs nothing, which is the sort of thing this widget exists to
+   prevent.
+
+   THE MEDIAN NUMBER OF SIGNIFICANT PATHWAYS is 1 raw and 1 after BH on the
+   default metric, so the results table opens with something in it rather than
+   empty — which is what the collection had to deliver to be worth testing.
+
+   THE DEFAULT SEED IS 174, and it was searched for rather than left at 1 — the
+   reasoning, and the four things true of it at once, are at the \`seed\` param
+   in \`main.js\`.`);
 
 /* --- 8. Benjamini-Hochberg against R's own algorithm ----------------------- */
 

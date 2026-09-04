@@ -26,7 +26,7 @@
    Nothing here draws. Everything is seeded.
    ========================================================================= */
 
-import { lgamma } from "../core/stats.js";
+import { lgamma, tTailP } from "../core/stats.js";
 
 /* --- Fisher's exact test --------------------------------------------------- */
 
@@ -105,13 +105,6 @@ export function oddsRatioCmle(a, b, c, d) {
    no correction as there is only one p-value". A collection is the smallest
    stage on which the correction is not a no-op.
 
-THREE OF THEM ARE PLANTED, at seeded positions rather than fixed ones.
-   Fixed indices would teach "pathway 1 is always the answer"; seeded ones
-   leave the reader where a real analysis leaves them, reading the results to
-   find out. Two are enriched at the top of the ranking and one at the bottom;
-   the other five carry nothing, which is what gives the correction something
-   to correct.
-
    EIGHT, MEASURED. From five pathways to twenty the median is the same — two
    significant before correcting and one after — so the number does not decide
    whether the panel has anything in it. What it decides is how often the
@@ -121,38 +114,110 @@ THREE OF THEM ARE PLANTED, at seeded positions rather than fixed ones.
 
    THE UNPLANTED PATHWAYS ARE NOT PURE NULLS, and that is deliberate rather
    than sloppy: they overlap the planted ones by chance, so a few come out
-   mildly enriched. That is exactly the population BH exists to handle. */
+   mildly enriched. That is exactly the population BH exists to handle.
+
+   A PLANTED PATHWAY IS ALSO BIGGER than an unplanted one, 28-45 against 12-45.
+   Not to flatter the method: a 14-gene pathway at this effect size is
+   under-powered, so small planted pathways make the panel a coin toss rather
+   than a lesson. */
 export const N_SETS = 8;
 const SIZE_MIN = 12;
 const SIZE_MAX = 45;
-
-/* TWO UP AND ONE DOWN, and the counts are measured rather than chosen. With one
-   planted pathway the default state has a median of ONE significant result and
-   ZERO surviving BH, so the results table opens empty and demonstrates nothing.
-   With two, the median is 2 and 1: two pathways past 0.05, one of them still
-   standing after the correction, and the rest of the collection where it
-   belongs. Measured over 200 seeds at the defaults — `_lab/enr-measure.mjs`
-   § 7.
-
-   A PLANTED PATHWAY IS ALSO BIGGER than an unplanted one, 28-45 against 12-45.
-   Not to flatter the method: a 14-gene pathway at a 0.6 shift is under-powered,
-   so small planted pathways make the panel a coin toss rather than a lesson. */
-const N_UP = 2;
-const N_DOWN = 1;
 const PLANTED_MIN = 28;
 
-export function makeStage(rng, { genes = 400, shift = 0.6 } = {}) {
+/* AN EXPERIMENT RATHER THAN ONE NUMBER PER GENE, and that is the whole reason
+   this file changed. The stage used to draw `mu + rng.normal()` and stop, which
+   gives every gene a single score — and every ranking metric over a single
+   score is the SAME ORDER. A metric control on that stage would have been a
+   control that does nothing.
+
+   So each gene is measured in `SAMPLES_PER_ARM` samples per arm, and from those
+   comes a fold change AND a t-test p. Two numbers, two orders, a real choice.
+
+   FOUR PER ARM is a plausible omics experiment, and it also keeps a typical
+   gene's noise where the old stage had it: the fold change of a gene with unit
+   variance has SE sqrt(2/4) = 0.71 against the old draw's 1.0. Measured in
+   `_lab/enr-metric.mjs` § 1, the number of samples barely moves the metrics'
+   disagreement — 21 genes of 60 swap at four per arm and 18 at ten — so it is
+   fixed rather than offered as a control nobody would learn anything from. */
+export const SAMPLES_PER_ARM = 4;
+
+/* GENE-LEVEL VARIANCE, WITHOUT WHICH THE TWO METRICS HAVE NO READING. Measured:
+   with one variance for every gene the two orders still disagree about 12 genes
+   of a top-60 list, but the genes each metric prefers have IDENTICAL mean noise,
+   1.00 against 1.00 — sampling error in the pooled SD and nothing a reader
+   could name. At this spread fold change's exclusive picks are 2.7x noisier
+   than signed significance's, which is the distinction the tab is for.
+   `_lab/enr-metric.mjs` § 1. Log-normal because expression variance is. */
+const SIGMA_LOG = 0.35;
+
+/* TWO KINDS OF PLANTED PATHWAY, AND THE MEASUREMENT THAT FORCED THEM.
+
+   The first design kept the old constant shift and just added the metric. It
+   was measured and DISCARDED: on a stage where every gene of a pathway moves
+   by the same amount regardless of its own noise, signed significance is
+   simply better — 86% against 92% at moderate noise spread, 65% against 98%
+   at high — because a constant shift is exactly the alternative a t-test is
+   built to detect. A student would have correctly concluded "use the p-value",
+   and the arc's claim that the choices MOVE rather than disappear would have
+   been false on the figure. `_lab/enr-metric.mjs` § 2.
+
+   So a pathway is loud or quiet, and each metric wins on one:
+
+     loud  — a big average change in genes that are noisy anyway. Fold change
+             finds it on 100% of seeds, signed significance on 57%.
+     quiet — a small change in genes held tightly. Signed significance finds it
+             on 88% of seeds; fold change on 0%, and that is structural rather
+             than tuned — the list is the top k BY MAGNITUDE, and a small change
+             is small however many times it repeats.
+
+   Neither metric is wrong about either pathway. They answer different
+   questions — is it real, is it big — and which one is wanted is not in the
+   data. `_lab/enr-metric.mjs` § 3.
+
+   THE DOWN-REGULATED ONE is what § 6 of `enr-measure.mjs` needs: ORA on a
+   top-k list never sees it, 0% under BOTH metrics. That claim was always
+   structural and it survived this rebuild untouched. */
+export const KINDS = {
+  loud: { mu: 0.8, sd: 2.0 },
+  quiet: { mu: 0.3, sd: 0.5 },
+  down: { mu: -0.6, sd: 1.0 },
+};
+
+/* THE TWO METRICS THE LESSON ITSELF NAMES: it ranks on log2 fold change in
+   cell 9 and names -log10(p) x sign(logFC) in cell 6. Both are one signed
+   number per gene, which is all ORA's cutoff and the running sum need — so the
+   choice is invisible in the code and changes the answer, which is the same
+   shape as the background and the cutoff on the other tab. */
+export const METRICS = {
+  fc: {
+    label: "Fold change",
+    detail: "how big the change is — the gap between the two arms of four",
+  },
+  sig: {
+    label: "Signed significance",
+    detail: "how sure it is — a t-test on those same eight values, signed",
+  },
+};
+
+/* `metric` picks which of the two orders the stage is ranked in, and it is
+   applied AFTER every draw. Both metrics therefore describe the same
+   experiment: switching the control changes the question asked of the data,
+   never the data. */
+export function makeStage(rng, { genes = 400, scale = 1, metric = "fc" } = {}) {
   const all = [...Array(genes).keys()];
 
-  /* Which ones carry real signal, drawn before the members so the stream is
-     consumed in a fixed order whatever the sizes turn out to be. */
+  /* Which pathways carry real signal, drawn before the members so the stream is
+     consumed in a fixed order whatever the sizes turn out to be. Seeded rather
+     than fixed: fixed indices would teach "pathway 1 is always the answer", and
+     seeded ones leave the reader where a real analysis leaves them, reading the
+     results to find out. */
   const order = rng.shuffle([...Array(N_SETS).keys()]);
-  const upAt = order.slice(0, N_UP);
-  const downAt = order.slice(N_UP, N_UP + N_DOWN);
+  const kindOf = { [order[0]]: "loud", [order[1]]: "quiet", [order[2]]: "down" };
 
   const sets = [];
   for (let i = 0; i < N_SETS; i += 1) {
-    const planted = upAt.includes(i) ? "up" : downAt.includes(i) ? "down" : null;
+    const planted = kindOf[i] ?? null;
     const lo = planted ? PLANTED_MIN : SIZE_MIN;
     const size = lo + Math.floor(rng.next() * (SIZE_MAX - lo + 1));
     sets.push({
@@ -164,28 +229,55 @@ export function makeStage(rng, { genes = 400, shift = 0.6 } = {}) {
     });
   }
 
-  /* The ranking metric. The lesson ranks by log2 fold change (cell 9) and
-     names -log10(p) x sign(logFC) as the alternative (cell 6); either way it
-     is one signed number per gene, which is all the running sum needs.
+  const n = SAMPLES_PER_ARM;
+  const df = 2 * n - 2;
+  const logFC = new Array(genes);
+  const pVal = new Array(genes);
+  const geneSd = new Array(genes);
 
-     A gene in several planted pathways ACCUMULATES their shifts, and one in
-     both an up and a down pathway nets to zero rather than taking whichever
-     was applied last. Two pathways of thirty out of four hundred share about
-     two genes, so this is a handful either way — but "up and down at once" has
-     no honest reading other than no effect. */
-  const score = [];
   for (let g = 0; g < genes; g += 1) {
+    /* A gene in several planted pathways ACCUMULATES their shifts, and one in
+       both an up and a down pathway nets to zero rather than taking whichever
+       was applied last — "up and down at once" has no honest reading other
+       than no effect. Two pathways of thirty out of four hundred share about
+       two genes, so this is a handful either way.
+
+       ITS NOISE TAKES THE LOUDER OF THE TWO, not the sum and not the last one:
+       a gene cannot be tightly controlled and wildly variable at once, and the
+       noisy regime is the one that governs what you actually measure. */
     let mu = 0;
+    let sdMul = null;
     for (const s of sets) {
-      if (s.planted === "up" && s.members.has(g)) mu += shift;
-      if (s.planted === "down" && s.members.has(g)) mu -= shift;
+      if (!s.planted || !s.members.has(g)) continue;
+      mu += KINDS[s.planted].mu * scale;
+      sdMul = sdMul === null ? KINDS[s.planted].sd : Math.max(sdMul, KINDS[s.planted].sd);
     }
-    score.push(mu + rng.normal());
+    const sdG = (sdMul ?? 1) * Math.exp(SIGMA_LOG * rng.normal());
+
+    const A = new Array(n);
+    const B = new Array(n);
+    for (let k = 0; k < n; k += 1) A[k] = rng.normal(0, sdG);
+    for (let k = 0; k < n; k += 1) B[k] = rng.normal(mu, sdG);
+    const mA = A.reduce((u, v) => u + v, 0) / n;
+    const mB = B.reduce((u, v) => u + v, 0) / n;
+    const vA = A.reduce((u, v) => u + (v - mA) ** 2, 0) / (n - 1);
+    const vB = B.reduce((u, v) => u + (v - mB) ** 2, 0) / (n - 1);
+    const pooled = Math.sqrt((vA + vB) / 2);
+
+    logFC[g] = mB - mA;
+    /* Floored rather than allowed to reach zero: -log10(0) is Infinity, which
+       would sort to the top and print as one. Four samples per arm cannot
+       produce a p anywhere near this, so the floor is a guard, never a value. */
+    pVal[g] = Math.max(1e-300, tTailP(Math.abs(logFC[g] / (pooled * Math.sqrt(2 / n))), df));
+    geneSd[g] = sdG;
   }
+
+  const signed = pVal.map((p, g) => -Math.log10(p) * Math.sign(logFC[g]));
+  const score = metric === "sig" ? signed : logFC;
   const rank = [...Array(genes).keys()].sort((x, y) => score[y] - score[x]);
   const rankOf = new Array(genes);
   rank.forEach((g, i) => { rankOf[g] = i; });
-  return { genes, shift, score, rank, rankOf, sets, upAt, downAt };
+  return { genes, scale, metric, n, logFC, pVal, signed, geneSd, score, rank, rankOf, sets };
 }
 
 /* --- ORA ------------------------------------------------------------------- */
@@ -369,13 +461,28 @@ export function solveD(r1, r2, target) {
 
 /* --- what the rail offers -------------------------------------------------- */
 
-/* `moderate` is the default because § 5 of the measurement says the cutoff
-   claim is dead above it: at a shift of 1.6 every cutoff finds the set. */
+/* ONE KNOB OVER BOTH PLANTED CHANGES, so the ladder moves the whole stage
+   rather than one pathway of it. The numbers in each `detail` are the two
+   changes themselves — `scale` times the 0.8 and 0.3 in `KINDS`.
+
+   `moderate` is the default because it is where the two metrics separate most
+   cleanly. Measured over 300 seeds, ORA at 0.05 on a top-60 list:
+
+     scale     loud by FC / signif     quiet by FC / signif
+     0.0        63%  /   2%             0%  /   2%
+     0.4        90%  /  16%             0%  /  27%
+     1.0       100%  /  57%             0%  /  88%
+     1.7       100%  /  91%            11%  /  99%
+
+   `strong` is the top of the ladder for the reason it always was: above it
+   both metrics find both pathways and there is nothing left to choose between.
+   `none` is the one worth pressing — every true change is zero there, and fold
+   change still calls the noisy pathway significant on 63% of seeds. */
 export const EFFECTS = {
-  none: { label: "None", detail: "no set differs from the rest", shift: 0 },
-  weak: { label: "Weak", detail: "the planted sets shift by 0.4 of a standard deviation", shift: 0.4 },
-  moderate: { label: "Moderate", detail: "a shift of 0.6 — where a real experiment lives", shift: 0.6 },
-  strong: { label: "Strong", detail: "a shift of 1.0, which any method finds", shift: 1.0 },
+  none: { label: "None", detail: "no pathway changes on average", scale: 0 },
+  weak: { label: "Weak", detail: "changes of 0.32 and 0.12 — small for both metrics", scale: 0.4 },
+  moderate: { label: "Moderate", detail: "changes of 0.8 and 0.3, where a real experiment lives", scale: 1 },
+  strong: { label: "Strong", detail: "changes of 1.4 and 0.5, which both metrics find", scale: 1.7 },
 };
 
 /* THE BACKGROUND, as the numbers people type. Only the first is a fact about
