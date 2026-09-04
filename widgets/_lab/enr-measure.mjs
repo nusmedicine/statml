@@ -30,6 +30,7 @@
 import {
   fisherTwoSided, fisherGreater, oddsRatioCmle,
   makeStage, ora, oraAll, gsea, gseaNull, benjaminiHochberg, N_SETS,
+  lensArea, solveD,
 } from "../enrichment/model.js";
 import { makeRng } from "../core/rng.js";
 
@@ -345,8 +346,8 @@ for (const shift of [0.4, 0.6, 1.0]) {
 console.log(`
    WHY THE DEFAULT IS TWO PLANTED UP AND ONE DOWN. With one planted pathway the
    median at the defaults is 1 significant raw and 0 after correcting, so the
-   panel opens empty and demonstrates nothing. With two it is 2 and 1: a couple
-   of bars over the 0.05 line and one still standing after the correction.
+   results table opens with nothing in it. With two it is 2 and 1: two pathways
+   past 0.05, one of them still standing after the correction.
 
    AND THE HONEST HALF OF THE LESSON is in the last two columns. The correction
    is not free — it removes real findings along with the false ones, and at the
@@ -399,3 +400,40 @@ for (let t = 0; t < 2000; t += 1) {
 console.log(`
    ${compared} adjusted values compared: largest absolute difference ${worst.toExponential(2)}`);
 console.log(`   adjusted values that decrease where the raw ones increase: ${nonMonotone}`);
+
+/* --- 9. the Venn is drawn to scale, and this is what that means ------------ */
+
+console.log(`
+${"=".repeat(78)}`);
+console.log("9. THE VENN — does the overlap the figure draws equal the overlap it counts?");
+console.log("=".repeat(78));
+console.log(`
+   The ORA tab draws two circles whose AREAS are the two gene counts and whose
+   overlap area is the overlap count. The second half needs an inverse: given
+   two radii and a target lens area, how far apart are the centres? \`solveD\`
+   bisects for it. This checks the inverse holds over every shape the widget can
+   reach — a list of 5 to 200 genes against a pathway of 12 to 45, at every
+   overlap those two allow.
+`);
+let worstAbs = 0, worstRel = 0, cases = 0, ends = 0;
+for (let k = 5; k <= 200; k += 5) {
+  for (let m = 12; m <= 45; m += 1) {
+    for (let a = 0; a <= Math.min(k, m); a += 1) {
+      const nList = k, nPath = m;
+      const r1 = Math.sqrt(nList / Math.PI);
+      const r2 = Math.sqrt(nPath / Math.PI);
+      const d = solveD(r1, r2, a);
+      const got = lensArea(r1, r2, d);
+      cases += 1;
+      /* The two ends are exact by construction rather than by bisection: no
+         overlap means the circles do not touch, and an overlap equal to the
+         smaller count means one is inside the other. */
+      if (a === 0 || a >= Math.PI * Math.min(r1, r2) ** 2 - 1e-9) { ends += 1; continue; }
+      worstAbs = Math.max(worstAbs, Math.abs(got - a));
+      worstRel = Math.max(worstRel, Math.abs(got - a) / a);
+    }
+  }
+}
+console.log(`   ${cases} shapes checked (${ends} of them at one end of the range, exact by`);
+console.log(`   construction). Largest error in the lens area: ${worstAbs.toExponential(2)} genes,`);
+console.log(`   ${(100 * worstRel).toExponential(2)}% of the count it is meant to be.`);

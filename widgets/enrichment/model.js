@@ -105,28 +105,34 @@ export function oddsRatioCmle(a, b, c, d) {
    no correction as there is only one p-value". A collection is the smallest
    stage on which the correction is not a no-op.
 
-   TWO OF THEM ARE PLANTED, at seeded positions rather than fixed ones. Fixed
-   indices would teach "pathway 1 is always the answer"; seeded ones leave the
-   reader where a real analysis leaves them, reading the panel to find out.
-   The two are the lesson's own outer cases — cell 6's figure names enriched at
-   the top, random, and enriched at the bottom — and the eighteen unplanted
-   ones supply the middle case eighteen times over, which is what makes the
-   correction worth doing.
+THREE OF THEM ARE PLANTED, at seeded positions rather than fixed ones.
+   Fixed indices would teach "pathway 1 is always the answer"; seeded ones
+   leave the reader where a real analysis leaves them, reading the results to
+   find out. Two are enriched at the top of the ranking and one at the bottom;
+   the other five carry nothing, which is what gives the correction something
+   to correct.
+
+   EIGHT, MEASURED. From five pathways to twenty the median is the same — two
+   significant before correcting and one after — so the number does not decide
+   whether the panel has anything in it. What it decides is how often the
+   correction costs a REAL finding: 26% of seeds at five, 37% at eight, 54% at
+   twenty. Eight is where that is common enough to meet and few enough to read
+   as a table of named rows rather than a row of anonymous bars.
 
    THE UNPLANTED PATHWAYS ARE NOT PURE NULLS, and that is deliberate rather
    than sloppy: they overlap the planted ones by chance, so a few come out
    mildly enriched. That is exactly the population BH exists to handle. */
-export const N_SETS = 20;
+export const N_SETS = 8;
 const SIZE_MIN = 12;
 const SIZE_MAX = 45;
 
 /* TWO UP AND ONE DOWN, and the counts are measured rather than chosen. With one
-   planted pathway the default state has a median of ONE raw-significant result
-   and ZERO surviving BH, so the correction panel opens empty and demonstrates
-   nothing. With two, the median is 2 raw and 1 corrected: a couple of bars over
-   the 0.05 line, one of them still standing after the correction, and the rest
-   of the collection where it belongs. Measured over 200 seeds at the defaults —
-   `_lab/enr-measure.mjs` § 7.
+   planted pathway the default state has a median of ONE significant result and
+   ZERO surviving BH, so the results table opens empty and demonstrates nothing.
+   With two, the median is 2 and 1: two pathways past 0.05, one of them still
+   standing after the correction, and the rest of the collection where it
+   belongs. Measured over 200 seeds at the defaults — `_lab/enr-measure.mjs`
+   § 7.
 
    A PLANTED PATHWAY IS ALSO BIGGER than an unplanted one, 28-45 against 12-45.
    Not to flatter the method: a 14-gene pathway at a 0.6 shift is under-powered,
@@ -326,6 +332,39 @@ export function benjaminiHochberg(p) {
     out[idx] = Math.min(1, running);
   });
   return out;
+}
+
+/* --- two-circle geometry, for the Venn ------------------------------------- */
+
+/* The lens area of two overlapping circles, and its inverse. `main.js` draws a
+   Venn whose two AREAS are the two gene counts and whose overlap area is
+   exactly the overlap count, which needs `solveD` to find the distance between
+   the centres that produces a given lens. The alternative — two circles of a
+   fixed size with the numbers written in — draws the same picture whether nine
+   genes overlap or ninety, which is the one thing that figure is for.
+
+   Here rather than in the figure so `_lab/enr-measure.mjs` § 9 can check that
+   the inverse holds across every shape the widget can reach. */
+const clampTo = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+export function lensArea(r1, r2, d) {
+  if (d >= r1 + r2) return 0;
+  if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) ** 2;
+  const d1 = (d * d - r2 * r2 + r1 * r1) / (2 * d);
+  const d2 = d - d1;
+  return r1 * r1 * Math.acos(clampTo(d1 / r1, -1, 1)) - d1 * Math.sqrt(Math.max(0, r1 * r1 - d1 * d1))
+    + r2 * r2 * Math.acos(clampTo(d2 / r2, -1, 1)) - d2 * Math.sqrt(Math.max(0, r2 * r2 - d2 * d2));
+}
+
+export function solveD(r1, r2, target) {
+  if (target <= 0) return r1 + r2;
+  if (target >= Math.PI * Math.min(r1, r2) ** 2) return Math.abs(r1 - r2);
+  let lo = Math.abs(r1 - r2), hi = r1 + r2;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (lensArea(r1, r2, mid) > target) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
 }
 
 /* --- what the rail offers -------------------------------------------------- */
