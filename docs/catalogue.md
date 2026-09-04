@@ -5372,6 +5372,31 @@ always structural rather than a property of the stage.
 
 Full working in `widgets/_lab/enr-metric.mjs`, five sections.
 
+#### The permutation histogram runs backwards on purpose
+
+Kenneth spotted on 2026-09-04 that the null panel mirrored the three panels
+above it. Those share the ranking as their x-axis, where screen-left is the top
+of the list and so the most up-regulated genes; a pathway sitting there drives
+the running sum UP and scores a POSITIVE enrichment score — which, drawn the
+conventional way, lands on the RIGHT of the histogram. The reader traces "my
+genes are on the left" into "my score is on the right" and the figure inverts
+itself halfway down.
+
+**The histogram is therefore drawn with positive on the LEFT.** What made it
+affordable is that the panel carries no numeric axis — the only number on it is
+the observed marker's own label — so reversing the direction breaks no tick
+sequence anyone is reading. What it costs is on the record in `main.js`: fgsea,
+clusterProfiler, the Broad's plots and the lesson's own cell-6 figure all put a
+positive score on the right, so a student moving to their own output meets the
+mirror image. Judged the smaller of the two confusions.
+
+The regions are demarcated in geometry and words rather than colour.
+`--c-value-low`/`--c-value-high` are exactly the red/blue pair the lesson's
+figure uses, but `--c-value-low` aliases `--series-1`, which is `--c-empirical`
+— already spent in this panel on the observed marker. A blue region behind a
+blue line would say two unrelated things in one hue, which is the trap
+`tokens.css` names at that token.
+
 ### Open calls — for Kenneth, not to be decided by a session
 
 1. **Build order.** Notebook order starts at `normalization`; evidence order

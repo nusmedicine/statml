@@ -885,12 +885,37 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
     counts[clamp(Math.floor(((d - lo) / (hi - lo)) * bins), 0, bins - 1)] += 1;
   }
   const top = Math.max(...counts);
-  const bx = (t) => x0 + (w * (t - lo)) / (hi - lo);
+
+  /* THIS AXIS RUNS BACKWARDS ON PURPOSE — POSITIVE ON THE LEFT. Do not "fix"
+     it; it disagrees with every GSEA tool's output and it is meant to.
+
+     The three panels above share one x-axis, the ranking, and on it screen-left
+     is the top of the list: the most up-regulated genes. A pathway whose genes
+     sit over there drives the running sum UP and scores a POSITIVE ES. Drawn
+     the conventional way, that positive score then lands on the RIGHT of this
+     histogram — so the reader traces "my genes are on the left" into "my score
+     is on the right", and the figure mirrors itself halfway down.
+
+     Kenneth caught exactly that on 2026-09-04 and called the flip. What makes
+     it affordable is that this panel has NO numeric axis: the only number on it
+     is the observed marker's own label, so reversing the direction breaks no
+     tick sequence a reader is reading left to right.
+
+     WHAT IT COSTS, so the trade is on the record: fgsea, clusterProfiler and
+     the Broad's own plots all put a positive score on the right, and so does
+     the lesson's own figure in cell 6 of `09 - Enrichment Analysis.ipynb`,
+     whose "Upregulated" null shades its RIGHT tail. A student moving from this
+     widget to their own output meets the mirror image. That was judged the
+     smaller confusion of the two. */
+  const bx = (t) => x0 + (w * (hi - t)) / (hi - lo);
+
   ctx.fillStyle = colors.theory;
   ctx.globalAlpha = 0.85;
   counts.forEach((c, i) => {
     const bh = (h - 14) * (c / top);
-    ctx.fillRect(bx(lo + ((hi - lo) * i) / bins), y0 + 16 + (h - 14 - bh),
+    /* On a reversed axis a bin's UPPER edge is its screen-left edge, so the
+       rect starts at bin i + 1 rather than at bin i. */
+    ctx.fillRect(bx(lo + ((hi - lo) * (i + 1)) / bins), y0 + 16 + (h - 14 - bh),
       Math.max(1, w / bins - 1), bh);
   });
   ctx.globalAlpha = 1;
@@ -913,7 +938,9 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
      tokens.css names at `--c-value-low` itself.
 
      `lo` is at most -0.9 and `hi` at least 0.9, so zero is always strictly
-     inside the domain and this line always lands on the plot. */
+     inside the domain and this line always lands on the plot — wherever the
+     draws put it, which is why the region labels are anchored to the panel's
+     edges rather than tucked either side of it. */
   const zx = bx(0);
   ctx.setLineDash([3, 3]);
   ctx.beginPath(); ctx.moveTo(zx, y0 + 14); ctx.lineTo(zx, axisY); ctx.stroke();
@@ -923,8 +950,8 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
      draws put it, so labels tucked either side of it collide with each other
      on a narrow canvas; anchored to the ends they cannot. */
   const regionY = axisY + 12;
-  text(ctx, "down-regulated", x0, regionY, { fill: colors.ink2, size: 10 });
-  text(ctx, "up-regulated", x0 + w, regionY,
+  text(ctx, "up-regulated", x0, regionY, { fill: colors.ink2, size: 10 });
+  text(ctx, "down-regulated", x0 + w, regionY,
     { fill: colors.ink2, align: "right", size: 10 });
 
   const ox = bx(obs);
