@@ -220,20 +220,6 @@ defineWidget({
       display: true,
     },
 
-    /* A SELECT rather than a segmented group: eight named options is what
-       `select` is for. The results table is the faster route — every pathway is
-       there and clicking a row selects it — but the dropdown is the keyboard
-       and screen-reader path to the same parameter, so it stays. */
-    pathway: {
-      type: "select",
-      label: "Pathway",
-      options: Array.from({ length: N_SETS }, (_, i) => ({
-        value: String(i), label: `Pathway ${i + 1}`,
-      })),
-      default: "0",
-      display: true,
-    },
-
     data: { type: "section", label: "The data" },
 
     /* Measured rather than chosen: at `strong` every cutoff finds the planted
@@ -282,7 +268,11 @@ defineWidget({
        ranking, and a walk built along the old one no longer describes the
        figure. Resetting the animation is correct here. */
     metric: {
-      type: "choice",
+      /* SEGMENTED, NOT A SLIDER. `choice` draws a two-stop slider, which reads
+         as a quantity with a middle — and there is no half-way between ranking
+         on a fold change and ranking on a p-value. Two buttons say "one or the
+         other", which is what the control is. */
+      type: "segmented",
       label: "Rank the genes by",
       /* NO FIELD-LEVEL `detail` HERE, and that is not an omission: a `choice`
          renders one detail line and drives it from the SELECTED OPTION, so a
@@ -310,6 +300,26 @@ defineWidget({
       min: 5,
       max: 200,
       default: 60,
+      display: true,
+    },
+
+    /* UNDER THE TEST, BELOW THE METRIC AND THE CUTOFF, and last before the
+       drive row — which is the order the reader works in. The metric fixes the
+       ranking, the cutoff fixes the list, and only then does picking a pathway
+       mean anything; it used to sit at the very top, above the data that
+       defines it.
+
+       A SELECT rather than a segmented group: eight named options is what
+       `select` is for. Both tabs' results tables are the faster route — every
+       pathway is there and clicking a row selects it — but the dropdown is the
+       keyboard and screen-reader path to the same parameter, so it stays. */
+    pathway: {
+      type: "select",
+      label: "Pathway",
+      options: Array.from({ length: N_SETS }, (_, i) => ({
+        value: String(i), label: `Pathway ${i + 1}`,
+      })),
+      default: "0",
       display: true,
     },
 
