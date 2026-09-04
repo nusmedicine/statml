@@ -607,13 +607,23 @@ defineWidget({
           note: `of ${stage.sets[i].size} in Pathway ${i + 1}` },
         { label: "Overrepresentation", value: fmtP(mine.p),
           note: `Fisher's exact test against ${universe.toLocaleString()} genes` },
-        { break: true },
-        { label: "After correction", value: fmtP(mine.padj),
-          note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
-        ...(isAll(params) ? [{
-          label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
-          note: "at 0.05, before and after correcting",
-        }] : []),
+        /* THE CORRECTION IS THE COLLECTION'S NUMBER, so it appears only where
+           the collection does. Benjamini-Hochberg over eight pathways has no
+           meaning beside a page showing one of them, and the correction is a
+           step that comes after enrichment is found rather than part of finding
+           it.
+
+           THE BREAK GOES WITH IT. It marks a change of KIND -- above it the
+           test in front of you, below it what correcting across the collection
+           does -- so with nothing of the second kind left it would be a blank
+           row asserting a distinction the page no longer makes. */
+        ...(isAll(params) ? [
+          { break: true },
+          { label: "After correction", value: fmtP(mine.padj),
+            note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
+          { label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
+            note: "at 0.05, before and after correcting" },
+        ] : []),
       ];
     }
 
