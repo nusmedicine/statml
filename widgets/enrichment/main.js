@@ -364,6 +364,12 @@ defineWidget({
       })),
       default: "0",
       display: true,
+      /* ONE PATHWAY ONLY, because on the other page the TABLE is the selector.
+         Two ways to set the same parameter, one of them a dropdown listing what
+         is already on screen as eight clickable rows, is a control with nothing
+         to do. The parameter itself is untouched — a row click still writes it,
+         and the URL still carries it. */
+      when: { param: "page", equals: "one" },
     },
 
     /* The number cell 3 writes as a bare 10000 with no comment. It enters the
@@ -391,7 +397,8 @@ defineWidget({
       default: "medium",
       display: true,
       afterDrive: true,
-      when: { param: "view", equals: "gsea" },
+      /* The walk runs on the one-pathway page, so its speed lives there too. */
+      when: { all: [{ param: "view", equals: "gsea" }, { param: "page", equals: "one" }] },
     },
 
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
@@ -506,15 +513,15 @@ defineWidget({
     params: ["cutoff"],
     cursor: "ew-resize",
     hit: ({ x, y, w, h, params }) => {
-      if (isOra(params) || isAll(params)) return false;
-      const L = layoutGsea(w, h, "one");
+      if (isOra(params)) return false;
+      const L = layoutGsea(w, h, params.page);
       return x >= L.x0 && x <= L.x0 + L.pw
         && y >= L.profileY - 6 && y <= L.codeY + L.codeH + 4;
     },
     /* Relative to where the gesture began, which is core's contract and also
        what stops a slow drag accumulating rounding drift. */
-    value: ({ dx, start, state, w, h }) => {
-      const L = layoutGsea(w, h, "one");
+    value: ({ dx, start, state, w, h, params }) => {
+      const L = layoutGsea(w, h, params.page);
       const perGene = L.pw / state.stage.genes;
       return { cutoff: clamp(Math.round(start.cutoff + dx / perGene), 5, 200) };
     },
@@ -530,7 +537,7 @@ defineWidget({
       shown: fromScratch ? 0 : clamp(params.shown, 0, state.stage.genes),
       acc: 0,
       done: false,
-      inert: isOra(params),
+      inert: isOra(params) || isAll(params),
     }),
 
     advance: (anim, { dt, params, state }) => {
@@ -560,7 +567,7 @@ defineWidget({
        changes is whether there is anything to drive. */
     rebuild: (anim, { params, state }) => {
       anim.shown = clamp(anim.shown, 0, state.stage.genes);
-      anim.inert = isOra(params);
+      anim.inert = isOra(params) || isAll(params);
     },
   },
 
@@ -599,7 +606,7 @@ defineWidget({
       ];
     }
 
-    const shown = clamp(anim?.shown ?? 0, 0, stage.genes);
+    const shown = isAll(params) ? stage.genes : clamp(anim?.shown ?? 0, 0, stage.genes);
     const done = shown >= stage.genes;
 
     /* ORA AS A FOIL, one tile. This is what the tab split would otherwise cost:
@@ -854,7 +861,15 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
   const { stage, walk, nul } = state;
   const L = layoutGsea(w, h, params.page);
   const i = setIndex(params);
-  const shown = clamp(anim?.shown ?? 0, 0, stage.genes);
+  /* ALL PATHWAYS DRAWS THE FINISHED WALK. The drive row is not on that page, so
+     a running sum waiting to be pressed would be a figure asking for a button
+     that is not there. It is the results view: everything final, and a reader
+     who wants to watch the sum built goes to One pathway and builds it.
+
+     `anim` IS NOT TOUCHED, only unread. A walk half-built on the other page
+     survives a trip here and back, which it would not if this wrote to it —
+     and the animation's state staying in `anim` is the standing rule. */
+  const shown = isAll(params) ? stage.genes : clamp(anim?.shown ?? 0, 0, stage.genes);
   ctx.__font = colors.font;
   ctx.save();
   ctx.lineJoin = "round";
