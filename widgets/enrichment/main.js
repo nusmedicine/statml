@@ -46,7 +46,7 @@
 
 import { defineWidget } from "../core/index.js";
 import {
-  makeStage, oraAll, gsea, gseaNull, listPositions, solveD,
+  makeStage, oraAll, gsea, gseaAll, listPositions, solveD,
   EFFECTS, BACKGROUNDS, METRICS, N_SETS,
 } from "./model.js";
 
@@ -93,6 +93,18 @@ const ROW_H = 15;
 const RESULTS_H = 16 + N_SETS * ROW_H + 22;
 const NULL_H = 112;       /* the histogram, the two regions, and the caption */
 
+/* THE SCORE TAB'S RESULTS TABLE. A heading, then the ORA table's exact shape,
+   so the two tabs' tables can be read against each other without the eye
+   re-learning the layout — which is the entire reason for having both.
+
+   `GSEA_ROWS_DY` is where row 0 starts inside the block, and it is a constant
+   rather than two matching literals because `drawGseaResults` and `regions`
+   must agree about it: the picture is identical whether a row's hit box sits
+   where it is drawn or a row away, so nothing but this shared number catches
+   the drift. */
+const GSEA_TABLE_H = 26 + RESULTS_H;
+const GSEA_ROWS_DY = 32;
+
 /* THE VENN AND THE 2 x 2 ARE THE SAME FOUR NUMBERS, so they sit side by side
    wherever there is room for both — reading them as one thing is the point,
    and stacked they are two facts a screen apart. Below 620 the table has
@@ -121,7 +133,7 @@ function layoutGsea(w, h) {
   const padL = w < 460 ? 34 : 46;
   const x0 = padL;
   const pw = w - padL - (w < 460 ? 8 : 14);
-  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8;
+  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8 - GSEA_TABLE_H;
   const profileH = Math.round(strips * 0.42);
   const codeH = Math.max(14, Math.round(strips * 0.09));
   const walkH = strips - profileH - codeH - 10;
@@ -131,12 +143,14 @@ function layoutGsea(w, h) {
   const axisY = walkY + walkH;
   return {
     x0, pw, profileY, profileH, codeY, codeH, walkY, walkH, axisY,
-    panelY: axisY + AXIS_H + 12, narrow: w < 560,
+    panelY: axisY + AXIS_H + 12,
+    tableY: axisY + AXIS_H + 12 + NULL_H + 16,
+    narrow: w < 560,
   };
 }
 
 function canvasHeight(w, view) {
-  if (view !== "ora") return TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8;
+  if (view !== "ora") return TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8 + GSEA_TABLE_H;
   return layoutOra(w).resultsY + RESULTS_H;
 }
 
@@ -367,29 +381,52 @@ defineWidget({
        state on every DISPLAY change, so dragging the cutoff on the figure paid
        for a thousand permutations per pointermove: 15.5 ms a frame against a
        16.7 ms budget, now 2.5 ms. It cannot go stale — `compute` is pure and
-       seeded, so the same three values give the same thousand draws. */
-    const key = `${params.seed}|${params.effect}|${params.metric}|${i}`;
+       seeded, so the same values give the same draws.
+
+       THE PATHWAY IS NO LONGER IN THE KEY, and that is what the results table
+       bought back. All eight nulls are computed together — 106 ms against 11 ms
+       for one — but selecting a different pathway, from the dropdown or by
+       clicking a row, now costs NOTHING rather than a fresh thousand
+       permutations: measured in the browser at 2 ms for a pick and 3 ms for a
+       cutoff drag, both inside a frame.
+
+       A SEED DRAG COSTS 110 ms A STEP, ABOUT 9 FRAMES A SECOND, AND THAT IS A
+       DECISION RATHER THAN AN OVERSIGHT. Kenneth chose it on 2026-09-04 over
+       dropping to 400 permutations, which measured ~42 ms a step. The trade is
+       resolution: at 400 the finest p a pathway can reach is 1/401, and the
+       readout would stop being able to print the 0.001 it prints today. The
+       seed still lands on a correct figure at every step — it steps rather
+       than slides. Do not "fix" this by cutting PERMS without asking; the
+       count is reader-facing, in the legend and the readout note. */
+    const key = `${params.seed}|${params.effect}|${params.metric}`;
     if (nullCache.key !== key) {
       nullCache.key = key;
-      nullCache.value = gseaNull(stage, i, rng, PERMS);
+      nullCache.value = gseaAll(stage, rng, PERMS);
     }
+    const rows = nullCache.value;
 
-    return { stage, walk, hits, nul: nullCache.value };
+    /* `rows[i]` carries `obs`, `draws`, `p` and `runs`, which is exactly what
+       the histogram already expects of `nul`. */
+    return { stage, walk, hits, rows, nul: rows[i] };
   },
 
   /* CLICK A ROW OF THE RESULTS TABLE TO SELECT THAT PATHWAY, which is how
      anyone reads an enrichment result: you look at the collection, then at the
      one that came out. Only on ORA's tab, since that is the tab it is on. */
-  regions: ({ w, params, state }) => {
+  regions: ({ w, h, params, state }) => {
     /* `state` is null when core probes the region table at load to validate the
        parameter names, before the first compute. An empty table is correct
        there: nothing is on the canvas to hit yet. */
-    if (!isOra(params) || !state) return [];
-    const L = layoutOra(w);
+    if (!state) return [];
+    /* BOTH TABLES ARE CLICKABLE, and on the score tab that is worth more than
+       on ORA's: picking a row there used to mean a thousand fresh permutations,
+       and since the null cache stopped keying on the pathway it is free. */
+    const L = isOra(params) ? layoutOra(w) : layoutGsea(w, h);
+    const top = isOra(params) ? L.resultsY + 16 : L.tableY + GSEA_ROWS_DY;
     return state.stage.sets.map((s, i) => ({
       x: L.x0,
-      y: L.resultsY + 16 + i * ROW_H,
-      w: L.pw,
+      y: top + i * ROW_H,
+      w: isOra(params) ? L.pw : L.pw,
       h: ROW_H,
       set: { pathway: String(i) },
       label: s.label,
@@ -858,6 +895,7 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
   text(ctx, `rank ${stage.genes}`, L.x0 + L.pw, L.axisY + 12,
     { fill: colors.ink3, align: "right", size: 10 });
 
+  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows, i, L.narrow);
   drawNull(ctx, colors, L.x0, L.panelY, L.pw,
     shown >= stage.genes ? nul : null, shown >= stage.genes ? walk.es : null);
 
@@ -868,6 +906,83 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
    The null is TWO HUMPS and that is correct — the score is the furthest a walk
    gets from zero, so a walk that stays near zero is the rarest outcome and not
    the commonest. The caption says so, because every reader asks. */
+/* EVERY PATHWAY, SCORED AND CORRECTED — the object `gseGO` returns and the one
+   cell 11 of the notebook prints. Built to the ORA table's exact shape, because
+   the point of having both is that they can be read against each other: at the
+   default state Pathway 2 is the top row here and reads p = 0.999 over there,
+   which is the arc's whole argument sitting in two tables.
+
+   THE SCORE COLUMN IS NES, NOT ES. A raw ES cannot be compared down a column —
+   with nothing planted, a random twelve-gene set scores 0.379 against a
+   hundred-and-fifty-gene set's 0.227 — so printing one would invite exactly the
+   comparison it cannot support. `model.js` carries the measurement, including
+   the 90% of seeds on which normalising reorders these eight rows.
+
+   SURVIVORS ARE MARKED IN WEIGHT, NOT COLOUR, and that is the one place this
+   table departs from ORA's. Over there a surviving pathway takes --c-theory.
+   Here --c-theory is already the permutation histogram directly above, and a
+   colour cannot mean the null distribution and a verdict on the same tab. */
+function drawGseaResults(ctx, colors, x0, y0, w, rows, index, narrow) {
+  const rawHits = rows.filter((r) => r.p < ALPHA).length;
+  const adjHits = rows.filter((r) => r.padj < ALPHA).length;
+
+  text(ctx, "Every pathway, scored and corrected", x0, y0 + 4,
+    { fill: colors.ink2, size: 11, weight: "600" });
+
+  const cols = narrow
+    ? [{ k: "name", w: 0.34 }, { k: "nes", w: 0.22 },
+      { k: "p", w: 0.22 }, { k: "q", w: 0.22 }]
+    : [{ k: "name", w: 0.32 }, { k: "size", w: 0.13 }, { k: "nes", w: 0.16 },
+      { k: "p", w: 0.195 }, { k: "q", w: 0.195 }];
+  const head = { name: "", size: "genes", nes: "NES", p: "p", q: "after BH" };
+  let acc = 0;
+  const right = cols.map((c) => { acc += c.w; return x0 + w * acc; });
+
+  cols.forEach((c, j) => {
+    if (!head[c.k]) return;
+    text(ctx, head[c.k], right[j] - 4, y0 + 21,
+      { fill: colors.ink3, align: "right", size: 10 });
+  });
+
+  rows.forEach((r, i) => {
+    const y = y0 + GSEA_ROWS_DY + i * ROW_H;
+    if (i === index) {
+      ctx.fillStyle = colors.highlight;
+      ctx.globalAlpha = 0.14;
+      ctx.fillRect(x0, y, w, ROW_H);
+      ctx.globalAlpha = 1;
+    }
+    const survives = r.padj < ALPHA;
+    const raw = r.p < ALPHA;
+    const my = y + ROW_H / 2;
+    text(ctx, r.label, x0 + 4, my,
+      { fill: i === index ? colors.ink1 : colors.ink2, size: 10,
+        weight: i === index ? "600" : "" });
+    const val = {
+      size: String(r.size),
+      nes: Number.isFinite(r.nes) ? signed(r.nes, 2) : "—",
+      p: fmtPShort(r.p),
+      q: fmtPShort(r.padj),
+    };
+    cols.forEach((c, j) => {
+      if (c.k === "name") return;
+      const hot = (c.k === "p" && raw) || (c.k === "q" && survives);
+      text(ctx, val[c.k], right[j] - 4, my, {
+        fill: hot ? colors.ink1 : colors.ink3,
+        align: "right", size: 10, weight: hot ? "600" : "",
+      });
+    });
+  });
+
+  const y = y0 + GSEA_ROWS_DY + rows.length * ROW_H + 12;
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y - 8); ctx.lineTo(x0 + w, y - 8); ctx.stroke();
+  text(ctx, `${rawHits} of ${rows.length} reach ${ALPHA}; `
+    + `${adjHits} still ${adjHits === 1 ? "does" : "do"} after correcting for ${rows.length} tests`,
+    x0, y + 2, { fill: colors.ink2, size: 10 });
+}
+
 function drawNull(ctx, colors, x0, y0, w, nul, obs) {
   text(ctx, `What ${PERMS.toLocaleString()} random pathways score`, x0, y0 - 2,
     { fill: colors.ink2, size: 11, weight: "600" });

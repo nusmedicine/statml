@@ -388,6 +388,64 @@ function esOnly(stage, set, weight) {
   return es;
 }
 
+/* --- the normalised score, and every pathway at once ----------------------- */
+
+/* AN ES IS NOT COMPARABLE ACROSS PATHWAYS, which is why a results table cannot
+   simply print one. Measured on this stage with NOTHING planted, the mean
+   |ES| of a random set runs 0.379 at twelve genes down to 0.227 at a hundred
+   and fifty — 1.7x apart on size alone, and still 1.36x over the 12-45 range
+   this stage actually uses. A reader comparing that column would be reading
+   set size.
+
+   GSEA's answer is to divide by the mean of the null scores on the SAME SIDE
+   of zero, so a set is judged against sets of its own size AND direction.
+
+   IT IS NOT A FORMALITY HERE. Over 40 seeds the eight rows come out in a
+   different order under NES on 90% of them, and the top row changes on 18%.
+   The first seed checked was one of the 10% where nothing moved, which is
+   exactly how a normalisation gets dismissed as pointless. */
+export function normalisedScore(obs, draws) {
+  const same = draws.filter((d) => (obs >= 0 ? d > 0 : d < 0));
+  if (!same.length) return NaN;
+  let sum = 0;
+  for (const d of same) sum += d;
+  return obs / Math.abs(sum / same.length);
+}
+
+/* EVERY PATHWAY SCORED, NORMALISED AND CORRECTED — the shape `gseGO` returns
+   and cell 11 of the notebook prints with `head(gsea_result@result)`. Cell 10
+   passes `pAdjustMethod = "BH"`, so a real GSEA result IS corrected; a widget
+   that only ever shows one pathway's permutation p leaves a student thinking
+   the correction is ORA's problem alone.
+
+   THE TRACE IS DELIBERATELY NOT KEPT. Eight walks of four hundred genes is
+   eight arrays nobody reads — the figure draws the selected pathway's trace,
+   which `main.js` gets from `gsea` directly. The DRAWS are kept, because the
+   histogram needs them for whichever pathway is selected and the selection
+   changes without recomputing. */
+export function gseaAll(stage, rng, runs = 1000, weight = 1) {
+  const rows = stage.sets.map((set) => {
+    const nul = gseaNull(stage, set.index, rng, runs, weight);
+    const g = gsea(stage, set.index, weight);
+    return {
+      index: set.index,
+      label: set.label,
+      size: set.size,
+      planted: set.planted,
+      es: g.es,
+      esAt: g.esAt,
+      nes: normalisedScore(nul.obs, nul.draws),
+      obs: nul.obs,
+      draws: nul.draws,
+      p: nul.p,
+      runs: nul.runs,
+    };
+  });
+  const padj = benjaminiHochberg(rows.map((r) => r.p));
+  rows.forEach((r, i) => { r.padj = padj[i]; });
+  return rows;
+}
+
 /* --- every pathway at once, and the correction that needs ------------------ */
 
 /* ORA OVER THE WHOLE COLLECTION. This is the shape enrichment analysis is
