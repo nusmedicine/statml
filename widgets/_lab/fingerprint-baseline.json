@@ -1,5 +1,5 @@
 {
-  "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all \u2014 that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
+  "$comment": "Canvas hashes at fixed states. Regenerate with the Copy new baseline button in widgets/_lab/fingerprint.html, and commit the new baseline in the SAME commit as the change that moved the rendering. Two kinds of state: a SETTLED one passes shown= so the figure is fully built and nothing is moving; a DRIVEN one carries drive={click,frames,dt} and the harness supplies the frame clock by hand, so a mid-animation frame is exactly as reproducible as a settled one. A suite of settled states alone is no test of the animation at all — that gap once let every falling ball sit six columns off-centre while all eight settled states matched. Confirm a new driven state is identical across three runs before recording it. Hashes are viewport-dependent: the harness renders into a fixed 900px frame, so do not change FRAME_W without regenerating.",
   "states": [
     {
       "$note": "opens untrained: random weights, the boundary they happen to draw",
@@ -15,7 +15,7 @@
       "tx": "d6f6e0fb"
     },
     {
-      "$note": "each unit's line on the boundary \u2014 the pieces it is built from",
+      "$note": "each unit's line on the boundary — the pieces it is built from",
       "slug": "mlp",
       "state": "?theme=light&lines=on&shown=600",
       "px": "8bd726fb",
@@ -42,7 +42,7 @@
       "tx": "ed2ff5e9"
     },
     {
-      "$note": "crescents at k=3: three units are enough HERE, on this starting point \u2014 the reliability table records that they usually are not (3 of 20 inits)",
+      "$note": "crescents at k=3: three units are enough HERE, on this starting point — the reliability table records that they usually are not (3 of 20 inits)",
       "slug": "mlp",
       "state": "?theme=light&dataset=moons&hidden=3&shown=600",
       "px": "364e1da8",
@@ -279,7 +279,7 @@
       "slug": "bootstrap",
       "px": "84d075ae",
       "tx": "94e21503",
-      "$note": "Dot phase with both overlays off \u2014 small n, where the bootstrap visibly strains.",
+      "$note": "Dot phase with both overlays off — small n, where the bootstrap visibly strains.",
       "state": "?theme=light&n=6&smooth=0&truth=0&shown=25"
     },
     {
@@ -344,7 +344,7 @@
       "slug": "permutation-test",
       "px": "9aaeb4ec",
       "tx": "57890d9e",
-      "$note": "THE false positive. True effect is None and p reads 0.000 \u2014 the case the never-zero form exists for.",
+      "$note": "THE false positive. True effect is None and p reads 0.000 — the case the never-zero form exists for.",
       "state": "?theme=light&effect=none&seed=103&shown=200"
     },
     {
@@ -370,7 +370,7 @@
       "slug": "permutation-test",
       "px": "d7ad6e42",
       "tx": "41a8a48d",
-      "$note": "DRIVEN: mid-pool \u2014 observations lifted out of both boxes, belonging to no group.",
+      "$note": "DRIVEN: mid-pool — observations lifted out of both boxes, belonging to no group.",
       "state": "?theme=light&speed=slow",
       "drive": {
         "lead": true,
@@ -383,7 +383,7 @@
       "slug": "permutation-test",
       "px": "7f4e0e0b",
       "tx": "41a8a48d",
-      "$note": "DRIVEN: mid-deal \u2014 dealt back into the boxes, vertically only, never leaving their values.",
+      "$note": "DRIVEN: mid-deal — dealt back into the boxes, vertically only, never leaving their values.",
       "state": "?theme=light&speed=slow",
       "drive": {
         "lead": true,
@@ -396,7 +396,7 @@
       "slug": "permutation-test",
       "px": "6e942896",
       "tx": "41a8a48d",
-      "$note": "DRIVEN: mid-drop \u2014 the shuffled difference arcing from the study into the null.",
+      "$note": "DRIVEN: mid-drop — the shuffled difference arcing from the study into the null.",
       "state": "?theme=light&speed=slow",
       "drive": {
         "lead": true,
@@ -442,7 +442,7 @@
       "slug": "confidence-interval",
       "px": "d983dcaa",
       "tx": "a5b4973d",
-      "$note": "The SAME 100 studies re-cut by z. Narrower intervals, visibly more red \u2014 the whole t-versus-z argument in one diff against the state above.",
+      "$note": "The SAME 100 studies re-cut by z. Narrower intervals, visibly more red — the whole t-versus-z argument in one diff against the state above.",
       "state": "?theme=light&view=all&method=z&shown=100"
     },
     {
@@ -456,7 +456,7 @@
       "slug": "confidence-interval",
       "px": "4448fa2d",
       "tx": "ae87f1ff",
-      "$note": "DRIVEN: mid-study \u2014 the sample arriving while its bootstrap distribution fills beneath it.",
+      "$note": "DRIVEN: mid-study — the sample arriving while its bootstrap distribution fills beneath it.",
       "state": "?theme=light&speed=slow",
       "drive": {
         "click": "step",
@@ -468,7 +468,7 @@
       "slug": "confidence-interval",
       "px": "e27935e2",
       "tx": "10c62a8a",
-      "$note": "DRIVEN, REGRESSION: TWO step clicks. The counter was named anim.done, which core reads as \"finished\" and answers with Replay \u2014 so every click after the first reset the widget instead of advancing it, and it sat at one study forever. Play masked it entirely, because one click runs to the end. No single click reaches this state.",
+      "$note": "DRIVEN, REGRESSION: TWO step clicks. The counter was named anim.done, which core reads as \"finished\" and answers with Replay — so every click after the first reset the widget instead of advancing it, and it sat at one study forever. Play masked it entirely, because one click runs to the end. No single click reaches this state.",
       "state": "?theme=light&speed=fast",
       "drive": {
         "before": [
@@ -493,7 +493,7 @@
       "slug": "multiple-testing",
       "px": "4e62eab5",
       "tx": "4c990a70",
-      "$note": "NOT ONE GENE IS DIFFERENT, and about 1000 still come back at p < 0.05 \u2014 every one a false positive. The setting the widget exists for.",
+      "$note": "NOT ONE GENE IS DIFFERENT, and about 1000 still come back at p < 0.05 — every one a false positive. The setting the widget exists for.",
       "state": "?theme=light&real=0&shown=20000"
     },
     {
@@ -689,14 +689,14 @@
       "tx": "4b138ca8"
     },
     {
-      "$note": "The lesson's own data, converged, shares NOT rounded off \u2014 every mark a fraction.",
+      "$note": "The lesson's own data, converged, shares NOT rounded off — every mark a fraction.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=resp&shown=160",
       "px": "4d4d66fb",
       "tx": "a9270286"
     },
     {
-      "$note": "The same fit rounded off at 0.5 \u2014 the default reading, and the one to dislodge.",
+      "$note": "The same fit rounded off at 0.5 — the default reading, and the one to dislodge.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=cluster&shown=160",
       "px": "7514d5d9",
@@ -717,7 +717,7 @@
       "tx": "50252dba"
     },
     {
-      "$note": "DRIVEN: first iteration, mid E-step \u2014 fill levels moving off half and half.",
+      "$note": "DRIVEN: first iteration, mid E-step — fill levels moving off half and half.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3",
       "drive": {
@@ -778,7 +778,7 @@
       "tx": "d746a88f"
     },
     {
-      "$note": "Hypergeometric drawing 60% of the pool \u2014 the case where without-replacement bites.",
+      "$note": "Hypergeometric drawing 60% of the pool — the case where without-replacement bites.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&shown=200",
       "px": "ae77c273",
@@ -792,7 +792,7 @@
       "tx": "ca053aca"
     },
     {
-      "$note": "Negative binomial on the SAME axis as the Poisson above \u2014 the pair's whole point.",
+      "$note": "Negative binomial on the SAME axis as the Poisson above — the pair's whole point.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=nbin&seed=1&shown=200",
       "px": "f290462d",
@@ -820,14 +820,14 @@
       "tx": "026ad11c"
     },
     {
-      "$note": "R code on a narrowed uniform, where dunif reads 5.0 \u2014 a density above 1, on a slider.",
+      "$note": "R code on a narrowed uniform, where dunif reads 5.0 — a density above 1, on a slider.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=code&dist=unif&umax=0.2&prob=0.5&shown=0",
       "px": "074c1773",
       "tx": "0bbe2fe0"
     },
     {
-      "$note": "DRIVEN: mid-pool. Plots pulsing and vanishing, P(next) moving \u2014 invisible at rest.",
+      "$note": "DRIVEN: mid-pool. Plots pulsing and vanishing, P(next) moving — invisible at rest.",
       "slug": "probability-mechanisms",
       "state": "?theme=light&view=dist&dist=hyper&hN=200&hK=10&hpct=60&seed=1&speed=slow",
       "drive": {
@@ -877,7 +877,7 @@
       "tx": "2a155a6e"
     },
     {
-      "$note": "n = 100 on the RAW axis, where sample size narrows BOTH curves \u2014 the motion z hides.",
+      "$note": "n = 100 on the RAW axis, where sample size narrows BOTH curves — the motion z hides.",
       "slug": "power-and-error",
       "state": "?theme=light&n=100&shown=0",
       "px": "7b1ea6a3",
@@ -891,7 +891,7 @@
       "tx": "21ad5a3e"
     },
     {
-      "$note": "alpha 0.001 against a small effect \u2014 alpha chosen, beta inherited, and beta is nearly all of it.",
+      "$note": "alpha 0.001 against a small effect — alpha chosen, beta inherited, and beta is nearly all of it.",
       "slug": "power-and-error",
       "state": "?theme=light&effect=small&alpha=0.001&shown=0",
       "px": "f96c0de2",
@@ -926,7 +926,7 @@
       "tx": "cf8792af"
     },
     {
-      "$note": "DRIVEN: a study in flight \u2014 drawn, standing, not yet dropped. Invisible at rest.",
+      "$note": "DRIVEN: a study in flight — drawn, standing, not yet dropped. Invisible at rest.",
       "slug": "power-and-error",
       "state": "?theme=light&studies=1&seed=1&speed=slow",
       "drive": {
@@ -975,7 +975,7 @@
       "tx": "a83bee73"
     },
     {
-      "$note": "Design at rest with an effect and 1:4 enrolment \u2014 the dot scale derived from the fullest box.",
+      "$note": "Design at rest with an effect and 1:4 enrolment — the dot scale derived from the fullest box.",
       "slug": "odds-and-risk",
       "state": "?theme=light&died1=40&died0=20&ratio=1to4",
       "px": "f2d0a225",
@@ -996,7 +996,7 @@
       "tx": "d7dbbb6a"
     },
     {
-      "$note": "The same table read as a relative risk \u2014 same deaths, denominator back to everyone.",
+      "$note": "The same table read as a relative risk — same deaths, denominator back to everyone.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&died1=40&died0=20&against=risk",
       "px": "7e471365",
@@ -1010,14 +1010,14 @@
       "tx": "2fdfc220"
     },
     {
-      "$note": "Case-control 1:1 \u2014 the risk ratio collapses to 1.64 while the odds ratio holds near 2.67.",
+      "$note": "Case-control 1:1 — the risk ratio collapses to 1.64 while the odds ratio holds near 2.67.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20",
       "px": "ce701be4",
       "tx": "b91cf796"
     },
     {
-      "$note": "Case-control 1:4 \u2014 the risk ratio now OVERshoots at 2.20, having crossed the truth on the way.",
+      "$note": "Case-control 1:4 — the risk ratio now OVERshoots at 2.20, having crossed the truth on the way.",
       "slug": "odds-and-risk",
       "state": "?theme=light&view=calculate&design=case-control&died1=40&died0=20&ratio=1to4",
       "px": "b7de6022",
@@ -1038,7 +1038,7 @@
       "tx": "11182bce"
     },
     {
-      "$note": "DRIVEN: the design run mid pass one \u2014 the exposed group lit, its partner held back.",
+      "$note": "DRIVEN: the design run mid pass one — the exposed group lit, its partner held back.",
       "slug": "odds-and-risk",
       "state": "?theme=light&died1=40&died0=20",
       "drive": {
@@ -1050,7 +1050,7 @@
       "tx": "51b1c1a8"
     },
     {
-      "$note": "DRIVEN: mid pass two \u2014 the first group dimmed, the second travelling, counts still landing.",
+      "$note": "DRIVEN: mid pass two — the first group dimmed, the second travelling, counts still landing.",
       "slug": "odds-and-risk",
       "state": "?theme=light&died1=40&died0=20",
       "drive": {
@@ -1124,7 +1124,7 @@
       "tx": "18b7d49d"
     },
     {
-      "$note": "Two parameters \u2014 a straight line \u2014 with both roles drawn and the true curve revealed. Covers `look=both` (no error lines) and the afterDrive reveal in one state.",
+      "$note": "Two parameters — a straight line — with both roles drawn and the true curve revealed. Covers `look=both` (no error lines) and the afterDrive reveal in one state.",
       "slug": "generalization",
       "state": "?theme=light&params=2&shown=2&look=both&truth=1",
       "px": "59b7e86a",
@@ -1150,7 +1150,7 @@
       "tx": "a9e0c241"
     },
     {
-      "$note": "Lasso at a1 = 1. Three of thirteen survive, and the other ten bars are EXACTLY zero \u2014 the one thing no other setting shows.",
+      "$note": "Lasso at a1 = 1. Three of thirteen survive, and the other ten bars are EXACTLY zero — the one thing no other setting shows.",
       "slug": "linear-regularization",
       "state": "?theme=light&a1=5",
       "px": "8f3ceb1d",
@@ -1164,7 +1164,7 @@
       "tx": "5877f147"
     },
     {
-      "$note": "The near-circular end of the pair range: Age against Weight, r = 0.013, contours 1.01:1 \u2014 where the diamond and the circle become the same shape. Also the only cover the rail matrix gets, since the rail is outside both hashes: it proves the parameter reaches the figure, not that the cell sets it.",
+      "$note": "The near-circular end of the pair range: Age against Weight, r = 0.013, contours 1.01:1 — where the diamond and the circle become the same shape. Also the only cover the rail matrix gets, since the rail is outside both hashes: it proves the parameter reaches the figure, not that the cell sets it.",
       "slug": "linear-regularization",
       "state": "?theme=light&pair=Age~Weight",
       "px": "b23c980d",
@@ -1560,42 +1560,42 @@
       "tx": "16c1b985"
     },
     {
-      "$note": "SETTLED: the empty open \u2014 data and a question, nothing fitted (non-negotiable 4).",
+      "$note": "SETTLED: the empty open — data and a question, nothing fitted (non-negotiable 4).",
       "slug": "fork-pipe-collider",
       "state": "?theme=light",
       "px": "e50d7c8c",
       "tx": "2e709290"
     },
     {
-      "$note": "SETTLED: the fork fully dressed \u2014 sign flip, tint, truth line.",
+      "$note": "SETTLED: the fork fully dressed — sign flip, tint, truth line.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&fit=1&adjust=on&colour=on&truth=on",
       "px": "d99915b0",
       "tx": "29f7b340"
     },
     {
-      "$note": "SETTLED: the pipe residual view \u2014 the collapsed exercise axis and the crosshair.",
+      "$note": "SETTLED: the pipe residual view — the collapsed exercise axis and the crosshair.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&structure=pipe&fit=1&adjust=on&view=resid&colour=on",
       "px": "b8be36f7",
       "tx": "adbf3105"
     },
     {
-      "$note": "SETTLED: the collider pair \u2014 dotted comparator, line labels, the gap bracket.",
+      "$note": "SETTLED: the collider pair — dotted comparator, line labels, the gap bracket.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&structure=collider&fit=1&adjust=on&colour=on&truth=on",
       "px": "cae71dca",
       "tx": "f0b7eab3"
     },
     {
-      "$note": "SETTLED: the collider residual view \u2014 recentred groups, crosshair, combined note.",
+      "$note": "SETTLED: the collider residual view — recentred groups, crosshair, combined note.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&structure=collider&fit=1&adjust=on&view=resid&colour=on",
       "px": "7701012e",
       "tx": "b46850af"
     },
     {
-      "$note": "DRIVEN: mid-swing at mix ~0.56 \u2014 the adjusted line partway between slopes.",
+      "$note": "DRIVEN: mid-swing at mix ~0.56 — the adjusted line partway between slopes.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&fit=1",
       "drive": {
@@ -1609,7 +1609,7 @@
       "tx": "23fcd821"
     },
     {
-      "$note": "DRIVEN: mid-slide at vmix ~0.64 \u2014 patients in flight between data and residual views.",
+      "$note": "DRIVEN: mid-slide at vmix ~0.64 — patients in flight between data and residual views.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&fit=1&adjust=on&colour=on",
       "drive": {
@@ -1623,7 +1623,7 @@
       "tx": "23fcd821"
     },
     {
-      "$note": "HIT-DRIVEN: pointer on the third variable node at [94,56] flips adjust \u2014 the region geometry no pixel hash sees.",
+      "$note": "HIT-DRIVEN: pointer on the third variable node at [94,56] flips adjust — the region geometry no pixel hash sees.",
       "slug": "fork-pipe-collider",
       "state": "?theme=light&fit=1",
       "drive": {
@@ -1684,42 +1684,42 @@
       "tx": "94907e26"
     },
     {
-      "$note": "SETTLED: the empty open \u2014 dots, empty forest, the 131.31 equation (non-negotiable 4).",
+      "$note": "SETTLED: the empty open — dots, empty forest, the 131.31 equation (non-negotiable 4).",
       "slug": "lm-adjustment",
       "state": "?theme=light",
       "px": "6ca3d886",
       "tx": "c6b7b185"
     },
     {
-      "$note": "SETTLED: the merged Fit-and-adjust page \u2014 ghosts, both move annotations, band families, the ba table row outlined.",
+      "$note": "SETTLED: the merged Fit-and-adjust page — ghosts, both move annotations, band families, the ba table row outlined.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1",
       "px": "b1a57e4e",
       "tx": "4e4e3d37"
     },
     {
-      "$note": "SETTLED: the FWL end state \u2014 both panels residualized, slopes 1.50/0.84, both y-axes labelled.",
+      "$note": "SETTLED: the FWL end state — both panels residualized, slopes 1.50/0.84, both y-axes labelled.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1&view=resid",
       "px": "76cd8ca7",
       "tx": "4e4e3d37"
     },
     {
-      "$note": "SETTLED: Collinearity with all three in \u2014 persistent twins, weight flat under a rising cloud, the VIF section at subject weight.",
+      "$note": "SETTLED: Collinearity with all three in — persistent twins, weight flat under a rising cloud, the VIF section at subject weight.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear",
       "px": "f49976ac",
       "tx": "4a228706"
     },
     {
-      "$note": "SETTLED: the section one bar-click later via URL \u2014 subject age, the blob at VIF 1.0.",
+      "$note": "SETTLED: the section one bar-click later via URL — subject age, the blob at VIF 1.0.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear&vifvar=age",
       "px": "2ba0ffe4",
       "tx": "4a228706"
     },
     {
-      "$note": "DRIVEN: mid-slide at vmix ~0.64 \u2014 patients in flight between data and residual space on BOTH panels.",
+      "$note": "DRIVEN: mid-slide at vmix ~0.64 — patients in flight between data and residual space on BOTH panels.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1",
       "drive": {
@@ -1733,7 +1733,7 @@
       "tx": "4e4e3d37"
     },
     {
-      "$note": "HIT-DRIVEN: the DAG age node at [60,164] \u2014 age enters, the forest marks caught mid-ease (the pills are buttons setParam cannot drive).",
+      "$note": "HIT-DRIVEN: the DAG age node at [60,164] — age enters, the forest marks caught mid-ease (the pills are buttons setParam cannot drive).",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1",
       "drive": {
@@ -1748,7 +1748,7 @@
       "tx": "4e4e3d37"
     },
     {
-      "$note": "HIT-DRIVEN: age's VIF bar at [500,660] \u2014 vifvar flips, formula/panel/emphasis move; hashes identical to the vifvar=age settled state and differs from its bare URL.",
+      "$note": "HIT-DRIVEN: age's VIF bar at [500,660] — vifvar flips, formula/panel/emphasis move; hashes identical to the vifvar=age settled state and differs from its bare URL.",
       "slug": "lm-adjustment",
       "state": "?theme=light&bmi=1&age=1&weight=1&concept=collinear",
       "drive": {
@@ -1763,35 +1763,35 @@
       "tx": "4a228706"
     },
     {
-      "$note": "SETTLED: the empty open \u2014 four columns of dots, no model (non-negotiable 4).",
+      "$note": "SETTLED: the empty open — four columns of dots, no model (non-negotiable 4).",
       "slug": "lm-categorical",
       "state": "?theme=light",
       "px": "f4e86cf5",
       "tx": "8e6fef3f"
     },
     {
-      "$note": "SETTLED: fitted at the default reference \u2014 rule, arrows, ladder, coding table; the indicator equation in tx.",
+      "$note": "SETTLED: fitted at the default reference — rule, arrows, ladder, coding table; the indicator equation in tx.",
       "slug": "lm-categorical",
       "state": "?theme=light&fit=1",
       "px": "9f5d2e50",
       "tx": "9249957b"
     },
     {
-      "$note": "SETTLED: releveled to obese via URL \u2014 every coefficient negative, the zero row moved.",
+      "$note": "SETTLED: releveled to obese via URL — every coefficient negative, the zero row moved.",
       "slug": "lm-categorical",
       "state": "?theme=light&fit=1&ref=obese",
       "px": "c9de75cb",
       "tx": "e501c441"
     },
     {
-      "$note": "SETTLED: reference underweight \u2014 every coefficient positive.",
+      "$note": "SETTLED: reference underweight — every coefficient positive.",
       "slug": "lm-categorical",
       "state": "?theme=light&fit=1&ref=underweight",
       "px": "8619abc4",
       "tx": "8605dc5f"
     },
     {
-      "$note": "DRIVEN: the gate mid-fade \u2014 rule, arrows and ladder at partial alpha.",
+      "$note": "DRIVEN: the gate mid-fade — rule, arrows and ladder at partial alpha.",
       "slug": "lm-categorical",
       "state": "?theme=light",
       "drive": {
@@ -1803,7 +1803,7 @@
       "tx": "9249957b"
     },
     {
-      "$note": "DRIVEN: mid-relevel via the segmented \u2014 the rule between the two means, arrows re-anchoring, labels counting along.",
+      "$note": "DRIVEN: mid-relevel via the segmented — the rule between the two means, arrows re-anchoring, labels counting along.",
       "slug": "lm-categorical",
       "state": "?theme=light&fit=1",
       "drive": {
@@ -1817,7 +1817,7 @@
       "tx": "e501c441"
     },
     {
-      "$note": "HIT-DRIVEN: the obese column at [300,160] sets ref and starts the ease \u2014 hashes identical to the set-driven state (same write, same door) and different from its bare URL, which is the region geometry proven.",
+      "$note": "HIT-DRIVEN: the obese column at [300,160] sets ref and starts the ease — hashes identical to the set-driven state (same write, same door) and different from its bare URL, which is the region geometry proven.",
       "slug": "lm-categorical",
       "state": "?theme=light&fit=1",
       "drive": {
@@ -1832,49 +1832,49 @@
       "tx": "e501c441"
     },
     {
-      "$note": "SETTLED: the empty open \u2014 patients coloured by sex, no model (non-negotiable 4). Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the empty open — patients coloured by sex, no model (non-negotiable 4). Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light",
       "px": "22d31557",
       "tx": "b7d4e449"
     },
     {
-      "$note": "SETTLED: the independent fit \u2014 one slope, 5 apart; the probe at 60 reading the constant \u22125.0. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the independent fit — one slope, 5 apart; the probe at 60 reading the constant −5.0. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1",
       "px": "402201f4",
       "tx": "51d64c29"
     },
     {
-      "$note": "SETTLED: the interacting fit \u2014 the crossing at 46.9; the four-row equation card in tx. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the interacting fit — the crossing at 46.9; the four-row equation card in tx. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&terms=times",
       "px": "8252913b",
       "tx": "5caeaf57"
     },
     {
-      "$note": "SETTLED: the extrapolation \u2014 the domain at [0,69], the shaded no-patients stretch, the +95.57 bracket. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the extrapolation — the domain at [0,69], the shaded no-patients stretch, the +95.57 bracket. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&terms=times&zero=1",
       "px": "9b2d3896",
       "tx": "5caeaf57"
     },
     {
-      "$note": "SETTLED: the 2\u00d72 parallel \u2014 one diabetes effect for everyone, the observed ticks visibly missed. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the 2×2 parallel — one diabetes effect for everyone, the observed ticks visibly missed. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&concept=diabsex",
       "px": "13da6a2c",
       "tx": "589f7baa"
     },
     {
-      "$note": "SETTLED: the 2\u00d72 pivoted \u2014 the lines on the means, the interaction bracket at 21.02. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED: the 2×2 pivoted — the lines on the means, the interaction bracket at 21.02. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&terms=times&concept=diabsex",
       "px": "cc16373e",
       "tx": "3468e925"
     },
     {
-      "$note": "DRIVEN: mid-split \u2014 the lines partway between one-slope and crossing, the probe gap counting. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "DRIVEN: mid-split — the lines partway between one-slope and crossing, the probe gap counting. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1",
       "drive": {
@@ -1888,7 +1888,7 @@
       "tx": "5caeaf57"
     },
     {
-      "$note": "DRIVEN: mid-slide \u2014 dots, lines and ticks sharing one lerped x-domain toward zero, the shade fading in. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "DRIVEN: mid-slide — dots, lines and ticks sharing one lerped x-domain toward zero, the shade fading in. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&terms=times",
       "drive": {
@@ -1902,7 +1902,7 @@
       "tx": "5caeaf57"
     },
     {
-      "$note": "DRIVEN: the 2\u00d72 mid-pivot \u2014 the interaction plot between parallel and the means, slope labels counting. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "DRIVEN: the 2×2 mid-pivot — the interaction plot between parallel and the means, slope labels counting. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&concept=diabsex",
       "drive": {
@@ -1916,7 +1916,7 @@
       "tx": "3468e925"
     },
     {
-      "$note": "HIT-DRIVEN: the probe's year-40 region at [160,160] \u2014 the probe jumps and the bracket re-reads; an instant param flip, so zero frames, and still different from its bare URL: the per-year hit geometry proven. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "HIT-DRIVEN: the probe's year-40 region at [160,160] — the probe jumps and the bracket re-reads; an instant param flip, so zero frames, and still different from its bare URL: the per-year hit geometry proven. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&fit=1&terms=times",
       "drive": {
@@ -1938,14 +1938,14 @@
       "tx": "8b8107a6"
     },
     {
-      "$note": "SETTLED: ten patients, four censored (B E G J), the dropped reading \u2014 lanes faded, bars inflated.",
+      "$note": "SETTLED: ten patients, four censored (B E G J), the dropped reading — lanes faded, bars inflated.",
       "slug": "time-event",
       "state": "?theme=light&patients=10&cens=594&censored=dropped&shown=0",
       "px": "049111fe",
       "tx": "7697b9fa"
     },
     {
-      "$note": "SETTLED: the mid-build still \u2014 the repurposed shown places the cursor at t = 7.",
+      "$note": "SETTLED: the mid-build still — the repurposed shown places the cursor at t = 7.",
       "slug": "time-event",
       "state": "?theme=light&shown=14",
       "px": "74a2abc7",
@@ -1959,28 +1959,28 @@
       "tx": "8cfa76f6"
     },
     {
-      "$note": "SETTLED: effect none \u2014 what no difference looks like; the p tile holds.",
+      "$note": "SETTLED: effect none — what no difference looks like; the p tile holds.",
       "slug": "time-event",
       "state": "?theme=light&concept=groups&effect=none&shown=0",
       "px": "b99948ba",
       "tx": "7b5c0b77"
     },
     {
-      "$note": "SETTLED: follow 5 \u2014 the study not run long enough; almost no events, the honesty surfaces.",
+      "$note": "SETTLED: follow 5 — the study not run long enough; almost no events, the honesty surfaces.",
       "slug": "time-event",
       "state": "?theme=light&concept=groups&follow=5&shown=0",
       "px": "c4eba7ad",
       "tx": "fdd5ae81"
     },
     {
-      "$note": "SETTLED: the full model \u2014 card above the figure, forest with truth dots, disease+age+SNPs.",
+      "$note": "SETTLED: the full model — card above the figure, forest with truth dots, disease+age+SNPs.",
       "slug": "time-event",
       "state": "?theme=light&concept=factors&age=1&snps=1&shown=0",
       "px": "73fde9e2",
       "tx": "54588cba"
     },
     {
-      "$note": "DRIVEN mid-ease: the age pill arriving beside disease (set routes through the pill's own transaction). REBASELINED 2026-08-30: this drive had been INERT since recording \u2014 the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
+      "$note": "DRIVEN mid-ease: the age pill arriving beside disease (set routes through the pill's own transaction). REBASELINED 2026-08-30: this drive had been INERT since recording — the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
       "slug": "time-event",
       "state": "?theme=light&concept=factors",
       "drive": {
@@ -1994,7 +1994,7 @@
       "tx": "e8d03f8c"
     },
     {
-      "$note": "DRIVEN mid-ease: the ten SNP rows arriving, the disease row moving to its adjusted value. The scrub has no harness verb \u2014 untested geometry, recorded in the catalogue. REBASELINED 2026-08-30: this drive had been INERT since recording \u2014 the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
+      "$note": "DRIVEN mid-ease: the ten SNP rows arriving, the disease row moving to its adjusted value. The scrub has no harness verb — untested geometry, recorded in the catalogue. REBASELINED 2026-08-30: this drive had been INERT since recording — the old setParam wrote .value to the pill button and fired an event nothing listened to, so the recorded hash was of an UNDRIVEN figure. Teaching setParam w-pill buttons (for naive-bayes) made the drive real; the new tx equals the settled sibling's, proving the param now flips.",
       "slug": "time-event",
       "state": "?theme=light&concept=factors&age=1",
       "drive": {
@@ -2008,56 +2008,56 @@
       "tx": "54588cba"
     },
     {
-      "$note": "SETTLED: Repeated defaults at Independent \u2014 the misconception's own view; Draw 7's lm claims -2.4 [-4.3, -0.5] on a truth of zero. All ten recorded 2026-08-29 at DPR 1.25 with _lab/mixed-shoot.html: copy proved 4/4, three shots identical, every drive non-inert.",
+      "$note": "SETTLED: Repeated defaults at Independent — the misconception's own view; Draw 7's lm claims -2.4 [-4.3, -0.5] on a truth of zero. All ten recorded 2026-08-29 at DPR 1.25 with _lab/mixed-shoot.html: copy proved 4/4, three shots identical, every drive non-inert.",
       "slug": "mixed-model",
       "state": "?theme=light",
       "px": "7b2a626b",
       "tx": "a5f56dea"
     },
     {
-      "$note": "SETTLED: the Related view \u2014 trajectories joined, the honest interval across zero, the lmer formula leading the card.",
+      "$note": "SETTLED: the Related view — trajectories joined, the honest interval across zero, the lmer formula leading the card.",
       "slug": "mixed-model",
       "state": "?theme=light&view=related",
       "px": "94e8c1a7",
       "tx": "27c05005"
     },
     {
-      "$note": "SETTLED: the 500-row trade corner (25 patients x 20 visits) \u2014 the honest interval at its widest.",
+      "$note": "SETTLED: the 500-row trade corner (25 patients x 20 visits) — the honest interval at its widest.",
       "slug": "mixed-model",
       "state": "?theme=light&view=related&patients=25&visits=20",
       "px": "4cb0ad59",
       "tx": "16cfcb08"
     },
     {
-      "$note": "SETTLED: Nested at Independent \u2014 1000 dots in collection order, lm alone in the forest, the lmer tile withheld.",
+      "$note": "SETTLED: Nested at Independent — 1000 dots in collection order, lm alone in the forest, the lmer tile withheld.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=nested",
       "px": "7c206fd1",
       "tx": "07fe79bc"
     },
     {
-      "$note": "SETTLED: Nested Related with Family differences none \u2014 the flat band, the two fits agreeing.",
+      "$note": "SETTLED: Nested Related with Family differences none — the flat band, the two fits agreeing.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=nested&view=related&famdiff=none",
       "px": "e20f63b6",
       "tx": "83f04441"
     },
     {
-      "$note": "SETTLED: Nested Related with the truth set to SNPs 5+6 (causal=48) \u2014 two reference dots in the forest.",
+      "$note": "SETTLED: Nested Related with the truth set to SNPs 5+6 (causal=48) — two reference dots in the forest.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=nested&view=related&causal=48",
       "px": "80c70fbe",
       "tx": "d19eb380"
     },
     {
-      "$note": "SETTLED: the Syntax hero \u2014 school scenario, Both intent, the 20px formula and its per-token key in tx.",
+      "$note": "SETTLED: the Syntax hero — school scenario, Both intent, the 20px formula and its per-token key in tx.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=syntax&ranef=slope&scenario=school",
       "px": "ae01cad5",
       "tx": "7203aca8"
     },
     {
-      "$note": "DRIVEN: mid-join on Repeated \u2014 view set to Related, 4 frames; trajectories partway grown, the lmer interval printed from the lerped endpoints.",
+      "$note": "DRIVEN: mid-join on Repeated — view set to Related, 4 frames; trajectories partway grown, the lmer interval printed from the lerped endpoints.",
       "slug": "mixed-model",
       "state": "?theme=light",
       "drive": {
@@ -2071,7 +2071,7 @@
       "tx": "867b62a8"
     },
     {
-      "$note": "DRIVEN: mid-travel on Nested \u2014 the thousand dots between collection order and their family columns, span bars and lmer rows fading in.",
+      "$note": "DRIVEN: mid-travel on Nested — the thousand dots between collection order and their family columns, span bars and lmer rows fading in.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=nested",
       "drive": {
@@ -2085,7 +2085,7 @@
       "tx": "7ee4352a"
     },
     {
-      "$note": "DRIVEN: mid-pivot on Syntax \u2014 intent set from Intercept to Both, 4 frames; the group lines partway to their own slopes, tiles printed from the eased lines.",
+      "$note": "DRIVEN: mid-pivot on Syntax — intent set from Intercept to Both, 4 frames; the group lines partway to their own slopes, tiles printed from the eased lines.",
       "slug": "mixed-model",
       "state": "?theme=light&concept=syntax&ranef=intercept",
       "drive": {
@@ -2099,14 +2099,14 @@
       "tx": "c7589379"
     },
     {
-      "$note": "SETTLED act 1 (revived 2026-08-29): the parallel BMI levels \u2014 one age slope everywhere, the probe at 25 reading +1.32. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED act 1 (revived 2026-08-29): the parallel BMI levels — one age slope everywhere, the probe at 25 reading +1.32. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&concept=agebmi&fit=1",
       "px": "fff9204c",
       "tx": "7c94aced"
     },
     {
-      "$note": "SETTLED act 1: the fan \u2014 crossing at age 57.2, the probe at BMI 40 reading a NEGATIVE age slope, the per-level card rows in tx. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
+      "$note": "SETTLED act 1: the fan — crossing at age 57.2, the probe at BMI 40 reading a NEGATIVE age slope, the per-level card rows in tx. Re-shot 2026-08-29 for the LIVE per-tab legend (tx only, twice that day: the generic wording was tried and rejected).",
       "slug": "lm-interaction",
       "state": "?theme=light&concept=agebmi&fit=1&terms=times&probebmi=40",
       "px": "c88ad1b2",
@@ -2334,7 +2334,7 @@
       "state": "?theme=light&outcome=categorical&view=roc&shown=0",
       "px": "b68ea65a",
       "tx": "a5fa1a6b",
-      "$note": "untraced \u2014 the curve is not given away"
+      "$note": "untraced — the curve is not given away"
     },
     {
       "slug": "metrics",
@@ -2347,7 +2347,7 @@
       "state": "?theme=light&outcome=categorical&view=roc&youden=1&shown=999",
       "px": "3f71e625",
       "tx": "0d06a4c7",
-      "$note": "found: ring, segment, tile \u2014 the pill settles by URL"
+      "$note": "found: ring, segment, tile — the pill settles by URL"
     },
     {
       "slug": "metrics",
@@ -2380,10 +2380,10 @@
       },
       "px": "78afb466",
       "tx": "0651a34d",
-      "$note": "the R\u00b2 ease mid-bend"
+      "$note": "the R² ease mid-bend"
     },
     {
-      "$note": "opens EMPTY \u2014 no walk taken, the answer not yet built",
+      "$note": "opens EMPTY — no walk taken, the answer not yet built",
       "slug": "shap",
       "state": "?theme=light&shown=0",
       "px": "2a588c4d",
@@ -2404,14 +2404,14 @@
       "tx": "0e872d4e"
     },
     {
-      "$note": "INDIVIDUAL \u2014 patient 11's prediction taken apart, 0 to 1 scale",
+      "$note": "INDIVIDUAL — patient 11's prediction taken apart, 0 to 1 scale",
       "slug": "shap",
       "state": "?theme=light&page=model&view=one&patient=11&shown=23",
       "px": "e7a76a0a",
       "tx": "5a93bfc1"
     },
     {
-      "$note": "GLOBAL \u2014 all 60 held-out patients piled up, dots coloured by feature value",
+      "$note": "GLOBAL — all 60 held-out patients piled up, dots coloured by feature value",
       "slug": "shap",
       "state": "?theme=light&page=model&view=all&shown=60",
       "px": "179faa90",
@@ -2430,7 +2430,7 @@
       "tx": "730cc7d3"
     },
     {
-      "$note": "DRIVEN mid-pile: the OTHER animation \u2014 patients landing one at a time",
+      "$note": "DRIVEN mid-pile: the OTHER animation — patients landing one at a time",
       "slug": "shap",
       "state": "?theme=light&page=model&view=all",
       "drive": {
@@ -2505,7 +2505,7 @@
       "tx": "0a4c6011"
     },
     {
-      "$note": "Balanced, observed, coloured by condition: the opening state \u2014 the batch owns PC1 while the conditions are mixed.",
+      "$note": "Balanced, observed, coloured by condition: the opening state — the batch owns PC1 while the conditions are mixed.",
       "slug": "batch-effect",
       "state": "?theme=light",
       "px": "3802e04b",
@@ -2603,7 +2603,7 @@
       "tx": "adfffafb"
     },
     {
-      "$note": "NMF settled at rank 2 on two real patterns \u2014 the method working, and two starts agreeing exactly.",
+      "$note": "NMF settled at rank 2 on two real patterns — the method working, and two starts agreeing exactly.",
       "slug": "matrix-factorization",
       "state": "?theme=light&shown=17",
       "px": "3d7bf5b3",
@@ -2657,7 +2657,7 @@
       "tx": "c3225ac0"
     },
     {
-      "$note": "DRIVEN, PCA: one frame of Solve reaches the finished answer, so these hashes match the settled PCA state deliberately \u2014 the closed form has nothing to iterate.",
+      "$note": "DRIVEN, PCA: one frame of Solve reaches the finished answer, so these hashes match the settled PCA state deliberately — the closed form has nothing to iterate.",
       "slug": "matrix-factorization",
       "state": "?theme=light&method=pca&programmes=3&components=3",
       "drive": {
@@ -2676,7 +2676,7 @@
       "tx": "904923d5"
     },
     {
-      "$note": "the built tree cut into two, Ward on Euclidean, truth hidden \u2014 the unsupervised default.",
+      "$note": "the built tree cut into two, Ward on Euclidean, truth hidden — the unsupervised default.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19",
       "px": "0b5ea089",
@@ -2697,7 +2697,7 @@
       "tx": "e3dcbe7f"
     },
     {
-      "$note": "Manhattan, whose MDS coordinates reach 33.69 against Euclidean's 9.46 \u2014 the state that catches a shared scatter extent.",
+      "$note": "Manhattan, whose MDS coordinates reach 33.69 against Euclidean's 9.46 — the state that catches a shared scatter extent.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&distance=manhattan",
       "px": "bad2dc7b",
@@ -2718,7 +2718,7 @@
       "tx": "ec8a7193"
     },
     {
-      "$note": "the heatmap, cut both ways, truth hidden \u2014 clusters, boxes and no verdict.",
+      "$note": "the heatmap, cut both ways, truth hidden — clusters, boxes and no verdict.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=0&view=heatmap",
       "px": "b59585bf",
@@ -2754,6 +2754,89 @@
       },
       "px": "c7c3d36f",
       "tx": "ed49705e"
+    },
+    {
+      "$note": "ORA, one pathway: the Venn drawn to scale and the 2 x 2 it becomes. No correction here — it is the collection's number.",
+      "state": "?theme=light&shown=0&view=ora&page=one",
+      "slug": "enrichment",
+      "px": "75864989",
+      "tx": "7f9fb41e"
+    },
+    {
+      "$note": "ORA, all pathways: the same figure with eight rows under it, and Benjamini-Hochberg over them.",
+      "state": "?theme=light&shown=0&view=ora&page=all",
+      "slug": "enrichment",
+      "px": "abb8d979",
+      "tx": "9b44e09a"
+    },
+    {
+      "$note": "the background moved to 20,000 with the overlap held fixed — the same four counts, a different verdict.",
+      "state": "?theme=light&shown=0&view=ora&page=one&background=20000",
+      "slug": "enrichment",
+      "px": "b3a3c464",
+      "tx": "d46c3e61"
+    },
+    {
+      "$note": "nothing planted. Fold change still calls the noisy pathway significant, which is the metric's own cost.",
+      "state": "?theme=light&shown=0&view=ora&page=all&effect=none",
+      "slug": "enrichment",
+      "px": "76d2e81a",
+      "tx": "ea61afe7"
+    },
+    {
+      "$note": "the score tab before anything is walked: profile and membership drawn, running sum and null both withheld.",
+      "state": "?theme=light&shown=0&view=gsea&page=one",
+      "slug": "enrichment",
+      "px": "71390d2d",
+      "tx": "152e3b50"
+    },
+    {
+      "$note": "THE ARC'S ARGUMENT. Pathway 2 is down-regulated: the walk dives to -0.574 at permutation p 0.001 while ORA reads 0.9991.",
+      "state": "?theme=light&shown=400&view=gsea&page=one&pathway=1",
+      "slug": "enrichment",
+      "px": "df8387e9",
+      "tx": "3f92f435"
+    },
+    {
+      "$note": "the same walk with the collection under it — ES, NES, p and after-BH for all eight.",
+      "state": "?theme=light&shown=400&view=gsea&page=all&pathway=1",
+      "slug": "enrichment",
+      "px": "ed2dd47f",
+      "tx": "867d826a"
+    },
+    {
+      "$note": "signed significance on the quiet pathway, which fold change cannot see: the ranking reorders and pathway 8 comes out.",
+      "state": "?theme=light&shown=400&view=gsea&page=all&metric=sig&pathway=7",
+      "slug": "enrichment",
+      "px": "21b211a8",
+      "tx": "3a15cc10"
+    },
+    {
+      "$note": "DRIVEN mid-walk at Slow: the running sum in flight, before the null histogram is allowed to appear.",
+      "state": "?theme=light&view=gsea&page=one&speed=slow",
+      "drive": {
+        "click": "run",
+        "frames": 20,
+        "dt": 60
+      },
+      "slug": "enrichment",
+      "px": "ffa996b4",
+      "tx": "13c21a49"
+    },
+    {
+      "$note": "HIT-DRIVEN: the pointer on row 3 of ORA's results table at [60,337] selects Pathway 3. The picture is identical whether the target sits where it is drawn or a row away, so only this state covers it.",
+      "state": "?theme=light&view=ora&page=all",
+      "drive": {
+        "hit": [
+          60,
+          337
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "slug": "enrichment",
+      "px": "bcb0e722",
+      "tx": "46eb5c0c"
     }
   ]
 }

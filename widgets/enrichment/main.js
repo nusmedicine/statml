@@ -210,7 +210,7 @@ const peakSoFar = (trace, shown) => {
 
 defineWidget({
   slug: "enrichment",
-  status: "draft",
+  status: "shipped",
   title: "Enrichment Analysis",
   /* THE NOTEBOOK'S OWN VOCABULARY, cell 0: enrichment analysis is "a statistical
      approach to determine whether a specific set of genes ... is overrepresented",

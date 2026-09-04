@@ -1,128 +1,97 @@
 # Handover
 
-**Forty-two widgets shipped — 41 on the gallery, `roc-auc` UNLISTED (live at
-its URL, off the cards; Kenneth's call, 2026-08-30) — and 314 fingerprint states
-recorded. A forty-third, `enrichment`, is a DRAFT in review; see below.**
+**FORTY-THREE WIDGETS SHIPPED — 42 on the gallery, `roc-auc` UNLISTED (live at
+its URL, off the cards; Kenneth's call, 2026-08-30) — and 324 fingerprint states
+recorded. `/lab/` is empty: there is no draft.**
 
-**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT.** Kenneth picked slot 5 on
-2026-09-04 and reviewed it through four rounds the same day, then picked the
-ranking-metric rebuild the same evening. It is on the drafts page at `/lab/`,
-not the gallery; `npm run check` passes on all 43.
-
-**THE DRAFT IS PUSHED AND LIVE, contrary to what this file said until
-2026-09-04.** A parallel session working in the `batch-effect-sva` worktree
-pushed everything — all six of widget 43's first commits plus five of its own —
-at 05:24 UTC, and the `Deploy site` run for `f29cf28` succeeded. So the draft
-has been publicly reachable at `/widget/enrichment/` since then. Off the
-gallery cards, but not private. **The ranking-metric round that came after it
-is committed and NOT pushed.**
+**WIDGET 43 `enrichment` SHIPPED 2026-09-05** after two days and roughly twenty
+review rounds. Slot 5 of the high-throughput arc was the last one open, so
+**the arc is complete**.
 
 ```bash
 node scripts/serve.mjs 8010   # 8010-8012 are often taken; launch.json goes to 8014
-# /widgets/enrichment/                       tab 1: Venn, 2 x 2, eight pathways, BH
-# /widgets/enrichment/?view=gsea&shown=400   tab 2: the ranking and the walk
-# /widgets/enrichment/?effect=none&metric=fc vs &metric=sig — the metric's own cost
-node widgets/_lab/enr-measure.mjs        # nine sections; §§ 4-7 re-measured 2026-09-04
-node widgets/_lab/enr-metric.mjs         # five sections; why the OBVIOUS metric design was wrong
-# widgets/_lab/enr-shape.html            # the three shapes, one of which he picked
+# /widgets/enrichment/?view=ora&page=one     Venn + 2 x 2
+# /widgets/enrichment/?view=ora&page=all     ... plus eight rows and BH
+# /widgets/enrichment/?view=gsea&page=one&shown=400&pathway=1   THE ARGUMENT
+# /widgets/enrichment/?view=gsea&page=all    ... plus ES, NES, p, after BH
+node widgets/_lab/enr-measure.mjs   # nine sections; SS 4-7 re-measured 2026-09-04
+node widgets/_lab/enr-metric.mjs    # why the OBVIOUS ranking-metric design was wrong
+node widgets/_lab/enr-table.mjs     # why the score table needed NES, not ES
+# widgets/_lab/enr-shape.html       # the three shapes, one of which he picked
+# widgets/_lab/enr-subpages.html    # the four-page mock-up, annotated with what it got wrong
 ```
+
+**WHAT THE WIDGET IS.** Four pages: method (overrepresentation / enrichment
+score) x view (one pathway / all pathways). *All pathways* is the one-pathway
+figure PLUS a clickable results table — clicking a row drives the figure above
+it, and the walk survives the click because `pathway` is a display parameter.
+On seed 174 the argument lands in one view: pathway 2 is down-regulated, the
+score finds it at permutation p 0.001, and overrepresentation reads 0.9991 with
+one gene of 41 in the list.
 
 ---
 
-## LANDED ALONGSIDE THE DRAFT, from a parallel session (2026-09-04)
+## A CORE BUG THIS SHIPPED THROUGH — read before the next widget with regions
 
-Five commits that touch no enrichment file and nothing in `widgets/core/`. Read
-them before baselining widget 43 — the third one is about to matter.
+**A gated `drag` erased the pointer cursor a `regions` map had just set**, so
+clickable rows advertised nothing. Core registers two `pointermove` handlers
+and the drag's runs second, assigning unconditionally. The `else` branch below
+it already named this collision for an UNGATED drag; the gated branch had it
+too. **Enrichment is the first widget to declare `regions` and a gated `drag`
+together**, which is why nobody had seen it.
 
-1. **Widget 40 `batch-effect` — SVA's panel read as the method FAILING.** An
-   unchanged scatter under a heading saying SVA, beside a visibly clean ground
-   truth. The model was right and the words were not, so the three panel notes
-   now say three different things: ComBat *"after correction"* (its matrix IS
-   what gets tested), RUV *"W removed for visualisation"*, SVA *"changes the
-   model, not the data"*. `sva.data` is untouched — still the identity, as it
-   shipped. The `limma::removeBatchEffect` panel WAS built and rejected on
-   measurement: it collapses the within-condition scatter 18x and prints a
-   perfect separation of 57.5 against ground truth's 3.2. `model.js` carries
-   that finding and the three controls that locate it.
+It was not cosmetic: **it blocked shipping.** The fingerprint's `hitAt` proves a
+region was struck by reading that cursor, so with the pointer erased no
+hit-driven state could be recorded — and `check` requires one of every shipped
+widget declaring `regions`. Fixed with a one-line early return in
+`widgets/core/widget.js`. The full suite was run and **all 314 pre-existing
+states matched**, which is what a core change owes.
 
-2. **9 `hierarchical-clustering` baseline hashes were WRONG WHEN WRITTEN** and
-   are corrected. They had reported DIFFER since the day widget 42 shipped and
-   were being read as somebody else's regression. Proof: serve `0592e62` — the
-   commit that recorded them — and the widget does not reproduce them from its
-   own tree. **The suite is now green at 314/314, so any DIFFER you see is
-   real.**
+---
 
-3. **Principle 5.10 — a baseline is not recorded until a clean re-run confirms
-   it.** "Copy new baseline" writes whatever `latest` holds and nothing checks
-   it; `check` validates the file's SHAPE, never its contents. This is exactly
-   how the 9 above got in. See item 1 of WHAT IS STILL OPEN.
+## THE BASELINE, AND HOW IT WAS DONE
 
-4. **Principle 5.9 rescoped — the copy rules cover every reader-facing string**,
-   not just the subtitle: control `detail` text, readout notes, canvas captions,
-   the formula card. **Source comments are exempt and stay as they are** — a
-   comment naming the lesson cell a decision came from is the record of where it
-   came from. Do not tidy them.
-   *Outstanding, catalogued in 5.9 and NOT fixed:* 7 lesson/notebook references
-   in reader-facing `detail` text — `mixed-model` x2, `mlp`, `normalization`,
-   `t-sne`, `trees-and-ensembles`, `support-vector-machine`.
+324 states: 314 unchanged, 10 new. Eight settled (all four pages, plus the
+background moved, plus `effect=none`, plus the two metrics), one driven (the
+walk mid-flight at Slow), one hit-driven (row 3 of ORA's table at `[60,337]`).
 
-**The repo is inside Dropbox and it bit once here:** a `git rebase` failed with
-`could not write index`, leaving the working tree swapped and HEAD unmoved. The
-retry succeeded. If a git operation fails that way, run `git status` before
-retrying — `git reset --hard HEAD` restores it, and nothing is lost because
-everything is in a commit.
+**5.10 was followed and is worth following again.** Placeholders `"0"`/`"0"`
+went in first; one suite run then both proved the core fix safe and reported
+the ten real hashes; only widget 43's ten entries were patched, never the bulk
+copy; and a SECOND run confirmed **"All 324 states identical"** before
+anything was committed. A positional diff of the file proved 0 of the original
+314 had moved. That is the discipline that would have caught widget 42.
 
-**WHAT IS STILL OPEN, in the order it matters:**
+---
 
-1. **Fingerprint states — none yet, and deliberately.** Baselining comes after
-   the design stops moving, and it moved four times in one day. `check` exempts
-   a draft; the moment it goes `shipped` it needs settled states, a driven one
-   (it animates) and a **hit-driven** one (it declares `regions` — the results
-   table's rows).
-   **Then apply 5.10, which is new since this draft was written.** Widget 43 has
-   ZERO states, so shipping it means writing its first baseline — the operation
-   that put 9 wrong hashes into widget 42. After "Copy new baseline", re-run the
-   suite and confirm every state reads MATCH *before* committing. Patch only
-   widget 43's own entries rather than taking the bulk copy, which rewrites all
-   314. And the harness **auto-runs on load — never click Run**: a second
-   concurrent pass into the same `latest` array is the likeliest cause of the
-   widget 42 damage.
-2. **The ranking metric — BUILT 2026-09-04, and it cost a stage rebuild.**
-   The stage is now an experiment: four samples per arm, a gene-specific noise
-   level, and a fold change AND a t-test p from the same draws. `metric` is a
-   data parameter on BOTH tabs, because ORA's list is the top k of the same
-   ranking and hiding it on tab 1 would leave that tab computing under a
-   setting nobody could see.
-   **THE OBVIOUS VERSION WAS MEASURED AND DISCARDED, and that is the part worth
-   not repeating.** Adding the control to the old constant-shift stage makes
-   signed significance strictly BETTER — 86% against 92% at moderate noise
-   spread, 65% against 98% at high — because a constant shift is exactly what a
-   t-test is built to detect. It would have taught that sophistication DOES
-   remove the arbitrary choice. The fix is two KINDS of planted pathway, loud
-   and quiet, so each metric wins on one. `_lab/enr-metric.mjs` §§ 1-3.
-   **The default seed moved 12 → 174**, searched over 400 seeds for four things
-   at once — see the `seed` param in `main.js`. Nothing on it prints within
-   0.004 of the 0.05 line, which was a criterion: the first candidate had an
-   adjusted p of 0.050014 and a row reading "0.050" that is not highlighted
-   reads as a bug rather than a threshold.
-   **What is left of this item is the PERMUTATION SCHEME**, the score's other
-   invisible choice — `gseaNull` permutes set membership where the real thing
-   permutes sample labels and re-ranks. It is now buildable and was not before,
-   because the stage finally has an expression matrix; the cost is at the foot
-   of `main.js`.
-3. **A `choice` control silently drops its field-level `detail`** — found while
-   building the metric control, and it is NOT enrichment's alone. `controls.js`
-   drives the one `.w-detail` element from the SELECTED OPTION, so a field-level
-   `detail` on a `choice` is copy no student can read. **Nine of them exist
-   across five SHIPPED widgets**: `dbscan/samples`, `mixed-model` ×4,
-   `mlp/hidden`, `normalization/lambda`, `enrichment/background`. Enrichment's
-   `metric` was written with one, and it now carries a comment saying why there
-   is none. This is the same defect `controls.js` records fixing twice before
-   for other control types; `choice` was missed. A background task is queued.
-   The rail is not fingerprinted, so the fix should move ZERO hashes — if it
-   moves any, that is a real finding.
-4. **Not judged projected**, which every widget from 11 on still owes.
-5. **The notebook link**, which no PHM5003 lesson carries — see item 3 of NEXT.
+## THE FOUR THINGS THIS WIDGET SETTLED THAT NO MEASUREMENT COULD
+
+1. **A metric choice needs a stage that can LOSE.** The obvious ranking-metric
+   design — add the control to the old constant-shift stage — was measured and
+   discarded: signed significance came out strictly better (86% against 92% at
+   moderate noise spread, 65% against 98% at high), because a constant shift is
+   exactly what a t-test is built to detect. It would have taught that
+   sophistication removes the arbitrary choice. The fix was two KINDS of planted
+   pathway, loud and quiet, so each metric wins on one. `_lab/enr-metric.mjs`.
+2. **NES, not ES, in the table.** With nothing planted, a random 12-gene set
+   scores |ES| 0.379 against a 150-gene set's 0.227. The first NES check ran on
+   seed 174 alone, where the order is unchanged, and nearly concluded the
+   normalisation was pointless — over 40 seeds it reorders on 90%.
+3. **ORA is pinned to fold change.** Hiding its metric control was only honest
+   once `makeStage` also kept `rankFc`; otherwise ORA's p-values moved for a
+   reason the reader could not see. Verified identical under both metrics.
+4. **Correction belongs to the collection page only.** It appears on neither
+   one-pathway view, and it is out of the subtitle entirely — the notebook's own
+   GSEA step 4 says multiple test correction applies to both methods, so
+   attributing it to ORA alone was wrong.
+
+**WHAT IS STILL OPEN ON IT:**
+
+1. **The permutation scheme.** `gseaNull` permutes set membership; the real
+   thing permutes sample labels and re-ranks. Newly buildable — the stage now
+   has an expression matrix — and costed at the foot of `main.js`.
+2. **Not judged projected**, which every widget from 11 on still owes.
+3. **The notebook link**, which no PHM5003 lesson carries.
 
 **FOUR THINGS THE REVIEW SETTLED that no measurement could have.** Kenneth
 picked the figure from three drawn at the real width; then made it two tabs in
@@ -295,7 +264,7 @@ node widgets/_lab/hc-measure.mjs       # every number the figure prints
 - **Assertions that assume layout order.** Both axes are shuffled, so "genes past
   index 16 are unplanted" is false. Check membership by label.
 
-## The high-throughput arc — FOUR OF FIVE SHIPPED, ONE SLOT LEFT
+## The high-throughput arc — COMPLETE, all five shipped
 
 **Kenneth asked for a plan for PHM5003 `05 - Introduction to High Throughput
 Data` on 2026-09-01, and it is in catalogue § *The high-throughput arc*.**
@@ -310,14 +279,12 @@ and `01 Experimental Design` is out of scope. That leaves five:
 | 2 | `matrix-factorization` | 05 / 04 | **SHIPPED 2026-09-03** — NMF and PCA as two tabs; the constraint, and what it costs |
 | 3 | `batch-effect` | 05 / 05 | **SHIPPED 2026-09-02** — the danger is confounding, not noise; correct a confounded design and the disease effect goes with it |
 | 4 | `hierarchical-clustering` | 05 / 08 | **SHIPPED 2026-09-03** — the tree is evidence, the cut is a choice, and the cut answers whether or not there is anything to answer |
-| 5 | `enrichment` | 05 / 09 | ORA's answer moves with the background and the cutoff, neither of which the student chose |
+| 5 | `enrichment` | 05 / 09 | **SHIPPED 2026-09-05** — a cutoff at the top of a ranking cannot see a set at the bottom; the background and the ranking metric move the answer too |
 
-**SLOTS 1 TO 4 HAVE SHIPPED. SLOT 5 `enrichment` IS THE ONLY ONE LEFT, and it
-is unpicked** — do not start it without Kenneth. The catalogue section carries
-three open calls that are his to close: slot 5's shape (one widget with tabs or
-two), whether `05 / 06` needs a `p ≫ n` act widget 14 does not have, and a
-citation to verify. Slot 5 is planned but not measured, and § 5.1 says mock up
-before implementing.
+**ALL FIVE SLOTS HAVE SHIPPED, so this arc is finished and nothing in it is
+waiting.** Two of the catalogue's open calls on it survive the arc and are still
+Kenneth's: whether `05 / 06` needs a `p ≫ n` act widget 14 does not have, and a
+citation to verify.
 
 **The four already-hosted lessons owe notebook links too.** Zero of the nine
 carry one — grepped 2026-09-01 — so item 3 below gains four rows.
