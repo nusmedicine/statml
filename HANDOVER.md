@@ -4,10 +4,12 @@
 its URL, off the cards; Kenneth's call, 2026-08-30) — and 314 fingerprint states
 recorded. A forty-third, `enrichment`, is a DRAFT in review; see below.**
 
-**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT — five commits, NOT PUSHED.**
-Kenneth picked slot 5 on 2026-09-04 and reviewed it through four rounds the
-same day. It is on the drafts page at `/lab/`, not the gallery; `npm run check`
-passes on all 43; the working tree is clean at `9b07a21`.
+**WIDGET 43 `enrichment` IS IN REVIEW AS A DRAFT — twelve commits on `main`,
+NOT PUSHED.** Kenneth picked slot 5 on 2026-09-04 and reviewed it through four
+rounds the same day. It is on the drafts page at `/lab/`, not the gallery;
+`npm run check` passes on all 43 and the working tree is clean. Six of those
+twelve commits are widget 43's; the rest came from a parallel session and are
+summarised in the next block.
 
 ```bash
 node scripts/serve.mjs 8010
@@ -17,6 +19,51 @@ node widgets/_lab/enr-measure.mjs        # nine sections; §§ 7-9 are this widg
 # widgets/_lab/enr-shape.html            # the three shapes, one of which he picked
 ```
 
+---
+
+## LANDED ALONGSIDE THE DRAFT, from a parallel session (2026-09-04)
+
+Five commits that touch no enrichment file and nothing in `widgets/core/`. Read
+them before baselining widget 43 — the third one is about to matter.
+
+1. **Widget 40 `batch-effect` — SVA's panel read as the method FAILING.** An
+   unchanged scatter under a heading saying SVA, beside a visibly clean ground
+   truth. The model was right and the words were not, so the three panel notes
+   now say three different things: ComBat *"after correction"* (its matrix IS
+   what gets tested), RUV *"W removed for visualisation"*, SVA *"changes the
+   model, not the data"*. `sva.data` is untouched — still the identity, as it
+   shipped. The `limma::removeBatchEffect` panel WAS built and rejected on
+   measurement: it collapses the within-condition scatter 18x and prints a
+   perfect separation of 57.5 against ground truth's 3.2. `model.js` carries
+   that finding and the three controls that locate it.
+
+2. **9 `hierarchical-clustering` baseline hashes were WRONG WHEN WRITTEN** and
+   are corrected. They had reported DIFFER since the day widget 42 shipped and
+   were being read as somebody else's regression. Proof: serve `0592e62` — the
+   commit that recorded them — and the widget does not reproduce them from its
+   own tree. **The suite is now green at 314/314, so any DIFFER you see is
+   real.**
+
+3. **Principle 5.10 — a baseline is not recorded until a clean re-run confirms
+   it.** "Copy new baseline" writes whatever `latest` holds and nothing checks
+   it; `check` validates the file's SHAPE, never its contents. This is exactly
+   how the 9 above got in. See item 1 of WHAT IS STILL OPEN.
+
+4. **Principle 5.9 rescoped — the copy rules cover every reader-facing string**,
+   not just the subtitle: control `detail` text, readout notes, canvas captions,
+   the formula card. **Source comments are exempt and stay as they are** — a
+   comment naming the lesson cell a decision came from is the record of where it
+   came from. Do not tidy them.
+   *Outstanding, catalogued in 5.9 and NOT fixed:* 7 lesson/notebook references
+   in reader-facing `detail` text — `mixed-model` x2, `mlp`, `normalization`,
+   `t-sne`, `trees-and-ensembles`, `support-vector-machine`.
+
+**The repo is inside Dropbox and it bit once here:** a `git rebase` failed with
+`could not write index`, leaving the working tree swapped and HEAD unmoved. The
+retry succeeded. If a git operation fails that way, run `git status` before
+retrying — `git reset --hard HEAD` restores it, and nothing is lost because
+everything is in a commit.
+
 **WHAT IS STILL OPEN, in the order it matters:**
 
 1. **Fingerprint states — none yet, and deliberately.** Baselining comes after
@@ -24,6 +71,14 @@ node widgets/_lab/enr-measure.mjs        # nine sections; §§ 7-9 are this widg
    a draft; the moment it goes `shipped` it needs settled states, a driven one
    (it animates) and a **hit-driven** one (it declares `regions` — the results
    table's rows).
+   **Then apply 5.10, which is new since this draft was written.** Widget 43 has
+   ZERO states, so shipping it means writing its first baseline — the operation
+   that put 9 wrong hashes into widget 42. After "Copy new baseline", re-run the
+   suite and confirm every state reads MATCH *before* committing. Patch only
+   widget 43's own entries rather than taking the bulk copy, which rewrites all
+   314. And the harness **auto-runs on load — never click Run**: a second
+   concurrent pass into the same `latest` array is the likeliest cause of the
+   widget 42 damage.
 2. **The ranking metric on tab 2.** The score's own invisible choice, and
    without it the arc reads as "sophistication removes arbitrary choices",
    which is false. Costed at the foot of `widgets/enrichment/main.js`: the
