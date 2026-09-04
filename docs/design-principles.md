@@ -176,9 +176,11 @@ Three failure modes, all the same mistake:
   is available to them.
 
 Simple is not the same as figurative — usually the plainest sentence is the one
-that names the actual quantity. **Source comments are exempt** and should stay as
-vivid as they like: they are addressed to whoever changes the code next, and the
-history of what failed is the most valuable thing in them.
+that names the actual quantity. **Source comments are exempt from naming a
+statistical quantity** — a comment is about code, and the history of what failed
+is the most valuable thing in it. They are *not* exempt from the register. This
+paragraph used to end "and should stay as vivid as they like", which was read as
+licence and produced exactly the prose 5.9 now forbids.
 
 ### 2.10 The subtitle is two or three claims that read written
 
@@ -1277,6 +1279,45 @@ framing under a retitled page. The metas are now the blurb **verbatim** and
 `check` fails a drifted pair — it caught its first real drift the same day it
 landed, mid-edit on balancing-data. Two copies of one sentence are only safe
 while something automatic reads them against each other.
+
+### 5.9 A comment records what was measured, not who measured it or when
+
+2.9 exempts source comments from naming a statistical quantity — a comment is
+about code. It does not exempt them from the register every other surface keeps,
+and three kinds of content belong to the session that wrote the comment rather
+than to the file.
+
+> *Earned twice on widget 40.* `c888b8e` was a copy and comment pass; `3062718`
+> was **a second one**, "the notebook references and the narrative go", because
+> the first had fixed the voice and left the substance. Then on 2026-09-04 the
+> voice went again in the same file — *"they ruled the eye across the seam and
+> paid nothing back"*, *"the reference genes are the teacher, not the target"*,
+> *"a stronger batch is one the SV locks onto harder"*. Cut on sight: *don't use
+> colloquialisms or folksy talk.* Ten passages in one commit, all written under
+> the blanket exemption 2.9 used to grant.
+
+- **No lesson, cell or notebook references.** 2.10 forbids these in widget copy
+  because a widget must be reusable in any course setting and the lesson links
+  to the widget, never the reverse. It holds for comments too, which outlive the
+  notebook's numbering. *Not retroactive:* `balancing-data` still cites cells
+  62–65 and 71, `bayesian` says "the notebook's own" four times, and `dbscan`
+  opens on "THE LAYOUT IS CELL 60'S OWN DIAGRAM".
+- **No project narrative** — attributions, dates, round numbers, who asked for
+  what. `git log` holds all of it, stays true when the file moves, and does not
+  go stale.
+- **No editorializing.** A comment says what was tried and what it measured, and
+  stops there. *"The obvious alternative was built, and it misstates the data"*
+  — then the numbers, which do the rating.
+- **The same plain register as every other surface.** Vividness is a cost, not a
+  bonus (2.9), and the usual failure is an image standing in for a measurement.
+  Where a number exists, give it: *"a column about 0.06 wide"* over
+  *"hairline"*, *"a direction not fitted to the other 25"* over *"a foreign
+  direction"*, *"the SV estimates it more precisely"* over *"locks onto it
+  harder"*.
+
+What stays — and is the reason the exemption existed at all — is **the history
+of what failed**, at whatever length it takes. That is a record of measurements
+and dead ends. It is not a story about the people who hit them.
 
 ---
 

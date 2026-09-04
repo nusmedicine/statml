@@ -225,3 +225,9 @@ Match the surrounding code. Comments explain *why*, especially where a simpler
 approach was tried and failed — several modules carry that history and it is the
 most valuable thing in them. Prose in widgets and chapters is teaching material:
 plain, specific, no filler.
+
+**That register applies to comments too — principle 5.9.** No colloquialisms or
+folksy phrasing, no editorializing, no lesson/cell/notebook references, and no
+project narrative (attributions, dates, round numbers; `git log` holds those).
+Where a measurement exists, give the number rather than an image for it. The
+history of what failed stays, at whatever length it takes.
