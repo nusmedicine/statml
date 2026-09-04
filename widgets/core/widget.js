@@ -640,6 +640,20 @@ export function defineWidget(config) {
          which a second unconditional handler here would overwrite. */
       surface.canvas.addEventListener("pointermove", (ev) => {
         if (dragging) return;
+        /* A REGION'S POINTER WINS, and this early return is the whole of it.
+           Both handlers fire on every move and this one is registered second,
+           so an unconditional assignment erases the "pointer" the region
+           handler just set — leaving a row that is clickable and advertises
+           nothing. The `else` branch below already names this collision for an
+           UNGATED drag; a gated one has it too, and the guard belongs here.
+
+           Found on widget 43, the first to declare `regions` and a gated
+           `drag` together — which is why it went unseen. It also BLOCKED that
+           widget: the fingerprint's `hitAt` proves a region was struck by
+           reading this cursor, so with the pointer erased no hit-driven state
+           could be recorded, and `check` requires one of every shipped widget
+           declaring regions. */
+        if (at(ev)) return;
         const p = surface.pointAt(ev);
         surface.canvas.style.cursor = p && dragHitAt(p) ? grab : "default";
       });
