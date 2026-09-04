@@ -338,8 +338,8 @@ defineWidget({
        exactly where it was. */
     cutoff: {
       type: "int",
-      label: "Genes in the list",
-      detail: "how many genes from the top of the ranking you call differentially expressed",
+      label: "Genes differentially expressed",
+      detail: "how many you call changed — this becomes your gene list",
       min: 5,
       max: 200,
       default: 60,
@@ -668,7 +668,7 @@ function drawOra({ ctx, colors, w, params, state }) {
   /* ALWAYS FOLD CHANGE, not whatever the score tab is set to. ORA cuts its
      list from `rankFc`, so naming any other metric here would be a caption
      describing a ranking this test did not use. */
-  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, all[i], i, METRICS.fc.label);
+  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, all[i], i);
   drawTable(ctx, colors, L.tableX, L.tableY, L.tableW, all[i]);
   if (isAll(params)) {
     drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, i, L.narrow);
@@ -695,7 +695,7 @@ function drawOra({ ctx, colors, w, params, state }) {
  * are pure geometry with an exact answer, and putting them there is what lets
  * `_lab/enr-measure.mjs` § 9 check the inverse over every shape this widget can
  * actually draw. A number this figure asserts should be checkable. */
-function drawVenn(ctx, colors, x0, y0, w, o, index, metricLabel) {
+function drawVenn(ctx, colors, x0, y0, w, o, index) {
   const nList = o.a + o.b;
   const nPath = o.a + o.c;
   const rA = Math.sqrt(nList / Math.PI);
@@ -745,7 +745,11 @@ function drawVenn(ctx, colors, x0, y0, w, o, index, metricLabel) {
       { fill: colors.highlight, align: "center", size: 13, weight: "600" });
   }
 
-  text(ctx, `your list — top ${nList} by ${metricLabel.toLowerCase()}`, x0, y0 + 8,
+  /* NO METRIC NAMED HERE. ORA is the simple test the lesson opens with, and
+     its ranking is not a choice the reader can see or make on this page —
+     `rankFc` is pinned. A caption reading "top 60 by fold change" imports a
+     decision that has been deliberately taken off this method. */
+  text(ctx, `your list — ${nList}`, x0, y0 + 8,
     { fill: colors.extreme, size: 10, weight: "600" });
   text(ctx, `Pathway ${index + 1} — ${nPath}`, x0 + w, y0 + 8,
     { fill: colors.highlight, align: "right", size: 10, weight: "600" });
