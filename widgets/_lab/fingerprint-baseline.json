@@ -2672,49 +2672,49 @@
       "$note": "opens empty: the table and its distances, no tree yet. `shown=0` is explicit because a widget with a shown parameter must pin it.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=0",
-      "px": "4df55ec0",
+      "px": "c99f391a",
       "tx": "904923d5"
     },
     {
       "$note": "the built tree cut into two, Ward on Euclidean, truth hidden \u2014 the unsupervised default.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19",
-      "px": "48e7c284",
+      "px": "0b5ea089",
       "tx": "d8cffdf3"
     },
     {
       "$note": "k=4 with the ground truth shown: dots and leaf ticks carry the four planted gene groups, the cut is rings and a bar.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&k=4&truth=1",
-      "px": "290943f9",
+      "px": "abb516ce",
       "tx": "2a8e7b3c"
     },
     {
       "$note": "the same table clustered the other way: 20 samples, two real conditions.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&axis=columns&truth=1",
-      "px": "f5d3f7ca",
+      "px": "eddc0a04",
       "tx": "e3dcbe7f"
     },
     {
       "$note": "Manhattan, whose MDS coordinates reach 33.69 against Euclidean's 9.46 \u2014 the state that catches a shared scatter extent.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&distance=manhattan",
-      "px": "8220cdf4",
+      "px": "bad2dc7b",
       "tx": "156f000b"
     },
     {
       "$note": "average linkage, whose witness is every cross pair rather than one.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&linkage=average&k=3",
-      "px": "0d31a8d6",
+      "px": "3ee70fe9",
       "tx": "69456010"
     },
     {
       "$note": "nothing planted, truth requested: no colouring, and the cut still returns two.",
       "slug": "hierarchical-clustering",
       "state": "?theme=light&shown=19&separation=0&truth=1",
-      "px": "b8ca8a88",
+      "px": "19b3caea",
       "tx": "ec8a7193"
     },
     {
@@ -2740,7 +2740,7 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "e0a6959a",
+      "px": "649697c5",
       "tx": "904923d5"
     },
     {
@@ -2752,7 +2752,7 @@
         "frames": 20,
         "dt": 60
       },
-      "px": "fc2c7e1e",
+      "px": "c7c3d36f",
       "tx": "ed49705e"
     }
   ]
