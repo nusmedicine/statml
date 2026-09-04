@@ -213,10 +213,10 @@ defineWidget({
   status: "draft",
   title: "Enrichment Analysis",
   subtitle:
-    "Overrepresentation counts how much of your gene list falls in a pathway "
-    + "and tests that against a background — once per pathway, so the p-values "
-    + "need correcting. The enrichment score cuts no list at all: it walks the "
-    + "whole ranking, up inside the pathway and down outside.",
+    "Enrichment analysis asks which pathways a gene list is concentrated in. "
+    + "Overrepresentation tests one pathway at a time against a background, so "
+    + "its p-values need correcting. The enrichment score reads the whole "
+    + "ranking instead of a list.",
   layout: "side",
 
   height: ({ view, page, w }) => canvasHeight(w, view, page),
