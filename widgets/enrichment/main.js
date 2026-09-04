@@ -214,9 +214,9 @@ defineWidget({
   title: "Enrichment Analysis",
   subtitle:
     "Enrichment analysis asks which pathways a gene list is concentrated in. "
-    + "Overrepresentation tests one pathway at a time against a background, so "
-    + "its p-values need correcting. The enrichment score reads the whole "
-    + "ranking instead of a list.",
+    + "Overrepresentation tests each pathway against a background, so its "
+    + "p-values need correcting. The enrichment score is computed from the "
+    + "whole ranking, not a list.",
   layout: "side",
 
   height: ({ view, page, w }) => canvasHeight(w, view, page),
@@ -227,7 +227,7 @@ defineWidget({
       label: "Method",
       options: [
         { value: "ora", label: "Overrepresentation",
-          detail: "a list, a pathway, and the overlap — no ranking anywhere in it" },
+          detail: "a list, a pathway, and the overlap; no ranking anywhere in it" },
         { value: "gsea", label: "Enrichment score",
           detail: "the whole ranking, walked; no list and no cut" },
       ],
@@ -339,7 +339,7 @@ defineWidget({
     cutoff: {
       type: "int",
       label: "Genes differentially expressed",
-      detail: "how many you call changed — this becomes your gene list",
+      detail: "how many you call changed; this becomes your gene list",
       min: 5,
       max: 200,
       default: 60,
@@ -414,7 +414,7 @@ defineWidget({
        re-learning a key. */
     if (isAll(params)) {
       return [
-        { token: "highlight", label: `${name} — the row you picked`, mark: "bar" },
+        { token: "highlight", label: `${name}: the row you picked`, mark: "bar" },
         { token: "theory", label: "a pathway that survives the correction", mark: "bar" },
       ];
     }
@@ -428,7 +428,7 @@ defineWidget({
       { token: "empirical", label: `every gene, ranked by ${METRICS[params.metric].label.toLowerCase()}`, mark: "bar" },
       { token: "highlight", label: `the genes of ${name}`, mark: "bar" },
       { token: "empirical", label: "the running sum: up inside the pathway, down outside", mark: "line" },
-      { token: "extreme", label: "the cutoff — the top of this ranking", mark: "dash" },
+      { token: "extreme", label: "the cutoff: the top of this ranking", mark: "dash" },
       { token: "theory", label: `the score ${PERMS.toLocaleString()} random pathways of the same size reach`, mark: "bar" },
     ];
   },
@@ -614,7 +614,7 @@ defineWidget({
        at 0.002 — needs both numbers on one screen, and this is the screen where
        the second one is being taught. */
     const foil = {
-      label: "Overrepresentation said",
+      label: "Overrepresentation p",
       value: fmtP(mine.p),
       note: `cut at ${mine.k}; ${fmtP(mine.padj)} after correction`,
     };
@@ -749,9 +749,9 @@ function drawVenn(ctx, colors, x0, y0, w, o, index) {
      its ranking is not a choice the reader can see or make on this page —
      `rankFc` is pinned. A caption reading "top 60 by fold change" imports a
      decision that has been deliberately taken off this method. */
-  text(ctx, `your list — ${nList}`, x0, y0 + 8,
+  text(ctx, `your list: ${nList}`, x0, y0 + 8,
     { fill: colors.extreme, size: 10, weight: "600" });
-  text(ctx, `Pathway ${index + 1} — ${nPath}`, x0 + w, y0 + 8,
+  text(ctx, `Pathway ${index + 1}: ${nPath}`, x0 + w, y0 + 8,
     { fill: colors.highlight, align: "right", size: 10, weight: "600" });
   text(ctx, "areas are gene counts, and so is the overlap",
     x0 + w / 2, y0 + VENN_H - 8, { fill: colors.ink3, align: "center", size: 10 });
@@ -880,8 +880,8 @@ function drawGsea({ ctx, colors, w, h, params, state, anim }) {
 
   const xAt = (j) => L.x0 + (L.pw * j) / stage.genes;
 
-  text(ctx, `Every gene ranked by ${METRICS[params.metric].label.toLowerCase()}`
-    + " — the score reads all of it", L.x0, 12, { fill: colors.ink2, size: 11 });
+  text(ctx, `Every gene ranked by ${METRICS[params.metric].label.toLowerCase()}`,
+    L.x0, 12, { fill: colors.ink2, size: 11 });
 
   const sorted = stage.rank.map((g) => stage.score[g]);
   const span = Math.max(...sorted.map(Math.abs));
@@ -1206,7 +1206,7 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
   const right = ox < x0 + w - 64;
   text(ctx, `this pathway, ${signed(obs, 2)}`, ox + (right ? 5 : -5), y0 + 20,
     { fill: colors.empirical, align: right ? "left" : "right", size: 10, weight: "600" });
-  text(ctx, "two humps: a random set drifts one way or the other",
+  text(ctx, "two humps: a random set scores away from zero in either direction",
     x0, y0 + 16 + h + 22, { fill: colors.ink3, size: 10 });
 }
 

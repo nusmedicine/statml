@@ -192,11 +192,11 @@ export const KINDS = {
 export const METRICS = {
   fc: {
     label: "Fold change",
-    detail: "how big the change is — the difference between the arms",
+    detail: "how big the change is: the difference between the arms",
   },
   sig: {
     label: "Signed significance",
-    detail: "how sure it is — a t-test on those same eight values, signed",
+    detail: "how sure it is: a signed t-test on the same eight values",
   },
 };
 
@@ -555,7 +555,7 @@ export function solveD(r1, r2, target) {
    change still calls the noisy pathway significant on 63% of seeds. */
 export const EFFECTS = {
   none: { label: "None", detail: "no pathway changes on average", scale: 0 },
-  weak: { label: "Weak", detail: "changes of 0.32 and 0.12 — small for both metrics", scale: 0.4 },
+  weak: { label: "Weak", detail: "changes of 0.32 and 0.12, small for both metrics", scale: 0.4 },
   moderate: { label: "Moderate", detail: "changes of 0.8 and 0.3, typical of a real experiment", scale: 1 },
   strong: { label: "Strong", detail: "changes of 1.4 and 0.5, which both metrics find", scale: 1.7 },
 };
