@@ -192,7 +192,7 @@ export const KINDS = {
 export const METRICS = {
   fc: {
     label: "Fold change",
-    detail: "how big the change is — the gap between the two arms of four",
+    detail: "how big the change is — the difference between the arms",
   },
   sig: {
     label: "Signed significance",
@@ -539,7 +539,7 @@ export function solveD(r1, r2, target) {
 export const EFFECTS = {
   none: { label: "None", detail: "no pathway changes on average", scale: 0 },
   weak: { label: "Weak", detail: "changes of 0.32 and 0.12 — small for both metrics", scale: 0.4 },
-  moderate: { label: "Moderate", detail: "changes of 0.8 and 0.3, where a real experiment lives", scale: 1 },
+  moderate: { label: "Moderate", detail: "changes of 0.8 and 0.3, typical of a real experiment", scale: 1 },
   strong: { label: "Strong", detail: "changes of 1.4 and 0.5, which both metrics find", scale: 1.7 },
 };
 
@@ -547,7 +547,7 @@ export const EFFECTS = {
    this figure; the rest are what gets reached for when the code asks for a
    universe and the experiment is not in front of you. */
 export const BACKGROUNDS = {
-  400: { label: "400", detail: "the genes on this figure — the only ones it measured" },
+  400: { label: "400", detail: "the genes this figure measured" },
   2000: { label: "2 000", detail: "a targeted panel" },
   12000: { label: "12 000", detail: "genes detected in a typical experiment" },
   20000: { label: "20 000", detail: "the protein-coding genome" },

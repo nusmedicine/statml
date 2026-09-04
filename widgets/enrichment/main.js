@@ -370,7 +370,7 @@ defineWidget({
       { token: "empirical", label: `every gene, ranked by ${METRICS[params.metric].label.toLowerCase()}`, mark: "bar" },
       { token: "highlight", label: `the genes of ${name}`, mark: "bar" },
       { token: "empirical", label: "the running sum: up inside the pathway, down outside", mark: "line" },
-      { token: "extreme", label: "the cutoff — drawn, but the score never reads it", mark: "dash" },
+      { token: "extreme", label: "the cutoff — where overrepresentation would cut", mark: "dash" },
       { token: "theory", label: `the score ${PERMS.toLocaleString()} random pathways of the same size reach`, mark: "bar" },
     ];
   },
@@ -466,7 +466,7 @@ defineWidget({
 
   animation: {
     stepLabel: "Walk one",
-    stepTitle: "Walk on to the next gene of the pathway — where the sum steps up",
+    stepTitle: "Walk on to the next gene of the pathway, where the sum steps up",
     runLabel: "Walk",
     runTitle: "Walk the whole ranking, first to last",
 
@@ -554,7 +554,7 @@ defineWidget({
         { label: "Enrichment score",
           value: shown === 0 ? "—" : `${signed(peakSoFar(walk.trace, shown))}…`,
           note: shown === 0
-            ? "press Walk — it reads neither of those numbers"
+            ? "press Walk to score it from the whole ranking"
             : `${shown} of ${stage.genes} genes walked` },
       ];
     }
@@ -707,7 +707,7 @@ function drawTable(ctx, colors, x0, y0, w, o) {
   }
   text(ctx, `d = ${o.universe.toLocaleString()} − (${o.a} + ${o.b} + ${o.c}) = ${o.d}`,
     x0, y0 + 26 + 2 * ch + 13, { fill: colors.ink3, size: 10 });
-  text(ctx, "the background is the only number nobody measured",
+  text(ctx, "the background is chosen, not measured",
     x0, y0 + 26 + 2 * ch + 27, { fill: colors.ink3, size: 10 });
 }
 
