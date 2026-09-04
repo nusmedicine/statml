@@ -225,11 +225,12 @@ defineWidget({
     view: {
       type: "segmented",
       label: "Method",
+      /* NO DETAILS UNDER THE METHOD NAMES. The subtitle already says what each
+         method does, and a label reading "Overrepresentation" with a line under
+         it saying what overrepresentation is, is the subtitle twice. */
       options: [
-        { value: "ora", label: "Overrepresentation",
-          detail: "a list, a pathway, and the overlap; no ranking anywhere in it" },
-        { value: "gsea", label: "Enrichment score",
-          detail: "the whole ranking, walked; no list and no cut" },
+        { value: "ora", label: "Overrepresentation" },
+        { value: "gsea", label: "Enrichment score" },
       ],
       default: "ora",
       display: true,
@@ -248,10 +249,8 @@ defineWidget({
       type: "segmented",
       label: "View",
       options: [
-        { value: "one", label: "One pathway",
-          detail: "one pathway on its own" },
-        { value: "all", label: "All pathways",
-          detail: "every pathway, tested and corrected" },
+        { value: "one", label: "One pathway" },
+        { value: "all", label: "All pathways" },
       ],
       default: "one",
       display: true,
@@ -339,7 +338,7 @@ defineWidget({
     cutoff: {
       type: "int",
       label: "Genes differentially expressed",
-      detail: "how many you call changed; this becomes your gene list",
+      detail: "these become your gene list",
       min: 5,
       max: 200,
       default: 60,
