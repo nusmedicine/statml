@@ -91,7 +91,7 @@ const VENN_H = 122;
 const TABLE_H = 103;      /* the 2 x 2, heading to the foot of its captions */
 const ROW_H = 15;
 const RESULTS_H = 16 + N_SETS * ROW_H + 22;
-const NULL_H = 96;        /* the permutation histogram and its caption */
+const NULL_H = 112;       /* the histogram, the two regions, and the caption */
 
 /* THE VENN AND THE 2 x 2 ARE THE SAME FOUR NUMBERS, so they sit side by side
    wherever there is room for both — reading them as one thing is the point,
@@ -896,7 +896,36 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
   ctx.globalAlpha = 1;
   ctx.strokeStyle = colors.axis;
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x0, y0 + 16 + h - 14); ctx.lineTo(x0 + w, y0 + 16 + h - 14); ctx.stroke();
+  const axisY = y0 + 16 + h - 14;
+  ctx.beginPath(); ctx.moveTo(x0, axisY); ctx.lineTo(x0 + w, axisY); ctx.stroke();
+
+  /* ZERO, AND THE TWO DIRECTIONS EITHER SIDE OF IT. The gap between the humps
+     is where a score of zero would be, and until it is marked the figure looks
+     like a bug rather than the two answers it is: a set enriched among the
+     genes that went UP scores positive, one enriched among those that went
+     DOWN scores negative, and the walk cannot do both.
+
+     GEOMETRY AND WORDS RATHER THAN COLOUR, deliberately. The obvious move is
+     the red/blue of the lesson's own figure, and `--c-value-low` is exactly
+     that pair — but it aliases `--series-1`, which is `--c-empirical`, already
+     spent in this panel on the observed marker. A blue region behind a blue
+     line would say two unrelated things in one hue, which is the trap
+     tokens.css names at `--c-value-low` itself.
+
+     `lo` is at most -0.9 and `hi` at least 0.9, so zero is always strictly
+     inside the domain and this line always lands on the plot. */
+  const zx = bx(0);
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(zx, y0 + 14); ctx.lineTo(zx, axisY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* AT THE PANEL'S EDGES, not flanking the divider. Zero sits wherever the
+     draws put it, so labels tucked either side of it collide with each other
+     on a narrow canvas; anchored to the ends they cannot. */
+  const regionY = axisY + 12;
+  text(ctx, "down-regulated", x0, regionY, { fill: colors.ink2, size: 10 });
+  text(ctx, "up-regulated", x0 + w, regionY,
+    { fill: colors.ink2, align: "right", size: 10 });
 
   const ox = bx(obs);
   ctx.strokeStyle = colors.empirical;
@@ -905,8 +934,8 @@ function drawNull(ctx, colors, x0, y0, w, nul, obs) {
   const right = ox < x0 + w - 64;
   text(ctx, `this pathway, ${signed(obs, 2)}`, ox + (right ? 5 : -5), y0 + 20,
     { fill: colors.empirical, align: right ? "left" : "right", size: 10, weight: "600" });
-  text(ctx, "two humps: a score is how far a walk gets from zero",
-    x0, y0 + 16 + h + 6, { fill: colors.ink3, size: 10 });
+  text(ctx, "two humps: a random set drifts one way or the other",
+    x0, y0 + 16 + h + 22, { fill: colors.ink3, size: 10 });
 }
 
 /* ============================================================================
