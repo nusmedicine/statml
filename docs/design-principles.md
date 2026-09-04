@@ -176,11 +176,11 @@ Three failure modes, all the same mistake:
   is available to them.
 
 Simple is not the same as figurative — usually the plainest sentence is the one
-that names the actual quantity. **Source comments are exempt from naming a
-statistical quantity** — a comment is about code, and the history of what failed
-is the most valuable thing in it. They are *not* exempt from the register. This
-paragraph used to end "and should stay as vivid as they like", which was read as
-licence and produced exactly the prose 5.9 now forbids.
+that names the actual quantity. **Source comments are exempt** and should stay as
+vivid as they like: they are addressed to whoever changes the code next, and the
+history of what failed is the most valuable thing in them. A comment naming the
+lesson cell a decision came from is a record of where that decision came from,
+and it stays. 5.9 says which surfaces this rule *does* reach.
 
 ### 2.10 The subtitle is two or three claims that read written
 
@@ -1280,44 +1280,40 @@ framing under a retitled page. The metas are now the blurb **verbatim** and
 landed, mid-edit on balancing-data. Two copies of one sentence are only safe
 while something automatic reads them against each other.
 
-### 5.9 A comment records what was measured, not who measured it or when
+### 5.9 The copy rules cover EVERY reader-facing string, not just the subtitle
 
-2.9 exempts source comments from naming a statistical quantity — a comment is
-about code. It does not exempt them from the register every other surface keeps,
-and three kinds of content belong to the session that wrote the comment rather
-than to the file.
+2.9 and 2.10 are both written about the subtitle and the gallery blurb, because
+that is where they were earned. They apply to every string a reader can see:
+control labels and their `detail` text, readout labels and notes, canvas
+captions and panel notes, the formula card's notes, and the `<meta>`
+description. A rule that holds for the sentence under the title but not for the
+sentence under a slider is not a rule about copy; it is a rule about one field.
 
-> *Earned twice on widget 40.* `c888b8e` was a copy and comment pass; `3062718`
-> was **a second one**, "the notebook references and the narrative go", because
-> the first had fixed the voice and left the substance. Then on 2026-09-04 the
-> voice went again in the same file — *"they ruled the eye across the seam and
-> paid nothing back"*, *"the reference genes are the teacher, not the target"*,
-> *"a stronger batch is one the SV locks onto harder"*. Cut on sight: *don't use
-> colloquialisms or folksy talk.* Ten passages in one commit, all written under
-> the blanket exemption 2.9 used to grant.
+**Source comments are exempt, and deliberately so** (2.9). A comment naming the
+lesson cell a decision came from IS the record of where that decision came from,
+and it is the most valuable thing in several modules. This principle governs
+what the STUDENT reads, not what the next author reads.
 
-- **No lesson, cell or notebook references.** 2.10 forbids these in widget copy
-  because a widget must be reusable in any course setting and the lesson links
-  to the widget, never the reverse. It holds for comments too, which outlive the
-  notebook's numbering. *Not retroactive:* `balancing-data` still cites cells
-  62–65 and 71, `bayesian` says "the notebook's own" four times, and `dbscan`
-  opens on "THE LAYOUT IS CELL 60'S OWN DIAGRAM".
-- **No project narrative** — attributions, dates, round numbers, who asked for
-  what. `git log` holds all of it, stays true when the file moves, and does not
-  go stale.
-- **No editorializing.** A comment says what was tried and what it measured, and
-  stops there. *"The obvious alternative was built, and it misstates the data"*
-  — then the numbers, which do the rating.
-- **The same plain register as every other surface.** Vividness is a cost, not a
-  bonus (2.9), and the usual failure is an image standing in for a measurement.
-  Where a number exists, give it: *"a column about 0.06 wide"* over
-  *"hairline"*, *"a direction not fitted to the other 25"* over *"a foreign
-  direction"*, *"the SV estimates it more precisely"* over *"locks onto it
-  harder"*.
+> *Earned:* an audit of every quoted string in the collection (2026-09-04) found
+> **7 lesson-or-notebook references in reader-facing copy, all of them in control
+> `detail` text** — the one surface neither 2.9 nor 2.10 names. Two in
+> `mixed-model` ("the notebook's setting"), and one each in `mlp` ("the
+> notebook's default"), `normalization`, `t-sne` ("the lesson's own scale"),
+> `trees-and-ensembles` and `support-vector-machine`. The subtitles and gallery
+> blurbs — the surfaces 2.10 had already audited — were clean.
 
-What stays — and is the reason the exemption existed at all — is **the history
-of what failed**, at whatever length it takes. That is a record of measurements
-and dead ends. It is not a story about the people who hit them.
+Two things that audit settled, worth not re-deriving:
+
+- **The gallery, the `index.html` stubs and the landing page are clean.**
+  `manifest.json`'s `"course": "PHM5003"` is a structured tag the gallery filters
+  on, not prose, and is not a lesson reference.
+- **A citation inside a `detail` is almost always dead weight.** *"the
+  notebook's setting — most variation is between patients"* loses nothing by
+  dropping the first clause; the second is what the reader needed. Where the
+  citation was the WHOLE detail — *"the notebook's default"* — that option had
+  no description at all, and the fix is to write one.
+
+*Outstanding:* those 7 strings are catalogued above and not yet rewritten.
 
 ### 5.10 A baseline is not recorded until a clean re-run confirms it
 

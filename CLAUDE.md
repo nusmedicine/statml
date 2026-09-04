@@ -235,8 +235,11 @@ approach was tried and failed — several modules carry that history and it is t
 most valuable thing in them. Prose in widgets and chapters is teaching material:
 plain, specific, no filler.
 
-**That register applies to comments too — principle 5.9.** No colloquialisms or
-folksy phrasing, no editorializing, no lesson/cell/notebook references, and no
-project narrative (attributions, dates, round numbers; `git log` holds those).
-Where a measurement exists, give the number rather than an image for it. The
-history of what failed stays, at whatever length it takes.
+**That register covers every reader-facing string, not just the subtitle —
+principle 5.9**: control labels and their `detail` text, readout notes, canvas
+captions and panel notes, the formula card. No lesson, cell or notebook
+references on any of them; the lesson links to the widget, never the reverse.
+
+**Source comments are exempt and stay as they are.** A comment naming the lesson
+cell a decision came from is the record of where that decision came from, and
+several modules carry no more valuable thing. Do not tidy them.
