@@ -52,6 +52,14 @@ const STEP_MS = 42;
 
 const PERMS = 1000;
 
+/* Set by the drag's hit-test, read by its `value`. See the comment there for
+   why a movement-only contract needs this and why one variable is safe. */
+let grabbedPastMiddle = false;
+
+/* The permutation null, kept across the recomputes a display change forces.
+   Keyed on the parameters it depends on; see `compute`. */
+const nullCache = { key: null, value: null };
+
 /* --- geometry ------------------------------------------------------------- *
  * Everything is derived from `w` and `h`, so a narrow phone gets the same
  * figure rather than a clipped one.
@@ -283,10 +291,75 @@ defineWidget({
     /* The null is drawn from the SAME rng, after the stage, so it is fixed by
        the seed and identical on every recompute — including the recompute a
        display change triggers, which is what stops the histogram flickering
-       while the cutoff slider is dragged. */
-    const nul = gseaNull(stage, params.setKey, rng, PERMS);
+       while the cutoff is dragged.
 
-    return { stage, walk, hits, nul };
+       AND IT IS CACHED, which is a performance fix and not an optimisation
+       reached for on principle. A thousand permutations is a thousand shuffles
+       of four hundred genes and a thousand walks over them, and core recomputes
+       the whole state on every DISPLAY change — so dragging the cutoff on the
+       figure paid for it once per pointermove. Measured at 15.5 ms a frame
+       against a 16.7 ms budget: not broken, but with nothing left over, and the
+       drag is the one gesture this widget exists for.
+
+       The key is every parameter the null depends on. It cannot go stale
+       because `compute` is pure and seeded: the same three values give the same
+       stage, and the same stage gives the same thousand draws. */
+    const key = `${params.seed}|${params.effect}|${params.setKey}`;
+    if (nullCache.key !== key) {
+      nullCache.key = key;
+      nullCache.value = gseaNull(stage, params.setKey, rng, PERMS);
+    }
+
+    return { stage, walk, hits, nul: nullCache.value };
+  },
+
+  /* THE CUTOFF IS DRAGGED ON THE FIGURE, and this is the gesture the widget is
+     for: take hold of the line, pull it, and watch one number move while the
+     curve under it does not. The rail slider stays — it is the keyboard and
+     screen-reader route to the same parameter, and principle 5.7's rule for
+     regions applies here for the same reason.
+
+     THE STRIP ONLY, not the whole canvas. Widget 34 paid for the ungated
+     version: a casual click on another panel nudged its threshold by ~0.02 per
+     8px and the reader met the evidence later as a number they never set. Here
+     the walk panel sits directly below and is the thing a reader is most likely
+     to click on while watching it. */
+  drag: {
+    params: ["cutoff"],
+    cursor: "ew-resize",
+    hit: ({ x, y, w, h, params }) => {
+      const L = layout(w, h, Boolean(params.tests));
+      const on = x >= L.x0 && x <= L.x0 + L.pw
+        && y >= L.profileY - 6 && y <= L.codeY + L.codeH + 4;
+      /* WHICH HALF THE POINTER IS IN, remembered here because `value` is handed
+         a MOVEMENT and never a position — by design, since a movement is what
+         makes the gesture pure in `start`. Core calls this on every hover to
+         set the cursor, and once more on pointerdown before the gesture opens;
+         it is not called again while one is in flight, so what this leaves
+         behind is exactly the grab point and it holds still for the drag. */
+      if (on) grabbedPastMiddle = x > L.x0 + L.pw / 2;
+      return on;
+    },
+    /* RELATIVE TO WHERE THE GESTURE BEGAN, which is core's contract and also
+       what stops a slow drag accumulating rounding drift.
+
+       Two subtleties at "both ends", where the list grows from BOTH edges:
+
+       - each edge carries about half of k, so moving one edge by one gene
+         changes k by two. Without the doubling the line tracks the pointer at
+         exactly half speed, which reads as a sticky control rather than a
+         wrong one — the kind of bug that survives review.
+       - dragging INWARD must always mean "a longer list". A gesture that began
+         on the right-hand edge therefore reads its dx backwards, or that edge
+         runs away from the pointer instead of following it. */
+    value: ({ dx, start, params, state, w, h }) => {
+      const L = layout(w, h, Boolean(params.tests));
+      const perGene = L.pw / state.stage.genes;
+      const both = params.listMode === "both";
+      const dir = both && grabbedPastMiddle ? -1 : 1;
+      const k = start.cutoff + dir * (both ? 2 : 1) * (dx / perGene);
+      return { cutoff: clamp(Math.round(k), 5, 200) };
+    },
   },
 
   animation: {
@@ -389,15 +462,21 @@ defineWidget({
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    /* The cutoff edges, drawn on top of the shading they bound. */
+    /* The cutoff edges, drawn on top of the shading they bound, each with a
+       grip at the top. The grip is the affordance: an `ew-resize` cursor only
+       appears once the pointer is already over the strip, so without a mark
+       there is nothing to tell a reader the line can be taken hold of. */
     ctx.strokeStyle = colors.extreme;
+    ctx.fillStyle = colors.extreme;
     ctx.lineWidth = 1.5;
     for (let i = 1; i < stage.genes; i += 1) {
       if (inList.has(stage.rank[i - 1]) !== inList.has(stage.rank[i])) {
+        const x = xAt(i);
         ctx.beginPath();
-        ctx.moveTo(xAt(i), L.profileY);
-        ctx.lineTo(xAt(i), L.profileY + L.profileH + 5 + L.codeH);
+        ctx.moveTo(x, L.profileY);
+        ctx.lineTo(x, L.profileY + L.profileH + 5 + L.codeH);
         ctx.stroke();
+        ctx.fillRect(x - 3, L.profileY - 4, 6, 6);
       }
     }
 
