@@ -112,16 +112,16 @@ const GSEA_ROWS_DY = 32;
    nowhere to go but under the picture. */
 const sideBySide = (pw) => pw >= 620;
 
-/* FOUR PAGES, AND EACH ONE IS ONLY ITS OWN PANELS. A table page starts at the
-   heading rather than below a figure it does not draw, which is where the
-   height comes back: the score tab was 610px carrying everything at once and
-   is now roughly 420 and 240. */
-function layoutOra(w, page) {
+/* ALL PATHWAYS IS THE ONE-PATHWAY PAGE PLUS THE TABLE, not a page instead of
+   it. Clicking a row is how you drive the figure above — the Venn redraws, the
+   walk re-runs — so the figure has to be there to be driven. One pathway is
+   the same figure with the collection taken away, for a reader who wants the
+   mechanism and nothing else. */
+function layoutOra(w) {
   const padL = w < 460 ? 10 : 14;
   const x0 = padL;
   const pw = w - padL - (w < 460 ? 8 : 14);
   const narrow = pw < 380;
-  if (page === "all") return { x0, pw, narrow, resultsY: TITLE_H };
   const two = sideBySide(pw);
   const topY = TITLE_H;
   const topH = two ? Math.max(VENN_H, TABLE_H) : VENN_H + 14 + TABLE_H;
@@ -131,6 +131,7 @@ function layoutOra(w, page) {
     tableX: two ? x0 + pw * 0.52 : x0,
     tableY: two ? topY : topY + VENN_H + 14,
     tableW: two ? pw * 0.48 : pw,
+    resultsY: topY + topH + 18,
     narrow,
   };
 }
@@ -140,8 +141,10 @@ function layoutGsea(w, h, page) {
   const x0 = padL;
   const pw = w - padL - (w < 460 ? 8 : 14);
   const narrow = w < 560;
-  if (page === "all") return { x0, pw, narrow, tableY: TITLE_H };
-  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8;
+  /* The strips keep their 250px whichever page this is; the table is added
+     BELOW them, so only the canvas grows. */
+  const strips = h - TITLE_H - AXIS_H - 12 - NULL_H - 8
+    - (page === "all" ? GSEA_TABLE_H : 0);
   const profileH = Math.round(strips * 0.42);
   const codeH = Math.max(14, Math.round(strips * 0.09));
   const walkH = strips - profileH - codeH - 10;
@@ -152,18 +155,18 @@ function layoutGsea(w, h, page) {
   return {
     x0, pw, profileY, profileH, codeY, codeH, walkY, walkH, axisY,
     panelY: axisY + AXIS_H + 12,
+    tableY: axisY + AXIS_H + 12 + NULL_H + 16,
     narrow,
   };
 }
 
 function canvasHeight(w, view, page) {
   if (view === "ora") {
-    if (page === "all") return TITLE_H + RESULTS_H;
-    const L = layoutOra(w, "one");
-    return L.topY + L.topH + 12;
+    const L = layoutOra(w);
+    return page === "all" ? L.resultsY + RESULTS_H : L.topY + L.topH + 12;
   }
-  if (page === "all") return TITLE_H + GSEA_TABLE_H;
-  return TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8;
+  const figure = TITLE_H + 250 + AXIS_H + 12 + NULL_H + 8;
+  return page === "all" ? figure + GSEA_TABLE_H : figure;
 }
 
 /* --- small drawing helpers ------------------------------------------------- */
@@ -388,8 +391,7 @@ defineWidget({
       default: "medium",
       display: true,
       afterDrive: true,
-      /* The walk lives on one page of one method, so its speed does too. */
-      when: { all: [{ param: "view", equals: "gsea" }, { param: "page", equals: "one" }] },
+      when: { param: "view", equals: "gsea" },
     },
 
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },
@@ -485,7 +487,7 @@ defineWidget({
        over a Venn. */
     if (!isAll(params)) return [];
     const ora = isOra(params);
-    const L = ora ? layoutOra(w, "all") : layoutGsea(w, h, "all");
+    const L = ora ? layoutOra(w) : layoutGsea(w, h, "all");
     const top = ora ? L.resultsY + 16 : L.tableY + GSEA_ROWS_DY;
     return state.stage.sets.map((s, i) => ({
       x: L.x0,
@@ -528,7 +530,7 @@ defineWidget({
       shown: fromScratch ? 0 : clamp(params.shown, 0, state.stage.genes),
       acc: 0,
       done: false,
-      inert: isOra(params) || isAll(params),
+      inert: isOra(params),
     }),
 
     advance: (anim, { dt, params, state }) => {
@@ -558,14 +560,11 @@ defineWidget({
        changes is whether there is anything to drive. */
     rebuild: (anim, { params, state }) => {
       anim.shown = clamp(anim.shown, 0, state.stage.genes);
-      anim.inert = isOra(params) || isAll(params);
+      anim.inert = isOra(params);
     },
   },
 
-  draw: (args) => {
-    if (isOra(args.params)) return isAll(args.params) ? drawOraAll(args) : drawOraOne(args);
-    return isAll(args.params) ? drawGseaAll(args) : drawGseaOne(args);
-  },
+  draw: (args) => (isOra(args.params) ? drawOra(args) : drawGsea(args)),
 
   readout: ({ params, state, anim }) => {
     const { stage, walk, nul } = state;
@@ -580,15 +579,9 @@ defineWidget({
     /* A TABLE PAGE READS THE COLLECTION, a one-pathway page reads the pathway.
        The tiles are the accessible reading of whatever is on the canvas, so
        they follow the canvas rather than staying put. */
-    if (isOra(params) && isAll(params)) {
-      return [
-        { label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
-          note: "at 0.05, before and after correcting" },
-        { label: `Pathway ${i + 1}, after correction`, value: fmtP(mine.padj),
-          note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
-      ];
-    }
-
+    /* THE COLLECTION TILE IS THE PAGE'S OWN NUMBER, so it appears only where
+       the collection is drawn. Everything above it describes the one pathway
+       and is on both pages. */
     if (isOra(params)) {
       return [
         { label: "Genes in the list", value: `${mine.k}`, note: `of ${stage.genes} measured` },
@@ -599,6 +592,10 @@ defineWidget({
         { break: true },
         { label: "After correction", value: fmtP(mine.padj),
           note: `Benjamini–Hochberg over all ${N_SETS} pathways` },
+        ...(isAll(params) ? [{
+          label: "Pathways significant", value: `${rawHits} → ${adjHits}`,
+          note: "at 0.05, before and after correcting",
+        }] : []),
       ];
     }
 
@@ -615,16 +612,14 @@ defineWidget({
       note: `cut at ${mine.k}; ${fmtP(mine.padj)} after correction`,
     };
 
-    if (isAll(params)) {
-      const gRaw = state.rows.filter((r) => r.p < ALPHA).length;
-      const gAdj = state.rows.filter((r) => r.padj < ALPHA).length;
-      return [
-        foil,
-        { break: true },
-        { label: "Pathways significant", value: `${gRaw} → ${gAdj}`,
-          note: "at 0.05, before and after correcting" },
-      ];
-    }
+    const collection = isAll(params)
+      ? [{
+        label: "Pathways significant",
+        value: `${state.rows.filter((r) => r.p < ALPHA).length} → `
+          + `${state.rows.filter((r) => r.padj < ALPHA).length}`,
+        note: "at 0.05, before and after correcting",
+      }]
+      : [];
 
     if (!done) {
       return [
@@ -635,6 +630,7 @@ defineWidget({
           note: shown === 0
             ? "press Walk to score it from the whole ranking"
             : `${shown} of ${stage.genes} genes walked` },
+        ...collection,
       ];
     }
     return [
@@ -644,17 +640,18 @@ defineWidget({
         note: `the walk's furthest point from zero, at rank ${walk.esAt}` },
       { label: "Score, permuted", value: nul.p.toFixed(3),
         note: `${PERMS.toLocaleString()} random pathways of the same size` },
+      ...collection,
     ];
   },
 });
 
 /* --- tab 1: overrepresentation --------------------------------------------- */
 
-function drawOraOne({ ctx, colors, w, params, state }) {
+function drawOra({ ctx, colors, w, params, state }) {
   const { stage } = state;
-  const L = layoutOra(w, "one");
+  const L = layoutOra(w);
   const i = setIndex(params);
-  const o = oraAll(stage, params.cutoff, Number(params.background))[i];
+  const all = oraAll(stage, params.cutoff, Number(params.background));
   ctx.__font = colors.font;
   ctx.save();
 
@@ -664,22 +661,11 @@ function drawOraOne({ ctx, colors, w, params, state }) {
   /* ALWAYS FOLD CHANGE, not whatever the score tab is set to. ORA cuts its
      list from `rankFc`, so naming any other metric here would be a caption
      describing a ranking this test did not use. */
-  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, o, i, METRICS.fc.label);
-  drawTable(ctx, colors, L.tableX, L.tableY, L.tableW, o);
-
-  ctx.restore();
-}
-
-function drawOraAll({ ctx, colors, w, params, state }) {
-  const { stage } = state;
-  const L = layoutOra(w, "all");
-  const all = oraAll(stage, params.cutoff, Number(params.background));
-  ctx.__font = colors.font;
-  ctx.save();
-
-  text(ctx, "Every pathway, tested and corrected",
-    L.x0, 12, { fill: colors.ink2, size: 11 });
-  drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, setIndex(params), L.narrow);
+  drawVenn(ctx, colors, L.x0, L.topY, L.vennW, all[i], i, METRICS.fc.label);
+  drawTable(ctx, colors, L.tableX, L.tableY, L.tableW, all[i]);
+  if (isAll(params)) {
+    drawResults(ctx, colors, L.x0, L.resultsY, L.pw, all, i, L.narrow);
+  }
 
   ctx.restore();
 }
@@ -864,18 +850,9 @@ function drawResults(ctx, colors, x0, y0, w, all, index, narrow) {
 
 /* --- tab 2: the enrichment score -------------------------------------------- */
 
-function drawGseaAll({ ctx, colors, w, h, params, state }) {
-  const L = layoutGsea(w, h, "all");
-  ctx.__font = colors.font;
-  ctx.save();
-  drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows,
-    setIndex(params), L.narrow);
-  ctx.restore();
-}
-
-function drawGseaOne({ ctx, colors, w, h, params, state, anim }) {
+function drawGsea({ ctx, colors, w, h, params, state, anim }) {
   const { stage, walk, nul } = state;
-  const L = layoutGsea(w, h, "one");
+  const L = layoutGsea(w, h, params.page);
   const i = setIndex(params);
   const shown = clamp(anim?.shown ?? 0, 0, stage.genes);
   ctx.__font = colors.font;
@@ -1010,6 +987,10 @@ function drawGseaOne({ ctx, colors, w, h, params, state, anim }) {
 
   drawNull(ctx, colors, L.x0, L.panelY, L.pw,
     shown >= stage.genes ? nul : null, shown >= stage.genes ? walk.es : null);
+
+  if (isAll(params)) {
+    drawGseaResults(ctx, colors, L.x0, L.tableY, L.pw, state.rows, i, L.narrow);
+  }
 
   ctx.restore();
 }
