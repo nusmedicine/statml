@@ -47,6 +47,22 @@
    covariate's 0.446 at strong confounding — a narrower interval around a
    biased estimate. Hence the intervals are drawn and not only the points.
 
+   ITS PANEL IS THE OBSERVED DATA, and the three panel notes differ because the
+   three methods stand in three different relations to the picture: ComBat's
+   panel is the matrix that then gets tested, RUV's is a picture while its W
+   goes in the model, and SVA has no corrected matrix at all.
+
+   That last one read as SVA FAILING — an unchanged scatter under a heading
+   saying SVA, beside a visibly clean ground truth, at the very setting where
+   the surrogate variable correlates 0.99 with the batch. The fix is not a
+   corrected panel: `limma::removeBatchEffect(y, covariates = sv)` was built
+   here and collapses the within-condition scatter 18x, reducing each condition
+   group to a column about 0.06 wide: a separation by condition of 57.5,
+   against ground truth's 3.2.
+   model.js's `sva` entry carries that finding and the three controls that
+   locate it. The fix is the note, which now sends the reader to the interval —
+   the only quantity SVA alters, its point estimate being identical to None's.
+
    RUV holds because its factor comes from reference genes carrying the batch
    and not the condition: correlation with the batch 0.982 at every setting,
    where SVA's falls 0.991 / 0.856 / 0.701 / 0.000. It holds only as far as the
@@ -180,14 +196,14 @@ const STEP = {
       + `${SUB("&#x3B2;", "i")}${SUB("Y", "j")}<mo>+</mo>${SUB("&#x3BB;", "i")}`
       + `${SUB("W", "j")}<mo>+</mo>${SUB2("&#x3B5;")}</mrow></math>`,
     plain: "X(i,j) = a(i) + b(i)·Y(j) + l(i)·W(j) + e(i,j)",
-    note: "W estimated from the residuals; the batch labels are not used, and X is unchanged",
+    note: "W comes from the residuals, not the batch labels; it enters the model, and X is left as measured",
   },
   ruv: {
     math: `<math><mrow>${SUB2("X")}<mo>=</mo>${SUB("&#x3B1;", "i")}<mo>+</mo>`
       + `${SUB("&#x3B2;", "i")}${SUB("Y", "j")}<mo>+</mo>${SUB("&#x3BB;", "i")}`
       + `${SUB("W", "j")}<mo>+</mo>${SUB2("&#x3B5;")}</mrow></math>`,
     plain: "X(i,j) = a(i) + b(i)·Y(j) + l(i)·W(j) + e(i,j)",
-    note: "W estimated from the reference genes, then included in the model",
+    note: "W from the reference genes; in the model for the estimate, out of X for the panel — visualisation, not testing",
   },
 };
 
@@ -448,7 +464,34 @@ defineWidget({
         xDomain: frame.x,
         yDomain: frame.y,
       });
-      plot.grid(ticksOf(frame.y));
+      /* NO HORIZONTAL GRIDLINES, and a VERTICAL RULE ON BOTH PANELS. The two
+         went together: `axisY` draws tick labels and no line — only `axisX`
+         carries a rule — so two panels sharing one y domain, one row of
+         gridlines and no vertical edge ran together as a single wide graph
+         with a gap down the middle.
+
+         The gridlines went because nothing here reads a value off them. The y
+         axis is PC2 and every quantity the figure reports — both separations,
+         the forest, the readouts — is measured along PC1. They spanned both
+         panels at identical heights, which is what joined the two into one
+         figure. The other 17 widgets that call `grid` mostly plot a count or a
+         density against y, where a reader does read a value off the line.
+
+         The rule closes each panel into an L with its own baseline, and carries
+         no tick marks because `axisX` carries none either. The LABELS stay on
+         the left panel alone: the domain is shared and frame.y is computed once
+         across both, so a second column of identical numbers would imply two
+         scales where there is one. Drawn here rather than added to `axisY` in
+         core, which every other widget calls and none of them asked for. */
+      const ruleX = Math.round(plot.x) + 0.5;
+      ctx.save();
+      ctx.strokeStyle = colors.axis;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ruleX, plot.y);
+      ctx.lineTo(ruleX, plot.bottom);
+      ctx.stroke();
+      ctx.restore();
       if (i === 0) plot.axisY({ ticks: ticksOf(frame.y), format: axisFmt });
       plot.axisX({ ticks: ticksOf(frame.x), format: axisFmt });
       plot.caption(panel.title);
@@ -572,13 +615,35 @@ function panelTitle(params) {
 }
 
 /**
- * SVA never edits the matrix, so its panel is the observed one — said on the
- * figure: an unchanged picture after pressing a button otherwise reads as a
- * defect.
+ * THREE NOTES, because the three corrections stand in three different relations
+ * to the picture, and the formula card cannot say so — it gives SVA and RUV the
+ * identical equation.
+ *
+ *   ComBat  the panel IS the matrix that is then tested  -> "after correction"
+ *   RUV     W out of the data, and also in the model     -> "W removed for
+ *                                                            visualisation"
+ *
+ * RUV's note names the operation because "for looking only" did not say what
+ * "it" was. W is a single direction estimated from the 25 reference genes and
+ * subtracted from all 50. The reference genes supply the estimate and are not
+ * themselves the target of the subtraction, and that 25-in / 50-out asymmetry
+ * is the method. The caveat the note used to carry now sits in the card note,
+ * which has room for "visualisation, not testing".
+ *   SVA     no corrected matrix exists at all            -> says so, and points
+ *
+ * SVA's note used to read "the data is unchanged", which is true and still read
+ * as the method FAILING: an unchanged picture under a heading that says SVA,
+ * beside a ground truth that is visibly clean. It now says where SVA does show
+ * up. Its row on the forest sits exactly on None's — the point estimate cannot
+ * move, W being orthogonal to the condition — so the interval is the only thing
+ * that carries it, and the note sends the reader there rather than leaving them
+ * to conclude nothing happened. model.js records why no corrected panel is on
+ * offer, with the numbers.
  */
 function panelNote(params) {
   if (!params.correcting || params.method === "none") return "with the batch effect";
-  if (params.method === "sva") return "the data is unchanged";
+  if (params.method === "sva") return "changes the model, not the data";
+  if (params.method === "ruv") return "W removed for visualisation";
   return "after correction";
 }
 

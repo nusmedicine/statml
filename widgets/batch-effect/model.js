@@ -141,11 +141,25 @@ export const CONTROL_SETS = {
 /**
  * Every method, by what it DOES.
  *
- * `data` returns the matrix that is then looked at and tested. `covar` returns
- * extra columns for the model instead, and a method that has one does NOT edit
- * the matrix — the difference between correcting the data and modelling the
- * nuisance. Giving a covariate method a transformation it does not have, so a
- * scatter had something to draw, was a defect this file used to carry.
+ * `data` is the matrix the PANEL shows. `covar` is the extra column the MODEL
+ * fits. They are deliberately separate: `estimateOver` fits the raw X whenever
+ * a method supplies a covariate, so whatever `data` returns leaves the
+ * estimate alone.
+ *
+ * This comment used to say a covariate method does not edit the matrix — a rule
+ * RUV already broke, and the reason the two differ is worth stating plainly,
+ * because their equations on the formula card are identical and their panels
+ * are not.
+ *
+ * RUV has both. SVA has only `covar`, and its panel is the observed data
+ * captioned to say so. The `sva` entry below carries the numbers: the
+ * corrected-panel version was built, and this simulation cannot show it without
+ * separating the conditions perfectly. That is a property of removing a
+ * direction fitted to the very genes it is removed from, and of every panel
+ * sharing the observed data's PC basis — not of SVA.
+ *
+ * The older defect this file carried was not a transformation as such. It was
+ * an UNLABELLED one, invented so a scatter had something to draw.
  */
 export const METHODS = {
   none: {
@@ -171,8 +185,43 @@ export const METHODS = {
 
   sva: {
     label: "SVA",
-    /* It does not touch the matrix: the batch labels are never read, and a
-       surrogate variable estimated from the residuals goes in the model. */
+    /* The batch labels stay unread. W is the leading direction of the
+       residuals left after the condition comes out, which is exactly why it is
+       orthogonal to the condition and cannot move its coefficient.
+
+       IT DOES NOT TOUCH THE MATRIX, and the panel says so rather than showing a
+       correction. That is a measured decision, not an omission — the obvious
+       alternative was built, and it misstates the data.
+
+       THE ALTERNATIVE: show X with W projected out, the way
+       `limma::removeBatchEffect(y, covariates = sv)` is used to plot one. It
+       does clean the batch (separation by batch 7.80 -> 0.00 at a balanced
+       design). It also collapses the within-condition scatter along PC1 from
+       0.995 to 0.056 — 18x — so each condition group becomes a column about 0.06
+       wide, separated perfectly, and the separation by condition reads 57.5
+       against ground truth's 3.2.
+
+       WHY, and why it cannot be patched here: every panel is projected onto the
+       OBSERVED data's PC1 (see `projectOnto` — one basis, so a change moves the
+       points and not the axes). PC1 is essentially the batch direction, and W
+       is fitted to all 50 genes' residuals on only 40 samples, so it absorbs
+       the leading noise direction along with the batch. Removing W from those
+       same 50 genes leaves the data orthogonal to it, and PC1 is then the one
+       direction holding nothing but the condition — which survives whole,
+       because W is orthogonal to the condition by construction.
+
+       Three controls pin that down. Residualising on the TRUE batch indicator
+       keeps the scatter (0.949 / 1.175 / 1.281), so residualising is not the
+       problem — fitting the direction to the same genes is. Re-running the PCA
+       on the corrected data does not rescue it (3.2 at balanced, but still 22.3
+       and 29.3 at half and strong). Giving the batch a per-gene spread makes it
+       WORSE, not better (0.056 -> 0.021 at a shift sd of 2), because a stronger
+       batch is one the SV estimates more precisely.
+
+       RUV escapes all of this because its W is fitted to the 25 control genes
+       and removed from all 50 — a direction not fitted to the other 25, whose PC1
+       scatter therefore survives (1.039 / 1.311 / 1.456). That asymmetry is
+       real, and it is why only one of these two has a corrected panel. */
     data: ({ X }) => X,
     covar: (sim) => [surrogateVariable(sim)],
   },
@@ -181,7 +230,11 @@ export const METHODS = {
     label: "RUV",
     /* The only method that does both. W is estimated once from the reference
        genes, then used to clean the matrix for the panel AND included in the
-       model for the estimate.
+       model for the estimate. It can do the first because W is fitted to the 25
+       control genes and removed from all 50, so for the other 25 it is not fitted
+       to them and their PC1 scatter survives — the `sva` entry above
+       records what happens to a method whose W is fitted to every gene it is
+       then removed from.
 
        Where it is used matters. Residualising on W and then running a two-group
        test gives 0.793 / 0.623 / 0.489 / 0.102 across the ladder — it removes
