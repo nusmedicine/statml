@@ -25,7 +25,7 @@
  * The population parameters below are load-bearing, not flavour.
  */
 
-import { defineWidget, fmt } from "../core/index.js";
+import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 
 /* ---- the population the seeded cohort is drawn from ---------------------- */
 
@@ -191,15 +191,6 @@ const signed = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
 
 /* ---- the formula card (widget 15/35's pattern): MathML in the DOM -------- */
 
-function mathmlRenders() {
-  const box = document.createElement("div");
-  box.style.cssText = "position:absolute;visibility:hidden;font-size:16px";
-  box.innerHTML = "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>";
-  document.body.appendChild(box);
-  const [fr, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
-  box.remove();
-  return fr > plain * 1.3;
-}
 const MATHML = mathmlRenders();
 
 const mi = (t) => `<mi mathvariant="normal">${t}</mi>`;

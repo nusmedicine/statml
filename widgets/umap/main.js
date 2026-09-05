@@ -106,11 +106,6 @@ const clamp01 = (v) => clamp(v, 0, 1);
 const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const dist2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const cross3 = (a, b) => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
 const unit3 = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return scale3(a, 1 / m); };
 const easeCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
 

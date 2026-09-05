@@ -69,7 +69,6 @@ import { DATA } from "./model.js";
    bridge the two pages are for. Only what is written inside them changes. */
 const L = ["A", "B", "C"];
 const CODES = DATA.short;                       // ["Age", "EF", "Cr"]
-const TOK = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c"];
 /** `+30` / `-30` / `+8.9`, in the decimals the page is working to. */
 const signed = (v, dp) => `${v >= 0 ? "+" : ""}${fmt(v, dp)}`;
 const PERMS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
@@ -263,7 +262,6 @@ const SPLIT_Y = 348;
    the height that costs. The wide reading is untouched. */
 const STACK_W = 700;
 const STACK_Y = TABLE_Y + 6 * TABLE_ROW + 12 + 46;   // clear of the average row
-const SCORE_ROW = 34;
 
 /* --- the global page has a stage of its own ------------------------------- *
  * It was a fourth block under the individual page for one round and Kenneth cut

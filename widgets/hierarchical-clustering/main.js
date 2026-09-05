@@ -89,7 +89,6 @@ const SPEEDS = {
 const STEP_MS = 1100;
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const transpose = (m) => m[0].map((_, j) => m.map((row) => row[j]));
 const easeInOut = (t) => t * t * (3 - 2 * t);
 
 /**

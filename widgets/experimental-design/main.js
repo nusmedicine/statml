@@ -486,14 +486,6 @@ function selectionRing(ctx, colors, x, y, r, alpha = 1) {
 }
 
 /**
- * One arm's population as a grid, with the study's selection ringed.
- * Non-carriers are drawn paler than carriers — redundant with the shape, which
- * is what makes the mix readable at a 9px pitch where a triangle and a circle
- * are nearly the same blob.
- */
-const rowsFor = (k) => Math.ceil(k / POP_COLS);
-
-/**
  * Where a subject sits once the population has been sorted into its two blocks:
  * carriers fill whole COLUMNS from the left, the non-carriers start a fresh
  * column after a gap, and the empty space between them IS the partition.
@@ -523,35 +515,6 @@ function seatOf(pop, i, at, sort) {
   if (!sort) return [x0, y0];
   const [x1, y1] = blockedCell(pop, i, at);
   return [x0 + (x1 - x0) * sort, y0 + (y1 - y0) * sort];
-}
-
-/**
- * The population, minus whoever this study took.
- *
- * A SUBJECT IS IN ONE PLACE. The first build left a full-opacity copy in the
- * grid and drew a second copy flying to the axis, so twenty people appeared to
- * become forty — Kenneth's review asked for them to be removed rather than
- * dimmed, and he is right that a duplicate is not a dimming problem. The
- * selected members are drawn by the convoy instead, from the same `seatOf`, so
- * before the flight starts they sit exactly where the grid would have put them
- * and nothing appears to move at all.
- *
- * The dashed box stays behind as the EMPTY SEAT: it is the only mark that says
- * where the sample came out of, and it is why the ring is drawn here and not
- * with the travelling subject.
- */
-function drawPopulation(ctx, colors, at, study, g, sort, ringAt, leaving) {
-  const pop = study.population[g];
-  const r = CELL * 0.36;
-  pop.forEach((s, i) => {
-    const [cx, cy] = seatOf(pop, i, at, sort);
-    const a = ringAt(i);
-    if (a > 0) selectionRing(ctx, colors, cx, cy, r, a);
-    /* a subject the study has taken fades out of its cell as the same subject
-       fades in on the axis, so it is never in two places and never in none */
-    const alpha = leaving(i);
-    if (alpha > 0) subjectMark(ctx, colors, cx, cy, s, g, r, alpha);
-  });
 }
 
 /**
@@ -651,27 +614,6 @@ function drawMarginal(ctx, colors, geo, counts, peak) {
     ctx.fillRect(mx, yTop, Math.max(1, (k / peak) * mw), Math.max(1, yBot - yTop - 1));
   });
   ctx.restore();
-}
-
-/** The notebook's own `tbl_summary(by = group)`, and the imbalance it implies. */
-function drawTable(ctx, colors, { x, y }, study, conf) {
-  const n = study.arms[0].length;
-  const col = 58;
-  const rowH = 16;
-  label(ctx, colors, x, y, "Control", colors.ink3, "center");
-  label(ctx, colors, x + col, y, "Disease", colors.ink3, "center");
-  [[conf.carrier, study.carried, colors.groupB],
-    [conf.plain, study.carried.map((v) => n - v), colors.groupA]]
-    .forEach(([name, vals, tint], i) => {
-      const cy = y + rowH * (i + 1);
-      label(ctx, colors, x - 34, cy, name, tint, "right");
-      vals.forEach((v, g) => label(ctx, colors, x + col * g, cy, String(v),
-        colors.ink1, "center", colors.fsSm, "600"));
-    });
-  const cy = y + rowH * 3;
-  label(ctx, colors, x - 34, cy, "imbalance", colors.ink3, "right");
-  label(ctx, colors, x + col / 2, cy, `${study.imbalance} of ${n}`,
-    study.imbalance === 0 ? colors.ink2 : colors.extreme, "center", colors.fsSm, "600");
 }
 
 /* --------------------------------------------------------------------------

@@ -41,7 +41,7 @@
    the model is the arc's central theme, this widget is its fitting chapter.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import { ols, ssQuad } from "./model.js";
 import { N, BMI, SYSBP } from "./data.js";
 
@@ -127,21 +127,6 @@ function walkAt(state, t) {
    verbatim: probe that MathML actually lays out (an interface test lies),
    mount `.w-math` lazily from draw() because module scope runs before the
    shell exists, and memoise on the numbers. */
-function mathmlRenders() {
-  /* The typeof-window guard keeps this module loadable in node, where the
-     _lab drivers stub defineWidget and call compute/advance with no DOM. */
-  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="lm-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="lm-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("lm-frac");
-  const flat = h("lm-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 const eqMathML = (b0, b1) =>

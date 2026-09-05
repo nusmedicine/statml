@@ -17,7 +17,7 @@
    to 1e-8 in `_lab/logistic-1cov-measure.py`. 234 distinct sysBP values.
    ========================================================================= */
 
-import { defineWidget, makePlot } from "../core/index.js";
+import { defineWidget, makePlot, mathmlRenders } from "../core/index.js";
 
 /* Coefficients are fixed rather than fitted in the browser; both fits are on
    the same 4240 rows. OLS is least squares on the 0/1 outcome — the "linear
@@ -184,19 +184,6 @@ const STRIP_PTS = (() => {
    `defineWidget`, so this module's scope runs before it exists; querying there
    returns null and the reader gets a blank page rather than a missing row. */
 
-/* DOES MathML LAY OUT? Compare a <math> against a <math>, never against a
-   <span>: a span wrapping a math carries the surrounding line-height, and that
-   comparison once reported a browser which sets maths perfectly as one that
-   does not — which would have forced the fallback on every reader for ever. */
-function mathmlRenders() {
-  const box = document.createElement("div");
-  box.style.cssText = "position:absolute;visibility:hidden;font-size:16px";
-  box.innerHTML = "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>";
-  document.body.appendChild(box);
-  const [frac, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
-  box.remove();
-  return frac > plain * 1.3;
-}
 const MATHML = mathmlRenders();
 
 /* The equation is 05-05's cell 4 with this widget's fitted numbers in it.

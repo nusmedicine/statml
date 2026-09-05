@@ -39,7 +39,7 @@
    defineWidget — core calls draw() during the defineWidget call itself.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
 import { ols } from "../lm-least-squares/model.js";
 import { N, BMI, SYSBP } from "../lm-least-squares/data.js";
@@ -73,19 +73,6 @@ function stageRects(w, fit) {
 const colCenter = (r, gi) => r.x + gi * (r.w / 4) + r.w / 8;
 
 /* ---- the equation card, widget 27/28's machinery ------------------------ */
-function mathmlRenders() {
-  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="lmc-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="lmc-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("lmc-frac");
-  const flat = h("lmc-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 const GENERIC_MATHML =

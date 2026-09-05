@@ -545,19 +545,6 @@ export function canonical(labels) {
   }).join(";");
 }
 
-/**
- * Do the three linkages the widget offers agree on this cut?
- *
- * Reported on the figure because it is the second diagnostic and the cheaper
- * one to read: measured on this stage, the three agree on 94% of seeds at
- * separation 3 and 16% at separation 0. It is evidence, not proof — a noise
- * draw where all three agree exists and the reader may find one.
- */
-export function linkagesAgree(rows, k, methods = ["average", "complete", "ward.D2"]) {
-  const parts = methods.map((m) => canonical(cut(cluster(rows, m), k)));
-  return parts.every((p) => p === parts[0]);
-}
-
 /* ---------------------------------------------------------------------------
    THE MATRIX STAGE — the Heatmap tab, and the Cluster tab's objects.
 

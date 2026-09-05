@@ -261,12 +261,6 @@ const predictAt = (n, x1, x2) =>
  */
 const fmtT = (v) => String(Math.round(v * 100) / 100);
 
-const ordinal = (n) => {
-  const r = n % 100;
-  if (r >= 11 && r <= 13) return `${n}th`;
-  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-};
-
 /* ---- the bag ------------------------------------------------------------ */
 
 const VOTE_GRID = 110;
