@@ -26,7 +26,7 @@
      one number the threshold cannot move.
    ========================================================================= */
 
-import { defineWidget, makePlot, histogram, fmt } from "../core/index.js";
+import { defineWidget, makePlot, histogram, fmt, mathmlRenders } from "../core/index.js";
 import {
   NUM_LO, NUM_HI, NUM_N,
   numericCohort, numericMetrics, categoricalPatients, cellsAt,
@@ -156,15 +156,6 @@ const effThreshold = (params, state, anim) => {
    per term so the card can wrap at the seams; rebuilt only when its content
    key moves, because draw() runs per frame. */
 
-function mathmlRenders() {
-  const box = document.createElement("div");
-  box.style.cssText = "position:absolute;visibility:hidden;font-size:16px";
-  box.innerHTML = "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math><math><mn>1</mn></math>";
-  document.body.appendChild(box);
-  const [fr, plain] = [...box.querySelectorAll("math")].map((m) => m.getBoundingClientRect().height);
-  box.remove();
-  return fr > plain * 1.3;
-}
 const MATHML = mathmlRenders();
 
 const mi = (t) => `<mi mathvariant="normal">${t}</mi>`;

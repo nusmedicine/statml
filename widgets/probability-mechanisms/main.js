@@ -50,7 +50,6 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
 
 const DRAWS = 200;
 const STRIP_H = 104;          // the mechanism, once a distribution is chosen
-const PATH_H = 34;            // the collapsed tree, once it has been walked
 
 /* --- maths the collection did not already have --------------------------- */
 
@@ -488,7 +487,6 @@ const NODES = new Map([["root", ROOT]]);
   };
   ROOT.kids.forEach((k) => walk(k, 0, null));
 })();
-const LEAF_IDS = [...NODES.values()].filter((n) => n.leaf).map((n) => n.id);
 const ancestry = (n) => {
   const out = [];
   for (let a = n; a; a = a.parent) out.unshift(a.id);

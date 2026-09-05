@@ -15,13 +15,22 @@ import { simulate } from "../time-event/model.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 let src = await readFile(join(here, "../time-event/main.js"), "utf8");
+/* Match the core import by its module, not by its exact name list: the list
+   grew by `mathmlRenders` on 2026-09-05 and the old literal match silently
+   left the real `defineWidget` in place, so `__cfg` was never defined and the
+   driver died at its own export line. A stub is supplied for every name the
+   widget takes from core; one it does not take is harmless. */
 src = src.replace(
-  /^import \{ defineWidget, makePlot, fmt \} from "\.\.\/core\/index\.js";$/m,
+  /^import \{[^}]*\bdefineWidget\b[^}]*\} from "\.\.\/core\/index\.js";$/m,
   `const __cfg = {};
 const defineWidget = (c) => Object.assign(__cfg, c);
 const makePlot = () => { throw new Error("draw() is not driven here"); };
-const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");`,
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const mathmlRenders = () => false;`,
 );
+if (!src.includes("const __cfg = {};")) {
+  throw new Error("time-event-drive: the core import line in main.js was not recognised — update the pattern above");
+}
 src = src.replace(
   /^import \{ km, logrank, coxph, simulate \} from "\.\/model\.js";$/m,
   `import { km, logrank, coxph, simulate } from ${JSON.stringify(pathToFileURL(join(here, "../time-event/model.js")).href)};`,

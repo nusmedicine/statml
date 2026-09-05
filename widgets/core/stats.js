@@ -27,7 +27,7 @@
    thing about skewed distributions that students need to see.
    ========================================================================= */
 
-export const SQRT_2PI = Math.sqrt(2 * Math.PI);
+const SQRT_2PI = Math.sqrt(2 * Math.PI);
 
 export function normalPdf(x, mu = 0, sigma = 1) {
   const z = (x - mu) / sigma;

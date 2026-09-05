@@ -59,7 +59,7 @@ export function themeMode() {
 
 /** Stamp <html> so the [data-theme] scope in tokens.css wins. Returns the
     resolved theme, which is never "auto" — that is a mode, not a palette. */
-export function applyTheme() {
+function applyTheme() {
   const mode = themeMode();
   if (mode === "auto") {
     document.documentElement.removeAttribute("data-theme");

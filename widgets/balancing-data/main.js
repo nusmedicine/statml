@@ -83,7 +83,6 @@ import { defineWidget, makePlot } from "../core/index.js";
 import * as M from "./model.js";
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const pct = (v) => `${(100 * v).toFixed(1)}%`;
 
 /* --- the three steps ------------------------------------------------------ */
 

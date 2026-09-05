@@ -123,7 +123,7 @@
    the digit and the simulated arm across this widget's own seeds.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import { km, logrank, coxph, simulate } from "./model.js";
 
 /* --- the patients — the notebook's five, extendable (round 9) ------------- *
@@ -300,19 +300,6 @@ const EASE_MS = 450;
  * PILLS: every name in it is a covariate the reader added, resting at the
  * notebook's symbols while no pill is in. Factors tab only; hidden and
  * emptied elsewhere so the text hash reads nothing on the other tabs. */
-function mathmlRenders() {
-  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="te-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="te-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("te-frac");
-  const flat = h("te-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 /* ln( h(t) / h₀(t) ) = — the notebook's left side, the fraction real */

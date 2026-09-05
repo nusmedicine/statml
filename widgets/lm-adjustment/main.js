@@ -85,7 +85,7 @@
    `_lab/lm-adjust3.html` §2C and DECLINED for the same reason.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
 import { ols } from "../lm-least-squares/model.js";
 import { N, BMI, SYSBP, AGE } from "../lm-least-squares/data.js";
@@ -106,10 +106,6 @@ const row1H = (wide) => (wide ? 220 : 170);
 const scatterTop = (wide) => 30 + row1H(wide) + 26;
 const SCATTER_H = 230;
 const STRIP_H = 78;
-/* 44px between scatter and strip: unlike widget 27 the two do NOT share an
-   x-axis (the strip's is fitted sysBP, a different variable), so the scatter
-   keeps its own BMI axis and the gap holds it. */
-const STRIP_GAP = 44;
 /* The Model tab stacks a fourth row — the three-model table — between the
    marginals and the strip; Collinearity keeps the three-row stack. Every
    top is derived from the row above, so nothing is counted twice. */
@@ -183,19 +179,6 @@ function dagLayout(wide) {
 }
 
 /* ---- the equation card, widget 27's machinery -------------------------- */
-function mathmlRenders() {
-  if (typeof window === "undefined" || typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="lma-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="lma-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("lma-frac");
-  const flat = h("lma-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 const GENERIC_MATHML =

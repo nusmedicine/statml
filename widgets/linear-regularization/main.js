@@ -78,7 +78,7 @@
    the lasso one is picked because the corner is what the widget is about.
    ========================================================================= */
 
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 
 /* Body fat, 252 men, 13 measurements plus the outcome. Density is deliberately
    absent — see the header. Source: github.com/kennethban/dataset/bodyfat.csv */
@@ -378,28 +378,6 @@ const canvasHeight = ({ w }) => ROW_TOP + panelSide(w) + ROW_BOTTOM;
  * rendered instead when the probe fails.
  * ========================================================================= */
 
-/**
- * A CAPABILITY TEST, NOT AN INTERFACE TEST. `window.MathMLElement` says the DOM
- * interface is defined; it does not say the layout engine stacks a fraction. So
- * measure one — an <mfrac> must be markedly taller than a plain <mn>.
- *
- * Both sides must be <math>. Comparing the <mfrac> against a <span> wrapping a
- * <math> measures the span's line-height instead and reports a browser that
- * lays maths out perfectly as one that does not, which would force the fallback
- * on every reader for ever.
- */
-function mathmlRenders() {
-  if (typeof window.MathMLElement !== "function") return false;
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;font-size:16px";
-  probe.innerHTML = '<math id="lr-frac"><mfrac><mn>1</mn><mn>2</mn></mfrac></math>'
-    + '<math id="lr-flat"><mn>1</mn></math>';
-  document.body.appendChild(probe);
-  const h = (id) => probe.querySelector(`#${id}`)?.getBoundingClientRect().height ?? 0;
-  const stacked = h("lr-frac"), flat = h("lr-flat");
-  probe.remove();
-  return flat > 0 && stacked > flat * 1.4;
-}
 const MATHML = mathmlRenders();
 
 /* TWO DECIMALS, UNLESS TWO DECIMALS SAY ZERO. Four of the 637 reachable

@@ -28,6 +28,7 @@ before proposing either back.
 npm run dev      # dev server on :8000 — USE THIS, not python -m http.server
 npm run build    # assemble _site/ (gallery at /, widgets at /widget/)
 npm run check    # invariant assertions; run before every commit
+npm test         # the engine and contract checks in widgets/_lab/, ~7 s; build runs it too
 ```
 
 **On the current Windows machine the dev server is `node scripts/serve.mjs 8010`**
