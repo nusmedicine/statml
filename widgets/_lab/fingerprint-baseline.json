@@ -2837,6 +2837,86 @@
       "slug": "enrichment",
       "px": "bcb0e722",
       "tx": "46eb5c0c"
+    },
+    {
+      "$note": "Randomize, nothing run: the design before any measurement.",
+      "slug": "experimental-design",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "Convenience, 60 studies: the pile lands on the confounder and never crosses zero.",
+      "slug": "experimental-design",
+      "state": "?theme=light&scheme=convenience&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "Randomize, 60 studies: centred on zero, and the imbalance is a draw each time.",
+      "slug": "experimental-design",
+      "state": "?theme=light&scheme=random&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "Block, 60 studies: the same centre, a narrower pile, and a rate below nominal.",
+      "slug": "experimental-design",
+      "state": "?theme=light&scheme=blocked&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "batch as the confounder, at the notebook's own complete confounding.",
+      "slug": "experimental-design",
+      "state": "?theme=light&confounder=batch&scheme=convenience&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "Replicate: 30 people measured once each, the honest budget.",
+      "slug": "experimental-design",
+      "state": "?theme=light&concept=budget&people=30&reps=1&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "Replicate: 3 people x 10, the same 30 rows and a wrong-answer rate near 40%.",
+      "slug": "experimental-design",
+      "state": "?theme=light&concept=budget&people=3&reps=10&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "a real effect of 0.50, so the rate is power rather than error.",
+      "slug": "experimental-design",
+      "state": "?theme=light&effect=moderate&shown=60",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "DRIVEN mid-beat at Slow: partway through the first study, nothing committed.",
+      "slug": "experimental-design",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "run",
+        "frames": 6,
+        "dt": 90
+      },
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "DRIVEN at Fast: studies arrive with no per-study choreography.",
+      "slug": "experimental-design",
+      "state": "?theme=light&speed=fast",
+      "drive": {
+        "click": "run",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

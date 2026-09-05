@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — does the population change, and what moves the bars</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-3); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 90ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 3px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3em; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 11px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · two questions, side by side</h1>
+
+  <div class="rail">
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="false">Convenience</button>
+        <button data-v="random" aria-pressed="true">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>seed <input type="range" id="seed" min="1" max="30" value="1"><output id="seedv">1</output></label>
+    <label>confounder shifts the measurement by
+      <input type="range" id="shift" min="-20" max="20" value="10"><output id="shiftv">1.0</output></label>
+    <label>more disease among carriers
+      <input type="range" id="assoc" min="0" max="80" value="0"><output id="assocv">0%</output></label>
+    <span class="seg"><button id="run">Run a study</button><button id="reset">Reset</button></span>
+    <output id="cnt" style="color:var(--ink-2)">0 studies</output>
+  </div>
+
+  <h2>1 · Does the population change when you run a study?</h2>
+  <p class="note">
+    Press <b>Run a study</b> a few times and watch the grids.
+  </p>
+  <div class="row" id="popRow"></div>
+
+  <h2>2 · What should move the confounder bars?</h2>
+  <p class="note">
+    Move <b>confounder shifts the measurement</b> and then <b>more disease among carriers</b>,
+    and watch which bars react to which.
+  </p>
+  <div class="row" id="barRow"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean } from "../core/stats.js";
+import { readTokens } from "../core/env.js";
+import { welch, POP_PER_ARM, POP_ROWS, POP_COLS, NOISE_SD, BASE } from "../experimental-design/model.js";
+
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+const CELL = 12;
+const GUTTER = 58;
+const GRID_W = POP_COLS * CELL;
+const H_ARM = POP_ROWS * CELL;
+const R = CELL * 0.36;
+const W = 400;
+
+const SCHEMES = { convenience: "Convenience", random: "Randomize", blocked: "Block" };
+const V = { scheme: "random", seed: 1, shift: 1, assoc: 0, n: 20, ran: 0 };
+
+/* one population, built from the seed and the two dials — nothing else */
+function makePopulation() {
+  const rng = makeRng(V.seed * 7919 + 1);
+  const arms = [[], []];
+  for (const g of [0, 1]) {
+    for (let i = 0; i < POP_PER_ARM; i += 1) {
+      /* `assoc` makes carriers more common in the disease arm — an association
+         that is in the POPULATION before anyone samples */
+      const p = 0.5 + (g ? 1 : -1) * (V.assoc / 2);
+      const carrier = rng.next() < p;
+      arms[g].push({ carrier, y: rng.normal(BASE, NOISE_SD) + (carrier ? V.shift : 0),
+        row: Math.floor(i / POP_COLS), col: i % POP_COLS });
+    }
+  }
+  return arms;
+}
+/* who this study picks out of a given population */
+function pick(population, studyNo) {
+  const out = [];
+  for (const g of [0, 1]) {
+    const pop = population[g];
+    const rng = makeRng(V.seed * 104729 + studyNo * 31 + g);
+    const ord = pop.map((_, i) => i);
+    for (let i = ord.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [ord[i], ord[j]] = [ord[j], ord[i]];
+    }
+    let sel;
+    if (V.scheme === "convenience") sel = ord.filter((i) => pop[i].carrier === (g === 1)).slice(0, V.n);
+    else if (V.scheme === "random") sel = ord.slice(0, V.n);
+    else {
+      const h = Math.round(V.n / 2);
+      sel = [...ord.filter((i) => pop[i].carrier).slice(0, h),
+        ...ord.filter((i) => !pop[i].carrier).slice(0, V.n - h)];
+    }
+    out.push(sel.sort((a, b) => a - b));
+  }
+  return out;
+}
+
+/* --- drawing ---------------------------------------------------------------- */
+
+function mark(ctx, x, y, carrier, arm, alpha = 1, tint = null) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const hue = tint ?? (arm ? T.groupB : T.groupA);
+  ctx.beginPath();
+  if (carrier) {
+    const h = R * 1.9;
+    ctx.moveTo(x, y - h * 0.62);
+    ctx.lineTo(x + R * 1.15, y + h * 0.38);
+    ctx.lineTo(x - R * 1.15, y + h * 0.38);
+    ctx.closePath();
+    ctx.fillStyle = hue; ctx.fill();
+  } else {
+    ctx.arc(x, y, R, 0, Math.PI * 2);
+    ctx.strokeStyle = hue; ctx.lineWidth = 1.3; ctx.stroke();
+  }
+  ctx.restore();
+}
+function ring(ctx, x, y) {
+  ctx.save();
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+  ctx.strokeRect(Math.round(x - R - 2) + 0.5, Math.round(y - R - 2) + 0.5, 2 * R + 4, 2 * R + 4);
+  ctx.restore();
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+function fit(cv, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(h * dpr);
+  cv.style.width = `${W}px`; cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  return ctx;
+}
+
+/** the two population grids, with this study's picks ringed */
+function grids(ctx, population, picked, y0) {
+  ["Control", "Disease"].forEach((name, g) => {
+    const top = y0 + g * (H_ARM + 12);
+    txt(ctx, 12 + GUTTER - 8, top + H_ARM / 2, name, T.ink2, "right");
+    const chosen = picked ? new Set(picked[g]) : null;
+    population[g].forEach((s, i) => {
+      const x = 12 + GUTTER + (s.col + 0.5) * CELL;
+      const y = top + (s.row + 0.5) * CELL;
+      mark(ctx, x, y, s.carrier, g);
+      if (chosen && chosen.has(i)) ring(ctx, x, y);
+    });
+  });
+}
+
+/* --- section 1 -------------------------------------------------------------- */
+
+const POP_H = 2 * H_ARM + 40;
+const POP_TILES = [
+  {
+    key: "P1",
+    name: "A fresh population each study",
+    sub: "what ships now",
+    cap: "<b>Everything moves.</b> Press Run and all 192 marks change.",
+    draw(ctx) {
+      /* a different population for every study number */
+      const saved = V.seed;
+      V.seed = saved + V.ran * 977;
+      const population = makePopulation();
+      V.seed = saved;
+      const picked = V.ran > 0 ? pick(population, V.ran) : null;
+      txt(ctx, 12, 14, `${SCHEMES[V.scheme]} — study ${V.ran}`, T.ink1, "left", 12, "600");
+      grids(ctx, population, picked, 26);
+    },
+  },
+  {
+    key: "P2",
+    name: "One population, fixed by the seed",
+    sub: "what you expected",
+    cap: "<b>Only the dashed boxes move.</b> The seed sets the 192 people once; Run picks a "
+      + "different 40 of them.",
+    draw(ctx) {
+      const population = makePopulation();
+      const picked = V.ran > 0 ? pick(population, V.ran) : null;
+      txt(ctx, 12, 14, `${SCHEMES[V.scheme]} — study ${V.ran}`, T.ink1, "left", 12, "600");
+      grids(ctx, population, picked, 26);
+    },
+  },
+];
+
+/* --- section 2 -------------------------------------------------------------- */
+
+const BAR_H = 186;
+function assocBars(ctx, population, picked, y0, showSample) {
+  const rows = [true, false].map((carrier) => {
+    const inPop = [0, 1].map((g) => population[g].filter((s) => s.carrier === carrier).length);
+    const inSam = picked
+      ? [0, 1].map((g) => picked[g].filter((i) => population[g][i].carrier === carrier).length)
+      : null;
+    return { carrier, inPop, inSam };
+  });
+  const x = 76;
+  const bw = 100;
+  const bar = (bx, by, ctrl, dis) => {
+    const total = ctrl + dis;
+    if (!total) { txt(ctx, bx + bw + 5, by + 4.5, "none", T.ink3, "left", 10); return; }
+    const cut = (ctrl / total) * bw;
+    ctx.save();
+    ctx.fillStyle = T.groupA; ctx.fillRect(bx, by, cut, 9);
+    ctx.fillStyle = T.groupB; ctx.fillRect(bx + cut, by, bw - cut, 9);
+    ctx.restore();
+    txt(ctx, bx + bw + 5, by + 4.5, `${Math.round((dis / total) * 100)}%`, T.ink2, "left", 10);
+  };
+  txt(ctx, x + bw / 2, y0, "everyone", T.ink3, "center", 10);
+  if (showSample) txt(ctx, x + bw + 48 + bw / 2, y0, "this study", T.ink3, "center", 10);
+  rows.forEach((row, i) => {
+    const by = y0 + 10 + i * 13;
+    txt(ctx, x - 6, by + 4.5, row.carrier ? "female" : "male", T.ink2, "right", 10);
+    bar(x, by, row.inPop[0], row.inPop[1]);
+    if (showSample && row.inSam) bar(x + bw + 48, by, row.inSam[0], row.inSam[1]);
+  });
+  txt(ctx, 12, y0 + 46, "% of each with the disease", T.ink3, "left", 10);
+}
+function levelMarks(ctx, population, y) {
+  const lv = [true, false].map((c) =>
+    mean(population.flat().filter((s) => s.carrier === c).map((s) => s.y)));
+  const gap = lv[0] - lv[1];
+  const lo = Math.min(...lv) - 0.8;
+  const hi = Math.max(...lv) + 0.8;
+  const x0 = 96;
+  const w = W - x0 - 60;
+  const px = (v) => x0 + ((v - lo) / (hi - lo)) * w;
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y + 8.5); ctx.lineTo(x0 + w, y + 8.5); ctx.stroke();
+  mark(ctx, px(lv[0]), y, true, 0, 1, T.ink1);
+  mark(ctx, px(lv[1]), y, false, 0, 1, T.ink1);
+  txt(ctx, x0 + w, y + 22, Math.abs(gap) < 0.05 ? "no shift"
+    : `carrying it ${gap > 0 ? "adds" : "takes"} ${Math.abs(gap).toFixed(2)}`, T.ink2, "right", 10);
+}
+
+const BAR_TILES = [
+  {
+    key: "B1",
+    name: "What ships now",
+    sub: "one dial, and the bars never move",
+    cap: "<b>The measurement dial does not touch the bars.</b> It never can — it changes what "
+      + "carrying the confounder is worth, not who is in which arm. That is why it looks broken.",
+    draw(ctx) {
+      const population = makePopulation();
+      const picked = V.ran > 0 ? pick(population, V.ran) : null;
+      txt(ctx, 12, 14, "the confounder", T.ink1, "left", 12, "600");
+      assocBars(ctx, population, picked, 32, V.ran > 0);
+      txt(ctx, 12, 112, "what it does to the measurement", T.ink3, "left", 10);
+      levelMarks(ctx, population, 130);
+    },
+  },
+  {
+    key: "B2",
+    name: "Say which dial does which",
+    sub: "same picture, headings added",
+    cap: "<b>Nothing changes except the words.</b> Two separate things, labelled as two separate "
+      + "things. Cheapest fix.",
+    draw(ctx) {
+      const population = makePopulation();
+      const picked = V.ran > 0 ? pick(population, V.ran) : null;
+      txt(ctx, 12, 14, "1 · how it lines up with the arms", T.ink1, "left", 11, "600");
+      assocBars(ctx, population, picked, 32, V.ran > 0);
+      txt(ctx, 12, 112, "2 · what it does to the measurement", T.ink1, "left", 11, "600");
+      levelMarks(ctx, population, 130);
+      const pc = [true, false].map((c) => {
+        const d = population[1].filter((s) => s.carrier === c).length;
+        const t = d + population[0].filter((s) => s.carrier === c).length;
+        return t ? d / t : 0;
+      });
+      txt(ctx, 12, 94, Math.abs(pc[0] - pc[1]) < 0.06
+        ? "even split — the allocation is what makes an association"
+        : "the population itself is lopsided", T.ink3, "left", 10);
+    },
+  },
+  {
+    key: "B3",
+    name: "A second dial that moves the bars",
+    sub: "the association built into the population",
+    cap: "<b>Now \"more disease among carriers\" does something.</b> Slide it up and the bars "
+      + "come apart before anyone samples. This is a different story from the lesson's — there "
+      + "the population is even and the sampling makes the association.",
+    draw(ctx) {
+      const population = makePopulation();
+      const picked = V.ran > 0 ? pick(population, V.ran) : null;
+      txt(ctx, 12, 14, "1 · how it lines up with the arms", T.ink1, "left", 11, "600");
+      assocBars(ctx, population, picked, 32, V.ran > 0);
+      txt(ctx, 12, 112, "2 · what it does to the measurement", T.ink1, "left", 11, "600");
+      levelMarks(ctx, population, 130);
+      const pc = [true, false].map((c) => {
+        const d = population[1].filter((s) => s.carrier === c).length;
+        const t = d + population[0].filter((s) => s.carrier === c).length;
+        return t ? d / t : 0;
+      });
+      txt(ctx, 12, 94,
+        `${Math.round(pc[0] * 100)}% of females against ${Math.round(pc[1] * 100)}% of males`,
+        Math.abs(pc[0] - pc[1]) < 0.06 ? T.ink3 : T.extreme, "left", 10);
+    },
+  },
+];
+
+/* --- page ------------------------------------------------------------------- */
+
+function build(host, list, h) {
+  for (const o of list) {
+    const box = document.createElement("div");
+    box.className = "opt";
+    box.innerHTML = `<h3>${o.key} · ${o.name} <em>— ${o.sub}</em></h3>`;
+    const cv = document.createElement("canvas");
+    box.appendChild(cv);
+    const cap = document.createElement("p");
+    cap.className = "cap";
+    cap.innerHTML = o.cap;
+    box.appendChild(cap);
+    host.appendChild(box);
+    o.cv = cv; o._h = h;
+  }
+}
+build(document.getElementById("popRow"), POP_TILES, POP_H);
+build(document.getElementById("barRow"), BAR_TILES, BAR_H);
+
+function render() {
+  for (const o of [...POP_TILES, ...BAR_TILES]) o.draw(fit(o.cv, o._h));
+  document.getElementById("cnt").textContent = `${V.ran} studies`;
+}
+
+document.getElementById("run").addEventListener("click", () => { V.ran += 1; render(); });
+document.getElementById("reset").addEventListener("click", () => { V.ran = 0; render(); });
+document.getElementById("scheme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.scheme = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  render();
+});
+document.getElementById("seed").addEventListener("input", (e) => {
+  V.seed = +e.target.value;
+  document.getElementById("seedv").textContent = String(V.seed);
+  render();
+});
+document.getElementById("shift").addEventListener("input", (e) => {
+  V.shift = +e.target.value / 10;
+  document.getElementById("shiftv").textContent = V.shift.toFixed(1);
+  render();
+});
+document.getElementById("assoc").addEventListener("input", (e) => {
+  V.assoc = +e.target.value / 100;
+  document.getElementById("assocv").textContent = `${Math.round(V.assoc * 100)}%`;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

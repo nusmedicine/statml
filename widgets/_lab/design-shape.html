@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — three shapes for the Allocate stage</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 92ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); margin: 0 0 4px; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 2px 0 18px; max-width: 92ch; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-4); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 2; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 120px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 2.5em; }
+  .seg { display: flex; gap: 0; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 12px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · three shapes for the Allocate stage</h1>
+
+  <p class="note">
+    All three run the same engine at the real figure width (770 px), and all three take the same
+    rail. <b>One colour rule throughout: colour is the confounder, position is the arm.</b> Never
+    both — a figure that colours by arm in one panel and by confounder in another is the trap
+    widget 42 earned the hard way. So the two arms are two rows, always, and the reader reads the
+    argument off the colour mix inside each row.
+  </p>
+  <p class="note">
+    Set <b>Convenience</b> and watch the rows go solid. Set <b>Randomize</b> and press Repeat
+    twenty times — the 2 × 2 is different every time, and the notebook's own 60/40 example turns
+    up as one of the draws.
+  </p>
+
+  <div class="rail">
+    <label>confounder
+      <span class="seg" id="conf">
+        <button data-v="sex" aria-pressed="true">Sex</button>
+        <button data-v="batch" aria-pressed="false">Batch</button>
+      </span>
+    </label>
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="false">Convenience</button>
+        <button data-v="random" aria-pressed="true">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>n per arm <input type="range" id="n" min="4" max="60" step="2" value="20"><output id="nv">20</output></label>
+    <label>true effect <input type="range" id="eff" min="0" max="10" value="0"><output id="effv">0.0</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="60" value="1"><output id="seedv">1</output></label>
+    <span class="seg"><button id="rep">Repeat the study</button><button id="rep20">× 20</button><button id="clr">Clear</button></span>
+    <output id="cnt" style="color:var(--ink-2)">0 studies</output>
+  </div>
+
+  <h2>Shape A · one study, and nothing else</h2>
+  <canvas id="cA"></canvas>
+  <p class="cap" id="capA"></p>
+
+  <h2>Shape B · one study, and the pile it came from</h2>
+  <canvas id="cB"></canvas>
+  <p class="cap" id="capB"></p>
+
+  <h2>Shape C · all three schemes at once, no single study</h2>
+  <canvas id="cC"></canvas>
+  <p class="cap" id="capC"></p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean, tTailP } from "../core/stats.js";
+import { readTokens } from "../core/env.js";
+
+const W = 770;                      /* measured on a live widget at a 1200px viewport */
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+
+/* the notebook's own population, cells 8 and 29: N(1, 0.5), carriers +1 */
+const SHIFT = 1.0, NOISE = 0.5;
+
+const SCHEMES = {
+  convenience: "Convenience",
+  random: "Randomize",
+  blocked: "Block",
+};
+/* the confounder decides what the schemes MEAN, which is why it is not a relabel:
+   sex you can only sample, batch you assign */
+const CONF = {
+  sex:   { name: "Sex",   a: "Female", b: "Male",    verb: "sampled" },
+  batch: { name: "Batch", a: "Batch 2", b: "Batch 1", verb: "assigned" },
+};
+
+/* --- engine ---------------------------------------------------------------- */
+
+function welch(a, b) {
+  const ma = mean(a), mb = mean(b);
+  const va = a.reduce((s, x) => s + (x - ma) ** 2, 0) / (a.length - 1);
+  const vb = b.reduce((s, x) => s + (x - mb) ** 2, 0) / (b.length - 1);
+  const se2 = va / a.length + vb / b.length;
+  const t = (mb - ma) / Math.sqrt(se2);
+  const df = se2 ** 2 /
+    ((va / a.length) ** 2 / (a.length - 1) + (vb / b.length) ** 2 / (b.length - 1));
+  return { diff: mb - ma, p: tTailP(Math.abs(t), df) };
+}
+
+/** One study: n per arm, allocated by `scheme`. Subjects carry the confounder or not. */
+function study(rng, n, scheme, effect) {
+  const arms = [[], []];                      /* 0 control, 1 disease */
+  for (let i = 0; i < n; i += 1) {
+    for (const g of [0, 1]) {
+      let carrier;
+      if (scheme === "convenience") carrier = g === 1;          /* cell 14 */
+      else if (scheme === "random") carrier = rng.next() < 0.5; /* cell 22 */
+      else carrier = i < n / 2;                                 /* cell 39 */
+      arms[g].push({
+        carrier,
+        y: rng.normal(1, NOISE) + (carrier ? SHIFT : 0) + (g ? effect : 0),
+      });
+    }
+  }
+  const vals = arms.map((a) => a.map((s) => s.y));
+  return { arms, ...welch(vals[0], vals[1]) };
+}
+
+const V = { conf: "sex", scheme: "random", n: 20, eff: 0, seed: 1 };
+let pile = [];        /* estimated differences from Repeat */
+let current = null;
+
+const rngFor = (extra = 0) => makeRng(V.seed * 7919 + extra);
+
+function recompute() {
+  current = study(rngFor(0), V.n, V.scheme, V.eff / 10);
+  pile = [];
+  draw();
+}
+function repeat(k = 1) {
+  for (let i = 0; i < k; i += 1) {
+    pile.push(study(rngFor(1 + pile.length * 31), V.n, V.scheme, V.eff / 10));
+  }
+  current = pile[pile.length - 1];
+  draw();
+}
+
+/* the three schemes' piles, for shape C — recomputed only when the data moves.
+   400 draws put Randomize at 2.3% where 5% is nominal, which reads as a claim
+   about randomization rather than as the +/-1.1% it actually was */
+function pilesAll(draws = 2000) {
+  const out = {};
+  for (const k of Object.keys(SCHEMES)) {
+    out[k] = [];
+    for (let d = 0; d < draws; d += 1) {
+      out[k].push(study(makeRng(V.seed * 7919 + 1 + d * 31), V.n, k, V.eff / 10));
+    }
+  }
+  return out;
+}
+
+/* --- canvas helpers -------------------------------------------------------- */
+
+function fit(cv, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = `${W}px`;
+  cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  ctx.textBaseline = "middle";
+  return ctx;
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour;
+  ctx.textAlign = align;
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+const CARRIER = () => T.groupB;      /* colour = the confounder, always */
+const PLAIN = () => T.groupA;
+
+/* the two arms as two rows of chips; colour is the confounder */
+function chips(ctx, x, y, w, st) {
+  const rows = ["Control", "Disease"];
+  const n = st.arms[0].length;
+  /* the row must fit `w`, so the STEP comes from the width and the radius from
+     the step — the other way round runs 60 chips into the 2 x 2 beside them */
+  const step = Math.min(16, (w - 70) / n);
+  const r = Math.max(2, Math.min(7, step / 2 - 0.6));
+  rows.forEach((label, g) => {
+    const yy = y + g * 26;
+    txt(ctx, x + 60, yy, label, T.ink2, "right", 11);
+    st.arms[g].forEach((s, i) => {
+      ctx.beginPath();
+      ctx.arc(x + 70 + r + i * step, yy, r, 0, Math.PI * 2);
+      ctx.fillStyle = s.carrier ? CARRIER() : PLAIN();
+      ctx.fill();
+    });
+  });
+  return y + 52;
+}
+
+/* the notebook's own tbl_summary(by = group): who carries the confounder */
+function twoByTwo(ctx, x, y, st) {
+  const c = CONF[V.conf];
+  const n = st.arms[0].length;
+  const cnt = st.arms.map((a) => a.filter((s) => s.carrier).length);
+  const colW = 66, rowH = 17;
+  txt(ctx, x, y, "Control", T.ink3, "center", 10);
+  txt(ctx, x + colW, y, "Disease", T.ink3, "center", 10);
+  [[c.a, cnt], [c.b, cnt.map((v) => n - v)]].forEach(([lab, vals], i) => {
+    const yy = y + rowH * (i + 1);
+    txt(ctx, x - 40, yy, lab, i === 0 ? CARRIER() : PLAIN(), "right", 10);
+    vals.forEach((v, g) => txt(ctx, x + colW * g, yy, String(v), T.ink1, "center", 11,
+      "600"));
+  });
+  const gap = Math.abs(cnt[1] - cnt[0]);
+  txt(ctx, x - 40, y + rowH * 3, "imbalance", T.ink3, "right", 10);
+  txt(ctx, x + colW / 2, y + rowH * 3, `${gap} of ${n}`,
+    gap === 0 ? T.ink2 : T.extreme, "center", 11, "600");
+  return y + rowH * 3;
+}
+
+/* two stacked histograms — arms by position, confounder by colour, so the
+   reader reads the mix rather than an overlay */
+function stacks(ctx, x, y, w, h, st) {
+  const all = st.arms.flat().map((s) => s.y);
+  const lo = Math.min(...all) - 0.2, hi = Math.max(...all) + 0.2;
+  /* bins track n: 26 fixed bins turn 20 subjects into a comb of singletons,
+     which reads as noise rather than as two distributions */
+  const bins = Math.max(9, Math.min(26, Math.round(st.arms[0].length / 1.6)));
+  const bw = w / bins;
+  const half = (h - 14) / 2;
+  ["Control", "Disease"].forEach((label, g) => {
+    const top = y + g * (half + 14);
+    const grid = Array.from({ length: bins }, () => ({ c: 0, p: 0 }));
+    st.arms[g].forEach((s) => {
+      const b = Math.min(bins - 1, Math.floor(((s.y - lo) / (hi - lo)) * bins));
+      if (s.carrier) grid[b].c += 1; else grid[b].p += 1;
+    });
+    const peak = Math.max(3, ...grid.map((b) => b.c + b.p));
+    const base = top + half;
+    grid.forEach((b, i) => {
+      let acc = 0;
+      [[b.p, PLAIN()], [b.c, CARRIER()]].forEach(([k, col]) => {
+        if (!k) return;
+        const hh = (k / peak) * (half - 12);
+        ctx.fillStyle = col;
+        ctx.fillRect(x + i * bw, base - acc - hh, bw - 1, hh);
+        acc += hh;
+      });
+    });
+    ctx.strokeStyle = T.axis;
+    ctx.beginPath(); ctx.moveTo(x, base + 0.5); ctx.lineTo(x + w, base + 0.5); ctx.stroke();
+    txt(ctx, x + 2, top + 6, label, T.ink3, "left", 10);
+    const m = mean(st.arms[g].map((s) => s.y));
+    const mx = x + ((m - lo) / (hi - lo)) * w;
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(mx, base); ctx.lineTo(mx, base - half + 10); ctx.stroke();
+    ctx.lineWidth = 1;
+  });
+  return y + h;
+}
+
+/* the pile of estimated differences, with zero as the reference */
+function pilePlot(ctx, x, y, w, h, vals, { label, band = 1.4 } = {}) {
+  const lo = -band, hi = band;
+  const bins = 61, bw = w / bins;
+  const grid = new Array(bins).fill(0);
+  vals.forEach((v) => {
+    const b = Math.round(((v.diff - lo) / (hi - lo)) * (bins - 1));
+    if (b >= 0 && b < bins) grid[b] += 1;
+  });
+  const peak = Math.max(4, ...grid);
+  const base = y + h;
+  /* zero: the truth when the effect dial is at 0 */
+  const zx = x + ((0 - lo) / (hi - lo)) * w;
+  ctx.strokeStyle = T.reference; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(zx, y); ctx.lineTo(zx, base); ctx.stroke();
+  ctx.setLineDash([]);
+  /* a study that called it: coloured as what a p-value counts */
+  const wrong = vals.filter((v) => v.p < 0.05).length;
+  grid.forEach((k, i) => {
+    if (!k) return;
+    const centre = lo + ((i + 0.5) / bins) * (hi - lo);
+    const inTail = vals.some((v) => v.p < 0.05
+      && Math.round(((v.diff - lo) / (hi - lo)) * (bins - 1)) === i);
+    ctx.fillStyle = inTail ? T.extreme : T.empirical;
+    const hh = (k / peak) * (h - 6);
+    ctx.fillRect(x + i * bw, base - hh, bw - 1, hh);
+  });
+  ctx.strokeStyle = T.axis;
+  ctx.beginPath(); ctx.moveTo(x, base + 0.5); ctx.lineTo(x + w, base + 0.5); ctx.stroke();
+  for (const v of [-1, 0, 1]) {
+    txt(ctx, x + ((v - lo) / (hi - lo)) * w, base + 10, v.toFixed(0), T.ink3, "center", 10);
+  }
+  if (label) txt(ctx, x - 8, y + h / 2, label, T.ink2, "right", 11);
+  return { wrong, n: vals.length };
+}
+
+/* --- shape A ---------------------------------------------------------------- */
+
+function shapeA() {
+  const H = 300;
+  const ctx = fit(document.getElementById("cA"), H);
+  const st = current;
+  const c = CONF[V.conf];
+  txt(ctx, 16, 20, `${SCHEMES[V.scheme]} — ${V.n} per arm, ${c.verb} by ${c.name.toLowerCase()}`,
+    T.ink1, "left", 12, "600");
+
+  let y = chips(ctx, 16, 48, 470, st);
+  twoByTwo(ctx, 600, 40, st);
+
+  stacks(ctx, 76, y + 12, 410, 150, st);
+  txt(ctx, 281, H - 14, "measured value", T.ink3, "center", 10);
+
+  /* the answer, beside the picture that produced it */
+  const yr = y + 24;
+  txt(ctx, 560, yr, "estimated disease effect", T.ink3, "left", 10);
+  txt(ctx, 560, yr + 20, st.diff.toFixed(3), T.empirical, "left", 20, "600");
+  txt(ctx, 560, yr + 44, `truth ${(V.eff / 10).toFixed(2)}`, T.ink3, "left", 10);
+  txt(ctx, 560, yr + 74, "p", T.ink3, "left", 10);
+  txt(ctx, 560, yr + 94, st.p < 0.001 ? "<0.001" : st.p.toFixed(3),
+    st.p < 0.05 ? T.extreme : T.ink1, "left", 20, "600");
+
+  document.getElementById("capA").innerHTML = `<b>The notebook's own view.</b> Everything the
+    lesson prints — the chips, the 2 × 2, the two distributions, one t-test. Honest and checkable
+    against a real study, and it cannot show a <em>rate</em>: whatever it says is one draw, which
+    is exactly how the notebook's own §4 conclusion came out backwards.`;
+}
+
+/* --- shape B ---------------------------------------------------------------- */
+
+function shapeB() {
+  const H = 430;
+  const ctx = fit(document.getElementById("cB"), H);
+  const st = current;
+  const c = CONF[V.conf];
+  txt(ctx, 16, 20, `${SCHEMES[V.scheme]} — ${V.n} per arm, ${c.verb} by ${c.name.toLowerCase()}`,
+    T.ink1, "left", 12, "600");
+
+  let y = chips(ctx, 16, 48, 470, st);
+  twoByTwo(ctx, 600, 40, st);
+  stacks(ctx, 76, y + 8, 410, 96, st);
+
+  txt(ctx, 560, y + 20, "this study", T.ink3, "left", 10);
+  txt(ctx, 560, y + 40, st.diff.toFixed(3), T.empirical, "left", 18, "600");
+  txt(ctx, 560, y + 62, st.p < 0.001 ? "p <0.001" : `p ${st.p.toFixed(3)}`,
+    st.p < 0.05 ? T.extreme : T.ink2, "left", 11, "600");
+
+  /* the pile the study came from */
+  const py = y + 130;
+  ctx.strokeStyle = T.grid;
+  ctx.beginPath(); ctx.moveTo(16, py - 14); ctx.lineTo(W - 16, py - 14); ctx.stroke();
+  const r = pilePlot(ctx, 120, py, 480, 118, pile);
+  txt(ctx, 112, py + 50, "repeated", T.ink2, "right", 11);
+  txt(ctx, 112, py + 64, "studies", T.ink2, "right", 11);
+  txt(ctx, 360, py + 138, "estimated disease effect", T.ink3, "center", 10);
+
+  txt(ctx, 630, py + 8, `${r.n} studies`, T.ink3, "left", 10);
+  txt(ctx, 630, py + 30, r.n ? `${((r.wrong / r.n) * 100).toFixed(0)}%` : "—",
+    r.n && r.wrong / r.n > 0.1 ? T.extreme : T.ink1, "left", 20, "600");
+  txt(ctx, 630, py + 52, V.eff === 0 ? "called an effect" : "found the effect",
+    T.ink3, "left", 10);
+
+  document.getElementById("capB").innerHTML = `<b>Adds the only thing A cannot say: a rate.</b>
+    Press Repeat on Randomize and the 2 × 2 changes every time while the pile stays centred on
+    zero — randomization does not balance anything, it just keeps the test honest. Costs 130 px
+    of height, and the reader has to press something before the second half means anything.`;
+}
+
+/* --- shape C ---------------------------------------------------------------- */
+
+function shapeC() {
+  const H = 340;
+  const ctx = fit(document.getElementById("cC"), H);
+  const all = pilesAll();
+  txt(ctx, 16, 20, `${V.n} per arm, ${CONF[V.conf].verb} by ${CONF[V.conf].name.toLowerCase()} — ${all.random.length} studies each`,
+    T.ink1, "left", 12, "600");
+
+  Object.keys(SCHEMES).forEach((k, i) => {
+    const y = 46 + i * 96;
+    txt(ctx, 112, y + 26, SCHEMES[k], k === V.scheme ? T.highlight : T.ink2, "right", 12,
+      k === V.scheme ? "600" : "");
+    const r = pilePlot(ctx, 120, y, 440, 62, all[k]);
+    const sd0 = Math.sqrt(all[k].reduce((s, v) => s + v.diff ** 2, 0) / all[k].length
+      - (all[k].reduce((s, v) => s + v.diff, 0) / all[k].length) ** 2);
+    txt(ctx, 590, y + 14, "wrong answers", T.ink3, "left", 10);
+    txt(ctx, 590, y + 34, `${((r.wrong / r.n) * 100).toFixed(1)}%`,
+      r.wrong / r.n > 0.1 ? T.extreme : T.ink1, "left", 17, "600");
+    txt(ctx, 690, y + 14, "spread", T.ink3, "left", 10);
+    txt(ctx, 690, y + 34, sd0.toFixed(3), T.ink1, "left", 17, "600");
+  });
+  txt(ctx, 340, H - 12, "estimated disease effect", T.ink3, "center", 10);
+
+  document.getElementById("capC").innerHTML = `<b>Fastest to the claim, and it loses the study.</b>
+    All three piles at once makes the comparison unmissable — and note Block's spread is narrower
+    than Randomize's while its wrong-answer rate is <em>below</em> 5%, which is the conservative
+    test. No 2 × 2, no chips, nothing a reader can check against a study they actually ran.`;
+}
+
+/* --- rail ------------------------------------------------------------------- */
+
+function draw() { shapeA(); shapeB(); shapeC(); document.getElementById("cnt").textContent = `${pile.length} studies`; }
+
+for (const [id, key] of [["conf", "conf"], ["scheme", "scheme"]]) {
+  document.getElementById(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v]");
+    if (!b) return;
+    V[key] = b.dataset.v;
+    [...b.parentElement.children].forEach((n) =>
+      n.setAttribute("aria-pressed", String(n === b)));
+    recompute();
+  });
+}
+for (const [id, key, fmt] of [["n", "n", (v) => v], ["eff", "eff", (v) => (v / 10).toFixed(1)],
+                              ["seed", "seed", (v) => v]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    V[key] = +el.value;
+    document.getElementById(`${id}v`).textContent = fmt(+el.value);
+    recompute();
+  });
+}
+document.getElementById("rep").addEventListener("click", () => repeat(1));
+document.getElementById("rep20").addEventListener("click", () => repeat(20));
+document.getElementById("clr").addEventListener("click", recompute);
+
+recompute();
+</script>
+</body>
+</html>

@@ -941,6 +941,43 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   );
 }
 
+/* A TRIANGLE, and a DASHED BOX — added 2026-09-05 for widget 44.
+
+   That widget puts two groupings on one mark: colour is the arm and SHAPE is
+   the confounder, which is what lets both arms share one value axis instead of
+   needing separate stacked panels. A legend that named the shapes in words
+   while showing two identical squares would be describing marks the figure
+   does not draw, so the shapes get swatches.
+
+   `ring` is the dashed box the figure puts round a subject the study selected.
+   It is an outline rather than a fill because that is what it is on the canvas.
+
+   Purely additive, like `dash` before them: nothing else in the collection sets
+   either mark, so no existing legend can move. */
+.w-legend .swatch[data-mark="tri"] {
+  border-radius: 0;
+  clip-path: polygon(50% 4%, 100% 100%, 0 100%);
+}
+
+/* A HOLLOW MARK — added 2026-09-05, the same day and for the same widget as
+   `tri` and `ring`. Widget 44 distinguishes the confounder by fill against
+   outline, not by fading one of them: half a population is not less important
+   than the other half. The legend has to show both weights or it is naming a
+   mark the figure does not draw. */
+.w-legend .swatch[data-mark="hollow"] {
+  background: none;
+  border: 1.5px solid var(--swatch, var(--ink-3));
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+}
+
+.w-legend .swatch[data-mark="ring"] {
+  background: none;
+  border: 1px dashed var(--swatch, var(--ink-3));
+  border-radius: 2px;
+}
+
 /* --- readout: stat tiles. Also the accessible text of the figure. -------- */
 .w-readout {
   display: grid;

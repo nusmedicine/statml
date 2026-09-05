@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — telling Convenience from Block</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 3px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 2.6em; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 11px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(390px, 1fr)); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · telling Convenience from Block</h1>
+  <p class="note">
+    Both partition the population, so the only thing separating them on screen is where twenty
+    dashed boxes fell among ninety-six marks — which the eye does not aggregate.
+    <b>Flip the allocation control</b> and watch how hard each of these makes it to tell the
+    difference. D0 is what ships now.
+  </p>
+
+  <div class="rail">
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="true">Convenience</button>
+        <button data-v="random" aria-pressed="false">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>n <input type="range" id="n" min="4" max="24" step="2" value="20"><output id="nv">20</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+  </div>
+
+  <div class="row" id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import { POP_PER_ARM, POP_ROWS, POP_COLS, NOISE_SD, BASE, CONF_SHIFT } from "../experimental-design/model.js";
+
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+const CELL = 13;
+const GUTTER = 78;
+const BLOCK_GAP = 9;
+const GRID_W = (POP_COLS + 1) * CELL + BLOCK_GAP;
+const H_ARM = POP_ROWS * CELL;
+const R = CELL * 0.36;
+const W = 390;
+const H = 2 * H_ARM + 96;   /* room for the per-block counts under BOTH arms */
+const gridX = 10 + GUTTER;
+
+const SCHEMES = { convenience: "Convenience", random: "Randomize", blocked: "Block" };
+const V = { scheme: "convenience", n: 20, seed: 1 };
+let study = null;
+
+function build() {
+  const rng = makeRng(V.seed * 7919 + 1);
+  const makeArm = () => {
+    const out = [];
+    for (let i = 0; i < POP_PER_ARM; i += 1) {
+      const carrier = rng.next() < 0.5;
+      out.push({ carrier, y: rng.normal(BASE, NOISE_SD) + (carrier ? CONF_SHIFT : 0),
+        row: Math.floor(i / POP_COLS), col: i % POP_COLS });
+    }
+    return out;
+  };
+  const population = [makeArm(), makeArm()];
+  const picked = [];
+  for (const g of [0, 1]) {
+    const pop = population[g];
+    const order = pop.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    let take;
+    if (V.scheme === "convenience") take = order.filter((i) => pop[i].carrier === (g === 1)).slice(0, V.n);
+    else if (V.scheme === "random") take = order.slice(0, V.n);
+    else {
+      const half = Math.round(V.n / 2);
+      take = [...order.filter((i) => pop[i].carrier).slice(0, half),
+        ...order.filter((i) => !pop[i].carrier).slice(0, V.n - half)];
+    }
+    picked.push(take.sort((a, b) => a - b));
+  }
+  study = { population, picked };
+}
+
+function mark(ctx, x, y, carrier, arm, r = R, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const hue = arm ? T.groupB : T.groupA;
+  ctx.beginPath();
+  if (carrier) {
+    const h = r * 1.9;
+    ctx.moveTo(x, y - h * 0.62);
+    ctx.lineTo(x + r * 1.15, y + h * 0.38);
+    ctx.lineTo(x - r * 1.15, y + h * 0.38);
+    ctx.closePath();
+    ctx.fillStyle = hue; ctx.fill();
+  } else {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = hue; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+  ctx.restore();
+}
+function ring(ctx, x, y, r = R) {
+  ctx.save();
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+  ctx.strokeRect(Math.round(x - r - 2) + 0.5, Math.round(y - r - 2) + 0.5, 2 * r + 4, 2 * r + 4);
+  ctx.restore();
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  return ctx;
+}
+
+/* the two blocks, and which population member sits where in each arrangement */
+function split(pop) {
+  const carriers = []; const plain = [];
+  pop.forEach((s, k) => (s.carrier ? carriers : plain).push(k));
+  return { carriers, plain, cols: Math.ceil(carriers.length / POP_ROWS) };
+}
+function blockedCell(pop, i, at, sp) {
+  const seat = (rank, dx) => [at.x + dx + (Math.floor(rank / POP_ROWS) + 0.5) * CELL,
+    at.y + ((rank % POP_ROWS) + 0.5) * CELL];
+  const inC = sp.carriers.indexOf(i);
+  if (inC >= 0) return seat(inC, 0);
+  return seat(sp.plain.indexOf(i), sp.cols * CELL + BLOCK_GAP);
+}
+const naturalCell = (pop, i, at) =>
+  [at.x + (pop[i].col + 0.5) * CELL, at.y + (pop[i].row + 0.5) * CELL];
+
+const armTop = (g) => 30 + g * (H_ARM + 36);   /* 36, not 16: the counts sit in the gap */
+/** how many of this arm's draw came out of each block */
+function fromBlocks(g) {
+  const pop = study.population[g];
+  const taken = study.picked[g];
+  const c = taken.filter((i) => pop[i].carrier).length;
+  return [c, taken.length - c];
+}
+
+/* --- the four treatments ---------------------------------------------------- */
+
+function header(ctx, extra) {
+  txt(ctx, 10, 12, `${SCHEMES[V.scheme]}${extra ? ` — ${extra}` : ""}`, T.ink1, "left", 12, "600");
+}
+function arms(ctx, { partition, dimUnused, counts, brackets }) {
+  for (const g of [0, 1]) {
+    const top = armTop(g);
+    const at = { x: gridX, y: top };
+    const pop = study.population[g];
+    const sp = split(pop);
+    const chosen = new Set(study.picked[g]);
+    const [fromC, fromP] = fromBlocks(g);
+    txt(ctx, gridX - 8, top + H_ARM / 2, g ? "Disease" : "Control", T.ink2, "right");
+    const use = partition && (V.scheme !== "random");
+    pop.forEach((s, i) => {
+      const [x, y] = use ? blockedCell(pop, i, at, sp) : naturalCell(pop, i, at);
+      let alpha = 1;
+      if (dimUnused && use) {
+        const blockUsed = s.carrier ? fromC > 0 : fromP > 0;
+        alpha = blockUsed ? 1 : 0.22;
+      }
+      mark(ctx, x, y, s.carrier, g, R, alpha);
+      if (chosen.has(i)) ring(ctx, x, y);
+    });
+    if (use && (counts || brackets)) {
+      const cW = sp.cols * CELL;
+      const pW = GRID_W - BLOCK_GAP - cW;
+      const y = top + H_ARM + 9;
+      if (brackets) {
+        ctx.save();
+        ctx.lineWidth = 1.4;
+        [[gridX, cW, fromC], [gridX + cW + BLOCK_GAP, pW, fromP]].forEach(([x0, w, k]) => {
+          ctx.strokeStyle = k > 0 ? T.highlight : T.grid;
+          ctx.beginPath();
+          ctx.moveTo(x0, y - 4); ctx.lineTo(x0, y); ctx.lineTo(x0 + w - 2, y);
+          ctx.lineTo(x0 + w - 2, y - 4);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+      if (counts) {
+        txt(ctx, gridX + cW / 2, y + 9, `${fromC} taken`,
+          fromC === 0 ? T.ink3 : T.ink1, "center", 11, "600");
+        txt(ctx, gridX + cW + BLOCK_GAP + pW / 2, y + 9, `${fromP} taken`,
+          fromP === 0 ? T.ink3 : T.ink1, "center", 11, "600");
+      }
+    }
+    if (!use && counts) {
+      txt(ctx, gridX + GRID_W / 2, top + H_ARM + 16,
+        `${fromC} filled and ${fromP} hollow, wherever they were`, T.ink3, "center", 10);
+    }
+  }
+}
+
+const OPTIONS = [
+  {
+    key: "D0",
+    name: "What ships now",
+    sub: "all three partition, nothing marks the blocks",
+    cap: "<b>Convenience and Block are the same picture with the boxes moved.</b> Nothing says "
+      + "one block gave everything and the other gave nothing.",
+    draw(ctx) { header(ctx); arms(ctx, { partition: true }); },
+  },
+  {
+    key: "D1",
+    name: "Count what each block gave",
+    sub: "a number under each block",
+    cap: "<b>20 and 0 against 10 and 10.</b> The cheapest fix, and the two arms take from "
+      + "OPPOSITE blocks under Convenience — which is what complete confounding is, stated in "
+      + "four numbers. Costs 20px and no width.",
+    draw(ctx) { header(ctx); arms(ctx, { partition: true, counts: true, brackets: true }); },
+  },
+  {
+    key: "D2",
+    name: "Only Block partitions",
+    sub: "Convenience does not stratify, so it does not sort",
+    cap: "<b>Conceptually the honest one.</b> Blocking IS stratifying; a convenience sample does "
+      + "not stratify, it grabs whoever is handy. So only Block rearranges, and Convenience "
+      + "shows every box landing on one shape in an unsorted grid. Costs nothing — but twenty "
+      + "boxes scattered over ninety-six marks is exactly the aggregation problem you started "
+      + "with.",
+    draw(ctx) {
+      header(ctx, V.scheme === "blocked" ? "sorted into blocks" : "left as it is");
+      const partition = V.scheme === "blocked";
+      for (const g of [0, 1]) {
+        const top = armTop(g);
+        const at = { x: gridX, y: top };
+        const pop = study.population[g];
+        const sp = split(pop);
+        const chosen = new Set(study.picked[g]);
+        txt(ctx, gridX - 8, top + H_ARM / 2, g ? "Disease" : "Control", T.ink2, "right");
+        pop.forEach((s, i) => {
+          const [x, y] = partition ? blockedCell(pop, i, at, sp) : naturalCell(pop, i, at);
+          mark(ctx, x, y, s.carrier, g);
+          if (chosen.has(i)) ring(ctx, x, y);
+        });
+        const [fromC, fromP] = fromBlocks(g);
+        txt(ctx, gridX + GRID_W / 2, top + H_ARM + 14,
+          `${fromC} filled, ${fromP} hollow`, T.ink3, "center", 10);
+      }
+    },
+  },
+  {
+    key: "D3",
+    name: "Dim the block nobody drew from",
+    sub: "eligibility, not just selection",
+    cap: "<b>Under Convenience half of each population greys out — and the two arms grey out "
+      + "OPPOSITE halves.</b> That is the strongest single reading of complete confounding on "
+      + "the page: the control arm never met a carrier and the disease arm never met a "
+      + "non-carrier. Block leaves both halves lit.",
+    draw(ctx) { header(ctx); arms(ctx, { partition: true, dimUnused: true, counts: true, brackets: true }); },
+  },
+];
+
+/* --- page ------------------------------------------------------------------- */
+
+const wall = document.getElementById("wall");
+for (const o of OPTIONS) {
+  const box = document.createElement("div");
+  box.className = "opt";
+  box.innerHTML = `<h3>${o.key} · ${o.name} <em>— ${o.sub}</em></h3>`;
+  const cv = document.createElement("canvas");
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  cap.innerHTML = o.cap;
+  box.appendChild(cap);
+  wall.appendChild(box);
+  o.cv = cv;
+}
+function render() { for (const o of OPTIONS) o.draw(fit(o.cv)); }
+
+document.getElementById("scheme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.scheme = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  build(); render();
+});
+for (const id of ["n", "seed"]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    V[id] = +el.value;
+    document.getElementById(`${id}v`).textContent = String(V[id]);
+    build(); render();
+  });
+}
+build();
+render();
+</script>
+</body>
+</html>

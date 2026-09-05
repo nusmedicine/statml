@@ -645,6 +645,23 @@
       ],
       "arc": 43,
       "status": "shipped"
+    },
+    {
+      "slug": "experimental-design",
+      "title": "Experimental Design",
+      "blurb": "Experimental design comes before the data: randomization, blocking, and replication of experimental units.",
+      "course": "PHM5003",
+      "topics": [
+        "study design",
+        "randomization",
+        "blocking",
+        "confounding",
+        "replication",
+        "pseudoreplication",
+        "omics"
+      ],
+      "arc": 44,
+      "status": "shipped"
     }
   ]
 }

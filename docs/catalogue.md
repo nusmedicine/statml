@@ -3210,6 +3210,740 @@ axis. Worth knowing before the data is pasted in.
   **profile-likelihood**, not Wald. They are close and they are not equal, and a
   widget quoting Wald against the notebook's printed interval will look wrong.
 
+---
+
+## Widget 44 · `experimental-design` — built 2026-09-05
+
+**PHM5003 HTD `05 / 01`, the notebook this arc had ruled out.** Kenneth asked
+for it on 2026-09-05 and, shown the scope collision below, picked **all four
+notebook sections** and **three named schemes rather than a dial**.
+
+### The scope collision, surfaced before anything was built
+
+Of the four topics he named, two already had a shipped host:
+
+| topic | existing host | what it owns |
+|---|---|---|
+| randomization | — | nothing |
+| blocking | — | nothing |
+| batch effects | **40 `batch-effect`** | correcting a batch effect after the fact; its confounding dial runs balanced → complete |
+| replication / pseudoreplication | **7 `power-and-error`**, **32 `mixed-model`** | n-and-power; and lm-against-lmer, measured at 5% → 57% |
+
+The recommendation was allocation only. **He took all four**, which is his call
+and is recorded here as such. What makes it not a re-run is the VERB: every
+widget in the collection until now is downstream of the data — 26 adjusts, 40
+corrects, 32 fits the right model. This one is upstream. The reader allocates,
+and then pays for it.
+
+### The measurement killed the obvious design
+
+`_lab/design-measure.mjs`, the notebook's own population, 4000 draws. The
+intended claim was *"randomization is a coin flip and the tail of its imbalance
+is a false positive"*. **It is false.**
+
+```
+  n/arm | convenience | randomized | blocked | mean |imbalance| (randomized)
+      3 |       36.6% |       4.5% |    0.4% |  0.94 of 3   (worst 3)
+     10 |       98.6% |       4.8% |    0.8% |  1.77 of 10  (worst 8)
+    100 |      100.0% |       5.0% |    0.6% |  5.58 of 100 (worst 27)
+```
+
+Randomization holds 5% at **every** n, from 3 up. It does not balance — the
+worst draw at n = 100 was 27 subjects out — because the t-test prices its own
+imbalance into its own SD. So the notebook's *"with a sufficiently large sample
+size, randomization will balance these variables"* is not where the protection
+comes from, and a widget built on the intended claim would have taught a false
+mechanism.
+
+Three payoffs, three verbs, and the estimates at n = 50 per arm say why:
+
+```
+  scheme      | centre | spread | wrong answers
+  convenience |  0.998 |  0.101 |        100.0%   <- recovers the CONFOUNDER, not the disease
+  random      | -0.000 |  0.139 |          5.1%   <- valid, and 39% wider than blocked
+  blocked     | -0.002 |  0.101 |          0.5%   <- CONSERVATIVE, not merely better
+```
+
+**Randomization buys validity. Blocking buys balance. Only a model buys the
+power back** — measured at n = 50, perfectly blocked: 37.1% power at a true
+effect of 0.25 unadjusted against 68.9% adjusted, and at complete confounding
+the design matrix is singular and nothing is estimable. That third verb is
+**deliberately absent**: the notebook only ever runs a t-test, so the claim
+would be the widget's and not the lesson's. It is the widget's one open call.
+
+### The Replicate tab is not widget 32
+
+Widget 32 holds the data fixed and changes the model. This holds the BUDGET
+fixed and changes the design — 30 measurements per arm, spent five ways:
+
+```
+   split         | rows: wrong / power | per person: wrong / power
+   30 people x 1 |       5.3% /  76.5% |            5.3% / 76.5%
+   10 people x 3 |      16.6% /  70.6% |            4.6% / 45.1%
+    3 people x10 |      43.5% /  68.7% |            3.7% / 11.4%
+```
+
+The row test's power barely moves, 76.5% to 68.7%, which is exactly why
+pseudoreplication is tempting. The honest power collapses to 11.4%: **the power
+the rows showed was never there.** And the ×10 column of the full grid is FLAT
+across people — 43.5%, 40.9%, 40.5% at 3, 10 and 30 — so ten times the people
+does not touch it. That is why the tab carries two dials and not one.
+
+### THE NOTEBOOK'S OWN §4 CONCLUSION IS ONE DRAW — worth a notebook fix
+
+Cell 85 reads that with pseudoreplicates *"we no longer detect any significant
+differences even though the number of samples per group is 30"*. Over 3000
+draws of that exact setup — 3 people × 10 replicates, real effect 0.5 — it is
+significant **68.7%** of the time, and 4.8% of those have the sign backwards.
+`set.seed(123)` drew three people who happened to sit together. The stated
+hazard is a lost finding; the measured hazard is an invented one at 43.5% when
+nothing is there. The widget reports rates and makes no claim about any single
+study, which is the only honest way to disagree with a printed cell.
+
+### The shape, picked from three
+
+`_lab/design-shape.html` drew all three at the real 770px on the real engine.
+Kenneth picked **B**.
+
+| shape | what it is | why not |
+|---|---|---|
+| A | one study — chips, the 2 × 2, two distributions, one t-test | the notebook's own view, and it cannot show a *rate* |
+| **B** | **A, plus the pile of repeated studies below it** | **picked** — and then A's half of it was rebuilt as the population-and-sample diagram, see the review below |
+| C | all three schemes' piles at once, no single study | fastest to the claim; nothing a reader can check against a study they ran |
+
+**ONE COLOUR RULE, and it is widget 42's**: colour is the confounder, position
+is the arm. Never both. So the arms are two rows and two *stacked* histograms
+rather than an overlay — an overlay would have to colour by arm, and then
+colour would carry two groupings in one figure. On the Replicate tab there is
+no confounder, so the person is drawn as ENCLOSURE — a bracket under one
+person's measurements — which is the same rule applied to a grouping that can
+have thirty levels.
+
+### Kenneth's review, 2026-09-05 — three notes, and what each changed
+
+He sent his own two lecture slides (the observational taxonomy, and the
+experimental one) plus the sampling slide, and asked three things.
+
+**1. "Check if it's worthwhile showing the different experimental designs."**
+Measured in `_lab/design-taxonomy.mjs` rather than argued.
+
+- The **observational** taxonomy needs nothing: widget 12 `odds-and-risk`
+  already has *Cohort* and *Case-control* as its two tabs, and the only part of
+  that slide a figure can argue — what each design can estimate — is its whole
+  argument. The rest is a classification his slide states better than an
+  animation would.
+- The **experimental** slide has one measurable claim, and nothing hosts it.
+  Independent against repeated measures, same treatment effect, same n
+  measured, only between-subject SD moving:
+
+  ```
+    between-subject SD | independent (2n people) | repeated (n people, 2 each)
+                  0.25 |                   47.1% |                      51.8%
+                  1.00 |                   16.1% |                      51.8%
+                  4.00 |                    6.1% |                      51.8%
+  ```
+
+  Repeated measures uses **half the people** and holds while independent
+  collapses, because the person's own level cancels in the difference. Widget 32
+  owns repeated measures as a *modelling* problem, not as this. **Left as a
+  proposal, not built** — it is a third way to spend a budget and belongs on the
+  Replicate tab if Kenneth wants it.
+
+**2. "I don't know where the confounders are, what are the samples?"** — the
+review's real finding, and it rebuilt the Allocate stage. The first build put
+subjects straight into arms, so nothing on screen said *these twenty came out of
+those ninety-six*. The stage is now his own slide: a population grid per arm,
+dashed boxes on the selected members, an arrow carrying the scheme's name, and
+the sample laid out on a shared value axis.
+
+**The encoding changed with it, and the new one is better.** Colour was on the
+confounder and position on the arm; it is now **colour on the arm, shape on the
+confounder** — a triangle carries it, a circle does not. Colour still carries
+exactly one grouping (widget 42's rule) and both arms can now share one value
+axis instead of needing separate stacked panels. `tokens.css` gained `tri` and
+`ring` legend swatches so the legend can show the shapes it names, added the way
+`dash` was for widget 39; the full suite ran and **all 324 pre-existing states
+matched**.
+
+**3. "Tween animate when suitable."** Each selected subject now flies from its
+cell in the grid to its place on the value axis, staggered by index. Verified by
+driving frames rather than by screenshot: marks travel x 224 → 382 over ~440 ms
+at Slow, at 60 fps, with the count beyond the grid growing 0 → 21. The commit
+into the pile happens *before* the flight, so what flies is the study already
+counted rather than a guess at the next one.
+
+### The choreography, picked from seven — `_lab/design-tween.html`
+
+The first tween was wrong and Kenneth called it jarring. **The diagnosis is in
+the second line of the code**: every subject travelled a straight line from its
+grid cell to its landing spot, and the vertical half of that line carried
+nothing — a subject's grid ROW is unrelated to its stack ROW, which is assigned
+by collision on the value axis. Release order was grid order against a landing
+order that is value order, so about half the flights swapped places in mid-air,
+and the per-subject offset only delayed the *start*, so everything still landed
+on the same frame and the crossing was worst exactly at the end. The motion was
+carrying no information.
+
+Seven candidates were drawn at the real 550px on the real engine, all live and
+in sync on one screen with a scrubber to freeze them at the same instant.
+**Kenneth picked D and G.**
+
+| | the travel | |
+|---|---|---|
+| A | straight line, staggered | what shipped — the above |
+| B | boxes draw in, then the sample appears | his own first suggestion; nothing crosses, but it gives up the link between the two halves |
+| C | right first, then settle | the two components separated |
+| **D** | **convoy, then spread** | **picked** |
+| E | one at a time | clearest, and 20x slower |
+
+| | the blocking | |
+|---|---|---|
+| F | select directly | what shipped |
+| **G** | **sort into blocks, then select** | **picked** |
+
+**D — the sample travels as a convoy.** The whole selection translates as one
+rigid block, every subject keeping its neighbours, so no path crosses another;
+it opens out into value order only on arrival, where the spread reads as the
+measuring. The translation is the centroid's, which is the one offset that moves
+a group without deforming it.
+
+**G — the partition is its own beat**, and it is the bigger of the two wins.
+Blocking IS splitting the population by the confounder and then sampling within
+each part; the figure showed only the result, so a reader saw ten triangles and
+ten circles chosen and had to work out why those. Now the population sorts into
+two visibly separate blocks first. **The same beat explains all three schemes**:
+Convenience takes everything from one block, Block takes equally from both, and
+**Randomize skips the sort entirely** — that absence being exactly what
+separates it from the other two.
+
+Verified by driving frames rather than by screenshot: under Block nothing leaves
+the grid until 283ms (sort, then rings); under Randomize motion starts at 131ms.
+And the partition is real rather than apparent — 0 triangles sit below the first
+circle under Block and Convenience, against 45 under Randomize, measured off the
+drawn positions. A downscaled screenshot had made Randomize's grid *look* partly
+sorted; the numbers said otherwise.
+
+**Two costs, both paid deliberately.** The band reserves one row more than the
+population needs plus a gap, because sorting fills whole rows with carriers and
+starts the non-carriers on a fresh row — 51 carriers needs 9 rows where 96
+mixed subjects need 8 — and a figure that grows when you press a button is worse
+than one 22px taller than it strictly needs to be. The widget is now 500px on
+the Allocate tab, which `permutation-test` already is. And the two tabs' study
+bands are now separate constants: one shared height left the Replicate tab with
+44px of nothing under it.
+
+**The blocks are separated by a GAP, not a rule.** A straight line at
+`nCarriers / 12` rows down is only a row boundary when the count divides by 12,
+and a coin flip gives 51 as often as 48 — at 51 it cut through the middle of a
+row and claimed an edge that was not there.
+
+### The Replicate tab brought up to the Sampling tab
+
+Every round of review went to Sampling, and Replicate was six changes behind —
+enough that the two tabs read as different widgets. It now has:
+
+- **The distance tile**, which turns out to be the whole pseudoreplication
+  argument in one number. At no true difference, 30 measurements per group:
+  **30 people once each lands 0.142 from the truth; 3 people ten times each
+  lands 0.328.** Same budget, more than twice as far off.
+- **Beats and a dot counter of its own** — *"6 people per group"* → *"Measured
+  5 times each"* → *"Measured"*, with the repeats fading in on their own beat.
+  At one measurement per person there is no repeat beat and the counter shows
+  two dots, which is itself worth seeing. Driven and verified: the caption
+  advances through all three and the subject row's dot count goes 12 to 60.
+- **A note that was false.** It read *"each a fresh sample of the same
+  population"*, which is true of Sampling and not of this tab, where every study
+  recruits new people. It now says *"each a fresh set of people"*.
+- **The bracket named in the legend** rather than inside another row's label.
+
+`drawBeats` is shared between the two stages, so their steps cannot drift into
+being named differently.
+
+**One thing deliberately NOT copied across**: this tab has no standing
+population, because it has no population/sample distinction to draw — the people
+ARE the sample, and the question is how to spend a budget rather than whom to
+draw. The ground truth needs no pinning here either: with no background
+variable in play, the estimand is the dial exactly.
+
+### The power tile cut, and why blocking loses power it deserves to win
+
+**The tile went.** Fixing its sign-blindness was not enough: even reading
+correctly, it said **100%** for a design whose estimate was 1.46 against a truth
+of 0.50 — significant every time, wrong every time by a factor of three.
+Kenneth: *"qualitatively we should be able to see that randomization/blocking
+brings us closer to the correct conclusion"*. The pile against the truth line
+shows it, and **Average distance from the truth** puts a number on it:
+
+```
+  non-random  1.03      random  0.17      blocked  0.11
+```
+
+The red bars still mark what reached p < 0.05, so the rate is still readable —
+at no true difference, non-random is entirely red, random shows a few in the
+tails, blocked almost none.
+
+**AND THE QUESTION THE TILE KEPT RAISING, ANSWERED.** Kenneth had noticed twice
+that randomization looked more powerful than blocking. It is, at small effects,
+and the reason is not a defect in either:
+
+```
+   n | truth | random power | blocked power | winner
+  20 |  0.25 |        15.8% |          8.0% | RANDOM
+  20 |  0.50 |        59.9% |         59.6% | tie
+  20 |  1.00 |        99.8% |        100.0% | tie
+  10 |  0.25 |         9.4% |          3.2% | RANDOM
+  10 |  1.00 |        87.4% |         91.8% | blocked
+```
+
+The mechanism is one line of the same measurement — n = 20, no true difference:
+
+```
+  scheme    SD of the estimate | SD the t-test USES | false positives
+  random                 0.194 |              0.219 |            2.7%
+  blocked                0.149 |              0.222 |            0.5%
+```
+
+**Blocking's estimate is 23% tighter and its standard error is unchanged.** The
+t-test reads its SD off the WITHIN-group spread, and a blocked group is half and
+half in the background variable — the widest that spread can be. So the test
+divides a better estimate by a standard error meant for a worse one, rejects
+less often than it should, and loses power it has earned. As the true difference
+grows the signal swamps the discrepancy and blocking's tighter estimate wins
+instead.
+
+**Removing the tile removed the confusion with it.** The distance tile ranks the
+three methods the way the estimates actually rank — 1.03 / 0.17 / 0.11 — with no
+conservatism to explain away.
+
+### "Power to detect it: 100%" over two hundred wrong answers
+
+The plainest error the widget shipped, and Kenneth found it by setting a true
+difference of **+0.50** with the background variable at **−1.00** under
+non-random sampling. Every study came back significant, the pile sat entirely
+at −0.66, and the tile read:
+
+> **Power to detect it — 100%** · *200 of 200 at p < 0.05; 0 missed it, 200 with
+> the wrong sign*
+
+Two hundred studies, every one concluding the opposite of the truth, reported as
+perfect power. **Rejecting the null in the wrong direction is not detecting the
+effect.** Power now counts only the rejections that got the direction right, and
+the rest are their own count:
+
+```
+  non-random, variable −1.00, truth +0.50   0%    0 detected it, 200 pointed the wrong way
+  non-random, variable +1.00, truth +0.50   100%  200 detected it
+  random,                     truth +0.50   53%   106 detected it, 94 found nothing
+  blocked,                    truth +0.50   77%   153 detected it, 47 found nothing
+```
+
+**And the direction was never named.** "True group difference: 0.50" does not
+say which group is higher, and neither did the axis. Both now read
+**(Disease − Control)**.
+
+The second row is still the one that needs its neighbour: 100% power, and the
+estimate is 1.46 against a truth of 0.50. The distance tile beside it reads 1.03
+against random's 0.17.
+
+### The rail was asserting something the reader could switch off
+
+Kenneth: *"if we specify a confounder e.g. sex/batch, if you put no effect on
+measurement, that means it's not a confounder?"* It does. A confounder is a
+variable associated with BOTH the group and the measurement, and the dial can
+remove the second association while the control above it still said **The
+confounder**.
+
+Two changes. The control is now **Background variable** (his pick from four
+standard names — covariate, background variable, the other variable, or keeping
+it as it was), which asserts nothing. And the figure states the two conditions
+instead, computed from what is drawn:
+
+```
+  no effect set        Sex does not affect the measurement — nothing here can confound.
+  nothing run yet      A confounder needs both: Sex affects the measurement, and the
+                       sampling must split it unevenly.
+  blocked              Both are needed: Sex affects the measurement, but this study's
+                       split is level.
+  non-random           Both are present: Sex affects the measurement, and this study's
+                       split is 20 of 20 out.
+```
+
+**It states quantities rather than delivering a verdict** — principle 2.9. An
+earlier draft read *"unevenly sampled, so sex confounds this study"*, which
+overstates at a 3-of-20 imbalance and understates at 20 of 20; naming the two
+conditions is true at every setting.
+
+### What significance means once there is a ground truth
+
+Kenneth read *"Significant at p < 0.05: 53%"* beside a truth of 0.50 and asked
+what significance meant now — *"if the ground truth is no difference, it still
+says significant?"* One label was covering two opposite readings. With nothing
+to detect every rejection is an error; with something to detect every one is a
+hit and the studies that MISSED are the failures, and the tile named neither.
+
+**Widget 7 already had the words**, so this borrows them rather than inventing a
+third pair: *False positive rate α* and *Power to detect it*. The tile now reads
+
+```
+  truth 0.00   False positives      5%   10 of 200 — there is nothing to detect
+  truth 0.50   Power to detect it  53%   106 of 200 at p < 0.05; 94 missed it
+```
+
+and, with the confounder pushing against the effect,
+
+```
+  truth 0.50   Power to detect it 100%   200 of 200 at p < 0.05; 0 missed it,
+                                         200 with the wrong sign
+```
+
+**The one reading that still needs the tile beside it**: at a true difference of
+0.50, non-random sampling reports 100% power, which looks like the best method
+on the page. The distance tile immediately to its left reads 0.96 against
+random's 0.17 — the two together are the honest picture, and they were
+deliberately left adjacent.
+
+### The analysis toggle cut, and a ground truth to measure against
+
+**The toggle went.** Kenneth: *"it just confuses people, just show the t-test."*
+It had been added the round before to answer why blocking looked weaker than
+randomization — a real problem, but the control was not the way to say it. The
+adjusted fit is gone from the model with it.
+
+**A GROUND TRUTH, which is what he asked the widget for**: *"I want to
+demonstrate that random sampling/blocking can get us closer to the true
+conclusion."* The pile's dashed rule is now labelled *the truth*, and a readout
+tile gives the average distance from it. Over 12 seeds at n = 20, confounder
+1.00:
+
+```
+  sampling method   average |estimate − truth|
+  non-random                          0.96
+  random                              0.16
+  blocked                             0.12
+```
+
+Non-random misses by the whole confounder; random and blocked miss by sampling
+noise, and blocked by a quarter less of it. That is the comparison in one
+number.
+
+**IT COST THE POPULATION ITS FREEDOM.** With the population fixed per seed but
+drawn as it fell, its own group difference wandered −0.14 to 0.23 when the dial
+said zero — so a study detecting that was not making an error, and there was no
+unambiguous truth to measure against. `makePopulation` now shifts each group to
+the mean it was asked for, so **the population's own group difference IS the
+dial** on every seed.
+
+The price, measured: random sampling's significance rate reads **2.8% rather
+than 4.8%**, because sampling 20 of 96 without replacement is more precise than
+the t-test assumes and pinning removes the variance component that had been
+making up the difference. The distance comparison — what the ground truth is
+for — barely moves: 0.96 / 0.16 / 0.12 against 1.00 / 0.19 / 0.13 unpinned.
+
+### One population per seed, and the vocabulary rewritten
+
+**The population was rebuilt for every study.** Kenneth: *"my understanding was
+the seed set the population once"*. He is right, and it is the notebook's model
+too — one population, `sample_n` from it repeatedly. It now is. The cost is
+named in `model.js`: repeated samples from ONE population of 96 per group
+estimate that population's own group difference rather than zero, so the
+false-positive rate rides on the seed. Measured over twelve seeds:
+
+```
+  non-random  100% every seed          mean 100.0%
+  random      1% to 12%                mean   4.8%
+  blocked     0% to 2%                 mean   0.4%
+```
+
+The comparison the widget makes survives at every seed; only the exact "5%"
+moves. Pinning the group means removes the wobble and breaks the number instead
+(2.5%), and sampling with replacement to dodge the finite-population correction
+would draw the same subject twice.
+
+**Every reader-facing string was rewritten to standard terms**, on Kenneth's
+instruction and his picks. The inventions that had accumulated — *arm*,
+*carrier*, *carries it*, *everyone*, *this study*, *called a difference*,
+*pointing the wrong way*, *Convenience* — became **group**, the level's own name
+(*Female* / *Batch 2*), **Population**, **Sample**, **significant at p < 0.05**,
+**wrong sign**, **Non-random**. The measured quantity is **the measurement**, not
+gene expression, so the widget carries no assumption about what is being
+measured. `arm` survives only as an internal variable name and in source
+comments, which principle 5.9 exempts.
+
+**And the two legs got headings** — *Sex and group* over the bars, *Sex and the
+measurement* over the marks. One dial moves only the second, and without the
+headings the layout was promising otherwise.
+
+### The two things the first build of C3 quietly dropped
+
+Kenneth picked C3 and did not get C3. Two substitutions had been made without
+saying so, and both were wrong.
+
+**THE BARS WERE THE TRANSPOSE OF WHAT WAS ASKED FOR, TWICE.** Kenneth sketched
+two bars, ONE PER LEVEL OF THE CONFOUNDER, each split control against disease —
+*of the females, how many have the disease* — and both builds gave him bars per
+ARM split by carrier. Those answer a different question. The association a
+confounder is named for runs confounder → arm, and only the sketched
+orientation shows it.
+
+They now sit in the header, visible before anything is run, beside the
+measurement leg:
+
+```
+                 everyone          this study
+    female    ▬▬▬▬▬▬▬  46%      ▬▬▬▬▬▬▬  100%
+    male      ▬▬▬▬▬▬▬  54%      ▬▬▬▬▬▬▬    0%
+    % of each with the disease
+```
+
+**46 and 54 is the honest answer to "what is the association before we sample":
+there isn't one.** Sex and the arm are independent in the population. The
+allocation makes the association, which is why the second column only exists
+once a study has run and why Convenience drives it to 100 and 0.
+
+*(The superseded reading, kept because the reasoning that led to it was wrong
+in an instructive way.)* C3's first leg was read as a proportional bar per arm,
+and the build replaced even that with D3's per-block counts on the argument that
+they carry the same information. They do — and a bar is a picture where counts are arithmetic, which
+was the whole reason a bar was asked for.
+
+**And the first bar has to be there BEFORE anything is run.** The bars were
+drawn only once a study existed, so the confounder's set-up — the one thing you
+want to inspect first — was the one thing you could not see. Each arm now
+carries TWO bars: the population's, standing on its own at rest, and the study's,
+arriving under it. At rest both populations read about half — `55 of 96` and
+`49 of 96` — which is the honest answer to *what is the association before we
+sample*: there isn't one, and the allocation makes it. Under Convenience the
+second bars then read `0 of 20` and `20 of 20`.
+
+The population bar also replaced a dashed rule that had marked the same split.
+Two bars whose edges do not line up IS the departure, and it needs neither a
+rule nor a legend row to explain one.
+
+**The sign.** The original request said "slider **+/-** confounder effect …
+e.g. disease in batch1>batch2 or batch2>batch1", and the dial that shipped ran
+0 to 2.00. The negative half is not symmetry for its own sake: a confounder
+pushing against the effect MASKS it rather than inventing one. Measured at
+effect +0.50, Convenience, n = 20:
+
+```
+  confounder | mean estimate | studies reporting the WRONG SIGN
+       -2.00 |        -1.502 |                          100.0%
+       -1.00 |        -0.502 |                          100.0%
+        0.00 |         0.498 |                            0.1%
+        1.00 |         1.498 |                            0.0%
+```
+
+**The disease raises the measurement and every significant study concludes it
+lowers it.** A dial that only goes up can only ever teach the false-positive
+half.
+
+That state then exposed a lie in the readout: the rate tile read *"Found the
+difference: 88%"* when all 53 of those studies pointed the wrong way. It now
+reads **"Called a difference"** in every state, with the note carrying
+*"53 of 60 at p < 0.05, 53 pointing the wrong way"* — calling it and finding it
+are not the same act.
+
+**And a legend row that was false in every state with an effect set.** It read
+*"no difference between the arms"* while the dashed rule stood at the TRUE
+difference, 0.50.
+
+**A NEW BLIND SPOT, NAMED (5.6).** The state sweep checked text against the
+canvas edge and text against MARKS. It never checked text against other TEXT,
+and two collisions got through it: a 72px count and a 145px explainer sharing a
+178px row, and — at the confounder's `nothing` setting, the one state the dial
+exists to reach — the two level labels landing on the same pixel because the two
+levels coincide. The sweep now runs all three checks, and every state is clean.
+
+### The adversarial pass — L2 + C3 + D3
+
+Kenneth asked for a student's-eye review and ran one himself. Three of his
+findings and eight of mine; the three that changed the widget are below, each
+mocked before it was built.
+
+**1. The confounder was invisible, and it is TWO things.** A confounder moves
+the measurement AND is spread unevenly across the arms; the figure showed the
+first as two ticks and the second as four bare decimals with "carry it" in 10px
+grey. `_lab/design-parts.html` mocked three replacements; **C3** was picked,
+which names both legs. Its realisation in the widget is cheaper than the mock:
+D3's per-block counts already ARE the spread leg, so only the measurement leg
+and the sentence tying them needed drawing. The readout tile that read
+*"Subjects out of balance: 6 of 20"* — naming a thing that does not exist, since
+six subjects are not out of balance — now reads **"Carriers, of 20 in each arm:
+0 and 20 — 20 apart, and each is worth 0.96"**, which is both legs on one line.
+At confounder `nothing` it reads *"carrying it changes nothing, so no split can
+bias this"*.
+
+**2. Convenience and Block looked alike.** Both partition, so the only thing
+separating them was where twenty dashed boxes fell among ninety-six marks, which
+the eye does not aggregate. Four treatments in `_lab/design-schemes.html`;
+**D3** was picked — *dim the block nobody drew from*.
+
+Under Convenience **half of each population greys out, and the two arms grey out
+OPPOSITE halves**: the control arm never met a carrier, the disease arm never met
+a non-carrier. That is the clearest statement of complete confounding anywhere in
+the widget, and it explains without a word why the adjusted analysis says *not
+estimable*. Block leaves both halves lit. The per-block tallies come with it —
+`0 taken | 20 taken` mirrored against `10 taken | 10 taken`.
+
+The runner-up, D2 (*only Block partitions*), is conceptually the honest one —
+blocking IS stratifying and a convenience sample does not stratify — but it
+leaves the reader back at twenty boxes scattered over ninety-six marks.
+
+**3. The animation did not say what it was doing.** `_lab/design-parts.html`
+mocked the three parts Kenneth asked for — population → arranged by the scheme →
+the sample — two ways, and the choice was decided by measurement rather than
+taste:
+
+```
+  canvas | three panels need 596px of stage
+     550 |            available 436 — short by 160
+     770 |            available 656 — fits
+```
+
+**L1, three panels side by side, does not fit at the width every fingerprint
+state is hashed at.** So **L2** was built: the same three parts in TIME, with a
+caption that names each beat and a dot counter showing how many beats there are.
+Randomize has one beat fewer than Block, and so does every study after the first,
+because neither of them sorts — and the counter shows that rather than hiding it.
+L1 stays on the table if L2 turns out not to be enough.
+
+**One overlap no sweep could see.** The arrow's scheme label sat in a 24px gap
+and ran 60px into the sample strip. The text sweep only checks the canvas edge,
+so it passed. The scheme name now leads the step caption, where there is room —
+and where it belongs, since the caption is already naming what the beat does.
+
+### The round that settled the stage — B, side-by-side blocks, filled/hollow
+
+Kenneth annotated a screenshot with two red horizontals and three notes. All
+three landed.
+
+**1. The baselines did not line up, and the cause was the stacked partition.**
+Measured: the sample strip floored at the bottom of the band while the grid
+beside it stopped **23px short**, because the band reserved `CELL + BLOCK_GAP`
+= 22px for a partition row that Randomize never uses.
+
+**The blocks now go SIDE BY SIDE rather than one above the other.** The grid is
+then always POP_ROWS tall whatever the carrier count, so the sample can share
+the grid's bottom row for good — one line the eye can run along from the
+population to what it measured. It costs one extra column of width (13 is the
+worst case of `ceil(a/8) + ceil((96-a)/8)` over every carrier count) and gives
+22px of height back per arm: **the widget goes 500 → 456**. Verified off the
+drawn marks: grid bottom 124, sample bottom 124, in all three schemes.
+
+**2. The tween moved from D to B.** The convoy had already needed one correction
+for slanting; watching it run, Kenneth moved to the option he had first
+suggested — the boxes arrive one at a time and the sample then appears where it
+belongs. No travel, so nothing can cross and nothing can slant. The subject is
+still in ONE PLACE at every instant: as the sample fades in on the axis the same
+subject fades out of its cell, and the dashed box stays behind as the empty
+seat. A crossfade whose endpoints are exactly the grid position and the value
+position.
+
+**3. The confounder is filled against hollow**, picked from four encodings run
+live in `_lab/design-tween.html` (shape + fade, shape only, filled / hollow,
+colour / grey). Shape says the same thing in all four, but at a 13px pitch a
+triangle and a circle are nearly the same blob, so a second channel has to carry
+it. **Fill against outline weighs the two marks equally, where the fade it
+replaced made half the population recede** — and half a population is not less
+important than the other half. `tokens.css` gained a `hollow` swatch so the
+legend can show both weights, added the way `tri` and `ring` were.
+
+**Two probe mistakes on the way, both the same shape.** The alignment check
+first reported the grid 15px BELOW the sample — the band filter had caught the
+next arm's top row. Corrected, it then reported the sample bottom at 80 against
+the grid's 124 — that probe recorded only `arc` calls, and circles are the
+non-carriers, so the bottom stack rows (triangles) were invisible to it.
+**Reading a figure through one primitive is reading half of it**; the third
+version recorded both and converted the triangle's apex back to its centre.
+
+### Three corrections to D and G, from the round after they were picked
+
+**1. The convoy slanted 13 degrees downward.** Measured rather than argued: the
+grid's centroid sits at y = 52 in the band while the sample stacks up from a
+floor at y = 120, twenty-two of which is the row the partition reserves — so the
+centroid's full offset carried the convoy 60px down over a 250px journey. The
+vertical half of that motion means nothing (a stack slot is assigned by
+collision on the value axis), so **`move` now carries only x** and every
+vertical pixel belongs to `open`, where it is the sorting. Verified by driving
+frames: the y-signature of every mark is unchanged through frames 0-15 while x
+expands, and changes only from frame 18 as the settle begins.
+
+**2. A subject was in two places at once.** The build left a full-opacity copy
+in the grid and drew a second copy flying to the axis, so twenty people appeared
+to become forty — Kenneth asked for the sampled ones to be removed rather than
+dimmed. The selected members are now drawn ONLY by the convoy, from the same
+`seatOf`, so before the flight starts they sit exactly where the grid would have
+put them and nothing appears to move. **The dashed box stays behind as the empty
+seat**, which is the only mark saying where the sample came out of. Verified: the
+arm's mark count holds at 99 on every frame of every study.
+
+**3. The partition replayed once per study.** Blocking is a property of the
+DESIGN — you decide to block, and every study after that draws from blocks
+already separated — so replaying the sort said the opposite. Study 1 sorts on
+screen; study 2 onward opens already sorted and takes the shorter score.
+Measured across three consecutive studies at Slow: study 1 goes 47 triangles
+below the first circle to 0, studies 2 and 3 start at 0 and stay.
+
+The population itself IS still redrawn per study and has to be — 200 samples
+from one fixed population of 96 would report a rate conditional on that one
+population's realisation rather than on the design. What is held is the
+partitioned LAYOUT, not the people.
+
+**Still open: how the confounder is marked in the population.** Shape is
+constant (a triangle carries it, a circle does not) but at a 13px pitch the two
+are nearly the same blob, so a second redundant channel is doing the work. Four
+are live in `_lab/design-tween.html` — shape + fade (shipped), shape only,
+filled / hollow, colour / grey. The last one costs the arm's colour on half the
+population, which is a real price.
+
+### The population is 96 per arm, and that number is measured from both sides
+
+An explicit population means sampling *without replacement*, which shrinks the
+estimate's spread — and at 48 per arm that alone took randomization's
+false-positive rate from 5.0% to **2.9%**, which would have made the widget's
+central claim false. At 72 the rates hold but 473 of 12,000 draws run short of
+subjects at n = 30. Above, the picture breaks instead: 120 per arm drew at a 9px
+pitch where a triangle and a circle are the same blob.
+
+At **96** the spread matches the infinite-population closed form to the third
+decimal at every n the widget offers, and `n` is capped at 24 where no draw runs
+short. One further trap on the way: pinning the population at exactly half
+carriers makes the draw hypergeometric rather than binomial — partially balanced
+by construction — and that was the whole of the 2.9%. The notebook's own
+`sample(c("Female","Male"), 1000, replace = TRUE)` is a coin flip, and so is
+this.
+
+### Two things the build fixed that no screenshot would have shown
+
+1. **The pile's window was fixed at ±2.4 and dropped 41 of 300 studies off the
+   panel** at Convenience with the large effect at n = 4 — counted in the rate,
+   absent from the picture. Fitting the window to the drawn studies fixed that
+   and was *worse*: flipping Convenience to Randomize moved the axis by 1.4 and
+   left the two piles looking alike, when the whole argument is that one sits on
+   the confounder and the other on zero. **A frame that moves with the thing
+   under comparison hides the comparison.** The window is now a closed form over
+   every scheme at the current scale — `2σ²/n` for convenience and blocked,
+   `2σ²/n + δ²/2n` for randomize — matching the simulation to the third decimal
+   and leaving 0 of 300 off-panel at every setting the widget offers.
+2. **The arms band stopped 152 px short of the pile below it**, because the
+   2 × 2's column was reserved all the way down when it only occupies the
+   chips' row.
+3. **The rebuilt stage was laid out at 770px and collapses at 550.** Every
+   fingerprint state is hashed at the narrowest canvas the side layout allows,
+   and there a 16-column population grid left the value axis beside it **139px**
+   across — a strip plot with no strip. The grid is 8 rows of 12 for that
+   reason: taller and narrower costs 50px of height and buys back 100px of axis
+   at the width that actually matters. Found by measuring the canvas, not by
+   looking at it — at 1180px it was fine.
+
+**And one process slip worth not repeating, which is the same one as last
+time.** `_lab/design-measure.mjs` §6 first checked Welch against an R `t.test`
+output quoted from memory, and the quote was wrong — a remembered t of 1.8074
+against a hand-derived 1.8974. Widget 43's session had already been caught by a
+remembered `p.adjust` output. §6 now derives t, df and se by hand from the two
+vectors and checks the p against a Simpson integral of the same t density, so
+nothing in it depends on recall.
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
@@ -3251,7 +3985,7 @@ twenty thousand p-values → group what is left → say what the group means.*
 
 | # | notebook | host widget | state |
 |---|---|---|---|
-| 01 | Review of Experimental Design | — | randomisation, blinding, replication. No widget proposed; `fork-pipe-collider` touches the confounding half. **Out of scope for this arc** |
+| 01 | Review of Experimental Design | **44 `experimental-design`** ✅ | randomisation, blocking, replication. Was **out of scope for this arc**; Kenneth reopened it 2026-09-05 and picked the widest scope — see § *Widget 44* |
 | 02 | Missing Data and Imputation | **25 `missing-data`** ✅ | already recorded as this notebook's widget, cells 1–23 |
 | 03 | Normalization and Transformation | — | **SLOT 1** |
 | 04 | Dimensionality Reduction | **19 `pca`, 20 `mds`, 21 `t-sne`, 22 `umap`** ✅ | four of five headings. `## 2 NMF` has none — **SLOT 2** |

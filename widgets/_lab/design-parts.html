@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — three parts, and saying what the confounder does</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-4); }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 3px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid);
+           max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; max-width: 100ch; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail input#t { width: 240px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 2.6em; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 11px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · three parts, and saying what the confounder does</h1>
+
+  <div class="rail">
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="false">Convenience</button>
+        <button data-v="random" aria-pressed="true">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>confounder <input type="range" id="shift" min="0" max="20" value="10"><output id="shiftv">1.0</output></label>
+    <label>n <input type="range" id="n" min="4" max="24" step="2" value="20"><output id="nv">20</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+    <span class="seg"><button id="play">Play</button></span>
+    <label>t <input type="range" id="t" min="0" max="1000" value="1000"><output id="tv">1.00</output></label>
+  </div>
+
+  <h2>Where the three parts go</h2>
+  <p class="note">
+    <b>L1 is drawn at 770px and L2 at 550px, and that is the whole argument.</b> Three panels
+    side by side need 596px of stage; a 550px canvas — the width every fingerprint state is
+    hashed at, and where widget 11's six overflows were found — has 436px. L1 is shown here at
+    the width it needs. L2 puts the same three parts in TIME instead of space and fits anywhere.
+  </p>
+  <div id="layouts"></div>
+
+  <h2>Saying what the confounder does</h2>
+  <p class="note">
+    All three replace the four bare decimals. A confounder is <b>two legs</b> — it moves the
+    measurement, and it is unevenly spread across the arms — and the current figure shows the
+    first as two ticks and the second as decimals with "carry it" in 10px grey. Move the
+    <b>confounder</b> dial and the <b>allocation</b> control and watch which of these reacts to
+    which.
+  </p>
+  <div class="row" id="conf"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean } from "../core/stats.js";
+import { readTokens } from "../core/env.js";
+import { welch, POP_PER_ARM, POP_ROWS, POP_COLS, NOISE_SD, BASE } from "../experimental-design/model.js";
+
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+const CELL = 13;
+const GUTTER = 62;
+const BLOCK_GAP = 9;
+const GRID_W = (POP_COLS + 1) * CELL + BLOCK_GAP;
+const H_ARM = POP_ROWS * CELL;
+const R = CELL * 0.36;
+
+const SCHEMES = { convenience: "Convenience", random: "Randomize", blocked: "Block" };
+const CONF = { carrier: "female", plain: "male" };
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const seg = (t, a, b) => ease(clamp01((t - a) / (b - a)));
+
+const V = { scheme: "random", shift: 1, n: 20, seed: 1, t: 1 };
+let study = null;
+
+function build() {
+  const rng = makeRng(V.seed * 7919 + 1);
+  const makeArm = (arm) => {
+    const out = [];
+    for (let i = 0; i < POP_PER_ARM; i += 1) {
+      const carrier = rng.next() < 0.5;
+      out.push({ carrier, y: rng.normal(BASE, NOISE_SD) + (carrier ? V.shift : 0),
+        row: Math.floor(i / POP_COLS), col: i % POP_COLS });
+    }
+    return out;
+  };
+  const population = [makeArm(0), makeArm(1)];
+  const picked = [];
+  for (const g of [0, 1]) {
+    const pop = population[g];
+    const order = pop.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    let take;
+    if (V.scheme === "convenience") take = order.filter((i) => pop[i].carrier === (g === 1)).slice(0, V.n);
+    else if (V.scheme === "random") take = order.slice(0, V.n);
+    else {
+      const half = Math.round(V.n / 2);
+      take = [...order.filter((i) => pop[i].carrier).slice(0, half),
+        ...order.filter((i) => !pop[i].carrier).slice(0, V.n - half)];
+    }
+    picked.push(take.sort((a, b) => a - b));
+  }
+  const arms = picked.map((ix, g) => ix.map((i) => population[g][i]));
+  study = { population, picked, arms,
+    carried: arms.map((a) => a.filter((s) => s.carrier).length),
+    popCarried: population.map((p) => p.filter((s) => s.carrier).length),
+    ...welch(arms[0].map((s) => s.y), arms[1].map((s) => s.y)) };
+}
+
+/* --- marks ---------------------------------------------------------------- */
+
+function mark(ctx, x, y, carrier, arm, r = R, alpha = 1, tint = null) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const hue = tint ?? (arm ? T.groupB : T.groupA);
+  ctx.beginPath();
+  if (carrier) {
+    const h = r * 1.9;
+    ctx.moveTo(x, y - h * 0.62);
+    ctx.lineTo(x + r * 1.15, y + h * 0.38);
+    ctx.lineTo(x - r * 1.15, y + h * 0.38);
+    ctx.closePath();
+    ctx.fillStyle = hue; ctx.fill();
+  } else {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = hue; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+  ctx.restore();
+}
+function ring(ctx, x, y, r = R, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+  ctx.strokeRect(Math.round(x - r - 2) + 0.5, Math.round(y - r - 2) + 0.5, 2 * r + 4, 2 * r + 4);
+  ctx.restore();
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+function fit(cv, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+function arrow(ctx, x0, x1, y, label) {
+  ctx.save();
+  ctx.strokeStyle = T.ink2; ctx.fillStyle = T.ink2; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1 - 5, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x1 - 7, y - 4); ctx.lineTo(x1 - 7, y + 4);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  if (label) txt(ctx, (x0 + x1) / 2, y - 10, label, T.ink2, "center", 10);
+}
+
+/* where a subject sits, in natural order or partitioned into side-by-side blocks */
+function blockedCell(pop, i, at) {
+  const carriers = []; const plain = [];
+  pop.forEach((s, k) => (s.carrier ? carriers : plain).push(k));
+  const seat = (rank, dx) => [at.x + dx + (Math.floor(rank / POP_ROWS) + 0.5) * CELL,
+    at.y + ((rank % POP_ROWS) + 0.5) * CELL];
+  const inC = carriers.indexOf(i);
+  if (inC >= 0) return seat(inC, 0);
+  return seat(plain.indexOf(i), Math.ceil(carriers.length / POP_ROWS) * CELL + BLOCK_GAP);
+}
+const naturalCell = (pop, i, at) =>
+  [at.x + (pop[i].col + 0.5) * CELL, at.y + (pop[i].row + 0.5) * CELL];
+
+function valueRange() {
+  const all = study.population.flat().map((s) => s.y);
+  return [Math.min(...all) - 0.15, Math.max(...all) + 0.15];
+}
+function stack(vals, lo, hi, w) {
+  const slots = [];
+  return vals.map((v) => {
+    const px = ((v - lo) / (hi - lo)) * w;
+    let row = 0;
+    while (slots[row] !== undefined && px - slots[row] < 2 * R + 1) row += 1;
+    slots[row] = px;
+    return [px, row];
+  });
+}
+
+/* --- L1: three panels ------------------------------------------------------ */
+
+const L1_W = 770;
+const L1 = {
+  key: "L1",
+  name: "Three panels, side by side",
+  sub: "population → arranged by the scheme → the sample",
+  w: L1_W,
+  h: 2 * H_ARM + 76,
+  cap: "<b>Exactly what you described, and it needs a 770px canvas.</b> The population stays put "
+    + "in panel one; panel two is the SCHEME — the same people arranged the way the allocation "
+    + "wants them, with the boxes it drew; panel three is what was measured. Convenience and "
+    + "Block differ in panel two now, not just in where the boxes fell. <b>At 550px the three "
+    + "panels are short by 160px and would overlap.</b>",
+  draw(ctx) {
+    const x0 = 12 + GUTTER;
+    const x1 = x0 + GRID_W + 44;
+    const x2 = x1 + GRID_W + 44;
+    const sw = L1_W - x2 - 34;
+    const [lo, hi] = valueRange();
+    const partitions = V.scheme !== "random";
+    txt(ctx, 12, 12, "the population", T.ink3, "left", 10);
+    txt(ctx, x1, 12, partitions ? "arranged into blocks" : "shuffled, no blocks", T.ink3, "left", 10);
+    txt(ctx, x2, 12, "measured", T.ink3, "left", 10);
+    for (const g of [0, 1]) {
+      const top = 28 + g * (H_ARM + 14);
+      const mid = top + H_ARM / 2;
+      txt(ctx, x0 - 8, mid, g ? "Disease" : "Control", T.ink2, "right");
+      const pop = study.population[g];
+      const chosen = new Set(study.picked[g]);
+      /* 1 · the population, always in its natural order */
+      pop.forEach((s, i) => {
+        const [x, y] = naturalCell(pop, i, { x: x0, y: top });
+        mark(ctx, x, y, s.carrier, g);
+      });
+      /* 2 · the same people, arranged the way the scheme wants them */
+      pop.forEach((s, i) => {
+        const at = { x: x1, y: top };
+        const [x, y] = partitions ? blockedCell(pop, i, at) : naturalCell(pop, i, at);
+        if (chosen.has(i)) { ring(ctx, x, y); return; }
+        mark(ctx, x, y, s.carrier, g);
+      });
+      /* 3 · what was measured */
+      const placed = stack(study.arms[g].map((s) => s.y), lo, hi, sw);
+      const floor = top + (POP_ROWS - 0.5) * CELL;
+      study.arms[g].forEach((s, i) =>
+        mark(ctx, x2 + placed[i][0], floor - placed[i][1] * (2 * R + 1.5), s.carrier, g));
+      arrow(ctx, x0 + GRID_W + 8, x1 - 8, mid, g === 0 ? SCHEMES[V.scheme] : null);
+      arrow(ctx, x1 + GRID_W + 8, x2 - 8, mid, g === 0 ? "measure" : null);
+    }
+    const by = 28 + H_ARM + 14 + H_ARM + 6;
+    ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x2, by + 0.5); ctx.lineTo(x2 + sw, by + 0.5); ctx.stroke();
+    txt(ctx, x2 + sw / 2, by + 14, "measured value", T.ink3, "center", 10);
+  },
+};
+
+/* --- L2: the same three parts, in time ------------------------------------- */
+
+const L2_W = 550;
+const STEPS = [
+  { at: 0.00, blocked: "the population — 96 in each arm", random: "the population — 96 in each arm" },
+  { at: 0.30, blocked: "arranged into blocks by the confounder", random: "no blocks — Randomize does not sort" },
+  { at: 0.58, blocked: "10 chosen from each block", random: "20 chosen, whatever they are" },
+  { at: 0.78, blocked: "measured", random: "measured" },
+];
+const L2 = {
+  key: "L2",
+  name: "The same three parts, named in time",
+  sub: "one caption that changes as it runs, plus a step counter",
+  w: L2_W,
+  h: 2 * H_ARM + 76,
+  cap: "<b>Fits at any width, and answers the actual question — what is going on.</b> The stage "
+    + "is the shipped one; what is new is that every beat says its own name and a row of dots "
+    + "shows how many beats there are. Costs 16px and no width at all. It cannot show the "
+    + "population and its arrangement at the same time, which is the one thing L1 buys.",
+  draw(ctx) {
+    const x0 = 12 + GUTTER;
+    const axisX0 = x0 + GRID_W + 46;
+    const axisW = L2_W - axisX0 - 40;
+    const [lo, hi] = valueRange();
+    const partitions = V.scheme !== "random";
+    const t = clamp01(V.t);
+    const sort = partitions ? seg(t, 0.06, 0.34) : 0;
+    const rings = clamp01((t - 0.34) / 0.22);
+    const appear = seg(t, 0.62, 0.92);
+
+    /* the step caption and the counter */
+    const key = partitions ? "blocked" : "random";
+    let step = 0;
+    STEPS.forEach((s, i) => { if (t >= s.at) step = i; });
+    txt(ctx, 12, 12, `${STEPS[step][key]}`, T.ink1, "left", 12, "600");
+    STEPS.forEach((s, i) => {
+      ctx.save();
+      ctx.fillStyle = i === step ? T.highlight : T.grid;
+      ctx.beginPath();
+      ctx.arc(L2_W - 16 - (STEPS.length - 1 - i) * 11, 12, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    for (const g of [0, 1]) {
+      const top = 28 + g * (H_ARM + 14);
+      const mid = top + H_ARM / 2;
+      const at = { x: x0, y: top };
+      txt(ctx, x0 - 8, mid, g ? "Disease" : "Control", T.ink2, "right");
+      const pop = study.population[g];
+      const chosen = new Set(study.picked[g]);
+      pop.forEach((s, i) => {
+        const [nx, ny] = naturalCell(pop, i, at);
+        const [bx, byy] = blockedCell(pop, i, at);
+        const x = nx + (bx - nx) * sort;
+        const y = ny + (byy - ny) * sort;
+        if (chosen.has(i)) {
+          const k = study.picked[g].indexOf(i);
+          const a = clamp01(rings * study.picked[g].length - k);
+          if (a > 0) ring(ctx, x, y, R, a);
+          if (appear >= 1) return;
+          mark(ctx, x, y, s.carrier, g, R, 1 - appear);
+          return;
+        }
+        mark(ctx, x, y, s.carrier, g);
+      });
+      arrow(ctx, x0 + GRID_W + 8, axisX0 - 10, mid, g === 0 ? SCHEMES[V.scheme] : null);
+      if (appear > 0) {
+        const placed = stack(study.arms[g].map((s) => s.y), lo, hi, axisW);
+        const floor = top + (POP_ROWS - 0.5) * CELL;
+        study.arms[g].forEach((s, i) =>
+          mark(ctx, axisX0 + placed[i][0], floor - placed[i][1] * (2 * R + 1.5),
+            s.carrier, g, R, appear));
+      }
+    }
+    const by = 28 + H_ARM + 14 + H_ARM + 6;
+    ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(axisX0, by + 0.5); ctx.lineTo(axisX0 + axisW, by + 0.5); ctx.stroke();
+    txt(ctx, axisX0 + axisW / 2, by + 14, "measured value", T.ink3, "center", 10);
+  },
+};
+
+/* --- the confounder panels -------------------------------------------------- */
+
+const CW = 330;
+const CH = 150;
+
+function measurementLeg(ctx, y) {
+  /* what carrying it does to the MEASUREMENT — the dial's own quantity */
+  const vals = [true, false].map((c) =>
+    mean(study.population.flat().filter((s) => s.carrier === c).map((s) => s.y)));
+  const gap = vals[0] - vals[1];
+  const x0 = 96;
+  const w = CW - x0 - 60;
+  const lo = Math.min(...vals) - 0.6;
+  const hi = Math.max(...vals) + 0.6;
+  const px = (v) => x0 + ((v - lo) / (hi - lo)) * w;
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y + 0.5); ctx.lineTo(x0 + w, y + 0.5); ctx.stroke();
+  mark(ctx, px(vals[0]), y - 8, true, 0, R, 1, T.ink1);
+  mark(ctx, px(vals[1]), y - 8, false, 0, R, 1, T.ink1);
+  txt(ctx, 90, y - 8, "measurement", T.ink2, "right", 10);
+  txt(ctx, x0 + w + 4, y - 8, gap < 0.05 ? "same" : `+${gap.toFixed(2)}`,
+    gap < 0.05 ? T.ink3 : T.ink1, "left", 11, "600");
+}
+
+const CONF_OPTIONS = [
+  {
+    key: "C1",
+    name: "The notebook's 2 × 2",
+    sub: "counts, exactly as tbl_summary prints them",
+    cap: "<b>The table the lesson already shows.</b> A student can check it against their own "
+      + "<code>tbl_summary(by = group)</code> line for line. Counts rather than fractions, so "
+      + "the imbalance is a subtraction the reader can do. Reads as a table, not a picture.",
+    draw(ctx) {
+      txt(ctx, 12, 14, "who carries it, by arm", T.ink1, "left", 11, "600");
+      const x = 150; const col = 74; const rowH = 20;
+      txt(ctx, x, 38, "Control", T.ink3, "center", 10);
+      txt(ctx, x + col, 38, "Disease", T.ink3, "center", 10);
+      const n = V.n;
+      const rows = [[CONF.carrier, study.carried, true], [CONF.plain, study.carried.map((v) => n - v), false]];
+      rows.forEach(([name, vals, carrier], i) => {
+        const y = 38 + rowH * (i + 1);
+        mark(ctx, 60, y, carrier, 0, R, 1, T.ink1);
+        txt(ctx, 72, y, name, T.ink2, "left", 10);
+        vals.forEach((v, g) => txt(ctx, x + col * g, y, String(v), T.ink1, "center", 13, "600"));
+      });
+      const y = 38 + rowH * 3;
+      txt(ctx, 140, y, "difference", T.ink3, "right", 10);
+      const d = study.carried[1] - study.carried[0];
+      txt(ctx, x + col / 2, y, d === 0 ? "none" : `${Math.abs(d)}`,
+        d === 0 ? T.ink2 : T.extreme, "center", 13, "600");
+      txt(ctx, 12, y + 18, `the population is ${(study.popCarried[0] / POP_PER_ARM).toFixed(2)} and ${(study.popCarried[1] / POP_PER_ARM).toFixed(2)}`,
+        T.ink3, "left", 10);
+      measurementLeg(ctx, CH - 16);
+    },
+  },
+  {
+    key: "C2",
+    name: "Proportional bars",
+    sub: "one bar per arm, split where the carriers end",
+    cap: "<b>The imbalance is a misaligned edge, which needs no arithmetic.</b> Two bars that "
+      + "should break at the same place; under Convenience one is entirely filled and the other "
+      + "entirely hollow. The dashed rule is where the POPULATION breaks, so the reader can see "
+      + "the sample departing from it rather than from an abstraction.",
+    draw(ctx) {
+      txt(ctx, 12, 14, "who carries it, by arm", T.ink1, "left", 11, "600");
+      const x = 96; const w = CW - x - 40; const barH = 20;
+      const popFrac = study.popCarried.reduce((a, b) => a + b, 0) / (2 * POP_PER_ARM);
+      ["Control", "Disease"].forEach((name, g) => {
+        const y = 36 + g * (barH + 12);
+        txt(ctx, x - 8, y + barH / 2, name, T.ink2, "right", 10);
+        const frac = study.carried[g] / V.n;
+        ctx.save();
+        ctx.fillStyle = g ? T.groupB : T.groupA;
+        ctx.fillRect(x, y, w * frac, barH);
+        ctx.strokeStyle = g ? T.groupB : T.groupA;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, barH - 1);
+        ctx.restore();
+        txt(ctx, x + w + 6, y + barH / 2, `${study.carried[g]} of ${V.n}`, T.ink2, "left", 10);
+      });
+      /* the population's own split, which is what the sample is departing from */
+      const rx = x + w * popFrac;
+      ctx.save();
+      ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(rx, 30); ctx.lineTo(rx, 36 + 2 * barH + 12); ctx.stroke();
+      ctx.restore();
+      txt(ctx, rx, 24, "the population", T.ink3, "center", 9);
+      txt(ctx, x, 36 + 2 * barH + 26, "filled = carries it", T.ink3, "left", 10);
+      measurementLeg(ctx, CH - 16);
+    },
+  },
+  {
+    key: "C3",
+    name: "Both legs, stacked",
+    sub: "the arm split above, the measurement gap below, one scale each",
+    cap: "<b>Names the confounder as two things, which is what it is.</b> Top: it is spread "
+      + "unevenly across the arms — the allocation's doing. Bottom: it moves the measurement — "
+      + "the dial's doing. A confounder needs BOTH, and neither control alone can create one. "
+      + "Costs the most vertical room of the three.",
+    draw(ctx) {
+      txt(ctx, 12, 14, "a confounder is two things at once", T.ink1, "left", 11, "600");
+      const x = 96; const w = CW - x - 46; const barH = 15;
+      txt(ctx, 90, 34, "spread across", T.ink2, "right", 10);
+      txt(ctx, 90, 45, "the arms", T.ink2, "right", 10);
+      ["Control", "Disease"].forEach((name, g) => {
+        const y = 30 + g * (barH + 6);
+        const frac = study.carried[g] / V.n;
+        ctx.save();
+        ctx.fillStyle = g ? T.groupB : T.groupA;
+        ctx.fillRect(x, y, w * frac, barH);
+        ctx.strokeStyle = g ? T.groupB : T.groupA; ctx.lineWidth = 1.2;
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, barH - 1);
+        ctx.restore();
+      });
+      const d = Math.abs(study.carried[1] - study.carried[0]);
+      txt(ctx, x + w + 5, 30 + barH + 3, d === 0 ? "level" : `${d} apart`,
+        d === 0 ? T.ink2 : T.extreme, "left", 11, "600");
+      ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(12, 84.5); ctx.lineTo(CW - 12, 84.5); ctx.stroke();
+      txt(ctx, 90, 100, "moves the", T.ink2, "right", 10);
+      txt(ctx, 90, 111, "measurement", T.ink2, "right", 10);
+      const vals = [true, false].map((c) =>
+        mean(study.population.flat().filter((s) => s.carrier === c).map((s) => s.y)));
+      const lo = Math.min(...vals) - 0.6;
+      const hi = Math.max(...vals) + 0.6;
+      const px = (v) => x + ((v - lo) / (hi - lo)) * w;
+      ctx.strokeStyle = T.axis;
+      ctx.beginPath(); ctx.moveTo(x, 118.5); ctx.lineTo(x + w, 118.5); ctx.stroke();
+      mark(ctx, px(vals[0]), 108, true, 0, R, 1, T.ink1);
+      mark(ctx, px(vals[1]), 108, false, 0, R, 1, T.ink1);
+      const gap = vals[0] - vals[1];
+      txt(ctx, x + w + 5, 108, gap < 0.05 ? "same" : `+${gap.toFixed(2)}`,
+        gap < 0.05 ? T.ink3 : T.ink1, "left", 11, "600");
+      txt(ctx, 12, 136, gap < 0.05
+        ? "with no gap below, the split above cannot bias anything"
+        : "both present — this is a confounder", T.ink3, "left", 10);
+    },
+  },
+];
+
+/* --- page ------------------------------------------------------------------ */
+
+function tile(host, o, w, h) {
+  const box = document.createElement("div");
+  box.className = "opt";
+  box.innerHTML = `<h3>${o.key} · ${o.name} <em>— ${o.sub}</em></h3>`;
+  const cv = document.createElement("canvas");
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  cap.innerHTML = o.cap;
+  box.appendChild(cap);
+  host.appendChild(box);
+  o.cv = cv; o._w = w; o._h = h;
+}
+const layouts = document.getElementById("layouts");
+tile(layouts, L1, L1.w, L1.h);
+tile(layouts, L2, L2.w, L2.h);
+const confHost = document.getElementById("conf");
+for (const o of CONF_OPTIONS) tile(confHost, o, CW, CH);
+
+function render() {
+  for (const o of [L1, L2, ...CONF_OPTIONS]) o.draw(fit(o.cv, o._w, o._h));
+}
+
+let raf = null;
+document.getElementById("play").addEventListener("click", () => {
+  cancelAnimationFrame(raf);
+  const t0 = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / 2200);
+    V.t = t;
+    document.getElementById("t").value = String(Math.round(t * 1000));
+    document.getElementById("tv").textContent = t.toFixed(2);
+    render();
+    if (t < 1) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+});
+document.getElementById("scheme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.scheme = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  build(); render();
+});
+for (const [id, key, div] of [["shift", "shift", 10], ["n", "n", 1], ["seed", "seed", 1]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    V[key] = +el.value / div;
+    document.getElementById(`${id}v`).textContent = div === 10 ? V[key].toFixed(1) : String(V[key]);
+    build(); render();
+  });
+}
+document.getElementById("t").addEventListener("input", (e) => {
+  cancelAnimationFrame(raf);
+  V.t = +e.target.value / 1000;
+  document.getElementById("tv").textContent = V.t.toFixed(2);
+  render();
+});
+
+build();
+render();
+</script>
+</body>
+</html>

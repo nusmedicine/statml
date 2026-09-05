@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — saying what the confounder actually does</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; max-width: 96ch; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 120px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 2.6em; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 11px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+  .wall { display: grid; gap: var(--sp-4);
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .wall canvas { width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · saying what the confounder actually does</h1>
+
+  <p class="note">
+    Nothing on the figure says that a female reads 1.00 higher than a male, or that batch 2 reads
+    higher than batch 1 — the confounder's effect is baked in and invisible. Four ways to fix
+    that, all live on the real engine at <b>550px</b>, the narrowest canvas the layout allows.
+    <b>Move the confounder dial</b> to see which of them actually tracks it.
+  </p>
+
+  <div class="rail">
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="false">Convenience</button>
+        <button data-v="random" aria-pressed="true">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>confounder <input type="range" id="shift" min="0" max="20" value="10"><output id="shiftv">1.0</output></label>
+    <label>true effect <input type="range" id="eff" min="0" max="10" value="0"><output id="effv">0.0</output></label>
+    <label>n <input type="range" id="n" min="4" max="24" step="2" value="20"><output id="nv">20</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+  </div>
+
+  <div class="wall" id="wall"></div>
+
+  <h2>What each one costs</h2>
+  <p class="note">
+    <b>A</b> is free and says it in words, but it is a sentence a reader can skip and it cannot
+    show the confounder being <em>absent</em>. <b>B</b> is the only one that lets the reader turn
+    the confounder OFF — and at zero, all three allocations agree, which is the cleanest possible
+    demonstration that the confounder is what the allocation is protecting against. <b>C</b> costs
+    a control and about 90px, and it names the structure rather than the size; it also links
+    straight to widget 26, where fork / pipe / collider are already taught. <b>D</b> costs nothing
+    but a few marks and puts the gap where the measurement is, though it only shows the effect
+    the current draw happens to have.
+  </p>
+  <p class="note">
+    They are not exclusive: <b>B + D</b> is a dial whose effect you can watch on the axis, and
+    <b>B + C</b> is a dial whose effect you can watch on the arrow into the diagram.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean } from "../core/stats.js";
+import { readTokens } from "../core/env.js";
+import { welch, POP_PER_ARM, POP_ROWS, POP_COLS, NOISE_SD, BASE } from "../experimental-design/model.js";
+
+const W = 550;
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+
+const CELL = 13;
+const GUTTER = 62;
+const BLOCK_GAP = 9;
+const GRID_W = (POP_COLS + 1) * CELL + BLOCK_GAP;
+const H_ARM = POP_ROWS * CELL;
+const R = CELL * 0.36;
+const gridX = 12 + GUTTER;
+const axisX0 = gridX + GRID_W + 46;
+const axisW = W - axisX0 - 40;
+const armTop = (g) => 26 + g * (H_ARM + 14);
+
+const SCHEMES = { convenience: "Convenience", random: "Randomize", blocked: "Block" };
+const V = { scheme: "random", shift: 1.0, eff: 0, n: 20, seed: 1 };
+let study = null;
+
+/* the widget's own allocateStudy, with the confounder's size as an argument —
+   which is exactly what option B would need it to be */
+function build() {
+  const rng = makeRng(V.seed * 7919 + 1);
+  const makeArm = (arm) => {
+    const out = [];
+    for (let i = 0; i < POP_PER_ARM; i += 1) {
+      const carrier = rng.next() < 0.5;
+      out.push({
+        carrier,
+        y: rng.normal(BASE, NOISE_SD) + (carrier ? V.shift : 0) + (arm ? V.eff : 0),
+        row: Math.floor(i / POP_COLS),
+        col: i % POP_COLS,
+      });
+    }
+    return out;
+  };
+  const population = [makeArm(0), makeArm(1)];
+  const picked = [];
+  for (const g of [0, 1]) {
+    const order = population[g].map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const pop = population[g];
+    let take;
+    if (V.scheme === "convenience") take = order.filter((i) => pop[i].carrier === (g === 1)).slice(0, V.n);
+    else if (V.scheme === "random") take = order.slice(0, V.n);
+    else {
+      const half = Math.round(V.n / 2);
+      take = [...order.filter((i) => pop[i].carrier).slice(0, half),
+        ...order.filter((i) => !pop[i].carrier).slice(0, V.n - half)];
+    }
+    picked.push(take.sort((a, b) => a - b));
+  }
+  const arms = picked.map((ix, g) => ix.map((i) => population[g][i]));
+  study = {
+    population, picked, arms,
+    carried: arms.map((a) => a.filter((s) => s.carrier).length),
+    popCarried: population.map((p) => p.filter((s) => s.carrier).length),
+    ...welch(arms[0].map((s) => s.y), arms[1].map((s) => s.y)),
+  };
+}
+
+/* --- marks ---------------------------------------------------------------- */
+
+function mark(ctx, x, y, carrier, arm, r = R, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const hue = arm ? T.groupB : T.groupA;
+  ctx.beginPath();
+  if (carrier) {
+    const h = r * 1.9;
+    ctx.moveTo(x, y - h * 0.62);
+    ctx.lineTo(x + r * 1.15, y + h * 0.38);
+    ctx.lineTo(x - r * 1.15, y + h * 0.38);
+    ctx.closePath();
+    ctx.fillStyle = hue;
+    ctx.fill();
+  } else {
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = hue;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function ring(ctx, x, y, r = R) {
+  ctx.save();
+  ctx.strokeStyle = T.ink1;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.strokeRect(Math.round(x - r - 2) + 0.5, Math.round(y - r - 2) + 0.5, 2 * r + 4, 2 * r + 4);
+  ctx.restore();
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour;
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+function fit(cv, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = `${W}px`;
+  cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  return ctx;
+}
+
+function blockedCell(pop, i, at) {
+  const carriers = [];
+  const plain = [];
+  pop.forEach((s, k) => (s.carrier ? carriers : plain).push(k));
+  const seat = (rank, dx) => [at.x + dx + (Math.floor(rank / POP_ROWS) + 0.5) * CELL,
+    at.y + ((rank % POP_ROWS) + 0.5) * CELL];
+  const inC = carriers.indexOf(i);
+  if (inC >= 0) return seat(inC, 0);
+  return seat(plain.indexOf(i), Math.ceil(carriers.length / POP_ROWS) * CELL + BLOCK_GAP);
+}
+function seatOf(pop, i, at, sorted) {
+  const s = pop[i];
+  if (!sorted) return [at.x + (s.col + 0.5) * CELL, at.y + (s.row + 0.5) * CELL];
+  return blockedCell(pop, i, at);
+}
+function valueRange() {
+  const all = study.population.flat().map((s) => s.y);
+  return [Math.min(...all) - 0.15, Math.max(...all) + 0.15];
+}
+function stack(vals, lo, hi) {
+  const slots = [];
+  return vals.map((v) => {
+    const px = ((v - lo) / (hi - lo)) * axisW;
+    let row = 0;
+    while (slots[row] !== undefined && px - slots[row] < 2 * R + 1) row += 1;
+    slots[row] = px;
+    return [axisX0 + px, row];
+  });
+}
+
+/** The band every option shares: two populations, the arrow, the sample. */
+function band(ctx, yOff = 0) {
+  const sorted = V.scheme !== "random";
+  const [lo, hi] = valueRange();
+  const names = ["Control", "Disease"];
+  for (const g of [0, 1]) {
+    const top = armTop(g) + yOff;
+    const at = { x: gridX, y: top };
+    const mid = top + H_ARM / 2;
+    txt(ctx, gridX - 8, mid - 6, names[g], T.ink2, "right");
+    txt(ctx, gridX - 26, mid + 8, (study.popCarried[g] / POP_PER_ARM).toFixed(2), T.ink3, "center", 12, "600");
+    const chosen = new Set(study.picked[g]);
+    study.population[g].forEach((s, i) => {
+      const [x, y] = seatOf(study.population[g], i, at, sorted);
+      if (chosen.has(i)) { ring(ctx, x, y); return; }
+      mark(ctx, x, y, s.carrier, g);
+    });
+    const ax0 = gridX + GRID_W + 10;
+    const ax1 = axisX0 - 12;
+    ctx.save();
+    ctx.strokeStyle = T.ink3; ctx.fillStyle = T.ink3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax0, mid); ctx.lineTo(ax1 - 5, mid); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax1, mid); ctx.lineTo(ax1 - 6, mid - 3.5); ctx.lineTo(ax1 - 6, mid + 3.5);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    if (g === 0) txt(ctx, (ax0 + ax1) / 2, mid - 9, SCHEMES[V.scheme], T.ink3, "center", 10);
+
+    const floor = top + (POP_ROWS - 0.5) * CELL;
+    const placed = stack(study.arms[g].map((s) => s.y), lo, hi);
+    study.arms[g].forEach((s, i) =>
+      mark(ctx, placed[i][0], floor - placed[i][1] * (2 * R + 1.5), s.carrier, g));
+    txt(ctx, W - 19, mid, (study.carried[g] / V.n).toFixed(2), T.ink3, "center", 12, "600");
+  }
+  const by = armTop(1) + yOff + H_ARM + 6;
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(axisX0, by + 0.5); ctx.lineTo(axisX0 + axisW, by + 0.5); ctx.stroke();
+  txt(ctx, axisX0 + axisW / 2, by + 14, "measured value", T.ink3, "center", 10);
+  return { lo, hi, by };
+}
+
+const BASE_H = armTop(1) + H_ARM + 34;
+
+/* --- the four options ------------------------------------------------------ */
+
+const OPTIONS = [
+  {
+    key: "A",
+    name: "A descriptor",
+    sub: "one line of copy, no control",
+    h: BASE_H,
+    draw(ctx) {
+      txt(ctx, 12, 12,
+        `${SCHEMES[V.scheme]} — 20 of 96 in each population, sampled by sex`,
+        T.ink1, "left", 12, "600");
+      txt(ctx, 12, 26,
+        `a female reads ${V.shift.toFixed(2)} higher than a male, whichever arm she is in`,
+        T.ink3, "left", 10);
+      band(ctx, 8);
+    },
+    cap: "<b>Says it, and cannot show it.</b> Free, and it is the only option that names the "
+      + "direction in words. But a reader can skip a sentence, and there is no state in which "
+      + "the confounder is absent to compare against.",
+  },
+  {
+    key: "B",
+    name: "A dial",
+    sub: "the confounder's size becomes a parameter",
+    h: BASE_H,
+    draw(ctx) {
+      txt(ctx, 12, 12,
+        `${SCHEMES[V.scheme]} — the confounder shifts a female by ${V.shift.toFixed(2)}`,
+        T.ink1, "left", 12, "600");
+      /* the two population distributions, so the dial has something to move */
+      const [lo, hi] = valueRange();
+      const y0 = 26;
+      for (const [carrier, lab] of [[true, "female"], [false, "male"]]) {
+        const vals = study.population.flat().filter((s) => s.carrier === carrier).map((s) => s.y);
+        const m = mean(vals);
+        const mx = axisX0 + ((m - lo) / (hi - lo)) * axisW;
+        ctx.save();
+        ctx.strokeStyle = carrier ? T.ink1 : T.ink3;
+        ctx.lineWidth = carrier ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(mx, y0 - 4); ctx.lineTo(mx, y0 + 4); ctx.stroke();
+        ctx.restore();
+        txt(ctx, mx, y0 - 10, lab, T.ink3, "center", 9);
+      }
+      band(ctx, 12);
+    },
+    cap: "<b>The only one that can turn the confounder OFF.</b> At zero all three allocations "
+      + "agree, which is the cleanest demonstration there is that the allocation exists to "
+      + "protect against this and nothing else. Costs one control.",
+  },
+  {
+    key: "C",
+    name: "A causal diagram",
+    sub: "names the structure, not the size",
+    h: BASE_H + 62,
+    draw(ctx) {
+      txt(ctx, 12, 12, `${SCHEMES[V.scheme]} — 20 of 96 in each population`,
+        T.ink1, "left", 12, "600");
+      dag(ctx, 12, 22);
+      band(ctx, 70);
+    },
+    cap: "<b>The structure, in the vocabulary widget 26 already teaches.</b> The confounder "
+      + "always points at the measurement; whether it also points at the arm is exactly what "
+      + "the allocation decides — solid under Convenience, faint under Randomize (a chance "
+      + "association each draw), absent under Block. Costs about 60px.",
+  },
+  {
+    key: "D",
+    name: "On the value axis",
+    sub: "the gap where the measurement is",
+    h: BASE_H,
+    draw(ctx) {
+      txt(ctx, 12, 12, `${SCHEMES[V.scheme]} — 20 of 96 in each population, sampled by sex`,
+        T.ink1, "left", 12, "600");
+      const { lo, hi, by } = band(ctx, 8);
+      /* the population's two group means, and the gap between them */
+      const ms = [true, false].map((c) => mean(study.population.flat()
+        .filter((s) => s.carrier === c).map((s) => s.y)));
+      const xs = ms.map((m) => axisX0 + ((m - lo) / (hi - lo)) * axisW);
+      ctx.save();
+      ctx.strokeStyle = T.ink2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xs[1], by + 22); ctx.lineTo(xs[0], by + 22);
+      ctx.moveTo(xs[0], by + 18); ctx.lineTo(xs[0], by + 26);
+      ctx.moveTo(xs[1], by + 18); ctx.lineTo(xs[1], by + 26);
+      ctx.stroke();
+      ctx.restore();
+      txt(ctx, (xs[0] + xs[1]) / 2, by + 34,
+        `females sit ${(ms[0] - ms[1]).toFixed(2)} higher`, T.ink2, "center", 10);
+    },
+    cap: "<b>Puts the gap on the axis it is measured on.</b> Costs almost nothing, and it is a "
+      + "reading of the data rather than a claim about it. But it shows the effect THIS draw "
+      + "happens to have, and it cannot be switched off.",
+  },
+];
+
+/** Confounder -> Measurement always; Confounder -> Arm only where the design allows it. */
+function dag(ctx, x, y) {
+  const node = (cx, cy, text, tone) => {
+    ctx.save();
+    ctx.fillStyle = T.surface;
+    ctx.strokeStyle = tone;
+    ctx.lineWidth = 1.2;
+    const w = ctx.measureText(text).width;
+    ctx.beginPath();
+    ctx.roundRect(cx - 30, cy - 10, 60, 20, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    txt(ctx, cx, cy, text, tone, "center", 10);
+    return [cx, cy];
+  };
+  const arrow = (from, to, tone, dash, label) => {
+    ctx.save();
+    ctx.strokeStyle = tone;
+    ctx.fillStyle = tone;
+    ctx.lineWidth = 1.2;
+    if (dash) ctx.setLineDash(dash);
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    const len = Math.hypot(dx, dy);
+    const ux = dx / len;
+    const uy = dy / len;
+    const sx = from[0] + ux * 32;
+    const sy = from[1] + uy * 14;
+    const ex = to[0] - ux * 34;
+    const ey = to[1] - uy * 15;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - ux * 6 - uy * 3.5, ey - uy * 6 + ux * 3.5);
+    ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if (label) txt(ctx, (sx + ex) / 2, (sy + ey) / 2 - 7, label, tone, "center", 9);
+  };
+  ctx.font = `10px ${FONT}`;
+  const conf = node(x + 70, y + 12, "Sex", T.ink1);
+  const arm = node(x + 210, y + 12, "Arm", T.ink2);
+  const out = node(x + 140, y + 44, "Expression", T.ink2);
+  arrow(conf, out, T.ink1, null, `+${V.shift.toFixed(2)}`);
+  arrow(arm, out, V.eff > 0 ? T.ink1 : T.ink3, V.eff > 0 ? null : [3, 3],
+    V.eff > 0 ? `+${V.eff.toFixed(2)}` : "0");
+  if (V.scheme === "convenience") {
+    arrow(conf, arm, T.extreme, null, "decides it");
+  } else if (V.scheme === "random") {
+    const gap = Math.abs(study.carried[0] - study.carried[1]);
+    arrow(conf, arm, T.ink3, [3, 3], `${gap} of ${V.n} out`);
+  } else {
+    txt(ctx, (conf[0] + arm[0]) / 2, y + 12, "no edge — blocked", T.ink3, "center", 9);
+  }
+}
+
+/* --- page ------------------------------------------------------------------ */
+
+const wall = document.getElementById("wall");
+for (const o of OPTIONS) {
+  const box = document.createElement("div");
+  box.className = "opt";
+  box.innerHTML = `<h3>${o.key} · ${o.name} <em>— ${o.sub}</em></h3>`;
+  const cv = document.createElement("canvas");
+  box.appendChild(cv);
+  const cap = document.createElement("p");
+  cap.className = "cap";
+  cap.innerHTML = o.cap;
+  box.appendChild(cap);
+  wall.appendChild(box);
+  o.cv = cv;
+}
+
+function render() {
+  for (const o of OPTIONS) o.draw(fit(o.cv, o.h));
+}
+
+document.getElementById("scheme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.scheme = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  build(); render();
+});
+for (const [id, key, div] of [["shift", "shift", 10], ["eff", "eff", 10], ["n", "n", 1], ["seed", "seed", 1]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    V[key] = +el.value / div;
+    document.getElementById(`${id}v`).textContent = div === 10 ? V[key].toFixed(1) : String(V[key]);
+    build(); render();
+  });
+}
+
+build();
+render();
+</script>
+</body>
+</html>

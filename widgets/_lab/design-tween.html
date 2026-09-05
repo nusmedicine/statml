@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 44 — how the sample gets from the population to the axis</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3);
+       border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .opt h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; max-width: 96ch; }
+  .cap b { color: var(--ink-1); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 120px; }
+  .rail input#t { width: 260px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 2.6em; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: var(--fs-sm); padding: 3px 11px; cursor: pointer;
+                background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--grid);
+                margin-left: -1px; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed=true] { background: var(--c-highlight); color: #fff; font-weight: 600;
+                                   border-color: var(--c-highlight); }
+
+  /* ALL SEVEN ON ONE SCREEN. The first version of this page stacked them at
+     full size, 3000px tall — you had to scroll 1800px past A to reach F, and a
+     comparison you cannot hold in one view is not a comparison. */
+  .wall { display: grid; gap: var(--sp-3) var(--sp-4);
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .wall .opt { cursor: pointer; padding: 6px; border: 1px solid transparent; border-radius: 4px; }
+  .wall .opt[data-on=true] { border-color: var(--c-highlight); background: var(--surface-2); }
+  .wall canvas { width: 100%; height: auto; }
+  .wall .cap { display: none; }
+
+  .focus { margin: 0 0 var(--sp-4); }
+  .focus canvas { width: 550px; max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 44 · how the sample gets from the population to the axis</h1>
+
+  <p class="note">
+    All of these run the widget's own engine at <b>550px</b> — the narrowest canvas the side
+    layout allows, which is where every fingerprint state is hashed and the tightest the figure
+    ever gets. <b>Drag the scrubber</b> to freeze every option at the same instant and compare
+    them; Play runs them in sync.
+  </p>
+  <p class="note">
+    <b>Why the current one is jarring, stated precisely.</b> Each subject travels a straight line
+    from its grid cell to its landing spot, and the vertical half of that line carries nothing:
+    a subject's grid ROW is unrelated to its stack ROW, which is assigned by collision on the
+    value axis. Release order is grid order and landing order is value order, so about half the
+    flights swap places in mid-air, and the per-subject offset only delays the start — everything
+    still lands on the same frame, so the crossing is worst exactly at the end.
+  </p>
+
+  <div class="rail">
+    <label>allocation
+      <span class="seg" id="scheme">
+        <button data-v="convenience" aria-pressed="false">Convenience</button>
+        <button data-v="random" aria-pressed="true">Randomize</button>
+        <button data-v="blocked" aria-pressed="false">Block</button>
+      </span>
+    </label>
+    <label>n <input type="range" id="n" min="4" max="24" step="2" value="20"><output id="nv">20</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+    <label>confounder mark
+      <span class="seg" id="enc">
+        <button data-v="alpha" aria-pressed="true">Shape + fade</button>
+        <button data-v="plain" aria-pressed="false">Shape only</button>
+        <button data-v="hollow" aria-pressed="false">Filled / hollow</button>
+        <button data-v="ink" aria-pressed="false">Colour / grey</button>
+      </span>
+    </label>
+    <span class="seg"><button id="play">Play all</button></span>
+    <label>t <input type="range" id="t" min="0" max="1000" value="1000"><output id="tv">1.00</output></label>
+  </div>
+
+  <p class="note" style="margin-bottom:var(--sp-2)">
+    <b>All seven, live and in sync.</b> A–E are the five ways the sample can travel; F and G are
+    the blocking question. Drag <b>t</b> to freeze them all at the same instant, or press Play.
+    <b>Click one</b> to see it at full size underneath.
+  </p>
+  <div class="wall" id="wall"></div>
+
+  <h2 id="focusHead">A · Straight line, staggered</h2>
+  <div class="focus"><canvas id="focusCv"></canvas></div>
+  <p class="cap" id="focusCap" style="display:block"></p>
+
+  <h2>What the two questions are</h2>
+  <p class="note">
+    <b>The tween (A–E).</b> Each subject currently travels a straight line from its grid cell to
+    its landing spot, and the vertical half of that line carries nothing: a subject's grid ROW is
+    unrelated to its stack ROW, which is assigned by collision on the value axis. Release order is
+    grid order and landing order is value order, so about half the flights swap places in mid-air,
+    and the per-subject offset only delays the start — everything still lands on the same frame,
+    so the crossing is worst exactly at the end.
+  </p>
+  <p class="note">
+    <b>The blocking (F, G).</b> Blocking IS a partition: you split the population by the confounder
+    and then sample within each part. F never shows that act — the boxes simply land in the right
+    proportions. G sorts the population into its two blocks first, and the same beat then explains
+    all three schemes: Convenience takes everything from one block, Block takes equally from both,
+    and Randomize skips the sort entirely, which is itself the difference between them.
+  </p>
+  <p class="note">
+    Everything is drawn at <b>550px</b>, the narrowest canvas the side layout allows — where every
+    fingerprint state is hashed and the tightest the figure ever gets.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { mean } from "../core/stats.js";
+import { readTokens } from "../core/env.js";
+import { allocateStudy, POP_PER_ARM, POP_ROWS, POP_COLS } from "../experimental-design/model.js";
+
+const W = 550;                    /* the narrowest canvas the side layout allows */
+const T = readTokens();
+const FONT = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+
+const CELL = 13;
+const H_ARM = POP_ROWS * CELL;
+const GUTTER = 62;
+const GRID_W = POP_COLS * CELL;
+const H = 2 * H_ARM + 46;
+const R = CELL * 0.36;
+
+const SCHEMES = { convenience: "Convenience", random: "Randomize", blocked: "Block" };
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+/* a sub-interval of [0,1], eased — every option below is built out of these */
+const seg = (t, a, b) => ease(clamp01((t - a) / (b - a)));
+
+const V = { scheme: "random", n: 20, seed: 1, t: 1, enc: "alpha" };
+let study = null;
+
+function rebuild() {
+  study = allocateStudy(makeRng(V.seed * 7919 + 1), { n: V.n, scheme: V.scheme, effect: 0 });
+}
+
+/* --- marks ---------------------------------------------------------------- */
+
+/* FOUR WAYS TO SAY "THIS SUBJECT CARRIES THE CONFOUNDER", switchable live.
+   Shape is constant in all four — a triangle carries it, a circle does not —
+   and what varies is the second, redundant channel that makes the shapes
+   legible at a 13px pitch where a triangle and a circle are nearly the same
+   blob. Colour always means the ARM and never the confounder. */
+function mark(ctx, x, y, carrier, arm, r = R, alpha = 1) {
+  const hue = arm ? T.groupB : T.groupA;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const path = () => {
+    ctx.beginPath();
+    if (carrier) {
+      const h = r * 1.9;
+      ctx.moveTo(x, y - h * 0.62);
+      ctx.lineTo(x + r * 1.15, y + h * 0.38);
+      ctx.lineTo(x - r * 1.15, y + h * 0.38);
+      ctx.closePath();
+    } else ctx.arc(x, y, r, 0, Math.PI * 2);
+  };
+  if (V.enc === "hollow" && !carrier) {
+    /* an outline, so the two marks weigh the same and neither recedes */
+    path();
+    ctx.strokeStyle = hue;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  } else if (V.enc === "ink" && !carrier) {
+    /* the non-carrier gives up the arm's colour, which is a real cost: half
+       the population then says nothing about which arm it belongs to */
+    path();
+    ctx.fillStyle = T.ink3;
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.fill();
+  } else {
+    path();
+    ctx.fillStyle = hue;
+    if (V.enc === "alpha" && !carrier) ctx.globalAlpha = alpha * 0.42;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function ring(ctx, x, y, r = R, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = T.ink1;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.strokeRect(Math.round(x - r - 2) + 0.5, Math.round(y - r - 2) + 0.5, 2 * r + 4, 2 * r + 4);
+  ctx.restore();
+}
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour;
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim();
+  ctx.fillText(s, x, y);
+}
+
+function fit(cv, h = H) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = `${W}px`;
+  cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, h);
+  return ctx;
+}
+
+/* --- geometry shared by every option -------------------------------------- */
+
+const gridX = 12 + GUTTER;
+const axisX0 = gridX + GRID_W + 58;
+const axisW = W - axisX0 - 40;
+const armTop = (g) => 26 + g * (H_ARM + 14);
+
+function valueRange() {
+  const all = study.population.flat().map((s) => s.y);
+  return [Math.min(...all) - 0.15, Math.max(...all) + 0.15];
+}
+/** Landing slots on the value axis, stacked where they collide. */
+function landing(g, lo, hi) {
+  const picked = study.arms[g];
+  const slots = [];
+  const floor = armTop(g) + H_ARM - R - 1;
+  return picked.map((s) => {
+    const px = axisX0 + ((s.y - lo) / (hi - lo)) * axisW;
+    let row = 0;
+    while (slots[row] !== undefined && px - slots[row] < 2 * R + 1) row += 1;
+    slots[row] = px;
+    return [px, floor - row * (2 * R + 1.5)];
+  });
+}
+const cellAt = (g, s) => [gridX + (s.col + 0.5) * CELL, armTop(g) + (s.row + 0.5) * CELL];
+
+/** The population, and the arrow. Every option draws this identically. */
+function backdrop(ctx, ringAt) {
+  const label = ["Control", "Disease"];
+  for (const g of [0, 1]) {
+    const top = armTop(g);
+    const midY = top + H_ARM / 2;
+    txt(ctx, gridX - 8, midY, label[g], T.ink2, "right");
+    const chosen = new Set(study.picked[g]);
+    study.population[g].forEach((s, i) => {
+      const [x, y] = cellAt(g, s);
+      mark(ctx, x, y, s.carrier, g, R, s.carrier ? 1 : 0.42);
+      if (chosen.has(i)) {
+        const a = ringAt ? ringAt(g, i) : 1;
+        if (a > 0) ring(ctx, x, y, R, a);
+      }
+    });
+    const ax0 = gridX + GRID_W + 10;
+    const ax1 = axisX0 - 12;
+    ctx.save();
+    ctx.strokeStyle = T.ink3; ctx.fillStyle = T.ink3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax0, midY); ctx.lineTo(ax1 - 5, midY); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax1, midY); ctx.lineTo(ax1 - 6, midY - 3.5); ctx.lineTo(ax1 - 6, midY + 3.5);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if (g === 0) txt(ctx, (ax0 + ax1) / 2, midY - 9, SCHEMES[V.scheme], T.ink3, "center");
+  }
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  const by = armTop(1) + H_ARM + 6;
+  ctx.beginPath(); ctx.moveTo(axisX0, by + 0.5); ctx.lineTo(axisX0 + axisW, by + 0.5); ctx.stroke();
+  txt(ctx, axisX0 + axisW / 2, by + 16, "measured value", T.ink3, "center", 10);
+}
+
+/* --- the five options ------------------------------------------------------ */
+
+const OPTIONS = [
+  {
+    key: "A",
+    name: "Straight line, staggered",
+    sub: "what ships now",
+    cap: "<b>Every subject on its own diagonal.</b> The vertical half of each line is noise — a "
+      + "grid row has nothing to do with a stack row — and release order (grid) is unrelated to "
+      + "landing order (value), so the paths cross. Everything lands on the same frame.",
+    draw(ctx, t) {
+      backdrop(ctx, () => 1);
+      const [lo, hi] = valueRange();
+      for (const g of [0, 1]) {
+        const land = landing(g, lo, hi);
+        study.arms[g].forEach((s, i) => {
+          const [gx, gy] = cellAt(g, s);
+          const stag = Math.min(0.45, (i / study.arms[g].length) * 0.45);
+          const tt = ease(clamp01((t - stag) / (1 - stag || 1)));
+          mark(ctx, gx + (land[i][0] - gx) * tt, gy + (land[i][1] - gy) * tt,
+            s.carrier, g, R, s.carrier ? 1 : 0.42);
+        });
+      }
+    },
+  },
+  {
+    key: "B",
+    name: "Boxes draw in, then the sample appears",
+    sub: "Kenneth's suggestion",
+    cap: "<b>Two beats, no travel.</b> The dashed boxes arrive one at a time across the first "
+      + "half — which is the only part that carries information, since WHICH subjects were "
+      + "chosen is the whole point — and the sample then fades in where it belongs. Nothing "
+      + "crosses anything. It never shows the two halves are the same twenty people.",
+    draw(ctx, t) {
+      const rings = clamp01(t / 0.5);
+      backdrop(ctx, (g, i) => {
+        const k = study.picked[g].indexOf(i);
+        return clamp01(rings * study.picked[g].length - k);
+      });
+      const a = seg(t, 0.5, 1);
+      if (a <= 0) return;
+      const [lo, hi] = valueRange();
+      for (const g of [0, 1]) {
+        const land = landing(g, lo, hi);
+        study.arms[g].forEach((s, i) =>
+          mark(ctx, land[i][0], land[i][1], s.carrier, g, R, (s.carrier ? 1 : 0.42) * a));
+      }
+    },
+  },
+  {
+    key: "C",
+    name: "Right first, then settle",
+    sub: "the two components separated",
+    cap: "<b>Out of the grid at its own height, then down into its slot.</b> The horizontal move "
+      + "is the sampling and the vertical one is the sorting, and doing them in sequence means "
+      + "neither is read as the other. Paths still cross horizontally, but nothing swaps "
+      + "vertically while it travels.",
+    draw(ctx, t) {
+      backdrop(ctx, () => 1);
+      const [lo, hi] = valueRange();
+      const tx = seg(t, 0, 0.62);
+      const ty = seg(t, 0.5, 1);
+      for (const g of [0, 1]) {
+        const land = landing(g, lo, hi);
+        study.arms[g].forEach((s, i) => {
+          const [gx, gy] = cellAt(g, s);
+          mark(ctx, gx + (land[i][0] - gx) * tx, gy + (land[i][1] - gy) * ty,
+            s.carrier, g, R, s.carrier ? 1 : 0.42);
+        });
+      }
+    },
+  },
+  {
+    key: "D",
+    name: "Convoy, then spread",
+    sub: "the sample keeps its shape while it moves",
+    cap: "<b>SHIPPED, with the slant fixed.</b> The selected subjects move as one block, "
+      + "holding their grid layout, and only open out into value order once they arrive. The "
+      + "travel is horizontal — the first version used the centroid's full offset and came out "
+      + "13 degrees below horizontal, which is what Kenneth saw.",
+    draw(ctx, t) {
+      backdrop(ctx, () => 1);
+      const [lo, hi] = valueRange();
+      const move = seg(t, 0, 0.55);
+      const open = seg(t, 0.45, 1);
+      for (const g of [0, 1]) {
+        const land = landing(g, lo, hi);
+        const cells = study.arms[g].map((s) => cellAt(g, s));
+        /* the convoy's destination: the same layout, shifted onto the axis */
+        const cx0 = cells.reduce((a, c) => a + c[0], 0) / cells.length;
+        const lx0 = land.reduce((a, c) => a + c[0], 0) / land.length;
+        study.arms[g].forEach((s, i) => {
+          const [gx, gy] = cells[i];
+          /* HORIZONTAL ONLY — the correction Kenneth caught after picking D.
+             Using the centroid's full offset put the convoy 60px lower at the
+             end of a 250px journey, a 13-degree downward slant, because the
+             grid sits at y = 52 in the band while the sample stacks from a
+             floor at y = 120. Every vertical pixel now belongs to `open`. */
+          const convoyX = gx + (lx0 - cx0) * move;
+          mark(ctx, convoyX + (land[i][0] - convoyX) * open,
+            gy + (land[i][1] - gy) * open, s.carrier, g, R, s.carrier ? 1 : 0.42);
+        });
+      }
+    },
+  },
+  {
+    key: "E",
+    name: "One at a time",
+    sub: "the collection's own idiom",
+    cap: "<b>Each subject leaves, lands, and only then does the next one go.</b> Nothing ever "
+      + "crosses because only one thing is ever moving, and at n = 20 the whole selection is "
+      + "legible. It is also the slowest — twenty beats where the others take one.",
+    draw(ctx, t) {
+      backdrop(ctx, () => 1);
+      const [lo, hi] = valueRange();
+      for (const g of [0, 1]) {
+        const land = landing(g, lo, hi);
+        const n = study.arms[g].length;
+        study.arms[g].forEach((s, i) => {
+          const tt = ease(clamp01(t * n - i));
+          const [gx, gy] = cellAt(g, s);
+          mark(ctx, gx + (land[i][0] - gx) * tt, gy + (land[i][1] - gy) * tt,
+            s.carrier, g, R, s.carrier ? 1 : 0.42);
+        });
+      }
+    },
+  },
+];
+
+/* --- the blocking question ------------------------------------------------- */
+
+/* Where a subject sits once the population is sorted into its two blocks.
+
+   A GAP, not a line. The first attempt drew a dashed rule at
+   `top + (nCarriers / COLS) * CELL`, which is only a row boundary when the
+   carrier count divides by 12 — a coin flip gives 51 as often as 48, and the
+   rule then cut through the middle of a row and claimed an edge that was not
+   there. Carriers fill whole rows from the top, the non-carriers start on a
+   fresh row below, and the empty space between them is the partition. */
+const BLOCK_GAP = 9;
+const rowsFor = (k) => Math.ceil(k / POP_COLS);
+
+function blockedCell(g, pop, i, top) {
+  const carriers = [];
+  const plain = [];
+  pop.forEach((s, k) => (s.carrier ? carriers : plain).push(k));
+  const inC = carriers.indexOf(i);
+  if (inC >= 0) {
+    return [gridX + ((inC % POP_COLS) + 0.5) * CELL,
+      top + (Math.floor(inC / POP_COLS) + 0.5) * CELL];
+  }
+  const j = plain.indexOf(i);
+  const below = rowsFor(carriers.length) * CELL + BLOCK_GAP;
+  return [gridX + ((j % POP_COLS) + 0.5) * CELL,
+    top + below + (Math.floor(j / POP_COLS) + 0.5) * CELL];
+}
+
+/* the sorted grid can need one row more than the unsorted one (51 carriers is
+   5 rows, 45 non-carriers is 4), so the block section gets its own height */
+const H_BLOCK = 2 * (H_ARM + CELL + BLOCK_GAP) + 52;
+const blockTop = (g) => 26 + g * (H_ARM + CELL + BLOCK_GAP + 16);
+
+function blockBackdropAxis(ctx) {
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  const by = blockTop(1) + H_ARM + CELL + BLOCK_GAP + 4;
+  ctx.beginPath();
+  ctx.moveTo(axisX0, by + 0.5);
+  ctx.lineTo(axisX0 + axisW, by + 0.5);
+  ctx.stroke();
+  txt(ctx, axisX0 + axisW / 2, by + 16, "measured value", T.ink3, "center", 10);
+  return by;
+}
+
+/** Landing slots for the block section, whose bands sit lower. */
+function blockLanding(g, lo, hi) {
+  const picked = study.arms[g];
+  const slots = [];
+  const floor = blockTop(g) + H_ARM + CELL + BLOCK_GAP - R - 1;
+  return picked.map((s) => {
+    const px = axisX0 + ((s.y - lo) / (hi - lo)) * axisW;
+    let row = 0;
+    while (slots[row] !== undefined && px - slots[row] < 2 * R + 1) row += 1;
+    slots[row] = px;
+    return [px, floor - row * (2 * R + 1.5)];
+  });
+}
+
+function blockArrow(ctx, midY, g) {
+  const ax0 = gridX + GRID_W + 10;
+  const ax1 = axisX0 - 12;
+  ctx.save();
+  ctx.strokeStyle = T.ink3; ctx.fillStyle = T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ax0, midY); ctx.lineTo(ax1 - 5, midY); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ax1, midY); ctx.lineTo(ax1 - 6, midY - 3.5); ctx.lineTo(ax1 - 6, midY + 3.5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  if (g === 0) txt(ctx, (ax0 + ax1) / 2, midY - 9, SCHEMES[V.scheme], T.ink3, "center");
+}
+
+const BLOCK_OPTIONS = [
+  {
+    key: "F",
+    name: "Select directly",
+    sub: "what ships now",
+    h: H_BLOCK,
+    cap: "<b>The boxes land in the right proportions and the act is invisible.</b> Under Block "
+      + "the reader sees ten triangles and ten circles chosen and has to work out why they were "
+      + "the ones chosen.",
+    draw(ctx, t) {
+      const rings = clamp01(t / 0.5);
+      const a = seg(t, 0.5, 1);
+      const label = ["Control", "Disease"];
+      const [lo, hi] = valueRange();
+      for (const g of [0, 1]) {
+        const top = blockTop(g);
+        const midY = top + (H_ARM + CELL + BLOCK_GAP) / 2;
+        txt(ctx, gridX - 8, midY, label[g], T.ink2, "right");
+        const chosen = new Set(study.picked[g]);
+        study.population[g].forEach((s, i) => {
+          const x = gridX + (s.col + 0.5) * CELL;
+          const y = top + (s.row + 0.5) * CELL;
+          mark(ctx, x, y, s.carrier, g, R, s.carrier ? 1 : 0.42);
+          if (chosen.has(i)) {
+            const k = study.picked[g].indexOf(i);
+            const al = clamp01(rings * study.picked[g].length - k);
+            if (al > 0) ring(ctx, x, y, R, al);
+          }
+        });
+        blockArrow(ctx, midY, g);
+        if (a > 0) {
+          const land = blockLanding(g, lo, hi);
+          study.arms[g].forEach((s, i) =>
+            mark(ctx, land[i][0], land[i][1], s.carrier, g, R, (s.carrier ? 1 : 0.42) * a));
+        }
+      }
+      blockBackdropAxis(ctx);
+    },
+  },
+  {
+    key: "G",
+    name: "Sort into blocks, then select",
+    sub: "the partition as its own beat",
+    h: H_BLOCK,
+    cap: "<b>The population reorganises so the two blocks are visibly separate, and only then "
+      + "are subjects taken.</b> The same stage explains all three schemes: Convenience takes "
+      + "everything from one block, Block takes equally from both, Randomize never partitions. "
+      + "It costs one beat and about 22px of height.",
+    draw(ctx, t) {
+      /* Randomize does not partition — that IS the difference between it and
+         the other two, so it must not borrow their beat. Its selection simply
+         starts at t = 0 where the others wait for the sort. */
+      const partitions = V.scheme !== "random";
+      const sort = partitions ? seg(t, 0, 0.45) : 0;
+      const rings = partitions ? clamp01((t - 0.45) / 0.25) : clamp01(t / 0.45);
+      const label = ["Control", "Disease"];
+      const [lo, hi] = valueRange();
+      for (const g of [0, 1]) {
+        const top = blockTop(g);
+        const midY = top + (H_ARM + CELL + BLOCK_GAP) / 2;
+        txt(ctx, gridX - 8, midY, label[g], T.ink2, "right");
+        const pop = study.population[g];
+        const chosen = new Set(study.picked[g]);
+        const nCar = pop.filter((s) => s.carrier).length;
+        pop.forEach((s, i) => {
+          const x0 = gridX + (s.col + 0.5) * CELL;
+          const y0 = top + (s.row + 0.5) * CELL;
+          const [x1, y1] = blockedCell(g, pop, i, top);
+          const x = x0 + (x1 - x0) * sort;
+          const y = y0 + (y1 - y0) * sort;
+          mark(ctx, x, y, s.carrier, g, R, s.carrier ? 1 : 0.42);
+          if (chosen.has(i)) {
+            const k = study.picked[g].indexOf(i);
+            const al = clamp01(rings * study.picked[g].length - k);
+            if (al > 0) ring(ctx, x, y, R, al);
+          }
+        });
+        if (partitions && sort > 0.25 && g === 0) {
+          const al = (sort - 0.25) / 0.75;
+          ctx.save();
+          ctx.globalAlpha = al;
+          txt(ctx, gridX + GRID_W + 4, top + 8, `${nCar} carry it`, T.ink3, "left", 10);
+          txt(ctx, gridX + GRID_W + 4,
+            top + rowsFor(nCar) * CELL + BLOCK_GAP + 8, `${POP_PER_ARM - nCar} do not`,
+            T.ink3, "left", 10);
+          ctx.restore();
+        }
+        blockArrow(ctx, midY, g);
+        const a = partitions ? seg(t, 0.7, 1) : seg(t, 0.45, 1);
+        if (a > 0) {
+          const land = blockLanding(g, lo, hi);
+          study.arms[g].forEach((s, i) =>
+            mark(ctx, land[i][0], land[i][1], s.carrier, g, R, (s.carrier ? 1 : 0.42) * a));
+        }
+      }
+      blockBackdropAxis(ctx);
+    },
+  },
+];
+
+/* --- page ------------------------------------------------------------------ */
+
+const ALL = [...OPTIONS, ...BLOCK_OPTIONS];
+let focused = ALL[0];
+
+const wall = document.getElementById("wall");
+for (const o of ALL) {
+  const box = document.createElement("div");
+  box.className = "opt";
+  box.dataset.key = o.key;
+  box.innerHTML = `<h3>${o.key} · ${o.name} <em>— ${o.sub}</em></h3>`;
+  const cv = document.createElement("canvas");
+  box.appendChild(cv);
+  wall.appendChild(box);
+  o.cv = cv;
+  box.addEventListener("click", () => { focused = o; render(); });
+}
+
+const focusCv = document.getElementById("focusCv");
+const focusHead = document.getElementById("focusHead");
+const focusCap = document.getElementById("focusCap");
+
+function render() {
+  for (const o of ALL) {
+    o.draw(fit(o.cv, o.h ?? H), V.t);
+    const box = wall.querySelector(`.opt[data-key="${o.key}"]`);
+    if (box) box.dataset.on = String(o === focused);
+  }
+  focusHead.textContent = `${focused.key} · ${focused.name} — ${focused.sub}`;
+  focusCap.innerHTML = focused.cap;
+  focused.draw(fit(focusCv, focused.h ?? H), V.t);
+}
+
+let raf = null;
+function play() {
+  cancelAnimationFrame(raf);
+  const t0 = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / 1600);
+    V.t = t;
+    document.getElementById("t").value = String(Math.round(t * 1000));
+    document.getElementById("tv").textContent = t.toFixed(2);
+    render();
+    if (t < 1) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+document.getElementById("enc").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.enc = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  render();
+});
+
+document.getElementById("scheme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  V.scheme = b.dataset.v;
+  [...b.parentElement.children].forEach((n) => n.setAttribute("aria-pressed", String(n === b)));
+  rebuild(); play();
+});
+for (const [id, key] of [["n", "n"], ["seed", "seed"]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    V[key] = +el.value;
+    document.getElementById(`${id}v`).textContent = String(+el.value);
+    rebuild(); render();
+  });
+}
+document.getElementById("t").addEventListener("input", (e) => {
+  cancelAnimationFrame(raf);
+  V.t = +e.target.value / 1000;
+  document.getElementById("tv").textContent = V.t.toFixed(2);
+  render();
+});
+document.getElementById("play").addEventListener("click", play);
+
+rebuild();
+render();
+</script>
+</body>
+</html>

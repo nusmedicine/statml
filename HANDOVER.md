@@ -1,37 +1,174 @@
 # Handover
 
-**FORTY-THREE WIDGETS SHIPPED — 42 on the gallery, `roc-auc` UNLISTED (live at
-its URL, off the cards; Kenneth's call, 2026-08-30) — and 324 fingerprint states
-recorded. `/lab/` is empty: there is no draft.**
-
-**WIDGET 43 `enrichment` SHIPPED 2026-09-05** after two days and roughly twenty
-review rounds. Slot 5 of the high-throughput arc was the last one open, so
-**the arc is complete**.
-
-```bash
-node scripts/serve.mjs 8010   # 8010-8012 are often taken; launch.json goes to 8014
-# /widgets/enrichment/?view=ora&page=one     Venn + 2 x 2
-# /widgets/enrichment/?view=ora&page=all     ... plus eight rows and BH
-# /widgets/enrichment/?view=gsea&page=one&shown=400&pathway=1   THE ARGUMENT
-# /widgets/enrichment/?view=gsea&page=all    ... plus ES, NES, p, after BH
-node widgets/_lab/enr-measure.mjs   # nine sections; SS 4-7 re-measured 2026-09-04
-node widgets/_lab/enr-metric.mjs    # why the OBVIOUS ranking-metric design was wrong
-node widgets/_lab/enr-table.mjs     # why the score table needed NES, not ES
-# widgets/_lab/enr-shape.html       # the three shapes, one of which he picked
-# widgets/_lab/enr-subpages.html    # the four-page mock-up, annotated with what it got wrong
-```
-
-**WHAT THE WIDGET IS.** Four pages: method (overrepresentation / enrichment
-score) x view (one pathway / all pathways). *All pathways* is the one-pathway
-figure PLUS a clickable results table — clicking a row drives the figure above
-it, and the walk survives the click because `pathway` is a display parameter.
-On seed 174 the argument lands in one view: pathway 2 is down-regulated, the
-score finds it at permutation p 0.001, and overrepresentation reads 0.9991 with
-one gene of 41 in the list.
+**FORTY-FOUR WIDGETS — 43 on the gallery, `roc-auc` UNLISTED (live at its URL,
+off the cards; Kenneth's call, 2026-08-30). 334 fingerprint states, of which
+**widget 44's ten are still PLACEHOLDERS**. `/lab/` is empty: there is no
+draft.**
 
 ---
 
-## A CORE BUG THIS SHIPPED THROUGH — read before the next widget with regions
+# WIDGET 44 `experimental-design` — COMMITTED, NOT PUSHED, NOT BASELINED
+
+**PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
+until Kenneth reopened it on 2026-09-05. Built and reviewed across roughly
+twenty rounds in one session. **He stopped mid-review and asked to continue in a
+new session**, which is why nothing here is finished off.
+
+```bash
+node scripts/serve.mjs 8014
+W=http://localhost:8014/widgets/experimental-design
+# $W/?scheme=convenience&shown=200        half of each population greys out, opposite halves
+# $W/?scheme=blocked&shown=200            both blocks lit, 10 taken from each
+# $W/?scheme=convenience&shift=down1&effect=moderate&shown=200
+#                                         200 of 200 significant, every one the wrong sign
+# $W/?concept=budget&people=30&reps=1&shown=200    0.142 from the truth
+# $W/?concept=budget&people=3&reps=10&shown=200    0.328 — same budget, twice as far off
+node widgets/_lab/design-measure.mjs      # every number the widget prints, ss1-9
+node widgets/_lab/design-taxonomy.mjs     # why the observational slide needs no widget
+```
+
+## THE THREE THINGS TO DO FIRST, NEXT SESSION
+
+1. **DO NOT BASELINE YET.** The ten states in `fingerprint-baseline.json` are
+   `"px": "0", "tx": "0"` placeholders and `check` accepts them. The design moved
+   in every one of the last ten rounds; a baseline recorded now is thrown away,
+   which is the `bootstrap` lesson. Baseline when Kenneth says the review is done.
+2. **NOT PUSHED.** Two commits sit on `main` unpushed. Every push publishes.
+3. **The review is unfinished** — read *WHAT IS STILL OPEN* below before
+   changing anything, because several of those are decisions he has already
+   made once.
+
+## WHAT THE WIDGET IS
+
+Two tabs over one notebook.
+
+**Sampling** — one population per seed, 96 per group, drawn as two grids. A
+**background variable** (Sex or Batch) with a signed effect on the measurement,
+and three sampling methods: Non-random, Random, Blocked. Run a study and it
+samples 20 of the 96 in each group; the estimate drops into a pile below,
+against a truth line.
+
+**Replication** — the budget question. `people` x `reps` measurements per group,
+and what happens to the answer when you spend them on repeats instead of people.
+
+## THE DECISIONS KENNETH MADE, SO THEY ARE NOT RE-ARGUED
+
+Each was picked from a `_lab/` mock-up drawn at the real width. **Do not
+silently substitute for any of these** — it happened twice this session and both
+times he caught it.
+
+| what | picked | where |
+|---|---|---|
+| the figure's shape | one study, and the pile it came from | `_lab/design-shape.html` |
+| the tween | **B** — boxes arrive, then the sample appears. No travel | `_lab/design-tween.html` |
+| the confounder mark | **filled / open**, not a fade | `_lab/design-tween.html` |
+| the blocking beat | **G** — sort into blocks first, and Randomize skips it | `_lab/design-tween.html` |
+| telling Non-random from Blocked | **D3** — dim the block nobody drew from | `_lab/design-schemes.html` |
+| the three parts | **L2** — named in time, not three panels | `_lab/design-parts.html` |
+| the confounder display | **C3** — both legs, and his own sketch's orientation | `_lab/design-parts.html` |
+| the population | **P2** — fixed by the seed; Run only re-picks | `_lab/design-population.html` |
+| what moves the bars | **B2** — headings, not a second dial | `_lab/design-population.html` |
+| the ground truth | pinned to the dial, cost accepted | measured below |
+| the control's name | **Background variable** | four standard names offered |
+| the subtitle | his own draft, smoothed | five smoothings offered |
+
+**Two he reversed after seeing them run**: the analysis toggle (added, then cut
+— *"it just confuses people, just show the t-test"*) and the power tile (added,
+sign-corrected, then cut — *"qualitatively we should be able to see that
+randomization/blocking brings us closer"*). Do not offer either back without
+new evidence.
+
+## THE NUMBERS, AND THE ONE PRICE PAID FOR THEM
+
+`node widgets/_lab/design-measure.mjs`. The population is **pinned** so its own
+group difference is exactly the dial, which is what makes a ground truth
+possible at all. At n = 20, background variable 1.00, over 12 seeds:
+
+```
+  sampling method   average distance from truth   false positives
+  Non-random                             1.03            100.0%
+  Random                                 0.17              2.8%
+  Blocked                                0.11              0.3%
+```
+
+**The price is the 2.8%.** Unpinned it is 4.8% — nominal — but then the truth
+line drifts −0.14 to 0.23 by seed and there is nothing unambiguous to measure
+against. Kenneth chose pinned knowing this. The distance column, which is what
+the ground truth is for, barely moves either way (1.00 / 0.19 / 0.13 unpinned).
+
+**AND THE QUESTION HE ASKED TWICE, ANSWERED.** Randomization looks more powerful
+than blocking at small effects, and it is:
+
+```
+   n | truth | random | blocked        scheme    est. SD | SE the t-test uses
+  20 |  0.25 |  15.8% |    8.0%        random      0.194 |              0.219
+  20 |  0.50 |  59.9% |   59.6%        blocked     0.149 |              0.222
+  20 |  1.00 |  99.8% |  100.0%
+```
+
+Blocking's estimate is 23% tighter and its standard error is unchanged, because
+the t-test reads its SD off the WITHIN-group spread and a blocked group is half
+and half in the background variable — the widest that spread can be. So it
+divides a better estimate by a standard error meant for a worse one, and loses
+power it has earned. As the effect grows the signal swamps it and blocking wins.
+
+## WHAT IS STILL OPEN
+
+1. **L1, the three side-by-side panels** — population → arranged by the scheme →
+   the sample. Clearer than L2, and it needs 596px of stage where the 550px
+   baseline canvas has 436. Kenneth: *"if the animation is confusing, we may do
+   L1 later"*. It would need a width-dependent reflow, and the suite would only
+   ever hash the narrow branch — a blind spot to name, not to hide.
+2. **Independent against repeated measures**, measured in
+   `_lab/design-taxonomy.mjs` §1 and NOT built: repeated measures holds 51.8%
+   power while independent collapses 47.1% → 6.1% as between-subject SD grows,
+   on half the people. Nothing in the collection hosts it. It belongs on the
+   Replication tab if he wants it.
+3. **The notebook's own §4 conclusion is one draw and should be fixed.** Cell 85
+   says pseudoreplicates lose the finding; over 3000 draws of that exact setup it
+   is significant 68.7% of the time, 4.8% of those with the sign backwards. The
+   stated hazard is a lost finding; the measured one is an invented finding at
+   43.5% when nothing is there. Kenneth has been told; the notebook is his.
+4. **The notebook link**, which no PHM5003 lesson carries — see item 3 of the
+   older NEXT list below.
+5. **Not judged projected**, which every widget from 11 on still owes.
+
+## WHAT THIS SESSION COST, AND WHY
+
+Roughly twenty rounds, and Kenneth said plainly that some of it was waste. The
+three that cost the most, all avoidable:
+
+- **The transpose, twice.** He asked for bars showing *of the females, how many
+  have the disease* and got bars showing *of each group, how many are female* —
+  the same numbers answering a different question. He had to sketch it before it
+  landed. **When he describes a figure, draw what he describes, not what you
+  think it means.**
+- **Silent substitution.** He picked C3 and got D3's counts instead, on the
+  argument that they carried the same information. They did; a bar is a picture
+  and a count is arithmetic, which is why he asked for a bar. **If a pick cannot
+  be built as picked, say so — do not deliver something else.**
+- **Prose.** He asked three times for shorter answers and standard vocabulary,
+  and a whole round went on removing invented phrases — *carrier*, *carries it*,
+  *everyone*, *this study*, *called a difference*. The one that finally stuck is
+  now a `check`, not a guideline.
+
+---
+
+# Widget 43 `enrichment` — shipped and pushed 2026-09-05
+
+Two days and roughly twenty review rounds. Slot 5 of the high-throughput arc was
+the last one open, so **that arc is complete**. Its four settled calls, its two
+process slips and everything still open on it are in
+[docs/catalogue.md](docs/catalogue.md) § *Widget 43*; the sections below are the
+parts that outlive it.
+
+```bash
+# /widgets/enrichment/?view=gsea&page=one&shown=400&pathway=1   THE ARGUMENT
+node widgets/_lab/enr-measure.mjs   # nine sections
+node widgets/_lab/enr-metric.mjs    # why the OBVIOUS ranking-metric design was wrong
+```
+
+## A CORE BUG WIDGET 43 SHIPPED THROUGH — read before the next widget with regions
 
 **A gated `drag` erased the pointer cursor a `regions` map had just set**, so
 clickable rows advertised nothing. Core registers two `pointermove` handlers
@@ -366,7 +503,17 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 314 states, all matching
+## The suite: 334 states — 324 real, and widget 44's TEN still placeholders
+
+**Widget 44 added ten on 2026-09-05 and every one is `"px": "0", "tx": "0"`.**
+`check` accepts a placeholder carrying BOTH hashes, which is the escape hatch
+that rule exists for. They stay placeholders until Kenneth calls the review
+done — the design moved in every one of the last ten rounds, and a baseline
+recorded before that is thrown away.
+
+**tokens.css gained three legend swatches for it** — `tri`, `ring` and `hollow`
+— added the way `dash` was for widget 39, and the full suite ran twice for them:
+**all 324 pre-existing states matched both times.**
 
 **Widget 42 added eleven on 2026-09-03** — nine settled and two driven, since a
 suite of settled states is no test of an animation. They were computed three
