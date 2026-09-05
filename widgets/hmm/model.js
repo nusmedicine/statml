@@ -34,12 +34,14 @@
       An imputed genotype carries that number in practice (a dosage), and a
       figure that hides it would draw an imputation as if it were a read.
 
-   THE ANIMATION IS "REVEAL ONE MORE OBSERVATION". Stage t has the first t
-   known positions revealed, left to right, and the whole posterior recomputed
-   from them. Stage 0 is nothing known: the posterior is uniform and the
-   imputation is the marginal — on the Biological tab the panel's allele
-   frequency, which is the naive fill the model improves on. Every stage is
-   precomputed here so `advance` reveals and never computes.
+   TWO ANIMATIONS, BOTH PRECOMPUTED HERE so `advance` reveals and never
+   computes. The Toy tab animates the Viterbi algorithm itself: the trellis
+   forward one column at a time, then the trace-back (Kenneth, 2026-09-06,
+   from the three candidates in `_lab/hmm-viterbi.html`). The Biological tab
+   reveals one typed site at a time: stage t has the first t typed sites
+   known and the whole posterior recomputed from them. Stage 0 is nothing
+   known — the posterior uniform and the imputation the panel's allele
+   frequency, the naive fill the model improves on.
    ========================================================================= */
 
 export const L_DEFAULT = 36;
@@ -177,6 +179,14 @@ export function viterbiTrellis(emit, K, rho) {
   return { V, score, back, path };
 }
 
+/* How many units the animation has, so main.js and the node driver agree:
+   the toy steps the Viterbi trellis forward one column at a time and then
+   traces back one column at a time; the biological tab reveals one typed
+   site per step. */
+export function animationUnits(state) {
+  return state.kind === "mood" ? 2 * state.L : state.order.length;
+}
+
 /* Stage t of the reveal: the first t positions of `order` are known.
    `emitKnown(i, h)` is the emission at a known position; blanks emit 1. */
 function revealStages(K, L, order, emitKnown, rho) {
@@ -216,6 +226,11 @@ export function buildMood({ rng, days, missing, happy, rho }) {
   const gone = new Set(shuffledIdx(rng, L).slice(0, m));
   const order = [];
   for (let i = 0; i < L; i += 1) if (!gone.has(i)) order.push(i);
+  /* The toy animates Viterbi over the whole recorded sequence, so the trellis
+     is computed once here: blanks emit 1, recorded days emit E[state][mood]. */
+  const emit = [];
+  for (let i = 0; i < L; i += 1) emit.push(gone.has(i) ? [1, 1] : [E[0][mood[i]], E[1][mood[i]]]);
+  const trellis = viterbiTrellis(emit, K, rho);
   const stages = revealStages(K, L, order, (i, h) => E[h][mood[i]], rho).map((st) => {
     const sites = [];
     let sure = 0, correct = 0, stateRight = 0;
@@ -233,7 +248,7 @@ export function buildMood({ rng, days, missing, happy, rho }) {
     }
     return { ...st, sites, blanks: m, sure, correct, stateRight };
   });
-  return { kind: "mood", K, L, E, rho, src, truthAllele: mood, gone, order, stages };
+  return { kind: "mood", K, L, E, rho, src, truthAllele: mood, gone, order, stages, trellis };
 }
 
 /* ----------------------------------------------------------------------------

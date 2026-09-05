@@ -14,6 +14,7 @@
 import { readFile } from "node:fs/promises";
 import { makeRng } from "../core/rng.js";
 import { fmt } from "../core/stats.js";
+import { animationUnits } from "../hmm/model.js";
 
 let src = await readFile(new URL("../hmm/main.js", import.meta.url), "utf8");
 src = src.replace(/^import \{ defineWidget, fmt \} from "\.\.\/core\/index\.js";$/m,
@@ -49,6 +50,15 @@ const defaults = Object.fromEntries(Object.entries(W.params).filter(([, f]) => f
 const optionsOf = (f) => (f.type === "int" ? [f.min, f.default, f.max] : f.type === "bool" ? [false, true] : f.options.map((o) => o.value));
 const bad = (s) => /NaN|undefined|null|Infinity/.test(String(s));
 
+/* The toy's Viterbi path is the one the posterior strip draws — one trellis, drawn twice. */
+{
+  const params = { ...defaults, view: "toy" };
+  const state = W.compute({ params, rng: makeRng(3) });
+  ck("toy: trellis path equals decode()'s path", state.trellis.path.join() === state.stages.at(-1).path.join());
+  ck("toy: 2L animation units", animationUnits(state) === 2 * state.L);
+  for (const col of state.trellis.score) ck("toy: relative scores sum to 1", Math.abs(col[0] + col[1] - 1) < 1e-9);
+}
+
 function run(params, mode = "run", dt = 16) {
   const state = W.compute({ params, rng: makeRng(params.seed) });
   const anim = W.animation.init({ params, state, fromScratch: true });
@@ -71,13 +81,13 @@ for (const [name, f] of Object.entries(W.params)) {
       if (name === "view") params.view = v;
       const { state, anim } = run(params);
       combos += 1;
-      ck(`${view} ${name}=${v}: animation ends`, anim.done && anim.idx === state.order.length);
+      ck(`${view} ${name}=${v}: animation ends`, anim.done && anim.idx === animationUnits(state));
       for (const st of state.stages) for (const g of st.gamma) {
         const s = g.reduce((a, b) => a + b, 0);
         if (Math.abs(s - 1) > 1e-9 || g.some((x) => !Number.isFinite(x))) { ck(`${view} ${name}=${v}: posterior rows sum to 1`, false, String(s)); break; }
       }
       /* Every tile and legend label, at every stage of the rail. */
-      for (let idx = 0; idx <= state.order.length; idx += 1) {
+      for (let idx = 0; idx <= animationUnits(state); idx += 1) {
         const tiles = W.readout({ params, state, anim: { idx } });
         for (const t of tiles) if (bad(t.label) || bad(t.value) || bad(t.note)) ck(`${view} ${name}=${v} idx ${idx}: tile clean`, false, JSON.stringify(t));
       }
@@ -103,7 +113,7 @@ console.log(`  walked ${combos} parameter settings`);
   const b = W.animation.init({ params, state, fromScratch: true });
   ck("Replay opens at stage 0", b.idx === 0);
   const c = W.animation.init({ params: { ...params, shown: 99 }, state, fromScratch: false });
-  ck("shown past the end clamps and is done", c.idx === state.order.length && c.done);
+  ck("shown past the end clamps and is done", c.idx === animationUnits(state) && c.done);
 }
 
 /* 4. Step mode: one press is one observation, and the beat clears. */
@@ -114,11 +124,11 @@ console.log(`  walked ${combos} parameter settings`);
   anim.mode = "step";
   let frames = 0;
   while (W.animation.advance(anim, { dt: 50, params, state })) frames += 1;
-  ck("one step reveals exactly one observation", anim.idx === 1, String(anim.idx));
+  ck("one step advances exactly one unit", anim.idx === 1, String(anim.idx));
   ck("the beat is cleared when the step lands", anim.beatOn === false && anim.beatP === 1);
   ck("a step spans frames", frames >= 10, String(frames));
   const { anim: z } = run(params, "step", 50);
-  ck("stepping reaches the end", z.done && z.idx === state.order.length);
+  ck("stepping reaches the end", z.done && z.idx === animationUnits(state));
 }
 
 /* 5. Fast declares no choreography. */

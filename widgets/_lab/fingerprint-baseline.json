@@ -2919,16 +2919,23 @@
       "tx": "4ca07176"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab at rest, nothing revealed",
+      "$note": "PLACEHOLDER, draft: the Toy tab at rest, trellis empty",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab fully revealed",
+      "$note": "PLACEHOLDER, draft: the Toy tab forward pass complete, nothing traced",
       "slug": "hmm",
-      "state": "?theme=light&shown=9",
+      "state": "?theme=light&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth",
+      "slug": "hmm",
+      "state": "?theme=light&truth=1&shown=24",
       "px": "0",
       "tx": "0"
     },
@@ -2943,6 +2950,18 @@
       "$note": "PLACEHOLDER, draft: the Biological tab with the truth on",
       "slug": "hmm",
       "state": "?theme=light&view=biological&truth=1&shown=9",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft, DRIVEN: the toy mid-forward at fast",
+      "slug": "hmm",
+      "state": "?theme=light&speed=fast",
+      "drive": {
+        "click": "run",
+        "frames": 20,
+        "dt": 32
+      },
       "px": "0",
       "tx": "0"
     },

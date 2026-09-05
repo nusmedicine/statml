@@ -4040,8 +4040,17 @@ emission arrows down to the same Happy/Sad tiles the rows use, labelled
 from E. He also asked how Viterbi is best explained or animated;
 `_lab/hmm-viterbi.html` draws three candidates on the toy's trellis with a
 step slider through both passes — A survivor paths, B the dynamic-programming
-table with back-pointer arrows, C both — and the recommendation is in the
-session's handover. Not yet decided.
+table with back-pointer arrows, C both. **He picked C, and the toy tab now
+animates the algorithm**: Next column computes one trellis column (both
+candidates into each node drawn, the loser dashed, the survivor kept, the
+column's relative scores printed in the nodes), and once all columns are
+computed the same press traces back one column; the blue path lands on the
+posterior strip and the imputed row fills only when the trace-back reaches
+day one. The imputed mood follows the notebook (the decoded pattern's
+likelier mood) with the posterior probability of that mood as its bar. The
+biological tab keeps its type-one-site reveal: a 6-to-8-state trellis over 36
+sites is too dense to read column by column, and that tab's lesson is what
+typing buys. Toy = how; biological = what for.
 
 ### Open on the draft
 
