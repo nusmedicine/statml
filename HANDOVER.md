@@ -7,7 +7,53 @@ draft.**
 
 ---
 
-# WIDGET 44 `experimental-design` — COMMITTED, NOT PUSHED, NOT BASELINED
+# THE ONE TASK WAITING: BASELINE WIDGET 44
+
+Kenneth said **"tested ok"** and it was pushed on 2026-09-05, so it is LIVE at
+<https://nusmedicine.github.io/statml/widget/experimental-design/> with **no
+fingerprint coverage at all** — its ten states are `"px": "0", "tx": "0"`
+placeholders that `check` accepts. That is the only thing outstanding on it.
+
+**What that costs right now:** a change to `widgets/core/` cannot be proved safe
+against widget 44. The suite will report its ten states as MATCH whatever the
+widget draws, because a placeholder matches nothing. Every other widget is
+covered; this one is a hole.
+
+**Do it first, and do it in this order** (principle 5.10, and the discipline
+that caught widget 42):
+
+1. Replace the ten placeholders with real states. The stage moved nine times on
+   2026-09-05, so the states themselves want rewriting, not just rehashing —
+   the Replicate tab is a different figure. At least one DRIVEN state is
+   required (`check` fails an `animation` without one), and the crossfades are
+   exactly what a settled state cannot see: the study boundary on both tabs.
+2. Serve, run `widgets/_lab/fingerprint.html`, let it auto-run — **never click
+   Run**, that starts a second concurrent pass into the same table.
+3. Confirm each new driven state is identical across THREE runs before
+   baselining it. A flaky check is worse than none.
+4. Patch only widget 44's entries; never the bulk copy.
+5. Run the suite once more and confirm **every** state reads MATCH. Widget 42
+   shipped nine hashes it had never produced and they read as somebody else's
+   regression for two days.
+
+Suggested states, given what the second session built:
+
+```
+Sampling    ?scheme=convenience&shown=200          both blocks, opposite halves
+            ?scheme=blocked&shown=200
+            ?scheme=convenience&shift=down1&effect=moderate&shown=200
+            drive mid-crossfade  (the study boundary — new, and unhashed)
+Replicate   ?concept=budget&people=10&reps=1&shown=200     half of the argument
+            ?concept=budget&people=2&reps=5&shown=200      and the other half
+            ?concept=budget&people=10&reps=4&noise=precise&shown=84
+            ?concept=budget&people=10&reps=4&noise=double&shown=84
+            ?concept=budget&people=30&reps=4&effect=large&shown=84
+            drive from rest      (the dots easing off the schematic — new)
+```
+
+---
+
+# WIDGET 44 `experimental-design` — SHIPPED AND PUSHED, NOT BASELINED
 
 **PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
 until Kenneth reopened it on 2026-09-05. Built over TWO sessions the same day —
@@ -41,16 +87,15 @@ _lab/design-person-grouping.html a device per person        -> DECLINED
 _lab/design-sorted-columns.html  sorting the columns        -> DECLINED
 ```
 
-## THE THREE THINGS TO DO FIRST, NEXT SESSION
+## THE REVIEW IS CLOSED
 
-1. **DO NOT BASELINE YET.** The ten states in `fingerprint-baseline.json` are
-   `"px": "0", "tx": "0"` placeholders and `check` accepts them. The design moved
-   in every one of the last ten rounds; a baseline recorded now is thrown away,
-   which is the `bootstrap` lesson. Baseline when Kenneth says the review is done.
-2. **NOT PUSHED.** Two commits sit on `main` unpushed. Every push publishes.
-3. **The review is unfinished** — read *WHAT IS STILL OPEN* below before
-   changing anything, because several of those are decisions he has already
-   made once.
+Kenneth's *"tested ok"* on 2026-09-05 ended it, after roughly thirty rounds
+across two sessions. **Everything below is the record of how it got here, not a
+list of things to do** — several entries are decisions he has already made once
+and had to make twice. The only outstanding work is the baseline, at the top of
+this file.
+
+*Read WHAT IS STILL OPEN before proposing anything on this widget.*
 
 ## WHAT THE WIDGET IS
 
