@@ -174,7 +174,7 @@ function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
    state's emission arrow going to the allele it carries at that site; and the
    K-by-K transition table, 1 - rho on the diagonal and rho over K - 1 off it.
    Drawn at K states so the reader sees the toy's picture again, larger. */
-function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, fill, stateName }) {
+function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, stateName }) {
   const { K, L, gx, cell } = Lo;
   const B = Lo.model;
   const mc = ringCell(K);
@@ -190,8 +190,7 @@ function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, bord
   text(ex, B.y - LAB / 2 - 1, `Emission E at site ${site + 1}`, colors.ink2);
   for (let c = 0; c < 2; c += 1) {
     const x = ex + c * mc + mc / 2 - ts / 2;
-    fill(x, B.y + 1, ts, ts, c === 1 ? colors.ink2 : colors.surface3);
-    border(x, B.y + 1, ts, ts);
+    tile(x, B.y + 1, c, 1, ts, site);
     if (known && state.truthAllele[site] === c) {
       ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, B.y + 2, ts - 2, ts - 2);
     }
@@ -264,10 +263,7 @@ function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, bord
     ctx.beginPath(); ctx.arc(lx, ly, 6, pos[h].a + 2.4, pos[h].a - 2.4 + 2 * Math.PI); ctx.stroke();
     ctx.restore();
   }
-  for (let c = 0; c < 2; c += 1) {
-    fill(tileX[c], ty, ts, ts, c === 1 ? colors.ink2 : colors.surface3);
-    border(tileX[c], ty, ts, ts);
-  }
+  for (let c = 0; c < 2; c += 1) tile(tileX[c], ty, c, 1, ts, site);
   text(mid, ty + ts + 9, `emits its own allele at site ${site + 1}`, colors.ink3, "center");
   text(mid, ty + ts + 22, `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
   void L;
@@ -307,7 +303,7 @@ defineWidget({
         { token: "posterior", label: "Posterior: which pattern the day is in", mark: "bar" },
       ]
       : [
-        { token: "ink-2", label: "Alternate allele (filled); reference allele is open", mark: "bar" },
+        { token: "ink-2", label: "The base at each site: the alternate allele filled, the reference allele open", mark: "bar" },
         { token: "unknown", label: "Not typed on the array", mark: "bar" },
         { token: "posterior", label: "Posterior: which haplotype is being copied", mark: "bar" },
         { token: "empirical", label: "Viterbi path: the single most likely sequence of states", mark: "line" },
@@ -485,11 +481,14 @@ defineWidget({
     const caption = (b, s) => text(gx, b.y - LAB / 2 - 1, s, colors.ink2);
     const rowLabel = (y, s) => text(gx - 6, y + cell / 2 + 0.5, s, colors.ink3, "right");
     /* An observation tile: filled for Happy / the alternate allele, open for
-       Sad / the reference allele; the toy adds its letter. */
-    const tile = (x, y, a, alpha = 1, size = cell) => {
+       Sad / the reference allele, and its letter — H or S on the toy, the
+       base at that site on the biological tab, as the notebook's strings. */
+    const tile = (x, y, a, alpha = 1, size = cell, i = null) => {
       fill(x, y, size, size, a === 1 ? colors.ink2 : colors.surface3, alpha);
       border(x, y, size, size);
-      if (toy) text(x + size / 2, y + size / 2 + 0.5, a === 1 ? "H" : "S", a === 1 ? colors.surface : colors.ink1, "center", `600 ${Math.round(size * 0.5)}px ${colors.font}`);
+      const letter = toy ? (a === 1 ? "H" : "S") : (i === null ? "" : state.panel.letters[i][a]);
+      if (letter) text(x + size / 2, y + size / 2 + 0.5, letter, a === 1 ? colors.surface : colors.ink1, "center",
+        `600 ${Math.round(size * (toy ? 0.5 : 0.6))}px ${colors.font}`);
     };
     const unknownCell = (x, y, mark) => {
       fill(x, y, cell, cell, colors.unknown, 0.16);
@@ -528,8 +527,8 @@ defineWidget({
     rowLabel(Lo.obs.y, toy ? "mood" : "array");
     for (let i = 0; i < L; i += 1) {
       const s = stage.sites[i];
-      if (s.blank) unknownCell(cx(i), Lo.obs.y, toy);
-      else if (toy || s.known) tile(cx(i), Lo.obs.y, state.truthAllele[i]);
+      if (s.blank) unknownCell(cx(i), Lo.obs.y, true);
+      else if (toy || s.known) tile(cx(i), Lo.obs.y, state.truthAllele[i], 1, cell, i);
       else emptyCell(cx(i), Lo.obs.y);
     }
     if (toy && fwd > 0 && back === 0) {
@@ -568,12 +567,12 @@ defineWidget({
       table(tx, "Transition T", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
       drawGraph(ctx, colors, { x0: gx + 2 * mcell + 30, x1: tx - 36, y: Lo.model.y, E, rho, tileFn: tile, cell });
     } else {
-      drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, fill, stateName });
+      drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, stateName });
       caption(Lo.panel, `Reference panel: ${K} sequenced haplotypes`);
       for (let h = 0; h < K; h += 1) {
         const y = Lo.panel.y + h * cell;
         rowLabel(y, stateName(h));
-        for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i]);
+        for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i], 1, cell, i);
       }
     }
 
@@ -657,8 +656,8 @@ defineWidget({
         probBar(x, y, c.conf);
         continue;
       }
-      if (s.known) { tile(x, y, state.truthAllele[i]); continue; }
-      tile(x, y, s.call);
+      if (s.known) { tile(x, y, state.truthAllele[i], 1, cell, i); continue; }
+      tile(x, y, s.call, 1, cell, i);
       probBar(x, y, s.conf);
     }
 
@@ -670,7 +669,7 @@ defineWidget({
       for (let i = 0; i < L; i += 1) {
         const s = stage.sites[i];
         const a = state.truthAllele[i];
-        tile(cx(i), Lo.truth.y, a);
+        tile(cx(i), Lo.truth.y, a, 1, cell, i);
         const call = toy ? (traced ? toyCall(state, i).call : a) : s.call;
         if (s.blank && call !== a) {
           ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;

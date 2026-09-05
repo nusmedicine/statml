@@ -2942,14 +2942,14 @@
     {
       "$note": "PLACEHOLDER, draft: the Biological tab fully typed",
       "slug": "hmm",
-      "state": "?theme=light&view=biological&shown=9",
+      "state": "?theme=light&view=biological&shown=7",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER, draft: the Biological tab with the truth on",
       "slug": "hmm",
-      "state": "?theme=light&view=biological&truth=1&shown=9",
+      "state": "?theme=light&view=biological&truth=1&shown=7",
       "px": "0",
       "tx": "0"
     },

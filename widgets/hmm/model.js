@@ -44,7 +44,10 @@
    frequency, the naive fill the model improves on.
    ========================================================================= */
 
-export const L_DEFAULT = 36;
+/* 28 sites, not 36. The tiles print the base at each site, as the notebook's
+   strings do, and 36 sites gave 13px cells at the narrowest canvas — 9px
+   letters. 28 gives 17px there and 22px at the usual width. */
+export const L_DEFAULT = 28;
 
 /* Panel-building rates. `founders` independent haplotypes, then each further
    one is a mosaic of earlier ones — a copying process, so haplotypes share

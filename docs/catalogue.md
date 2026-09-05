@@ -4076,13 +4076,30 @@ the other haplotypes. E is read off the reference panel at each site, with
 sizes, the Li & Stephens θ — belongs in the lecture; widget 10 `em-mixture`
 is the collection's EM.
 
+### Fourth round, 2026-09-06 — the bases are printed
+
+Kenneth: *we are not listing the DNA sequence, we just say which haplotype?
+I just see dark and light squares.* The tiles now print the base at each
+site, as the toy prints H and S and as the notebook's strings read, filled
+for the alternate allele and open for the reference; the emission table's
+column headers and the ring's two allele tiles carry the site's two bases.
+**Sites went from 36 to 28** so the letter fits at the narrowest canvas:
+13px cells and 9px letters at 36, 17px and 10px at 28, 22px and 13px at
+the usual width. Re-measured at 28 sites, 400 seeds, the default setting:
+posterior 87.5% of blanks right against 81.1% for the frequency fill, a
+narrower gap than at 36 sites (the shorter panel has fewer switches, so
+its haplotypes agree more often and the majority allele is right more
+often). Three founders would widen the gap to ~10 points at the cost of
+accuracy and of every confidence number; kept at two. The frequency-fill
+tile is a comparison shown with the truth, not the widget's claim.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,
   because a call's confidence there is capped by the emission itself (a
   pattern known for certain is Happy with probability 0.8 at the default).
-- The 550px canvas gives 13px tiles on the Genotype tab. Legible as tiles;
-  worth a look projected.
+- The 550px canvas gives 17px tiles and 10px letters on the biological
+  tab. Worth a look projected.
 - No fingerprint baseline yet — five placeholders. Recorded once the design
   stops moving.
 
