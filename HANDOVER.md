@@ -646,7 +646,28 @@ W=http://localhost:8014/widgets/hierarchical-clustering
 node widgets/_lab/hc-verify.mjs        # 8400 comparisons against R's hclust
 node widgets/_lab/hc-measure.mjs       # every number the figure prints
 # widgets/_lab/hc-truth.html           the four ways to show found-against-true
+# $W/?shown=19&k=3   then hover the lower triangle of the distance matrix
 ```
+
+**2026-09-05, post-ship: the distance matrix answers to the pointer (380e5a7).**
+Kenneth asked whether hovering a cell could show which rows or columns the
+distance was calculated from. It now lights the pair on all four panels: the
+cell, with two guides along its row and up its column to the diagonal where
+each observation meets itself, and the pair and value written in the empty
+upper triangle; the two rows (or columns) outlined on the data table with
+the caption "the two rows this distance is between"; the two points ringed
+and joined on the scatter, the segment unlabelled because the scatter is a
+projection and the number belongs to the cell; a dot at the foot of each leaf.
+`pointer: true` on the config — the first widget in the collection to use
+the channel for an inspector since mlp. **The hit-test and the drawing share
+one `distanceGeometry`**, which is the region-map lesson applied to a hover:
+two copies of a cell size would have drifted. Decisions taken and accepted:
+the diagonal does nothing, rows count from 1 from the top of the table, a
+hovered pair outranks the merge's pair on the table outline, and **no hint
+that the matrix is hoverable** — one would change the text hash of the nine
+Cluster-tab states, and a lecture screen has no hover, so nothing lives only
+in it. Every state is hashed with no pointer: the suite read All 334 states
+identical, and no baseline moved. Kenneth: "tested ok"; pushed; deploy green.
 
 **Still open on it, in the order they matter:**
 
@@ -1071,7 +1092,7 @@ is blind to.
 | 39 | `normalization` | shipped as **Normalization and Transformation** (PHM5003 high-throughput slot 1), 2026-09-02, four rounds across two days; eight states — seven settled, one driven, shot through `_lab/norm-shoot.html`. Scaling and transforming as two operations, a quantile walkthrough behind a gate. NOT yet judged projected |
 | 40 | `batch-effect` | shipped as **Batch Effects** (slot 3), 2026-09-02, eleven rounds in one day, five of which built the wrong widget; eleven states — nine settled, two driven, shot through `_lab/batch-shoot.html`. Ground truth beside the observed data; four correction methods and a forest plot behind the gate. NOT yet judged projected |
 | 41 | `matrix-factorization` | shipped as **Matrix Factorization** (slot 2), 2026-09-03, three rounds; nine states — seven settled, two driven. Began as `nmf` and was renamed and restructured mid-review: NMF and PCA tabs factorising the same matrix, decomposition and geometry views. NOT yet judged projected |
-| 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
+| 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Hover on the distance matrix added 2026-09-05, an inspector that moves no state. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
 | 43 | `enrichment` | shipped as **Enrichment Analysis** (slot 5, the arc's last), 2026-09-05, about twenty rounds over two days; ten states — seven settled, two driven, one hit-driven. Four pages, ORA pinned to fold change. Uncovered the core bug in a gated drag's cursor — see *A CORE BUG WIDGET 43 SHIPPED THROUGH*. NOT yet judged projected |
 | 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. See the top of this file. NOT yet judged projected |
 
