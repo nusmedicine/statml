@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — three ways to draw the copying model</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-5); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; font-family: var(--font-mono); }
+  .cap b { color: var(--ink-1); }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 96px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — three ways to draw the copying model</h1>
+  <p class="note">
+    Same engine, same seed, three figures. Each shows the array-typed sample on top, the reference
+    panel it is imputed from, and the imputed row at the bottom. They differ in <b>what carries the
+    posterior</b> (which haplotype the sample is copying, per site) and whether it is shown at all.
+    <b>Typed so far</b> previews the animation: each step types one more site, left to right, and the
+    whole posterior is recomputed. At 0 the imputation is the panel's allele frequency.
+  </p>
+
+  <div class="rail">
+    <label>canvas width <input type="range" id="W" min="0" max="2" value="1"><output id="Wv">690</output></label>
+    <label>haplotypes K <input type="range" id="K" min="2" max="8" value="6"><output id="Kv">6</output></label>
+    <label>sites L <input type="range" id="L" min="24" max="48" step="6" value="36"><output id="Lv">36</output></label>
+    <label>typed 1 in <input type="range" id="every" min="2" max="9" value="4"><output id="everyv">4</output></label>
+    <label>true switches <input type="range" id="sw" min="0" max="4" value="2"><output id="swv">2</output></label>
+    <label>switch rate ρ <input type="range" id="rho" min="0" max="6" value="3"><output id="rhov">0.1</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="60" value="1"><output id="seedv">1</output></label>
+    <label>typed so far <input type="range" id="t" min="0" max="9" value="9"><output id="tv">9</output></label>
+    <label><input type="checkbox" id="truth"> true haplotype</label>
+  </div>
+
+  <div id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font"), MONO = css("--font-mono");
+const RHOS = [0.005, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5];
+const WIDTHS = [550, 690, 770];   // fingerprint's narrowest, the usual side layout, the widest
+let W = WIDTHS[1];
+const GUT = 66;           // row labels
+const GAP = 16;           // between blocks
+const LAB = 15;           // a block's caption line
+const V = { W: 1, K: 6, L: 36, every: 4, sw: 2, rho: 3, seed: 1, t: 9, truth: false };
+let S = null;
+
+const OPTS = [
+  { id: "A", name: "Letters on belief",
+    em: "one grid: the cell's fill is the posterior, its letter is the allele — closest to the notebook's strings",
+    why: "Two encodings per cell but only one grid, so the panel lights up where the sample is copying and the imputed row takes the same fill for its confidence. Costs: letters at this cell size; a confident wrong copy looks as solid as a right one until the truth row is on." },
+  { id: "B", name: "Tiles, and a posterior strip beneath",
+    em: "alleles as dark/light tiles; the posterior on its own K-row strip, with the Viterbi path drawn through it",
+    why: "One encoding per cell everywhere, and the strip is the trellis a textbook draws. Costs: K rows twice, so about 130px taller at K = 6; the eye has to carry a column from the panel down to the strip." },
+  { id: "C", name: "Tiles, and the Viterbi path only",
+    em: "the decoded copying route outlined on the panel; no posterior anywhere — the notebook's decoder and nothing more",
+    why: "Shortest and the most literal reading of viterbi(). Costs: an imputed row with no confidence, so a call three sites past the last typed one looks as sure as one between two matches; the mosaic reads as a fact." },
+];
+
+const wall = document.getElementById("wall");
+const views = OPTS.map((o) => {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${o.id} · ${o.name} <em>— ${o.em}</em></h3><canvas></canvas><p class="cap"></p><p class="why">${o.why}</p>`;
+  wall.appendChild(d);
+  return { o, canvas: d.querySelector("canvas"), cap: d.querySelector(".cap") };
+});
+
+function build() {
+  S = M.build({ rng: makeRng(V.seed * 7919 + 1), K: V.K, L: V.L, every: V.every, switches: V.sw, rho: RHOS[V.rho] });
+  const tEl = document.getElementById("t");
+  tEl.max = S.typed.length;
+  if (V.t > S.typed.length) V.t = S.typed.length;
+  tEl.value = V.t; document.getElementById("tv").textContent = V.t;
+}
+
+/* Fill alpha for a posterior or a confidence: near-white at nothing, solid at 1. */
+const beliefAlpha = (g) => 0.05 + 0.88 * g;
+const confAlpha = (c) => 0.05 + 0.88 * Math.max(0, (c - 0.5) / 0.5);
+
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "", font = FONT) {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${font}`.trim();
+  ctx.fillText(s, x, y);
+}
+function rectA(ctx, x, y, w, h, colour, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = colour; ctx.fillRect(x, y, w, h); ctx.restore();
+}
+function cellBorder(ctx, x, y, w, h) {
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+function ring(ctx, x, y, w, h, colour, lw = 2) {
+  ctx.strokeStyle = colour; ctx.lineWidth = lw; ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw);
+}
+
+function draw(view) {
+  const { o, canvas, cap } = view;
+  const { K, L } = S;
+  const st = S.stages[V.t];
+  const cell = Math.floor((W - GUT - 6) / L);
+  const gx = GUT;
+  const letterPx = Math.max(9, Math.min(12, cell - 6));
+  const blocks = [];
+  let y = 6;
+  const add = (rows, extra = 0) => { const b = { y: y + LAB, rows, h: rows * cell + extra }; blocks.push(b); y += LAB + b.h + GAP; return b; };
+  const sampleB = add(1);
+  const panelB = add(K);
+  const stripB = o.id === "B" ? add(K) : null;
+  const impB = add(1, o.id === "B" ? 6 : 0);
+  const truthB = V.truth ? add(1) : null;
+  const H = y - GAP + 6;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = (i) => gx + i * cell;
+  const letterOf = (i, a) => S.panel.letters[i][a];
+  const tileFill = (a) => (a === 1 ? T.ink2 : T.surface3);
+
+  /* One allele cell, in the candidate's idiom. `belief` is a fill alpha or null. */
+  function allele(x, yy, i, a, belief) {
+    if (o.id === "A") {
+      if (belief !== null) rectA(ctx, x, yy, cell, cell, T.posterior, belief);
+      else rectA(ctx, x, yy, cell, cell, T.surface3, 1);
+      cellBorder(ctx, x, yy, cell, cell);
+      const dark = belief !== null && belief > 0.5;
+      txt(ctx, x + cell / 2, yy + cell / 2 + 0.5, letterOf(i, a), dark ? T.surface : T.ink1, "center", letterPx, "600", MONO);
+    } else {
+      rectA(ctx, x, yy, cell, cell, tileFill(a), 1);
+      cellBorder(ctx, x, yy, cell, cell);
+    }
+  }
+  function blank(x, yy) {
+    rectA(ctx, x, yy, cell, cell, T.unknown, 0.16);
+    cellBorder(ctx, x, yy, cell, cell);
+  }
+  const label = (b, s) => txt(ctx, gx, b.y - LAB / 2 - 1, s, T.ink2, "left", 11);
+  const rowLabel = (yy, s) => txt(ctx, gx - 6, yy + cell / 2 + 0.5, s, T.ink3, "right", 10, "", MONO);
+
+  /* Sample, as typed. */
+  label(sampleB, `Sample, ${st.t} of ${S.typed.length} array sites typed`);
+  rowLabel(sampleB.y, "array");
+  for (let i = 0; i < L; i += 1) {
+    if (st.known.has(i)) allele(cx(i), sampleB.y, i, S.sample.allele[i], null);
+    else blank(cx(i), sampleB.y);
+  }
+
+  /* Panel. */
+  label(panelB, `Reference panel, ${K} sequenced haplotypes`);
+  for (let h = 0; h < K; h += 1) {
+    const yy = panelB.y + h * cell;
+    rowLabel(yy, `h${h + 1}`);
+    for (let i = 0; i < L; i += 1) {
+      allele(cx(i), yy, i, S.panel.hap[h][i], o.id === "A" ? beliefAlpha(st.gamma[i][h]) : null);
+    }
+  }
+  if (o.id === "C" && st.t > 0) {
+    /* The Viterbi route: outline the copied cell at each site, joined on a switch. */
+    ctx.save();
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 2; ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (let i = 0; i < L; i += 1) {
+      const h = st.path[i], x = cx(i), yy = panelB.y + h * cell;
+      const prevH = i > 0 ? st.path[i - 1] : h, nextH = i < L - 1 ? st.path[i + 1] : h;
+      ctx.moveTo(x, yy + 1); ctx.lineTo(x + cell, yy + 1);
+      ctx.moveTo(x, yy + cell - 1); ctx.lineTo(x + cell, yy + cell - 1);
+      if (prevH !== h) { ctx.moveTo(x + 1, panelB.y + Math.min(h, prevH) * cell + 1); ctx.lineTo(x + 1, panelB.y + (Math.max(h, prevH) + 1) * cell - 1); }
+      if (i === 0) { ctx.moveTo(x + 1, yy + 1); ctx.lineTo(x + 1, yy + cell - 1); }
+      if (i === L - 1 || nextH === h) { /* closed on the next site's left edge, or at the end */ }
+      if (i === L - 1) { ctx.moveTo(x + cell - 1, yy + 1); ctx.lineTo(x + cell - 1, yy + cell - 1); }
+    }
+    ctx.stroke();
+    ctx.restore();
+    if (V.truth) {
+      ctx.save();
+      ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      for (let i = 0; i < L; i += 1) {
+        const h = S.sample.src[i], x = cx(i), yy = panelB.y + h * cell;
+        ctx.moveTo(x + 3, yy + 4); ctx.lineTo(x + cell - 3, yy + 4);
+        ctx.moveTo(x + 3, yy + cell - 4); ctx.lineTo(x + cell - 3, yy + cell - 4);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* B's posterior strip. */
+  if (stripB) {
+    label(stripB, "Which haplotype is being copied: posterior, and the Viterbi path");
+    for (let h = 0; h < K; h += 1) {
+      const yy = stripB.y + h * cell;
+      rowLabel(yy, `h${h + 1}`);
+      for (let i = 0; i < L; i += 1) {
+        rectA(ctx, cx(i), yy, cell, cell, T.posterior, beliefAlpha(st.gamma[i][h]));
+        cellBorder(ctx, cx(i), yy, cell, cell);
+      }
+    }
+    if (st.t > 0) {
+      ctx.save();
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 2; ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (let i = 0; i < L; i += 1) {
+        const yy = stripB.y + st.path[i] * cell + cell / 2;
+        if (i === 0) ctx.moveTo(cx(i) + cell / 2, yy); else ctx.lineTo(cx(i) + cell / 2, yy);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* Imputed. */
+  const useViterbi = o.id === "C";
+  label(impB, useViterbi ? "Imputed: the copied haplotype's allele" : "Imputed: the posterior call, filled by its confidence");
+  rowLabel(impB.y, "imputed");
+  for (let i = 0; i < L; i += 1) {
+    const s = st.sites[i];
+    const a = useViterbi ? s.viterbi : s.call;
+    const x = cx(i), yy = impB.y;
+    if (s.typed) { allele(x, yy, i, a, null); continue; }
+    if (o.id === "A") allele(x, yy, i, a, confAlpha(s.conf));
+    else {
+      allele(x, yy, i, a, null);
+      if (o.id === "B") rectA(ctx, x + 1, yy + cell + 1, (cell - 2) * Math.max(0, (s.conf - 0.5) / 0.5), 4, T.posterior, 1);
+    }
+  }
+
+  /* Truth. */
+  if (truthB) {
+    label(truthB, "True haplotype, from sequencing — a ring where the imputed call differs, a mark at a variant the panel lacks");
+    rowLabel(truthB.y, "truth");
+    for (let i = 0; i < L; i += 1) {
+      const s = st.sites[i];
+      const a = S.sample.allele[i];
+      allele(cx(i), truthB.y, i, a, null);
+      const call = useViterbi ? s.viterbi : s.call;
+      if (!s.typed && call !== a) ring(ctx, cx(i), truthB.y, cell, cell, T.ink1);
+      if (S.sample.novel[i]) {
+        ctx.fillStyle = T.ink3; ctx.beginPath();
+        ctx.moveTo(cx(i) + cell / 2, truthB.y + cell + 2); ctx.lineTo(cx(i) + cell / 2 - 3, truthB.y + cell + 7); ctx.lineTo(cx(i) + cell / 2 + 3, truthB.y + cell + 7); ctx.fill();
+      }
+    }
+  }
+
+  /* Measured facts under the figure. */
+  let vitCorrect = 0;
+  for (let i = 0; i < L; i += 1) if (!st.sites[i].typed && st.sites[i].viterbi === S.sample.allele[i]) vitCorrect += 1;
+  cap.innerHTML = `width ${W} · height <b>${H}</b>px · cell <b>${cell}</b>px · letters <b>${o.id === "A" ? letterPx + "px" : "none"}</b> · `
+    + `untyped <b>${st.untyped}</b> · imputed right: posterior <b>${st.correct}</b>, viterbi <b>${vitCorrect}</b>, frequency fill <b>${st.freqCorrect}</b> · `
+    + `≥ 0.9 sure <b>${st.sure}</b> · truth switches at <b>${S.sample.cutSites.join(", ") || "none"}</b>`;
+}
+
+function render() { for (const v of views) draw(v); }
+
+for (const id of ["W", "K", "L", "every", "sw", "rho", "seed", "t"]) {
+  const el = document.getElementById(id), out = document.getElementById(id + "v");
+  el.addEventListener("input", () => {
+    V[id] = Number(el.value);
+    out.textContent = id === "rho" ? RHOS[V.rho] : id === "W" ? WIDTHS[V.W] : el.value;
+    if (id === "W") W = WIDTHS[V.W];
+    else if (id !== "t") build();
+    render();
+  });
+}
+document.getElementById("truth").addEventListener("change", (e) => { V.truth = e.target.checked; render(); });
+build(); render();
+</script>
+</body>
+</html>
