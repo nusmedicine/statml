@@ -412,3 +412,36 @@ console.log("§12  THE COST OF PINNING THE REPLICATE PILE'S FRAME (main.js `pile
   console.log("     replaced — one computed at the current `people` — both read the same width.");
 }
 console.log("");
+console.log("§13  THE MEASUREMENT-NOISE DIAL — both ends have to win something\n");
+{
+  const sB = NOISE_SD;                       /* the people's own spread, fixed */
+  console.log("     10 people, no true difference. sdBetween stays at 0.50.\n");
+  console.log("     sdWithin | ICC  | a person's cloud vs the gaps | rows say sig at x3 | at x10");
+  for (const noise of [0.15, 0.25, 0.5, 1]) {
+    const icc = sB ** 2 / (sB ** 2 + noise ** 2);
+    const rate = (reps) => {
+      let k = 0;
+      for (let d = 0; d < DRAWS; d += 1) {
+        if (budgetStudy(rngAt(d), { people: 10, reps, effect: 0, noise }).p < 0.05) k += 1;
+      }
+      return pct(k, DRAWS);
+    };
+    console.log(`     ${noise.toFixed(2).padStart(8)} | ${icc.toFixed(2)} |`
+      + `${(noise / sB).toFixed(2).padStart(22)} as wide |${rate(3).padStart(19)} |${rate(10).padStart(8)}`);
+  }
+  console.log("\n     -> a PRECISE assay is where pseudoreplication does the most damage.");
+  console.log("        The row test's error rate more than doubles across the dial.\n");
+
+  console.log("     and the other end, which is what makes it a choice and not a slope:");
+  console.log("     holding PEOPLE fixed at 10, what ten measurements each buy the");
+  console.log("     honest per-person estimate\n");
+  console.log("     sdWithin | est. SD at x1 | at x10 | the repeats buy");
+  for (const noise of [0.15, 0.25, 0.5, 1]) {
+    const sd = (m) => Math.sqrt((2 * (sB ** 2 + noise ** 2 / m)) / 10);
+    console.log(`     ${noise.toFixed(2).padStart(8)} |${sd(1).toFixed(3).padStart(14)} |`
+      + `${sd(10).toFixed(3).padStart(7)} |${`${((1 - sd(10) / sd(1)) * 100).toFixed(0)}%`.padStart(17)}`);
+  }
+  console.log("\n     -> 3% at a precise assay, 47% at a noisy one. Repeating is worth");
+  console.log("        doing exactly where pseudoreplicating it would matter least.");
+}
+console.log("");

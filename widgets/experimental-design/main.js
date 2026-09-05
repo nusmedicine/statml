@@ -119,6 +119,27 @@ const EFFECTS = { none: 0, small: 0.25, moderate: 0.5, large: 1 };
    dial that only goes up can only ever teach the false-positive half. */
 const SHIFTS = { down2: -2, down1: -1, none: 0, up1: 1, up2: 2 };
 
+/* THE ASSAY'S OWN SPREAD, AGAINST THE 0.50 THE PEOPLE VARY BY.
+
+   It was welded to the population's spread, which fixed the intraclass
+   correlation at 0.50 — the one setting where a person's repeats scatter
+   EXACTLY as widely as the people do. That is a strange place to pin a widget
+   about telling the two apart, and it is not where the harm lives either.
+   `design-measure` §13, at 10 people x 3 with nothing to find: the row test
+   calls it significant 9.4% of the time at 1.00, 16.8% at 0.50, 24.3% at 0.25
+   and 26.8% at 0.15. THE PRECISE ASSAY IS THE DANGEROUS ONE, which is the
+   opposite of the intuition, and the reason is the design effect: the damage
+   is 1 + (reps - 1) * ICC, and a precise assay is a high ICC.
+
+   BOTH ENDS WIN SOMETHING, which is the test a choice has to pass. At 0.15 the
+   clusters are tight and lie far apart — the picture pseudoreplication is
+   usually drawn as — and repeating is nearly worthless there: holding people
+   fixed at ten, ten measurements each take only 4% off the honest estimate's
+   spread. At 1.00 the clouds swamp the gaps between people, and the same ten
+   repeats take off 47%. Repeating is worth doing exactly where
+   pseudoreplicating it would matter least. */
+const NOISES = { precise: 0.15, half: 0.25, equal: 0.5, double: 1 };
+
 const SPEEDS = {
   slow: { ms: 620, choreo: true },
   medium: { ms: 260, choreo: true },
@@ -202,12 +223,13 @@ function armCounts(study, g, bins, lo, hi) {
   return counts;
 }
 
-function valueWindow(effect) {
-  const sd = Math.SQRT2 * NOISE_SD;
+function valueWindow(effect, noise) {
+  /* one measurement is N(BASE + effect for the disease arm, sqrt(sB^2 + sW^2)) */
+  const sd = Math.sqrt(NOISE_SD ** 2 + noise ** 2);
   return { lo: BASE - 4 * sd, hi: BASE + effect + 4 * sd };
 }
 
-function pileWindow(params, effect, shift) {
+function pileWindow(params, effect, shift, noise) {
   let centres;
   let sds;
   if (isAllocate(params)) {
@@ -223,7 +245,7 @@ function pileWindow(params, effect, shift) {
   } else {
     /* PEOPLE_MIN, not params.people — see the header. The frame must not move
        with either budget dial. */
-    const widest = Math.sqrt((2 * (NOISE_SD ** 2 + NOISE_SD ** 2)) / PEOPLE_MIN);
+    const widest = Math.sqrt((2 * (NOISE_SD ** 2 + noise ** 2)) / PEOPLE_MIN);
     centres = [effect];
     sds = [widest];
   }
@@ -733,6 +755,19 @@ defineWidget({
       when: { param: "concept", equals: "budget" },
     },
 
+    noise: {
+      type: "choice",
+      label: "Noise in one measurement",
+      options: [
+        { value: "precise", label: "0.15", detail: "well under the spread between people — a person's repeats land close together" },
+        { value: "half", label: "0.25", detail: "half the spread between people" },
+        { value: "equal", label: "0.50", detail: "the same as the spread between people" },
+        { value: "double", label: "1.00", detail: "twice it — the assay varies more than the biology does" },
+      ],
+      default: "equal",
+      when: { param: "concept", equals: "budget" },
+    },
+
     shift: {
       type: "choice",
       label: "Effect on the measurement",
@@ -820,6 +855,7 @@ defineWidget({
   compute: ({ params }) => {
     const effect = EFFECTS[params.effect] ?? 0;
     const shift = SHIFTS[params.shift] ?? CONF_SHIFT;
+    const noise = NOISES[params.noise] ?? NOISE_SD;
     const studies = runStudies(makeRng, params.seed, {
       concept: params.concept,
       scheme: params.scheme,
@@ -828,13 +864,14 @@ defineWidget({
       reps: params.reps,
       effect,
       shift,
+      noise,
     });
     return {
       studies,
       effect,
       shift,
-      window: pileWindow(params, effect, shift),
-      values: isAllocate(params) ? null : valueWindow(effect),
+      window: pileWindow(params, effect, shift, noise),
+      values: isAllocate(params) ? null : valueWindow(effect, noise),
     };
   },
 

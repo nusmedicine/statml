@@ -219,15 +219,24 @@ export function allocateStudy(rng, params) {
  * the unit that varies biologically, and repeating the measurement does not
  * draw a new one. The notebook's cell 79 does exactly this, adding
  * `rnorm(sd = 0.5)` to a value already drawn.
+ *
+ * `noise` IS THE MEASUREMENT'S OWN SPREAD, AND IT USED TO BE WELDED TO THE
+ * POPULATION'S. Both were NOISE_SD, which pins the intraclass correlation at
+ * exactly 0.50 — a person's repeats scatter as widely as the people do, so the
+ * figure everybody expects of pseudoreplication, tight clusters lying far
+ * apart, is one this model could not draw. It is also the wrong half of the
+ * common case: a precise assay on variable people runs at an ICC of 0.8 or
+ * more, and that is where treating repeats as replicates does the most damage.
+ * Defaulted to NOISE_SD so every caller that does not care is unchanged.
  */
-export function budgetStudy(rng, { people, reps, effect }) {
+export function budgetStudy(rng, { people, reps, effect, noise = NOISE_SD }) {
   const arms = [[], []];
   const subjects = [[], []];
   for (const g of [0, 1]) {
     for (let s = 0; s < people; s += 1) {
       const truth = rng.normal(BASE, NOISE_SD) + (g ? effect : 0);
       const rows = [];
-      for (let r = 0; r < reps; r += 1) rows.push(truth + rng.normal(0, NOISE_SD));
+      for (let r = 0; r < reps; r += 1) rows.push(truth + rng.normal(0, noise));
       subjects[g].push({ truth, rows });
       for (const y of rows) arms[g].push({ carrier: false, y, subject: s });
     }

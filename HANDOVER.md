@@ -167,6 +167,19 @@ turned into stage work. **Nine changes to `main.js`, in order:**
    pile — could only be got by eye. Both arms' means are now drawn in each
    marginal, arm-coloured, and the marginals share one bar scale.
 
+10. **A measurement-noise dial**, which unpins the intraclass correlation. Both
+   spreads were `NOISE_SD`, fixing ICC at exactly 0.50 — the one setting where a
+   person's repeats scatter as widely as the people do, so the figure everyone
+   expects of pseudoreplication (tight clusters lying far apart) was one the
+   model could not draw. `design-measure` §13: at 10 people x 3 with nothing to
+   find, the row test calls it significant 9.4% of the time at sdWithin 1.00 and
+   **26.8% at 0.15**. THE PRECISE ASSAY IS THE DANGEROUS ONE — the damage is
+   `1 + (reps - 1) * ICC`, and precision is a high ICC. The other end earns its
+   place too: holding people fixed, ten repeats take 4% off the honest estimate
+   at 0.15 and 47% at 1.00, so repeating pays exactly where pseudoreplicating it
+   would matter least. Nothing clips at either end — 0.007% of dots at worst,
+   and 0.00% of studies leave the pile.
+
 **HOW THE ANIMATION WORK WAS CHECKED, because screenshots cannot do it.** Patch
 `requestAnimationFrame` into a queue, click the drive button, pump the queue on
 a fixed clock, and sum `globalAlpha` over the marks painted in a y-band each
