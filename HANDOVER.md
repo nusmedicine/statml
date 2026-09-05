@@ -1,59 +1,47 @@
 # Handover
 
 **FORTY-FOUR WIDGETS — 43 on the gallery, `roc-auc` UNLISTED (live at its URL,
-off the cards; Kenneth's call, 2026-08-30). 334 fingerprint states, of which
-**widget 44's ten are still PLACEHOLDERS**. `/lab/` is empty: there is no
+off the cards; Kenneth's call, 2026-08-30). 334 fingerprint states, every one of
+them real and every one MATCHing as of 2026-09-05. `/lab/` is empty: there is no
 draft.**
 
 ---
 
-# THE ONE TASK WAITING: BASELINE WIDGET 44
+# WIDGET 44 IS BASELINED. NOTHING IS OUTSTANDING ON IT.
 
-Kenneth said **"tested ok"** and it was pushed on 2026-09-05, so it is LIVE at
-<https://nusmedicine.github.io/statml/widget/experimental-design/> with **no
-fingerprint coverage at all** — its ten states are `"px": "0", "tx": "0"`
-placeholders that `check` accepts. That is the only thing outstanding on it.
+Ten states recorded 2026-09-05, six settled on Sampling and two on Replicate,
+plus **two DRIVEN** — the Sampling study boundary and the Replicate ease out of
+rest, which are the two crossfades the second session built and which no settled
+state can see. The noise dial is covered by the `noise=precise` state.
 
-**What that costs right now:** a change to `widgets/core/` cannot be proved safe
-against widget 44. The suite will report its ten states as MATCH whatever the
-widget draws, because a placeholder matches nothing. Every other widget is
-covered; this one is a hole.
+Done to the letter of 5.10: placeholders first, the suite left to auto-run,
+**three determinism passes** on a ten-state baseline (all ten byte-identical,
+0 DIFFER), only widget 44's ten entries patched, the other 324 proved
+byte-identical and in the same order against the pre-session file, and a final
+full pass reading **334 states, 0 DIFFER**.
 
-**Do it first, and do it in this order** (principle 5.10, and the discipline
-that caught widget 42):
+## A FLAKE IN THE FULL RUN, AND IT IS NOT A REGRESSION — do not rebaseline it
 
-1. Replace the ten placeholders with real states. The stage moved nine times on
-   2026-09-05, so the states themselves want rewriting, not just rehashing —
-   the Replicate tab is a different figure. At least one DRIVEN state is
-   required (`check` fails an `animation` without one), and the crossfades are
-   exactly what a settled state cannot see: the study boundary on both tabs.
-2. Serve, run `widgets/_lab/fingerprint.html`, let it auto-run — **never click
-   Run**, that starts a second concurrent pass into the same table.
-3. Confirm each new driven state is identical across THREE runs before
-   baselining it. A flaky check is worse than none.
-4. Patch only widget 44's entries; never the bulk copy.
-5. Run the suite once more and confirm **every** state reads MATCH. Widget 42
-   shipped nine hashes it had never produced and they read as somebody else's
-   regression for two days.
+The first full pass reported **two `naive-bayes` states as DIFFER**. They are
+not. Chased rather than rebaselined, which is the widget-42 lesson:
 
-Suggested states, given what the second session built:
+- only `px` differed and `tx` matched, so it is geometry or timing, not content;
+- run in **isolation, twice, all eight naive-bayes states MATCH** the stored
+  hashes exactly, including those two;
+- the only core change that day was `tokens.css` +37 lines, and it adds nothing
+  but `.w-legend .swatch[data-mark="tri"|"hollow"|"ring"]` rules — marks that
+  nothing outside widget 44 sets, so it cannot reach naive-bayes;
+- the **final full pass had 0 DIFFER**, the same two included.
 
-```
-Sampling    ?scheme=convenience&shown=200          both blocks, opposite halves
-            ?scheme=blocked&shown=200
-            ?scheme=convenience&shift=down1&effect=moderate&shown=200
-            drive mid-crossfade  (the study boundary — new, and unhashed)
-Replicate   ?concept=budget&people=10&reps=1&shown=200     half of the argument
-            ?concept=budget&people=2&reps=5&shown=200      and the other half
-            ?concept=budget&people=10&reps=4&noise=precise&shown=84
-            ?concept=budget&people=10&reps=4&noise=double&shown=84
-            ?concept=budget&people=30&reps=4&effect=large&shown=84
-            drive from rest      (the dots easing off the schematic — new)
-```
+So a full 334-state run is not perfectly reproducible for those two states while
+an 8-state run is. That is the shape of the scrollbar flake this harness has had
+before — a taller page, a scrollbar, a narrower canvas. **If a lone `px`-only
+DIFFER appears on a widget your change cannot reach, re-run that widget's states
+on their own before believing it.** Copying `latest` wholesale at that moment
+would have written two hashes the widget never produces, which is exactly how
+widget 42 shipped nine bad ones.
 
----
-
-# WIDGET 44 `experimental-design` — SHIPPED AND PUSHED, NOT BASELINED
+# WIDGET 44 `experimental-design` — SHIPPED, PUSHED AND BASELINED
 
 **PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
 until Kenneth reopened it on 2026-09-05. Built over TWO sessions the same day —
