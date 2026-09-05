@@ -98,6 +98,7 @@ lab/index.html     the drafts, deployed at /lab/; NOT linked from the gallery
 docs/              prd, design principles, widget catalogue
 scripts/serve.mjs  dev server; sends no-store, aliases /widget/ (see above)
 scripts/check.mjs  invariant assertions; runs inside npm run build
+scripts/verify.mjs the engine and contract checks in widgets/_lab/ (npm test); build runs it too
 scripts/build.mjs  assembles _site/ (gallery at /, widgets at /widget/)
 scripts/site.mjs   the one place the published `widget` namespace is named
 ```
@@ -456,9 +457,11 @@ so the licences go in when the content is ready to spread, not before.
 - GitHub Pages sends `max-age=600`, so a student can get a stale widget for ten
   minutes after a deploy. The fix is content-hashed filenames, which needs a
   bundler and would end the no-build property. Not yet.
-- No unit-test harness. `compute()` is pure and seeded, which is what would make
-  one cheap; `npm run check` and the fingerprint harness cover the invariants and
-  the rendering in the meantime.
+- No unit-test framework. `compute()` is pure and seeded, which is what makes
+  the checks cheap without one: `npm test` runs the thirteen engine and contract
+  scripts in `widgets/_lab/` (six against scikit-learn, R or umap-learn
+  references, seven driving a widget's contract in node), `npm run check` holds
+  the invariants, and the fingerprint harness holds the rendering.
 - The widget count is not kept here. It lives in HANDOVER.md's first paragraph
   and in `widgets/manifest.json`, which `npm run check` reads; this line said
   14 from August until 2026-09-05, when the count was 44.
