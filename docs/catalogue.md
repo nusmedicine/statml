@@ -4124,6 +4124,37 @@ drawn twice: at the top, where the walk reads them, and again directly
 above the imputed row, so array, imputed and ground truth stack as one
 comparison. Same data, one more row of height.
 
+### What the switch rate does — measured 2026-09-06, when Kenneth asked what it was for
+
+400 seeds per row, the widget's own engine, defaults otherwise.
+
+```
+  TOY  (the truth is generated with the same rho)
+  rho     mean P at a blank   blanks right   path switches / 12
+  0.005          0.78              79%            0.01
+  0.1            0.67              68%            0.39
+  0.5            0.50              50%            4.08     <- no memory: nothing imputable
+
+  BIO  (the truth has two fixed recombination points; rho is the model's assumption)
+  rho     blanks right   share at P >= 0.9   right among those   path switches
+  0.005        83%             80%                  91%              0.03
+  0.1          85%             62%                  97%              0.39
+  0.5          85%             40%                  98%              0.52
+```
+
+On the toy the dial IS the Markov property: at 0.5 a missing day's posterior
+is exactly 0.50 and the imputation collapses to the marginal, which is the
+whole reason the model helps. On the biological tab it barely moves which
+allele is imputed — 83–85% right across the dial, because the panel's
+haplotypes share segments and a wrong template usually carries the right
+allele — and moves how SURE the model says it is: with recombination all
+but forbidden it calls 80% of blanks at P ≥ 0.9 and is wrong on 9% of
+those; at 0.5 it calls 40% and is wrong on 2%. A control that changes the
+stated confidence and not the answer is a subtle lesson on a busy tab.
+Open call, put to Kenneth with these numbers: keep ρ on the toy, where it
+is the lesson, and fix it on the biological tab — in practice it comes from
+a genetic map and the panel size, not from the sample.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,
