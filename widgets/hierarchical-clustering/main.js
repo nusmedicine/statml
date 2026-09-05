@@ -138,6 +138,11 @@ defineWidget({
     + "builds a dendrogram, which is cut at a chosen height to give k clusters.",
   layout: "side",
 
+  /* The distance matrix answers to the pointer: hovering a cell lights the two
+     observations it is about on every panel. An inspector, not a control —
+     nothing is written, and with no pointer the figure is exactly as before. */
+  pointer: true,
+
   /* Core calls this with the values SPREAD, plus `w` — not `{ params }`, which
      is what `legend` gets.
 
@@ -481,7 +486,7 @@ defineWidget({
     },
   },
 
-  draw: ({ ctx, colors, w, h, params, state, anim }) => {
+  draw: ({ ctx, colors, w, h, params, state, anim, pointer }) => {
     const shown = clamp(anim?.shown ?? 0, 0, state.tree.height.length);
     const built = shown >= state.tree.height.length;
     const k = Math.min(params.k, state.objects.length);
@@ -535,6 +540,17 @@ defineWidget({
     const sq1 = Math.min(rowH, Math.floor((w - 2 * PAD - ARROW) / 2));
     const dataX = PAD;
     const distX = dataX + sq1 + ARROW;
+    const truthShown = Boolean(params.truth) && params.separation !== "0";
+
+    /* THE PAIR UNDER THE POINTER. A cell of the distance matrix is one number
+       about two observations, and each of the four panels holds those two
+       somewhere: two rows (or columns) of the table, one cell, two points, two
+       leaves. Hovering the cell lights all four, so "which rows was this
+       distance calculated from" is answered by looking rather than by counting
+       along the diagonal. Resolved here, before any panel draws, because the
+       table is drawn before the matrix and needs to know. */
+    const hover = pairUnderPointer(pointer, { x: distX, y: row1, w: sq1, h: sq1 },
+      { n, order: state.tree.order, hasTruth: truthShown });
 
     const wt = flight
       ? witness(state.objects, flight.node.a.leaves, flight.node.b.leaves,
@@ -547,10 +563,15 @@ defineWidget({
        `spokes` is Ward, and neither has a pair to point at. Nothing in flight
        marks nothing: falling back to `[0, 1]` left the first two rows of the
        table outlined at rest, for no reason a reader could recover. */
-    const marks = flight ? {
-      a: flight.node.a.leaves,
-      b: flight.node.b.leaves,
-      pair: wt && wt.kind === "extreme" && wt.pairs[0] ? wt.pairs[0] : null,
+    const marks = flight || hover ? {
+      a: flight ? flight.node.a.leaves : [],
+      b: flight ? flight.node.b.leaves : [],
+      // the hovered pair outranks the linkage's: the reader pointed at it
+      pair: hover ? [hover.a, hover.b]
+        : wt && wt.kind === "extreme" && wt.pairs[0] ? wt.pairs[0] : null,
+      caption: hover
+        ? `the two ${cols ? "columns" : "rows"} this distance is between`
+        : null,
     } : null;
 
     drawDataMatrix(ctx, colors, { x: dataX, y: row1, w: sq1, h: sq1 }, {
@@ -571,22 +592,22 @@ defineWidget({
       order: state.tree.order,
       groups,
       cells: wt && wt.kind !== "spokes" ? wt.pairs : null,
-      truth: params.truth && params.separation !== "0"
-        ? state.pts.map((p) => p.truth) : null,
+      truth: truthShown ? state.pts.map((p) => p.truth) : null,
       caption: `${n} x ${n} — every pair of ${cols ? "samples" : "genes"}, `
         + `${shown} merge${shown === 1 ? "" : "s"} boxed`,
+      hover,
+      unit: cols ? "column" : "row",
     });
 
     const sq2 = Math.min(rowH, Math.floor(w * 0.42));
     drawScatter(ctx, colors, { x: PAD, y: row2, w: sq2, h: sq2 },
-      { pts: state.pts, objects: state.objects, tree: state.tree, shown, labels, params, flight });
+      { pts: state.pts, objects: state.objects, tree: state.tree, shown, labels, params, flight, hover });
 
     const treeX = PAD + sq2 + 18;
     drawDendrogram(ctx, colors,
       { x: treeX, y: row2, w: w - PAD - treeX, h: sq2 - 8 },
       { tree: state.tree, shown, labels, k: built ? Math.min(k, n) : null, flight,
-        truth: params.truth && params.separation !== "0"
-          ? state.pts.map((p) => p.truth) : null });
+        truth: truthShown ? state.pts.map((p) => p.truth) : null, hover });
   },
 
   readout: ({ params, state, anim }) => {
@@ -697,7 +718,9 @@ defineWidget({
 /* ---------------------------------------------------------------------------
    The scatter.
    ------------------------------------------------------------------------ */
-function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, params, flight }) {
+function drawScatter(ctx, colors, box, {
+  pts, objects, tree, shown, labels, params, flight, hover = null,
+}) {
   const { x, y, w, h } = box;
   const ex = EXTENT[params.distance] ?? EXTENT.euclidean;
   const px = (v) => x + w * (0.5 + v / (2 * ex));
@@ -785,6 +808,27 @@ function drawScatter(ctx, colors, box, { pts, objects, tree, shown, labels, para
     ctx.arc(px(p.x), py(p.y), showTruth ? 5 : 4, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  /* THE PAIR UNDER THE POINTER on the distance matrix: ringed, and joined.
+     This panel is a projection of the distances, so the segment drawn here is
+     not the number in the cell — the matrix writes the number, this only says
+     which two points it belongs to. */
+  if (hover) {
+    const A = pts[hover.a];
+    const B = pts[hover.b];
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px(A.x), py(A.y));
+    ctx.lineTo(px(B.x), py(B.y));
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    for (const p of [A, B]) {
+      ctx.beginPath();
+      ctx.arc(px(p.x), py(p.y), 8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -912,7 +956,7 @@ function drawWitness(ctx, colors, pts, objects, node, params, box, t = 1) {
    ------------------------------------------------------------------------ */
 function drawDendrogram(ctx, colors, box, {
   tree, shown, labels, k, orient = "up", flight = null, truth = null,
-  leafFrac = null,
+  leafFrac = null, hover = null,
 }) {
   const { x, y, w, h } = box;
   const { rank, nodeX } = dendroLayout(tree);
@@ -1067,33 +1111,67 @@ function drawDendrogram(ctx, colors, box, {
       ctx.fillRect(a + 1, by, b - a - 2, 5);
     }
   }
+
+  /* THE PAIR UNDER THE POINTER on the distance matrix, at the foot of its two
+     leaves — the same two the scatter rings and the table outlines. */
+  if (hover && orient === "up") {
+    ctx.fillStyle = colors.highlight;
+    for (const leaf of [hover.a, hover.b]) {
+      const [lx] = place(rank.get(leaf), 0);
+      ctx.beginPath();
+      ctx.arc(lx, y + h - 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   ctx.restore();
 }
 
 /* ---------------------------------------------------------------------------
    The distance matrix, drawn.
    ------------------------------------------------------------------------ */
+
+/* WHERE THE CELLS ARE, in one place, because the hover hit-test and the
+   drawing have to agree to the pixel. A hit-test with its own copy of the cell
+   size would drift the first time the drawing changed, and a hover that lit
+   the wrong pair is worse than no hover.
+
+   THE TRUTH STRIP takes a left gutter rather than the empty upper triangle,
+   where it would be a staircase and would not sit against the boxes. It
+   belongs on this panel because the matrix is held in the finished tree's leaf
+   order: a cluster is a contiguous run with its box on the diagonal, so a strip
+   of true groups down the same rows lines up with those boxes.
+
+   A CELL HAS A MAXIMUM SIZE, so a small matrix looks small. Filling a 200px
+   panel with a 2 x 2 drew two enormous blocks that read as a picture of
+   something rather than as the whole of a very small matrix. */
+function distanceGeometry(outer, n, hasTruth) {
+  const GUT = hasTruth ? 12 : 0;
+  const box = { x: outer.x + GUT, y: outer.y, w: outer.w - GUT, h: outer.h };
+  const cell = Math.min(Math.min(box.w, box.h) / n, 22);
+  return { box, cell };
+}
+
+/** The two observations whose distance is under the pointer, or null. The
+    lower triangle only, and not the diagonal: an observation's distance to
+    itself is not a pair. `r` and `c` are the cell; `a` and `b` the objects. */
+function pairUnderPointer(pointer, outer, { n, order, hasTruth }) {
+  if (!pointer) return null;
+  const { box, cell } = distanceGeometry(outer, n, hasTruth);
+  const c = Math.floor((pointer.x - box.x) / cell);
+  const r = Math.floor((pointer.y - box.y) / cell);
+  if (r < 0 || c < 0 || r >= n || c >= n || c >= r) return null;
+  return { r, c, a: order[r], b: order[c] };
+}
+
 function drawDistance(ctx, colors, outer, {
   rows, distance, order = null, cells = null, groups = null, caption = "",
-  truth = null,
+  truth = null, hover = null, unit = "row",
 }) {
-  /* THE TRUTH STRIP belongs on THIS panel because the matrix is held in the
-     finished tree's leaf order: a cluster is a contiguous run with its box on
-     the diagonal, so a strip of true groups down the same rows lines up with
-     those boxes. A box whose rows are one colour found a real group.
-
-     A left gutter rather than the empty upper triangle, where it would be a
-     staircase and would not sit against the boxes. */
-  const GUT = truth ? 12 : 0;
-  const box = { x: outer.x + GUT, y: outer.y, w: outer.w - GUT, h: outer.h };
   const { D, n, max } = distanceMatrix(rows, distance);
+  const { box, cell } = distanceGeometry(outer, n, Boolean(truth));
   const idx = order ?? Array.from({ length: n }, (_, i) => i);
   const pos = new Map();
   idx.forEach((leaf, r) => pos.set(leaf, r));
-  /* A CELL HAS A MAXIMUM SIZE, so a small matrix looks small. Filling a 200px
-     panel with a 2 x 2 drew two enormous blocks that read as a picture of
-     something rather than as the whole of a very small matrix. */
-  const cell = Math.min(Math.min(box.w, box.h) / n, 22);
 
   ctx.save();
   /* LOWER TRIANGLE ONLY. The matrix is symmetric with a zero diagonal, so the
@@ -1142,6 +1220,35 @@ function drawDistance(ctx, colors, outer, {
       ctx.fillStyle = truthColour(colors, truth[idx[i]]);
       ctx.fillRect(outer.x, box.y + i * cell + 0.5, 6, cell - 1);
     }
+  }
+
+  /* THE PAIR UNDER THE POINTER: the cell, and a guide from it along its row
+     and up its column to the diagonal, where each observation meets itself —
+     the two cells that say WHICH row and WHICH column this number is about.
+     The upper triangle is empty by construction, so the pair and its value are
+     written there, where they can cover nothing. */
+  if (hover) {
+    const { r, c } = hover;
+    const mid = (k) => (k + 0.5) * cell;
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(box.x + mid(c), box.y + mid(r));
+    ctx.lineTo(box.x + mid(r), box.y + mid(r));     // along row r to (r, r)
+    ctx.moveTo(box.x + mid(c), box.y + mid(r));
+    ctx.lineTo(box.x + mid(c), box.y + mid(c));     // up column c to (c, c)
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    for (const [rr, cc] of [[r, c], [r, r], [c, c]]) {
+      ctx.strokeRect(box.x + cc * cell + 1, box.y + rr * cell + 1, cell - 2, cell - 2);
+    }
+    ctx.textAlign = "right";
+    ctx.fillStyle = colors.ink1;
+    const right = box.x + n * cell - 3;
+    ctx.fillText(`${unit} ${hover.a + 1} and ${unit} ${hover.b + 1}`, right, box.y + 11);
+    ctx.fillStyle = colors.ink2;
+    ctx.fillText(`${DISTANCES[distance].label} distance ${D[hover.a][hover.b].toFixed(2)}`,
+      right, box.y + 25);
   }
 
   ctx.strokeStyle = colors.grid;
@@ -1242,9 +1349,10 @@ function drawDataMatrix(ctx, colors, box, { vecs, cols, marks = null }) {
 
   ctx.fillStyle = colors.ink3;
   ctx.textAlign = "left";
-  ctx.fillText(marks
-    ? (cols ? "the two clusters of columns being merged" : "the two clusters of rows being merged")
-    : (cols ? "each column is one observation" : "each row is one observation"),
+  ctx.fillText(marks?.caption
+    ?? (marks
+      ? (cols ? "the two clusters of columns being merged" : "the two clusters of rows being merged")
+      : (cols ? "each column is one observation" : "each row is one observation")),
   box.x, box.y + box.h + 13);
   ctx.restore();
 }
