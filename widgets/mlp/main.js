@@ -787,7 +787,7 @@ widgetApi = defineWidget({
       label: "Activation",
       options: [
         { value: "identity", label: "Identity", detail: "no bend — the layers collapse to one line" },
-        { value: "relu", label: "ReLU", detail: "the notebook's default" },
+        { value: "relu", label: "ReLU", detail: "the usual first choice" },
         { value: "tanh", label: "tanh", detail: "the smooth cousin" },
       ],
       default: "relu",

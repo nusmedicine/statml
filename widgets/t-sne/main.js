@@ -532,7 +532,7 @@ defineWidget({
       type: "choice",
       label: "Samples per group",
       options: [
-        { value: "3", label: "3", detail: "the lesson's own scale — and too few to choose a perplexity in" },
+        { value: "3", label: "3", detail: "too few points to choose a perplexity in" },
         { value: "6", label: "6", detail: "enough for perplexity to start mattering" },
         { value: "12", label: "12", detail: "the whole legal range of perplexity is reachable" },
       ],

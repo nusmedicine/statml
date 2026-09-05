@@ -349,7 +349,7 @@ function buildBag(pts, rng) {
 const BOOST_M = 20;
 const BOOST_DEPTH = 2;
 const RATES = [
-  { key: "0.1", value: 0.1, label: "0.1", detail: "0.1 — the notebook's, small steps" },
+  { key: "0.1", value: 0.1, label: "0.1", detail: "small steps" },
   { key: "0.3", value: 0.3, label: "0.3", detail: "0.3 — the default here" },
   { key: "1.0", value: 1, label: "1.0", detail: "1.0 — no shrinkage, each tree added whole" },
 ];

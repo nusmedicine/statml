@@ -89,7 +89,7 @@ const SAMPLES = 10;
    variations due to multiple steps in high-throughput technologies". */
 const SPREADS = [
   { value: "0", amount: 0, label: "none",
-    detail: "every sample measured identically — the notebook's own stage, where no normalizer has anything to correct" },
+    detail: "every sample measured identically, so no normalizer has anything to correct" },
   { value: "0.25", amount: 0.25, label: "±25%", detail: "a mild systematic difference between samples" },
   { value: "0.5", amount: 0.5, label: "±50%", detail: "one sample's values run about 2.3× another's" },
   { value: "0.75", amount: 0.75, label: "±75%", detail: "one sample's values run about 3.1× another's" },

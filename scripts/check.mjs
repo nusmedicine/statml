@@ -454,6 +454,39 @@ const { PUBLIC_DIR } = await mod("scripts/site.mjs");
   ok(`${deployed.length} deployed files: every path relative`);
 }
 
+/* --- reader-facing copy names no lesson ---------------------------------- */
+
+/* Principle 2.10: "No lesson or notebook references in widget copy. The lesson
+   links to the widget, never the reverse." It was documented, and it was broken
+   in SIX widgets — five of them long before anyone noticed, because a rule that
+   lives only in a document is a rule that gets forgotten. This is the same rule
+   as an assertion, which is the form it should always have had.
+
+   SOURCE COMMENTS ARE EXEMPT and 5.9 says so explicitly: a comment naming the
+   cell a decision came from is the record of where that decision came from.
+   So the scan strips comments first and then reads only the string VALUES of
+   the spec fields a reader actually sees. */
+
+const COPY_FIELDS = /(?:label|detail|note|subtitle|blurb|title)\s*:\s*(['"`])((?:\\.|(?!\1).)*)\1/g;
+const LESSON_WORDS = /\b(notebook|the lesson|lesson's|chapter|this widget|the widget below)\b/i;
+
+const copyOffenders = [];
+for (const slug of slugs) {
+  const file = join(root, "widgets", slug, "main.js");
+  /*  is what the rest of this file already uses to test for a file */
+  try { await access(file); } catch { continue; }
+  const src = (await readFile(file, "utf8"))
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  for (const m of src.matchAll(COPY_FIELDS)) {
+    if (LESSON_WORDS.test(m[2])) copyOffenders.push(`${slug}: "${m[2].slice(0, 60)}"`);
+  }
+}
+if (copyOffenders.length) {
+  fail(`reader-facing copy references the lesson (principle 2.10):\n    ${copyOffenders.join("\n    ")}`);
+}
+ok(`${slugs.size} widgets: reader-facing copy names no lesson or notebook`);
+
 /* --- no runtime dependencies ------------------------------------------- */
 
 const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
