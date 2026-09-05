@@ -662,6 +662,23 @@
       ],
       "arc": 44,
       "status": "shipped"
+    },
+    {
+      "slug": "hmm",
+      "title": "Hidden Markov Model",
+      "blurb": "A hidden Markov model decodes hidden states from observations and fills the missing ones, as genotype imputation does.",
+      "course": "PHM5003",
+      "topics": [
+        "hidden Markov model",
+        "Viterbi",
+        "forward-backward",
+        "imputation",
+        "genotype imputation",
+        "reference panel",
+        "missing data"
+      ],
+      "arc": 45,
+      "status": "draft"
     }
   ]
 }

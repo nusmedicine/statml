@@ -3944,6 +3944,103 @@ remembered `p.adjust` output. §6 now derives t, df and se by hand from the two
 vectors and checks the p against a Simpson integral of the same t density, so
 nothing in it depends on recall.
 
+## Widget 45 · `hmm` — built 2026-09-06, DRAFT under review
+
+**PHM5003 HTD `05 / 02 — Missing Data and Imputation`, cells 24–38.** Kenneth
+asked for it on 2026-09-06, on a branch named `hmm`. The notebook's second
+half is INTENTIONAL missing data: a SNP array types some sites, and the rest
+are imputed from a reference panel of sequenced haplotypes with a hidden
+Markov model. It builds up through a two-state toy — mood patterns P1 and P2
+emitting Happy or Sad, some days unrecorded — and then runs the `HMM`
+package's Viterbi on a 17-letter genotype against two reference haplotypes.
+Widget 25 owns cells 1–23 and is not touched.
+
+### The misconception
+
+Students read imputation as a per-site fill — the commonest allele, or the
+mean. The HMM fills nothing per site. Its hidden state is WHICH panel
+haplotype the sample is copying; the typed neighbours identify that
+haplotype; the blank is read off it. Two consequences the figure shows and
+the notebook asserts without showing: an imputed call carries a probability,
+and that probability falls where a recombination point lies between typed
+sites, or past the last one. Evidence: **inferred** from the notebook's own
+framing (cell 31 says only "we want to impute the missing genotypes"), and
+from the toy's markdown, which reads the decoded pattern as if it were the
+imputed emotion.
+
+### What was measured before anything was drawn
+
+`_lab/hmm-measure.mjs`, 400 seeds per row. Six haplotypes, one site in four
+typed, two recombination points in the sample:
+
+```
+  fill                          blanks imputed right   P >= 0.9
+  panel allele frequency                     75%            —
+  HMM, posterior call                        87%          58%
+  HMM, Viterbi copy                          84%            —
+```
+
+Viterbi's path was never beaten by the truth's own path in 300 seeds (its
+score is a maximum, and the check says the maximiser is right). The 87%
+ceiling is the recombination points: between two typed sites the switch
+cannot be located, and those are the sites the posterior marks uncertain.
+Density moves it as expected — 91% at 1 in 2, 81% at 1 in 9 — and the
+frequency fill sits at 75% whatever the density, because it reads no
+neighbours.
+
+**The panel generator was tuned by the same script.** Independent random
+founders carry no linkage, so several haplotypes fit the typed sites and
+differ at the blanks; two founders and descendants that copy them with
+occasional switches and private variants gave a panel whose mosaic can be
+seen, and the same accuracy. Recombination points are placed at least five
+sites apart and from the ends after seed 1 put its two at sites 21 and 22.
+
+### Two deliberate departures from the notebook's model
+
+1. **The emission is position-specific.** The notebook's emission matrix is
+   each haplotype's base composition — the same at every site — so its H1/H2
+   call rests on how many A's each carries. The widget's state emits the
+   allele it carries at that site, or a mismatch with probability 0.02. That
+   is the Li & Stephens copying model every imputation program descends from.
+2. **Forward–backward as well as Viterbi.** Viterbi gives one path and no
+   number; the posterior gives, per site, how sure the call is. An imputed
+   genotype carries that number in practice (a dosage or INFO score), and a
+   figure without it draws an imputation as if it were a read.
+
+### Kenneth's picks, from `_lab/hmm-mock.html` (2026-09-06)
+
+Three candidates at the real width, same engine and seed: **A** letters on a
+posterior-filled grid (closest to the notebook's strings; 9px letters at the
+fingerprint's narrowest canvas), **B** dark/light allele tiles with the
+posterior on its own strip and the Viterbi path drawn through it, **C** the
+Viterbi route outlined on the panel and nothing else. He picked **B**, slug
+`hmm` (the bare method, as `pca` and `umap`), the switch rate kept as a
+control, and **two tabs** — the toy first, then the genotype — which the
+build then made one figure grammar: observations, model, posterior strip
+with the path, imputed row filled by confidence, and the truth on request.
+
+### The one decoder
+
+`model.js` has one `decode()` for both tabs: ρ is the probability the hidden
+state changes between neighbours, landing uniformly on the other K − 1
+states, so on the Mood tab ρ is exactly the notebook's off-diagonal and on
+the Genotype tab it is the recombination rate. The animation is "reveal one
+more observation": every stage of the left-to-right reveal is precomputed,
+so a posterior to the LEFT of the newest observation visibly moves — the
+backward pass, seen.
+
+### Open on the draft
+
+- The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,
+  because a call's confidence there is capped by the emission itself (a
+  pattern known for certain is Happy with probability 0.8 at the default).
+- The 550px canvas gives 13px tiles on the Genotype tab. Legible as tiles;
+  worth a look projected.
+- No fingerprint baseline yet — five placeholders. Recorded once the design
+  stops moving.
+
+---
+
 ## Deferred from PHM5003
 
 Not dropped — parked, in the order I would revisit them. Each already has its
@@ -3986,7 +4083,7 @@ twenty thousand p-values → group what is left → say what the group means.*
 | # | notebook | host widget | state |
 |---|---|---|---|
 | 01 | Review of Experimental Design | **44 `experimental-design`** ✅ | randomisation, blocking, replication. Was **out of scope for this arc**; Kenneth reopened it 2026-09-05 and picked the widest scope — see § *Widget 44* |
-| 02 | Missing Data and Imputation | **25 `missing-data`** ✅ | already recorded as this notebook's widget, cells 1–23 |
+| 02 | Missing Data and Imputation | **25 `missing-data`** ✅, **45 `hmm`** draft | 25 owns cells 1–23 (unintentional missing data); 45 owns cells 24–38, the HMM and genotype imputation — see § *Widget 45* |
 | 03 | Normalization and Transformation | — | **SLOT 1** |
 | 04 | Dimensionality Reduction | **19 `pca`, 20 `mds`, 21 `t-sne`, 22 `umap`** ✅ | four of five headings. `## 2 NMF` has none — **SLOT 2** |
 | 05 | Batch Effect Correction | — | **SLOT 3** |

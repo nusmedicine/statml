@@ -37,6 +37,7 @@ const SCRIPTS = [
   // widget contracts driven in node
   "widgets/_lab/dbscan-drive.mjs",
   "widgets/_lab/hc-drive.mjs",
+  "widgets/_lab/hmm-drive.mjs",
   "widgets/_lab/kmeans-drive.mjs",
   "widgets/_lab/mf-drive.mjs",
   "widgets/_lab/missing-drive.mjs",

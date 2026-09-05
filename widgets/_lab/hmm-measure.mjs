@@ -21,18 +21,18 @@ const SEEDS = 400;
 function sweep(opts) {
   let c = 0, f = 0, u = 0, s = 0, v = 0;
   for (let seed = 1; seed <= SEEDS; seed += 1) {
-    const R = M.build({ rng: makeRng(seed), ...opts });
+    const R = M.buildGenotype({ rng: makeRng(seed), ...opts });
     const z = R.stages.at(-1);
-    c += z.correct; f += z.freqCorrect; u += z.untyped; s += z.sure;
-    for (let i = 0; i < R.L; i += 1) if (!z.sites[i].typed && z.sites[i].viterbi === R.sample.allele[i]) v += 1;
+    c += z.correct; f += z.freqCorrect; u += z.blanks; s += z.sure;
+    for (let i = 0; i < R.L; i += 1) if (z.sites[i].blank && z.sites[i].viterbi === R.sample.allele[i]) v += 1;
   }
   return { hmm: pct(c, u), viterbi: pct(v, u), freq: pct(f, u), sure: pct(s, u), untyped: u / SEEDS };
 }
 
 console.log("§1  seed 1, K 6, 1 in 4 typed, 2 switches, rho 0.1");
-const S = M.build({ rng: makeRng(1), K: 6, every: 4, switches: 2, rho: 0.1 });
+const S = M.buildGenotype({ rng: makeRng(1), K: 6, every: 4, switches: 2, rho: 0.1 });
 const last = S.stages.at(-1);
-console.log("  typed", S.typed.length, "untyped", last.untyped, "correct", last.correct,
+console.log("  typed", S.order.length, "blanks", last.blanks, "correct", last.correct,
   "freq", last.freqCorrect, "sure", last.sure);
 console.log("  truth src ", S.sample.src.join(""));
 console.log("  viterbi   ", last.path.join(""));
@@ -42,7 +42,7 @@ console.log("  cuts", S.sample.cutSites.join(","), " novel",
 console.log("\n§2  posterior rows");
 let off = 0, n = 0;
 for (let seed = 1; seed <= 50; seed += 1) {
-  const R = M.build({ rng: makeRng(seed), K: 6, every: 4, switches: 2, rho: 0.1 });
+  const R = M.buildGenotype({ rng: makeRng(seed), K: 6, every: 4, switches: 2, rho: 0.1 });
   for (const st of R.stages) for (const g of st.gamma) { n += 1; if (Math.abs(g.reduce((a, b) => a + b, 0) - 1) > 1e-9) off += 1; }
 }
 const u0 = S.stages[0].gamma.every((g) => g.every((x) => Math.abs(x - 1 / 6) < 1e-12));

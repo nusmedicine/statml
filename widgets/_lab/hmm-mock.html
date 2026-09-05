@@ -90,10 +90,10 @@ const views = OPTS.map((o) => {
 });
 
 function build() {
-  S = M.build({ rng: makeRng(V.seed * 7919 + 1), K: V.K, L: V.L, every: V.every, switches: V.sw, rho: RHOS[V.rho] });
+  S = M.buildGenotype({ rng: makeRng(V.seed * 7919 + 1), K: V.K, L: V.L, every: V.every, switches: V.sw, rho: RHOS[V.rho] });
   const tEl = document.getElementById("t");
-  tEl.max = S.typed.length;
-  if (V.t > S.typed.length) V.t = S.typed.length;
+  tEl.max = S.order.length;
+  if (V.t > S.order.length) V.t = S.order.length;
   tEl.value = V.t; document.getElementById("tv").textContent = V.t;
 }
 
@@ -165,10 +165,10 @@ function draw(view) {
   const rowLabel = (yy, s) => txt(ctx, gx - 6, yy + cell / 2 + 0.5, s, T.ink3, "right", 10, "", MONO);
 
   /* Sample, as typed. */
-  label(sampleB, `Sample, ${st.t} of ${S.typed.length} array sites typed`);
+  label(sampleB, `Sample, ${st.t} of ${S.order.length} array sites typed`);
   rowLabel(sampleB.y, "array");
   for (let i = 0; i < L; i += 1) {
-    if (st.known.has(i)) allele(cx(i), sampleB.y, i, S.sample.allele[i], null);
+    if (st.sites[i].known) allele(cx(i), sampleB.y, i, S.sample.allele[i], null);
     else blank(cx(i), sampleB.y);
   }
 
@@ -244,7 +244,7 @@ function draw(view) {
     const s = st.sites[i];
     const a = useViterbi ? s.viterbi : s.call;
     const x = cx(i), yy = impB.y;
-    if (s.typed) { allele(x, yy, i, a, null); continue; }
+    if (s.known) { allele(x, yy, i, a, null); continue; }
     if (o.id === "A") allele(x, yy, i, a, confAlpha(s.conf));
     else {
       allele(x, yy, i, a, null);
@@ -261,7 +261,7 @@ function draw(view) {
       const a = S.sample.allele[i];
       allele(cx(i), truthB.y, i, a, null);
       const call = useViterbi ? s.viterbi : s.call;
-      if (!s.typed && call !== a) ring(ctx, cx(i), truthB.y, cell, cell, T.ink1);
+      if (s.blank && call !== a) ring(ctx, cx(i), truthB.y, cell, cell, T.ink1);
       if (S.sample.novel[i]) {
         ctx.fillStyle = T.ink3; ctx.beginPath();
         ctx.moveTo(cx(i) + cell / 2, truthB.y + cell + 2); ctx.lineTo(cx(i) + cell / 2 - 3, truthB.y + cell + 7); ctx.lineTo(cx(i) + cell / 2 + 3, truthB.y + cell + 7); ctx.fill();
@@ -271,9 +271,9 @@ function draw(view) {
 
   /* Measured facts under the figure. */
   let vitCorrect = 0;
-  for (let i = 0; i < L; i += 1) if (!st.sites[i].typed && st.sites[i].viterbi === S.sample.allele[i]) vitCorrect += 1;
+  for (let i = 0; i < L; i += 1) if (st.sites[i].blank && st.sites[i].viterbi === S.sample.allele[i]) vitCorrect += 1;
   cap.innerHTML = `width ${W} · height <b>${H}</b>px · cell <b>${cell}</b>px · letters <b>${o.id === "A" ? letterPx + "px" : "none"}</b> · `
-    + `untyped <b>${st.untyped}</b> · imputed right: posterior <b>${st.correct}</b>, viterbi <b>${vitCorrect}</b>, frequency fill <b>${st.freqCorrect}</b> · `
+    + `untyped <b>${st.blanks}</b> · imputed right: posterior <b>${st.correct}</b>, viterbi <b>${vitCorrect}</b>, frequency fill <b>${st.freqCorrect}</b> · `
     + `≥ 0.9 sure <b>${st.sure}</b> · truth switches at <b>${S.sample.cutSites.join(", ") || "none"}</b>`;
 }
 
