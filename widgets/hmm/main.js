@@ -365,7 +365,7 @@ defineWidget({
     },
     switches: {
       type: "int", label: "Recombination points", min: 0, max: 4, default: 2,
-      detail: "where the sample's copied haplotype changes",
+      detail: "in the simulated sample's true haplotype, where its copied template changes; the decoder has to infer them",
       when: { param: "view", equals: "biological" },
     },
 

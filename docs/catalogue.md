@@ -4155,6 +4155,34 @@ Open call, put to Kenneth with these numbers: keep ρ on the toy, where it
 is the lesson, and fix it on the biological tab — in practice it comes from
 a genetic map and the panel size, not from the sample.
 
+### Recombination points: set as the truth, inferred by the decoder — measured 2026-09-06
+
+Kenneth: *for recombination points, isn't it inferred from the haplotype
+patterns?* Yes: the control sets where the SIMULATED sample's copied
+template truly changes, and the inferred ones are the switches in the
+traced Viterbi path; the control's detail now says so. How often the
+decoder puts a switch between the typed sites flanking a true one, 400
+seeds, K 6, ρ 0.1, two true points:
+
+```
+  panel                       recovered   blanks right   decoded template carries the true allele
+  2 founders (shipping)            10%          85%              89% of sites
+  3 founders                       17%          81%              86%
+  6 independent founders           24%          71%              78%
+  typed 1 in 2, 2 founders         16%          91%
+```
+
+Low everywhere, and not a bug: with seven typed sites one template usually
+fits all of them, Viterbi ties go to staying, and where two templates agree
+the switch is unidentifiable and does not matter to the imputed allele. A
+recombination point is inferable only where the typed sites on its two
+sides cannot be explained by one template — which is why real imputation,
+with hundreds of thousands of typed sites, places them and this toy mostly
+cannot. Consequence for the readout: *Copied haplotype decoded correctly:
+17 of 28* penalises differences that are not identifiable; a tile that
+says how many recombination points were recovered, with that reason as its
+note, would be the honest number. Put to Kenneth.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,
