@@ -144,7 +144,7 @@ function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
     const a = arrow(S[h].x, S[h].y, O[o].x, O[o].y, R + 2, ts / 2 + 3, true);
     const f = h === o ? 0.5 : 0.36;          // the crossing pair is labelled off the crossing
     const lx = a.sx + (a.ex - a.sx) * f, ly = a.sy + (a.ey - a.sy) * f;
-    const off = h === o ? (h === 0 ? -8 : 8) : (h === 0 ? 10 : -10);
+    const off = h === o ? (h === 0 ? -8 : 8) : (h === 0 ? -6 : 6);   // crossing pair labelled on its outer side
     label(lx + off, ly, E[h][o].toFixed(2), off > 0 ? "left" : "right");
   }
   for (let o = 0; o < 2; o += 1) {
