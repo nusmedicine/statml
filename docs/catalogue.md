@@ -4093,6 +4093,28 @@ often). Three founders would widen the gap to ~10 points at the cost of
 accuracy and of every confidence number; kept at two. The frequency-fill
 tile is a comparison shown with the truth, not the widget's claim.
 
+### Fifth round, 2026-09-06 — the same walk on both tabs, and the truth by its name
+
+Kenneth: *where do I see the ground truth? For the bio example I should see
+the SNP array, then we walk through the sequence to see which haplotype
+likely fits, then we see the imputed and the ground truth. Should it be the
+same as the toy?* Two findings. The truth was there, behind a checkbox
+called *Show the hidden states*, which is not what a reader looking for the
+truth scans for — widget 42 calls the same control **Show the ground
+truth**, and 3.7 says an arc keeps one name, so it does now, with a detail
+line. And yes, the same: the biological tab's type-one-site reveal is gone
+and both tabs run the one animation — the array in full from the start,
+Next column walks the trellis along the sequence with the panel column and
+the emission table following it, the trace-back lights the copied
+haplotype, and the imputed row fills against the truth. At K states the
+trellis drops its numbers (nodes are 17–22px) and its losing edges (K − 1
+per node); the survivors alone read. The imputed allele now comes off the
+decoded haplotype, as the toy's mood comes off the decoded pattern, with
+the posterior probability of that allele as its bar — the notebook's own
+recipe. The earlier argument for the reveal (the posterior left of a new
+site moving, the backward pass seen) is recorded above and lost here; the
+trace-back carries the same lesson in Viterbi's form.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,

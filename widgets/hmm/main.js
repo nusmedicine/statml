@@ -13,10 +13,10 @@
      Biological example  the reference panel IS the emission table (K
                          haplotypes by L sites), the hidden state is which
                          haplotype the sample is copying, and recombination
-                         is the transition. Its animation types one array
-                         site at a time and recomputes the whole posterior,
-                         so a posterior to the LEFT of the new site moves too,
-                         which is the backward pass made visible.
+                         is the transition. The same Viterbi walk, at K
+                         states: no numbers in the nodes and no losing
+                         candidates drawn, because 17px cells and K-1 losers
+                         per node would not read.
 
    THE FIGURE, top to bottom, the same grammar on both tabs so the second
    reads as the first grown up: the observations as recorded (blanks where
@@ -34,12 +34,14 @@
    name the example), and picked the trellis with scores in its nodes (C) from
    `_lab/hmm-viterbi.html` as the toy's animation.
 
-   Why the toy animates the algorithm and the biological tab does not: six to
-   eight haplotypes over 36 sites is too dense a trellis to read column by
-   column, and that tab's lesson is what typing buys, not how the decoder
-   works. Toy = how; biological = what for.
+   The biological tab first revealed one typed site at a time instead, on
+   the argument that a K-state trellis is too dense to animate. Kenneth
+   asked for the same walk on both (2026-09-06): see the array, walk the
+   sequence to see which haplotype fits, then the imputed row against the
+   truth. So both tabs run the same animation, and the trellis simply drops
+   its numbers and its losing edges where the cells are small.
 
-   Every stage of both animations is precomputed in compute(); a beat only
+   Every stage of the animation is precomputed in compute(); a beat only
    fades one column in.
    ========================================================================= */
 
@@ -84,7 +86,7 @@ function layout(w, v) {
   const obs = add(cell);
   const model = toy ? add(Math.max(LAB + 2 * mcell, GRAPH_H)) : add(Math.max(LAB + K * ringCell(K), RING_H));
   const panel = toy ? null : add(K * cell);
-  const trellis = toy ? add(K * cell) : null;
+  const trellis = add(K * cell);
   const strip = add(K * cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
@@ -174,14 +176,13 @@ function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
    state's emission arrow going to the allele it carries at that site; and the
    K-by-K transition table, 1 - rho on the diagonal and rho over K - 1 off it.
    Drawn at K states so the reader sees the toy's picture again, larger. */
-function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, stateName }) {
+function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, border, stateName }) {
   const { K, L, gx, cell } = Lo;
   const B = Lo.model;
   const mc = ringCell(K);
   const font = `${colors.fsXs} ${colors.font}`;
   const small = `${Math.max(9, Math.min(11, mc - 13))}px ${colors.font}`;
   const rho = state.rho, move = rho / (K - 1);
-  const site = idx > 0 ? state.order[idx - 1] : state.order[0];
   const known = stage.sites[site].known;
   const ts = Math.min(cell + 4, 18);
 
@@ -269,11 +270,12 @@ function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, bord
   void L;
 }
 
-/* The toy's imputed mood follows the notebook: the decoded pattern's likelier
-   mood. Its probability is the posterior's, P(that mood | moods on record). */
-function toyCall(state, i) {
+/* The imputed value follows the notebook: read off the decoded state — the
+   pattern's likelier mood, or the copied haplotype's allele at that site.
+   Its probability is the posterior's, P(that value | what was observed). */
+function imputedCall(state, i) {
   const h = state.trellis.path[i];
-  const call = state.E[h][1] > 0.5 ? 1 : 0;
+  const call = state.kind === "mood" ? (state.E[h][1] > 0.5 ? 1 : 0) : state.panel.hap[h][i];
   const p1 = state.stages.at(-1).sites[i].p1;
   return { call, conf: call === 1 ? p1 : 1 - p1 };
 }
@@ -305,8 +307,9 @@ defineWidget({
       : [
         { token: "ink-2", label: "The base at each site: the alternate allele filled, the reference allele open", mark: "bar" },
         { token: "unknown", label: "Not typed on the array", mark: "bar" },
+        { token: "empirical", label: "Viterbi trellis: relative score of the best path ending at each node", mark: "bar" },
+        { token: "empirical", label: "Survivor path into a node; once traced, the most likely copied haplotype at every site", mark: "line" },
         { token: "posterior", label: "Posterior: which haplotype is being copied", mark: "bar" },
-        { token: "empirical", label: "Viterbi path: the single most likely sequence of states", mark: "line" },
       ];
     if (params.truth) entries.push({ token: "reference", label: toy ? "True pattern" : "True copying path", mark: "dash" });
     return entries;
@@ -363,7 +366,8 @@ defineWidget({
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     truth: {
-      type: "bool", label: "Show the hidden states", default: false, display: true,
+      type: "bool", label: "Show the ground truth", default: false, display: true,
+      detail: "the true states, and the true values at the blanks",
     },
 
     /* WHERE THE NUMBERS COME FROM, said once per tab. The toy's E and T are
@@ -409,10 +413,10 @@ defineWidget({
   },
 
   animation: {
-    /* On the toy every press handles one column: forward while columns
-       remain, then one column of the trace-back. */
-    stepLabel: { param: "view", labels: { toy: "Next column", biological: "Type a site" }, default: "Next column" },
-    stepTitle: "Toy: compute the next trellis column, then trace back one column. Biological: type the next array site",
+    /* Every press handles one column: forward while columns remain, then
+       one column of the trace-back. */
+    stepLabel: "Next column",
+    stepTitle: "Compute the next trellis column; once all are computed, trace back one column",
     runLabel: "Play",
     runTitle: "Run to the end, one unit at a time",
 
@@ -495,7 +499,6 @@ defineWidget({
       border(x, y, cell, cell);
       if (mark) text(x + cell / 2, y + cell / 2 + 0.5, "?", colors.ink3, "center", `600 ${Math.round(cell * 0.5)}px ${colors.font}`);
     };
-    const emptyCell = (x, y) => border(x, y, cell, cell);
     const statePath = (block, path, colour, dash) => {
       ctx.save();
       ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.lineJoin = "round";
@@ -511,39 +514,29 @@ defineWidget({
     const stateName = (h) => (toy ? `P${h + 1}` : `h${h + 1}`);
     const probBar = (x, y, conf) => fill(x + 1, y + cell + 1, (cell - 2) * Math.max(0, (conf - 0.5) / 0.5), BAR_H - 2, colors.posterior);
 
-    /* The tab's own reading of the animation counter. */
-    const stage = toy ? state.stages.at(-1) : state.stages[idx];
-    const fwd = toy ? Math.min(idx, L) : 0;                 // trellis columns computed
-    const back = toy ? Math.max(0, idx - L) : 0;            // columns traced back
-    const traced = toy && back >= L;
-    const bioPrev = !toy && fading ? state.stages[idx - 1] : null;
-    const gammaAt = (i, h) => (bioPrev ? bioPrev.gamma[i][h] + (stage.gamma[i][h] - bioPrev.gamma[i][h]) * p : stage.gamma[i][h]);
+    /* The animation counter: forward columns, then columns traced back. The
+       posterior is the full record's, drawn from the start. */
+    const stage = state.stages.at(-1);
+    const fwd = Math.min(idx, L);                 // trellis columns computed
+    const back = Math.max(0, idx - L);            // columns traced back
+    const traced = back >= L;
+    /* The site the walk is at: the column being computed, or being traced. */
+    const walkSite = back > 0 ? Math.max(0, L - back) : Math.max(0, fwd - 1);
 
-    /* 1. The observations. On the toy the whole record is on the table from
-       the start — the algorithm runs over it; the biological tab reveals. */
+    /* 1. The observations, the whole record from the start: the algorithm
+       runs over it. */
     caption(Lo.obs, toy
       ? `Moods on record: ${state.order.length} of ${L} days`
-      : `Array genotypes: ${stage.t} of ${state.order.length} typed sites`);
+      : `Array genotypes: ${state.order.length} typed sites of ${L}`);
     rowLabel(Lo.obs.y, toy ? "mood" : "array");
     for (let i = 0; i < L; i += 1) {
-      const s = stage.sites[i];
-      if (s.blank) unknownCell(cx(i), Lo.obs.y, true);
-      else if (toy || s.known) tile(cx(i), Lo.obs.y, state.truthAllele[i], 1, cell, i);
-      else emptyCell(cx(i), Lo.obs.y);
+      if (stage.sites[i].blank) unknownCell(cx(i), Lo.obs.y, true);
+      else tile(cx(i), Lo.obs.y, state.truthAllele[i], 1, cell, i);
     }
-    if (toy && fwd > 0 && back === 0) {
+    if (fwd > 0 && back === 0) {
       /* The column being computed, marked on the record it reads. */
       ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
       ctx.strokeRect(cx(fwd - 1) + 1, Lo.obs.y + 1, cell - 2, cell - 2);
-    }
-    if (!toy && fading) {
-      /* The arrival: the newest typed site ringed in the highlight colour,
-         fading with the beat, so a frozen ring cannot read as a marked cell. */
-      const newest = state.order[idx - 1];
-      ctx.save(); ctx.globalAlpha = 1 - p;
-      ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2;
-      ctx.strokeRect(cx(newest) + 1, Lo.obs.y + 1, cell - 2, cell - 2);
-      ctx.restore();
     }
 
     /* 2. The model: the graph and two tables, or the panel. */
@@ -567,29 +560,37 @@ defineWidget({
       table(tx, "Transition T", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
       drawGraph(ctx, colors, { x0: gx + 2 * mcell + 30, x1: tx - 36, y: Lo.model.y, E, rho, tileFn: tile, cell });
     } else {
-      drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, stateName });
+      drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName });
       caption(Lo.panel, `Reference panel: ${K} sequenced haplotypes`);
       for (let h = 0; h < K; h += 1) {
         const y = Lo.panel.y + h * cell;
         rowLabel(y, stateName(h));
         for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i], 1, cell, i);
       }
+      if (fwd > 0 && back === 0) {
+        /* The panel column the trellis is reading: the emission at this site. */
+        ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
+        ctx.strokeRect(cx(fwd - 1) + 1, Lo.panel.y + 1, cell - 2, K * cell - 2);
+      }
     }
 
-    /* 3. The toy's Viterbi trellis: forward, the survivor into each node and
-       the candidate that lost; then the trace-back lighting the path. */
-    if (toy) {
+    /* 3. The Viterbi trellis: forward, the survivor into each node (and on
+       the toy the candidate that lost); then the trace-back lighting the
+       path. Numbers only where a node can hold them. */
+    {
       const TR = state.trellis;
       const B = Lo.trellis;
       const ncx = (i) => cx(i) + cell / 2, ncy = (h) => B.y + h * cell + cell / 2;
-      const R = Math.round(cell * 0.32);
+      const R = Math.round(cell * (toy ? 0.32 : 0.36));
+      const numbers = cell >= 26;
       const numPx = Math.max(9, Math.min(12, Math.round(cell * 0.3)));
       const litFrom = L - back;
       const onPath = (i, h) => back > 0 && i >= litFrom && TR.path[i] === h;
       const colAlpha = (i) => (fading && back === 0 && i === fwd - 1 ? p : 1);   // the newest column fades in
       const litAlpha = (i) => (fading && back > 0 && i === litFrom ? p : 1);     // the newest traced column fades in
+      const noun = toy ? "sequence of patterns" : "copied haplotype at every site";
       caption(B, back > 0
-        ? (traced ? "Viterbi trellis: the most likely sequence of patterns, traced back" : `Viterbi trellis: trace-back, ${back} of ${L} columns`)
+        ? (traced ? `Viterbi trellis: the most likely ${noun}, traced back` : `Viterbi trellis: trace-back, ${back} of ${L} columns`)
         : fwd === 0 ? "Viterbi trellis: the best path into each node, column by column"
           : `Viterbi trellis: forward, column ${fwd} of ${L}`);
       for (let h = 0; h < K; h += 1) rowLabel(B.y + h * cell, stateName(h));
@@ -599,7 +600,7 @@ defineWidget({
         if (i === fwd - 1 && back === 0) {
           for (let g = 0; g < K; g += 1) {
             if (g === from) segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.empirical, 2.2, colAlpha(i));
-            else segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.ink3, 1, 0.55 * colAlpha(i), [3, 3]);
+            else if (toy) segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.ink3, 1, 0.55 * colAlpha(i), [3, 3]);
           }
         } else if (lit) segment(ncx(i - 1), ncy(from), ncx(i), ncy(h), colors.empirical, 3.5, litAlpha(i - 1));
         else segment(ncx(i - 1), ncy(from), ncx(i), ncy(h), back > 0 ? colors.ink3 : colors.empirical, 1.4, back > 0 ? 0.3 : 0.8);
@@ -613,7 +614,7 @@ defineWidget({
           ctx.fillStyle = colors.empirical; ctx.fill(); ctx.restore();
           ctx.save(); ctx.globalAlpha = onPath(i, h) ? litAlpha(i) : colAlpha(i);
           ctx.strokeStyle = onPath(i, h) ? colors.empirical : colors.grid; ctx.lineWidth = onPath(i, h) ? 2.5 : 1; ctx.stroke();
-          text(x, y + 0.5, TR.score[i][h].toFixed(2), TR.score[i][h] > 0.55 && !dim ? colors.surface : colors.ink1, "center", `${numPx}px ${colors.font}`);
+          if (numbers) text(x, y + 0.5, TR.score[i][h].toFixed(2), TR.score[i][h] > 0.55 && !dim ? colors.surface : colors.ink1, "center", `${numPx}px ${colors.font}`);
           ctx.restore();
         } else { ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.stroke(); }
         if (i === fwd - 1 && back === 0) {
@@ -627,50 +628,43 @@ defineWidget({
        line lands here only once the trace-back has reached the first day. */
     caption(Lo.strip, toy
       ? "Posterior P(pattern | moods on record)"
-      : "Posterior P(copied haplotype | typed sites), and the Viterbi path");
+      : "Posterior P(copied haplotype | typed sites)");
     for (let h = 0; h < K; h += 1) {
       const y = Lo.strip.y + h * cell;
       rowLabel(y, stateName(h));
       for (let i = 0; i < L; i += 1) {
-        fill(cx(i), y, cell, cell, colors.posterior, beliefAlpha(gammaAt(i, h)));
+        fill(cx(i), y, cell, cell, colors.posterior, beliefAlpha(stage.gamma[i][h]));
         border(cx(i), y, cell, cell);
       }
     }
     if (params.truth) statePath(Lo.strip, state.src, colors.reference, true);
-    if (toy ? traced : idx > 0) statePath(Lo.strip, toy ? state.trellis.path : stage.path, colors.empirical, false);
+    if (traced) statePath(Lo.strip, state.trellis.path, colors.empirical, false);
 
-    /* 5. The imputed row. Toy: the decoded pattern's likelier mood, once the
-       trace-back is complete, with the posterior probability of that mood.
-       Biological: the posterior call at every site not yet observed, with
-       its confidence — the bar runs from 0.5 to 1. */
-    caption(Lo.imp, toy ? "Imputed mood from the decoded pattern, and its posterior probability" : "Imputed allele, and its confidence");
+    /* 5. The imputed row: read off the decoded state once the trace-back is
+       complete, with the posterior probability of that value — the bar runs
+       from 0.5 to 1. */
+    caption(Lo.imp, toy ? "Imputed mood from the decoded pattern, and its posterior probability"
+      : "Imputed allele from the decoded haplotype, and its posterior probability");
     rowLabel(Lo.imp.y, "imputed");
     for (let i = 0; i < L; i += 1) {
-      const s = stage.sites[i];
       const x = cx(i), y = Lo.imp.y;
-      if (toy) {
-        if (!s.blank) { tile(x, y, state.truthAllele[i]); continue; }
-        if (!traced) { unknownCell(x, y, true); continue; }
-        const c = toyCall(state, i);
-        tile(x, y, c.call);
-        probBar(x, y, c.conf);
-        continue;
-      }
-      if (s.known) { tile(x, y, state.truthAllele[i], 1, cell, i); continue; }
-      tile(x, y, s.call, 1, cell, i);
-      probBar(x, y, s.conf);
+      if (!stage.sites[i].blank) { tile(x, y, state.truthAllele[i], 1, cell, i); continue; }
+      if (!traced) { unknownCell(x, y, true); continue; }
+      const c = imputedCall(state, i);
+      tile(x, y, c.call, 1, cell, i);
+      probBar(x, y, c.conf);
     }
 
     /* 6. The truth, on request. */
     if (Lo.truth) {
-      caption(Lo.truth, toy ? "True moods, a ring where the imputed call differs"
-        : "True haplotype, a ring where the imputed call differs, a mark at a variant the panel lacks");
+      caption(Lo.truth, toy ? "Ground truth: the moods, ringed where the imputed call differs"
+        : "Ground truth: ringed where the call differs, marked where the panel lacks the variant");
       rowLabel(Lo.truth.y, "truth");
       for (let i = 0; i < L; i += 1) {
         const s = stage.sites[i];
         const a = state.truthAllele[i];
         tile(cx(i), Lo.truth.y, a, 1, cell, i);
-        const call = toy ? (traced ? toyCall(state, i).call : a) : s.call;
+        const call = traced ? imputedCall(state, i).call : a;
         if (s.blank && call !== a) {
           ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
           ctx.strokeRect(cx(i) + 1, Lo.truth.y + 1, cell - 2, cell - 2);
@@ -688,43 +682,43 @@ defineWidget({
 
   readout: ({ params, state, anim }) => {
     const idx = anim?.idx ?? 0;
-    const L = state.L;
-    if (state.kind === "mood") {
-      const fwd = Math.min(idx, L), back = Math.max(0, idx - L), traced = back >= L;
-      const last = state.stages.at(-1);
-      const blanks = [...state.gone].sort((a, b) => a - b);
-      const calls = blanks.map((i) => toyCall(state, i));
-      const tiles = [
-        { label: "Trellis columns computed", value: `${fwd} of ${L}`, note: "the forward pass" },
-        { label: "Columns traced back", value: `${back} of ${L}`, note: "from the best final node" },
-        { label: "Days not recorded", value: String(blanks.length), note: "the ? cells, imputed once traced" },
-        /* A mean rather than a count at P >= 0.9: a mood's probability is
-           capped by the emission itself — a pattern known for certain is
-           Happy with probability `happy` — so a count read 0 of 3 at the
-           default and taught that the model had failed. */
-        { label: "Mean P(imputed mood)",
-          value: traced && calls.length ? fmt(calls.reduce((s, c) => s + c.conf, 0) / calls.length, 2) : "—",
-          note: "posterior probability of the imputed mood" },
-      ];
-      if (params.truth) {
-        tiles.push({ label: "Pattern decoded correctly", value: traced ? `${last.stateRight} of ${L}` : "—",
-          note: "Viterbi path against the true pattern, all days" });
-        tiles.push({ label: "Imputed correctly",
-          value: traced ? `${blanks.filter((i, k) => calls[k].call === state.truthAllele[i]).length} of ${blanks.length}` : "—",
-          note: "against the true mood" });
-      }
-      return tiles;
-    }
-    const st = state.stages[idx];
-    const T = state.order.length;
+    const L = state.L, toy = state.kind === "mood";
+    const fwd = Math.min(idx, L), back = Math.max(0, idx - L), traced = back >= L;
+    const last = state.stages.at(-1);
+    const blanks = [];
+    for (let i = 0; i < L; i += 1) if (last.sites[i].blank) blanks.push(i);
+    const calls = blanks.map((i) => imputedCall(state, i));
     const tiles = [
-      { label: "Sites typed", value: `${st.t} of ${T}`, note: "on the array, revealed so far" },
-      { label: "Sites to impute", value: String(st.blanks), note: "untyped, filled from the copied haplotype" },
-      { label: "Imputed with P ≥ 0.9", value: `${st.sure} of ${st.blanks}`, note: "confidence of the call, from the posterior" },
+      { label: "Trellis columns computed", value: `${fwd} of ${L}`, note: "the forward pass" },
+      { label: "Columns traced back", value: `${back} of ${L}`, note: "from the best final node" },
+      { label: toy ? "Days not recorded" : "Sites to impute", value: String(blanks.length),
+        note: toy ? "the ? cells, imputed once traced" : "untyped, imputed once traced" },
     ];
+    /* On the toy a mean rather than a count at P >= 0.9: a mood's probability
+       is capped by the emission itself — a pattern known for certain is Happy
+       with probability `happy` — so a count read 0 of 3 at the default and
+       taught that the model had failed. On the biological tab the alleles ARE
+       the states' emissions, and a count of confident calls is the number an
+       imputation report quotes. */
+    if (toy) {
+      tiles.push({ label: "Mean P(imputed mood)",
+        value: traced && calls.length ? fmt(calls.reduce((s, c) => s + c.conf, 0) / calls.length, 2) : "—",
+        note: "posterior probability of the imputed mood" });
+    } else {
+      tiles.push({ label: "Imputed with P ≥ 0.9",
+        value: traced ? `${calls.filter((c) => c.conf >= 0.9).length} of ${blanks.length}` : "—",
+        note: "posterior probability of the imputed allele" });
+    }
     if (params.truth) {
-      tiles.push({ label: "Imputed correctly", value: `${st.correct} of ${st.blanks}`, note: "against the true value" });
-      tiles.push({ label: "A frequency fill would get", value: `${st.freqCorrect} of ${st.blanks}`,
+      let stateRight = 0;
+      for (let i = 0; i < L; i += 1) if (state.trellis.path[i] === state.src[i]) stateRight += 1;
+      tiles.push({ label: toy ? "Pattern decoded correctly" : "Copied haplotype decoded correctly",
+        value: traced ? `${stateRight} of ${L}` : "—",
+        note: toy ? "Viterbi path against the true pattern, all days" : "Viterbi path against the true copying path, all sites" });
+      tiles.push({ label: "Imputed correctly",
+        value: traced ? `${blanks.filter((i, k) => calls[k].call === state.truthAllele[i]).length} of ${blanks.length}` : "—",
+        note: toy ? "against the true mood" : "against the sequenced allele" });
+      if (!toy) tiles.push({ label: "A frequency fill would get", value: `${last.freqCorrect} of ${last.blanks}`,
         note: "the panel's commoner allele at each site" });
     }
     return tiles;

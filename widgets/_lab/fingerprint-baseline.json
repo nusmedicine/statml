@@ -2940,16 +2940,23 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Biological tab fully typed",
+      "$note": "PLACEHOLDER, draft: the Biological tab at rest",
       "slug": "hmm",
-      "state": "?theme=light&view=biological&shown=7",
+      "state": "?theme=light&view=biological&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Biological tab with the truth on",
+      "$note": "PLACEHOLDER, draft: the Biological tab forward pass complete",
       "slug": "hmm",
-      "state": "?theme=light&view=biological&truth=1&shown=7",
+      "state": "?theme=light&view=biological&shown=28",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth",
+      "slug": "hmm",
+      "state": "?theme=light&view=biological&truth=1&shown=56",
       "px": "0",
       "tx": "0"
     },
@@ -2966,12 +2973,12 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: three sites typed at fast, mid-run",
+      "$note": "PLACEHOLDER, draft, DRIVEN: the biological tab mid-forward at fast",
       "slug": "hmm",
       "state": "?theme=light&view=biological&speed=fast",
       "drive": {
         "click": "run",
-        "frames": 12,
+        "frames": 40,
         "dt": 32
       },
       "px": "0",

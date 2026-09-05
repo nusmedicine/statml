@@ -34,14 +34,13 @@
       An imputed genotype carries that number in practice (a dosage), and a
       figure that hides it would draw an imputation as if it were a read.
 
-   TWO ANIMATIONS, BOTH PRECOMPUTED HERE so `advance` reveals and never
-   computes. The Toy tab animates the Viterbi algorithm itself: the trellis
-   forward one column at a time, then the trace-back (Kenneth, 2026-09-06,
-   from the three candidates in `_lab/hmm-viterbi.html`). The Biological tab
-   reveals one typed site at a time: stage t has the first t typed sites
-   known and the whole posterior recomputed from them. Stage 0 is nothing
-   known — the posterior uniform and the imputation the panel's allele
-   frequency, the naive fill the model improves on.
+   THE ANIMATION IS THE VITERBI ALGORITHM ON BOTH TABS, precomputed here so
+   `advance` reveals and never computes: the trellis forward one column at a
+   time, then the trace-back (Kenneth, 2026-09-06, from the three candidates
+   in `_lab/hmm-viterbi.html`, and the same walk on the biological tab at his
+   request the same day). The reveal stages — the first t typed sites known,
+   the whole posterior recomputed — are still computed: the figure draws the
+   last one, and `_lab/hmm-mock.html` previews all of them.
    ========================================================================= */
 
 /* 28 sites, not 36. The tiles print the base at each site, as the notebook's
@@ -183,11 +182,13 @@ export function viterbiTrellis(emit, K, rho) {
 }
 
 /* How many units the animation has, so main.js and the node driver agree:
-   the toy steps the Viterbi trellis forward one column at a time and then
-   traces back one column at a time; the biological tab reveals one typed
-   site per step. */
+   both tabs step the Viterbi trellis forward one column at a time and then
+   trace back one column at a time. (Until 2026-09-06 the biological tab
+   revealed one typed site per step instead; Kenneth asked for the same
+   walk on both — see the array, walk the sequence, see the imputed row
+   against the truth.) */
 export function animationUnits(state) {
-  return state.kind === "mood" ? 2 * state.L : state.order.length;
+  return 2 * state.L;
 }
 
 /* Stage t of the reveal: the first t positions of `order` are known.
@@ -320,6 +321,10 @@ export function buildGenotype({ rng, K, L = L_DEFAULT, every, switches, rho, pan
   const order = typedSites(L, every);
   const typed = new Set(order);
   const emitKnown = (i, h) => (panel.hap[h][i] === sample.allele[i] ? 1 - EPS : EPS);
+  /* The trellis over the whole array, for the animation. */
+  const emit = [];
+  for (let i = 0; i < L; i += 1) emit.push(Array.from({ length: K }, (_, h) => (typed.has(i) ? emitKnown(i, h) : 1)));
+  const trellis = viterbiTrellis(emit, K, rho);
   const stages = revealStages(K, L, order, emitKnown, rho).map((st) => {
     /* Per site: the posterior of allele 1, the call, its confidence, the
        Viterbi copy, and the frequency fill — read from the copied haplotype,
@@ -350,5 +355,5 @@ export function buildGenotype({ rng, K, L = L_DEFAULT, every, switches, rho, pan
     return { ...st, sites, blanks: L - order.length, sure, correct, freqCorrect, viterbiCorrect };
   });
   return { kind: "genotype", K, L, rho, panel, sample, src: sample.src, truthAllele: sample.allele,
-    novel: sample.novel, cutSites: sample.cutSites, order, stages };
+    novel: sample.novel, cutSites: sample.cutSites, order, stages, trellis };
 }

@@ -43,7 +43,7 @@ ck("truth and speed are display", W.params.truth.display === true && W.params.sp
 ck("view is a DATA parameter", !W.params.view.display);
 ck("the toy controls are gated on view=toy", ["days", "missing", "happy"].every((n) => W.params[n].when?.equals === "toy"));
 ck("the biological controls are gated on view=biological", ["K", "every", "switches"].every((n) => W.params[n].when?.equals === "biological"));
-ck("step label depends on view", W.animation.stepLabel?.param === "view" && Object.keys(W.animation.stepLabel.labels).sort().join() === "biological,toy");
+ck("one step label for both tabs", W.animation.stepLabel === "Next column");
 
 /* 2. Defaults, and a walk over every option of every parameter. */
 const defaults = Object.fromEntries(Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n, f]) => [n, f.default]));
@@ -52,11 +52,13 @@ const bad = (s) => /NaN|undefined|null|Infinity/.test(String(s));
 
 /* The toy's Viterbi path is the one the posterior strip draws — one trellis, drawn twice. */
 {
-  const params = { ...defaults, view: "toy" };
-  const state = W.compute({ params, rng: makeRng(3) });
-  ck("toy: trellis path equals decode()'s path", state.trellis.path.join() === state.stages.at(-1).path.join());
-  ck("toy: 2L animation units", animationUnits(state) === 2 * state.L);
-  for (const col of state.trellis.score) ck("toy: relative scores sum to 1", Math.abs(col[0] + col[1] - 1) < 1e-9);
+  for (const view of ["toy", "biological"]) {
+    const params = { ...defaults, view };
+    const state = W.compute({ params, rng: makeRng(3) });
+    ck(`${view}: trellis path equals decode()'s path`, state.trellis.path.join() === state.stages.at(-1).path.join());
+    ck(`${view}: 2L animation units`, animationUnits(state) === 2 * state.L);
+    for (const col of state.trellis.score) ck(`${view}: relative scores sum to 1`, Math.abs(col.reduce((a, b) => a + b, 0) - 1) < 1e-9);
+  }
 }
 
 function run(params, mode = "run", dt = 16) {
