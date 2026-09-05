@@ -90,6 +90,104 @@ baseline. Read `devicePixelRatio` before believing a px verdict from it; every
 row's `data-size` says what it was hashed at, and 688 wide is 1.25, 550 is 1.
 A run that starts fronted can lose the pane mid-way; the sizes will show it.
 
+# THE CLEANUP PASS — merged and pushed 2026-09-05 (d3f2ad4)
+
+Kenneth asked for a review of the whole tree: redundant functions, functions
+nothing calls, optimisation, inconsistent names, and whether any of it would
+be better as a library. The review is recorded here because half of it was
+applied and half is a list he has not picked from yet.
+
+**What was applied**, three commits on a branch called `optimize`, merged
+`--no-ff`, each gated by `check`, `npm test` and the full suite reading
+**All 334 states identical** at DPR 1.25:
+
+- **Dead code out** (9ab4cea). Thirteen top-level declarations nothing
+  referenced — three of them whole drawing functions widget 44's stage
+  rebuild left behind — one dead export, and the `export` keyword on two
+  core names only their own file used. The eight widgets carrying their own
+  id-based `mathmlRenders` now import core's.
+- **`npm test`** (aefd2d6). `scripts/verify.mjs` runs the thirteen `_lab/`
+  scripts that assert something: six engines against scikit-learn, R or
+  umap-learn references, seven contract drivers. About 7 s. `npm run build`
+  runs it after `check`, so **a deploy now fails on an engine that disagrees
+  with its reference** — the deploy for d3f2ad4 ran it on the runner. Its
+  first run found the time-event driver had been failing since that morning:
+  it matched the core import line by its exact name list, the list grew, and
+  the real `defineWidget` stayed in place. Two scripts assert nothing and
+  are deliberately out: `mlp-verify.mjs` dumps arrays for Python,
+  `tsne-checks.mjs` prints diagnostics.
+- **`check` keeps it out** (9567bcb). Every top-level declaration in a
+  deployed source file must have a reader — in its own file, anywhere under
+  `widgets/` including the lab, `scripts/`, or a landing page — and every
+  core export an importer other than `core/index.js`. It knows spreads and
+  `import * as M` aliases; a property access on anything else is not a
+  reference, which is exactly how `M.smotePlan` was first misread as dead.
+  0.7 s. It found eight more core exports the hand audit had missed by
+  counting the index.js re-export as a reader; their bodies stay, the
+  `export` went.
+
+**What the review found and did NOT apply — Kenneth picks.** Each is a core
+change and earns one full suite run; the first three could share it.
+
+1. **The same one-liners in every widget**: `clamp01` in 18 files, `clamp` in
+   10, `lerp` in 10, an ease-out in 7, an ease-in in 4. Move to core; same
+   arithmetic, so the hashes hold.
+2. **One name, two curves.** `easeInOut` is smoothstep in seven files and
+   the quadratic in-out in three; `easeIO` and `EASE` are that quadratic in
+   seven more. And one name, three meanings: `sub` is a MathML subscript, a
+   vector subtraction and a Unicode subscript; `dot` draws a dot in three
+   files and is a dot product in two; `sq` likewise.
+3. **Sixteen per-widget `text`/`label` helpers** taking the colour as `col`,
+   `colour`, `color` or `fill`, in different positions. One core primitive.
+4. **`gauss` is declared five times and is NOT `rng.normal()`** — it discards
+   the second Box–Muller variate where `normal()` caches it. Replacing it
+   changes every random stream in those five widgets and every hash. If it
+   moves to core it moves as-is, under its own name.
+5. **Seven large widgets keep their engine in `main.js`** (bayesian,
+   probability-mechanisms, trees-and-ensembles, odds-and-risk, t-sne,
+   lm-adjustment, mds; 1,200–1,700 lines each) where twenty others have a
+   `model.js`. t-sne is the cost made visible: the catalogue records that
+   its algorithm exists twice, and `tsne-verify.mjs` checks
+   `_lab/tsne-engine.js`, not what ships. A `t-sne/model.js` both import
+   would close that.
+6. **A copied 3D stage** across mds, pca, t-sne and umap: `camera` is
+   byte-identical in all four, `shownAt` in three, plus `dist2`, `dist3`,
+   `scale3`, `TURN0`, `CELL_MAX`. A shared `core/stage3d.js` is the one
+   item here that is a refactor rather than a tidy.
+7. **A display-only change re-runs `compute()`** (`widget.js`, the
+   `spec[name]?.display` branch), because some display parameters change
+   binning. For t-sne, umap and mlp that is a full recompute to redraw an
+   overlay. An opt-out is a design conversation, not a cleanup.
+8. **`_lab/` has 231 files and no index**; `tree-forest-engine.js` is 1,044
+   lines nothing imports. **This file is 1,900 lines and the catalogue over
+   15,000**; the working state fits in a hundred lines at the top.
+9. **Spelling**: identifiers are British throughout (`colour`, `centre`,
+   `neighbour`, `grey`, `normalise`) except where an API or a title fixes
+   the form (`colors`, `n_neighbors`, *Normalization*). Three outliers:
+   `groupColor`, `lineColor`, `colCenter`.
+
+**Libraries: no, and it is a reasoned no** (prd S1/S2 forbid them; the merits
+agree). The engines exist to be stepped and watched, libraries return fitted
+results and draw from `Math.random`; the animation loop exists to be driven
+by a harness clock, which tween libraries would not honour; chart libraries
+bring their own loop, tooltips and fonts. The only honest case is the ~100
+lines of special functions in `stats.js` plus the erfc, hypergeometric,
+Nelder–Mead and logistic fit that widgets carry themselves — and the right
+move there is one verified copy each in `stats.js`, not a dependency.
+
+**Comment density is 10% overall and up to 27% in core, and that is an
+asset**: the comments carry the incidents that earned the rules. Readability
+work is placement, not trimming.
+
+**Two things to know from the session.** `git stash` on a clean tree followed
+by `git stash pop` applied a stash entry already in the repo — a widget 13
+`overfitting` draft from an earlier month — and conflicted on the manifest.
+Restored; both entries are still there (`git stash list`), for Kenneth to
+drop. And the A/B gate that proved the first cleanup: serve `main` from a
+detached worktree in the scratchpad and the branch from the repo, run the
+suite on both in the same fronted pane, and require identical hashes — see
+*THE RENAME'S FALLOUT* above for the recipe.
+
 # WIDGET 44 `experimental-design` — SHIPPED, PUSHED AND BASELINED
 
 **PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
@@ -1649,6 +1747,12 @@ notebook filename.
 facts. Never the reverse.** Screenshots here have produced several phantom bugs:
 the automation browser generates stray pointer input that moves sliders
 mid-capture, and it throttles `requestAnimationFrame` to ~1 frame per 300 ms.
+
+**Three commands, in this order, before every commit.** `npm run check` for
+the invariants (0.7 s of it is the dead-code rule: a declaration nothing reads
+fails the build). `npm test` for the thirteen engine and contract scripts in
+`_lab/` (about 7 s; `build` runs it, so the deploy does too). Then the
+fingerprint suite, which is the only one of the three that sees a pixel.
 
 ### Driving the animation in node, with no browser at all
 
