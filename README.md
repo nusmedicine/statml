@@ -459,7 +459,7 @@ so the licences go in when the content is ready to spread, not before.
 - No unit-test harness. `compute()` is pure and seeded, which is what would make
   one cheap; `npm run check` and the fingerprint harness cover the invariants and
   the rendering in the meantime.
-- Widget count: 14. The PHM5003 arc is closed and shipped; PHM5005 has two
-  drafts and its catalogue treatment is written — `docs/catalogue.md` now carries
-  two PHM5005 arcs, one per algorithm family and one for evaluation.
+- The widget count is not kept here. It lives in HANDOVER.md's first paragraph
+  and in `widgets/manifest.json`, which `npm run check` reads; this line said
+  14 from August until 2026-09-05, when the count was 44.
 

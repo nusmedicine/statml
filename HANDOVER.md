@@ -80,8 +80,8 @@ _lab/design-sorted-columns.html  sorting the columns        -> DECLINED
 Kenneth's *"tested ok"* on 2026-09-05 ended it, after roughly thirty rounds
 across two sessions. **Everything below is the record of how it got here, not a
 list of things to do** — several entries are decisions he has already made once
-and had to make twice. The only outstanding work is the baseline, at the top of
-this file.
+and had to make twice. The baseline is recorded too; the run that recorded it is
+at the top of this file.
 
 *Read WHAT IS STILL OPEN before proposing anything on this widget.*
 
@@ -264,8 +264,8 @@ count can no longer be read as the wrong kind of score.
    is significant 68.7% of the time, 4.8% of those with the sign backwards. The
    stated hazard is a lost finding; the measured one is an invented finding at
    43.5% when nothing is there. Kenneth has been told; the notebook is his.
-4. **The notebook link**, which no PHM5003 lesson carries — see item 3 of the
-   older NEXT list below.
+4. **The notebook link**, which no PHM5003 lesson carries. The *Where things
+   are* table below records, per widget, whether its lesson link is placed.
 5. **Not judged projected**, which every widget from 11 on still owes.
 
 ## WHAT THIS SESSION COST, AND WHY
@@ -420,9 +420,9 @@ carries every round.
 **Widget 40 `batch-effect` shipped and PUSHED 2026-09-02** after eleven review
 rounds in one day. One gated widget: ground truth permanently beside the
 observed data, and behind the gate four correction methods, a forest plot of
-intervals and four dials — disease effect, batch effect, confounding, seed. See
-NEXT below; catalogue § Slot 3 carries every round, including the five that
-built the wrong widget.
+intervals and four dials — disease effect, batch effect, confounding, seed.
+Catalogue § Slot 3 carries every round, including the five that built the wrong
+widget.
 
 **Widget 39 `normalization` shipped and PUSHED 2026-09-02** after four rounds
 across two days — scaling and transforming as two operations, with a quantile
@@ -441,7 +441,7 @@ Widget 37 `mlp` **Neural Networks (MLP)**
 shipped and PUSHED 2026-08-31 after ten review rounds across two days,
 and **ARC A IS COMPLETE**: every algorithm-family slot of PHM5005 `04-3`
 is built. Widget 36 `naive-bayes` shipped 2026-08-30, widget 35
-`metrics` the same day. See NEXT below and catalogue §§ Widget 37, 36.
+`metrics` the same day. See *Where things are* below and catalogue §§ Widget 37, 36.
 Earlier, on 2026-08-29:
 
 **Widget 34 `roc-auc` SHIPPED** — **Scoring a Classifier** (PHM5005,
@@ -638,13 +638,14 @@ npm run check                 # before every commit
 
 ---
 
-## The suite: 334 states — 324 real, and widget 44's TEN still placeholders
+## The suite: 334 states, all of them real
 
-**Widget 44 added ten on 2026-09-05 and every one is `"px": "0", "tx": "0"`.**
-`check` accepts a placeholder carrying BOTH hashes, which is the escape hatch
-that rule exists for. They stay placeholders until Kenneth calls the review
-done — the design moved in every one of the last ten rounds, and a baseline
-recorded before that is thrown away.
+**Widget 44 added ten on 2026-09-05** — six settled on Sampling, two on
+Replicate, two driven — recorded through the full suite only after Kenneth's
+*"tested ok"* closed the review. Until then they sat as `"px": "0", "tx": "0"`
+placeholders, the escape hatch `check` accepts, because the design moved in
+every one of the last ten rounds and a baseline recorded before that is thrown
+away. The run that recorded them is at the top of this file.
 
 **tokens.css gained three legend swatches for it** — `tri`, `ring` and `hollow`
 — added the way `dash` was for widget 39, and the full suite ran twice for them:
@@ -917,8 +918,15 @@ is blind to.
 | 33 | `lm-diagnostics` | shipped as **Checking the Model Fit**. THREE rounds in one day (2026-08-29); ten states — seven settled, three driven (the gate's ENTRY mid-conveyor, the scenario morph, the act's path). All-simulated stage; entry + hover link + claim bells; the claim pill settles by URL and its stagger ease is untested geometry. NOT yet judged projected; 05-01 link not yet placed |
 | 34 | `roc-auc` | shipped as **Scoring a Classifier** (PHM5005, 04-2), then **UNLISTED 2026-08-30** — off the gallery, live at its URL, no draft bar (`status: "unlisted"`), because widget 35 carries the ROC act. SIX rounds in one day (2026-08-29), grown from Kenneth's D3 app; seven states — five settled, two driven. Core gained `drag.hit`. The drag and the scan are untested geometry. NOT yet judged projected |
 | 35 | `metrics` | shipped as **Scoring the Predictions** (PHM5005, 04-2). FIVE rounds in one day (2026-08-30); **eleven states** — nine settled, two driven. Two outcomes, and categorical picks matrix or ROC (`?outcome=`/`&view=`); MathML formula card, positive-class pick that renames the cells, macro/weighted averages, the trace as a one-way door. Core gained `when.all`, readout `{ break: true }`, segmented `token:`. The threshold drag, the Youden scan mid-flight and the positive-class flip mid-trace are untested geometry. NOT yet judged projected; 04-2 link placed |
-| 37 | `mlp` | shipped as **Neural Networks (MLP)** (PHM5005, 04-3 § Neural Networks — Arc A's LAST slot). TEN rounds across 2026-08-30/31; **eleven states** — nine settled, two driven (mid-training at Medium; 0.6 through the first step at Slow, in the backward phase). Two live panels (network + boundary), a loss strip, a magnified neuron aligned to the network's columns, hover inspector, and Slow choreographing one training step. Engine pinned to the reference at 1.1e-15. Core gained `style: "action"`. NOT yet judged projected; 04-3 link not yet placed |
 | 36 | `naive-bayes` | shipped as **Naive Bayes** (PHM5005, 04-3 § Probabilistic — Arc A slot 5). EIGHT rounds in one day (2026-08-30); **eight states** — six settled, two driven mid-grow. Continuous · Discrete tabs (GaussianNB on CRP+WBC, BernoulliNB on fever+chills), per-feature pills as URL state, Independent \| Correlated segmented imposing ρ/λ on the FITTED marginals. The harness learned `style:"pill"` buttons at its promotion. NOT yet judged projected; 04-3 link not yet placed |
+| 37 | `mlp` | shipped as **Neural Networks (MLP)** (PHM5005, 04-3 § Neural Networks — Arc A's LAST slot). TEN rounds across 2026-08-30/31; **eleven states** — nine settled, two driven (mid-training at Medium; 0.6 through the first step at Slow, in the backward phase). Two live panels (network + boundary), a loss strip, a magnified neuron aligned to the network's columns, hover inspector, and Slow choreographing one training step. Engine pinned to the reference at 1.1e-15. Core gained `style: "action"`. NOT yet judged projected; 04-3 link not yet placed |
+| 38 | `shap` | shipped as **Explaining a Prediction** (PHM5005, 04-5 Model Explanation). SIXTEEN rounds, shipped 2026-09-01; seven states — five settled, two driven. Two pages, three tabs: the coalition game whose dividend sliders are the game, then the forest explained for one held-out patient and for all sixty. Four core changes came out of it (`--c-value-low/high`, `runLabel` map form, hidden controls choosing no drive label, sections rendering `detail`). NOT yet judged projected |
+| 39 | `normalization` | shipped as **Normalization and Transformation** (PHM5003 high-throughput slot 1), 2026-09-02, four rounds across two days; eight states — seven settled, one driven, shot through `_lab/norm-shoot.html`. Scaling and transforming as two operations, a quantile walkthrough behind a gate. NOT yet judged projected |
+| 40 | `batch-effect` | shipped as **Batch Effects** (slot 3), 2026-09-02, eleven rounds in one day, five of which built the wrong widget; eleven states — nine settled, two driven, shot through `_lab/batch-shoot.html`. Ground truth beside the observed data; four correction methods and a forest plot behind the gate. NOT yet judged projected |
+| 41 | `matrix-factorization` | shipped as **Matrix Factorization** (slot 2), 2026-09-03, three rounds; nine states — seven settled, two driven. Began as `nmf` and was renamed and restructured mid-review: NMF and PCA tabs factorising the same matrix, decomposition and geometry views. NOT yet judged projected |
+| 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
+| 43 | `enrichment` | shipped as **Enrichment Analysis** (slot 5, the arc's last), 2026-09-05, about twenty rounds over two days; ten states — seven settled, two driven, one hit-driven. Four pages, ORA pinned to fold change. Uncovered the core bug in a gated drag's cursor — see *A CORE BUG WIDGET 43 SHIPPED THROUGH*. NOT yet judged projected |
+| 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. See the top of this file. NOT yet judged projected |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -1543,9 +1551,10 @@ student copy. The `For Review/` set that had the printed numbers was local to th
 Mac and has no equivalent online.
 
 **The printed numbers were the valuable half, and that half must now be re-run
-rather than read.** That is exactly how `04-3`'s table in *NEXT* turned out to be
-part artifact. **Treat any number in this file quoted from a printed output, and
-not since re-measured, as one draw from a possibly unseeded model.**
+rather than read.** That is exactly how `04-3`'s table in an earlier NEXT list
+of this file turned out to be part artifact. **Treat any number in this file
+quoted from a printed output, and not since re-measured, as one draw from a
+possibly unseeded model.**
 
 **Match by filename, never by link.** The same notebook has appeared under three
 Drive IDs across two sessions.

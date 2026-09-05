@@ -120,6 +120,13 @@ function selectFrom(pop, order, n, scheme, arm) {
     return order.filter((i) => pop[i].carrier === want).slice(0, n);
   }
   if (scheme === "random") return order.slice(0, n);
+  /* Anything else is a bug in the caller, not a fourth scheme. The widget can
+     never get here — params.js coerces an unknown URL value to the default —
+     but `_lab/design-measure.mjs` did: when the wire name moved from
+     `convenience` to `nonrandom` (2026-09-05) the script kept the old key,
+     fell through to this branch, and printed Blocked's numbers under the
+     Non-random heading with nothing to say so. */
+  if (scheme !== "blocked") throw new Error(`experimental-design: unknown scheme "${scheme}"`);
   const half = Math.round(n / 2);
   return [
     ...order.filter((i) => pop[i].carrier).slice(0, half),
