@@ -6,9 +6,9 @@
    INTENTIONAL missing data of a SNP array, filled from a reference panel of
    sequenced haplotypes with a hidden Markov model. The notebook builds up to
    it with a two-state toy — mood patterns P1 and P2 emitting Happy or Sad,
-   with some days unrecorded — and the widget keeps that order: the Mood tab
-   is the toy, the Genotype tab is the application, and ONE decoder serves
-   both, because that is the point.
+   with some days unrecorded — and the widget keeps that order: the Toy tab
+   first, the Biological tab second, and ONE decoder serves both, because
+   that is the point.
 
      hidden state at position i   the pattern the day is in / WHICH panel
                                   haplotype the sample is copying
@@ -18,7 +18,7 @@
                                   allele at that site, or a mismatch
      emission at a blank          nothing observed: every state equally likely
 
-   The genotype tab is the Li & Stephens (2003) copying model every imputation
+   The biological tab is the Li & Stephens (2003) copying model every imputation
    program descends from, with one panel and one chromosome. Two things differ
    from the notebook on purpose:
 
@@ -37,7 +37,7 @@
    THE ANIMATION IS "REVEAL ONE MORE OBSERVATION". Stage t has the first t
    known positions revealed, left to right, and the whole posterior recomputed
    from them. Stage 0 is nothing known: the posterior is uniform and the
-   imputation is the marginal — on the Genotype tab the panel's allele
+   imputation is the marginal — on the Biological tab the panel's allele
    frequency, which is the naive fill the model improves on. Every stage is
    precomputed here so `advance` reveals and never computes.
    ========================================================================= */
@@ -86,8 +86,8 @@ function shuffledIdx(rng, n) {
 
      emit[i][h]   P(observation at i | state h): 1 where nothing is known
      rho          P(switch) per interval, landing uniformly on the OTHER K-1
-                  states — so on the Mood tab rho is exactly the notebook's
-                  off-diagonal, and on the Genotype tab it is the chance the
+                  states — so on the Toy tab rho is exactly the notebook's
+                  off-diagonal, and on the Biological tab it is the chance the
                   copied haplotype changes between neighbouring sites
 
    Returns gamma[i][h] (the posterior), path[i] (the Viterbi state) and the
@@ -134,9 +134,24 @@ export function decode(emit, K, rho) {
     for (let h = 0; h < K; h += 1) g[h] /= tot;
     gamma.push(g);
   }
-  /* Viterbi in logs. Ties go to staying, so an unknown stretch never wanders. */
+  const { path } = viterbiTrellis(emit, K, rho);
+  const logLik = scale.reduce((s, c) => s + Math.log(c), 0);
+  return { gamma, path, logLik };
+}
+
+/* The Viterbi trellis, kept whole so a figure can animate it.
+     V[i][h]      log of the best path's probability ending in state h at i
+     score[i][h]  the same, exponentiated and normalised within the column —
+                  the raw products fall below 0.01 within a dozen positions,
+                  so a printed trellis shows each column's RELATIVE scores
+     back[i][h]   the state at i-1 that best path came from (-1 at i = 0)
+     path         the backtrace from the best final state
+   Ties go to staying, so an unknown stretch never wanders. */
+export function viterbiTrellis(emit, K, rho) {
+  const L = emit.length;
+  const stay = 1 - rho, move = K > 1 ? rho / (K - 1) : 0;
   const lStay = Math.log(stay), lMove = move > 0 ? Math.log(move) : -Infinity;
-  const V = [], back = [];
+  const V = [], back = [], score = [];
   for (let i = 0; i < L; i += 1) {
     const v = new Array(K), bp = new Array(K);
     for (let h = 0; h < K; h += 1) {
@@ -150,14 +165,16 @@ export function decode(emit, K, rho) {
       }
       v[h] = best + le; bp[h] = from;
     }
-    V.push(v); back.push(bp);
+    const top = Math.max(...v);
+    const ex = v.map((x) => Math.exp(x - top));
+    const tot = ex.reduce((a, b) => a + b, 0);
+    V.push(v); back.push(bp); score.push(ex.map((x) => x / tot));
   }
   const path = new Array(L);
   let h = 0;
   for (let k = 1; k < K; k += 1) if (V[L - 1][k] > V[L - 1][h]) h = k;
   for (let i = L - 1; i >= 0; i -= 1) { path[i] = h; h = back[i][h]; }
-  const logLik = scale.reduce((s, c) => s + Math.log(c), 0);
-  return { gamma, path, logLik };
+  return { V, score, back, path };
 }
 
 /* Stage t of the reveal: the first t positions of `order` are known.
@@ -178,7 +195,7 @@ function revealStages(K, L, order, emitKnown, rho) {
 }
 
 /* ----------------------------------------------------------------------------
-   THE MOOD TAB — the notebook's toy, generated from the model it is decoded
+   THE TOY TAB — the notebook's mood example, generated from the model it is decoded
    with. Two patterns; pattern 2 is Happy with probability `happy`, pattern 1
    with 1 - happy; the pattern persists with probability 1 - rho. `missing`
    days are unrecorded completely at random. Mood 1 is Happy, 0 is Sad. */
@@ -220,7 +237,7 @@ export function buildMood({ rng, days, missing, happy, rho }) {
 }
 
 /* ----------------------------------------------------------------------------
-   THE GENOTYPE TAB. */
+   THE BIOLOGICAL TAB — genotype imputation. */
 export function makePanel(rng, K, L, P = PANEL) {
   const hap = [];
   for (let k = 0; k < K; k += 1) {

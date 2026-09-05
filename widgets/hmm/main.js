@@ -5,12 +5,17 @@
    intentional missing data of a SNP array, filled from a reference panel with
    an HMM. Two tabs in the notebook's own order, on ONE decoder (model.js):
 
-     Mood      the toy — two hidden patterns, Happy/Sad observations, some
-               days unrecorded. The emission and transition tables are drawn,
-               because they are the model.
-     Genotype  the application — the reference panel IS the emission table
-               (K haplotypes by L sites), the hidden state is which haplotype
-               the sample is copying, and recombination is the transition.
+     Toy model           two hidden patterns, Happy/Sad observations, some
+                         days unrecorded. The state graph and the emission
+                         and transition tables are drawn: they are the model.
+     Biological example  the reference panel IS the emission table (K
+                         haplotypes by L sites), the hidden state is which
+                         haplotype the sample is copying, and recombination
+                         is the transition.
+
+   Kenneth renamed the tabs from Mood / Genotype to these on 2026-09-06: one
+   is the toy and one is the biological example, and the names should say so
+   rather than name the example.
 
    THE FIGURE, top to bottom, the same on both tabs so the second reads as the
    first grown up: the observations as recorded (blanks where nothing was),
@@ -54,10 +59,11 @@ const STEP_MS = 700;
 const GUT = 66, GAP = 16, LAB = 15, TOP = 6, BOT = 8;
 const MAX_CELL = 40;           // the Mood tab's few days would otherwise balloon
 const MCELL_MIN = 34;          // a probability table cell has to hold "0.95"
+const GRAPH_H = 118;           // the toy's state graph: two states over two moods
 const BAR_H = 6;               // the confidence bar under an imputed call
 
 function layout(w, v) {
-  const mood = v.view === "mood";
+  const mood = v.view === "toy";
   const L = mood ? v.days : M.L_DEFAULT;
   const K = mood ? 2 : Number(v.K);
   const cell = Math.min(MAX_CELL, Math.floor((w - GUT - 6) / L));
@@ -65,7 +71,7 @@ function layout(w, v) {
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
   const obs = add(cell);
-  const model = mood ? add(LAB + 2 * mcell) : add(K * cell);
+  const model = mood ? add(Math.max(LAB + 2 * mcell, GRAPH_H)) : add(K * cell);
   const strip = add(K * cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
@@ -73,6 +79,79 @@ function layout(w, v) {
 }
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
+
+/* THE STATE GRAPH — the picture a textbook draws beside the two tables: the
+   hidden patterns as circles, a self-loop and a switch on each, and the moods
+   they emit as the same tiles the rows use, so the graph's symbols are the
+   figure's. Every number on an edge is a cell of E or T, so the graph and the
+   tables cannot disagree. */
+function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
+  const font = `${colors.fsXs} ${colors.font}`;
+  const mid = (x0 + x1) / 2;
+  const d = Math.min(64, (x1 - x0) / 4);
+  const R = 14, ts = Math.min(cell, 26);
+  const sy = y + LAB + 18, oy = y + GRAPH_H - ts - 2;
+  const S = [{ x: mid - d, y: sy }, { x: mid + d, y: sy }];                 // P1, P2
+  const O = [{ x: mid - d, y: oy + ts / 2 }, { x: mid + d, y: oy + ts / 2 }]; // Sad, Happy
+  const label = (x, yy, s, align = "center") => {
+    ctx.fillStyle = colors.ink2; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = font;
+    ctx.fillText(s, x, yy);
+  };
+  const arrow = (ax, ay, bx, by, shrinkA, shrinkB, dash) => {
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    const sx = ax + ux * shrinkA, sy2 = ay + uy * shrinkA, ex = bx - ux * shrinkB, ey = by - uy * shrinkB;
+    ctx.save();
+    ctx.strokeStyle = colors.ink3; ctx.fillStyle = colors.ink3; ctx.lineWidth = 1.2;
+    if (dash) ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(sx, sy2); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 6 - uy * 3.5, ey - uy * 6 + ux * 3.5);
+    ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    return { sx, sy: sy2, ex, ey };
+  };
+  label(mid, y - LAB / 2 - 1, "Hidden patterns, and the moods they emit");
+  /* States: dashed circles, the convention for what is not observed. */
+  for (let h = 0; h < 2; h += 1) {
+    ctx.save();
+    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(S[h].x, S[h].y, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = colors.ink1; ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(`P${h + 1}`, S[h].x, S[h].y + 0.5);
+    /* Self-loop on the outer side, labelled with the stay probability. */
+    const side = h === 0 ? -1 : 1;
+    const lx = S[h].x + side * (R + 9), ly = S[h].y;
+    ctx.save();
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(lx, ly, 9, side > 0 ? -2.2 : 0.95, side > 0 ? 2.2 : 5.35); ctx.stroke();
+    ctx.fillStyle = colors.ink3;
+    const tipX = S[h].x + side * R * 0.75, tipY = S[h].y + R * 0.66;
+    ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX + side * 6, tipY + 2);
+    ctx.lineTo(tipX + side * 2, tipY - 6); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    label(S[h].x + side * (R + 22), S[h].y - 12, (1 - rho).toFixed(2), side > 0 ? "left" : "right");
+  }
+  /* The switches: two arrows between the states, rho each way. */
+  arrow(S[0].x, S[0].y - 5, S[1].x, S[1].y - 5, R + 1, R + 1);
+  arrow(S[1].x, S[1].y + 5, S[0].x, S[0].y + 5, R + 1, R + 1);
+  label(mid, S[0].y - 15, rho.toFixed(2));
+  label(mid, S[0].y + 16, rho.toFixed(2));
+  /* Emissions: four arrows down to the mood tiles, labelled from E. */
+  for (let h = 0; h < 2; h += 1) for (let o = 0; o < 2; o += 1) {
+    const a = arrow(S[h].x, S[h].y, O[o].x, O[o].y, R + 2, ts / 2 + 3, true);
+    const f = h === o ? 0.5 : 0.36;          // the crossing pair is labelled off the crossing
+    const lx = a.sx + (a.ex - a.sx) * f, ly = a.sy + (a.ey - a.sy) * f;
+    const off = h === o ? (h === 0 ? -8 : 8) : (h === 0 ? 10 : -10);
+    label(lx + off, ly, E[h][o].toFixed(2), off > 0 ? "left" : "right");
+  }
+  for (let o = 0; o < 2; o += 1) {
+    tileFn(O[o].x - ts / 2, oy, o, 1, ts);
+    label(O[o].x, oy + ts + 9, o === 1 ? "Happy" : "Sad");
+  }
+}
 const meanConf = (st) => {
   let s = 0, n = 0;
   for (const x of st.sites) if (x.blank) { s += x.conf; n += 1; }
@@ -93,7 +172,7 @@ defineWidget({
 
   /* One tab's marks at a time — the legend must match the graph. */
   legend: ({ params }) => {
-    const mood = params.view === "mood";
+    const mood = params.view === "toy";
     const entries = [
       mood
         ? { token: "ink-2", label: "Happy (filled); Sad is open", mark: "bar" }
@@ -111,47 +190,47 @@ defineWidget({
       type: "segmented",
       label: "View",
       options: [
-        { value: "mood", label: "Mood", detail: "two hidden patterns, a mood recorded most days" },
-        { value: "genotype", label: "Genotype", detail: "a SNP array imputed from a reference panel" },
+        { value: "toy", label: "Toy model", detail: "two hidden patterns, a mood recorded most days" },
+        { value: "biological", label: "Biological example", detail: "a SNP array imputed from a reference panel" },
       ],
-      default: "mood",
+      default: "toy",
     },
 
     seq: { type: "section", label: "The sequence" },
 
     days: {
       type: "int", label: "Days", min: 6, max: 20, default: 12,
-      when: { param: "view", equals: "mood" },
+      when: { param: "view", equals: "toy" },
     },
     missing: {
       type: "int", label: "Days not recorded", min: 0, max: 8, default: 3,
       detail: "missing completely at random",
-      when: { param: "view", equals: "mood" },
+      when: { param: "view", equals: "toy" },
     },
     happy: {
       type: "choice", label: "P(Happy) in pattern 2",
       detail: "pattern 1 is Happy with one minus this",
       options: HAPPY.map((v) => ({ value: v, label: v })),
       default: "0.8",
-      when: { param: "view", equals: "mood" },
+      when: { param: "view", equals: "toy" },
     },
 
     K: {
       type: "choice", label: "Reference haplotypes",
       options: KS.map((v) => ({ value: v, label: v })),
       default: "6",
-      when: { param: "view", equals: "genotype" },
+      when: { param: "view", equals: "biological" },
     },
     every: {
       type: "choice", label: "Array types one site in",
       options: EVERY.map((v) => ({ value: v, label: v })),
       default: "4",
-      when: { param: "view", equals: "genotype" },
+      when: { param: "view", equals: "biological" },
     },
     switches: {
       type: "int", label: "Recombination points", min: 0, max: 4, default: 2,
       detail: "where the sample's copied haplotype changes",
-      when: { param: "view", equals: "genotype" },
+      when: { param: "view", equals: "biological" },
     },
 
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
@@ -182,14 +261,14 @@ defineWidget({
 
   compute: ({ params, rng }) => {
     const rho = Number(params.rho);
-    if (params.view === "mood") {
+    if (params.view === "toy") {
       return M.buildMood({ rng, days: params.days, missing: params.missing, happy: Number(params.happy), rho });
     }
     return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every), switches: params.switches, rho });
   },
 
   animation: {
-    stepLabel: { param: "view", labels: { mood: "Observe a day", genotype: "Type a site" }, default: "Observe a day" },
+    stepLabel: { param: "view", labels: { toy: "Observe a day", biological: "Type a site" }, default: "Observe a day" },
     stepTitle: "Reveal the next recorded observation and recompute the posterior",
     runLabel: "Play",
     runTitle: "Reveal the rest, one observation at a time",
@@ -244,7 +323,6 @@ defineWidget({
     const gammaAt = (i, h) => (prev ? prev.gamma[i][h] + (st.gamma[i][h] - prev.gamma[i][h]) * p : st.gamma[i][h]);
     const newest = idx > 0 ? state.order[idx - 1] : -1;
     const cx = (i) => gx + i * cell;
-    const letterPx = Math.round(cell * 0.5);
 
     const text = (x, y, s, colour, align = "left", font = `${colors.fsXs} ${colors.font}`) => {
       ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = font;
@@ -260,15 +338,15 @@ defineWidget({
     const rowLabel = (y, s) => text(gx - 6, y + cell / 2 + 0.5, s, colors.ink3, "right");
     /* An observation tile: filled for Happy / the alternate allele, open for
        Sad / the reference allele; the Mood tab adds its letter. */
-    const tile = (x, y, a, alpha = 1) => {
-      fill(x, y, cell, cell, a === 1 ? colors.ink2 : colors.surface3, alpha);
-      border(x, y, cell, cell);
-      if (mood) text(x + cell / 2, y + cell / 2 + 0.5, a === 1 ? "H" : "S", a === 1 ? colors.surface : colors.ink1, "center", `600 ${letterPx}px ${colors.font}`);
+    const tile = (x, y, a, alpha = 1, size = cell) => {
+      fill(x, y, size, size, a === 1 ? colors.ink2 : colors.surface3, alpha);
+      border(x, y, size, size);
+      if (mood) text(x + size / 2, y + size / 2 + 0.5, a === 1 ? "H" : "S", a === 1 ? colors.surface : colors.ink1, "center", `600 ${Math.round(size * 0.5)}px ${colors.font}`);
     };
     const unknownCell = (x, y, mark) => {
       fill(x, y, cell, cell, colors.unknown, 0.16);
       border(x, y, cell, cell);
-      if (mark) text(x + cell / 2, y + cell / 2 + 0.5, "?", colors.ink3, "center", `600 ${letterPx}px ${colors.font}`);
+      if (mark) text(x + cell / 2, y + cell / 2 + 0.5, "?", colors.ink3, "center", `600 ${Math.round(cell * 0.5)}px ${colors.font}`);
     };
     const emptyCell = (x, y) => border(x, y, cell, cell);
     const statePath = (block, path, colour, dash) => {
@@ -322,8 +400,9 @@ defineWidget({
         }
       };
       table(gx, "Emission E: P(mood | pattern)", ["Sad", "Happy"], E);
-      const tx = gx + 2 * mcell + GUT + 10;
-      table(tx, "Transition T: P(next pattern | pattern)", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
+      const tx = w - 2 * mcell - 6;
+      table(tx, "Transition T", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
+      drawGraph(ctx, colors, { x0: gx + 2 * mcell + 30, x1: tx - 36, y: Lo.model.y, E, rho, tileFn: tile, cell });
     } else {
       caption(Lo.model, `Reference panel: ${K} sequenced haplotypes`);
       for (let h = 0; h < K; h += 1) {

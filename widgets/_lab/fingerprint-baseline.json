@@ -2919,37 +2919,37 @@
       "tx": "4ca07176"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Mood tab at rest, nothing revealed",
+      "$note": "PLACEHOLDER, draft: the Toy tab at rest, nothing revealed",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Mood tab fully revealed",
+      "$note": "PLACEHOLDER, draft: the Toy tab fully revealed",
       "slug": "hmm",
       "state": "?theme=light&shown=9",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Genotype tab fully typed",
+      "$note": "PLACEHOLDER, draft: the Biological tab fully typed",
       "slug": "hmm",
-      "state": "?theme=light&view=genotype&shown=9",
+      "state": "?theme=light&view=biological&shown=9",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Genotype tab with the truth on",
+      "$note": "PLACEHOLDER, draft: the Biological tab with the truth on",
       "slug": "hmm",
-      "state": "?theme=light&view=genotype&truth=1&shown=9",
+      "state": "?theme=light&view=biological&truth=1&shown=9",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: three sites typed at fast, mid-run",
       "slug": "hmm",
-      "state": "?theme=light&view=genotype&speed=fast",
+      "state": "?theme=light&view=biological&speed=fast",
       "drive": {
         "click": "run",
         "frames": 12,

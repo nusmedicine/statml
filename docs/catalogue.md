@@ -4029,6 +4029,20 @@ more observation": every stage of the left-to-right reveal is precomputed,
 so a posterior to the LEFT of the newest observation visibly moves — the
 backward pass, seen.
 
+### Second round, 2026-09-06 — the tab names, the graph, and Viterbi
+
+Kenneth renamed the tabs: one is the toy and one is the biological example,
+and the names should say that rather than name the example — **Toy model**
+and **Biological example**, `view=toy` / `view=biological`. The toy's model
+block gained the **state graph** beside the two tables: dashed circles for
+the hidden patterns, self-loops and switches labelled from T, dashed
+emission arrows down to the same Happy/Sad tiles the rows use, labelled
+from E. He also asked how Viterbi is best explained or animated;
+`_lab/hmm-viterbi.html` draws three candidates on the toy's trellis with a
+step slider through both passes — A survivor paths, B the dynamic-programming
+table with back-pointer arrows, C both — and the recommendation is in the
+session's handover. Not yet decided.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,

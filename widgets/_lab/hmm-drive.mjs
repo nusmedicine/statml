@@ -40,9 +40,9 @@ const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section"
 ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), declared);
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
-ck("the mood controls are gated on view=mood", ["days", "missing", "happy"].every((n) => W.params[n].when?.equals === "mood"));
-ck("the genotype controls are gated on view=genotype", ["K", "every", "switches"].every((n) => W.params[n].when?.equals === "genotype"));
-ck("step label depends on view", W.animation.stepLabel?.param === "view" && Object.keys(W.animation.stepLabel.labels).sort().join() === "genotype,mood");
+ck("the toy controls are gated on view=toy", ["days", "missing", "happy"].every((n) => W.params[n].when?.equals === "toy"));
+ck("the biological controls are gated on view=biological", ["K", "every", "switches"].every((n) => W.params[n].when?.equals === "biological"));
+ck("step label depends on view", W.animation.stepLabel?.param === "view" && Object.keys(W.animation.stepLabel.labels).sort().join() === "biological,toy");
 
 /* 2. Defaults, and a walk over every option of every parameter. */
 const defaults = Object.fromEntries(Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n, f]) => [n, f.default]));
@@ -66,7 +66,7 @@ let combos = 0;
 for (const [name, f] of Object.entries(W.params)) {
   if (f.type === "section" || name === "shown") continue;
   for (const v of optionsOf(f)) {
-    for (const view of ["mood", "genotype"]) {
+    for (const view of ["toy", "biological"]) {
       const params = { ...defaults, view, [name]: v };
       if (name === "view") params.view = v;
       const { state, anim } = run(params);
@@ -96,7 +96,7 @@ console.log(`  walked ${combos} parameter settings`);
 
 /* 3. `shown` lands where it claims, and Replay starts over. */
 {
-  const params = { ...defaults, view: "genotype", shown: 4 };
+  const params = { ...defaults, view: "biological", shown: 4 };
   const state = W.compute({ params, rng: makeRng(1) });
   const a = W.animation.init({ params, state, fromScratch: false });
   ck("shown=4 opens at stage 4", a.idx === 4 && !a.done);
@@ -108,7 +108,7 @@ console.log(`  walked ${combos} parameter settings`);
 
 /* 4. Step mode: one press is one observation, and the beat clears. */
 {
-  const params = { ...defaults, view: "mood" };
+  const params = { ...defaults, view: "toy" };
   const state = W.compute({ params, rng: makeRng(1) });
   const anim = W.animation.init({ params, state, fromScratch: true });
   anim.mode = "step";
@@ -123,7 +123,7 @@ console.log(`  walked ${combos} parameter settings`);
 
 /* 5. Fast declares no choreography. */
 {
-  const params = { ...defaults, view: "genotype", speed: "fast" };
+  const params = { ...defaults, view: "biological", speed: "fast" };
   const state = W.compute({ params, rng: makeRng(1) });
   const anim = W.animation.init({ params, state, fromScratch: true });
   anim.mode = "run";
@@ -134,7 +134,7 @@ console.log(`  walked ${combos} parameter settings`);
 
 /* 6. Determinism: same params, same numbers. */
 {
-  const params = { ...defaults, view: "genotype" };
+  const params = { ...defaults, view: "biological" };
   const a = W.compute({ params, rng: makeRng(7) }), b = W.compute({ params, rng: makeRng(7) });
   ck("compute is deterministic", JSON.stringify(a.stages.at(-1).sites) === JSON.stringify(b.stages.at(-1).sites));
 }

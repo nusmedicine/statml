@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — three ways to animate Viterbi</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-5); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; font-family: var(--font-mono); }
+  .cap b { color: var(--ink-1); }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 96px; }
+  .rail input#s { width: 260px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3em; }
+  .phase { font-family: var(--font-mono); color: var(--ink-1); min-width: 22em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — three ways to animate Viterbi on the toy</h1>
+  <p class="note">
+    Same toy, same seed, same trellis (2 patterns × N days). The algorithm has two passes: <b>forward</b>,
+    one column at a time — into each node come two candidate paths, one per previous state, and only the
+    better one survives; then <b>trace back</b> from the best final node along the survivors. Drag
+    <b>step</b> through both passes. Node fill is the column's relative score (the best-path probability
+    ending there, normalised within the column — the raw product is below 0.01 within a dozen days,
+    which is why every textbook worked example uses logs or per-column scaling).
+  </p>
+
+  <div class="rail">
+    <label>step <input type="range" id="s" min="0" max="24" value="0"><span class="phase" id="phase"></span></label>
+    <label>days <input type="range" id="days" min="6" max="16" value="12"><output id="daysv">12</output></label>
+    <label>not recorded <input type="range" id="missing" min="0" max="6" value="3"><output id="missingv">3</output></label>
+    <label>ρ <input type="range" id="rho" min="0" max="6" value="3"><output id="rhov">0.1</output></label>
+    <label>P(Happy | P2) <input type="range" id="happy" min="0" max="4" value="2"><output id="happyv">0.8</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="60" value="1"><output id="seedv">1</output></label>
+    <label><input type="checkbox" id="truth"> true pattern</label>
+  </div>
+
+  <div id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font");
+const RHOS = [0.005, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5];
+const HAPPY = [0.6, 0.7, 0.8, 0.9, 0.95];
+const W = 690, GUT = 66, LAB = 15, GAP = 16;
+const V = { s: 0, days: 12, missing: 3, rho: 3, happy: 2, seed: 1, truth: false };
+let S = null, TR = null, emit = null;
+
+const OPTS = [
+  { id: "A", name: "Survivor paths",
+    em: "nodes on the strip's geometry; into each node both candidate edges, the loser dropped; the trace-back lights the path",
+    why: "The mechanism as a picture: at every column you see the two competitors and the one kept, and a pruned edge is a whole prefix of paths gone. No numbers, so the eye reads structure; the fills carry how lopsided each column is." },
+  { id: "B", name: "The dynamic-programming table",
+    em: "the same grid as cells: each holds its relative score and an arrow back to the state it came from",
+    why: "A worked example a student can check by hand — one cell is one multiplication and one max. The trace-back is arrows followed right to left. Costs: numbers at 12px in 40px cells, and the competition (the loser) is not drawn, only its result." },
+  { id: "C", name: "Both",
+    em: "the survivor paths with the score printed inside each node",
+    why: "Structure and arithmetic on one figure. Costs the most ink per cell; at 20 days the nodes are 30px and the numbers 10px." },
+];
+
+const wall = document.getElementById("wall");
+const views = OPTS.map((o) => {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${o.id} · ${o.name} <em>— ${o.em}</em></h3><canvas></canvas><p class="cap"></p><p class="why">${o.why}</p>`;
+  wall.appendChild(d);
+  return { o, canvas: d.querySelector("canvas"), cap: d.querySelector(".cap") };
+});
+
+function build() {
+  S = M.buildMood({ rng: makeRng(V.seed * 7919 + 1), days: V.days, missing: V.missing, happy: HAPPY[V.happy], rho: RHOS[V.rho] });
+  emit = [];
+  for (let i = 0; i < S.L; i += 1) emit.push(S.gone.has(i) ? [1, 1] : [S.E[0][S.truthAllele[i]], S.E[1][S.truthAllele[i]]]);
+  TR = M.viterbiTrellis(emit, 2, S.rho);
+  const sEl = document.getElementById("s");
+  sEl.max = 2 * S.L;
+  if (V.s > 2 * S.L) V.s = 2 * S.L;
+  sEl.value = V.s;
+}
+
+const beliefAlpha = (g) => 0.05 + 0.88 * g;
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim(); ctx.fillText(s, x, y);
+}
+function rectA(ctx, x, y, w, h, colour, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = colour; ctx.fillRect(x, y, w, h); ctx.restore();
+}
+function border(ctx, x, y, w, h) { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+function line(ctx, x0, y0, x1, y1, colour, width, alpha = 1, dash = null) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = colour; ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+
+function draw(view) {
+  const { o, canvas, cap } = view;
+  const L = S.L, K = 2;
+  const cell = Math.min(40, Math.floor((W - GUT - 6) / L));
+  const gx = GUT;
+  const fwd = Math.min(V.s, L);                  // columns computed
+  const back = Math.max(0, V.s - L);             // columns traced back from the right
+  const litFrom = L - back;                      // columns >= litFrom are on the traced path
+  const obsY = 6 + LAB;
+  const trY = obsY + cell + GAP + LAB;
+  const H = trY + K * cell + 8 + (V.truth ? 14 : 0);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const cx = (i) => gx + i * cell + cell / 2;
+  const cy = (h) => trY + h * cell + cell / 2;
+  const numPx = Math.max(9, Math.min(12, Math.round(cell * 0.3)));
+  const R = Math.round(cell * 0.32);
+
+  /* Observations. */
+  txt(ctx, gx, obsY - LAB / 2 - 1, "Moods on record", T.ink2);
+  txt(ctx, gx - 6, obsY + cell / 2, "mood", T.ink3, "right", 10);
+  for (let i = 0; i < L; i += 1) {
+    const x = gx + i * cell;
+    if (S.gone.has(i)) { rectA(ctx, x, obsY, cell, cell, T.unknown, 0.16); border(ctx, x, obsY, cell, cell); txt(ctx, x + cell / 2, obsY + cell / 2, "?", T.ink3, "center", cell * 0.5, "600"); }
+    else { const a = S.truthAllele[i]; rectA(ctx, x, obsY, cell, cell, a ? T.ink2 : T.surface3); border(ctx, x, obsY, cell, cell); txt(ctx, x + cell / 2, obsY + cell / 2, a ? "H" : "S", a ? T.surface : T.ink1, "center", cell * 0.5, "600"); }
+    if (i === fwd - 1 && back === 0 && fwd > 0) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, obsY + 1, cell - 2, cell - 2); }
+  }
+
+  const phase = back > 0 ? `trace back: ${back} of ${L} columns` : fwd === 0 ? "nothing computed yet" : `forward: column ${fwd} of ${L}`;
+  txt(ctx, gx, trY - LAB / 2 - 1, `Viterbi trellis — ${phase}`, T.ink2);
+  for (let h = 0; h < K; h += 1) txt(ctx, gx - 6, cy(h), `P${h + 1}`, T.ink3, "right", 10);
+
+  const onPath = (i, h) => back > 0 && i >= litFrom && TR.path[i] === h;
+  const glyph = (i, h) => (TR.back[i][h] === h ? "←" : TR.back[i][h] < h ? "↖" : "↙");
+
+  if (o.id === "B") {
+    /* Cells. */
+    for (let i = 0; i < L; i += 1) for (let h = 0; h < K; h += 1) {
+      const x = gx + i * cell, y = trY + h * cell;
+      if (i < fwd) rectA(ctx, x, y, cell, cell, T.posterior, beliefAlpha(TR.score[i][h]) * (back > 0 && !onPath(i, h) ? 0.35 : 1));
+      border(ctx, x, y, cell, cell);
+      if (i < fwd) {
+        const dark = TR.score[i][h] > 0.55 && !(back > 0 && !onPath(i, h));
+        txt(ctx, x + cell / 2 - (i > 0 ? 4 : 0), y + cell / 2, TR.score[i][h].toFixed(2), dark ? T.surface : T.ink1, "center", numPx);
+        if (i > 0) txt(ctx, x + cell - 4, y + cell / 2, glyph(i, h), dark ? T.surface : T.ink2, "right", numPx);
+      }
+      if (i === fwd - 1 && back === 0) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, cell - 2, cell - 2); }
+      if (onPath(i, h)) { ctx.strokeStyle = T.empirical; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3); }
+    }
+  } else {
+    /* Survivor edges for every computed column. */
+    for (let i = 1; i < fwd; i += 1) for (let h = 0; h < K; h += 1) {
+      const from = TR.back[i][h];
+      const lit = onPath(i, h) && onPath(i - 1, from);
+      const current = i === fwd - 1 && back === 0;
+      if (current) {
+        /* Both candidates into this node: the survivor solid, the loser dashed. */
+        for (let g = 0; g < K; g += 1) {
+          if (g === from) line(ctx, cx(i - 1), cy(g), cx(i), cy(h), T.empirical, 2.2);
+          else line(ctx, cx(i - 1), cy(g), cx(i), cy(h), T.ink3, 1, 0.55, [3, 3]);
+        }
+      } else if (lit) line(ctx, cx(i - 1), cy(from), cx(i), cy(h), T.empirical, 3.5);
+      else line(ctx, cx(i - 1), cy(from), cx(i), cy(h), back > 0 ? T.ink3 : T.empirical, 1.4, back > 0 ? 0.3 : 0.8);
+    }
+    /* Nodes. */
+    for (let i = 0; i < L; i += 1) for (let h = 0; h < K; h += 1) {
+      const x = cx(i), y = cy(h);
+      const dim = back > 0 && !onPath(i, h);
+      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2);
+      if (i < fwd) {
+        ctx.save(); ctx.globalAlpha = beliefAlpha(TR.score[i][h]) * (dim ? 0.35 : 1); ctx.fillStyle = T.posterior; ctx.fill(); ctx.restore();
+        ctx.strokeStyle = onPath(i, h) ? T.empirical : T.grid; ctx.lineWidth = onPath(i, h) ? 2.5 : 1; ctx.stroke();
+        if (o.id === "C") txt(ctx, x, y, TR.score[i][h].toFixed(2), TR.score[i][h] > 0.55 && !dim ? T.surface : T.ink1, "center", numPx);
+      } else { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.stroke(); }
+      if (i === fwd - 1 && back === 0) { ctx.beginPath(); ctx.arc(x, y, R + 3, 0, Math.PI * 2); ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.stroke(); }
+    }
+  }
+  if (V.truth) {
+    ctx.save(); ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath();
+    for (let i = 0; i < L; i += 1) { const y = cy(S.src[i]) + (o.id === "B" ? cell * 0.36 : R + 4); if (i === 0) ctx.moveTo(cx(i) - cell * 0.4, y); ctx.lineTo(cx(i) + cell * 0.4, y); }
+    ctx.stroke(); ctx.restore();
+  }
+
+  /* Facts. */
+  let under = L;
+  for (let i = 0; i < L; i += 1) if (Math.exp(Math.max(...TR.V[i])) < 0.01) { under = i + 1; break; }
+  const switches = TR.path.reduce((n, h, i) => n + (i > 0 && h !== TR.path[i - 1] ? 1 : 0), 0);
+  cap.innerHTML = `cell <b>${cell}</b>px · numbers <b>${o.id === "A" ? "none" : numPx + "px"}</b> · raw best-path probability below 0.01 from day <b>${under}</b> · `
+    + `decoded path switches <b>${switches}</b> time(s) · true pattern switches <b>${S.src.reduce((n, h, i) => n + (i > 0 && h !== S.src[i - 1] ? 1 : 0), 0)}</b>`;
+}
+
+function render() {
+  const L = S.L, fwd = Math.min(V.s, L), back = Math.max(0, V.s - L);
+  document.getElementById("phase").textContent = back > 0 ? `trace back ${back}/${L}` : fwd === 0 ? "start" : `forward ${fwd}/${L}`;
+  for (const v of views) draw(v);
+}
+for (const id of ["s", "days", "missing", "rho", "happy", "seed"]) {
+  const el = document.getElementById(id), out = document.getElementById(id + "v");
+  el.addEventListener("input", () => {
+    V[id] = Number(el.value);
+    if (out) out.textContent = id === "rho" ? RHOS[V.rho] : id === "happy" ? HAPPY[V.happy] : el.value;
+    if (id !== "s") build();
+    render();
+  });
+}
+document.getElementById("truth").addEventListener("change", (e) => { V.truth = e.target.checked; render(); });
+build(); render();
+</script>
+</body>
+</html>
