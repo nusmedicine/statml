@@ -4052,6 +4052,30 @@ biological tab keeps its type-one-site reveal: a 6-to-8-state trellis over 36
 sites is too dense to read column by column, and that tab's lesson is what
 typing buys. Toy = how; biological = what for.
 
+### Third round, 2026-09-06 — the biological tab's model, and where the numbers come from
+
+Kenneth asked for the graph and the matrices on the haplotype tab too, and
+how to explain where the numbers come from. The biological tab now has the
+same three things as the toy, at K states: the emission table AT ONE SITE
+(the newest typed site, or site 1 before typing) — the haplotype's own
+allele 0.98, the other 0.02, so it is the panel's column read as
+probabilities, with the observed allele's column ringed once the site is
+typed; the K states on a ring, every pair joined because a switch can land
+on any other haplotype, each state's emission arrow going to the allele it
+carries at that site; and the K-by-K transition table, 1 − ρ on the diagonal
+and ρ/(K − 1) off it. A K-by-K table of one repeated number is redundant as
+arithmetic and not as teaching: it is the toy's T again with K rows, and it
+moves with the ρ control.
+
+Where the numbers come from is said once per tab, as the detail line under
+the rail's *The model* section. Toy: *E and T are set here. In practice they
+are counted from sequences whose patterns are known, or fitted by
+expectation–maximisation.* Biological: *T is the switch rate ρ, shared over
+the other haplotypes. E is read off the reference panel at each site, with
+0.02 allowed for a mismatch.* The longer answer — genetic maps, panel
+sizes, the Li & Stephens θ — belongs in the lecture; widget 10 `em-mixture`
+is the collection's EM.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,

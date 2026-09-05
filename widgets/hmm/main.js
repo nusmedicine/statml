@@ -67,6 +67,10 @@ const GUT = 66, GAP = 16, LAB = 15, TOP = 6, BOT = 8;
 const MAX_CELL = 40;           // the toy's few days would otherwise balloon
 const MCELL_MIN = 34;          // a probability table cell has to hold "0.95"
 const GRAPH_H = 118;           // the toy's state graph: two states over two moods
+const RING_H = 176;            // the biological tab's state graph: K states on a ring, two alleles beneath
+/* A K-by-K transition table has to fit beside the ring and the emission
+   table at the narrowest canvas: 22px cells at K = 8, up to 34px at K <= 5. */
+const ringCell = (K) => Math.max(22, Math.min(34, Math.floor(176 / K)));
 const BAR_H = 6;               // the probability bar under an imputed call
 
 function layout(w, v) {
@@ -78,12 +82,13 @@ function layout(w, v) {
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
   const obs = add(cell);
-  const model = toy ? add(Math.max(LAB + 2 * mcell, GRAPH_H)) : add(K * cell);
+  const model = toy ? add(Math.max(LAB + 2 * mcell, GRAPH_H)) : add(Math.max(LAB + K * ringCell(K), RING_H));
+  const panel = toy ? null : add(K * cell);
   const trellis = toy ? add(K * cell) : null;
   const strip = add(K * cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
-  return { cell, mcell, K, L, gx: GUT, obs, model, trellis, strip, imp, truth, height: y - GAP + BOT };
+  return { cell, mcell, K, L, gx: GUT, obs, model, panel, trellis, strip, imp, truth, height: y - GAP + BOT };
 }
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
@@ -159,6 +164,113 @@ function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
     tileFn(O[o].x - ts / 2, oy, o, 1, ts);
     label(O[o].x, oy + ts + 9, o === 1 ? "Happy" : "Sad");
   }
+}
+
+/* THE BIOLOGICAL TAB'S MODEL, the same three things as the toy's at K states:
+   the emission table AT ONE SITE (the newest typed site, or the first before
+   anything is typed) — the haplotype's own allele 1 - EPS, the other EPS, so
+   it is the panel's column read as probabilities; the states on a ring, every
+   pair joined because a switch can land on any other haplotype, with each
+   state's emission arrow going to the allele it carries at that site; and the
+   K-by-K transition table, 1 - rho on the diagonal and rho over K - 1 off it.
+   Drawn at K states so the reader sees the toy's picture again, larger. */
+function drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, fill, stateName }) {
+  const { K, L, gx, cell } = Lo;
+  const B = Lo.model;
+  const mc = ringCell(K);
+  const font = `${colors.fsXs} ${colors.font}`;
+  const small = `${Math.max(9, Math.min(11, mc - 13))}px ${colors.font}`;
+  const rho = state.rho, move = rho / (K - 1);
+  const site = idx > 0 ? state.order[idx - 1] : state.order[0];
+  const known = stage.sites[site].known;
+  const ts = Math.min(cell + 4, 18);
+
+  /* Emission at one site, left. Columns are the two alleles as tiles. */
+  const ex = gx;
+  text(ex, B.y - LAB / 2 - 1, `Emission E at site ${site + 1}`, colors.ink2);
+  for (let c = 0; c < 2; c += 1) {
+    const x = ex + c * mc + mc / 2 - ts / 2;
+    fill(x, B.y + 1, ts, ts, c === 1 ? colors.ink2 : colors.surface3);
+    border(x, B.y + 1, ts, ts);
+    if (known && state.truthAllele[site] === c) {
+      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, B.y + 2, ts - 2, ts - 2);
+    }
+  }
+  for (let h = 0; h < K; h += 1) {
+    const y = B.y + LAB + 6 + h * mc;
+    text(ex - 6, y + mc / 2 + 0.5, stateName(h), colors.ink3, "right");
+    for (let c = 0; c < 2; c += 1) {
+      const x = ex + c * mc;
+      border(x, y, mc, mc);
+      const pr = state.panel.hap[h][site] === c ? 1 - M.EPS : M.EPS;
+      text(x + mc / 2, y + mc / 2 + 0.5, pr.toFixed(2), colors.ink1, "center", small);
+    }
+  }
+
+  /* Transition, right. */
+  const tx = w - K * mc - 6;
+  text(tx, B.y - LAB / 2 - 1, "Transition T", colors.ink2);
+  for (let c = 0; c < K; c += 1) text(tx + c * mc + mc / 2, B.y + LAB / 2, stateName(c), colors.ink3, "center", small);
+  for (let r = 0; r < K; r += 1) {
+    const y = B.y + LAB + 6 + r * mc;
+    text(tx - 6, y + mc / 2 + 0.5, stateName(r), colors.ink3, "right");
+    for (let c = 0; c < K; c += 1) {
+      const x = tx + c * mc;
+      border(x, y, mc, mc);
+      text(x + mc / 2, y + mc / 2 + 0.5, (r === c ? 1 - rho : move).toFixed(2), r === c ? colors.ink1 : colors.ink2, "center", small);
+    }
+  }
+
+  /* The ring, between them. */
+  const x0 = ex + 2 * mc + 40, x1 = tx - 44;
+  const mid = (x0 + x1) / 2;
+  const R = 11;
+  const rad = Math.min(50, (x1 - x0) / 2 - R - 8);
+  const cy0 = B.y + LAB + 4 + rad + R;
+  const pos = Array.from({ length: K }, (_, h) => {
+    const a = -Math.PI / 2 + (2 * Math.PI * h) / K;
+    return { x: mid + rad * Math.cos(a), y: cy0 + rad * Math.sin(a), a };
+  });
+  text(mid, B.y - LAB / 2 - 1, "Hidden states", colors.ink2, "center");
+  ctx.save();
+  ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.globalAlpha = 0.35;
+  for (let a = 0; a < K; a += 1) for (let b = a + 1; b < K; b += 1) {
+    ctx.beginPath(); ctx.moveTo(pos[a].x, pos[a].y); ctx.lineTo(pos[b].x, pos[b].y); ctx.stroke();
+  }
+  ctx.restore();
+  /* Two allele tiles beneath the ring; each state's emission arrow goes to
+     the allele it carries at this site. */
+  const ty = cy0 + rad + R + 14;
+  const tileX = [mid - 20 - ts / 2, mid + 20 - ts / 2];
+  for (let h = 0; h < K; h += 1) {
+    const a = state.panel.hap[h][site];
+    const bx = tileX[a] + ts / 2, by = ty;
+    const dx = bx - pos[h].x, dy = by - pos[h].y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    ctx.save();
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(pos[h].x + ux * (R + 2), pos[h].y + uy * (R + 2)); ctx.lineTo(bx - ux * 4, by - uy * 4); ctx.stroke();
+    ctx.restore();
+  }
+  for (let h = 0; h < K; h += 1) {
+    ctx.save();
+    ctx.fillStyle = colors.surface; ctx.beginPath(); ctx.arc(pos[h].x, pos[h].y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke();
+    ctx.restore();
+    text(pos[h].x, pos[h].y + 0.5, stateName(h), colors.ink1, "center", `600 ${small}`);
+    /* Self-loop, outward. */
+    const lx = pos[h].x + Math.cos(pos[h].a) * (R + 7), ly = pos[h].y + Math.sin(pos[h].a) * (R + 7);
+    ctx.save();
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(lx, ly, 6, pos[h].a + 2.4, pos[h].a - 2.4 + 2 * Math.PI); ctx.stroke();
+    ctx.restore();
+  }
+  for (let c = 0; c < 2; c += 1) {
+    fill(tileX[c], ty, ts, ts, c === 1 ? colors.ink2 : colors.surface3);
+    border(tileX[c], ty, ts, ts);
+  }
+  text(mid, ty + ts + 9, `emits its own allele at site ${site + 1}`, colors.ink3, "center");
+  text(mid, ty + ts + 22, `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
+  void L;
 }
 
 /* The toy's imputed mood follows the notebook: the decoded pattern's likelier
@@ -258,7 +370,21 @@ defineWidget({
       type: "bool", label: "Show the hidden states", default: false, display: true,
     },
 
-    model: { type: "section", label: "The model" },
+    /* WHERE THE NUMBERS COME FROM, said once per tab. The toy's E and T are
+       set here, as the notebook sets them by hand; the biological tab's are
+       derived — T from the switch rate, E read off the panel. */
+    modelToy: {
+      type: "section", label: "The model",
+      detail: "E and T are set here. In practice they are counted from sequences "
+        + "whose patterns are known, or fitted by expectation–maximisation.",
+      when: { param: "view", equals: "toy" },
+    },
+    modelBio: {
+      type: "section", label: "The model",
+      detail: "T is the switch rate ρ, shared over the other haplotypes. E is read "
+        + "off the reference panel at each site, with 0.02 allowed for a mismatch.",
+      when: { param: "view", equals: "biological" },
+    },
 
     rho: {
       type: "choice", label: "Switch rate ρ",
@@ -442,9 +568,10 @@ defineWidget({
       table(tx, "Transition T", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
       drawGraph(ctx, colors, { x0: gx + 2 * mcell + 30, x1: tx - 36, y: Lo.model.y, E, rho, tileFn: tile, cell });
     } else {
-      caption(Lo.model, `Reference panel: ${K} sequenced haplotypes`);
+      drawRingModel(ctx, colors, { Lo, state, stage, idx, w, tile, text, border, fill, stateName });
+      caption(Lo.panel, `Reference panel: ${K} sequenced haplotypes`);
       for (let h = 0; h < K; h += 1) {
-        const y = Lo.model.y + h * cell;
+        const y = Lo.panel.y + h * cell;
         rowLabel(y, stateName(h));
         for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i]);
       }
