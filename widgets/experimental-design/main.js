@@ -96,7 +96,7 @@ const CONF = {
 /* The notebook's own headings: "Non-random sampling", "Random sampling",
    "Blocking". Kenneth's call over "Convenience" and "Stratified". */
 const SCHEMES = {
-  convenience: "Non-random",
+  nonrandom: "Non-random",
   random: "Random",
   blocked: "Blocked",
 };
@@ -117,7 +117,7 @@ const EFFECTS = { none: 0, small: 0.25, moderate: 0.5, large: 1 };
    effect 0.50 with the confounder at -1.00 a Convenience study reports -0.50:
    the disease raises the measurement and the study concludes it lowers it. A
    dial that only goes up can only ever teach the false-positive half. */
-const SHIFTS = { down2: -2, down1: -1, none: 0, up1: 1, up2: 2 };
+const SHIFTS = { "-2": -2, "-1": -1, "0": 0, "1": 1, "2": 2 };
 
 /* THE ASSAY'S OWN SPREAD, AGAINST THE 0.50 THE PEOPLE VARY BY.
 
@@ -138,7 +138,7 @@ const SHIFTS = { down2: -2, down1: -1, none: 0, up1: 1, up2: 2 };
    spread. At 1.00 the clouds swamp the gaps between people, and the same ten
    repeats take off 47%. Repeating is worth doing exactly where
    pseudoreplicating it would matter least. */
-const NOISES = { precise: 0.15, half: 0.25, equal: 0.5, double: 1 };
+const NOISES = { "0.15": 0.15, "0.25": 0.25, "0.5": 0.5, "1": 1 };
 
 const SPEEDS = {
   slow: { ms: 620, choreo: true },
@@ -334,7 +334,7 @@ const B_GAP = 10;
 const H_BUDGET = B_TOP + 2 * B_ARM + B_GAP + 20;
 const H_PILE = 176;                   /* the studies it came from              */
 
-const isAllocate = (p) => p.concept === "allocate";
+const isAllocate = (p) => p.topic === "sampling";
 const studyH = (p) => (isAllocate(p) ? H_ALLOC : H_BUDGET);
 const EASE = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -392,7 +392,7 @@ function stepsFor(params, ran, sorts) {
   }
   const n = params.n;
   const low = CONF[params.confounder].low;
-  const take = params.scheme === "convenience"
+  const take = params.scheme === "nonrandom"
     ? `${n} sampled from one block`
     : params.scheme === "blocked"
       ? `${Math.round(n / 2)} sampled per block`
@@ -688,14 +688,20 @@ defineWidget({
   params: {
     lesson: { type: "section", label: "The question" },
 
-    concept: {
+    /* THE VALUES IN THE URL ARE THE WORDS ON THE CONTROL, or the numbers its
+       ticks show. They were `concept=allocate` and `topic=replication`, and
+       neither word appears anywhere a reader can see — Kenneth: "can you not
+       use stupid terms like budget? it was replication right? make sure URL do
+       not contain self-invented terms". A shared link is reader-facing copy
+       and answers to principle 5.9 like every other string. */
+    topic: {
       type: "segmented",
       label: "Topic",
       options: [
-        { value: "allocate", label: "Sampling", detail: "one background variable, three sampling methods" },
-        { value: "budget", label: "Replication", detail: "people against repeats of the same person" },
+        { value: "sampling", label: "Sampling", detail: "one background variable, three sampling methods" },
+        { value: "replication", label: "Replication", detail: "people against repeats of the same person" },
       ],
-      default: "allocate",
+      default: "sampling",
     },
 
     /* NOT "The confounder". A confounder is a variable associated with BOTH
@@ -713,19 +719,19 @@ defineWidget({
         value, label: c.name, detail: c.detail,
       })),
       default: "sex",
-      when: { param: "concept", equals: "allocate" },
+      when: { param: "topic", equals: "sampling" },
     },
 
     scheme: {
       type: "segmented",
       label: "Sampling method",
       options: [
-        { value: "convenience", label: "Non-random", detail: "the two groups differ completely in the background variable" },
+        { value: "nonrandom", label: "Non-random", detail: "the two groups differ completely in the background variable" },
         { value: "random", label: "Random", detail: "a coin flip for each subject, whatever it lands on" },
         { value: "blocked", label: "Blocked", detail: "equal numbers from each level of the background variable" },
       ],
       default: "random",
-      when: { param: "concept", equals: "allocate" },
+      when: { param: "topic", equals: "sampling" },
     },
 
     n: {
@@ -736,7 +742,7 @@ defineWidget({
          smaller than the reader asked for. At 24 and below, none do. */
       detail: `sampled from ${POP_PER_ARM} per group`,
       min: 4, max: 24, step: 2, default: 20,
-      when: { param: "concept", equals: "allocate" },
+      when: { param: "topic", equals: "sampling" },
     },
 
     people: {
@@ -744,7 +750,7 @@ defineWidget({
       label: "People per group",
       detail: "each one is a fresh draw from the population",
       min: PEOPLE_MIN, max: 30, default: 10,
-      when: { param: "concept", equals: "budget" },
+      when: { param: "topic", equals: "replication" },
     },
 
     reps: {
@@ -752,34 +758,34 @@ defineWidget({
       label: "Measurements per person",
       detail: "the same person, measured again",
       min: 1, max: 10, default: 1,
-      when: { param: "concept", equals: "budget" },
+      when: { param: "topic", equals: "replication" },
     },
 
     noise: {
       type: "choice",
       label: "Noise in one measurement",
       options: [
-        { value: "precise", label: "0.15", detail: "well under the spread between people — a person's repeats land close together" },
-        { value: "half", label: "0.25", detail: "half the spread between people" },
-        { value: "equal", label: "0.50", detail: "the same as the spread between people" },
-        { value: "double", label: "1.00", detail: "twice it — the assay varies more than the biology does" },
+        { value: "0.15", label: "0.15", detail: "well under the spread between people — a person's repeats land close together" },
+        { value: "0.25", label: "0.25", detail: "half the spread between people" },
+        { value: "0.5", label: "0.50", detail: "the same as the spread between people" },
+        { value: "1", label: "1.00", detail: "twice it — the assay varies more than the biology does" },
       ],
-      default: "equal",
-      when: { param: "concept", equals: "budget" },
+      default: "0.5",
+      when: { param: "topic", equals: "replication" },
     },
 
     shift: {
       type: "choice",
       label: "Effect on the measurement",
       options: [
-        { value: "down2", label: "−2.00", detail: "enough to reverse the sign of the answer" },
-        { value: "down1", label: "−1.00", detail: "can mask a real group difference" },
-        { value: "none", label: "nothing", detail: "with no effect, every sampling method agrees" },
-        { value: "up1", label: "1.00", detail: "twice the population's spread" },
-        { value: "up2", label: "2.00", detail: "larger than any group difference on offer" },
+        { value: "-2", label: "−2.00", detail: "enough to reverse the sign of the answer" },
+        { value: "-1", label: "−1.00", detail: "can mask a real group difference" },
+        { value: "0", label: "nothing", detail: "with no effect, every sampling method agrees" },
+        { value: "1", label: "1.00", detail: "twice the population's spread" },
+        { value: "2", label: "2.00", detail: "larger than any group difference on offer" },
       ],
-      default: "up1",
-      when: { param: "concept", equals: "allocate" },
+      default: "1",
+      when: { param: "topic", equals: "sampling" },
     },
 
     effect: {
@@ -857,7 +863,7 @@ defineWidget({
     const shift = SHIFTS[params.shift] ?? CONF_SHIFT;
     const noise = NOISES[params.noise] ?? NOISE_SD;
     const studies = runStudies(makeRng, params.seed, {
-      concept: params.concept,
+      topic: params.topic,
       scheme: params.scheme,
       n: params.n,
       people: params.people,
@@ -1455,7 +1461,7 @@ function drawBudget(ctx, colors, { w, left, ran, flight }, params, study, state)
   /* THE BUDGET, STATED. The two dials are a split of one total and nothing on
      screen said what that total was, so comparing 10 x 1 against 2 x 5 started
      with arithmetic the reader had to do. Four linked-control designs were
-     drawn at the real width in `_lab/design-budget.html` and Kenneth took this
+     drawn at the real width in `_lab/design-linked-dials.html` and Kenneth took this
      one: the dials stay free, and the figure reports what they add up to. */
   label(ctx, colors, left, 26,
     `${params.people} × ${params.reps} = ${params.people * params.reps} measurements per group`,

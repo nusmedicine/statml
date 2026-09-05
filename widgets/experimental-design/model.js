@@ -104,7 +104,7 @@ function makeArm(rng, arm, effect, shift) {
 /**
  * Which members of one arm's population the scheme selects.
  *
- *   convenience  the diseased arm gives up its carriers and the control arm its
+ *   nonrandom    the diseased arm gives up its carriers and the control arm its
  *                non-carriers — the notebook's cell 14, and complete confounding
  *   random       the first n of a shuffled population, whatever they are — cell 22
  *   blocked      n/2 carriers and n/2 non-carriers — cell 39
@@ -115,7 +115,7 @@ function makeArm(rng, arm, effect, shift) {
  * picks from the same random order and the three differ only in their rule.
  */
 function selectFrom(pop, order, n, scheme, arm) {
-  if (scheme === "convenience") {
+  if (scheme === "nonrandom") {
     const want = arm === 1;
     return order.filter((i) => pop[i].carrier === want).slice(0, n);
   }
@@ -263,7 +263,7 @@ export function budgetStudy(rng, { people, reps, effect, noise = NOISE_SD }) {
 export const MAX_STUDIES = 200;
 
 export function runStudies(makeRng, seed, params, count = MAX_STUDIES) {
-  if (params.concept !== "allocate") {
+  if (params.topic !== "sampling") {
     const out = [];
     for (let i = 0; i < count; i += 1) {
       out.push(budgetStudy(makeRng(seed * 7919 + 1 + i * 31), params));

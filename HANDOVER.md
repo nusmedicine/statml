@@ -12,7 +12,7 @@ draft.**
 Ten states recorded 2026-09-05, six settled on Sampling and two on Replicate,
 plus **two DRIVEN** — the Sampling study boundary and the Replicate ease out of
 rest, which are the two crossfades the second session built and which no settled
-state can see. The noise dial is covered by the `noise=precise` state.
+state can see. The noise dial is covered by the `noise=0.15` state.
 
 Done to the letter of 5.10: placeholders first, the suite left to auto-run,
 **three determinism passes** on a ten-state baseline (all ten byte-identical,
@@ -52,14 +52,14 @@ touching that tab**, because the first session's description of it is gone.
 ```bash
 node scripts/serve.mjs 8014
 W=http://localhost:8014/widgets/experimental-design
-# $W/?scheme=convenience&shown=200        half of each population greys out, opposite halves
+# $W/?scheme=nonrandom&shown=200        half of each population greys out, opposite halves
 # $W/?scheme=blocked&shown=200            both blocks lit, 10 taken from each
-# $W/?scheme=convenience&shift=down1&effect=moderate&shown=200
+# $W/?scheme=nonrandom&shift=-1&effect=moderate&shown=200
 #                                         200 of 200 significant, every one the wrong sign
-# $W/?concept=budget&people=10&reps=1&shown=200    THE ARGUMENT, half one
-# $W/?concept=budget&people=2&reps=5&shown=200     and half two: same ten
+# $W/?topic=replication&people=10&reps=1&shown=200    THE ARGUMENT, half one
+# $W/?topic=replication&people=2&reps=5&shown=200     and half two: same ten
 #                                         measurements, 4.7% against 30.9% wrong
-# $W/?concept=budget&people=30&reps=4&effect=large&shown=84   the band at its best
+# $W/?topic=replication&people=30&reps=4&effect=large&shown=84   the band at its best
 node widgets/_lab/design-measure.mjs      # every number the widget prints, ss1-12
 node widgets/_lab/design-taxonomy.mjs     # why the observational slide needs no widget
 ```
@@ -69,7 +69,7 @@ recording a NO. Each says its verdict at the top; do not re-propose from them
 without a reason the page does not already answer.
 
 ```
-_lab/design-budget.html          linking the two dials      -> A, dials stay free
+_lab/design-linked-dials.html          linking the two dials      -> A, dials stay free
 _lab/design-replicate-band.html  what the people band draws -> B, value on y
 _lab/design-person-grouping.html a device per person        -> DECLINED
 _lab/design-sorted-columns.html  sorting the columns        -> DECLINED

@@ -2847,7 +2847,7 @@
     },
     {
       "$note": "Non-random, 60 studies: the pile sits on the confounder and never crosses zero.",
-      "state": "?theme=light&scheme=convenience&shown=60",
+      "state": "?theme=light&scheme=nonrandom&shown=60",
       "slug": "experimental-design",
       "px": "10302cb8",
       "tx": "696f507c"
@@ -2868,28 +2868,28 @@
     },
     {
       "$note": "Batch as the background variable, at the notebook's own complete confounding.",
-      "state": "?theme=light&confounder=batch&scheme=convenience&shown=40",
+      "state": "?theme=light&confounder=batch&scheme=nonrandom&shown=40",
       "slug": "experimental-design",
       "px": "780c7165",
       "tx": "d329228b"
     },
     {
       "$note": "The masked case: a negative background effect and a real 0.50, so the study reports the sign backwards.",
-      "state": "?theme=light&scheme=convenience&shift=down1&effect=moderate&shown=60",
+      "state": "?theme=light&scheme=nonrandom&shift=-1&effect=moderate&shown=60",
       "slug": "experimental-design",
       "px": "db92403f",
       "tx": "ee2ebbbb"
     },
     {
       "$note": "Replicate, 30 people measured once each: thirty columns of one dot, thirty mean ticks.",
-      "state": "?theme=light&concept=budget&people=30&reps=1&shown=60",
+      "state": "?theme=light&topic=replication&people=30&reps=1&shown=60",
       "slug": "experimental-design",
       "px": "fedcb455",
       "tx": "7a01de8e"
     },
     {
       "$note": "Replicate, 3 people x 10 on a precise assay: the same 30 measurements, tight clusters far apart, and the noise dial at its low end.",
-      "state": "?theme=light&concept=budget&people=3&reps=10&noise=precise&shown=60",
+      "state": "?theme=light&topic=replication&people=3&reps=10&noise=0.15&shown=60",
       "slug": "experimental-design",
       "px": "da85da7b",
       "tx": "e5788047"
@@ -2908,7 +2908,7 @@
     },
     {
       "$note": "DRIVEN out of rest on Replicate: the dots partway between their schematic seats and their measured values, the one tween here that asserts a true correspondence.",
-      "state": "?theme=light&concept=budget&people=10&reps=4",
+      "state": "?theme=light&topic=replication&people=10&reps=4",
       "drive": {
         "click": "run",
         "frames": 6,
