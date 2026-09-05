@@ -487,6 +487,107 @@ if (copyOffenders.length) {
 }
 ok(`${slugs.size} widgets: reader-facing copy names no lesson or notebook`);
 
+/* --- every top-level declaration has a reader ---------------------------- */
+
+/* A rename that leaves the old helper behind, a stage rebuilt around a drawer
+   nobody calls any more, an export whose one reader was deleted: none of it
+   fails, none of it renders, and it reads as live code to the next author. An
+   audit on 2026-09-05 found thirteen such declarations and one dead export
+   across nine files — three of them whole drawing functions in widget 44,
+   left by its stage rebuild — and nothing here could see them.
+
+   So: every top-level `function`, `const`, `let` or `class` in a deployed
+   source file is referenced at least once — in its own file beyond the
+   declaration, or in any other file under widgets/ (the lab counts: its
+   measurement scripts are the readers several model.js exports exist for),
+   scripts/, or the two landing pages. Core's exports go further: each needs a
+   reader outside core/index.js, since a core export nothing imports is API
+   nobody asked for.
+
+   A reference is the bare name, a spread `...name`, or `alias.name` where the
+   file imported `* as alias` from the declaring module. `obj.name` on anything
+   else is a property, not a reference — which is exactly how `M.smotePlan`
+   was first misread as dead. */
+{
+  const sources = new Map(); // "widgets/x/main.js" -> text, POSIX-style keys
+  const load = async (rel) => sources.set(rel, await readFile(join(root, rel), "utf8"));
+  const walkSources = async (rel) => {
+    for (const e of await readdir(join(root, rel), { withFileTypes: true })) {
+      const r = `${rel}/${e.name}`;
+      if (e.isDirectory()) await walkSources(r);
+      else if (/\.(js|mjs|html)$/.test(e.name)) await load(r);
+    }
+  };
+  await walkSources("widgets");
+  await walkSources("scripts");
+  await load("index.html");
+  await load("lab/index.html");
+
+  const deployedJs = [...sources.keys()].filter((f) => /^widgets\/(?!_lab\/)[^/]+\/[^/]+\.js$/.test(f));
+
+  // `import * as M from "./model.js"` in widgets/x/main.js: M.name in that file
+  // is a reference to widgets/x/model.js's name.
+  const resolveRel = (from, spec) => {
+    const parts = from.split("/").slice(0, -1);
+    for (const seg of spec.split("/")) {
+      if (seg === "..") parts.pop();
+      else if (seg !== ".") parts.push(seg);
+    }
+    return parts.join("/");
+  };
+  const namespaceImports = []; // { file, alias, target }
+  for (const [file, text] of sources) {
+    for (const m of text.matchAll(/^import \* as (\w+) from "([^"]+)";/gm)) {
+      namespaceImports.push({ file, alias: m[1], target: resolveRel(file, m[2]) });
+    }
+  }
+
+  const bareRef = (name) => new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${name}(?![\\w$])`, "g");
+  const countIn = (file, text, name, declFile) => {
+    let n = (text.match(bareRef(name)) || []).length;
+    for (const ns of namespaceImports) {
+      if (ns.file === file && ns.target === declFile) {
+        n += (text.match(new RegExp(`\\b${ns.alias}\\.${name}(?![\\w$])`, "g")) || []).length;
+      }
+    }
+    return n;
+  };
+  const referencedElsewhere = (name, declFile, skip = []) => {
+    for (const [file, text] of sources) {
+      if (file === declFile || skip.includes(file)) continue;
+      if (countIn(file, text, name, declFile) > 0) return true;
+    }
+    return false;
+  };
+
+  const unread = [];
+  const unimported = [];
+  for (const file of deployedJs) {
+    const text = sources.get(file);
+    const decls = new Map(); // name -> exported?
+    for (const m of text.matchAll(/^(export )?(?:async )?(?:function\*?|class) (\w+)/gm)) decls.set(m[2], Boolean(m[1]));
+    for (const m of text.matchAll(/^(export )?(?:const|let|var) (\w+)\s*=/gm)) decls.set(m[2], Boolean(m[1]));
+    for (const m of text.matchAll(/^export \{([^}]+)\}/gm)) {
+      for (const n of m[1].split(",")) decls.set(n.trim().split(/\s+as\s+/)[0], true);
+    }
+    for (const [name, exported] of decls) {
+      const own = countIn(file, text, name, file) - 1; // minus the declaration itself
+      if (own <= 0 && !referencedElsewhere(name, file)) unread.push(`${file}: ${name}`);
+      if (exported && file.startsWith("widgets/core/") && file !== "widgets/core/index.js"
+        && !referencedElsewhere(name, file, ["widgets/core/index.js"])) {
+        unimported.push(`${file}: ${name}`);
+      }
+    }
+  }
+  if (unread.length) {
+    fail(`top-level declarations nothing references — delete them, or the reader that was meant to exist:\n    ${unread.join("\n    ")}`);
+  }
+  if (unimported.length) {
+    fail(`core exports nothing imports — drop the export, or the reader that was meant to exist:\n    ${unimported.join("\n    ")}`);
+  }
+  ok(`${deployedJs.length} deployed source files: every top-level declaration has a reader, every core export an importer`);
+}
+
 /* --- no runtime dependencies ------------------------------------------- */
 
 const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));

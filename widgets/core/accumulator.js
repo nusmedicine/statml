@@ -39,16 +39,16 @@ import { normalPdf } from "./stats.js";
 /* The count at which individual arrivals stop being countable, and the axis
    ceiling held until then — paired with DOT_R so that stacked dots very nearly
    touch in a panel of the usual height. */
-export const DOT_FROM = 30;
-export const DOT_TO = 50;
-export const DOT_CEIL = 14;
+const DOT_FROM = 30;
+const DOT_TO = 50;
+const DOT_CEIL = 14;
 export const DOT_R = 6;
 
 /* The smoothed density earns its place much earlier than any theoretical curve:
    watching it lurch with every new value IS the lesson, so it has to be visible
    while a student is still adding values one at a time. */
-export const SMOOTH_FROM = 4;
-export const SMOOTH_TO = 10;
+const SMOOTH_FROM = 4;
+const SMOOTH_TO = 10;
 
 export const FLASH_MS = 420;
 
@@ -56,13 +56,13 @@ const clamp01 = (t) => Math.max(0, Math.min(1, t));
 
 /** 0 = pure dot plot, 1 = pure histogram. */
 export const barMixFor = (total) => clamp01((total - DOT_FROM) / (DOT_TO - DOT_FROM));
-export const smoothMixFor = (total) => clamp01((total - SMOOTH_FROM) / (SMOOTH_TO - SMOOTH_FROM));
+const smoothMixFor = (total) => clamp01((total - SMOOTH_FROM) / (SMOOTH_TO - SMOOTH_FROM));
 
 // Fine enough that a peak of 50 gives a ceiling of 60 rather than 100 — a coarse
 // 1/2/5 ladder wastes half the panel at the worst moment.
 const NICE_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
 
-export function niceCeil(v) {
+function niceCeil(v) {
   if (!(v > 0)) return 1;
   const mag = Math.pow(10, Math.floor(Math.log10(v)));
   const n = v / mag;

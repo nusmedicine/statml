@@ -126,7 +126,7 @@ export function niceTicks(min, max, target = 5) {
 }
 
 /** Tick labels sharing one decimal count, so the axis reads as a column. */
-export function tickFormat(ticks) {
+function tickFormat(ticks) {
   const decimals = ticks.reduce((acc, t) => {
     const s = String(t);
     const dot = s.indexOf(".");
