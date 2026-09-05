@@ -10,9 +10,10 @@ draft.**
 # WIDGET 44 `experimental-design` — COMMITTED, NOT PUSHED, NOT BASELINED
 
 **PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
-until Kenneth reopened it on 2026-09-05. Built and reviewed across roughly
-twenty rounds in one session. **He stopped mid-review and asked to continue in a
-new session**, which is why nothing here is finished off.
+until Kenneth reopened it on 2026-09-05. Built over TWO sessions the same day —
+roughly twenty review rounds, then ten more. The second session rebuilt the
+Replicate tab's stage completely; **read *THE SECOND SESSION* below before
+touching that tab**, because the first session's description of it is gone.
 
 ```bash
 node scripts/serve.mjs 8014
@@ -21,10 +22,23 @@ W=http://localhost:8014/widgets/experimental-design
 # $W/?scheme=blocked&shown=200            both blocks lit, 10 taken from each
 # $W/?scheme=convenience&shift=down1&effect=moderate&shown=200
 #                                         200 of 200 significant, every one the wrong sign
-# $W/?concept=budget&people=30&reps=1&shown=200    0.142 from the truth
-# $W/?concept=budget&people=3&reps=10&shown=200    0.328 — same budget, twice as far off
-node widgets/_lab/design-measure.mjs      # every number the widget prints, ss1-9
+# $W/?concept=budget&people=10&reps=1&shown=200    THE ARGUMENT, half one
+# $W/?concept=budget&people=2&reps=5&shown=200     and half two: same ten
+#                                         measurements, 4.7% against 30.9% wrong
+# $W/?concept=budget&people=30&reps=4&effect=large&shown=84   the band at its best
+node widgets/_lab/design-measure.mjs      # every number the widget prints, ss1-12
 node widgets/_lab/design-taxonomy.mjs     # why the observational slide needs no widget
+```
+
+Four `_lab/` pages carry the second session's design calls, two of them
+recording a NO. Each says its verdict at the top; do not re-propose from them
+without a reason the page does not already answer.
+
+```
+_lab/design-budget.html          linking the two dials      -> A, dials stay free
+_lab/design-replicate-band.html  what the people band draws -> B, value on y
+_lab/design-person-grouping.html a device per person        -> DECLINED
+_lab/design-sorted-columns.html  sorting the columns        -> DECLINED
 ```
 
 ## THE THREE THINGS TO DO FIRST, NEXT SESSION
@@ -48,8 +62,13 @@ and three sampling methods: Non-random, Random, Blocked. Run a study and it
 samples 20 of the 96 in each group; the estimate drops into a pile below,
 against a truth line.
 
-**Replication** — the budget question. `people` x `reps` measurements per group,
-and what happens to the answer when you spend them on repeats instead of people.
+**Replication** — the budget question, and its stage was rebuilt from scratch in
+the second session. Each arm is a band in which **x is the person and y is what
+they measured**: a column of that person's repeats with their mean ticked across
+it, and the pooled histogram as a MARGINAL on the same y-axis — the row test's
+own view, beside the picture that remembers which person a measurement came
+from. The header states the budget (`10 × 3 = 30 measurements per group`) so the
+two spends can be compared without arithmetic.
 
 ## THE DECISIONS KENNETH MADE, SO THEY ARE NOT RE-ARGUED
 
@@ -111,6 +130,74 @@ the t-test reads its SD off the WITHIN-group spread and a blocked group is half
 and half in the background variable — the widest that spread can be. So it
 divides a better estimate by a standard error meant for a worse one, and loses
 power it has earned. As the effect grows the signal swamps it and blocking wins.
+
+## THE SECOND SESSION, 2026-09-05 — ten rounds, all on the Replicate tab
+
+Kenneth opened it on the Replication tab with two questions: how to demonstrate
+pseudoreplication, and what a reader is supposed to report from the pile. Both
+turned into stage work. **Nine changes to `main.js`, in order:**
+
+1. **The pile's frame is pinned** on the Replicate tab. It was computed at the
+   current `people`, so 10 x 1 and 2 x 5 — the tab's whole comparison — drew at
+   different scales and the wider pile looked the same width. `design-measure`
+   §12 has the cost: the bulk covers 28 of 57 bins at 2 people and 7 at 30.
+2. **A `Reached p < 0.05` tile**, counting what the red bars already drew. It is
+   on the Replicate tab ONLY; the Sampling tab keeps the picture after the power
+   tile was cut. **See *THE TILE THAT FLIPS* below before touching it.**
+3. **The budget is stated on the figure** — `10 × 3 = 30 measurements per group`.
+   Four linked-slider designs were drawn at the real width and Kenneth took the
+   one that links nothing: the dials stay free and the figure reports the total.
+4. **The histogram tweens instead of blanking.** `flight` restarts at 0 each
+   study and the old code skipped the band while `appear` was 0, so it was EMPTY
+   for a third of every study. Blank, fade, blank, three times a second.
+5. **The repeat dots hold** after the first study instead of re-fading, and are
+   drawn at FULL STRENGTH before anything runs — they were ghosted at 0.25 and
+   Kenneth could not see them while setting the dials up.
+6. **The Sampling tab's study boundary is a crossfade, not a cut.** Measured: 80
+   marks changed state in ONE frame, every study. The outgoing sample now holds
+   the axis until the new one displaces it, and a cell is empty to the degree
+   its subject is on the axis for EITHER study.
+7. **The band carries the measurements** — the rebuild described above.
+8. **The band is 140px per arm, not 78**, and the value axis is a closed form
+   fixed across both budget dials. It was min/max over the 200 studies, which
+   grew with the dials (4.41 units at 2 x 1 against 6.45 at 30 x 10).
+9. **Two group-mean lines, on the marginal only.** One ruled across the whole
+   band first and read as a rule through the data; worse, with one arm's mean
+   150px from the other's the GAP between them — the number that drops into the
+   pile — could only be got by eye. Both arms' means are now drawn in each
+   marginal, arm-coloured, and the marginals share one bar scale.
+
+**HOW THE ANIMATION WORK WAS CHECKED, because screenshots cannot do it.** Patch
+`requestAnimationFrame` into a queue, click the drive button, pump the queue on
+a fixed clock, and sum `globalAlpha` over the marks painted in a y-band each
+frame. Ink per frame is the metric: **counts mislead**, because they flip when a
+mark crosses an alpha threshold. Before the fixes the Sampling band read
+`154,154,154 | 194,194,193.7,...` against a strip reading `51,51,51.8 | 9,9,9.3`
+— a 40-mark step in one frame. After, both are flat to under 3%. The Replicate
+band now steps **0.0** between frames after the first study.
+
+## THE TILE THAT FLIPS — read before changing `Reached p < 0.05`
+
+Kenneth's closing question was that he could not see 2 x 5 losing to 10 x 1 in
+the metrics. He is half right, and the reason is that one tile means two
+opposite things. Over 4000 draws:
+
+```
+                   Reached p<0.05 | avg distance | per-person p<0.05 | sign wrong
+  truth 0.00
+    10 people x 1           4.7%  |    0.251     |       4.7%        |    —
+     2 people x 5          30.9%  |    0.438     |       2.1%        |    —
+  truth 0.50
+    10 people x 1          30.6%  |    0.251     |      30.6%        |   0.0%
+     2 people x 5          47.1%  |    0.438     |       3.6%        |   5.6%
+```
+
+`Reached p < 0.05` is an ERROR RATE at truth 0.00 and POWER at 0.50, and the
+pseudoreplicated design scores **higher on both** — so on the effect dial's
+upper half it reads as the better design. That is the same trap that got the
+Sampling tab's power tile cut. `Average distance from the truth` is the one tile
+that says the same thing at either end: 0.251 against 0.438, unmoved by the
+dial. **An open call: give the tile a note that names which of the two it is.**
 
 ## WHAT IS STILL OPEN
 

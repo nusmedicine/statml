@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · sorting the Replicate band's columns</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-4) 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  p.sub { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 4px; }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); margin-bottom: 2px; }
+  figure { margin: 0 0 var(--sp-3); }
+  figcaption { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap; position: sticky; top: 0; background: var(--bg); padding: var(--sp-2) 0; z-index: 2; }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Sorting the Replicate band's columns</h1>
+
+  <p class="note" style="border-left:3px solid var(--c-extreme);padding-left:10px">
+    <b>DECLINED, 2026-09-05. A ships — unsorted, dots dissolve.</b> Kenneth:
+    <i>"just do A ... sorting will introduce more need for explanation"</i>. The
+    measurements below are real and the tween works, but every one of sorting's
+    gains has to be explained before it is a gain: the axis stops meaning
+    "person 1, 2, 3", the rising line has to be said not to be a trend, and the
+    slope has to be named as the between-person spread before anyone reads it as
+    one. That is three sentences of scaffolding on a tab that already carries
+    two dials, two bands and a pile. Do not re-propose without a reason that is
+    not on this page.
+  </p>
+
+  <p class="note">
+    The dots dissolve between studies rather than moving, and the reason is that
+    <b>column p of one study and column p of the next are two unrelated
+    people</b> — sliding between them would say a person's value changed.
+    Sorting each arm by the person's own mean removes that objection: column p
+    becomes <b>the p-th smallest person</b>, an order statistic, which really is
+    the same thing in both studies.
+  </p>
+
+  <p class="note">
+    <b>It also makes the move short.</b> Measured over 200 consecutive study
+    pairs, how far a column has to travel:
+  </p>
+
+  <table style="max-width:560px">
+    <tr><th>design</th><th class="n">unsorted move</th><th class="n">sorted move</th><th class="n">shorter by</th></tr>
+    <tr><td>5 people × 3</td><td class="n">0.632</td><td class="n">0.372</td><td class="n">41%</td></tr>
+    <tr><td>10 people × 3</td><td class="n">0.648</td><td class="n">0.286</td><td class="n">56%</td></tr>
+    <tr><td>20 people × 4</td><td class="n">0.623</td><td class="n">0.186</td><td class="n">70%</td></tr>
+    <tr><td>30 people × 4</td><td class="n">0.621</td><td class="n">0.159</td><td class="n">74%</td></tr>
+  </table>
+
+  <p class="note">
+    <b>Three arms below, because sorting and sliding are two separate changes</b>
+    and either could be the one that helps. One arm is drawn (Disease) at both
+    real widths; the shipped band draws two. Press Play — the whole question is
+    what the motion looks like.
+  </p>
+
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="play">Play</button>
+    <button class="w-btn" id="step">Run one study</button>
+    <label>people <input type="range" id="people" min="3" max="30" value="12"><span id="pv">12</span></label>
+    <label>each measured <input type="range" id="reps" min="1" max="10" value="3"><span id="rv">3</span></label>
+    <label>speed <input type="range" id="speed" min="140" max="900" step="20" value="380"><span id="sv">380</span>ms</label>
+  </div>
+
+  <div id="out"></div>
+
+  <h2>What each one costs</h2>
+  <div id="costs"></div>
+</main>
+
+<script type="module">
+import { budgetStudy, NOISE_SD, BASE } from "../experimental-design/model.js";
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+
+/* the shipped geometry, verbatim */
+const LEFT = 12;
+const GUTTER = 62;
+const B_ARM = 140;
+const ARM = 1;                                   /* Disease — one arm is enough */
+
+const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const EASE = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+
+let params = { people: 12, reps: 3 };
+let studies = [];
+let win = { lo: 0, hi: 1 };
+let at = 1;            /* index of the study arriving */
+let t = 1;             /* 0..1 through its arrival    */
+
+function rebuild() {
+  studies = [];
+  for (let i = 0; i < 60; i += 1) {
+    studies.push(budgetStudy(makeRng(1 + i * 7919), { ...params, effect: 0 }));
+  }
+  /* the shipped closed form, so the scale matches the widget */
+  const sd = Math.SQRT2 * NOISE_SD;
+  win = { lo: BASE - 4 * sd, hi: BASE + 4 * sd };
+}
+
+/* Each person as {m, rows}, optionally ordered by their own mean. Rows are
+   sorted within the person too, so measurement j of the p-th person tweens to
+   measurement j of the next study's p-th person rather than to an arbitrary
+   one of their repeats. */
+function series(st, sorted) {
+  const out = st.subjects[ARM].map((s) => ({
+    m: mean(s.rows), rows: [...s.rows].sort((a, b) => a - b),
+  }));
+  return sorted ? out.sort((a, b) => a.m - b.m) : out;
+}
+
+function geoFor(w, people) {
+  const plotW = w - GUTTER - LEFT - 12;
+  const mw = Math.max(46, Math.round(plotW * 0.15));
+  const colW = plotW - mw - 12;
+  const cell = colW / people;
+  return { x0: LEFT + GUTTER, plotW, mw, colW, cell, r: Math.max(1.3, Math.min(3, cell / 7)) };
+}
+
+function column(ctx, c, { cx, cell, yAt, r }, person, alpha) {
+  if (alpha <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = c.groupB;
+  for (const v of person.rows) {
+    ctx.beginPath();
+    ctx.arc(cx, yAt(v), r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = c.ink1;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const half = Math.min(9, cell * 0.34);
+  ctx.moveTo(cx - half, yAt(person.m));
+  ctx.lineTo(cx + half, yAt(person.m));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function band(ctx, c, w, { sorted, slide }) {
+  const people = params.people;
+  const { x0, plotW, mw, colW, cell, r } = geoFor(w, people);
+  const top = 6;
+  const h = B_ARM + 16;
+  const yAt = (v) => top + B_ARM - 5 - ((v - win.lo) / (win.hi - win.lo)) * (B_ARM - 10);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = c.surface;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = c.ink2;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillText("Disease", x0 - 8, top + B_ARM / 2);
+  ctx.strokeStyle = c.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, Math.round(top + B_ARM) + 0.5);
+  ctx.lineTo(x0 + plotW, Math.round(top + B_ARM) + 0.5);
+  ctx.stroke();
+
+  const cur = studies[at % studies.length];
+  const prv = studies[(at - 1 + studies.length) % studies.length];
+  const A = series(prv, sorted);
+  const B = series(cur, sorted);
+  const e = EASE(t);
+  const geo = { cell, yAt, r };
+
+  for (let p = 0; p < people; p += 1) {
+    const cx = x0 + (p + 0.5) * cell;
+    if (slide) {
+      /* ONE column, interpolated. Only defensible when sorted: p is then the
+         p-th smallest person in both studies. */
+      const rows = B[p].rows.map((v, j) => A[p].rows[j] + (v - A[p].rows[j]) * e);
+      column(ctx, c, { ...geo, cx }, { rows, m: A[p].m + (B[p].m - A[p].m) * e }, 1);
+    } else {
+      column(ctx, c, { ...geo, cx }, A[p], 1 - e);
+      column(ctx, c, { ...geo, cx }, B[p], e);
+    }
+  }
+
+  /* the marginal, tweened, and the group mean sliding — both as shipped */
+  const bins = Math.max(9, Math.min(28, Math.round((people * params.reps) / 1.6)));
+  const counts = (st) => {
+    const k = new Array(bins).fill(0);
+    for (const m of st.arms[ARM]) {
+      k[Math.min(bins - 1, Math.max(0, Math.floor(((m.y - win.lo) / (win.hi - win.lo)) * bins)))] += 1;
+    }
+    return k;
+  };
+  const ka = counts(prv);
+  const kb = counts(cur);
+  const peak = Math.max(3, ...ka, ...kb);
+  const mx = x0 + colW + 12;
+  const stepv = (win.hi - win.lo) / bins;
+  ctx.save();
+  ctx.fillStyle = c.groupB;
+  ctx.globalAlpha = 0.6;
+  kb.forEach((v, i) => {
+    const k = ka[i] + (v - ka[i]) * e;
+    if (k <= 0) return;
+    const yT = yAt(win.lo + (i + 1) * stepv);
+    const yB = yAt(win.lo + i * stepv);
+    ctx.fillRect(mx, yT, Math.max(1, (k / peak) * mw), Math.max(1, yB - yT - 1));
+  });
+  ctx.restore();
+
+  const ma = mean(prv.arms[ARM].map((x) => x.y));
+  const mb = mean(cur.arms[ARM].map((x) => x.y));
+  ctx.save();
+  ctx.strokeStyle = c.ink1;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  const my = Math.round(yAt(ma + (mb - ma) * e)) + 0.5;
+  ctx.moveTo(x0, my);
+  ctx.lineTo(x0 + plotW, my);
+  ctx.stroke();
+  ctx.restore();
+  return h;
+}
+
+const CANDS = [
+  { id: "A", name: "Today — unsorted, dots dissolve",
+    sub: "column p is an arbitrary person, so nothing may move. The band changes by fading one scatter into another.",
+    opt: { sorted: false, slide: false },
+    cost: ["arbitrary", "dissolve", "none", "—"] },
+  { id: "B", name: "Sorted by the person's own mean, still dissolving",
+    sub: "isolates the sorting. The ticks form a rising line whose STEEPNESS is the between-person spread, and consecutive studies now dissolve between two similar shapes.",
+    opt: { sorted: true, slide: false },
+    cost: ["the p-th smallest person", "dissolve", "sort per arm", "axis stops meaning 'person 1, 2, 3'"] },
+  { id: "C", name: "Sorted, and the columns slide",
+    sub: "the tween the sorting makes honest: order statistic p to order statistic p, and measurement j to measurement j inside it.",
+    opt: { sorted: true, slide: true },
+    cost: ["the p-th smallest person", "slide", "sort + interpolate", "a rising line can read as a trend"] },
+];
+
+const out = document.getElementById("out");
+const canvases = [];
+for (const cd of CANDS) {
+  const h3 = document.createElement("h3");
+  h3.textContent = `${cd.id} · ${cd.name}`;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = cd.sub;
+  out.append(h3, sub);
+  for (const [w, cap] of [[746, "746px — the full canvas"], [436, "436px — the narrow one, where states are hashed"]]) {
+    const fig = document.createElement("figure");
+    const cv = document.createElement("canvas");
+    const fc = document.createElement("figcaption");
+    fc.textContent = cap;
+    fig.append(cv, fc);
+    out.appendChild(fig);
+    canvases.push({ cv, w, cd });
+  }
+}
+
+const dpr = window.devicePixelRatio || 1;
+function paint() {
+  const c = readTokens(document.body);
+  for (const { cv, w, cd } of canvases) {
+    const h = B_ARM + 16;
+    if (cv.width !== w * dpr) {
+      cv.width = w * dpr;
+      cv.height = h * dpr;
+      cv.style.width = `${w}px`;
+      cv.style.height = `${h}px`;
+    }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    band(ctx, c, w, cd.opt);
+  }
+}
+
+document.getElementById("costs").innerHTML = "<table>"
+  + "<tr><th>band</th><th>what column p is</th><th>between studies</th><th>work</th><th>what it costs</th></tr>"
+  + CANDS.map((cd) => `<tr><td><b>${cd.id}</b></td>`
+    + cd.cost.map((x) => `<td>${x}</td>`).join("") + "</tr>").join("")
+  + "</table>";
+
+let raf = null;
+let last = 0;
+let ms = 380;
+function tick(now) {
+  if (!last) last = now;
+  t += (now - last) / ms;
+  last = now;
+  if (t >= 1) { t = 0; at += 1; }
+  paint();
+  raf = requestAnimationFrame(tick);
+}
+const playBtn = document.getElementById("play");
+playBtn.addEventListener("click", () => {
+  if (raf) { cancelAnimationFrame(raf); raf = null; last = 0; t = 1; paint(); playBtn.textContent = "Play"; return; }
+  playBtn.textContent = "Pause";
+  raf = requestAnimationFrame(tick);
+});
+document.getElementById("step").addEventListener("click", () => {
+  if (raf) return;
+  at += 1;
+  t = 1;
+  paint();
+});
+for (const [id, key, o] of [["people", "people", "pv"], ["reps", "reps", "rv"]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    params[key] = +el.value;
+    document.getElementById(o).textContent = el.value;
+    rebuild();
+    paint();
+  });
+}
+const sp = document.getElementById("speed");
+sp.addEventListener("input", () => {
+  ms = +sp.value;
+  document.getElementById("sv").textContent = sp.value;
+});
+
+/* A DOOR FOR CHECKING THE TWEEN. The automation browser throttles
+   requestAnimationFrame to about one frame per 300ms, so a mid-tween frame
+   cannot be caught by screenshotting a running animation — it has to be asked
+   for. `__lab.park(3, 0.5)` puts every band halfway between study 3 and 4. */
+window.__lab = { park: (i, u) => { at = i; t = u; paint(); } };
+
+rebuild();
+paint();
+</script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · giving the Replicate tab's people band something to do</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+
+  .cand { margin: 0 0 var(--sp-5); }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-2); }
+  /* THE REAL CANVAS WIDTH. The widget's stage is 746 CSS px at the shell's
+     1120px max-width and 436 at the narrowest the side layout allows, which is
+     where every fingerprint state is hashed. Both are drawn. */
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  .pair { display: flex; gap: var(--sp-3); align-items: flex-start; flex-wrap: wrap; }
+  .pair figcaption { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin-top: 2px; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-4); flex-wrap: wrap; }
+  .bar label { font-size: var(--fs-xs); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .bar input[type=range] { width: 120px; }
+  .studyno { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Giving the Replicate tab's people band something to do</h1>
+
+  <p class="note">
+    Kenneth, 2026-09-05: <b>"maybe we can animate the sampling also under
+    replication? this part looks static"</b>. It is static, and the reason is
+    structural: <code>drawSubjects</code> puts a dot at
+    <code>person index × repeat index</code> and never reads a measurement, so
+    every study draws the identical picture. The tile beside it says each study
+    is <i>a fresh set of people</i> and nothing on the figure agrees.
+  </p>
+
+  <h2>Two things the measurements say before any of this is drawn</h2>
+
+  <p class="note">
+    <b>1. The obvious pseudoreplication picture is not this model's picture.</b>
+    A subject is <code>N(1, 0.5)</code> and a measurement adds <code>N(0, 0.5)</code>,
+    so the within-person spread and the between-person spread are <b>both 0.50</b>
+    — the intraclass correlation is 0.50 by construction. One person's cloud is
+    exactly as wide as the gap between people, so "tight clusters, far apart"
+    would be a lie. What actually changes with the dial is how well a person's
+    OWN value is pinned:
+  </p>
+
+  <table style="max-width:520px">
+    <tr><th>measurements each</th><th class="n">spread of one person's dots</th><th class="n">spread of their mean</th></tr>
+    <tr><td>1</td><td class="n">0.500</td><td class="n">0.500</td></tr>
+    <tr><td>3</td><td class="n">0.500</td><td class="n">0.289</td></tr>
+    <tr><td>10</td><td class="n">0.500</td><td class="n">0.158</td></tr>
+  </table>
+
+  <p class="note">
+    So <b>the mark that teaches is the person's mean, not the cloud</b>: repeating
+    pins the mean and leaves the people 0.50 apart, which is exactly why the
+    honest test cannot be rescued by repeating. Every candidate below draws that
+    mean.
+  </p>
+
+  <p class="note">
+    <b>2. There is real motion available.</b> A person's underlying value moves
+    <b>0.553</b> from one study to the next against a between-person SD of 0.50,
+    so every column genuinely relocates each study. The band is frozen today only
+    because neither axis carries a value. And the room is there: at the real
+    width one person gets 66px at 10 people and 22px at 30; at the narrow
+    fingerprint width, 35px and 11.7px.
+  </p>
+
+  <h2>The candidates, drawn at both real widths and running</h2>
+
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="play">Play</button>
+    <button class="w-btn" id="step">Run one study</button>
+    <span class="studyno" id="no">study 0</span>
+    <label>people <input type="range" id="people" min="2" max="30" value="10"><span id="pv">10</span></label>
+    <label>each measured <input type="range" id="reps" min="1" max="10" value="3"><span id="rv">3</span></label>
+  </div>
+
+  <div id="cands"></div>
+
+  <h2>What each one costs</h2>
+  <div id="costs"></div>
+</main>
+
+<script type="module">
+import { budgetStudy, NOISE_SD } from "../experimental-design/model.js";
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+
+const WIDE = 746;
+const NARROW = 436;
+const GUTTER = 62;
+
+/* Every candidate is drawn from the SAME pre-built studies, on a value axis
+   fixed across all of them — the lesson the pile's frame and the histogram's
+   already earned here: a frame that moves with the thing under comparison hides
+   the comparison, and a study-to-study tween is not definable on a moving one. */
+const COUNT = 40;
+let studies = [];
+let win = { lo: 0, hi: 1 };
+let params = { people: 10, reps: 3 };
+let at = 0;
+
+function rebuild() {
+  studies = [];
+  for (let i = 0; i < COUNT; i += 1) {
+    studies.push(budgetStudy(makeRng(1 + i * 7919), { ...params, effect: 0.25 }));
+  }
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const st of studies) {
+    for (const arm of st.arms) for (const m of arm) { if (m.y < lo) lo = m.y; if (m.y > hi) hi = m.y; }
+  }
+  const pad = (hi - lo) * 0.04;
+  win = { lo: lo - pad, hi: hi + pad };
+  at = 0;
+}
+
+/* --- the four bands -------------------------------------------------------- */
+
+const ARMS = ["Control", "Disease"];
+
+function frame(ctx, c, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = c.surface;
+  ctx.fillRect(0, 0, w, h);
+}
+function armLabel(ctx, c, x, y, g) {
+  ctx.fillStyle = c.ink2;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.font = `${c.fsXs} ${c.font}`;
+  ctx.fillText(ARMS[g], x - 8, y);
+}
+const hue = (c, g) => (g ? c.groupB : c.groupA);
+
+/* A — today. Index on x, nothing on y. Drawn for reference only. */
+function bandA(ctx, c, w, study) {
+  const h = 48;
+  frame(ctx, c, w, h);
+  const people = study.subjects[0].length;
+  const reps = study.subjects[0][0].rows.length;
+  const avail = w - GUTTER - 12;
+  const cell = avail / people;
+  const step = Math.min(9, (cell - 6) / reps);
+  const r = Math.max(1.6, Math.min(4, step / 2 - 0.4));
+  ARMS.forEach((_, g) => {
+    const cy = 14 + g * 24;
+    armLabel(ctx, c, GUTTER, cy, g);
+    study.subjects[g].forEach((_s, s) => {
+      const x0 = GUTTER + s * cell;
+      for (let i = 0; i < reps; i += 1) {
+        ctx.beginPath();
+        ctx.arc(x0 + r + i * step, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = c.empirical;
+        ctx.fill();
+      }
+    });
+  });
+  return h;
+}
+
+/* B — person on x, VALUE on y. Every measurement a dot in its person's column,
+   and the person's mean a tick across it. */
+function bandB(ctx, c, w, study) {
+  const per = 76;
+  const h = 2 * per + 8;
+  frame(ctx, c, w, h);
+  const people = study.subjects[0].length;
+  const avail = w - GUTTER - 12;
+  const cell = avail / people;
+  const r = Math.max(1.4, Math.min(3, cell / 8));
+  ARMS.forEach((_, g) => {
+    const top = 6 + g * (per + 8);
+    const y = (v) => top + per - 6 - ((v - win.lo) / (win.hi - win.lo)) * (per - 12);
+    armLabel(ctx, c, GUTTER, top + per / 2, g);
+    ctx.strokeStyle = c.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(GUTTER, Math.round(top + per) + 0.5);
+    ctx.lineTo(w - 12, Math.round(top + per) + 0.5);
+    ctx.stroke();
+    study.subjects[g].forEach((subj, s) => {
+      const cx = GUTTER + (s + 0.5) * cell;
+      for (const v of subj.rows) {
+        ctx.beginPath();
+        ctx.arc(cx, y(v), r, 0, Math.PI * 2);
+        ctx.fillStyle = hue(c, g);
+        ctx.globalAlpha = 0.75;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      /* THE MARK THAT TEACHES — the person's mean. Repeating pins this and
+         leaves the people 0.50 apart, which the cloud alone cannot show. */
+      const m = subj.rows.reduce((a, b) => a + b, 0) / subj.rows.length;
+      ctx.strokeStyle = c.ink1;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.min(9, cell * 0.34), y(m));
+      ctx.lineTo(cx + Math.min(9, cell * 0.34), y(m));
+      ctx.stroke();
+    });
+  });
+  return h;
+}
+
+/* C — value on X, the axis the histogram below already uses, person kept as a
+   bracketed run on two rows. Closest to what ships. */
+function bandC(ctx, c, w, study) {
+  const per = 34;
+  const h = 2 * per + 10;
+  frame(ctx, c, w, h);
+  const avail = w - GUTTER - 12;
+  const x = (v) => GUTTER + ((v - win.lo) / (win.hi - win.lo)) * avail;
+  ARMS.forEach((_, g) => {
+    const top = 5 + g * (per + 5);
+    const cy = top + per / 2;
+    armLabel(ctx, c, GUTTER, cy, g);
+    study.subjects[g].forEach((subj, s) => {
+      const lo = Math.min(...subj.rows);
+      const hi = Math.max(...subj.rows);
+      const jitter = ((s % 4) - 1.5) * 6;
+      ctx.strokeStyle = c.ink2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x(lo), cy + jitter);
+      ctx.lineTo(x(hi), cy + jitter);
+      ctx.stroke();
+      for (const v of subj.rows) {
+        ctx.beginPath();
+        ctx.arc(x(v), cy + jitter, 2, 0, Math.PI * 2);
+        ctx.fillStyle = hue(c, g);
+        ctx.fill();
+      }
+      const m = subj.rows.reduce((a, b) => a + b, 0) / subj.rows.length;
+      ctx.strokeStyle = c.ink1;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x(m), cy + jitter - 4);
+      ctx.lineTo(x(m), cy + jitter + 4);
+      ctx.stroke();
+    });
+  });
+  return h;
+}
+
+/* D — the person reduced to ONE mark and a range: mean as a dot, repeats as a
+   thin bar behind it. The least ink for the same statement. */
+function bandD(ctx, c, w, study) {
+  const per = 76;
+  const h = 2 * per + 8;
+  frame(ctx, c, w, h);
+  const people = study.subjects[0].length;
+  const avail = w - GUTTER - 12;
+  const cell = avail / people;
+  ARMS.forEach((_, g) => {
+    const top = 6 + g * (per + 8);
+    const y = (v) => top + per - 6 - ((v - win.lo) / (win.hi - win.lo)) * (per - 12);
+    armLabel(ctx, c, GUTTER, top + per / 2, g);
+    ctx.strokeStyle = c.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(GUTTER, Math.round(top + per) + 0.5);
+    ctx.lineTo(w - 12, Math.round(top + per) + 0.5);
+    ctx.stroke();
+    study.subjects[g].forEach((subj, s) => {
+      const cx = GUTTER + (s + 0.5) * cell;
+      const lo = Math.min(...subj.rows);
+      const hi = Math.max(...subj.rows);
+      ctx.strokeStyle = hue(c, g);
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = Math.max(2, Math.min(6, cell * 0.3));
+      ctx.beginPath();
+      ctx.moveTo(cx, y(lo));
+      ctx.lineTo(cx, y(hi));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      const m = subj.rows.reduce((a, b) => a + b, 0) / subj.rows.length;
+      ctx.beginPath();
+      ctx.arc(cx, y(m), Math.max(1.8, Math.min(3.5, cell / 7)), 0, Math.PI * 2);
+      ctx.fillStyle = c.ink1;
+      ctx.fill();
+    });
+  });
+  return h;
+}
+
+const CANDS = [
+  { id: "A", name: "Today — index on x, nothing on y",
+    sub: "the reference. Identical in every study, which is the complaint.",
+    draw: bandA, cost: ["48", "nothing", "none", "—"] },
+  { id: "B", name: "Person on x, value on y — every measurement a dot, the mean a tick",
+    sub: "the columns relocate each study. The mean tick is the mark that teaches: repeating pins it, the people stay 0.50 apart.",
+    draw: bandB, cost: ["160", "every measurement, grouped by person", "+112 over today", "the histograms become the marginal of this"] },
+  { id: "C", name: "Value on x — the histogram's own axis, person as a bracketed run",
+    sub: "keeps the two-row shape and shares the axis below, so a person's spread reads against the pooled shape directly. Jittered into 4 lanes or the runs overlap.",
+    draw: bandC, cost: ["78", "every measurement, grouped by person", "+30 over today", "runs collide above ~12 people"] },
+  { id: "D", name: "One mark per person — mean as a dot, repeats as a range behind it",
+    sub: "the least ink for the same statement. The individual measurements stop being visible, which is the thing the bracket was for.",
+    draw: bandD, cost: ["160", "each person's mean and range", "+112 over today", "loses the individual measurements"] },
+];
+
+/* --- render ---------------------------------------------------------------- */
+
+const host = document.getElementById("cands");
+const built = [];
+for (const cd of CANDS) {
+  const box = document.createElement("div");
+  box.className = "cand";
+  const h3 = document.createElement("h3");
+  h3.textContent = `${cd.id} · ${cd.name}`;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = cd.sub;
+  const pair = document.createElement("div");
+  pair.className = "pair";
+  const mk = (w, cap) => {
+    const fig = document.createElement("figure");
+    fig.style.margin = "0";
+    const cv = document.createElement("canvas");
+    const fc = document.createElement("figcaption");
+    fc.textContent = cap;
+    fig.append(cv, fc);
+    pair.appendChild(fig);
+    return cv;
+  };
+  const wide = mk(WIDE, `${WIDE}px — the shell's full width`);
+  const narrow = mk(NARROW, `${NARROW}px — the narrowest, where states are hashed`);
+  box.append(h3, sub, pair);
+  host.appendChild(box);
+  built.push({ cd, wide, narrow });
+}
+
+const dpr = window.devicePixelRatio || 1;
+function paintOne(cv, w, cd, colors, study) {
+  const ctx = cv.getContext("2d");
+  cv.width = w * dpr;
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const h = cd.draw(probe, colors, w, study);
+  cv.height = h * dpr;
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cd.draw(ctx, colors, w, study);
+}
+
+function paint() {
+  const colors = readTokens(document.body);
+  const study = studies[at % studies.length];
+  for (const { cd, wide, narrow } of built) {
+    paintOne(wide, WIDE, cd, colors, study);
+    paintOne(narrow, NARROW, cd, colors, study);
+  }
+  document.getElementById("no").textContent = `study ${at + 1} of ${COUNT}`;
+}
+
+document.getElementById("costs").innerHTML = "<table>"
+  + "<tr><th>band</th><th class='n'>height px</th><th>what a mark says</th>"
+  + "<th class='n'>vs today</th><th>what it costs</th></tr>"
+  + CANDS.map((cd) => `<tr><td><b>${cd.id}</b></td>`
+    + `<td class='n'>${cd.cost[0]}</td><td>${cd.cost[1]}</td>`
+    + `<td class='n'>${cd.cost[2]}</td><td>${cd.cost[3]}</td></tr>`).join("")
+  + "</table>";
+
+let timer = null;
+const playBtn = document.getElementById("play");
+playBtn.addEventListener("click", () => {
+  if (timer) { clearInterval(timer); timer = null; playBtn.textContent = "Play"; return; }
+  playBtn.textContent = "Pause";
+  timer = setInterval(() => { at = (at + 1) % COUNT; paint(); }, 260);
+});
+document.getElementById("step").addEventListener("click", () => {
+  at = (at + 1) % COUNT;
+  paint();
+});
+for (const [id, key, out] of [["people", "people", "pv"], ["reps", "reps", "rv"]]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    params[key] = +el.value;
+    document.getElementById(out).textContent = el.value;
+    rebuild();
+    paint();
+  });
+}
+
+rebuild();
+paint();
+</script>
+</body>
+</html>

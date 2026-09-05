@@ -77,7 +77,7 @@ import {
   defineWidget, makePlot, createPile, makeRng, mean, fmt, niceTicks,
 } from "../core/index.js";
 import {
-  runStudies, MAX_STUDIES, NOISE_SD, CONF_SHIFT, POP_PER_ARM, POP_ROWS, POP_COLS,
+  runStudies, MAX_STUDIES, NOISE_SD, CONF_SHIFT, BASE, POP_PER_ARM, POP_ROWS, POP_COLS,
 } from "./model.js";
 
 /* the confounder decides what the three schemes MEAN, which is why it is a
@@ -146,15 +146,66 @@ const STEP_MS = 480;
                   delta^2 / 2n             -> SD 0.141 at n = 50
 
    Both match `_lab/design-measure.mjs` §2 to the third decimal (0.101, 0.139).
-   The Replicate tab's is 2(sigma^2 + sigma^2/reps)/people, taken at reps = 1
-   because that is the widest — which then shows, on a frame that does not
-   move, that adding replicates barely narrows the estimate while it moves the
-   p-value a long way.
+   THE REPLICATE TAB'S FRAME IS PINNED OUTRIGHT, and for the same reason one
+   step further on. Its two dials are BOTH the thing under comparison — the
+   question is how one budget is split between them — so neither may move the
+   axis. It was computed at the current `people` and that hid the whole point:
+   10 people x 1 and 2 people x 5 are the same ten measurements, and the second
+   estimate is 1.7 times wider (SD 0.316 against 0.548, and `design-measure`
+   §11 confirms the closed form), but the frame grew from +-1.27 to +-2.83 with
+   it and the two piles looked alike.
+
+   So it is fixed at the widest the dials allow, 2(sigma^2 + sigma^2/reps)/people
+   at reps = 1 and people = PEOPLE_MIN. The cost is real and was measured before
+   it was accepted: the bulk of the pile covers 28 of 57 bins at 2 people and 7
+   at 30. A 7-bin spike beside a 28-bin smear is the comparison, drawn.
 
    Four SDs each side: over every setting the widget offers, 0 of 300 studies
    fall outside, verified in `_lab/design-measure.mjs` §7. */
+/* The fewest people the dial offers, and therefore the widest the pile can be.
+   One constant because the frame is derived from it: a dial that went lower
+   than the frame was built for would draw studies outside the axis. */
+const PEOPLE_MIN = 2;
+
 const PILE_BINS = 57;
 const PILE_SDS = 4;
+
+/* THE MEASURED-VALUE AXIS: A CLOSED FORM, FIXED ACROSS BOTH BUDGET DIALS.
+
+   It was refitted to each study's own minimum and maximum, which cost twice.
+   It carries no tick labels, so a reader cannot see a rescale — two studies of
+   very different spread drew the same width and read as alike, which is the
+   fault the pile's frame had. And a study-to-study tween is not definable on a
+   moving axis: bin 3 of one study and bin 3 of the next would be different
+   ranges of measurement.
+
+   SPANNING THE 200 STUDIES FIXED THE FIRST FAULT AND LEFT THE SECOND. A min
+   and a max over more draws reach further, so the window grew with the dials —
+   4.41 units at 2 people x 1 against 6.45 at 30 x 10 — and the tab's whole
+   comparison is between two settings of exactly those dials. 10 x 1 and 2 x 5
+   were drawn at different scales, which is the same trap one axis down.
+
+   One measurement is N(BASE + effect for the disease arm, sqrt(2) * NOISE_SD),
+   so four SDs each side holds everything: over 200 studies of 300 measurements,
+   0.0 dots per study fall outside it. It moves only with the true difference,
+   which genuinely moves the centre. */
+function binsFor(rows) {
+  return Math.max(9, Math.min(28, Math.round(rows / 1.6)));
+}
+
+/** One arm's measurements binned onto that fixed axis. */
+function armCounts(study, g, bins, lo, hi) {
+  const counts = new Array(bins).fill(0);
+  for (const m of study.arms[g]) {
+    counts[Math.min(bins - 1, Math.max(0, Math.floor(((m.y - lo) / (hi - lo)) * bins)))] += 1;
+  }
+  return counts;
+}
+
+function valueWindow(effect) {
+  const sd = Math.SQRT2 * NOISE_SD;
+  return { lo: BASE - 4 * sd, hi: BASE + effect + 4 * sd };
+}
 
 function pileWindow(params, effect, shift) {
   let centres;
@@ -170,7 +221,9 @@ function pileWindow(params, effect, shift) {
     centres = [shift + effect, effect, effect];
     sds = [plain, drawn, plain];
   } else {
-    const widest = Math.sqrt((2 * (NOISE_SD ** 2 + NOISE_SD ** 2)) / params.people);
+    /* PEOPLE_MIN, not params.people — see the header. The frame must not move
+       with either budget dial. */
+    const widest = Math.sqrt((2 * (NOISE_SD ** 2 + NOISE_SD ** 2)) / PEOPLE_MIN);
     centres = [effect];
     sds = [widest];
   }
@@ -223,7 +276,40 @@ const ARM_GAP = 16;   /* the bars moved out of here into the header */
    association with the arm, and two marks for what it does to the measurement */
 const H_HEAD = 108;
 const H_ALLOC = H_HEAD + 2 * H_ARM + ARM_GAP + 44;
-const H_BUDGET = 254;                 /* two dot rows and two histograms       */
+/* THE REPLICATE BAND CARRIES THE MEASUREMENTS — candidate B of
+   `_lab/design-replicate-band.html`, picked at the real width.
+
+   It used to put a dot at `person index x repeat index` and read no
+   measurement at all, so all 200 studies drew a byte-identical picture while
+   the tile beside it said each study was a fresh set of people. Value now runs
+   UP and each person is a column, so every study relocates every column: a
+   person's value moves 0.553 between studies against a between-person SD of
+   0.50.
+
+   THE HISTOGRAM MOVED BESIDE IT RATHER THAN UNDER IT. Stacked below, value ran
+   up in the band and across in the histogram — the same quantity on two axes,
+   one above the other. As a MARGINAL sharing the y-axis it is that picture
+   pooled, which is exactly what the row test sees once it forgets which person
+   a measurement came from, and it costs width instead of height. The stage
+   goes from 268 to 222. */
+const B_TOP = 44;                     /* under the beat and the budget line    */
+/* ONE ARM'S BAND, AND THE HEIGHT IS THE WHOLE POINT OF IT.
+
+   At 78 the window's ~5.7 units of measurement got 68px, so one SD of spread
+   was 5.3px and a person's whole cloud was 11px — Kenneth: "maybe increase
+   height so can see spread?". At 140 the same window gets 130px, one SD is
+   11.5px and a person's cloud is 23px, which is a spread you can actually read
+   against the gap between people.
+
+   140 IS A CEILING, NOT A PREFERENCE. It puts the stage at 354 and the widget
+   at 564, which is just under the Sampling tab's 578 — the two tabs already
+   have different heights, and this one staying the shorter of the two is what
+   stops the tab switch from jumping the page. */
+const B_ARM = 140;
+const B_GAP = 10;
+/* the tail is 20 and not 12: the "Run one study" prompt sits under the second
+   band and at 12 its baseline landed on the rule dividing the stage from the pile */
+const H_BUDGET = B_TOP + 2 * B_ARM + B_GAP + 20;
 const H_PILE = 176;                   /* the studies it came from              */
 
 const isAllocate = (p) => p.concept === "allocate";
@@ -468,54 +554,77 @@ function stackRows(values, lo, hi, w, r, maxRows = 99) {
 
 
 /**
- * The Replicate tab's subjects: one row per arm, each person a bracketed run of
- * measurements. The person is the ENCLOSURE and not a colour, because the
- * grouping is what a technical replicate is and there may be thirty of them.
+ * One arm's people as columns: x is the person, y is what they measured.
+ *
+ * `toValue` is where a dot sits between two truths. At 0 it stands at an evenly
+ * spaced schematic position, which is where a measurement lives before it has
+ * been taken — obviously regular, so the count reads while no value exists. At
+ * 1 it stands at its measurement. The first study eases from one to the other,
+ * and that is the ONLY tween in this widget asserting a true correspondence:
+ * dot j of person p really does become measurement j of person p.
  */
-function drawSubjects(ctx, colors, { x, y, w }, study, repeats = 1) {
-  const people = study.subjects[0].length;
-  const reps = study.subjects[0][0].rows.length;
-  const avail = w - GUTTER;
-  const cell = avail / people;                 /* one person's slot */
-  const step = Math.min(9, (cell - 6) / reps);
-  const r = Math.max(1.6, Math.min(4, step / 2 - 0.4));
-  ["Control", "Disease"].forEach((name, g) => {
-    const cy = y + g * 24;
-    label(ctx, colors, x + GUTTER - 8, cy, name, colors.ink2, "right");
-    study.subjects[g].forEach((subj, s) => {
-      const x0 = x + GUTTER + s * cell;
-      subj.rows.forEach((_, i) => {
-        /* the first measurement is the person arriving; the rest are the
-           repeats, and they fade in on their own beat */
-        const a = i === 0 ? 1 : repeats;
-        if (a <= 0) return;
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.beginPath();
-        ctx.arc(x0 + r + i * step, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = colors.empirical;
-        ctx.fill();
-        ctx.restore();
-      });
-      /* The bracket under one person's measurements. It is the only mark that
-         says these rows are not independent, and the legend names it, so it
-         has to be visible: at ink3 with a 3px drop it vanished at the real
-         width. ink2, a 5px drop, and it reads. Drawn only where it can be —
-         below about 12px of slot a bracket is a smudge that reads as a rule. */
-      if (reps > 1 && cell > 12) {
-        const x1 = x0 + (reps - 1) * step + 2 * r;
-        const by = cy + r + 4;
-        ctx.strokeStyle = colors.ink2;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x0 - 1.5, by);
-        ctx.lineTo(x0 - 1.5, by + 5);
-        ctx.lineTo(x1 - r + 1.5, by + 5);
-        ctx.lineTo(x1 - r + 1.5, by);
-        ctx.stroke();
-      }
+function drawColumns(ctx, colors, geo, st, { alpha, toValue = 1 }) {
+  if (alpha <= 0.01) return;
+  const { x0, cell, yAt, top, r, arm } = geo;
+  const people = st.subjects[arm].length;
+  const reps = st.subjects[arm][0].rows.length;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = arm ? colors.groupB : colors.groupA;
+  for (let p = 0; p < people; p += 1) {
+    const cx = x0 + (p + 0.5) * cell;
+    const rows = st.subjects[arm][p].rows;
+    rows.forEach((v, j) => {
+      const schematic = top + B_ARM * ((j + 1) / (reps + 1));
+      const y = schematic + (yAt(v) - schematic) * toValue;
+      ctx.beginPath();
+      ctx.arc(cx, y, r, 0, Math.PI * 2);
+      ctx.fill();
     });
+    /* THE MARK THAT TEACHES, and it is not the cloud. In this population a
+       person's repeats are exactly as wide as the gap between people — both
+       SDs are 0.50, so the intraclass correlation is 0.50 by construction and
+       "tight clusters, far apart" would be a lie. What repeating actually does
+       is PIN this tick: its spread falls 0.500 / 0.289 / 0.158 at 1, 3 and 10
+       measurements, while the people stay 0.50 apart however long you measure
+       them. That is why no amount of repeating rescues the honest test. */
+    if (toValue > 0.01) {
+      const m = mean(rows);
+      ctx.save();
+      /* it fades in WITH the slide rather than appearing at the halfway mark:
+         at rest there is no measurement, so there is no mean to draw */
+      ctx.globalAlpha = alpha * toValue;
+      ctx.strokeStyle = colors.ink1;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const half = Math.min(9, cell * 0.34);
+      ctx.moveTo(cx - half, yAt(m));
+      ctx.lineTo(cx + half, yAt(m));
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * The same measurements pooled, on the same axis — the row test's own view,
+ * which is the whole reason it sits beside the columns rather than replacing
+ * them. Bars run outward from the columns' right edge.
+ */
+function drawMarginal(ctx, colors, geo, counts, peak) {
+  const { mx, mw, yAt, lo, hi, arm } = geo;
+  const step = (hi - lo) / counts.length;
+  ctx.save();
+  ctx.fillStyle = arm ? colors.groupB : colors.groupA;
+  ctx.globalAlpha = 0.6;
+  counts.forEach((k, i) => {
+    if (k <= 0) return;
+    const yTop = yAt(lo + (i + 1) * step);
+    const yBot = yAt(lo + i * step);
+    ctx.fillRect(mx, yTop, Math.max(1, (k / peak) * mw), Math.max(1, yBot - yTop - 1));
   });
+  ctx.restore();
 }
 
 /** The notebook's own `tbl_summary(by = group)`, and the imbalance it implies. */
@@ -612,7 +721,7 @@ defineWidget({
       type: "int",
       label: "People per group",
       detail: "each one is a fresh draw from the population",
-      min: 2, max: 30, default: 10,
+      min: PEOPLE_MIN, max: 30, default: 10,
       when: { param: "concept", equals: "budget" },
     },
 
@@ -690,8 +799,11 @@ defineWidget({
       { token: "reference", label: "true group difference", mark: "dash" },
     ];
     if (!isAllocate(params)) {
-      return [{ token: "empirical", label: "one measurement", mark: "dot" },
-        { token: "ink-2", label: "a bracket holds one person's measurements", mark: "dash" },
+      return [{ token: "group-a", label: "one measurement, Control", mark: "dot" },
+        { token: "group-b", label: "one measurement, Disease", mark: "dot" },
+        { token: "ink-1", label: "one person's mean — each column is one person", mark: "line" },
+        { token: "group-a", label: "Control's mean", mark: "dash" },
+        { token: "group-b", label: "Disease's mean", mark: "dash" },
         ...base];
     }
     const c = CONF[params.confounder];
@@ -717,7 +829,13 @@ defineWidget({
       effect,
       shift,
     });
-    return { studies, effect, shift, window: pileWindow(params, effect, shift) };
+    return {
+      studies,
+      effect,
+      shift,
+      window: pileWindow(params, effect, shift),
+      values: isAllocate(params) ? null : valueWindow(effect),
+    };
   },
 
   animation: {
@@ -788,8 +906,8 @@ defineWidget({
     const flight = anim ? anim.flight : 1;
     const left = 12;
 
-    if (allocate) drawAllocate(ctx, colors, { w, left, ran, flight }, params, study);
-    else drawBudget(ctx, colors, { w, left, ran, flight }, params, study);
+    if (allocate) drawAllocate(ctx, colors, { w, left, ran, flight }, params, study, state);
+    else drawBudget(ctx, colors, { w, left, ran, flight }, params, study, state);
 
     /* --- the last band, shared: every repeat of the same design */
     const pileY = studyH(params) + 14;
@@ -908,6 +1026,27 @@ defineWidget({
         : "none yet",
     });
 
+    /* WHAT THE HISTOGRAM SAYS, as a number rather than a count of red bars.
+       The pile is 200 repeats of one design, so the honest report of it is a
+       RATE and not a verdict — and with no true group difference every one of
+       them is a wrong answer. It is the tab's argument in one figure: the same
+       ten measurements read 5% at 10 people x 1 and 30% at 2 people x 5.
+
+       IT IS NOT THE POWER TILE, which was cut. That one reported 100% for a
+       design whose estimate was wrong by a factor of three, so a large number
+       read as success. This one counts the marks already drawn in red, on the
+       tab where the effect dial's default is none. It is on the Replicate tab
+       only; the Sampling tab keeps the picture Kenneth asked it to keep. */
+    if (!isAllocate(params)) {
+      tiles.push({
+        label: "Reached p < 0.05",
+        value: ran ? `${anim.wrong} of ${ran}` : "—",
+        note: ran
+          ? `${fmt((anim.wrong / ran) * 100, 1)}% of the studies run`
+          : "counted over every study you run",
+      });
+    }
+
     /* 2.8: the rate reports what has actually been collected, and says so. It
        counts against the studies that HAD an estimate, because a study with no
        estimate did not decline to call it — there was nothing to call. */
@@ -967,7 +1106,31 @@ function drawBeats(ctx, colors, { w, left, ran, raw }, beats, prefix = "") {
    asserted, which is what Kenneth's review asked for.
    ----------------------------------------------------------------------- */
 
-function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study) {
+/* THE STUDY BOUNDARY IS A CROSSFADE, NOT A CUT — measured before it was fixed.
+
+   A study ends with 40 subjects out of their cells and 40 marks on the axis,
+   and the next one starts with all 192 in their cells and the axis empty.
+   `appear` drops 1 -> 0 between those two frames and the sample strip was
+   simply skipped while it was 0, so at Medium, counting the marks actually
+   painted per frame over three studies:
+
+       grid    194,194,194,194,194,194, 154,154,154  (repeating)
+       strip    11, 11, 11,  53, 53, 53,  53, 53, 53
+
+   Eighty marks changing state in ONE frame, three times a second. That is the
+   flashing, and the dead zone is a third of every study.
+
+   The fix uses time that was already dead rather than re-timing any beat: the
+   PREVIOUS study's sample holds the axis until this one displaces it, and a
+   subject's cell is empty to the degree it is on the axis for EITHER study. It
+   is also what the model does — one population, sampled again and again — so
+   the old sample returning to the population as the new one is drawn is a true
+   picture of it rather than a transition effect.
+
+   The selection rings are left alone. They rebuild each study because a
+   different twenty are ringed each study, which is information, and arriving
+   one at a time is the beat picked in `_lab/design-tween.html`. */
+function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study, state) {
   const conf = CONF[params.confounder];
   const gridX = left + GUTTER;
   /* one constant gap for the arrow, so the axis simply takes what is left */
@@ -1096,6 +1259,9 @@ function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study) {
     const pop = study.population[g];
     const order = study.picked[g];
     const chosen = new Set(order);
+    /* the sample still on the axis from the study before this one */
+    const prev = ran > 1 ? state.studies[ran - 2] : null;
+    const leaving = prev ? new Set(prev.picked[g]) : null;
     const shown = ran === 0 ? 0 : sort;
 
     label(ctx, colors, gridX - 8, mid, g ? "Disease" : "Control", colors.ink2, "right");
@@ -1121,7 +1287,16 @@ function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study) {
       const a = ringAt(i);
       if (a > 0) selectionRing(ctx, colors, cx, cy, r, a);
       const faded = dimmed(sub.carrier) ? 0.22 : 1;
-      const alpha = chosen.has(i) && ran > 0 ? faded * (1 - appear) : faded;
+      /* A CELL IS EMPTY TO THE DEGREE ITS SUBJECT IS ON THE AXIS, and two
+         studies can claim it at once: the one leaving is still there at
+         `1 - appear`, the one arriving is at `appear`. Taking the larger keeps
+         a subject picked by BOTH studies in its seat throughout instead of
+         blinking as one claim hands over to the other. */
+      const away = Math.max(
+        leaving && leaving.has(i) ? 1 - appear : 0,
+        chosen.has(i) ? appear : 0,
+      );
+      const alpha = ran > 0 ? faded * (1 - away) : faded;
       if (alpha > 0) subjectMark(ctx, colors, cx, cy, sub, g, r, alpha);
     });
 
@@ -1149,30 +1324,50 @@ function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study) {
        the step caption instead, where there is room and where it belongs: the
        caption is already naming what this beat does. */
 
-    if (ran === 0 || appear <= 0) continue;
+    if (ran === 0) continue;
 
     /* THE SAMPLE SHARES THE GRID'S BOTTOM ROW — the one line the reader can run
-       their eye along from the population to what it measured. */
-    const picked = study.arms[g];
-    /* how many rows fit between the band's floor and its top */
-    const maxRows = Math.max(1, Math.floor((H_ARM - 2 * r - 4) / (2 * r + 1.5)));
-    const placed = stackRows(picked.map((sub) => sub.y), lo, hi, axisW, r, maxRows);
-    const floor = top + (POP_ROWS - 0.5) * CELL;
-    picked.forEach((sub, i) => {
-      subjectMark(ctx, colors,
-        axisX0 + placed[i].px, floor - placed[i].row * (2 * r + 1.5),
-        sub, g, r, appear);
-    });
+       their eye along from the population to what it measured.
 
-    /* the arm mean, which is the quantity the test differences */
-    const m = mean(picked.map((sub) => sub.y));
+       Both samples are laid out by `stackRows` on the SAME axis, which is fixed
+       to the population's range, so the two are directly comparable and the
+       handover is a dissolve. It is deliberately not a flight: the two samples
+       are different subjects, and moving mark i of one to mark i of the other
+       would assert a correspondence that does not exist — the mistake the
+       original per-subject flight made, recorded in the choreography note. */
+    const maxRows = Math.max(1, Math.floor((H_ARM - 2 * r - 4) / (2 * r + 1.5)));
+    const floor = top + (POP_ROWS - 0.5) * CELL;
+    const strip = (st, alpha) => {
+      if (alpha <= 0.01) return;
+      const picked = st.arms[g];
+      const placed = stackRows(picked.map((sub) => sub.y), lo, hi, axisW, r, maxRows);
+      picked.forEach((sub, i) => {
+        subjectMark(ctx, colors,
+          axisX0 + placed[i].px, floor - placed[i].row * (2 * r + 1.5),
+          sub, g, r, alpha);
+      });
+    };
+    if (prev) strip(prev, 1 - appear);
+    strip(study, appear);
+
+    /* THE ARM MEAN SLIDES WHERE THE MARKS DISSOLVE, and the difference between
+       the two is the point. Two samples are different subjects, so mark i of
+       one is not mark i of the other and moving between them would assert a
+       correspondence that is not there. The arm MEAN is the same quantity in
+       both, so it interpolates honestly — and a rule that slides says what a
+       dissolve cannot: this is the number the test differences, and it moves
+       from study to study. Crossfading two rules instead put two white lines a
+       few pixels apart, which reads as a fault rather than as a handover. */
+    const mNow = mean(study.arms[g].map((sub) => sub.y));
+    const mWas = prev ? mean(prev.arms[g].map((sub) => sub.y)) : mNow;
     ctx.save();
-    ctx.globalAlpha = appear;
+    ctx.globalAlpha = prev ? 1 : appear;
     ctx.strokeStyle = colors.ink1;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(atValue(m), floor + r + 2);
-    ctx.lineTo(atValue(m), top + 2);
+    const mx = atValue(mWas + (mNow - mWas) * appear);
+    ctx.moveTo(mx, floor + r + 2);
+    ctx.lineTo(mx, top + 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -1200,78 +1395,150 @@ function drawAllocate(ctx, colors, { w, left, ran, flight }, params, study) {
 }
 
 /* --------------------------------------------------------------------------
-   The Replicate stage: no confounder, so no shape channel is needed. The
-   person is the ENCLOSURE — a bracket under one person's measurements — which
-   is the same rule applied to a grouping that can have thirty levels.
+   The Replicate stage. Value runs UP the band, each person is a column of
+   their own measurements, and the pooled histogram is the MARGINAL of that on
+   the same axis — the two pictures the tab exists to set against each other.
    ----------------------------------------------------------------------- */
 
-function drawBudget(ctx, colors, { w, left, ran, flight }, params, study) {
+function drawBudget(ctx, colors, { w, left, ran, flight }, params, study, state) {
   const raw = clamp01(flight);
-  const beats = stepsFor(params, ran, false);
-  drawBeats(ctx, colors, { w, left, ran, raw }, beats);
+  drawBeats(ctx, colors, { w, left, ran, raw }, stepsFor(params, ran, false));
 
-  /* the repeats of each person arrive after the people themselves, and the
-     histograms after both — the same crossfade the Sampling tab uses */
-  const repeats = params.reps === 1 ? 1 : phase(raw, 0.28, 0.52);
+  /* THE BUDGET, STATED. The two dials are a split of one total and nothing on
+     screen said what that total was, so comparing 10 x 1 against 2 x 5 started
+     with arithmetic the reader had to do. Four linked-control designs were
+     drawn at the real width in `_lab/design-budget.html` and Kenneth took this
+     one: the dials stay free, and the figure reports what they add up to. */
+  label(ctx, colors, left, 26,
+    `${params.people} × ${params.reps} = ${params.people * params.reps} measurements per group`,
+    colors.ink3);
+
   const appear = phase(raw, params.reps === 1 ? 0.34 : 0.56, 0.86);
+  const prev = ran > 1 ? state.studies[ran - 2] : null;
+  const { lo, hi } = state.values;
 
-  drawSubjects(ctx, colors, { x: left, y: 34, w: w - 24 }, study,
-    ran === 0 ? 1 : repeats);
+  const x0 = left + GUTTER;
+  const plotW = w - GUTTER - left - 12;
+  const mw = Math.max(46, Math.round(plotW * 0.15));
+  const colW = plotW - mw - 12;
+  const people = study.subjects[0].length;
+  const reps = study.subjects[0][0].rows.length;
+  const cell = colW / people;
+  const r = Math.max(1.3, Math.min(3, cell / 7));
+  const bins = binsFor(people * reps);
 
-  const box = { x: left + GUTTER, y: 78, w: w - GUTTER - 24, h: H_BUDGET - 92 };
-  if (ran === 0) {
-    label(ctx, colors, box.x + box.w / 2, box.y + box.h / 2,
-      "Run one study to measure these people", colors.ink3, "center", colors.fsSm);
-    return;
-  }
-  if (appear <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = appear;
-  drawArmStacks(ctx, colors, box, study);
-  ctx.restore();
-  label(ctx, colors, box.x + box.w / 2, box.y + box.h + 8,
-    "measured value", colors.ink3, "center");
-}
-
-/** Two stacked histograms, one per arm; no confounder to colour by here. */
-function drawArmStacks(ctx, colors, { x, y, w, h }, study) {
-  const all = study.arms.flat().map((s) => s.y);
-  const lo = Math.min(...all) - 0.25;
-  const hi = Math.max(...all) + 0.25;
-  const bins = Math.max(9, Math.min(28, Math.round(study.arms[0].length / 1.6)));
-  const half = (h - 12) / 2;
-  ["Control", "Disease"].forEach((name, g) => {
-    const top = y + g * (half + 12);
-    const base = top + half;
-    const counts = new Array(bins).fill(0);
-    for (const s of study.arms[g]) {
-      counts[Math.min(bins - 1, Math.max(0, Math.floor(((s.y - lo) / (hi - lo)) * bins)))] += 1;
-    }
-    const peak = Math.max(3, ...counts);
-    const bw = w / bins;
-    ctx.fillStyle = g ? colors.groupB : colors.groupA;
-    counts.forEach((k, i) => {
-      if (!k) return;
-      const hh = (k / peak) * (half - 10);
-      ctx.fillRect(x + i * bw, base - hh, Math.max(1, bw - 1), hh);
-    });
-    ctx.strokeStyle = colors.axis;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, Math.round(base) + 0.5);
-    ctx.lineTo(x + w, Math.round(base) + 0.5);
-    ctx.stroke();
-    label(ctx, colors, x + 3, top + 6, name, colors.ink3);
-    const m = mean(study.arms[g].map((s) => s.y));
-    const mx = x + ((m - lo) / (hi - lo)) * w;
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(mx, base);
-    ctx.lineTo(mx, base - half + 8);
-    ctx.stroke();
-    ctx.lineWidth = 1;
+  /* BOTH ARMS ARE MEASURED BEFORE EITHER IS DRAWN, because two things have to
+     be shared between them and neither can be worked out inside one band's
+     turn: the marginal's scale, and where the other arm's mean falls. */
+  const arms = [0, 1].map((g) => {
+    const now = armCounts(study, g, bins, lo, hi);
+    const was = prev ? armCounts(prev, g, bins, lo, hi) : new Array(bins).fill(0);
+    const mNow = mean(study.arms[g].map((m) => m.y));
+    const mWas = prev ? mean(prev.arms[g].map((m) => m.y)) : mNow;
+    return {
+      counts: now.map((v, i) => was[i] + (v - was[i]) * appear),
+      mean: mWas + (mNow - mWas) * appear,
+      peak: Math.max(3, ...now, ...was),
+    };
   });
+  /* ONE SCALE FOR BOTH MARGINALS. Each was normalised to its own tallest bin,
+     so both always ran the full width whatever they held — Kenneth: "the scale
+     for pooled histograms is arbitrary so i can't really see that disease and
+     control have a difference". A shared peak is what makes the two shapes
+     comparable at all. */
+  const peak = Math.max(arms[0].peak, arms[1].peak);
+
+  /* the value axis runs UP now, so its name is rotated rather than sitting
+     under a picture it stopped describing */
+  ctx.save();
+  ctx.translate(left + 7, B_TOP + B_ARM + B_GAP / 2);
+  ctx.rotate(-Math.PI / 2);
+  label(ctx, colors, 0, 0, "measured value", colors.ink3, "center");
+  ctx.restore();
+
+  for (let g = 0; g < 2; g += 1) {
+    const top = B_TOP + g * (B_ARM + B_GAP);
+    const yAt = (v) => top + B_ARM - 5 - ((v - lo) / (hi - lo)) * (B_ARM - 10);
+    const geo = { x0, cell, yAt, top, r, arm: g, mx: x0 + colW + 12, mw, lo, hi };
+    label(ctx, colors, x0 - 8, top + B_ARM / 2, g ? "Disease" : "Control",
+      colors.ink2, "right");
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0, Math.round(top + B_ARM) + 0.5);
+    ctx.lineTo(x0 + plotW, Math.round(top + B_ARM) + 0.5);
+    ctx.stroke();
+    if (g === 0) {
+      label(ctx, colors, x0 + colW + 12, top - 4, "pooled", colors.ink3);
+    }
+
+    if (ran === 0) {
+      /* FULL STRENGTH BEFORE ANYTHING RUNS. These were drawn faint, on the
+         argument that a solid dot claims a measurement nobody has taken — but
+         Kenneth: "try not to dim it as it's hard to see when setting it up
+         before play", and setting the dials up is what this state is FOR.
+
+         Nothing is lost by it. The dots stand in a perfectly regular grid, and
+         no measurement ever lands in a regular grid, so the layout says "not
+         yet" more plainly than the opacity did; the prompt underneath says it
+         in words; and there is no mean tick, because there is no mean. */
+      drawColumns(ctx, colors, geo, study, { alpha: 1, toValue: 0 });
+      continue;
+    }
+
+    /* Study one eases its dots off the schematic and into their values. Every
+       study after that DISSOLVES out of the one before, because two studies are
+       different people and column p of one is not column p of the next —
+       sliding between them would assert a correspondence that is not there. */
+    if (prev) {
+      drawColumns(ctx, colors, geo, prev, { alpha: 1 - appear });
+      drawColumns(ctx, colors, geo, study, { alpha: appear });
+    } else {
+      /* the first study only SLIDES: the dots are already at full strength, so
+         fading them would dim the picture the reader just set up */
+      drawColumns(ctx, colors, geo, study, { alpha: 1, toValue: appear });
+    }
+
+    drawMarginal(ctx, colors, geo, arms[g].counts, peak);
+
+    /* THE MEAN LINES SIT ON THE MARGINAL, AND BOTH ARMS' ARE DRAWN IN EACH.
+
+       A single mean ruled across the whole band first, on the argument that it
+       spans the picture it summarises. It reads as a rule through the data —
+       Kenneth: "that group mean line is distracting when it goes across" — and
+       it also failed at the job: with one arm's mean in one band and the
+       other's 150px below, the GAP between them could only be got by comparing
+       two offsets by eye, and that gap is the number that drops into the pile.
+
+       Confined to the marginal and doubled, both faults go. The columns are
+       clear of it, and each band carries both means, so the distance between a
+       blue line and an orange one IS the estimated group difference, read in
+       one place. Colour says which arm, which is the rule the rest of the tab
+       already follows, so no new token and no new kind of mark.
+
+       They SLIDE where the dots dissolve: a mean is the same quantity in both
+       studies, so interpolating it is honest, and it barely has to move —
+       measured over 200 studies it shifts 0.202 between one and the next, a
+       fifth of a single person's own spread. */
+    ctx.save();
+    ctx.globalAlpha = prev ? 1 : appear;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    for (const k of [0, 1]) {
+      ctx.strokeStyle = k ? colors.groupB : colors.groupA;
+      ctx.beginPath();
+      const my = Math.round(yAt(arms[k].mean)) + 0.5;
+      ctx.moveTo(geo.mx - 5, my);
+      ctx.lineTo(geo.mx + mw, my);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (ran === 0) {
+    label(ctx, colors, x0 + plotW / 2, B_TOP + 2 * B_ARM + B_GAP + 8,
+      "Run one study to measure these people", colors.ink3, "center", colors.fsSm);
+  }
 }
 
 /** Stop, and say whether the run may continue. */

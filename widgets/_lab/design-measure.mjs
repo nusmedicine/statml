@@ -11,7 +11,9 @@
    ========================================================================= */
 import { makeRng } from "../core/rng.js";
 import { studentTPdf, tTailP } from "../core/stats.js";
-import { allocateStudy, budgetStudy, welch } from "../experimental-design/model.js";
+import {
+  allocateStudy, budgetStudy, welch, NOISE_SD,
+} from "../experimental-design/model.js";
 
 const DRAWS = 4000;
 const rngAt = (d) => makeRng(1 + d * 7919);
@@ -323,4 +325,90 @@ console.log("    the allocation exists to protect against this and nothing else.
 console.log("    right-hand column is §8's problem made visible: block's rate FALLS as");
 console.log("    the confounder grows, because the within-arm spread it reads its SD");
 console.log("    from grows with the confounder while the estimate it divides does not.");
+console.log("");
+console.log("§10  THE PSEUDOREPLICATION ARITHMETIC — why the Replicate tab's two dials");
+console.log("     are not interchangeable, in a form the widget could print.\n");
+{
+  /* The widget gives a subject and a measurement the SAME spread, so half of
+     what one measurement shows is the person. That ratio is the intraclass
+     correlation, and it is the whole of the tab's argument: it decides how much
+     a repeat is worth. */
+  const s2b = NOISE_SD ** 2;
+  const s2w = NOISE_SD ** 2;
+  const icc = s2b / (s2b + s2w);
+  const deff = (m) => 1 + (m - 1) * icc;
+  console.log(`     between-subject SD ${NOISE_SD}, measurement SD ${NOISE_SD} -> ICC ${icc.toFixed(2)}\n`);
+  console.log("     reps | predicted t inflation sqrt(1+(m-1)ICC) | measured |t_row|/|t_person|");
+  for (const m of [1, 2, 3, 5, 10]) {
+    let sum = 0, k = 0;
+    for (let d = 0; d < DRAWS; d += 1) {
+      const s = budgetStudy(rngAt(d), { people: 10, reps: m, effect: 0 });
+      if (s.meanTest && Math.abs(s.meanTest.t) > 1e-9) {
+        sum += Math.abs(s.t) / Math.abs(s.meanTest.t); k += 1;
+      }
+    }
+    console.log(`     ${String(m).padStart(4)} |${Math.sqrt(deff(m)).toFixed(3).padStart(39)} |`
+      + `${(sum / k).toFixed(3).padStart(28)}`);
+  }
+  console.log("\n     -> the row test's t is too big by exactly that factor, to three decimals.");
+  console.log("        So its effective sample size is people*reps/(1+(reps-1)ICC), and the");
+  console.log("        ceiling as reps grows is people/ICC:\n");
+  console.log("     design         | rows claimed | effective | ceiling | measured false positives");
+  for (const [p, m] of [[10, 1], [5, 2], [2, 5], [2, 10], [30, 1], [30, 10]]) {
+    let fp = 0;
+    for (let d = 0; d < DRAWS; d += 1) {
+      if (budgetStudy(rngAt(d), { people: p, reps: m, effect: 0 }).p < 0.05) fp += 1;
+    }
+    console.log(`     ${String(p).padStart(2)} people x ${String(m).padStart(2)} |${String(p * m).padStart(13)} |`
+      + `${((p * m) / deff(m)).toFixed(2).padStart(10)} |${(p / icc).toFixed(1).padStart(8)} |`
+      + `${pct(fp, DRAWS).padStart(25)}`);
+  }
+  console.log("\n     TWO PEOPLE CAN NEVER BE WORTH MORE THAN FOUR MEASUREMENTS, however many");
+  console.log("     times they are measured. That is why the x10 column of §3 is flat.");
+}
+console.log("");
+
+console.log("§11  ONE BUDGET, SPENT EVERY WAY A LINKED SLIDER WOULD OFFER\n");
+{
+  console.log("     at a fixed number of measurements the estimate's variance is");
+  console.log("     2(reps*s2B + s2W)/budget, which RISES with reps — so every repeat is a loss\n");
+  for (const B of [10, 20, 30]) {
+    console.log(`     budget ${B} per group | predicted SD | honest power at 0.5 | the rows claim`);
+    for (const m of [1, 2, 5, 10]) {
+      const n = B / m;
+      if (!Number.isInteger(n) || n < 1) continue;
+      const pred = Math.sqrt((2 * (m * NOISE_SD ** 2 + NOISE_SD ** 2)) / B);
+      let honest = 0, rows = 0;
+      for (let d = 0; d < DRAWS; d += 1) {
+        const s = budgetStudy(rngAt(d), { people: n, reps: m, effect: 0.5 });
+        if (s.meanTest && s.meanTest.p < 0.05) honest += 1;
+        if (s.p < 0.05) rows += 1;
+      }
+      console.log(`       ${String(n).padStart(2)} people x ${String(m).padStart(2)}    |`
+        + `${pred.toFixed(3).padStart(13)} |${pct(honest, DRAWS).padStart(20)} |${pct(rows, DRAWS).padStart(15)}`);
+    }
+    console.log("");
+  }
+  console.log("     -> read the last two columns of the budget-30 block against each other:");
+  console.log("        the rows barely notice, and the honest power collapses. A repeat pays");
+  console.log("        only when a SUBJECT costs more than a measurement, at the optimum");
+  console.log("        reps* = sqrt(s2W/s2B * cSubject/cMeasurement).");
+}
+console.log("");
+
+console.log("§12  THE COST OF PINNING THE REPLICATE PILE'S FRAME (main.js `pileWindow`)\n");
+{
+  const widest = Math.sqrt((2 * (NOISE_SD ** 2 + NOISE_SD ** 2)) / 2);   /* PEOPLE_MIN */
+  const lo = Math.floor(-4 * widest * 10) / 10;
+  const hi = Math.ceil(4 * widest * 10) / 10;
+  console.log(`     pinned at people = 2, reps = 1: ${lo} to ${hi}, 57 bins of ${((hi - lo) / 57).toFixed(3)}\n`);
+  console.log("     people | estimate SD | the bulk (+-2SD) covers");
+  for (const p of [2, 3, 5, 10, 20, 30]) {
+    const s = Math.sqrt((2 * (NOISE_SD ** 2 + NOISE_SD ** 2)) / p);
+    console.log(`     ${String(p).padStart(6)} |${s.toFixed(3).padStart(12)} |`
+      + `${String(Math.round(((4 * s) / (hi - lo)) * 57)).padStart(17)} bins of 57`);
+  }
+  console.log("\n     A 7-bin spike beside a 28-bin smear IS the comparison. On the frame this");
+  console.log("     replaced — one computed at the current `people` — both read the same width.");
+}
 console.log("");

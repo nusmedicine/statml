@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · linking the Replicate tab's two dials</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1720px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 88ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .yes { color: var(--c-reference); } .no { color: var(--c-extreme); }
+
+  .cands { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; width: 300px; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 44px; }
+
+  /* THE REAL TRACK. `.w-split` is minmax(250px, 300px) and resolves to 300 at
+     the shell's 1120px max-width, so every rail below is exactly what ships. */
+  .rail { width: 300px; border-top: 1px solid var(--grid); padding-top: var(--sp-4); }
+  .rail .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+
+  /* What the FIGURE would say for the rail's current setting. It is drawn here
+     because the derived people count has nowhere else to go: a control's
+     `detail` is static text and cannot name a number computed from another
+     parameter. Every candidate that derives `people` pays this. */
+  .derived { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px dashed var(--grid); }
+  .derived .beat { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-1); }
+  .derived .tot { font-size: var(--fs-xs); color: var(--ink-2); margin-top: 2px; }
+  .derived .cost { font-size: var(--fs-xs); font-family: var(--font-mono); margin-top: var(--sp-2); color: var(--ink-2); }
+  .derived .cost b { color: var(--c-extreme); }
+  .derived .cost i { color: var(--c-reference); font-style: normal; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Linking the Replicate tab's two dials</h1>
+
+  <p class="note">
+    Kenneth, 2026-09-05: <b>"if sliders can link so we can keep the number of
+    measurements constant without me calculating that 10 x 1 = 2 x 5"</b>. The
+    tab's argument is how ONE budget is split between people and repeats, and
+    today the two dials float independently — so holding the budget fixed is
+    arithmetic the reader has to do before the comparison even starts.
+  </p>
+
+  <p class="note">
+    <b>What core can and cannot do, checked before any of these were drawn.</b>
+    <code>when</code> is declarative and accepts <code>equals: false</code>, so a
+    mode toggle works. <code>compute()</code> may derive anything from the
+    parameters, so <code>people = budget / spend</code> costs nothing. But
+    <b>option lists are static</b> — <code>optionEntries</code> reads
+    <code>field.options</code> as an array or an object, never a function — so no
+    control's labels can be computed from another parameter, and there is no
+    two-way drag where moving one slider moves the other. Every candidate below
+    stays inside that, so none of them needs a core change.
+  </p>
+
+  <p class="note">
+    Each rail is built by <code>core/controls.js</code> from a real parameter
+    spec at the real 300&nbsp;px track, and every one is <b>live</b> — drive it.
+    Under each is what the figure would then say, and what that setting costs,
+    run against the widget's own <code>budgetStudy</code>.
+  </p>
+
+  <h2>The four candidates, drawn at the real width</h2>
+  <div class="cands" id="rails"></div>
+
+  <h2>What each one costs</h2>
+  <div id="costs"></div>
+
+  <h2>What the slider walks — the whole reason to build one</h2>
+  <p class="note">
+    One budget of 30 measurements per group, a true difference of 0.5. <b>The
+    rows barely notice while the honest power collapses.</b> A control that walks
+    this row is the lesson; two free dials leave the reader to find it.
+  </p>
+  <div id="evidence"></div>
+</main>
+
+<script type="module">
+import { buildControls, gatingParams } from "../core/controls.js";
+import { budgetStudy } from "../experimental-design/model.js";
+import { makeRng } from "../core/rng.js";
+
+/* --- the four specs ------------------------------------------------------- */
+
+const PEOPLE = {
+  type: "int", label: "People per group", min: 2, max: 30, default: 10,
+  detail: "each one is a fresh draw from the population",
+};
+const REPS = {
+  type: "int", label: "Measurements per person", min: 1, max: 10, default: 1,
+  detail: "the same person, measured again",
+};
+/* 10, 20 and 30 are the budgets every one of whose splits by 1, 2, 5 and 10 is a
+   whole number of people. `design-measure.mjs` §11 runs all of them.
+
+   THE ONE EXTREME IS BUDGET 10 AT x10, which is ONE person measured ten times —
+   below the free dial's floor of 2, and Hurlbert's simple pseudoreplication
+   exactly. It is safe to offer: its estimate SD is 0.742, so the pinned pile
+   frame of +-2.83 is 3.8 SD wide there and 0 of 8000 draws fell outside. (One
+   person measured ONCE would not be — 2.8 SD, and 0.50% leak — but no budget
+   produces that split.) The widget already prints "one person per group cannot
+   be tested" for the per-person row. */
+const BUDGET = {
+  type: "choice", label: "Measurements per group",
+  options: [10, 20, 30].map((v) => ({ value: String(v), label: String(v) })),
+  default: "30",
+};
+/* The labels are the MULTIPLIER, not the split, because a split label would
+   have to know the budget and options are static. That is the whole cost of an
+   adjustable budget, and it is why C exists. */
+const SPEND = {
+  type: "choice", label: "Spent on",
+  options: [
+    { value: "1", label: "×1", detail: "every measurement is a different person" },
+    { value: "2", label: "×2", detail: "each person measured twice" },
+    { value: "5", label: "×5", detail: "each person measured five times" },
+    { value: "10", label: "×10", detail: "each person measured ten times" },
+  ],
+  default: "1",
+};
+
+const CANDS = [
+  {
+    id: "A",
+    name: "Two free dials, total on the figure",
+    gives: "today's rail unchanged. The budget is reported but not held, so the reader still does the arithmetic to compare two spends.",
+    spec: { people: PEOPLE, reps: REPS },
+    resolve: (v) => ({ people: v.people, reps: v.reps }),
+    facts: [true, true, "holds the budget by hand"],
+  },
+  {
+    id: "B",
+    name: "A toggle: hold the budget fixed",
+    gives: "both modes. Free dials by default, the budget held on demand. Two more parameters and a rebuild when the toggle moves.",
+    spec: {
+      link: { type: "bool", label: "Hold the budget fixed", default: false },
+      people: { ...PEOPLE, when: { param: "link", equals: false } },
+      reps: { ...REPS, when: { param: "link", equals: false } },
+      budget: { ...BUDGET, when: { param: "link" } },
+      spend: { ...SPEND, when: { param: "link" } },
+    },
+    resolve: (v) => (v.link
+      ? { people: +v.budget / +v.spend, reps: +v.spend }
+      : { people: v.people, reps: v.reps }),
+    facts: [true, true, "none while the toggle is on"],
+  },
+  {
+    id: "C",
+    name: "One Split slider, budget fixed at 30",
+    gives: "the label IS the answer, so there is no arithmetic anywhere and nothing to hold in mind. Costs the budget dial and the free dials both.",
+    spec: {
+      split: {
+        type: "choice", label: "30 measurements per group, spent as",
+        options: [
+          { value: "30x1", label: "30 × 1", detail: "thirty people, measured once each" },
+          { value: "15x2", label: "15 × 2", detail: "fifteen people, measured twice each" },
+          { value: "6x5", label: "6 × 5", detail: "six people, measured five times each" },
+          { value: "3x10", label: "3 × 10", detail: "three people, measured ten times each" },
+        ],
+        default: "30x1",
+      },
+    },
+    resolve: (v) => {
+      const [p, r] = v.split.split("x").map(Number);
+      return { people: p, reps: r };
+    },
+    facts: [false, false, "none, ever"],
+  },
+  {
+    id: "D",
+    name: "Budget and spend, replacing both dials",
+    gives: "the smallest rail that keeps an adjustable budget. The free dials are gone, so people cannot be moved on its own.",
+    spec: {
+      budget: { ...BUDGET, row: { key: "b", label: "The budget" } },
+      spend: { ...SPEND, row: { key: "b" } },
+    },
+    resolve: (v) => ({ people: +v.budget / +v.spend, reps: +v.spend }),
+    facts: [true, false, "none"],
+  },
+];
+
+const defaults = (spec) => Object.fromEntries(
+  Object.entries(spec)
+    .filter(([, f]) => !["section", "readback"].includes(f.type))
+    .map(([n, f]) => [n, f.default])
+);
+
+/* --- what a setting costs, from the widget's own engine ------------------- */
+
+const DRAWS = 1200;
+const cache = new Map();
+function cost(people, reps) {
+  const key = people + "x" + reps;
+  if (cache.has(key)) return cache.get(key);
+  let rows = 0;
+  let honest = 0;
+  for (let d = 0; d < DRAWS; d += 1) {
+    const s = budgetStudy(makeRng(1 + d * 7919), { people, reps, effect: 0.5 });
+    if (s.p < 0.05) rows += 1;
+    if (s.meanTest && s.meanTest.p < 0.05) honest += 1;
+  }
+  const out = { rows: rows / DRAWS, honest: honest / DRAWS };
+  cache.set(key, out);
+  return out;
+}
+const pct = (v) => (v * 100).toFixed(1) + "%";
+
+/* --- the rails ------------------------------------------------------------ */
+
+const railsEl = document.getElementById("rails");
+const built = [];
+
+for (const c of CANDS) {
+  const values = defaults(c.spec);
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  const h = document.createElement("h3");
+  h.textContent = c.id + " · " + c.name;
+  const sub = document.createElement("p");
+  sub.className = "sub";
+  sub.textContent = c.gives;
+  cand.append(h, sub);
+
+  const rail = document.createElement("div");
+  rail.className = "rail";
+  const controls = document.createElement("div");
+  controls.className = "w-controls";
+  const derived = document.createElement("div");
+  derived.className = "derived";
+  rail.append(controls, derived);
+  cand.appendChild(rail);
+  railsEl.appendChild(cand);
+
+  const paint = () => {
+    const { people, reps } = c.resolve(values);
+    const k = cost(people, reps);
+    derived.innerHTML = ""
+      + '<div class="beat">' + people + (people === 1 ? " person" : " people") + " per group</div>"
+      + '<div class="tot">' + (reps === 1 ? "measured once each" : "measured " + reps + " times each")
+      + " — <b>" + (people * reps) + " measurements per group</b></div>"
+      /* the row claim is marked only where it OVERSTATES. At one measurement
+         each the two tests are the same test, and coloured alarm there would
+         be a lie about the honest design. */
+      + '<div class="cost">the rows claim '
+      + (k.rows - k.honest > 0.02 ? "<b>" + pct(k.rows) + "</b>" : pct(k.rows)) + "<br>"
+      + "the people say <i>" + pct(k.honest) + "</i></div>";
+  };
+  /* The rebuild is widget.js's rule, mirrored rather than approximated: a
+     gated field appearing or disappearing changes which controls EXIST, and
+     core rebuilds only when a GATING parameter moves (rebuilding on every
+     change drops a slider mid-drag). Without this B's toggle sets the value
+     and leaves the old dials on screen. */
+  const gates = gatingParams(c.spec);
+  const api = buildControls(controls, c.spec, values, (name, v) => {
+    values[name] = v;
+    if (gates.has(name)) api.rebuild(values);
+    paint();
+  });
+  paint();
+  built.push({ c, rail });
+}
+
+/* --- what each one costs -------------------------------------------------- */
+
+const H = (n) => Math.round(n.getBoundingClientRect().height);
+const yn = (b) => '<span class="' + (b ? "yes" : "no") + '">' + (b ? "yes" : "no") + "</span>";
+document.getElementById("costs").innerHTML = ""
+  + "<table><tr><th>rail</th><th>parameters</th><th class='n'>rail px</th>"
+  + "<th>budget adjustable</th><th>free dials kept</th>"
+  + "<th>arithmetic the reader does</th><th>core change</th></tr>"
+  + built.map(({ c, rail }) => {
+    const names = Object.keys(c.spec);
+    return "<tr><td><b>" + c.id + "</b></td>"
+      + "<td>" + names.join(", ") + " <span style='color:var(--ink-3)'>(" + names.length + ")</span></td>"
+      + "<td class='n'>" + H(rail) + "</td>"
+      + "<td>" + yn(c.facts[0]) + "</td><td>" + yn(c.facts[1]) + "</td>"
+      + "<td>" + c.facts[2] + "</td><td>" + yn(false) + "</td></tr>";
+  }).join("")
+  + "</table>";
+
+/* --- the evidence --------------------------------------------------------- */
+
+document.getElementById("evidence").innerHTML = ""
+  + "<table style='max-width:660px'><tr><th>split</th><th class='n'>people</th>"
+  + "<th class='n'>the rows claim</th><th class='n'>the people say</th></tr>"
+  + [[30, 1], [15, 2], [6, 5], [3, 10]].map(([p, r]) => {
+    const k = cost(p, r);
+    return "<tr><td><b>" + p + " × " + r + "</b></td><td class='n'>" + p + "</td>"
+      + "<td class='n' style='color:var(--c-extreme)'>" + pct(k.rows) + "</td>"
+      + "<td class='n' style='color:var(--c-reference)'>" + pct(k.honest) + "</td></tr>";
+  }).join("")
+  + "</table>"
+  + "<p class='note' style='margin-top:calc(-1 * var(--sp-2))'>"
+  + DRAWS + " draws per cell, run live in this page against "
+  + "<code>experimental-design/model.js</code>, so this table cannot drift from the "
+  + "widget. <code>design-measure.mjs</code> §11 runs 4000 and adds budgets 10 and 20.</p>";
+</script>
+</body>
+</html>
