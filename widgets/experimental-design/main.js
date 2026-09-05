@@ -1041,9 +1041,20 @@ defineWidget({
       tiles.push({
         label: "Reached p < 0.05",
         value: ran ? `${anim.wrong} of ${ran}` : "—",
-        note: ran
-          ? `${fmt((anim.wrong / ran) * 100, 1)}% of the studies run`
-          : "counted over every study you run",
+        /* THE NOTE NAMES WHICH OF TWO OPPOSITE THINGS THIS COUNT IS.
+
+           The same number is an ERROR RATE at no true difference and POWER at
+           any other setting, and the pseudoreplicated design scores higher on
+           both — measured over 4000 draws, 2 people x 5 reads 30.9% against
+           10 people x 1's 4.7% with nothing to find, and 47.1% against 30.6%
+           with a difference of 0.50. So on the dial's upper half the worse
+           design looks like the better one, which is what got the Sampling
+           tab's power tile cut. The count stays; the note says which it is. */
+        note: !ran
+          ? "counted over every study you run"
+          : state.effect === 0
+            ? `${fmt((anim.wrong / ran) * 100, 1)}%, and every one is a wrong answer`
+            : `${fmt((anim.wrong / ran) * 100, 1)}%, against a true difference of ${fmt(state.effect, 2)}`,
       });
     }
 

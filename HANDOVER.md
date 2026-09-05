@@ -197,7 +197,9 @@ pseudoreplicated design scores **higher on both** — so on the effect dial's
 upper half it reads as the better design. That is the same trap that got the
 Sampling tab's power tile cut. `Average distance from the truth` is the one tile
 that says the same thing at either end: 0.251 against 0.438, unmoved by the
-dial. **An open call: give the tile a note that names which of the two it is.**
+dial. **The tile's note now names which of the two it is** — "and every one is a
+wrong answer" at 0.00, "against a true difference of 0.50" otherwise — so the
+count can no longer be read as the wrong kind of score.
 
 ## WHAT IS STILL OPEN
 
