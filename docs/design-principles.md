@@ -1294,6 +1294,29 @@ lesson cell a decision came from IS the record of where that decision came from,
 and it is the most valuable thing in several modules. This principle governs
 what the STUDENT reads, not what the next author reads.
 
+**THE URL IS ONE OF THOSE STRINGS.** A shareable link is the one piece of copy a
+reader is asked to paste into a lesson, an email or a slide, so every parameter
+name and value in it has to be a word the control shows or the number on its
+tick. No shorthand invented while building.
+
+> *Earned:* widget 44 shipped with `concept=allocate` and `concept=budget` for
+> its two tabs. Neither word appears anywhere on screen — the control is
+> labelled *Topic* and its options read *Sampling* and *Replication*. Kenneth,
+> 2026-09-05: *"can you not use stupid terms like budget? it was replication
+> right? make sure URL do not contain self-invented terms."* Four parameters
+> were wrong at once: the tab, `scheme=convenience` against a control reading
+> *Non-random*, and two ladders (`shift=down1`, `noise=precise`) whose ticks
+> show numbers. They became `topic=sampling|replication`, `scheme=nonrandom`,
+> `shift=-2..2` and `noise=0.15..1`. `effect=none|small|moderate|large` stayed:
+> that is standard effect-size vocabulary, not something invented here.
+>
+> **Rename the wire names and the display names together.** The fingerprint
+> suite caught three states going `px`-DIFFER with `tx` unchanged — canvas text,
+> not DOM — because the value moved to `nonrandom` while the lookup that turns
+> it into a caption stayed keyed on `convenience`. Every non-random study was
+> drawing *"undefined — 20 sampled from one block"*. A rename is exactly the
+> kind of change that looks too small to hash.
+
 > *Earned:* an audit of every quoted string in the collection (2026-09-04) found
 > **7 lesson-or-notebook references in reader-facing copy, all of them in control
 > `detail` text** — the one surface neither 2.9 nor 2.10 names. Two in
