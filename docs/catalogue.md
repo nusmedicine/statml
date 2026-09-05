@@ -4115,6 +4115,15 @@ recipe. The earlier argument for the reveal (the posterior left of a new
 site moving, the backward pass seen) is recorded above and lost here; the
 trace-back carries the same lesson in Viterbi's form.
 
+### Sixth round, 2026-09-06 — the array beside the imputed row
+
+Kenneth, with the traced state on screen: *when I see imputed and ground
+truth, I don't know what was the original SNP array sequence — I have to
+scroll to the top and it's hard to compare.* The observations are now
+drawn twice: at the top, where the walk reads them, and again directly
+above the imputed row, so array, imputed and ground truth stack as one
+comparison. Same data, one more row of height.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,

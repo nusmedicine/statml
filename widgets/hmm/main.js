@@ -88,9 +88,15 @@ function layout(w, v) {
   const panel = toy ? null : add(K * cell);
   const trellis = add(K * cell);
   const strip = add(K * cell);
+  /* THE COMPARISON BLOCK: the observations again, directly above the imputed
+     row and the truth, so the three read as one stack. Kenneth, 2026-09-06:
+     "when I see imputed and ground truth, I don't know what was the original
+     SNP array sequence — I have to scroll to the top and it's hard to
+     compare." The top row stays: the walk reads it. */
+  const again = add(cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
-  return { cell, mcell, K, L, gx: GUT, obs, model, panel, trellis, strip, imp, truth, height: y - GAP + BOT };
+  return { cell, mcell, K, L, gx: GUT, obs, model, panel, trellis, strip, again, imp, truth, height: y - GAP + BOT };
 }
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
@@ -640,9 +646,16 @@ defineWidget({
     if (params.truth) statePath(Lo.strip, state.src, colors.reference, true);
     if (traced) statePath(Lo.strip, state.trellis.path, colors.empirical, false);
 
-    /* 5. The imputed row: read off the decoded state once the trace-back is
-       complete, with the posterior probability of that value — the bar runs
-       from 0.5 to 1. */
+    /* 5. The comparison block: the observations again, then the imputed row —
+       read off the decoded state once the trace-back is complete, with the
+       posterior probability of that value, the bar running from 0.5 to 1 —
+       then the truth on request. */
+    caption(Lo.again, toy ? "Moods on record" : "Array, as typed");
+    rowLabel(Lo.again.y, toy ? "mood" : "array");
+    for (let i = 0; i < L; i += 1) {
+      if (stage.sites[i].blank) unknownCell(cx(i), Lo.again.y, true);
+      else tile(cx(i), Lo.again.y, state.truthAllele[i], 1, cell, i);
+    }
     caption(Lo.imp, toy ? "Imputed mood from the decoded pattern, and its posterior probability"
       : "Imputed allele from the decoded haplotype, and its posterior probability");
     rowLabel(Lo.imp.y, "imputed");
