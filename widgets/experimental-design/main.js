@@ -21,27 +21,31 @@
    MEASURED against this engine, `_lab/design-measure.mjs`. No true effect, the
    notebook's own population, 4000 draws. A p under 0.05 here is a wrong answer:
 
-       n/arm | convenience | randomized | blocked | mean |imbalance| (random)
-           4 |       62.1% |       4.8% |    0.4% |  1.09 of 4   (worst 4)
-          10 |       98.9% |       5.2% |    0.4% |  1.78 of 10  (worst 8)
-          20 |      100.0% |       5.1% |    0.5% |  2.51 of 20  (worst 13)
-          24 |      100.0% |       5.1% |    0.7% |  2.74 of 24  (worst 13)
+       n/arm |   nonrandom | randomized | blocked | mean |imbalance| (random)
+           4 |       62.4% |       4.4% |    0.4% |  1.09 of 4   (worst 4)
+          10 |       98.9% |       4.0% |    0.5% |  1.78 of 10  (worst 8)
+          20 |      100.0% |       3.0% |    0.5% |  2.51 of 20  (worst 13)
+          24 |      100.0% |       2.5% |    0.6% |  2.74 of 24  (worst 13)
+
+   Re-measured 2026-09-05 with the population PINNED to the dial. Before
+   pinning the randomized column read 4.8-5.2%; model.js says what pinning
+   buys and what it costs, and the numbers below are the pinned ones.
 
    Three things came out of that table and all three are the widget:
 
    1. RANDOMIZATION DOES NOT BALANCE. At twenty per arm it leaves 2.5 subjects
       out of balance on average and the worst draw of 4000 was 13 of 20. It
-      holds 5% anyway, at every n, because the t-test prices its own imbalance
-      into its own SD. The notebook's "with a sufficiently large sample size,
-      randomization will balance these variables" is not where the protection
-      comes from — and the figure shows exactly that: the sample's carrier
-      fraction wanders while the population's stays put.
+      held 5% anyway before pinning, at every n, because the t-test prices its
+      own imbalance into its own SD. The notebook's "with a sufficiently large
+      sample size, randomization will balance these variables" is not where the
+      protection comes from — and the figure shows exactly that: the sample's
+      carrier fraction wanders while the population's stays put.
    2. THE ESTIMATE UNDER CONVENIENCE *IS* THE CONFOUNDER. Mean estimated
       disease effect 1.000 against a planted 1.000, at every n, and the pile
       never crosses zero. No seed rescues it.
    3. BLOCK IS CONSERVATIVE, not merely better: 0.5% where 5% is nominal, and
-      its estimates are 30% tighter (spread 0.145 against randomization's
-      0.207 at n = 24) while the unadjusted test still sizes itself off the
+      its estimates are 19% tighter (spread 0.144 against randomization's
+      0.178 at n = 24) while the unadjusted test still sizes itself off the
       full confounder variance. The power that buys back is a MODEL question
       and this widget does not claim it — see the open call at the foot.
 
@@ -689,11 +693,17 @@ defineWidget({
     lesson: { type: "section", label: "The question" },
 
     /* THE VALUES IN THE URL ARE THE WORDS ON THE CONTROL, or the numbers its
-       ticks show. They were `concept=allocate` and `topic=replication`, and
+       ticks show. They were `concept=allocate` and `concept=budget`, and
        neither word appears anywhere a reader can see — Kenneth: "can you not
        use stupid terms like budget? it was replication right? make sure URL do
        not contain self-invented terms". A shared link is reader-facing copy
-       and answers to principle 5.9 like every other string. */
+       and answers to principle 5.9 like every other string.
+
+       Only the wire names moved. Inside this file and model.js the two tabs
+       are still `allocate` and `budget` — isAllocate, drawAllocate, H_ALLOC,
+       H_BUDGET, allocateStudy, budgetStudy — and the measurement scripts and
+       the `_lab/` pages share that vocabulary. Grep for those, not for
+       "sampling" or "replication". */
     topic: {
       type: "segmented",
       label: "Topic",

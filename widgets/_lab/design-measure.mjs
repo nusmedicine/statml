@@ -37,12 +37,12 @@ function overAllocations(n, scheme, effect, draws = DRAWS) {
 }
 
 console.log("\n§1  ALLOCATION — no true effect, so every p < 0.05 is a wrong answer\n");
-console.log("  n/arm | convenience | randomized | blocked | mean |imbalance| under randomization");
+console.log("  n/arm |   nonrandom | randomized | blocked | mean |imbalance| under randomization");
 /* the widget's own range. Above 24 a Convenience draw can run short of carriers
    in a 96-strong coin-flip population, and the study would silently shrink —
    which is why `n` is capped there and why this table stops there too. */
 for (const n of [4, 10, 20, 24]) {
-  const c = overAllocations(n, "convenience", 0);
+  const c = overAllocations(n, "nonrandom", 0);
   const r = overAllocations(n, "random", 0);
   const b = overAllocations(n, "blocked", 0);
   console.log(`  ${String(n).padStart(5)} | ${pct(c.rate, 1).padStart(11)} | ${pct(r.rate, 1).padStart(10)}`
@@ -51,14 +51,21 @@ for (const n of [4, 10, 20, 24]) {
 
 console.log("\n§2  THE ESTIMATE ITSELF, at n = 24 per arm — centre, and how far it moves\n");
 console.log("  scheme      |  centre |  spread | wrong answers");
-for (const k of ["convenience", "random", "blocked"]) {
+const est = {};
+for (const k of ["nonrandom", "random", "blocked"]) {
   const s = overAllocations(24, k, 0);
+  est[k] = s;
   console.log(`  ${k.padEnd(12)}| ${s.centre.toFixed(3).padStart(7)} | ${s.spread.toFixed(3).padStart(7)}`
     + ` | ${pct(s.rate, 1).padStart(13)}`);
 }
-console.log("  -> convenience recovers the CONFOUNDER, 1.000 against a planted 1.000;");
-console.log("     block's estimates are 30% tighter than randomization's (0.145 against");
-console.log("     0.207) and its unadjusted test is CONSERVATIVE, not merely better.");
+/* The conclusion is computed from the rows above it. It used to be typed in,
+   and for one commit it read "30% tighter (0.145 against 0.207)" over a table
+   that said 0.144 against 0.178 - the 0.207 was from before the population
+   was pinned. */
+const tighter = Math.round((1 - est.blocked.spread / est.random.spread) * 100);
+console.log(`  -> nonrandom recovers the CONFOUNDER, ${est.nonrandom.centre.toFixed(3)} against a planted 1.000;`);
+console.log(`     block's estimates are ${tighter}% tighter than randomization's (${est.blocked.spread.toFixed(3)} against`);
+console.log(`     ${est.random.spread.toFixed(3)}) and its unadjusted test is CONSERVATIVE, not merely better.`);
 
 console.log("\n§3  THE BUDGET — people against repeats of the same person\n");
 const budgetRate = (people, reps, effect, draws = 3000) => {
@@ -165,7 +172,7 @@ console.log("§7  THE PILE'S WINDOW — main.js's closed form against the studie
 
   /* the closed form against the simulation, at n = 50 */
   console.log("    SD of the estimate, closed form against 4000 draws at n = 24:");
-  for (const k of ["convenience", "random", "blocked"]) {
+  for (const k of ["nonrandom", "random", "blocked"]) {
     const m = overAllocations(24, k, 0);
     const want = k === "random"
       ? Math.sqrt((2 * NOISE ** 2) / 24 + DELTA ** 2 / 48)
@@ -178,7 +185,7 @@ console.log("§7  THE PILE'S WINDOW — main.js's closed form against the studie
   for (const n of [4, 8, 12, 16, 20, 24]) {
     for (const effect of [0, 0.25, 0.5, 1]) {
       const [lo, hi] = winAllocate(n, effect);
-      for (const scheme of ["convenience", "random", "blocked"]) {
+      for (const scheme of ["nonrandom", "random", "blocked"]) {
         let out = 0;
         for (let d = 0; d < 300; d += 1) {
           const s = allocateStudy(makeRng(1 + d * 31), { n, scheme, effect });
@@ -284,8 +291,8 @@ console.log("    the unadjusted numbers are not a bug:\n");
         + ` ${pct(r.plain, 1).padStart(22)} | ${pct(r.adj, 1).padStart(27)}`);
     }
   }
-  const conv = rate("convenience", 0.25);
-  console.log(`      0.25 | convenience | ${pct(conv.plain, 1).padStart(22)} |`
+  const conv = rate("nonrandom", 0.25);
+  console.log(`      0.25 | nonrandom   | ${pct(conv.plain, 1).padStart(22)} |`
     + ` ${(conv.singular > 0.9 ? "not estimable" : pct(conv.adj, 1)).padStart(27)}`);
 
   console.log("\n    THE MECHANISM. Blocking pins each arm at exactly half carriers, so the");
@@ -309,9 +316,9 @@ console.log("");
 console.log("§9  THE CONFOUNDER AS A DIAL — the evidence for option B in");
 console.log("    `_lab/design-confounder.html`, and the other half of §8's answer.\n");
 console.log("    n = 20 per arm, no true effect, so every rejection is a wrong answer:\n");
-console.log("    confounder | convenience | randomize | block");
+console.log("    confounder |   nonrandom | randomize | block");
 for (const shift of [0, 0.25, 0.5, 1, 2]) {
-  const r = ["convenience", "random", "blocked"].map((k) => {
+  const r = ["nonrandom", "random", "blocked"].map((k) => {
     let sig = 0;
     for (let d = 0; d < 4000; d += 1) {
       if (allocateStudy(rngAt(d), { n: 20, scheme: k, effect: 0, shift }).p < 0.05) sig += 1;
