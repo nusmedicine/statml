@@ -41,6 +41,55 @@ on their own before believing it.** Copying `latest` wholesale at that moment
 would have written two hashes the widget never produces, which is exactly how
 widget 42 shipped nine bad ones.
 
+# THE RENAME'S FALLOUT — fixed, gated and pushed 2026-09-05 (09b5c39)
+
+A review of the tree after the URL rename (5bd8408) found one real bug and
+four stale documents. **Read before renaming a wire value again.**
+
+**The bug.** The rename moved the model's scheme key from `convenience` to
+`nonrandom` and `_lab/design-measure.mjs` kept the old key. `selectFrom` fell
+through to the Blocked branch for a scheme it did not know, so the script had
+been printing Blocked's numbers under the Non-random heading — §1 read 0.5%
+where the widget's whole argument is 100% — and its typed-in §2 conclusion
+claimed `1.000 against a planted 1.000` over a table that read 0.000. Nothing
+said so. Now: the script passes `nonrandom`, §2's conclusion is computed from
+its own rows, and **model.js throws on an unknown scheme**. The widget cannot
+reach the throw — params.js coerces an unknown URL value to the default, and a
+stale `scheme=convenience` link renders as Random — so it exists only to make
+the next stale caller fail loudly. A rename must be grepped through `_lab/`,
+not just through the widget: the scripts are callers too.
+
+**Two numbers in main.js's header had drifted the same way.** The table was
+the pre-pinning measurement (randomized at ~5% where the pinned engine prints
+2.5–4.4%) and item 3 said "30% tighter, 0.145 against 0.207" where the engine
+prints 19%, 0.144 against 0.178. Both now carry the pinned numbers, labelled.
+The script exists so that comment cannot drift; it can, when nobody re-runs
+the script after a change to what it measures.
+
+**The docs.** This file said in one place that all 334 states were real and in
+another that widget 44's ten were placeholders; said the baseline was the only
+outstanding work after it was recorded; pointed three times at a NEXT list
+that no longer exists; and its *Where things are* table stopped at 37 with 36
+and 37 swapped. README said "Widget count: 14". All fixed.
+
+**HOW IT WAS GATED, and the method is reusable.** `main` was served from a
+detached worktree (`git worktree add --detach <scratchpad>/main-base main`,
+outside Dropbox; `serve.mjs` roots at its own file, so running the worktree's
+copy serves the worktree) and the branch from the repo, and the suite was run
+on both in the same browser pane at DPR 1.25. Branch: **All 334 states
+identical** to the committed baseline, every row hashed at the 1.25 canvas
+size. Main, same pane: 9 px-only DIFFERs on naive-bayes, lm-adjustment and
+roc-auc — the flake set above — and widget 44's ten MATCH. So the change was
+rendering-neutral by two independent readings, and the branch was merged
+`--no-ff` with that record in the merge message.
+
+**THE PANE READS DPR 1 WHILE HIDDEN.** The first suite run in the in-app pane
+reported every state DIFFER on `px` with `tx` identical, and `devicePixelRatio`
+read 1 with `innerWidth` 0. Fronted, the same pane reads 1.25 and matches the
+baseline. Read `devicePixelRatio` before believing a px verdict from it; every
+row's `data-size` says what it was hashed at, and 688 wide is 1.25, 550 is 1.
+A run that starts fronted can lose the pane mid-way; the sizes will show it.
+
 # WIDGET 44 `experimental-design` — SHIPPED, PUSHED AND BASELINED
 
 **PHM5003 HTD `05 / 01`**, the notebook the high-throughput arc had ruled out
@@ -1137,6 +1186,13 @@ CoreText rasterise text differently, so it solves the smaller half.
 `.claude/launch.json` has **`widgets-alt` on 8011** beside `widgets` on 8010:
 two sessions cannot share a pinned port, and the second lane keeps both
 deterministic. The 8010 pin and its rationale are unchanged.
+
+On 2026-09-05 **8010, 8011, 8012 and 8014 were all held** — two by other
+sessions' preview servers, one by a bare `node` left from an earlier day — and
+`preview_start` refuses a taken port rather than moving. `netstat -ano | grep
+LISTENING | grep ':801'` says which lane is free before the first attempt;
+`widgets-alt3` on 8013 was it. A preview server can also die when its tab
+navigates to another origin; a server started from the shell does not.
 
 ### Python is installed — and ASK before working around a blocked network
 
