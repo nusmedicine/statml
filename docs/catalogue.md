@@ -4183,6 +4183,44 @@ cannot. Consequence for the readout: *Copied haplotype decoded correctly:
 says how many recombination points were recovered, with that reason as its
 note, would be the honest number. Put to Kenneth.
 
+### The review round, 2026-09-06 — nine commits from an adversarial pass
+
+Kenneth asked for an adversarial review of the exposition — which controls
+are learnt from data and which a user tweaks, UX, and what a student needs
+— and then said go ahead, one commit each. Applied, in order:
+
+1. Every control's detail says its kind: *simulation* (Days, Days not
+   recorded, Recombination points, Seed — a truth to compare against, set by
+   nobody in practice), *model parameter* (P(Happy), ρ — learnt from data on
+   the toy, from a genetic map in imputation), *design choice* (Reference
+   haplotypes, Array density — the two a study makes). A `choice` control
+   shows the selected option's detail, not the field's, so the four choice
+   controls carry the kind on every option.
+2. The biological rail regrouped: The design, The truth, The model. The toy
+   keeps The sequence and The model; `happy` moved under The model.
+3. The toy's model section says its parameters also generate its truth, so
+   the toy's model is never wrong.
+4. Each play speed describes itself; Medium had read "the same".
+5. The posterior strip stays empty until the trace-back reaches the first
+   position — drawn from the start it gave the answer away (2.1).
+6. Its caption then reads "every path summed, where Viterbi kept one": the
+   one sentence that keeps the two grids apart.
+7. The two progress counters left the readout; the trellis caption carries
+   the column.
+8. THE WORKED LINE: a `.w-math` card above the figure states one node's
+   arithmetic for the column the walk is at, with the numbers substituted —
+   "P1 at day 7: 0.876 (the larger of P1 0.97 × stay 0.90, P2 0.03 × switch
+   0.10); no observation to multiply by", then "Scaled so the column sums to
+   1: P1 0.90, P2 0.10" — and during the trace-back which stored winner the
+   path just followed. The driver asserts the card's recurrence reproduces
+   every node to 1e-9 on both tabs. Height reserved at 9.6em so the walk
+   does not jog the figure.
+
+Not done from the review, still open: the toy cannot show a misspecified
+model (its truth is generated from its own parameters); the notebook's
+five-day example cannot be reproduced from a seeded sequence; and the tile
+*Copied haplotype decoded correctly* penalises unidentifiable differences.
+
 ### Open on the draft
 
 - The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,

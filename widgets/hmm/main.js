@@ -276,6 +276,103 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
   void L;
 }
 
+/* THE WORKED LINE — one node's arithmetic, above the figure, for the column
+   the walk is at. The tables give E and T and the nodes show 0.20, 0.94,
+   0.03, and nothing joined them: a student could not check one cell by
+   hand, which is the whole virtue of a dynamic-programming table (the
+   review of 2026-09-06). So the card states the recurrence with the actual
+   numbers substituted: score(state) = P(observation | state) × the largest
+   of (previous score × transition). The previous scores are the previous
+   column's relative scores, so the scaled results equal the nodes exactly —
+   the driver asserts it. During the trace-back it says which stored winner
+   the path just followed. Same DOM route as widget 40's card: a `.w-math`
+   inserted above the figure and rewritten only when its key changes. */
+const CARD_MIN = "9.6em";     // the three resting lines, wrapped, at the narrowest column; no jog as the walk runs
+let cardHost = null, cardKey = null;
+
+function cardLines(state, idx) {
+  const toy = state.kind === "mood";
+  const { K, L, rho } = state;
+  const TR = state.trellis;
+  const pos = toy ? "day" : "site";
+  const name = (h) => (toy ? `P${h + 1}` : `h${h + 1}`);
+  const stay = 1 - rho, move = rho / (K - 1);
+  const known = (i) => !state.stages.at(-1).sites[i].blank;
+  const obsName = (i) => (toy ? (state.truthAllele[i] === 1 ? "Happy" : "Sad") : state.panel.letters[i][state.truthAllele[i]]);
+  const emitAt = (i, h) => (toy ? state.E[h][state.truthAllele[i]]
+    : (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - M.EPS : M.EPS));
+  const f2 = (x) => x.toFixed(2);
+  const fwd = Math.min(idx, L), back = Math.max(0, idx - L);
+
+  if (fwd === 0) {
+    return [
+      `Each column: score(state) = P(observation | state) × the largest of (previous score × transition) over the previous column's states.`,
+      `A blank column has no observation, so its score is that largest product alone.`,
+      `The state that gave the largest product is stored; the trace-back follows those stored winners from the best final node.`,
+    ];
+  }
+  if (back === 0) {
+    const i = fwd - 1;
+    /* Products for every state, from the previous column's relative scores. */
+    const prods = [], froms = [];
+    for (let h = 0; h < K; h += 1) {
+      let best = -1, from = h;
+      if (i === 0) best = 1 / K;
+      else for (let g = 0; g < K; g += 1) {
+        const t = TR.score[i - 1][g] * (g === h ? stay : move);
+        if (t > best) { best = t; from = g; }
+      }
+      prods.push(best * (known(i) ? emitAt(i, h) : 1));
+      froms.push(from);
+    }
+    const tot = prods.reduce((a, b) => a + b, 0);
+    const show = toy ? [0, 1] : [...Array(K).keys()].sort((a, b) => prods[b] - prods[a]).slice(0, 2);
+    const term = (g, h) => `${name(g)} ${f2(TR.score[i - 1][g])} × ${g === h ? "stay" : "switch"} ${f2(g === h ? stay : move)}`;
+    const lines = show.map((h) => {
+      const g = froms[h];
+      const carried = i === 0 ? 1 / K : TR.score[i - 1][g] * (g === h ? stay : move);
+      const how = i === 0 ? `start 1/${K}`
+        : toy ? `the larger of ${term(0, h)}, ${term(1, h)}`
+          : `the largest, ${term(g, h)}`;
+      return known(i)
+        ? `${name(h)} at ${pos} ${i + 1}: ${carried.toFixed(3)} (${how}) × P(${obsName(i)} | ${name(h)}) ${f2(emitAt(i, h))} = ${prods[h].toFixed(3)}`
+        : `${name(h)} at ${pos} ${i + 1}: ${carried.toFixed(3)} (${how}); no observation to multiply by`;
+    });
+    lines.push(`Scaled so the column sums to 1${toy ? "" : `, over all ${K}`}: ${show.map((h) => `${name(h)} ${f2(prods[h] / tot)}`).join(", ")}${toy ? "" : ", …"}`);
+    return lines;
+  }
+  const i = L - back;                         // the column just traced
+  if (i === L - 1) {
+    return [
+      `Trace-back starts at the best final node: ${name(TR.path[i])} at ${pos} ${L}, relative score ${f2(TR.score[i][TR.path[i]])}.`,
+      `Each step follows the winner stored in the forward pass, one column left.`,
+    ];
+  }
+  const lines = [
+    `${name(TR.path[i + 1])} at ${pos} ${i + 2} stored ${name(TR.path[i])} as its winner, so the path at ${pos} ${i + 1} is ${name(TR.path[i])}.`,
+  ];
+  if (i > 0) lines.push(`${i} column${i === 1 ? "" : "s"} left to trace.`);
+  else lines.push(`Traced to ${pos} 1: one state per ${pos}, the single most likely sequence. The imputed values are read off it.`);
+  return lines;
+}
+
+function renderCard(state, idx, params) {
+  const figure = document.querySelector("#widget .w-figure");
+  if (!figure || !figure.parentNode) return;
+  if (!cardHost) {
+    cardHost = document.createElement("div");
+    cardHost.className = "w-math";
+    cardHost.style.minHeight = CARD_MIN;
+    figure.parentNode.insertBefore(cardHost, figure);
+  }
+  const key = ["view", "idx", "seed", "days", "missing", "happy", "K", "every", "switches", "rho"]
+    .map((k) => (k === "idx" ? idx : params[k])).join("|");
+  if (key === cardKey) return;
+  cardKey = key;
+  cardHost.innerHTML = cardLines(state, idx)
+    .map((l) => `<div class="w-math-eq" style="min-height:0">${l}</div>`).join("");
+}
+
 /* The imputed value follows the notebook: read off the decoded state — the
    pattern's likelier mood, or the copied haplotype's allele at that site.
    Its probability is the posterior's, P(that value | what was observed). */
@@ -499,6 +596,7 @@ defineWidget({
     const { cell, mcell, K, L, gx } = Lo;
     const toy = state.kind === "mood";
     const idx = anim?.idx ?? 0;
+    renderCard(state, idx, params);
     const fading = anim?.beatOn && idx > 0;
     const p = fading ? anim.beatP : 1;
     const cx = (i) => gx + i * cell;

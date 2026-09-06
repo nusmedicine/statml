@@ -58,6 +58,24 @@ const bad = (s) => /NaN|undefined|null|Infinity/.test(String(s));
     ck(`${view}: trellis path equals decode()'s path`, state.trellis.path.join() === state.stages.at(-1).path.join());
     ck(`${view}: 2L animation units`, animationUnits(state) === 2 * state.L);
     for (const col of state.trellis.score) ck(`${view}: relative scores sum to 1`, Math.abs(col.reduce((a, b) => a + b, 0) - 1) < 1e-9);
+    /* The worked line's recurrence — previous relative scores × transition,
+       the largest, × emission, scaled — must land on the nodes exactly. */
+    const TR = state.trellis, K = state.K, stay = 1 - state.rho, move = state.rho / (K - 1);
+    const last = state.stages.at(-1);
+    const emitAt = (i, h) => (last.sites[i].blank ? 1 : view === "toy" ? state.E[h][state.truthAllele[i]]
+      : (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - 0.02 : 0.02));
+    let worst = 0;
+    for (let i = 1; i < state.L; i += 1) {
+      const prods = [];
+      for (let h = 0; h < K; h += 1) {
+        let best = -1;
+        for (let g = 0; g < K; g += 1) best = Math.max(best, TR.score[i - 1][g] * (g === h ? stay : move));
+        prods.push(best * emitAt(i, h));
+      }
+      const tot = prods.reduce((a, b) => a + b, 0);
+      for (let h = 0; h < K; h += 1) worst = Math.max(worst, Math.abs(prods[h] / tot - TR.score[i][h]));
+    }
+    ck(`${view}: the worked line reproduces every node`, worst < 1e-9, String(worst));
   }
 }
 
