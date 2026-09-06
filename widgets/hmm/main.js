@@ -434,7 +434,7 @@ defineWidget({
       type: "segmented", label: "Sample",
       options: [
         { value: "one", label: "One haplotype", detail: "simulation: the sample copies a single haplotype of the panel" },
-        { value: "recombinant", label: "Recombinant", detail: "simulation: the sample copies h1, then h2 from a point near the middle; the decoder has to find the switch" },
+        { value: "recombinant", label: "Recombinant", detail: "simulation: a historical crossover falls in this region, so the sample copies h1 on one side of it and h2 on the other; the decoder has to find where" },
       ],
       default: "one",
       when: { param: "view", equals: "biological" },

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — five ways to mark the ground truth on the templates</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-5); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; }
+  .rail { display: flex; gap: var(--sp-4); align-items: center; margin: 0 0 var(--sp-3); font-size: var(--fs-sm);
+          padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail output { font-family: var(--font-mono); min-width: 2em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — five ways to mark the ground truth on the templates</h1>
+  <p class="note">
+    The recombinant sample at four haplotypes (the state in Kenneth's screenshot) and the toy's two patterns,
+    each with the truth marked five ways. The dashed grey box (A) is what ships and is hard to see against the
+    orange tiles and the grid. Every alternative uses tokens that exist; the question is which reads at a glance,
+    and which survives on the toy where the truth is one whole row.
+  </p>
+  <div class="rail">
+    <label>seed <input type="range" id="seed" min="1" max="40" value="1"><output id="seedv">1</output></label>
+    <label>haplotypes <input type="range" id="K" min="2" max="6" value="4"><output id="Kv">4</output></label>
+  </div>
+  <div id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font");
+const V = { seed: 1, K: 4 };
+
+const OPTS = [
+  { id: "A", name: "As now: dashed grey box", em: "--c-reference, 2.5px, dashed",
+    why: "Reads as \"reference\" in the legend's own colour, but grey on grey grid with orange tiles beside it is the weakest mark on the page." },
+  { id: "B", name: "Solid ink box, tagged", em: "--ink-1, 3px, with a small \"truth\" tag at the left end of each run",
+    why: "The strongest outline the tokens allow, and the tag says what the box is without the legend. Costs: black on the figure competes with the current-column ring, which is also ink." },
+  { id: "C", name: "Dim everything else", em: "cells the record does not copy fade to 35%; the true run keeps full colour, plus a thin ink outline",
+    why: "The same move the trellis makes on trace-back, so the reader has seen it. The truth pops without adding a mark. Costs: the panel loses its full picture while the truth is on, and on the toy one whole pattern goes pale." },
+  { id: "D", name: "Bar beneath the run", em: "a 5px --c-reference bar under each true run, the row label bold",
+    why: "Out of the cells' way, so the letters stay clean, and it echoes the confidence bar under the imputed row. Costs: a bar under h1 sits on top of h2's cells; on the last row it is clear." },
+  { id: "E", name: "Wash behind the run", em: "a --c-reference wash over the true run at 22%, ink outline 2px",
+    why: "A tinted band the eye finds at once, letters still legible over it. Costs: grey over orange muddies the filled tiles a little; the outline carries it where the wash is faint." },
+];
+
+const wall = document.getElementById("wall");
+const views = OPTS.map((o) => {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${o.id} · ${o.name} <em>— ${o.em}</em></h3><canvas></canvas><p class="why">${o.why}</p>`;
+  wall.appendChild(d);
+  return { o, canvas: d.querySelector("canvas") };
+});
+
+let bio, toy;
+function build() {
+  bio = M.buildGenotype({ rng: makeRng(V.seed), K: V.K, every: 4, sample: "recombinant" });
+  toy = M.buildToy({ rng: makeRng(V.seed), missing: 3, seed: V.seed });
+}
+
+function draw({ o, canvas }) {
+  const W = 690, GUT = 66, LAB = 15, GAP = 18;
+  const bcell = Math.floor((W - GUT - 6) / bio.L), tcell = 40;
+  let y = 6;
+  const bpan = { y: y + LAB, h: bio.K * bcell }; y += LAB + bio.K * bcell + GAP;
+  const tpan = { y: y + LAB, h: 2 * tcell }; y += LAB + 2 * tcell + 10;
+  const H = y;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const text = (x, yy, s, colour, align = "left", font = `11px ${FONT}`) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = font; ctx.fillText(s, x, yy); };
+  const border = (x, yy, w, h) => { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, yy + 0.5, w - 1, h - 1); };
+  const tile = (x, yy, a, c, letter, alpha = 1) => {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = a === 1 ? T.theory : T.surface3; ctx.fillRect(x, yy, c, c); ctx.restore();
+    border(x, yy, c, c);
+    ctx.save(); ctx.globalAlpha = alpha;
+    text(x + c / 2, yy + c / 2 + 0.5, letter, a === 1 ? T.surface : T.ink1, "center", `600 ${Math.round(c * (c > 24 ? 0.5 : 0.6))}px ${FONT}`);
+    ctx.restore();
+  };
+  const runs = (S) => { const out = []; let s0 = 0; for (let i = 1; i <= S.L; i += 1) if (i === S.L || S.src[i] !== S.src[s0]) { out.push([s0, i, S.src[s0]]); s0 = i; } return out; };
+
+  function panel(S, b, c, letterOf, rowName, caption) {
+    text(GUT, b.y - LAB / 2 - 1, caption, T.ink2);
+    const dimmed = o.id === "C";
+    for (let h = 0; h < S.K; h += 1) {
+      const yy = b.y + h * c;
+      const bold = o.id === "D" && S.src.includes(h);
+      text(GUT - 6, yy + c / 2 + 0.5, rowName(h), bold ? T.ink1 : T.ink3, "right", `${bold ? "700 " : ""}11px ${FONT}`);
+      for (let i = 0; i < S.L; i += 1) tile(GUT + i * c, yy, S.panel.hap[h][i], c, letterOf(h, i), dimmed && S.src[i] !== h ? 0.35 : 1);
+    }
+    for (const [a, e, h] of runs(S)) {
+      const x = GUT + a * c, yy = b.y + h * c, w = (e - a) * c;
+      ctx.save();
+      if (o.id === "A") { ctx.strokeStyle = T.reference; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]); ctx.strokeRect(x + 1.5, yy + 1.5, w - 3, c - 3); }
+      if (o.id === "B") {
+        ctx.strokeStyle = T.ink1; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, yy + 1.5, w - 3, c - 3);
+        ctx.fillStyle = T.ink1; ctx.fillRect(x, yy - 9, 34, 11);
+        text(x + 17, yy - 3.5, "truth", T.surface, "center", `600 9px ${FONT}`);
+      }
+      if (o.id === "C") { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(x + 1, yy + 1, w - 2, c - 2); }
+      if (o.id === "D") { ctx.fillStyle = T.reference; ctx.fillRect(x + 1, yy + c - 5, w - 2, 5); }
+      if (o.id === "E") {
+        ctx.globalAlpha = 0.22; ctx.fillStyle = T.reference; ctx.fillRect(x, yy, w, c); ctx.globalAlpha = 1;
+        ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, yy + 1, w - 2, c - 2);
+      }
+      ctx.restore();
+    }
+  }
+  panel(bio, bpan, bcell, (h, i) => bio.panel.letters[i][bio.panel.hap[h][i]], (h) => `h${h + 1}`,
+    `Reference panel: ${bio.K} sequenced haplotypes — the sample copies the marked segments`);
+  panel(toy, tpan, tcell, (h, i) => (toy.panel.hap[h][i] ? "H" : "S"), (h) => `P${h + 1}`,
+    "The two patterns, known — the record follows the marked one");
+}
+function render() { for (const v of views) draw(v); }
+for (const id of ["seed", "K"]) {
+  const el = document.getElementById(id), out = document.getElementById(id + "v");
+  el.addEventListener("input", () => { V[id] = Number(el.value); out.textContent = el.value; build(); render(); });
+}
+build(); render();
+</script>
+</body>
+</html>
