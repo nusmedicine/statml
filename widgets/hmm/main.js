@@ -921,10 +921,10 @@ defineWidget({
     },
     modelToy: {
       type: "section", label: "The model",
-      detail: "The two patterns are known, so E is read off them at each day, with 0.1 "
-        + "allowed for a day that deviates. T is fixed at a switch rate of 0.10. In practice "
-        + "both are counted from sequences whose patterns are known, or fitted by "
-        + "expectation–maximisation.",
+      detail: "Here the record follows one pattern day by day, so E at each day puts 0.9 on that "
+        + "pattern's mood and 0.1 on the other. T is fixed at a switch rate of 0.10; a change of "
+        + "pattern within a record is what Recombinant shows on the Biology tab. In practice E and "
+        + "T are counted from sequences whose patterns are known, or fitted by expectation–maximisation.",
       when: { param: "view", equals: "toy" },
     },
     modelBio: {
