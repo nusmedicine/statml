@@ -7,7 +7,36 @@ there is no draft.**
 
 ---
 
-# WIDGET 45 `hmm` IS SHIPPED AND BASELINED. NOTHING IS OUTSTANDING ON IT.
+# WIDGET 45 `hmm` IS SHIPPED, BASELINED, AND REVISED THREE TIMES SINCE. NOTHING IS OUTSTANDING ON IT.
+
+**Three post-ship rounds the same afternoon, each pushed (0b2f5de, 989cf62,
+ead67f5; catalogue rounds 21–23).** The Concept tab was INVERTED to the
+order of the lesson Kenneth is amending: `model=markov` first — the states
+are the tosses, Heads and Tails, of one coin whose next toss depends on the
+last, so the counted transitions estimate T — then `model=hidden`, the
+same kind of record from a fair and a biased coin, where the same count is
+not T. It is a data parameter, not display, because the two records come
+from different mechanisms. Two sliders, `repeat` and `stay`, each gated to
+its stage with `when.all`. Then two words from the lesson: *the game* for
+the casino and *biased* for loaded, the coin's letter B for L. Then a
+register pass on every string those rounds added, after Kenneth read
+"sticky" as a mannerism (see *How Kenneth works*). Each round rehashed only
+the Concept states it touched and proved the rest byte-identical through
+`_lab/hmm-shoot.html`, then ran the full suite: 349 MATCH every time. The
+driver is now 1142 assertions.
+
+**Decided and NOT to be built:** the lesson's R code declares the blank as
+a third symbol "?" emitted with probability 0.5 by every state, because the
+HMM package needs a column per symbol and cannot take NA. The widget leaves
+the emission factor out at a blank instead. The two are the same
+computation — an equal factor across states cancels from every comparison
+and every normalised posterior — and a "?" node would draw missing as an
+outcome the state produces, which `--c-unknown` exists to deny. Kenneth
+agreed (2026-09-06) to leave it. Two things in the notebook came out of
+that check and are HIS to fix, not the widget's: `prop.table(…, margin=2)`
+column-normalises E so its rows do not sum to 1 (harmless to Viterbi, since
+each column of E scales every path by the same constant, but not the E of
+cell 25), and cell 30 says the record came from P1 when it can only be P2.
 
 Fifteen states recorded 2026-09-06 on Kenneth's "tested ok": twelve settled
 across the three tabs and **three DRIVEN** at Fast — the concept walk 30
@@ -27,17 +56,17 @@ not yet placed.
 
 **Hidden Markov Model**, for PHM5003 05/02 *Missing Data and Imputation*
 (cells 24–38; widget 25 owns cells 1–23). Three tabs: **Concept** — a
-Markov model whose states are the tosses of a sticky coin, then the
-occasionally dishonest casino as a hidden Markov model, the coin hidden and
-only the tosses recorded (inverted to this order, the lesson's, after
-shipping — round 21 in the catalogue); **Toy model** — the
+Markov model whose states are the tosses of one coin, then a hidden Markov
+model whose state is the coin, fair or biased, with only the tosses
+recorded (inverted to this order, the lesson's, after shipping — round 21
+in the catalogue); **Toy model** — the
 lesson's two five-day mood patterns P1 and P2 as the templates of a copying
 HMM, with Viterbi animated column by column and traced back; **Biology** —
 a SNP array imputed from a reference panel the same way, with an optional
 recombinant sample. Twenty rounds on 2026-09-06, every one recorded in
 [docs/catalogue.md](docs/catalogue.md) § *Widget 45*, with the mock-ups it
 was picked from in `_lab/hmm-*.html`. `node widgets/_lab/hmm-drive.mjs` is
-993 assertions and runs under `npm test`.
+1142 assertions and runs under `npm test`.
 
 **Merged as a fast-forward** (`main` had not moved since the branch), so the
 `wgcna` session's work in `.claude/worktrees/wgcna` on branch `wgcna` is
@@ -1150,7 +1179,7 @@ is blind to.
 | 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Hover on the distance matrix added 2026-09-05, an inspector that moves no state. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
 | 43 | `enrichment` | shipped as **Enrichment Analysis** (slot 5, the arc's last), 2026-09-05, about twenty rounds over two days; ten states — seven settled, two driven, one hit-driven. Four pages, ORA pinned to fold change. Uncovered the core bug in a gated drag's cursor — see *A CORE BUG WIDGET 43 SHIPPED THROUGH*. NOT yet judged projected |
 | 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. NOT yet judged projected |
-| 45 | `hmm` | shipped as **Hidden Markov Model** (PHM5003 05/02), 2026-09-06, twenty rounds in one day; **fifteen states** — twelve settled, three driven, shot through `_lab/hmm-shoot.html`. Concept · Toy model · Biology; the copying HMM in `model.js`, `_lab/hmm-drive.mjs` = 993 assertions. NOT yet judged projected; 05/02 link not yet placed |
+| 45 | `hmm` | shipped as **Hidden Markov Model** (PHM5003 05/02), 2026-09-06, twenty rounds in one day and three post-ship rounds the same afternoon (the Concept tab inverted to the lesson's order; game and biased; register); **fifteen states** — twelve settled, three driven, shot through `_lab/hmm-shoot.html`. Concept · Toy model · Biology; the copying HMM in `model.js`, `_lab/hmm-drive.mjs` = 1142 assertions. NOT yet judged projected; 05/02 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
@@ -1796,6 +1825,14 @@ notebook filename.
 ---
 
 ## How Kenneth works — read before writing anything he will see
+
+**No coined adjectives (2026-09-06).** "Sticky coin" for a coin whose next
+toss depends on the last read to Kenneth as a mannerism, and he asked for a
+pass over everything written that day. The rule that came out of it: describe
+a thing by the fact about it, not by a word that stands in for the fact. The
+same pass caught "counted straight off the record" and "counting is the
+estimate". He reads new strings for register even after the copy audit, so
+an audit is not a licence for the strings that come after it.
 
 - **One change at a time.** A commit touching five widgets is not reviewable and
   gets reverted whole, including the parts that were right. If a fix reveals the
