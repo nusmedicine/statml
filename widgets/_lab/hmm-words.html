@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — game for casino, biased for loaded, on the Concept page</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1280px; margin: 0 auto; padding: var(--sp-4); font-family: var(--font); color: var(--ink-1); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-6) 0 var(--sp-2); }
+  h2 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .stages { display: flex; gap: var(--sp-3); align-items: flex-start; flex-wrap: wrap; }
+  .stage { width: 400px; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); padding: var(--sp-3); }
+  .stage h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  .stage h3 span { color: var(--ink-3); font-weight: 400; }
+  .rail { width: 230px; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); padding: var(--sp-3); font-size: var(--fs-xs); color: var(--ink-2); }
+  .rail h4 { font-size: var(--fs-xs); color: var(--ink-1); margin: 10px 0 2px; }
+  .rail h4:first-child { margin-top: 0; }
+  .rail .lab-l { color: var(--ink-1); margin: 6px 0 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--radius-sm); overflow: hidden; font-size: var(--fs-xs); margin: 2px 0 8px; }
+  .seg span { padding: 3px 10px; color: var(--ink-2); }
+  .seg span.on { background: var(--ink-1); color: var(--surface-1); }
+  .card { background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px 10px; font-size: var(--fs-xs); line-height: 1.5; margin: 0 0 8px; }
+  .card div { padding-left: 4.6em; text-indent: -4.6em; margin: 0 0 3px; }
+  .card div span { display: inline-block; width: 4.6em; text-indent: 0; color: var(--ink-3); }
+  .band { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+  svg { display: block; }
+  table.t { border-collapse: collapse; font-size: 10px; font-family: var(--font-mono); margin: 0 0 6px; }
+  table.t caption { font-size: 10px; color: var(--ink-3); text-align: left; padding: 0 0 2px; font-family: var(--font); }
+  table.t td, table.t th { border: 1px solid var(--line-1); padding: 2px 6px; text-align: center; font-weight: 400; }
+  table.t th { color: var(--ink-3); }
+  .walk { margin: 8px 0 0; }
+  .walk .lbl { font-size: 10px; color: var(--ink-3); margin: 0 0 2px; }
+  .row { display: flex; gap: 2px; align-items: center; }
+  .row .k { width: 32px; font-size: 10px; color: var(--ink-3); }
+  .cell { width: 15px; height: 15px; border: 1px solid var(--line-1); font-size: 9px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); }
+  .cell.h { background: var(--c-theory); color: white; border-color: var(--c-theory); }
+  .cell.t { background: var(--surface-3); color: var(--ink-1); }
+  .cell.F { background: var(--surface-2); color: var(--ink-2); }
+  .cell.B { background: var(--c-reference); opacity: 0.6; color: var(--ink-1); }
+  .cell.q { color: var(--ink-4); background: var(--surface-2); }
+  .cnt { display: flex; gap: 10px; align-items: flex-end; }
+  .cnt .n { font-size: 10px; color: var(--ink-3); max-width: 15em; line-height: 1.3; }
+  .legend { font-size: 10px; color: var(--ink-2); margin: 8px 0 0; display: flex; gap: 12px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; }
+  .tiles { display: flex; gap: 18px; margin-top: 8px; font-size: 10px; color: var(--ink-3); }
+  .tiles b { display: block; font-size: 14px; color: var(--ink-1); font-weight: 500; }
+  table.w { border-collapse: collapse; font-size: var(--fs-xs); max-width: 1200px; }
+  table.w th, table.w td { border-bottom: 1px solid var(--line-1); padding: 5px 10px; text-align: left; vertical-align: top; }
+  table.w th { color: var(--ink-3); font-weight: 500; }
+  table.w td:first-child { color: var(--ink-3); white-space: nowrap; }
+  table.w mark { background: var(--c-highlight-soft, #ffe9d6); color: inherit; padding: 0 2px; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 8px 0 0; max-width: 100ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · the Concept page with <em>game</em> for casino and <em>biased</em> for loaded</h1>
+  <p class="note">
+    Two words, thirteen reader-facing strings, and one letter: the biased coin's node and table row read
+    <b>B</b> where the loaded coin's read L, so that the letter still abbreviates the word beside it. The
+    Markov stage says neither word and is unchanged. Below: the hidden stage as it would read, at rest, during
+    toss 9, and with the ground truth on, beside the rail's three affected controls; then every string, old
+    and new. One phrase needed more than a swap: <em>the casino may switch coin between tosses</em> has an
+    agent, and a game has none, so it becomes <em>the coin may be switched between tosses</em>.
+  </p>
+
+  <h2>The hidden stage, reworded</h2>
+  <div class="stages" id="S"></div>
+
+  <h2>Every string, old and new <em>— main.js line numbers as of 0b2f5de</em></h2>
+  <table class="w" id="W"><tr><th>where</th><th>now</th><th>proposed</th></tr></table>
+  <p class="why">
+    Not touched: the source comments that say <em>casino</em> and <em>loaded</em>, which record where the
+    example came from (Durbin's occasionally dishonest casino) and stay by the style rule; the URL values,
+    which name neither word; and the toy and biology tabs.
+  </p>
+</main>
+
+<script type="module">
+const coins  = "FFFFFFFBBBBBBBFFFFFF".split("");
+const casino = "HTHHTHTHHHHHHTHHTTHT".split("");
+const count = (seq) => { const c = { HH: 0, HT: 0, TH: 0, TT: 0 }; for (let i = 1; i < seq.length; i += 1) c[seq[i - 1] + seq[i]] += 1; return c; };
+const cc = count(casino);
+
+function graph({ a, b, pa, pb }) {
+  const W = 240, H = 150, ax = 60, bx = 180, y = 40;
+  const arrow = (x1, y1, x2, y2, t, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink-2)" stroke-width="1.2" ${dash ? 'stroke-dasharray="3 3"' : ""} marker-end="url(#m)"/>` + (t ? `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}" font-size="9" fill="var(--ink-2)" text-anchor="middle">${t}</text>` : "");
+  const loop = (x, t) => `<path d="M ${x - 8} ${y - 16} C ${x - 22} ${y - 40}, ${x + 22} ${y - 40}, ${x + 8} ${y - 16}" fill="none" stroke="var(--ink-2)" stroke-width="1.2" marker-end="url(#m)"/><text x="${x}" y="${y - 32}" font-size="9" fill="var(--ink-2)" text-anchor="middle">${t}</text>`;
+  const node = (x, yy, t, cls, dash) => `<circle cx="${x}" cy="${yy}" r="16" fill="${cls === "H" ? "var(--c-theory)" : cls === "T" ? "var(--surface-3)" : "var(--surface-1)"}" stroke="var(--ink-1)" stroke-width="1.2" ${dash ? 'stroke-dasharray="3 3"' : ""}/><text x="${x}" y="${yy + 4}" font-size="11" text-anchor="middle" fill="${cls === "H" ? "white" : "var(--ink-1)"}">${t}</text>`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><defs><marker id="m" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--ink-2)"/></marker></defs>`;
+  s += loop(ax, pa) + loop(bx, pa) + arrow(ax + 17, y - 5, bx - 17, y - 5, pb) + arrow(bx - 17, y + 5, ax + 17, y + 5, pb);
+  s += node(ax, y, a, null, true) + node(bx, y, b, null, true);
+  const ey = 118;
+  s += arrow(ax, y + 17, 85, ey - 17, "0.50", true) + arrow(ax + 6, y + 15, 150, ey - 17, "0.50", true)
+    + arrow(bx - 6, y + 15, 100, ey - 17, "0.20", true) + arrow(bx, y + 17, 160, ey - 17, "0.80", true);
+  s += node(90, ey, "T", "T") + node(160, ey, "H", "H");
+  return s + "</svg>";
+}
+const table = (cap, rows, cols, cells) => `<table class="t"><caption>${cap}</caption><tr><th></th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>${rows.map((r, i) => `<tr><th>${r}</th>${cells[i].map((v) => `<td>${v}</td>`).join("")}</tr>`).join("")}</table>`;
+const cells = (seq, cls) => seq.map((v) => `<div class="cell ${cls ? cls(v) : v.toLowerCase()}">${v}</div>`).join("");
+
+const REST = [
+  ["Model", "A Markov model is a set of states and a transition table T, one row per current state, each row summing to 1."],
+  ["States", "Here the states are two coins, one fair and one biased, and the coin may be switched between tosses."],
+  ["Rule", "The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of T."],
+  ["Hidden", "The coin is not seen. Each toss shows Heads or Tails by E: the fair coin lands Heads half the time, the biased coin 0.80. Only the toss is recorded."],
+];
+const TOSS9 = [
+  ["Toss 9", "From the biased coin. T's row: stay 0.80, switch 0.20. Drew stay: the biased coin again."],
+  ["Emits", "The biased coin lands Heads with 0.80, Tails with 0.20. Came up Heads. Only the toss is recorded."],
+  ["So far", "Stayed with the same coin on 7 of 8 transitions. These cannot be counted from the record, which shows only tosses."],
+];
+
+function stage(title, card, truth, n) {
+  const shownCoins = truth ? cells(coins.slice(0, n), (v) => v) : cells(coins.slice(0, n).map(() => "?"), () => "q");
+  const rest = coins.length - n;
+  return `<div class="stage"><h3>${title}</h3>
+    <div class="card">${card.map(([l, b]) => `<div><span>${l}</span>${b}</div>`).join("")}</div>
+    <div class="band"><div><div class="walk"><div class="lbl">Hidden coins, F fair and B biased, and the tosses they give</div></div>${graph({ a: "F", b: "B", pa: "0.80", pb: "0.20" })}</div>
+      <div>${table("Transition T", ["F", "B"], ["to F", "to B"], [["0.80", "0.20"], ["0.20", "0.80"]])}${table("Emission E", ["F", "B"], ["Tails", "Heads"], [["0.50", "0.50"], ["0.80", "0.20"]])}</div></div>
+    ${n > 1 ? `<div class="walk" style="font-size:10px;color:var(--ink-2)">draw from T's row for the biased coin · <span style="color:var(--ink-3)">stay 0.80 · switch 0.20</span></div>` : ""}
+    <div class="walk"><div class="lbl">The walk, ${n} of 20 tosses: the coin is hidden, the toss is seen</div>
+      <div class="row"><div class="k">coin</div>${shownCoins}${cells(new Array(rest).fill(""), () => "")}</div>
+      <div class="row"><div class="k">toss</div>${cells(casino.slice(0, n))}${cells(new Array(rest).fill(""), () => "")}</div></div>
+    <div class="cnt" style="margin-top:8px">${table(`Transitions between tosses, ${Math.max(0, n - 1)} counted`, ["from H", "from T"], ["to H", "to T"], n > 1 ? [[cc.HH, cc.HT], [cc.TH, cc.TT]] : [["0", "0"], ["0", "0"]])}<div class="n">not T: the tosses are not the coins</div></div>
+    <div class="legend"><span><i style="background:var(--ink-1)"></i>F fair coin, B biased coin: the state at each toss</span><span><i style="background:var(--c-highlight)"></i>The transition taken this toss, and its emission</span><span><i style="background:var(--c-theory)"></i>Heads (filled); Tails is open — the toss</span><span><i style="background:var(--c-unknown)"></i>The hidden coin</span>${truth ? '<span><i style="background:var(--c-reference)"></i>Ground truth: the coin each toss</span>' : ""}</div>
+    <div class="tiles"><div>Tosses so far<b>${n} of 20</b>one coin drawn per toss</div><div>P(stay) counted from the tosses<b>${n > 1 ? "0.46" : "—"}</b>not T: the tosses are not the coins. T's diagonal is 0.80</div>${truth ? "<div>P(stay) counted from the hidden coins<b>0.89</b>what you could count if the coin were seen</div>" : ""}</div>
+  </div>`;
+}
+
+const RAIL = `<div class="rail">
+  <h4>The model</h4>
+  <div class="seg"><span>Markov</span><span class="on">Hidden Markov</span></div>
+  <div>a hidden Markov model: the state is the coin, fair or <mark>biased</mark>, and it is not seen; each toss shows Heads or Tails by E</div>
+  <h4>The <mark>game</mark></h4>
+  <div>a fair coin and a <mark>biased</mark> one, and the transition table for switching between them</div>
+  <div class="lab-l">P(stay with the same coin) <span style="float:right">0.8</span></div>
+  <div>model parameter: the diagonal of T; in practice counted from tosses whose coin was known</div>
+  <h4>The model</h4>
+  <div>T is what you set. E is given by the coins: the fair coin lands Heads half the time, the <mark>biased</mark> coin 0.80. In practice both are counted from tosses whose coin was known, or fitted by expectation–maximisation.</div>
+</div>`;
+
+document.getElementById("S").innerHTML = RAIL + stage("At rest", REST, false, 0) + stage("Toss 9 of the walk", TOSS9, false, 9) + stage("Walked, ground truth on", TOSS9.slice(0, 0).concat([["Toss 20", "From the fair coin. T's row: stay 0.80, switch 0.20. Drew stay: the fair coin again."], ["Emits", "The fair coin lands Heads with 0.50, Tails with 0.50. Came up Tails. Only the toss is recorded."], ["So far", "Stayed with the same coin on 17 of 19 transitions. These cannot be counted from the record, which shows only tosses."]]), true, 20);
+
+const ROWS = [
+  ["graph nodes, T and E rows, coin row · 435, 534, 559", "F and L", "F and <mark>B</mark>"],
+  ["band caption · 561", "Hidden coins, F fair and L loaded, and the tosses they give", "Hidden coins, F fair and <mark>B biased</mark>, and the tosses they give"],
+  ["draw bar · 574", "draw from T's row for the loaded coin", "draw from T's row for the <mark>biased</mark> coin"],
+  ["card, walk lines · 644, 645", "the loaded coin / The loaded coin", "the <mark>biased</mark> coin / The <mark>biased</mark> coin"],
+  ["card, States · 651", "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses.", "Here the states are two coins, one fair and one <mark>biased</mark>, and <mark>the coin may be switched</mark> between tosses."],
+  ["card, Hidden · 653", "… the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.", "… the fair coin lands Heads half the time, the <mark>biased</mark> coin 0.80. Only the toss is recorded."],
+  ["legend · 849", "F fair coin, L loaded coin: the state at each toss", "F fair coin, <mark>B biased</mark> coin: the state at each toss"],
+  ["rail, Hidden Markov detail · 912", "a hidden Markov model: the state is the coin, fair or loaded, and it is not seen; …", "a hidden Markov model: the state is the coin, fair or <mark>biased</mark>, and it is not seen; …"],
+  ["rail, section · 933", "The casino", "The <mark>game</mark>"],
+  ["rail, section detail · 934", "a fair coin and a loaded one, and the transition table for switching between them", "a fair coin and a <mark>biased</mark> one, and the transition table for switching between them"],
+  ["rail, The model · 1019", "… the fair coin lands Heads half the time, the loaded coin 0.80. …", "… the fair coin lands Heads half the time, the <mark>biased</mark> coin 0.80. …"],
+  ["Concept tab detail · 845", "a coin toss as a Markov model, then a coin hidden behind the tosses", "unchanged"],
+  ["model.js, catalogue, HANDOVER", "casino / loaded in source comments and the record", "unchanged: comments name where the example came from"],
+];
+document.getElementById("W").innerHTML += ROWS.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("");
+</script>
+</body>
+</html>
