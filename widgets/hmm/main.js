@@ -5,11 +5,14 @@
    intentional missing data of a SNP array, filled from a reference panel with
    an HMM. Two tabs in the notebook's own order, on ONE decoder (model.js):
 
-     Toy model           two hidden patterns, Happy/Sad observations, some
-                         days unrecorded. The state graph and the emission
-                         and transition tables are drawn: they are the model.
-                         Its animation is THE VITERBI ALGORITHM — the trellis
-                         forward one column at a time, then the trace-back.
+     Toy model           the notebook's own narrative: two KNOWN mood
+                         patterns, P1 and P2, and a record that follows one
+                         of them with some days unrecorded. The hidden state
+                         is which pattern the record is following; a missing
+                         day is read off the decoded pattern. Seed 1 at five
+                         days is the notebook's exact example. Its animation
+                         is THE VITERBI ALGORITHM — the trellis forward one
+                         column at a time, then the trace-back.
      Biological example  the reference panel IS the emission table (K
                          haplotypes by L sites), the hidden state is which
                          haplotype the sample is copying, and recombination
@@ -18,11 +21,12 @@
                          candidates drawn, because 17px cells and K-1 losers
                          per node would not read.
 
-   THE FIGURE, top to bottom, the same grammar on both tabs so the second
-   reads as the first grown up: the observations as recorded (blanks where
-   nothing was), the model (graph and two tables / the panel), on the toy the
-   Viterbi trellis, the POSTERIOR over hidden states as a strip with the
-   Viterbi path drawn through it, and the imputed row, each call with its
+   THE FIGURE, top to bottom, the same on both tabs so the second reads as
+   the first grown up: the record (blanks where nothing was), the model (the
+   emission at the position being read, the states, the transition table),
+   the templates (two patterns / the panel), the Viterbi trellis, the
+   POSTERIOR over hidden states as a strip with the Viterbi path drawn
+   through it, the record again, and the imputed row, each call with its
    probability. The true states go on the strip as a dashed path and the true
    observations in a final row, only when asked for — the same "reality never
    grants this" move as widget 25's true values.
@@ -41,16 +45,23 @@
    truth. So both tabs run the same animation, and the trellis simply drops
    its numbers and its losing edges where the cells are small.
 
+   THE TOY WAS REBUILT ONCE. It opened with a stochastic emission — a pattern
+   was Happy with probability 0.8, set by a dial that also generated the
+   truth — and Kenneth hit both faults at once: turning the dials remade the
+   world rather than the model, and a mood drawn from its pattern could not
+   be reconstructed, only given a probability. Rebuilt 2026-09-06 on the
+   notebook's narrative: known patterns, emission read off them day by day,
+   the same copying model as the biology at two templates.
+
    Every stage of the animation is precomputed in compute(); a beat only
    fades one column in.
    ========================================================================= */
 
-import { defineWidget, fmt } from "../core/index.js";
+import { defineWidget } from "../core/index.js";
 import * as M from "./model.js";
 
 /* Option lists. Choice keys are strings on the wire; Number() them at use. */
 const RHOS = ["0.005", "0.02", "0.05", "0.1", "0.2", "0.35", "0.5"];
-const HAPPY = ["0.6", "0.7", "0.8", "0.9", "0.95"];
 const KS = ["2", "3", "4", "6", "8"];
 const EVERY = ["2", "3", "4", "6", "9"];
 
@@ -67,9 +78,9 @@ const STEP_MS = 700;
 /* One layout function read by `height` and `draw`, so the two cannot drift. */
 const GUT = 66, GAP = 16, LAB = 15, TOP = 6, BOT = 8;
 const MAX_CELL = 40;           // the toy's few days would otherwise balloon
-const MCELL_MIN = 34;          // a probability table cell has to hold "0.95"
-const GRAPH_H = 118;           // the toy's state graph: two states over two moods
-const RING_H = 176;            // the biological tab's state graph: K states on a ring, two alleles beneath
+/* The model block: K states on a ring, two values beneath. Two states need
+   less height than eight. */
+const ringH = (K) => (K === 2 ? 138 : 176);
 /* A K-by-K transition table has to fit beside the ring and the emission
    table at the narrowest canvas: 22px cells at K = 8, up to 34px at K <= 5. */
 const ringCell = (K) => Math.max(22, Math.min(34, Math.floor(176 / K)));
@@ -80,12 +91,11 @@ function layout(w, v) {
   const L = toy ? v.days : M.L_DEFAULT;
   const K = toy ? 2 : Number(v.K);
   const cell = Math.min(MAX_CELL, Math.floor((w - GUT - 6) / L));
-  const mcell = Math.max(MCELL_MIN, Math.min(MAX_CELL, cell));
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
   const obs = add(cell);
-  const model = toy ? add(Math.max(LAB + 2 * mcell, GRAPH_H)) : add(Math.max(LAB + K * ringCell(K), RING_H));
-  const panel = toy ? null : add(K * cell);
+  const model = add(Math.max(LAB + K * ringCell(K), ringH(K)));
+  const panel = add(K * cell);
   const trellis = add(K * cell);
   const strip = add(K * cell);
   /* THE COMPARISON BLOCK: the observations again, directly above the imputed
@@ -96,92 +106,18 @@ function layout(w, v) {
   const again = add(cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
-  return { cell, mcell, K, L, gx: GUT, obs, model, panel, trellis, strip, again, imp, truth, height: y - GAP + BOT };
+  return { cell, K, L, gx: GUT, obs, model, panel, trellis, strip, again, imp, truth, height: y - GAP + BOT };
 }
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
 
-/* THE STATE GRAPH — the picture a textbook draws beside the two tables: the
-   hidden patterns as circles, a self-loop and a switch on each, and the moods
-   they emit as the same tiles the rows use, so the graph's symbols are the
-   figure's. Every number on an edge is a cell of E or T, so the graph and the
-   tables cannot disagree. */
-function drawGraph(ctx, colors, { x0, x1, y, E, rho, tileFn, cell }) {
-  const font = `${colors.fsXs} ${colors.font}`;
-  const mid = (x0 + x1) / 2;
-  const d = Math.min(64, (x1 - x0) / 4);
-  const R = 14, ts = Math.min(cell, 26);
-  const sy = y + LAB + 18, oy = y + GRAPH_H - ts - 2;
-  const S = [{ x: mid - d, y: sy }, { x: mid + d, y: sy }];                 // P1, P2
-  const O = [{ x: mid - d, y: oy + ts / 2 }, { x: mid + d, y: oy + ts / 2 }]; // Sad, Happy
-  const label = (x, yy, s, align = "center") => {
-    ctx.fillStyle = colors.ink2; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = font;
-    ctx.fillText(s, x, yy);
-  };
-  const arrow = (ax, ay, bx, by, shrinkA, shrinkB, dash) => {
-    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
-    const sx = ax + ux * shrinkA, sy2 = ay + uy * shrinkA, ex = bx - ux * shrinkB, ey = by - uy * shrinkB;
-    ctx.save();
-    ctx.strokeStyle = colors.ink3; ctx.fillStyle = colors.ink3; ctx.lineWidth = 1.2;
-    if (dash) ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(sx, sy2); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 6 - uy * 3.5, ey - uy * 6 + ux * 3.5);
-    ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5); ctx.closePath(); ctx.fill();
-    ctx.restore();
-    return { sx, sy: sy2, ex, ey };
-  };
-  label(mid, y - LAB / 2 - 1, "Hidden patterns, and the moods they emit");
-  /* States: dashed circles, the convention for what is not observed. */
-  for (let h = 0; h < 2; h += 1) {
-    ctx.save();
-    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.arc(S[h].x, S[h].y, R, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-    ctx.fillStyle = colors.ink1; ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(`P${h + 1}`, S[h].x, S[h].y + 0.5);
-    /* Self-loop on the outer side, labelled with the stay probability. */
-    const side = h === 0 ? -1 : 1;
-    const lx = S[h].x + side * (R + 9), ly = S[h].y;
-    ctx.save();
-    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(lx, ly, 9, side > 0 ? -2.2 : 0.95, side > 0 ? 2.2 : 5.35); ctx.stroke();
-    ctx.fillStyle = colors.ink3;
-    const tipX = S[h].x + side * R * 0.75, tipY = S[h].y + R * 0.66;
-    ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX + side * 6, tipY + 2);
-    ctx.lineTo(tipX + side * 2, tipY - 6); ctx.closePath(); ctx.fill();
-    ctx.restore();
-    label(S[h].x + side * (R + 22), S[h].y - 12, (1 - rho).toFixed(2), side > 0 ? "left" : "right");
-  }
-  /* The switches: two arrows between the states, rho each way. */
-  arrow(S[0].x, S[0].y - 5, S[1].x, S[1].y - 5, R + 1, R + 1);
-  arrow(S[1].x, S[1].y + 5, S[0].x, S[0].y + 5, R + 1, R + 1);
-  label(mid, S[0].y - 15, rho.toFixed(2));
-  label(mid, S[0].y + 16, rho.toFixed(2));
-  /* Emissions: four arrows down to the mood tiles, labelled from E. */
-  for (let h = 0; h < 2; h += 1) for (let o = 0; o < 2; o += 1) {
-    const a = arrow(S[h].x, S[h].y, O[o].x, O[o].y, R + 2, ts / 2 + 3, true);
-    const f = h === o ? 0.5 : 0.36;          // the crossing pair is labelled off the crossing
-    const lx = a.sx + (a.ex - a.sx) * f, ly = a.sy + (a.ey - a.sy) * f;
-    const off = h === o ? (h === 0 ? -8 : 8) : (h === 0 ? -6 : 6);   // crossing pair labelled on its outer side
-    label(lx + off, ly, E[h][o].toFixed(2), off > 0 ? "left" : "right");
-  }
-  for (let o = 0; o < 2; o += 1) {
-    tileFn(O[o].x - ts / 2, oy, o, 1, ts);
-    label(O[o].x, oy + ts + 9, o === 1 ? "Happy" : "Sad");
-  }
-}
-
-/* THE BIOLOGICAL TAB'S MODEL, the same three things as the toy's at K states:
-   the emission table AT ONE SITE (the newest typed site, or the first before
-   anything is typed) — the haplotype's own allele 1 - EPS, the other EPS, so
-   it is the panel's column read as probabilities; the states on a ring, every
-   pair joined because a switch can land on any other haplotype, with each
-   state's emission arrow going to the allele it carries at that site; and the
-   K-by-K transition table, 1 - rho on the diagonal and rho over K - 1 off it.
-   Drawn at K states so the reader sees the toy's picture again, larger. */
+/* THE MODEL BLOCK, the same three things on both tabs: the emission table AT
+   ONE POSITION (the column the walk is at) — the template's own value 1 - eps,
+   the other eps, so it is the templates' column read as probabilities; the
+   states on a ring, every pair joined because a switch can land on any other
+   state, with each state's emission arrow going to the value it carries at
+   that position; and the K-by-K transition table, 1 - rho on the diagonal and
+   rho over K - 1 off it. Two states on the toy, K on the biology. */
 function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, border, stateName }) {
   const { K, L, gx, cell } = Lo;
   const B = Lo.model;
@@ -189,12 +125,14 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
   const font = `${colors.fsXs} ${colors.font}`;
   const small = `${Math.max(9, Math.min(11, mc - 13))}px ${colors.font}`;
   const rho = state.rho, move = rho / (K - 1);
+  const toy = state.kind === "mood";
+  const unit = toy ? "day" : "site";
   const known = stage.sites[site].known;
   const ts = Math.min(cell + 4, 18);
 
-  /* Emission at one site, left. Columns are the two alleles as tiles. */
+  /* Emission at one position, left. Columns are the two values as tiles. */
   const ex = gx;
-  text(ex, B.y - LAB / 2 - 1, `Emission E at site ${site + 1}`, colors.ink2);
+  text(ex, B.y - LAB / 2 - 1, `Emission E at ${unit} ${site + 1}`, colors.ink2);
   for (let c = 0; c < 2; c += 1) {
     const x = ex + c * mc + mc / 2 - ts / 2;
     tile(x, B.y + 1, c, 1, ts, site);
@@ -208,7 +146,7 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
     for (let c = 0; c < 2; c += 1) {
       const x = ex + c * mc;
       border(x, y, mc, mc);
-      const pr = state.panel.hap[h][site] === c ? 1 - M.EPS : M.EPS;
+      const pr = state.panel.hap[h][site] === c ? 1 - state.eps : state.eps;
       text(x + mc / 2, y + mc / 2 + 0.5, pr.toFixed(2), colors.ink1, "center", small);
     }
   }
@@ -232,9 +170,11 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
   const mid = (x0 + x1) / 2;
   const R = 11;
   const rad = Math.min(50, (x1 - x0) / 2 - R - 8);
-  const cy0 = B.y + LAB + 4 + rad + R;
+  /* Two states side by side need no vertical radius; K on a ring do. */
+  const cy0 = B.y + LAB + 4 + (K === 2 ? R + 6 : rad + R);
   const pos = Array.from({ length: K }, (_, h) => {
-    const a = -Math.PI / 2 + (2 * Math.PI * h) / K;
+    /* Two states sit side by side, P1 left; more than two go round from the top. */
+    const a = (K === 2 ? Math.PI : -Math.PI / 2) + (2 * Math.PI * h) / K;
     return { x: mid + rad * Math.cos(a), y: cy0 + rad * Math.sin(a), a };
   });
   text(mid, B.y - LAB / 2 - 1, "Hidden states", colors.ink2, "center");
@@ -246,7 +186,7 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
   ctx.restore();
   /* Two allele tiles beneath the ring; each state's emission arrow goes to
      the allele it carries at this site. */
-  const ty = cy0 + rad + R + 14;
+  const ty = K === 2 ? cy0 + R + 34 : cy0 + rad + R + 14;
   const tileX = [mid - 20 - ts / 2, mid + 20 - ts / 2];
   for (let h = 0; h < K; h += 1) {
     const a = state.panel.hap[h][site];
@@ -271,8 +211,10 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
     ctx.restore();
   }
   for (let c = 0; c < 2; c += 1) tile(tileX[c], ty, c, 1, ts, site);
-  text(mid, ty + ts + 9, `emits its own allele at site ${site + 1}`, colors.ink3, "center");
-  text(mid, ty + ts + 22, `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
+  text(mid, ty + ts + 9, `emits its own ${toy ? "mood" : "allele"} at ${unit} ${site + 1}`, colors.ink3, "center");
+  text(mid, ty + ts + 22, K === 2
+    ? `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)}`
+    : `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
   void L;
 }
 
@@ -299,8 +241,7 @@ function cardLines(state, idx) {
   const stay = 1 - rho, move = rho / (K - 1);
   const known = (i) => !state.stages.at(-1).sites[i].blank;
   const obsName = (i) => (toy ? (state.truthAllele[i] === 1 ? "Happy" : "Sad") : state.panel.letters[i][state.truthAllele[i]]);
-  const emitAt = (i, h) => (toy ? state.E[h][state.truthAllele[i]]
-    : (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - M.EPS : M.EPS));
+  const emitAt = (i, h) => (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - state.eps : state.eps);
   const f2 = (x) => x.toFixed(2);
   const fwd = Math.min(idx, L), back = Math.max(0, idx - L);
 
@@ -373,12 +314,12 @@ function renderCard(state, idx, params) {
     .map((l) => `<div class="w-math-eq" style="min-height:0">${l}</div>`).join("");
 }
 
-/* The imputed value follows the notebook: read off the decoded state — the
-   pattern's likelier mood, or the copied haplotype's allele at that site.
-   Its probability is the posterior's, P(that value | what was observed). */
+/* The imputed value follows the notebook: read off the decoded template at
+   that position — the pattern's mood that day, the copied haplotype's allele
+   at that site. Its probability is the posterior's, P(that value | record). */
 function imputedCall(state, i) {
   const h = state.trellis.path[i];
-  const call = state.kind === "mood" ? (state.E[h][1] > 0.5 ? 1 : 0) : state.panel.hap[h][i];
+  const call = state.panel.hap[h][i];
   const p1 = state.stages.at(-1).sites[i].p1;
   return { call, conf: call === 1 ? p1 : 1 - p1 };
 }
@@ -436,7 +377,7 @@ defineWidget({
        and under The truth on the biological tab. */
     seq: {
       type: "section", label: "The sequence",
-      detail: "simulated from the model below, so there is a truth to compare against",
+      detail: "simulated: a record that follows one of two known patterns, with some days unrecorded. Seed 1 at five days is the worked example",
       when: { param: "view", equals: "toy" },
     },
 
@@ -448,13 +389,18 @@ defineWidget({
        review question, 2026-09-06: which are learnt from data, which does a
        user tweak. The detail line answers it where the reader's hand is. */
     days: {
-      type: "int", label: "Days", min: 6, max: 20, default: 12,
+      type: "int", label: "Days", min: 5, max: 20, default: 5,
       detail: "simulation: the length of the record",
       when: { param: "view", equals: "toy" },
     },
     missing: {
       type: "int", label: "Days not recorded", min: 0, max: 8, default: 3,
       detail: "simulation: which days go unrecorded, completely at random",
+      when: { param: "view", equals: "toy" },
+    },
+    changes: {
+      type: "int", label: "Pattern changes", min: 0, max: 2, default: 0,
+      detail: "simulation: where the record's true pattern changes; the decoder has to infer them",
       when: { param: "view", equals: "toy" },
     },
 
@@ -498,18 +444,9 @@ defineWidget({
        derived — T from the switch rate, E read off the panel. */
     modelToy: {
       type: "section", label: "The model",
-      detail: "E and T are set here, and they also generate the pattern and the moods, "
-        + "so on the toy the model is never wrong. In practice they are counted from "
-        + "sequences whose patterns are known, or fitted by expectation–maximisation.",
-      when: { param: "view", equals: "toy" },
-    },
-    happy: {
-      type: "choice", label: "P(Happy) in pattern 2",
-      /* A choice control shows the SELECTED OPTION's detail, not the field's,
-         so the kind rides on every option. */
-      options: HAPPY.map((v) => ({ value: v, label: v,
-        detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this" })),
-      default: "0.8",
+      detail: "The two patterns are known, so E is read off them at each day, with 0.1 "
+        + "allowed for a day that deviates. T is the switch rate. In practice both are "
+        + "counted from sequences whose patterns are known, or fitted by expectation–maximisation.",
       when: { param: "view", equals: "toy" },
     },
     modelBio: {
@@ -540,7 +477,10 @@ defineWidget({
   compute: ({ params, rng }) => {
     const rho = Number(params.rho);
     if (params.view === "toy") {
-      return M.buildMood({ rng, days: params.days, missing: params.missing, happy: Number(params.happy), rho });
+      /* The notebook's own case, verbatim, at the defaults; any other setting
+         draws two new patterns and a record from the seed. */
+      const notebook = params.days === 5 && params.missing === 3 && params.changes === 0 && params.seed === 1;
+      return M.buildToy({ rng, days: params.days, missing: params.missing, changes: params.changes, rho, notebook });
     }
     return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every), switches: params.switches, rho });
   },
@@ -593,7 +533,7 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim }) {
     const Lo = layout(w, { ...params, w });
-    const { cell, mcell, K, L, gx } = Lo;
+    const { cell, K, L, gx } = Lo;
     const toy = state.kind === "mood";
     const idx = anim?.idx ?? 0;
     renderCard(state, idx, params);
@@ -673,39 +613,19 @@ defineWidget({
       ctx.strokeRect(cx(fwd - 1) + 1, Lo.obs.y + 1, cell - 2, cell - 2);
     }
 
-    /* 2. The model: the graph and two tables, or the panel. */
-    if (toy) {
-      const E = state.E, rho = state.rho;
-      const table = (x0, title, cols, cells) => {
-        text(x0, Lo.model.y - LAB / 2 - 1, title, colors.ink2);
-        for (let c = 0; c < 2; c += 1) text(x0 + c * mcell + mcell / 2, Lo.model.y + LAB / 2, cols[c], colors.ink3, "center");
-        for (let r = 0; r < 2; r += 1) {
-          const y = Lo.model.y + LAB + r * mcell;
-          text(x0 - 6, y + mcell / 2 + 0.5, stateName(r), colors.ink3, "right");
-          for (let c = 0; c < 2; c += 1) {
-            const x = x0 + c * mcell;
-            border(x, y, mcell, mcell);
-            text(x + mcell / 2, y + mcell / 2 + 0.5, cells[r][c].toFixed(2), colors.ink1, "center", `${colors.fsSm} ${colors.font}`);
-          }
-        }
-      };
-      table(gx, "Emission E: P(mood | pattern)", ["Sad", "Happy"], E);
-      const tx = w - 2 * mcell - 6;
-      table(tx, "Transition T", ["P1", "P2"], [[1 - rho, rho], [rho, 1 - rho]]);
-      drawGraph(ctx, colors, { x0: gx + 2 * mcell + 30, x1: tx - 36, y: Lo.model.y, E, rho, tileFn: tile, cell });
-    } else {
-      drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName });
-      caption(Lo.panel, `Reference panel: ${K} sequenced haplotypes`);
-      for (let h = 0; h < K; h += 1) {
-        const y = Lo.panel.y + h * cell;
-        rowLabel(y, stateName(h));
-        for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i], 1, cell, i);
-      }
-      if (fwd > 0 && back === 0) {
-        /* The panel column the trellis is reading: the emission at this site. */
-        ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
-        ctx.strokeRect(cx(fwd - 1) + 1, Lo.panel.y + 1, cell - 2, K * cell - 2);
-      }
+    /* 2. The model — emission at the column being read, the states, the
+       transition — then the templates it reads from. */
+    drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName });
+    caption(Lo.panel, toy ? "The two patterns, known" : `Reference panel: ${K} sequenced haplotypes`);
+    for (let h = 0; h < K; h += 1) {
+      const y = Lo.panel.y + h * cell;
+      rowLabel(y, stateName(h));
+      for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i], 1, cell, i);
+    }
+    if (fwd > 0 && back === 0) {
+      /* The template column the trellis is reading: the emission at this position. */
+      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
+      ctx.strokeRect(cx(fwd - 1) + 1, Lo.panel.y + 1, cell - 2, K * cell - 2);
     }
 
     /* 3. The Viterbi trellis: forward, the survivor into each node (and on
@@ -715,7 +635,7 @@ defineWidget({
       const TR = state.trellis;
       const B = Lo.trellis;
       const ncx = (i) => cx(i) + cell / 2, ncy = (h) => B.y + h * cell + cell / 2;
-      const R = Math.round(cell * (toy ? 0.32 : 0.36));
+      const R = Math.round(cell * (K === 2 ? 0.32 : 0.36));
       const numbers = cell >= 26;
       const numPx = Math.max(9, Math.min(12, Math.round(cell * 0.3)));
       const litFrom = L - back;
@@ -734,7 +654,7 @@ defineWidget({
         if (i === fwd - 1 && back === 0) {
           for (let g = 0; g < K; g += 1) {
             if (g === from) segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.empirical, 2.2, colAlpha(i));
-            else if (toy) segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.ink3, 1, 0.55 * colAlpha(i), [3, 3]);
+            else if (K === 2) segment(ncx(i - 1), ncy(g), ncx(i), ncy(h), colors.ink3, 1, 0.55 * colAlpha(i), [3, 3]);
           }
         } else if (lit) segment(ncx(i - 1), ncy(from), ncx(i), ncy(h), colors.empirical, 3.5, litAlpha(i - 1));
         else segment(ncx(i - 1), ncy(from), ncx(i), ncy(h), back > 0 ? colors.ink3 : colors.empirical, 1.4, back > 0 ? 0.3 : 0.8);
@@ -802,7 +722,7 @@ defineWidget({
 
     /* 6. The truth, on request. */
     if (Lo.truth) {
-      caption(Lo.truth, toy ? "Ground truth: the moods, ringed where the imputed call differs"
+      caption(Lo.truth, toy ? "Ground truth: ringed where the call differs, marked where the day strayed from its pattern"
         : "Ground truth: ringed where the call differs, marked where the panel lacks the variant");
       rowLabel(Lo.truth.y, "truth");
       for (let i = 0; i < L; i += 1) {
@@ -814,7 +734,7 @@ defineWidget({
           ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
           ctx.strokeRect(cx(i) + 1, Lo.truth.y + 1, cell - 2, cell - 2);
         }
-        if (!toy && state.novel[i]) {
+        if (state.novel[i]) {
           ctx.fillStyle = colors.ink3; ctx.beginPath();
           ctx.moveTo(cx(i) + cell / 2, Lo.truth.y + cell + 2);
           ctx.lineTo(cx(i) + cell / 2 - 3, Lo.truth.y + cell + 7);
@@ -839,21 +759,9 @@ defineWidget({
       { label: toy ? "Days not recorded" : "Sites to impute", value: String(blanks.length),
         note: toy ? "the ? cells, imputed once traced" : "untyped, imputed once traced" },
     ];
-    /* On the toy a mean rather than a count at P >= 0.9: a mood's probability
-       is capped by the emission itself — a pattern known for certain is Happy
-       with probability `happy` — so a count read 0 of 3 at the default and
-       taught that the model had failed. On the biological tab the alleles ARE
-       the states' emissions, and a count of confident calls is the number an
-       imputation report quotes. */
-    if (toy) {
-      tiles.push({ label: "Mean P(imputed mood)",
-        value: traced && calls.length ? fmt(calls.reduce((s, c) => s + c.conf, 0) / calls.length, 2) : "—",
-        note: "posterior probability of the imputed mood" });
-    } else {
-      tiles.push({ label: "Imputed with P ≥ 0.9",
-        value: traced ? `${calls.filter((c) => c.conf >= 0.9).length} of ${blanks.length}` : "—",
-        note: "posterior probability of the imputed allele" });
-    }
+    tiles.push({ label: "Imputed with P ≥ 0.9",
+      value: traced ? `${calls.filter((c) => c.conf >= 0.9).length} of ${blanks.length}` : "—",
+      note: toy ? "posterior probability of the imputed mood" : "posterior probability of the imputed allele" });
     if (params.truth) {
       let stateRight = 0;
       for (let i = 0; i < L; i += 1) if (state.trellis.path[i] === state.src[i]) stateRight += 1;

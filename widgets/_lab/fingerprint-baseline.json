@@ -2919,7 +2919,7 @@
       "tx": "4ca07176"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab at rest, trellis empty",
+      "$note": "PLACEHOLDER, draft: the Toy tab at rest — the notebook's own example, trellis empty",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
       "px": "0",
@@ -2928,14 +2928,21 @@
     {
       "$note": "PLACEHOLDER, draft: the Toy tab forward pass complete, nothing traced",
       "slug": "hmm",
-      "state": "?theme=light&shown=12",
+      "state": "?theme=light&shown=5",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth",
       "slug": "hmm",
-      "state": "?theme=light&truth=1&shown=24",
+      "state": "?theme=light&truth=1&shown=10",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: a longer toy record with one pattern change, traced",
+      "slug": "hmm",
+      "state": "?theme=light&days=12&changes=1&seed=3&truth=1&shown=24",
       "px": "0",
       "tx": "0"
     },
@@ -2966,7 +2973,7 @@
       "state": "?theme=light&speed=fast",
       "drive": {
         "click": "run",
-        "frames": 20,
+        "frames": 8,
         "dt": 32
       },
       "px": "0",

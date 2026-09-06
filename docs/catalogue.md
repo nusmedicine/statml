@@ -4221,11 +4221,35 @@ model (its truth is generated from its own parameters); the notebook's
 five-day example cannot be reproduced from a seeded sequence; and the tile
 *Copied haplotype decoded correctly* penalises unidentifiable differences.
 
+### The toy rebuilt on the notebook's narrative — 2026-09-06
+
+Kenneth, having tried the dials: *how come I have problems reconstructing
+the missing data when I try different parameters? I set P(Happy) for
+pattern 2, then the switch rate, and I can't recover the true sequence.*
+Two faults, both real. On the toy the two dials generated the truth AND
+parameterised the decoder, so turning them remade the world rather than
+the model; and a mood drawn from its pattern with probability 0.8 cannot
+be reconstructed, only given a probability — measured ceiling 81% with the
+pattern known exactly, 68% achieved, against 96%/82% at 0.95.
+
+He asked for the notebook's own narrative instead — *we know the ground
+truth about the two patterns P1 and P2 and the probabilities come from
+there* — and picked, from four questions: emission by copying (a state
+emits its pattern's mood for that day, as a haplotype emits its allele),
+the notebook's exact five-day patterns at seed 1 with a Days control for
+longer ones, a record that follows one pattern with an optional change,
+and a small fixed deviation rate (0.1). So the toy is now the biological
+model at two templates, and `model.js` has ONE `buildCopying()` behind
+`buildToy()` and `buildGenotype()`. At the defaults the widget shows cells
+26–29 verbatim: P1 Sad Happy Sad Sad Happy, P2 Happy Happy Happy Happy Sad,
+the record Happy ? ? Happy ?, decoded P2 throughout, the blanks filled
+Happy Happy Sad — the driver asserts all of it. The P(Happy) control is
+gone; Pattern changes (0–2) replaces it as the toy's counterpart of
+recombination points; the model block is the same ring, emission-at-a-day
+and T on both tabs, with two states drawn side by side. Days default 5.
+
 ### Open on the draft
 
-- The Mood tab's confidence tile is a mean rather than a count at P ≥ 0.9,
-  because a call's confidence there is capped by the emission itself (a
-  pattern known for certain is Happy with probability 0.8 at the default).
 - The 550px canvas gives 17px tiles and 10px letters on the biological
   tab. Worth a look projected.
 - No fingerprint baseline yet — five placeholders. Recorded once the design

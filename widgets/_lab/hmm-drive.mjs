@@ -17,7 +17,7 @@ import { fmt } from "../core/stats.js";
 import { animationUnits } from "../hmm/model.js";
 
 let src = await readFile(new URL("../hmm/main.js", import.meta.url), "utf8");
-src = src.replace(/^import \{ defineWidget, fmt \} from "\.\.\/core\/index\.js";$/m,
+src = src.replace(/^import \{ defineWidget \} from "\.\.\/core\/index\.js";$/m,
   'const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c);');
 src = src.replace(/^import \* as M from "\.\/model\.js";$/m,
   `import * as M from ${JSON.stringify(new URL("../hmm/model.js", import.meta.url).href)};`);
@@ -34,14 +34,14 @@ const ck = (name, ok, extra = "") => {
 /* 1. The contract — by name. */
 for (const key of ["slug", "title", "subtitle", "status", "layout", "height", "params", "legend", "compute", "draw", "readout", "animation"])
   ck(`declares \`${key}\``, W[key] != null);
-const WANT = { view: "segmented", days: "int", missing: "int", happy: "choice", K: "choice", every: "choice",
+const WANT = { view: "segmented", days: "int", missing: "int", changes: "int", K: "choice", every: "choice",
   switches: "int", seed: "int", truth: "bool", rho: "choice", speed: "choice", shown: "int" };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n]) => n).sort().join();
 ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), declared);
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
-ck("the toy controls are gated on view=toy", ["days", "missing", "happy"].every((n) => W.params[n].when?.equals === "toy"));
+ck("the toy controls are gated on view=toy", ["days", "missing", "changes"].every((n) => W.params[n].when?.equals === "toy"));
 ck("the biological controls are gated on view=biological", ["K", "every", "switches"].every((n) => W.params[n].when?.equals === "biological"));
 ck("one step label for both tabs", W.animation.stepLabel === "Next column");
 
@@ -62,8 +62,8 @@ const bad = (s) => /NaN|undefined|null|Infinity/.test(String(s));
        the largest, × emission, scaled — must land on the nodes exactly. */
     const TR = state.trellis, K = state.K, stay = 1 - state.rho, move = state.rho / (K - 1);
     const last = state.stages.at(-1);
-    const emitAt = (i, h) => (last.sites[i].blank ? 1 : view === "toy" ? state.E[h][state.truthAllele[i]]
-      : (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - 0.02 : 0.02));
+    const emitAt = (i, h) => (last.sites[i].blank ? 1
+      : (state.panel.hap[h][i] === state.truthAllele[i] ? 1 - state.eps : state.eps));
     let worst = 0;
     for (let i = 1; i < state.L; i += 1) {
       const prods = [];
@@ -123,6 +123,20 @@ for (const [name, f] of Object.entries(W.params)) {
   }
 }
 console.log(`  walked ${combos} parameter settings`);
+
+/* 2b. The notebook's own toy, verbatim at the defaults. */
+{
+  const params = { ...defaults, view: "toy" };
+  const state = W.compute({ params, rng: makeRng(1) });
+  ck("notebook: P1 is Sad Happy Sad Sad Happy", state.panel.hap[0].join("") === "01001");
+  ck("notebook: P2 is Happy Happy Happy Happy Sad", state.panel.hap[1].join("") === "11110");
+  ck("notebook: the record is Happy ? ? Happy ?", state.order.join() === "0,3" && state.truthAllele.join("") === "11110");
+  ck("notebook: decoded as P2 throughout", state.trellis.path.every((h) => h === 1));
+  const filled = [1, 2, 4].map((i) => state.panel.hap[state.trellis.path[i]][i]).join("");
+  ck("notebook: the blanks are filled Happy Happy Sad", filled === "110");
+  const other = W.compute({ params: { ...params, seed: 2 }, rng: makeRng(2) });
+  ck("seed 2 draws other patterns", other.panel.hap[0].join("") !== "01001" || other.panel.hap[1].join("") !== "11110");
+}
 
 /* 3. `shown` lands where it claims, and Replay starts over. */
 {

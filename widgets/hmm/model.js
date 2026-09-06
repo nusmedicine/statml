@@ -5,42 +5,46 @@
    PHM5003 HTD `05 / 02 — Missing Data and Imputation`, cells 24–38: the
    INTENTIONAL missing data of a SNP array, filled from a reference panel of
    sequenced haplotypes with a hidden Markov model. The notebook builds up to
-   it with a two-state toy — mood patterns P1 and P2 emitting Happy or Sad,
-   with some days unrecorded — and the widget keeps that order: the Toy tab
-   first, the Biological tab second, and ONE decoder serves both, because
-   that is the point.
+   it with a toy — two KNOWN mood patterns, P1 = Sad Happy Sad Sad Happy and
+   P2 = Happy Happy Happy Happy Sad, and a record Happy ? ? Happy ? to place
+   against them — and the widget keeps that order: the Toy tab first, the
+   Biological tab second, and ONE copying model serves both:
 
-     hidden state at position i   the pattern the day is in / WHICH panel
-                                  haplotype the sample is copying
-     transition                   stay, or switch (a mood change / a
-                                  recombination)
-     emission at a known position P(mood | pattern) / the copied haplotype's
-                                  allele at that site, or a mismatch
+     hidden state at position i   WHICH template the record is following —
+                                  a mood pattern, or a panel haplotype
+     transition                   stay on it, or switch (a change of pattern,
+                                  a recombination)
+     emission at a known position the template's own value at that position,
+                                  or a deviation from it
      emission at a blank          nothing observed: every state equally likely
 
-   The biological tab is the Li & Stephens (2003) copying model every imputation
-   program descends from, with one panel and one chromosome. Two things differ
-   from the notebook on purpose:
+   That is the Li & Stephens (2003) copying model every imputation program
+   descends from, at two templates on the toy and K on the biology. The toy
+   was first built with a stochastic emission — a pattern was Happy with
+   probability 0.8 — and Kenneth hit its ceiling at once: a mood drawn from
+   its pattern cannot be reconstructed, only given a probability, and turning
+   the dials remade the truth rather than the model. Rebuilt 2026-09-06 on
+   the notebook's own narrative: the two patterns are known, the emission is
+   read off them day by day, and a missing day is read off the decoded
+   pattern. Two things still differ from the notebook on purpose:
 
-   1. The emission is POSITION-SPECIFIC. The notebook's emission matrix is each
-      haplotype's base composition, the same at every site, so its H1/H2 call
-      rests on how many A's each carries rather than on which allele sits at
-      the typed position. That works on its 17 letters and is not the mechanism.
-      Here a state emits the allele it carries AT THAT SITE, or a mismatch with
-      probability EPS.
+   1. The emission is POSITION-SPECIFIC. The notebook's emission matrix is
+      each pattern's (or haplotype's) composition, the same at every
+      position, normalised down the columns; its genotype example then fills
+      the blanks position by position from the haplotype anyway. Here a state
+      emits what its template carries AT THAT POSITION, or a deviation with a
+      small probability — 0.1 for a mood, 0.02 for an allele.
    2. Forward–backward is computed as well as Viterbi. Viterbi gives one path;
-      the posterior gives, per position, how sure that call is — and the blanks
+      the posterior gives, per position, how sure the call is — and the blanks
       between two known positions, or past the last one, are where it is not.
       An imputed genotype carries that number in practice (a dosage), and a
       figure that hides it would draw an imputation as if it were a read.
 
    THE ANIMATION IS THE VITERBI ALGORITHM ON BOTH TABS, precomputed here so
    `advance` reveals and never computes: the trellis forward one column at a
-   time, then the trace-back (Kenneth, 2026-09-06, from the three candidates
-   in `_lab/hmm-viterbi.html`, and the same walk on the biological tab at his
-   request the same day). The reveal stages — the first t typed sites known,
-   the whole posterior recomputed — are still computed: the figure draws the
-   last one, and `_lab/hmm-mock.html` previews all of them.
+   time, then the trace-back. The reveal stages — the first t known positions
+   revealed, the whole posterior recomputed — are still computed: the figure
+   draws the last one, and `_lab/hmm-mock.html` previews all of them.
    ========================================================================= */
 
 /* 28 sites, not 36. The tiles print the base at each site, as the notebook's
@@ -68,9 +72,20 @@ const NOVEL_MUT = 0.025;
    rule, seed 1 put its two switches at sites 21 and 22. */
 const MIN_SEG = 5;
 
-/* Mismatch allowance in the emission — the notebook's model has none, which
-   makes a single novel typed allele zero out every state. Fixed and small. */
-export const EPS = 0.02;
+/* Deviation allowances in the emission — the notebook's model has none, which
+   makes a single novel typed allele zero out every state. A mood strays from
+   its pattern more often than a base from its haplotype. */
+export const EPS = 0.02;        // an allele that is not the copied haplotype's
+export const DEVIATE = 0.1;     // a day whose mood is not its pattern's
+
+/* THE NOTEBOOK'S TOY, verbatim: cells 26–29. Mood 1 is Happy, 0 is Sad; the
+   record follows P2 and days 2, 3 and 5 are unrecorded. */
+export const NOTEBOOK = {
+  P1: [0, 1, 0, 0, 1],
+  P2: [1, 1, 1, 1, 0],
+  follows: 1,
+  gone: [1, 2, 4],
+};
 
 /* Two letters per site so a figure can print nucleotides as the lesson does;
    allele 0 and allele 1 are otherwise just the two states of a biallelic SNP. */
@@ -83,6 +98,19 @@ function shuffledIdx(rng, n) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/* Change points at least `minSeg` apart and from either end. */
+function cutPoints(rng, L, count, minSeg) {
+  const cuts = [];
+  const span = L - 2 * minSeg + 1;
+  if (span > 0) {
+    for (const c of shuffledIdx(rng, span).map((i) => i + minSeg)) {
+      if (cuts.length === count) break;
+      if (cuts.every((d) => Math.abs(d - c) >= minSeg)) cuts.push(c);
+    }
+  }
+  return cuts.sort((a, b) => a - b);
 }
 
 /* ----------------------------------------------------------------------------
@@ -183,10 +211,7 @@ export function viterbiTrellis(emit, K, rho) {
 
 /* How many units the animation has, so main.js and the node driver agree:
    both tabs step the Viterbi trellis forward one column at a time and then
-   trace back one column at a time. (Until 2026-09-06 the biological tab
-   revealed one typed site per step instead; Kenneth asked for the same
-   walk on both — see the array, walk the sequence, see the imputed row
-   against the truth.) */
+   trace back one column at a time. */
 export function animationUnits(state) {
   return 2 * state.L;
 }
@@ -209,50 +234,95 @@ function revealStages(K, L, order, emitKnown, rho) {
 }
 
 /* ----------------------------------------------------------------------------
-   THE TOY TAB — the notebook's mood example, generated from the model it is decoded
-   with. Two patterns; pattern 2 is Happy with probability `happy`, pattern 1
-   with 1 - happy; the pattern persists with probability 1 - rho. `missing`
-   days are unrecorded completely at random. Mood 1 is Happy, 0 is Sad. */
-export function buildMood({ rng, days, missing, happy, rho }) {
-  const K = 2, L = days;
-  const E = [
-    [happy, 1 - happy],   // pattern 1: P(Sad), P(Happy)
-    [1 - happy, happy],   // pattern 2
-  ];
-  const src = new Array(L), mood = new Array(L);
-  let s = rng.next() < 0.5 ? 1 : 0;
-  for (let i = 0; i < L; i += 1) {
-    if (i > 0 && rng.next() < rho) s = 1 - s;
-    src[i] = s;
-    mood[i] = rng.next() < E[s][1] ? 1 : 0;
-  }
-  const m = Math.min(missing, Math.max(0, L - 2));
-  const gone = new Set(shuffledIdx(rng, L).slice(0, m));
-  const order = [];
-  for (let i = 0; i < L; i += 1) if (!gone.has(i)) order.push(i);
-  /* The toy animates Viterbi over the whole recorded sequence, so the trellis
-     is computed once here: blanks emit 1, recorded days emit E[state][mood]. */
+   ONE COPYING MODEL FOR BOTH TABS. `templates[h][i]` is what state h carries
+   at position i; `truth[i]` is what the record actually holds there; `order`
+   lists the known positions; `eps` is the deviation allowance. */
+function buildCopying({ kind, K, L, templates, letters, src, truth, novel, cutSites, order, eps, rho }) {
+  const knownSet = new Set(order);
+  const emitKnown = (i, h) => (templates[h][i] === truth[i] ? 1 - eps : eps);
   const emit = [];
-  for (let i = 0; i < L; i += 1) emit.push(gone.has(i) ? [1, 1] : [E[0][mood[i]], E[1][mood[i]]]);
+  for (let i = 0; i < L; i += 1) emit.push(Array.from({ length: K }, (_, h) => (knownSet.has(i) ? emitKnown(i, h) : 1)));
   const trellis = viterbiTrellis(emit, K, rho);
-  const stages = revealStages(K, L, order, (i, h) => E[h][mood[i]], rho).map((st) => {
+  const stages = revealStages(K, L, order, emitKnown, rho).map((st) => {
+    /* Per position: the posterior of value 1, the call, its confidence, the
+       Viterbi copy, and the majority fill — a known position is its own
+       observation, a blank one is the copy. */
     const sites = [];
-    let sure = 0, correct = 0, stateRight = 0;
+    let sure = 0, correct = 0, freqCorrect = 0, viterbiCorrect = 0;
     for (let i = 0; i < L; i += 1) {
-      const isKnown = st.known.has(i);
-      const p1 = st.gamma[i][0] * E[0][1] + st.gamma[i][1] * E[1][1];
-      const call = isKnown ? mood[i] : (p1 > 0.5 ? 1 : 0);
-      const conf = isKnown ? 1 : Math.max(p1, 1 - p1);
-      if (st.path[i] === src[i]) stateRight += 1;
-      if (gone.has(i)) {
-        if (conf >= 0.9) sure += 1;
-        if (call === mood[i]) correct += 1;
+      let p1 = 0, f1 = 0;
+      for (let h = 0; h < K; h += 1) {
+        const a = templates[h][i];
+        p1 += st.gamma[i][h] * (a === 1 ? 1 - eps : eps);
+        f1 += a;
       }
-      sites.push({ known: isKnown, blank: gone.has(i), p1, call, conf });
+      f1 /= K;
+      const isKnown = st.known.has(i);
+      const call = isKnown ? truth[i] : (p1 > 0.5 ? 1 : 0);
+      const conf = isKnown ? 1 : Math.max(p1, 1 - p1);
+      const viterbi = isKnown ? truth[i] : templates[st.path[i]][i];
+      const freqCall = f1 > 0.5 ? 1 : 0;
+      if (!knownSet.has(i)) {
+        if (conf >= 0.9) sure += 1;
+        if (call === truth[i]) correct += 1;
+        if (freqCall === truth[i]) freqCorrect += 1;
+        if (viterbi === truth[i]) viterbiCorrect += 1;
+      }
+      sites.push({ known: isKnown, blank: !knownSet.has(i), p1, call, conf, viterbi, freqCall });
     }
-    return { ...st, sites, blanks: m, sure, correct, stateRight };
+    return { ...st, sites, blanks: L - order.length, sure, correct, freqCorrect, viterbiCorrect };
   });
-  return { kind: "mood", K, L, E, rho, src, truthAllele: mood, gone, order, stages, trellis };
+  return {
+    kind, K, L, rho, eps,
+    panel: { hap: templates, letters },
+    sample: { src, allele: truth, novel, cutSites },
+    src, truthAllele: truth, novel, cutSites, order, stages, trellis,
+  };
+}
+
+/* ----------------------------------------------------------------------------
+   THE TOY TAB — the notebook's narrative. Two KNOWN patterns; a record that
+   follows one of them (changing `changes` times if asked), deviating from it
+   on a day with probability DEVIATE, with `missing` days unrecorded completely
+   at random. `notebook: true` reproduces cells 26–29 exactly: the two
+   five-day patterns, the record Happy ? ? Happy ?, no deviation. */
+export function buildToy({ rng, days, missing, changes, rho, notebook = false }) {
+  const K = 2;
+  let L, templates, src, truth, novel, cutSites, order;
+  if (notebook) {
+    L = NOTEBOOK.P1.length;
+    templates = [NOTEBOOK.P1.slice(), NOTEBOOK.P2.slice()];
+    src = new Array(L).fill(NOTEBOOK.follows);
+    truth = templates[NOTEBOOK.follows].slice();
+    novel = new Array(L).fill(false);
+    cutSites = [];
+    const gone = new Set(NOTEBOOK.gone);
+    order = [];
+    for (let i = 0; i < L; i += 1) if (!gone.has(i)) order.push(i);
+  } else {
+    L = days;
+    /* Two patterns that differ on at least a third of the days, so a record
+       can tell them apart with a few of its days. */
+    const need = Math.max(2, Math.ceil(L / 3));
+    do {
+      templates = [0, 1].map(() => Array.from({ length: L }, () => (rng.next() < 0.5 ? 1 : 0)));
+    } while (templates[0].filter((v, i) => v !== templates[1][i]).length < need);
+    cutSites = cutPoints(rng, L, changes, Math.max(2, Math.floor(L / 4)));
+    src = new Array(L); truth = new Array(L); novel = new Array(L).fill(false);
+    let h = rng.next() < 0.5 ? 1 : 0;
+    for (let i = 0; i < L; i += 1) {
+      if (cutSites.includes(i)) h = 1 - h;
+      src[i] = h;
+      truth[i] = templates[h][i];
+      if (rng.next() < DEVIATE) { truth[i] = 1 - truth[i]; novel[i] = true; }
+    }
+    const m = Math.min(missing, Math.max(0, L - 2));
+    const gone = new Set(shuffledIdx(rng, L).slice(0, m));
+    order = [];
+    for (let i = 0; i < L; i += 1) if (!gone.has(i)) order.push(i);
+  }
+  const letters = Array.from({ length: L }, () => ["S", "H"]);
+  return buildCopying({ kind: "mood", K, L, templates, letters, src, truth, novel, cutSites, order, eps: DEVIATE, rho });
 }
 
 /* ----------------------------------------------------------------------------
@@ -287,12 +357,7 @@ export function makePanel(rng, K, L, P = PANEL) {
    actually carries, and the sites where that allele is a novel variant. */
 export function makeSample(rng, panel, switches) {
   const K = panel.hap.length, L = panel.hap[0].length;
-  const cutSites = [];
-  for (const c of shuffledIdx(rng, L - 2 * MIN_SEG + 1).map((i) => i + MIN_SEG)) {
-    if (cutSites.length === switches) break;
-    if (cutSites.every((d) => Math.abs(d - c) >= MIN_SEG)) cutSites.push(c);
-  }
-  cutSites.sort((a, b) => a - b);
+  const cutSites = cutPoints(rng, L, switches, MIN_SEG);
   const src = new Array(L), allele = new Array(L), novel = new Array(L).fill(false);
   let h = Math.floor(rng.next() * K);
   for (let i = 0; i < L; i += 1) {
@@ -318,42 +383,9 @@ export function typedSites(L, every) {
 export function buildGenotype({ rng, K, L = L_DEFAULT, every, switches, rho, panelOpts }) {
   const panel = makePanel(rng, K, L, panelOpts);
   const sample = makeSample(rng, panel, switches);
-  const order = typedSites(L, every);
-  const typed = new Set(order);
-  const emitKnown = (i, h) => (panel.hap[h][i] === sample.allele[i] ? 1 - EPS : EPS);
-  /* The trellis over the whole array, for the animation. */
-  const emit = [];
-  for (let i = 0; i < L; i += 1) emit.push(Array.from({ length: K }, (_, h) => (typed.has(i) ? emitKnown(i, h) : 1)));
-  const trellis = viterbiTrellis(emit, K, rho);
-  const stages = revealStages(K, L, order, emitKnown, rho).map((st) => {
-    /* Per site: the posterior of allele 1, the call, its confidence, the
-       Viterbi copy, and the frequency fill — read from the copied haplotype,
-       so a typed site is its own observation and an untyped one is the copy. */
-    const sites = [];
-    let sure = 0, correct = 0, freqCorrect = 0, viterbiCorrect = 0;
-    for (let i = 0; i < L; i += 1) {
-      let p1 = 0, f1 = 0;
-      for (let h = 0; h < K; h += 1) {
-        const a = panel.hap[h][i];
-        p1 += st.gamma[i][h] * (a === 1 ? 1 - EPS : EPS);
-        f1 += a;
-      }
-      f1 /= K;
-      const isKnown = st.known.has(i);
-      const call = isKnown ? sample.allele[i] : (p1 > 0.5 ? 1 : 0);
-      const conf = isKnown ? 1 : Math.max(p1, 1 - p1);
-      const viterbi = isKnown ? sample.allele[i] : panel.hap[st.path[i]][i];
-      const freqCall = f1 > 0.5 ? 1 : 0;
-      if (!typed.has(i)) {
-        if (conf >= 0.9) sure += 1;
-        if (call === sample.allele[i]) correct += 1;
-        if (freqCall === sample.allele[i]) freqCorrect += 1;
-        if (viterbi === sample.allele[i]) viterbiCorrect += 1;
-      }
-      sites.push({ known: isKnown, blank: !typed.has(i), p1, call, conf, viterbi, freqCall });
-    }
-    return { ...st, sites, blanks: L - order.length, sure, correct, freqCorrect, viterbiCorrect };
+  return buildCopying({
+    kind: "genotype", K, L, templates: panel.hap, letters: panel.letters,
+    src: sample.src, truth: sample.allele, novel: sample.novel, cutSites: sample.cutSites,
+    order: typedSites(L, every), eps: EPS, rho,
   });
-  return { kind: "genotype", K, L, rho, panel, sample, src: sample.src, truthAllele: sample.allele,
-    novel: sample.novel, cutSites: sample.cutSites, order, stages, trellis };
 }

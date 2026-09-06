@@ -42,10 +42,9 @@
 
   <div class="rail">
     <label>step <input type="range" id="s" min="0" max="24" value="0"><span class="phase" id="phase"></span></label>
-    <label>days <input type="range" id="days" min="6" max="16" value="12"><output id="daysv">12</output></label>
+    <label>days <input type="range" id="days" min="5" max="16" value="12"><output id="daysv">12</output></label>
     <label>not recorded <input type="range" id="missing" min="0" max="6" value="3"><output id="missingv">3</output></label>
     <label>ρ <input type="range" id="rho" min="0" max="6" value="3"><output id="rhov">0.1</output></label>
-    <label>P(Happy | P2) <input type="range" id="happy" min="0" max="4" value="2"><output id="happyv">0.8</output></label>
     <label>seed <input type="range" id="seed" min="1" max="60" value="1"><output id="seedv">1</output></label>
     <label><input type="checkbox" id="truth"> true pattern</label>
   </div>
@@ -62,10 +61,9 @@ const T = readTokens();
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const FONT = css("--font");
 const RHOS = [0.005, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5];
-const HAPPY = [0.6, 0.7, 0.8, 0.9, 0.95];
 const W = 690, GUT = 66, LAB = 15, GAP = 16;
-const V = { s: 0, days: 12, missing: 3, rho: 3, happy: 2, seed: 1, truth: false };
-let S = null, TR = null, emit = null;
+const V = { s: 0, days: 12, missing: 3, rho: 3, seed: 1, truth: false };
+let S = null, TR = null, blank = null;
 
 const OPTS = [
   { id: "A", name: "Survivor paths",
@@ -88,10 +86,9 @@ const views = OPTS.map((o) => {
 });
 
 function build() {
-  S = M.buildMood({ rng: makeRng(V.seed * 7919 + 1), days: V.days, missing: V.missing, happy: HAPPY[V.happy], rho: RHOS[V.rho] });
-  emit = [];
-  for (let i = 0; i < S.L; i += 1) emit.push(S.gone.has(i) ? [1, 1] : [S.E[0][S.truthAllele[i]], S.E[1][S.truthAllele[i]]]);
-  TR = M.viterbiTrellis(emit, 2, S.rho);
+  S = M.buildToy({ rng: makeRng(V.seed * 7919 + 1), days: V.days, missing: V.missing, changes: 0, rho: RHOS[V.rho] });
+  blank = (i) => S.stages.at(-1).sites[i].blank;
+  TR = S.trellis;
   const sEl = document.getElementById("s");
   sEl.max = 2 * S.L;
   if (V.s > 2 * S.L) V.s = 2 * S.L;
@@ -140,7 +137,7 @@ function draw(view) {
   txt(ctx, gx - 6, obsY + cell / 2, "mood", T.ink3, "right", 10);
   for (let i = 0; i < L; i += 1) {
     const x = gx + i * cell;
-    if (S.gone.has(i)) { rectA(ctx, x, obsY, cell, cell, T.unknown, 0.16); border(ctx, x, obsY, cell, cell); txt(ctx, x + cell / 2, obsY + cell / 2, "?", T.ink3, "center", cell * 0.5, "600"); }
+    if (blank(i)) { rectA(ctx, x, obsY, cell, cell, T.unknown, 0.16); border(ctx, x, obsY, cell, cell); txt(ctx, x + cell / 2, obsY + cell / 2, "?", T.ink3, "center", cell * 0.5, "600"); }
     else { const a = S.truthAllele[i]; rectA(ctx, x, obsY, cell, cell, a ? T.ink2 : T.surface3); border(ctx, x, obsY, cell, cell); txt(ctx, x + cell / 2, obsY + cell / 2, a ? "H" : "S", a ? T.surface : T.ink1, "center", cell * 0.5, "600"); }
     if (i === fwd - 1 && back === 0 && fwd > 0) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, obsY + 1, cell - 2, cell - 2); }
   }
@@ -213,11 +210,11 @@ function render() {
   document.getElementById("phase").textContent = back > 0 ? `trace back ${back}/${L}` : fwd === 0 ? "start" : `forward ${fwd}/${L}`;
   for (const v of views) draw(v);
 }
-for (const id of ["s", "days", "missing", "rho", "happy", "seed"]) {
+for (const id of ["s", "days", "missing", "rho", "seed"]) {
   const el = document.getElementById(id), out = document.getElementById(id + "v");
   el.addEventListener("input", () => {
     V[id] = Number(el.value);
-    if (out) out.textContent = id === "rho" ? RHOS[V.rho] : id === "happy" ? HAPPY[V.happy] : el.value;
+    if (out) out.textContent = id === "rho" ? RHOS[V.rho] : el.value;
     if (id !== "s") build();
     render();
   });
