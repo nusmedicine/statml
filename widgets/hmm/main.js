@@ -377,7 +377,7 @@ defineWidget({
        and under The truth on the biological tab. */
     seq: {
       type: "section", label: "The sequence",
-      detail: "simulated: a record that follows one of two known patterns, with some days unrecorded. Seed 1 at five days is the worked example",
+      detail: "simulated: a record that follows one of two known patterns, with some days unrecorded. Seed 1 at five days is the worked example; any other seed or length draws two new patterns and a new record",
       when: { param: "view", equals: "toy" },
     },
 
