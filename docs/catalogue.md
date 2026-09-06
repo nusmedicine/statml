@@ -4398,6 +4398,26 @@ declared on the speed (4.1). A step carries the full choreography at a
 letter now fades with its tile, which it had not. The driver asserts the
 draw bar is a property of the speed and that a step carries it.
 
+### The Concept tab becomes the dishonest casino — 2026-09-06
+
+Kenneth, on the two senses of "pattern": *the student would see the same
+labels P1 and P2 and Happy / Sad on the Concept and Toy tabs and may get
+confused — another example for the Concept tab, or explain?* Another
+example, and the reason went past the labels: the Concept tab's Visible
+view showed the moods as states and its Hidden view relabelled the same
+walk as patterns, so "hiding" swapped one object for another rather than
+hiding anything. The tab is now the occasionally dishonest casino
+(Durbin, Eddy, Krogh & Mitchison 1998) with a coin for the die so E stays
+two by two: a fair coin and a loaded one, T for the casino's switching,
+E given by the coins (Heads 0.5 and 0.8). Visible, the walk is the coin in
+play each toss, F or L on open tiles; Hidden, that row becomes `?` and only
+the tosses are seen, filled Heads and open Tails. The count table is over
+coins, then over tosses, and says the tosses are not the coins. Each tab
+now owns one vocabulary: coins on the Concept, the notebook's P1 / P2 and
+moods on the Toy where a pattern is a template, haplotypes on the Biology.
+The toy's model section says its record follows one pattern day by day, so
+E puts 0.9 on that pattern's mood at each day. Default stay kept at 0.8.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

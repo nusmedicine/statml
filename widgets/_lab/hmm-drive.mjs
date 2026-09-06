@@ -130,13 +130,13 @@ console.log(`  walked ${combos} parameter settings`);
 {
   const params = { ...defaults, view: "concept" };
   const state = W.compute({ params, rng: makeRng(5) });
-  ck("concept: twenty days", state.L === 20 && state.src.length === 20 && state.mood.length === 20);
-  ck("concept: states and moods are 0/1", state.src.every((v) => v === 0 || v === 1) && state.mood.every((v) => v === 0 || v === 1));
+  ck("concept: twenty tosses", state.L === 20 && state.src.length === 20 && state.obs.length === 20);
+  ck("concept: coins and tosses are 0/1", state.src.every((v) => v === 0 || v === 1) && state.obs.every((v) => v === 0 || v === 1));
   ck("concept: T rows sum to 1", state.T.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-12));
-  ck("concept: E is the patterns' composition", state.E[0][1] === 0.4 && state.E[1][1] === 0.8);
+  ck("concept: E is the coins — fair 0.5, loaded 0.8 for Heads", state.E[0][1] === 0.5 && state.E[1][1] === 0.8);
   const hidden = W.compute({ params: { ...params, states: "hidden" }, rng: makeRng(5) });
-  ck("concept: hiding the states leaves the walk as it was", hidden.src.join() === state.src.join() && hidden.mood.join() === state.mood.join());
-  ck("concept: animation is one unit per day", animationUnits(state) === 20);
+  ck("concept: hiding the coin leaves the walk as it was", hidden.src.join() === state.src.join() && hidden.obs.join() === state.obs.join());
+  ck("concept: animation is one unit per toss", animationUnits(state) === 20);
   /* Over many walks the counted stay share sits on T's diagonal. */
   let st = 0, n = 0;
   for (let seed = 1; seed <= 300; seed += 1) { const S = W.compute({ params, rng: makeRng(seed) }); for (let k = 1; k < S.L; k += 1) { n += 1; if (S.src[k] === S.src[k - 1]) st += 1; } }

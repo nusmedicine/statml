@@ -299,26 +299,33 @@ function buildCopying({ kind, K, L, templates, letters, src, truth, novel, cutSi
 }
 
 /* ----------------------------------------------------------------------------
-   THE CONCEPT TAB — a two-state Markov chain walked for DAYS days, and the
-   moods each state would emit if the states were hidden. T's diagonal is
-   `stay`; E is the notebook's two patterns read as compositions — P1 is
-   Happy on 2 of its 5 days, P2 on 4 of 5 — which is where the notebook's
-   own emission table comes from. The walk and the moods are drawn here once,
-   so hiding the states on the figure changes what is SHOWN and nothing else. */
-export const CONCEPT_DAYS = 20;
-export const CONCEPT_E = [[0.6, 0.4], [0.2, 0.8]];   // E[state][mood]: Sad, Happy
+   THE CONCEPT TAB — the occasionally dishonest casino (Durbin, Eddy, Krogh &
+   Mitchison 1998), with a coin instead of a die so E stays two by two: a
+   fair coin and a loaded one, the casino switching between them with T
+   (diagonal `stay`), each toss showing Heads or Tails by E. State 0 is the
+   fair coin, 1 the loaded; toss 0 is Tails, 1 Heads. The walk and the
+   tosses are drawn here once, so hiding the coin on the figure changes what
+   is SHOWN and nothing else.
+
+   It replaced a mood version on 2026-09-06. That one used the notebook's
+   P1 / P2 and Happy / Sad, so the Concept tab and the Toy tab wore the same
+   labels in two senses — a pattern as a tendency, then as a template — and
+   its Visible view showed the moods as states, so "hiding" relabelled
+   rather than hid. Each tab now owns one vocabulary. */
+export const CONCEPT_TOSSES = 20;
+export const CONCEPT_E = [[0.5, 0.5], [0.2, 0.8]];   // E[coin][toss]: Tails, Heads
 
 export function buildConcept({ rng, stay }) {
-  const L = CONCEPT_DAYS;
+  const L = CONCEPT_TOSSES;
   const T = [[stay, 1 - stay], [1 - stay, stay]];
-  const src = new Array(L), mood = new Array(L);
+  const src = new Array(L), obs = new Array(L);
   let h = rng.next() < 0.5 ? 1 : 0;
   for (let i = 0; i < L; i += 1) {
     if (i > 0 && rng.next() >= stay) h = 1 - h;
     src[i] = h;
-    mood[i] = rng.next() < CONCEPT_E[h][1] ? 1 : 0;
+    obs[i] = rng.next() < CONCEPT_E[h][1] ? 1 : 0;
   }
-  return { kind: "concept", K: 2, L, stay, T, E: CONCEPT_E, src, mood };
+  return { kind: "concept", K: 2, L, stay, T, E: CONCEPT_E, src, obs };
 }
 
 /* ----------------------------------------------------------------------------
