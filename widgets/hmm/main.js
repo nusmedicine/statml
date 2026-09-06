@@ -660,16 +660,18 @@ defineWidget({
       if (params.truth) statePath(B, state.src, colors.reference, true);
     }
 
-    /* 4. The posterior strip, and the paths through it. On the toy the Viterbi
-       line lands here only once the trace-back has reached the first day. */
-    caption(Lo.strip, toy
-      ? "Posterior P(pattern | moods on record)"
-      : "Posterior P(copied haplotype | typed sites)");
+    /* 4. The posterior strip, and the paths through it. EMPTY until the
+       trace-back reaches the first position: drawn from the start it gave the
+       answer away — which pattern each day was in — before a single press
+       (2.1). It arrives with the Viterbi line, so the two readings of the
+       same record land together. */
+    caption(Lo.strip, (toy ? "Posterior P(pattern | moods on record)" : "Posterior P(copied haplotype | typed sites)")
+      + (traced ? "" : ", once the path is traced"));
     for (let h = 0; h < K; h += 1) {
       const y = Lo.strip.y + h * cell;
       rowLabel(y, stateName(h));
       for (let i = 0; i < L; i += 1) {
-        fill(cx(i), y, cell, cell, colors.posterior, beliefAlpha(stage.gamma[i][h]));
+        if (traced) fill(cx(i), y, cell, cell, colors.posterior, beliefAlpha(stage.gamma[i][h]));
         border(cx(i), y, cell, cell);
       }
     }
