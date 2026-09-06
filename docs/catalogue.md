@@ -4369,6 +4369,20 @@ posterior, imputed, truth — the record directly above the trellis that
 reads it, the repeated record row gone, the same top-to-bottom story on
 all three tabs.
 
+### The hover — 2026-09-06
+
+Kenneth: *hover over an edge and the relevant cell in the matrix is
+highlighted, and vice versa.* The band declares `pointer: true` (widget
+42's inspector channel). Each drawer computes its geometry once per frame
+— two states side by side, or K on a ring; the T and E cells — and the
+same geometry serves the hit-test and the drawing, so a hover cannot light
+the wrong edge. Under the pointer: a T cell lights its edge (a self-loop
+on the diagonal, the directed switch arrow off it; on the ring the chord
+is undirected, so the mirror cell lights too), an E cell lights its
+emission arrow, and an edge lights its cell. Nothing is written; with no
+pointer the figure is exactly as before, which is what the fingerprint
+hashes.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
