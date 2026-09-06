@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — four ways to animate one step of the walk</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; margin: 0 0 var(--sp-3); font-size: var(--fs-sm);
+          padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input#beat { width: 220px; }
+  .rail output { font-family: var(--font-mono); min-width: 3em; }
+  .rail button { font: inherit; padding: 3px 12px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — four ways to animate one step of the walk</h1>
+  <p class="note">
+    The same step on the Concept tab — the chain is in one state, draws the next from T's row, and a tile lands on
+    the record — choreographed four ways. <b>Beat</b> scrubs one step from 0 to 1; <b>Play</b> loops the first eight
+    days at the widget's Slow pace, 900ms a step. States hidden adds the emission: the mood the new state emits, and
+    how it gets to the record.
+  </p>
+  <div class="rail">
+    <label>day <input type="range" id="day" min="2" max="8" value="2"><output id="dayv">2</output></label>
+    <label>beat <input type="range" id="beat" min="0" max="100" value="50"><output id="beatv">0.50</output></label>
+    <button id="play">Play</button>
+    <label><input type="checkbox" id="hidden"> states hidden</label>
+  </div>
+  <div class="row" id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font");
+const S = M.buildConcept({ rng: makeRng(1), stay: 0.8 });
+const V = { day: 2, beat: 0.5, hidden: false };
+const W = 560, H = 300, GUT = 30;
+
+const OPTS = [
+  { id: "A", name: "As now: the arrow lights and fades", em: "highlight on the arrow taken, fading over the beat; the tile fades in",
+    why: "Quiet. It says which transition happened but not that anything moved, and at slow speed the fade is most of what you see." },
+  { id: "B", name: "A token walks the arrow", em: "a filled dot sits on the current state, travels the arrow or round the self-loop, and the destination pulses on arrival",
+    why: "The oldest picture of a Markov chain, a marble hopping between states, and the one students draw themselves. A self-loop becomes a visible lap rather than nothing. Costs: one more moving thing; the arrow itself stays quiet." },
+  { id: "C", name: "Draw from the row, then walk", em: "T's current row lights; a bar split by that row sweeps a marker that stops on the outcome; then the token walks; hidden, the mood drops to the record",
+    why: "Shows WHERE the randomness comes from — the row of T — before anything moves, which is the concept the tab exists for, and ties the matrix to the graph as the hover does. Costs: the busiest beat, three phases in 900ms; at Medium the sweep would have to go." },
+  { id: "D", name: "Flow along the arrow", em: "the current state fills; colour runs along the arrow taken as marching dashes; the destination fills as it arrives; the source empties",
+    why: "Reads as probability mass moving, without a separate token. Quieter than B, more motion than A. A self-loop is a running ring. Costs: dashes on a dashed emission arrow need care." },
+];
+
+const wall = document.getElementById("wall");
+const views = OPTS.map((o) => {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${o.id} · ${o.name} <em>— ${o.em}</em></h3><canvas></canvas><p class="why">${o.why}</p>`;
+  wall.appendChild(d);
+  return { o, canvas: d.querySelector("canvas") };
+});
+
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+const seg = (t, a, b) => clamp01((t - a) / (b - a));      // 0..1 across the sub-phase [a, b] of the beat
+
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = `${weight} ${size}px ${FONT}`.trim(); ctx.fillText(s, x, y);
+}
+function border(ctx, x, y, w, h) { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+function tile(ctx, x, y, a, c, letter, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = a === 1 ? T.theory : T.surface3; ctx.fillRect(x, y, c, c); ctx.restore(); border(ctx, x, y, c, c);
+  if (letter) { ctx.save(); ctx.globalAlpha = alpha; txt(ctx, x + c / 2, y + c / 2 + 0.5, letter, a === 1 ? T.surface : T.ink1, "center", Math.round(c * 0.5), "600"); ctx.restore(); }
+}
+
+/* Geometry shared by all four. */
+function geometry(hidden) {
+  const x0 = GUT, x1 = W - 190;
+  const mid = (x0 + x1) / 2, d = 80, R = 18, ts = 24;
+  const sy = 90, oy = 200;
+  return { mid, d, R, ts, sy, oy, S: [{ x: mid - d, y: sy }, { x: mid + d, y: sy }], O: [{ x: mid - d, y: oy + ts / 2 }, { x: mid + d, y: oy + ts / 2 }], hidden };
+}
+/* A point along the transition from state a to state b at fraction t: the
+   straight arrow, or a lap of the self-loop. */
+function alongTransition(g, a, b, t) {
+  const { S, R } = g;
+  if (a !== b) {
+    const off = a === 0 ? -5 : 5;
+    const ax = S[a].x + (a === 0 ? R : -R), bx = S[b].x + (a === 0 ? -R : R);
+    return { x: ax + (bx - ax) * t, y: S[a].y + off };
+  }
+  const side = a === 0 ? -1 : 1, cx = S[a].x + side * (R + 9), cy = S[a].y, r = 9;
+  const start = side > 0 ? -2.2 : 0.95 + Math.PI * 2, end = side > 0 ? 2.2 : 0.95;
+  const ang = start + (end - start) * t;
+  return { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) };
+}
+
+function drawGraph(ctx, g, { T2, E2, hidden, from, to, emit, lit, dashOffset, fillFrom, fillTo, tokenAt, tokenR }) {
+  const { S, O, R, ts, oy, mid } = g;
+  const label = (x, y, s, align = "center", colour = T.ink2) => txt(ctx, x, y, s, colour, align, 11);
+  const stroke = (on, dash) => {
+    ctx.strokeStyle = on ? T.highlight : T.ink3; ctx.fillStyle = on ? T.highlight : T.ink3; ctx.lineWidth = on ? 2.6 : 1.2;
+    if (dash) ctx.setLineDash(dash); if (on && dashOffset !== undefined && lit === "flow") { ctx.setLineDash([6, 6]); ctx.lineDashOffset = -dashOffset; }
+  };
+  const arrow = (ax, ay, bx, by, sA, sB, dash, on) => {
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    const sx = ax + ux * sA, syy = ay + uy * sA, ex = bx - ux * sB, ey = by - uy * sB;
+    ctx.save(); stroke(on, dash ? [3, 3] : null);
+    ctx.beginPath(); ctx.moveTo(sx, syy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 7 - uy * 4, ey - uy * 7 + ux * 4); ctx.lineTo(ex - ux * 7 + uy * 4, ey - uy * 7 - ux * 4); ctx.closePath(); ctx.fill(); ctx.restore();
+  };
+  const isT = (a, b) => (lit === "arrow" || lit === "flow") && from === a && to === b;
+  for (let s = 0; s < 2; s += 1) {
+    const fill = s === from ? fillFrom : s === to ? fillTo : 0;
+    ctx.save(); ctx.beginPath(); ctx.arc(S[s].x, S[s].y, R, 0, Math.PI * 2);
+    if (fill > 0) { ctx.globalAlpha = 0.25 * fill; ctx.fillStyle = T.highlight; ctx.fill(); ctx.globalAlpha = 1; }
+    if (hidden) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.stroke(); }
+    else { if (fill <= 0) { ctx.fillStyle = s === 1 ? T.theory : T.surface3; ctx.fill(); } ctx.strokeStyle = T.grid; ctx.stroke(); }
+    ctx.restore();
+    txt(ctx, S[s].x, S[s].y + 0.5, hidden ? `P${s + 1}` : (s === 1 ? "H" : "S"), hidden || fill > 0 ? T.ink1 : (s === 1 ? T.surface : T.ink1), "center", 13, "600");
+    const side = s === 0 ? -1 : 1, lx = S[s].x + side * (R + 9), ly = S[s].y;
+    ctx.save(); stroke(isT(s, s), null);
+    ctx.beginPath(); ctx.arc(lx, ly, 9, side > 0 ? -2.2 : 0.95, side > 0 ? 2.2 : 5.35); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    const tipX = S[s].x + side * R * 0.75, tipY = S[s].y + R * 0.66;
+    ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX + side * 6, tipY + 2); ctx.lineTo(tipX + side * 2, tipY - 6); ctx.closePath(); ctx.fill(); ctx.restore();
+    label(S[s].x + side * (R + 24), S[s].y - 13, T2[s][s].toFixed(2), side > 0 ? "left" : "right");
+  }
+  arrow(S[0].x, S[0].y - 5, S[1].x, S[1].y - 5, R + 1, R + 1, false, isT(0, 1));
+  arrow(S[1].x, S[1].y + 5, S[0].x, S[0].y + 5, R + 1, R + 1, false, isT(1, 0));
+  label(mid, S[0].y - 17, T2[0][1].toFixed(2)); label(mid, S[0].y + 18, T2[1][0].toFixed(2));
+  if (hidden) {
+    for (let s = 0; s < 2; s += 1) for (let o = 0; o < 2; o += 1) {
+      const on = (lit === "arrow" || lit === "flow") && s === to && o === emit;
+      arrow(S[s].x, S[s].y, O[o].x, O[o].y, R + 2, ts / 2 + 3, true, on);
+      const f = s === o ? 0.5 : 0.36, lx = S[s].x + (O[o].x - S[s].x) * f, ly = S[s].y + (O[o].y - S[s].y) * f;
+      const off = s === o ? (s === 0 ? -9 : 9) : (s === 0 ? -7 : 7);
+      label(lx + off, ly, E2[s][o].toFixed(2), off > 0 ? "left" : "right");
+    }
+    for (let o = 0; o < 2; o += 1) { tile(ctx, O[o].x - ts / 2, oy, o, ts, o ? "H" : "S"); label(O[o].x, oy + ts + 10, o ? "Happy" : "Sad"); }
+  }
+  if (tokenAt) {
+    ctx.save(); ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(tokenAt.x, tokenAt.y, tokenR ?? 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = T.surface; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  }
+}
+
+function drawTable(ctx, x0, y0, title, cols, rows, cells, hotRow, hotCell, cw = 40) {
+  txt(ctx, x0, y0 - 8, title, T.ink2);
+  for (let c = 0; c < 2; c += 1) txt(ctx, x0 + c * cw + cw / 2, y0 + 8, cols[c], T.ink3, "center", 10);
+  for (let r = 0; r < 2; r += 1) {
+    const y = y0 + 16 + r * cw;
+    txt(ctx, x0 - 6, y + cw / 2, rows[r], T.ink3, "right", 10);
+    for (let c = 0; c < 2; c += 1) {
+      if (hotRow === r) { ctx.save(); ctx.globalAlpha = hotCell === c ? 0.35 : 0.12; ctx.fillStyle = T.highlight; ctx.fillRect(x0 + c * cw + 1, y + 1, cw - 2, cw - 2); ctx.restore(); }
+      border(ctx, x0 + c * cw, y, cw, cw);
+      txt(ctx, x0 + c * cw + cw / 2, y + cw / 2, cells[r][c], T.ink1, "center", 12);
+    }
+  }
+}
+
+function draw({ o, canvas }) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const hidden = V.hidden, t = V.beat, i = V.day - 1;
+  const from = S.src[i - 1], to = S.src[i], emit = S.mood[i], stayed = from === to;
+  const T2 = S.T, E2 = S.E;
+  const g = geometry(hidden);
+  const names = hidden ? ["P1", "P2"] : ["S", "H"];
+  const tx = W - 150;
+
+  let spec = { T2, E2, hidden, from, to, emit, lit: null, fillFrom: 0, fillTo: 0, tokenAt: null };
+  let hotRow = null, hotCell = null;
+  let recordAlpha = 1, dropAt = null;
+
+  if (o.id === "A") {
+    spec.lit = "arrow"; spec.litAlpha = 1 - t * 0.6;
+    recordAlpha = t;
+  }
+  if (o.id === "B") {
+    const u = ease(seg(t, 0.1, 0.75));
+    spec.tokenAt = alongTransition(g, from, to, u);
+    spec.fillTo = seg(t, 0.75, 1) * (1 - 0.5 * seg(t, 0.9, 1));
+    spec.fillFrom = 1 - seg(t, 0.1, 0.4);
+    recordAlpha = seg(t, 0.75, 1);
+  }
+  if (o.id === "C") {
+    hotRow = from;
+    const drawU = seg(t, 0.05, 0.4);
+    hotCell = drawU >= 1 ? (stayed ? from : 1 - from) : null;
+    const u = ease(seg(t, 0.45, 0.8));
+    spec.tokenAt = drawU >= 1 ? alongTransition(g, from, to, u) : { x: g.S[from].x, y: g.S[from].y };
+    spec.fillTo = seg(t, 0.8, 1);
+    recordAlpha = hidden ? seg(t, 0.9, 1) : seg(t, 0.8, 1);
+    if (hidden) { const v = seg(t, 0.8, 1); dropAt = { x: g.S[to].x + (g.O[emit].x - g.S[to].x) * v, y: g.S[to].y + (g.O[emit].y - g.S[to].y) * v, alpha: v < 1 ? 1 : 0 }; }
+    /* the draw bar */
+    const bx = tx, by = 150, bw = 120, bh = 12;
+    txt(ctx, bx, by - 10, `draw from T's row for ${names[from]}`, T.ink2, "left", 10);
+    const pStay = T2[from][from];
+    ctx.fillStyle = T.surface3; ctx.fillRect(bx, by, bw, bh); border(ctx, bx, by, bw, bh);
+    ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = T.highlight; ctx.fillRect(bx, by, bw * pStay, bh); ctx.restore();
+    txt(ctx, bx + bw * pStay / 2, by + bh + 9, `stay ${pStay.toFixed(2)}`, T.ink3, "center", 9);
+    txt(ctx, bx + bw * (1 + pStay) / 2, by + bh + 9, `switch ${(1 - pStay).toFixed(2)}`, T.ink3, "center", 9);
+    const target = stayed ? pStay * 0.45 : pStay + (1 - pStay) * 0.55;
+    const sweep = 1 - Math.pow(1 - drawU, 3);
+    const mx = bx + bw * (target * sweep + (1 - sweep) * 0);
+    ctx.fillStyle = T.ink1; ctx.beginPath(); ctx.moveTo(mx, by - 2); ctx.lineTo(mx - 4, by - 8); ctx.lineTo(mx + 4, by - 8); ctx.closePath(); ctx.fill();
+  }
+  if (o.id === "D") {
+    spec.lit = "flow"; spec.dashOffset = t * 60;
+    spec.fillFrom = 1 - seg(t, 0.2, 0.8); spec.fillTo = seg(t, 0.3, 0.9);
+    recordAlpha = seg(t, 0.7, 1);
+  }
+  ctx.save();
+  if (o.id === "A") {
+    /* the arrow's fade: draw normally, then the lit arrow at the fading alpha */
+    drawGraph(ctx, g, { ...spec, lit: null });
+    ctx.globalAlpha = 1 - t * 0.6;
+    drawGraph(ctx, g, { ...spec, lit: "arrow" });
+  } else drawGraph(ctx, g, spec);
+  ctx.restore();
+
+  /* the tables */
+  drawTable(ctx, tx + 30, 26, "Transition T", names.map((n) => `to ${n}`), names, [[T2[0][0].toFixed(2), T2[0][1].toFixed(2)], [T2[1][0].toFixed(2), T2[1][1].toFixed(2)]], hotRow, hotCell);
+  if (hidden && o.id !== "C") drawTable(ctx, tx + 30, 150, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E2[0][0].toFixed(2), E2[0][1].toFixed(2)], [E2[1][0].toFixed(2), E2[1][1].toFixed(2)]], null, null);
+
+  /* the record: days 1..8, this one landing */
+  const cell = 28, ry = H - cell - 12;
+  txt(ctx, GUT, ry - 10, hidden ? "the record: the mood each day" : "the record: the state each day", T.ink2, "left", 11);
+  for (let k = 0; k < 8; k += 1) {
+    const x = GUT + k * cell;
+    if (k > i) { border(ctx, x, ry, cell, cell); continue; }
+    const a = hidden ? S.mood[k] : S.src[k];
+    tile(ctx, x, ry, a, cell, a ? "H" : "S", k === i ? recordAlpha : 1);
+  }
+  if (dropAt && dropAt.alpha > 0) tile(ctx, dropAt.x - 10, dropAt.y - 10, emit, 20, emit ? "H" : "S", 0.9);
+  txt(ctx, GUT + 8 * cell + 10, ry + cell / 2, `day ${i + 1}: ${names[from]} → ${names[to]}${hidden ? `, emits ${emit ? "Happy" : "Sad"}` : ""}`, T.ink3, "left", 10);
+}
+function render() { for (const v of views) draw(v); }
+
+const dayEl = document.getElementById("day"), beatEl = document.getElementById("beat");
+dayEl.addEventListener("input", () => { V.day = Number(dayEl.value); document.getElementById("dayv").textContent = dayEl.value; render(); });
+beatEl.addEventListener("input", () => { V.beat = Number(beatEl.value) / 100; document.getElementById("beatv").textContent = V.beat.toFixed(2); render(); });
+document.getElementById("hidden").addEventListener("change", (e) => { V.hidden = e.target.checked; render(); });
+let playing = false, t0 = 0;
+document.getElementById("play").addEventListener("click", () => {
+  playing = !playing; document.getElementById("play").textContent = playing ? "Stop" : "Play";
+  if (playing) { t0 = performance.now(); requestAnimationFrame(loop); }
+});
+function loop(now) {
+  if (!playing) return;
+  const elapsed = (now - t0) / 900;                 // the widget's Slow pace
+  const step = Math.floor(elapsed) % 7;             // days 2..8
+  V.day = 2 + step; V.beat = elapsed - Math.floor(elapsed);
+  dayEl.value = V.day; document.getElementById("dayv").textContent = V.day;
+  beatEl.value = Math.round(V.beat * 100); document.getElementById("beatv").textContent = V.beat.toFixed(2);
+  render(); requestAnimationFrame(loop);
+}
+render();
+</script>
+</body>
+</html>
