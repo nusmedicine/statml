@@ -334,18 +334,26 @@ defineWidget({
 
     seq: { type: "section", label: "The sequence" },
 
+    /* EVERY CONTROL SAYS WHAT KIND OF THING IT IS. Three kinds sit in one
+       rail and looked alike: SIMULATION dials that make a truth to compare
+       against (nobody sets these in practice), MODEL PARAMETERS (learnt from
+       data, or derived from a genetic map and the panel), and DESIGN CHOICES
+       (the two a study actually makes: panel size, array density). Kenneth's
+       review question, 2026-09-06: which are learnt from data, which does a
+       user tweak. The detail line answers it where the reader's hand is. */
     days: {
       type: "int", label: "Days", min: 6, max: 20, default: 12,
+      detail: "simulation: the length of the record",
       when: { param: "view", equals: "toy" },
     },
     missing: {
       type: "int", label: "Days not recorded", min: 0, max: 8, default: 3,
-      detail: "missing completely at random",
+      detail: "simulation: which days go unrecorded, completely at random",
       when: { param: "view", equals: "toy" },
     },
     happy: {
       type: "choice", label: "P(Happy) in pattern 2",
-      detail: "pattern 1 is Happy with one minus this",
+      detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this",
       options: HAPPY.map((v) => ({ value: v, label: v })),
       default: "0.8",
       when: { param: "view", equals: "toy" },
@@ -353,23 +361,25 @@ defineWidget({
 
     K: {
       type: "choice", label: "Reference haplotypes",
+      detail: "design choice: how many haplotypes were sequenced for the panel",
       options: KS.map((v) => ({ value: v, label: v })),
       default: "6",
       when: { param: "view", equals: "biological" },
     },
     every: {
       type: "choice", label: "Array types one site in",
+      detail: "design choice: how densely the array types",
       options: EVERY.map((v) => ({ value: v, label: v })),
       default: "4",
       when: { param: "view", equals: "biological" },
     },
     switches: {
       type: "int", label: "Recombination points", min: 0, max: 4, default: 2,
-      detail: "in the simulated sample's true haplotype, where its copied template changes; the decoder has to infer them",
+      detail: "simulation: where the sample's true copied template changes; the decoder has to infer them",
       when: { param: "view", equals: "biological" },
     },
 
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "simulation: another draw of the same setting" },
 
     truth: {
       type: "bool", label: "Show the ground truth", default: false, display: true,
@@ -394,7 +404,7 @@ defineWidget({
 
     rho: {
       type: "choice", label: "Switch rate ρ",
-      detail: "P(the hidden state changes between neighbours)",
+      detail: "model parameter: P(the hidden state changes between neighbours). Learnt from data on the toy; from a genetic map in imputation",
       options: RHOS.map((v) => ({ value: v, label: v })),
       default: "0.1",
     },
