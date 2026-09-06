@@ -29,12 +29,12 @@
                          candidates drawn, because 17px cells and K-1 losers
                          per node would not read.
 
-   THE FIGURE, top to bottom, the same on both tabs so the second reads as
-   the first grown up: the record (blanks where nothing was), the model (the
-   emission at the position being read, the states, the transition table),
-   the templates (two patterns / the panel), the Viterbi trellis, the
-   POSTERIOR over hidden states as a strip with the Viterbi path drawn
-   through it, the record again, and the imputed row, each call with its
+   THE FIGURE, top to bottom, the same on the toy and the biology so the
+   second reads as the first grown up: the model (the states as a graph, the
+   transition table, the emission at the position being read), the templates
+   (two patterns / the panel), the record (blanks where nothing was), the
+   Viterbi trellis, the POSTERIOR over hidden states as a strip with the
+   Viterbi path drawn through it, and the imputed row, each call with its
    probability. The true states go on the strip as a dashed path and the true
    observations in a final row, only when asked for — the same "reality never
    grants this" move as widget 25's true values.
@@ -113,20 +113,21 @@ function layout(w, v) {
   const cell = Math.min(MAX_CELL, Math.floor((w - GUT - 6) / L));
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
-  const obs = add(cell);
+  /* ORDER 3 of three in `_lab/hmm-layout.html` (Kenneth, 2026-09-06): the
+     model first, as the Concept tab has it; then the templates and the
+     record together, directly above the trellis that reads them; then the
+     posterior, the imputed row and the truth. The record used to open the
+     figure and be repeated above the imputed row; with it next to the
+     trellis the repeat is gone and all three tabs tell the same story top
+     to bottom: model, templates, record, algorithm, answer. */
   const model = add(bandH(K));
   const panel = add(K * cell);
+  const obs = add(cell);
   const trellis = add(K * cell);
   const strip = add(K * cell);
-  /* THE COMPARISON BLOCK: the observations again, directly above the imputed
-     row and the truth, so the three read as one stack. Kenneth, 2026-09-06:
-     "when I see imputed and ground truth, I don't know what was the original
-     SNP array sequence — I have to scroll to the top and it's hard to
-     compare." The top row stays: the walk reads it. */
-  const again = add(cell);
   const imp = add(cell + BAR_H);
   const truth = v.truth ? add(cell) : null;
-  return { cell, K, L, gx: GUT, obs, model, panel, trellis, strip, again, imp, truth, height: y - GAP + BOT };
+  return { cell, K, L, gx: GUT, obs, model, panel, trellis, strip, imp, truth, height: y - GAP + BOT };
 }
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
@@ -911,8 +912,8 @@ defineWidget({
     /* The site the walk is at: the column being computed, or being traced. */
     const walkSite = back > 0 ? Math.max(0, L - back) : Math.max(0, fwd - 1);
 
-    /* 1. The observations, the whole record from the start: the algorithm
-       runs over it. */
+    /* 1. The record, the whole of it from the start, drawn directly above the
+       trellis that reads it. */
     caption(Lo.obs, toy
       ? `Moods on record: ${state.order.length} of ${L} days`
       : `Array genotypes: ${state.order.length} typed sites of ${L}`);
@@ -1033,16 +1034,9 @@ defineWidget({
     if (params.truth) statePath(Lo.strip, state.src, colors.reference, true);
     if (traced) statePath(Lo.strip, state.trellis.path, colors.empirical, false);
 
-    /* 5. The comparison block: the observations again, then the imputed row —
-       read off the decoded state once the trace-back is complete, with the
-       posterior probability of that value, the bar running from 0.5 to 1 —
-       then the truth on request. */
-    caption(Lo.again, toy ? "Moods on record" : "Array, as typed");
-    rowLabel(Lo.again.y, toy ? "mood" : "array");
-    for (let i = 0; i < L; i += 1) {
-      if (stage.sites[i].blank) unknownCell(cx(i), Lo.again.y, true);
-      else tile(cx(i), Lo.again.y, state.truthAllele[i], 1, cell, i);
-    }
+    /* 5. The imputed row — read off the decoded state once the trace-back is
+       complete, with the posterior probability of that value, the bar running
+       from 0.5 to 1 — then the truth on request. */
     caption(Lo.imp, toy ? "Imputed mood from the decoded pattern, and its posterior probability"
       : "Imputed allele from the decoded haplotype, and its posterior probability");
     rowLabel(Lo.imp.y, "imputed");
