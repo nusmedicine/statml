@@ -5,14 +5,15 @@
    intentional missing data of a SNP array, filled from a reference panel with
    an HMM. Two tabs in the notebook's own order, on ONE decoder (model.js):
 
-     Toy model           the notebook's own narrative: two KNOWN mood
-                         patterns, P1 and P2, and a record that follows one
-                         of them with some days unrecorded. The hidden state
-                         is which pattern the record is following; a missing
-                         day is read off the decoded pattern. Seed 1 at five
-                         days is the notebook's exact example. Its animation
-                         is THE VITERBI ALGORITHM — the trellis forward one
-                         column at a time, then the trace-back.
+     Toy model           the notebook's own narrative: two KNOWN five-day
+                         mood patterns, P1 and P2, and a record that follows
+                         one of them with some days unrecorded. The hidden
+                         state is which pattern the record is following; a
+                         missing day is read off the decoded pattern. Seed 1
+                         with three days missing is the notebook's exact
+                         example. Its animation is THE VITERBI ALGORITHM —
+                         the trellis forward one column at a time, then the
+                         trace-back.
      Biological example  the reference panel IS the emission table (K
                          haplotypes by L sites), the hidden state is which
                          haplotype the sample is copying, and recombination
@@ -45,13 +46,18 @@
    truth. So both tabs run the same animation, and the trellis simply drops
    its numbers and its losing edges where the cells are small.
 
-   THE TOY WAS REBUILT ONCE. It opened with a stochastic emission — a pattern
-   was Happy with probability 0.8, set by a dial that also generated the
-   truth — and Kenneth hit both faults at once: turning the dials remade the
-   world rather than the model, and a mood drawn from its pattern could not
-   be reconstructed, only given a probability. Rebuilt 2026-09-06 on the
-   notebook's narrative: known patterns, emission read off them day by day,
-   the same copying model as the biology at two templates.
+   THE TOY WAS REBUILT ONCE, THEN SIMPLIFIED. It opened with a stochastic
+   emission — a pattern was Happy with probability 0.8, set by a dial that
+   also generated the truth — and Kenneth hit both faults at once: turning
+   the dials remade the world rather than the model, and a mood drawn from
+   its pattern could not be reconstructed, only given a probability. Rebuilt
+   2026-09-06 on the notebook's narrative: known patterns, emission read off
+   them day by day, the same copying model as the biology at two templates.
+   Then, the same day, the degrees of freedom came out: no length, no
+   pattern changes, no switch-rate dial on either tab, one recombination
+   point on the biology. What is left to set is what is missing, the panel,
+   the array density and the seed — and the switch rate is fixed at the
+   value that decodes best (model.js, RHO).
 
    Every stage of the animation is precomputed in compute(); a beat only
    fades one column in.
@@ -61,7 +67,6 @@ import { defineWidget } from "../core/index.js";
 import * as M from "./model.js";
 
 /* Option lists. Choice keys are strings on the wire; Number() them at use. */
-const RHOS = ["0.005", "0.02", "0.05", "0.1", "0.2", "0.35", "0.5"];
 const KS = ["2", "3", "4", "6", "8"];
 const EVERY = ["2", "3", "4", "6", "9"];
 
@@ -88,7 +93,7 @@ const BAR_H = 6;               // the probability bar under an imputed call
 
 function layout(w, v) {
   const toy = v.view === "toy";
-  const L = toy ? v.days : M.L_DEFAULT;
+  const L = toy ? M.NOTEBOOK.P1.length : M.L_DEFAULT;
   const K = toy ? 2 : Number(v.K);
   const cell = Math.min(MAX_CELL, Math.floor((w - GUT - 6) / L));
   let y = TOP;
@@ -355,7 +360,7 @@ defineWidget({
         { token: "empirical", label: "Survivor path into a node; once traced, the most likely copied haplotype at every site", mark: "line" },
         { token: "posterior", label: "Posterior: which haplotype is being copied", mark: "bar" },
       ];
-    if (params.truth) entries.push({ token: "reference", label: toy ? "True pattern" : "True copying path", mark: "dash" });
+    if (params.truth) entries.push({ token: "reference", label: toy ? "Ground truth: the pattern the record follows" : "Ground truth: the segments the sample copies", mark: "dash" });
     return entries;
   },
 
@@ -374,10 +379,12 @@ defineWidget({
        the design (the two choices a study makes), the truth (simulated, so the
        imputation can be checked), then the model. `seed` and the truth toggle
        are one field each, placed so they fall under The sequence on the toy
-       and under The truth on the biological tab. */
+       and under The truth on the biological tab. The model sections carry no
+       control any more — the switch rate is fixed — and stay for their one
+       line: where the numbers on the figure come from. */
     seq: {
       type: "section", label: "The sequence",
-      detail: "simulated: a record that follows one of two known patterns, with some days unrecorded. Seed 1 at five days is the worked example; any other seed or length draws two new patterns and a new record",
+      detail: "simulated: the record follows one of the two patterns, with some days unrecorded. Seed 1 with three missing is the worked example; another seed picks the pattern and the days",
       when: { param: "view", equals: "toy" },
     },
 
@@ -388,19 +395,9 @@ defineWidget({
        (the two a study actually makes: panel size, array density). Kenneth's
        review question, 2026-09-06: which are learnt from data, which does a
        user tweak. The detail line answers it where the reader's hand is. */
-    days: {
-      type: "int", label: "Days", min: 5, max: 20, default: 5,
-      detail: "simulation: the length of the record",
-      when: { param: "view", equals: "toy" },
-    },
     missing: {
-      type: "int", label: "Days not recorded", min: 0, max: 8, default: 3,
+      type: "int", label: "Days not recorded", min: 0, max: 4, default: 3,
       detail: "simulation: which days go unrecorded, completely at random",
-      when: { param: "view", equals: "toy" },
-    },
-    changes: {
-      type: "int", label: "Pattern changes", min: 0, max: 2, default: 0,
-      detail: "simulation: where the record's true pattern changes; the decoder has to infer them",
       when: { param: "view", equals: "toy" },
     },
 
@@ -423,12 +420,7 @@ defineWidget({
     },
     truthBio: {
       type: "section", label: "The truth",
-      detail: "simulated, so the imputation can be checked",
-      when: { param: "view", equals: "biological" },
-    },
-    switches: {
-      type: "int", label: "Recombination points", min: 0, max: 4, default: 2,
-      detail: "simulation: where the sample's true copied template changes; the decoder has to infer them",
+      detail: "simulated, with one recombination point, so the imputation can be checked",
       when: { param: "view", equals: "biological" },
     },
 
@@ -445,23 +437,19 @@ defineWidget({
     modelToy: {
       type: "section", label: "The model",
       detail: "The two patterns are known, so E is read off them at each day, with 0.1 "
-        + "allowed for a day that deviates. T is the switch rate. In practice both are "
-        + "counted from sequences whose patterns are known, or fitted by expectation–maximisation.",
+        + "allowed for a day that deviates. T is fixed at a switch rate of 0.10. In practice "
+        + "both are counted from sequences whose patterns are known, or fitted by "
+        + "expectation–maximisation.",
       when: { param: "view", equals: "toy" },
     },
     modelBio: {
       type: "section", label: "The model",
-      detail: "T is the switch rate ρ, shared over the other haplotypes. E is read "
-        + "off the reference panel at each site, with 0.02 allowed for a mismatch.",
+      detail: "T is fixed at a switch rate of 0.10, shared over the other haplotypes; in "
+        + "practice it comes from a genetic map. E is read off the reference panel at each "
+        + "site, with 0.02 allowed for a mismatch.",
       when: { param: "view", equals: "biological" },
     },
 
-    rho: {
-      type: "choice", label: "Switch rate ρ",
-      options: RHOS.map((v) => ({ value: v, label: v,
-        detail: "model parameter: P(the hidden state changes between neighbours). Learnt from data on the toy; from a genetic map in imputation" })),
-      default: "0.1",
-    },
 
     speed: {
       type: "choice", label: "Play speed",
@@ -475,14 +463,10 @@ defineWidget({
   },
 
   compute: ({ params, rng }) => {
-    const rho = Number(params.rho);
-    if (params.view === "toy") {
-      /* The notebook's own case, verbatim, at the defaults; any other setting
-         draws two new patterns and a record from the seed. */
-      const notebook = params.days === 5 && params.missing === 3 && params.changes === 0 && params.seed === 1;
-      return M.buildToy({ rng, days: params.days, missing: params.missing, changes: params.changes, rho, notebook });
-    }
-    return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every), switches: params.switches, rho });
+    /* Seed 1 with three days missing is the notebook's own case, verbatim;
+       the builder recognises it from the seed. */
+    if (params.view === "toy") return M.buildToy({ rng, missing: params.missing, seed: params.seed });
+    return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every) });
   },
 
   animation: {
@@ -616,11 +600,29 @@ defineWidget({
     /* 2. The model — emission at the column being read, the states, the
        transition — then the templates it reads from. */
     drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName });
-    caption(Lo.panel, toy ? "The two patterns, known" : `Reference panel: ${K} sequenced haplotypes`);
+    caption(Lo.panel, toy
+      ? (params.truth ? "The two patterns, known — the record follows the boxed one" : "The two patterns, known")
+      : (params.truth ? `Reference panel: ${K} sequenced haplotypes — the sample copies the boxed segments` : `Reference panel: ${K} sequenced haplotypes`));
     for (let h = 0; h < K; h += 1) {
       const y = Lo.panel.y + h * cell;
       rowLabel(y, stateName(h));
       for (let i = 0; i < L; i += 1) tile(cx(i), y, state.panel.hap[h][i], 1, cell, i);
+    }
+    if (params.truth) {
+      /* THE GROUND TRUTH WHERE IT CAN BE READ: a box round each run of the
+         template the record actually follows, so a student sees the record
+         come out of P2, or out of h2 then h4 (Kenneth, 2026-09-06). */
+      ctx.save();
+      ctx.strokeStyle = colors.reference; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]); ctx.lineJoin = "round";
+      let start = 0;
+      for (let i = 1; i <= L; i += 1) {
+        if (i === L || state.src[i] !== state.src[start]) {
+          const y = Lo.panel.y + state.src[start] * cell;
+          ctx.strokeRect(cx(start) + 1.5, y + 1.5, (i - start) * cell - 3, cell - 3);
+          start = i;
+        }
+      }
+      ctx.restore();
     }
     if (fwd > 0 && back === 0) {
       /* The template column the trellis is reading: the emission at this position. */

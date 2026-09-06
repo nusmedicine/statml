@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — four palettes for the tiles</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; font-family: var(--font-mono); }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; }
+  .rail { display: flex; gap: var(--sp-4); align-items: center; margin: 0 0 var(--sp-3); font-size: var(--fs-sm);
+          padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — four palettes for the tiles</h1>
+  <p class="note">
+    The same traced toy (seed 1, the notebook's example) and the same twelve sites of the biological tab under
+    four colour schemes, every one built from tokens that already exist. What changes is the two tile values —
+    Happy/Sad, alternate/reference allele — and, where the tiles take the trellis's blue, the trellis colour.
+    The posterior stays violet throughout; the ground-truth box stays the reference grey.
+    <b>Toggle the theme</b> with the switch in the widget header to judge both; this page follows it.
+  </p>
+  <div class="rail"><label><input type="checkbox" id="truth" checked> ground truth boxed</label></div>
+  <div class="row" id="wall"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font");
+const tok = (n) => css(n);
+
+/* Each palette: the two tile fills, their letter colours, the trellis colour. */
+const PALETTES = [
+  { id: "A", name: "As now: ink and paper",
+    filled: T.ink2, open: T.surface3, letterOnFilled: T.surface, letterOnOpen: T.ink1, trellis: T.empirical, wash: null,
+    tokens: "--ink-2 / --surface-3 · trellis --c-empirical",
+    why: "Neutral data, coloured machinery: the blue trellis and violet posterior are the only hues, so the eye goes to the algorithm. Kenneth: a bit drab." },
+  { id: "B", name: "Warm data, cool machinery",
+    filled: tok("--c-theory"), open: T.surface3, letterOnFilled: T.surface, letterOnOpen: T.ink1, trellis: T.empirical, wash: null,
+    tokens: "--c-theory / --surface-3 · trellis --c-empirical",
+    why: "One warm hue for the filled value against the blue trellis and violet posterior. Reads as data versus computation. --c-theory is the claim a fit is checked against, which a known template arguably is." },
+  { id: "C", name: "Two poles",
+    filled: tok("--c-value-high"), open: tok("--c-value-low"), letterOnFilled: T.surface, letterOnOpen: T.ink1, trellis: tok("--c-smoothed"), wash: 0.22,
+    tokens: "--c-value-high / --c-value-low (22% wash) · trellis --c-smoothed",
+    why: "The heatmap's low/high pair, as widget 42 uses for below/above average: two ends of one variable, which two alleles are. The open tile becomes a pale blue wash, so the trellis moves to aqua." },
+  { id: "D", name: "Two arms",
+    filled: tok("--c-group-a"), open: tok("--c-group-b"), letterOnFilled: T.surface, letterOnOpen: T.ink1, trellis: tok("--c-smoothed"), wash: null,
+    tokens: "--c-group-a / --c-group-b · trellis --c-smoothed",
+    why: "Blue and yellow, both saturated: the most legible pair at a distance and the one the clustering widgets use for two groups. Busiest: every tile is coloured, so the trellis moves to aqua and the posterior violet has more to compete with." },
+];
+
+const toy = M.buildToy({ rng: makeRng(1), missing: 3, seed: 1 });
+const bio = M.buildGenotype({ rng: makeRng(1), K: 6, every: 4 });
+const V = { truth: true };
+
+const wall = document.getElementById("wall");
+const views = PALETTES.map((p) => {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${p.id} · ${p.name}</h3><canvas></canvas><p class="cap">${p.tokens}</p><p class="why">${p.why}</p>`;
+  wall.appendChild(d);
+  return { p, canvas: d.querySelector("canvas") };
+});
+
+function draw({ p, canvas }) {
+  const W = 290, GUT = 46, LAB = 14, GAP = 12;
+  const cell = 36, bcell = 17, BL = 12;
+  let y = 6;
+  const block = (rows, c) => { const b = { y: y + LAB, h: rows * c }; y += LAB + rows * c + GAP; return b; };
+  const rec = block(1, cell), pat = block(2, cell), tre = block(2, cell), post = block(2, cell), imp = block(1, cell + 6);
+  const brec = block(1, bcell), bpan = block(6, bcell), bimp = block(1, bcell + 5);
+  const H = y - GAP + 6;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const text = (x, yy, s, colour, align = "left", font = `11px ${FONT}`) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.font = font; ctx.fillText(s, x, yy); };
+  const border = (x, yy, w, h) => { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, yy + 0.5, w - 1, h - 1); };
+  const tile = (x, yy, a, c, letter) => {
+    ctx.save();
+    if (a === 0 && p.wash !== null) { ctx.fillStyle = T.surface; ctx.fillRect(x, yy, c, c); ctx.globalAlpha = p.wash; }
+    ctx.fillStyle = a === 1 ? p.filled : p.open; ctx.fillRect(x, yy, c, c);
+    ctx.restore();
+    border(x, yy, c, c);
+    if (letter) text(x + c / 2, yy + c / 2 + 0.5, letter, a === 1 ? p.letterOnFilled : p.letterOnOpen, "center", `600 ${Math.round(c * (c > 24 ? 0.5 : 0.6))}px ${FONT}`);
+  };
+  const unknown = (x, yy, c, mark) => { ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = T.unknown; ctx.fillRect(x, yy, c, c); ctx.restore(); border(x, yy, c, c); if (mark) text(x + c / 2, yy + c / 2 + 0.5, "?", T.ink3, "center", `600 ${Math.round(c * 0.5)}px ${FONT}`); };
+  const cap = (b, s) => text(GUT, b.y - LAB / 2 - 1, s, T.ink2);
+  const truthBox = (S, b, c, n) => {
+    if (!V.truth) return;
+    ctx.save(); ctx.strokeStyle = T.reference; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]);
+    let start = 0;
+    for (let i = 1; i <= n; i += 1) if (i === n || S.src[i] !== S.src[start]) { ctx.strokeRect(GUT + start * c + 1.5, b.y + S.src[start] * c + 1.5, (i - start) * c - 3, c - 3); start = i; }
+    ctx.restore();
+  };
+
+  /* Toy. */
+  const last = toy.stages.at(-1);
+  cap(rec, "Moods on record");
+  for (let i = 0; i < 5; i += 1) last.sites[i].blank ? unknown(GUT + i * cell, rec.y, cell, true) : tile(GUT + i * cell, rec.y, toy.truthAllele[i], cell, toy.truthAllele[i] ? "H" : "S");
+  cap(pat, "The two patterns");
+  for (let h = 0; h < 2; h += 1) for (let i = 0; i < 5; i += 1) tile(GUT + i * cell, pat.y + h * cell, toy.panel.hap[h][i], cell, toy.panel.hap[h][i] ? "H" : "S");
+  truthBox(toy, pat, cell, 5);
+  cap(tre, "Viterbi trellis, traced");
+  const TR = toy.trellis, R = Math.round(cell * 0.32);
+  for (let i = 1; i < 5; i += 1) for (let h = 0; h < 2; h += 1) {
+    const from = TR.back[i][h], lit = TR.path[i] === h && TR.path[i - 1] === from;
+    ctx.save(); ctx.strokeStyle = lit ? p.trellis : T.ink3; ctx.globalAlpha = lit ? 1 : 0.3; ctx.lineWidth = lit ? 3.5 : 1.4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(GUT + (i - 1) * cell + cell / 2, tre.y + from * cell + cell / 2); ctx.lineTo(GUT + i * cell + cell / 2, tre.y + h * cell + cell / 2); ctx.stroke(); ctx.restore();
+  }
+  for (let i = 0; i < 5; i += 1) for (let h = 0; h < 2; h += 1) {
+    const x = GUT + i * cell + cell / 2, yy = tre.y + h * cell + cell / 2, on = TR.path[i] === h;
+    ctx.beginPath(); ctx.arc(x, yy, R, 0, Math.PI * 2);
+    ctx.save(); ctx.globalAlpha = (0.05 + 0.88 * TR.score[i][h]) * (on ? 1 : 0.35); ctx.fillStyle = p.trellis; ctx.fill(); ctx.restore();
+    ctx.strokeStyle = on ? p.trellis : T.grid; ctx.lineWidth = on ? 2.5 : 1; ctx.stroke();
+    text(x, yy + 0.5, TR.score[i][h].toFixed(2), TR.score[i][h] > 0.55 && on ? T.surface : T.ink1, "center", `11px ${FONT}`);
+  }
+  cap(post, "Posterior, and the path");
+  for (let h = 0; h < 2; h += 1) for (let i = 0; i < 5; i += 1) { ctx.save(); ctx.globalAlpha = 0.05 + 0.88 * last.gamma[i][h]; ctx.fillStyle = T.posterior; ctx.fillRect(GUT + i * cell, post.y + h * cell, cell, cell); ctx.restore(); border(GUT + i * cell, post.y + h * cell, cell, cell); }
+  ctx.save(); ctx.strokeStyle = p.trellis; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i < 5; i += 1) { const yy = post.y + TR.path[i] * cell + cell / 2; i ? ctx.lineTo(GUT + i * cell + cell / 2, yy) : ctx.moveTo(GUT + i * cell + cell / 2, yy); }
+  ctx.stroke(); ctx.restore();
+  cap(imp, "Imputed, with its probability");
+  for (let i = 0; i < 5; i += 1) {
+    const a = toy.panel.hap[TR.path[i]][i];
+    tile(GUT + i * cell, imp.y, a, cell, a ? "H" : "S");
+    if (last.sites[i].blank) { const pr = a ? last.sites[i].p1 : 1 - last.sites[i].p1; ctx.fillStyle = T.posterior; ctx.fillRect(GUT + i * cell + 1, imp.y + cell + 1, (cell - 2) * Math.max(0, (pr - 0.5) / 0.5), 4); }
+  }
+
+  /* Biology, twelve sites. */
+  const bl = bio.stages.at(-1);
+  cap(brec, "Array, twelve sites");
+  for (let i = 0; i < BL; i += 1) bl.sites[i].blank ? unknown(GUT + i * bcell, brec.y, bcell, true) : tile(GUT + i * bcell, brec.y, bio.truthAllele[i], bcell, bio.panel.letters[i][bio.truthAllele[i]]);
+  cap(bpan, "Reference panel");
+  for (let h = 0; h < 6; h += 1) for (let i = 0; i < BL; i += 1) tile(GUT + i * bcell, bpan.y + h * bcell, bio.panel.hap[h][i], bcell, bio.panel.letters[i][bio.panel.hap[h][i]]);
+  truthBox(bio, bpan, bcell, BL);
+  cap(bimp, "Imputed");
+  for (let i = 0; i < BL; i += 1) {
+    const a = bio.panel.hap[bio.trellis.path[i]][i];
+    tile(GUT + i * bcell, bimp.y, a, bcell, bio.panel.letters[i][a]);
+    if (bl.sites[i].blank) { const pr = a ? bl.sites[i].p1 : 1 - bl.sites[i].p1; ctx.fillStyle = T.posterior; ctx.fillRect(GUT + i * bcell + 1, bimp.y + bcell + 1, (bcell - 2) * Math.max(0, (pr - 0.5) / 0.5), 3); }
+  }
+}
+function render() { for (const v of views) draw(v); }
+document.getElementById("truth").addEventListener("change", (e) => { V.truth = e.target.checked; render(); });
+render();
+</script>
+</body>
+</html>

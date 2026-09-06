@@ -42,9 +42,7 @@
 
   <div class="rail">
     <label>step <input type="range" id="s" min="0" max="24" value="0"><span class="phase" id="phase"></span></label>
-    <label>days <input type="range" id="days" min="5" max="16" value="12"><output id="daysv">12</output></label>
-    <label>not recorded <input type="range" id="missing" min="0" max="6" value="3"><output id="missingv">3</output></label>
-    <label>ρ <input type="range" id="rho" min="0" max="6" value="3"><output id="rhov">0.1</output></label>
+    <label>not recorded <input type="range" id="missing" min="0" max="4" value="3"><output id="missingv">3</output></label>
     <label>seed <input type="range" id="seed" min="1" max="60" value="1"><output id="seedv">1</output></label>
     <label><input type="checkbox" id="truth"> true pattern</label>
   </div>
@@ -60,9 +58,8 @@ import * as M from "../hmm/model.js";
 const T = readTokens();
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const FONT = css("--font");
-const RHOS = [0.005, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5];
 const W = 690, GUT = 66, LAB = 15, GAP = 16;
-const V = { s: 0, days: 12, missing: 3, rho: 3, seed: 1, truth: false };
+const V = { s: 0, missing: 3, seed: 1, truth: false };
 let S = null, TR = null, blank = null;
 
 const OPTS = [
@@ -86,7 +83,7 @@ const views = OPTS.map((o) => {
 });
 
 function build() {
-  S = M.buildToy({ rng: makeRng(V.seed * 7919 + 1), days: V.days, missing: V.missing, changes: 0, rho: RHOS[V.rho] });
+  S = M.buildToy({ rng: makeRng(V.seed * 7919 + 1), missing: V.missing, seed: V.seed });
   blank = (i) => S.stages.at(-1).sites[i].blank;
   TR = S.trellis;
   const sEl = document.getElementById("s");
@@ -210,11 +207,11 @@ function render() {
   document.getElementById("phase").textContent = back > 0 ? `trace back ${back}/${L}` : fwd === 0 ? "start" : `forward ${fwd}/${L}`;
   for (const v of views) draw(v);
 }
-for (const id of ["s", "days", "missing", "rho", "seed"]) {
+for (const id of ["s", "missing", "seed"]) {
   const el = document.getElementById(id), out = document.getElementById(id + "v");
   el.addEventListener("input", () => {
     V[id] = Number(el.value);
-    if (out) out.textContent = id === "rho" ? RHOS[V.rho] : el.value;
+    if (out) out.textContent = el.value;
     if (id !== "s") build();
     render();
   });

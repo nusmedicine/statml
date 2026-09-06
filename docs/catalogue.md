@@ -4248,6 +4248,30 @@ gone; Pattern changes (0–2) replaces it as the toy's counterpart of
 recombination points; the model block is the same ring, emission-at-a-day
 and T on both tabs, with two states drawn side by side. Days default 5.
 
+### Simplified — 2026-09-06, Kenneth: "reduce the degrees of freedom"
+
+Toy: five days only, the notebook's two patterns always; what is missing
+and the seed are the only dials; no pattern changes, no deviations. Biology:
+the panel size, the array density and the seed; the truth keeps ONE
+recombination point. **The switch rate is fixed at 0.10 on both tabs**,
+measured as within noise of the best (toy: every record decoded at any
+ρ ≤ 0.3; biology with one recombination point: 86.0% of blanks right at
+0.02, 87.3% at 0.1, 87.4% at 0.2–0.3) and the notebook's own genotype
+value. **The ground truth is drawn where it can be read**: a dashed box
+round each run of the template the record actually follows, on the
+patterns and on the panel, so a student sees the record come out of P2, or
+out of h1 then h4. The model sections keep their one line each with no
+control beneath — where the numbers come from, and that T is fixed.
+
+Also asked: a less drab colour scheme. `_lab/hmm-palette.html` draws the
+traced toy and twelve biological sites under four schemes, all from
+existing tokens: A as now (ink and paper), B warm data on cool machinery
+(`--c-theory` filled), C two poles (`--c-value-high` / `--c-value-low`
+wash, trellis to aqua), D two arms (`--c-group-a` / `--c-group-b`,
+trellis to aqua). Not picked yet. A new semantic role for "the two values
+of one variable" would be the clean answer and is a `tokens.css` change,
+which means the full fingerprint suite.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

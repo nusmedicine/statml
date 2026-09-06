@@ -34,15 +34,15 @@ const ck = (name, ok, extra = "") => {
 /* 1. The contract — by name. */
 for (const key of ["slug", "title", "subtitle", "status", "layout", "height", "params", "legend", "compute", "draw", "readout", "animation"])
   ck(`declares \`${key}\``, W[key] != null);
-const WANT = { view: "segmented", days: "int", missing: "int", changes: "int", K: "choice", every: "choice",
-  switches: "int", seed: "int", truth: "bool", rho: "choice", speed: "choice", shown: "int" };
+const WANT = { view: "segmented", missing: "int", K: "choice", every: "choice",
+  seed: "int", truth: "bool", speed: "choice", shown: "int" };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n]) => n).sort().join();
 ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), declared);
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
-ck("the toy controls are gated on view=toy", ["days", "missing", "changes"].every((n) => W.params[n].when?.equals === "toy"));
-ck("the biological controls are gated on view=biological", ["K", "every", "switches"].every((n) => W.params[n].when?.equals === "biological"));
+ck("the toy control is gated on view=toy", W.params.missing.when?.equals === "toy");
+ck("the biological controls are gated on view=biological", ["K", "every"].every((n) => W.params[n].when?.equals === "biological"));
 ck("one step label for both tabs", W.animation.stepLabel === "Next column");
 
 /* 2. Defaults, and a walk over every option of every parameter. */
@@ -135,7 +135,10 @@ console.log(`  walked ${combos} parameter settings`);
   const filled = [1, 2, 4].map((i) => state.panel.hap[state.trellis.path[i]][i]).join("");
   ck("notebook: the blanks are filled Happy Happy Sad", filled === "110");
   const other = W.compute({ params: { ...params, seed: 2 }, rng: makeRng(2) });
-  ck("seed 2 draws other patterns", other.panel.hap[0].join("") !== "01001" || other.panel.hap[1].join("") !== "11110");
+  ck("seed 2 keeps the notebook's patterns", other.panel.hap[0].join("") === "01001" && other.panel.hap[1].join("") === "11110");
+  ck("seed 2 changes the record", other.order.join() !== state.order.join() || other.src[0] !== state.src[0]);
+  ck("the biological truth has one recombination point", W.compute({ params: { ...defaults, view: "biological" }, rng: makeRng(1) }).cutSites.length === 1);
+  ck("the switch rate is fixed at 0.1 on both tabs", state.rho === 0.1 && W.compute({ params: { ...defaults, view: "biological" }, rng: makeRng(1) }).rho === 0.1);
 }
 
 /* 3. `shown` lands where it claims, and Replay starts over. */

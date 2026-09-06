@@ -2933,16 +2933,16 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth",
+      "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth boxed on P2",
       "slug": "hmm",
       "state": "?theme=light&truth=1&shown=10",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: a longer toy record with one pattern change, traced",
+      "$note": "PLACEHOLDER, draft: another record, one day missing, traced",
       "slug": "hmm",
-      "state": "?theme=light&days=12&changes=1&seed=3&truth=1&shown=24",
+      "state": "?theme=light&missing=1&seed=4&truth=1&shown=10",
       "px": "0",
       "tx": "0"
     },
@@ -2961,7 +2961,7 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth",
+      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth boxed on the panel",
       "slug": "hmm",
       "state": "?theme=light&view=biological&truth=1&shown=56",
       "px": "0",
