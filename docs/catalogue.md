@@ -4273,6 +4273,47 @@ legend swatches with it. A new semantic role for "the two values
 of one variable" would be the clean answer and is a `tokens.css` change,
 which means the full fingerprint suite.
 
+### Does the notebook switch, and can a switch be shown well? — measured 2026-09-06
+
+Kenneth: *if it picks just one pattern it may look boring; do you have
+scenarios of switching where imputation is good? Check the notebook first.*
+
+**The notebook never switches.** The mood record fits P2 at both recorded
+days; the genotype fits H2 at all six typed sites (H1 mismatches five of
+them), and H1 and H2 differ at 16 of 17 positions. The transition matrix
+is present in both examples and exercised in neither.
+
+**Measured, 400 seeds, ρ 0.1, one recombination point cut mid-way:**
+
+```
+  founders differ at   K   typed    switch placed between   blanks right
+                                    the flanking typed sites
+  50% (shipping)       2   1 in 2          42%                  91%
+  50%                  2   1 in 4          39%                  86%
+  50%                  6   1 in 4          30%                  84%
+  90% (as H1/H2)       2   1 in 2          82%                  93%
+  90%                  2   1 in 4          80%                  87%
+  90%                  6   1 in 4          68%                  86%
+  toy, 5 days, one pattern change, 1–2 missing: path exactly right 29%
+```
+
+With founders that differ at half the sites, runs of agreeing typed sites
+let the recombination point float and the panel's mosaics can explain a
+recombinant without switching, so the boxed truth and the blue path
+disagree in most seeds — which reads as failure though the alleles are
+right. With founders that differ at nine-tenths of sites, as the notebook's
+do, a two-haplotype recombinant decodes: the switch is pinned to the typed
+sites either side about four times in five, and the sites between them are
+exactly where the posterior is uncertain. The one-haplotype case is
+unchanged by the higher contrast (97% / 94% of blanks right). The toy
+cannot carry a change on five days.
+
+**Recommendation, put to Kenneth:** default to no switching on both tabs,
+as the notebook; on the biological tab only, an extra segmented control
+*Sample: One haplotype / Recombinant*, the recombinant copying h1 then h2
+with the cut mid-way, and the two founders built to differ at ~90% of
+sites so the switch is identifiable. Nothing on the toy.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
