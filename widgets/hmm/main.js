@@ -368,15 +368,13 @@ defineWidget({
     },
     K: {
       type: "choice", label: "Reference haplotypes",
-      detail: "design choice: how many haplotypes were sequenced for the panel",
-      options: KS.map((v) => ({ value: v, label: v })),
+      options: KS.map((v) => ({ value: v, label: v, detail: "design choice: how many haplotypes were sequenced for the panel" })),
       default: "6",
       when: { param: "view", equals: "biological" },
     },
     every: {
       type: "choice", label: "Array types one site in",
-      detail: "design choice: how densely the array types",
-      options: EVERY.map((v) => ({ value: v, label: v })),
+      options: EVERY.map((v) => ({ value: v, label: v, detail: "design choice: how densely the array types" })),
       default: "4",
       when: { param: "view", equals: "biological" },
     },
@@ -410,8 +408,10 @@ defineWidget({
     },
     happy: {
       type: "choice", label: "P(Happy) in pattern 2",
-      detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this",
-      options: HAPPY.map((v) => ({ value: v, label: v })),
+      /* A choice control shows the SELECTED OPTION's detail, not the field's,
+         so the kind rides on every option. */
+      options: HAPPY.map((v) => ({ value: v, label: v,
+        detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this" })),
       default: "0.8",
       when: { param: "view", equals: "toy" },
     },
@@ -424,8 +424,8 @@ defineWidget({
 
     rho: {
       type: "choice", label: "Switch rate ρ",
-      detail: "model parameter: P(the hidden state changes between neighbours). Learnt from data on the toy; from a genetic map in imputation",
-      options: RHOS.map((v) => ({ value: v, label: v })),
+      options: RHOS.map((v) => ({ value: v, label: v,
+        detail: "model parameter: P(the hidden state changes between neighbours). Learnt from data on the toy; from a genetic map in imputation" })),
       default: "0.1",
     },
 
