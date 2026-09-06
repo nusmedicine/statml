@@ -299,13 +299,25 @@ function buildCopying({ kind, K, L, templates, letters, src, truth, novel, cutSi
 }
 
 /* ----------------------------------------------------------------------------
-   THE CONCEPT TAB — the occasionally dishonest casino (Durbin, Eddy, Krogh &
-   Mitchison 1998), with a coin instead of a die so E stays two by two: a
-   fair coin and a loaded one, the casino switching between them with T
-   (diagonal `stay`), each toss showing Heads or Tails by E. State 0 is the
-   fair coin, 1 the loaded; toss 0 is Tails, 1 Heads. The walk and the
-   tosses are drawn here once, so hiding the coin on the figure changes what
-   is SHOWN and nothing else.
+   THE CONCEPT TAB — two models in the lesson's order (inverted 2026-09-06
+   to follow Kenneth's amended notebook, which introduces a simple Markov
+   model as a coin toss and only then hides a coin behind the tosses):
+
+     markov   the states ARE the tosses. A sticky coin: the next toss
+              repeats the last with probability `stay` (T's diagonal), so
+              the record of tosses is the state sequence itself and T can be
+              estimated by counting it. `obs` is `src`. At stay 0.50 the
+              chain has no memory and is an ordinary coin — which is why the
+              coin has to be sticky for the stage to show anything.
+     hidden   the occasionally dishonest casino (Durbin, Eddy, Krogh &
+              Mitchison 1998), with a coin instead of a die so E stays two
+              by two: a fair coin and a loaded one, the casino switching
+              between them with T (diagonal `stay`), each toss showing Heads
+              or Tails by E. State 0 is the fair coin, 1 the loaded.
+
+   Toss 0 is Tails, 1 Heads, on both. The two records come from different
+   mechanisms and so are different sequences: the mechanism is the point,
+   which is also why switching model is a data change and not a display one.
 
    It replaced a mood version on 2026-09-06. That one used the notebook's
    P1 / P2 and Happy / Sad, so the Concept tab and the Toy tab wore the same
@@ -315,17 +327,18 @@ function buildCopying({ kind, K, L, templates, letters, src, truth, novel, cutSi
 export const CONCEPT_TOSSES = 20;
 export const CONCEPT_E = [[0.5, 0.5], [0.2, 0.8]];   // E[coin][toss]: Tails, Heads
 
-export function buildConcept({ rng, stay }) {
+export function buildConcept({ rng, model = "hidden", stay }) {
   const L = CONCEPT_TOSSES;
+  const hidden = model === "hidden";
   const T = [[stay, 1 - stay], [1 - stay, stay]];
   const src = new Array(L), obs = new Array(L);
   let h = rng.next() < 0.5 ? 1 : 0;
   for (let i = 0; i < L; i += 1) {
     if (i > 0 && rng.next() >= stay) h = 1 - h;
     src[i] = h;
-    obs[i] = rng.next() < CONCEPT_E[h][1] ? 1 : 0;
+    obs[i] = hidden ? (rng.next() < CONCEPT_E[h][1] ? 1 : 0) : h;
   }
-  return { kind: "concept", K: 2, L, stay, T, E: CONCEPT_E, src, obs };
+  return { kind: "concept", model: hidden ? "hidden" : "markov", K: 2, L, stay, T, E: hidden ? CONCEPT_E : null, src, obs };
 }
 
 /* ----------------------------------------------------------------------------

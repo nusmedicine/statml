@@ -5,13 +5,17 @@
    intentional missing data of a SNP array, filled from a reference panel with
    an HMM. Two tabs in the notebook's own order, on ONE decoder (model.js):
 
-     Concept             a two-state Markov chain walked a day at a time —
-                         the arrow taken lights on the graph, the transitions
-                         counted so far sit beside T — and then the states
-                         HIDDEN: the same walk, a mood emitted by E each day,
-                         and the counted table no longer T. Kenneth asked for
-                         it first, 2026-09-06: students do not know a Markov
-                         model, or how it relates to the matrix.
+     Concept             a Markov model whose states are the tosses of a
+                         sticky coin, walked one toss at a time — the arrow
+                         taken lights on the graph, the transitions counted
+                         so far sit beside T and estimate it — and then a
+                         hidden Markov model: the coin, fair or loaded, is
+                         the state and is not seen; each toss is emitted by
+                         E, and the same counted table is no longer T.
+                         Kenneth asked for the tab first, 2026-09-06 —
+                         students do not know a Markov model, or how it
+                         relates to the matrix — and inverted it to this
+                         order the same day to follow the lesson.
      Toy model           the notebook's own narrative: two KNOWN five-day
                          mood patterns, P1 and P2, and a record that follows
                          one of them with some days unrecorded. The hidden
@@ -368,16 +372,30 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
   text(mid, ty + ts + 24, `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
 }
 
-/* THE CONCEPT TAB — a Markov model first, then the states hidden.
+/* THE CONCEPT TAB — a Markov model first, then a hidden one.
 
    Students meet the transition matrix before they meet a hidden state, and
-   the notebook's cells 24–25 do the same: states, transitions, the matrix,
-   then "hidden". So this tab walks a two-state chain one toss at a time —
-   the arrow taken lights on the graph, a tile lands on the record, the
-   transitions counted so far sit beside the matrix that made them — and
-   then a segmented control HIDES the coin: the same walk, but what is seen
-   is now the toss each coin gives by E, and the counted table is no longer
-   T. Kenneth asked for the tab on 2026-09-06.
+   the lesson does the same. STAGE 1, `model=markov`: the states are the two
+   faces of a sticky coin, Heads and Tails, so the record of tosses IS the
+   state sequence. The tab walks it one toss at a time — the arrow taken
+   lights on the graph, a tile lands on the record, the transitions counted
+   so far sit beside the matrix that made them, and the counted shares
+   approach T's rows: counting is how T is learned. STAGE 2,
+   `model=hidden`: the state is now the coin in play, fair or loaded, and it
+   is not seen; each toss is emitted by E, and the SAME counted table over
+   the SAME kind of record is no longer T. The student has just seen
+   counting work and now sees why it stops working, which is the reason an
+   HMM needs an algorithm.
+
+   IT RAN THE OTHER WAY UNTIL 2026-09-06 — the coins' chain first, visible,
+   then hidden — and Kenneth inverted it to follow the notebook he was
+   amending, which introduces a simple Markov model as a coin toss with
+   states Heads and Tails. He picked two stages over three (the old visible
+   coins step, which the ground-truth toggle now covers) and two sliders
+   over one, from `_lab/hmm-concept-order.html`. The switch is a DATA
+   change: the two records come from different mechanisms, so it resets
+   the walk, where the old Visible | Hidden was a display change over one
+   walk.
 
    THE EXAMPLE IS THE OCCASIONALLY DISHONEST CASINO, a fair coin and a loaded
    one, not the notebook's moods — chosen the same day so that each tab owns
@@ -385,17 +403,18 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
    own example, where a pattern is a template rather than a tendency. */
 const CONCEPT = {
   TOSSES: 20,
-  BAND_H: 248,            // the graph, with T above E on the right
+  BAND_H: 248,            // the hidden model's band: the graph, with T above E on the right
+  BAND_H_MARKOV: 150,     // the Markov band: no emission row, T alone on the right
   TABLE: 40,              // a probability-table cell
 };
 
 function conceptLayout(w, v) {
   const L = CONCEPT.TOSSES;
   const cell = Math.min(30, Math.floor((w - GUT - 6) / L));
-  const hidden = v.states === "hidden";
+  const hidden = v.model === "hidden";
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
-  const model = add(CONCEPT.BAND_H);
+  const model = add(hidden ? CONCEPT.BAND_H : CONCEPT.BAND_H_MARKOV);
   const walk = add((hidden ? 2 : 1) * cell);
   const counts = add(LAB + 2 * CONCEPT.TABLE);
   return { cell, K: 2, L, gx: GUT, model, walk, counts, height: y - GAP + BOT };
@@ -406,9 +425,14 @@ function conceptLayout(w, v) {
    down to the two values, labelled from E. `lit` names the
    arrow the walk just took, drawn in the highlight colour while the beat
    runs; `hot` names the edge under the pointer, or the edge of the table
-   cell under it, drawn the same way. Takes the shared geometry. */
+   cell under it, drawn the same way. Takes the shared geometry.
+
+   `tossNodes` is the Markov stage: the states are the tosses, so the nodes
+   wear the toss tiles' own convention — Heads filled in --c-theory, Tails
+   open — and carry the face's name beneath. The hidden stage's coins are
+   plain circles; the change of dress is the change of what a state is. */
 function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot, tile,
-  names = ["F", "L"], emitNames = ["Tails", "Heads"], visibleNote = "the state is what you observe", token = null, fillState = null }) {
+  names = ["F", "L"], emitNames = ["Tails", "Heads"], visibleNote = "the state is what you observe", token = null, fillState = null, tossNodes = false }) {
   const font = `${colors.fsXs} ${colors.font}`;
   const { mid, R, ts, oy, S, O } = geom;
   const label = (x, yy, s, align = "center", colour = colors.ink2) => {
@@ -439,17 +463,19 @@ function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot,
     /* A visible state is a solid circle; a hidden one is dashed, the
        convention for what is not observed. */
     ctx.save();
+    const filled = tossNodes && h === 1;
     ctx.beginPath(); ctx.arc(S[h].x, S[h].y, R, 0, Math.PI * 2);
-    ctx.fillStyle = colors.surface; ctx.fill();
+    ctx.fillStyle = filled ? colors.theory : colors.surface; ctx.fill();
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; if (hidden) ctx.setLineDash([3, 3]); ctx.stroke();
     if (fillState && fillState.h === h && fillState.a > 0) {
       /* The destination fills as the token arrives. */
       ctx.globalAlpha = 0.3 * fillState.a; ctx.fillStyle = colors.highlight; ctx.fill();
     }
     ctx.restore();
-    ctx.fillStyle = colors.ink1;
+    ctx.fillStyle = filled ? colors.surface : colors.ink1;
     ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(names[h], S[h].x, S[h].y + 0.5);
+    if (tossNodes) label(S[h].x, S[h].y + R + 11, emitNames[h]);
     /* Self-loop on the outer side, labelled with the stay probability. */
     const side = h === 0 ? -1 : 1;
     const lx = S[h].x + side * (R + 9), ly = S[h].y;
@@ -477,7 +503,7 @@ function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot,
       tile(O[o].x - ts / 2, oy, o, 1, ts);
       label(O[o].x, oy + ts + 9, emitNames[o]);
     }
-  } else {
+  } else if (visibleNote) {
     label(mid, oy + ts / 2, visibleNote, "center", colors.ink3);
   }
   if (token) {
@@ -488,8 +514,8 @@ function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot,
 
 function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, border, tile, unknownCell, pointer }) {
   const { cell, L, gx } = Lo;
-  const hidden = params.states === "hidden";
-  const idx = anim?.idx ?? 0;                     // days walked
+  const hidden = params.model === "hidden";
+  const idx = anim?.idx ?? 0;                     // tosses walked
   const fading = anim?.beatOn && idx > 0;
   const p = fading ? anim.beatP : 1;
   const T = state.T, E = state.E;
@@ -505,7 +531,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
       rowNames: (r) => rows[r],
     });
   };
-  const stateNames = ["F", "L"];   // the fair coin, the loaded coin
+  const stateNames = hidden ? ["F", "L"] : ["T", "H"];   // the fair and loaded coins; or the two faces
 
   /* 1. The model: the graph on the left, T above E on the right, the two
      patterns under E once the states are hidden. The pointer lights an edge
@@ -532,20 +558,25 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   if (hidden) {
     table(ex, eY, "Emission E", ["Tails", "Heads"], ["F", "L"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
   }
-  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and L loaded, and the tosses they give" : "Two coins, F fair and L loaded, and the switches between them", colors.ink2);
-  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, visibleNote: "the state is observed: the coin in play",
+  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and L loaded, and the tosses they give" : "A sticky coin: Heads and Tails as the states, and the moves between them", colors.ink2);
+  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, names: stateNames, tossNodes: !hidden,
+    visibleNote: null,          // the caption already says the state is the toss; the space is the draw bar's
     fillState: step ? { h: step.to, a: landU > 0 && landU < 1 ? 1 - landU : 0 } : null });
   if (step && anim?.drawBar && landU < 1) {
     /* THE DRAW BAR: T's row for the current state as a bar split in its
        proportions, and a marker that sweeps and slows to a stop on the
        outcome — where the randomness of one step comes from. */
-    const bw = 120, bh = 12, bx = ex - 36 - bw, by = Lo.model.y + 22;
+    /* Top right on the hidden band, whose nodes sit lower; under the nodes'
+       names on the shorter Markov band, where the top right IS the H node. */
+    const bw = 120, bh = 12, bx = ex - 36 - bw, by = Lo.model.y + (hidden ? 22 : 102);
     const pStay = T[step.from][step.from];
-    text(bx, by - 10, `draw from T's row for ${step.from === 1 ? "the loaded coin" : "the fair coin"}`, colors.ink2, "left", `${colors.fsXs} ${colors.font}`);
+    text(bx, by - 10, hidden
+      ? `draw from T's row for ${step.from === 1 ? "the loaded coin" : "the fair coin"}`
+      : `draw from T's row after ${step.from === 1 ? "Heads" : "Tails"}`, colors.ink2, "left", `${colors.fsXs} ${colors.font}`);
     fill(bx, by, bw, bh, colors.surface3); border(bx, by, bw, bh);
     fill(bx, by, bw * pStay, bh, colors.highlight, 0.35);
-    text(bx + bw * pStay / 2, by + bh + 9, `stay ${pStay.toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
-    text(bx + bw * (1 + pStay) / 2, by + bh + 9, `switch ${(1 - pStay).toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
+    text(bx + bw * pStay / 2, by + bh + 9, `${hidden ? "stay" : "repeat"} ${pStay.toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
+    text(bx + bw * (1 + pStay) / 2, by + bh + 9, `${hidden ? "switch" : "change"} ${(1 - pStay).toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
     const target = step.from === step.to ? pStay * 0.45 : pStay + (1 - pStay) * 0.55;
     const sweep = 1 - Math.pow(1 - drawU, 3);
     const mx = bx + bw * target * sweep;
@@ -563,7 +594,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
      filled / open tiles every other row in the widget uses. */
   caption(Lo.walk, hidden
     ? `The walk, ${idx} of ${L} tosses: the coin is hidden, the toss is seen`
-    : `The walk, ${idx} of ${L} tosses: the coin in play`);
+    : `The walk, ${idx} of ${L} tosses: each toss is a state of the chain`);
   const cx = (i) => gx + i * cell;
   const coinTile = (x, y, coin, alpha, washed) => {
     ctx.save(); ctx.globalAlpha = alpha;
@@ -571,7 +602,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     text(x + cell / 2, y + cell / 2 + 0.5, stateNames[coin], colors.ink1, "center", `600 ${Math.max(9, Math.round(cell * 0.45))}px ${colors.font}`);
     ctx.restore();
   };
-  const rows = hidden ? [["coin", true], ["toss", false]] : [["coin", false]];
+  const rows = hidden ? [["coin", true], ["toss", false]] : [["toss", false]];
   rows.forEach(([name, isHiddenRow], r) => {
     const y = Lo.walk.y + r * cell;
     rowLabel(y, name);
@@ -584,57 +615,62 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     }
   });
 
-  /* 3. What the walk lets you count, beside what made it. */
+  /* 3. What the walk lets you count, beside what made it. The SAME table
+     on both stages, over the record of tosses: on the Markov stage it is
+     the estimate of T, on the hidden stage it is not T at all. */
   const n = Math.max(0, idx - 1);
-  const seq = hidden ? state.obs : state.src;
+  const seq = state.obs;
   const cnt = [[0, 0], [0, 0]];
   for (let i = 1; i < idx; i += 1) cnt[seq[i - 1]][seq[i]] += 1;
   const rowTot = cnt.map((r) => r[0] + r[1]);
   const shown = cnt.map((r, a) => r.map((c) => (rowTot[a] ? `${c} · ${(c / rowTot[a]).toFixed(2)}` : `${c}`)));
-  const tossNames = ["T", "H"];
-  const countNames = hidden ? tossNames : stateNames;
+  const countNames = ["T", "H"];
   const CW = 62;   // "12 · 0.86" needs the room
-  table(gx, Lo.counts.y, hidden
-    ? `Transitions between tosses, ${n} counted: count · share of row`
-    : `Transitions between coins, ${n} counted: count · share of row`,
-  countNames.map((s) => `to ${s}`), countNames, shown, "counts", null,
-  (r, c) => (hidden ? colors.ink2 : (r === c ? colors.ink1 : colors.ink2)), CW);
+  table(gx, Lo.counts.y, `Transitions between tosses, ${n} counted: count · share of row`,
+    countNames.map((s) => `to ${s}`), countNames, shown, "counts", null,
+    (r, c) => (hidden ? colors.ink2 : (r === c ? colors.ink1 : colors.ink2)), CW);
   const note = hidden
     ? "not T: the tosses are not the coins"
-    : "the shares approach T's rows as the walk lengthens";
+    : "the shares approach T's rows: counting is the estimate";
   text(gx + 2 * CW + 24, Lo.counts.y + LAB + mc - 2, note, colors.ink3, "left");
 }
 
 
-/* The concept tab's worked line: the day's draw, in T's and E's numbers. */
+/* The concept tab's worked line: the toss's draw, in T's and E's numbers. */
 function conceptCardLines(state, idx, params) {
-  const hidden = params.states === "hidden";
+  const hidden = params.model === "hidden";
   const { T, E, src, obs, stay } = state;
-  const name = (h) => (h === 1 ? "the loaded coin" : "the fair coin");
-  const Name = (h) => (h === 1 ? "The loaded coin" : "The fair coin");
   const tossName = (m) => (m === 1 ? "Heads" : "Tails");
+  const name = (h) => (hidden ? (h === 1 ? "the loaded coin" : "the fair coin") : tossName(h));
+  const Name = (h) => (h === 1 ? "The loaded coin" : "The fair coin");
+  let stays = 0;
+  for (let k = 1; k < idx; k += 1) if (src[k] === src[k - 1]) stays += 1;
   if (idx === 0) {
-    const lines = [
-      ["Model", `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`],
-      ["States", "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses."],
-      ["Rule", `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`],
-    ];
-    if (hidden) lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`]);
+    const lines = [["Model", `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`]];
+    if (hidden) {
+      lines.push(["States", "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses."]);
+      lines.push(["Rule", `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`]);
+      lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`]);
+    } else {
+      lines.push(["States", "Here the states are the two faces of one coin, Heads and Tails: the record of tosses is the sequence of states."]);
+      lines.push(["Rule", `The next toss depends only on the current one, not on earlier tosses. The coin is sticky: after Heads, Heads again with ${stay.toFixed(2)}, the diagonal of ${MATH.Tname}.`]);
+      lines.push(["Count", `Every state is in the record, so ${MATH.Tname} can be estimated by counting the transitions between tosses.`]);
+    }
     return lines;
   }
   const i = idx - 1;
   const lines = [];
-  if (i === 0) lines.push(["Toss 1", `Start with ${name(src[0])}, each coin equally likely.`]);
+  if (i === 0) lines.push(["Toss 1", hidden ? `Start with ${name(src[0])}, each coin equally likely.` : `Start with ${name(src[0])}, each face equally likely.`]);
   else {
     const a = src[i - 1], b = src[i];
-    lines.push([`Toss ${i + 1}`, `From ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "stay" : "switch"}: ${a === b ? `${name(b)} again` : name(b)}.`]);
+    lines.push([`Toss ${i + 1}`, hidden
+      ? `From ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "stay" : "switch"}: ${a === b ? `${name(b)} again` : name(b)}.`
+      : `After ${name(a)}. T's row: repeat ${T[a][a].toFixed(2)}, change ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "repeat" : "change"}: ${name(b)}.`]);
   }
   if (hidden) lines.push(["Emits", `${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)}. Came up ${tossName(obs[i])}. Only the toss is recorded.`]);
-  let stays = 0;
-  for (let k = 1; k < idx; k += 1) if (src[k] === src[k - 1]) stays += 1;
   if (idx > 1) lines.push(["So far", hidden
     ? `Stayed with the same coin on ${stays} of ${idx - 1} transitions. These cannot be counted from the record, which shows only tosses.`
-    : `Stayed on ${stays} of ${idx - 1} transitions, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}.`]);
+    : `Repeated the last toss on ${stays} of ${idx - 1} transitions, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}. Counted straight off the record.`]);
   return lines;
 }
 
@@ -765,7 +801,7 @@ function renderCard(state, idx, params) {
      reserve the larger so the walk, whose card is three rows, does not jog
      the figure (3.4k). The trellis tabs keep the smaller reserve. */
   cardHost.style.minHeight = state.kind === "concept" ? "13.4em" : CARD_MIN;
-  const key = ["view", "idx", "seed", "missing", "K", "every", "sample", "stay", "states"]
+  const key = ["view", "idx", "seed", "missing", "K", "every", "sample", "model", "repeat", "stay"]
     .map((k) => (k === "idx" ? idx : params[k])).join("|");
   if (key === cardKey) return;
   cardKey = key;
@@ -803,14 +839,19 @@ defineWidget({
   /* One tab's marks at a time — the legend must match the graph. */
   legend: ({ params }) => {
     if (params.view === "concept") {
-      const hidden = params.states === "hidden";
+      if (params.model !== "hidden") {
+        return [
+          { token: "theory", label: "Heads (filled); Tails is open — the state at each toss", mark: "bar" },
+          { token: "highlight", label: "The transition taken this toss", mark: "line" },
+        ];
+      }
       const entries = [
         { token: "ink-1", label: "F fair coin, L loaded coin: the state at each toss", mark: "bar" },
         { token: "highlight", label: "The transition taken this toss, and its emission", mark: "line" },
+        { token: "theory", label: "Heads (filled); Tails is open — the toss", mark: "bar" },
+        { token: "unknown", label: "The hidden coin", mark: "bar" },
       ];
-      if (hidden) entries.push({ token: "theory", label: "Heads (filled); Tails is open — the toss", mark: "bar" });
-      if (hidden) entries.push({ token: "unknown", label: "The hidden coin", mark: "bar" });
-      if (hidden && params.truth) entries.push({ token: "reference", label: "Ground truth: the coin each toss", mark: "bar" });
+      if (params.truth) entries.push({ token: "reference", label: "Ground truth: the coin each toss", mark: "bar" });
       return entries;
     }
     const toy = params.view === "toy";
@@ -842,7 +883,7 @@ defineWidget({
         /* Three-up, the labels have to be short or the third truncates in the
            rail: "Biological example" became "Biology" when the Concept tab
            arrived. The detail line carries the rest. */
-        { value: "concept", label: "Concept", detail: "two coins, one loaded: a Markov model, then a hidden one" },
+        { value: "concept", label: "Concept", detail: "a coin toss as a Markov model, then a coin hidden behind the tosses" },
         { value: "toy", label: "Toy model", detail: "two known patterns; a record of moods with days missing" },
         { value: "biological", label: "Biology", detail: "a SNP array imputed from a reference panel" },
       ],
@@ -856,29 +897,49 @@ defineWidget({
        and under The truth on the biological tab. The model sections carry no
        control any more — the switch rate is fixed — and stay for their one
        line: where the numbers on the figure come from. */
+    /* THE TWO STAGES OF THE CONCEPT TAB, in the lesson's order. A DATA
+       parameter, not a display one: the Markov record is a sticky coin's
+       tosses and the hidden record is the casino's, two mechanisms and so
+       two sequences, and switching must redraw the world rather than relabel
+       it. (Until 2026-09-06 this was Visible | Hidden over ONE walk, and a
+       display change; the inversion made the two stages different models.)
+       Labels are one word each so the pair fits the rail; the detail line
+       carries the full name. */
+    model: {
+      type: "segmented", label: "The model",
+      options: [
+        { value: "markov", label: "Markov", detail: "a Markov model: the states are the tosses, Heads and Tails, of one sticky coin" },
+        { value: "hidden", label: "Hidden Markov", detail: "a hidden Markov model: the state is the coin, fair or loaded, and it is not seen; each toss shows Heads or Tails by E" },
+      ],
+      default: "markov",
+      when: { param: "view", equals: "concept" },
+    },
+    /* One slider per stage, each shown only in its stage, so a URL says
+       which quantity it set: P(repeat) is about the toss, P(stay) about the
+       coin. Kenneth's pick, two over one relabelled. */
+    coin: {
+      type: "section", label: "The coin",
+      detail: "one sticky coin: the next toss depends on the last. At 0.5 it has no memory and is an ordinary coin",
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
+    },
+    repeat: {
+      type: "choice", label: "P(next toss repeats the last)",
+      options: ["0.5", "0.7", "0.8", "0.9", "0.95"].map((v) => ({ value: v, label: v,
+        detail: "model parameter: the diagonal of T; counted straight from the record, because every state is in it" })),
+      default: "0.8",
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
+    },
     chain: {
       type: "section", label: "The casino",
       detail: "a fair coin and a loaded one, and the transition table for switching between them",
-      when: { param: "view", equals: "concept" },
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "hidden" }] },
     },
     stay: {
       type: "choice", label: "P(stay with the same coin)",
       options: ["0.5", "0.7", "0.8", "0.9", "0.95"].map((v) => ({ value: v, label: v,
         detail: "model parameter: the diagonal of T; in practice counted from tosses whose coin was known" })),
       default: "0.8",
-      when: { param: "view", equals: "concept" },
-    },
-    /* A display parameter: hiding the states must not throw the walk away —
-       the point is that it is the SAME walk, seen differently. */
-    states: {
-      type: "segmented", label: "The coin",
-      options: [
-        { value: "visible", label: "Visible", detail: "a Markov model: the coin in play is observed at each toss" },
-        { value: "hidden", label: "Hidden", detail: "a hidden Markov model: the coin is not seen; each toss shows Heads or Tails by E" },
-      ],
-      default: "visible",
-      display: true,
-      when: { param: "view", equals: "concept" },
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "hidden" }] },
     },
     seq: {
       type: "section", label: "The sequence",
@@ -946,12 +1007,18 @@ defineWidget({
     /* WHERE THE NUMBERS COME FROM, said once per tab. The toy's E and T are
        set here, as the notebook sets them by hand; the biological tab's are
        derived — T from the switch rate, E read off the panel. */
+    modelMarkov: {
+      type: "section", label: "The model",
+      detail: "T is what you set, and it is all there is: no emission table, because the state is the toss. "
+        + "In practice T is counted from the record, one row per state.",
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
+    },
     modelConcept: {
       type: "section", label: "The model",
       detail: "T is what you set. E is given by the coins: the fair coin lands Heads half the time, "
         + "the loaded coin 0.80. In practice both are counted from tosses whose coin was known, or fitted "
         + "by expectation–maximisation.",
-      when: { param: "view", equals: "concept" },
+      when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "hidden" }] },
     },
     modelToy: {
       type: "section", label: "The model",
@@ -983,7 +1050,9 @@ defineWidget({
   compute: ({ params, rng }) => {
     /* Seed 1 with three days missing is the notebook's own case, verbatim;
        the builder recognises it from the seed. */
-    if (params.view === "concept") return M.buildConcept({ rng, stay: Number(params.stay) });
+    if (params.view === "concept") {
+      return M.buildConcept({ rng, model: params.model, stay: Number(params.model === "hidden" ? params.stay : params.repeat) });
+    }
     if (params.view === "toy") return M.buildToy({ rng, missing: params.missing, seed: params.seed });
     return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every), sample: params.sample });
   },
@@ -1281,13 +1350,13 @@ defineWidget({
   readout: ({ params, state, anim }) => {
     const idx = anim?.idx ?? 0;
     if (state.kind === "concept") {
-      const hidden = params.states === "hidden";
+      const hidden = params.model === "hidden";
       const share = (seq) => { let st = 0; for (let k = 1; k < idx; k += 1) if (seq[k] === seq[k - 1]) st += 1; return idx > 1 ? fmt(st / (idx - 1), 2) : "—"; };
       const tiles = [
-        { label: "Tosses so far", value: `${idx} of ${state.L}`, note: "one coin drawn per toss" },
+        { label: "Tosses so far", value: `${idx} of ${state.L}`, note: hidden ? "one coin drawn per toss" : "one state drawn per toss" },
         hidden
           ? { label: "P(stay) counted from the tosses", value: share(state.obs), note: `not T: the tosses are not the coins. T's diagonal is ${state.stay.toFixed(2)}` }
-          : { label: "P(stay) counted from the walk", value: share(state.src), note: `share of transitions that stayed; T's diagonal is ${state.stay.toFixed(2)}` },
+          : { label: "P(repeat) counted from the record", value: share(state.src), note: `share of tosses that repeated the last; T's diagonal is ${state.stay.toFixed(2)}` },
       ];
       if (hidden && params.truth) tiles.push({ label: "P(stay) counted from the hidden coins", value: share(state.src), note: "what you could count if the coin were seen" });
       return tiles;

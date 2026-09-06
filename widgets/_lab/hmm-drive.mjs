@@ -34,7 +34,7 @@ const ck = (name, ok, extra = "") => {
 /* 1. The contract — by name. */
 for (const key of ["slug", "title", "subtitle", "status", "layout", "height", "params", "legend", "compute", "draw", "readout", "animation"])
   ck(`declares \`${key}\``, W[key] != null);
-const WANT = { view: "segmented", stay: "choice", states: "segmented", missing: "int", K: "choice", every: "choice", sample: "segmented",
+const WANT = { view: "segmented", model: "segmented", repeat: "choice", stay: "choice", missing: "int", K: "choice", every: "choice", sample: "segmented",
   seed: "int", truth: "bool", speed: "choice", shown: "int" };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n]) => n).sort().join();
@@ -42,8 +42,13 @@ ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), d
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
 ck("the toy control is gated on view=toy", W.params.missing.when?.equals === "toy");
-ck("the concept controls are gated on view=concept", ["stay", "states"].every((n) => W.params[n].when?.equals === "concept"));
-ck("hiding the states is a display change", W.params.states.display === true);
+ck("the model switch is gated on view=concept", W.params.model.when?.equals === "concept");
+const gatedOn = (n, model) => W.params[n].when?.all?.some((c) => c.param === "view" && c.equals === "concept")
+  && W.params[n].when?.all?.some((c) => c.param === "model" && c.equals === model);
+ck("P(repeat) shows on the Markov stage only", gatedOn("repeat", "markov"));
+ck("P(stay) shows on the hidden stage only", gatedOn("stay", "hidden"));
+ck("the model switch is a DATA change: two mechanisms, two records", !W.params.model.display);
+ck("the Markov stage is first, as the lesson has it", W.params.model.default === "markov");
 ck("the biological controls are gated on view=biological", ["K", "every", "sample"].every((n) => W.params[n].when?.equals === "biological"));
 ck("step label per tab", W.animation.stepLabel?.param === "view" && Object.keys(W.animation.stepLabel.labels).sort().join() === "biological,concept,toy");
 
@@ -126,21 +131,39 @@ for (const [name, f] of Object.entries(W.params)) {
 }
 console.log(`  walked ${combos} parameter settings`);
 
-/* 2a. The concept walk: a valid chain, moods from E, and hiding changes nothing underneath. */
+/* 2a. The concept walks: the Markov stage's record IS its state sequence and
+   counts to T; the hidden stage's tosses come from E and its coins from T. */
 {
   const params = { ...defaults, view: "concept" };
-  const state = W.compute({ params, rng: makeRng(5) });
-  ck("concept: twenty tosses", state.L === 20 && state.src.length === 20 && state.obs.length === 20);
-  ck("concept: coins and tosses are 0/1", state.src.every((v) => v === 0 || v === 1) && state.obs.every((v) => v === 0 || v === 1));
-  ck("concept: T rows sum to 1", state.T.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-12));
-  ck("concept: E is the coins — fair 0.5, loaded 0.8 for Heads", state.E[0][1] === 0.5 && state.E[1][1] === 0.8);
-  const hidden = W.compute({ params: { ...params, states: "hidden" }, rng: makeRng(5) });
-  ck("concept: hiding the coin leaves the walk as it was", hidden.src.join() === state.src.join() && hidden.obs.join() === state.obs.join());
-  ck("concept: animation is one unit per toss", animationUnits(state) === 20);
+  const markov = W.compute({ params, rng: makeRng(5) });
+  ck("markov: twenty tosses", markov.L === 20 && markov.src.length === 20 && markov.obs.length === 20);
+  ck("markov: the record is the state sequence", markov.model === "markov" && markov.obs.join() === markov.src.join());
+  ck("markov: no emission table", markov.E === null);
+  ck("markov: T rows sum to 1", markov.T.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-12));
+  ck("markov: T's diagonal is P(repeat)", markov.T[0][0] === Number(defaults.repeat) && markov.T[1][1] === Number(defaults.repeat));
+  ck("markov: animation is one unit per toss", animationUnits(markov) === 20);
+  let rp = 0, rn = 0;
+  for (let seed = 1; seed <= 300; seed += 1) { const S = W.compute({ params, rng: makeRng(seed) }); for (let k = 1; k < S.L; k += 1) { rn += 1; if (S.obs[k] === S.obs[k - 1]) rp += 1; } }
+  ck("markov: the record's repeat share matches T over 300 walks", Math.abs(rp / rn - 0.8) < 0.02, String(rp / rn));
+  const sticky = W.compute({ params: { ...params, repeat: "0.95" }, rng: makeRng(5) });
+  ck("markov: P(repeat) is the diagonal the record is drawn from", sticky.T[0][0] === 0.95 && sticky.stay === 0.95);
+  const loose = W.compute({ params: { ...params, stay: "0.95" }, rng: makeRng(5) });
+  ck("markov: P(stay) does not reach the Markov stage", loose.T[0][0] === 0.8);
+
+  const hp = { ...params, model: "hidden" };
+  const state = W.compute({ params: hp, rng: makeRng(5) });
+  ck("hidden: twenty tosses", state.model === "hidden" && state.L === 20 && state.src.length === 20 && state.obs.length === 20);
+  ck("hidden: coins and tosses are 0/1", state.src.every((v) => v === 0 || v === 1) && state.obs.every((v) => v === 0 || v === 1));
+  ck("hidden: T rows sum to 1", state.T.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-12));
+  ck("hidden: E is the coins — fair 0.5, loaded 0.8 for Heads", state.E[0][1] === 0.5 && state.E[1][1] === 0.8);
+  ck("hidden: the tosses are not the coins", state.obs.join() !== state.src.join());
+  ck("hidden: animation is one unit per toss", animationUnits(state) === 20);
   /* Over many walks the counted stay share sits on T's diagonal. */
   let st = 0, n = 0;
-  for (let seed = 1; seed <= 300; seed += 1) { const S = W.compute({ params, rng: makeRng(seed) }); for (let k = 1; k < S.L; k += 1) { n += 1; if (S.src[k] === S.src[k - 1]) st += 1; } }
-  ck("concept: the walk's stay share matches T over 300 walks", Math.abs(st / n - 0.8) < 0.02, String(st / n));
+  for (let seed = 1; seed <= 300; seed += 1) { const S = W.compute({ params: hp, rng: makeRng(seed) }); for (let k = 1; k < S.L; k += 1) { n += 1; if (S.src[k] === S.src[k - 1]) st += 1; } }
+  ck("hidden: the coins' stay share matches T over 300 walks", Math.abs(st / n - 0.8) < 0.02, String(st / n));
+  const tight = W.compute({ params: { ...hp, repeat: "0.95" }, rng: makeRng(5) });
+  ck("hidden: P(repeat) does not reach the hidden stage", tight.T[0][0] === 0.8);
 }
 
 /* 2b. The notebook's own toy, verbatim at the defaults. */

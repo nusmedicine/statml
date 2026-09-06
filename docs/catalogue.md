@@ -4463,6 +4463,33 @@ after the change: the trellis reserve rose from 9.6em to 12.3em (the
 resting card at the narrowest side column); the Concept reserve stays at
 13.4em, which now covers both the usual width and the stacked one.
 
+**The Concept tab inverted (round 21, after shipping).** Kenneth is
+amending the lesson so that a simple Markov model is introduced as a coin
+toss whose states are Heads and Tails, and the hidden Markov model then
+puts the coin, Fair or Loaded, behind the tosses. The tab ran the other
+way: the coins' chain first, visible, then hidden. `_lab/hmm-concept-order.html`
+showed two shapes on static mocks — A, two stages in the lesson's order
+behind a Markov | Hidden Markov control; B, three stages keeping the
+visible-coins step in the middle — with four questions. He chose **A, two
+sliders, sticky coin**. So: `model=markov|hidden` replaces
+`states=visible|hidden`, and it is a DATA parameter where the old one was
+display, because the two records come from different mechanisms (a sticky
+coin's tosses; the casino's) and switching redraws the world rather than
+relabelling it. The Markov stage's nodes are the toss tiles' own
+convention, Heads filled and Tails open, named beneath; its band is
+shorter (150px, no emission row) and the draw bar moves under the nodes'
+names, where the top right of the shorter band is the H node. Two sliders,
+each gated to its stage: *P(next toss repeats the last)* and *P(stay with
+the same coin)*, so a URL says which quantity it set. The counts table is
+the SAME table on both stages, over the record of tosses, and its note is
+the argument for the order: *the shares approach T's rows: counting is the
+estimate* on the Markov stage, *not T: the tosses are not the coins* on the
+hidden one. The coin has to be sticky for stage 1 to show anything, which
+the section text says: at 0.5 it has no memory and is an ordinary coin.
+The old visible-coins view survives as the ground-truth toggle on the
+hidden stage. Five Concept states rehashed in the same commit, the ten
+trellis states unchanged.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

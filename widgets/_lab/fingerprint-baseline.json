@@ -2919,30 +2919,30 @@
       "tx": "4ca07176"
     },
     {
-      "$note": "the Concept tab at rest — the casino, nothing tossed",
+      "$note": "the Concept tab at rest — the Markov stage, a sticky coin, nothing tossed",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
-      "px": "b3200875",
-      "tx": "de245d78"
+      "px": "d6897dac",
+      "tx": "ca0a46d0"
     },
     {
-      "$note": "the Concept tab walked to the end, coin visible",
+      "$note": "the Markov stage walked to the end: the counts estimate T",
       "slug": "hmm",
       "state": "?theme=light&shown=20",
-      "px": "28a3cb78",
-      "tx": "a00fb21c"
+      "px": "1c7ec118",
+      "tx": "275bc192"
     },
     {
-      "$note": "the Concept tab walked, coin hidden",
+      "$note": "the hidden stage walked to the end: the casino, coin hidden",
       "slug": "hmm",
-      "state": "?theme=light&states=hidden&shown=20",
+      "state": "?theme=light&model=hidden&shown=20",
       "px": "373818ed",
       "tx": "62b51288"
     },
     {
-      "$note": "the Concept tab walked, coin hidden, truth on",
+      "$note": "the hidden stage walked, truth on: the coins shown",
       "slug": "hmm",
-      "state": "?theme=light&states=hidden&truth=1&shown=20",
+      "state": "?theme=light&model=hidden&truth=1&shown=20",
       "px": "0074e703",
       "tx": "2da6a5ab"
     },
@@ -3003,7 +3003,7 @@
       "tx": "3dd70026"
     },
     {
-      "$note": "DRIVEN: the concept walk mid-way at fast",
+      "$note": "DRIVEN: the Markov stage mid-walk at fast",
       "slug": "hmm",
       "state": "?theme=light&speed=fast",
       "drive": {
@@ -3011,8 +3011,8 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "b762749d",
-      "tx": "a7079344"
+      "px": "b5b56872",
+      "tx": "24cb7929"
     },
     {
       "$note": "DRIVEN: the toy mid-forward at fast",

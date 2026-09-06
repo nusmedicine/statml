@@ -26,9 +26,11 @@ not yet placed.
 ## What it is, and where its history lives
 
 **Hidden Markov Model**, for PHM5003 05/02 *Missing Data and Imputation*
-(cells 24–38; widget 25 owns cells 1–23). Three tabs: **Concept** — the
-occasionally dishonest casino, a fair and a loaded coin as a Markov chain,
-then the coin hidden and only the tosses recorded; **Toy model** — the
+(cells 24–38; widget 25 owns cells 1–23). Three tabs: **Concept** — a
+Markov model whose states are the tosses of a sticky coin, then the
+occasionally dishonest casino as a hidden Markov model, the coin hidden and
+only the tosses recorded (inverted to this order, the lesson's, after
+shipping — round 21 in the catalogue); **Toy model** — the
 lesson's two five-day mood patterns P1 and P2 as the templates of a copying
 HMM, with Viterbi animated column by column and traced back; **Biology** —
 a SNP array imputed from a reference panel the same way, with an optional
