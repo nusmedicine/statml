@@ -622,8 +622,8 @@ defineWidget({
        transition — then the templates it reads from. */
     drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName });
     caption(Lo.panel, toy
-      ? (params.truth ? "The two patterns, known — the record follows the boxed one" : "The two patterns, known")
-      : (params.truth ? `Reference panel: ${K} sequenced haplotypes — the sample copies the boxed segments` : `Reference panel: ${K} sequenced haplotypes`));
+      ? (params.truth ? "The two patterns, known — the record follows the marked one" : "The two patterns, known")
+      : (params.truth ? `Reference panel: ${K} sequenced haplotypes — the sample copies the marked segments` : `Reference panel: ${K} sequenced haplotypes`));
     for (let h = 0; h < K; h += 1) {
       const y = Lo.panel.y + h * cell;
       rowLabel(y, stateName(h));
