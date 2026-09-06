@@ -4350,6 +4350,25 @@ the resting worked line says the state is now a pattern, P1 or P2, Happy
 on 2 of its 5 days and on 4 of 5 — so the Toy tab's patterns are seen to
 be the same two.
 
+### The model band and the order — 2026-09-06
+
+Kenneth: *optimize the layout of the graph and matrices for all three tabs,
+they are hard to see; is the order of presentation correct?*
+`_lab/hmm-layout.html` draws the band four ways on each tab (A as now, B
+larger, C graph left with T above E on the right, D a graph row over a
+table row) and the Toy figure's order three ways as blocks to scale (as
+now; the notebook's — patterns, record, model, decoder; model, then data,
+then decoder). He picked **C and order 3**. Band: the graph takes the
+band's full height on the left at radius 18 and 12px numbers; two-state
+tables at 40px cells, T above E with the patterns under E on the Concept
+tab; at K states E sits beside T, row h1 against row h1, since both have
+K rows and stacking them ran into the panel. The toy's graph is now the
+Concept tab's two-state drawing with E read at the current day, so the
+same picture carries through. Order 3: model, templates, record, trellis,
+posterior, imputed, truth — the record directly above the trellis that
+reads it, the repeated record row gone, the same top-to-bottom story on
+all three tabs.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

@@ -92,12 +92,17 @@ const STEP_MS = 700;
 /* One layout function read by `height` and `draw`, so the two cannot drift. */
 const GUT = 66, GAP = 16, LAB = 15, TOP = 6, BOT = 8;
 const MAX_CELL = 40;           // the toy's few days would otherwise balloon
-/* The model block: K states on a ring, two values beneath. Two states need
-   less height than eight. */
-const ringH = (K) => (K === 2 ? 138 : 176);
-/* A K-by-K transition table has to fit beside the ring and the emission
-   table at the narrowest canvas: 22px cells at K = 8, up to 34px at K <= 5. */
-const ringCell = (K) => Math.max(22, Math.min(34, Math.floor(176 / K)));
+/* THE MODEL BAND, arrangement C of four in `_lab/hmm-layout.html` (Kenneth,
+   2026-09-06): the graph takes the band's full height on the left; T sits
+   above E on the right, so a transition row and an emission row line up.
+   Two-state tables get 40px cells; a K-by-K table shrinks to fit — 22px at
+   K = 8 — and the ring needs 230px of height to read at six or eight. */
+const modelCell = (K) => (K <= 2 ? 40 : Math.max(22, Math.min(34, Math.floor(176 / K))));
+/* Two states: T stacked above E, both two rows. K states: E has K rows too,
+   so it sits BESIDE T on the right, row h1 against row h1. */
+const bandH = (K) => (K > 2
+  ? Math.max(230, LAB + 6 + K * modelCell(K) + 8)
+  : LAB + 2 * modelCell(K) + 12 + LAB + 6 + 2 * modelCell(K));
 const BAR_H = 6;               // the probability bar under an imputed call
 
 function layout(w, v) {
@@ -109,7 +114,7 @@ function layout(w, v) {
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
   const obs = add(cell);
-  const model = add(Math.max(LAB + K * ringCell(K), ringH(K)));
+  const model = add(bandH(K));
   const panel = add(K * cell);
   const trellis = add(K * cell);
   const strip = add(K * cell);
@@ -126,38 +131,56 @@ function layout(w, v) {
 
 const beliefAlpha = (g) => 0.05 + 0.88 * g;
 
-/* THE MODEL BLOCK, the same three things on both tabs: the emission table AT
-   ONE POSITION (the column the walk is at) — the template's own value 1 - eps,
-   the other eps, so it is the templates' column read as probabilities; the
-   states on a ring, every pair joined because a switch can land on any other
-   state, with each state's emission arrow going to the value it carries at
-   that position; and the K-by-K transition table, 1 - rho on the diagonal and
-   rho over K - 1 off it. Two states on the toy, K on the biology. */
+/* THE MODEL BAND on the toy and the biology: the states as a graph on the
+   left — two patterns side by side with their self-loops, switches and
+   emission arrows, or K haplotypes on a ring, every pair joined because a
+   switch can land on any other — and on the right the transition table T
+   with, under it, the emission table AT ONE POSITION (the column the walk
+   is at): the template's own value 1 - eps, the other eps, so it is the
+   templates' column read as probabilities. */
 function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, border, stateName }) {
-  const { K, L, gx, cell } = Lo;
+  const { K, gx, cell } = Lo;
   const B = Lo.model;
-  const mc = ringCell(K);
-  const font = `${colors.fsXs} ${colors.font}`;
-  const small = `${Math.max(9, Math.min(11, mc - 13))}px ${colors.font}`;
+  const mc = modelCell(K);
+  const small = `${mc >= 40 ? 12 : mc >= 28 ? 10 : 9}px ${colors.font}`;
   const rho = state.rho, move = rho / (K - 1);
   const toy = state.kind === "mood";
   const unit = toy ? "day" : "site";
   const known = stage.sites[site].known;
   const ts = Math.min(cell + 4, 18);
+  const sideBySide = K > 2;
+  const colW = sideBySide ? K * mc + 30 + 2 * mc : 2 * mc;
+  const tx = w - colW - 6;
 
-  /* Emission at one position, left. Columns are the two values as tiles. */
-  const ex = gx;
-  text(ex, B.y - LAB / 2 - 1, `Emission E at ${unit} ${site + 1}`, colors.ink2);
+  /* Transition, top right. */
+  text(tx, B.y - LAB / 2 - 1, "Transition T", colors.ink2);
+  for (let c = 0; c < K; c += 1) text(tx + c * mc + mc / 2, B.y + LAB / 2, K === 2 ? `to ${stateName(c)}` : stateName(c), colors.ink3, "center", small);
+  const tRow0 = B.y + LAB + (sideBySide ? 6 : 0);
+  for (let r = 0; r < K; r += 1) {
+    const y = tRow0 + r * mc;
+    text(tx - 6, y + mc / 2 + 0.5, stateName(r), colors.ink3, "right", small);
+    for (let c = 0; c < K; c += 1) {
+      const x = tx + c * mc;
+      border(x, y, mc, mc);
+      text(x + mc / 2, y + mc / 2 + 0.5, (r === c ? 1 - rho : move).toFixed(2), r === c ? colors.ink1 : colors.ink2, "center", small);
+    }
+  }
+
+  /* Emission at one position: under T for two states, beside it for K.
+     Columns are the two values as tiles. */
+  const ex = sideBySide ? tx + K * mc + 30 : tx;
+  const eY = sideBySide ? B.y : B.y + LAB + K * mc + 12 + LAB;
+  text(ex, eY - LAB / 2 - 1, sideBySide ? `E at ${unit} ${site + 1}` : `Emission E at ${unit} ${site + 1}`, colors.ink2);
   for (let c = 0; c < 2; c += 1) {
     const x = ex + c * mc + mc / 2 - ts / 2;
-    tile(x, B.y + 1, c, 1, ts, site);
+    tile(x, eY + 1, c, 1, ts, site);
     if (known && state.truthAllele[site] === c) {
-      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, B.y + 2, ts - 2, ts - 2);
+      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, eY + 2, ts - 2, ts - 2);
     }
   }
   for (let h = 0; h < K; h += 1) {
-    const y = B.y + LAB + 6 + h * mc;
-    text(ex - 6, y + mc / 2 + 0.5, stateName(h), colors.ink3, "right");
+    const y = eY + LAB + 6 + h * mc;
+    if (!sideBySide) text(ex - 6, y + mc / 2 + 0.5, stateName(h), colors.ink3, "right", small);
     for (let c = 0; c < 2; c += 1) {
       const x = ex + c * mc;
       border(x, y, mc, mc);
@@ -166,43 +189,37 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
     }
   }
 
-  /* Transition, right. */
-  const tx = w - K * mc - 6;
-  text(tx, B.y - LAB / 2 - 1, "Transition T", colors.ink2);
-  for (let c = 0; c < K; c += 1) text(tx + c * mc + mc / 2, B.y + LAB / 2, stateName(c), colors.ink3, "center", small);
-  for (let r = 0; r < K; r += 1) {
-    const y = B.y + LAB + 6 + r * mc;
-    text(tx - 6, y + mc / 2 + 0.5, stateName(r), colors.ink3, "right");
-    for (let c = 0; c < K; c += 1) {
-      const x = tx + c * mc;
-      border(x, y, mc, mc);
-      text(x + mc / 2, y + mc / 2 + 0.5, (r === c ? 1 - rho : move).toFixed(2), r === c ? colors.ink1 : colors.ink2, "center", small);
-    }
+  /* The graph, left, the band's full height. */
+  const x0 = gx, x1 = tx - 30;
+  if (K === 2) {
+    /* Two templates: the same picture as the Concept tab's hidden states,
+       with E read at this position — the template's own value 1 - eps. */
+    text(x0, B.y - LAB / 2 - 1, `Hidden states, and the ${toy ? "moods" : "alleles"} they emit at ${unit} ${site + 1}`, colors.ink2);
+    const T2 = [[1 - rho, rho], [rho, 1 - rho]];
+    const E2 = [0, 1].map((h) => [0, 1].map((o) => (state.panel.hap[h][site] === o ? 1 - state.eps : state.eps)));
+    drawConceptGraph(ctx, colors, { x0, x1, y: B.y, h: B.h, T: T2, E: E2, hidden: true, lit: null, litAlpha: 1, tile: (x, y, o, alpha, size) => tile(x, y, o, alpha, size, site), cell,
+      names: [stateName(0), stateName(1)], emitNames: toy ? ["Sad", "Happy"] : [state.panel.letters[site][0], state.panel.letters[site][1]] });
+    return;
   }
-
-  /* The ring, between them. */
-  const x0 = ex + 2 * mc + 40, x1 = tx - 44;
+  text(x0, B.y - LAB / 2 - 1, "Hidden states: which haplotype is copied", colors.ink2);
   const mid = (x0 + x1) / 2;
-  const R = 11;
-  const rad = Math.min(50, (x1 - x0) / 2 - R - 8);
-  /* Two states side by side need no vertical radius; K on a ring do. */
-  const cy0 = B.y + LAB + 4 + (K === 2 ? R + 6 : rad + R);
+  const R = 12;
+  const rad = Math.min((x1 - x0) / 2 - R - 8, (B.h - 78) / 2 - R);
+  const cy0 = B.y + 4 + rad + R;
   const pos = Array.from({ length: K }, (_, h) => {
-    /* Two states sit side by side, P1 left; more than two go round from the top. */
-    const a = (K === 2 ? Math.PI : -Math.PI / 2) + (2 * Math.PI * h) / K;
+    const a = -Math.PI / 2 + (2 * Math.PI * h) / K;
     return { x: mid + rad * Math.cos(a), y: cy0 + rad * Math.sin(a), a };
   });
-  text(mid, B.y - LAB / 2 - 1, "Hidden states", colors.ink2, "center");
   ctx.save();
   ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.globalAlpha = 0.35;
-  for (let a = 0; a < K; a += 1) for (let b = a + 1; b < K; b += 1) {
-    ctx.beginPath(); ctx.moveTo(pos[a].x, pos[a].y); ctx.lineTo(pos[b].x, pos[b].y); ctx.stroke();
+  for (let a = 0; a < K; a += 1) for (let b2 = a + 1; b2 < K; b2 += 1) {
+    ctx.beginPath(); ctx.moveTo(pos[a].x, pos[a].y); ctx.lineTo(pos[b2].x, pos[b2].y); ctx.stroke();
   }
   ctx.restore();
   /* Two allele tiles beneath the ring; each state's emission arrow goes to
      the allele it carries at this site. */
-  const ty = K === 2 ? cy0 + R + 34 : cy0 + rad + R + 14;
-  const tileX = [mid - 20 - ts / 2, mid + 20 - ts / 2];
+  const ty = cy0 + rad + R + 16;
+  const tileX = [mid - 22 - ts / 2, mid + 22 - ts / 2];
   for (let h = 0; h < K; h += 1) {
     const a = state.panel.hap[h][site];
     const bx = tileX[a] + ts / 2, by = ty;
@@ -217,8 +234,7 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
     ctx.fillStyle = colors.surface; ctx.beginPath(); ctx.arc(pos[h].x, pos[h].y, R, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke();
     ctx.restore();
-    text(pos[h].x, pos[h].y + 0.5, stateName(h), colors.ink1, "center", `600 ${small}`);
-    /* Self-loop, outward. */
+    text(pos[h].x, pos[h].y + 0.5, stateName(h), colors.ink1, "center", `600 ${colors.fsXs} ${colors.font}`);
     const lx = pos[h].x + Math.cos(pos[h].a) * (R + 7), ly = pos[h].y + Math.sin(pos[h].a) * (R + 7);
     ctx.save();
     ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
@@ -226,11 +242,8 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
     ctx.restore();
   }
   for (let c = 0; c < 2; c += 1) tile(tileX[c], ty, c, 1, ts, site);
-  text(mid, ty + ts + 9, `emits its own ${toy ? "mood" : "allele"} at ${unit} ${site + 1}`, colors.ink3, "center");
-  text(mid, ty + ts + 22, K === 2
-    ? `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)}`
-    : `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
-  void L;
+  text(mid, ty + ts + 10, `emits its own allele at site ${site + 1}`, colors.ink3, "center");
+  text(mid, ty + ts + 24, `stay ${(1 - rho).toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, colors.ink3, "center");
 }
 
 /* THE CONCEPT TAB — a Markov model first, then the states hidden.
@@ -249,8 +262,8 @@ function drawRingModel(ctx, colors, { Lo, state, stage, site, w, tile, text, bor
    drawn from E — the notebook's own reading of its example. */
 const CONCEPT = {
   DAYS: 20,
-  GRAPH_H: 150,           // the graph and the tables
-  TABLE: 34,              // a probability-table cell
+  BAND_H: 248,            // the graph, with T above E and the patterns on the right
+  TABLE: 40,              // a probability-table cell
 };
 
 function conceptLayout(w, v) {
@@ -259,7 +272,7 @@ function conceptLayout(w, v) {
   const hidden = v.states === "hidden";
   let y = TOP;
   const add = (h) => { const b = { y: y + LAB, h }; y += LAB + h + GAP; return b; };
-  const model = add(CONCEPT.GRAPH_H);
+  const model = add(CONCEPT.BAND_H);
   const walk = add((hidden ? 2 : 1) * cell);
   const counts = add(LAB + 2 * CONCEPT.TABLE);
   return { cell, K: 2, L, gx: GUT, model, walk, counts, height: y - GAP + BOT };
@@ -270,12 +283,13 @@ function conceptLayout(w, v) {
    emission arrows down to the two moods, labelled from E. `lit` names the
    arrow the walk just took, drawn in the highlight colour while the beat
    runs. */
-function drawConceptGraph(ctx, colors, { x0, x1, y, T, E, hidden, lit, litAlpha, tile, cell }) {
+function drawConceptGraph(ctx, colors, { x0, x1, y, h = CONCEPT.BAND_H, T, E, hidden, lit, litAlpha, tile, cell,
+  names = ["P1", "P2"], emitNames = ["Sad", "Happy"] }) {
   const font = `${colors.fsXs} ${colors.font}`;
   const mid = (x0 + x1) / 2;
-  const d = Math.min(70, (x1 - x0) / 4);
-  const R = 15, ts = Math.min(cell, 24);
-  const sy = y + LAB + 20, oy = y + CONCEPT.GRAPH_H - ts - 4;
+  const d = Math.min(90, (x1 - x0) / 4);
+  const R = 18, ts = Math.min(Math.max(cell, 20), 26);
+  const sy = y + Math.round(h * 0.3), oy = y + h - ts - 16;
   const S = [{ x: mid - d, y: sy }, { x: mid + d, y: sy }];
   const O = [{ x: mid - d, y: oy + ts / 2 }, { x: mid + d, y: oy + ts / 2 }];
   const label = (x, yy, s, align = "center", colour = colors.ink2) => {
@@ -300,7 +314,6 @@ function drawConceptGraph(ctx, colors, { x0, x1, y, T, E, hidden, lit, litAlpha,
     ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5); ctx.closePath(); ctx.fill();
     ctx.restore();
   };
-  label(mid, y - LAB / 2 - 1, hidden ? "Hidden states, and the moods they emit" : "Two states, and the transitions between them");
   for (let h = 0; h < 2; h += 1) {
     /* A visible state IS a mood: drawn as its tile's colours. A hidden one is
        a dashed circle, the convention for what is not observed. */
@@ -311,7 +324,7 @@ function drawConceptGraph(ctx, colors, { x0, x1, y, T, E, hidden, lit, litAlpha,
     ctx.restore();
     ctx.fillStyle = hidden ? colors.ink1 : (h === 1 ? colors.surface : colors.ink1);
     ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(hidden ? `P${h + 1}` : (h === 1 ? "H" : "S"), S[h].x, S[h].y + 0.5);
+    ctx.fillText(hidden ? names[h] : (h === 1 ? "H" : "S"), S[h].x, S[h].y + 0.5);
     /* Self-loop on the outer side, labelled with the stay probability. */
     const side = h === 0 ? -1 : 1;
     const isLit = lit && lit.from === h && lit.to === h;
@@ -339,7 +352,7 @@ function drawConceptGraph(ctx, colors, { x0, x1, y, T, E, hidden, lit, litAlpha,
     }
     for (let o = 0; o < 2; o += 1) {
       tile(O[o].x - ts / 2, oy, o, 1, ts);
-      label(O[o].x, oy + ts + 9, o === 1 ? "Happy" : "Sad");
+      label(O[o].x, oy + ts + 9, emitNames[o]);
     }
   } else {
     label(mid, oy + ts / 2, "the state is what you observe: a mood", "center", colors.ink3);
@@ -370,17 +383,19 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   };
   const stateNames = hidden ? ["P1", "P2"] : ["S", "H"];
 
-  /* 1. The model: T on the left, the graph, and E on the right once hidden. */
+  /* 1. The model: the graph on the left, T above E on the right, the two
+     patterns under E once the states are hidden. */
   const lit = fading && idx > 1 ? { from: state.src[idx - 2], to: state.src[idx - 1], emit: state.mood[idx - 1] } : null;
-  table(gx, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]]);
   const ex = w - 2 * mc - 6;
+  table(ex, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]]);
+  const eY = Lo.model.y + LAB + 2 * mc + 12 + LAB;
   if (hidden) {
-    table(ex, Lo.model.y, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]]);
+    table(ex, eY, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]]);
     /* WHAT P1 AND P2 ARE: the two five-day patterns, drawn small under E, so
        the table is seen to be their composition — Happy on 2 of 5 days, on
        4 of 5 — and the Toy tab's patterns are recognised as the same two.
        Kenneth got lost here on 2026-09-06. */
-    const pt = 16, px0 = w - 6 - 5 * pt, py = Lo.model.y + LAB + 2 * mc + 6;
+    const pt = 16, px0 = w - 6 - 5 * pt, py = eY + LAB + 2 * mc + 6;
     text(px0 + 5 * pt, py + 6, "from the patterns", colors.ink3, "right");
     [M.NOTEBOOK.P1, M.NOTEBOOK.P2].forEach((pat, r) => {
       const y = py + 14 + r * pt;
@@ -388,7 +403,8 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
       pat.forEach((a, i) => tile(px0 + i * pt, y, a, 1, pt));
     });
   }
-  drawConceptGraph(ctx, colors, { x0: gx + 2 * mc + 30, x1: (hidden ? ex : w - 6) - 36, y: Lo.model.y, T, E, hidden, lit, litAlpha: 1 - p * 0.6, tile, cell });
+  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden states, and the moods they emit" : "Two states, and the transitions between them", colors.ink2);
+  drawConceptGraph(ctx, colors, { x0: gx, x1: ex - 36, y: Lo.model.y, h: Lo.model.h, T, E, hidden, lit, litAlpha: 1 - p * 0.6, tile, cell });
 
   /* 2. The walk: one tile per day, the newest fading in. */
   caption(Lo.walk, hidden
