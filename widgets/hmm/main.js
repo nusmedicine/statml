@@ -72,7 +72,7 @@
    fades one column in.
    ========================================================================= */
 
-import { defineWidget, fmt } from "../core/index.js";
+import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 /* Option lists. Choice keys are strings on the wire; Number() them at use. */
@@ -82,7 +82,7 @@ const EVERY = ["2", "3", "4", "6", "9"];
 /* Pacing is chosen, not automatic (4.1). Slow and Medium fade each new column
    or posterior in; Fast declares no choreography and shows the stages only. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "the draw from T's row, then the token walks; a column faded in", ms: 900, choreo: true, drawBar: true },
+  slow: { label: "Slow", detail: "the draw from T's row, then the token; elsewhere each column faded in", ms: 900, choreo: true, drawBar: true },
   medium: { label: "Medium", detail: "the token walks; a column faded in", ms: 420, choreo: true, drawBar: false },
   fast: { label: "Fast", detail: "the columns only, no motion", ms: 110, choreo: false, drawBar: false },
 };
@@ -533,7 +533,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     table(ex, eY, "Emission E", ["Tails", "Heads"], ["F", "L"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
   }
   text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and L loaded, and the tosses they give" : "Two coins, F fair and L loaded, and the switches between them", colors.ink2);
-  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, visibleNote: "the state is what you observe: the coin in play",
+  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, visibleNote: "the state is observed: the coin in play",
     fillState: step ? { h: step.to, a: landU > 0 && landU < 1 ? 1 - landU : 0 } : null });
   if (step && anim?.drawBar && landU < 1) {
     /* THE DRAW BAR: T's row for the current state as a bar split in its
@@ -562,8 +562,8 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
      letters on open tiles — a state, not a value; the toss row is the
      filled / open tiles every other row in the widget uses. */
   caption(Lo.walk, hidden
-    ? `The walk: ${idx} of ${L} tosses — the coin each toss is hidden, the toss is seen`
-    : `The walk: ${idx} of ${L} tosses — the coin in play each toss`);
+    ? `The walk, ${idx} of ${L} tosses: the coin is hidden, the toss is seen`
+    : `The walk, ${idx} of ${L} tosses: the coin in play`);
   const cx = (i) => gx + i * cell;
   const coinTile = (x, y, coin, alpha, washed) => {
     ctx.save(); ctx.globalAlpha = alpha;
@@ -595,13 +595,13 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   const countNames = hidden ? tossNames : stateNames;
   const CW = 62;   // "12 · 0.86" needs the room
   table(gx, Lo.counts.y, hidden
-    ? `Transitions counted between the TOSSES, ${n} so far: count · share of row`
-    : `Transitions counted between the coins, ${n} so far: count · share of row`,
+    ? `Transitions between tosses, ${n} counted: count · share of row`
+    : `Transitions between coins, ${n} counted: count · share of row`,
   countNames.map((s) => `to ${s}`), countNames, shown, "counts", null,
   (r, c) => (hidden ? colors.ink2 : (r === c ? colors.ink1 : colors.ink2)), CW);
   const note = hidden
     ? "not T: the tosses are not the coins"
-    : "the shares converge on T's rows as the walk lengthens";
+    : "the shares approach T's rows as the walk lengthens";
   text(gx + 2 * CW + 24, Lo.counts.y + LAB + mc - 2, note, colors.ink3, "left");
 }
 
@@ -615,10 +615,11 @@ function conceptCardLines(state, idx, params) {
   const tossName = (m) => (m === 1 ? "Heads" : "Tails");
   if (idx === 0) {
     const lines = [
-      "A Markov model: a set of states and a transition table T, P(next state | current state) — one row per current state, each row summing to 1. Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses.",
-      "The next state depends only on the current one, not on the tosses before it. Walk it: each toss the coin in play is drawn from the current coin's row of T.",
+      `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`,
+      "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses.",
+      `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`,
     ];
-    if (hidden) lines.push("Hidden: the coin is not seen. Each toss shows Heads or Tails by E — the fair coin lands Heads half the time, the loaded coin 0.80 — and only the toss is recorded.");
+    if (hidden) lines.push(`Hidden: the coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`);
     return lines;
   }
   const i = idx - 1;
@@ -626,16 +627,40 @@ function conceptCardLines(state, idx, params) {
   if (i === 0) lines.push(`Toss 1: start with ${name(src[0])}, each coin equally likely.`);
   else {
     const a = src[i - 1], b = src[i];
-    lines.push(`Toss ${i + 1}: from ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)} — drew ${a === b ? "stay" : "switch"}, so ${name(b)}.`);
+    lines.push(`Toss ${i + 1}, from ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "stay" : "switch"}: ${a === b ? `${name(b)} again` : name(b)}.`);
   }
-  if (hidden) lines.push(`${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)} — came up ${tossName(obs[i])}. Only the toss is recorded.`);
+  if (hidden) lines.push(`${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)}. Came up ${tossName(obs[i])}. Only the toss is recorded.`);
   let stays = 0;
   for (let k = 1; k < idx; k += 1) if (src[k] === src[k - 1]) stays += 1;
   if (idx > 1) lines.push(hidden
-    ? `Stays with the same coin so far: ${stays} of ${idx - 1}. You cannot count these from the record — you see only tosses.`
-    : `Stays so far: ${stays} of ${idx - 1} switches-or-stays = ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}.`);
+    ? `Stayed with the same coin on ${stays} of ${idx - 1} transitions so far. These cannot be counted from the record, which shows only tosses.`
+    : `Stayed on ${stays} of ${idx - 1} transitions so far, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}.`);
   return lines;
 }
+
+/* THE FORMULAS IN THE CARD. MathML where the engine renders it, with a plain
+   fallback where it does not (widget 14's rule: an older engine drops the
+   <math> wrapper and runs the symbols together). One <math> per fragment,
+   and each short enough not to need a line break inside it. */
+const MATHML = mathmlRenders();
+const mml = (inner) => `<math><mrow>${inner}</mrow></math>`;
+const mi = (t) => `<mi>${t}</mi>`, mo = (t) => `<mo>${t}</mo>`, mn = (t) => `<mn>${t}</mn>`;
+const msub = (b, x) => `<msub>${b}${x}</msub>`;
+const MATH = {
+  /* T_ij = P(s_{t+1} = j | s_t = i) */
+  T: MATHML
+    ? mml(`${msub(mi("T"), "<mrow><mi>i</mi><mi>j</mi></mrow>")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("s"), "<mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow>")}${mo("=")}${mi("j")}${mo("|")}${msub(mi("s"), mi("t"))}${mo("=")}${mi("i")}${mo(")")}`)
+    : "T, with T[i, j] = P(next state j | current state i)",
+  Tname: MATHML ? mml(mi("T")) : "T",
+  /* E_ik = P(o_t = k | s_t = i) */
+  E: MATHML
+    ? mml(`${msub(mi("E"), "<mrow><mi>i</mi><mi>k</mi></mrow>")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("o"), mi("t"))}${mo("=")}${mi("k")}${mo("|")}${msub(mi("s"), mi("t"))}${mo("=")}${mi("i")}${mo(")")}`)
+    : "E, with E[i, k] = P(observation k | state i)",
+  /* score_t(s) = P(o_t | s) · max_{s'} score_{t-1}(s') · T_{s' s} */
+  recurrence: MATHML
+    ? mml(`${msub(mi("score"), mi("t"))}${mo("(")}${mi("s")}${mo(")")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("o"), mi("t"))}${mo("|")}${mi("s")}${mo(")")}${mo("·")}<munder><mo>max</mo><mrow><msup><mi>s</mi><mo>′</mo></msup></mrow></munder>${mo("[")}${msub(mi("score"), "<mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow>")}${mo("(")}<msup><mi>s</mi><mo>′</mo></msup>${mo(")")}${mo("·")}${msub(mi("T"), "<mrow><msup><mi>s</mi><mo>′</mo></msup><mi>s</mi></mrow>")}${mo("]")}`)
+    : "score_t(s) = P(o_t | s) × max over s′ of score_{t−1}(s′) × T[s′, s]",
+};
 
 /* THE WORKED LINE — one node's arithmetic, above the figure, for the column
    the walk is at. The tables give E and T and the nodes show 0.20, 0.94,
@@ -667,7 +692,7 @@ function cardLines(state, idx, params) {
 
   if (fwd === 0) {
     return [
-      `Each column: score(state) = P(observation | state) × the largest of (previous score × transition) over the previous column's states.`,
+      `Each column: ${MATH.recurrence} — the emission at this position times the best of the previous column's scores carried over a transition.`,
       `A blank column has no observation, so its score is that largest product alone.`,
       `The state that gave the largest product is stored; the trace-back follows those stored winners from the best final node.`,
     ];
@@ -723,9 +748,13 @@ function renderCard(state, idx, params) {
   if (!cardHost) {
     cardHost = document.createElement("div");
     cardHost.className = "w-math";
-    cardHost.style.minHeight = CARD_MIN;
     figure.parentNode.insertBefore(cardHost, figure);
   }
+  /* The Concept tab's resting card is four lines with MathML in two of them,
+     146px at the usual width; reserve that on the tab so the walk, whose card
+     is three lines, does not jog the figure (3.4k). The trellis tabs keep the
+     smaller reserve. */
+  cardHost.style.minHeight = state.kind === "concept" ? "13.4em" : CARD_MIN;
   const key = ["view", "idx", "seed", "missing", "K", "every", "sample", "stay", "states"]
     .map((k) => (k === "idx" ? idx : params[k])).join("|");
   if (key === cardKey) return;
@@ -748,10 +777,9 @@ defineWidget({
   slug: "hmm",
   title: "Hidden Markov Model",
   subtitle:
-    "A hidden Markov model infers hidden states from the observations they " +
-    "produce, and fills a missing observation from the decoded state with a " +
-    "probability attached. Genotype imputation fills a SNP array this way from " +
-    "a reference panel.",
+    "A hidden Markov model infers hidden states from the observations they produce. " +
+    "A missing observation is read off the decoded state, with its probability. " +
+    "Genotype imputation fills a SNP array from a reference panel this way.",
   status: "draft",
   layout: "side",
   /* The model band answers to the pointer: hovering an edge of the graph
@@ -766,8 +794,8 @@ defineWidget({
     if (params.view === "concept") {
       const hidden = params.states === "hidden";
       const entries = [
-        { token: "ink-1", label: "F the fair coin, L the loaded coin — the state each toss", mark: "bar" },
-        { token: "highlight", label: "The switch or stay taken this toss, and the toss it gave", mark: "line" },
+        { token: "ink-1", label: "F fair coin, L loaded coin: the state at each toss", mark: "bar" },
+        { token: "highlight", label: "The transition taken this toss, and its emission", mark: "line" },
       ];
       if (hidden) entries.push({ token: "theory", label: "Heads (filled); Tails is open — the toss", mark: "bar" });
       if (hidden) entries.push({ token: "unknown", label: "The hidden coin", mark: "bar" });
@@ -780,7 +808,7 @@ defineWidget({
         { token: "theory", label: "Happy (filled); Sad is open", mark: "bar" },
         { token: "unknown", label: "Not recorded", mark: "bar" },
         { token: "empirical", label: "Viterbi trellis: relative score of the best path ending at each node", mark: "bar" },
-        { token: "empirical", label: "Survivor path into a node; once traced, the most likely sequence of patterns", mark: "line" },
+        { token: "empirical", label: "Survivor into each node; once traced, the most likely sequence of patterns", mark: "line" },
         { token: "ink-3", label: "The candidate that lost at the current column", mark: "dash" },
         { token: "posterior", label: "Posterior: which pattern the day is in", mark: "bar" },
       ]
@@ -788,10 +816,10 @@ defineWidget({
         { token: "theory", label: "The base at each site: the alternate allele filled, the reference allele open", mark: "bar" },
         { token: "unknown", label: "Not typed on the array", mark: "bar" },
         { token: "empirical", label: "Viterbi trellis: relative score of the best path ending at each node", mark: "bar" },
-        { token: "empirical", label: "Survivor path into a node; once traced, the most likely copied haplotype at every site", mark: "line" },
+        { token: "empirical", label: "Survivor into each node; once traced, the most likely copied haplotype at each site", mark: "line" },
         { token: "posterior", label: "Posterior: which haplotype is being copied", mark: "bar" },
       ];
-    if (params.truth) entries.push({ token: "reference", label: toy ? "Ground truth: the pattern the record follows, washed and outlined" : "Ground truth: the segments the sample copies, washed and outlined", mark: "bar" });
+    if (params.truth) entries.push({ token: "reference", label: toy ? "Ground truth: the pattern the record follows" : "Ground truth: the segments the sample copies", mark: "bar" });
     return entries;
   },
 
@@ -803,9 +831,9 @@ defineWidget({
         /* Three-up, the labels have to be short or the third truncates in the
            rail: "Biological example" became "Biology" when the Concept tab
            arrived. The detail line carries the rest. */
-        { value: "concept", label: "Concept", detail: "a casino's two coins: a Markov model walked a toss at a time, then the coin hidden" },
-        { value: "toy", label: "Toy model", detail: "the toy: two known patterns, a mood record with days missing" },
-        { value: "biological", label: "Biology", detail: "the biological example: a SNP array imputed from a reference panel" },
+        { value: "concept", label: "Concept", detail: "two coins, one loaded: a Markov model, then a hidden one" },
+        { value: "toy", label: "Toy model", detail: "two known patterns; a record of moods with days missing" },
+        { value: "biological", label: "Biology", detail: "a SNP array imputed from a reference panel" },
       ],
       default: "concept",
     },
@@ -819,7 +847,7 @@ defineWidget({
        line: where the numbers on the figure come from. */
     chain: {
       type: "section", label: "The casino",
-      detail: "a fair coin and a loaded one, and a transition table for switching between them; walk it one toss at a time, then hide the coin",
+      detail: "a fair coin and a loaded one, and the transition table for switching between them",
       when: { param: "view", equals: "concept" },
     },
     stay: {
@@ -834,7 +862,7 @@ defineWidget({
     states: {
       type: "segmented", label: "The coin",
       options: [
-        { value: "visible", label: "Visible", detail: "a Markov model: you see which coin is in play at each toss" },
+        { value: "visible", label: "Visible", detail: "a Markov model: the coin in play is observed at each toss" },
         { value: "hidden", label: "Hidden", detail: "a hidden Markov model: the coin is not seen; each toss shows Heads or Tails by E" },
       ],
       default: "visible",
@@ -843,7 +871,7 @@ defineWidget({
     },
     seq: {
       type: "section", label: "The sequence",
-      detail: "simulated: the record follows one of the two patterns, with some days unrecorded. Seed 1 with three missing is the worked example; another seed picks the pattern and the days",
+      detail: "a record that follows one of the two patterns, with days unrecorded. Seed 1 with three missing is the worked example",
       when: { param: "view", equals: "toy" },
     },
 
@@ -856,7 +884,7 @@ defineWidget({
        user tweak. The detail line answers it where the reader's hand is. */
     missing: {
       type: "int", label: "Days not recorded", min: 0, max: 4, default: 3,
-      detail: "simulation: which days go unrecorded, completely at random",
+      detail: "simulation: the days left unrecorded, completely at random",
       when: { param: "view", equals: "toy" },
     },
 
@@ -872,7 +900,7 @@ defineWidget({
       when: { param: "view", equals: "biological" },
     },
     every: {
-      type: "choice", label: "Array types one site in",
+      type: "choice", label: "Sites typed, one in",
       options: EVERY.map((v) => ({ value: v, label: v, detail: "design choice: how densely the array types" })),
       default: "4",
       when: { param: "view", equals: "biological" },
@@ -891,7 +919,7 @@ defineWidget({
       type: "segmented", label: "Sample",
       options: [
         { value: "one", label: "One haplotype", detail: "simulation: the sample copies a single haplotype of the panel" },
-        { value: "recombinant", label: "Recombinant", detail: "simulation: a historical crossover falls in this region, so the sample copies h1 on one side of it and h2 on the other; the decoder has to find where" },
+        { value: "recombinant", label: "Recombinant", detail: "simulation: a past crossover in this region, so the sample copies h1 on one side of it and h2 on the other" },
       ],
       default: "one",
       when: { param: "view", equals: "biological" },
@@ -916,10 +944,9 @@ defineWidget({
     },
     modelToy: {
       type: "section", label: "The model",
-      detail: "Here the record follows one pattern day by day, so E at each day puts 0.9 on that "
-        + "pattern's mood and 0.1 on the other. T is fixed at a switch rate of 0.10; a change of "
-        + "pattern within a record is what Recombinant shows on the Biology tab. In practice E and "
-        + "T are counted from sequences whose patterns are known, or fitted by expectation–maximisation.",
+      detail: "The record follows one pattern day by day, so E at each day puts 0.9 on that "
+        + "pattern's mood. T is fixed at 0.10. In practice both are counted from sequences whose "
+        + "patterns are known, or fitted by expectation–maximisation.",
       when: { param: "view", equals: "toy" },
     },
     modelBio: {
@@ -1082,7 +1109,7 @@ defineWidget({
        trellis that reads it. */
     caption(Lo.obs, toy
       ? `Moods on record: ${state.order.length} of ${L} days`
-      : `Array genotypes: ${state.order.length} typed sites of ${L}`);
+      : `Array: ${state.order.length} of ${L} sites typed`);
     rowLabel(Lo.obs.y, toy ? "mood" : "array");
     for (let i = 0; i < L; i += 1) {
       if (stage.sites[i].blank) unknownCell(cx(i), Lo.obs.y, true);
@@ -1098,8 +1125,8 @@ defineWidget({
        transition — then the templates it reads from. */
     drawRingModel(ctx, colors, { Lo, state, stage, site: walkSite, w, tile, text, border, stateName, pointer });
     caption(Lo.panel, toy
-      ? (params.truth ? "The two patterns, known — the record follows the marked one" : "The two patterns, known")
-      : (params.truth ? `Reference panel: ${K} sequenced haplotypes — the sample copies the marked segments` : `Reference panel: ${K} sequenced haplotypes`));
+      ? (params.truth ? "The two patterns; the record follows the marked one" : "The two patterns, known")
+      : (params.truth ? `Reference panel, ${K} sequenced haplotypes; the sample copies the marked segments` : `Reference panel: ${K} sequenced haplotypes`));
     for (let h = 0; h < K; h += 1) {
       const y = Lo.panel.y + h * cell;
       rowLabel(y, stateName(h));
@@ -1217,7 +1244,7 @@ defineWidget({
 
     /* 6. The truth, on request. */
     if (Lo.truth) {
-      caption(Lo.truth, toy ? "Ground truth: ringed where the call differs, marked where the day strayed from its pattern"
+      caption(Lo.truth, toy ? "Ground truth: ringed where the call differs, marked where the day deviates from its pattern"
         : "Ground truth: ringed where the call differs, marked where the panel lacks the variant");
       rowLabel(Lo.truth.y, "truth");
       for (let i = 0; i < L; i += 1) {
@@ -1249,7 +1276,7 @@ defineWidget({
         { label: "Tosses so far", value: `${idx} of ${state.L}`, note: "one coin drawn per toss" },
         hidden
           ? { label: "P(stay) counted from the tosses", value: share(state.obs), note: `not T: the tosses are not the coins. T's diagonal is ${state.stay.toFixed(2)}` }
-          : { label: "P(stay) counted from the walk", value: share(state.src), note: `share of tosses that kept the coin; T's diagonal is ${state.stay.toFixed(2)}` },
+          : { label: "P(stay) counted from the walk", value: share(state.src), note: `share of transitions that stayed; T's diagonal is ${state.stay.toFixed(2)}` },
       ];
       if (hidden && params.truth) tiles.push({ label: "P(stay) counted from the hidden coins", value: share(state.src), note: "what you could count if the coin were seen" });
       return tiles;
@@ -1264,17 +1291,26 @@ defineWidget({
        the walk is at, and the two tiles pushed the findings off the first row. */
     const tiles = [
       { label: toy ? "Days not recorded" : "Sites to impute", value: String(blanks.length),
-        note: toy ? "the ? cells, imputed once traced" : "untyped, imputed once traced" },
+        note: toy ? "imputed once the path is traced" : "untyped, imputed once the path is traced" },
     ];
     tiles.push({ label: "Imputed with P ≥ 0.9",
       value: traced ? `${calls.filter((c) => c.conf >= 0.9).length} of ${blanks.length}` : "—",
       note: toy ? "posterior probability of the imputed mood" : "posterior probability of the imputed allele" });
     if (params.truth) {
+      /* On the biology the path itself is not identifiable where two templates
+         agree — measured 2026-09-06, the true recombination point is placed
+         between the flanking typed sites in ~10% of seeds while 85% of blanks
+         come out right — so the honest count is the sites where the decoded
+         template carries the true template's allele. The toy's two patterns
+         differ enough that the path is the fair count there. */
       let stateRight = 0;
-      for (let i = 0; i < L; i += 1) if (state.trellis.path[i] === state.src[i]) stateRight += 1;
-      tiles.push({ label: toy ? "Pattern decoded correctly" : "Copied haplotype decoded correctly",
+      for (let i = 0; i < L; i += 1) {
+        if (toy ? state.trellis.path[i] === state.src[i]
+          : state.panel.hap[state.trellis.path[i]][i] === state.panel.hap[state.src[i]][i]) stateRight += 1;
+      }
+      tiles.push({ label: toy ? "Pattern decoded correctly" : "Decoded template agrees with the true one",
         value: traced ? `${stateRight} of ${L}` : "—",
-        note: toy ? "Viterbi path against the true pattern, all days" : "Viterbi path against the true copying path, all sites" });
+        note: toy ? "Viterbi path against the true pattern, all days" : "sites where the two carry the same allele" });
       tiles.push({ label: "Imputed correctly",
         value: traced ? `${blanks.filter((i, k) => calls[k].call === state.truthAllele[i]).length} of ${blanks.length}` : "—",
         note: toy ? "against the true mood" : "against the sequenced allele" });

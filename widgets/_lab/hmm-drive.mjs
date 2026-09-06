@@ -17,8 +17,8 @@ import { fmt } from "../core/stats.js";
 import { animationUnits } from "../hmm/model.js";
 
 let src = await readFile(new URL("../hmm/main.js", import.meta.url), "utf8");
-src = src.replace(/^import \{ defineWidget, fmt \} from "\.\.\/core\/index\.js";$/m,
-  'const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c);');
+src = src.replace(/^import \{ defineWidget, fmt, mathmlRenders \} from "\.\.\/core\/index\.js";$/m,
+  'const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c); const mathmlRenders = () => false;');
 src = src.replace(/^import \* as M from "\.\/model\.js";$/m,
   `import * as M from ${JSON.stringify(new URL("../hmm/model.js", import.meta.url).href)};`);
 src += "\nexport { __cfg };\n";

@@ -4418,6 +4418,34 @@ moods on the Toy where a pattern is a template, haplotypes on the Biology.
 The toy's model section says its record follows one pattern day by day, so
 E puts 0.9 on that pattern's mood at each day. Default stay kept at 0.8.
 
+### The copy audit — 2026-09-06
+
+Surface by surface, the way the 2026-08-27 audit went: subtitle and blurb,
+tabs and sections, controls, legend, canvas captions, the worked line, the
+readout, the drive row and speeds, the URL. Fifty-five items put to
+Kenneth with a rewrite each; he took all of them. The subtitle came down
+from 235 characters to 224 and lost its trailing clause; "walk it",
+"press" and "you see" went from the section and control details
+(dashboard description, second person); the em-dash asides went from the
+worked line; "switches-or-stays" (coined) became "transitions"; the
+readout note "the ? cells" (a glyph) became "imputed once the path is
+traced"; the shouting TOSSES in a caption became lower case; the ground
+truth legend entries dropped "washed and outlined", which described the
+mark rather than the quantity. The biology tile *Copied haplotype decoded
+correctly* — measured earlier to penalise unidentifiable differences — is
+now *Decoded template agrees with the true one*, counting sites where the
+two carry the same allele. `Array types one site in` is `Sites typed, one
+in`. URL names and values were reviewed and kept: none is coined.
+
+**MathML.** Three fragments in the card now render as MathML where the
+engine supports it, with a plain fallback: T_ij = P(s_{t+1} = j | s_t = i),
+E_ik = P(o_t = k | s_t = i), and the Viterbi recurrence score_t(s) = P(o_t |
+s) · max over s′ of score_{t−1}(s′) · T_{s′s}. One <math> per fragment, each
+short enough not to break inside. The worked arithmetic lines stay as
+prose with numbers, which is what a hand check wants. The Concept card
+reserves 13.4em so the four-line resting card and the three-line walking
+card do not jog the figure.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
