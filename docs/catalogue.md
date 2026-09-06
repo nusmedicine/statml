@@ -4314,6 +4314,14 @@ haplotype / Recombinant*, the recombinant copying h1 up to a cut in the
 middle third and h2 after it, and the panel's two founders built to differ
 at nine-tenths of sites (`PANEL.contrast`). Nothing on the toy.
 
+### The truth mark — 2026-09-06
+
+The dashed grey box on the templates vanished against the orange tiles.
+`_lab/hmm-truth-mark.html` draws five marks on the recombinant panel and
+the toy's patterns; Kenneth picked **E**, a 22% `--c-reference` wash over
+each copied run with a 2px ink outline. The dashed paths on the trellis and
+the posterior strip stay as they were.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

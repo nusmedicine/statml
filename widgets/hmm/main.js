@@ -362,7 +362,7 @@ defineWidget({
         { token: "empirical", label: "Survivor path into a node; once traced, the most likely copied haplotype at every site", mark: "line" },
         { token: "posterior", label: "Posterior: which haplotype is being copied", mark: "bar" },
       ];
-    if (params.truth) entries.push({ token: "reference", label: toy ? "Ground truth: the pattern the record follows" : "Ground truth: the segments the sample copies", mark: "dash" });
+    if (params.truth) entries.push({ token: "reference", label: toy ? "Ground truth: the pattern the record follows, washed and outlined" : "Ground truth: the segments the sample copies, washed and outlined", mark: "bar" });
     return entries;
   },
 
@@ -633,13 +633,16 @@ defineWidget({
       /* THE GROUND TRUTH WHERE IT CAN BE READ: a box round each run of the
          template the record actually follows, so a student sees the record
          come out of P2, or out of h2 then h4 (Kenneth, 2026-09-06). */
+      /* A light wash over the run and an ink outline (E of five in
+         `_lab/hmm-truth-mark.html`; the dashed grey box that shipped first
+         vanished against the orange tiles and the grid). */
       ctx.save();
-      ctx.strokeStyle = colors.reference; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]); ctx.lineJoin = "round";
       let start = 0;
       for (let i = 1; i <= L; i += 1) {
         if (i === L || state.src[i] !== state.src[start]) {
-          const y = Lo.panel.y + state.src[start] * cell;
-          ctx.strokeRect(cx(start) + 1.5, y + 1.5, (i - start) * cell - 3, cell - 3);
+          const x = cx(start), y = Lo.panel.y + state.src[start] * cell, wRun = (i - start) * cell;
+          ctx.globalAlpha = 0.22; ctx.fillStyle = colors.reference; ctx.fillRect(x, y, wRun, cell);
+          ctx.globalAlpha = 1; ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, wRun - 2, cell - 2);
           start = i;
         }
       }
