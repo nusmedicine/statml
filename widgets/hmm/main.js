@@ -332,7 +332,16 @@ defineWidget({
       default: "toy",
     },
 
-    seq: { type: "section", label: "The sequence" },
+    /* THE RAIL IN GROUPS BY KIND. Toy: the sequence, then the model. Biological:
+       the design (the two choices a study makes), the truth (simulated, so the
+       imputation can be checked), then the model. `seed` and the truth toggle
+       are one field each, placed so they fall under The sequence on the toy
+       and under The truth on the biological tab. */
+    seq: {
+      type: "section", label: "The sequence",
+      detail: "simulated from the model below, so there is a truth to compare against",
+      when: { param: "view", equals: "toy" },
+    },
 
     /* EVERY CONTROL SAYS WHAT KIND OF THING IT IS. Three kinds sit in one
        rail and looked alike: SIMULATION dials that make a truth to compare
@@ -351,14 +360,12 @@ defineWidget({
       detail: "simulation: which days go unrecorded, completely at random",
       when: { param: "view", equals: "toy" },
     },
-    happy: {
-      type: "choice", label: "P(Happy) in pattern 2",
-      detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this",
-      options: HAPPY.map((v) => ({ value: v, label: v })),
-      default: "0.8",
-      when: { param: "view", equals: "toy" },
-    },
 
+    design: {
+      type: "section", label: "The design",
+      detail: "the two choices a study makes",
+      when: { param: "view", equals: "biological" },
+    },
     K: {
       type: "choice", label: "Reference haplotypes",
       detail: "design choice: how many haplotypes were sequenced for the panel",
@@ -371,6 +378,11 @@ defineWidget({
       detail: "design choice: how densely the array types",
       options: EVERY.map((v) => ({ value: v, label: v })),
       default: "4",
+      when: { param: "view", equals: "biological" },
+    },
+    truthBio: {
+      type: "section", label: "The truth",
+      detail: "simulated, so the imputation can be checked",
       when: { param: "view", equals: "biological" },
     },
     switches: {
@@ -393,6 +405,13 @@ defineWidget({
       type: "section", label: "The model",
       detail: "E and T are set here. In practice they are counted from sequences "
         + "whose patterns are known, or fitted by expectation–maximisation.",
+      when: { param: "view", equals: "toy" },
+    },
+    happy: {
+      type: "choice", label: "P(Happy) in pattern 2",
+      detail: "model parameter, learnt from data in practice: pattern 1 is Happy with one minus this",
+      options: HAPPY.map((v) => ({ value: v, label: v })),
+      default: "0.8",
       when: { param: "view", equals: "toy" },
     },
     modelBio: {
