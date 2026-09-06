@@ -1,9 +1,67 @@
 # Handover
 
-**FORTY-FOUR WIDGETS — 43 on the gallery, `roc-auc` UNLISTED (live at its URL,
-off the cards; Kenneth's call, 2026-08-30). 334 fingerprint states, every one of
-them real and every one MATCHing as of 2026-09-05. `/lab/` is empty: there is no
-draft.**
+**FORTY-FIVE WIDGETS IN THE TREE — 43 on the gallery, `roc-auc` UNLISTED (live
+at its URL, off the cards; Kenneth's call, 2026-08-30), and ONE DRAFT at
+`/lab/`: 45 `hmm`, merged to `main` 2026-09-06. 334 fingerprint states are
+real and MATCHing as of 2026-09-05; widget 45's 15 are placeholders.**
+
+---
+
+# WIDGET 45 `hmm` IS A DRAFT ON MAIN. THE NEXT TASK IS ITS BASELINE.
+
+**Hidden Markov Model**, for PHM5003 05/02 *Missing Data and Imputation*
+(cells 24–38; widget 25 owns cells 1–23). Three tabs: **Concept** — the
+occasionally dishonest casino, a fair and a loaded coin as a Markov chain,
+then the coin hidden and only the tosses recorded; **Toy model** — the
+lesson's two five-day mood patterns P1 and P2 as the templates of a copying
+HMM, with Viterbi animated column by column and traced back; **Biology** —
+a SNP array imputed from a reference panel the same way, with an optional
+recombinant sample. Twenty rounds on 2026-09-06, every one recorded in
+[docs/catalogue.md](docs/catalogue.md) § *Widget 45*, with the mock-ups it
+was picked from in `_lab/hmm-*.html`. `node widgets/_lab/hmm-drive.mjs` is
+993 assertions and runs under `npm test`.
+
+**Merged as a fast-forward** (`main` had not moved since the branch), so the
+`wgcna` session's work in `.claude/worktrees/wgcna` on branch `wgcna` is
+untouched and still unmerged. Kenneth's words were "ok merge to main … push
+to gallery"; he had not said "tested ok" on the widget, and the last thing
+he reviewed was the card layout (round 20). Status is therefore **`draft`**
+in both `main.js` and the manifest — the widget is live at
+`/statml/lab/` under the draft bar, and NOT on the gallery's cards.
+
+**The exact next task, when he says "tested ok":**
+
+1. Replace the 15 placeholder states (`"px": "0", "tx": "0"`) in
+   `widgets/_lab/fingerprint-baseline.json` with real hashes, per 5.10 and
+   the recipe at the end of this file: pane FRONTED (DPR 1.25 — a hidden
+   pane hashes at DPR 1 and every `px` DIFFERs), three determinism passes
+   byte-identical, then one more full pass reading MATCH on every state.
+   The set already includes driven states for the concept walk and the
+   trellis, so `check`'s animation rule is met once they are real.
+2. Flip `status: "draft"` → `"shipped"` in `widgets/hmm/main.js` AND
+   `widgets/manifest.json` in the same commit (`check` asserts they agree).
+3. Mark shipped in the catalogue's § *Widget 45* and its notebook-02 row;
+   move this section down; push.
+
+**Open on it besides the baseline:** not judged projected — the 550px
+fingerprint canvas gives 17px tiles and 10px letters on Biology; and the
+05/02 lesson link is not yet placed.
+
+**Things this build learned that the next one will hit:**
+
+- **`.w-math-eq` carries an 8.3em hanging indent** written for widget 14's
+  sum. On a prose card it has nothing to hang from and every wrapped line
+  restarts a third of the way across. Widget 40 and now 45 override it
+  inline with a label gutter; a new prose card must too.
+- **A `choice` control drops the field's `detail`** and shows the selected
+  option's — put the detail on every option.
+- **A `gate` hides the drive row while shut**, so a two-way display switch
+  that must keep Step/Play alive is a `segmented`, not a gate.
+- **`check` fails the word "notebook" on any reader-facing string** (2.10);
+  say "the worked example".
+- **The driver stubs `mathmlRenders` to false**, so a card's MathML path is
+  exercised only in the browser; the import regex in `hmm-drive.mjs`
+  expects the exact `import { defineWidget, fmt, mathmlRenders }` line.
 
 ---
 
@@ -1094,7 +1152,8 @@ is blind to.
 | 41 | `matrix-factorization` | shipped as **Matrix Factorization** (slot 2), 2026-09-03, three rounds; nine states — seven settled, two driven. Began as `nmf` and was renamed and restructured mid-review: NMF and PCA tabs factorising the same matrix, decomposition and geometry views. NOT yet judged projected |
 | 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Hover on the distance matrix added 2026-09-05, an inspector that moves no state. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
 | 43 | `enrichment` | shipped as **Enrichment Analysis** (slot 5, the arc's last), 2026-09-05, about twenty rounds over two days; ten states — seven settled, two driven, one hit-driven. Four pages, ORA pinned to fold change. Uncovered the core bug in a gated drag's cursor — see *A CORE BUG WIDGET 43 SHIPPED THROUGH*. NOT yet judged projected |
-| 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. See the top of this file. NOT yet judged projected |
+| 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. NOT yet judged projected |
+| 45 | `hmm` | **DRAFT on main** as **Hidden Markov Model** (PHM5003 05/02), merged 2026-09-06 after twenty rounds in one day; 15 PLACEHOLDER states. Concept · Toy model · Biology; the copying HMM in `model.js`, `_lab/hmm-drive.mjs` = 993 assertions. Awaiting "tested ok", then the baseline and the status flip. See the top of this file |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
