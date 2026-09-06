@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — inverting the Concept tab to follow the lesson</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1280px; margin: 0 auto; padding: var(--sp-4); font-family: var(--font); color: var(--ink-1); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-6) 0 var(--sp-2); }
+  h2 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .stages { display: flex; gap: var(--sp-3); align-items: flex-start; flex-wrap: wrap; }
+  .stage { width: 400px; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); padding: var(--sp-3); }
+  .stage h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  .stage h3 span { color: var(--ink-3); font-weight: 400; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--radius-sm); overflow: hidden; font-size: var(--fs-xs); margin: 2px 0 8px; }
+  .seg span { padding: 3px 10px; color: var(--ink-2); }
+  .seg span.on { background: var(--ink-1); color: var(--surface-1); }
+  .card { background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px 10px; font-size: var(--fs-xs); line-height: 1.5; margin: 0 0 8px; }
+  .card div { padding-left: 4.6em; text-indent: -4.6em; margin: 0 0 3px; }
+  .card div span { display: inline-block; width: 4.6em; text-indent: 0; color: var(--ink-3); }
+  .band { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+  svg { display: block; }
+  table.t { border-collapse: collapse; font-size: 10px; font-family: var(--font-mono); margin: 0 0 6px; }
+  table.t caption { font-size: 10px; color: var(--ink-3); text-align: left; padding: 0 0 2px; font-family: var(--font); }
+  table.t td, table.t th { border: 1px solid var(--line-1); padding: 2px 6px; text-align: center; font-weight: 400; }
+  table.t th { color: var(--ink-3); }
+  .walk { margin: 8px 0 0; }
+  .walk .lbl { font-size: 10px; color: var(--ink-3); margin: 0 0 2px; }
+  .row { display: flex; gap: 2px; align-items: center; }
+  .row .k { width: 32px; font-size: 10px; color: var(--ink-3); }
+  .cell { width: 15px; height: 15px; border: 1px solid var(--line-1); font-size: 9px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); }
+  .cell.h { background: var(--c-highlight); color: white; border-color: var(--c-highlight); }
+  .cell.t { background: var(--ink-1); color: white; border-color: var(--ink-1); }
+  .cell.F { background: var(--surface-2); color: var(--ink-2); }
+  .cell.L { background: var(--c-highlight-soft, #f7d9c4); color: var(--ink-1); }
+  .cell.q { color: var(--ink-4); }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 8px 0 0; max-width: 100ch; }
+  .cnt { display: flex; gap: 10px; align-items: flex-end; }
+  .cnt .n { font-size: 10px; color: var(--ink-3); max-width: 15em; line-height: 1.3; }
+  ul.q { font-size: var(--fs-sm); color: var(--ink-2); max-width: 100ch; }
+  ul.q li { margin: 0 0 6px; }
+  ul.q b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · Concept tab — inverted to follow the lesson: tosses as states first, the coin as the hidden state second</h1>
+  <p class="note">
+    <b>What the tab does now:</b> the chain is over the coins, Fair and Loaded, shown first with the coin visible
+    and then with it hidden. <b>What the lesson now says:</b> a simple Markov model is a coin toss whose states are
+    Heads and Tails; a hidden Markov model then puts the coin, Fair or Loaded, behind the tosses. The mocks below
+    invert the tab to that order. Everything is drawn static; the walk, the hover and the choreography carry over
+    unchanged, only what the nodes are changes. One sticky-coin record (stay 0.80) is used for the Markov stage and
+    one casino record (stay 0.80, loaded coin Heads 0.80) for the hidden stage.
+  </p>
+
+  <h2>A · Two stages, the lesson's order <em>— a segmented control, Markov model | Hidden Markov model, replacing the coin's Visible | Hidden</em></h2>
+  <div class="stages" id="A"></div>
+  <p class="why">
+    Stage 1's counts table <b>is</b> an estimate of T: the states are in the record, so counting transitions is
+    how the table is learned. Stage 2 keeps the same counts table over the same kind of record, and now it is
+    <b>not</b> T, because the record holds the tosses and the states are the coins. That contrast is what the
+    inversion buys: the student has just seen counting work, and then sees exactly why it stops working. The
+    <em>Show the ground truth</em> toggle reveals the coin row in stage 2, which is what the current Visible mode
+    showed, so nothing the tab does today is lost.
+  </p>
+
+  <h2>B · Three stages <em>— the current visible-coins step kept as a middle stage: Tosses | Coins, seen | Coins, hidden</em></h2>
+  <div class="stages" id="B"></div>
+  <p class="why">
+    The middle stage shows the coins' own chain in the open before hiding it, which is what the tab does today.
+    Cost: a three-way control whose middle option the lesson does not have, and a coin row that stage 3's
+    ground-truth toggle already provides. I would not build this unless the middle step earns its place in the
+    lesson text.
+  </p>
+
+  <h2>Questions to settle before building</h2>
+  <ul class="q">
+    <li><b>The Markov coin has to be sticky.</b> A fair coin with independent tosses has T rows of 0.50 / 0.50,
+      which is a Markov chain with no memory, so nothing in stage 1 would move. The mock gives the toss a
+      stay probability, P(next toss repeats the last), on the same slider the hidden stage uses for the coin.
+      At 0.50 the slider reads as "independent tosses", which is itself a teaching point, but the lesson's
+      coin-toss example should say the coin is sticky, or the widget will contradict it.</li>
+    <li><b>Two records, not one.</b> Stage 1's tosses come from the sticky chain; stage 2's from the casino.
+      They cannot be the same sequence, because the mechanism is the point. The rail's Seed covers both.</li>
+    <li><b>One slider or two.</b> "P(stay)" means "repeat the last toss" in stage 1 and "keep the same coin" in
+      stage 2. One control whose label changes with the stage, or two controls each shown in its stage. I
+      would use two, gated by the stage, so a URL says which quantity it set.</li>
+    <li><b>The middle stage's counts.</b> In A the coin-transition counts the current Visible mode shows go away;
+      in stage 2 with ground truth on they could return as a second counts table beside the toss counts.
+      Worth it only if you want the student to see the two tables side by side.</li>
+  </ul>
+</main>
+
+<script type="module">
+/* --- one sticky-coin record and one casino record, fixed for the mock ------ */
+const sticky = "HHHTTTTHHHHHTTHHHTTT".split("");           // stay 0.80 on the toss itself
+const coins  = "FFFFFFFLLLLLLLFFFFFF".split("");           // the casino's hidden coin
+const casino = "HTHHTHTHHHHHHTHHTTHT".split("");           // tosses the coins emitted
+
+const count = (seq) => {
+  const c = { HH: 0, HT: 0, TH: 0, TT: 0, FF: 0, FL: 0, LF: 0, LL: 0 };
+  for (let i = 1; i < seq.length; i += 1) c[seq[i - 1] + seq[i]] += 1;
+  return c;
+};
+
+function graph({ a, b, pa, pb, emit }) {
+  /* two states side by side, self-loops and a pair of crossing arrows; with
+     `emit`, two emission nodes under them, as the tab draws today */
+  const W = 240, H = emit ? 150 : 90;
+  const ax = 60, bx = 180, y = 40;
+  const arrow = (x1, y1, x2, y2, t, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink-2)" stroke-width="1.2" ${dash ? 'stroke-dasharray="3 3"' : ""} marker-end="url(#m)"/>` + (t ? `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}" font-size="9" fill="var(--ink-2)" text-anchor="middle">${t}</text>` : "");
+  const loop = (x, t) => `<path d="M ${x - 8} ${y - 16} C ${x - 22} ${y - 40}, ${x + 22} ${y - 40}, ${x + 8} ${y - 16}" fill="none" stroke="var(--ink-2)" stroke-width="1.2" marker-end="url(#m)"/><text x="${x}" y="${y - 32}" font-size="9" fill="var(--ink-2)" text-anchor="middle">${t}</text>`;
+  const node = (x, yy, t, cls) => `<circle cx="${x}" cy="${yy}" r="16" fill="${cls === "H" ? "var(--c-highlight)" : cls === "T" ? "var(--ink-1)" : "var(--surface-1)"}" stroke="var(--ink-1)" stroke-width="1.2"/><text x="${x}" y="${yy + 4}" font-size="11" text-anchor="middle" fill="${cls ? "white" : "var(--ink-1)"}">${t}</text>`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><defs><marker id="m" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--ink-2)"/></marker></defs>`;
+  s += loop(ax, pa) + loop(bx, pa) + arrow(ax + 17, y - 5, bx - 17, y - 5, pb) + arrow(bx - 17, y + 5, ax + 17, y + 5, pb);
+  s += node(ax, y, a, emit ? null : a) + node(bx, y, b, emit ? null : b);
+  if (emit) {
+    const ey = 118;
+    s += arrow(ax, y + 17, 85, ey - 17, "0.50", true) + arrow(ax + 6, y + 15, 150, ey - 17, "0.50", true)
+      + arrow(bx - 6, y + 15, 100, ey - 17, "0.20", true) + arrow(bx, y + 17, 160, ey - 17, "0.80", true);
+    s += node(90, ey, "H", "H") + node(160, ey, "T", "T");
+  }
+  return s + "</svg>";
+}
+
+const table = (cap, rows, cols, cells, mono = true) => `<table class="t"><caption>${cap}</caption><tr><th></th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>${rows.map((r, i) => `<tr><th>${r}</th>${cells[i].map((v) => `<td>${v}</td>`).join("")}</tr>`).join("")}</table>`;
+
+const cells = (seq, cls) => seq.map((v) => `<div class="cell ${cls ? cls(v) : v.toLowerCase()}">${v}</div>`).join("");
+
+function stage({ title, sub, seg, on, card, band, walk, counts }) {
+  return `<div class="stage"><h3>${title} <span>${sub}</span></h3>
+    <div class="seg">${seg.map((s, i) => `<span class="${i === on ? "on" : ""}">${s}</span>`).join("")}</div>
+    <div class="card">${card.map(([l, b]) => `<div><span>${l}</span>${b}</div>`).join("")}</div>
+    <div class="band"><div>${band.graph}</div><div>${band.tables}</div></div>
+    <div class="walk">${walk}</div>
+    <div class="cnt" style="margin-top:8px">${counts.table}<div class="n">${counts.note}</div></div>
+  </div>`;
+}
+
+const cs = count(sticky), cc = count(casino), ck = count(coins);
+
+const MARKOV = stage({
+  title: "Stage 1 · Markov model", sub: "the tosses are the states",
+  seg: ["Markov model", "Hidden Markov model"], on: 0,
+  card: [
+    ["Model", "A Markov model is a set of states and a transition table T, one row per current state, each row summing to 1."],
+    ["States", "Here the states are the two faces of a coin, Heads and Tails: the record of tosses is the sequence of states."],
+    ["Rule", "The next toss depends only on the current one, not on earlier tosses. This coin is sticky: after Heads, Heads again with 0.80."],
+    ["Count", "Every state is in the record, so T can be estimated by counting: 8 of 11 tosses after Heads were Heads."],
+  ],
+  band: { graph: graph({ a: "H", b: "T", pa: "0.80", pb: "0.20" }),
+    tables: table("Transition T", ["H", "T"], ["to H", "to T"], [["0.80", "0.20"], ["0.20", "0.80"]]) },
+  walk: `<div class="lbl">The walk: 20 of 20 tosses, each a state of the chain</div><div class="row"><div class="k">toss</div>${cells(sticky)}</div>`,
+  counts: { table: table("Transitions between tosses, counted", ["from H", "from T"], ["to H", "to T"], [[cs.HH, cs.HT], [cs.TH, cs.TT]]),
+    note: `the shares, ${(cs.HH / (cs.HH + cs.HT)).toFixed(2)} and ${(cs.TT / (cs.TH + cs.TT)).toFixed(2)}, approach T's diagonal as the walk lengthens — counting IS the estimate` },
+});
+
+const hiddenStage = (seg, on, truth) => stage({
+  title: truth ? "Stage 2 · Hidden Markov model, ground truth on" : "Stage 2 · Hidden Markov model", sub: "the coin is the state, the toss its emission",
+  seg, on,
+  card: [
+    ["Model", "Now the state is the coin in play, Fair or Loaded, and the casino may switch coin between tosses by T."],
+    ["Hidden", "The coin is not seen. Each toss shows Heads or Tails by E: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded."],
+    ["Rule", "The next coin depends only on the current coin, and the toss depends only on the coin in play."],
+    ["Count", "The record holds tosses, not coins, so counting transitions in it estimates nothing about T. Recovering the coins needs an algorithm."],
+  ],
+  band: { graph: graph({ a: "F", b: "L", pa: "0.80", pb: "0.20", emit: true }),
+    tables: table("Transition T", ["F", "L"], ["to F", "to L"], [["0.80", "0.20"], ["0.20", "0.80"]])
+      + table("Emission E", ["F", "L"], ["Heads", "Tails"], [["0.50", "0.50"], ["0.80", "0.20"]]) },
+  walk: `<div class="lbl">The walk: 20 of 20 tosses; the coin is hidden${truth ? ", ground truth shown" : ""}</div>
+    <div class="row"><div class="k">coin</div>${truth ? cells(coins, (v) => v) : cells(coins.map(() => "?"), () => "q")}</div>
+    <div class="row"><div class="k">toss</div>${cells(casino)}</div>`,
+  counts: { table: table("Transitions between tosses, counted", ["from H", "from T"], ["to H", "to T"], [[cc.HH, cc.HT], [cc.TH, cc.TT]]),
+    note: "the same table as stage 1, and now it is not T: these are the tosses, and T is about the coins" },
+});
+
+const VISIBLE = stage({
+  title: "Stage 2 of 3 · the coins, seen", sub: "what the tab shows today as Visible",
+  seg: ["Tosses", "Coins, seen", "Coins, hidden"], on: 1,
+  card: [
+    ["Model", "The state is now the coin in play, Fair or Loaded, and the casino may switch coin between tosses by T."],
+    ["Rule", "The next coin depends only on the current coin. Each toss, the coin in play is drawn from the current coin's row of T."],
+    ["Count", "With the coins in view, counting their transitions estimates T, as counting the tosses did in stage 1."],
+  ],
+  band: { graph: graph({ a: "F", b: "L", pa: "0.80", pb: "0.20", emit: true }),
+    tables: table("Transition T", ["F", "L"], ["to F", "to L"], [["0.80", "0.20"], ["0.20", "0.80"]])
+      + table("Emission E", ["F", "L"], ["Heads", "Tails"], [["0.50", "0.50"], ["0.80", "0.20"]]) },
+  walk: `<div class="lbl">The walk: 20 of 20 tosses, the coin in view</div>
+    <div class="row"><div class="k">coin</div>${cells(coins, (v) => v)}</div>
+    <div class="row"><div class="k">toss</div>${cells(casino)}</div>`,
+  counts: { table: table("Transitions between coins, counted", ["from F", "from L"], ["to F", "to L"], [[ck.FF, ck.FL], [ck.LF, ck.LL]]),
+    note: "the shares approach T's rows as the walk lengthens" },
+});
+
+document.getElementById("A").innerHTML = MARKOV + hiddenStage(["Markov model", "Hidden Markov model"], 1, false) + hiddenStage(["Markov model", "Hidden Markov model"], 1, true);
+document.getElementById("B").innerHTML = MARKOV.replace("Stage 1 · Markov model", "Stage 1 of 3 · the tosses").replaceAll('<span class="on">Markov model</span><span class="">Hidden Markov model</span>', '<span class="on">Tosses</span><span class="">Coins, seen</span><span class="">Coins, hidden</span>')
+  + VISIBLE + hiddenStage(["Tosses", "Coins, seen", "Coins, hidden"], 2, false).replace("Stage 2 · Hidden Markov model", "Stage 3 of 3 · the coins, hidden");
+</script>
+</body>
+</html>
