@@ -4383,6 +4383,21 @@ emission arrow, and an edge lights its cell. Nothing is written; with no
 pointer the figure is exactly as before, which is what the fingerprint
 hashes.
 
+### The concept walk's choreography — 2026-09-06
+
+Kenneth, at Slow: *is there a more apparent / fun animation for the node
+and arrows than transitioning?* `_lab/hmm-walk.html` plays one step four
+ways with a beat scrubber: A the arrow lights and fades (as shipped), B a
+token walks the arrow or laps the self-loop, C T's row lights and a marker
+sweeps a bar split in that row's proportions to stop on the outcome, then
+the token walks, then (hidden) the mood drops down its emission arrow, D
+colour flows along the arrow as marching dashes. He picked **C at Slow and
+B at Medium** — the same code path with the draw phase as what Slow adds,
+declared on the speed (4.1). A step carries the full choreography at a
+900ms beat whatever Play is set to; Fast lands the tile alone. The tile's
+letter now fades with its tile, which it had not. The driver asserts the
+draw bar is a property of the speed and that a step carries it.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

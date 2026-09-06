@@ -194,6 +194,23 @@ console.log(`  walked ${combos} parameter settings`);
   ck("stepping reaches the end", z.done && z.idx === animationUnits(state));
 }
 
+/* 4b. The concept walk's choreography is a property of the speed, and a step carries all of it. */
+{
+  const params = { ...defaults, view: "concept" };
+  const state = W.compute({ params, rng: makeRng(1) });
+  const stepAnim = W.animation.init({ params, state, fromScratch: true }); stepAnim.mode = "step";
+  W.animation.advance(stepAnim, { dt: 50, params, state });
+  ck("concept: a step carries the draw bar", stepAnim.beatOn && stepAnim.drawBar === true);
+  let frames = 1; while (W.animation.advance(stepAnim, { dt: 50, params, state })) frames += 1;
+  ck("concept: a step lasts the longer beat", frames >= 17 && frames <= 19, String(frames));
+  for (const [speed, want] of [["slow", true], ["medium", false]]) {
+    const a = W.animation.init({ params: { ...params, speed }, state, fromScratch: true }); a.mode = "run";
+    let saw = null;
+    for (let k = 0; k < 150 && W.animation.advance(a, { dt: 16, params: { ...params, speed }, state }); k += 1) if (a.beatOn) saw = a.drawBar;
+    ck(`concept: Play at ${speed} ${want ? "shows" : "skips"} the draw bar`, saw === want, String(saw));
+  }
+}
+
 /* 5. Fast declares no choreography. */
 {
   const params = { ...defaults, view: "biological", speed: "fast" };

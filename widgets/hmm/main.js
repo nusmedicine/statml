@@ -82,12 +82,16 @@ const EVERY = ["2", "3", "4", "6", "9"];
 /* Pacing is chosen, not automatic (4.1). Slow and Medium fade each new column
    or posterior in; Fast declares no choreography and shows the stages only. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "each column faded in, slowly", ms: 900, choreo: true },
-  medium: { label: "Medium", detail: "each column faded in, at reading pace", ms: 420, choreo: true },
-  fast: { label: "Fast", detail: "the columns only, no fade", ms: 110, choreo: false },
+  slow: { label: "Slow", detail: "the draw from T's row, then the token walks; a column faded in", ms: 900, choreo: true, drawBar: true },
+  medium: { label: "Medium", detail: "the token walks; a column faded in", ms: 420, choreo: true, drawBar: false },
+  fast: { label: "Fast", detail: "the columns only, no motion", ms: 110, choreo: false, drawBar: false },
 };
-/* One step is one unit WATCHED — a fixed beat whatever Play is set to. */
+/* One step is one unit WATCHED — a fixed beat whatever Play is set to. On
+   the Concept tab a step carries the full choreography (the draw from T's
+   row, then the token walk — C of four in `_lab/hmm-walk.html`) and needs
+   the longer beat; the trellis tabs fade one column in. */
 const STEP_MS = 700;
+const STEP_MS_CONCEPT = 900;
 
 /* One layout function read by `height` and `draw`, so the two cannot drift. */
 const GUT = 66, GAP = 16, LAB = 15, TOP = 6, BOT = 8;
@@ -170,6 +174,35 @@ function cellAt(p, x0, y0, nCols, nRows, cw, ch) {
 const isHot = (hot, kind, from, to, undirected = false) =>
   Boolean(hot) && hot.kind === kind && ((hot.from === from && hot.to === to) || (undirected && hot.from === to && hot.to === from));
 
+/* THE CONCEPT WALK'S CHOREOGRAPHY, one beat: with the draw bar, T's row lights
+   and a marker sweeps a bar split in that row's proportions until it stops
+   on the outcome; then a token walks the arrow taken (or laps the self-loop);
+   then the destination fills and the tile lands, and with the states hidden
+   the emitted mood drops down its emission arrow to the record. Kenneth
+   picked it (C at Slow, B at Medium) from `_lab/hmm-walk.html`, 2026-09-06.
+   Phases are fractions of the beat; without the draw bar the walk starts at
+   once. */
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const phase = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const PHASES = {
+  withDraw: { draw: [0.05, 0.4], walk: [0.45, 0.8], land: [0.8, 1] },
+  walkOnly: { draw: null, walk: [0.1, 0.75], land: [0.75, 1] },
+};
+/* A point along the transition from state a to state b at fraction t: along
+   the arrow, or a lap of the self-loop. Uses the shared geometry. */
+function alongTransition(geom, a, b, t) {
+  const { S, R } = geom;
+  if (a !== b) {
+    const off = a === 0 ? -5 : 5;
+    const ax = S[a].x + (a === 0 ? R : -R), bx = S[b].x + (a === 0 ? -R : R);
+    return { x: ax + (bx - ax) * t, y: S[a].y + off };
+  }
+  const side = a === 0 ? -1 : 1, cx = S[a].x + side * (R + 9), cy = S[a].y, r = 9;
+  const start = side > 0 ? -2.2 : 0.95 + Math.PI * 2, end = side > 0 ? 2.2 : 0.95;
+  const ang = start + (end - start) * t;
+  return { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) };
+}
+
 /* Two states side by side; the geometry the drawing and the hit-test share. */
 function twoStateGeometry({ x0, x1, y, h, cell, hidden }) {
   const mid = (x0 + x1) / 2, d = Math.min(90, (x1 - x0) / 4);
@@ -214,7 +247,7 @@ function ringGeometry({ x0, x1, y, h, K, hap, site, ts }) {
 
 /* A probability table with a hot cell. `header(c, x, y)` draws a column head;
    `undirected` lights the mirror cell too, for a ring's chords. */
-function drawProbTable(ctx, colors, text, border, { x0, y0, cols, rows, cells, cw, ch, hdr, small, kind, hot, undirected, header, rowNames = true, tone }) {
+function drawProbTable(ctx, colors, text, border, { x0, y0, cols, rows, cells, cw, ch, hdr, small, kind, hot, undirected, header, rowNames = true, tone, beatRow = null }) {
   for (let c = 0; c < cols; c += 1) header(c, x0 + c * cw + cw / 2, y0 + hdr / 2);
   for (let r = 0; r < rows; r += 1) {
     const y = y0 + hdr + r * ch;
@@ -223,6 +256,9 @@ function drawProbTable(ctx, colors, text, border, { x0, y0, cols, rows, cells, c
       const x = x0 + c * cw;
       if (isHot(hot, kind, r, c, undirected)) {
         ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = colors.highlight; ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2); ctx.restore();
+      } else if (beatRow && beatRow.r === r) {
+        /* The row being drawn from lights; the cell drawn lights harder once the marker has landed. */
+        ctx.save(); ctx.globalAlpha = beatRow.c === c ? 0.35 : 0.12; ctx.fillStyle = colors.highlight; ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2); ctx.restore();
       }
       border(x, y, cw, ch);
       text(x + cw / 2, y + ch / 2 + 0.5, cells[r][c], tone ? tone(r, c) : colors.ink1, "center", small);
@@ -371,7 +407,7 @@ function conceptLayout(w, v) {
    runs; `hot` names the edge under the pointer, or the edge of the table
    cell under it, drawn the same way. Takes the shared geometry. */
 function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot, tile,
-  names = ["P1", "P2"], emitNames = ["Sad", "Happy"] }) {
+  names = ["P1", "P2"], emitNames = ["Sad", "Happy"], token = null, fillState = null }) {
   const font = `${colors.fsXs} ${colors.font}`;
   const { mid, R, ts, oy, S, O } = geom;
   const label = (x, yy, s, align = "center", colour = colors.ink2) => {
@@ -405,6 +441,10 @@ function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot,
     ctx.beginPath(); ctx.arc(S[h].x, S[h].y, R, 0, Math.PI * 2);
     if (hidden) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); }
     else { ctx.fillStyle = h === 1 ? colors.theory : colors.surface3; ctx.fill(); ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.stroke(); }
+    if (fillState && fillState.h === h && fillState.a > 0) {
+      /* The destination fills as the token arrives. */
+      ctx.globalAlpha = 0.3 * fillState.a; ctx.fillStyle = colors.highlight; ctx.fill();
+    }
     ctx.restore();
     ctx.fillStyle = hidden ? colors.ink1 : (h === 1 ? colors.surface : colors.ink1);
     ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -439,6 +479,10 @@ function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot,
   } else {
     label(mid, oy + ts / 2, "the state is what you observe: a mood", "center", colors.ink3);
   }
+  if (token) {
+    ctx.save(); ctx.fillStyle = colors.highlight; ctx.beginPath(); ctx.arc(token.x, token.y, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = colors.surface; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  }
 }
 
 function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, border, tile, unknownCell, pointer }) {
@@ -452,10 +496,10 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   const caption = (b, s) => text(gx, b.y - LAB / 2 - 1, s, colors.ink2);
   const rowLabel = (y, s) => text(gx - 6, y + cell / 2 + 0.5, s, colors.ink3, "right");
   const small = `${colors.fsSm} ${colors.font}`;
-  const table = (x0, y0, title, cols, rows, cells, kind, hot, tone, cw = mc) => {
+  const table = (x0, y0, title, cols, rows, cells, kind, hot, tone, cw = mc, beatRow = null) => {
     text(x0, y0 - LAB / 2 - 1, title, colors.ink2);
     drawProbTable(ctx, colors, text, border, {
-      x0, y0, cols: cols.length, rows: rows.length, cw, ch: mc, hdr: LAB, small, kind, hot, cells, tone,
+      x0, y0, cols: cols.length, rows: rows.length, cw, ch: mc, hdr: LAB, small, kind, hot, cells, tone, beatRow,
       header: (c, x, y) => text(x, y, cols[c], colors.ink3, "center"),
       rowNames: (r) => rows[r],
     });
@@ -465,7 +509,15 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   /* 1. The model: the graph on the left, T above E on the right, the two
      patterns under E once the states are hidden. The pointer lights an edge
      and its cell together. */
-  const lit = fading && idx > 1 ? { from: state.src[idx - 2], to: state.src[idx - 1], emit: state.mood[idx - 1] } : null;
+  /* THE BEAT. A transition exists from day 2 on; day 1 only lands. */
+  const step = fading && idx > 1 ? { from: state.src[idx - 2], to: state.src[idx - 1], emit: state.mood[idx - 1] } : null;
+  const PH = anim?.drawBar ? PHASES.withDraw : PHASES.walkOnly;
+  const drawU = step && PH.draw ? phase(p, ...PH.draw) : 1;          // the marker's sweep, 0..1
+  const walkU = step ? easeInOut(phase(p, ...PH.walk)) : 1;         // the token along the transition
+  const landU = fading ? phase(p, ...PH.land) : 1;                  // the tile, the destination fill
+  const lit = step && drawU >= 1 && landU < 1 ? step : null;         // the arrow taken, while the token is on it
+  const token = step && drawU >= 1 && landU < 1 ? alongTransition(twoStateGeometry({ x0: gx, x1: w - 2 * mc - 6 - 36, y: Lo.model.y, h: Lo.model.h, cell, hidden }), step.from, step.to, walkU) : null;
+  const beatRow = step && anim?.drawBar && landU < 1 ? { r: step.from, c: drawU >= 1 ? step.to : -1 } : null;
   const ex = w - 2 * mc - 6;
   const eY = Lo.model.y + LAB + 2 * mc + 12 + LAB;
   const geom = twoStateGeometry({ x0: gx, x1: ex - 36, y: Lo.model.y, h: Lo.model.h, cell, hidden });
@@ -475,7 +527,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   if (tc) hot = { kind: "T", from: tc.r, to: tc.c };
   else if (ec) hot = { kind: "E", from: ec.r, to: ec.c };
   else hot = edgeAt(geom.edges, pointer);
-  table(ex, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]], "T", hot);
+  table(ex, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]], "T", hot, undefined, mc, beatRow);
   if (hidden) {
     table(ex, eY, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
     /* WHAT P1 AND P2 ARE: the two five-day patterns, drawn small under E, so
@@ -491,7 +543,30 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     });
   }
   text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden states, and the moods they emit" : "Two states, and the transitions between them", colors.ink2);
-  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1 - p * 0.6, hot, tile });
+  drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token,
+    fillState: step ? { h: step.to, a: landU > 0 && landU < 1 ? 1 - landU : 0 } : null });
+  if (step && anim?.drawBar && landU < 1) {
+    /* THE DRAW BAR: T's row for the current state as a bar split in its
+       proportions, and a marker that sweeps and slows to a stop on the
+       outcome — where the randomness of one step comes from. */
+    const bw = 120, bh = 12, bx = ex - 36 - bw, by = Lo.model.y + 22;
+    const pStay = T[step.from][step.from];
+    text(bx, by - 10, `draw from T's row for ${stateNames[step.from]}`, colors.ink2, "left", `${colors.fsXs} ${colors.font}`);
+    fill(bx, by, bw, bh, colors.surface3); border(bx, by, bw, bh);
+    fill(bx, by, bw * pStay, bh, colors.highlight, 0.35);
+    text(bx + bw * pStay / 2, by + bh + 9, `stay ${pStay.toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
+    text(bx + bw * (1 + pStay) / 2, by + bh + 9, `switch ${(1 - pStay).toFixed(2)}`, colors.ink3, "center", `${colors.fsXs} ${colors.font}`);
+    const target = step.from === step.to ? pStay * 0.45 : pStay + (1 - pStay) * 0.55;
+    const sweep = 1 - Math.pow(1 - drawU, 3);
+    const mx = bx + bw * target * sweep;
+    ctx.fillStyle = colors.ink1; ctx.beginPath(); ctx.moveTo(mx, by - 2); ctx.lineTo(mx - 4, by - 8); ctx.lineTo(mx + 4, by - 8); ctx.closePath(); ctx.fill();
+  }
+  if (step && hidden && landU > 0 && landU < 1) {
+    /* The emitted mood drops from the new state down its emission arrow. */
+    const from = geom.S[step.to], to = geom.O[step.emit];
+    const dx = from.x + (to.x - from.x) * landU, dy = from.y + (to.y - from.y) * landU;
+    tile(dx - 10, dy - 10, step.emit, 0.9, 20);
+  }
 
   /* 2. The walk: one tile per day, the newest fading in. */
   caption(Lo.walk, hidden
@@ -504,7 +579,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     rowLabel(y, name);
     for (let i = 0; i < L; i += 1) {
       if (i >= idx) { border(cx(i), y, cell, cell); continue; }
-      const alpha = fading && i === idx - 1 ? p : 1;
+      const alpha = fading && i === idx - 1 ? landU : 1;
       if (isHidden && !params.truth) { unknownCell(cx(i), y, true); continue; }
       if (isHidden) {
         /* The truth, asked for: the hidden pattern, in the truth's own wash. */
@@ -904,8 +979,9 @@ defineWidget({
           anim.idx += 1;
           anim.beatOn = true;
           anim.beatP = 0;
+          anim.drawBar = true;                       // a step shows the whole mechanism
         }
-        anim.beatP += dt / STEP_MS;
+        anim.beatP += dt / (state.kind === "concept" ? STEP_MS_CONCEPT : STEP_MS);
         if (anim.beatP >= 1) {
           anim.beatOn = false; anim.beatP = 1;
           anim.done = anim.idx >= T;
@@ -920,7 +996,7 @@ defineWidget({
         anim.beatOn = false; anim.beatP = 1; anim.done = true;
         return false;
       }
-      if (sp.choreo && anim.idx > 0) { anim.beatOn = true; anim.beatP = Math.min(1, anim.t / sp.ms); }
+      if (sp.choreo && anim.idx > 0) { anim.beatOn = true; anim.beatP = Math.min(1, anim.t / sp.ms); anim.drawBar = Boolean(sp.drawBar); }
       else { anim.beatOn = false; anim.beatP = 1; }
       return true;
     },
@@ -966,8 +1042,12 @@ defineWidget({
       border(x, y, size, size);
       const genotype = state.kind === "genotype";
       const letter = genotype ? (i === null ? "" : state.panel.letters[i][a]) : (a === 1 ? "H" : "S");
-      if (letter) text(x + size / 2, y + size / 2 + 0.5, letter, a === 1 ? colors.surface : colors.ink1, "center",
-        `600 ${Math.round(size * (genotype ? 0.6 : 0.5))}px ${colors.font}`);
+      if (letter) {
+        ctx.save(); ctx.globalAlpha = alpha;
+        text(x + size / 2, y + size / 2 + 0.5, letter, a === 1 ? colors.surface : colors.ink1, "center",
+          `600 ${Math.round(size * (genotype ? 0.6 : 0.5))}px ${colors.font}`);
+        ctx.restore();
+      }
     };
     const unknownCell = (x, y, mark) => {
       fill(x, y, cell, cell, colors.unknown, 0.16);
