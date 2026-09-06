@@ -2961,13 +2961,6 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth boxed on the panel",
-      "slug": "hmm",
-      "state": "?theme=light&view=biological&truth=1&shown=56",
-      "px": "0",
-      "tx": "0"
-    },
-    {
       "$note": "PLACEHOLDER, draft, DRIVEN: the toy mid-forward at fast",
       "slug": "hmm",
       "state": "?theme=light&speed=fast",
@@ -2988,6 +2981,20 @@
         "frames": 40,
         "dt": 32
       },
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth boxed on the panel",
+      "slug": "hmm",
+      "state": "?theme=light&view=biological&truth=1&shown=56",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: a recombinant sample, traced, the truth boxed on h1 then h2",
+      "slug": "hmm",
+      "state": "?theme=light&view=biological&sample=recombinant&truth=1&shown=56",
       "px": "0",
       "tx": "0"
     }

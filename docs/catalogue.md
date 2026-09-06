@@ -4308,11 +4308,11 @@ exactly where the posterior is uncertain. The one-haplotype case is
 unchanged by the higher contrast (97% / 94% of blanks right). The toy
 cannot carry a change on five days.
 
-**Recommendation, put to Kenneth:** default to no switching on both tabs,
-as the notebook; on the biological tab only, an extra segmented control
-*Sample: One haplotype / Recombinant*, the recombinant copying h1 then h2
-with the cut mid-way, and the two founders built to differ at ~90% of
-sites so the switch is identifiable. Nothing on the toy.
+**Built, on his go:** no switching by default on either tab, as the
+notebook; on the biological tab an extra segmented control *Sample: One
+haplotype / Recombinant*, the recombinant copying h1 up to a cut in the
+middle third and h2 after it, and the panel's two founders built to differ
+at nine-tenths of sites (`PANEL.contrast`). Nothing on the toy.
 
 ### Open on the draft
 

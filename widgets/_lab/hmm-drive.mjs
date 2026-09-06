@@ -34,7 +34,7 @@ const ck = (name, ok, extra = "") => {
 /* 1. The contract — by name. */
 for (const key of ["slug", "title", "subtitle", "status", "layout", "height", "params", "legend", "compute", "draw", "readout", "animation"])
   ck(`declares \`${key}\``, W[key] != null);
-const WANT = { view: "segmented", missing: "int", K: "choice", every: "choice",
+const WANT = { view: "segmented", missing: "int", K: "choice", every: "choice", sample: "segmented",
   seed: "int", truth: "bool", speed: "choice", shown: "int" };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n]) => n).sort().join();
@@ -42,7 +42,7 @@ ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), d
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
 ck("the toy control is gated on view=toy", W.params.missing.when?.equals === "toy");
-ck("the biological controls are gated on view=biological", ["K", "every"].every((n) => W.params[n].when?.equals === "biological"));
+ck("the biological controls are gated on view=biological", ["K", "every", "sample"].every((n) => W.params[n].when?.equals === "biological"));
 ck("one step label for both tabs", W.animation.stepLabel === "Next column");
 
 /* 2. Defaults, and a walk over every option of every parameter. */
@@ -137,7 +137,14 @@ console.log(`  walked ${combos} parameter settings`);
   const other = W.compute({ params: { ...params, seed: 2 }, rng: makeRng(2) });
   ck("seed 2 keeps the notebook's patterns", other.panel.hap[0].join("") === "01001" && other.panel.hap[1].join("") === "11110");
   ck("seed 2 changes the record", other.order.join() !== state.order.join() || other.src[0] !== state.src[0]);
-  ck("the biological truth has one recombination point", W.compute({ params: { ...defaults, view: "biological" }, rng: makeRng(1) }).cutSites.length === 1);
+  ck("the biological truth follows one haplotype by default", W.compute({ params: { ...defaults, view: "biological" }, rng: makeRng(1) }).cutSites.length === 0);
+  {
+    const R = W.compute({ params: { ...defaults, view: "biological", sample: "recombinant" }, rng: makeRng(1) });
+    ck("a recombinant has one cut near the middle", R.cutSites.length === 1 && R.cutSites[0] >= 12 && R.cutSites[0] <= 17);
+    ck("a recombinant copies h1 then h2", R.src[0] === 0 && R.src[R.L - 1] === 1);
+    const diff = R.panel.hap[0].filter((v, i) => v !== R.panel.hap[1][i]).length;
+    ck("the two founders differ at most sites", diff >= 20, String(diff));
+  }
   ck("the switch rate is fixed at 0.1 on both tabs", state.rho === 0.1 && W.compute({ params: { ...defaults, view: "biological" }, rng: makeRng(1) }).rho === 0.1);
 }
 

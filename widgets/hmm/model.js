@@ -59,7 +59,12 @@ export const L_DEFAULT = 28;
    names the allele. Two founders rather than three: measured over 300 seeds,
    three left 25% of blanks wrong at 1-in-4 typing against 20% with two, and
    the two-clade panel is the one whose mosaic can be seen. */
-const PANEL = { founders: 2, switch: 0.08, mut: 0.05 };
+const PANEL = { founders: 2, switch: 0.08, mut: 0.05, contrast: 0.9 };
+/* `contrast`: the second founder differs from the first at this fraction of
+   sites — nine-tenths, as the notebook's H1 and H2 do (16 of 17). Measured
+   2026-09-06: at one half, runs of agreeing typed sites let a recombination
+   point float and the switch was pinned between the flanking typed sites in
+   39% of seeds; at nine-tenths, 80%. The one-haplotype case is unchanged. */
 
 /* The sample is a mosaic of the panel with `switches` recombination points
    and a small rate of variants the panel does not carry. Those novel sites are
@@ -85,10 +90,11 @@ export const DEVIATE = 0.1;     // a day whose mood is not its pattern's
    at 0.02, 87.3% at 0.1 and 87.4% at 0.2–0.3. 0.1 is within noise of the
    best and is the notebook's own genotype value (transProbs 0.9 / 0.1). */
 export const RHO = 0.1;
-/* The biological truth keeps ONE recombination point: enough that the copied
-   template visibly changes, few enough that the ground truth can be read
-   off the panel by eye. */
-export const SWITCHES = 1;
+/* The biological truth follows ONE haplotype by default, as the notebook's
+   genotype follows H2. `sample: "recombinant"` copies the first founder up
+   to a cut near the middle and the second after it — the one switching
+   scenario that decodes as a switch (Kenneth, 2026-09-06). */
+export const SWITCHES = 0;
 
 /* THE NOTEBOOK'S TOY, verbatim: cells 26–29. Mood 1 is Happy, 0 is Sad; the
    record follows P2 and days 2, 3 and 5 are unrecorded. */
@@ -324,8 +330,10 @@ export function makePanel(rng, K, L, P = PANEL) {
   const hap = [];
   for (let k = 0; k < K; k += 1) {
     const row = new Array(L);
-    if (k < P.founders) {
+    if (k === 0 || (k < P.founders && !(P.contrast > 0))) {
       for (let i = 0; i < L; i += 1) row[i] = rng.next() < 0.5 ? 1 : 0;
+    } else if (k < P.founders) {
+      for (let i = 0; i < L; i += 1) row[i] = rng.next() < P.contrast ? 1 - hap[0][i] : hap[0][i];
     } else {
       let src = Math.floor(rng.next() * k);
       for (let i = 0; i < L; i += 1) {
@@ -348,16 +356,23 @@ export function makePanel(rng, K, L, P = PANEL) {
 
 /* The truth: which haplotype the sample copies at each site, the allele it
    actually carries, and the sites where that allele is a novel variant. */
-export function makeSample(rng, panel, switches) {
+export function makeSample(rng, panel, switches, recombinant = false) {
   const K = panel.hap.length, L = panel.hap[0].length;
-  const cutSites = cutPoints(rng, L, switches, MIN_SEG);
+  /* A recombinant is h1 then h2 with the cut in the middle third; a plain
+     sample follows one haplotype, switching `switches` times at random. */
+  const cutSites = recombinant
+    ? [Math.floor(L * 0.43) + Math.floor(rng.next() * Math.max(1, Math.floor(L * 0.18)))]
+    : cutPoints(rng, L, switches, MIN_SEG);
   const src = new Array(L), allele = new Array(L), novel = new Array(L).fill(false);
-  let h = Math.floor(rng.next() * K);
+  let h = recombinant ? 0 : Math.floor(rng.next() * K);
   for (let i = 0; i < L; i += 1) {
     if (cutSites.includes(i) && K > 1) {
-      let g = Math.floor(rng.next() * (K - 1));
-      if (g >= h) g += 1;
-      h = g;
+      if (recombinant) h = 1;
+      else {
+        let g = Math.floor(rng.next() * (K - 1));
+        if (g >= h) g += 1;
+        h = g;
+      }
     }
     src[i] = h;
     allele[i] = panel.hap[h][i];
@@ -373,9 +388,9 @@ export function typedSites(L, every) {
   return out;
 }
 
-export function buildGenotype({ rng, K, L = L_DEFAULT, every, switches = SWITCHES, rho = RHO, panelOpts }) {
+export function buildGenotype({ rng, K, L = L_DEFAULT, every, switches = SWITCHES, sample: kind = "one", rho = RHO, panelOpts }) {
   const panel = makePanel(rng, K, L, panelOpts);
-  const sample = makeSample(rng, panel, switches);
+  const sample = makeSample(rng, panel, switches, kind === "recombinant");
   return buildCopying({
     kind: "genotype", K, L, templates: panel.hap, letters: panel.letters,
     src: sample.src, truth: sample.allele, novel: sample.novel, cutSites: sample.cutSites,

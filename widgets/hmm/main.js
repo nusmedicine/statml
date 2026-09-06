@@ -57,7 +57,9 @@
    pattern changes, no switch-rate dial on either tab, one recombination
    point on the biology. What is left to set is what is missing, the panel,
    the array density and the seed — and the switch rate is fixed at the
-   value that decodes best (model.js, RHO).
+   value that decodes best (model.js, RHO). One extra on the biology, added
+   after a measurement: Sample = Recombinant, h1 then h2 with the cut near
+   the middle, the one switching scenario that decodes as a switch.
 
    Every stage of the animation is precomputed in compute(); a beat only
    fades one column in.
@@ -420,7 +422,21 @@ defineWidget({
     },
     truthBio: {
       type: "section", label: "The truth",
-      detail: "simulated, with one recombination point, so the imputation can be checked",
+      detail: "simulated, so the imputation can be checked",
+      when: { param: "view", equals: "biological" },
+    },
+    /* THE ONE SWITCHING SCENARIO THAT DECODES AS A SWITCH. The notebook never
+       switches, so the default follows one haplotype; the recombinant is the
+       extra, and it works because the two founders differ at nine-tenths of
+       sites, so the switch is pinned to the typed sites either side and the
+       sites between them are where the posterior is uncertain. */
+    sample: {
+      type: "segmented", label: "Sample",
+      options: [
+        { value: "one", label: "One haplotype", detail: "simulation: the sample copies a single haplotype of the panel" },
+        { value: "recombinant", label: "Recombinant", detail: "simulation: the sample copies h1, then h2 from a point near the middle; the decoder has to find the switch" },
+      ],
+      default: "one",
       when: { param: "view", equals: "biological" },
     },
 
@@ -466,7 +482,7 @@ defineWidget({
     /* Seed 1 with three days missing is the notebook's own case, verbatim;
        the builder recognises it from the seed. */
     if (params.view === "toy") return M.buildToy({ rng, missing: params.missing, seed: params.seed });
-    return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every) });
+    return M.buildGenotype({ rng, K: Number(params.K), every: Number(params.every), sample: params.sample });
   },
 
   animation: {
