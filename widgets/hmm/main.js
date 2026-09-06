@@ -432,7 +432,7 @@ function conceptLayout(w, v) {
    open — and carry the face's name beneath. The hidden stage's coins are
    plain circles; the change of dress is the change of what a state is. */
 function drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha, hot, tile,
-  names = ["F", "L"], emitNames = ["Tails", "Heads"], visibleNote = "the state is what you observe", token = null, fillState = null, tossNodes = false }) {
+  names = ["F", "B"], emitNames = ["Tails", "Heads"], visibleNote = "the state is what you observe", token = null, fillState = null, tossNodes = false }) {
   const font = `${colors.fsXs} ${colors.font}`;
   const { mid, R, ts, oy, S, O } = geom;
   const label = (x, yy, s, align = "center", colour = colors.ink2) => {
@@ -531,7 +531,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
       rowNames: (r) => rows[r],
     });
   };
-  const stateNames = hidden ? ["F", "L"] : ["T", "H"];   // the fair and loaded coins; or the two faces
+  const stateNames = hidden ? ["F", "B"] : ["T", "H"];   // the fair and biased coins; or the two faces
 
   /* 1. The model: the graph on the left, T above E on the right, the two
      patterns under E once the states are hidden. The pointer lights an edge
@@ -556,9 +556,9 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   else hot = edgeAt(geom.edges, pointer);
   table(ex, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]], "T", hot, undefined, mc, beatRow);
   if (hidden) {
-    table(ex, eY, "Emission E", ["Tails", "Heads"], ["F", "L"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
+    table(ex, eY, "Emission E", ["Tails", "Heads"], ["F", "B"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
   }
-  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and L loaded, and the tosses they give" : "A sticky coin: Heads and Tails as the states, and the moves between them", colors.ink2);
+  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and B biased, and the tosses they give" : "A sticky coin: Heads and Tails as the states, and the moves between them", colors.ink2);
   drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, names: stateNames, tossNodes: !hidden,
     visibleNote: null,          // the caption already says the state is the toss; the space is the draw bar's
     fillState: step ? { h: step.to, a: landU > 0 && landU < 1 ? 1 - landU : 0 } : null });
@@ -571,7 +571,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     const bw = 120, bh = 12, bx = ex - 36 - bw, by = Lo.model.y + (hidden ? 22 : 102);
     const pStay = T[step.from][step.from];
     text(bx, by - 10, hidden
-      ? `draw from T's row for ${step.from === 1 ? "the loaded coin" : "the fair coin"}`
+      ? `draw from T's row for ${step.from === 1 ? "the biased coin" : "the fair coin"}`
       : `draw from T's row after ${step.from === 1 ? "Heads" : "Tails"}`, colors.ink2, "left", `${colors.fsXs} ${colors.font}`);
     fill(bx, by, bw, bh, colors.surface3); border(bx, by, bw, bh);
     fill(bx, by, bw * pStay, bh, colors.highlight, 0.35);
@@ -641,16 +641,16 @@ function conceptCardLines(state, idx, params) {
   const hidden = params.model === "hidden";
   const { T, E, src, obs, stay } = state;
   const tossName = (m) => (m === 1 ? "Heads" : "Tails");
-  const name = (h) => (hidden ? (h === 1 ? "the loaded coin" : "the fair coin") : tossName(h));
-  const Name = (h) => (h === 1 ? "The loaded coin" : "The fair coin");
+  const name = (h) => (hidden ? (h === 1 ? "the biased coin" : "the fair coin") : tossName(h));
+  const Name = (h) => (h === 1 ? "The biased coin" : "The fair coin");
   let stays = 0;
   for (let k = 1; k < idx; k += 1) if (src[k] === src[k - 1]) stays += 1;
   if (idx === 0) {
     const lines = [["Model", `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`]];
     if (hidden) {
-      lines.push(["States", "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses."]);
+      lines.push(["States", "Here the states are two coins, one fair and one biased, and the coin may be switched between tosses."]);
       lines.push(["Rule", `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`]);
-      lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`]);
+      lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the biased coin 0.80. Only the toss is recorded.`]);
     } else {
       lines.push(["States", "Here the states are the two faces of one coin, Heads and Tails: the record of tosses is the sequence of states."]);
       lines.push(["Rule", `The next toss depends only on the current one, not on earlier tosses. The coin is sticky: after Heads, Heads again with ${stay.toFixed(2)}, the diagonal of ${MATH.Tname}.`]);
@@ -846,7 +846,7 @@ defineWidget({
         ];
       }
       const entries = [
-        { token: "ink-1", label: "F fair coin, L loaded coin: the state at each toss", mark: "bar" },
+        { token: "ink-1", label: "F fair coin, B biased coin: the state at each toss", mark: "bar" },
         { token: "highlight", label: "The transition taken this toss, and its emission", mark: "line" },
         { token: "theory", label: "Heads (filled); Tails is open — the toss", mark: "bar" },
         { token: "unknown", label: "The hidden coin", mark: "bar" },
@@ -909,7 +909,7 @@ defineWidget({
       type: "segmented", label: "The model",
       options: [
         { value: "markov", label: "Markov", detail: "a Markov model: the states are the tosses, Heads and Tails, of one sticky coin" },
-        { value: "hidden", label: "Hidden Markov", detail: "a hidden Markov model: the state is the coin, fair or loaded, and it is not seen; each toss shows Heads or Tails by E" },
+        { value: "hidden", label: "Hidden Markov", detail: "a hidden Markov model: the state is the coin, fair or biased, and it is not seen; each toss shows Heads or Tails by E" },
       ],
       default: "markov",
       when: { param: "view", equals: "concept" },
@@ -930,8 +930,12 @@ defineWidget({
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
     },
     chain: {
-      type: "section", label: "The casino",
-      detail: "a fair coin and a loaded one, and the transition table for switching between them",
+      /* "The game", "biased": Kenneth's words, 2026-09-06, over the casino
+         and its loaded coin — the lesson says game and biased, and the coin's
+         letter follows the word: B, not L. Source comments keep casino and
+         loaded, which is where the example came from. */
+      type: "section", label: "The game",
+      detail: "a fair coin and a biased one, and the transition table for switching between them",
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "hidden" }] },
     },
     stay: {
@@ -1016,7 +1020,7 @@ defineWidget({
     modelConcept: {
       type: "section", label: "The model",
       detail: "T is what you set. E is given by the coins: the fair coin lands Heads half the time, "
-        + "the loaded coin 0.80. In practice both are counted from tosses whose coin was known, or fitted "
+        + "the biased coin 0.80. In practice both are counted from tosses whose coin was known, or fitted "
         + "by expectation–maximisation.",
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "hidden" }] },
     },

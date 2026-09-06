@@ -2936,15 +2936,15 @@
       "$note": "the hidden stage walked to the end: the casino, coin hidden",
       "slug": "hmm",
       "state": "?theme=light&model=hidden&shown=20",
-      "px": "373818ed",
-      "tx": "62b51288"
+      "px": "e9877e65",
+      "tx": "c3d4a882"
     },
     {
       "$note": "the hidden stage walked, truth on: the coins shown",
       "slug": "hmm",
       "state": "?theme=light&model=hidden&truth=1&shown=20",
-      "px": "0074e703",
-      "tx": "2da6a5ab"
+      "px": "38cc2195",
+      "tx": "1c4d8f9d"
     },
     {
       "$note": "the Toy tab at rest — the notebook's own example, trellis empty",

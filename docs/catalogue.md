@@ -4490,6 +4490,16 @@ The old visible-coins view survives as the ground-truth toggle on the
 hidden stage. Five Concept states rehashed in the same commit, the ten
 trellis states unchanged.
 
+**Two words (round 22).** Kenneth's lesson says *game* and *biased*, so the
+widget does: *The casino* is *The game*, the loaded coin is the biased
+coin, and its letter follows the word, B for L on the graph, in the rows of
+T and E, on the coin row and in the legend. Thirteen reader-facing strings
+(`_lab/hmm-words.html` lists them old and new); one needed more than a
+swap, since a game has no agent to switch the coin: *the coin may be
+switched between tosses*. Source comments keep casino and loaded, which is
+where the example came from. The two hidden-stage states rehashed; the
+other thirteen byte-identical.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
