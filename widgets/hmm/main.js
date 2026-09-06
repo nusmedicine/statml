@@ -791,7 +791,7 @@ defineWidget({
     "A hidden Markov model infers hidden states from the observations they produce. " +
     "A missing observation is read off the decoded state, with its probability. " +
     "Genotype imputation fills a SNP array from a reference panel this way.",
-  status: "draft",
+  status: "shipped",
   layout: "side",
   /* The model band answers to the pointer: hovering an edge of the graph
      lights its cell in T or E, hovering a cell lights its edge. An

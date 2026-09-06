@@ -3944,7 +3944,7 @@ remembered `p.adjust` output. §6 now derives t, df and se by hand from the two
 vectors and checks the p against a Simpson integral of the same t density, so
 nothing in it depends on recall.
 
-## Widget 45 · `hmm` — built 2026-09-06, DRAFT under review
+## Widget 45 · `hmm` — built 2026-09-06, SHIPPED the same day
 
 **PHM5003 HTD `05 / 02 — Missing Data and Imputation`, cells 24–38.** Kenneth
 asked for it on 2026-09-06, on a branch named `hmm`. The notebook's second
@@ -4467,8 +4467,12 @@ resting card at the narrowest side column); the Concept reserve stays at
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
   tab. Worth a look projected.
-- No fingerprint baseline yet — five placeholders. Recorded once the design
-  stops moving.
+- ~~No fingerprint baseline yet.~~ Baselined on "tested ok", 2026-09-06:
+  fifteen states — twelve settled across the three tabs, three driven at
+  Fast (the concept walk 30 frames in, the toy trellis 8, the biological 40)
+  — hashed by `_lab/hmm-shoot.html`, each shot three times and stable, every
+  drive shown to move its figure against its settled sibling, and the
+  harness copy proved against five states already in the baseline.
 
 ---
 
@@ -4514,7 +4518,7 @@ twenty thousand p-values → group what is left → say what the group means.*
 | # | notebook | host widget | state |
 |---|---|---|---|
 | 01 | Review of Experimental Design | **44 `experimental-design`** ✅ | randomisation, blocking, replication. Was **out of scope for this arc**; Kenneth reopened it 2026-09-05 and picked the widest scope — see § *Widget 44* |
-| 02 | Missing Data and Imputation | **25 `missing-data`** ✅, **45 `hmm`** draft | 25 owns cells 1–23 (unintentional missing data); 45 owns cells 24–38, the HMM and genotype imputation — see § *Widget 45* |
+| 02 | Missing Data and Imputation | **25 `missing-data`** ✅, **45 `hmm`** ✅ | 25 owns cells 1–23 (unintentional missing data); 45 owns cells 24–38, the HMM and genotype imputation — see § *Widget 45* |
 | 03 | Normalization and Transformation | — | **SLOT 1** |
 | 04 | Dimensionality Reduction | **19 `pca`, 20 `mds`, 21 `t-sne`, 22 `umap`** ✅ | four of five headings. `## 2 NMF` has none — **SLOT 2** |
 | 05 | Batch Effect Correction | — | **SLOT 3** |

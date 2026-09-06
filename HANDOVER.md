@@ -1,13 +1,29 @@
 # Handover
 
-**FORTY-FIVE WIDGETS IN THE TREE — 43 on the gallery, `roc-auc` UNLISTED (live
-at its URL, off the cards; Kenneth's call, 2026-08-30), and ONE DRAFT at
-`/lab/`: 45 `hmm`, merged to `main` 2026-09-06. 334 fingerprint states are
-real and MATCHing as of 2026-09-05; widget 45's 15 are placeholders.**
+**FORTY-FIVE WIDGETS — 44 on the gallery, `roc-auc` UNLISTED (live at its
+URL, off the cards; Kenneth's call, 2026-08-30). 349 fingerprint states, every
+one of them real and every one MATCHing as of 2026-09-06. `/lab/` is empty:
+there is no draft.**
 
 ---
 
-# WIDGET 45 `hmm` IS A DRAFT ON MAIN. THE NEXT TASK IS ITS BASELINE.
+# WIDGET 45 `hmm` IS SHIPPED AND BASELINED. NOTHING IS OUTSTANDING ON IT.
+
+Fifteen states recorded 2026-09-06 on Kenneth's "tested ok": twelve settled
+across the three tabs and **three DRIVEN** at Fast — the concept walk 30
+frames in, the toy trellis 8, the biological 40. Hashed by
+`_lab/hmm-shoot.html` (batch-shoot's pattern, with the harness's `settle`
+copied in rather than a fixed wait): the copy proved against five states
+already in the baseline, every state shot three times and byte-identical,
+every drive shown to move its figure against its settled sibling, all at
+DPR 1.25 with the pane fronted. Then one full pass: **349 states, 0 DIFFER**.
+Status flipped to `shipped` in `main.js` and the manifest in the same commit.
+
+**Still open on it:** not judged projected — the 550px fingerprint canvas
+gives 17px tiles and 10px letters on Biology; and the 05/02 lesson link is
+not yet placed.
+
+## What it is, and where its history lives
 
 **Hidden Markov Model**, for PHM5003 05/02 *Missing Data and Imputation*
 (cells 24–38; widget 25 owns cells 1–23). Three tabs: **Concept** — the
@@ -23,29 +39,8 @@ was picked from in `_lab/hmm-*.html`. `node widgets/_lab/hmm-drive.mjs` is
 
 **Merged as a fast-forward** (`main` had not moved since the branch), so the
 `wgcna` session's work in `.claude/worktrees/wgcna` on branch `wgcna` is
-untouched and still unmerged. Kenneth's words were "ok merge to main … push
-to gallery"; he had not said "tested ok" on the widget, and the last thing
-he reviewed was the card layout (round 20). Status is therefore **`draft`**
-in both `main.js` and the manifest — the widget is live at
-`/statml/lab/` under the draft bar, and NOT on the gallery's cards.
-
-**The exact next task, when he says "tested ok":**
-
-1. Replace the 15 placeholder states (`"px": "0", "tx": "0"`) in
-   `widgets/_lab/fingerprint-baseline.json` with real hashes, per 5.10 and
-   the recipe at the end of this file: pane FRONTED (DPR 1.25 — a hidden
-   pane hashes at DPR 1 and every `px` DIFFERs), three determinism passes
-   byte-identical, then one more full pass reading MATCH on every state.
-   The set already includes driven states for the concept walk and the
-   trellis, so `check`'s animation rule is met once they are real.
-2. Flip `status: "draft"` → `"shipped"` in `widgets/hmm/main.js` AND
-   `widgets/manifest.json` in the same commit (`check` asserts they agree).
-3. Mark shipped in the catalogue's § *Widget 45* and its notebook-02 row;
-   move this section down; push.
-
-**Open on it besides the baseline:** not judged projected — the 550px
-fingerprint canvas gives 17px tiles and 10px letters on Biology; and the
-05/02 lesson link is not yet placed.
+untouched and still unmerged. It went to `main` first as a draft, at
+`/lab/`, and was promoted an hour later when Kenneth said "tested ok".
 
 **Things this build learned that the next one will hit:**
 
@@ -1153,7 +1148,7 @@ is blind to.
 | 42 | `hierarchical-clustering` | shipped as **Hierarchical Clustering** (slot 4), 2026-09-03; eleven states — nine settled, two driven. Hover on the distance matrix added 2026-09-05, an inspector that moves no state. Renamed from Finding Groups mid-review. Truth gets colour, the found grouping gets enclosure. Its first baseline held nine hashes it never produced and was corrected two days later — see *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*. NOT yet judged projected |
 | 43 | `enrichment` | shipped as **Enrichment Analysis** (slot 5, the arc's last), 2026-09-05, about twenty rounds over two days; ten states — seven settled, two driven, one hit-driven. Four pages, ORA pinned to fold change. Uncovered the core bug in a gated drag's cursor — see *A CORE BUG WIDGET 43 SHIPPED THROUGH*. NOT yet judged projected |
 | 44 | `experimental-design` | shipped as **Experimental Design** (PHM5003 HTD 05/01), 2026-09-05, about thirty rounds over two sessions; ten states — eight settled, two driven. Sampling and Replication tabs, the model in its own `model.js` so `_lab/design-measure.mjs` measures the engine the figure draws. NOT yet judged projected |
-| 45 | `hmm` | **DRAFT on main** as **Hidden Markov Model** (PHM5003 05/02), merged 2026-09-06 after twenty rounds in one day; 15 PLACEHOLDER states. Concept · Toy model · Biology; the copying HMM in `model.js`, `_lab/hmm-drive.mjs` = 993 assertions. Awaiting "tested ok", then the baseline and the status flip. See the top of this file |
+| 45 | `hmm` | shipped as **Hidden Markov Model** (PHM5003 05/02), 2026-09-06, twenty rounds in one day; **fifteen states** — twelve settled, three driven, shot through `_lab/hmm-shoot.html`. Concept · Toy model · Biology; the copying HMM in `model.js`, `_lab/hmm-drive.mjs` = 993 assertions. NOT yet judged projected; 05/02 link not yet placed |
 
 **Every one of those histories is in [docs/catalogue.md](docs/catalogue.md)**,
 organised by widget, including the rounds that reversed an earlier decision and
