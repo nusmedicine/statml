@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — four layouts for the card above the figure</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-5); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 6px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; }
+  .stage { width: 700px; max-width: 100%; }
+  .stage .w-math { margin-bottom: var(--sp-3); }
+  .cap { font-size: 11px; color: var(--ink-2); font-family: var(--font-mono); margin: -6px 0 10px; }
+  /* B: plain prose, one paragraph per line */
+  .prose .w-math-eq { padding-left: 0; text-indent: 0; min-height: 0; margin: 0 0 4px; }
+  /* C: a label in the gutter, continuations under the body */
+  .rows .w-math-eq { padding-left: 5.2em; text-indent: -5.2em; min-height: 0; margin: 0 0 4px; }
+  .rows .lbl { display: inline-block; width: 5.2em; text-indent: 0; color: var(--ink-3); font-size: var(--fs-xs); }
+  /* D: the equation displayed, the prose under it */
+  .disp .w-math-eq { padding-left: 0; text-indent: 0; min-height: 0; margin: 0 0 4px; }
+  .disp .w-math-eq.eq { text-align: left; padding-left: 1.5em; margin: 2px 0 6px; }
+  .disp .w-math-eq.eq math { font-size: 1.6em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — four layouts for the card above the figure</h1>
+  <p class="note">
+    The card reuses <b>.w-math-eq</b>, whose rule was written for widget 14's thirteen-term sum: an 8.3em
+    hanging indent so every continuation line starts under the first term. On a prose card that indent has
+    nothing to hang from, so a wrapped sentence restarts a third of the way across. Three alternatives below,
+    each shown on the Concept tab's resting card with the coin hidden, the same card during a toss, and the
+    Toy tab's trellis card. Widths are the stage's, 700px.
+  </p>
+  <div id="wall"></div>
+</main>
+
+<script type="module">
+import { mathmlRenders } from "../core/env.js";
+const MATHML = mathmlRenders();
+const mml = (inner) => `<math><mrow>${inner}</mrow></math>`;
+const mi = (t) => `<mi>${t}</mi>`, mo = (t) => `<mo>${t}</mo>`, mn = (t) => `<mn>${t}</mn>`;
+const msub = (b, x) => `<msub>${b}${x}</msub>`;
+const T = MATHML ? mml(`${msub(mi("T"), "<mrow><mi>i</mi><mi>j</mi></mrow>")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("s"), "<mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow>")}${mo("=")}${mi("j")}${mo("|")}${msub(mi("s"), mi("t"))}${mo("=")}${mi("i")}${mo(")")}`) : "T[i, j] = P(next state j | current state i)";
+const Tn = MATHML ? mml(mi("T")) : "T";
+const E = MATHML ? mml(`${msub(mi("E"), "<mrow><mi>i</mi><mi>k</mi></mrow>")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("o"), mi("t"))}${mo("=")}${mi("k")}${mo("|")}${msub(mi("s"), mi("t"))}${mo("=")}${mi("i")}${mo(")")}`) : "E[i, k] = P(observation k | state i)";
+const REC = MATHML ? mml(`${msub(mi("score"), mi("t"))}${mo("(")}${mi("s")}${mo(")")}${mo("=")}${mi("P")}${mo("(")}${msub(mi("o"), mi("t"))}${mo("|")}${mi("s")}${mo(")")}${mo("·")}<munder><mo>max</mo><mrow><msup><mi>s</mi><mo>′</mo></msup></mrow></munder>${mo("[")}${msub(mi("score"), "<mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow>")}${mo("(")}<msup><mi>s</mi><mo>′</mo></msup>${mo(")")}${mo("·")}${msub(mi("T"), "<mrow><msup><mi>s</mi><mo>′</mo></msup><mi>s</mi></mrow>")}${mo("]")}`) : "score_t(s) = P(o_t | s) × max over s′ of score_{t−1}(s′) × T[s′, s]";
+
+/* The three cards, as {label, body, eq?} rows so each layout can place them. */
+const CARDS = [
+  { name: "Concept, hidden, at rest", rows: [
+    { lbl: "Model", eq: T, body: `A Markov model is a set of states and a transition table ${T}, one row per current state, each row summing to 1.`, bodyNoEq: `A Markov model is a set of states and a transition table, one row per current state, each row summing to 1.` },
+    { lbl: "States", body: "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses." },
+    { lbl: "Rule", body: `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${Tn}.` },
+    { lbl: "Hidden", eq: E, body: `Hidden: the coin is not seen. Each toss shows Heads or Tails by ${E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`, bodyNoEq: `Hidden: the coin is not seen. Each toss shows Heads or Tails by E: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.` },
+  ] },
+  { name: "Concept, hidden, toss 9 of the walk", rows: [
+    { lbl: "Toss 9", body: "Toss 9, from the loaded coin. T's row: stay 0.80, switch 0.20. Drew stay: the loaded coin again." },
+    { lbl: "Emits", body: "The loaded coin lands Heads with 0.80, Tails with 0.20. Came up Heads. Only the toss is recorded." },
+    { lbl: "So far", body: "Stayed with the same coin on 7 of 8 transitions so far. These cannot be counted from the record, which shows only tosses." },
+  ] },
+  { name: "Toy, at rest (the trellis rule)", rows: [
+    { lbl: "Rule", eq: REC, body: `Each column: ${REC} — the emission at this position times the best of the previous column's scores carried over a transition.`, bodyNoEq: `Each column: the emission at this position times the best of the previous column's scores carried over a transition.` },
+    { lbl: "Blank", body: "A blank column has no observation, so its score is that largest product alone." },
+    { lbl: "Trace", body: "The state that gave the largest product is stored; the trace-back follows those stored winners from the best final node." },
+  ] },
+];
+
+const LAYOUTS = [
+  { id: "A", cls: "asnow", name: "As now", em: "the .w-math-eq rule as written for widget 14: an 8.3em hanging indent, no label to hang from",
+    render: (rows) => rows.map((r) => `<div class="w-math-eq" style="min-height:0">${r.body}</div>`).join(""),
+    why: "The continuation of a wrapped line starts 8.3em in, which is what reads as poor alignment: the indent exists to line up the terms of a sum, and here there is no sum." },
+  { id: "B", cls: "prose", name: "Plain prose, left-aligned", em: "no indent; one short paragraph per line, a 4px gap between",
+    render: (rows) => rows.map((r) => `<div class="w-math-eq">${r.body}</div>`).join(""),
+    why: "The simplest fix and the quietest card. The formulas sit inline in their sentences, as they do in a textbook paragraph. Costs: nothing tells the eye where the rule ends and the coin's story begins." },
+  { id: "C", cls: "rows", name: "Labelled rows", em: "a short grey label in a 5.2em gutter — Model, States, Rule, Hidden; Toss 9, Emits, So far — and continuations under the body, widget 40's card",
+    render: (rows) => rows.map((r) => `<div class="w-math-eq"><span class="lbl">${r.lbl}</span>${r.body}</div>`).join(""),
+    why: "Scannable: a student finds the line about emission by its label. During the walk the labels name the phases of the beat, which matches the draw bar and the token. Costs 5.2em of every line; wraps one line earlier at the narrowest column." },
+  { id: "D", cls: "disp", name: "Equation displayed, prose beneath", em: "each formula on its own line at 1.6em, the sentence that reads it left-aligned below",
+    render: (rows) => rows.map((r) => (r.eq
+      ? `<div class="w-math-eq eq">${r.eq}</div><div class="w-math-eq">${r.bodyNoEq}</div>`
+      : `<div class="w-math-eq">${r.body}</div>`)).join(""),
+    why: "The formulas become objects a lecturer can point at, and they are large enough to read from the back of a room. Costs a line per formula — the resting Concept card grows from four lines to six — and the sentence loses the symbol it was reading." },
+];
+
+const wall = document.getElementById("wall");
+for (const L of LAYOUTS) {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${L.id} · ${L.name} <em>— ${L.em}</em></h3>` + CARDS.map((c) => `<div class="stage ${L.cls}"><div class="w-math">${L.render(c.rows)}</div><p class="cap">${c.name} · <span class="h"></span></p></div>`).join("") + `<p class="why">${L.why}</p>`;
+  wall.appendChild(d);
+  d.querySelectorAll(".stage").forEach((st) => { st.querySelector(".h").textContent = `card height ${Math.round(st.querySelector(".w-math").getBoundingClientRect().height)}px`; });
+}
+</script>
+</body>
+</html>
