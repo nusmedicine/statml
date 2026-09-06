@@ -4343,6 +4343,13 @@ considered and rejected: core hides the drive row while a gate is shut,
 and the walk has to run before the states are hidden. Three tabs no longer
 fit "Biological example" in the rail, so the label is "Biology".
 
+Kenneth got lost in what P1 and P2 are on the Concept tab, where only E
+was drawn. With the states hidden the two five-day patterns now sit as
+small tile rows under E, captioned *E counted from the two patterns*, and
+the resting worked line says the state is now a pattern, P1 or P2, Happy
+on 2 of its 5 days and on 4 of 5 — so the Toy tab's patterns are seen to
+be the same two.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

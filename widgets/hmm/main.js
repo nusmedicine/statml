@@ -374,7 +374,20 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   const lit = fading && idx > 1 ? { from: state.src[idx - 2], to: state.src[idx - 1], emit: state.mood[idx - 1] } : null;
   table(gx, Lo.model.y, "Transition T", stateNames.map((n) => `to ${n}`), stateNames, [[T[0][0].toFixed(2), T[0][1].toFixed(2)], [T[1][0].toFixed(2), T[1][1].toFixed(2)]]);
   const ex = w - 2 * mc - 6;
-  if (hidden) table(ex, Lo.model.y, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]]);
+  if (hidden) {
+    table(ex, Lo.model.y, "Emission E", ["Sad", "Happy"], ["P1", "P2"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]]);
+    /* WHAT P1 AND P2 ARE: the two five-day patterns, drawn small under E, so
+       the table is seen to be their composition — Happy on 2 of 5 days, on
+       4 of 5 — and the Toy tab's patterns are recognised as the same two.
+       Kenneth got lost here on 2026-09-06. */
+    const pt = 16, px0 = w - 6 - 5 * pt, py = Lo.model.y + LAB + 2 * mc + 6;
+    text(px0 + 5 * pt, py + 6, "from the patterns", colors.ink3, "right");
+    [M.NOTEBOOK.P1, M.NOTEBOOK.P2].forEach((pat, r) => {
+      const y = py + 14 + r * pt;
+      text(px0 - 6, y + pt / 2 + 0.5, `P${r + 1}`, colors.ink3, "right");
+      pat.forEach((a, i) => tile(px0 + i * pt, y, a, 1, pt));
+    });
+  }
   drawConceptGraph(ctx, colors, { x0: gx + 2 * mc + 30, x1: (hidden ? ex : w - 6) - 36, y: Lo.model.y, T, E, hidden, lit, litAlpha: 1 - p * 0.6, tile, cell });
 
   /* 2. The walk: one tile per day, the newest fading in. */
@@ -433,7 +446,7 @@ function conceptCardLines(state, idx, params) {
       "A Markov model: a set of states and a transition table T, P(next state | current state) — one row per current state, each row summing to 1.",
       "The next state depends only on the current one, not on the days before it. Walk it: each day the next state is drawn from the current state's row of T.",
     ];
-    if (hidden) lines.push("Hidden: the state itself is not seen. Each day it emits a mood by E, P(mood | state), and only the mood is recorded.");
+    if (hidden) lines.push("Hidden: the state is now a pattern, P1 or P2, and is not seen. Each day it emits a mood by E — P1 is Happy on 2 of its 5 days, P2 on 4 of 5 — and only the mood is recorded.");
     return lines;
   }
   const i = idx - 1;
