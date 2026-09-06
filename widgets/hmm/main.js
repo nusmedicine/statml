@@ -57,9 +57,9 @@ const EVERY = ["2", "3", "4", "6", "9"];
 /* Pacing is chosen, not automatic (4.1). Slow and Medium fade each new column
    or posterior in; Fast declares no choreography and shows the stages only. */
 const SPEEDS = {
-  slow: { label: "Slow", detail: "each column or site faded in", ms: 900, choreo: true },
-  medium: { label: "Medium", detail: "the same, at reading pace", ms: 420, choreo: true },
-  fast: { label: "Fast", detail: "the stages only, no fade", ms: 110, choreo: false },
+  slow: { label: "Slow", detail: "each column faded in, slowly", ms: 900, choreo: true },
+  medium: { label: "Medium", detail: "each column faded in, at reading pace", ms: 420, choreo: true },
+  fast: { label: "Fast", detail: "the columns only, no fade", ms: 110, choreo: false },
 };
 /* One step is one unit WATCHED — a fixed beat whatever Play is set to. */
 const STEP_MS = 700;
