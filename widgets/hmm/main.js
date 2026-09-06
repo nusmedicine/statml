@@ -665,8 +665,10 @@ defineWidget({
        answer away — which pattern each day was in — before a single press
        (2.1). It arrives with the Viterbi line, so the two readings of the
        same record land together. */
+    /* The one sentence that keeps the two grids apart: the trellis kept the
+       single best path (a max), the posterior adds up every path (a sum). */
     caption(Lo.strip, (toy ? "Posterior P(pattern | moods on record)" : "Posterior P(copied haplotype | typed sites)")
-      + (traced ? "" : ", once the path is traced"));
+      + (traced ? ": every path summed, where Viterbi kept one" : ", once the path is traced"));
     for (let h = 0; h < K; h += 1) {
       const y = Lo.strip.y + h * cell;
       rowLabel(y, stateName(h));
