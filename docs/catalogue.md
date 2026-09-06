@@ -4268,7 +4268,8 @@ traced toy and twelve biological sites under four schemes, all from
 existing tokens: A as now (ink and paper), B warm data on cool machinery
 (`--c-theory` filled), C two poles (`--c-value-high` / `--c-value-low`
 wash, trellis to aqua), D two arms (`--c-group-a` / `--c-group-b`,
-trellis to aqua). Not picked yet. A new semantic role for "the two values
+trellis to aqua). **He picked B**: the filled tile is `--c-theory`, the
+legend swatches with it. A new semantic role for "the two values
 of one variable" would be the clean answer and is a `tokens.css` change,
 which means the full fingerprint suite.
 

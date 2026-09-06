@@ -346,7 +346,7 @@ defineWidget({
     const toy = params.view === "toy";
     const entries = toy
       ? [
-        { token: "ink-2", label: "Happy (filled); Sad is open", mark: "bar" },
+        { token: "theory", label: "Happy (filled); Sad is open", mark: "bar" },
         { token: "unknown", label: "Not recorded", mark: "bar" },
         { token: "empirical", label: "Viterbi trellis: relative score of the best path ending at each node", mark: "bar" },
         { token: "empirical", label: "Survivor path into a node; once traced, the most likely sequence of patterns", mark: "line" },
@@ -354,7 +354,7 @@ defineWidget({
         { token: "posterior", label: "Posterior: which pattern the day is in", mark: "bar" },
       ]
       : [
-        { token: "ink-2", label: "The base at each site: the alternate allele filled, the reference allele open", mark: "bar" },
+        { token: "theory", label: "The base at each site: the alternate allele filled, the reference allele open", mark: "bar" },
         { token: "unknown", label: "Not typed on the array", mark: "bar" },
         { token: "empirical", label: "Viterbi trellis: relative score of the best path ending at each node", mark: "bar" },
         { token: "empirical", label: "Survivor path into a node; once traced, the most likely copied haplotype at every site", mark: "line" },
@@ -544,9 +544,14 @@ defineWidget({
     const rowLabel = (y, s) => text(gx - 6, y + cell / 2 + 0.5, s, colors.ink3, "right");
     /* An observation tile: filled for Happy / the alternate allele, open for
        Sad / the reference allele, and its letter — H or S on the toy, the
-       base at that site on the biological tab, as the notebook's strings. */
+       base at that site on the biological tab, as the notebook's strings.
+       The fill is --c-theory: a known template is the claim the record is
+       checked against, and one warm hue against the blue trellis and violet
+       posterior reads as data against computation. Kenneth picked it from
+       `_lab/hmm-palette.html` (B of four) over ink-and-paper, which he called
+       drab, and over two-hue pairs that made every tile compete. */
     const tile = (x, y, a, alpha = 1, size = cell, i = null) => {
-      fill(x, y, size, size, a === 1 ? colors.ink2 : colors.surface3, alpha);
+      fill(x, y, size, size, a === 1 ? colors.theory : colors.surface3, alpha);
       border(x, y, size, size);
       const letter = toy ? (a === 1 ? "H" : "S") : (i === null ? "" : state.panel.letters[i][a]);
       if (letter) text(x + size / 2, y + size / 2 + 0.5, letter, a === 1 ? colors.surface : colors.ink1, "center",
