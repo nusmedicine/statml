@@ -615,26 +615,26 @@ function conceptCardLines(state, idx, params) {
   const tossName = (m) => (m === 1 ? "Heads" : "Tails");
   if (idx === 0) {
     const lines = [
-      `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`,
-      "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses.",
-      `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`,
+      ["Model", `A Markov model is a set of states and a transition table ${MATH.T}, one row per current state, each row summing to 1.`],
+      ["States", "Here the states are two coins, one fair and one loaded, and the casino may switch coin between tosses."],
+      ["Rule", `The next state depends only on the current one, not on earlier tosses. Each toss, the coin in play is drawn from the current coin's row of ${MATH.Tname}.`],
     ];
-    if (hidden) lines.push(`Hidden: the coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`);
+    if (hidden) lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the loaded coin 0.80. Only the toss is recorded.`]);
     return lines;
   }
   const i = idx - 1;
   const lines = [];
-  if (i === 0) lines.push(`Toss 1: start with ${name(src[0])}, each coin equally likely.`);
+  if (i === 0) lines.push(["Toss 1", `Start with ${name(src[0])}, each coin equally likely.`]);
   else {
     const a = src[i - 1], b = src[i];
-    lines.push(`Toss ${i + 1}, from ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "stay" : "switch"}: ${a === b ? `${name(b)} again` : name(b)}.`);
+    lines.push([`Toss ${i + 1}`, `From ${name(a)}. T's row: stay ${T[a][a].toFixed(2)}, switch ${T[a][1 - a].toFixed(2)}. Drew ${a === b ? "stay" : "switch"}: ${a === b ? `${name(b)} again` : name(b)}.`]);
   }
-  if (hidden) lines.push(`${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)}. Came up ${tossName(obs[i])}. Only the toss is recorded.`);
+  if (hidden) lines.push(["Emits", `${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)}. Came up ${tossName(obs[i])}. Only the toss is recorded.`]);
   let stays = 0;
   for (let k = 1; k < idx; k += 1) if (src[k] === src[k - 1]) stays += 1;
-  if (idx > 1) lines.push(hidden
-    ? `Stayed with the same coin on ${stays} of ${idx - 1} transitions so far. These cannot be counted from the record, which shows only tosses.`
-    : `Stayed on ${stays} of ${idx - 1} transitions so far, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}.`);
+  if (idx > 1) lines.push(["So far", hidden
+    ? `Stayed with the same coin on ${stays} of ${idx - 1} transitions. These cannot be counted from the record, which shows only tosses.`
+    : `Stayed on ${stays} of ${idx - 1} transitions, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}.`]);
   return lines;
 }
 
@@ -672,8 +672,17 @@ const MATH = {
    column's relative scores, so the scaled results equal the nodes exactly —
    the driver asserts it. During the trace-back it says which stored winner
    the path just followed. Same DOM route as widget 40's card: a `.w-math`
-   inserted above the figure and rewritten only when its key changes. */
-const CARD_MIN = "9.6em";     // the three resting lines, wrapped, at the narrowest column; no jog as the walk runs
+   inserted above the figure and rewritten only when its key changes.
+
+   Each line is [label, body]. The label sits in a gutter and the body's
+   continuation lines start under the body, not under the label. The shared
+   `.w-math-eq` rule carries an 8.3em hanging indent written for widget 14's
+   sum; on prose it had nothing to hang from, so every wrapped sentence
+   restarted a third of the way across (Kenneth's screenshot, 2026-09-06;
+   `_lab/hmm-card.html` has the four layouts he chose C from). The gutter
+   holds the widest label, "Site 28", at the card's font size. */
+const GUTTER = "5.2em";
+const CARD_MIN = "12.3em";    // the three resting rows, wrapped, at the narrowest side column (135px in a 535px column); no jog as the walk runs
 let cardHost = null, cardKey = null;
 
 function cardLines(state, idx, params) {
@@ -682,6 +691,7 @@ function cardLines(state, idx, params) {
   const { K, L, rho } = state;
   const TR = state.trellis;
   const pos = toy ? "day" : "site";
+  const Pos = toy ? "Day" : "Site";
   const name = (h) => (toy ? `P${h + 1}` : `h${h + 1}`);
   const stay = 1 - rho, move = rho / (K - 1);
   const known = (i) => !state.stages.at(-1).sites[i].blank;
@@ -692,9 +702,9 @@ function cardLines(state, idx, params) {
 
   if (fwd === 0) {
     return [
-      `Each column: ${MATH.recurrence} — the emission at this position times the best of the previous column's scores carried over a transition.`,
-      `A blank column has no observation, so its score is that largest product alone.`,
-      `The state that gave the largest product is stored; the trace-back follows those stored winners from the best final node.`,
+      ["Rule", `Each column: ${MATH.recurrence} — the emission at this position times the best of the previous column's scores carried over a transition.`],
+      ["Blank", `A blank column has no observation, so its score is that largest product alone.`],
+      ["Trace", `The state that gave the largest product is stored; the trace-back follows those stored winners from the best final node.`],
     ];
   }
   if (back === 0) {
@@ -720,25 +730,25 @@ function cardLines(state, idx, params) {
       const how = i === 0 ? `start 1/${K}`
         : toy ? `the larger of ${term(0, h)}, ${term(1, h)}`
           : `the largest, ${term(g, h)}`;
-      return known(i)
-        ? `${name(h)} at ${pos} ${i + 1}: ${carried.toFixed(3)} (${how}) × P(${obsName(i)} | ${name(h)}) ${f2(emitAt(i, h))} = ${prods[h].toFixed(3)}`
-        : `${name(h)} at ${pos} ${i + 1}: ${carried.toFixed(3)} (${how}); no observation to multiply by`;
+      return [name(h), known(i)
+        ? `${Pos} ${i + 1}: ${carried.toFixed(3)} (${how}) × P(${obsName(i)} | ${name(h)}) ${f2(emitAt(i, h))} = ${prods[h].toFixed(3)}`
+        : `${Pos} ${i + 1}: ${carried.toFixed(3)} (${how}); no observation to multiply by`];
     });
-    lines.push(`Scaled so the column sums to 1${toy ? "" : `, over all ${K}`}: ${show.map((h) => `${name(h)} ${f2(prods[h] / tot)}`).join(", ")}${toy ? "" : ", …"}`);
+    lines.push(["Scaled", `The column sums to 1${toy ? "" : `, over all ${K}`}: ${show.map((h) => `${name(h)} ${f2(prods[h] / tot)}`).join(", ")}${toy ? "" : ", …"}`]);
     return lines;
   }
   const i = L - back;                         // the column just traced
   if (i === L - 1) {
     return [
-      `Trace-back starts at the best final node: ${name(TR.path[i])} at ${pos} ${L}, relative score ${f2(TR.score[i][TR.path[i]])}.`,
-      `Each step follows the winner stored in the forward pass, one column left.`,
+      ["Trace", `Starts at the best final node: ${name(TR.path[i])} at ${pos} ${L}, relative score ${f2(TR.score[i][TR.path[i]])}.`],
+      ["Step", `Each step follows the winner stored in the forward pass, one column left.`],
     ];
   }
   const lines = [
-    `${name(TR.path[i + 1])} at ${pos} ${i + 2} stored ${name(TR.path[i])} as its winner, so the path at ${pos} ${i + 1} is ${name(TR.path[i])}.`,
+    [`${Pos} ${i + 1}`, `${name(TR.path[i + 1])} at ${pos} ${i + 2} stored ${name(TR.path[i])} as its winner, so the path here is ${name(TR.path[i])}.`],
   ];
-  if (i > 0) lines.push(`${i} column${i === 1 ? "" : "s"} left to trace.`);
-  else lines.push(`Traced to ${pos} 1: one state per ${pos}, the single most likely sequence. The imputed values are read off it.`);
+  if (i > 0) lines.push(["Left", `${i} column${i === 1 ? "" : "s"} to trace.`]);
+  else lines.push(["Done", `Traced to ${pos} 1: one state per ${pos}, the single most likely sequence. The imputed values are read off it.`]);
   return lines;
 }
 
@@ -750,17 +760,18 @@ function renderCard(state, idx, params) {
     cardHost.className = "w-math";
     figure.parentNode.insertBefore(cardHost, figure);
   }
-  /* The Concept tab's resting card is four lines with MathML in two of them,
-     146px at the usual width; reserve that on the tab so the walk, whose card
-     is three lines, does not jog the figure (3.4k). The trellis tabs keep the
-     smaller reserve. */
+  /* The Concept tab's resting card is four rows with MathML in two of them,
+     129px at the usual width and 146px once the rail stacks above the figure;
+     reserve the larger so the walk, whose card is three rows, does not jog
+     the figure (3.4k). The trellis tabs keep the smaller reserve. */
   cardHost.style.minHeight = state.kind === "concept" ? "13.4em" : CARD_MIN;
   const key = ["view", "idx", "seed", "missing", "K", "every", "sample", "stay", "states"]
     .map((k) => (k === "idx" ? idx : params[k])).join("|");
   if (key === cardKey) return;
   cardKey = key;
   cardHost.innerHTML = cardLines(state, idx, params)
-    .map((l) => `<div class="w-math-eq" style="min-height:0">${l}</div>`).join("");
+    .map(([label, body]) => `<div class="w-math-eq" style="min-height:0;padding-left:${GUTTER};text-indent:-${GUTTER};margin:0 0 4px">`
+      + `<span style="display:inline-block;width:${GUTTER};text-indent:0;color:var(--ink-3)">${label}</span>${body}</div>`).join("");
 }
 
 /* The imputed value follows the notebook: read off the decoded template at

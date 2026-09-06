@@ -4446,6 +4446,23 @@ prose with numbers, which is what a hand check wants. The Concept card
 reserves 13.4em so the four-line resting card and the three-line walking
 card do not jog the figure.
 
+**The card's alignment (round 20).** Kenneth's screenshot: the card's
+wrapped lines restarted a third of the way across on every tab. The cause
+was inherited, not written here: the card reuses `.w-math-eq`, whose 8.3em
+hanging indent was designed for widget 14's thirteen-term sum, and prose
+has no first term to hang from. `_lab/hmm-card.html` showed four layouts
+on three real cards: as now; plain left-aligned prose; labelled rows in
+widget 40's construction; each formula displayed on its own line. He chose
+**labelled rows**. Every card line is now `[label, body]` with the label in
+a 5.2em gutter (sized to *Site 28*) and continuation lines under the body:
+Model / States / Rule / Hidden at rest on Concept, Toss *n* / Emits / So
+far during its walk; Rule / Blank / Trace at rest on the trellis tabs, then
+the state name (*P1*, *h3*) per row of the arithmetic, *Scaled*, and Trace
+/ Step, *Day n* / *Site n*, Left, Done through the trace-back. Measured
+after the change: the trellis reserve rose from 9.6em to 12.3em (the
+resting card at the narrowest side column); the Concept reserve stays at
+13.4em, which now covers both the usual width and the stacked one.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological
