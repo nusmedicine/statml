@@ -2922,15 +2922,15 @@
       "$note": "the Concept tab at rest — the Markov stage, a sticky coin, nothing tossed",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
-      "px": "d6897dac",
-      "tx": "ca0a46d0"
+      "px": "bef625d4",
+      "tx": "b8d0bb14"
     },
     {
       "$note": "the Markov stage walked to the end: the counts estimate T",
       "slug": "hmm",
       "state": "?theme=light&shown=20",
-      "px": "1c7ec118",
-      "tx": "275bc192"
+      "px": "1792b75e",
+      "tx": "98ba3cb5"
     },
     {
       "$note": "the hidden stage walked to the end: the casino, coin hidden",
@@ -3011,8 +3011,8 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "b5b56872",
-      "tx": "24cb7929"
+      "px": "6825a231",
+      "tx": "c0dcc7c0"
     },
     {
       "$note": "DRIVEN: the toy mid-forward at fast",

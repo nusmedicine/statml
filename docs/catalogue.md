@@ -4500,6 +4500,15 @@ switched between tosses*. Source comments keep casino and loaded, which is
 where the example came from. The two hidden-stage states rehashed; the
 other thirteen byte-identical.
 
+**Register on the new strings (round 23).** Kenneth: *sticky* is a
+mannerism. Every string rounds 21 and 22 added was re-read against 2.9
+and 2.10: the coin is now described by the fact, *one coin whose next toss
+depends on the last*; the band caption says *the transitions between
+them*; *counted straight off the record* is *counted from the record*;
+the counts note says *this count estimates T*; the Markov model section
+says there is no emission table because the state is the toss itself.
+Eight strings; the three Markov states rehashed, the rest byte-identical.
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

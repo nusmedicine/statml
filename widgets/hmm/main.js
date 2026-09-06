@@ -558,7 +558,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
   if (hidden) {
     table(ex, eY, "Emission E", ["Tails", "Heads"], ["F", "B"], [[E[0][0].toFixed(2), E[0][1].toFixed(2)], [E[1][0].toFixed(2), E[1][1].toFixed(2)]], "E", hot);
   }
-  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and B biased, and the tosses they give" : "A sticky coin: Heads and Tails as the states, and the moves between them", colors.ink2);
+  text(gx, Lo.model.y - LAB / 2 - 1, hidden ? "Hidden coins, F fair and B biased, and the tosses they give" : "One coin, Heads and Tails as the states, and the transitions between them", colors.ink2);
   drawConceptGraph(ctx, colors, { geom, T, E, hidden, lit, litAlpha: 1, hot, tile, token, names: stateNames, tossNodes: !hidden,
     visibleNote: null,          // the caption already says the state is the toss; the space is the draw bar's
     fillState: step ? { h: step.to, a: landU > 0 && landU < 1 ? 1 - landU : 0 } : null });
@@ -631,7 +631,7 @@ function drawConcept(ctx, colors, { Lo, w, params, state, anim, text, fill, bord
     (r, c) => (hidden ? colors.ink2 : (r === c ? colors.ink1 : colors.ink2)), CW);
   const note = hidden
     ? "not T: the tosses are not the coins"
-    : "the shares approach T's rows: counting is the estimate";
+    : "the shares approach T's rows: this count estimates T";
   text(gx + 2 * CW + 24, Lo.counts.y + LAB + mc - 2, note, colors.ink3, "left");
 }
 
@@ -653,7 +653,7 @@ function conceptCardLines(state, idx, params) {
       lines.push(["Hidden", `The coin is not seen. Each toss shows Heads or Tails by ${MATH.E}: the fair coin lands Heads half the time, the biased coin 0.80. Only the toss is recorded.`]);
     } else {
       lines.push(["States", "Here the states are the two faces of one coin, Heads and Tails: the record of tosses is the sequence of states."]);
-      lines.push(["Rule", `The next toss depends only on the current one, not on earlier tosses. The coin is sticky: after Heads, Heads again with ${stay.toFixed(2)}, the diagonal of ${MATH.Tname}.`]);
+      lines.push(["Rule", `The next toss depends only on the current one, not on earlier tosses: after Heads, Heads again with probability ${stay.toFixed(2)}, the diagonal of ${MATH.Tname}.`]);
       lines.push(["Count", `Every state is in the record, so ${MATH.Tname} can be estimated by counting the transitions between tosses.`]);
     }
     return lines;
@@ -670,7 +670,7 @@ function conceptCardLines(state, idx, params) {
   if (hidden) lines.push(["Emits", `${Name(src[i])} lands Heads with ${E[src[i]][1].toFixed(2)}, Tails with ${E[src[i]][0].toFixed(2)}. Came up ${tossName(obs[i])}. Only the toss is recorded.`]);
   if (idx > 1) lines.push(["So far", hidden
     ? `Stayed with the same coin on ${stays} of ${idx - 1} transitions. These cannot be counted from the record, which shows only tosses.`
-    : `Repeated the last toss on ${stays} of ${idx - 1} transitions, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}. Counted straight off the record.`]);
+    : `Repeated the last toss on ${stays} of ${idx - 1} transitions, ${(stays / (idx - 1)).toFixed(2)}, against T's ${stay.toFixed(2)}. Counted from the record.`]);
   return lines;
 }
 
@@ -908,7 +908,7 @@ defineWidget({
     model: {
       type: "segmented", label: "The model",
       options: [
-        { value: "markov", label: "Markov", detail: "a Markov model: the states are the tosses, Heads and Tails, of one sticky coin" },
+        { value: "markov", label: "Markov", detail: "a Markov model: the states are the tosses, Heads and Tails, of one coin whose next toss depends on the last" },
         { value: "hidden", label: "Hidden Markov", detail: "a hidden Markov model: the state is the coin, fair or biased, and it is not seen; each toss shows Heads or Tails by E" },
       ],
       default: "markov",
@@ -919,13 +919,13 @@ defineWidget({
        coin. Kenneth's pick, two over one relabelled. */
     coin: {
       type: "section", label: "The coin",
-      detail: "one sticky coin: the next toss depends on the last. At 0.5 it has no memory and is an ordinary coin",
+      detail: "one coin whose next toss depends on the last. At 0.5 the tosses are independent and it is an ordinary coin",
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
     },
     repeat: {
       type: "choice", label: "P(next toss repeats the last)",
       options: ["0.5", "0.7", "0.8", "0.9", "0.95"].map((v) => ({ value: v, label: v,
-        detail: "model parameter: the diagonal of T; counted straight from the record, because every state is in it" })),
+        detail: "model parameter: the diagonal of T; counted from the record, in which every state appears" })),
       default: "0.8",
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
     },
@@ -1013,7 +1013,7 @@ defineWidget({
        derived — T from the switch rate, E read off the panel. */
     modelMarkov: {
       type: "section", label: "The model",
-      detail: "T is what you set, and it is all there is: no emission table, because the state is the toss. "
+      detail: "T is what you set. There is no emission table, because the state is the toss itself. "
         + "In practice T is counted from the record, one row per state.",
       when: { all: [{ param: "view", equals: "concept" }, { param: "model", equals: "markov" }] },
     },
