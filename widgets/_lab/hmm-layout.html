@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 45 hmm — the model band, and the order of the figure</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); color: var(--ink-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .opt { margin: 0 0 var(--sp-4); }
+  .opt h3 { font-size: var(--fs-md); margin: 0 0 4px; color: var(--ink-1); }
+  .opt h3 em { color: var(--ink-3); font-style: normal; font-weight: 400; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); max-width: 100%; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0 0; max-width: 100ch; }
+  .cap { font-size: 11px; color: var(--ink-2); margin: 4px 0 0; font-family: var(--font-mono); }
+  .row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 45 · hmm — the model band, and the order of the figure</h1>
+  <p class="note">
+    <b>Part 1</b> redraws the model band — the graph and the matrices — four ways on each tab, at the widget's
+    690px width, with the height each costs. <b>Part 2</b> lays the whole figure out as blocks to scale in three
+    orders, on the Toy tab, where the question of order bites hardest. Every number is the widget's own: the
+    notebook's patterns, seed 1's panel.
+  </p>
+
+  <h2>Part 1 · the model band</h2>
+  <div id="bands"></div>
+
+  <h2>Part 2 · the order of the figure, Toy tab, blocks to scale</h2>
+  <p class="note">
+    The notebook's own order is patterns, then the record with its gaps, then the model, then the decoder. The
+    widget currently opens on the record. Heights are the real ones at 690px.
+  </p>
+  <div class="row" id="orders"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import * as M from "../hmm/model.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FONT = css("--font");
+const W = 690, GUT = 66, LAB = 15;
+
+const toy = M.buildToy({ rng: makeRng(1), missing: 3, seed: 1 });
+const bio = M.buildGenotype({ rng: makeRng(1), K: 6, every: 4 });
+const concept = M.buildConcept({ rng: makeRng(1), stay: 0.8 });
+
+/* ---- primitives --------------------------------------------------------- */
+function txt(ctx, x, y, s, colour = T.ink2, align = "left", size = 11, weight = "") {
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${size}px ${FONT}`.trim(); ctx.fillText(s, x, y);
+}
+function border(ctx, x, y, w, h) { ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+function tile(ctx, x, y, a, c, letter) {
+  ctx.fillStyle = a === 1 ? T.theory : T.surface3; ctx.fillRect(x, y, c, c); border(ctx, x, y, c, c);
+  if (letter) txt(ctx, x + c / 2, y + c / 2 + 0.5, letter, a === 1 ? T.surface : T.ink1, "center", Math.round(c * 0.5), "600");
+}
+/* A probability table: rows x cols of numbers, headers in words. `size` sets the cell. */
+function table(ctx, x0, y0, title, cols, rows, cells, size, opts = {}) {
+  const cw = opts.cw ?? size, ch = size, fs = opts.fs ?? Math.max(10, Math.min(13, size - 22)), hdr = opts.hdr ?? 13;
+  txt(ctx, x0, y0 - LAB / 2 - 1, title, T.ink2, "left", 11, opts.bold ? "600" : "");
+  for (let c = 0; c < cols.length; c += 1) txt(ctx, x0 + c * cw + cw / 2, y0 + hdr / 2, cols[c], T.ink3, "center", 10);
+  for (let r = 0; r < rows.length; r += 1) {
+    const y = y0 + hdr + r * ch;
+    txt(ctx, x0 - 6, y + ch / 2 + 0.5, rows[r], T.ink3, "right", 10);
+    for (let c = 0; c < cols.length; c += 1) {
+      border(ctx, x0 + c * cw, y, cw, ch);
+      const v = cells[r][c];
+      const diag = opts.diagonal && r === c;
+      if (opts.shade) { ctx.save(); ctx.globalAlpha = 0.05 + 0.6 * Number(v); ctx.fillStyle = T.empirical; ctx.fillRect(x0 + c * cw + 1, y + 1, cw - 2, ch - 2); ctx.restore(); }
+      txt(ctx, x0 + c * cw + cw / 2, y + ch / 2 + 0.5, v, diag || !opts.diagonal ? T.ink1 : T.ink3, "center", fs);
+    }
+  }
+  return { w: cols.length * cw, h: hdr + rows.length * ch };
+}
+/* The two-state graph (concept / toy): circles, self-loops, switches, and emission arrows. */
+function graph2(ctx, { x0, x1, y, h, R, fs, names, hiddenStyle, T2, E2, emitLetters, emitTiles }) {
+  const mid = (x0 + x1) / 2, d = Math.min(0.28 * (x1 - x0), 90);
+  const sy = y + Math.round(h * 0.32), ts = Math.round(R * 1.4), oy = y + h - ts - 12;
+  const S = [{ x: mid - d, y: sy }, { x: mid + d, y: sy }], O = [{ x: mid - d, y: oy + ts / 2 }, { x: mid + d, y: oy + ts / 2 }];
+  const label = (x, yy, s, align = "center") => txt(ctx, x, yy, s, T.ink2, align, fs);
+  const arrow = (ax, ay, bx, by, sA, sB, dash) => {
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    const sx = ax + ux * sA, syy = ay + uy * sA, ex = bx - ux * sB, ey = by - uy * sB;
+    ctx.save(); ctx.strokeStyle = T.ink3; ctx.fillStyle = T.ink3; ctx.lineWidth = 1.3; if (dash) ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(sx, syy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 7 - uy * 4, ey - uy * 7 + ux * 4); ctx.lineTo(ex - ux * 7 + uy * 4, ey - uy * 7 - ux * 4); ctx.closePath(); ctx.fill(); ctx.restore();
+    return { sx, sy: syy, ex, ey };
+  };
+  for (let s = 0; s < 2; s += 1) {
+    ctx.save(); ctx.beginPath(); ctx.arc(S[s].x, S[s].y, R, 0, Math.PI * 2);
+    if (hiddenStyle) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.stroke(); }
+    else { ctx.fillStyle = s === 1 ? T.theory : T.surface3; ctx.fill(); ctx.strokeStyle = T.grid; ctx.stroke(); }
+    ctx.restore();
+    txt(ctx, S[s].x, S[s].y + 0.5, names[s], hiddenStyle ? T.ink1 : (s === 1 ? T.surface : T.ink1), "center", fs + 1, "600");
+    const side = s === 0 ? -1 : 1, lx = S[s].x + side * (R + 10), ly = S[s].y;
+    ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(lx, ly, 10, side > 0 ? -2.2 : 0.95, side > 0 ? 2.2 : 5.35); ctx.stroke();
+    ctx.fillStyle = T.ink3; const tipX = S[s].x + side * R * 0.75, tipY = S[s].y + R * 0.66;
+    ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX + side * 6, tipY + 2); ctx.lineTo(tipX + side * 2, tipY - 6); ctx.closePath(); ctx.fill(); ctx.restore();
+    label(S[s].x + side * (R + 24), S[s].y - 13, T2[s][s].toFixed(2), side > 0 ? "left" : "right");
+  }
+  arrow(S[0].x, S[0].y - 6, S[1].x, S[1].y - 6, R + 1, R + 1); arrow(S[1].x, S[1].y + 6, S[0].x, S[0].y + 6, R + 1, R + 1);
+  label(mid, S[0].y - 17, T2[0][1].toFixed(2)); label(mid, S[0].y + 18, T2[1][0].toFixed(2));
+  if (E2) {
+    for (let s = 0; s < 2; s += 1) for (let o = 0; o < 2; o += 1) {
+      const a = arrow(S[s].x, S[s].y, O[o].x, O[o].y, R + 2, ts / 2 + 3, true);
+      const f = s === o ? 0.5 : 0.36, lx = a.sx + (a.ex - a.sx) * f, ly = a.sy + (a.ey - a.sy) * f;
+      const off = s === o ? (s === 0 ? -9 : 9) : (s === 0 ? -7 : 7);
+      label(lx + off, ly, E2[s][o].toFixed(2), off > 0 ? "left" : "right");
+    }
+    for (let o = 0; o < 2; o += 1) { tile(ctx, O[o].x - ts / 2, oy, o, ts, emitLetters[o]); label(O[o].x, oy + ts + 10, emitTiles[o]); }
+  }
+}
+/* The ring of K states (biology). */
+function ringK(ctx, { x0, x1, y, h, K, R, fs, hap, site, letters, stay, move }) {
+  const mid = (x0 + x1) / 2, rad = Math.min((h - 70) / 2 - R, (x1 - x0) / 2 - R - 10);
+  const cy0 = y + 6 + rad + R, ts = Math.round(R * 1.5);
+  const pos = Array.from({ length: K }, (_, k) => { const a = -Math.PI / 2 + (2 * Math.PI * k) / K; return { x: mid + rad * Math.cos(a), y: cy0 + rad * Math.sin(a), a }; });
+  ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.globalAlpha = 0.35;
+  for (let a = 0; a < K; a++) for (let b = a + 1; b < K; b++) { ctx.beginPath(); ctx.moveTo(pos[a].x, pos[a].y); ctx.lineTo(pos[b].x, pos[b].y); ctx.stroke(); }
+  ctx.restore();
+  const ty = cy0 + rad + R + 16, tileX = [mid - 22 - ts / 2, mid + 22 - ts / 2];
+  for (let k = 0; k < K; k++) {
+    const a = hap[k][site], bx = tileX[a] + ts / 2, by = ty, dx = bx - pos[k].x, dy = by - pos[k].y, len = Math.hypot(dx, dy);
+    ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(pos[k].x + dx / len * (R + 2), pos[k].y + dy / len * (R + 2)); ctx.lineTo(bx - dx / len * 4, by - dy / len * 4); ctx.stroke(); ctx.restore();
+  }
+  for (let k = 0; k < K; k++) {
+    ctx.save(); ctx.fillStyle = T.surface; ctx.beginPath(); ctx.arc(pos[k].x, pos[k].y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.restore();
+    txt(ctx, pos[k].x, pos[k].y + 0.5, `h${k + 1}`, T.ink1, "center", fs, "600");
+    const lx = pos[k].x + Math.cos(pos[k].a) * (R + 7), ly = pos[k].y + Math.sin(pos[k].a) * (R + 7);
+    ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(lx, ly, 6, pos[k].a + 2.4, pos[k].a - 2.4 + 2 * Math.PI); ctx.stroke(); ctx.restore();
+  }
+  for (let o = 0; o < 2; o++) tile(ctx, tileX[o], ty, o, ts, letters[site][o]);
+  txt(ctx, mid, ty + ts + 10, `emits its own allele at site ${site + 1}`, T.ink3, "center", fs - 1);
+  txt(ctx, mid, ty + ts + 24, `stay ${stay.toFixed(2)} · switch ${move.toFixed(2)} to each of the other ${K - 1}`, T.ink3, "center", fs - 1);
+}
+
+/* ---- the four arrangements ---------------------------------------------- */
+const ARR = [
+  { id: "A", name: "As now", em: "34px cells, one band of 150–176px, the graph squeezed between the tables",
+    why: "Everything present, nothing big enough. The graph's numbers are 11px at the centre of a 690px canvas; a student at the back of the room sees three grey boxes." },
+  { id: "B", name: "Same arrangement, larger", em: "40px cells, 13px numbers, a 210px band; the graph's circles at R 18",
+    why: "The cheapest fix: the same three things, scaled to be read. Costs about 50px of height per tab and nothing else." },
+  { id: "C", name: "Graph left, matrices stacked right", em: "the graph takes the band's full height on the left; T above E on the right, with the patterns under E",
+    why: "Reading order becomes picture, then numbers: the student meets the states and arrows, then the same numbers in table form beside them. T and E sit under each other, so their rows line up and the eye can compare a transition row with an emission row. Costs a taller band, about 230px." },
+  { id: "D", name: "Graph row, then a table row", em: "the graph alone across a 150px row; below it T and E side by side at 44px cells with headers in words",
+    why: "The most legible tables — room for \"from P1\" and \"to P2\" instead of P1 / P2 — at the price of the tallest band, about 270px, and the graph and its numbers no longer sit side by side." },
+];
+
+function drawBand(tab, arr, canvas) {
+  const big = arr.id !== "A";
+  const size = arr.id === "A" ? 34 : arr.id === "D" ? 44 : 40;
+  const fs = big ? 12 : 11;
+  const K = tab === "bio" ? bio.K : 2;
+  const stay = 0.9, move = tab === "bio" ? 0.1 / (K - 1) : 0.1;
+  let H;
+  if (arr.id === "A") H = tab === "bio" ? 176 : 150;
+  else if (arr.id === "B") H = tab === "bio" ? Math.max(210, LAB + K * 30 + 20) : 210;
+  else if (arr.id === "C") H = tab === "bio" ? Math.max(230, LAB + K * 28 + LAB + 2 * 28 + 40) : 230;
+  else H = tab === "bio" ? 150 + 20 + Math.max(LAB + K * 28, LAB + 2 * 44) + 10 : 150 + 20 + LAB + 2 * 44 + 10;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = (H + 12) * dpr; canvas.style.width = W + "px"; canvas.style.height = (H + 12) + "px";
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H + 12);
+  const y0 = 6 + LAB;
+
+  /* what each tab's band holds */
+  const Tc = [[0.9, 0.1], [0.1, 0.9]];
+  const spec = tab === "concept"
+    ? { names: ["P1", "P2"], hidden: true, T2: Tc, E2: concept.E, Ecols: ["Sad", "Happy"], Erows: ["P1", "P2"], Etitle: "Emission E", patterns: [M.NOTEBOOK.P1, M.NOTEBOOK.P2], emit: ["S", "H"], emitNames: ["Sad", "Happy"] }
+    : tab === "toy"
+      ? { names: ["P1", "P2"], hidden: true, T2: Tc, E2: [[0.9, 0.1], [0.1, 0.9]], Ecols: ["S", "H"], Erows: ["P1", "P2"], Etitle: "Emission E at day 1", emit: ["S", "H"], emitNames: ["Sad", "Happy"] }
+      : { names: null };
+
+  const Tcells = tab === "bio"
+    ? Array.from({ length: K }, (_, r) => Array.from({ length: K }, (_, c) => (r === c ? stay : move).toFixed(2)))
+    : [[Tc[0][0].toFixed(2), Tc[0][1].toFixed(2)], [Tc[1][0].toFixed(2), Tc[1][1].toFixed(2)]];
+  const Tcols = tab === "bio" ? Array.from({ length: K }, (_, k) => `h${k + 1}`) : (arr.id === "D" ? ["to P1", "to P2"] : ["P1", "P2"]);
+  const Trows = tab === "bio" ? Array.from({ length: K }, (_, k) => `h${k + 1}`) : (arr.id === "D" ? ["from P1", "from P2"] : ["P1", "P2"]);
+  const Ecells = tab === "bio"
+    ? Array.from({ length: K }, (_, k) => [0, 1].map((c) => (bio.panel.hap[k][0] === c ? "0.98" : "0.02")))
+    : spec.E2.map((r) => r.map((v) => v.toFixed(2)));
+  const Ecols = tab === "bio" ? [bio.panel.letters[0][0], bio.panel.letters[0][1]] : spec.Ecols;
+  const Erows = tab === "bio" ? Trows : spec.Erows;
+  const Etitle = tab === "bio" ? "Emission E at site 1" : spec.Etitle;
+  const tsize = tab === "bio" ? (arr.id === "A" ? 30 : 28) : size;
+  const drawGraph = (x0, x1, y, h) => {
+    if (tab === "bio") ringK(ctx, { x0, x1, y, h, K, R: big ? 13 : 11, fs, hap: bio.panel.hap, site: 0, letters: bio.panel.letters, stay, move });
+    else graph2(ctx, { x0, x1, y, h, R: big ? 18 : 14, fs, names: spec.names, hiddenStyle: spec.hidden, T2: spec.T2, E2: spec.E2, emitLetters: spec.emit, emitTiles: spec.emitNames });
+  };
+  const drawPatterns = (x, y, pt) => {
+    if (!spec.patterns) return 0;
+    txt(ctx, x + 5 * pt, y + 6, "from the patterns", T.ink3, "right", 10);
+    spec.patterns.forEach((pat, r) => { const yy = y + 14 + r * pt; txt(ctx, x - 6, yy + pt / 2 + 0.5, `P${r + 1}`, T.ink3, "right", 10); pat.forEach((a, i) => tile(ctx, x + i * pt, yy, a, pt, a ? "H" : "S")); });
+    return 14 + 2 * pt;
+  };
+
+  if (arr.id === "A" || arr.id === "B") {
+    const tw = table(ctx, GUT, y0, "Transition T", Tcols, Trows, Tcells, tsize, { diagonal: tab === "bio" });
+    const ew = Ecols.length * tsize;
+    const ex = W - ew - 6;
+    table(ctx, ex, y0, Etitle, Ecols, Erows, Ecells, tsize);
+    drawPatterns(W - 6 - 5 * 16, y0 + 13 + 2 * tsize + 6, 16);
+    txt(ctx, (GUT + tw.w + 30 + ex - 36) / 2, y0 - LAB / 2 - 1, tab === "bio" ? "Hidden states" : "Hidden states, and the moods they emit", T.ink2, "center");
+    drawGraph(GUT + tw.w + 30, ex - 36, y0, H - LAB - 6);
+  } else if (arr.id === "C") {
+    const ew = Ecols.length * tsize, tw = Tcols.length * tsize;
+    const colW = Math.max(ew, tw) + 40, tx = W - colW - 6;
+    txt(ctx, GUT, y0 - LAB / 2 - 1, tab === "bio" ? "Hidden states: which haplotype is copied" : "Hidden states, and the moods they emit", T.ink2, "left");
+    drawGraph(GUT, tx - 30, y0, H - LAB - 6);
+    const t1 = table(ctx, tx + 30, y0, "Transition T", Tcols, Trows, Tcells, tsize, { diagonal: tab === "bio" });
+    const ey = y0 + t1.h + LAB + 10;
+    table(ctx, tx + 30, ey, Etitle, Ecols, Erows, Ecells, tsize);
+    drawPatterns(tx + 30, ey + 13 + 2 * tsize + 6, 16);
+  } else {
+    txt(ctx, GUT, y0 - LAB / 2 - 1, tab === "bio" ? "Hidden states: which haplotype is copied" : "Hidden states, and the moods they emit", T.ink2, "left");
+    drawGraph(GUT, W - 6, y0, 150 - LAB);
+    const ty = y0 + 150 + 5;
+    const t1 = table(ctx, GUT + (tab === "bio" ? 0 : 30), ty, "Transition T: P(next | current)", Tcols, Trows, Tcells, tsize, { diagonal: tab === "bio", cw: tab === "bio" ? tsize : 60 });
+    const ex = GUT + (tab === "bio" ? 0 : 30) + t1.w + 70;
+    table(ctx, ex, ty, tab === "bio" ? Etitle + ": P(allele | copying)" : Etitle + ": P(mood | state)", Ecols, Erows, Ecells, tsize, { cw: tab === "bio" ? tsize : 60 });
+    drawPatterns(ex + (tab === "bio" ? 2 * tsize : 120) + 40, ty + 4, 16);
+  }
+  return H;
+}
+
+const bands = document.getElementById("bands");
+for (const [tab, title] of [["concept", "Concept, states hidden"], ["toy", "Toy model"], ["bio", "Biology, six haplotypes"]]) {
+  const h2 = document.createElement("h3"); h2.textContent = title; h2.style.margin = "18px 0 6px"; bands.appendChild(h2);
+  for (const arr of ARR) {
+    const d = document.createElement("div"); d.className = "opt";
+    d.innerHTML = `<h3>${arr.id} · ${arr.name} <em>— ${arr.em}</em></h3><canvas></canvas><p class="cap"></p>${tab === "concept" ? `<p class="why">${arr.why}</p>` : ""}`;
+    bands.appendChild(d);
+    const H = drawBand(tab, arr, d.querySelector("canvas"));
+    d.querySelector(".cap").textContent = `band height ${H}px`;
+  }
+}
+
+/* ---- Part 2: the order of the figure, as blocks to scale ----------------- */
+const cell = 40;
+const BLOCKS = {
+  record: { name: "the record, H ? ? H ?", h: LAB + cell, tone: "theory" },
+  model: { name: "the model: graph, E, T", h: LAB + 210, tone: "ink" },
+  patterns: { name: "the two patterns, P1 P2", h: LAB + 2 * cell, tone: "theory" },
+  trellis: { name: "Viterbi trellis (animates)", h: LAB + 2 * cell, tone: "empirical" },
+  posterior: { name: "posterior strip", h: LAB + 2 * cell, tone: "posterior" },
+  again: { name: "the record again", h: LAB + cell, tone: "theory" },
+  imputed: { name: "imputed", h: LAB + cell + 6, tone: "theory" },
+  truth: { name: "ground truth (toggle)", h: LAB + cell, tone: "reference" },
+};
+const ORDERS = [
+  { id: "1", name: "As now", seq: ["record", "model", "patterns", "trellis", "posterior", "again", "imputed", "truth"],
+    why: "Opens on the data. The record is far from the imputed row, hence the repeat; the model separates the record from the patterns it is compared with." },
+  { id: "2", name: "The notebook's order", seq: ["patterns", "record", "model", "trellis", "posterior", "again", "imputed", "truth"],
+    why: "Patterns, then the record with gaps, then the model, then the decoder — cells 26 to 29 in that order. The student sees what is known before what is missing." },
+  { id: "3", name: "Model, then data, then decoder", seq: ["model", "patterns", "record", "trellis", "posterior", "imputed", "truth"],
+    why: "The model band first, as the Concept tab has it; patterns and record together above the trellis, which reads them; the record repeat is no longer needed, so the figure is one row shorter. Consistent top-to-bottom across all three tabs: model → templates → record → algorithm → answer." },
+];
+const orders = document.getElementById("orders");
+for (const o of ORDERS) {
+  const d = document.createElement("div"); d.className = "opt";
+  d.innerHTML = `<h3>${o.id} · ${o.name}</h3><canvas></canvas><p class="cap"></p><p class="why">${o.why}</p>`;
+  orders.appendChild(d);
+  const c = d.querySelector("canvas"), scale = 0.55, GAP = 16;
+  const total = o.seq.reduce((s, k) => s + BLOCKS[k].h + GAP, 0);
+  const Wc = 360, Hc = Math.round(total * scale) + 10;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = Wc * dpr; c.height = Hc * dpr; c.style.width = Wc + "px"; c.style.height = Hc + "px";
+  const ctx = c.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  let y = 5;
+  for (const k of o.seq) {
+    const b = BLOCKS[k], h = b.h * scale;
+    const colour = { theory: T.theory, ink: T.ink3, empirical: T.empirical, posterior: T.posterior, reference: T.reference }[b.tone];
+    ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = colour; ctx.fillRect(40, y, Wc - 50, h); ctx.restore();
+    ctx.strokeStyle = colour; ctx.lineWidth = 1; ctx.strokeRect(40.5, y + 0.5, Wc - 51, h - 1);
+    txt(ctx, 48, y + Math.min(h / 2, 12), b.name, T.ink1, "left", 11);
+    y += h + GAP * scale;
+  }
+  d.querySelector(".cap").textContent = `figure height ${Math.round(total - GAP)}px at 690px, truth on`;
+}
+</script>
+</body>
+</html>
