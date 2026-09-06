@@ -17,7 +17,7 @@ import { fmt } from "../core/stats.js";
 import { animationUnits } from "../hmm/model.js";
 
 let src = await readFile(new URL("../hmm/main.js", import.meta.url), "utf8");
-src = src.replace(/^import \{ defineWidget \} from "\.\.\/core\/index\.js";$/m,
+src = src.replace(/^import \{ defineWidget, fmt \} from "\.\.\/core\/index\.js";$/m,
   'const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c);');
 src = src.replace(/^import \* as M from "\.\/model\.js";$/m,
   `import * as M from ${JSON.stringify(new URL("../hmm/model.js", import.meta.url).href)};`);
@@ -34,7 +34,7 @@ const ck = (name, ok, extra = "") => {
 /* 1. The contract — by name. */
 for (const key of ["slug", "title", "subtitle", "status", "layout", "height", "params", "legend", "compute", "draw", "readout", "animation"])
   ck(`declares \`${key}\``, W[key] != null);
-const WANT = { view: "segmented", missing: "int", K: "choice", every: "choice", sample: "segmented",
+const WANT = { view: "segmented", stay: "choice", states: "segmented", missing: "int", K: "choice", every: "choice", sample: "segmented",
   seed: "int", truth: "bool", speed: "choice", shown: "int" };
 for (const [n, t] of Object.entries(WANT)) ck(`${n} is ${t}`, W.params[n]?.type === t);
 const declared = Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n]) => n).sort().join();
@@ -42,8 +42,10 @@ ck("no parameters beyond those", declared === Object.keys(WANT).sort().join(), d
 ck("truth and speed are display", W.params.truth.display === true && W.params.speed.display === true);
 ck("view is a DATA parameter", !W.params.view.display);
 ck("the toy control is gated on view=toy", W.params.missing.when?.equals === "toy");
+ck("the concept controls are gated on view=concept", ["stay", "states"].every((n) => W.params[n].when?.equals === "concept"));
+ck("hiding the states is a display change", W.params.states.display === true);
 ck("the biological controls are gated on view=biological", ["K", "every", "sample"].every((n) => W.params[n].when?.equals === "biological"));
-ck("one step label for both tabs", W.animation.stepLabel === "Next column");
+ck("step label per tab", W.animation.stepLabel?.param === "view" && Object.keys(W.animation.stepLabel.labels).sort().join() === "biological,concept,toy");
 
 /* 2. Defaults, and a walk over every option of every parameter. */
 const defaults = Object.fromEntries(Object.entries(W.params).filter(([, f]) => f.type !== "section").map(([n, f]) => [n, f.default]));
@@ -96,13 +98,13 @@ let combos = 0;
 for (const [name, f] of Object.entries(W.params)) {
   if (f.type === "section" || name === "shown") continue;
   for (const v of optionsOf(f)) {
-    for (const view of ["toy", "biological"]) {
+    for (const view of ["concept", "toy", "biological"]) {
       const params = { ...defaults, view, [name]: v };
       if (name === "view") params.view = v;
       const { state, anim } = run(params);
       combos += 1;
       ck(`${view} ${name}=${v}: animation ends`, anim.done && anim.idx === animationUnits(state));
-      for (const st of state.stages) for (const g of st.gamma) {
+      for (const st of state.stages ?? []) for (const g of st.gamma) {
         const s = g.reduce((a, b) => a + b, 0);
         if (Math.abs(s - 1) > 1e-9 || g.some((x) => !Number.isFinite(x))) { ck(`${view} ${name}=${v}: posterior rows sum to 1`, false, String(s)); break; }
       }
@@ -123,6 +125,23 @@ for (const [name, f] of Object.entries(W.params)) {
   }
 }
 console.log(`  walked ${combos} parameter settings`);
+
+/* 2a. The concept walk: a valid chain, moods from E, and hiding changes nothing underneath. */
+{
+  const params = { ...defaults, view: "concept" };
+  const state = W.compute({ params, rng: makeRng(5) });
+  ck("concept: twenty days", state.L === 20 && state.src.length === 20 && state.mood.length === 20);
+  ck("concept: states and moods are 0/1", state.src.every((v) => v === 0 || v === 1) && state.mood.every((v) => v === 0 || v === 1));
+  ck("concept: T rows sum to 1", state.T.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-12));
+  ck("concept: E is the patterns' composition", state.E[0][1] === 0.4 && state.E[1][1] === 0.8);
+  const hidden = W.compute({ params: { ...params, states: "hidden" }, rng: makeRng(5) });
+  ck("concept: hiding the states leaves the walk as it was", hidden.src.join() === state.src.join() && hidden.mood.join() === state.mood.join());
+  ck("concept: animation is one unit per day", animationUnits(state) === 20);
+  /* Over many walks the counted stay share sits on T's diagonal. */
+  let st = 0, n = 0;
+  for (let seed = 1; seed <= 300; seed += 1) { const S = W.compute({ params, rng: makeRng(seed) }); for (let k = 1; k < S.L; k += 1) { n += 1; if (S.src[k] === S.src[k - 1]) st += 1; } }
+  ck("concept: the walk's stay share matches T over 300 walks", Math.abs(st / n - 0.8) < 0.02, String(st / n));
+}
 
 /* 2b. The notebook's own toy, verbatim at the defaults. */
 {

@@ -231,7 +231,7 @@ export function viterbiTrellis(emit, K, rho) {
    both tabs step the Viterbi trellis forward one column at a time and then
    trace back one column at a time. */
 export function animationUnits(state) {
-  return 2 * state.L;
+  return state.kind === "concept" ? state.L : 2 * state.L;
 }
 
 /* Stage t of the reveal: the first t positions of `order` are known.
@@ -296,6 +296,29 @@ function buildCopying({ kind, K, L, templates, letters, src, truth, novel, cutSi
     sample: { src, allele: truth, novel, cutSites },
     src, truthAllele: truth, novel, cutSites, order, stages, trellis,
   };
+}
+
+/* ----------------------------------------------------------------------------
+   THE CONCEPT TAB — a two-state Markov chain walked for DAYS days, and the
+   moods each state would emit if the states were hidden. T's diagonal is
+   `stay`; E is the notebook's two patterns read as compositions — P1 is
+   Happy on 2 of its 5 days, P2 on 4 of 5 — which is where the notebook's
+   own emission table comes from. The walk and the moods are drawn here once,
+   so hiding the states on the figure changes what is SHOWN and nothing else. */
+export const CONCEPT_DAYS = 20;
+export const CONCEPT_E = [[0.6, 0.4], [0.2, 0.8]];   // E[state][mood]: Sad, Happy
+
+export function buildConcept({ rng, stay }) {
+  const L = CONCEPT_DAYS;
+  const T = [[stay, 1 - stay], [1 - stay, stay]];
+  const src = new Array(L), mood = new Array(L);
+  let h = rng.next() < 0.5 ? 1 : 0;
+  for (let i = 0; i < L; i += 1) {
+    if (i > 0 && rng.next() >= stay) h = 1 - h;
+    src[i] = h;
+    mood[i] = rng.next() < CONCEPT_E[h][1] ? 1 : 0;
+  }
+  return { kind: "concept", K: 2, L, stay, T, E: CONCEPT_E, src, mood };
 }
 
 /* ----------------------------------------------------------------------------

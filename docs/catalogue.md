@@ -4322,6 +4322,27 @@ the toy's patterns; Kenneth picked **E**, a 22% `--c-reference` wash over
 each copied run with a 2px ink outline. The dashed paths on the trellis and
 the posterior strip stay as they were.
 
+### The Concept tab — 2026-09-06, first of three
+
+Kenneth: *students don't know a Markov model and how it relates to the
+matrix; then what a hidden Markov model extends.* A new first tab. Two
+states, a transition table T whose diagonal the reader sets, and the graph
+beside it; Next day walks the chain — the arrow taken lights on the graph,
+a tile lands on the record, and a table counts the transitions so far with
+each row's share, beside T, so the reader watches the counted shares
+converge on T (which is how T is learnt from data). Then a segmented
+control, States: Visible / Hidden, a display change so the walk survives
+it: the same walk, but the state each day is now a pattern P1 / P2 shown as
+`?`, the mood it emits by E is what is recorded, E appears beside the graph
+with its emission arrows, and the counted table is now of MOODS and is not
+T. E is the notebook's two patterns read as compositions (P1 Happy on 2 of
+5 days, P2 on 4 of 5), which is where the notebook's own emission table
+comes from. The ground truth toggle reveals the hidden row. The worked
+line narrates each day's draw in T's and E's numbers. The gate control was
+considered and rejected: core hides the drive row while a gate is shut,
+and the walk has to run before the states are hidden. Three tabs no longer
+fit "Biological example" in the rail, so the label is "Biology".
+
 ### Open on the draft
 
 - The 550px canvas gives 17px tiles and 10px letters on the biological

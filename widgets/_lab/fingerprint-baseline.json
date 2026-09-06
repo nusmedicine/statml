@@ -2919,30 +2919,58 @@
       "tx": "4ca07176"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab at rest — the notebook's own example, trellis empty",
+      "$note": "PLACEHOLDER, draft: the Concept tab at rest — the chain, nothing walked",
       "slug": "hmm",
       "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab forward pass complete, nothing traced",
+      "$note": "PLACEHOLDER, draft: the Concept tab walked to the end, states visible",
       "slug": "hmm",
-      "state": "?theme=light&shown=5",
+      "state": "?theme=light&shown=20",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth boxed on P2",
+      "$note": "PLACEHOLDER, draft: the Concept tab walked, states hidden",
       "slug": "hmm",
-      "state": "?theme=light&truth=1&shown=10",
+      "state": "?theme=light&states=hidden&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Concept tab walked, states hidden, truth on",
+      "slug": "hmm",
+      "state": "?theme=light&states=hidden&truth=1&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Toy tab at rest — the notebook's own example, trellis empty",
+      "slug": "hmm",
+      "state": "?theme=light&view=toy&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Toy tab forward pass complete, nothing traced",
+      "slug": "hmm",
+      "state": "?theme=light&view=toy&shown=5",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: the Toy tab fully traced, with the truth marked on P2",
+      "slug": "hmm",
+      "state": "?theme=light&view=toy&truth=1&shown=10",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER, draft: another record, one day missing, traced",
       "slug": "hmm",
-      "state": "?theme=light&missing=1&seed=4&truth=1&shown=10",
+      "state": "?theme=light&view=toy&missing=1&seed=4&truth=1&shown=10",
       "px": "0",
       "tx": "0"
     },
@@ -2961,9 +2989,35 @@
       "tx": "0"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: the toy mid-forward at fast",
+      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth marked on the panel",
+      "slug": "hmm",
+      "state": "?theme=light&view=biological&truth=1&shown=56",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: a recombinant sample, traced, the truth marked on h1 then h2",
+      "slug": "hmm",
+      "state": "?theme=light&view=biological&sample=recombinant&truth=1&shown=56",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft, DRIVEN: the concept walk mid-way at fast",
       "slug": "hmm",
       "state": "?theme=light&speed=fast",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft, DRIVEN: the toy mid-forward at fast",
+      "slug": "hmm",
+      "state": "?theme=light&view=toy&speed=fast",
       "drive": {
         "click": "run",
         "frames": 8,
@@ -2981,20 +3035,6 @@
         "frames": 40,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "PLACEHOLDER, draft: the Biological tab fully traced, with the truth boxed on the panel",
-      "slug": "hmm",
-      "state": "?theme=light&view=biological&truth=1&shown=56",
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "PLACEHOLDER, draft: a recombinant sample, traced, the truth boxed on h1 then h2",
-      "slug": "hmm",
-      "state": "?theme=light&view=biological&sample=recombinant&truth=1&shown=56",
       "px": "0",
       "tx": "0"
     }
