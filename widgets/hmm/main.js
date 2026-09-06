@@ -730,14 +730,14 @@ defineWidget({
   readout: ({ params, state, anim }) => {
     const idx = anim?.idx ?? 0;
     const L = state.L, toy = state.kind === "mood";
-    const fwd = Math.min(idx, L), back = Math.max(0, idx - L), traced = back >= L;
+    const traced = idx - L >= L;
     const last = state.stages.at(-1);
     const blanks = [];
     for (let i = 0; i < L; i += 1) if (last.sites[i].blank) blanks.push(i);
     const calls = blanks.map((i) => imputedCall(state, i));
+    /* No progress counters here: the trellis caption already says which column
+       the walk is at, and the two tiles pushed the findings off the first row. */
     const tiles = [
-      { label: "Trellis columns computed", value: `${fwd} of ${L}`, note: "the forward pass" },
-      { label: "Columns traced back", value: `${back} of ${L}`, note: "from the best final node" },
       { label: toy ? "Days not recorded" : "Sites to impute", value: String(blanks.length),
         note: toy ? "the ? cells, imputed once traced" : "untyped, imputed once traced" },
     ];
