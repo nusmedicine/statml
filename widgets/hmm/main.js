@@ -403,8 +403,9 @@ defineWidget({
        derived — T from the switch rate, E read off the panel. */
     modelToy: {
       type: "section", label: "The model",
-      detail: "E and T are set here. In practice they are counted from sequences "
-        + "whose patterns are known, or fitted by expectation–maximisation.",
+      detail: "E and T are set here, and they also generate the pattern and the moods, "
+        + "so on the toy the model is never wrong. In practice they are counted from "
+        + "sequences whose patterns are known, or fitted by expectation–maximisation.",
       when: { param: "view", equals: "toy" },
     },
     happy: {
