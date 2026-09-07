@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 48 round 5 — the gradient's direction, the tangent's motion, and a Gradients widget</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 360px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid); }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3.5em; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 48 · round 5 — the gradient's direction, the tangent's motion, and a <i>Gradients</i> widget</h1>
+
+  <h2>§1 · "Why doesn't the gradient go downhill directly?" — it does, and this is what actually happens</h2>
+  <p class="note">
+    The gradient is the direction of steepest ascent <b>in parameter units</b>, perpendicular to the contour
+    through the point; a step of gradient descent follows the steepest slope, not the shortest line to the
+    minimum. On the lesson's raw-x surface the loss is 138× more curved along b₁ than along the trench, so
+    the steepest slope at almost every point is <i>across</i> the trench: the walk drops to the floor in a
+    few epochs and then creeps along it. At the state in Kenneth's screenshot (lr 0.003, epoch 10) the
+    step points 74° above the b₀ axis and the straight line to the minimum points 5° below it — <b>80°
+    apart</b>. It is not coordinate descent (widget 27's walk, one parameter at a time); it only looks like
+    it because the map magnifies b₁ 2.5× relative to b₀. Standardizing x makes both curvatures 2, and then
+    the gradient <i>does</i> point at the minimum. The widget draws all of this and <b>says none of it</b>;
+    that is the defect. The three panels are the same walk, each with the gradient's direction (purple),
+    the straight line to the minimum (dashed red) and the contour's tangent at the point (grey).
+  </p>
+  <div class="rail">
+    <label>learning rate <select id="lr1"></select></label>
+    <label>epoch <input type="range" id="ep1" min="0" max="11" value="5"><output id="ep1v">10</output></label>
+  </div>
+  <div class="row" id="dir"></div>
+  <p class="note" id="dirnums"></p>
+  <p class="note">
+    <b>What the widget should gain from this:</b> (a) a line under the surface stating the angle — "the step
+    follows the steepest slope, 80° from the straight line to the minimum" — computed from the state, so it
+    reads 3° on the standardized bowl; (b) the straight line to the minimum drawn faint so the reader can
+    see the two directions disagree; (c) possibly the equal-aspect map (B), where "perpendicular to the
+    contour" is true on screen. The relief already shows the steep wall and the flat floor.
+  </p>
+
+  <h2>§2 · The one-parameter tangent — five ways to move it (live)</h2>
+  <p class="note">
+    Kenneth: the tangent "moves then redraws (like expanding out) at each step" — the current choreography
+    grows the segment from its centre at every epoch after having rolled with the curve. Each panel loops
+    eight epochs of the lesson's walk at lr 0.01 from b₁ = 0. <b>E</b> is the current behaviour.
+    <b>A</b> the tangent is always there at full length and rolls with the point; each epoch pauses at the
+    point (the arrow and its number), then moves with an ease. <b>B</b> the tangent fades out as the point
+    leaves and fades in when it lands; nothing grows. <b>C</b> the tangent stays put at the start while the
+    point departs along it and slides down to the curve; at arrival a fresh tangent fades in. <b>D</b> no
+    pause at all: the point rolls continuously with an ease, the tangent and the arrow roll with it, only the
+    number updates at arrival.
+  </p>
+  <div class="rail">
+    <label>seconds an epoch <input type="range" id="tempo" min="4" max="30" value="12"><output id="tempov">1.2</output></label>
+    <label><input type="checkbox" id="run" checked> running</label>
+  </div>
+  <div class="row" id="tan"></div>
+
+  <h2>§3 · "Consider basics first" — a <i>Gradients</i> widget with tabs</h2>
+  <p class="note">
+    The lesson (<i>Tensors and Gradients</i>) reaches optimization through three ideas in order: a derivative
+    is how much y changes for a small change in x; a partial derivative varies one variable with the others
+    held, and the gradient is the vector of them (y = a² + 3ab at a = 2, b = 1 → 7 and 6, which autograd
+    prints); then gradient descent uses that vector. Proposed: rename widget 48 to <b>Gradients</b>, three
+    tabs — <b>Derivative</b> · <b>Partial derivatives</b> · <b>Descent</b> — where Descent is the current
+    widget (its one/two-parameter switch and the relief intact). The two new tabs are mocked below on the
+    lesson's own function, so the numbers are the lesson's numbers. Tensors and the linear algebra are a
+    separate question (a shape-and-matmul widget is slot 49's territory); they do not belong in a widget
+    about gradients.
+  </p>
+  <div class="rail">
+    <label>a <input type="range" id="pa" min="-10" max="40" value="20"><output id="pav">2.0</output></label>
+    <label>b <input type="range" id="pb" min="-10" max="30" value="10"><output id="pbv">1.0</output></label>
+    <label>nudge Δa <input type="range" id="da" min="1" max="10" value="5"><output id="dav">0.5</output></label>
+  </div>
+  <div class="row" id="tabs"></div>
+  <table>
+    <tr><th>tab</th><th>the claim</th><th>controls</th><th>the stage</th><th>Slow choreographs</th></tr>
+    <tr><td>Derivative</td><td>the derivative is the tangent's slope: nudge a by Δa and y moves by about f′(a)·Δa, and the approximation improves as Δa shrinks</td><td>a, Δa; the function fixed at the lesson's y = a² + 3ab with b held</td><td>the curve, the point, the tangent, the nudge drawn as a right triangle (Δa along, f′·Δa up) against the true Δy</td><td>the nudge shrinking toward the tangent</td></tr>
+    <tr><td>Partial derivatives</td><td>a partial derivative holds the other variable still; the gradient is the pair of slopes and points uphill on the map</td><td>a, b</td><td>the map of y over (a, b) with contours, the point, the two slices beside it with their tangents, the gradient arrow (7, 6) on the map</td><td>the two slices drawn, then the arrow composed — the same beats as Descent's map</td></tr>
+    <tr><td>Descent</td><td>as now</td><td>as now</td><td>as now</td><td>as now</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { LOG_CAP, LEVELS, makeData, standardize, quad, domainFor, contourSegments, descendFull, descendSlope } from "../gradient-descent/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const EPOCH_LADDER = [0, 1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000];
+const LRS = [0.001, 0.003, 0.01, 0.02, 0.028];
+
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const ramp = (ratio) => hexLerp(T.costLow, T.costHigh, Math.max(0, Math.min(1, Math.log10(Math.max(1, ratio)) / LOG_CAP)));
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return { ctx, cand, cv, w, h };
+}
+function clear(ctx, w, h) { ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h); }
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.font = `${size} ${T.font}`; ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 8 * Math.cos(a - 0.4), y1 - 8 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 8 * Math.cos(a + 0.4), y1 - 8 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function ringed(ctx, x, y) {
+  ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.strokeStyle = T.surface; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+/* ---- data ------------------------------------------------------------- */
+const { x: X, y: Y } = makeData(makeRng(1));
+const Q = quad(X, Y);
+const QZ = quad(standardize(X), Y);
+
+/* ================= §1 · the gradient's direction ================= */
+const V1 = { lr: 0.003, ep: 5 };
+function mapInto(ctx, rect, q, dom, track, k, opts = {}) {
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: dom.b0, yDomain: dom.b1 });
+  plot.axisX({ label: "intercept b₀" }); plot.axisY({ label: "slope b₁" });
+  const CELL = 2;
+  for (let px = 0; px < rect.w; px += CELL) for (let py = 0; py < rect.h; py += CELL) {
+    const b0 = dom.b0[0] + (px / rect.w) * (dom.b0[1] - dom.b0[0]);
+    const b1 = dom.b1[1] - (py / rect.h) * (dom.b1[1] - dom.b1[0]);
+    ctx.fillStyle = ramp(q.loss(b0, b1) / q.Lmin); ctx.fillRect(rect.x + px, rect.y + py, CELL, CELL);
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.beginPath();
+  for (const [a0, a1, c0, c1] of contourSegments(q, dom, LEVELS)) { ctx.moveTo(plot.sx(a0), plot.sy(a1)); ctx.lineTo(plot.sx(c0), plot.sy(c1)); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  /* the path */
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i <= k; i += 1) { const X_ = plot.sx(track.b0[i]), Y_ = plot.sy(track.b1[i]); i ? ctx.lineTo(X_, Y_) : ctx.moveTo(X_, Y_); }
+  ctx.stroke();
+  const cur = [track.b0[k], track.b1[k]];
+  const cx = plot.sx(cur[0]), cy = plot.sy(cur[1]);
+  /* the straight line to the minimum */
+  ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(plot.sx(q.B0), plot.sy(q.B1)); ctx.stroke(); ctx.restore();
+  /* the contour's tangent at the point: perpendicular to the gradient, in parameter units */
+  const [g0, g1] = q.grad(cur[0], cur[1]);
+  const gl = Math.hypot(g0, g1) || 1;
+  const span0 = (dom.b0[1] - dom.b0[0]) * 0.08, span1 = (dom.b1[1] - dom.b1[0]) * 0.08;
+  /* a direction in parameter units, drawn through the panel's own scaling */
+  const dirPx = (d0, d1) => { const X_ = plot.sx(cur[0] + d0) - cx, Y_ = plot.sy(cur[1] + d1) - cy; const L = Math.hypot(X_, Y_) || 1; return [X_ / L, Y_ / L]; };
+  const unit = Math.min(span0, span1);
+  const [tx, ty] = dirPx(-g1 / gl * unit, g0 / gl * unit);
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 22 * tx, cy - 22 * ty); ctx.lineTo(cx + 22 * tx, cy + 22 * ty); ctx.stroke();
+  /* the step's direction: -gradient, in parameter units */
+  const [sx_, sy_] = dirPx(-g0 / gl * unit, -g1 / gl * unit);
+  arrow(ctx, cx, cy, cx + 34 * sx_, cy + 34 * sy_, T.highlight, 2.5);
+  /* the minimum */
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
+  ctx.moveTo(plot.sx(q.B0) - 6, plot.sy(q.B1)); ctx.lineTo(plot.sx(q.B0) + 6, plot.sy(q.B1));
+  ctx.moveTo(plot.sx(q.B0), plot.sy(q.B1) - 6); ctx.lineTo(plot.sx(q.B0), plot.sy(q.B1) + 6); ctx.stroke();
+  ringed(ctx, cx, cy);
+  ctx.restore();
+  /* the angle between the step and the straight line, in parameter units */
+  const to = [q.B0 - cur[0], q.B1 - cur[1]];
+  const cos = (-g0 * to[0] - g1 * to[1]) / (gl * (Math.hypot(...to) || 1));
+  const deg = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+  if (opts.caption !== false) txt(ctx, `step ${deg.toFixed(0)}° from the straight line to the minimum`, rect.x, rect.y + rect.h + 46, { color: T.ink2 });
+  return deg;
+}
+const dirHost = document.getElementById("dir");
+const dirPanels = [
+  panel(dirHost, "A · the map as drawn now", "b₀ spans 10.2 units over the same pixels as b₁'s 4: b₁ magnified 2.5×, so the step looks like 'b₁ first, then b₀'", 360, 380),
+  panel(dirHost, "B · equal units per pixel", "the same surface with b₁'s window widened to b₀'s span: the contours are 11.7:1 ellipses tilted 8.6°, and the step is visibly perpendicular to them", 360, 380),
+  panel(dirHost, "C · standardized x", "both curvatures 2: the contours are circles and the step points at the minimum", 360, 380),
+];
+function drawDir() {
+  const ep = EPOCH_LADDER[V1.ep];
+  const raw = descendFull(Q, V1.lr, 1000), std = descendFull(QZ, V1.lr, 1000);
+  const k = raw.epochAt[Math.min(ep, raw.epochsDone)], kz = std.epochAt[Math.min(ep, std.epochsDone)];
+  const domA = domainFor(Q);
+  const mid1 = (domA.b1[0] + domA.b1[1]) / 2, span0 = domA.b0[1] - domA.b0[0];
+  const domB = { b0: domA.b0, b1: [mid1 - span0 / 2, mid1 + span0 / 2] };
+  const domZ = domainFor(QZ);
+  const midz = (domZ.b1[0] + domZ.b1[1]) / 2, spanz = domZ.b0[1] - domZ.b0[0];
+  const domC = { b0: domZ.b0, b1: [midz - spanz / 2, midz + spanz / 2] };
+  const R = { x: 50, y: 14, w: 296, h: 296 };
+  const degs = [];
+  for (const [p, q, dom, track, kk] of [[dirPanels[0], Q, domA, raw, k], [dirPanels[1], Q, domB, raw, k], [dirPanels[2], QZ, domC, std, kz]]) {
+    clear(p.ctx, p.w, p.h);
+    degs.push(mapInto(p.ctx, R, q, dom, track, kk));
+  }
+  const g = Q.grad(raw.b0[k], raw.b1[k]);
+  document.getElementById("dirnums").innerHTML =
+    `At lr ${V1.lr}, epoch ${ep}: ∂L/∂b₀ ${g[0].toPrecision(3)}, ∂L/∂b₁ ${g[1].toPrecision(3)} — the step's direction in parameter units is ${(Math.atan2(-g[1], -g[0]) * 180 / Math.PI).toFixed(0)}° from the b₀ axis, the straight line to the minimum ${(Math.atan2(Q.B1 - raw.b1[k], Q.B0 - raw.b0[k]) * 180 / Math.PI).toFixed(0)}°; on the standardized bowl the two are ${degs[2].toFixed(0)}° apart. The angle is a fact about the surface, not the drawing: A and B print the same ${degs[0].toFixed(0)}°.`;
+}
+const lrSel = document.getElementById("lr1");
+for (const lr of LRS) { const o = document.createElement("option"); o.value = lr; o.textContent = lr; if (lr === V1.lr) o.selected = true; lrSel.appendChild(o); }
+lrSel.addEventListener("input", () => { V1.lr = Number(lrSel.value); drawDir(); });
+document.getElementById("ep1").addEventListener("input", (e) => { V1.ep = Number(e.target.value); document.getElementById("ep1v").textContent = EPOCH_LADDER[V1.ep]; drawDir(); });
+drawDir();
+
+/* ================= §2 · the tangent, live ================= */
+const slopeTrack = descendSlope(Q, 0.01, 8);
+const f = (b1) => Q.loss(Q.B0, b1);
+const fp = (b1) => Q.grad(Q.B0, b1)[1];
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) ** 2 * 2);
+const tanHost = document.getElementById("tan");
+const STYLES = [
+  ["E", "current: grow from the centre each epoch", "the segment resets to zero length and grows again at every epoch"],
+  ["A", "persistent, pause then move", "always full length, rolling; 40% of the epoch at the point with the arrow, 60% moving with an ease"],
+  ["B", "fade out, fade in", "the tangent fades as the point leaves and fades in when it lands"],
+  ["C", "leave along the tangent", "the tangent stays at the start; the point departs along it and slides down to the curve; a fresh tangent fades in at arrival"],
+  ["D", "continuous roll", "no pause: the point rolls with an ease, the tangent and the arrow roll with it; only the number updates at arrival"],
+];
+const tanPanels = STYLES.map(([id, name, sub]) => ({ id, ...panel(tanHost, `${id} · ${name}`, sub, 330, 260) }));
+const V2 = { tempo: 1.2, run: true };
+let t0 = performance.now();
+function drawTan(p, phase) {
+  /* phase in [0, 8): the epoch index plus the fraction through it */
+  const { ctx, w, h, id } = p;
+  clear(ctx, w, h);
+  const rect = { x: 44, y: 16, w: 272, h: 190 };
+  const range = [-0.3, 3.2];
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: range, yDomain: [0, 230] });
+  plot.axisX({ label: "slope b₁" }); plot.axisY({ label: "loss" });
+  const pts = []; for (let k = 0; k <= 80; k += 1) { const v = range[0] + (k / 80) * (range[1] - range[0]); pts.push([v, f(v)]); }
+  plot.curve(pts, { stroke: T.ink2, width: 1.5 });
+  const e = Math.floor(phase), u = phase - e;
+  const bStart = slopeTrack.b1[e], bEnd = slopeTrack.b1[Math.min(e + 1, slopeTrack.len - 1)];
+  const gStart = fp(bStart);
+  /* the beat structure per style */
+  let hold = 0.4, moveU = 0, tanB = bStart, tanAlpha = 1, tanLen = 1, pointB = bStart, pointOnCurve = true, dropY = null;
+  if (id === "E") { hold = 0.45; moveU = u < hold ? 0 : (u - hold) / (1 - hold); tanLen = u < hold ? u / hold : 1; pointB = bStart + (bEnd - bStart) * moveU; tanB = pointB; }
+  if (id === "A") { moveU = u < hold ? 0 : easeInOut((u - hold) / (1 - hold)); pointB = bStart + (bEnd - bStart) * moveU; tanB = pointB; }
+  if (id === "B") { moveU = u < hold ? 0 : (u - hold) / (1 - hold); pointB = bStart + (bEnd - bStart) * moveU; tanB = pointB; tanAlpha = u < hold ? 1 : moveU < 0.5 ? 1 - moveU * 2 : (moveU - 0.5) * 2; }
+  if (id === "C") { moveU = u < hold ? 0 : easeInOut((u - hold) / (1 - hold)); pointB = bStart + (bEnd - bStart) * moveU; tanB = bStart;
+    /* the point rides the tangent, then drops to the curve over the last third of the move */
+    const onTan = f(bStart) + gStart * (pointB - bStart); const drop = Math.max(0, (moveU - 0.66) / 0.34);
+    dropY = onTan + (f(pointB) - onTan) * drop; pointOnCurve = false; tanAlpha = u < hold ? 1 : 1 - Math.max(0, (moveU - 0.85) / 0.15); }
+  if (id === "D") { hold = 0; moveU = easeInOut(u); pointB = bStart + (bEnd - bStart) * moveU; tanB = pointB; }
+  const py = pointOnCurve ? f(pointB) : dropY;
+  /* the steps so far */
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.beginPath();
+  for (let k = 0; k <= e; k += 1) { const X_ = plot.sx(slopeTrack.b1[k]), Y_ = plot.sy(f(slopeTrack.b1[k])); k ? ctx.lineTo(X_, Y_) : ctx.moveTo(X_, Y_); }
+  ctx.lineTo(plot.sx(pointB), plot.sy(py)); ctx.stroke();
+  ctx.fillStyle = T.ink1; for (let k = 0; k <= e; k += 1) { ctx.beginPath(); ctx.arc(plot.sx(slopeTrack.b1[k]), plot.sy(f(slopeTrack.b1[k])), 2.2, 0, 2 * Math.PI); ctx.fill(); }
+  /* the tangent at tanB */
+  const g = fp(tanB);
+  const span = (range[1] - range[0]) * 0.16 * tanLen;
+  ctx.save(); ctx.globalAlpha = tanAlpha; ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(plot.sx(tanB - span), plot.sy(f(tanB) - g * span)); ctx.lineTo(plot.sx(tanB + span), plot.sy(f(tanB) + g * span)); ctx.stroke(); ctx.restore();
+  /* the arrow: -dL/db1's direction at the point, fixed length, with the START's number (the step's) */
+  const px = plot.sx(pointB), pyy = plot.sy(py);
+  const dir = gStart > 0 ? -1 : 1;
+  const showArrow = id === "D" ? true : u < hold || id === "A" || id === "C";
+  if (showArrow) {
+    arrow(ctx, px + dir * 9, pyy, px + dir * 38, pyy, T.highlight, 2);
+    txt(ctx, `∂L/∂b₁ ${Number(gStart.toPrecision(3))}`, px + dir * 42, pyy - 6, { color: T.highlight, align: dir > 0 ? "left" : "right" });
+  }
+  ringed(ctx, px, pyy);
+  ctx.restore();
+  txt(ctx, `epoch ${e}${u < hold ? " · at the point" : " · moving"}`, rect.x, rect.y + rect.h + 40, { color: T.ink3 });
+}
+function tick(now) {
+  if (V2.run) {
+    const phase = ((now - t0) / (V2.tempo * 1000)) % 8;
+    for (const p of tanPanels) drawTan(p, phase);
+  }
+  requestAnimationFrame(tick);
+}
+document.getElementById("tempo").addEventListener("input", (e) => { V2.tempo = Number(e.target.value) / 10; document.getElementById("tempov").textContent = V2.tempo.toFixed(1); });
+document.getElementById("run").addEventListener("input", (e) => { V2.run = e.target.checked; });
+requestAnimationFrame(tick);
+
+/* ================= §3 · the Gradients tabs ================= */
+const V3 = { a: 2, b: 1, da: 0.5 };
+const F = (a, b) => a * a + 3 * a * b;
+const Fa = (a, b) => 2 * a + 3 * b;
+const Fb = (a) => 3 * a;
+const tabHost = document.getElementById("tabs");
+const derivP = panel(tabHost, "Derivative", "y = a² + 3ab with b held: the tangent's slope is dy/da = 2a + 3b; nudge a by Δa and y moves by about that slope times Δa", 400, 330);
+const partP = panel(tabHost, "Partial derivatives", "the same y over (a, b): the two slices with their tangents, and the gradient (∂y/∂a, ∂y/∂b) as an arrow on the map — 7 and 6 at (2, 1)", 560, 330);
+function drawTabs() {
+  const { a, b, da } = V3;
+  { /* Derivative */
+    const { ctx, w, h } = derivP; clear(ctx, w, h);
+    const rect = { x: 46, y: 16, w: 336, h: 250 };
+    const range = [-1, 4], yr = [-4, 30];
+    const plot = makePlot({ ctx, colors: T, rect, xDomain: range, yDomain: yr });
+    plot.axisX({ label: `a  (b held at ${b.toFixed(1)})` }); plot.axisY({ label: "y" });
+    const pts = []; for (let k = 0; k <= 80; k += 1) { const v = range[0] + (k / 80) * (range[1] - range[0]); pts.push([v, F(v, b)]); }
+    plot.curve(pts, { stroke: T.ink2, width: 1.5 });
+    const s = Fa(a, b), y0 = F(a, b);
+    ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+    ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(plot.sx(a - 1.2), plot.sy(y0 - s * 1.2)); ctx.lineTo(plot.sx(a + 1.2), plot.sy(y0 + s * 1.2)); ctx.stroke();
+    /* the nudge: a right triangle along the tangent, against the true rise */
+    const yT = y0 + s * da, yTrue = F(a + da, b);
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath();
+    ctx.moveTo(plot.sx(a), plot.sy(y0)); ctx.lineTo(plot.sx(a + da), plot.sy(y0)); ctx.lineTo(plot.sx(a + da), plot.sy(yT)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(plot.sx(a + da), plot.sy(yT)); ctx.lineTo(plot.sx(a + da), plot.sy(yTrue)); ctx.stroke();
+    ctx.fillStyle = T.extreme; ctx.beginPath(); ctx.arc(plot.sx(a + da), plot.sy(yTrue), 3, 0, 2 * Math.PI); ctx.fill();
+    ringed(ctx, plot.sx(a), plot.sy(y0));
+    ctx.restore();
+    txt(ctx, `dy/da = 2a + 3b = ${s.toFixed(1)}`, rect.x, rect.y + rect.h + 38, { color: T.highlight });
+    txt(ctx, `Δa ${da.toFixed(2)}: tangent predicts Δy ${(s * da).toFixed(2)}, true Δy ${(yTrue - y0).toFixed(2)}, the gap ${(yTrue - y0 - s * da).toFixed(2)} = Δa²`, rect.x, rect.y + rect.h + 54, { color: T.ink2 });
+  }
+  { /* Partial derivatives */
+    const { ctx, w, h } = partP; clear(ctx, w, h);
+    const rect = { x: 46, y: 16, w: 250, h: 250 };
+    const dom = { a: [-1, 4], b: [-1, 3] };
+    const plot = makePlot({ ctx, colors: T, rect, xDomain: dom.a, yDomain: dom.b });
+    plot.axisX({ label: "a" }); plot.axisY({ label: "b" });
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i <= 20; i += 1) for (let j = 0; j <= 20; j += 1) { const v = F(dom.a[0] + i / 20 * 5, dom.b[0] + j / 20 * 4); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    const CELL = 2;
+    for (let px = 0; px < rect.w; px += CELL) for (let py = 0; py < rect.h; py += CELL) {
+      const aa = dom.a[0] + (px / rect.w) * 5, bb = dom.b[1] - (py / rect.h) * 4;
+      ctx.fillStyle = hexLerp(T.valueLow, T.valueHigh, (F(aa, bb) - lo) / (hi - lo)); ctx.fillRect(rect.x + px, rect.y + py, CELL, CELL);
+    }
+    /* contours by marching squares on a grid */
+    const G = 50, grid = []; for (let i = 0; i <= G; i += 1) { grid.push([]); for (let j = 0; j <= G; j += 1) grid[i].push(F(dom.a[0] + i / G * 5, dom.b[0] + j / G * 4)); }
+    ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+    ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.beginPath();
+    for (let lv = -4; lv <= 40; lv += 4) for (let i = 0; i < G; i += 1) for (let j = 0; j < G; j += 1) {
+      const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]; const pts = [];
+      for (let k = 0; k < 4; k += 1) { const [u, v] = [c[k], c[(k + 1) % 4]]; const va = grid[u[0]][u[1]], vb = grid[v[0]][v[1]];
+        if ((va < lv) !== (vb < lv)) { const t = (lv - va) / (vb - va); pts.push([plot.sx(dom.a[0] + (u[0] + (v[0] - u[0]) * t) / G * 5), plot.sy(dom.b[0] + (u[1] + (v[1] - u[1]) * t) / G * 4)]); } }
+      for (let k = 0; k + 1 < pts.length; k += 2) { ctx.moveTo(pts[k][0], pts[k][1]); ctx.lineTo(pts[k + 1][0], pts[k + 1][1]); }
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    /* the slices' lines through the point */
+    ctx.strokeStyle = T.ink1; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(plot.sx(dom.a[0]), plot.sy(b)); ctx.lineTo(plot.sx(dom.a[1]), plot.sy(b)); ctx.moveTo(plot.sx(a), plot.sy(dom.b[0])); ctx.lineTo(plot.sx(a), plot.sy(dom.b[1])); ctx.stroke(); ctx.setLineDash([]);
+    /* the gradient arrow, uphill, in the map's units */
+    const ga = Fa(a, b), gb = Fb(a); const gl = Math.hypot(ga, gb) || 1;
+    const ex = plot.sx(a + ga / gl * 0.9) , ey = plot.sy(b + gb / gl * 0.9);
+    arrow(ctx, plot.sx(a), plot.sy(b), ex, ey, T.highlight, 2.5);
+    txt(ctx, `∇y = (${ga.toFixed(0)}, ${gb.toFixed(0)})`, ex + 6, ey - 4, { color: T.highlight });
+    ringed(ctx, plot.sx(a), plot.sy(b));
+    ctx.restore();
+    /* the two slices */
+    const sliceInto = (r, label, xs, fn, at, slope) => {
+      const p2 = makePlot({ ctx, colors: T, rect: r, xDomain: xs, yDomain: [-6, 32] });
+      p2.axisX({ label }); p2.axisY({ ticks: [0, 15, 30] });
+      const pts = []; for (let k = 0; k <= 60; k += 1) { const v = xs[0] + (k / 60) * (xs[1] - xs[0]); pts.push([v, fn(v)]); }
+      p2.curve(pts, { stroke: T.ink2, width: 1.5 });
+      ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(p2.sx(at - 0.8), p2.sy(fn(at) - slope * 0.8)); ctx.lineTo(p2.sx(at + 0.8), p2.sy(fn(at) + slope * 0.8)); ctx.stroke();
+      ringed(ctx, p2.sx(at), p2.sy(fn(at)));
+      ctx.restore();
+      txt(ctx, `slope ${slope.toFixed(0)}`, r.x + r.w - 4, r.y + 12, { color: T.highlight, align: "right" });
+    };
+    sliceInto({ x: 350, y: 16, w: 190, h: 105 }, `a, with b held at ${b.toFixed(1)}: ∂y/∂a`, dom.a, (v) => F(v, b), a, ga);
+    sliceInto({ x: 350, y: 160, w: 190, h: 105 }, `b, with a held at ${a.toFixed(1)}: ∂y/∂b`, dom.b, (v) => F(a, v), b, gb);
+  }
+}
+for (const [id, key, div] of [["pa", "a", 10], ["pb", "b", 10], ["da", "da", 10]]) {
+  document.getElementById(id).addEventListener("input", (e) => { V3[key] = Number(e.target.value) / div; document.getElementById(id + "v").textContent = V3[key].toFixed(key === "da" ? 2 : 1); drawTabs(); });
+}
+drawTabs();
+</script>
+</body>
+</html>

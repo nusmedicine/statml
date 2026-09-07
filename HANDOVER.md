@@ -43,6 +43,14 @@ Fast 0.4 s an epoch), the surface page's clock untouched. 34 assertions.
 Open for Kenneth: Play on the one-parameter page at lr 0.001 now takes
 minutes; a fourth speed or a cap if he wants one.
 
+**Round 5, 2026-09-08 — three questions from Kenneth, mocked in
+`_lab/gd-round5.html`, AWAITING HIS PICKS:** the gradient's direction (it
+is the steepest slope, 80° from the straight line to the minimum at his
+screenshot's state, and the widget must say so), five choreographies for
+the one-parameter tangent (live), and a restructure to a **Gradients**
+widget with Derivative · Partial derivatives · Descent tabs. Catalogue
+§ Slot 48 *Round 5* has the record. Nothing built for it yet.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

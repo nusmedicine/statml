@@ -9975,6 +9975,62 @@ epochs, but at lr 0.001 on standardized x the walk needs ~2300 epochs and
 a reader who presses Play sits through the clock. A fourth speed or a cap
 is the fix if he wants one.
 
+#### Round 5, 2026-09-08 — three questions, mocked in `_lab/gd-round5.html`
+
+**1. "Why doesn't the gradient go downhill directly? It's descending by
+one parameter then the next — is this what actually happens?"** Yes, and
+the widget draws it without saying it, which is the defect. The gradient
+is the steepest slope in parameter units, perpendicular to the contour;
+the step follows it, not the straight line to the minimum. On the raw
+surface the loss is 138× more curved across the trench than along it, so
+the steepest slope is across: the walk drops to the floor in a few epochs
+and creeps along it. At the screenshot's state (lr 0.003, epoch 10) the
+step points 74° above the b₀ axis and the straight line to the minimum
+5° below it — 80° apart, a fact about the surface, not the drawing (the
+equal-aspect map prints the same 80°). It is not coordinate descent
+(widget 27's walk); it only looks like it because the map magnifies b₁
+2.5× against b₀. On standardized x the two directions coincide, 0°.
+The mock draws the same walk three ways — the map as now, an equal-aspect
+map where "perpendicular to the contour" is true on screen, and the
+standardized bowl — each with the step's direction, the straight line to
+the minimum dashed in red, and the contour's tangent. **What the widget
+should gain:** a line under the surface computed from the state ("the
+step follows the steepest slope, 80° from the straight line to the
+minimum"), the straight line drawn faint so the disagreement is visible,
+and possibly the equal-aspect map. Awaiting his pick.
+
+**2. "The one-parameter animation is jarring: the tangent moves then
+redraws, expanding out, at each step."** Confirmed — the current
+choreography grows the segment from its centre at every epoch after it
+has rolled with the curve. Five candidates loop live in the mock on the
+lesson's walk: E the current; A persistent full-length tangent rolling
+with the point, each epoch pausing at the point with the arrow then
+moving with an ease; B the tangent fading out as the point leaves and in
+as it lands; C the tangent staying at the start while the point departs
+along it and slides down to the curve, a fresh tangent fading in at
+arrival; D no pause, a continuous eased roll with only the number
+updating at arrival. Awaiting his pick.
+
+**3. "Consider basics first — a tab for concepts, differentiation and
+partial differentiation. Maybe call it Gradients, with tabs like diff
+and optimization."** Proposed and mocked: rename widget 48 to
+**Gradients**, three tabs — *Derivative* · *Partial derivatives* ·
+*Descent* — with Descent the current widget intact (its one/two-parameter
+switch, the relief, the drag). The two new tabs use the lesson's own
+function y = a² + 3ab at (2, 1), so the numbers are the lesson's 7 and 6,
+which autograd prints. *Derivative*: the curve with b held, the tangent,
+and a nudge Δa drawn as a right triangle along the tangent against the
+true Δy, the gap Δa² shrinking as the nudge does — the claim that the
+derivative is how much y moves for a small change in a. *Partial
+derivatives*: the map of y over (a, b) with contours, the point, the two
+slices beside it with their tangents, and the gradient (7, 6) as an
+arrow uphill on the map; Slow draws the slices then composes the arrow,
+Descent's own beats. This absorbs slot 47's "Two variables" page; the
+chain rule and the deep chain stay slot 47's. Tensors and the linear
+algebra are a separate question and do not belong in a widget about
+gradients (slot 49 owns shapes and weighted sums). Awaiting his pick,
+and whether the rename lands now or at promotion.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
