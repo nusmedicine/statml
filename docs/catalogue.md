@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The high-throughput arc* — three slots left of five, the only open queue |
+| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, awaiting Kenneth's picks; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -9580,12 +9580,352 @@ by filename, never by link — the same notebook has appeared under three Drive
 IDs. There is still no `../jupyterbook/phm5005`, so PHM5005 lesson slots are
 named by notebook filename rather than by chapter.
 
-## Two arcs, not one
+## The deep learning arc — PROPOSED 2026-09-07, from `05-1` to `05-4`
+
+**Kenneth's ask, 2026-09-07:** widgets for *DL Foundations*, in four groups —
+(1) the loss function, partial derivatives, the chain rule and gradient
+descent; (2) the blocks, animated — activation functions, convolution,
+recurrence, attention, graph layers; (3) composition — sequential, skip,
+branching, routing; (4) the workflow — the training and validation cycle,
+early stopping. Plan first, then build in logical groups, one widget at a
+time, Kenneth picking from mock-ups as always.
+
+**The four notebooks were read in full the same day** — `05-1 Overview`
+(6 cells), `05-2 Tensors and Gradients` (79), `05-3 Blocks and Composition`
+(102), `05-4 Workflow` (106), from the Master copies on this machine, which
+carry no outputs. Hosts below are cell indices in those files. Two slots
+were measured before being written up; the scripts are
+`_lab/dl-gd-measure.mjs` and `_lab/dl-loop-measure.mjs` (with
+`_lab/dl-synthetic.csv`, the lesson's own 1000-row dataset fetched from
+Kenneth's GitHub), and every number quoted here is theirs.
+
+### What is already covered — read before proposing a seventh slot
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 37 `mlp` | 05-1 nearly whole: neuron → layer → network, every weight an edge, the boundary bending as it trains, ReLU/tanh/identity as a drawn curve with a rug of the pre-activations, dead units, and Slow choreographing one step forward → compare → backward → update | draw a network again, or animate "the error travels back" a second time |
+| 27 `lm-least-squares` | a loss surface over (b0, b1) and a descent walk to its minimum; deliberately claims nothing about the algorithm R runs | re-teach "the fit is the minimum". Its walk is coordinate descent — no gradient, no learning rate — and that gap is exactly slot 48 |
+| 13 `generalization` | the split, training against test error as complexity grows, cross-validation | re-teach why a test set exists. 05-4 adds the validation set, epochs as the axis, the checkpoint and the stop |
+| 35 `metrics` | accuracy, precision, recall, F1, ROC | re-teach a metric; slot 52 prints accuracy beside the loss and stops there |
+
+What no existing widget touches: a numerical derivative of a composition, the
+learning rate, which inputs a layer's output can see, how blocks join, and
+epochs.
+
+### The six slots
+
+| # | slug | title (the notebook's own heading) | group | host | state |
+|---|---|---|---|---|---|
+| 47 | `chain-rule` | Gradients by the Chain Rule | 1 | 05-1 cell 4; 05-2 cells 70–72 | proposed |
+| 48 | `gradient-descent` | Gradient Descent | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | proposed, **measured** |
+| 49 | `processing-layers` | Processing Layers | 2 | 05-3 cells 1–33 | proposed |
+| 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 40–60 | proposed, lowest priority |
+| 51 | `composition` | Composing Layers | 3 | 05-3 cells 61–101 | proposed |
+| 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
+
+Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
+is the notebooks' own. Six is the honest count for four groups because the
+blocks group is two different figures (a wiring diagram and a grid of
+numbers) and the gradient group is two different figures (a graph of
+products and a surface with a walk); the two slots that could be cut without
+losing a group are 47 and 50, and each entry says what it would cost.
+
+### Slot 47 · `chain-rule` — Gradients by the Chain Rule
+
+**Host.** 05-1 cell 4 states that backpropagation *applies the chain rule of
+calculus*, passing ∂L/∂θ from the output layer back to the first. 05-2 cells
+70–72 do the arithmetic once: partials of y = x₁² + 3x₁x₂ + 2x₂, then autograd
+on y = a² + 3ab at a = 2, b = 1, printing ∂y/∂a = 7 and ∂y/∂b = 6 — the only
+gradient a student computes by hand all week.
+
+**The misconception — reported.** Backpropagation is a learning rule of its
+own: the error is *sent back* and each weight adjusts in proportion to it.
+Students who hold this cannot say why a weight two layers from the loss gets
+a smaller update, or why a sigmoid network stops learning when deep. The
+corrective is that the gradient at any parameter is a product of the local
+slopes along the path from it to the loss, summed over paths, and autograd
+does nothing but record the graph on the forward pass and multiply backward.
+A second, **documented** in calculus education: students can differentiate a
+composition as symbols and cannot read one as numbers — given the values at
+every node, they cannot say how much a nudge at the input moves the output.
+
+**The shape.** A computation graph drawn left to right — inputs, operations,
+output — every node carrying its forward VALUE, every edge its LOCAL slope
+once the backward pass reaches it. Lead *Forward* fills the nodes one at a
+time; Step/Play run *Backward*: a running product travels back edge by edge,
+and where two paths meet at a node their products add. Three pages,
+`segmented`, a data parameter because the graph changes:
+
+- **Two variables** — y = a² + 3ab, sliders a and b (defaults 2 and 1, so the
+  readout prints the lesson's 7 and 6). The point of the page is the node a
+  reached by two paths.
+- **One neuron** — x, w, b → h = wx + b → ŷ = σ(h) → L = (ŷ − y)². Sliders w
+  and b; x and y fixed. Backward gives ∂L/∂w = 2(ŷ − y) · σ′(h) · x, and the
+  middle factor is drawn as the slope of the activation at h on an inset —
+  widget 37's inset, reused so the reader recognises it. Activation
+  `segmented`: sigmoid, tanh, ReLU.
+- **A chain of layers** — L units in series, `depth` 2–12, each σ(w·) with
+  w = 1: the gradient at the first weight is the product of L slopes.
+  **Measured:** sigmoid's slope is at most 0.25, so the product is 6.2e-2 at
+  two layers, 9.8e-4 at five, 9.5e-7 at ten; tanh at |h| = 1 (slope 0.42) is
+  1.7e-4 at ten; ReLU's slope is 1 or 0, so the product is 1 or exactly 0.
+  This is the stage that loses (2.6) and the reason 05-3 lists ReLU as "the
+  default in most deep nets, reduces vanishing gradients".
+
+Readout: the gradient components, the product so far, and a MathML card
+carrying the chain for the current page — one formula, one place (5.8).
+
+**Must not claim** that a network trains by this per-sample step; widget 37
+already says the weights move once per batch. **What cutting it costs:** the
+sum-over-paths and the vanishing product have no other home; a formula card
+on slot 48 could carry the chain for one neuron, but not a product of ten
+slopes.
+
+**Open.** Whether the residual argument — y = x + f(x) gives ∂y/∂x = 1 + f′,
+so the product gains a term that does not shrink — is a `skip` toggle on this
+page or lives on slot 51's Skip page. It is a fact about the product, which
+argues for here; it is drawn as a wiring, which argues for there.
+
+### Slot 48 · `gradient-descent` — Gradient Descent — MEASURED 2026-09-07
+
+**Host.** 05-2 cells 73–78 are the worked example: x = linspace(0, 10, 100),
+y = 5 + 2x + N(0, 1), the mean squared error, `SGD` at lr 0.01 from (0, 0),
+1000 epochs, printed every 100. 05-1 cell 4 draws the hill and writes θ ← θ −
+α ∂L/∂θ; 05-4 cell 41 says *too high → unstable, too low → slow* and cell 5
+says batches give *less noisy* gradients.
+
+**The misconception — reported.** The learning rate is a speed: larger is
+faster. And, **inferred**, the gradient points at the minimum.
+
+**Measured on the lesson's own example** (`_lab/dl-gd-measure.mjs`, seeded;
+the lesson's `torch.normal` is unseeded, so no printed digit is
+reproducible and the widget draws its own noise):
+
+| | raw x | standardized x |
+|---|---|---|
+| curvatures of the loss surface (Hessian eigenvalues) | 68.5 and 0.50, condition 138 | 2 and 2 |
+| lr below which the walk is stable (2 / λmax) | **0.029** | 1.0 |
+| lr 0.03 | diverges at epoch 274 | — |
+| lr 0.05 | diverges at epoch 17 | — |
+| lr 0.01, the lesson's, after 100 epochs | b0 = 2.28, b1 = 2.40 | — |
+| lr 0.01 after 1000 epochs | b0 = 5.17, b1 = 1.97 (least squares 5.20, 1.97) | — |
+| lr 0.5 after 10 epochs | — | at the minimum |
+
+So the lesson needs 1000 epochs because x is not centred: the intercept's
+direction is 138 times flatter than the slope's, the walk reaches the trench
+in three epochs and then crawls along it, and any lr large enough to move the
+intercept diverges along the slope. Standardizing x makes the bowl round and
+the same walk lands in ten epochs at lr 0.5 — the 05-2 reductions example
+(normalize by the batch mean and sd) and the 05-3 claim that normalization
+*helps gradients flow* both land on this one picture.
+
+**The shape.** Two pages. **One parameter** — the loss as a curve over b1
+with b0 held, the tangent at the current point is the derivative, Step takes
+−lr × slope: a parabola shows converge, overshoot-and-oscillate, and diverge
+as lr crosses 2/curvature (the notebook's own hill picture, now with the
+number). **Two parameters** — left, the data and the current line (widget
+27's stage, on the lesson's data); right, the contour surface (widget 27's
+look) with the gradient drawn as an arrow at the current point and the path
+so far. Controls: `lr` as a `choice` including a divergent value (0.001,
+0.01, 0.03, 0.1); `scale` segmented, raw or standardized x, a data change
+because the surface changes; `batch` choice, full / 10 / 1, so the gradient
+becomes an estimate from the batch and the path gets noisy — the S in SGD,
+and 05-4's batching claim in one control. Slow choreographs one step: the
+two partials as tangent slopes on the two axis slices, then the arrow, then
+the move. Epoch budget 1000, Play. Readout: b0, b1, loss, the gradient's two
+components.
+
+**Trap.** The divergent case must not put NaN on the canvas; the path is
+capped and the readout prints *diverged at epoch N*, which is the claim.
+
+**Open.** An `optimizer` picker (SGD, momentum, Adam — 05-4's table) is a
+natural second round: on the raw surface Adam should land where SGD crawls.
+Not measured; do not add it before it is.
+
+### Slot 49 · `processing-layers` — Processing Layers
+
+**Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
+(standard and transposed), Recurrent (uni- and bidirectional), Attention
+(Q, K, V; multi-head), Graph (aggregate over neighbours), each with *what it
+does*, the input/output shapes, and a tiny example; cells 29–33, Embedding,
+as the step that turns a token into the vector those layers take. Pooling
+(cells 34–39) belongs here too, on the convolution page, because cell 62
+names *Conv + Pool* as a unit.
+
+**The misconception — inferred, with one reported part.** The layers differ
+in their arithmetic. They do not: every processing layer is weighted sums.
+They differ in WHICH inputs each output is allowed to see — its receptive
+field — and in whether the weights are shared across positions. Reported
+within that: students think a convolution has a filter per position (weight
+sharing is the whole point of cell 6's *each filter learns to detect a
+different feature*), and that attention weights are learned parameters (they
+are computed per input from Q·K, which is why the same layer attends
+differently to every sentence).
+
+**The shape.** One stage for five pages (`block`, segmented): the input
+tensor on the left, the output on the right, the weights between; Step
+computes the output ONE ELEMENT AT A TIME and lights the input elements that
+element sees and the weights it uses, with the shapes printed underneath as
+`[batch, …] → [batch, …]`. The same step reads on every page — one output
+unit, all inputs lit (Linear 4 → 3 on a batch of 2, cell 5); one output
+position, the 3×3 window lit and the same kernel every time (the 16×16 square
+with 2 filters, stride 2, padding 1 → 8×8, cells 8–11, then MaxPool 2 → 4×4);
+one time step, xₜ and hₜ₋₁ lit (5 steps × 4 features → hidden 3, uni/bi
+segmented, cell 19); one query token, its row of scores over every key lit,
+then the weighted sum of values ("The cat sat", 3 tokens × 4 dims, cell 22,
+the 3×3 weights as a heat grid); one node, its neighbours lit (the chain
+0–1–2–3 with 3 features, cell 27). A formula card carries the output-size
+rule ⌊(in + 2p − k)/s⌋ + 1 with the current values on the convolution page.
+
+**Weights are random and seeded, as the notebook's are**, not trained: the
+widget is about the wiring, and the caption says so — training changes the
+values, not the pattern. **Five pages is the most of any widget** (enrichment
+has four); each is small, and the mock-up (5.1) has to show a 16×16 image
+with an 8×8 output and a 3-token attention grid both legible at the 550px
+fingerprint width before this is built. If it does not fit, the convolution
+page becomes its own widget under `06 DL for Image Data`.
+
+### Slot 50 · `support-layers` — Normalization, Activation and Dropout
+
+**Host.** 05-3 cells 40–60: BatchNorm and LayerNorm with two pictures to
+separate them; the six activations with their ranges and uses, sigmoid as a
+gate, softmax as a distribution over a row; Dropout in train and eval mode
+(cell 60 prints both).
+
+**Two misconceptions, both documented widely enough to count as reported.**
+BatchNorm and LayerNorm normalize the same thing — they do not: batch takes
+the mean and sd DOWN each feature across the samples, layer takes them
+ACROSS each sample's features. And dropout scales the outputs down at
+evaluation — PyTorch scales the survivors UP by 1/(1 − p) during training and
+does nothing at evaluation, which is what cell 60 shows. A third, from the
+notebook's own warning: a final sigmoid or softmax layer is needed for
+classification (the losses absorb them).
+
+**The shape.** One grid, `[batch 4, features 5]`, three pages: **Activation**
+— every cell passes through the curve drawn beside the grid (`fn` segmented
+over the six; softmax acts on a row and the row is shown summing to 1);
+**Normalization** — `norm` segmented batch / layer, the group whose mean and
+sd are taken shaded as a column or a row, γ and β as sliders; **Dropout** —
+the mask drawn, survivors × 1/(1 − p), `mode` segmented train / eval where
+eval is the input unchanged.
+
+**Lowest priority, and the cut candidate.** It is reference-shaped: three
+small figures with a definition each, no stage that loses. It earns its slot
+on the two confusions above and on the mask being 05-2's Hadamard example
+(cells 62–65) drawn. Cutting it costs nothing in the other five.
+
+### Slot 51 · `composition` — Composing Layers
+
+**Host.** 05-3 cells 61–101: ordering (Transform → Normalize → Activate →
+Regularize), Sequential against a custom Module, the dimension-matching
+table, then Controlling Flow — skip (y = x + f(x), a projection P when the
+shapes differ), gate (y = g ⊙ x), branch and merge (concat on the feature
+dimension, add, average), routing (hard, and soft with softmax weights). The
+five example modules — MLP1, ResidualMLP, GatedMLP, BranchMergeMLP,
+SoftRoutingMLP — all take the same x of shape [4, 10], which is the widget's
+gift: one input, five wirings.
+
+**The misconceptions.** Reported: a skip connection bypasses the layers, so
+the block learns nothing — it is y = x + f(x), the block learns the
+correction, and the gradient reaches x with slope 1 + f′. Inferred:
+concatenation and addition are interchangeable merges — concat changes the
+width the next layer must accept (8 + 6 = 14, cell 98), add needs equal
+shapes and fails otherwise. Inferred: the routing weights are fixed mixing
+proportions — they are computed per sample by the gate, and hard routing
+cannot be trained by gradient at all (cell 99 says so).
+
+**The shape.** Left, the block diagram of the chosen `flow` (segmented:
+Sequential · Skip · Gate · Branch · Route), the tensor shape written on every
+edge; right, the module's `forward()` as code — widget 32's Syntax page
+precedent, the code leads — with the executing line highlighted as Step
+pushes the batch through the diagram block by block, and the merge shown as
+it happens: add, two equal grids summed; concat, side by side into one wider
+grid; gate, a 0–1 bar per feature; route, the softmax weights per sample as
+bars. Data: the notebook's `randn(4, 10)`, seeded; weights seeded random as
+in slot 49. Controls: `flow`; `merge` on Branch (concat / add / average —
+**add on 8 and 6 fails, and the widget shows the shape error rather than a
+merge: the case that fails, 2.6**); `speed`. The Skip page carries the
+projection variant when the shapes differ (10 → 20 needs P).
+
+**Open.** Whether a gradient-path overlay (the slope-1 route through the skip)
+is drawn here or the product lives on slot 47 — see slot 47's open item.
+
+### Slot 52 · `training-loop` — Training with Validation — MEASURED 2026-09-07
+
+**Host.** 05-4 end to end: the stratified 60/20/20 split (cells 12–15),
+`DataLoader` batches of 16 (17–21), the MLP 2 → 64 → 64 → 2 (61),
+cross-entropy and Adam at 1e-3 (50, 63), the loop over 100 epochs (65), the
+curves (67–68), checkpointing on the best validation loss (70–73), early
+stopping at patience 10 and min_delta 1e-4 (76–79), the test set scored ONCE
+(90–99), inference (100–105).
+
+**The misconceptions.** Documented: the test set is used to decide when to
+stop or which model to keep — leakage, and the notebook's whole structure is
+the cure (validation chooses, test is scored once). Reported: the final
+model is the last epoch's (the checkpoint keeps the best-validation one).
+Reported: more epochs always help.
+
+**Measured** (`_lab/dl-loop-measure.mjs`: the recipe reimplemented with Adam
+at torch's defaults, on the lesson's own `synthetic.csv`; seed 42, one draw
+each, and two runs with different shuffles moved every epoch number by tens
+while the shape held):
+
+- On the lesson's own recipe the validation loss bottoms in the 30s or 40s,
+  patience 10 fires ten epochs later, and by epoch 100 it has risen
+  0.01–0.03 — real, and a hairline on a strip. Over 300 epochs the rise is
+  0.09–0.12, which is visible.
+- **Patience 10 fired BEFORE the true minimum in three of five runs** — at 38
+  against a best of 46, at 20 against 80, at 127 against 187. The validation
+  curve on 200 rows is noisy, and a short patience stops on the noise. That
+  is the stage that loses in both directions: too short stops early, too
+  long trains into the rise. `patience` is the dial, ahead of training-set
+  size (which moves the minimum later and deepens the rise, 0.05–0.09 on
+  120–200 rows, but less cleanly).
+- Cost: the lesson's hidden 64 is ~4 s for 200 epochs in a naive loop;
+  hidden 32 — the lesson's own class default — is ~1.1 s, and a typed-array
+  engine would be several times faster. `compute()` trains the whole
+  trajectory once and the animation reveals it (1.4).
+
+**The shape.** Left, the data as the notebook plots it — 1000 points, two
+features — with train, validation and test told apart (`--c-holdout` for
+test), and the CURRENT model's decision boundary as widget 37's wash, so
+overfitting is visible as the boundary wrinkling; right, two strips, loss
+and accuracy, each with train and validation lines, the checkpoint marked at
+the best validation epoch and the patience counter shown as the run of
+epochs since it. Step is one epoch (the readout counts the batches in it:
+*38 batches of 16*); Play runs to the stop or the budget. Then a one-way gate
+**Evaluate on test** — widget 35's trace precedent — which loads the
+checkpoint and scores the test set ONCE, prints test loss and accuracy
+beside the validation numbers, and stays scored: a second evaluation is the
+leak, and the control says so. Controls: `patience` choice (5 / 10 / 20 /
+off), `epochs` budget (100 / 300), `train` size (600 / 200 / 120, a data
+change), `seed`, `speed`. Readout: epoch, best epoch, validation loss, train
+loss, stopped at.
+
+**Pinning.** torch is not installed on this machine and the lesson runs in
+Colab. Pin the way widget 37 was: dump the data and the initial weights the
+widget produced, train from those exact arrays in torch, compare — the
+notebook to do it can be handed to Kenneth to run.
+
+### Questions for Kenneth, before any mock-up
+
+1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
+   two that can go without losing a group; each entry says what it costs.
+2. **Where the residual-gradient argument lives** — slot 47's chain page or
+   slot 51's Skip page.
+3. **Which first.** The notebooks' order says 47. Slot 48 is the most ready:
+   measured, and it reuses widget 27's stage.
+4. **The optimizer picker** on slot 48 — now, later, or never.
+5. **Pinning slot 52** — run the torch check in Colab from dumped weights, or
+   install torch here (a network question; ask before it is worked around).
+
+## Two arcs, not one — now three
 
 The evaluation arc below was written before any notebook had been read. Reading
 `04-3 Tour of Algorithms` produced a **second** arc that runs beside it rather
 than inside it, and the two target different things: this one is about
-*evaluating* a model, that one is about what a model *is*.
+*evaluating* a model, that one is about what a model *is*. The deep learning
+arc above is the third, from week 5, about how a model is *built and trained*.
 
 ### Arc A · one widget per algorithm family, from `04-3`
 

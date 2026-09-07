@@ -7,6 +7,33 @@ there is no draft.**
 
 ---
 
+# NEXT: THE DEEP LEARNING ARC IS PLANNED AND AWAITS KENNETH'S PICKS
+
+**Planned 2026-09-07, nothing built.** Kenneth asked for widgets supporting
+PHM5005 *DL Foundations* (`05-1` to `05-4`) in four groups — gradients and
+descent; the blocks; composition; the workflow. The plan is
+[docs/catalogue.md](docs/catalogue.md) § *The deep learning arc*: six slots,
+47–52 (`chain-rule`, `gradient-descent`, `processing-layers`,
+`support-layers`, `composition`, `training-loop`), each with its
+misconception, its host cells, its shape and what cutting it would cost, and
+five questions for Kenneth at the end — read those before building anything.
+Two slots were measured first and the scripts are in `_lab/`
+(`dl-gd-measure.mjs`, `dl-loop-measure.mjs`, `dl-synthetic.csv`): the
+lesson's regression diverges above lr 0.029 and crawls at its own 0.01
+because x is not centred, and on the lesson's training recipe patience 10
+fires before the true validation minimum in three runs of five.
+
+**How the build is to run, per Kenneth:** this session (Fable) plans and
+reviews; Opus 5 subagents write the widget code. One widget at a time, a
+`_lab/` mock-up for him to pick from before `main.js`, his "tested ok"
+before any push. **torch is not installed here** (numpy 2.5 and sklearn 1.9
+are), so `training-loop`'s engine cannot be pinned locally — see the slot.
+
+**46 is `wgcna`**, a draft on branch `wgcna` in its own worktree, another
+session's; the arc's numbers are provisional until it lands.
+
+---
+
 # WIDGET 45 `hmm` IS SHIPPED, BASELINED, AND REVISED THREE TIMES SINCE. NOTHING IS OUTSTANDING ON IT.
 
 **Three post-ship rounds the same afternoon, each pushed (0b2f5de, 989cf62,
