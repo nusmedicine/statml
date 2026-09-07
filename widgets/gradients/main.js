@@ -218,7 +218,9 @@
       THE MAP SITS WHERE THE LOSS SURFACE SITS — the right-hand square, same
       rect — rather than on the left as the mock had it, so the two parameter
       maps land in the same place as the reader moves between tabs. The two
-      slices take the left column the data panel holds on Descent.
+      slices take the left column the data panel holds on Descent. *The rect is
+      no longer shared: decision 8 sizes this tab's square to the stage instead.
+      What survives is the side it sits on and the column the slices take.*
 
       AND THE TWO PICKS OFF ROUND 5 §1 AND §2, both on Descent.
 
@@ -248,6 +250,44 @@
       the beat with the arrow and its number, then moves for the other 60% with
       an ease-in-out. Picked live from five candidates against the current
       behaviour, which was E.
+
+   8. TWO LAYOUT FAULTS FOUND BY A BOX SWEEP, 2026-09-08. Both were measured
+      with a `fillText` box sweep in node — a stub context that records every
+      painted string's box, driven at 550, 690 and 770px, the three widths the
+      side layout reaches. Neither is visible to a pixel hash: one is empty
+      space, and the other is two labels printing through each other.
+
+      THE PARTIAL DERIVATIVES TAB HAS ITS OWN SQUARE, and no longer borrows the
+      loss surface's. Decision 7 gave it that rect so the two parameter maps
+      would land in the same place; the cost, unmeasured at the time, is that
+      `surfSide` is a WIDTH calculation — what the width leaves once a data
+      panel has been fed — and this tab has neither a data panel nor a loss
+      strip. The lowest thing it painted stopped 159px above the bottom of the
+      stage at 550, 690 and 770px alike. The map is now bound by the stage's own
+      height less the colour bar's two lines, and by the width left beside the
+      slices; the square runs 197 → 228, 261 → 368 and 298 → 445 at those three
+      widths, and the tail under it 159 → 128, 52 and 12. The width binds at
+      550 and 690 and the height at 770, which is why both bounds are written
+      rather than whichever one happens to bite. The slices are together as
+      tall as the map, so the tab still reads as one figure and its two
+      readings, and their column floors at the 200px that keeps a slice's
+      caption and its note on one line.
+
+      The Derivative tab was measured in the same sweep and left alone: its
+      panel is already `stageHeight − TOP − 60` with its one line 46px under
+      that, so it ends 14px off the bottom of the stage with nothing to fill.
+
+      THE TWO COMPONENT LABELS TOOK OPPOSITE SIDES OF THE POINT. Anchored at
+      the ends of their own ticks they overlapped by up to 9.5px, because at
+      epoch 5 of the lesson's walk both partials have gone small and a 2px tick
+      anchors its label on the dot the other label is already on. Over the
+      lesson's walk — lr 0.003 and 0.01, epochs 0 to 40, both scales, both
+      clocks and eight points of the beat at 550, 690 and 770px — that was 108
+      overlapping states of 4428, and one label came within 0.4px of the ringed
+      dot. It is now 0 and 0, with 23px between the labels and 12px to the dot
+      at the tightest. `drawSurface` says what replaced it; the clearances are
+      arithmetic now rather than a property of how long the ticks happen to be,
+      which is what let the fault through in the first place.
 
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
@@ -287,14 +327,39 @@ const surfSide = (w) =>
    two-parameter map (decision 7) and every page reserves it. */
 const stageHeight = (w) => surfSide(w) + 258;
 
+/* THE PARTIAL DERIVATIVES TAB HAS ITS OWN SQUARE, and it is deliberately not
+   the loss surface's (decision 8). `surfSide` is what the width leaves once a
+   data panel has been fed; this tab has no data panel and no loss strip, so
+   the height is the tab's to take, and the map takes it. Two things bound it:
+
+     the STAGE, less the colour bar's own two lines — 46px of air under the
+       panel, 8 of bar and 13 to the labels' baseline — and the 14px tail that
+       puts those labels on the Derivative tab's own bottom line;
+     the WIDTH left beside the two slices, which is what binds at 550 and
+       690; the height binds at 770.
+
+   The slice column floors at 200px, and that number is measured rather than
+   round: over the whole (a, b) window a slice's widest caption is 119px and
+   its widest note 52, and core drops a note inside the panel when the two come
+   within 14px of each other. At 200 the tightest they ever come is 30px, so
+   the caption and its note keep the one line they have today. */
+const SLICE_MIN = 200;
+const partSide = (w) => {
+  const usable = w - PAD_L - PAD_R - SURF_GUTTER;
+  const tall = stageHeight(w) - TOP - 67 - 14;
+  return Math.round(Math.max(surfSide(w), Math.min(tall, usable - SLICE_MIN)));
+};
+
 function layout(w) {
   const side = surfSide(w);
   const full = w - PAD_L - PAD_R;
   const left = w - PAD_L - PAD_R - SURF_GUTTER - side;
-  /* The two slices of the Partial derivatives tab stack in the column the data
-     panel holds on Descent: 30px for each one's ticks and axis label, 24 for
-     the lower one's caption. */
-  const sliceH = Math.max(60, Math.round((side - 54) / 2));
+  /* The two slices of the Partial derivatives tab stack beside its own map and
+     are together as tall as it is: 30px for each one's ticks and axis label,
+     24 for the lower one's caption. */
+  const pside = partSide(w);
+  const pcol = full - SURF_GUTTER - pside;
+  const sliceH = Math.max(60, Math.round((pside - 54) / 2));
   return {
     side,
     data: { x: PAD_L, y: TOP, w: left, h: side },
@@ -308,10 +373,12 @@ function layout(w) {
        it, ending where the strip's own axis label ends on Descent. */
     curve: { x: PAD_L, y: TOP, w: full, h: stageHeight(w) - TOP - 60 },
     curveY: TOP + (stageHeight(w) - TOP - 60) + 46,
-    /* The Partial derivatives tab: the map in the surface's own square, the two
-       slices in the left column. */
-    partA: { x: PAD_L, y: TOP, w: left, h: sliceH },
-    partB: { x: PAD_L, y: TOP + side - sliceH, w: left, h: sliceH },
+    /* The Partial derivatives tab: the map on the right, as the loss surface
+       is, but sized to the stage rather than to what a data panel leaves; the
+       two slices stacked in the column beside it. */
+    partMap: { x: w - PAD_R - pside, y: TOP, w: pside, h: pside },
+    partA: { x: PAD_L, y: TOP, w: pcol, h: sliceH },
+    partB: { x: PAD_L, y: TOP + pside - sliceH, w: pcol, h: sliceH },
   };
 }
 
@@ -338,6 +405,10 @@ const BEATS_NUDGE = { hold: 0.35 };
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) ** 2);
 
 const ARROW = 30;         // the composed direction's fixed length, in pixels
+/* How far off the point a component tick's LABEL is held when the tick itself
+   is shorter than that. Decision 8: at 14px the two labels' boxes cannot meet
+   each other or the ringed dot at any step the walk takes. */
+const TICK_LABEL_OFF = 14;
 const Y_DOM = [0, 30];    // y = 5 + 2x + N(0, 1) over x in [0, 10], both scales
 
 /* The strip's two ratchets: nice steps, upward only (2.5). */
@@ -655,9 +726,27 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
        so it is drawn only once it is long enough to read as a tick. */
     if (Math.abs(ex * t) > 3) arrow(ctx, px, py, px + ex * t, py, colors.ink1, 1.5, [3, 3]);
     if (Math.abs(ey * t) > 3) arrow(ctx, px, py, px, py + ey * t, colors.ink1, 1.5, [3, 3]);
-    label(ctx, colors, `∂L/∂b₀ ${fSig(g0)}`, px + ex + (ex < 0 ? -5 : 5), py - 7,
-      { align: ex < 0 ? "right" : "left", color: colors.ink1 });
-    label(ctx, colors, `∂L/∂b₁ ${fSig(g1)}`, px + 7, py + ey + (ey < 0 ? -7 : 13),
+    /* EACH LABEL IS HELD OFF THE POINT, AND THE TWO TAKE OPPOSITE SIDES OF IT
+       (decision 8). Anchored at the tick ENDS, as they were, the two run into
+       each other wherever both components are small — 3.4px of overlap at
+       every width from epoch 5 of the lesson's own walk, and up to 9.5px
+       elsewhere on it, because a tick 2px long puts its label on the dot and
+       the other label is already there.
+
+       So each is anchored at its tick's end OR at `TICK_LABEL_OFF` from the
+       point, whichever is further out, and then the b₀ label takes the row
+       OPPOSITE the side the b₁ label went to. That makes the clearances
+       arithmetic rather than luck: the two baselines are at least 34px apart in
+       either case, and neither box can reach the ringed dot — b₀'s is at least
+       19px clear of it horizontally whatever the y, b₁'s at least 18px clear
+       vertically whatever the x. */
+    const sx0 = ex < 0 ? -1 : 1;
+    const sy1 = ey < 0 ? -1 : 1;
+    const endX = px + (Math.abs(ex * t) > TICK_LABEL_OFF ? ex * t : sx0 * TICK_LABEL_OFF);
+    const endY = py + (Math.abs(ey * t) > TICK_LABEL_OFF ? ey * t : sy1 * TICK_LABEL_OFF);
+    label(ctx, colors, `∂L/∂b₀ ${fSig(g0)}`, endX + sx0 * 5, py + (sy1 < 0 ? 13 : -9),
+      { align: sx0 < 0 ? "right" : "left", color: colors.ink1 });
+    label(ctx, colors, `∂L/∂b₁ ${fSig(g1)}`, px + 8, endY + (sy1 < 0 ? -7 : 13),
       { color: colors.ink1 });
   }
   if (opts.arrowMix > 0) {
@@ -1569,8 +1658,8 @@ function drawPartialTab(ctx, colors, L, params) {
     at: b,
     slope: gb,
   });
-  drawValueMap(ctx, colors, L.surf, a, b);
-  drawColourBar(ctx, colors, L.surf, {
+  drawValueMap(ctx, colors, L.partMap, a, b);
+  drawColourBar(ctx, colors, L.partMap, {
     low: colors.valueLow,
     high: colors.valueHigh,
     left: String(Y_RANGE[0]),
