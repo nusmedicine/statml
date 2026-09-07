@@ -35,6 +35,14 @@ rolls with the curve during the move beat; the relief turns by dragging
 300/35). 31 assertions. A drag is untested geometry until a hit-driven
 fingerprint state exists, which a draft does not owe yet.
 
+**Round 4, 2026-09-08:** a *Default view* action under the Surface control
+(released before it writes, or the display writes re-enter `rebuild` and
+loop); the one-parameter page draws −∂L/∂b₁ as a labelled arrow at the
+point; every speed choreographs on that page (Slow 2.5 s, Medium 1.2 s,
+Fast 0.4 s an epoch), the surface page's clock untouched. 34 assertions.
+Open for Kenneth: Play on the one-parameter page at lr 0.001 now takes
+minutes; a fourth speed or a cap if he wants one.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

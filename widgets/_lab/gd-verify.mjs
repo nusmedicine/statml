@@ -22,6 +22,7 @@ import {
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
+  beatMs, choreographs, epochMs,
 } from "../gradient-descent/model.js";
 
 let failed = 0;
@@ -503,6 +504,37 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
     `worst share ${(rawHidden * 100).toFixed(1)}%`);
   check("standardized x: what is hidden is the pit floor", stdFar < 0.08,
     `farthest hidden piece ${stdFar.toFixed(3)} of the panel from the minimum`);
+}
+
+/* -- 12 · THE PACING TABLE -------------------------------------------------- *
+ * The two pages run on different clocks (main.js decision 6), which puts a
+ * three-by-two table of durations behind the three words the `speed` control
+ * shows. The one thing that table must never stop being is ORDERED: Slow slower
+ * than Medium slower than Fast, on BOTH pages. A reader picks the label, not the
+ * number, and a page where Fast were the slower of two would make the control a
+ * lie — and it is exactly the kind of edit that looks safe, because each cell on
+ * its own reads fine. */
+console.log("\n=== 12 · the beat length is monotone Slow > Medium > Fast ===");
+{
+  for (const view of ["one", "two"]) {
+    const [s, m, f] = ["slow", "medium", "fast"].map((sp) => epochMs(view, sp));
+    check(`${view === "one" ? "one parameter" : "two parameters"}: slow > medium > fast`,
+      s > m && m > f,
+      `${s.toFixed(1)} > ${m.toFixed(1)} > ${f.toFixed(1)} ms an epoch`);
+  }
+  /* And the declaration that goes with it: a choreographed pair reports its
+     epoch as its beat, an unchoreographed one reports no beat at all. */
+  const table = [["one", true], ["two", false]];
+  let agree = true;
+  for (const [view, always] of table) {
+    for (const speed of ["slow", "medium", "fast"]) {
+      const want = always || speed === "slow";
+      if (choreographs(view, speed) !== want) agree = false;
+      if (beatMs(view, speed) !== (want ? epochMs(view, speed) : 0)) agree = false;
+    }
+  }
+  check("beatMs is the epoch where it choreographs and 0 where it does not", agree,
+    "6 (page, speed) pairs; only the surface at medium and fast show arrivals only");
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

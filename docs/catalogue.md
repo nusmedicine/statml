@@ -9942,6 +9942,39 @@ down and carries every number the widget states — which bends 3.6's
 reader who turns the relief into a hiding viewpoint wants a way back
 other than dragging; a "default view" action is the obvious one if so.
 
+#### Round 4, 2026-09-08 — three asks in one message
+
+**"Add a default view button."** A momentary action, *Default view*,
+under the Surface control when the relief is on; it writes `turn` and
+`tilt` back to the measured 300/35 and releases itself, mlp's reroll
+pattern — with one difference the precedent did not have: the viewpoint
+parameters are display changes, so each write re-enters `rebuild`, and
+the button has to be released BEFORE the writes or it loops. Recorded in
+the header.
+
+**"For one parameter, add the similar vector ∂L/∂θ during animation."**
+The map's component ticks, in one dimension: at the current point a
+highlight arrow along b₁ pointing downhill (−∂L/∂b₁), fixed pixel length,
+labelled with the partial's value; it appears with the tangent, rides the
+moving point through the step with the start's gradient, and shows at
+rest. Measured clearances against the ring and the tangent at four widths
+and both scales; by epoch 3 on raw x the tangent has flattened onto the
+arrow, which is the slope being gone rather than a collision.
+
+**"Default to slow animation, it's currently too fast."** A per-page
+default is not expressible (the URL omits defaults), so instead every
+speed choreographs on the one-parameter page — the tangent-and-vector
+beat, then the move — and the speeds set the beat's length: Slow 2.5 s,
+Medium 1.2 s (the default), Fast 0.4 s an epoch. The surface page's clock
+is untouched (Slow 2 s choreographed; Medium 60 and Fast 250 epochs a
+second). The table lives in `model.js` and `gd-verify.mjs` asserts it is
+monotone on both pages (34 assertions). **Cost, for Kenneth's eye:** Play
+on the one-parameter page at Fast is 400 s for the whole budget and at
+Medium 20 minutes — invisible at lr 0.01, where the walk is over in ten
+epochs, but at lr 0.001 on standardized x the walk needs ~2300 epochs and
+a reader who presses Play sits through the clock. A fourth speed or a cap
+is the fix if he wants one.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

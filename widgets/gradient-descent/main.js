@@ -121,6 +121,40 @@
       window, drawn straight down, and every number the widget states is on it.
       The relief is a second reading, and the turn is a second reading of that.
 
+   6. THREE THINGS KENNETH ASKED FOR ON 2026-09-08, after the drag landed.
+
+      A "DEFAULT VIEW" BUTTON, because a dragged viewpoint needs a way home
+      that is not another drag. Decision 5 bent 3.6 by giving the camera no rail
+      control, and the cost of that only shows once a reader has turned the
+      surface into its own near wall: the way back is to drag until it looks
+      right again, which is a search rather than a control. The button is the
+      one piece of the camera that belongs in the rail — not a number to set,
+      an action to take — so it is a momentary `bool` on widgets 34, 35 and
+      mlp's pattern: pressed, `rebuild` sees it true, the widget writes `turn`
+      and `tilt` back to the measured 300/35 and releases the button, and the
+      URL carries the viewpoint and never the press. Display-only throughout,
+      so coming home keeps the walk (3.2).
+
+      THE ONE-PARAMETER PAGE DRAWS ITS GRADIENT AS A VECTOR, which is the
+      one-dimensional case of the map's composed direction rather than a second
+      idea. There θ is (b₀, b₁), the two partials are component ticks and they
+      compose into the arrow the step takes (§2 C). Here θ is b₁ alone, so
+      −∂L/∂θ has one component and the arrow is horizontal — same fixed pixel
+      length, same lettering, same number beside it. Without it the page showed
+      the SLOPE and left the reader to infer the DIRECTION, which is the
+      misconception this widget was built for.
+
+      EVERY SPEED CHOREOGRAPHS ON THE ONE-PARAMETER PAGE. Kenneth: *"default to
+      slow animation, it's currently too fast."* An epoch is a hop on this page
+      and a crawl on the other — the parabola is walked in about ten epochs at
+      lr 0.01, the surface in a thousand — so one clock cannot serve both, and
+      Medium's 60 a second showed a walk that was over before it started. The
+      pages now differ in the CLOCK and not in the choreography: the table is
+      `EPOCH_MS` in `model.js`, where `gd-verify.mjs` can assert it, and Slow
+      still choreographs over the surface exactly as it did. A per-page default
+      for `speed` was the obvious smaller change and is not expressible — the
+      URL omits a parameter at its default, so the two pages share one.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -132,6 +166,7 @@ import {
   descendFull, descendMini, descendSlope, posAt,
   projector, reliefMesh, reliefPoint, reliefHidden,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL,
+  beatMs, choreographs, epochMs,
 } from "./model.js";
 
 /* ---- geometry ------------------------------------------------------------ */
@@ -166,12 +201,13 @@ function layout(w) {
   };
 }
 
-/* One epoch at Slow, in shares of BEAT_MS. Two-parameter page: the partials
+/* One choreographed epoch, in shares of the beat clock `model.js` holds — 2 s
+   at Slow over the surface, 2.5 / 1.2 / 0.4 s on the one-parameter page, which
+   choreographs at every speed (decision 6). Two-parameter page: the partials
    appear, the direction composes, the point moves. One-parameter page: the
-   tangent appears, then the step. The move phase interpolates along the stored
-   update indices, so at batch 10 or 1 the epoch's ten or hundred updates are
-   drawn as they happen rather than as one jump. */
-const BEAT_MS = 2000;
+   tangent and the gradient vector appear, then the step. The move phase
+   interpolates along the stored update indices, so at batch 10 or 1 the epoch's
+   ten or hundred updates are drawn as they happen rather than as one jump. */
 const BEATS_TWO = { partials: 0.34, direction: 0.55 };
 const BEATS_ONE = { tangent: 0.45 };
 
@@ -868,6 +904,42 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     ctx.lineTo(plot.sx(b1 + span), plot.sy(L + g * span));
     ctx.stroke();
   }
+
+  /* THE GRADIENT AS A VECTOR — the one-dimensional case of the map's composed
+     direction (decision 6). θ is b₁ alone here, so −∂L/∂θ has one component:
+     a horizontal arrow at the point's height, pointing downhill, at the map's
+     own fixed pixel length and carrying the partial's value in the lettering
+     the map's component ticks carry theirs in.
+
+     IT KEEPS THE GRADIENT THAT LEFT THE START of the step while the tangent
+     above rolls with the curve, and the two are answering different questions:
+     the arrow is the number that decided this step, the tangent is what the
+     surface does under the point now. At rest and at an epoch boundary they
+     agree, because `descendSlope` stores at every index exactly the slope the
+     tangent recomputes.
+
+     THE CLEARANCES ARE MEASURED. It starts 9px from the dot's centre, 3.5px of
+     air outside the ringed dot's 5.5px edge — a 4.5px disc under a 2px ring,
+     half of which lies outside it. Its label sits 7px above the shaft, and on
+     the arrow's side the tangent always DESCENDS, since downhill is lower loss
+     and lower loss is lower on the screen: at epoch 0 the tangent passes 30 to
+     40px below the arrow's tip on raw x and 27 to 35px on standardized x,
+     across the 494 to 934px the panel is drawn at, and standardized x is still
+     22 to 28px clear at epoch 10. By epoch 3 of the raw walk the tangent has
+     flattened onto the arrow's own line, which is the figure saying the slope
+     is gone rather than two marks colliding. */
+  if (opts.vectorMix > 0 && Number.isFinite(opts.grad) && opts.grad !== 0) {
+    const ax = plot.sx(cur[1]);
+    const ay = plot.sy(f(cur[1]));
+    const dir = opts.grad > 0 ? -1 : 1;
+    const x0 = ax + dir * 9;
+    const x1 = x0 + dir * ARROW * opts.vectorMix;
+    if (Math.abs(x1 - x0) > 3) {
+      arrow(ctx, x0, ay, x1, ay, colors.highlight, 2.5);
+      label(ctx, colors, `∂L/∂b₁ ${fSig(opts.grad)}`, x1 + dir * 5, ay - 7,
+        { align: dir < 0 ? "right" : "left", color: colors.highlight });
+    }
+  }
   ctx.restore();
 
   const px = plot.sx(cur[1]);
@@ -984,7 +1056,7 @@ function renderCard(view) {
 function stand(state, params, anim) {
   const { track } = state;
   const ep = Math.min(anim?.ep ?? 0, track.epochsDone);
-  const beat = params.speed === "slow" ? (anim?.beat ?? 0) : 0;
+  const beat = choreographs(params.view, params.speed) ? (anim?.beat ?? 0) : 0;
   const moveFrom = params.view === "two" ? BEATS_TWO.direction : BEATS_ONE.tangent;
   const a = track.epochAt[ep];
   const b = track.epochAt[Math.min(ep + 1, track.epochsDone)];
@@ -1012,7 +1084,27 @@ function stand(state, params, anim) {
 
 const LR_DETAIL = "α in the update rule: the step is α times the gradient";
 
-defineWidget({
+/* THE WAY HOME FROM A DRAG (decision 6), on mlp's momentary-pill pattern: the
+   press is a parameter for exactly as long as it takes `rebuild` to see it, and
+   the two it writes are the ones the link should carry. Display-only, all
+   three, so the walk survives the trip home (3.2). */
+let widgetApi = null;
+
+/* THE BUTTON IS RELEASED BEFORE THE VIEWPOINT IS WRITTEN, and the order is
+   load-bearing here in a way it is not in mlp — whose reroll writes a DATA
+   parameter and so never re-enters. `turn` and `tilt` are `display: true`, so
+   each write runs `rebuild` again; with the release last, `homeView` would
+   still be true on the way back in and the second write would call this
+   function once more, for ever. Released first, every re-entry meets the guard
+   above and stops. */
+function homeTheView() {
+  if (!widgetApi || !widgetApi.params.homeView) return;
+  widgetApi.setParam("homeView", false);
+  widgetApi.setParam("turn", RELIEF_DEFAULT_AZ);
+  widgetApi.setParam("tilt", RELIEF_DEFAULT_EL);
+}
+
+widgetApi = defineWidget({
   slug: "gradient-descent",
   title: "Gradient Descent",
   status: "draft",
@@ -1083,6 +1175,20 @@ defineWidget({
       display: true,
       when: { param: "view", equals: "two" },
     },
+    /* THE WAY HOME FROM A DRAG, and the one piece of the camera that belongs
+       in the rail: not a number to set but an action to take (decision 6).
+       Momentary — pressed, `rebuild` writes the two viewpoint parameters and
+       releases it — so the URL carries the angle and never the press. Beside
+       the surface it turns, and only while there is a surface to turn. */
+    homeView: {
+      type: "bool",
+      style: "action",
+      label: "Default view",
+      detail: "turns the surface back to the viewpoint the figure opens at",
+      default: false,
+      display: true,
+      when: { all: [{ param: "view", equals: "two" }, { param: "relief", equals: "relief" }] },
+    },
     /* THE VIEWPOINT, AS TWO PARAMETERS. Decision 5 in the header says why they
        are parameters and not animation state. No rail control: the drag is the
        control, so both are hidden and travel in the URL the way `shown` does.
@@ -1131,9 +1237,12 @@ defineWidget({
       type: "choice",
       label: "Play speed",
       options: [
-        { value: "slow", label: "Slow", detail: "one epoch at a time, with the partial derivatives drawn before the step" },
-        { value: "medium", label: "Medium", detail: "about 60 epochs a second" },
-        { value: "fast", label: "Fast", detail: "about 250 epochs a second" },
+        /* Both paces on every option: the two pages run on different clocks
+           (decision 6), and a description that named one of them would be
+           right on one page and wrong on the other. */
+        { value: "slow", label: "Slow", detail: "2 seconds an epoch over the surface, with the partial derivatives drawn before the step; 2.5 seconds an epoch on one parameter" },
+        { value: "medium", label: "Medium", detail: "60 epochs a second over the surface; 1.2 seconds an epoch on one parameter" },
+        { value: "fast", label: "Fast", detail: "250 epochs a second over the surface; 0.4 seconds an epoch on one parameter" },
       ],
       default: "medium",
       display: true,
@@ -1162,7 +1271,10 @@ defineWidget({
     ]
     : [
       { token: "ink-2", label: "The loss over b₁, with b₀ held", mark: "line" },
-      { token: "highlight", label: "The tangent at the current b₁, with slope ∂L/∂b₁", mark: "line" },
+      /* One entry for two highlight marks, as the two-parameter page does with
+         its line and its arrow: the tangent IS the slope and the arrow is the
+         direction that slope sends the step. */
+      { token: "highlight", label: "The tangent at the current b₁ with slope ∂L/∂b₁, and the direction of the next step", mark: "line" },
       { token: "reference", label: "b₁ at the least-squares fit", mark: "dash" },
       { token: "ink-1", label: "The steps taken so far", mark: "line" },
       { token: "empirical", label: "Loss after each epoch", mark: "line" },
@@ -1210,6 +1322,9 @@ defineWidget({
         ? 0
         : Math.min(Math.max(0, params.shown ?? 0), state.track.epochsDone),
       beat: 0,
+      /* The clock the beat in `anim.beat` is a share of. Held so `rebuild` can
+         see it move; see the guard below. */
+      clock: beatMs(params.view, params.speed),
       done: false,
     }),
 
@@ -1220,10 +1335,13 @@ defineWidget({
         anim.done = true;
         return false;
       }
-      /* Slow is the choreographed pace and says so in its own description;
-         which pace choreographs is declared, never decided mid-run (4.1). */
-      if (params.speed === "slow") {
-        anim.beat += dt / BEAT_MS;
+      /* WHICH PACE CHOREOGRAPHS IS DECLARED, never decided mid-run (4.1), and
+         `model.js` declares it: Slow over the surface, every speed on the
+         one-parameter page, where an epoch is a single visible hop and 60 a
+         second would show none of them (decision 6). */
+      const ms = beatMs(params.view, params.speed);
+      if (ms > 0) {
+        anim.beat += dt / ms;
         if (anim.beat < 1) return true;
         anim.beat = 0;
         anim.ep += 1;
@@ -1231,9 +1349,10 @@ defineWidget({
         return anim.mode !== "step" && !anim.done;
       }
       anim.beat = 0;
-      const perSec = { medium: 60, fast: 250 }[params.speed] ?? 60;
       const target = anim.mode === "step" ? Math.min(end, anim.ep + 1) : end;
-      const rate = anim.mode === "step" ? 1 : Math.max(1, Math.round((perSec * dt) / 1000));
+      const rate = anim.mode === "step"
+        ? 1
+        : Math.max(1, Math.round(dt / epochMs(params.view, params.speed)));
       anim.ep = Math.min(target, anim.ep + rate);
       if (anim.ep >= end) {
         anim.ep = end;
@@ -1243,12 +1362,25 @@ defineWidget({
       return anim.mode !== "step";
     },
 
-    /* Leaving Slow with a beat in flight would freeze a half-drawn arrow over
-       a point the walk has already left — the shipped bug `before` states
-       exist for. Cleared here rather than at the next advance, because a
-       paused animation gets no next advance. */
+    /* A BEAT IN FLIGHT IS CLEARED WHENEVER THE BEAT LENGTH CHANGES. Leaving a
+       choreographed speed would otherwise freeze a half-drawn arrow over a
+       point the walk has already left — the shipped bug `before` states exist
+       for — and changing between two choreographed speeds would leave the
+       fraction of one clock being read against another. Cleared here rather
+       than at the next advance, because a paused animation gets no next
+       advance. The guard used to name Slow, which stopped being the only
+       choreographed pace with decision 6.
+
+       The press of "Default view" arrives here too, and leaves the beat alone:
+       the clock does not move, so a step in flight keeps running while the
+       camera returns. */
     rebuild: (anim, { params }) => {
-      if (params.speed !== "slow") anim.beat = 0;
+      if (params.homeView) homeTheView();
+      const ms = beatMs(params.view, params.speed);
+      if (ms !== anim.clock) {
+        anim.beat = 0;
+        anim.clock = ms;
+      }
     },
   },
 
@@ -1322,13 +1454,22 @@ defineWidget({
       });
       drawColourBar(ctx, colors, L.surf);
     } else {
-      /* No `grad` here: the tangent takes its slope from the point it touches
-         so that it rolls with the curve, while the readout and the beat line
-         below keep the floored one. `drawSlice` says why. */
+      /* The tangent takes its slope from the point it touches so that it rolls
+         with the curve; `grad` is the floored one the readout, the beat line
+         and the gradient VECTOR keep. `drawSlice` says why they can differ.
+
+         One ramp for both marks: the vector appears in the tangent's beat, so
+         the reader sees the slope and the direction the step takes together,
+         and it holds through the move beat attached to the travelling point. */
+      const oneMix = divergedShown
+        ? 0
+        : stepping ? easeOut(Math.min(1, at.beat / BEATS_ONE.tangent)) : 1;
       drawSlice(ctx, colors, L.slice, state, at.cur, {
         upto: at.upto,
         divergedShown,
-        tangentMix: divergedShown ? 0 : stepping ? easeOut(Math.min(1, at.beat / BEATS_ONE.tangent)) : 1,
+        tangentMix: oneMix,
+        vectorMix: oneMix,
+        grad: at.grad[1],
       });
       /* Which of the three regimes this learning rate is in, stated as the
          arithmetic that decides it rather than as a label. */
@@ -1356,8 +1497,10 @@ defineWidget({
             ? `The step moves (b₀, b₁) by α × ∇L, a distance of ${fSig(state.lr * Math.hypot(at.grad[0], at.grad[1]))}`
             : epochPhrase(state.batch);
     } else if (stepping) {
+      /* The slope's number is on the vector's own label now, so the line names
+         the two marks rather than printing one of them twice. */
       said = at.beat < BEATS_ONE.tangent
-        ? `The tangent at b₁ ${f3(at.cur[1])}: its slope is ∂L/∂b₁ ${fSig(at.grad[1])}`
+        ? `The tangent at b₁ ${f3(at.cur[1])}, and −∂L/∂b₁, the direction the step takes`
         : `The step is −α × ∂L/∂b₁ ${fSig(-state.lr * at.grad[1])}`;
     } else {
       /* `state.batch` is the full 100 on the one-parameter page, which takes

@@ -542,6 +542,44 @@ export function reliefHidden(q, dom, b0, b1, az = RELIEF_DEFAULT_AZ, el = RELIEF
   return false;
 }
 
+/* --- pacing ---------------------------------------------------------------
+ * How long ONE EPOCH takes, by page and by speed. It lives here for the reason
+ * the relief's geometry does: `_lab/gd-verify.mjs` has to be able to assert it
+ * with no DOM, and a table written out a second time in the lab is a table that
+ * can drift away from the one the widget runs on.
+ *
+ * THE TWO PAGES CANNOT SHARE A CLOCK. Over the surface the lesson's walk takes
+ * a thousand epochs and what the reader is watching is the shape of the path,
+ * so Medium's 60 a second is right. On one parameter an epoch is one visible
+ * hop on the parabola and the walk is over in about ten of them at lr 0.01, so
+ * 60 a second shows nothing. Every speed on the one-parameter page therefore
+ * choreographs — the tangent and the gradient vector, then the move — and the
+ * speeds differ only in how long that takes.
+ *
+ * A PER-PAGE DEFAULT FOR `speed` would have been the smaller change and is not
+ * expressible: a parameter sitting at its default is omitted from the URL, so
+ * one page's default is the other page's default too.
+ */
+export const EPOCH_MS = {
+  one: { slow: 2500, medium: 1200, fast: 400 },
+  two: { slow: 2000, medium: 1000 / 60, fast: 1000 / 250 },
+};
+
+/** One epoch's time in milliseconds, for a page and a speed. */
+export const epochMs = (view, speed) => {
+  const row = EPOCH_MS[view] ?? EPOCH_MS.two;
+  return row[speed] ?? row.medium;
+};
+
+/** Which (page, speed) pairs draw the beats of a step rather than its arrivals
+    only. Declared here, never decided mid-run (4.1). */
+export const choreographs = (view, speed) => view === "one" || speed === "slow";
+
+/** The beat clock: one choreographed epoch's length, or 0 where the speed shows
+    arrivals only. A beat in flight is cleared whenever this number changes,
+    which is the general form of the guard that used to name Slow. */
+export const beatMs = (view, speed) => (choreographs(view, speed) ? epochMs(view, speed) : 0);
+
 /** Position at a fractional update index, for the choreographed step. */
 export function posAt(track, fi) {
   const last = track.len - 1;
