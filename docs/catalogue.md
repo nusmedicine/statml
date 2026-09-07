@@ -9821,6 +9821,40 @@ dropped by core and only the selected option's shows — `mlp`'s "Hidden
 units" detail has never rendered. Not fixed here (core change, full suite);
 the `lr` control carries the same detail on every option instead.
 
+#### Kenneth asked for a 3D view as an option — mocked 2026-09-07, `_lab/gd-3d.html`
+
+Drawn with no library: a 44 × 44 mesh of the loss over (b₀, b₁), projected
+(azimuth and elevation on the mock's rail), painted far to near, lit from
+one side in the map's own colours, the contour rings lifted onto it, the
+path laid on it, and the two partial derivatives drawn as **tangent
+segments along each axis at the current point** — which is what a partial
+derivative is, and the strongest argument for the relief. The engine is
+the widget's `model.js`; the walk is the same walk.
+
+**The design problem is the height mapping, and the mock draws all
+three.** The loss spans ~270× from the start to the least and the trench
+floor sits at 1–8×, so linear height (capped at 30×) is a cliff over a flat
+floor on which the crawl is invisible; log height, the map's own ramp,
+turns the trench into a canyon whose floor still slopes and puts the
+contour rings at equal heights; square root sits between. On standardized
+x every mapping gives the round bowl, and the one-step landing at lr 0.5
+reads better in relief than on the map.
+
+**What it would cost in the widget:** occlusion (a path behind a ridge is
+hidden unless drawn over the mesh, which then floats — a fixed viewpoint
+chosen so the start and the trench face the camera is what makes the
+drawing honest, and a drag would be a region and a hit-driven state); the
+composed direction lies in the tangent plane and reads only from the side;
+the panel's square is shared between map and relief, so at 240px the
+canyon floor is a few pixels deep; and the mesh must be cached to a bitmap
+per viewpoint as the 2D surface already is, since 1936 quads per frame at
+Fast's 250 epochs a second is not affordable. The state would be a
+`relief` display switch on the two-parameter page, off by default, so the
+map stays the record and the relief a reading of it. **Awaiting his
+pick**: which height mapping, a fixed viewpoint or a `display` choice of
+two or three, and whether the partials move onto the surface as tangents
+when the relief is on.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

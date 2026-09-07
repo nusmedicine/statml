@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 48 gradient-descent — the surface in relief</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 400px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3.5em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 48 · gradient-descent — the surface in relief, as an option</h1>
+
+  <p class="note">
+    Kenneth's question (2026-09-07): could the surface be shown in 3D? Drawn here with no library — a
+    mesh of the loss over (b₀, b₁) projected onto the canvas, painted back to front, lit from one side,
+    the path laid on it and the two partial derivatives drawn as the <b>tangent segments along each axis
+    at the current point</b>, which is what a partial derivative is. The engine is the widget's own
+    <code>model.js</code>; the walk is the same walk.
+  </p>
+  <p class="note">
+    <b>The design problem is the height.</b> The loss spans ~270× from the start to the least, and the
+    trench floor sits at 1–8×. Linear height is a cliff over a flat floor and the walk along the trench
+    is invisible; a log height turns the trench into a canyon whose floor still slopes. §1 shows the three
+    mappings; §2 the candidates at the widget's own panel size; §3 the round bowl of standardized x.
+    Rotate with the rail — a fixed viewpoint or a <code>display</code> control for a few is the pick; a
+    drag would be a region and a hit-driven state.
+  </p>
+
+  <div class="rail">
+    <label>azimuth <input type="range" id="az" min="0" max="360" value="215"><output id="azv">215°</output></label>
+    <label>elevation <input type="range" id="el" min="10" max="85" value="38"><output id="elv">38°</output></label>
+    <label>learning rate <select id="lr"></select></label>
+    <label>epochs so far <input type="range" id="ep" min="0" max="11" value="7"><output id="epv">40</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="30" value="1"><output id="seedv">1</output></label>
+    <label><input type="checkbox" id="wire"> wireframe only</label>
+  </div>
+
+  <h2>§1 · The height mapping — raw x, the lesson's own surface</h2>
+  <p class="note">
+    <b>linear</b>: height ∝ loss, capped at 30× the least (the cap is the plateau); <b>square root</b>:
+    height ∝ √(loss ÷ least), capped at 316×; <b>log</b>: height ∝ log₁₀(loss ÷ least), the same
+    mapping the 2D surface's colour uses, so the contour rings sit at equal heights.
+  </p>
+  <div class="row" id="height"></div>
+
+  <h2>§2 · Candidates at the widget's panel size (log height)</h2>
+  <p class="note">
+    <b>A</b> shaded relief with the contour rings and the path — the 2D map's colours, lifted;
+    <b>B</b> the relief with the two partial derivatives as tangent segments at the current point, and the
+    composed downhill direction; <b>C</b> a wireframe with the path only — lightest, and the floor is
+    hard to read without shading. All three at 240px, the surface's side at the 550px fingerprint width,
+    then A again at 300px, the side at the widest layout.
+  </p>
+  <div class="row" id="cands"></div>
+
+  <h2>§3 · Standardized x — the round bowl, and the one-step landing at lr 0.5</h2>
+  <div class="row" id="std"></div>
+
+  <h2>What it would cost in the widget</h2>
+  <p class="note">
+    <b>Occlusion.</b> A path behind a ridge is hidden unless drawn on top of the mesh, which then floats
+    where it should be behind; the viewpoints here are chosen so the start (0, 0) and the trench face the
+    camera, and a fixed viewpoint is what makes that hold. <b>The component ticks</b> (pick §2 C) become
+    tangent segments on the surface, which is a better drawing of a partial derivative than the map's
+    ticks — but the composed direction lies in the tangent plane and reads only from the side.
+    <b>Height.</b> The panel's square is shared between the plan and the relief, so the mesh gets ~240px
+    in which the canyon's floor is a few pixels deep; nothing here adds height to the widget. <b>Cost.</b>
+    A 48×48 mesh is 2304 quads painted per frame; at Fast that is 250 epochs a second of a cached mesh
+    with only the path and the point redrawn, so the mesh must be painted once to a bitmap per
+    viewpoint, as the 2D surface already is. <b>The state.</b> A <code>relief</code> display switch on the
+    two-parameter page, off by default, keeps the map the record and the relief a reading of it.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import {
+  LR_LADDER, LOG_CAP, LEVELS, makeData, standardize, quad, domainFor, descendFull,
+} from "../gradient-descent/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const EPOCH_LADDER = [0, 1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000];
+const V = { az: 215, el: 38, lr: 0.01, ep: 7, seed: 1, wire: false };
+
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+};
+const rgb = (c, k = 1) => `rgb(${c.map((v) => Math.round(v * k)).join(",")})`;
+const rampRGB = (ratio) => hexLerp(T.costLow, T.costHigh, Math.max(0, Math.min(1, Math.log10(Math.max(1, ratio)) / LOG_CAP)));
+
+/* height mappings, each returning 0..1 */
+const HEIGHT = {
+  linear: (r) => Math.min(1, (r - 1) / 29),
+  sqrt: (r) => Math.min(1, Math.sqrt(Math.max(1, r)) / Math.sqrt(316)),
+  log: (r) => Math.min(1, Math.log10(Math.max(1, r)) / LOG_CAP),
+};
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, mono = false } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = "alphabetic";
+  ctx.font = `${size} ${mono ? "ui-monospace, Menlo, monospace" : T.font}`;
+  ctx.fillText(s, x, y);
+}
+
+/* ---- the projection --------------------------------------------------------
+   Parameter space is normalised to x, y in [-0.5, 0.5] and height z in [0, ZS].
+   Rotate about the vertical by the azimuth, then tilt by the elevation. */
+const ZS = 0.55;
+function projector(rect, az, el) {
+  const a = (az * Math.PI) / 180, e = (el * Math.PI) / 180;
+  const ca = Math.cos(a), sa = Math.sin(a), ce = Math.cos(e), se = Math.sin(e);
+  const s = Math.min(rect.w, rect.h) * 0.66;   // a rotated square needs its diagonal to fit
+  const cx = rect.x + rect.w / 2, cy = rect.y + rect.h * 0.62;
+  return (x, y, z) => {
+    const xr = x * ca - y * sa;
+    const yr = x * sa + y * ca;
+    return { X: cx + s * xr, Y: cy - s * (z * ce + yr * se), depth: yr * ce - z * se };
+  };
+}
+
+function reliefInto(ctx, rect, q, dom, opts) {
+  const { height = "log", path = null, cur = null, contours = true, wire = false, tangents = false, az = V.az, el = V.el, G = 44 } = opts;
+  const hf = HEIGHT[height];
+  const P = projector(rect, az, el);
+  const nx = (b0) => (b0 - dom.b0[0]) / (dom.b0[1] - dom.b0[0]) - 0.5;
+  const ny = (b1) => (b1 - dom.b1[0]) / (dom.b1[1] - dom.b1[0]) - 0.5;
+  const zOf = (b0, b1) => ZS * hf(q.loss(b0, b1) / q.Lmin);
+  const pt = (b0, b1) => P(nx(b0), ny(b1), zOf(b0, b1));
+
+  /* the mesh, painted far to near */
+  const grid = [];
+  for (let i = 0; i <= G; i += 1) {
+    grid.push([]);
+    for (let j = 0; j <= G; j += 1) {
+      const b0 = dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
+      const b1 = dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
+      const r = q.loss(b0, b1) / q.Lmin;
+      grid[i].push({ p: pt(b0, b1), r, z: zOf(b0, b1), b0, b1 });
+    }
+  }
+  const quads = [];
+  const light = [-0.5, 0.4, 0.75];
+  const ll = Math.hypot(...light);
+  for (let i = 0; i < G; i += 1) {
+    for (let j = 0; j < G; j += 1) {
+      const a = grid[i][j], b = grid[i + 1][j], c = grid[i + 1][j + 1], d = grid[i][j + 1];
+      /* normal from the parameter-space geometry, in normalised units */
+      const ux = 1 / G, uy = 1 / G;
+      const dzx = (b.z - a.z + c.z - d.z) / 2, dzy = (d.z - a.z + c.z - b.z) / 2;
+      const n = [-dzx * uy, -dzy * ux, ux * uy];
+      const nl = Math.hypot(...n);
+      const shade = 0.55 + 0.45 * Math.max(0, (n[0] * light[0] + n[1] * light[1] + n[2] * light[2]) / (nl * ll));
+      const r = (a.r * b.r * c.r * d.r) ** 0.25;
+      quads.push({ pts: [a.p, b.p, c.p, d.p], depth: (a.p.depth + b.p.depth + c.p.depth + d.p.depth) / 4, r, shade });
+    }
+  }
+  quads.sort((u, v) => v.depth - u.depth);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.lineWidth = 0.5;
+  for (const qd of quads) {
+    ctx.beginPath();
+    qd.pts.forEach((p, k) => (k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y)));
+    ctx.closePath();
+    if (wire) {
+      ctx.strokeStyle = T.ink3; ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = rgb(rampRGB(qd.r), qd.shade);
+      ctx.fill();
+      ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.18; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+
+  /* contour rings on the surface: marching squares in parameter space, lifted */
+  if (contours && !wire) {
+    ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+    ctx.beginPath();
+    const lg = grid.map((row) => row.map((g) => Math.log10(Math.max(1, g.r))));
+    for (const lv of LEVELS.map((r) => Math.log10(r))) {
+      for (let i = 0; i < G; i += 1) for (let j = 0; j < G; j += 1) {
+        const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+        const pts = [];
+        for (let k = 0; k < 4; k += 1) {
+          const [u, v] = [c[k], c[(k + 1) % 4]];
+          const va = lg[u[0]][u[1]], vb = lg[v[0]][v[1]];
+          if ((va < lv) !== (vb < lv)) {
+            const t = (lv - va) / (vb - va);
+            const b0 = grid[u[0]][u[1]].b0 + (grid[v[0]][v[1]].b0 - grid[u[0]][u[1]].b0) * t;
+            const b1 = grid[u[0]][u[1]].b1 + (grid[v[0]][v[1]].b1 - grid[u[0]][u[1]].b1) * t;
+            pts.push(pt(b0, b1));
+          }
+        }
+        for (let k = 0; k + 1 < pts.length; k += 2) { ctx.moveTo(pts[k].X, pts[k].Y); ctx.lineTo(pts[k + 1].X, pts[k + 1].Y); }
+      }
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  /* the path, on the surface, drawn over the mesh */
+  if (path && path.length > 1) {
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    path.forEach(([b0, b1], k) => { const p = pt(b0, b1); k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y); });
+    ctx.stroke();
+    ctx.fillStyle = T.ink1;
+    for (const [b0, b1] of path.slice(0, 4)) { const p = pt(b0, b1); ctx.beginPath(); ctx.arc(p.X, p.Y, 2.2, 0, 2 * Math.PI); ctx.fill(); }
+  }
+  /* the minimum, a cross on the floor */
+  { const m = pt(q.B0, q.B1); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(m.X - 5, m.Y); ctx.lineTo(m.X + 5, m.Y); ctx.moveTo(m.X, m.Y - 5); ctx.lineTo(m.X, m.Y + 5); ctx.stroke(); }
+
+  if (cur) {
+    const c = pt(cur[0], cur[1]);
+    if (tangents) {
+      /* the partials as tangent segments along each axis, on the surface */
+      const [g0, g1] = q.grad(cur[0], cur[1]);
+      const d0 = (dom.b0[1] - dom.b0[0]) * 0.2, d1 = (dom.b1[1] - dom.b1[0]) * 0.2;
+      const seg = (b0a, b1a, b0b, b1b, color, dash) => {
+        /* tangent in the surface's OWN height mapping: sample the surface at ±d and draw the chord */
+        const a = pt(b0a, b1a), b = pt(b0b, b1b);
+        ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.stroke(); ctx.restore();
+        return b;
+      };
+      const e0 = seg(cur[0] + d0, cur[1], cur[0] - d0, cur[1], T.ink1, [3, 3]);
+      const e1 = seg(cur[0], cur[1] - d1, cur[0], cur[1] + d1, T.ink1, [3, 3]);
+      txt(ctx, `∂L/∂b₀ ${g0.toPrecision(3)}`, e0.X - 4, e0.Y - 4, { color: T.ink1, mono: true, align: "right" });
+      txt(ctx, `∂L/∂b₁ ${g1.toPrecision(3)}`, e1.X + 4, e1.Y + 12, { color: T.ink1, mono: true });
+      /* the downhill direction: a short move along −∇L on the surface */
+      const gl = Math.hypot(g0, g1) || 1;
+      const step = 0.06;
+      const t0 = cur[0] - (g0 / gl) * step * (dom.b0[1] - dom.b0[0]);
+      const t1 = cur[1] - (g1 / gl) * step * (dom.b1[1] - dom.b1[0]);
+      const e = pt(t0, t1);
+      const ang = Math.atan2(e.Y - c.Y, e.X - c.X);
+      ctx.strokeStyle = T.highlight; ctx.fillStyle = T.highlight; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(c.X, c.Y); ctx.lineTo(e.X, e.Y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(e.X, e.Y);
+      ctx.lineTo(e.X - 8 * Math.cos(ang - 0.4), e.Y - 8 * Math.sin(ang - 0.4));
+      ctx.lineTo(e.X - 8 * Math.cos(ang + 0.4), e.Y - 8 * Math.sin(ang + 0.4));
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(c.X, c.Y, 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = T.surface; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  /* axis names at the two front corners */
+  const c00 = pt(dom.b0[0], dom.b1[0]), c10 = pt(dom.b0[1], dom.b1[0]), c01 = pt(dom.b0[0], dom.b1[1]);
+  txt(ctx, "b₀", (c00.X + c10.X) / 2, Math.max(c00.Y, c10.Y) + 14, { align: "center" });
+  txt(ctx, "b₁", (c00.X + c01.X) / 2 - 10, (c00.Y + c01.Y) / 2 + 4, { align: "right" });
+  ctx.restore();
+}
+
+/* ---- data + state ---------------------------------------------------------- */
+let X, Y, Q, QZ, DOM, DOMZ, run, runZ, cur, curZ, shownPath, shownPathZ;
+function build() {
+  const rng = makeRng(V.seed);
+  ({ x: X, y: Y } = makeData(rng));
+  Q = quad(X, Y); QZ = quad(standardize(X), Y);
+  DOM = domainFor(Q); DOMZ = domainFor(QZ);
+  const ep = EPOCH_LADDER[V.ep];
+  run = descendFull(Q, V.lr, 1000);
+  const k = run.epochAt[Math.min(ep, run.epochsDone)];
+  cur = [run.b0[k], run.b1[k]];
+  shownPath = []; for (let i = 0; i <= k; i += 1) shownPath.push([run.b0[i], run.b1[i]]);
+  runZ = descendFull(QZ, 0.5, 1000);
+  const kz = runZ.epochAt[Math.min(3, runZ.epochsDone)];
+  curZ = [runZ.b0[kz], runZ.b1[kz]];
+  shownPathZ = []; for (let i = 0; i <= kz; i += 1) shownPathZ.push([runZ.b0[i], runZ.b1[i]]);
+}
+
+function drawAll() {
+  build();
+  const state = `lr ${V.lr}, epoch ${EPOCH_LADDER[V.ep]}, loss ${(Q.loss(cur[0], cur[1]) / Q.Lmin).toFixed(2)}× the least`;
+  {
+    const host = document.getElementById("height"); host.innerHTML = "";
+    for (const [h, name, sub] of [
+      ["linear", "linear, capped at 30×", "a cliff over a floor; the trench is a crease and the walk along it is flat"],
+      ["sqrt", "square root, capped at 316×", "between the two"],
+      ["log", "log₁₀, capped at 316× (the map's own ramp)", "a canyon whose floor still slopes; rings at equal heights"],
+    ]) {
+      const ctx = panel(host, name, sub + "; " + state, 360, 300);
+      reliefInto(ctx, { x: 10, y: 10, w: 340, h: 280 }, Q, DOM, { height: h, path: shownPath, cur, wire: V.wire });
+    }
+  }
+  {
+    const host = document.getElementById("cands"); host.innerHTML = "";
+    const S = 240;
+    let ctx = panel(host, "A · shaded relief, rings, the path", `at ${S}px; ${state}`, S + 20, S + 20);
+    reliefInto(ctx, { x: 10, y: 10, w: S, h: S }, Q, DOM, { path: shownPath, cur, wire: V.wire });
+    ctx = panel(host, "B · with the partials as tangents", "the two dashed segments are the slopes along b₀ and b₁; the arrow is downhill", S + 20, S + 20);
+    reliefInto(ctx, { x: 10, y: 10, w: S, h: S }, Q, DOM, { path: shownPath, cur, tangents: true, wire: V.wire });
+    ctx = panel(host, "C · wireframe, the path only", "no shading, no rings", S + 20, S + 20);
+    reliefInto(ctx, { x: 10, y: 10, w: S, h: S }, Q, DOM, { path: shownPath, cur, wire: true, G: 28 });
+    ctx = panel(host, "A at 300px", "the surface's side at the widest layout", 320, 320);
+    reliefInto(ctx, { x: 10, y: 10, w: 300, h: 300 }, Q, DOM, { path: shownPath, cur, wire: V.wire });
+  }
+  {
+    const host = document.getElementById("std"); host.innerHTML = "";
+    let ctx = panel(host, "standardized x, log height", "lr 0.5, epoch 3: the bowl is round and one step lands", 360, 300);
+    reliefInto(ctx, { x: 10, y: 10, w: 340, h: 280 }, QZ, DOMZ, { path: shownPathZ, cur: curZ, tangents: true, wire: V.wire });
+    ctx = panel(host, "standardized x, linear height", "the same bowl with height ∝ loss, capped at 30×", 360, 300);
+    reliefInto(ctx, { x: 10, y: 10, w: 340, h: 280 }, QZ, DOMZ, { height: "linear", path: shownPathZ, cur: curZ, wire: V.wire });
+  }
+}
+
+const lrSel = document.getElementById("lr");
+for (const lr of LR_LADDER) { const o = document.createElement("option"); o.value = lr; o.textContent = lr; if (lr === V.lr) o.selected = true; lrSel.appendChild(o); }
+lrSel.addEventListener("input", () => { V.lr = Number(lrSel.value); drawAll(); });
+const bind = (id, key, fmtv) => document.getElementById(id).addEventListener("input", (e) => {
+  V[key] = e.target.type === "checkbox" ? e.target.checked : Number(e.target.value);
+  const out = document.getElementById(id + "v"); if (out) out.textContent = fmtv(V[key]);
+  drawAll();
+});
+bind("az", "az", (v) => `${v}°`); bind("el", "el", (v) => `${v}°`);
+bind("ep", "ep", (v) => EPOCH_LADDER[v]); bind("seed", "seed", (v) => v); bind("wire", "wire", (v) => v);
+drawAll();
+</script>
+</body>
+</html>
