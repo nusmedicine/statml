@@ -42,13 +42,17 @@
     trench floor sits at 1–8×. Linear height is a cliff over a flat floor and the walk along the trench
     is invisible; a log height turns the trench into a canyon whose floor still slopes. §1 shows the three
     mappings; §2 the candidates at the widget's own panel size; §3 the round bowl of standardized x.
-    Rotate with the rail — a fixed viewpoint or a <code>display</code> control for a few is the pick; a
-    drag would be a region and a hit-driven state.
+    <b>The viewpoint is fixed at azimuth 300°, elevation 35°, and it was measured, not chosen by eye</b>
+    (2026-09-07, the ray-march test of §4): with log height the walk lies in a canyon, and at 30–45°
+    elevation it is fully visible only along the canyon — azimuths 100–130° or 280–310°. From every other
+    direction, the mock's original 215°/38° included, the near wall hides most of the lesson's own walk,
+    which the first draft did not show because it painted the path over the mesh. 300° looks down the
+    canyon from the start toward the minimum; 120° is the same canyon from the other end.
   </p>
 
   <div class="rail">
-    <label>azimuth <input type="range" id="az" min="0" max="360" value="215"><output id="azv">215°</output></label>
-    <label>elevation <input type="range" id="el" min="10" max="85" value="38"><output id="elv">38°</output></label>
+    <label>azimuth <input type="range" id="az" min="0" max="360" value="300"><output id="azv">300°</output></label>
+    <label>elevation <input type="range" id="el" min="10" max="85" value="35"><output id="elv">35°</output></label>
     <label>learning rate <select id="lr"></select></label>
     <label>epochs so far <input type="range" id="ep" min="0" max="11" value="7"><output id="epv">40</output></label>
     <label>seed <input type="range" id="seed" min="1" max="30" value="1"><output id="seedv">1</output></label>
@@ -79,9 +83,9 @@
   <h2>§4 · The occluded path — Kenneth's second question: can it show through?</h2>
   <p class="note">
     A viewpoint of its own (the second pair of sliders), looking over the ridge so part of the walk is
-    behind it. Swept 2026-09-07 over 72 viewpoints for the share of the path the depth test hides:
-    azimuth 260° at 22° hides about half, which is the case that separates the treatments; 0° at 30°
-    and 320° at 15° hide nearly all of it, which is what a fixed viewpoint must avoid. <b>A</b> the whole mesh at 55% over the path — everything shows through,
+    behind it. The test is a ray march on the height field (a depth buffer painted through the canvas
+    was tried first and disagreed with the mesh's own vertices by tens of grey levels). Azimuth 260° at
+    22° hides a quarter of the lesson's walk, which is the case that separates the treatments. <b>A</b> the whole mesh at 55% over the path — everything shows through,
     including the far wall through the near one, so the relief flattens; <b>B</b> an opaque mesh, and the
     hidden part of the path drawn dashed and faint through it, decided per piece by a depth buffer —
     the drawing convention for a hidden line, and the mesh keeps its relief; <b>C</b> only the wall
@@ -120,7 +124,7 @@ import {
 const T = readTokens();
 const DPR = window.devicePixelRatio || 1;
 const EPOCH_LADDER = [0, 1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000];
-const V = { az: 215, el: 38, az2: 260, el2: 22, lr: 0.01, ep: 7, seed: 1, wire: false };
+const V = { az: 300, el: 35, az2: 260, el2: 22, lr: 0.01, ep: 7, seed: 1, wire: false };
 
 const hexLerp = (a, b, t) => {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
@@ -237,7 +241,8 @@ function reliefInto(ctx, rect, q, dom, opts) {
       for (let s = 0; s < n; s += 1) {
         const p = pt(a0 + (b0 - a0) * (s / n), a1 + (b1 - a1) * (s / n));
         const q2 = pt(a0 + (b0 - a0) * ((s + 1) / n), a1 + (b1 - a1) * ((s + 1) / n));
-        pathPieces.push({ a: p, b: q2, depth: (p.depth + q2.depth) / 2 });
+        pathPieces.push({ a: p, b: q2, depth: (p.depth + q2.depth) / 2,
+          m0: a0 + (b0 - a0) * ((s + 0.5) / n), m1: a1 + (b1 - a1) * ((s + 0.5) / n) });
       }
     }
   }
@@ -261,33 +266,31 @@ function reliefInto(ctx, rect, q, dom, opts) {
   } else {
     paintQuads(quads);
   }
-  /* a depth buffer for the hidden-line mode: each quad's depth as a grey,
-     painted far to near, so a pixel holds the nearest depth; read once */
+  /* The hidden-line test. A depth buffer painted through the canvas was tried
+     first and disagreed with the mesh's own vertices by tens of levels; the
+     surface is a height field seen by an orthographic camera, so the exact
+     test is a march: from the point, step toward the camera and ask whether
+     the surface rises above the ray before the ray leaves the domain. */
   let hiddenPieces = [], visiblePieces = pathPieces;
   if (occlusion === "hidden" && pathPieces.length) {
-    const off = document.createElement("canvas");
-    off.width = Math.ceil(rect.w); off.height = Math.ceil(rect.h);
-    const oc = off.getContext("2d");
-    oc.fillStyle = "#fff"; oc.fillRect(0, 0, off.width, off.height);
-    const grey = (d) => Math.round(Math.max(0, Math.min(255, ((d + 1.2) / 2.4) * 255)));
-    for (const qd of quads) {
-      const g = grey(qd.depth);
-      oc.fillStyle = `rgb(${g},${g},${g})`;
-      oc.beginPath();
-      qd.pts.forEach((p, k) => (k ? oc.lineTo(p.X - rect.x, p.Y - rect.y) : oc.moveTo(p.X - rect.x, p.Y - rect.y)));
-      oc.closePath(); oc.fill();
-    }
-    const img = oc.getImageData(0, 0, off.width, off.height).data;
-    const bufAt = (X, Y) => {
-      const x = Math.round(X - rect.x), y = Math.round(Y - rect.y);
-      if (x < 0 || y < 0 || x >= off.width || y >= off.height) return 255;
-      return img[(y * off.width + x) * 4];
+    const a = (az * Math.PI) / 180, e = (el * Math.PI) / 180;
+    const ca = Math.cos(a), sa = Math.sin(a), ce = Math.cos(e), se = Math.sin(e);
+    /* the view direction in world (normalised parameter) coordinates */
+    const vx = ce * sa, vy = ce * ca, vz = -se;
+    const hiddenAt = (b0, b1) => {
+      let x = nx(b0), y = ny(b1), z = zOf(b0, b1) + 0.004;   // a hair above its own surface
+      const dt = 0.01;
+      for (let k = 0; k < 400; k += 1) {
+        x -= vx * dt; y -= vy * dt; z -= vz * dt;
+        if (x < -0.5 || x > 0.5 || y < -0.5 || y > 0.5 || z > ZS) return false;
+        const bb0 = dom.b0[0] + (x + 0.5) * (dom.b0[1] - dom.b0[0]);
+        const bb1 = dom.b1[0] + (y + 0.5) * (dom.b1[1] - dom.b1[0]);
+        if (zOf(bb0, bb1) > z) return true;
+      }
+      return false;
     };
     hiddenPieces = []; visiblePieces = [];
-    for (const pc of pathPieces) {
-      const mx = (pc.a.X + pc.b.X) / 2, my = (pc.a.Y + pc.b.Y) / 2;
-      (grey(pc.depth) > bufAt(mx, my) + 6 ? hiddenPieces : visiblePieces).push(pc);
-    }
+    for (const pc of pathPieces) (hiddenAt(pc.m0, pc.m1) ? hiddenPieces : visiblePieces).push(pc);
     window.__hiddenFrac = hiddenPieces.length / pathPieces.length;   // for the viewpoint sweep
   }
 

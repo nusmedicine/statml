@@ -9874,6 +9874,35 @@ design decision rather than a slider. B is the recommendation: it costs
 one depth-buffer read per viewpoint (cached with the mesh), and it is the
 only one of the three whose surface still reads as a surface.
 
+**Kenneth's picks for the relief, 2026-09-07:** log height; a fixed
+viewpoint; B, the hidden line; the partials as tangents on the surface.
+
+**The depth buffer was wrong, and the sweep above with it.** Checked
+against the mesh's own vertices, the canvas-painted buffer disagreed by
+tens of grey levels at every viewpoint (a flat grey per quad and a
+per-quad depth gradient both), so the hidden fractions quoted above were
+not to be trusted and the numbers below replace them. The surface is a
+height field under an orthographic camera, which has an exact test: march
+from the point toward the camera and ask whether the surface rises above
+the ray before it leaves the domain. `gd-3d.html` now does that (~400
+steps per piece, 6000 pieces, fast enough for a mock; the widget caches
+the classification with the mesh).
+
+**Re-swept with the honest test, and the canyon decides the viewpoint.**
+With log height the lesson's walk (lr 0.01, 1000 epochs) lies on the
+canyon floor, and at 30–45° elevation it is fully visible ONLY along the
+canyon — azimuths 100–130° or 280–310°, where lr 0.01, 0.003 and 0.001 all
+read 0 hidden at every elevation tried. From every other direction the
+near wall hides most of it: the mock's original 215°/38° hides 94% of the
+lr 0.01 walk, which the first draft could not show because it painted the
+path over the mesh. The zig-zag at lr 0.028 climbs the walls and is
+visible from everywhere. **Fixed at azimuth 300°, elevation 35°**: down
+the canyon from the start toward the minimum, so the walk recedes from
+the reader and the cross sits at the far end of the basin; 120°/35° is
+the same canyon from the minimum's end, with the point and its labels
+crowding the front. The standardized bowl is round and reads from any
+viewpoint, so one viewpoint serves both scales.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
