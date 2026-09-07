@@ -9783,6 +9783,44 @@ appear as ticks, the direction composes, the point moves; the readout is
 b₀, b₁, the loss as a multiple of the least, the two partials and the step
 length, with *diverged at epoch N* replacing the loss once it has.
 
+#### BUILT AS A DRAFT the same day — awaiting Kenneth's review
+
+Written by an Opus 5 subagent from the brief above, reviewed by this
+session. `main.js` (969 lines), `model.js` (the engine, closed-form quadratic
+sums plus the three walks), `_lab/gd-verify.mjs` (19 assertions, in `npm
+test`). `npm run check` and `npm test` pass. Two defects found in review and
+fixed: the one-parameter panel was 24px taller than the surface and its
+axis label overlapped the regime line by 6px (measured by a transform-aware
+`fillText` box sweep, not seen); and the beat line's printed step distance
+changed halfway through a Slow move because the gradient index was rounded
+to the nearer point rather than floored to the step's start.
+
+```
+# http://localhost:8012/widgets/gradient-descent/                          one parameter, at the start
+# .../widgets/gradient-descent/?view=one&lr=0.03&shown=12                  the parabola: each step keeps −1.01 of the distance
+# .../widgets/gradient-descent/?view=two&shown=40                          the trench, the partials as ticks
+# .../widgets/gradient-descent/?view=two&shown=400&lr=0.03                 diverged at epoch 239 (seed 1), the path leaves the frame
+# .../widgets/gradient-descent/?view=two&scale=std&lr=0.5&shown=3          the round bowl: one step lands
+# .../widgets/gradient-descent/?view=two&batch=1&shown=1000                single rows: 3.1× the least after 1000 epochs, the path a fuzz
+# .../widgets/gradient-descent/?view=two&speed=slow&shown=5   then Next epoch — the three beats
+```
+
+**Three decisions the subagent made that the brief had not settled**, each
+recorded in the main.js header: the composed arrow is built in screen
+space because the two axes have different units per pixel, so the mock's
+parameter-space arrow pointed where the dot did not go, and nothing on
+screen claims perpendicularity to the contour; the least-squares line and
+its numbers show from the start while the surface's cross waits for the
+walk to arrive; and the loss strip plots log10(loss ÷ the least), capped
+at six decades. A fourth: the drive label is *Next epoch*, two words,
+because at batch 10 or 1 an epoch holds many steps and "Step" would name
+the wrong unit.
+
+**One latent core bug it found**: a `choice` field's own `detail` is
+dropped by core and only the selected option's shows — `mlp`'s "Hidden
+units" detail has never rendered. Not fixed here (core change, full suite);
+the `lr` control carries the same detail on every option instead.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

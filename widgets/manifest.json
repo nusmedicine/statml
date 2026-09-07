@@ -679,6 +679,24 @@
       ],
       "arc": 45,
       "status": "shipped"
+    },
+    {
+      "slug": "gradient-descent",
+      "title": "Gradient Descent",
+      "blurb": "Gradient descent follows the slope of the loss downhill, at a step size the learning rate sets.",
+      "course": "PHM5005",
+      "topics": [
+        "gradient descent",
+        "learning rate",
+        "loss surface",
+        "partial derivative",
+        "stochastic gradient descent",
+        "batch size",
+        "standardization",
+        "deep learning"
+      ],
+      "arc": 48,
+      "status": "draft"
     }
   ]
 }

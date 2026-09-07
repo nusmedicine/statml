@@ -29,6 +29,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = [
   // engines against a reference implementation
   "widgets/_lab/dbscan-verify.mjs",   // sklearn.cluster.DBSCAN
+  "widgets/_lab/gd-verify.mjs",       // identities, and the curvatures widget 48 prints
   "widgets/_lab/hc-verify.mjs",       // R hclust
   "widgets/_lab/kmeans-verify.mjs",   // sklearn.cluster.KMeans
   "widgets/_lab/norm-verify.mjs",     // properties no picture can settle

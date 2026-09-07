@@ -7,9 +7,23 @@ there is no draft.**
 
 ---
 
-# NEXT: THE DEEP LEARNING ARC IS PLANNED AND AWAITS KENNETH'S PICKS
+# NEXT: WIDGET 48 `gradient-descent` IS A DRAFT AWAITING KENNETH'S REVIEW
 
-**Planned 2026-09-07, nothing built.** Kenneth asked for widgets supporting
+**Built 2026-09-07 from his six picks off `_lab/gd-mock.html`** (catalogue
+§ *Slot 48*, subsections *The mock-up*, *Kenneth's picks* and *BUILT AS A
+DRAFT*, which lists the state URLs). Status `draft` in `main.js` and the
+manifest; no fingerprint states yet — record them only on his "tested ok",
+per *Order of work* below. `_lab/gd-verify.mjs` runs under `npm test`. The
+draft is served at `http://localhost:8012/widgets/gradient-descent/` from
+the `widgets-alt2` lane. Not pushed.
+
+**Found while building, not fixed:** core drops a `choice` field's own
+`detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
+has never rendered. A core change owes a full suite run, so it waits.
+
+# THE DEEP LEARNING ARC IS PLANNED; SLOT 48 IS THE FIRST BUILT
+
+**Planned 2026-09-07.** Kenneth asked for widgets supporting
 PHM5005 *DL Foundations* (`05-1` to `05-4`) in four groups — gradients and
 descent; the blocks; composition; the workflow. The plan is
 [docs/catalogue.md](docs/catalogue.md) § *The deep learning arc*: six slots,
