@@ -64,6 +64,35 @@
       run reaches 16, and letting it set the window would squash every
       convergent walk into the bottom pixel.
 
+   4. THE RELIEF IS A SECOND READING OF THE SAME PANEL, added 2026-09-07 from
+      Kenneth's picks off `_lab/gd-3d.html`: log height, a fixed viewpoint, the
+      hidden part of the path dashed, the partials as tangents on the surface.
+      Four things it settles.
+
+      THE VIEWPOINT IS A CONSTANT, azimuth 300 and elevation 35, and it was
+      swept rather than chosen: with log height the walk lies along the trench,
+      and from 215/38 the near wall hides 94% of the lesson's own walk. A
+      viewpoint control would hand the reader directions that hide the thing
+      the widget is about, so `model.js` holds the pair and `gd-verify.mjs`
+      re-measures the claim. The catalogue records the sweep.
+
+      THE HIDDEN PART OF THE PATH IS DASHED AND FAINT, rather than the mesh
+      being made transparent. A translucent mesh shows the far wall through the
+      near one and the relief stops reading as a surface; the dashed hidden
+      line is the drawing convention for exactly this and costs one
+      classification per walk.
+
+      BOTH EXPENSIVE PARTS ARE CACHED, on the same terms the map's bitmap
+      already is: the mesh (1936 quads, sorted and filled, ~2 ms) into a bitmap
+      keyed on size, theme and dataset, and the path's visible/hidden split
+      (~1 ms) keyed on the walk. Only the path, the point, the tangents and the
+      corner names are painted per frame.
+
+      THE PATH IS SAMPLED, dense over the opening 300 updates and strided after
+      it to about 1500 pieces. At batch 1 the walk holds 100 000 positions; the
+      map's own path already strides to 1500, and the opening stays dense
+      because the first epochs cross most of the frame while the rest crawl.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -73,6 +102,7 @@ import {
   N, EPOCHS, LR_LADDER, BATCHES, LOG_CAP, LEVELS,
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt,
+  projector, reliefMesh, reliefPoint, reliefHidden,
 } from "./model.js";
 
 /* ---- geometry ------------------------------------------------------------ */
@@ -146,16 +176,25 @@ const epochPhrase = (b) => (b >= N
 
 /* ---- the colour ramp and the surface bitmap ------------------------------ */
 
-const hexLerp = (a, b, t) => {
+/* Split from `hexLerp` for the relief, which needs the three channels back so
+   it can multiply them by a face's shade. */
+const mixRGB = (a, b, t) => {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
   const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
-  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+};
+
+const hexLerp = (a, b, t) => {
+  const c = mixRGB(a, b, t);
   return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 };
 
-const ramp = (ratio, colors) =>
-  hexLerp(colors.costLow, colors.costHigh,
-    Math.max(0, Math.min(1, Math.log10(Math.max(1, ratio)) / LOG_CAP)));
+/* Where a loss ratio sits on the ramp, 0 at the least loss and 1 at the cap.
+   The relief takes its HEIGHT from the same number, so colour and height say
+   the same thing and the contour rings land at equal heights. */
+const rampT = (ratio) => Math.max(0, Math.min(1, Math.log10(Math.max(1, ratio)) / LOG_CAP));
+
+const ramp = (ratio, colors) => hexLerp(colors.costLow, colors.costHigh, rampT(ratio));
 
 /* Painted once per size, theme and dataset, then blitted every frame — widget
    27's cache, with the contour lines baked in because they move only when the
@@ -412,6 +451,293 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
   }
   if (opts.arrowMix > 0) {
     arrow(ctx, px, py, px + ex * opts.arrowMix, py + ey * opts.arrowMix, colors.highlight, 2.5);
+  }
+}
+
+/* ---- the surface in relief -----------------------------------------------
+   The same window, the same colours, the same walk, with the loss as HEIGHT as
+   well as colour. The geometry is in `model.js` so it can be asserted without
+   a DOM; what is here is the painting and the two caches decision 4 records. */
+
+const DOWNHILL = 0.1;      // the composed arrow's length, in normalised domain units
+const TANGENT_HALF = 0.2;  // each partial's chord, ± this share of the domain (the mock's)
+
+/* The mesh, painted once per size, theme and dataset — the map's own cache, on
+   the other side of the same panel. The contour rings are baked in with it:
+   lifted onto the surface, they move only when the surface does. They are
+   painted over the whole mesh rather than hidden-line tested, so a ring on the
+   far wall can show through the near one; at 300/35 the trench runs away from
+   the reader and the far wall is a sliver. */
+let meshCache = null;
+function reliefBitmap(wpx, hpx, dpr, colors, state) {
+  const key = `${wpx}x${hpx}:${colors.costLow}:${colors.costHigh}:${colors.surface}:${state.sig}`;
+  if (meshCache && meshCache.key === key) return meshCache.canvas;
+  const cv = document.createElement("canvas");
+  cv.width = wpx;
+  cv.height = hpx;
+  const c = cv.getContext("2d");
+  const { q, dom } = state;
+  const project = projector({ x: 0, y: 0, w: wpx, h: hpx });
+  c.lineWidth = 0.5 * dpr;
+  for (const face of reliefMesh(q, dom, project)) {
+    c.beginPath();
+    face.pts.forEach((p, k) => (k ? c.lineTo(p.X, p.Y) : c.moveTo(p.X, p.Y)));
+    c.closePath();
+    const rgb = mixRGB(colors.costLow, colors.costHigh, rampT(face.r));
+    c.fillStyle = `rgb(${rgb.map((v) => Math.round(v * face.shade)).join(", ")})`;
+    c.fill();
+    /* A hairline of the page's own ground between faces: filled edge to edge
+       the quads seam, and the mesh reads as noise rather than as a surface. */
+    c.strokeStyle = colors.surface;
+    c.globalAlpha = 0.18;
+    c.stroke();
+    c.globalAlpha = 1;
+  }
+  const lift = (b0, b1) => {
+    const [x, y, z] = reliefPoint(q, dom, b0, b1);
+    return project(x, y, z);
+  };
+  c.strokeStyle = colors.surface;
+  c.globalAlpha = 0.6;
+  c.lineWidth = dpr;
+  c.beginPath();
+  for (const [ax, ay, zx, zy] of state.contours) {
+    const a = lift(ax, ay);
+    const b = lift(zx, zy);
+    c.moveTo(a.X, a.Y);
+    c.lineTo(b.X, b.Y);
+  }
+  c.stroke();
+  meshCache = { key, canvas: cv };
+  return cv;
+}
+
+/* The path, sampled once and classified once (decision 4). The hidden test is
+   a ray march per piece — far too much per frame — and the viewpoint is a
+   constant, so the split is a function of the walk alone: ~1 ms for 1500
+   pieces, held here rather than in `compute()` so a walk nobody looks in relief
+   never pays for it.
+
+   A piece outside the frame is dropped rather than clipped: off the domain
+   there is no surface to lie on, and the projection would lay it on the ground
+   plane's continuation. The panel says "off the frame" instead. */
+let piecesCache = null;
+function reliefPieces(state) {
+  if (piecesCache && piecesCache.key === state.walkSig) return piecesCache.pieces;
+  const { q, dom, track } = state;
+  const last = track.len - 1;
+  const w0 = dom.b0[1] - dom.b0[0];
+  const w1 = dom.b1[1] - dom.b1[0];
+  const dense = Math.min(last, 300);
+  const idx = [];
+  for (let k = 0; k <= dense; k += 1) idx.push(k);
+  const stride = Math.max(1, Math.ceil((last - dense) / 1200));
+  for (let k = dense + stride; k <= last; k += stride) idx.push(k);
+  if (idx[idx.length - 1] !== last) idx.push(last);
+
+  const inside = (b0, b1) => b0 > dom.b0[0] && b0 < dom.b0[1] && b1 > dom.b1[0] && b1 < dom.b1[1];
+  const pieces = [];
+  for (let i = 1; i < idx.length; i += 1) {
+    const ka = idx[i - 1];
+    const kb = idx[i];
+    const d0 = track.b0[kb] - track.b0[ka];
+    const d1 = track.b1[kb] - track.b1[ka];
+    /* A long move is split so it can be part hidden: the opening epochs of a
+       raw walk cross most of the frame in one step. */
+    const sub = Math.max(1, Math.min(8, Math.ceil(Math.hypot(d0 / w0, d1 / w1) / 0.03)));
+    for (let s = 0; s < sub; s += 1) {
+      const a = [track.b0[ka] + (d0 * s) / sub, track.b1[ka] + (d1 * s) / sub];
+      const b = [track.b0[ka] + (d0 * (s + 1)) / sub, track.b1[ka] + (d1 * (s + 1)) / sub];
+      const m0 = (a[0] + b[0]) / 2;
+      const m1 = (a[1] + b[1]) / 2;
+      const held = inside(a[0], a[1]) && inside(b[0], b[1]);
+      pieces.push({ end: kb, a, b, held, hidden: held && reliefHidden(q, dom, m0, m1) });
+    }
+  }
+  piecesCache = { key: state.walkSig, pieces };
+  return pieces;
+}
+
+function drawRelief(ctx, colors, rect, state, cur, opts) {
+  const { q, dom, track } = state;
+  const plot = makePlot({ ctx, colors, rect, xDomain: dom.b0, yDomain: dom.b1 });
+  plot.caption("the loss as height over every (b₀, b₁)");
+  const held = cur[0] > dom.b0[0] && cur[0] < dom.b0[1]
+    && cur[1] > dom.b1[0] && cur[1] < dom.b1[1];
+  if (opts.divergedShown) {
+    plot.note(`diverged at epoch ${track.diverged}`, { tone: colors.extreme });
+  } else if (!held) {
+    plot.note("off the frame", { tone: colors.extreme });
+  }
+  /* No axisX/axisY: a projected surface has no rectilinear axes to hang ticks
+     on, so b₀ and b₁ are named along the two edges nearest the reader. */
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ctx.drawImage(
+    reliefBitmap(Math.round(rect.w * dpr), Math.round(rect.h * dpr), dpr, colors, state),
+    rect.x, rect.y, rect.w, rect.h,
+  );
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+  const project = projector(rect);
+  const pt = (b0, b1) => {
+    const [x, y, z] = reliefPoint(q, dom, b0, b1);
+    return project(x, y, z);
+  };
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+
+  /* The path: solid where the surface leaves it in view, dashed and faint
+     where the surface is in front of it — the drawing convention for a hidden
+     line, and the one treatment of the three mocked that leaves the mesh
+     reading as a surface. */
+  const stroke = (list, { dash, alpha, width }) => {
+    if (!list.length) return;
+    ctx.save();
+    ctx.setLineDash(dash);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = width;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (const [a, b] of list) {
+      ctx.moveTo(a.X, a.Y);
+      ctx.lineTo(b.X, b.Y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  };
+  const shown = [];
+  const buried = [];
+  let tail = null;
+  for (const pc of reliefPieces(state)) {
+    if (pc.end > opts.upto) break;
+    if (!pc.held) {
+      tail = null;
+      continue;
+    }
+    (pc.hidden ? buried : shown).push([pt(pc.a[0], pc.a[1]), pt(pc.b[0], pc.b[1])]);
+    tail = pc.b;
+  }
+  /* The leading edge, from the last sampled position to where the walk stands.
+     One ray march a frame, which is what the sampled pieces cost together. */
+  if (tail && held) {
+    const seg = [pt(tail[0], tail[1]), pt(cur[0], cur[1])];
+    const mid = reliefHidden(q, dom, (tail[0] + cur[0]) / 2, (tail[1] + cur[1]) / 2);
+    (mid ? buried : shown).push(seg);
+  }
+  stroke(buried, { dash: [3, 4], alpha: 0.55, width: 1.2 });
+  stroke(shown, { dash: [], alpha: 1, width: 1.5 });
+
+  /* The opening epochs as separate marks while they can still be counted
+     (2.3), exactly as the map draws them. */
+  ctx.fillStyle = colors.ink1;
+  for (let k = 0; k <= Math.min(opts.upto, 5); k += 1) {
+    const p = pt(track.b0[k], track.b1[k]);
+    ctx.beginPath();
+    ctx.arc(p.X, p.Y, 2.2, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  /* The minimum, crossed on the floor once the walk has arrived — the same
+     rule as the map, so the widget does not open on its own answer (2.1). */
+  if (opts.arrived) {
+    const m = pt(q.B0, q.B1);
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(m.X - 7, m.Y);
+    ctx.lineTo(m.X + 7, m.Y);
+    ctx.moveTo(m.X, m.Y - 7);
+    ctx.lineTo(m.X, m.Y + 7);
+    ctx.stroke();
+  }
+
+  if (held) {
+    const c = pt(cur[0], cur[1]);
+    if (opts.showStep) drawTangents(ctx, colors, pt, dom, c, cur, opts);
+    ringedDot(ctx, colors, c.X, c.Y);
+  }
+  ctx.restore();
+
+  /* b₀ and b₁ along the two edges the viewpoint puts nearest the reader,
+     chosen by depth rather than fixed, so the naming survives a change of
+     viewpoint. Outside the clip: at some viewpoints an edge's midpoint sits on
+     the panel's border. */
+  const nearer = (u, v) => (project(...reliefPoint(q, dom, u[0], u[1])).depth
+    <= project(...reliefPoint(q, dom, v[0], v[1])).depth ? u : v);
+  const mid0 = (dom.b0[0] + dom.b0[1]) / 2;
+  const mid1 = (dom.b1[0] + dom.b1[1]) / 2;
+  const centre = pt(mid0, mid1);
+  for (const [name, at] of [
+    ["b₀", nearer([mid0, dom.b1[0]], [mid0, dom.b1[1]])],
+    ["b₁", nearer([dom.b0[0], mid1], [dom.b0[1], mid1])],
+  ]) {
+    const p = pt(at[0], at[1]);
+    const dx = p.X - centre.X;
+    const dy = p.Y - centre.Y;
+    const len = Math.hypot(dx, dy) || 1;
+    label(ctx, colors, name, p.X + (18 * dx) / len, p.Y + (18 * dy) / len + 4,
+      { align: dx < -2 ? "right" : dx > 2 ? "left" : "center" });
+  }
+}
+
+/* THE PARTIALS AS TANGENT SEGMENTS on the surface, which is what a partial
+   derivative is: the slope along one axis with the other held. Each is the
+   surface's own chord between ±0.2 of the domain, so it lies on the surface
+   rather than floating over it, and carries its number. These replace the
+   map's component ticks while the relief is on.
+
+   THE COMPOSED DIRECTION IS BUILT IN NORMALISED PARAMETER SPACE, where the two
+   axes are the same size — the relief's own coordinates. Scaling (−g₀, −g₁) by
+   each axis's span instead, as the mock did, points the arrow the wrong way
+   when the spans differ (raw x: 10.2 against 4.0), which is decision 1's trap
+   in the relief's coordinates. */
+function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
+  const [g0, g1] = opts.grad;
+  const w0 = dom.b0[1] - dom.b0[0];
+  const w1 = dom.b1[1] - dom.b1[0];
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const chord = (a0, a1, b0, b1) => {
+    const a = pt(clamp(a0, dom.b0[0], dom.b0[1]), clamp(a1, dom.b1[0], dom.b1[1]));
+    const b = pt(clamp(b0, dom.b0[0], dom.b0[1]), clamp(b1, dom.b1[0], dom.b1[1]));
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(a.X, a.Y);
+    ctx.lineTo(b.X, b.Y);
+    ctx.stroke();
+    ctx.restore();
+    return b;
+  };
+  const t = opts.tickMix;
+  if (t > 0) {
+    const d0 = w0 * TANGENT_HALF * t;
+    const d1 = w1 * TANGENT_HALF * t;
+    const e0 = chord(cur[0] + d0, cur[1], cur[0] - d0, cur[1]);
+    const e1 = chord(cur[0], cur[1] - d1, cur[0], cur[1] + d1);
+    label(ctx, colors, `∂L/∂b₀ ${fSig(g0)}`, e0.X - 4, e0.Y - 5,
+      { align: "right", color: colors.ink1 });
+    label(ctx, colors, `∂L/∂b₁ ${fSig(g1)}`, e1.X + 4, e1.Y + 13, { color: colors.ink1 });
+  }
+  if (opts.arrowMix > 0) {
+    const du = -g0 / w0;
+    const dv = -g1 / w1;
+    const len = Math.hypot(du, dv);
+    if (!(len > 0) || !Number.isFinite(len)) return;
+    const f = (DOWNHILL * opts.arrowMix) / len;
+    const e = pt(
+      clamp(cur[0] + du * f * w0, dom.b0[0], dom.b0[1]),
+      clamp(cur[1] + dv * f * w1, dom.b1[0], dom.b1[1]),
+    );
+    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.highlight, 2.5);
   }
 }
 
@@ -674,6 +1000,29 @@ defineWidget({
       ],
       default: "raw",
     },
+    /* How to look at the loss, after what it is made of. Display-only: the
+       relief is a second reading of the surface the map already holds, so
+       switching mid-walk keeps the walk (3.2). Only where there is a surface
+       to look at — the one-parameter page draws a curve. */
+    relief: {
+      type: "segmented",
+      label: "Surface",
+      options: [
+        {
+          value: "map",
+          label: "Map",
+          detail: "the loss as colour over every (b₀, b₁)",
+        },
+        {
+          value: "relief",
+          label: "Relief",
+          detail: "the loss as height over the same pairs, from one fixed viewpoint",
+        },
+      ],
+      default: "map",
+      display: true,
+      when: { param: "view", equals: "two" },
+    },
 
     stepSec: { type: "section", label: "The step" },
     lr: {
@@ -734,6 +1083,10 @@ defineWidget({
       { token: "highlight", label: "The line at this epoch, and the direction of the next step", mark: "line" },
       { token: "reference", label: "The least-squares line, and its (b₀, b₁)", mark: "dash" },
       { token: "ink-1", label: "The path taken so far", mark: "line" },
+      /* Only in relief: on the map nothing is in front of the path. */
+      ...(params.relief === "relief"
+        ? [{ token: "ink-1", label: "The path where the surface hides it", mark: "dash" }]
+        : []),
       { token: "empirical", label: "Loss after each epoch", mark: "line" },
     ]
     : [
@@ -766,6 +1119,9 @@ defineWidget({
       /* what the surface bitmap is keyed on: the data and the scale are the
          only things that move it */
       sig: `${params.scale}:${params.seed}`,
+      /* and what the relief's visible/hidden split is keyed on — the surface,
+         plus everything that decides where the walk goes on it */
+      walkSig: `${params.scale}:${params.seed}:${params.view}:${params.lr}:${params.batch}`,
     };
   },
 
@@ -838,7 +1194,10 @@ defineWidget({
 
     if (two) {
       drawData(ctx, colors, L.data, state, at.cur, params.scale);
-      drawSurface(ctx, colors, L.surf, state, at.cur, {
+      /* The same panel, the same rect, the same options: the relief is a
+         reading of the surface the map already holds, not a second figure. */
+      const drawPanel = params.relief === "relief" ? drawRelief : drawSurface;
+      drawPanel(ctx, colors, L.surf, state, at.cur, {
         upto: at.upto,
         arrived,
         divergedShown,
@@ -957,7 +1316,7 @@ defineWidget({
     const at = stand(state, params, anim);
     const parts = params.view === "two"
       ? [
-        `A scatter of y against x for ${N} rows with the line b₀ ${f2(at.cur[0])}, b₁ ${f2(at.cur[1])} drawn through it, beside the loss painted over every (b₀, b₁) pair.`,
+        `A scatter of y against x for ${N} rows with the line b₀ ${f2(at.cur[0])}, b₁ ${f2(at.cur[1])} drawn through it, beside the loss ${params.relief === "relief" ? "raised as a surface" : "painted"} over every (b₀, b₁) pair.`,
         `The walk has taken ${at.ep} of ${EPOCHS} epochs from (0, 0) at learning rate ${state.lr}.`,
       ]
       : [

@@ -9900,8 +9900,22 @@ visible from everywhere. **Fixed at azimuth 300°, elevation 35°**: down
 the canyon from the start toward the minimum, so the walk recedes from
 the reader and the cross sits at the far end of the basin; 120°/35° is
 the same canyon from the minimum's end, with the point and its labels
-crowding the front. The standardized bowl is round and reads from any
-viewpoint, so one viewpoint serves both scales.
+crowding the front.
+
+**Corrected while building it, 2026-09-07: the standardized bowl does NOT
+read from any viewpoint**, and the claim that it did was made by eye off
+the mock's lr 0.5 panel, which shows three epochs. `gd-verify.mjs` now
+sweeps every rung of the ladder on both scales over four seeds. Raw x
+gives away nothing from 300°/35° — the view looks along the flat
+direction of a surface whose curvatures are 68.5 and 0.50. Standardized
+x has both curvatures 2, so in the panel's own coordinates the bowl is a
+round pit stretched by the window's 20.2-against-7.9 aspect, and its
+flat direction runs along b₁ — perpendicular to raw's, so no single
+azimuth looks down both. What 300°/35° hides on that scale is only the
+floor of the pit: **every hidden piece lies within 0.08 of the panel of
+the least-squares point**, under the ringed point itself, while the
+descent into it stays solid. That is what makes one fixed viewpoint
+usable for both, and it is asserted rather than eyeballed.
 
 ### Slot 49 · `processing-layers` — Processing Layers
 

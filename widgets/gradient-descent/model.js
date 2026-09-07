@@ -363,6 +363,180 @@ export function descendSlope(q, lr, epochs) {
   return t;
 }
 
+/* --- the relief ----------------------------------------------------------- *
+ * The same surface as a height field seen from one direction, mocked in
+ * `_lab/gd-3d.html` and picked from it on 2026-09-07: log height, a fixed
+ * viewpoint, the hidden part of the path dashed, the partials as tangents.
+ *
+ * The geometry lives HERE and not in main.js so `_lab/gd-verify.mjs` can assert
+ * it with no DOM — the projector reducing to the map when you look straight
+ * down, and the share of a walk the near wall hides, are exactly the claims a
+ * picture cannot settle.                                                      */
+
+/* THE VIEWPOINT IS MEASURED, NOT CHOSEN BY EYE, and it is a constant rather
+   than a control: the reader has no way to know which directions hide the
+   walk. With log height the lesson's walk lies along the trench, and the ray
+   march below says it is fully visible only from azimuths 100-130 or 280-310
+   at 30-45 degrees of elevation. From 215/38, the mock's first guess, the near
+   wall hides 94% of the lr 0.01 walk. 300/35 looks along the trench from the
+   start toward the minimum, so the walk recedes and the minimum sits at the far
+   end of the basin; 120/35 is the same trench from the other end, with the
+   point and its two labels crowding the front.
+
+   THE STANDARDIZED SURFACE DOES NOT SHARE THAT TRENCH, which the mock's note
+   had wrong and `gd-verify.mjs` now measures: both its curvatures are 2, so in
+   the panel's own coordinates it is a round pit stretched by the window's
+   20.2-against-7.9 aspect, and its flat direction runs along b1 rather than
+   along b0. What this viewpoint hides there is only the floor of the pit —
+   every hidden piece within 0.08 of the panel of the least-squares point, under
+   the ringed point itself — while the descent into it stays solid. That is what
+   lets one viewpoint serve both scales. The sweep is in docs/catalogue.md. */
+export const RELIEF_AZ = 300;
+export const RELIEF_EL = 35;
+
+/* The ridge's height, as a fraction of the domain's own width. Above ~0.7 the
+   mesh outgrows the panel at the widths the surface is drawn at; below ~0.4 the
+   trench stops reading as a trench. */
+export const RELIEF_Z = 0.55;
+
+/* The mesh is G x G quads. 44 is the mock's: at the 180-300px the panel gives
+   it, a finer mesh costs sorting time and shows no more of the surface. */
+export const MESH_G = 44;
+
+/**
+ * Height from a loss ratio: the map's own log ramp, so the contour rings sit at
+ * equal heights, the colour and the height say the same thing, and the least
+ * loss is the floor at 0. Monotone, and capped where the ramp is capped.
+ */
+export const reliefHeight = (ratio) =>
+  RELIEF_Z * Math.min(1, Math.max(0, Math.log10(Math.max(1, ratio)) / LOG_CAP));
+
+/**
+ * Orthographic projection of the cube x, y in [-0.5, 0.5], z in [0, RELIEF_Z]
+ * onto `rect`: rotate about the vertical by `az`, then tilt by `el`. Returns
+ * screen X, Y and a `depth` that GROWS with distance from the camera, so
+ * painting in descending depth paints far to near.
+ *
+ * Linear in the rect, which is what lets the mesh be painted once into a
+ * device-pixel bitmap and the path drawn over it in CSS pixels: the two
+ * projectors differ by the same scale the bitmap is blitted at.
+ *
+ * Looking straight down from azimuth 0 the screen position is the map — X from
+ * b0 alone, Y from b1 alone with b1 up, and the height changing neither.
+ * `gd-verify.mjs` asserts it, because that is the claim that the relief and the
+ * map are two readings of one window.
+ */
+export function projector(rect, az = RELIEF_AZ, el = RELIEF_EL) {
+  const a = (az * Math.PI) / 180;
+  const e = (el * Math.PI) / 180;
+  const ca = Math.cos(a);
+  const sa = Math.sin(a);
+  const ce = Math.cos(e);
+  const se = Math.sin(e);
+  const s = Math.min(rect.w, rect.h) * 0.66;   // a rotated square needs its diagonal to fit
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h * 0.62;
+  return (x, y, z) => {
+    const xr = x * ca - y * sa;
+    const yr = x * sa + y * ca;
+    return { X: cx + s * xr, Y: cy - s * (z * ce + yr * se), depth: yr * ce - z * se };
+  };
+}
+
+/** A parameter pair in the relief's cube: [x, y] in [-0.5, 0.5] and the height
+    of the surface over it. */
+export function reliefPoint(q, dom, b0, b1) {
+  return [
+    (b0 - dom.b0[0]) / (dom.b0[1] - dom.b0[0]) - 0.5,
+    (b1 - dom.b1[0]) / (dom.b1[1] - dom.b1[0]) - 0.5,
+    reliefHeight(q.loss(b0, b1) / q.Lmin),
+  ];
+}
+
+/**
+ * The mesh as quads ready to paint far to near. Each carries its four projected
+ * corners, the geometric mean of its four loss ratios — which picks its colour
+ * off the map's own ramp — and a Lambert shade from one fixed light, which is
+ * what separates two faces of the trench that carry the same loss.
+ *
+ * The normal comes from the quad's own heights in normalised units rather than
+ * from the projected corners: a screen-space normal changes with the panel's
+ * size and the shading would then move when the layout does.
+ */
+export function reliefMesh(q, dom, project, G = MESH_G) {
+  const grid = [];
+  for (let i = 0; i <= G; i += 1) {
+    const b0 = dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
+    const row = [];
+    for (let j = 0; j <= G; j += 1) {
+      const b1 = dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
+      const r = q.loss(b0, b1) / q.Lmin;
+      const z = reliefHeight(r);
+      row.push({ p: project(i / G - 0.5, j / G - 0.5, z), r, z });
+    }
+    grid.push(row);
+  }
+  const light = [-0.5, 0.4, 0.75];
+  const ll = Math.hypot(light[0], light[1], light[2]);
+  const u = 1 / G;
+  const quads = [];
+  for (let i = 0; i < G; i += 1) {
+    for (let j = 0; j < G; j += 1) {
+      const a = grid[i][j];
+      const b = grid[i + 1][j];
+      const c = grid[i + 1][j + 1];
+      const d = grid[i][j + 1];
+      const dzx = (b.z - a.z + c.z - d.z) / 2;
+      const dzy = (d.z - a.z + c.z - b.z) / 2;
+      const n = [-dzx * u, -dzy * u, u * u];
+      const nl = Math.hypot(n[0], n[1], n[2]);
+      const lambert = (n[0] * light[0] + n[1] * light[1] + n[2] * light[2]) / (nl * ll);
+      quads.push({
+        pts: [a.p, b.p, c.p, d.p],
+        depth: (a.p.depth + b.p.depth + c.p.depth + d.p.depth) / 4,
+        r: (a.r * b.r * c.r * d.r) ** 0.25,
+        shade: 0.55 + 0.45 * Math.max(0, lambert),
+      });
+    }
+  }
+  quads.sort((v, w) => w.depth - v.depth);
+  return quads;
+}
+
+/**
+ * Is the surface at (b0, b1) hidden from the camera by the surface itself?
+ *
+ * A DEPTH BUFFER WAS TRIED FIRST AND WAS WRONG. The mock painted each quad's
+ * depth as a grey and read the canvas back; checked against the mesh's own
+ * vertices it disagreed by tens of levels at every viewpoint, and the first
+ * viewpoint sweep taken with it had to be thrown away. The surface is a height
+ * field under an ORTHOGRAPHIC camera, which has an exact test instead: march
+ * from the point toward the camera and ask whether the surface rises above the
+ * ray before the ray leaves the domain. 400 steps of 0.01 cross the cube twice
+ * over, and the ray is started a hair above its own surface so a point does not
+ * occlude itself.
+ */
+export function reliefHidden(q, dom, b0, b1, az = RELIEF_AZ, el = RELIEF_EL) {
+  const a = (az * Math.PI) / 180;
+  const e = (el * Math.PI) / 180;
+  const vx = Math.cos(e) * Math.sin(a);
+  const vy = Math.cos(e) * Math.cos(a);
+  const vz = -Math.sin(e);
+  let [x, y, z] = reliefPoint(q, dom, b0, b1);
+  z += 0.004;
+  const dt = 0.01;
+  for (let k = 0; k < 400; k += 1) {
+    x -= vx * dt;
+    y -= vy * dt;
+    z -= vz * dt;
+    if (x < -0.5 || x > 0.5 || y < -0.5 || y > 0.5 || z > RELIEF_Z) return false;
+    const bb0 = dom.b0[0] + (x + 0.5) * (dom.b0[1] - dom.b0[0]);
+    const bb1 = dom.b1[0] + (y + 0.5) * (dom.b1[1] - dom.b1[0]);
+    if (reliefHeight(q.loss(bb0, bb1) / q.Lmin) > z) return true;
+  }
+  return false;
+}
+
 /** Position at a fractional update index, for the choreographed step. */
 export function posAt(track, fi) {
   const last = track.len - 1;

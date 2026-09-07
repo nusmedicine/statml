@@ -17,9 +17,11 @@
 
 import { makeRng } from "../core/rng.js";
 import {
-  N, EPOCHS, LR_LADDER,
+  N, EPOCHS, LR_LADDER, LOG_CAP,
+  RELIEF_AZ, RELIEF_EL, RELIEF_Z, MESH_G,
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt,
+  projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
 } from "../gradient-descent/model.js";
 
 let failed = 0;
@@ -311,6 +313,160 @@ console.log("\n=== 9 · same seed, same data and same walk ===");
   const exact = Math.abs(mid[0] - (t.b0[10] + t.b0[11]) / 2) < 1e-15;
   check("posAt is exact at whole indices and linear between", worst === 0 && exact,
     `worst |Δ| ${worst}`);
+}
+
+/* -- 10 · THE RELIEF'S HEIGHT MAPPING --------------------------------------- *
+ * The relief is the map read a second way, so its height has to be the same
+ * function of the loss that the colour already is: monotone, zero at the least
+ * loss, and flat once past the ramp's cap. A height that fell anywhere, or that
+ * started above the floor, would draw a trench where the loss has none. */
+console.log("\n=== 10 · height is monotone in the loss and 0 at the least ===");
+{
+  const ratios = [];
+  for (let e = 0; e <= 60; e += 1) ratios.push(10 ** (e / 10));   // 1x to 1e6x
+  let rises = true;
+  for (let i = 1; i < ratios.length; i += 1) {
+    if (reliefHeight(ratios[i]) < reliefHeight(ratios[i - 1])) rises = false;
+  }
+  check(`height rises over ${ratios.length} ratios, 1x to 1e6x`, rises,
+    `1x ${reliefHeight(1)}, 10x ${reliefHeight(10).toFixed(3)}, cap ${reliefHeight(1e6).toFixed(3)}`);
+  check("0 at the least loss, capped at the ramp's cap",
+    reliefHeight(1) === 0 && Math.abs(reliefHeight(10 ** LOG_CAP) - RELIEF_Z) < 1e-12
+      && reliefHeight(1e9) === RELIEF_Z,
+    `floor 0, ${(10 ** LOG_CAP).toFixed(0)}x and above at ${RELIEF_Z}`);
+
+  /* The floor really is the least-squares point on every surface: the height
+     there is what the minimum's cross is drawn on. Not exactly zero, and it
+     cannot be: `Lmin` comes from an explicit residual loop and `loss` from the
+     expanded sums, so their ratio is 1 to roundoff. A ten-billionth of the
+     ridge is a ten-millionth of a pixel. */
+  let off = 0;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) off = Math.max(off, reliefPoint(q, domainFor(q), q.B0, q.B1)[2]);
+  }
+  check("the least-squares point sits on the floor, 8 surfaces", off < 1e-9,
+    `highest ${off.toExponential(2)} of ${RELIEF_Z}`);
+}
+
+/* -- 11 · THE PROJECTION AND THE FIXED VIEWPOINT ---------------------------- *
+ * Two claims the widget rests on and no picture settles. First, that the relief
+ * is the SAME WINDOW as the map: looking straight down from azimuth 0, the
+ * screen position must be the map's, with the height changing neither
+ * coordinate. Second, that azimuth 300 / elevation 35 is a viewpoint from which
+ * the lesson's own walk can be SEEN — the reason the viewpoint is a constant in
+ * model.js rather than a control. The mock's first guess, 215/38, is the
+ * counter-example, and it is asserted here so the pair cannot be nudged by eye
+ * later without the failure saying what it cost. */
+console.log("\n=== 11 · the projector reduces to the map, and the viewpoint shows the walk ===");
+{
+  const rect = { x: 0, y: 0, w: 200, h: 200 };
+  const P = projector(rect, 0, 90);
+  let flat = 0;      // the height moving the screen position
+  let mono = true;   // X from b0 alone, rising; Y from b1 alone, falling (b1 up)
+  for (let i = 0; i <= 8; i += 1) {
+    for (let j = 0; j <= 8; j += 1) {
+      const x = i / 8 - 0.5;
+      const y = j / 8 - 0.5;
+      const a = P(x, y, 0);
+      const b = P(x, y, RELIEF_Z);
+      flat = Math.max(flat, Math.abs(a.X - b.X), Math.abs(a.Y - b.Y));
+      if (i > 0 && P(x, y, 0).X <= P(x - 1 / 8, y, 0).X) mono = false;
+      if (j > 0 && P(x, y, 0).Y >= P(x, y - 1 / 8, 0).Y) mono = false;
+      if (Math.abs(P(x, y, 0).X - P(x, 0, 0).X) > 1e-12) mono = false;
+      if (Math.abs(P(x, y, 0).Y - P(0, y, 0).Y) > 1e-12) mono = false;
+    }
+  }
+  check("az 0, el 90 is the map, over 81 points", flat < 1e-12 && mono,
+    `worst height shift ${flat.toExponential(2)}px on a 200px panel`);
+
+  /* Far to near: the mesh is painted in the order it comes back, so the order
+     is what makes an opaque surface opaque. */
+  const quads = reliefMesh(D.raw, domainFor(D.raw), projector(rect));
+  let sorted = true;
+  for (let k = 1; k < quads.length; k += 1) if (quads[k].depth > quads[k - 1].depth) sorted = false;
+  check(`the mesh is ${MESH_G} x ${MESH_G} quads, far to near`,
+    quads.length === MESH_G * MESH_G && sorted, `${quads.length} quads`);
+
+  /* The rim facing the camera cannot be hidden: from 300/35 the two edges that
+     meet at the nearest corner are b1 at its floor and b0 at its ceiling. */
+  const domR = domainFor(D.raw);
+  let rimHidden = 0;
+  let rim = 0;
+  for (let k = 0; k <= 40; k += 1) {
+    rim += 2;
+    if (reliefHidden(D.raw, domR, domR.b0[0] + (k / 40) * (domR.b0[1] - domR.b0[0]), domR.b1[0])) rimHidden += 1;
+    if (reliefHidden(D.raw, domR, domR.b0[1], domR.b1[0] + (k / 40) * (domR.b1[1] - domR.b1[0]))) rimHidden += 1;
+  }
+  check(`the near rim is visible, ${rim} points`, rimHidden === 0,
+    `${rimHidden} hidden from ${RELIEF_AZ}/${RELIEF_EL}`);
+
+  /* THE MEASUREMENT THE VIEWPOINT RESTS ON. Each epoch of a walk classified by
+     its midpoint, as the widget classifies each piece it draws; a piece that
+     leaves the frame is skipped, because the widget does not draw one. Reported
+     as the share hidden and how far the farthest hidden midpoint is from the
+     least-squares point, in fractions of the panel. */
+  const survey = (q, dom, t, az, el) => {
+    const w0 = dom.b0[1] - dom.b0[0];
+    const w1 = dom.b1[1] - dom.b1[0];
+    const inside = (b0, b1) =>
+      b0 > dom.b0[0] && b0 < dom.b0[1] && b1 > dom.b1[0] && b1 < dom.b1[1];
+    let hid = 0;
+    let drawn = 0;
+    let far = 0;
+    for (let e = 1; e <= t.epochsDone; e += 1) {
+      const a = t.epochAt[e - 1];
+      const b = t.epochAt[e];
+      if (!inside(t.b0[a], t.b1[a]) || !inside(t.b0[b], t.b1[b])) continue;
+      drawn += 1;
+      const m0 = (t.b0[a] + t.b0[b]) / 2;
+      const m1 = (t.b1[a] + t.b1[b]) / 2;
+      if (reliefHidden(q, dom, m0, m1, az, el)) {
+        hid += 1;
+        far = Math.max(far, Math.hypot((m0 - q.B0) / w0, (m1 - q.B1) / w1));
+      }
+    }
+    return { share: drawn ? hid / drawn : 0, drawn, far };
+  };
+
+  const walk = descendFull(D.raw, 0.01, EPOCHS);
+  const good = survey(D.raw, domR, walk, RELIEF_AZ, RELIEF_EL);
+  const bad = survey(D.raw, domR, walk, 215, 38);
+  check(`${RELIEF_AZ}/${RELIEF_EL} hides none of the lr 0.01 walk`, good.share === 0,
+    `${(good.share * 100).toFixed(1)}% of ${good.drawn} pieces hidden`);
+  check("215/38 hides most of the same walk", bad.share > 0.5,
+    `${(bad.share * 100).toFixed(1)}% of ${bad.drawn} pieces hidden`);
+
+  /* EVERY RUNG, ON BOTH SCALES AND FOUR SEEDS — the claim the fixed viewpoint
+     actually needs, since the reader can move the ladder and the scale but not
+     the camera. Raw x gives away nothing at all: the view looks along the
+     trench, which is the flat direction of a surface whose curvatures are 68.5
+     and 0.50.
+
+     The standardized bowl is NOT free of it, which the mock's own note had
+     wrong. Both curvatures are 2, so in the panel's own coordinates the bowl is
+     a round pit stretched by the window's 20.2-against-7.9 aspect, and the log
+     ramp turns its last decade into a funnel: what the near lip hides is the
+     floor of that funnel, within 0.08 of the panel of the minimum, under the
+     ringed point itself. The descent into it is drawn solid; the pieces that
+     arrive at the bottom are dashed. */
+  let rawHidden = 0;
+  let stdFar = 0;
+  let rungs = 0;
+  for (const { raw, std } of draws) {
+    for (const [tag, q] of [["raw", raw], ["std", std]]) {
+      const dom = domainFor(q);
+      for (const lr of LR_LADDER) {
+        const s = survey(q, dom, descendFull(q, lr, EPOCHS), RELIEF_AZ, RELIEF_EL);
+        rungs += 1;
+        if (tag === "raw") rawHidden = Math.max(rawHidden, s.share);
+        else stdFar = Math.max(stdFar, s.far);
+      }
+    }
+  }
+  check(`raw x: nothing hidden on any of ${rungs / 2} rungs`, rawHidden === 0,
+    `worst share ${(rawHidden * 100).toFixed(1)}%`);
+  check("standardized x: what is hidden is the pit floor", stdFar < 0.08,
+    `farthest hidden piece ${stdFar.toFixed(3)} of the panel from the minimum`);
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

@@ -17,6 +17,18 @@ per *Order of work* below. `_lab/gd-verify.mjs` runs under `npm test`. The
 draft is served at `http://localhost:8012/widgets/gradient-descent/` from
 the `widgets-alt2` lane. Not pushed.
 
+**Round 2 the same evening: the surface in relief**, `?relief=relief` on
+the two-parameter page. Kenneth asked for a 3D view, then whether the
+hidden part could show through; `_lab/gd-3d.html` mocked both and he
+picked log height, a fixed viewpoint, the hidden line dashed, the partials
+as tangents on the surface. Two lessons that cost time and are recorded
+in the catalogue: **a depth buffer painted through the canvas is wrong by
+tens of grey levels** (checked against the mesh's own vertices) — the
+honest test on a height field is a ray march; and **the viewpoint is
+measured, not chosen**: with log height the walk lies in a canyon visible
+only along it, azimuth 100–130° or 280–310°, so it is fixed at 300/35 in
+`model.js` and `gd-verify.mjs` (29 assertions) re-measures the claim.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.
