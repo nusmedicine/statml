@@ -76,6 +76,24 @@
   <h2>§3 · Standardized x — the round bowl, and the one-step landing at lr 0.5</h2>
   <div class="row" id="std"></div>
 
+  <h2>§4 · The occluded path — Kenneth's second question: can it show through?</h2>
+  <p class="note">
+    A viewpoint of its own (the second pair of sliders), looking over the ridge so part of the walk is
+    behind it. Swept 2026-09-07 over 72 viewpoints for the share of the path the depth test hides:
+    azimuth 260° at 22° hides about half, which is the case that separates the treatments; 0° at 30°
+    and 320° at 15° hide nearly all of it, which is what a fixed viewpoint must avoid. <b>A</b> the whole mesh at 55% over the path — everything shows through,
+    including the far wall through the near one, so the relief flattens; <b>B</b> an opaque mesh, and the
+    hidden part of the path drawn dashed and faint through it, decided per piece by a depth buffer —
+    the drawing convention for a hidden line, and the mesh keeps its relief; <b>C</b> only the wall
+    nearer the camera than the current point turned to glass at 35% — the far mesh stays solid, the
+    occluder is the only thing that gives way.
+  </p>
+  <div class="rail" style="position: static">
+    <label>occluding azimuth <input type="range" id="az2" min="0" max="360" value="260"><output id="az2v">260°</output></label>
+    <label>occluding elevation <input type="range" id="el2" min="10" max="85" value="22"><output id="el2v">22°</output></label>
+  </div>
+  <div class="row" id="occl"></div>
+
   <h2>What it would cost in the widget</h2>
   <p class="note">
     <b>Occlusion.</b> A path behind a ridge is hidden unless drawn on top of the mesh, which then floats
@@ -102,7 +120,7 @@ import {
 const T = readTokens();
 const DPR = window.devicePixelRatio || 1;
 const EPOCH_LADDER = [0, 1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000];
-const V = { az: 215, el: 38, lr: 0.01, ep: 7, seed: 1, wire: false };
+const V = { az: 215, el: 38, az2: 260, el2: 22, lr: 0.01, ep: 7, seed: 1, wire: false };
 
 const hexLerp = (a, b, t) => {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
@@ -156,7 +174,7 @@ function projector(rect, az, el) {
 }
 
 function reliefInto(ctx, rect, q, dom, opts) {
-  const { height = "log", path = null, cur = null, contours = true, wire = false, tangents = false, az = V.az, el = V.el, G = 44 } = opts;
+  const { height = "log", path = null, cur = null, contours = true, wire = false, tangents = false, az = V.az, el = V.el, G = 44, occlusion = "none" } = opts;
   const hf = HEIGHT[height];
   const P = projector(rect, az, el);
   const nx = (b0) => (b0 - dom.b0[0]) / (dom.b0[1] - dom.b0[0]) - 0.5;
@@ -194,18 +212,83 @@ function reliefInto(ctx, rect, q, dom, opts) {
   quads.sort((u, v) => v.depth - u.depth);
   ctx.save();
   ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
-  ctx.lineWidth = 0.5;
-  for (const qd of quads) {
-    ctx.beginPath();
-    qd.pts.forEach((p, k) => (k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y)));
-    ctx.closePath();
-    if (wire) {
-      ctx.strokeStyle = T.ink3; ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1;
-    } else {
-      ctx.fillStyle = rgb(rampRGB(qd.r), qd.shade);
-      ctx.fill();
-      ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.18; ctx.stroke(); ctx.globalAlpha = 1;
+  const paintQuads = (list, alpha = 1) => {
+    ctx.lineWidth = 0.5;
+    for (const qd of list) {
+      ctx.beginPath();
+      qd.pts.forEach((p, k) => (k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y)));
+      ctx.closePath();
+      if (wire) {
+        ctx.strokeStyle = T.ink3; ctx.globalAlpha = 0.5 * alpha; ctx.stroke(); ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = rgb(rampRGB(qd.r), qd.shade);
+        ctx.globalAlpha = alpha; ctx.fill();
+        ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.18 * alpha; ctx.stroke(); ctx.globalAlpha = 1;
+      }
     }
+  };
+  /* the path as pieces, each knowing its depth, so an occlusion mode can
+     classify it against the mesh */
+  const pathPieces = [];
+  if (path && path.length > 1) {
+    for (let k = 1; k < path.length; k += 1) {
+      const [a0, a1] = path[k - 1], [b0, b1] = path[k];
+      const n = 6;
+      for (let s = 0; s < n; s += 1) {
+        const p = pt(a0 + (b0 - a0) * (s / n), a1 + (b1 - a1) * (s / n));
+        const q2 = pt(a0 + (b0 - a0) * ((s + 1) / n), a1 + (b1 - a1) * ((s + 1) / n));
+        pathPieces.push({ a: p, b: q2, depth: (p.depth + q2.depth) / 2 });
+      }
+    }
+  }
+  const strokePieces = (pieces, { dash = [], alpha = 1, width = 1.6 } = {}) => {
+    if (!pieces.length) return;
+    ctx.save(); ctx.setLineDash(dash); ctx.globalAlpha = alpha; ctx.strokeStyle = T.ink1; ctx.lineWidth = width;
+    ctx.beginPath();
+    for (const pc of pieces) { ctx.moveTo(pc.a.X, pc.a.Y); ctx.lineTo(pc.b.X, pc.b.Y); }
+    ctx.stroke(); ctx.restore();
+  };
+  const curDepth = cur ? pt(cur[0], cur[1]).depth : -Infinity;
+
+  if (occlusion === "translucent") {
+    /* the path first, the whole mesh over it at 55% */
+    strokePieces(pathPieces);
+    paintQuads(quads, 0.55);
+  } else if (occlusion === "glass") {
+    /* only the quads nearer the camera than the current point are glass:
+       the far mesh is opaque, the path goes on, the near wall over it */
+    paintQuads(quads.filter((qd) => qd.depth >= curDepth - 0.01));
+  } else {
+    paintQuads(quads);
+  }
+  /* a depth buffer for the hidden-line mode: each quad's depth as a grey,
+     painted far to near, so a pixel holds the nearest depth; read once */
+  let hiddenPieces = [], visiblePieces = pathPieces;
+  if (occlusion === "hidden" && pathPieces.length) {
+    const off = document.createElement("canvas");
+    off.width = Math.ceil(rect.w); off.height = Math.ceil(rect.h);
+    const oc = off.getContext("2d");
+    oc.fillStyle = "#fff"; oc.fillRect(0, 0, off.width, off.height);
+    const grey = (d) => Math.round(Math.max(0, Math.min(255, ((d + 1.2) / 2.4) * 255)));
+    for (const qd of quads) {
+      const g = grey(qd.depth);
+      oc.fillStyle = `rgb(${g},${g},${g})`;
+      oc.beginPath();
+      qd.pts.forEach((p, k) => (k ? oc.lineTo(p.X - rect.x, p.Y - rect.y) : oc.moveTo(p.X - rect.x, p.Y - rect.y)));
+      oc.closePath(); oc.fill();
+    }
+    const img = oc.getImageData(0, 0, off.width, off.height).data;
+    const bufAt = (X, Y) => {
+      const x = Math.round(X - rect.x), y = Math.round(Y - rect.y);
+      if (x < 0 || y < 0 || x >= off.width || y >= off.height) return 255;
+      return img[(y * off.width + x) * 4];
+    };
+    hiddenPieces = []; visiblePieces = [];
+    for (const pc of pathPieces) {
+      const mx = (pc.a.X + pc.b.X) / 2, my = (pc.a.Y + pc.b.Y) / 2;
+      (grey(pc.depth) > bufAt(mx, my) + 6 ? hiddenPieces : visiblePieces).push(pc);
+    }
+    window.__hiddenFrac = hiddenPieces.length / pathPieces.length;   // for the viewpoint sweep
   }
 
   /* contour rings on the surface: marching squares in parameter space, lifted */
@@ -233,15 +316,19 @@ function reliefInto(ctx, rect, q, dom, opts) {
     ctx.stroke(); ctx.globalAlpha = 1;
   }
 
-  /* the path, on the surface, drawn over the mesh */
-  if (path && path.length > 1) {
-    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    path.forEach(([b0, b1], k) => { const p = pt(b0, b1); k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y); });
-    ctx.stroke();
+  /* the path, on the surface: over the mesh, except where a mode says how
+     the hidden part is treated */
+  if (occlusion === "hidden") {
+    strokePieces(hiddenPieces, { dash: [3, 4], alpha: 0.55, width: 1.2 });
+    strokePieces(visiblePieces);
+  } else if (occlusion !== "translucent") {
+    strokePieces(pathPieces);
+  }
+  if (path && path.length > 1 && occlusion !== "translucent") {
     ctx.fillStyle = T.ink1;
     for (const [b0, b1] of path.slice(0, 4)) { const p = pt(b0, b1); ctx.beginPath(); ctx.arc(p.X, p.Y, 2.2, 0, 2 * Math.PI); ctx.fill(); }
   }
+  if (occlusion === "glass") paintQuads(quads.filter((qd) => qd.depth < curDepth - 0.01), 0.35);
   /* the minimum, a cross on the floor */
   { const m = pt(q.B0, q.B1); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
     ctx.moveTo(m.X - 5, m.Y); ctx.lineTo(m.X + 5, m.Y); ctx.moveTo(m.X, m.Y - 5); ctx.lineTo(m.X, m.Y + 5); ctx.stroke(); }
@@ -332,6 +419,19 @@ function drawAll() {
     reliefInto(ctx, { x: 10, y: 10, w: 300, h: 300 }, Q, DOM, { path: shownPath, cur, wire: V.wire });
   }
   {
+    const host = document.getElementById("occl"); host.innerHTML = "";
+    const S = 300;
+    for (const [mode, name, sub] of [
+      ["none", "as drawn now — the path over the mesh", "the path floats where it should be behind the ridge"],
+      ["translucent", "A · the whole mesh at 55%", "everything shows through; the far wall bleeds through the near one"],
+      ["hidden", "B · hidden line, dashed", "opaque mesh; the occluded pieces dashed and faint, by a depth test"],
+      ["glass", "C · the near wall as glass", "quads nearer than the current point at 35%; the far mesh solid"],
+    ]) {
+      const ctx = panel(host, name, sub, S + 20, S + 20);
+      reliefInto(ctx, { x: 10, y: 10, w: S, h: S }, Q, DOM, { path: shownPath, cur, occlusion: mode, az: V.az2, el: V.el2 });
+    }
+  }
+  {
     const host = document.getElementById("std"); host.innerHTML = "";
     let ctx = panel(host, "standardized x, log height", "lr 0.5, epoch 3: the bowl is round and one step lands", 360, 300);
     reliefInto(ctx, { x: 10, y: 10, w: 340, h: 280 }, QZ, DOMZ, { path: shownPathZ, cur: curZ, tangents: true, wire: V.wire });
@@ -349,6 +449,7 @@ const bind = (id, key, fmtv) => document.getElementById(id).addEventListener("in
   drawAll();
 });
 bind("az", "az", (v) => `${v}°`); bind("el", "el", (v) => `${v}°`);
+bind("az2", "az2", (v) => `${v}°`); bind("el2", "el2", (v) => `${v}°`);
 bind("ep", "ep", (v) => EPOCH_LADDER[v]); bind("seed", "seed", (v) => v); bind("wire", "wire", (v) => v);
 drawAll();
 </script>

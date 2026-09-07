@@ -9855,6 +9855,25 @@ pick**: which height mapping, a fixed viewpoint or a `display` choice of
 two or three, and whether the partials move onto the surface as tangents
 when the relief is on.
 
+**His second question, the same evening: can the occluded part be
+rendered like a transparency?** Yes, three ways, added as §4 of the mock
+at a viewpoint of its own: **A** the whole mesh at 55% over the path —
+everything shows through, the far wall through the near one, and the
+relief flattens; **B** an opaque mesh with the hidden pieces of the path
+drawn dashed and faint, decided per piece by a depth buffer (each quad's
+depth painted as a grey, far to near, read once) — the drawing convention
+for a hidden line, and the relief keeps its shading; **C** only the quads
+nearer the camera than the current point turned to glass at 35%, the far
+mesh solid, so the occluder is the one thing that gives way. The
+viewpoint was swept rather than guessed: over 72 azimuth-elevation pairs
+the share of the path the depth test hides runs from 0 to 0.98; 260° at
+22° hides about half and is the case that separates the treatments, while
+0° at 30° and 320° at 15° hide nearly all of it — which is what a fixed
+viewpoint in the widget must avoid, and a reason the viewpoint is a
+design decision rather than a slider. B is the recommendation: it costs
+one depth-buffer read per viewpoint (cached with the mesh), and it is the
+only one of the three whose surface still reads as a surface.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
