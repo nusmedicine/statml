@@ -3,7 +3,7 @@
 
        node widgets/_lab/gd-verify.mjs
 
-   Imports `widgets/gradient-descent/model.js`, the shipping code and not a
+   Imports `widgets/gradients/model.js`, the shipping code and not a
    copy (5.8). Every check below is either an algebraic identity the widget's
    on-screen claims rest on, or one of the numbers a control's `detail` prints
    — so a failure here means the widget is saying something untrue, not merely
@@ -20,10 +20,11 @@ import {
   N, EPOCHS, LR_LADDER, LOG_CAP,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL, RELIEF_Z, MESH_G,
   makeData, standardize, quad, domainFor, contourSegments,
-  descendFull, descendMini, descendSlope, posAt,
+  descendFull, descendMini, descendSlope, posAt, stepAngle,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
+  gradFn, A_RANGE, B_RANGE, Y_RANGE, Y_LEVELS, NUDGES, isoSegments,
   beatMs, choreographs, epochMs,
-} from "../gradient-descent/model.js";
+} from "../gradients/model.js";
 
 let failed = 0;
 let ran = 0;
@@ -516,15 +517,15 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
  * its own reads fine. */
 console.log("\n=== 12 · the beat length is monotone Slow > Medium > Fast ===");
 {
-  for (const view of ["one", "two"]) {
+  for (const view of ["derivative", "one", "two"]) {
     const [s, m, f] = ["slow", "medium", "fast"].map((sp) => epochMs(view, sp));
-    check(`${view === "one" ? "one parameter" : "two parameters"}: slow > medium > fast`,
+    check(`${view}: slow > medium > fast`,
       s > m && m > f,
       `${s.toFixed(1)} > ${m.toFixed(1)} > ${f.toFixed(1)} ms an epoch`);
   }
   /* And the declaration that goes with it: a choreographed pair reports its
      epoch as its beat, an unchoreographed one reports no beat at all. */
-  const table = [["one", true], ["two", false]];
+  const table = [["derivative", true], ["one", true], ["two", false]];
   let agree = true;
   for (const [view, always] of table) {
     for (const speed of ["slow", "medium", "fast"]) {
@@ -534,7 +535,137 @@ console.log("\n=== 12 · the beat length is monotone Slow > Medium > Fast ===");
     }
   }
   check("beatMs is the epoch where it choreographs and 0 where it does not", agree,
-    "6 (page, speed) pairs; only the surface at medium and fast show arrivals only");
+    "9 (page, speed) pairs; only the surface at medium and fast show arrivals only");
+}
+
+/* -- 13 · THE ANGLE THE MAP PRINTS ----------------------------------------- *
+ * Round 5 §1, and the answer to "why doesn't the gradient go downhill
+ * directly?". The two-parameter map prints the angle between the step and the
+ * straight line to the least-squares point, and the whole claim is that the
+ * number is a fact about the SURFACE and not about the drawing: the mock's
+ * equal-aspect map prints the same 80 degrees the shipped one does. Pinned at
+ * the state the screenshot was taken in — raw x, seed 1, lr 0.003, epoch 10 —
+ * because a sentence stating a measured number is exactly the kind of copy that
+ * goes quietly false when the engine moves. */
+console.log("\n=== 13 · the step is 80 degrees off the straight line on raw x, and 0 on standardized ===");
+{
+  const at = (q, lr, ep) => {
+    const t = descendFull(q, lr, EPOCHS);
+    const k = t.epochAt[Math.min(ep, t.epochsDone)];
+    const [g0, g1] = q.grad(t.b0[k], t.b1[k]);
+    return stepAngle(q, t.b0[k], t.b1[k], g0, g1);
+  };
+  const raw = at(D.raw, 0.003, 10);
+  const std = at(D.std, 0.003, 10);
+  check("raw x, lr 0.003, epoch 10: 80 degrees", Math.round(raw) === 80, `${raw.toFixed(3)} degrees`);
+  check("standardized x, same state: 0 degrees", Math.round(std) === 0, `${std.toFixed(6)} degrees`);
+
+  /* WITH BOTH CURVATURES EQUAL THE GRADIENT POINTS AT THE MINIMUM, everywhere
+     and not only at that one state — the Hessian is 2I, so -grad is a positive
+     multiple of the vector to the least-squares point. That is the argument for
+     standardizing, and it is why the printed angle collapses to 0 the moment
+     the reader moves the `scale` control. */
+  let worstStd = 0;
+  let worstRaw = 0;
+  for (const { raw: r, std: z } of draws) {
+    for (const lr of [0.001, 0.003, 0.01]) {
+      for (const [q, keep] of [[r, false], [z, true]]) {
+        const t = descendFull(q, lr, EPOCHS);
+        for (let e = 1; e <= 40; e += 1) {
+          const k = t.epochAt[Math.min(e, t.epochsDone)];
+          const [g0, g1] = q.grad(t.b0[k], t.b1[k]);
+          const d = stepAngle(q, t.b0[k], t.b1[k], g0, g1);
+          if (d === null) continue;
+          if (keep) worstStd = Math.max(worstStd, d);
+          else worstRaw = Math.max(worstRaw, d);
+        }
+      }
+    }
+  }
+  /* A HUNDREDTH OF A DEGREE, not machine epsilon, and the slack is arithmetic
+     rather than laziness: the angle comes back through `acos`, whose derivative
+     is unbounded at 1, so a cosine that is 1 to within 5e-16 still lands a
+     micro-degree off zero. The panel prints whole degrees, so anything under
+     half a degree reads 0 — this is two orders inside that. */
+  check("standardized x is 0 at every epoch, 12 walks", worstStd < 0.01,
+    `worst ${worstStd.toExponential(2)} degrees`);
+  check("raw x is not, so the line has something to say", worstRaw > 45,
+    `worst ${worstRaw.toFixed(1)} degrees`);
+
+  /* At the minimum there is no straight line to be off, and the panel says "the
+     walk is at the minimum" instead of printing a number it cannot have. */
+  check("null at the least-squares point itself",
+    stepAngle(D.raw, D.raw.B0, D.raw.B1, ...D.raw.grad(D.raw.B0, D.raw.B1)) === null,
+    "no direction either way");
+}
+
+/* -- 14 · THE TWO CONCEPT TABS' FUNCTION ------------------------------------ *
+ * y = a^2 + 3ab, differentiated at (2, 1). 7 and 6 are the numbers 05-1's
+ * autograd prints, and they are on screen twice over — the gradient arrow's
+ * label and the two slice notes — so they get a reader here. */
+console.log("\n=== 14 · y = a^2 + 3ab: the derivative, the partials, and the gap ===");
+{
+  check("dy/da at (2, 1) is 7 and dy/db is 6",
+    gradFn.da(2, 1) === 7 && gradFn.db(2) === 6 && gradFn.y(2, 1) === 10,
+    `y ${gradFn.y(2, 1)}, ∂y/∂a ${gradFn.da(2, 1)}, ∂y/∂b ${gradFn.db(2)}`);
+
+  /* The partials against a central difference, at points spread over the
+     window the two tabs draw — the same check section 1 makes on the loss. */
+  const H = 1e-4;
+  let worst = 0;
+  for (let i = 0; i <= 10; i += 1) {
+    for (let j = 0; j <= 10; j += 1) {
+      const a = A_RANGE[0] + (i / 10) * (A_RANGE[1] - A_RANGE[0]);
+      const b = B_RANGE[0] + (j / 10) * (B_RANGE[1] - B_RANGE[0]);
+      worst = Math.max(
+        worst,
+        Math.abs(gradFn.da(a, b) - (gradFn.y(a + H, b) - gradFn.y(a - H, b)) / (2 * H)),
+        Math.abs(gradFn.db(a) - (gradFn.y(a, b + H) - gradFn.y(a, b - H)) / (2 * H)),
+      );
+    }
+  }
+  check("analytic = numerical, 242 partials", worst < 1e-8, `worst |Δ| ${worst.toExponential(2)}`);
+
+  /* THE CLAIM THE NUDGE LADDER EXISTS TO MAKE. What the tangent misses over a
+     nudge of d is d^2 exactly — no a and no b in it — which is what the
+     Derivative tab prints as "the gap = Δa²" at every rung. */
+  let gapWorst = 0;
+  for (const d of NUDGES) {
+    for (let i = 0; i <= 10; i += 1) {
+      const a = A_RANGE[0] + (i / 10) * (A_RANGE[1] - A_RANGE[0]);
+      const moved = gradFn.y(a + d, B_RANGE[1]) - gradFn.y(a, B_RANGE[1]);
+      gapWorst = Math.max(gapWorst, Math.abs(moved - gradFn.da(a, B_RANGE[1]) * d - d * d));
+    }
+  }
+  check(`the gap is Δa² at all ${NUDGES.length} rungs`, gapWorst < 1e-12,
+    `worst |Δ| ${gapWorst.toExponential(2)}; ladder ${NUDGES.join(" ")}`);
+  check("the ladder falls, 1 down to 0.01",
+    NUDGES.every((v, i) => i === 0 || v < NUDGES[i - 1]) && NUDGES.at(-1) === 0.01,
+    `${NUDGES.length} rungs, gap ${NUDGES[0] ** 2} down to ${NUDGES.at(-1) ** 2}`);
+
+  /* The window the map is painted in has to hold the function's own extremes,
+     or the colour bar's end labels name values no pixel carries. */
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i <= 200; i += 1) {
+    for (let j = 0; j <= 200; j += 1) {
+      const v = gradFn.y(
+        A_RANGE[0] + (i / 200) * (A_RANGE[1] - A_RANGE[0]),
+        B_RANGE[0] + (j / 200) * (B_RANGE[1] - B_RANGE[0]),
+      );
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+  }
+  check("the ramp's ends are the function's own, over the window",
+    Math.abs(lo - Y_RANGE[0]) < 1e-9 && Math.abs(hi - Y_RANGE[1]) < 1e-9,
+    `sampled [${lo}, ${hi}] against declared [${Y_RANGE.join(", ")}]`);
+
+  /* And the rings are drawn, on the generalised marching squares the loss
+     surface now shares — a refactor that could have left either map bare. */
+  const segs = isoSegments(gradFn.y, A_RANGE, B_RANGE, Y_LEVELS);
+  check(`${Y_LEVELS.length} levels every 4 draw rings on the map`, segs.length > 200,
+    `${segs.length} segments, levels ${Y_LEVELS[0]} to ${Y_LEVELS.at(-1)}`);
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

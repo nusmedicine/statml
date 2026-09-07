@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab · widget 48 gradient-descent — the surface in relief</title>
+<title>Lab · widget 48 gradients — the surface in relief</title>
 <link rel="stylesheet" href="../core/tokens.css">
 <style>
   .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
@@ -28,7 +28,7 @@
 </head>
 <body>
 <main class="lab">
-  <h1>Widget 48 · gradient-descent — the surface in relief, as an option</h1>
+  <h1>Widget 48 · gradients — the surface in relief, as an option</h1>
 
   <p class="note">
     Kenneth's question (2026-09-07): could the surface be shown in 3D? Drawn here with no library — a
@@ -119,7 +119,7 @@ import { makeRng } from "../core/rng.js";
 import { readTokens } from "../core/env.js";
 import {
   LR_LADDER, LOG_CAP, LEVELS, makeData, standardize, quad, domainFor, descendFull,
-} from "../gradient-descent/model.js";
+} from "../gradients/model.js";
 
 const T = readTokens();
 const DPR = window.devicePixelRatio || 1;

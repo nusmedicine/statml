@@ -1,5 +1,10 @@
 /* ============================================================================
-   Widget 48 · Gradient Descent — the step, the learning rate, the surface.
+   Widget 48 · Gradients — a derivative, the partials, and the descent.
+
+   Three tabs in the lesson's own order: Derivative · Partial derivatives ·
+   Descent. Decision blocks 1-6 below are about Descent, which was the whole
+   widget until 2026-09-08 and is unchanged apart from the two picks in block 7;
+   block 7 is the rename and the two new tabs.
 
    PHM5005 05-2 cells 73-78 (the worked example), 05-1 cell 4 (the update rule
    over the hill picture), 05-4 cell 41 (too high is unstable, too low is slow)
@@ -155,6 +160,95 @@
       for `speed` was the obvious smaller change and is not expressible — the
       URL omits a parameter at its default, so the two pages share one.
 
+   7. THE RENAME, AND THE TWO TABS IN FRONT OF THE WALK (2026-09-08). Kenneth,
+      round 5: *"consider basics first — a tab for concepts, differentiation and
+      partial differentiation. Maybe call it Gradients, with tabs like diff and
+      optimization."* Mocked in `_lab/gd-round5.html` §3 and picked from it, with
+      the rename to land now rather than at promotion.
+
+      THE ORDER IS THE LESSON'S. A derivative is how much y changes for a small
+      change in a; a partial derivative is that with the other variables held,
+      and the gradient is the vector of them; descent steps against that vector.
+      The slug follows the widget: `gradients`, because descent is now the last
+      third of it and a name for the whole is a name for the argument.
+
+      BOTH NEW TABS ARE THE SAME FUNCTION, y = a^2 + 3ab, which 05-1 differentiates
+      at (2, 1) and prints 7 and 6 for. One function across two tabs is what
+      makes the second tab a reading of the first rather than a fresh example,
+      and the numbers are the ones the reader has already seen printed.
+
+      WHAT EACH CLAIMS.
+        Derivative — the tangent's slope is dy/da, and a nudge of Δa moves y by
+          about that slope times Δa. What the tangent misses is EXACTLY Δa^2 on
+          this function (model.js says why), so the ladder from 1 down to 0.01
+          takes the gap from 1 to 0.0001 and the approximation is seen to
+          improve rather than asserted to.
+        Partial derivatives — each partial is the slope along one variable with
+          the other held, drawn as a slice beside the map; the gradient is the
+          pair, and it points uphill.
+
+      THE PARTIAL DERIVATIVES TAB DECLINES BOTH DRIVE BUTTONS (4.5). Everything
+      on it is at rest: two sliders move a point over a fixed function, and
+      there is no arrival to wait for. It declines them through `anim.inert`
+      rather than `stepLabel: null`, which core reads once when the shell is
+      built and could not then give the other two tabs their buttons back —
+      `hierarchical-clustering` is the same shape.
+
+      THE DRIVE BUTTON SAYS "SHRINK THE NUDGE" AND NOT "HALVE" IT. The brief
+      asked for Halve; the ladder is 1 · 0.5 · 0.25 · 0.1 · 0.05 · 0.01 and two
+      of its five rungs are a fifth and a two-and-a-half, so the button would
+      have been false on the press that made it (4.4b). What the ladder is for
+      is four orders of the gap in six readable numbers, not a halving sequence.
+
+      THE DERIVATIVE PANEL CARRIES EXACTLY ONE LABEL, the slope on the tangent.
+      Δa and the gap were labelled on the figure too and both came off: a
+      fillText BOX sweep at four widths over the whole window found 44 label
+      collisions and 528 escapes past the panel edge between them. Their numbers
+      are on the line under the panel and in the readout, which have room; what
+      has to sit on a mark is the number that mark IS.
+
+      THE ARROW ON THE (a, b) MAP IS BUILT IN PARAMETER UNITS, which decision 1
+      forbids on the loss surface. The difference is that nothing follows it:
+      decision 1's trap is an arrow that points somewhere the dot does not then
+      go, and on this tab no dot goes anywhere. What the arrow claims is uphill,
+      and a monotone pair of scales cannot turn uphill into downhill. The panel
+      is square over a 5-by-4 window, so the arrow is 1.25x off perpendicular to
+      the rings; nothing on screen says it is perpendicular.
+
+      THE MAP SITS WHERE THE LOSS SURFACE SITS — the right-hand square, same
+      rect — rather than on the left as the mock had it, so the two parameter
+      maps land in the same place as the reader moves between tabs. The two
+      slices take the left column the data panel holds on Descent.
+
+      AND THE TWO PICKS OFF ROUND 5 §1 AND §2, both on Descent.
+
+      THE ANGLE, AND THE STRAIGHT LINE IT IS MEASURED FROM (§1). Kenneth: *"why
+      doesn't the gradient go downhill directly? it's descending by one
+      parameter then the next — is this what actually happens?"* It is not, and
+      the widget drew the answer without saying it. The map now draws the
+      straight line from the walk to the least-squares point faint and dashed,
+      and a line under the figure states the angle between that line and the
+      step: 80 degrees at lr 0.003 and epoch 10 on raw x, 0 on standardized x,
+      both re-measured in `gd-verify.mjs`. It is `model.js`'s `stepAngle` and not
+      arithmetic in the panel, because the number is a fact about the surface
+      and not about the drawing — the equal-aspect mock prints the same 80.
+
+      THE LINE GOT ITS OWN ROW AND THE STAGE GREW 18px FOR IT. There was no gap
+      to put it in: the beat line sits at +78 under the panels and the loss
+      strip's caption at +96, and a sentence 407px long does not fit beside
+      either at the widths this widget is drawn at. Squeezing it under the
+      colour bar fits at 900px and collides at 550. So the strip moved down one
+      line box and `stageHeight` went from side + 240 to side + 258; the row is
+      reserved on every page and filled only on the two-parameter map (3.4k).
+
+      CHOREOGRAPHY A ON THE ONE-PARAMETER PAGE (§2). Kenneth: the tangent *"moves
+      then redraws (like expanding out) at each step"*. It did: the segment grew
+      from its centre at the start of every epoch. Now it is always at full
+      length and rolls with the point; each epoch holds at the point for 40% of
+      the beat with the arrow and its number, then moves for the other 60% with
+      an ease-in-out. Picked live from five candidates against the current
+      behaviour, which was E.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -162,10 +256,11 @@
 import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import {
   N, EPOCHS, LR_LADDER, BATCHES, LOG_CAP, LEVELS,
-  makeData, standardize, quad, domainFor, contourSegments,
-  descendFull, descendMini, descendSlope, posAt,
+  makeData, standardize, quad, domainFor, contourSegments, isoSegments,
+  descendFull, descendMini, descendSlope, posAt, stepAngle,
   projector, reliefMesh, reliefPoint, reliefHidden,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL,
+  gradFn, A_RANGE, B_RANGE, Y_RANGE, Y_LEVELS, NUDGES,
   beatMs, choreographs, epochMs,
 } from "./model.js";
 
@@ -183,39 +278,64 @@ const LOSS_H = 70;
 const surfSide = (w) =>
   Math.round(Math.max(180, Math.min(300, (w - PAD_L - PAD_R - SURF_GUTTER) * 0.46)));
 
-/* ONE HEIGHT FOR BOTH PAGES. The one-parameter panel is sized to make the loss
-   strip land on the same y on either page, so switching pages moves the rail
-   and nothing else. */
-const stageHeight = (w) => surfSide(w) + 240;
+/* ONE HEIGHT FOR ALL THREE TABS, and for both Descent pages. The one-parameter
+   panel is sized to make the loss strip land on the same y on either page, and
+   the two concept panels are sized to end where the strip's axis label does, so
+   moving between tabs or pages moves the rail and nothing else (3.4).
+
+   side + 258, not + 240: the angle line took a line box of its own under the
+   two-parameter map (decision 7) and every page reserves it. */
+const stageHeight = (w) => surfSide(w) + 258;
 
 function layout(w) {
   const side = surfSide(w);
+  const full = w - PAD_L - PAD_R;
+  const left = w - PAD_L - PAD_R - SURF_GUTTER - side;
+  /* The two slices of the Partial derivatives tab stack in the column the data
+     panel holds on Descent: 30px for each one's ticks and axis label, 24 for
+     the lower one's caption. */
+  const sliceH = Math.max(60, Math.round((side - 54) / 2));
   return {
     side,
-    data: { x: PAD_L, y: TOP, w: w - PAD_L - PAD_R - SURF_GUTTER - side, h: side },
+    data: { x: PAD_L, y: TOP, w: left, h: side },
     surf: { x: w - PAD_R - side, y: TOP, w: side, h: side },
-    slice: { x: PAD_L, y: TOP, w: w - PAD_L - PAD_R, h: side },   // the surface's height, so the axis label clears the regime line beneath (measured: at +24 they overlapped by 6px)
-    strip: { x: PAD_L, y: TOP + side + 104, w: w - PAD_L - PAD_R, h: LOSS_H },
+    slice: { x: PAD_L, y: TOP, w: full, h: side },   // the surface's height, so the axis label clears the regime line beneath (measured: at +24 they overlapped by 6px)
+    strip: { x: PAD_L, y: TOP + side + 122, w: full, h: LOSS_H },
     regimeY: TOP + side + 60,   // the one-parameter page's line naming the regime
     phaseY: TOP + side + 78,    // what this beat of a Slow step is doing
+    angleY: TOP + side + 96,    // where the step points, against the straight line
+    /* The Derivative tab: one panel over the whole width, with one line under
+       it, ending where the strip's own axis label ends on Descent. */
+    curve: { x: PAD_L, y: TOP, w: full, h: stageHeight(w) - TOP - 60 },
+    curveY: TOP + (stageHeight(w) - TOP - 60) + 46,
+    /* The Partial derivatives tab: the map in the surface's own square, the two
+       slices in the left column. */
+    partA: { x: PAD_L, y: TOP, w: left, h: sliceH },
+    partB: { x: PAD_L, y: TOP + side - sliceH, w: left, h: sliceH },
   };
 }
 
-/* One choreographed epoch, in shares of the beat clock `model.js` holds — 2 s
-   at Slow over the surface, 2.5 / 1.2 / 0.4 s on the one-parameter page, which
-   choreographs at every speed (decision 6). Two-parameter page: the partials
-   appear, the direction composes, the point moves. One-parameter page: the
-   tangent and the gradient vector appear, then the step. The move phase
-   interpolates along the stored update indices, so at batch 10 or 1 the epoch's
-   ten or hundred updates are drawn as they happen rather than as one jump. */
-const BEATS_TWO = { partials: 0.34, direction: 0.55 };
-const BEATS_ONE = { tangent: 0.45 };
+/* One choreographed beat, in shares of the clock `model.js` holds — 2 s at Slow
+   over the surface, 2.5 / 1.2 / 0.4 s on the one-parameter and Derivative
+   pages, which choreograph at every speed (decision 6). Two-parameter page: the
+   partials appear, the direction composes, the point moves. One-parameter page:
+   the tangent and the gradient vector hold at the point, then the step. The
+   move phase interpolates along the stored update indices, so at batch 10 or 1
+   the epoch's ten or hundred updates are drawn as they happen rather than as
+   one jump.
 
-/* The tangent's first beat, eased rather than linear. Growing at a constant
-   rate across the whole 0.9 s the segment is at half its length halfway through
-   and reads as a slow drift rather than as a line being drawn; eased it is at
-   three quarters by then and settled well before the point starts to move. */
-const easeOut = (t) => 1 - (1 - t) ** 2;
+   `hold` REPLACED A GROWTH RAMP (decision 7). The tangent used to grow from its
+   centre over the first 45% of every epoch; it is now always at full length,
+   and the first 40% is a pause at the point with the arrow and its number. */
+const BEATS_TWO = { partials: 0.34, direction: 0.55 };
+const BEATS_ONE = { hold: 0.4 };
+const BEATS_NUDGE = { hold: 0.35 };
+
+/* Choreography A's ease: the point leaves slowly, crosses quickly and settles.
+   Picked live against four alternatives in `_lab/gd-round5.html` §2. The
+   Derivative tab's shrinking nudge uses it for the same reason — the ends of
+   the move are where the reader is reading the numbers. */
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) ** 2);
 
 const ARROW = 30;         // the composed direction's fixed length, in pixels
 const Y_DOM = [0, 30];    // y = 5 + 2x + N(0, 1) over x in [0, 10], both scales
@@ -424,22 +544,24 @@ function drawData(ctx, colors, rect, state, cur, scale) {
   ctx.restore();
 }
 
-/* The colour bar, in place of any sentence about the ramp: 1x to 316x the
-   least loss, on a log scale, the cap shown rather than said. */
-function drawColourBar(ctx, colors, rect) {
+/* The colour bar, in place of any sentence about the ramp: the ends shown
+   rather than said. Both maps in this widget use it — the loss surface's log
+   ratios and the Partial derivatives tab's y — so the ends and the middle line
+   are the caller's. */
+function drawColourBar(ctx, colors, rect, { low, high, left, right, middle }) {
   const bar = { x: rect.x, y: rect.y + rect.h + 46, w: rect.w, h: 8 };
   const STEPS = 48;
   for (let i = 0; i < STEPS; i += 1) {
-    ctx.fillStyle = hexLerp(colors.costLow, colors.costHigh, i / (STEPS - 1));
+    ctx.fillStyle = hexLerp(low, high, i / (STEPS - 1));
     ctx.fillRect(bar.x + (i / STEPS) * bar.w, bar.y, bar.w / STEPS + 1, bar.h);
   }
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
-  label(ctx, colors, "1×", bar.x, bar.y + bar.h + 13);
-  label(ctx, colors, `≥${Math.round(10 ** LOG_CAP)}×`, bar.x + bar.w, bar.y + bar.h + 13, { align: "right" });
+  label(ctx, colors, left, bar.x, bar.y + bar.h + 13);
+  label(ctx, colors, right, bar.x + bar.w, bar.y + bar.h + 13, { align: "right" });
   if (bar.w >= 230) {
-    label(ctx, colors, "loss ÷ the least, log scale", bar.x + bar.w / 2, bar.y + bar.h + 13, { align: "center" });
+    label(ctx, colors, middle, bar.x + bar.w / 2, bar.y + bar.h + 13, { align: "center" });
   }
 }
 
@@ -474,6 +596,24 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
+  /* THE STRAIGHT LINE TO THE MINIMUM (decision 7), under the path so the walk
+     reads over it. Faint and dashed: it is not a route anything takes — it is
+     the route the reader expects the step to take, and the angle line under the
+     panel says how far from it the step actually goes. Drawn only while there
+     is a disagreement to see, so it disappears as the walk arrives rather than
+     collapsing to a dot on the cross. */
+  if (held && opts.showStep && !opts.arrived) {
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = colors.extreme;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(plot.sx(cur[0]), plot.sy(cur[1]));
+    ctx.lineTo(plot.sx(q.B0), plot.sy(q.B1));
+    ctx.stroke();
+    ctx.restore();
+  }
   drawPath(ctx, colors, plot.sx, plot.sy, track, opts.upto, cur);
   /* The minimum is crossed only once the walk is within 1% of the least loss:
      the widget does not open on its own answer (2.1). */
@@ -886,16 +1026,21 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      translates without following the curve." Evaluated here it rolls with the
      curve and arrives as the tangent at the new point.
 
+     AND IT IS ALWAYS AT FULL LENGTH — choreography A, decision 7. It used to
+     grow from its centre over the first 45% of every epoch, which Kenneth read
+     as the tangent "moving then redrawing, like expanding out"; the growth is
+     gone and the beat's first 40% is a pause at the point instead.
+
      THE READOUT AND THE BEAT CAPTION KEEP THE FLOORED ONE, and the two do not
      disagree: `descendSlope` stores at every index exactly the gradient this
      line recomputes, so at rest and at both unchoreographed speeds the number
      printed is the slope drawn. They part only mid-move, where they are
      answering different questions — what decided this step, against what the
      surface does under the point now. */
-  if (opts.tangentMix > 0) {
+  if (opts.showStep) {
     const b1 = cur[1];
     const g = q.grad(q.B0, b1)[1];
-    const span = (range[1] - range[0]) * 0.16 * opts.tangentMix;
+    const span = (range[1] - range[0]) * 0.16;
     const L = f(b1);
     ctx.strokeStyle = colors.highlight;
     ctx.lineWidth = 2;
@@ -911,8 +1056,9 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      own fixed pixel length and carrying the partial's value in the lettering
      the map's component ticks carry theirs in.
 
-     IT KEEPS THE GRADIENT THAT LEFT THE START of the step while the tangent
-     above rolls with the curve, and the two are answering different questions:
+     IT RIDES THE MOVING POINT AND KEEPS THE GRADIENT THAT LEFT THE START of the
+     step while the tangent above rolls with the curve, and the two are
+     answering different questions:
      the arrow is the number that decided this step, the tangent is what the
      surface does under the point now. At rest and at an epoch boundary they
      agree, because `descendSlope` stores at every index exactly the slope the
@@ -928,12 +1074,12 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      22 to 28px clear at epoch 10. By epoch 3 of the raw walk the tangent has
      flattened onto the arrow's own line, which is the figure saying the slope
      is gone rather than two marks colliding. */
-  if (opts.vectorMix > 0 && Number.isFinite(opts.grad) && opts.grad !== 0) {
+  if (opts.showStep && Number.isFinite(opts.grad) && opts.grad !== 0) {
     const ax = plot.sx(cur[1]);
     const ay = plot.sy(f(cur[1]));
     const dir = opts.grad > 0 ? -1 : 1;
     const x0 = ax + dir * 9;
-    const x1 = x0 + dir * ARROW * opts.vectorMix;
+    const x1 = x0 + dir * ARROW;
     if (Math.abs(x1 - x0) > 3) {
       arrow(ctx, x0, ay, x1, ay, colors.highlight, 2.5);
       label(ctx, colors, `∂L/∂b₁ ${fSig(opts.grad)}`, x1 + dir * 5, ay - 7,
@@ -986,6 +1132,264 @@ function drawStrip(ctx, colors, rect, state, ep) {
   ctx.restore();
 }
 
+/* ---- the Derivative tab ---------------------------------------------------
+   y = a² + 3ab with b held, the tangent at a, and the nudge drawn as a right
+   triangle against what y actually does. The gap between the two is Δa², which
+   is what the ladder is walked down to show.                                  */
+
+/* b is a constant on this page and not a control: the tab is about ONE
+   variable, and a second slider would make it about two a tab early. The
+   caption says so where the reader is looking. */
+const B_HELD = 1;
+
+/* The window, fixed (2.5): y over a in [-1, 4] with b at 1 runs -2 to 28. A
+   nudge can walk its target off the right-hand edge, and the panel says so
+   rather than the frame chasing it. */
+const DERIV_Y = [-4, 30];
+
+function drawDerivative(ctx, colors, rect, a, da) {
+  const plot = makePlot({ ctx, colors, rect, xDomain: A_RANGE, yDomain: DERIV_Y });
+  plot.caption(`y = a² + 3ab over a, with b held at ${B_HELD}`);
+
+  const y0 = gradFn.y(a, B_HELD);
+  const slope = gradFn.da(a, B_HELD);
+  const aT = a + da;
+  const yTrue = gradFn.y(aT, B_HELD);
+  const yPred = y0 + slope * da;
+  if (aT > A_RANGE[1] || Math.max(yTrue, yPred) > DERIV_Y[1]) {
+    plot.note("the nudge leaves the frame", { tone: colors.extreme });
+  }
+  plot.axisX({ label: "a" });
+  plot.axisY({ label: "y" });
+
+  const pts = [];
+  for (let k = 0; k <= 160; k += 1) {
+    const v = A_RANGE[0] + (k / 160) * (A_RANGE[1] - A_RANGE[0]);
+    pts.push([v, gradFn.y(v, B_HELD)]);
+  }
+  plot.curve(pts, { stroke: colors.ink2, width: 1.5 });
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+
+  const span = (A_RANGE[1] - A_RANGE[0]) * 0.24;
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(a - span), plot.sy(y0 - slope * span));
+  ctx.lineTo(plot.sx(a + span), plot.sy(y0 + slope * span));
+  ctx.stroke();
+
+  /* THE NUDGE AS A RIGHT TRIANGLE: Δa along, and the rise the tangent's slope
+     predicts over it. Dashed, because neither leg is a thing the function does
+     — they are the linear guess, and the solid mark beside them is the error in
+     it. */
+  const px0 = plot.sx(a);
+  const pxT = plot.sx(aT);
+  const py0 = plot.sy(y0);
+  const pyPred = plot.sy(yPred);
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = colors.ink1;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px0, py0);
+  ctx.lineTo(pxT, py0);
+  ctx.lineTo(pxT, pyPred);
+  ctx.stroke();
+  ctx.restore();
+
+  const pyTrue = plot.sy(yTrue);
+  ctx.strokeStyle = colors.extreme;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pxT, pyPred);
+  ctx.lineTo(pxT, pyTrue);
+  ctx.stroke();
+  ctx.fillStyle = colors.extreme;
+  ctx.beginPath();
+  ctx.arc(pxT, pyTrue, 3, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ringedDot(ctx, colors, px0, py0);
+  ctx.restore();
+
+  /* ONE LABEL ON THIS PANEL, AND IT IS THE SLOPE. Δa and the gap were labelled
+     too and both had to go: at the top rung with a shallow slope their boxes
+     ran into this one, and at a past 2.5 this one ran off the right edge into
+     the clip and lost its digits — a box sweep at four widths over the whole
+     (a, b) window found 44 collisions and 528 escapes between them. The nudge's
+     two numbers are one line below the panel and again in the readout, where
+     they have room; what has to sit ON the tangent is the number the tangent
+     IS. Drawn outside the clip and clamped by its own measured width, so it can
+     be neither cut nor pushed out. */
+  const slopeText = `dy/da ${f2(slope)}`;
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const tw = ctx.measureText(slopeText).width;
+  ctx.restore();
+  label(ctx, colors, slopeText,
+    Math.max(rect.x + 4, Math.min(rect.x + rect.w - 4 - tw, plot.sx(a + span) + 5)),
+    Math.max(rect.y + 12, Math.min(rect.y + rect.h - 4, plot.sy(y0 + slope * span) - 6)),
+    { color: colors.highlight });
+}
+
+/* ---- the Partial derivatives tab ------------------------------------------
+   The same function over both variables: the map on the right where the loss
+   surface sits, the two slices stacked in the column the data panel holds, and
+   the gradient as one arrow carrying both numbers.                            */
+
+/* Painted once per size and theme — the function is fixed, so unlike the loss
+   surface there is nothing else for the key to carry. The rings are baked in
+   with it for the same reason the loss surface's are. */
+let valueCache = null;
+function valueBitmap(wpx, hpx, dpr, colors) {
+  const key = `${wpx}x${hpx}:${colors.valueLow}:${colors.valueHigh}:${colors.surface}`;
+  if (valueCache && valueCache.key === key) return valueCache.canvas;
+  const cv = document.createElement("canvas");
+  cv.width = wpx;
+  cv.height = hpx;
+  const c = cv.getContext("2d");
+  const [lo, hi] = Y_RANGE;
+  const CELL = 2;
+  for (let px = 0; px < wpx; px += CELL) {
+    const a = A_RANGE[0] + (px / wpx) * (A_RANGE[1] - A_RANGE[0]);
+    for (let py = 0; py < hpx; py += CELL) {
+      const b = B_RANGE[1] - (py / hpx) * (B_RANGE[1] - B_RANGE[0]);
+      c.fillStyle = hexLerp(colors.valueLow, colors.valueHigh, (gradFn.y(a, b) - lo) / (hi - lo));
+      c.fillRect(px, py, CELL, CELL);
+    }
+  }
+  const ax = (v) => ((v - A_RANGE[0]) / (A_RANGE[1] - A_RANGE[0])) * wpx;
+  const by = (v) => hpx - ((v - B_RANGE[0]) / (B_RANGE[1] - B_RANGE[0])) * hpx;
+  c.strokeStyle = colors.surface;
+  c.globalAlpha = 0.55;
+  c.lineWidth = dpr;
+  c.beginPath();
+  for (const [x0, y0, x1, y1] of isoSegments(gradFn.y, A_RANGE, B_RANGE, Y_LEVELS)) {
+    c.moveTo(ax(x0), by(y0));
+    c.lineTo(ax(x1), by(y1));
+  }
+  c.stroke();
+  valueCache = { key, canvas: cv };
+  return cv;
+}
+
+function drawValueMap(ctx, colors, rect, a, b) {
+  const plot = makePlot({ ctx, colors, rect, xDomain: A_RANGE, yDomain: B_RANGE });
+  plot.caption("y over every (a, b)");
+  plot.axisX({ label: "a" });
+  plot.axisY({ label: "b" });
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ctx.drawImage(
+    valueBitmap(Math.round(rect.w * dpr), Math.round(rect.h * dpr), dpr, colors),
+    rect.x, rect.y, rect.w, rect.h,
+  );
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+  const px = plot.sx(a);
+  const py = plot.sy(b);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+
+  /* The two slices, as the lines they are cut along: each partial derivative
+     varies one of these and holds the other, and the panels beside the map are
+     what the function does along them. */
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = colors.ink1;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(A_RANGE[0]), py);
+  ctx.lineTo(plot.sx(A_RANGE[1]), py);
+  ctx.moveTo(px, plot.sy(B_RANGE[0]));
+  ctx.lineTo(px, plot.sy(B_RANGE[1]));
+  ctx.stroke();
+  ctx.restore();
+
+  /* THE GRADIENT, POINTING UPHILL. Its direction is the parameter-space pair
+     mapped through the panel's own scales and then normalised to the map's
+     fixed pixel length, so the arrow is the same size wherever it stands and
+     still points where (∂y/∂a, ∂y/∂b) points. Decision 7 says why this is
+     allowed here where decision 1 forbids it on the loss surface. */
+  const ga = gradFn.da(a, b);
+  const gb = gradFn.db(a);
+  const gl = Math.hypot(ga, gb);
+  let tip = null;
+  if (gl > 0) {
+    const dx = plot.sx(a + ga / gl) - px;
+    const dy = plot.sy(b + gb / gl) - py;
+    const len = Math.hypot(dx, dy);
+    tip = [px + (ARROW * dx) / len, py + (ARROW * dy) / len];
+    arrow(ctx, px, py, tip[0], tip[1], colors.highlight, 2.5);
+  }
+  ringedDot(ctx, colors, px, py);
+  ctx.restore();
+
+  /* Outside the clip and clamped into the panel BY ITS OWN WIDTH: at the
+     top-right corner the arrow itself runs off the frame, and the two numbers
+     the tab exists for would go with it. Clamping the anchor is not enough — a
+     left-aligned label anchored one pixel inside the edge still hangs 80px out,
+     which is what a box sweep at 550px caught. Measured with the font `label`
+     is about to set, so the two cannot disagree. */
+  const text = tip ? `∇y = (${f1(ga)}, ${f1(gb)})` : "∇y = (0, 0)";
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const tw = ctx.measureText(text).width;
+  ctx.restore();
+  if (tip) {
+    const lx = Math.max(rect.x + 4,
+      Math.min(rect.x + rect.w - 4 - tw, tip[0] + (tip[0] < px ? -5 - tw : 5)));
+    const ly = Math.max(rect.y + 12, Math.min(rect.y + rect.h - 4, tip[1] + (tip[1] < py ? -7 : 14)));
+    label(ctx, colors, text, lx, ly, { color: colors.highlight });
+  } else {
+    label(ctx, colors, text, rect.x + 6, rect.y + 14, { color: colors.highlight });
+  }
+}
+
+/* One slice: y along one variable with the other held, its tangent, and the
+   slope that tangent has. Both panels share a y window — the function's own
+   range over the map — so the two slices are read against each other and
+   against the colour bar under the map. */
+const SLICE_PAD = (Y_RANGE[1] - Y_RANGE[0]) * 0.06;
+const SLICE_Y = [Y_RANGE[0] - SLICE_PAD, Y_RANGE[1] + SLICE_PAD];
+
+function drawValueSlice(ctx, colors, rect, opts) {
+  const plot = makePlot({ ctx, colors, rect, xDomain: opts.xDomain, yDomain: SLICE_Y });
+  plot.caption(opts.caption);
+  plot.note(opts.note, { tone: colors.highlight });
+  plot.axisX({ label: opts.xLabel });
+  plot.axisY({});
+  const pts = [];
+  for (let k = 0; k <= 80; k += 1) {
+    const v = opts.xDomain[0] + (k / 80) * (opts.xDomain[1] - opts.xDomain[0]);
+    pts.push([v, opts.f(v)]);
+  }
+  plot.curve(pts, { stroke: colors.ink2, width: 1.5 });
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+  const span = (opts.xDomain[1] - opts.xDomain[0]) * 0.18;
+  const y0 = opts.f(opts.at);
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(opts.at - span), plot.sy(y0 - opts.slope * span));
+  ctx.lineTo(plot.sx(opts.at + span), plot.sy(y0 + opts.slope * span));
+  ctx.stroke();
+  ringedDot(ctx, colors, plot.sx(opts.at), plot.sy(y0));
+  ctx.restore();
+}
+
 /* ---- the formula card ----------------------------------------------------
    MathML where the engine renders it, with a plain fallback where it does not
    (widget 14's rule: an older engine drops the <math> wrapper and runs the
@@ -1000,6 +1404,7 @@ const mi = (t) => `<mi>${t}</mi>`;
 const mo = (t) => `<mo>${t}</mo>`;
 const mn = (t) => `<mn>${t}</mn>`;
 const msub = (b, s) => `<msub>${b}${s}</msub>`;
+const msup = (b, s) => `<msup>${b}${s}</msup>`;
 const frac = (a, b) => `<mfrac>${a}${b}</mfrac>`;
 const MB0 = msub(mi("b"), mn("0"));
 const MB1 = msub(mi("b"), mn("1"));
@@ -1019,16 +1424,35 @@ const CARD = {
   d1: MATHML
     ? mml(`${frac(mn("2"), mi("n"))}${SUM}${RESID}${msub(mi("x"), mi("i"))}`)
     : "(2/n) Σ (b₀ + b₁xᵢ − yᵢ) xᵢ",
+  /* The two concept tabs' function and its derivatives. Same shape as the rows
+     above: the label in the gutter names the quantity, the body is only the
+     expression. */
+  fn: MATHML
+    ? mml(`${mi("y")}${mo("=")}${msup(mi("a"), mn("2"))}${mo("+")}${mn("3")}${mi("a")}${mi("b")}`)
+    : "y = a² + 3ab",
+  fa: MATHML
+    ? mml(`${mn("2")}${mi("a")}${mo("+")}${mn("3")}${mi("b")}`)
+    : "2a + 3b",
+  fb: MATHML ? mml(`${mn("3")}${mi("a")}`) : "3a",
 };
 
 const GUTTER = "4.9em";   // the widest label, "∂L/∂b₀", at the card's font size
-const CARD_MIN = "10em";  // the four rows of the two-parameter page; the
-                          // three-row page keeps the reserve so the figure
-                          // does not jog between them (3.4k)
+const CARD_MIN = "10em";  // the four rows of the two-parameter page; every
+                          // shorter card keeps the reserve so the figure does
+                          // not jog between tabs or pages (3.4k)
 let cardHost = null;
 let cardKey = null;
 
-function renderCard(view) {
+function cardRows(tab, view) {
+  if (tab === "derivative") return [["y", CARD.fn], ["dy/da", CARD.fa]];
+  if (tab === "partial") return [["y", CARD.fn], ["∂y/∂a", CARD.fa], ["∂y/∂b", CARD.fb]];
+  const rows = [["Update", CARD.update], ["Loss", CARD.loss]];
+  if (view === "two") rows.push(["∂L/∂b₀", CARD.d0]);
+  rows.push(["∂L/∂b₁", CARD.d1]);
+  return rows;
+}
+
+function renderCard(tab, view) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
   if (!cardHost) {
@@ -1037,12 +1461,10 @@ function renderCard(view) {
     figure.parentNode.insertBefore(cardHost, figure);
   }
   cardHost.style.minHeight = CARD_MIN;
-  if (view === cardKey) return;
-  cardKey = view;
-  const rows = [["Update", CARD.update], ["Loss", CARD.loss]];
-  if (view === "two") rows.push(["∂L/∂b₀", CARD.d0]);
-  rows.push(["∂L/∂b₁", CARD.d1]);
-  cardHost.innerHTML = rows
+  const key = `${tab}:${view}`;
+  if (key === cardKey) return;
+  cardKey = key;
+  cardHost.innerHTML = cardRows(tab, view)
     .map(([name, body]) =>
       `<div class="w-math-eq" style="min-height:0;padding-left:${GUTTER};text-indent:-${GUTTER};margin:0 0 4px">`
       + `<span style="display:inline-block;width:${GUTTER};text-indent:0;color:var(--ink-3)">${name}</span>${body}</div>`)
@@ -1057,10 +1479,15 @@ function stand(state, params, anim) {
   const { track } = state;
   const ep = Math.min(anim?.ep ?? 0, track.epochsDone);
   const beat = choreographs(params.view, params.speed) ? (anim?.beat ?? 0) : 0;
-  const moveFrom = params.view === "two" ? BEATS_TWO.direction : BEATS_ONE.tangent;
+  const two = params.view === "two";
+  const moveFrom = two ? BEATS_TWO.direction : BEATS_ONE.hold;
   const a = track.epochAt[ep];
   const b = track.epochAt[Math.min(ep + 1, track.epochsDone)];
-  const mix = beat <= moveFrom ? 0 : Math.min(1, (beat - moveFrom) / (1 - moveFrom));
+  const raw = beat <= moveFrom ? 0 : Math.min(1, (beat - moveFrom) / (1 - moveFrom));
+  /* Choreography A eases the one-parameter move (decision 7). The surface's
+     move stays linear: there the reader is watching the shape of a path, and
+     an ease would put an acceleration into it that the walk does not have. */
+  const mix = two ? raw : easeInOut(raw);
   const fi = a + (b - a) * mix;
   /* floor, not round: during the move the arrow and the beat line must keep
      the gradient that LEFT the start of this step — rounding flipped the
@@ -1078,6 +1505,78 @@ function stand(state, params, anim) {
     grad: [track.g0[k], track.g1[k]],
     upto: Math.floor(fi),
   };
+}
+
+/* Where the Derivative tab's nudge stands — the same shape as `stand`, and here
+   for the same reason: the panel, the readout and the summary must agree about
+   one number (5.8).
+ *
+ * THE READER'S CHOICE IS THE START AND THE ANIMATION ONLY GOES DOWN. `anim.rung`
+ * counts rungs taken from whichever tick the `nudge` control is on, so the walk
+ * is an authored reveal in the shape `shown` already has: a display change
+ * cannot reset it, and moving the control is a data change that starts a new
+ * one from the new tick. During a beat Δa eases from the rung it is leaving to
+ * the one it is arriving at, so the triangle contracts rather than jumping. */
+function standNudge(state, params, anim) {
+  const rung = Math.min(anim?.rung ?? 0, state.rungs);
+  const beat = anim?.beat ?? 0;
+  const here = NUDGES[state.start + rung];
+  const next = NUDGES[Math.min(NUDGES.length - 1, state.start + rung + 1)];
+  const mix = beat <= BEATS_NUDGE.hold
+    ? 0
+    : easeInOut(Math.min(1, (beat - BEATS_NUDGE.hold) / (1 - BEATS_NUDGE.hold)));
+  return { rung, beat, next, da: here + (next - here) * mix };
+}
+
+/* ---- the two concept tabs, composed --------------------------------------
+   One function each, so `draw` reads as three tabs and not as one branch with
+   three tails.                                                               */
+
+function drawDerivativeTab(ctx, colors, L, params, state, anim) {
+  const at = standNudge(state, params, anim);
+  drawDerivative(ctx, colors, L.curve, params.a, at.da);
+  const slope = gradFn.da(params.a, B_HELD);
+  const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
+  /* The same slot the Descent tab's beat line takes: what this beat is doing
+     while one is running, and the standing comparison the rest of the time. */
+  const said = at.beat > 0
+    ? `Δa is shrinking to ${fSig(at.next)}, and the gap to its square`
+    : `Δa ${fSig(at.da)}: the tangent predicts Δy ${fSig(slope * at.da)}, `
+      + `y moves ${fSig(moved)}, the gap ${fSig(moved - slope * at.da)} = Δa²`;
+  label(ctx, colors, said, L.curve.x, L.curveY,
+    { color: at.beat > 0 ? colors.highlight : colors.ink3 });
+}
+
+function drawPartialTab(ctx, colors, L, params) {
+  const { a, b } = params;
+  const ga = gradFn.da(a, b);
+  const gb = gradFn.db(a);
+  drawValueSlice(ctx, colors, L.partA, {
+    caption: `y over a, b held at ${f1(b)}`,
+    note: `∂y/∂a ${f1(ga)}`,
+    xDomain: A_RANGE,
+    xLabel: "a",
+    f: (v) => gradFn.y(v, b),
+    at: a,
+    slope: ga,
+  });
+  drawValueSlice(ctx, colors, L.partB, {
+    caption: `y over b, a held at ${f1(a)}`,
+    note: `∂y/∂b ${f1(gb)}`,
+    xDomain: B_RANGE,
+    xLabel: "b",
+    f: (v) => gradFn.y(a, v),
+    at: b,
+    slope: gb,
+  });
+  drawValueMap(ctx, colors, L.surf, a, b);
+  drawColourBar(ctx, colors, L.surf, {
+    low: colors.valueLow,
+    high: colors.valueHigh,
+    left: String(Y_RANGE[0]),
+    right: String(Y_RANGE[1]),
+    middle: "y over the (a, b) plane",
+  });
 }
 
 /* ---- the widget ---------------------------------------------------------- */
@@ -1104,20 +1603,81 @@ function homeTheView() {
   widgetApi.setParam("tilt", RELIEF_DEFAULT_EL);
 }
 
+/* Which clock a page runs on. The Derivative tab has its own row in
+   `EPOCH_MS`, and on the other two tabs the page is the `view`. */
+const clockView = (params) => (params.tab === "derivative" ? "derivative" : params.view);
+
 widgetApi = defineWidget({
-  slug: "gradient-descent",
-  title: "Gradient Descent",
+  slug: "gradients",
+  title: "Gradients",
   status: "draft",
   subtitle:
-    "Gradient descent moves the parameters against the slope of the loss, one "
-    + "step at a time. The learning rate sets the size of each step: too small "
-    + "and the walk needs thousands of them, above 2 divided by the curvature "
-    + "of the loss it diverges.",
+    "A derivative is how much y changes for a small change in x. A partial "
+    + "derivative holds the other variables still, and the gradient is the "
+    + "vector of them. Gradient descent steps against that vector.",
   layout: "side",
   height: ({ w }) => stageHeight(w),
 
   params: {
-    lossSec: { type: "section", label: "The loss" },
+    /* THE THREE IDEAS IN ORDER, and the widget's only structural control, so it
+       comes before everything a page of it sets (3.1). Data, not display: each
+       tab computes a different thing, and there is no work to preserve across
+       them. */
+    tab: {
+      type: "segmented",
+      label: "Topic",
+      options: [
+        {
+          value: "derivative",
+          label: "Derivative",
+          detail: "how much y changes for a small change in a",
+        },
+        {
+          value: "partial",
+          label: "Partial derivatives",
+          detail: "the slope along each variable with the other held, and the vector of the two",
+        },
+        {
+          value: "descent",
+          label: "Descent",
+          detail: "steps against the gradient of a loss, at a size the learning rate sets",
+        },
+      ],
+      default: "derivative",
+    },
+    a: {
+      type: "float",
+      label: "a",
+      min: -1,
+      max: 4,
+      step: 0.1,
+      default: 2,
+      detail: "the point the derivatives are taken at",
+      when: { param: "tab", oneOf: ["derivative", "partial"] },
+    },
+    b: {
+      type: "float",
+      label: "b",
+      min: -1,
+      max: 3,
+      step: 0.1,
+      default: 1,
+      detail: "held still while ∂y/∂a is taken, and varied for ∂y/∂b",
+      when: { param: "tab", equals: "partial" },
+    },
+    nudge: {
+      type: "choice",
+      label: "Nudge Δa",
+      options: NUDGES.map((v) => ({
+        value: String(v),
+        label: String(v),
+        detail: `a change of ${v} in a, over which the tangent misses y by Δa² = ${Number((v * v).toPrecision(4))}`,
+      })),
+      default: "0.5",
+      when: { param: "tab", equals: "derivative" },
+    },
+
+    lossSec: { type: "section", label: "The loss", when: { param: "tab", equals: "descent" } },
     view: {
       type: "segmented",
       label: "Parameters",
@@ -1134,6 +1694,7 @@ widgetApi = defineWidget({
         },
       ],
       default: "one",
+      when: { param: "tab", equals: "descent" },
     },
     scale: {
       type: "segmented",
@@ -1151,6 +1712,7 @@ widgetApi = defineWidget({
         },
       ],
       default: "raw",
+      when: { param: "tab", equals: "descent" },
     },
     /* How to look at the loss, after what it is made of. Display-only: the
        relief is a second reading of the surface the map already holds, so
@@ -1173,7 +1735,7 @@ widgetApi = defineWidget({
       ],
       default: "map",
       display: true,
-      when: { param: "view", equals: "two" },
+      when: { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "two" }] },
     },
     /* THE WAY HOME FROM A DRAG, and the one piece of the camera that belongs
        in the rail: not a number to set but an action to take (decision 6).
@@ -1187,7 +1749,13 @@ widgetApi = defineWidget({
       detail: "turns the surface back to the viewpoint the figure opens at",
       default: false,
       display: true,
-      when: { all: [{ param: "view", equals: "two" }, { param: "relief", equals: "relief" }] },
+      when: {
+        all: [
+          { param: "tab", equals: "descent" },
+          { param: "view", equals: "two" },
+          { param: "relief", equals: "relief" },
+        ],
+      },
     },
     /* THE VIEWPOINT, AS TWO PARAMETERS. Decision 5 in the header says why they
        are parameters and not animation state. No rail control: the drag is the
@@ -1201,12 +1769,13 @@ widgetApi = defineWidget({
       type: "int", min: 10, max: 85, default: RELIEF_DEFAULT_EL, hidden: true, display: true,
     },
 
-    stepSec: { type: "section", label: "The step" },
+    stepSec: { type: "section", label: "The step", when: { param: "tab", equals: "descent" } },
     lr: {
       type: "choice",
       label: "Learning rate α",
       options: LR_LADDER.map((v) => ({ value: String(v), label: String(v), detail: LR_DETAIL })),
       default: "0.01",
+      when: { param: "tab", equals: "descent" },
     },
     /* Only on the two-parameter page: the one-parameter walk takes the
        gradient over all 100 rows, and a control that changed nothing there
@@ -1220,10 +1789,10 @@ widgetApi = defineWidget({
         detail: `${b === N ? "all " : ""}${nRows(b)} in each update, so one epoch is ${nUpdates(b)}`,
       })),
       default: "100",
-      when: { param: "view", equals: "two" },
+      when: { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "two" }] },
     },
 
-    dataSec: { type: "section", label: "The data" },
+    dataSec: { type: "section", label: "The data", when: { param: "tab", equals: "descent" } },
     seed: {
       type: "int",
       label: "Seed",
@@ -1231,25 +1800,32 @@ widgetApi = defineWidget({
       max: 30,
       default: 1,
       detail: "redraws the noise added to y = 5 + 2x",
+      when: { param: "tab", equals: "descent" },
     },
 
     speed: {
       type: "choice",
       label: "Play speed",
       options: [
-        /* Both paces on every option: the two pages run on different clocks
+        /* Both paces on every option: the pages run on different clocks
            (decision 6), and a description that named one of them would be
-           right on one page and wrong on the other. */
-        { value: "slow", label: "Slow", detail: "2 seconds an epoch over the surface, with the partial derivatives drawn before the step; 2.5 seconds an epoch on one parameter" },
-        { value: "medium", label: "Medium", detail: "60 epochs a second over the surface; 1.2 seconds an epoch on one parameter" },
-        { value: "fast", label: "Fast", detail: "250 epochs a second over the surface; 0.4 seconds an epoch on one parameter" },
+           right on one page and wrong on the other. The Derivative tab and the
+           one-parameter page share the step clock, so one clause covers both. */
+        { value: "slow", label: "Slow", detail: "2.5 seconds a step, or 2 seconds an epoch over the loss surface with the partial derivatives drawn first" },
+        { value: "medium", label: "Medium", detail: "1.2 seconds a step, or 60 epochs a second over the loss surface" },
+        { value: "fast", label: "Fast", detail: "0.4 seconds a step, or 250 epochs a second over the loss surface" },
       ],
       default: "medium",
       display: true,
       afterDrive: true,
+      /* Only where something moves. The Partial derivatives tab is at rest and
+         declines both drive buttons, so a pace for them would be a control with
+         no idea in it (3.5). */
+      when: { param: "tab", oneOf: ["derivative", "descent"] },
     },
 
-    /* Authoring escape hatch: epochs already walked, first render only. */
+    /* Authoring escape hatch, first render only: epochs already walked on
+       Descent, rungs already taken down the ladder on Derivative. */
     shown: { type: "int", min: 0, max: EPOCHS, default: 0, hidden: true },
   },
 
@@ -1257,30 +1833,56 @@ widgetApi = defineWidget({
      (lm-interaction, 2026-08-29). The loss curve and the path take ink rather
      than a series colour: they are the frame the walk moves on and the trail
      it leaves, not measurements of anything. */
-  legend: ({ params }) => (params.view === "two"
+  legend: ({ params }) => (params.tab === "derivative"
     ? [
-      { token: "unknown", label: "The 100 rows", mark: "dot" },
-      { token: "highlight", label: "The line at this epoch, and the direction of the next step", mark: "line" },
-      { token: "reference", label: "The least-squares line, and its (b₀, b₁)", mark: "dash" },
-      { token: "ink-1", label: "The path taken so far", mark: "line" },
-      /* Only in relief: on the map nothing is in front of the path. */
-      ...(params.relief === "relief"
-        ? [{ token: "ink-1", label: "The path where the surface hides it", mark: "dash" }]
-        : []),
-      { token: "empirical", label: "Loss after each epoch", mark: "line" },
+      { token: "ink-2", label: "y = a² + 3ab, with b held at 1", mark: "line" },
+      { token: "highlight", label: "The tangent at a, whose slope is dy/da", mark: "line" },
+      { token: "ink-1", label: "The nudge Δa, and the change the tangent predicts over it", mark: "dash" },
+      { token: "extreme", label: "The gap between that prediction and the change in y", mark: "line" },
     ]
-    : [
-      { token: "ink-2", label: "The loss over b₁, with b₀ held", mark: "line" },
-      /* One entry for two highlight marks, as the two-parameter page does with
-         its line and its arrow: the tangent IS the slope and the arrow is the
-         direction that slope sends the step. */
-      { token: "highlight", label: "The tangent at the current b₁ with slope ∂L/∂b₁, and the direction of the next step", mark: "line" },
-      { token: "reference", label: "b₁ at the least-squares fit", mark: "dash" },
-      { token: "ink-1", label: "The steps taken so far", mark: "line" },
-      { token: "empirical", label: "Loss after each epoch", mark: "line" },
-    ]),
+    : params.tab === "partial"
+      ? [
+        { token: "ink-2", label: "y along one variable, with the other held", mark: "line" },
+        { token: "highlight", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
+        { token: "ink-1", label: "The two lines the slices are cut along", mark: "dash" },
+      ]
+      : params.view === "two"
+        ? [
+          { token: "unknown", label: "The 100 rows", mark: "dot" },
+          { token: "highlight", label: "The line at this epoch, and the direction of the next step", mark: "line" },
+          { token: "reference", label: "The least-squares line, and its (b₀, b₁)", mark: "dash" },
+          { token: "ink-1", label: "The path taken so far", mark: "line" },
+          /* Only on the map: the straight line the step does NOT take, which
+             the angle line under the panel measures the step against. */
+          ...(params.relief === "map"
+            ? [{ token: "extreme", label: "The straight line from here to the least-squares point", mark: "dash" }]
+            : []),
+          /* Only in relief: on the map nothing is in front of the path. */
+          ...(params.relief === "relief"
+            ? [{ token: "ink-1", label: "The path where the surface hides it", mark: "dash" }]
+            : []),
+          { token: "empirical", label: "Loss after each epoch", mark: "line" },
+        ]
+        : [
+          { token: "ink-2", label: "The loss over b₁, with b₀ held", mark: "line" },
+          /* One entry for two highlight marks, as the two-parameter page does
+             with its line and its arrow: the tangent IS the slope and the arrow
+             is the direction that slope sends the step. */
+          { token: "highlight", label: "The tangent at the current b₁ with slope ∂L/∂b₁, and the direction of the next step", mark: "line" },
+          { token: "reference", label: "b₁ at the least-squares fit", mark: "dash" },
+          { token: "ink-1", label: "The steps taken so far", mark: "line" },
+          { token: "empirical", label: "Loss after each epoch", mark: "line" },
+        ]),
 
   compute({ params, rng }) {
+    /* THE TWO CONCEPT TABS HAVE NO DATA AND NO RNG. y = a² + 3ab is the whole
+       of what they draw, so what `compute` produces is where the Derivative
+       tab's ladder starts and how many rungs are left below it — the only thing
+       its animation reveals. */
+    if (params.tab !== "descent") {
+      const start = Math.max(0, NUDGES.map(String).indexOf(params.nudge));
+      return { kind: params.tab, start, rungs: NUDGES.length - 1 - start };
+    }
     const { x, y } = makeData(rng);
     const xs = params.scale === "std" ? standardize(x) : x;
     const q = quad(xs, y);
@@ -1293,6 +1895,7 @@ widgetApi = defineWidget({
         ? descendFull(q, lr, EPOCHS)
         : descendMini(q, lr, EPOCHS, batch, rng);
     return {
+      kind: "descent",
       q,
       dom,
       track,
@@ -1309,26 +1912,91 @@ widgetApi = defineWidget({
   },
 
   animation: {
-    /* Two words, not one: with batches of 10 or 1 an epoch holds many steps,
-       so "Step" would name the wrong unit. Same noun and same label as the
-       other gradient-descent widget in the arc, which is what 3.4c asks for. */
-    stepLabel: "Next epoch",
-    stepTitle: "Take one epoch of gradient descent and redraw the walk",
-    runLabel: "Play",
-    runTitle: "Descend to epoch 1000, or to the epoch the walk diverges at",
+    /* THE TWO TABS THAT DRIVE NAME DIFFERENT NOUNS (3.4c), so the labels take
+       the map form. "Next epoch" is two words and not one: with batches of 10
+       or 1 an epoch holds many steps, so "Step" would name the wrong unit; it
+       is also the label the other gradient descent widget in the arc uses.
 
-    init: ({ params, state, fromScratch }) => ({
-      ep: fromScratch
-        ? 0
-        : Math.min(Math.max(0, params.shown ?? 0), state.track.epochsDone),
-      beat: 0,
-      /* The clock the beat in `anim.beat` is a share of. Held so `rebuild` can
-         see it move; see the guard below. */
-      clock: beatMs(params.view, params.speed),
-      done: false,
-    }),
+       "SHRINK", NOT "HALVE". The ladder is 1 · 0.5 · 0.25 · 0.1 · 0.05 · 0.01
+       and two of its five rungs are not halvings, so a button promising one
+       would be false on the very press that made it (4.4b). */
+    stepLabel: {
+      param: "tab",
+      labels: { derivative: "Shrink the nudge", descent: "Next epoch" },
+      default: "Next epoch",
+    },
+    stepTitle: {
+      param: "tab",
+      labels: {
+        derivative: "Take Δa one rung down the ladder, toward 0.01",
+        descent: "Take one epoch of gradient descent and redraw the walk",
+      },
+      default: "Take one epoch of gradient descent and redraw the walk",
+    },
+    runLabel: "Play",
+    runTitle: {
+      param: "tab",
+      labels: {
+        derivative: "Take Δa down to 0.01, one rung at a time",
+        descent: "Descend to epoch 1000, or to the epoch the walk diverges at",
+      },
+      default: "Descend to epoch 1000, or to the epoch the walk diverges at",
+    },
+
+    /* THE PARTIAL DERIVATIVES TAB SAYS THERE IS NOTHING TO DRIVE, and core
+       takes step and run out of the row (4.5). `stepLabel: null` cannot do it:
+       core reads that once when the shell is built, so it would decline the
+       button on all three tabs. `anim.inert` is the parameter-dependent form,
+       and `hierarchical-clustering` uses it for exactly this. */
+    init: ({ params, state, fromScratch }) => {
+      const clock = beatMs(clockView(params), params.speed);
+      if (params.tab === "partial") {
+        return { inert: true, done: true, beat: 0, clock, ep: 0, rung: 0 };
+      }
+      if (params.tab === "derivative") {
+        /* Already on the bottom rung and there is nothing to shrink, so the
+           buttons go rather than greying out on the first press (4.5). */
+        return {
+          inert: state.rungs === 0,
+          rung: fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), state.rungs),
+          beat: 0,
+          clock,
+          done: false,
+        };
+      }
+      return {
+        inert: false,
+        ep: fromScratch
+          ? 0
+          : Math.min(Math.max(0, params.shown ?? 0), state.track.epochsDone),
+        beat: 0,
+        /* The clock the beat in `anim.beat` is a share of. Held so `rebuild` can
+           see it move; see the guard below. */
+        clock,
+        done: false,
+      };
+    },
 
     advance: (anim, { dt, params, state }) => {
+      if (params.tab === "partial") return false;
+      /* THE DERIVATIVE TAB'S UNIT IS ONE RUNG DOWN THE LADDER. Same shape as a
+         choreographed epoch below — a beat that fills, then the index moves —
+         so the two tabs share one clock table and one pause-then-move reading.
+         It always choreographs: five rungs is the whole animation, and a pace
+         that showed arrivals only would show nothing. */
+      if (params.tab === "derivative") {
+        if (anim.rung >= state.rungs) {
+          anim.beat = 0;
+          anim.done = true;
+          return false;
+        }
+        anim.beat += dt / beatMs("derivative", params.speed);
+        if (anim.beat < 1) return true;
+        anim.beat = 0;
+        anim.rung += 1;
+        if (anim.rung >= state.rungs) anim.done = true;
+        return anim.mode !== "step" && !anim.done;
+      }
       const end = state.track.epochsDone;
       if (anim.ep >= end) {
         anim.beat = 0;
@@ -1339,7 +2007,7 @@ widgetApi = defineWidget({
          `model.js` declares it: Slow over the surface, every speed on the
          one-parameter page, where an epoch is a single visible hop and 60 a
          second would show none of them (decision 6). */
-      const ms = beatMs(params.view, params.speed);
+      const ms = beatMs(clockView(params), params.speed);
       if (ms > 0) {
         anim.beat += dt / ms;
         if (anim.beat < 1) return true;
@@ -1352,7 +2020,7 @@ widgetApi = defineWidget({
       const target = anim.mode === "step" ? Math.min(end, anim.ep + 1) : end;
       const rate = anim.mode === "step"
         ? 1
-        : Math.max(1, Math.round(dt / epochMs(params.view, params.speed)));
+        : Math.max(1, Math.round(dt / epochMs(clockView(params), params.speed)));
       anim.ep = Math.min(target, anim.ep + rate);
       if (anim.ep >= end) {
         anim.ep = end;
@@ -1374,9 +2042,11 @@ widgetApi = defineWidget({
        The press of "Default view" arrives here too, and leaves the beat alone:
        the clock does not move, so a step in flight keeps running while the
        camera returns. */
-    rebuild: (anim, { params }) => {
+    rebuild: (anim, { params, state }) => {
+      anim.inert = params.tab === "partial"
+        || (params.tab === "derivative" && state.rungs === 0);
       if (params.homeView) homeTheView();
-      const ms = beatMs(params.view, params.speed);
+      const ms = beatMs(clockView(params), params.speed);
       if (ms !== anim.clock) {
         anim.beat = 0;
         anim.clock = ms;
@@ -1397,7 +2067,7 @@ widgetApi = defineWidget({
        no camera, and a drag across them would rotate something nobody can see
        and write two parameters into the link for it. */
     hit: ({ x, y, w, params }) => {
-      if (params.view !== "two" || params.relief !== "relief") return false;
+      if (params.tab !== "descent" || params.view !== "two" || params.relief !== "relief") return false;
       const r = layout(w).surf;
       return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
@@ -1419,8 +2089,10 @@ widgetApi = defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
-    renderCard(params.view);
+    renderCard(params.tab, params.view);
     const L = layout(w);
+    if (params.tab === "derivative") return drawDerivativeTab(ctx, colors, L, params, state, anim);
+    if (params.tab === "partial") return drawPartialTab(ctx, colors, L, params);
     const { track, q } = state;
     const at = stand(state, params, anim);
     const two = params.view === "two";
@@ -1452,23 +2124,26 @@ widgetApi = defineWidget({
           ? Math.max(0, Math.min(1, (at.beat - BEATS_TWO.partials) / (BEATS_TWO.direction - BEATS_TWO.partials)))
           : 1,
       });
-      drawColourBar(ctx, colors, L.surf);
+      drawColourBar(ctx, colors, L.surf, {
+        low: colors.costLow,
+        high: colors.costHigh,
+        left: "1×",
+        right: `≥${Math.round(10 ** LOG_CAP)}×`,
+        middle: "loss ÷ the least, log scale",
+      });
     } else {
-      /* The tangent takes its slope from the point it touches so that it rolls
-         with the curve; `grad` is the floored one the readout, the beat line
-         and the gradient VECTOR keep. `drawSlice` says why they can differ.
+      /* CHOREOGRAPHY A (decision 7): the tangent and the arrow are simply
+         there, at full length, from the first frame to the last. What the beat
+         does is hold the point still for its first 40% and then move it, and
+         `stand` above is where that lives — nothing here ramps.
 
-         One ramp for both marks: the vector appears in the tangent's beat, so
-         the reader sees the slope and the direction the step takes together,
-         and it holds through the move beat attached to the travelling point. */
-      const oneMix = divergedShown
-        ? 0
-        : stepping ? easeOut(Math.min(1, at.beat / BEATS_ONE.tangent)) : 1;
+         The tangent takes its slope from the point it touches so that it rolls
+         with the curve; `grad` is the floored one the readout, the beat line
+         and the gradient VECTOR keep. `drawSlice` says why they can differ. */
       drawSlice(ctx, colors, L.slice, state, at.cur, {
         upto: at.upto,
         divergedShown,
-        tangentMix: oneMix,
-        vectorMix: oneMix,
+        showStep: !divergedShown,
         grad: at.grad[1],
       });
       /* Which of the three regimes this learning rate is in, stated as the
@@ -1499,7 +2174,7 @@ widgetApi = defineWidget({
     } else if (stepping) {
       /* The slope's number is on the vector's own label now, so the line names
          the two marks rather than printing one of them twice. */
-      said = at.beat < BEATS_ONE.tangent
+      said = at.beat < BEATS_ONE.hold
         ? `The tangent at b₁ ${f3(at.cur[1])}, and −∂L/∂b₁, the direction the step takes`
         : `The step is −α × ∂L/∂b₁ ${fSig(-state.lr * at.grad[1])}`;
     } else {
@@ -1510,10 +2185,63 @@ widgetApi = defineWidget({
     label(ctx, colors, said, L.slice.x, L.phaseY,
       { color: stepping ? colors.highlight : colors.ink3 });
 
+    /* THE ANGLE BETWEEN THE STEP AND THE STRAIGHT LINE TO THE MINIMUM
+       (decision 7). Its own row, filled only where the two directions are both
+       drawn: the relief has no room for the straight line under the mesh, and
+       once the walk has diverged the panel is already saying so. The batch's
+       name goes in where the gradient is a batch's, because at batch 10 or 1
+       the step follows the steepest slope of ten rows or one and not of all
+       hundred, and a sentence on a shared surface has to be true in every state
+       that shows it (2.11). */
+    if (two && params.relief === "map" && !divergedShown) {
+      const deg = stepAngle(q, at.cur[0], at.cur[1], at.grad[0], at.grad[1]);
+      label(ctx, colors, arrived || deg === null
+        ? "The walk is at the minimum"
+        : `The step follows the ${state.batch >= q.n ? "" : "batch's "}steepest slope, `
+          + `${Math.round(deg)}° from the straight line to the minimum`,
+      L.slice.x, L.angleY, { color: colors.ink2 });
+    }
+
     drawStrip(ctx, colors, L.strip, state, at.ep);
   },
 
   readout({ params, state, anim }) {
+    /* THE DERIVATIVE TAB'S FOUR NUMBERS ARE ONE ARGUMENT: the slope, the nudge,
+       what the tangent predicts against what y does, and what is left over. The
+       last is Δa² exactly, on this function and at every a and b, which is the
+       claim the ladder walks down. */
+    if (params.tab === "derivative") {
+      const at = standNudge(state, params, anim);
+      const slope = gradFn.da(params.a, B_HELD);
+      const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
+      return [
+        { label: "dy/da", value: f2(slope), note: `2a + 3b, with b held at ${B_HELD}` },
+        { label: "Δa", value: fSig(at.da), note: "the change in a the tangent is checked over" },
+        {
+          label: "Δy predicted, actual",
+          value: `${fSig(slope * at.da)}, ${fSig(moved)}`,
+          note: "the tangent's rise over Δa, and the change in y",
+        },
+        { label: "The gap", value: fSig(moved - slope * at.da), note: "Δa², whatever a is" },
+      ];
+    }
+    if (params.tab === "partial") {
+      const { a, b } = params;
+      return [
+        { label: "a, b", value: `${f1(a)}, ${f1(b)}`, note: "the point on the map" },
+        { label: "y", value: f2(gradFn.y(a, b)), note: "a² + 3ab at that point" },
+        {
+          label: "∂y/∂a, ∂y/∂b",
+          value: `${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}`,
+          note: "2a + 3b along a, 3a along b — the gradient",
+        },
+        {
+          label: "Steepest rise",
+          value: fSig(Math.hypot(gradFn.da(a, b), gradFn.db(a))),
+          note: "the length of the gradient, in y per unit of (a, b)",
+        },
+      ];
+    }
     const { track, q } = state;
     const at = stand(state, params, anim);
     const two = params.view === "two";
@@ -1566,6 +2294,20 @@ widgetApi = defineWidget({
   },
 
   summary({ params, state, anim }) {
+    if (params.tab === "derivative") {
+      const at = standNudge(state, params, anim);
+      const slope = gradFn.da(params.a, B_HELD);
+      const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
+      return `The curve y = a² + 3ab over a, with b held at ${B_HELD}, and the tangent at a = ${f1(params.a)} `
+        + `whose slope is ${f2(slope)}. Over a nudge of ${fSig(at.da)} the tangent predicts a rise of `
+        + `${fSig(slope * at.da)}; y moves ${fSig(moved)}, and the gap is ${fSig(moved - slope * at.da)}.`;
+    }
+    if (params.tab === "partial") {
+      const { a, b } = params;
+      return `A map of y = a² + 3ab over a and b with contour rings, the point (${f1(a)}, ${f1(b)}) on it, `
+        + `and the gradient (${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}) drawn from it as an arrow uphill. `
+        + `Beside the map, the two slices through that point, each with its tangent.`;
+    }
     const { track, q } = state;
     const at = stand(state, params, anim);
     const parts = params.view === "two"

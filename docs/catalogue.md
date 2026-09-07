@@ -10031,6 +10031,34 @@ algebra are a separate question and do not belong in a widget about
 gradients (slot 49 owns shapes and weighted sums). Awaiting his pick,
 and whether the rename lands now or at promotion.
 
+**Kenneth's picks, 2026-09-08: (1) the angle line and the faint straight
+line; (2) choreography A; (3) rename now.** BUILT the same day: the
+directory is `widgets/gradients/` (git mv, history intact), slug
+`gradients`, title **Gradients**, three tabs — Derivative (default) ·
+Partial derivatives · Descent — Descent being the old widget whole. The
+Derivative tab's Step is *Shrink the nudge* (not "halve": two rungs of
+the ladder are not halvings, 4.4b), Play runs the ladder to 0.01; the
+Partial derivatives tab declines Step and Play (4.5), its sliders are the
+interaction. The angle line needed its own row, so the stage grew 18px;
+at batch 10 or 1 it reads "the batch's steepest slope" (2.11). The (a, b)
+map sits where the loss surface sits, so the two parameter maps land in
+the same place across tabs. 46 assertions, the angle at the round-5 state
+pinned at 80° raw and 0° standardized.
+
+```
+# http://localhost:8012/widgets/gradients/                                   Derivative: a = 2, b held at 1, dy/da = 7
+# .../widgets/gradients/?tab=partial                                         the map of y over (a, b), the gradient (7, 6)
+# .../widgets/gradients/?tab=descent&view=two&lr=0.003&shown=10              the angle line: 80° from the straight line
+# .../widgets/gradients/?tab=descent&view=one&shown=2   then Next epoch      choreography A
+# .../widgets/gradients/?tab=descent&view=two&relief=relief&shown=40         the relief, unchanged
+```
+
+Flagged by the build, not fixed: on the two-parameter map at epoch 5 the
+two component-tick labels overlap by ~4px at every width because both
+ticks are short there; and `--c-extreme` now carries both the Derivative
+tab's gap and the straight line to the minimum, neither quite "past a
+threshold" — a token would be a `tokens.css` change owing a full run.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

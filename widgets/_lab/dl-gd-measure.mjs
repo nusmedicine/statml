@@ -1,4 +1,4 @@
-/* Planning measurement for the deep learning arc's `gradient-descent` slot
+/* Planning measurement for the deep learning arc's `gradients` slot
  * (PHM5005 05-2 cells 73-78). Reproduces the lesson's own example — x =
  * linspace(0, 10, 100), y = 5 + 2x + N(0, 1), MSE, plain gradient descent from
  * (0, 0) — and asks the two questions the widget hangs on:

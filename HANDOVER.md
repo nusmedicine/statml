@@ -7,14 +7,14 @@ there is no draft.**
 
 ---
 
-# NEXT: WIDGET 48 `gradient-descent` IS A DRAFT AWAITING KENNETH'S REVIEW
+# NEXT: WIDGET 48 `gradients` (WAS `gradient-descent`) IS A DRAFT AWAITING KENNETH'S REVIEW
 
 **Built 2026-09-07 from his six picks off `_lab/gd-mock.html`** (catalogue
 § *Slot 48*, subsections *The mock-up*, *Kenneth's picks* and *BUILT AS A
 DRAFT*, which lists the state URLs). Status `draft` in `main.js` and the
 manifest; no fingerprint states yet — record them only on his "tested ok",
 per *Order of work* below. `_lab/gd-verify.mjs` runs under `npm test`. The
-draft is served at `http://localhost:8012/widgets/gradient-descent/` from
+draft is served at `http://localhost:8012/widgets/gradients/` from
 the `widgets-alt2` lane. Not pushed.
 
 **Round 2 the same evening: the surface in relief**, `?relief=relief` on
@@ -49,7 +49,13 @@ is the steepest slope, 80° from the straight line to the minimum at his
 screenshot's state, and the widget must say so), five choreographies for
 the one-parameter tangent (live), and a restructure to a **Gradients**
 widget with Derivative · Partial derivatives · Descent tabs. Catalogue
-§ Slot 48 *Round 5* has the record. Nothing built for it yet.
+§ Slot 48 *Round 5* has the record. **BUILT the same day on his picks:**
+renamed to `gradients` (git mv; the old slug survives only in the
+catalogue's history and this file), three tabs Derivative · Partial
+derivatives · Descent, the angle line and the faint straight line on the
+map, choreography A on the one-parameter page. 46 assertions. Served at
+`http://localhost:8012/widgets/gradients/`. Not pushed, no fingerprint
+states.
 
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail

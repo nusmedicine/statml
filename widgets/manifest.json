@@ -681,15 +681,17 @@
       "status": "shipped"
     },
     {
-      "slug": "gradient-descent",
-      "title": "Gradient Descent",
-      "blurb": "Gradient descent follows the slope of the loss downhill, at a step size the learning rate sets.",
+      "slug": "gradients",
+      "title": "Gradients",
+      "blurb": "A derivative, the partial derivatives that make up a gradient, and the descent that steps against it.",
       "course": "PHM5005",
       "topics": [
+        "derivative",
+        "partial derivative",
+        "gradient",
         "gradient descent",
         "learning rate",
         "loss surface",
-        "partial derivative",
         "stochastic gradient descent",
         "batch size",
         "standardization",

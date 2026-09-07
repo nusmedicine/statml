@@ -1,5 +1,5 @@
 /* ============================================================================
-   Widget 48 · Gradient Descent — the engine.
+   Widget 48 · Gradients — the engine.
 
    PHM5005 05-2 cells 73-78 are the worked example this reproduces: x =
    linspace(0, 10, 100), y = 5 + 2x + N(0, 1), the mean squared error, plain
@@ -68,6 +68,55 @@ export const LEVELS = [1.05, 1.2, 1.5, 2, 3, 5, 10, 20, 50, 100, 200];
    legitimate walk on either scale reaches it, near enough that the loss at it
    is still a finite double. */
 const BLOWUP = 1e6;
+
+/* --- the derivative and the two partials ---------------------------------- *
+ * PHM5005 05-1's own worked function, y = a^2 + 3ab, differentiated at (2, 1)
+ * where autograd prints 7 and 6. Kept here rather than in main.js for the
+ * reason the relief's geometry is: `_lab/gd-verify.mjs` asserts the two
+ * partials against the shipping code, and a function written out a second time
+ * in the lab is a function that can drift away from the one the widget draws.
+ *
+ * THE GAP IS EXACTLY THE SQUARE OF THE NUDGE, on this function and for every
+ * a and b: y(a + d, b) - y(a, b) = (2a + 3b) d + d^2, so what the tangent
+ * misses is d^2 with nothing else in it. That is the Derivative page's whole
+ * claim, and it is why this function was chosen over a general one.           */
+export const gradFn = {
+  y: (a, b) => a * a + 3 * a * b,
+  da: (a, b) => 2 * a + 3 * b,
+  db: (a) => 3 * a,
+};
+
+/* The window both concept pages draw the function in, fixed (2.5). */
+export const A_RANGE = [-1, 4];
+export const B_RANGE = [-1, 3];
+
+/* y over that window runs -8 (at a -1, b 3) to 52 (at a 4, b 3). Taken from
+   the corners rather than sampled: the function is a saddle in the box, so its
+   extremes over a rectangle are on the boundary, and the four corners plus the
+   two edge minima in a are the whole of it. */
+export const Y_RANGE = (() => {
+  const vals = [];
+  for (const a of [A_RANGE[0], A_RANGE[1]]) for (const b of [B_RANGE[0], B_RANGE[1]]) vals.push(gradFn.y(a, b));
+  /* the vertex in a, where dy/da = 0, wherever it falls inside the window */
+  for (const b of [B_RANGE[0], B_RANGE[1]]) {
+    const a = (-3 * b) / 2;
+    if (a > A_RANGE[0] && a < A_RANGE[1]) vals.push(gradFn.y(a, b));
+  }
+  return [Math.min(...vals), Math.max(...vals)];
+})();
+
+/* Contour rings on the (a, b) map, every 4 across that range. Linear, not the
+   loss surface's log ratios: y here is a value, not a distance from a floor. */
+export const Y_LEVELS = (() => {
+  const out = [];
+  for (let v = Math.ceil(Y_RANGE[0] / 4) * 4; v <= Y_RANGE[1]; v += 4) out.push(v);
+  return out;
+})();
+
+/* The nudge ladder. Not a halving at every rung — 0.25 to 0.1 is a fifth off —
+   so the drive button says "Shrink", never "Halve"; what the ladder is for is
+   four orders of the gap, from 0.25 down to 0.0001, in six readable numbers. */
+export const NUDGES = [1, 0.5, 0.25, 0.1, 0.05, 0.01];
 
 /** The lesson's own data: x evenly spaced on [0, 10], y = 5 + 2x + N(0, 1). */
 export function makeData(rng) {
@@ -155,28 +204,32 @@ export function domainFor(q) {
 }
 
 /**
- * Contour lines of log10(loss / least loss) at the fixed ratios in LEVELS, by
- * marching squares over a G x G grid. Returned as segments in PARAMETER
- * coordinates, so the caller maps them wherever it is drawing — the surface
- * bitmap is in device pixels and the plot is in CSS pixels, and geometry that
- * knew which would have to be computed twice.
+ * Contour lines of any f(x, y) at the given levels, by marching squares over a
+ * G x G grid. Returned as segments in the FUNCTION's own coordinates, so the
+ * caller maps them wherever it is drawing — the surface bitmap is in device
+ * pixels and the plot is in CSS pixels, and geometry that knew which would have
+ * to be computed twice.
+ *
+ * Generalised out of `contourSegments` when the Partial derivatives page needed
+ * rings on y = a^2 + 3ab: two marching squares in one file is two chances for
+ * one of them to be subtly wrong (5.8). The loss surface's own levels are log
+ * ratios and this function knows nothing about that; `contourSegments` below
+ * does the transforming.
  */
-export function contourSegments(q, dom, levels = LEVELS, G = 64) {
+export function isoSegments(f, xDom, yDom, levels, G = 64) {
   const cols = [];
   for (let i = 0; i <= G; i += 1) {
-    const b0 = dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
+    const x = xDom[0] + (i / G) * (xDom[1] - xDom[0]);
     const col = new Float64Array(G + 1);
     for (let j = 0; j <= G; j += 1) {
-      const b1 = dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
-      col[j] = Math.log10(Math.max(1, q.loss(b0, b1) / q.Lmin));
+      col[j] = f(x, yDom[0] + (j / G) * (yDom[1] - yDom[0]));
     }
     cols.push(col);
   }
-  const bx = (i) => dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
-  const by = (j) => dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
+  const bx = (i) => xDom[0] + (i / G) * (xDom[1] - xDom[0]);
+  const by = (j) => yDom[0] + (j / G) * (yDom[1] - yDom[0]);
   const segs = [];
-  for (const level of levels) {
-    const lv = Math.log10(level);
+  for (const lv of levels) {
     for (let i = 0; i < G; i += 1) {
       for (let j = 0; j < G; j += 1) {
         const corners = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
@@ -198,6 +251,14 @@ export function contourSegments(q, dom, levels = LEVELS, G = 64) {
     }
   }
   return segs;
+}
+
+/** The loss surface's rings, at the fixed RATIOS in LEVELS. */
+export function contourSegments(q, dom, levels = LEVELS, G = 64) {
+  return isoSegments(
+    (b0, b1) => Math.log10(Math.max(1, q.loss(b0, b1) / q.Lmin)),
+    dom.b0, dom.b1, levels.map((v) => Math.log10(v)), G,
+  );
 }
 
 /* --- the walk ------------------------------------------------------------ */
@@ -361,6 +422,31 @@ export function descendSlope(q, lr, epochs) {
   t.g0[k] = 0;
   t.g1[k] = Number.isFinite(g) ? g : 0;
   return t;
+}
+
+/**
+ * The angle in degrees between the direction a step takes, −(g0, g1), and the
+ * straight line from where it stands to the least-squares point. Null where
+ * either vector has no direction — standing on the minimum, or a gradient that
+ * has gone non-finite.
+ *
+ * IN PARAMETER UNITS, AND THAT IS THE POINT. Kenneth, round 5: "why doesn't the
+ * gradient go downhill directly? it's descending by one parameter then the
+ * next." It is not: the step follows the steepest slope, which on raw x is
+ * across the trench because the loss is 138x more curved that way. The angle is
+ * a fact about the surface and not about the drawing — the equal-aspect map in
+ * `_lab/gd-round5.html` prints the same number the shipped one does — so it
+ * belongs here, where `gd-verify.mjs` can pin it, and not in the panel that
+ * happens to draw it.
+ */
+export function stepAngle(q, b0, b1, g0, g1) {
+  const tx = q.B0 - b0;
+  const ty = q.B1 - b1;
+  const gl = Math.hypot(g0, g1);
+  const tl = Math.hypot(tx, ty);
+  if (!(gl > 0) || !(tl > 0) || !Number.isFinite(gl) || !Number.isFinite(tl)) return null;
+  const cos = (-g0 * tx - g1 * ty) / (gl * tl);
+  return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
 }
 
 /* --- the relief ----------------------------------------------------------- *
@@ -559,8 +645,13 @@ export function reliefHidden(q, dom, b0, b1, az = RELIEF_DEFAULT_AZ, el = RELIEF
  * A PER-PAGE DEFAULT FOR `speed` would have been the smaller change and is not
  * expressible: a parameter sitting at its default is omitted from the URL, so
  * one page's default is the other page's default too.
+ *
+ * THE DERIVATIVE PAGE JOINED THE ONE-PARAMETER CLOCK, and for the same reason:
+ * a press there takes the nudge one rung down a six-rung ladder, so the whole
+ * animation is five visible events and 60 a second would show none of them.
  */
 export const EPOCH_MS = {
+  derivative: { slow: 2500, medium: 1200, fast: 400 },
   one: { slow: 2500, medium: 1200, fast: 400 },
   two: { slow: 2000, medium: 1000 / 60, fast: 1000 / 250 },
 };
@@ -573,7 +664,8 @@ export const epochMs = (view, speed) => {
 
 /** Which (page, speed) pairs draw the beats of a step rather than its arrivals
     only. Declared here, never decided mid-run (4.1). */
-export const choreographs = (view, speed) => view === "one" || speed === "slow";
+export const choreographs = (view, speed) =>
+  view === "one" || view === "derivative" || speed === "slow";
 
 /** The beat clock: one choreographed epoch's length, or 0 where the speed shows
     arrivals only. A beat in flight is cleared whenever this number changes,
