@@ -9917,6 +9917,31 @@ the least-squares point**, under the ringed point itself, while the
 descent into it stays solid. That is what makes one fixed viewpoint
 usable for both, and it is asserted rather than eyeballed.
 
+
+#### Round 3, 2026-09-08 — Kenneth's review of the relief round
+
+Two notes. **The one-parameter page's Slow step did not follow the
+curve**: the point slid along the parabola but the tangent through it
+kept the slope of the step's start, so a line of fixed slope translated
+instead of rolling with the curve. Fixed: in the move beat the tangent is
+re-evaluated at the moving b₁ and arrives as the tangent at the new point;
+the readout and the beat caption keep the start's gradient, the number
+that decided the step, and `gd-verify.mjs` pins that the stored gradient
+equals the analytic slope at every stored position.
+
+**"Can I rotate by the mouse?"** Yes, through core's `drag` channel, so the
+viewpoint is a parameter and the URL reproduces it (1.1, 3.6): `turn`
+(azimuth, whole degrees, default 300) and `tilt` (elevation 10–85,
+default 35), both hidden and display-only, set by dragging the relief
+panel, half a degree per pixel. The measured default stays; the mesh and
+the path's hidden split are re-derived per drag frame (under 15 ms at the
+worst case, batch 1) and cached on the viewpoint at rest. There is no
+rail control for the pair — the map is the same window drawn straight
+down and carries every number the widget states — which bends 3.6's
+"keep the control" and is argued in the header. Not judged: whether a
+reader who turns the relief into a hiding viewpoint wants a way back
+other than dragging; a "default view" action is the obvious one if so.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

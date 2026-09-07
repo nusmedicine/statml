@@ -29,6 +29,12 @@ measured, not chosen**: with log height the walk lies in a canyon visible
 only along it, azimuth 100–130° or 280–310°, so it is fixed at 300/35 in
 `model.js` and `gd-verify.mjs` (29 assertions) re-measures the claim.
 
+**Round 3, 2026-09-08 (Kenneth's review):** the one-parameter tangent now
+rolls with the curve during the move beat; the relief turns by dragging
+(`turn`/`tilt`, hidden display params through core's `drag`, default
+300/35). 31 assertions. A drag is untested geometry until a hit-driven
+fingerprint state exists, which a draft does not owe yet.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

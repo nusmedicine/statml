@@ -18,7 +18,7 @@
 import { makeRng } from "../core/rng.js";
 import {
   N, EPOCHS, LR_LADDER, LOG_CAP,
-  RELIEF_AZ, RELIEF_EL, RELIEF_Z, MESH_G,
+  RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL, RELIEF_Z, MESH_G,
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
@@ -266,6 +266,32 @@ console.log("\n=== 7 · each one-parameter step keeps 1 - lr x curvature of the 
   check("the walk equals B1 + (0 - B1) (1 - lr c)^e", worst < 1e-9,
     `${tried} walks; worst |Δ| ${worst.toExponential(2)} at ${where}`);
   check("b0 never moves off its fitted value", held, "held at B0 in every recorded position");
+
+  /* THE TANGENT AND THE READOUT MUST AGREE AT REST. Since 2026-09-08 the page
+     draws the tangent with the gradient AT the point it touches, so that it
+     rolls with the curve through the move beat, while the readout keeps the
+     floored one that decided the step. The two are the same number wherever the
+     walk is standing on a whole index — which is every state but a Slow move —
+     and that is only true because `descendSlope` stores at index k exactly what
+     `grad` returns at position k. If it ever stopped, the tangent would part
+     from its own printed slope with nothing on screen to say so. */
+  let split = 0;
+  let positions = 0;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) {
+      for (const lr of LR_LADDER) {
+        const t = descendSlope(q, lr, EPOCHS);
+        for (let k = 0; k < t.len; k += 1) {
+          const g = q.grad(q.B0, t.b1[k])[1];
+          if (!Number.isFinite(g)) continue;
+          positions += 1;
+          split = Math.max(split, Math.abs(t.g1[k] - g));
+        }
+      }
+    }
+  }
+  check("the stored partial IS grad at that b1", split === 0,
+    `${positions} positions, worst |Δ| ${split}`);
 }
 
 /* -- 8 · THE FRAME AND THE CONTOURS ---------------------------------------- *
@@ -353,12 +379,22 @@ console.log("\n=== 10 · height is monotone in the loss and 0 at the least ===")
  * is the SAME WINDOW as the map: looking straight down from azimuth 0, the
  * screen position must be the map's, with the height changing neither
  * coordinate. Second, that azimuth 300 / elevation 35 is a viewpoint from which
- * the lesson's own walk can be SEEN — the reason the viewpoint is a constant in
- * model.js rather than a control. The mock's first guess, 215/38, is the
+ * the lesson's own walk can be SEEN — the reason it is where the widget's
+ * `turn` and `tilt` parameters start. The mock's first guess, 215/38, is the
  * counter-example, and it is asserted here so the pair cannot be nudged by eye
- * later without the failure saying what it cost. */
+ * later without the failure saying what it cost.
+ *
+ * THE DEFAULTS ARE ASSERTED BY VALUE. Since 2026-09-08 the reader can drag the
+ * relief round, so every measurement below is a claim about where the figure
+ * OPENS rather than about the only view it has; a default edited without the
+ * sweep being redone would leave the rest of this section measuring a viewpoint
+ * nobody ever sees. */
 console.log("\n=== 11 · the projector reduces to the map, and the viewpoint shows the walk ===");
 {
+  check("the default viewpoint is 300 / 35",
+    RELIEF_DEFAULT_AZ === 300 && RELIEF_DEFAULT_EL === 35,
+    `azimuth ${RELIEF_DEFAULT_AZ}, elevation ${RELIEF_DEFAULT_EL}`);
+
   const rect = { x: 0, y: 0, w: 200, h: 200 };
   const P = projector(rect, 0, 90);
   let flat = 0;      // the height moving the screen position
@@ -398,7 +434,7 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
     if (reliefHidden(D.raw, domR, domR.b0[1], domR.b1[0] + (k / 40) * (domR.b1[1] - domR.b1[0]))) rimHidden += 1;
   }
   check(`the near rim is visible, ${rim} points`, rimHidden === 0,
-    `${rimHidden} hidden from ${RELIEF_AZ}/${RELIEF_EL}`);
+    `${rimHidden} hidden from ${RELIEF_DEFAULT_AZ}/${RELIEF_DEFAULT_EL}`);
 
   /* THE MEASUREMENT THE VIEWPOINT RESTS ON. Each epoch of a walk classified by
      its midpoint, as the widget classifies each piece it draws; a piece that
@@ -429,9 +465,9 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
   };
 
   const walk = descendFull(D.raw, 0.01, EPOCHS);
-  const good = survey(D.raw, domR, walk, RELIEF_AZ, RELIEF_EL);
+  const good = survey(D.raw, domR, walk, RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL);
   const bad = survey(D.raw, domR, walk, 215, 38);
-  check(`${RELIEF_AZ}/${RELIEF_EL} hides none of the lr 0.01 walk`, good.share === 0,
+  check(`${RELIEF_DEFAULT_AZ}/${RELIEF_DEFAULT_EL} hides none of the lr 0.01 walk`, good.share === 0,
     `${(good.share * 100).toFixed(1)}% of ${good.drawn} pieces hidden`);
   check("215/38 hides most of the same walk", bad.share > 0.5,
     `${(bad.share * 100).toFixed(1)}% of ${bad.drawn} pieces hidden`);
@@ -456,7 +492,7 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
     for (const [tag, q] of [["raw", raw], ["std", std]]) {
       const dom = domainFor(q);
       for (const lr of LR_LADDER) {
-        const s = survey(q, dom, descendFull(q, lr, EPOCHS), RELIEF_AZ, RELIEF_EL);
+        const s = survey(q, dom, descendFull(q, lr, EPOCHS), RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL);
         rungs += 1;
         if (tag === "raw") rawHidden = Math.max(rawHidden, s.share);
         else stdFar = Math.max(stdFar, s.far);

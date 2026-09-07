@@ -373,15 +373,14 @@ export function descendSlope(q, lr, epochs) {
  * down, and the share of a walk the near wall hides, are exactly the claims a
  * picture cannot settle.                                                      */
 
-/* THE VIEWPOINT IS MEASURED, NOT CHOSEN BY EYE, and it is a constant rather
-   than a control: the reader has no way to know which directions hide the
-   walk. With log height the lesson's walk lies along the trench, and the ray
-   march below says it is fully visible only from azimuths 100-130 or 280-310
-   at 30-45 degrees of elevation. From 215/38, the mock's first guess, the near
-   wall hides 94% of the lr 0.01 walk. 300/35 looks along the trench from the
-   start toward the minimum, so the walk recedes and the minimum sits at the far
-   end of the basin; 120/35 is the same trench from the other end, with the
-   point and its two labels crowding the front.
+/* THE DEFAULT VIEWPOINT IS MEASURED, NOT CHOSEN BY EYE. With log height the
+   lesson's walk lies along the trench, and the ray march below says it is fully
+   visible only from azimuths 100-130 or 280-310 at 30-45 degrees of elevation.
+   From 215/38, the mock's first guess, the near wall hides 94% of the lr 0.01
+   walk. 300/35 looks along the trench from the start toward the minimum, so the
+   walk recedes and the minimum sits at the far end of the basin; 120/35 is the
+   same trench from the other end, with the point and its two labels crowding
+   the front.
 
    THE STANDARDIZED SURFACE DOES NOT SHARE THAT TRENCH, which the mock's note
    had wrong and `gd-verify.mjs` now measures: both its curvatures are 2, so in
@@ -390,9 +389,15 @@ export function descendSlope(q, lr, epochs) {
    along b0. What this viewpoint hides there is only the floor of the pit —
    every hidden piece within 0.08 of the panel of the least-squares point, under
    the ringed point itself — while the descent into it stays solid. That is what
-   lets one viewpoint serve both scales. The sweep is in docs/catalogue.md. */
-export const RELIEF_AZ = 300;
-export const RELIEF_EL = 35;
+   lets one viewpoint serve both scales. The sweep is in docs/catalogue.md.
+
+   THE PAIR WAS A CONSTANT UNTIL 2026-09-08, when Kenneth asked for the relief
+   to turn under the mouse; it is now where the widget's `turn` and `tilt`
+   parameters START, and every claim above is a claim about that start. The two
+   functions below still default to it, which is what keeps `gd-verify.mjs`
+   measuring the shipped viewpoint rather than one written out a second time. */
+export const RELIEF_DEFAULT_AZ = 300;
+export const RELIEF_DEFAULT_EL = 35;
 
 /* The ridge's height, as a fraction of the domain's own width. Above ~0.7 the
    mesh outgrows the panel at the widths the surface is drawn at; below ~0.4 the
@@ -426,7 +431,7 @@ export const reliefHeight = (ratio) =>
  * `gd-verify.mjs` asserts it, because that is the claim that the relief and the
  * map are two readings of one window.
  */
-export function projector(rect, az = RELIEF_AZ, el = RELIEF_EL) {
+export function projector(rect, az = RELIEF_DEFAULT_AZ, el = RELIEF_DEFAULT_EL) {
   const a = (az * Math.PI) / 180;
   const e = (el * Math.PI) / 180;
   const ca = Math.cos(a);
@@ -516,7 +521,7 @@ export function reliefMesh(q, dom, project, G = MESH_G) {
  * over, and the ray is started a hair above its own surface so a point does not
  * occlude itself.
  */
-export function reliefHidden(q, dom, b0, b1, az = RELIEF_AZ, el = RELIEF_EL) {
+export function reliefHidden(q, dom, b0, b1, az = RELIEF_DEFAULT_AZ, el = RELIEF_DEFAULT_EL) {
   const a = (az * Math.PI) / 180;
   const e = (el * Math.PI) / 180;
   const vx = Math.cos(e) * Math.sin(a);

@@ -34,7 +34,7 @@
        updates beat twenty exact ones, and none of the three diverged. So the
        `batch` control has a stage that WINS as well as a path that wobbles.
 
-   THREE DECISIONS THE BRIEF DID NOT SETTLE, recorded because each could
+   THE DECISIONS THE BRIEF DID NOT SETTLE, recorded because each could
    reasonably have gone the other way.
 
    1. THE COMPOSED ARROW IS BUILT IN SCREEN SPACE, not in parameter space. The
@@ -74,7 +74,9 @@
       and from 215/38 the near wall hides 94% of the lesson's own walk. A
       viewpoint control would hand the reader directions that hide the thing
       the widget is about, so `model.js` holds the pair and `gd-verify.mjs`
-      re-measures the claim. The catalogue records the sweep.
+      re-measures the claim. The catalogue records the sweep. *Superseded on
+      2026-09-08 by decision 5; what survives it is 300/35 as the viewpoint the
+      figure OPENS at, and every sweep measurement above is about that.*
 
       THE HIDDEN PART OF THE PATH IS DASHED AND FAINT, rather than the mesh
       being made transparent. A translucent mesh shows the far wall through the
@@ -86,12 +88,38 @@
       already is: the mesh (1936 quads, sorted and filled, ~2 ms) into a bitmap
       keyed on size, theme and dataset, and the path's visible/hidden split
       (~1 ms) keyed on the walk. Only the path, the point, the tangents and the
-      corner names are painted per frame.
+      corner names are painted per frame. Both keys gained the viewpoint with
+      decision 5, since both are functions of it.
 
       THE PATH IS SAMPLED, dense over the opening 300 updates and strided after
       it to about 1500 pieces. At batch 1 the walk holds 100 000 positions; the
       map's own path already strides to 1500, and the opening stays dense
       because the first epochs cross most of the frame while the rest crawl.
+
+   5. THE VIEWPOINT BECAME A DRAGGED PARAMETER on 2026-09-08, at Kenneth's ask:
+      the relief turns under the mouse. Decision 4 had it fixed, and the reason
+      it gave — a reader has no way to know which directions hide the walk — is
+      answered by where the figure OPENS rather than by refusing to move: 300/35
+      is still the measured default, `gd-verify.mjs` still re-measures every rung
+      on both scales from it, and a reader who turns the surface into its own
+      near wall can see that they have.
+
+      IT IS A PARAMETER AND NOT ANIMATION STATE, which is the whole of why it
+      goes through core's `drag` channel rather than a pointer handler here. A
+      camera held in `anim` would be invisible to the URL, so the reader could
+      find the angle that shows their walk and have no way to send it to anyone
+      — the figure would be showing one thing and the link claiming another
+      (1.1). A drag is a control and obeys a control's rules (3.6), so `turn`
+      and `tilt` are ordinary `display: true` parameters: the walk survives the
+      turn, and the two are written as one transaction because a camera's turn
+      and tilt are one gesture.
+
+      THEY CARRY NO RAIL CONTROL, and that is the one rule bent here. 3.6's
+      "keep the control" exists so a figure is not mouse-only; two more sliders
+      for a camera would cost the rail more than they buy, and nothing in the
+      widget's argument is reachable only by turning — the map is the same
+      window, drawn straight down, and every number the widget states is on it.
+      The relief is a second reading, and the turn is a second reading of that.
 
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
@@ -103,6 +131,7 @@ import {
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt,
   projector, reliefMesh, reliefPoint, reliefHidden,
+  RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL,
 } from "./model.js";
 
 /* ---- geometry ------------------------------------------------------------ */
@@ -145,6 +174,12 @@ function layout(w) {
 const BEAT_MS = 2000;
 const BEATS_TWO = { partials: 0.34, direction: 0.55 };
 const BEATS_ONE = { tangent: 0.45 };
+
+/* The tangent's first beat, eased rather than linear. Growing at a constant
+   rate across the whole 0.9 s the segment is at half its length halfway through
+   and reads as a slow drift rather than as a line being drawn; eased it is at
+   three quarters by then and settled well before the point starts to move. */
+const easeOut = (t) => 1 - (1 - t) ** 2;
 
 const ARROW = 30;         // the composed direction's fixed length, in pixels
 const Y_DOM = [0, 30];    // y = 5 + 2x + N(0, 1) over x in [0, 10], both scales
@@ -462,22 +497,29 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
 const DOWNHILL = 0.1;      // the composed arrow's length, in normalised domain units
 const TANGENT_HALF = 0.2;  // each partial's chord, ± this share of the domain (the mock's)
 
-/* The mesh, painted once per size, theme and dataset — the map's own cache, on
-   the other side of the same panel. The contour rings are baked in with it:
-   lifted onto the surface, they move only when the surface does. They are
-   painted over the whole mesh rather than hidden-line tested, so a ring on the
-   far wall can show through the near one; at 300/35 the trench runs away from
-   the reader and the far wall is a sliver. */
+/* The mesh, painted once per size, theme, dataset and VIEWPOINT — the map's own
+   cache, on the other side of the same panel. The contour rings are baked in
+   with it: lifted onto the surface, they move only when the surface does. They
+   are painted over the whole mesh rather than hidden-line tested, so a ring on
+   the far wall can show through the near one; at the default 300/35 the trench
+   runs away from the reader and the far wall is a sliver.
+
+   ONE SLOT, and a drag therefore misses it on every frame and repaints all 1936
+   quads. Measured at ~2 ms, which a gesture can afford; a ring buffer of
+   viewpoints would spend memory to save nothing, since a turn never comes back
+   to the exact degree it left. What the key still does is keep the mesh OUT of
+   the frame budget for everything the surface does not depend on — the learning
+   rate, the batch and the epoch move the walk over a mesh already painted. */
 let meshCache = null;
-function reliefBitmap(wpx, hpx, dpr, colors, state) {
-  const key = `${wpx}x${hpx}:${colors.costLow}:${colors.costHigh}:${colors.surface}:${state.sig}`;
+function reliefBitmap(wpx, hpx, dpr, colors, state, az, el) {
+  const key = `${wpx}x${hpx}:${colors.costLow}:${colors.costHigh}:${colors.surface}:${state.sig}:${az}:${el}`;
   if (meshCache && meshCache.key === key) return meshCache.canvas;
   const cv = document.createElement("canvas");
   cv.width = wpx;
   cv.height = hpx;
   const c = cv.getContext("2d");
   const { q, dom } = state;
-  const project = projector({ x: 0, y: 0, w: wpx, h: hpx });
+  const project = projector({ x: 0, y: 0, w: wpx, h: hpx }, az, el);
   c.lineWidth = 0.5 * dpr;
   for (const face of reliefMesh(q, dom, project)) {
     c.beginPath();
@@ -513,17 +555,20 @@ function reliefBitmap(wpx, hpx, dpr, colors, state) {
 }
 
 /* The path, sampled once and classified once (decision 4). The hidden test is
-   a ray march per piece — far too much per frame — and the viewpoint is a
-   constant, so the split is a function of the walk alone: ~1 ms for 1500
-   pieces, held here rather than in `compute()` so a walk nobody looks in relief
-   never pays for it.
+   a ray march per piece — far too much per frame — so the split is cached on
+   the walk AND the viewpoint, which are between them everything it depends on:
+   ~1 ms for 1500 pieces on the lesson's own walk, 2.6 ms for the 100 000
+   positions batch 1 leaves. Held here rather than in `compute()` so a walk
+   nobody looks at in relief never pays for it, and so a turn of the camera pays
+   only the march and not the descent.
 
    A piece outside the frame is dropped rather than clipped: off the domain
    there is no surface to lie on, and the projection would lay it on the ground
    plane's continuation. The panel says "off the frame" instead. */
 let piecesCache = null;
-function reliefPieces(state) {
-  if (piecesCache && piecesCache.key === state.walkSig) return piecesCache.pieces;
+function reliefPieces(state, az, el) {
+  const key = `${state.walkSig}:${az}:${el}`;
+  if (piecesCache && piecesCache.key === key) return piecesCache.pieces;
   const { q, dom, track } = state;
   const last = track.len - 1;
   const w0 = dom.b0[1] - dom.b0[0];
@@ -551,10 +596,10 @@ function reliefPieces(state) {
       const m0 = (a[0] + b[0]) / 2;
       const m1 = (a[1] + b[1]) / 2;
       const held = inside(a[0], a[1]) && inside(b[0], b[1]);
-      pieces.push({ end: kb, a, b, held, hidden: held && reliefHidden(q, dom, m0, m1) });
+      pieces.push({ end: kb, a, b, held, hidden: held && reliefHidden(q, dom, m0, m1, az, el) });
     }
   }
-  piecesCache = { key: state.walkSig, pieces };
+  piecesCache = { key, pieces };
   return pieces;
 }
 
@@ -572,16 +617,17 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
   /* No axisX/axisY: a projected surface has no rectilinear axes to hang ticks
      on, so b₀ and b₁ are named along the two edges nearest the reader. */
 
+  const { az, el } = opts;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   ctx.drawImage(
-    reliefBitmap(Math.round(rect.w * dpr), Math.round(rect.h * dpr), dpr, colors, state),
+    reliefBitmap(Math.round(rect.w * dpr), Math.round(rect.h * dpr), dpr, colors, state, az, el),
     rect.x, rect.y, rect.w, rect.h,
   );
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 
-  const project = projector(rect);
+  const project = projector(rect, az, el);
   const pt = (b0, b1) => {
     const [x, y, z] = reliefPoint(q, dom, b0, b1);
     return project(x, y, z);
@@ -615,7 +661,7 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
   const shown = [];
   const buried = [];
   let tail = null;
-  for (const pc of reliefPieces(state)) {
+  for (const pc of reliefPieces(state, az, el)) {
     if (pc.end > opts.upto) break;
     if (!pc.held) {
       tail = null;
@@ -628,7 +674,7 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
      One ray march a frame, which is what the sampled pieces cost together. */
   if (tail && held) {
     const seg = [pt(tail[0], tail[1]), pt(cur[0], cur[1])];
-    const mid = reliefHidden(q, dom, (tail[0] + cur[0]) / 2, (tail[1] + cur[1]) / 2);
+    const mid = reliefHidden(q, dom, (tail[0] + cur[0]) / 2, (tail[1] + cur[1]) / 2, az, el);
     (mid ? buried : shown).push(seg);
   }
   stroke(buried, { dash: [3, 4], alpha: 0.55, width: 1.2 });
@@ -667,8 +713,9 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
 
   /* b₀ and b₁ along the two edges the viewpoint puts nearest the reader,
      chosen by depth rather than fixed, so the naming survives a change of
-     viewpoint. Outside the clip: at some viewpoints an edge's midpoint sits on
-     the panel's border. */
+     viewpoint — which the drag now exercises on every frame, and which is why
+     the two names swap edges as the surface comes round. Outside the clip: at
+     some viewpoints an edge's midpoint sits on the panel's border. */
   const nearer = (u, v) => (project(...reliefPoint(q, dom, u[0], u[1])).depth
     <= project(...reliefPoint(q, dom, v[0], v[1])).depth ? u : v);
   const mid0 = (dom.b0[0] + dom.b0[1]) / 2;
@@ -795,11 +842,24 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     }
   }
 
-  /* The tangent: its slope IS ∂L/∂b₁, which is the page's whole point. */
+  /* THE TANGENT IS RE-EVALUATED AT THE POINT IT TOUCHES, which is the page's
+     whole point: its slope IS ∂L/∂b₁ there. It used to be drawn with
+     `opts.grad[1]`, the gradient `stand()` floors to the START of the step, so
+     through the move beat a line of fixed slope slid along the parabola —
+     Kenneth, 2026-09-08: "the tangent animation is not there. it just
+     translates without following the curve." Evaluated here it rolls with the
+     curve and arrives as the tangent at the new point.
+
+     THE READOUT AND THE BEAT CAPTION KEEP THE FLOORED ONE, and the two do not
+     disagree: `descendSlope` stores at every index exactly the gradient this
+     line recomputes, so at rest and at both unchoreographed speeds the number
+     printed is the slope drawn. They part only mid-move, where they are
+     answering different questions — what decided this step, against what the
+     surface does under the point now. */
   if (opts.tangentMix > 0) {
-    const g = opts.grad[1];
-    const span = (range[1] - range[0]) * 0.16 * opts.tangentMix;
     const b1 = cur[1];
+    const g = q.grad(q.B0, b1)[1];
+    const span = (range[1] - range[0]) * 0.16 * opts.tangentMix;
     const L = f(b1);
     ctx.strokeStyle = colors.highlight;
     ctx.lineWidth = 2;
@@ -1016,12 +1076,23 @@ defineWidget({
         {
           value: "relief",
           label: "Relief",
-          detail: "the loss as height over the same pairs, from one fixed viewpoint",
+          detail: "the loss as height over the same pairs; drag the surface to turn it",
         },
       ],
       default: "map",
       display: true,
       when: { param: "view", equals: "two" },
+    },
+    /* THE VIEWPOINT, AS TWO PARAMETERS. Decision 5 in the header says why they
+       are parameters and not animation state. No rail control: the drag is the
+       control, so both are hidden and travel in the URL the way `shown` does.
+       Display-only, because turning the camera is a second reading of a walk
+       already taken and must not discard it (3.2). */
+    turn: {
+      type: "int", min: 0, max: 359, default: RELIEF_DEFAULT_AZ, hidden: true, display: true,
+    },
+    tilt: {
+      type: "int", min: 10, max: 85, default: RELIEF_DEFAULT_EL, hidden: true, display: true,
     },
 
     stepSec: { type: "section", label: "The step" },
@@ -1181,6 +1252,40 @@ defineWidget({
     },
   },
 
+  /* TURNING THE RELIEF. A gesture rather than two sliders, because a camera is
+     one movement and the reader is looking for a direction, not setting a
+     number — and through core's `drag` channel rather than a pointer of its
+     own, so the viewpoint lands in `values` and a link carries the angle the
+     reader stopped at (1.1, 3.6). */
+  drag: {
+    params: ["turn", "tilt"],
+    cursor: "grab",
+    /* The surface panel only, and only where there is a surface to turn: on
+       the map and on the one-parameter page the same pixels hold a figure with
+       no camera, and a drag across them would rotate something nobody can see
+       and write two parameters into the link for it. */
+    hit: ({ x, y, w, params }) => {
+      if (params.view !== "two" || params.relief !== "relief") return false;
+      const r = layout(w).surf;
+      return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    },
+    /* Half a degree a pixel: the panel is 180-300px wide, so one drag across it
+       turns the surface through 90-150 degrees and a second finishes the
+       circle. Rounded to whole degrees so the link stays short, and the azimuth
+       wraps rather than clamping — turning past due north is a turn, not a wall.
+
+       ELEVATION STOPS AT 85 AND 10. At 90 the projection IS the map with the
+       height flattened out of it, and the depth every quad sorts on collapses
+       to its own height, so the painter's order stops meaning anything; below
+       10 the mesh is edge-on. The panel holds the whole surface up to 70 —
+       measured over both scales and every 5 degrees of azimuth — and clips at
+       most 20px of 300 off the near corner at 85, from the diagonal azimuths. */
+    value: ({ dx, dy, start }) => ({
+      turn: ((Math.round(start.turn - dx * 0.5) % 360) + 360) % 360,
+      tilt: Math.max(10, Math.min(85, Math.round(start.tilt + dy * 0.5))),
+    }),
+  },
+
   draw({ ctx, colors, w, params, state, anim }) {
     renderCard(params.view);
     const L = layout(w);
@@ -1202,6 +1307,10 @@ defineWidget({
         arrived,
         divergedShown,
         grad: at.grad,
+        /* Where the relief is looked at from. The map ignores them, and that is
+           the point: they name a camera, and looking straight down needs none. */
+        az: params.turn,
+        el: params.tilt,
         /* At rest, and at Medium and Fast, both parts of the step show at
            once. Slow builds them: the two components first, then the
            composition, then the move. */
@@ -1213,11 +1322,13 @@ defineWidget({
       });
       drawColourBar(ctx, colors, L.surf);
     } else {
+      /* No `grad` here: the tangent takes its slope from the point it touches
+         so that it rolls with the curve, while the readout and the beat line
+         below keep the floored one. `drawSlice` says why. */
       drawSlice(ctx, colors, L.slice, state, at.cur, {
         upto: at.upto,
         divergedShown,
-        grad: at.grad,
-        tangentMix: divergedShown ? 0 : stepping ? Math.min(1, at.beat / BEATS_ONE.tangent) : 1,
+        tangentMix: divergedShown ? 0 : stepping ? easeOut(Math.min(1, at.beat / BEATS_ONE.tangent)) : 1,
       });
       /* Which of the three regimes this learning rate is in, stated as the
          arithmetic that decides it rather than as a label. */
