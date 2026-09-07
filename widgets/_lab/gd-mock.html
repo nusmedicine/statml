@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 48 gradient-descent — the surface, the step, the learning rate</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid);
+          position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  .rail input[type=range] { width: 110px; }
+  .rail output { font-family: var(--font-mono); color: var(--ink-1); min-width: 3.5em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 48 · gradient-descent — the surface, the step, the learning rate</h1>
+
+  <p class="note">
+    The lesson's own example (05-2 cells 73–78): x = linspace(0, 10, 100), y = 5 + 2x + N(0, 1), the mean
+    squared error, plain gradient descent from (0, 0) at lr 0.01 for 1000 epochs. Everything below is drawn
+    on one seeded draw of that data. <b>The measured fact every panel answers to</b> (<code>dl-gd-measure.mjs</code>):
+    the surface's two curvatures are 68.5 and 0.50, so the walk is stable only below lr 0.029, reaches the
+    trench in three epochs and then crawls along it — the intercept's direction is 138× flatter than the
+    slope's. Standardizing x makes both curvatures 2.
+  </p>
+  <p class="note">
+    The surface ramp is <b>log10 of loss ÷ least loss, capped at 316×</b>: the start (0, 0) sits at
+    ~300× and the trench is entered at ~8×, so widget 27's 3× cap would paint the whole walk solid.
+    Contour lines are drawn at fixed ratios so the gradient's direction can be read against them.
+  </p>
+
+  <div class="rail">
+    <label>canvas width <input type="range" id="W" min="0" max="2" value="1"><output id="Wv">690</output></label>
+    <label>learning rate <select id="lr"></select></label>
+    <label>x <select id="scale"><option value="raw">raw (0–10)</option><option value="std">standardized</option></select></label>
+    <label>epochs so far <input type="range" id="ep" min="0" max="11" value="6"><output id="epv">20</output></label>
+    <label>seed <input type="range" id="seed" min="1" max="30" value="7"><output id="seedv">7</output></label>
+  </div>
+
+  <h2>§1 · Stage composition — the Two-parameters page</h2>
+  <p class="note">
+    <b>A</b> the data and the current line beside the surface — widget 27's row, on this data, with the
+    gradient at the current point and the path so far; <b>B</b> the surface with its two axis slices beside it,
+    so the partial derivatives are the two tangent slopes the lesson defines them as; <b>C</b> A with a
+    loss-per-epoch strip beneath (widget 37's strip), which is where the crawl is legible once the surface
+    point has stopped moving visibly.
+  </p>
+  <div class="row" id="comp"></div>
+
+  <h2>§2 · How one step is drawn</h2>
+  <p class="note">
+    The honest problem: at the lesson's lr the first steps are huge (b₁ moves 0 → 1.84 in one epoch) and
+    the trench steps are under a pixel (b₀ moves ~0.02 per epoch). <b>A</b> the step −lr·∇L to scale — true,
+    and invisible in the trench; <b>B</b> the gradient's direction at a fixed length, perpendicular to the
+    contour, its size only in the readout; <b>C</b> the two partials as component ticks along the axes,
+    composing into the direction, each with its number. Same state as §1.
+  </p>
+  <div class="row" id="step"></div>
+
+  <h2>§3 · The learning rate, four values on the raw surface</h2>
+  <p class="note">
+    The path after 300 epochs. The candidate <code>lr</code> choice must contain a divergent value — the
+    claim is that above 2/curvature the walk blows up, and a control that cannot reach it cannot lose.
+    The divergent path leaves the frame; the frame stays fixed (2.5) and the caption says at which epoch.
+  </p>
+  <div class="row" id="lrs"></div>
+
+  <h2>§4 · Standardizing x — the same walk on a round bowl</h2>
+  <p class="note">
+    Standardized x: both curvatures are 2, so any lr below 1 is stable and lr 0.5 lands on the minimum in
+    <b>one</b> step (the step is exactly 1/curvature). At the lesson's 0.01 it is still slow — 0.98 of the
+    distance kept per step in both directions. So the picture says: standardizing does not make a walk
+    fast, it lets the learning rate be large. Whether <code>scale</code> is a control here or the
+    standardized bowl is the only stage is the pick.
+  </p>
+  <div class="row" id="scales"></div>
+
+  <h2>§5 · The One-parameter page — the parabola</h2>
+  <p class="note">
+    b₀ held at its fitted value, the loss as a curve over b₁, curvature 67.3: the three regimes on one
+    parabola — converge below 1/curvature, oscillate between 1/ and 2/curvature, diverge above. Eight
+    steps from b₁ = 0, the tangent drawn at the start. The pick: a page of its own before the surface, a strip
+    under it, or cut because §1 B's slices already carry it.
+  </p>
+  <div class="row" id="para"></div>
+
+  <h2>§6 · Batches — the S in SGD</h2>
+  <p class="note">
+    Raw x, lr 0.01, 20 epochs, the position after every update: full batch (one update per epoch), batches
+    of 10 (ten per epoch), one row at a time (a hundred per epoch). Whether the gradient becomes an
+    estimate is what a <code>batch</code> control would show; the numbers underneath say what it costs.
+  </p>
+  <div class="row" id="batch"></div>
+
+  <h2>Numbers on this draw</h2>
+  <div id="nums"></div>
+
+  <h2>Open interaction questions (for review, not drawn)</h2>
+  <p class="note">
+    <b>Where the walk starts:</b> the lesson starts at (0, 0). Sliders for b₀ and b₁ (widget 27's) would let
+    the reader start anywhere, and a start on the far side of the trench makes the zig-zag at lr 0.028
+    visible; a fixed start keeps the rail to lr, scale, batch and speed.
+    <b>Slow speed:</b> one epoch choreographed — the two partials appear as tangents on the slices (§1 B),
+    then the arrow, then the move — is the mlp widget's pattern and needs the slices on stage somewhere.
+    <b>The readout:</b> b₀, b₁, loss, ∂L/∂b₀, ∂L/∂b₁, and the step length; "diverged at epoch N" replaces the
+    loss once it has.
+    <b>An optimizer picker</b> (SGD · momentum · Adam) is a later round and unmeasured; do not add before it is.
+  </p>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const WIDTHS = [550, 690, 770];
+const LRS = [0.001, 0.003, 0.01, 0.02, 0.028, 0.03, 0.05, 0.1, 0.5, 1.1];
+const EPOCH_LADDER = [0, 1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000];
+const V = { W: 1, lr: 0.01, scale: "raw", ep: 6, seed: 7 };
+
+/* ---- the lesson's data, one seeded draw ---------------------------------- */
+const N = 100;
+let X, Y, XZ;
+function makeData(seed) {
+  const rng = makeRng(seed);
+  X = Array.from({ length: N }, (_, i) => (10 * i) / (N - 1));
+  Y = X.map((v) => 5 + 2 * v + rng.normal(0, 1));
+  const mx = X.reduce((a, b) => a + b) / N;
+  const sd = Math.sqrt(X.reduce((a, v) => a + (v - mx) ** 2, 0) / N);
+  XZ = X.map((v) => (v - mx) / sd);
+}
+
+/* Mean squared error over (b0, b1) is a quadratic: five sums give the loss,
+   the gradient, the minimum and the curvatures in closed form. */
+function quad(xs) {
+  const n = xs.length;
+  let Sx = 0, Sxx = 0, Sy = 0, Sxy = 0, Syy = 0;
+  for (let i = 0; i < n; i += 1) { Sx += xs[i]; Sxx += xs[i] ** 2; Sy += Y[i]; Sxy += xs[i] * Y[i]; Syy += Y[i] ** 2; }
+  const loss = (b0, b1) => (Syy - 2 * b0 * Sy - 2 * b1 * Sxy + n * b0 * b0 + 2 * b0 * b1 * Sx + b1 * b1 * Sxx) / n;
+  const grad = (b0, b1) => [2 * (n * b0 + b1 * Sx - Sy) / n, 2 * (b0 * Sx + b1 * Sxx - Sxy) / n];
+  const B1 = (Sxy - Sx * Sy / n) / (Sxx - Sx * Sx / n);
+  const B0 = (Sy - B1 * Sx) / n;
+  const tr = 2 + 2 * Sxx / n;
+  const det = 4 * Sxx / n - (2 * Sx / n) ** 2;
+  const d = Math.sqrt(Math.max(0, tr * tr - 4 * det));
+  return { xs, n, loss, grad, B0, B1, Lmin: loss(B0, B1), lmax: (tr + d) / 2, lmin: (tr - d) / 2, curvB1: 2 * Sxx / n };
+}
+
+/* Full-batch descent from (0, 0): every epoch's position, or the epoch it diverged. */
+function descend(q, lr, epochs, start = [0, 0]) {
+  let [b0, b1] = start;
+  const path = [[b0, b1, q.loss(b0, b1)]];
+  for (let e = 0; e < epochs; e += 1) {
+    const [g0, g1] = q.grad(b0, b1);
+    b0 -= lr * g0; b1 -= lr * g1;
+    if (!Number.isFinite(b0) || Math.abs(b0) > 1e6 || Math.abs(b1) > 1e6) return { path, diverged: e + 1 };
+    path.push([b0, b1, q.loss(b0, b1)]);
+  }
+  return { path, diverged: null };
+}
+
+/* Mini-batch descent: the gradient of each batch only; every update recorded. */
+function descendBatches(q, lr, epochs, batch, seed) {
+  const rng = makeRng(seed);
+  let b0 = 0, b1 = 0;
+  const path = [[b0, b1, q.loss(b0, b1)]];
+  const idx = Array.from({ length: q.n }, (_, i) => i);
+  for (let e = 0; e < epochs; e += 1) {
+    const order = rng.shuffle(idx.slice());
+    for (let s = 0; s < q.n; s += batch) {
+      const rows = order.slice(s, s + batch);
+      let g0 = 0, g1 = 0;
+      for (const i of rows) { const err = b0 + b1 * q.xs[i] - Y[i]; g0 += 2 * err / rows.length; g1 += 2 * err * q.xs[i] / rows.length; }
+      b0 -= lr * g0; b1 -= lr * g1;
+      if (!Number.isFinite(b0) || Math.abs(b0) > 1e6) return { path, diverged: e + 1 };
+      path.push([b0, b1, q.loss(b0, b1)]);
+    }
+  }
+  return { path, diverged: null };
+}
+
+/* ---- drawing helpers ------------------------------------------------------ */
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const LOG_CAP = 2.5;
+const ramp = (ratio) => hexLerp(T.costLow, T.costHigh, Math.max(0, Math.min(1, Math.log10(Math.max(1, ratio)) / LOG_CAP)));
+const LEVELS = [1.05, 1.2, 1.5, 2, 3, 5, 10, 20, 50, 100, 200];
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${size} ${mono ? "ui-monospace, Menlo, monospace" : T.font}`;
+  ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 2) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 8 * Math.cos(a - 0.4), y1 - 8 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 8 * Math.cos(a + 0.4), y1 - 8 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+/* The domain of a surface: wide enough for the lesson's start at (0, 0) and its minimum. */
+function domainFor(q) {
+  const b0 = [Math.min(0, q.B0) - 1, Math.max(0, q.B0) + 4];
+  const b1 = [Math.min(0, q.B1) - 0.5, Math.max(0, q.B1) + 1.5];
+  return { b0, b1 };
+}
+
+function scatterInto(ctx, rect, q, cur, { fitted = true } = {}) {
+  const xs = q.xs;
+  const xd = [Math.min(...xs), Math.max(...xs)];
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [xd[0] - 0.3, xd[1] + 0.3], yDomain: [0, 30] });
+  plot.axisX({ label: V.scale === "raw" ? "x" : "x, standardized" });
+  plot.axisY({ label: "y" });
+  ctx.fillStyle = T.unknown; ctx.globalAlpha = 0.55;
+  for (let i = 0; i < q.n; i += 1) { ctx.beginPath(); ctx.arc(plot.sx(xs[i]), plot.sy(Y[i]), 2, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  const line = (b0, b1, color, width, dash = []) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(plot.sx(xd[0]), plot.sy(b0 + b1 * xd[0])); ctx.lineTo(plot.sx(xd[1]), plot.sy(b0 + b1 * xd[1])); ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  if (fitted) line(q.B0, q.B1, T.reference, 1.5, [6, 4]);
+  line(cur[0], cur[1], T.highlight, 2.5);
+  ctx.restore();
+  return plot;
+}
+
+/* marching squares over log10(loss / least) */
+function contoursInto(ctx, plot, q, dom, G = 64) {
+  const val = [];
+  for (let i = 0; i <= G; i += 1) {
+    val.push([]);
+    for (let j = 0; j <= G; j += 1) {
+      const b0 = dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
+      const b1 = dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
+      val[i].push(Math.log10(q.loss(b0, b1) / q.Lmin));
+    }
+  }
+  const px = (i) => plot.sx(dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]));
+  const py = (j) => plot.sy(dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]));
+  ctx.save();
+  ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.55; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const lv of LEVELS.map((r) => Math.log10(r))) {
+    for (let i = 0; i < G; i += 1) {
+      for (let j = 0; j < G; j += 1) {
+        const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+        const pts = [];
+        for (let k = 0; k < 4; k += 1) {
+          const [a, b] = [c[k], c[(k + 1) % 4]];
+          const va = val[a[0]][a[1]], vb = val[b[0]][b[1]];
+          if ((va < lv) !== (vb < lv)) {
+            const t = (lv - va) / (vb - va);
+            pts.push([px(a[0] + (b[0] - a[0]) * t), py(a[1] + (b[1] - a[1]) * t)]);
+          }
+        }
+        for (let k = 0; k + 1 < pts.length; k += 2) { ctx.moveTo(pts[k][0], pts[k][1]); ctx.lineTo(pts[k + 1][0], pts[k + 1][1]); }
+      }
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function surfaceInto(ctx, rect, q, { path = null, contours = true, cur = null, minimum = true, caption = null, diverged = null } = {}) {
+  const dom = domainFor(q);
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: dom.b0, yDomain: dom.b1 });
+  if (caption) plot.caption(caption);
+  plot.axisX({ label: "intercept b₀" });
+  plot.axisY({ label: "slope b₁" });
+  const CELL = 2;
+  for (let x = 0; x < rect.w; x += CELL) {
+    for (let y = 0; y < rect.h; y += CELL) {
+      const b0 = dom.b0[0] + (x / rect.w) * (dom.b0[1] - dom.b0[0]);
+      const b1 = dom.b1[1] - (y / rect.h) * (dom.b1[1] - dom.b1[0]);
+      ctx.fillStyle = ramp(q.loss(b0, b1) / q.Lmin);
+      ctx.fillRect(rect.x + x, rect.y + y, CELL, CELL);
+    }
+  }
+  if (contours) contoursInto(ctx, plot, q, dom);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  if (path && path.length > 1) {
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
+    path.forEach(([b0, b1], i) => (i ? ctx.lineTo(plot.sx(b0), plot.sy(b1)) : ctx.moveTo(plot.sx(b0), plot.sy(b1))));
+    ctx.stroke();
+    ctx.fillStyle = T.ink1;
+    for (const [b0, b1] of path.slice(0, 5)) { ctx.beginPath(); ctx.arc(plot.sx(b0), plot.sy(b1), 2.2, 0, 2 * Math.PI); ctx.fill(); }
+  }
+  if (minimum) {
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.beginPath();
+    const cx = plot.sx(q.B0), cy = plot.sy(q.B1);
+    ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6); ctx.stroke();
+  }
+  if (cur) {
+    ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(plot.sx(cur[0]), plot.sy(cur[1]), 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = T.surface; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  ctx.restore();
+  if (diverged) txt(ctx, `diverged at epoch ${diverged}`, rect.x + rect.w - 6, rect.y + 14, { color: T.extreme, align: "right" });
+  return plot;
+}
+
+/* A slice of the loss along one axis through the current point, with the tangent there. */
+function sliceInto(ctx, rect, q, cur, axis, { steps = null } = {}) {
+  const dom = domainFor(q);
+  const range = axis === 0 ? dom.b0 : dom.b1;
+  const f = (v) => (axis === 0 ? q.loss(v, cur[1]) : q.loss(cur[0], v));
+  const g = q.grad(cur[0], cur[1])[axis];
+  const pts = [];
+  let lo = Infinity, hi = -Infinity;
+  for (let k = 0; k <= 80; k += 1) { const v = range[0] + (k / 80) * (range[1] - range[0]); const L = f(v); pts.push([v, L]); lo = Math.min(lo, L); hi = Math.max(hi, L); }
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: range, yDomain: [0, hi * 1.05] });
+  plot.axisX({ label: axis === 0 ? "b₀, with b₁ held" : "b₁, with b₀ held" });
+  plot.axisY({ label: "loss" });
+  plot.curve(pts, { stroke: T.ink2, width: 1.5 });
+  const v0 = cur[axis], L0 = f(v0);
+  const span = (range[1] - range[0]) * 0.18;
+  ctx.save(); ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(plot.sx(v0 - span), plot.sy(L0 - g * span)); ctx.lineTo(plot.sx(v0 + span), plot.sy(L0 + g * span)); ctx.stroke();
+  if (steps) {
+    ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.beginPath();
+    steps.forEach(([v, L], i) => (i ? ctx.lineTo(plot.sx(v), plot.sy(L)) : ctx.moveTo(plot.sx(v), plot.sy(L))));
+    ctx.stroke();
+    ctx.fillStyle = T.ink1;
+    for (const [v, L] of steps) { ctx.beginPath(); ctx.arc(plot.sx(v), plot.sy(L), 2.2, 0, 2 * Math.PI); ctx.fill(); }
+  }
+  ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(plot.sx(v0), plot.sy(L0), 4, 0, 2 * Math.PI); ctx.fill();
+  ctx.restore();
+  txt(ctx, `∂L/∂b${axis === 0 ? "₀" : "₁"} = ${g.toFixed(2)}`, rect.x + rect.w - 4, rect.y + 12, { color: T.highlight, align: "right", mono: true });
+  return plot;
+}
+
+function lossStrip(ctx, rect, path, epochsShown) {
+  const n = Math.max(epochsShown, 10);
+  const pts = path.slice(0, epochsShown + 1).map(([, , L], i) => [i, Math.log10(L)]);
+  const all = path.map(([, , L]) => Math.log10(L));
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, n], yDomain: [Math.floor(Math.min(...all)), Math.ceil(Math.max(...all))] });
+  plot.axisX({ label: "epoch" });
+  plot.axisY({ label: "loss, log₁₀", ticks: [Math.floor(Math.min(...all)), Math.ceil(Math.max(...all))] });
+  if (pts.length > 1) plot.curve(pts, { stroke: T.empirical, width: 2 });
+}
+
+/* ---- state shared by §1 and §2 -------------------------------------------- */
+let Q, QZ, cur, run, epochs;
+function buildState() {
+  makeData(V.seed);
+  Q = quad(X); QZ = quad(XZ);
+  epochs = EPOCH_LADDER[V.ep];
+  const q = V.scale === "raw" ? Q : QZ;
+  run = descend(q, V.lr, Math.max(epochs, 1));
+  const k = Math.min(epochs, run.path.length - 1);
+  cur = run.path[k];
+}
+const activeQ = () => (V.scale === "raw" ? Q : QZ);
+
+/* ================= §1 · composition ================= */
+function drawComp() {
+  const host = document.getElementById("comp");
+  host.innerHTML = "";
+  const W = WIDTHS[V.W];
+  const q = activeQ();
+  const shown = run.path.slice(0, Math.min(epochs, run.path.length - 1) + 1);
+  const state = `lr ${V.lr}, epoch ${epochs}${run.diverged ? ` — diverged at ${run.diverged}` : ""}: b₀ ${cur[0].toFixed(2)}, b₁ ${cur[1].toFixed(2)}, loss ${cur[2].toFixed(3)} (least ${q.Lmin.toFixed(3)})`;
+
+  {
+    const H = 300;
+    const ctx = panel(host, "A · data beside the surface", `widget 27's row on the lesson's data; ${state}`, W, H);
+    const sq = Math.min(240, W * 0.42);
+    scatterInto(ctx, { x: 44, y: 24, w: W - sq - 44 - 72 - 14, h: 240 }, q, cur);
+    const sp = surfaceInto(ctx, { x: W - sq - 14, y: 24, w: sq, h: 240 }, q, { path: shown, cur, caption: "every line at once" });
+    const [g0, g1] = q.grad(cur[0], cur[1]);
+    const len = Math.hypot(g0, g1);
+    if (len > 0) arrow(ctx, sp.sx(cur[0]), sp.sy(cur[1]), sp.sx(cur[0]) - 26 * g0 / len, sp.sy(cur[1]) + 26 * g1 / len, T.highlight);
+  }
+  {
+    const H = 300;
+    const ctx = panel(host, "B · the surface and its two slices", `the partials as the two tangent slopes; ${state}`, W, H);
+    const sq = Math.min(240, W * 0.42);
+    const sp = surfaceInto(ctx, { x: 44, y: 24, w: sq, h: 240 }, q, { path: shown, cur, caption: "every line at once" });
+    const [g0, g1] = q.grad(cur[0], cur[1]);
+    const len = Math.hypot(g0, g1);
+    if (len > 0) arrow(ctx, sp.sx(cur[0]), sp.sy(cur[1]), sp.sx(cur[0]) - 26 * g0 / len, sp.sy(cur[1]) + 26 * g1 / len, T.highlight);
+    const sx0 = 44 + sq + 70;
+    const sw = W - sx0 - 14;
+    sliceInto(ctx, { x: sx0, y: 24, w: sw, h: 100 }, q, cur, 0);
+    sliceInto(ctx, { x: sx0, y: 164, w: sw, h: 100 }, q, cur, 1);
+  }
+  {
+    const H = 390;
+    const ctx = panel(host, "C · A with a loss strip beneath", `the crawl is legible on the strip after the surface point has stopped moving; ${state}`, W, H);
+    const sq = Math.min(240, W * 0.42);
+    scatterInto(ctx, { x: 44, y: 24, w: W - sq - 44 - 72 - 14, h: 240 }, q, cur);
+    const sp = surfaceInto(ctx, { x: W - sq - 14, y: 24, w: sq, h: 240 }, q, { path: shown, cur, caption: "every line at once" });
+    const [g0, g1] = q.grad(cur[0], cur[1]);
+    const len = Math.hypot(g0, g1);
+    if (len > 0) arrow(ctx, sp.sx(cur[0]), sp.sy(cur[1]), sp.sx(cur[0]) - 26 * g0 / len, sp.sy(cur[1]) + 26 * g1 / len, T.highlight);
+    lossStrip(ctx, { x: 44, y: 304, w: W - 44 - 14, h: 60 }, run.path, epochs);
+  }
+}
+
+/* ================= §2 · the step ================= */
+function drawStep() {
+  const host = document.getElementById("step");
+  host.innerHTML = "";
+  const q = activeQ();
+  const shown = run.path.slice(0, Math.min(epochs, run.path.length - 1) + 1);
+  const [g0, g1] = q.grad(cur[0], cur[1]);
+  const len = Math.hypot(g0, g1);
+  const R = { x: 44, y: 24, w: 216, h: 216 };
+  const Wp = 290, Hp = 280;
+  const stepLen = V.lr * len;
+  {
+    const ctx = panel(host, "A · the step to scale", `−lr·∇L drawn as it is: length ${stepLen.toFixed(4)} in parameter units — see whether it is a pixel`, Wp, Hp);
+    const sp = surfaceInto(ctx, R, q, { path: shown, cur });
+    const nx = cur[0] - V.lr * g0, ny = cur[1] - V.lr * g1;
+    ctx.save(); ctx.beginPath(); ctx.rect(R.x, R.y, R.w, R.h); ctx.clip();
+    arrow(ctx, sp.sx(cur[0]), sp.sy(cur[1]), sp.sx(nx), sp.sy(ny), T.highlight, 2.5);
+    ctx.restore();
+    txt(ctx, `step ${stepLen.toFixed(4)}`, R.x + 4, R.y + R.h + 34, { mono: true, color: T.ink2 });
+  }
+  {
+    const ctx = panel(host, "B · the direction at a fixed length", `perpendicular to the contour it stands on; |∇L| = ${len.toFixed(3)} in the readout`, Wp, Hp);
+    const sp = surfaceInto(ctx, R, q, { path: shown, cur });
+    if (len > 0) arrow(ctx, sp.sx(cur[0]), sp.sy(cur[1]), sp.sx(cur[0]) - 30 * g0 / len, sp.sy(cur[1]) + 30 * g1 / len, T.highlight, 2.5);
+    txt(ctx, `|∇L| ${len.toFixed(3)}   step ${stepLen.toFixed(4)}`, R.x + 4, R.y + R.h + 34, { mono: true, color: T.ink2 });
+  }
+  {
+    const ctx = panel(host, "C · the two partials as components", `ticks along each axis, composing into the direction; each carries its number`, Wp, Hp);
+    const sp = surfaceInto(ctx, R, q, { path: shown, cur });
+    if (len > 0) {
+      const cx = sp.sx(cur[0]), cy = sp.sy(cur[1]);
+      const ex = -30 * g0 / len, ey = 30 * g1 / len;
+      ctx.save(); ctx.setLineDash([3, 3]);
+      arrow(ctx, cx, cy, cx + ex, cy, T.ink1, 1.5);
+      arrow(ctx, cx, cy, cx, cy + ey, T.ink1, 1.5);
+      ctx.restore();
+      arrow(ctx, cx, cy, cx + ex, cy + ey, T.highlight, 2.5);
+      txt(ctx, `∂L/∂b₀ ${g0.toFixed(2)}`, cx + ex + (ex < 0 ? -4 : 4), cy - 6, { align: ex < 0 ? "right" : "left", mono: true, color: T.ink1 });
+      txt(ctx, `∂L/∂b₁ ${g1.toFixed(2)}`, cx + 6, cy + ey + (ey < 0 ? -4 : 12), { mono: true, color: T.ink1 });
+    }
+  }
+}
+
+/* ================= §3 · learning rates on the raw surface ================= */
+function drawLrs() {
+  const host = document.getElementById("lrs");
+  host.innerHTML = "";
+  for (const lr of [0.001, 0.01, 0.028, 0.05]) {
+    const r = descend(Q, lr, 300);
+    const end = r.path[r.path.length - 1];
+    const ctx = panel(host, `lr ${lr}`, r.diverged
+      ? `diverged at epoch ${r.diverged}: the path leaves the frame`
+      : `after 300 epochs: b₀ ${end[0].toFixed(2)}, b₁ ${end[1].toFixed(2)}, loss ${(end[2] / Q.Lmin).toFixed(2)}× the least`, 290, 280);
+    surfaceInto(ctx, { x: 44, y: 24, w: 216, h: 216 }, Q, { path: r.path, cur: r.diverged ? null : end, diverged: r.diverged });
+  }
+}
+
+/* ================= §4 · standardized ================= */
+function drawScales() {
+  const host = document.getElementById("scales");
+  host.innerHTML = "";
+  {
+    const r = descend(Q, 0.01, 300);
+    const end = r.path[r.path.length - 1];
+    const ctx = panel(host, "raw x, lr 0.01, 300 epochs", `the lesson's own: b₀ ${end[0].toFixed(2)} of ${Q.B0.toFixed(2)}, loss ${(end[2] / Q.Lmin).toFixed(2)}× the least`, 290, 280);
+    surfaceInto(ctx, { x: 44, y: 24, w: 216, h: 216 }, Q, { path: r.path, cur: end });
+  }
+  for (const [lr, ep] of [[0.01, 300], [0.1, 30], [0.5, 3], [1.1, 30]]) {
+    const r = descend(QZ, lr, ep);
+    const end = r.path[r.path.length - 1];
+    const ctx = panel(host, `standardized x, lr ${lr}, ${ep} epochs`, r.diverged
+      ? `diverged at epoch ${r.diverged}`
+      : `b₀ ${end[0].toFixed(2)} of ${QZ.B0.toFixed(2)}, b₁ ${end[1].toFixed(2)} of ${QZ.B1.toFixed(2)}, loss ${(end[2] / QZ.Lmin).toFixed(3)}× the least`, 290, 280);
+    surfaceInto(ctx, { x: 44, y: 24, w: 216, h: 216 }, QZ, { path: r.path, cur: r.diverged ? null : end, diverged: r.diverged });
+  }
+}
+
+/* ================= §5 · the parabola ================= */
+function drawPara() {
+  const host = document.getElementById("para");
+  host.innerHTML = "";
+  const c = Q.curvB1;
+  for (const [lr, name] of [[0.01, "converge"], [0.025, "oscillate"], [0.032, "diverge"]]) {
+    const steps = [];
+    let b1 = 0;
+    for (let k = 0; k < 8; k += 1) {
+      steps.push([b1, Q.loss(Q.B0, b1)]);
+      b1 -= lr * Q.grad(Q.B0, b1)[1];
+      if (!Number.isFinite(b1) || Math.abs(b1) > 50) break;
+    }
+    const ctx = panel(host, `lr ${lr} — ${name}`, `curvature ${c.toFixed(1)}: 1/c = ${(1 / c).toFixed(4)}, 2/c = ${(2 / c).toFixed(4)}; each step keeps ${(1 - lr * c).toFixed(2)} of the distance`, 320, 250);
+    sliceInto(ctx, { x: 44, y: 24, w: 260, h: 190 }, Q, [Q.B0, 0], 1, { steps });
+  }
+}
+
+/* ================= §6 · batches ================= */
+function drawBatch() {
+  const host = document.getElementById("batch");
+  host.innerHTML = "";
+  for (const b of [100, 10, 1]) {
+    const r = descendBatches(Q, 0.01, 20, b, V.seed);
+    const end = r.path[r.path.length - 1];
+    const ctx = panel(host, `batch ${b} — ${r.path.length - 1} updates`, r.diverged
+      ? `diverged at epoch ${r.diverged}`
+      : `after 20 epochs: b₀ ${end[0].toFixed(2)}, b₁ ${end[1].toFixed(2)}, loss ${(end[2] / Q.Lmin).toFixed(2)}× the least`, 290, 280);
+    surfaceInto(ctx, { x: 44, y: 24, w: 216, h: 216 }, Q, { path: r.path, cur: r.diverged ? null : end, diverged: r.diverged });
+  }
+}
+
+/* ================= numbers ================= */
+function drawNums() {
+  const rows = [];
+  const add = (k, v) => rows.push(`<tr><td>${k}</td><td class="n">${v}</td></tr>`);
+  add("least squares b₀, b₁", `${Q.B0.toFixed(3)}, ${Q.B1.toFixed(3)}`);
+  add("least loss", Q.Lmin.toFixed(3));
+  add("loss at the start (0, 0), × the least", (Q.loss(0, 0) / Q.Lmin).toFixed(0));
+  add("raw x: curvatures, condition", `${Q.lmax.toFixed(1)}, ${Q.lmin.toFixed(3)} — ${(Q.lmax / Q.lmin).toFixed(0)}`);
+  add("raw x: stable lr", `< ${(2 / Q.lmax).toFixed(4)}`);
+  add("standardized x: curvatures", `${QZ.lmax.toFixed(3)}, ${QZ.lmin.toFixed(3)}`);
+  add("standardized x: least squares b₀, b₁", `${QZ.B0.toFixed(3)}, ${QZ.B1.toFixed(3)}`);
+  for (const lr of [0.001, 0.01, 0.028, 0.03, 0.05]) {
+    const r = descend(Q, lr, 1000);
+    if (r.diverged) { add(`raw, lr ${lr}`, `diverged at epoch ${r.diverged}`); continue; }
+    const within = r.path.findIndex(([, , L]) => L / Q.Lmin < 1.01);
+    add(`raw, lr ${lr}: epochs to within 1% of the least loss`, within < 0 ? `> 1000 (${(r.path[1000][2] / Q.Lmin).toFixed(2)}× at 1000)` : within);
+  }
+  for (const lr of [0.01, 0.1, 0.5]) {
+    const r = descend(QZ, lr, 1000);
+    const within = r.path.findIndex(([, , L]) => L / QZ.Lmin < 1.01);
+    add(`standardized, lr ${lr}: epochs to within 1%`, within < 0 ? "> 1000" : within);
+  }
+  for (const b of [100, 10, 1]) {
+    const r = descendBatches(Q, 0.01, 20, b, V.seed);
+    add(`batch ${b}, lr 0.01, 20 epochs: loss × the least`, r.diverged ? `diverged at epoch ${r.diverged}` : (r.path[r.path.length - 1][2] / Q.Lmin).toFixed(2));
+  }
+  document.getElementById("nums").innerHTML = `<table><tr><th>quantity</th><th>value</th></tr>${rows.join("")}</table>`;
+}
+
+/* ---- rail ----------------------------------------------------------------- */
+const lrSel = document.getElementById("lr");
+for (const lr of LRS) { const o = document.createElement("option"); o.value = lr; o.textContent = lr; if (lr === V.lr) o.selected = true; lrSel.appendChild(o); }
+lrSel.addEventListener("input", () => { V.lr = Number(lrSel.value); redrawLive(); });
+document.getElementById("scale").addEventListener("input", (e) => { V.scale = e.target.value; redrawLive(); });
+document.getElementById("W").addEventListener("input", (e) => { V.W = Number(e.target.value); document.getElementById("Wv").textContent = WIDTHS[V.W]; redrawLive(); });
+document.getElementById("ep").addEventListener("input", (e) => { V.ep = Number(e.target.value); document.getElementById("epv").textContent = EPOCH_LADDER[V.ep]; redrawLive(); });
+document.getElementById("seed").addEventListener("input", (e) => { V.seed = Number(e.target.value); document.getElementById("seedv").textContent = V.seed; redrawAll(); });
+
+function redrawLive() { buildState(); drawComp(); drawStep(); }
+function redrawAll() { buildState(); drawComp(); drawStep(); drawLrs(); drawScales(); drawPara(); drawBatch(); drawNums(); }
+redrawAll();
+</script>
+</body>
+</html>

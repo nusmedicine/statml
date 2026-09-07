@@ -9742,6 +9742,47 @@ capped and the readout prints *diverged at epoch N*, which is the claim.
 natural second round: on the raw surface Adam should land where SGD crawls.
 Not measured; do not add it before it is.
 
+#### The mock-up — `_lab/gd-mock.html`, 2026-09-07, awaiting picks
+
+Six sections, each a pick: §1 the stage (A data beside the surface, widget
+27's row; B the surface with its two axis slices, the partials as tangent
+slopes; C A with a loss strip beneath); §2 how one step is drawn (A to
+scale, which is under a pixel in the trench; B the direction at a fixed
+length; C the two partials as component ticks with their numbers); §3 four
+learning rates on the raw surface, the divergent one leaving a fixed frame
+with its epoch in the caption; §4 raw against standardized x, and whether
+`scale` is a control or the bowl is the only stage; §5 the one-parameter
+parabola at converge / oscillate / diverge, and whether it is a page, a
+strip or cut; §6 batches of 100, 10 and 1.
+
+**Two things the mock found that the script had not.** The surface ramp
+cannot be widget 27's 3× cap: the start sits at ~270× the least loss and
+the trench is entered at ~8×, so the mock paints log10 of the ratio capped
+at 316× with contour lines at fixed ratios, and the gradient's
+perpendicularity to the contour is readable. And on batches at lr 0.01 for
+20 epochs (one seed), full batch ends at 6.0× the least loss, batches of 10
+at 1.8× and single rows at 1.6× — two thousand small noisy updates beat
+twenty exact ones, and none diverged, so a `batch` control has a stage
+that wins as well as a path that wobbles.
+
+#### Kenneth's picks, 2026-09-07 — the build brief
+
+- **§1 C** — data beside the surface, a loss strip beneath.
+- **§2 C** — the two partials as component ticks along the axes, each
+  with its number, composing into the direction.
+- **§3** — no objection to the set; the ladder must hold the lesson's 0.01,
+  a value the raw surface diverges at and a value the standardized one
+  diverges at.
+- **§4 control** — `scale` is a data control, raw or standardized x.
+- **§5 page** — the one-parameter parabola is its own page, first.
+- **§6 yes** — a `batch` control, full / 10 / 1.
+
+Routine calls made without asking: the walk starts at the lesson's (0, 0)
+with no start sliders; Slow choreographs one epoch — the two partials
+appear as ticks, the direction composes, the point moves; the readout is
+b₀, b₁, the loss as a multiple of the least, the two partials and the step
+length, with *diverged at epoch N* replacing the loss once it has.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
