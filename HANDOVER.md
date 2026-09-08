@@ -57,6 +57,14 @@ map, choreography A on the one-parameter page. 46 assertions. Served at
 `http://localhost:8012/widgets/gradients/`. Not pushed, no fingerprint
 states.
 
+**Round 6, 2026-09-08:** the Derivative tab draws the definition — the
+secant through two points on the curve turning onto the tangent as Δa
+shrinks (slope 2a + 3b + Δa, exactly) — and the Partial derivatives tab
+has the relief, the two slices lifted onto the surface. **Core changed:
+`widgets/core/controls.js`, `when` gained `any` and clauses nest**, for
+the Surface control's gating; the full fingerprint suite was run for it
+(see the commit). 53 assertions.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

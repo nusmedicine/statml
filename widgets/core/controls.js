@@ -63,17 +63,28 @@ import { optionEntries } from "./params.js";
  * alone showed it under the numeric outcome, whose hidden view value was
  * still "matrix"). A conjunction of the declarative forms is still
  * declarative: every gating parameter is named, so the rebuild rule holds.
+ *
+ *   when: { any: [{ param: "tab", equals: "partial" },
+ *                 { all: [{ param: "tab", equals: "descent" },
+ *                         { param: "view", equals: "two" }] }] }
+ *
+ * `any` is the third, and the clauses nest because this one has to. Widget
+ * 48's Surface control is on one whole tab and on one PAGE of another, and a
+ * disjunction of a bare clause with a conjunction is the smallest thing that
+ * says so; gating it on the tab alone put it on the one-parameter page, which
+ * draws a curve and has no surface to turn. Still declarative — every gating
+ * parameter is still named, at whatever depth, so the rebuild rule is
+ * unchanged and `gatingParams` below walks the tree to collect them.
  */
 function clauseShowing(w, values) {
+  if ("all" in w) return w.all.every((c) => clauseShowing(c, values));
+  if ("any" in w) return w.any.some((c) => clauseShowing(c, values));
   if ("oneOf" in w) return w.oneOf.includes(values[w.param]);
   return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
 }
 
 export function fieldShowing(field, values) {
-  const w = field.when;
-  if (!w) return true;
-  if ("all" in w) return w.all.every((c) => clauseShowing(c, values));
-  return clauseShowing(w, values);
+  return field.when ? clauseShowing(field.when, values) : true;
 }
 
 /**
@@ -106,10 +117,14 @@ export function fieldShowing(field, values) {
 /** Parameters that some other parameter's visibility depends on. */
 export function gatingParams(spec) {
   const names = new Set();
-  for (const field of Object.values(spec)) {
-    if (!field.when) continue;
-    for (const c of field.when.all ?? [field.when]) names.add(c.param);
-  }
+  /* Walks the clause tree, because `all` and `any` nest. A bare clause names
+     one parameter; a compound one names whatever its children do. */
+  const collect = (w) => {
+    const kids = w.all ?? w.any;
+    if (kids) kids.forEach(collect);
+    else names.add(w.param);
+  };
+  for (const field of Object.values(spec)) if (field.when) collect(field.when);
   /* a bits control whose CHIP COUNT follows another parameter (round 16,
      widget 31's censored-patient picker following Patients) declares it
      declaratively — `bitsFrom: "patients"` — so the same rebuild rule

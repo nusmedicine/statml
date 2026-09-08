@@ -182,7 +182,10 @@
           about that slope times Δa. What the tangent misses is EXACTLY Δa^2 on
           this function (model.js says why), so the ladder from 1 down to 0.01
           takes the gap from 1 to 0.0001 and the approximation is seen to
-          improve rather than asserted to.
+          improve rather than asserted to. *Superseded by decision 9: that is a
+          true statement about a derivative already in hand, and the definition
+          runs the other way. The tab now draws the secant and its slope's
+          limit; the ladder and its clock are unchanged.*
         Partial derivatives — each partial is the slope along one variable with
           the other held, drawn as a slice beside the map; the gradient is the
           pair, and it points uphill.
@@ -205,7 +208,10 @@
       fillText BOX sweep at four widths over the whole window found 44 label
       collisions and 528 escapes past the panel edge between them. Their numbers
       are on the line under the panel and in the readout, which have room; what
-      has to sit on a mark is the number that mark IS.
+      has to sit on a mark is the number that mark IS. *Decision 9 puts Δa and
+      Δy back on the triangle's two legs and gains a third sweep for it: they
+      are drawn only while a leg is 26px long and wholly on the panel, which is
+      the same rule said as arithmetic instead of as a count.*
 
       THE ARROW ON THE (a, b) MAP IS BUILT IN PARAMETER UNITS, which decision 1
       forbids on the loss surface. The difference is that nothing follows it:
@@ -289,6 +295,95 @@
       arithmetic now rather than a property of how long the ticks happen to be,
       which is what let the fault through in the first place.
 
+   9. KENNETH'S REVIEW OF 2026-09-08, ROUND 6 — two questions, one per concept
+      tab, and each turned out to be about a figure drawing something other
+      than what the lesson defines.
+
+      "ISN'T THE NUDGE DRAWN INCORRECTLY? I THOUGHT IT'S SUPPOSED TO BE THE
+      LIMIT AS Δa → 0." He is right, and block 7 was wrong. What the tab drew
+      was the TANGENT and its linear prediction over Δa against what y actually
+      does — the linearization and its Δa² error, which is a true statement
+      about a derivative already in hand. The definition runs the other way: a
+      derivative IS the limit of Δy/Δa, so the figure has to draw the SECANT
+      through (a, y(a)) and (a + Δa, y(a + Δa)) and let its slope close on
+      dy/da. On this function that slope is 2a + 3b + Δa exactly, so the ladder
+      at a = 2, b = 1 reads 8 · 7.5 · 7.25 · 7.1 · 7.05 · 7.01 toward 7 — six
+      numbers the reader watches arrive, where the old figure had one number
+      and a gap shrinking beside it. `gd-verify.mjs` pins the ladder and the
+      identity behind it at all 306 (a, Δa) the tab can reach.
+
+      The ladder, the clock, the ease and `standNudge` are untouched: shrinking
+      Δa now slides the second point along the curve and rotates the secant,
+      which is the same eased number doing a more honest thing. What changed
+      with it is the readout (Δa, Δy, Δy/Δa, dy/da, in the order the definition
+      is built), the formula card (dy/da = lim Δy/Δa = 2a + 3b, with the limit
+      written out), the legend, the line under the panel, and the `nudge`
+      control's `detail`, which now states the secant's slope as dy/da + Δa —
+      a static sentence, true at every a, where a number would have moved under
+      the slider beside it.
+
+      THE TANGENT SHOWS FROM THE FIRST FRAME, and the brief left this open.
+      2.1 says do not open on the answer; 2.7 says the reference the moving
+      thing is judged against belongs beside it. 2.7 wins here because dy/da is
+      ALREADY on screen before the reader touches anything — on the formula
+      card and as the fourth readout tile — so hiding the LINE would withhold
+      one drawing of a number stated twice, while leaving the thing the reader
+      actually builds, the six-rung approach, exactly as it was. Faint, dashed
+      and in `--c-reference`, painted under the secant so the secant is seen
+      turning onto a line that was already there.
+
+      "COULD WE HAVE THE 3D VIEW ALSO, SO WE CAN SEE THAT WE ARE HOLDING ONE
+      CONSTANT WHILE THE OTHER VARIES?" The Surface control and Default view
+      now serve the Partial derivatives tab as well, over the same `turn` and
+      `tilt` and the same drag. What answers the question is not the mesh but
+      the two SLICE CURVES lifted onto it: on the map they are two dashed
+      straight lines standing for a slice, and on the relief they are what the
+      function does along one variable with the other held.
+
+      THE HEIGHT IS LINEAR IN y AND THE LOSS SURFACE'S IS A LOG, which is why
+      `model.js` now carries two FIELDS rather than one ramp. A field says
+      where a point sits on its panel's own ramp and nothing else, so the mesh,
+      the ray march and the lifting are written once for both (5.8); the loss
+      field is the log of the ratio to the least loss, the value field is y
+      itself over −8 to 52. The payoff of linear is not only honesty about a
+      range that is not a ratio: a straight line in (a, y) stays straight on
+      the relief, so the two partials are drawn as TANGENTS on the surface
+      rather than as chords across it, which is what the tab is about.
+
+      THE VIEWPOINT WAS MEASURED AGAIN AND CAME BACK THE SAME. `_lab/
+      gd-part-view.mjs` sweeps 648 viewpoints over 30 points of the (a, b)
+      window and then re-checks the winner at all 2091 stops the two sliders
+      have: from 300/35 nothing of either slice curve is hidden anywhere, and
+      the point is never behind the surface. Only the 210-260 azimuths below
+      about 30 degrees lose anything, and there they lose up to 98% of both.
+      So the two tabs keep ONE default pair — which they would have had to
+      anyway, since a parameter at its default is omitted from the URL and a
+      per-tab default is not expressible (decision 6 met the same wall on
+      `speed`) — and `turn=300&tilt=35` means the same thing in a link opening
+      either tab.
+
+      THE SURFACE CONTROL'S GATE NEEDED A DISJUNCTION, and core's `when`
+      grammar gained `any` beside the `all` and `oneOf` that arrived the same
+      way: the control is on one whole tab and on one PAGE of another, and
+      gating it on the tab alone would offer to turn the one-parameter page's
+      curve (3.5). Its two descriptions name neither function now — "colour
+      alone" against "height as well as colour" — because one control over two
+      surfaces cannot say "the loss" and stay true on both (2.11).
+
+      A THIRD BOX SWEEP, and it found three faults, all in the new drawing.
+      16 767 states — the Derivative tab at every a, every rung and six beats,
+      and the Partial relief at seven viewpoints over the whole window, at 550,
+      690 and 770px. The secant's slope label started at the secant's
+      lower-left end and printed through Δa in 253 states, where the clamp puts
+      both on the panel's bottom edge; the two legs kept their labels while the
+      second point was off the frame, which puts the top of one leg and the far
+      end of the secant on the same corner pixel, in 189; and on the relief the
+      two partials' labels ran into the axis names on the rim in 101 and into
+      each other in 138, by up to 41px. All three are 0 now. The 134 remaining
+      hits are on the UNCHANGED Descent pages, where `∂L/∂b₁` is drawn inside
+      the panel's own clip and is therefore cut rather than escaping — the
+      sweep cannot see a clip. Worth a round of its own; not this one.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -298,7 +393,8 @@ import {
   N, EPOCHS, LR_LADDER, BATCHES, LOG_CAP, LEVELS,
   makeData, standardize, quad, domainFor, contourSegments, isoSegments,
   descendFull, descendMini, descendSlope, posAt, stepAngle,
-  projector, reliefMesh, reliefPoint, reliefHidden,
+  projector, reliefMesh, reliefPoint, reliefLift, reliefHidden,
+  lossField, valueField, valueRamp,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL,
   gradFn, A_RANGE, B_RANGE, Y_RANGE, Y_LEVELS, NUDGES,
   beatMs, choreographs, epochMs,
@@ -505,6 +601,24 @@ function label(ctx, colors, s, x, y, { color, align = "left", size } = {}) {
   ctx.textBaseline = "alphabetic";
   ctx.fillText(s, x, y);
   ctx.restore();
+}
+
+/* A label that cannot leave the panel it belongs to. Measured with the font
+   `label` is about to set, so the two cannot disagree, and then the ANCHOR is
+   moved by that width: clamping the anchor alone is not enough, since a
+   left-aligned label one pixel inside the right edge still hangs its whole box
+   out — which is what a box sweep at 550px caught on the gradient's number.
+   One function because three panels now want it (5.8). */
+function panelLabel(ctx, colors, rect, s, x, y, opts = {}) {
+  ctx.save();
+  ctx.font = `${opts.size ?? colors.fsXs} ${colors.font}`;
+  const tw = ctx.measureText(s).width;
+  ctx.restore();
+  const left = opts.align === "right" ? x - tw : opts.align === "center" ? x - tw / 2 : x;
+  label(ctx, colors, s,
+    Math.max(rect.x + 4, Math.min(rect.x + rect.w - 4 - tw, left)),
+    Math.max(rect.y + 12, Math.min(rect.y + rect.h - 4, y)),
+    { color: opts.color, size: opts.size });
 }
 
 function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = null) {
@@ -762,6 +876,37 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
 const DOWNHILL = 0.1;      // the composed arrow's length, in normalised domain units
 const TANGENT_HALF = 0.2;  // each partial's chord, ± this share of the domain (the mock's)
 
+/* THE HIDDEN-LINE CONVENTION, WRITTEN ONCE (5.8). Both reliefs draw a line that
+   runs over a surface and behind it — the walk on Descent, the two slices on
+   the Partial derivatives tab — and two copies of "dashed, faint, thinner" is
+   two chances for one of them to drift into a different reading of the same
+   fact. */
+/* How far along its own tangent a partial's label is anchored, measured from
+   the point. Not 1: at the end itself the label lands on the panel's rim, where
+   the two axis names sit, and a box sweep over seven viewpoints found it
+   printing through them in 116 states of 2079. At 0.7 that is 0. */
+const LABEL_ALONG = 0.7;
+
+const HIDDEN_LINE = { dash: [3, 4], alpha: 0.55, width: 1.2 };
+const VISIBLE_LINE = { dash: [], alpha: 1, width: 1.5 };
+
+function strokeSegments(ctx, colors, list, { dash, alpha, width }) {
+  if (!list.length) return;
+  ctx.save();
+  ctx.setLineDash(dash);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = colors.ink1;
+  ctx.lineWidth = width;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  for (const [a, b] of list) {
+    ctx.moveTo(a.X, a.Y);
+    ctx.lineTo(b.X, b.Y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* The mesh, painted once per size, theme, dataset and VIEWPOINT — the map's own
    cache, on the other side of the same panel. The contour rings are baked in
    with it: lifted onto the surface, they move only when the surface does. They
@@ -786,11 +931,12 @@ function reliefBitmap(wpx, hpx, dpr, colors, state, az, el) {
   const { q, dom } = state;
   const project = projector({ x: 0, y: 0, w: wpx, h: hpx }, az, el);
   c.lineWidth = 0.5 * dpr;
-  for (const face of reliefMesh(q, dom, project)) {
+  const field = lossField(q);
+  for (const face of reliefMesh(field, dom.b0, dom.b1, project)) {
     c.beginPath();
     face.pts.forEach((p, k) => (k ? c.lineTo(p.X, p.Y) : c.moveTo(p.X, p.Y)));
     c.closePath();
-    const rgb = mixRGB(colors.costLow, colors.costHigh, rampT(face.r));
+    const rgb = mixRGB(colors.costLow, colors.costHigh, face.t);
     c.fillStyle = `rgb(${rgb.map((v) => Math.round(v * face.shade)).join(", ")})`;
     c.fill();
     /* A hairline of the page's own ground between faces: filled edge to edge
@@ -800,10 +946,7 @@ function reliefBitmap(wpx, hpx, dpr, colors, state, az, el) {
     c.stroke();
     c.globalAlpha = 1;
   }
-  const lift = (b0, b1) => {
-    const [x, y, z] = reliefPoint(q, dom, b0, b1);
-    return project(x, y, z);
-  };
+  const lift = (b0, b1) => project(...reliefPoint(field, dom.b0, dom.b1, b0, b1));
   c.strokeStyle = colors.surface;
   c.globalAlpha = 0.6;
   c.lineWidth = dpr;
@@ -835,6 +978,7 @@ function reliefPieces(state, az, el) {
   const key = `${state.walkSig}:${az}:${el}`;
   if (piecesCache && piecesCache.key === key) return piecesCache.pieces;
   const { q, dom, track } = state;
+  const field = lossField(q);
   const last = track.len - 1;
   const w0 = dom.b0[1] - dom.b0[0];
   const w1 = dom.b1[1] - dom.b1[0];
@@ -861,7 +1005,7 @@ function reliefPieces(state, az, el) {
       const m0 = (a[0] + b[0]) / 2;
       const m1 = (a[1] + b[1]) / 2;
       const held = inside(a[0], a[1]) && inside(b[0], b[1]);
-      pieces.push({ end: kb, a, b, held, hidden: held && reliefHidden(q, dom, m0, m1, az, el) });
+      pieces.push({ end: kb, a, b, held, hidden: held && reliefHidden(field, dom.b0, dom.b1, m0, m1, az, el) });
     }
   }
   piecesCache = { key, pieces };
@@ -893,10 +1037,8 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
   ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 
   const project = projector(rect, az, el);
-  const pt = (b0, b1) => {
-    const [x, y, z] = reliefPoint(q, dom, b0, b1);
-    return project(x, y, z);
-  };
+  const field = lossField(q);
+  const pt = (b0, b1) => project(...reliefPoint(field, dom.b0, dom.b1, b0, b1));
 
   ctx.save();
   ctx.beginPath();
@@ -907,22 +1049,6 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
      where the surface is in front of it — the drawing convention for a hidden
      line, and the one treatment of the three mocked that leaves the mesh
      reading as a surface. */
-  const stroke = (list, { dash, alpha, width }) => {
-    if (!list.length) return;
-    ctx.save();
-    ctx.setLineDash(dash);
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = width;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    for (const [a, b] of list) {
-      ctx.moveTo(a.X, a.Y);
-      ctx.lineTo(b.X, b.Y);
-    }
-    ctx.stroke();
-    ctx.restore();
-  };
   const shown = [];
   const buried = [];
   let tail = null;
@@ -939,11 +1065,11 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
      One ray march a frame, which is what the sampled pieces cost together. */
   if (tail && held) {
     const seg = [pt(tail[0], tail[1]), pt(cur[0], cur[1])];
-    const mid = reliefHidden(q, dom, (tail[0] + cur[0]) / 2, (tail[1] + cur[1]) / 2, az, el);
+    const mid = reliefHidden(field, dom.b0, dom.b1, (tail[0] + cur[0]) / 2, (tail[1] + cur[1]) / 2, az, el);
     (mid ? buried : shown).push(seg);
   }
-  stroke(buried, { dash: [3, 4], alpha: 0.55, width: 1.2 });
-  stroke(shown, { dash: [], alpha: 1, width: 1.5 });
+  strokeSegments(ctx, colors, buried, HIDDEN_LINE);
+  strokeSegments(ctx, colors, shown, VISIBLE_LINE);
 
   /* The opening epochs as separate marks while they can still be counted
      (2.3), exactly as the map draws them. */
@@ -976,27 +1102,44 @@ function drawRelief(ctx, colors, rect, state, cur, opts) {
   }
   ctx.restore();
 
-  /* b₀ and b₁ along the two edges the viewpoint puts nearest the reader,
-     chosen by depth rather than fixed, so the naming survives a change of
-     viewpoint — which the drag now exercises on every frame, and which is why
-     the two names swap edges as the surface comes round. Outside the clip: at
-     some viewpoints an edge's midpoint sits on the panel's border. */
-  const nearer = (u, v) => (project(...reliefPoint(q, dom, u[0], u[1])).depth
-    <= project(...reliefPoint(q, dom, v[0], v[1])).depth ? u : v);
-  const mid0 = (dom.b0[0] + dom.b0[1]) / 2;
-  const mid1 = (dom.b1[0] + dom.b1[1]) / 2;
-  const centre = pt(mid0, mid1);
+  nameEdges(ctx, colors, pt, dom.b0, dom.b1, ["b₀", "b₁"]);
+}
+
+/* The two axes named along the edges the viewpoint puts nearest the reader,
+   chosen by depth rather than fixed, so the naming survives a change of
+   viewpoint — which the drag exercises on every frame, and which is why the
+   two names swap edges as the surface comes round. Drawn outside the panel's
+   clip: at some viewpoints an edge's midpoint sits on the border. Shared by
+   both reliefs, which differ only in what the two axes are called.
+
+   IT HANDS BACK THE TWO BOXES IT PAINTED, because the Partial derivatives tab
+   has to place two more labels on the same panel and these are the ones they
+   can collide with. */
+function nameEdges(ctx, colors, pt, xDom, yDom, names) {
+  const nearer = (u, v) => (pt(u[0], u[1]).depth <= pt(v[0], v[1]).depth ? u : v);
+  const midX = (xDom[0] + xDom[1]) / 2;
+  const midY = (yDom[0] + yDom[1]) / 2;
+  const centre = pt(midX, midY);
+  const boxes = [];
   for (const [name, at] of [
-    ["b₀", nearer([mid0, dom.b1[0]], [mid0, dom.b1[1]])],
-    ["b₁", nearer([dom.b0[0], mid1], [dom.b0[1], mid1])],
+    [names[0], nearer([midX, yDom[0]], [midX, yDom[1]])],
+    [names[1], nearer([xDom[0], midY], [xDom[1], midY])],
   ]) {
     const p = pt(at[0], at[1]);
     const dx = p.X - centre.X;
     const dy = p.Y - centre.Y;
     const len = Math.hypot(dx, dy) || 1;
-    label(ctx, colors, name, p.X + (18 * dx) / len, p.Y + (18 * dy) / len + 4,
-      { align: dx < -2 ? "right" : dx > 2 ? "left" : "center" });
+    const x = p.X + (18 * dx) / len;
+    const y = p.Y + (18 * dy) / len + 4;
+    const align = dx < -2 ? "right" : dx > 2 ? "left" : "center";
+    label(ctx, colors, name, x, y, { align });
+    ctx.save();
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    const w = ctx.measureText(name).width;
+    ctx.restore();
+    boxes.push({ left: align === "right" ? x - w : align === "center" ? x - w / 2 : x, w, y });
   }
+  return boxes.map((b) => ({ ...b, right: b.left + b.w }));
 }
 
 /* THE PARTIALS AS TANGENT SEGMENTS on the surface, which is what a partial
@@ -1222,19 +1365,37 @@ function drawStrip(ctx, colors, rect, state, ep) {
 }
 
 /* ---- the Derivative tab ---------------------------------------------------
-   y = a² + 3ab with b held, the tangent at a, and the nudge drawn as a right
-   triangle against what y actually does. The gap between the two is Δa², which
-   is what the ladder is walked down to show.                                  */
+   y = a² + 3ab with b held, and the derivative drawn as what it is DEFINED to
+   be: the slope of the SECANT through (a, y(a)) and (a + Δa, y(a + Δa)), in the
+   limit as Δa goes to 0. On this function that slope is 2a + 3b + Δa exactly,
+   so every rung of the ladder takes the secant's slope one Δa closer to
+   dy/da — at a = 2 and b = 1, 8 · 7.5 · 7.25 · 7.1 · 7.05 · 7.01 toward 7 —
+   and the reader watches the secant turn onto the tangent rather than being
+   told that it would.                                                        */
 
 /* b is a constant on this page and not a control: the tab is about ONE
    variable, and a second slider would make it about two a tab early. The
    caption says so where the reader is looking. */
 const B_HELD = 1;
 
-/* The window, fixed (2.5): y over a in [-1, 4] with b at 1 runs -2 to 28. A
-   nudge can walk its target off the right-hand edge, and the panel says so
-   rather than the frame chasing it. */
+/* The window, fixed (2.5): y over a in [-1, 4] with b at 1 runs -2 to 28. The
+   second point can walk off the right-hand edge, and the panel says so rather
+   than the frame chasing it. */
 const DERIV_Y = [-4, 30];
+
+/* How far past each of its two points the secant is drawn, as a share of the
+   window in a. Enough that it reads as a LINE THROUGH them rather than as a
+   chord between them — which is the whole difference between a secant and a
+   join — and short enough that a steep one stays on the panel. */
+const SECANT_OVER = 0.16;
+
+/* A leg of the right triangle carries its label only once it is long enough to
+   BE a mark. Below this the two labels sit on each other and on the ringed
+   dot, which is exactly the fault decision 8 measured on the loss surface's
+   component ticks; and a 1.4px leg — which is what Δa 0.01 is at every width
+   this widget is drawn at — has nothing to label. Both numbers are on the line
+   under the panel and in the readout at every rung. */
+const LEG_LABEL_MIN = 26;
 
 function drawDerivative(ctx, colors, rect, a, da) {
   const plot = makePlot({ ctx, colors, rect, xDomain: A_RANGE, yDomain: DERIV_Y });
@@ -1243,10 +1404,10 @@ function drawDerivative(ctx, colors, rect, a, da) {
   const y0 = gradFn.y(a, B_HELD);
   const slope = gradFn.da(a, B_HELD);
   const aT = a + da;
-  const yTrue = gradFn.y(aT, B_HELD);
-  const yPred = y0 + slope * da;
-  if (aT > A_RANGE[1] || Math.max(yTrue, yPred) > DERIV_Y[1]) {
-    plot.note("the nudge leaves the frame", { tone: colors.extreme });
+  const yT = gradFn.y(aT, B_HELD);
+  const secant = (yT - y0) / da;
+  if (aT > A_RANGE[1] || yT > DERIV_Y[1]) {
+    plot.note("the second point is off the frame", { tone: colors.extreme });
   }
   plot.axisX({ label: "a" });
   plot.axisY({ label: "y" });
@@ -1263,22 +1424,32 @@ function drawDerivative(ctx, colors, rect, a, da) {
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
 
-  const span = (A_RANGE[1] - A_RANGE[0]) * 0.24;
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
+  /* THE TANGENT IS THE REFERENCE, AND IT SHOWS FROM THE FIRST FRAME (2.7).
+     Drawn faint and dashed and under everything else, so the secant is seen
+     approaching a line that was already there. The header's block 9 says why
+     this is not 2.1's "don't open on the answer": dy/da is printed on the
+     formula card and in the readout before the reader touches anything, so
+     withholding the LINE would hide one drawing of a number already stated
+     twice — while what the reader still has to build, the ladder that closes
+     the secant onto it, is untouched. */
+  const tspan = (A_RANGE[1] - A_RANGE[0]) * 0.24;
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = colors.reference;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(plot.sx(a - span), plot.sy(y0 - slope * span));
-  ctx.lineTo(plot.sx(a + span), plot.sy(y0 + slope * span));
+  ctx.moveTo(plot.sx(a - tspan), plot.sy(y0 - slope * tspan));
+  ctx.lineTo(plot.sx(a + tspan), plot.sy(y0 + slope * tspan));
   ctx.stroke();
+  ctx.restore();
 
-  /* THE NUDGE AS A RIGHT TRIANGLE: Δa along, and the rise the tangent's slope
-     predicts over it. Dashed, because neither leg is a thing the function does
-     — they are the linear guess, and the solid mark beside them is the error in
-     it. */
+  /* THE RIGHT TRIANGLE UNDER THE SECANT: Δa along the bottom, Δy up the side.
+     Dashed and in ink, because neither leg is a thing the function does — they
+     are the two numbers the ratio above them is made of. */
   const px0 = plot.sx(a);
-  const pxT = plot.sx(aT);
   const py0 = plot.sy(y0);
-  const pyPred = plot.sy(yPred);
+  const pxT = plot.sx(aT);
+  const pyT = plot.sy(yT);
   ctx.save();
   ctx.setLineDash([3, 3]);
   ctx.strokeStyle = colors.ink1;
@@ -1286,49 +1457,72 @@ function drawDerivative(ctx, colors, rect, a, da) {
   ctx.beginPath();
   ctx.moveTo(px0, py0);
   ctx.lineTo(pxT, py0);
-  ctx.lineTo(pxT, pyPred);
+  ctx.lineTo(pxT, pyT);
   ctx.stroke();
   ctx.restore();
 
-  const pyTrue = plot.sy(yTrue);
-  ctx.strokeStyle = colors.extreme;
+  const over = (A_RANGE[1] - A_RANGE[0]) * SECANT_OVER;
+  ctx.strokeStyle = colors.highlight;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pxT, pyPred);
-  ctx.lineTo(pxT, pyTrue);
+  ctx.moveTo(plot.sx(a - over), plot.sy(y0 - secant * over));
+  ctx.lineTo(plot.sx(aT + over), plot.sy(yT + secant * over));
   ctx.stroke();
-  ctx.fillStyle = colors.extreme;
-  ctx.beginPath();
-  ctx.arc(pxT, pyTrue, 3, 0, 2 * Math.PI);
-  ctx.fill();
 
+  /* Both points are ON the curve, which is what separates this figure from the
+     one it replaced: the second mark used to be the tangent's prediction and
+     the error under it. */
+  ctx.fillStyle = colors.highlight;
+  ctx.beginPath();
+  ctx.arc(pxT, pyT, 3.2, 0, 2 * Math.PI);
+  ctx.fill();
   ringedDot(ctx, colors, px0, py0);
   ctx.restore();
 
-  /* ONE LABEL ON THIS PANEL, AND IT IS THE SLOPE. Δa and the gap were labelled
-     too and both had to go: at the top rung with a shallow slope their boxes
-     ran into this one, and at a past 2.5 this one ran off the right edge into
-     the clip and lost its digits — a box sweep at four widths over the whole
-     (a, b) window found 44 collisions and 528 escapes between them. The nudge's
-     two numbers are one line below the panel and again in the readout, where
-     they have room; what has to sit ON the tangent is the number the tangent
-     IS. Drawn outside the clip and clamped by its own measured width, so it can
-     be neither cut nor pushed out. */
-  const slopeText = `dy/da ${f2(slope)}`;
-  ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  const tw = ctx.measureText(slopeText).width;
-  ctx.restore();
-  label(ctx, colors, slopeText,
-    Math.max(rect.x + 4, Math.min(rect.x + rect.w - 4 - tw, plot.sx(a + span) + 5)),
-    Math.max(rect.y + 12, Math.min(rect.y + rect.h - 4, plot.sy(y0 + slope * span) - 6)),
+  /* THREE LABELS AT MOST, AND EACH SITS ON THE MARK IT NAMES. The secant's
+     slope goes ABOVE ITS UPPER-RIGHT END, which is the one place on this
+     figure nothing else can reach: the triangle is always right-and-up from
+     the point — dy/da = 2a + 3 is positive over the whole of the a slider, and
+     so is Δy — and the secant leaves the second point still climbing, so its
+     right end is always at least `over × Δy/Δa` above the top of the vertical
+     leg. Measured: 27px of clear row at the tightest, since the secant's slope
+     is never below 1 and Δy takes a label only above 26px.
+
+     THE LOWER-LEFT END WAS TRIED FIRST AND FAILED A BOX SWEEP: at a = −1 with
+     a shallow secant, both that end and the Δa label are pushed onto the
+     panel's own bottom edge by the clamp, and 253 of 14 688 states printed the
+     two through each other. */
+  panelLabel(ctx, colors, rect, `Δy/Δa ${fSig(secant)}`,
+    plot.sx(aT + over) + 5, plot.sy(yT + secant * over) - 6,
     { color: colors.highlight });
+  /* The two legs take a label only when the triangle is BOTH long enough to
+     carry one and wholly on the panel. Off the frame the clamp puts the top of
+     the vertical leg and the secant's own far end on the same corner pixel, and
+     a box sweep found 189 states where those two printed through each other;
+     the panel already says the second point has left, and both numbers are on
+     the line beneath it and in the readout. */
+  const inFrame = aT <= A_RANGE[1] && yT <= DERIV_Y[1];
+  if (inFrame && pxT - px0 >= LEG_LABEL_MIN) {
+    panelLabel(ctx, colors, rect, `Δa ${fSig(da)}`, (px0 + pxT) / 2, py0 + 17,
+      { align: "center", color: colors.ink1 });
+  }
+  if (inFrame && py0 - pyT >= LEG_LABEL_MIN) {
+    panelLabel(ctx, colors, rect, `Δy ${fSig(yT - y0)}`, pxT + 5, (py0 + pyT) / 2 + 4,
+      { color: colors.ink1 });
+  }
 }
 
 /* ---- the Partial derivatives tab ------------------------------------------
    The same function over both variables: the map on the right where the loss
    surface sits, the two slices stacked in the column the data panel holds, and
    the gradient as one arrow carrying both numbers.                            */
+
+/* THE RINGS ARE A CONSTANT: one fixed function over one fixed window, so they
+   are marched once for the life of the page. The loss surface's own rings sit
+   in `compute` because they move with the data; these move with nothing, and
+   both bitmaps below would otherwise re-march 45 000 cells — the relief's on
+   every frame of a drag. */
+const VALUE_RINGS = isoSegments(gradFn.y, A_RANGE, B_RANGE, Y_LEVELS);
 
 /* Painted once per size and theme — the function is fixed, so unlike the loss
    surface there is nothing else for the key to carry. The rings are baked in
@@ -1341,13 +1535,12 @@ function valueBitmap(wpx, hpx, dpr, colors) {
   cv.width = wpx;
   cv.height = hpx;
   const c = cv.getContext("2d");
-  const [lo, hi] = Y_RANGE;
   const CELL = 2;
   for (let px = 0; px < wpx; px += CELL) {
     const a = A_RANGE[0] + (px / wpx) * (A_RANGE[1] - A_RANGE[0]);
     for (let py = 0; py < hpx; py += CELL) {
       const b = B_RANGE[1] - (py / hpx) * (B_RANGE[1] - B_RANGE[0]);
-      c.fillStyle = hexLerp(colors.valueLow, colors.valueHigh, (gradFn.y(a, b) - lo) / (hi - lo));
+      c.fillStyle = hexLerp(colors.valueLow, colors.valueHigh, valueField(a, b));
       c.fillRect(px, py, CELL, CELL);
     }
   }
@@ -1357,7 +1550,7 @@ function valueBitmap(wpx, hpx, dpr, colors) {
   c.globalAlpha = 0.55;
   c.lineWidth = dpr;
   c.beginPath();
-  for (const [x0, y0, x1, y1] of isoSegments(gradFn.y, A_RANGE, B_RANGE, Y_LEVELS)) {
+  for (const [x0, y0, x1, y1] of VALUE_RINGS) {
     c.moveTo(ax(x0), by(y0));
     c.lineTo(ax(x1), by(y1));
   }
@@ -1429,18 +1622,260 @@ function drawValueMap(ctx, colors, rect, a, b) {
      which is what a box sweep at 550px caught. Measured with the font `label`
      is about to set, so the two cannot disagree. */
   const text = tip ? `∇y = (${f1(ga)}, ${f1(gb)})` : "∇y = (0, 0)";
-  ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  const tw = ctx.measureText(text).width;
-  ctx.restore();
   if (tip) {
-    const lx = Math.max(rect.x + 4,
-      Math.min(rect.x + rect.w - 4 - tw, tip[0] + (tip[0] < px ? -5 - tw : 5)));
-    const ly = Math.max(rect.y + 12, Math.min(rect.y + rect.h - 4, tip[1] + (tip[1] < py ? -7 : 14)));
-    label(ctx, colors, text, lx, ly, { color: colors.highlight });
+    panelLabel(ctx, colors, rect, text,
+      tip[0] + (tip[0] < px ? -5 : 5), tip[1] + (tip[1] < py ? -7 : 14),
+      { align: tip[0] < px ? "right" : "left", color: colors.highlight });
   } else {
     label(ctx, colors, text, rect.x + 6, rect.y + 14, { color: colors.highlight });
   }
+}
+
+/* ---- the Partial derivatives tab in relief --------------------------------
+   The same window, the same colours, the same point, with y as HEIGHT as well
+   as colour: Descent's relief machinery — `projector`, `reliefMesh`, the one
+   fixed light, the hidden-line ray march, and the `turn`/`tilt` drag — read
+   over this tab's own function. Kenneth, 2026-09-08: *"could we have the 3d
+   view also, so we can see that we are holding one constant while the other
+   varies?"* What answers that is not the mesh but the TWO SLICE CURVES lying on
+   it: on the map they are two dashed straight lines standing for a slice, and
+   here they are what the function does along one variable while the other is
+   held still.
+
+   THE HEIGHT IS LINEAR IN y, where the loss surface's is a log, and `model.js`
+   says why: a walk starts at ~270x the least loss and enters the trench at ~8x,
+   while y over this window runs -8 to 52 — a range, not a ratio, with nothing
+   to tame. One thing follows that is worth having: a straight line in (a, y) is
+   a straight line on the relief, so the two segments below are TANGENTS and not
+   chords across a curved surface, which is what the tab is about.
+
+   THE VIEWPOINT IS THE LOSS SURFACE'S 300 / 35, and that is measured rather
+   than inherited. `_lab/gd-part-view.mjs` sweeps 648 viewpoints over 30 points
+   of the (a, b) window and then re-checks the winner at all 2091 stops the two
+   sliders have: from 300/35 nothing of either slice curve is hidden anywhere,
+   and the point is never behind the surface. Only the 210-260 azimuths below
+   about 30 degrees of elevation lose anything — up to 98% of both slices — and
+   the reader who turns the surface into its own near wall can see that they
+   have. One default for both tabs also keeps `turn` and `tilt` meaning the
+   same thing in a link whichever tab it opens. */
+
+/* Painted once per size, theme and viewpoint — the function is fixed, so
+   unlike the loss surface's mesh there is no dataset for the key to carry. Its
+   own slot rather than the loss mesh's, so moving between tabs does not evict
+   the other tab's surface. */
+let valueMeshCache = null;
+function valueReliefBitmap(wpx, hpx, dpr, colors, az, el) {
+  const key = `${wpx}x${hpx}:${colors.valueLow}:${colors.valueHigh}:${colors.surface}:${az}:${el}`;
+  if (valueMeshCache && valueMeshCache.key === key) return valueMeshCache.canvas;
+  const cv = document.createElement("canvas");
+  cv.width = wpx;
+  cv.height = hpx;
+  const c = cv.getContext("2d");
+  const project = projector({ x: 0, y: 0, w: wpx, h: hpx }, az, el);
+  c.lineWidth = 0.5 * dpr;
+  for (const face of reliefMesh(valueField, A_RANGE, B_RANGE, project)) {
+    c.beginPath();
+    face.pts.forEach((p, k) => (k ? c.lineTo(p.X, p.Y) : c.moveTo(p.X, p.Y)));
+    c.closePath();
+    const rgb = mixRGB(colors.valueLow, colors.valueHigh, face.t);
+    c.fillStyle = `rgb(${rgb.map((v) => Math.round(v * face.shade)).join(", ")})`;
+    c.fill();
+    c.strokeStyle = colors.surface;
+    c.globalAlpha = 0.18;
+    c.stroke();
+    c.globalAlpha = 1;
+  }
+  const lift = (a, b) => project(...reliefPoint(valueField, A_RANGE, B_RANGE, a, b));
+  c.strokeStyle = colors.surface;
+  c.globalAlpha = 0.6;
+  c.lineWidth = dpr;
+  c.beginPath();
+  for (const [x0, y0, x1, y1] of VALUE_RINGS) {
+    const p = lift(x0, y0);
+    const q = lift(x1, y1);
+    c.moveTo(p.X, p.Y);
+    c.lineTo(q.X, q.Y);
+  }
+  c.stroke();
+  valueMeshCache = { key, canvas: cv };
+  return cv;
+}
+
+/* The two slice curves, sampled once and classified once — the same shape as
+   the walk's `reliefPieces` and cached on the same terms: a ray march per piece
+   is far too much per frame, and the point and the viewpoint are between them
+   everything the split depends on. 96 marches, under a millisecond. */
+let sliceCache = null;
+function slicePieces(a, b, az, el) {
+  const key = `${a}:${b}:${az}:${el}`;
+  if (sliceCache && sliceCache.key === key) return sliceCache.pieces;
+  const SEG = 48;
+  const pieces = [];
+  for (const [dom, alongA] of [[A_RANGE, true], [B_RANGE, false]]) {
+    for (let k = 0; k < SEG; k += 1) {
+      const u0 = dom[0] + (k / SEG) * (dom[1] - dom[0]);
+      const u1 = dom[0] + ((k + 1) / SEG) * (dom[1] - dom[0]);
+      const m = (u0 + u1) / 2;
+      pieces.push({
+        a: alongA ? [u0, b] : [a, u0],
+        b: alongA ? [u1, b] : [a, u1],
+        hidden: reliefHidden(valueField, A_RANGE, B_RANGE,
+          alongA ? m : a, alongA ? b : m, az, el),
+      });
+    }
+  }
+  sliceCache = { key, pieces };
+  return pieces;
+}
+
+function drawValueRelief(ctx, colors, rect, a, b, az, el) {
+  const plot = makePlot({ ctx, colors, rect, xDomain: A_RANGE, yDomain: B_RANGE });
+  plot.caption("y as height over every (a, b)");
+  /* No axisX/axisY: a projected surface has no rectilinear axes to hang ticks
+     on, so a and b are named along the two edges nearest the reader. */
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ctx.drawImage(
+    valueReliefBitmap(Math.round(rect.w * dpr), Math.round(rect.h * dpr), dpr, colors, az, el),
+    rect.x, rect.y, rect.w, rect.h,
+  );
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+  const project = projector(rect, az, el);
+  const pt = (x, y) => project(...reliefPoint(valueField, A_RANGE, B_RANGE, x, y));
+  /* A height handed in rather than read off the surface — what a tangent's far
+     ends need, since only the point itself is on the surface. */
+  const lift = (x, y, v) => project(...reliefLift(valueRamp(v), A_RANGE, B_RANGE, x, y));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+
+  const shown = [];
+  const buried = [];
+  for (const pc of slicePieces(a, b, az, el)) {
+    (pc.hidden ? buried : shown).push([pt(pc.a[0], pc.a[1]), pt(pc.b[0], pc.b[1])]);
+  }
+  strokeSegments(ctx, colors, buried, HIDDEN_LINE);
+  strokeSegments(ctx, colors, shown, VISIBLE_LINE);
+
+  /* THE TWO TANGENTS, IN HIGHLIGHT AND NOT IN INK, which is where this parts
+     from the Descent relief's. There the tangents are the only marks on the
+     surface and ink is free; here the slice curves are already ink, and the
+     panels beside the map have spent the whole tab saying that a highlighted
+     straight line through the point is the tangent whose slope is the partial.
+     A partial derivative should not change colour when the reader turns the
+     figure over.
+
+     EACH IS CUT BACK TO WHERE ITS OWN y LEAVES THE RAMP, per end, because past
+     the ramp's ends the height clamps and a straight line would kink at the
+     panel's own ceiling. */
+  const ga = gradFn.da(a, b);
+  const gb = gradFn.db(a);
+  const y0 = gradFn.y(a, b);
+  const c = pt(a, b);
+  const anchors = [];
+  for (const [slope, dom, here, alongA] of [[ga, A_RANGE, a, true], [gb, B_RANGE, b, false]]) {
+    const half = (dom[1] - dom[0]) * TANGENT_HALF;
+    const s = Math.max(Math.abs(slope), 1e-9);
+    const up = Math.min(half, (Y_RANGE[1] - y0) / s);
+    const down = Math.min(half, (y0 - Y_RANGE[0]) / s);
+    const hi = Math.min(dom[1], here + (slope >= 0 ? up : down));
+    const lo = Math.max(dom[0], here - (slope >= 0 ? down : up));
+    const end = (u) => (alongA
+      ? lift(u, b, y0 + slope * (u - here))
+      : lift(a, u, y0 + slope * (u - here)));
+    const p = end(lo);
+    const q = end(hi);
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.X, p.Y);
+    ctx.lineTo(q.X, q.Y);
+    ctx.stroke();
+    /* Both anchors are kept: `LABEL_ALONG` of the way toward the end the
+       viewpoint has put further from the point, and the same toward the nearer
+       one. The far end is the first choice — it is off the mesh's busy middle
+       at any azimuth — and the near end is where the label goes when the far
+       one would print through an axis name on the rim. */
+    const along = (e) => ({
+      X: c.X + LABEL_ALONG * (e.X - c.X),
+      Y: c.Y + LABEL_ALONG * (e.Y - c.Y),
+    });
+    const outer = Math.hypot(p.X - c.X, p.Y - c.Y) > Math.hypot(q.X - c.X, q.Y - c.Y) ? p : q;
+    anchors.push([along(outer), along(outer === p ? q : p)]);
+  }
+
+  /* THE GRADIENT, POINTING UPHILL, as the map draws it — built in the relief's
+     own normalised coordinates, where the two axes are the same size, and laid
+     back onto the surface at its tip. */
+  const wa = A_RANGE[1] - A_RANGE[0];
+  const wb = B_RANGE[1] - B_RANGE[0];
+  const du = ga / wa;
+  const dv = gb / wb;
+  const gl = Math.hypot(du, dv);
+  if (gl > 0) {
+    const f = DOWNHILL / gl;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const e = pt(clamp(a + du * f * wa, A_RANGE[0], A_RANGE[1]),
+      clamp(b + dv * f * wb, B_RANGE[0], B_RANGE[1]));
+    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.highlight, 2.5);
+  }
+  ringedDot(ctx, colors, c.X, c.Y);
+  ctx.restore();
+
+  /* THE TWO NUMBERS THE TAB EXISTS FOR, AND THE THREE WAYS THEY CAN COLLIDE,
+     each answered by arithmetic rather than by where the marks happen to fall
+     — which is decision 8's lesson applied a second time, and a box sweep over
+     seven viewpoints and the whole (a, b) window found all three:
+
+       against the AXIS NAMES on the panel's rim (101 states of 2079): each
+         label takes the near end of its own tangent instead when the far end
+         would print through one, which is why `nameEdges` hands its boxes back;
+       against EACH OTHER (138 states, by up to 41px): "one above its end, one
+         below" is a rule about each label alone and says nothing about the
+         pair, so where the two baselines come within a row they are pushed to
+         either side of their own midpoint;
+       against the PANEL'S EDGES: `panelLabel` clamps by the measured width. */
+  const rim = nameEdges(ctx, colors, pt, A_RANGE, B_RANGE, ["a", "b"]);
+  const texts = [`∂y/∂a ${f1(ga)}`, `∂y/∂b ${f1(gb)}`];
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const widths = texts.map((t) => ctx.measureText(t).width);
+  ctx.restore();
+  /* A generous band in y, because the pair rule below can still move a chosen
+     baseline by 10px after this decision is made. */
+  const clearsRim = (at, i, dy) => {
+    const left = at.X < c.X ? at.X - 4 - widths[i] : at.X + 4;
+    return rim.every((r) => Math.abs(at.Y + dy - r.y) > 26
+      || left > r.right + 2 || left + widths[i] < r.left - 2);
+  };
+  /* Two ends and, on each, three rows: its own, and one 30px to either side.
+     Four states of 2079 had a point whose two tangent ends BOTH ran into a
+     name, and a label with nowhere along its mark to go still has somewhere
+     above or below it. */
+  const place = (i, dy0) => {
+    for (const at of anchors[i]) {
+      for (const dy of [dy0, dy0 + 30, dy0 - 30]) if (clearsRim(at, i, dy)) return { at, dy };
+    }
+    return { at: anchors[i][0], dy: dy0 };
+  };
+  const { at: at0, dy: dy0 } = place(0, -6);
+  const { at: at1, dy: dy1 } = place(1, 14);
+  let ya = at0.Y + dy0;
+  let yb = at1.Y + dy1;
+  if (Math.abs(yb - ya) < 20) {
+    const mid = (ya + yb) / 2;
+    ya = mid - 10;
+    yb = mid + 10;
+  }
+  panelLabel(ctx, colors, rect, texts[0], at0.X + (at0.X < c.X ? -4 : 4), ya,
+    { align: at0.X < c.X ? "right" : "left", color: colors.highlight });
+  panelLabel(ctx, colors, rect, texts[1], at1.X + (at1.X < c.X ? -4 : 4), yb,
+    { align: at1.X < c.X ? "right" : "left", color: colors.highlight });
 }
 
 /* One slice: y along one variable with the other held, its tangent, and the
@@ -1523,6 +1958,13 @@ const CARD = {
     ? mml(`${mn("2")}${mi("a")}${mo("+")}${mn("3")}${mi("b")}`)
     : "2a + 3b",
   fb: MATHML ? mml(`${mn("3")}${mi("a")}`) : "3a",
+  /* The Derivative tab's own row, and the limit is written out rather than
+     implied: the tab draws the secant, and what says the secant is not the
+     answer is the lim that turns it into one. */
+  flim: MATHML
+    ? mml(`<munder><mo movablelimits="false">lim</mo><mrow>${mi("Δa")}${mo("→")}${mn("0")}</mrow></munder>`
+      + `${frac(mi("Δy"), mi("Δa"))}${mo("=")}${mn("2")}${mi("a")}${mo("+")}${mn("3")}${mi("b")}`)
+    : "lim (Δa → 0) Δy/Δa = 2a + 3b",
 };
 
 const GUTTER = "4.9em";   // the widest label, "∂L/∂b₀", at the card's font size
@@ -1533,7 +1975,7 @@ let cardHost = null;
 let cardKey = null;
 
 function cardRows(tab, view) {
-  if (tab === "derivative") return [["y", CARD.fn], ["dy/da", CARD.fa]];
+  if (tab === "derivative") return [["y", CARD.fn], ["dy/da", CARD.flim]];
   if (tab === "partial") return [["y", CARD.fn], ["∂y/∂a", CARD.fa], ["∂y/∂b", CARD.fb]];
   const rows = [["Update", CARD.update], ["Loss", CARD.loss]];
   if (view === "two") rows.push(["∂L/∂b₀", CARD.d0]);
@@ -1605,7 +2047,10 @@ function stand(state, params, anim) {
  * is an authored reveal in the shape `shown` already has: a display change
  * cannot reset it, and moving the control is a data change that starts a new
  * one from the new tick. During a beat Δa eases from the rung it is leaving to
- * the one it is arriving at, so the triangle contracts rather than jumping. */
+ * the one it is arriving at, so the second point SLIDES ALONG THE CURVE and the
+ * secant rotates onto the tangent, rather than either of them jumping. The ease
+ * is choreography A's, for its reason: the ends of the move are where the
+ * reader is reading the slope. */
 function standNudge(state, params, anim) {
   const rung = Math.min(anim?.rung ?? 0, state.rungs);
   const beat = anim?.beat ?? 0;
@@ -1625,13 +2070,15 @@ function drawDerivativeTab(ctx, colors, L, params, state, anim) {
   const at = standNudge(state, params, anim);
   drawDerivative(ctx, colors, L.curve, params.a, at.da);
   const slope = gradFn.da(params.a, B_HELD);
-  const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
+  const secant = (gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD)) / at.da;
   /* The same slot the Descent tab's beat line takes: what this beat is doing
-     while one is running, and the standing comparison the rest of the time. */
+     while one is running, and the two slopes side by side the rest of the time
+     (2.7). The pair is the tab's whole claim, and it is a pair rather than a
+     difference because what the reader is watching is one number close on
+     another. */
   const said = at.beat > 0
-    ? `Δa is shrinking to ${fSig(at.next)}, and the gap to its square`
-    : `Δa ${fSig(at.da)}: the tangent predicts Δy ${fSig(slope * at.da)}, `
-      + `y moves ${fSig(moved)}, the gap ${fSig(moved - slope * at.da)} = Δa²`;
+    ? `Δa is shrinking to ${fSig(at.next)}, and the secant is turning onto the tangent`
+    : `Δa ${fSig(at.da)}: the secant's slope is ${fSig(secant)}; the tangent's is ${f1(slope)}`;
   label(ctx, colors, said, L.curve.x, L.curveY,
     { color: at.beat > 0 ? colors.highlight : colors.ink3 });
 }
@@ -1658,7 +2105,15 @@ function drawPartialTab(ctx, colors, L, params) {
     at: b,
     slope: gb,
   });
-  drawValueMap(ctx, colors, L.partMap, a, b);
+  /* The same panel, the same rect, the same window: the relief is a second
+     reading of the map, so it replaces the square and leaves the two slices
+     beside it exactly where they were — which is what Descent's Surface
+     control does to the loss surface. */
+  if (params.relief === "relief") {
+    drawValueRelief(ctx, colors, L.partMap, a, b, params.turn, params.tilt);
+  } else {
+    drawValueMap(ctx, colors, L.partMap, a, b);
+  }
   drawColourBar(ctx, colors, L.partMap, {
     low: colors.valueLow,
     high: colors.valueHigh,
@@ -1757,10 +2212,15 @@ widgetApi = defineWidget({
     nudge: {
       type: "choice",
       label: "Nudge Δa",
+      /* A `detail` is a STATIC string, so it says what Δa is and what the
+         secant's slope is in terms of the derivative, rather than a number
+         that would move with the `a` slider under it. On this function the
+         secant through a and a + Δa has slope dy/da + Δa exactly, at every a
+         and every b, so each rung's description is true wherever a stands. */
       options: NUDGES.map((v) => ({
         value: String(v),
         label: String(v),
-        detail: `a change of ${v} in a, over which the tangent misses y by Δa² = ${Number((v * v).toPrecision(4))}`,
+        detail: `a change of ${v} in a; the secant over it has slope dy/da + ${v}`,
       })),
       default: "0.5",
       when: { param: "tab", equals: "derivative" },
@@ -1803,10 +2263,21 @@ widgetApi = defineWidget({
       default: "raw",
       when: { param: "tab", equals: "descent" },
     },
-    /* How to look at the loss, after what it is made of. Display-only: the
-       relief is a second reading of the surface the map already holds, so
-       switching mid-walk keeps the walk (3.2). Only where there is a surface
-       to look at — the one-parameter page draws a curve. */
+    /* How to look at the surface, after what it is made of. Display-only: the
+       relief is a second reading of the map's own window, so switching mid-walk
+       keeps the walk (3.2).
+
+       ON BOTH SURFACES, WHICH IS WHY THE GATE IS A DISJUNCTION. The Partial
+       derivatives tab has one all the way through; Descent has one on its
+       two-parameter page and a curve on the other, and a control offering to
+       turn a curve would be a control with no idea in it (3.5). `any` went into
+       core's `when` grammar for this, beside the `all` and `oneOf` that arrived
+       the same way.
+
+       THE TWO DESCRIPTIONS NAME NEITHER FUNCTION, and that is 2.11: one control
+       now sits over two surfaces, and a sentence about the loss would be false
+       on the tab where the surface is y = a² + 3ab. What the control changes is
+       how the surface is drawn, and both descriptions say only that. */
     relief: {
       type: "segmented",
       label: "Surface",
@@ -1814,17 +2285,22 @@ widgetApi = defineWidget({
         {
           value: "map",
           label: "Map",
-          detail: "the loss as colour over every (b₀, b₁)",
+          detail: "colour alone, seen from straight above",
         },
         {
           value: "relief",
           label: "Relief",
-          detail: "the loss as height over the same pairs; drag the surface to turn it",
+          detail: "height as well as colour, seen from an angle; drag the surface to turn it",
         },
       ],
       default: "map",
       display: true,
-      when: { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "two" }] },
+      when: {
+        any: [
+          { param: "tab", equals: "partial" },
+          { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "two" }] },
+        ],
+      },
     },
     /* THE WAY HOME FROM A DRAG, and the one piece of the camera that belongs
        in the rail: not a number to set but an action to take (decision 6).
@@ -1840,9 +2316,13 @@ widgetApi = defineWidget({
       display: true,
       when: {
         all: [
-          { param: "tab", equals: "descent" },
-          { param: "view", equals: "two" },
           { param: "relief", equals: "relief" },
+          {
+            any: [
+              { param: "tab", equals: "partial" },
+              { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "two" }] },
+            ],
+          },
         ],
       },
     },
@@ -1925,15 +2405,21 @@ widgetApi = defineWidget({
   legend: ({ params }) => (params.tab === "derivative"
     ? [
       { token: "ink-2", label: "y = a² + 3ab, with b held at 1", mark: "line" },
-      { token: "highlight", label: "The tangent at a, whose slope is dy/da", mark: "line" },
-      { token: "ink-1", label: "The nudge Δa, and the change the tangent predicts over it", mark: "dash" },
-      { token: "extreme", label: "The gap between that prediction and the change in y", mark: "line" },
+      { token: "highlight", label: "The secant through a and a + Δa, whose slope is Δy/Δa", mark: "line" },
+      { token: "reference", label: "The tangent at a, the limit the secant turns onto", mark: "dash" },
+      { token: "ink-1", label: "Δa along and Δy up, the two the slope is a ratio of", mark: "dash" },
     ]
     : params.tab === "partial"
       ? [
         { token: "ink-2", label: "y along one variable, with the other held", mark: "line" },
         { token: "highlight", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
-        { token: "ink-1", label: "The two lines the slices are cut along", mark: "dash" },
+        params.relief === "relief"
+          ? { token: "ink-1", label: "The two slices, drawn on the surface", mark: "line" }
+          : { token: "ink-1", label: "The two lines the slices are cut along", mark: "dash" },
+        /* Only in relief: on the map nothing is in front of a slice. */
+        ...(params.relief === "relief"
+          ? [{ token: "ink-1", label: "A slice where the surface hides it", mark: "dash" }]
+          : []),
       ]
       : params.view === "two"
         ? [
@@ -2154,11 +2640,17 @@ widgetApi = defineWidget({
     /* The surface panel only, and only where there is a surface to turn: on
        the map and on the one-parameter page the same pixels hold a figure with
        no camera, and a drag across them would rotate something nobody can see
-       and write two parameters into the link for it. */
+       and write two parameters into the link for it. The square is the loss
+       surface's on Descent and the value map's on the Partial derivatives tab,
+       which are different rects — decision 8 sized the second to the stage —
+       so the region is read off `layout` rather than assumed to be one. */
     hit: ({ x, y, w, params }) => {
-      if (params.tab !== "descent" || params.view !== "two" || params.relief !== "relief") return false;
-      const r = layout(w).surf;
-      return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+      if (params.relief !== "relief") return false;
+      const L = layout(w);
+      const r = params.tab === "partial"
+        ? L.partMap
+        : params.tab === "descent" && params.view === "two" ? L.surf : null;
+      return r !== null && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     },
     /* Half a degree a pixel: the panel is 180-300px wide, so one drag across it
        turns the surface through 90-150 degrees and a second finishes the
@@ -2295,23 +2787,22 @@ widgetApi = defineWidget({
   },
 
   readout({ params, state, anim }) {
-    /* THE DERIVATIVE TAB'S FOUR NUMBERS ARE ONE ARGUMENT: the slope, the nudge,
-       what the tangent predicts against what y does, and what is left over. The
-       last is Δa² exactly, on this function and at every a and b, which is the
-       claim the ladder walks down. */
+    /* THE DERIVATIVE TAB'S FOUR NUMBERS ARE ONE ARGUMENT, and they read in the
+       order the definition is built: the change in a, the change in y it
+       produces, the ratio of the two, and the limit that ratio is heading for.
+       The last tile's note is the whole of what the ladder demonstrates — on
+       this function the secant's slope is dy/da + Δa exactly, at every a and
+       every b, so the distance between the third tile and the fourth is the
+       first tile. */
     if (params.tab === "derivative") {
       const at = standNudge(state, params, anim);
       const slope = gradFn.da(params.a, B_HELD);
       const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
       return [
-        { label: "dy/da", value: f2(slope), note: `2a + 3b, with b held at ${B_HELD}` },
-        { label: "Δa", value: fSig(at.da), note: "the change in a the tangent is checked over" },
-        {
-          label: "Δy predicted, actual",
-          value: `${fSig(slope * at.da)}, ${fSig(moved)}`,
-          note: "the tangent's rise over Δa, and the change in y",
-        },
-        { label: "The gap", value: fSig(moved - slope * at.da), note: "Δa², whatever a is" },
+        { label: "Δa", value: fSig(at.da), note: "the change in a, from a to a + Δa" },
+        { label: "Δy", value: fSig(moved), note: "what y does over it" },
+        { label: "Δy/Δa", value: fSig(moved / at.da), note: "the secant's slope through the two points" },
+        { label: "dy/da", value: f2(slope), note: "the limit as Δa → 0; the secant is above it by Δa" },
       ];
     }
     if (params.tab === "partial") {
@@ -2387,15 +2878,18 @@ widgetApi = defineWidget({
       const at = standNudge(state, params, anim);
       const slope = gradFn.da(params.a, B_HELD);
       const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
-      return `The curve y = a² + 3ab over a, with b held at ${B_HELD}, and the tangent at a = ${f1(params.a)} `
-        + `whose slope is ${f2(slope)}. Over a nudge of ${fSig(at.da)} the tangent predicts a rise of `
-        + `${fSig(slope * at.da)}; y moves ${fSig(moved)}, and the gap is ${fSig(moved - slope * at.da)}.`;
+      return `The curve y = a² + 3ab over a, with b held at ${B_HELD}, and two points on it at `
+        + `a = ${f1(params.a)} and a + Δa = ${f1(params.a + at.da)}. The secant through them rises `
+        + `${fSig(moved)} over a run of ${fSig(at.da)}, a slope of ${fSig(moved / at.da)}, against the `
+        + `tangent's ${f2(slope)} drawn faint through the first point.`;
     }
     if (params.tab === "partial") {
       const { a, b } = params;
-      return `A map of y = a² + 3ab over a and b with contour rings, the point (${f1(a)}, ${f1(b)}) on it, `
+      return `y = a² + 3ab over a and b with contour rings, ${params.relief === "relief"
+        ? "raised as a surface with the two slices drawn on it"
+        : "painted as a map"}, the point (${f1(a)}, ${f1(b)}) on it, `
         + `and the gradient (${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}) drawn from it as an arrow uphill. `
-        + `Beside the map, the two slices through that point, each with its tangent.`;
+        + `Beside it, the two slices through that point, each with its tangent.`;
     }
     const { track, q } = state;
     const at = stand(state, params, anim);

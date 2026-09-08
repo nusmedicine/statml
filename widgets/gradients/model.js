@@ -481,7 +481,18 @@ export function stepAngle(q, b0, b1, g0, g1) {
    to turn under the mouse; it is now where the widget's `turn` and `tilt`
    parameters START, and every claim above is a claim about that start. The two
    functions below still default to it, which is what keeps `gd-verify.mjs`
-   measuring the shipped viewpoint rather than one written out a second time. */
+   measuring the shipped viewpoint rather than one written out a second time.
+
+   IT SERVES THE PARTIAL DERIVATIVES TAB TOO, and that was measured rather than
+   inherited. `_lab/gd-part-view.mjs` sweeps 648 viewpoints over y = a^2 + 3ab
+   and re-checks the winner at all 2091 stops the tab's two sliders have: from
+   300/35 nothing of either slice curve is hidden anywhere on the window, and
+   the point is never behind the surface. That window is a SADDLE rather than a
+   trench, so it gives away far less than the loss surface does — only the
+   210-260 azimuths below about 30 degrees of elevation hide anything, and
+   there they hide up to 98% of both slices. One pair for both tabs is also the
+   only expressible answer: a parameter at its default is omitted from the URL,
+   so a per-tab default is not a thing a parameter can have. */
 export const RELIEF_DEFAULT_AZ = 300;
 export const RELIEF_DEFAULT_EL = 35;
 
@@ -494,13 +505,52 @@ export const RELIEF_Z = 0.55;
    it, a finer mesh costs sorting time and shows no more of the surface. */
 export const MESH_G = 44;
 
+/* --- the two fields a relief can be built over ---------------------------- *
+ * A relief FIELD is the whole of what the mesh, the ray march and the lifting
+ * need to know about a surface: where a point sits on its panel's own colour
+ * ramp, 0 at the low end and 1 at the high. Everything else — the projection,
+ * the shading, the hidden-line test — is the same on both tabs, which is why
+ * there is one set of functions below and not two (5.8).
+ *
+ * A FIELD IS RETURNED UNCLAMPED. A mesh face takes the mean of its four
+ * corners' positions and clamps once, which is exactly what the loss surface
+ * did when it was the only relief in the widget — it averaged the four loss
+ * RATIOS geometrically, and the log of a geometric mean is the mean of the
+ * logs. Clamping per corner instead would move the colour of every face that
+ * straddles the cap.
+ */
+
+/** The loss as a share of the ramp: log10 of the loss over the least, in
+    decades, so the contour rings sit at equal heights and the least loss is the
+    floor at 0. */
+export const lossField = (q) => (b0, b1) =>
+  Math.log10(Math.max(1, q.loss(b0, b1) / q.Lmin)) / LOG_CAP;
+
+/* y = a^2 + 3ab, LINEARLY, and the difference from the loss is the reason the
+   two fields exist rather than one. The loss ramp is a log because a walk
+   starts at ~270x the least loss and reaches the trench at ~8x, so a linear
+   ramp would paint the whole opening one flat colour. y over this window runs
+   -8 to 52 — a range, not a ratio, with nothing to tame — so its height is the
+   value itself. Because that mapping is LINEAR, a straight line in (a, y) is a
+   straight line on the relief, which is what lets the Partial derivatives tab
+   draw a true tangent on the surface rather than a chord across it. */
+export const valueRamp = (v) => (v - Y_RANGE[0]) / (Y_RANGE[1] - Y_RANGE[0]);
+export const valueField = (a, b) => valueRamp(gradFn.y(a, b));
+
+/** A field's position brought into [0, 1], where the ramp's ends are. */
+export const clampT = (u) => Math.max(0, Math.min(1, u));
+
+/** Height from a field position: the ramp's own units, so the colour and the
+    height say the same thing and the low end is the floor at 0. */
+export const fieldHeight = (u) => RELIEF_Z * clampT(u);
+
 /**
- * Height from a loss ratio: the map's own log ramp, so the contour rings sit at
- * equal heights, the colour and the height say the same thing, and the least
- * loss is the floor at 0. Monotone, and capped where the ramp is capped.
+ * Height from a loss ratio, which is `fieldHeight` of `lossField`'s position
+ * with the loss already divided out. Kept as its own name because that is the
+ * form the monotonicity claim is stated in, and `gd-verify.mjs` states it.
  */
 export const reliefHeight = (ratio) =>
-  RELIEF_Z * Math.min(1, Math.max(0, Math.log10(Math.max(1, ratio)) / LOG_CAP));
+  fieldHeight(Math.log10(Math.max(1, ratio)) / LOG_CAP);
 
 /**
  * Orthographic projection of the cube x, y in [-0.5, 0.5], z in [0, RELIEF_Z]
@@ -534,14 +584,23 @@ export function projector(rect, az = RELIEF_DEFAULT_AZ, el = RELIEF_DEFAULT_EL) 
   };
 }
 
-/** A parameter pair in the relief's cube: [x, y] in [-0.5, 0.5] and the height
-    of the surface over it. */
-export function reliefPoint(q, dom, b0, b1) {
+/** A pair in the relief's cube: [x, y] in [-0.5, 0.5] and the height of the
+    surface over it. The two windows are passed as arrays rather than as the
+    loss surface's `{ b0, b1 }`, because the same geometry now carries a second
+    tab whose axes are a and b. */
+export function reliefPoint(field, xDom, yDom, x, y) {
   return [
-    (b0 - dom.b0[0]) / (dom.b0[1] - dom.b0[0]) - 0.5,
-    (b1 - dom.b1[0]) / (dom.b1[1] - dom.b1[0]) - 0.5,
-    reliefHeight(q.loss(b0, b1) / q.Lmin),
+    (x - xDom[0]) / (xDom[1] - xDom[0]) - 0.5,
+    (y - yDom[0]) / (yDom[1] - yDom[0]) - 0.5,
+    fieldHeight(field(x, y)),
   ];
+}
+
+/** The same cube position for a height given DIRECTLY rather than read off the
+    field — what a tangent lifted onto the surface needs, since its far ends are
+    not on the surface unless the field is linear there. */
+export function reliefLift(t, xDom, yDom, x, y) {
+  return reliefPoint(() => t, xDom, yDom, x, y);
 }
 
 /**
@@ -554,16 +613,16 @@ export function reliefPoint(q, dom, b0, b1) {
  * from the projected corners: a screen-space normal changes with the panel's
  * size and the shading would then move when the layout does.
  */
-export function reliefMesh(q, dom, project, G = MESH_G) {
+export function reliefMesh(field, xDom, yDom, project, G = MESH_G) {
   const grid = [];
   for (let i = 0; i <= G; i += 1) {
-    const b0 = dom.b0[0] + (i / G) * (dom.b0[1] - dom.b0[0]);
+    const x = xDom[0] + (i / G) * (xDom[1] - xDom[0]);
     const row = [];
     for (let j = 0; j <= G; j += 1) {
-      const b1 = dom.b1[0] + (j / G) * (dom.b1[1] - dom.b1[0]);
-      const r = q.loss(b0, b1) / q.Lmin;
-      const z = reliefHeight(r);
-      row.push({ p: project(i / G - 0.5, j / G - 0.5, z), r, z });
+      const y = yDom[0] + (j / G) * (yDom[1] - yDom[0]);
+      const u = field(x, y);
+      const z = fieldHeight(u);
+      row.push({ p: project(i / G - 0.5, j / G - 0.5, z), u, z });
     }
     grid.push(row);
   }
@@ -585,7 +644,9 @@ export function reliefMesh(q, dom, project, G = MESH_G) {
       quads.push({
         pts: [a.p, b.p, c.p, d.p],
         depth: (a.p.depth + b.p.depth + c.p.depth + d.p.depth) / 4,
-        r: (a.r * b.r * c.r * d.r) ** 0.25,
+        /* the mean of the four corners' positions, clamped once — the
+           geometric mean of four loss ratios, said in the ramp's own units */
+        t: clampT((a.u + b.u + c.u + d.u) / 4),
         shade: 0.55 + 0.45 * Math.max(0, lambert),
       });
     }
@@ -607,13 +668,13 @@ export function reliefMesh(q, dom, project, G = MESH_G) {
  * over, and the ray is started a hair above its own surface so a point does not
  * occlude itself.
  */
-export function reliefHidden(q, dom, b0, b1, az = RELIEF_DEFAULT_AZ, el = RELIEF_DEFAULT_EL) {
+export function reliefHidden(field, xDom, yDom, px, py, az = RELIEF_DEFAULT_AZ, el = RELIEF_DEFAULT_EL) {
   const a = (az * Math.PI) / 180;
   const e = (el * Math.PI) / 180;
   const vx = Math.cos(e) * Math.sin(a);
   const vy = Math.cos(e) * Math.cos(a);
   const vz = -Math.sin(e);
-  let [x, y, z] = reliefPoint(q, dom, b0, b1);
+  let [x, y, z] = reliefPoint(field, xDom, yDom, px, py);
   z += 0.004;
   const dt = 0.01;
   for (let k = 0; k < 400; k += 1) {
@@ -621,9 +682,9 @@ export function reliefHidden(q, dom, b0, b1, az = RELIEF_DEFAULT_AZ, el = RELIEF
     y -= vy * dt;
     z -= vz * dt;
     if (x < -0.5 || x > 0.5 || y < -0.5 || y > 0.5 || z > RELIEF_Z) return false;
-    const bb0 = dom.b0[0] + (x + 0.5) * (dom.b0[1] - dom.b0[0]);
-    const bb1 = dom.b1[0] + (y + 0.5) * (dom.b1[1] - dom.b1[0]);
-    if (reliefHeight(q.loss(bb0, bb1) / q.Lmin) > z) return true;
+    const ux = xDom[0] + (x + 0.5) * (xDom[1] - xDom[0]);
+    const uy = yDom[0] + (y + 0.5) * (yDom[1] - yDom[0]);
+    if (fieldHeight(field(ux, uy)) > z) return true;
   }
   return false;
 }

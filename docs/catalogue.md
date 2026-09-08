@@ -10059,6 +10059,44 @@ ticks are short there; and `--c-extreme` now carries both the Derivative
 tab's gap and the straight line to the minimum, neither quite "past a
 threshold" — a token would be a `tokens.css` change owing a full run.
 
+#### Round 6, 2026-09-08 — the definition, and the relief on the Partial tab
+
+**"Isn't the nudge drawn incorrectly? I thought it's supposed to be the
+limit as Δa → 0."** He is right. The Derivative tab had drawn the
+tangent's linear prediction over Δa against the true Δy — the
+linearization and its Δa² error — which is not the lesson's definition.
+The derivative is the limit of Δy/Δa, so the figure now draws the
+**secant** through the two points on the curve, (a, y) and (a + Δa,
+y(a + Δa)), its right triangle labelled Δa and Δy, and its slope; for
+y = a² + 3ab that slope is exactly 2a + 3b + Δa, so the ladder reads
+8 · 7.5 · 7.25 · 7.1 · 7.05 · 7.01 toward 7, and Shrink the nudge slides
+the second point along the curve and rotates the secant onto the
+tangent. The tangent shows faint from the first frame as the limit the
+secant turns onto (2.7 over 2.1: dy/da is already on the card and in the
+readout, so hiding one drawing of a number stated twice withholds
+nothing). The card carries the limit in MathML.
+
+**"Could we have the 3D view also, so we can see that we are holding one
+constant while the other varies?"** The relief machinery now serves both
+tabs through a *field* abstraction in `model.js`: a field says where a
+point sits on its panel's ramp, log-of-ratio for the loss and linear in y
+for a² + 3ab (−8 to 52; nothing to tame). On the Partial tab's relief the
+two slice curves are lifted onto the surface, hidden pieces dashed by the
+same ray march, the two tangents drawn as true straight lines on the
+surface (the mapping is affine), the point and the gradient arrow. The
+`Surface` and `Default view` controls, `turn`/`tilt` and the drag serve
+both tabs. **Measured (`_lab/gd-part-view.mjs`): 300/35 serves both** —
+over 648 viewpoints and every slider stop, neither slice is hidden at
+all from there, so one default keeps the viewpoint meaning the same
+thing in a link.
+
+**Core changed: `when` gained `any`, and clauses nest.** The Surface
+control is on one whole tab and on one page of another, and a
+disjunction of a clause with a conjunction is the smallest declarative
+form that says so. `gatingParams` walks the tree. Unreachable for every
+other widget (none declares `any`) — and still owes the full suite run
+before a push, which this round ran. 53 assertions.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

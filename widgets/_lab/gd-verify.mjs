@@ -22,6 +22,7 @@ import {
   makeData, standardize, quad, domainFor, contourSegments,
   descendFull, descendMini, descendSlope, posAt, stepAngle,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
+  lossField, valueField, valueRamp, fieldHeight,
   gradFn, A_RANGE, B_RANGE, Y_RANGE, Y_LEVELS, NUDGES, isoSegments,
   beatMs, choreographs, epochMs,
 } from "../gradients/model.js";
@@ -370,7 +371,9 @@ console.log("\n=== 10 · height is monotone in the loss and 0 at the least ===")
      ridge is a ten-millionth of a pixel. */
   let off = 0;
   for (const { raw, std } of draws) {
-    for (const q of [raw, std]) off = Math.max(off, reliefPoint(q, domainFor(q), q.B0, q.B1)[2]);
+    for (const q of [raw, std]) {
+      off = Math.max(off, reliefPoint(lossField(q), domainFor(q).b0, domainFor(q).b1, q.B0, q.B1)[2]);
+    }
   }
   check("the least-squares point sits on the floor, 8 surfaces", off < 1e-9,
     `highest ${off.toExponential(2)} of ${RELIEF_Z}`);
@@ -419,7 +422,7 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
 
   /* Far to near: the mesh is painted in the order it comes back, so the order
      is what makes an opaque surface opaque. */
-  const quads = reliefMesh(D.raw, domainFor(D.raw), projector(rect));
+  const quads = reliefMesh(lossField(D.raw), domainFor(D.raw).b0, domainFor(D.raw).b1, projector(rect));
   let sorted = true;
   for (let k = 1; k < quads.length; k += 1) if (quads[k].depth > quads[k - 1].depth) sorted = false;
   check(`the mesh is ${MESH_G} x ${MESH_G} quads, far to near`,
@@ -428,12 +431,13 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
   /* The rim facing the camera cannot be hidden: from 300/35 the two edges that
      meet at the nearest corner are b1 at its floor and b0 at its ceiling. */
   const domR = domainFor(D.raw);
+  const rawHide = (b0, b1) => reliefHidden(lossField(D.raw), domR.b0, domR.b1, b0, b1);
   let rimHidden = 0;
   let rim = 0;
   for (let k = 0; k <= 40; k += 1) {
     rim += 2;
-    if (reliefHidden(D.raw, domR, domR.b0[0] + (k / 40) * (domR.b0[1] - domR.b0[0]), domR.b1[0])) rimHidden += 1;
-    if (reliefHidden(D.raw, domR, domR.b0[1], domR.b1[0] + (k / 40) * (domR.b1[1] - domR.b1[0]))) rimHidden += 1;
+    if (rawHide(domR.b0[0] + (k / 40) * (domR.b0[1] - domR.b0[0]), domR.b1[0])) rimHidden += 1;
+    if (rawHide(domR.b0[1], domR.b1[0] + (k / 40) * (domR.b1[1] - domR.b1[0]))) rimHidden += 1;
   }
   check(`the near rim is visible, ${rim} points`, rimHidden === 0,
     `${rimHidden} hidden from ${RELIEF_DEFAULT_AZ}/${RELIEF_DEFAULT_EL}`);
@@ -458,7 +462,7 @@ console.log("\n=== 11 · the projector reduces to the map, and the viewpoint sho
       drawn += 1;
       const m0 = (t.b0[a] + t.b0[b]) / 2;
       const m1 = (t.b1[a] + t.b1[b]) / 2;
-      if (reliefHidden(q, dom, m0, m1, az, el)) {
+      if (reliefHidden(lossField(q), dom.b0, dom.b1, m0, m1, az, el)) {
         hid += 1;
         far = Math.max(far, Math.hypot((m0 - q.B0) / w0, (m1 - q.B1) / w1));
       }
@@ -626,9 +630,36 @@ console.log("\n=== 14 · y = a^2 + 3ab: the derivative, the partials, and the ga
   }
   check("analytic = numerical, 242 partials", worst < 1e-8, `worst |Δ| ${worst.toExponential(2)}`);
 
-  /* THE CLAIM THE NUDGE LADDER EXISTS TO MAKE. What the tangent misses over a
-     nudge of d is d^2 exactly — no a and no b in it — which is what the
-     Derivative tab prints as "the gap = Δa²" at every rung. */
+  /* THE CLAIM THE NUDGE LADDER EXISTS TO MAKE, in the form the tab prints it
+     since 2026-09-08: the SECANT through a and a + d has slope dy/da + d
+     exactly — no a and no b left in the difference — so shrinking d takes the
+     secant's slope onto the tangent's a rung at a time. It is the same
+     identity as the one below (what the tangent misses is d^2) divided by d,
+     and both are checked because the tab now draws the first and the `nudge`
+     control's `detail` states it at every rung. */
+  {
+    const ladder = NUDGES.map((d) => (gradFn.y(2 + d, 1) - gradFn.y(2, 1)) / d);
+    let worst = 0;
+    for (let i = 0; i < NUDGES.length; i += 1) {
+      worst = Math.max(worst, Math.abs(ladder[i] - (gradFn.da(2, 1) + NUDGES[i])));
+    }
+    check("at (2, 1) the secant's slope is 7 + Δa at every rung", worst < 1e-12,
+      `${ladder.map((v) => Number(v.toPrecision(6))).join(" · ")} toward ${gradFn.da(2, 1)}`);
+
+    /* And everywhere else on the a slider, since the reader moves it: the
+       identity has no a in it, so the rung is the whole of the difference. */
+    let sweep = 0;
+    for (const d of NUDGES) {
+      for (let i = 0; i <= 50; i += 1) {
+        const a = Math.round((A_RANGE[0] + i * 0.1) * 10) / 10;
+        const s = (gradFn.y(a + d, 1) - gradFn.y(a, 1)) / d;
+        sweep = Math.max(sweep, Math.abs(s - (gradFn.da(a, 1) + d)));
+      }
+    }
+    check(`the same at all ${51 * NUDGES.length} (a, Δa) the tab can show`, sweep < 1e-12,
+      `worst |Δ| ${sweep.toExponential(2)}`);
+  }
+
   let gapWorst = 0;
   for (const d of NUDGES) {
     for (let i = 0; i <= 10; i += 1) {
@@ -666,6 +697,96 @@ console.log("\n=== 14 · y = a^2 + 3ab: the derivative, the partials, and the ga
   const segs = isoSegments(gradFn.y, A_RANGE, B_RANGE, Y_LEVELS);
   check(`${Y_LEVELS.length} levels every 4 draw rings on the map`, segs.length > 200,
     `${segs.length} segments, levels ${Y_LEVELS[0]} to ${Y_LEVELS.at(-1)}`);
+}
+
+/* -- 15 · THE PARTIAL DERIVATIVES TAB IN RELIEF ----------------------------- *
+ * The second surface, added 2026-09-08 at Kenneth's ask, and the two things it
+ * claims that no picture settles.
+ *
+ * FIRST, THAT ITS HEIGHT IS LINEAR IN y. The loss surface's is a log ramp, and
+ * running this one through the same ramp would have been the smaller change and
+ * would have bent every straight line on it — including the two tangents, which
+ * are drawn as straight segments precisely because the mapping is affine. So
+ * the assertion is not merely "monotone" but "affine, with nothing clamped
+ * anywhere in the window": a single clamped corner would make the surface
+ * piecewise and the tangents wrong.
+ *
+ * SECOND, THAT THE VIEWPOINT THE FIGURE OPENS AT SHOWS BOTH SLICE CURVES. That
+ * is the measurement `_lab/gd-part-view.mjs` swept, and the reason the tab
+ * keeps the loss surface's own 300 / 35 rather than a second pair.
+ */
+console.log("\n=== 15 · y as height: linear in y, and both slices in view from 300/35 ===");
+{
+  const span = Y_RANGE[1] - Y_RANGE[0];
+  let worst = 0;
+  let rises = true;
+  let last = -Infinity;
+  for (let i = 0; i <= 200; i += 1) {
+    for (let j = 0; j <= 200; j += 1) {
+      const a = A_RANGE[0] + (i / 200) * (A_RANGE[1] - A_RANGE[0]);
+      const b = B_RANGE[0] + (j / 200) * (B_RANGE[1] - B_RANGE[0]);
+      const want = (RELIEF_Z * (gradFn.y(a, b) - Y_RANGE[0])) / span;
+      worst = Math.max(worst, Math.abs(fieldHeight(valueField(a, b)) - want));
+    }
+  }
+  check("height is RELIEF_Z (y − lo) / (hi − lo), 40401 points", worst < 1e-12,
+    `worst |Δ| ${worst.toExponential(2)}; nothing clamped over the window`);
+
+  /* Monotone in y itself, walked along one line the surface actually cuts. */
+  for (let k = 0; k <= 400; k += 1) {
+    const v = Y_RANGE[0] + (k / 400) * span;
+    const h = fieldHeight(valueRamp(v));
+    if (h < last) rises = false;
+    last = h;
+  }
+  check("height rises with y, floor 0 at −8 and ridge at 52", rises
+    && fieldHeight(valueRamp(Y_RANGE[0])) === 0
+    && Math.abs(fieldHeight(valueRamp(Y_RANGE[1])) - RELIEF_Z) < 1e-12,
+    `0 at ${Y_RANGE[0]}, ${RELIEF_Z} at ${Y_RANGE[1]}`);
+
+  /* AND THAT IT IS NOT THE LOSS SURFACE'S RAMP, which is the point of there
+     being two fields: put a linear field through a log ramp and the ridge
+     flattens into a step. */
+  const mid = (Y_RANGE[0] + Y_RANGE[1]) / 2;
+  check("the loss surface's ramp is a different function",
+    Math.abs(reliefHeight(1 + (mid - Y_RANGE[0])) - fieldHeight(valueRamp(mid))) > 0.05,
+    `at y ${mid}: value ${fieldHeight(valueRamp(mid)).toFixed(3)}, log ramp `
+    + `${reliefHeight(1 + (mid - Y_RANGE[0])).toFixed(3)} of ${RELIEF_Z}`);
+
+  /* The two slice curves, classified at each segment's midpoint exactly as the
+     widget classifies the pieces it draws. Over a grid of the (a, b) window,
+     because both sliders move. */
+  const SEG = 48;
+  const sliceHidden = (a, b, az, el) => {
+    let hid = 0;
+    for (const [dom, alongA] of [[A_RANGE, true], [B_RANGE, false]]) {
+      for (let k = 0; k < SEG; k += 1) {
+        const u = dom[0] + ((k + 0.5) / SEG) * (dom[1] - dom[0]);
+        if (reliefHidden(valueField, A_RANGE, B_RANGE,
+          alongA ? u : a, alongA ? b : u, az, el)) hid += 1;
+      }
+    }
+    return hid / (2 * SEG);
+  };
+  let worstHome = 0;
+  let points = 0;
+  let pointBehind = 0;
+  for (let i = 0; i <= 5; i += 1) {
+    for (let j = 0; j <= 4; j += 1) {
+      const a = A_RANGE[0] + (i / 5) * (A_RANGE[1] - A_RANGE[0]);
+      const b = B_RANGE[0] + (j / 4) * (B_RANGE[1] - B_RANGE[0]);
+      points += 1;
+      worstHome = Math.max(worstHome, sliceHidden(a, b, RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL));
+      if (reliefHidden(valueField, A_RANGE, B_RANGE, a, b,
+        RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL)) pointBehind += 1;
+    }
+  }
+  check(`${RELIEF_DEFAULT_AZ}/${RELIEF_DEFAULT_EL} hides no slice, ${points} points`,
+    worstHome === 0 && pointBehind === 0,
+    `worst share ${(worstHome * 100).toFixed(1)}%, ${pointBehind} points behind the surface`);
+  const bad = sliceHidden(2, 1, 240, 20);
+  check("240/20 hides most of both slices, so the sweep had something to find",
+    bad > 0.5, `${(bad * 100).toFixed(1)}% hidden at (2, 1)`);
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);
