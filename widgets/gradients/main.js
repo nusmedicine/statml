@@ -511,6 +511,96 @@
       the resolution `clearsRim`'s 26px band leaves. Inherited, measured, and
       worth a round of its own; not this one.
 
+  11. KENNETH'S REVIEW OF 2026-09-08, ROUND 8 — both questions about the
+      one-parameter page, and both about the same thing: a page that showed a
+      parameter moving and neither what it moved nor why this parameter.
+
+      "WOULD A FIT GRAPH BE USEFUL? I SEE THE EQUATION BUT CANNOT CONNECT THE
+      CONCEPT." The two-parameter page has always drawn the data with the line
+      at this epoch on the left and the loss on the right; the one-parameter
+      page drew the parabola across the whole width and nothing else, so the
+      only picture of the fit was the equation on the card. It now takes the
+      SAME composition (3.4): `L.data` on the left with the 100 rows, the
+      current line in highlight and the least-squares line dashed, and `L.surf`
+      on the right — the identical square the loss surface uses — holding the
+      loss along the coordinate that descends. Through a Slow epoch the line
+      visibly swings, or shifts for b₀, as the point slides down the parabola.
+      Stage height is untouched: the panel was already `side` tall, so the
+      strip, the regime line and the beat line land exactly where they did.
+
+      WHAT THE SQUARE COST, AND WHERE IT WENT. The panel runs 197 · 261 · 298px
+      at the three widths the side layout reaches, against 484 · 624 · 704
+      before, and the caption is what did not fit: "the loss over b₁, b₀ held at
+      5.09, curvature 67.0" is about 250px. The held value came off it, because
+      the readout tile beneath states it in full and a number stated twice is a
+      number that can disagree with itself; the curvature stayed and lost its
+      decimal. The ratcheting window's tick labels still clear the gutter — the
+      widest `bigTick` label is 5 characters, and the axis has 48px between the
+      panel and the data panel's right edge against the 44 it had when round 7
+      measured them.
+
+      "SHOULD WE BE ABLE TO CHOOSE WHICH PARAMETER TO OPTIMIZE, e.g. b₀, b₁?"
+      Yes, and it turns out to be the sharpest control on the page. `descendOne`
+      in `model.js` walks either coordinate with the other held, storing the
+      moving one in its own slot so `posAt` and the data panel need no special
+      case (5.8), and `which` picks it.
+
+      THE TWO CURVATURES ARE THE POINT. The loss along b₀ is a parabola of
+      curvature exactly 2 — the Hessian's (0, 0) entry is 2n/n, with no data in
+      it on any design — while along b₁ it is 2 × mean(x²), which is 67.0 on the
+      lesson's raw x and 2 on standardized x. So on raw x the same ladder gives,
+      along b₀: 0.01 keeps 0.98 of the distance a step and takes hundreds of
+      epochs, 0.5 lands exactly on the fit in ONE step (1 − 0.5 × 2 = 0), 1
+      alternates for ever, 3 diverges — where along b₁ everything from 0.03 up
+      is already gone. That is the trench's two curvatures, which the
+      two-parameter surface shows as a shape, said one dimension at a time as
+      arithmetic the regime line prints. `gd-verify.mjs` pins all four.
+
+      THE WALK STARTS AT 0 for whichever coordinate descends, which is the same
+      start the other two walks have. For b₀ that is about 5 from its fit, so
+      the ratcheting window opens at rung 8 where b₁ opens at 2 or 4 — the
+      window is symmetric about the chosen coordinate's own fit and needs no
+      other change.
+
+      EVERY STRING THAT NAMED b₁ IS NOW A FUNCTION OF THE CHOICE, and they are
+      nine: the caption, the x axis, the arrow's label, the beat line, the
+      regime line's curvature, two readout tiles, three legend rows and the
+      formula card's one partial. `ONE` in this file holds what each coordinate
+      is CALLED and `COORD` in `model.js` holds which slot it IS, keyed alike —
+      one table each rather than nine agreements maintained by hand (5.8).
+
+      A FIFTH BOX SWEEP, and it found the one thing the square broke. 16 125
+      states — both coordinates, both scales, all eight rungs, epochs 0 to 40,
+      five points of the beat, at 550, 690 and 770px — through a stub context
+      that MODELS THE CLIP, which the earlier sweeps did not: half the labels on
+      this page are painted inside one, so a sweep blind to it reports a 2.8e11px
+      escape for a mark nobody sees and misses the real fault, which is a label
+      the clip CUTS. Run twice, once on this tree and once on the previous
+      commit's, because a sweep that reports a number and not a difference
+      cannot tell what this round broke from what it inherited.
+
+      Escapes past the canvas 0, collisions 0, caption past its panel 0, and the
+      ratcheting window's ticks clear the data panel by 11.3px at the tightest —
+      the widest `bigTick` label is 36.7px in a 48px gutter, against the 44px
+      round 7 measured it in. Its clearance to the rotated "loss" name is 1.4px,
+      the same 1.4px in the same state on the previous commit, so the square did
+      not move it.
+
+      What the square DID break was cut labels: 13 before, 1858 after, 171 of
+      them on the lesson's own walk at 550px. As b₁ closes on its fit it stands
+      at the panel's centre, the arrow takes 39px to its right and its number
+      wants 61 more, of which a 197px panel has 98. `drawSlice` says what fixed
+      it — `panelLabel`'s clamp, plus the row below the shaft where the row above
+      is the panel's own top line — and it is 0 and 0 now. Three states of that
+      remedy were measured in turn, because the first traded 1858 cuts for 201
+      collisions with "least squares" and "off the frame".
+
+      NOTHING ELSE MOVED, and that is asserted rather than assumed: 288 states
+      over the two-parameter page — map and relief, both scales, batch 10, a
+      turned viewpoint — and over both concept tabs hash identically to the
+      previous commit's, over the canvas text boxes, the readout, the legend and
+      the summary together.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -519,7 +609,8 @@ import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import {
   N, EPOCHS, LR_LADDER, BATCHES, LOG_CAP, LEVELS,
   makeData, standardize, quad, domainFor, sliceWindow, contourSegments, isoSegments,
-  descendFull, descendMini, descendSlope, posAt, stepAngle,
+  COORD, lossAlong,
+  descendFull, descendMini, descendOne, posAt, stepAngle,
   projector, reliefMesh, reliefPoint, reliefLift, reliefHidden,
   lossField, valueField, valueRamp,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL,
@@ -541,10 +632,11 @@ const LOSS_H = 70;
 const surfSide = (w) =>
   Math.round(Math.max(180, Math.min(300, (w - PAD_L - PAD_R - SURF_GUTTER) * 0.46)));
 
-/* ONE HEIGHT FOR ALL THREE TABS, and for both Descent pages. The one-parameter
-   panel is sized to make the loss strip land on the same y on either page, and
-   the two concept panels are sized to end where the strip's axis label does, so
-   moving between tabs or pages moves the rail and nothing else (3.4).
+/* ONE HEIGHT FOR ALL THREE TABS, and for both Descent pages. Both Descent pages
+   now draw the same two panels (decision 11), so the loss strip lands on the
+   same y by construction rather than by arithmetic, and the two concept panels
+   are sized to end where the strip's axis label does — so moving between tabs
+   or pages moves the rail and nothing else (3.4).
 
    side + 258, not + 240: the angle line took a line box of its own under the
    two-parameter map (decision 7) and every page reserves it. */
@@ -585,9 +677,13 @@ function layout(w) {
   const sliceH = Math.max(60, Math.round((pside - 54) / 2));
   return {
     side,
+    /* BOTH DESCENT PAGES USE THESE TWO (decision 11): the data with the line at
+       this epoch on the left, and a square on the right holding either the loss
+       surface over (b₀, b₁) or the loss along the one coordinate that descends.
+       The one-parameter page used to take the whole width for its parabola,
+       which left it with no picture of what the parameter it was moving DOES. */
     data: { x: PAD_L, y: TOP, w: left, h: side },
     surf: { x: w - PAD_R - side, y: TOP, w: side, h: side },
-    slice: { x: PAD_L, y: TOP, w: full, h: side },   // the surface's height, so the axis label clears the regime line beneath (measured: at +24 they overlapped by 6px)
     strip: { x: PAD_L, y: TOP + side + 122, w: full, h: LOSS_H },
     regimeY: TOP + side + 60,   // the one-parameter page's line naming the regime
     phaseY: TOP + side + 78,    // what this beat of a Slow step is doing
@@ -1339,20 +1435,38 @@ function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
   }
 }
 
-/* The one-parameter page: the loss along b₁ with b₀ held at its fitted value,
-   the tangent at the current point, and the steps taken so far.
+/* WHAT EACH COORDINATE IS CALLED, wherever the one-parameter page names it —
+   the caption, the x axis, the arrow's label, the beat line, the regime line,
+   the readout tiles, the legend and the formula card's one row.
+   One table, because nine strings agreeing by hand is nine chances for one of
+   them to keep saying b₁ after the reader has chosen b₀ (5.8). `model.js`'s
+   `COORD` is the same pair said structurally: which slot moves, which is held.
+   The two are keyed alike and read together. */
+const ONE = {
+  b1: { symbol: "b₁", other: "b₀", axis: "slope b₁", partial: "∂L/∂b₁" },
+  b0: { symbol: "b₀", other: "b₁", axis: "intercept b₀", partial: "∂L/∂b₀" },
+};
 
-   THE WINDOW RATCHETS (decision 10). It is symmetric about the least-squares b₁
-   with a half-width off `model.js`'s doubling ladder — the smallest rung that
-   holds every position revealed so far — and the loss axis is the loss at that
-   window's own edge, rounded up. So the parabola keeps its shape at every rung
-   while the numbers explode, which is what lets an oscillation that grows by
-   five a step be watched for several epochs instead of leaving on the first. */
+/* The one-parameter page: the loss along the coordinate that descends, with the
+   other held at its fitted value, the tangent at the current point, and the
+   steps taken so far. Since decision 11 it shares the two-parameter page's
+   composition — the data on the left, this square on the right.
+
+   THE WINDOW RATCHETS (decision 10). It is symmetric about the chosen
+   coordinate's least-squares value, with a half-width off `model.js`'s doubling
+   ladder — the smallest rung that holds every position revealed so far — and
+   the loss axis is the loss at that window's own edge, rounded up. So the
+   parabola keeps its shape at every rung while the numbers explode, which is
+   what lets an oscillation that grows by five a step be watched for several
+   epochs instead of leaving on the first. */
 function drawSlice(ctx, colors, rect, state, cur, opts) {
   const { q, track } = state;
-  const win = sliceWindow(q, track, opts.upto, cur[1]);
-  const range = win.b1;
-  const f = (v) => q.loss(q.B0, v);
+  const C = COORD[opts.which];
+  const nm = ONE[opts.which];
+  const here = cur[C.i];
+  const win = sliceWindow(q, track, opts.upto, here, opts.which);
+  const range = win.dom;
+  const f = lossAlong(q, opts.which);
   const pts = [];
   for (let k = 0; k <= 160; k += 1) {
     const v = range[0] + (k / 160) * (range[1] - range[0]);
@@ -1361,16 +1475,25 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
   const plot = makePlot({ ctx, colors, rect, xDomain: range, yDomain: [0, win.top] });
   /* The curvature rides in the CAPTION, not the note: the note slot is where
      the panel says what state the walk is in, and on this page the interesting
-     states are "diverged" and "past the edge of the frame". */
-  plot.caption(`the loss over b₁, b₀ held at ${f2(q.B0)}, curvature ${f1(q.curvB1)}`);
+     states are "diverged" and "past the edge of the frame".
+
+     THE HELD VALUE CAME OFF IT with decision 11. The panel is a square of
+     197px at the narrowest now, where it used to have the whole width, and
+     "the loss over b₁, b₀ held at 5.09, curvature 67.0" is 250px of caption.
+     What the reader loses nothing by moving is the held number, which the
+     readout tile beneath states in full; what has to stay is the curvature,
+     because the contrast between 67 along b₁ and 2 along b₀ is the choice's
+     whole point. The curvature is rounded for the same reason — `fSig` gives
+     67 and 2, and a decimal on either buys no reader anything. */
+  plot.caption(`the loss over ${nm.symbol}, curvature ${fSig(q[C.curv])}`);
   if (opts.divergedShown) {
     plot.note(`diverged at epoch ${track.diverged}`, { tone: colors.extreme });
-  } else if (cur[1] < range[0] || cur[1] > range[1]) {
+  } else if (here < range[0] || here > range[1]) {
     plot.note("off the frame", { tone: colors.extreme });
   }
-  plot.axisX({ label: "slope b₁" });
+  plot.axisX({ label: nm.axis });
   plot.axisY({ label: "loss", format: win.top >= 1e6 ? bigTick : undefined });
-  plot.vline(q.B1, { stroke: colors.reference, label: "least squares", width: 1.5 });
+  plot.vline(q[C.fit], { stroke: colors.reference, label: "least squares", width: 1.5 });
   plot.curve(pts, { stroke: colors.ink2, width: 1.5 });
 
   ctx.save();
@@ -1383,25 +1506,26 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     ctx.strokeStyle = colors.ink1;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(plot.sx(track.b1[0]), plot.sy(f(track.b1[0])));
+    const walked = track[C.at];
+    ctx.moveTo(plot.sx(walked[0]), plot.sy(f(walked[0])));
     for (let k = stride; k <= opts.upto; k += stride) {
-      ctx.lineTo(plot.sx(track.b1[k]), plot.sy(f(track.b1[k])));
+      ctx.lineTo(plot.sx(walked[k]), plot.sy(f(walked[k])));
     }
-    ctx.lineTo(plot.sx(cur[1]), plot.sy(f(cur[1])));
+    ctx.lineTo(plot.sx(here), plot.sy(f(here)));
     ctx.stroke();
     ctx.fillStyle = colors.ink1;
     const dots = Math.min(opts.upto, 40);
     for (let k = 0; k <= dots; k += 1) {
       ctx.beginPath();
-      ctx.arc(plot.sx(track.b1[k]), plot.sy(f(track.b1[k])), 2.2, 0, 2 * Math.PI);
+      ctx.arc(plot.sx(walked[k]), plot.sy(f(walked[k])), 2.2, 0, 2 * Math.PI);
       ctx.fill();
     }
   }
 
   /* THE TANGENT IS RE-EVALUATED AT THE POINT IT TOUCHES, which is the page's
-     whole point: its slope IS ∂L/∂b₁ there. It used to be drawn with
-     `opts.grad[1]`, the gradient `stand()` floors to the START of the step, so
-     through the move beat a line of fixed slope slid along the parabola —
+     whole point: its slope IS the chosen partial there. It used to be drawn
+     with the gradient `stand()` floors to the START of the step, so through
+     the move beat a line of fixed slope slid along the parabola —
      Kenneth, 2026-09-08: "the tangent animation is not there. it just
      translates without following the curve." Evaluated here it rolls with the
      curve and arrives as the tangent at the new point.
@@ -1412,26 +1536,25 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      gone and the beat's first 40% is a pause at the point instead.
 
      THE READOUT AND THE BEAT CAPTION KEEP THE FLOORED ONE, and the two do not
-     disagree: `descendSlope` stores at every index exactly the gradient this
+     disagree: `descendOne` stores at every index exactly the gradient this
      line recomputes, so at rest and at both unchoreographed speeds the number
      printed is the slope drawn. They part only mid-move, where they are
      answering different questions — what decided this step, against what the
      surface does under the point now. */
   if (opts.showStep) {
-    const b1 = cur[1];
-    const g = q.grad(q.B0, b1)[1];
+    const g = q.grad(cur[0], cur[1])[C.i];
     const span = (range[1] - range[0]) * 0.16;
-    const L = f(b1);
+    const L = f(here);
     ctx.strokeStyle = colors.highlight;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(plot.sx(b1 - span), plot.sy(L - g * span));
-    ctx.lineTo(plot.sx(b1 + span), plot.sy(L + g * span));
+    ctx.moveTo(plot.sx(here - span), plot.sy(L - g * span));
+    ctx.lineTo(plot.sx(here + span), plot.sy(L + g * span));
     ctx.stroke();
   }
 
   /* THE GRADIENT AS A VECTOR — the one-dimensional case of the map's composed
-     direction (decision 6). θ is b₁ alone here, so −∂L/∂θ has one component:
+     direction (decision 6). θ is one coordinate here, so −∂L/∂θ has one part:
      a horizontal arrow at the point's height, pointing downhill, at the map's
      own fixed pixel length and carrying the partial's value in the lettering
      the map's component ticks carry theirs in.
@@ -1441,7 +1564,7 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      answering different questions:
      the arrow is the number that decided this step, the tangent is what the
      surface does under the point now. At rest and at an epoch boundary they
-     agree, because `descendSlope` stores at every index exactly the slope the
+     agree, because `descendOne` stores at every index exactly the slope the
      tangent recomputes.
 
      THE CLEARANCES ARE MEASURED. It starts 9px from the dot's centre, 3.5px of
@@ -1453,23 +1576,49 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
      across the 494 to 934px the panel is drawn at, and standardized x is still
      22 to 28px clear at epoch 10. By epoch 3 of the raw walk the tangent has
      flattened onto the arrow's own line, which is the figure saying the slope
-     is gone rather than two marks colliding. */
+     is gone rather than two marks colliding. Those clearances were measured on
+     the 494-934px panel this page had before decision 11 and are unchanged in
+     kind by the square: the arrow is a fixed pixel length and the tangent's
+     descent is a fact about the parabola, not about the width. */
   if (opts.showStep && Number.isFinite(opts.grad) && opts.grad !== 0) {
-    const ax = plot.sx(cur[1]);
-    const ay = plot.sy(f(cur[1]));
+    const ax = plot.sx(here);
+    const ay = plot.sy(f(here));
     const dir = opts.grad > 0 ? -1 : 1;
     const x0 = ax + dir * 9;
     const x1 = x0 + dir * ARROW;
     if (Math.abs(x1 - x0) > 3) {
       arrow(ctx, x0, ay, x1, ay, colors.highlight, 2.5);
-      label(ctx, colors, `∂L/∂b₁ ${fSig(opts.grad)}`, x1 + dir * 5, ay - 7,
+      /* THE NUMBER IS CLAMPED ONTO THE PANEL, which the square made necessary
+         (decision 11). At 484-934px there was always room past the arrowhead;
+         at 197 there is not, and the walk that runs out of it first is the
+         lesson's own — as b₁ closes on its fit it stands at the panel's centre,
+         the arrow takes the 39px to its right and the label wants 61 more, of
+         which the panel has 98. A box sweep counted 171 states of that walk
+         alone printing a cut number at 550px, the worst losing 13 of 61px.
+         `panelLabel` is what this file already does about a label with nowhere
+         to go (5.8): it moves the ANCHOR by the measured width, so the label
+         slides back along its own row rather than being sliced by the clip.
+         The row is the arrow's own, 7px above the shaft, so sliding it cannot
+         reach the shaft, the arrowhead or the ringed dot.
+
+         AND IT TAKES THE ROW BELOW THE SHAFT when the row above would be the
+         panel's own top line. `panelLabel` clamps y as well as x, so a point
+         high on the parabola — which is where a diverging walk stands — used to
+         push the number onto the row "least squares" and "off the frame" are
+         written on: 201 states of 16 125 overlapped there, by up to 10.6px.
+         Below the shaft nothing is written at all, which is decision 8's remedy
+         for the same fault on the map's two component ticks: when one row is
+         taken, use the other. */
+      const above = ay - 7;
+      panelLabel(ctx, colors, rect, `${nm.partial} ${fSig(opts.grad)}`, x1 + dir * 5,
+        above < rect.y + 23 ? Math.max(rect.y + 23, ay + 15) : above,
         { align: dir < 0 ? "right" : "left", color: colors.highlight });
     }
   }
   ctx.restore();
 
-  const px = plot.sx(cur[1]);
-  const py = plot.sy(f(cur[1]));
+  const px = plot.sx(here);
+  const py = plot.sy(f(here));
   if (px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h) {
     ringedDot(ctx, colors, px, py);
   }
@@ -2188,16 +2337,18 @@ const CARD_MIN = "10em";  // the four rows of the two-parameter page; every
 let cardHost = null;
 let cardKey = null;
 
-function cardRows(tab, view) {
+/* The card follows the page: two parameters show both partials, one parameter
+   shows the one it is descending (decision 11). A card still naming ∂L/∂b₁
+   while the reader walks b₀ would be the formula and the figure disagreeing. */
+function cardRows(tab, view, which) {
   if (tab === "derivative") return [["y", CARD.fn], ["dy/da", CARD.flim]];
   if (tab === "partial") return [["y", CARD.fn], ["∂y/∂a", CARD.fa], ["∂y/∂b", CARD.fb]];
   const rows = [["Update", CARD.update], ["Loss", CARD.loss]];
-  if (view === "two") rows.push(["∂L/∂b₀", CARD.d0]);
-  rows.push(["∂L/∂b₁", CARD.d1]);
-  return rows;
+  if (view === "two") return [...rows, ["∂L/∂b₀", CARD.d0], ["∂L/∂b₁", CARD.d1]];
+  return [...rows, which === "b0" ? ["∂L/∂b₀", CARD.d0] : ["∂L/∂b₁", CARD.d1]];
 }
 
-function renderCard(tab, view) {
+function renderCard(tab, view, which) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
   if (!cardHost) {
@@ -2206,10 +2357,10 @@ function renderCard(tab, view) {
     figure.parentNode.insertBefore(cardHost, figure);
   }
   cardHost.style.minHeight = CARD_MIN;
-  const key = `${tab}:${view}`;
+  const key = `${tab}:${view}:${which}`;
   if (key === cardKey) return;
   cardKey = key;
-  cardHost.innerHTML = cardRows(tab, view)
+  cardHost.innerHTML = cardRows(tab, view, which)
     .map(([name, body]) =>
       `<div class="w-math-eq" style="min-height:0;padding-left:${GUTTER};text-indent:-${GUTTER};margin:0 0 4px">`
       + `<span style="display:inline-block;width:${GUTTER};text-indent:0;color:var(--ink-3)">${name}</span>${body}</div>`)
@@ -2461,6 +2612,35 @@ widgetApi = defineWidget({
       default: "one",
       when: { param: "tab", equals: "descent" },
     },
+    /* WHICH OF THE TWO DESCENDS, and it is a DATA control: it decides the walk,
+       so a change starts a new one. Directly under the page it belongs to, in
+       the reading order the rail already has — what am I looking at, then which
+       part of it moves (3.1).
+
+       The pair is the trench's two curvatures said one dimension at a time. The
+       loss along b₀ has curvature 2 on any design at all, and along b₁ it is
+       2 × mean(x²), which is 67 on raw x — so at α 0.3 the intercept keeps 0.4
+       of its distance to the fit every step and the slope is thrown away from
+       it. Nothing else in the widget lets a reader hold one number and change
+       only the curvature under it. */
+    which: {
+      type: "segmented",
+      label: "Descend",
+      options: [
+        {
+          value: "b1",
+          label: "b₁, the slope",
+          detail: "b₀ held at its least-squares value",
+        },
+        {
+          value: "b0",
+          label: "b₀, the intercept",
+          detail: "b₁ held at its least-squares value",
+        },
+      ],
+      default: "b1",
+      when: { all: [{ param: "tab", equals: "descent" }, { param: "view", equals: "one" }] },
+    },
     scale: {
       type: "segmented",
       label: "Covariate",
@@ -2659,13 +2839,19 @@ widgetApi = defineWidget({
             : []),
           { token: "empirical", label: "Loss after each epoch", mark: "line" },
         ]
+        /* The one-parameter page draws the data panel too since decision 11,
+           so its legend carries the rows that panel needs — the rows and the
+           two lines — as well as the parabola's own. Every mention of the
+           coordinate comes off `ONE`, so choosing b₀ renames the legend with
+           the figure. */
         : [
-          { token: "ink-2", label: "The loss over b₁, with b₀ held", mark: "line" },
-          /* One entry for two highlight marks, as the two-parameter page does
+          { token: "unknown", label: "The 100 rows", mark: "dot" },
+          { token: "ink-2", label: `The loss over ${ONE[params.which].symbol}, with ${ONE[params.which].other} held`, mark: "line" },
+          /* One entry for three highlight marks, as the two-parameter page does
              with its line and its arrow: the tangent IS the slope and the arrow
              is the direction that slope sends the step. */
-          { token: "highlight", label: "The tangent at the current b₁ with slope ∂L/∂b₁, and the direction of the next step", mark: "line" },
-          { token: "reference", label: "b₁ at the least-squares fit", mark: "dash" },
+          { token: "highlight", label: `The line at this epoch, the tangent whose slope is ${ONE[params.which].partial}, and the direction of the next step`, mark: "line" },
+          { token: "reference", label: `The least-squares line, and ${ONE[params.which].symbol} at that fit`, mark: "dash" },
           { token: "ink-1", label: "The steps taken so far", mark: "line" },
           { token: "empirical", label: "Loss after each epoch", mark: "line" },
         ]),
@@ -2686,7 +2872,7 @@ widgetApi = defineWidget({
     const lr = Number(params.lr);
     const batch = Number(params.batch);
     const track = params.view === "one"
-      ? descendSlope(q, lr, EPOCHS)
+      ? descendOne(q, lr, EPOCHS, params.which)
       : batch >= q.n
         ? descendFull(q, lr, EPOCHS)
         : descendMini(q, lr, EPOCHS, batch, rng);
@@ -2703,7 +2889,7 @@ widgetApi = defineWidget({
       sig: `${params.scale}:${params.seed}`,
       /* and what the relief's visible/hidden split is keyed on — the surface,
          plus everything that decides where the walk goes on it */
-      walkSig: `${params.scale}:${params.seed}:${params.view}:${params.lr}:${params.batch}`,
+      walkSig: `${params.scale}:${params.seed}:${params.view}:${params.which}:${params.lr}:${params.batch}`,
     };
   },
 
@@ -2891,13 +3077,17 @@ widgetApi = defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
-    renderCard(params.tab, params.view);
+    renderCard(params.tab, params.view, params.which);
     const L = layout(w);
     if (params.tab === "derivative") return drawDerivativeTab(ctx, colors, L, params, state, anim);
     if (params.tab === "partial") return drawPartialTab(ctx, colors, L, params);
     const { track, q } = state;
     const at = stand(state, params, anim);
     const two = params.view === "two";
+    /* The one coordinate the one-parameter page is moving, and its partial —
+       the same pair `readout` and `summary` take, off `model.js`'s table. */
+    const C = COORD[params.which];
+    const gOne = at.grad[C.i];
     const ratio = Math.max(1, track.epochLoss[at.ep] / q.Lmin);
     const divergedShown = track.diverged !== null && at.ep >= track.diverged;
     const arrived = !divergedShown && ratio < 1.01;
@@ -2942,15 +3132,25 @@ widgetApi = defineWidget({
          The tangent takes its slope from the point it touches so that it rolls
          with the curve; `grad` is the floored one the readout, the beat line
          and the gradient VECTOR keep. `drawSlice` says why they can differ. */
-      drawSlice(ctx, colors, L.slice, state, at.cur, {
+      /* THE DATA BESIDE THE PARABOLA (decision 11). The same panel, the same
+         rect and the same marks the two-parameter page draws: the line at this
+         epoch follows whichever coordinate is descending, with the other at its
+         least-squares value, so a Slow epoch is a line swinging on the left
+         while the point slides down the parabola on the right. Without it the
+         page showed a parameter moving and nothing it moved. */
+      drawData(ctx, colors, L.data, state, at.cur, params.scale);
+      drawSlice(ctx, colors, L.surf, state, at.cur, {
         upto: at.upto,
         divergedShown,
         showStep: !divergedShown,
-        grad: at.grad[1],
+        which: params.which,
+        grad: gOne,
       });
       /* Which of the three regimes this learning rate is in, stated as the
-         arithmetic that decides it rather than as a label. */
-      const r = 1 - state.lr * q.curvB1;
+         arithmetic that decides it rather than as a label, and on the CHOSEN
+         coordinate's curvature — 2 along b₀ and 67 along b₁ on raw x, which is
+         what makes the same α land in one regime or another. */
+      const r = 1 - state.lr * q[C.curv];
       const a = Math.abs(r);
       const regime = a > 1
         ? `1 − α × curvature = ${f3(r)}: each step crosses the fit and the distance to it grows.`
@@ -2959,7 +3159,7 @@ widgetApi = defineWidget({
           : r < 0
             ? `1 − α × curvature = ${f3(r)}: each step crosses the fit and keeps ${f3(a)} of the distance.`
             : `1 − α × curvature = ${f3(r)}: each step keeps ${f3(r)} of the distance to the fit.`;
-      label(ctx, colors, regime, L.slice.x, L.regimeY, { color: colors.ink2 });
+      label(ctx, colors, regime, L.data.x, L.regimeY, { color: colors.ink2 });
     }
 
     /* The beat line: what this part of a Slow epoch is doing, or — at rest and
@@ -2977,14 +3177,14 @@ widgetApi = defineWidget({
       /* The slope's number is on the vector's own label now, so the line names
          the two marks rather than printing one of them twice. */
       said = at.beat < BEATS_ONE.hold
-        ? `The tangent at b₁ ${f3(at.cur[1])}, and −∂L/∂b₁, the direction the step takes`
-        : `The step is −α × ∂L/∂b₁ ${fSig(-state.lr * at.grad[1])}`;
+        ? `The tangent at ${ONE[params.which].symbol} ${f3(at.cur[C.i])}, and −${ONE[params.which].partial}, the direction the step takes`
+        : `The step is −α × ${ONE[params.which].partial} ${fSig(-state.lr * gOne)}`;
     } else {
       /* `state.batch` is the full 100 on the one-parameter page, which takes
          its gradient over every row, so one branch serves both. */
       said = `One epoch is ${epochPhrase(state.batch)}`;
     }
-    label(ctx, colors, said, L.slice.x, L.phaseY,
+    label(ctx, colors, said, L.data.x, L.phaseY,
       { color: stepping ? colors.highlight : colors.ink3 });
 
     /* THE ANGLE BETWEEN THE STEP AND THE STRAIGHT LINE TO THE MINIMUM
@@ -3001,7 +3201,7 @@ widgetApi = defineWidget({
         ? "The walk is at the minimum"
         : `The step follows the ${state.batch >= q.n ? "" : "batch's "}steepest slope, `
           + `${Math.round(deg)}° from the straight line to the minimum`,
-      L.slice.x, L.angleY, { color: colors.ink2 });
+      L.data.x, L.angleY, { color: colors.ink2 });
     }
 
     drawStrip(ctx, colors, L.strip, state, at.ep);
@@ -3046,9 +3246,14 @@ widgetApi = defineWidget({
     const { track, q } = state;
     const at = stand(state, params, anim);
     const two = params.view === "two";
+    const C = COORD[params.which];
+    const nm = ONE[params.which];
+    const gOne = at.grad[C.i];
     const divergedShown = track.diverged !== null && at.ep >= track.diverged;
     const ratio = Math.max(1, track.epochLoss[at.ep] / q.Lmin);
-    const step = state.lr * Math.hypot(two ? at.grad[0] : 0, at.grad[1]);
+    const step = two
+      ? state.lr * Math.hypot(at.grad[0], at.grad[1])
+      : state.lr * Math.abs(gOne);
     return [
       {
         label: "Epoch",
@@ -3062,9 +3267,9 @@ widgetApi = defineWidget({
           note: `least squares ${f2(q.B0)}, ${f2(q.B1)}`,
         }
         : {
-          label: "b₁",
-          value: f3(at.cur[1]),
-          note: `least squares ${f3(q.B1)}, with b₀ held at ${f2(q.B0)}`,
+          label: nm.symbol,
+          value: f3(at.cur[C.i]),
+          note: `least squares ${f3(q[C.fit])}, with ${nm.other} held at ${f2(q[C.held])}`,
         },
       {
         label: "Loss",
@@ -3082,9 +3287,9 @@ widgetApi = defineWidget({
             : `over the next ${state.batch === 1 ? "row" : `${state.batch} rows`}`,
         }
         : {
-          label: "∂L/∂b₁",
-          value: fSig(at.grad[1]),
-          note: "the tangent's slope at this b₁",
+          label: nm.partial,
+          value: fSig(gOne),
+          note: `the tangent's slope at this ${nm.symbol}`,
         },
       {
         label: "Step length",
@@ -3120,8 +3325,8 @@ widgetApi = defineWidget({
         `The walk has taken ${at.ep} of ${EPOCHS} epochs from (0, 0) at learning rate ${state.lr}.`,
       ]
       : [
-        `The loss as a curve over b₁ with b₀ held at ${f2(q.B0)}, and the steps taken from b₁ = 0 at learning rate ${state.lr}.`,
-        `The walk has taken ${at.ep} of ${EPOCHS} epochs and stands at b₁ ${f3(at.cur[1])}.`,
+        `A scatter of y against x for ${N} rows with the line b₀ ${f2(at.cur[0])}, b₁ ${f2(at.cur[1])} drawn through it, beside the loss as a curve over ${ONE[params.which].symbol} with ${ONE[params.which].other} held at ${f2(q[COORD[params.which].held])}.`,
+        `The walk has taken ${at.ep} of ${EPOCHS} epochs from ${ONE[params.which].symbol} = 0 at learning rate ${state.lr}, and stands at ${f3(at.cur[COORD[params.which].i])}.`,
       ];
     parts.push(track.diverged !== null && at.ep >= track.diverged
       ? `It diverged at epoch ${track.diverged}.`

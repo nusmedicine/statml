@@ -11,8 +11,9 @@
 
    The two claims that most need a reader: the `scale` control tells the reader
    that raw x gives curvatures 68.5 and 0.50 and that standardizing makes both
-   2, and the one-parameter page's caption prints the curvature of the b1
-   slice. Nothing else in the collection would notice if any of those drifted.
+   2, and the one-parameter page's caption prints the curvature of whichever
+   slice the `which` control is on — 67 along b1 on raw x, 2 along b0 on any
+   design. Nothing else in the collection would notice if any of those drifted.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -21,7 +22,7 @@ import {
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL, RELIEF_Z, MESH_G,
   makeData, standardize, quad, domainFor, contourSegments,
   SLICE_HALF, sliceWindow, niceCeil,
-  descendFull, descendMini, descendSlope, posAt, stepAngle,
+  descendFull, descendMini, descendOne, posAt, stepAngle,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
   lossField, valueField, valueRamp, fieldHeight,
   gradFn, A_RANGE, B_RANGE, Y_RANGE, Y_LEVELS, NUDGES, isoSegments,
@@ -252,7 +253,7 @@ console.log("\n=== 7 · each one-parameter step keeps 1 - lr x curvature of the 
     for (const [tag, q] of [["raw", raw], ["std", std]]) {
       for (const lr of [0.001, 0.01, 0.1, 0.3]) {
         const r = 1 - lr * q.curvB1;
-        const t = descendSlope(q, lr, 60);
+        const t = descendOne(q, lr, 60);
         if (t.diverged !== null) continue;
         tried += 1;
         for (let e = 0; e <= 60; e += 1) {
@@ -276,7 +277,7 @@ console.log("\n=== 7 · each one-parameter step keeps 1 - lr x curvature of the 
      rolls with the curve through the move beat, while the readout keeps the
      floored one that decided the step. The two are the same number wherever the
      walk is standing on a whole index — which is every state but a Slow move —
-     and that is only true because `descendSlope` stores at index k exactly what
+     and that is only true because `descendOne` stores at index k exactly what
      `grad` returns at position k. If it ever stopped, the tangent would part
      from its own printed slope with nothing on screen to say so. */
   let split = 0;
@@ -284,7 +285,7 @@ console.log("\n=== 7 · each one-parameter step keeps 1 - lr x curvature of the 
   for (const { raw, std } of draws) {
     for (const q of [raw, std]) {
       for (const lr of LR_LADDER) {
-        const t = descendSlope(q, lr, EPOCHS);
+        const t = descendOne(q, lr, EPOCHS);
         for (let k = 0; k < t.len; k += 1) {
           const g = q.grad(q.B0, t.b1[k])[1];
           if (!Number.isFinite(g)) continue;
@@ -817,7 +818,7 @@ console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rest
   for (const { raw, std } of draws) {
     for (const q of [raw, std]) {
       for (const lr of LR_LADDER) {
-        const t = descendSlope(q, lr, EPOCHS);
+        const t = descendOne(q, lr, EPOCHS);
         let prev = 0;
         for (let e = 0; e <= t.epochsDone; e += 1) {
           const w = sliceWindow(q, t, e, t.b1[e]);
@@ -828,7 +829,7 @@ console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rest
              inside the window unless the walk is past the ladder's top rung */
           if (w.half === SLICE_HALF.at(-1)) continue;
           for (let k = 0; k <= e; k += 1) {
-            if (t.b1[k] < w.b1[0] || t.b1[k] > w.b1[1]) escaped += 1;
+            if (t.b1[k] < w.dom[0] || t.b1[k] > w.dom[1]) escaped += 1;
           }
         }
       }
@@ -848,7 +849,7 @@ console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rest
   let rested = true;
   const rungs01 = [];
   for (const { raw } of draws) {
-    const t = descendSlope(raw, 0.01, EPOCHS);
+    const t = descendOne(raw, 0.01, EPOCHS);
     const at0 = sliceWindow(raw, t, 0, t.b1[0]).half;
     rungs01.push(at0);
     for (let e = 0; e <= t.epochsDone; e += 1) {
@@ -863,16 +864,16 @@ console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rest
      the fixed window lost it on the FIRST one. Counted as epochs whose position
      is inside the window that epoch is drawn in. */
   const held = (q, lr) => {
-    const t = descendSlope(q, lr, EPOCHS);
+    const t = descendOne(q, lr, EPOCHS);
     let n = 0;
     for (let e = 0; e <= t.epochsDone; e += 1) {
       const w = sliceWindow(q, t, e, t.b1[e]);
-      if (t.b1[e] >= w.b1[0] && t.b1[e] <= w.b1[1]) n += 1;
+      if (t.b1[e] >= w.dom[0] && t.b1[e] <= w.dom[1]) n += 1;
     }
     return n;
   };
   const old = (q, lr) => {
-    const t = descendSlope(q, lr, EPOCHS);
+    const t = descendOne(q, lr, EPOCHS);
     const dom = domainFor(q);
     let n = 0;
     for (let e = 0; e <= t.epochsDone && t.b1[e] >= dom.b1[0] && t.b1[e] <= dom.b1[1]; e += 1) n += 1;
@@ -912,6 +913,106 @@ console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rest
   }
   check("the loss axis clears the window's edge on every rung", under === 0,
     `worst headroom ${((slack - 1) * 100).toFixed(0)}% over ${SLICE_HALF.length * 8} rungs`);
+}
+
+/* -- 17 · THE ONE-PARAMETER WALK OVER b0 ------------------------------------ *
+ * The `which` control, 2026-09-08. Everything above walks b1; this section
+ * walks b0, pins the four numbers that page now prints for it, and pins the one
+ * claim a generalisation can quietly break — that the walk it already had came
+ * out unchanged.
+ *
+ * THE CURVATURE ALONG b0 IS 2 ON EVERY DESIGN. The Hessian of the mean squared
+ * error is 2 * [[1, mean x], [mean x, mean x^2]], so its (0, 0) entry carries no
+ * data at all, while its (1, 1) entry is 67.0 on the lesson's raw x. That
+ * contrast is the whole of what the control is for: the same learning rate that
+ * lands b0 on its fit in a single step throws b1 away for good.
+ */
+console.log("\n=== 17 · descending b0: curvature 2, one step at 0.5, and b1 unmoved ===");
+{
+  const b0curv = draws.every(({ raw, std }) => raw.curvB0 === 2 && std.curvB0 === 2);
+  check("the curvature along b0 is exactly 2, 8 surfaces", b0curv,
+    `raw ${D.raw.curvB0} and standardized ${D.std.curvB0}, against ${D.raw.curvB1.toFixed(1)} `
+    + `and ${D.std.curvB1.toFixed(1)} along b1`);
+
+  /* The same claim section 7 makes about b1: the stored partial IS what `grad`
+     returns at that position, which is what lets the tangent be recomputed at
+     the point it touches while the readout prints the floored one. */
+  let split = 0;
+  let positions = 0;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) {
+      for (const lr of LR_LADDER) {
+        const t = descendOne(q, lr, EPOCHS, "b0");
+        for (let k = 0; k < t.len; k += 1) {
+          const g = q.grad(t.b0[k], t.b1[k])[0];
+          if (!Number.isFinite(g)) continue;
+          positions += 1;
+          split = Math.max(split, Math.abs(t.g0[k] - g));
+        }
+      }
+    }
+  }
+  check("the stored partial IS dL/db0 at that b0", split === 0,
+    `${positions} positions, worst |Δ| ${split}`);
+
+  /* THE THREE REGIMES, in the three numbers 1 - lr * 2 takes. At 0.5 the factor
+     is 0, so the step lands on B0 from wherever it stands — the argument for
+     standardizing, made here by holding the OTHER coordinate instead. At 1 the
+     factor is exactly -1 and the walk alternates for ever about the fit; at 3
+     it is -5 and the walk is gone in eight epochs. Along b1 on raw x the same
+     three learning rates are all far past the boundary. */
+  let one = 0;
+  let alt = 0;
+  let diverged = true;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) {
+      one = Math.max(one, Math.abs(descendOne(q, 0.5, 1, "b0").b0[1] - q.B0));
+      const t = descendOne(q, 1, 200, "b0");
+      if (t.diverged !== null) alt = Infinity;
+      else {
+        for (let e = 0; e <= 200; e += 1) {
+          alt = Math.max(alt, Math.abs(t.b0[e] - (e % 2 ? 2 * q.B0 : 0)));
+        }
+      }
+      if (descendOne(q, 3, EPOCHS, "b0").diverged === null) diverged = false;
+    }
+  }
+  check("lr 0.5 lands on B0 in one step, 8 surfaces", one < 1e-9,
+    `worst |Δ| ${one.toExponential(2)}`);
+  check("lr 1 is back at its start every second epoch", alt < 1e-9,
+    `worst |Δ| ${alt.toExponential(2)} over 200 epochs; the far side is 2 x B0`);
+  check("lr 3 diverges on 8 surfaces", diverged,
+    `seed 1 raw at epoch ${descendOne(D.raw, 3, EPOCHS, "b0").diverged}`);
+
+  /* THE WINDOW OPENS WIDER FOR b0, and the page's own copy says so: b0 starts
+     about 5 below its fit on raw x where b1 starts about 2 below its own, so the
+     symmetric ladder takes rung 8 rather than 2 or 4. */
+  const rung = (q, which) => sliceWindow(q, descendOne(q, 0.01, EPOCHS, which), 0, 0, which).half;
+  check("the b0 window opens at rung 8 on raw x", draws.every(({ raw }) => rung(raw, "b0") === 8),
+    `raw b0 ${draws.map(({ raw }) => rung(raw, "b0")).join(" · ")}, `
+    + `against b1 ${draws.map(({ raw }) => rung(raw, "b1")).join(" · ")}`);
+
+  /* AND THE WALK THAT WAS ALREADY THERE IS BIT-IDENTICAL. `descendSlope` became
+     `descendOne` with a coordinate argument, which is exactly the kind of edit
+     that can move a last digit and be noticed by nobody — the page would still
+     draw a parabola with a point on it. The three positions below were printed
+     from the old function before it was touched, at 18 significant digits so
+     they round-trip, and they are compared with `===`. */
+  const FROZEN = {
+    raw: ["1.35022062019340749e+0", "2.00727102838049776e+0", "2.01515338745510553e+0"],
+    std: ["1.17514260308688570e-1", "5.64533824754809288e-1", "1.95304016658523949e+0"],
+  };
+  let same = true;
+  const got = [];
+  for (const [tag, q] of [["raw", D.raw], ["std", D.std]]) {
+    const t = descendOne(q, 0.01, EPOCHS, "b1");
+    [1, 5, 20].forEach((e, i) => {
+      got.push(t.b1[e]);
+      if (t.b1[e] !== Number(FROZEN[tag][i])) same = false;
+    });
+  }
+  check("seed 1, lr 0.01: b1 at epochs 1, 5, 20 unchanged", same,
+    `${got.slice(0, 3).map((v) => v.toPrecision(12)).join(" · ")} raw`);
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

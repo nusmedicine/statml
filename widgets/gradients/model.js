@@ -33,6 +33,14 @@
      standardized     lr 0.5 lands on the minimum in ONE step (the step is
                       exactly 1/curvature), lr 1 alternates for ever, lr 3 blows up
 
+   And the two SLICE curvatures the one-parameter page walks down, which are the
+   Hessian's diagonal rather than its eigenvalues:
+
+     along b1        2 * mean(x^2): 67.0 on raw x, 2 on standardized
+     along b0        exactly 2 on every design, so raw x gives lr 0.01 a factor
+                     of 0.98 a step, 0.5 lands in ONE step, 1 alternates for
+                     ever and 3 diverges by epoch 8
+
    The curvatures depend on x ALONE — the Hessian of the mean squared error is
    2 * [[1, mean x], [mean x, mean x^2]], with no y in it — so 68.5 / 0.50 and
    2 / 2 are exact facts about the design, not a property of one seeded draw,
@@ -145,7 +153,7 @@ export function standardize(x) {
  * The mean squared error over (b0, b1) as a closed quadratic, plus everything
  * that follows from it in one place (5.8): the gradient, the least-squares
  * point, the least loss, the two curvatures of the surface, and the curvature
- * of the b1 slice the one-parameter page walks down.
+ * of each slice the one-parameter page can walk down.
  *
  * Expanding (b0 + b1 x - y)^2 and summing:
  *   n L = Syy - 2 b0 Sy - 2 b1 Sxy + n b0^2 + 2 b0 b1 Sx + b1^2 Sxx
@@ -186,9 +194,37 @@ export function quad(xs, y) {
     xs, y, n, loss, grad, B0, B1, Lmin,
     lmax: (tr + gap) / 2,
     lmin: (tr - gap) / 2,
+    /* The curvature along each coordinate with the other held — the Hessian's
+       two DIAGONAL entries, which are not its eigenvalues and are the numbers
+       the one-parameter page walks down. 2 * mean(x^2) along b1, and along b0
+       exactly 2 with no data in it at all: the second row of the Hessian's
+       first column is mean x, but its (0, 0) entry is 2 * n / n on every
+       design. That contrast is the trench's two curvatures said one dimension
+       at a time, and it is what the `which` control exists to show. */
+    curvB0: 2,
     curvB1: (2 * Sxx) / n,
   };
 }
+
+/**
+ * The one-parameter page's two coordinates, named once so the walk, the window
+ * and the drawing cannot disagree about which slot moves (5.8). `i` indexes a
+ * gradient pair and a position; `at` and `g` are the track arrays the moving
+ * coordinate and its own partial live in; `fit` is the least-squares value of
+ * the moving one and `held` of the one standing still. What each is CALLED on
+ * screen is main.js's, which is where every other reader-facing string is.
+ */
+export const COORD = {
+  b0: { i: 0, at: "b0", g: "g0", curv: "curvB0", fit: "B0", held: "B1" },
+  b1: { i: 1, at: "b1", g: "g1", curv: "curvB1", fit: "B1", held: "B0" },
+};
+
+/** The loss along one coordinate with the other held at its least-squares
+    value: the curve the one-parameter page draws, and the height its axis is
+    scaled to. */
+export const lossAlong = (q, which) => (which === "b0"
+  ? (v) => q.loss(v, q.B1)
+  : (v) => q.loss(q.B0, v));
 
 /**
  * The window the two-parameter surface is drawn in: wide enough to hold the
@@ -214,9 +250,9 @@ export function domainFor(q) {
  * The top rungs of the ladder are the standardized bowl's oscillate-and-diverge
  * cases and stay, so the WINDOW moves instead.
  *
- * SYMMETRIC ABOUT THE LEAST-SQUARES b1, on a doubling ladder, and never
- * shrinking within a walk: the half-width is the smallest rung holding every
- * position revealed so far, and it is a function of the epochs shown, so Reset
+ * SYMMETRIC ABOUT THE CHOSEN COORDINATE'S LEAST-SQUARES VALUE, on a doubling
+ * ladder, and never shrinking within a walk: the half-width is the smallest
+ * rung holding every position revealed so far, and it is a function of the epochs shown, so Reset
  * returns it and a display change cannot touch it. That is 2.5 read the way the
  * loss strip already reads it — ratchet upward, in nice steps — rather than 2.5
  * read as "one frame for every learning rate", which is a frame that holds one
@@ -245,27 +281,34 @@ export function niceCeil(v) {
 }
 
 /**
- * The window the b1 slice is drawn in after `upto` updates, with the walk
- * standing at `at`. Returns the half-width, the b1 range it makes and the top
- * of the loss axis — the loss at the window's own edge, rounded up.
+ * The window the chosen coordinate's slice is drawn in after `upto` updates,
+ * with the walk standing at `at`. Returns the half-width, the range it makes
+ * and the top of the loss axis — the loss at the window's own edge, rounded up.
  *
  * The current position is counted as well as the stored ones: through a
  * choreographed move the point is between two indices and only the earlier one
  * is in the prefix, so without it the window would arrive a beat after the
  * point does. Past the top rung the point leaves the frame and the panel says
  * so, exactly as it did before, until the divergence test trips.
+ *
+ * Symmetric about the chosen coordinate's OWN least-squares value, so the b0
+ * walk opens at the rung that holds its start: b0 begins about 5 below B0 on
+ * raw x, which is rung 8, where b1 begins 2 below B1 and opens at 2 or 4.
  */
-export function sliceWindow(q, track, upto, at) {
+export function sliceWindow(q, track, upto, at, which = "b1") {
+  const C = COORD[which];
+  const fit = q[C.fit];
+  const pos = track[C.at];
   let far = 0;
   const last = Math.max(0, Math.min(upto, track.len - 1));
   for (let k = 0; k <= last; k += 1) {
-    const d = Math.abs(track.b1[k] - q.B1);
+    const d = Math.abs(pos[k] - fit);
     if (d > far) far = d;
   }
-  const d = Math.abs(at - q.B1);
+  const d = Math.abs(at - fit);
   if (d > far) far = d;
   const half = SLICE_HALF.find((h) => h >= far) ?? SLICE_HALF[SLICE_HALF.length - 1];
-  return { half, b1: [q.B1 - half, q.B1 + half], top: niceCeil(q.loss(q.B0, q.B1 + half)) };
+  return { half, dom: [fit - half, fit + half], top: niceCeil(lossAlong(q, which)(fit + half)) };
 }
 
 /**
@@ -451,41 +494,54 @@ export function descendMini(q, lr, epochs, batch, rng) {
 }
 
 /**
- * The one-parameter walk: b0 held at its least-squares value, b1 alone
- * descending the slice. One update per epoch, and `g0` stays zero because b0
- * does not move — the readout on that page prints only the b1 partial.
+ * The one-parameter walk: one coordinate descends from 0 while the other is
+ * held at its least-squares value. One update per epoch, and the held
+ * coordinate's partial stays zero because it does not move — the readout on
+ * that page prints only the moving one's.
  *
- * The slice is a parabola of curvature 2 * mean(x^2), so each step multiplies
- * the distance to the minimum by exactly 1 - lr * curvature. That factor is
- * the number the page's caption states.
+ * THE MOVING COORDINATE IS STORED IN ITS OWN SLOT, with the held one filled in
+ * at every index, so the record has the shape all three walks have (5.8):
+ * `posAt` interpolates it, and the data panel draws the line at (b0, b1)
+ * without knowing which of the two is standing still.
+ *
+ * The slice is a parabola of curvature `curvB0` or `curvB1`, so each step
+ * multiplies the distance to the minimum by exactly 1 - lr * curvature. That
+ * factor is the number the page's regime line states, and the two curvatures
+ * are what the choice is for: 2 along b0 on any design, 2 * mean(x^2) along b1
+ * — 67 on raw x, where the same learning rate that lands b0 in one step sends
+ * b1 away for good.
  */
-export function descendSlope(q, lr, epochs) {
+export function descendOne(q, lr, epochs, which = "b1") {
+  const C = COORD[which];
+  const other = which === "b0" ? "b1" : "b0";
+  const held = q[C.held];
   const t = newTrack(epochs + 1, epochs);
-  const b0 = q.B0;
-  let b1 = 0;
-  t.b0[0] = b0;
-  t.b1[0] = b1;
+  const args = (u) => (which === "b0" ? [u, held] : [held, u]);
+  const put = (k, u) => {
+    t[C.at][k] = u;
+    t[other][k] = held;
+  };
+  let v = 0;
+  put(0, v);
   t.len = 1;
-  t.epochLoss[0] = q.loss(b0, b1);
+  t.epochLoss[0] = q.loss(...args(v));
   for (let e = 0; e < epochs; e += 1) {
-    const g1 = q.grad(b0, b1)[1];
-    t.g1[t.len - 1] = g1;
-    b1 -= lr * g1;
-    t.b0[t.len] = b0;
-    t.b1[t.len] = b1;
+    const g = q.grad(...args(v))[C.i];
+    t[C.g][t.len - 1] = g;
+    v -= lr * g;
+    put(t.len, v);
     t.len += 1;
     t.epochAt[e + 1] = t.len - 1;
-    t.epochLoss[e + 1] = q.loss(b0, b1);
-    if (blown(b0, b1)) {
+    t.epochLoss[e + 1] = q.loss(...args(v));
+    if (blown(...args(v))) {
       t.diverged = e + 1;
       break;
     }
   }
   t.epochsDone = t.diverged ?? epochs;
   const k = t.len - 1;
-  const g = q.grad(b0, t.b1[k])[1];
-  t.g0[k] = 0;
-  t.g1[k] = Number.isFinite(g) ? g : 0;
+  const g = q.grad(...args(t[C.at][k]))[C.i];
+  t[C.g][k] = Number.isFinite(g) ? g : 0;
   return t;
 }
 

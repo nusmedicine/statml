@@ -10132,6 +10132,32 @@ already is on the trench. **To judge on screen.** Sweep: 0 escapes; 19
 inherited rim-name collisions at turned viewpoints only, none new. 60
 assertions.
 
+#### Round 8, 2026-09-08 — which parameter descends, and the data beside it
+
+Kenneth, on the one-parameter page: *"should we be able to choose which
+parameter to optimize, e.g. b₀, b₁? Also would a fit graph be useful — I
+see the equation but cannot connect the concept."* Both. The page now
+has the two-parameter page's composition (3.4): the data with the
+current line on the left, the loss over the chosen parameter in the
+surface's own square on the right, the strip beneath, so the line swings
+(or shifts, for b₀) on the data as the point moves along the parabola —
+adjacency is the argument (2.7). A `Descend` control, b₁ the slope
+(default) or b₀ the intercept, the other held at its least-squares
+value. **The new claim is the curvature contrast**: along b₁ the
+curvature is 2·mean(x²) ≈ 67 on raw x; along b₀ it is exactly 2, so the
+same ladder gives different regimes on the two parameters — lr 0.5 lands
+b₀ in ONE step (1 − 0.5·2 = 0) where b₁ at 0.5 is gone at once, lr 1
+alternates b₀ for ever, lr 3 diverges — the trench's two curvatures made
+one-dimensional. `descendSlope` became `descendOne(q, lr, epochs, which)`
+storing the moving coordinate in its own slot with the held one filled,
+so the data panel's line needs no special case; the b₁ walk is pinned
+bit-identical to a frozen table of the old function's positions.
+Costs recorded in the header: the caption lost the held value (the tile
+states it) to fit the square; the arrow's label takes the panel clamp,
+which the square forced in 1858 states before. Sweep of 16 125 states
+with a stub that models the clip: 0 escapes, 0 collisions, 0 cut labels.
+67 assertions.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
