@@ -20,6 +20,7 @@ import {
   N, EPOCHS, LR_LADDER, LOG_CAP,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL, RELIEF_Z, MESH_G,
   makeData, standardize, quad, domainFor, contourSegments,
+  SLICE_HALF, sliceWindow, niceCeil,
   descendFull, descendMini, descendSlope, posAt, stepAngle,
   projector, reliefHeight, reliefMesh, reliefPoint, reliefHidden,
   lossField, valueField, valueRamp, fieldHeight,
@@ -787,6 +788,130 @@ console.log("\n=== 15 · y as height: linear in y, and both slices in view from 
   const bad = sliceHidden(2, 1, 240, 20);
   check("240/20 hides most of both slices, so the sweep had something to find",
     bad > 0.5, `${(bad * 100).toFixed(1)}% hidden at (2, 1)`);
+}
+
+/* -- 16 · THE ONE-PARAMETER PAGE'S RATCHETING WINDOW ------------------------ *
+ * Round 7, and the answer to "it cannot handle large learning rates". The b1
+ * window is symmetric about the least-squares b1 on a doubling ladder, and the
+ * three things it claims are exactly the three no picture settles: it never
+ * shrinks as a walk goes on, it holds every position the page has revealed, and
+ * it turns the ladder's top rungs from an empty panel into several epochs of a
+ * growing oscillation. The first rung is the lesson's own walk, which must not
+ * move at all — a window that ratcheted there would be a figure whose axis
+ * wandered while nothing interesting happened.
+ */
+console.log("\n=== 16 · the b1 window ratchets upward, holds the walk, and rests at lr 0.01 ===");
+{
+  check("the ladder doubles from 2 to 1024",
+    SLICE_HALF.every((h, i) => i === 0 || h === SLICE_HALF[i - 1] * 2)
+      && SLICE_HALF[0] === 2 && SLICE_HALF.at(-1) === 1024,
+    `${SLICE_HALF.length} rungs: ${SLICE_HALF.join(" · ")}`);
+
+  /* MONOTONE IN THE EPOCHS SHOWN, and HOLDING EVERY REVEALED POSITION, over
+     every rung of the lr ladder on both scales and all four seeds. Both are
+     checked in one walk of the prefix, because they are the two halves of one
+     claim: a window that grows only when it has to, and always when it has to. */
+  let shrank = 0;
+  let escaped = 0;
+  let states = 0;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) {
+      for (const lr of LR_LADDER) {
+        const t = descendSlope(q, lr, EPOCHS);
+        let prev = 0;
+        for (let e = 0; e <= t.epochsDone; e += 1) {
+          const w = sliceWindow(q, t, e, t.b1[e]);
+          states += 1;
+          if (w.half < prev) shrank += 1;
+          prev = w.half;
+          /* every position revealed so far, the start at b1 = 0 included, is
+             inside the window unless the walk is past the ladder's top rung */
+          if (w.half === SLICE_HALF.at(-1)) continue;
+          for (let k = 0; k <= e; k += 1) {
+            if (t.b1[k] < w.b1[0] || t.b1[k] > w.b1[1]) escaped += 1;
+          }
+        }
+      }
+    }
+  }
+  check(`the window never shrinks, ${states} states`, shrank === 0,
+    `${states} states over 64 walks; ${shrank} shrank`);
+  check("every revealed position is inside it", escaped === 0,
+    `${escaped} positions outside their own window`);
+
+  /* THE LESSON'S OWN WALK NEVER RATCHETS AT ALL. b1 starts at 0 and closes on
+     the least-squares b1 from there, so the START is what sets the rung and
+     nothing after it can raise one. The rung itself is the seed's: raw B1 runs
+     1.944 to 2.048 over the 30 seeds the control offers, which straddles the
+     ladder's first rung — so the claim that holds for every reader is that the
+     axis does not move under them, not that it is any particular width. */
+  let rested = true;
+  const rungs01 = [];
+  for (const { raw } of draws) {
+    const t = descendSlope(raw, 0.01, EPOCHS);
+    const at0 = sliceWindow(raw, t, 0, t.b1[0]).half;
+    rungs01.push(at0);
+    for (let e = 0; e <= t.epochsDone; e += 1) {
+      if (sliceWindow(raw, t, e, t.b1[e]).half !== at0) rested = false;
+    }
+  }
+  check("raw x at lr 0.01 never ratchets, 4 seeds", rested,
+    `half-widths ${rungs01.join(" · ")}, set by the start at b₁ 0 and held for 1000 epochs`);
+
+  /* AND THE RUNG THE WHOLE CHANGE EXISTS FOR. At lr 0.1 on raw x the walk
+     multiplies its distance to the fit by 1 - lr x curvature = -5.7 a step, so
+     the fixed window lost it on the FIRST one. Counted as epochs whose position
+     is inside the window that epoch is drawn in. */
+  const held = (q, lr) => {
+    const t = descendSlope(q, lr, EPOCHS);
+    let n = 0;
+    for (let e = 0; e <= t.epochsDone; e += 1) {
+      const w = sliceWindow(q, t, e, t.b1[e]);
+      if (t.b1[e] >= w.b1[0] && t.b1[e] <= w.b1[1]) n += 1;
+    }
+    return n;
+  };
+  const old = (q, lr) => {
+    const t = descendSlope(q, lr, EPOCHS);
+    const dom = domainFor(q);
+    let n = 0;
+    for (let e = 0; e <= t.epochsDone && t.b1[e] >= dom.b1[0] && t.b1[e] <= dom.b1[1]; e += 1) n += 1;
+    return n;
+  };
+  const fast = draws.map(({ raw }) => held(raw, 0.1));
+  check("lr 0.1 on raw x holds at least 3 epochs of the oscillation",
+    fast.every((n) => n >= 4),
+    `${fast.map((n) => n - 1).join(" · ")} epochs after the start, against `
+    + `${draws.map(({ raw }) => old(raw, 0.1) - 1).join(" · ")} in the fixed window`);
+
+  /* THE RUNG THE LADDER EXISTS FOR MOST OF ALL. On standardized x at lr 1 the
+     factor is exactly -1, so the walk alternates about the fit for ever at the
+     distance it started with — the one rung that neither converges nor blows up,
+     and section 5 pins the arithmetic. The fixed window lost it on the FIRST
+     step, because the far side of an alternation is twice the least-squares b1
+     and the frame stopped 1.5 past it. */
+  const alt = draws.map(({ std }) => held(std, 1));
+  check("standardized x at lr 1 alternates in frame for all 1000 epochs",
+    alt.every((n) => n === EPOCHS + 1),
+    `${alt.map((n) => n - 1).join(" · ")} epochs, against `
+    + `${draws.map(({ std }) => old(std, 1) - 1).join(" · ")} in the fixed window`);
+
+  /* The loss axis is the loss at the window's own edge, rounded up — never
+     under it, or the parabola would leave the top of the panel. */
+  let under = 0;
+  let slack = 0;
+  for (const { raw, std } of draws) {
+    for (const q of [raw, std]) {
+      for (const h of SLICE_HALF) {
+        const edge = q.loss(q.B0, q.B1 + h);
+        const top = niceCeil(edge);
+        if (top < edge) under += 1;
+        slack = Math.max(slack, top / edge);
+      }
+    }
+  }
+  check("the loss axis clears the window's edge on every rung", under === 0,
+    `worst headroom ${((slack - 1) * 100).toFixed(0)}% over ${SLICE_HALF.length * 8} rungs`);
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

@@ -10097,6 +10097,41 @@ form that says so. `gatingParams` walks the tree. Unreachable for every
 other widget (none declares `any`) — and still owes the full suite run
 before a push, which this round ran. 53 assertions.
 
+#### Round 7, 2026-09-08 — the window ratchets, and the slicing planes
+
+**"For one parameter, could you increase the x-axis? It cannot handle
+large learning rates — or make learning rates smaller?"** The window was
+fixed to the lesson's small-step walk, so anything above the stability
+threshold left it in one step (lr 0.1 raw: the first step is +13.5 in
+b₁). The ladder stays; the **window ratchets** (2.5): the b₁ axis is
+symmetric about the least-squares b₁ with a half-width off 2 · 4 · 8 …
+1024, the smallest holding every revealed position and the start, the
+loss axis following on a nice ceiling ladder — a pure function of the
+epochs shown, so it never shrinks within a walk and no display change
+touches it. The parabola is scale-free, so the figure keeps its shape
+while the ticks explode, which is the point. Epochs held in frame, before
+→ after: raw lr 0.03, 0 → 619; lr 0.1, 0 → 3; **standardized lr 1 (the
+alternate-for-ever rung), 0 → 1000**; every rung below the boundary
+never ratchets. An eight-digit loss tick did not fit the gutter — 1926
+tick labels past it over the reachable states — so ticks past a million
+print as powers of ten; 0 after.
+
+**"For the 3D partial derivative, is it to superimpose a slice?"** Yes,
+as his reference figure: two translucent vertical planes through the
+point, a = const and b = const, painted after the mesh, each cutting the
+surface along one slice curve drawn in the plane's colour; the colours
+carried to the two slice panels' curves and derivative labels and to the
+map's dashed cut lines, so the pairing holds whichever surface is up.
+`--c-group-a` for "vary a, hold b" and `--c-group-b` for "vary b, hold
+a" — a mild stretch of "two arms of a comparison you decided", said so
+in the header rather than a new token (core, out of scope). One real
+conflict: `--c-group-a` and `--c-value-low` are both `--series-1`, and
+the value map's low corner is a real corner of the window (−8 at a = −1,
+b = 3), so the a-slice is cased in the page's ground as the ringed dot
+already is on the trench. **To judge on screen.** Sweep: 0 escapes; 19
+inherited rim-name collisions at turned viewpoints only, none new. 60
+assertions.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

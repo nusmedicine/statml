@@ -65,6 +65,13 @@ has the relief, the two slices lifted onto the surface. **Core changed:
 the Surface control's gating; the full fingerprint suite was run for it
 (see the commit). 53 assertions.
 
+**Round 7, 2026-09-08:** the one-parameter window ratchets outward in
+nice steps to hold the walk (lr 0.1 raw now shows three epochs of the
+oscillation; standardized lr 1 the whole run), and the Partial relief
+superimposes the two slicing planes in `--c-group-a`/`--c-group-b`,
+carried to the slice panels. 60 assertions. Open: the a-slice is cased
+in the ground because group-a and value-low share `--series-1`.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

@@ -191,16 +191,81 @@ export function quad(xs, y) {
 }
 
 /**
- * The window every surface is drawn in: wide enough to hold the start at
- * (0, 0) and the least-squares point, with air past both. Fixed for the whole
- * walk (2.5) — a divergent path leaves it and is clipped, and the caption says
- * at which epoch rather than the frame chasing it.
+ * The window the two-parameter surface is drawn in: wide enough to hold the
+ * start at (0, 0) and the least-squares point, with air past both. Fixed for
+ * the whole walk (2.5) — a divergent path leaves it and is clipped, and the
+ * caption says at which epoch rather than the frame chasing it. The
+ * one-parameter page has its own window and it ratchets; `sliceWindow` below
+ * says why the two differ.
  */
 export function domainFor(q) {
   return {
     b0: [Math.min(0, q.B0) - 1, Math.max(0, q.B0) + 4],
     b1: [Math.min(0, q.B1) - 0.5, Math.max(0, q.B1) + 1.5],
   };
+}
+
+/* --- the one-parameter page's window --------------------------------------
+ * The two-parameter surface keeps the fixed frame above; the b1 slice does not,
+ * and the reason is the lr ladder. `domainFor`'s b1 range holds the lesson's
+ * 0.01 walk and nothing above the stability boundary: at 0.03 the oscillation
+ * grows by 1.01 a step and leaves the frame around epoch 300, and at 0.1 the
+ * FIRST step is +13.5 in b1, so the point is gone before it has been seen once.
+ * The top rungs of the ladder are the standardized bowl's oscillate-and-diverge
+ * cases and stay, so the WINDOW moves instead.
+ *
+ * SYMMETRIC ABOUT THE LEAST-SQUARES b1, on a doubling ladder, and never
+ * shrinking within a walk: the half-width is the smallest rung holding every
+ * position revealed so far, and it is a function of the epochs shown, so Reset
+ * returns it and a display change cannot touch it. That is 2.5 read the way the
+ * loss strip already reads it — ratchet upward, in nice steps — rather than 2.5
+ * read as "one frame for every learning rate", which is a frame that holds one
+ * of them.
+ *
+ * THE PARABOLA IS SCALE-FREE, which is what makes this honest: centred on the
+ * minimum and with the loss axis taken from the window's own edge, the figure
+ * keeps its shape at every rung while the numbers explode. What the reader
+ * watches is the point crossing the fit and coming back wider, and the axis
+ * saying by how much.
+ */
+export const SLICE_HALF = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+
+/* Nice steps for the loss axis. Finer than the strip's 1/2.5/5, because the
+   loss at the edge quadruples every time the half-width doubles and a coarse
+   ladder would leave a rung's worth of empty panel over the parabola. No gap
+   here is wider than a third, against the half a 1/1.5/2/3 ladder leaves just
+   above a decade — measured over every rung of both scales in gd-verify. */
+const NICE_UP = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+/** The smallest nice number at or above `v`. */
+export function niceCeil(v) {
+  if (!(v > 0) || !Number.isFinite(v)) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return (NICE_UP.find((m) => m * p >= v * (1 - 1e-12)) ?? 10) * p;
+}
+
+/**
+ * The window the b1 slice is drawn in after `upto` updates, with the walk
+ * standing at `at`. Returns the half-width, the b1 range it makes and the top
+ * of the loss axis — the loss at the window's own edge, rounded up.
+ *
+ * The current position is counted as well as the stored ones: through a
+ * choreographed move the point is between two indices and only the earlier one
+ * is in the prefix, so without it the window would arrive a beat after the
+ * point does. Past the top rung the point leaves the frame and the panel says
+ * so, exactly as it did before, until the divergence test trips.
+ */
+export function sliceWindow(q, track, upto, at) {
+  let far = 0;
+  const last = Math.max(0, Math.min(upto, track.len - 1));
+  for (let k = 0; k <= last; k += 1) {
+    const d = Math.abs(track.b1[k] - q.B1);
+    if (d > far) far = d;
+  }
+  const d = Math.abs(at - q.B1);
+  if (d > far) far = d;
+  const half = SLICE_HALF.find((h) => h >= far) ?? SLICE_HALF[SLICE_HALF.length - 1];
+  return { half, b1: [q.B1 - half, q.B1 + half], top: niceCeil(q.loss(q.B0, q.B1 + half)) };
 }
 
 /**

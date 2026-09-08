@@ -384,6 +384,133 @@
       the panel's own clip and is therefore cut rather than escaping — the
       sweep cannot see a clip. Worth a round of its own; not this one.
 
+  10. KENNETH'S REVIEW OF 2026-09-08, ROUND 7 — one question per remaining tab
+      again, and both answers are about a figure showing less than it holds.
+
+      "FOR ONE PARAMETER CURVE COULD YOU INCREASE THE X-AXIS? IT CANNOT HANDLE
+      LARGE LEARNING RATES? OR MAKE LEARNING RATES SMALLER?" It could not: the
+      page drew the b₁ slice in `domainFor`'s fixed window, about −0.5 to 3.5,
+      which holds the lesson's 0.01 walk and nothing above the stability
+      boundary. At 0.03 the oscillation grows by 1.01 a step and the point
+      leaves around epoch 300; at 0.1 the FIRST step is +13.5 in b₁ and it is
+      gone before it has been seen once, and 0.3, 1 and 3 the same. Half the
+      ladder had nothing to show on this page.
+
+      THE LADDER STAYS AND THE WINDOW MOVES. Shrinking the learning rates was
+      the other option Kenneth offered and it is the wrong one: the top rungs
+      are the standardized bowl's oscillate-and-diverge cases, which is the
+      whole argument for standardizing (2.6). So `sliceWindow` in `model.js`
+      centres the b₁ axis on the least-squares b₁ and takes its half-width off
+      2 · 4 · 8 · 16 · 32 · 64 · 128 · 256 · 512 · 1024 — the smallest rung
+      holding every position revealed so far, plus the start — with the loss
+      axis following it: the loss at the window's own edge, rounded up on a
+      1-1.25-1.5-2-2.5-3-4-5-6-8 ladder. It is a function of the epochs SHOWN,
+      exactly as the loss strip's own two ratchets are, so it never shrinks
+      within a walk, Reset returns it and no display change can touch it
+      (2.5, 3.2).
+
+      MEASURED, epochs held inside the frame, seed 1, old window → new:
+
+        raw x, lr 0.03      0 → 619    the oscillation grows by 1.01 a step
+        raw x, lr 0.1       0 →   3    rungs 4 · 16 · 128 · 512, then past 1024
+        raw x, lr 0.3       0 →   2
+        raw x, lr 1 and 3   0 →   1
+        standardized, lr 1  0 → 1000   alternates for ever, and now visibly
+        standardized, lr 3  0 →   3
+
+      The last row of that table is the one that matters most: at lr 1 on
+      standardized x the factor 1 − α × curvature is exactly −1, so the walk
+      alternates about the fit for ever at the distance it started with — the
+      one rung on the ladder that neither converges nor diverges — and the fixed
+      window lost it on the FIRST step, because the far side of an alternation
+      is twice the least-squares b₁ and the frame stopped 1.5 past it. Nothing
+      below the boundary changed: at 0.001, 0.003 and 0.01 the window is set by
+      the start at b₁ = 0 and never ratchets at all. Past the top rung the point
+      leaves and the panel says "off the frame" until the divergence test trips,
+      which is what it did before.
+
+      THE RUNG AT REST IS THE SEED'S, and that is honest rather than tidy: raw
+      B₁ runs 1.944 to 2.048 over the 30 seeds the control offers, which
+      straddles the ladder's first rung, so seed 1 opens at a half-width of 4
+      and seed 7 at 2. What every reader gets is an axis that does not move
+      under them while the lesson's walk runs.
+
+      NOTHING PRINTS THE HALF-WIDTH: the axis ticks say it, and a second copy on
+      the caption is a number that can disagree with the axis beside it. What
+      the ticks needed instead is `bigTick` — past a million they read as powers
+      of ten, because the loss at the edge quadruples every time the half-width
+      doubles and an eight-digit tick does not fit the 44px it has. Measured
+      over every state the two scales and eight rungs reach: plain digits put
+      1 926 tick labels past that gutter, the worst 48.4px against 44; with
+      `bigTick` it is 0, and the widest label left is 36.3px.
+
+      "COULD THE RELIEF SHOW THE TWO SLICING PLANES?" — against a matplotlib
+      figure of y = a² + 3ab with two translucent vertical planes through the
+      point, a = 2 and b = 1, each cutting the surface along one slice, and the
+      two 2-D slice plots beside it framed in their plane's colour. The Partial
+      derivatives relief now draws both: a quad from the ramp's floor to its
+      ceiling, filled at 0.15 with a 1.5px edge at 0.6, painted after the mesh
+      rather than sorted into it — a section plane over a solid is translucent
+      by convention, and painting it last is what lets the mesh stay one cached
+      bitmap.
+
+      THE COLOURS ARE --c-group-a AND --c-group-b, AND IT IS A MILD STRETCH,
+      recorded here rather than answered with a new token, which would be a core
+      change. The token's own reading is "two arms of a comparison you decided",
+      and these are two DIRECTIONS the reader decided to hold rather than two
+      arms of data. What makes it the closest role rather than a reach: the pair
+      is chosen and not found, so the cluster ramp is wrong; neither is a
+      benchmark, a threshold or an outcome; and blue/amber was picked for being
+      the most colour-blind-safe and highest-contrast pair in the ramp, which is
+      what two planes on one surface need. --c-group-a shares --series-1 with
+      --c-empirical, and the token file's rule for that sharing holds here: this
+      tab has no empirical mark on it, and Descent's loss strip is on another
+      tab.
+
+      IT ALSO SHARES --series-1 WITH --c-value-low, AND THAT ONE DOES BITE. The
+      tokens file says a panel colouring by value must not also colour by
+      identity, and this panel now does both: the surface's low end is the blue
+      --c-group-a is, and the low end of y = a² + 3ab is a real corner of this
+      window — at a = −1, b = 3 the value is −8, the floor of the ramp. So the
+      a-slice's line would vanish exactly where the reader slides b up. The
+      remedy is the one this widget already uses for a mark landing on the loss
+      surface's own cost-low blue: `ringedDot` cases its fill in the page's
+      ground, and both the map's cut lines and the relief's slice curves are
+      cased the same way. The pairing is carried by colour and the mark is found
+      by contrast, which is the two jobs separated rather than one colour doing
+      both. A screenshot is what settles whether that is enough; the arithmetic
+      cannot.
+
+      THE COLOUR IS CARRIED TO THE PANEL THAT READS THE PLANE, on the map as
+      well as the relief — the slice curve and the ∂y/∂ label above it — so the
+      pairing survives turning the surface over, and the map's two dashed cut
+      lines take the same two. The tangents stay highlight, which is what a
+      tangent is everywhere else in this widget.
+
+      THE HIDDEN PIECES STAY INK, and that is the one place this parts from
+      colouring everything. A piece the surface is in front of is a ghost of the
+      mark rather than the mark, the convention is one fact about both slices,
+      and two coloured versions of it would need two more legend rows to say it.
+      From the viewpoint the figure opens at there are none of them anyway.
+
+      A FOURTH BOX SWEEP, over the tab this round touched, and RUN TWICE — once
+      on this tree and once on the previous commit's, because a sweep that
+      reports a number and not a difference cannot tell a fault this round
+      introduced from one it inherited. 2 673 states each: an 11 x 9 grid over
+      the (a, b) window, the map and the relief at eight viewpoints (the default
+      300/35, four more round the compass, and the three the earlier sweeps
+      found things at), at 550, 690 and 770px.
+
+      Both runs: 0 escapes past the canvas, and 19 collisions with the same
+      worst overlap of 6.1px — the same 19 states, string for string. So this
+      round adds none, which is what the planes being wordless predicts: they
+      carry no text, and the colour changes moved no anchor. Every one of the 19
+      is a one-character axis name on the rim against a ∂y/∂ label at a TURNED
+      viewpoint — 215/38, 240/20 and 300/12, none of them where the figure opens
+      — and it is the third of the three faults decision 9 fought, surviving at
+      the resolution `clearsRim`'s 26px band leaves. Inherited, measured, and
+      worth a round of its own; not this one.
+
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
    ========================================================================= */
@@ -391,7 +518,7 @@
 import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 import {
   N, EPOCHS, LR_LADDER, BATCHES, LOG_CAP, LEVELS,
-  makeData, standardize, quad, domainFor, contourSegments, isoSegments,
+  makeData, standardize, quad, domainFor, sliceWindow, contourSegments, isoSegments,
   descendFull, descendMini, descendSlope, posAt, stepAngle,
   projector, reliefMesh, reliefPoint, reliefLift, reliefHidden,
   lossField, valueField, valueRamp,
@@ -520,6 +647,18 @@ const f1 = (v) => fmt(v, 1);
 const f2 = (v) => fmt(v, 2);
 const f3 = (v) => fmt(v, 3);
 const xTimes = (r) => (r >= 100 ? `${Math.round(r)}×` : `${fmt(r, r >= 10 ? 1 : 3)}×`);
+
+/* THE ONE-PARAMETER PAGE'S LOSS TICKS, PAST A MILLION. Its window ratchets
+   (decision 10), and the loss at the edge quadruples every time the half-width
+   doubles: at the top rung a raw-x tick is eight digits, and the 44px between
+   the axis and the panel holds six. So past a million the ticks read as powers
+   of ten, which is what a number that size is anyway. Below it they are the
+   plain digits `makePlot` writes by default. */
+const bigTick = (v) => {
+  if (v === 0) return "0";
+  const e = Math.floor(Math.log10(Math.abs(v)));
+  return `${Number((v / 10 ** e).toFixed(1))}e${e}`;
+};
 
 /* A batch of one is one row, and one update is not "1 updates". */
 const nRows = (b) => (b === 1 ? "one row" : `${b} rows`);
@@ -889,13 +1028,17 @@ const LABEL_ALONG = 0.7;
 
 const HIDDEN_LINE = { dash: [3, 4], alpha: 0.55, width: 1.2 };
 const VISIBLE_LINE = { dash: [], alpha: 1, width: 1.5 };
+/* What goes under a coloured slice curve on the Partial derivatives relief, in
+   the page's own ground: --c-group-a and --c-value-low are the same --series-1
+   blue, so without it the a-slice disappears wherever y is most negative. */
+const SLICE_CASING = { dash: [], alpha: 0.85, width: 3.5 };
 
-function strokeSegments(ctx, colors, list, { dash, alpha, width }) {
+function strokeSegments(ctx, colors, list, { dash, alpha, width }, color) {
   if (!list.length) return;
   ctx.save();
   ctx.setLineDash(dash);
   ctx.globalAlpha = alpha;
-  ctx.strokeStyle = colors.ink1;
+  ctx.strokeStyle = color ?? colors.ink1;
   ctx.lineWidth = width;
   ctx.lineJoin = "round";
   ctx.beginPath();
@@ -1197,20 +1340,25 @@ function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
 }
 
 /* The one-parameter page: the loss along b₁ with b₀ held at its fitted value,
-   the tangent at the current point, and the steps taken so far. */
+   the tangent at the current point, and the steps taken so far.
+
+   THE WINDOW RATCHETS (decision 10). It is symmetric about the least-squares b₁
+   with a half-width off `model.js`'s doubling ladder — the smallest rung that
+   holds every position revealed so far — and the loss axis is the loss at that
+   window's own edge, rounded up. So the parabola keeps its shape at every rung
+   while the numbers explode, which is what lets an oscillation that grows by
+   five a step be watched for several epochs instead of leaving on the first. */
 function drawSlice(ctx, colors, rect, state, cur, opts) {
-  const { q, dom, track } = state;
-  const range = dom.b1;
+  const { q, track } = state;
+  const win = sliceWindow(q, track, opts.upto, cur[1]);
+  const range = win.b1;
   const f = (v) => q.loss(q.B0, v);
   const pts = [];
-  let top = 0;
   for (let k = 0; k <= 160; k += 1) {
     const v = range[0] + (k / 160) * (range[1] - range[0]);
-    const L = f(v);
-    pts.push([v, L]);
-    top = Math.max(top, L);
+    pts.push([v, f(v)]);
   }
-  const plot = makePlot({ ctx, colors, rect, xDomain: range, yDomain: [0, top * 1.05] });
+  const plot = makePlot({ ctx, colors, rect, xDomain: range, yDomain: [0, win.top] });
   /* The curvature rides in the CAPTION, not the note: the note slot is where
      the panel says what state the walk is in, and on this page the interesting
      states are "diverged" and "past the edge of the frame". */
@@ -1221,7 +1369,7 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     plot.note("off the frame", { tone: colors.extreme });
   }
   plot.axisX({ label: "slope b₁" });
-  plot.axisY({ label: "loss" });
+  plot.axisY({ label: "loss", format: win.top >= 1e6 ? bigTick : undefined });
   plot.vline(q.B1, { stroke: colors.reference, label: "least squares", width: 1.5 });
   plot.curve(pts, { stroke: colors.ink2, width: 1.5 });
 
@@ -1583,18 +1731,35 @@ function drawValueMap(ctx, colors, rect, a, b) {
 
   /* The two slices, as the lines they are cut along: each partial derivative
      varies one of these and holds the other, and the panels beside the map are
-     what the function does along them. */
-  ctx.save();
-  ctx.setLineDash([3, 3]);
-  ctx.strokeStyle = colors.ink1;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(plot.sx(A_RANGE[0]), py);
-  ctx.lineTo(plot.sx(A_RANGE[1]), py);
-  ctx.moveTo(px, plot.sy(B_RANGE[0]));
-  ctx.lineTo(px, plot.sy(B_RANGE[1]));
-  ctx.stroke();
-  ctx.restore();
+     what the function does along them.
+
+     EACH LINE TAKES ITS OWN SLICE'S COLOUR (decision 10), the same two the
+     relief's planes and the two panels beside the map take, so the pairing
+     holds whichever surface is up. The line across a is where b is held.
+
+     AND EACH IS CASED IN THE PAGE'S OWN GROUND, because --c-group-a and
+     --c-value-low are the same --series-1 blue: this ramp's low end is where
+     y is most negative, which is a real corner of this window, and a blue dash
+     over it would be a mark the reader cannot find. `ringedDot` solves the same
+     collision the same way on the loss surface's cost-low trench. */
+  const cut = (color, x0, y0, x1, y1) => {
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.strokeStyle = colors.surface;
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  };
+  cut(colors.groupA, plot.sx(A_RANGE[0]), py, plot.sx(A_RANGE[1]), py);
+  cut(colors.groupB, px, plot.sy(B_RANGE[0]), px, plot.sy(B_RANGE[1]));
 
   /* THE GRADIENT, POINTING UPHILL. Its direction is the parameter-space pair
      mapped through the panel's own scales and then normalised to the map's
@@ -1717,6 +1882,7 @@ function slicePieces(a, b, az, el) {
       const u1 = dom[0] + ((k + 1) / SEG) * (dom[1] - dom[0]);
       const m = (u0 + u1) / 2;
       pieces.push({
+        alongA,
         a: alongA ? [u0, b] : [a, u0],
         b: alongA ? [u1, b] : [a, u1],
         hidden: reliefHidden(valueField, A_RANGE, B_RANGE,
@@ -1754,13 +1920,57 @@ function drawValueRelief(ctx, colors, rect, a, b, az, el) {
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
 
-  const shown = [];
+  /* THE TWO SLICING PLANES, THROUGH THE POINT AND STANDING ON THE FLOOR
+     (decision 10). Each is the plane one partial derivative is taken in: a
+     varies over the plane where b is held, b over the plane where a is held,
+     and the curve each cuts out of the surface is the slice the panel beside
+     the map draws. Painted AFTER the mesh and translucent, which is the honest
+     convention for a section plane over a solid — the surface still reads as a
+     surface, and nothing has to be sorted into the mesh's own painter order.
+
+     The corners are lifted by `reliefLift` rather than read off the field: a
+     plane stands from the ramp's floor to its ceiling wherever it is, which is
+     what makes it a plane and not a drape over the surface. */
+  const quad4 = (pts, color) => {
+    ctx.save();
+    ctx.beginPath();
+    pts.forEach((p, k) => (k ? ctx.lineTo(p.X, p.Y) : ctx.moveTo(p.X, p.Y)));
+    ctx.closePath();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  };
+  const corner = (x, y, t) => project(...reliefLift(t, A_RANGE, B_RANGE, x, y));
+  quad4([corner(A_RANGE[0], b, 0), corner(A_RANGE[1], b, 0),
+    corner(A_RANGE[1], b, 1), corner(A_RANGE[0], b, 1)], colors.groupA);
+  quad4([corner(a, B_RANGE[0], 0), corner(a, B_RANGE[1], 0),
+    corner(a, B_RANGE[1], 1), corner(a, B_RANGE[0], 1)], colors.groupB);
+
+  /* The curve each plane cuts, in that plane's own colour, over the plane. The
+     hidden pieces stay ink: a piece the surface is in front of is a ghost of
+     the mark and not the mark, and giving the convention two colours would need
+     two more legend rows to say one thing. From the viewpoint the figure opens
+     at there are none of them — `gd-part-view.mjs` measured that — so they
+     appear only once the reader has turned the surface into its own near wall. */
+  const shown = [[], []];
   const buried = [];
   for (const pc of slicePieces(a, b, az, el)) {
-    (pc.hidden ? buried : shown).push([pt(pc.a[0], pc.a[1]), pt(pc.b[0], pc.b[1])]);
+    const seg = [pt(pc.a[0], pc.a[1]), pt(pc.b[0], pc.b[1])];
+    if (pc.hidden) buried.push(seg);
+    else shown[pc.alongA ? 0 : 1].push(seg);
   }
   strokeSegments(ctx, colors, buried, HIDDEN_LINE);
-  strokeSegments(ctx, colors, shown, VISIBLE_LINE);
+  for (const [list, color] of [[shown[0], colors.groupA], [shown[1], colors.groupB]]) {
+    /* cased in the page's ground first, for the reason the map's two cut lines
+       are: --c-group-a and this ramp's low end are one --series-1 blue */
+    strokeSegments(ctx, colors, list, SLICE_CASING, colors.surface);
+    strokeSegments(ctx, colors, list, VISIBLE_LINE, color);
+  }
 
   /* THE TWO TANGENTS, IN HIGHLIGHT AND NOT IN INK, which is where this parts
      from the Descent relief's. There the tangents are the only marks on the
@@ -1888,7 +2098,11 @@ const SLICE_Y = [Y_RANGE[0] - SLICE_PAD, Y_RANGE[1] + SLICE_PAD];
 function drawValueSlice(ctx, colors, rect, opts) {
   const plot = makePlot({ ctx, colors, rect, xDomain: opts.xDomain, yDomain: SLICE_Y });
   plot.caption(opts.caption);
-  plot.note(opts.note, { tone: colors.highlight });
+  /* THE CURVE AND ITS PARTIAL TAKE THE SLICING PLANE'S COLOUR (decision 10),
+     on the map as well as the relief, so a reader turning the surface over
+     keeps the pairing between a plane and the panel that reads it. The tangent
+     stays highlight: it is the same mark it is everywhere else in the widget. */
+  plot.note(opts.note, { tone: opts.color });
   plot.axisX({ label: opts.xLabel });
   plot.axisY({});
   const pts = [];
@@ -1896,7 +2110,7 @@ function drawValueSlice(ctx, colors, rect, opts) {
     const v = opts.xDomain[0] + (k / 80) * (opts.xDomain[1] - opts.xDomain[0]);
     pts.push([v, opts.f(v)]);
   }
-  plot.curve(pts, { stroke: colors.ink2, width: 1.5 });
+  plot.curve(pts, { stroke: opts.color, width: 1.5 });
 
   ctx.save();
   ctx.beginPath();
@@ -2095,6 +2309,7 @@ function drawPartialTab(ctx, colors, L, params) {
     f: (v) => gradFn.y(v, b),
     at: a,
     slope: ga,
+    color: colors.groupA,
   });
   drawValueSlice(ctx, colors, L.partB, {
     caption: `y over b, a held at ${f1(a)}`,
@@ -2104,6 +2319,7 @@ function drawPartialTab(ctx, colors, L, params) {
     f: (v) => gradFn.y(a, v),
     at: b,
     slope: gb,
+    color: colors.groupB,
   });
   /* The same panel, the same rect, the same window: the relief is a second
      reading of the map, so it replaces the square and leaves the two slices
@@ -2410,17 +2626,22 @@ widgetApi = defineWidget({
       { token: "ink-1", label: "Δa along and Δy up, the two the slope is a ratio of", mark: "dash" },
     ]
     : params.tab === "partial"
-      ? [
-        { token: "ink-2", label: "y along one variable, with the other held", mark: "line" },
-        { token: "highlight", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
-        params.relief === "relief"
-          ? { token: "ink-1", label: "The two slices, drawn on the surface", mark: "line" }
-          : { token: "ink-1", label: "The two lines the slices are cut along", mark: "dash" },
-        /* Only in relief: on the map nothing is in front of a slice. */
-        ...(params.relief === "relief"
-          ? [{ token: "ink-1", label: "A slice where the surface hides it", mark: "dash" }]
-          : []),
-      ]
+      /* THE TWO SLICES CARRY THE TWO COLOURS (decision 10), so each entry names
+         one variable held and everything drawn in that colour: the plane or the
+         cut line, the curve on the surface, and the panel beside the map. */
+      ? params.relief === "relief"
+        ? [
+          { token: "group-a", label: "The plane where b is held, and y along a on it", mark: "line" },
+          { token: "group-b", label: "The plane where a is held, and y along b on it", mark: "line" },
+          { token: "highlight", label: "The tangent on each slice, and the gradient on the surface", mark: "line" },
+          /* Only in relief: on the map nothing is in front of a slice. */
+          { token: "ink-1", label: "A slice where the surface hides it", mark: "dash" },
+        ]
+        : [
+          { token: "group-a", label: "y along a, with b held: the line on the map and the slice beside it", mark: "line" },
+          { token: "group-b", label: "y along b, with a held: the line on the map and the slice beside it", mark: "line" },
+          { token: "highlight", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
+        ]
       : params.view === "two"
         ? [
           { token: "unknown", label: "The 100 rows", mark: "dot" },
@@ -2886,7 +3107,7 @@ widgetApi = defineWidget({
     if (params.tab === "partial") {
       const { a, b } = params;
       return `y = a² + 3ab over a and b with contour rings, ${params.relief === "relief"
-        ? "raised as a surface with the two slices drawn on it"
+        ? "raised as a surface with the two slicing planes standing through it and the curve each one cuts"
         : "painted as a map"}, the point (${f1(a)}, ${f1(b)}) on it, `
         + `and the gradient (${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}) drawn from it as an arrow uphill. `
         + `Beside it, the two slices through that point, each with its tangent.`;
