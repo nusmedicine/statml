@@ -9,6 +9,14 @@
    — so a failure here means the widget is saying something untrue, not merely
    drawing it oddly. Exits non-zero on failure.
 
+   Section 18 is the one exception, and it is here rather than in `check.mjs`
+   because that file enumerates no colour roles: it asserts that `--c-slope`
+   exists in `tokens.css` AND is handed to the canvas by `readTokens`. Declare
+   one half without the other and every tangent strokes `undefined`, which
+   canvas ignores in silence — the line is simply absent, on the figure whose
+   whole subject is that line, and a pixel hash of a missing mark is a perfectly
+   stable pixel hash.
+
    The two claims that most need a reader: the `scale` control tells the reader
    that raw x gives curvatures 68.5 and 0.50 and that standardizing makes both
    2, and the one-parameter page's caption prints the curvature of whichever
@@ -16,7 +24,9 @@
    design. Nothing else in the collection would notice if any of those drifted.
    ========================================================================= */
 
+import { readFileSync } from "node:fs";
 import { makeRng } from "../core/rng.js";
+import { readTokens } from "../core/env.js";
 import {
   N, EPOCHS, LR_LADDER, LOG_CAP,
   RELIEF_DEFAULT_AZ, RELIEF_DEFAULT_EL, RELIEF_Z, MESH_G,
@@ -1013,6 +1023,32 @@ console.log("\n=== 17 · descending b0: curvature 2, one step at 0.5, and b1 unm
   }
   check("seed 1, lr 0.01: b1 at epochs 1, 5, 20 unchanged", same,
     `${got.slice(0, 3).map((v) => v.toPrecision(12)).join(" · ")} raw`);
+}
+
+/* -- 18 · THE SLOPE ROLE REACHES THE CANVAS -------------------------------- *
+ * `--c-slope` is a role in `tokens.css` and a key in `readTokens`, and a widget
+ * only ever sees the second. Declare one without the other and every tangent in
+ * this widget strokes `undefined`, which canvas silently ignores — the line just
+ * is not there, on a figure whose whole subject is that line. Neither half is
+ * visible to any other check in the repo: `check.mjs` enumerates no role names
+ * and a pixel hash of a missing mark is a perfectly stable pixel hash.
+ *
+ * `readTokens` is called against a stubbed DOM that hands back the property NAME
+ * it was asked for, so this asserts the KEY exists AND is wired to the right
+ * custom property — a `slope: v("--c-highlight")` would pass a "does the key
+ * exist" test and be exactly the bug worth catching. */
+console.log("\n=== 18 · the slope role reaches the canvas ===");
+{
+  globalThis.document = { documentElement: {} };
+  globalThis.getComputedStyle = () => ({ getPropertyValue: (n) => n });
+  const t = readTokens();
+  check("readTokens exposes slope, wired to --c-slope", t.slope === "--c-slope",
+    `slope -> ${t.slope}`);
+
+  const css = readFileSync(new URL("../core/tokens.css", import.meta.url), "utf8");
+  const m = css.match(/--c-slope:\s*var\(--series-(\d)\)/);
+  check("tokens.css declares --c-slope on series-5", m?.[1] === "5",
+    m ? `--c-slope: var(--series-${m[1]})` : "no --c-slope declaration");
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

@@ -68,8 +68,10 @@ change. This has already cost one debugging session.
    threshold — what a p-value counts), `--c-event` / `--c-nonevent` (the
    outcome happened to this person, or did not), `--c-unknown` (not measured
    yet — never a third outcome), `--c-holdout` (data set aside, scored once),
-   and `--c-prior` / `--c-posterior` (what you believed before the data, and
-   after). Needing a role that does not exist is a signal to add one, not to
+   `--c-prior` / `--c-posterior` (what you believed before the data, and
+   after), and `--c-slope` (the local slope at one point: a tangent, a
+   secant, a gradient arrow; added 2026-09-08 because `--c-highlight` is
+   1.08 against the curve a tangent lies on). Needing a role that does not exist is a signal to add one, not to
    reach for `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.

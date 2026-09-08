@@ -218,6 +218,30 @@
   --c-value-low:  var(--series-1);   /* the low end of one feature's range   */
   --c-value-high: var(--series-8);   /* the high end of the same range       */
 
+  /* THE LOCAL SLOPE — a tangent, a secant, a gradient arrow: the rate of change
+     at one point. It is the only role whose mark lies ON another mark, and that
+     is what earned it. A tangent sits on the curve it touches, so the contrast
+     that decides whether it can be seen is against --ink-2 and not against the
+     surface: --c-highlight, which every tangent wore until now, is 1.08 against
+     the curve in the light theme — the same luminance — and 1.74 in the dark,
+     so the one thing to look at was the one thing that could not be seen
+     (reported on widget 48, 2026-09-08). Red was the obvious answer and is the
+     wrong one: it reads 2.0 and 1.8, and it is already --c-extreme, past a
+     threshold — a gradient arrow crossing the hot end of a --c-cost-high ramp
+     scores 1.00 there, which is invisible. --series-5 was the one slot carrying
+     no role at all, and it is 2.95 and 2.20 against the curve and 1.22 on that
+     hot end. `_lab/gd-colour.html` holds the table and re-measures it live.
+
+     A MARK IN THIS ROLE IS CASED wherever it crosses another mark — a halo of
+     the page's own ground under the line, drawn wider than it. No hue in the
+     ramp separates from every surface a slope can be drawn over, so colour is
+     what says "this is a slope" and the casing is what makes it findable: the
+     same division of labour --c-group-a's slicing planes already use.
+
+     One widget so far, as --c-value-low/high were when they arrived. It will
+     not stay one — every later widget that draws a rate of change wants it. */
+  --c-slope:      var(--series-5);   /* the rate of change at one point      */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

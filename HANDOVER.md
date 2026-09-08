@@ -77,6 +77,12 @@ the parabola and a `Descend` control, b₁ or b₀ with the other held; the
 claim is the curvature contrast (67 along b₁, 2 along b₀ on raw x). 67
 assertions.
 
+**Round 9, 2026-09-08:** a new colour role, `--c-slope` on series-5
+(magenta), for tangents, secants and gradient arrows — `--c-highlight`
+is 1.08 against the curve a tangent lies on. `tokens.css` and `env.js`
+changed; the full suite was run. CLAUDE.md's role list updated. 69
+assertions.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.

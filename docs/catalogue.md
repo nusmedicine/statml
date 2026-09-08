@@ -10179,7 +10179,13 @@ decent contrast in both themes (2.95 light, 2.20 dark against the curve;
 1.22 on the ramp's hot end).** Recommendation: a new role for *the local
 slope — a tangent, a secant, a gradient arrow* on series-5, plus the
 casing and 2.5px; a `tokens.css` change, rendering-neutral for every
-widget that does not use it, owing a full suite run. Awaiting his pick.
+widget that does not use it, owing a full suite run. **Kenneth picked magenta, casing on, 2.5px, and it is BUILT: `--c-slope:
+var(--series-5)` in `tokens.css` with the measurements in its comment,
+`readTokens` gains `slope`, one `slopeLine()` helper cases every slope
+line on a curve, every tangent, secant and gradient arrow in the widget
+takes the role, the ringed point and the line at this epoch stay
+highlight. The full suite was run for the core change (see the
+commit). 69 assertions.**
 
 ### Slot 49 · `processing-layers` — Processing Layers
 

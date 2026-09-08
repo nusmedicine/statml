@@ -323,6 +323,9 @@
       the slider beside it.
 
       THE TANGENT SHOWS FROM THE FIRST FRAME, and the brief left this open.
+      *Its COLOUR is superseded by decision 12: it is --c-slope now, held back
+      by alpha rather than by being grey. Everything below about when it is
+      drawn and what it is for stands.*
       2.1 says do not open on the answer; 2.7 says the reference the moving
       thing is judged against belongs beside it. 2.7 wins here because dy/da is
       ALREADY on screen before the reader touches anything — on the formula
@@ -485,7 +488,10 @@
       well as the relief — the slice curve and the ∂y/∂ label above it — so the
       pairing survives turning the surface over, and the map's two dashed cut
       lines take the same two. The tangents stay highlight, which is what a
-      tangent is everywhere else in this widget.
+      tangent is everywhere else in this widget. *Superseded by decision 12: a
+      tangent is --c-slope everywhere in this widget now, here included, and
+      what survives is the sentence's argument — one mark, one colour, on every
+      panel that draws it.*
 
       THE HIDDEN PIECES STAY INK, and that is the one place this parts from
       colouring everything. A piece the surface is in front of is a ghost of the
@@ -600,6 +606,68 @@
       turned viewpoint — and over both concept tabs hash identically to the
       previous commit's, over the canvas text boxes, the readout, the legend and
       the summary together.
+
+  12. KENNETH'S REVIEW OF 2026-09-08, ROUND 9 — one question, and it turned out
+      to be about a colour role the collection did not have.
+
+      "THE COLOUR MAY BE HARD TO SEE FOR THE TANGENT LINES FOR DERIVATIVES;
+      COULD YOU TRY SOMETHING EASIER TO SEE LIKE RED?" He is right, and the
+      reason is arithmetic rather than taste. A tangent LIES ON the curve it
+      touches, so what decides whether it can be seen is its contrast against
+      --ink-2 and not against the page: --c-highlight is 1.08 against the curve
+      in the light theme — the same luminance — and 1.74 in the dark. The one
+      thing to look at was the one thing that could not be seen.
+
+      RED IS THE WRONG ANSWER AND WAS MEASURED ANYWAY. --series-8 reads 2.0 and
+      1.8 against the curve, better but not good, and it is --c-extreme and
+      --c-cost-high: it already means past a threshold, and this widget's
+      gradient arrow crosses a loss ramp whose hot end IS that red — 1.00, which
+      is not a low contrast but no contrast. `_lab/gd-colour.html` tables every
+      series slot against the curve, the surface and the ramp's two ends in both
+      themes, with the Derivative figure and the arrow-over-the-ramp drawn in
+      each. Kenneth picked magenta, casing on, 2.5px.
+
+      SO THE COLLECTION GAINED A ROLE: --c-slope on --series-5, the one slot
+      that carried none — the local slope, a tangent, a secant, a gradient
+      arrow. 2.95 against the curve in the light theme and 2.20 in the dark,
+      1.22 on the ramp's hot end. CLAUDE.md's rule for a role that does not
+      exist is to add one rather than reach for a numbered slot, and this is a
+      role and not a widget's preference: every later widget that draws a rate
+      of change has the same mark with the same problem. `tokens.css` says the
+      rest, and `gd-verify.mjs` asserts that the token reaches the canvas.
+
+      AND A CASING, WHICH IS THE HALF THE COLOUR CANNOT DO. No hue in the ramp
+      separates from every surface a slope can be drawn over — the loss ramp
+      runs blue to red under one of these arrows, and the value ramp runs the
+      same range under two of these tangents. So `slopeLine` draws each slope
+      that lies on a curve twice: the page's own ground at 3px wider, then the
+      colour at 2.5. Colour says what the mark IS and contrast is what makes it
+      findable, which is the division of labour decision 10 already reached for
+      the slice curves over --c-value-low.
+
+      WHAT STAYS --c-highlight, and it is two things: the RINGED CURRENT POINT
+      on every panel, and the LINE AT THIS EPOCH on the data panel. Neither is a
+      slope. The point is where you are, and the line is the model those two
+      numbers currently make — both are "the one thing to look at right now",
+      which is what the role means, and neither has a rate of change in it. The
+      map's two component ticks stay ink for the reason they were ink: they are
+      the arrow's parts, not slopes in their own right, and the arrow they
+      compose into is what carries the colour.
+
+      THE LEGEND SPLIT TWO ROWS AND RETOKENED THREE. A row that named a
+      highlight mark and a slope mark in one breath — "the line at this epoch,
+      and the direction of the next step" — is now two rows, because a legend
+      row is a promise about a colour. Rows whose marks are ALL slope were
+      retokened and left whole: the Partial derivatives tab's tangents and its
+      gradient arrow are one colour doing one job, and splitting them would name
+      magenta twice to say one thing. The Descent relief's row gained the
+      tangents it draws, which were ink and unnamed before.
+
+      NO LABEL PLACEMENT DEPENDS ON A STROKE WIDTH, so the five box sweeps above
+      stand as they are. Every anchor in this file is computed from a point, a
+      panel rect or a measured text width; the two lines that grew — the
+      Derivative secant and the one-parameter tangent, 2 to 2.5px — carry no
+      label between them that is not already clamped by `panelLabel`.
 
    The `optimizer` picker (SGD / momentum / Adam, 05-4's table) is a later
    round and unmeasured. The catalogue says not to add it before it is.
@@ -877,6 +945,49 @@ function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = null) {
   ctx.restore();
 }
 
+/* A SLOPE THAT LIES ON A CURVE, CASED (decision 12). Every tangent and secant
+   in this widget is drawn on top of the thing it is a slope OF — the parabola,
+   the function, the surface — so its contrast against that mark is what decides
+   whether it can be read, and no hue in the ramp clears every surface this
+   widget paints. The halo is the page's own ground, 3px wider than the line,
+   which separates it from a curve of any colour without spending a second hue.
+
+   ONE FUNCTION, because seven call sites want it (5.8): the Derivative tab's
+   secant and its dashed tangent, the one-parameter page's tangent, the two
+   slice panels' tangents, and the two tangents on each of the two reliefs. The
+   mock (`_lab/gd-colour.html`) is where the pair of widths was picked.
+
+   THE ALPHA IS ON THE LINE AND NOT ON THE CASING. The Derivative tab's tangent
+   is held back so the secant reads over it; fading the halo with it would let
+   the curve back through, which is the one thing the halo is for.
+
+   `SLICE_CASING` below is the same idea at a different scale and stays its own
+   thing: that one cases a whole sampled curve on the relief, in segments, and
+   is drawn by `strokeSegments`. */
+const SLOPE_W = 2.5;
+const SLOPE_CASE = 3;
+
+/* No `color` argument: every slope in this widget is --c-slope, and a hue
+   parameter with one caller passing nothing is an invitation to make a second
+   one. `strokeSegments` takes one because its two slice curves genuinely
+   differ. */
+function slopeLine(ctx, colors, x0, y0, x1, y1, opts = {}) {
+  const { width = SLOPE_W, dash = null, alpha = 1 } = opts;
+  ctx.save();
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.strokeStyle = colors.surface;
+  ctx.lineWidth = width + SLOPE_CASE;
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = colors.slope;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* The travelling dot, widget 27's: a filled mark with a heavy surface ring,
    because it lands on the trench's own cost-low blue and the ring is what
    separates them. */
@@ -1060,7 +1171,11 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
      direction is the screen delta of a unit-time step normalised to a fixed
      length, so it points where the dot actually goes at this panel's aspect;
      the ticks are that vector's x and y parts, so tick + tick = arrow exactly,
-     and each carries its own partial's value. */
+     and each carries its own partial's value.
+
+     THE ARROW IS --c-slope AND THE TWO TICKS STAY INK (decision 12). The arrow
+     is the rate of change this figure is about; the ticks are the arithmetic it
+     is built from, and a component of a vector is not a slope of anything. */
   if (!opts.showStep) return;
   const [g0, g1] = opts.grad;
   const dx = plot.sx(cur[0] - g0) - px;
@@ -1099,7 +1214,7 @@ function drawSurface(ctx, colors, rect, state, cur, opts) {
       { color: colors.ink1 });
   }
   if (opts.arrowMix > 0) {
-    arrow(ctx, px, py, px + ex * opts.arrowMix, py + ey * opts.arrowMix, colors.highlight, 2.5);
+    arrow(ctx, px, py, px + ex * opts.arrowMix, py + ey * opts.arrowMix, colors.slope, SLOPE_W);
   }
 }
 
@@ -1391,7 +1506,12 @@ function nameEdges(ctx, colors, pt, xDom, yDom, names) {
    axes are the same size — the relief's own coordinates. Scaling (−g₀, −g₁) by
    each axis's span instead, as the mock did, points the arrow the wrong way
    when the spans differ (raw x: 10.2 against 4.0), which is decision 1's trap
-   in the relief's coordinates. */
+   in the relief's coordinates.
+
+   BOTH TANGENTS AND THE ARROW ARE --c-slope (decision 12), where the two were
+   ink and dashed. They are tangents, and a tangent is one colour everywhere in
+   this widget; they lie on a mesh that runs blue to red, so the two lines are
+   cased and only the arrowhead is not. Their labels follow the mark. */
 function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
   const [g0, g1] = opts.grad;
   const w0 = dom.b0[1] - dom.b0[0];
@@ -1400,15 +1520,7 @@ function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
   const chord = (a0, a1, b0, b1) => {
     const a = pt(clamp(a0, dom.b0[0], dom.b0[1]), clamp(a1, dom.b1[0], dom.b1[1]));
     const b = pt(clamp(b0, dom.b0[0], dom.b0[1]), clamp(b1, dom.b1[0], dom.b1[1]));
-    ctx.save();
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(a.X, a.Y);
-    ctx.lineTo(b.X, b.Y);
-    ctx.stroke();
-    ctx.restore();
+    slopeLine(ctx, colors, a.X, a.Y, b.X, b.Y, { dash: [3, 3] });
     return b;
   };
   const t = opts.tickMix;
@@ -1418,8 +1530,8 @@ function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
     const e0 = chord(cur[0] + d0, cur[1], cur[0] - d0, cur[1]);
     const e1 = chord(cur[0], cur[1] - d1, cur[0], cur[1] + d1);
     label(ctx, colors, `∂L/∂b₀ ${fSig(g0)}`, e0.X - 4, e0.Y - 5,
-      { align: "right", color: colors.ink1 });
-    label(ctx, colors, `∂L/∂b₁ ${fSig(g1)}`, e1.X + 4, e1.Y + 13, { color: colors.ink1 });
+      { align: "right", color: colors.slope });
+    label(ctx, colors, `∂L/∂b₁ ${fSig(g1)}`, e1.X + 4, e1.Y + 13, { color: colors.slope });
   }
   if (opts.arrowMix > 0) {
     const du = -g0 / w0;
@@ -1431,7 +1543,7 @@ function drawTangents(ctx, colors, pt, dom, c, cur, opts) {
       clamp(cur[0] + du * f * w0, dom.b0[0], dom.b0[1]),
       clamp(cur[1] + dv * f * w1, dom.b1[0], dom.b1[1]),
     );
-    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.highlight, 2.5);
+    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.slope, SLOPE_W);
   }
 }
 
@@ -1545,12 +1657,9 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     const g = q.grad(cur[0], cur[1])[C.i];
     const span = (range[1] - range[0]) * 0.16;
     const L = f(here);
-    ctx.strokeStyle = colors.highlight;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(plot.sx(here - span), plot.sy(L - g * span));
-    ctx.lineTo(plot.sx(here + span), plot.sy(L + g * span));
-    ctx.stroke();
+    slopeLine(ctx, colors,
+      plot.sx(here - span), plot.sy(L - g * span),
+      plot.sx(here + span), plot.sy(L + g * span));
   }
 
   /* THE GRADIENT AS A VECTOR — the one-dimensional case of the map's composed
@@ -1587,7 +1696,7 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
     const x0 = ax + dir * 9;
     const x1 = x0 + dir * ARROW;
     if (Math.abs(x1 - x0) > 3) {
-      arrow(ctx, x0, ay, x1, ay, colors.highlight, 2.5);
+      arrow(ctx, x0, ay, x1, ay, colors.slope, SLOPE_W);
       /* THE NUMBER IS CLAMPED ONTO THE PANEL, which the square made necessary
          (decision 11). At 484-934px there was always room past the arrowhead;
          at 197 there is not, and the walk that runs out of it first is the
@@ -1612,7 +1721,7 @@ function drawSlice(ctx, colors, rect, state, cur, opts) {
       const above = ay - 7;
       panelLabel(ctx, colors, rect, `${nm.partial} ${fSig(opts.grad)}`, x1 + dir * 5,
         above < rect.y + 23 ? Math.max(rect.y + 23, ay + 15) : above,
-        { align: dir < 0 ? "right" : "left", color: colors.highlight });
+        { align: dir < 0 ? "right" : "left", color: colors.slope });
     }
   }
   ctx.restore();
@@ -1728,17 +1837,18 @@ function drawDerivative(ctx, colors, rect, a, da) {
      formula card and in the readout before the reader touches anything, so
      withholding the LINE would hide one drawing of a number already stated
      twice — while what the reader still has to build, the ladder that closes
-     the secant onto it, is untouched. */
+     the secant onto it, is untouched.
+
+     IT IS --c-slope AND NOT --c-reference (decision 12), and what makes it
+     recessive is the alpha rather than the hue: the secant turns onto this line
+     and the two are the same quantity a Δa apart, so drawing them in two
+     colours would say they are two different kinds of thing. Dashed, thinner
+     and at 0.55, which leaves the secant reading over it. */
   const tspan = (A_RANGE[1] - A_RANGE[0]) * 0.24;
-  ctx.save();
-  ctx.setLineDash([5, 4]);
-  ctx.strokeStyle = colors.reference;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(plot.sx(a - tspan), plot.sy(y0 - slope * tspan));
-  ctx.lineTo(plot.sx(a + tspan), plot.sy(y0 + slope * tspan));
-  ctx.stroke();
-  ctx.restore();
+  slopeLine(ctx, colors,
+    plot.sx(a - tspan), plot.sy(y0 - slope * tspan),
+    plot.sx(a + tspan), plot.sy(y0 + slope * tspan),
+    { width: 2, dash: [5, 4], alpha: 0.55 });
 
   /* THE RIGHT TRIANGLE UNDER THE SECANT: Δa along the bottom, Δy up the side.
      Dashed and in ink, because neither leg is a thing the function does — they
@@ -1759,17 +1869,16 @@ function drawDerivative(ctx, colors, rect, a, da) {
   ctx.restore();
 
   const over = (A_RANGE[1] - A_RANGE[0]) * SECANT_OVER;
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(plot.sx(a - over), plot.sy(y0 - secant * over));
-  ctx.lineTo(plot.sx(aT + over), plot.sy(yT + secant * over));
-  ctx.stroke();
+  slopeLine(ctx, colors,
+    plot.sx(a - over), plot.sy(y0 - secant * over),
+    plot.sx(aT + over), plot.sy(yT + secant * over));
 
   /* Both points are ON the curve, which is what separates this figure from the
      one it replaced: the second mark used to be the tangent's prediction and
-     the error under it. */
-  ctx.fillStyle = colors.highlight;
+     the error under it. The second point wears the secant's own colour: it is
+     one end of that line, and the ringed dot below is the point the derivative
+     is taken AT, which is why the two are not the same mark. */
+  ctx.fillStyle = colors.slope;
   ctx.beginPath();
   ctx.arc(pxT, pyT, 3.2, 0, 2 * Math.PI);
   ctx.fill();
@@ -1791,7 +1900,7 @@ function drawDerivative(ctx, colors, rect, a, da) {
      two through each other. */
   panelLabel(ctx, colors, rect, `Δy/Δa ${fSig(secant)}`,
     plot.sx(aT + over) + 5, plot.sy(yT + secant * over) - 6,
-    { color: colors.highlight });
+    { color: colors.slope });
   /* The two legs take a label only when the triangle is BOTH long enough to
      carry one and wholly on the panel. Off the frame the clamp puts the top of
      the vertical leg and the secant's own far end on the same corner pixel, and
@@ -1924,7 +2033,7 @@ function drawValueMap(ctx, colors, rect, a, b) {
     const dy = plot.sy(b + gb / gl) - py;
     const len = Math.hypot(dx, dy);
     tip = [px + (ARROW * dx) / len, py + (ARROW * dy) / len];
-    arrow(ctx, px, py, tip[0], tip[1], colors.highlight, 2.5);
+    arrow(ctx, px, py, tip[0], tip[1], colors.slope, SLOPE_W);
   }
   ringedDot(ctx, colors, px, py);
   ctx.restore();
@@ -1939,9 +2048,9 @@ function drawValueMap(ctx, colors, rect, a, b) {
   if (tip) {
     panelLabel(ctx, colors, rect, text,
       tip[0] + (tip[0] < px ? -5 : 5), tip[1] + (tip[1] < py ? -7 : 14),
-      { align: tip[0] < px ? "right" : "left", color: colors.highlight });
+      { align: tip[0] < px ? "right" : "left", color: colors.slope });
   } else {
-    label(ctx, colors, text, rect.x + 6, rect.y + 14, { color: colors.highlight });
+    label(ctx, colors, text, rect.x + 6, rect.y + 14, { color: colors.slope });
   }
 }
 
@@ -2121,13 +2230,11 @@ function drawValueRelief(ctx, colors, rect, a, b, az, el) {
     strokeSegments(ctx, colors, list, VISIBLE_LINE, color);
   }
 
-  /* THE TWO TANGENTS, IN HIGHLIGHT AND NOT IN INK, which is where this parts
-     from the Descent relief's. There the tangents are the only marks on the
-     surface and ink is free; here the slice curves are already ink, and the
-     panels beside the map have spent the whole tab saying that a highlighted
-     straight line through the point is the tangent whose slope is the partial.
-     A partial derivative should not change colour when the reader turns the
-     figure over.
+  /* THE TWO TANGENTS, IN --c-slope, and cased in the page's own ground: they
+     lie on a surface that runs the whole value ramp, and this one crosses both
+     slice curves at the point. A partial derivative should not change colour
+     when the reader turns the figure over, so this is the same mark the two
+     panels beside the map draw, in the same colour, at the same width.
 
      EACH IS CUT BACK TO WHERE ITS OWN y LEAVES THE RAMP, per end, because past
      the ramp's ends the height clamps and a straight line would kink at the
@@ -2149,12 +2256,7 @@ function drawValueRelief(ctx, colors, rect, a, b, az, el) {
       : lift(a, u, y0 + slope * (u - here)));
     const p = end(lo);
     const q = end(hi);
-    ctx.strokeStyle = colors.highlight;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(p.X, p.Y);
-    ctx.lineTo(q.X, q.Y);
-    ctx.stroke();
+    slopeLine(ctx, colors, p.X, p.Y, q.X, q.Y);
     /* Both anchors are kept: `LABEL_ALONG` of the way toward the end the
        viewpoint has put further from the point, and the same toward the nearer
        one. The far end is the first choice — it is off the mesh's busy middle
@@ -2181,7 +2283,7 @@ function drawValueRelief(ctx, colors, rect, a, b, az, el) {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const e = pt(clamp(a + du * f * wa, A_RANGE[0], A_RANGE[1]),
       clamp(b + dv * f * wb, B_RANGE[0], B_RANGE[1]));
-    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.highlight, 2.5);
+    if (Math.hypot(e.X - c.X, e.Y - c.Y) > 3) arrow(ctx, c.X, c.Y, e.X, e.Y, colors.slope, SLOPE_W);
   }
   ringedDot(ctx, colors, c.X, c.Y);
   ctx.restore();
@@ -2232,9 +2334,9 @@ function drawValueRelief(ctx, colors, rect, a, b, az, el) {
     yb = mid + 10;
   }
   panelLabel(ctx, colors, rect, texts[0], at0.X + (at0.X < c.X ? -4 : 4), ya,
-    { align: at0.X < c.X ? "right" : "left", color: colors.highlight });
+    { align: at0.X < c.X ? "right" : "left", color: colors.slope });
   panelLabel(ctx, colors, rect, texts[1], at1.X + (at1.X < c.X ? -4 : 4), yb,
-    { align: at1.X < c.X ? "right" : "left", color: colors.highlight });
+    { align: at1.X < c.X ? "right" : "left", color: colors.slope });
 }
 
 /* One slice: y along one variable with the other held, its tangent, and the
@@ -2250,7 +2352,9 @@ function drawValueSlice(ctx, colors, rect, opts) {
   /* THE CURVE AND ITS PARTIAL TAKE THE SLICING PLANE'S COLOUR (decision 10),
      on the map as well as the relief, so a reader turning the surface over
      keeps the pairing between a plane and the panel that reads it. The tangent
-     stays highlight: it is the same mark it is everywhere else in the widget. */
+     takes --c-slope (decision 12): it is the same mark it is everywhere else in
+     the widget, and it is the one thing on this panel that is a rate of change
+     rather than a value. */
   plot.note(opts.note, { tone: opts.color });
   plot.axisX({ label: opts.xLabel });
   plot.axisY({});
@@ -2267,12 +2371,9 @@ function drawValueSlice(ctx, colors, rect, opts) {
   ctx.clip();
   const span = (opts.xDomain[1] - opts.xDomain[0]) * 0.18;
   const y0 = opts.f(opts.at);
-  ctx.strokeStyle = colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(plot.sx(opts.at - span), plot.sy(y0 - opts.slope * span));
-  ctx.lineTo(plot.sx(opts.at + span), plot.sy(y0 + opts.slope * span));
-  ctx.stroke();
+  slopeLine(ctx, colors,
+    plot.sx(opts.at - span), plot.sy(y0 - opts.slope * span),
+    plot.sx(opts.at + span), plot.sy(y0 + opts.slope * span));
   ringedDot(ctx, colors, plot.sx(opts.at), plot.sy(y0));
   ctx.restore();
 }
@@ -2797,12 +2898,19 @@ widgetApi = defineWidget({
   /* The legend has to match the graph, and the two pages draw different marks
      (lm-interaction, 2026-08-29). The loss curve and the path take ink rather
      than a series colour: they are the frame the walk moves on and the trail
-     it leaves, not measurements of anything. */
+     it leaves, not measurements of anything.
+
+     EVERY SLOPE IS ONE COLOUR NOW (decision 12), so a row that named a
+     highlight mark and a slope mark together is two rows, and a row whose marks
+     are all slopes stays whole — naming one colour twice to say one thing is
+     the fault the split exists to fix, not a second application of it. The
+     Derivative tab's two rows share a colour and differ in the MARK, solid
+     against dashed, which is what `mark: "dash"` is for. */
   legend: ({ params }) => (params.tab === "derivative"
     ? [
       { token: "ink-2", label: "y = a² + 3ab, with b held at 1", mark: "line" },
-      { token: "highlight", label: "The secant through a and a + Δa, whose slope is Δy/Δa", mark: "line" },
-      { token: "reference", label: "The tangent at a, the limit the secant turns onto", mark: "dash" },
+      { token: "slope", label: "The secant through a and a + Δa, whose slope is Δy/Δa", mark: "line" },
+      { token: "slope", label: "The tangent at a, the limit the secant turns onto", mark: "dash" },
       { token: "ink-1", label: "Δa along and Δy up, the two the slope is a ratio of", mark: "dash" },
     ]
     : params.tab === "partial"
@@ -2813,19 +2921,27 @@ widgetApi = defineWidget({
         ? [
           { token: "group-a", label: "The plane where b is held, and y along a on it", mark: "line" },
           { token: "group-b", label: "The plane where a is held, and y along b on it", mark: "line" },
-          { token: "highlight", label: "The tangent on each slice, and the gradient on the surface", mark: "line" },
+          { token: "slope", label: "The tangent on each slice, and the gradient on the surface", mark: "line" },
           /* Only in relief: on the map nothing is in front of a slice. */
           { token: "ink-1", label: "A slice where the surface hides it", mark: "dash" },
         ]
         : [
           { token: "group-a", label: "y along a, with b held: the line on the map and the slice beside it", mark: "line" },
           { token: "group-b", label: "y along b, with a held: the line on the map and the slice beside it", mark: "line" },
-          { token: "highlight", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
+          { token: "slope", label: "The tangent on each slice, and the gradient on the map", mark: "line" },
         ]
       : params.view === "two"
         ? [
           { token: "unknown", label: "The 100 rows", mark: "dot" },
-          { token: "highlight", label: "The line at this epoch, and the direction of the next step", mark: "line" },
+          { token: "highlight", label: "The line at this epoch", mark: "line" },
+          /* In relief the two partials are tangents on the surface and carry
+             this colour with the arrow; on the map they are the arrow's own
+             components and stay ink, so the row names only the arrow. */
+          { token: "slope",
+            label: params.relief === "relief"
+              ? "The tangent along each parameter, and the direction of the next step"
+              : "The direction of the next step",
+            mark: "line" },
           { token: "reference", label: "The least-squares line, and its (b₀, b₁)", mark: "dash" },
           { token: "ink-1", label: "The path taken so far", mark: "line" },
           /* Only on the map: the straight line the step does NOT take, which
@@ -2847,10 +2963,11 @@ widgetApi = defineWidget({
         : [
           { token: "unknown", label: "The 100 rows", mark: "dot" },
           { token: "ink-2", label: `The loss over ${ONE[params.which].symbol}, with ${ONE[params.which].other} held`, mark: "line" },
-          /* One entry for three highlight marks, as the two-parameter page does
-             with its line and its arrow: the tangent IS the slope and the arrow
-             is the direction that slope sends the step. */
-          { token: "highlight", label: `The line at this epoch, the tangent whose slope is ${ONE[params.which].partial}, and the direction of the next step`, mark: "line" },
+          { token: "highlight", label: "The line at this epoch", mark: "line" },
+          /* One entry for the tangent and the arrow, which are one colour doing
+             one job: the tangent IS the slope and the arrow is the direction
+             that slope sends the step. */
+          { token: "slope", label: `The tangent whose slope is ${ONE[params.which].partial}, and the direction of the next step`, mark: "line" },
           { token: "reference", label: `The least-squares line, and ${ONE[params.which].symbol} at that fit`, mark: "dash" },
           { token: "ink-1", label: "The steps taken so far", mark: "line" },
           { token: "empirical", label: "Loss after each epoch", mark: "line" },
