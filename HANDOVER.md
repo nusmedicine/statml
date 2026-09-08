@@ -101,8 +101,9 @@ nine smaller rewrites. Catalogue slot 48 Round 10 has the list.
 types dropped a field's own `detail` and showed only the selected option's;
 nine fields in eight widgets had written one and none had rendered. Principle
 3.4f's fourth paragraph has the list. The fix revealed nine lines of rail copy
-Kenneth had not seen on screen — the mixed-model ones carry "never" and
-em-dashes — so they are due a register pass.
+Kenneth had not seen on screen; he read them, named "bent from", "sit apart"
+and the em-dashes, and the register pass over all nine and the option lines
+stacked under them was settled by his picks and committed the same day.
 
 # THE DEEP LEARNING ARC IS PLANNED; SLOT 48 IS THE FIRST BUILT
 

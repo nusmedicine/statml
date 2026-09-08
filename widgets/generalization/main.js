@@ -416,7 +416,7 @@ defineWidget({
     truth: {
       type: "segmented",
       label: "True curve",
-      detail: "what the concentrations were actually drawn from",
+      detail: "the function the data were generated from",
       options: [
         { value: "0", label: "Off" },
         { value: "1", label: "On" },

@@ -382,7 +382,7 @@ defineWidget({
       label: "λ",
       options: LAMBDAS.map((v) => ({ value: String(v), label: String(v) })),
       default: "0.5",
-      detail: "λ → 0 is the log; λ = 1 is a rescaling, so it lands back on the raw numbers. Needs y > 0",
+      detail: "λ → 0 is the log; λ = 1 leaves the raw scale. Needs y > 0",
       when: { param: "transform", equals: "boxcox" },
     },
   },

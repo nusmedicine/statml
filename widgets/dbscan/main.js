@@ -400,7 +400,7 @@ defineWidget({
       label: "Samples",
       options: [48, 96, 150].map((v) => ({ value: String(v), label: String(v) })),
       default: "48",
-      detail: "in total, split between the groups",
+      detail: "in total, across the groups",
       row: { key: "stage" },
     },
 

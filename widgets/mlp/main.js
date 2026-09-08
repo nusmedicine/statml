@@ -778,7 +778,7 @@ widgetApi = defineWidget({
     hidden: {
       type: "choice",
       label: "Hidden units",
-      detail: "each one contributes a straight piece the boundary is bent from",
+      detail: "the width of the hidden layer; more units, a more flexible boundary",
       options: K_LADDER.map((k) => ({ value: String(k), label: String(k) })),
       default: "4",
     },

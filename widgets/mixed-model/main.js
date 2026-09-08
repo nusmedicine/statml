@@ -224,9 +224,9 @@ defineWidget({
     differ: {
       type: "choice",
       label: "Patient differences",
-      detail: "how far patients' own blood pressures sit apart",
+      detail: "the between-patient spread of blood pressure",
       options: [
-        { value: "none", label: "None", detail: "every patient shares one level — rows really are independent" },
+        { value: "none", label: "None", detail: "every patient shares one level, so the rows are independent" },
         { value: "small", label: "Small" },
         { value: "moderate", label: "Moderate" },
         { value: "large", label: "Large", detail: "most variation is between patients" },
@@ -237,9 +237,9 @@ defineWidget({
     effect: {
       type: "choice",
       label: "Medication effect",
-      detail: "the true effect — set here, never seen by the models",
+      detail: "the true effect; the models see only the data",
       options: [
-        { value: "none", label: "None", detail: "the medication does nothing — any claim is false" },
+        { value: "none", label: "None", detail: "no true effect, so a detected one is a false positive" },
         { value: "small", label: "Small" },
         { value: "moderate", label: "Moderate" },
         { value: "large", label: "Large" },
@@ -260,9 +260,9 @@ defineWidget({
     famdiff: {
       type: "choice",
       label: "Family differences",
-      detail: "how far families' cholesterol levels sit apart",
+      detail: "the between-family spread of cholesterol",
       options: [
-        { value: "none", label: "None", detail: "families share nothing — the two fits agree" },
+        { value: "none", label: "None", detail: "families share nothing, so the two fits agree" },
         { value: "small", label: "Small" },
         { value: "moderate", label: "Moderate" },
         { value: "large", label: "Large", detail: "families differ more than the SNPs do" },

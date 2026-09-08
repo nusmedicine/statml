@@ -390,7 +390,7 @@ defineWidget({
     background: {
       type: "choice",
       label: "Background",
-      detail: "the genes the overlap is judged against",
+      detail: "the genes the overlap is tested against",
       options: Object.entries(BACKGROUNDS).map(([value, b]) => ({
         value, label: b.label, detail: b.detail,
       })),
