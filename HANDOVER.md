@@ -9,126 +9,123 @@ there is no draft.**
 
 ---
 
-# WIDGET 48 `gradients` SHIPPED 2026-09-08. NEXT: KENNETH'S PICKS FOR THE REST OF THE DEEP LEARNING ARC
+# NEXT: THE REST OF THE DEEP LEARNING ARC, ON KENNETH'S PICKS
 
-**Shipped on his "tested ok" after ten review rounds** — 18 fingerprint
-states (catalogue § *Slot 48* → *SHIPPED*), status `shipped` in `main.js`
-and the manifest, pushed. The next task is the arc: slots 47 (`chain-rule`,
-whose two-variable page `gradients` now carries), 49–52, each planned in the
-catalogue § *The deep learning arc* with five questions for Kenneth at the
-end. Mock-up first, one widget per commit, push only on "tested ok".
+**Everything is committed and pushed; nothing is in flight.** The last
+session shipped widget 48 `gradients` (2026-09-08, after ten review
+rounds), then fixed one core bug and did a register pass over the rail
+lines it revealed, both pushed on his "tested ok" (`a6bcdba`, `3bb0ebd`).
 
-**How it was built, 2026-09-07, from his six picks off `_lab/gd-mock.html`**
-(catalogue § *Slot 48*, subsections *The mock-up*, *Kenneth's picks* and
-*BUILT AS A DRAFT*, which lists the state URLs). `_lab/gd-verify.mjs` runs
-under `npm test` (69 assertions). Served at
-`http://localhost:8012/widgets/gradients/` from the `widgets-alt2` lane.
+**The next task is the arc.** [docs/catalogue.md](docs/catalogue.md)
+§ *The deep learning arc* plans six slots, 47–52, for PHM5005 *DL
+Foundations* (`05-1` to `05-4`): `chain-rule`, `gradients` (done),
+`processing-layers`, `support-layers`, `composition`, `training-loop` —
+each with its misconception, its host cells, its shape and what cutting it
+would cost, and **five questions for Kenneth at the end. Ask those before
+building anything**; the answers decide whether 47 survives at all (its
+two-variable page is now the Partial derivatives tab of `gradients`), and
+the order of 49–52. Two slots were measured first and the scripts are in
+`_lab/` (`dl-gd-measure.mjs`, `dl-loop-measure.mjs`,
+`dl-synthetic.csv`): on the lesson's training recipe, patience 10 fires
+before the true validation minimum in three runs of five.
 
-**Round 2 the same evening: the surface in relief**, `?relief=relief` on
-the two-parameter page. Kenneth asked for a 3D view, then whether the
-hidden part could show through; `_lab/gd-3d.html` mocked both and he
-picked log height, a fixed viewpoint, the hidden line dashed, the partials
-as tangents on the surface. Two lessons that cost time and are recorded
-in the catalogue: **a depth buffer painted through the canvas is wrong by
-tens of grey levels** (checked against the mesh's own vertices) — the
-honest test on a height field is a ray march; and **the viewpoint is
-measured, not chosen**: with log height the walk lies in a canyon visible
-only along it, azimuth 100–130° or 280–310°, so it is fixed at 300/35 in
-`model.js` and `gd-verify.mjs` (29 assertions) re-measures the claim.
-
-**Round 3, 2026-09-08 (Kenneth's review):** the one-parameter tangent now
-rolls with the curve during the move beat; the relief turns by dragging
-(`turn`/`tilt`, hidden display params through core's `drag`, default
-300/35). 31 assertions. A drag is untested geometry until a hit-driven
-fingerprint state exists, which a draft does not owe yet.
-
-**Round 4, 2026-09-08:** a *Default view* action under the Surface control
-(released before it writes, or the display writes re-enter `rebuild` and
-loop); the one-parameter page draws −∂L/∂b₁ as a labelled arrow at the
-point; every speed choreographs on that page (Slow 2.5 s, Medium 1.2 s,
-Fast 0.4 s an epoch), the surface page's clock untouched. 34 assertions.
-Open for Kenneth: Play on the one-parameter page at lr 0.001 now takes
-minutes; a fourth speed or a cap if he wants one.
-
-**Round 5, 2026-09-08 — three questions from Kenneth, mocked in
-`_lab/gd-round5.html`, AWAITING HIS PICKS:** the gradient's direction (it
-is the steepest slope, 80° from the straight line to the minimum at his
-screenshot's state, and the widget must say so), five choreographies for
-the one-parameter tangent (live), and a restructure to a **Gradients**
-widget with Derivative · Partial derivatives · Descent tabs. Catalogue
-§ Slot 48 *Round 5* has the record. **BUILT the same day on his picks:**
-renamed to `gradients` (git mv; the old slug survives only in the
-catalogue's history and this file), three tabs Derivative · Partial
-derivatives · Descent, the angle line and the faint straight line on the
-map, choreography A on the one-parameter page. 46 assertions. Served at
-`http://localhost:8012/widgets/gradients/`. Not pushed, no fingerprint
-states.
-
-**Round 6, 2026-09-08:** the Derivative tab draws the definition — the
-secant through two points on the curve turning onto the tangent as Δa
-shrinks (slope 2a + 3b + Δa, exactly) — and the Partial derivatives tab
-has the relief, the two slices lifted onto the surface. **Core changed:
-`widgets/core/controls.js`, `when` gained `any` and clauses nest**, for
-the Surface control's gating; the full fingerprint suite was run for it
-(see the commit). 53 assertions.
-
-**Round 7, 2026-09-08:** the one-parameter window ratchets outward in
-nice steps to hold the walk (lr 0.1 raw now shows three epochs of the
-oscillation; standardized lr 1 the whole run), and the Partial relief
-superimposes the two slicing planes in `--c-group-a`/`--c-group-b`,
-carried to the slice panels. 60 assertions. Open: the a-slice is cased
-in the ground because group-a and value-low share `--series-1`.
-
-**Round 8, 2026-09-08:** the one-parameter page has the data panel beside
-the parabola and a `Descend` control, b₁ or b₀ with the other held; the
-claim is the curvature contrast (67 along b₁, 2 along b₀ on raw x). 67
-assertions.
-
-**Round 9, 2026-09-08:** a new colour role, `--c-slope` on series-5
-(magenta), for tangents, secants and gradient arrows — `--c-highlight`
-is 1.08 against the curve a tangent lies on. `tokens.css` and `env.js`
-changed; the full suite was run. CLAUDE.md's role list updated. 69
-assertions.
-
-**Round 10, 2026-09-08:** the copy audit, every item put to Kenneth as a
-question and settled. Two wire renames — `scale=std` → `standardized`,
-`nudge` → `da` (control **Δa**, button *Shrink Δa*) — "walk" → "descent",
-the loss tile relabelled *Loss ÷ minimum*, *Steepest rise* → *|∇y|*, the
-Covariate details print the axis curvatures (67, 2) the caption prints, and
-nine smaller rewrites. Catalogue slot 48 Round 10 has the list.
-
-**Found while building, FIXED 2026-09-08 after the ship:** the option-list
-types dropped a field's own `detail` and showed only the selected option's;
-nine fields in eight widgets had written one and none had rendered. Principle
-3.4f's fourth paragraph has the list. The fix revealed nine lines of rail copy
-Kenneth had not seen on screen; he read them, named "bent from", "sit apart"
-and the em-dashes, and the register pass over all nine and the option lines
-stacked under them was settled by his picks and committed the same day.
-
-# THE DEEP LEARNING ARC IS PLANNED; SLOT 48 IS THE FIRST BUILT
-
-**Planned 2026-09-07.** Kenneth asked for widgets supporting
-PHM5005 *DL Foundations* (`05-1` to `05-4`) in four groups — gradients and
-descent; the blocks; composition; the workflow. The plan is
-[docs/catalogue.md](docs/catalogue.md) § *The deep learning arc*: six slots,
-47–52 (`chain-rule`, `gradient-descent`, `processing-layers`,
-`support-layers`, `composition`, `training-loop`), each with its
-misconception, its host cells, its shape and what cutting it would cost, and
-five questions for Kenneth at the end — read those before building anything.
-Two slots were measured first and the scripts are in `_lab/`
-(`dl-gd-measure.mjs`, `dl-loop-measure.mjs`, `dl-synthetic.csv`): the
-lesson's regression diverges above lr 0.029 and crawls at its own 0.01
-because x is not centred, and on the lesson's training recipe patience 10
-fires before the true validation minimum in three runs of five.
-
-**How the build is to run, per Kenneth:** this session (Fable) plans and
-reviews; Opus 5 subagents write the widget code. One widget at a time, a
-`_lab/` mock-up for him to pick from before `main.js`, his "tested ok"
-before any push. **torch is not installed here** (numpy 2.5 and sklearn 1.9
-are), so `training-loop`'s engine cannot be pinned locally — see the slot.
+**How the build runs, per Kenneth:** the main session plans and reviews;
+Opus subagents write the widget code. One widget at a time; a `_lab/`
+mock-up he picks from before any `main.js`; one widget per commit,
+commits local, **push only on his "tested ok"**. A draft owes no
+fingerprint states; on "tested ok" record them (three determinism runs,
+re-shoot after the status flip, full suite MATCH), flip `status` in
+`main.js` and the manifest, push. **torch is not installed here** (numpy
+2.5 and sklearn 1.9 are), so `training-loop`'s engine cannot be pinned
+locally — see the slot.
 
 **46 is `wgcna`**, a draft on branch `wgcna` in its own worktree, another
 session's; the arc's numbers are provisional until it lands.
+
+## Working here — read before the first command
+
+- **Dev server:** `node scripts/serve.mjs 8012` (the `widgets-alt2` lane;
+  `:8000` belongs to a WSL container and `:8010` was in use). Widgets at
+  `http://localhost:8012/widgets/<slug>/`. Port as an argument, never
+  `PORT=`, in PowerShell.
+- **The fingerprint suite needs the pane FRONTED at devicePixelRatio 1.25.**
+  A hidden pane, or any other tab fronted mid-run, drops it to 1: every px
+  hash differs, and a shooter page waiting on 1.25 stalls silently until
+  the tab is fronted again. Read `devicePixelRatio` first. The
+  `javascript_tool` caps at 45 s, so poll the suite in loops of 40 s or
+  less.
+- **The scrollbar flake is alive.** Tall pages sometimes hash at 688px wide
+  where their baseline is the settled 669. It hit hmm twice on 09-06, hmm
+  twice again after `--c-slope`, and lm-adjustment three times, roc-auc
+  once and hmm twice after the detail fix. Every time, a shooter run alone
+  reproduced the baseline hashes exactly. **A px-only DIFFER at 688 on a
+  tall page is that flake until a shooter says otherwise; do not rebaseline
+  it.**
+- **The shooter pattern:** copy `_lab/gradients-shoot.html` (itself
+  `hmm-shoot.html` with the slug swapped), filter `NEW` to the states
+  you want, load it fronted. It proves the copy against five existing
+  states first, then shoots each state three times and checks each driven
+  state against its settled sibling. Two traps: it reads `$note` unguarded
+  and most old states have none, so guard it (`$note ?? ""`); and its
+  output is written only at the end, so an empty page mid-run is normal.
+- **Copy review is a table, then questions.** Kenneth wants every
+  reader-facing string swept against 2.9 / 2.10 / 5.9, shown as a numbered
+  table with options, and then each open item put to him as a question
+  (`AskUserQuestion`); he took the recommendation on all twelve this
+  session. He reads new strings for register every time — "bent from",
+  "sit apart", em-dashes, "never" — and a rewrite that comes out longer
+  needs his pick, not mine.
+
+## Widget 48 `gradients` — CLOSED, and what it left behind
+
+Three tabs — Derivative · Partial derivatives · Descent — built 2026-09-07
+from six picks off `_lab/gd-mock.html` and revised through ten rounds the
+next day; catalogue § *Slot 48* holds every round with the mock, the pick
+and what was measured. 18 fingerprint states, `_lab/gd-verify.mjs` under
+`npm test` (69 assertions). The lessons worth carrying to the next widget:
+
+- **A depth buffer painted through the canvas is wrong by tens of grey
+  levels**; hidden-line on a height field is a ray march (`reliefHidden`
+  in `model.js`). **The viewpoint is measured, not chosen**: swept over
+  azimuths, since a log-height loss lies in a canyon visible only along it.
+- **Choreography that re-evaluates at the moving point** ("the tangent
+  translates") reads as broken; the tangent rolls with the curve.
+- **URL values are copy** (5.9): `scale=std` and `nudge=` shipped as
+  build shorthand and were renamed to `standardized` and `da` before
+  the first link was pasted.
+
+**Open items, none blocking, all for Kenneth's call:**
+
+1. Play on the one-parameter page at lr 0.001 takes minutes: a cap, or a
+   fourth speed.
+2. The a-slice on the Partial relief is cased in the ground colour because
+   `--c-group-a` and `--c-value-low` share `--series-1`.
+3. 19 inherited rim-name collisions on the relief at turned viewpoints
+   (`turn`/`tilt` off the default 300/35); none at the default.
+4. The `∂L/∂b₁` arrow label meets the `30` tick on standardized x at lr 1.
+5. `--c-extreme` carries both the diverged note and the faint straight
+   line to the minimum on the map.
+6. No hit-driven state exists for the drag: core's `drag` channel sets
+   the `grab` cursor and the harness's `hit` step wants `pointer`. A
+   harness `drag` step would close that; the turned-viewpoint settled state
+   covers what the drag writes meanwhile.
+
+## Core changed three times in this run, each gated by a full suite run
+
+- **`controls.js`, `when` grammar:** `any` beside `all` and `oneOf`, and
+  clauses nest (`gatingParams` walks the tree). For a control shown on two
+  tabs' surfaces at once.
+- **`tokens.css` / `env.js`, a colour role:** `--c-slope` on series-5
+  (magenta) for the local slope — tangent, secant, gradient arrow — because
+  `--c-highlight` is 1.08 against the curve a tangent lies on. Measured on
+  `_lab/gd-colour.html`; CLAUDE.md's role list names it.
+- **`controls.js`, principle 3.4f a fourth time:** the option-list types
+  (`choice`, `segmented`, `matrix`) dropped a FIELD's own `detail` and
+  rendered only the selected option's. `ownDetail()` renders the field's
+  line first. Nine lines in eight widgets appeared for the first time and
+  were register-passed the same day. 5.9's outstanding list of seven
+  lesson-or-notebook references in control `detail` text is cleared: a
+  grep of every `detail` line on 09-08 found none.
 
 ---
 
