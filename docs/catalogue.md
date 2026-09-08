@@ -10158,6 +10158,29 @@ which the square forced in 1858 states before. Sweep of 16 125 states
 with a stub that models the clip: 0 escapes, 0 collisions, 0 cut labels.
 67 assertions.
 
+#### Round 9, 2026-09-08 — a colour for the tangent, mocked in `_lab/gd-colour.html`
+
+Kenneth: *"the colour may be hard to see for the tangent lines for
+derivatives; could you try something easier to see like red? research
+colour schemes."* Measured rather than argued. The tangent lies ON the
+curve (`--ink-2`), so the contrast that decides legibility is against
+that grey, not the background: `--c-highlight` (violet, series-7) is
+**1.08 against the curve in the light theme** — the same luminance — and
+1.74 in the dark, which is the complaint. Red (series-8) reaches only
+2.0 / 1.8, already means *past a threshold* and the hot end of the loss
+ramp, and the gradient arrow crosses that ramp: red on the ramp's hot end
+is 1.00, invisible. Every series slot, both themes, against the curve,
+the surface and the ramp's two ends is tabled on the mock; each candidate
+draws the Derivative figure and the arrow over the ramp, with a
+`casing` toggle (a surface-coloured halo under the line, which separates
+any hue from the curve regardless of the numbers) and a line-width
+choice. **Series-5, magenta, is the one slot with no semantic role and
+decent contrast in both themes (2.95 light, 2.20 dark against the curve;
+1.22 on the ramp's hot end).** Recommendation: a new role for *the local
+slope — a tangent, a secant, a gradient arrow* on series-5, plus the
+casing and 2.5px; a `tokens.css` change, rendering-neutral for every
+widget that does not use it, owing a full suite run. Awaiting his pick.
+
 ### Slot 49 · `processing-layers` — Processing Layers
 
 **Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution

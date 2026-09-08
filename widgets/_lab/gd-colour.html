@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · widget 48 — a colour for the tangent</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); color: var(--ink-1); }
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 300px; min-height: 40px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center;
+          margin: 0 0 var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-3);
+          background: var(--surface-3); border: 1px solid var(--grid); position: sticky; top: 0; z-index: 3; }
+  .rail label { display: flex; gap: 6px; align-items: center; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 48 · a colour for the tangent, the secant and the gradient arrow</h1>
+  <p class="note">
+    Kenneth (2026-09-08): the tangent lines on the Derivative tab are hard to see; try red. The tangent is
+    drawn in <code>--c-highlight</code>, violet, and it lies ON the curve, which is <code>--ink-2</code>, so the
+    contrast that matters is against that grey, not the background: <b>violet against the curve is 1.08 in
+    the light theme</b> — the same luminance — and 1.74 in the dark. Red (<code>--series-8</code>) reaches 2.0
+    and 1.8, and it already means <i>past a threshold</i> and the hot end of the loss ramp, which the gradient
+    arrow crosses on the Descent map. The table below is measured; every panel draws the Derivative figure
+    (curve, secant, tangent, point) in a candidate, with the Descent map's ramp under it and the arrow across
+    the ramp so the collision, or its absence, is visible. <b>Toggle the theme</b> — Kenneth reads the dark one.
+  </p>
+  <div class="rail">
+    <label><input type="checkbox" id="dark"> dark theme</label>
+    <label>line width <select id="lw"><option>2</option><option selected>2.5</option><option>3</option></select></label>
+    <label><input type="checkbox" id="casing" checked> casing (a surface-coloured halo under the line)</label>
+  </div>
+  <div class="row" id="cands"></div>
+  <h2>Contrast, measured (WCAG luminance ratio)</h2>
+  <p class="note">
+    "vs curve" is the number that decides legibility of a line lying on the curve; "vs ramp high" is the
+    arrow on the Descent map's hottest end, "vs ramp low" its floor. A casing halo makes any hue separable
+    from the curve regardless of these numbers; it does not help against the ramp.
+  </p>
+  <div id="table"></div>
+  <p class="note">
+    <b>What the palette allows.</b> <code>--series-5</code> magenta is the one slot that carries no semantic
+    role today (1 empirical/group-a/cost-low/value-low, 2 theory, 3 smoothed, 4 group-b/prior, 6 cluster-e,
+    7 highlight/posterior, 8 extreme/event/holdout/cost-high/value-high). A new role — <i>the local slope: a
+    tangent, a secant, a gradient arrow</i> — on that slot is what CLAUDE.md prescribes for a role that does not
+    exist ("a signal to add one, not to reach for <code>--series-n</code>"). It is a <code>tokens.css</code>
+    change, so it owes a full fingerprint run, which is rendering-neutral for every widget that does not use it.
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { LOG_CAP } from "../gradients/model.js";
+
+const DPR = window.devicePixelRatio || 1;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const V = { lw: 2.5, casing: true };
+
+const CANDS = [
+  ["--series-7", "violet — as now, --c-highlight"],
+  ["--series-8", "red — --c-extreme / --c-event / --c-cost-high"],
+  ["--series-5", "magenta — no role yet"],
+  ["--series-2", "orange — --c-theory"],
+  ["--series-3", "aqua — --c-smoothed"],
+  ["--series-6", "green — --c-cluster-e"],
+  ["--series-4", "yellow — --c-group-b / --c-prior"],
+];
+
+const lum = (h) => {
+  const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+
+const F = (a) => a * a + 3 * a;      // y = a² + 3ab with b = 1
+const Fa = (a) => 2 * a + 3;
+const host = document.getElementById("cands");
+const panels = CANDS.map(([tok, name]) => {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${tok}</h3><p class="sub">${name}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = 300 * DPR; cv.height = 300 * DPR; cv.style.width = "300px"; cv.style.height = "300px";
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  return { tok, ctx };
+});
+
+function draw() {
+  const T = readTokens();
+  const rows = [];
+  for (const { tok, ctx } of panels) {
+    const col = css(tok);
+    ctx.fillStyle = T.surface; ctx.fillRect(0, 0, 300, 300);
+    /* the Derivative figure: curve over a in [-1, 4], y in [-4, 30] */
+    const rect = { x: 30, y: 12, w: 258, h: 190 };
+    const sx = (a) => rect.x + ((a + 1) / 5) * rect.w;
+    const sy = (y) => rect.y + rect.h - ((y + 4) / 34) * rect.h;
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let k = 0; k <= 80; k += 1) { const a = -1 + (k / 80) * 5; k ? ctx.lineTo(sx(a), sy(F(a))) : ctx.moveTo(sx(a), sy(F(a))); }
+    ctx.stroke();
+    const a0 = 2, da = 0.5, s = Fa(a0), sec = (F(a0 + da) - F(a0)) / da;
+    const line = (slope, dash, width) => {
+      ctx.save(); ctx.setLineDash(dash);
+      if (V.casing) { ctx.strokeStyle = T.surface; ctx.lineWidth = width + 3; ctx.beginPath(); ctx.moveTo(sx(a0 - 1.2), sy(F(a0) - slope * 1.2)); ctx.lineTo(sx(a0 + 1.4), sy(F(a0) + slope * 1.4)); ctx.stroke(); }
+      ctx.strokeStyle = col; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(sx(a0 - 1.2), sy(F(a0) - slope * 1.2)); ctx.lineTo(sx(a0 + 1.4), sy(F(a0) + slope * 1.4)); ctx.stroke();
+      ctx.restore();
+    };
+    line(s, [4, 3], Math.max(1.5, V.lw - 0.5));   // the tangent, the limit, dashed
+    line(sec, [], V.lw);                          // the secant
+    /* the triangle */
+    ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(sx(a0), sy(F(a0))); ctx.lineTo(sx(a0 + da), sy(F(a0))); ctx.lineTo(sx(a0 + da), sy(F(a0 + da))); ctx.stroke(); ctx.restore();
+    for (const a of [a0, a0 + da]) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(sx(a), sy(F(a)), a === a0 ? 4.5 : 3, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = T.surface; ctx.lineWidth = 1.5; ctx.stroke(); }
+    ctx.fillStyle = col; ctx.font = `${T.fsXs} ${T.font}`; ctx.textAlign = "left"; ctx.fillText(`Δy/Δa ${sec.toFixed(1)}`, sx(a0 + 1.4) - 60, sy(F(a0) + sec * 1.4) - 8);
+    /* the Descent ramp with the arrow across it, and the arrow on the ramp's two ends */
+    const bar = { x: 30, y: 226, w: 258, h: 40 };
+    for (let i = 0; i < 64; i += 1) { ctx.fillStyle = hexLerp(T.costLow, T.costHigh, i / 63); ctx.fillRect(bar.x + (i / 64) * bar.w, bar.y, bar.w / 64 + 1, bar.h); }
+    const arrow = (x0, y0, x1, y1) => {
+      const ang = Math.atan2(y1 - y0, x1 - x0);
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = V.lw; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 8 * Math.cos(ang - 0.4), y1 - 8 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 8 * Math.cos(ang + 0.4), y1 - 8 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill();
+    };
+    arrow(bar.x + 30, bar.y + 30, bar.x + 60, bar.y + 8);
+    arrow(bar.x + bar.w - 60, bar.y + 30, bar.x + bar.w - 30, bar.y + 8);
+    ctx.fillStyle = T.ink3; ctx.font = `${T.fsXs} ${T.font}`; ctx.textAlign = "left"; ctx.fillText("the arrow on the loss map's floor and its hot end", bar.x, bar.y + bar.h + 14);
+    const surf = css("--surface-1"), ink2 = css("--ink-2"), lo = css("--c-cost-low"), hi = css("--c-cost-high");
+    rows.push([tok, contrast(col, ink2), contrast(col, surf), contrast(col, lo), contrast(col, hi)]);
+  }
+  document.getElementById("table").innerHTML = `<table><tr><th>slot</th><th>vs curve (ink-2)</th><th>vs surface</th><th>vs ramp low</th><th>vs ramp high</th></tr>${rows.map(([t, a, b, c, d]) => `<tr><td>${t}</td><td class="n">${a.toFixed(2)}</td><td class="n">${b.toFixed(2)}</td><td class="n">${c.toFixed(2)}</td><td class="n">${d.toFixed(2)}</td></tr>`).join("")}</table>`;
+}
+document.getElementById("dark").addEventListener("input", (e) => { if (e.target.checked) document.documentElement.dataset.theme = "dark"; else delete document.documentElement.dataset.theme; draw(); });
+document.getElementById("lw").addEventListener("input", (e) => { V.lw = Number(e.target.value); draw(); });
+document.getElementById("casing").addEventListener("input", (e) => { V.casing = e.target.checked; draw(); });
+draw();
+</script>
+</body>
+</html>
