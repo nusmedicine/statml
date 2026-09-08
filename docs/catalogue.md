@@ -9800,7 +9800,7 @@ to the nearer point rather than floored to the step's start.
 # .../widgets/gradient-descent/?view=one&lr=0.03&shown=12                  the parabola: each step keeps −1.01 of the distance
 # .../widgets/gradient-descent/?view=two&shown=40                          the trench, the partials as ticks
 # .../widgets/gradient-descent/?view=two&shown=400&lr=0.03                 diverged at epoch 239 (seed 1), the path leaves the frame
-# .../widgets/gradient-descent/?view=two&scale=std&lr=0.5&shown=3          the round bowl: one step lands
+# .../widgets/gradient-descent/?view=two&scale=standardized&lr=0.5&shown=3          the round bowl: one step lands
 # .../widgets/gradient-descent/?view=two&batch=1&shown=1000                single rows: 3.1× the least after 1000 epochs, the path a fuzz
 # .../widgets/gradient-descent/?view=two&speed=slow&shown=5   then Next epoch — the three beats
 ```
@@ -10186,6 +10186,42 @@ line on a curve, every tangent, secant and gradient arrow in the widget
 takes the role, the ringed point and the line at this epoch stay
 highlight. The full suite was run for the core change (see the
 commit). 69 assertions.**
+
+#### Round 10, 2026-09-08 — the copy audit (2.9, 2.10, 5.9), settled by Kenneth item by item
+
+Kenneth asked for the reader-facing strings to be reviewed against the
+register and shown with options. Every string was swept — subtitle, rail
+labels and details, legend, drive labels and titles, canvas captions and
+notes, readout tiles, summary, the formula card; no lesson or notebook
+reference anywhere. Thirteen items, each put to him as a question; he took
+the recommendation on every one:
+
+- **Two URL values were build shorthand (5.9).** `scale=std` became
+  `scale=standardized`, the word the control shows, and the Derivative
+  tab's parameter `nudge` became `da`, with the control relabelled
+  **Δa** and the button *Shrink Δa* — "nudge" was a coined word standing in
+  for the field's Δa. Both renamed wire-and-display together; the draft had
+  no pasted links, which is the cheap moment.
+- **"walk" (six strings) became "descent"**: the tooltips, *The descent is
+  at the minimum*, the summary. The legend already said *path* and *steps*.
+- **The loss tile named the wrong quantity.** Its value is a ratio, so the
+  label is now *Loss ÷ minimum* with the note *1× at the least-squares
+  line*; the strip axis and the colour bar read *loss ÷ minimum* in place of
+  *loss ÷ the least*, the widget's word for it everywhere else.
+- **Steepest rise → |∇y|**: the tile shows a magnitude, and the old label
+  named a direction.
+- **The Covariate details printed the principal curvatures (68.5, 0.50)
+  while the one-parameter caption prints the axis pair (67, 2)** — a
+  reader switching page met two pairs called curvature. The details now
+  print the axis pair, which is what the caption and the regime line use;
+  x is a fixed grid, so both numbers hold on every seed.
+- The rest: *the limit of the secant as Δa → 0* for "the limit the secant
+  turns onto" (legend and beat line), *Δa and Δy, whose ratio is the
+  secant's slope*, *the change in y over it* for "what y does over it", the
+  em-dash aside in the gradient note, "rung down the ladder" tooltips,
+  "where the surface hides it" → *behind the surface*, "planes standing
+  through it", "held still" → *held constant*, and the subtitle now says
+  *a* where the figure draws *a*. Every replacement is shorter.
 
 ### Slot 49 · `processing-layers` — Processing Layers
 

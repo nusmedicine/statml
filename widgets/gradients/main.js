@@ -317,7 +317,7 @@
       which is the same eased number doing a more honest thing. What changed
       with it is the readout (Δa, Δy, Δy/Δa, dy/da, in the order the definition
       is built), the formula card (dy/da = lim Δy/Δa = 2a + 3b, with the limit
-      written out), the legend, the line under the panel, and the `nudge`
+      written out), the legend, the line under the panel, and the `da`
       control's `detail`, which now states the secant's slope as dy/da + Δa —
       a static sentence, true at every a, where a number would have moved under
       the slider beside it.
@@ -1748,7 +1748,7 @@ function drawStrip(ctx, colors, rect, state, ep) {
   plot.note(`epoch ${ep} of ${EPOCHS}`);
   plot.grid(ticks);
   plot.axisX({ label: "epoch" });
-  plot.axisY({ label: "loss ÷ the least, log₁₀", ticks });
+  plot.axisY({ label: "loss ÷ minimum, log₁₀", ticks });
 
   if (ep < 1) return;
   const stride = Math.max(1, Math.ceil(ep / 900));
@@ -2543,7 +2543,7 @@ function drawDerivativeTab(ctx, colors, L, params, state, anim) {
      difference because what the reader is watching is one number close on
      another. */
   const said = at.beat > 0
-    ? `Δa is shrinking to ${fSig(at.next)}, and the secant is turning onto the tangent`
+    ? `Δa shrinks to ${fSig(at.next)}; the secant approaches the tangent`
     : `Δa ${fSig(at.da)}: the secant's slope is ${fSig(secant)}; the tangent's is ${f1(slope)}`;
   label(ctx, colors, said, L.curve.x, L.curveY,
     { color: at.beat > 0 ? colors.highlight : colors.ink3 });
@@ -2624,9 +2624,10 @@ widgetApi = defineWidget({
   title: "Gradients",
   status: "draft",
   subtitle:
-    "A derivative is how much y changes for a small change in x. A partial "
-    + "derivative holds the other variables still, and the gradient is the "
-    + "vector of them. Gradient descent steps against that vector.",
+    "A derivative is how much y changes for a small change in a. A partial "
+    + "derivative is that along one variable with the others held constant, "
+    + "and the gradient is the vector of them. Gradient descent steps against "
+    + "that vector.",
   layout: "side",
   height: ({ w }) => stageHeight(w),
 
@@ -2647,7 +2648,7 @@ widgetApi = defineWidget({
         {
           value: "partial",
           label: "Partial derivatives",
-          detail: "the slope along each variable with the other held, and the vector of the two",
+          detail: "the slope along each variable with the other held constant, and the vector of the two",
         },
         {
           value: "descent",
@@ -2674,12 +2675,12 @@ widgetApi = defineWidget({
       max: 3,
       step: 0.1,
       default: 1,
-      detail: "held still while ∂y/∂a is taken, and varied for ∂y/∂b",
+      detail: "held constant for ∂y/∂a, varied for ∂y/∂b",
       when: { param: "tab", equals: "partial" },
     },
-    nudge: {
+    da: {
       type: "choice",
-      label: "Nudge Δa",
+      label: "Δa",
       /* A `detail` is a STATIC string, so it says what Δa is and what the
          secant's slope is in terms of the derivative, rather than a number
          that would move with the `a` slider under it. On this function the
@@ -2749,12 +2750,12 @@ widgetApi = defineWidget({
         {
           value: "raw",
           label: "Raw x",
-          detail: "x from 0 to 10. The surface's two curvatures are 68.5 and 0.50",
+          detail: "x from 0 to 10. Curvature 67 along b₁, 2 along b₀",
         },
         {
-          value: "std",
+          value: "standardized",
           label: "Standardized x",
-          detail: "x centred and divided by its standard deviation. Both curvatures are then 2",
+          detail: "x centred and divided by its standard deviation. Curvature 2 along both",
         },
       ],
       default: "raw",
@@ -2910,8 +2911,8 @@ widgetApi = defineWidget({
     ? [
       { token: "ink-2", label: "y = a² + 3ab, with b held at 1", mark: "line" },
       { token: "slope", label: "The secant through a and a + Δa, whose slope is Δy/Δa", mark: "line" },
-      { token: "slope", label: "The tangent at a, the limit the secant turns onto", mark: "dash" },
-      { token: "ink-1", label: "Δa along and Δy up, the two the slope is a ratio of", mark: "dash" },
+      { token: "slope", label: "The tangent at a, the limit of the secant as Δa → 0", mark: "dash" },
+      { token: "ink-1", label: "Δa and Δy, whose ratio is the secant's slope", mark: "dash" },
     ]
     : params.tab === "partial"
       /* THE TWO SLICES CARRY THE TWO COLOURS (decision 10), so each entry names
@@ -2923,7 +2924,7 @@ widgetApi = defineWidget({
           { token: "group-b", label: "The plane where a is held, and y along b on it", mark: "line" },
           { token: "slope", label: "The tangent on each slice, and the gradient on the surface", mark: "line" },
           /* Only in relief: on the map nothing is in front of a slice. */
-          { token: "ink-1", label: "A slice where the surface hides it", mark: "dash" },
+          { token: "ink-1", label: "A slice behind the surface", mark: "dash" },
         ]
         : [
           { token: "group-a", label: "y along a, with b held: the line on the map and the slice beside it", mark: "line" },
@@ -2951,7 +2952,7 @@ widgetApi = defineWidget({
             : []),
           /* Only in relief: on the map nothing is in front of the path. */
           ...(params.relief === "relief"
-            ? [{ token: "ink-1", label: "The path where the surface hides it", mark: "dash" }]
+            ? [{ token: "ink-1", label: "The path behind the surface", mark: "dash" }]
             : []),
           { token: "empirical", label: "Loss after each epoch", mark: "line" },
         ]
@@ -2979,11 +2980,11 @@ widgetApi = defineWidget({
        tab's ladder starts and how many rungs are left below it — the only thing
        its animation reveals. */
     if (params.tab !== "descent") {
-      const start = Math.max(0, NUDGES.map(String).indexOf(params.nudge));
+      const start = Math.max(0, NUDGES.map(String).indexOf(params.da));
       return { kind: params.tab, start, rungs: NUDGES.length - 1 - start };
     }
     const { x, y } = makeData(rng);
-    const xs = params.scale === "std" ? standardize(x) : x;
+    const xs = params.scale === "standardized" ? standardize(x) : x;
     const q = quad(xs, y);
     const dom = domainFor(q);
     const lr = Number(params.lr);
@@ -3021,25 +3022,25 @@ widgetApi = defineWidget({
        would be false on the very press that made it (4.4b). */
     stepLabel: {
       param: "tab",
-      labels: { derivative: "Shrink the nudge", descent: "Next epoch" },
+      labels: { derivative: "Shrink Δa", descent: "Next epoch" },
       default: "Next epoch",
     },
     stepTitle: {
       param: "tab",
       labels: {
-        derivative: "Take Δa one rung down the ladder, toward 0.01",
-        descent: "Take one epoch of gradient descent and redraw the walk",
+        derivative: "Take Δa to the next smaller value, toward 0.01",
+        descent: "Take one epoch of gradient descent and redraw the descent",
       },
-      default: "Take one epoch of gradient descent and redraw the walk",
+      default: "Take one epoch of gradient descent and redraw the descent",
     },
     runLabel: "Play",
     runTitle: {
       param: "tab",
       labels: {
-        derivative: "Take Δa down to 0.01, one rung at a time",
-        descent: "Descend to epoch 1000, or to the epoch the walk diverges at",
+        derivative: "Take Δa down to 0.01, one value at a time",
+        descent: "Descend to epoch 1000, or to the epoch the descent diverges at",
       },
-      default: "Descend to epoch 1000, or to the epoch the walk diverges at",
+      default: "Descend to epoch 1000, or to the epoch the descent diverges at",
     },
 
     /* THE PARTIAL DERIVATIVES TAB SAYS THERE IS NOTHING TO DRIVE, and core
@@ -3238,7 +3239,7 @@ widgetApi = defineWidget({
         high: colors.costHigh,
         left: "1×",
         right: `≥${Math.round(10 ** LOG_CAP)}×`,
-        middle: "loss ÷ the least, log scale",
+        middle: "loss ÷ minimum, log scale",
       });
     } else {
       /* CHOREOGRAPHY A (decision 7): the tangent and the arrow are simply
@@ -3315,7 +3316,7 @@ widgetApi = defineWidget({
     if (two && params.relief === "map" && !divergedShown) {
       const deg = stepAngle(q, at.cur[0], at.cur[1], at.grad[0], at.grad[1]);
       label(ctx, colors, arrived || deg === null
-        ? "The walk is at the minimum"
+        ? "The descent is at the minimum"
         : `The step follows the ${state.batch >= q.n ? "" : "batch's "}steepest slope, `
           + `${Math.round(deg)}° from the straight line to the minimum`,
       L.data.x, L.angleY, { color: colors.ink2 });
@@ -3338,7 +3339,7 @@ widgetApi = defineWidget({
       const moved = gradFn.y(params.a + at.da, B_HELD) - gradFn.y(params.a, B_HELD);
       return [
         { label: "Δa", value: fSig(at.da), note: "the change in a, from a to a + Δa" },
-        { label: "Δy", value: fSig(moved), note: "what y does over it" },
+        { label: "Δy", value: fSig(moved), note: "the change in y over it" },
         { label: "Δy/Δa", value: fSig(moved / at.da), note: "the secant's slope through the two points" },
         { label: "dy/da", value: f2(slope), note: "the limit as Δa → 0; the secant is above it by Δa" },
       ];
@@ -3351,10 +3352,10 @@ widgetApi = defineWidget({
         {
           label: "∂y/∂a, ∂y/∂b",
           value: `${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}`,
-          note: "2a + 3b along a, 3a along b — the gradient",
+          note: "the gradient: 2a + 3b along a, 3a along b",
         },
         {
-          label: "Steepest rise",
+          label: "|∇y|",
           value: fSig(Math.hypot(gradFn.da(a, b), gradFn.db(a))),
           note: "the length of the gradient, in y per unit of (a, b)",
         },
@@ -3389,11 +3390,11 @@ widgetApi = defineWidget({
           note: `least squares ${f3(q[C.fit])}, with ${nm.other} held at ${f2(q[C.held])}`,
         },
       {
-        label: "Loss",
+        label: "Loss ÷ minimum",
         value: divergedShown ? "diverged" : xTimes(ratio),
         note: divergedShown
           ? `at epoch ${track.diverged}`
-          : "the least possible loss is 1×",
+          : "1× at the least-squares line",
       },
       two
         ? {
@@ -3429,7 +3430,7 @@ widgetApi = defineWidget({
     if (params.tab === "partial") {
       const { a, b } = params;
       return `y = a² + 3ab over a and b with contour rings, ${params.relief === "relief"
-        ? "raised as a surface with the two slicing planes standing through it and the curve each one cuts"
+        ? "raised as a surface with the two slicing planes through it and the curve each one cuts"
         : "painted as a map"}, the point (${f1(a)}, ${f1(b)}) on it, `
         + `and the gradient (${f1(gradFn.da(a, b))}, ${f1(gradFn.db(a))}) drawn from it as an arrow uphill. `
         + `Beside it, the two slices through that point, each with its tangent.`;
@@ -3439,15 +3440,15 @@ widgetApi = defineWidget({
     const parts = params.view === "two"
       ? [
         `A scatter of y against x for ${N} rows with the line b₀ ${f2(at.cur[0])}, b₁ ${f2(at.cur[1])} drawn through it, beside the loss ${params.relief === "relief" ? "raised as a surface" : "painted"} over every (b₀, b₁) pair.`,
-        `The walk has taken ${at.ep} of ${EPOCHS} epochs from (0, 0) at learning rate ${state.lr}.`,
+        `The descent has taken ${at.ep} of ${EPOCHS} epochs from (0, 0) at learning rate ${state.lr}.`,
       ]
       : [
         `A scatter of y against x for ${N} rows with the line b₀ ${f2(at.cur[0])}, b₁ ${f2(at.cur[1])} drawn through it, beside the loss as a curve over ${ONE[params.which].symbol} with ${ONE[params.which].other} held at ${f2(q[COORD[params.which].held])}.`,
-        `The walk has taken ${at.ep} of ${EPOCHS} epochs from ${ONE[params.which].symbol} = 0 at learning rate ${state.lr}, and stands at ${f3(at.cur[COORD[params.which].i])}.`,
+        `The descent has taken ${at.ep} of ${EPOCHS} epochs from ${ONE[params.which].symbol} = 0 at learning rate ${state.lr}, and stands at ${f3(at.cur[COORD[params.which].i])}.`,
       ];
     parts.push(track.diverged !== null && at.ep >= track.diverged
       ? `It diverged at epoch ${track.diverged}.`
-      : `The loss is ${xTimes(Math.max(1, track.epochLoss[at.ep] / q.Lmin))} the least possible.`);
+      : `The loss is ${xTimes(Math.max(1, track.epochLoss[at.ep] / q.Lmin))} its minimum.`);
     parts.push("Beneath, the loss after each epoch on a log scale.");
     return parts.join(" ");
   },

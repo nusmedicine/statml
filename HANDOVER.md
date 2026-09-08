@@ -83,6 +83,13 @@ is 1.08 against the curve a tangent lies on. `tokens.css` and `env.js`
 changed; the full suite was run. CLAUDE.md's role list updated. 69
 assertions.
 
+**Round 10, 2026-09-08:** the copy audit, every item put to Kenneth as a
+question and settled. Two wire renames — `scale=std` → `standardized`,
+`nudge` → `da` (control **Δa**, button *Shrink Δa*) — "walk" → "descent",
+the loss tile relabelled *Loss ÷ minimum*, *Steepest rise* → *|∇y|*, the
+Covariate details print the axis curvatures (67, 2) the caption prints, and
+nine smaller rewrites. Catalogue slot 48 Round 10 has the list.
+
 **Found while building, not fixed:** core drops a `choice` field's own
 `detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
 has never rendered. A core change owes a full suite run, so it waits.
