@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, awaiting Kenneth's picks; the high-throughput arc is complete |
+| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08, the rest awaiting Kenneth's picks; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -9617,7 +9617,7 @@ epochs.
 | # | slug | title (the notebook's own heading) | group | host | state |
 |---|---|---|---|---|---|
 | 47 | `chain-rule` | Gradients by the Chain Rule | 1 | 05-1 cell 4; 05-2 cells 70–72 | proposed |
-| 48 | `gradient-descent` | Gradient Descent | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | proposed, **measured** |
+| 48 | `gradients` (was `gradient-descent`) | Gradients | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | **SHIPPED 2026-09-08**, ten review rounds; absorbed slot 47's two-variable page |
 | 49 | `processing-layers` | Processing Layers | 2 | 05-3 cells 1–33 | proposed |
 | 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 40–60 | proposed, lowest priority |
 | 51 | `composition` | Composing Layers | 3 | 05-3 cells 61–101 | proposed |
@@ -9686,7 +9686,7 @@ so the product gains a term that does not shrink — is a `skip` toggle on this
 page or lives on slot 51's Skip page. It is a fact about the product, which
 argues for here; it is drawn as a wiring, which argues for there.
 
-### Slot 48 · `gradient-descent` — Gradient Descent — MEASURED 2026-09-07
+### Slot 48 · `gradients` (was `gradient-descent`) — SHIPPED 2026-09-08, ten review rounds in two days
 
 **Host.** 05-2 cells 73–78 are the worked example: x = linspace(0, 10, 100),
 y = 5 + 2x + N(0, 1), the mean squared error, `SGD` at lr 0.01 from (0, 0),
@@ -10222,6 +10222,24 @@ the recommendation on every one:
   "where the surface hides it" → *behind the surface*, "planes standing
   through it", "held still" → *held constant*, and the subtitle now says
   *a* where the figure draws *a*. Every replacement is shorter.
+
+#### SHIPPED 2026-09-08, on Kenneth's "tested ok" after Round 10
+
+Eighteen fingerprint states, shot three times each in `_lab/gradients-shoot.html`
+(the hmm-shoot pattern; the copy proved against five existing states first):
+twelve settled — the Derivative tab at its top and bottom rung, the Partial
+derivatives map, its relief at the opening viewpoint and turned to 120/50 by
+the drag's two parameters, the one-parameter page empty, b₁ walked 10 epochs,
+b₀ at α 0.3, the two-parameter map at 10 epochs, standardized x diverged at
+α 3, the loss in relief, batch 1 — and six driven: the Derivative secant
+mid-shrink, the one-parameter point mid-move, the two-parameter Slow epoch
+1.0 s in, the relief mid-epoch, Play at Medium, and a Slow step interrupted
+by Fast. Every driven state differs from its settled sibling. The status
+flip removed the draft bar above the heading, so the states were shot again
+as shipped: identical. No hit-driven state: the drag is core's `drag`
+channel, not a region map, and the harness's `hit` looks for the pointer
+cursor a region sets; the turned-viewpoint settled state covers what the
+drag writes.
 
 ### Slot 49 · `processing-layers` — Processing Layers
 

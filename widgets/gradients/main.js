@@ -2622,7 +2622,7 @@ const clockView = (params) => (params.tab === "derivative" ? "derivative" : para
 widgetApi = defineWidget({
   slug: "gradients",
   title: "Gradients",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A derivative is how much y changes for a small change in a. A partial "
     + "derivative is that along one variable with the others held constant, "

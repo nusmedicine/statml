@@ -1,21 +1,28 @@
 # Handover
 
-**FORTY-FIVE WIDGETS — 44 on the gallery, `roc-auc` UNLISTED (live at its
-URL, off the cards; Kenneth's call, 2026-08-30). 349 fingerprint states, every
-one of them real and every one MATCHing as of 2026-09-06. `/lab/` is empty:
+**FORTY-SIX WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (live at its
+URL, off the cards; Kenneth's call, 2026-08-30). 367 fingerprint states, every
+one of them real and every one MATCHing as of 2026-09-08 (the two hmm states
+whose baseline is the settled 669px width read px-DIFFER when a run hashes
+them at 688; `_lab/hmm-shoot.html` reproduces them). `/lab/` is empty:
 there is no draft.**
 
 ---
 
-# NEXT: WIDGET 48 `gradients` (WAS `gradient-descent`) IS A DRAFT AWAITING KENNETH'S REVIEW
+# WIDGET 48 `gradients` SHIPPED 2026-09-08. NEXT: KENNETH'S PICKS FOR THE REST OF THE DEEP LEARNING ARC
 
-**Built 2026-09-07 from his six picks off `_lab/gd-mock.html`** (catalogue
-§ *Slot 48*, subsections *The mock-up*, *Kenneth's picks* and *BUILT AS A
-DRAFT*, which lists the state URLs). Status `draft` in `main.js` and the
-manifest; no fingerprint states yet — record them only on his "tested ok",
-per *Order of work* below. `_lab/gd-verify.mjs` runs under `npm test`. The
-draft is served at `http://localhost:8012/widgets/gradients/` from
-the `widgets-alt2` lane. Not pushed.
+**Shipped on his "tested ok" after ten review rounds** — 18 fingerprint
+states (catalogue § *Slot 48* → *SHIPPED*), status `shipped` in `main.js`
+and the manifest, pushed. The next task is the arc: slots 47 (`chain-rule`,
+whose two-variable page `gradients` now carries), 49–52, each planned in the
+catalogue § *The deep learning arc* with five questions for Kenneth at the
+end. Mock-up first, one widget per commit, push only on "tested ok".
+
+**How it was built, 2026-09-07, from his six picks off `_lab/gd-mock.html`**
+(catalogue § *Slot 48*, subsections *The mock-up*, *Kenneth's picks* and
+*BUILT AS A DRAFT*, which lists the state URLs). `_lab/gd-verify.mjs` runs
+under `npm test` (69 assertions). Served at
+`http://localhost:8012/widgets/gradients/` from the `widgets-alt2` lane.
 
 **Round 2 the same evening: the surface in relief**, `?relief=relief` on
 the two-parameter page. Kenneth asked for a 3D view, then whether the

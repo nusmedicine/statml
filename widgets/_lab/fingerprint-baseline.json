@@ -3037,6 +3037,170 @@
       },
       "px": "9c6674dc",
       "tx": "afa3435c"
+    },
+    {
+      "$note": "opens on the Derivative tab: the secant at Δa 0.5, the tangent faint",
+      "slug": "gradients",
+      "state": "?theme=light&shown=0",
+      "px": "41b72d42",
+      "tx": "917a2bba"
+    },
+    {
+      "$note": "the Derivative ladder taken to its bottom rung, Δa 0.01",
+      "slug": "gradients",
+      "state": "?theme=light&shown=5",
+      "px": "0dbe9cc9",
+      "tx": "04659087"
+    },
+    {
+      "$note": "Partial derivatives as a map: two slice lines, the gradient arrow, the two slices beside it",
+      "slug": "gradients",
+      "state": "?theme=light&tab=partial&shown=0",
+      "px": "48b27ebf",
+      "tx": "3c72920e"
+    },
+    {
+      "$note": "Partial derivatives in relief at the opening viewpoint, both planes and their curves",
+      "slug": "gradients",
+      "state": "?theme=light&tab=partial&relief=relief&shown=0",
+      "px": "6b522357",
+      "tx": "1cc01eea"
+    },
+    {
+      "$note": "the relief turned by the drag's two parameters: the hidden-line split from another angle",
+      "slug": "gradients",
+      "state": "?theme=light&tab=partial&relief=relief&turn=120&tilt=50&shown=0",
+      "px": "bde2db59",
+      "tx": "1cc01eea"
+    },
+    {
+      "$note": "the one-parameter page empty: the parabola over b₁, nothing walked",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&shown=0",
+      "px": "cad96f6a",
+      "tx": "cac3bd76"
+    },
+    {
+      "$note": "b₁ descended 10 epochs on raw x at α 0.01: tangent, arrow, the steps so far",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&shown=10",
+      "px": "3a294d83",
+      "tx": "4608b3fd"
+    },
+    {
+      "$note": "b₀ descending instead, curvature 2, at α 0.3",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&which=b0&lr=0.3&shown=10",
+      "px": "c0b0d6ec",
+      "tx": "3f6d7f7e"
+    },
+    {
+      "$note": "the two-parameter map after 10 epochs: components, direction, the straight line and its angle",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&shown=10",
+      "px": "6d440ed7",
+      "tx": "0b4088ea"
+    },
+    {
+      "$note": "standardized x at α 3: diverged, the panel and the tile say so",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&scale=standardized&lr=3&shown=20",
+      "px": "953d9ff9",
+      "tx": "8f89a404"
+    },
+    {
+      "$note": "the loss in relief after 10 epochs: the path with its hidden part dashed, tangents on the surface",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&relief=relief&shown=10",
+      "px": "095a2bda",
+      "tx": "ac5dca95"
+    },
+    {
+      "$note": "batch 1 for 3 epochs: 300 noisy updates on the map",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&batch=1&shown=3",
+      "px": "e92e8f61",
+      "tx": "7772e53b"
+    },
+    {
+      "$note": "DRIVEN: Derivative mid-shrink at Medium: the secant turning between two rungs",
+      "slug": "gradients",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 8,
+        "dt": 100
+      },
+      "px": "82de36b5",
+      "tx": "505a366b"
+    },
+    {
+      "$note": "DRIVEN: one parameter mid-move at Medium: the point sliding down the parabola, the tangent rolling with it",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent",
+      "drive": {
+        "click": "step",
+        "frames": 8,
+        "dt": 100
+      },
+      "px": "b3499ad1",
+      "tx": "cac3bd76"
+    },
+    {
+      "$note": "DRIVEN: two parameters at Slow, 1.0 s into a 2 s epoch: the partials drawn, the direction composing",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 100
+      },
+      "px": "06febd55",
+      "tx": "dea8f618"
+    },
+    {
+      "$note": "DRIVEN: the relief at Slow mid-epoch: tangents on the surface while the step is in flight",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&relief=relief&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 100
+      },
+      "px": "e74a6fe5",
+      "tx": "2f0f27db"
+    },
+    {
+      "$note": "DRIVEN: two parameters at Medium under Play: epochs counted, no choreography",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two",
+      "drive": {
+        "click": "run",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "604eecd7",
+      "tx": "2ae5dfd6"
+    },
+    {
+      "$note": "DRIVEN: INTERRUPTED: a Slow step in flight when Fast takes over; the beat is cleared, nothing is left half-drawn",
+      "slug": "gradients",
+      "state": "?theme=light&tab=descent&view=two&speed=slow",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 6
+          }
+        ],
+        "set": {
+          "speed": "fast"
+        },
+        "frames": 3,
+        "dt": 100
+      },
+      "px": "02c01f0c",
+      "tx": "22470e5a"
     }
   ]
 }
