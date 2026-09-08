@@ -97,9 +97,12 @@ the loss tile relabelled *Loss ÷ minimum*, *Steepest rise* → *|∇y|*, the
 Covariate details print the axis curvatures (67, 2) the caption prints, and
 nine smaller rewrites. Catalogue slot 48 Round 10 has the list.
 
-**Found while building, not fixed:** core drops a `choice` field's own
-`detail` and shows only the selected option's; `mlp`'s "Hidden units" detail
-has never rendered. A core change owes a full suite run, so it waits.
+**Found while building, FIXED 2026-09-08 after the ship:** the option-list
+types dropped a field's own `detail` and showed only the selected option's;
+nine fields in eight widgets had written one and none had rendered. Principle
+3.4f's fourth paragraph has the list. The fix revealed nine lines of rail copy
+Kenneth had not seen on screen — the mixed-model ones carry "never" and
+em-dashes — so they are due a register pass.
 
 # THE DEEP LEARNING ARC IS PLANNED; SLOT 48 IS THE FIRST BUILT
 

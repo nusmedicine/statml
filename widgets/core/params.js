@@ -113,8 +113,10 @@ export function resolveParams(spec, search) {
  * Options may be ["a","b"] or [{value,label,detail}] or {a:"A", b:"B"}.
  *
  * `label` is the SHORT name — it has to fit a slider tick or a segment button.
- * `detail` is optional and renders as a muted line under a `choice` slider, so a
- * short tick label can still explain what the current setting actually does.
+ * An option's `detail` is optional and renders as a muted line under the
+ * control, so a short tick label can still explain what the current setting
+ * actually does. It sits below the FIELD's own `detail`, which describes the
+ * parameter and renders on every field type (3.4f).
  */
 export function optionEntries(field) {
   const o = field.options;

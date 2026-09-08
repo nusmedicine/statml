@@ -83,6 +83,18 @@ function clauseShowing(w, values) {
   return "equals" in w ? values[w.param] === w.equals : Boolean(values[w.param]);
 }
 
+/* THE FIELD'S OWN `detail`, as the static line every other type renders (3.4f).
+   The option-list types (`choice`, `segmented`, `matrix`) also carry a second,
+   changing line for the selected option; this one describes the parameter and
+   comes first. */
+function ownDetail(wrap, field) {
+  if (!field.detail) return;
+  const d = document.createElement("p");
+  d.className = "w-detail";
+  d.textContent = field.detail;
+  wrap.appendChild(d);
+}
+
 export function fieldShowing(field, values) {
   return field.when ? clauseShowing(field.when, values) : true;
 }
@@ -727,6 +739,7 @@ function build(host, spec, values, onChange, api) {
       box.appendChild(grid);
       wrap.appendChild(box);
 
+      ownDetail(wrap, field);
       const detail = document.createElement("p");
       detail.className = "w-detail";
       wrap.appendChild(detail);
@@ -807,6 +820,14 @@ function build(host, spec, values, onChange, api) {
       }
       wrap.appendChild(ticks);
 
+      /* 3.4f, THE FOURTH TIME. The three option-list types rendered the SELECTED
+         OPTION's `detail` and dropped the FIELD's own — the line that says what
+         the parameter is, before any value is picked. Nine fields in eight
+         widgets had written one (mlp's "Hidden units", mixed-model's four,
+         dbscan, enrichment, generalization, normalization) and none was ever
+         on screen. The field's line is static and comes first; the option's
+         line stays below it and changes with the selection. */
+      ownDetail(wrap, field);
       const detail = document.createElement("p");
       detail.className = "w-detail";
       wrap.appendChild(detail);
@@ -899,6 +920,7 @@ function build(host, spec, values, onChange, api) {
         buttons.set(o.value, b);
         run.seg.appendChild(b);
       }
+      ownDetail(wrap, field);
       wrap.appendChild(detail);
       mark(values[name]);
       setters[name] = mark;

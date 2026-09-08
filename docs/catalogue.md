@@ -9819,7 +9819,9 @@ the wrong unit.
 **One latent core bug it found**: a `choice` field's own `detail` is
 dropped by core and only the selected option's shows — `mlp`'s "Hidden
 units" detail has never rendered. Not fixed here (core change, full suite);
-the `lr` control carries the same detail on every option instead.
+the `lr` control carries the same detail on every option instead. **Fixed
+2026-09-08 after the ship** — principle 3.4f, fourth paragraph; nine fields
+in eight widgets rendered a line for the first time.
 
 #### Kenneth asked for a 3D view as an option — mocked 2026-09-07, `_lab/gd-3d.html`
 

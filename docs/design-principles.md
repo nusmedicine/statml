@@ -655,6 +655,18 @@ says "the direction warning is therefore the widget's job". It was never on
 screen. Widget 9's tab strip carried the distinction between an exact grid and a
 sampler, which is the entire reason its fourth tab exists; also never on screen.
 
+**Fixed a fourth time, 2026-09-08, and the survey lesson held.** The three
+option-list types — `choice`, `segmented` and `matrix` — rendered the
+selected OPTION's `detail` and dropped the FIELD's own, the line that says
+what the parameter is before any value is picked. Found while building widget
+48, whose Δa ladder wanted both; a survey of the tree found nine fields in
+eight widgets that had written one — `mlp`'s "Hidden units", four in
+`mixed-model`, `dbscan`, `enrichment`, `generalization`,
+`normalization` — none of them ever on screen. The table above says `choice`
+"rendered it": it rendered the option's, and nobody had asked which. One
+helper renders the field's line first on all three; the option's line stays
+below it and changes with the selection.
+
 **A field's declared copy is a promise the framework has to keep.** Same field,
 same job, same rendering, everywhere.
 
