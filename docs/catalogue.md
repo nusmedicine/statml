@@ -11022,6 +11022,29 @@ Index band. `check` and `test` pass; **the full fingerprint suite at DPR
 1.25: 390 states, the 23 tensors placeholders DIFFER as a draft's must and
 the other 367 MATCH**, so the new tokens reach no other widget.
 
+**Round 10 — the Basics style on every tab (2026-09-09), after Kenneth's
+"ok commit this locally. then apply the visualization style/animation from
+this basics page to the others".** Committed first (`5d55894`, local, the
+nine rounds and both core changes). Then, built by the main session: every
+tab is named bands with the expression it performs on the Result band's
+header (`T.permute(0, 2, 1)`, `torch.cat([T, T2], dim=0)`, `X + b`,
+`Y = X @ W.T`, `torch.mean(X, dim=0)`, `(X − μ) / σ`); Shape and Join are
+*Tensor(s)* over *Result*, Broadcast and Multiply *Operands* over *Result*,
+Reduce one band (its arrows would cross a boundary), Standardize one band.
+Every result is printed beside its drawing right of a hairline, so the
+algebra tabs now connect to PyTorch's print as Basics does. Every band is
+as tall as its content and `tabHeight` sizes every stage from the
+parameters alone — Broadcast 379px, Multiply 446, Reduce 275 / 197 / 208
+against the fixed 598 before — so the air Kenneth circled is gone
+everywhere. Every Step is staged the Basics way through one `phases(beat)`:
+the operands the step reads light first, then the result lands (a row or a
+cell appears; a reduced group's values glide into the cell they become; a
+moved value lights in place before it flies). One `litFace` — wash .50,
+bold digit — on every tab. Reduce's rules take the removed dimension's hue.
+Two things fixed on review: the Y print showed `2.6000000000000005` (now
+`M.num`), and the failing product printed `undefined` for its clash.
+`check` and `test` pass. Nothing in core changed this round.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

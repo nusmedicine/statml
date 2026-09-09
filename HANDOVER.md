@@ -54,7 +54,12 @@ function of the parameters on that tab. Then **round 9** (colour, type,
 motion — measured in `_lab/tensor-look.html`, picked, built by the main
 session): `--c-dim-a..d` in tokens.css/env.js, the selection at .50 and
 bold, one type step up, and two eases on Basics through `anim.easing`.
-**He is testing before the commit** (his call: hold). Next: his test verdict, then one
+**COMMITTED locally on his word as `5d55894`** (nine rounds, both core
+changes; NOT pushed). Then **round 10**, uncommitted: the Basics style on
+every tab — named bands with the expression as the Result header, every
+result printed beside its drawing, content-sized stages via `tabHeight`,
+every Step staged (light, then land) through one `phases()` and one
+`litFace()`. Awaiting his test; then commit. Next: his test verdict, then one
 local commit of plan, mock and widget; on "tested ok" the fingerprint states
 for real, `status` flipped, push.
 

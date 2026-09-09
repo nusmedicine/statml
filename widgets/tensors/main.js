@@ -201,6 +201,21 @@
       screen height. Two eases on Basics, 4.4's one allowed case: Stack <->
       Frames moves the same cells (object constancy), and an index change is
       STAGED — light, then glide — per Heer & Robertson 2007.
+
+  22. ROUND 10 (Kenneth: "apply the visualization style/animation from this
+      basics page to the others"). Every tab is now bands: Tensor(s) and
+      Result on Shape and Join, Operands and Result on Broadcast and Multiply,
+      one band on Reduce (its arrows cross where a boundary would be) and on
+      Standardize. The expression the tab performs is the Result band's
+      header — `T.permute(0, 2, 1)`, `torch.cat([T, T2], dim=0)`, `X + b`,
+      `Y = X @ W.T`, `torch.mean(X, dim=0)` — and every result is printed
+      beside its drawing right of a hairline. Every band is as tall as its
+      content and `tabHeight` sizes the stage from the parameters alone, so
+      the fixed 598px stage and its air are gone on every tab. Every Step is
+      staged the Basics way: the operands the step reads LIGHT, then the
+      result LANDS (a row appears, a cell appears, a group's values glide
+      into the cell they reduce to, a value flies to its new place). The
+      selection face is one function, `litFace`, on every tab.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -256,7 +271,6 @@ const ROLE_RIGHT = 78;
 const ROLE_LEFT = 14;
 const ROLE_BOTTOM = 16;
 
-const ARROW_H = 30;       // between the source block and the result block
 
 /* THE CELL SIZE IS SET BY THE WIDEST THING BROADCAST, MULTIPLY AND REDUCE
    DRAW, and it is the same on those three so a cell means one thing across
@@ -293,7 +307,6 @@ const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").match
    Measured in `_lab/tensor-sweep.html` at both widths. The other five topics
    carry the extra space under Kenneth's one-height call, and the Shape and
    Join tabs spend it: their rank-4 results are drawn as that same column. */
-const stageHeight = (w) => 9 * cellSize(w) + 328;
 
 const CAPTION_H = 17;
 const SHAPE_CAPTIONS = 3;
@@ -303,10 +316,6 @@ const SHAPE_CAPTIONS = 3;
    is centred instead, in the band between the panel labels' headroom and the
    captions pinned to the foot. `blockH` is measured from the first grid's top
    edge down to the last line under it. */
-const blockTop = (h, blockH, capLines, headroom = 20) =>
-  Math.round(PAD + headroom
-    + Math.max(0, (h - 2 * PAD - capLines * CAPTION_H - headroom - blockH) / 2));
-
 /* --- primitives ----------------------------------------------------------- */
 
 function txt(ctx, colors, s, x, y, opts = {}) {
@@ -407,7 +416,11 @@ function pushRoles(plan, ctx, colors, roles, hues, x, y) {
 }
 
 function pushBand(plan, x, y, w, h, title, expr, divX) {
-  plan.bands.push({ x, y, w, h, title, expr, divX });
+  const band = { x, y, w, h, title, expr, divX };
+  plan.bands.push(band);
+  /* returned so a caller can place the hairline once it knows how wide its
+     drawing came out */
+  return band;
 }
 
 /** An index label a drawing has just written, offered as a click target. `dim`
@@ -1078,6 +1091,36 @@ function drawnSize(colors, shape, s, view, perRow, source, roles, opts) {
 /** The whole Shape block at cell `s`, with the print beside every drawing or
     under every drawing. Returns what it measures, plus the row heights the
     painter needs to stack the source tensors. */
+/* --- one step, two phases (round 10) ---------------------------------------- *
+ * Every Step on the widget is staged the way the Basics extraction is: the
+ * operands the step reads LIGHT first, then the result LANDS (Heer & Robertson
+ * 2007: two changes, one after the other, are two the eye can follow). The
+ * split is the Basics one; the beat is the tab's own clock, so Slow, Medium
+ * and Fast keep their lengths and Fast, which does not choreograph, still
+ * shows results arriving in place.                                             */
+const SPLIT = LIGHT_MS / (LIGHT_MS + GLIDE_MS);
+const phases = (beat) => ({
+  light: c01(beat / SPLIT),
+  land: easeOut(c01((beat - SPLIT) / (1 - SPLIT))),
+});
+const LIT_A = 0.50;
+/** The selection face every tab shares: the highlight wash at .50 with a bold
+    digit, so it differs from a plain cell in lightness and weight, not hue
+    alone; `a` fades it in during a light phase. */
+const litFace = (colors, a = 1) => ({
+  fill: colors.highlight, alpha: WASH + (LIT_A - WASH) * a, lit: true, bold: true,
+});
+
+/* Bands are content-sized on every tab: a band is as tall as what it holds,
+   and the stage is as tall as its bands. `height` asks the same geometry
+   functions `draw` does (5.8), so the two cannot disagree. */
+const bandH = (inner) => BAND_HEAD + 2 * BAND_PAD + inner;
+const stageOf = (bands, captions) =>
+  PAD + bands.reduce((a, b) => a + b, 0) + (bands.length - 1) * BAND_GAP + 6 + captions * CAPTION_H + PAD;
+const GRID_LBL = 18;      // `X  [2, 5]` above a grid
+
+/* --- the Shape and Join tabs ---------------------------------------------- */
+
 function shapeBlock(colors, op, view, s, avail, prints, mode) {
   const place = mode === "beside" ? beside : under;
   const roomFor = (p) => (mode === "beside" ? avail - PRINT_GAP - p.w : avail);
@@ -1099,62 +1142,84 @@ function shapeBlock(colors, op, view, s, avail, prints, mode) {
     perRow,
     srcRow,
     w: Math.max(src.w, out.w),
-    h: src.h + ARROW_H + out.h,
     srcH: src.h,
+    outH: out.h,
     rowH: rows.map((r) => r.h),
   };
 }
 
-function shapeFit(colors, w, h, op, view, prints) {
-  const avail = w - 2 * PAD;
-  const room = h - 2 * PAD - SHAPE_CAPTIONS * CAPTION_H;
-  const fits = (b) => b.w <= avail && b.h <= room;
-  let dropped = null;    // the largest cell whose print sits UNDER its drawing
-  let tight = null;      // the largest cell that keeps the print beside, below CELL_OK
+/** The largest cell that fits the WIDTH with the print beside its drawing, down
+    to CELL_OK; below that a print under the drawing is preferred to a smaller
+    cell. Height is no longer a constraint: the bands grow to fit. */
+function shapeFit(colors, w, op, view, prints) {
+  const avail = w - 2 * PAD - 2 * BAND_PAD;
+  let tight = null;
   for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
     const aside = shapeBlock(colors, op, view, s, avail, prints, "beside");
-    if (fits(aside)) {
+    if (aside.w <= avail) {
       if (s >= CELL_OK) return { s, ...aside };
       if (!tight) tight = { s, ...aside };
     }
-    if (!dropped) {
-      const drop = shapeBlock(colors, op, view, s, avail, prints, "under");
-      if (fits(drop)) dropped = { s, ...drop };
-    }
+    const drop = shapeBlock(colors, op, view, s, avail, prints, "under");
+    if (drop.w <= avail) return { s, ...drop };
   }
-  return dropped ?? tight
-    ?? { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, "under") };
+  return tight ?? { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, "under") };
 }
 
-/* --- the Shape tab -------------------------------------------------------- */
+const SRC_NAMES = ["T", "T2"];
+
+/** The operation as the line of code that performs it — the Result band's header. */
+const shapeExpr = (op) => (op.second
+  ? `torch.${op.label.slice(0, op.label.indexOf("("))}([T, T2], dim=0)`
+  : `T.${op.label}`);
+
+/** Everything the Shape and Join tabs need, from the parameters alone. */
+function shapeGeometry(ctx, colors, w, params) {
+  const op = params.tab === "join" ? M.joinByValue(params.join) : M.opByValue(params.op);
+  const view = params.view;
+  const moves = M.shapeWalk(op);
+  const tensors = op.second ? [M.T3, M.T3B] : [M.T3];
+  const cw = monoChar(ctx, colors.fsSm);
+  const finalAt = new Map(moves.map((m) => [m.dst.join(","), m.v]));
+  /* The print's column width is measured over the FINISHED tensor, values not
+     yet placed included, so nothing under a value shifts when it lands. */
+  const prints = {
+    sources: tensors.map((tensor, t) =>
+      printOf(M.T3_SHAPE, ([i, r, c]) => tensor[i][r][c], SRC_NAMES[t], cw)),
+    result: printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw),
+  };
+  const fit = shapeFit(colors, w, op, view, prints);
+  const bands = [bandH(fit.srcH), bandH(fit.outH)];
+  return { op, view, tensors, cw, prints, fit, bands, height: stageOf(bands, SHAPE_CAPTIONS) };
+}
 
 /**
  * Which move is where. `n` values are placed; while a step is in flight the
- * move at index `n` is between its source cell and its destination.
+ * move at index `n` first LIGHTS in the source (the light phase) and then
+ * glides to its destination (the land phase).
  */
 function shapeStand(state, anim, speed) {
   const flying = anim.beat > 0 && anim.n < state.units && M.choreographs(speed);
+  const ph = phases(anim.beat);
   return {
     n: anim.n,
     flying,
-    t: flying ? easeInOut(Math.min(1, anim.beat)) : 0,
+    glide: flying && anim.beat > SPLIT,
+    light: ph.light,
+    t: ph.land,
     moving: flying ? state.moves[anim.n] : null,
     last: anim.n > 0 && !flying ? state.moves[anim.n - 1] : null,
   };
 }
 
-const SRC_NAMES = ["T", "T2"];
-
 function planShape(ctx, colors, w, h, params, state, anim) {
   const plan = newPlan();
-  const op = state.op;
-  const view = params.view;
+  const { op, view, tensors, cw, prints, fit, bands } = shapeGeometry(ctx, colors, w, params);
   const at = shapeStand(state, anim, params.speed);
-  const cw = monoChar(ctx, colors.fsSm);
-  const tensors = op.second ? [M.T3, M.T3B] : [M.T3];
+  const s = fit.s;
 
   /* Where every value stands: consumed, just moved, in flight, or waiting. */
-  const consumed = (k) => k < at.n || (at.flying && k === at.n);
+  const consumed = (k) => k < at.n || (at.glide && k === at.n);
   const moving = (k) => at.flying && k === at.n;
   const justMoved = (k) => Boolean(at.last) && k === at.n - 1;
   const flat = (t, [i, r, c]) => t * M.CELLS + i * 10 + r * 5 + c;
@@ -1164,49 +1229,44 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     const m = state.moves[k];
     placed.set(m.dst.join(","), { v: m.v, last: justMoved(k) });
   }
-  const finalAt = new Map(state.moves.map((m) => [m.dst.join(","), m.v]));
 
   const srcKey = (t, idx) => `${SRC_NAMES[t]}|${idx.join(",")}`;
   const srcName = (t, idx, v) => `${M.indexText(SRC_NAMES[t], idx)} = ${v}`;
   const resKey = (idx) => `result|${idx.join(",")}`;
   const resName = (idx, v) => `${M.indexText("result", idx)} = ${v}`;
 
-  /* The print's column width is measured over the FINISHED tensor, values not
-     yet placed included, so nothing under a value shifts when it lands. */
-  const prints = {
-    sources: tensors.map((tensor, t) =>
-      printOf(M.T3_SHAPE, ([i, r, c]) => tensor[i][r][c], SRC_NAMES[t], cw)),
-    result: printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw),
-  };
-
-  const fit = shapeFit(colors, w, h, op, view, prints);
-  const s = fit.s;
-  const x0 = centred(w, fit.w);
-  const y0 = Math.round(PAD
-    + Math.max(0, (h - 2 * PAD - SHAPE_CAPTIONS * CAPTION_H - fit.h) / 2));
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  const top = pushBand(plan, xL, yT, bandW, bands[0], op.second ? "Tensors" : "Tensor", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", shapeExpr(op), null);
+  const cx = xL + BAND_PAD;
 
   /* --- the source tensors, each with its own print ------------------------ */
   const srcCentres = [];
-  let ty = y0;
+  let ty = yT + BAND_HEAD + BAND_PAD;
+  let widest = 0;
   tensors.forEach((tensor, t) => {
     const cell = (idx) => {
       const [i, r, c] = idx;
       const k = flat(t, idx);
       const v = tensor[i][r][c];
-      const face = moving(k) || justMoved(k)
-        ? { fill: colors.highlight, alpha: 0.34, lit: true }
-        : consumed(k)
-          ? { fill: colors.surface, alpha: 0, ink: colors.ink2 }
-          : { fill: t === 0 ? colors.groupA : colors.groupB };
+      const face = moving(k) && !at.glide ? litFace(colors, at.light)
+        : justMoved(k) ? litFace(colors)
+          : consumed(k)
+            ? { fill: colors.surface, alpha: 0, ink: colors.ink2 }
+            : { fill: t === 0 ? colors.groupA : colors.groupB };
       return { v, ...face, key: srcKey(t, idx), name: srcName(t, idx, v) };
     };
     const draw = t === 0
-      ? pushSource(plan, colors, x0, ty, s, view, cell, fit.srcRow)
-      : pushTensor(plan, colors, x0, ty, M.T3_SHAPE, s, view, cell, fit.srcRow);
+      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow)
+      : pushTensor(plan, colors, cx, ty, M.T3_SHAPE, s, view, cell, fit.srcRow);
     srcCentres.push(draw.centre);
+    widest = Math.max(widest, draw.w);
 
     const p = prints.sources[t];
-    const px = fit.mode === "beside" ? x0 + draw.w + PRINT_GAP : x0;
+    const px = fit.mode === "beside" ? cx + draw.w + PRINT_GAP : cx;
     const py = fit.mode === "beside" ? ty : ty + draw.h + PRINT_DROP;
     pushPrint(plan, colors, px, py, p.print, cw, (idx) => {
       const k = flat(t, idx);
@@ -1222,23 +1282,24 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       { color: colors.ink2, mono: true, size: colors.fsSm, baseline: "top" });
     ty += fit.rowH[t] + INNER_GAP;
   });
+  /* the hairline between drawing and print, where the print sits beside */
+  if (fit.mode === "beside") top.divX = cx + widest + PRINT_GAP / 2;
 
   /* --- the result --------------------------------------------------------- */
-  const resY = y0 + fit.srcH + ARROW_H;
-  const resDraw = pushTensor(plan, colors, x0, resY, op.shape, s, view, (idx) => {
+  const resY = yB + BAND_HEAD + BAND_PAD;
+  const resDraw = pushTensor(plan, colors, cx, resY, op.shape, s, view, (idx) => {
     const held = placed.get(idx.join(","));
     if (held) {
-      const face = held.last
-        ? { fill: colors.highlight, alpha: 0.34, lit: true }
-        : { fill: colors.empirical };
+      const face = held.last ? litFace(colors) : { fill: colors.empirical };
       return { v: held.v, ...face, key: resKey(idx), name: resName(idx, held.v) };
     }
     if (at.moving && at.moving.dst.join(",") === idx.join(",")) return { empty: true, lit: true };
     return { empty: true };
   }, fit.perRow);
+  if (fit.mode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
 
   const rp = prints.result;
-  const rpx = fit.mode === "beside" ? x0 + resDraw.w + PRINT_GAP : x0;
+  const rpx = fit.mode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
   const rpy = fit.mode === "beside" ? resY : resY + resDraw.h + PRINT_DROP;
   pushPrint(plan, colors, rpx, rpy, rp.print, cw, (idx) => {
     const held = placed.get(idx.join(","));
@@ -1253,27 +1314,26 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     { color: colors.ink2, mono: true, size: colors.fsSm, baseline: "top" });
 
   /* The value in flight, between the cell it left and the cell it is going to
-     — both read off the same `centre` the boxes were drawn from. */
-  if (at.flying) {
+     — both read off the same `centre` the boxes were drawn from. It leaves
+     only once the light phase is over. */
+  if (at.glide) {
     const from = srcCentres[at.moving.t](at.moving.src);
     const to = resDraw.centre(at.moving.dst);
-    const cx = from.x + (to.x - from.x) * at.t;
-    const cy = from.y + (to.y - from.y) * at.t;
-    pushGrid(plan, cx - s / 2, cy - s / 2, 1, 1, s,
-      () => ({ v: at.moving.v, fill: colors.highlight, alpha: 0.34, lit: true }));
+    plan.ghosts.push({
+      x: from.x + (to.x - from.x) * at.t - s / 2,
+      y: from.y + (to.y - from.y) * at.t - s / 2,
+      s,
+      d: { v: at.moving.v, ...litFace(colors) },
+    });
   }
 
-  pushArrow(plan, x0 + 9, resY - ARROW_H + 4, x0 + 9, resY - 6, colors.ink2, 2);
-  pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM],
-    PAD, h - PAD - 2 * CAPTION_H);
+  pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
 
 const PRINT_RULE =
   "The innermost brackets hold the rows, and each outer bracket is one more dimension.";
 const FOURTH_DIM = "An image batch adds a fourth dimension: sample, channel, height, width.";
-
-const centred = (w, width) => Math.round(PAD + (w - 2 * PAD - width) / 2);
 
 /* --- the Basics topic ----------------------------------------------------- *
  * ROUND 7: THE STAGE IS A 2 x 2 OF NAMED REGIONS. Rows are the tensor and the
@@ -1426,8 +1486,6 @@ function basicsGeometry(ctx, colors, w, params) {
   };
   return { spec, sel, cw, prints, fit: basicsFit(colors, w, spec, sel, params.view, prints) };
 }
-
-const basicsHeight = (w, params) => basicsGeometry(measureCtx(), readTokens(), w, params).fit.height;
 
 /** Every index of a shape, in reading order; `[[]]` for a scalar. */
 function allIndices(shape) {
@@ -1611,44 +1669,72 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
   return plan;
 }
 
-/* --- the Broadcast tab ---------------------------------------------------- */
+/* --- the Broadcast tab ---------------------------------------------------- *
+ * ROUND 10: THE BASICS STYLE ON EVERY TAB. Two named bands — the operands the
+ * expression reads, and the result it makes — each as tall as its content, the
+ * result printed beside its drawing right of a hairline, the expression on the
+ * Result band's header, and every Step staged: the row the step reads lights,
+ * then the row it makes lands.                                                */
 
-function planBroadcast(colors, w, h, params, state, anim) {
-  const plan = newPlan();
+/** The [2, 5] result as PyTorch prints it, `null` where a row has not landed. */
+function bcGeometry(colors, w, params, cw) {
+  const bc = M.bCaseByValue(params.b);
+  const bp = M.broadcastPlan(bc);
   const s = cellSize(w);
-  const bc = state.bc;
-  const bp = state.plan;
   const rows = M.BC_X_SHAPE[0];
   const cols = M.BC_X_SHAPE[1];
   const xW = cols * s;
   /* A shape that combines occupies the whole footprint it stretches into; one
-     that does not is drawn at its own size, because there is nothing to stretch
-     it to. */
+     that does not is drawn at its own size, because there is nothing to
+     stretch it to. */
   const bW = bp.ok ? xW : bc.shape[bc.shape.length - 1] * s;
-  const bRows = bp.ok ? rows : 1;
-  const rW = bp.ok ? xW : ERROR_W;
   const sep = OP_W + GAP;
+  /* under the operands, the lesson's own alignment block: a heading and one
+     line per dimension */
+  const alignH = 16 + 2 * 17 + 6;
+  const operandsH = GRID_LBL + rows * s + 30 + alignH;
+  const print = bp.ok ? printOf(M.BC_X_SHAPE, ([r, c]) => bp.result[r][c], "result", cw) : null;
+  const resultH = bp.ok ? Math.max(GRID_LBL + rows * s, print.h) : 44;
+  const bands = [bandH(operandsH), bandH(resultH)];
+  return { bc, bp, s, rows, cols, xW, bW, sep, print, bands, height: stageOf(bands, 1) };
+}
 
-  const x0 = centred(w, xW + bW + rW + 2 * sep);
-  const y0 = blockTop(h, rows * s + 69, 1);
+function planBroadcast(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const { bc, bp, s, rows, cols, xW, bW, sep, print, bands } = bcGeometry(colors, w, params, cw);
+  const done = anim.n;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
+
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  pushBand(plan, xL, yT, bandW, bands[0], "Operands", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", "X + b", null);
+
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
   const mid = y0 + (rows * s) / 2 + 6;
+  /* the row a step is reading lights in X and in b's copies before it lands */
+  const reading = (r) => Boolean(ph) && r === done;
 
-  pushText(plan, panelLine("X", M.BC_X_SHAPE), x0, y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, panelLine("X", M.BC_X_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, x0, y0, rows, cols, s, (r, c) => ({
-    v: M.BC_X[r][c], fill: colors.groupA, name: `${M.indexText("X", [r, c])} = ${M.BC_X[r][c]}`,
+    v: M.BC_X[r][c],
+    ...(reading(r) ? litFace(colors, ph.light) : { fill: colors.groupA }),
+    name: `${M.indexText("X", [r, c])} = ${M.BC_X[r][c]}`,
   }));
 
   const bx = x0 + xW + sep;
-  pushText(plan, "+", x0 + xW + sep / 2, mid,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
-  pushText(plan, panelLine("b", bc.shape), bx, y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, "+", x0 + xW + sep / 2, mid, { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, panelLine("b", bc.shape), bx, y0 - 6, { color: colors.ink1, mono: true });
   /* b's OWN values solid, its stretched copies faint, over the same rect: the
      stretch is the whole of what broadcasting does and it has to be visible as
      a copy rather than as a value b holds. */
+  const bRows = bp.ok ? rows : 1;
   pushGrid(plan, bx, y0, bRows, Math.max(1, Math.round(bW / s)), s, (r, c) => (bc.real(r, c)
-    ? { v: bc.at(r, c), fill: colors.groupB, name: M.bName(bc, r, c) }
+    ? { v: bc.at(r, c), ...(reading(r) ? litFace(colors, ph.light) : { fill: colors.groupB }), name: M.bName(bc, r, c) }
     : null));
   /* A STRETCHED COPY IS HOVERABLE AND REPORTS b's OWN INDEX, which is the
      point of it: the copy at [1, 3] is still b[3], and saying so is what tells
@@ -1656,135 +1742,170 @@ function planBroadcast(colors, w, h, params, state, anim) {
   if (bp.ok) {
     pushGrid(plan, bx, y0, rows, cols, s, (r, c) => (bc.real(r, c)
       ? null
-      : { v: bc.at(r, c), fill: colors.groupB, faint: true, name: M.bName(bc, r, c) }));
-  }
-
-  const rx = bx + bW + sep;
-  pushText(plan, "=", bx + bW + sep / 2, mid,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
-  if (bp.ok) {
-    pushText(plan, panelLine("result", bp.shape), rx, y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
-    const done = anim.n;
-    const rising = anim.beat > 0 && done < state.units ? anim.beat : 0;
-    pushGrid(plan, rx, y0, rows, cols, s, (r, c) => {
-      const v = bp.result[r][c];
-      const name = `${M.indexText("result", [r, c])} = ${v}`;
-      if (r < done) {
-        return r === done - 1 && rising === 0
-          ? { v, fill: colors.highlight, alpha: 0.34, lit: true, name }
-          : { v, fill: colors.empirical, name };
-      }
-      if (r === done && rising > 0) {
-        return { v, fill: colors.highlight, alpha: 0.34 * rising, lit: true };
-      }
-      return { empty: true };
-    });
-  } else {
-    pushText(plan, `no result: ${bp.clash}`, rx, y0 + 16,
-      { color: colors.extreme, size: colors.fsSm });
-    pushText(plan, "cannot broadcast", rx, y0 + 34, { color: colors.extreme, size: colors.fsSm });
+      : { v: bc.at(r, c), fill: colors.groupB, faint: true, lit: reading(r), name: M.bName(bc, r, c) }));
   }
 
   /* The alignment block, exactly as the lesson writes the rule: the two shapes
      right-aligned in mono, and each dimension's verdict beside them. */
-  const ay = y0 + rows * s + 48;
+  const ay = y0 + rows * s + 30 + 14;
   const xText = M.shapeText(M.BC_X_SHAPE);
   const bText = M.shapeText(bc.shape).padStart(xText.length, " ");
   pushText(plan, "Line the shapes up from the right", x0, ay - 16, { color: colors.ink3 });
-  pushText(plan, xText, x0, ay, { color: colors.ink1, mono: true, size: colors.fsSm });
-  pushText(plan, bText, x0, ay + 17, { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, xText, x0, ay, { color: colors.ink1, mono: true });
+  pushText(plan, bText, x0, ay + 17, { color: colors.ink1, mono: true });
   bp.rows.forEach((row, i) => {
     pushText(plan, `dim ${row.dim} · ${row.x} against ${row.b}: ${row.verdict}`,
-      x0 + 84, ay + i * 17, { color: row.verdict === "error" ? colors.extreme : colors.ink2, mono: true });
+      x0 + 90, ay + i * 17, { color: row.verdict === "error" ? colors.extreme : colors.ink2, mono: true });
   });
 
-  pushCaptions(plan, colors, [BC_RULE], PAD, h - PAD - CAPTION_H);
+  /* --- the result ---------------------------------------------------------- */
+  const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+  if (bp.ok) {
+    pushText(plan, panelLine("result", bp.shape), x0, ry - 6, { color: colors.ink1, mono: true });
+    const rowState = (r) => (r < done ? (r === done - 1 && !ph ? "last" : "done") : r === done && ph ? "landing" : "none");
+    pushGrid(plan, x0, ry, rows, cols, s, (r, c) => {
+      const v = bp.result[r][c];
+      const name = `${M.indexText("result", [r, c])} = ${v}`;
+      const st = rowState(r);
+      if (st === "done") return { v, fill: colors.empirical, name };
+      if (st === "last") return { v, ...litFace(colors), name };
+      if (st === "landing") return ph.land > 0 ? { v, ...litFace(colors), alpha: LIT_A * ph.land, name } : { empty: true, lit: true };
+      return { empty: true };
+    });
+    bot.divX = x0 + xW + PRINT_GAP / 2;
+    const px = x0 + xW + PRINT_GAP;
+    const py = yB + BAND_HEAD + BAND_PAD;
+    pushPrint(plan, colors, px, py, print.print, cw, ([r, c]) => {
+      const st = rowState(r);
+      if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
+      return {
+        color: st === "done" ? colors.ink1 : colors.highlight,
+        key: `result|${r},${c}`,
+        name: `${M.indexText("result", [r, c])} = ${bp.result[r][c]}`,
+        fade: st === "landing",
+      };
+    });
+    if (ph && rowState(done) === "landing") plan.fadeAlpha = ph.land;
+    pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
+      { color: colors.ink2, mono: true, baseline: "top" });
+  } else {
+    pushText(plan, `no result: ${bp.clash}`, x0, ry, { color: colors.extreme });
+    pushText(plan, "cannot broadcast", x0, ry + 18, { color: colors.extreme });
+  }
+
+  pushCaptions(plan, colors, [BC_RULE], PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
 
-const ERROR_W = 150;   // the two lines a shape mismatch prints where a result would go
 const BC_RULE = "A missing dimension counts as 1, and equal or 1 passes.";
 
 /* --- the Multiply tab ----------------------------------------------------- */
 
-function planMultiply(colors, w, h, params, state, anim) {
-  const plan = newPlan();
+function mmGeometry(colors, w, params, cw) {
+  const mm = M.mmCaseByValue(params.weights);
   const s = cellSize(w);
-  const mm = state.mm;
-  const B = mm.matrix;
   const bRows = mm.shape[0];
   const bCols = mm.shape[1];
-
   const xW = M.MM_X_SHAPE[1] * s;
   const bW = bCols * s;
-  const rW = mm.ok ? M.MM_Y_SHAPE[1] * s : ERROR_W;
   const sep = OP_W + GAP;
-  const x0 = centred(w, xW + bW + rW + 2 * sep);
-  const y0 = blockTop(h, Math.max(M.MM_X_SHAPE[0], bRows) * s + 34, 2);
+  /* the tallest operand is Wᵀ at four rows; the sum of products sits under all
+     of them */
+  const gridsH = Math.max(M.MM_X_SHAPE[0], bRows) * s;
+  const operandsH = GRID_LBL + gridsH + 30 + 16;
+  /* printed as the readout prints them — 2.6, not 2.6000000000000005 */
+  const print = mm.ok ? printOf(M.MM_Y_SHAPE, ([r, c]) => M.num(M.MM_Y[r][c]), "Y", cw) : null;
+  const resultH = mm.ok ? Math.max(GRID_LBL + M.MM_Y_SHAPE[0] * s, print.h) : 44;
+  const bands = [bandH(operandsH), bandH(resultH)];
+  return { mm, s, xW, bW, sep, bRows, bCols, gridsH, print, bands, height: stageOf(bands, 2) };
+}
+
+function planMultiply(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const { mm, s, xW, bW, sep, bRows, bCols, gridsH, print, bands } = mmGeometry(colors, w, params, cw);
+  const B = mm.matrix;
+  const ph = mm.ok && anim.beat > 0 && anim.n < state.units ? phases(anim.beat) : null;
+  const cur = mm.ok ? mmCurrent(anim, state, ph ? 1 : 0) : null;
+
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  pushBand(plan, xL, yT, bandW, bands[0], "Operands", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", mm.ok ? "Y = X @ W.T" : "X @ W", null);
+
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
   const mid = y0 + 1.5 * s + 6;
-  /* The tallest operand is Wᵀ at four rows; the sum of products sits under all
-     three so it clears whichever is taller. */
-  const below = y0 + Math.max(M.MM_X_SHAPE[0], bRows) * s + 30;
+  const below = y0 + gridsH + 30;
+  /* the row and the column a step reads light before the cell lands; once it
+     has landed they stay lit at full strength until the next step */
+  const litA = ph ? ph.light : 1;
 
-  const rising = mm.ok && anim.beat > 0 && anim.n < state.units ? anim.beat : 0;
-  const cur = mm.ok ? mmCurrent(anim, state, rising) : null;
-
-  pushText(plan, panelLine("X", M.MM_X_SHAPE), x0, y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, panelLine("X", M.MM_X_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, x0, y0, M.MM_X_SHAPE[0], M.MM_X_SHAPE[1], s, (r, c) => ({
     v: M.MM_X[r][c],
-    fill: colors.groupA,
-    lit: Boolean(cur) && r === cur.r,
+    ...(Boolean(cur) && r === cur.r ? litFace(colors, litA) : { fill: colors.groupA }),
     name: `${M.indexText("X", [r, c])} = ${M.MM_X[r][c]}`,
   }));
 
   const bx = x0 + xW + sep;
-  pushText(plan, "@", x0 + xW + sep / 2, mid,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
-  pushText(plan, panelLine(mm.name, mm.shape), bx, y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, "@", x0 + xW + sep / 2, mid, { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, panelLine(mm.name, mm.shape), bx, y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, bx, y0, bRows, bCols, s, (r, c) => ({
     v: B[r][c],
-    fill: colors.groupB,
-    lit: Boolean(cur) && c === cur.c,
+    ...(Boolean(cur) && c === cur.c ? litFace(colors, litA) : { fill: colors.groupB }),
     name: `${M.indexText(mm.name, [r, c])} = ${M.num(B[r][c])}`,
   }));
 
-  const rx = bx + bW + sep;
-  pushText(plan, "=", bx + bW + sep / 2, mid,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
   if (mm.ok) {
-    pushText(plan, panelLine("Y", M.MM_Y_SHAPE), rx, y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
-    pushGrid(plan, rx, y0, M.MM_Y_SHAPE[0], M.MM_Y_SHAPE[1], s, (r, c) => {
-      const k = r * 2 + c;
-      const v = M.MM_Y[r][c];
-      const name = `${M.indexText("Y", [r, c])} = ${M.num(v)}`;
-      if (k < anim.n) {
-        return k === anim.n - 1 && rising === 0
-          ? { v, fill: colors.highlight, alpha: 0.34, lit: true, name }
-          : { v, fill: colors.empirical, name };
-      }
-      if (k === anim.n && rising > 0) return { v, fill: colors.highlight, alpha: 0.34 * rising, lit: true };
-      return { empty: true };
-    });
     if (cur) {
       const p = M.productTerms(cur.r, cur.c);
       pushText(plan, `${M.indexText("Y", [cur.r, cur.c])} = ${p.text}`, x0, below,
-        { color: colors.highlight, mono: true, size: colors.fsSm });
+        { color: colors.highlight, mono: true });
     }
+    /* --- the result -------------------------------------------------------- */
+    const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+    pushText(plan, panelLine("Y", M.MM_Y_SHAPE), x0, ry - 6, { color: colors.ink1, mono: true });
+    const cellState = (k) => (k < anim.n ? (k === anim.n - 1 && !ph ? "last" : "done") : k === anim.n && ph ? "landing" : "none");
+    pushGrid(plan, x0, ry, M.MM_Y_SHAPE[0], M.MM_Y_SHAPE[1], s, (r, c) => {
+      const k = r * 2 + c;
+      const v = M.MM_Y[r][c];
+      const name = `${M.indexText("Y", [r, c])} = ${M.num(v)}`;
+      const st = cellState(k);
+      if (st === "done") return { v, fill: colors.empirical, name };
+      if (st === "last") return { v, ...litFace(colors), name };
+      if (st === "landing") return ph.land > 0 ? { v, ...litFace(colors), alpha: LIT_A * ph.land, name } : { empty: true, lit: true };
+      return { empty: true };
+    });
+    const yW = M.MM_Y_SHAPE[1] * s;
+    bot.divX = x0 + yW + PRINT_GAP / 2;
+    const px = x0 + yW + PRINT_GAP;
+    const py = yB + BAND_HEAD + BAND_PAD;
+    pushPrint(plan, colors, px, py, print.print, cw, ([r, c]) => {
+      const st = cellState(r * 2 + c);
+      if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
+      return {
+        color: st === "done" ? colors.ink1 : colors.highlight,
+        key: `Y|${r},${c}`,
+        name: `${M.indexText("Y", [r, c])} = ${M.num(M.MM_Y[r][c])}`,
+        fade: st === "landing",
+      };
+    });
+    if (ph && cellState(anim.n) === "landing") plan.fadeAlpha = ph.land;
+    pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
+      { color: colors.ink2, mono: true, baseline: "top" });
   } else {
-    pushText(plan, `no product: ${mm.clash}`, rx, y0 + 16,
-      { color: colors.extreme, size: colors.fsSm });
-    pushText(plan, "inner dimensions must match", rx, y0 + 34,
-      { color: colors.extreme, size: colors.fsSm });
     pushText(plan, `${M.shapeText(M.MM_X_SHAPE)} @ ${M.shapeText(mm.shape)}`, x0, below,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
+      { color: colors.ink1, mono: true });
     plan.brackets = { x: x0, y: below + 6 };
+    const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+    pushText(plan, `no product: 4 against ${mm.shape[0]}`, x0, ry, { color: colors.extreme });
+    pushText(plan, "inner dimensions must match", x0, ry + 18, { color: colors.extreme });
   }
 
-  pushCaptions(plan, colors, mm.ok ? MM_CAPTIONS : MM_FAIL_CAPTIONS, PAD, h - PAD - 2 * CAPTION_H);
+  pushCaptions(plan, colors, mm.ok ? MM_CAPTIONS : MM_FAIL_CAPTIONS, PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
 
@@ -1809,84 +1930,147 @@ const cellAt = (k, units) => (k < 0 || k >= units ? null : { r: Math.floor(k / 2
 const mmCurrent = (anim, state, rising) =>
   cellAt(rising > 0 ? anim.n : anim.n - 1, state.units);
 
-/* --- the Reduce tab ------------------------------------------------------- */
+/* --- the Reduce tab ------------------------------------------------------- *
+ * ONE BAND: the arrows run from the tensor to the result, and a band boundary
+ * between them would cut the one line the tab is about. The expression on the
+ * header is the lesson's own form, `torch.mean(X, dim=0)`, and the result is
+ * printed beside the drawing as on every other tab.                          */
 
-function planReduce(colors, w, h, params, state, anim) {
-  const plan = newPlan();
-  if (state.normalize) return planNormalize(plan, colors, w, h, state, anim);
+const REDUCE_ARROW = 30;
 
+const reduceExpr = (fn, dim) => (dim === "none" ? `torch.${fn}(X)` : `torch.${fn}(X, dim=${dim})`);
+
+function redGeometry(colors, w, params, cw) {
   const s = cellSize(w);
+  const normalize = params.normalize === "1" && params.dim === "0" && params.fn === "mean";
   const dim = params.dim;
+  const rowsX = M.RED_X_SHAPE[0];
+  const xw = M.RED_X_SHAPE[1] * s;
+  if (normalize) {
+    /* four grids of four columns in one row is the widest thing any tab draws
+       after flatten; this panel shrinks its cell rather than wrapping, because
+       the row IS the sentence: X minus mu, divided by sigma, equals the result */
+    const sep = OP_W + GAP;
+    const sN = Math.min(s, Math.floor((w - 2 * PAD - 2 * BAND_PAD - 3 * sep) / 16));
+    const bands = [bandH(GRID_LBL + 3 * sN)];
+    return { normalize, s: sN, sep, bands, height: stageOf(bands, 2) };
+  }
+  const values = M.reduceValues(params.fn, dim);
+  const shape = M.reduceShape(dim);
+  const print = printOf(shape, (idx) => values[idx.length ? idx[0] : 0], "result", cw);
+  const drawH = dim === "1" ? GRID_LBL + rowsX * s
+    : GRID_LBL + rowsX * s + REDUCE_ARROW + s + GRID_LBL;
+  const drawW = dim === "1" ? xw + 40 + s : xw;
+  const bands = [bandH(Math.max(drawH, print.h))];
+  return { normalize, s, dim, rowsX, xw, drawW, values, shape, print, bands, height: stageOf(bands, 1) };
+}
+
+function planReduce(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const g = redGeometry(colors, w, params, cw);
+  if (g.normalize) return planNormalize(plan, colors, w, h, state, anim, g);
+
+  const { s, dim, rowsX, xw, drawW, values, print, bands } = g;
   const groups = state.groups;
-  const values = state.values;
   const done = anim.n;
-  const rising = anim.beat > 0 && done < state.units ? anim.beat : 0;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
   const inGroup = (r, c) => {
-    const g = groups[done];
-    return rising > 0 && g ? g.cells.some(([gr, gc]) => gr === r && gc === c) : false;
+    const grp = groups[done];
+    return Boolean(ph) && grp ? grp.cells.some(([gr, gc]) => gr === r && gc === c) : false;
   };
   const lastGroup = (r, c) => {
-    const g = done > 0 && rising === 0 ? groups[done - 1] : null;
-    return g ? g.cells.some(([gr, gc]) => gr === r && gc === c) : false;
+    const grp = done > 0 && !ph ? groups[done - 1] : null;
+    return grp ? grp.cells.some(([gr, gc]) => gr === r && gc === c) : false;
   };
+  const hues = dimHues(colors, 2);
 
-  const rowsX = 3;
-  const y0 = blockTop(h, (dim === "1" ? rowsX * s + 22 : (rowsX + 1) * s + 56), 1);
-  const xw = 4 * s;
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const band = pushBand(plan, xL, yT, bandW, bands[0], "Reduce", reduceExpr(params.fn, dim), null);
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
 
+  pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
+  const xBox = pushGrid(plan, x0, y0, rowsX, 4, s, (r, c) => ({
+    v: M.RED_X[r][c],
+    ...(inGroup(r, c) ? litFace(colors, ph.light) : lastGroup(r, c) ? litFace(colors) : { fill: colors.groupA }),
+    name: `X[${r}, ${c}] = ${M.RED_X[r][c]}`,
+  }));
+
+  /* the result: where it sits depends on the dimension that goes */
+  const arrowTone = (k) => (k === done - 1 && !ph) || (k === done && ph) ? colors.highlight
+    : k < done ? colors.ink2 : colors.ink3;
+  let resBox;
+  let resLabelAt;
   if (dim === "0") {
-    const x0 = centred(w, xw);
-    pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
-    pushGrid(plan, x0, y0, rowsX, 4, s, (r, c) => ({
-      v: M.RED_X[r][c], fill: colors.groupA,
-      lit: inGroup(r, c) || lastGroup(r, c),
-      name: `X[${r}, ${c}] = ${M.RED_X[r][c]}`,
-    }));
     for (let c = 0; c < 4; c += 1) {
-      const on = c < done || (c === done && rising > 0);
-      pushArrow(plan, x0 + c * s + s / 2, y0 + rowsX * s + 4, x0 + c * s + s / 2, y0 + rowsX * s + 26,
-        c === done - 1 || (c === done && rising > 0) ? colors.highlight : on ? colors.ink2 : colors.ink3);
+      pushArrow(plan, x0 + c * s + s / 2, y0 + rowsX * s + 4, x0 + c * s + s / 2, y0 + rowsX * s + REDUCE_ARROW - 4, arrowTone(c));
     }
-    pushGrid(plan, x0, y0 + rowsX * s + 34, 1, 4, s, (r, c) => resultCell(colors, c, done, rising, values, "result"));
-    pushText(plan, panelLine("result", M.reduceShape(dim)), x0, y0 + rowsX * s + 34 + s + 18,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
+    const ry = y0 + rowsX * s + REDUCE_ARROW;
+    resBox = pushGrid(plan, x0, ry, 1, 4, s, (r, c) => resultCell(colors, c, done, ph, values, "result"));
+    resLabelAt = [x0, ry + s + GRID_LBL - 4];
+    /* the dimension that goes, in its hue, along the arrows */
+    pushRule(plan, x0 - 4, y0, x0 - 4, y0 + rowsX * s, hues[0]);
   } else if (dim === "1") {
-    const total = xw + 40 + s;
-    const x0 = centred(w, total);
-    pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
-    pushGrid(plan, x0, y0, rowsX, 4, s, (r, c) => ({
-      v: M.RED_X[r][c], fill: colors.groupA,
-      lit: inGroup(r, c) || lastGroup(r, c),
-      name: `X[${r}, ${c}] = ${M.RED_X[r][c]}`,
-    }));
     for (let r = 0; r < rowsX; r += 1) {
-      const on = r < done || (r === done && rising > 0);
-      pushArrow(plan, x0 + xw + 6, y0 + r * s + s / 2, x0 + xw + 34, y0 + r * s + s / 2,
-        r === done - 1 || (r === done && rising > 0) ? colors.highlight : on ? colors.ink2 : colors.ink3);
+      pushArrow(plan, x0 + xw + 6, y0 + r * s + s / 2, x0 + xw + 34, y0 + r * s + s / 2, arrowTone(r));
     }
-    pushGrid(plan, x0 + xw + 40, y0, rowsX, 1, s, (r) => resultCell(colors, r, done, rising, values, "result"));
-    pushText(plan, panelLine("result", M.reduceShape(dim)), x0 + xw + 40, y0 + rowsX * s + 18,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
+    resBox = pushGrid(plan, x0 + xw + 40, y0, rowsX, 1, s, (r) => resultCell(colors, r, done, ph, values, "result"));
+    resLabelAt = [x0 + xw + 40, y0 - 6];
+    pushRule(plan, x0, y0 - 4, x0 + xw, y0 - 4, hues[1]);
   } else {
-    const x0 = centred(w, xw);
-    pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
-    pushGrid(plan, x0, y0, rowsX, 4, s, (r, c) => ({
-      v: M.RED_X[r][c], fill: colors.groupA,
-      lit: inGroup(r, c) || lastGroup(r, c),
-      name: `X[${r}, ${c}] = ${M.RED_X[r][c]}`,
-    }));
-    pushArrow(plan, x0 + xw / 2, y0 + rowsX * s + 4, x0 + xw / 2, y0 + rowsX * s + 26,
-      done > 0 || rising > 0 ? colors.highlight : colors.ink3);
-    pushGrid(plan, x0 + xw / 2 - s / 2, y0 + rowsX * s + 34, 1, 1, s,
-      () => resultCell(colors, 0, done, rising, values, "result"));
-    pushText(plan, "result  []", x0 + xw / 2 - s / 2, y0 + rowsX * s + 34 + s + 18,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
+    pushArrow(plan, x0 + xw / 2, y0 + rowsX * s + 4, x0 + xw / 2, y0 + rowsX * s + REDUCE_ARROW - 4,
+      done > 0 || ph ? colors.highlight : colors.ink3);
+    const ry = y0 + rowsX * s + REDUCE_ARROW;
+    resBox = pushGrid(plan, x0 + xw / 2 - s / 2, ry, 1, 1, s, () => resultCell(colors, 0, done, ph, values, "result"));
+    resLabelAt = [x0 + xw / 2 - s / 2, ry + s + GRID_LBL - 4];
+    pushRule(plan, x0 - 4, y0, x0 - 4, y0 + rowsX * s, hues[0]);
+    pushRule(plan, x0, y0 - 4, x0 + xw, y0 - 4, hues[1]);
+  }
+  pushText(plan, panelLine("result", M.reduceShape(dim)), resLabelAt[0], resLabelAt[1],
+    { color: colors.ink1, mono: true });
+
+  /* the group's values glide into the cell they reduce to, once they have lit */
+  if (ph && ph.land > 0 && groups[done]) {
+    const k = done;
+    const to = dim === "1"
+      ? { x: resBox.x + s / 2, y: resBox.y + k * s + s / 2 }
+      : dim === "0"
+        ? { x: resBox.x + k * s + s / 2, y: resBox.y + s / 2 }
+        : { x: resBox.x + s / 2, y: resBox.y + s / 2 };
+    for (const [gr, gc] of groups[done].cells) {
+      const from = { x: xBox.x + gc * s + s / 2, y: xBox.y + gr * s + s / 2 };
+      plan.ghosts.push({
+        x: from.x + (to.x - from.x) * ph.land - s / 2,
+        y: from.y + (to.y - from.y) * ph.land - s / 2,
+        s,
+        d: { v: M.RED_X[gr][gc], ...litFace(colors), alpha: LIT_A * (1 - ph.land) + WASH },
+      });
+    }
   }
 
-  pushCaptions(plan, colors, [RED_CAPTIONS[dim]], PAD, h - PAD - CAPTION_H);
+  /* the result, printed beside the drawing */
+  band.divX = x0 + drawW + PRINT_GAP / 2;
+  const px = x0 + drawW + PRINT_GAP;
+  const py = yT + BAND_HEAD + BAND_PAD;
+  pushPrint(plan, colors, px, py, print.print, cw, (idx) => {
+    const k = idx.length ? idx[0] : 0;
+    if (k >= done + (ph && ph.land > 0 ? 1 : 0)) return null;
+    const landing = ph && k === done;
+    return {
+      color: k === done - 1 && !ph || landing ? colors.highlight : colors.ink1,
+      key: `result|${k}`,
+      name: `result[${k}] = ${M.num(values[k])}`,
+      fade: landing,
+    };
+  });
+  if (ph && ph.land > 0) plan.fadeAlpha = ph.land;
+  pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
+    { color: colors.ink2, mono: true, baseline: "top" });
+
+  pushCaptions(plan, colors, [RED_CAPTIONS[dim]], PAD, yT + bands[0] + 6 + 13);
   return plan;
 }
 
@@ -1896,14 +2080,16 @@ const RED_CAPTIONS = {
   none: "With no dim named every dimension goes, and the result is a scalar.",
 };
 
-function resultCell(colors, k, done, rising, values, name) {
+/** A result cell of a reduction: landed, the last to land, landing now, or not yet. */
+function resultCell(colors, k, done, ph, values, name) {
   const v = values[k];
+  const label = `${name}[${k}] = ${M.num(v)}`;
   if (k < done) {
-    return k === done - 1 && rising === 0
-      ? { v, fill: colors.highlight, alpha: 0.34, lit: true, name: `${name}[${k}] = ${M.num(v)}` }
-      : { v, fill: colors.empirical, name: `${name}[${k}] = ${M.num(v)}` };
+    return k === done - 1 && !ph ? { v, ...litFace(colors), name: label } : { v, fill: colors.empirical, name: label };
   }
-  if (k === done && rising > 0) return { v, fill: colors.highlight, alpha: 0.34 * rising, lit: true };
+  if (k === done && ph) {
+    return ph.land > 0 ? { v, ...litFace(colors), alpha: LIT_A * ph.land, name: label } : { empty: true, lit: true };
+  }
   return { empty: true };
 }
 
@@ -1912,34 +2098,32 @@ function resultCell(colors, k, done, rising, values, name) {
    taken over dim 0, which is why the control is offered only there. One step
    still collapses one column, and fills that column of μ, of σ and of the
    result together. */
-function planNormalize(plan, colors, w, h, state, anim) {
-  /* FOUR GRIDS OF FOUR COLUMNS IN ONE ROW is the widest thing any tab draws
-     after flatten, and at 550px the tab's own cell size overflows it by 38px.
-     This one panel shrinks its cell rather than wrapping, because the row IS
-     the sentence: X minus mu, divided by sigma, equals the result. */
-  const sep = OP_W + GAP;
-  const s = Math.min(cellSize(w), Math.floor((w - 2 * PAD - 3 * sep) / 16));
+function planNormalize(plan, colors, w, h, state, anim, g) {
+  const { s, sep, bands } = g;
   const done = anim.n;
-  const rising = anim.beat > 0 && done < state.units ? anim.beat : 0;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
   const cw = 4 * s;
-  const total = 4 * cw + 3 * sep;
-  const x0 = centred(w, total);
-  const y0 = blockTop(h, 3 * s + 4, 2);
-  const col = (i) => x0 + i * (cw + sep);
-  const has = (c) => c < done || (c === done && rising > 0);
-  const alphaFor = (c) => (c === done && rising > 0 ? rising : 1);
 
-  pushText(plan, panelLine("X", M.RED_X_SHAPE), col(0), y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  pushBand(plan, xL, yT, bandW, bands[0], "Standardize", "(X − μ) / σ", null);
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
+  const col = (i) => x0 + i * (cw + sep);
+  const has = (c) => c < done || (c === done && Boolean(ph) && ph.land > 0);
+  const alphaFor = (c) => (c === done && ph ? ph.land : 1);
+  const reading = (c) => Boolean(ph) && c === done;
+
+  pushText(plan, panelLine("X", M.RED_X_SHAPE), col(0), y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, col(0), y0, 3, 4, s, (r, c) => ({
-    v: M.RED_X[r][c], fill: colors.groupA,
-    lit: has(c) && (c === done || c === done - 1),
+    v: M.RED_X[r][c],
+    ...(reading(c) ? litFace(colors, ph.light) : c === done - 1 && !ph ? litFace(colors) : { fill: colors.groupA }),
     name: `X[${r}, ${c}] = ${M.RED_X[r][c]}`,
   }));
 
   const band = (i, sym, vals, shape) => {
-    pushText(plan, panelLine(sym, shape), col(i), y0 - 8,
-      { color: colors.ink1, mono: true, size: colors.fsSm });
+    pushText(plan, panelLine(sym, shape), col(i), y0 - 6, { color: colors.ink1, mono: true });
     pushGrid(plan, col(i), y0, 1, 4, s, (r, c) => (has(c)
       ? { v: vals[c], fill: colors.groupB, alpha: WASH * alphaFor(c), name: `${sym}[${c}] = ${M.num(vals[c])}` }
       : { empty: true }));
@@ -1947,26 +2131,22 @@ function planNormalize(plan, colors, w, h, state, anim) {
       ? { v: vals[c], fill: colors.groupB, faint: true, name: `${sym}[${c}] = ${M.num(vals[c])}` }
       : null));
   };
-  pushText(plan, "−", col(0) + cw + sep / 2, y0 + 1.5 * s + 6,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, "−", col(0) + cw + sep / 2, y0 + 1.5 * s + 6, { color: colors.ink1, size: colors.fsLg, align: "center" });
   band(1, "μ", M.RED_MU, [4]);
-  pushText(plan, "÷", col(1) + cw + sep / 2, y0 + 1.5 * s + 6,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, "÷", col(1) + cw + sep / 2, y0 + 1.5 * s + 6, { color: colors.ink1, size: colors.fsLg, align: "center" });
   band(2, "σ", M.RED_SD, [4]);
-  pushText(plan, "=", col(2) + cw + sep / 2, y0 + 1.5 * s + 6,
-    { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, "=", col(2) + cw + sep / 2, y0 + 1.5 * s + 6, { color: colors.ink1, size: colors.fsLg, align: "center" });
 
-  pushText(plan, panelLine("result", M.RED_X_SHAPE), col(3), y0 - 8,
-    { color: colors.ink1, mono: true, size: colors.fsSm });
+  pushText(plan, panelLine("result", M.RED_X_SHAPE), col(3), y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, col(3), y0, 3, 4, s, (r, c) => {
     if (!has(c)) return { empty: true };
     const v = M.RED_Z[r][c];
-    return c === done - 1 || (c === done && rising > 0)
-      ? { v, fill: colors.highlight, alpha: 0.34 * alphaFor(c), lit: true, name: `result[${r}, ${c}] = ${M.num(v)}` }
+    return c === done - 1 && !ph || (c === done && ph)
+      ? { v, ...litFace(colors), alpha: LIT_A * alphaFor(c), name: `result[${r}, ${c}] = ${M.num(v)}` }
       : { v, fill: colors.empirical, name: `result[${r}, ${c}] = ${M.num(v)}` };
   });
 
-  pushCaptions(plan, colors, NORM_CAPTIONS, PAD, h - PAD - 2 * CAPTION_H);
+  pushCaptions(plan, colors, NORM_CAPTIONS, PAD, yT + bands[0] + 6 + 13);
   return plan;
 }
 
@@ -1974,6 +2154,22 @@ const NORM_CAPTIONS = [
   "μ and σ are [4], stretched back across the three rows.",
   "A reduction, and then a broadcast: σ is 1 in every column of this batch.",
 ];
+
+/** The stage height for any tab, from the parameters alone — bayesian's
+    precedent, on every topic (round 10). */
+function tabHeight(w, params) {
+  const ctx = measureCtx();
+  const colors = readTokens();
+  const cw = monoChar(ctx, colors.fsSm);
+  switch (params.tab) {
+    case "basics": return basicsGeometry(ctx, colors, w, params).fit.height;
+    case "shape":
+    case "join": return shapeGeometry(ctx, colors, w, params).height;
+    case "broadcast": return bcGeometry(colors, w, params, cw).height;
+    case "multiply": return mmGeometry(colors, w, params, cw).height;
+    default: return redGeometry(colors, w, params, cw).height;
+  }
+}
 
 /* --- the readout's cell tile ---------------------------------------------- *
  * Set during `draw`, read one line later by `readout` — core calls them in that
@@ -2026,10 +2222,9 @@ defineWidget({
   /* A function of the WIDTH, because the cell size is: wider cells are taller
      cells, and the six rows of permute's result grow with them. One height for
      all four tabs, so the frame does not jump as the reader moves between them. */
-  /* The Basics stage is as tall as its two bands, which depend on the rank,
-     the view and the index — bayesian's precedent; every other tab shares one
-     height (3.4). */
-  height: ({ w, ...values }) => (values.tab === "basics" ? basicsHeight(w, values) : stageHeight(w)),
+  /* Every stage is as tall as its bands, which depend on the tab and its
+     parameters — bayesian's precedent, on every topic (round 10). */
+  height: ({ w, ...values }) => tabHeight(w, values),
 
   /* Hovering any cell prints its index and value. An inspector, not a control:
      nothing is written and with no pointer the figure is exactly as before. */
@@ -2364,7 +2559,7 @@ defineWidget({
       { token: "empirical", label: "The tensor the operation reads, and the result it builds" },
       ...(op.second ? [{ token: "group-b", label: "The second tensor" }] : []),
       { token: "highlight", label: "The value that just moved, in the drawing and in the printed text" },
-      { token: "ink-3", label: "A value that has already moved out of the source" },
+      { token: "ink-2", label: "A value that has already moved out of the source" },
       ...(params.view === "frames"
         ? [{ token: "ink-3", label: "A dashed frame holds one index of the dimension it names", mark: "ring" }]
         : []),
@@ -2566,9 +2761,9 @@ defineWidget({
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
     const plan = params.tab === "basics" ? planBasics(ctx, colors, w, h, params, anim)
       : state.kind === "shape" ? planShape(ctx, colors, w, h, params, state, anim)
-        : params.tab === "broadcast" ? planBroadcast(colors, w, h, params, state, anim)
-          : params.tab === "multiply" ? planMultiply(colors, w, h, params, state, anim)
-            : planReduce(colors, w, h, params, state, anim);
+        : params.tab === "broadcast" ? planBroadcast(ctx, colors, w, h, params, state, anim)
+          : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
+            : planReduce(ctx, colors, w, h, params, state, anim);
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
     hovered = hitPlan(plan, pointer);
     paintPlan(ctx, colors, plan, hovered);
