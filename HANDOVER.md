@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through twenty review rounds and NOT PUSHED. **The spec is his
+locally through twenty-one review rounds and NOT PUSHED. **The spec is his
 notebook's own structure** (`05-2 - DL Foundations - Tensors and
 Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
 `_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
@@ -34,11 +34,16 @@ three groups with squeeze and transpose (`2461cdd`), the algebra row as
 cell 45's table (Scalar · Broadcast · Multiply · Reduce), and the docs.
 Multiply's dot and Hadamard kinds followed in a fifth commit, with the
 notebook's amino-acid vectors and a mask drawn from the seed (cells
-59–65). **Nothing from his round-19 picks is left to build.** Read
+59–65). Round 21 answered his four issues on 20 in one commit — squeeze
+and unsqueeze drawn at rank 4 through a size-1 fifth dimension in front,
+the broadcast stretch as steps of its own, a complete Manipulate/Join
+result gliding into its new arrangement on a data change (one core
+change: the data path grants the ease `init` asks for), and cell strings
+fitted to their cells. **Nothing he has asked for is left to build.** Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–35) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–36) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph

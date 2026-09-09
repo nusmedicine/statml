@@ -480,9 +480,9 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
     reshapeFrom([-1, -1]).error === "only one dimension can be inferred");
   check("the empty call fails with torch's message",
     reshapeFrom([]).error === "shape '[]' is invalid for input of size 20");
-  check("every listed shape resolves, and a fifth dimension resolves in torch's terms but the figure declines it",
+  check("every listed shape resolves; a fifth dimension draws with a 1 in front and is declined elsewhere (round 21)",
     RESHAPE_SHAPES.every((sh) => reshapeFrom(sh).ok) && reshapeFrom([1, 1, 1, 1, 20]).ok
-    && shapeOp("reshape", [1, 1, 1, 1, 20]).limit === true);
+    && shapeOp("reshape", [1, 1, 1, 1, 20]).ok && shapeOp("reshape", [2, 1, 1, 1, 10]).limit === true);
   check("typed text splits on commas, spaces, x and brackets alike",
     same(parseShapeText("2, 5, 2"), [2, 5, 2]) && same(parseShapeText("[2 5 2]"), [2, 5, 2])
     && same(parseShapeText("2x5x2"), [2, 5, 2]) && same(parseShapeText("(2, −1)"), [2, -1]) && same(parseShapeText(""), []));
@@ -527,8 +527,10 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     }
   }
   const five = shapeOp("unsqueeze", "0", "sequence", 4);
-  check("rank 4: unsqueeze makes a fifth dimension, which the figure declines in its own words",
-    !five.ok && five.limit && five.error === FIVE_DIMS([1, 2, 2, 2, 5]) && shapeWalk(five).length === 0, five.error);
+  check("rank 4: unsqueeze(0) draws its fifth dimension, size 1 in front, as one frame (round 21)",
+    five.ok && same(five.shape, [1, 2, 2, 2, 5]) && bij(five));
+  check("rank 4: unsqueeze(1) still declines: its fifth dimension is not in front",
+    shapeOp("unsqueeze", "1", "sequence", 4).limit === true && shapeOp("unsqueeze", "1", "sequence", 4).error === FIVE_DIMS([2, 1, 2, 2, 5]));
   check("rank 4: stack(dim=4) likewise", !joinOp("stack", "4", "sequence", 4).ok && joinOp("stack", "4", "sequence", 4).limit);
   check("rank 4: reshape(2, 2, 2, 5, 1) likewise", shapeOp("reshape", [2, 2, 2, 5, 1], "sequence", 4).limit === true);
   check("a negative position counts from the end, as torch's does",
@@ -548,10 +550,12 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
   check("the live hint says the one fact that would make the entry work, and nothing when it works",
     hintFor("reshape", "3, 7", 3) === "product 21, and the tensor holds 20"
     && hintFor("reshape", "2, -1", 3) === null
-    && hintFor("reshape", "1, 1, 1, 1, 20", 3) === "5 dimensions, and this figure draws 4"
+    && hintFor("reshape", "2, 1, 1, 1, 10", 3) === "5 dimensions, and this figure draws 4"
+    && hintFor("reshape", "1, 1, 1, 1, 20", 3) === null
     && hintFor("permute", "0, 1", 3) === "3 positions, 0 to 2, each once"
     && hintFor("unsqueeze", "5", 3) === "0 to 3, or −1 to −4"
     && hintFor("stack", "0", 4) === "a fifth dimension, which this figure does not draw"
+    && hintFor("unsqueeze", "0", 4) === null && hintFor("unsqueeze", "2", 4) === "a fifth dimension, drawn only in front (0)"
     && hintFor("cat", "-1", 3) === null && hintFor("cat", "", 3) === null);
   check("a position dropdown offers every position the tensor has, -1 last, and nothing beyond (round 16)",
     same(dimOptions("cat", 3).map((o) => o.value), ["0", "1", "2", "-1"])
@@ -566,7 +570,8 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     const keep = shapeOp("squeeze", "1", "sequence", 3);
     check("squeeze of a dimension that is not size 1 leaves the shape as it is", same(keep.shape, [1, 2, 2, 5]) && keep.ok && bij(keep));
     check("squeeze() with no position removes every size-1 dimension", same(shapeOp("squeeze", "all", "sequence", 3).shape, [2, 2, 5]));
-    check("squeeze at rank 4 declines: its source would have five dimensions", shapeOp("squeeze", "0", "sequence", 4).limit === true);
+    check("squeeze at rank 4 draws its [1, 2, 2, 2, 5] source and returns the [2, 2, 2, 5] (round 21)",
+      shapeOp("squeeze", "0", "sequence", 4).ok && same(shapeOp("squeeze", "0", "sequence", 4).shape, [2, 2, 2, 5]));
     const tr = shapeOp("transpose", ["1", "2"], "sequence", 3);
     check("transpose(1, 2) is permute(0, 2, 1)", same(tr.shape, [2, 5, 2]) && same(tr.names, ["sample", "feature", "sequence"]) && bij(tr)
       && same(shapeWalk(tr).map((m) => m.dst.join(",")), shapeWalk(shapeOp("permute", "0-2-1")).map((m) => m.dst.join(","))));
@@ -593,6 +598,13 @@ console.log("\n=== 5 · broadcasting X [2, 5] + b ===");
     BC_CASES.map((c) => c.label).join(", "));
   check("every combining case stretches something",
     ["scalar", "5", "1-5", "2-1"].every((v) => broadcastPlan(bCaseByValue(v)).stretched === true));
+  check("the stretch is steps: [5] one step of five copies down, [2, 1] one of eight across, a scalar two (round 21)",
+    broadcastPlan(bCaseByValue("5")).stretches.length === 1 && broadcastPlan(bCaseByValue("5")).stretches[0].copies.length === 5
+    && broadcastPlan(bCaseByValue("2-1")).stretches.length === 1 && broadcastPlan(bCaseByValue("2-1")).stretches[0].copies.length === 8
+    && broadcastPlan(bCaseByValue("scalar")).stretches.map((s) => s.copies.length).join(",") === "4,5"
+    && broadcastPlan(bCaseByValue("2")).stretches === undefined);
+  check("a scalar's copies go across the features first, then down the samples",
+    broadcastPlan(bCaseByValue("scalar")).stretches.map((s) => s.dim).join(",") === "1,0");
 
   console.log("\n=== 5b · scalar and elementwise operations (round 20, cells 46-50) ===");
   check("X is the notebook's 3 x 3 image", same(EW_X, [[0, 50, 100], [150, 200, 250], [30, 60, 90]]));

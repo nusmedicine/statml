@@ -1039,6 +1039,18 @@ loop, resetting its frame budget every time.
 > which made the claim a caption. Keep the exemption narrow: every widget before
 > this one wants the jump.
 
+The same door exists on the **data** path, and it is narrower still. A data
+change resets the animation (invariant 3), and `init` may instead decide the
+new state is a rearrangement of a *finished* figure — the same values in a
+different place — set `n` to the end and ask for the ease. Core grants it once,
+as on the display path. A figure mid-walk is not that: it resets.
+
+> *Earned:* widget 53's `cat` along another dimension. Forty values held in one
+> arrangement move to another; Kenneth asked to "tween between changes", and a
+> figure that had been complete jumping to empty was the alternative
+> (2026-09-09). The condition is the widget's to check — the state's `units`
+> reached, the same tab and rank — and it tweens nothing it had not finished.
+
 ### 4.4b A control's label names what THIS press will do
 
 > *Earned.* The run button read **Resume** after a single Step. Reported as

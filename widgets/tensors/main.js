@@ -365,6 +365,19 @@
       Hadamard, X × a 0/1 dropout mask, the mask THE ONE DRAW THE WIDGET
       MAKES, from the seeded rng `compute` is handed, never Math.random
       (invariant 6). A cell under a 0 is drawn empty, as his figure draws it.
+
+  36. ROUND 21 (Kenneth's four issues on 20). A FIFTH DIMENSION OF SIZE 1 IN
+      FRONT IS DRAWN, one dashed frame round the rank-4 body, so unsqueeze(0)
+      and squeeze(0) work at rank 4 as at every other; any other fifth
+      dimension is still declined. THE BROADCAST STRETCH IS STEPS OF ITS OWN:
+      b's copies glide out of its own cells, across the features before down
+      the samples, and only then are the rows added — "if I put [5], I see
+      everything broadcasted already". A DATA CHANGE TWEENS A COMPLETE
+      RESULT: on Manipulate and Join a finished figure stays finished and
+      its values glide to where the new result holds them (core starts the
+      ease from the data path too, mirroring the display one); a figure
+      mid-walk resets as before. Every cell string FITS ITS CELL, stepping
+      down the size scale until it does.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -406,6 +419,9 @@ const COLUMN_GAP = 16;    // between two exploded stacks of a rank-4 column
 /* The framed view (candidate D): a dashed frame per index of the leading
    dimension, and the row and column indices on the edges of the first grid. */
 const FRAME_LBL = 15;     // the `dim 0 = i` line inside a frame, along its top
+/* the number the frame labels count from: 1 while a rank-4 body is drawn
+   inside a rank-5 frame, whose own label is dim 0 (round 21) */
+let DIM_BASE = 0;
 /* ROUND 16 (Kenneth: the dimension bars are "too close to the tensors and
    hard to see"). The rule in a dimension's hue now sits OUTSIDE its indices
    — the digits between it and the grid — and 3px wide, where it had been a
@@ -478,14 +494,25 @@ const CAPTION_H = 17;
 function txt(ctx, colors, s, x, y, opts = {}) {
   const {
     color = colors.ink2, align = "left", size = colors.fsSm,
-    baseline = "alphabetic", mono = false, weight = "", shrink = false,
+    baseline = "alphabetic", mono = false, weight = "", fit = 0,
   } = opts;
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = baseline;
-  /* one step down the size scale for a string that would not fit its cell */
-  const sized = shrink ? { [colors.fsLg]: colors.fsMd, [colors.fsMd]: colors.fsSm, [colors.fsSm]: colors.fsXs }[size] ?? size : size;
+  /* down the size scale until the string fits the width it was given —
+     `0.15` in a 30px cell, `5e21` in a 26px one (round 21: numbers had run
+     over cell borders on Kenneth's screen) */
+  const scale = [colors.fsLg, colors.fsMd, colors.fsSm, colors.fsXs];
+  let sized = size;
   ctx.font = `${weight} ${sized} ${mono ? MONO : colors.font}`.trim();
+  if (fit) {
+    let i = Math.max(0, scale.indexOf(size));
+    while (ctx.measureText(s).width > fit && i < scale.length - 1) {
+      i += 1;
+      sized = scale[i];
+      ctx.font = `${weight} ${sized} ${mono ? MONO : colors.font}`.trim();
+    }
+  }
   ctx.fillText(s, x, y);
 }
 
@@ -704,9 +731,8 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
          since round 18, so a cell and its printed value are the same glyphs */
       size: s >= 28 ? colors.fsLg : s >= 22 ? colors.fsMd : colors.fsSm,
       mono: true,
-      /* a string of four or more characters — `3.74`, `5e21` — takes the size
-         below, so a norm or an exponent stays inside a 26px cell (round 20) */
-      shrink: String(typeof d.v === "string" ? d.v : M.num(d.v)).length >= 4 && s < 30,
+      /* the string fits its cell, at a smaller size if it must */
+      fit: s - 4,
       weight: d.bold ? "700" : "",
     });
   }
@@ -787,7 +813,9 @@ function monoChar(ctx, size) {
 /** One hue per dimension, counted from the LAST backwards so the feature
     dimension keeps `--c-dim-d` at every rank. The hue goes on a frame, a rule
     along the edge indices, an arrow or a swatch — never on text (round 9). */
-const dimHues = (colors, rank) => Array.from({ length: rank }, (_, k) => colors.dims[k + (4 - rank)]);
+const dimHues = (colors, rank) => (rank > 4
+  ? [colors.ink3, ...dimHues(colors, 4)]   // a fifth, size-1 dimension has no hue of its own
+  : Array.from({ length: rank }, (_, k) => colors.dims[k + (4 - rank)]));
 
 /* --- drawing one tensor --------------------------------------------------- *
  * Each of these returns `{ w, h, centre }`, where `centre` gives the middle of
@@ -863,7 +891,7 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
   for (let i = 0; i < d0; i += 1) {
     const { fx, fy } = at(i);
     pushFrame(plan, fx, fy, fw, fh, null, hues[0]);
-    const anchor = { s: `dim 0 = ${i}`, x: fx + 4, y: fy + FRAME_LBL - 3, align: "left" };
+    const anchor = { s: `dim ${DIM_BASE} = ${i}`, x: fx + 4, y: fy + FRAME_LBL - 3, align: "left" };
     pushText(plan, anchor.s, anchor.x, anchor.y, { color: colors.ink3, mono: true });
     markIndex(plan, 0, i, anchor);
     pushGrid(plan, fx + FRAME_PAD, fy + FRAME_LBL + FRAME_PAD, d1, d2, s, (r, c) => cell(i, r, c));
@@ -960,13 +988,13 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
     const oy = frameTop(f);
     const oh = f === 0 ? oh0 : ohN;
     pushFrame(plan, x0, oy, ow, oh, null, hues[0]);
-    const outer = { s: `dim 0 = ${f}`, x: x0 + 4, y: oy + FRAME_LBL - 3, align: "left" };
+    const outer = { s: `dim ${DIM_BASE} = ${f}`, x: x0 + 4, y: oy + FRAME_LBL - 3, align: "left" };
     pushText(plan, outer.s, outer.x, outer.y, { color: colors.ink3, mono: true });
     markIndex(plan, 0, f, outer);
     for (let j = 0; j < d1; j += 1) {
       const { ix, iy } = inner(f, j);
       pushFrame(plan, ix, iy, iw, ih, null, hues[1]);
-      const lbl = { s: `dim 1 = ${j}`, x: ix + 4, y: iy + FRAME_LBL - 3, align: "left" };
+      const lbl = { s: `dim ${DIM_BASE + 1} = ${j}`, x: ix + 4, y: iy + FRAME_LBL - 3, align: "left" };
       pushText(plan, lbl.s, lbl.x, lbl.y, { color: colors.ink3, mono: true });
       markIndex(plan, 1, j, lbl);
       pushGrid(plan, ix + FRAME_PAD, iy + FRAME_LBL + FRAME_PAD, d2, d3, s,
@@ -1058,6 +1086,20 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
       : pushFrames(plan, colors, x, y, shape, s, (i, r, c) => cell([i, r, c]), perRow);
     return { w: box.w, h: box.h, centre: (idx) => box.centre(idx[0], idx[1], idx[2]) };
   }
+  if (shape.length === 5) {
+    /* five dimensions with a size-1 one in front: one dashed frame, labelled
+       for that dimension, round the rank-4 body (round 21) */
+    const inner = shape.slice(1);
+    DIM_BASE = 1;
+    const body = pushTensor(plan, colors, x + FRAME_PAD, y + FRAME_LBL + FRAME_PAD, inner, s, view,
+      (idx) => cell([0, ...idx]), perRow, edges);
+    DIM_BASE = 0;
+    const w5 = body.w + 2 * FRAME_PAD;
+    const h5 = FRAME_LBL + body.h + 2 * FRAME_PAD;
+    pushFrame(plan, x, y, w5, h5, null, colors.ink3);
+    pushText(plan, "dim 0 = 0", x + 4, y + FRAME_LBL - 3, { color: colors.ink3, mono: true });
+    return { w: w5, h: h5, centre: (idx) => body.centre(idx.slice(1)) };
+  }
   const box = view === "stack"
     ? pushStackColumn(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]))
     : pushFrames4(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]), perRow);
@@ -1098,7 +1140,7 @@ function textW(colors, s) {
    gave 33px of room and `0 sample × sequence` ran 37px off the left edge of
    the stage (round 12, `_lab/tensor-sweep.html?ops`). */
 const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0, shape = M.T3_SHAPE) => {
-  if (!arrows) return rolesLine && rank === 4 ? { ...NONE, bottom: ROLE_BOTTOM } : NONE;
+  if (!arrows || rank >= 5) return rolesLine && rank === 4 ? { ...NONE, bottom: ROLE_BOTTOM } : NONE;
   if (rank === 1) return { top: ROLE_TOP, left: 0, right: 0, bottom: 0 };
   if (rank === 2) return { top: ROLE_TOP, left: ROLE_LEFT, right: 0, bottom: ROLE_BOTTOM };
   if (rank === 4) {
@@ -1129,7 +1171,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges);
   const half = s / 2;
   const size = { w: m.left + box.w + m.right, h: m.top + box.h + m.bottom, centre: box.centre };
-  if (!arrows) {
+  if (!arrows || shape.length >= 5) {
     if (rolesLine && shape.length === 4) {
       pushText(plan, roles.join("  ·  "), x, y + m.top + box.h + 12, { color: colors.ink2 });
     }
@@ -1370,10 +1412,14 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
      in a row and ran 200px off the stage (round 12). The outer frames are
      always a column. */
   const perRow = !op.ok ? 1
-    : rank === 4
-      ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD)
-      : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out));
-  const srcRow = framesPerRow(op.src[0], op.src[op.src.length - 1], s, roomFor(prints.sources[0], modes.src));
+    : rank === 5
+      ? framesPerRow(op.shape[2], op.shape[4], s, roomFor(prints.result, modes.out) - 4 * FRAME_PAD)
+      : rank === 4
+        ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD)
+        : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out));
+  const srcRow = op.src.length === 5
+    ? framesPerRow(op.src[2], op.src[4], s, roomFor(prints.sources[0], modes.src) - 4 * FRAME_PAD)
+    : framesPerRow(op.src[0], op.src[op.src.length - 1], s, roomFor(prints.sources[0], modes.src));
   /* THE SOURCE PAIR STACKS RATHER THAN SITTING SIDE BY SIDE, in both views.
      Two tensors and two prints in one row do not fit 550px in any view, and
      stacking them lets each print sit beside its own drawing instead of both
@@ -1597,12 +1643,26 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     const held = placed.get(idx.join(","));
     if (held) {
       const face = held.last ? litFace(colors) : { fill: colors.empirical };
-      return { v: held.v, ...face, key: resKey(idx), name: resName(idx, held.v) };
+      return { v: held.v, ...face, key: resKey(idx), name: resName(idx, held.v), morph: true };
     }
     if (at.moving && at.moving.dst.join(",") === idx.join(",")) return { empty: true, lit: true };
     return { empty: true };
   }, fit.perRow, op.shape, op.roles, resultOpts(view, op.shape.length));
   if (fit.outMode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
+  /* where every value's result cell is, keyed by its source, for the next
+     data change to glide from; and the glide in flight, if this is one */
+  const moveKey = (m) => `${m.t}|${m.src.join(",")}`;
+  plan.resPos = new Map(state.moves.map((m) => [moveKey(m), resDraw.centre(m.dst)]));
+  if (anim.glide?.from) {
+    const e = easeInOut(anim.glide.t);
+    plan.shift = new Map();
+    for (const m of state.moves) {
+      const from = anim.glide.from.get(moveKey(m));
+      if (!from) continue;
+      const to = resDraw.centre(m.dst);
+      plan.shift.set(resKey(m.dst), [(from.x - to.x) * (1 - e), (from.y - to.y) * (1 - e)]);
+    }
+  }
   pushRoles(plan, ctx, colors, op.roles, dimHues(colors, op.shape.length), cx, resY + fit.outH + UNDER_GAP);
 
   const rp = prints.result;
@@ -2026,6 +2086,10 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
   const { bc, bp, s, rows, cols, xW, bW, sep, print, bands } = bcGeometry(colors, w, params, cw);
   const done = anim.n;
   const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
+  /* the stretch steps come first; the rows are added after them */
+  const sN = bp.ok ? bp.stretches.length : 0;
+  const rowDone = Math.max(0, done - sN);
+  const stretching = ph && done < sN ? bp.stretches[done] : null;
 
   const xL = PAD;
   const bandW = w - 2 * PAD;
@@ -2038,7 +2102,7 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
   const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
   const mid = y0 + (rows * s) / 2 + 6;
   /* the row a step is reading lights in X and in b's copies before it lands */
-  const reading = (r) => Boolean(ph) && r === done;
+  const reading = (r) => Boolean(ph) && done >= sN && r === rowDone;
 
   pushText(plan, panelLine("X", M.BC_X_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
   pushGrid(plan, x0, y0, rows, cols, s, (r, c) => ({
@@ -2061,9 +2125,32 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
      point of it: the copy at [1, 3] is still b[3], and saying so is what tells
      a reader the value was not stored twice. */
   if (bp.ok) {
-    pushGrid(plan, bx, y0, rows, cols, s, (r, c) => (bc.real(r, c)
-      ? null
-      : { v: bc.at(r, c), fill: colors.groupB, faint: true, lit: reading(r), name: M.bName(bc, r, c) }));
+    /* a copy is drawn once the stretch step that makes it has run; the step
+       in flight glides its copies out of b's own cells */
+    pushGrid(plan, bx, y0, rows, cols, s, (r, c) => {
+      if (bc.real(r, c)) return null;
+      const step = bp.copyStep.get(`${r},${c}`);
+      if (step === undefined || step >= done) return null;
+      return { v: bc.at(r, c), fill: colors.groupB, faint: true, lit: reading(r), name: M.bName(bc, r, c) };
+    });
+    if (stretching && ph.land > 0) {
+      for (const { to, from } of stretching.copies) {
+        const fx = bx + from[1] * s;
+        const fy = y0 + from[0] * s;
+        const tx = bx + to[1] * s;
+        const ty = y0 + to[0] * s;
+        plan.ghosts.push({
+          x: fx + (tx - fx) * ph.land,
+          y: fy + (ty - fy) * ph.land,
+          s,
+          d: { v: bc.at(to[0], to[1]), fill: colors.groupB, faint: true, lit: true, name: M.bName(bc, to[0], to[1]) },
+        });
+      }
+    }
+    if (stretching) {
+      pushText(plan, `b stretched ${stretching.text}`, bx + bW, y0 + rows * s + 13,
+        { color: colors.highlight, align: "right", size: colors.fsXs });
+    }
   }
 
   /* The alignment block, exactly as the lesson writes the rule: the two shapes
@@ -2083,7 +2170,8 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
   const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
   if (bp.ok) {
     pushText(plan, panelLine("result", bp.shape), x0, ry - 6, { color: colors.ink1, mono: true });
-    const rowState = (r) => (r < done ? (r === done - 1 && !ph ? "last" : "done") : r === done && ph ? "landing" : "none");
+    const rowState = (r) => (r < rowDone ? (r === rowDone - 1 && !ph ? "last" : "done")
+      : r === rowDone && ph && done >= sN ? "landing" : "none");
     pushGrid(plan, x0, ry, rows, cols, s, (r, c) => {
       const v = bp.result[r][c];
       const name = `${M.indexText("result", [r, c])} = ${v}`;
@@ -2106,7 +2194,7 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
         fade: st === "landing",
       };
     });
-    if (ph && rowState(done) === "landing") plan.fadeAlpha = ph.land;
+    if (ph && rowState(rowDone) === "landing") plan.fadeAlpha = ph.land;
   } else {
     pushText(plan, `no result: ${bp.clash}`, x0, ry, { color: colors.extreme });
     pushText(plan, "cannot broadcast", x0, ry + 18, { color: colors.extreme });
@@ -2794,6 +2882,15 @@ function tabHeight(w, params) {
  * order on every paint. See decision 4 in the header. */
 let hovered = null;
 
+/* WHAT THE LAST DRAW LEFT ON A MANIPULATE OR JOIN RESULT (round 21, Kenneth:
+   "possible to tween between changes e.g. when changing dim for cat"). A data
+   change re-inits the animation, and a figure that was COMPLETE stays complete
+   and glides its values from where the old result held them to where the new
+   one does — the same twenty values in two arrangements, which is the one
+   case 4.4 allows. A figure mid-walk resets as every data change does. Keyed
+   by the value's source cell, since that is what stays the same. */
+let carry = null;
+
 /* "1 of 1 groups collapsed" is the shape of sentence a progress note falls
    into, and the Reduce tab reaches it whenever dim is not named. */
 const plural = (n, total, one, many) => `${n} of ${total} ${total === 1 ? one : many}`;
@@ -2810,7 +2907,7 @@ const SPEEDS = [
 ];
 
 const TAB_UNITS = {
-  manipulate: "value", join: "value", elementwise: "cell", broadcast: "row", multiply: "cell", reduce: "group",
+  manipulate: "value", join: "value", elementwise: "cell", broadcast: "step", multiply: "cell", reduce: "group",
 };
 
 /* The two halves the six topics fall into. Consecutive options sharing one of
@@ -3429,7 +3526,7 @@ defineWidget({
             : plan.stretched ? "b, with its stretched copies drawn faint" : "b, one value for each cell of X",
         },
         ...(plan.ok
-          ? [{ token: "highlight", label: "The row just added" }]
+          ? [{ token: "highlight", label: "The copies just made, or the row just added" }]
           : [{ token: "extreme", label: "The dimensions that do not combine" }]),
       ];
     }
@@ -3511,7 +3608,7 @@ defineWidget({
     if (params.tab === "broadcast") {
       const bc = M.bCaseByValue(params.b);
       const plan = M.broadcastPlan(bc);
-      return { kind: "broadcast", bc, plan, units: plan.ok ? M.BC_X_SHAPE[0] : 0 };
+      return { kind: "broadcast", bc, plan, units: plan.ok ? plan.stretches.length + M.BC_X_SHAPE[0] : 0 };
     }
     if (params.tab === "multiply" && params.kind === "dot") {
       const pair = M.dotPairByValue(params.pair);
@@ -3550,7 +3647,7 @@ defineWidget({
         manipulate: "Move a value",
         join: "Move a value",
         elementwise: "Apply to a cell",
-        broadcast: "Add a row",
+        broadcast: "Next step",
         multiply: "Compute a cell",
         reduce: "Collapse a group",
       },
@@ -3562,7 +3659,7 @@ defineWidget({
         manipulate: "Move the next value from the tensor to its place in the result",
         join: "Move the next value from one of the two tensors to its place in the result",
         elementwise: "Apply the operation to the next cell of X and draw the cell of Y it makes",
-        broadcast: "Add the next row of X and b, and draw the row it makes",
+        broadcast: "Stretch b to X's shape, then add row by row",
         multiply: "Compute the next cell of the product from a row of X and a column of Wᵀ",
         reduce: "Collapse the next group of values into the one it reduces to",
       },
@@ -3575,7 +3672,7 @@ defineWidget({
         manipulate: "Move every remaining value into the result",
         join: "Move every remaining value of both tensors into the result",
         elementwise: "Apply the operation to the remaining cells",
-        broadcast: "Add the remaining rows",
+        broadcast: "Stretch b, then add the remaining rows",
         multiply: "Compute the remaining cells of the product",
         reduce: "Collapse the remaining groups",
       },
@@ -3587,13 +3684,20 @@ defineWidget({
        `stepLabel: null`, because core reads that once when the shell is built
        and it would decline the buttons on all four tabs. */
     init: ({ params, state, fromScratch }) => {
-      const n = fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), state.units);
+      /* `carry.state !== state` tells a data change (a fresh state) from a
+         Replay (the same one); only the former tweens */
+      const tween = Boolean(carry) && carry.state !== state && carry.done && carry.tab === params.tab
+        && carry.rank === params.rank && state.kind === "shape" && state.units > 0;
+      const n = tween ? state.units : fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), state.units);
+      const glide = tween && !reducedMotion() ? { from: carry.pos, t: 0 } : null;
       return {
         n,
         beat: 0,
         clock: M.unitMs(params.speed),
         inert: state.units === 0,
         done: n >= state.units,
+        glide,
+        easing: Boolean(glide),
         /* the Basics eases (4.4): what is on screen now, so `rebuild` can tell
            a view change from an index change, and where every cell was drawn */
         view: params.view,
@@ -3605,6 +3709,13 @@ defineWidget({
     },
 
     advance: (anim, { dt, params, state }) => {
+      /* a completed result gliding into its new arrangement (round 21) */
+      if (anim.glide) {
+        anim.glide.t = c01(anim.glide.t + dt / MORPH_MS);
+        if (anim.glide.t < 1) return true;
+        anim.glide = null;
+        return false;
+      }
       /* An ease in flight, on any tab that has one. Basics is inert, so this
          is the only motion it ever runs; on the other tabs `morph` and
          `extract` are never set. */
@@ -3704,6 +3815,13 @@ defineWidget({
               : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
             : planReduce(ctx, colors, w, h, params, state, anim);
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
+    if (state.kind === "shape") {
+      carry = {
+        state, tab: params.tab, rank: params.rank,
+        done: Boolean(anim) && anim.n >= state.units && state.units > 0,
+        pos: plan.resPos ?? null,
+      };
+    }
     hovered = hitPlan(plan, pointer);
     paintPlan(ctx, colors, plan, hovered);
     /* The hovered cell marked in the PRINT as well as in the drawing. Drawn
@@ -3845,7 +3963,10 @@ defineWidget({
     }
     if (params.tab === "broadcast") {
       const p = state.plan;
-      const row = anim.n > 0 && p.ok ? p.result[anim.n - 1] : null;
+      const sN = p.ok ? p.stretches.length : 0;
+      const rowDone = Math.max(0, anim.n - sN);
+      const row = rowDone > 0 && p.ok ? p.result[rowDone - 1] : null;
+      const stretch = p.ok && anim.n > 0 && anim.n <= sN ? p.stretches[anim.n - 1] : null;
       return [
         {
           label: "Shapes in",
@@ -3855,15 +3976,20 @@ defineWidget({
         {
           label: "Result shape",
           value: p.ok ? M.shapeText(p.shape) : "none",
-          note: p.ok ? plural(anim.n, state.units, "row added", "rows added")
+          note: p.ok
+            ? (anim.n < sN
+              ? (anim.n === 0 ? "b not stretched yet, and no row added" : `b stretched once of ${sN}, and no row added yet`)
+              : plural(rowDone, M.BC_X_SHAPE[0], "row added", "rows added"))
             : `${p.clash}: neither equal nor 1`,
         },
         {
-          label: "This row",
-          value: row ? `row ${anim.n - 1}` : "—",
-          note: row ? `${row.map(M.num).join(", ")}: row ${anim.n - 1} of X plus b` : p.ok ? `no ${unit} has been added yet` : "the shapes do not combine",
+          label: "This step",
+          value: row ? `row ${rowDone - 1}` : stretch ? "stretch" : "—",
+          note: row ? `${row.map(M.num).join(", ")}: row ${rowDone - 1} of X plus b`
+            : stretch ? `b copied ${stretch.text}, ${stretch.copies.length} cells`
+              : p.ok ? `no ${unit} has been taken yet` : "the shapes do not combine",
         },
-        cell(row ? `result[${anim.n - 1}, 0] = ${M.num(row[0])}` : "—",
+        cell(row ? `result[${rowDone - 1}, 0] = ${M.num(row[0])}` : "—",
           row ? "the first cell of that row" : "a cell's index and value"),
       ];
     }

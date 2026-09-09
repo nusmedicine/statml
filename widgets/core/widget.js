@@ -504,6 +504,17 @@ export function defineWidget(config) {
     stopAnim();
     render();
 
+    /* A DATA CHANGE MAY ALSO DESERVE A TRANSITION, when the widget's `init`
+       decides the new state is a rearrangement of a finished figure rather
+       than different data — widget 53's cat along another dim moves the same
+       forty values (2026-09-09, Kenneth: "tween between changes"). The
+       widget asks by setting `anim.easing` in `init`; core answers once, as
+       on the display path above. */
+    if (anim?.easing) {
+      anim.easing = false;
+      startAnim("ease");
+    }
+
     /* OPENING A GATE MAY PLAY THE STAGE IN. A gate is the one parameter change
        that is a reader stepping THROUGH a door rather than turning a dial, and
        what is behind it can be worth watching arrive: widget 10's sample falls

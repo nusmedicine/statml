@@ -11364,6 +11364,33 @@ mask, the mask the one draw the widget makes, from the seeded rng
 figure draws it, and torch's `-0.0000` where a negative cell was dropped.
 Verify 266; the sweep clean over 60 states; nothing in core.
 
+**Round 21 (2026-09-09) — his four issues on round 20.** (1) "squeeze and
+unsqueeze does not have any visualization nor pytorch output … i see only
+the shape": at rank 4 both had been declined for making a fifth dimension.
+Now a fifth dimension of size 1 IN FRONT draws — one dashed frame labelled
+`dim 0 = 0` round the rank-4 body, the body's own frames counting from
+dim 1 — so `unsqueeze(0)` on the [2, 2, 2, 5] and `squeeze(0)` on the
+[1, 2, 2, 2, 5] it makes draw and print at every rank; `unsqueeze(1)` at
+rank 4 is still declined, and the hint says "drawn only in front (0)".
+(At ranks 1–3 they always drew; they start empty as every stage does,
+invariant 4.) (2) "possible to tween between changes e.g. when changing
+dim for cat": on Manipulate and Join a COMPLETE result now stays complete
+across a data change and its forty values glide from the cells the old
+arrangement held them in to the new — the same values in two
+arrangements, which is what 4.4 allows; a figure mid-walk still resets
+(invariant 3). Core's data-change path now starts the ease a widget's
+`init` asks for, mirroring the display path; nothing else in core moved.
+(3) "can animate the broadcasting operation? right now if put [5], i see
+everything broadcasted already": the stretch is steps of its own before
+the rows — b's copies glide out of its own cells into the cells the
+stretch fills, across the features before down the samples (a scalar takes
+two steps, [5], [1, 5] and [2, 1] one), drawn faint once landed, with the
+step named under b and in the readout ("This step: stretch — b copied
+down the samples, 5 cells"). (4) "some of numbers within the tensors run
+over the borders": every cell string now steps down the size scale until
+it fits its cell. Verify 269; sweep clean; the full suite for the core
+change.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

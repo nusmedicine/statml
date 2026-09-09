@@ -320,6 +320,12 @@ export const parseKey = (key) => String(key).split("-").map(Number);
 const SEP = /[\s,x×]+/;
 const MINUS = /[−–]/g;             // a typed minus sign or en dash is a minus
 const DRAWN_RANK = 4;              // the highest rank the figure has a drawing for
+/** Whether the figure can draw a shape: four dimensions, or five with a size-1
+    dimension in front — one frame round a rank-4 body, which is what
+    unsqueeze(0) makes of the [2, 2, 2, 5] and what squeeze(0) takes back
+    (round 21, Kenneth: "squeeze and unsqueeze does not have any
+    visualization" — at rank 4 they had been declined). */
+export const drawable = (shape) => shape.length <= DRAWN_RANK || (shape.length === DRAWN_RANK + 1 && shape[0] === 1);
 
 /** The tokens of a typed list: whole numbers as numbers, anything else as
     the string it was, so the error can name it. */
@@ -417,7 +423,7 @@ export function dimOptions(kind, rank) {
 /* The one answer that is the figure's and not torch's: a fifth dimension.
    torch would make it; this widget has drawings for four. Said plainly, in
    ink rather than the failure colour, and the tab goes inert. */
-export const FIVE_DIMS = (shape) => `${shapeText(shape)} has five dimensions, and this figure draws four.`;
+export const FIVE_DIMS = (shape) => `${shapeText(shape)} has five dimensions, and this figure draws four, or five with a size-1 dimension in front.`;
 
 const nameJoin = (names) => names.filter(Boolean).join(" × ");
 const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
@@ -463,7 +469,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
     /* `arg` is the typed entries, or a `2-10` key from the lab scripts */
     const r = reshapeFrom(Array.isArray(arg) ? arg : parseKey(arg), size);
     const { asked, shape, ok } = r;
-    if (ok && shape.length > DRAWN_RANK) {
+    if (ok && !drawable(shape)) {
       return failed(base, `reshape(${asked.join(", ")})`, FIVE_DIMS(shape), shape, true);
     }
     const strides = [];
@@ -515,7 +521,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
     if (!r.ok) return failed(base, `unsqueeze(${r.asked})`, r.error, []);
     const d = r.d;
     const shape = [...src.slice(0, d), 1, ...src.slice(d)];
-    if (shape.length > DRAWN_RANK) return failed(base, `unsqueeze(${r.asked})`, FIVE_DIMS(shape), shape, true);
+    if (!drawable(shape)) return failed(base, `unsqueeze(${r.asked})`, FIVE_DIMS(shape), shape, true);
     return {
       ...base,
       value: `unsqueeze-${d}`,
@@ -534,7 +540,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
     const srcU = [1, ...src];
     const namesU = ["size 1", ...names];
     const squeezed = { ...base, src: srcU, srcRoles: labelsOf(namesU), read: (t, idx) => source.read(t, idx.slice(1)) };
-    if (srcU.length > DRAWN_RANK) return failed(squeezed, "squeeze(0)", FIVE_DIMS(srcU), srcU, true);
+    if (!drawable(srcU)) return failed(squeezed, "squeeze(0)", FIVE_DIMS(srcU), srcU, true);
     const all = arg === "" || arg === "all" || arg == null;
     if (all) {
       return {
@@ -638,7 +644,7 @@ export function joinOp(kind, arg, setName = "sequence", rank = 3) {
   if (!r.ok) return failed(base, `stack(dim=${r.asked})`, r.error, []);
   const d = r.d;
   const shape = [...src.slice(0, d), 2, ...src.slice(d)];
-  if (shape.length > DRAWN_RANK) return failed(base, `stack(dim=${r.asked})`, FIVE_DIMS(shape), shape, true);
+  if (!drawable(shape)) return failed(base, `stack(dim=${r.asked})`, FIVE_DIMS(shape), shape, true);
   return {
     ...base,
     value: `stack-${d}`,
@@ -681,7 +687,7 @@ export function hintFor(kind, text, rank) {
     const toks = parseShapeText(text);
     if (toks.length === 0) return null;
     if (toks.some((t) => !Number.isInteger(t))) return "whole numbers only";
-    if (toks.length > DRAWN_RANK) return `${toks.length} dimensions, and this figure draws ${DRAWN_RANK}`;
+    if (!drawable(toks)) return `${toks.length} dimensions, and this figure draws ${DRAWN_RANK}`;
     const holes = toks.filter((t) => t === -1).length;
     if (holes > 1) return "only one −1";
     if (toks.some((t) => t < 1 && t !== -1)) return "every size at least 1";
@@ -704,7 +710,8 @@ export function hintFor(kind, text, rank) {
   const t = toks[0];
   const hi = kind === "unsqueeze" || kind === "stack" ? n : n - 1;
   if (t > hi || t < -(hi + 1)) return range(hi);
-  if ((kind === "unsqueeze" || kind === "stack") && n === DRAWN_RANK) return "a fifth dimension, which this figure does not draw";
+  if (kind === "stack" && n === DRAWN_RANK) return "a fifth dimension, which this figure does not draw";
+  if (kind === "unsqueeze" && n === DRAWN_RANK && t !== 0 && t !== -(n + 1)) return "a fifth dimension, drawn only in front (0)";
   return null;
 }
 
@@ -932,9 +939,33 @@ export function broadcastPlan(bCase) {
     return { rows, ok: false, clash: `${bad.x} against ${bad.b}`, shape: null, result: null };
   }
   const result = BC_X.map((row, r) => row.map((v, c) => v + bCase.at(r, c)));
-  /* `stretched` is what separates the plain element-wise case from the
-     shortcut: whether any dimension of b was stretched to meet X's */
-  return { rows, ok: true, clash: null, shape: [...BC_X_SHAPE], result, stretched: rows.some((r) => r.verdict === "stretch") };
+  /* THE STRETCH IS STEPS OF ITS OWN (round 21, Kenneth: "right now if I put
+     [5], I see everything broadcasted already"). One step per dimension
+     that stretches, across the features before down the samples: each step
+     copies b's cells into the cells the stretch fills, so the copies arrive
+     before any row is added. `copyStep` says which step made a copy. */
+  const filled = BC_X.map((row, r) => row.map((_, c) => bCase.real(r, c)));
+  const stretches = [];
+  const copyStep = new Map();
+  const dims = rows.filter((r) => r.verdict === "stretch").map((r) => r.dim).sort((a, b) => b - a);
+  for (const dim of dims) {
+    const copies = [];
+    for (let r = 0; r < BC_X_SHAPE[0]; r += 1) {
+      for (let c = 0; c < BC_X_SHAPE[1]; c += 1) {
+        if (filled[r][c]) continue;
+        const from = dim === 1 ? [r, 0] : [0, c];
+        if (!filled[from[0]][from[1]]) continue;
+        copies.push({ to: [r, c], from });
+        copyStep.set(`${r},${c}`, stretches.length);
+      }
+    }
+    for (const { to } of copies) filled[to[0]][to[1]] = true;
+    stretches.push({ dim, copies, text: dim === 0 ? "down the samples" : "across the features" });
+  }
+  return {
+    rows, ok: true, clash: null, shape: [...BC_X_SHAPE], result,
+    stretched: stretches.length > 0, stretches, copyStep,
+  };
 }
 
 /* --- matrix multiplication ------------------------------------------------ */
