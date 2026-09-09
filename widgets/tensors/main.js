@@ -419,6 +419,12 @@
       Round 29: two solid outlines sit six apart as well — the stack's slab
       step and the column's gap grow to OUTLINES_GAP when a block is hugged.
 
+  42. ROUND 30 (after shipping). THE TOPIC ROWS ARE HEADED, not captioned:
+      "Tensors for data" over Tensors · Index/Slice · Manipulate · Join and
+      "Linear algebra" over Scalar · Broadcast · Multiply · Reduce, the
+      notebook's two section titles, through core's `groupHeads` (a segmented
+      field's group names above the rows instead of under them).
+
   41. ROUND 28 ("build the 2nd one so we maintain the stack/frame views";
       the mock `_lab/tensor-rank5.html`). A FIFTH DIMENSION OF ANY SIZE IS
       DRAWN: a frame per index of dim 0, down the page, each holding the
@@ -3140,8 +3146,8 @@ const TAB_UNITS = {
 
 /* The two halves the six topics fall into. Consecutive options sharing one of
    these form a row with the caption under it. */
-const DATA_HALF = "tensors for data";
-const ALGEBRA_HALF = "linear algebra";
+const DATA_HALF = "Tensors for data";
+const ALGEBRA_HALF = "Linear algebra";
 
 /* Every leading dimension is 2 wide at every rank that has it, so one option
    list serves dim 0, dim 1 and dim 2 — see the comment on `i0`. */
@@ -3201,6 +3207,10 @@ defineWidget({
     tab: {
       type: "segmented",
       label: "Topic",
+      /* ROUND 30 (Kenneth: the two halves' names under the rows "doesn't show
+         the categories clearly"): the group names are headings ABOVE their
+         rows, the notebook's two section titles */
+      groupHeads: true,
       options: [
         /* ROUND 20 (Kenneth): the notebook's own headings. Tensors is its
            Creating and Inspecting — the ladder of ranks, the dimensions named

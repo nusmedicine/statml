@@ -11527,6 +11527,17 @@ shipped in `main.js` and the manifest in the same commit; pushed. Slot 53
 shipped after twenty-nine rounds in two days, the notebook its spec
 throughout.
 
+**Round 30 (2026-09-09, after shipping) — "the descriptors for the topic
+selectors are below … it doesn't show the categories clearly".** The two
+halves' names are headings above their rows — *Tensors for data* over
+Tensors · Index/Slice · Manipulate · Join, *Linear algebra* over Scalar ·
+Broadcast · Multiply · Reduce, the notebook's own section titles —
+through a small core addition, `groupHeads: true` on a segmented field
+(a group's name above its row instead of the note under it; the
+Manipulate verbs keep their notes under). Full suite after the core
+change: all 404 MATCH. His second ask, a subtitle that describes the
+widget broadly, was answered with four options to pick from.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

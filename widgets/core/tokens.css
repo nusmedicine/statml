@@ -968,6 +968,15 @@ p.w-text-hint { max-width: none; text-align: left; }
   color: var(--ink-3);
 }
 .w-seg-cap:last-child { margin-bottom: 0; }
+/* a group's heading above its row (`groupHeads`): the label's size and ink,
+   so the two halves read as sub-labels of the field */
+.w-seg-head {
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.w-seg-head:first-child { margin-top: 0; }
 
 /* A detail with nothing in it is not a blank line. The segmented control builds
    its element up front because the text changes with the selection, so the

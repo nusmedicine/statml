@@ -1062,8 +1062,22 @@ function build(host, spec, values, onChange, api) {
           run.seg.className = field.style === "grid" ? "w-seg w-seg-grid" : "w-seg";
           run.seg.setAttribute("role", "group");
           run.seg.setAttribute("aria-label", o.group ?? field.label ?? name);
+          /* A GROUP'S CAPTION SITS UNDER ITS ROW, as a note — unless the field
+             says `groupHeads: true`, when it sits ABOVE as a heading. Under is
+             right for a note on a row of the same kind of thing ("1 ·
+             reshaping" under reshape · flatten); above is right when the rows
+             are the two halves of a subject and a reader chooses the half
+             first (widget 53's topic rows: Tensors for data over Linear
+             algebra — Kenneth, 2026-09-09: "it doesn't show the categories
+             clearly"). */
+          if (o.group && field.groupHeads) {
+            const head = document.createElement("p");
+            head.className = "w-seg-head";
+            head.textContent = o.group;
+            wrap.appendChild(head);
+          }
           wrap.appendChild(run.seg);
-          if (o.group) {
+          if (o.group && !field.groupHeads) {
             const cap = document.createElement("p");
             cap.className = "w-seg-cap";
             cap.textContent = o.group;
