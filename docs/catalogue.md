@@ -11354,9 +11354,15 @@ first, then the stretched shapes, two caption lines ending on cell 51's
 opening. Multiply is Matmul renamed, for the dot and Hadamard products
 still to come. Reduce offers cell 66's six functions, its print in
 torch's float form. Verify 261; the sweep clean; the full suite for the
-core change, 368 real states MATCH. Still to build from the same picks:
-the dot product on the amino-acid vectors and the Hadamard product with a
-seeded mask, as Multiply's other two kinds.
+core change, 368 real states MATCH. (4) Multiply's three kinds, cell 54:
+matrix as built; dot on the notebook's amino acids as vectors of
+hydrophobicity, charge and size — lysine against arginine, valine and
+aspartic, one pair multiplied per step and the sum landing last, 1.595,
+0.41 and −0.435 as cells 60–61 print them; Hadamard, X × a 0/1 dropout
+mask, the mask the one draw the widget makes, from the seeded rng
+`compute` is handed (invariant 6), a cell under a 0 drawn empty as his
+figure draws it, and torch's `-0.0000` where a negative cell was dropped.
+Verify 266; the sweep clean over 60 states; nothing in core.
 
 ### Questions for Kenneth, before any mock-up
 

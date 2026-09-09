@@ -358,6 +358,13 @@
       round-17 fold undone: a scalar first, then the stretched shapes, its
       caption cell 51's opening. Multiply is Matmul renamed, for the three
       products to come. Reduce offers cell 66's six functions.
+
+  35. ROUND 20, MULTIPLY'S THREE KINDS (cell 54): matrix, as built; dot, the
+      notebook's amino acids as vectors — lysine against arginine, valine and
+      aspartic — one pair multiplied per step and the sum landing last; and
+      Hadamard, X × a 0/1 dropout mask, the mask THE ONE DRAW THE WIDGET
+      MAKES, from the seeded rng `compute` is handed, never Math.random
+      (invariant 6). A cell under a 0 is drawn empty, as his figure draws it.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -2352,6 +2359,190 @@ const cellAt = (k, units) => (k < 0 || k >= units ? null : { r: Math.floor(k / 2
 const mmCurrent = (anim, state, rising) =>
   cellAt(rising > 0 ? anim.n : anim.n - 1, state.units);
 
+/* --- the dot product (round 20, cells 59-61) --------------------------------- *
+ * The notebook's figure: x above, y below, matching cells joined, and the
+ * sum written out to the right. One step multiplies one pair; the sum lands
+ * once every pair is in.                                                     */
+
+function dotGeometry(colors, w, params, cw) {
+  const pair = M.dotPairByValue(params.pair);
+  const d = M.dotTerms(pair);
+  const s = cellSize(w);
+  const operandsH = GRID_LBL + s + 26 + s + 30 + 16;
+  const print = printOf([], () => M.torchFloatFormat([d.sum])(d.sum), "result", cw);
+  const resultH = Math.max(GRID_LBL + s, print.h);
+  const bands = [bandH(operandsH), bandH(resultH)];
+  return { pair, d, s, print, bands, height: stageOf(bands, 2) };
+}
+
+function planDot(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const { pair, d, s, print, bands } = dotGeometry(colors, w, params, cw);
+  const done = anim.n;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
+  const k = ph ? done : done - 1;
+  const litA = ph ? ph.light : 1;
+  const x = M.AMINO[pair.x];
+  const y = M.AMINO[pair.y];
+
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  pushBand(plan, xL, yT, bandW, bands[0], "Operands", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", `torch.dot(${pair.x}, ${pair.y})`, null);
+
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
+  const y1 = y0 + s + 26;
+  pushText(plan, panelLine(pair.x, [3]), x0, y0 - 6, { color: colors.ink1, mono: true });
+  pushGrid(plan, x0, y0, 1, 3, s, (r, c) => ({
+    v: x[c],
+    ...(c === k ? litFace(colors, litA) : { fill: colors.groupA }),
+    name: `${pair.x}[${c}] = ${M.num(x[c])}`,
+  }));
+  /* the pairs joined, as the figure joins them */
+  for (let c = 0; c < 3; c += 1) {
+    const cx = x0 + c * s + s / 2;
+    pushArrow(plan, cx, y0 + s + 3, cx, y1 - 3, c < done || c === k ? colors.highlight : colors.ink3, 1.5);
+  }
+  pushText(plan, "·", x0 - 10, y0 + s + 17, { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushGrid(plan, x0, y1, 1, 3, s, (r, c) => ({
+    v: y[c],
+    ...(c === k ? litFace(colors, litA) : { fill: colors.groupB }),
+    name: `${pair.y}[${c}] = ${M.num(y[c])}`,
+  }));
+  pushText(plan, panelLine(pair.y, [3]), x0, y1 + s + 14, { color: colors.ink1, mono: true });
+  /* the products so far, and the sum once every pair is in */
+  const shown = d.terms.slice(0, ph ? done + 1 : done);
+  const line = shown.length
+    ? shown.map((t) => `${M.num(t.a)}×${M.num(t.b)}`).join(" + ") + (done >= state.units ? ` = ${M.num(d.sum)}` : "")
+    : "";
+  if (line) pushText(plan, line, x0 + 3 * s + 24, y1 - 8, { color: colors.highlight, mono: true });
+
+  /* --- the result: one number ---------------------------------------------- */
+  const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+  pushText(plan, panelLine("result", []), x0, ry - 6, { color: colors.ink1, mono: true });
+  const landed = done >= state.units;
+  pushGrid(plan, x0, ry, 1, 1, s, () => (landed
+    ? { v: M.num(d.sum), ...litFace(colors), name: `torch.dot = ${M.num(d.sum)}` }
+    : { empty: true, lit: Boolean(ph) && done === state.units - 1 }));
+  /* the one cell is narrower than its own label, so the print clears the label */
+  const drawn = Math.max(s, Math.ceil(panelLine("result", []).length * cw));
+  bot.divX = x0 + drawn + PRINT_GAP / 2;
+  pushPrintBlock(plan, colors, x0 + drawn + PRINT_GAP, yB + BAND_HEAD + BAND_PAD, print, cw,
+    () => (landed ? { color: colors.highlight, key: "result|0", name: `torch.dot = ${M.num(d.sum)}` } : null));
+
+  pushCaptions(plan, colors, DOT_CAPTIONS, PAD, yB + bands[1] + 6 + 13);
+  return plan;
+}
+
+const DOT_CAPTIONS = [
+  "Matching cells are multiplied and the products summed into one number.",
+  "Vectors that point the same way give a large positive sum; opposite ones a negative sum.",
+];
+
+/* --- the Hadamard product (round 20, cells 62-65) ---------------------------- *
+ * X × mask = Z, the same shape all three, drawn as the notebook's figure: the
+ * mask's 1s filled and its 0s empty, and Z blank where the mask dropped a
+ * cell. The mask is the widget's one draw, from the seed.                   */
+
+function hadGeometry(colors, w, cw) {
+  const s = cellSize(w);
+  const rows = M.HAD_SHAPE[0];
+  const cols = M.HAD_SHAPE[1];
+  const gw = cols * s;
+  const sep = OP_W + GAP;
+  const operandsH = GRID_LBL + rows * s + 30 + 16;
+  /* the print's width is fixed by the format, not the mask, so the fit is
+     the same for every seed */
+  const sample = M.HAD_X.map((row) => row.map((v) => v * 1));
+  const fmt = M.torchFloatFormat(sample);
+  const print = printOf(M.HAD_SHAPE, ([r, c]) => fmt(sample[r][c]), "Z", cw);
+  const avail = w - 2 * PAD - 2 * BAND_PAD;
+  const beside = gw + PRINT_GAP + print.w <= avail;
+  const resultH = beside ? Math.max(GRID_LBL + rows * s, print.h) : GRID_LBL + rows * s + PRINT_DROP + print.h;
+  const bands = [bandH(operandsH), bandH(resultH)];
+  return { s, rows, cols, gw, sep, beside, bands, printW: print.w, height: stageOf(bands, 2) };
+}
+
+function planHadamard(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const { s, rows, cols, gw, sep, beside, bands } = hadGeometry(colors, w, cw);
+  const { mask, Z, fmt } = state;
+  const print = printOf(M.HAD_SHAPE, ([r, c]) => fmt(Z[r][c]), "Z", cw);
+  const done = anim.n;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
+  const k = (r, c) => r * cols + c;
+  const curK = ph ? done : done - 1;
+  const litA = ph ? ph.light : 1;
+
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  pushBand(plan, xL, yT, bandW, bands[0], "Operands", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", "Z = X * mask", null);
+
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
+  const mid = y0 + (rows * s) / 2 + 6;
+  pushText(plan, panelLine("X", M.HAD_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
+  pushGrid(plan, x0, y0, rows, cols, s, (r, c) => ({
+    v: M.HAD_X[r][c],
+    ...(k(r, c) === curK ? litFace(colors, litA) : { fill: colors.groupA }),
+    name: `${M.indexText("X", [r, c])} = ${M.num(M.HAD_X[r][c])}`,
+  }));
+  const mx = x0 + gw + sep;
+  pushText(plan, "×", x0 + gw + sep / 2, mid, { color: colors.ink1, size: colors.fsLg, align: "center" });
+  pushText(plan, panelLine("mask", M.HAD_SHAPE), mx, y0 - 6, { color: colors.ink1, mono: true });
+  pushGrid(plan, mx, y0, rows, cols, s, (r, c) => ({
+    v: mask[r][c],
+    ...(k(r, c) === curK ? litFace(colors, litA) : mask[r][c] ? { fill: colors.groupB } : { fill: colors.surface, alpha: 0 }),
+    name: `${M.indexText("mask", [r, c])} = ${mask[r][c]}`,
+  }));
+  if (curK >= 0 && curK < state.units) {
+    const r = Math.floor(curK / cols);
+    const c = curK % cols;
+    pushText(plan, `${M.indexText("Z", [r, c])} = ${M.num(M.HAD_X[r][c])} × ${mask[r][c]} = ${M.num(Z[r][c])}`,
+      x0, y0 + rows * s + 30, { color: colors.highlight, mono: true });
+  }
+
+  /* --- the result ---------------------------------------------------------- */
+  const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+  pushText(plan, panelLine("Z", M.HAD_SHAPE), x0, ry - 6, { color: colors.ink1, mono: true });
+  const cellState = (i) => (i < done ? (i === done - 1 && !ph ? "last" : "done") : i === done && ph ? "landing" : "none");
+  pushGrid(plan, x0, ry, rows, cols, s, (r, c) => {
+    const v = Z[r][c];
+    const name = `${M.indexText("Z", [r, c])} = ${M.num(v)}`;
+    const st = cellState(k(r, c));
+    const face = mask[r][c] ? { fill: colors.empirical } : { fill: colors.surface, alpha: 0 };
+    if (st === "done") return { v: M.num(v), ...face, name };
+    if (st === "last") return { v: M.num(v), ...litFace(colors), name };
+    if (st === "landing") return ph.land > 0 ? { v: M.num(v), ...litFace(colors), alpha: LIT_A * ph.land, name } : { empty: true, lit: true };
+    return { empty: true };
+  });
+  if (beside) bot.divX = x0 + gw + PRINT_GAP / 2;
+  const px = beside ? x0 + gw + PRINT_GAP : x0;
+  const py = beside ? yB + BAND_HEAD + BAND_PAD : ry + rows * s + PRINT_DROP;
+  pushPrintBlock(plan, colors, px, py, print, cw, ([r, c]) => {
+    const st = cellState(k(r, c));
+    if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
+    return { color: st === "done" ? colors.ink1 : colors.highlight, key: `Z|${r},${c}`, name: `${M.indexText("Z", [r, c])} = ${M.num(Z[r][c])}`, fade: st === "landing" };
+  });
+  if (ph && cellState(done) === "landing") plan.fadeAlpha = ph.land;
+
+  pushCaptions(plan, colors, HAD_CAPTIONS, PAD, yB + bands[1] + 6 + 13);
+  return plan;
+}
+
+const HAD_CAPTIONS = [
+  "Matching cells are multiplied and kept apart: the shape does not change.",
+  "A 0 in the mask drops the cell under it, which is how dropout removes data at random.",
+];
+
 /* --- the Reduce tab ------------------------------------------------------- *
  * ONE BAND: the arrows run from the tensor to the result, and a band boundary
  * between them would cut the one line the tab is about. The expression on the
@@ -2590,7 +2781,10 @@ function tabHeight(w, params) {
     case "join": return shapeGeometry(ctx, colors, w, params).height;
     case "elementwise": return ewGeometry(colors, w, params, cw).height;
     case "broadcast": return bcGeometry(colors, w, params, cw).height;
-    case "multiply": return mmGeometry(colors, w, params, cw).height;
+    case "multiply":
+      return params.kind === "dot" ? dotGeometry(colors, w, params, cw).height
+        : params.kind === "hadamard" ? hadGeometry(colors, w, cw).height
+          : mmGeometry(colors, w, params, cw).height;
     default: return redGeometry(colors, w, params, cw).height;
   }
 }
@@ -3076,13 +3270,36 @@ defineWidget({
       default: "5",
       when: { param: "tab", equals: "broadcast" },
     },
+    /* ROUND 20: the three products of cell 54, each with the notebook's own
+       operands — inputs and weights, amino acids as vectors, a layer's
+       output and a dropout mask. */
+    kind: {
+      type: "segmented",
+      label: "Kind of product",
+      detail: "multiplication means three things for tensors",
+      options: [
+        { value: "matrix", label: "matrix", detail: "rows of the first against columns of the second: X @ W.T" },
+        { value: "dot", label: "dot", detail: "two vectors, matching cells multiplied and summed into one number" },
+        { value: "hadamard", label: "Hadamard", detail: "two tensors of one shape, matching cells multiplied and kept apart: X * mask" },
+      ],
+      default: "matrix",
+      when: { param: "tab", equals: "multiply" },
+    },
     weights: {
       type: "segmented",
       label: "Weights",
       detail: "the right operand of @: W transposed, or W itself",
       options: M.MM_CASES.map((c) => ({ value: c.value, label: c.label, detail: c.detail })),
       default: "transposed",
-      when: { param: "tab", equals: "multiply" },
+      when: { all: [{ param: "tab", equals: "multiply" }, { param: "kind", equals: "matrix" }] },
+    },
+    pair: {
+      type: "segmented",
+      label: "Vectors",
+      detail: "lysine against each of the others: hydrophobicity, charge, size",
+      options: M.DOT_PAIRS.map((p) => ({ value: p.value, label: p.label, detail: p.detail })),
+      default: "arginine",
+      when: { all: [{ param: "tab", equals: "multiply" }, { param: "kind", equals: "dot" }] },
     },
     dim: {
       type: "segmented",
@@ -3161,7 +3378,7 @@ defineWidget({
           {
             all: [
               { param: "tab", equals: "multiply" },
-              { param: "weights", equals: "transposed" },
+              { any: [{ param: "kind", oneOf: ["dot", "hadamard"] }, { param: "weights", equals: "transposed" }] },
             ],
           },
         ],
@@ -3216,6 +3433,20 @@ defineWidget({
           : [{ token: "extreme", label: "The dimensions that do not combine" }]),
       ];
     }
+    if (params.tab === "multiply" && params.kind === "dot") {
+      return [
+        { token: "empirical", label: "lysine" },
+        { token: "group-b", label: "the vector it is compared with" },
+        { token: "highlight", label: "The pair just multiplied, and the sum" },
+      ];
+    }
+    if (params.tab === "multiply" && params.kind === "hadamard") {
+      return [
+        { token: "empirical", label: "X, and the Z it becomes" },
+        { token: "group-b", label: "mask: 1 keeps a cell, 0 drops it" },
+        { token: "highlight", label: "The cell just multiplied" },
+      ];
+    }
     if (params.tab === "multiply") {
       const mm = M.mmCaseByValue(params.weights);
       return [
@@ -3254,7 +3485,7 @@ defineWidget({
   /* Pure and exact: every number is the lesson's own, so there is nothing to
      draw and no seed to draw it with. What `compute` produces is the walk the
      animation reveals and the count of units in it. */
-  compute({ params }) {
+  compute({ params, rng }) {
     /* Basics counts no units, which is how core learns there is nothing to
        drive: `init` sets `anim.inert` from it and the drive row goes (4.5). */
     if (isBasics(params.tab)) {
@@ -3281,6 +3512,16 @@ defineWidget({
       const bc = M.bCaseByValue(params.b);
       const plan = M.broadcastPlan(bc);
       return { kind: "broadcast", bc, plan, units: plan.ok ? M.BC_X_SHAPE[0] : 0 };
+    }
+    if (params.tab === "multiply" && params.kind === "dot") {
+      const pair = M.dotPairByValue(params.pair);
+      return { kind: "dot", pair, dot: M.dotTerms(pair), units: 3 };
+    }
+    if (params.tab === "multiply" && params.kind === "hadamard") {
+      /* the one draw the widget makes: a dropout mask, from the seed */
+      const mask = M.hadMask(rng);
+      const Z = M.hadamard(M.HAD_X, mask);
+      return { kind: "hadamard", mask, Z, fmt: M.torchFloatFormat(Z), units: M.HAD_SHAPE[0] * M.HAD_SHAPE[1] };
     }
     if (params.tab === "multiply") {
       const mm = M.mmCaseByValue(params.weights);
@@ -3458,7 +3699,9 @@ defineWidget({
       : state.kind === "shape" ? planShape(ctx, colors, w, h, params, state, anim)
         : params.tab === "elementwise" ? planElementwise(ctx, colors, w, h, params, state, anim)
           : params.tab === "broadcast" ? planBroadcast(ctx, colors, w, h, params, state, anim)
-          : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
+          : state.kind === "dot" ? planDot(ctx, colors, w, h, params, state, anim)
+            : state.kind === "hadamard" ? planHadamard(ctx, colors, w, h, params, state, anim)
+              : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
             : planReduce(ctx, colors, w, h, params, state, anim);
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
     hovered = hitPlan(plan, pointer);
@@ -3625,6 +3868,45 @@ defineWidget({
       ];
     }
 
+    if (state.kind === "dot") {
+      const d = state.dot;
+      const k = anim.beat > 0 && anim.n < state.units ? anim.n : anim.n - 1;
+      const t = k >= 0 && k < 3 ? d.terms[k] : null;
+      return [
+        { label: "Shapes in", value: "[3] · [3]", note: "two vectors of one length" },
+        {
+          label: "Result shape",
+          value: "[]",
+          note: anim.n >= state.units ? `one number, ${M.num(d.sum)}` : plural(anim.n, state.units, "product taken", "products taken"),
+        },
+        {
+          label: "This product",
+          value: t ? M.num(t.product) : "—",
+          note: t ? `${M.num(t.a)} × ${M.num(t.b)}, the pair at position ${k}` : `no ${unit} has been computed yet`,
+        },
+        cell(anim.n >= state.units ? `torch.dot = ${M.num(d.sum)}` : "—",
+          anim.n >= state.units ? "the products summed" : "the sum, once every pair is in"),
+      ];
+    }
+    if (state.kind === "hadamard") {
+      const k = anim.beat > 0 && anim.n < state.units ? anim.n : anim.n - 1;
+      const at = k >= 0 && k < state.units ? { r: Math.floor(k / 5), c: k % 5 } : null;
+      return [
+        { label: "Shapes in", value: `${M.shapeText(M.HAD_SHAPE)} × ${M.shapeText(M.HAD_SHAPE)}`, note: "the same shape, cell by cell" },
+        {
+          label: "Result shape",
+          value: M.shapeText(M.HAD_SHAPE),
+          note: plural(anim.n, state.units, "cell multiplied", "cells multiplied"),
+        },
+        {
+          label: "This cell",
+          value: at ? M.num(state.Z[at.r][at.c]) : "—",
+          note: at ? `${M.num(M.HAD_X[at.r][at.c])} × ${state.mask[at.r][at.c]}: ${state.mask[at.r][at.c] ? "kept" : "dropped"}` : `no ${unit} has been computed yet`,
+        },
+        cell(at ? `${M.indexText("Z", [at.r, at.c])} = ${M.num(state.Z[at.r][at.c])}` : "—",
+          at ? "the cell just multiplied" : "a cell's index and value"),
+      ];
+    }
     if (params.tab === "multiply") {
       const mm = state.mm;
       const rising = mm.ok && anim.beat > 0 && anim.n < state.units ? anim.beat : 0;
@@ -3725,6 +4007,14 @@ defineWidget({
           ? `${anim.n} of ${state.units} rows of the result are drawn.`
           : `The shapes do not combine: ${state.plan.clash}.`)
         + " Below, the two shapes lined up from the right with a verdict on each dimension.";
+    }
+    if (state.kind === "dot") {
+      return `torch.dot of ${state.pair.x} and ${state.pair.y}, three properties each: ${anim.n} of 3 pairs multiplied, `
+        + `the sum ${M.num(state.dot.sum)}. Matching cells are multiplied and the products summed into one number.`;
+    }
+    if (state.kind === "hadamard") {
+      return `X [2, 5] multiplied cell by cell with a 0/1 mask of the same shape: ${anim.n} of ${state.units} cells done; `
+        + "a cell under a 0 becomes 0 and the shape does not change.";
     }
     if (params.tab === "multiply") {
       return `X [3, 4] multiplied by ${state.mm.name} ${M.shapeText(state.mm.shape)}. `

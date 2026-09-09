@@ -778,8 +778,46 @@ export function torchFloatFormat(vals) {
     };
   }
   if (flat.every(Number.isInteger)) return (v) => `${v}.`;
-  return (v) => v.toFixed(4);
+  /* torch keeps the sign of a negative zero, which X * mask makes of -0.7 */
+  return (v) => (Object.is(v, -0) ? "-" : "") + v.toFixed(4);
 }
+
+/* --- the dot product (cells 59-61) ------------------------------------------ *
+ * The notebook's amino acids as vectors of hydrophobicity, charge and size,
+ * and the three dot products it takes, lysine against each of the others. */
+export const AMINO = {
+  lysine: [0.1, 1.0, 0.8],
+  arginine: [0.15, 0.9, 0.85],
+  valine: [0.9, 0.0, 0.4],
+  aspartic: [0.05, -1.0, 0.7],
+};
+export const DOT_PAIRS = [
+  { value: "arginine", label: "lysine · arginine", detail: "both positively charged and of similar size", x: "lysine", y: "arginine" },
+  { value: "valine", label: "lysine · valine", detail: "valine is hydrophobic, neutral and small", x: "lysine", y: "valine" },
+  { value: "aspartic", label: "lysine · aspartic", detail: "aspartic acid is negatively charged", x: "lysine", y: "aspartic" },
+];
+export const dotPairByValue = (value) => DOT_PAIRS.find((p) => p.value === value) ?? DOT_PAIRS[0];
+
+/** The products of matching cells and their sum, with the printed line. */
+export function dotTerms(pair) {
+  const x = AMINO[pair.x];
+  const y = AMINO[pair.y];
+  const terms = x.map((a, k) => ({ a, b: y[k], product: a * y[k] }));
+  const sum = terms.reduce((s, t) => s + t.product, 0);
+  return {
+    terms,
+    sum: Math.round(sum * 1e6) / 1e6,
+    text: `${terms.map((t) => `${num(t.a)}×${num(t.b)}`).join(" + ")} = ${num(sum)}`,
+  };
+}
+
+/* --- the Hadamard product (cells 62-65) ------------------------------------- *
+ * X × mask, the same shape in and out; the mask is `rand_like(X) > 0.5`, so
+ * it is drawn from the widget's seeded rng, never Math.random. */
+export const HAD_X = [[0.5, 1.2, -0.7, 2.0, 0.1], [1.0, -0.5, 0.3, 1.5, -1.2]];
+export const HAD_SHAPE = [2, 5];
+export const hadMask = (rng) => HAD_X.map((row) => row.map(() => (rng.next() > 0.5 ? 1 : 0)));
+export const hadamard = (X, mask) => X.map((row, r) => row.map((v, c) => v * mask[r][c]));
 
 /** The short form a cell can hold: integers plain, fractions to two places,
     and a value past 1e4 as one digit and its exponent (`5e21`). */

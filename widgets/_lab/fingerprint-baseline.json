@@ -3315,6 +3315,20 @@
       "tx": "0"
     },
     {
+      "$note": "PLACEHOLDER - draft. Multiply (round 20): torch.dot(lysine, arginine), all three pairs in and the sum landed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=multiply&kind=dot&shown=3",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Multiply (round 20): X * mask, the mask from the seed, 6 of 10 cells",
+      "slug": "tensors",
+      "state": "?theme=light&tab=multiply&kind=hadamard&shown=6",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=flatten&shown=20",

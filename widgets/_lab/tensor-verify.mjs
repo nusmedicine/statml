@@ -30,6 +30,7 @@ import {
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   EW_X, EW_OPS, ewCaseByValue, ewValues, torchFloatFormat, ewCellText,
+  AMINO, DOT_PAIRS, dotPairByValue, dotTerms, HAD_X, HAD_SHAPE, hadMask, hadamard,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
   MM_CASES, mmCaseByValue,
   RED_X, RED_X_SHAPE, RED_MU, RED_SD, RED_Z, REDUCERS,
@@ -606,6 +607,26 @@ console.log("\n=== 5 · broadcasting X [2, 5] + b ===");
     && torchFloatFormat(ewValues(ewCaseByValue("exp")))(Math.exp(50)) === "5.1847e+21"
     && torchFloatFormat(ewValues(ewCaseByValue("exp")))(1) === "1.0000e+00");
   check("a cell shows the short form", ewCellText(Math.exp(50)) === "5e21" && ewCellText(152) === "152" && ewCellText(0.5) === "0.5");
+  console.log("\n=== 5c · the dot and Hadamard products (round 20, cells 59-65) ===");
+  check("the notebook's three dot products of lysine: 1.595, 0.41 and -0.435",
+    dotTerms(dotPairByValue("arginine")).sum === 1.595 && dotTerms(dotPairByValue("valine")).sum === 0.41
+    && dotTerms(dotPairByValue("aspartic")).sum === -0.435);
+  check("a dot product's line is the three products and the sum",
+    dotTerms(dotPairByValue("arginine")).text === "0.1×0.15 + 1×0.9 + 0.8×0.85 = 1.6"
+    || dotTerms(dotPairByValue("arginine")).text.startsWith("0.1×0.15 + 1×0.9 + 0.8×0.85 ="));
+  {
+    const seq = [0.9, 0.1, 0.6, 0.4, 0.7, 0.2, 0.8, 0.3, 0.55, 0.45];
+    let i = 0;
+    const rng = { next: () => seq[i++] };
+    const mask = hadMask(rng);
+    check("the mask is rand > 0.5, one draw per cell of X, from the rng it is handed",
+      same(mask, [[1, 0, 1, 0, 1], [0, 1, 0, 1, 0]]) && i === 10);
+    const Z = hadamard(HAD_X, mask);
+    check("X * mask keeps a cell under a 1 and zeroes one under a 0, shape unchanged",
+      Z[0][0] === 0.5 && Z[0][1] === 0 && Z[1][1] === -0.5 && Z.length === HAD_SHAPE[0] && Z[0].length === HAD_SHAPE[1]);
+    check("a negative cell under a 0 prints as torch prints it, -0.0000",
+      torchFloatFormat(Z)(Z[0][3]) === "0.0000" && torchFloatFormat(Z)(-0.7 * 0) === "-0.0000");
+  }
   check("the notebook's six reductions: std unbiased, norm the L2 length",
     same(Object.keys(REDUCERS), ["sum", "mean", "std", "max", "min", "norm"])
     && REDUCERS.std([1, 2, 3]) === 1 && REDUCERS.min([3, 1, 2]) === 1 && Math.abs(REDUCERS.norm([1, 2, 3]) - Math.sqrt(14)) < 1e-12);

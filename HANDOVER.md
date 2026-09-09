@@ -32,13 +32,13 @@ uncommitted. Round 20 built his picks in four commits — the rail
 (Tensors · Index/Slice · Manipulate · Join, `1676ab7`), the verbs in
 three groups with squeeze and transpose (`2461cdd`), the algebra row as
 cell 45's table (Scalar · Broadcast · Multiply · Reduce), and the docs.
-**Left from the same picks: Multiply's dot and Hadamard kinds**, with the
+Multiply's dot and Hadamard kinds followed in a fifth commit, with the
 notebook's amino-acid vectors and a mask drawn from the seed (cells
-59–65). Read
+59–65). **Nothing from his round-19 picks is left to build.** Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–34) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–35) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -55,7 +55,11 @@ as PyTorch prints it, the same cell lit in both. **Basics** sets the rank
 sequence · image · positions) and the index through core's `expr`
 control, `T[ : , 0 , : ]`; the figure's index labels are click targets
 (`regions`, one parameter each); the selection is drawn as the sub-tensor
-it makes. Two eases (4.4): the view morph moves the same cells, and an
+it makes. **Scalar** is the notebook's 3 × 3 image under its six
+operations; **Broadcast** X [2, 5] + b over the shapes of b; **Multiply**
+the three products of cell 54 — matrix, dot on the amino-acid vectors,
+Hadamard with a seeded mask; **Reduce** the six functions of cell 66 and
+Standardize. Two eases (4.4): the view morph moves the same cells, and an
 index change is staged — light, then glide. **The rank is one parameter
 across Basics, Shape and Join** (round 15): the tensor built in Basics is
 the one Shape and Join work on, 1 to 4 dimensions, the lesson's [2, 2, 5]
