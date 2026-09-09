@@ -703,7 +703,7 @@
     {
       "slug": "tensors",
       "title": "Tensors",
-      "blurb": "A tensor is a multi-dimensional array with a shape; indexing, reshaping and joining rearrange it, and linear algebra computes on it element-wise, by matrix multiplication and by reduction.",
+      "blurb": "A tensor is an array with a shape; indexing, reshaping and joining rearrange it, and linear algebra computes on it.",
       "course": "PHM5005",
       "topics": [
         "tensor",
