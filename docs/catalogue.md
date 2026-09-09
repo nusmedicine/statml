@@ -11468,6 +11468,21 @@ keeps every position and the dash; the dash on a batch of one gets a
 second caption line naming the mistake. unsqueeze's detail names the same
 three uses for 0, 1 and −1. Verify 279; sweeps clean; nothing in core.
 
+**Round 26 (2026-09-09) — "sweep thru all squeeze/unsqueeze diagrams for
+the solid line is not too close to the tensor … 6 px".** Six pixels
+everywhere: the frames view's frame pads itself by five more when its
+grid is the hugged one, so the hug clears the dashed line; a bare grid
+(ranks 1–2) moves down and right by eight and its indices, rules and
+arrows keep their place; inside a cell the inset is six where the cell
+has room and shrinks with the cell, and the digit is fitted inside the
+inset (`cellInset`, painted by the cell itself). Every squeeze and
+unsqueeze drawing was looked at in both views. His other point — "the
+result is shown before I choose the dimension to remove" — is mocked on
+`_lab/tensor-flow.html`: my links carry `shown=20` and round 21's glide
+keeps a finished figure finished, so from a link, choosing U glided the
+result; three options, A recommended (glide on an argument change, start
+empty on a change of the tensor itself).
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

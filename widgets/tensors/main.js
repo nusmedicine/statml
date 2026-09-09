@@ -413,6 +413,9 @@
       the dash stay: the mismatch is unchanged (38), and the dash on a batch
       of one drops the batch too, which the caption names as the usual
       mistake. unsqueeze's detail names the same three uses for 0, 1, −1.
+      Round 26: the hug is six pixels everywhere — the frames view's frame
+      pads itself for it, a bare grid lifts its indices and arrows, and
+      inside a cell the inset shrinks with the cell and the digit fits it.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -471,13 +474,20 @@ let DIM_BASE = 0;
 let MARK_DIM = -1;
 const MARK_W = 2.5;       // the strong frame's stroke: the lit cell's weight
 /* the hug's clearance from the cells (round 24, Kenneth: "the lines may be
-   too close to tensors"): inside a dashed frame there are FRAME_PAD pixels to
-   share, so the frames view hugs at 4; the stack view has room, hugs at 6,
-   and steps its slabs apart by that much more so two hugs never touch */
-const MARK_HUG_FRAMES = 4;
-const MARK_HUG_STACK = 6;
-const MARK_INSET = 3;     // inside a cell, where the block is one cell
-const stackPad = () => (MARK_DIM >= 0 ? MARK_HUG_STACK + 2 : 0);
+   too close to tensors"; round 26: "not too close … like what you did, 6 px",
+   everywhere): six pixels in both views. The stack steps its slabs apart by
+   that much more so two hugs never touch; a frame whose grid is hugged pads
+   itself by MARK_ROOM more so the hug clears the dashed line; a bare grid
+   lifts its indices and arrows by the same; and inside a cell the inset is
+   six where the cell has room and shrinks with the cell (`cellInset`). */
+const MARK_HUG = 6;
+const MARK_ROOM = 5;
+const cellInset = (s) => Math.max(3, Math.min(MARK_HUG, Math.round((s - 18) / 2)));
+const stackPad = () => (MARK_DIM >= 0 ? MARK_HUG + 2 : 0);
+/* the padding of a frame whose grid's rows are `rowDim`: more when that
+   dimension is the hugged one */
+const framePad = (rowDim) => FRAME_PAD + (MARK_DIM >= 0 && MARK_DIM === rowDim ? MARK_ROOM : 0);
+const rowExtra = (shape, mark) => (mark >= 0 && mark === shape.length - 2 ? 2 * MARK_ROOM : 0);
 const frameInk = (colors, dim) => (dim === MARK_DIM ? colors.highlight : colors.ink3);
 const frameWeight = (dim) => (dim === MARK_DIM ? "600" : "");
 /* ROUND 16 (Kenneth: the dimension bars are "too close to the tensors and
@@ -802,6 +812,13 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
   ctx.strokeStyle = d.lit ? colors.highlight : isHover ? colors.ink1 : colors.ink2;
   ctx.lineWidth = d.lit || isHover ? 2.5 : 2;
   ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+  /* the size-1 dimension round a single value: its frame inside the cell */
+  const inset = d.inset ?? 0;
+  if (inset) {
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = MARK_W;
+    ctx.strokeRect(x + inset + 0.5, y + inset + 0.5, s - 2 * inset - 1, s - 2 * inset - 1);
+  }
   if (d.v != null && !d.empty) {
     txt(ctx, colors, typeof d.v === "string" ? d.v : M.num(d.v), x + s / 2, y + s / 2 + 0.5, {
       color: d.ink ?? colors.ink1,
@@ -813,7 +830,7 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
       size: s >= 28 ? colors.fsLg : s >= 22 ? colors.fsMd : colors.fsSm,
       mono: true,
       /* the string fits its cell, at a smaller size if it must */
-      fit: s - 4,
+      fit: s - 4 - 2 * inset,
       weight: d.bold ? "700" : "",
     });
   }
@@ -918,7 +935,7 @@ function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
   const dx = dy;                          // 45°
   /* a hug needs room between the slab and its `[i]`: the slabs move right by
      it, so the label keeps its place against the arrow to its left */
-  const lblShift = MARK_DIM >= 0 ? MARK_HUG_STACK + 1 : 0;
+  const lblShift = MARK_DIM >= 0 ? MARK_HUG + 1 : 0;
   const gx = x + (gutter ? SLAB_LBL + lblShift : 0);
   const front = y + (d0 - 1) * dy;
   for (let i = d0 - 1; i >= 0; i -= 1) {
@@ -950,8 +967,8 @@ function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
 /** How many frames fit in one row of `room` pixels, in equal rows. Never fewer
     than two: one frame a row would redraw the leading dimension as a column,
     which is the OTHER view's picture. */
-function framesPerRow(d0, d2, s, room) {
-  const step = d2 * s + 2 * FRAME_PAD + GAP;
+function framesPerRow(d0, d2, s, room, extra = 0) {
+  const step = d2 * s + 2 * FRAME_PAD + extra + GAP;
   const fits = Math.max(2, Math.min(d0, Math.floor((room - IDX_COL + GAP) / step)));
   return Math.ceil(d0 / Math.ceil(d0 / fits));
 }
@@ -959,8 +976,9 @@ function framesPerRow(d0, d2, s, room) {
 /** Grids side by side, each framed and named by its index of the leading
     dimension, with the indices on the edges of the first grid. */
 function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
-  const fw = d2 * s + 2 * FRAME_PAD;
-  const fh = FRAME_LBL + d1 * s + 2 * FRAME_PAD;
+  const pad = framePad(DIM_BASE + 1);
+  const fw = d2 * s + 2 * pad;
+  const fh = FRAME_LBL + d1 * s + 2 * pad;
   const cols = Math.min(d0, perRow);
   const rows = Math.ceil(d0 / cols);
   const x0 = x + IDX_COL;
@@ -970,25 +988,25 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     fy: y0 + Math.floor(i / cols) * (fh + INNER_GAP),
   });
   const hues = dimHues(colors, 3);
-  pushRule(plan, x0 + FRAME_PAD, y0 - IDX_ROW + 2, x0 + FRAME_PAD + d2 * s, y0 - IDX_ROW + 2, hues[2]);
-  pushRule(plan, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD + d1 * s, hues[1]);
+  pushRule(plan, x0 + pad, y0 - IDX_ROW + 2, x0 + pad + d2 * s, y0 - IDX_ROW + 2, hues[2]);
+  pushRule(plan, x0 - IDX_COL + 2, y0 + FRAME_LBL + pad, x0 - IDX_COL + 2, y0 + FRAME_LBL + pad + d1 * s, hues[1]);
   for (let i = 0; i < d0; i += 1) {
     const { fx, fy } = at(i);
     pushFrame(plan, fx, fy, fw, fh, null, hues[0], DIM_BASE);
     const anchor = { s: `dim ${DIM_BASE} = ${i}`, x: fx + 4, y: fy + FRAME_LBL - 3, align: "left" };
     pushText(plan, anchor.s, anchor.x, anchor.y, { color: frameInk(colors, DIM_BASE), weight: frameWeight(DIM_BASE), mono: true });
     markIndex(plan, 0, i, anchor);
-    pushGrid(plan, fx + FRAME_PAD, fy + FRAME_LBL + FRAME_PAD, d1, d2, s, (r, c) => cell(i, r, c));
+    pushGrid(plan, fx + pad, fy + FRAME_LBL + pad, d1, d2, s, (r, c) => cell(i, r, c));
   }
   for (let c = 0; c < d2; c += 1) {
-    const anchor = { s: String(c), x: x0 + FRAME_PAD + c * s + s / 2, y: y0 - 4, align: "center" };
+    const anchor = { s: String(c), x: x0 + pad + c * s + s / 2, y: y0 - 4, align: "center" };
     pushText(plan, anchor.s, anchor.x, anchor.y,
       { color: colors.ink3, align: "center", mono: true });
     markIndex(plan, 2, c, anchor);
   }
   for (let r = 0; r < d1; r += 1) {
     const anchor = {
-      s: String(r), x: x0 - 4, y: y0 + FRAME_LBL + FRAME_PAD + r * s + s / 2 + 4, align: "right",
+      s: String(r), x: x0 - 4, y: y0 + FRAME_LBL + pad + r * s + s / 2 + 4, align: "right",
     };
     pushText(plan, anchor.s, anchor.x, anchor.y,
       { color: colors.ink3, align: "right", mono: true });
@@ -999,7 +1017,7 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     h: IDX_ROW + rows * fh + (rows - 1) * INNER_GAP,
     centre: (i, r, c) => {
       const { fx, fy } = at(i);
-      return { x: fx + FRAME_PAD + c * s + s / 2, y: fy + FRAME_LBL + FRAME_PAD + r * s + s / 2 };
+      return { x: fx + pad + c * s + s / 2, y: fy + FRAME_LBL + pad + r * s + s / 2 };
     },
   };
 }
@@ -1018,7 +1036,7 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
   const dx = dy;                          // 45°, capped at two rows as in pushStack
   const stackH = (d1 - 1) * dy + d2 * s;
   const stackW = (d1 - 1) * dx + d3 * s;
-  const lblShift = MARK_DIM >= 0 ? MARK_HUG_STACK + 1 : 0;
+  const lblShift = MARK_DIM >= 0 ? MARK_HUG + 1 : 0;
   const gx = x + SLAB_LBL + lblShift;
   const parts = [];
   for (let f = 0; f < d0; f += 1) {
@@ -1045,8 +1063,9 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
 /** A rank-4 tensor as frames within frames: the leading index down the page,
     the next across, and the last two the grid you read. */
 function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1) {
-  const iw = d3 * s + 2 * FRAME_PAD;
-  const ih = FRAME_LBL + d2 * s + 2 * FRAME_PAD;
+  const pad = framePad(DIM_BASE + 2);   // the inner frames hold the grids
+  const iw = d3 * s + 2 * pad;
+  const ih = FRAME_LBL + d2 * s + 2 * pad;
   /* The inner frames wrap into equal rows when dim 1 is wide — [1, 10, 1, 2]
      puts ten in one row otherwise (round 12). `perRow` is the fit's, measured
      against the room the band has. */
@@ -1082,17 +1101,17 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
       const lbl = { s: `dim ${DIM_BASE + 1} = ${j}`, x: ix + 4, y: iy + FRAME_LBL - 3, align: "left" };
       pushText(plan, lbl.s, lbl.x, lbl.y, { color: colors.ink3, mono: true });
       markIndex(plan, 1, j, lbl);
-      pushGrid(plan, ix + FRAME_PAD, iy + FRAME_LBL + FRAME_PAD, d2, d3, s,
+      pushGrid(plan, ix + pad, iy + FRAME_LBL + pad, d2, d3, s,
         (r, c) => cell(f, j, r, c));
     }
   }
   const first = inner(0, 0);
-  pushRule(plan, first.ix + FRAME_PAD, first.iy - IDX_ROW + 2, first.ix + FRAME_PAD + d3 * s, first.iy - IDX_ROW + 2, hues[3]);
-  pushRule(plan, x0 - IDX_COL + 2, first.iy + FRAME_LBL + FRAME_PAD, x0 - IDX_COL + 2,
-    first.iy + FRAME_LBL + FRAME_PAD + d2 * s, hues[2]);
+  pushRule(plan, first.ix + pad, first.iy - IDX_ROW + 2, first.ix + pad + d3 * s, first.iy - IDX_ROW + 2, hues[3]);
+  pushRule(plan, x0 - IDX_COL + 2, first.iy + FRAME_LBL + pad, x0 - IDX_COL + 2,
+    first.iy + FRAME_LBL + pad + d2 * s, hues[2]);
   for (let c = 0; c < d3; c += 1) {
     const anchor = {
-      s: String(c), x: first.ix + FRAME_PAD + c * s + s / 2, y: first.iy - 4, align: "center",
+      s: String(c), x: first.ix + pad + c * s + s / 2, y: first.iy - 4, align: "center",
     };
     pushText(plan, anchor.s, anchor.x, anchor.y,
       { color: colors.ink3, align: "center", mono: true });
@@ -1101,7 +1120,7 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
   for (let r = 0; r < d2; r += 1) {
     const anchor = {
       s: String(r), x: x0 - 4,
-      y: first.iy + FRAME_LBL + FRAME_PAD + r * s + s / 2 + 4, align: "right",
+      y: first.iy + FRAME_LBL + pad + r * s + s / 2 + 4, align: "right",
     };
     pushText(plan, anchor.s, anchor.x, anchor.y,
       { color: colors.ink3, align: "right", mono: true });
@@ -1112,7 +1131,7 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
     h: oh0 + (d0 - 1) * (ohN + INNER_GAP),
     centre: (f, j, r, c) => {
       const { ix, iy } = inner(f, j);
-      return { x: ix + FRAME_PAD + c * s + s / 2, y: iy + FRAME_LBL + FRAME_PAD + r * s + s / 2 };
+      return { x: ix + pad + c * s + s / 2, y: iy + FRAME_LBL + pad + r * s + s / 2 };
     },
   };
 }
@@ -1125,9 +1144,14 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
   const framesBefore = plan.frames.length;
   const prev = MARK_DIM;
   MARK_DIM = marked ? mark : -1;
-  const box = pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges);
+  /* where the block is one cell, the frame is an inset the cell paints, so
+     the digit is fitted inside it (round 26) */
+  const cellOf = marked && mark === shape.length - 1
+    ? (idx) => ({ ...cell(idx), inset: cellInset(s) })
+    : cell;
+  const box = pushTensorBody(plan, colors, x, y, shape, s, view, cellOf, perRow, edges);
   MARK_DIM = prev;
-  if (!marked) return box;
+  if (!marked || mark === shape.length - 1) return box;
   /* a frame at that level was made strong by the drawer; otherwise hug each
      block — the cells sharing every index before `mark` — or sit inside the
      cell where the block is one cell */
@@ -1145,7 +1169,7 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
     b.y1 = Math.max(b.y1, c.y + s / 2);
     blocks.set(key, b);
   }
-  const m = mark === shape.length - 1 ? -MARK_INSET : view === "stack" ? MARK_HUG_STACK : MARK_HUG_FRAMES;
+  const m = MARK_HUG;
   for (const b of blocks.values()) {
     plan.frames.push({ x: b.x0 - m, y: b.y0 - m, w: b.x1 - b.x0 + 2 * m, h: b.y1 - b.y0 + 2 * m, label: null, tone: null, strong: true });
   }
@@ -1165,23 +1189,26 @@ function pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges 
     /* The edge indices are the frames view's device brought down to a bare
        grid: at rank 1 and rank 2 the two views draw the same picture, and
        without them the reader has nothing to read an index off — or to press. */
-    const gx = x + (edges && shape.length === 2 ? IDX_COL : 0);
-    const gy = y + (edges ? IDX_ROW : 0);
+    /* a hug round the grid needs room above and left of it: the grid moves
+       by `lift`, and its indices, rules and arrows keep their place */
+    const lift = MARK_DIM >= 0 && MARK_DIM === shape.length - 2 ? MARK_HUG + 2 : 0;
+    const gx = x + (edges && shape.length === 2 ? IDX_COL : 0) + lift;
+    const gy = y + (edges ? IDX_ROW : 0) + lift;
     pushGrid(plan, gx, gy, rows, cols, s,
       (r, c) => cell(shape.length === 1 ? [c] : [r, c]));
     if (edges) {
       const hues = dimHues(colors, shape.length);
-      pushRule(plan, gx, gy - IDX_ROW + 2, gx + cols * s, gy - IDX_ROW + 2, hues[shape.length - 1]);
+      pushRule(plan, gx, gy - IDX_ROW + 2 - lift, gx + cols * s, gy - IDX_ROW + 2 - lift, hues[shape.length - 1]);
       for (let c = 0; c < cols; c += 1) {
-        const anchor = { s: String(c), x: gx + c * s + s / 2, y: gy - 4, align: "center" };
+        const anchor = { s: String(c), x: gx + c * s + s / 2, y: gy - 4 - lift, align: "center" };
         pushText(plan, anchor.s, anchor.x, anchor.y,
           { color: colors.ink3, align: "center", mono: true });
         markIndex(plan, shape.length - 1, c, anchor);
       }
       if (shape.length === 2) {
-        pushRule(plan, gx - IDX_COL + 2, gy, gx - IDX_COL + 2, gy + rows * s, hues[0]);
+        pushRule(plan, gx - IDX_COL + 2 - lift, gy, gx - IDX_COL + 2 - lift, gy + rows * s, hues[0]);
         for (let r = 0; r < rows; r += 1) {
-          const anchor = { s: String(r), x: gx - 4, y: gy + r * s + s / 2 + 4, align: "right" };
+          const anchor = { s: String(r), x: gx - 4 - lift, y: gy + r * s + s / 2 + 4, align: "right" };
           pushText(plan, anchor.s, anchor.x, anchor.y,
             { color: colors.ink3, align: "right", mono: true });
           markIndex(plan, 0, r, anchor);
@@ -1282,6 +1309,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
      to the roles line under the drawing (round 19: on Shape and Join the two
      had named every dimension twice) */
   const { arrows = true, rolesLine = true, edges = false, arrowNames = true, mark = -1 } = opts;
+  const lift = mark >= 0 && mark === shape.length - 2 && shape[mark] === 1 ? MARK_HUG + 2 : 0;
   const hues = dimHues(colors, shape.length);
   const lead = arrows && arrowNames && roles.length ? textW(colors, roles[0]) : 0;
   const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead, shape);
@@ -1308,10 +1336,10 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     const f = box.centre([0, 0]);
     const gx = f.x - half;
     const gy = f.y - half;
-    pushArrow(plan, gx, gy - 8, gx + shape[1] * s, gy - 8, hues[1]);
-    if (arrowNames) pushText(plan, roles[1], gx + (shape[1] * s) / 2, gy - 13, { color: colors.ink2, align: "center" });
-    pushArrow(plan, gx - 9, gy, gx - 9, gy + shape[0] * s, hues[0]);
-    if (arrowNames) pushText(plan, roles[0], gx - ROLE_LEFT, gy + shape[0] * s + 13, { color: colors.ink2 });
+    pushArrow(plan, gx, gy - 8 - lift, gx + shape[1] * s, gy - 8 - lift, hues[1]);
+    if (arrowNames) pushText(plan, roles[1], gx + (shape[1] * s) / 2, gy - 13 - lift, { color: colors.ink2, align: "center" });
+    pushArrow(plan, gx - 9 - lift, gy, gx - 9 - lift, gy + shape[0] * s, hues[0]);
+    if (arrowNames) pushText(plan, roles[0], gx - ROLE_LEFT - lift, gy + shape[0] * s + 13, { color: colors.ink2 });
     return size;
   }
   if (shape.length === 4) {
@@ -1551,11 +1579,11 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
     : rank === 5
       ? framesPerRow(op.shape[2], op.shape[4], s, roomFor(prints.result, modes.out) - 4 * FRAME_PAD)
       : rank === 4
-        ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD)
-        : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out));
+        ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD, rowExtra(op.shape, op.mark ?? -1))
+        : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out), rowExtra(op.shape, op.mark ?? -1));
   const srcRow = op.src.length === 5
     ? framesPerRow(op.src[2], op.src[4], s, roomFor(prints.sources[0], modes.src) - 4 * FRAME_PAD)
-    : framesPerRow(op.src[0], op.src[op.src.length - 1], s, roomFor(prints.sources[0], modes.src));
+    : framesPerRow(op.src[0], op.src[op.src.length - 1], s, roomFor(prints.sources[0], modes.src), rowExtra(op.src, op.srcMark ?? -1));
   /* THE SOURCE PAIR STACKS RATHER THAN SITTING SIDE BY SIDE, in both views.
      Two tensors and two prints in one row do not fit 550px in any view, and
      stacking them lets each print sit beside its own drawing instead of both

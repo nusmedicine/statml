@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — when the result appears</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.step { color: var(--ink-1); font-weight: 600; white-space: nowrap; }
+  td.full { color: var(--c-highlight); }
+  td.empty { color: var(--ink-3); }
+  td.build { color: var(--ink-1); }
+  .rec { border-left: 3px solid var(--c-highlight); padding-left: 10px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · when the result appears</h1>
+  <p class="note">
+    <b>Your point: "the result is shown before I choose the dimension to remove."</b> Two things together did
+    that, and neither is squeeze's. The links I send carry <code>shown=20</code>, which opens the widget on a
+    finished figure (that is what the parameter is for: a lesson can link to a finished picture). And since
+    round 21 — your "tween between changes e.g. when changing dim for cat" — a <i>finished</i> figure stays
+    finished when a control changes, and its values glide to their new places. So from my link, choosing U
+    glided the finished result into the new one. Opened plain, the widget starts empty, and choosing U and the
+    dimension leaves it empty until Play or Next step. Nothing has been changed for this page.
+  </p>
+
+  <h2>The options</h2>
+  <p class="note rec">
+    <b>A · glide only when the argument changes; a different tensor starts empty (recommended).</b> The
+    dimension of cat, stack, squeeze, unsqueeze, flatten, the shape of reshape, the ordering of permute — those
+    rearrange the same values, and a finished figure glides. The tensor itself — U's use, the rank — is
+    different data, and the figure starts empty as invariant 3 says. One line in the widget's `init`.
+  </p>
+  <p class="note">
+    <b>B · no glide at all.</b> Every change starts empty, as before round 21. Simplest; loses the cat glide
+    you asked for.
+  </p>
+  <p class="note">
+    <b>C · as built</b>, and my links stop carrying <code>shown=</code>. Nothing changes in the widget; a
+    student who opens it plain sees A's behaviour already, except that changing U after a build glides.
+  </p>
+
+  <h2>What you see, step by step</h2>
+  <table>
+    <tr><th>from my link (<code>shown=20</code>)</th><th>A</th><th>B</th><th>C · now</th></tr>
+    <tr><td class="step">open</td><td class="full">finished</td><td class="full">finished</td><td class="full">finished</td></tr>
+    <tr><td class="step">pick U = one channel</td><td class="empty">empty</td><td class="empty">empty</td><td class="full">glides to the new result</td></tr>
+    <tr><td class="step">pick dim 1</td><td class="empty">empty</td><td class="empty">empty</td><td class="full">glides again</td></tr>
+    <tr><td class="step">Play</td><td class="build">builds</td><td class="build">builds</td><td class="build">Replay: builds again</td></tr>
+  </table>
+  <table>
+    <tr><th>opened plain</th><th>A</th><th>B</th><th>C · now</th></tr>
+    <tr><td class="step">open</td><td class="empty">empty</td><td class="empty">empty</td><td class="empty">empty</td></tr>
+    <tr><td class="step">pick U, pick dim</td><td class="empty">empty</td><td class="empty">empty</td><td class="empty">empty</td></tr>
+    <tr><td class="step">Play</td><td class="build">builds</td><td class="build">builds</td><td class="build">builds</td></tr>
+    <tr><td class="step">change the dim</td><td class="full">glides</td><td class="empty">empty again</td><td class="full">glides</td></tr>
+    <tr><td class="step">change U</td><td class="empty">empty</td><td class="empty">empty</td><td class="full">glides</td></tr>
+  </table>
+  <table>
+    <tr><th>Join · cat, after a build</th><th>A</th><th>B</th><th>C · now</th></tr>
+    <tr><td class="step">change dim 0 → 1</td><td class="full">glides</td><td class="empty">empty again</td><td class="full">glides</td></tr>
+    <tr><td class="step">change the rank</td><td class="empty">empty</td><td class="empty">empty</td><td class="full">glides where values match</td></tr>
+  </table>
+</main>
+</body>
+</html>
