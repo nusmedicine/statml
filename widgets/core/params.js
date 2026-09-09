@@ -28,9 +28,11 @@
      text         a short string the reader TYPES, validated by the widget —
                   a shape, an expression. `parse(text)` canonicalises what was
                   typed before it is stored (and what a URL carries), `show(v)`
-                  formats the stored value for display; both optional. Widget
-                  53's reshape argument, 2026-09-09: a dropdown of 22 sizes
-                  per slot was the long list Kenneth would not have.
+                  formats the stored value for display, `check(text, values)`
+                  returns a message to show under the field while it is typed
+                  in, or null; all optional. Widget 53's reshape argument,
+                  2026-09-09: a dropdown of 22 sizes per slot was the long
+                  list Kenneth would not have.
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest

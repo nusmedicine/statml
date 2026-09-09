@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through fourteen review rounds and NOT PUSHED. 367 real fingerprint
+locally through fifteen review rounds and NOT PUSHED. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -11,16 +11,18 @@ draft's must.**
 
 # NEXT: KENNETH TESTS THE TENSORS DRAFT, THEN THE ARC
 
-**Seven local commits are waiting to be pushed on his "tested ok":**
+**Eight local commits are waiting to be pushed on his "tested ok":**
 `5d55894` (rounds 1–9, with two core changes), `aa42f39` (round 10),
 `0eab30e` (round 11), `f25b15d` (round 12: the fit measured over every
 argument), `1d299b6` (T2 = T + 20), `3ed5012` (round 13: reshape's
-argument as four dropdown slots) and the round-14 commit (one typed
-field, with core's new `text` type). Nothing is uncommitted. Read
+argument as four dropdown slots), `e575daf` (round 14: one typed field,
+with core's new `text` type) and the round-15 commit (the rank carries
+over, every argument typed, the field grows and hints). Nothing is
+uncommitted. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
-from and Kenneth's exact picks are there, rounds 1–14, and the decision
-list in `widgets/tensors/main.js`'s header (1–26) says why each thing is
+from and Kenneth's exact picks are there, rounds 1–15, and the decision
+list in `widgets/tensors/main.js`'s header (1–27) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -37,18 +39,23 @@ sequence · image · positions) and the index through core's `expr`
 control, `T[ : , 0 , : ]`; the figure's index labels are click targets
 (`regions`, one parameter each); the selection is drawn as the sub-tensor
 it makes. Two eases (4.4): the view morph moves the same cells, and an
-index change is staged — light, then glide. **Shape** takes a verb and an
-argument: permute over its six orderings, unsqueeze and flatten over their
-dimensions, and reshape TYPED into one text field on a second `expr`
-line, `T.reshape( 2, -1 )` — the `shape` parameter, `?shape=2x5x2` on the
-wire, commas or spaces or `x` in the field, answered as torch answers
-including its TypeError for a word (rounds 13–14; the lesson's own
-`reshape(2, -1)` is the default and the Result shape tile says what the
-−1 became). **Join** takes cat or stack over every dimension, against a
-second tensor holding 21–40 (T + 20; the notebook's repeats 21–30 and is
-Kenneth's to bring in line). The result carries the dimension roles the
-operation leaves. Every Step on every tab is staged through one
-`phases(beat)` and one `litFace()`.
+index change is staged — light, then glide. **The rank is one parameter
+across Basics, Shape and Join** (round 15): the tensor built in Basics is
+the one Shape and Join work on, 1 to 4 dimensions, the lesson's [2, 2, 5]
+the default. **Shape** takes a verb and a TYPED argument on an `expr`
+line — `T.reshape( 2, -1 )`, `T.permute( 0, 2, 1 )`, `T.unsqueeze( 0 )`,
+`T.flatten(start_dim= 0 )` — each answered as torch answers, including
+its TypeError for a word, its out-of-range message, its rule for negative
+positions; the field grows as it is typed in and a hint under it says
+the one fact that would make the entry work, while the figure moves on
+Enter. `?shape=2x5x2` and `?perm=0x2x1` on the wire. unsqueeze and stack
+at rank 4 make a fifth dimension, which the band declines in the figure's
+own words (ink, not the failure colour) since it has drawings for four.
+**Join** takes cat or stack over a typed dim, against a second tensor
+holding T + size (the notebook's repeats 21–30 and is Kenneth's to bring
+in line). The result carries the dimension roles the operation leaves.
+Every Step on every tab is staged through one `phases(beat)` and one
+`litFace()`.
 
 ## The three core changes, each gated on a full suite run (367 MATCH)
 
@@ -59,10 +66,12 @@ operation leaves. Every Step on every tab is staged through one
   dimension, on frames, rules, arrows and swatches — never on text. Named
   in CLAUDE.md's role list.
 - **`text`** (params.js, controls.js, tokens.css, and the harness's `set`,
-  round 14): a short string the reader types, with optional `parse` (what
-  was typed → what is stored, applied to URL values too) and `show`
-  (stored → displayed). Commits on `change`, never per keystroke. README's
-  type table names it. Rounds 12 and 13 changed nothing in core.
+  rounds 14–15): a short string the reader types, with optional `parse`
+  (what was typed → what is stored, applied to URL values too), `show`
+  (stored → displayed) and `check(text, values)` (a message shown under
+  the field while it is typed in, null to clear). Grows with its text.
+  Commits on `change`, never per keystroke. README's type table names it.
+  Rounds 12 and 13 changed nothing in core.
 
 ## Rounds 12 and 13, in one paragraph — what the sweep found
 
@@ -91,8 +100,9 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
 2. Record the fingerprint states for real: the 23 placeholders in
    `_lab/fingerprint-baseline.json` cover every topic, both views, both
    failing cases, two driven states (`step` on Shape and Reduce) and one
-   hit-driven (`dim 0 = 1` at the 550 canvas). Their queries are current
-   (`op=reshape&shape=2x5x2`, the typed form of round 14). Three
+   hit-driven (`dim 0 = 1` at the 550 canvas), plus round 15's permute at
+   rank 4 and cat at rank 2 — 25 placeholders. Their queries are current
+   (`op=reshape&shape=2x5x2`, `perm=0x2x1`, the typed forms). Three
    determinism runs, shooter pattern (`_lab/gradients-shoot.html`, slug
    swapped), full suite MATCH, then flip `status: "draft"` → `"shipped"`
    in `main.js` AND the manifest in the same commit. Push. **The hit-driven
@@ -113,7 +123,9 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
 - The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
-  the widget's holds 21–40. Kenneth's cell to edit.
+  the widget's holds T + size, 21–40 at rank 3. Kenneth's cell to edit.
+- Join at rank 4 is two 40-cell tensors and an 80-cell result, ~1000px
+  tall at 550; drawable, and not yet judged on his screen.
 
 ## Working here — read before the first command
 

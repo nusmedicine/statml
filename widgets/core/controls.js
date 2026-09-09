@@ -110,6 +110,26 @@ function textInput(name, field) {
   return input;
 }
 
+/* WHAT A TEXT FIELD DOES WHILE IT IS TYPED IN (widget 53, round 15, Kenneth:
+   "can the text field be dynamic? so it expands as I try more? also could it
+   validate while I'm typing?"). It grows with its text, never below its
+   declared `size`; and if the field declares `check(text, values)` the
+   message it returns is shown under the field at once and cleared when it
+   returns null. Nothing is committed by either — the value still lands on
+   `change` — so the hint can say "product 21" while the figure keeps the
+   last shape that worked. */
+function liveText(input, field, values, hintEl) {
+  const run = () => {
+    input.size = Math.max(field.size ?? 12, input.value.length + 1);
+    if (!field.check || !hintEl) return;
+    const m = field.check(input.value, values);
+    hintEl.textContent = m ?? "";
+    hintEl.hidden = !m;
+  };
+  input.addEventListener("input", run);
+  return run;
+}
+
 export function fieldShowing(field, values) {
   return field.when ? clauseShowing(field.when, values) : true;
 }
@@ -374,9 +394,14 @@ function build(host, spec, values, onChange, api) {
              — and not on every keystroke: a half-typed "2," would otherwise be
              a parameter, a URL and a reset of whatever walk was under way. */
           const input = textInput(n, f);
+          const hintEl = document.createElement("span");
+          hintEl.className = "w-text-hint";
+          hintEl.hidden = true;
+          const live = liveText(input, f, values, hintEl);
           const paint = (v) => {
             input.value = f.show ? f.show(v) : String(v);
             slot.dataset.set = v === f.default ? "0" : "1";
+            live();
           };
           paint(values[n]);
           input.addEventListener("change", () => {
@@ -388,6 +413,7 @@ function build(host, spec, values, onChange, api) {
           sel.classList.add("w-expr-txt");
           sel.appendChild(input);
           slot.appendChild(sel);
+          slot.appendChild(hintEl);
         } else {
         const select = document.createElement("select");
         select.dataset.param = n;
@@ -728,7 +754,11 @@ function build(host, spec, values, onChange, api) {
       const input = textInput(name, field);
       input.id = id;
       input.classList.add("w-text");
-      const paint = (v) => { input.value = field.show ? field.show(v) : String(v); };
+      const hintEl = document.createElement("p");
+      hintEl.className = "w-detail w-text-hint";
+      hintEl.hidden = true;
+      const live = liveText(input, field, values, hintEl);
+      const paint = (v) => { input.value = field.show ? field.show(v) : String(v); live(); };
       paint(values[name]);
       input.addEventListener("change", () => {
         const v = field.parse ? field.parse(input.value) : input.value;
@@ -736,6 +766,7 @@ function build(host, spec, values, onChange, api) {
         onChange(name, v);
       });
       wrap.appendChild(input);
+      wrap.appendChild(hintEl);
       setters[name] = paint;
     } else if (field.type === "select") {
       wrap.appendChild(label);

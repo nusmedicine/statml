@@ -197,7 +197,7 @@ confusing "sample the population" with "resample your sample".
 | `segmented` | connected button group | a handful of **alternative readings**, all worth seeing at rest |
 | `select` | dropdown | the list is too long for either of the above |
 | `matrix` | labelled grid of shaded cells | an option that is a **pair**, each half ranging over a list |
-| `text` | short text field, commits on Enter | a value the reader **types** and the widget validates: a shape, an expression; optional `parse` and `show` |
+| `text` | short text field, commits on Enter, grows as typed | a value the reader **types** and the widget validates: a shape, an expression; optional `parse`, `show` and a live `check` hint |
 
 `select` options may carry a `group`; consecutive options sharing one render as
 an `<optgroup>` run. The object-map option form drops `group` — an object maps

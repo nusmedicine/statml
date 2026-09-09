@@ -11163,6 +11163,41 @@ own `reshape(): argument 'shape' must be tuple of ints, but found element
 of type str at pos 1`. 222 verify checks; the full fingerprint suite ran
 for the core change.
 
+**Round 15 (2026-09-09) — the rank carries over, every argument typed, and
+the field grows and hints.** Kenneth's two questions on round 14: "the
+tensors in basics don't carry over to shape/join? ... what is your
+recommendation? we can have default for notebook, but students can
+experiment with other dimensions", and "do you think the text field can be
+dynamic? so it expands as I try more? also could it validate while I'm
+typing that I've exceeded the dimensions?". Recommended and taken: one
+`rank` across Basics, Shape and Join at 1 to 4 with the notebook's
+[2, 2, 5] as default; and the field growing with a live hint while the
+figure still moves on Enter (not redrawing per keystroke, since "2, 10"
+passes through "2, 1"). Built by the main session. *Model:* `sourceOf(rank)`
+gives the tensor and T + size as its second; `unravel`/`ravel` replace the
+fixed [2, 2, 5] arithmetic; `dimFrom` and `permFrom` answer a typed
+position or ordering as torch does — `Dimension out of range (expected to
+be in range of [-4, 3], but got 4)`, `permute(): duplicate dims are not
+allowed.`, the sparse_coo length message, `unsqueeze() missing 1 required
+positional argument: 'dim'`; flatten, cat and stack take torch's default
+0 for an empty field; negative positions count from the end. Every Shape
+and Join argument is typed — an ordering has 1, 2, 6 or 24 forms by rank
+and a position runs 0 to the rank, so a button row would have to be
+declared per rank (decision 14's rule, applied to arguments). unsqueeze
+and stack at rank 4, and a typed five-dimension reshape, are the one
+answer that is the figure's and not torch's: *[2, 2, 2, 2, 5] has five
+dimensions, and this figure draws four*, in ink rather than the failure
+colour, tab inert. *Core:* the text field grows with its text (never
+below `size`) and a field's `check(text, values)` is shown under it at
+once — `product 21, and the tensor holds 20`, `4 positions, 0 to 3, each
+once`, `0 to 3, or −1 to −4`, `a fifth dimension, which this figure does
+not draw` — and cleared when it returns null; `values` is the widget's
+live object, so the hint knows the current rank. 244 verify checks (a
+bijection over every ordering at every rank, T2 = T + size at each rank,
+the negative and out-of-range positions, the hints); the sweep's `?ops`
+adds the other three ranks; two placeholder states added (permute at rank
+4, cat at rank 2). Full fingerprint suite: 367 real states MATCH.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

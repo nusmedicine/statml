@@ -178,14 +178,22 @@ const OPS = location.search.includes("ops") ? (() => {
   const out = [];
   /* the typed field's URL form, plus the lesson's -1, two -1s and a word */
   const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], ["a"]].map((sh) => ["shape", `op=reshape&shape=${sh.join("x")}`]);
-  const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${M.shapeKey(pm)}`]);
+  const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${pm.join("x")}`]);
   const uns = [0, 1, 2, 3].map((d) => ["shape", `op=unsqueeze&udim=${d}`]);
   const fls = [0, 1, 2].map((d) => ["shape", `op=flatten&fstart=${d}`]);
   const cats = [0, 1, 2].map((d) => ["join", `join=cat&cdim=${d}`]);
   const stacks = [0, 1, 2, 3].map((d) => ["join", `join=stack&sdim=${d}`]);
-  for (const [tab, q] of [...shapes, ...perms, ...uns, ...fls, ...cats, ...stacks]) {
+  /* round 15: the other three ranks, each verb at its lesson default and one
+     more, the fifth-dimension refusal at rank 4 among them */
+  const ranks = [];
+  for (const r of [1, 2, 4]) {
+    for (const q of ["op=reshape&shape=-1", "op=reshape&shape=5x-1", "op=permute&perm=0", "op=flatten", "op=unsqueeze&udim=0", "op=unsqueeze&udim=-1"]) ranks.push(["shape", `rank=${r}&${q}`]);
+    for (const q of ["join=cat", "join=cat&cdim=-1", "join=stack", "join=stack&sdim=-1"]) ranks.push(["join", `rank=${r}&${q}`]);
+  }
+  ranks.push(["shape", "rank=4&op=permute&perm=3x2x1x0"], ["shape", "rank=2&op=permute&perm=1x0"]);
+  for (const [tab, q] of [...shapes, ...perms, ...uns, ...fls, ...cats, ...stacks, ...ranks]) {
     for (const view of ["stack", "frames"]) {
-      out.push([`${q} ${view}`, `tab=${tab}&${q}&view=${view}&shown=${tab === "join" ? 40 : 20}`, 0]);
+      out.push([`${q} ${view}`, `tab=${tab}&${q}&view=${view}&shown=${tab === "join" ? 80 : 40}`, 0]);
     }
   }
   return out;

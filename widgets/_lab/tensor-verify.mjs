@@ -26,6 +26,7 @@ import {
   indexSlot, indexSet, indexTargets, indexTargetCount,
   shapeOp, joinOp, opFrom, RESHAPE_SHAPES, RESHAPE_FAIL, PERMUTATIONS, shapeKey,
   reshapeFrom, parseShapeText, shapeWire, shapeShow,
+  sourceOf, unravel, ravel, dimFrom, permFrom, hintFor, allPermutations, FIVE_DIMS,
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
@@ -477,8 +478,9 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
     reshapeFrom([-1, -1]).error === "only one dimension can be inferred");
   check("the empty call fails with torch's message",
     reshapeFrom([]).error === "shape '[]' is invalid for input of size 20");
-  check("a fifth dimension cannot be typed, and a product of 20 over four slots is every listed shape",
-    RESHAPE_SHAPES.every((sh) => reshapeFrom(sh).ok) && !reshapeFrom([1, 1, 1, 1, 20]).ok);
+  check("every listed shape resolves, and a fifth dimension resolves in torch's terms but the figure declines it",
+    RESHAPE_SHAPES.every((sh) => reshapeFrom(sh).ok) && reshapeFrom([1, 1, 1, 1, 20]).ok
+    && shapeOp("reshape", [1, 1, 1, 1, 20]).limit === true);
   check("typed text splits on commas, spaces, x and brackets alike",
     same(parseShapeText("2, 5, 2"), [2, 5, 2]) && same(parseShapeText("[2 5 2]"), [2, 5, 2])
     && same(parseShapeText("2x5x2"), [2, 5, 2]) && same(parseShapeText("(2, −1)"), [2, -1]) && same(parseShapeText(""), []));
@@ -491,6 +493,67 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
     shapeShow("2x-1") === "2, -1" && shapeShow("2, a") === "2, a" && shapeShow("") === "");
   const viaJoin = opFrom({ tab: "join", join: "stack", sdim: "1", names: "image" });
   check("opFrom reads join + sdim", viaJoin.label === "stack(dim=1)" && same(viaJoin.shape, [2, 2, 2, 5]));
+}
+
+/* -- 4b · THE RANK CARRIES OVER (round 15) ----------------------------------- */
+console.log("\n=== 4b · the rank carries over to Shape and Join ===");
+{
+  for (const r of [1, 2, 3, 4]) {
+    const src = sourceOf(r);
+    const n = src.size;
+    check(`rank ${r}: ${shapeText(src.shape)} holds 1..${n}, and T2 holds ${n + 1}..${2 * n}`,
+      Array.from({ length: n }, (_, k) => src.read(0, unravel(k, src.shape))).every((v, k) => v === k + 1)
+      && Array.from({ length: n }, (_, k) => src.read(1, unravel(k, src.shape))).every((v, k) => v === n + k + 1)
+      && Array.from({ length: n }, (_, k) => ravel(unravel(k, src.shape), src.shape)).every((v, k) => v === k));
+  }
+  check("T3B is sourceOf(3)'s second tensor", same(sourceOf(3).tensors[1].flat(2), T3B.flat(2)));
+  const bij = (op) => {
+    const w = shapeWalk(op);
+    const seen = new Set(w.map((m) => m.dst.join(",")));
+    return w.length === shapeSize(op.shape) && seen.size === w.length;
+  };
+  for (const r of [1, 2, 4]) {
+    const perms = allPermutations(r);
+    check(`rank ${r}: every one of its ${perms.length} orderings is a bijection`,
+      perms.every((p) => bij(shapeOp("permute", p.join(","), "sequence", r))));
+    const dims = Array.from({ length: r }, (_, d) => d);
+    check(`rank ${r}: flatten and cat over every dimension are bijections`,
+      dims.every((d) => bij(shapeOp("flatten", String(d), "sequence", r)) && bij(joinOp("cat", String(d), "sequence", r))));
+    if (r < 4) {
+      check(`rank ${r}: unsqueeze and stack over every position are bijections`,
+        [...dims, r].every((d) => bij(shapeOp("unsqueeze", String(d), "sequence", r)) && bij(joinOp("stack", String(d), "sequence", r))));
+    }
+  }
+  const five = shapeOp("unsqueeze", "0", "sequence", 4);
+  check("rank 4: unsqueeze makes a fifth dimension, which the figure declines in its own words",
+    !five.ok && five.limit && five.error === FIVE_DIMS([1, 2, 2, 2, 5]) && shapeWalk(five).length === 0, five.error);
+  check("rank 4: stack(dim=4) likewise", !joinOp("stack", "4", "sequence", 4).ok && joinOp("stack", "4", "sequence", 4).limit);
+  check("rank 4: reshape(2, 2, 2, 5, 1) likewise", shapeOp("reshape", [2, 2, 2, 5, 1], "sequence", 4).limit === true);
+  check("a negative position counts from the end, as torch's does",
+    same(shapeOp("unsqueeze", "-1", "sequence", 3).shape, [2, 2, 5, 1])
+    && same(joinOp("cat", "-1", "sequence", 3).shape, [2, 2, 10])
+    && same(shapeOp("permute", "-1, 0, 1", "sequence", 3).shape, [5, 2, 2]));
+  check("a position out of range is torch's own message",
+    shapeOp("unsqueeze", "4", "sequence", 3).error === "Dimension out of range (expected to be in range of [-4, 3], but got 4)"
+    && joinOp("cat", "3", "sequence", 3).error === "Dimension out of range (expected to be in range of [-3, 2], but got 3)");
+  check("an ordering of the wrong length, with a repeat, or with a word is torch's own message",
+    permFrom("0, 1", 3).error.startsWith("permute(sparse_coo)")
+    && permFrom("0, 0, 1", 3).error === "permute(): duplicate dims are not allowed."
+    && permFrom("0, a, 1", 3).error === "permute(): argument 'dims' must be tuple of ints, but found element of type str at pos 1");
+  check("an empty dim is torch's default for flatten, cat and stack, and torch's complaint for unsqueeze",
+    shapeOp("flatten", "", "sequence", 3).ok && joinOp("cat", "", "sequence", 3).ok && joinOp("stack", "", "sequence", 3).ok
+    && shapeOp("unsqueeze", "", "sequence", 3).error === "unsqueeze() missing 1 required positional argument: 'dim'");
+  check("the live hint says the one fact that would make the entry work, and nothing when it works",
+    hintFor("reshape", "3, 7", 3) === "product 21, and the tensor holds 20"
+    && hintFor("reshape", "2, -1", 3) === null
+    && hintFor("reshape", "1, 1, 1, 1, 20", 3) === "5 dimensions, and this figure draws 4"
+    && hintFor("permute", "0, 1", 3) === "3 positions, 0 to 2, each once"
+    && hintFor("unsqueeze", "5", 3) === "0 to 3, or −1 to −4"
+    && hintFor("stack", "0", 4) === "a fifth dimension, which this figure does not draw"
+    && hintFor("cat", "-1", 3) === null && hintFor("cat", "", 3) === null);
+  check("the lesson's own lines still read at rank 3 with the string keys the lab scripts use",
+    shapeOp("permute", "0-2-1").label === "permute(0, 2, 1)" && same(shapeOp("permute", "0-2-1").shape, [2, 5, 2])
+    && same(shapeOp("reshape", "2-5-2").shape, [2, 5, 2]) && same(joinOp("stack", 0).shape, [2, 2, 2, 5]));
 }
 
 /* -- 5 · BROADCASTING, ALL FIVE SHAPES OF b ------------------------------- *

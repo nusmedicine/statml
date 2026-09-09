@@ -3273,6 +3273,20 @@
       "tx": "0"
     },
     {
+      "$note": "PLACEHOLDER - draft. Shape at rank 4 (round 15): permute(3, 2, 1, 0) of the [2, 2, 2, 5], 40 of 40 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&rank=4&op=permute&perm=3x2x1x0&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Join at rank 2 (round 15): cat(dim=1) of two [2, 5] into [2, 10], 20 of 20 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=join&rank=2&join=cat&cdim=1&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=shape&op=flatten&shown=20",

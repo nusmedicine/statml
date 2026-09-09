@@ -46,7 +46,7 @@ export const T3 = [
     its own. The lesson's own has 21-30 in both samples, which puts two cells
     on one value and makes the third and fourth blocks of cat(dim=0) identical
     — a picture that cannot say which block came from which sample. */
-export const T3B = T3.map((s) => s.map((r) => r.map((v) => v + 20)));
+export const T3B = T3.map((s) => s.map((r) => r.map((v) => v + 20)));   // sourceOf(3).tensors[1]
 
 export const T3_SHAPE = [2, 2, 5];
 
@@ -223,22 +223,51 @@ export const indexTargetCount = (rank, view) =>
 
 /* --- shape operations ----------------------------------------------------- */
 
-/** A position in reading order over a [2, 2, 5] tensor, as its three indices. */
-export function srcIndex(n) {
-  return [Math.floor(n / 10), Math.floor((n % 10) / 5), n % 5];
+/** A position in reading order over `shape`, as its indices; and back. */
+export function unravel(n, shape) {
+  const idx = [];
+  let rest = n;
+  for (let k = shape.length - 1; k >= 0; k -= 1) { idx[k] = rest % shape[k]; rest = Math.floor(rest / shape[k]); }
+  return idx;
 }
+export const ravel = (idx, shape) => idx.reduce((a, v, k) => a * shape[k] + v, 0);
+
+/** A position in reading order over the [2, 2, 5] tensor — the lab scripts'
+    own name for `unravel` at the lesson's rank. */
+export const srcIndex = (n) => unravel(n, T3_SHAPE);
 
 export const CELLS = 20;   // values in one [2, 2, 5] tensor
+
+/* --- the tensor the Shape and Join topics work on (round 15) ---------------- *
+ * Kenneth: "the tensors in basics don't carry over to shape/join?" Now they
+ * do — `rank` is one parameter across the three data topics, so the tensor a
+ * student built in Basics is the one they reshape and join, at 1 to 4
+ * dimensions with the lesson's [2, 2, 5] as the default. The second tensor a
+ * join takes is T + size, so no two cells of a join carry one value.        */
+export function sourceOf(rank) {
+  const r = RANK_DATA[rank] ? Number(rank) : 3;
+  const shape = RANK_SHAPES[r];
+  const size = shapeSize(shape);
+  const plus = (d, k) => (Array.isArray(d) ? d.map((x) => plus(x, k)) : d + k);
+  const data = [RANK_DATA[r], plus(RANK_DATA[r], size)];
+  return {
+    rank: r,
+    shape,
+    size,
+    tensors: data,
+    read: (t, idx) => idx.reduce((a, k) => a[k], data[t]),
+  };
+}
 
 /* --- the shape and join operations, from a verb and its argument ------------ *
  * ROUND 11 (Kenneth, 2026-09-09: "do we just give them the pre-baked examples?
  * or allow them to try different options (those that work)"). The five fixed
- * lines of the lesson became a verb and an argument: every ordering for
- * `permute`, every dimension for `unsqueeze`, `flatten`, `cat` and `stack`,
- * and for `reshape` EVERY shape that holds the same twenty values up to rank 4
- * — sixty-five of them — plus one that does not, [3, 7], which fails the way
- * torch fails it. Each operation is still `dest(n, t)`: where the value at
- * reading position `n` of tensor `t` (0 for T, 1 for the second) lands.
+ * lines of the lesson became a verb and an argument; rounds 13-15 made every
+ * argument TYPED, answered as torch answers: a wrong product, a dimension out
+ * of range, an ordering that is not a permutation, a word where a number was
+ * wanted — each prints torch's own message and leaves the tab inert. Each
+ * operation is still `dest(n, t)`: where the value at reading position `n` of
+ * tensor `t` (0 for T, 1 for the second) lands.
  *
  * `roles` is what the operation leaves of the dimension names: a permute
  * carries each name with its data, an inserted dimension is named for what it
@@ -268,28 +297,31 @@ export function allShapes(n, maxRank) {
 export const RESHAPE_SHAPES = allShapes(CELLS, 4);
 export const PERMUTATIONS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
 
+/** Every ordering of `rank` dimensions, for the checks. */
+export function allPermutations(rank) {
+  if (rank <= 1) return [[0]];
+  const out = [];
+  for (const p of allPermutations(rank - 1)) {
+    for (let k = 0; k < rank; k += 1) out.push([...p.slice(0, k), rank - 1, ...p.slice(k)]);
+  }
+  return out.sort((x, y) => x.join(",").localeCompare(y.join(",")));
+}
+
 /** The URL value of a shape or an ordering: `2-10`, `0-2-1`. */
 export const shapeKey = (shape) => shape.join("-");
 export const parseKey = (key) => String(key).split("-").map(Number);
 
-/* --- reshape's argument, as the student typed it (round 13) ----------------- *
- * Kenneth chose free entry over a curated list: four slots, each any size from
- * 1 to 20, -1, or blank. So the argument is whatever was typed, and torch's
- * three answers to it are reproduced here: a product other than the size
- * fails as `shape '[3, 7]' is invalid for input of size 20`; one -1 is the
- * size that makes the product right, or that same failure when none does;
- * two are `only one dimension can be inferred`. The empty call fails as
- * torch fails `reshape(())`.
- */
-/* ROUND 14: the argument is one TYPED field, `2, -1`. The four dropdowns of
-   round 13 were 22 items each, which Kenneth would not have. What was typed
-   is split on commas, spaces, `x` or `×`, with brackets ignored, so `[2, 5, 2]`
-   and `2x5x2` are the same shape; a token that is not a whole number is
-   torch's own TypeError. The URL carries the canonical `2x5x2`. */
+/* --- typed arguments (rounds 13-15) ----------------------------------------- *
+ * Every argument is what the student typed. A list — a shape, an ordering —
+ * is split on commas, spaces, `x` or `×`, with brackets ignored, so `[2, 5, 2]`
+ * and `2x5x2` are the same shape; the URL carries the canonical `2x5x2`. A
+ * token that is not a whole number is kept as the string it was, so torch's
+ * TypeError can name it. */
 const SEP = /[\s,x×]+/;
 const MINUS = /[−–]/g;             // a typed minus sign or en dash is a minus
+const DRAWN_RANK = 4;              // the highest rank the figure has a drawing for
 
-/** The tokens of a typed shape: whole numbers as numbers, anything else as
+/** The tokens of a typed list: whole numbers as numbers, anything else as
     the string it was, so the error can name it. */
 export function parseShapeText(text) {
   return String(text ?? "").replace(MINUS, "-").replace(/[[\]()]/g, " ").trim()
@@ -297,39 +329,89 @@ export function parseShapeText(text) {
     .map((t) => (/^-?\d+$/.test(t) ? Number(t) : /^-?\d*\.\d+$/.test(t) ? Number(t) : t));
 }
 
-/** The URL form of what was typed: `2x-1` where every token is a whole
-    number, else the text itself, so a failing entry survives a reload. */
+/** The URL form of a typed list: `2x-1` where every token is a whole number,
+    else the text itself, so a failing entry survives a reload. */
 export function shapeWire(text) {
   const toks = parseShapeText(text);
   return toks.every((t) => Number.isInteger(t)) ? toks.join("x") : String(text ?? "").trim();
 }
 
-/** What the field shows for a stored value: `2, -1` for `2x-1`. */
+/** What the field shows for a stored list: `2, -1` for `2x-1`. */
 export function shapeShow(v) {
   return /^-?\d+(x-?\d+)*$/.test(v ?? "") ? v.split("x").join(", ") : String(v ?? "");
 }
 
+/** One typed number: `-1`, or the text itself when it is not one. */
+export function intWire(text) {
+  const t = String(text ?? "").replace(MINUS, "-").trim();
+  return /^-?\d+$/.test(t) ? String(Number(t)) : t;
+}
+
+const kindOf = (t) => (typeof t === "number" ? "float" : "str");
+
 /** Resolve typed entries — `[2, -1]` — to the shape they make, or the error. */
-export function reshapeFrom(asked) {
+export function reshapeFrom(asked, size = CELLS) {
   const bad = (shape) => ({ asked, shape: null, ok: false,
-    error: `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}` });
+    error: `shape '${shapeText(shape)}' is invalid for input of size ${size}` });
   const k = asked.findIndex((d) => !Number.isInteger(d));
   if (k >= 0) {
     return { asked, shape: null, ok: false,
-      error: `reshape(): argument 'shape' must be tuple of ints, but found element of type ${typeof asked[k] === "number" ? "float" : "str"} at pos ${k}` };
+      error: `reshape(): argument 'shape' must be tuple of ints, but found element of type ${kindOf(asked[k])} at pos ${k}` };
   }
   if (!asked.every((d) => d >= 1 || d === -1)) return bad(asked);
   const holes = asked.filter((d) => d === -1).length;
   if (holes > 1) return { asked, shape: null, ok: false, error: "only one dimension can be inferred" };
   const known = asked.filter((d) => d !== -1).reduce((a, d) => a * d, 1);
   if (holes === 1) {
-    if (asked.length > 4 || CELLS % known !== 0) return bad(asked);
-    return { asked, shape: asked.map((d) => (d === -1 ? CELLS / known : d)), ok: true, error: null };
+    if (size % known !== 0) return bad(asked);
+    return { asked, shape: asked.map((d) => (d === -1 ? size / known : d)), ok: true, error: null };
   }
-  if (asked.length < 1 || asked.length > 4 || known !== CELLS) return bad(asked);
+  if (asked.length < 1 || known !== size) return bad(asked);
   return { asked, shape: [...asked], ok: true, error: null };
 }
 
+/** torch's own words for a dimension outside the range it accepts. */
+const outOfRange = (d, hi) => `Dimension out of range (expected to be in range of [${-(hi + 1)}, ${hi}], but got ${d})`;
+
+/** One typed dimension for `verb`, normalised as torch normalises a negative
+    one. `hi` is the largest position allowed; `fallback` is torch's default
+    where the argument has one, else the empty call is torch's own complaint. */
+export function dimFrom(text, verb, argName, hi, fallback = null) {
+  const toks = parseShapeText(text);
+  if (toks.length === 0) {
+    return fallback === null
+      ? { d: null, asked: "", ok: false, error: `${verb}() missing 1 required positional argument: '${argName}'` }
+      : { d: fallback, asked: String(fallback), ok: true, error: null };
+  }
+  const t = toks[0];
+  if (toks.length > 1 || !Number.isInteger(t)) {
+    return { d: null, asked: toks.join(", "), ok: false,
+      error: `${verb}(): argument '${argName}' must be int, not ${toks.length > 1 ? "tuple" : kindOf(t)}` };
+  }
+  if (t > hi || t < -(hi + 1)) return { d: null, asked: String(t), ok: false, error: outOfRange(t, hi) };
+  return { d: t < 0 ? t + hi + 1 : t, asked: String(t), ok: true, error: null };
+}
+
+/** A typed ordering for `permute` over `rank` dimensions, or torch's error. */
+export function permFrom(text, rank) {
+  const toks = parseShapeText(text);
+  const k = toks.findIndex((d) => !Number.isInteger(d));
+  const fail = (error) => ({ p: null, asked: toks, ok: false, error });
+  if (k >= 0) return fail(`permute(): argument 'dims' must be tuple of ints, but found element of type ${kindOf(toks[k])} at pos ${k}`);
+  if (toks.length !== rank) {
+    return fail(`permute(sparse_coo): number of dimensions in the tensor input does not match the length of the desired ordering of dimensions i.e. input.dim() = ${rank} is not equal to len(dims) = ${toks.length}`);
+  }
+  const over = toks.find((d) => d > rank - 1 || d < -rank);
+  if (over !== undefined) return fail(outOfRange(over, rank - 1));
+  const p = toks.map((d) => (d < 0 ? d + rank : d));
+  if (new Set(p).size !== p.length) return fail("permute(): duplicate dims are not allowed.");
+  return { p, asked: toks, ok: true, error: null };
+}
+
+/* The one answer that is the figure's and not torch's: a fifth dimension.
+   torch would make it; this widget has drawings for four. Said plainly, in
+   ink rather than the failure colour, and the tab goes inert. */
+export const FIVE_DIMS = (shape) => `${shapeText(shape)} has five dimensions, and this figure draws four.`;
 
 const nameJoin = (names) => names.filter(Boolean).join(" × ");
 const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
@@ -351,19 +433,33 @@ function reshapeNames(src, shape, names) {
   return p === src.length ? out : shape.map(() => "");
 }
 
-function insertedName(d, names, setName) {
-  return d === 0 ? (roleNames(setName, 4)[0] || "") : "size 1";
+/** What an inserted dimension is called: the lesson's own name where it adds
+    a front dimension to its [2, 2, 5] (batch, or sample for images), and
+    `size 1` anywhere else — the ladder of names is declared per rank, not
+    derived, so no other insertion has a name of its own. */
+function insertedName(d, setName, rank) {
+  return d === 0 && rank === 3 ? (roleNames(setName, 4)[0] || "size 1") : "size 1";
 }
 
-/** One Shape operation from its verb and argument. */
-export function shapeOp(kind, arg, setName = "sequence") {
-  const src = T3_SHAPE;
-  const names = roleNames(setName, 3);
-  const base = { kind, second: false, ok: true, error: null };
+/** What a failing operation returns: its label, torch's words (or the
+    figure's, for a fifth dimension), no walk. */
+const failed = (base, label, error, asked, limit = false) => ({
+  ...base, ok: false, error, label, shape: asked, names: [], caption: "", limit, dest: () => [],
+});
+
+/** One Shape operation from its verb and argument, on the tensor at `rank`. */
+export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
+  const source = sourceOf(rank);
+  const { shape: src, size } = source;
+  const names = roleNames(setName, source.rank);
+  const base = { kind, second: false, ok: true, error: null, limit: false, src, size, tensors: source.tensors, read: source.read };
   if (kind === "reshape") {
     /* `arg` is the typed entries, or a `2-10` key from the lab scripts */
-    const r = reshapeFrom(Array.isArray(arg) ? arg : parseKey(arg));
+    const r = reshapeFrom(Array.isArray(arg) ? arg : parseKey(arg), size);
     const { asked, shape, ok } = r;
+    if (ok && shape.length > DRAWN_RANK) {
+      return failed(base, `reshape(${asked.join(", ")})`, FIVE_DIMS(shape), shape, true);
+    }
     const strides = [];
     let acc = 1;
     if (ok) for (let k = shape.length - 1; k >= 0; k -= 1) { strides[k] = acc; acc *= shape[k]; }
@@ -386,87 +482,104 @@ export function shapeOp(kind, arg, setName = "sequence") {
           ? "One -1 asks for the size that fits; two leave torch nothing to fit it against."
           : r.error.startsWith("reshape()")
             ? "A shape is a list of whole numbers, one per dimension."
-            : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(asked)}.`,
+            : `A reshape must keep every value, and ${size} values do not fill ${shapeText(asked)}.`,
       dest: (n) => shape.map((d, k) => Math.floor(n / strides[k]) % d),
     };
   }
   if (kind === "permute") {
-    const p = parseKey(arg);
+    /* a typed ordering, or a `0-2-1` key from the lab scripts */
+    const r = permFrom(Array.isArray(arg) ? arg.join(",") : /^[\d-]+$/.test(String(arg)) && String(arg).includes("-") && !String(arg).startsWith("-") ? parseKey(arg).join(",") : arg, source.rank);
+    if (!r.ok) return failed(base, `permute(${r.asked.join(", ")})`, r.error, r.asked);
+    const p = r.p;
     const identity = p.every((v, k) => v === k);
     return {
       ...base,
       value: `permute-${shapeKey(p)}`,
-      label: `permute(${p.join(", ")})`,
+      label: `permute(${r.asked.join(", ")})`,
       shape: p.map((k) => src[k]),
       names: p.map((k) => names[k]),
       caption: identity
-        ? "permute(0, 1, 2) keeps the dimensions in their order, so every value stays where it is."
+        ? `permute(${p.join(", ")}) keeps the dimensions in their order, so every value stays where it is.`
         : `Each value goes to its index reordered as (${p.join(", ")}); each dimension's name travels with its data.`,
-      dest: (n) => { const s = srcIndex(n); return p.map((k) => s[k]); },
+      dest: (n) => { const s = unravel(n, src); return p.map((k) => s[k]); },
     };
   }
   if (kind === "unsqueeze") {
-    const d = Number(arg);
+    const r = dimFrom(arg, "unsqueeze", "dim", src.length);
+    if (!r.ok) return failed(base, `unsqueeze(${r.asked})`, r.error, []);
+    const d = r.d;
     const shape = [...src.slice(0, d), 1, ...src.slice(d)];
+    if (shape.length > DRAWN_RANK) return failed(base, `unsqueeze(${r.asked})`, FIVE_DIMS(shape), shape, true);
     return {
       ...base,
       value: `unsqueeze-${d}`,
-      label: `unsqueeze(${d})`,
+      label: `unsqueeze(${r.asked})`,
       shape,
-      names: [...names.slice(0, d), insertedName(d, names, setName), ...names.slice(d)],
+      names: [...names.slice(0, d), insertedName(d, setName, source.rank), ...names.slice(d)],
       caption: `A dimension of size 1 is added at position ${d}. Every value keeps its place under it.`,
-      dest: (n) => { const s = srcIndex(n); return [...s.slice(0, d), 0, ...s.slice(d)]; },
+      dest: (n) => { const s = unravel(n, src); return [...s.slice(0, d), 0, ...s.slice(d)]; },
     };
   }
   /* flatten(start_dim) */
-  const start = Number(arg);
+  const r = dimFrom(arg, "flatten", "start_dim", src.length - 1, 0);
+  if (!r.ok) return failed(base, `flatten(start_dim=${r.asked})`, r.error, []);
+  const start = r.d;
   const shape = [...src.slice(0, start), shapeSize(src.slice(start))];
   const strides = src.slice(start).map((_, k, arr) => shapeSize(arr.slice(k + 1)));
   return {
     ...base,
     value: `flatten-${start}`,
-    label: start === 0 ? "flatten()" : `flatten(start_dim=${start})`,
+    label: start === 0 && r.asked === "0" ? "flatten()" : `flatten(start_dim=${r.asked})`,
     shape,
     names: [...names.slice(0, start), nameJoin(names.slice(start))],
     caption: start === 0
       ? "Every dimension is collapsed into one and the reading order is kept."
       : start === src.length - 1
-        ? `Only the last dimension is left to collapse, so the shape does not change.`
+        ? "Only the last dimension is left to collapse, so the shape does not change."
         : `The dimensions from ${start} on are collapsed into one; the ones before it are kept.`,
     dest: (n) => {
-      const s = srcIndex(n);
+      const s = unravel(n, src);
       const flat = s.slice(start).reduce((a, v, k) => a + v * strides[k], 0);
       return [...s.slice(0, start), flat];
     },
   };
 }
 
-/** One Join operation from its verb and the dimension it works along. */
-export function joinOp(kind, arg, setName = "sequence") {
-  const src = T3_SHAPE;
-  const names = roleNames(setName, 3);
-  const d = Number(arg);
+/** One Join operation from its verb and the dimension it works along, on two
+    tensors of the shape at `rank`. */
+export function joinOp(kind, arg, setName = "sequence", rank = 3) {
+  const source = sourceOf(rank);
+  const { shape: src, size } = source;
+  const names = roleNames(setName, source.rank);
+  const base = { kind, second: true, ok: true, error: null, limit: false, src, size, tensors: source.tensors, read: source.read };
   if (kind === "cat") {
+    const r = dimFrom(arg, "cat", "dim", src.length - 1, 0);
+    if (!r.ok) return failed(base, `cat(dim=${r.asked})`, r.error, []);
+    const d = r.d;
     const shape = src.map((v, k) => (k === d ? 2 * v : v));
     return {
-      kind, second: true, ok: true, error: null,
+      ...base,
       value: `cat-${d}`,
-      label: `cat(dim=${d})`,
+      label: `cat(dim=${r.asked})`,
       shape,
       names,
       caption: `The two tensors are joined along dim ${d}, which grows from ${src[d]} to ${2 * src[d]}. No new dimension appears.`,
-      dest: (n, t) => { const s = srcIndex(n); s[d] += t * src[d]; return s; },
+      dest: (n, t) => { const s = unravel(n, src); s[d] += t * src[d]; return s; },
     };
   }
+  const r = dimFrom(arg, "stack", "dim", src.length, 0);
+  if (!r.ok) return failed(base, `stack(dim=${r.asked})`, r.error, []);
+  const d = r.d;
   const shape = [...src.slice(0, d), 2, ...src.slice(d)];
+  if (shape.length > DRAWN_RANK) return failed(base, `stack(dim=${r.asked})`, FIVE_DIMS(shape), shape, true);
   return {
-    kind, second: true, ok: true, error: null,
+    ...base,
     value: `stack-${d}`,
-    label: `stack(dim=${d})`,
+    label: `stack(dim=${r.asked})`,
     shape,
-    names: [...names.slice(0, d), insertedName(d, names, setName), ...names.slice(d)],
+    names: [...names.slice(0, d), insertedName(d, setName, source.rank), ...names.slice(d)],
     caption: `A new dim ${d} of size 2 holds the two tensors, and each keeps the shape it had.`,
-    dest: (n, t) => { const s = srcIndex(n); return [...s.slice(0, d), t, ...s.slice(d)]; },
+    dest: (n, t) => { const s = unravel(n, src); return [...s.slice(0, d), t, ...s.slice(d)]; },
   };
 }
 
@@ -474,14 +587,55 @@ export function joinOp(kind, arg, setName = "sequence") {
     labels attached. */
 export function opFrom(params) {
   const setName = params.names ?? "sequence";
+  const rank = Number(params.rank ?? 3);
   const op = params.tab === "join"
-    ? joinOp(params.join, params.join === "cat" ? params.cdim : params.sdim, setName)
+    ? joinOp(params.join, params.join === "cat" ? params.cdim : params.sdim, setName, rank)
     : shapeOp(params.op,
       params.op === "reshape" ? parseShapeText(params.shape)
-        : params.op === "permute" ? params.perm
-          : params.op === "unsqueeze" ? params.udim : params.fstart,
-      setName);
+        : params.op === "permute" ? (params.perm ?? "")
+          : params.op === "unsqueeze" ? (params.udim ?? "") : (params.fstart ?? ""),
+      setName, rank);
   return { ...op, roles: labelsOf(op.names ?? []) };
+}
+
+/* --- what a field says while it is typed in (round 15) ---------------------- *
+ * The widget's own voice, live, under the field: not torch's message, which
+ * the band prints on Enter, but the one fact that would make the entry work.
+ * Null when nothing is wrong. */
+export function hintFor(kind, text, rank) {
+  const src = RANK_SHAPES[rank] ?? T3_SHAPE;
+  const size = shapeSize(src);
+  const n = src.length;
+  const range = (hi) => `0 to ${hi}, or −1 to −${hi + 1}`;
+  if (kind === "reshape") {
+    const toks = parseShapeText(text);
+    if (toks.length === 0) return null;
+    if (toks.some((t) => !Number.isInteger(t))) return "whole numbers only";
+    if (toks.length > DRAWN_RANK) return `${toks.length} dimensions, and this figure draws ${DRAWN_RANK}`;
+    const holes = toks.filter((t) => t === -1).length;
+    if (holes > 1) return "only one −1";
+    if (toks.some((t) => t < 1 && t !== -1)) return "every size at least 1";
+    const known = toks.filter((t) => t !== -1).reduce((a, t) => a * t, 1);
+    if (holes === 1) return size % known === 0 ? null : `${known} does not divide ${size}`;
+    return known === size ? null : `product ${known}, and the tensor holds ${size}`;
+  }
+  if (kind === "permute") {
+    const toks = parseShapeText(text);
+    if (toks.length === 0) return null;
+    if (toks.some((t) => !Number.isInteger(t))) return "whole numbers only";
+    if (toks.length !== n) return `${n} positions, 0 to ${n - 1}, each once`;
+    if (toks.some((t) => t > n - 1 || t < -n)) return `positions run 0 to ${n - 1}`;
+    if (new Set(toks.map((t) => (t < 0 ? t + n : t))).size !== n) return "each position once";
+    return null;
+  }
+  const toks = parseShapeText(text);
+  if (toks.length === 0) return null;
+  if (toks.length > 1 || !Number.isInteger(toks[0])) return "one whole number";
+  const t = toks[0];
+  const hi = kind === "unsqueeze" || kind === "stack" ? n : n - 1;
+  if (t > hi || t < -(hi + 1)) return range(hi);
+  if ((kind === "unsqueeze" || kind === "stack") && n === DRAWN_RANK) return "a fifth dimension, which this figure does not draw";
+  return null;
 }
 
 /**
@@ -494,13 +648,13 @@ export function opFrom(params) {
 export function shapeWalk(op) {
   const moves = [];
   if (!op.ok) return moves;
-  const tensors = op.second ? [T3, T3B] : [T3];
-  tensors.forEach((tensor, t) => {
-    for (let n = 0; n < CELLS; n += 1) {
-      const [i, r, c] = srcIndex(n);
-      moves.push({ t, src: [i, r, c], v: tensor[i][r][c], dst: op.dest(n, t) });
+  const count = op.second ? 2 : 1;
+  for (let t = 0; t < count; t += 1) {
+    for (let n = 0; n < op.size; n += 1) {
+      const src = unravel(n, op.src);
+      moves.push({ t, src, v: op.read(t, src), dst: op.dest(n, t) });
     }
-  });
+  }
   return moves;
 }
 

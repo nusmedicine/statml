@@ -277,6 +277,22 @@
       `x` and brackets all separate; a token that is not a whole number
       prints torch's TypeError. The URL carries the canonical `shape=2x5x2`,
       and `?shape=2,5,2` resolves to the same state.
+
+  27. ROUND 15 (Kenneth: "the tensors in basics don't carry over to
+      shape/join?"; "can the text field be dynamic ... validate while I'm
+      typing?"). `rank` is ONE parameter across Basics, Shape and Join, so
+      the tensor built in Basics is the one reshaped and joined, 1 to 4
+      dimensions, the lesson's [2, 2, 5] the default; the second tensor is
+      T + size. Every Shape and Join argument is TYPED — an ordering has 1,
+      2, 6 or 24 forms by rank and a position runs 0 to the rank, so a
+      button row would be declared per rank — and `model.dimFrom` /
+      `permFrom` answer as torch does, negative positions counting from the
+      end. unsqueeze and stack at rank 4 make a fifth dimension: torch would,
+      this figure has drawings for four, and the band says so in ink rather
+      than the failure colour (`limit`). Core's text field grows as it is
+      typed in and shows the field's `check(text, values)` under it live —
+      `product 21, and the tensor holds 20` — while the figure still moves
+      on Enter.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1233,13 +1249,13 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
     : rank === 4
       ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD)
       : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out));
-  const srcRow = framesPerRow(M.T3_SHAPE[0], M.T3_SHAPE[2], s, roomFor(prints.sources[0], modes.src));
+  const srcRow = framesPerRow(op.src[0], op.src[op.src.length - 1], s, roomFor(prints.sources[0], modes.src));
   /* THE SOURCE PAIR STACKS RATHER THAN SITTING SIDE BY SIDE, in both views.
      Two tensors and two prints in one row do not fit 550px in any view, and
      stacking them lets each print sit beside its own drawing instead of both
      dropping under a pair of drawings. */
   const rows = prints.sources.map((p, t) =>
-    placeSrc(drawnSize(colors, M.T3_SHAPE, s, view, srcRow, t === 0, srcRoles), p, avail));
+    placeSrc(drawnSize(colors, op.src, s, view, srcRow, t === 0, srcRoles), p, avail));
   const src = {
     w: Math.max(...rows.map((r) => r.w)),
     h: rows.reduce((a, r) => a + r.h, 0) + (rows.length - 1) * INNER_GAP,
@@ -1328,17 +1344,17 @@ function shapeGeometry(ctx, colors, w, params) {
   const op = M.opFrom(params);
   const view = params.view;
   const moves = M.shapeWalk(op);
-  const tensors = op.second ? [M.T3, M.T3B] : [M.T3];
+  const tensors = op.second ? [0, 1] : [0];
   const cw = monoChar(ctx, colors.fsSm);
   const finalAt = new Map(moves.map((m) => [m.dst.join(","), m.v]));
   /* The print's column width is measured over the FINISHED tensor, values not
      yet placed included, so nothing under a value shifts when it lands. */
   const prints = {
-    sources: tensors.map((tensor, t) =>
-      printOf(M.T3_SHAPE, ([i, r, c]) => tensor[i][r][c], SRC_NAMES[t], cw)),
+    sources: tensors.map((t) =>
+      printOf(op.src, (idx) => op.read(t, idx), SRC_NAMES[t], cw)),
     result: op.ok ? printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw) : null,
   };
-  const srcRoles = M.roleLabels(params.names, 3);
+  const srcRoles = M.roleLabels(params.names, op.src.length);
   const fit = shapeFit(colors, w, op, view, prints, srcRoles);
   /* torch's words, wrapped to the band: its TypeError for a typed word is 85
      mono columns, wider than the 550px stage (round 14) */
@@ -1377,7 +1393,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const consumed = (k) => k < at.n || (at.glide && k === at.n);
   const moving = (k) => at.flying && k === at.n;
   const justMoved = (k) => Boolean(at.last) && k === at.n - 1;
-  const flat = (t, [i, r, c]) => t * M.CELLS + i * 10 + r * 5 + c;
+  const flat = (t, idx) => t * op.size + M.ravel(idx, op.src);
 
   const placed = new Map();
   for (let k = 0; k < at.n; k += 1) {
@@ -1402,11 +1418,10 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const srcCentres = [];
   let ty = yT + BAND_HEAD + BAND_PAD;
   let widest = 0;
-  tensors.forEach((tensor, t) => {
+  tensors.forEach((t) => {
     const cell = (idx) => {
-      const [i, r, c] = idx;
       const k = flat(t, idx);
-      const v = tensor[i][r][c];
+      const v = op.read(t, idx);
       const face = moving(k) && !at.glide ? litFace(colors, at.light)
         : justMoved(k) ? litFace(colors)
           : consumed(k)
@@ -1415,8 +1430,8 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       return { v, ...face, key: srcKey(t, idx), name: srcName(t, idx, v) };
     };
     const draw = t === 0
-      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, M.T3_SHAPE, srcRoles)
-      : pushTensor(plan, colors, cx, ty, M.T3_SHAPE, s, view, cell, fit.srcRow);
+      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, op.src, srcRoles)
+      : pushTensor(plan, colors, cx, ty, op.src, s, view, cell, fit.srcRow);
     srcCentres.push(draw.centre);
     widest = Math.max(widest, draw.w);
 
@@ -1425,12 +1440,11 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     const py = fit.srcMode === "beside" ? ty : ty + draw.h + PRINT_DROP;
     pushPrint(plan, colors, px, py, p.print, cw, (idx) => {
       const k = flat(t, idx);
-      const [i, r, c] = idx;
       return {
         color: moving(k) || justMoved(k) ? colors.highlight
           : consumed(k) ? colors.ink3 : colors.ink1,
         key: srcKey(t, idx),
-        name: srcName(t, idx, tensor[i][r][c]),
+        name: srcName(t, idx, op.read(t, idx)),
       };
     });
     pushText(plan, p.label, px, py + p.print.lines.length * PRINT_LH,
@@ -1447,7 +1461,8 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   if (!op.ok) {
     /* torch's own words, where the result would be (2.6) */
     errLines.forEach((line, i) => {
-      pushText(plan, line, cx, resY + 14 + i * PRINT_LH, { color: colors.extreme, mono: true });
+      pushText(plan, line, cx, resY + 14 + i * PRINT_LH,
+        { color: op.limit ? colors.ink2 : colors.extreme, mono: op.limit ? false : true });
     });
     pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
     return plan;
@@ -2366,6 +2381,11 @@ const LEAD_INDEX = [
 ];
 
 const RESHAPE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] };
+const PERMUTE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "permute" }] };
+const UNSQUEEZE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "unsqueeze" }] };
+const FLATTEN_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "flatten" }] };
+const CAT_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "cat" }] };
+const STACK_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "stack" }] };
 
 /** The index entries in dimension order: the leading ones, then the last. */
 const indexParts = (params) =>
@@ -2427,7 +2447,9 @@ defineWidget({
         { value: "4", label: "4", detail: "[2, 2, 2, 5] — two of those blocks" },
       ],
       default: "3",
-      when: { param: "tab", equals: "basics" },
+      /* ROUND 15: one tensor across the three data topics, so the rank set
+         here is the tensor Shape and Join work on. */
+      when: { param: "tab", oneOf: ["basics", "shape", "join"] },
     },
     /* TWO COLUMNS, NOT ONE ROW. Five calls in a 300px rail give each 56px and
        every label truncates to `resha…`, which puts the two reshapes five
@@ -2444,7 +2466,7 @@ defineWidget({
     op: {
       type: "segmented",
       label: "Operation",
-      detail: "what is done to the [2, 2, 5] tensor",
+      detail: "what is done to the tensor",  // its shape is the Dimensions control's
       options: [
         { value: "reshape", label: "reshape", detail: "refills the values, in reading order, into a shape with the same number of them" },
         { value: "permute", label: "permute", detail: "reorders the dimensions; each value moves to the index with its positions reordered" },
@@ -2473,45 +2495,86 @@ defineWidget({
       size: 11,
       parse: M.shapeWire,
       show: M.shapeShow,
+      check: (text, values) => M.hintFor("reshape", text, Number(values.rank)),
       when: RESHAPE_ON,
     },
     reshape: {
       type: "expr",
       label: "New shape",
-      detail: "sizes separated by commas, then Enter: any product of 20 works, −1 asks for the size that fits, and anything else fails as torch fails it",
+      detail: "sizes separated by commas, then Enter: any product of the tensor's size works, −1 asks for the size that fits, and anything else fails as torch fails it",
       open: "T.reshape(",
       close: ")",
       slots: ["shape"],
       when: RESHAPE_ON,
     },
+    /* ROUND 15: EVERY ARGUMENT IS TYPED, because the rank is now a choice and
+       an ordering has 1, 2, 6 or 24 forms depending on it, a position 0 to
+       the rank. A button row would have to be declared per rank; a typed
+       field is answered by the model for whatever tensor is on screen, torch's
+       message on Enter and the widget's hint while typing. Negative positions
+       count from the end, as torch's do. */
     perm: {
-      type: "segmented",
+      type: "text",
+      label: "order",
+      hidden: true,
+      default: "0x2x1",
+      size: 8,
+      parse: M.shapeWire,
+      show: M.shapeShow,
+      check: (text, values) => M.hintFor("permute", text, Number(values.rank)),
+      when: PERMUTE_ON,
+    },
+    permute: {
+      type: "expr",
       label: "Order of dimensions",
-      detail: "the new position of each of the three dimensions",
-      options: M.PERMUTATIONS.map((pm) => ({ value: M.shapeKey(pm), label: pm.join(", ") })),
-      default: "0-2-1",
-      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "permute" }] },
+      detail: "the new position of each dimension, every one once, then Enter",
+      open: "T.permute(",
+      close: ")",
+      slots: ["perm"],
+      when: PERMUTE_ON,
     },
     udim: {
-      type: "segmented",
-      label: "Position of the new dimension",
-      detail: "0 puts it in front, 3 puts it last",
-      options: ["0", "1", "2", "3"],
+      type: "text",
+      label: "position",
+      hidden: true,
       default: "0",
-      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "unsqueeze" }] },
+      size: 3,
+      parse: M.intWire,
+      check: (text, values) => M.hintFor("unsqueeze", text, Number(values.rank)),
+      when: UNSQUEEZE_ON,
+    },
+    unsqueeze: {
+      type: "expr",
+      label: "Position of the new dimension",
+      detail: "0 puts the size-1 dimension in front and −1 puts it last, then Enter",
+      open: "T.unsqueeze(",
+      close: ")",
+      slots: ["udim"],
+      when: UNSQUEEZE_ON,
     },
     fstart: {
-      type: "segmented",
-      label: "Start dimension",
-      detail: "the dimensions from this one on are collapsed into one",
-      options: ["0", "1", "2"],
+      type: "text",
+      label: "start",
+      hidden: true,
       default: "0",
-      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "flatten" }] },
+      size: 3,
+      parse: M.intWire,
+      check: (text, values) => M.hintFor("flatten", text, Number(values.rank)),
+      when: FLATTEN_ON,
+    },
+    flatten: {
+      type: "expr",
+      label: "Start dimension",
+      detail: "the dimensions from this one on are collapsed into one, then Enter",
+      open: "T.flatten(start_dim=",
+      close: ")",
+      slots: ["fstart"],
+      when: FLATTEN_ON,
     },
     join: {
       type: "segmented",
       label: "Operation",
-      detail: "how the [2, 2, 5] tensor is combined with a second one holding 21–40",
+      detail: "how the tensor is joined with a second one of the same shape, holding the values that follow its last",
       options: [
         { value: "cat", label: "cat", detail: "joins the two tensors along a dimension that already exists, which grows" },
         { value: "stack", label: "stack", detail: "puts the two tensors under a new dimension of size 2, so both keep their own shape" },
@@ -2520,20 +2583,42 @@ defineWidget({
       when: { param: "tab", equals: "join" },
     },
     cdim: {
-      type: "segmented",
-      label: "Dimension joined along",
-      detail: "the dimension that grows from 2, 2 or 5 to twice that",
-      options: ["0", "1", "2"],
+      type: "text",
+      label: "dim",
+      hidden: true,
       default: "0",
-      when: { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "cat" }] },
+      size: 3,
+      parse: M.intWire,
+      check: (text, values) => M.hintFor("cat", text, Number(values.rank)),
+      when: CAT_ON,
+    },
+    cat: {
+      type: "expr",
+      label: "Dimension joined along",
+      detail: "the dimension that grows to twice its size, then Enter",
+      open: "torch.cat([T, T2], dim=",
+      close: ")",
+      slots: ["cdim"],
+      when: CAT_ON,
     },
     sdim: {
-      type: "segmented",
-      label: "Position of the new dimension",
-      detail: "0 puts the new dimension in front, 3 puts it last",
-      options: ["0", "1", "2", "3"],
+      type: "text",
+      label: "dim",
+      hidden: true,
       default: "0",
-      when: { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "stack" }] },
+      size: 3,
+      parse: M.intWire,
+      check: (text, values) => M.hintFor("stack", text, Number(values.rank)),
+      when: STACK_ON,
+    },
+    stack: {
+      type: "expr",
+      label: "Position of the new dimension",
+      detail: "0 puts the new dimension in front and −1 puts it last, then Enter",
+      open: "torch.stack([T, T2], dim=",
+      close: ")",
+      slots: ["sdim"],
+      when: STACK_ON,
     },
     /* --- what the dimensions are called (round 11) --------------------------- *
      * A display parameter: it changes the labels and nothing else, so nothing
@@ -2746,7 +2831,7 @@ defineWidget({
     },
     /* Authoring escape hatch, first render only: values placed, rows added,
        cells computed or groups collapsed, whichever the tab counts. */
-    shown: { type: "int", min: 0, max: 2 * M.CELLS, default: 0, hidden: true },
+    shown: { type: "int", min: 0, max: 80, default: 0, hidden: true },
   },
 
   /* The legend has to match the graph, and the four tabs draw different marks.
@@ -3099,10 +3184,10 @@ defineWidget({
       return [
         {
           label: "Source shape",
-          value: M.shapeText(M.T3_SHAPE),
+          value: M.shapeText(state.op.src),
           note: state.op.second
             ? "two tensors of this shape, read one after the other"
-            : (M.roleNames(params.names, 3).filter(Boolean).join(", ") || "positions only"),
+            : (M.roleNames(params.names, state.op.src.length).filter(Boolean).join(", ") || "positions only"),
         },
         {
           label: "Result shape",
@@ -3225,10 +3310,10 @@ defineWidget({
         + `${M.shapeSize(shape)} values and has shape ${M.shapeText(sel.shape)}. ${INDEX_RULE}`;
     }
     if (state.kind === "shape") {
-      return `The [2, 2, 5] tensor holding 1 to 20, drawn as `
+      return `The ${M.shapeText(state.op.src)} tensor holding 1 to ${state.op.size}, drawn as `
         + (params.view === "stack"
-          ? "one grid per sample stepped up the diagonal"
-          : "one framed grid per sample side by side, with the indices on the edges")
+          ? "grids stepped up the diagonal"
+          : "framed grids side by side, with the indices on the edges")
         + `, and printed beside the drawing as PyTorch prints it. Beneath it the `
         + `${M.shapeText(state.op.shape)} result of ${state.op.label} with `
         + `${anim.n} of ${state.units} values placed in it. ${state.op.caption}`;

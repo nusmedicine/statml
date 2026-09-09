@@ -931,6 +931,16 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
 .w-expr-txt::after { display: none; }
 .w-expr-sel input { padding-right: 8px; cursor: text; }
 .w-expr-sel input:focus { outline: 2px solid var(--c-highlight); outline-offset: 1px; }
+/* What a text field says while it is typed in: a problem, in the colour a
+   figure uses for the case that fails, and nothing at all when there is none. */
+.w-text-hint {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--c-extreme);
+  max-width: 26ch;
+  text-align: center;
+}
+p.w-text-hint { max-width: none; text-align: left; }
 /* A text field on its own line. */
 .w-text {
   display: block;
