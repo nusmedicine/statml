@@ -1,28 +1,76 @@
 # Handover
 
 **FORTY-EIGHT WIDGETS — 46 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), no draft. `tensors` (slot 53) SHIPPED 2026-09-09 on his
-"tested ok, push it" after twenty-nine review rounds in two days. **The
-spec is his notebook's own structure** (`05-2 - DL Foundations - Tensors
-and Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
-`_lab/figs/`); read catalogue rounds 19–29 before touching a topic. Its 37
-states were recorded at promotion by `_lab/tensors-shoot.html` (three runs
-each, the copy proven on five known states), the hit-driven one's
-coordinates re-derived from the label's draw position; the full suite
-then read all 404 states MATCH (pane fronted at DPR 1.25).**
+call, 2026-08-30), NO DRAFT, and NOTHING UNPUSHED: `main` is level with
+origin with a clean tree (2026-09-09). `tensors` (slot 53) SHIPPED
+2026-09-09 on Kenneth's "tested ok, push it" after twenty-nine review
+rounds in two days, then two post-ship rounds the same day (the topic rows
+headed by the notebook's section titles, through core's `groupHeads`; the
+subtitle and blurb rewritten in the register of the others). All 404
+fingerprint states MATCH, run twice that day (once for the promotion, once
+for the `groupHeads` core change), pane fronted at DPR 1.25.**
 
 ---
 
-# NEXT: THE DEEP LEARNING ARC
+# NEXT: THE DEEP LEARNING ARC — ASK THE FIVE QUESTIONS FIRST
 
-`tensors` is shipped; what follows is the arc (§ *After tensors ships* below
-and catalogue § *The deep learning arc*). The section under this heading is
-the tensors review history, kept for the next widget that goes through the
-same rhythm.
+Nothing is in progress. The next widget is one of the arc's slots, and
+**which one is Kenneth's call, not the session's.**
+[docs/catalogue.md](docs/catalogue.md) § *The deep learning arc* plans slots
+47–52 for PHM5005 *DL Foundations* (`05-1` to `05-4`): `chain-rule`,
+`gradients` (SHIPPED 2026-09-08), `processing-layers`, `support-layers`,
+`composition`, `training-loop` — each with its misconception, its host
+cells, its shape and what cutting it would cost. **Five questions for him
+close that section** (six slots or four; where the residual-gradient
+argument lives; which first; an optimizer picker on 48; how to pin 52
+with no torch on this machine). Put them to him with `AskUserQuestion`,
+two or three options each with a recommendation and its reason — that is
+how he answers, in one click — and build nothing until he has. Two slots
+were measured first and the scripts are in `_lab/` (`dl-gd-measure.mjs`,
+`dl-loop-measure.mjs`, `dl-synthetic.csv`).
 
-# THE TENSORS REVIEW, AS IT RAN
+**How he wants a widget built, learned across 48 and 53:**
 
-**Eight local commits are waiting to be pushed on his "tested ok":**
+- **His notebook is the spec.** Read the Master copy of the lesson
+  (`Downloads/PHM5005 AY2025-26 - Notebooks/Master/`) and its figures
+  before proposing structure; mirror its headings as the rail, its
+  sub-lists as control groups, its example values as the operands. The
+  one time the widget departed from it (round 17 of tensors, a layout of
+  the session's own) drew "are you fucking with me? … mock up and show me
+  before imposing your own designs on the widget".
+- **Mock in `_lab/` first, then he picks; one widget per commit; commit
+  locally; push only on "tested ok".** The tensors mocks are the pattern:
+  `_lab/tensor-lesson.html` (the notebook's order), `-style.html`,
+  `-squeeze.html`, `-size1.html`, `-flow.html`, `-rank5.html` — each a
+  page of two to four options with a recommendation, the widget itself
+  cropped in iframes where it could already draw the thing.
+- **He reviews from annotated screenshots**, several numbered points at a
+  time; answer each by number; fix what is a fix, mock what is a design.
+- **Reader-facing prose states the concept**, in the register of the
+  shipped subtitles (two or three plain sentences defining the idea; the
+  blurb one such sentence, under 120 characters). Options that described
+  the widget drew "don't comment and describe the widget … look at
+  previous examples". No "never", no coined adjectives, no personification.
+- **Links to him carry no `shown=`** unless the finished figure is the
+  point: a link that opens finished, plus a glide that keeps a finished
+  figure finished, made him think a result appeared before he chose.
+- **Run `npm run check` and READ its verdict before `git push`**: a chained
+  `check && … && push` with `tail -1` on the check pushed a failing blurb
+  once (2026-09-09, fixed in the next commit).
+
+**What tensors leaves open, none blocking:** the 05-2 notebook does not yet
+link to the widget (prd §4 says how); the notebook's second tensor (cells
+41–44) holds 21–30 where the widget's T2 is T + size (21–40 at rank 3),
+his cell to edit; the rank-5 figures are tall at the 550px stage (stack at
+rank 4 in the frames view about 1600px, its print under the drawing);
+the phone-width overflow on Basics (canvas ≈ 371) is accepted for the
+lecture screen; and the three `?ops` overruns listed under *Open items*.
+
+---
+
+# THE TENSORS REVIEW, AS IT RAN (all pushed; kept for the next widget)
+
+**The commits, in order, all on `main`:**
 `5d55894` (rounds 1–9, with two core changes), `aa42f39` (round 10),
 `0eab30e` (round 11), `f25b15d` (round 12: the fit measured over every
 argument), `1d299b6` (T2 = T + 20), `3ed5012` (round 13: reshape's
@@ -144,12 +192,12 @@ at 550 the default reshape moved from 26px cells with both prints under to
 20px with both beside; join's `stack` from 1162px tall to 669; **at 770
 nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
 
-## On "tested ok" — the promotion, in order
+## The promotion, as it was done on 2026-09-09 (the order to reuse)
 
 1. Fix whatever his test finds (the pattern: he sends an annotated
    screenshot; put copy items in a numbered table; ask picks with
    `AskUserQuestion`; mock in `_lab/` anything that would otherwise be
-   argued).
+   argued). Rounds 21–29 were this, over two days.
 2. Record the fingerprint states for real: the 23 placeholders in
    `_lab/fingerprint-baseline.json` cover every topic, both views, both
    failing cases, two driven states (`step` on Shape and Reduce) and one
@@ -165,22 +213,19 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
 3. Note the phone-width overflow (canvas ≈ 371) on Basics is unfixed and
    accepted for the lecture screen.
 
-## Open items on the draft, none blocking
+## Open items after shipping, none blocking
 
 - The two degenerate stacks a student can type, [20, 1, 1] and
   [1, 20, 1, 1], overrun the 550px stage by 30 to 110px in the stack view
   (twenty slabs and a merged name); the frames view of each fits.
 - The rank-4 frames header packs `dim 0 = 0`, the column indices and
   `dim 1 = 0` into 22px (visible on Join's stack in the frames view).
-- The notebook's figures (Dropbox links in cells 8–66) have not been
-  fetched; the mock's stack drawings follow the round-3 description of
-  them. Ask before downloading.
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
 - The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
   the widget's holds T + size, 21–40 at rank 3. Kenneth's cell to edit.
-- Join at rank 4 is two 40-cell tensors and an 80-cell result, 1275px
-  tall at 550 in the stack view; drawable, and not yet judged on his screen.
+- Join at rank 4 is two 40-cell tensors and an 80-cell result, drawn since
+  round 28 as a fifth level; judged by him and kept, at its height.
 - At rank 4, `flatten()` and `reshape(-1)` make a [40] row, which at the
   550px stage runs 32px past the edge even at CELL_MIN (40 × 14 = 560); at
   770 it fits at 18px. The `?ops` sweep names it beside the two degenerate
