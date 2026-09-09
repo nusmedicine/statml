@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — a fifth dimension, drawn</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 460px; min-height: 26px; white-space: pre-line; }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  /* frames sketched as boxes: dashed 1px in the dimension's hue, the size-1 one solid in the highlight */
+  .sk { display: inline-flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface-1); border: 1px solid var(--grid); }
+  .lv { position: relative; border: 1px dashed var(--ink-3); padding: 14px 6px 6px; display: flex; gap: 8px; }
+  .lv.col { flex-direction: column; }
+  .lv::before { position: absolute; top: 1px; left: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--ink-3); content: attr(data-l); white-space: nowrap; }
+  .d0 { border-color: var(--c-dim-a); }
+  .d1 { border-color: var(--c-dim-b); }
+  .w { border: 2px solid var(--c-highlight); padding: 14px 6px 6px; }
+  .w::before { color: var(--c-highlight); font-weight: 700; }
+  .g { display: grid; grid-template-columns: repeat(5, 14px); }
+  .g span { width: 14px; height: 14px; border: 1px solid var(--ink-2); margin: -0.5px; font-family: var(--font-mono); font-size: 8px; display: flex; align-items: center; justify-content: center; background: var(--c-empirical); color: #fff; box-sizing: border-box; }
+  .crop { width: 560px; overflow: hidden; border: 1px solid var(--grid); background: var(--surface-1); }
+  .crop iframe { width: 1080px; height: 900px; border: 0; margin-left: -330px; margin-top: -178px; display: block; pointer-events: none; }
+  .stack5 { display: inline-flex; flex-direction: column; gap: 10px; padding: 10px; background: var(--surface-1); border: 1px solid var(--grid); }
+  .stack5 .lv { padding-top: 16px; }
+  .stack5 .crop { width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · a fifth dimension, drawn</h1>
+  <p class="note">
+    <b>Your question: when an operation makes a fifth dimension, extend the diagram instead of declining.</b>
+    Two different things make one, and they cost very differently. Nothing has been changed for this page.
+  </p>
+
+  <h2>§1 · A fifth dimension of size 1 — cheap, and I would build it</h2>
+  <p class="note">
+    <code>unsqueeze</code> at rank 4 at positions 1–4, and <code>reshape</code> to five dimensions (which
+    always contains a 1, since 40 = 2·2·2·5), make a [2, 2, 2, 5] with one size-1 dimension somewhere. That is
+    exactly what the size-1 mark already draws at ranks 1–4: the rank-4 figure, with the solid highlight frame
+    round each block the new dimension wraps. Position 0 is drawn today (the frame round everything); the
+    other four are the same device one level further in. The stack view hugs each stack, each slab, each row,
+    or sits inside each cell.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3><code>T.unsqueeze(1)</code> at rank 4 → [2, 1, 2, 2, 5], frames view</h3>
+      <div class="sub">the strong frame round each dim-0 block; one of the two shown</div>
+      <div class="sk">
+        <div class="lv col d0" data-l="dim 0 = 0">
+          <div class="lv w" data-l="dim 1 = 0">
+            <div class="lv col d1" data-l="dim 2 = 0">
+              <div class="lv d1" data-l="dim 3 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div>
+              <div class="lv d1" data-l="dim 3 = 1"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3><code>T.unsqueeze(3)</code> at rank 4 → [2, 2, 2, 1, 5]</h3>
+      <div class="sub">the strong frame round each row; one dim-0 block shown</div>
+      <div class="sk">
+        <div class="lv col d0" data-l="dim 0 = 0">
+          <div class="lv d1" data-l="dim 1 = 0">
+            <div class="lv col" data-l="dim 2 = 0" style="border-color: var(--c-dim-c)">
+              <div class="lv w" data-l="dim 3 = 0" style="padding: 14px 4px 4px"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></div>
+              <div class="lv w" data-l="dim 3 = 0" style="padding: 14px 4px 4px"><div class="g"><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div>
+            </div>
+            <div class="lv col" data-l="dim 2 = 1" style="border-color: var(--c-dim-c)">
+              <div class="lv w" data-l="dim 3 = 0" style="padding: 14px 4px 4px"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span></div></div>
+              <div class="lv w" data-l="dim 3 = 0" style="padding: 14px 4px 4px"><div class="g"><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    Cost: the size-1 mark generalised to a fifth level, and the frame padding that makes room for it; the
+    hint on unsqueeze at rank 4 goes. About a round. The four-hue rule holds: the size-1 dimension is drawn in
+    the highlight colour, not a fifth hue.
+  </p>
+
+  <h2>§2 · A real fifth dimension — dearer, and only <code>stack</code> at rank 4 needs it</h2>
+  <p class="note">
+    <code>torch.stack([T, T2])</code> at rank 4 makes [2, 2, 2, 2, 5]: eighty values and no size-1 dimension.
+    That needs one more level of the drawing itself. <b>Frames view:</b> a frame per index of dim 0, down the
+    page, each holding today's rank-4 figure — the picture is twice as tall as rank 4, and at 550px the cells
+    are 18px. <b>Stack view:</b> today's rank-4 column once per index of dim 0, each in a dashed frame
+    labelled <code>dim 0 = f</code> (the device round 21 uses for the size-1 case), so four exploded stacks down
+    the page. The print is thirty-odd lines; it drops under the drawing. T2 is T + 40.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>[2, 2, 2, 2, 5], frames view</h3>
+      <div class="sub">a fifth level of frames, down the page; the outermost has no hue of its own (ink)</div>
+      <div class="sk">
+        <div class="lv col" data-l="dim 0 = 0">
+          <div class="lv col d0" data-l="dim 1 = 0">
+            <div class="lv d1" data-l="dim 2 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div>
+            <div class="lv d1" data-l="dim 2 = 1"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div>
+          </div>
+          <div class="lv col d0" data-l="dim 1 = 1">
+            <div class="lv d1" data-l="dim 2 = 0"><div class="g"><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span></div></div>
+            <div class="lv d1" data-l="dim 2 = 1"><div class="g"><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span></div></div>
+          </div>
+        </div>
+        <div class="lv col" data-l="dim 0 = 1">
+          <div class="lv col d0" data-l="dim 1 = 0">
+            <div class="lv d1" data-l="dim 2 = 0"><div class="g"><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span></div></div>
+            <div class="lv d1" data-l="dim 2 = 1"><div class="g"><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span></div></div>
+          </div>
+          <div class="lv col d0" data-l="dim 1 = 1">
+            <div class="lv d1" data-l="dim 2 = 0"><div class="g"><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span></div></div>
+            <div class="lv d1" data-l="dim 2 = 1"><div class="g"><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>[2, 2, 2, 2, 5], stack view</h3>
+      <div class="sub">today's rank-4 column, once per index of dim 0, each in a labelled frame (the widget's own rank-4 drawing, cropped, twice)</div>
+      <div class="stack5">
+        <div class="lv col" data-l="dim 0 = 0"><div class="crop" style="height:350px"><iframe src="../tensors/?tab=tensors&rank=4"></iframe></div></div>
+        <div class="lv col" data-l="dim 0 = 1"><div class="crop" style="height:350px"><iframe src="../tensors/?tab=tensors&rank=4"></iframe></div></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    Cost: a fifth level in both drawers, the fit for a figure that tall, a walk of eighty values and a print
+    of thirty lines, T2 at rank 4, the readout and the verify checks. A round or two. Worth it only if stacking
+    four-dimensional tensors is something the lesson does; the notebook stacks at rank 3, where the result is
+    drawn today. My recommendation: build §1, leave §2 declined with its message.
+  </p>
+</main>
+</body>
+</html>
