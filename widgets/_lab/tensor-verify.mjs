@@ -568,7 +568,8 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     check("squeeze(0) works on the unsqueezed [1, 2, 2, 5] and returns [2, 2, 5] (round 20)",
       same(sq.src, [1, 2, 2, 5]) && same(sq.shape, [2, 2, 5]) && sq.read(0, [0, 1, 1, 4]) === 20 && bij(sq));
     const keep = shapeOp("squeeze", "1", "sequence", 3);
-    check("squeeze of a dimension that is not size 1 leaves the shape as it is", same(keep.shape, [1, 2, 2, 5]) && keep.ok && bij(keep));
+    check("squeeze of a dimension that is not size 1 leaves the shape as it is, unchanged, with nothing to walk (round 23)",
+      same(keep.shape, [1, 2, 2, 5]) && keep.ok && keep.unchanged === true && shapeWalk(keep).length === 0 && keep.mark === 0);
     check("squeeze() with no position removes every size-1 dimension", same(shapeOp("squeeze", "all", "sequence", 3).shape, [2, 2, 5]));
     check("squeeze at rank 4 draws its [1, 2, 2, 2, 5] source and returns the [2, 2, 2, 5] (round 21)",
       shapeOp("squeeze", "0", "sequence", 4).ok && same(shapeOp("squeeze", "0", "sequence", 4).shape, [2, 2, 2, 5]));
@@ -577,17 +578,31 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     check("squeeze(1) on U = T.unsqueeze(1), [2, 1, 2, 5], returns [2, 2, 5] and reads through the inserted 0 (round 22)",
       same(s1.src, [2, 1, 2, 5]) && same(s1.shape, [2, 2, 5]) && s1.read(0, [0, 0, 1, 4]) === 10 && bij(s1)
       && s1.srcExpr === "U = T.unsqueeze(1)" && s1.srcName === "U" && same(s1.srcNames, ["sample", "size 1", "sequence", "feature"]));
-    check("squeeze(0) on the same U leaves [2, 1, 2, 5], and says where the size-1 dimension is",
+    check("squeeze(0) on the same U leaves [2, 1, 2, 5], says where the size-1 dimension is, and marks it",
       same(shapeOp("squeeze", "0", "sequence", 3, "1").shape, [2, 1, 2, 5])
-      && shapeOp("squeeze", "0", "sequence", 3, "1").caption.endsWith("the size-1 dimension is dim 1."));
+      && shapeOp("squeeze", "0", "sequence", 3, "1").caption.includes("The size-1 dimension is dim 1")
+      && shapeOp("squeeze", "0", "sequence", 3, "1").mark === 1 && shapeOp("squeeze", "0", "sequence", 3, "1").srcMark === 1);
+    check("the size-1 dimension is marked: unsqueeze(2) marks 2 in its result, squeeze marks k in its source and nothing in a result it removed it from",
+      shapeOp("unsqueeze", "2", "sequence", 3).mark === 2 && s1.srcMark === 1 && s1.mark === -1
+      && shapeOp("squeeze", "all", "sequence", 3, "2").srcMark === 2);
+    {
+      const p = torchPrint([2, 2, 1, 5], (idx) => idx.join(""));
+      const depths = p.lines.flat().filter((g) => g.depth !== undefined);
+      check("a print's brackets carry their depth: [2, 2, 1, 5] has one pair at depth 0, two at 1, four at 2 and four at 3",
+        [0, 1, 2, 3].map((d) => depths.filter((g) => g.depth === d).length).join(",") === "2,4,8,8"
+        && depths.every((g) => g.s === "[" || g.s === "]"));
+    }
     check("squeeze() with the size-1 dimension last removes it: [2, 2, 5, 1] to [2, 2, 5]",
       same(shapeOp("squeeze", "all", "sequence", 3, "-1").src, [2, 2, 5, 1]) && same(shapeOp("squeeze", "all", "sequence", 3, "-1").shape, [2, 2, 5]));
     check("at rank 4 only a size-1 dimension in front draws: U = T.unsqueeze(1) is declined",
       shapeOp("squeeze", "1", "sequence", 4, "1").limit === true && shapeOp("squeeze", "1", "sequence", 4, "1").error === FIVE_DIMS([2, 1, 2, 2, 5])
       && same(shapeOp("squeeze", "1", "sequence", 4, "1").src, [2, 2, 2, 5]));
-    check("ranks 1 to 3: every (size-1 at, remove) pair walks a bijection",
+    check("ranks 1 to 3: every (size-1 at, remove) pair walks a bijection where the dimension is removed, and nothing where it is not",
       [1, 2, 3].every((r) => Array.from({ length: r + 1 }, (_, k) => String(k)).every((k) =>
-        [...Array.from({ length: r + 1 }, (_, d) => String(d)), "all"].every((d) => bij(shapeOp("squeeze", d, "sequence", r, k))))));
+        [...Array.from({ length: r + 1 }, (_, d) => String(d)), "all"].every((d) => {
+          const op = shapeOp("squeeze", d, "sequence", r, k);
+          return d === "all" || d === k ? bij(op) && !op.unchanged : op.unchanged && shapeWalk(op).length === 0;
+        }))));
     check("the size-1 position dropdown offers what unsqueeze's does",
       same(dimOptions("squeezeAt", 3).map((o) => o.value), ["0", "1", "2", "3", "-1"]));
     const tr = shapeOp("transpose", ["1", "2"], "sequence", 3);

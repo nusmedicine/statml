@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through twenty-two review rounds and NOT PUSHED. **The spec is his
+locally through twenty-three review rounds and NOT PUSHED. **The spec is his
 notebook's own structure** (`05-2 - DL Foundations - Tensors and
 Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
 `_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
@@ -42,12 +42,15 @@ change: the data path grants the ease `init` asks for), and cell strings
 fitted to their cells. Round 22: float cells sized for their strings,
 Reduce's labels clear of rule and print, and — his pick B on
 `_lab/tensor-squeeze.html` — squeeze's source U = T.unsqueeze(k) with the
-size-1 dimension where the student puts it. **He is looking at B for
-whether it makes sense for students; nothing else is left to build.** Read
+size-1 dimension where the student puts it. Round 23, from his three
+points on B: the size-1 dimension drawn as one solid highlight frame
+round each block it wraps and its brackets lit in the print, and a
+squeeze that removes nothing drawn at once as *Result · unchanged*.
+**Nothing he has asked for is left to build.** Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–37) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–38) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph

@@ -3343,6 +3343,20 @@
       "tx": "0"
     },
     {
+      "$note": "PLACEHOLDER - draft. Manipulate (round 23): unsqueeze(2) in the frames view, the size-1 dimension a strong frame round each row and its brackets lit in the print, 20 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=manipulate&op=unsqueeze&udim=2&view=frames&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Manipulate (round 23): squeeze(1) on U = T.unsqueeze(2), a miss — Result · unchanged, U drawn again at once, the walk empty",
+      "slug": "tensors",
+      "state": "?theme=light&tab=manipulate&op=squeeze&sqat=2&sqdim=1&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=flatten&shown=20",

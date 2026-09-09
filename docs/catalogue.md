@@ -11414,6 +11414,33 @@ and a mismatch — squeeze(0) on [2, 1, 2, 5] — leaves the shape and says
 where the size-1 dimension is, cell 34's rule seen rather than read. At
 rank 4 only k = 0 draws. Verify 275; sweep clean; nothing in core.
 
+**Round 23 (2026-09-09) — his three points on B, mocked on
+`_lab/tensor-size1.html` and built on "build all three. make sure the
+lines/brackets are visible".** (1) "sometimes have gaps in pytorch
+output?": torch's own block separators, one blank line per level, which
+the widget prints by torch's rule; what was missing was which bracket the
+new dimension added. (2) "extra bracket and extra frame? … hard for me to
+see": a size-1 dimension had been drawn as whatever its position was — a
+frame level, a one-row grid, one-cell rows — and at position 2 it was the
+`0` row index. Now THE SIZE-1 DIMENSION IS ONE SOLID FRAME IN THE
+HIGHLIGHT COLOUR, 2.5px against the other dimensions' dashed 1px, round
+each block it wraps: the frames view's own frame at dims 0–1 made strong
+(and the rank-5 wrapper of round 21), a hug round a one-row grid or a
+stack's slab, an inset inside a one-cell row; its bracket pair in the
+print is bold in the same colour and its `1` is lit in the size line — in
+unsqueeze's result and in squeeze's source, with a legend line. Checked
+in both themes; the solid weight was chosen over dashed because the
+dashed 1px frames are the quiet background every other dimension shares.
+(3) "should i get an error? i still see output and i get impression i
+have removed it successfully": torch raises none, cell 34's "otherwise it
+is unchanged"; the widget had said so in a caption while walking twenty
+values into the places they already held. A squeeze that removes nothing
+now builds nothing: the Result band is headed *Result · unchanged*, U is
+drawn again at once with its size-1 dimension still marked, the walk is
+empty and the drive buttons hidden, the readout says unchanged, and a
+second caption line says that naming a dimension that is not size 1
+leaves U with no error. Verify 277; sweeps clean; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

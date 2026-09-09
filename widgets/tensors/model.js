@@ -527,6 +527,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
       value: `unsqueeze-${d}`,
       label: `unsqueeze(${r.asked})`,
       shape,
+      mark: d,
       names: [...names.slice(0, d), insertedName(d, setName, source.rank), ...names.slice(d)],
       caption: `A dimension of size 1 is added at position ${d}. Every value keeps its place under it.`,
       dest: (n) => { const s = unravel(n, src); return [...s.slice(0, d), 0, ...s.slice(d)]; },
@@ -553,6 +554,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
       srcNames: namesU,
       srcName: "U",
       srcExpr: `U = T.unsqueeze(${ra.asked})`,
+      srcMark: k,
       at: k,
       read: (t, idx) => source.read(t, idx.filter((_, j) => j !== k)),
     };
@@ -576,15 +578,22 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
     const d = r.d;
     const gone = srcU[d] === 1;
     const shape = gone ? srcU.filter((_, k) => k !== d) : [...srcU];
+    /* ROUND 23 (Kenneth: "i still see output and i get impression i have
+       removed it successfully"): a miss is UNCHANGED — the result is U
+       itself, drawn at once, with nothing to walk (invariant 4 has nothing
+       to reveal: no value moves), and the size-1 dimension still marked. */
     return {
       ...squeezed,
       value: `squeeze-${d}`,
       label: `squeeze(${r.asked})`,
       shape,
+      mark: gone ? -1 : k,
+      unchanged: !gone,
       names: gone ? namesU.filter((_, k) => k !== d) : namesU,
       caption: gone
         ? `Dim ${d} has size 1, so it is removed and the dimensions after it move up one.`
-        : `Dim ${d} has size ${srcU[d]}, not 1, so squeeze leaves the shape as it is; the size-1 dimension is dim ${k}.`,
+        : `Dim ${d} has size ${srcU[d]}, not 1: squeeze returns U as it is. The size-1 dimension is dim ${k}.`,
+      captionMore: gone ? null : "Only a size-1 dimension is removed; naming another leaves U as it is, with no error.",
       dest: (n) => { const s = unravel(n, srcU); return gone ? s.filter((_, k) => k !== d) : s; },
     };
   }
@@ -742,7 +751,7 @@ export function hintFor(kind, text, rank) {
  */
 export function shapeWalk(op) {
   const moves = [];
-  if (!op.ok) return moves;
+  if (!op.ok || op.unchanged) return moves;
   const count = op.second ? 2 : 1;
   for (let t = 0; t < count; t += 1) {
     for (let n = 0; n < op.size; n += 1) {
@@ -1189,12 +1198,17 @@ export function torchPrint(shape, valueAt) {
   eachIndex(shape, (idx) => { width = Math.max(width, String(valueAt(idx)).length); });
 
   const lines = [[]];
-  const put = (s, idx) => { if (s !== "") lines[lines.length - 1].push(idx ? { s, idx } : { s }); };
+  /* a bracket segment carries the depth of the dimension it opens or closes,
+     so the print can light the pair a size-1 dimension adds (round 23) */
+  const put = (s, idx, depth) => {
+    if (s === "") return;
+    lines[lines.length - 1].push(idx ? { s, idx } : depth !== undefined ? { s, depth } : { s });
+  };
   const wrap = (col) => { lines.push([]); put(" ".repeat(col)); };
 
-  const vector = (prefix, n, col) => {
+  const vector = (prefix, n, col, depth) => {
     const perLine = Math.max(1, Math.floor((LINEWIDTH - col) / (width + 2)));
-    put("[");
+    put("[", null, depth);
     for (let i = 0; i < n; i += 1) {
       const idx = [...prefix, i];
       put(String(valueAt(idx)).padStart(width), idx);
@@ -1203,16 +1217,16 @@ export function torchPrint(shape, valueAt) {
       if ((i + 1) % perLine === 0) wrap(col + 1);
       else put(" ");
     }
-    put("]");
+    put("]", null, depth);
   };
 
   const node = (prefix, depth, col) => {
     const rest = shape.length - depth;
     if (rest === 1) {
-      vector(prefix, shape[depth], col);
+      vector(prefix, shape[depth], col, depth);
       return;
     }
-    put("[");
+    put("[", null, depth);
     for (let i = 0; i < shape[depth]; i += 1) {
       node([...prefix, i], depth + 1, col + 1);
       if (i === shape[depth] - 1) break;
@@ -1220,7 +1234,7 @@ export function torchPrint(shape, valueAt) {
       for (let k = 0; k < rest - 1; k += 1) lines.push([]);
       put(" ".repeat(col + 1));
     }
-    put("]");
+    put("]", null, depth);
   };
 
   put(TENSOR_PREFIX);

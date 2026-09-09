@@ -390,6 +390,18 @@
       position of `sqdim` then has something to remove at some k, and a
       mismatch shows the shape unchanged — cell 34's rule seen. At rank 4
       only k = 0 draws (decision 36).
+
+  38. ROUND 23 (his three points on B). THE SIZE-1 DIMENSION IS VISIBLE: one
+      solid frame in the highlight colour, 2.5px against the other
+      dimensions' dashed 1px, round each block it wraps — the frames view's
+      own frame at dims 0–1 made strong, a hug round a one-row grid or a
+      stack's slab, an inset inside a one-cell row — and its bracket pair in
+      the print bold in the same colour, with its `1` lit in the size line;
+      in unsqueeze's result and in squeeze's source. THE GAPS IN THE PRINT
+      ARE TORCH'S: one blank line per level between blocks. A SQUEEZE THAT
+      REMOVES NOTHING BUILDS NOTHING: the Result band is headed "Result ·
+      unchanged", U is drawn again at once, the walk is empty and the
+      buttons inert, and the caption says that torch raises no error for it.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -434,6 +446,23 @@ const FRAME_LBL = 15;     // the `dim 0 = i` line inside a frame, along its top
 /* the number the frame labels count from: 1 while a rank-4 body is drawn
    inside a rank-5 frame, whose own label is dim 0 (round 21) */
 let DIM_BASE = 0;
+/* THE SIZE-1 DIMENSION, MADE VISIBLE (round 23, Kenneth: "we have extra
+   bracket and extra frame? … hard for me to see in the widget"). A dimension
+   of size 1 is one frame round each block it wraps, in the highlight colour,
+   SOLID and heavier than the other dimensions' dashed 1px frames — and its
+   bracket pair in the print is the same colour, bold. Where the drawing
+   already has a frame at that level (the frames view's dims 0 and 1, the
+   rank-5 wrapper) that frame is the one made strong; elsewhere the frame
+   hugs the block's cells — round a one-row grid, round a stack or a slab in
+   the stack view — or sits inside the cell where the block is one cell.
+   `MARK_DIM` is the dimension being drawn strong, set by `pushTensor` for
+   the frame drawers under it, as `DIM_BASE` is. */
+let MARK_DIM = -1;
+const MARK_W = 2.5;       // the strong frame's stroke: the lit cell's weight
+const MARK_HUG = 3;       // outside a block's cells
+const MARK_INSET = 3;     // inside a cell, where the block is one cell
+const frameInk = (colors, dim) => (dim === MARK_DIM ? colors.highlight : colors.ink3);
+const frameWeight = (dim) => (dim === MARK_DIM ? "600" : "");
 /* ROUND 16 (Kenneth: the dimension bars are "too close to the tensors and
    hard to see"). The rule in a dimension's hue now sits OUTSIDE its indices
    — the digits between it and the grid — and 3px wide, where it had been a
@@ -602,8 +631,8 @@ function pushArrow(plan, x0, y0, x1, y1, tone, width, dash) {
   plan.arrows.push({ x0, y0, x1, y1, tone, width, dash });
 }
 
-function pushFrame(plan, x, y, w, h, label, tone) {
-  plan.frames.push({ x, y, w, h, label, tone });
+function pushFrame(plan, x, y, w, h, label, tone, dim = -1) {
+  plan.frames.push({ x, y, w, h, label, tone, strong: dim >= 0 && dim === MARK_DIM });
 }
 
 /** A short rule in a dimension's hue along its edge indices. */
@@ -684,6 +713,7 @@ function paintPlan(ctx, colors, plan, hover) {
     ctx.restore();
   }
   for (const f of plan.frames) {
+    if (f.strong) continue;
     ctx.save();
     ctx.globalAlpha = plan.frameAlpha;
     ctx.strokeStyle = f.tone ?? colors.ink3;
@@ -721,6 +751,16 @@ function paintPlan(ctx, colors, plan, hover) {
       }
     }
   });
+  /* the size-1 dimension's frames, over the cells they hug or sit inside */
+  for (const f of plan.frames) {
+    if (!f.strong) continue;
+    ctx.save();
+    ctx.globalAlpha = plan.frameAlpha;
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = MARK_W;
+    ctx.strokeRect(f.x + 0.5, f.y + 0.5, f.w, f.h);
+    ctx.restore();
+  }
   for (const g of plan.ghosts) paintCell(ctx, colors, g.x, g.y, g.s, g.d, false);
   for (const t of plan.texts) {
     if (t.opts.fade) ctx.globalAlpha = plan.fadeAlpha;
@@ -914,9 +954,9 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
   pushRule(plan, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD + d1 * s, hues[1]);
   for (let i = 0; i < d0; i += 1) {
     const { fx, fy } = at(i);
-    pushFrame(plan, fx, fy, fw, fh, null, hues[0]);
+    pushFrame(plan, fx, fy, fw, fh, null, hues[0], DIM_BASE);
     const anchor = { s: `dim ${DIM_BASE} = ${i}`, x: fx + 4, y: fy + FRAME_LBL - 3, align: "left" };
-    pushText(plan, anchor.s, anchor.x, anchor.y, { color: colors.ink3, mono: true });
+    pushText(plan, anchor.s, anchor.x, anchor.y, { color: frameInk(colors, DIM_BASE), weight: frameWeight(DIM_BASE), mono: true });
     markIndex(plan, 0, i, anchor);
     pushGrid(plan, fx + FRAME_PAD, fy + FRAME_LBL + FRAME_PAD, d1, d2, s, (r, c) => cell(i, r, c));
   }
@@ -1011,13 +1051,13 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
   for (let f = 0; f < d0; f += 1) {
     const oy = frameTop(f);
     const oh = f === 0 ? oh0 : ohN;
-    pushFrame(plan, x0, oy, ow, oh, null, hues[0]);
+    pushFrame(plan, x0, oy, ow, oh, null, hues[0], DIM_BASE);
     const outer = { s: `dim ${DIM_BASE} = ${f}`, x: x0 + 4, y: oy + FRAME_LBL - 3, align: "left" };
-    pushText(plan, outer.s, outer.x, outer.y, { color: colors.ink3, mono: true });
+    pushText(plan, outer.s, outer.x, outer.y, { color: frameInk(colors, DIM_BASE), weight: frameWeight(DIM_BASE), mono: true });
     markIndex(plan, 0, f, outer);
     for (let j = 0; j < d1; j += 1) {
       const { ix, iy } = inner(f, j);
-      pushFrame(plan, ix, iy, iw, ih, null, hues[1]);
+      pushFrame(plan, ix, iy, iw, ih, null, hues[1], DIM_BASE + 1);
       const lbl = { s: `dim ${DIM_BASE + 1} = ${j}`, x: ix + 4, y: iy + FRAME_LBL - 3, align: "left" };
       pushText(plan, lbl.s, lbl.x, lbl.y, { color: colors.ink3, mono: true });
       markIndex(plan, 1, j, lbl);
@@ -1059,7 +1099,39 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
 /** One tensor of any rank the Shape tab reaches, in the chosen view. `cell`
     takes a full index; ranks 1 and 2 are a plain grid in both views, because
     there is no leading dimension left to draw as anything else. */
-function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = false) {
+function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = false, mark = -1) {
+  const marked = mark >= 0 && mark < shape.length && shape[mark] === 1;
+  const framesBefore = plan.frames.length;
+  const prev = MARK_DIM;
+  MARK_DIM = marked ? mark : -1;
+  const box = pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges);
+  MARK_DIM = prev;
+  if (!marked) return box;
+  /* a frame at that level was made strong by the drawer; otherwise hug each
+     block — the cells sharing every index before `mark` — or sit inside the
+     cell where the block is one cell */
+  if (plan.frames.slice(framesBefore).some((f) => f.strong)) return box;
+  const blocks = new Map();
+  const size = shape.reduce((a, d) => a * d, 1);
+  for (let n = 0; n < size; n += 1) {
+    const idx = M.unravel(n, shape);
+    const key = idx.slice(0, mark).join(",");
+    const c = box.centre(idx);
+    const b = blocks.get(key) ?? { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    b.x0 = Math.min(b.x0, c.x - s / 2);
+    b.y0 = Math.min(b.y0, c.y - s / 2);
+    b.x1 = Math.max(b.x1, c.x + s / 2);
+    b.y1 = Math.max(b.y1, c.y + s / 2);
+    blocks.set(key, b);
+  }
+  const m = mark === shape.length - 1 ? -MARK_INSET : MARK_HUG;
+  for (const b of blocks.values()) {
+    plan.frames.push({ x: b.x0 - m, y: b.y0 - m, w: b.x1 - b.x0 + 2 * m, h: b.y1 - b.y0 + 2 * m, label: null, tone: null, strong: true });
+  }
+  return box;
+}
+
+function pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges = false) {
   /* A scalar: the one cell an index with no colon left reaches. It has no
      dimensions, so it takes no view and no edge indices. */
   if (shape.length === 0) {
@@ -1120,8 +1192,8 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
     DIM_BASE = 0;
     const w5 = body.w + 2 * FRAME_PAD;
     const h5 = FRAME_LBL + body.h + 2 * FRAME_PAD;
-    pushFrame(plan, x, y, w5, h5, null, colors.ink3);
-    pushText(plan, "dim 0 = 0", x + 4, y + FRAME_LBL - 3, { color: colors.ink3, mono: true });
+    pushFrame(plan, x, y, w5, h5, null, colors.ink3, 0);
+    pushText(plan, "dim 0 = 0", x + 4, y + FRAME_LBL - 3, { color: frameInk(colors, 0), weight: frameWeight(0), mono: true });
     return { w: w5, h: h5, centre: (idx) => body.centre(idx.slice(1)) };
   }
   const box = view === "stack"
@@ -1188,11 +1260,11 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   /* `arrowNames: false` draws the arrows in their hues and leaves the names
      to the roles line under the drawing (round 19: on Shape and Join the two
      had named every dimension twice) */
-  const { arrows = true, rolesLine = true, edges = false, arrowNames = true } = opts;
+  const { arrows = true, rolesLine = true, edges = false, arrowNames = true, mark = -1 } = opts;
   const hues = dimHues(colors, shape.length);
   const lead = arrows && arrowNames && roles.length ? textW(colors, roles[0]) : 0;
   const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead, shape);
-  const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges);
+  const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges, mark);
   const half = s / 2;
   const size = { w: m.left + box.w + m.right, h: m.top + box.h + m.bottom, centre: box.centre };
   if (!arrows || shape.length >= 5) {
@@ -1306,8 +1378,11 @@ function pushPrint(plan, colors, x, y, print, cw, tone) {
       col += seg.s.length;
       if (!seg.idx) {
         if (seg.s.trim()) {
-          pushText(plan, seg.s, sx, ly,
-            { color: colors.ink2, mono: true, size: colors.fsSm, baseline: "top", fade: tone.fade });
+          const lit = seg.depth !== undefined && seg.depth === tone.mark;
+          pushText(plan, seg.s, sx, ly, {
+            color: lit ? colors.highlight : colors.ink2, weight: lit ? "700" : "",
+            mono: true, size: colors.fsSm, baseline: "top", fade: tone.fade,
+          });
         }
         continue;
       }
@@ -1329,11 +1404,22 @@ function pushPrint(plan, colors, x, y, print, cw, tone) {
 function pushPrintBlock(plan, colors, x, y, p, cw, tone, { fade = false } = {}) {
   const dim = { color: colors.ink3, mono: true, size: colors.fsSm, baseline: "top", fade };
   pushText(plan, p.head, x, y, dim);
-  const toned = Object.assign((idx) => tone(idx), { fade });
+  const toned = Object.assign((idx) => tone(idx), { fade, mark: p.mark ?? -1 });
   pushPrint(plan, colors, x, y + PRINT_LH, p.print, cw, toned);
   const under = y + (1 + p.print.lines.length) * PRINT_LH + PRINT_HEAD_GAP;
   pushText(plan, p.shapeLine, x, under, dim);
-  pushText(plan, p.label, x, under + PRINT_LH, { color: colors.ink1, mono: true, size: colors.fsSm, baseline: "top", fade });
+  const plain = { color: colors.ink1, mono: true, size: colors.fsSm, baseline: "top", fade };
+  /* the size line with the marked dimension's `1` lit, in three pieces */
+  const nums = p.mark >= 0 ? [...p.label.matchAll(/\d+/g)] : [];
+  const hit = nums[p.mark];
+  if (!hit) {
+    pushText(plan, p.label, x, under + PRINT_LH, plain);
+    return;
+  }
+  const at = hit.index;
+  pushText(plan, p.label.slice(0, at), x, under + PRINT_LH, plain);
+  pushText(plan, hit[0], x + at * cw, under + PRINT_LH, { ...plain, color: colors.highlight, weight: "700" });
+  pushText(plan, p.label.slice(at + hit[0].length), x + (at + hit[0].length) * cw, under + PRINT_LH, plain);
 }
 
 /* --- fitting the Shape tab to the stage ----------------------------------- *
@@ -1352,7 +1438,7 @@ function pushPrintBlock(plan, colors, x, y, p, cw, tone, { fade = false } = {}) 
    produces it — `print(T)` over the block, `T.shape` over the size line — so
    the block reads as a notebook cell's output rather than a listing. `label`
    is the size line alone, which is also what a drawing is captioned with. */
-function printOf(shape, valueAt, name, cw) {
+function printOf(shape, valueAt, name, cw, mark = -1) {
   const print = M.torchPrint(shape, valueAt);
   const label = M.sizeText(shape);
   const head = `print(${name})`;
@@ -1362,6 +1448,7 @@ function printOf(shape, valueAt, name, cw) {
     label,
     head,
     shapeLine,
+    mark,
     w: Math.max(print.cols, label.length, head.length, shapeLine.length) * cw,
     h: (print.lines.length + 3) * PRINT_LH + PRINT_HEAD_GAP,
   };
@@ -1550,8 +1637,10 @@ function shapeGeometry(ctx, colors, w, params) {
      yet placed included, so nothing under a value shifts when it lands. */
   const prints = {
     sources: tensors.map((t) =>
-      printOf(op.src, (idx) => op.read(t, idx), srcNamesOf(op)[t], cw)),
-    result: op.ok ? printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw) : null,
+      printOf(op.src, (idx) => op.read(t, idx), srcNamesOf(op)[t], cw, t === 0 ? op.srcMark ?? -1 : -1)),
+    result: op.ok
+      ? printOf(op.shape, (idx) => (op.unchanged ? op.read(0, idx) : finalAt.get(idx.join(","))), "result", cw, op.mark ?? -1)
+      : null,
   };
   /* squeeze's source is one dimension up and names its own roles */
   const srcRoles = op.srcRoles ?? M.roleLabels(params.names, op.src.length);
@@ -1611,7 +1700,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const yT = PAD;
   const yB = yT + bands[0] + BAND_GAP;
   const top = pushBand(plan, xL, yT, bandW, bands[0], op.second ? "Tensors" : "Tensor", op.srcExpr ?? null, null);
-  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", shapeExpr(op), null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], op.unchanged ? "Result · unchanged" : "Result", shapeExpr(op), null);
   const cx = xL + BAND_PAD;
 
   /* --- the source tensors, each with its own print ------------------------ */
@@ -1630,7 +1719,8 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       return { v, ...face, key: srcKey(t, idx), name: srcName(t, idx, v) };
     };
     const draw = t === 0
-      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, op.src, srcRoles, SOURCE_OPTS)
+      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, op.src, srcRoles,
+        { ...SOURCE_OPTS, mark: t === 0 ? op.srcMark ?? -1 : -1 })
       : pushTensor(plan, colors, cx, ty, op.src, s, view, cell, fit.srcRow);
     srcCentres.push(draw.centre);
     widest = Math.max(widest, draw.w);
@@ -1666,6 +1756,11 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     return plan;
   }
   const resDraw = pushSource(plan, colors, cx, resY, s, view, (idx) => {
+    /* a squeeze that removed nothing: U again, whole, at once (round 23) */
+    if (op.unchanged) {
+      const v = op.read(0, idx);
+      return { v, fill: colors.empirical, key: resKey(idx), name: resName(idx, v) };
+    }
     const held = placed.get(idx.join(","));
     if (held) {
       const face = held.last ? litFace(colors) : { fill: colors.empirical };
@@ -1673,7 +1768,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     }
     if (at.moving && at.moving.dst.join(",") === idx.join(",")) return { empty: true, lit: true };
     return { empty: true };
-  }, fit.perRow, op.shape, op.roles, resultOpts(view, op.shape.length));
+  }, fit.perRow, op.shape, op.roles, { ...resultOpts(view, op.shape.length), mark: op.mark ?? -1 });
   if (fit.outMode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
   /* where every value's result cell is, keyed by its source, for the next
      data change to glide from; and the glide in flight, if this is one */
@@ -1695,6 +1790,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const rpx = fit.outMode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
   const rpy = fit.outMode === "beside" ? resY : resY + resDraw.h + PRINT_DROP;
   pushPrintBlock(plan, colors, rpx, rpy, rp, cw, (idx) => {
+    if (op.unchanged) return { color: colors.ink1, key: resKey(idx), name: resName(idx, op.read(0, idx)) };
     const held = placed.get(idx.join(","));
     if (!held) return null;
     return {
@@ -1724,7 +1820,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
 
 /* The image-batch line belongs under image data and nowhere else (round 18):
    under a reshape of sequence data it was a sentence about another dataset. */
-const shapeCaptions = (op, params) => [op.caption, PRINT_RULE, ...(params.names === "image" ? [FOURTH_DIM] : [])];
+const shapeCaptions = (op, params) => [op.caption, ...(op.captionMore ? [op.captionMore] : []), PRINT_RULE, ...(params.names === "image" ? [FOURTH_DIM] : [])];
 
 const PRINT_RULE =
   "The innermost brackets hold the rows, and each outer bracket is one more dimension.";
@@ -3633,6 +3729,9 @@ defineWidget({
       ...(params.view === "frames"
         ? [{ token: "ink-3", label: "A frame: one index of the dimension it names", mark: "ring" }]
         : []),
+      ...((op.mark ?? -1) >= 0 || (op.srcMark ?? -1) >= 0
+        ? [{ token: "highlight", label: "The size-1 dimension: its frame, and its brackets in the print", mark: "ring" }]
+        : []),
     ];
   },
 
@@ -3987,8 +4086,9 @@ defineWidget({
           label: "Result shape",
           value: M.shapeText(state.op.shape),
           /* the size a -1 became is said here, where the shape is */
-          note: (state.op.inferred != null ? `−1 became ${state.op.inferred}; ` : "")
-            + plural(at.n, state.units, "value placed", "values placed"),
+          note: state.op.unchanged ? "unchanged: the dimension named is not size 1"
+            : (state.op.inferred != null ? `−1 became ${state.op.inferred}; ` : "")
+              + plural(at.n, state.units, "value placed", "values placed"),
         },
         {
           label: "This move",
