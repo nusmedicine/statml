@@ -3317,28 +3317,28 @@
     {
       "$note": "PLACEHOLDER - draft. Broadcast: row 0 added, 11 to 55, with the alignment block below",
       "slug": "tensors",
-      "state": "?theme=light&tab=broadcast&shown=1",
+      "state": "?theme=light&tab=elementwise&b=5&shown=1",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Broadcast: b [2] — no result, 5 against 2",
       "slug": "tensors",
-      "state": "?theme=light&tab=broadcast&b=2&shown=0",
+      "state": "?theme=light&tab=elementwise&b=2&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Multiply: Y[1, 1] = 5 x 0.5 + ... = 13",
       "slug": "tensors",
-      "state": "?theme=light&tab=multiply&shown=4",
+      "state": "?theme=light&tab=matmul&shown=4",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Multiply: [3, 4] @ [2, 4] — no product, the inner pair bracketed",
       "slug": "tensors",
-      "state": "?theme=light&tab=multiply&weights=untransposed&shown=0",
+      "state": "?theme=light&tab=matmul&weights=untransposed&shown=0",
       "px": "0",
       "tx": "0"
     },

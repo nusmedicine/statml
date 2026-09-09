@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through sixteen review rounds and NOT PUSHED. 367 real fingerprint
+locally through seventeen review rounds and NOT PUSHED. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -19,19 +19,21 @@ argument as four dropdown slots), `e575daf` (round 14: one typed field,
 with core's new `text` type), `56f33e0` (round 15: the rank carries
 over, every argument typed, the field grows and hints) and the round-16
 commit (positions as rank-following dropdowns through core's dynamic
-`options`, the dimension rules moved clear of the frames). Nothing is
-uncommitted. **Kenneth's open design question is the linear-algebra half**
-— see catalogue round 16 and the last message of that session. Read
+`options`, the dimension rules moved clear of the frames), `b9e816b`, and
+the round-17 commit (Elementwise · Matmul · Reduce, his pick A). Nothing
+is uncommitted. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–28) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–29) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
 
 Six topics in two captioned rail rows — *tensors for data*: Basics · Shape
-· Join; *linear algebra*: Broadcast · Multiply · Reduce. Every stage is
+· Join; *linear algebra*: Elementwise · Matmul · Reduce (round 17: the plain
+element-wise case first, broadcasting as the later cases of the same topic).
+Every stage is
 named bands as tall as their content (`tabHeight` sizes the stage from the
 parameters alone), the operation performed sits on the Result band's
 header as the line of code, and every result is printed beside its drawing

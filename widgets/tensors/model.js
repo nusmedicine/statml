@@ -676,10 +676,28 @@ export const indexText = (name, idx) => `${name}[${idx.join(", ")}]`;
 export const BC_X = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
 export const BC_X_SHAPE = [2, 5];
 
-/* The five shapes of b the lesson works through, the last of which fails.
+/* The shapes of b: the plain element-wise case first (round 17, Kenneth:
+   "show the normal one first, then the shortcut for broadcasting"), then a
+   scalar, then the lesson's stretched shapes, the last of which fails.
    `real` says which cells of the drawn 2 x 5 block are b's own values; the
    rest are the stretched copies, drawn faint. */
 export const BC_CASES = [
+  {
+    value: "2-5",
+    label: "[2, 5]",
+    shape: [2, 5],
+    detail: "the same shape as X: each cell meets its own, and nothing is stretched",
+    at: (r, c) => [[10, 20, 30, 40, 50], [60, 70, 80, 90, 100]][r][c],
+    real: () => true,
+  },
+  {
+    value: "scalar",
+    label: "a scalar",
+    shape: [],
+    detail: "a single number, stretched over both dimensions",
+    at: () => 2,
+    real: (r, c) => r === 0 && c === 0,
+  },
   {
     value: "5",
     label: "[5]",
@@ -703,14 +721,6 @@ export const BC_CASES = [
     detail: "one value per sample, stretched across the features",
     at: (r) => [10, 20][r],
     real: (r, c) => c === 0,
-  },
-  {
-    value: "scalar",
-    label: "a scalar",
-    shape: [],
-    detail: "a single number, stretched over both dimensions",
-    at: () => 2,
-    real: (r, c) => r === 0 && c === 0,
   },
   {
     value: "2",
@@ -772,7 +782,9 @@ export function broadcastPlan(bCase) {
     return { rows, ok: false, clash: `${bad.x} against ${bad.b}`, shape: null, result: null };
   }
   const result = BC_X.map((row, r) => row.map((v, c) => v + bCase.at(r, c)));
-  return { rows, ok: true, clash: null, shape: [...BC_X_SHAPE], result };
+  /* `stretched` is what separates the plain element-wise case from the
+     shortcut: whether any dimension of b was stretched to meet X's */
+  return { rows, ok: true, clash: null, shape: [...BC_X_SHAPE], result, stretched: rows.some((r) => r.verdict === "stretch") };
 }
 
 /* --- matrix multiplication ------------------------------------------------ */

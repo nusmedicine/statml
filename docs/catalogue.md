@@ -11224,6 +11224,18 @@ the plain element-wise operation, and "multiply" being a matrix product,
 not a scalar one — is a design question, put to him with three layouts.
 245 verify checks; full fingerprint suite for the core change.
 
+**Round 17 (2026-09-09) — Elementwise · Matmul · Reduce, Kenneth's pick A
+of three layouts.** The plain element-wise operation comes first: b of
+the same shape [2, 5] (10–100, nothing stretched, the alignment block
+reading `equal` on both lines), then a scalar, then the lesson's stretched
+shapes and the one that fails. The topic is *Elementwise*, its detail *X +
+b cell by cell, and what happens when b's shape is smaller*; the caption
+under the plain case says nothing is stretched, under the others that b is
+stretched to X's shape first and the rule; the legend names b's stretched
+copies only where there are any. *Multiply* is *Matmul*, because he read
+it as the scalar kind. `tab=elementwise` and `tab=matmul` on the wire;
+the four placeholder states moved with them. Nothing in core changed.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

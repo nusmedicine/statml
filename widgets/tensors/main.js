@@ -303,6 +303,14 @@
       so the growth he expected is visible. The dimension rules sit outside
       their indices, 3px, clear of the frame. The linear-algebra half is a
       question put back to him (catalogue round 16).
+
+  29. ROUND 17 (Kenneth's pick A): THE LINEAR-ALGEBRA ROW IS Elementwise ·
+      Matmul · Reduce. The plain element-wise operation comes first — b of
+      the same shape [2, 5], nothing stretched — and broadcasting is the
+      later cases of the same topic, the shortcut for a smaller b, with the
+      alignment block showing `equal` on every line for the plain case and
+      `stretch` where the rule is doing work. "Multiply" read as the scalar
+      kind; the product of a matrix and a weight matrix is Matmul.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1984,11 +1992,15 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
     pushText(plan, "cannot broadcast", x0, ry + 18, { color: colors.extreme });
   }
 
-  pushCaptions(plan, colors, [BC_RULE], PAD, yB + bands[1] + 6 + 13);
+  pushCaptions(plan, colors, [bcCaption(bp)], PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
 
 const BC_RULE = "A missing dimension counts as 1, and equal or 1 passes.";
+/* The plain case says there is no stretching; the shortcut says the rule. */
+const bcCaption = (bp) => (!bp.ok ? BC_RULE
+  : bp.stretched ? "b is stretched to X's shape first: a missing dimension counts as 1, and equal or 1 passes."
+    : "Same shape: each cell of X meets its own cell of b, and nothing is stretched.");
 
 /* --- the Multiply tab ----------------------------------------------------- */
 
@@ -2356,8 +2368,8 @@ function tabHeight(w, params) {
     case "basics": return basicsGeometry(ctx, colors, w, params).fit.height;
     case "shape":
     case "join": return shapeGeometry(ctx, colors, w, params).height;
-    case "broadcast": return bcGeometry(colors, w, params, cw).height;
-    case "multiply": return mmGeometry(colors, w, params, cw).height;
+    case "elementwise": return bcGeometry(colors, w, params, cw).height;
+    case "matmul": return mmGeometry(colors, w, params, cw).height;
     default: return redGeometry(colors, w, params, cw).height;
   }
 }
@@ -2380,7 +2392,7 @@ const SPEEDS = [
 ];
 
 const TAB_UNITS = {
-  shape: "value", join: "value", broadcast: "row", multiply: "cell", reduce: "group",
+  shape: "value", join: "value", elementwise: "row", matmul: "cell", reduce: "group",
 };
 
 /* The two halves the six topics fall into. Consecutive options sharing one of
@@ -2443,8 +2455,11 @@ defineWidget({
         { value: "basics", label: "Basics", group: DATA_HALF, detail: "how many dimensions a tensor has, and what an index selects" },
         { value: "shape", label: "Shape", group: DATA_HALF, detail: "where each value goes when the shape changes" },
         { value: "join", label: "Join", group: DATA_HALF, detail: "two tensors joined along a dimension, or under a new one" },
-        { value: "broadcast", label: "Broadcast", group: ALGEBRA_HALF, detail: "when a smaller shape is stretched to meet a larger one" },
-        { value: "multiply", label: "Multiply", group: ALGEBRA_HALF, detail: "one cell of a matrix product as a sum of products" },
+        /* ROUND 17 (Kenneth): the plain element-wise operation first, and
+           broadcasting as the shortcut it is when b's shape is smaller;
+           `Matmul` because "Multiply" read as the scalar kind. */
+        { value: "elementwise", label: "Elementwise", group: ALGEBRA_HALF, detail: "X + b cell by cell, and what happens when b's shape is smaller" },
+        { value: "matmul", label: "Matmul", group: ALGEBRA_HALF, detail: "one cell of a matrix product as a sum of products" },
         { value: "reduce", label: "Reduce", group: ALGEBRA_HALF, detail: "which dimension a mean, a sum or a maximum removes" },
       ],
       default: "basics",
@@ -2758,8 +2773,8 @@ defineWidget({
       label: "Shape of b",
       detail: "b is added to X, which has shape [2, 5]",
       options: M.BC_CASES.map((c) => ({ value: c.value, label: c.label, detail: c.detail })),
-      default: "5",
-      when: { param: "tab", equals: "broadcast" },
+      default: "2-5",
+      when: { param: "tab", equals: "elementwise" },
     },
     weights: {
       type: "segmented",
@@ -2767,7 +2782,7 @@ defineWidget({
       detail: "the right operand of @: W transposed, or W itself",
       options: M.MM_CASES.map((c) => ({ value: c.value, label: c.label, detail: c.detail })),
       default: "transposed",
-      when: { param: "tab", equals: "multiply" },
+      when: { param: "tab", equals: "matmul" },
     },
     dim: {
       type: "segmented",
@@ -2835,13 +2850,13 @@ defineWidget({
           { param: "tab", oneOf: ["shape", "join", "reduce"] },
           {
             all: [
-              { param: "tab", equals: "broadcast" },
-              { param: "b", oneOf: ["5", "1-5", "2-1", "scalar"] },
+              { param: "tab", equals: "elementwise" },
+              { param: "b", oneOf: ["2-5", "scalar", "5", "1-5", "2-1"] },
             ],
           },
           {
             all: [
-              { param: "tab", equals: "multiply" },
+              { param: "tab", equals: "matmul" },
               { param: "weights", equals: "transposed" },
             ],
           },
@@ -2877,20 +2892,21 @@ defineWidget({
           : []),
       ];
     }
-    if (params.tab === "broadcast") {
+    if (params.tab === "elementwise") {
       const plan = M.broadcastPlan(M.bCaseByValue(params.b));
       return [
         { token: "empirical", label: "X, and the result it is added into" },
         {
           token: "group-b",
-          label: plan.ok ? "b, with its stretched copies drawn faint" : "b, which does not stretch to [2, 5]",
+          label: !plan.ok ? "b, which does not stretch to [2, 5]"
+            : plan.stretched ? "b, with its stretched copies drawn faint" : "b, one value for each cell of X",
         },
         ...(plan.ok
           ? [{ token: "highlight", label: "The row just added" }]
           : [{ token: "extreme", label: "The dimensions that do not combine" }]),
       ];
     }
-    if (params.tab === "multiply") {
+    if (params.tab === "matmul") {
       const mm = M.mmCaseByValue(params.weights);
       return [
         { token: "empirical", label: "X, and the product Y it builds" },
@@ -2946,12 +2962,12 @@ defineWidget({
       const moves = M.shapeWalk(op);
       return { kind: "shape", op, moves, units: moves.length };
     }
-    if (params.tab === "broadcast") {
+    if (params.tab === "elementwise") {
       const bc = M.bCaseByValue(params.b);
       const plan = M.broadcastPlan(bc);
       return { kind: "broadcast", bc, plan, units: plan.ok ? M.BC_X_SHAPE[0] : 0 };
     }
-    if (params.tab === "multiply") {
+    if (params.tab === "matmul") {
       const mm = M.mmCaseByValue(params.weights);
       return {
         kind: "multiply",
@@ -2977,8 +2993,8 @@ defineWidget({
       labels: {
         shape: "Move a value",
         join: "Move a value",
-        broadcast: "Add a row",
-        multiply: "Compute a cell",
+        elementwise: "Add a row",
+        matmul: "Compute a cell",
         reduce: "Collapse a group",
       },
       default: "Move a value",
@@ -2988,8 +3004,8 @@ defineWidget({
       labels: {
         shape: "Move the next value from the tensor to its place in the result",
         join: "Move the next value from one of the two tensors to its place in the result",
-        broadcast: "Add the next row of X and b, and draw the row it makes",
-        multiply: "Compute the next cell of the product from a row of X and a column of Wᵀ",
+        elementwise: "Add the next row of X and b, and draw the row it makes",
+        matmul: "Compute the next cell of the product from a row of X and a column of Wᵀ",
         reduce: "Collapse the next group of values into the one it reduces to",
       },
       default: "Move the next value from the tensor to its place in the result",
@@ -3000,8 +3016,8 @@ defineWidget({
       labels: {
         shape: "Move every remaining value into the result",
         join: "Move every remaining value of both tensors into the result",
-        broadcast: "Add the remaining rows",
-        multiply: "Compute the remaining cells of the product",
+        elementwise: "Add the remaining rows",
+        matmul: "Compute the remaining cells of the product",
         reduce: "Collapse the remaining groups",
       },
       default: "Move every remaining value into the result",
@@ -3122,8 +3138,8 @@ defineWidget({
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
     const plan = params.tab === "basics" ? planBasics(ctx, colors, w, h, params, anim)
       : state.kind === "shape" ? planShape(ctx, colors, w, h, params, state, anim)
-        : params.tab === "broadcast" ? planBroadcast(ctx, colors, w, h, params, state, anim)
-          : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
+        : params.tab === "elementwise" ? planBroadcast(ctx, colors, w, h, params, state, anim)
+          : params.tab === "matmul" ? planMultiply(ctx, colors, w, h, params, state, anim)
             : planReduce(ctx, colors, w, h, params, state, anim);
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
     hovered = hitPlan(plan, pointer);
@@ -3224,7 +3240,7 @@ defineWidget({
       ];
     }
 
-    if (params.tab === "broadcast") {
+    if (params.tab === "elementwise") {
       const p = state.plan;
       const row = anim.n > 0 && p.ok ? p.result[anim.n - 1] : null;
       return [
@@ -3249,7 +3265,7 @@ defineWidget({
       ];
     }
 
-    if (params.tab === "multiply") {
+    if (params.tab === "matmul") {
       const mm = state.mm;
       const rising = mm.ok && anim.beat > 0 && anim.n < state.units ? anim.beat : 0;
       const at = mm.ok ? mmCurrent(anim, state, rising) : null;
@@ -3337,14 +3353,14 @@ defineWidget({
         + `${M.shapeText(state.op.shape)} result of ${state.op.label} with `
         + `${anim.n} of ${state.units} values placed in it. ${state.op.caption}`;
     }
-    if (params.tab === "broadcast") {
-      return `X [2, 5] added to b ${M.shapeText(state.bc.shape)}, with b's stretched copies drawn faint. `
+    if (params.tab === "elementwise") {
+      return `X [2, 5] added to b ${M.shapeText(state.bc.shape)}, ${state.plan.ok && state.plan.stretched ? "with b's stretched copies drawn faint" : "cell by cell"}. `
         + (state.plan.ok
           ? `${anim.n} of ${state.units} rows of the result are drawn.`
           : `The shapes do not combine: ${state.plan.clash}.`)
         + " Below, the two shapes lined up from the right with a verdict on each dimension.";
     }
-    if (params.tab === "multiply") {
+    if (params.tab === "matmul") {
       return `X [3, 4] multiplied by ${state.mm.name} ${M.shapeText(state.mm.shape)}. `
         + (state.mm.ok
           ? `${anim.n} of ${state.units} cells of the [3, 2] product are computed, each from a row of X and a column of Wᵀ.`

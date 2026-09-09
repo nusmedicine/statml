@@ -569,10 +569,15 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
 console.log("\n=== 5 · broadcasting X [2, 5] + b ===");
 {
   check("X is [2, 5] holding 1-10", same(BC_X_SHAPE, [2, 5]) && same(BC_X.flat(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
-  check("five shapes of b are offered", BC_CASES.length === 5,
+  check("six shapes of b are offered, the same shape first and the failing one last", BC_CASES.length === 6
+    && BC_CASES[0].value === "2-5" && BC_CASES[BC_CASES.length - 1].value === "2",
     BC_CASES.map((c) => c.label).join(", "));
+  check("the same-shape case stretches nothing; every other combining case stretches something",
+    broadcastPlan(bCaseByValue("2-5")).stretched === false
+    && ["scalar", "5", "1-5", "2-1"].every((v) => broadcastPlan(bCaseByValue(v)).stretched === true));
 
   const expect = {
+    "2-5": [[11, 22, 33, 44, 55], [66, 77, 88, 99, 110]],
     5: [[11, 22, 33, 44, 55], [16, 27, 38, 49, 60]],
     "1-5": [[11, 22, 33, 44, 55], [16, 27, 38, 49, 60]],
     "2-1": [[11, 12, 13, 14, 15], [26, 27, 28, 29, 30]],
