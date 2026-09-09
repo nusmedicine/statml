@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08; **slot 53 `tensors` proposed 2026-09-08 on Kenneth's ask, mock-up at `_lab/tensor-mock.html` awaiting his picks**; the rest of the arc awaits his answers; the high-throughput arc is complete |
+| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08; slot 53 `tensors` SHIPPED 2026-09-09 after twenty-nine rounds; the rest of the arc awaits his answers; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -9622,7 +9622,7 @@ epochs.
 | 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 40–60 | proposed, lowest priority |
 | 51 | `composition` | Composing Layers | 3 | 05-3 cells 61–101 | proposed |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
-| 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **BUILT AS A DRAFT 2026-09-08** from Kenneth's picks, at `/lab/`; awaiting his review |
+| 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
 
 Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
 is the notebooks' own. Six is the honest count for four groups because the
@@ -10409,7 +10409,7 @@ Colab. Pin the way widget 37 was: dump the data and the initial weights the
 widget produced, train from those exact arrays in torch, compare — the
 notebook to do it can be handed to Kenneth to run.
 
-### Slot 53 · `tensors` — Tensors — PROPOSED 2026-09-08, mock-up awaiting picks
+### Slot 53 · `tensors` — Tensors — SHIPPED 2026-09-09 after twenty-nine rounds
 
 **Kenneth's ask, 2026-09-08:** a widget for the tensor half of `05-2`, in the
 style of his own lesson figures — the 1D-to-5D stack, sequence and image data
@@ -11515,6 +11515,17 @@ the stack's slab step and the column's gap grow to `OUTLINES_GAP` (a hug
 each side, the gap and the stroke) when a block is hugged, and the fifth
 level's frame pads itself when the hug wraps its whole body. Sweeps
 clean; nothing in core.
+
+**Promotion (2026-09-09) — "tested ok, push it".** The 37 placeholder
+states recorded by `_lab/tensors-shoot.html` (the gradients shooter with
+the slug swapped): the copy proven on five known states, every state shot
+three times and stable, every drive moved its figure; the hit-driven
+state's coordinates re-derived from where the `dim 0 = 1` label is drawn
+at the harness's 547px canvas, (198, 72), the cursor confirming a region.
+Then the full suite once, all 404 states MATCH; `status` flipped to
+shipped in `main.js` and the manifest in the same commit; pushed. Slot 53
+shipped after twenty-nine rounds in two days, the notebook its spec
+throughout.
 
 ### Questions for Kenneth, before any mock-up
 

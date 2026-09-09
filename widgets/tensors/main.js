@@ -3173,7 +3173,7 @@ const indexParts = (params) =>
 defineWidget({
   slug: "tensors",
   title: "Tensors",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A tensor is an array with a shape, and the shape decides which values an "
     + "operation combines. An index and a reduction each remove the dimension "

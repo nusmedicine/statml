@@ -3203,245 +3203,245 @@
       "tx": "22470e5a"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: rank 3, every entry a colon — the whole tensor selected, nothing lit",
+      "$note": "Basics: rank 3, every entry a colon — the whole tensor selected, nothing lit",
       "slug": "tensors",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "6a5605f7",
+      "tx": "aea9deb9"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: rank 1, the [5] feature vector and its one-bracket print",
+      "$note": "Basics: rank 1, the [5] feature vector and its one-bracket print",
       "slug": "tensors",
       "state": "?theme=light&rank=1&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "b5409c1a",
+      "tx": "b2f8830b"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: rank 2, the [2, 5] grid with its edge indices",
+      "$note": "Basics: rank 2, the [2, 5] grid with its edge indices",
       "slug": "tensors",
       "state": "?theme=light&rank=2&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "2c7f2c77",
+      "tx": "e25a8f66"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: rank 4, [2, 2, 2, 5] as frames within frames",
+      "$note": "Basics: rank 4, [2, 2, 2, 5] as frames within frames",
       "slug": "tensors",
       "state": "?theme=light&rank=4&view=frames&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "5cd6884c",
+      "tx": "c36db0f1"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: rank 4 in the stack view — the column of exploded stacks",
+      "$note": "Basics: rank 4 in the stack view — the column of exploded stacks",
       "slug": "tensors",
       "state": "?theme=light&rank=4&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "377346b6",
+      "tx": "a4eb569a"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: T[:, 0, :] — ten cells lit above, the [2, 5] sub-tensor drawn below",
+      "$note": "Basics: T[:, 0, :] — ten cells lit above, the [2, 5] sub-tensor drawn below",
       "slug": "tensors",
       "state": "?theme=light&tab=index&view=frames&i1=0&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "57cfe5b6",
+      "tx": "e8249e92"
     },
     {
-      "$note": "PLACEHOLDER - draft. Basics: T[1, 0, 2] — one element, rank 3 to rank 0",
+      "$note": "Basics: T[1, 0, 2] — one element, rank 3 to rank 0",
       "slug": "tensors",
       "state": "?theme=light&tab=index&i0=1&i1=0&feature=2&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "7da39153",
+      "tx": "faac7580"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape: reshape(2, -1) finished, [2, 10]",
+      "$note": "Shape: reshape(2, -1) finished, [2, 10]",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "f718d89f",
+      "tx": "c4558952"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape: permute(0, 2, 1), 7 at [0, 1, 1]",
+      "$note": "Shape: permute(0, 2, 1), 7 at [0, 1, 1]",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=permute&shown=7",
-      "px": "0",
-      "tx": "0"
+      "px": "5bc8e840",
+      "tx": "2ecf8fe2"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape: the same [2, 5, 2] by reshape — 7 at [0, 3, 0], which is the argument",
+      "$note": "Shape: the same [2, 5, 2] by reshape — 7 at [0, 3, 0], which is the argument",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=reshape&shape=2x5x2&shown=7",
-      "px": "0",
-      "tx": "0"
+      "px": "d620d362",
+      "tx": "6e53dc41"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape at rank 4 (round 15): permute(3, 2, 1, 0) of the [2, 2, 2, 5], 40 of 40 placed",
+      "$note": "Shape at rank 4 (round 15): permute(3, 2, 1, 0) of the [2, 2, 2, 5], 40 of 40 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&rank=4&op=permute&perm=3x2x1x0&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "865efdf8",
+      "tx": "0dc89eab"
     },
     {
-      "$note": "PLACEHOLDER - draft. Join at rank 2 (round 15): cat(dim=1) of two [2, 5] into [2, 10], 20 of 20 placed",
+      "$note": "Join at rank 2 (round 15): cat(dim=1) of two [2, 5] into [2, 10], 20 of 20 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=join&rank=2&join=cat&cdim=1&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "54932fce",
+      "tx": "fb7255cc"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 20): squeeze(0) of the [1, 2, 2, 5] that unsqueeze(0) made, 20 of 20 placed",
+      "$note": "Manipulate (round 20): squeeze(0) of the [1, 2, 2, 5] that unsqueeze(0) made, 20 of 20 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=squeeze&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "e5a03512",
+      "tx": "ba43cbba"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 20): transpose(1, 2), the same [2, 5, 2] as permute(0, 2, 1), 7 placed",
+      "$note": "Manipulate (round 20): transpose(1, 2), the same [2, 5, 2] as permute(0, 2, 1), 7 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=transpose&shown=7",
-      "px": "0",
-      "tx": "0"
+      "px": "34bc0164",
+      "tx": "2ecf8fe2"
     },
     {
-      "$note": "PLACEHOLDER - draft. Elementwise (round 20): X + 2 on the 3 x 3 image, 4 of 9 cells",
+      "$note": "Elementwise (round 20): X + 2 on the 3 x 3 image, 4 of 9 cells",
       "slug": "tensors",
       "state": "?theme=light&tab=elementwise&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "aeb55403",
+      "tx": "f4519c5f"
     },
     {
-      "$note": "PLACEHOLDER - draft. Elementwise (round 20): torch.exp(X) finished, the print in four-digit scientific",
+      "$note": "Elementwise (round 20): torch.exp(X) finished, the print in four-digit scientific",
       "slug": "tensors",
       "state": "?theme=light&tab=elementwise&ewop=exp&shown=9",
-      "px": "0",
-      "tx": "0"
+      "px": "502e759b",
+      "tx": "1003437e"
     },
     {
-      "$note": "PLACEHOLDER - draft. Multiply (round 20): torch.dot(lysine, arginine), all three pairs in and the sum landed",
+      "$note": "Multiply (round 20): torch.dot(lysine, arginine), all three pairs in and the sum landed",
       "slug": "tensors",
       "state": "?theme=light&tab=multiply&kind=dot&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "0112a2fd",
+      "tx": "6d6f7800"
     },
     {
-      "$note": "PLACEHOLDER - draft. Multiply (round 20): X * mask, the mask from the seed, 6 of 10 cells",
+      "$note": "Multiply (round 20): X * mask, the mask from the seed, 6 of 10 cells",
       "slug": "tensors",
       "state": "?theme=light&tab=multiply&kind=hadamard&shown=6",
-      "px": "0",
-      "tx": "0"
+      "px": "b1836154",
+      "tx": "29e92a95"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate at rank 4 (round 21): unsqueeze(0)'s [1, 2, 2, 2, 5] as one frame round the column, 40 placed",
+      "$note": "Manipulate at rank 4 (round 21): unsqueeze(0)'s [1, 2, 2, 2, 5] as one frame round the column, 40 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&rank=4&op=unsqueeze&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "1edcea03",
+      "tx": "72cbe34e"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 25): squeeze(1) on one channel, U = T.unsqueeze(1), [2, 1, 2, 5] to [2, 2, 5], 20 placed",
+      "$note": "Manipulate (round 25): squeeze(1) on one channel, U = T.unsqueeze(1), [2, 1, 2, 5] to [2, 2, 5], 20 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=squeeze&sqsrc=channel&sqdim=1&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "5e0ec041",
+      "tx": "1a518d18"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 23): unsqueeze(2) in the frames view, the size-1 dimension a strong frame round each row and its brackets lit in the print, 20 placed",
+      "$note": "Manipulate (round 23): unsqueeze(2) in the frames view, the size-1 dimension a strong frame round each row and its brackets lit in the print, 20 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=unsqueeze&udim=2&view=frames&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "fbb70842",
+      "tx": "0ece60fc"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 25): squeeze(1) on one value each, U = T.unsqueeze(-1), a miss — Result · unchanged, U drawn again at once, the walk empty",
+      "$note": "Manipulate (round 25): squeeze(1) on one value each, U = T.unsqueeze(-1), a miss — Result · unchanged, U drawn again at once, the walk empty",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=squeeze&sqsrc=value&sqdim=1&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "ee617032",
+      "tx": "dd1baa37"
     },
     {
-      "$note": "PLACEHOLDER - draft. Join (round 28): stack at rank 4, [2, 2, 2, 2, 5] as a frame per index of dim 0 round the rank-4 column, 80 placed",
+      "$note": "Join (round 28): stack at rank 4, [2, 2, 2, 2, 5] as a frame per index of dim 0 round the rank-4 column, 80 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=join&rank=4&join=stack&shown=80",
-      "px": "0",
-      "tx": "0"
+      "px": "a168f848",
+      "tx": "3b35cc90"
     },
     {
-      "$note": "PLACEHOLDER - draft. Manipulate (round 28): unsqueeze(2) at rank 4 in the frames view, the size-1 dimension a strong frame inside the fifth level, 40 placed",
+      "$note": "Manipulate (round 28): unsqueeze(2) at rank 4 in the frames view, the size-1 dimension a strong frame inside the fifth level, 40 placed",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&rank=4&op=unsqueeze&udim=2&view=frames&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "1273e19e",
+      "tx": "9cb58cb3"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
+      "$note": "Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=flatten&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "5bbd74f3",
+      "tx": "143701bf"
     },
     {
-      "$note": "PLACEHOLDER - draft. Shape: unsqueeze(0) — [1, 2, 2, 5] as the column of exploded stacks",
+      "$note": "Shape: unsqueeze(0) — [1, 2, 2, 5] as the column of exploded stacks",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=unsqueeze&shown=20",
-      "px": "0",
-      "tx": "0"
+      "px": "f2fe7f1a",
+      "tx": "898aa0f1"
     },
     {
-      "$note": "PLACEHOLDER - draft. Join: cat(dim=0) finished, [4, 2, 5]",
+      "$note": "Join: cat(dim=0) finished, [4, 2, 5]",
       "slug": "tensors",
       "state": "?theme=light&tab=join&join=cat&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "409530b1",
+      "tx": "b262aa9a"
     },
     {
-      "$note": "PLACEHOLDER - draft. Join: stack(dim=0) finished, [2, 2, 2, 5] and a thirteen-line print",
+      "$note": "Join: stack(dim=0) finished, [2, 2, 2, 5] and a thirteen-line print",
       "slug": "tensors",
       "state": "?theme=light&tab=join&join=stack&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "32e71a5b",
+      "tx": "6035e36b"
     },
     {
-      "$note": "PLACEHOLDER - draft. Broadcast (round 21): b [5] stretched down the samples, its copies faint, no row added yet; the alignment block below",
+      "$note": "Broadcast (round 21): b [5] stretched down the samples, its copies faint, no row added yet; the alignment block below",
       "slug": "tensors",
       "state": "?theme=light&tab=broadcast&shown=1",
-      "px": "0",
-      "tx": "0"
+      "px": "57b2a619",
+      "tx": "5d71dcbc"
     },
     {
-      "$note": "PLACEHOLDER - draft. Broadcast: b [2] — no result, 5 against 2",
+      "$note": "Broadcast: b [2] — no result, 5 against 2",
       "slug": "tensors",
       "state": "?theme=light&tab=broadcast&b=2&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "505a411a",
+      "tx": "50c3851e"
     },
     {
-      "$note": "PLACEHOLDER - draft. Multiply: Y[1, 1] = 5 x 0.5 + ... = 13",
+      "$note": "Multiply: Y[1, 1] = 5 x 0.5 + ... = 13",
       "slug": "tensors",
       "state": "?theme=light&tab=multiply&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "8c8dfcb2",
+      "tx": "ea34d94e"
     },
     {
-      "$note": "PLACEHOLDER - draft. Multiply: [3, 4] @ [2, 4] — no product, the inner pair bracketed",
+      "$note": "Multiply: [3, 4] @ [2, 4] — no product, the inner pair bracketed",
       "slug": "tensors",
       "state": "?theme=light&tab=multiply&weights=untransposed&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "b895be7d",
+      "tx": "629b3057"
     },
     {
-      "$note": "PLACEHOLDER - draft. Reduce: column 1 collapses to 3",
+      "$note": "Reduce: column 1 collapses to 3",
       "slug": "tensors",
       "state": "?theme=light&tab=reduce&shown=2",
-      "px": "0",
-      "tx": "0"
+      "px": "99bcea47",
+      "tx": "a942e146"
     },
     {
-      "$note": "PLACEHOLDER - draft. Reduce: (X - mu) / sigma, rows -1, 0, 1",
+      "$note": "Reduce: (X - mu) / sigma, rows -1, 0, 1",
       "slug": "tensors",
       "state": "?theme=light&tab=reduce&normalize=1&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "b5174d5e",
+      "tx": "e66da38f"
     },
     {
-      "$note": "PLACEHOLDER - draft. DRIVEN: Shape mid-move at Medium, the third value between its two cells",
+      "$note": "DRIVEN: Shape mid-move at Medium, the third value between its two cells",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate",
       "drive": {
@@ -3449,11 +3449,11 @@
         "frames": 8,
         "dt": 100
       },
-      "px": "0",
-      "tx": "0"
+      "px": "1852892a",
+      "tx": "0daacc16"
     },
     {
-      "$note": "PLACEHOLDER - draft. DRIVEN: Reduce mid-collapse at Medium, the first column on its way into the mean",
+      "$note": "DRIVEN: Reduce mid-collapse at Medium, the first column on its way into the mean",
       "slug": "tensors",
       "state": "?theme=light&tab=reduce",
       "drive": {
@@ -3461,23 +3461,23 @@
         "frames": 6,
         "dt": 100
       },
-      "px": "0",
-      "tx": "0"
+      "px": "d6a76dc7",
+      "tx": "ff9f33ae"
     },
     {
-      "$note": "PLACEHOLDER - draft. HIT-DRIVEN: the pointer on the frames view's dim 0 = 1 label at [218, 57] sets i0 - the region geometry no pixel hash can see. Cells are not targets; only the index labels are.",
+      "$note": "HIT-DRIVEN: the pointer on the frames view's dim 0 = 1 label at [198, 72] sets i0 - the region geometry no pixel hash can see. Cells are not targets; only the index labels are (coordinates re-derived at promotion from the label's own draw position).",
       "slug": "tensors",
       "state": "?theme=light&tab=index&view=frames",
       "drive": {
         "hit": [
-          218,
-          57
+          198,
+          72
         ],
         "frames": 2,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "196cda70",
+      "tx": "051072af"
     }
   ]
 }

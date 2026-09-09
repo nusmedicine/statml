@@ -1,18 +1,26 @@
 # Handover
 
-**FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through twenty-nine review rounds and NOT PUSHED. **The spec is his
-notebook's own structure** (`05-2 - DL Foundations - Tensors and
-Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
-`_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
-states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
-`tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
-draft's must.**
+**FORTY-EIGHT WIDGETS — 46 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), no draft. `tensors` (slot 53) SHIPPED 2026-09-09 on his
+"tested ok, push it" after twenty-nine review rounds in two days. **The
+spec is his notebook's own structure** (`05-2 - DL Foundations - Tensors
+and Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
+`_lab/figs/`); read catalogue rounds 19–29 before touching a topic. Its 37
+states were recorded at promotion by `_lab/tensors-shoot.html` (three runs
+each, the copy proven on five known states), the hit-driven one's
+coordinates re-derived from the label's draw position; the full suite
+then read all 404 states MATCH (pane fronted at DPR 1.25).**
 
 ---
 
-# NEXT: KENNETH TESTS THE TENSORS DRAFT, THEN THE ARC
+# NEXT: THE DEEP LEARNING ARC
+
+`tensors` is shipped; what follows is the arc (§ *After tensors ships* below
+and catalogue § *The deep learning arc*). The section under this heading is
+the tensors review history, kept for the next widget that goes through the
+same rhythm.
+
+# THE TENSORS REVIEW, AS IT RAN
 
 **Eight local commits are waiting to be pushed on his "tested ok":**
 `5d55894` (rounds 1–9, with two core changes), `aa42f39` (round 10),
