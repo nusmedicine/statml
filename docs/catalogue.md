@@ -11483,6 +11483,12 @@ keeps a finished figure finished, so from a link, choosing U glided the
 result; three options, A recommended (glide on an argument change, start
 empty on a change of the tensor itself).
 
+**Round 27 (2026-09-09) — "A, build it".** The glide of round 21 is for
+the argument only: a finished figure glides when the dimension, the shape
+or the ordering changes, and starts empty when the tensor itself changes
+— U's use or the rank — which the widget tells by the source's shape.
+One condition in `init`; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

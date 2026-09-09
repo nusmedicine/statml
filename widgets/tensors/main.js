@@ -416,6 +416,14 @@
       Round 26: the hug is six pixels everywhere — the frames view's frame
       pads itself for it, a bare grid lifts its indices and arrows, and
       inside a cell the inset shrinks with the cell and the digit fits it.
+
+  40. ROUND 27 (his pick A on `_lab/tensor-flow.html`, after "the result is
+      shown before I choose the dimension to remove"). THE GLIDE OF 36 IS
+      FOR THE ARGUMENT ONLY: a finished figure glides when the dimension,
+      the shape or the ordering changes — the same values rearranged — and
+      starts empty when the tensor itself changes, U's use or the rank,
+      which is different data. What made his case: a link with `shown=20`
+      opens finished, and choosing U then glided.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -3890,7 +3898,11 @@ defineWidget({
       /* `carry.state !== state` tells a data change (a fresh state) from a
          Replay (the same one); only the former tweens */
       const tween = Boolean(carry) && carry.state !== state && carry.done && carry.tab === params.tab
-        && carry.rank === params.rank && state.kind === "shape" && state.units > 0;
+        && carry.rank === params.rank && state.kind === "shape" && state.units > 0
+        /* ROUND 27, his pick A on `_lab/tensor-flow.html`: only the ARGUMENT
+           glides — the same tensor rearranged. A different tensor (U's use,
+           the rank) is different data and starts empty (invariant 3). */
+        && carry.src === M.shapeText(state.op.src);
       const n = tween ? state.units : fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), state.units);
       const glide = tween && !reducedMotion() ? { from: carry.pos, t: 0 } : null;
       return {
@@ -4020,7 +4032,7 @@ defineWidget({
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
     if (state.kind === "shape") {
       carry = {
-        state, tab: params.tab, rank: params.rank,
+        state, tab: params.tab, rank: params.rank, src: M.shapeText(state.op.src),
         done: Boolean(anim) && anim.n >= state.units && state.units > 0,
         pos: plan.resPos ?? null,
       };
