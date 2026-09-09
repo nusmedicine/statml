@@ -24,7 +24,8 @@ import {
   T3, T3B, T3_SHAPE, DIM_ROLES, CELLS, srcIndex,
   R1, R2, R4, RANK_SHAPES, RANK_ROLES, dimLabels, rankSpec, selectionOf, COLON,
   indexSlot, indexSet, indexTargets, indexTargetCount,
-  SHAPE_OPS, JOIN_OPS, opByValue, joinByValue, shapeWalk, shapeSize, shapeText, indexText,
+  shapeOp, joinOp, opFrom, RESHAPE_SHAPES, RESHAPE_FAIL, PERMUTATIONS, shapeKey,
+  roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
   MM_CASES, mmCaseByValue,
@@ -314,25 +315,44 @@ console.log("\n=== 1e · the index labels as click targets ===");
     "four `dim 1 = j` labels, two per outer frame");
 }
 
-/* -- 2 · EVERY DESTINATION MAP IS A BIJECTION ONTO THE RESULT -------------- *
+/* -- 2 · EVERY OPERATION'S DESTINATION MAP IS A BIJECTION ------------------- *
  * A walk that sent two values to one cell, or left a cell unfilled, would draw
- * a plausible figure with a hole in it. Checked for every operation: the walk
- * has exactly as many moves as the result has cells, every destination is in
- * range, and no destination repeats. */
+ * a plausible figure with a hole in it. Round 11 made the argument a control,
+ * so this is checked over EVERY argument a reader can choose: 65 reshapes, 6
+ * orderings, 4 unsqueeze positions, 3 flatten starts, 3 cat dims, 4 stack dims. */
 console.log("\n=== 2 · every operation's destination map is a bijection ===");
-for (const op of [...SHAPE_OPS, ...JOIN_OPS]) {
-  const moves = shapeWalk(op);
-  const cells = shapeSize(op.shape);
-  const seen = new Set();
-  let inRange = true;
-  for (const m of moves) {
-    if (m.dst.length !== op.shape.length) inRange = false;
-    m.dst.forEach((v, k) => { if (v < 0 || v >= op.shape[k]) inRange = false; });
-    seen.add(m.dst.join(","));
+const EVERY_OP = [
+  ...RESHAPE_SHAPES.map((sh) => shapeOp("reshape", shapeKey(sh))),
+  ...PERMUTATIONS.map((pm) => shapeOp("permute", shapeKey(pm))),
+  ...[0, 1, 2, 3].map((d) => shapeOp("unsqueeze", d)),
+  ...[0, 1, 2].map((d) => shapeOp("flatten", d)),
+  ...[0, 1, 2].map((d) => joinOp("cat", d)),
+  ...[0, 1, 2, 3].map((d) => joinOp("stack", d)),
+];
+{
+  let bad = [];
+  for (const op of EVERY_OP) {
+    const moves = shapeWalk(op);
+    const cells = shapeSize(op.shape);
+    const seen = new Set();
+    let inRange = true;
+    for (const m of moves) {
+      if (m.dst.length !== op.shape.length) inRange = false;
+      m.dst.forEach((v, k) => { if (v < 0 || v >= op.shape[k]) inRange = false; });
+      seen.add(m.dst.join(","));
+    }
+    if (!(op.ok && moves.length === cells && seen.size === cells && inRange)) bad.push(op.label);
   }
-  check(`${op.label} covers ${shapeText(op.shape)} exactly once`,
-    moves.length === cells && seen.size === cells && inRange,
-    `${moves.length} moves, ${seen.size} distinct destinations, ${cells} cells`);
+  check(`${EVERY_OP.length} operations each cover their result exactly once`, bad.length === 0,
+    bad.length ? `failing: ${bad.join(", ")}` : `${RESHAPE_SHAPES.length} reshapes, ${PERMUTATIONS.length} orderings, 4 + 3 + 3 + 4 dims`);
+  check("65 shapes hold 20 values in up to four dimensions",
+    RESHAPE_SHAPES.length === 65 && RESHAPE_SHAPES.every((sh) => shapeSize(sh) === 20 && sh.length <= 4),
+    `${RESHAPE_SHAPES.filter((s) => s.length === 1).length} + ${RESHAPE_SHAPES.filter((s) => s.length === 2).length} + ${RESHAPE_SHAPES.filter((s) => s.length === 3).length} + ${RESHAPE_SHAPES.filter((s) => s.length === 4).length}`);
+  check("allShapes lists each shape once", new Set(RESHAPE_SHAPES.map((s) => s.join(","))).size === RESHAPE_SHAPES.length);
+  const fail = shapeOp("reshape", shapeKey(RESHAPE_FAIL));
+  check("reshape(3, 7) fails with torch's message and walks nothing",
+    !fail.ok && fail.error === "shape '[3, 7]' is invalid for input of size 20" && shapeWalk(fail).length === 0,
+    fail.error);
 }
 
 /* -- 3 · reshape(2, 5, 2) AGAINST permute(0, 2, 1) ------------------------- *
@@ -340,10 +360,10 @@ for (const op of [...SHAPE_OPS, ...JOIN_OPS]) {
  * the contents differ, which is the misconception this widget exists for. */
 console.log("\n=== 3 · the same shape, different contents ===");
 {
-  const re = shapeWalk(opByValue("reshape-2-5-2"));
-  const pe = shapeWalk(opByValue("permute"));
+  const re = shapeWalk(shapeOp("reshape", "2-5-2"));
+  const pe = shapeWalk(shapeOp("permute", "0-2-1"));
   check("both reach [2, 5, 2]",
-    same(opByValue("reshape-2-5-2").shape, [2, 5, 2]) && same(opByValue("permute").shape, [2, 5, 2]),
+    same(shapeOp("reshape", "2-5-2").shape, [2, 5, 2]) && same(shapeOp("permute", "0-2-1").shape, [2, 5, 2]),
     "reshape(2, 5, 2) and permute(0, 2, 1)");
 
   /* 11 is the value the catalogue names: it lands at [1, 0, 0] under both, so
@@ -360,8 +380,6 @@ console.log("\n=== 3 · the same shape, different contents ===");
   check("only the four corner values agree: 1, 10, 11, 20",
     same(agree, [1, 10, 11, 20]), `values ${agree.join(", ")}`);
 
-  /* Spot-checked one by one, because "they differ" is a weaker claim than
-     "this value goes here under one and there under the other". */
   const cases = [
     [2, [0, 0, 1], [0, 1, 0]],
     [3, [0, 1, 0], [0, 2, 0]],
@@ -376,50 +394,74 @@ console.log("\n=== 3 · the same shape, different contents ===");
   }
 }
 
-/* -- 4 · THE OTHER SHAPE OPERATIONS --------------------------------------- */
-console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack ===");
+/* -- 4 · THE LESSON'S OWN LINES, AND THE NAMES THE OPERATIONS LEAVE --------- */
+console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their roles ===");
 {
-  /* The Shape topic keeps the five that rearrange one tensor; the Join topic
-     takes the two that need a second (round 5, 2026-09-08). */
-  check("five operations rearrange one tensor and two take a second",
-    SHAPE_OPS.length === 5 && JOIN_OPS.length === 2
-    && SHAPE_OPS.every((o) => !o.second) && JOIN_OPS.every((o) => o.second),
-    `${SHAPE_OPS.map((o) => o.label).join(", ")} | ${JOIN_OPS.map((o) => o.label).join(", ")}`);
-  check("the Join topic's two values are the calls a reader would write",
-    same(JOIN_OPS.map((o) => o.value), ["cat", "stack"]),
-    JOIN_OPS.map((o) => `${o.value} -> ${o.label}`).join(", "));
+  const re = shapeWalk(shapeOp("reshape", "2-10"));
+  check("reshape(2, 10) sends value n to [n/10, n%10]",
+    re.every((m, n) => same(m.dst, [Math.floor(n / 10), n % 10])), "row-major, so 11 lands at [1, 0]");
+  check("reshape(2, 10) merges the last two names",
+    same(shapeOp("reshape", "2-10").names, ["sample", "sequence × feature"]),
+    shapeOp("reshape", "2-10").names.join(" | "));
+  check("reshape(4, 5) merges the first two and keeps feature",
+    same(shapeOp("reshape", "4-5").names, ["sample × sequence", "feature"]),
+    shapeOp("reshape", "4-5").names.join(" | "));
+  check("reshape(5, 4) cuts across every dimension, so its dimensions are positions",
+    same(shapeOp("reshape", "5-4").names, ["", ""]));
+  check("reshape(1, 20) names the size-1 dimension for its size",
+    same(shapeOp("reshape", "1-20").names, ["size 1", "sample × sequence × feature"]));
 
-  const re = shapeWalk(opByValue("reshape-2-10"));
-  check("reshape(2, -1) sends value n to [n/10, n%10]",
-    re.every((m, n) => same(m.dst, [Math.floor(n / 10), n % 10])),
-    "row-major, so 11 lands at [1, 0]");
-  check("reshape(2, -1) result reads 1..10 then 11..20",
-    same(re.slice(0, 10).map((m) => m.v), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
-
-  const fl = shapeWalk(opByValue("flatten"));
-  check("flatten sends value n to [n], keeping reading order",
+  const fl = shapeWalk(shapeOp("flatten", 0));
+  check("flatten() sends value n to [n], keeping reading order",
     fl.every((m, n) => same(m.dst, [n]) && m.v === n + 1), shapeText([20]));
+  check("flatten(start_dim=1) is reshape(2, 10)",
+    same(shapeOp("flatten", 1).shape, [2, 10])
+    && shapeWalk(shapeOp("flatten", 1)).every((m, i) => same(m.dst, re[i].dst)));
+  check("flatten(start_dim=2) changes nothing", same(shapeOp("flatten", 2).shape, T3_SHAPE));
 
-  const un = shapeWalk(opByValue("unsqueeze"));
+  const un = shapeWalk(shapeOp("unsqueeze", 0));
   check("unsqueeze(0) prefixes 0 and moves nothing else",
-    un.every((m) => m.dst[0] === 0 && same(m.dst.slice(1), m.src)),
-    shapeText([1, 2, 2, 5]));
+    un.every((m) => m.dst[0] === 0 && same(m.dst.slice(1), m.src)), shapeText([1, 2, 2, 5]));
+  check("unsqueeze(0) names the new dimension batch; unsqueeze(2) names it for its size",
+    shapeOp("unsqueeze", 0).names[0] === "batch" && shapeOp("unsqueeze", 2).names[2] === "size 1");
+  check("unsqueeze(3) puts the 1 last", same(shapeOp("unsqueeze", 3).shape, [2, 2, 5, 1]));
 
-  const ct = shapeWalk(joinByValue("cat"));
-  check("cat(dim=0) gives [4, 2, 5]", same(joinByValue("cat").shape, [4, 2, 5]));
+  check("permute carries each name with its data",
+    same(shapeOp("permute", "0-2-1").names, ["sample", "feature", "sequence"])
+    && same(shapeOp("permute", "2-1-0").names, ["feature", "sequence", "sample"]));
+
+  const ct = shapeWalk(joinOp("cat", 0));
+  check("cat(dim=0) gives [4, 2, 5]", same(joinOp("cat", 0).shape, [4, 2, 5]));
+  check("cat(dim=1) gives [2, 4, 5] and cat(dim=2) gives [2, 2, 10]",
+    same(joinOp("cat", 1).shape, [2, 4, 5]) && same(joinOp("cat", 2).shape, [2, 2, 10]));
   check("cat walks 40 values, T first then T2",
     ct.length === 40 && ct.slice(0, 20).every((m) => m.t === 0) && ct.slice(20).every((m) => m.t === 1));
   check("cat puts T2's values after T's along dim 0",
-    ct.slice(0, 20).every((m) => m.dst[0] < 2) && ct.slice(20).every((m) => m.dst[0] >= 2),
-    "T at dim 0 = 0, 1; T2 at 2, 3");
-  check("cat leaves each value's last two indices alone",
-    ct.every((m) => same(m.dst.slice(1), m.src.slice(1))));
+    ct.slice(0, 20).every((m) => m.dst[0] < 2) && ct.slice(20).every((m) => m.dst[0] >= 2));
+  check("cat keeps every name", same(joinOp("cat", 1).names, ["sample", "sequence", "feature"]));
 
-  const st = shapeWalk(joinByValue("stack"));
-  check("stack(dim=0) gives [2, 2, 2, 5]", same(joinByValue("stack").shape, [2, 2, 2, 5]));
+  const st = shapeWalk(joinOp("stack", 0));
+  check("stack(dim=0) gives [2, 2, 2, 5]", same(joinOp("stack", 0).shape, [2, 2, 2, 5]));
   check("stack puts each tensor whole under its own new index",
-    st.every((m) => m.dst[0] === m.t && same(m.dst.slice(1), m.src)),
-    "the distinction cat does not have");
+    st.every((m) => m.dst[0] === m.t && same(m.dst.slice(1), m.src)));
+  check("stack(dim=3) puts the new dimension last", same(joinOp("stack", 3).shape, [2, 2, 5, 2]));
+
+  /* the naming conventions */
+  check("three conventions: sequence, image, positions",
+    same(Object.keys(NAME_SETS), ["sequence", "image", "positions"]));
+  check("image data names rank 4 sample, channel, height, width",
+    same(roleNames("image", 4), ["sample", "channel", "height", "width"]));
+  check("positions name nothing and label by index alone",
+    same(roleNames("positions", 3), ["", "", ""]) && same(roleLabels("positions", 3), ["0", "1", "2"]));
+  check("under image names unsqueeze(0) adds sample", shapeOp("unsqueeze", 0, "image").names[0] === "sample");
+
+  /* opFrom reads the parameters the rail writes */
+  const viaParams = opFrom({ tab: "shape", op: "reshape", shape: "2-5-2", names: "sequence" });
+  check("opFrom reads op + shape and attaches roles",
+    viaParams.label === "reshape(2, 5, 2)" && same(viaParams.roles, ["0", "1", "2"]),
+    viaParams.roles.join(" | "));
+  const viaJoin = opFrom({ tab: "join", join: "stack", sdim: "1", names: "image" });
+  check("opFrom reads join + sdim", viaJoin.label === "stack(dim=1)" && same(viaJoin.shape, [2, 2, 2, 5]));
 }
 
 /* -- 5 · BROADCASTING, ALL FIVE SHAPES OF b ------------------------------- *
@@ -646,7 +688,7 @@ console.log("\n=== 11 · the printed tensor ===");
     return torchPrint(op.shape, (idx) => at.get(idx.join(",")));
   };
 
-  const flat = resultPrint(opByValue("flatten"));
+  const flat = resultPrint(shapeOp("flatten", 0));
   check("flatten()'s [20] wraps at eighteen values, as torch's 80-column rule does",
     flat.text === [
       "tensor([ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18,",
@@ -655,14 +697,14 @@ console.log("\n=== 11 · the printed tensor ===");
   check("its continuation line is indented to the column after the bracket",
     flat.text.split("\n")[1].startsWith("        19,"));
 
-  const wide = resultPrint(opByValue("reshape-2-10"));
+  const wide = resultPrint(shapeOp("reshape", "2-10"));
   check("reshape(2, −1)'s [2, 10] prints two rows and no blank line",
     wide.text === [
       "tensor([[ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10],",
       "        [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]])",
     ].join("\n"), `${wide.lines.length} lines`);
 
-  const stacked = resultPrint(joinByValue("stack"));
+  const stacked = resultPrint(joinOp("stack", 0));
   const lines4 = stacked.text.split("\n");
   check("stack(dim=0)'s [2, 2, 2, 5] prints twelve lines",
     lines4.length === 12, `${lines4.length} lines`);
@@ -676,16 +718,16 @@ console.log("\n=== 11 · the printed tensor ===");
   check("the second tensor's 21-30 appear in the second block, not the first",
     lines4[7].includes("21") && !lines4[0].includes("21"));
 
-  const catted = resultPrint(joinByValue("cat"));
+  const catted = resultPrint(joinOp("cat", 0));
   check("cat(dim=0)'s [4, 2, 5] prints eleven lines, one blank between four blocks",
     catted.text.split("\n").length === 11
     && catted.text.split("\n").filter((l) => l === "").length === 3,
     `${catted.text.split("\n").length} lines`);
 
-  const permuted = resultPrint(opByValue("permute"));
+  const permuted = resultPrint(shapeOp("permute", "0-2-1"));
   check("permute(0, 2, 1) and reshape(2, 5, 2) print the SAME shape and different text",
-    permuted.text !== resultPrint(opByValue("reshape-2-5-2")).text
-    && permuted.cols === resultPrint(opByValue("reshape-2-5-2")).cols,
+    permuted.text !== resultPrint(shapeOp("reshape", "2-5-2")).text
+    && permuted.cols === resultPrint(shapeOp("reshape", "2-5-2")).cols,
     "same [2, 5, 2], different contents");
   check("permute's first row is 1 and 6, which reshape's is not",
     permuted.text.split("\n")[0] === "tensor([[[ 1,  6],",
@@ -694,7 +736,7 @@ console.log("\n=== 11 · the printed tensor ===");
   /* A HALF-BUILT RESULT MUST NOT SHIFT. The width is measured over every value
      the walk will place, so a print with three values in it lines up with the
      same print full. */
-  const op = joinByValue("stack");
+  const op = joinOp("stack", 0);
   const moves = shapeWalk(op);
   const partial = torchPrint(op.shape, (idx) => {
     const m = moves.find((mv) => mv.dst.join(",") === idx.join(","));

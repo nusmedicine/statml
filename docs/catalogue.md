@@ -11045,6 +11045,40 @@ Two things fixed on review: the Y print showed `2.6000000000000005` (now
 `M.num`), and the failing product printed `undefined` for its clash.
 `check` and `test` pass. Nothing in core changed this round.
 
+**Round 11 (2026-09-09) — Kenneth's three questions after round 10, all
+three built by the main session.** (1) *Pre-baked examples or free
+choice?* The Shape and Join topics now take a verb and an argument: `op`
+(reshape · permute · unsqueeze · flatten) with `shape` (a grouped select of
+EVERY shape holding 20 values up to four dimensions — 1 + 6 + 18 + 40 = 65
+— plus [3, 7], which fails with torch's own message and leaves the tab
+inert), `perm` (all six orderings), `udim` (0–3), `fstart` (0–2); `join`
+(cat · stack) with `cdim` (0–2) and `sdim` (0–3). The lesson's own lines
+are the defaults, so every existing link still lands on them. `model.js`
+generates each operation from its argument (`shapeOp`, `joinOp`, `opFrom`)
+and every destination map is asserted to be a bijection over all 80
+arguments (212 checks now). (2) *No dimension indicators on the result in
+the stack view.* The result is drawn as a source — arrows in the stack
+view, edge indices in the frames view — with the roles the operation
+LEAVES: a permute carries each name with its data (`0 sequence · 1 feature
+· 2 sample` for permute(1, 2, 0)), an inserted dimension is named for what
+it is (batch in front, size 1 elsewhere), a reshape merges names where a
+new dimension is exactly a run of old ones (`sequence × feature`) and drops
+them where it cuts across (reshape(5, 4) leaves positions only); a roles
+line with swatches sits under source and result. (3) *sample, sequence,
+feature — generic or concrete?* Keep the concrete names and make the naming
+a control: `names`, display, *Sequence data* (sample, sequence, feature; a
+batch adds a dimension in front), *Image data* (channel, height, width; a
+batch of images adds sample in front), *Positions only* (the indices, which
+is all PyTorch knows). Switching it moves no value, which is what shows a
+role is a convention chosen per dataset. Verified in the browser: the
+select carries 65 + 1 options in five groups; `?op=permute&perm=1-2-0`
+draws the result with `0 sequence · 1 feature · 2 sample`; `?shape=3-7`
+prints `shape '[3, 7]' is invalid for input of size 20` in the Result band
+with the drive row gone; `?names=image` relabels every arrow; `check` and
+`test` pass. Open: with a wide result ([2, 10]) the fit drops BOTH prints
+under their drawings though the source's would fit beside; the mode could
+be chosen per block.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

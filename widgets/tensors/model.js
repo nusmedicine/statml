@@ -73,29 +73,57 @@ const RANK_DATA = { 1: R1, 2: R2, 3: T3, 4: R4 };
 
 export const RANK_SHAPES = { 1: [5], 2: [2, 5], 3: T3_SHAPE, 4: [2, 2, 2, 5] };
 
-/** What each dimension holds at each rank, outermost first. */
-export const RANK_ROLES = {
-  1: ["feature"],
-  2: ["sample", "feature"],
-  3: ["sample", "sequence", "feature"],
-  4: ["batch", "sample", "sequence", "feature"],
+/* --- what the dimensions are called ---------------------------------------- *
+ * ROUND 11: THE NAMES ARE A CONVENTION, AND THE WIDGET SAYS SO BY OFFERING
+ * THREE. The lesson names its tensors two ways — sequence data [sample,
+ * sequence, feature] and image data [sample, channel, height, width] — and a
+ * student who sees only one takes it for a property of tensors. `names` is a
+ * display parameter that switches the labels while every value stays put;
+ * "positions" drops the names and leaves the indices, which is all PyTorch
+ * itself knows about a dimension. Kenneth, 2026-09-09: keep the concrete
+ * names for context, and show they are chosen per dataset.                  */
+export const NAME_SETS = {
+  sequence: {
+    1: ["feature"],
+    2: ["sample", "feature"],
+    3: ["sample", "sequence", "feature"],
+    4: ["batch", "sample", "sequence", "feature"],
+  },
+  image: {
+    1: ["width"],
+    2: ["height", "width"],
+    3: ["channel", "height", "width"],
+    4: ["sample", "channel", "height", "width"],
+  },
+  positions: null,
 };
 
-/** `0 sample` — a dimension's number and its role, as the arrows name it. */
-export const dimLabels = (rank) => RANK_ROLES[rank].map((n, k) => `${k} ${n}`);
+/** The role of each dimension at a rank under one convention; "" when the
+    convention names nothing. */
+export const roleNames = (setName, rank) =>
+  NAME_SETS[setName]?.[Number(rank)] ?? Array.from({ length: Number(rank) }, () => "");
+
+/** `0 sample`, or just `0` — a dimension's number and its role, as the arrows
+    and the roles line name it. */
+export const roleLabels = (setName, rank) =>
+  roleNames(setName, rank).map((n, k) => (n ? `${k} ${n}` : `${k}`));
+
+/** The lesson's own convention, which the tests and the defaults use. */
+export const RANK_ROLES = NAME_SETS.sequence;
+export const dimLabels = (rank) => roleLabels("sequence", rank);
 
 /** What each dimension of the worked tensor holds, by index. */
 export const DIM_ROLES = dimLabels(3);
 
 /** The tensor at one rank: its shape, its dimension names, and its values. */
-export function rankSpec(rank) {
+export function rankSpec(rank, setName = "sequence") {
   const r = RANK_DATA[rank] ? Number(rank) : 3;
   const data = RANK_DATA[r];
   return {
     rank: r,
     shape: RANK_SHAPES[r],
-    roles: dimLabels(r),
-    names: RANK_ROLES[r],
+    roles: roleLabels(setName, r),
+    names: roleNames(setName, r),
     at: (idx) => idx.reduce((a, k) => a[k], data),
   };
 }
@@ -115,8 +143,8 @@ export const COLON = ":";
  * mapping, so the drawing, the printed text and the sub-tensor's own print
  * cannot disagree about which cells were taken (5.8).
  */
-export function selectionOf(rank, parts) {
-  const { shape, at, names } = rankSpec(rank);
+export function selectionOf(rank, parts, setName = "sequence") {
+  const { shape, at, names } = rankSpec(rank, setName);
   const spec = shape.map((_, k) => (parts[k] == null ? COLON : String(parts[k])));
   const keep = [];
   const gone = [];
@@ -135,7 +163,7 @@ export function selectionOf(rank, parts) {
        keeps sample and feature, and in the [2, 5] it makes they are dimensions
        0 and 1. Drawn under the selection, where the tensor's own roles line is
        drawn under the tensor. */
-    roles: keep.map((k, j) => `${j} ${names[k]}`),
+    roles: keep.map((k, j) => (names[k] ? `${j} ${names[k]}` : `${j}`)),
     fixed: spec.length - keep.length,
     shape: outShape,
     size: shapeSize(outShape),
@@ -199,95 +227,190 @@ export function srcIndex(n) {
 
 export const CELLS = 20;   // values in one [2, 2, 5] tensor
 
-/* Each operation is `dest(n, t)`: where the value at reading position `n` of
-   tensor `t` (0 for T, 1 for the second tensor) lands in the result.
+/* --- the shape and join operations, from a verb and its argument ------------ *
+ * ROUND 11 (Kenneth, 2026-09-09: "do we just give them the pre-baked examples?
+ * or allow them to try different options (those that work)"). The five fixed
+ * lines of the lesson became a verb and an argument: every ordering for
+ * `permute`, every dimension for `unsqueeze`, `flatten`, `cat` and `stack`,
+ * and for `reshape` EVERY shape that holds the same twenty values up to rank 4
+ * — sixty-five of them — plus one that does not, [3, 7], which fails the way
+ * torch fails it. Each operation is still `dest(n, t)`: where the value at
+ * reading position `n` of tensor `t` (0 for T, 1 for the second) lands.
+ *
+ * `roles` is what the operation leaves of the dimension names: a permute
+ * carries each name with its data, an inserted dimension is named for what it
+ * is, a reshape merges names where a new dimension is exactly a run of old
+ * ones (`sequence × feature`) and drops them where it is not ([5, 4] cuts
+ * across every old dimension, so its dimensions are positions only).          */
 
-   `second: true` means the walk runs over both tensors, T first, so the unit
-   count doubles. Everything else about the animation is identical, which is why
-   the Join topic reuses the Shape topic's whole stage — the reader is still
-   watching one value go to one place. Cat and stack were two more options of
-   the Shape control until 2026-09-08, when they became a topic of their own:
-   what they teach is a SECOND TENSOR, not a second reading of one. */
-export const SHAPE_OPS = [
-  {
-    value: "reshape-2-10",
-    label: "reshape(2, −1)",
-    shape: [2, 10],
-    detail: "reads the values in order and cuts them into 2 rows of 10; −1 asks for the size that fits",
-    caption: "The values are read in order and cut into two rows of ten. Nothing moves between samples.",
-    dest: (n) => [Math.floor(n / 10), n % 10],
-  },
-  {
-    value: "flatten",
-    label: "flatten()",
-    shape: [20],
-    detail: "collapses every dimension into one, keeping the reading order",
-    caption: "Every dimension is collapsed into one and the reading order is kept.",
-    dest: (n) => [n],
-  },
-  {
-    value: "unsqueeze",
-    label: "unsqueeze(0)",
-    shape: [1, 2, 2, 5],
-    detail: "adds a dimension of size 1 in front, which is how a single sample becomes a batch of one",
-    caption: "A dimension of size 1 is added in front. Every value keeps its position under it.",
-    dest: (n) => [0, ...srcIndex(n)],
-  },
-  {
-    value: "permute",
-    label: "permute(0, 2, 1)",
-    shape: [2, 5, 2],
-    detail: "moves each value to the index with its last two positions swapped",
-    caption: "Each value moves to the index with its last two positions swapped.",
+export const RESHAPE_FAIL = [3, 7];
+
+/** Every ordered factorisation of `n` into 1..`maxRank` parts, by rank. */
+export function allShapes(n, maxRank) {
+  const seen = new Set();
+  const out = [];
+  const rec = (rest, acc) => {
+    if (acc.length > 0 && rest === 1) {
+      const k = acc.join(",");
+      if (!seen.has(k)) { seen.add(k); out.push([...acc]); }
+    }
+    if (acc.length === maxRank) return;
+    for (let d = 1; d <= rest; d += 1) if (rest % d === 0) rec(rest / d, [...acc, d]);
+  };
+  rec(n, []);
+  return out.sort((x, y) => x.length - y.length
+    || x.join(",").localeCompare(y.join(","), undefined, { numeric: true }));
+}
+
+export const RESHAPE_SHAPES = allShapes(CELLS, 4);
+export const PERMUTATIONS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+
+/** The URL value of a shape or an ordering: `2-10`, `0-2-1`. */
+export const shapeKey = (shape) => shape.join("-");
+export const parseKey = (key) => String(key).split("-").map(Number);
+
+const nameJoin = (names) => names.filter(Boolean).join(" × ");
+const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
+
+/** The names a reshape leaves: a new dimension that is exactly a run of old
+    ones inherits their names joined; a size-1 dimension is named for its size;
+    anything else leaves every dimension a position. */
+function reshapeNames(src, shape, names) {
+  const out = [];
+  let p = 0;
+  for (const d of shape) {
+    if (d === 1) { out.push("size 1"); continue; }
+    let prod = 1;
+    const run = [];
+    while (p < src.length && prod < d) { prod *= src[p]; run.push(names[p]); p += 1; }
+    if (prod !== d) return shape.map(() => "");
+    out.push(nameJoin(run));
+  }
+  return p === src.length ? out : shape.map(() => "");
+}
+
+function insertedName(d, names, setName) {
+  return d === 0 ? (roleNames(setName, 4)[0] || "") : "size 1";
+}
+
+/** One Shape operation from its verb and argument. */
+export function shapeOp(kind, arg, setName = "sequence") {
+  const src = T3_SHAPE;
+  const names = roleNames(setName, 3);
+  const base = { kind, second: false, ok: true, error: null };
+  if (kind === "reshape") {
+    const shape = parseKey(arg);
+    const ok = shape.every((d) => Number.isInteger(d) && d >= 1) && shapeSize(shape) === CELLS && shape.length >= 1 && shape.length <= 4;
+    const strides = [];
+    let acc = 1;
+    for (let k = shape.length - 1; k >= 0; k -= 1) { strides[k] = acc; acc *= shape[k]; }
+    return {
+      ...base,
+      value: `reshape-${shapeKey(shape)}`,
+      label: `reshape(${shape.join(", ")})`,
+      shape,
+      ok,
+      error: ok ? null : `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}`,
+      names: ok ? reshapeNames(src, shape, names) : [],
+      caption: ok
+        ? `The values are read in order and refilled into ${shapeText(shape)}: the reading order is kept and the dimensions are recut.`
+        : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(shape)}.`,
+      dest: (n) => shape.map((d, k) => Math.floor(n / strides[k]) % d),
+    };
+  }
+  if (kind === "permute") {
+    const p = parseKey(arg);
+    const identity = p.every((v, k) => v === k);
+    return {
+      ...base,
+      value: `permute-${shapeKey(p)}`,
+      label: `permute(${p.join(", ")})`,
+      shape: p.map((k) => src[k]),
+      names: p.map((k) => names[k]),
+      caption: identity
+        ? "permute(0, 1, 2) keeps the dimensions in their order, so every value stays where it is."
+        : `Each value moves to the index with its positions reordered as (${p.join(", ")}); each dimension's name travels with its data.`,
+      dest: (n) => { const s = srcIndex(n); return p.map((k) => s[k]); },
+    };
+  }
+  if (kind === "unsqueeze") {
+    const d = Number(arg);
+    const shape = [...src.slice(0, d), 1, ...src.slice(d)];
+    return {
+      ...base,
+      value: `unsqueeze-${d}`,
+      label: `unsqueeze(${d})`,
+      shape,
+      names: [...names.slice(0, d), insertedName(d, names, setName), ...names.slice(d)],
+      caption: `A dimension of size 1 is added at position ${d}. Every value keeps its place under it.`,
+      dest: (n) => { const s = srcIndex(n); return [...s.slice(0, d), 0, ...s.slice(d)]; },
+    };
+  }
+  /* flatten(start_dim) */
+  const start = Number(arg);
+  const shape = [...src.slice(0, start), shapeSize(src.slice(start))];
+  const strides = src.slice(start).map((_, k, arr) => shapeSize(arr.slice(k + 1)));
+  return {
+    ...base,
+    value: `flatten-${start}`,
+    label: start === 0 ? "flatten()" : `flatten(start_dim=${start})`,
+    shape,
+    names: [...names.slice(0, start), nameJoin(names.slice(start))],
+    caption: start === 0
+      ? "Every dimension is collapsed into one and the reading order is kept."
+      : start === src.length - 1
+        ? `Only the last dimension is left to collapse, so the shape does not change.`
+        : `The dimensions from ${start} on are collapsed into one; the ones before it are kept.`,
     dest: (n) => {
-      const [i, r, c] = srcIndex(n);
-      return [i, c, r];
+      const s = srcIndex(n);
+      const flat = s.slice(start).reduce((a, v, k) => a + v * strides[k], 0);
+      return [...s.slice(0, start), flat];
     },
-  },
-  {
-    value: "reshape-2-5-2",
-    label: "reshape(2, 5, 2)",
-    span: true,
-    shape: [2, 5, 2],
-    detail: "the same shape permute reaches, filled in reading order instead",
-    caption: "The same shape as permute, filled in reading order: the contents differ.",
-    dest: (n) => [Math.floor(n / 10), Math.floor((n % 10) / 2), n % 2],
-  },
-];
+  };
+}
 
-/* THE JOIN TOPIC'S TWO OPERATIONS. Both take a second tensor, and the whole of
-   what separates them is whether the joined dimension is one that already
-   exists (cat, dim 0 grows from 2 to 4) or a new one in front (stack, a dim 0
-   of size 2 over two tensors that keep their own shape). */
-export const JOIN_OPS = [
-  {
-    value: "cat",
-    label: "cat(dim=0)",
-    shape: [4, 2, 5],
-    second: true,
-    detail: "joins the two tensors along dim 0, which grows from 2 to 4",
-    caption: "The two tensors are joined along dim 0, which grows from 2 to 4. No new dimension appears.",
-    dest: (n, t) => {
-      const [i, r, c] = srcIndex(n);
-      return [t * 2 + i, r, c];
-    },
-  },
-  {
-    value: "stack",
-    label: "stack(dim=0)",
-    shape: [2, 2, 2, 5],
-    second: true,
-    detail: "puts the two tensors under a new dim 0 of size 2, so both keep their own shape",
-    caption: "A new dim 0 of size 2 holds the two tensors, and each keeps the shape it had.",
-    dest: (n, t) => [t, ...srcIndex(n)],
-  },
-];
+/** One Join operation from its verb and the dimension it works along. */
+export function joinOp(kind, arg, setName = "sequence") {
+  const src = T3_SHAPE;
+  const names = roleNames(setName, 3);
+  const d = Number(arg);
+  if (kind === "cat") {
+    const shape = src.map((v, k) => (k === d ? 2 * v : v));
+    return {
+      kind, second: true, ok: true, error: null,
+      value: `cat-${d}`,
+      label: `cat(dim=${d})`,
+      shape,
+      names,
+      caption: `The two tensors are joined along dim ${d}, which grows from ${src[d]} to ${2 * src[d]}. No new dimension appears.`,
+      dest: (n, t) => { const s = srcIndex(n); s[d] += t * src[d]; return s; },
+    };
+  }
+  const shape = [...src.slice(0, d), 2, ...src.slice(d)];
+  return {
+    kind, second: true, ok: true, error: null,
+    value: `stack-${d}`,
+    label: `stack(dim=${d})`,
+    shape,
+    names: [...names.slice(0, d), insertedName(d, names, setName), ...names.slice(d)],
+    caption: `A new dim ${d} of size 2 holds the two tensors, and each keeps the shape it had.`,
+    dest: (n, t) => { const s = srcIndex(n); return [...s.slice(0, d), t, ...s.slice(d)]; },
+  };
+}
 
-export const opByValue = (value) =>
-  SHAPE_OPS.find((o) => o.value === value) ?? SHAPE_OPS[0];
-
-export const joinByValue = (value) =>
-  JOIN_OPS.find((o) => o.value === value) ?? JOIN_OPS[0];
+/** The operation the parameters ask for, on either topic, with its dimension
+    labels attached. */
+export function opFrom(params) {
+  const setName = params.names ?? "sequence";
+  const op = params.tab === "join"
+    ? joinOp(params.join, params.join === "cat" ? params.cdim : params.sdim, setName)
+    : shapeOp(params.op,
+      params.op === "reshape" ? params.shape
+        : params.op === "permute" ? params.perm
+          : params.op === "unsqueeze" ? params.udim : params.fstart,
+      setName);
+  return { ...op, roles: labelsOf(op.names ?? []) };
+}
 
 /**
  * The walk one Step follows: reading order over the source tensor, then over
@@ -298,6 +421,7 @@ export const joinByValue = (value) =>
  */
 export function shapeWalk(op) {
   const moves = [];
+  if (!op.ok) return moves;
   const tensors = op.second ? [T3, T3B] : [T3];
   tensors.forEach((tensor, t) => {
     for (let n = 0; n < CELLS; n += 1) {

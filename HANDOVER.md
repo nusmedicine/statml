@@ -59,7 +59,12 @@ changes; NOT pushed). Then **round 10**, uncommitted: the Basics style on
 every tab — named bands with the expression as the Result header, every
 result printed beside its drawing, content-sized stages via `tabHeight`,
 every Step staged (light, then land) through one `phases()` and one
-`litFace()`. Awaiting his test; then commit. Next: his test verdict, then one
+`litFace()`. COMMITTED as `aa42f39` on his word. Then **round 11**, uncommitted: the
+operation as verb + argument on Shape and Join (every valid argument, and
+[3, 7] which fails), the result drawn with the dimension roles the
+operation leaves, and a `names` control (sequence · image · positions).
+Awaiting his test; then commit. Every fingerprint state is still a
+placeholder. Next: his test verdict, then one
 local commit of plan, mock and widget; on "tested ok" the fingerprint states
 for real, `status` flipped, push.
 

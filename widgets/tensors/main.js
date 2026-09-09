@@ -216,6 +216,17 @@
       result LANDS (a row appears, a cell appears, a group's values glide
       into the cell they reduce to, a value flies to its new place). The
       selection face is one function, `litFace`, on every tab.
+
+  23. ROUND 11: A VERB AND ITS ARGUMENT, THE ROLES A RESULT KEEPS, AND WHAT
+      THE DIMENSIONS ARE CALLED. Shape and Join take `op`/`join` and an
+      argument control listing every value valid for the tensor on screen —
+      65 shapes of 20 values for reshape, plus [3, 7] which fails with torch's
+      message and leaves the tab inert — so the lesson's lines are defaults
+      in a space a reader can explore. The result is drawn as a source, with
+      arrows and the roles the operation leaves (`model.js` derives them: a
+      permute moves a name with its data, a reshape merges names it can and
+      drops the rest). `names` switches the convention — sequence data, image
+      data, positions only — while every value stays put.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1091,6 +1102,14 @@ function drawnSize(colors, shape, s, view, perRow, source, roles, opts) {
 /** The whole Shape block at cell `s`, with the print beside every drawing or
     under every drawing. Returns what it measures, plus the row heights the
     painter needs to stack the source tensors. */
+/* --- bands: the named strips every stage is made of (rounds 8 and 10) ------- */
+const BAND_GAP = 10;      // between the two bands
+const BAND_PAD = 8;       // inside a band, round its content
+const BAND_HEAD = 22;     // a band's header strip: its name, and the expression
+const LINE_H = 14;        // a roles line, a torch.Size line, a caption inside a band
+const UNDER_GAP = 18;     // between a drawing and the lines under it (12 crowded them)
+const DIVIDER = 1;        // the hairline between drawing and print
+
 /* --- one step, two phases (round 10) ---------------------------------------- *
  * Every Step on the widget is staged the way the Basics extraction is: the
  * operands the step reads LIGHT first, then the result LANDS (Heer & Robertson
@@ -1121,22 +1140,27 @@ const GRID_LBL = 18;      // `X  [2, 5]` above a grid
 
 /* --- the Shape and Join tabs ---------------------------------------------- */
 
-function shapeBlock(colors, op, view, s, avail, prints, mode) {
+function shapeBlock(colors, op, view, s, avail, prints, mode, srcRoles) {
   const place = mode === "beside" ? beside : under;
-  const roomFor = (p) => (mode === "beside" ? avail - PRINT_GAP - p.w : avail);
-  const perRow = framesPerRow(op.shape[0], op.shape[op.shape.length - 1], s, roomFor(prints.result));
+  const roomFor = (p) => (mode === "beside" && p ? avail - PRINT_GAP - p.w : avail);
+  const perRow = op.ok
+    ? framesPerRow(op.shape[0], op.shape[op.shape.length - 1], s, roomFor(prints.result)) : 1;
   const srcRow = framesPerRow(M.T3_SHAPE[0], M.T3_SHAPE[2], s, roomFor(prints.sources[0]));
   /* THE SOURCE PAIR STACKS RATHER THAN SITTING SIDE BY SIDE, in both views.
      Two tensors and two prints in one row do not fit 550px in any view, and
      stacking them lets each print sit beside its own drawing instead of both
      dropping under a pair of drawings. */
   const rows = prints.sources.map((p, t) =>
-    place(drawnSize(colors, M.T3_SHAPE, s, view, srcRow, t === 0), p));
+    place(drawnSize(colors, M.T3_SHAPE, s, view, srcRow, t === 0, srcRoles), p));
   const src = {
     w: Math.max(...rows.map((r) => r.w)),
     h: rows.reduce((a, r) => a + r.h, 0) + (rows.length - 1) * INNER_GAP,
   };
-  const out = place(drawnSize(colors, op.shape, s, view, perRow, false), prints.result);
+  /* ROUND 11: the result carries the dimension arrows and roles the operation
+     leaves, so it is measured the way a source is */
+  const out = op.ok
+    ? place(drawnSize(colors, op.shape, s, view, perRow, true, op.roles, resultOpts(view, op.shape.length)), prints.result)
+    : { w: 0, h: 0 };
   return {
     mode,
     perRow,
@@ -1151,31 +1175,36 @@ function shapeBlock(colors, op, view, s, avail, prints, mode) {
 /** The largest cell that fits the WIDTH with the print beside its drawing, down
     to CELL_OK; below that a print under the drawing is preferred to a smaller
     cell. Height is no longer a constraint: the bands grow to fit. */
-function shapeFit(colors, w, op, view, prints) {
+function shapeFit(colors, w, op, view, prints, srcRoles) {
   const avail = w - 2 * PAD - 2 * BAND_PAD;
   let tight = null;
   for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
-    const aside = shapeBlock(colors, op, view, s, avail, prints, "beside");
+    const aside = shapeBlock(colors, op, view, s, avail, prints, "beside", srcRoles);
     if (aside.w <= avail) {
       if (s >= CELL_OK) return { s, ...aside };
       if (!tight) tight = { s, ...aside };
     }
-    const drop = shapeBlock(colors, op, view, s, avail, prints, "under");
+    const drop = shapeBlock(colors, op, view, s, avail, prints, "under", srcRoles);
     if (drop.w <= avail) return { s, ...drop };
   }
-  return tight ?? { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, "under") };
+  return tight ?? { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, "under", srcRoles) };
 }
+
+/** How a result is drawn: arrows in the stack view at rank 3 and 4, edge
+    indices in the frames view, the roles line drawn separately underneath. */
+const resultOpts = (view, rank) => ({ arrows: view === "stack" && rank >= 3, rolesLine: false, edges: view === "frames" });
 
 const SRC_NAMES = ["T", "T2"];
 
 /** The operation as the line of code that performs it — the Result band's header. */
 const shapeExpr = (op) => (op.second
-  ? `torch.${op.label.slice(0, op.label.indexOf("("))}([T, T2], dim=0)`
+  ? `torch.${op.label.replace("(", "([T, T2], ")}`
   : `T.${op.label}`);
+const ROLES_H = UNDER_GAP + LINE_H;   // the roles line under a drawn tensor
 
 /** Everything the Shape and Join tabs need, from the parameters alone. */
 function shapeGeometry(ctx, colors, w, params) {
-  const op = params.tab === "join" ? M.joinByValue(params.join) : M.opByValue(params.op);
+  const op = M.opFrom(params);
   const view = params.view;
   const moves = M.shapeWalk(op);
   const tensors = op.second ? [M.T3, M.T3B] : [M.T3];
@@ -1186,11 +1215,12 @@ function shapeGeometry(ctx, colors, w, params) {
   const prints = {
     sources: tensors.map((tensor, t) =>
       printOf(M.T3_SHAPE, ([i, r, c]) => tensor[i][r][c], SRC_NAMES[t], cw)),
-    result: printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw),
+    result: op.ok ? printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw) : null,
   };
-  const fit = shapeFit(colors, w, op, view, prints);
-  const bands = [bandH(fit.srcH), bandH(fit.outH)];
-  return { op, view, tensors, cw, prints, fit, bands, height: stageOf(bands, SHAPE_CAPTIONS) };
+  const srcRoles = M.roleLabels(params.names, 3);
+  const fit = shapeFit(colors, w, op, view, prints, srcRoles);
+  const bands = [bandH(fit.srcH + ROLES_H), bandH(op.ok ? fit.outH + ROLES_H : 40)];
+  return { op, view, tensors, cw, prints, fit, bands, srcRoles, height: stageOf(bands, SHAPE_CAPTIONS) };
 }
 
 /**
@@ -1214,9 +1244,10 @@ function shapeStand(state, anim, speed) {
 
 function planShape(ctx, colors, w, h, params, state, anim) {
   const plan = newPlan();
-  const { op, view, tensors, cw, prints, fit, bands } = shapeGeometry(ctx, colors, w, params);
+  const { op, view, tensors, cw, prints, fit, bands, srcRoles } = shapeGeometry(ctx, colors, w, params);
   const at = shapeStand(state, anim, params.speed);
   const s = fit.s;
+  const hues3 = dimHues(colors, 3);
 
   /* Where every value stands: consumed, just moved, in flight, or waiting. */
   const consumed = (k) => k < at.n || (at.glide && k === at.n);
@@ -1260,7 +1291,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       return { v, ...face, key: srcKey(t, idx), name: srcName(t, idx, v) };
     };
     const draw = t === 0
-      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow)
+      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, M.T3_SHAPE, srcRoles)
       : pushTensor(plan, colors, cx, ty, M.T3_SHAPE, s, view, cell, fit.srcRow);
     srcCentres.push(draw.centre);
     widest = Math.max(widest, draw.w);
@@ -1284,10 +1315,18 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   });
   /* the hairline between drawing and print, where the print sits beside */
   if (fit.mode === "beside") top.divX = cx + widest + PRINT_GAP / 2;
+  /* the roles under the source block, swatch and word, as on Basics */
+  pushRoles(plan, ctx, colors, srcRoles, hues3, cx, yT + BAND_HEAD + BAND_PAD + fit.srcH + UNDER_GAP);
 
   /* --- the result --------------------------------------------------------- */
   const resY = yB + BAND_HEAD + BAND_PAD;
-  const resDraw = pushTensor(plan, colors, cx, resY, op.shape, s, view, (idx) => {
+  if (!op.ok) {
+    /* torch's own words, where the result would be (2.6) */
+    pushText(plan, op.error, cx, resY + 14, { color: colors.extreme, mono: true });
+    pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
+    return plan;
+  }
+  const resDraw = pushSource(plan, colors, cx, resY, s, view, (idx) => {
     const held = placed.get(idx.join(","));
     if (held) {
       const face = held.last ? litFace(colors) : { fill: colors.empirical };
@@ -1295,8 +1334,9 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     }
     if (at.moving && at.moving.dst.join(",") === idx.join(",")) return { empty: true, lit: true };
     return { empty: true };
-  }, fit.perRow);
+  }, fit.perRow, op.shape, op.roles, resultOpts(view, op.shape.length));
   if (fit.mode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
+  pushRoles(plan, ctx, colors, op.roles, dimHues(colors, op.shape.length), cx, resY + fit.outH + UNDER_GAP);
 
   const rp = prints.result;
   const rpx = fit.mode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
@@ -1385,12 +1425,6 @@ const FOURTH_DIM = "An image batch adds a fourth dimension: sample, channel, hei
  * which is how both NumPy visual guides draw an index. `_lab/tensor-basics3.html`
  * is the mock this was picked from.                                           */
 const BASICS_CAPTIONS = 1;
-const BAND_GAP = 10;      // between the two bands
-const BAND_PAD = 8;       // inside a band, round its content
-const BAND_HEAD = 22;     // a band's header strip: its name, and the expression
-const LINE_H = 14;        // a roles line, a torch.Size line, a caption inside a band
-const UNDER_GAP = 18;     // between a drawing and the lines under it (12 crowded them)
-const DIVIDER = 1;        // the hairline between drawing and print
 const PILL_PAD = 3;       // round an index label that can be pressed
 const PILL_H = 15;
 
@@ -1477,8 +1511,8 @@ function basicsFit(colors, w, spec, sel, view, prints) {
 /** Everything the stage needs, from the parameters alone — so `height` can ask
     before there is a state, and `draw` asks the same function afterwards. */
 function basicsGeometry(ctx, colors, w, params) {
-  const spec = M.rankSpec(params.rank);
-  const sel = M.selectionOf(params.rank, indexParts(params));
+  const spec = M.rankSpec(params.rank, params.names);
+  const sel = M.selectionOf(params.rank, indexParts(params), params.names);
   const cw = monoChar(ctx, colors.fsSm);
   const prints = {
     tensor: basicsPrint(spec.shape, spec.at, cw),
@@ -2259,10 +2293,10 @@ defineWidget({
       label: "Dimensions",
       detail: "each step adds a dimension in front, or removes the first one",
       options: [
-        { value: "1", label: "1", detail: "[5] — the five features of one sample" },
-        { value: "2", label: "2", detail: "[2, 5] — two samples of five features" },
-        { value: "3", label: "3", detail: "[2, 2, 5] — two samples, two sequence points, five features" },
-        { value: "4", label: "4", detail: "[2, 2, 2, 5] — a batch holding two of those" },
+        { value: "1", label: "1", detail: "[5] — five values in a row" },
+        { value: "2", label: "2", detail: "[2, 5] — two rows of five" },
+        { value: "3", label: "3", detail: "[2, 2, 5] — two blocks of two rows of five" },
+        { value: "4", label: "4", detail: "[2, 2, 2, 5] — two of those blocks" },
       ],
       default: "3",
       when: { param: "tab", equals: "basics" },
@@ -2271,31 +2305,109 @@ defineWidget({
        every label truncates to `resha…`, which puts the two reshapes five
        characters apart with the arguments — the thing that tells them apart —
        cut off. */
+    /* --- the operation, as a verb and its argument (round 11) --------------- *
+     * The five lines of the lesson were the whole menu until Kenneth asked
+     * whether students could "try different options (those that work)". Now
+     * the verb is one control and its argument another, each argument list
+     * holding every value that is valid for the tensor on screen — and, for
+     * reshape, the one that is not: [3, 7] fails the way torch fails it,
+     * which is the case that loses (2.6) and the same device Broadcast's [2]
+     * and Multiply's W use. The lesson's own lines are the defaults. */
     op: {
       type: "segmented",
-      style: "grid",
       label: "Operation",
       detail: "what is done to the [2, 2, 5] tensor",
-      options: M.SHAPE_OPS.map((o) => ({
-        value: o.value,
-        label: o.label,
-        span: o.span,
-        detail: `${o.detail}. The result is ${M.shapeText(o.shape)}`,
-      })),
-      default: "reshape-2-10",
+      options: [
+        { value: "reshape", label: "reshape", detail: "refills the values, in reading order, into a shape with the same number of them" },
+        { value: "permute", label: "permute", detail: "reorders the dimensions; each value moves to the index with its positions reordered" },
+        { value: "unsqueeze", label: "unsqueeze", detail: "adds a dimension of size 1, which is how one sample becomes a batch of one" },
+        { value: "flatten", label: "flatten", detail: "collapses the dimensions from a starting one into a single dimension" },
+      ],
+      default: "reshape",
       when: { param: "tab", equals: "shape" },
+    },
+    shape: {
+      type: "select",
+      label: "New shape",
+      detail: "every shape that holds the same 20 values, up to four dimensions, and one that does not",
+      options: [
+        ...M.RESHAPE_SHAPES.map((sh) => ({
+          value: M.shapeKey(sh),
+          label: M.shapeText(sh),
+          group: `${sh.length} ${sh.length === 1 ? "dimension" : "dimensions"}`,
+        })),
+        { value: M.shapeKey(M.RESHAPE_FAIL), label: `${M.shapeText(M.RESHAPE_FAIL)} — fails`, group: "does not hold 20 values" },
+      ],
+      default: "2-10",
+      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] },
+    },
+    perm: {
+      type: "segmented",
+      label: "Order of dimensions",
+      detail: "the new position of each of the three dimensions",
+      options: M.PERMUTATIONS.map((pm) => ({ value: M.shapeKey(pm), label: pm.join(", ") })),
+      default: "0-2-1",
+      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "permute" }] },
+    },
+    udim: {
+      type: "segmented",
+      label: "Position of the new dimension",
+      detail: "0 puts it in front, 3 puts it last",
+      options: ["0", "1", "2", "3"],
+      default: "0",
+      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "unsqueeze" }] },
+    },
+    fstart: {
+      type: "segmented",
+      label: "Start dimension",
+      detail: "the dimensions from this one on are collapsed into one",
+      options: ["0", "1", "2"],
+      default: "0",
+      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "flatten" }] },
     },
     join: {
       type: "segmented",
       label: "Operation",
       detail: "how the [2, 2, 5] tensor is combined with a second one holding 21–30",
-      options: M.JOIN_OPS.map((o) => ({
-        value: o.value,
-        label: o.label,
-        detail: `${o.detail}. The result is ${M.shapeText(o.shape)}`,
-      })),
+      options: [
+        { value: "cat", label: "cat", detail: "joins the two tensors along a dimension that already exists, which grows" },
+        { value: "stack", label: "stack", detail: "puts the two tensors under a new dimension of size 2, so both keep their own shape" },
+      ],
       default: "cat",
       when: { param: "tab", equals: "join" },
+    },
+    cdim: {
+      type: "segmented",
+      label: "Dimension joined along",
+      detail: "the dimension that grows from 2, 2 or 5 to twice that",
+      options: ["0", "1", "2"],
+      default: "0",
+      when: { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "cat" }] },
+    },
+    sdim: {
+      type: "segmented",
+      label: "Position of the new dimension",
+      detail: "0 puts the new dimension in front, 3 puts it last",
+      options: ["0", "1", "2", "3"],
+      default: "0",
+      when: { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "stack" }] },
+    },
+    /* --- what the dimensions are called (round 11) --------------------------- *
+     * A display parameter: it changes the labels and nothing else, so nothing
+     * a reader has built is lost when they switch. Three conventions, two of
+     * them the lesson's own, and one that names nothing. */
+    names: {
+      type: "segmented",
+      label: "Dimension names",
+      detail: "a convention chosen for the data, not a property of the tensor",
+      options: [
+        { value: "sequence", label: "Sequence data", detail: "sample, sequence, feature — a batch adds a dimension in front" },
+        { value: "image", label: "Image data", detail: "channel, height, width — a batch of images adds sample in front" },
+        { value: "positions", label: "Positions only", detail: "the indices alone, which is all PyTorch knows about a dimension" },
+      ],
+      default: "sequence",
+      display: true,
+      when: { param: "tab", oneOf: ["basics", "shape", "join"] },
     },
     /* TWO DRAWINGS OF ONE TENSOR, and a display parameter because it changes
        only the layout: switching it keeps every value already moved (3.2). */
@@ -2500,7 +2612,7 @@ defineWidget({
   legend: ({ params }) => {
     if (params.tab === "basics") {
       const rank = Number(params.rank);
-      const sel = M.selectionOf(params.rank, indexParts(params));
+      const sel = M.selectionOf(params.rank, indexParts(params), params.names);
       /* Rank 4 is frames in BOTH views — an exploded stack per leading index in
          one, frames within frames in the other — so the frame entry is not a
          fact about `view` alone. */
@@ -2554,7 +2666,7 @@ defineWidget({
         },
       ];
     }
-    const op = params.tab === "join" ? M.joinByValue(params.join) : M.opByValue(params.op);
+    const op = M.opFrom(params);
     return [
       { token: "empirical", label: "The tensor the operation reads, and the result it builds" },
       ...(op.second ? [{ token: "group-b", label: "The second tensor" }] : []),
@@ -2575,13 +2687,15 @@ defineWidget({
     if (params.tab === "basics") {
       return {
         kind: "basics",
-        spec: M.rankSpec(params.rank),
-        sel: M.selectionOf(params.rank, indexParts(params)),
+        spec: M.rankSpec(params.rank, params.names),
+        sel: M.selectionOf(params.rank, indexParts(params), params.names),
         units: 0,
       };
     }
     if (params.tab === "shape" || params.tab === "join") {
-      const op = params.tab === "join" ? M.joinByValue(params.join) : M.opByValue(params.op);
+      /* a reshape that does not hold the values has no walk, so it is inert
+         (4.5) and the Result band prints torch's own complaint */
+      const op = M.opFrom(params);
       const moves = M.shapeWalk(op);
       return { kind: "shape", op, moves, units: moves.length };
     }
@@ -2661,7 +2775,7 @@ defineWidget({
         /* the Basics eases (4.4): what is on screen now, so `rebuild` can tell
            a view change from an index change, and where every cell was drawn */
         view: params.view,
-        sel: params.tab === "basics" ? M.selectionOf(params.rank, indexParts(params)).text : null,
+        sel: params.tab === "basics" ? M.selectionOf(params.rank, indexParts(params), params.names).text : null,
         pos: null,
         morph: null,
         extract: null,
@@ -2715,7 +2829,7 @@ defineWidget({
          Setting `easing` is the request for frames; core clears it when it
          grants one. Reduced motion asks for nothing and the figure jumps. */
       if (params.tab === "basics") {
-        const sel = M.selectionOf(params.rank, indexParts(params));
+        const sel = M.selectionOf(params.rank, indexParts(params), params.names);
         const motion = !reducedMotion();
         if (params.view !== anim.view) {
           if (motion && anim.pos) anim.morph = { from: anim.pos, t: 0 };
@@ -2813,7 +2927,7 @@ defineWidget({
         {
           label: "Shape",
           value: M.shapeText(shape),
-          note: names.join(", "),
+          note: names.filter(Boolean).join(", ") || "positions only",
         },
         {
           label: "Selection",
@@ -2845,7 +2959,7 @@ defineWidget({
           value: M.shapeText(M.T3_SHAPE),
           note: state.op.second
             ? "two tensors of this shape, read one after the other"
-            : "sample, sequence, feature",
+            : (M.roleNames(params.names, 3).filter(Boolean).join(", ") || "positions only"),
         },
         {
           label: "Result shape",
@@ -2958,7 +3072,7 @@ defineWidget({
     if (params.tab === "basics") {
       const { shape, names } = state.spec;
       const sel = state.sel;
-      return `The ${M.shapeText(shape)} tensor, its dimensions ${names.join(", ")}, drawn as `
+      return `The ${M.shapeText(shape)} tensor, its dimensions ${names.filter(Boolean).join(", ") || "numbered only"}, drawn as `
         + (params.view === "stack"
           ? "grids stepped up the diagonal"
           : "framed grids side by side, with the indices on the edges")
