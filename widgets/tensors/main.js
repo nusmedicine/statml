@@ -452,6 +452,18 @@ const ROLE_BOTTOM = 16;
    frame does not turn a tensor into wallpaper. The Shape tab fits its own
    cell from this as a ceiling — see `shapeFit` and decision 8. */
 const cellSize = (w) => Math.max(20, Math.min(30, Math.floor((w - 2 * PAD) / 20)));
+/* A CELL THAT HOLDS A FLOAT IS AS WIDE AS ITS LONGEST STRING PLUS A MARGIN
+   (round 22, Kenneth: "some numbers look very close to the cell borders"):
+   `8.77` in a 30px cell stepped down to the smallest face and still sat 3px
+   from each border. Measured at the small face, with six clear pixels a
+   side, which is 39px for a four-character float; integers keep `cellSize`. */
+const FLOAT_PAD = 6;
+const floatCellSize = (w, colors, strings) => {
+  const c = measureCtx();
+  c.font = `${colors.fsSm} ${MONO}`;
+  const widest = Math.max(0, ...strings.map((t) => c.measureText(String(t)).width));
+  return Math.max(cellSize(w), Math.ceil(widest) + 2 * FLOAT_PAD);
+};
 const CELL_MIN = 14;      // below this two digits no longer fit a cell
 const CELL_OK = 18;       // a cell worth shrinking to, to keep a print beside
 
@@ -2455,7 +2467,7 @@ const mmCurrent = (anim, state, rising) =>
 function dotGeometry(colors, w, params, cw) {
   const pair = M.dotPairByValue(params.pair);
   const d = M.dotTerms(pair);
-  const s = cellSize(w);
+  const s = floatCellSize(w, colors, [...d.terms.flatMap((t) => [t.a, t.b]), d.sum].map(M.num));
   const operandsH = GRID_LBL + s + 26 + s + 30 + 16;
   const print = printOf([], () => M.torchFloatFormat([d.sum])(d.sum), "result", cw);
   const resultH = Math.max(GRID_LBL + s, print.h);
@@ -2642,30 +2654,37 @@ const REDUCE_ARROW = 30;
 const reduceExpr = (fn, dim) => (dim === "none" ? `torch.${fn}(X)` : `torch.${fn}(X, dim=${dim})`);
 
 function redGeometry(colors, w, params, cw) {
-  const s = cellSize(w);
+  const s0 = cellSize(w);
   const normalize = params.normalize === "1" && params.dim === "0" && params.fn === "mean";
   const dim = params.dim;
   const rowsX = M.RED_X_SHAPE[0];
-  const xw = M.RED_X_SHAPE[1] * s;
   if (normalize) {
     /* four grids of four columns in one row is the widest thing any tab draws
        after flatten; this panel shrinks its cell rather than wrapping, because
        the row IS the sentence: X minus mu, divided by sigma, equals the result */
     const sep = OP_W + GAP;
-    const sN = Math.min(s, Math.floor((w - 2 * PAD - 2 * BAND_PAD - 3 * sep) / 16));
+    const sN = Math.min(s0, Math.floor((w - 2 * PAD - 2 * BAND_PAD - 3 * sep) / 16));
     const bands = [bandH(GRID_LBL + 3 * sN)];
     return { normalize, s: sN, sep, bands, height: stageOf(bands, 2) };
   }
   const values = M.reduceValues(params.fn, dim);
   const shape = M.reduceShape(dim);
+  /* mean, std and norm leave floats, and the cell grows to hold them */
+  const s = floatCellSize(w, colors, values.map(M.num));
+  const xw = M.RED_X_SHAPE[1] * s;
   /* printed as torch prints a float tensor: `2.`, `3.7417` */
   const fmt = M.torchFloatFormat(values);
   const print = printOf(shape, (idx) => fmt(values[idx.length ? idx[0] : 0]), "result", cw);
   const drawH = dim === "1" ? GRID_LBL + rowsX * s
     : GRID_LBL + rowsX * s + REDUCE_ARROW + s + GRID_LBL;
-  const drawW = dim === "1" ? xw + 40 + s : xw;
-  const bands = [bandH(Math.max(drawH, print.h))];
-  return { normalize, s, dim, rowsX, xw, drawW, values, shape, print, bands, height: stageOf(bands, 1) };
+  /* the column's label is wider than the column, so the print clears the
+     label (round 22: `result [3]` ran into `print(result)` at 550) */
+  const labelW = Math.ceil(panelLine("result", shape).length * cw);
+  const drawW = dim === "1" ? xw + 40 + Math.max(s, labelW) : xw;
+  const avail = w - 2 * PAD - 2 * BAND_PAD;
+  const beside = drawW + PRINT_GAP + print.w <= avail;
+  const bands = [bandH(beside ? Math.max(drawH, print.h) : drawH + PRINT_DROP + print.h)];
+  return { normalize, s, dim, rowsX, xw, drawW, drawH, values, shape, print, beside, bands, height: stageOf(bands, 1) };
 }
 
 function planReduce(ctx, colors, w, h, params, state, anim) {
@@ -2674,7 +2693,7 @@ function planReduce(ctx, colors, w, h, params, state, anim) {
   const g = redGeometry(colors, w, params, cw);
   if (g.normalize) return planNormalize(plan, colors, w, h, state, anim, g);
 
-  const { s, dim, rowsX, xw, drawW, values, print, bands } = g;
+  const { s, dim, rowsX, xw, drawW, drawH, values, print, beside, bands } = g;
   const groups = state.groups;
   const done = anim.n;
   const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
@@ -2695,7 +2714,9 @@ function planReduce(ctx, colors, w, h, params, state, anim) {
   const x0 = xL + BAND_PAD;
   const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
 
-  pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
+  /* the label sits higher where dim 1's rule runs along the grid's top edge:
+     at 6 the brackets' descenders touched the rule (round 22) */
+  pushText(plan, panelLine("X", M.RED_X_SHAPE), x0, y0 - (dim === "0" ? 6 : 12), { color: colors.ink1, mono: true });
   const xBox = pushGrid(plan, x0, y0, rowsX, 4, s, (r, c) => ({
     v: M.RED_X[r][c],
     ...(inGroup(r, c) ? litFace(colors, ph.light) : lastGroup(r, c) ? litFace(colors) : { fill: colors.groupA }),
@@ -2754,10 +2775,11 @@ function planReduce(ctx, colors, w, h, params, state, anim) {
     }
   }
 
-  /* the result, printed beside the drawing */
-  band.divX = x0 + drawW + PRINT_GAP / 2;
-  const px = x0 + drawW + PRINT_GAP;
-  const py = yT + BAND_HEAD + BAND_PAD;
+  /* the result, printed beside the drawing, or under it where the wider
+     float cells leave no room beside */
+  if (beside) band.divX = x0 + drawW + PRINT_GAP / 2;
+  const px = beside ? x0 + drawW + PRINT_GAP : x0;
+  const py = yT + BAND_HEAD + BAND_PAD + (beside ? 0 : drawH + PRINT_DROP);
   pushPrintBlock(plan, colors, px, py, print, cw, (idx) => {
     const k = idx.length ? idx[0] : 0;
     if (k >= done + (ph && ph.land > 0 ? 1 : 0)) return null;
