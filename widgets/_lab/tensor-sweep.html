@@ -94,16 +94,28 @@ async function run(frameW, name, query, expect) {
     const desc = m.actualBoundingBoxDescent || 3;
     const y0 = this.textBaseline === "middle" ? y - (asc + desc) / 2
       : this.textBaseline === "top" ? y : y - asc;
-    texts.push({ s: String(s), mono, x0, x1: x0 + w, y0, y1: y0 + asc + desc });
+    /* a cell's digit is drawn with the middle baseline and, since round 18, in
+       the mono font too; an index label sits on the alphabetic baseline */
+    texts.push({ s: String(s), mono, mid: this.textBaseline === "middle", x0, x1: x0 + w, y0, y1: y0 + asc + desc });
     return oFill.call(this, s, x, y, ...rest);
   };
   /* Only the LAST paint counts. Core clears the whole canvas at the start of
      every paint, and a widget paints more than once while it loads, so
      without this reset the first paint's strings were reported alongside the
      final ones, some of them under the wrong state. */
+  /* A clear that follows a paint keeps that paint as the last one seen, so a
+     canvas cleared after the figure was drawn — a buffer blitted onto the
+     stage, a hit map, an ease's next frame — cannot leave the list empty
+     (Basics read `texts 0, cell -` now and then, and always once the reset
+     was confined to the figure's canvas). */
+  let lastTexts = [];
+  let lastRects = [];
   const oCR = proto.clearRect;
   proto.clearRect = function (x, y, w, h, ...rest) {
-    if (x === 0 && y === 0 && w > 100) { texts.length = 0; rects.length = 0; }
+    if (x === 0 && y === 0 && w > 100) {
+      if (texts.length) { lastTexts = texts.slice(); lastRects = rects.slice(); }
+      texts.length = 0; rects.length = 0;
+    }
     return oCR.call(this, x, y, w, h, ...rest);
   };
   const oFR = proto.fillRect;
@@ -116,12 +128,24 @@ async function run(frameW, name, query, expect) {
     rects.push({ kind: "stroke", x, y, w, h });
     return oSR.call(this, x, y, w, h, ...rest);
   };
-  win.dispatchEvent(new win.Event("resize"));
-  await new Promise((r) => setTimeout(r, 300));
+  /* A PAINT IS FORCED BY A POINTER, not by `resize`: in the in-app pane an
+     offscreen iframe's ResizeObserver stopped firing once the page was warm,
+     and a state whose first paint had landed before `load` was read as
+     `texts 0, cell -`. A pointer move over the canvas repaints (hover), and a
+     pointer leave repaints once more with no hover — that last paint is the
+     one measured. 600ms because the pane throttles frames to about one in
+     300ms. */
+  const cv0 = doc.querySelector(".w-figure canvas");
+  const r0 = cv0.getBoundingClientRect();
+  cv0.dispatchEvent(new win.PointerEvent("pointermove", { bubbles: true, clientX: r0.left + 2, clientY: r0.top + 2 }));
+  await new Promise((r) => setTimeout(r, 350));
+  cv0.dispatchEvent(new win.PointerEvent("pointerleave", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 600));
   proto.fillText = oFill;
   proto.clearRect = oCR;
   proto.fillRect = oFR;
   proto.strokeRect = oSR;
+  if (!texts.length && lastTexts.length) { texts.push(...lastTexts); rects.push(...lastRects); }
 
   const cv = doc.querySelector(".w-figure canvas");
   const W = cv.clientWidth;
@@ -144,7 +168,7 @@ async function run(frameW, name, query, expect) {
   const home = regions[0];
   const inHome = (t) => home && t.x0 >= home.x && t.x1 <= home.x + home.w
     && t.y0 >= home.y && t.y1 <= home.y + home.h;
-  const labels = texts.filter((t) => t.mono && isIndexLabel(t.s) && inHome(t));
+  const labels = texts.filter((t) => t.mono && !t.mid && isIndexLabel(t.s) && inHome(t));
   let hits = 0;
   const misses = [];
   for (const t of labels) {

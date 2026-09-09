@@ -323,6 +323,14 @@
       it: the image-batch caption only under image data, the Topic control's
       own detail line gone, the naming labels one word each, the alignment
       heading in ink-2, Reduce's twelve values as a count.
+
+  31. ROUND 19, THE FIVE (Kenneth: "do all 5"). The stack's dim-0 name sits
+      at the arrow's head; Shape and Join draw their arrows in the dimension
+      hues with no names on them, the swatched roles line naming each once
+      (`arrowNames: false`; Basics keeps its names, having no roles line
+      under the source); the legend entries are a clause each; the Index
+      band's whole-tensor line says where an index is set; the Topic control
+      keeps its two row captions and loses the six option details.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1067,9 +1075,12 @@ const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0, shape = M.T3_SHA
     rank it is on. */
 function pushSource(plan, colors, x, y, s, view, cell, perRow,
   shape = M.T3_SHAPE, roles = M.DIM_ROLES, opts = {}) {
-  const { arrows = true, rolesLine = true, edges = false } = opts;
+  /* `arrowNames: false` draws the arrows in their hues and leaves the names
+     to the roles line under the drawing (round 19: on Shape and Join the two
+     had named every dimension twice) */
+  const { arrows = true, rolesLine = true, edges = false, arrowNames = true } = opts;
   const hues = dimHues(colors, shape.length);
-  const lead = arrows && roles.length ? textW(colors, roles[0]) : 0;
+  const lead = arrows && arrowNames && roles.length ? textW(colors, roles[0]) : 0;
   const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead, shape);
   const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges);
   const half = s / 2;
@@ -1084,8 +1095,10 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   if (shape.length === 1) {
     const f = box.centre([0]);
     pushArrow(plan, f.x - half, f.y - half - 8, f.x - half + shape[0] * s, f.y - half - 8, hues[0]);
-    pushText(plan, roles[0], f.x - half + (shape[0] * s) / 2, f.y - half - 13,
-      { color: colors.ink2, align: "center" });
+    if (arrowNames) {
+      pushText(plan, roles[0], f.x - half + (shape[0] * s) / 2, f.y - half - 13,
+        { color: colors.ink2, align: "center" });
+    }
     return size;
   }
   if (shape.length === 2) {
@@ -1093,9 +1106,9 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     const gx = f.x - half;
     const gy = f.y - half;
     pushArrow(plan, gx, gy - 8, gx + shape[1] * s, gy - 8, hues[1]);
-    pushText(plan, roles[1], gx + (shape[1] * s) / 2, gy - 13, { color: colors.ink2, align: "center" });
+    if (arrowNames) pushText(plan, roles[1], gx + (shape[1] * s) / 2, gy - 13, { color: colors.ink2, align: "center" });
     pushArrow(plan, gx - 9, gy, gx - 9, gy + shape[0] * s, hues[0]);
-    pushText(plan, roles[0], gx - ROLE_LEFT, gy + shape[0] * s + 13, { color: colors.ink2 });
+    if (arrowNames) pushText(plan, roles[0], gx - ROLE_LEFT, gy + shape[0] * s + 13, { color: colors.ink2 });
     return size;
   }
   if (shape.length === 4) {
@@ -1109,7 +1122,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
       const last = box.centre([shape[0] - 1, 0, shape[2] - 1, 0]);
       const lane = x + 5;
       pushArrow(plan, lane, first.y - half - 4, lane, last.y + half + 4, hues[0], 2, [3, 3]);
-      pushText(plan, roles[0], x, y + 8, { color: colors.ink2 });
+      if (arrowNames) pushText(plan, roles[0], x, y + 8, { color: colors.ink2 });
       const front = box.centre([0, 0, 0, 0]);
       const gut = 12;
       pushArrow(plan, front.x - half - gut, front.y - half - 4,
@@ -1117,7 +1130,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
       /* Beside the arrow's HEAD, not its foot: the foot sits in the gutter the
          `[f]` labels use, and a role name right-aligned there runs off the
          left edge of the region. */
-      pushText(plan, roles[1], first.x - half + 2, first.y - half - 6, { color: colors.ink2 });
+      if (arrowNames) pushText(plan, roles[1], first.x - half + 2, first.y - half - 6, { color: colors.ink2 });
     }
     if (rolesLine) {
       pushText(plan, roles.join("  ·  "), x, y + m.top + box.h + 12, { color: colors.ink2 });
@@ -1133,9 +1146,9 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     const bx = back.x - half;
     const by = back.y - half;
     pushArrow(plan, bx, by - 8, bx + d2 * s, by - 8, hues[2]);
-    pushText(plan, roles[2], bx + (d2 * s) / 2, by - 13, { color: colors.ink2, align: "center" });
+    if (arrowNames) pushText(plan, roles[2], bx + (d2 * s) / 2, by - 13, { color: colors.ink2, align: "center" });
     pushArrow(plan, bx + d2 * s + 9, by, bx + d2 * s + 9, by + d1 * s, hues[1]);
-    pushText(plan, roles[1], bx + d2 * s + 15, by + (d1 * s) / 2 + 4, { color: colors.ink2 });
+    if (arrowNames) pushText(plan, roles[1], bx + d2 * s + 15, by + (d1 * s) / 2 + 4, { color: colors.ink2 });
     /* The dim-0 arrow is anchored to the slabs: it runs from beside the front
        slab's top-left corner to beside the back slab's, so it IS the step the
        slabs take, drawn once. A gutter of 12 keeps it clear of the `[1]` label
@@ -1146,7 +1159,10 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     const fx0 = first.x - half - gut;
     const fy0 = first.y - half - 4;
     pushArrow(plan, fx0, fy0, back.x - half - gut, back.y - half - 4, hues[0], 2, [3, 3]);
-    pushText(plan, roles[0], fx0 - 4, fy0 + 8, { color: colors.ink2, align: "right" });
+    /* round 19: the name at the arrow's HEAD, above the back slab's corner,
+       where at the foot it sat beside the `[0]` slab label and read as one
+       phrase */
+    if (arrowNames) pushText(plan, roles[0], back.x - half - gut - 4, back.y - half - 10, { color: colors.ink2, align: "right" });
     return size;
   }
   /* The name sits at the arrow's head, right-aligned at the block's edge. A
@@ -1155,11 +1171,13 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   const right = Math.max(x + m.left + box.w, x + m.left + IDX_COL + Math.ceil(lead) + 4);
   size.w = Math.max(size.w, right - x);
   pushArrow(plan, x + m.left + IDX_COL, y + 11, right, y + 11, hues[0], 2, [3, 3]);
-  pushText(plan, roles[0], right, y + 8, { color: colors.ink2, align: "right" });
-  pushText(plan, roles[2], first.x - half + (d2 * s) / 2, y + 25,
-    { color: colors.ink2, align: "center" });
+  if (arrowNames) pushText(plan, roles[0], right, y + 8, { color: colors.ink2, align: "right" });
+  if (arrowNames) {
+    pushText(plan, roles[2], first.x - half + (d2 * s) / 2, y + 25,
+      { color: colors.ink2, align: "center" });
+  }
   pushArrow(plan, x + 5, first.y - half, x + 5, first.y - half + d1 * s, hues[1]);
-  pushText(plan, roles[1], x, first.y - half + d1 * s + 21, { color: colors.ink2 });
+  if (arrowNames) pushText(plan, roles[1], x, first.y - half + d1 * s + 21, { color: colors.ink2 });
   return size;
 }
 
@@ -1317,7 +1335,7 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
      stacking them lets each print sit beside its own drawing instead of both
      dropping under a pair of drawings. */
   const rows = prints.sources.map((p, t) =>
-    placeSrc(drawnSize(colors, op.src, s, view, srcRow, t === 0, srcRoles), p, avail));
+    placeSrc(drawnSize(colors, op.src, s, view, srcRow, t === 0, srcRoles, SOURCE_OPTS), p, avail));
   const src = {
     w: Math.max(...rows.map((r) => r.w)),
     h: rows.reduce((a, r) => a + r.h, 0) + (rows.length - 1) * INNER_GAP,
@@ -1379,7 +1397,8 @@ function shapeFit(colors, w, op, view, prints, srcRoles) {
 
 /** How a result is drawn: arrows in the stack view at rank 3 and 4, edge
     indices in the frames view, the roles line drawn separately underneath. */
-const resultOpts = (view, rank) => ({ arrows: view === "stack" && rank >= 3, rolesLine: false, edges: view === "frames" });
+const resultOpts = (view, rank) => ({ arrows: view === "stack" && rank >= 3, rolesLine: false, edges: view === "frames", arrowNames: false });
+const SOURCE_OPTS = { arrowNames: false };
 
 const SRC_NAMES = ["T", "T2"];
 
@@ -1492,7 +1511,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       return { v, ...face, key: srcKey(t, idx), name: srcName(t, idx, v) };
     };
     const draw = t === 0
-      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, op.src, srcRoles)
+      ? pushSource(plan, colors, cx, ty, s, view, cell, fit.srcRow, op.src, srcRoles, SOURCE_OPTS)
       : pushTensor(plan, colors, cx, ty, op.src, s, view, cell, fit.srcRow);
     srcCentres.push(draw.centre);
     widest = Math.max(widest, draw.w);
@@ -1636,7 +1655,7 @@ const PILL_H = 15;
 const tally = (n, one, many) => `${n === 0 ? "no" : n} ${n <= 1 ? one : many}`;
 
 const INDEX_RULE = "An index removes the dimension it names, and a colon keeps it.";
-const WHOLE_LINE = "every slot is a colon: the selection is the whole tensor";
+const WHOLE_LINE = "every slot is a colon, so the selection is the whole tensor: set one above, or click an index";
 
 const andList = (xs) => (xs.length <= 1
   ? xs.join("")
@@ -2491,15 +2510,15 @@ defineWidget({
       type: "segmented",
       label: "Topic",
       options: [
-        { value: "basics", label: "Basics", group: DATA_HALF, detail: "how many dimensions a tensor has, and what an index selects" },
-        { value: "shape", label: "Shape", group: DATA_HALF, detail: "where each value goes when the shape changes" },
-        { value: "join", label: "Join", group: DATA_HALF, detail: "two tensors joined along a dimension, or under a new one" },
+        { value: "basics", label: "Basics", group: DATA_HALF },
+        { value: "shape", label: "Shape", group: DATA_HALF },
+        { value: "join", label: "Join", group: DATA_HALF },
         /* ROUND 17 (Kenneth): the plain element-wise operation first, and
            broadcasting as the shortcut it is when b's shape is smaller;
            `Matmul` because "Multiply" read as the scalar kind. */
-        { value: "elementwise", label: "Elementwise", group: ALGEBRA_HALF, detail: "X + b cell by cell, and what happens when b's shape is smaller" },
-        { value: "matmul", label: "Matmul", group: ALGEBRA_HALF, detail: "one cell of a matrix product as a sum of products" },
-        { value: "reduce", label: "Reduce", group: ALGEBRA_HALF, detail: "which dimension a mean, a sum or a maximum removes" },
+        { value: "elementwise", label: "Elementwise", group: ALGEBRA_HALF },
+        { value: "matmul", label: "Matmul", group: ALGEBRA_HALF },
+        { value: "reduce", label: "Reduce", group: ALGEBRA_HALF },
       ],
       default: "basics",
     },
@@ -2919,15 +2938,15 @@ defineWidget({
          fact about `view` alone. */
       const framed = params.view === "frames" && rank >= 3;
       return [
-        { token: "empirical", label: "The tensor, in the drawing and in the printed text" },
+        { token: "empirical", label: "The tensor, drawn and printed" },
         {
           token: "highlight",
           label: sel.fixed > 0
-            ? "The cells the index selects, and the sub-tensor they make"
+            ? "The cells the index selects, and the sub-tensor"
             : "The sub-tensor the index selects",
         },
         ...(framed
-          ? [{ token: "ink-3", label: "A dashed frame holds one index of the dimension it names", mark: "ring" }]
+          ? [{ token: "ink-3", label: "A frame: one index of the dimension it names", mark: "ring" }]
           : []),
       ];
     }
@@ -2951,7 +2970,7 @@ defineWidget({
         { token: "empirical", label: "X, and the product Y it builds" },
         { token: "group-b", label: mm.ok ? "Wᵀ, one column per neuron" : "W, one row per neuron" },
         ...(mm.ok
-          ? [{ token: "highlight", label: "The cell just computed, and the row and column it read" }]
+          ? [{ token: "highlight", label: "The cell just computed, its row and its column" }]
           : [{ token: "extreme", label: "The inner dimensions that do not match" }]),
       ];
     }
@@ -2970,12 +2989,12 @@ defineWidget({
     }
     const op = M.opFrom(params);
     return [
-      { token: "empirical", label: "The tensor the operation reads, and the result it builds" },
+      { token: "empirical", label: "The tensor read, and the result built" },
       ...(op.second ? [{ token: "group-b", label: "The second tensor" }] : []),
-      { token: "highlight", label: "The value that just moved, in the drawing and in the printed text" },
-      { token: "ink-2", label: "A value that has already moved out of the source" },
+      { token: "highlight", label: "The value that just moved" },
+      { token: "ink-2", label: "A value already moved out" },
       ...(params.view === "frames"
-        ? [{ token: "ink-3", label: "A dashed frame holds one index of the dimension it names", mark: "ring" }]
+        ? [{ token: "ink-3", label: "A frame: one index of the dimension it names", mark: "ring" }]
         : []),
     ];
   },

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — the widget in the notebook's own order</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 420px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { width: 300px; padding: var(--sp-3); border: 1px solid var(--grid); background: var(--surface-1); border-radius: var(--radius); }
+  .rail .w-label { display: block; font-size: var(--fs-sm); font-weight: 600; margin: 10px 0 4px; }
+  .rail .w-label:first-child { margin-top: 0; }
+  .rail .w-detail { font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+  .cap { font-size: var(--fs-xs); color: var(--ink-3); margin: 2px 0 6px; }
+  .seg { display: flex; border: 1px solid var(--axis); border-radius: var(--radius); overflow: hidden; }
+  .seg span { flex: 1; text-align: center; padding: 6px 2px; font-size: var(--fs-sm); border-left: 1px solid var(--axis); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg span:first-child { border-left: 0; }
+  .seg span.on { background: var(--surface-3); font-weight: 600; }
+  .seg.mono span { font-family: var(--font-mono); }
+  .expr { font-family: var(--font-mono); font-size: var(--fs-lg); margin: 4px 0; }
+  .expr .slot { display: inline-block; border: 1px solid var(--axis); border-radius: var(--radius); padding: 2px 8px; font-size: var(--fs-md); background: var(--surface-1); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td code { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · the widget in the notebook's own order</h1>
+  <p class="note">
+    <b>The spec is <code>05-2 Tensors and Gradients</code>, cells 1–69, as its headings group things.</b> Tensors for
+    Data: Creating · Inspecting · Data Type · Indexing/Slicing · Manipulating Dimensions (1 Reshaping: <code>reshape</code>,
+    <code>flatten</code>; 2 Adding/Removing: <code>unsqueeze</code>, <code>squeeze</code>; 3 Reordering: <code>permute</code>,
+    <code>transpose</code>) · Joining (<code>cat</code>, <code>stack</code>). Linear Algebra, from the overview table in
+    cell 45: 1 Scalar &amp; elementwise (<code>X + 2</code>, <code>X * 2</code>, <code>torch.exp</code>, <code>torch.sigmoid</code>)
+    · 2 Broadcasting, "a generalization of scalar operations" (<code>X + b</code>) · 3 Multiplication (matrix
+    multiplication <code>X @ W.T</code>, dot product <code>torch.dot</code>, Hadamard product <code>X * mask</code>)
+    · 4 Reductions (<code>sum</code>, <code>mean</code>, <code>std</code>, <code>max</code>, <code>min</code>,
+    <code>norm</code>; then <code>(X − μ) / σ</code>). Each section below is one pick. Nothing in the widget has
+    been changed for any of them.
+  </p>
+
+  <h2>§1 · The rail — the topics as the notebook's headings</h2>
+  <p class="note">
+    <b>A</b> two rows of four, one button per heading that the widget can show: <i>Create · Index · Manipulate · Join</i>
+    over <i>Elementwise · Broadcast · Multiply · Reduce</i>. At the 300px rail each button is 75px; the two longest
+    labels are drawn at their real width below. <b>B</b> the same, with Create and Index kept as one topic (the
+    ladder of ranks and the index expression share a stage today): <i>Basics · Manipulate · Join</i> over the same
+    four. Inspecting and Data Type have no figure to draw and stay in the notebook.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>A · one topic per heading</h3><p class="sub">4 + 4, 75px a button</p>
+      <div class="rail">
+        <span class="w-label">Topic</span>
+        <div class="seg"><span>Create</span><span class="on">Index</span><span>Manipulate</span><span>Join</span></div>
+        <p class="cap">tensors for data</p>
+        <div class="seg"><span>Elementwise</span><span>Broadcast</span><span>Multiply</span><span>Reduce</span></div>
+        <p class="cap">linear algebra</p>
+      </div>
+    </div>
+    <div class="cand"><h3>B · Basics kept whole</h3><p class="sub">3 + 4</p>
+      <div class="rail">
+        <span class="w-label">Topic</span>
+        <div class="seg"><span class="on">Basics</span><span>Manipulate</span><span>Join</span></div>
+        <p class="cap">tensors for data</p>
+        <div class="seg"><span>Elementwise</span><span>Broadcast</span><span>Multiply</span><span>Reduce</span></div>
+        <p class="cap">linear algebra</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>§2 · Manipulating Dimensions — the verbs in the notebook's three groups</h2>
+  <p class="note">
+    The Operation control becomes three captioned rows, exactly cell 24's list: <b>1 reshaping</b> <code>reshape</code>
+    · <code>flatten</code>; <b>2 adding / removing</b> <code>unsqueeze</code> · <code>squeeze</code>; <b>3 reordering</b>
+    <code>permute</code> · <code>transpose</code>. Two verbs are new. <code>squeeze</code> works on the tensor the notebook
+    squeezes — the one <code>unsqueeze(0)</code> just made, <code>[1, 2, 2, 5]</code> — so its Tensor band shows that
+    source and its Result band the <code>[2, 2, 5]</code> it returns to; a dim that is not size 1 leaves the shape as it
+    is, which is the notebook's own rule and is said in the band. <code>transpose</code> takes two positions, each a
+    dropdown, and its caption says it is permute for two dimensions. The argument line for each is drawn.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>the control</h3><p class="sub">segmented, three captioned rows, as the Topic control is built</p>
+      <div class="rail">
+        <span class="w-label">Operation</span>
+        <div class="seg mono"><span class="on">reshape</span><span>flatten</span></div><p class="cap">1 · reshaping</p>
+        <div class="seg mono"><span>unsqueeze</span><span>squeeze</span></div><p class="cap">2 · adding / removing</p>
+        <div class="seg mono"><span>permute</span><span>transpose</span></div><p class="cap">3 · reordering</p>
+      </div>
+    </div>
+    <div class="cand"><h3>the two new argument lines</h3><p class="sub">squeeze: one position or none; transpose: two positions</p>
+      <div class="rail">
+        <span class="w-label">Dimension to remove</span>
+        <div class="expr">T.squeeze( <span class="slot">0 ▾</span> )</div>
+        <p class="w-detail">a position of size 1, or none to remove every size-1 dimension; a position that is not size 1 leaves the shape as it is</p>
+        <span class="w-label">Dimensions to swap</span>
+        <div class="expr">T.transpose( <span class="slot">1 ▾</span> , <span class="slot">2 ▾</span> )</div>
+        <p class="w-detail">permute for two dimensions: the two swap places and the rest stay</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>§3 · The stack — how far apart the slabs sit</h2>
+  <p class="note">
+    The [2, 5, 2] that <code>permute(0, 2, 1)</code> makes, and the [2, 2, 5] source, three ways. <b>A</b> as built
+    since round 18: exploded, no slab covers any part of another, and the step is 45°, so a five-row slab steps
+    138px across — the gap Kenneth circled. <b>B</b> the notebook's own drawing: the slabs overlap, the back one
+    offset up and across by one cell at 45°, its top row and right column showing; the cells behind the front slab
+    are hidden, which is why round 3 exploded the stack — a hidden cell cannot light, move or be hovered. <b>C</b>
+    exploded and compact: up by the slab's height and the gap, across by one cell, so the slabs stay close and every
+    cell stays visible; the step is steeper than 45° for a tall slab and flatter for a short one.
+  </p>
+  <div class="row" id="stack"></div>
+
+  <h2>§4 · Linear Algebra — the four topics with the notebook's own examples</h2>
+  <p class="note">
+    What each topic would hold, from the cells named. The Elementwise topic gets an Operation control over the
+    notebook's six; Broadcast keeps its shapes of b and opens with the sentence cell 51 opens with; Multiply gets a
+    Kind control over the three products, each with the notebook's own operands; Reduce gets the notebook's list
+    of functions and its dim, and keeps Standardize.
+  </p>
+  <table>
+    <tr><th>topic</th><th>control</th><th>operands, from the notebook</th><th>the stage</th><th>cells</th></tr>
+    <tr><td><b>Elementwise</b></td><td>Operation: <code>+ 2</code> · <code>− 2</code> · <code>× 2</code> · <code>÷ 2</code> · <code>exp</code> · <code>sigmoid</code></td>
+      <td><code>X</code> the 3 × 3 image <code>[[0, 50, 100], [150, 200, 250], [30, 60, 90]]</code></td>
+      <td>X, the operation, Y cell by cell; a step applies it to one cell and prints it; <code>Y = X + 2</code> on the Result band</td><td>46–50</td></tr>
+    <tr><td><b>Broadcast</b></td><td>Shape of b: <code>[5]</code> · <code>[1, 5]</code> · <code>[2, 1]</code> · a scalar · <code>[2]</code> (fails)</td>
+      <td><code>X</code> [2, 5] of 1–10, <code>b</code> [5] of 10–50</td>
+      <td>as built, the same-shape case gone (it is Elementwise's); the caption opens as cell 51 does: broadcasting generalises the scalar case</td><td>51–53</td></tr>
+    <tr><td><b>Multiply</b></td><td>Kind: <code>matrix</code> · <code>dot</code> · <code>Hadamard</code></td>
+      <td>matrix: <code>X</code> [3, 4] @ <code>Wᵀ</code> [4, 2] as built; dot: the amino-acid vectors, lysine · arginine, lysine · valine, lysine · aspartic; Hadamard: <code>X</code> [2, 5] × a 0/1 <code>mask</code> drawn from the seed</td>
+      <td>matrix as built; dot: two vectors, the products, the one sum; Hadamard: X, the mask, Z with the masked cells at zero</td><td>54–65</td></tr>
+    <tr><td><b>Reduce</b></td><td>Reduction: <code>sum</code> · <code>mean</code> · <code>std</code> · <code>max</code> · <code>min</code> · <code>norm</code>; Dimension removed: 0 · 1 · none; Standardized X</td>
+      <td><code>X</code> [3, 4] as built</td><td>as built, with the functions the notebook lists</td><td>66–69</td></tr>
+  </table>
+  <div class="row" id="algebra"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "monospace";
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function txt(ctx, s, x, y, { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? MONO : T.font}`.trim(); ctx.fillText(s, x, y);
+}
+const wash = (h, a) => { const p = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function cell(ctx, x, y, s, v, st) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s);
+  ctx.fillStyle = st.fill; ctx.fillRect(x, y, s, s);
+  ctx.strokeStyle = st.stroke; ctx.lineWidth = 2; ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+  if (v != null) txt(ctx, String(v), x + s / 2, y + s / 2 + 0.5, { color: T.ink1, align: "center", baseline: "middle", size: "13px", mono: true });
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = [], head = 9) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+const dims = T.dims;
+const st = { fill: wash(T.groupA, 0.20), stroke: T.ink2 };
+
+/* a stack of `d0` slabs of d1 rows x d2 cols; `mode` sets the step */
+function stack(ctx, x, y, s, [d0, d1, d2], val, mode, names) {
+  const gap = 8;
+  const dy = mode === "overlap" ? s : d1 * s + gap;
+  const dx = mode === "exploded45" ? d1 * s + gap : s;
+  const gx = x + 22;
+  const front = y + (d0 - 1) * dy;
+  for (let i = d0 - 1; i >= 0; i -= 1) {
+    const sx = gx + i * dx, sy = front - i * dy;
+    for (let r = 0; r < d1; r += 1) for (let c = 0; c < d2; c += 1) cell(ctx, sx + c * s, sy + r * s, s, val(i, r, c), st);
+    txt(ctx, `[${i}]`, sx - 5, sy + s / 2 + 4, { color: T.ink3, align: "right", mono: true });
+  }
+  const bx = gx + (d0 - 1) * dx, by = front - (d0 - 1) * dy;
+  arrow(ctx, bx, by - 8, bx + d2 * s, by - 8, dims[3]);
+  txt(ctx, names[2], bx + (d2 * s) / 2, by - 13, { color: T.ink2, align: "center" });
+  arrow(ctx, bx + d2 * s + 9, by, bx + d2 * s + 9, by + d1 * s, dims[2]);
+  txt(ctx, names[1], bx + d2 * s + 15, by + (d1 * s) / 2 + 4, { color: T.ink2 });
+  arrow(ctx, gx - 12, front - 4, bx - 12, by - 4, dims[1], 2, [3, 3]);
+  txt(ctx, names[0], bx - 16, by - 22, { color: T.ink2, align: "right" });
+  return { w: 22 + (d0 - 1) * dx + d2 * s + 80, h: (d0 - 1) * dy + d1 * s };
+}
+
+/* ============================ §3 the stack ==================================== */
+{
+  const host = document.getElementById("stack");
+  const S = 26;
+  const src = (i, r, c) => i * 10 + r * 5 + c + 1;
+  const res = (i, r, c) => i * 10 + c * 5 + r + 1;   // permute(0, 2, 1): [2, 5, 2]
+  const cases = [
+    ["A · as built: exploded, 45°", "a five-row slab steps 138px across", "exploded45"],
+    ["B · the notebook's: overlapping, one cell at 45°", "the back slab's top row and right column show; the rest is hidden", "overlap"],
+    ["C · exploded, compact", "up by the slab and the gap, across by one cell", "exploded"],
+  ];
+  for (const [title, sub, mode] of cases) {
+    const W = 560, H = 340;
+    const { ctx } = panel(host, title, sub, W, H);
+    txt(ctx, "T  [2, 2, 5]", 16, 22, { color: T.ink1, mono: true });
+    const a = stack(ctx, 24, 44, S, [2, 2, 5], src, mode, ["0 sample", "1 sequence", "2 feature"]);
+    txt(ctx, "result  [2, 5, 2]", 300, 22, { color: T.ink1, mono: true });
+    const b = stack(ctx, 308, 44, S, [2, 5, 2], res, mode, ["0 sample", "1 feature", "2 sequence"]);
+    txt(ctx, `source ${a.w}px wide, ${a.h} tall · result ${b.w}px wide, ${b.h} tall`, 16, H - 12, { color: T.ink3, size: T.fsXs });
+  }
+}
+
+/* ============================ §4 the algebra stages ==================================== */
+{
+  const host = document.getElementById("algebra");
+  const S = 26;
+  const X = [[0, 50, 100], [150, 200, 250], [30, 60, 90]];
+  const grid = (ctx, x, y, rows, cols, at, fill) => {
+    for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) cell(ctx, x + c * S, y + r * S, S, at(r, c), { fill, stroke: T.ink2 });
+  };
+  {
+    const { ctx } = panel(host, "Elementwise · X + 2, one cell at a time", "cells 46–50: the notebook's 3 × 3 image; the operation and the function alike are one cell in, one cell out", 520, 170);
+    txt(ctx, "X  [3, 3]", 16, 22, { color: T.ink1, mono: true });
+    grid(ctx, 16, 32, 3, 3, (r, c) => X[r][c], wash(T.groupA, 0.20));
+    txt(ctx, "+ 2", 120, 78, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "Y  [3, 3]", 150, 22, { color: T.ink1, mono: true });
+    grid(ctx, 150, 32, 3, 3, (r, c) => (r * 3 + c < 4 ? X[r][c] + 2 : null), wash(T.groupA, 0.20));
+    txt(ctx, "Y = X + 2 · Y[1, 0] = 150 + 2 = 152", 250, 78, { color: T.highlight, mono: true });
+    txt(ctx, "Operation: + 2 · − 2 · × 2 · ÷ 2 · exp · sigmoid — the six the notebook applies", 16, 150, { color: T.ink2, size: T.fsXs });
+  }
+  {
+    const { ctx } = panel(host, "Multiply · dot product", "cell 60–61: lysine · arginine, three products then one sum", 520, 170);
+    const lys = [0.1, 1.0, 0.8], arg = [0.15, 0.9, 0.85];
+    txt(ctx, "lysine  [3]", 16, 22, { color: T.ink1, mono: true });
+    grid(ctx, 16, 32, 1, 3, (r, c) => lys[c], wash(T.groupA, 0.20));
+    txt(ctx, "arginine  [3]", 16, 84, { color: T.ink1, mono: true });
+    grid(ctx, 16, 94, 1, 3, (r, c) => arg[c], wash(T.groupB, 0.20));
+    txt(ctx, "torch.dot(lysine, arginine) = 0.1×0.15 + 1.0×0.9 + 0.8×0.85 = 1.595", 130, 62, { color: T.highlight, mono: true });
+    txt(ctx, "Kind: matrix · dot · Hadamard — the notebook's three products, each with its own operands", 16, 150, { color: T.ink2, size: T.fsXs });
+  }
+  {
+    const { ctx } = panel(host, "Multiply · Hadamard product", "cells 63–65: X × a 0/1 mask, same shape in and out; the mask is drawn from the widget's seed", 520, 170);
+    const Xh = [[0.5, 1.2, -0.7, 2.0, 0.1], [1.0, -0.5, 0.3, 1.5, -1.2]];
+    const mask = [[1, 0, 1, 1, 0], [0, 1, 1, 0, 1]];
+    txt(ctx, "X  [2, 5]", 16, 22, { color: T.ink1, mono: true });
+    grid(ctx, 16, 32, 2, 5, (r, c) => Xh[r][c], wash(T.groupA, 0.20));
+    txt(ctx, "×", 158, 66, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "mask  [2, 5]", 170, 22, { color: T.ink1, mono: true });
+    grid(ctx, 170, 32, 2, 5, (r, c) => mask[r][c], wash(T.groupB, 0.20));
+    txt(ctx, "=", 312, 66, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "Z  [2, 5]", 324, 22, { color: T.ink1, mono: true });
+    grid(ctx, 324, 32, 2, 5, (r, c) => (mask[r][c] ? Xh[r][c] : 0), wash(T.groupA, 0.20));
+    txt(ctx, "Z = X * mask · a masked cell is 0", 16, 120, { color: T.highlight, mono: true });
+  }
+}
+</script>
+</body>
+</html>

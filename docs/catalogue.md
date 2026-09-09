@@ -11275,6 +11275,52 @@ Shape has had since round 12 (`basicsLayout` takes a mode; beside down to
 CELL_OK, else under at the largest cell): 26px cells with the prints under
 at 550, beside at 770. Nothing in core changed.
 
+**Round 19 (2026-09-09) — the notebook is the spec; a mock before any
+change.** Kenneth on 18: "do all 5", then "ensure spacing is optimal
+(tensors being too far apart)", "use logical ways to group operations of
+reshape/permute/flatten/(squeeze/unsqueeze) — see my notebook how I
+grouped them", "squeeze/unsqueeze should be together", "element-wise also
+includes other math operations besides addition. broadcasting is a
+generalization, again see my notebook", and: "I took time to design my
+lesson, please see how they are presented logically. mock up and show me
+before imposing your own designs on the widget." The Master copy of
+`05-2 - DL Foundations - Tensors and Gradients.ipynb` was read again in
+full (`C:\Users\Admin\Downloads\PHM5005 AY2025-26 - Notebooks\Master\`).
+Its structure, which the widget is to follow: *Tensors for Data* —
+Creating (1D, 2D, 3D) · Inspecting · Data Type · Indexing/Slicing ·
+Manipulating Dimensions (**1 Reshaping** `reshape`, `flatten`; **2
+Adding/Removing** `unsqueeze`, `squeeze`; **3 Reordering** `permute`,
+`transpose`) · Joining (`cat`, `stack`); *Linear Algebra*, from the
+overview table in cell 45 — **1 Scalar & elementwise** (`X + 2`, `X - 2`,
+`X * 2`, `X / 2`, `torch.exp`, `torch.sigmoid` on a 3 × 3 image) · **2
+Broadcasting**, "a generalization of scalar operations" (`X + b`) · **3
+Multiplication** (matrix multiplication `X @ W.T`; dot product
+`torch.dot` on the amino-acid vectors; Hadamard product `X * mask`) · **4
+Reductions** (`sum`, `mean`, `std`, `max`, `min`, `norm`; `(X − μ) / σ`).
+The round-17 layout (Elementwise · Matmul · Reduce, broadcasting folded
+into Elementwise) departed from this and was mine, not his.
+`_lab/tensor-lesson.html` draws the widget in the notebook's order for
+him to pick from: §1 the rail as the headings (4 + 4, or Basics whole +
+4); §2 the Manipulate verbs in the three captioned groups, with `squeeze`
+(on the `[1, 2, 2, 5]` that `unsqueeze(0)` makes, cell 35) and
+`transpose(1, 2)` as new verbs and their argument lines; §3 the stack
+three ways — exploded at 45° as built (a five-row slab steps 138px
+across, the gap he circled), the notebook's own overlapping one-cell 45°
+step (cells behind the front slab hidden, the reason round 3 exploded
+it), and exploded-compact (across by one cell, up by the slab); §4 the
+four algebra topics with the notebook's own operands and controls,
+three of the stages sketched. The notebook's figures are Dropbox links
+in its cells (`tensor-sequence.png`, `-reshape`, `-permute`, `-cat`,
+`-stack`, `tensor-scalar`, `-broadcasting`, `-matmul`, `-dot`,
+`-hadamard`, `-reduce`); fetching them was put to him rather than done.
+**The five student's-eye items were built the same day** ("do all 5"):
+the stack's dim-0 name at the arrow's head; Shape and Join arrows in
+their hues with no names, the swatched roles line naming each dimension
+once (`arrowNames: false`; Basics keeps its names); legend entries a
+clause each; the Index band's whole-tensor line says where an index is
+set; the Topic control keeps its two row captions and loses its six
+option details. 247 verify checks; sweep clean; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

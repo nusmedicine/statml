@@ -2,7 +2,10 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through eighteen review rounds and NOT PUSHED. 367 real fingerprint
+locally through nineteen review rounds and NOT PUSHED. **Round 19 is a
+MOCK awaiting his picks — `_lab/tensor-lesson.html` — and the spec for
+it is his notebook's own structure, not any layout of ours; read
+catalogue round 19 before touching a topic.** 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -21,14 +24,21 @@ over, every argument typed, the field grows and hints) and the round-16
 commit (positions as rank-following dropdowns through core's dynamic
 `options`, the dimension rules moved clear of the frames), `b9e816b`,
 `172399d` (round 17: Elementwise · Matmul · Reduce, his pick A), `ad241be`
-(the round-18 style mock) and the round-18 commit (45° and his figures'
-line weight, mono digits, prints headed by their code, Play as two
-kinds). Nothing is uncommitted. **Five student's-eye items wait on him**
-— catalogue round 18 lists them. Read
+(the round-18 style mock), `b14d86a` and `7a7d47b` (round 18: 45° and his
+figures' line weight, mono digits, prints headed by their code, Play as
+two kinds, the Basics beside-or-under fit) and the round-19 commit (the
+five student's-eye items, and the notebook-order mock). Nothing is
+uncommitted. **Round 19's four picks wait on him**: the rail as the
+notebook's headings, the Manipulate verbs in its three groups with
+`squeeze` and `transpose`, the stack's spacing, and the four
+linear-algebra topics with the notebook's own operands (Elementwise's
+six operations, Broadcast as the generalization, Multiply's three
+products, Reduce's six functions). The round-17 fold of broadcasting
+into Elementwise is to be undone whichever way he picks. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–30) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–31) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -132,11 +142,9 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
   (twenty slabs and a merged name); the frames view of each fits.
 - The rank-4 frames header packs `dim 0 = 0`, the column indices and
   `dim 1 = 0` into 22px (visible on Join's stack in the frames view).
-- Five student's-eye items from round 18, unpicked: the dim-0 name at the
-  stack arrow's foot beside the `[0]` slab label; the arrow names repeating
-  the roles line on Shape and Join; legend entries that wrap at 550; a
-  first-visit hint that the index labels on the figure are targets; the
-  Play control's detail line.
+- The notebook's figures (Dropbox links in cells 8–66) have not been
+  fetched; the mock's stack drawings follow the round-3 description of
+  them. Ask before downloading.
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
 - The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
