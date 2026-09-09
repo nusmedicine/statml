@@ -11079,6 +11079,37 @@ with the drive row gone; `?names=image` relabels every arrow; `check` and
 under their drawings though the source's would fit beside; the mode could
 be chosen per block.
 
+**Round 12 (2026-09-09, next session) — the fit measured over every
+argument, before Kenneth's test.** `_lab/tensor-sweep.html` gained an
+`?ops` mode: all 86 Shape and Join arguments in both views at the 550px
+stage, finished, every canvas string measured; and it now resets on each
+paint so only the last one is read (the first paint's strings had been
+reported under the wrong state). First run: 140 flagged lines. Four faults
+and one rule the code had never followed: the reshape and permute captions
+ran 30–65px past the canvas for EVERY argument, and are one clause shorter
+(*The values are refilled into [2, 10] in reading order; only the
+dimensions are recut.* · *Each value goes to its index reordered as
+(0, 2, 1); each dimension's name travels with its data.*); a merged
+leading name after reshape(4, 1, 5), `0 sample × sequence`, ran 37px off
+the left edge in the stack view, so the margin is now the name's measured
+width; [1, 10, 1, 2] in the frames view put ten inner frames in one row and
+200px past the edge, so inner frames wrap on the fit's `perRow`; a print
+wider than the band — [20]'s one 79-column line — forced CELL_MIN at every
+cell size, so a print's width is capped at the room. And the rule: decision
+8 said the print beside its drawing is preferred down to CELL_OK, but the
+loop tried beside and under at each cell before shrinking, so a bigger
+cell with both prints under always won — which is the round-11 open item.
+The fit runs in passes now (both beside, then the source's beside and the
+result's under, then both under) with a mode per band. Measured at 550:
+the default reshape goes from 26px cells with both prints under to 20px
+with both beside; join's `stack` from 1162px tall to 669, `cat` from 1155
+to 865; states over 1000px from 79 to 16; at 770 nothing moves. `check`
+and `test` pass. **Left for Kenneth:** the 31 reshape shapes with two or
+more size-1 dimensions — [20, 1, 1], [1, 20, 1, 1], [20, 1, 1, 1] and
+kin — are the only states over 1500px (up to 2010) and the only two that
+still overrun (twenty slabs wide in the stack view); pruning them is a
+question, not a fix.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

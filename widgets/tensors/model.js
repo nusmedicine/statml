@@ -312,8 +312,10 @@ export function shapeOp(kind, arg, setName = "sequence") {
       ok,
       error: ok ? null : `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}`,
       names: ok ? reshapeNames(src, shape, names) : [],
+      /* ROUND 12: one line at the 550px stage. The first wording ran 30-55px
+         past the canvas edge for every shape (`_lab/tensor-sweep.html?ops`). */
       caption: ok
-        ? `The values are read in order and refilled into ${shapeText(shape)}: the reading order is kept and the dimensions are recut.`
+        ? `The values are refilled into ${shapeText(shape)} in reading order; only the dimensions are recut.`
         : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(shape)}.`,
       dest: (n) => shape.map((d, k) => Math.floor(n / strides[k]) % d),
     };
@@ -329,7 +331,7 @@ export function shapeOp(kind, arg, setName = "sequence") {
       names: p.map((k) => names[k]),
       caption: identity
         ? "permute(0, 1, 2) keeps the dimensions in their order, so every value stays where it is."
-        : `Each value moves to the index with its positions reordered as (${p.join(", ")}); each dimension's name travels with its data.`,
+        : `Each value goes to its index reordered as (${p.join(", ")}); each dimension's name travels with its data.`,
       dest: (n) => { const s = srcIndex(n); return p.map((k) => s[k]); },
     };
   }

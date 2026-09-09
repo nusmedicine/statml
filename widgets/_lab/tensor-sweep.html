@@ -30,6 +30,7 @@
   <pre id="out">running…</pre>
 </main>
 <script type="module">
+import * as M from "../tensors/model.js";
 const out = document.getElementById("out");
 const log = [];
 const say = (s) => { log.push(s); out.textContent = log.join("\n"); };
@@ -93,6 +94,15 @@ async function run(frameW, name, query, expect) {
     texts.push({ s: String(s), mono, x0, x1: x0 + w, y0, y1: y0 + asc + desc });
     return oFill.call(this, s, x, y, ...rest);
   };
+  /* Only the LAST paint counts. Core clears the whole canvas at the start of
+     every paint, and a widget paints more than once while it loads, so
+     without this reset the first paint's strings were reported alongside the
+     final ones, some of them under the wrong state. */
+  const oCR = proto.clearRect;
+  proto.clearRect = function (x, y, w, h, ...rest) {
+    if (x === 0 && y === 0 && w > 100) { texts.length = 0; rects.length = 0; }
+    return oCR.call(this, x, y, w, h, ...rest);
+  };
   const oFR = proto.fillRect;
   proto.fillRect = function (x, y, w, h, ...rest) {
     rects.push({ kind: "fill", x, y, w, h });
@@ -106,6 +116,7 @@ async function run(frameW, name, query, expect) {
   win.dispatchEvent(new win.Event("resize"));
   await new Promise((r) => setTimeout(r, 300));
   proto.fillText = oFill;
+  proto.clearRect = oCR;
   proto.fillRect = oFR;
   proto.strokeRect = oSR;
 
@@ -157,9 +168,36 @@ async function run(frameW, name, query, expect) {
   fr.remove();
 }
 
-for (const frameW of [900, 1120]) {
-  say(`\n=== frame ${frameW} ===`);
-  for (const [name, q, expect] of CASES) await run(frameW, name, q, expect);
+/* `?ops` sweeps EVERY Shape and Join argument round 11 added — 65 reshapes and
+   the failing one, six permutes, four unsqueezes, three flattens, three cats
+   and four stacks — in both views at the 550 stage, finished, so every
+   generated caption and every result print is measured once. */
+const OPS = location.search.includes("ops") ? (() => {
+  const out = [];
+  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL].map((sh) => ["shape", `op=reshape&shape=${M.shapeKey(sh)}`]);
+  const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${M.shapeKey(pm)}`]);
+  const uns = [0, 1, 2, 3].map((d) => ["shape", `op=unsqueeze&udim=${d}`]);
+  const fls = [0, 1, 2].map((d) => ["shape", `op=flatten&fstart=${d}`]);
+  const cats = [0, 1, 2].map((d) => ["join", `join=cat&cdim=${d}`]);
+  const stacks = [0, 1, 2, 3].map((d) => ["join", `join=stack&sdim=${d}`]);
+  for (const [tab, q] of [...shapes, ...perms, ...uns, ...fls, ...cats, ...stacks]) {
+    for (const view of ["stack", "frames"]) {
+      out.push([`${q} ${view}`, `tab=${tab}&${q}&view=${view}&shown=${tab === "join" ? 40 : 20}`, 0]);
+    }
+  }
+  return out;
+})() : null;
+
+if (OPS) {
+  say(`
+=== frame 900, every operation argument (${OPS.length} states) ===`);
+  for (const [name, q, expect] of OPS) await run(900, name, q, expect);
+} else {
+  for (const frameW of [900, 1120]) {
+    say(`
+=== frame ${frameW} ===`);
+    for (const [name, q, expect] of CASES) await run(frameW, name, q, expect);
+  }
 }
 say("\ndone");
 </script>

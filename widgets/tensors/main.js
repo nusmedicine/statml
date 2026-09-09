@@ -227,6 +227,32 @@
       permute moves a name with its data, a reshape merges names it can and
       drops the rest). `names` switches the convention — sequence data, image
       data, positions only — while every value stays put.
+
+  24. ROUND 12: THE FIT MEASURED OVER EVERY ARGUMENT. `_lab/tensor-sweep.html?ops`
+      renders all 86 Shape and Join arguments in both views at the 550px stage
+      and reports every string that leaves the canvas. It found four faults
+      and one rule the code had never followed. The reshape and permute
+      captions ran 30-65px past the edge for EVERY argument (rewritten one
+      clause shorter). A merged leading name — `0 sample × sequence` after
+      reshape(4, 1, 5) — ran 37px off the LEFT edge, because the stack view's
+      left margin was a constant and the name is not (`roleMargin` now takes
+      the name's measured width). [1, 10, 1, 2] in the frames view put ten
+      inner frames in one row, 200px past the edge (they wrap, on the fit's
+      `perRow`, which at rank 4 is measured on dim 1). A print wider than
+      the band — [20]'s one 79-column line — forced CELL_MIN at every cell
+      size, though no cell size changes a print's width (`under` caps it at
+      the room). And the rule: decision 8 and the fit's own comment said the
+      print beside its drawing is preferred down to CELL_OK, but the loop
+      tried beside and under at each cell before shrinking, so a bigger cell
+      with both prints under always won — the open item from round 11. The
+      fit is now passes (both beside, then the source's beside and the
+      result's under, then both under), and a mode per band. At 550 the
+      default reshape goes from 26px cells with both prints under to 20px
+      with both beside; at 770 nothing moves (30px, both beside); join's
+      stack falls from 1162px tall to 669. Two states still overrun: the
+      stack view of [20, 1, 1] and of [1, 20, 1, 1], twenty slabs wide, in
+      the family of 31 shapes with two or more size-1 dimensions that also
+      holds every stage over 1500px. Whether that family stays is Kenneth's.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -773,23 +799,29 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
 
 /** A rank-4 tensor as frames within frames: the leading index down the page,
     the next across, and the last two the grid you read. */
-function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
+function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1) {
   const iw = d3 * s + 2 * FRAME_PAD;
   const ih = FRAME_LBL + d2 * s + 2 * FRAME_PAD;
-  const ow = d1 * iw + (d1 - 1) * INNER_GAP + 2 * FRAME_PAD;
+  /* The inner frames wrap into equal rows when dim 1 is wide — [1, 10, 1, 2]
+     puts ten in one row otherwise (round 12). `perRow` is the fit's, measured
+     against the room the band has. */
+  const cols = Math.max(1, Math.min(d1, perRow));
+  const irows = Math.ceil(d1 / cols);
+  const innerH = irows * ih + (irows - 1) * INNER_GAP;
+  const ow = cols * iw + (cols - 1) * INNER_GAP + 2 * FRAME_PAD;
   /* The column indices sit INSIDE the first outer frame, between its label and
      the inner frames, so there is no index row above the block to leave room
      for — unlike the rank-3 drawing, where they sit above the frames. ONLY THE
      FIRST outer frame carries them, so only the first is that much taller: the
      row was reserved in every frame until round 7 measured the stage. */
-  const oh0 = FRAME_LBL + IDX_ROW + ih + FRAME_PAD;
-  const ohN = FRAME_LBL + ih + FRAME_PAD;
+  const oh0 = FRAME_LBL + IDX_ROW + innerH + FRAME_PAD;
+  const ohN = FRAME_LBL + innerH + FRAME_PAD;
   const x0 = x + IDX_COL;
   const y0 = y;
   const frameTop = (f) => y0 + (f === 0 ? 0 : oh0 + INNER_GAP + (f - 1) * (ohN + INNER_GAP));
   const inner = (f, j) => ({
-    ix: x0 + FRAME_PAD + j * (iw + INNER_GAP),
-    iy: frameTop(f) + FRAME_LBL + (f === 0 ? IDX_ROW : 0),
+    ix: x0 + FRAME_PAD + (j % cols) * (iw + INNER_GAP),
+    iy: frameTop(f) + FRAME_LBL + (f === 0 ? IDX_ROW : 0) + Math.floor(j / cols) * (ih + INNER_GAP),
   });
   const hues = dimHues(colors, 4);
   for (let f = 0; f < d0; f += 1) {
@@ -896,7 +928,7 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
   }
   const box = view === "stack"
     ? pushStackColumn(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]))
-    : pushFrames4(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]));
+    : pushFrames4(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]), perRow);
   return { w: box.w, h: box.h, centre: (idx) => box.centre(idx[0], idx[1], idx[2], idx[3]) };
 }
 
@@ -919,7 +951,21 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
 const NONE = { top: 0, left: 0, right: 0, bottom: 0 };
 const DOWN_ARROW = 16;    // the lane a rank-4 column's dim-0 arrow runs down
 
-const roleMargin = (view, s, rank, arrows, rolesLine) => {
+/** The width of a string in the body font at the size the role names are
+    drawn, off the measuring canvas — the one `regions` uses, so the figure
+    is laid out with the same character widths it is painted with. */
+function textW(colors, s) {
+  const c = measureCtx();
+  c.font = `${colors.fsSm} ${colors.font}`;
+  return c.measureText(s).width;
+}
+
+/* `lead` is the width of the leading dimension's name. A reshape can merge
+   names — `sample × sequence`, or all three — and in the stack view that name
+   is right-aligned at the foot of the dim-0 arrow, where the fixed margin
+   gave 33px of room and `0 sample × sequence` ran 37px off the left edge of
+   the stage (round 12, `_lab/tensor-sweep.html?ops`). */
+const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0) => {
   if (!arrows) return rolesLine && rank === 4 ? { ...NONE, bottom: ROLE_BOTTOM } : NONE;
   if (rank === 1) return { top: ROLE_TOP, left: 0, right: 0, bottom: 0 };
   if (rank === 2) return { top: ROLE_TOP, left: ROLE_LEFT, right: 0, bottom: ROLE_BOTTOM };
@@ -932,7 +978,7 @@ const roleMargin = (view, s, rank, arrows, rolesLine) => {
       : { ...NONE, bottom: rolesLine ? ROLE_BOTTOM : 0 };
   }
   return view === "stack"
-    ? { top: ROLE_TOP, left: Math.round(SLAB_DX * s) + ROLE_LEFT, right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
+    ? { top: ROLE_TOP, left: Math.max(Math.round(SLAB_DX * s) + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
     : { top: 28, left: 14, right: 0, bottom: 22 };
 };
 
@@ -943,7 +989,8 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   shape = M.T3_SHAPE, roles = M.DIM_ROLES, opts = {}) {
   const { arrows = true, rolesLine = true, edges = false } = opts;
   const hues = dimHues(colors, shape.length);
-  const m = roleMargin(view, s, shape.length, arrows, rolesLine);
+  const lead = arrows && roles.length ? textW(colors, roles[0]) : 0;
+  const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead);
   const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges);
   const half = s / 2;
   const size = { w: m.left + box.w + m.right, h: m.top + box.h + m.bottom, centre: box.centre };
@@ -1022,7 +1069,11 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     pushText(plan, roles[0], fx0 - 4, fy0 + 8, { color: colors.ink2, align: "right" });
     return size;
   }
-  const right = x + m.left + box.w;
+  /* The name sits at the arrow's head, right-aligned at the block's edge. A
+     merged name can be wider than a narrow block of frames, so the arrow runs
+     on to the name's own width and `size` says so, and the fit leaves room. */
+  const right = Math.max(x + m.left + box.w, x + m.left + IDX_COL + Math.ceil(lead) + 4);
+  size.w = Math.max(size.w, right - x);
   pushArrow(plan, x + m.left + IDX_COL, y + 11, right, y + 11, hues[0], 1.5, [3, 3]);
   pushText(plan, roles[0], right, y + 8, { color: colors.ink2, align: "right" });
   pushText(plan, roles[2], first.x - half + (d2 * s) / 2, y + 25,
@@ -1087,7 +1138,12 @@ function printOf(shape, valueAt, name, cw) {
 }
 
 const beside = (d, p) => ({ w: d.w + PRINT_GAP + p.w, h: Math.max(d.h, p.h) });
-const under = (d, p) => ({ w: Math.max(d.w, p.w), h: d.h + PRINT_DROP + p.h });
+/* A print under its drawing is as wide as torch prints it, 80 columns at most,
+   and no cell size changes that. So a print wider than the room does not count
+   against the fit: without this, [20] and its cousins fell to CELL_MIN at the
+   550px stage because their one long print line was 15px wider than the band
+   at EVERY cell (round 12). Such a print ends inside the band's padding. */
+const under = (d, p, room) => ({ w: Math.max(d.w, Math.min(p.w, room)), h: d.h + PRINT_DROP + p.h });
 
 /** The drawn size of one tensor at cell `s`, measured by building it into a
     plan nobody paints — so the measurement and the drawing are one function. */
@@ -1140,18 +1196,26 @@ const GRID_LBL = 18;      // `X  [2, 5]` above a grid
 
 /* --- the Shape and Join tabs ---------------------------------------------- */
 
-function shapeBlock(colors, op, view, s, avail, prints, mode, srcRoles) {
-  const place = mode === "beside" ? beside : under;
-  const roomFor = (p) => (mode === "beside" && p ? avail - PRINT_GAP - p.w : avail);
-  const perRow = op.ok
-    ? framesPerRow(op.shape[0], op.shape[op.shape.length - 1], s, roomFor(prints.result)) : 1;
-  const srcRow = framesPerRow(M.T3_SHAPE[0], M.T3_SHAPE[2], s, roomFor(prints.sources[0]));
+function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
+  const placeSrc = modes.src === "beside" ? beside : under;
+  const placeOut = modes.out === "beside" ? beside : under;
+  const roomFor = (p, mode) => (mode === "beside" && p ? avail - PRINT_GAP - p.w : avail);
+  const rank = op.ok ? op.shape.length : 0;
+  /* At rank 4 the frames view nests frames, and it is the INNER row — one
+     frame per index of dim 1 — that has to fit the room: [1, 10, 1, 2] put ten
+     in a row and ran 200px off the stage (round 12). The outer frames are
+     always a column. */
+  const perRow = !op.ok ? 1
+    : rank === 4
+      ? framesPerRow(op.shape[1], op.shape[3], s, roomFor(prints.result, modes.out) - 2 * FRAME_PAD)
+      : framesPerRow(op.shape[0], op.shape[rank - 1], s, roomFor(prints.result, modes.out));
+  const srcRow = framesPerRow(M.T3_SHAPE[0], M.T3_SHAPE[2], s, roomFor(prints.sources[0], modes.src));
   /* THE SOURCE PAIR STACKS RATHER THAN SITTING SIDE BY SIDE, in both views.
      Two tensors and two prints in one row do not fit 550px in any view, and
      stacking them lets each print sit beside its own drawing instead of both
      dropping under a pair of drawings. */
   const rows = prints.sources.map((p, t) =>
-    place(drawnSize(colors, M.T3_SHAPE, s, view, srcRow, t === 0, srcRoles), p));
+    placeSrc(drawnSize(colors, M.T3_SHAPE, s, view, srcRow, t === 0, srcRoles), p, avail));
   const src = {
     w: Math.max(...rows.map((r) => r.w)),
     h: rows.reduce((a, r) => a + r.h, 0) + (rows.length - 1) * INNER_GAP,
@@ -1159,10 +1223,11 @@ function shapeBlock(colors, op, view, s, avail, prints, mode, srcRoles) {
   /* ROUND 11: the result carries the dimension arrows and roles the operation
      leaves, so it is measured the way a source is */
   const out = op.ok
-    ? place(drawnSize(colors, op.shape, s, view, perRow, true, op.roles, resultOpts(view, op.shape.length)), prints.result)
+    ? placeOut(drawnSize(colors, op.shape, s, view, perRow, true, op.roles, resultOpts(view, rank)), prints.result, avail)
     : { w: 0, h: 0 };
   return {
-    mode,
+    srcMode: modes.src,
+    outMode: modes.out,
     perRow,
     srcRow,
     w: Math.max(src.w, out.w),
@@ -1172,22 +1237,42 @@ function shapeBlock(colors, op, view, s, avail, prints, mode, srcRoles) {
   };
 }
 
-/** The largest cell that fits the WIDTH with the print beside its drawing, down
-    to CELL_OK; below that a print under the drawing is preferred to a smaller
-    cell. Height is no longer a constraint: the bands grow to fit. */
+/** The largest cell that fits the WIDTH, with the prints beside their drawings
+    where they can be, down to CELL_OK; below that a print under the drawing is
+    preferred to a smaller cell. Height is no longer a constraint: the bands
+    grow to fit.
+
+    THE MODE IS CHOSEN PER BAND, AND BESIDE REALLY IS PREFERRED (round 12).
+    Two things were wrong. One mode served the whole stage, so the source's
+    print dropped under its drawing whenever the RESULT's would not fit beside
+    — reshape(2, 10) at 550px, where the [2, 10] row is the wide thing and the
+    [2, 2, 5] source has room to spare. And the loop tried beside and under at
+    EACH cell before moving to a smaller one, so a larger cell with both
+    prints under always beat a smaller cell with them beside — the opposite
+    of what this comment said. Now the fit runs in passes: both prints
+    beside, then the source's beside and the result's under, each from the
+    largest cell down to CELL_OK; then both under, down to CELL_MIN. The
+    source's print is only ever under when the result's is too. */
+const BOTH_BESIDE = { src: "beside", out: "beside" };
+const RESULT_UNDER = { src: "beside", out: "under" };
+const BOTH_UNDER = { src: "under", out: "under" };
 function shapeFit(colors, w, op, view, prints, srcRoles) {
   const avail = w - 2 * PAD - 2 * BAND_PAD;
-  let tight = null;
-  for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
-    const aside = shapeBlock(colors, op, view, s, avail, prints, "beside", srcRoles);
-    if (aside.w <= avail) {
-      if (s >= CELL_OK) return { s, ...aside };
-      if (!tight) tight = { s, ...aside };
+  const fit = (s, modes) => {
+    const b = shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles);
+    return b.w <= avail ? { s, ...b } : null;
+  };
+  for (const modes of [BOTH_BESIDE, RESULT_UNDER]) {
+    for (let s = cellSize(w); s >= CELL_OK; s -= 1) {
+      const f = fit(s, modes);
+      if (f) return f;
     }
-    const drop = shapeBlock(colors, op, view, s, avail, prints, "under", srcRoles);
-    if (drop.w <= avail) return { s, ...drop };
   }
-  return tight ?? { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, "under", srcRoles) };
+  for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
+    const f = fit(s, BOTH_UNDER);
+    if (f) return f;
+  }
+  return { s: CELL_MIN, ...shapeBlock(colors, op, view, CELL_MIN, avail, prints, BOTH_UNDER, srcRoles) };
 }
 
 /** How a result is drawn: arrows in the stack view at rank 3 and 4, edge
@@ -1297,8 +1382,8 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     widest = Math.max(widest, draw.w);
 
     const p = prints.sources[t];
-    const px = fit.mode === "beside" ? cx + draw.w + PRINT_GAP : cx;
-    const py = fit.mode === "beside" ? ty : ty + draw.h + PRINT_DROP;
+    const px = fit.srcMode === "beside" ? cx + draw.w + PRINT_GAP : cx;
+    const py = fit.srcMode === "beside" ? ty : ty + draw.h + PRINT_DROP;
     pushPrint(plan, colors, px, py, p.print, cw, (idx) => {
       const k = flat(t, idx);
       const [i, r, c] = idx;
@@ -1314,7 +1399,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     ty += fit.rowH[t] + INNER_GAP;
   });
   /* the hairline between drawing and print, where the print sits beside */
-  if (fit.mode === "beside") top.divX = cx + widest + PRINT_GAP / 2;
+  if (fit.srcMode === "beside") top.divX = cx + widest + PRINT_GAP / 2;
   /* the roles under the source block, swatch and word, as on Basics */
   pushRoles(plan, ctx, colors, srcRoles, hues3, cx, yT + BAND_HEAD + BAND_PAD + fit.srcH + UNDER_GAP);
 
@@ -1335,12 +1420,12 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     if (at.moving && at.moving.dst.join(",") === idx.join(",")) return { empty: true, lit: true };
     return { empty: true };
   }, fit.perRow, op.shape, op.roles, resultOpts(view, op.shape.length));
-  if (fit.mode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
+  if (fit.outMode === "beside") bot.divX = cx + resDraw.w + PRINT_GAP / 2;
   pushRoles(plan, ctx, colors, op.roles, dimHues(colors, op.shape.length), cx, resY + fit.outH + UNDER_GAP);
 
   const rp = prints.result;
-  const rpx = fit.mode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
-  const rpy = fit.mode === "beside" ? resY : resY + resDraw.h + PRINT_DROP;
+  const rpx = fit.outMode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
+  const rpy = fit.outMode === "beside" ? resY : resY + resDraw.h + PRINT_DROP;
   pushPrint(plan, colors, rpx, rpy, rp.print, cw, (idx) => {
     const held = placed.get(idx.join(","));
     if (!held) return null;
