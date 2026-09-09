@@ -167,6 +167,11 @@ function toCells(spec, values) {
       cells.push({ kind: "readback", entry });
       continue;
     }
+    if (entry[1].type === "expr") {
+      bools = null;
+      cells.push({ kind: "expr", entry });
+      continue;
+    }
     if (entry[1].type === "bool") {
       /* an action button is full width, so it never shares the switch row */
       if (entry[1].style === "action") {
@@ -301,6 +306,88 @@ function build(host, spec, values, onChange, api) {
       mark(values);
       refreshers.push(mark);
       wrap.appendChild(grid);
+      host.appendChild(wrap);
+      continue;
+    }
+
+    /* ONE LINE OF CODE WHOSE SLOTS ARE CONTROLS. `T[ : , 0 , : ]` — the
+       brackets and commas are text, and each slot is a compact <select> over
+       one of several existing parameters, named in `slots`. The parameters
+       themselves are declared `hidden`, so they render nowhere else and still
+       keep their own URL keys; a slot whose parameter is gated off by `when`
+       (a dimension the current rank does not have) is simply not written, and
+       the same rebuild rule that serves `when` re-renders the line when the
+       gating parameter moves.
+
+       Earned by widget 53's Basics topic (2026-09-09): an index is a line of
+       code, and four segmented rows labelled dim 0 … feature never read as
+       one. A native <select> is the slot because it is the keyboard and
+       screen-reader path already, one character wide at rest, and the
+       fingerprint harness drives a `<select data-param>` today. */
+    if (cell.kind === "expr") {
+      endRow();
+      const [exprName, field] = cell.entry;
+      const wrap = document.createElement("div");
+      wrap.className = "w-field w-expr-field";
+      if (field.label) {
+        const cap = document.createElement("span");
+        cap.className = "w-label";
+        cap.textContent = field.label;
+        wrap.appendChild(cap);
+      }
+      const line = document.createElement("div");
+      line.className = "w-expr";
+      line.setAttribute("role", "group");
+      line.setAttribute("aria-label", field.label ?? exprName);
+      const piece = (s) => {
+        const t = document.createElement("span");
+        t.className = "w-expr-text";
+        t.textContent = s;
+        line.appendChild(t);
+      };
+      if (field.open) piece(field.open);
+      const slots = (field.slots ?? []).filter((n) => spec[n] && fieldShowing(spec[n], values));
+      slots.forEach((n, i) => {
+        if (i > 0) piece(field.join ?? ", ");
+        const f = spec[n];
+        const slot = document.createElement("span");
+        slot.className = "w-expr-slot";
+        const sel = document.createElement("span");
+        sel.className = "w-expr-sel";
+        const select = document.createElement("select");
+        select.dataset.param = n;
+        select.setAttribute("aria-label", f.label ?? n);
+        for (const { value, label: text } of optionEntries(f)) {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = text;
+          select.appendChild(opt);
+        }
+        /* a slot away from its default is marked, so the line shows at a
+           glance which dimensions the expression has fixed */
+        const paint = (v) => {
+          select.value = v;
+          slot.dataset.set = v === f.default ? "0" : "1";
+        };
+        paint(values[n]);
+        select.addEventListener("change", () => {
+          paint(select.value);
+          onChange(n, select.value);
+        });
+        setters[n] = paint;
+        sel.appendChild(select);
+        slot.appendChild(sel);
+        if (f.label) {
+          const nm = document.createElement("span");
+          nm.className = "w-expr-name";
+          nm.textContent = f.label;
+          slot.appendChild(nm);
+        }
+        line.appendChild(slot);
+      });
+      if (field.close) piece(field.close);
+      wrap.appendChild(line);
+      ownDetail(wrap, field);
       host.appendChild(wrap);
       continue;
     }

@@ -3201,6 +3201,185 @@
       },
       "px": "02c01f0c",
       "tx": "22470e5a"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: rank 3, every entry a colon — the whole tensor selected, nothing lit",
+      "slug": "tensors",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: rank 1, the [5] feature vector and its one-bracket print",
+      "slug": "tensors",
+      "state": "?theme=light&rank=1&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: rank 2, the [2, 5] grid with its edge indices",
+      "slug": "tensors",
+      "state": "?theme=light&rank=2&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: rank 4, [2, 2, 2, 5] as frames within frames",
+      "slug": "tensors",
+      "state": "?theme=light&rank=4&view=frames&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: rank 4 in the stack view — the column of exploded stacks",
+      "slug": "tensors",
+      "state": "?theme=light&rank=4&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: T[:, 0, :] — ten cells lit above, the [2, 5] sub-tensor drawn below",
+      "slug": "tensors",
+      "state": "?theme=light&view=frames&i1=0&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Basics: T[1, 0, 2] — one element, rank 3 to rank 0",
+      "slug": "tensors",
+      "state": "?theme=light&i0=1&i1=0&feature=2&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Shape: reshape(2, -1) finished, [2, 10]",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Shape: permute(0, 2, 1), 7 at [0, 1, 1]",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&op=permute&shown=7",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Shape: the same [2, 5, 2] by reshape — 7 at [0, 3, 0], which is the argument",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&op=reshape-2-5-2&shown=7",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&op=flatten&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Shape: unsqueeze(0) — [1, 2, 2, 5] as the column of exploded stacks",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape&op=unsqueeze&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Join: cat(dim=0) finished, [4, 2, 5]",
+      "slug": "tensors",
+      "state": "?theme=light&tab=join&join=cat&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Join: stack(dim=0) finished, [2, 2, 2, 5] and a thirteen-line print",
+      "slug": "tensors",
+      "state": "?theme=light&tab=join&join=stack&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Broadcast: row 0 added, 11 to 55, with the alignment block below",
+      "slug": "tensors",
+      "state": "?theme=light&tab=broadcast&shown=1",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Broadcast: b [2] — no result, 5 against 2",
+      "slug": "tensors",
+      "state": "?theme=light&tab=broadcast&b=2&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Multiply: Y[1, 1] = 5 x 0.5 + ... = 13",
+      "slug": "tensors",
+      "state": "?theme=light&tab=multiply&shown=4",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Multiply: [3, 4] @ [2, 4] — no product, the inner pair bracketed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=multiply&weights=untransposed&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Reduce: column 1 collapses to 3",
+      "slug": "tensors",
+      "state": "?theme=light&tab=reduce&shown=2",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Reduce: (X - mu) / sigma, rows -1, 0, 1",
+      "slug": "tensors",
+      "state": "?theme=light&tab=reduce&normalize=1&shown=4",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. DRIVEN: Shape mid-move at Medium, the third value between its two cells",
+      "slug": "tensors",
+      "state": "?theme=light&tab=shape",
+      "drive": {
+        "click": "step",
+        "frames": 8,
+        "dt": 100
+      },
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. DRIVEN: Reduce mid-collapse at Medium, the first column on its way into the mean",
+      "slug": "tensors",
+      "state": "?theme=light&tab=reduce",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 100
+      },
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. HIT-DRIVEN: the pointer on the frames view's dim 0 = 1 label at [218, 57] sets i0 - the region geometry no pixel hash can see. Cells are not targets; only the index labels are.",
+      "slug": "tensors",
+      "state": "?theme=light&view=frames",
+      "drive": {
+        "hit": [
+          218,
+          57
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

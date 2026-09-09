@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors Basics — the stage sized to its content, and the index as an expression</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 540px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  .rail { width: 300px; padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); font-family: var(--font); }
+  .rail .w-label { font-size: var(--fs-sm); color: var(--ink-1); margin: 8px 0 6px; display: block; }
+  .rail .w-detail { font-size: var(--fs-xs); color: var(--ink-3); margin: 6px 0 8px; }
+  .expr { display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: var(--fs-lg); color: var(--ink-1); }
+  .expr .slot { display: inline-flex; align-items: center; gap: 2px; padding: 3px 6px; border: 1px solid var(--grid); border-radius: 5px; background: var(--surface-1); font-size: var(--fs-md); min-width: 30px; justify-content: center; }
+  .expr .slot.set { background: color-mix(in srgb, var(--c-highlight) 22%, var(--surface-1)); border-color: var(--c-highlight); color: var(--ink-1); }
+  .expr .slot .caret { font-size: 9px; color: var(--ink-3); }
+  .expr .dimname { font-family: var(--font); font-size: 10px; color: var(--ink-3); display: block; text-align: center; }
+  .slotcol { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+  .menu { position: relative; display: inline-block; margin-top: 8px; margin-left: 66px; background: var(--surface-1); border: 1px solid var(--grid); border-radius: 5px; padding: 2px; font-family: var(--font-mono); font-size: var(--fs-md); }
+  .menu div { padding: 3px 12px; color: var(--ink-2); }
+  .menu div.on { background: var(--surface-3); color: var(--ink-1); border-radius: 3px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · Basics — the stage sized to its content, and the index as an expression</h1>
+
+  <p class="note">
+    Kenneth's third look, on the built round 7: the four regions waste most of the stage at every rank but 4;
+    the roles line and <code>torch.Size</code> crowd the drawing; the index is still rail rows, not the
+    expression <code>T[ _, _, _ ]</code> that was picked; and nothing on the stage says which row is the tensor
+    and which is the index. <b>What went wrong in the build:</b> the 2 × 2 was drawn as a fixed grid over a
+    fixed stage height sized by rank 4, so at rank 3 each region is two-thirds air; and the expression control
+    was dropped because core has no control that renders text between fields on one line. Both are design
+    decisions, not constraints, and both are mocked here.
+  </p>
+
+  <h2>§1 · The stage, sized to its content — the same four states at 550px</h2>
+  <p class="note">
+    Two <b>rows with headers</b>, <b>Tensor</b> and <b>Index</b>, each a band across the full width with its
+    name at the left and, on the Index row, the expression it evaluates. Inside a row the drawing sits left and
+    the print right, separated by a hairline, both top-aligned. <b>The row is as tall as its content</b> — the
+    taller of drawing and print, plus padding — so the stage height follows the rank: about 300px at rank 1–2,
+    380 at rank 3, 560 at rank 4. The page grows only when the tensor does (bayesian's precedent: height is a
+    function of the parameters). The roles line and <code>torch.Size</code> sit 18px under the drawing on their
+    own baseline grid. The whole-tensor state (every slot a colon) does not repeat the tensor: the Index row
+    says <i>every slot is a colon: the selection is the whole tensor</i> in one line and stays short.
+  </p>
+  <div class="row" id="stage"></div>
+
+  <h2>§2 · The index as the expression — one control, new in core</h2>
+  <p class="note">
+    The picked control, <code>T[ _, _, _ ]</code>, rendered as one line in the rail: the brackets and commas
+    are text, each slot is a compact menu button showing its current value (<code>:</code> or a position) with
+    the dimension's name in small type under it; pressing a slot opens the short list of positions for that
+    dimension. Four slots fit the 300px rail at rank 4 with room to spare, because a slot is as wide as one
+    character. Arrow keys move between slots and change a slot's value, so the keyboard path is the same
+    control. <b>This is a new control type in <code>widgets/core/controls.js</code></b> (a composite that
+    reads and writes several parameters, one per slot); it is a core change, so the full fingerprint suite
+    runs after it and the change is gated on that.
+  </p>
+  <div class="row" id="expr"></div>
+
+  <h2>§3 · What changes, and what it costs</h2>
+  <table>
+    <tr><th>change</th><th>where</th><th>cost</th></tr>
+    <tr><td>rows sized to content, headers <i>Tensor</i> / <i>Index</i>, 18px gap under each drawing</td><td><code>widgets/tensors/main.js</code> only</td><td>the stage height varies with rank (<code>height</code> becomes a function of <code>params</code>); the fingerprint canvas height differs per state, as bayesian's does</td></tr>
+    <tr><td>the expression control</td><td><code>widgets/core/controls.js</code>, <code>params.js</code> (a composite field type), <code>tokens.css</code></td><td>a core change: one full fingerprint run to prove the other 46 widgets unchanged, then the four index parameters keep their URL keys (<code>i0</code>, <code>i1</code>, <code>i2</code>, <code>feature</code>) so links do not break</td></tr>
+    <tr><td>the frame labels and edge indices stay clickable</td><td>as built</td><td>none; the expression control and the figure both write the same parameters</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = "ui-monospace, Menlo, monospace";
+const wash = (hex, a) => { const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${a})`; };
+const A = wash(T.groupA, 0.18), HL = wash(T.highlight, 0.35);
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function html(parent, title, sub, inner) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>${inner}`;
+  parent.appendChild(cand);
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false, weight = "" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? MONO : T.font}`.trim(); ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+}
+function grid(ctx, x, y, rows, cols, s, val, lit, fill = A) {
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const cx = x + c * s, cy = y + r * s, on = lit && lit(r, c);
+    ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, s, s);
+    ctx.fillStyle = on ? HL : fill; ctx.fillRect(cx, cy, s, s);
+    ctx.strokeStyle = on ? T.highlight : T.ink3; ctx.lineWidth = on ? 2 : 1; ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+    txt(ctx, String(val(r, c)), cx + s / 2, cy + s / 2 + 0.5, { color: T.ink1, align: "center", baseline: "middle", size: s >= 24 ? T.fsSm : T.fsXs });
+  }
+}
+function frame(ctx, x, y, w, h, label, lit = false) {
+  ctx.strokeStyle = lit ? T.highlight : T.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = lit ? 1.5 : 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.setLineDash([]);
+  if (label) txt(ctx, label, x + 4, y + 10, { color: lit ? T.highlight : T.ink3, mono: true });
+}
+const depth1 = (a) => (Array.isArray(a) ? 1 + depth1(a[0]) : 0);
+function printLines(arr, mark, depth = 0, path = []) {
+  if (!Array.isArray(arr[0])) {
+    return [{ segs: [{ s: "[" }, ...arr.flatMap((v, i) => [{ s: String(v).padStart(2), lit: mark([...path, i]), num: true }, ...(i < arr.length - 1 ? [{ s: ", " }] : [])]), { s: "]" }] }];
+  }
+  const out = [];
+  arr.forEach((sub, i) => {
+    const lines = printLines(sub, mark, depth + 1, [...path, i]);
+    lines.forEach((ln, li) => out.push({ segs: [{ s: i === 0 && li === 0 ? "[" : " " }, ...ln.segs] }));
+    if (i < arr.length - 1) { out[out.length - 1].segs.push({ s: "," }); for (let k = 1; k < depth1(sub); k += 1) out.push({ segs: [{ s: "" }] }); }
+  });
+  out[out.length - 1].segs.push({ s: "]" });
+  return out;
+}
+const LH = 14, CW = 6.6;
+function printHeight(arr) { return (Array.isArray(arr) ? printLines(arr, () => false).length : 1) * LH + 22; }
+function pushPrint(ctx, x, y, arr, mark, sizeLine) {
+  const lines = Array.isArray(arr) ? printLines(arr, mark) : [{ segs: [{ s: String(arr), lit: true, num: true }] }];
+  lines.forEach((ln, li) => {
+    let col = 0;
+    const pre = li === 0 ? "tensor(" : "       ";
+    txt(ctx, pre, x, y + li * LH, { color: T.ink3, mono: true }); col += pre.length;
+    for (const seg of ln.segs) { txt(ctx, seg.s, x + col * CW, y + li * LH, { color: seg.lit ? T.highlight : (seg.num ? T.ink1 : T.ink3), mono: true }); col += seg.s.length; }
+    if (li === lines.length - 1) txt(ctx, ")", x + col * CW, y + li * LH, { color: T.ink3, mono: true });
+  });
+  txt(ctx, sizeLine, x, y + lines.length * LH + 6, { color: T.ink1, mono: true });
+}
+
+const R2 = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+const R3 = [[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]]];
+const R4 = [R3, R3.map((s) => s.map((r) => r.map((v) => v + 20)))];
+
+/* a row band with a header; returns the content origin */
+function band(ctx, x, y, w, h, title, expr) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  ctx.fillStyle = T.surface3; ctx.fillRect(x, y, w, 22);
+  txt(ctx, title, x + 10, y + 15, { color: T.ink1, size: T.fsSm, weight: "600" });
+  if (expr) txt(ctx, expr, x + w - 10, y + 15, { color: T.highlight, size: T.fsSm, mono: true, align: "right" });
+}
+function divider(ctx, x, y0, y1) { ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(x + 0.5, y0); ctx.lineTo(x + 0.5, y1); ctx.stroke(); }
+
+/* drawings, each returning its height */
+function drawR2(ctx, x, y, s, lit) { grid(ctx, x + 14, y + 14, 2, 5, s, (r, c) => R2[r][c], lit); for (let c = 0; c < 5; c += 1) txt(ctx, String(c), x + 14 + c * s + s / 2, y + 8, { color: T.ink3, align: "center", mono: true }); for (let r = 0; r < 2; r += 1) txt(ctx, String(r), x + 8, y + 14 + r * s + s / 2 + 4, { color: T.ink3, align: "right", mono: true }); return 14 + 2 * s; }
+function drawR3frames(ctx, x, y, s, lit) {
+  const fw = 5 * s + 12, fh = 2 * s + 24;
+  for (let i = 0; i < 2; i += 1) { const fx = x + 16 + i * (fw + 12); frame(ctx, fx, y + 12, fw, fh, `dim 0 = ${i}`); grid(ctx, fx + 6, y + 30, 2, 5, s, (r, c) => R3[i][r][c], lit ? (r, c) => lit(i, r, c) : null);
+    if (i === 0) { for (let c = 0; c < 5; c += 1) txt(ctx, String(c), fx + 6 + c * s + s / 2, y + 8, { color: T.ink3, align: "center", mono: true }); for (let r = 0; r < 2; r += 1) txt(ctx, String(r), fx - 4, y + 30 + r * s + s / 2 + 4, { color: T.ink3, align: "right", mono: true }); } }
+  return 12 + fh;
+}
+function drawR3stack(ctx, x, y, s, lit) {
+  const dx = Math.round(1.35 * s), dy = 2 * s + 8;
+  const fx = x + 26, fy = y + dy + 4;
+  for (let i = 1; i >= 0; i -= 1) { grid(ctx, fx + i * dx, fy - i * dy, 2, 5, s, (r, c) => R3[i][r][c], lit ? (r, c) => lit(i, r, c) : null); txt(ctx, `[${i}]`, fx + i * dx - 5, fy - i * dy + s + 4, { color: T.ink3, align: "right", mono: true }); }
+  arrow(ctx, fx - 12, fy - 4, fx - 12 + dx, fy - 4 - dy, T.ink2, 1.5, [3, 3]);
+  return 4 + dy + 2 * s;
+}
+function drawR4column(ctx, x, y, s, lit) {
+  const dx = Math.round(1.35 * s), dy = 2 * s + 6, gy = 2 * dy + 14;
+  for (let b = 0; b < 2; b += 1) { const fx = x + 40, fy = y + 6 + b * gy + dy; for (let i = 1; i >= 0; i -= 1) grid(ctx, fx + i * dx, fy - i * dy, 2, 5, s, (r, c) => R4[b][i][r][c], lit ? (r, c) => lit(b, i, r, c) : null); txt(ctx, `[${b}]`, fx - 6, fy + s + 4, { color: T.ink2, align: "right", mono: true }); }
+  arrow(ctx, x + 12, y + 6, x + 12, y + 6 + 2 * gy - 8, T.ink2, 1.5, [3, 3]);
+  return 6 + 2 * gy;
+}
+
+/* one state of the stage: returns the total height */
+function stage(ctx, W, { tensor, drawTensor, roles, size, sub, drawSub, subRoles, subSize, expr, gone, whole = false }) {
+  const pad = 10, gap = 12, colX = Math.round(W * 0.56), y0 = 8;
+  // row 1
+  const h1draw = drawTensor.measure();
+  const h1print = printHeight(tensor);
+  const h1 = 22 + pad + Math.max(h1draw + 18 + 30, h1print) + pad;
+  band(ctx, 8, y0, W - 16, h1, "Tensor");
+  const c1 = y0 + 22 + pad;
+  drawTensor.draw(16, c1);
+  txt(ctx, roles, 24, c1 + h1draw + 18, { color: T.ink2 });
+  txt(ctx, size, 24, c1 + h1draw + 34, { color: T.ink1, mono: true });
+  divider(ctx, colX, y0 + 22, y0 + h1);
+  pushPrint(ctx, colX + 12, c1 + 10, tensor, (p) => drawTensor.lit(p), size);
+  // row 2
+  const y2 = y0 + h1 + gap;
+  let h2;
+  if (whole) {
+    h2 = 22 + pad + 16 + pad;
+    band(ctx, 8, y2, W - 16, h2, "Index", expr);
+    txt(ctx, "every slot is a colon: the selection is the whole tensor", 24, y2 + 22 + pad + 12, { color: T.ink2 });
+  } else {
+    const h2draw = drawSub.measure();
+    const h2print = printHeight(sub);
+    h2 = 22 + pad + Math.max(h2draw + 18 + 30 + 16, h2print) + pad;
+    band(ctx, 8, y2, W - 16, h2, "Index", expr);
+    const c2 = y2 + 22 + pad;
+    drawSub.draw(16, c2);
+    txt(ctx, subRoles, 24, c2 + h2draw + 18, { color: T.ink2 });
+    txt(ctx, subSize, 24, c2 + h2draw + 34, { color: T.ink1, mono: true });
+    txt(ctx, gone, 24, c2 + h2draw + 50, { color: T.ink2 });
+    divider(ctx, colX, y2 + 22, y2 + h2);
+    pushPrint(ctx, colX + 12, c2 + 10, sub, () => true, subSize);
+  }
+  return y2 + h2 + 8;
+}
+
+{
+  const host = document.getElementById("stage");
+  const W = 550;
+  const states = [
+    { title: "rank 2 · T[1, :]", sub: "stage height follows the content: ~300px", s: 26, tensor: R2, roles: "0 sample · 1 feature", size: "torch.Size([2, 5])", expr: "T[1, :]",
+      drawTensor: { measure() { return 14 + 2 * 26; }, draw(x, y) { drawR2(this.ctx, x, y, 26, (r) => r === 1); }, lit: (p) => p[0] === 1 },
+      sub: [6, 7, 8, 9, 10], subRoles: "0 feature", subSize: "torch.Size([5])", gone: "dim 0 is gone: 1 index, 1 colon",
+      drawSub: { measure() { return 14 + 26; }, draw(x, y) { grid(this.ctx, x + 14, y + 14, 1, 5, 26, (r, c) => R2[1][c], () => true); } } },
+    { title: "rank 3 frames · T[:, 0, :]", sub: "the tensor row is as tall as its drawing, the index row as tall as the sub-tensor", s: 24, tensor: R3, roles: "0 sample · 1 sequence · 2 feature", size: "torch.Size([2, 2, 5])", expr: "T[:, 0, :]",
+      drawTensor: { measure() { return 12 + 2 * 24 + 24; }, draw(x, y) { drawR3frames(this.ctx, x, y, 24, (i, r) => r === 0); }, lit: (p) => p[1] === 0 },
+      sub: [[1, 2, 3, 4, 5], [11, 12, 13, 14, 15]], subRoles: "0 sample · 1 feature", subSize: "torch.Size([2, 5])", gone: "dim 1 is gone: 1 index, 2 colons",
+      drawSub: { measure() { return 14 + 2 * 24; }, draw(x, y) { grid(this.ctx, x + 14, y + 14, 2, 5, 24, (r, c) => [[1, 2, 3, 4, 5], [11, 12, 13, 14, 15]][r][c], () => true); for (let c = 0; c < 5; c += 1) txt(this.ctx, String(c), x + 14 + c * 24 + 12, y + 8, { color: T.ink3, align: "center", mono: true }); } } },
+    { title: "rank 3 stack · T[:, :, :]", sub: "every slot a colon: the Index row is one line and the stage is short", s: 24, tensor: R3, roles: "0 sample · 1 sequence · 2 feature", size: "torch.Size([2, 2, 5])", expr: "T[:, :, :]", whole: true,
+      drawTensor: { measure() { return 4 + 2 * 24 + 8 + 2 * 24; }, draw(x, y) { drawR3stack(this.ctx, x, y, 24, null); }, lit: () => false } },
+    { title: "rank 4 stack · T[0, 0, :, 4]", sub: "the tall state; the print column is as tall as the drawing here, so nothing is wasted", s: 18, tensor: R4, roles: "0 batch · 1 sample · 2 sequence · 3 feature", size: "torch.Size([2, 2, 2, 5])", expr: "T[0, 0, :, 4]",
+      drawTensor: { measure() { return 6 + 2 * (2 * (2 * 18 + 6) + 14); }, draw(x, y) { drawR4column(this.ctx, x, y, 18, (b, i, r, c) => b === 0 && i === 0 && c === 4); }, lit: (p) => p[0] === 0 && p[1] === 0 && p[3] === 4 },
+      sub: [5, 10], subRoles: "0 sequence", subSize: "torch.Size([2])", gone: "dims 0, 1 and 3 are gone: 3 indices, 1 colon",
+      drawSub: { measure() { return 14 + 18; }, draw(x, y) { grid(this.ctx, x + 14, y + 14, 1, 2, 24, (r, c) => [5, 10][c], () => true); } } },
+  ];
+  for (const st of states) {
+    // measure first with a scratch context, then draw at the right height
+    const scratch = document.createElement("canvas").getContext("2d");
+    st.drawTensor.ctx = scratch; if (st.drawSub) st.drawSub.ctx = scratch;
+    const h = stage(scratch, W, st);
+    const ctx = panel(host, st.title, st.sub, W, h);
+    st.drawTensor.ctx = ctx; if (st.drawSub) st.drawSub.ctx = ctx;
+    stage(ctx, W, st);
+    txt(ctx, `stage ${h}px`, W - 10, h - 4, { color: T.ink3, align: "right", mono: true });
+  }
+}
+
+/* ============================ §2 the expression control =================== */
+{
+  const host = document.getElementById("expr");
+  const slot = (v, name, set = false) => `<span class="slotcol"><span class="slot${set ? " set" : ""}">${v}<span class="caret">▾</span></span><span class="dimname">${name}</span></span>`;
+  html(host, "rank 3 · T[:, 0, :]", "one line; a slot shows its value, the dimension's name under it", `<div class="rail">
+    <span class="w-label">Index</span>
+    <div class="expr">T[&nbsp;${slot(":", "sample")}<span>,</span>${slot("0", "sequence", true)}<span>,</span>${slot(":", "feature")}&nbsp;]</div>
+    <p class="w-detail">a position removes its dimension; a colon keeps it — press a slot to choose</p>
+  </div>`);
+  html(host, "rank 4 · T[0, 0, :, 4] — a slot open", "four slots fit at 300px; the open slot lists its positions", `<div class="rail">
+    <span class="w-label">Index</span>
+    <div class="expr">T[&nbsp;${slot("0", "batch", true)}<span>,</span>${slot("0", "sample", true)}<span>,</span>${slot(":", "sequence")}<span>,</span>${slot("4", "feature", true)}&nbsp;]</div>
+    <div class="menu"><div>:</div><div class="on">0</div><div>1</div></div>
+    <p class="w-detail">= tensor([ 5, 10]) — shape [2]</p>
+  </div>`);
+  html(host, "rank 1 · T[:]", "one slot; the same control at every rank", `<div class="rail">
+    <span class="w-label">Index</span>
+    <div class="expr">T[&nbsp;${slot(":", "feature")}&nbsp;]</div>
+    <p class="w-detail">a position removes its dimension; a colon keeps it — press a slot to choose</p>
+  </div>`);
+}
+</script>
+</body>
+</html>

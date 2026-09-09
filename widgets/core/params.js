@@ -21,6 +21,10 @@
                   carries no value and never reaches the URL
      readback     a small case table naming which of a few labelled outcomes the
                   controls above it produce; NOT a parameter, sets nothing
+     expr         several parameters rendered as the slots of ONE line of code,
+                  `T[ _, _, _ ]`; NOT a parameter itself — each slot is an
+                  ordinary option-list parameter declared `hidden`, so it keeps
+                  its own URL key
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
@@ -44,7 +48,7 @@
 
 /* Spec entries that declare POSITION in the control block and nothing else.
    They carry no value, never reach `values`, and never reach the URL. */
-const NON_PARAM_TYPES = new Set(["section", "readback"]);
+const NON_PARAM_TYPES = new Set(["section", "readback", "expr"]);
 
 /** Clamp and snap a number to the field's min/max/step. */
 function coerceNumber(field, raw, isInt) {

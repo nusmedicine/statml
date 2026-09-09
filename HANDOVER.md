@@ -16,6 +16,48 @@ session shipped widget 48 `gradients` (2026-09-08, after ten review
 rounds), then fixed one core bug and did a register pass over the rail
 lines it revealed, both pushed on his "tested ok" (`a6bcdba`, `3bb0ebd`).
 
+**Later on 2026-09-08 Kenneth asked for a tensors widget** — the first half
+of `05-2`, in the style of his own lesson figures. It is not one of the six
+slots: catalogue § *Slot 53 · `tensors`* has the host, four misconceptions,
+a four-tab shape (Shape · Broadcast · Multiply · Reduce), what it must not
+draw, and **six questions**; the mock-up is `_lab/tensor-mock.html` (five
+sections, viewed at `http://localhost:8014/widgets/_lab/tensor-mock.html`
+— 8012 and 8013 belonged to other sessions that day). He picked the same afternoon (tensors next; Multiply here; cat and stack
+in; drawing A) and **the draft is BUILT**: `widgets/tensors/` at `/lab/`,
+`status: "draft"`, 86 assertions in `_lab/tensor-verify.mjs`, twelve
+placeholder fingerprint states, check and test passing, **uncommitted**,
+the copy table's eight items applied on his say-so; then **round 2** (the
+stacked drawing hid cells; `_lab/tensor-draw.html` researched five drawings
+at rank 3 and 4) and **round 3** (his pick: a `view` toggle between the
+exploded stack and framed grids with edge indices, plus the tensor as
+PyTorch prints it beside each drawing, the moving value lit in both) are
+BUILT and reviewed; then **round 4** (the arrow anchored to the slabs,
+the tile fixed, `_lab/tensor-basics.html` mocking a Basics topic and three
+rail organisations) and **round 5** (his picks: one widget, the rail in two
+captioned rows — Basics · Shape · Join over Broadcast · Multiply · Reduce —
+a Basics topic with a Dimensions control and one index control per
+dimension, Join split from Shape) are BUILT and reviewed. Then **round 6**
+(research: DeFT, split attention, common region, the NumPy visual guides;
+`_lab/tensor-basics2.html`) and **round 7** (his picks: the Basics stage as
+a 2 × 2 of named regions with the selection drawn as a sub-tensor; the
+index slots in rail rows and the figure clickable through `regions`; rank
+4 in the stack view as a column of exploded stacks) are BUILT and
+reviewed: six topics, 2578 lines, 201 assertions, 23 placeholder states,
+stage 562 at the 550 canvas. **The subagent lost round 5's placeholder
+states with a `git checkout` on the baseline file and rebuilt them** —
+nothing measured was lost; commit the draft before the next round. Then **round 8**
+(2026-09-09, written by the main session on his call): a new CORE control
+type `expr` — `T[ : , 0 , : ]` as one rail line, a `<select>` per hidden
+slot parameter (controls.js, params.js, tokens.css) — and the Basics stage
+as two content-sized named bands, Tensor and Index, with `height` a
+function of the parameters on that tab. Then **round 9** (colour, type,
+motion — measured in `_lab/tensor-look.html`, picked, built by the main
+session): `--c-dim-a..d` in tokens.css/env.js, the selection at .50 and
+bold, one type step up, and two eases on Basics through `anim.easing`.
+**He is testing before the commit** (his call: hold). Next: his test verdict, then one
+local commit of plan, mock and widget; on "tested ok" the fingerprint states
+for real, `status` flipped, push.
+
 **The next task is the arc.** [docs/catalogue.md](docs/catalogue.md)
 § *The deep learning arc* plans six slots, 47–52, for PHM5005 *DL
 Foundations* (`05-1` to `05-4`): `chain-rule`, `gradients` (done),

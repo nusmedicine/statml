@@ -699,6 +699,26 @@
       ],
       "arc": 48,
       "status": "shipped"
+    },
+    {
+      "slug": "tensors",
+      "title": "Tensors",
+      "blurb": "Tensor operations follow the shape: where a value goes, when two shapes combine, which dimension a reduction removes.",
+      "course": "PHM5005",
+      "topics": [
+        "tensor",
+        "shape",
+        "reshape",
+        "permute",
+        "broadcasting",
+        "matrix multiplication",
+        "dot product",
+        "reduction",
+        "standardization",
+        "deep learning"
+      ],
+      "arc": 53,
+      "status": "draft"
     }
   ]
 }

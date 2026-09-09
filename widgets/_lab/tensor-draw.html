@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — how to draw a three-dimensional tensor without hiding cells</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 520px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · drawing a three-dimensional tensor without hiding cells</h1>
+
+  <p class="note">
+    The shipped draft stacks one grid per sample with a whole-cell offset (candidate A). With two samples the back
+    grid shows its top row and right column and hides the other four cells; with three samples the middle grid
+    shows two cells of ten. The reference drawings — the TensorFlow guide's three pictures of a [3, 2, 5] tensor
+    (side-by-side blocks, an offset stack, a solid cube), NumPy's "a set of tables, stacked as though printed on
+    separate pages", Chollet's "cube of numbers" — all trade the same two things: how much depth the picture
+    suggests against how many cells it shows. Every candidate below is drawn twice, for [2, 2, 5] and for
+    [3, 2, 5], and the caption counts the hidden cells.
+  </p>
+
+  <h2>§1 · Five drawings of the same tensor</h2>
+  <p class="note">
+    <b>A</b> the current stack, whole-cell offset. <b>B</b> the exploded stack: the same slabs spread along the
+    depth diagonal far enough that none overlaps, joined by the dim-0 arrow — the TensorFlow "front" picture.
+    <b>C</b> the exploded stack laid flat: slabs side by side, each in a frame labelled by its dim-0 index, the
+    three dimension arrows drawn once — the TensorFlow "numpy" picture, and what NumPy and PyTorch print.
+    <b>D</b> C with the indices written on the edges: dim-0 index on the frame, dim-1 index down the left, dim-2
+    index across the top, so <code>T[1, 0, 2] = 13</code> reads off the figure without hovering. <b>E</b> the
+    solid cube, values on the front face only, shown to be rejected.
+  </p>
+  <div class="row" id="two"></div>
+  <div class="row" id="three"></div>
+
+  <h2>§2 · Rank 4 — the lesson's image batch, [3, 3, 2, 5]: sample, channel, height, width</h2>
+  <p class="note">
+    Ninety cells, numbered 1–90 in reading order, at the 550px stage width. <b>D4</b> frames within frames: one
+    frame per sample down the page, inside it one frame per channel across, inside that the 2 × 5 grid of
+    pixels; the edge indices on the first grid only. <b>B4</b> your exploded stack: one stack per sample across
+    the page, the three channels spread up the diagonal, nothing overlapping. <b>A4</b> your overlapped stack,
+    as the lesson's 4D figure draws it, for the count of what it hides. A fifth dimension is one more frame
+    round D4 (a row of them) or one more row of B4 — the lesson's 5D figure is B4 repeated.
+  </p>
+  <div class="row" id="four"></div>
+
+  <h2>§3 · What each costs</h2>
+  <table>
+    <tr><th>candidate</th><th>hidden cells [2, 2, 5] / [3, 2, 5]</th><th>depth cue</th><th>height for [3, 2, 5] at 30px cells</th><th>fourth dimension (stack, unsqueeze)</th></tr>
+    <tr><td>A stack, whole-cell offset</td><td>4 / 14</td><td>strong</td><td>120</td><td>a dashed frame round the stack</td></tr>
+    <tr><td>B exploded stack</td><td>0 / 0</td><td>strong</td><td>240 (each slab clears the one before)</td><td>frames round stacks, side by side</td></tr>
+    <tr><td>C side by side, framed</td><td>0 / 0</td><td>the dim-0 arrow only</td><td>60 + frame</td><td>frames within frames — the current stack/unsqueeze drawing already</td></tr>
+    <tr><td>D C with edge indices</td><td>0 / 0</td><td>the dim-0 arrow only</td><td>60 + frame + index gutters</td><td>as C</td></tr>
+    <tr><td>E cube</td><td>10 / 20</td><td>strongest</td><td>~110</td><td>none: a cube has three edges</td></tr>
+  </table>
+
+  <p class="note">
+    <b>What the references settle.</b> The TensorFlow guide draws the same rank-3 tensor three ways and says
+    outright that there are many ways to draw one; its rank-4 example is drawn as blocks of blocks, not as a cube.
+    NumPy's own mental model is that the LAST index is the column and the second-to-last the row, which is what
+    C and D make literal: the last two dimensions are the grid you can read, and every earlier dimension is a
+    frame round grids. The named-tensor argument (Rush, "Tensor Considered Harmful") is that what a reader needs
+    is the NAME of each dimension, not its position — which the widget already does with "0 sample",
+    "1 sequence", "2 feature", and D extends to the indices along each.
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = "ui-monospace, Menlo, monospace";
+const wash = (hex, a) => { const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${a})`; };
+const A = wash(T.groupA, 0.18);
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${size} ${mono ? MONO : T.font}`; ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+}
+function grid(ctx, x, y, rows, cols, s, val, { fill = A, ink = T.ink1 } = {}) {
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const cx = x + c * s, cy = y + r * s;
+    ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, s, s);
+    ctx.fillStyle = fill; ctx.fillRect(cx, cy, s, s);
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+    txt(ctx, String(val(r, c)), cx + s / 2, cy + s / 2 + 0.5, { color: ink, align: "center", baseline: "middle", size: T.fsSm });
+  }
+}
+const tensor = (d0) => (i, r, c) => i * 10 + r * 5 + c + 1;
+const ROLES = ["0 sample", "1 sequence", "2 feature"];
+const S = 30;
+
+/* A · the current stack, whole-cell offset */
+function drawStack(ctx, d0, x, y) {
+  const v = tensor(d0);
+  const fx = x, fy = y + (d0 - 1) * S;
+  for (let i = d0 - 1; i >= 0; i -= 1) grid(ctx, fx + i * S, fy - i * S, 2, 5, S, (r, c) => v(i, r, c));
+  const W = 5 * S, H = 2 * S, bx = fx + (d0 - 1) * S, by = fy - (d0 - 1) * S;
+  arrow(ctx, bx, by - 10, bx + W, by - 10, T.ink2); txt(ctx, ROLES[2], bx + W / 2, by - 15, { color: T.ink2, align: "center" });
+  arrow(ctx, bx + W + 10, by, bx + W + 10, by + H, T.ink2); txt(ctx, ROLES[1], bx + W + 16, by + H / 2 + 4, { color: T.ink2 });
+  arrow(ctx, fx - 8, fy + 8, fx - 8 + (d0 - 1) * S + 6, fy + 8 - (d0 - 1) * S - 6, T.ink2, 1.5, [3, 3]);
+  txt(ctx, ROLES[0], fx - 12, by - 2, { color: T.ink2, align: "right" });
+  return { bottom: fy + H };
+}
+/* B · exploded stack: each slab clears the one before along the diagonal */
+function drawExploded(ctx, d0, x, y) {
+  const v = tensor(d0);
+  const H = 2 * S, W = 5 * S, dx = S * 1.4, dy = H + 8;
+  const fy = y + (d0 - 1) * dy, fx = x;
+  for (let i = d0 - 1; i >= 0; i -= 1) {
+    grid(ctx, fx + i * dx, fy - i * dy, 2, 5, S, (r, c) => v(i, r, c));
+    txt(ctx, `[${i}]`, fx + i * dx - 6, fy - i * dy + 4, { color: T.ink2, align: "right", mono: true });
+  }
+  const bx = fx + (d0 - 1) * dx, by = fy - (d0 - 1) * dy;
+  arrow(ctx, bx, by - 10, bx + W, by - 10, T.ink2); txt(ctx, ROLES[2], bx + W / 2, by - 15, { color: T.ink2, align: "center" });
+  arrow(ctx, bx + W + 10, by, bx + W + 10, by + H, T.ink2); txt(ctx, ROLES[1], bx + W + 16, by + H / 2 + 4, { color: T.ink2 });
+  arrow(ctx, fx - 30, fy + H, fx - 30 + (d0 - 1) * dx, fy + H - (d0 - 1) * dy - 4, T.ink2, 1.5, [3, 3]);
+  txt(ctx, ROLES[0], fx - 30, fy + H + 14, { color: T.ink2 });
+  return { bottom: fy + H };
+}
+/* C · side by side, framed by dim-0 index */
+function drawFlat(ctx, d0, x, y, { indices = false } = {}) {
+  const v = tensor(d0);
+  const H = 2 * S, W = 5 * S, gap = 26, pad = 8;
+  const gx0 = x + (indices ? 20 : 0), gy = y + 30 + (indices ? 14 : 0);
+  for (let i = 0; i < d0; i += 1) {
+    const gx = gx0 + i * (W + 2 * pad + gap);
+    ctx.strokeStyle = T.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+    ctx.strokeRect(gx - pad + 0.5, gy - pad + 0.5, W + 2 * pad, H + 2 * pad); ctx.setLineDash([]);
+    txt(ctx, indices ? `dim 0 = ${i}` : `[${i}]`, gx - pad, gy - pad - 4, { color: T.ink2, mono: true });
+    grid(ctx, gx, gy, 2, 5, S, (r, c) => v(i, r, c));
+    if (indices) {
+      for (let c = 0; c < 5; c += 1) txt(ctx, String(c), gx + c * S + S / 2, gy - pad - 4 - (i === 0 ? 0 : 0) - 12, { color: T.ink3, align: "center", mono: true });
+      if (i === 0) for (let r = 0; r < 2; r += 1) txt(ctx, String(r), gx - pad - 6, gy + r * S + S / 2 + 4, { color: T.ink3, align: "right", mono: true });
+    }
+  }
+  const g0 = gx0;
+  if (!indices) {
+    arrow(ctx, g0, gy - 22, g0 + W, gy - 22, T.ink2); txt(ctx, ROLES[2], g0 + W / 2, gy - 27, { color: T.ink2, align: "center" });
+  } else {
+    txt(ctx, ROLES[2], g0 + W / 2, gy - pad - 30, { color: T.ink2, align: "center" });
+    txt(ctx, ROLES[1], g0 - pad - 22, gy + H + 22, { color: T.ink2 });
+  }
+  arrow(ctx, g0 - pad - 12, gy, g0 - pad - 12, gy + H, T.ink2);
+  if (!indices) txt(ctx, ROLES[1], g0 - pad - 12, gy + H + 22, { color: T.ink2 });
+  const total = d0 * (W + 2 * pad) + (d0 - 1) * gap;
+  arrow(ctx, g0 - pad, gy + H + pad + 12, g0 - pad + total, gy + H + pad + 12, T.ink2, 1.5, [3, 3]);
+  txt(ctx, ROLES[0], g0 - pad, gy + H + pad + 26, { color: T.ink2 });
+  return { bottom: gy + H + pad + 30 };
+}
+/* E · the cube: values on the front face only */
+function drawCube(ctx, d0, x, y) {
+  const v = tensor(d0);
+  const dx = 14, dy = 10, W = 5 * S, H = 2 * S;
+  const fx = x, fy = y + d0 * dy;
+  // top face
+  ctx.fillStyle = wash(T.groupA, 0.10); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + d0 * dx, fy - d0 * dy); ctx.lineTo(fx + d0 * dx + W, fy - d0 * dy); ctx.lineTo(fx + W, fy); ctx.closePath(); ctx.fill(); ctx.stroke();
+  for (let i = 1; i < d0; i += 1) { ctx.beginPath(); ctx.moveTo(fx + i * dx, fy - i * dy); ctx.lineTo(fx + i * dx + W, fy - i * dy); ctx.stroke(); }
+  for (let c = 1; c < 5; c += 1) { ctx.beginPath(); ctx.moveTo(fx + c * S, fy); ctx.lineTo(fx + c * S + d0 * dx, fy - d0 * dy); ctx.stroke(); }
+  // right face
+  ctx.fillStyle = wash(T.groupA, 0.06);
+  ctx.beginPath(); ctx.moveTo(fx + W, fy); ctx.lineTo(fx + W + d0 * dx, fy - d0 * dy); ctx.lineTo(fx + W + d0 * dx, fy - d0 * dy + H); ctx.lineTo(fx + W, fy + H); ctx.closePath(); ctx.fill(); ctx.stroke();
+  for (let i = 1; i < d0; i += 1) { ctx.beginPath(); ctx.moveTo(fx + W + i * dx, fy - i * dy); ctx.lineTo(fx + W + i * dx, fy - i * dy + H); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(fx + W, fy + S); ctx.lineTo(fx + W + d0 * dx, fy - d0 * dy + S); ctx.stroke();
+  grid(ctx, fx, fy, 2, 5, S, (r, c) => v(0, r, c));
+  arrow(ctx, fx, fy - d0 * dy - 10, fx + W, fy - d0 * dy - 10, T.ink2); txt(ctx, ROLES[2], fx + W / 2, fy - d0 * dy - 15, { color: T.ink2, align: "center" });
+  arrow(ctx, fx + W + d0 * dx + 10, fy - d0 * dy, fx + W + d0 * dx + 10, fy - d0 * dy + H, T.ink2); txt(ctx, ROLES[1], fx + W + d0 * dx + 16, fy - d0 * dy + H / 2 + 4, { color: T.ink2 });
+  arrow(ctx, fx - 8, fy + 8, fx - 8 + d0 * dx, fy + 8 - d0 * dy, T.ink2, 1.5, [3, 3]); txt(ctx, ROLES[0], fx - 12, fy - d0 * dy - 2, { color: T.ink2, align: "right" });
+  return { bottom: fy + H };
+}
+
+function drawSet(hostId, d0) {
+  const host = document.getElementById(hostId);
+  const hidden = { A: d0 === 2 ? 4 : 14, E: d0 === 2 ? 10 : 20 };
+  const shape = `[${d0}, 2, 5]`;
+  { const ctx = panel(host, `A · stack ${shape}`, `${hidden.A} of ${d0 * 10} cells hidden`, 330, 60 + 2 * S + d0 * S + 40);
+    const b = drawStack(ctx, d0, 70, 40); txt(ctx, `T  ${shape}`, 70, b.bottom + 18, { color: T.ink1, mono: true, size: T.fsSm }); }
+  { const ctx = panel(host, `B · exploded stack ${shape}`, `0 hidden; every slab clears the one behind it`, 400, 60 + d0 * (2 * S + 8) + 40);
+    const b = drawExploded(ctx, d0, 70, 40); txt(ctx, `T  ${shape}`, 70, b.bottom + 34, { color: T.ink1, mono: true, size: T.fsSm }); }
+  { const ctx = panel(host, `C · side by side, framed ${shape}`, `0 hidden; each frame is one index of dim 0`, 60 + d0 * 192, 190);
+    const b = drawFlat(ctx, d0, 40, 20); txt(ctx, `T  ${shape}`, 40, b.bottom + 18, { color: T.ink1, mono: true, size: T.fsSm }); }
+  { const ctx = panel(host, `D · framed, indices on the edges ${shape}`, `0 hidden; T[1, 0, 2] reads off the edges: frame 1, row 0, column 2`, 80 + d0 * 192, 210);
+    const b = drawFlat(ctx, d0, 40, 20, { indices: true }); txt(ctx, `T  ${shape}`, 40, b.bottom + 18, { color: T.ink1, mono: true, size: T.fsSm }); }
+  { const ctx = panel(host, `E · cube ${shape}`, `${hidden.E} of ${d0 * 10} cells hidden: the front face only`, 330, 180);
+    const b = drawCube(ctx, d0, 70, 50); txt(ctx, `T  ${shape}`, 70, b.bottom + 18, { color: T.ink1, mono: true, size: T.fsSm }); }
+}
+drawSet("two", 2);
+drawSet("three", 3);
+
+/* ============================ rank 4 ==================================== */
+const R4 = [3, 3, 2, 5];
+const NAMES4 = ["0 sample", "1 channel", "2 height", "3 width"];
+const v4 = (i, j, r, c) => ((i * 3 + j) * 2 + r) * 5 + c + 1;
+{
+  const host = document.getElementById("four");
+  const s = 20, W = 5 * s, H = 2 * s;
+  /* D4 · frames within frames */
+  {
+    const ctx = panel(host, "D4 · frames within frames [3, 3, 2, 5]", "0 of 90 hidden; sample down the page, channel across, the pixel grid inside; indices on the first grid", 550, 330);
+    const pad = 6, ipad = 8, gapJ = 12, gapI = 10;
+    const innerW = W + 2 * pad, innerH = H + 2 * pad + 12;
+    const outerW = 3 * innerW + 2 * gapJ + 2 * ipad, outerH = innerH + 2 * ipad + 12;
+    const x0 = 60, y0 = 44;
+    for (let i = 0; i < 3; i += 1) {
+      const ox = x0, oy = y0 + i * (outerH + gapI);
+      ctx.strokeStyle = T.ink3; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
+      ctx.strokeRect(ox + 0.5, oy + 0.5, outerW, outerH); ctx.setLineDash([]);
+      txt(ctx, `sample ${i}`, ox + 4, oy + 11, { color: T.ink2, mono: true });
+      for (let j = 0; j < 3; j += 1) {
+        const ix = ox + ipad + j * (innerW + gapJ), iy = oy + 14 + ipad;
+        ctx.strokeStyle = T.ink3; ctx.setLineDash([2, 2]); ctx.strokeRect(ix + 0.5, iy + 0.5, innerW, innerH); ctx.setLineDash([]);
+        txt(ctx, `channel ${j}`, ix + pad, iy + 10, { color: T.ink3, mono: true });
+        grid(ctx, ix + pad, iy + 12 + pad, 2, 5, s, (r, c) => v4(i, j, r, c));
+        if (i === 0 && j === 0) {
+          for (let c = 0; c < 5; c += 1) txt(ctx, String(c), ix + pad + c * s + s / 2, iy - 3, { color: T.ink3, align: "center", mono: true });
+          for (let r = 0; r < 2; r += 1) txt(ctx, String(r), ix - 4, iy + 12 + pad + r * s + s / 2 + 3, { color: T.ink3, align: "right", mono: true });
+        }
+      }
+    }
+    txt(ctx, NAMES4[3], x0 + ipad + pad + W / 2, y0 - 18, { color: T.ink2, align: "center" });
+    txt(ctx, NAMES4[2], x0 + ipad + pad - 14, y0 + 14 + ipad + 12 + pad + H + 12, { color: T.ink2, align: "left" });
+    arrow(ctx, x0 + ipad, y0 - 6, x0 + outerW - ipad, y0 - 6, T.ink2); txt(ctx, NAMES4[1], x0 + outerW - ipad, y0 - 10, { color: T.ink2, align: "right" });
+    arrow(ctx, x0 - 14, y0, x0 - 14, y0 + 3 * outerH + 2 * gapI, T.ink2, 1.5, [3, 3]);
+    txt(ctx, NAMES4[0], x0 - 8, y0 + 3 * outerH + 2 * gapI + 16, { color: T.ink2, align: "right" });
+    txt(ctx, `T  [3, 3, 2, 5]`, x0, y0 + 3 * outerH + 2 * gapI + 16, { color: T.ink1, mono: true, size: T.fsSm });
+  }
+  /* B4 · exploded stacks side by side */
+  {
+    const ctx = panel(host, "B4 · exploded stacks [3, 3, 2, 5]", "0 of 90 hidden; one stack per sample across, the channels spread up the diagonal", 550, 330);
+    const dx = s * 1.3, dy = H + 6;
+    const stackW = W + 2 * dx, gap = 22;
+    const x0 = 40, top = 60;
+    for (let i = 0; i < 3; i += 1) {
+      const fx = x0 + i * (stackW + gap), fy = top + 2 * dy;
+      for (let j = 2; j >= 0; j -= 1) {
+        grid(ctx, fx + j * dx, fy - j * dy, 2, 5, s, (r, c) => v4(i, j, r, c));
+        if (j > 0) txt(ctx, `[${j}]`, fx + j * dx - 4, fy - j * dy + 12, { color: T.ink3, align: "right", mono: true });
+      }
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = T.ink3;
+      ctx.strokeRect(fx - 20 + 0.5, top - 22 + 0.5, stackW + 26, 3 * dy + 30); ctx.setLineDash([]);
+      txt(ctx, `sample ${i}`, fx - 16, top - 10, { color: T.ink2, mono: true });
+      if (i === 0) {
+        const bx = fx + 2 * dx, by = fy - 2 * dy;
+        arrow(ctx, bx, by - 8, bx + W, by - 8, T.ink2); txt(ctx, NAMES4[3], bx + W / 2, by - 12, { color: T.ink2, align: "center" });
+        arrow(ctx, bx + W + 8, by, bx + W + 8, by + H, T.ink2); txt(ctx, NAMES4[2], bx + W + 12, by + H / 2 + 4, { color: T.ink2 });
+        arrow(ctx, fx - 12, fy + H + 4, fx - 12 + 2 * dx, fy + H + 4 - 2 * dy - 6, T.ink2, 1.5, [3, 3]);
+        txt(ctx, NAMES4[1], fx - 14, fy + H + 18, { color: T.ink2 });
+      }
+    }
+    arrow(ctx, x0 - 20, top + 3 * dy + 30, x0 - 20 + 3 * (stackW + gap) - gap + 6, top + 3 * dy + 30, T.ink2, 1.5, [3, 3]);
+    txt(ctx, NAMES4[0], x0 - 20, top + 3 * dy + 44, { color: T.ink2 });
+    txt(ctx, `T  [3, 3, 2, 5]`, x0 - 20, top + 3 * dy + 70, { color: T.ink1, mono: true, size: T.fsSm });
+  }
+  /* A4 · overlapped stacks, the lesson's own 4D figure */
+  {
+    const ctx = panel(host, "A4 · overlapped stacks, as the lesson draws rank 4", "42 of 90 hidden: in each stack the channel behind shows only its top row and right column", 300, 330);
+    const x0 = 60, top = 50, dy = 2 * s + 2 * s + 18;
+    for (let i = 0; i < 3; i += 1) {
+      const fx = x0, fy = top + i * dy + 2 * s;
+      for (let j = 2; j >= 0; j -= 1) grid(ctx, fx + j * s, fy - j * s, 2, 5, s, (r, c) => v4(i, j, r, c));
+      txt(ctx, `sample ${i}`, fx - 8, fy + 2 * s - 4, { color: T.ink2, align: "right", mono: true });
+    }
+    arrow(ctx, x0 + 2 * s, top - 10, x0 + 2 * s + W, top - 10, T.ink2); txt(ctx, NAMES4[3], x0 + 2 * s + W / 2, top - 15, { color: T.ink2, align: "center" });
+    arrow(ctx, x0 - 8, top + 2 * s + 8, x0 - 8 + 2 * s + 4, top + 8 - 4, T.ink2, 1.5, [3, 3]); txt(ctx, NAMES4[1], x0 + 2 * s + W + 14, top + 2 * s, { color: T.ink2 });
+    arrow(ctx, x0 - 40, top, x0 - 40, top + 3 * dy - 18, T.ink2, 1.5, [3, 3]); txt(ctx, NAMES4[0], x0 - 40, top + 3 * dy - 4, { color: T.ink2 });
+    txt(ctx, `T  [3, 3, 2, 5]`, x0, top + 3 * dy + 14, { color: T.ink1, mono: true, size: T.fsSm });
+  }
+}
+</script>
+</body>
+</html>

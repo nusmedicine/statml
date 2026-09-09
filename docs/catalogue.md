@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08, the rest awaiting Kenneth's picks; the high-throughput arc is complete |
+| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08; **slot 53 `tensors` proposed 2026-09-08 on Kenneth's ask, mock-up at `_lab/tensor-mock.html` awaiting his picks**; the rest of the arc awaits his answers; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -9622,6 +9622,7 @@ epochs.
 | 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 40–60 | proposed, lowest priority |
 | 51 | `composition` | Composing Layers | 3 | 05-3 cells 61–101 | proposed |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
+| 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **BUILT AS A DRAFT 2026-09-08** from Kenneth's picks, at `/lab/`; awaiting his review |
 
 Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
 is the notebooks' own. Six is the honest count for four groups because the
@@ -10407,6 +10408,619 @@ loss, stopped at.
 Colab. Pin the way widget 37 was: dump the data and the initial weights the
 widget produced, train from those exact arrays in torch, compare — the
 notebook to do it can be handed to Kenneth to run.
+
+### Slot 53 · `tensors` — Tensors — PROPOSED 2026-09-08, mock-up awaiting picks
+
+**Kenneth's ask, 2026-09-08:** a widget for the tensor half of `05-2`, in the
+style of his own lesson figures — the 1D-to-5D stack, sequence and image data
+as 3D and 4D tensors, `reshape(2, 10)` with the collapsed dimensions
+bracketed, `torch.matmul` with the inner dimensions bracketed, broadcasting
+with the stretched copies drawn dotted. Not one of the six slots proposed
+2026-09-07, so it takes the next number and sits **first** in the notebook's
+order: `05-2` teaches tensors (cells 1–69) before gradients (70–78, widget
+48's). The arc's five questions are still open; his ask answers the third
+(which first) with a slot that was not on the list.
+
+**Host.** 05-2 cells 1–69, two halves. *Tensors for Data*, cells 1–44: the
+worked tensor is `[2, 2, 5]` holding 1–20, its dimensions named sample,
+sequence, feature (cells 7, 16); indexing and slicing (19–23);
+`reshape(2, -1)` to `[2, 10]` (27), `flatten` (29, 31), `unsqueeze(0)` and
+`squeeze(0)` (33, 35), `permute(0, 2, 1)` and `transpose(1, 2)` (37, 39),
+`cat` along dim 0 with a second tensor of 21–30 (41–42), `stack` (44).
+*Linear Algebra*, cells 45–69: elementwise operations on a 3 × 3 image
+(48–50); broadcasting `[2, 5] + [5]` with the rule stated as *line the shapes
+up from the right, a missing dimension is 1, equal or 1 passes* (51–53);
+matrix multiplication as the neuron example, X `[3, 4]` @ Wᵀ `[4, 2]` with W
+transposed in its own cell to make the inner dimensions match (55–58); the
+dot product on amino-acid property vectors (59–61); the Hadamard product as a
+dropout mask (62–65); reductions `mean(dim=0)` and `std(dim=0)` on a `[3, 4]`
+batch, then `(X − μ) / σ` (66–69). Cell 0 is the layer in matrix form,
+σ(W x + b), which is where the half ends up.
+
+**What is already covered, and what this must not do.** Widget 37 draws the
+layer as edges, one per weight; slot 49 prints `[batch, …] → [batch, …]` on
+every page and lights the inputs each output unit sees; slot 50 draws the
+Hadamard mask as its Dropout page and the column reduction as BatchNorm;
+widget 48 owns cells 70–78. So this widget owns **the arithmetic on shapes**:
+what an index is, where a value goes when a shape changes, when two shapes
+combine and which dimension a reduction removes. It must not draw a network,
+train anything, or step through a layer unit by unit — the one place it
+touches slot 49 is the matrix-product page, and that overlap is question 2.
+
+**The misconceptions.**
+
+- **Reported** (the reshape-against-transpose question is a fixture of NumPy
+  and PyTorch forums): `reshape` rearranges the values the way `permute`
+  does, so the two are interchangeable when the target shape is the same.
+  They are not. `reshape` keeps the reading order and cuts it anew;
+  `permute` moves each value to the index with its positions swapped.
+  `reshape(2, 5, 2)` and `permute(0, 2, 1)` both produce `[2, 5, 2]` from
+  the lesson's tensor with different contents — the stage that loses (2.6).
+- **Reported** (the `axis` confusion, as old as NumPy): `mean(dim=0)` takes
+  the mean *of each row*. It takes the mean *across* the rows — `dim` names
+  the dimension that disappears, so `[3, 4]` over dim 0 is `[4]`, one number
+  per feature, which is what cell 68 needs and what BatchNorm is.
+- **Reported:** broadcasting works whenever one operand is smaller, or lines
+  the shapes up from the left. The rule is from the right: `[2, 5] + [2]`
+  fails while `[2, 5] + [2, 1]` and `[2, 5] + [5]` work.
+- **Reported, and the lesson corrects it in its own cell 57:** `X @ W` with
+  W holding one row per neuron. The inner dimensions must match, which is
+  why the lesson transposes W; and one cell of the product is a row of X
+  against a column of Wᵀ, a sum of products — the dot product, which is what
+  attention later scores with.
+
+**The device.** Every cell carries its value — the lesson's own numbers — so
+the reader can see where 11 went after a reshape and after a permute, which
+cells the second row of the product read, and which cells a mean over dim 0
+collapsed. No randomness: the tensors are given, so there is no `seed`. **No
+lead:** the widget opens on the operands with nothing computed, which is 2.1
+without a lead, and Step performs one unit of the operation.
+
+**The shape.** Four tabs (`tab`, segmented, data), in the lesson's order:
+
+- **Shape** — the `[2, 2, 5]` tensor drawn as stacked grids with its three
+  dimensions as labelled arrows, and `op` (segmented): `reshape(2, −1)` →
+  `[2, 10]`, `flatten()` → `[20]`, `unsqueeze(0)` → `[1, 2, 2, 5]`,
+  `permute(0, 2, 1)` → `[2, 5, 2]`, `reshape(2, 5, 2)` → `[2, 5, 2]`. Step
+  moves one value to its place in the result, in the order the operation
+  walks; the moving value is highlighted on both sides and the readout prints
+  `T[i, j, k] → [i′, j′, k′]`. Hover any cell on any tab: its index and value
+  in the readout. Whether `cat` and `stack` are two more options is question 3.
+- **Broadcast** — X `[2, 5]` + b, with `b` (choice of shape): `[5]`, `[1, 5]`,
+  `[2, 1]`, a scalar, and `[2]`, which fails. The alignment is drawn as the
+  lesson writes it — the two shapes right-aligned, each dimension's verdict
+  beside them — the stretched copies faint, and Step adds one row. The failing
+  case prints *no result: 5 against 2* where the result would be.
+- **Multiply** — X `[3, 4]` @ Wᵀ `[4, 2]`, the lesson's three data points and
+  two neurons, with `weights` (segmented): Wᵀ, or W untransposed, which
+  fails on 4 against 2. Step computes one output cell: the row of X and the
+  column of Wᵀ it reads are outlined, the four products are written and
+  summed in the readout. Caption: rows of X are data points, columns of Wᵀ
+  are neurons — the layer widget 37 draws as edges.
+- **Reduce** — X `[3, 4]`, with `dim` (segmented): 0, 1, none; `fn` (segmented):
+  mean, sum, max. Step collapses one group — a column for dim 0, a row for
+  dim 1 — with an arrow in the direction of the collapse. Then `normalize`
+  (a gate, display): `(X − μ) / σ` drawn as μ and σ `[4]` stretched back across
+  the rows — a reduction followed by a broadcast, the two previous tabs
+  composed, and the standardization widget 48 applies to x.
+
+Readout: the shapes in and out; the hovered cell; on Shape the current move;
+on Multiply the sum of products; on Reduce the group's values and their
+mean. A formula card is not planned: the one formula, c_ij = Σ_k a_ik b_kj,
+is printed as numbers in the readout for the current cell (5.8).
+
+**Colour, provisional and a question.** The tensor being operated on is
+washed `--c-group-a`, the second operand `--c-group-b`, the result
+`--c-empirical` (what the operation built), the moving or computed cell
+`--c-highlight` with the cells it reads outlined in the same, a failing case
+in `--c-extreme`. Kenneth's reshape figure colours each dimension and repeats
+the colour on its entry in the shape; the mock draws that as §1 C with
+`--c-cluster-a/b/c`, which is the nearest existing role to "a label nobody
+assigned" and may deserve its own.
+
+**Not drawn, and what it costs.** The 4D image tensor `[sample, channel,
+height, width]` — a fourth dimension with numbered cells is not legible at
+550px; the roles are named on the Shape tab's arrows and the caption says a
+4D tensor adds one more. The dot-product geometry (alignment, the
+amino-acid example) — the cell-level dot product is on Multiply and the
+geometry is attention's, slot 49's. The Hadamard mask — slot 50's Dropout
+page. `dtype`, `device`, GPU — a table in the lesson with nothing to draw.
+`cat`/`stack` — question 3; cutting them costs the *new dimension against
+existing dimension* distinction, which `unsqueeze` half-carries.
+
+**Nothing to measure.** Every number is the lesson's own and every result is
+exact. What the mock has to prove is legibility: twenty numbered cells, their
+result and the dimension arrows at the fingerprint width, and which drawing
+of a three-dimensional tensor reads. Pinning is a handful of `torch` calls
+Kenneth can run in Colab — the values on every panel are the notebook's
+printed outputs already.
+
+#### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
+
+Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the
+lesson's stacked grids with the dimensions as arrows, B flat with one grid
+per sample, C the stacked grids with one colour per dimension carried into
+the shape; **§2** reshape against permute to the same `[2, 5, 2]`, seven
+values in, then `reshape(2, −1)`, `flatten()` and `unsqueeze(0)` finished;
+**§3** broadcasting, five shapes of b including the one that fails; **§4** the
+matrix product one cell at a time, and `X @ W` failing; **§5** reduction over
+dim 0, dim 1 and none, then `(X − μ) / σ`.
+
+Two things the mock settled before it was shown. **The stack offset is a
+whole cell**, not the lesson's half-cell: at half a cell the back grid's
+numbers are cut through by the front grid's edge, at a whole cell the back
+grid shows its top row and right column entire, which is the lesson's own
+1D–5D figure. And **cell washes need an opaque base**: the semantic colours
+are translucent washes over the surface, and a stacked grid painted with a
+wash alone lets the numbers behind it show through — the first render had
+16–19 printed over 2–5.
+
+#### Questions for Kenneth, before any `main.js`
+
+1. **Is `tensors` the next build**, ahead of 47 and 49–52? It is first in the
+   notebook's order and it needs no measurement.
+2. **Where the matrix product lives.** Here as the Multiply tab, with slot
+   49's Linear page opening on the shapes and pointing here for the
+   arithmetic; or on 49 alone, and this widget stays at three tabs.
+3. **`cat` and `stack`** — two more `op` options on the Shape tab, or cut.
+4. **§1: A, B or C** — stacked grids, flat grids, or stacked with a colour
+   per dimension.
+5. **The normalization gate on Reduce** — in, or cut because widget 48's
+   `scale` control already standardizes.
+6. **The slug and title.** `tensors` / *Tensors*, the notebook's own word.
+
+#### Kenneth's picks, 2026-09-08 — the build brief
+
+1. **Tensors is the next build**, ahead of 47 and 49–52.
+2. **The matrix product lives here**, as the Multiply tab; slot 49's Linear
+   page opens on the shapes and points here for the arithmetic.
+3. **`cat` and `stack` are in** — two more `op` options on the Shape tab,
+   with the lesson's second tensor of 21–30: `cat(dim=0)` → `[4, 2, 5]`,
+   `stack(dim=0)` → `[2, 2, 2, 5]`, drawn as two stacks side by side each in
+   a dashed batch frame, the frame the mock's `unsqueeze` panel draws.
+4. **§1 A** — stacked grids with a whole-cell offset, the dimensions as
+   arrows in ink, labelled by index and role.
+
+Taken as defaults without asking: the normalization gate on Reduce stays in;
+slug `tensors`, title *Tensors*. Built by an Opus subagent from this entry
+and `_lab/tensor-mock.html`, reviewed by the main session, as with 48.
+
+#### BUILT AS A DRAFT the same day — awaiting Kenneth's review
+
+Written by an Opus 5 subagent from the entry and the picks above, reviewed
+by the main session in the browser tab by tab. `widgets/tensors/main.js`
+(1299 lines), `model.js` (419, the pure engine: the two tensors, every
+operation's destination map, the broadcast verdicts, the product, the
+reductions), `_lab/tensor-verify.mjs` (86 assertions under `npm test`),
+`status: "draft"` in `main.js` and the manifest, twelve placeholder
+fingerprint states carrying both `"0"` hashes. `npm run check` and
+`npm test` pass. At `/lab/`, and at
+`http://localhost:8014/widgets/tensors/`.
+
+Four decisions the subagent took and recorded in the file header, all
+sound on review: **`normalize` is a segmented Off/On, not a gate**, because
+core's gate hides the drive row on every tab; **the hovered cell reaches the
+readout through a module-level stash** written in `draw` and read one line
+later in `readout`, since `readout` is not handed the pointer; **the Shape
+tab reads top to bottom** (source above result) because `flatten()` is
+twenty cells in a row and side by side they fall under 19px at 550; and
+**`op` is a two-column grouped segmented** because seven calls in one row
+truncate to `res…`, cutting off the arguments that tell the two reshapes
+apart.
+
+```
+# http://localhost:8014/widgets/tensors/                                      Shape, reshape(2, −1), nothing moved
+# .../widgets/tensors/?op=permute&shown=7                                     7 at [0, 1, 1] → [0, 1, 1]
+# .../widgets/tensors/?op=reshape-2-5-2&shown=7                               the same shape: 7 at [0, 3, 0]
+# .../widgets/tensors/?op=stack&shown=40                                      [2, 2, 2, 5], two batch frames
+# .../widgets/tensors/?tab=broadcast&shown=1                                  row 0: 11 … 55, the alignment block
+# .../widgets/tensors/?tab=broadcast&b=2                                      no result: 5 against 2
+# .../widgets/tensors/?tab=multiply&shown=4                                   Y[1, 1] = 5×0.5 + … = 13
+# .../widgets/tensors/?tab=multiply&weights=untransposed                      [3, 4] @ [2, 4], no product
+# .../widgets/tensors/?tab=reduce&shown=2                                     column 1 collapses to 3
+# .../widgets/tensors/?tab=reduce&normalize=1&shown=4                         (X − μ) / σ, rows −1, 0, 1
+```
+
+**The review's copy sweep (2.9 / 2.10 / 5.9), as a table for Kenneth:**
+
+| # | string | where | issue | proposed |
+|---|---|---|---|---|
+| 1 | *an operation on it is arithmetic on that shape* | subtitle | a coined phrase; the operation acts on the values, the shape decides which meet | *the shape decides which values an operation combines* |
+| 2 | *Tensor operations are arithmetic on shapes: … which dimension goes* | blurb | the same coinage; *goes* clipped | *Tensor operations follow the shape: where a value goes, when two shapes combine, which dimension a reduction removes* |
+| 3 | *four kinds of arithmetic on a tensor's shape* | Topic detail | the same coinage | *four operations, each decided by the tensor's shape* |
+| 4 | *every cell carries its value* | Cell tile at rest | describes the dashboard | *a cell's index and value* |
+| 5 | *b, which has nothing to stretch into* | Broadcast legend on `[2]` | figurative | *b, which does not stretch to [2, 5]* |
+| 6 | *what sits on the right of the @, transposed or as written* | Weights detail | *as written* is informal | *the right operand of @: W transposed, or W itself* |
+| 7 | *the inner dimensions are 4 and 4* | Multiply readout note | reads as a puzzle | *the inner dimensions, 4 and 4, match* |
+| 8 | *11, 22, 33, 44, 55* | Broadcast "This row" value | five numbers in the value font wrap at 550 | value *row 0*, the numbers in the note |
+
+**Kenneth's review, 2026-09-08: all eight applied** the same hour, re-read
+in the browser, `check` and `test` passing. His two calls on what is not
+copy: **one height across tabs** (3.4, as gradients) and **input and result
+stay blue with the second operand yellow**, as in his own figures. The
+commit is held until he has tested the draft. Seen at a 679px viewport in
+the stacked layout: the Topic segmented truncates *Broadcast* to *Broad…*
+and *a scalar* to *a sc…* (3.4d), fine in the side rail; open.
+
+**What was open for his call, now settled as above:** the stage height is the Shape tab's (nine
+cells plus captions), so Broadcast, Multiply and Reduce sit with empty
+space above — one height across tabs (3.4, as gradients) or a height per
+tab (bayesian's precedent); and operand A and the result share series-1
+blue because `--c-group-a` and `--c-empirical` do, which is also how his own
+figures colour input and result, with the second operand in yellow.
+
+#### Round 2, 2026-09-08 — the stacked drawing hides cells; the alternatives, researched
+
+Kenneth's first look at the draft: on the Shape tab the sample behind is
+hidden — with a whole-cell offset the back grid shows its top row and right
+column and four of its ten cells are covered, and a third sample (cat's
+[4, 2, 5]) would cover fourteen. He asked for research on how tensors and
+their dimensions are drawn.
+
+**What the references do.** The TensorFlow guide draws one [3, 2, 5] tensor
+three ways and says there are many ways to draw a tensor with more than two
+axes: the slices side by side as blocks (its "numpy" picture), an offset
+stack (its "front" picture), and a solid cube (its "block" picture); its
+rank-4 example is blocks of blocks, and its axis-order figure names the
+axes batch, width, height, features rather than numbering them. NumPy's
+beginners' guide describes a 3-D array as *a set of tables, stacked as
+though printed on separate pages*, and gives the mental model that the
+LAST index is the column and the second-to-last the row, generalising to
+any rank. Chollet calls a rank-3 tensor *a cube of numbers*. Rush's
+*Tensor Considered Harmful* argues that a reader needs each dimension's
+NAME rather than its position, which the widget's "0 sample · 1 sequence
+· 2 feature" arrows already do. The interactive viewers (arrayviz,
+numpyviz) draw a cube of cubes, which hides everything but the faces.
+
+**The mock — `_lab/tensor-draw.html`**, five drawings of the same tensor,
+each for [2, 2, 5] and [3, 2, 5], with the hidden cells counted:
+
+| | drawing | hidden [2,2,5] / [3,2,5] | depth cue | cost |
+|---|---|---|---|---|
+| A | the current stack, whole-cell offset | 4 / 14 | strong | hides cells |
+| B | the exploded stack: slabs spread along the diagonal until none overlaps, `[i]` on each | 0 / 0 | strong | height grows by a slab per sample |
+| C | slabs side by side, each in a dashed frame labelled by its dim-0 index, the arrows once | 0 / 0 | the dim-0 arrow only | width |
+| D | C with the indices on the edges — dim 0 on the frame, dim 1 down the left, dim 2 across the top — so T[1, 0, 2] = 13 reads off the figure | 0 / 0 | the dim-0 arrow only | width, and two index gutters |
+| E | the cube, values on the front face | 10 / 20 | strongest | rejected: hides half |
+
+C and D are the drawing the Shape tab already uses for `stack` and
+`unsqueeze` (a dashed frame per index of the new dimension), so choosing
+either makes the tensor and its rank-4 results one drawing. The
+recommendation is **D**: nothing hidden, the last two dimensions are the
+grid you read (NumPy's own model), every earlier dimension is a frame, and
+an index reads off the edges without hover, which the lecture screen has
+none of. B keeps the lesson's own depth picture at the cost of height.
+
+**Kenneth's reply:** if D, extend it to a higher rank, [3, 3, 2, 5], since
+he is unsure how to draw higher dimensions efficiently; he used the
+exploded stack in his own diagrams and may stay with it. **§2 of the mock
+now draws the lesson's image batch [3, 3, 2, 5] — sample, channel, height,
+width, ninety cells — three ways at the 550px stage width:** D4, frames
+within frames (sample down the page, channel across, the 2 × 5 pixel grid
+inside), 0 hidden; B4, one exploded stack per sample across the page with
+the channels spread up the diagonal, 0 hidden; A4, his overlapped stack in
+a column as the lesson's own 4D figure draws it, 42 of 90 hidden. All
+three fit 550 × 330 at 20px cells. A fifth dimension is one more frame
+round D4, or one more row of B4, which is the lesson's 5D figure.
+
+**Kenneth's pick, round 3: BOTH, as a toggle, and the printed tensor.** A
+`view` control on the Shape tab switches the drawing between the exploded
+stack (B) and frames with the indices on the edges (D), so students can
+see the two pictures of one tensor; and the tab connects both to how
+PyTorch prints a tensor — the nested-bracket text beside the figure, with
+the moving or hovered value marked in the text as well as in the drawing.
+`view` is a display parameter (3.2): switching it must not reset the
+values already moved. Built by the Opus subagent from this note as round 3.
+
+**Round 3 BUILT the same evening, reviewed in the browser.** `main.js`
+1299 → 1767, `model.js` gains `torchPrint()` (torch's own layout rules:
+element width, one newline fewer than the rank after each closing bracket,
+the 80-column wrap that `flatten()`'s [20] shows), 104 assertions. `view`
+(segmented, display) — *Stack*: one grid per index of dim 0, stepped up the
+diagonal so no grid covers another; *Frames*: the grids side by side, each
+framed and named `dim 0 = i`, the row and column indices on the edges of
+the first. Rank 4 is a framed exploded stack per leading index (stack) or
+frames within frames (frames). The print sits to the right of each
+drawing, `torch.Size([…])` under it; the moving value is `--c-highlight`
+in both, values already moved are pale in both, values not yet moved are
+blank slots in the result print so nothing shifts; hover marks both ways.
+Switching `view` after seven moves keeps *7 of 20 values placed*. A
+draw-extent sweep at 524, 550 and 770 found no overrun; two bugs it found
+were fixed (a rank-4 frame height 13px short, the dim-0 arrow striking
+through the slab labels).
+
+**Costs, for Kenneth:** the stage is taller — `9 × cell + 290`, 406 → 524
+at 550 and 442 → 560 at 770 — because `stack`'s 13-line print stands beside
+two drawn tensors, and the other three tabs carry the extra space under
+his one-height call; the cell size now changes with `op` (26 for flatten,
+18–19 for stack at 550) so the print fits beside; at phone widths (canvas
+≈ 371) the Shape tab overflows vertically on most operations, where the
+first draft only overflowed horizontally on flatten. Seen in review: the
+*This move* tile's value `[1, 1, 4] → [1, 1, 1, 4]` wraps in the stacked
+layout's narrow tiles; the fix is the destination alone as the value with
+the source in the note.
+
+**Kenneth's first test of round 3, four items.** (1) The *This move* tile:
+FIXED, the value is the result index and the note carries the source. (2)
+The dim-0 arrow in the stack view was parallel to the slab step but drawn
+at the canvas edge and read as unrelated: FIXED, it now runs from beside
+the front slab's top-left corner to beside the back slab's, with a 12px
+gutter that clears the `[1]` label, and *0 sample* at its foot. (3) He
+wants a **Basics topic**: students add and remove dimensions and see the
+stack view, the frames view and the print change together, then index
+into the tensor — the step he sees students confused by. (4) He is unsure
+whether the linear-algebra topics belong on a page of their own and asked
+for a mock to explore the organisation. Both are in
+**`_lab/tensor-basics.html`**: §1 three rails at the real 300px — A one
+row of five topics (Broadcast and Multiply truncate at 51px each), B two
+captioned rows, the lesson's two halves, on one widget, C two widgets,
+`tensors` (Basics · Shape · Join) and `linear-algebra` (Broadcast ·
+Multiply · Reduce) where Multiply gains a `product` control for the
+lesson's three multiplications; §2 the Basics stage — the lesson's own
+example at each rank, [5] → [2, 5] → [2, 2, 5] → [2, 2, 2, 5], each with
+its print gaining a bracket, and the four index cases of cells 19–23
+(`T[1, 0, 2]`, `T[0, :, :]`, `T[:, 0, :]`, `T[:, :, 0]`) with the selected
+cells lit in the drawing and the print and the selection's shape printed:
+an index removes the dimension it names, a colon keeps it.
+
+**Kenneth's picks, round 5 (2026-09-08): B, Basics as mocked, Join its own
+topic.** One widget; the Topic rail in two captioned rows, the lesson's
+halves — *tensors for data*: Basics · Shape · Join; *linear algebra*:
+Broadcast · Multiply · Reduce. **Basics**: a Dimensions control adds or
+removes a leading dimension, rank 1 to 4 on the lesson's own examples
+([5], [2, 5], [2, 2, 5], [2, 2, 2, 5]), drawn in the chosen `view` with
+the print; then an Index control, one entry per dimension (an index or
+`:`), lighting the selected cells in the drawing and in the print, with
+the selection's shape and print beneath; no Step or Play (4.5). **Join**:
+cat and stack leave the Shape `op` control for a topic of their own with
+the second tensor; Shape keeps the five one-tensor operations. Built by
+the Opus subagent as round 5.
+
+**Round 5 BUILT and reviewed in the browser.** `main.js` 2174 lines,
+`model.js` 608, 135 assertions; check and test pass; 19 placeholder
+states. The Topic rail is two captioned rows and no button truncates at
+any width tried. **Basics** opens the widget at rank 3 with every index a
+colon, so nothing is lit and the caption says the selection is the whole
+tensor; `?i0=1&i1=0&feature=2` lights 13 in the drawing and the print and
+writes `T[1, 0, 2] = 13`, `tensor(13)`, `torch.Size([])`; `?i1=0` lights
+ten cells and prints the [2, 5] sub-tensor; rank 4 draws frames within
+frames with the roles on one line under it. **Join** carries cat and
+stack with the second tensor. Two decisions the subagent took, both
+sound: **the last dimension's index control is named `feature`** rather
+than `i3`, because a segmented's options are fixed at declaration and
+only the last dimension is the same width (5) at every rank — `i0`–`i2`
+are the leading dimensions, two wide, each gated to the ranks that have
+it; and rank 4 draws no arrows (illegible round frames within frames),
+naming the roles on a line instead. The subtitle was rewritten to pair
+the two topics that remove a dimension: *An index and a reduction each
+remove the dimension they name; reshaping keeps the reading order, and
+broadcasting stretches a smaller shape* (233 characters). The stage
+height is unchanged at 524 / 560.
+
+**Round 6 — Kenneth's second look, Basics first: the stage is cluttered,
+the index control is cumbersome, and at rank 4 the stack and frames views
+look alike.** He asked for thorough research on visual explanations of
+tensors and mocks of every aspect. The research, in
+`_lab/tensor-basics2.html`'s head and summarised here:
+
+- **Ainsworth's DeFT framework** (Learning and Instruction, 2006): a second
+  representation earns its place by *complementing* the first (different
+  information or process) or *constraining* it (pinning down how the first
+  is read); two representations doing the same job add cost, not learning.
+  The drawing and the print complement (spatial against syntactic); the
+  stack and frames views do the same job, so their toggle earns its place
+  only where they differ in kind.
+- **Split-attention effect** (Chandler and Sweller, 1991): sources that
+  must be read together must be physically linked, not merely adjacent.
+  The highlight lighting one value in the drawing and in the print at
+  once is that link, and it is what lets the print stay on the stage.
+- **Gestalt common region and proximity** (NN/g): enclosure groups more
+  strongly than nearness, so a stage carrying more than one representation
+  needs a named region per representation.
+- **How the two most-read visual guides to arrays draw an index** (Alammar,
+  *A Visual Intro to NumPy*; Maximov, *NumPy Illustrated*): the expression
+  beside the array, the selected cells lit, and the result drawn as its own
+  smaller array — the result is a picture, not text. Alammar: "the last
+  axis is looped over the fastest" and "a new dimension is just adding a
+  comma".
+- **The lesson's own first index example is `T[0, 0, −1]`** (cell 19):
+  negative indices are a confusion of their own and the control should
+  offer −1.
+
+**The mock, three sections, each drawn at the 550px stage:** §1 the Basics
+stage three ways — A as built; **B a 2 × 2 of named regions**, rows the
+tensor and the selection, columns drawn and printed, the selection DRAWN
+as the sub-tensor it makes with its own edge indices and roles line, and
+the frames view's arrows dropped in favour of the edge indices and a roles
+line; C the print as a band below the drawing with the selection drawn
+beside the tensor. §2 the index control four ways — a as built (four
+segmented rows); **b the expression as the control**, one rail row
+reading `T[ : , 0 , : ]` with a small segmented per slot (found: with −1
+on every slot the row overruns the 300px rail, so −1 fits only on the
+leading dimensions or the row wraps); **c the figure as the control**,
+frame labels, row and column indices and cells as click targets with the
+rail as the keyboard path (3.6); d −1 as an option. §3 rank 4 — a as built
+(framed exploded stacks against frames within frames: both draw dim 0 as
+frames and differ by a diagonal); **b the lesson's own convention**, the
+stack view as a column of exploded stacks down the page with one arrow
+and no frames, so the views differ in kind; c a stack of stacks, the fully
+three-dimensional picture, which needs 154px more width and 94px more
+height per extra index and does not fit; d offer the toggle at rank 3
+only. **Recommended: B, b + c with −1, and b.**
+
+**Kenneth's picks, round 6: B, b + c, b** (his first answer read C for the
+stage; he asked for the question again and picked B). The Basics stage as
+**B** — a 2 × 2 of named regions, the tensor above and the selection below,
+drawn on the left and printed on the right, the selection drawn as the
+sub-tensor it makes; the index entered as **b**, the expression as one
+rail row, and **c**, the figure clickable (frame labels, row and column
+indices) with the rail as the keyboard path; −1 not taken; rank 4 in the
+stack view as **b**, his own convention, a column of exploded stacks down
+the page, no frames, one arrow. Built by the Opus subagent as round 7.
+
+**Round 7 BUILT (2026-09-09, small hours) and reviewed in the browser.**
+`main.js` 2578 lines, `model.js` 659, 201 assertions, `_lab/tensor-sweep.html`
+(draw extents, stage geometry and a live region-map probe at both widths).
+The Basics stage is the 2 × 2 of named regions; the selection is drawn as
+the sub-tensor it makes with its own edge indices, roles line and
+`torch.Size`, the whole bottom row in the highlight wash; the frames view
+has no arrows (edge indices and a roles line instead); rank 1 and 2 draw
+no arrows in either view. The index slots sit in TWO rail rows, not one:
+`.w-field-row` splits the 300px rail evenly and four slots would give
+`feature`'s six options 11px a button, so `index-a` holds the leading
+dimensions and `index-b` the feature slot. The live expression is not in
+the rail (readback is a fixed table and details are fixed strings — a core
+change); it titles two regions and fills the Selection tile. **The figure
+is a control**: frame labels, row indices and column indices are regions,
+one parameter each, a second click on the selected index returning it to
+`:`; targets per rank and view are 5/5, 7/7, 2 (stack) or 9 (frames), 2 or
+13; cells are not targets (three parameters). Verified with real pointer
+events: clicking `dim 0 = 1` wrote `?view=frames&i0=1`. **Rank 4 in the
+stack view is the column of exploded stacks**, dim 0 down the page with
+one dashed arrow, used on Basics, `unsqueeze` and `stack`. **The stage grew
+again, 524 → 562 at 550 and 560 → 598 at 770** (`9 × cell + 328`): rank 4
+with every slot a colon draws the [2, 2, 2, 5] twice with a 13-line print
+beside each, and 562 is the least height that keeps 18px cells; at rank
+1–3 the regions are mostly air. The sweep found no overrun at 550 or 770
+across 42 states.
+
+**An incident to know about.** The subagent ran `git checkout` on
+`_lab/fingerprint-baseline.json` to undo a whole-file reformat and lost the
+19 UNCOMMITTED placeholder states round 5 had written (the draft is
+untracked, so nothing was recoverable). It rebuilt them as 23 placeholders
+(20 settled, 2 driven, 1 hit-driven) from the catalogue's own URLs. Every
+hash was `"0"`, so no measurement was lost, only round 5's choice of
+states and note wording. The set should be looked over before the real
+baseline is recorded. The lesson for the next `git checkout` on a shared
+file with uncommitted work in it is the one the working tree already
+teaches: commit the draft first.
+
+**Round 8 — Kenneth's third look (2026-09-09): the built 2 × 2 wastes the
+stage, crowds the drawing's captions, has no row headers, and the
+expression control he picked never appeared.** He asked whether the
+research had been done properly and which subagent was writing (Opus 5).
+What went wrong in the build, stated plainly: the 2 × 2 was implemented as
+a fixed grid over a stage height sized by rank 4, so at rank 3 each region
+is two-thirds air; and the expression control was dropped because core has
+no control that renders text between fields on one line, so the subagent
+fell back to rail rows. Both are design decisions, not constraints.
+**`_lab/tensor-basics3.html`** mocks the fix: §1 the stage as two named
+rows, *Tensor* and *Index* (the expression on the Index header), each row
+as tall as its content with the drawing left and the print right of a
+hairline, an 18px gap under each drawing before the roles line and
+`torch.Size`, the whole-tensor state a one-line Index row — stage heights
+330 (rank 2), 370 (rank 3), 284 (whole tensor), 458 (rank 4) against the
+fixed 562, so `height` becomes a function of the parameters (bayesian's
+precedent); §2 the expression control `T[ _, _, _ ]` as one rail line —
+brackets and commas as text, each slot a compact menu showing its value
+with the dimension's name under it, four slots fitting 300px — which is a
+NEW CORE CONTROL TYPE (a composite over several parameters) and therefore
+a full fingerprint run; §3 the costs.
+
+**Round 8 BUILT by the main session (Fable), 2026-09-09, on Kenneth's picks
+(the stage as mocked, the core change, Fable to write it).** Three core
+files changed — the first core change since `gradients`:
+
+- **`params.js`**: `expr` joins `section` and `readback` as a valueless spec
+  entry type.
+- **`controls.js`**: an `expr` entry renders ONE line of code whose slots
+  are controls — `open`/`join`/`close` text between a `<select>` per
+  parameter named in `slots`; the slot parameters are ordinary option-list
+  fields declared `hidden`, so they render nowhere else and keep their own
+  URL keys; a slot whose field is gated off by `when` is not written, and
+  the rebuild rule that serves `when` re-renders the line; a slot away from
+  its default is marked (`data-set="1"`). A native `<select>` is the slot
+  because it is the keyboard and screen-reader path already, one character
+  wide at rest, and the fingerprint harness drives `<select data-param>`
+  today.
+- **`tokens.css`**: `.w-expr` and its parts — the mono face at the large
+  size, a caret drawn in CSS (no image, no literal colour), the highlight
+  on a set slot, the dimension's name in small type under each.
+
+The widget: `i0`, `i1`, `i2`, `feature` are `hidden`, and `index: { type:
+"expr", open: "T[", join: ",", close: "]", slots: [...] }` carries the rule
+as its detail. The Basics stage is two named bands, *Tensor* and *Index*,
+each as tall as its content, the drawing left of a hairline and the print
+right of it, the expression on the Index header, 18px under each drawing
+before the roles line and `torch.Size`; the whole-tensor state is a
+one-line Index band. `height` is a function of the parameters on Basics
+(`basicsGeometry` is the one function `height` and `draw` ask): measured
+in the browser 302 (rank 1), 359 (rank 3, whole), 416 (rank 3, `T[:, 0, :]`),
+576 (rank 4, `T[0, 0, :, 4]`) against the fixed 562 before. Verified in
+the browser: the slot `<select>`s write the URL and the stage follows
+(`?view=frames&i1=0&feature=2`, height 416 → 386); a real pointer click on
+`dim 0 = 1` wrote `i0=1` and the expression read `T[1, 0, 2]`; hover
+unchanged; console clean; `check` and `test` pass (201 assertions). **The full
+fingerprint suite, pane fronted at DPR 1.25: 390 states, 23 DIFFER, every
+one of them a `tensors` placeholder carrying the `"0"` hashes a draft owes;
+the other 367 states MATCH**, so the `expr` type reaches no widget that
+does not declare it.
+
+**Round 9 — colour, type size and motion, researched and measured (2026-09-09),
+after Kenneth's "ok looks better".** `_lab/tensor-look.html`, three sections.
+
+*Colour, measured from the tokens in both themes.* Every value printed in ink
+on a wash clears 10:1 (blue .20: 14.9 light / 13.5 dark; lit violet .34: 10.6
+/ 10.0). The only text under the 4.5:1 floor is `--ink-3` on the surface
+(3.5 light / 4.8 dark), used for values already moved on Shape and for every
+print's brackets. Solid fills with white digits — the lesson's own figure
+style — fall to 4.4 / 3.6 on blue and 8.6 / 3.1 on violet, so they are out.
+The dataviz skill's palette validator passes the eight series in both themes
+(lightness band, chroma, CVD separation, normal-vision separation); in the
+light theme it WARNs that aqua, yellow and magenta are under 3:1 against the
+surface as marks — which is why an operand-b cell keeps its number in ink.
+The highlight differs from the plain cell by hue more than by lightness; the
+mock's **B** (violet .50, 2px outline, bold digit; muted values lifted to
+`--ink-2`) is what separates them for a reader who does not see hue. **D**
+gives each dimension a hue on its labels and indices (cluster hues), cells
+neutral — the lesson's reshape figure.
+
+*Type.* Built sizes: digits 12px, print 11px, labels 11px, cell 24px. The
+presentation rule of thumb (1/50 of screen height; a 1080p projector shows
+the 550px stage at about 1.4×) wants ~15px on the stage; as built the digits
+project to 17px (1.6% of screen height) and the print to 15px (1.4%). One
+step up (14 / 12 / 12, cell 26) gives 20px and 17px; two steps (16 / 13 /
+13, cell 30) meets the rule for digits (22px) but at 550 the print no longer
+fits beside the drawing. The rule is written for slides; the widget is also
+read on a laptop at 1×.
+
+*Motion.* Principle 4.4 allows an ease only between two readings of the same
+data; Heer and Robertson (2007) found animated transitions aid object
+constancy and that complex transitions should be staged; Material and NN/g
+put a standard transition at 200–300ms, ease-out for arrivals, ease-in-out
+for moves. Two transitions the Basics stage could earn, both playable in the
+mock: **a** the view morph, the same twenty cells travelling from their stack
+positions to their frame positions on ease-in-out (core's `anim.easing` from
+`rebuild`, widget 12's mechanism); **b** the index extraction, staged — the
+selected cells light (150ms), then copies glide into the Index band and
+settle as the sub-tensor (300ms, ease-out) — against **c** the same unstaged,
+for comparison. A rank change is a data change and stays a jump;
+`prefers-reduced-motion` turns every ease into a jump.
+
+**Round 9 BUILT by the main session on Kenneth's picks (B + D, one step
+up, both eases), 2026-09-09.** Core: **`--c-dim-a…d`** join `tokens.css`
+(orange, green, aqua, red — blue, yellow and violet excluded because the
+cells, the second operand and the highlight already mean those) and
+`readTokens` carries them as `dims`; assigned from the LAST dimension
+backwards so the feature dimension keeps `--c-dim-d` at every rank, and
+they go on frames, 2px rules along the edge indices, the stack view's
+arrows and a swatch before each role — never on text, which stays in ink
+(the dataviz rule). **B**: the selection at wash .50 with a bold digit;
+values already moved and the print's brackets in `--ink-2` (3.5:1 → 7.5:1
+light). **Type**: every canvas string one step up (`txt` defaults to
+`--fs-sm`), digits scale with the cell (15 / 13 / 12 at cells ≥ 28 / ≥ 22 /
+smaller), print line 15px, frame label and index gutters widened to fit.
+**Motion**, both through core's `anim.easing` from `rebuild` (widget 12's
+door): the view morph shifts every cell of the tensor from where the other
+view drew it over 300ms ease-in-out with the frames fading in; the index
+extraction is staged — the selection's wash rises over 150ms, then copies
+of the lit cells glide into the Index band over 300ms ease-out while the
+sub-tensor's slots stay empty and its print fades in; `prefers-reduced-motion`
+requests no frames. Captured mid-flight in the browser: cells between their
+frame and stack positions at t≈0.4; ghosts of 3 and 13 half-way to the
+Index band. `check` and `test` pass; **the full fingerprint suite at DPR
+1.25: 390 states, the 23 tensors placeholders DIFFER as a draft's must and
+the other 367 MATCH**, so the new tokens reach no other widget.
 
 ### Questions for Kenneth, before any mock-up
 

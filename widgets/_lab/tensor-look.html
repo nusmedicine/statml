@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — colour, type size, and motion</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 540px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td.n { font-family: var(--font-mono); text-align: right; }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
+  .bar button { font: inherit; padding: 4px 12px; border: 1px solid var(--axis); border-radius: var(--radius); background: var(--surface-1); color: var(--ink-1); cursor: pointer; }
+  .bar select { font: inherit; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · colour, type size, and motion</h1>
+  <p class="note">
+    Three questions after round 8, each measured before it is drawn. <b>Colour:</b> the cells are washes of
+    the series colours with the value printed in ink; the contrast ratios below are computed from
+    <code>tokens.css</code> for the theme this page is in. <b>Type:</b> the stage is 550px wide in the fingerprint
+    frame and about 770 in a wide window; projected full-screen at 1080p the canvas is about 1.4× its 550px size,
+    and the presentation rule of thumb is that the smallest text should be 1/50 of the screen height — 21.6px on
+    a 1080p projector, so about 15px on the 550px stage. <b>Motion:</b> principle 4.4 allows an ease only where
+    two settings are two readings of the SAME data; Heer and Robertson (2007) found that animated transitions
+    aid object constancy and that complex transitions are better STAGED than played at once; Material and NN/g
+    put a standard transition at 200–300ms, ease-out for things arriving, ease-in-out for things moving.
+  </p>
+
+  <h2>§1 · Colour — the same state four ways, with the contrast measured</h2>
+  <p class="note">
+    <b>A</b> as built: a blue wash at 0.20 under ink, the selection a violet wash at 0.34, values already moved
+    in muted ink. <b>B</b> a stronger selection: violet at 0.50 with a 2px outline and bold digits; muted values
+    lifted from <code>--ink-3</code> to <code>--ink-2</code>. <b>C</b> solid fills with white digits, the way the
+    lesson's own figures colour cells — and the numbers say why not: white on solid blue is 4.4:1 in the light
+    theme and 3.6:1 in the dark, below the 4.5:1 text floor. <b>D</b> the dimensions carry a hue each on their
+    labels and indices — dim 0, 1, 2 in the cluster hues — with the cells left neutral; the lesson's reshape
+    figure colours its shape this way. The palette validator (dataviz skill) passes the eight series in both
+    themes on lightness, chroma, colour-vision separation and normal-vision separation; in the light theme it
+    WARNs that aqua, yellow and magenta sit below 3:1 against the surface as marks, which is why a yellow
+    operand cell keeps its value in ink rather than in yellow.
+  </p>
+  <div class="row" id="colour"></div>
+  <div id="contrast"></div>
+
+  <h2>§2 · Type — three sizes of the same Tensor band at 550px</h2>
+  <p class="note">
+    Cell digits, the print, and the roles line at the built sizes and two steps up. A digit needs a cell about
+    1.8× its size to keep the number off the cell's edge, so bigger type means bigger cells, and the fit decides
+    whether the print still sits beside the drawing. The table under the panels converts each size to what a
+    back row sees on a 1080p projector.
+  </p>
+  <div class="row" id="type"></div>
+  <table id="typetable"></table>
+
+  <h2>§3 · Motion — press to play; the two transitions the Basics stage could earn</h2>
+  <p class="note">
+    <b>a · the view morph</b>: switching Stack to Frames moves the SAME twenty cells to new places, so an ease
+    shows they are the same tensor (object constancy) where a jump can only assert it — 4.4's one allowed case.
+    Cells travel on ease-in-out; nothing appears or vanishes. <b>b · the index extraction</b>: choosing an index
+    lights the selected cells (150ms), then copies of them glide down into the Index band and settle as the
+    sub-tensor (300ms, ease-out) — staged, because the two changes are two ideas and Heer and Robertson found
+    staging is what lets a reader follow both. <b>c · the same extraction unstaged</b>, for comparison: light and
+    glide at once. A rank change is a DATA change and stays a jump; <code>prefers-reduced-motion</code> turns every
+    ease into a jump, as core already does for Step.
+  </p>
+  <div class="bar">
+    <label>duration <select id="dur"><option>200</option><option selected>300</option><option>450</option></select> ms</label>
+    <label><input type="checkbox" id="slow"> half speed, to see the easing</label>
+  </div>
+  <div class="row" id="motion"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "monospace";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* --- contrast, from the tokens ------------------------------------------------ */
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+const lin = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const lum = (rgb) => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+const blend = (fg, bg, a) => fg.map((v, i) => v * a + bg[i] * (1 - a));
+const ratio = (a, b) => { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+const cr = (fgHex, bgHex, a = 1, underHex = T.surface) => ratio(hex(fgHex), a < 1 ? blend(hex(bgHex), hex(underHex), a) : hex(bgHex)).toFixed(1);
+
+/* --- helpers ------------------------------------------------------------------- */
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand, cv };
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false, weight = "" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? MONO : T.font}`.trim(); ctx.fillText(s, x, y);
+}
+const wash = (h, a) => { const p = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function cell(ctx, x, y, s, v, st) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s);
+  ctx.fillStyle = st.fill; ctx.fillRect(x, y, s, s);
+  ctx.strokeStyle = st.stroke; ctx.lineWidth = st.lw ?? 1; ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+  if (v != null) txt(ctx, String(v), x + s / 2, y + s / 2 + 0.5, { color: st.ink, align: "center", baseline: "middle", size: st.size ?? T.fsSm, weight: st.weight ?? "" });
+}
+function frame(ctx, x, y, w, h, label, color = T.ink3) {
+  ctx.strokeStyle = color; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.setLineDash([]);
+  if (label) txt(ctx, label, x + 4, y + 10, { color, mono: true });
+}
+const R3 = [[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]]];
+const SEL = (i, r, c) => r === 0;
+
+/* the rank-3 frames drawing of T[:, 0, :], with a style table */
+function framesR3(ctx, x, y, s, style, { dimColors = null, digit = T.fsSm, idxSize = T.fsXs } = {}) {
+  const fw = 5 * s + 12, fh = 2 * s + 24;
+  const c0 = dimColors ? dimColors[0] : T.ink3, c1 = dimColors ? dimColors[1] : T.ink3, c2 = dimColors ? dimColors[2] : T.ink3;
+  for (let i = 0; i < 2; i += 1) {
+    const fx = x + 18 + i * (fw + 14);
+    frame(ctx, fx, y + 12, fw, fh, `dim 0 = ${i}`, c0);
+    for (let r = 0; r < 2; r += 1) for (let c = 0; c < 5; c += 1) {
+      const on = SEL(i, r, c);
+      const st = on ? style.lit : style.cell;
+      cell(ctx, fx + 6 + c * s, y + 30 + r * s, s, R3[i][r][c], { ...st, size: digit });
+    }
+    if (i === 0) {
+      for (let c = 0; c < 5; c += 1) txt(ctx, String(c), fx + 6 + c * s + s / 2, y + 8, { color: c2, align: "center", mono: true, size: idxSize });
+      for (let r = 0; r < 2; r += 1) txt(ctx, String(r), fx - 4, y + 30 + r * s + s / 2 + 4, { color: c1, align: "right", mono: true, size: idxSize });
+    }
+  }
+  return y + 12 + fh;
+}
+
+/* ============================ §1 colour ==================================== */
+{
+  const host = document.getElementById("colour");
+  const S = 24, W = 400, H = 210;
+  const A = { cell: { fill: wash(T.groupA, 0.20), stroke: T.ink3, ink: T.ink1 }, lit: { fill: wash(T.highlight, 0.34), stroke: T.highlight, lw: 2, ink: T.ink1 }, moved: T.ink3 };
+  const B = { cell: { fill: wash(T.groupA, 0.20), stroke: T.ink3, ink: T.ink1 }, lit: { fill: wash(T.highlight, 0.50), stroke: T.highlight, lw: 2, ink: T.ink1, weight: "700" }, moved: T.ink2 };
+  const C = { cell: { fill: T.groupA, stroke: T.groupA, ink: "#ffffff" }, lit: { fill: T.highlight, stroke: T.highlight, lw: 2, ink: "#ffffff" }, moved: T.ink3 };
+  const D = { cell: { fill: T.surface3, stroke: T.ink3, ink: T.ink1 }, lit: { fill: wash(T.highlight, 0.34), stroke: T.highlight, lw: 2, ink: T.ink1 }, moved: T.ink3 };
+  const dims = [T.clusters[1], T.clusters[0], T.clusters[2]];
+  const cases = [
+    ["A · as built", `blue wash .20 under ink ${cr(T.ink1, T.groupA, 0.20)}:1 · lit violet .34 ${cr(T.ink1, T.highlight, 0.34)}:1\nmuted values ink-3 on surface ${cr(T.ink3, T.surface)}:1`, A, null],
+    ["B · stronger selection, muted lifted", `lit violet .50 ${cr(T.ink1, T.highlight, 0.50)}:1, bold, 2px outline\nmuted values ink-2 on surface ${cr(T.ink2, T.surface)}:1`, B, null],
+    ["C · solid fills, white digits", `white on solid blue ${cr("#ffffff", T.groupA)}:1 · white on solid violet ${cr("#ffffff", T.highlight)}:1\nbelow the 4.5:1 text floor in at least one theme`, C, null],
+    ["D · a hue per dimension on the labels", `cells neutral (${cr(T.ink1, T.surface3)}:1); dim 0 · 1 · 2 on frame, row and column indices\nthe lesson's reshape figure colours its shape this way`, D, dims],
+  ];
+  for (const [title, sub, style, dimColors] of cases) {
+    const { ctx } = panel(host, title, sub, W, H);
+    const b = framesR3(ctx, 20, 30, S, style, { dimColors });
+    // a row of "already moved" values, as the Shape tab paints them
+    for (let c = 0; c < 5; c += 1) cell(ctx, 38 + c * S, b + 22, S, c + 1, { fill: T.surface, stroke: T.ink3, ink: style.moved });
+    txt(ctx, "values already moved (Shape tab)", 38 + 5 * S + 10, b + 22 + S / 2 + 4, { color: T.ink2 });
+    if (dimColors) {
+      txt(ctx, "0 sample", 20, H - 12, { color: dimColors[0] }); txt(ctx, "1 sequence", 90, H - 12, { color: dimColors[1] }); txt(ctx, "2 feature", 170, H - 12, { color: dimColors[2] });
+    }
+  }
+  const t = document.getElementById("contrast");
+  t.innerHTML = `<p class="note"><b>Measured in this theme.</b> Every value printed in ink on a wash clears 10:1; the only text below the
+    4.5:1 floor is <code>--ink-3</code> on the surface (${cr(T.ink3, T.surface)}:1), which the Shape tab uses for values already
+    moved and every print uses for its brackets. Solid fills with white digits (C) fall to ${cr("#ffffff", T.groupA)}:1 on blue.
+    The highlight against the plain cell differs in hue more than in lightness — the outline and the bold digit
+    in B are what separate them for a reader who does not see the hue.</p>`;
+}
+
+/* ============================ §2 type ====================================== */
+{
+  const host = document.getElementById("type");
+  const sizes = [
+    { name: "as built", digit: 12, print: 11, label: 11, s: 24 },
+    { name: "one step up", digit: 14, print: 12, label: 12, s: 26 },
+    { name: "two steps up", digit: 16, print: 13, label: 13, s: 30 },
+  ];
+  const A = { cell: { fill: wash(T.groupA, 0.20), stroke: T.ink3, ink: T.ink1 }, lit: { fill: wash(T.highlight, 0.34), stroke: T.highlight, lw: 2, ink: T.ink1 } };
+  const lines = ["tensor([[[ 1,  2,  3,  4,  5],", "         [ 6,  7,  8,  9, 10]],", "", "        [[11, 12, 13, 14, 15],", "         [16, 17, 18, 19, 20]]])", "torch.Size([2, 2, 5])"];
+  const rows = [];
+  for (const z of sizes) {
+    const W = 550, H = 230;
+    const { ctx } = panel(host, `${z.name} · digits ${z.digit}px · print ${z.print}px · labels ${z.label}px`, `cell ${z.s}px; the print column follows its character width`, W, H);
+    ctx.fillStyle = T.surface3; ctx.fillRect(8, 8, W - 16, 22); txt(ctx, "Tensor", 18, 23, { color: T.ink1, size: `${z.label + 1}px`, weight: "600" });
+    ctx.fillStyle = T.surface2; ctx.fillRect(8, 30, W - 16, H - 38);
+    const b = framesR3(ctx, 16, 44, z.s, A, { digit: `${z.digit}px`, idxSize: `${z.label}px` });
+    txt(ctx, "0 sample  ·  1 sequence  ·  2 feature", 24, b + 18, { color: T.ink2, size: `${z.label}px` });
+    txt(ctx, "torch.Size([2, 2, 5])", 24, b + 18 + z.label + 4, { color: T.ink1, size: `${z.label}px`, mono: true });
+    ctx.font = `${z.print}px ${MONO}`; const cw = ctx.measureText("0").width;
+    const px = W - 16 - 8 - 32 * cw;
+    ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(px - 10 + 0.5, 30); ctx.lineTo(px - 10 + 0.5, H - 8); ctx.stroke();
+    lines.forEach((ln, i) => txt(ctx, ln, px, 56 + i * (z.print + 3), { color: i === lines.length - 1 ? T.ink1 : T.ink2, size: `${z.print}px`, mono: true }));
+    const fit = px - 10 - 16 >= 2 * (5 * z.s + 12) + 14 + 18 + 8;
+    txt(ctx, fit ? "drawing and print fit beside each other at 550" : "at 550 the print no longer fits beside the drawing", 24, H - 16, { color: fit ? T.ink2 : T.extreme });
+    rows.push(z);
+  }
+  const tbl = document.getElementById("typetable");
+  const proj = (px) => (px * 1.4).toFixed(0);
+  const pct = (px) => ((px * 1.4) / 1080 * 100).toFixed(2);
+  tbl.innerHTML = `<tr><th>size</th><th>digits on stage</th><th>projected at 1080p (×1.4)</th><th>share of screen height</th><th>print on stage</th><th>projected</th><th>share</th><th>1/50 rule (21.6px)</th></tr>`
+    + rows.map((z) => `<tr><td>${z.name}</td><td class="n">${z.digit}px</td><td class="n">${proj(z.digit)}px</td><td class="n">${pct(z.digit)}%</td><td class="n">${z.print}px</td><td class="n">${proj(z.print)}px</td><td class="n">${pct(z.print)}%</td><td>${z.digit * 1.4 >= 21.6 ? "digits meet it" : "digits below it"}; ${z.print * 1.4 >= 21.6 ? "print meets it" : "print below it"}</td></tr>`).join("");
+}
+
+/* ============================ §3 motion ==================================== */
+{
+  const host = document.getElementById("motion");
+  const W = 520, H = 300, S = 22;
+  const dur = () => Number(document.getElementById("dur").value) * (document.getElementById("slow").checked ? 2 : 1);
+  const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+  const easeOut = (t) => 1 - (1 - t) ** 3;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const style = { fill: wash(T.groupA, 0.20), stroke: T.ink3, ink: T.ink1 };
+  const lit = { fill: wash(T.highlight, 0.34), stroke: T.highlight, lw: 2, ink: T.ink1 };
+
+  /* cell positions in the two views, keyed by index */
+  const stackPos = (x, y) => { const dx = Math.round(1.35 * S), dy = 2 * S + 8; const m = new Map(); for (let i = 0; i < 2; i += 1) for (let r = 0; r < 2; r += 1) for (let c = 0; c < 5; c += 1) m.set(`${i},${r},${c}`, [x + 26 + i * dx + c * S, y + dy + 4 - i * dy + r * S]); return m; };
+  const framesPos = (x, y) => { const fw = 5 * S + 12; const m = new Map(); for (let i = 0; i < 2; i += 1) for (let r = 0; r < 2; r += 1) for (let c = 0; c < 5; c += 1) m.set(`${i},${r},${c}`, [x + 18 + i * (fw + 14) + 6 + c * S, y + 30 + r * S]); return m; };
+  const drawCells = (ctx, pos, litFn, alpha = 1) => { ctx.globalAlpha = alpha; for (const [k, [x, y]] of pos) { const [i, r, c] = k.split(",").map(Number); cell(ctx, x, y, S, R3[i][r][c], litFn && litFn(i, r, c) ? lit : style); } ctx.globalAlpha = 1; };
+  const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+  function player(title, sub, frameFn, total) {
+    const { ctx, cand } = panel(host, title, sub, W, H);
+    const btn = document.createElement("button"); btn.textContent = "Play"; btn.style.cssText = "margin-top:6px;font:inherit;padding:4px 12px;border:1px solid var(--axis);border-radius:6px;background:var(--surface-1);color:var(--ink-1);cursor:pointer";
+    cand.appendChild(btn);
+    const render = (t) => { ctx.fillStyle = T.surface; ctx.fillRect(0, 0, W, H); frameFn(ctx, t); };
+    render(0);
+    btn.addEventListener("click", () => {
+      if (reduced) { render(1); return; }
+      const t0 = performance.now(); const D = total();
+      const step = (now) => { const t = Math.min(1, (now - t0) / D); render(t); if (t < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
+
+  /* a · view morph, stack -> frames, object constancy */
+  player("a · view morph: Stack → Frames", "the same 20 cells travel to their frame positions; ease-in-out; nothing appears or vanishes", (ctx, t) => {
+    const A = stackPos(30, 60), B = framesPos(30, 110);
+    const e = easeInOut(t);
+    // frames fade in as the cells arrive
+    ctx.globalAlpha = e; const fw = 5 * S + 12, fh = 2 * S + 24; for (let i = 0; i < 2; i += 1) frame(ctx, 30 + 18 + i * (fw + 14), 122, fw, fh, `dim 0 = ${i}`); ctx.globalAlpha = 1;
+    const pos = new Map(); for (const [k, a] of A) pos.set(k, lerp(a, B.get(k), e));
+    drawCells(ctx, pos, null);
+    txt(ctx, `t = ${t.toFixed(2)}   eased ${e.toFixed(2)}`, 30, H - 14, { color: T.ink3, mono: true });
+  }, dur);
+
+  /* b · index extraction, staged: light, then glide */
+  const extraction = (staged) => (ctx, t) => {
+    const P = framesPos(30, 40);
+    const light = staged ? Math.min(1, t / 0.33) : Math.min(1, t / 0.6);
+    const glide = staged ? easeOut(Math.max(0, (t - 0.33) / 0.67)) : easeOut(t);
+    const fw = 5 * S + 12, fh = 2 * S + 24; for (let i = 0; i < 2; i += 1) frame(ctx, 30 + 18 + i * (fw + 14), 52, fw, fh, `dim 0 = ${i}`);
+    // the tensor, with the selection lighting up
+    for (const [k, [x, y]] of P) { const [i, r, c] = k.split(",").map(Number); const on = SEL(i, r, c); cell(ctx, x, y, S, R3[i][r][c], style); if (on && light > 0) { ctx.globalAlpha = light; cell(ctx, x, y, S, R3[i][r][c], lit); ctx.globalAlpha = 1; } }
+    // the Index band
+    ctx.fillStyle = T.surface2; ctx.fillRect(20, 150, W - 40, 120); ctx.fillStyle = T.surface3; ctx.fillRect(20, 150, W - 40, 22);
+    txt(ctx, "Index", 30, 165, { color: T.ink1, size: T.fsSm, weight: "600" }); txt(ctx, "T[:, 0, :]", W - 30, 165, { color: T.highlight, size: T.fsSm, mono: true, align: "right" });
+    // copies glide from the lit cells to the sub-tensor's rows
+    if (glide > 0) {
+      for (let i = 0; i < 2; i += 1) for (let c = 0; c < 5; c += 1) {
+        const from = P.get(`${i},0,${c}`); const to = [44 + c * S, 190 + i * S];
+        const [x, y] = lerp(from, to, glide);
+        cell(ctx, x, y, S, R3[i][0][c], lit);
+      }
+      ctx.globalAlpha = glide; txt(ctx, "torch.Size([2, 5])", 44, 250, { color: T.ink1, mono: true }); ctx.globalAlpha = 1;
+    }
+    txt(ctx, `${staged ? "staged: light 0–150ms, glide 150–450ms" : "unstaged: both at once"}   t = ${t.toFixed(2)}`, 30, H - 14, { color: T.ink3, mono: true });
+  };
+  player("b · index extraction, staged", "the selected cells light (150ms), then copies glide into the Index band and settle as the sub-tensor (ease-out)", extraction(true), () => dur() * 1.5);
+  player("c · the same, unstaged", "light and glide at once — the eye has two things to follow", extraction(false), () => dur() * 1.5);
+}
+</script>
+</body>
+</html>

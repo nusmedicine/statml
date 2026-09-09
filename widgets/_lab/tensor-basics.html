@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — a Basics topic, and how the topics are organised</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 520px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  /* rail mock-ups: the real segmented control's classes, hand-written */
+  .rail { width: 300px; padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); }
+  .rail .w-label { font-size: var(--fs-sm); color: var(--ink-1); margin: 0 0 4px; display: block; }
+  .rail .w-seg { display: flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; background: var(--surface-1); margin-bottom: 4px; }
+  .rail .w-seg-btn { flex: 1; padding: 6px 4px; font-size: var(--fs-sm); background: none; border: 0; border-right: 1px solid var(--grid); color: var(--ink-2); font-family: var(--font); }
+  .rail .w-seg-btn:last-child { border-right: 0; }
+  .rail .w-seg-btn[aria-pressed="true"] { color: var(--ink-1); font-weight: 600; background: var(--surface-3); }
+  .rail .w-seg-cap { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 8px; }
+  .rail .w-detail { font-size: var(--fs-xs); color: var(--ink-3); margin: 2px 0 10px; }
+  .rail .card { font-size: var(--fs-xs); color: var(--ink-3); border: 1px dashed var(--grid); padding: 6px; margin: 6px 0; }
+  .rail .card b { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · a Basics topic, and how the topics are organised</h1>
+
+  <p class="note">
+    Two asks from the first test of the draft. <b>A Basics topic</b>: students set the dimensions themselves —
+    add one, remove one — and see the same tensor in the stack view, the frames view and as PyTorch prints it,
+    then index into it, which is the step that confuses. <b>The organisation</b>: the draft's four topics are the
+    lesson's two halves run together — <i>Tensors for Data</i> (shape, index, reshape, join) and <i>Linear
+    Algebra</i> (elementwise and broadcasting, three kinds of multiplication, reductions) — and the question is
+    whether those halves are two rows of one rail, or two widgets. §1 mocks the rails; §2 the Basics stage.
+  </p>
+
+  <h2>§1 · Where the topics live — three rails</h2>
+  <p class="note">
+    <b>A</b> one widget, one row of five. <b>B</b> one widget, the rail in two captioned rows, the lesson's own
+    halves, using the grouped segmented the Operation control already uses. <b>C</b> two widgets on the gallery,
+    <code>tensors</code> and <code>linear-algebra</code>, each with its own three topics; the Multiply topic then
+    has room for the lesson's three multiplications as a control of its own — matrix product, dot product,
+    Hadamard product — which the draft leaves to slot 50's dropout mask. Every rail is drawn at the rail's real
+    width, 300px, so the truncation is real.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>A · one row of five</h3>
+      <p class="sub">the draft plus Basics in front; "Broadcast" and "Multiply" reach 51px each and truncate</p>
+      <div class="rail">
+        <span class="w-label">Topic</span>
+        <div class="w-seg"><button class="w-seg-btn" aria-pressed="true">Basics</button><button class="w-seg-btn">Shape</button><button class="w-seg-btn">Broadcast</button><button class="w-seg-btn">Multiply</button><button class="w-seg-btn">Reduce</button></div>
+        <p class="w-detail">five operations, each decided by the tensor's shape</p>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>B · two captioned rows, the lesson's halves</h3>
+      <p class="sub">one widget; the caption names the half; each button gets 100px or more</p>
+      <div class="rail">
+        <span class="w-label">Topic</span>
+        <div class="w-seg"><button class="w-seg-btn" aria-pressed="true">Basics</button><button class="w-seg-btn">Shape</button><button class="w-seg-btn">Join</button></div>
+        <p class="w-seg-cap">tensors for data</p>
+        <div class="w-seg"><button class="w-seg-btn">Broadcast</button><button class="w-seg-btn">Multiply</button><button class="w-seg-btn">Reduce</button></div>
+        <p class="w-seg-cap">linear algebra</p>
+        <p class="w-detail">six topics in the lesson's two halves</p>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>C · two widgets</h3>
+      <p class="sub">tensors: Basics · Shape · Join — linear-algebra: Broadcast · Multiply · Reduce, with a product control</p>
+      <div class="rail">
+        <span class="w-label">Topic</span>
+        <div class="w-seg"><button class="w-seg-btn" aria-pressed="true">Basics</button><button class="w-seg-btn">Shape</button><button class="w-seg-btn">Join</button></div>
+        <p class="w-detail">the widget <code>tensors</code></p>
+        <div class="card"><b>the widget <code>linear-algebra</code></b>
+          <div class="w-seg" style="margin-top:6px"><button class="w-seg-btn">Broadcast</button><button class="w-seg-btn" aria-pressed="true">Multiply</button><button class="w-seg-btn">Reduce</button></div>
+          <span class="w-label" style="margin-top:6px">Product</span>
+          <div class="w-seg"><button class="w-seg-btn" aria-pressed="true">Matrix</button><button class="w-seg-btn">Dot</button><button class="w-seg-btn">Hadamard</button></div>
+          <p class="w-detail" style="margin:2px 0 0">X @ Wᵀ · a row against a column, summed · X ∗ mask, no sum</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>§2 · The Basics stage — set the dimensions, then index</h2>
+  <p class="note">
+    The rail would carry <b>Dimensions</b> as a control — add one in front, remove the first — from rank 1 to
+    rank 4, each rank the lesson's own example: [5] a feature vector, [2, 5] two samples, [2, 2, 5] two samples
+    of two sequence points, [2, 2, 2, 5] a batch of two of those. The stage draws the tensor in the chosen view
+    with the dimension arrows named, and prints it, exactly as the Shape topic does. Then <b>Index</b>: one
+    control per dimension, each an index or <code>:</code>, so the reader builds <code>T[1, 0, 2]</code> or
+    <code>T[:, 0, :]</code> and sees the cells it selects lit in the drawing and in the print, with the
+    selection's own shape and print beneath. Step is not needed: the controls are the interaction, as on the
+    Partial derivatives tab of gradients.
+  </p>
+  <div class="row" id="ranks"></div>
+  <div class="row" id="index"></div>
+
+  <p class="note">
+    <b>What Basics settles that Shape cannot.</b> On Shape the tensor is fixed and the operation moves; on
+    Basics the tensor's rank moves and nothing else does, so a reader can watch one more bracket appear in the
+    print and one more frame appear round the drawing, and can read <code>T[1, 0, 2]</code> off the edges before
+    the reshape topic asks where 13 went. The index control is the lesson's cells 19–23 (one element; a sample;
+    a sequence point across samples; a feature across everything).
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = "ui-monospace, Menlo, monospace";
+const wash = (hex, a) => { const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${a})`; };
+const A = wash(T.groupA, 0.18), HL = wash(T.highlight, 0.35);
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${size} ${mono ? MONO : T.font}`; ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+}
+function grid(ctx, x, y, rows, cols, s, val, lit) {
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const cx = x + c * s, cy = y + r * s, on = lit && lit(r, c);
+    ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, s, s);
+    ctx.fillStyle = on ? HL : A; ctx.fillRect(cx, cy, s, s);
+    ctx.strokeStyle = on ? T.highlight : T.ink3; ctx.lineWidth = on ? 2 : 1; ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+    txt(ctx, String(val(r, c)), cx + s / 2, cy + s / 2 + 0.5, { color: T.ink1, align: "center", baseline: "middle", size: T.fsSm });
+  }
+}
+function frame(ctx, x, y, w, h, label) {
+  ctx.strokeStyle = T.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.setLineDash([]);
+  if (label) txt(ctx, label, x + 4, y + 10, { color: T.ink3, mono: true });
+}
+/* torch-style print of a nested array, returned as lines; `mark(path)` says which value is lit */
+function printLines(arr, mark, depth = 0, path = []) {
+  const W = 2;
+  if (!Array.isArray(arr[0])) {
+    return [{ segs: [{ s: "[" }, ...arr.flatMap((v, i) => [{ s: String(v).padStart(W), lit: mark([...path, i]) }, ...(i < arr.length - 1 ? [{ s: ", " }] : [])]), { s: "]" }] }];
+  }
+  const out = [];
+  arr.forEach((sub, i) => {
+    const lines = printLines(sub, mark, depth + 1, [...path, i]);
+    lines.forEach((ln, li) => {
+      const first = i === 0 && li === 0;
+      const prefix = first ? "[" : " ";
+      out.push({ segs: [{ s: prefix }, ...ln.segs] });
+    });
+    if (i < arr.length - 1) {
+      out[out.length - 1].segs.push({ s: "," });
+      const rank = depth1(sub);
+      for (let k = 1; k < rank; k += 1) out.push({ segs: [{ s: "" }] });
+    }
+  });
+  out[out.length - 1].segs.push({ s: "]" });
+  return out;
+}
+const depth1 = (a) => (Array.isArray(a) ? 1 + depth1(a[0]) : 0);
+function pushPrint(ctx, x, y, arr, mark, name, shape) {
+  const lines = printLines(arr, mark);
+  const lh = 14, cw = 6.6;
+  lines.forEach((ln, li) => {
+    let col = 0;
+    const pre = li === 0 ? "tensor(" : "       ";
+    txt(ctx, pre, x, y + li * lh, { color: T.ink3, mono: true, size: T.fsXs }); col += pre.length;
+    for (const seg of ln.segs) {
+      txt(ctx, seg.s, x + col * cw, y + li * lh, { color: seg.lit ? T.highlight : (/\d/.test(seg.s) ? T.ink1 : T.ink3), mono: true, size: T.fsXs });
+      col += seg.s.length;
+    }
+    if (li === lines.length - 1) txt(ctx, ")", x + col * cw, y + li * lh, { color: T.ink3, mono: true, size: T.fsXs });
+  });
+  txt(ctx, `${name}  torch.Size([${shape.join(", ")}])`, x, y + lines.length * lh + 4, { color: T.ink1, mono: true, size: T.fsXs });
+  return lines.length * lh + 20;
+}
+
+/* the lesson's tensors by rank */
+const R1 = [1, 2, 3, 4, 5];
+const R2 = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+const R3 = [[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]]];
+const R4 = [R3, R3.map((s) => s.map((r) => r.map((v) => v + 20)))];
+const S = 22;
+
+/* §2a · the four ranks in frames view with the print */
+{
+  const host = document.getElementById("ranks");
+  const NAMES = { 1: ["0 feature"], 2: ["0 sample", "1 feature"], 3: ["0 sample", "1 sequence", "2 feature"], 4: ["0 batch", "1 sample", "2 sequence", "3 feature"] };
+  { const ctx = panel(host, "rank 1 · [5]", "one dimension: a row; the print has one bracket", 300, 150);
+    grid(ctx, 40, 50, 1, 5, S, (r, c) => R1[c]);
+    arrow(ctx, 40, 40, 40 + 5 * S, 40, T.ink2); txt(ctx, NAMES[1][0], 40 + 2.5 * S, 34, { color: T.ink2, align: "center" });
+    pushPrint(ctx, 40, 100, R1, () => false, "T", [5]); }
+  { const ctx = panel(host, "rank 2 · [2, 5]", "add a dimension in front: rows of that; one more bracket", 300, 170);
+    grid(ctx, 40, 50, 2, 5, S, (r, c) => R2[r][c]);
+    arrow(ctx, 40, 40, 40 + 5 * S, 40, T.ink2); txt(ctx, NAMES[2][1], 40 + 2.5 * S, 34, { color: T.ink2, align: "center" });
+    arrow(ctx, 30, 50, 30, 50 + 2 * S, T.ink2); txt(ctx, NAMES[2][0], 26, 50 + 2 * S + 14, { color: T.ink2 });
+    pushPrint(ctx, 40, 118, R2, () => false, "T", [2, 5]); }
+  { const ctx = panel(host, "rank 3 · [2, 2, 5]", "one more in front: frames of those; one more bracket and a blank line", 560, 200);
+    for (let i = 0; i < 2; i += 1) { const fx = 40 + i * (5 * S + 30); frame(ctx, fx - 6, 44, 5 * S + 12, 2 * S + 24, `dim 0 = ${i}`); grid(ctx, fx, 62, 2, 5, S, (r, c) => R3[i][r][c]); }
+    arrow(ctx, 34, 22, 34 + 2 * (5 * S + 30) - 30 + 12, 22, T.ink2, 1.5, [3, 3]); txt(ctx, NAMES[3][0], 34, 16, { color: T.ink2 });
+    txt(ctx, NAMES[3][2], 40 + 2.5 * S, 44, { color: T.ink2, align: "center" });
+    arrow(ctx, 26, 62, 26, 62 + 2 * S, T.ink2); txt(ctx, NAMES[3][1], 20, 62 + 2 * S + 14, { color: T.ink2 });
+    pushPrint(ctx, 330, 60, R3, () => false, "T", [2, 2, 5]); }
+  { const ctx = panel(host, "rank 4 · [2, 2, 2, 5]", "one more in front: frames of frames; the print gains a fourth bracket", 560, 300);
+    for (let b = 0; b < 2; b += 1) {
+      const oy = 50 + b * 120;
+      frame(ctx, 26, oy - 6, 2 * (5 * S + 12) + 26 + 8, 2 * S + 48, `dim 0 = ${b}`);
+      for (let i = 0; i < 2; i += 1) { const fx = 40 + i * (5 * S + 26); frame(ctx, fx - 4, oy + 8, 5 * S + 8, 2 * S + 22, `dim 1 = ${i}`); grid(ctx, fx, oy + 24, 2, 5, S, (r, c) => R4[b][i][r][c]); }
+    }
+    pushPrint(ctx, 330, 40, R4, () => false, "T", [2, 2, 2, 5]); }
+}
+
+/* §2b · indexing the rank-3 tensor: an element, and the lesson's three slices */
+{
+  const host = document.getElementById("index");
+  const cases = [
+    { name: "T[1, 0, 2]", sub: "one element: frame 1, row 0, column 2 — a scalar, 13", sel: (i, r, c) => i === 1 && r === 0 && c === 2, shape: [], out: "13" },
+    { name: "T[0, :, :]", sub: "the first sample, every sequence point and feature — shape [2, 5]", sel: (i) => i === 0, shape: [2, 5], out: "[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]" },
+    { name: "T[:, 0, :]", sub: "the first sequence point of every sample — shape [2, 5]", sel: (i, r) => r === 0, shape: [2, 5], out: "[[1, 2, 3, 4, 5], [11, 12, 13, 14, 15]]" },
+    { name: "T[:, :, 0]", sub: "the first feature of every point of every sample — shape [2, 2]", sel: (i, r, c) => c === 0, shape: [2, 2], out: "[[1, 6], [11, 16]]" },
+  ];
+  for (const k of cases) {
+    const ctx = panel(host, k.name, k.sub, 560, 230);
+    for (let i = 0; i < 2; i += 1) { const fx = 40 + i * (5 * S + 30); frame(ctx, fx - 6, 34, 5 * S + 12, 2 * S + 24, `dim 0 = ${i}`); grid(ctx, fx, 52, 2, 5, S, (r, c) => R3[i][r][c], (r, c) => k.sel(i, r, c)); }
+    for (let c = 0; c < 5; c += 1) txt(ctx, String(c), 40 + c * S + S / 2, 30, { color: T.ink3, align: "center", mono: true });
+    for (let r = 0; r < 2; r += 1) txt(ctx, String(r), 28, 52 + r * S + S / 2 + 4, { color: T.ink3, align: "right", mono: true });
+    pushPrint(ctx, 330, 40, R3, (p) => k.sel(p[0], p[1], p[2]), "T", [2, 2, 5]);
+    txt(ctx, `${k.name} = ${k.out}`, 40, 150, { color: T.highlight, mono: true, size: T.fsSm });
+    txt(ctx, `shape  [${k.shape.join(", ")}]`, 40, 170, { color: T.ink1, mono: true, size: T.fsSm });
+    txt(ctx, k.shape.length === 0 ? "an index removes the dimension it names" : "a colon keeps the dimension it names", 40, 195, { color: T.ink2 });
+    txt(ctx, `${3 - k.shape.length} index${3 - k.shape.length === 1 ? "" : "es"}, ${k.shape.length} colon${k.shape.length === 1 ? "" : "s"}: rank 3 → rank ${k.shape.length}`, 40, 212, { color: T.ink3 });
+  }
+}
+</script>
+</body>
+</html>

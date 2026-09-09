@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 53 tensors — the tensor, where a value goes, when shapes combine</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 53 · tensors — the tensor, where a value goes, when shapes combine</h1>
+
+  <p class="note">
+    Every number on this page is the lesson's own (05-2 cells 3–69): the [2, 2, 5] tensor holding 1–20 with
+    the dimensions named sample, sequence, feature; X [2, 5] + b [5] for broadcasting; X [3, 4] @ Wᵀ [4, 2] for
+    the layer as a matrix product; X [3, 4] reduced over dim 0 and normalized. <b>The device is that every cell
+    carries its value</b>, so the reader can see where 11 went after a reshape and after a permute, which cells
+    the second row of the product read, and which cells a mean over dim 0 collapsed.
+    Nothing here is measured; what the mock has to prove is legibility — twenty numbered cells and their result
+    at the 550px fingerprint width — and which drawing of a three-dimensional tensor reads.
+  </p>
+  <p class="note">
+    <b>Colour roles are provisional.</b> The tensor being operated on is washed <code>--c-group-a</code>, the
+    second operand <code>--c-group-b</code>, the result <code>--c-empirical</code> (what the operation built), the
+    cell moving or being computed <code>--c-highlight</code>, the cells it reads outlined in the same. A failing
+    case prints in <code>--c-extreme</code>. §1 C tries one colour per dimension, carried into the shape.
+  </p>
+
+  <h2>§1 · How a three-dimensional tensor is drawn — the same [2, 2, 5]</h2>
+  <p class="note">
+    <b>A</b> the lesson's own picture: one 2 × 5 grid per sample, stacked with an offset, the three dimensions
+    as arrows labelled by index and role; <b>B</b> flat: the two samples side by side, the shape written once,
+    no perspective — cheaper, and every cell is fully visible; <b>C</b> A with each dimension in its own colour,
+    the colour repeated on its entry in the shape, the lesson's reshape figure. Hover (not drawn) would print a
+    cell's index <code>T[i, j, k]</code> and its value in the readout on every tab.
+  </p>
+  <div class="row" id="draw"></div>
+
+  <h2>§2 · Where a value goes — reshape against permute to the same shape</h2>
+  <p class="note">
+    The stage that loses. <code>reshape(2, 5, 2)</code> and <code>permute(0, 2, 1)</code> both produce a
+    [2, 5, 2] tensor and the contents differ: reshape reads the values in order and cuts the sequence anew,
+    permute moves each value to the index with its last two positions swapped. Both panels are seven moves in;
+    the moving value is highlighted on both sides. Then the lesson's other shape operations on the same tensor,
+    each finished: <code>reshape(2, −1)</code>, <code>flatten()</code>, <code>unsqueeze(0)</code>. The pick is
+    whether <code>cat</code> and <code>stack</code> (cells 41–44, a second tensor of 21–30) are two more
+    options of the same control or cut.
+  </p>
+  <div class="row" id="move"></div>
+  <div class="row" id="moveMore"></div>
+
+  <h2>§3 · Broadcasting — X [2, 5] + b, five shapes of b</h2>
+  <p class="note">
+    The lesson's rule, drawn: line the shapes up from the right, a missing dimension counts as 1, equal or 1
+    passes, anything else is an error. The stretched copies are drawn faint where the lesson's figure draws a
+    dotted arrow. b of shape [5], [1, 5], [2, 1], a scalar, and <b>[2] — which fails</b> (2.6): the case a
+    reader who lines shapes up from the left expects to work.
+  </p>
+  <div class="row" id="bcast"></div>
+
+  <h2>§4 · Matrix multiplication — X [3, 4] @ Wᵀ, one output cell at a time</h2>
+  <p class="note">
+    The lesson's neuron example: three data points with four inputs, two neurons with four weights each. Step
+    computes one cell of the product — the row of X and the column of Wᵀ it reads are lit and the four
+    products are written and summed, which is a dot product. Left, three cells done and the fourth in
+    progress; right, <code>X @ W</code> without the transpose, where the inner dimensions are 4 and 2 and there
+    is no product to draw. Widget 37 draws this same layer as edges; here it is a grid.
+  </p>
+  <div class="row" id="matmul"></div>
+
+  <h2>§5 · Reduction — X [3, 4], which dimension disappears</h2>
+  <p class="note">
+    <code>mean(dim=0)</code> collapses the three rows into one row of four: the dimension named is the one that
+    goes. <code>mean(dim=1)</code> collapses the four columns into one column of three; no <code>dim</code>
+    collapses everything to one number. Then the lesson's payoff: <code>(X − μ) / σ</code> with μ and σ both
+    [4], which is a reduction followed by a broadcast — the two previous tabs composed, and the normalization
+    widget 48 standardizes x with.
+  </p>
+  <div class="row" id="reduce"></div>
+
+  <h2>Open interaction questions (for review, not drawn)</h2>
+  <p class="note">
+    <b>Tabs:</b> Shape · Broadcast · Multiply · Reduce, in the lesson's order, a data parameter. Four is one
+    more than gradients and one fewer than slot 49 proposes.
+    <b>Step:</b> on Shape, one value moves; on Broadcast, one row is added; on Multiply, one cell is computed;
+    on Reduce, one group collapses. Play runs the rest. No Lead: the tensor is given, so the widget opens on the
+    operands with nothing computed, which is 2.1 without a lead.
+    <b>Readout:</b> the shapes in and out, the hovered cell's index and value, and on Multiply the sum of
+    products for the current cell.
+    <b>Overlap with slot 49:</b> its Linear page computes one output unit with its inputs lit on a batch of 2.
+    If Multiply lives here, that page can open on the shapes and point at this widget for the arithmetic.
+    <b>Overlap with slot 50:</b> the Hadamard mask (cells 63–65) is its Dropout page and is not drawn here.
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = "ui-monospace, Menlo, monospace";
+
+/* ---- drawing helpers ------------------------------------------------------ */
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv);
+  parent.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false, weight = "" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${a})`;
+};
+const fmt = (v) => (v == null ? "" : Number.isInteger(v) ? String(v) : (Math.round(v * 100) / 100).toString());
+
+/* A rows × cols grid of cells at (x, y), cell size s. `cell(r, c)` returns
+   { v, fill, lit, empty, ink } — `fill` a colour, `lit` outlines in highlight,
+   `empty` draws the outline only (a slot not yet filled). */
+function grid(ctx, x, y, rows, cols, s, cell, { faint = false } = {}) {
+  ctx.lineWidth = 1;
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const d = cell(r, c) || {};
+      const cx = x + c * s, cy = y + r * s;
+      ctx.globalAlpha = faint ? 0.35 : 1;
+      // an opaque base first: the washes are translucent, and a stacked slab
+      // must cover the one behind it, numbers included
+      ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, s, s);
+      if (!d.empty) { ctx.fillStyle = d.fill ?? T.surface2; ctx.fillRect(cx, cy, s, s); }
+      ctx.strokeStyle = d.lit ? T.highlight : T.ink3;
+      ctx.lineWidth = d.lit ? 2 : 1;
+      ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+      if (d.v != null && !d.empty) {
+        txt(ctx, fmt(d.v), cx + s / 2, cy + s / 2 + 0.5, { color: d.ink ?? T.ink1, align: "center", baseline: "middle", size: s >= 26 ? T.fsSm : T.fsXs });
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  return { x, y, w: cols * s, h: rows * s };
+}
+
+/* Slabs: a [d0, d1, d2] tensor as d0 grids of d1 × d2, back to front, offset
+   (ox, oy) per index so the front slab covers the back ones except a rim. */
+function slabs(ctx, x, y, [d0, d1, d2], s, cell, { ox = s, oy = s, dims = null, faint = false } = {}) {
+  const fx = x + (d0 - 1) * ox, fy = y;                 // the front slab's origin
+  for (let i = d0 - 1; i >= 0; i -= 1) {
+    const gx = fx - i * ox, gy = fy + i * oy;
+    // the back slabs sit up and to the RIGHT of the front one so their top row and right column show
+    grid(ctx, fx + i * ox, fy - i * oy, d1, d2, s, (r, c) => cell(i, r, c), { faint });
+    void gx; void gy;
+  }
+  if (dims) {
+    const [c0, c1, c2] = dims.colors;
+    const W = d2 * s, H = d1 * s;
+    // dim 2 along the top of the BACK-most slab, dim 1 down the right of the FRONT slab, dim 0 up the diagonal
+    const bx = fx + (d0 - 1) * ox, by = fy - (d0 - 1) * oy;
+    arrow(ctx, bx, by - 10, bx + W, by - 10, c2);
+    txt(ctx, dims.labels[2], bx + W / 2, by - 15, { color: c2, align: "center" });
+    arrow(ctx, fx + W + (d0 - 1) * ox + 10, fy - (d0 - 1) * oy, fx + W + (d0 - 1) * ox + 10, fy - (d0 - 1) * oy + H, c1);
+    txt(ctx, dims.labels[1], fx + W + (d0 - 1) * ox + 16, fy - (d0 - 1) * oy + H / 2 + 4, { color: c1 });
+    arrow(ctx, fx - 8, fy + 8, fx - 8 + (d0 - 1) * ox + 6, fy + 8 - (d0 - 1) * oy - 6, c0, 1.5, [3, 3]);
+    txt(ctx, dims.labels[0], fx - 12, fy - (d0 - 1) * oy - 2, { color: c0, align: "right" });
+  }
+  return { x: fx, y: fy - (d0 - 1) * oy, w: d2 * s + (d0 - 1) * ox, h: d1 * s + (d0 - 1) * oy, front: { x: fx, y: fy } };
+}
+
+/* the shape as text with an optional colour per entry */
+function shapeText(ctx, x, y, dims, { colors = null, size = T.fsSm, align = "left" } = {}) {
+  const parts = dims.map((d) => String(d));
+  if (!colors) { txt(ctx, `[${parts.join(", ")}]`, x, y, { color: T.ink1, size, mono: true, align }); return; }
+  ctx.font = `${size} ${MONO}`;
+  const widths = parts.map((p) => ctx.measureText(p).width);
+  const sep = ctx.measureText(", ").width, br = ctx.measureText("[").width;
+  const total = br * 2 + widths.reduce((a, b) => a + b, 0) + sep * (parts.length - 1);
+  let cx = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+  txt(ctx, "[", cx, y, { color: T.ink1, size, mono: true }); cx += br;
+  parts.forEach((p, i) => {
+    txt(ctx, p, cx, y, { color: colors[i], size, mono: true, weight: "600" }); cx += widths[i];
+    if (i < parts.length - 1) { txt(ctx, ", ", cx, y, { color: T.ink1, size, mono: true }); cx += sep; }
+  });
+  txt(ctx, "]", cx, y, { color: T.ink1, size, mono: true });
+}
+
+/* ---- the lesson's tensor ---------------------------------------------------- */
+const T3 = [[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]]];
+const ROLES = ["0 sample", "1 sequence", "2 feature"];
+const A = wash(T.groupA, 0.18), B = wash(T.groupB, 0.28), R = wash(T.empirical, 0.16), HL = wash(T.highlight, 0.35);
+
+/* ============================ §1 drawing ================================== */
+{
+  const host = document.getElementById("draw");
+  const S = 30;
+  {
+    const ctx = panel(host, "A · slabs, dimensions as arrows", "the lesson's own picture; the back sample shows its top row and right column", 400, 250);
+    slabs(ctx, 60, 90, [2, 2, 5], S, (i, r, c) => ({ v: T3[i][r][c], fill: A }), { dims: { colors: [T.ink2, T.ink2, T.ink2], labels: ROLES } });
+    txt(ctx, "shape", 60, 200); shapeText(ctx, 100, 200, [2, 2, 5]);
+    txt(ctx, "T[1, 0, 2] = 13   (the hovered cell)", 60, 225, { color: T.ink2, mono: true });
+  }
+  {
+    const ctx = panel(host, "B · flat, one grid per sample", "no perspective; every cell visible; the first dimension becomes a row of grids", 400, 250);
+    for (let i = 0; i < 2; i += 1) {
+      const gx = 40 + i * 190;
+      txt(ctx, `sample ${i}`, gx, 70, { color: T.ink2 });
+      const g = grid(ctx, gx, 80, 2, 5, S, (r, c) => ({ v: T3[i][r][c], fill: A }));
+      if (i === 0) {
+        arrow(ctx, g.x, g.y - 22, g.x + g.w, g.y - 22, T.ink2); txt(ctx, ROLES[2], g.x + g.w / 2, g.y - 27, { color: T.ink2, align: "center" });
+        arrow(ctx, g.x - 10, g.y, g.x - 10, g.y + g.h, T.ink2); txt(ctx, ROLES[1], g.x - 12, g.y + g.h + 14, { color: T.ink2 });
+      }
+    }
+    arrow(ctx, 40, 178, 40 + 190 + 150, 178, T.ink2, 1.5, [3, 3]); txt(ctx, ROLES[0], 40, 193, { color: T.ink2 });
+    txt(ctx, "shape", 40, 225); shapeText(ctx, 80, 225, [2, 2, 5]);
+  }
+  {
+    const ctx = panel(host, "C · slabs, one colour per dimension", "the lesson's reshape figure: each dimension's colour repeated on its entry in the shape", 400, 250);
+    const cols = [T.clusters[1], T.clusters[0], T.clusters[2]];
+    slabs(ctx, 60, 90, [2, 2, 5], S, (i, r, c) => ({ v: T3[i][r][c], fill: A }), { dims: { colors: cols, labels: ROLES } });
+    txt(ctx, "shape", 60, 200); shapeText(ctx, 100, 200, [2, 2, 5], { colors: cols });
+  }
+}
+
+/* ============================ §2 moving ================================== */
+/* every value's source index in reading order, and its destination under each op */
+const SRC = [];
+for (let i = 0; i < 2; i += 1) for (let r = 0; r < 2; r += 1) for (let c = 0; c < 5; c += 1) SRC.push({ i, r, c, v: T3[i][r][c] });
+const destReshape252 = (n) => ({ i: Math.floor(n / 10), r: Math.floor((n % 10) / 2), c: n % 2 });
+const destPermute = (n) => { const s = SRC[n]; return { i: s.i, r: s.c, c: s.r }; };
+
+function movePanel(host, title, sub, dest, done, w = 520) {
+  const ctx = panel(host, title, sub, w, 270);
+  const S = 26;
+  const moving = SRC[done];
+  const dm = dest(done);
+  const isMoving = (i, r, c) => moving && moving.i === i && moving.r === r && moving.c === c;
+  slabs(ctx, 40, 90, [2, 2, 5], S, (i, r, c) => {
+    const n = SRC.findIndex((s) => s.i === i && s.r === r && s.c === c);
+    return { v: T3[i][r][c], fill: n < done ? T.surface : A, ink: n < done ? T.ink3 : T.ink1, lit: isMoving(i, r, c) };
+  }, { dims: { colors: [T.ink2, T.ink2, T.ink2], labels: ["0", "1", "2"] } });
+  txt(ctx, "shape", 40, 210); shapeText(ctx, 78, 210, [2, 2, 5]);
+  arrow(ctx, 240, 150, 290, 150, T.ink2, 2);
+  // result [2, 5, 2]
+  const filled = new Map();
+  for (let n = 0; n < done; n += 1) { const d = dest(n); filled.set(`${d.i},${d.r},${d.c}`, SRC[n].v); }
+  slabs(ctx, 330, 70, [2, 5, 2], S, (i, r, c) => {
+    const k = `${i},${r},${c}`;
+    const mv = dm.i === i && dm.r === r && dm.c === c;
+    if (filled.has(k)) return { v: filled.get(k), fill: R };
+    if (mv) return { v: moving.v, fill: HL, lit: true };
+    return { empty: true };
+  }, { dims: { colors: [T.ink2, T.ink2, T.ink2], labels: ["0", "1", "2"] } });
+  txt(ctx, "shape", 330, 240); shapeText(ctx, 368, 240, [2, 5, 2]);
+  txt(ctx, `${moving.v}: T[${moving.i}, ${moving.r}, ${moving.c}] → [${dm.i}, ${dm.r}, ${dm.c}]`, 40, 245, { color: T.highlight, mono: true, size: T.fsSm });
+  return ctx;
+}
+{
+  const host = document.getElementById("move");
+  movePanel(host, "reshape(2, 5, 2) — seven values in", "reads 1, 2, 3, … in order and cuts every two into a row: 11 lands at [1, 0, 0] as before, 7 at [0, 3, 0]", destReshape252, 7);
+  movePanel(host, "permute(0, 2, 1) — seven values in", "the same walk over the source; each value goes to the index with its last two positions swapped: 7 lands at [0, 1, 1]", destPermute, 7);
+}
+{
+  const host = document.getElementById("moveMore");
+  const S = 24;
+  {
+    const ctx = panel(host, "reshape(2, −1) → [2, 10]", "sequence and feature collapsed; −1 asks for the size that fits", 380, 150);
+    grid(ctx, 40, 50, 2, 10, S, (r, c) => ({ v: T3[r][Math.floor(c / 5)][c % 5], fill: R }));
+    txt(ctx, "shape", 40, 125); shapeText(ctx, 78, 125, [2, 10]);
+  }
+  {
+    const ctx = panel(host, "flatten() → [20]", "every dimension collapsed, reading order kept", 540, 150);
+    grid(ctx, 20, 60, 1, 20, S, (r, c) => ({ v: c + 1, fill: R }));
+    txt(ctx, "shape", 20, 125); shapeText(ctx, 58, 125, [20]);
+  }
+  {
+    const ctx = panel(host, "unsqueeze(0) → [1, 2, 2, 5]", "a batch dimension of size 1 in front; no value moves", 400, 150);
+    slabs(ctx, 60, 50, [2, 2, 5], S, (i, r, c) => ({ v: T3[i][r][c], fill: R }));
+    ctx.strokeStyle = T.ink3; ctx.setLineDash([3, 3]); ctx.strokeRect(40.5, 25.5, 200, 90); ctx.setLineDash([]);
+    txt(ctx, "batch 0", 44, 21);
+    txt(ctx, "shape", 260, 100); shapeText(ctx, 298, 100, [1, 2, 2, 5]);
+  }
+}
+
+/* ============================ §3 broadcasting ============================= */
+{
+  const host = document.getElementById("bcast");
+  const X = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+  const cases = [
+    { name: "b [5]", shape: [5], bv: (r, c) => [10, 20, 30, 40, 50][c], real: (r, c) => r === 0, align: ["[2, 5]", "   [5]"], verdict: ["2 vs (1): stretch", "5 vs 5: equal"], ok: true },
+    { name: "b [1, 5]", shape: [1, 5], bv: (r, c) => [10, 20, 30, 40, 50][c], real: (r, c) => r === 0, align: ["[2, 5]", "[1, 5]"], verdict: ["2 vs 1: stretch", "5 vs 5: equal"], ok: true },
+    { name: "b [2, 1]", shape: [2, 1], bv: (r, c) => [10, 20][r], real: (r, c) => c === 0, align: ["[2, 5]", "[2, 1]"], verdict: ["2 vs 2: equal", "5 vs 1: stretch"], ok: true },
+    { name: "a scalar, 2", shape: [], bv: () => 2, real: (r, c) => r === 0 && c === 0, align: ["[2, 5]", "    []"], verdict: ["2 vs (1): stretch", "5 vs (1): stretch"], ok: true },
+    { name: "b [2] — fails", shape: [2], bv: (r, c) => [10, 20][c], real: (r, c) => r === 0 && c < 2, align: ["[2, 5]", "   [2]"], verdict: ["2 vs (1): stretch", "5 vs 2: error"], ok: false },
+  ];
+  const S = 26;
+  for (const k of cases) {
+    const ctx = panel(host, `X + ${k.name}`, k.ok ? "the stretched copies faint; the result cell by cell" : "the shapes line up from the right, and 5 against 2 is neither equal nor 1", 470, 200);
+    grid(ctx, 20, 40, 2, 5, S, (r, c) => ({ v: X[r][c], fill: A }));
+    txt(ctx, "+", 160, 72, { color: T.ink1, size: T.fsLg, align: "center" });
+    if (k.ok) {
+      grid(ctx, 175, 40, 2, 5, S, (r, c) => (k.real(r, c) ? { v: k.bv(r, c), fill: B } : null));
+      grid(ctx, 175, 40, 2, 5, S, (r, c) => (k.real(r, c) ? null : { v: k.bv(r, c), fill: B }), { faint: true });
+      txt(ctx, "=", 318, 72, { color: T.ink1, size: T.fsLg, align: "center" });
+      grid(ctx, 332, 40, 2, 5, S, (r, c) => ({ v: X[r][c] + k.bv(r, c), fill: R }));
+    } else {
+      grid(ctx, 175, 40, 1, 2, S, (r, c) => ({ v: k.bv(r, c), fill: B }));
+      txt(ctx, "=", 318, 72, { color: T.ink1, size: T.fsLg, align: "center" });
+      txt(ctx, "no result: 5 against 2", 332, 62, { color: T.extreme, size: T.fsSm });
+      txt(ctx, "cannot broadcast", 332, 78, { color: T.extreme, size: T.fsSm });
+    }
+    txt(ctx, "X", 20, 30, { color: T.ink2 }); txt(ctx, k.name.replace(" — fails", ""), 175, 30, { color: T.ink2 });
+    if (k.ok) txt(ctx, "X + b", 332, 30, { color: T.ink2 });
+    // the alignment block
+    txt(ctx, "line up from the right", 20, 122, { color: T.ink3 });
+    txt(ctx, k.align[0], 20, 140, { color: T.ink1, mono: true, size: T.fsSm });
+    txt(ctx, k.align[1], 20, 156, { color: T.ink1, mono: true, size: T.fsSm });
+    txt(ctx, `dim 0 · ${k.verdict[0]}`, 130, 140, { color: T.ink2, mono: true });
+    txt(ctx, `dim 1 · ${k.verdict[1]}`, 130, 156, { color: k.ok ? T.ink2 : T.extreme, mono: true });
+    txt(ctx, k.ok ? `result shape [2, 5]` : `error`, 20, 182, { color: k.ok ? T.ink2 : T.extreme, mono: true });
+  }
+}
+
+/* ============================ §4 matmul ================================== */
+{
+  const host = document.getElementById("matmul");
+  const X = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
+  const W = [[0.1, 0.1, 0.1, 0.1], [0.5, 0.5, 0.5, 0.5]];
+  const WT = [0, 1, 2, 3].map((k) => [W[0][k], W[1][k]]);
+  const Y = X.map((row) => [0, 1].map((j) => row.reduce((a, v, k) => a + v * WT[k][j], 0)));
+  const S = 30;
+  {
+    const ctx = panel(host, "X @ Wᵀ → [3, 2], computing Y[1, 1]", "row 1 of X against column 1 of Wᵀ; three cells done", 560, 260);
+    const cur = { r: 1, c: 1 };
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A, lit: r === cur.r }));
+    txt(ctx, "@", 165, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "Wᵀ  [4, 2]", 190, 30, { color: T.ink2, mono: true });
+    grid(ctx, 190, 40, 4, 2, S, (r, c) => ({ v: WT[r][c], fill: B, lit: c === cur.c }));
+    txt(ctx, "=", 285, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "Y  [3, 2]", 310, 30, { color: T.ink2, mono: true });
+    grid(ctx, 310, 40, 3, 2, S, (r, c) => {
+      const n = r * 2 + c, cn = cur.r * 2 + cur.c;
+      if (n < cn) return { v: Y[r][c], fill: R };
+      if (n === cn) return { v: Y[r][c], fill: HL, lit: true };
+      return { empty: true };
+    });
+    txt(ctx, "data point 1, neuron 1", 310, 145, { color: T.ink3 });
+    txt(ctx, "Y[1, 1] = 5×0.5 + 6×0.5 + 7×0.5 + 8×0.5 = 13", 20, 190, { color: T.highlight, mono: true, size: T.fsSm });
+    txt(ctx, "rows of X are data points, columns of Wᵀ are neurons; the inner 4 is the inputs each neuron reads", 20, 215, { color: T.ink2 });
+    txt(ctx, "one cell is a dot product: the sum of products of a row and a column", 20, 232, { color: T.ink2 });
+  }
+  {
+    const ctx = panel(host, "X @ W — fails", "the inner dimensions are 4 and 2; nothing to multiply", 460, 260);
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A }));
+    txt(ctx, "@", 165, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "W  [2, 4]", 190, 30, { color: T.ink2, mono: true });
+    grid(ctx, 190, 40, 2, 4, S, (r, c) => ({ v: W[r][c], fill: B }));
+    txt(ctx, "=", 330, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "no product:", 350, 80, { color: T.extreme, size: T.fsSm });
+    txt(ctx, "4 against 2", 350, 96, { color: T.extreme, size: T.fsSm });
+    txt(ctx, "[3, 4] @ [2, 4]", 20, 190, { color: T.ink1, mono: true, size: T.fsSm });
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(62, 196); ctx.lineTo(62, 204); ctx.lineTo(112, 204); ctx.lineTo(112, 196); ctx.stroke();
+    txt(ctx, "inner dimensions must match", 20, 222, { color: T.extreme });
+    txt(ctx, "W holds one row per neuron; transposing it puts the inputs on the inside", 20, 242, { color: T.ink2 });
+  }
+}
+
+/* ============================ §5 reduce ================================== */
+{
+  const host = document.getElementById("reduce");
+  const X = [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6]];
+  const S = 30;
+  {
+    const ctx = panel(host, "mean(dim=0) → [4]", "the three rows collapse into one; dim 0 is gone", 300, 250);
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A, lit: c === 1 }));
+    for (let c = 0; c < 4; c += 1) arrow(ctx, 35 + c * S, 135, 35 + c * S, 165, c === 1 ? T.highlight : T.ink3);
+    txt(ctx, "μ  [4]", 20, 185, { color: T.ink2, mono: true });
+    grid(ctx, 20, 190, 1, 4, S, (r, c) => ({ v: [2, 3, 4, 5][c], fill: c === 1 ? HL : R, lit: c === 1 }));
+    txt(ctx, "dim 0", 160, 152, { color: T.ink2 });
+    txt(ctx, "each feature, over the batch", 160, 168, { color: T.ink3 });
+  }
+  {
+    const ctx = panel(host, "mean(dim=1) → [3]", "the four columns collapse into one; dim 1 is gone", 300, 250);
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A, lit: r === 1 }));
+    for (let r = 0; r < 3; r += 1) arrow(ctx, 150, 55 + r * S, 190, 55 + r * S, r === 1 ? T.highlight : T.ink3);
+    txt(ctx, "[3]", 200, 30, { color: T.ink2, mono: true });
+    grid(ctx, 200, 40, 3, 1, S, (r, c) => ({ v: [2.5, 3.5, 4.5][r], fill: r === 1 ? HL : R, lit: r === 1 }));
+    txt(ctx, "dim 1", 150, 160, { color: T.ink2 });
+    txt(ctx, "each sample, over its features", 20, 185, { color: T.ink3 });
+  }
+  {
+    const ctx = panel(host, "mean() → a scalar", "no dim named: every dimension goes", 300, 250);
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A }));
+    arrow(ctx, 150, 135, 150, 165, T.ink3);
+    grid(ctx, 135, 170, 1, 1, S, () => ({ v: 3.5, fill: R }));
+    txt(ctx, "shape []", 175, 190, { color: T.ink2, mono: true });
+  }
+  {
+    const ctx = panel(host, "(X − μ) / σ — reduce, then broadcast", "μ and σ are [4], stretched back across the three rows; the lesson's normalized X", 560, 250);
+    txt(ctx, "X  [3, 4]", 20, 30, { color: T.ink2, mono: true });
+    grid(ctx, 20, 40, 3, 4, S, (r, c) => ({ v: X[r][c], fill: A }));
+    txt(ctx, "−", 155, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "μ  [4]", 170, 30, { color: T.ink2, mono: true });
+    grid(ctx, 170, 40, 1, 4, S, (r, c) => ({ v: [2, 3, 4, 5][c], fill: B }));
+    grid(ctx, 170, 70, 2, 4, S, (r, c) => ({ v: [2, 3, 4, 5][c], fill: B }), { faint: true });
+    txt(ctx, "÷", 305, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "σ  [4]", 320, 30, { color: T.ink2, mono: true });
+    grid(ctx, 320, 40, 1, 4, S, () => ({ v: 1, fill: B }));
+    grid(ctx, 320, 70, 2, 4, S, () => ({ v: 1, fill: B }), { faint: true });
+    txt(ctx, "=", 455, 90, { color: T.ink1, size: T.fsLg, align: "center" });
+    txt(ctx, "[3, 4]", 20, 185, { color: T.ink2, mono: true });
+    grid(ctx, 20, 190, 3, 4, S * 0.6, (r, c) => ({ v: [-1, 0, 1][r], fill: R }));
+    txt(ctx, "σ is 1 in every column here, so each row is its offset from the column mean", 130, 205, { color: T.ink2 });
+    txt(ctx, "the operation widget 48 applies to x before descent", 130, 222, { color: T.ink3 });
+  }
+}
+</script>
+</body>
+</html>

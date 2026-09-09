@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors Basics — the stage, the index, and rank 4</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 540px; min-height: 26px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  .rail { width: 300px; padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); font-family: var(--font); }
+  .rail .w-label { font-size: var(--fs-sm); color: var(--ink-1); margin: 8px 0 4px; display: block; }
+  .rail .w-seg { display: flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; background: var(--surface-1); margin-bottom: 4px; }
+  .rail .w-seg-btn { flex: 1; padding: 6px 4px; font-size: var(--fs-sm); background: none; border: 0; border-right: 1px solid var(--grid); color: var(--ink-2); font-family: var(--font); }
+  .rail .w-seg-btn.mono { font-family: var(--font-mono); }
+  .rail .w-seg-btn:last-child { border-right: 0; }
+  .rail .w-seg-btn[aria-pressed="true"] { color: var(--ink-1); font-weight: 600; background: var(--surface-3); }
+  .rail .w-detail { font-size: var(--fs-xs); color: var(--ink-3); margin: 2px 0 8px; }
+  .rail .expr { display: flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1); }
+  .rail .expr .w-seg { margin: 0; flex: 0 0 auto; }
+  .rail .expr .w-seg-btn { padding: 5px 7px; min-width: 24px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · Basics — the stage, the index control, and rank 4</h1>
+
+  <p class="note">
+    Three questions from the first look at the Basics topic, each answered against what the design and
+    education literature settles and then drawn. <b>§1</b> the stage is cluttered: drawing, print, selection and
+    captions share one canvas with nothing separating them. <b>§2</b> the index control is four segmented rows
+    in the rail. <b>§3</b> at rank 4 the stack view and the frames view look alike.
+  </p>
+  <p class="note">
+    <b>What the literature settles, in three lines.</b> Ainsworth's DeFT framework: a second representation
+    earns its place only when it does a different job from the first (complement), or pins down how the first
+    is to be read (constrain); two that do the same job add cost. Cognitive load theory's split-attention
+    effect: two sources that must be read together must be physically linked, not merely adjacent — the
+    highlight that lights the same value in the drawing and in the print is that link, and it is the reason the
+    print may stay on the stage at all. Gestalt common region and proximity: enclosure groups more strongly
+    than nearness, so a stage carrying more than one representation needs a visible region per representation,
+    with a name. Alammar's and Maximov's NumPy guides, the two most-read visual treatments of arrays, both draw
+    an index as the expression beside the array with the selected cells lit and the result drawn as its own
+    smaller array — the result is a picture, not text.
+  </p>
+
+  <h2>§1 · The Basics stage — three layouts of the same state, T[:, 0, :] at rank 3</h2>
+  <p class="note">
+    <b>A</b> as built: drawing, print to its right, the selection's print beneath, captions beneath that.
+    <b>B</b> a 2 × 2 of named regions — rows are the tensor and the selection, columns are <i>drawn</i> and
+    <i>printed</i> — so the selection is DRAWN as the sub-tensor the index makes, under the tensor it came from,
+    and each print sits beside the drawing it prints; the row header carries the expression. <b>C</b> the print as
+    a band below the drawing on the second surface colour, the selection drawn beside the tensor in the same
+    view, its print in the band beside the tensor's. In B and C the dimension arrows are gone from the frames
+    view: the edge indices and a roles line name the dimensions, and arrows are kept for the stack view only.
+  </p>
+  <div class="row" id="stage"></div>
+
+  <h2>§2 · Entering an index — four ways</h2>
+  <p class="note">
+    <b>a</b> as built: one segmented per dimension, four rows. <b>b</b> the expression itself as the control:
+    one row in the rail reading <code>T[ : , 0 , : ]</code>, each slot a small segmented, so the control is the
+    line of code the reader will type; the rail loses three rows. <b>c</b> the figure as the control: the edge
+    indices and frame labels are click targets — click <code>dim 0 = 1</code> to fix dim 0, click a column index to
+    fix the last dimension, click a cell to fix all three, click the tensor's name to clear — and the rail control
+    stays as the keyboard path (principle 3.6: a click on the figure is a control and obeys every rule a control
+    does). <b>d</b> <code>−1</code> as an option on every dimension: the lesson's own first index example is
+    <code>T[0, 0, −1]</code>, and negative indices are a confusion of their own. a–c can carry it.
+  </p>
+  <div class="row" id="index"></div>
+
+  <h2>§3 · Rank 4 — why stack and frames look alike, and what to do</h2>
+  <p class="note">
+    Any drawing of rank 4 on a page is a 2-D arrangement of 2-D arrangements; the two views differ only in
+    whether the third-from-last dimension is drawn with depth. As built, the stack view at rank 4 puts each
+    exploded stack inside a dashed frame, so the outer dimension is drawn the frames way in BOTH views and the
+    difference shrinks to a diagonal. <b>a</b> as built. <b>b</b> the lesson's own convention: the stack view
+    draws dim 0 as a column DOWN the page — one exploded stack per index, no frames, one arrow — and rank 5 would
+    be a grid of stacks; the frames view keeps its boxes and edge indices. Now the views differ in kind. <b>c</b>
+    a stack of stacks: dim 1 stepped up the diagonal, dim 0 stepped further along the same diagonal, no frames —
+    the fully three-dimensional picture; it does not fit the stage. <b>d</b> not drawn: offer the view toggle at
+    rank 3 only, where depth means something, and draw rank 4 one way.
+  </p>
+  <div class="row" id="rank4"></div>
+
+  <h2>Recommendation</h2>
+  <table>
+    <tr><th>question</th><th>recommendation</th><th>why</th></tr>
+    <tr><td>§1 stage</td><td><b>B</b>, the 2 × 2 of named regions</td><td>each representation has a region and a name (common region); the selection becomes a picture, which is how both NumPy guides draw it; the highlight links drawing and print (the split-attention remedy); the frames view drops its arrows, which the edge indices make redundant</td></tr>
+    <tr><td>§2 index</td><td><b>b + c</b>: the expression as the rail control, the figure clickable; <b>d</b> on every dimension</td><td>b makes the control the code; c is the fastest path and the drawing already has the targets; the rail stays the accessible route; −1 is the lesson's own first example</td></tr>
+    <tr><td>§3 rank 4</td><td><b>b</b>, the lesson's convention</td><td>the two views then differ in kind — depth and no boxes against boxes and indices — and the stack view matches the figures students have already seen; c does not fit</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = "ui-monospace, Menlo, monospace";
+const wash = (hex, a) => { const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${p[0]}, ${p[1]}, ${p[2]}, ${a})`; };
+const A = wash(T.groupA, 0.18), HL = wash(T.highlight, 0.35), R = wash(T.empirical, 0.16);
+
+function panel(parent, title, sub, w, h) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); parent.appendChild(cand);
+  const ctx = cv.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function html(parent, title, sub, inner) {
+  const cand = document.createElement("div"); cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>${inner}`;
+  parent.appendChild(cand);
+}
+function txt(ctx, s, x, y, { color = T.ink3, align = "left", size = T.fsXs, baseline = "alphabetic", mono = false, weight = "" } = {}) {
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? MONO : T.font}`.trim(); ctx.fillText(s, x, y);
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+}
+function grid(ctx, x, y, rows, cols, s, val, lit, fill = A) {
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const cx = x + c * s, cy = y + r * s, on = lit && lit(r, c);
+    ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, s, s);
+    ctx.fillStyle = on ? HL : fill; ctx.fillRect(cx, cy, s, s);
+    ctx.strokeStyle = on ? T.highlight : T.ink3; ctx.lineWidth = on ? 2 : 1; ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+    txt(ctx, String(val(r, c)), cx + s / 2, cy + s / 2 + 0.5, { color: T.ink1, align: "center", baseline: "middle", size: s >= 24 ? T.fsSm : T.fsXs });
+  }
+}
+function frame(ctx, x, y, w, h, label, lit = false) {
+  ctx.strokeStyle = lit ? T.highlight : T.ink3; ctx.setLineDash([3, 3]); ctx.lineWidth = lit ? 1.5 : 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.setLineDash([]);
+  if (label) txt(ctx, label, x + 4, y + 10, { color: lit ? T.highlight : T.ink3, mono: true });
+}
+function region(ctx, x, y, w, h, title) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (title) txt(ctx, title, x + 8, y + 14, { color: T.ink3, size: T.fsXs, weight: "600" });
+}
+const depth1 = (a) => (Array.isArray(a) ? 1 + depth1(a[0]) : 0);
+function printLines(arr, mark, depth = 0, path = []) {
+  if (!Array.isArray(arr[0])) {
+    return [{ segs: [{ s: "[" }, ...arr.flatMap((v, i) => [{ s: String(v).padStart(2), lit: mark([...path, i]), num: true }, ...(i < arr.length - 1 ? [{ s: ", " }] : [])]), { s: "]" }] }];
+  }
+  const out = [];
+  arr.forEach((sub, i) => {
+    const lines = printLines(sub, mark, depth + 1, [...path, i]);
+    lines.forEach((ln, li) => out.push({ segs: [{ s: i === 0 && li === 0 ? "[" : " " }, ...ln.segs] }));
+    if (i < arr.length - 1) { out[out.length - 1].segs.push({ s: "," }); for (let k = 1; k < depth1(sub); k += 1) out.push({ segs: [{ s: "" }] }); }
+  });
+  out[out.length - 1].segs.push({ s: "]" });
+  return out;
+}
+function pushPrint(ctx, x, y, arr, mark, sizeLine, { lh = 14, cw = 6.6 } = {}) {
+  const lines = Array.isArray(arr) ? printLines(arr, mark) : [{ segs: [{ s: String(arr), lit: true, num: true }] }];
+  lines.forEach((ln, li) => {
+    let col = 0;
+    const pre = li === 0 ? "tensor(" : "       ";
+    txt(ctx, pre, x, y + li * lh, { color: T.ink3, mono: true }); col += pre.length;
+    for (const seg of ln.segs) { txt(ctx, seg.s, x + col * cw, y + li * lh, { color: seg.lit ? T.highlight : (seg.num ? T.ink1 : T.ink3), mono: true }); col += seg.s.length; }
+    if (li === lines.length - 1) txt(ctx, ")", x + col * cw, y + li * lh, { color: T.ink3, mono: true });
+  });
+  if (sizeLine) txt(ctx, sizeLine, x, y + lines.length * lh + 4, { color: T.ink1, mono: true });
+  return lines.length * lh + 20;
+}
+
+const R3 = [[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]]];
+const R4 = [R3, R3.map((s) => s.map((r) => r.map((v) => v + 20)))];
+const SEL = (i, r, c) => r === 0;                     // T[:, 0, :]
+const SUB = [[1, 2, 3, 4, 5], [11, 12, 13, 14, 15]];   // its value
+const S = 22;
+
+/* frames view of R3 with edge indices, lit by SEL; returns bottom */
+function framesR3(ctx, x, y, s, lit, { indices = true } = {}) {
+  const fw = 5 * s + 12, fh = 2 * s + 24;
+  for (let i = 0; i < 2; i += 1) {
+    const fx = x + 18 + i * (fw + 14);
+    frame(ctx, fx, y + 12, fw, fh, `dim 0 = ${i}`);
+    grid(ctx, fx + 6, y + 30, 2, 5, s, (r, c) => R3[i][r][c], lit ? (r, c) => lit(i, r, c) : null);
+    if (indices && i === 0) {
+      for (let c = 0; c < 5; c += 1) txt(ctx, String(c), fx + 6 + c * s + s / 2, y + 8, { color: T.ink3, align: "center", mono: true });
+      for (let r = 0; r < 2; r += 1) txt(ctx, String(r), fx - 4, y + 30 + r * s + s / 2 + 4, { color: T.ink3, align: "right", mono: true });
+    }
+  }
+  return y + 12 + fh;
+}
+
+/* ============================ §1 stage ==================================== */
+{
+  const host = document.getElementById("stage");
+  const W = 550, H = 420;
+  /* A · as built */
+  {
+    const ctx = panel(host, "A · as built", "one canvas: drawing, print, the selection's print, captions", W, H);
+    const b = framesR3(ctx, 24, 60, S, SEL);
+    txt(ctx, "0 sample", 300, 66, { color: T.ink2, align: "right" }); arrow(ctx, 40, 70, 300, 70, T.ink2, 1.5, [3, 3]);
+    txt(ctx, "1 sequence", 24, b + 14, { color: T.ink2 });
+    pushPrint(ctx, 330, 70, R3, (p) => SEL(p[0], p[1], p[2]), "T  torch.Size([2, 2, 5])");
+    txt(ctx, "T[:, 0, :]", 24, b + 44, { color: T.highlight, mono: true, size: T.fsSm });
+    pushPrint(ctx, 24, b + 60, SUB, () => true, "torch.Size([2, 5])");
+    txt(ctx, "An index removes the dimension it names, and a colon keeps it.", 24, H - 40, { color: T.ink2 });
+    txt(ctx, "1 index and 2 colons: rank 3 → rank 2.", 24, H - 22, { color: T.ink2 });
+  }
+  /* B · 2 × 2 of named regions */
+  {
+    const ctx = panel(host, "B · a 2 × 2 of named regions", "rows: the tensor, then the selection it makes; columns: drawn, printed; the selection is DRAWN as the sub-tensor", W, H);
+    const colX = [10, 300], colW = [282, 232], rowY = [10, 220], rowH = [200, 170];
+    region(ctx, colX[0], rowY[0], colW[0], rowH[0], "T · drawn");
+    region(ctx, colX[1], rowY[0], colW[1], rowH[0], "T · as PyTorch prints it");
+    region(ctx, colX[0], rowY[1], colW[0], rowH[1], "T[:, 0, :] · drawn");
+    region(ctx, colX[1], rowY[1], colW[1], rowH[1], "T[:, 0, :] · printed");
+    framesR3(ctx, 14, 40, S, SEL);
+    txt(ctx, "0 sample · 1 sequence · 2 feature", 24, 178, { color: T.ink2 });
+    txt(ctx, "torch.Size([2, 2, 5])", 24, 196, { color: T.ink1, mono: true });
+    pushPrint(ctx, 310, 50, R3, (p) => SEL(p[0], p[1], p[2]), "torch.Size([2, 2, 5])");
+    // the selection drawn as a [2, 5] grid, each row from one frame
+    grid(ctx, 44, 262, 2, 5, S, (r, c) => SUB[r][c], () => true);
+    for (let c = 0; c < 5; c += 1) txt(ctx, String(c), 44 + c * S + S / 2, 256, { color: T.ink3, align: "center", mono: true });
+    for (let r = 0; r < 2; r += 1) txt(ctx, String(r), 38, 262 + r * S + S / 2 + 4, { color: T.ink3, align: "right", mono: true });
+    txt(ctx, "0 sample · 1 feature", 24, 330, { color: T.ink2 });
+    txt(ctx, "torch.Size([2, 5])", 24, 348, { color: T.ink1, mono: true });
+    txt(ctx, "dim 1 is gone: 1 index, 2 colons", 24, 372, { color: T.ink2 });
+    pushPrint(ctx, 310, 262, SUB, () => true, "torch.Size([2, 5])");
+  }
+  /* C · print band below */
+  {
+    const ctx = panel(host, "C · the print as a band below the drawing", "drawing on top with the selection drawn beside it; both prints in one band on the second surface", W, H);
+    region(ctx, 10, 10, 530, 210, "drawn");
+    framesR3(ctx, 14, 40, S, SEL);
+    txt(ctx, "T  [2, 2, 5]", 24, 190, { color: T.ink1, mono: true });
+    txt(ctx, "0 sample · 1 sequence · 2 feature", 120, 190, { color: T.ink2 });
+    arrow(ctx, 330, 100, 360, 100, T.ink2);
+    grid(ctx, 380, 70, 2, 5, S, (r, c) => SUB[r][c], () => true);
+    txt(ctx, "T[:, 0, :]  [2, 5]", 380, 140, { color: T.highlight, mono: true });
+    txt(ctx, "dim 1 is gone", 380, 158, { color: T.ink2 });
+    region(ctx, 10, 230, 530, 180, "as PyTorch prints it");
+    pushPrint(ctx, 24, 262, R3, (p) => SEL(p[0], p[1], p[2]), "T  torch.Size([2, 2, 5])");
+    pushPrint(ctx, 300, 262, SUB, () => true, "T[:, 0, :]  torch.Size([2, 5])");
+  }
+}
+
+/* ============================ §2 index ==================================== */
+{
+  const host = document.getElementById("index");
+  const seg = (opts, on, mono = true) => `<div class="w-seg">${opts.map((o) => `<button class="w-seg-btn${mono ? " mono" : ""}" aria-pressed="${o === on}">${o}</button>`).join("")}</div>`;
+  html(host, "a · as built", "one segmented per dimension, four rows in the rail", `<div class="rail">
+    <span class="w-label">Index</span><p class="w-detail">one entry per dimension: a position, or a colon for every position</p>
+    <span class="w-label">dim 0</span>${seg([":", "0", "1"], ":")}
+    <span class="w-label">dim 1</span>${seg([":", "0", "1"], "0")}
+    <span class="w-label">feature</span>${seg([":", "0", "1", "2", "3", "4"], ":")}
+  </div>`);
+  html(host, "b · the expression as the control", "one row that reads as the code; −1 on every slot", `<div class="rail">
+    <span class="w-label">Index</span>
+    <div class="expr">T[&nbsp;${seg([":", "0", "1", "−1"], ":")},&nbsp;${seg([":", "0", "1", "−1"], "0")},&nbsp;${seg([":", "0", "1", "2", "3", "4", "−1"], ":")}&nbsp;]</div>
+    <p class="w-detail" style="margin-top:8px">a position removes its dimension; a colon keeps it. −1 is the last position</p>
+    <p class="w-detail">= tensor of shape [2, 5] — 1 index, 2 colons</p>
+  </div>`);
+  {
+    const ctx = panel(host, "c · the figure as the control", "edge indices and frame labels are click targets; the rail control stays as the keyboard path", 520, 240);
+    const s = 24;
+    const fw = 5 * s + 12, fh = 2 * s + 24;
+    for (let i = 0; i < 2; i += 1) {
+      const fx = 40 + i * (fw + 26);
+      // frame label as a pill target
+      ctx.fillStyle = i === 1 ? wash(T.highlight, 0.18) : T.surface2; ctx.fillRect(fx, 40, 66, 14);
+      frame(ctx, fx, 52, fw, fh, null);
+      txt(ctx, `dim 0 = ${i}`, fx + 4, 51, { color: i === 1 ? T.highlight : T.ink2, mono: true });
+      grid(ctx, fx + 6, 60, 2, 5, s, (r, c) => R3[i][r][c], (r, c) => r === 0);
+    }
+    for (let c = 0; c < 5; c += 1) { ctx.fillStyle = T.surface2; ctx.fillRect(46 + c * s + 2, 22, s - 4, 14); txt(ctx, String(c), 46 + c * s + s / 2, 33, { color: T.ink2, align: "center", mono: true }); }
+    for (let r = 0; r < 2; r += 1) { ctx.fillStyle = r === 0 ? wash(T.highlight, 0.18) : T.surface2; ctx.fillRect(22, 60 + r * s + 4, 14, s - 8); txt(ctx, String(r), 29, 60 + r * s + s / 2 + 4, { color: r === 0 ? T.highlight : T.ink2, align: "center", mono: true }); }
+    txt(ctx, "click a frame label → fixes dim 0    click a row index → fixes dim 1    click a column index → fixes the last dim", 40, 150, { color: T.ink2 });
+    txt(ctx, "click a cell → all three at once    click the tensor's name → every dimension back to :", 40, 168, { color: T.ink2 });
+    txt(ctx, "T[:, 0, :]", 40, 200, { color: T.highlight, mono: true, size: T.fsSm });
+    txt(ctx, "each target sets one parameter through the same door the rail uses (3.6); the URL moves with it", 40, 222, { color: T.ink3 });
+  }
+}
+
+/* ============================ §3 rank 4 ==================================== */
+{
+  const host = document.getElementById("rank4");
+  const s = 18, W = 550, H = 420;
+  const v4 = (b, i, r, c) => R4[b][i][r][c];
+  /* a · as built: framed stacks vs frames within frames, side by side in one panel */
+  {
+    const ctx = panel(host, "a · as built", "left: stack view, one framed exploded stack per index of dim 0; right: frames within frames", W, H);
+    txt(ctx, "stack", 20, 24, { color: T.ink2, weight: "600" }); txt(ctx, "frames", 300, 24, { color: T.ink2, weight: "600" });
+    const dx = Math.round(1.35 * s), dy = 2 * s + 6;
+    for (let b = 0; b < 2; b += 1) {
+      const fx = 34 + b * 130, fy = 60 + dy;
+      frame(ctx, fx - 8, 40, 5 * s + dx + 16, 2 * dy + 24, `dim 0 = ${b}`);
+      for (let i = 1; i >= 0; i -= 1) grid(ctx, fx + i * dx, fy - i * dy + 12, 2, 5, s, (r, c) => v4(b, i, r, c));
+    }
+    for (let b = 0; b < 2; b += 1) {
+      const oy = 40 + b * 130;
+      frame(ctx, 300, oy, 236, 118, `dim 0 = ${b}`);
+      for (let i = 0; i < 2; i += 1) { const fx = 310 + i * 116; frame(ctx, fx, oy + 14, 106, 96, `dim 1 = ${i}`); grid(ctx, fx + 8, oy + 30, 2, 5, s, (r, c) => v4(b, i, r, c)); }
+    }
+    txt(ctx, "both draw dim 0 as frames; the views differ by a diagonal", 20, 330, { color: T.ink2 });
+  }
+  /* b · the lesson's convention: a column of exploded stacks, no frames */
+  {
+    const ctx = panel(host, "b · the lesson's convention", "stack view: dim 0 down the page, one exploded stack per index, no frames, one arrow; frames view unchanged", W, H);
+    txt(ctx, "stack", 20, 24, { color: T.ink2, weight: "600" }); txt(ctx, "frames", 300, 24, { color: T.ink2, weight: "600" });
+    const dx = Math.round(1.35 * s), dy = 2 * s + 6;
+    for (let b = 0; b < 2; b += 1) {
+      const fx = 70, fy = 50 + b * 150 + dy;
+      for (let i = 1; i >= 0; i -= 1) { grid(ctx, fx + i * dx, fy - i * dy, 2, 5, s, (r, c) => v4(b, i, r, c)); if (i > 0) txt(ctx, `[${i}]`, fx + i * dx - 4, fy - i * dy + 12, { color: T.ink3, align: "right", mono: true }); }
+      txt(ctx, `[${b}]`, fx - 6, fy + s + 4, { color: T.ink2, align: "right", mono: true });
+      if (b === 0) { arrow(ctx, fx - 12, fy - 4, fx - 12 + dx, fy - 4 - dy, T.ink2, 1.5, [3, 3]); txt(ctx, "1 sample", fx - 16, fy + 4, { color: T.ink2, align: "right" }); }
+    }
+    arrow(ctx, 34, 50, 34, 50 + 300, T.ink2, 1.5, [3, 3]); txt(ctx, "0 batch", 20, 366, { color: T.ink2 });
+    txt(ctx, "2 sequence · 3 feature: the grid", 70, 380, { color: T.ink2 });
+    for (let b = 0; b < 2; b += 1) {
+      const oy = 40 + b * 130;
+      frame(ctx, 300, oy, 236, 118, `dim 0 = ${b}`);
+      for (let i = 0; i < 2; i += 1) { const fx = 310 + i * 116; frame(ctx, fx, oy + 14, 106, 96, `dim 1 = ${i}`); grid(ctx, fx + 8, oy + 30, 2, 5, s, (r, c) => v4(b, i, r, c)); }
+    }
+    txt(ctx, "depth and no boxes, against boxes and indices", 300, 330, { color: T.ink2 });
+  }
+  /* c · stack of stacks */
+  {
+    const ctx = panel(host, "c · a stack of stacks", "dim 1 stepped up the diagonal, dim 0 stepped further along it; the fully 3-D picture, and it does not fit", W, H);
+    const dx = Math.round(1.35 * s), dy = 2 * s + 6;
+    const gdx = 2 * dx + 5 * s + 16, gdy = 2 * dy + 10;
+    for (let b = 1; b >= 0; b -= 1) {
+      const fx = 60 + b * gdx, fy = 60 + gdy + dy - b * gdy;
+      for (let i = 1; i >= 0; i -= 1) grid(ctx, fx + i * dx, fy - i * dy, 2, 5, s, (r, c) => v4(b, i, r, c));
+      txt(ctx, `[${b}]`, fx - 6, fy + s + 4, { color: T.ink2, align: "right", mono: true });
+    }
+    arrow(ctx, 40, 60 + gdy + dy + s, 40 + gdx, 60 + dy + s - 8, T.ink2, 1.5, [3, 3]); txt(ctx, "0 batch", 40, 60 + gdy + dy + s + 16, { color: T.ink2 });
+    txt(ctx, `a third index of dim 0 would need ${gdx}px more width and ${gdy}px more height per step`, 20, 400, { color: T.ink2 });
+  }
+}
+</script>
+</body>
+</html>

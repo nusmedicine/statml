@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — draw extents, stage geometry and the region map</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1100px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); max-width: 84ch; margin: 0 0 var(--sp-3); }
+  pre { font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre-wrap;
+        background: var(--surface-2); border: 1px solid var(--grid); padding: var(--sp-3); }
+  iframe { position: absolute; left: -99999px; border: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors — draw extents, stage geometry and the region map</h1>
+  <p class="note">
+    Three measurements at the two stage widths the collection cares about, 550 (the fingerprint
+    canvas, in a 900px frame) and 770 (a full desktop, in a 1120px frame). <b>Extents</b> wraps
+    <code>fillText</code> and reports any string whose box leaves the canvas, plus any NaN.
+    <b>Geometry</b> wraps <code>fillRect</code> and <code>strokeRect</code> and reports the four
+    region rectangles and the cell size the fit chose. <b>Targets</b> is the one that no pixel hash
+    can take: for every index label the Basics drawing writes, it dispatches a pointer move at the
+    centre of that label and asks the widget whether it is over a region — so a target that has
+    drifted off its own label reads as a miss here and nowhere else.
+  </p>
+  <pre id="out">running…</pre>
+</main>
+<script type="module">
+const out = document.getElementById("out");
+const log = [];
+const say = (s) => { log.push(s); out.textContent = log.join("\n"); };
+
+const CASES = [
+  /* `hit` is how many index labels the Basics drawing offers as targets in that
+     state: at rank 3 frames, two frame labels, two row indices and five column
+     indices. The stack view offers dim 0 only, so its dim-1 slab labels are
+     counted as labels and are deliberately not targets. */
+  ["basics rank 3 stack", "", 2],
+  ["basics rank 3 frames", "view=frames", 9],
+  ["basics T[:, 0, :]", "view=frames&i1=0", 9],
+  ["basics T[1, 0, 2]", "i0=1&i1=0&feature=2", 2],
+  ["basics rank 1", "rank=1", 5],
+  ["basics rank 1 f=2", "rank=1&feature=2", 5],
+  ["basics rank 2", "rank=2", 7],
+  ["basics rank 2 frames", "rank=2&view=frames", 7],
+  ["basics rank 4 stack", "rank=4", 2],
+  ["basics rank 4 frames", "rank=4&view=frames", 13],
+  ["basics rank 4 i0=1", "rank=4&view=frames&i0=1", 13],
+  ["basics rank 4 i2=0", "rank=4&view=frames&i2=0", 13],
+  ["shape reshape(2,-1)", "tab=shape&shown=20", 0],
+  ["shape unsqueeze stack", "tab=shape&op=unsqueeze&shown=20", 0],
+  ["shape unsqueeze frames", "tab=shape&op=unsqueeze&view=frames&shown=20", 0],
+  ["join stack stack", "tab=join&join=stack&shown=40", 0],
+  ["join stack frames", "tab=join&join=stack&view=frames&shown=40", 0],
+  ["join cat", "tab=join&join=cat&shown=40", 0],
+  ["broadcast", "tab=broadcast&shown=2", 0],
+  ["multiply", "tab=multiply&shown=6", 0],
+  ["reduce normalized", "tab=reduce&normalize=1&shown=4", 0],
+];
+
+/* An index label the Basics figure writes: `dim 0 = 1`, `[1]`, or a bare digit
+   on an edge. Anything else the sweep leaves alone. */
+const isIndexLabel = (s) => /^dim [0-9] = [0-9]$/.test(s) || /^\[[0-9]\]$/.test(s) || /^[0-9]$/.test(s);
+
+async function run(frameW, name, query, expect) {
+  const fr = document.createElement("iframe");
+  fr.width = frameW;
+  fr.height = 1400;
+  fr.src = `../tensors/?theme=light${query ? `&${query}` : ""}`;
+  document.body.appendChild(fr);
+  await new Promise((r) => { fr.onload = r; });
+  const win = fr.contentWindow;
+  const doc = fr.contentDocument;
+
+  const texts = [];
+  const rects = [];
+  const proto = win.CanvasRenderingContext2D.prototype;
+  const oFill = proto.fillText;
+  proto.fillText = function (s, x, y, ...rest) {
+    const mono = /mono|Menlo|SFMono/i.test(this.font);
+    const m = this.measureText(String(s));
+    const w = m.width;
+    const x0 = this.textAlign === "right" ? x - w
+      : this.textAlign === "center" ? x - w / 2 : x;
+    const asc = m.actualBoundingBoxAscent || 8;
+    const desc = m.actualBoundingBoxDescent || 3;
+    const y0 = this.textBaseline === "middle" ? y - (asc + desc) / 2
+      : this.textBaseline === "top" ? y : y - asc;
+    texts.push({ s: String(s), mono, x0, x1: x0 + w, y0, y1: y0 + asc + desc });
+    return oFill.call(this, s, x, y, ...rest);
+  };
+  const oFR = proto.fillRect;
+  proto.fillRect = function (x, y, w, h, ...rest) {
+    rects.push({ kind: "fill", x, y, w, h });
+    return oFR.call(this, x, y, w, h, ...rest);
+  };
+  const oSR = proto.strokeRect;
+  proto.strokeRect = function (x, y, w, h, ...rest) {
+    rects.push({ kind: "stroke", x, y, w, h });
+    return oSR.call(this, x, y, w, h, ...rest);
+  };
+  win.dispatchEvent(new win.Event("resize"));
+  await new Promise((r) => setTimeout(r, 300));
+  proto.fillText = oFill;
+  proto.fillRect = oFR;
+  proto.strokeRect = oSR;
+
+  const cv = doc.querySelector(".w-figure canvas");
+  const W = cv.clientWidth;
+  const H = cv.clientHeight;
+  const over = texts.filter((t) => t.x0 < -1 || t.x1 > W + 1 || t.y0 < -1 || t.y1 > H + 1);
+  const bad = texts.filter((t) => /NaN|undefined|Infinity/.test(t.s));
+
+  /* The four regions are the only fills wider than a third of the stage. */
+  const regions = rects.filter((r) => r.kind === "fill" && r.w > W / 3.2 && r.h > 40);
+  /* A cell is a stroked square; the drawing uses one size at a time. */
+  const cells = [...new Set(rects.filter((r) => r.kind === "stroke" && Math.abs(r.w - r.h) < 0.01)
+    .map((r) => Math.round(r.w + 1)))].sort((a, b) => a - b);
+
+  /* Does a pointer over each index label find a region? */
+  const r = cv.getBoundingClientRect();
+  const k = r.width / (cv.clientWidth || 1);
+  /* Only labels the TOP-LEFT region writes in the mono font: a cell's value is
+     drawn in the body font and the selection's own edge indices, in the region
+     below, are deliberately not targets. */
+  const home = regions[0];
+  const inHome = (t) => home && t.x0 >= home.x && t.x1 <= home.x + home.w
+    && t.y0 >= home.y && t.y1 <= home.y + home.h;
+  const labels = texts.filter((t) => t.mono && isIndexLabel(t.s) && inHome(t));
+  let hits = 0;
+  const misses = [];
+  for (const t of labels) {
+    const px = (t.x0 + t.x1) / 2;
+    const py = (t.y0 + t.y1) / 2;
+    cv.dispatchEvent(new win.PointerEvent("pointermove", {
+      bubbles: true, clientX: r.left + px * k, clientY: r.top + py * k,
+    }));
+    if (cv.style.cursor === "pointer") hits += 1;
+    else misses.push(`${t.s}@${px.toFixed(0)},${py.toFixed(0)}`);
+  }
+
+  say(`${String(W).padStart(3)} | ${name.padEnd(22)} ${W}x${H} cell ${cells.join("/") || "-"} `
+    + `texts ${String(texts.length).padStart(3)} overrun ${over.length} bad ${bad.length} `
+    + `labels ${labels.length} hit ${hits}/${expect} ${hits === expect ? "ok" : "MISMATCH"}`);
+  if (regions.length) {
+    say(`      regions ${regions.map((g) => `${Math.round(g.w)}x${Math.round(g.h)}@${Math.round(g.x)},${Math.round(g.y)}`).join("  ")}`);
+  }
+  if (over.length) {
+    say(`      OVERRUN ${over.slice(0, 6).map((t) => `"${t.s}" x[${t.x0.toFixed(0)},${t.x1.toFixed(0)}] y[${t.y0.toFixed(0)},${t.y1.toFixed(0)}]`).join("  ")}`);
+  }
+  if (bad.length) say(`      BAD ${bad.slice(0, 5).map((t) => `"${t.s}"`).join(" ")}`);
+  if (hits !== expect) say(`      MISSED ${misses.join("  ")}`);
+  fr.remove();
+}
+
+for (const frameW of [900, 1120]) {
+  say(`\n=== frame ${frameW} ===`);
+  for (const [name, q, expect] of CASES) await run(frameW, name, q, expect);
+}
+say("\ndone");
+</script>
+</body>
+</html>

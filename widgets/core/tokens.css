@@ -242,6 +242,18 @@
      not stay one — every later widget that draws a rate of change wants it. */
   --c-slope:      var(--series-5);   /* the rate of change at one point      */
 
+  /* --- the dimensions of a tensor, one hue each ------------------------ *
+     Widget 53 (2026-09-09) names a tensor's dimensions on its frames, its
+     edge rules and its arrows — NOT on their text, which stays in ink: text
+     wears text tokens, a coloured mark beside it carries the identity. Four,
+     assigned from the LAST dimension backwards so the feature dimension keeps
+     --c-dim-d at every rank. Blue, yellow and violet are left out because the
+     cells, the second operand and the highlight already mean those. */
+  --c-dim-a:      var(--series-2);   /* orange */
+  --c-dim-b:      var(--series-6);   /* green  */
+  --c-dim-c:      var(--series-3);   /* aqua   */
+  --c-dim-d:      var(--series-8);   /* red    */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */
@@ -856,6 +868,67 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   flex: none;
 }
 .w-row-detail { margin-top: var(--sp-1); }
+
+/* THE EXPRESSION CONTROL (`type: "expr"`, controls.js): one line of code whose
+   slots are <select>s. The line is set in the mono face at the large size so
+   it reads as the code a student will type; a slot is one character wide at
+   rest with its own caret, and carries the dimension's name in small type
+   beneath. A slot away from its default wears the highlight, so the fixed
+   dimensions of `T[1, :, 4]` stand out from the colons. Widget 53, 2026-09-09. */
+.w-expr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 3px;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  color: var(--ink-1);
+}
+.w-expr-text { padding-top: 5px; }
+.w-expr-slot {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.w-expr-sel { position: relative; display: inline-block; }
+.w-expr-sel::after {
+  content: "";
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -4px;
+  border-right: 1.5px solid var(--ink-3);
+  border-bottom: 1.5px solid var(--ink-3);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.w-expr-sel select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 34px;
+  padding: 3px 18px 3px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  color: var(--ink-1);
+  background: var(--surface-1);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.w-expr-sel select:hover { background: var(--surface-3); }
+.w-expr-slot[data-set="1"] select {
+  border-color: var(--c-highlight);
+  background: color-mix(in srgb, var(--c-highlight) 22%, var(--surface-1));
+}
+.w-expr-name {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
 
 /* A caption under one row of a grouped segmented control. Recessive, because
    the buttons are the control and this only says what kind they are. */
