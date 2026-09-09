@@ -8,9 +8,12 @@
      cells 3-16   the [2, 2, 5] tensor holding 1-20, dimensions named
                   sample (0), sequence (1), feature (2)
      cells 27-44  reshape(2, -1), flatten, unsqueeze(0), permute(0, 2, 1),
-                  reshape(2, 5, 2), and cat/stack against a second tensor
-                  holding 21-30 in BOTH of its samples (which is what the
-                  lesson has; it is not a typo here)
+                  reshape(2, 5, 2), and cat/stack against a second tensor.
+                  The notebook's holds 21-30 in BOTH of its samples; the
+                  widget's holds 21-40 (Kenneth, round 12), so that every
+                  cell of a join carries a value no other cell has — the
+                  device the whole widget rests on — and the notebook cell
+                  is his to bring in line
      cells 51-53  broadcasting X [2, 5] + b, with the rule written as
                   "line the shapes up from the right"
      cells 55-58  X [3, 4] @ W-transpose [4, 2], three data points and two
@@ -39,11 +42,11 @@ export const T3 = [
   [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]],
 ];
 
-/** The second tensor cat and stack are given, holding 21-30 in both samples. */
-export const T3B = [
-  [[21, 22, 23, 24, 25], [26, 27, 28, 29, 30]],
-  [[21, 22, 23, 24, 25], [26, 27, 28, 29, 30]],
-];
+/** The second tensor cat and stack are given: T + 20, so 21-40, every value
+    its own. The lesson's own has 21-30 in both samples, which puts two cells
+    on one value and makes the third and fourth blocks of cat(dim=0) identical
+    — a picture that cannot say which block came from which sample. */
+export const T3B = T3.map((s) => s.map((r) => r.map((v) => v + 20)));
 
 export const T3_SHAPE = [2, 2, 5];
 

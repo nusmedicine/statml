@@ -54,9 +54,12 @@ console.log("\n=== 1 · the given tensors ===");
   check("T is [2, 2, 5] holding 1-20 in reading order",
     same(T3_SHAPE, [2, 2, 5]) && same(T3.flat(2), Array.from({ length: 20 }, (_, i) => i + 1)),
     shapeText(T3_SHAPE));
-  check("T2 holds 21-30 in BOTH of its samples",
-    same(T3B[0], T3B[1]) && same(T3B[0].flat(), [21, 22, 23, 24, 25, 26, 27, 28, 29, 30]),
-    "the lesson's own second tensor, repeated");
+  /* Round 12: the lesson's own T2 repeats 21-30 in both samples; the widget's
+     is T + 20 so that no two cells of a join share a value. */
+  check("T2 is T + 20: 21-40 in reading order, no value shared with T",
+    same(T3B.flat(2), Array.from({ length: 20 }, (_, i) => i + 21))
+    && new Set([...T3.flat(2), ...T3B.flat(2)]).size === 40,
+    "every cell of a join carries its own value");
   check("CELLS is the size of one tensor", CELLS === shapeSize(T3_SHAPE), `${CELLS}`);
   check("srcIndex walks reading order",
     same(srcIndex(0), [0, 0, 0]) && same(srcIndex(7), [0, 1, 2]) && same(srcIndex(19), [1, 1, 4]),
@@ -714,8 +717,8 @@ console.log("\n=== 11 · the printed tensor ===");
   check("its first line opens four brackets",
     lines4[0] === "tensor([[[[ 1,  2,  3,  4,  5],", JSON.stringify(lines4[0]));
   check("its last line closes four and the call",
-    lines4[11] === "          [26, 27, 28, 29, 30]]]])", JSON.stringify(lines4[11]));
-  check("the second tensor's 21-30 appear in the second block, not the first",
+    lines4[11] === "          [36, 37, 38, 39, 40]]]])", JSON.stringify(lines4[11]));
+  check("the second tensor's 21-40 appear in the second block, not the first",
     lines4[7].includes("21") && !lines4[0].includes("21"));
 
   const catted = resultPrint(joinOp("cat", 0));

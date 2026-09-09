@@ -11110,6 +11110,17 @@ kin — are the only states over 1500px (up to 2010) and the only two that
 still overrun (twenty slabs wide in the stack view); pruning them is a
 question, not a fix.
 
+**Round 12, Kenneth's first pick: T2 is T + 20.** The notebook's second
+tensor holds 21–30 in both of its samples, so two cells carried each value
+and cat(dim=0)'s third and fourth blocks were identical — a picture that
+cannot say which block came from which sample, under a device whose whole
+point is that every cell carries a value no other cell has. The widget's
+T2 is now 21–40 (`T3B = T3 + 20`, the same map `R4` already used for its
+second batch); the notebook cell is Kenneth's to bring in line. The verify
+script's two pins moved with it (212 checks pass). His answer on the shape
+list was a question back — curate, or let students enter the numbers —
+which the next round takes up.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

@@ -2453,7 +2453,7 @@ defineWidget({
     join: {
       type: "segmented",
       label: "Operation",
-      detail: "how the [2, 2, 5] tensor is combined with a second one holding 21–30",
+      detail: "how the [2, 2, 5] tensor is combined with a second one holding 21–40",
       options: [
         { value: "cat", label: "cat", detail: "joins the two tensors along a dimension that already exists, which grows" },
         { value: "stack", label: "stack", detail: "puts the two tensors under a new dimension of size 2, so both keep their own shape" },
