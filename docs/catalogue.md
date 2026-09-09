@@ -11441,6 +11441,19 @@ empty and the drive buttons hidden, the readout says unchanged, and a
 second caption line says that naming a dimension that is not size 1
 leaves U with no error. Verify 277; sweeps clean; nothing in core.
 
+**Round 24 (2026-09-09) — his look at 23.** "The lines may be too close
+to tensors": the hug's clearance is 4 in the frames view (sharing the
+frame's seven pixels of padding) and 6 in the stack view, whose slabs now
+step apart by that much more and move right of their `[i]` labels, so two
+hugs never touch and no label sits on a frame. "Is the gap intentional":
+yes, torch's own — at every level the sub-tensors are separated by one
+newline per remaining dimension less one, which is the rule the widget's
+print follows. "The highlight of brackets is too hard to see": a wash of
+the highlight colour behind each lit bracket and behind the lit `1` of
+the size line, the pill the print's hotspots already use. His fourth
+point — simplify squeeze to typical use cases — is a discussion, not a
+build; see the questions below.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

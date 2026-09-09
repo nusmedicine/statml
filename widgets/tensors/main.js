@@ -402,6 +402,9 @@
       REMOVES NOTHING BUILDS NOTHING: the Result band is headed "Result ·
       unchanged", U is drawn again at once, the walk is empty and the
       buttons inert, and the caption says that torch raises no error for it.
+      Round 24: the hug's clearance is 4 in the frames view and 6 in the stack
+      view, whose slabs step apart by that much more; a wash behind each lit
+      bracket ("too hard to see").
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -459,8 +462,14 @@ let DIM_BASE = 0;
    the frame drawers under it, as `DIM_BASE` is. */
 let MARK_DIM = -1;
 const MARK_W = 2.5;       // the strong frame's stroke: the lit cell's weight
-const MARK_HUG = 3;       // outside a block's cells
+/* the hug's clearance from the cells (round 24, Kenneth: "the lines may be
+   too close to tensors"): inside a dashed frame there are FRAME_PAD pixels to
+   share, so the frames view hugs at 4; the stack view has room, hugs at 6,
+   and steps its slabs apart by that much more so two hugs never touch */
+const MARK_HUG_FRAMES = 4;
+const MARK_HUG_STACK = 6;
 const MARK_INSET = 3;     // inside a cell, where the block is one cell
+const stackPad = () => (MARK_DIM >= 0 ? MARK_HUG_STACK + 2 : 0);
 const frameInk = (colors, dim) => (dim === MARK_DIM ? colors.highlight : colors.ink3);
 const frameWeight = (dim) => (dim === MARK_DIM ? "600" : "");
 /* ROUND 16 (Kenneth: the dimension bars are "too close to the tensors and
@@ -897,9 +906,12 @@ function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
      also be shorter"). His own figures step about a cell and a half; at
      two rows plus the gap, and 45°, the [2, 5, 2] result's slabs stand side
      by side and no cell of any shape the widget draws is hidden. */
-  const dy = Math.min(d1, 2) * s + SLAB_GAP;
+  const dy = Math.min(d1, 2) * s + SLAB_GAP + stackPad();
   const dx = dy;                          // 45°
-  const gx = x + (gutter ? SLAB_LBL : 0);
+  /* a hug needs room between the slab and its `[i]`: the slabs move right by
+     it, so the label keeps its place against the arrow to its left */
+  const lblShift = MARK_DIM >= 0 ? MARK_HUG_STACK + 1 : 0;
+  const gx = x + (gutter ? SLAB_LBL + lblShift : 0);
   const front = y + (d0 - 1) * dy;
   for (let i = d0 - 1; i >= 0; i -= 1) {
     const sx = gx + i * dx;
@@ -918,7 +930,7 @@ function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
     }
   }
   return {
-    w: (gutter ? SLAB_LBL : 0) + (d0 - 1) * dx + d2 * s,
+    w: (gutter ? SLAB_LBL + lblShift : 0) + (d0 - 1) * dx + d2 * s,
     h: (d0 - 1) * dy + d1 * s,
     centre: (i, r, c) => ({
       x: gx + i * dx + c * s + s / 2,
@@ -994,11 +1006,12 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     and it differs from the frames view in kind: depth and no boxes, against
     boxes and edge indices. */
 function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
-  const dy = Math.min(d2, 2) * s + SLAB_GAP;
+  const dy = Math.min(d2, 2) * s + SLAB_GAP + stackPad();
   const dx = dy;                          // 45°, capped at two rows as in pushStack
   const stackH = (d1 - 1) * dy + d2 * s;
   const stackW = (d1 - 1) * dx + d3 * s;
-  const gx = x + SLAB_LBL;
+  const lblShift = MARK_DIM >= 0 ? MARK_HUG_STACK + 1 : 0;
+  const gx = x + SLAB_LBL + lblShift;
   const parts = [];
   for (let f = 0; f < d0; f += 1) {
     const sy = y + f * (stackH + COLUMN_GAP);
@@ -1015,7 +1028,7 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
     markIndex(plan, 0, f, anchor);
   }
   return {
-    w: SLAB_LBL + stackW,
+    w: SLAB_LBL + lblShift + stackW,
     h: d0 * stackH + (d0 - 1) * COLUMN_GAP,
     centre: (f, i, r, c) => parts[f].centre(i, r, c),
   };
@@ -1124,7 +1137,7 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
     b.y1 = Math.max(b.y1, c.y + s / 2);
     blocks.set(key, b);
   }
-  const m = mark === shape.length - 1 ? -MARK_INSET : MARK_HUG;
+  const m = mark === shape.length - 1 ? -MARK_INSET : view === "stack" ? MARK_HUG_STACK : MARK_HUG_FRAMES;
   for (const b of blocks.values()) {
     plan.frames.push({ x: b.x0 - m, y: b.y0 - m, w: b.x1 - b.x0 + 2 * m, h: b.y1 - b.y0 + 2 * m, label: null, tone: null, strong: true });
   }
@@ -1379,6 +1392,9 @@ function pushPrint(plan, colors, x, y, print, cw, tone) {
       if (!seg.idx) {
         if (seg.s.trim()) {
           const lit = seg.depth !== undefined && seg.depth === tone.mark;
+          /* a wash behind a lit bracket (round 24: bold purple on white was
+             "too hard to see"): the pill the print's hotspots use, lit */
+          if (lit) plan.pills.push({ x: sx - 1, y: ly - 1, w: seg.s.length * cw + 2, h: PRINT_LH, on: true });
           pushText(plan, seg.s, sx, ly, {
             color: lit ? colors.highlight : colors.ink2, weight: lit ? "700" : "",
             mono: true, size: colors.fsSm, baseline: "top", fade: tone.fade,
@@ -1417,6 +1433,7 @@ function pushPrintBlock(plan, colors, x, y, p, cw, tone, { fade = false } = {}) 
     return;
   }
   const at = hit.index;
+  plan.pills.push({ x: x + at * cw - 1, y: under + PRINT_LH - 1, w: hit[0].length * cw + 2, h: PRINT_LH, on: true });
   pushText(plan, p.label.slice(0, at), x, under + PRINT_LH, plain);
   pushText(plan, hit[0], x + at * cw, under + PRINT_LH, { ...plain, color: colors.highlight, weight: "700" });
   pushText(plan, p.label.slice(at + hit[0].length), x + (at + hit[0].length) * cw, under + PRINT_LH, plain);
@@ -1469,7 +1486,7 @@ function drawnSize(colors, shape, s, view, perRow, source, roles, opts) {
   const cell = () => ({ empty: true });
   return source
     ? pushSource(probe, colors, 0, 0, s, view, cell, perRow, shape, roles, opts)
-    : pushTensor(probe, colors, 0, 0, shape, s, view, cell, perRow, opts?.edges);
+    : pushTensor(probe, colors, 0, 0, shape, s, view, cell, perRow, opts?.edges, opts?.mark ?? -1);
 }
 
 /** The whole Shape block at cell `s`, with the print beside every drawing or
@@ -1536,7 +1553,7 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
      stacking them lets each print sit beside its own drawing instead of both
      dropping under a pair of drawings. */
   const rows = prints.sources.map((p, t) =>
-    placeSrc(drawnSize(colors, op.src, s, view, srcRow, t === 0, srcRoles, SOURCE_OPTS), p, avail));
+    placeSrc(drawnSize(colors, op.src, s, view, srcRow, t === 0, srcRoles, { ...SOURCE_OPTS, mark: t === 0 ? op.srcMark ?? -1 : -1 }), p, avail));
   const src = {
     w: Math.max(...rows.map((r) => r.w)),
     h: rows.reduce((a, r) => a + r.h, 0) + (rows.length - 1) * INNER_GAP,
@@ -1544,7 +1561,7 @@ function shapeBlock(colors, op, view, s, avail, prints, modes, srcRoles) {
   /* ROUND 11: the result carries the dimension arrows and roles the operation
      leaves, so it is measured the way a source is */
   const out = op.ok
-    ? placeOut(drawnSize(colors, op.shape, s, view, perRow, true, op.roles, resultOpts(view, rank)), prints.result, avail)
+    ? placeOut(drawnSize(colors, op.shape, s, view, perRow, true, op.roles, { ...resultOpts(view, rank), mark: op.mark ?? -1 }), prints.result, avail)
     : { w: 0, h: 0 };
   return {
     srcMode: modes.src,
