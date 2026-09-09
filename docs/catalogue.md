@@ -11269,7 +11269,11 @@ ink-2, Reduce's twelve values as *all 12 values* — and five wait on him:
 the dim-0 name at the arrow's foot beside the slab label, the arrow names
 repeating the roles line on Shape and Join, the long legend entries, a
 first-visit hint that the index labels are targets, and the Play detail.
-Nothing in core changed.
+The 45° step cost the Basics stack its cell at 550 — 14px, with the
+34-column print beside it — so Basics gained the beside-or-under fit
+Shape has had since round 12 (`basicsLayout` takes a mode; beside down to
+CELL_OK, else under at the largest cell): 26px cells with the prints under
+at 550, beside at 770. Nothing in core changed.
 
 ### Questions for Kenneth, before any mock-up
 
