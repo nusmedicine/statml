@@ -416,6 +416,8 @@
       Round 26: the hug is six pixels everywhere — the frames view's frame
       pads itself for it, a bare grid lifts its indices and arrows, and
       inside a cell the inset shrinks with the cell and the digit fits it.
+      Round 29: two solid outlines sit six apart as well — the stack's slab
+      step and the column's gap grow to OUTLINES_GAP when a block is hugged.
 
   41. ROUND 28 ("build the 2nd one so we maintain the stack/frame views";
       the mock `_lab/tensor-rank5.html`). A FIFTH DIMENSION OF ANY SIZE IS
@@ -501,8 +503,13 @@ const MARK_W = 2.5;       // the strong frame's stroke: the lit cell's weight
    six where the cell has room and shrinks with the cell (`cellInset`). */
 const MARK_HUG = 6;
 const MARK_ROOM = 5;
+const MARK_APART = 6;     // between two solid outlines (round 29, Kenneth: "same 6 px")
+/* two hugged blocks need this much between their cells for the outlines to
+   sit MARK_APART apart: a hug each side, the gap, and the stroke */
+const OUTLINES_GAP = 2 * MARK_HUG + MARK_APART + Math.ceil(MARK_W);
 const cellInset = (s) => Math.max(3, Math.min(MARK_HUG, Math.round((s - 18) / 2)));
-const stackPad = () => (MARK_DIM >= 0 ? MARK_HUG + 2 : 0);
+const stackPad = () => (MARK_DIM >= 0 ? Math.max(0, OUTLINES_GAP - SLAB_GAP) : 0);
+const columnPad = () => (MARK_DIM >= 0 ? Math.max(0, OUTLINES_GAP - COLUMN_GAP) : 0);
 /* the padding of a frame whose grid's rows are `rowDim`: more when that
    dimension is the hugged one */
 const framePad = (rowDim) => FRAME_PAD + (MARK_DIM >= 0 && MARK_DIM === rowDim ? MARK_ROOM : 0);
@@ -1059,7 +1066,7 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
   const gx = x + SLAB_LBL + lblShift;
   const parts = [];
   for (let f = 0; f < d0; f += 1) {
-    const sy = y + f * (stackH + COLUMN_GAP);
+    const sy = y + f * (stackH + COLUMN_GAP + columnPad());
     parts.push(pushStack(plan, colors, gx, sy, [d1, d2, d3], s,
       (i, r, c) => cell(f, i, r, c), false));
     /* `[f]` beside the FRONT slab, which `pushStack` puts at the bottom of the
@@ -1074,7 +1081,7 @@ function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
   }
   return {
     w: SLAB_LBL + lblShift + stackW,
-    h: d0 * stackH + (d0 - 1) * COLUMN_GAP,
+    h: d0 * stackH + (d0 - 1) * (COLUMN_GAP + columnPad()),
     centre: (f, i, r, c) => parts[f].centre(i, r, c),
   };
 }
@@ -1260,16 +1267,18 @@ function pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges 
        frames are ink. Ranks 1–4 are untouched: this branch only wraps them. */
     const inner = shape.slice(1);
     const innerMark = MARK_DIM >= 1 ? MARK_DIM - 1 : -1;
+    /* a hug round the whole body (dim 1 marked) needs room inside this frame */
+    const pad = FRAME_PAD + (innerMark === 0 ? MARK_ROOM + 2 : 0);
     const bodies = [];
     let w5 = 0;
     let yf = y;
     for (let f = 0; f < shape[0]; f += 1) {
       DIM_BASE = 1;
-      const body = pushTensor(plan, colors, x + FRAME_PAD, yf + FRAME_LBL + FRAME_PAD, inner, s, view,
+      const body = pushTensor(plan, colors, x + pad, yf + FRAME_LBL + pad, inner, s, view,
         (idx) => cell([f, ...idx]), perRow, edges, innerMark);
       DIM_BASE = 0;
-      const fw = body.w + 2 * FRAME_PAD;
-      const fh = FRAME_LBL + body.h + 2 * FRAME_PAD;
+      const fw = body.w + 2 * pad;
+      const fh = FRAME_LBL + body.h + 2 * pad;
       pushFrame(plan, x, yf, fw, fh, null, colors.ink3, 0);
       pushText(plan, `dim 0 = ${f}`, x + 4, yf + FRAME_LBL - 3, { color: frameInk(colors, 0), weight: frameWeight(0), mono: true });
       bodies.push(body);

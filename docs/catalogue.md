@@ -11508,6 +11508,14 @@ are declined in the figure's words. Ranks 1–4 untouched: the branch wraps
 their drawings, and the sweeps over them are unchanged. Verify 279; the
 sweeps clean; nothing in core.
 
+**Round 29 (2026-09-09) — "very nice … when you have the solid outlines,
+just don't make them too close. maybe same 6 px separation between solid
+outlines".** Two hugged blocks now sit so their outlines are six apart:
+the stack's slab step and the column's gap grow to `OUTLINES_GAP` (a hug
+each side, the gap and the stroke) when a block is hugged, and the fifth
+level's frame pads itself when the hug wraps its whole body. Sweeps
+clean; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

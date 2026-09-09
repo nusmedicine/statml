@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through twenty-eight review rounds and NOT PUSHED. **The spec is his
+locally through twenty-nine review rounds and NOT PUSHED. **The spec is his
 notebook's own structure** (`05-2 - DL Foundations - Tensors and
 Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
 `_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
