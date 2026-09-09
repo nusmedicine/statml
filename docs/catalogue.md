@@ -11236,6 +11236,41 @@ copies only where there are any. *Multiply* is *Matmul*, because he read
 it as the scalar kind. `tab=elementwise` and `tab=matmul` on the wire;
 the four placeholder states moved with them. Nothing in core changed.
 
+**Round 18 (2026-09-09) — the style mock, `_lab/tensor-style.html`, and
+the student's-eye walk.** Kenneth on 17: "could the style of the tensors
+be similar to the diagrams? I think the lines are thicker. see if you can
+align diagonals to 45 degrees"; "see if alternate fonts or sizes would
+work better"; "for the pytorch output consider if they need headings for
+clarity"; "animations slow/med/fast may be too fine grained? propose
+alternatives"; and "view the widget like a student to see if anything is
+unclear or untidy". The mock drew each at the real 26px cell with a
+measured note under every panel: §1 the [2, 2, 5] stack as built, on a 45°
+step with the lines as built, at his figures' weight (2px borders in
+ink-2, 2px arrows with a 9px head), and heavier — with the width each
+takes, since at 45° the back grid moves 60px across instead of 35 and at
+550 the stack plus its print no longer fits beside; §2 the Tensor band
+with interface-font and mono digits at the built size and one up; §3 the
+print as built, headed by `print(T)` and `T.shape`, and headed by a
+sentence; §4 the pace as the slider, as two kinds (*Each move* · *Results
+only*), and as no control with a Finish button. He took the
+recommendation on all four: C, B, B, B. Built the same day: the stack at
+45° (`dx = dy`, the rank-3 left margin now `shape[1] × s + gap`), cell
+borders 2px ink-2 with lit and hovered cells 2.5px, arrows 2px/9px, mono
+digits (`paintCell`), `pushPrintBlock` heading every print with the code
+that produces it (the print two lines taller; `printLabel` gone and
+`label` now the size line alone, which is also what a drawing is
+captioned with), and `speed` a segmented pair `moves` · `results`
+(`UNIT_MS` 340/120; Step is the slow one). The student's-eye walk listed
+ten things; five went in with the picks — the image-batch caption only
+under image data (`shapeCaptions`, the stage two or three caption lines
+tall), the Topic control's own detail line dropped, the naming labels one
+word each (*Positions only* truncated at 300px), the alignment heading in
+ink-2, Reduce's twelve values as *all 12 values* — and five wait on him:
+the dim-0 name at the arrow's foot beside the slab label, the arrow names
+repeating the roles line on Shape and Join, the long legend entries, a
+first-visit hint that the index labels are targets, and the Play detail.
+Nothing in core changed.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

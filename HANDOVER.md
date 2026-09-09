@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through seventeen review rounds and NOT PUSHED. 367 real fingerprint
+locally through eighteen review rounds and NOT PUSHED. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -19,13 +19,16 @@ argument as four dropdown slots), `e575daf` (round 14: one typed field,
 with core's new `text` type), `56f33e0` (round 15: the rank carries
 over, every argument typed, the field grows and hints) and the round-16
 commit (positions as rank-following dropdowns through core's dynamic
-`options`, the dimension rules moved clear of the frames), `b9e816b`, and
-the round-17 commit (Elementwise · Matmul · Reduce, his pick A). Nothing
-is uncommitted. Read
+`options`, the dimension rules moved clear of the frames), `b9e816b`,
+`172399d` (round 17: Elementwise · Matmul · Reduce, his pick A), `ad241be`
+(the round-18 style mock) and the round-18 commit (45° and his figures'
+line weight, mono digits, prints headed by their code, Play as two
+kinds). Nothing is uncommitted. **Five student's-eye items wait on him**
+— catalogue round 18 lists them. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–29) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–30) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -129,7 +132,11 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
   (twenty slabs and a merged name); the frames view of each fits.
 - The rank-4 frames header packs `dim 0 = 0`, the column indices and
   `dim 1 = 0` into 22px (visible on Join's stack in the frames view).
-- Reduce's "This group" tile lists twelve values when no dim is named.
+- Five student's-eye items from round 18, unpicked: the dim-0 name at the
+  stack arrow's foot beside the `[0]` slab label; the arrow names repeating
+  the roles line on Shape and Join; legend entries that wrap at 550; a
+  first-visit hint that the index labels on the figure are targets; the
+  Play control's detail line.
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
 - The notebook's second tensor (cells 41–44) holds 21–30 in both samples;

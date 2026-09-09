@@ -311,6 +311,18 @@
       alignment block showing `equal` on every line for the plain case and
       `stretch` where the rule is doing work. "Multiply" read as the scalar
       kind; the product of a matrix and a weight matrix is Matmul.
+
+  30. ROUND 18 (`_lab/tensor-style.html`, Kenneth's four picks, each the
+      recommendation). The stack steps at 45° with the weight of his own
+      figures: 2px borders in ink-2, arrows 2px with a 9px head; the digits
+      are in the mono font, so a cell and its printed value are the same
+      glyphs; every print is headed by the code that produces it, `print(T)`
+      over the block and `T.shape` over the size line; and Play shows one of
+      two kinds — Each move, or Results only — where three speeds had been,
+      since Step is the slow one. Five of the student's-eye items went with
+      it: the image-batch caption only under image data, the Topic control's
+      own detail line gone, the naming labels one word each, the alignment
+      heading in ink-2, Reduce's twelve values as a count.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -340,9 +352,11 @@ const OP_W = 26;          // the +, @, − , ÷ and = between two operands
 const GAP = 22;           // between two operands, and between two frames
 const INNER_GAP = 12;     // between two frames that sit inside a third
 
-/* The exploded stack (candidate B): each slab steps right by a fraction of a
-   cell and down by its own height, so no slab covers any part of another. */
-const SLAB_DX = 1.35;
+/* The exploded stack (candidate B): each slab steps up by its own height and
+   the gap, so no slab covers any part of another — and, since round 18
+   (Kenneth: "align diagonals to 45 degrees", the step of his own figures),
+   across by exactly as much, so the depth arrow runs at 45°. The step had
+   been 1.35 cells across, about 60° from the horizontal. */
 const SLAB_GAP = 8;
 const SLAB_LBL = 20;      // the `[i]` written to the left of each slab
 const COLUMN_GAP = 16;    // between two exploded stacks of a rank-4 column
@@ -363,6 +377,7 @@ const RULE_W = 3;         // an edge rule's width
 const PRINT_GAP = 18;     // between a drawing and the print of it
 const PRINT_DROP = 8;     // between a drawing and a print that sits under it
 const PRINT_LH = 15;      // one printed line
+const PRINT_HEAD_GAP = 4; // between a print's block and the `T.shape` line under it
 
 /* The dimension arrows on the source tensor need room outside the grids: the
    width arrow above, the height arrow and its role name to the right, the
@@ -410,7 +425,6 @@ const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").match
    Join tabs spend it: their rank-4 results are drawn as that same column. */
 
 const CAPTION_H = 17;
-const SHAPE_CAPTIONS = 3;
 
 /* THE FRAME IS FIXED BY THE TALLEST TAB, so the three shorter ones would sit
    against its top edge with a third of the stage blank under them. Each block
@@ -431,7 +445,7 @@ function txt(ctx, colors, s, x, y, opts = {}) {
   ctx.fillText(s, x, y);
 }
 
-function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = []) {
   const a = Math.atan2(y1 - y0, x1 - x0);
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -444,8 +458,8 @@ function arrow(ctx, x0, y0, x1, y1, color, width = 1.5, dash = []) {
   ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(x1, y1);
-  ctx.lineTo(x1 - 7 * Math.cos(a - 0.45), y1 - 7 * Math.sin(a - 0.45));
-  ctx.lineTo(x1 - 7 * Math.cos(a + 0.45), y1 - 7 * Math.sin(a + 0.45));
+  ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
   ctx.closePath();
   ctx.fill();
 }
@@ -631,8 +645,10 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
     ctx.fillRect(x, y, s, s);
   }
   ctx.globalAlpha = dim;
-  ctx.strokeStyle = d.lit ? colors.highlight : isHover ? colors.ink1 : colors.ink3;
-  ctx.lineWidth = d.lit ? 2 : isHover ? 1.6 : 1;
+  /* round 18: the weight of Kenneth's own figures — 2px borders in ink-2,
+     the hovered and lit cells a half-point heavier */
+  ctx.strokeStyle = d.lit ? colors.highlight : isHover ? colors.ink1 : colors.ink2;
+  ctx.lineWidth = d.lit || isHover ? 2.5 : 2;
   ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
   if (d.v != null && !d.empty) {
     txt(ctx, colors, M.num(d.v), x + s / 2, y + s / 2 + 0.5, {
@@ -640,8 +656,10 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
       align: "center",
       baseline: "middle",
       /* one step up from the first draft (round 9): a digit takes the largest
-         size that keeps two of them off the cell's edge */
+         size that keeps two of them off the cell's edge; in the mono font
+         since round 18, so a cell and its printed value are the same glyphs */
       size: s >= 28 ? colors.fsLg : s >= 22 ? colors.fsMd : colors.fsSm,
+      mono: true,
       weight: d.bold ? "700" : "",
     });
   }
@@ -718,8 +736,6 @@ function monoChar(ctx, size) {
   return charW;
 }
 
-/** `T  torch.Size([2, 2, 5])` — the line under a printed tensor. */
-const printLabel = (name, shape) => `${name}  ${M.sizeText(shape)}`;
 
 /** One hue per dimension, counted from the LAST backwards so the feature
     dimension keeps `--c-dim-d` at every rank. The hue goes on a frame, a rule
@@ -737,8 +753,8 @@ const dimHues = (colors, rank) => Array.from({ length: rank }, (_, k) => colors.
     the raised slabs are named, in the gap the step leaves above the slab in
     front — which is what the mock's rank-4 panel does. */
 function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
-  const dx = Math.round(SLAB_DX * s);
   const dy = d1 * s + SLAB_GAP;
+  const dx = dy;                          // 45°
   const gx = x + (gutter ? SLAB_LBL : 0);
   const front = y + (d0 - 1) * dy;
   for (let i = d0 - 1; i >= 0; i -= 1) {
@@ -834,8 +850,8 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     and it differs from the frames view in kind: depth and no boxes, against
     boxes and edge indices. */
 function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
-  const dx = Math.round(SLAB_DX * s);
   const dy = d2 * s + SLAB_GAP;
+  const dx = dy;                          // 45°
   const stackH = (d1 - 1) * dy + d2 * s;
   const stackW = (d1 - 1) * dx + d3 * s;
   const gx = x + SLAB_LBL;
@@ -1029,7 +1045,7 @@ function textW(colors, s) {
    is right-aligned at the foot of the dim-0 arrow, where the fixed margin
    gave 33px of room and `0 sample × sequence` ran 37px off the left edge of
    the stage (round 12, `_lab/tensor-sweep.html?ops`). */
-const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0) => {
+const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0, shape = M.T3_SHAPE) => {
   if (!arrows) return rolesLine && rank === 4 ? { ...NONE, bottom: ROLE_BOTTOM } : NONE;
   if (rank === 1) return { top: ROLE_TOP, left: 0, right: 0, bottom: 0 };
   if (rank === 2) return { top: ROLE_TOP, left: ROLE_LEFT, right: 0, bottom: ROLE_BOTTOM };
@@ -1042,7 +1058,7 @@ const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0) => {
       : { ...NONE, bottom: rolesLine ? ROLE_BOTTOM : 0 };
   }
   return view === "stack"
-    ? { top: ROLE_TOP, left: Math.max(Math.round(SLAB_DX * s) + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
+    ? { top: ROLE_TOP, left: Math.max(shape[1] * s + SLAB_GAP + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
     : { top: 32, left: 14, right: 0, bottom: 22 };
 };
 
@@ -1054,7 +1070,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
   const { arrows = true, rolesLine = true, edges = false } = opts;
   const hues = dimHues(colors, shape.length);
   const lead = arrows && roles.length ? textW(colors, roles[0]) : 0;
-  const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead);
+  const m = roleMargin(view, s, shape.length, arrows, rolesLine, lead, shape);
   const box = pushTensor(plan, colors, x + m.left, y + m.top, shape, s, view, cell, perRow, edges);
   const half = s / 2;
   const size = { w: m.left + box.w + m.right, h: m.top + box.h + m.bottom, centre: box.centre };
@@ -1092,12 +1108,12 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
       const first = box.centre([0, shape[1] - 1, 0, 0]);
       const last = box.centre([shape[0] - 1, 0, shape[2] - 1, 0]);
       const lane = x + 5;
-      pushArrow(plan, lane, first.y - half - 4, lane, last.y + half + 4, hues[0], 1.5, [3, 3]);
+      pushArrow(plan, lane, first.y - half - 4, lane, last.y + half + 4, hues[0], 2, [3, 3]);
       pushText(plan, roles[0], x, y + 8, { color: colors.ink2 });
       const front = box.centre([0, 0, 0, 0]);
       const gut = 12;
       pushArrow(plan, front.x - half - gut, front.y - half - 4,
-        first.x - half - gut, first.y - half - 4, hues[1], 1.5, [3, 3]);
+        first.x - half - gut, first.y - half - 4, hues[1], 2, [3, 3]);
       /* Beside the arrow's HEAD, not its foot: the foot sits in the gutter the
          `[f]` labels use, and a role name right-aligned there runs off the
          left edge of the region. */
@@ -1129,7 +1145,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
     const gut = 12;
     const fx0 = first.x - half - gut;
     const fy0 = first.y - half - 4;
-    pushArrow(plan, fx0, fy0, back.x - half - gut, back.y - half - 4, hues[0], 1.5, [3, 3]);
+    pushArrow(plan, fx0, fy0, back.x - half - gut, back.y - half - 4, hues[0], 2, [3, 3]);
     pushText(plan, roles[0], fx0 - 4, fy0 + 8, { color: colors.ink2, align: "right" });
     return size;
   }
@@ -1138,7 +1154,7 @@ function pushSource(plan, colors, x, y, s, view, cell, perRow,
      on to the name's own width and `size` says so, and the fit leaves room. */
   const right = Math.max(x + m.left + box.w, x + m.left + IDX_COL + Math.ceil(lead) + 4);
   size.w = Math.max(size.w, right - x);
-  pushArrow(plan, x + m.left + IDX_COL, y + 11, right, y + 11, hues[0], 1.5, [3, 3]);
+  pushArrow(plan, x + m.left + IDX_COL, y + 11, right, y + 11, hues[0], 2, [3, 3]);
   pushText(plan, roles[0], right, y + 8, { color: colors.ink2, align: "right" });
   pushText(plan, roles[2], first.x - half + (d2 * s) / 2, y + 25,
     { color: colors.ink2, align: "center" });
@@ -1178,6 +1194,20 @@ function pushPrint(plan, colors, x, y, print, cw, tone) {
   });
 }
 
+/** The whole print as the notebook shows it: `print(T)`, the block, then
+    `T.shape` and its `torch.Size` line. `y` is the heading's top; the block's
+    hotspots follow one line down. `fade` rides on every line, for a print
+    that is arriving. */
+function pushPrintBlock(plan, colors, x, y, p, cw, tone, { fade = false } = {}) {
+  const dim = { color: colors.ink3, mono: true, size: colors.fsSm, baseline: "top", fade };
+  pushText(plan, p.head, x, y, dim);
+  const toned = Object.assign((idx) => tone(idx), { fade });
+  pushPrint(plan, colors, x, y + PRINT_LH, p.print, cw, toned);
+  const under = y + (1 + p.print.lines.length) * PRINT_LH + PRINT_HEAD_GAP;
+  pushText(plan, p.shapeLine, x, under, dim);
+  pushText(plan, p.label, x, under + PRINT_LH, { color: colors.ink1, mono: true, size: colors.fsSm, baseline: "top", fade });
+}
+
 /* --- fitting the Shape tab to the stage ----------------------------------- *
  * The print is what makes this a fit rather than a constant. A [2, 2, 5] print
  * is 32 mono columns wide and five lines deep; a [2, 2, 2, 5] print is 34 and
@@ -1190,14 +1220,22 @@ function pushPrint(plan, colors, x, y, print, cw, tone) {
  * CELL_OK and no further, because a print beside a 15px cell has won the
  * argument and lost the figure.                                             */
 
+/* ROUND 18 (Kenneth's pick B of three): a print is headed by the code that
+   produces it — `print(T)` over the block, `T.shape` over the size line — so
+   the block reads as a notebook cell's output rather than a listing. `label`
+   is the size line alone, which is also what a drawing is captioned with. */
 function printOf(shape, valueAt, name, cw) {
   const print = M.torchPrint(shape, valueAt);
-  const label = printLabel(name, shape);
+  const label = M.sizeText(shape);
+  const head = `print(${name})`;
+  const shapeLine = `${name}.shape`;
   return {
     print,
     label,
-    w: Math.max(print.cols, label.length) * cw,
-    h: (print.lines.length + 1) * PRINT_LH,
+    head,
+    shapeLine,
+    w: Math.max(print.cols, label.length, head.length, shapeLine.length) * cw,
+    h: (print.lines.length + 3) * PRINT_LH + PRINT_HEAD_GAP,
   };
 }
 
@@ -1384,7 +1422,7 @@ function shapeGeometry(ctx, colors, w, params) {
      mono columns, wider than the 550px stage (round 14) */
   const errLines = op.ok ? [] : wrapMono(op.error, Math.floor((w - 2 * PAD - 2 * BAND_PAD) / cw));
   const bands = [bandH(fit.srcH + ROLES_H), bandH(op.ok ? fit.outH + ROLES_H : 12 + errLines.length * PRINT_LH)];
-  return { op, view, tensors, cw, prints, fit, bands, srcRoles, errLines, height: stageOf(bands, SHAPE_CAPTIONS) };
+  return { op, view, tensors, cw, prints, fit, bands, srcRoles, errLines, height: stageOf(bands, shapeCaptions(op, params).length) };
 }
 
 /**
@@ -1462,7 +1500,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     const p = prints.sources[t];
     const px = fit.srcMode === "beside" ? cx + draw.w + PRINT_GAP : cx;
     const py = fit.srcMode === "beside" ? ty : ty + draw.h + PRINT_DROP;
-    pushPrint(plan, colors, px, py, p.print, cw, (idx) => {
+    pushPrintBlock(plan, colors, px, py, p, cw, (idx) => {
       const k = flat(t, idx);
       return {
         color: moving(k) || justMoved(k) ? colors.highlight
@@ -1471,8 +1509,6 @@ function planShape(ctx, colors, w, h, params, state, anim) {
         name: srcName(t, idx, op.read(t, idx)),
       };
     });
-    pushText(plan, p.label, px, py + p.print.lines.length * PRINT_LH,
-      { color: colors.ink2, mono: true, size: colors.fsSm, baseline: "top" });
     ty += fit.rowH[t] + INNER_GAP;
   });
   /* the hairline between drawing and print, where the print sits beside */
@@ -1488,7 +1524,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       pushText(plan, line, cx, resY + 14 + i * PRINT_LH,
         { color: op.limit ? colors.ink2 : colors.extreme, mono: op.limit ? false : true });
     });
-    pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
+    pushCaptions(plan, colors, shapeCaptions(op, params), PAD, yB + bands[1] + 6 + 13);
     return plan;
   }
   const resDraw = pushSource(plan, colors, cx, resY, s, view, (idx) => {
@@ -1506,7 +1542,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const rp = prints.result;
   const rpx = fit.outMode === "beside" ? cx + resDraw.w + PRINT_GAP : cx;
   const rpy = fit.outMode === "beside" ? resY : resY + resDraw.h + PRINT_DROP;
-  pushPrint(plan, colors, rpx, rpy, rp.print, cw, (idx) => {
+  pushPrintBlock(plan, colors, rpx, rpy, rp, cw, (idx) => {
     const held = placed.get(idx.join(","));
     if (!held) return null;
     return {
@@ -1515,8 +1551,6 @@ function planShape(ctx, colors, w, h, params, state, anim) {
       name: resName(idx, held.v),
     };
   });
-  pushText(plan, rp.label, rpx, rpy + rp.print.lines.length * PRINT_LH,
-    { color: colors.ink2, mono: true, size: colors.fsSm, baseline: "top" });
 
   /* The value in flight, between the cell it left and the cell it is going to
      — both read off the same `centre` the boxes were drawn from. It leaves
@@ -1532,9 +1566,13 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     });
   }
 
-  pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
+  pushCaptions(plan, colors, shapeCaptions(op, params), PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
+
+/* The image-batch line belongs under image data and nowhere else (round 18):
+   under a reshape of sequence data it was a sentence about another dataset. */
+const shapeCaptions = (op, params) => [op.caption, PRINT_RULE, ...(params.names === "image" ? [FOURTH_DIM] : [])];
 
 const PRINT_RULE =
   "The innermost brackets hold the rows, and each outer bracket is one more dimension.";
@@ -1600,18 +1638,6 @@ const tally = (n, one, many) => `${n === 0 ? "no" : n} ${n <= 1 ? one : many}`;
 const INDEX_RULE = "An index removes the dimension it names, and a colon keeps it.";
 const WHOLE_LINE = "every slot is a colon: the selection is the whole tensor";
 
-/** A printed tensor and the `torch.Size(...)` line under it. */
-function basicsPrint(shape, valueAt, cw) {
-  const print = M.torchPrint(shape, valueAt);
-  const label = M.sizeText(shape);
-  return {
-    print,
-    label,
-    w: Math.max(print.cols, label.length) * cw,
-    h: (print.lines.length + 1) * PRINT_LH,
-  };
-}
-
 const andList = (xs) => (xs.length <= 1
   ? xs.join("")
   : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -1632,10 +1658,16 @@ const clickLine = (rank, view) => (rank >= 3 && view === "stack"
  * line and does not move with the cell; the drawing column is what is left,
  * and each band is as tall as the taller of its drawing and its print.
  */
-function basicsLayout(colors, w, spec, sel, view, prints, s) {
+/* ROUND 18: A PRINT UNDER ITS DRAWING, when beside would cost the cell. The
+   45° step makes the rank-3 stack 25px wider, and at the 550px stage the
+   stack, its arrow margins and the 34-column print beside it left a 14px
+   cell. So Basics has the two modes Shape has had since round 12: beside,
+   preferred down to CELL_OK; else under, at the largest cell that fits. */
+function basicsLayout(colors, w, spec, sel, view, prints, s, mode = "beside") {
   const { shape, roles } = spec;
-  const colR = Math.ceil(Math.max(prints.tensor.w, prints.sel.w)) + 2 * BAND_PAD;
-  const colL = w - 2 * PAD - DIVIDER - colR;
+  const beside = mode === "beside";
+  const colR = beside ? Math.ceil(Math.max(prints.tensor.w, prints.sel.w)) + 2 * BAND_PAD : 0;
+  const colL = w - 2 * PAD - (beside ? DIVIDER + colR : 0);
   const room = colL - 2 * BAND_PAD;
 
   const perRow = framesPerRow(shape[0], shape[shape.length - 1], s, room);
@@ -1651,26 +1683,38 @@ function basicsLayout(colors, w, spec, sel, view, prints, s) {
   /* Under the tensor: its roles and its size. Under the selection: the roles
      that survived (none, for a scalar), its size, and which dimensions went.
      The whole-tensor state does not draw the tensor a second time: one line. */
-  const topH = BAND_HEAD + BAND_PAD + Math.max(top.h + UNDER_GAP + 2 * LINE_H, prints.tensor.h) + BAND_PAD;
+  const topLines = top.h + UNDER_GAP + 2 * LINE_H;
   const botLines = (sel.keep.length > 0 ? 1 : 0) + 2;
+  const botDrawn = bot.h + UNDER_GAP + botLines * LINE_H;
+  const topH = BAND_HEAD + BAND_PAD + (beside
+    ? Math.max(topLines, prints.tensor.h)
+    : topLines + PRINT_DROP + prints.tensor.h) + BAND_PAD;
   const botH = whole
     ? BAND_HEAD + BAND_PAD + LINE_H + BAND_PAD
-    : BAND_HEAD + BAND_PAD + Math.max(bot.h + UNDER_GAP + botLines * LINE_H, prints.sel.h) + BAND_PAD;
+    : BAND_HEAD + BAND_PAD + (beside
+      ? Math.max(botDrawn, prints.sel.h)
+      : botDrawn + PRINT_DROP + prints.sel.h) + BAND_PAD;
 
   return {
-    s, colL, colR, perRow, selPerRow, topH, botH, whole,
+    s, mode, colL, colR, perRow, selPerRow, topH, botH, whole,
     height: PAD + topH + BAND_GAP + botH + 6 + BASICS_CAPTIONS * CAPTION_H + PAD,
-    fits: top.w <= room && bot.w <= room,
+    fits: top.w <= room && bot.w <= room
+      && (beside || Math.max(prints.tensor.w, whole ? 0 : prints.sel.w) <= room),
   };
 }
 
-/** The largest cell whose drawings fit beside the print column. */
+/** The largest cell whose drawings fit beside the print column, down to
+    CELL_OK; below that the prints go under their drawings instead. */
 function basicsFit(colors, w, spec, sel, view, prints) {
-  for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
-    const L = basicsLayout(colors, w, spec, sel, view, prints, s);
+  for (let s = cellSize(w); s >= CELL_OK; s -= 1) {
+    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "beside");
     if (L.fits) return L;
   }
-  return basicsLayout(colors, w, spec, sel, view, prints, CELL_MIN);
+  for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
+    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "under");
+    if (L.fits) return L;
+  }
+  return basicsLayout(colors, w, spec, sel, view, prints, CELL_MIN, "under");
 }
 
 /** Everything the stage needs, from the parameters alone — so `height` can ask
@@ -1679,9 +1723,11 @@ function basicsGeometry(ctx, colors, w, params) {
   const spec = M.rankSpec(params.rank, params.names);
   const sel = M.selectionOf(params.rank, indexParts(params), params.names);
   const cw = monoChar(ctx, colors.fsSm);
+  /* the selection's print is headed by the expression that makes it:
+     `print(T[:, 0, :])` over the block, `T[:, 0, :].shape` over its size */
   const prints = {
-    tensor: basicsPrint(spec.shape, spec.at, cw),
-    sel: basicsPrint(sel.shape, sel.at, cw),
+    tensor: printOf(spec.shape, spec.at, "T", cw),
+    sel: printOf(sel.shape, sel.at, sel.text, cw),
   };
   return { spec, sel, cw, prints, fit: basicsFit(colors, w, spec, sel, params.view, prints) };
 }
@@ -1718,8 +1764,9 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
 
   const xL = PAD;
   const bandW = w - 2 * PAD;
-  const xDiv = xL + fit.colL;
-  const xR = xDiv + DIVIDER;
+  const beside = fit.mode === "beside";
+  const xDiv = beside ? xL + fit.colL : null;
+  const xR = beside ? xDiv + DIVIDER : null;
   const yT = PAD;
   const yB = yT + fit.topH + BAND_GAP;
 
@@ -1799,15 +1846,13 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
   pushRoles(plan, ctx, colors, roles, hues, cx, ty);
   pushText(plan, prints.tensor.label, cx, ty + LINE_H, { color: colors.ink1, mono: true });
 
-  /* --- the tensor, printed ----------------------------------------------- */
-  const px = xR + BAND_PAD;
-  pushPrint(plan, colors, px, cyT, prints.tensor.print, cw, (idx) => ({
+  /* --- the tensor, printed: beside its drawing, or under it ---------------- */
+  const px = beside ? xR + BAND_PAD : cx;
+  pushPrintBlock(plan, colors, px, beside ? cyT : ty + 2 * LINE_H + PRINT_DROP, prints.tensor, cw, (idx) => ({
     color: lit(idx) ? colors.highlight : colors.ink1,
     key: key(idx),
     name: name(idx),
   }));
-  pushText(plan, prints.tensor.label, px, cyT + prints.tensor.print.lines.length * PRINT_LH,
-    { color: colors.ink1, mono: true, baseline: "top" });
 
   /* --- the selection ----------------------------------------------------- */
   const cyB = yB + BAND_HEAD + BAND_PAD;
@@ -1856,12 +1901,10 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
     pushText(plan, prints.sel.label, cx, by, { color: colors.ink1, mono: true, fade: true });
     pushText(plan, goneLine(sel), cx, by + LINE_H, { color: colors.ink2, fade: true });
 
-    pushPrint(plan, colors, px, cyB, prints.sel.print, cw, (sub) => {
+    pushPrintBlock(plan, colors, px, beside ? cyB : by + 2 * LINE_H + PRINT_DROP, prints.sel, cw, (sub) => {
       const idx = sel.full(sub);
       return { color: colors.highlight, key: key(idx), name: name(idx), fade: true };
-    });
-    pushText(plan, prints.sel.label, px, cyB + prints.sel.print.lines.length * PRINT_LH,
-      { color: colors.ink1, mono: true, baseline: "top", fade: true });
+    }, { fade: true });
   }
 
   pushCaptions(plan, colors, [clickLine(rank, view)], PAD, yB + fit.botH + 6 + 13);
@@ -1949,7 +1992,7 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
   const ay = y0 + rows * s + 30 + 14;
   const xText = M.shapeText(M.BC_X_SHAPE);
   const bText = M.shapeText(bc.shape).padStart(xText.length, " ");
-  pushText(plan, "Line the shapes up from the right", x0, ay - 16, { color: colors.ink3 });
+  pushText(plan, "Line the shapes up from the right", x0, ay - 16, { color: colors.ink2 });
   pushText(plan, xText, x0, ay, { color: colors.ink1, mono: true });
   pushText(plan, bText, x0, ay + 17, { color: colors.ink1, mono: true });
   bp.rows.forEach((row, i) => {
@@ -1974,7 +2017,7 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
     bot.divX = x0 + xW + PRINT_GAP / 2;
     const px = x0 + xW + PRINT_GAP;
     const py = yB + BAND_HEAD + BAND_PAD;
-    pushPrint(plan, colors, px, py, print.print, cw, ([r, c]) => {
+    pushPrintBlock(plan, colors, px, py, print, cw, ([r, c]) => {
       const st = rowState(r);
       if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
       return {
@@ -1985,8 +2028,6 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
       };
     });
     if (ph && rowState(done) === "landing") plan.fadeAlpha = ph.land;
-    pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
-      { color: colors.ink2, mono: true, baseline: "top" });
   } else {
     pushText(plan, `no result: ${bp.clash}`, x0, ry, { color: colors.extreme });
     pushText(plan, "cannot broadcast", x0, ry + 18, { color: colors.extreme });
@@ -2086,7 +2127,7 @@ function planMultiply(ctx, colors, w, h, params, state, anim) {
     bot.divX = x0 + yW + PRINT_GAP / 2;
     const px = x0 + yW + PRINT_GAP;
     const py = yB + BAND_HEAD + BAND_PAD;
-    pushPrint(plan, colors, px, py, print.print, cw, ([r, c]) => {
+    pushPrintBlock(plan, colors, px, py, print, cw, ([r, c]) => {
       const st = cellState(r * 2 + c);
       if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
       return {
@@ -2097,8 +2138,6 @@ function planMultiply(ctx, colors, w, h, params, state, anim) {
       };
     });
     if (ph && cellState(anim.n) === "landing") plan.fadeAlpha = ph.land;
-    pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
-      { color: colors.ink2, mono: true, baseline: "top" });
   } else {
     pushText(plan, `${M.shapeText(M.MM_X_SHAPE)} @ ${M.shapeText(mm.shape)}`, x0, below,
       { color: colors.ink1, mono: true });
@@ -2258,7 +2297,7 @@ function planReduce(ctx, colors, w, h, params, state, anim) {
   band.divX = x0 + drawW + PRINT_GAP / 2;
   const px = x0 + drawW + PRINT_GAP;
   const py = yT + BAND_HEAD + BAND_PAD;
-  pushPrint(plan, colors, px, py, print.print, cw, (idx) => {
+  pushPrintBlock(plan, colors, px, py, print, cw, (idx) => {
     const k = idx.length ? idx[0] : 0;
     if (k >= done + (ph && ph.land > 0 ? 1 : 0)) return null;
     const landing = ph && k === done;
@@ -2270,8 +2309,6 @@ function planReduce(ctx, colors, w, h, params, state, anim) {
     };
   });
   if (ph && ph.land > 0) plan.fadeAlpha = ph.land;
-  pushText(plan, print.label, px, py + print.print.lines.length * PRINT_LH,
-    { color: colors.ink2, mono: true, baseline: "top" });
 
   pushCaptions(plan, colors, [RED_CAPTIONS[dim]], PAD, yT + bands[0] + 6 + 13);
   return plan;
@@ -2385,10 +2422,13 @@ const plural = (n, total, one, many) => `${n} of ${total} ${total === 1 ? one : 
 
 /* --- the widget ----------------------------------------------------------- */
 
+/* ROUND 18 (Kenneth's pick B): two KINDS of Play rather than three speeds.
+   What a reader chooses between is what is shown — every value drawn
+   travelling, or values appearing in place — and Step already gives one move
+   at a time for as long as anyone wants, which is all Slow was. */
 const SPEEDS = [
-  { value: "slow", label: "Slow", detail: "0.9 seconds a step, with each move drawn as it happens" },
-  { value: "medium", label: "Medium", detail: "0.34 seconds a step, with each move drawn as it happens" },
-  { value: "fast", label: "Fast", detail: "0.12 seconds a step, with each result appearing in place" },
+  { value: "moves", label: "Each move", detail: "every value drawn travelling to its place" },
+  { value: "results", label: "Results only", detail: "values appearing in place, three times as fast" },
 ];
 
 const TAB_UNITS = {
@@ -2450,7 +2490,6 @@ defineWidget({
     tab: {
       type: "segmented",
       label: "Topic",
-      detail: "six topics, each decided by the tensor's shape",
       options: [
         { value: "basics", label: "Basics", group: DATA_HALF, detail: "how many dimensions a tensor has, and what an index selects" },
         { value: "shape", label: "Shape", group: DATA_HALF, detail: "where each value goes when the shape changes" },
@@ -2663,9 +2702,9 @@ defineWidget({
       label: "Dimension names",
       detail: "a convention chosen for the data, not a property of the tensor",
       options: [
-        { value: "sequence", label: "Sequence data", detail: "sample, sequence, feature — a batch adds a dimension in front" },
-        { value: "image", label: "Image data", detail: "channel, height, width — a batch of images adds sample in front" },
-        { value: "positions", label: "Positions only", detail: "the indices alone, which is all PyTorch knows about a dimension" },
+        { value: "sequence", label: "Sequence", detail: "sample, sequence, feature — a batch adds a dimension in front" },
+        { value: "image", label: "Image", detail: "channel, height, width — a batch of images adds sample in front" },
+        { value: "positions", label: "Positions", detail: "the indices alone, which is all PyTorch knows about a dimension" },
       ],
       default: "sequence",
       display: true,
@@ -2839,10 +2878,10 @@ defineWidget({
        because inertness is a fact about a SECOND parameter on two of the six
        topics; the shape of the clause is widget 48's. */
     speed: {
-      type: "choice",
-      label: "Play speed",
+      type: "segmented",
+      label: "Play shows",
       options: SPEEDS,
-      default: "medium",
+      default: "moves",
       display: true,
       afterDrive: true,
       when: {
@@ -3325,7 +3364,7 @@ defineWidget({
       },
       {
         label: "This group",
-        value: g ? g.values.join(", ") : "—",
+        value: g ? (g.values.length > 6 ? `all ${g.values.length} values` : g.values.join(", ")) : "—",
         note: g ? `${where}, reduced by ${params.fn}` : `no ${unit} has been collapsed yet`,
       },
       cell(g ? `result[${k}] = ${M.num(state.values[k])}` : "—",

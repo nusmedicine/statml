@@ -904,14 +904,15 @@ export const RED_Z = RED_X.map((row) => row.map((v, c) => (v - RED_MU[c]) / RED_
 /* --- pacing --------------------------------------------------------------- */
 
 /* HOW LONG ONE UNIT TAKES, AND WHETHER IT IS CHOREOGRAPHED, both declared per
-   speed rather than decided mid-run (4.1). Slow and Medium slide the value
-   from where it is read to where it lands; Fast places it and moves on, which
-   is what makes it fast. */
-export const UNIT_MS = { slow: 900, medium: 340, fast: 120 };
+   kind rather than decided mid-run (4.1). `moves` slides the value from where
+   it is read to where it lands; `results` places it and moves on, which is
+   what makes it fast. Two kinds since round 18, where Slow, Medium and Fast
+   had been: Step is the slow one. */
+export const UNIT_MS = { moves: 340, results: 120 };
 
-export const choreographs = (speed) => speed !== "fast";
+export const choreographs = (speed) => speed !== "results";
 
-export const unitMs = (speed) => UNIT_MS[speed] ?? UNIT_MS.medium;
+export const unitMs = (speed) => UNIT_MS[speed] ?? UNIT_MS.moves;
 
 /* --- number formatting ---------------------------------------------------- */
 

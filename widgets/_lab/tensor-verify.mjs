@@ -723,13 +723,13 @@ console.log("\n=== 8 · (X − μ) / σ over dim 0 ===");
 console.log("\n=== 9 · pacing ===");
 {
   check("three speeds, each with its own unit length",
-    same(Object.keys(UNIT_MS), ["slow", "medium", "fast"]),
+    same(Object.keys(UNIT_MS), ["moves", "results"]),
     Object.entries(UNIT_MS).map(([k, v]) => `${k} ${v}ms`).join(", "));
   check("the details a reader sees are those numbers in seconds",
-    unitMs("slow") === 900 && unitMs("medium") === 340 && unitMs("fast") === 120,
+    unitMs("moves") === 340 && unitMs("results") === 120,
     "0.9 · 0.34 · 0.12 seconds a step");
   check("only Fast declines the choreography",
-    choreographs("slow") && choreographs("medium") && !choreographs("fast"));
+    choreographs("moves") && !choreographs("results"));
   check("an unknown speed falls back rather than yielding NaN",
     Number.isFinite(unitMs("nonsense")), `${unitMs("nonsense")}ms`);
 }
