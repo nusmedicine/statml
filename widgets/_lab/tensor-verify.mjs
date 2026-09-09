@@ -26,7 +26,7 @@ import {
   indexSlot, indexSet, indexTargets, indexTargetCount,
   shapeOp, joinOp, opFrom, RESHAPE_SHAPES, RESHAPE_FAIL, PERMUTATIONS, shapeKey,
   reshapeFrom, parseShapeText, shapeWire, shapeShow,
-  sourceOf, unravel, ravel, dimFrom, permFrom, hintFor, allPermutations, FIVE_DIMS,
+  sourceOf, unravel, ravel, dimFrom, permFrom, hintFor, allPermutations, FIVE_DIMS, dimOptions,
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
@@ -551,6 +551,12 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     && hintFor("unsqueeze", "5", 3) === "0 to 3, or −1 to −4"
     && hintFor("stack", "0", 4) === "a fifth dimension, which this figure does not draw"
     && hintFor("cat", "-1", 3) === null && hintFor("cat", "", 3) === null);
+  check("a position dropdown offers every position the tensor has, -1 last, and nothing beyond (round 16)",
+    same(dimOptions("cat", 3).map((o) => o.value), ["0", "1", "2", "-1"])
+    && same(dimOptions("stack", 3).map((o) => o.value), ["0", "1", "2", "3", "-1"])
+    && same(dimOptions("flatten", 1).map((o) => o.value), ["0", "-1"])
+    && [1, 2, 3, 4].every((r) => ["unsqueeze", "flatten", "cat", "stack"].every((k) =>
+      dimOptions(k, r).every((o) => dimFrom(o.value, k, "dim", k === "unsqueeze" || k === "stack" ? r : r - 1, 0).ok))));
   check("the lesson's own lines still read at rank 3 with the string keys the lab scripts use",
     shapeOp("permute", "0-2-1").label === "permute(0, 2, 1)" && same(shapeOp("permute", "0-2-1").shape, [2, 5, 2])
     && same(shapeOp("reshape", "2-5-2").shape, [2, 5, 2]) && same(joinOp("stack", 0).shape, [2, 2, 2, 5]));

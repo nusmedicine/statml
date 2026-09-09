@@ -293,6 +293,16 @@
       typed in and shows the field's `check(text, values)` under it live —
       `product 21, and the tensor holds 20` — while the figure still moves
       on Enter.
+
+  28. ROUND 16 (Kenneth's four comments on 15). A POSITION IS A DROPDOWN
+      AGAIN, over exactly the positions the tensor on screen has plus -1:
+      core's `options` may now be a function of the values, with
+      `optionsFrom` naming what it reads, and a value the new list no longer
+      holds returns to the default — decision 14's rule with the mechanism
+      it lacked. The lists (a shape, an ordering) stay typed, at `size: 5`
+      so the growth he expected is visible. The dimension rules sit outside
+      their indices, 3px, clear of the frame. The linear-algebra half is a
+      question put back to him (catalogue round 16).
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -332,8 +342,14 @@ const COLUMN_GAP = 16;    // between two exploded stacks of a rank-4 column
 /* The framed view (candidate D): a dashed frame per index of the leading
    dimension, and the row and column indices on the edges of the first grid. */
 const FRAME_LBL = 15;     // the `dim 0 = i` line inside a frame, along its top
-const IDX_ROW = 15;       // the column indices above the first grid
-const IDX_COL = 18;       // the row indices to the left of the first grid
+/* ROUND 16 (Kenneth: the dimension bars are "too close to the tensors and
+   hard to see"). The rule in a dimension's hue now sits OUTSIDE its indices
+   — the digits between it and the grid — and 3px wide, where it had been a
+   2px line between the indices and the frame, touching the frame's dashed
+   edge and its `dim 0 = 0` label. The index row and column grew to hold it. */
+const IDX_ROW = 20;       // the column indices above the first grid, and their rule
+const IDX_COL = 24;       // the row indices to the left of the first grid, and their rule
+const RULE_W = 3;         // an edge rule's width
 
 /* The printed tensor, in the mono font beside its drawing. */
 const PRINT_GAP = 18;     // between a drawing and the print of it
@@ -562,7 +578,7 @@ function paintPlan(ctx, colors, plan, hover) {
   }
   for (const l of plan.rules) {
     ctx.strokeStyle = l.tone;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = RULE_W;
     ctx.beginPath();
     ctx.moveTo(l.x0, l.y0);
     ctx.lineTo(l.x1, l.y1);
@@ -766,8 +782,8 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     fy: y0 + Math.floor(i / cols) * (fh + INNER_GAP),
   });
   const hues = dimHues(colors, 3);
-  pushRule(plan, x0 + FRAME_PAD, y0 - 1, x0 + FRAME_PAD + d2 * s, y0 - 1, hues[2]);
-  pushRule(plan, x0 - 1, y0 + FRAME_LBL + FRAME_PAD, x0 - 1, y0 + FRAME_LBL + FRAME_PAD + d1 * s, hues[1]);
+  pushRule(plan, x0 + FRAME_PAD, y0 - IDX_ROW + 2, x0 + FRAME_PAD + d2 * s, y0 - IDX_ROW + 2, hues[2]);
+  pushRule(plan, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD, x0 - IDX_COL + 2, y0 + FRAME_LBL + FRAME_PAD + d1 * s, hues[1]);
   for (let i = 0; i < d0; i += 1) {
     const { fx, fy } = at(i);
     pushFrame(plan, fx, fy, fw, fh, null, hues[0]);
@@ -882,8 +898,8 @@ function pushFrames4(plan, colors, x, y, [d0, d1, d2, d3], s, cell, perRow = d1)
     }
   }
   const first = inner(0, 0);
-  pushRule(plan, first.ix + FRAME_PAD, first.iy - 1, first.ix + FRAME_PAD + d3 * s, first.iy - 1, hues[3]);
-  pushRule(plan, x0 - 1, first.iy + FRAME_LBL + FRAME_PAD, x0 - 1,
+  pushRule(plan, first.ix + FRAME_PAD, first.iy - IDX_ROW + 2, first.ix + FRAME_PAD + d3 * s, first.iy - IDX_ROW + 2, hues[3]);
+  pushRule(plan, x0 - IDX_COL + 2, first.iy + FRAME_LBL + FRAME_PAD, x0 - IDX_COL + 2,
     first.iy + FRAME_LBL + FRAME_PAD + d2 * s, hues[2]);
   for (let c = 0; c < d3; c += 1) {
     const anchor = {
@@ -934,7 +950,7 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
       (r, c) => cell(shape.length === 1 ? [c] : [r, c]));
     if (edges) {
       const hues = dimHues(colors, shape.length);
-      pushRule(plan, gx, gy - 1, gx + cols * s, gy - 1, hues[shape.length - 1]);
+      pushRule(plan, gx, gy - IDX_ROW + 2, gx + cols * s, gy - IDX_ROW + 2, hues[shape.length - 1]);
       for (let c = 0; c < cols; c += 1) {
         const anchor = { s: String(c), x: gx + c * s + s / 2, y: gy - 4, align: "center" };
         pushText(plan, anchor.s, anchor.x, anchor.y,
@@ -942,7 +958,7 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
         markIndex(plan, shape.length - 1, c, anchor);
       }
       if (shape.length === 2) {
-        pushRule(plan, gx - 1, gy, gx - 1, gy + rows * s, hues[0]);
+        pushRule(plan, gx - IDX_COL + 2, gy, gx - IDX_COL + 2, gy + rows * s, hues[0]);
         for (let r = 0; r < rows; r += 1) {
           const anchor = { s: String(r), x: gx - 4, y: gy + r * s + s / 2 + 4, align: "right" };
           pushText(plan, anchor.s, anchor.x, anchor.y,
@@ -1019,7 +1035,7 @@ const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0) => {
   }
   return view === "stack"
     ? { top: ROLE_TOP, left: Math.max(Math.round(SLAB_DX * s) + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
-    : { top: 28, left: 14, right: 0, bottom: 22 };
+    : { top: 32, left: 14, right: 0, bottom: 22 };
 };
 
 /** A tensor with its dimensions named by index and role. Rank 3 is the Shape
@@ -2492,7 +2508,7 @@ defineWidget({
       label: "sizes",
       hidden: true,
       default: "2x-1",
-      size: 11,
+      size: 5,     // small at rest; it grows as it is typed in (round 16)
       parse: M.shapeWire,
       show: M.shapeShow,
       check: (text, values) => M.hintFor("reshape", text, Number(values.rank)),
@@ -2518,7 +2534,7 @@ defineWidget({
       label: "order",
       hidden: true,
       default: "0x2x1",
-      size: 8,
+      size: 5,
       parse: M.shapeWire,
       show: M.shapeShow,
       check: (text, values) => M.hintFor("permute", text, Number(values.rank)),
@@ -2533,39 +2549,44 @@ defineWidget({
       slots: ["perm"],
       when: PERMUTE_ON,
     },
+    /* ROUND 16 (Kenneth: "for certain operations with limited choices e.g.
+       dim, I think easier to use a dropdown. I was inputting values that
+       don't make sense"). A position is a dropdown over exactly the
+       positions the tensor on screen has, plus -1 for the last — the list
+       is a function of `rank` (core's `optionsFrom`), which is what decision
+       14 could not have and typed round 15 around. The lists — a shape, an
+       ordering — stay typed. */
     udim: {
-      type: "text",
+      type: "select",
       label: "position",
       hidden: true,
       default: "0",
-      size: 3,
-      parse: M.intWire,
-      check: (text, values) => M.hintFor("unsqueeze", text, Number(values.rank)),
+      options: (v) => M.dimOptions("unsqueeze", Number(v.rank)),
+      optionsFrom: "rank",
       when: UNSQUEEZE_ON,
     },
     unsqueeze: {
       type: "expr",
       label: "Position of the new dimension",
-      detail: "0 puts the size-1 dimension in front and −1 puts it last, then Enter",
+      detail: "0 puts the size-1 dimension in front and −1 puts it last",
       open: "T.unsqueeze(",
       close: ")",
       slots: ["udim"],
       when: UNSQUEEZE_ON,
     },
     fstart: {
-      type: "text",
+      type: "select",
       label: "start",
       hidden: true,
       default: "0",
-      size: 3,
-      parse: M.intWire,
-      check: (text, values) => M.hintFor("flatten", text, Number(values.rank)),
+      options: (v) => M.dimOptions("flatten", Number(v.rank)),
+      optionsFrom: "rank",
       when: FLATTEN_ON,
     },
     flatten: {
       type: "expr",
       label: "Start dimension",
-      detail: "the dimensions from this one on are collapsed into one, then Enter",
+      detail: "the dimensions from this one on are collapsed into one",
       open: "T.flatten(start_dim=",
       close: ")",
       slots: ["fstart"],
@@ -2583,38 +2604,36 @@ defineWidget({
       when: { param: "tab", equals: "join" },
     },
     cdim: {
-      type: "text",
+      type: "select",
       label: "dim",
       hidden: true,
       default: "0",
-      size: 3,
-      parse: M.intWire,
-      check: (text, values) => M.hintFor("cat", text, Number(values.rank)),
+      options: (v) => M.dimOptions("cat", Number(v.rank)),
+      optionsFrom: "rank",
       when: CAT_ON,
     },
     cat: {
       type: "expr",
       label: "Dimension joined along",
-      detail: "the dimension that grows to twice its size, then Enter",
+      detail: "the dimension that grows to twice its size",
       open: "torch.cat([T, T2], dim=",
       close: ")",
       slots: ["cdim"],
       when: CAT_ON,
     },
     sdim: {
-      type: "text",
+      type: "select",
       label: "dim",
       hidden: true,
       default: "0",
-      size: 3,
-      parse: M.intWire,
-      check: (text, values) => M.hintFor("stack", text, Number(values.rank)),
+      options: (v) => M.dimOptions("stack", Number(v.rank)),
+      optionsFrom: "rank",
       when: STACK_ON,
     },
     stack: {
       type: "expr",
       label: "Position of the new dimension",
-      detail: "0 puts the new dimension in front and −1 puts it last, then Enter",
+      detail: "0 puts the new dimension in front and −1 puts it last",
       open: "torch.stack([T, T2], dim=",
       close: ")",
       slots: ["sdim"],

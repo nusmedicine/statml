@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through fifteen review rounds and NOT PUSHED. 367 real fingerprint
+locally through sixteen review rounds and NOT PUSHED. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -16,13 +16,16 @@ draft's must.**
 `0eab30e` (round 11), `f25b15d` (round 12: the fit measured over every
 argument), `1d299b6` (T2 = T + 20), `3ed5012` (round 13: reshape's
 argument as four dropdown slots), `e575daf` (round 14: one typed field,
-with core's new `text` type) and the round-15 commit (the rank carries
-over, every argument typed, the field grows and hints). Nothing is
-uncommitted. Read
+with core's new `text` type), `56f33e0` (round 15: the rank carries
+over, every argument typed, the field grows and hints) and the round-16
+commit (positions as rank-following dropdowns through core's dynamic
+`options`, the dimension rules moved clear of the frames). Nothing is
+uncommitted. **Kenneth's open design question is the linear-algebra half**
+— see catalogue round 16 and the last message of that session. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
-from and Kenneth's exact picks are there, rounds 1–15, and the decision
-list in `widgets/tensors/main.js`'s header (1–27) says why each thing is
+from and Kenneth's exact picks are there, rounds 1–16, and the decision
+list in `widgets/tensors/main.js`'s header (1–28) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -42,13 +45,13 @@ it makes. Two eases (4.4): the view morph moves the same cells, and an
 index change is staged — light, then glide. **The rank is one parameter
 across Basics, Shape and Join** (round 15): the tensor built in Basics is
 the one Shape and Join work on, 1 to 4 dimensions, the lesson's [2, 2, 5]
-the default. **Shape** takes a verb and a TYPED argument on an `expr`
-line — `T.reshape( 2, -1 )`, `T.permute( 0, 2, 1 )`, `T.unsqueeze( 0 )`,
-`T.flatten(start_dim= 0 )` — each answered as torch answers, including
-its TypeError for a word, its out-of-range message, its rule for negative
-positions; the field grows as it is typed in and a hint under it says
-the one fact that would make the entry work, while the figure moves on
-Enter. `?shape=2x5x2` and `?perm=0x2x1` on the wire. unsqueeze and stack
+the default. **Shape** takes a verb and an argument on an `expr` line:
+the lists are TYPED — `T.reshape( 2, -1 )`, `T.permute( 0, 2, 1 )` —
+answered as torch answers, the field growing as it is typed in with a
+hint under it saying the one fact that would make the entry work, the
+figure moving on Enter; a position is a DROPDOWN over the positions the
+tensor has plus −1 — `T.unsqueeze( 0 )`, `T.flatten(start_dim= 0 )` —
+whose list follows the rank (core's `optionsFrom`, round 16). `?shape=2x5x2` and `?perm=0x2x1` on the wire. unsqueeze and stack
 at rank 4 make a fifth dimension, which the band declines in the figure's
 own words (ink, not the failure colour) since it has drawings for four.
 **Join** takes cat or stack over a typed dim, against a second tensor
@@ -71,7 +74,12 @@ Every Step on every tab is staged through one `phases(beat)` and one
   (stored → displayed) and `check(text, values)` (a message shown under
   the field while it is typed in, null to clear). Grows with its text.
   Commits on `change`, never per keystroke. README's type table names it.
-  Rounds 12 and 13 changed nothing in core.
+- **Dynamic `options`** (params.js, controls.js, widget.js, round 16): an
+  option-list field may declare `options: (values) => [...]` with
+  `optionsFrom` naming the parameter(s) it reads; the block rebuilds when
+  one moves, and a value the new list no longer holds returns to the
+  field's default through `setFromRegion`, so the control is synced.
+  README names it. Rounds 12 and 13 changed nothing in core.
 
 ## Rounds 12 and 13, in one paragraph — what the sweep found
 

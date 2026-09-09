@@ -40,8 +40,10 @@
                   magnitude the widget supplies
 
    select / choice / segmented / matrix are the same data (a string key from a
-   fixed list) in four shapes, chosen by what the options MEAN rather than how
-   many there are. Reach for `choice` when they form a magnitude, so
+   list) in four shapes, chosen by what the options MEAN rather than how many
+   there are. The list is fixed at declaration, or `options` is a function of
+   the resolved values with `optionsFrom` naming the parameter(s) it reads —
+   a position inside a tensor whose rank is itself a parameter (widget 53). Reach for `choice` when they form a magnitude, so
    left-to-right carries information; `segmented` for a handful of alternative
    readings, where hiding the alternatives inside a dropdown hides that a choice
    exists at all; `select` only when the list is long enough that neither fits.
@@ -110,7 +112,9 @@ export function resolveParams(spec, search) {
       case "choice":
       case "segmented":
       case "matrix": {
-        const keys = optionKeys(field);
+        /* `out` so far: a list that depends on another parameter reads it
+           resolved, which asks that the other be declared first */
+        const keys = optionKeys(field, out);
         out[name] = keys.includes(raw) ? raw : field.default;
         break;
       }
@@ -138,8 +142,15 @@ export function resolveParams(spec, search) {
  * actually does. It sits below the FIELD's own `detail`, which describes the
  * parameter and renders on every field type (3.4f).
  */
-export function optionEntries(field) {
-  const o = field.options;
+/* OPTIONS MAY BE A FUNCTION OF THE OTHER VALUES (widget 53, round 16). A
+   position inside a tensor runs 0 to its rank, and the rank is a parameter,
+   so the list a dropdown offers cannot be fixed at declaration without
+   offering positions the tensor does not have (decision 14 there). A field
+   declares `options: (values) => [...]` and names what it reads in
+   `optionsFrom`, so the block rebuilds when exactly that parameter moves
+   and a value the new list no longer holds returns to the field's default. */
+export function optionEntries(field, values = {}) {
+  const o = typeof field.options === "function" ? field.options(values) : field.options;
   if (Array.isArray(o)) {
     return o.map((item) =>
       typeof item === "string"
@@ -168,8 +179,8 @@ export function optionEntries(field) {
   return Object.entries(o).map(([value, label]) => ({ value, label }));
 }
 
-export function optionKeys(field) {
-  return optionEntries(field).map((e) => e.value);
+export function optionKeys(field, values = {}) {
+  return optionEntries(field, values).map((e) => e.value);
 }
 
 /**

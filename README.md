@@ -200,7 +200,10 @@ confusing "sample the population" with "resample your sample".
 | `text` | short text field, commits on Enter, grows as typed | a value the reader **types** and the widget validates: a shape, an expression; optional `parse`, `show` and a live `check` hint |
 
 `select` options may carry a `group`; consecutive options sharing one render as
-an `<optgroup>` run. The object-map option form drops `group` — an object maps
+an `<optgroup>` run. `options` may also be a function of the resolved values,
+with `optionsFrom` naming the parameter(s) it reads: the block rebuilds when
+one of them moves, and a value the new list no longer holds returns to the
+field's default. The object-map option form drops `group` — an object maps
 value to label with nowhere to hang a third field, so declare the array form.
 
 Two spec entries are **not** parameters. `section` is a labelled divider;

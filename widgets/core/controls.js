@@ -178,6 +178,11 @@ export function gatingParams(spec) {
      that serves `when` serves it: the block rebuilds when exactly that
      parameter moves, and 5.3's no-opaque-predicates line holds */
   for (const field of Object.values(spec)) if (field.bitsFrom) names.add(field.bitsFrom);
+  /* an option list that is a function of other values names them the same
+     way (round 16, widget 53: the positions a dim can take follow the rank) */
+  for (const field of Object.values(spec)) {
+    if (field.optionsFrom) [].concat(field.optionsFrom).forEach((n) => names.add(n));
+  }
   return names;
 }
 
@@ -418,7 +423,7 @@ function build(host, spec, values, onChange, api) {
         const select = document.createElement("select");
         select.dataset.param = n;
         select.setAttribute("aria-label", f.label ?? n);
-        for (const { value, label: text } of optionEntries(f)) {
+        for (const { value, label: text } of optionEntries(f, values)) {
           const opt = document.createElement("option");
           opt.value = value;
           opt.textContent = text;
@@ -784,7 +789,7 @@ function build(host, spec, values, onChange, api) {
          options are appended straight to the select, so every existing widget
          renders byte-identically. */
       let run = null;
-      for (const { value, label: text2, group } of optionEntries(field)) {
+      for (const { value, label: text2, group } of optionEntries(field, values)) {
         const opt = document.createElement("option");
         opt.value = value;
         opt.textContent = text2;
@@ -819,7 +824,7 @@ function build(host, spec, values, onChange, api) {
          wrong. The column names are turned ninety degrees with `writing-mode`,
          which makes a name's LENGTH its height, so the band above the grid
          sizes itself off the longest name — see tokens.css. */
-      const options = optionEntries(field);
+      const options = optionEntries(field, values);
       const rows = field.rows ?? [];
       const cols = field.cols ?? rows;
       if (labelled) { label.id = `${id}-l`; wrap.appendChild(label); }
@@ -959,7 +964,7 @@ function build(host, spec, values, onChange, api) {
       // A slider over an ordered option list. Tick labels are not decoration:
       // without them the slider shows a position and hides what the positions
       // are, which is worse than the dropdown it replaced.
-      const options = optionEntries(field);
+      const options = optionEntries(field, values);
       const val = document.createElement("span");
       val.className = "val";
       label.appendChild(val);
@@ -1018,7 +1023,7 @@ function build(host, spec, values, onChange, api) {
     } else if (field.type === "segmented") {
       // Every option visible at rest. For a small set of alternative readings,
       // a collapsed dropdown hides that there is a choice to make.
-      const options = optionEntries(field);
+      const options = optionEntries(field, values);
       if (labelled) wrap.appendChild(label);
       /* THE DETAIL IS A LINE, NOT A TOOLTIP, and it was a tooltip for two
          widgets' worth of shipping. `choice` has always rendered its selected

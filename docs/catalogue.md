@@ -11201,6 +11201,29 @@ adds the other three ranks (242 states, all at 550 now that its frame is
 the [40] row of `flatten()` at rank 4 runs 32px past the edge at CELL_MIN,
 and cat at rank 4 is 1275px tall in the stack view.
 
+**Round 16 (2026-09-09) — Kenneth's four comments on 15, three built and
+one put back.** (1) "bars indicating dimensions (red, green) are too close
+to the tensors and hard to see": the rule in a dimension's hue was a 2px
+line between the indices and the frame, touching the frame's dashed edge
+and its `dim 0 = 0` label; it now sits OUTSIDE its indices, 3px wide,
+with the digits between it and the grid (`IDX_ROW` 15 → 20, `IDX_COL`
+18 → 24, the frames margin 28 → 32). (2) "for certain operations with
+limited choices e.g. dim, easier to use a dropdown. I was inputting values
+that don't make sense": a position is a dropdown over exactly the
+positions the tensor on screen has plus −1 — which needed the mechanism
+decision 14 lacked, so core's `options` may now be a function of the
+resolved values with `optionsFrom` naming what it reads (params.js,
+controls.js); the block rebuilds when that parameter moves, and a value
+the new list no longer holds returns to the field's default through the
+external-write door (widget.js), so the rebuilt select is never blank.
+The lists — a shape, an ordering — stay typed. (3) "the input field is
+fixed width? I thought it was small, then as I type it expands": it did
+grow, from a `size` of 11 that hid the growth; both typed fields start at
+5. (4) The linear-algebra half — broadcasting as the special case after
+the plain element-wise operation, and "multiply" being a matrix product,
+not a scalar one — is a design question, put to him with three layouts.
+245 verify checks; full fingerprint suite for the core change.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

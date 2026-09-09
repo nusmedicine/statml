@@ -441,6 +441,18 @@ export function defineWidget(config) {
       if (name === GATE_PARAM && !value) stopAnim();
       controls.rebuild(values);
       updateAnimButtons();
+      /* An option list that follows this parameter may no longer hold its
+         field's value — dim 3 of a tensor that has just lost its fourth
+         dimension. The value returns to the field's default through the
+         external-write door, which syncs the rebuilt control first: the
+         control that fired a change already shows its value, so `setParam`
+         alone never syncs one, and a rebuilt select would sit blank. */
+      for (const [n, f] of Object.entries(spec)) {
+        if (f.optionsFrom && [].concat(f.optionsFrom).includes(name)
+          && !optionKeys(f, values).includes(values[n]) && values[n] !== f.default) {
+          setFromRegion(n, f.default);
+        }
+      }
     }
 
     if (spec[name]?.display) {
@@ -582,7 +594,7 @@ export function defineWidget(config) {
       const field = spec[name];
       if (!field) throw new Error(`region "${r.label ?? "?"}" sets unknown parameter "${name}"`);
       if (["select", "choice", "segmented"].includes(field.type)
-        && !optionKeys(field).includes(r.set[name])) {
+        && !optionKeys(field, values).includes(r.set[name])) {
         throw new Error(`region "${r.label ?? "?"}" sets "${name}" to "${r.set[name]}", which is not one of its options`);
       }
     }

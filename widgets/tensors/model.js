@@ -341,12 +341,6 @@ export function shapeShow(v) {
   return /^-?\d+(x-?\d+)*$/.test(v ?? "") ? v.split("x").join(", ") : String(v ?? "");
 }
 
-/** One typed number: `-1`, or the text itself when it is not one. */
-export function intWire(text) {
-  const t = String(text ?? "").replace(MINUS, "-").trim();
-  return /^-?\d+$/.test(t) ? String(Number(t)) : t;
-}
-
 const kindOf = (t) => (typeof t === "number" ? "float" : "str");
 
 /** Resolve typed entries — `[2, -1]` — to the shape they make, or the error. */
@@ -406,6 +400,16 @@ export function permFrom(text, rank) {
   const p = toks.map((d) => (d < 0 ? d + rank : d));
   if (new Set(p).size !== p.length) return fail("permute(): duplicate dims are not allowed.");
   return { p, asked: toks, ok: true, error: null };
+}
+
+/** The positions a dropdown offers for `kind` at `rank`: every one the tensor
+    has, then -1 for the last (round 16). unsqueeze and stack may also take
+    the position after the last. */
+export function dimOptions(kind, rank) {
+  const r = RANK_SHAPES[rank] ? Number(rank) : 3;
+  const hi = kind === "unsqueeze" || kind === "stack" ? r : r - 1;
+  const opts = Array.from({ length: hi + 1 }, (_, d) => ({ value: String(d), label: String(d) }));
+  return [...opts, { value: "-1", label: "-1" }];
 }
 
 /* The one answer that is the figure's and not torch's: a fifth dimension.
