@@ -331,6 +331,16 @@
       under the source); the legend entries are a clause each; the Index
       band's whole-tensor line says where an index is set; the Topic control
       keeps its two row captions and loses the six option details.
+
+  32. ROUND 20 (Kenneth, from `_lab/tensor-lesson.html`): THE RAIL IS THE
+      NOTEBOOK'S HEADINGS. Tensors for Data is four topics — Tensors (its
+      Creating and Inspecting: the ladder of ranks, the dimensions named, the
+      print, `.ndim` and the count in the readout), Index/Slice (the same
+      tensor under an index expression; the only topic with click targets),
+      Manipulate (its Manipulating Dimensions), Join — and the rank is one
+      parameter across all four. The stack's step is capped at two rows, so
+      a tall slab sits close and the depth arrow is short, which is how his
+      figures draw it.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -761,7 +771,12 @@ const dimHues = (colors, rank) => Array.from({ length: rank }, (_, k) => colors.
     the raised slabs are named, in the gap the step leaves above the slab in
     front — which is what the mock's rank-4 panel does. */
 function pushStack(plan, colors, x, y, [d0, d1, d2], s, cell, gutter) {
-  const dy = d1 * s + SLAB_GAP;
+  /* ROUND 20: THE STEP IS CAPPED AT TWO ROWS, so a tall slab sits close
+     (Kenneth: "can the tall slabs sit closer? then the diagonal arrow will
+     also be shorter"). His own figures step about a cell and a half; at
+     two rows plus the gap, and 45°, the [2, 5, 2] result's slabs stand side
+     by side and no cell of any shape the widget draws is hidden. */
+  const dy = Math.min(d1, 2) * s + SLAB_GAP;
   const dx = dy;                          // 45°
   const gx = x + (gutter ? SLAB_LBL : 0);
   const front = y + (d0 - 1) * dy;
@@ -858,8 +873,8 @@ function pushFrames(plan, colors, x, y, [d0, d1, d2], s, cell, perRow) {
     and it differs from the frames view in kind: depth and no boxes, against
     boxes and edge indices. */
 function pushStackColumn(plan, colors, x, y, [d0, d1, d2, d3], s, cell) {
-  const dy = d2 * s + SLAB_GAP;
-  const dx = dy;                          // 45°
+  const dy = Math.min(d2, 2) * s + SLAB_GAP;
+  const dx = dy;                          // 45°, capped at two rows as in pushStack
   const stackH = (d1 - 1) * dy + d2 * s;
   const stackW = (d1 - 1) * dx + d3 * s;
   const gx = x + SLAB_LBL;
@@ -1066,7 +1081,7 @@ const roleMargin = (view, s, rank, arrows, rolesLine, lead = 0, shape = M.T3_SHA
       : { ...NONE, bottom: rolesLine ? ROLE_BOTTOM : 0 };
   }
   return view === "stack"
-    ? { top: ROLE_TOP, left: Math.max(shape[1] * s + SLAB_GAP + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
+    ? { top: ROLE_TOP, left: Math.max(Math.min(shape[1], 2) * s + SLAB_GAP + ROLE_LEFT, Math.ceil(lead) - 2), right: ROLE_RIGHT, bottom: ROLE_BOTTOM }
     : { top: 32, left: 14, right: 0, bottom: 22 };
 };
 
@@ -1666,6 +1681,11 @@ const goneLine = (sel) => `${sel.gone.length === 1 ? "dim" : "dims"} ${andList(s
   + `${sel.gone.length === 1 ? "is" : "are"} gone: `
   + `${tally(sel.fixed, "index", "indices")}, ${tally(sel.keep.length, "colon", "colons")}`;
 
+/** The notebook's Inspecting, as one line under the Tensors topic: what
+    `.ndim` and `.shape` say of the tensor on screen. */
+const inspectLine = (spec) => `T.ndim is ${spec.shape.length}; T.shape lists one size per dimension, ${M.shapeText(spec.shape)}, `
+  + `${M.shapeSize(spec.shape)} values in all.`;
+
 /** What can be pressed, said on the figure, because a lecture screen has no
     pointer and core's cursor is the only other signal it has. */
 const clickLine = (rank, view) => (rank >= 3 && view === "stack"
@@ -1682,7 +1702,7 @@ const clickLine = (rank, view) => (rank >= 3 && view === "stack"
    stack, its arrow margins and the 34-column print beside it left a 14px
    cell. So Basics has the two modes Shape has had since round 12: beside,
    preferred down to CELL_OK; else under, at the largest cell that fits. */
-function basicsLayout(colors, w, spec, sel, view, prints, s, mode = "beside") {
+function basicsLayout(colors, w, spec, sel, view, prints, s, mode = "beside", withIndex = true) {
   const { shape, roles } = spec;
   const beside = mode === "beside";
   const colR = beside ? Math.ceil(Math.max(prints.tensor.w, prints.sel.w)) + 2 * BAND_PAD : 0;
@@ -1708,32 +1728,34 @@ function basicsLayout(colors, w, spec, sel, view, prints, s, mode = "beside") {
   const topH = BAND_HEAD + BAND_PAD + (beside
     ? Math.max(topLines, prints.tensor.h)
     : topLines + PRINT_DROP + prints.tensor.h) + BAND_PAD;
-  const botH = whole
-    ? BAND_HEAD + BAND_PAD + LINE_H + BAND_PAD
-    : BAND_HEAD + BAND_PAD + (beside
-      ? Math.max(botDrawn, prints.sel.h)
-      : botDrawn + PRINT_DROP + prints.sel.h) + BAND_PAD;
+  /* the Tensors topic has no Index band at all (round 20) */
+  const botH = !withIndex ? 0
+    : whole
+      ? BAND_HEAD + BAND_PAD + LINE_H + BAND_PAD
+      : BAND_HEAD + BAND_PAD + (beside
+        ? Math.max(botDrawn, prints.sel.h)
+        : botDrawn + PRINT_DROP + prints.sel.h) + BAND_PAD;
 
   return {
-    s, mode, colL, colR, perRow, selPerRow, topH, botH, whole,
-    height: PAD + topH + BAND_GAP + botH + 6 + BASICS_CAPTIONS * CAPTION_H + PAD,
-    fits: top.w <= room && bot.w <= room
-      && (beside || Math.max(prints.tensor.w, whole ? 0 : prints.sel.w) <= room),
+    s, mode, colL, colR, perRow, selPerRow, topH, botH, whole, withIndex,
+    height: PAD + topH + (withIndex ? BAND_GAP + botH : 0) + 6 + BASICS_CAPTIONS * CAPTION_H + PAD,
+    fits: top.w <= room && (!withIndex || bot.w <= room)
+      && (beside || Math.max(prints.tensor.w, whole || !withIndex ? 0 : prints.sel.w) <= room),
   };
 }
 
 /** The largest cell whose drawings fit beside the print column, down to
     CELL_OK; below that the prints go under their drawings instead. */
-function basicsFit(colors, w, spec, sel, view, prints) {
+function basicsFit(colors, w, spec, sel, view, prints, withIndex) {
   for (let s = cellSize(w); s >= CELL_OK; s -= 1) {
-    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "beside");
+    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "beside", withIndex);
     if (L.fits) return L;
   }
   for (let s = cellSize(w); s >= CELL_MIN; s -= 1) {
-    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "under");
+    const L = basicsLayout(colors, w, spec, sel, view, prints, s, "under", withIndex);
     if (L.fits) return L;
   }
-  return basicsLayout(colors, w, spec, sel, view, prints, CELL_MIN, "under");
+  return basicsLayout(colors, w, spec, sel, view, prints, CELL_MIN, "under", withIndex);
 }
 
 /** Everything the stage needs, from the parameters alone — so `height` can ask
@@ -1748,7 +1770,7 @@ function basicsGeometry(ctx, colors, w, params) {
     tensor: printOf(spec.shape, spec.at, "T", cw),
     sel: printOf(sel.shape, sel.at, sel.text, cw),
   };
-  return { spec, sel, cw, prints, fit: basicsFit(colors, w, spec, sel, params.view, prints) };
+  return { spec, sel, cw, prints, fit: basicsFit(colors, w, spec, sel, params.view, prints, params.tab === "index") };
 }
 
 /** Every index of a shape, in reading order; `[[]]` for a scalar. */
@@ -1790,7 +1812,7 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
   const yB = yT + fit.topH + BAND_GAP;
 
   pushBand(plan, xL, yT, bandW, fit.topH, "Tensor", null, xDiv);
-  pushBand(plan, xL, yB, bandW, fit.botH, "Index", sel.text, fit.whole ? null : xDiv);
+  if (fit.withIndex) pushBand(plan, xL, yB, bandW, fit.botH, "Index", sel.text, fit.whole ? null : xDiv);
 
   /* --- the tensor, drawn ------------------------------------------------- *
    * Every index label the drawing writes offers itself here, and this is the
@@ -1875,6 +1897,12 @@ function planBasics(ctx, colors, w, h, params, anim = null) {
 
   /* --- the selection ----------------------------------------------------- */
   const cyB = yB + BAND_HEAD + BAND_PAD;
+  if (!fit.withIndex) {
+    /* the Tensors topic: the tensor alone, and the notebook's Inspecting
+       line under it */
+    pushCaptions(plan, colors, [inspectLine(spec)], PAD, yT + fit.topH + 6 + 13);
+    return plan;
+  }
   if (fit.whole) {
     pushText(plan, WHOLE_LINE, cx, cyB + 11, { color: colors.ink2 });
   } else {
@@ -2421,8 +2449,9 @@ function tabHeight(w, params) {
   const colors = readTokens();
   const cw = monoChar(ctx, colors.fsSm);
   switch (params.tab) {
-    case "basics": return basicsGeometry(ctx, colors, w, params).fit.height;
-    case "shape":
+    case "tensors":
+    case "index": return basicsGeometry(ctx, colors, w, params).fit.height;
+    case "manipulate":
     case "join": return shapeGeometry(ctx, colors, w, params).height;
     case "elementwise": return bcGeometry(colors, w, params, cw).height;
     case "matmul": return mmGeometry(colors, w, params, cw).height;
@@ -2451,7 +2480,7 @@ const SPEEDS = [
 ];
 
 const TAB_UNITS = {
-  shape: "value", join: "value", elementwise: "row", matmul: "cell", reduce: "group",
+  manipulate: "value", join: "value", elementwise: "row", matmul: "cell", reduce: "group",
 };
 
 /* The two halves the six topics fall into. Consecutive options sharing one of
@@ -2467,12 +2496,18 @@ const LEAD_INDEX = [
   { value: "1", label: "1", detail: "the second position, which removes this dimension" },
 ];
 
-const RESHAPE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] };
-const PERMUTE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "permute" }] };
-const UNSQUEEZE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "unsqueeze" }] };
-const FLATTEN_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "flatten" }] };
+const RESHAPE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "reshape" }] };
+const PERMUTE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "permute" }] };
+const UNSQUEEZE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "unsqueeze" }] };
+const FLATTEN_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "flatten" }] };
 const CAT_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "cat" }] };
 const STACK_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "stack" }] };
+
+/* The four topics that share the tensor, and the two that draw it as it is:
+   Tensors (the ladder of ranks and the dimensions named) and Index/Slice
+   (the same tensor with an index expression over it). */
+const DATA_TABS = ["tensors", "index", "manipulate", "join"];
+const isBasics = (tab) => tab === "tensors" || tab === "index";
 
 /** The index entries in dimension order: the leading ones, then the last. */
 const indexParts = (params) =>
@@ -2510,8 +2545,13 @@ defineWidget({
       type: "segmented",
       label: "Topic",
       options: [
-        { value: "basics", label: "Basics", group: DATA_HALF },
-        { value: "shape", label: "Shape", group: DATA_HALF },
+        /* ROUND 20 (Kenneth): the notebook's own headings. Tensors is its
+           Creating and Inspecting — the ladder of ranks, the dimensions named
+           — and Index/Slice its Indexing/Slicing, on the same tensor; the
+           rank is one parameter across all four data topics. */
+        { value: "tensors", label: "Tensors", group: DATA_HALF },
+        { value: "index", label: "Index/Slice", group: DATA_HALF },
+        { value: "manipulate", label: "Manipulate", group: DATA_HALF },
         { value: "join", label: "Join", group: DATA_HALF },
         /* ROUND 17 (Kenneth): the plain element-wise operation first, and
            broadcasting as the shortcut it is when b's shape is smaller;
@@ -2520,7 +2560,7 @@ defineWidget({
         { value: "matmul", label: "Matmul", group: ALGEBRA_HALF },
         { value: "reduce", label: "Reduce", group: ALGEBRA_HALF },
       ],
-      default: "basics",
+      default: "tensors",
     },
     /* THE RANK IS A DATA PARAMETER: it changes which tensor is on screen, not
        how one tensor is drawn. Nothing on this topic animates, so nothing is
@@ -2538,7 +2578,7 @@ defineWidget({
       default: "3",
       /* ROUND 15: one tensor across the three data topics, so the rank set
          here is the tensor Shape and Join work on. */
-      when: { param: "tab", oneOf: ["basics", "shape", "join"] },
+      when: { param: "tab", oneOf: DATA_TABS },
     },
     /* TWO COLUMNS, NOT ONE ROW. Five calls in a 300px rail give each 56px and
        every label truncates to `resha…`, which puts the two reshapes five
@@ -2563,7 +2603,7 @@ defineWidget({
         { value: "flatten", label: "flatten", detail: "collapses the dimensions from a starting one into a single dimension" },
       ],
       default: "reshape",
-      when: { param: "tab", equals: "shape" },
+      when: { param: "tab", equals: "manipulate" },
     },
     /* --- reshape's argument, typed (rounds 13 and 14) ----------------------- *
      * Round 11 offered the 65 shapes that hold 20 values as a grouped list,
@@ -2727,7 +2767,7 @@ defineWidget({
       ],
       default: "sequence",
       display: true,
-      when: { param: "tab", oneOf: ["basics", "shape", "join"] },
+      when: { param: "tab", oneOf: DATA_TABS },
     },
     /* TWO DRAWINGS OF ONE TENSOR, and a display parameter because it changes
        only the layout: switching it keeps every value already moved (3.2). */
@@ -2749,7 +2789,7 @@ defineWidget({
       ],
       default: "stack",
       display: true,
-      when: { param: "tab", oneOf: ["basics", "shape", "join"] },
+      when: { param: "tab", oneOf: DATA_TABS },
     },
     /* --- the index expression, as one control ----------------------------- *
      * ONE LINE OF CODE, `T[ : , 0 , : ]`, through core's `expr` entry: the
@@ -2780,7 +2820,7 @@ defineWidget({
       options: LEAD_INDEX,
       default: ":",
       display: true,
-      when: { all: [{ param: "tab", equals: "basics" }, { param: "rank", oneOf: ["2", "3", "4"] }] },
+      when: { all: [{ param: "tab", equals: "index" }, { param: "rank", oneOf: ["2", "3", "4"] }] },
     },
     i1: {
       type: "segmented",
@@ -2789,7 +2829,7 @@ defineWidget({
       options: LEAD_INDEX,
       default: ":",
       display: true,
-      when: { all: [{ param: "tab", equals: "basics" }, { param: "rank", oneOf: ["3", "4"] }] },
+      when: { all: [{ param: "tab", equals: "index" }, { param: "rank", oneOf: ["3", "4"] }] },
     },
     i2: {
       type: "segmented",
@@ -2798,7 +2838,7 @@ defineWidget({
       options: LEAD_INDEX,
       default: ":",
       display: true,
-      when: { all: [{ param: "tab", equals: "basics" }, { param: "rank", equals: "4" }] },
+      when: { all: [{ param: "tab", equals: "index" }, { param: "rank", equals: "4" }] },
     },
     feature: {
       type: "segmented",
@@ -2814,7 +2854,7 @@ defineWidget({
       ],
       default: ":",
       display: true,
-      when: { param: "tab", equals: "basics" },
+      when: { param: "tab", equals: "index" },
     },
     index: {
       type: "expr",
@@ -2824,7 +2864,7 @@ defineWidget({
       join: ",",
       close: "]",
       slots: ["i0", "i1", "i2", "feature"],
-      when: { param: "tab", equals: "basics" },
+      when: { param: "tab", equals: "index" },
     },
     b: {
       type: "segmented",
@@ -2905,7 +2945,7 @@ defineWidget({
       afterDrive: true,
       when: {
         any: [
-          { param: "tab", oneOf: ["shape", "join", "reduce"] },
+          { param: "tab", oneOf: ["manipulate", "join", "reduce"] },
           {
             all: [
               { param: "tab", equals: "elementwise" },
@@ -2930,7 +2970,7 @@ defineWidget({
      The tensor read and the result built share one blue in tokens.css by
      design (decision 2), so one entry names both. */
   legend: ({ params }) => {
-    if (params.tab === "basics") {
+    if (isBasics(params.tab)) {
       const rank = Number(params.rank);
       const sel = M.selectionOf(params.rank, indexParts(params), params.names);
       /* Rank 4 is frames in BOTH views — an exploded stack per leading index in
@@ -3005,7 +3045,7 @@ defineWidget({
   compute({ params }) {
     /* Basics counts no units, which is how core learns there is nothing to
        drive: `init` sets `anim.inert` from it and the drive row goes (4.5). */
-    if (params.tab === "basics") {
+    if (isBasics(params.tab)) {
       return {
         kind: "basics",
         spec: M.rankSpec(params.rank, params.names),
@@ -3013,7 +3053,7 @@ defineWidget({
         units: 0,
       };
     }
-    if (params.tab === "shape" || params.tab === "join") {
+    if (params.tab === "manipulate" || params.tab === "join") {
       /* a reshape that does not hold the values has no walk, so it is inert
          (4.5) and the Result band prints torch's own complaint */
       const op = M.opFrom(params);
@@ -3049,7 +3089,7 @@ defineWidget({
     stepLabel: {
       param: "tab",
       labels: {
-        shape: "Move a value",
+        manipulate: "Move a value",
         join: "Move a value",
         elementwise: "Add a row",
         matmul: "Compute a cell",
@@ -3060,7 +3100,7 @@ defineWidget({
     stepTitle: {
       param: "tab",
       labels: {
-        shape: "Move the next value from the tensor to its place in the result",
+        manipulate: "Move the next value from the tensor to its place in the result",
         join: "Move the next value from one of the two tensors to its place in the result",
         elementwise: "Add the next row of X and b, and draw the row it makes",
         matmul: "Compute the next cell of the product from a row of X and a column of Wᵀ",
@@ -3072,7 +3112,7 @@ defineWidget({
     runTitle: {
       param: "tab",
       labels: {
-        shape: "Move every remaining value into the result",
+        manipulate: "Move every remaining value into the result",
         join: "Move every remaining value of both tensors into the result",
         elementwise: "Add the remaining rows",
         matmul: "Compute the remaining cells of the product",
@@ -3096,7 +3136,7 @@ defineWidget({
         /* the Basics eases (4.4): what is on screen now, so `rebuild` can tell
            a view change from an index change, and where every cell was drawn */
         view: params.view,
-        sel: params.tab === "basics" ? M.selectionOf(params.rank, indexParts(params), params.names).text : null,
+        sel: isBasics(params.tab) ? M.selectionOf(params.rank, indexParts(params), params.names).text : null,
         pos: null,
         morph: null,
         extract: null,
@@ -3149,7 +3189,7 @@ defineWidget({
          selection on screen are compared with what the parameters now ask.
          Setting `easing` is the request for frames; core clears it when it
          grants one. Reduced motion asks for nothing and the figure jumps. */
-      if (params.tab === "basics") {
+      if (isBasics(params.tab)) {
         const sel = M.selectionOf(params.rank, indexParts(params), params.names);
         const motion = !reducedMotion();
         if (params.view !== anim.view) {
@@ -3189,12 +3229,12 @@ defineWidget({
     /* `state` is null while core probes the table at load to validate the
        parameter names, before the first compute. An empty table is right
        there: nothing is on the canvas to hit yet. */
-    if (!state || params.tab !== "basics") return [];
+    if (!state || params.tab !== "index") return [];   // only Index/Slice offers targets
     return planBasics(measureCtx(), readTokens(), w, h, params).targets;
   },
 
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
-    const plan = params.tab === "basics" ? planBasics(ctx, colors, w, h, params, anim)
+    const plan = isBasics(params.tab) ? planBasics(ctx, colors, w, h, params, anim)
       : state.kind === "shape" ? planShape(ctx, colors, w, h, params, state, anim)
         : params.tab === "elementwise" ? planBroadcast(ctx, colors, w, h, params, state, anim)
           : params.tab === "matmul" ? planMultiply(ctx, colors, w, h, params, state, anim)
@@ -3239,7 +3279,29 @@ defineWidget({
     });
     const unit = TAB_UNITS[params.tab];
 
-    if (params.tab === "basics") {
+    if (params.tab === "tensors") {
+      /* the notebook's Inspecting: `.shape`, `.ndim`, and the count */
+      const { shape, names } = state.spec;
+      return [
+        {
+          label: "Shape",
+          value: M.shapeText(shape),
+          note: names.filter(Boolean).join(", ") || "positions only",
+        },
+        {
+          label: "Dimensions",
+          value: String(shape.length),
+          note: "T.ndim: one size in the shape for each",
+        },
+        {
+          label: "Values",
+          value: String(M.shapeSize(shape)),
+          note: "the sizes multiplied",
+        },
+        cell("—", "a cell's index and value"),
+      ];
+    }
+    if (params.tab === "index") {
       const { shape, names } = state.spec;
       const sel = state.sel;
       const total = M.shapeSize(shape);
@@ -3392,14 +3454,16 @@ defineWidget({
   },
 
   summary({ params, state, anim }) {
-    if (params.tab === "basics") {
+    if (isBasics(params.tab)) {
       const { shape, names } = state.spec;
       const sel = state.sel;
-      return `The ${M.shapeText(shape)} tensor, its dimensions ${names.filter(Boolean).join(", ") || "numbered only"}, drawn as `
+      const drawn = `The ${M.shapeText(shape)} tensor, its dimensions ${names.filter(Boolean).join(", ") || "numbered only"}, drawn as `
         + (params.view === "stack"
           ? "grids stepped up the diagonal"
           : "framed grids side by side, with the indices on the edges")
-        + ` and printed beside the drawing. ${sel.text} selects ${sel.size} of `
+        + " and printed as PyTorch prints it.";
+      if (params.tab === "tensors") return `${drawn} ${shape.length} dimensions, ${M.shapeSize(shape)} values.`;
+      return `${drawn} ${sel.text} selects ${sel.size} of `
         + `${M.shapeSize(shape)} values and has shape ${M.shapeText(sel.shape)}. ${INDEX_RULE}`;
     }
     if (state.kind === "shape") {

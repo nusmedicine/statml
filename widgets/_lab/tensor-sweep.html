@@ -40,21 +40,23 @@ const CASES = [
      state: at rank 3 frames, two frame labels, two row indices and five column
      indices. The stack view offers dim 0 only, so its dim-1 slab labels are
      counted as labels and are deliberately not targets. */
-  ["basics rank 3 stack", "", 2],
-  ["basics rank 3 frames", "view=frames", 9],
-  ["basics T[:, 0, :]", "view=frames&i1=0", 9],
-  ["basics T[1, 0, 2]", "i0=1&i1=0&feature=2", 2],
-  ["basics rank 1", "rank=1", 5],
-  ["basics rank 1 f=2", "rank=1&feature=2", 5],
-  ["basics rank 2", "rank=2", 7],
-  ["basics rank 2 frames", "rank=2&view=frames", 7],
-  ["basics rank 4 stack", "rank=4", 2],
-  ["basics rank 4 frames", "rank=4&view=frames", 13],
-  ["basics rank 4 i0=1", "rank=4&view=frames&i0=1", 13],
-  ["basics rank 4 i2=0", "rank=4&view=frames&i2=0", 13],
-  ["shape reshape(2,-1)", "tab=shape&shown=20", 0],
-  ["shape unsqueeze stack", "tab=shape&op=unsqueeze&shown=20", 0],
-  ["shape unsqueeze frames", "tab=shape&op=unsqueeze&view=frames&shown=20", 0],
+  ["tensors rank 3 stack", "", 0],
+  ["tensors rank 4 frames", "rank=4&view=frames", 0],
+  ["index rank 3 stack", "tab=index", 2],
+  ["index rank 3 frames", "tab=index&view=frames", 9],
+  ["index T[:, 0, :]", "tab=index&view=frames&i1=0", 9],
+  ["index T[1, 0, 2]", "tab=index&i0=1&i1=0&feature=2", 2],
+  ["index rank 1", "tab=index&rank=1", 5],
+  ["index rank 1 f=2", "tab=index&rank=1&feature=2", 5],
+  ["index rank 2", "tab=index&rank=2", 7],
+  ["index rank 2 frames", "tab=index&rank=2&view=frames", 7],
+  ["index rank 4 stack", "tab=index&rank=4", 2],
+  ["index rank 4 frames", "tab=index&rank=4&view=frames", 13],
+  ["index rank 4 i0=1", "tab=index&rank=4&view=frames&i0=1", 13],
+  ["index rank 4 i2=0", "tab=index&rank=4&view=frames&i2=0", 13],
+  ["shape reshape(2,-1)", "tab=manipulate&shown=20", 0],
+  ["shape unsqueeze stack", "tab=manipulate&op=unsqueeze&shown=20", 0],
+  ["shape unsqueeze frames", "tab=manipulate&op=unsqueeze&view=frames&shown=20", 0],
   ["join stack stack", "tab=join&join=stack&shown=40", 0],
   ["join stack frames", "tab=join&join=stack&view=frames&shown=40", 0],
   ["join cat", "tab=join&join=cat&shown=40", 0],
@@ -202,17 +204,17 @@ async function run(frameW, name, query, expect) {
 const OPS = location.search.includes("ops") ? (() => {
   const out = [];
   /* the typed field's URL form, plus the lesson's -1, two -1s and a word */
-  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], ["a"]].map((sh) => ["shape", `op=reshape&shape=${sh.join("x")}`]);
-  const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${pm.join("x")}`]);
-  const uns = [0, 1, 2, 3].map((d) => ["shape", `op=unsqueeze&udim=${d}`]);
-  const fls = [0, 1, 2].map((d) => ["shape", `op=flatten&fstart=${d}`]);
+  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], ["a"]].map((sh) => ["manipulate", `op=reshape&shape=${sh.join("x")}`]);
+  const perms = M.PERMUTATIONS.map((pm) => ["manipulate", `op=permute&perm=${pm.join("x")}`]);
+  const uns = [0, 1, 2, 3].map((d) => ["manipulate", `op=unsqueeze&udim=${d}`]);
+  const fls = [0, 1, 2].map((d) => ["manipulate", `op=flatten&fstart=${d}`]);
   const cats = [0, 1, 2].map((d) => ["join", `join=cat&cdim=${d}`]);
   const stacks = [0, 1, 2, 3].map((d) => ["join", `join=stack&sdim=${d}`]);
   /* round 15: the other three ranks, each verb at its lesson default and one
      more, the fifth-dimension refusal at rank 4 among them */
   const ranks = [];
   for (const r of [1, 2, 4]) {
-    for (const q of ["op=reshape&shape=-1", "op=reshape&shape=5x-1", "op=permute&perm=0", "op=flatten", "op=unsqueeze&udim=0", "op=unsqueeze&udim=-1"]) ranks.push(["shape", `rank=${r}&${q}`]);
+    for (const q of ["op=reshape&shape=-1", "op=reshape&shape=5x-1", "op=permute&perm=0", "op=flatten", "op=unsqueeze&udim=0", "op=unsqueeze&udim=-1"]) ranks.push(["manipulate", `rank=${r}&${q}`]);
     for (const q of ["join=cat", "join=cat&cdim=-1", "join=stack", "join=stack&sdim=-1"]) ranks.push(["join", `rank=${r}&${q}`]);
   }
   ranks.push(["shape", "rank=4&op=permute&perm=3x2x1x0"], ["shape", "rank=2&op=permute&perm=1x0"]);

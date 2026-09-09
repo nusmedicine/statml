@@ -3240,42 +3240,42 @@
     {
       "$note": "PLACEHOLDER - draft. Basics: T[:, 0, :] — ten cells lit above, the [2, 5] sub-tensor drawn below",
       "slug": "tensors",
-      "state": "?theme=light&view=frames&i1=0&shown=0",
+      "state": "?theme=light&tab=index&view=frames&i1=0&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Basics: T[1, 0, 2] — one element, rank 3 to rank 0",
       "slug": "tensors",
-      "state": "?theme=light&i0=1&i1=0&feature=2&shown=0",
+      "state": "?theme=light&tab=index&i0=1&i1=0&feature=2&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Shape: reshape(2, -1) finished, [2, 10]",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&shown=20",
+      "state": "?theme=light&tab=manipulate&shown=20",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Shape: permute(0, 2, 1), 7 at [0, 1, 1]",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&op=permute&shown=7",
+      "state": "?theme=light&tab=manipulate&op=permute&shown=7",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Shape: the same [2, 5, 2] by reshape — 7 at [0, 3, 0], which is the argument",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&op=reshape&shape=2x5x2&shown=7",
+      "state": "?theme=light&tab=manipulate&op=reshape&shape=2x5x2&shown=7",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Shape at rank 4 (round 15): permute(3, 2, 1, 0) of the [2, 2, 2, 5], 40 of 40 placed",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&rank=4&op=permute&perm=3x2x1x0&shown=40",
+      "state": "?theme=light&tab=manipulate&rank=4&op=permute&perm=3x2x1x0&shown=40",
       "px": "0",
       "tx": "0"
     },
@@ -3289,14 +3289,14 @@
     {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&op=flatten&shown=20",
+      "state": "?theme=light&tab=manipulate&op=flatten&shown=20",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "PLACEHOLDER - draft. Shape: unsqueeze(0) — [1, 2, 2, 5] as the column of exploded stacks",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&op=unsqueeze&shown=20",
+      "state": "?theme=light&tab=manipulate&op=unsqueeze&shown=20",
       "px": "0",
       "tx": "0"
     },
@@ -3359,7 +3359,7 @@
     {
       "$note": "PLACEHOLDER - draft. DRIVEN: Shape mid-move at Medium, the third value between its two cells",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape",
+      "state": "?theme=light&tab=manipulate",
       "drive": {
         "click": "step",
         "frames": 8,
@@ -3383,7 +3383,7 @@
     {
       "$note": "PLACEHOLDER - draft. HIT-DRIVEN: the pointer on the frames view's dim 0 = 1 label at [218, 57] sets i0 - the region geometry no pixel hash can see. Cells are not targets; only the index labels are.",
       "slug": "tensors",
-      "state": "?theme=light&view=frames",
+      "state": "?theme=light&tab=index&view=frames",
       "drive": {
         "hit": [
           218,

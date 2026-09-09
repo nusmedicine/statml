@@ -462,11 +462,11 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
 
   /* opFrom reads the parameters the rail writes — round 13: reshape's four
      slots, blanks dropped, as the student typed them */
-  const viaParams = opFrom({ tab: "shape", op: "reshape", shape: "2x5x2", names: "sequence" });
+  const viaParams = opFrom({ tab: "manipulate", op: "reshape", shape: "2x5x2", names: "sequence" });
   check("opFrom reads op + the typed shape and attaches roles",
     viaParams.label === "reshape(2, 5, 2)" && same(viaParams.shape, [2, 5, 2]) && same(viaParams.roles, ["0", "1", "2"]),
     viaParams.roles.join(" | "));
-  const lesson = opFrom({ tab: "shape", op: "reshape", shape: "2x-1", names: "sequence" });
+  const lesson = opFrom({ tab: "manipulate", op: "reshape", shape: "2x-1", names: "sequence" });
   check("the lesson's own reshape(2, -1) is the default and -1 becomes 10",
     lesson.ok && lesson.label === "reshape(2, -1)" && same(lesson.shape, [2, 10]) && lesson.inferred === 10
     && same(lesson.names, ["sample", "sequence × feature"]),
