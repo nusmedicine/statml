@@ -3180,11 +3180,15 @@ defineWidget({
   slug: "tensors",
   title: "Tensors",
   status: "shipped",
+  /* ROUND 31 (Kenneth, after shipping: "review and rewrite to match topics"):
+     his pick of the options, in the register of the other subtitles — the
+     concept, not the widget */
   subtitle:
-    "A tensor is an array with a shape, and the shape decides which values an "
-    + "operation combines. An index and a reduction each remove the dimension "
-    + "they name; reshaping keeps the reading order, and broadcasting stretches "
-    + "a smaller shape.",
+    "A tensor is a multi-dimensional array whose shape lists the size of each "
+    + "dimension. Indexing selects part of it, and reshaping and joining change "
+    + "the shape while keeping the values. Linear algebra on tensors takes three "
+    + "forms: element-wise operations, matrix multiplication, and reductions "
+    + "along a dimension.",
   layout: "side",
   /* A function of the WIDTH, because the cell size is: wider cells are taller
      cells, and the six rows of permute's result grow with them. One height for

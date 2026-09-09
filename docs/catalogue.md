@@ -11536,7 +11536,14 @@ through a small core addition, `groupHeads: true` on a segmented field
 (a group's name above its row instead of the note under it; the
 Manipulate verbs keep their notes under). Full suite after the core
 change: all 404 MATCH. His second ask, a subtitle that describes the
-widget broadly, was answered with four options to pick from.
+widget broadly, was answered with options — the first sets, describing
+the widget, drew "don't comment and describe the widget … look at
+previous examples": the other subtitles state the CONCEPT in two or
+three sentences and say nothing about the figure. His picks: the subtitle
+"A tensor is a multi-dimensional array whose shape lists the size of each
+dimension …", with the linear algebra "in three forms: element-wise
+operations, matrix multiplication, and reductions along a dimension"; the
+gallery blurb one sentence in the same form. Pushed with the headings.
 
 ### Questions for Kenneth, before any mock-up
 
