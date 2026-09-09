@@ -557,6 +557,23 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     && same(dimOptions("flatten", 1).map((o) => o.value), ["0", "-1"])
     && [1, 2, 3, 4].every((r) => ["unsqueeze", "flatten", "cat", "stack"].every((k) =>
       dimOptions(k, r).every((o) => dimFrom(o.value, k, "dim", k === "unsqueeze" || k === "stack" ? r : r - 1, 0).ok))));
+  {
+    const sq = shapeOp("squeeze", "0", "sequence", 3);
+    check("squeeze(0) works on the unsqueezed [1, 2, 2, 5] and returns [2, 2, 5] (round 20)",
+      same(sq.src, [1, 2, 2, 5]) && same(sq.shape, [2, 2, 5]) && sq.read(0, [0, 1, 1, 4]) === 20 && bij(sq));
+    const keep = shapeOp("squeeze", "1", "sequence", 3);
+    check("squeeze of a dimension that is not size 1 leaves the shape as it is", same(keep.shape, [1, 2, 2, 5]) && keep.ok && bij(keep));
+    check("squeeze() with no position removes every size-1 dimension", same(shapeOp("squeeze", "all", "sequence", 3).shape, [2, 2, 5]));
+    check("squeeze at rank 4 declines: its source would have five dimensions", shapeOp("squeeze", "0", "sequence", 4).limit === true);
+    const tr = shapeOp("transpose", ["1", "2"], "sequence", 3);
+    check("transpose(1, 2) is permute(0, 2, 1)", same(tr.shape, [2, 5, 2]) && same(tr.names, ["sample", "feature", "sequence"]) && bij(tr)
+      && same(shapeWalk(tr).map((m) => m.dst.join(",")), shapeWalk(shapeOp("permute", "0-2-1")).map((m) => m.dst.join(","))));
+    check("transpose of a dimension with itself moves nothing", shapeWalk(shapeOp("transpose", ["1", "1"], "sequence", 3)).every((m) => same(m.src, m.dst)));
+    check("transpose out of range is torch's own message", shapeOp("transpose", ["0", "3"], "sequence", 3).error === "Dimension out of range (expected to be in range of [-3, 2], but got 3)");
+    check("squeeze offers one position more than the rank and –; transpose offers the rank's positions and -1",
+      same(dimOptions("squeeze", 3).map((o) => o.value), ["0", "1", "2", "3", "all"])
+      && same(dimOptions("transpose", 2).map((o) => o.value), ["0", "1", "-1"]));
+  }
   check("the lesson's own lines still read at rank 3 with the string keys the lab scripts use",
     shapeOp("permute", "0-2-1").label === "permute(0, 2, 1)" && same(shapeOp("permute", "0-2-1").shape, [2, 5, 2])
     && same(shapeOp("reshape", "2-5-2").shape, [2, 5, 2]) && same(joinOp("stack", 0).shape, [2, 2, 2, 5]));

@@ -341,6 +341,14 @@
       parameter across all four. The stack's step is capped at two rows, so
       a tall slab sits close and the depth arrow is short, which is how his
       figures draw it.
+
+  33. ROUND 20, THE VERBS: the Operation control is the notebook's three
+      captioned rows (cell 24) — reshaping: reshape · flatten; adding /
+      removing: unsqueeze · squeeze; reordering: permute · transpose. squeeze
+      works on the [1, …] tensor that unsqueeze(0) makes, as cell 35 does,
+      its source one dimension up; a position that is not size 1 leaves the
+      shape as it is, torch's rule, said in the caption; `–` squeezes every
+      size-1 dimension. transpose takes two positions and is permute for two.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1413,7 +1421,9 @@ function shapeFit(colors, w, op, view, prints, srcRoles) {
 /** How a result is drawn: arrows in the stack view at rank 3 and 4, edge
     indices in the frames view, the roles line drawn separately underneath. */
 const resultOpts = (view, rank) => ({ arrows: view === "stack" && rank >= 3, rolesLine: false, edges: view === "frames", arrowNames: false });
-const SOURCE_OPTS = { arrowNames: false };
+/* the swatched roles line under a source is drawn by `pushRoles`, so the
+   rank-4 column's own plain roles line is off here too */
+const SOURCE_OPTS = { arrowNames: false, rolesLine: false };
 
 const SRC_NAMES = ["T", "T2"];
 
@@ -1450,7 +1460,8 @@ function shapeGeometry(ctx, colors, w, params) {
       printOf(op.src, (idx) => op.read(t, idx), SRC_NAMES[t], cw)),
     result: op.ok ? printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw) : null,
   };
-  const srcRoles = M.roleLabels(params.names, op.src.length);
+  /* squeeze's source is one dimension up and names its own roles */
+  const srcRoles = op.srcRoles ?? M.roleLabels(params.names, op.src.length);
   const fit = shapeFit(colors, w, op, view, prints, srcRoles);
   /* torch's words, wrapped to the band: its TypeError for a typed word is 85
      mono columns, wider than the 550px stage (round 14) */
@@ -2500,6 +2511,8 @@ const RESHAPE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op"
 const PERMUTE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "permute" }] };
 const UNSQUEEZE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "unsqueeze" }] };
 const FLATTEN_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "flatten" }] };
+const SQUEEZE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "squeeze" }] };
+const TRANSPOSE_ON = { all: [{ param: "tab", equals: "manipulate" }, { param: "op", equals: "transpose" }] };
 const CAT_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "cat" }] };
 const STACK_ON = { all: [{ param: "tab", equals: "join" }, { param: "join", equals: "stack" }] };
 
@@ -2596,11 +2609,15 @@ defineWidget({
       type: "segmented",
       label: "Operation",
       detail: "what is done to the tensor",  // its shape is the Dimensions control's
+      /* ROUND 20: the notebook's three groups of cell 24 — reshaping, adding
+         and removing, reordering — each a captioned row, two verbs apiece. */
       options: [
-        { value: "reshape", label: "reshape", detail: "refills the values, in reading order, into a shape with the same number of them" },
-        { value: "permute", label: "permute", detail: "reorders the dimensions; each value moves to the index with its positions reordered" },
-        { value: "unsqueeze", label: "unsqueeze", detail: "adds a dimension of size 1, which is how one sample becomes a batch of one" },
-        { value: "flatten", label: "flatten", detail: "collapses the dimensions from a starting one into a single dimension" },
+        { value: "reshape", label: "reshape", group: "1 · reshaping", detail: "refills the values, in reading order, into a shape with the same number of them" },
+        { value: "flatten", label: "flatten", group: "1 · reshaping", detail: "collapses the dimensions from a starting one into a single dimension" },
+        { value: "unsqueeze", label: "unsqueeze", group: "2 · adding / removing", detail: "adds a dimension of size 1, which is how one sample becomes a batch of one" },
+        { value: "squeeze", label: "squeeze", group: "2 · adding / removing", detail: "removes a dimension of size 1; here from the [1, …] tensor that unsqueeze(0) made" },
+        { value: "permute", label: "permute", group: "3 · reordering", detail: "reorders the dimensions; each value moves to the index with its positions reordered" },
+        { value: "transpose", label: "transpose", group: "3 · reordering", detail: "permute for two dimensions: the two swap places and the rest stay" },
       ],
       default: "reshape",
       when: { param: "tab", equals: "manipulate" },
@@ -2695,6 +2712,52 @@ defineWidget({
       options: (v) => M.dimOptions("flatten", Number(v.rank)),
       optionsFrom: "rank",
       when: FLATTEN_ON,
+    },
+    sqdim: {
+      type: "select",
+      label: "position",
+      hidden: true,
+      default: "0",
+      options: (v) => M.dimOptions("squeeze", Number(v.rank)),
+      optionsFrom: "rank",
+      when: SQUEEZE_ON,
+    },
+    squeeze: {
+      type: "expr",
+      label: "Dimension to remove",
+      detail: "a position of size 1 goes; one that is not leaves the shape as it is; – removes every size-1 dimension",
+      open: "T.squeeze(",
+      close: ")",
+      slots: ["sqdim"],
+      when: SQUEEZE_ON,
+    },
+    tdim0: {
+      type: "select",
+      label: "first",
+      hidden: true,
+      default: "1",
+      options: (v) => M.dimOptions("transpose", Number(v.rank)),
+      optionsFrom: "rank",
+      when: TRANSPOSE_ON,
+    },
+    tdim1: {
+      type: "select",
+      label: "second",
+      hidden: true,
+      default: "2",
+      options: (v) => M.dimOptions("transpose", Number(v.rank)),
+      optionsFrom: "rank",
+      when: TRANSPOSE_ON,
+    },
+    transpose: {
+      type: "expr",
+      label: "Dimensions to swap",
+      detail: "the two positions change places",
+      open: "T.transpose(",
+      join: ",",
+      close: ")",
+      slots: ["tdim0", "tdim1"],
+      when: TRANSPOSE_ON,
     },
     flatten: {
       type: "expr",

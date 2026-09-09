@@ -407,9 +407,11 @@ export function permFrom(text, rank) {
     the position after the last. */
 export function dimOptions(kind, rank) {
   const r = RANK_SHAPES[rank] ? Number(rank) : 3;
-  const hi = kind === "unsqueeze" || kind === "stack" ? r : r - 1;
+  /* squeeze's source is the unsqueezed tensor, one dimension up */
+  const hi = kind === "unsqueeze" || kind === "stack" || kind === "squeeze" ? r : r - 1;
   const opts = Array.from({ length: hi + 1 }, (_, d) => ({ value: String(d), label: String(d) }));
-  return [...opts, { value: "-1", label: "-1" }];
+  const tail = kind === "squeeze" ? [{ value: "all", label: "–" }] : [{ value: "-1", label: "-1" }];
+  return [...opts, ...tail];
 }
 
 /* The one answer that is the figure's and not torch's: a fifth dimension.
@@ -524,6 +526,67 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
       dest: (n) => { const s = unravel(n, src); return [...s.slice(0, d), 0, ...s.slice(d)]; },
     };
   }
+  if (kind === "squeeze") {
+    /* ROUND 20: squeeze works on the tensor the notebook squeezes — the one
+       unsqueeze(0) just made — so its source is [1, ...shape] and its values
+       are read through the leading 0. A position that is not size 1 leaves
+       the shape as it is, which is torch's rule and is said in the band. */
+    const srcU = [1, ...src];
+    const namesU = ["size 1", ...names];
+    const squeezed = { ...base, src: srcU, srcRoles: labelsOf(namesU), read: (t, idx) => source.read(t, idx.slice(1)) };
+    if (srcU.length > DRAWN_RANK) return failed(squeezed, "squeeze(0)", FIVE_DIMS(srcU), srcU, true);
+    const all = arg === "" || arg === "all" || arg == null;
+    if (all) {
+      return {
+        ...squeezed,
+        value: "squeeze-all",
+        label: "squeeze()",
+        shape: [...src],
+        names,
+        caption: "With no position given, every dimension of size 1 is removed: dim 0 goes and the rest close up.",
+        dest: (n) => unravel(n, srcU).slice(1),
+      };
+    }
+    const r = dimFrom(arg, "squeeze", "dim", srcU.length - 1);
+    if (!r.ok) return failed(squeezed, `squeeze(${r.asked})`, r.error, []);
+    const d = r.d;
+    const gone = srcU[d] === 1;
+    const shape = gone ? srcU.filter((_, k) => k !== d) : [...srcU];
+    return {
+      ...squeezed,
+      value: `squeeze-${d}`,
+      label: `squeeze(${r.asked})`,
+      shape,
+      names: gone ? namesU.filter((_, k) => k !== d) : namesU,
+      caption: gone
+        ? `Dim ${d} has size 1, so it is removed and the dimensions after it move up one.`
+        : `Dim ${d} has size ${srcU[d]}, not 1, so squeeze leaves the shape as it is.`,
+      dest: (n) => { const s = unravel(n, srcU); return gone ? s.filter((_, k) => k !== d) : s; },
+    };
+  }
+  if (kind === "transpose") {
+    /* transpose(a, b): permute for two dimensions */
+    const [ta, tb] = Array.isArray(arg) ? arg : String(arg).split("x");
+    const ra = dimFrom(ta, "transpose", "dim0", src.length - 1);
+    const rb = dimFrom(tb, "transpose", "dim1", src.length - 1);
+    const label = `transpose(${ra.asked}, ${rb.asked})`;
+    if (!ra.ok) return failed(base, label, ra.error, []);
+    if (!rb.ok) return failed(base, label, rb.error, []);
+    const p = src.map((_, k) => k);
+    [p[ra.d], p[rb.d]] = [p[rb.d], p[ra.d]];
+    const same = ra.d === rb.d;
+    return {
+      ...base,
+      value: `transpose-${ra.d}-${rb.d}`,
+      label,
+      shape: p.map((k) => src[k]),
+      names: p.map((k) => names[k]),
+      caption: same
+        ? `Dim ${ra.d} swapped with itself: every value stays where it is.`
+        : `Permute for two dimensions: ${ra.d} and ${rb.d} swap places and the rest stay.`,
+      dest: (n) => { const s = unravel(n, src); return p.map((k) => s[k]); },
+    };
+  }
   /* flatten(start_dim) */
   const r = dimFrom(arg, "flatten", "start_dim", src.length - 1, 0);
   if (!r.ok) return failed(base, `flatten(start_dim=${r.asked})`, r.error, []);
@@ -597,7 +660,10 @@ export function opFrom(params) {
     : shapeOp(params.op,
       params.op === "reshape" ? parseShapeText(params.shape)
         : params.op === "permute" ? (params.perm ?? "")
-          : params.op === "unsqueeze" ? (params.udim ?? "") : (params.fstart ?? ""),
+          : params.op === "unsqueeze" ? (params.udim ?? "")
+            : params.op === "squeeze" ? (params.sqdim ?? "0")
+              : params.op === "transpose" ? [params.tdim0 ?? "1", params.tdim1 ?? "2"]
+                : (params.fstart ?? ""),
       setName, rank);
   return { ...op, roles: labelsOf(op.names ?? []) };
 }

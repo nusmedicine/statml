@@ -448,10 +448,13 @@ export function defineWidget(config) {
          control that fired a change already shows its value, so `setParam`
          alone never syncs one, and a rebuilt select would sit blank. */
       for (const [n, f] of Object.entries(spec)) {
-        if (f.optionsFrom && [].concat(f.optionsFrom).includes(name)
-          && !optionKeys(f, values).includes(values[n]) && values[n] !== f.default) {
-          setFromRegion(n, f.default);
-        }
+        if (!f.optionsFrom || ![].concat(f.optionsFrom).includes(name)) continue;
+        const keys = optionKeys(f, values);
+        if (keys.includes(values[n])) continue;
+        /* the default itself may have left the list — transpose(1, 2) on a
+           tensor that has just lost its third dimension — so the first
+           option stands in for it */
+        setFromRegion(n, keys.includes(f.default) ? f.default : keys[0]);
       }
     }
 
