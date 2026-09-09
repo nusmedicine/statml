@@ -253,6 +253,21 @@
       stack view of [20, 1, 1] and of [1, 20, 1, 1], twenty slabs wide, in
       the family of 31 shapes with two or more size-1 dimensions that also
       holds every stage over 1500px. Whether that family stays is Kenneth's.
+
+  25. ROUND 13 (Kenneth: "curate, or let students enter numbers themselves?"
+      — he chose entry). Reshape's argument is TYPED: core's `expr` line,
+      `T.reshape( 2 , -1 , – , – )`, four hidden slot parameters `s0`-`s3`,
+      each blank, -1 or any size 1-20. The 65-shape list went with the
+      question it pre-answered — which products of 20 there are — and
+      `model.reshapeFrom` answers as torch does: a wrong product prints
+      `shape '[3, 7]' is invalid for input of size 20`, one -1 becomes the
+      size that fits (the Result shape tile says which), two print `only one
+      dimension can be inferred`, and the empty call fails as `reshape(())`
+      does. The lesson's own `reshape(2, -1)` is the default. Every valid
+      shape stays reachable, so the tall degenerate stages do too — for a
+      student who typed [20, 1, 1, 1] and is looking at what it did. The
+      same round made T2 = T + 20 (21-40): the notebook's repeats 21-30 in
+      both samples, which put two cells on one value.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -2324,6 +2339,16 @@ const LEAD_INDEX = [
   { value: "1", label: "1", detail: "the second position, which removes this dimension" },
 ];
 
+/* What one reshape slot can hold: blank, -1, or any size up to the tensor's.
+   The blank is an en dash, the minus a real minus sign; the URL carries
+   `none` and `-1`. */
+const SIZES = [
+  { value: M.NO_SIZE, label: "–" },
+  { value: "-1", label: "−1" },
+  ...Array.from({ length: M.CELLS }, (_, i) => String(i + 1)),
+];
+const RESHAPE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] };
+
 /** The index entries in dimension order: the leading ones, then the last. */
 const indexParts = (params) =>
   [params.i0, params.i1, params.i2].slice(0, Number(params.rank) - 1).concat(params.feature);
@@ -2411,20 +2436,31 @@ defineWidget({
       default: "reshape",
       when: { param: "tab", equals: "shape" },
     },
-    shape: {
+    /* --- reshape's argument, typed (round 13) ------------------------------- *
+     * Round 11 offered the 65 shapes that hold 20 values as a grouped list,
+     * plus [3, 7]. Kenneth chose free entry instead: a list has already
+     * applied the rule the student is meant to find. So the argument is
+     * core's `expr` line, `T.reshape( 2 , -1 , – , – )`, one hidden slot
+     * parameter per position, each any size from 1 to 20, -1, or blank —
+     * `model.reshapeFrom` answers as torch does. The lesson's own line is
+     * the default, and the inferred size is on the Result shape tile. */
+    ...Object.fromEntries(["s0", "s1", "s2", "s3"].map((name, k) => [name, {
       type: "select",
+      label: `dim ${k}`,
+      hidden: true,
+      options: SIZES,
+      default: ["2", "-1", M.NO_SIZE, M.NO_SIZE][k],
+      when: RESHAPE_ON,
+    }])),
+    shape: {
+      type: "expr",
       label: "New shape",
-      detail: "every shape that holds the same 20 values, up to four dimensions, and one that does not",
-      options: [
-        ...M.RESHAPE_SHAPES.map((sh) => ({
-          value: M.shapeKey(sh),
-          label: M.shapeText(sh),
-          group: `${sh.length} ${sh.length === 1 ? "dimension" : "dimensions"}`,
-        })),
-        { value: M.shapeKey(M.RESHAPE_FAIL), label: `${M.shapeText(M.RESHAPE_FAIL)} — fails`, group: "does not hold 20 values" },
-      ],
-      default: "2-10",
-      when: { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] },
+      detail: "any sizes whose product is 20; −1 asks for the size that fits; anything else fails as torch fails it",
+      open: "T.reshape(",
+      join: ",",
+      close: ")",
+      slots: ["s0", "s1", "s2", "s3"],
+      when: RESHAPE_ON,
     },
     perm: {
       type: "segmented",
@@ -3049,7 +3085,9 @@ defineWidget({
         {
           label: "Result shape",
           value: M.shapeText(state.op.shape),
-          note: plural(at.n, state.units, "value placed", "values placed"),
+          /* the size a -1 became is said here, where the shape is */
+          note: (state.op.inferred != null ? `−1 became ${state.op.inferred}; ` : "")
+            + plural(at.n, state.units, "value placed", "values placed"),
         },
         {
           label: "This move",

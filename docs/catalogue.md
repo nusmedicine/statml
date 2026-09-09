@@ -11121,6 +11121,26 @@ script's two pins moved with it (212 checks pass). His answer on the shape
 list was a question back — curate, or let students enter the numbers —
 which the next round takes up.
 
+**Round 13 (2026-09-09) — reshape's argument is typed.** Shown the 34
+shapes with at most one size-1 dimension, a hand-picked 13, and free entry
+through core's `expr` line, Kenneth picked free entry: a list has already
+applied the rule the student is meant to find. Built by the main session:
+`T.reshape( 2 , −1 , – , – )` — four hidden slot parameters `s0`–`s3`,
+each blank, −1 or any size 1–20 (`?op=reshape&s0=2&s1=5&s2=2`), the
+`shape` select gone. `model.reshapeFrom` reproduces torch's three answers:
+a wrong product prints `shape '[3, 7]' is invalid for input of size 20`,
+one −1 becomes the size that fits and the Result shape tile says so (*−1
+became 10*), two print `only one dimension can be inferred`, and the empty
+call fails as `reshape(())` does. The lesson's own `reshape(2, -1)` is the
+default, so the inference is the first thing on screen. The verify script
+covers the rule (219 checks); the sweep's `?ops` mode drives the slots and
+adds the −1, double −1 and empty cases, in a frame tall enough that no
+state grows a scrollbar. Still open: the two degenerate stacks a student
+can type, [20, 1, 1] and [1, 20, 1, 1], overrun the 550px stage by 30 to
+110px in the stack view (the frames view of each fits); the rank-4 frames
+header packs `dim 0 = 0`, the column indices and `dim 1 = 0` into 22px;
+Reduce's *This group* tile lists twelve values when no dim is named.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

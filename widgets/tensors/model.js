@@ -272,6 +272,36 @@ export const PERMUTATIONS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 
 export const shapeKey = (shape) => shape.join("-");
 export const parseKey = (key) => String(key).split("-").map(Number);
 
+/* --- reshape's argument, as the student typed it (round 13) ----------------- *
+ * Kenneth chose free entry over a curated list: four slots, each any size from
+ * 1 to 20, -1, or blank. So the argument is whatever was typed, and torch's
+ * three answers to it are reproduced here: a product other than the size
+ * fails as `shape '[3, 7]' is invalid for input of size 20`; one -1 is the
+ * size that makes the product right, or that same failure when none does;
+ * two are `only one dimension can be inferred`. The empty call fails as
+ * torch fails `reshape(())`.
+ */
+export const NO_SIZE = "none";     // a blank slot's URL value
+
+/** Resolve typed entries — `[2, -1]` — to the shape they make, or the error. */
+export function reshapeFrom(asked) {
+  const bad = (shape) => ({ asked, shape: null, ok: false,
+    error: `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}` });
+  if (!asked.every((d) => Number.isInteger(d) && (d >= 1 || d === -1))) return bad(asked);
+  const holes = asked.filter((d) => d === -1).length;
+  if (holes > 1) return { asked, shape: null, ok: false, error: "only one dimension can be inferred" };
+  const known = asked.filter((d) => d !== -1).reduce((a, d) => a * d, 1);
+  if (holes === 1) {
+    if (asked.length > 4 || CELLS % known !== 0) return bad(asked);
+    return { asked, shape: asked.map((d) => (d === -1 ? CELLS / known : d)), ok: true, error: null };
+  }
+  if (asked.length < 1 || asked.length > 4 || known !== CELLS) return bad(asked);
+  return { asked, shape: [...asked], ok: true, error: null };
+}
+
+/** The typed entries behind four slot parameters: blanks dropped, in order. */
+export const askedFrom = (slots) => slots.filter((v) => v != null && v !== NO_SIZE).map(Number);
+
 const nameJoin = (names) => names.filter(Boolean).join(" × ");
 const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
 
@@ -302,24 +332,30 @@ export function shapeOp(kind, arg, setName = "sequence") {
   const names = roleNames(setName, 3);
   const base = { kind, second: false, ok: true, error: null };
   if (kind === "reshape") {
-    const shape = parseKey(arg);
-    const ok = shape.every((d) => Number.isInteger(d) && d >= 1) && shapeSize(shape) === CELLS && shape.length >= 1 && shape.length <= 4;
+    /* `arg` is the typed entries, or a `2-10` key from the lab scripts */
+    const r = reshapeFrom(Array.isArray(arg) ? arg : parseKey(arg));
+    const { asked, shape, ok } = r;
     const strides = [];
     let acc = 1;
-    for (let k = shape.length - 1; k >= 0; k -= 1) { strides[k] = acc; acc *= shape[k]; }
+    if (ok) for (let k = shape.length - 1; k >= 0; k -= 1) { strides[k] = acc; acc *= shape[k]; }
+    const inferred = ok && asked.includes(-1) ? shape[asked.indexOf(-1)] : null;
     return {
       ...base,
-      value: `reshape-${shapeKey(shape)}`,
-      label: `reshape(${shape.join(", ")})`,
-      shape,
+      value: `reshape-${shapeKey(asked)}`,
+      label: `reshape(${asked.join(", ")})`,
+      asked,
+      inferred,
+      shape: ok ? shape : asked,
       ok,
-      error: ok ? null : `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}`,
+      error: r.error,
       names: ok ? reshapeNames(src, shape, names) : [],
       /* ROUND 12: one line at the 550px stage. The first wording ran 30-55px
          past the canvas edge for every shape (`_lab/tensor-sweep.html?ops`). */
       caption: ok
         ? `The values are refilled into ${shapeText(shape)} in reading order; only the dimensions are recut.`
-        : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(shape)}.`,
+        : r.error === "only one dimension can be inferred"
+          ? "One -1 asks for the size that fits; two leave torch nothing to fit it against."
+          : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(asked)}.`,
       dest: (n) => shape.map((d, k) => Math.floor(n / strides[k]) % d),
     };
   }
@@ -410,7 +446,7 @@ export function opFrom(params) {
   const op = params.tab === "join"
     ? joinOp(params.join, params.join === "cat" ? params.cdim : params.sdim, setName)
     : shapeOp(params.op,
-      params.op === "reshape" ? params.shape
+      params.op === "reshape" ? askedFrom([params.s0, params.s1, params.s2, params.s3])
         : params.op === "permute" ? params.perm
           : params.op === "unsqueeze" ? params.udim : params.fstart,
       setName);

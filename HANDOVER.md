@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through eleven review rounds and NOT PUSHED. 367 real fingerprint
+locally through thirteen review rounds and NOT PUSHED. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -11,13 +11,15 @@ draft's must.**
 
 # NEXT: KENNETH TESTS THE TENSORS DRAFT, THEN THE ARC
 
-**Three local commits are waiting to be pushed on his "tested ok":**
+**Six local commits are waiting to be pushed on his "tested ok":**
 `5d55894` (rounds 1–9, with two core changes), `aa42f39` (round 10),
-`0eab30e` (round 11). Nothing is uncommitted. Read
+`0eab30e` (round 11), `f25b15d` (round 12: the fit measured over every
+argument), `1d299b6` (T2 = T + 20) and the round-13 commit (reshape's
+argument typed). Nothing is uncommitted. Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
-from and Kenneth's exact picks are there, rounds 1–11, and the decision
-list in `widgets/tensors/main.js`'s header (1–23) says why each thing is
+from and Kenneth's exact picks are there, rounds 1–13, and the decision
+list in `widgets/tensors/main.js`'s header (1–25) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
@@ -30,13 +32,19 @@ header as the line of code, and every result is printed beside its drawing
 as PyTorch prints it, the same cell lit in both. **Basics** sets the rank
 (1–4, the lesson's own tensors), the view (`stack`, his exploded stacks;
 `frames`, framed grids with edge indices), the naming convention (`names`:
-sequence · image · positions) and the index through core's new `expr`
+sequence · image · positions) and the index through core's `expr`
 control, `T[ : , 0 , : ]`; the figure's index labels are click targets
 (`regions`, one parameter each); the selection is drawn as the sub-tensor
 it makes. Two eases (4.4): the view morph moves the same cells, and an
-index change is staged — light, then glide. **Shape/Join** take a verb and
-an argument over every valid value (65 reshape shapes, plus [3, 7], which
-fails with torch's message); the result carries the dimension roles the
+index change is staged — light, then glide. **Shape** takes a verb and an
+argument: permute over its six orderings, unsqueeze and flatten over their
+dimensions, and reshape TYPED through a second `expr` line,
+`T.reshape( 2 , −1 , – , – )` — four slot parameters `s0`–`s3`, blank,
+−1 or 1–20, answered as torch answers (round 13; the lesson's own
+`reshape(2, -1)` is the default and the Result shape tile says what the
+−1 became). **Join** takes cat or stack over every dimension, against a
+second tensor holding 21–40 (T + 20; the notebook's repeats 21–30 and is
+Kenneth's to bring in line). The result carries the dimension roles the
 operation leaves. Every Step on every tab is staged through one
 `phases(beat)` and one `litFace()`.
 
@@ -48,6 +56,26 @@ operation leaves. Every Step on every tab is staged through one
   dimension, on frames, rules, arrows and swatches — never on text. Named
   in CLAUDE.md's role list.
 
+Rounds 12 and 13 changed nothing in core.
+
+## Rounds 12 and 13, in one paragraph — what the sweep found
+
+`_lab/tensor-sweep.html?ops` renders every Shape and Join argument in both
+views at the 550px stage, finished, and reports every canvas string that
+leaves the canvas; it reads the last paint only and its frame is tall
+enough that no state grows a scrollbar. The first run flagged 140 lines:
+the reshape and permute captions past the edge for every argument (one
+clause shorter now), a merged leading name off the left edge in the stack
+view (`roleMargin` takes its measured width), ten inner frames in one row
+at rank 4 (they wrap), a print wider than the band forcing CELL_MIN (a
+print's width is capped at the room) — and the fit trying beside and under
+at each cell before shrinking, so a bigger cell with both prints under
+always beat a smaller one with them beside, the opposite of decision 8 and
+the round-11 open item. The fit runs in passes now, with a mode per band:
+at 550 the default reshape moved from 26px cells with both prints under to
+20px with both beside; join's `stack` from 1162px tall to 669; **at 770
+nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
+
 ## On "tested ok" — the promotion, in order
 
 1. Fix whatever his test finds (the pattern: he sends an annotated
@@ -58,7 +86,7 @@ operation leaves. Every Step on every tab is staged through one
    `_lab/fingerprint-baseline.json` cover every topic, both views, both
    failing cases, two driven states (`step` on Shape and Reduce) and one
    hit-driven (`dim 0 = 1` at the 550 canvas). Their queries are current
-   (`op=reshape&shape=2-5-2`, not the old `op=reshape-2-5-2`). Three
+   (`op=reshape&s0=2&s1=5&s2=2`, the slot form of round 13). Three
    determinism runs, shooter pattern (`_lab/gradients-shoot.html`, slug
    swapped), full suite MATCH, then flip `status: "draft"` → `"shipped"`
    in `main.js` AND the manifest in the same commit. Push.
@@ -67,22 +95,25 @@ operation leaves. Every Step on every tab is staged through one
 
 ## Open items on the draft, none blocking
 
-- With a wide result ([2, 10]) the Shape fit drops BOTH prints under
-  their drawings though the source's would fit beside; choose the mode per
-  band.
-- Join's `stack` in the frames view is ~1000px tall (two rank-3 sources
-  and a rank-4 result at full size).
+- The two degenerate stacks a student can type, [20, 1, 1] and
+  [1, 20, 1, 1], overrun the 550px stage by 30 to 110px in the stack view
+  (twenty slabs and a merged name); the frames view of each fits.
+- The rank-4 frames header packs `dim 0 = 0`, the column indices and
+  `dim 1 = 0` into 22px (visible on Join's stack in the frames view).
 - Reduce's "This group" tile lists twelve values when no dim is named.
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
-- `_lab/tensor-sweep.html` (a subagent's draw-extent sweep) predates
-  rounds 8–11 and may not load the current layout.
+- The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
+  the widget's holds 21–40. Kenneth's cell to edit.
 
 ## Working here — read before the first command
 
-- **Dev server:** `node scripts/serve.mjs 8014` this session — 8012 and
-  8013 were other sessions' servers (the pane refuses a port another chat
-  owns). Widgets at `http://localhost:8014/widgets/<slug>/`. Port as an
+- **Dev server:** `node scripts/serve.mjs 8014` — and on 2026-09-09 five
+  servers (8010–8014) from other chats were already serving THIS tree
+  (`md5sum` of `main.js` over each port matched the working copy), and
+  the pane refuses a sixth; `navigate` to `http://localhost:8014/...`
+  worked without starting one, since `serve.mjs` sends `no-store`.
+  Widgets at `http://localhost:8014/widgets/<slug>/`. Port as an
   argument, never `PORT=`, in PowerShell.
 - **The fingerprint suite needs the pane FRONTED at devicePixelRatio 1.25**
   and takes ~2 minutes for 390 states; poll `#summary` in ≤40 s waits.

@@ -25,6 +25,7 @@ import {
   R1, R2, R4, RANK_SHAPES, RANK_ROLES, dimLabels, rankSpec, selectionOf, COLON,
   indexSlot, indexSet, indexTargets, indexTargetCount,
   shapeOp, joinOp, opFrom, RESHAPE_SHAPES, RESHAPE_FAIL, PERMUTATIONS, shapeKey,
+  reshapeFrom, askedFrom, NO_SIZE,
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
@@ -458,11 +459,28 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
     same(roleNames("positions", 3), ["", "", ""]) && same(roleLabels("positions", 3), ["0", "1", "2"]));
   check("under image names unsqueeze(0) adds sample", shapeOp("unsqueeze", 0, "image").names[0] === "sample");
 
-  /* opFrom reads the parameters the rail writes */
-  const viaParams = opFrom({ tab: "shape", op: "reshape", shape: "2-5-2", names: "sequence" });
-  check("opFrom reads op + shape and attaches roles",
-    viaParams.label === "reshape(2, 5, 2)" && same(viaParams.roles, ["0", "1", "2"]),
+  /* opFrom reads the parameters the rail writes — round 13: reshape's four
+     slots, blanks dropped, as the student typed them */
+  const viaParams = opFrom({ tab: "shape", op: "reshape", s0: "2", s1: "5", s2: "2", s3: NO_SIZE, names: "sequence" });
+  check("opFrom reads op + the four slots and attaches roles",
+    viaParams.label === "reshape(2, 5, 2)" && same(viaParams.shape, [2, 5, 2]) && same(viaParams.roles, ["0", "1", "2"]),
     viaParams.roles.join(" | "));
+  const lesson = opFrom({ tab: "shape", op: "reshape", s0: "2", s1: "-1", s2: NO_SIZE, s3: NO_SIZE, names: "sequence" });
+  check("the lesson's own reshape(2, -1) is the default and -1 becomes 10",
+    lesson.ok && lesson.label === "reshape(2, -1)" && same(lesson.shape, [2, 10]) && lesson.inferred === 10
+    && same(lesson.names, ["sample", "sequence × feature"]),
+    `${lesson.label} -> ${shapeText(lesson.shape)}, roles ${lesson.roles.join(" · ")}`);
+  check("-1 in the middle is inferred in place", same(reshapeFrom([2, -1, 2]).shape, [2, 5, 2]));
+  check("-1 that nothing fits fails with torch's message",
+    reshapeFrom([-1, 3]).error === "shape '[-1, 3]' is invalid for input of size 20");
+  check("two -1s fail with torch's message",
+    reshapeFrom([-1, -1]).error === "only one dimension can be inferred");
+  check("the empty call fails with torch's message",
+    reshapeFrom([]).error === "shape '[]' is invalid for input of size 20");
+  check("a fifth dimension cannot be typed, and a product of 20 over four slots is every listed shape",
+    RESHAPE_SHAPES.every((sh) => reshapeFrom(sh).ok) && !reshapeFrom([1, 1, 1, 1, 20]).ok);
+  check("blanks are dropped wherever they sit",
+    same(askedFrom(["2", NO_SIZE, "10", NO_SIZE]), [2, 10]) && same(askedFrom([NO_SIZE, NO_SIZE, NO_SIZE, NO_SIZE]), []));
   const viaJoin = opFrom({ tab: "join", join: "stack", sdim: "1", names: "image" });
   check("opFrom reads join + sdim", viaJoin.label === "stack(dim=1)" && same(viaJoin.shape, [2, 2, 2, 5]));
 }

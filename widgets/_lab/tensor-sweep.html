@@ -70,7 +70,9 @@ const isIndexLabel = (s) => /^dim [0-9] = [0-9]$/.test(s) || /^\[[0-9]\]$/.test(
 async function run(frameW, name, query, expect) {
   const fr = document.createElement("iframe");
   fr.width = frameW;
-  fr.height = 1400;
+  /* Tall enough that no state grows a scrollbar: a stage taller than the
+     frame renders 15px narrower (535, not 550) and reads as another width. */
+  fr.height = OPS ? 2600 : 1400;
   fr.src = `../tensors/?theme=light${query ? `&${query}` : ""}`;
   document.body.appendChild(fr);
   await new Promise((r) => { fr.onload = r; });
@@ -174,7 +176,8 @@ async function run(frameW, name, query, expect) {
    generated caption and every result print is measured once. */
 const OPS = location.search.includes("ops") ? (() => {
   const out = [];
-  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL].map((sh) => ["shape", `op=reshape&shape=${M.shapeKey(sh)}`]);
+  const slots = (sh) => sh.map((d, k) => `s${k}=${d}`).concat(sh.length < 4 ? Array.from({ length: 4 - sh.length }, (_, j) => `s${sh.length + j}=none`) : []).join("&");
+  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], []].map((sh) => ["shape", `op=reshape&${slots(sh)}`]);
   const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${M.shapeKey(pm)}`]);
   const uns = [0, 1, 2, 3].map((d) => ["shape", `op=unsqueeze&udim=${d}`]);
   const fls = [0, 1, 2].map((d) => ["shape", `op=flatten&fstart=${d}`]);
