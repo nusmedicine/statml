@@ -29,6 +29,7 @@ import {
   sourceOf, unravel, ravel, dimFrom, permFrom, hintFor, allPermutations, FIVE_DIMS, dimOptions,
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
+  EW_X, EW_OPS, ewCaseByValue, ewValues, torchFloatFormat, ewCellText,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
   MM_CASES, mmCaseByValue,
   RED_X, RED_X_SHAPE, RED_MU, RED_SD, RED_Z, REDUCERS,
@@ -586,15 +587,30 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
 console.log("\n=== 5 · broadcasting X [2, 5] + b ===");
 {
   check("X is [2, 5] holding 1-10", same(BC_X_SHAPE, [2, 5]) && same(BC_X.flat(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
-  check("six shapes of b are offered, the same shape first and the failing one last", BC_CASES.length === 6
-    && BC_CASES[0].value === "2-5" && BC_CASES[BC_CASES.length - 1].value === "2",
+  check("five shapes of b are offered, a scalar first and the failing one last (round 20)", BC_CASES.length === 5
+    && BC_CASES[0].value === "scalar" && BC_CASES[BC_CASES.length - 1].value === "2",
     BC_CASES.map((c) => c.label).join(", "));
-  check("the same-shape case stretches nothing; every other combining case stretches something",
-    broadcastPlan(bCaseByValue("2-5")).stretched === false
-    && ["scalar", "5", "1-5", "2-1"].every((v) => broadcastPlan(bCaseByValue(v)).stretched === true));
+  check("every combining case stretches something",
+    ["scalar", "5", "1-5", "2-1"].every((v) => broadcastPlan(bCaseByValue(v)).stretched === true));
+
+  console.log("\n=== 5b · scalar and elementwise operations (round 20, cells 46-50) ===");
+  check("X is the notebook's 3 x 3 image", same(EW_X, [[0, 50, 100], [150, 200, 250], [30, 60, 90]]));
+  check("six operations, four with a scalar and two functions",
+    same(EW_OPS.map((o) => o.value), ["add", "sub", "mul", "div", "exp", "sigmoid"]));
+  check("X + 2 and X / 2 at cell [1, 0]",
+    ewValues(ewCaseByValue("add"))[1][0] === 152 && ewValues(ewCaseByValue("div"))[1][0] === 75);
+  check("sigmoid(0) is 0.5 and sigmoid(250) rounds to 1",
+    ewValues(ewCaseByValue("sigmoid"))[0][0] === 0.5 && Math.abs(ewValues(ewCaseByValue("sigmoid"))[1][2] - 1) < 1e-9);
+  check("torch's float form: integers with a point, fractions to four places, big values in four-digit scientific",
+    torchFloatFormat([[2, 52]])(52) === "52." && torchFloatFormat([[0.5, 1]])(0.5) === "0.5000"
+    && torchFloatFormat(ewValues(ewCaseByValue("exp")))(Math.exp(50)) === "5.1847e+21"
+    && torchFloatFormat(ewValues(ewCaseByValue("exp")))(1) === "1.0000e+00");
+  check("a cell shows the short form", ewCellText(Math.exp(50)) === "5e21" && ewCellText(152) === "152" && ewCellText(0.5) === "0.5");
+  check("the notebook's six reductions: std unbiased, norm the L2 length",
+    same(Object.keys(REDUCERS), ["sum", "mean", "std", "max", "min", "norm"])
+    && REDUCERS.std([1, 2, 3]) === 1 && REDUCERS.min([3, 1, 2]) === 1 && Math.abs(REDUCERS.norm([1, 2, 3]) - Math.sqrt(14)) < 1e-12);
 
   const expect = {
-    "2-5": [[11, 22, 33, 44, 55], [66, 77, 88, 99, 110]],
     5: [[11, 22, 33, 44, 55], [16, 27, 38, 49, 60]],
     "1-5": [[11, 22, 33, 44, 55], [16, 27, 38, 49, 60]],
     "2-1": [[11, 12, 13, 14, 15], [26, 27, 28, 29, 30]],
@@ -711,7 +727,7 @@ console.log("\n=== 7 · reductions over X [3, 4] ===");
       got.length === want.length && got.every((v, i) => near(v, want[i], 1e-12)),
       got.map(num).join(", "));
   }
-  check("three reducers are offered", same(Object.keys(REDUCERS), ["mean", "sum", "max"]));
+  check("the notebook's six reducers are offered", same(Object.keys(REDUCERS), ["sum", "mean", "std", "max", "min", "norm"]));
   check("a reduction leaves as many values as it has groups",
     ["0", "1", "none"].every((d) => reduceValues("mean", d).length === reduceGroups(d).length));
 }

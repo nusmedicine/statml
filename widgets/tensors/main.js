@@ -349,6 +349,15 @@
       its source one dimension up; a position that is not size 1 leaves the
       shape as it is, torch's rule, said in the caption; `–` squeezes every
       size-1 dimension. transpose takes two positions and is permute for two.
+
+  34. ROUND 20, LINEAR ALGEBRA AS CELL 45's TABLE: Elementwise · Broadcast ·
+      Multiply · Reduce. Elementwise is new — the notebook's 3 x 3 image and
+      its six operations, `X + 2` to `torch.sigmoid(X)`, one cell in and one
+      out, Y printed as torch prints floats (`52.`, `0.5000`, `5.1847e+21`)
+      through `torchFloatFormat`, in cells of its own size. Broadcast is the
+      round-17 fold undone: a scalar first, then the stretched shapes, its
+      caption cell 51's opening. Multiply is Matmul renamed, for the three
+      products to come. Reduce offers cell 66's six functions.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -462,12 +471,14 @@ const CAPTION_H = 17;
 function txt(ctx, colors, s, x, y, opts = {}) {
   const {
     color = colors.ink2, align = "left", size = colors.fsSm,
-    baseline = "alphabetic", mono = false, weight = "",
+    baseline = "alphabetic", mono = false, weight = "", shrink = false,
   } = opts;
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = baseline;
-  ctx.font = `${weight} ${size} ${mono ? MONO : colors.font}`.trim();
+  /* one step down the size scale for a string that would not fit its cell */
+  const sized = shrink ? { [colors.fsLg]: colors.fsMd, [colors.fsMd]: colors.fsSm, [colors.fsSm]: colors.fsXs }[size] ?? size : size;
+  ctx.font = `${weight} ${sized} ${mono ? MONO : colors.font}`.trim();
   ctx.fillText(s, x, y);
 }
 
@@ -677,7 +688,7 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
   ctx.lineWidth = d.lit || isHover ? 2.5 : 2;
   ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
   if (d.v != null && !d.empty) {
-    txt(ctx, colors, M.num(d.v), x + s / 2, y + s / 2 + 0.5, {
+    txt(ctx, colors, typeof d.v === "string" ? d.v : M.num(d.v), x + s / 2, y + s / 2 + 0.5, {
       color: d.ink ?? colors.ink1,
       align: "center",
       baseline: "middle",
@@ -686,6 +697,9 @@ function paintCell(ctx, colors, x, y, s, d, isHover) {
          since round 18, so a cell and its printed value are the same glyphs */
       size: s >= 28 ? colors.fsLg : s >= 22 ? colors.fsMd : colors.fsSm,
       mono: true,
+      /* a string of four or more characters — `3.74`, `5e21` — takes the size
+         below, so a norm or an exponent stays inside a 26px cell (round 20) */
+      shrink: String(typeof d.v === "string" ? d.v : M.num(d.v)).length >= 4 && s < 30,
       weight: d.bold ? "700" : "",
     });
   }
@@ -1996,7 +2010,7 @@ function bcGeometry(colors, w, params, cw) {
   const print = bp.ok ? printOf(M.BC_X_SHAPE, ([r, c]) => bp.result[r][c], "result", cw) : null;
   const resultH = bp.ok ? Math.max(GRID_LBL + rows * s, print.h) : 44;
   const bands = [bandH(operandsH), bandH(resultH)];
-  return { bc, bp, s, rows, cols, xW, bW, sep, print, bands, height: stageOf(bands, 1) };
+  return { bc, bp, s, rows, cols, xW, bW, sep, print, bands, height: stageOf(bands, 2) };
 }
 
 function planBroadcast(ctx, colors, w, h, params, state, anim) {
@@ -2091,15 +2105,123 @@ function planBroadcast(ctx, colors, w, h, params, state, anim) {
     pushText(plan, "cannot broadcast", x0, ry + 18, { color: colors.extreme });
   }
 
-  pushCaptions(plan, colors, [bcCaption(bp)], PAD, yB + bands[1] + 6 + 13);
+  pushCaptions(plan, colors, bcCaptions(bp), PAD, yB + bands[1] + 6 + 13);
   return plan;
 }
 
 const BC_RULE = "A missing dimension counts as 1, and equal or 1 passes.";
 /* The plain case says there is no stretching; the shortcut says the rule. */
-const bcCaption = (bp) => (!bp.ok ? BC_RULE
-  : bp.stretched ? "b is stretched to X's shape first: a missing dimension counts as 1, and equal or 1 passes."
-    : "Same shape: each cell of X meets its own cell of b, and nothing is stretched.");
+const bcCaptions = (bp) => (!bp.ok ? [BC_RULE, BC_GENERAL]
+  : ["b is stretched to X's shape first: a missing dimension counts as 1, and equal or 1 passes.", BC_GENERAL]);
+/* cell 51's opening: the scalar case reaches every cell, and a smaller tensor
+   reaches every row the same way */
+const BC_GENERAL = "A generalization of the scalar case: a smaller tensor reaches every row as a scalar reaches every cell.";
+
+/* --- the Elementwise tab (round 20, cells 46-50) ---------------------------- *
+ * X, the operation, Y: the notebook's own figure, `tensor-scalar.png`, one
+ * cell in and one cell out. Its own cell size, because a 3 x 3 image with
+ * `5e21` in a cell wants room the [2, 5] tabs do not.                        */
+
+const EW_CELL = 44;
+
+const ewCellSize = (w) => Math.max(CELL_MIN, Math.min(EW_CELL, Math.floor((w - 2 * PAD - 2 * BAND_PAD - OP_W - 2 * GAP) / 7)));
+
+function ewGeometry(colors, w, params, cw) {
+  const ew = M.ewCaseByValue(params.ewop);
+  const values = M.ewValues(ew);
+  const fmt = M.torchFloatFormat(values);
+  const s = ewCellSize(w);
+  const rows = M.EW_SHAPE[0];
+  const cols = M.EW_SHAPE[1];
+  const gw = cols * s;
+  const sep = OP_W + GAP;
+  const operandsH = GRID_LBL + rows * s + 30 + 16;
+  const print = printOf(M.EW_SHAPE, ([r, c]) => fmt(values[r][c]), "Y", cw);
+  /* the print beside Y where it fits, under it where the sci form is wide */
+  const avail = w - 2 * PAD - 2 * BAND_PAD;
+  const beside = gw + PRINT_GAP + print.w <= avail;
+  const resultH = beside ? Math.max(GRID_LBL + rows * s, print.h) : GRID_LBL + rows * s + PRINT_DROP + print.h;
+  const bands = [bandH(operandsH), bandH(resultH)];
+  return { ew, values, fmt, s, rows, cols, gw, sep, print, beside, bands, height: stageOf(bands, 2) };
+}
+
+/** The cell a step is on: the one being computed while a step is in flight,
+    else the one the last step produced. */
+const ewCurrent = (anim, state) => {
+  const k = anim.beat > 0 && anim.n < state.units ? anim.n : anim.n - 1;
+  return k < 0 || k >= state.units ? null : { r: Math.floor(k / M.EW_SHAPE[1]), c: k % M.EW_SHAPE[1] };
+};
+
+function planElementwise(ctx, colors, w, h, params, state, anim) {
+  const plan = newPlan();
+  const cw = monoChar(ctx, colors.fsSm);
+  const { ew, values, s, rows, cols, gw, sep, print, beside, bands } = ewGeometry(colors, w, params, cw);
+  const done = anim.n;
+  const ph = anim.beat > 0 && done < state.units ? phases(anim.beat) : null;
+  const cur = ewCurrent(anim, state);
+  const litA = ph ? ph.light : 1;
+  const k = (r, c) => r * cols + c;
+
+  const xL = PAD;
+  const bandW = w - 2 * PAD;
+  const yT = PAD;
+  const yB = yT + bands[0] + BAND_GAP;
+  pushBand(plan, xL, yT, bandW, bands[0], "Operand", null, null);
+  const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", ew.code, null);
+
+  const x0 = xL + BAND_PAD;
+  const y0 = yT + BAND_HEAD + BAND_PAD + GRID_LBL;
+  const mid = y0 + (rows * s) / 2 + 6;
+  pushText(plan, panelLine("X", M.EW_SHAPE), x0, y0 - 6, { color: colors.ink1, mono: true });
+  pushGrid(plan, x0, y0, rows, cols, s, (r, c) => ({
+    v: M.EW_X[r][c],
+    ...(cur && r === cur.r && c === cur.c ? litFace(colors, litA) : { fill: colors.groupA }),
+    name: `${M.indexText("X", [r, c])} = ${M.EW_X[r][c]}`,
+  }));
+  /* the operation, as the notebook's figure writes it beside the tensor */
+  pushText(plan, ew.glyph, x0 + gw + sep / 2, mid, { color: colors.ink1, size: colors.fsLg, align: "center" });
+  if (cur) {
+    pushText(plan, `${M.indexText("Y", [cur.r, cur.c])} = ${ew.term(M.EW_X[cur.r][cur.c])} = ${M.ewCellText(values[cur.r][cur.c])}`,
+      x0, y0 + rows * s + 30, { color: colors.highlight, mono: true });
+  }
+
+  /* --- the result -------------------------------------------------------- */
+  const ry = yB + BAND_HEAD + BAND_PAD + GRID_LBL;
+  pushText(plan, panelLine("Y", M.EW_SHAPE), x0, ry - 6, { color: colors.ink1, mono: true });
+  const cellState = (i) => (i < done ? (i === done - 1 && !ph ? "last" : "done") : i === done && ph ? "landing" : "none");
+  pushGrid(plan, x0, ry, rows, cols, s, (r, c) => {
+    const v = values[r][c];
+    const name = `${M.indexText("Y", [r, c])} = ${M.ewCellText(v)}`;
+    const st = cellState(k(r, c));
+    const text = M.ewCellText(v);
+    if (st === "done") return { v: text, fill: colors.empirical, name };
+    if (st === "last") return { v: text, ...litFace(colors), name };
+    if (st === "landing") return ph.land > 0 ? { v: text, ...litFace(colors), alpha: LIT_A * ph.land, name } : { empty: true, lit: true };
+    return { empty: true };
+  });
+  if (beside) bot.divX = x0 + gw + PRINT_GAP / 2;
+  const px = beside ? x0 + gw + PRINT_GAP : x0;
+  const py = beside ? yB + BAND_HEAD + BAND_PAD : ry + rows * s + PRINT_DROP;
+  pushPrintBlock(plan, colors, px, py, print, cw, ([r, c]) => {
+    const st = cellState(k(r, c));
+    if (st === "none" || (st === "landing" && ph.land <= 0)) return null;
+    return {
+      color: st === "done" ? colors.ink1 : colors.highlight,
+      key: `Y|${r},${c}`,
+      name: `${M.indexText("Y", [r, c])} = ${M.ewCellText(values[r][c])}`,
+      fade: st === "landing",
+    };
+  });
+  if (ph && cellState(done) === "landing") plan.fadeAlpha = ph.land;
+
+  pushCaptions(plan, colors, [EW_CAPTION, ew.value === "exp" || ew.value === "sigmoid" ? EW_FN_CAPTION : EW_OP_CAPTION],
+    PAD, yB + bands[1] + 6 + 13);
+  return plan;
+}
+
+const EW_CAPTION = "Elementwise: each cell of Y comes from the one cell of X in the same place, and from nothing else.";
+const EW_OP_CAPTION = "The same scalar meets every cell; the shape does not change.";
+const EW_FN_CAPTION = "A function applied elementwise goes to every cell in turn; the shape does not change.";
 
 /* --- the Multiply tab ----------------------------------------------------- */
 
@@ -2257,7 +2379,9 @@ function redGeometry(colors, w, params, cw) {
   }
   const values = M.reduceValues(params.fn, dim);
   const shape = M.reduceShape(dim);
-  const print = printOf(shape, (idx) => values[idx.length ? idx[0] : 0], "result", cw);
+  /* printed as torch prints a float tensor: `2.`, `3.7417` */
+  const fmt = M.torchFloatFormat(values);
+  const print = printOf(shape, (idx) => fmt(values[idx.length ? idx[0] : 0]), "result", cw);
   const drawH = dim === "1" ? GRID_LBL + rowsX * s
     : GRID_LBL + rowsX * s + REDUCE_ARROW + s + GRID_LBL;
   const drawW = dim === "1" ? xw + 40 + s : xw;
@@ -2464,8 +2588,9 @@ function tabHeight(w, params) {
     case "index": return basicsGeometry(ctx, colors, w, params).fit.height;
     case "manipulate":
     case "join": return shapeGeometry(ctx, colors, w, params).height;
-    case "elementwise": return bcGeometry(colors, w, params, cw).height;
-    case "matmul": return mmGeometry(colors, w, params, cw).height;
+    case "elementwise": return ewGeometry(colors, w, params, cw).height;
+    case "broadcast": return bcGeometry(colors, w, params, cw).height;
+    case "multiply": return mmGeometry(colors, w, params, cw).height;
     default: return redGeometry(colors, w, params, cw).height;
   }
 }
@@ -2491,7 +2616,7 @@ const SPEEDS = [
 ];
 
 const TAB_UNITS = {
-  manipulate: "value", join: "value", elementwise: "row", matmul: "cell", reduce: "group",
+  manipulate: "value", join: "value", elementwise: "cell", broadcast: "row", multiply: "cell", reduce: "group",
 };
 
 /* The two halves the six topics fall into. Consecutive options sharing one of
@@ -2569,8 +2694,14 @@ defineWidget({
         /* ROUND 17 (Kenneth): the plain element-wise operation first, and
            broadcasting as the shortcut it is when b's shape is smaller;
            `Matmul` because "Multiply" read as the scalar kind. */
-        { value: "elementwise", label: "Elementwise", group: ALGEBRA_HALF },
-        { value: "matmul", label: "Matmul", group: ALGEBRA_HALF },
+        /* ROUND 20: the overview table of cell 45 — scalar & elementwise,
+           broadcasting as its generalization, the three products, the
+           reductions. */
+        /* "Scalar", the first word of cell 45's heading "Scalar & elementwise":
+           "Elementwise" is a character too wide for a 75px button */
+        { value: "elementwise", label: "Scalar", group: ALGEBRA_HALF },
+        { value: "broadcast", label: "Broadcast", group: ALGEBRA_HALF },
+        { value: "multiply", label: "Multiply", group: ALGEBRA_HALF },
         { value: "reduce", label: "Reduce", group: ALGEBRA_HALF },
       ],
       default: "tensors",
@@ -2929,13 +3060,21 @@ defineWidget({
       slots: ["i0", "i1", "i2", "feature"],
       when: { param: "tab", equals: "index" },
     },
+    ewop: {
+      type: "segmented",
+      label: "Operation",
+      detail: "applied to every cell of X on its own",
+      options: M.EW_OPS.map((o) => ({ value: o.value, label: o.label, group: o.group, detail: o.detail })),
+      default: "add",
+      when: { param: "tab", equals: "elementwise" },
+    },
     b: {
       type: "segmented",
       label: "Shape of b",
       detail: "b is added to X, which has shape [2, 5]",
       options: M.BC_CASES.map((c) => ({ value: c.value, label: c.label, detail: c.detail })),
-      default: "2-5",
-      when: { param: "tab", equals: "elementwise" },
+      default: "5",
+      when: { param: "tab", equals: "broadcast" },
     },
     weights: {
       type: "segmented",
@@ -2943,7 +3082,7 @@ defineWidget({
       detail: "the right operand of @: W transposed, or W itself",
       options: M.MM_CASES.map((c) => ({ value: c.value, label: c.label, detail: c.detail })),
       default: "transposed",
-      when: { param: "tab", equals: "matmul" },
+      when: { param: "tab", equals: "multiply" },
     },
     dim: {
       type: "segmented",
@@ -2961,10 +3100,14 @@ defineWidget({
       type: "segmented",
       label: "Reduction",
       detail: "what each group of values is replaced by",
+      /* the notebook's list, cell 66 */
       options: [
-        { value: "mean", label: "mean", detail: "the average of the group" },
         { value: "sum", label: "sum", detail: "the total of the group" },
+        { value: "mean", label: "mean", detail: "the average of the group" },
+        { value: "std", label: "std", detail: "the standard deviation of the group, over n − 1" },
         { value: "max", label: "max", detail: "the largest value in the group" },
+        { value: "min", label: "min", detail: "the smallest value in the group" },
+        { value: "norm", label: "norm", detail: "the length of the group as a vector: the root of the sum of squares" },
       ],
       default: "mean",
       when: { param: "tab", equals: "reduce" },
@@ -3008,16 +3151,16 @@ defineWidget({
       afterDrive: true,
       when: {
         any: [
-          { param: "tab", oneOf: ["manipulate", "join", "reduce"] },
+          { param: "tab", oneOf: ["manipulate", "join", "reduce", "elementwise"] },
           {
             all: [
-              { param: "tab", equals: "elementwise" },
-              { param: "b", oneOf: ["2-5", "scalar", "5", "1-5", "2-1"] },
+              { param: "tab", equals: "broadcast" },
+              { param: "b", oneOf: ["scalar", "5", "1-5", "2-1"] },
             ],
           },
           {
             all: [
-              { param: "tab", equals: "matmul" },
+              { param: "tab", equals: "multiply" },
               { param: "weights", equals: "transposed" },
             ],
           },
@@ -3054,6 +3197,12 @@ defineWidget({
       ];
     }
     if (params.tab === "elementwise") {
+      return [
+        { token: "empirical", label: "X, and the Y it becomes" },
+        { token: "highlight", label: "The cell just computed, and the cell of X it came from" },
+      ];
+    }
+    if (params.tab === "broadcast") {
       const plan = M.broadcastPlan(M.bCaseByValue(params.b));
       return [
         { token: "empirical", label: "X, and the result it is added into" },
@@ -3067,7 +3216,7 @@ defineWidget({
           : [{ token: "extreme", label: "The dimensions that do not combine" }]),
       ];
     }
-    if (params.tab === "matmul") {
+    if (params.tab === "multiply") {
       const mm = M.mmCaseByValue(params.weights);
       return [
         { token: "empirical", label: "X, and the product Y it builds" },
@@ -3124,11 +3273,16 @@ defineWidget({
       return { kind: "shape", op, moves, units: moves.length };
     }
     if (params.tab === "elementwise") {
+      const ew = M.ewCaseByValue(params.ewop);
+      const values = M.ewValues(ew);
+      return { kind: "elementwise", ew, values, fmt: M.torchFloatFormat(values), units: M.EW_SHAPE[0] * M.EW_SHAPE[1] };
+    }
+    if (params.tab === "broadcast") {
       const bc = M.bCaseByValue(params.b);
       const plan = M.broadcastPlan(bc);
       return { kind: "broadcast", bc, plan, units: plan.ok ? M.BC_X_SHAPE[0] : 0 };
     }
-    if (params.tab === "matmul") {
+    if (params.tab === "multiply") {
       const mm = M.mmCaseByValue(params.weights);
       return {
         kind: "multiply",
@@ -3154,8 +3308,9 @@ defineWidget({
       labels: {
         manipulate: "Move a value",
         join: "Move a value",
-        elementwise: "Add a row",
-        matmul: "Compute a cell",
+        elementwise: "Apply to a cell",
+        broadcast: "Add a row",
+        multiply: "Compute a cell",
         reduce: "Collapse a group",
       },
       default: "Move a value",
@@ -3165,8 +3320,9 @@ defineWidget({
       labels: {
         manipulate: "Move the next value from the tensor to its place in the result",
         join: "Move the next value from one of the two tensors to its place in the result",
-        elementwise: "Add the next row of X and b, and draw the row it makes",
-        matmul: "Compute the next cell of the product from a row of X and a column of Wᵀ",
+        elementwise: "Apply the operation to the next cell of X and draw the cell of Y it makes",
+        broadcast: "Add the next row of X and b, and draw the row it makes",
+        multiply: "Compute the next cell of the product from a row of X and a column of Wᵀ",
         reduce: "Collapse the next group of values into the one it reduces to",
       },
       default: "Move the next value from the tensor to its place in the result",
@@ -3177,8 +3333,9 @@ defineWidget({
       labels: {
         manipulate: "Move every remaining value into the result",
         join: "Move every remaining value of both tensors into the result",
-        elementwise: "Add the remaining rows",
-        matmul: "Compute the remaining cells of the product",
+        elementwise: "Apply the operation to the remaining cells",
+        broadcast: "Add the remaining rows",
+        multiply: "Compute the remaining cells of the product",
         reduce: "Collapse the remaining groups",
       },
       default: "Move every remaining value into the result",
@@ -3299,8 +3456,9 @@ defineWidget({
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
     const plan = isBasics(params.tab) ? planBasics(ctx, colors, w, h, params, anim)
       : state.kind === "shape" ? planShape(ctx, colors, w, h, params, state, anim)
-        : params.tab === "elementwise" ? planBroadcast(ctx, colors, w, h, params, state, anim)
-          : params.tab === "matmul" ? planMultiply(ctx, colors, w, h, params, state, anim)
+        : params.tab === "elementwise" ? planElementwise(ctx, colors, w, h, params, state, anim)
+          : params.tab === "broadcast" ? planBroadcast(ctx, colors, w, h, params, state, anim)
+          : params.tab === "multiply" ? planMultiply(ctx, colors, w, h, params, state, anim)
             : planReduce(ctx, colors, w, h, params, state, anim);
     if (anim && plan.cellPos) anim.pos = plan.cellPos;
     hovered = hitPlan(plan, pointer);
@@ -3424,6 +3582,25 @@ defineWidget({
     }
 
     if (params.tab === "elementwise") {
+      const at = ewCurrent(anim, state);
+      const ew = state.ew;
+      return [
+        { label: "Shapes in", value: M.shapeText(M.EW_SHAPE), note: "X alone: one cell in, one cell out" },
+        {
+          label: "Result shape",
+          value: M.shapeText(M.EW_SHAPE),
+          note: plural(anim.n, state.units, "cell computed", "cells computed"),
+        },
+        {
+          label: "This cell",
+          value: at ? M.ewCellText(state.values[at.r][at.c]) : "—",
+          note: at ? `${M.indexText("Y", [at.r, at.c])} = ${ew.term(M.EW_X[at.r][at.c])}` : `no ${unit} has been computed yet`,
+        },
+        cell(at ? `${M.indexText("Y", [at.r, at.c])} = ${M.ewCellText(state.values[at.r][at.c])}` : "—",
+          at ? "the cell just computed" : "a cell's index and value"),
+      ];
+    }
+    if (params.tab === "broadcast") {
       const p = state.plan;
       const row = anim.n > 0 && p.ok ? p.result[anim.n - 1] : null;
       return [
@@ -3448,7 +3625,7 @@ defineWidget({
       ];
     }
 
-    if (params.tab === "matmul") {
+    if (params.tab === "multiply") {
       const mm = state.mm;
       const rising = mm.ok && anim.beat > 0 && anim.n < state.units ? anim.beat : 0;
       const at = mm.ok ? mmCurrent(anim, state, rising) : null;
@@ -3539,13 +3716,17 @@ defineWidget({
         + `${anim.n} of ${state.units} values placed in it. ${state.op.caption}`;
     }
     if (params.tab === "elementwise") {
+      return `The 3 × 3 image X, and ${state.ew.code} computed one cell at a time: `
+        + `${anim.n} of ${state.units} cells of Y done. Elementwise: each cell of Y comes from the one cell of X in the same place.`;
+    }
+    if (params.tab === "broadcast") {
       return `X [2, 5] added to b ${M.shapeText(state.bc.shape)}, ${state.plan.ok && state.plan.stretched ? "with b's stretched copies drawn faint" : "cell by cell"}. `
         + (state.plan.ok
           ? `${anim.n} of ${state.units} rows of the result are drawn.`
           : `The shapes do not combine: ${state.plan.clash}.`)
         + " Below, the two shapes lined up from the right with a verdict on each dimension.";
     }
-    if (params.tab === "matmul") {
+    if (params.tab === "multiply") {
       return `X [3, 4] multiplied by ${state.mm.name} ${M.shapeText(state.mm.shape)}. `
         + (state.mm.ok
           ? `${anim.n} of ${state.units} cells of the [3, 2] product are computed, each from a row of X and a column of Wᵀ.`

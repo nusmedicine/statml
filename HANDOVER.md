@@ -2,10 +2,10 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through nineteen review rounds and NOT PUSHED. **Round 19 is a
-MOCK awaiting his picks — `_lab/tensor-lesson.html` — and the spec for
-it is his notebook's own structure, not any layout of ours; read
-catalogue round 19 before touching a topic.** 367 real fingerprint
+locally through twenty review rounds and NOT PUSHED. **The spec is his
+notebook's own structure** (`05-2 - DL Foundations - Tensors and
+Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
+`_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
 states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
 `tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
 draft's must.**
@@ -28,25 +28,24 @@ commit (positions as rank-following dropdowns through core's dynamic
 figures' line weight, mono digits, prints headed by their code, Play as
 two kinds, the Basics beside-or-under fit) and the round-19 commit (the
 five student's-eye items, and the notebook-order mock). Nothing is
-uncommitted. **Round 19's four picks wait on him**: the rail as the
-notebook's headings, the Manipulate verbs in its three groups with
-`squeeze` and `transpose`, the stack's spacing, and the four
-linear-algebra topics with the notebook's own operands (Elementwise's
-six operations, Broadcast as the generalization, Multiply's three
-products, Reduce's six functions). The round-17 fold of broadcasting
-into Elementwise is to be undone whichever way he picks. Read
+uncommitted. Round 20 built his picks in four commits — the rail
+(Tensors · Index/Slice · Manipulate · Join, `1676ab7`), the verbs in
+three groups with squeeze and transpose (`2461cdd`), the algebra row as
+cell 45's table (Scalar · Broadcast · Multiply · Reduce), and the docs.
+**Left from the same picks: Multiply's dot and Hadamard kinds**, with the
+notebook's amino-acid vectors and a mask drawn from the seed (cells
+59–65). Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–31) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–34) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph
 
 Six topics in two captioned rail rows — *tensors for data*: Basics · Shape
-· Join; *linear algebra*: Elementwise · Matmul · Reduce (round 17: the plain
-element-wise case first, broadcasting as the later cases of the same topic).
-Every stage is
+· Join; *linear algebra*: Scalar · Broadcast · Multiply · Reduce (round 20,
+cell 45's own table). Every stage is
 named bands as tall as their content (`tabHeight` sizes the stage from the
 parameters alone), the operation performed sits on the Result band's
 header as the line of code, and every result is printed beside its drawing

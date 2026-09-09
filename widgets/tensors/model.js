@@ -737,25 +737,71 @@ export const shapeText = (shape) => `[${shape.join(", ")}]`;
 /** `T[1, 0, 2]` — the printed form of one index. */
 export const indexText = (name, idx) => `${name}[${idx.join(", ")}]`;
 
+/* --- scalar and elementwise operations (round 20, cells 46-50) -------------- *
+ * The notebook's 3 x 3 grayscale image and the six things it does to it: the
+ * four arithmetic operations with a scalar and two functions. Each is one
+ * cell in, one cell out, which is the whole of what "elementwise" says.     */
+
+export const EW_X = [[0, 50, 100], [150, 200, 250], [30, 60, 90]];
+export const EW_SHAPE = [3, 3];
+
+const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+
+export const EW_OPS = [
+  { value: "add", label: "+ 2", glyph: "+ 2", code: "Y = X + 2", group: "operations", detail: "adds 2 to every cell", fn: (x) => x + 2, term: (x) => `${num(x)} + 2` },
+  { value: "sub", label: "− 2", glyph: "− 2", code: "Y = X - 2", group: "operations", detail: "takes 2 from every cell", fn: (x) => x - 2, term: (x) => `${num(x)} − 2` },
+  { value: "mul", label: "× 2", glyph: "× 2", code: "Y = X * 2", group: "operations", detail: "doubles every cell", fn: (x) => x * 2, term: (x) => `${num(x)} × 2` },
+  { value: "div", label: "÷ 2", glyph: "÷ 2", code: "Y = X / 2", group: "operations", detail: "halves every cell", fn: (x) => x / 2, term: (x) => `${num(x)} ÷ 2` },
+  { value: "exp", label: "exp", glyph: "exp", code: "Y = torch.exp(X)", group: "functions", detail: "e to the power of every cell", fn: Math.exp, term: (x) => `exp(${num(x)})` },
+  { value: "sigmoid", label: "sigmoid", glyph: "σ", code: "Y = torch.sigmoid(X)", group: "functions", detail: "squashes every cell into (0, 1)", fn: sigmoid, term: (x) => `sigmoid(${num(x)})` },
+];
+
+export const ewCaseByValue = (value) => EW_OPS.find((o) => o.value === value) ?? EW_OPS[0];
+
+/** Y for one operation: the same shape, one cell from one cell. */
+export const ewValues = (op) => EW_X.map((row) => row.map(op.fn));
+
+/**
+ * How torch prints the floats of ONE tensor: every value an integer prints
+ * with a trailing point (`52.`), otherwise four decimals (`0.5000`), and a
+ * tensor holding a value at or past 1e4 goes to four-digit scientific for
+ * every cell (`5.1847e+21`) — what `print(torch.exp(X))` shows in cell 50.
+ */
+export function torchFloatFormat(vals) {
+  const flat = vals.flat(Infinity).filter(Number.isFinite);
+  const sci = flat.some((v) => v !== 0 && Math.abs(v) >= 1e4);
+  if (sci) {
+    return (v) => {
+      const [m, e] = v.toExponential(4).split("e");
+      const sign = e.startsWith("-") ? "-" : "+";
+      return `${m}e${sign}${e.replace(/^[-+]/, "").padStart(2, "0")}`;
+    };
+  }
+  if (flat.every(Number.isInteger)) return (v) => `${v}.`;
+  return (v) => v.toFixed(4);
+}
+
+/** The short form a cell can hold: integers plain, fractions to two places,
+    and a value past 1e4 as one digit and its exponent (`5e21`). */
+export function ewCellText(v) {
+  if (Number.isFinite(v) && Math.abs(v) >= 1e4) {
+    const [m, e] = v.toExponential(0).split("e");
+    return `${m}e${e.replace("+", "")}`;
+  }
+  return num(v);
+}
+
 /* --- broadcasting --------------------------------------------------------- */
 
 export const BC_X = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
 export const BC_X_SHAPE = [2, 5];
 
-/* The shapes of b: the plain element-wise case first (round 17, Kenneth:
-   "show the normal one first, then the shortcut for broadcasting"), then a
-   scalar, then the lesson's stretched shapes, the last of which fails.
+/* The shapes of b: a scalar first — the case cell 51 opens with, "X + 2
+   means add 2 to every entry" — then the lesson's stretched shapes, the last
+   of which fails. The same-shape case is the Elementwise topic's (round 20).
    `real` says which cells of the drawn 2 x 5 block are b's own values; the
    rest are the stretched copies, drawn faint. */
 export const BC_CASES = [
-  {
-    value: "2-5",
-    label: "[2, 5]",
-    shape: [2, 5],
-    detail: "the same shape as X: each cell meets its own, and nothing is stretched",
-    at: (r, c) => [[10, 20, 30, 40, 50], [60, 70, 80, 90, 100]][r][c],
-    real: () => true,
-  },
   {
     value: "scalar",
     label: "a scalar",
@@ -914,10 +960,18 @@ export const mmCaseByValue = (value) =>
 export const RED_X = [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6]];
 export const RED_X_SHAPE = [3, 4];
 
+/* The notebook's list (cell 66): sum, mean, std, max, min, norm — std unbiased
+   as torch.std is, norm the L2 length as torch.norm is. */
 export const REDUCERS = {
-  mean: (xs) => xs.reduce((a, b) => a + b, 0) / xs.length,
   sum: (xs) => xs.reduce((a, b) => a + b, 0),
+  mean: (xs) => xs.reduce((a, b) => a + b, 0) / xs.length,
+  std: (xs) => {
+    const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+    return Math.sqrt(xs.reduce((s, v) => s + (v - m) ** 2, 0) / (xs.length - 1));
+  },
   max: (xs) => Math.max(...xs),
+  min: (xs) => Math.min(...xs),
+  norm: (xs) => Math.sqrt(xs.reduce((s, v) => s + v * v, 0)),
 };
 
 /**

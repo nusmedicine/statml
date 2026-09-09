@@ -11321,6 +11321,43 @@ clause each; the Index band's whole-tensor line says where an index is
 set; the Topic control keeps its two row captions and loses its six
 option details. 247 verify checks; sweep clean; nothing in core.
 
+**Round 20 (2026-09-09) — the notebook's order, built from his picks on
+`_lab/tensor-lesson.html`.** His answers: the rail as A "but maybe it
+should be Tensors, Index/Slice, Manipulate, Join … would it still carry
+over the concept of tensor dimensions?"; the stack as A "but can the tall
+slabs sit closer? then the diagonal arrow will also be shorter"; the
+algebra "build as mocked"; and yes to downloading his figures. **His
+figures** (21 PNGs, now in `_lab/figs/`, read before building) settle the
+stack: the back slab steps up and across by about a cell and a half, the
+front slab covers its lower rows, and for the [2, 5, 2] of permute the two
+stand side by side; T2 in his stack figure holds 21–40, as the widget's
+does. Four commits: (1) `1676ab7` the rail — Tensors (Creating and
+Inspecting: the ladder of ranks, `.ndim` and the count in the readout, no
+Index band), Index/Slice (the same tensor under the expression, the only
+topic with click targets), Manipulate, Join; the rank one parameter across
+all four, which answers his question — the dimensions named on Tensors
+are the ones indexed on Index/Slice; and the stack step capped at two rows
+plus the gap, so no cell of any shape the widget draws is hidden. (2)
+`2461cdd` the verbs in cell 24's three captioned rows, with squeeze on
+the [1, 2, 2, 5] that unsqueeze(0) makes (cell 35; a position that is not
+size 1 leaves the shape as it is; `–` squeezes every size-1 dimension) and
+transpose over two dropdown positions; core: a dynamic option list whose
+default has left it falls to its first option. (3) the algebra row as cell
+45's table — Scalar (the word of his heading; "Elementwise" is a character
+too wide for a 75px button), Broadcast, Multiply, Reduce. Scalar is new:
+the notebook's 3 × 3 image and its six operations, `X + 2` to
+`torch.sigmoid(X)`, one cell in and one cell out, Y printed as torch
+prints floats — `52.`, `0.5000`, `5.1847e+21` — through
+`torchFloatFormat`, in cells of its own size, a four-character string
+taking the size below. Broadcast is the round-17 fold undone: a scalar
+first, then the stretched shapes, two caption lines ending on cell 51's
+opening. Multiply is Matmul renamed, for the dot and Hadamard products
+still to come. Reduce offers cell 66's six functions, its print in
+torch's float form. Verify 261; the sweep clean; the full suite for the
+core change, 368 real states MATCH. Still to build from the same picks:
+the dot product on the amino-acid vectors and the Hadamard product with a
+seeded mask, as Multiply's other two kinds.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
