@@ -219,7 +219,12 @@ const OPS = location.search.includes("ops") ? (() => {
   const perms = M.PERMUTATIONS.map((pm) => ["manipulate", `op=permute&perm=${pm.join("x")}`]);
   const uns = [0, 1, 2, 3].map((d) => ["manipulate", `op=unsqueeze&udim=${d}`]);
   const fls = [0, 1, 2].map((d) => ["manipulate", `op=flatten&fstart=${d}`]);
-  const sqs = ["0", "1", "all"].map((d) => ["manipulate", `op=squeeze&sqdim=${d}`]);
+  const sqs = [
+    ...["0", "1", "all"].map((d) => ["manipulate", `op=squeeze&sqdim=${d}`]),
+    /* round 22: the size-1 dimension elsewhere, removed, missed, and last */
+    ["manipulate", "op=squeeze&sqat=1&sqdim=1"], ["manipulate", "op=squeeze&sqat=1&sqdim=0"],
+    ["manipulate", "op=squeeze&sqat=-1&sqdim=all"], ["manipulate", "op=squeeze&sqat=2&sqdim=2&view=frames"],
+  ];
   const trs = [["1", "2"], ["0", "2"], ["1", "1"]].map(([a, b]) => ["manipulate", `op=transpose&tdim0=${a}&tdim1=${b}`]);
   const cats = [0, 1, 2].map((d) => ["join", `join=cat&cdim=${d}`]);
   const stacks = [0, 1, 2, 3].map((d) => ["join", `join=stack&sdim=${d}`]);

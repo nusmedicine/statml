@@ -414,7 +414,7 @@ export function permFrom(text, rank) {
 export function dimOptions(kind, rank) {
   const r = RANK_SHAPES[rank] ? Number(rank) : 3;
   /* squeeze's source is the unsqueezed tensor, one dimension up */
-  const hi = kind === "unsqueeze" || kind === "stack" || kind === "squeeze" ? r : r - 1;
+  const hi = kind === "unsqueeze" || kind === "stack" || kind === "squeeze" || kind === "squeezeAt" ? r : r - 1;
   const opts = Array.from({ length: hi + 1 }, (_, d) => ({ value: String(d), label: String(d) }));
   const tail = kind === "squeeze" ? [{ value: "all", label: "–" }] : [{ value: "-1", label: "-1" }];
   return [...opts, ...tail];
@@ -460,7 +460,7 @@ const failed = (base, label, error, asked, limit = false) => ({
 });
 
 /** One Shape operation from its verb and argument, on the tensor at `rank`. */
-export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
+export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
   const source = sourceOf(rank);
   const { shape: src, size } = source;
   const names = roleNames(setName, source.rank);
@@ -534,14 +534,32 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
   }
   if (kind === "squeeze") {
     /* ROUND 20: squeeze works on the tensor the notebook squeezes — the one
-       unsqueeze(0) just made — so its source is [1, ...shape] and its values
-       are read through the leading 0. A position that is not size 1 leaves
-       the shape as it is, which is torch's rule and is said in the band. */
-    const srcU = [1, ...src];
-    const namesU = ["size 1", ...names];
-    const squeezed = { ...base, src: srcU, srcRoles: labelsOf(namesU), read: (t, idx) => source.read(t, idx.slice(1)) };
-    if (!drawable(srcU)) return failed(squeezed, "squeeze(0)", FIVE_DIMS(srcU), srcU, true);
+       unsqueeze just made — so its source is that tensor, U = T.unsqueeze(k),
+       and its values are read through the inserted 0. ROUND 22 (Kenneth's
+       pick B on `_lab/tensor-squeeze.html`): `at` is k, where the size-1
+       dimension sits, so every position of squeeze has something to remove
+       somewhere; the notebook's own case is k = 0, the batch. A position
+       that is not size 1 leaves the shape as it is, which is torch's rule
+       and is said in the band. */
+    const ra = dimFrom(at, "unsqueeze", "dim", src.length, 0);
+    if (!ra.ok) return failed(base, `unsqueeze(${ra.asked})`, ra.error, []);
+    const k = ra.d;
+    const srcU = [...src.slice(0, k), 1, ...src.slice(k)];
+    const namesU = [...names.slice(0, k), insertedName(k, setName, source.rank), ...names.slice(k)];
+    const squeezed = {
+      ...base,
+      src: srcU,
+      srcRoles: labelsOf(namesU),
+      srcNames: namesU,
+      srcName: "U",
+      srcExpr: `U = T.unsqueeze(${ra.asked})`,
+      at: k,
+      read: (t, idx) => source.read(t, idx.filter((_, j) => j !== k)),
+    };
     const all = arg === "" || arg === "all" || arg == null;
+    /* declined on `base`, so the Tensor band draws T: the U it cannot draw is
+       named in the Result band's words instead */
+    if (!drawable(srcU)) return failed(base, `squeeze(${all ? "" : arg})`, FIVE_DIMS(srcU), srcU, true);
     if (all) {
       return {
         ...squeezed,
@@ -549,8 +567,8 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
         label: "squeeze()",
         shape: [...src],
         names,
-        caption: "With no position given, every dimension of size 1 is removed: dim 0 goes and the rest close up.",
-        dest: (n) => unravel(n, srcU).slice(1),
+        caption: `With no position given, every dimension of size 1 is removed: dim ${k} goes and the rest close up.`,
+        dest: (n) => unravel(n, srcU).filter((_, j) => j !== k),
       };
     }
     const r = dimFrom(arg, "squeeze", "dim", srcU.length - 1);
@@ -566,7 +584,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3) {
       names: gone ? namesU.filter((_, k) => k !== d) : namesU,
       caption: gone
         ? `Dim ${d} has size 1, so it is removed and the dimensions after it move up one.`
-        : `Dim ${d} has size ${srcU[d]}, not 1, so squeeze leaves the shape as it is.`,
+        : `Dim ${d} has size ${srcU[d]}, not 1, so squeeze leaves the shape as it is; the size-1 dimension is dim ${k}.`,
       dest: (n) => { const s = unravel(n, srcU); return gone ? s.filter((_, k) => k !== d) : s; },
     };
   }
@@ -670,7 +688,7 @@ export function opFrom(params) {
             : params.op === "squeeze" ? (params.sqdim ?? "0")
               : params.op === "transpose" ? [params.tdim0 ?? "1", params.tdim1 ?? "2"]
                 : (params.fstart ?? ""),
-      setName, rank);
+      setName, rank, params.sqat ?? "0");
   return { ...op, roles: labelsOf(op.names ?? []) };
 }
 

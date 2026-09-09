@@ -11391,6 +11391,29 @@ over the borders": every cell string now steps down the size scale until
 it fits its cell. Verify 269; sweep clean; the full suite for the core
 change.
 
+**Round 22 (2026-09-09) — his four points on round 21.** (1) "some numbers
+look very close to the cell borders": a cell that holds a float is now
+sized from its longest string at the small face plus six pixels a side
+(39px for `8.77`), on Reduce and the dot product; integers keep the
+ordinary cell, and Reduce's print drops under the drawing where the wider
+cells leave no room beside. (2) "sometimes the bar clashes with numbers":
+on Reduce with dim 1 the rule along X's top edge met the descenders of
+the `X [3, 4]` label, which now sits higher; the `result [3]` label no
+longer runs into the print. (3) and (4), squeeze and unsqueeze at other
+positions — explained and mocked on `_lab/tensor-squeeze.html` before
+anything was built: unsqueeze draws at every position at ranks 1–3 and
+only in front at rank 4 (round 21's rule); squeeze could only remove dim
+0 because its source, cell 34's [1, 2, 2, 5], has one entry only there.
+Three options: A the wording, B the size-1 dimension where the student
+puts it, C a size-1 dimension drawn anywhere at rank 4. **His pick: B.**
+squeeze's source is now U = T.unsqueeze(k) for a second dropdown, *Size-1
+dimension at* (0 to the rank, −1), named U on the Tensor band's header,
+in its print and in the readout so it is not mistaken for T; every
+position of *Dimension to remove* then has something to remove at some k,
+and a mismatch — squeeze(0) on [2, 1, 2, 5] — leaves the shape and says
+where the size-1 dimension is, cell 34's rule seen rather than read. At
+rank 4 only k = 0 draws. Verify 275; sweep clean; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

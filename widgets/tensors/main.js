@@ -378,6 +378,18 @@
       ease from the data path too, mirroring the display one); a figure
       mid-walk resets as before. Every cell string FITS ITS CELL, stepping
       down the size scale until it does.
+
+  37. ROUND 22. A CELL THAT HOLDS A FLOAT IS SIZED FOR IT (`floatCellSize`),
+      on Reduce and the dot product; Reduce's labels clear dim 1's rule and
+      the print, and its print drops under where the wider cells leave no
+      room beside. SQUEEZE'S SOURCE CARRIES ITS SIZE-1 DIMENSION WHERE THE
+      STUDENT PUTS IT (his pick B on `_lab/tensor-squeeze.html`, after "can
+      only squeeze 0 because only dim 0 has entry"): a second dropdown,
+      `sqat`, makes the source U = T.unsqueeze(k), named U on the band, in
+      the print and in the readout so it is not mistaken for T; every
+      position of `sqdim` then has something to remove at some k, and a
+      mismatch shows the shape unchanged — cell 34's rule seen. At rank 4
+      only k = 0 draws (decision 36).
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1505,6 +1517,8 @@ const resultOpts = (view, rank) => ({ arrows: view === "stack" && rank >= 3, rol
 const SOURCE_OPTS = { arrowNames: false, rolesLine: false };
 
 const SRC_NAMES = ["T", "T2"];
+/* squeeze's source is U, the tensor unsqueeze made (round 22) */
+const srcNamesOf = (op) => (op.srcName ? [op.srcName] : SRC_NAMES);
 
 /** The operation as the line of code that performs it — the Result band's header. */
 const shapeExpr = (op) => (op.second
@@ -1536,7 +1550,7 @@ function shapeGeometry(ctx, colors, w, params) {
      yet placed included, so nothing under a value shifts when it lands. */
   const prints = {
     sources: tensors.map((t) =>
-      printOf(op.src, (idx) => op.read(t, idx), SRC_NAMES[t], cw)),
+      printOf(op.src, (idx) => op.read(t, idx), srcNamesOf(op)[t], cw)),
     result: op.ok ? printOf(op.shape, (idx) => finalAt.get(idx.join(",")), "result", cw) : null,
   };
   /* squeeze's source is one dimension up and names its own roles */
@@ -1587,8 +1601,8 @@ function planShape(ctx, colors, w, h, params, state, anim) {
     placed.set(m.dst.join(","), { v: m.v, last: justMoved(k) });
   }
 
-  const srcKey = (t, idx) => `${SRC_NAMES[t]}|${idx.join(",")}`;
-  const srcName = (t, idx, v) => `${M.indexText(SRC_NAMES[t], idx)} = ${v}`;
+  const srcKey = (t, idx) => `${srcNamesOf(op)[t]}|${idx.join(",")}`;
+  const srcName = (t, idx, v) => `${M.indexText(srcNamesOf(op)[t], idx)} = ${v}`;
   const resKey = (idx) => `result|${idx.join(",")}`;
   const resName = (idx, v) => `${M.indexText("result", idx)} = ${v}`;
 
@@ -1596,7 +1610,7 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const bandW = w - 2 * PAD;
   const yT = PAD;
   const yB = yT + bands[0] + BAND_GAP;
-  const top = pushBand(plan, xL, yT, bandW, bands[0], op.second ? "Tensors" : "Tensor", null, null);
+  const top = pushBand(plan, xL, yT, bandW, bands[0], op.second ? "Tensors" : "Tensor", op.srcExpr ?? null, null);
   const bot = pushBand(plan, xL, yB, bandW, bands[1], "Result", shapeExpr(op), null);
   const cx = xL + BAND_PAD;
 
@@ -3059,7 +3073,7 @@ defineWidget({
         { value: "reshape", label: "reshape", group: "1 · reshaping", detail: "refills the values, in reading order, into a shape with the same number of them" },
         { value: "flatten", label: "flatten", group: "1 · reshaping", detail: "collapses the dimensions from a starting one into a single dimension" },
         { value: "unsqueeze", label: "unsqueeze", group: "2 · adding / removing", detail: "adds a dimension of size 1, which is how one sample becomes a batch of one" },
-        { value: "squeeze", label: "squeeze", group: "2 · adding / removing", detail: "removes a dimension of size 1; here from the [1, …] tensor that unsqueeze(0) made" },
+        { value: "squeeze", label: "squeeze", group: "2 · adding / removing", detail: "removes a dimension of size 1, from U: T with one added where the next control puts it" },
         { value: "permute", label: "permute", group: "3 · reordering", detail: "reorders the dimensions; each value moves to the index with its positions reordered" },
         { value: "transpose", label: "transpose", group: "3 · reordering", detail: "permute for two dimensions: the two swap places and the rest stay" },
       ],
@@ -3157,6 +3171,27 @@ defineWidget({
       optionsFrom: "rank",
       when: FLATTEN_ON,
     },
+    /* ROUND 22, Kenneth's pick B: where the size-1 dimension sits is the
+       student's, so squeeze has something to remove at every position and
+       the mismatch — a position that is not size 1 — is seen, not read */
+    sqat: {
+      type: "select",
+      label: "position",
+      hidden: true,
+      default: "0",
+      options: (v) => M.dimOptions("squeezeAt", Number(v.rank)),
+      optionsFrom: "rank",
+      when: SQUEEZE_ON,
+    },
+    squeezeAt: {
+      type: "expr",
+      label: "Size-1 dimension at",
+      detail: "U is T with one dimension of size 1 added at this position; in front, it is a batch dimension",
+      open: "U = T.unsqueeze(",
+      close: ")",
+      slots: ["sqat"],
+      when: SQUEEZE_ON,
+    },
     sqdim: {
       type: "select",
       label: "position",
@@ -3170,7 +3205,7 @@ defineWidget({
       type: "expr",
       label: "Dimension to remove",
       detail: "a position of size 1 goes; one that is not leaves the shape as it is; – removes every size-1 dimension",
-      open: "T.squeeze(",
+      open: "U.squeeze(",
       close: ")",
       slots: ["sqdim"],
       when: SQUEEZE_ON,
@@ -3939,14 +3974,14 @@ defineWidget({
     if (state.kind === "shape") {
       const at = shapeStand(state, anim, params.speed);
       const m = at.last ?? (at.n > 0 ? state.moves[at.n - 1] : null);
-      const src = m ? `${m.t === 0 ? "T" : "T2"}[${m.src.join(", ")}]` : null;
+      const src = m ? `${srcNamesOf(state.op)[m.t]}[${m.src.join(", ")}]` : null;
       return [
         {
           label: "Source shape",
           value: M.shapeText(state.op.src),
           note: state.op.second
             ? "two tensors of this shape, read one after the other"
-            : (M.roleNames(params.names, state.op.src.length).filter(Boolean).join(", ") || "positions only"),
+            : ((state.op.srcNames ?? M.roleNames(params.names, state.op.src.length)).filter(Boolean).join(", ") || "positions only"),
         },
         {
           label: "Result shape",

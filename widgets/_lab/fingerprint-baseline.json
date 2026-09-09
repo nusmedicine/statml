@@ -3336,6 +3336,13 @@
       "tx": "0"
     },
     {
+      "$note": "PLACEHOLDER - draft. Manipulate (round 22): squeeze(1) on U = T.unsqueeze(1), [2, 1, 2, 5] to [2, 2, 5], 20 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=manipulate&op=squeeze&sqat=1&sqdim=1&shown=20",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=flatten&shown=20",

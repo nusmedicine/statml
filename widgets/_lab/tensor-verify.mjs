@@ -572,6 +572,24 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
     check("squeeze() with no position removes every size-1 dimension", same(shapeOp("squeeze", "all", "sequence", 3).shape, [2, 2, 5]));
     check("squeeze at rank 4 draws its [1, 2, 2, 2, 5] source and returns the [2, 2, 2, 5] (round 21)",
       shapeOp("squeeze", "0", "sequence", 4).ok && same(shapeOp("squeeze", "0", "sequence", 4).shape, [2, 2, 2, 5]));
+    /* round 22: the size-1 dimension sits where the student put it */
+    const s1 = shapeOp("squeeze", "1", "sequence", 3, "1");
+    check("squeeze(1) on U = T.unsqueeze(1), [2, 1, 2, 5], returns [2, 2, 5] and reads through the inserted 0 (round 22)",
+      same(s1.src, [2, 1, 2, 5]) && same(s1.shape, [2, 2, 5]) && s1.read(0, [0, 0, 1, 4]) === 10 && bij(s1)
+      && s1.srcExpr === "U = T.unsqueeze(1)" && s1.srcName === "U" && same(s1.srcNames, ["sample", "size 1", "sequence", "feature"]));
+    check("squeeze(0) on the same U leaves [2, 1, 2, 5], and says where the size-1 dimension is",
+      same(shapeOp("squeeze", "0", "sequence", 3, "1").shape, [2, 1, 2, 5])
+      && shapeOp("squeeze", "0", "sequence", 3, "1").caption.endsWith("the size-1 dimension is dim 1."));
+    check("squeeze() with the size-1 dimension last removes it: [2, 2, 5, 1] to [2, 2, 5]",
+      same(shapeOp("squeeze", "all", "sequence", 3, "-1").src, [2, 2, 5, 1]) && same(shapeOp("squeeze", "all", "sequence", 3, "-1").shape, [2, 2, 5]));
+    check("at rank 4 only a size-1 dimension in front draws: U = T.unsqueeze(1) is declined",
+      shapeOp("squeeze", "1", "sequence", 4, "1").limit === true && shapeOp("squeeze", "1", "sequence", 4, "1").error === FIVE_DIMS([2, 1, 2, 2, 5])
+      && same(shapeOp("squeeze", "1", "sequence", 4, "1").src, [2, 2, 2, 5]));
+    check("ranks 1 to 3: every (size-1 at, remove) pair walks a bijection",
+      [1, 2, 3].every((r) => Array.from({ length: r + 1 }, (_, k) => String(k)).every((k) =>
+        [...Array.from({ length: r + 1 }, (_, d) => String(d)), "all"].every((d) => bij(shapeOp("squeeze", d, "sequence", r, k))))));
+    check("the size-1 position dropdown offers what unsqueeze's does",
+      same(dimOptions("squeezeAt", 3).map((o) => o.value), ["0", "1", "2", "3", "-1"]));
     const tr = shapeOp("transpose", ["1", "2"], "sequence", 3);
     check("transpose(1, 2) is permute(0, 2, 1)", same(tr.shape, [2, 5, 2]) && same(tr.names, ["sample", "feature", "sequence"]) && bij(tr)
       && same(shapeWalk(tr).map((m) => m.dst.join(",")), shapeWalk(shapeOp("permute", "0-2-1")).map((m) => m.dst.join(","))));
