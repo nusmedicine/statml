@@ -1,74 +1,107 @@
 # Handover
 
-**FORTY-SIX WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (live at its
-URL, off the cards; Kenneth's call, 2026-08-30). 367 fingerprint states, every
-one of them real and every one MATCHing as of 2026-09-08 (the two hmm states
-whose baseline is the settled 669px width read px-DIFFER when a run hashes
-them at 688; `_lab/hmm-shoot.html` reproduces them). `/lab/` is empty:
-there is no draft.**
+**FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
+locally through eleven review rounds and NOT PUSHED. 367 real fingerprint
+states MATCH (last full run 2026-09-09, pane fronted at DPR 1.25); the 23
+`tensors` states are placeholders carrying `"px": "0", "tx": "0"`, as a
+draft's must.**
 
 ---
 
-# NEXT: THE REST OF THE DEEP LEARNING ARC, ON KENNETH'S PICKS
+# NEXT: KENNETH TESTS THE TENSORS DRAFT, THEN THE ARC
 
-**Everything is committed and pushed; nothing is in flight.** The last
-session shipped widget 48 `gradients` (2026-09-08, after ten review
-rounds), then fixed one core bug and did a register pass over the rail
-lines it revealed, both pushed on his "tested ok" (`a6bcdba`, `3bb0ebd`).
+**Three local commits are waiting to be pushed on his "tested ok":**
+`5d55894` (rounds 1–9, with two core changes), `aa42f39` (round 10),
+`0eab30e` (round 11). Nothing is uncommitted. Read
+[docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
+touching the widget: every round, its research, the mock it was picked
+from and Kenneth's exact picks are there, rounds 1–11, and the decision
+list in `widgets/tensors/main.js`'s header (1–23) says why each thing is
+the way it is.
 
-**Later on 2026-09-08 Kenneth asked for a tensors widget** — the first half
-of `05-2`, in the style of his own lesson figures. It is not one of the six
-slots: catalogue § *Slot 53 · `tensors`* has the host, four misconceptions,
-a four-tab shape (Shape · Broadcast · Multiply · Reduce), what it must not
-draw, and **six questions**; the mock-up is `_lab/tensor-mock.html` (five
-sections, viewed at `http://localhost:8014/widgets/_lab/tensor-mock.html`
-— 8012 and 8013 belonged to other sessions that day). He picked the same afternoon (tensors next; Multiply here; cat and stack
-in; drawing A) and **the draft is BUILT**: `widgets/tensors/` at `/lab/`,
-`status: "draft"`, 86 assertions in `_lab/tensor-verify.mjs`, twelve
-placeholder fingerprint states, check and test passing, **uncommitted**,
-the copy table's eight items applied on his say-so; then **round 2** (the
-stacked drawing hid cells; `_lab/tensor-draw.html` researched five drawings
-at rank 3 and 4) and **round 3** (his pick: a `view` toggle between the
-exploded stack and framed grids with edge indices, plus the tensor as
-PyTorch prints it beside each drawing, the moving value lit in both) are
-BUILT and reviewed; then **round 4** (the arrow anchored to the slabs,
-the tile fixed, `_lab/tensor-basics.html` mocking a Basics topic and three
-rail organisations) and **round 5** (his picks: one widget, the rail in two
-captioned rows — Basics · Shape · Join over Broadcast · Multiply · Reduce —
-a Basics topic with a Dimensions control and one index control per
-dimension, Join split from Shape) are BUILT and reviewed. Then **round 6**
-(research: DeFT, split attention, common region, the NumPy visual guides;
-`_lab/tensor-basics2.html`) and **round 7** (his picks: the Basics stage as
-a 2 × 2 of named regions with the selection drawn as a sub-tensor; the
-index slots in rail rows and the figure clickable through `regions`; rank
-4 in the stack view as a column of exploded stacks) are BUILT and
-reviewed: six topics, 2578 lines, 201 assertions, 23 placeholder states,
-stage 562 at the 550 canvas. **The subagent lost round 5's placeholder
-states with a `git checkout` on the baseline file and rebuilt them** —
-nothing measured was lost; commit the draft before the next round. Then **round 8**
-(2026-09-09, written by the main session on his call): a new CORE control
-type `expr` — `T[ : , 0 , : ]` as one rail line, a `<select>` per hidden
-slot parameter (controls.js, params.js, tokens.css) — and the Basics stage
-as two content-sized named bands, Tensor and Index, with `height` a
-function of the parameters on that tab. Then **round 9** (colour, type,
-motion — measured in `_lab/tensor-look.html`, picked, built by the main
-session): `--c-dim-a..d` in tokens.css/env.js, the selection at .50 and
-bold, one type step up, and two eases on Basics through `anim.easing`.
-**COMMITTED locally on his word as `5d55894`** (nine rounds, both core
-changes; NOT pushed). Then **round 10**, uncommitted: the Basics style on
-every tab — named bands with the expression as the Result header, every
-result printed beside its drawing, content-sized stages via `tabHeight`,
-every Step staged (light, then land) through one `phases()` and one
-`litFace()`. COMMITTED as `aa42f39` on his word. Then **round 11**, uncommitted: the
-operation as verb + argument on Shape and Join (every valid argument, and
-[3, 7] which fails), the result drawn with the dimension roles the
-operation leaves, and a `names` control (sequence · image · positions).
-Awaiting his test; then commit. Every fingerprint state is still a
-placeholder. Next: his test verdict, then one
-local commit of plan, mock and widget; on "tested ok" the fingerprint states
-for real, `status` flipped, push.
+## What the draft is, in one paragraph
 
-**The next task is the arc.** [docs/catalogue.md](docs/catalogue.md)
+Six topics in two captioned rail rows — *tensors for data*: Basics · Shape
+· Join; *linear algebra*: Broadcast · Multiply · Reduce. Every stage is
+named bands as tall as their content (`tabHeight` sizes the stage from the
+parameters alone), the operation performed sits on the Result band's
+header as the line of code, and every result is printed beside its drawing
+as PyTorch prints it, the same cell lit in both. **Basics** sets the rank
+(1–4, the lesson's own tensors), the view (`stack`, his exploded stacks;
+`frames`, framed grids with edge indices), the naming convention (`names`:
+sequence · image · positions) and the index through core's new `expr`
+control, `T[ : , 0 , : ]`; the figure's index labels are click targets
+(`regions`, one parameter each); the selection is drawn as the sub-tensor
+it makes. Two eases (4.4): the view morph moves the same cells, and an
+index change is staged — light, then glide. **Shape/Join** take a verb and
+an argument over every valid value (65 reshape shapes, plus [3, 7], which
+fails with torch's message); the result carries the dimension roles the
+operation leaves. Every Step on every tab is staged through one
+`phases(beat)` and one `litFace()`.
+
+## The two core changes, both gated on full suite runs (367 MATCH)
+
+- **`expr`** (params.js, controls.js, tokens.css): one line of code whose
+  slots are `<select>`s over `hidden` parameters named in `slots`.
+- **`--c-dim-a..d`** (tokens.css, env.js `dims`): a hue per tensor
+  dimension, on frames, rules, arrows and swatches — never on text. Named
+  in CLAUDE.md's role list.
+
+## On "tested ok" — the promotion, in order
+
+1. Fix whatever his test finds (the pattern: he sends an annotated
+   screenshot; put copy items in a numbered table; ask picks with
+   `AskUserQuestion`; mock in `_lab/` anything that would otherwise be
+   argued).
+2. Record the fingerprint states for real: the 23 placeholders in
+   `_lab/fingerprint-baseline.json` cover every topic, both views, both
+   failing cases, two driven states (`step` on Shape and Reduce) and one
+   hit-driven (`dim 0 = 1` at the 550 canvas). Their queries are current
+   (`op=reshape&shape=2-5-2`, not the old `op=reshape-2-5-2`). Three
+   determinism runs, shooter pattern (`_lab/gradients-shoot.html`, slug
+   swapped), full suite MATCH, then flip `status: "draft"` → `"shipped"`
+   in `main.js` AND the manifest in the same commit. Push.
+3. Note the phone-width overflow (canvas ≈ 371) on Basics is unfixed and
+   accepted for the lecture screen.
+
+## Open items on the draft, none blocking
+
+- With a wide result ([2, 10]) the Shape fit drops BOTH prints under
+  their drawings though the source's would fit beside; choose the mode per
+  band.
+- Join's `stack` in the frames view is ~1000px tall (two rank-3 sources
+  and a rank-4 result at full size).
+- Reduce's "This group" tile lists twelve values when no dim is named.
+- The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
+  an option and Kenneth did not take them.
+- `_lab/tensor-sweep.html` (a subagent's draw-extent sweep) predates
+  rounds 8–11 and may not load the current layout.
+
+## Working here — read before the first command
+
+- **Dev server:** `node scripts/serve.mjs 8014` this session — 8012 and
+  8013 were other sessions' servers (the pane refuses a port another chat
+  owns). Widgets at `http://localhost:8014/widgets/<slug>/`. Port as an
+  argument, never `PORT=`, in PowerShell.
+- **The fingerprint suite needs the pane FRONTED at devicePixelRatio 1.25**
+  and takes ~2 minutes for 390 states; poll `#summary` in ≤40 s waits.
+  Placeholders read DIFFER by design — check that every DIFFER row is a
+  `tensors` row.
+- **Screenshots black when scrolled:** shift `document.body.style.marginTop`
+  so the canvas top sits at 8px instead of scrolling; the pane's screenshot
+  is 800px wide, so resize the viewport to 800 before judging legibility.
+- **Subagent briefs must name geometry, not topology.** Round 7's Opus
+  build turned "a 2 × 2 of named regions" into a fixed grid full of air and
+  dropped the picked expression control because core lacked one, without
+  saying so. When a pick needs core, say so in the brief or do it in the
+  main session; Kenneth chose the main session (Fable) for rounds 8–11.
+- **Commit before every subagent round.** A subagent ran `git checkout` on
+  the baseline file and lost round 5's uncommitted placeholder states.
+- **Copy review is a table, then questions**; his register reading has not
+  changed (no "never", no coined phrases, no dashboard description).
+
+**After tensors ships, the task is the arc.** [docs/catalogue.md](docs/catalogue.md)
 § *The deep learning arc* plans six slots, 47–52, for PHM5005 *DL
 Foundations* (`05-1` to `05-4`): `chain-rule`, `gradients` (done),
 `processing-layers`, `support-layers`, `composition`, `training-loop` —
