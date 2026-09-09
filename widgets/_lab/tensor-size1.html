@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — the size-1 dimension: where it is in the print, in the drawing, and when squeeze leaves it</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 460px; min-height: 26px; white-space: pre-line; }
+  pre { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink-2); background: var(--surface-1); border: 1px solid var(--grid); padding: 10px 12px; margin: 0; line-height: 1.35; }
+  pre .h { color: var(--ink-3); }
+  pre .v { color: var(--ink-1); }
+  pre .x { color: var(--c-highlight); font-weight: 700; }
+  pre .l { color: var(--ink-1); }
+  /* the drawing, sketched: frames as boxes, the size-1 wrapper dashed in the highlight colour */
+  .sk { display: inline-flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-1); border: 1px solid var(--grid); }
+  .f0 { border: 1.5px dashed var(--c-dim-a); padding: 16px 8px 8px; position: relative; display: flex; gap: 8px; }
+  .f1 { border: 1.5px dashed var(--c-dim-b); padding: 16px 6px 6px; position: relative; }
+  .f0.rank3 { border-color: var(--c-dim-b); }
+  .w { border: 1.5px dashed var(--c-highlight); padding: 14px 5px 5px; position: relative; }
+  .w.cellw { padding: 12px 2px 2px; display: inline-block; }
+  .w.row { padding: 12px 3px 3px; }
+  .f0::before, .f1::before, .w::before { position: absolute; top: 1px; left: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); content: attr(data-l); white-space: nowrap; }
+  .w::before { color: var(--c-highlight); }
+  .g { display: grid; grid-template-columns: repeat(5, 20px); }
+  .g span, .c { width: 20px; height: 20px; border: 1.5px solid var(--ink-2); margin: -0.75px; font-family: var(--font-mono); font-size: 10px; display: flex; align-items: center; justify-content: center; background: var(--c-empirical); color: #fff; box-sizing: border-box; }
+  .cells { display: flex; gap: 6px; }
+  .band { width: 560px; border: 1px solid var(--grid); background: var(--surface-1); }
+  .band .head { display: flex; justify-content: space-between; padding: 4px 10px; background: var(--surface-2); font-size: var(--fs-sm); font-weight: 600; }
+  .band .head code { color: var(--c-highlight); font-weight: 400; }
+  .band .body { padding: 10px; display: flex; gap: 16px; align-items: flex-start; }
+  .band .cap { padding: 0 10px 8px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .band .cap b { color: var(--ink-1); }
+  .btns { display: flex; gap: 6px; margin: 8px 0; }
+  .btn { border: 1px solid var(--axis); border-radius: var(--radius); padding: 6px 14px; font-size: var(--fs-sm); color: var(--ink-1); }
+  .btn.off { color: var(--ink-3); border-color: var(--grid); }
+  .ro { display: grid; grid-template-columns: repeat(2, 200px); gap: 12px; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 8px; }
+  .ro b { display: block; font-size: var(--fs-md); color: var(--ink-1); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · the size-1 dimension — in the print, in the drawing, and when squeeze leaves it</h1>
+  <p class="note">
+    <b>Your three points on the B build.</b> Nothing in the widget has been changed for this page; every sketch is
+    a proposal.
+  </p>
+
+  <h2>§1 · The gaps in the print are torch's own, and the bracket the new dimension adds can be lit</h2>
+  <p class="note">
+    torch separates blocks with blank lines, one per level: the two rows of a <code>[2, 2, 1, 5]</code> print sit
+    inside single brackets, one blank line separates the dim-1 blocks, two blank lines separate the dim-0
+    blocks. The widget prints exactly that, by torch's own rule (the print is generated, not typed). What is
+    missing is the answer to "which bracket is the new one": it is the pair round each row, and the proposal is
+    to draw that pair in the highlight colour, in the result of unsqueeze and in the source of squeeze — the
+    same colour the drawing uses for the frame it adds (§2), so the two say the same thing.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3><code>T.unsqueeze(2)</code> → [2, 2, 1, 5] — as printed today</h3>
+      <div class="sub">the blank lines are torch's block separators</div>
+<pre><span class="h">print(result)</span>
+tensor([[[[ <span class="v">1,  2,  3,  4,  5</span>]],
+
+         [[ <span class="v">6,  7,  8,  9, 10</span>]]],
+
+
+        [[[<span class="v">11, 12, 13, 14, 15</span>]],
+
+         [[<span class="v">16, 17, 18, 19, 20</span>]]]])
+<span class="h">result.shape</span>
+<span class="l">torch.Size([2, 2, 1, 5])</span></pre>
+    </div>
+    <div class="cand">
+      <h3>proposed: the size-1 dimension's brackets lit</h3>
+      <div class="sub">the pair at depth 2, round each row: the one unsqueeze(2) added</div>
+<pre><span class="h">print(result)</span>
+tensor([[[<span class="x">[</span> <span class="v">1,  2,  3,  4,  5</span><span class="x">]</span>],
+
+         [<span class="x">[</span> <span class="v">6,  7,  8,  9, 10</span><span class="x">]</span>]],
+
+
+        [[<span class="x">[</span><span class="v">11, 12, 13, 14, 15</span><span class="x">]</span>],
+
+         [<span class="x">[</span><span class="v">16, 17, 18, 19, 20</span><span class="x">]</span>]]])
+<span class="h">result.shape</span>
+<span class="l">torch.Size([2, 2, <span class="x">1</span>, 5])</span></pre>
+    </div>
+    <div class="cand">
+      <h3>the same for <code>unsqueeze(0)</code> → [1, 2, 2, 5]</h3>
+      <div class="sub">the outermost pair, once</div>
+<pre><span class="h">print(result)</span>
+tensor(<span class="x">[</span>[[[ <span class="v">1,  2,  3,  4,  5</span>],
+         [ <span class="v">6,  7,  8,  9, 10</span>]],
+
+        [[<span class="v">11, 12, 13, 14, 15</span>],
+         [<span class="v">16, 17, 18, 19, 20</span>]]]<span class="x">]</span>)
+<span class="h">result.shape</span>
+<span class="l">torch.Size([<span class="x">1</span>, 2, 2, 5])</span></pre>
+    </div>
+  </div>
+
+  <h2>§2 · The drawing: a size-1 dimension as a dashed frame round what it wraps</h2>
+  <p class="note">
+    Today a size-1 dimension is drawn as whatever its position happens to be: a frame level at dims 0–1, a
+    one-row grid at dim 2, one-cell rows at dim 3 — so in your screenshot the new dimension was the "0" row
+    index beside each grid, which is why it was hard to see. <b>Proposal:</b> a size-1 dimension is always
+    drawn as one dashed frame in the highlight colour, labelled <code>dim k = 0</code>, round each block it
+    wraps: round everything for position 0, round each grid for position 2, round each cell for position 3. The
+    rest of the tensor is drawn as the tensor without that dimension, so [2, 2, 1, 5] looks like the [2, 2, 5]
+    with a frame round each row — an extra bracket looks like an extra frame. In both views; the same frame in
+    the source of squeeze, so what squeeze removes is the frame that unsqueeze added. The [1, 2, 2, 2, 5] frame
+    of round 21 is this rule's first case.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3><code>unsqueeze(2)</code> → [2, 2, 1, 5], frames view</h3>
+      <div class="sub">one dashed frame round each row of the [2, 2, 5]</div>
+      <div class="sk">
+        <div class="f0" data-l="dim 0 = 0">
+          <div class="f1" data-l="dim 1 = 0"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></div></div>
+          <div class="f1" data-l="dim 1 = 1"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div></div>
+        </div>
+        <div class="f0" data-l="dim 0 = 1">
+          <div class="f1" data-l="dim 1 = 0"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span></div></div></div>
+          <div class="f1" data-l="dim 1 = 1"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3><code>unsqueeze(0)</code> → [1, 2, 2, 5]</h3>
+      <div class="sub">one dashed frame round the whole [2, 2, 5], as round 21 draws the rank-5 case</div>
+      <div class="sk">
+        <div class="w" data-l="dim 0 = 0">
+          <div class="f0" data-l="">
+            <div class="f1" data-l="dim 1 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div>
+            <div class="f1" data-l="dim 1 = 1"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3><code>unsqueeze(3)</code> → [2, 2, 5, 1]</h3>
+      <div class="sub">one dashed frame round each cell (one block shown)</div>
+      <div class="sk">
+        <div class="f0" data-l="dim 0 = 0">
+          <div class="f1" data-l="dim 1 = 0">
+            <div class="cells">
+              <div class="w cellw" data-l="dim 3"><div class="c">1</div></div>
+              <div class="w cellw" data-l="dim 3"><div class="c">2</div></div>
+              <div class="w cellw" data-l="dim 3"><div class="c">3</div></div>
+              <div class="w cellw" data-l="dim 3"><div class="c">4</div></div>
+              <div class="w cellw" data-l="dim 3"><div class="c">5</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>§3 · When squeeze names a dimension that is not size 1</h2>
+  <p class="note">
+    <b>No error is the right answer</b>: torch's <code>squeeze(dim)</code> returns the tensor unchanged when
+    that dimension is not size 1, which is what your cell 34 says ("otherwise it is unchanged"). The widget
+    does that — the shape stays [2, 2, 1, 5] and the caption says why — but it builds the result value by
+    value as if something had been done, so it looks like success. <b>Proposal:</b> when nothing is removed,
+    nothing is built. The Result band draws U again at once, headed <i>Result · unchanged</i>, with the line
+    that says why; the buttons are inert ("nothing to move"); the readout's Result shape says
+    <i>unchanged</i>. Squeeze of a size-1 dimension keeps its walk, because there the values do move.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>proposed: <code>U.squeeze(1)</code> on U = [2, 2, 1, 5]</h3>
+      <div class="sub">the result band, drawn at once</div>
+      <div class="band">
+        <div class="head"><span>Result · unchanged</span><code>U.squeeze(1)</code></div>
+        <div class="body">
+          <div class="sk" style="padding:8px">
+            <div class="f0" data-l="dim 0 = 0">
+              <div class="f1" data-l="dim 1 = 0"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></div></div>
+              <div class="f1" data-l="dim 1 = 1"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div></div>
+            </div>
+            <div class="f0" data-l="dim 0 = 1">
+              <div class="f1" data-l="dim 1 = 0"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span></div></div></div>
+              <div class="f1" data-l="dim 1 = 1"><div class="w row" data-l="dim 2 = 0"><div class="g"><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div></div>
+            </div>
+          </div>
+<pre style="border:0;padding:0"><span class="h">print(result)</span>
+tensor([[[<span class="x">[</span> <span class="v">1,  2,  3,  4,  5</span><span class="x">]</span>],
+
+         [<span class="x">[</span> <span class="v">6,  7,  8,  9, 10</span><span class="x">]</span>]],
+
+
+        [[<span class="x">[</span><span class="v">11, 12, 13, 14, 15</span><span class="x">]</span>],
+
+         [<span class="x">[</span><span class="v">16, 17, 18, 19, 20</span><span class="x">]</span>]]])
+<span class="h">result.shape</span>
+<span class="l">torch.Size([2, 2, 1, 5])</span></pre>
+        </div>
+        <div class="cap"><b>Dim 1 has size 2, not 1, so squeeze returns U as it is.</b> The size-1 dimension is dim 2; squeeze removes only a dimension of size 1, and raises no error for any other.</div>
+      </div>
+      <div class="btns"><span class="btn off">Move a value</span><span class="btn off">Replay</span><span class="btn">Reset</span></div>
+      <div class="ro">
+        <div>Source shape<b>[2, 2, 1, 5]</b>sample, sequence, size 1, feature</div>
+        <div>Result shape<b>[2, 2, 1, 5]</b>unchanged: dim 1 is not size 1</div>
+      </div>
+    </div>
+    <div class="cand">
+      <h3>the alternative: keep the walk, say it louder</h3>
+      <div class="sub">the values are placed one by one as today, with "unchanged" on the band's title and in the readout</div>
+      <p class="note" style="max-width:52ch">Cheaper, and it keeps every squeeze looking the same; but twenty values travelling to the places they already hold is the thing that read as success. I would build the left.</p>
+    </div>
+  </div>
+</main>
+</body>
+</html>
