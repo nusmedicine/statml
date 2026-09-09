@@ -445,6 +445,26 @@ function reshapeNames(src, shape, names) {
   return p === src.length ? out : shape.map(() => "");
 }
 
+/** The tensors squeeze is offered, by use (round 25, Kenneth: "build the
+    menu version, keep the dimension dropdown and dash"): a batch of one, one
+    channel, one value each — U = T.unsqueeze(k) for k = 0, 1 and −1. Rank 1
+    has no channel case apart from the last; rank 4 draws only the batch
+    (decision 36). */
+export function squeezeSources(rank) {
+  const r = RANK_SHAPES[rank] ? Number(rank) : 3;
+  const shape = RANK_SHAPES[r];
+  const ins = (k) => [...shape.slice(0, k), 1, ...shape.slice(k)];
+  const cases = [
+    { value: "batch", at: "0", label: `a batch of one · ${shapeText(ins(0))}` },
+    { value: "channel", at: "1", label: `one channel · ${shapeText(ins(1))}` },
+    { value: "value", at: "-1", label: `one value each · ${shapeText(ins(r))}` },
+  ];
+  if (r >= 4) return cases.slice(0, 1);
+  if (r === 1) return [cases[0], cases[2]];
+  return cases;
+}
+export const squeezeAt = (rank, value) => squeezeSources(rank).find((c) => c.value === value)?.at ?? "0";
+
 /** What an inserted dimension is called: the lesson's own name where it adds
     a front dimension to its [2, 2, 5] (batch, or sample for images), and
     `size 1` anywhere else — the ladder of names is declared per rank, not
@@ -570,6 +590,8 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
         shape: [...src],
         names,
         caption: `With no position given, every dimension of size 1 is removed: dim ${k} goes and the rest close up.`,
+        /* the usual mistake with squeeze(): a batch of one loses its batch */
+        captionMore: k === 0 ? "On a batch of one that drops the batch dimension too, which is the usual mistake: name the dimension." : null,
         dest: (n) => unravel(n, srcU).filter((_, j) => j !== k),
       };
     }
@@ -697,7 +719,7 @@ export function opFrom(params) {
             : params.op === "squeeze" ? (params.sqdim ?? "0")
               : params.op === "transpose" ? [params.tdim0 ?? "1", params.tdim1 ?? "2"]
                 : (params.fstart ?? ""),
-      setName, rank, params.sqat ?? "0");
+      setName, rank, squeezeAt(rank, params.sqsrc ?? "batch"));
   return { ...op, roles: labelsOf(op.names ?? []) };
 }
 

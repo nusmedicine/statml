@@ -11451,8 +11451,22 @@ newline per remaining dimension less one, which is the rule the widget's
 print follows. "The highlight of brackets is too hard to see": a wash of
 the highlight colour behind each lit bracket and behind the lit `1` of
 the size line, the pill the print's hotspots already use. His fourth
-point — simplify squeeze to typical use cases — is a discussion, not a
-build; see the questions below.
+point — simplify squeeze to typical use cases — was a discussion first.
+
+**Round 25 (2026-09-09) — "build the menu version, keep the dimension
+dropdown and dash".** The uses put to him: a batch of one (a model expects
+a batch; the notebook's case), one channel (a grayscale image for a conv
+layer), one value each (a sequence of scalars for an RNN, or a model
+output [N, 1] squeezed to [N], the commonest squeeze in real code), and
+the usual mistake — `squeeze()` on a batch of one drops the batch too.
+Built: squeeze's source is a select of those three, each label carrying
+its shape at the rank — `a batch of one · [1, 2, 2, 5]`, `one channel ·
+[2, 1, 2, 5]`, `one value each · [2, 2, 5, 1]` — U = T.unsqueeze(0), (1),
+(−1), the band's header saying which; rank 1 offers two (channel and last
+coincide), rank 4 the batch alone (decision 36). *Dimension to remove*
+keeps every position and the dash; the dash on a batch of one gets a
+second caption line naming the mistake. unsqueeze's detail names the same
+three uses for 0, 1 and −1. Verify 279; sweeps clean; nothing in core.
 
 ### Questions for Kenneth, before any mock-up
 

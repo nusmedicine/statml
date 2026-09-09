@@ -222,11 +222,11 @@ const OPS = location.search.includes("ops") ? (() => {
   const sqs = [
     ...["0", "1", "all"].map((d) => ["manipulate", `op=squeeze&sqdim=${d}`]),
     /* round 22: the size-1 dimension elsewhere, removed, missed, and last */
-    ["manipulate", "op=squeeze&sqat=1&sqdim=1"], ["manipulate", "op=squeeze&sqat=1&sqdim=0"],
-    ["manipulate", "op=squeeze&sqat=-1&sqdim=all"], ["manipulate", "op=squeeze&sqat=2&sqdim=2&view=frames"],
+    ["manipulate", "op=squeeze&sqsrc=channel&sqdim=1"], ["manipulate", "op=squeeze&sqsrc=channel&sqdim=0"],
+    ["manipulate", "op=squeeze&sqsrc=value&sqdim=all"], ["manipulate", "op=squeeze&sqsrc=value&sqdim=3&view=frames"],
     /* round 23: the miss drawn at once, the size-1 dimension marked at every level */
-    ["manipulate", "op=squeeze&sqat=2&sqdim=1"], ["manipulate", "op=squeeze&sqat=3&sqdim=3"],
-    ["manipulate", "rank=2&op=squeeze&sqat=0&sqdim=0"], ["manipulate", "rank=1&op=squeeze&sqat=1&sqdim=0"],
+    ["manipulate", "op=squeeze&sqsrc=value&sqdim=1"], ["manipulate", "op=squeeze&sqsrc=batch&sqdim=all"],
+    ["manipulate", "rank=2&op=squeeze&sqsrc=batch&sqdim=0"], ["manipulate", "rank=1&op=squeeze&sqsrc=value&sqdim=0"],
   ];
   const trs = [["1", "2"], ["0", "2"], ["1", "1"]].map(([a, b]) => ["manipulate", `op=transpose&tdim0=${a}&tdim1=${b}`]);
   const cats = [0, 1, 2].map((d) => ["join", `join=cat&cdim=${d}`]);

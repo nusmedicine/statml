@@ -405,6 +405,14 @@
       Round 24: the hug's clearance is 4 in the frames view and 6 in the stack
       view, whose slabs step apart by that much more; a wash behind each lit
       bracket ("too hard to see").
+
+  39. ROUND 25. SQUEEZE'S SOURCE IS A MENU OF USES, not a position (his
+      call, after the uses were listed): a batch of one, one channel, one
+      value each — U = T.unsqueeze(0), (1), (−1), the shape in each label.
+      Rank 1 offers two, rank 4 the batch alone. The dimension dropdown and
+      the dash stay: the mismatch is unchanged (38), and the dash on a batch
+      of one drops the batch too, which the caption names as the usual
+      mistake. unsqueeze's detail names the same three uses for 0, 1, −1.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -3269,7 +3277,7 @@ defineWidget({
     unsqueeze: {
       type: "expr",
       label: "Position of the new dimension",
-      detail: "0 puts the size-1 dimension in front and −1 puts it last",
+      detail: "0 puts the size-1 dimension in front, a batch of one; 1 after the first, a channel; −1 last, one value each",
       open: "T.unsqueeze(",
       close: ")",
       slots: ["udim"],
@@ -3286,23 +3294,17 @@ defineWidget({
     },
     /* ROUND 22, Kenneth's pick B: where the size-1 dimension sits is the
        student's, so squeeze has something to remove at every position and
-       the mismatch — a position that is not size 1 — is seen, not read */
-    sqat: {
+       the mismatch — a position that is not size 1 — is seen, not read.
+       ROUND 25: offered by USE rather than by position — a batch of one, one
+       channel, one value each — the band's header saying which unsqueeze
+       made it. */
+    sqsrc: {
       type: "select",
-      label: "position",
-      hidden: true,
-      default: "0",
-      options: (v) => M.dimOptions("squeezeAt", Number(v.rank)),
+      label: "U, the tensor to squeeze",
+      detail: "T with a size-1 dimension added where the use puts it: a batch of one in front, a channel after the first, one value each last",
+      default: "batch",
+      options: (v) => M.squeezeSources(Number(v.rank)).map(({ value, label }) => ({ value, label })),
       optionsFrom: "rank",
-      when: SQUEEZE_ON,
-    },
-    squeezeAt: {
-      type: "expr",
-      label: "Size-1 dimension at",
-      detail: "U is T with one dimension of size 1 added at this position; in front, it is a batch dimension",
-      open: "U = T.unsqueeze(",
-      close: ")",
-      slots: ["sqat"],
       when: SQUEEZE_ON,
     },
     sqdim: {

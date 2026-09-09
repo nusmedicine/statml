@@ -36,7 +36,7 @@ import {
   RED_X, RED_X_SHAPE, RED_MU, RED_SD, RED_Z, REDUCERS,
   reduceGroups, reduceShape, reduceValues,
   UNIT_MS, unitMs, choreographs, num,
-  torchPrint, sizeText,
+  torchPrint, sizeText, squeezeSources, squeezeAt,
 } from "../tensors/model.js";
 
 let failed = 0;
@@ -605,6 +605,14 @@ console.log("\n=== 4b · the rank carries over to Shape and Join ===");
         }))));
     check("the size-1 position dropdown offers what unsqueeze's does",
       same(dimOptions("squeezeAt", 3).map((o) => o.value), ["0", "1", "2", "3", "-1"]));
+    check("squeeze's sources are three uses at ranks 2-3, two at rank 1, the batch alone at rank 4 (round 25)",
+      same(squeezeSources(3).map((c) => c.value), ["batch", "channel", "value"])
+      && squeezeSources(3)[1].label === "one channel · [2, 1, 2, 5]" && squeezeSources(3)[2].label === "one value each · [2, 2, 5, 1]"
+      && same(squeezeSources(1).map((c) => c.value), ["batch", "value"]) && same(squeezeSources(4).map((c) => c.value), ["batch"])
+      && squeezeAt(3, "value") === "-1" && squeezeAt(3, "nonsense") === "0");
+    check("squeeze() on a batch of one names the usual mistake; on the other sources it does not",
+      shapeOp("squeeze", "all", "sequence", 3, "0").captionMore.includes("usual mistake")
+      && shapeOp("squeeze", "all", "sequence", 3, "1").captionMore === null);
     const tr = shapeOp("transpose", ["1", "2"], "sequence", 3);
     check("transpose(1, 2) is permute(0, 2, 1)", same(tr.shape, [2, 5, 2]) && same(tr.names, ["sample", "feature", "sequence"]) && bij(tr)
       && same(shapeWalk(tr).map((m) => m.dst.join(",")), shapeWalk(shapeOp("permute", "0-2-1")).map((m) => m.dst.join(","))));
