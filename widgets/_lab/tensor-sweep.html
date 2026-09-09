@@ -176,8 +176,8 @@ async function run(frameW, name, query, expect) {
    generated caption and every result print is measured once. */
 const OPS = location.search.includes("ops") ? (() => {
   const out = [];
-  const slots = (sh) => sh.map((d, k) => `s${k}=${d}`).concat(sh.length < 4 ? Array.from({ length: 4 - sh.length }, (_, j) => `s${sh.length + j}=none`) : []).join("&");
-  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], []].map((sh) => ["shape", `op=reshape&${slots(sh)}`]);
+  /* the typed field's URL form, plus the lesson's -1, two -1s and a word */
+  const shapes = [...M.RESHAPE_SHAPES, M.RESHAPE_FAIL, [2, -1], [-1, -1], ["a"]].map((sh) => ["shape", `op=reshape&shape=${sh.join("x")}`]);
   const perms = M.PERMUTATIONS.map((pm) => ["shape", `op=permute&perm=${M.shapeKey(pm)}`]);
   const uns = [0, 1, 2, 3].map((d) => ["shape", `op=unsqueeze&udim=${d}`]);
   const fls = [0, 1, 2].map((d) => ["shape", `op=flatten&fstart=${d}`]);

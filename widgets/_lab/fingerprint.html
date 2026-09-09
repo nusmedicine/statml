@@ -191,6 +191,11 @@ function drive(win, doc, spec) {
     } else if (el.type === "checkbox") {
       el.checked = Boolean(value);
       fire("change");
+    } else if (el.type === "text") {
+      /* a text field commits on `change`, as a person's Enter does; `input`
+         alone leaves it half-typed and the widget unmoved */
+      el.value = String(value);
+      fire("change");
     } else if (el.tagName === "SELECT") {
       el.value = String(value);
       fire("change");

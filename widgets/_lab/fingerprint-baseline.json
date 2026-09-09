@@ -3268,7 +3268,7 @@
     {
       "$note": "PLACEHOLDER - draft. Shape: the same [2, 5, 2] by reshape — 7 at [0, 3, 0], which is the argument",
       "slug": "tensors",
-      "state": "?theme=light&tab=shape&op=reshape&s0=2&s1=5&s2=2&shown=7",
+      "state": "?theme=light&tab=shape&op=reshape&shape=2x5x2&shown=7",
       "px": "0",
       "tx": "0"
     },

@@ -281,13 +281,44 @@ export const parseKey = (key) => String(key).split("-").map(Number);
  * two are `only one dimension can be inferred`. The empty call fails as
  * torch fails `reshape(())`.
  */
-export const NO_SIZE = "none";     // a blank slot's URL value
+/* ROUND 14: the argument is one TYPED field, `2, -1`. The four dropdowns of
+   round 13 were 22 items each, which Kenneth would not have. What was typed
+   is split on commas, spaces, `x` or `×`, with brackets ignored, so `[2, 5, 2]`
+   and `2x5x2` are the same shape; a token that is not a whole number is
+   torch's own TypeError. The URL carries the canonical `2x5x2`. */
+const SEP = /[\s,x×]+/;
+const MINUS = /[−–]/g;             // a typed minus sign or en dash is a minus
+
+/** The tokens of a typed shape: whole numbers as numbers, anything else as
+    the string it was, so the error can name it. */
+export function parseShapeText(text) {
+  return String(text ?? "").replace(MINUS, "-").replace(/[[\]()]/g, " ").trim()
+    .split(SEP).filter(Boolean)
+    .map((t) => (/^-?\d+$/.test(t) ? Number(t) : /^-?\d*\.\d+$/.test(t) ? Number(t) : t));
+}
+
+/** The URL form of what was typed: `2x-1` where every token is a whole
+    number, else the text itself, so a failing entry survives a reload. */
+export function shapeWire(text) {
+  const toks = parseShapeText(text);
+  return toks.every((t) => Number.isInteger(t)) ? toks.join("x") : String(text ?? "").trim();
+}
+
+/** What the field shows for a stored value: `2, -1` for `2x-1`. */
+export function shapeShow(v) {
+  return /^-?\d+(x-?\d+)*$/.test(v ?? "") ? v.split("x").join(", ") : String(v ?? "");
+}
 
 /** Resolve typed entries — `[2, -1]` — to the shape they make, or the error. */
 export function reshapeFrom(asked) {
   const bad = (shape) => ({ asked, shape: null, ok: false,
     error: `shape '${shapeText(shape)}' is invalid for input of size ${CELLS}` });
-  if (!asked.every((d) => Number.isInteger(d) && (d >= 1 || d === -1))) return bad(asked);
+  const k = asked.findIndex((d) => !Number.isInteger(d));
+  if (k >= 0) {
+    return { asked, shape: null, ok: false,
+      error: `reshape(): argument 'shape' must be tuple of ints, but found element of type ${typeof asked[k] === "number" ? "float" : "str"} at pos ${k}` };
+  }
+  if (!asked.every((d) => d >= 1 || d === -1)) return bad(asked);
   const holes = asked.filter((d) => d === -1).length;
   if (holes > 1) return { asked, shape: null, ok: false, error: "only one dimension can be inferred" };
   const known = asked.filter((d) => d !== -1).reduce((a, d) => a * d, 1);
@@ -299,8 +330,6 @@ export function reshapeFrom(asked) {
   return { asked, shape: [...asked], ok: true, error: null };
 }
 
-/** The typed entries behind four slot parameters: blanks dropped, in order. */
-export const askedFrom = (slots) => slots.filter((v) => v != null && v !== NO_SIZE).map(Number);
 
 const nameJoin = (names) => names.filter(Boolean).join(" × ");
 const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
@@ -355,7 +384,9 @@ export function shapeOp(kind, arg, setName = "sequence") {
         ? `The values are refilled into ${shapeText(shape)} in reading order; only the dimensions are recut.`
         : r.error === "only one dimension can be inferred"
           ? "One -1 asks for the size that fits; two leave torch nothing to fit it against."
-          : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(asked)}.`,
+          : r.error.startsWith("reshape()")
+            ? "A shape is a list of whole numbers, one per dimension."
+            : `A reshape must keep every value, and ${CELLS} values do not fill ${shapeText(asked)}.`,
       dest: (n) => shape.map((d, k) => Math.floor(n / strides[k]) % d),
     };
   }
@@ -446,7 +477,7 @@ export function opFrom(params) {
   const op = params.tab === "join"
     ? joinOp(params.join, params.join === "cat" ? params.cdim : params.sdim, setName)
     : shapeOp(params.op,
-      params.op === "reshape" ? askedFrom([params.s0, params.s1, params.s2, params.s3])
+      params.op === "reshape" ? parseShapeText(params.shape)
         : params.op === "permute" ? params.perm
           : params.op === "unsqueeze" ? params.udim : params.fstart,
       setName);

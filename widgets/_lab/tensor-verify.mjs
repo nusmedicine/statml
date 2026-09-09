@@ -25,7 +25,7 @@ import {
   R1, R2, R4, RANK_SHAPES, RANK_ROLES, dimLabels, rankSpec, selectionOf, COLON,
   indexSlot, indexSet, indexTargets, indexTargetCount,
   shapeOp, joinOp, opFrom, RESHAPE_SHAPES, RESHAPE_FAIL, PERMUTATIONS, shapeKey,
-  reshapeFrom, askedFrom, NO_SIZE,
+  reshapeFrom, parseShapeText, shapeWire, shapeShow,
   roleNames, roleLabels, NAME_SETS, shapeWalk, shapeSize, shapeText, indexText,
   BC_X, BC_X_SHAPE, BC_CASES, bCaseByValue, bName, alignment, broadcastPlan,
   MM_X, MM_X_SHAPE, MM_Y_SHAPE, MM_W, MM_WT, MM_Y, matmul, productTerms,
@@ -461,11 +461,11 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
 
   /* opFrom reads the parameters the rail writes — round 13: reshape's four
      slots, blanks dropped, as the student typed them */
-  const viaParams = opFrom({ tab: "shape", op: "reshape", s0: "2", s1: "5", s2: "2", s3: NO_SIZE, names: "sequence" });
-  check("opFrom reads op + the four slots and attaches roles",
+  const viaParams = opFrom({ tab: "shape", op: "reshape", shape: "2x5x2", names: "sequence" });
+  check("opFrom reads op + the typed shape and attaches roles",
     viaParams.label === "reshape(2, 5, 2)" && same(viaParams.shape, [2, 5, 2]) && same(viaParams.roles, ["0", "1", "2"]),
     viaParams.roles.join(" | "));
-  const lesson = opFrom({ tab: "shape", op: "reshape", s0: "2", s1: "-1", s2: NO_SIZE, s3: NO_SIZE, names: "sequence" });
+  const lesson = opFrom({ tab: "shape", op: "reshape", shape: "2x-1", names: "sequence" });
   check("the lesson's own reshape(2, -1) is the default and -1 becomes 10",
     lesson.ok && lesson.label === "reshape(2, -1)" && same(lesson.shape, [2, 10]) && lesson.inferred === 10
     && same(lesson.names, ["sample", "sequence × feature"]),
@@ -479,8 +479,16 @@ console.log("\n=== 4 · reshape, flatten, unsqueeze, cat, stack — and their ro
     reshapeFrom([]).error === "shape '[]' is invalid for input of size 20");
   check("a fifth dimension cannot be typed, and a product of 20 over four slots is every listed shape",
     RESHAPE_SHAPES.every((sh) => reshapeFrom(sh).ok) && !reshapeFrom([1, 1, 1, 1, 20]).ok);
-  check("blanks are dropped wherever they sit",
-    same(askedFrom(["2", NO_SIZE, "10", NO_SIZE]), [2, 10]) && same(askedFrom([NO_SIZE, NO_SIZE, NO_SIZE, NO_SIZE]), []));
+  check("typed text splits on commas, spaces, x and brackets alike",
+    same(parseShapeText("2, 5, 2"), [2, 5, 2]) && same(parseShapeText("[2 5 2]"), [2, 5, 2])
+    && same(parseShapeText("2x5x2"), [2, 5, 2]) && same(parseShapeText("(2, −1)"), [2, -1]) && same(parseShapeText(""), []));
+  check("a token that is not a whole number is torch's TypeError, naming its position",
+    reshapeFrom(parseShapeText("2, a")).error === "reshape(): argument 'shape' must be tuple of ints, but found element of type str at pos 1"
+    && reshapeFrom(parseShapeText("2.5, 8")).error === "reshape(): argument 'shape' must be tuple of ints, but found element of type float at pos 0");
+  check("the URL form is x-joined for whole numbers and the text itself otherwise",
+    shapeWire("2, 5, 2") === "2x5x2" && shapeWire("[2, -1]") === "2x-1" && shapeWire(" 2, a ") === "2, a");
+  check("the field shows the URL form with commas, and other text as it is",
+    shapeShow("2x-1") === "2, -1" && shapeShow("2, a") === "2, a" && shapeShow("") === "");
   const viaJoin = opFrom({ tab: "join", join: "stack", sdim: "1", names: "image" });
   check("opFrom reads join + sdim", viaJoin.label === "stack(dim=1)" && same(viaJoin.shape, [2, 2, 2, 5]));
 }

@@ -95,6 +95,21 @@ function ownDetail(wrap, field) {
   wrap.appendChild(d);
 }
 
+/** The one `<input type="text">` core renders — in an expr slot or on its own.
+    `size` is the field's own, in characters; no spellcheck and no autofill,
+    because what goes in it is a shape or an expression, not prose. */
+function textInput(name, field) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.dataset.param = name;
+  input.setAttribute("aria-label", field.label ?? name);
+  input.size = field.size ?? 12;
+  input.maxLength = field.maxLength ?? 80;
+  input.spellcheck = false;
+  input.autocomplete = "off";
+  return input;
+}
+
 export function fieldShowing(field, values) {
   return field.when ? clauseShowing(field.when, values) : true;
 }
@@ -354,6 +369,26 @@ function build(host, spec, values, onChange, api) {
         slot.className = "w-expr-slot";
         const sel = document.createElement("span");
         sel.className = "w-expr-sel";
+        if (f.type === "text") {
+          /* A TYPED SLOT. It commits on `change` — Enter, or leaving the field
+             — and not on every keystroke: a half-typed "2," would otherwise be
+             a parameter, a URL and a reset of whatever walk was under way. */
+          const input = textInput(n, f);
+          const paint = (v) => {
+            input.value = f.show ? f.show(v) : String(v);
+            slot.dataset.set = v === f.default ? "0" : "1";
+          };
+          paint(values[n]);
+          input.addEventListener("change", () => {
+            const v = f.parse ? f.parse(input.value) : input.value;
+            paint(v);
+            onChange(n, v);
+          });
+          setters[n] = paint;
+          sel.classList.add("w-expr-txt");
+          sel.appendChild(input);
+          slot.appendChild(sel);
+        } else {
         const select = document.createElement("select");
         select.dataset.param = n;
         select.setAttribute("aria-label", f.label ?? n);
@@ -377,6 +412,7 @@ function build(host, spec, values, onChange, api) {
         setters[n] = paint;
         sel.appendChild(select);
         slot.appendChild(sel);
+        }
         if (f.label) {
           const nm = document.createElement("span");
           nm.className = "w-expr-name";
@@ -687,6 +723,20 @@ function build(host, spec, values, onChange, api) {
         input.value = String(v);
         show(v);
       };
+    } else if (field.type === "text") {
+      wrap.appendChild(label);
+      const input = textInput(name, field);
+      input.id = id;
+      input.classList.add("w-text");
+      const paint = (v) => { input.value = field.show ? field.show(v) : String(v); };
+      paint(values[name]);
+      input.addEventListener("change", () => {
+        const v = field.parse ? field.parse(input.value) : input.value;
+        paint(v);
+        onChange(name, v);
+      });
+      wrap.appendChild(input);
+      setters[name] = paint;
     } else if (field.type === "select") {
       wrap.appendChild(label);
       const select = document.createElement("select");

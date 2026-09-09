@@ -906,7 +906,8 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   transform: rotate(45deg);
   pointer-events: none;
 }
-.w-expr-sel select {
+.w-expr-sel select,
+.w-expr-sel input {
   appearance: none;
   -webkit-appearance: none;
   min-width: 34px;
@@ -920,9 +921,28 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   cursor: pointer;
 }
 .w-expr-sel select:hover { background: var(--surface-3); }
-.w-expr-slot[data-set="1"] select {
+.w-expr-slot[data-set="1"] select,
+.w-expr-slot[data-set="1"] input {
   border-color: var(--c-highlight);
   background: color-mix(in srgb, var(--c-highlight) 22%, var(--surface-1));
+}
+/* A typed slot: the same box without the chevron or its room (widget 53, the
+   reshape argument, 2026-09-09). */
+.w-expr-txt::after { display: none; }
+.w-expr-sel input { padding-right: 8px; cursor: text; }
+.w-expr-sel input:focus { outline: 2px solid var(--c-highlight); outline-offset: 1px; }
+/* A text field on its own line. */
+.w-text {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  color: var(--ink-1);
+  background: var(--surface-1);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
 }
 .w-expr-name {
   font-family: var(--font);

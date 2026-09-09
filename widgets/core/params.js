@@ -25,6 +25,12 @@
                   `T[ _, _, _ ]`; NOT a parameter itself — each slot is an
                   ordinary option-list parameter declared `hidden`, so it keeps
                   its own URL key
+     text         a short string the reader TYPES, validated by the widget —
+                  a shape, an expression. `parse(text)` canonicalises what was
+                  typed before it is stored (and what a URL carries), `show(v)`
+                  formats the stored value for display; both optional. Widget
+                  53's reshape argument, 2026-09-09: a dropdown of 22 sizes
+                  per slot was the long list Kenneth would not have.
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
      segmented    connected button group, all options visible at rest
@@ -104,6 +110,14 @@ export function resolveParams(spec, search) {
       case "matrix": {
         const keys = optionKeys(field);
         out[name] = keys.includes(raw) ? raw : field.default;
+        break;
+      }
+      /* a typed value is stored in its canonical form whether it came from the
+         field or the address bar, so `?shape=2,5,2` and `?shape=2x5x2` are one
+         state; the cap keeps a pasted novel out of the URL */
+      case "text": {
+        const t = raw.slice(0, field.maxLength ?? 80);
+        out[name] = field.parse ? field.parse(t) : t;
         break;
       }
       default:

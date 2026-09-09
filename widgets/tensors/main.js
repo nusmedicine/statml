@@ -268,6 +268,15 @@
       student who typed [20, 1, 1, 1] and is looking at what it did. The
       same round made T2 = T + 20 (21-40): the notebook's repeats 21-30 in
       both samples, which put two cells on one value.
+
+  26. ROUND 14 (Kenneth: "the picker for the indices are too long"). The four
+      slots of 22 sizes are ONE TYPED FIELD, `T.reshape( 2, -1 )`, through a
+      `text` type added to core for it (params.js, controls.js, tokens.css,
+      and the harness's `set`). It commits on Enter or blur, not per
+      keystroke, so a half-typed "2," is never a parameter. Commas, spaces,
+      `x` and brackets all separate; a token that is not a whole number
+      prints torch's TypeError. The URL carries the canonical `shape=2x5x2`,
+      and `?shape=2,5,2` resolves to the same state.
    ========================================================================= */
 
 import { defineWidget, readTokens } from "../core/index.js";
@@ -1302,6 +1311,18 @@ const shapeExpr = (op) => (op.second
   : `T.${op.label}`);
 const ROLES_H = UNDER_GAP + LINE_H;   // the roles line under a drawn tensor
 
+/** A mono line broken at spaces into lines of at most `cols` characters. */
+function wrapMono(text, cols) {
+  const lines = [];
+  let line = "";
+  for (const word of String(text).split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length > cols && line) { lines.push(line); line = word; } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 /** Everything the Shape and Join tabs need, from the parameters alone. */
 function shapeGeometry(ctx, colors, w, params) {
   const op = M.opFrom(params);
@@ -1319,8 +1340,11 @@ function shapeGeometry(ctx, colors, w, params) {
   };
   const srcRoles = M.roleLabels(params.names, 3);
   const fit = shapeFit(colors, w, op, view, prints, srcRoles);
-  const bands = [bandH(fit.srcH + ROLES_H), bandH(op.ok ? fit.outH + ROLES_H : 40)];
-  return { op, view, tensors, cw, prints, fit, bands, srcRoles, height: stageOf(bands, SHAPE_CAPTIONS) };
+  /* torch's words, wrapped to the band: its TypeError for a typed word is 85
+     mono columns, wider than the 550px stage (round 14) */
+  const errLines = op.ok ? [] : wrapMono(op.error, Math.floor((w - 2 * PAD - 2 * BAND_PAD) / cw));
+  const bands = [bandH(fit.srcH + ROLES_H), bandH(op.ok ? fit.outH + ROLES_H : 12 + errLines.length * PRINT_LH)];
+  return { op, view, tensors, cw, prints, fit, bands, srcRoles, errLines, height: stageOf(bands, SHAPE_CAPTIONS) };
 }
 
 /**
@@ -1344,7 +1368,7 @@ function shapeStand(state, anim, speed) {
 
 function planShape(ctx, colors, w, h, params, state, anim) {
   const plan = newPlan();
-  const { op, view, tensors, cw, prints, fit, bands, srcRoles } = shapeGeometry(ctx, colors, w, params);
+  const { op, view, tensors, cw, prints, fit, bands, srcRoles, errLines } = shapeGeometry(ctx, colors, w, params);
   const at = shapeStand(state, anim, params.speed);
   const s = fit.s;
   const hues3 = dimHues(colors, 3);
@@ -1422,7 +1446,9 @@ function planShape(ctx, colors, w, h, params, state, anim) {
   const resY = yB + BAND_HEAD + BAND_PAD;
   if (!op.ok) {
     /* torch's own words, where the result would be (2.6) */
-    pushText(plan, op.error, cx, resY + 14, { color: colors.extreme, mono: true });
+    errLines.forEach((line, i) => {
+      pushText(plan, line, cx, resY + 14 + i * PRINT_LH, { color: colors.extreme, mono: true });
+    });
     pushCaptions(plan, colors, [op.caption, PRINT_RULE, FOURTH_DIM], PAD, yB + bands[1] + 6 + 13);
     return plan;
   }
@@ -2339,14 +2365,6 @@ const LEAD_INDEX = [
   { value: "1", label: "1", detail: "the second position, which removes this dimension" },
 ];
 
-/* What one reshape slot can hold: blank, -1, or any size up to the tensor's.
-   The blank is an en dash, the minus a real minus sign; the URL carries
-   `none` and `-1`. */
-const SIZES = [
-  { value: M.NO_SIZE, label: "–" },
-  { value: "-1", label: "−1" },
-  ...Array.from({ length: M.CELLS }, (_, i) => String(i + 1)),
-];
 const RESHAPE_ON = { all: [{ param: "tab", equals: "shape" }, { param: "op", equals: "reshape" }] };
 
 /** The index entries in dimension order: the leading ones, then the last. */
@@ -2436,30 +2454,34 @@ defineWidget({
       default: "reshape",
       when: { param: "tab", equals: "shape" },
     },
-    /* --- reshape's argument, typed (round 13) ------------------------------- *
+    /* --- reshape's argument, typed (rounds 13 and 14) ----------------------- *
      * Round 11 offered the 65 shapes that hold 20 values as a grouped list,
      * plus [3, 7]. Kenneth chose free entry instead: a list has already
-     * applied the rule the student is meant to find. So the argument is
-     * core's `expr` line, `T.reshape( 2 , -1 , – , – )`, one hidden slot
-     * parameter per position, each any size from 1 to 20, -1, or blank —
-     * `model.reshapeFrom` answers as torch does. The lesson's own line is
-     * the default, and the inferred size is on the Result shape tile. */
-    ...Object.fromEntries(["s0", "s1", "s2", "s3"].map((name, k) => [name, {
-      type: "select",
-      label: `dim ${k}`,
-      hidden: true,
-      options: SIZES,
-      default: ["2", "-1", M.NO_SIZE, M.NO_SIZE][k],
-      when: RESHAPE_ON,
-    }])),
+     * applied the rule the student is meant to find. Round 13 made it four
+     * dropdown slots of 22 sizes each; round 14 made it ONE TYPED FIELD,
+     * core's new `text` type in the `expr` line — `T.reshape( 2, -1 )` —
+     * because the four lists were the long dropdowns he would not have.
+     * `model.parseShapeText` reads what was typed and `model.reshapeFrom`
+     * answers as torch does; the URL carries `shape=2x5x2`. The lesson's
+     * own line is the default, and the inferred size is on the Result
+     * shape tile. The field commits on Enter, which the detail says. */
     shape: {
+      type: "text",
+      label: "sizes",
+      hidden: true,
+      default: "2x-1",
+      size: 11,
+      parse: M.shapeWire,
+      show: M.shapeShow,
+      when: RESHAPE_ON,
+    },
+    reshape: {
       type: "expr",
       label: "New shape",
-      detail: "any sizes whose product is 20; −1 asks for the size that fits; anything else fails as torch fails it",
+      detail: "sizes separated by commas, then Enter: any product of 20 works, −1 asks for the size that fits, and anything else fails as torch fails it",
       open: "T.reshape(",
-      join: ",",
       close: ")",
-      slots: ["s0", "s1", "s2", "s3"],
+      slots: ["shape"],
       when: RESHAPE_ON,
     },
     perm: {

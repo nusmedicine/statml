@@ -11141,6 +11141,28 @@ can type, [20, 1, 1] and [1, 20, 1, 1], overrun the 550px stage by 30 to
 header packs `dim 0 = 0`, the column indices and `dim 1 = 0` into 22px;
 Reduce's *This group* tile lists twelve values when no dim is named.
 
+**Round 14 (2026-09-09) — one typed field, and a `text` type in core.**
+Kenneth on round 13: "the picker for the indices are too long. are there
+other pickers/selectors to avoid such a long droplist? or free text (maybe
+with validation?)". Core renders sliders, selects, segmented buttons,
+checkboxes and the matrix and nothing typed, so the four options put to him
+were one typed field (a `text` type in core), a number box per slot (int
+slots and a blank sentinel in core), an eight-item dropdown of the divisors
+of 20 (no core change, no failing shape typeable), and the typed field with
+a datalist. He took the typed field. Core gained `text`: `parse(text)`
+canonicalises what was typed before it is stored or read from a URL,
+`show(v)` formats it for display, and the field commits on `change` —
+Enter or blur — not per keystroke, so a half-typed "2," is never a
+parameter, a URL or a reset of the walk; it renders in an `expr` slot
+(the chevron and its room gone) or on its own line. The harness's `set`
+fires `change` on it. The widget: `T.reshape( 2, -1 )`, one hidden `shape`
+parameter, `?shape=2x5x2` on the wire and `2, 5, 2` in the field;
+`model.parseShapeText` splits on commas, spaces, `x`, `×` and brackets
+and keeps any other token as the string it was, so `2, a` prints torch's
+own `reshape(): argument 'shape' must be tuple of ints, but found element
+of type str at pos 1`. 222 verify checks; the full fingerprint suite ran
+for the core change.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
