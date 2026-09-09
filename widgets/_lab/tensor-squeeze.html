@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tensors — squeeze and unsqueeze, what the figure can show</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .cand { flex: 0 0 auto; }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 440px; min-height: 26px; white-space: pre-line; }
+  /* the real widget, cropped to its stage: the rail and the banner are off the left and the top */
+  .crop { width: 740px; overflow: hidden; border: 1px solid var(--grid); background: var(--surface-1); position: relative; }
+  .crop iframe { width: 1080px; height: 1500px; border: 0; margin-left: -330px; margin-top: -178px; display: block; pointer-events: none; }
+  .rail { width: 300px; padding: var(--sp-3); border: 1px solid var(--grid); background: var(--surface-1); border-radius: var(--radius); }
+  .rail .w-label { display: block; font-size: var(--fs-sm); font-weight: 600; margin: 10px 0 4px; }
+  .rail .w-label:first-child { margin-top: 0; }
+  .rail .w-detail { font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+  .cap { font-size: var(--fs-xs); color: var(--ink-3); margin: 2px 0 6px; }
+  .seg { display: flex; border: 1px solid var(--axis); border-radius: var(--radius); overflow: hidden; }
+  .seg span { flex: 1; text-align: center; padding: 6px 2px; font-size: var(--fs-sm); border-left: 1px solid var(--axis); white-space: nowrap; }
+  .seg span:first-child { border-left: 0; }
+  .seg span.on { background: var(--surface-3); font-weight: 600; }
+  .expr { font-family: var(--font-mono); font-size: var(--fs-lg); margin: 4px 0; }
+  .expr .slot { display: inline-block; border: 1px solid var(--axis); border-radius: var(--radius); padding: 2px 8px; font-size: var(--fs-md); background: var(--surface-1); }
+  .new { outline: 2px solid var(--c-highlight); outline-offset: 3px; border-radius: var(--radius); }
+  table { border-collapse: collapse; font-size: var(--fs-xs); margin: 0 0 var(--sp-4); }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-3); font-weight: 600; }
+  td code { white-space: nowrap; }
+  /* a sketch of a size-1 dimension in the middle of a rank-5 tensor: frames drawn as boxes */
+  .sk { display: inline-flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface-1); border: 1px solid var(--grid); }
+  .f0 { border: 1.5px solid var(--c-dim-a); padding: 16px 8px 8px; position: relative; display: flex; gap: 8px; }
+  .f1 { border: 1.5px solid var(--c-dim-b); padding: 16px 6px 6px; position: relative; }
+  .f2 { border: 1.5px dashed var(--ink-3); padding: 14px 5px 5px; position: relative; }
+  .f0::before, .f1::before, .f2::before { position: absolute; top: 1px; left: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); content: attr(data-l); }
+  .g { display: grid; grid-template-columns: repeat(5, 18px); }
+  .g span { width: 18px; height: 18px; border: 1.5px solid var(--ink-2); margin: -0.75px; font-family: var(--font-mono); font-size: 10px; display: flex; align-items: center; justify-content: center; background: var(--c-empirical); color: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tensors · squeeze and unsqueeze — what the figure can show</h1>
+  <p class="note">
+    <b>Your questions 3 and 4, on round 21.</b> The figure draws four dimensions, and since round 21 a fifth
+    when it is a size-1 dimension <i>in front</i>. That one rule decides everything below. Nothing has been changed
+    in the widget for this page; the crops in §1 are the widget itself, live, cropped to its stage.
+  </p>
+
+  <h2>§1 · What is built now</h2>
+  <p class="note">
+    <b>unsqueeze draws at every position at ranks 1–3</b>, because the result has at most four dimensions. It is
+    only at rank 4 that the result has five, and there only position 0 (or −5) is drawn. <b>squeeze's source is
+    the tensor unsqueeze(0) made</b> — cell 34's own example, "we previously added the batch dimension 0 so our
+    tensor is [1, 2, 2, 5]" — so dim 0 is the only size-1 dimension there is, and any other position leaves the
+    shape as it is, which is what cell 34 says torch does. So yes: today, squeeze can only remove dim 0 because
+    only dim 0 has one entry. That is the source, not the figure.
+  </p>
+  <table>
+    <tr><th>rank</th><th>unsqueeze</th><th>squeeze (source, then what each position does)</th></tr>
+    <tr><td>1 · [5]</td><td><code>0</code> → [1, 5] · <code>1</code>/<code>−1</code> → [5, 1]</td><td>[1, 5] · <code>0</code> → [5] · <code>1</code> unchanged · <code>–</code> → [5]</td></tr>
+    <tr><td>2 · [2, 5]</td><td><code>0</code>, <code>1</code>, <code>2</code> all drawn</td><td>[1, 2, 5] · only <code>0</code> removes anything</td></tr>
+    <tr><td>3 · [2, 2, 5]</td><td><code>0</code>, <code>1</code>, <code>2</code>, <code>3</code> all drawn (rank 4 results)</td><td>[1, 2, 2, 5] · only <code>0</code> removes anything</td></tr>
+    <tr><td>4 · [2, 2, 2, 5]</td><td><code>0</code> drawn as one frame; <code>1</code>–<code>4</code> declined, five dimensions</td><td>[1, 2, 2, 2, 5] · only <code>0</code> removes anything</td></tr>
+  </table>
+  <div class="row">
+    <div class="cand">
+      <h3>rank 3 · <code>T.unsqueeze(1)</code> → [2, 1, 2, 5]</h3>
+      <div class="sub">built today: the size-1 dimension is one inner frame in each outer frame</div>
+      <div class="crop" style="height:650px"><iframe src="../tensors/?tab=manipulate&rank=3&op=unsqueeze&udim=1&view=frames&shown=20"></iframe></div>
+    </div>
+    <div class="cand">
+      <h3>rank 3 · <code>T.unsqueeze(-1)</code> → [2, 2, 5, 1]</h3>
+      <div class="sub">built today: every row becomes five one-cell rows</div>
+      <div class="crop" style="height:900px"><iframe src="../tensors/?tab=manipulate&rank=3&op=unsqueeze&udim=-1&view=frames&shown=20"></iframe></div>
+    </div>
+  </div>
+
+  <h2>§2 · The options</h2>
+  <p class="note">
+    <b>A · as built</b>, with the hint on the declined positions saying what does draw ("a fifth dimension, drawn
+    only in front (0); every position draws at ranks 1–3") and squeeze's detail saying why other positions leave
+    the shape ("the source has one entry only in dim 0"). No code beyond two strings.
+  </p>
+  <p class="note">
+    <b>B · squeeze's source carries its size-1 dimension where you put it (recommended).</b> squeeze gains a
+    second dropdown, <i>Size-1 dimension at</i>, and its source is <code>T.unsqueeze(k)</code> for that k — the
+    same tensor the unsqueeze row above it just drew. Then <i>Dimension to remove</i> has something to remove at
+    every position: <code>squeeze(1)</code> on [2, 1, 2, 5] gives [2, 2, 5]; <code>squeeze(0)</code> on the same
+    tensor leaves it unchanged, which is cell 34's rule seen rather than read; <code>–</code> removes it wherever
+    it is. At rank 4 the only k the figure draws is 0, so the second dropdown offers 0 there and the tab reads as
+    it does today. Cost: a second dropdown, one model change, a round.
+  </p>
+  <div class="row">
+    <div class="rail">
+      <span class="w-label">Operation</span>
+      <div class="seg"><span>reshape</span><span>flatten</span></div>
+      <p class="cap">1 · reshaping</p>
+      <div class="seg"><span>unsqueeze</span><span class="on">squeeze</span></div>
+      <p class="cap">2 · adding / removing</p>
+      <div class="seg"><span>permute</span><span>transpose</span></div>
+      <p class="cap">3 · reordering</p>
+      <p class="w-detail">removes a dimension of size 1: here from the tensor that unsqueeze made</p>
+      <span class="w-label new">Size-1 dimension at</span>
+      <div class="expr">source = T.unsqueeze( <span class="slot">1 ▾</span> )</div>
+      <p class="w-detail">where the one-entry dimension sits: 0 to 3, or −1 to −4</p>
+      <span class="w-label">Dimension to remove</span>
+      <div class="expr">source.squeeze( <span class="slot">1 ▾</span> )</div>
+      <p class="w-detail">a position of size 1 goes; one that is not leaves the shape as it is; – removes every size-1 dimension</p>
+    </div>
+    <div class="cand">
+      <h3>B · the source, <code>T.unsqueeze(1)</code> = [2, 1, 2, 5]</h3>
+      <div class="sub">the Tensor band would hold this drawing (the widget draws it today as unsqueeze(1)'s result); the Result band holds squeeze(1) = [2, 2, 5], the plain rank-3 tensor</div>
+      <div class="crop" style="height:650px"><iframe src="../tensors/?tab=manipulate&rank=3&op=unsqueeze&udim=1&view=frames&shown=20"></iframe></div>
+    </div>
+    <div class="cand">
+      <h3>B · what each pair shows, rank 3</h3>
+      <table>
+        <tr><th>size-1 at</th><th>remove</th><th>result</th></tr>
+        <tr><td>0 · [1, 2, 2, 5]</td><td>0</td><td>[2, 2, 5]</td></tr>
+        <tr><td>0 · [1, 2, 2, 5]</td><td>1</td><td>[1, 2, 2, 5], unchanged</td></tr>
+        <tr><td>1 · [2, 1, 2, 5]</td><td>1</td><td>[2, 2, 5]</td></tr>
+        <tr><td>1 · [2, 1, 2, 5]</td><td>0</td><td>[2, 1, 2, 5], unchanged</td></tr>
+        <tr><td>−1 · [2, 2, 5, 1]</td><td>−1</td><td>[2, 2, 5]</td></tr>
+        <tr><td>any</td><td>–</td><td>[2, 2, 5]</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="note">
+    <b>C · a size-1 dimension drawn anywhere at rank 4</b>, so <code>unsqueeze(1)</code>…<code>(4)</code> on
+    [2, 2, 2, 5] draw too: the size-1 dimension is a dashed frame round every block at that level — round each
+    [2, 2, 5] for position 1, round each [2, 5] grid for position 2 (sketched below), round each row for 3, round
+    each cell for 4. Possible in the frames view; in the stack view the slabs overlap and a frame round each
+    would not read. The notebook's use of unsqueeze is the batch dimension at 0, so this buys the rarest case at
+    the highest cost — a round of geometry, frames view only. I would not.
+  </p>
+  <div class="row">
+    <div class="cand">
+      <h3>C · sketch: [2, 2, 1, 2, 5], frames view (one outer frame shown)</h3>
+      <div class="sub">the dashed frame is the size-1 dim 2, round each grid</div>
+      <div class="sk">
+        <div class="f0" data-l="dim 0 = 0">
+          <div class="f1" data-l="dim 1 = 0"><div class="f2" data-l="dim 2 = 0"><div class="g"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div></div></div>
+          <div class="f1" data-l="dim 1 = 1"><div class="f2" data-l="dim 2 = 0"><div class="g"><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
