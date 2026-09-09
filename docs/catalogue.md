@@ -11195,8 +11195,11 @@ not draw` — and cleared when it returns null; `values` is the widget's
 live object, so the hint knows the current rank. 244 verify checks (a
 bijection over every ordering at every rank, T2 = T + size at each rank,
 the negative and out-of-range positions, the hints); the sweep's `?ops`
-adds the other three ranks; two placeholder states added (permute at rank
-4, cat at rank 2). Full fingerprint suite: 367 real states MATCH.
+adds the other three ranks (242 states, all at 550 now that its frame is
+2600px tall); two placeholder states added (permute at rank 4, cat at rank
+2). Full fingerprint suite: 368 real states MATCH. Still open, at 550 only:
+the [40] row of `flatten()` at rank 4 runs 32px past the edge at CELL_MIN,
+and cat at rank 4 is 1275px tall in the stack view.
 
 ### Questions for Kenneth, before any mock-up
 

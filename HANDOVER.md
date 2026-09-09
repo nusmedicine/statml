@@ -124,8 +124,12 @@ nothing moved.** Kenneth has not yet judged the smaller cell on his screen.
   an option and Kenneth did not take them.
 - The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
   the widget's holds T + size, 21–40 at rank 3. Kenneth's cell to edit.
-- Join at rank 4 is two 40-cell tensors and an 80-cell result, ~1000px
-  tall at 550; drawable, and not yet judged on his screen.
+- Join at rank 4 is two 40-cell tensors and an 80-cell result, 1275px
+  tall at 550 in the stack view; drawable, and not yet judged on his screen.
+- At rank 4, `flatten()` and `reshape(-1)` make a [40] row, which at the
+  550px stage runs 32px past the edge even at CELL_MIN (40 × 14 = 560); at
+  770 it fits at 18px. The `?ops` sweep names it beside the two degenerate
+  stacks; the three are the only overruns among 242 states.
 
 ## Working here — read before the first command
 
