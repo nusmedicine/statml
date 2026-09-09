@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The deep learning arc* under PHM5005 — six slots proposed 2026-09-07, slot 48 `gradients` SHIPPED 2026-09-08; slot 53 `tensors` SHIPPED 2026-09-09 after twenty-nine rounds; the rest of the arc awaits his answers; the high-throughput arc is complete |
+| what to build next | § *The deep learning arc* under PHM5005 — slot 48 `gradients` SHIPPED 2026-09-08, slot 53 `tensors` SHIPPED 2026-09-09 after twenty-nine rounds; **`05-3` is PLANNED 2026-09-10 as three widgets** — 49 `processing-layers`, 50 `support-layers`, 51 `composition` — on Kenneth's eight picks, with `processing-layers` first and one core commit (`widgets/core/torch.js`) before it; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -9618,9 +9618,9 @@ epochs.
 |---|---|---|---|---|---|
 | 47 | `chain-rule` | Gradients by the Chain Rule | 1 | 05-1 cell 4; 05-2 cells 70–72 | proposed |
 | 48 | `gradients` (was `gradient-descent`) | Gradients | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | **SHIPPED 2026-09-08**, ten review rounds; absorbed slot 47's two-variable page |
-| 49 | `processing-layers` | Processing Layers | 2 | 05-3 cells 1–33 | proposed |
-| 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 40–60 | proposed, lowest priority |
-| 51 | `composition` | Composing Layers | 3 | 05-3 cells 61–101 | proposed |
+| 49 | `processing-layers` | Processing Layers | 2 | 05-3 cells 1–28 | **PLANNED 2026-09-10**; the first half of the notebook's Layers section, and **built first**, after one core commit |
+| 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 29–60 | **PLANNED 2026-09-10**; the second half of the Layers section. 49 and 50 are the two halves of one section, split on a measured rail — the "lowest priority, cut candidate" note is withdrawn |
+| 51 | `composition` | Composing Layers and Controlling Flow | 3 | 05-3 cells 61–101 | **PLANNED 2026-09-10**, seven pages, the diagram leading |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
 
@@ -9630,6 +9630,11 @@ blocks group is two different figures (a wiring diagram and a grid of
 numbers) and the gradient group is two different figures (a graph of
 products and a surface with a walk); the two slots that could be cut without
 losing a group are 47 and 50, and each entry says what it would cost.
+**Amended 2026-09-10:** slot 50 is no longer the cut candidate. The Layers
+section was planned as one ten-page widget, the rail measured at 260px against
+five stages shorter than it, and Kenneth took the split back to 49 and 50 as two
+halves of one section — so cutting 50 now costs half the section rather than a
+reference page. Slot 47 stands as the one cuttable slot.
 
 ### Slot 47 · `chain-rule` — Gradients by the Chain Rule
 
@@ -10244,113 +10249,892 @@ channel, not a region map, and the harness's `hit` looks for the pointer
 cursor a region sets; the turned-viewpoint settled state covers what the
 drag writes.
 
-### Slot 49 · `processing-layers` — Processing Layers
+### How 05-3 was planned, 2026-09-10
 
-**Host.** 05-3 cells 1–28: the layer table, then Linear, Convolution
-(standard and transposed), Recurrent (uni- and bidirectional), Attention
-(Q, K, V; multi-head), Graph (aggregate over neighbours), each with *what it
-does*, the input/output shapes, and a tiny example; cells 29–33, Embedding,
-as the step that turns a token into the vector those layers take. Pooling
-(cells 34–39) belongs here too, on the convolution page, because cell 62
-names *Conv + Pool* as a unit.
+`05-3` is one notebook of 102 cells and it became **three** widgets. The
+planning ran in one day and in five parts: two Opus 5 subagents planned the two
+halves of the notebook in parallel and independently (cells 0–60, the Layers
+half; cells 61–101, the Composing half), each reading the notebook in full,
+Kenneth's twenty-three `dl-*` figures in `_lab/figs/`, `CLAUDE.md`,
+`docs/design-principles.md` and this file's slots 49–51; a third read `widgets/core/`
+and wrote a survey of what core already offers, so neither plan could ask for a
+feature that exists or assume one that does not; a fourth reviewed both plans
+against the principles and returned **30 numbered findings**, two cut lists and
+seven merged questions; and a measurement script, `widgets/_lab/dl-layers-measure.mjs`
+(zero dependencies, seeded from `core/rng.js`), checked every claim either plan
+made about a number. torch is not installed on this machine, so every layer in
+that script is the arithmetic written out with the weights drawn from the
+distribution PyTorch's default initialiser uses — the magnitudes match the
+notebook in distribution, not digit for digit, and the notebook draws unseeded
+anyway.
 
-**The misconception — inferred, with one reported part.** The layers differ
-in their arithmetic. They do not: every processing layer is weighted sums.
-They differ in WHICH inputs each output is allowed to see — its receptive
-field — and in whether the weights are shared across positions. Reported
-within that: students think a convolution has a filter per position (weight
-sharing is the whole point of cell 6's *each filter learns to detect a
-different feature*), and that attention weights are learned parameters (they
-are computed per input from Q·K, which is why the same layer attends
-differently to every sentence).
+**Kenneth answered eight questions by `AskUserQuestion`, one click each**, and
+his picks are recorded verbatim in the three entries below. The review decided a
+further seven by the principles rather than putting them to him; each of those
+carries the reason it was decided that way.
 
-**The shape.** One stage for five pages (`block`, segmented): the input
-tensor on the left, the output on the right, the weights between; Step
-computes the output ONE ELEMENT AT A TIME and lights the input elements that
-element sees and the weights it uses, with the shapes printed underneath as
-`[batch, …] → [batch, …]`. The same step reads on every page — one output
-unit, all inputs lit (Linear 4 → 3 on a batch of 2, cell 5); one output
-position, the 3×3 window lit and the same kernel every time (the 16×16 square
-with 2 filters, stride 2, padding 1 → 8×8, cells 8–11, then MaxPool 2 → 4×4);
-one time step, xₜ and hₜ₋₁ lit (5 steps × 4 features → hidden 3, uni/bi
-segmented, cell 19); one query token, its row of scores over every key lit,
-then the weighted sum of values ("The cat sat", 3 tokens × 4 dims, cell 22,
-the 3×3 weights as a heat grid); one node, its neighbours lit (the chain
-0–1–2–3 with 3 features, cell 27). A formula card carries the output-size
-rule ⌊(in + 2p − k)/s⌋ + 1 with the current values on the convolution page.
+The measurement changed four things the plans had asserted, and each is under
+its page below: attention at the notebook's own initialisation is flat on every
+seed tried; the transposed convolution's reconstruction is a seed lottery in
+polarity; dropout's two sums agree only in the mean, and wildly not in any one
+draw; and `k=2, s=4` pooling produces an average block that reads as a bug.
 
-**Weights are random and seeded, as the notebook's are**, not trained: the
-widget is about the wiring, and the caption says so — training changes the
-values, not the pattern. **Five pages is the most of any widget** (enrichment
-has four); each is small, and the mock-up (5.1) has to show a 16×16 image
-with an 8×8 output and a 3-token attention grid both legible at the 550px
-fingerprint width before this is built. If it does not fit, the convolution
-page becomes its own widget under `06 DL for Image Data`.
+### Slot 49 · `processing-layers` — Processing Layers — PLANNED 2026-09-10
 
-### Slot 50 · `support-layers` — Normalization, Activation and Dropout
+**Host.** 05-3 cells 1–28: cell 1's layer table, then Linear (3–5),
+Convolutional standard and transposed (6–16), Recurrent uni- and bidirectional
+(17–19), Attention (20–23) and Graph (24–28). Each has *what it does*, the
+input/output shapes and a tiny example, all of which the pages draw.
 
-**Host.** 05-3 cells 40–60: BatchNorm and LayerNorm with two pictures to
-separate them; the six activations with their ranges and uses, sigmoid as a
-gate, softmax as a distribution over a row; Dropout in train and eval mode
-(cell 60 prints both).
+**The split, and it is Kenneth's pick.** The Layers half of the notebook was
+planned as **one** widget of ten pages named `layers`. The review measured the
+rail that would need and it does not work: ten options in a headed two-column
+grid cost **260px** of a 300px rail before any page control (4 heads at ≈ 20px
+and 6 grid rows at ≈ 30px, the plan's own constants), while five of the ten
+stages are shorter than that — Activation 240–300, Dropout 340, Linear 338,
+Pooling 396, Recurrent unidirectional 370. `tabHeight` buys nothing on a page
+whose stage is already shorter than its rail, and 3.4a's own finding is that the
+figure should spend the height the rail is paying for. **Kenneth took the
+catalogue's own split**: `processing-layers` (Linear, Convolutional, Recurrent,
+Attention, Graph) and `support-layers` (Embedding, Pooling, Normalization,
+Activation, Dropout). At five options the topic control is three grid rows,
+about 90px, and every stage on both widgets exceeds it. The name `layers` goes
+with the merge; the slugs are the ones written here.
 
-**Two misconceptions, both documented widely enough to count as reported.**
-BatchNorm and LayerNorm normalize the same thing — they do not: batch takes
-the mean and sd DOWN each feature across the samples, layer takes them
-ACROSS each sample's features. And dropout scales the outputs down at
-evaluation — PyTorch scales the survivors UP by 1/(1 − p) during training and
-does nothing at evaluation, which is what cell 60 shows. A third, from the
-notebook's own warning: a final sigmoid or softmax layer is needed for
-classification (the losses absorb them).
+**The misconception — inferred, with two reported parts.** The layers differ in
+their arithmetic. They do not: every processing layer is weighted sums. They
+differ in WHICH inputs each output is allowed to see and in whether the weights
+are shared across positions. Reported within that: a convolution has a filter
+per position (weight sharing is the point of cell 6's *each filter learns to
+detect a different feature*); attention weights are learned parameters (they are
+computed per input from Q·Kᵀ, which is why one layer attends differently to
+every sentence); and `nn.Linear(4, 3)` stores `W` as `[3, 4]`, one row per
+output unit, so the forward pass is `x @ W.T`.
 
-**The shape.** One grid, `[batch 4, features 5]`, three pages: **Activation**
-— every cell passes through the curve drawn beside the grid (`fn` segmented
-over the six; softmax acts on a row and the row is shown summing to 1);
-**Normalization** — `norm` segmented batch / layer, the group whose mean and
-sd are taken shaded as a column or a row, γ and β as sliders; **Dropout** —
-the mask drawn, survivors × 1/(1 − p), `mode` segmented train / eval where
-eval is the input unchanged.
+**The rail.** `block`, segmented, **data**, `style: "grid"` — five options in
+two columns at 150px each, where the longest face, *Convolutional*, is ≈ 88px of
+text plus 16px of padding. No `groupHeads`: cell 1's table puts all five in one
+Category, so a single head would be a heading over the whole control.
+`?block=linear|convolutional|recurrent|attention|graph`, default `linear`, the
+notebook's own first layer and the plainest arithmetic. `seed` is **not**
+global: it appears on the Attention page alone, through
+`when: { param: "block", equals: "attention" }`, because that is the only page
+where changing the draw is the argument (3.4b — a seed with nothing random on
+screen is a question the reader has to rule out before the figure gets
+attention). Every other page runs from one fixed seed, which is `tensors`' call
+and Composition's.
 
-**Lowest priority, and the cut candidate.** It is reference-shaped: three
-small figures with a definition each, no stage that loses. It earns its slot
-on the two confusions above and on the mask being 05-2's Hadamard example
-(cells 62–65) drawn. Cutting it costs nothing in the other five.
+Shared by all five pages: bands, each as tall as its content, the drawing left
+of a hairline and the print under it, the expression on the result band's
+header; `height` a function of the parameters (`bayesian`'s precedent, `tensors`
+decision 20); **Step computes one output element and lights what that element
+read**, which is slot 49's original design and survives every other change; and
+nothing is trained. `--c-group-a` for the input, `--c-group-b` for the second
+operand (weights, kernel, keys), `--c-empirical` for the result,
+`--c-highlight` for the element being computed and the cells it reads,
+`--c-extreme` for a case that fails. **Every result is blue and every second
+operand yellow, on every page of all three widgets** — Kenneth's pick, his own
+call on `tensors` of 2026-09-08, so one colour means one thing across seventeen
+figures. It holds where his own figures disagree: the two normalization figures
+draw the normalised output amber and slot 50's page draws it blue. Where his
+figures use a red frame for the current window or red arrows for the direction a
+statistic is taken in, both become `--c-highlight`, which is what red means
+everywhere else here.
 
-### Slot 51 · `composition` — Composing Layers
+**Linear · cells 3–5.** *Inferred also:* 4 → 3 drops a feature rather than every
+output reading every input; a batch of 2 means the layer runs twice with
+different weights. Two bands at a 46 × 26 signed-float cell:
+`x [2, 4]` 184 × 52, `⊗`, `W [3, 4]` 184 × 78, `b` 46 × 78 —
+`184 + 26 + 184 + 8 + 46 = 448 + PAD 28 = 476` at 550; the result band is
+`y [2, 3]` at 138 × 52 with the print under. Stage ≈ **338**. Step = one output
+element `y[i, j]`, 6 units. **The step lights the whole row of `x` and the whole
+row of `W` at once and prints the four products in the readout** — it does not
+walk inside the product, because that walk is `tensors`' Matmul tab and shipped
+after this slot was written (review finding 25). Controls: `out`, a **choice**
+with ticks at 2 · 3 · 5, default 3, **data** — a projection can compress or
+expand, which is cell 3's own claim. Formula card `y = Wx + b`, cell 3's line,
+with the note that PyTorch stores `W` as `[out, in]`. Readout: `Input`
+`torch.Size([2, 4])` · `Output` `torch.Size([2, 3])` · `This output`, its note
+the four products and the bias. Echoes `dl-layer-linear.png`, which is that box
+opened. **No case that fails** — this is the page the other four are measured
+against.
 
-**Host.** 05-3 cells 61–101: ordering (Transform → Normalize → Activate →
-Regularize), Sequential against a custom Module, the dimension-matching
-table, then Controlling Flow — skip (y = x + f(x), a projection P when the
-shapes differ), gate (y = g ⊙ x), branch and merge (concat on the feature
-dimension, add, average), routing (hard, and soft with softmax weights). The
-five example modules — MLP1, ResidualMLP, GatedMLP, BranchMergeMLP,
-SoftRoutingMLP — all take the same x of shape [4, 10], which is the widget's
-gift: one input, five wirings.
+**Convolutional · cells 6–16.** *Inferred:* padding is cosmetic. *Reported, for
+the transposed half:* a "deconvolution" undoes a convolution and recovers the
+image. Two bands. Band 1 is the 18 × 18 padded input with a dashed pad ring at a
+**14px pixel carrying no number** (cell 11 draws it with `imshow`, and the value
+reaches the reader through the readout and the hover), an arrow, and the two
+8 × 8 feature maps: `252 + 40 + 112 = 404 + 28 = 432` at 550, and at a 20px
+pixel `598` at 770. Band 2 is one output value — window ⊛ kernel = sum —
+`120 + 26 + 138 + 26 + 46 = 356 + 28 = 384`. Stage ≈ **520**. Transposed reuses
+both bands with the operands swapped, band 2 showing one input cell **scattering**
+into a 3 × 3 patch rather than a window gathering into one cell, which is what
+the word names. Step = one output position, 64 units per filter. Controls, all
+**data** unless marked: `conv` Standard · Transposed; `k` 3 · 5, `stride`,
+`pad` 0 · 1, all **choices** with ticks showing the number; `pos`, the output
+position the arithmetic band computes, set by clicking a feature-map cell —
+**data**, so a click restarts the walk there and the URL reproduces what is on
+screen (it cannot be display: the animation may not write to a parameter, and
+`pos` and Step would otherwise both name "the position being computed");
+**True image**, segmented Off/On, **display**, placed directly after the setup
+block with URL `trueimage=1`, the arc's settled reveal shape (3.4j). `filter`
+(1 · 2) is **cut**: untrained, the two filters differ only in their random draw,
+and cell 6's "each filter learns a different feature" is a claim about training
+this widget does not do; both maps are drawn anyway and the clicked cell says
+which one the band computes. Formula card `out = ⌊(in + 2p − k)/s⌋ + 1` with the
+current numbers, and cell 12's `out = (in − 1)s − 2p + k + output_padding` when
+transposed. The feature-map cells are the widget's `regions` and its
+**hit-driven** fingerprint state. Echoes `dl-layer-convolution-2d.png`; the
+departure is that the figure stacks two slide positions and the page shows one
+at a time, because two is 504px of height above the arithmetic band.
 
-**The misconceptions.** Reported: a skip connection bypasses the layers, so
-the block learns nothing — it is y = x + f(x), the block learns the
-correction, and the gradient reaches x with slope 1 + f′. Inferred:
-concatenation and addition are interchangeable merges — concat changes the
-width the next layer must accept (8 + 6 = 14, cell 98), add needs equal
-shapes and fails otherwise. Inferred: the routing weights are fixed mixing
-proportions — they are computed per sample by the gate, and hard routing
-cannot be trained by gradient at all (cell 99 says so).
+**Recurrent · cells 17–19.** *Inferred:* the hidden state is a buffer holding
+the inputs so far; it is a fixed-size vector recomputed at every step.
+*Reported:* bidirectional is one pass that can see ahead; it is two passes
+concatenated. One band, time left to right, Kenneth's own row order — Forward ·
+Input · Reverse · Output. `5 × 46 + 4 × 26 = 334` plus a 62px label gutter =
+`396 + 28 = 424` at 550, `534` at 770. Height **370** unidirectional and
+**552** bidirectional, the tallest page in either widget and under `tensors`'
+own measured 576 — the reason `height` follows the parameters. Step = one time
+step: 5 units one way, **11** the other (five forward, five reverse from the far
+end, then one that concatenates every `y_t`), so the reader watches the reverse
+pass start where the forward pass finished, which is the misconception drawn
+rather than stated. Controls: `direction` (**data**, default Bidirectional,
+cell 19's); `sample` 0 · 1, **display** — it is a reading of an already-computed
+`[2, 5, 4]`, and Composition classifies the same idea the same way. `hidden`
+(2 · 3 · 4) is **cut**: the misconception is answered by `h` being three numbers
+at every `t`, not by making it four, so no option wins. `cell` (RNN/LSTM/GRU) is
+not a control either — the internals are not drawn, so three options would
+differ only in their values. Formula card `h_t = f(x_t, h_{t−1})`, plus
+`h_t^bi = [h_t^→ ; h_t^←]` when bidirectional. Echoes `dl-layer-rnn-uni.png` and
+`dl-layer-rnn-bi.png` including the row labels; the departure is that `x` and
+`h` are drawn as value cells rather than as a circle and a lettered box.
 
-**The shape.** Left, the block diagram of the chosen `flow` (segmented:
-Sequential · Skip · Gate · Branch · Route), the tensor shape written on every
-edge; right, the module's `forward()` as code — widget 32's Syntax page
-precedent, the code leads — with the executing line highlighted as Step
-pushes the batch through the diagram block by block, and the merge shown as
-it happens: add, two equal grids summed; concat, side by side into one wider
-grid; gate, a 0–1 bar per feature; route, the softmax weights per sample as
-bars. Data: the notebook's `randn(4, 10)`, seeded; weights seeded random as
-in slot 49. Controls: `flow`; `merge` on Branch (concat / add / average —
-**add on 8 and 6 fails, and the widget shows the shape error rather than a
-merge: the case that fails, 2.6**); `speed`. The Skip page carries the
-projection variant when the shapes differ (10 → 20 needs P).
+**Attention · cells 20–23.** *Reported also:* attention selects one token; it is
+a weighted average over all of them. **Band 1 as planned did not fit and the
+plan's own arithmetic said so wrongly** — it sized a `[3, 4]` at 138px, which is
+three columns of a four-column tensor; redone at 184 the row is
+`184 + 30 + 184 + 22 + 184 = 604 + 28 = 632`, 82px over. The fix, which is also
+`dl-layer-attention-qk.png`'s own reading: **X above, Q and K beside it**,
+`184 + 26 + 184 = 394 + 28 = 422`, the X → Q,K arrows vertical. Under it the
+3 × 3 score and weight grids, `138 + 60 + 138 = 336 + 28 = 364`. Band 2 is
+`dl-layer-attention-qkv.png` laid out as Kenneth draws it — the score cell, the
+token pair, a dot, the value row — `46 + 40 + 20 + 184 = 290 + 28 = 318`. The
+stage height is recomputed from the two-row band 1, not from the plan's 484.
+Step = one query token, 3 units. Controls: `projection` Random · Identity
+(**data**, default Random) and `seed`. Formula card
+`Attention(Q, K, V) = softmax(QKᵀ/√d_k) V` with `d_k = 4`. Multi-head and
+positional encoding are not built; cell 22 sets `num_heads=1` and omits `P_pos`.
 
-**Open.** Whether a gradient-path overlay (the slope-1 route through the skip)
-is drawn here or the product lives on slot 47 — see slot 47's open item.
+**Graph · cells 24–28.** *Inferred:* the graph structure is something the layer
+learns; it is given as `edge_index`. *Reported:* one graph layer propagates
+across the whole graph; one layer sees one hop, so on the chain `0–1–2–3` node
+0's update knows nothing about node 3 — the page's losing state, and free
+arithmetic. **The fit crisis in the plan was self-inflicted.** Horizontal
+feature strips at the 46px numbered float cell are `4 × 138 + 3 × 20 = 612`
+against 522, and the plan's fix was to turn the strips vertical, discarding the
+one convention every one of Kenneth's figures shares. `dl-layer-gnn.png` draws
+its own answer: **horizontal strips, shaded, no digits**, which at a 30px cell is
+`4 × 90 + 3 × 20 = 420 ≤ 522`. The node feature values then reach the reader
+through the readout and the printed coefficients — the same trade this widget
+already takes for the convolution image. Step = one node, 4 units: the node,
+its neighbours' arcs and its self-loop light, the coefficients print, the output
+strip lands. Controls: `aggregate` **Normalized sum** (the layer's own, default)
+· Mean · Max, cell 24's three, **data**. Formula card
+`h_i' = σ(W · Aggregate({h_j : j ∈ N(i)} ∪ {h_i}))`. **The page is more precise
+than the notebook's prose and says so:** cell 24 offers mean, sum or max;
+`GCNConv` is the degree-normalised sum with self-loops, and the page computes
+what `GCNConv` computes and prints the coefficients.
+
+**Measured** (`widgets/_lab/dl-layers-measure.mjs`):
+
+- **Attention is flat at the notebook's own initialisation, on every seed.**
+  `MultiheadAttention(4, 1)`, xavier bound √(6/16) = 0.6124, in-projection bias
+  zero, cell 22's embeddings: over 20 seeds the largest of the three weights runs
+  **0.339 to 0.392** (mean 0.355) against a uniform 1/3, the mean |w − 1/3| is
+  0.004 to 0.026, and **no seed in 20 reaches 0.45**. The page cannot show
+  attention selecting anything at random init, which is why `projection` is a
+  control and not a caption. At Identity (`Q = K = V = X`) the weights run
+  0.263 to 0.420 — four times the departure from uniform and a fixed pattern
+  rather than a seed lottery. The honest sentence about it: the off-diagonal
+  between "cat" and "sat" is large while both their weights on "The" are small.
+  The wording to avoid is that cat and sat attend to *each other* most: for
+  "cat" the largest weight is still its own (0.381 against 0.357).
+- **Pooling is exact, cell for cell.** On `img[5:11, 5:11] = 1`, `MaxPool2d(2, 2)`
+  gives a solid 4 × 4 of 1.00 at rows and columns 2–5; `AvgPool2d(2, 2)` gives the
+  same 4 × 4 with 0.25 at its corners, 0.50 along its edges and 1.00 in the
+  middle 2 × 2. That page is slot 50's, and the numbers are its whole claim.
+- **The convolution's square is visible on every seed, and the colour scale must
+  be signed.** Outside the 4 × 4 footprint the output is the bias exactly (mean
+  |y − b| = 0.000 to three decimals, since the input is zero there); inside it
+  departs by 0.13 to 0.40, on 8 to 15 of the 16 footprint cells — so the map is a
+  flat field with a **partly filled** bright or dark patch, not a solid block.
+  At seed 2 filter 2 is entirely negative, so the square reads darker than its
+  surround; a 0–1 grey ramp would be wrong.
+- **Half the convolution control grid overflows an 8 × 8 panel.** Every `s = 1`
+  combination gives an output over 8 (14, 16, 12, 14), and `k=3, s=1, p=1` gives
+  the full 16, at which point the feature-map panel is as large as the image.
+  Band 1 still clears at 16 cells (`252 + 40 + 224 = 516 + 28 = 544`) but two
+  maps stacked at 224 change the stage height by 224. Either drop `s = 1` from
+  the control or size the map cell from the computed output; the mock decides.
+- **The transposed reconstruction recovers the size, not reliably the polarity.**
+  Output is 16 × 16 on every seed, confirmed by `(8 − 1)·2 − 2 + 3 + 1`. But
+  `max |z − img|` is 1.15 to 1.45 — the whole dynamic range — and over 20 seeds
+  the square reads *brighter* than its surround on only **7**, with the contrast
+  under half a standard deviation on 9. So the page's primary reading is the
+  **True image** difference reveal rather than the reconstruction itself, and
+  the claim is that the transposed convolution restores the 16 × 16 size and puts
+  something structured where the square was, with neither the values nor
+  reliably the polarity.
+- **GCN's coefficients are worth printing and do not sum to one.** With
+  self-loops d̂ = 2, 3, 3, 2, so an endpoint weights itself **0.500** and an
+  interior node **0.333**, with 0.408 between them; the row sums are 0.908 at the
+  endpoints and 1.075 in the interior. The caption must not say the weights sum
+  to one — that is attention's property, not this layer's. And at an endpoint
+  *Normalized sum* and *Mean* are numerically almost the same (−0.642 against
+  −0.643 on node 0's first feature), so the visible difference the `aggregate`
+  control makes is in the **printed coefficients**, not in the output strip.
+
+**Overlaps resolved.** With `tensors` shipped, three things this slot's original
+entry claimed are now that widget's: the cell-by-cell matrix product (so Linear
+lights the whole row and column at once and prints the products), the Hadamard
+mask (slot 50's Dropout page), and the index extraction (slot 50's Embedding
+page keeps the integer input and the rank increase as its claim). With
+`mlp` (widget 37), the activation curve and dead units stay there.
+
+**Core changes, and they land before either widget is built.** One commit, main
+session, `tensors` switched to the new imports, one full fingerprint run over all
+404 states, all MATCH before it is committed — nothing renders differently, so a
+DIFFER is a real regression:
+
+| change | why |
+|---|---|
+| **`widgets/core/torch.js`** with `torchPrint(shape, valueAt)`, `torchFloatFormat(vals)`, `num(v)`, `shapeText`/`sizeText` — lifted out of `widgets/tensors/model.js`, which is the only copy today | three widgets print tensors, and Composition's own `fmtShape` is `shapeText` and `sizeText` written a second time (5.8) |
+| `outSize(in, k, s, p = 0)` in the same file | read by slot 49's convolution card, slot 50's pooling card and slot 51's Dimensions card — three call sites, one formula |
+| `torchError(kind, …)` | both new widgets print torch's messages verbatim, and two copies of a message string is how they drift |
+| the initialiser bounds table | both draw weights, and the table is verified (below) |
+| `mono` in `readTokens` (`core/env.js`) | `tokens.css` has `--font-mono`; `probability-mechanisms` hardcodes the family as a literal, against CLAUDE.md rule 5, and `tensors` reads it off `getComputedStyle` with a comment naming the gap. These two would be the third and fourth |
+| `--c-group-c: var(--series-6)` (green) in `tokens.css`, and the line in CLAUDE.md rule 5's role list | slot 51's Routing page draws three branches; see that entry for why not red |
+| a comment amendment on `--c-group-a` / `--c-group-b` | no palette change: `tensors` already uses `--c-group-b` as its **second operand** (weights, kernel, keys, mask) and `--c-group-a` as its input, and the documented wording ("two arms of a comparison you decided") has been overtaken by use. Amending the comment is what an audit of the 2026-08-27 kind would want |
+
+Neither widget's build touches `widgets/core/`. A build that discovers it needs a
+core change stops and asks. A widget-level `model.js` holds everything
+notebook-specific, and the drawing is never shared: `drawLayerBox` and its
+siblings are geometry and belong to the file that lays out the stage, with the
+convention written in each header with the same numbers. `txt` and `wrapMono`
+are widget-local too — there is no core `text()`, and `wrapMono` is local to
+`tensors`.
+
+**The initialiser table, checked** — all eight rows are right, and
+`_lab/dl-layers-verify.mjs` should assert each bound: `Linear(4, 3)`
+kaiming_uniform_(a=√5) reduces to `U(±1/√fan_in)` = ±0.5; `Conv2d(1, 2, 3)`
+fan_in 9 → ±1/3; `ConvTranspose2d(2, 1, 3)` fan_in 18 → ±0.2357; `LSTM(4, 3)`
+±1/√3 = 0.5774; `MultiheadAttention(4, 1)` xavier on `[12, 4]` → 0.6124;
+`GCNConv(3, 3)` glorot on `[3, 3]` → 1; `Embedding` N(0, 1); BatchNorm and
+LayerNorm γ = 1, β = 0. The caption that stops the widget claiming more than it
+has: *The weights are untrained values drawn from the initializer PyTorch uses.
+Training changes the values, not which inputs an output reads.*
+
+**The mock — `_lab/processing-layers-mock.html`**, drawn to scale at 550 with
+the 770 case beside it where they differ, each section a pick: **§1** the whole
+rail at the real 300px against the **shortest** stage, not the rail alone;
+**§2** the convolutional stage (one row, two bands, or Kenneth's figure with two
+slide positions stacked) — recommend two bands at a 14px pixel with the pad ring
+dashed; **§3** the value cell (46 × 26 at 2 dp against 40 × 26 at 1 dp), drawn on
+Attention band 1 where it binds; **§4** the graph stage (horizontal shaded at
+30px, horizontal numbered at 38px, vertical numbered at 46px, three nodes) —
+recommend the first, which is his figure; **§5** the recurrent stage at both
+directions; **§6** attention's two projections with their real weights printed;
+**§7** the transposed reconstruction (beside the original at 650, which does not
+fit, against the True-image difference in the same footprint) — recommend the
+second; **§8** whether `s = 1` stays in the control or the map cell follows the
+output size. Two things the mock has to prove before any `main.js`: that a
+16 × 16 image with a 6 × 6 square still reads as a square at a 13–14px pixel on a
+projector, and that the two feature maps read as a pair at 112px.
+
+**The cuts Kenneth declined here**, kept so they are not re-argued:
+
+| offered | what it would have saved | what it would have cost | his call |
+|---|---|---|---|
+| the Layers half as **one** widget of ten pages | one gallery card, one baseline, and a notebook section undivided | a 260px rail against five stages shorter than it | **declined** — the catalogue's own two-widget split |
+| the same, minus **Graph** (nine pages) | the only page needing node-and-arc geometry, and a PyTorch Geometric dependency the notebook itself marks *(extension)* | cells 24–28 have no widget; GNNs are the arc's only graph content | **declined** |
+
+**Build order.** This widget is **first**, after the core commit. `tensors` took
+29 rounds for seven topics; five pages here is the same order of work, and the
+fingerprint cost is five settled states plus at least one driven and one
+hit-driven, each proved identical over three runs before it is baselined —
+which is the largest single cost in the plan and was in neither.
+
+### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
+
+**Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
+LayerNorm (40–47), the six activations and their four uses (48–56), Dropout in
+train and eval mode (57–60). This is the second half of cell 1's table and the
+second half of the split under slot 49; the two widgets are the two halves of the
+notebook's `## Layers` section, and neither is named `layers`.
+
+**The rail.** `block`, segmented, **data**, `style: "grid"`, `groupHeads: true`
+— and here the heads earn themselves, because cell 1's Category column puts the
+five options in three groups: *Representation & Aggregation* (Embedding,
+Pooling), *Normalization & Activation* (Normalization, Activation),
+*Regularization* (Dropout, `span: true`). Three heads and three grid rows is
+about 150px on the plan's own constants, against stages of 240–486.
+`?block=embedding|pooling|normalization|activation|dropout`. `seed` appears on
+the **Dropout** page alone, where the draw is the argument.
+
+**Pooling is its own page** — Kenneth's pick, and a departure this entry declares
+rather than hides. The catalogue said Pooling belonged on the convolution page
+because cell 62 names *Conv + Pool* as a unit; cell 1's table gives it its own
+group. Cell 62 is in the Composing half, which is slot 51's; the table is this
+widget's rail, so the table wins.
+
+**Embedding · cells 29–33.** *Reported:* an embedding multiplies a one-hot
+vector by a matrix every time — it is a row lookup, which is why it costs nothing
+and why the input is an integer tensor. *Reported:* embeddings are fixed
+pre-trained vectors; they are `nn.Parameter`s from `N(0, 1)`, trained with
+everything else. The row lookup itself is `tensors`' index extraction, so **the
+page's claim is the integer input and the `[2, 3] → [2, 3, 4]` rank increase**.
+Two bands: tokens at a 30 × 26 integer cell (90 × 52), an arrow, the six-row
+table (204 × 156) — `90 + 40 + 204 = 334 + 28 = 362`; then the result drawn in
+`tensors`' **frames** convention, one dashed frame per index of dim 0 labelled
+`dim 0 = i`, `184 × 2 + 22 = 390 + 28 = 418`. Stage ≈ **460**. Step = one token,
+6 units, the staged light-then-glide. Controls: `dim`, a **choice** at 2 · 4 · 8,
+default 4, **data**. Formula card `h_i = Embedding(id_i) ∈ ℝ^d`. Echoes
+`dl-layer-embedding.png`; its right-hand panel, the vectors in a 2-D plane, is
+not built — it needs a projection, and projections are widgets 19–22.
+
+**Pooling · cells 34–39.** *Inferred:* pooling learns which values to keep (it
+has no parameters at all, which is what separates it from a stride-2 convolution
+that downsamples with weights); max and average are interchangeable summaries.
+Two bands at a **13px** pixel: the 16 × 16 image with a red 2 × 2 window frame,
+an arrow, and the two 8 × 8 outputs side by side —
+`208 + 40 + 104 + 22 + 104 = 478 + 28 = 506` at 550. At 14px it is 538, legal
+with 12px to spare, and 13 is taken for margin. **At 770 the pixel goes to 19,
+not 20**: at 20 the row is `320 + 50 + 160 + 22 + 160 = 712 + 28 = 740` against
+742 usable — 2px, the tightest number anywhere in either plan — and at 19 it is
+708. Second band, one window: 2 × 2 → max → mean,
+`92 + 26 + 46 + 22 + 26 + 46 = 258 + 28 = 286`. Stage ≈ **396**. Step = one
+window, 64 units, and **both output cells take their shade at once**, which is
+what makes the two summaries comparable at every position rather than only at the
+end. Controls: `k` and `stride` as **choices** with ticks, defaults 2 and 2, the
+notebook's. `kind` (Max · Average · **Both**) is **cut**: Both dominates, so
+neither single option ever wins, and always drawing both is the page's entire
+claim. `k=2, s=4` is **dropped** from the ladder — see the measurement. Formula
+card `out = ⌊(in − k)/s⌋ + 1`, cell 34's own, which is a **different** formula
+from the convolution page's (no padding term), so 5.8 is satisfied by their being
+two formulas rather than one repeated. Echoes `dl-layer-pool.png`; its 1-D row
+is not built.
+
+**Normalization · cells 40–47.** *Reported:* BatchNorm and LayerNorm normalise
+the same thing. Batch takes the mean and sd **down each feature across the
+samples**, layer takes them **across each sample's features** — the pair of
+figures exists because of it, and the red arrows down the columns against the red
+arrows across the rows are the strongest pair in the twenty-three. *Inferred:* γ
+and β are hyperparameters; they are learned, and they are what lets the layer
+undo its own normalisation. Batch, on `randn(4, 3) * 5 + 10`:
+`138 + 50 + 138 = 326 + 28 = 354`, with a μ/σ row under the input. Layer, on
+`randn(2, 5, 4) * 3 + 7`, both samples drawn because *each sample gets its own μ
+and σ* is the claim and one sample cannot make it:
+`176 + 22 + 176 + 96 = 470 + 28 = 498`. Heights **450** and **486**. Step = one
+group, so the unit is the thing that differs: 3 units on Batch (one column), 10
+on Layer (one row of one sample), with the reduce-then-broadcast motion
+`tensors`' Reduce tab uses. Controls: `norm` Batch · Layer (**data**, default
+Batch, cell 43's); `gamma` and `beta` as a paired `row` (3.4i) under one caption,
+defaults 1 and 0, **data**. Formula card `x̂ = (x − μ)/σ` over `y = γx̂ + β`,
+cell 41's own two lines, with a note naming which group μ and σ are taken over.
+Readout pairs the group's mean before and after (2.7: the prediction is 0 and 1,
+the observation beside it). Echoes `dl-layer-norm-batch.png` and
+`dl-layer-norm-layer.png` almost literally, with **one departure**: his figures
+colour the normalised output amber and the page draws it blue, which is his own
+result-colour call applied across the three widgets.
+
+**BatchNorm2d on `[2, 3, 4, 4]` (cell 45) is cut**, and it was decided by the
+principles rather than asked. Six 4 × 4 grids at the 46px cell are
+`3 × 184 + 2 × 22 = 596` against 522, 74px over; the largest cell that fits is
+34px, which leaves **0px** of the 6px clearance a signed 2-dp float needs — the
+exact complaint Kenneth made in `tensors` round 22 at 3px. Cost: cell 45 has no
+widget, and the Batch page's caption carries "the same statistic is taken per
+channel for image data" as prose, which is a claim the figure cannot then make.
+
+**Activation · cells 48–56.** **This is the page that must not redo widget 37.**
+`mlp` already draws ReLU/tanh/identity as a curve with a rug of the
+pre-activations and already teaches dead units. What it does not touch is the
+distinct **uses** cell 48 lists, and those are not curve-shaped. *Reported, and
+the notebook warns twice (cells 53, 55):* a classification model needs a final
+sigmoid or softmax layer; `BCEWithLogitsLoss` and `CrossEntropyLoss` absorb them,
+so a final one is a bug. `use` is **data**, three options — **Hidden**
+(cell 50's `[[-2, -1, 0, 1, 2]]` through ReLU, GELU and SiLU, all three output
+rows at once, curve panel 150 × 130 plus 290 of rows = `462 + 28 = 490`),
+**Probability** (cell 54's scores, two columns of five, `138 + 28 = 166`) and
+**Distribution** (cell 56's 3 × 5 matrix with a row-sum column,
+`276 + 28 = 304`). **`Gate` is cut**, and it is the second thing the review found
+that neither plan could see from inside itself: Blocks' Gate draws
+`x ⊙ sigmoid(logits)` on cell 52's four vectors and slot 51's Gating page draws
+`h ⊙ sigmoid(gate_fc(x))` on cell 95's model — the same mechanism, the same
+formula card, in two widgets. The three that remain differ in *what the numbers
+mean* (a value, a probability, a distribution over a row), which is a sharper cut
+of cell 48. Cost: cell 52 has no widget here; slot 51 carries the gate, where it
+is a whole page with a figure and a `forward()`. `fn` is **display** — switching
+which curve the reference strip draws keeps the reader's work. Heights 250 / 240
+/ 300; the shortest page in either widget, and the clearest argument for
+`tabHeight`. **The case that fails is free:** row 1 of cell 56's matrix is
+`[0, 0, 0, 0, 0]`, whose softmax is 0.2 five times and whose row sum reads
+1.0000 like every other row.
+
+**Dropout · cells 57–60.** *Reported:* dropout scales the outputs down at
+evaluation. PyTorch scales the **survivors up** by `1/(1−p)` during training and
+does **nothing** at evaluation. **The page was replanned, because `tensors`
+already draws it.** Widget 53's Multiply tab multiplies `X [2, 5]` cell by cell
+by a **0/1 dropout mask** drawn from its own seeded rng, filled where it keeps
+and empty where it drops, with the legend *"mask: 1 keeps a cell, 0 drops it"* —
+and cell 59's example is `torch.randn(2, 5)`, the same shape and the same
+picture. So this page keeps only what `tensors` does not have: **the × 1/(1−p)
+scaling of the survivors and the train/eval contrast**. The Input, mask and
+Output rows become one band whose subject is the scale factor, and the mask is
+drawn as a property of the output row rather than as a second operand grid. One
+band, Kenneth's figure's vertical flow, `230 + 110px label gutter = 340 + 28 =
+368`, height ≈ **340**. In Evaluation the mask row is absent and the output row
+carries the input's own numbers, drawn as an equality — the corrective as a
+picture. Step = one element, 10 units. Controls: `mode` Training · Evaluation,
+`p` a **choice** at 0.2 · 0.5 · 0.8 default 0.5, `seed`. Formula card
+`y = (m ⊙ x)/(1 − p)` in training, `y = x` at evaluation — one card, both
+branches, because the contrast is the formula. Echoes `dl-layer-dropout.png`
+exactly.
+
+**Measured.**
+
+- **Pooling is exact** (the numbers are under slot 49). Of the other control
+  settings, `k=4, s=4` gives an average of four identical **0.5625** cells — a
+  level difference and no edge gradient, which weakens the page's argument but is
+  honest; `k=2, s=4` gives an **asymmetric** 2 × 2 (0.25 / 0.50 / 0.50 / 1.00)
+  because the windows skip input rows 2–3 of every 4, and it reads as a bug
+  unless the widget draws the skipped rows. **`k=2, s=4` is dropped** and the
+  ladder is `k` 2 · 4 with `stride` following it.
+- **Dropout's two sums agree only in the mean, and this was the weakest claim in
+  either plan.** On `randn(2, 5)` seed 1 the input sum is 2.281. Over 20000
+  masks the mean output sum is 2.259 at p = 0.2, 2.257 at p = 0.5 and **2.280 at
+  p = 0.8** — the expectation is right to three decimals, which is what
+  `1/(1−p)` is for. But the standard deviation is 0.49, 0.98 and **1.97 times the
+  input sum**: at p = 0.8 one sd is twice the input sum, no draw in 200 lands
+  within 20 %, and **31 of 200 masks are all-zero**, so a reader pressing `seed`
+  sees an output sum of exactly 0.000 about one time in six. Even at p = 0.5 only
+  23 % of draws are within 20 %. Two consequences: the caption says the scaling
+  keeps the sum right **on average** and that any one draw can be far off or
+  zero; and the page carries a **running mean over presses**, or the p = 0.8
+  stage argues the opposite of its intent.
+
+**Core changes.** None of its own. It is built against the frozen
+`widgets/core/torch.js` that lands before slot 49 — see that entry.
+
+**Three notebook issues to tell Kenneth**, all in this widget's host cells,
+found while planning and worth reporting upstream as widget 45's two were:
+
+1. **Cell 43** prints `X` and `Y` — the attention tensors from cell 22 — where
+   it means `X_batch` and `Y_batch`, so the normalization example prints the
+   wrong tensor.
+2. **Cell 44** says "BatchNorm3D", which is not the class the cell uses.
+3. **Cell 60**'s eval comment reads "values scaled as in training". At eval
+   PyTorch does nothing at all and `y_eval == x`, so the comment describes a
+   scaling that does not happen — and it is the confusion the Dropout page has
+   to unpick.
+
+**The mock — `_lab/support-layers-mock.html`**, at 550 with 770 beside where they
+differ: **§1** the rail at the real 300px against the Activation stage, the
+shortest in the widget; **§2** pooling at `Both`, 13px against 14px at 550 and
+19px against 20px at 770; **§3** the dropout band with the mask as a property of
+the output row, against the three-row form `tensors` already owns, so the overlap
+is visible rather than argued; **§4** the running mean over presses, and what the
+two sum tiles look like at p = 0.8 over ten draws; **§5** Layer normalisation
+with both samples drawn, at a 44px cell; **§6** the three activation uses at
+their own widths.
+
+**The cuts Kenneth declined here**, kept so they are not re-argued:
+
+| offered | what it would have saved | what it would have cost | his call |
+|---|---|---|---|
+| **Pooling** folded onto the Convolutional page | one rail row, and it is what this file said before today | three operations on one stage, and the Max-against-Average comparison needs its own width | **declined** — its own page, cell 1's table |
+| minus **Embedding** | a page that is `tensors`' index extraction with an integer input | cell 30's "the table is learned" claim becomes a caption on Attention | **declined** |
+| minus **Dropout** | the page that most nearly repeats `tensors` | the 1/(1−p) scaling and train/eval — the reported misconception this slot was written for — lose their picture | **declined**; the page is replanned instead |
+| minus **Activation** | the shortest page, which is what made the ten-page rail dominate | cell 48's uses, and softmax over a row has no picture anywhere | **declined** |
+
+**The lowest-priority note is withdrawn.** Slot 50's original entry called this
+the cut candidate, reference-shaped, with no stage that loses. Three of its five
+pages now have one: pooling's max-against-average on the 6 × 6 square, dropout at
+p = 0.8, and the all-zero softmax row.
+
+### Slot 51 · `composition` — Composing Layers and Controlling Flow — PLANNED 2026-09-10
+
+**Host.** 05-3 cells 61–101, the notebook's two `##` headings: *Composing
+layers* — ordering (62), building models (63–75), inspecting models (76–87),
+matching dimensions (88); and *Controlling flow* — skip (90–92), gating (93–95),
+branching and merging (96–98), routing (99–101, marked *Optional*). The five
+example modules all take the same `x = torch.randn(4, 10)`, which is the
+widget's gift: one input, five wirings.
+
+**Seven pages, and it is Kenneth's pick.** The review offered a five-page cut
+(Building, Dimensions, Skip, Gating, Branching — which needs no new colour role
+and still covers both headings) and a six (that plus Ordering). **He declined
+both.** The rail is `topic`, segmented, **data**, `groupHeads: true` with the
+notebook's two headings verbatim as the row heads, and `style: "grid"`:
+
+```
+Composing layers
+[ Ordering ][ Building ]
+[ Dimensions       span]
+Controlling flow
+[ Skip     ][ Gating   ]
+[ Branching][ Routing  ]
+```
+
+The grid is not decoration. A single row of four puts `Branching` (56px of text
+plus 16px of padding = 72) in a 71px button, and the plan's fallback was to
+rename both the faces and the URL values to fit; `style: "grid"` gives two
+columns at ~140px and removes the risk (`controls.js:1062`, with `span` at
+`:1088`). URL values are the heading words lowercased:
+`?topic=ordering|building|dimensions|skip|gating|branching|routing`, default
+`ordering`. **No seed** — every weight and the batch come from one constant and
+nothing here is a sampling argument.
+
+**The diagram leads, and the code sits beside it with the executing line lit** —
+Kenneth's pick, and **a declared departure from this slot's own entry**, which
+said the code leads on widget 32's Syntax-page precedent. His six composition
+figures are all diagrams, and 2.7 puts the lit line beside the block it produces.
+Where the code does not fit beside at 550 it drops **under** the diagram, one
+`beside`/`under` fit pass per band, the mechanism `tensors` decision 24 settled.
+The code panel is drawn on the canvas in mono with the rest at `--ink-2`; it is
+the notebook's own `forward()`, unedited. **`text(…, { mono: true })` is not a
+core function** — the plan attributed it to core and it is local to
+`probability-mechanisms`, with the family hardcoded there as a literal; this
+widget writes its own `txt`, and the mono family comes from `readTokens` once the
+core commit lands.
+
+**Shapes on the edges, and no digits in the wide bands** — Kenneth's pick 4,
+which is one answer to a measured fact: at two decimals a cell needs 40px, so a
+`[4, 20]` with digits is **800px** and at torch's own four decimals **1000px**,
+past both stage widths; a `[4, 10]` fits 522 only with nothing beside it. So the
+merge bands are shaded, 12px per cell, one column per feature and one row per
+batch sample, with the chosen sample's row lit, and the values reach the reader
+through the readout for that sample. The same pick keeps slot 49's 16 × 16 image
+and the graph strips shaded. Kenneth's `dl-compose-dim.png` colours the words
+`input_dim` and `output_dim`; **the dimension-hue rule stays** — shape text in
+ink, a 2px rule in the dimension hue under the size that is about to change —
+which was decided by the principles (`--c-dim-a…d` go on frames, rules, arrows
+and swatches, and not on text).
+
+**Page 1 · Ordering (cell 62).** *Inferred:* the four steps of a block are
+interchangeable and one order is correct. *Reported by the notebook twice:*
+students expect a universal rule. The corrective is that **Transform is the only
+step that changes the shape**, so Normalize, Activate and Regularize all leave
+`[4, 20]` as `[4, 20]` and the shapes cannot say the order is wrong; cell 62 says
+the difference is empirical, and the page declines to rank the orders. Controls:
+`block` mlp · resnet · transformer (**data**, cell 62's own three examples in its
+own words); `view` Subunit · Combination (**data**) — **the two views he drew**
+(`dl-compose-subunit.png`, `dl-compose-combo.png`), with part 3, position in the
+network, as one caption line, decided by the principles because it has no figure
+and its claim is what every other page's diagram already shows. **`order`
+(normfirst · dropfirst) is cut**: it is dead on `resnet`, whose
+`Conv → BatchNorm → ReLU` has no Regularize step at all, and on the other two one
+option is the notebook's order and the other is invented — and `block` already
+carries cell 62's observation, since switching MLP to Transformer *is* the
+reordering. Geometry at 550: diagram column **240**, gap 16, print column 260
+(the widest print line, `  (3): Dropout(p=0.5, inplace=False)`, is 36 characters).
+The plan gave the diagram 246 and `246 + 16 + 260 = 522` is the usable width
+exactly, with **zero slack** — at `--fs-md` the print is 263 and the row is 3px
+over. Boxes 150 × 30, arrows 22, shape labels 16; diagram height 282, stage
+≈ **340**. Step advances one layer of the block. Readout: `Shape in [4, 10]` |
+`Shape out [4, 20]` | `Steps that change the shape 1 of 4` | `Parameters`.
+Formula card: cell 62's `Transform → Normalize → Activate → Regularize` with the
+current block's PyTorch classes under it. **One thing to settle in the mock:**
+the transformer path in cell 62 is `Linear → GELU → Linear → Dropout →
+LayerNorm`, five classes for the Subunit view's four boxes, and its other path
+(`Attention → Dropout → LayerNorm`) has three — either the option names which
+path it draws, or the box count follows the block.
+
+**Page 2 · Building (cells 63–75, with 76–87 folded in).** *Reported by the
+notebook's own structure (cells 70, 73):* `print(model)` shows what the model
+does. It does not — **MLP1 and MLP2 compute the same function and print
+differently**, because `F.relu` inside `forward` is not a submodule. Controls:
+`api` sequential · module; `blocks` flat · blocks (when sequential); `style` all
+· learnable (when module); and **`show` print · summary, `display`** — which is
+where *Inspecting Models* earns its content without a page, decided by the
+principles: `torchsummary` is a second print of the same model, so `summary()` is
+a display option that changes what is printed about one model and keeps the
+reader's position. Cell 80's table is 64 columns ≈ 461px and fits under the
+diagram at 550. **The case that fails:** flip `style` to `learnable` and the
+print loses a line while the diagram, the output shape and the parameter count do
+not move — an inspection tool under-reporting the model, the notebook's own
+example pair. Geometry: the widest print line,
+`  (fc1): Linear(in_features=10, out_features=20, bias=True)`, is **59**
+characters ≈ 425px, so beside at 550 leaves `522 − 425 − 16 = 81px`, which no box
+fits: **print under at 550, beside at 770** (`742 − 425 − 16 = 301`). Two prints
+side by side is 850px against 742, so **the MLP1/MLP2 contrast is a control the
+reader flips, not two panels** — which is better anyway, because the diagram
+underneath has to be seen not to change. Readout: `Layers printed` | `Layers run`
+| `Parameters` | `Output`; at `style: learnable` the first two read 3 and 4, and
+that adjacency is the page's whole argument. No formula card: the claim is a
+print. **One scope correction from the measurement:** the parameter count is
+invariant across `all`/`learnable` (both **262**) and **not** across
+`flat`/`blocks` (262 against **682**), so the page's invariance claim must name
+which control it holds under. Echoes `dl-compose-dim.png` for the edge
+convention, which cell 63 embeds. Not built here: `torchvista`, whose output is
+a graph of the model and the widget's stage already is that graph.
+
+**Page 3 · Dimensions (cell 88).** *Reported, and cell 88 says it three separate
+times:* the batch dimension is something you declare in the layer. *Inferred:* a
+shape error is a fault in the data rather than a mismatch between two layers you
+chose. **The strongest losing state on the widget**, and the notebook's own
+recommendation is to test with a dummy input and print shapes at each step.
+Controls: `data` vectors · sequence · image (cell 88's own table rows); `chain`,
+an `expr` line of four `select` slots whose menus come from `optionsFrom` on
+`data` — and **the menu deliberately holds layers that do not fit**, which is the
+whole page. Geometry: no code column, since the chain is the `expr` line and it
+lives in the rail; boxes 180 × 30, shapes 16, arrows 22, stage ≈ **304**.
+Formula card: cell 88's two output-size formulas, the active one with the current
+numbers, both from one `outSize` — 3.4k applies, since the floor brackets raise
+the line box past the strut, so the card reserves the tallest case over every
+chain and both widths. Readout: `Input` | `After step k` | `Next layer expects` |
+`Parameters` (`Conv2d(3, 16, 3)` is **448**, checked). **One thing to measure in
+the mock:** `.w-expr` is `--fs-lg` mono with `flex-wrap`, designed for
+one-character slots, and a slot whose widest option is `Conv2d(c, k, s, p)` is
+~18 characters ≈ 160px, so four slots wrap to four lines and eat 150px of rail.
+Either the slot faces shorten to the class name with the arguments fixed by
+`data`, or the chain becomes four labelled `select` fields. Echoes
+`dl-compose-dim.png`, which cells 63 and 88 both embed. **Not drawn here:** the
+reshaping operations from cell 88's second table change the shape on the edge
+and nothing else, and `tensors` draws all five in full.
+
+**Page 4 · Skip (cells 90–92).** *Reported:* a skip connection bypasses the
+layers, so the block learns nothing; it is `y = x + f(x)` and the block learns the
+correction. **The case that fails:** set the hidden width so `f(x)` is `[4, 20]`
+while `skip` is `[4, 10]` and the add raises torch's own message; turning on the
+projection inserts `nn.Linear(10, 20)` and the shapes agree. Controls: `width`, a
+**choice** with ticks at 10 · 20 (so the URL carries `width=20` and not an
+invented word); `proj` off · on, which stays visible at `width=10` so the reader
+can see a `Linear(10, 10)` is legal and unnecessary; `sample` 0–3, **display**,
+and the region target; `grad`, **display**, `afterDrive: true`, URL `grad=1` —
+the arc's reveal convention is 0/1, not off/on. Geometry: the widest `forward()`
+line, `out = self.fc_out(out)`, is 22 characters ≈ 159px, so the diagram gets 347
+and the code sits beside at both widths. Diagram height ≈ 340, merge band 186,
+stage ≈ **560** — inside `tensors`' own measured 302–576. **The residual
+gradient overlay lives here**, off by default: a second set of arrows up the same
+diagram, each edge labelled with its local factor, the two arriving at `x` and
+adding, and the formula card gaining `∂y/∂x = 1 + f′(x)`. It prints the two local
+factors and their sum and **not** a product over many layers (that was slot 47's
+page and needs a depth control), and it claims no training step — widget 37 owns
+backpropagation. It must return by itself when the walk is empty, since 3.4j's
+surviving half requires a reveal be conditioned on there being a result to lie
+behind. Cell 87's SimpleResNet is not offered as a third variant: the page
+already carries `proj`, and a third would make the control block the figure.
+Formula card: cell 90's two equations, the active one lit, `y = x + f(x)` and
+`y = P(x) + f(x)`. Readout: `f(x)` | `skip` | `shapes match` (or `shapes
+differ`, computed from the two drawn shapes and not from the parameter) |
+`Output`. Echoes `dl-flow-skip.png`, both halves — his figure draws the plain
+skip beside the projected one, and the widget draws one with `proj` switching,
+because two diagrams at 347px would put each at 165.
+
+**Page 5 · Gating (cells 93–95).** *Inferred:* the gate is a switch on the whole
+path; it is elementwise, one number per feature per sample, and `0 < g < 1`
+partly passes — cell 93's own three bullets. Controls: `gate` sigmoid · mask
+(**data**, cell 93's own two syntaxes); `sample`, **display**. **The case that
+fails:** at `mask` some features are exactly 0 and their column of `gated` is
+drawn empty, so the reader sees the signal stop for those features and continue
+for the rest, which a scalar switch cannot do. The mask is the one draw the
+widget makes, from the seeded `rng` `compute` is handed. Geometry: the widest
+line, `g = torch.sigmoid(self.gate_fc(x))`, is 34 characters ≈ 245px, leaving the
+diagram 261 against a 20-column band at 240 — **21px of slack**, thin enough that
+a font-size change breaks it, so `monoChar` is measured in the mock and the
+fallback is the bands dropping under the split at a cost of ~60px of height.
+Readout: `Gate range` | `Gate mean, sample 0` | `Features blocked 0 of 20` |
+`Output`; at `mask` the third reads `7 of 20` and is counted from the drawn mask,
+not from the parameter (2.11). The four band rows are the `regions`, setting
+`sample`, which is the widget's hit-driven state. Formula card: cell 93's
+`y = g ⊙ x`, with its own three bullets as the note — `g = 0` blocks, `g = 1`
+passes unchanged, in between partly passes. Echoes `dl-flow-gate.png`: two
+columns, the ⊙ ring, and the `0-1 or 0/1` label on the gate's arrow, which is
+where the `gate` control's two options come from.
+
+**Page 6 · Branching (cells 96–98).** *Inferred:* concatenation and addition are
+interchangeable merges. **This is the strongest control pairing in either
+plan**, because every option both wins and loses on the notebook's own numbers:
+with 8 and 6, concat works and add and average raise the broadcast error; with 8
+and 8, add and average work and concat gives 16, which `Linear(14, 2)` rejects.
+Controls: `merge` concat · add · average (cell 96's own three words); the second
+branch's **width** as a `choice` with ticks at 6 and 8 — renamed from the plan's
+`sizes=8and6|8and8`, which is a squashed coinage and not a word on any control
+(5.9, and widget 44's own incident); `sample`, **display**. `average` is the one
+weak member — against `add` it differs only by a factor of ½ — so the readout
+shows the magnitude or it is a third button for the second idea. Geometry: the
+widest line, `x3 = torch.cat([x1, x2], dim=1)`, is 31 characters ≈ 224px, so the
+diagram gets 282. The merge animation is the gap closing: `96 + 12 + 72 = 180`
+becomes 168 and the two bands slide together; at `add` they stack and the sum
+appears below; at 8 and 6 they stop short and the error prints where the sum band
+would have been. Readout: `Branch 1` | `Branch 2` | `Merged` | `fc3 expects 14`,
+the last two side by side being the argument. Formula card: cell 96's three,
+the active one lit — `y = concat(f₁(x), f₂(x))`, `y = f₁(x) + f₂(x)`,
+`y = ½(f₁(x) + f₂(x))`; the subscripts raise the line box past the strut, so
+3.4k's reserve applies. The four band rows are `regions` setting `sample`, as on
+Gating. Echoes `dl-flow-branch-merge.png`: the split, the coloured columns, the
+outlined `Merge` rectangle and the three merge words on its outgoing arrow.
+
+**Page 7 · Routing (cells 99–101).** *Inferred:* the routing weights are fixed
+mixing proportions; they are computed per sample by the gate. *Reported by cell
+99:* hard routing is a discrete choice, so no gradient reaches the router — the
+case that fails, and the honest loss (hard routing is cheaper and untrainable by
+the method the whole week is about). Controls: `mode` hard · soft (default soft,
+since cell 101 is the soft example and the one with a picture); `sample`,
+**display**. Geometry: the widest line,
+`branch_outs = [branch(x) for branch in self.branches]`, is **53** characters
+≈ 382px, so beside at 550 leaves `522 − 382 − 16 = 124px` for a diagram that needs
+four columns — **code under at 550, beside at 770** (`742 − 382 − 16 = 344`).
+Stage ≈ **562** at 550 and ≈ 432 at 770, which is `height` as a function of the
+width, `linear-regularization`'s precedent. **A finding worth keeping:** at 770
+the three columns fit *only because the layer sizes sit on the edges rather than
+inside the boxes* — `Linear(10, 20)` inside a box is 78px of label and needs a
+110px box with no room for gaps, where `Linear` alone is 37px and needs 60. His
+own convention is what makes the page fit. **The third branch is green**, and
+this is Kenneth's pick 6 with a reason recorded in `tokens.css`: his figure draws
+it red, `--c-group-c: var(--series-8)` would be red, and `--series-8` **is**
+`--c-extreme` — while this same panel prints a torch shape error in
+`colors.extreme`. `tokens.css:107` states the invariant the cluster order was
+chosen for, that `--c-extreme`'s red and `--c-cluster-c`'s red do not share a
+panel. So `--c-group-c: var(--series-6)`, green, free on both panels, with the
+comment recording that series-8 was rejected for the collision, in the form
+`--c-cluster-*` already uses. The gate column takes `--ink-2`, since it is not a
+branch. Caption carrying cell 75, in the place where it is actually used:
+`nn.ModuleList holds the three branches so they can be applied in a loop;
+nn.ModuleDict holds them by name so one can be chosen.` Formula card: cell 99's
+two, the active one lit — the piecewise `y = f₁(x) if condition(x) else f₂(x)`,
+and `y = Σᵢ αᵢ(x) fᵢ(x)` with the note `Σ αᵢ = 1`. Readout: `Weights, sample 0`
+| `Sum 1.000` | `Largest branch` | `Output`, with the first two replaced at
+`mode: hard` by `Branch taken` and `Gradient to the router none`. The four
+weight rows are `regions` setting `sample`. Echoes `dl-flow-branch-merge.png`,
+which is drawn with three branches — the only place in his figures where three
+paths appear, and the reason a third role is needed at all.
+
+**Step advances one line of `forward()`** — decided by the principles: it is the
+unit the notebook writes the models in and the only unit that exists on all four
+flow pages. The drive label is **Next line**, with a 3.4c parameter map to
+**Next layer** on the two Composing pages that have no `forward()` (Ordering, and
+Building at `api: sequential`); the map form exists precisely for this
+(`widget.js:928-939`).
+
+**Measured.**
+
+- **Every shape chain is confirmed** on `x = randn(4, 10)`: MLP1
+  `[4,10] → [4,20] → [4,20] → [4,2]`; `blocks` `[4,10] → [4,20] → [4,20] →
+  [4,2]`; ResidualMLP through `[4,10]` and back; GatedMLP's two `[4,20]` paths;
+  BranchMergeMLP `[4,8]` & `[4,6]` → `[4,14]` → `[4,2]`; SoftRoutingMLP
+  `[4,3,20]` with a `[4,3]` gate.
+- **Parameter counts, for the readout tiles**, which neither plan stated:
+  MLP1 **262** (220 + 42), `blocks` **682** (220 + 420 + 42), ResidualMLP **452**,
+  GatedMLP **482**, BranchMergeMLP **184**, SoftRoutingMLP **735**, and the
+  Dimensions tile's `Conv2d(3, 16, 3)` **448**.
+- **The router's weights are plainly non-uniform, which is the contrast with
+  attention and the finding of the measurement.** `gate = nn.Linear(10, 3)` at
+  default init on `randn(4, 10)`: over 40 sample-rows the largest weight runs
+  **0.361 to 0.709, mean 0.498** against a uniform 0.333, the three weights of
+  one sample span 0.311 on average, and the largest weight moves 0.11 to 0.34
+  from one sample to another. Two caveats: the four samples often pick the
+  **same** argmax branch — 4 of 10 seeds put all four on one branch and only 1 of
+  10 uses all three — so the page says **"different mixtures"**, not "different
+  branches"; and the published `?shown=` seed comes from **6, 8 or 10**, where the
+  argmax varies, since at `mode: hard` a seed with all four samples on one branch
+  makes the point badly. The reason the two pages differ is the notebook's own
+  inputs, not the layers: the gate sees ten unit-scale features and gets a logit
+  sd ≈ 0.58, where attention sees cell 22's small hand-written embeddings through
+  a √4 divisor and gets a row spread of 0.086.
+- **The three error strings match torch 2.x**, including `addmm`'s argument order
+  (`mat2` is the weight transposed, so `Linear(20, 2)` gives `20x2`), the
+  broadcast wording where `a` is the left operand, and the space-free
+  `input[...]` in the conv message. **Flagged as unverified by a run:** torch is
+  not installed on this machine, so before these are baked into a fingerprint one
+  run of the three failing cells on a machine with torch is worth doing.
+- **The mono estimate is safe.** `tensors` measures a four-character float at
+  39px with 6px clear each side, so its glyph run is `(39 − 12)/4 = ` **6.75px per
+  character at `--fs-sm`**; the plans' 7.2 is 6.7 % conservative and every "it
+  fits" conclusion holds with room. At `--fs-md` the run is ~7.31 and every width
+  grows 1.5 %, at which Gating's 21px of slack becomes 17 and the 70-character
+  `RuntimeError` line becomes 512 of 522. Both are measured with `monoChar` in
+  the mock.
+
+**Two constants the plan had wrong, corrected here because the mock and the
+build will both quote them.** The usable width at 770 is `770 − 28 = ` **742**,
+not 748, and the 6px propagates into every "at 770" sum above. And the Routing
+code line is 53 characters, not 52.
+
+**Register, audited by count.** The blurb is 101 characters, inside the 120 cap,
+and it is the page's `<meta name="description">` verbatim. **The subtitle was
+325 characters** — 85 over 2.10's ceiling, where the plan claimed 218 — and it
+carried a negation-then-correction (*"Flow can be directed rather than
+straight"*), which is on 2.10's own tic table. The replacement, ~180 characters,
+concept first, same quantities:
+
+> A model is layers composed in an order, each layer's output shape the input
+> shape of the next. Connections can also add the input back after a layer,
+> multiply it by a gate between 0 and 1, or split it into branches that merge
+> again.
+
+Three more strings were changed by the audit and are recorded so they are not
+written back: the readout tile `Running` becomes **`This line`**, because it must
+name the figure's quantity rather than the widget's state and it must carry the
+line's own text (a line number covers nothing) on **settled** states too, since
+`tx` reads only `.w-math`, `.w-legend` and `.w-readout` and the canvas code panel
+is otherwise `px`-only; `add matches` / `add fails` becomes **`shapes match` /
+`shapes differ`**, since "fails" is the verdict word and the error text carries
+the failure; and the attention caption on slot 49 becomes **"before training the
+three attention weights are nearly equal"**, replacing *"untrained attention
+attends almost uniformly"*, which personifies the layer and asserted a number
+nobody had measured.
+
+**Core changes.** Two of the ones listed under slot 49 exist for this widget:
+`--c-group-c` (Routing's third branch) and `mono` in `readTokens` (the code
+panel). Both land in the single core commit **before** slot 49 is built, not
+during this build, and this widget then touches `widgets/core/` not at all.
+`outSize` and `torchError` are read here as well — the Dimensions card and both
+shape errors. Everything notebook-specific lives in `widgets/composition/model.js`:
+`batch(rng)` (the seeded `randn(4, 10)` all five modules take), `initLinear`,
+`linear`/`relu`/`sigmoid`/`softmax`, `shapeAfter`, `printModule`, `printSummary`.
+The drawing is not shared with slot 49 — `drawLayerBox`, `drawEdgeShape` and
+`drawMergeNode` are geometry — but the convention is, written into both headers
+with the same numbers: boxes 30px tall, 2px borders, arrows 2px with a 9px head,
+shape labels 16px on the edge.
+
+**The mock — `_lab/composition-mock.html`**, at 550 and 770, viewport fold
+marked, with the same seeded numbers the widget will use: **§1** the stage split
+on Routing, the worst case, three ways, with the height cost printed under each —
+recommend the fit pass, under at 550 and beside at 770; **§2** what a tensor
+looks like on an edge (shape text alone, shape plus a shaded 12px band, or a full
+value grid drawn at the 40px cells it actually needs so the overflow is visible)
+— recommend the middle, with the first as the fallback if the bands read as
+decoration; **§3** the merge, four ways, each with its failing state beside its
+working one; **§4** the residual gradient overlay, drawn and not drawn; **§5**
+the `expr` chain in a 300px rail, measured rather than estimated; **§6**
+Ordering's transformer path at four boxes against five; **§7** the rail at the
+real 300px, two headed rows in a grid.
+
+**Build order within the widget**, once the mock is picked: Dimensions first (the
+strongest losing state and the most machinery), then Skip, Branching, Gating,
+Routing, Building, Ordering. The widget itself is built after
+`processing-layers`.
+
+**What `check` will hold both new widgets to**, since neither plan mentioned it:
+the manifest entry and the title agreeing across three files; the blurb ≤ 120 and
+equal to the `<meta name="description">` verbatim; every settled state carrying
+`shown=` and no driven state carrying it; at least one **driven** state for the
+declared `animation` and one **hit-driven** state for the declared `regions` (a
+`set` state routes around the region map and gives the hit-test no coverage); no
+dead declarations, so a page cut mid-review takes its drawing helpers out in the
+same edit; and the baseline that holds **404 states across 47 widgets** today,
+which is the number the core commit must reproduce.
+
+**The cuts Kenneth declined**, kept so they are not re-argued and so a later
+scope problem has somewhere to start:
+
+| offered | what it would have saved | what it would have cost | his call |
+|---|---|---|---|
+| **five** pages — Building, Dimensions, Skip, Gating, Branching | `--c-group-c` entirely, the widest diagram, the longest code line, and a page the notebook itself marks *Optional* | per-sample weights and the mixtures picture; and no page draws a subunit, which is cell 62's lead figure and the vocabulary the other diagrams use | **declined** |
+| **six** — the same plus Ordering | Routing alone | the same, minus the subunit | **declined** |
+| Ordering folded into Building as the diagram's first view | one page, not the figure | the Combination view goes | **declined** |
 
 ### Slot 52 · `training-loop` — Training with Validation — MEASURED 2026-09-07
 

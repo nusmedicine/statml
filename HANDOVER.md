@@ -1,33 +1,75 @@
 # Handover
 
 **FORTY-EIGHT WIDGETS — 46 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), NO DRAFT, and NOTHING UNPUSHED: `main` is level with
-origin with a clean tree (2026-09-09). `tensors` (slot 53) SHIPPED
-2026-09-09 on Kenneth's "tested ok, push it" after twenty-nine review
-rounds in two days, then two post-ship rounds the same day (the topic rows
-headed by the notebook's section titles, through core's `groupHeads`; the
-subtitle and blurb rewritten in the register of the others). All 404
-fingerprint states MATCH, run twice that day (once for the promotion, once
-for the `groupHeads` core change), pane fronted at DPR 1.25.**
+call, 2026-08-30), NO DRAFT, and nothing unpushed except this commit
+series: `74b5455` (2026-09-10) added Kenneth's twenty-three `dl-*` figures
+under `widgets/_lab/figs/` and the measurement script
+`widgets/_lab/dl-layers-measure.mjs`, and the docs commit that records the
+`05-3` plan follows it. `tensors` (slot 53) SHIPPED 2026-09-09 on "tested
+ok, push it" after twenty-nine review rounds in two days, then two post-ship
+rounds the same day. All 404 fingerprint states MATCH, run twice that day,
+pane fronted at DPR 1.25. Nothing is half-built.**
 
 ---
 
-# NEXT: THE DEEP LEARNING ARC — ASK THE FIVE QUESTIONS FIRST
+# NEXT: `widgets/core/torch.js` FIRST, THEN THE `processing-layers` MOCK
 
-Nothing is in progress. The next widget is one of the arc's slots, and
-**which one is Kenneth's call, not the session's.**
-[docs/catalogue.md](docs/catalogue.md) § *The deep learning arc* plans slots
-47–52 for PHM5005 *DL Foundations* (`05-1` to `05-4`): `chain-rule`,
-`gradients` (SHIPPED 2026-09-08), `processing-layers`, `support-layers`,
-`composition`, `training-loop` — each with its misconception, its host
-cells, its shape and what cutting it would cost. **Five questions for him
-close that section** (six slots or four; where the residual-gradient
-argument lives; which first; an optimizer picker on 48; how to pin 52
-with no torch on this machine). Put them to him with `AskUserQuestion`,
-two or three options each with a recommendation and its reason — that is
-how he answers, in one click — and build nothing until he has. Two slots
-were measured first and the scripts are in `_lab/` (`dl-gd-measure.mjs`,
-`dl-loop-measure.mjs`, `dl-synthetic.csv`).
+**`05-3` was planned on 2026-09-10 and it is three widgets, not two.** Two
+Opus 5 subagents planned the notebook's two halves independently, a third
+surveyed core, a fourth reviewed both plans against the principles and
+returned 30 findings, and `widgets/_lab/dl-layers-measure.mjs` checked every
+number either plan asserted. **Kenneth answered eight questions by
+`AskUserQuestion`, one click each.** The whole record — his picks verbatim,
+the seven things the principles decided instead of asking him, the per-page
+geometry in numbers at 550, the measured facts and the cuts he declined — is
+[docs/catalogue.md](docs/catalogue.md) § *Slot 49 · `processing-layers`*,
+§ *Slot 50 · `support-layers`* and § *Slot 51 · `composition`*, with
+§ *How 05-3 was planned, 2026-09-10* above them. **Read those three entries
+before writing anything.** The headlines: the Layers half is two widgets
+because a ten-option rail spends 260px before any page control while five of
+its stages are shorter than that; Composition keeps all seven pages and the
+**diagram leads** with the `forward()` beside it (a declared departure from
+slot 51's own "the code leads"); every result is blue and every second
+operand yellow on all three widgets; values in the cells only where a tensor
+is at most about 8 wide, and shaded with no digits beyond that.
+
+**The order of work, and the first step is not a widget:**
+
+1. **The core commit, main session, before either widget is built.** Lift
+   the torch print and format code out of `widgets/tensors/model.js` into a
+   new **`widgets/core/torch.js`** — `torchPrint`, `torchFloatFormat`, `num`,
+   `shapeText`/`sizeText` — and add to it `outSize(in, k, s, p)` (three call
+   sites across the two new widgets), `torchError(kind, …)` (both print
+   torch's messages verbatim, and two copies of a message string is how they
+   drift) and the initialiser bounds table (verified, all eight rows, under
+   slot 49). In the same commit: **`mono` in `readTokens`** (`core/env.js`)
+   — `tokens.css` has `--font-mono`, `probability-mechanisms` hardcodes the
+   family as a literal against rule 5 and `tensors` reads it off
+   `getComputedStyle` with a comment naming the gap; and
+   **`--c-group-c: var(--series-6)`** (green) in `tokens.css` plus its line in
+   CLAUDE.md rule 5's role list, with the reason in the token's comment —
+   `--series-8` is red and **is** `--c-extreme`, and slot 51's Routing page
+   prints a torch error on the same panel as its three branches, which is the
+   invariant `tokens.css:107` already states. Amend the `--c-group-a` /
+   `--c-group-b` comment while there to record the second-operand reading
+   (weights, kernel, keys, mask) that `tensors` already ships. Switch
+   `tensors` to the new imports. **One full fingerprint run, all 404 states
+   MATCH, before the commit** — nothing renders differently, so a DIFFER is a
+   real regression. One commit.
+2. **`_lab/processing-layers-mock.html`**, for Kenneth to pick from. It is
+   **not in the tree as of this commit** — if it is there when you read this,
+   it was written after, and check what it already draws before starting one.
+   Its eight sections and their recommendations are in the slot 49 entry; the
+   two things it has to prove before any `main.js` are that the 16 × 16 image
+   with a 6 × 6 square still reads as a square at a 13–14px pixel on a
+   projector, and that the whole rail against the *shortest* stage is a
+   layout rather than a column of empty rail.
+3. **Build `processing-layers` as a draft from his picks**, then
+   `support-layers`, then `composition`. One widget per commit, `npm run
+   check` read before every one, push only on "tested ok". Neither build
+   touches `widgets/core/`: a build that finds it needs a core change stops
+   and asks. Baseline last, after the design is agreed — the `bootstrap`
+   lesson.
 
 **How he wants a widget built, learned across 48 and 53:**
 
@@ -37,7 +79,8 @@ were measured first and the scripts are in `_lab/` (`dl-gd-measure.mjs`,
   sub-lists as control groups, its example values as the operands. The
   one time the widget departed from it (round 17 of tensors, a layout of
   the session's own) drew "are you fucking with me? … mock up and show me
-  before imposing your own designs on the widget".
+  before imposing your own designs on the widget". His `05-3` figures are
+  in `widgets/_lab/figs/` as `dl-layer-*` and `dl-compose-*` / `dl-flow-*`.
 - **Mock in `_lab/` first, then he picks; one widget per commit; commit
   locally; push only on "tested ok".** The tensors mocks are the pattern:
   `_lab/tensor-lesson.html` (the notebook's order), `-style.html`,
@@ -57,6 +100,13 @@ were measured first and the scripts are in `_lab/` (`dl-gd-measure.mjs`,
 - **Run `npm run check` and READ its verdict before `git push`**: a chained
   `check && … && push` with `tail -1` on the check pushed a failing blurb
   once (2026-09-09, fixed in the next commit).
+
+**Three notebook issues to tell him**, found while planning `05-3` and worth
+reporting upstream as widget 45's two were: **cell 43** prints `X` and `Y`,
+the attention tensors from cell 22, where it means `X_batch` and `Y_batch`;
+**cell 44** says "BatchNorm3D"; and **cell 60**'s eval comment, "values
+scaled as in training", describes a scaling PyTorch does not do at eval
+(`y_eval == x`).
 
 **What tensors leaves open, none blocking:** the 05-2 notebook does not yet
 link to the widget (prd §4 says how); the notebook's second tensor (cells
