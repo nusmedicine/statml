@@ -68,6 +68,11 @@ const CASES = [
   ["broadcast scalar", "tab=broadcast&b=scalar&shown=3", 0],
   ["manipulate unsqueeze rank 4", "tab=manipulate&rank=4&op=unsqueeze&shown=40", 0],
   ["manipulate squeeze rank 4 frames", "tab=manipulate&rank=4&op=squeeze&view=frames&shown=40", 0],
+  /* round 28: a fifth dimension of any size */
+  ["join stack rank 4", "tab=join&rank=4&join=stack&shown=80", 0],
+  ["join stack rank 4 last frames", "tab=join&rank=4&join=stack&sdim=4&view=frames&shown=80", 0],
+  ["manipulate unsqueeze rank 4 mid", "tab=manipulate&rank=4&op=unsqueeze&udim=2&shown=40", 0],
+  ["manipulate squeeze rank 4 channel frames", "tab=manipulate&rank=4&op=squeeze&sqsrc=channel&sqdim=1&view=frames&shown=40", 0],
   ["multiply matrix", "tab=multiply&shown=6", 0],
   ["multiply dot", "tab=multiply&kind=dot&shown=3", 0],
   ["multiply dot aspartic", "tab=multiply&kind=dot&pair=aspartic&shown=2", 0],

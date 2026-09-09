@@ -2,7 +2,7 @@
 
 **FORTY-SEVEN WIDGETS — 45 on the gallery, `roc-auc` UNLISTED (Kenneth's
 call, 2026-08-30), and ONE DRAFT at `/lab/`: `tensors` (slot 53), committed
-locally through twenty-seven review rounds and NOT PUSHED. **The spec is his
+locally through twenty-eight review rounds and NOT PUSHED. **The spec is his
 notebook's own structure** (`05-2 - DL Foundations - Tensors and
 Gradients.ipynb`, the Master copy in Downloads; its 21 figures in
 `_lab/figs/`); read catalogue rounds 19–20 before touching a topic. 367 real fingerprint
@@ -50,12 +50,14 @@ round 24 the spacing and a wash behind the lit brackets; round 25
 squeeze's source as a menu of uses (a batch of one · one channel · one
 value each), his call after the uses were put to him; round 26 the
 size-1 frame six pixels from the cells everywhere; round 27 the glide
-for the argument only, his pick A on `_lab/tensor-flow.html`. **Nothing
-he has asked for is left to build.** Read
+for the argument only, his pick A on `_lab/tensor-flow.html`; round 28
+a fifth dimension of any size drawn as a frame per index of dim 0 round
+the rank-4 drawing, his call on `_lab/tensor-rank5.html`. **Nothing he
+has asked for is left to build.** Read
 [docs/catalogue.md](docs/catalogue.md) § *Slot 53 · `tensors`* before
 touching the widget: every round, its research, the mock it was picked
 from and Kenneth's exact picks are there, rounds 1–16, and the decision
-list in `widgets/tensors/main.js`'s header (1–40) says why each thing is
+list in `widgets/tensors/main.js`'s header (1–41) says why each thing is
 the way it is.
 
 ## What the draft is, in one paragraph

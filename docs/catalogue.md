@@ -11489,6 +11489,25 @@ or the ordering changes, and starts empty when the tensor itself changes
 — U's use or the rank — which the widget tells by the source's shape.
 One condition in `init`; nothing in core.
 
+**Round 28 (2026-09-09) — a fifth dimension, drawn.** His ask: "when doing
+any operation that increases to dimension 5, just extend it in the diagram?
+instead of just saying this widget only draws up to 4." Mocked on
+`_lab/tensor-rank5.html` as two cases — a size-1 fifth (unsqueeze at rank
+4, reshape to five) through the existing mark, cheap; a real fifth (stack
+at rank 4, eighty values) as one more level of the drawing — and his call
+was the second, "so we maintain the stack/frame views … ensure it does not
+mess up existing visualizations". Built as the general case: a frame per
+index of dim 0, down the page, each holding the rank-4 drawing of the view
+that is on (round 21's device for the size-1 case, generalised, so the
+size-1 fifth comes with it and the strong mark lines up inside it, the
+mark being absolute now). The fifth dimension is ink, having no hue of its
+own. So stack at rank 4 ([2, 2, 2, 2, 5] or [2, 2, 2, 5, 2], T2 = T + 40),
+unsqueeze at every position, reshape to five and squeeze's three uses at
+rank 4 all draw; six dimensions, which only a typed reshape can ask for,
+are declined in the figure's words. Ranks 1–4 untouched: the branch wraps
+their drawings, and the sweeps over them are unchanged. Verify 279; the
+sweeps clean; nothing in core.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

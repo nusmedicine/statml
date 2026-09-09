@@ -3357,6 +3357,20 @@
       "tx": "0"
     },
     {
+      "$note": "PLACEHOLDER - draft. Join (round 28): stack at rank 4, [2, 2, 2, 2, 5] as a frame per index of dim 0 round the rank-4 column, 80 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=join&rank=4&join=stack&shown=80",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "PLACEHOLDER - draft. Manipulate (round 28): unsqueeze(2) at rank 4 in the frames view, the size-1 dimension a strong frame inside the fifth level, 40 placed",
+      "slug": "tensors",
+      "state": "?theme=light&tab=manipulate&rank=4&op=unsqueeze&udim=2&view=frames&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
       "$note": "PLACEHOLDER - draft. Shape: flatten() — [20] on one line, the print wrapped at torch's 80 columns",
       "slug": "tensors",
       "state": "?theme=light&tab=manipulate&op=flatten&shown=20",

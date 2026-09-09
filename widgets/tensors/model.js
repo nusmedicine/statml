@@ -319,13 +319,13 @@ export const parseKey = (key) => String(key).split("-").map(Number);
  * TypeError can name it. */
 const SEP = /[\s,x×]+/;
 const MINUS = /[−–]/g;             // a typed minus sign or en dash is a minus
-const DRAWN_RANK = 4;              // the highest rank the figure has a drawing for
-/** Whether the figure can draw a shape: four dimensions, or five with a size-1
-    dimension in front — one frame round a rank-4 body, which is what
-    unsqueeze(0) makes of the [2, 2, 2, 5] and what squeeze(0) takes back
-    (round 21, Kenneth: "squeeze and unsqueeze does not have any
-    visualization" — at rank 4 they had been declined). */
-export const drawable = (shape) => shape.length <= DRAWN_RANK || (shape.length === DRAWN_RANK + 1 && shape[0] === 1);
+const DRAWN_RANK = 5;              // the highest rank the figure has a drawing for
+/** Whether the figure can draw a shape: up to five dimensions. Round 21 drew
+    a fifth when it was a size-1 dimension in front; round 28 draws any fifth
+    (Kenneth: "build the 2nd one so we maintain the stack/frame views") — a
+    frame per index of dim 0 round the rank-4 drawing. Six is what a typed
+    reshape can still ask for, and is declined. */
+export const drawable = (shape) => shape.length <= DRAWN_RANK;
 
 /** The tokens of a typed list: whole numbers as numbers, anything else as
     the string it was, so the error can name it. */
@@ -423,7 +423,7 @@ export function dimOptions(kind, rank) {
 /* The one answer that is the figure's and not torch's: a fifth dimension.
    torch would make it; this widget has drawings for four. Said plainly, in
    ink rather than the failure colour, and the tab goes inert. */
-export const FIVE_DIMS = (shape) => `${shapeText(shape)} has five dimensions, and this figure draws four, or five with a size-1 dimension in front.`;
+export const TOO_MANY_DIMS = (shape) => `${shapeText(shape)} has ${shape.length} dimensions, and this figure draws five.`;
 
 const nameJoin = (names) => names.filter(Boolean).join(" × ");
 const labelsOf = (names) => names.map((n, k) => (n ? `${k} ${n}` : `${k}`));
@@ -448,8 +448,7 @@ function reshapeNames(src, shape, names) {
 /** The tensors squeeze is offered, by use (round 25, Kenneth: "build the
     menu version, keep the dimension dropdown and dash"): a batch of one, one
     channel, one value each — U = T.unsqueeze(k) for k = 0, 1 and −1. Rank 1
-    has no channel case apart from the last; rank 4 draws only the batch
-    (decision 36). */
+    has no channel case apart from the last. */
 export function squeezeSources(rank) {
   const r = RANK_SHAPES[rank] ? Number(rank) : 3;
   const shape = RANK_SHAPES[r];
@@ -459,7 +458,6 @@ export function squeezeSources(rank) {
     { value: "channel", at: "1", label: `one channel · ${shapeText(ins(1))}` },
     { value: "value", at: "-1", label: `one value each · ${shapeText(ins(r))}` },
   ];
-  if (r >= 4) return cases.slice(0, 1);
   if (r === 1) return [cases[0], cases[2]];
   return cases;
 }
@@ -490,7 +488,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
     const r = reshapeFrom(Array.isArray(arg) ? arg : parseKey(arg), size);
     const { asked, shape, ok } = r;
     if (ok && !drawable(shape)) {
-      return failed(base, `reshape(${asked.join(", ")})`, FIVE_DIMS(shape), shape, true);
+      return failed(base, `reshape(${asked.join(", ")})`, TOO_MANY_DIMS(shape), shape, true);
     }
     const strides = [];
     let acc = 1;
@@ -541,7 +539,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
     if (!r.ok) return failed(base, `unsqueeze(${r.asked})`, r.error, []);
     const d = r.d;
     const shape = [...src.slice(0, d), 1, ...src.slice(d)];
-    if (!drawable(shape)) return failed(base, `unsqueeze(${r.asked})`, FIVE_DIMS(shape), shape, true);
+    if (!drawable(shape)) return failed(base, `unsqueeze(${r.asked})`, TOO_MANY_DIMS(shape), shape, true);
     return {
       ...base,
       value: `unsqueeze-${d}`,
@@ -581,7 +579,7 @@ export function shapeOp(kind, arg, setName = "sequence", rank = 3, at = "0") {
     const all = arg === "" || arg === "all" || arg == null;
     /* declined on `base`, so the Tensor band draws T: the U it cannot draw is
        named in the Result band's words instead */
-    if (!drawable(srcU)) return failed(base, `squeeze(${all ? "" : arg})`, FIVE_DIMS(srcU), srcU, true);
+    if (!drawable(srcU)) return failed(base, `squeeze(${all ? "" : arg})`, TOO_MANY_DIMS(srcU), srcU, true);
     if (all) {
       return {
         ...squeezed,
@@ -693,13 +691,16 @@ export function joinOp(kind, arg, setName = "sequence", rank = 3) {
   if (!r.ok) return failed(base, `stack(dim=${r.asked})`, r.error, []);
   const d = r.d;
   const shape = [...src.slice(0, d), 2, ...src.slice(d)];
-  if (!drawable(shape)) return failed(base, `stack(dim=${r.asked})`, FIVE_DIMS(shape), shape, true);
+  if (!drawable(shape)) return failed(base, `stack(dim=${r.asked})`, TOO_MANY_DIMS(shape), shape, true);
   return {
     ...base,
     value: `stack-${d}`,
     label: `stack(dim=${r.asked})`,
     shape,
-    names: [...names.slice(0, d), insertedName(d, setName, source.rank), ...names.slice(d)],
+    /* the stacked dimension has size 2, so it is not `size 1`: it is the
+       lesson's batch where two samples stack in front of the [2, 2, 5], and
+       `stacked` anywhere else (round 28; it had borrowed unsqueeze's name) */
+    names: [...names.slice(0, d), d === 0 && source.rank === 3 ? insertedName(0, setName, 3) : "stacked", ...names.slice(d)],
     caption: `A new dim ${d} of size 2 holds the two tensors, and each keeps the shape it had.`,
     dest: (n, t) => { const s = unravel(n, src); return [...s.slice(0, d), t, ...s.slice(d)]; },
   };
@@ -759,8 +760,6 @@ export function hintFor(kind, text, rank) {
   const t = toks[0];
   const hi = kind === "unsqueeze" || kind === "stack" ? n : n - 1;
   if (t > hi || t < -(hi + 1)) return range(hi);
-  if (kind === "stack" && n === DRAWN_RANK) return "a fifth dimension, which this figure does not draw";
-  if (kind === "unsqueeze" && n === DRAWN_RANK && t !== 0 && t !== -(n + 1)) return "a fifth dimension, drawn only in front (0)";
   return null;
 }
 

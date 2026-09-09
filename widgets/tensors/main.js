@@ -417,6 +417,17 @@
       pads itself for it, a bare grid lifts its indices and arrows, and
       inside a cell the inset shrinks with the cell and the digit fits it.
 
+  41. ROUND 28 ("build the 2nd one so we maintain the stack/frame views";
+      the mock `_lab/tensor-rank5.html`). A FIFTH DIMENSION OF ANY SIZE IS
+      DRAWN: a frame per index of dim 0, down the page, each holding the
+      rank-4 drawing of the view that is on — round 21's device for the
+      size-1 case, generalised. So stack at rank 4 ([2, 2, 2, 2, 5], eighty
+      values, T2 = T + 40), unsqueeze at rank 4 at every position, reshape
+      to five, and squeeze's three uses at rank 4 all draw; six dimensions,
+      which only a typed reshape can ask for, are declined. The size-1 mark
+      is absolute, so a marked level inside the fifth lines up. Nothing at
+      ranks 1–4 moved: the branch wraps those drawings.
+
   40. ROUND 27 (his pick A on `_lab/tensor-flow.html`, after "the result is
       shown before I choose the dimension to remove"). THE GLIDE OF 36 IS
       FOR THE ARGUMENT ONLY: a finished figure glides when the dimension,
@@ -1151,7 +1162,9 @@ function pushTensor(plan, colors, x, y, shape, s, view, cell, perRow, edges = fa
   const marked = mark >= 0 && mark < shape.length && shape[mark] === 1;
   const framesBefore = plan.frames.length;
   const prev = MARK_DIM;
-  MARK_DIM = marked ? mark : -1;
+  /* absolute — a rank-5 drawing draws its body with DIM_BASE 1, and the
+     frames compare their absolute dimension with this (round 28) */
+  MARK_DIM = marked ? mark + DIM_BASE : -1;
   /* where the block is one cell, the frame is an inset the cell paints, so
      the digit is fitted inside it (round 26) */
   const cellOf = marked && mark === shape.length - 1
@@ -1199,7 +1212,7 @@ function pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges 
        without them the reader has nothing to read an index off — or to press. */
     /* a hug round the grid needs room above and left of it: the grid moves
        by `lift`, and its indices, rules and arrows keep their place */
-    const lift = MARK_DIM >= 0 && MARK_DIM === shape.length - 2 ? MARK_HUG + 2 : 0;
+    const lift = MARK_DIM >= 0 && MARK_DIM === DIM_BASE + shape.length - 2 ? MARK_HUG + 2 : 0;
     const gx = x + (edges && shape.length === 2 ? IDX_COL : 0) + lift;
     const gy = y + (edges ? IDX_ROW : 0) + lift;
     pushGrid(plan, gx, gy, rows, cols, s,
@@ -1239,18 +1252,31 @@ function pushTensorBody(plan, colors, x, y, shape, s, view, cell, perRow, edges 
     return { w: box.w, h: box.h, centre: (idx) => box.centre(idx[0], idx[1], idx[2]) };
   }
   if (shape.length === 5) {
-    /* five dimensions with a size-1 one in front: one dashed frame, labelled
-       for that dimension, round the rank-4 body (round 21) */
+    /* FIVE DIMENSIONS (round 28, Kenneth: "build the 2nd one so we maintain
+       the stack/frame views"): a frame per index of dim 0, down the page,
+       each holding the rank-4 drawing of whichever view is on — the device
+       round 21 used for a size-1 dim 0, now for any size. The fifth
+       dimension has no hue of its own (four, counted from the last), so its
+       frames are ink. Ranks 1–4 are untouched: this branch only wraps them. */
     const inner = shape.slice(1);
-    DIM_BASE = 1;
-    const body = pushTensor(plan, colors, x + FRAME_PAD, y + FRAME_LBL + FRAME_PAD, inner, s, view,
-      (idx) => cell([0, ...idx]), perRow, edges);
-    DIM_BASE = 0;
-    const w5 = body.w + 2 * FRAME_PAD;
-    const h5 = FRAME_LBL + body.h + 2 * FRAME_PAD;
-    pushFrame(plan, x, y, w5, h5, null, colors.ink3, 0);
-    pushText(plan, "dim 0 = 0", x + 4, y + FRAME_LBL - 3, { color: frameInk(colors, 0), weight: frameWeight(0), mono: true });
-    return { w: w5, h: h5, centre: (idx) => body.centre(idx.slice(1)) };
+    const innerMark = MARK_DIM >= 1 ? MARK_DIM - 1 : -1;
+    const bodies = [];
+    let w5 = 0;
+    let yf = y;
+    for (let f = 0; f < shape[0]; f += 1) {
+      DIM_BASE = 1;
+      const body = pushTensor(plan, colors, x + FRAME_PAD, yf + FRAME_LBL + FRAME_PAD, inner, s, view,
+        (idx) => cell([f, ...idx]), perRow, edges, innerMark);
+      DIM_BASE = 0;
+      const fw = body.w + 2 * FRAME_PAD;
+      const fh = FRAME_LBL + body.h + 2 * FRAME_PAD;
+      pushFrame(plan, x, yf, fw, fh, null, colors.ink3, 0);
+      pushText(plan, `dim 0 = ${f}`, x + 4, yf + FRAME_LBL - 3, { color: frameInk(colors, 0), weight: frameWeight(0), mono: true });
+      bodies.push(body);
+      w5 = Math.max(w5, fw);
+      yf += fh + INNER_GAP;
+    }
+    return { w: w5, h: yf - y - INNER_GAP, centre: (idx) => bodies[idx[0]].centre(idx.slice(1)) };
   }
   const box = view === "stack"
     ? pushStackColumn(plan, colors, x, y, shape, s, (f, i, r, c) => cell([f, i, r, c]))
