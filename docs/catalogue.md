@@ -11646,6 +11646,38 @@ until then; a line that states a definition may show at rest. `regions`
 return only the rows that are drawn; page heights unchanged, the empty space
 is where the reveal lands.
 
+**Round 1, comment 4 — Kenneth, on Skip with the projection on:** *"it looks
+like projected component is shown before the line of code is highlighted. can
+you check we don't have these out of sync animations?"* The pale `proj` box
+was the one-line-ahead preview, in sync by the rule; what leaked was its
+`P(x)` name and the `skip [4, 10]` shape label, drawn in the preview where a
+preview carries no labels. Fixed in the main session (`31613ed`): both appear
+when line 1 lands, and with the projection on line 1 draws the tee down into
+the proj box so it does not hang unattached until the add line draws the
+rail. A `fillText` sweep of all ten page states at rest found no other leak.
+
+**Round 1, comment 5 — Kenneth, the Ordering page:** *"maybe we don't go into
+details for specific architectures i.e. MLP, Resnet, transformer"*, *"we want
+principles like in the notebook 05-3 (general pattern, layer combinations,
+some specific layers at beginning and end). If you not sure, ask me and mock it
+up."* Mocked: `_lab/composition-ordering-mock.html` (`e76f444`), three ways
+at 550 — A a `view` control Pattern · Combinations · Position, each cell 62's
+own figure with Step applying one step, one combination or one position (286 /
+243 / 394px); B the three stacked on one stage with no control, eleven units
+(876px); C the Position schematic as the whole page, input → Encoding →
+bracketed Subunit × N with the four roles expanded and the concrete class for
+the data beside each → Global pooling → Linear → output, a data control
+choosing the encoding (624px, 439 at 770). The recommendation was A; **Kenneth
+picked C.** Built by an Opus builder. Decided in the brief: the page's data
+type is the same idea as Dimensions' `data` (Image · Vectors · Sequence), so
+that one parameter is shared across both pages rather than a second `data`
+with other values (3.7). The change removes `ORDER_BLOCKS`, `ORDER_PRINT`, the
+`block` and `view` controls, the print column and the Shape / Parameters
+tiles; and two claims in this entry die with the blocks: the "Transform is the
+only step that changes the shape" corrective under Page 1, and the mock's §7
+pick (the box count follows the block, the print under the diagram, the 377 /
+476px print arithmetic and the 282 / 338 / 394 / 522px heights).
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
