@@ -12194,6 +12194,75 @@ Taken as the measured defaults without asking: §1a one row of three faces;
 §2c the fixed bar axis; §4 the squared row as cells with the bracket kept
 on the bars; §6 the −log p curve, p on x from 0 to 1 and loss clipped at 5.
 
+#### DRAFT, copy round, and the second mock — 2026-09-11
+
+**The draft** (`a3395b0`, an Opus builder from the mock and the composition
+idiom; `main.js` 1061, `model.js` 561, `_lab/loss-functions-verify.mjs`
+271 assertions, status draft at `/lab/`). Kenneth: "looks good", then "have
+you checked the front-facing text using the principles?" — the audit ran
+(23 rows: 15 settled, 8 picks) and was applied in one round (`644d351`);
+he called the rewritten subtitle "clunky" and asked for options in
+"standard language without mannerisms/personification", picking **B**:
+*A loss function measures the difference between predictions and targets
+as a single number, which training minimizes. Regression compares each
+prediction with its target; classification first converts the scores to
+probabilities, by softmax across the classes or by a sigmoid for each
+class.* (291 characters, over 2.10's budget on his word). The one copy
+pick, **Next row** against Next step, he kept as Next row. The blurb is
+still his to pick (four options offered). torch 2.14 was installed on his
+ask (`d207863`); two of the three error strings quoted from memory were
+wrong and the widget now prints torch's own.
+
+**His second ask**, verbatim: *"can we show examples of 1 class and >1
+class? also how best to explain that a binary class can be modeled as 1
+label or 2 labels. do research and mock-up as necessary."* The research is
+`_lab/dl-loss-torch.py` §6 (`b016731`): softmax([zA, zB])[B] = sigmoid(zB −
+zA), so CrossEntropyLoss on two outputs and BCEWithLogitsLoss on their
+difference print the same loss — 0.201413 at [0.5, 2.0], label B; equal to
+1.2e−7 over the whole drag of zB from −2 to 4; both scores shifted by +3
+leave softmax at [0.1824, 0.8176] (one redundant degree of freedom); the
+prediction rules agree. 05-4 cell 29's own MLP ends in `Linear(hidden, 2)`
+with CrossEntropyLoss, the two-output form. The one-output shapes of his
+figures: BCE on one score 2.0 with y = 1 prints 0.1269; MSE on 2.5 against
+3.0 prints 0.2500; CE([5.0, 0.5], label 0) prints 0.0110.
+
+**The mock** `_lab/loss-binary-mock.html` (`9f886c6`, an Opus builder, four
+sections, every number torch's). What it measured: the three one-output
+stages come out at the draft's own 494 / 414 / 524px, because the control
+changes the number of COLUMNS and not rows; at one class the row-sum column
+repeats its only cell (0.8808 beside 0.8808), so it is dropped there; side
+by side the two loss lines sit on one line 272px apart against 350px
+stacked with a figure between them, and a 250px column holds the two-output
+form (3 columns at 83px against 47px needed, the loss line 179px); both
+fixed axes span eight units so both forms run at 11.0px per unit; the
+caption-line alternative is 406px of mono in a 300px column and has no
+second form for a drag to move; ONE ROW OF FOUR TASK FACES TRUNCATES —
+74.8px a button leaves 62.0px for text against Single-label's 64.4px at the
+pressed weight, and two arithmetic checks said it fitted before the
+screenshot said `Single-lab…` (a truncation test must be a float at
+`font-weight: 600`).
+
+**His picks (four asked, one click each):**
+
+1. **§1 — A, the control on all three pages**: Regression `Outputs` 1 · 3,
+   Single-label `Classes` 2 · 3, Multi-label `Classes` 1 · 5, each under
+   the tensor fields it resizes; three parameters (`outputs`,
+   `singleClasses`, `multiClasses`), one default each, values the numbers
+   on the ticks.
+2. **§2 — B, a fourth task page `Binary`, side by side**: the two-output
+   form (bars A and B, softmax, two p cells and the row sum, two chips,
+   `[1], long`) beside the one-output form (one bar `z_B − z_A`, sigmoid,
+   one p cell, one chip, `[1], float32`), the two loss lines on one line,
+   the −log p curve below with one shared point; dragging B moves both.
+3. **§3 — C, option groups on `task`**: *Regression* alone, then a
+   *Classification* row of Single-label · Multi-label · Binary (82px more
+   rail; the lone face repeats its heading's word, noted to him).
+4. **Copy — Next row stays.**
+
+Taken on the recommendation: §4 the derived bar is named `z_B − z_A` on its
+own letter line and does not drag (it has no parameter; the map from the
+difference back to a pair is not unique).
+
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
 Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the
