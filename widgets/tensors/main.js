@@ -3178,7 +3178,7 @@ const indexParts = (params) =>
 
 defineWidget({
   slug: "tensors",
-  title: "Tensors",
+  title: "Deep Learning - Tensors",
   status: "shipped",
   /* ROUND 31 (Kenneth, after shipping: "review and rewrite to match topics"):
      his pick of the options, in the register of the other subtitles — the

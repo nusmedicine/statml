@@ -682,7 +682,7 @@
     },
     {
       "slug": "gradients",
-      "title": "Gradients",
+      "title": "Deep Learning - Gradients",
       "blurb": "A derivative, the partial derivatives that make up a gradient, and the descent that steps against it.",
       "course": "PHM5005",
       "topics": [
@@ -702,7 +702,7 @@
     },
     {
       "slug": "tensors",
-      "title": "Tensors",
+      "title": "Deep Learning - Tensors",
       "blurb": "A tensor is an array with a shape; indexing, reshaping and joining rearrange it, and linear algebra computes on it.",
       "course": "PHM5005",
       "topics": [
@@ -722,7 +722,7 @@
     },
     {
       "slug": "processing-layers",
-      "title": "Processing Layers",
+      "title": "Deep Learning - Processing Layers",
       "blurb": "Each layer transforms an input tensor into an output tensor, differing in which inputs an output reads.",
       "course": "PHM5005",
       "topics": [

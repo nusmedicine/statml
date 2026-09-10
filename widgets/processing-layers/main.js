@@ -2091,7 +2091,7 @@ const RUN_TITLES = {
 
 defineWidget({
   slug: "processing-layers",
-  title: "Processing Layers",
+  title: "Deep Learning - Processing Layers",
   status: "draft",
   subtitle:
     "A layer takes an input tensor, applies a transformation with or without "
