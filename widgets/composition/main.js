@@ -143,6 +143,25 @@
        and `draw` still ask the same geometry functions (decision 3), and the
        geometry functions do not read the walk at all.
 
+       AMENDED IN ROUND 3: THE PREVIEW IS FOR LAYER BOXES AND THE BUS ARM THAT
+       REACHES THEM, AND NOTHING ELSE. Kenneth on Skip (2026-09-10): "downstream
+       + and arrows occur prematurely", "should appear at x3 + skip step". The
+       first draft of the rule gave a pale form to the operators and the rails
+       as well, so a `+`, a rail down the right of the figure and an empty
+       weighted-sum box all stood on the stage a line before anything joined
+       them. They are the shape of the answer, which 2.1 keeps off an unpressed
+       widget as firmly as the values are.
+
+       So an operator node (`+`, `=`, `⊙`), a merge or skip rail and its elbow,
+       a band, an edge that NAMES a value its line computes (`out`, `gated`,
+       `x3`, `combined`), Routing's weighted-sum box and every label appear
+       only when their line LANDS. Layer boxes keep the pale form — fc1 and its
+       relu, gate_fc and sigmoid, fc2, fc3, fc_out, the branch columns — and so
+       do the arrows inside a layer's own stack, which carry a shape and no
+       name. `M.pageUnits` marks the difference with `preview: false` and
+       `M.stageOf` takes it, so the rule is one function and one table; the
+       verify script sweeps both.
+
        THE CAPTIONS SPLIT THE SAME WAY (2.4). `M.captions` gives every line the
        unit it waits for, `at: 0` meaning a definition that is true before the
        walk starts. A held line's row is measured and reserved, so the caption
@@ -241,6 +260,25 @@
        multiplies the gradient by 1 — which is a sentence rather than a second
        figure. With it went the gutter it reserved left of the spine, so the
        diagram column is the boxes and the rail and nothing else.
+
+   21. BRANCHING'S MERGE WRITES THE SAME STATEMENT SKIP'S ADD DOES. At `add`
+       and `average` the two operand bands used to stack with the merged band
+       under them and nothing between, so the figure showed three tensors and
+       left the reader to supply the arithmetic. Kenneth, round 3: give the
+       stack the statement Skip now writes down its spine. It is the x1 band,
+       a `+` on the diagram's centre line, the x2 band, an `=`, the merged
+       band — Skip's `plusNode` and Skip's two row heights, `M.PLUS_ROW` and
+       `M.EQ_ROW`, through the one `M.addBlockH`, because a second set of
+       numbers for the same five rows is a second set to drift.
+
+       AT average THE OPERATORS ARE STILL `+` AND `=`. The merged band is the
+       half-sum and the band header already reads `y = ½(f₁(x) + f₂(x))`, so a
+       `÷ 2` glyph would say a second time what the header says once.
+
+       Where add fails — 8 against 6, the notebook's own — the two bands stack
+       around the `+` and torch's message prints under the `=`, in the row the
+       merged band would have taken. `concat` is unchanged: two bands side by
+       side under their own columns, and no operator to write.
    ========================================================================= */
 
 import {
@@ -614,7 +652,7 @@ function walkAt(anim, state) {
  * three, so the rule cannot drift from one page to the next. `M.stageOf` is the
  * rule itself and lives in `model.js`, where the verify script can read it.  */
 
-const stageAt = (walk, unit) => M.stageOf(walk.done, unit);
+const stageAt = (walk, unit, preview = true) => M.stageOf(walk.done, unit, preview);
 /** The line has run: the shape, the band and the values are true now. */
 const landed = (walk, unit) => walk.done >= unit;
 /** The unit is on the stage at all — landed, or the next line's preview. */
@@ -623,7 +661,7 @@ const onStage = (walk, unit) => walk.done + 1 >= unit;
 /** One layer box at its walk position. `dim` is Routing's untaken branch,
     which is pale for a reason of its own and carries no highlight. */
 function unitBox(ctx, colors, x, y, w, label, color, walk, unit, o = {}) {
-  const st = stageAt(walk, unit);
+  const st = stageAt(walk, unit, o.preview !== false);
   if (st === "absent") return;
   layerBox(ctx, colors, x, y, w, label, color, {
     ...o,
@@ -633,12 +671,17 @@ function unitBox(ctx, colors, x, y, w, label, color, walk, unit, o = {}) {
 }
 
 /** One edge at its walk position: absent, a grey line with nothing written on
-    it, or the path's own colour carrying the shape the line produced. */
+    it, or the path's own colour carrying the shape the line produced.
+    `preview: false` is an edge that NAMES A VALUE its line computes — `out`,
+    `gated`, `x3`, `combined` — which has no pale form at all, because a name
+    for a tensor that does not exist yet is the answer drawn early (the
+    amendment to decision 14). */
 function unitEdge(ctx, colors, cx, y0, y1, text, walk, unit, o = {}) {
-  const st = stageAt(walk, unit);
+  const { preview = true, ...rest } = o;
+  const st = stageAt(walk, unit, preview);
   if (st === "absent") return null;
-  if (st === "preview") return edge(ctx, colors, cx, y0, y1, "", { ...o, color: colors.axis });
-  return edge(ctx, colors, cx, y0, y1, text, o);
+  if (st === "preview") return edge(ctx, colors, cx, y0, y1, "", { ...rest, color: colors.axis });
+  return edge(ctx, colors, cx, y0, y1, text, rest);
 }
 
 /* the shade a band's cell carries, on the band's own largest magnitude. The
@@ -760,7 +803,7 @@ function skipGeom(ctx, colors, w, params, state) {
   const diagW = usable - cw - TEXT_GAP;
   const errRows = state.error ? wrapMono(ctx, colors, state.error, diagW).length : 0;
   const bandH = M.BATCH_N * s.band;
-  const blockH = M.skipBlockH(bandH, state.match, errRows);
+  const blockH = M.addBlockH(bandH, state.match, errRows);
   /* the three bands of the add, and the layers above them: three boxes on
      their edges, then the x3 edge that feeds the first band */
   const bodyH = XLAB + 3 * (EDGE_H + BOX_H) + EDGE_H + blockH
@@ -794,14 +837,14 @@ function skipBands(g, state) {
   const p = g.s.band;
   const top = g.blockTop;
   const at = (cols, y) => ({ x: g.blockCx - (cols * p) / 2, y, cols });
-  const skipY = top + g.bandH + M.SKIP_PLUS_GAP;
-  const outY = skipY + g.bandH + M.SKIP_EQ_GAP;
+  const skipY = top + g.bandH + M.PLUS_ROW;
+  const outY = skipY + g.bandH + M.EQ_ROW;
   return {
     x3: at(state.width, top),
     skip: at(state.skipShape[1], skipY),
     out: state.match ? at(state.width, outY) : null,
-    plusY: top + g.bandH + M.SKIP_PLUS_GAP / 2,
-    eqY: skipY + g.bandH + M.SKIP_EQ_GAP / 2,
+    plusY: top + g.bandH + M.PLUS_ROW / 2,
+    eqY: skipY + g.bandH + M.EQ_ROW / 2,
     outY,
   };
 }
@@ -873,16 +916,16 @@ function drawSkip(ctx, colors, w, params, state, anim) {
         (r, c) => shadeOf(colors.empirical, state.out[r][c], hiO), { litRow: sample });
     }
   }
-  if (onStage(walk, 5)) {
-    plusNode(ctx, colors, cx, plusY, 14, landed(walk, 5)
-      ? (state.match ? colors.empirical : colors.extreme)
-      : colors.axis);
+  /* THE TWO OPERATORS LAND WITH THEIR LINE and have no pale form: Kenneth on
+     this page, round 3, "downstream + and arrows occur prematurely", "should
+     appear at x3 + skip step". */
+  if (landed(walk, 5)) {
+    plusNode(ctx, colors, cx, plusY, 14, state.match ? colors.empirical : colors.extreme);
     /* the second operator is a glyph and not a node: the `+` is the layer the
        two paths meet at, and the `=` only says what the band under it holds —
        which is how the Routing box writes its own */
     txt(ctx, colors, "=", cx, eqY + 0.5, {
-      color: landed(walk, 5) ? colors.ink3 : colors.axis,
-      align: "center", baseline: "middle", mono: true,
+      color: colors.ink3, align: "center", baseline: "middle", mono: true,
     });
   }
 
@@ -907,16 +950,13 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   }
   /* THE RAIL DELIVERS skip INTO ITS BAND, from the side and at mid-height,
      which is the turn Branching's second branch makes into a band its column
-     stands clear of. Until the line runs there is no band to enter, so the
-     preview reaches the + instead: a bus arm previews to the layers it feeds,
-     and the values wait. */
-  const railEndY = landed(walk, 5)
-    ? bands.skip.y + g.bandH / 2 : plusY;
-  const railEndX = landed(walk, 5)
-    ? bands.skip.x + bands.skip.cols * g.s.band + 2 : cx + 18;
-  if (onStage(walk, 5)) {
-    elbow(ctx, [[railX, teeY], [railX, railEndY], [railEndX, railEndY]],
-      landed(walk, 5) ? skipHue : colors.axis);
+     stands clear of. It descends with the line that adds the two paths and
+     not before: until then there is no band to enter, and a rail drawn pale
+     down the right of the figure is the answer sketched a line early. */
+  if (landed(walk, 5)) {
+    const railEndY = bands.skip.y + g.bandH / 2;
+    const railEndX = bands.skip.x + bands.skip.cols * g.s.band + 2;
+    elbow(ctx, [[railX, teeY], [railX, railEndY], [railEndX, railEndY]], skipHue);
   }
   /* the label and P(x) are landed-only: a preview carries no labels (Kenneth,
      round 1: the projection read as shown before its line ran) */
@@ -943,11 +983,11 @@ function drawSkip(ctx, colors, w, params, state, anim) {
      when it arrives */
   if (!state.match) {
     if (landed(walk, 5)) {
-      errorText(ctx, colors, PAD, bands.outY + M.SKIP_ERR_GAP, g.diagW, state.error);
+      errorText(ctx, colors, PAD, bands.outY + M.ERR_ROW, g.diagW, state.error);
     }
   } else {
     unitEdge(ctx, colors, cx, Y.e5, Y.e5 + EDGE_H, `out  ${shapeText([4, width])}`, walk, 5,
-      { color: colors.empirical });
+      { color: colors.empirical, preview: false });
     unitBox(ctx, colors, cx - SKIP_BOX / 2, Y.fcOut, SKIP_BOX, "fc_out", colors.empirical, walk, 6);
     unitEdge(ctx, colors, cx, Y.e6, Y.e6 + EDGE_H, shapeText([4, 2]), walk, 6,
       { color: colors.empirical });
@@ -1046,21 +1086,27 @@ function drawGate(ctx, colors, w, params, state, anim) {
     txt(ctx, colors, `${isMask ? "mask" : "g"}  ${shapeText([4, 20])}`,
       g.c1, g.boxTop + 2 * BOX_H + EDGE_H + 15,
       { color: colors.ink1, align: "center", baseline: "middle", mono: true });
+  }
+  /* the arrow INTO the ring is the multiply, so it lands with the ring (line 3)
+     rather than pointing at empty space for a press (Kenneth, round 1) */
+  if (landed(walk, 3)) {
     elbow(ctx, [[g.c1, g.boxTop + 2 * BOX_H + EDGE_H + 24], [g.c1, ringY], [g.c0 + 18, ringY]],
       colors.groupB);
     txt(ctx, colors, isMask ? "0 or 1" : "0 to 1", (g.c0 + g.c1) / 2 + 10, ringY - 6,
       { color: colors.groupB, align: "center", size: colors.fsXs, mono: true });
   }
-  if (onStage(walk, 3)) {
-    ringNode(ctx, colors, g.c0, ringY, 13, landed(walk, 3) ? colors.ink1 : colors.axis);
+  /* THE ⊙ IS AN OPERATOR, so it lands with `gated = h * g` and has no pale
+     form (the amendment to decision 14). */
+  if (landed(walk, 3)) {
+    ringNode(ctx, colors, g.c0, ringY, 13, colors.ink1);
   }
 
   /* the gated edge, and its band. A BAND IS A VALUE, NOT A LAYER (decision 14),
-     so the preview draws the edge and the ⊙ and leaves the band to its line. */
+     and the edge above it names that value, so both wait for the line. */
   const gatedTop = g.ringTop + BOX_H;
   const fc2Top = gatedTop + g.gatedEdge;
   unitEdge(ctx, colors, g.c0, gatedTop, gatedTop + EDGE_H,
-    `gated  ${shapeText([4, 20])}`, walk, 3, { color: colors.empirical });
+    `gated  ${shapeText([4, 20])}`, walk, 3, { color: colors.empirical, preview: false });
   if (landed(walk, 3)) {
     const hi = maxAbs(state.gated);
     shadedBand(ctx, colors, g.bandX, g.bandY, 4, 20, g.s.band,
@@ -1098,10 +1144,13 @@ function branchGeom(ctx, colors, w, params, state) {
   const elementwise = state.merge !== "concat";
   const mergeErrRows = state.mergeError
     ? wrapMono(ctx, colors, state.mergeError, diagW).length : 0;
+  /* AT add AND average THE MERGE IS SKIP'S OWN BLOCK: the x1 band, a `+`, the
+     x2 band, an `=`, the merged band, each operator in a row of its own
+     between the two things it joins (Kenneth, round 3). It is `M.addBlockH`
+     and Skip's two row heights, not a second set of numbers. At concat the two
+     bands lie side by side and there is no operator to write. */
   const mergeH = elementwise
-    ? (state.mergeError
-      ? 2 * bandH + 8 + mergeErrRows * LINE + 18
-      : 3 * bandH + 20)
+    ? M.addBlockH(bandH, !state.mergeError, mergeErrRows)
     : bandH;
   const tailH = state.mergeError ? BOX_H : EDGE_H + BOX_H + EDGE_H;
   const diagH = XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H + mergeH + tailH;
@@ -1118,18 +1167,28 @@ function branchGeom(ctx, colors, w, params, state) {
   };
 }
 
-/** Where each band of the merge sits, so `draw` and `regions` agree (5.8). */
+/** Where each band of the merge sits, so `draw` and `regions` agree (5.8). At
+    add and average the block writes `x1 + x2 = y` down the diagram's centre
+    line, the arrangement Skip's add already uses: an operator row between each
+    pair of bands, and torch's message in the result's row where the two widths
+    disagree. At average the result is the half-sum and the band header's
+    expression says so, so the operators are still `+` and `=`. */
 function branchBands(g, state) {
   const p = g.s.band;
   const w1 = 8 * p;
   const w2 = state.fc2 * p;
   if (g.elementwise) {
+    const b2y = g.mergeTop + g.bandH + M.PLUS_ROW;
+    const sumY = b2y + g.bandH + M.EQ_ROW;
     return {
       b1: { x: PAD + (g.diagW - w1) / 2, y: g.mergeTop, cols: 8 },
-      b2: { x: PAD + (g.diagW - w2) / 2, y: g.mergeTop + g.bandH + 4, cols: state.fc2 },
+      b2: { x: PAD + (g.diagW - w2) / 2, y: b2y, cols: state.fc2 },
       sum: state.mergeError
         ? null
-        : { x: PAD + (g.diagW - w1) / 2, y: g.mergeTop + 2 * g.bandH + 12, cols: 8 },
+        : { x: PAD + (g.diagW - w1) / 2, y: sumY, cols: 8 },
+      plusY: g.mergeTop + g.bandH + M.PLUS_ROW / 2,
+      eqY: b2y + g.bandH + M.EQ_ROW / 2,
+      sumY,
     };
   }
   const total = w1 + w2;
@@ -1225,11 +1284,24 @@ function drawBranch(ctx, colors, w, params, state, anim) {
       (r, c) => shadeOf(colors.groupB, state.x2[r][c], hi2), { litRow: sample });
   }
 
-  const afterBands = g.mergeTop + (g.elementwise ? 2 * g.bandH + 4 : g.bandH);
+  /* THE TWO OPERATORS OF THE STACK, on the diagram's centre line, each between
+     the two bands it joins. They land with the merge and have no pale form
+     (the amendment to decision 14), which is what Kenneth asked for on Skip
+     and holds on every page. */
+  if (g.elementwise && landed(walk, 3)) {
+    plusNode(ctx, colors, mid, bands.plusY, 14,
+      state.mergeError ? colors.extreme : colors.empirical);
+    txt(ctx, colors, "=", mid, bands.eqY + 0.5,
+      { color: colors.ink3, align: "center", baseline: "middle", mono: true });
+  }
+
   if (state.mergeError) {
-    /* what fc3 was built for is read off the failure, so it arrives with it */
+    /* the message prints in the result's row, under the `=`, so the two
+       operands and the add they failed are what the reader is looking at when
+       it arrives — Skip's own arrangement. What fc3 was built for is read off
+       the failure, so it arrives with it. */
     if (landed(walk, 3)) {
-      errorText(ctx, colors, PAD, afterBands + 22, g.diagW, state.mergeError);
+      errorText(ctx, colors, PAD, bands.sumY + M.ERR_ROW, g.diagW, state.mergeError);
       txt(ctx, colors, `fc3 expects ${state.fc3In}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
         { color: colors.ink3, align: "center", baseline: "middle", mono: true });
     }
@@ -1243,7 +1315,8 @@ function drawBranch(ctx, colors, w, params, state, anim) {
   }
   const outTop = g.mergeTop + g.mergeH;
   unitEdge(ctx, colors, mid, outTop, outTop + EDGE_H,
-    `x3  ${shapeText([4, state.feats])}`, walk, 3, { color: colors.empirical });
+    `x3  ${shapeText([4, state.feats])}`, walk, 3,
+    { color: colors.empirical, preview: false });
   unitBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3",
     colors.empirical, walk, 4);
   unitEdge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
@@ -1532,9 +1605,10 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
     /* the stack is line 3, and it is three edges and nothing else */
     unitEdge(ctx, colors, cx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
       shapeText([4, 20]), walk, 3, { color: HUES[i] });
-    if (onStage(walk, 2)) {
+    /* a name over a column is a label, and a label lands with its line */
+    if (landed(walk, 2)) {
       txt(ctx, colors, `branch ${i + 1}`, cx, g.boxTop - 6,
-        { color: landed(walk, 2) ? HUES[i] : colors.ink3, align: "center", size: colors.fsXs });
+        { color: HUES[i], align: "center", size: colors.fsXs });
     }
   });
 
@@ -1552,14 +1626,14 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
 
   const sumL = g.boxL;
   const sumR = g.boxR;
-  /* THE BOX IS LINE 5'S, so it arrives pale when line 4 lands and fills when
-     line 5 does; the weights are line 1's and are drawn as values or not at
-     all, because a value grid is a result and a result waits for its line. */
-  if (onStage(walk, 5)) {
-    outlineBox(ctx, colors, sumL, weightsY, g.boxWidth, g.boxH, "",
-      landed(walk, 5) ? colors.empirical : colors.axis);
-  }
+  /* THE BOX IS LINE 5'S AND ARRIVES WITH IT. It used to appear pale when line
+     4 landed, which drew an empty frame the width of the diagram a line before
+     anything went in it; the amendment to decision 14 takes the preview away
+     from everything that is not a layer box or a bus arm. The weights are line
+     1's and are drawn as values or not at all, because a value grid is a
+     result and a result waits for its line. */
   if (landed(walk, 5)) {
+    outlineBox(ctx, colors, sumL, weightsY, g.boxWidth, g.boxH, "", colors.empirical);
     /* the box's name is the block's caption, at its top left, because the
        middle of the box is where the strips go */
     txt(ctx, colors, hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
@@ -1583,7 +1657,9 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
   }
   /* the weights reaching the sum is line 4 — the unsqueeze at soft, the argmax
      at hard, which is also what dims the two branches a sample did not take */
-  if (landed(walk, 4)) {
+  /* ...but the arrow INTO the box is the multiply, so it lands with the box
+     (line 5) rather than pointing at empty space for a press */
+  if (landed(walk, 5)) {
     arrow(ctx, g.gateCx - g.gateW / 2 - 2, weightsY + WBLOCK / 2, sumR + 4, weightsY + WBLOCK / 2,
       colors.ink3, 2);
   }
@@ -1599,7 +1675,8 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
   const fcTop = weightsY + g.boxH + M.SUM_ARITH + EDGE_H;
   const sumCx = (sumL + sumR) / 2;
   unitEdge(ctx, colors, sumCx, weightsY + g.boxH + M.SUM_ARITH, fcTop,
-    `combined  ${shapeText([4, 20])}`, walk, 5, { color: colors.empirical });
+    `combined  ${shapeText([4, 20])}`, walk, 5,
+    { color: colors.empirical, preview: false });
   unitBox(ctx, colors, sumCx - 46, fcTop, 92, "fc_out", colors.empirical, walk, 6);
   unitEdge(ctx, colors, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H,
     shapeText([4, 2]), walk, 6, { color: colors.empirical });

@@ -864,19 +864,19 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     const s = M.fitSizes(w, (z) => M.bandWidth.skip(z, CW.skip));
     const diagW = usable(w) - CW.skip - M.TEXT_GAP;
     const bandH = M.BATCH_N * s.band;
-    const blockH = M.skipBlockH(bandH, match, errRows);
+    const blockH = M.addBlockH(bandH, match, errRows);
     const bodyH = 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H + blockH
       + (match ? M.EDGE_H + M.BOX_H + M.EDGE_H : 0);
     const capY = M.BAND_HEAD + bodyH + M.CAP_GAP;
     /* `skipBands` in main.js, measured from the top of the x3 band: an operator
        row between each pair of bands, so the block reads x3 + skip = out */
     const blockTop = M.BAND_HEAD + 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H;
-    const bandY = [blockTop, blockTop + bandH + M.SKIP_PLUS_GAP,
-      blockTop + 2 * bandH + M.SKIP_PLUS_GAP + M.SKIP_EQ_GAP];
+    const bandY = [blockTop, blockTop + bandH + M.PLUS_ROW,
+      blockTop + 2 * bandH + M.PLUS_ROW + M.EQ_ROW];
     return {
       s, diagW, bandH, blockH, bodyH, capY, blockTop, bandY,
-      plusY: bandY[0] + bandH + M.SKIP_PLUS_GAP / 2,
-      eqY: bandY[1] + bandH + M.SKIP_EQ_GAP / 2,
+      plusY: bandY[0] + bandH + M.PLUS_ROW / 2,
+      eqY: bandY[1] + bandH + M.EQ_ROW / 2,
       blockW: M.SKIP_BAND_COLS * s.band,
       rowTops: (match ? bandY : bandY.slice(0, 2)).flatMap((y) =>
         Array.from({ length: M.BATCH_N }, (_, r) => y + r * s.band)),
@@ -893,7 +893,7 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     [550, 770].every((w) => {
       const st = skipStage(w);
       return st.rowTops.every((y) => y >= st.blockTop
-        && y + st.s.band <= st.blockTop + st.blockH - M.SKIP_BLOCK_FOOT)
+        && y + st.s.band <= st.blockTop + st.blockH - M.BLOCK_FOOT)
         /* the + between the two operands, the = between skip and the result */
         && st.plusY > st.bandY[0] + st.bandH && st.plusY < st.bandY[1]
         && st.eqY > st.bandY[1] + st.bandH && st.eqY < st.bandY[2];
@@ -903,7 +903,7 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
 
   check("where the add raises, the message takes the result band's row",
     skipStage(550, { match: false, errRows: 2 }).rowTops.length === 2 * M.BATCH_N
-    && M.skipBlockH(48, false, 2) - M.skipBlockH(48, true, 0) === 8,
+    && M.addBlockH(48, false, 2) - M.addBlockH(48, true, 0) === 8,
     "the two operands and the add, and torch's two lines where the result would be");
 
   /* MEASURED IN THE BROWSER, at the stage the side layout gives (549.6 and
@@ -930,13 +930,101 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     `${skipStage(550).blockW}px of block against a ${skipStage(550).diagW}px diagram at 550, `
     + `${skipStage(770).blockW} against ${skipStage(770).diagW} at 770`);
 
+  /* --- Branching's merge, and the statement it writes (decision 21) --------
+   * `branchGeom` and `branchBands` in main.js, with the two constants main.js
+   * does not export (XLAB 16 and SPLIT_H 26, the bus that splits x into two
+   * columns). At add and average the merge is Skip's own block and takes
+   * Skip's own row heights, so the numbers below come from `M.addBlockH` and
+   * there is no second set. How many rows the captions and torch's message
+   * wrap to is read from the browser and passed in, as Skip's is.
+   */
+  const XLAB = 16;
+  const SPLIT_H = 26;
+  function branchStage(w, { merge = "add", fc2 = 8, errRows = 0, capRows = 2 } = {}) {
+    const s = M.fitSizes(w, (z) => M.bandWidth.branching(z, CW.branching));
+    const bandH = M.BATCH_N * s.band;
+    const elementwise = merge !== "concat";
+    const err = elementwise && fc2 !== 8;
+    const mergeH = elementwise ? M.addBlockH(bandH, !err, errRows) : bandH;
+    const tailH = err ? M.BOX_H : M.EDGE_H + M.BOX_H + M.EDGE_H;
+    const diagH = XLAB + SPLIT_H + 2 * M.BOX_H + 2 * M.EDGE_H + mergeH + tailH;
+    const mergeTop = M.BAND_HEAD + XLAB + SPLIT_H + 2 * M.BOX_H + 2 * M.EDGE_H;
+    const b2y = mergeTop + bandH + M.PLUS_ROW;
+    const sumY = b2y + bandH + M.EQ_ROW;
+    return {
+      s, bandH, elementwise, err, mergeH, diagH, mergeTop,
+      bandY: elementwise ? [mergeTop, b2y, sumY] : [mergeTop, mergeTop],
+      plusY: mergeTop + bandH + M.PLUS_ROW / 2,
+      eqY: b2y + bandH + M.EQ_ROW / 2,
+      sumY,
+      height: M.BAND_HEAD + diagH + M.CAP_GAP + capRows * M.CAPTION_H + M.PAD,
+    };
+  }
+
+  check("at add the block reads x1 + x2 = y, each operator between its two bands",
+    [550, 770].every((w) => {
+      const st = branchStage(w);
+      return st.plusY > st.bandY[0] + st.bandH && st.plusY < st.bandY[1]
+        && st.eqY > st.bandY[1] + st.bandH && st.eqY < st.bandY[2]
+        && st.bandY[2] + st.bandH <= st.mergeTop + st.mergeH - M.BLOCK_FOOT;
+    }),
+    `at 550 the bands sit at ${branchStage(550).bandY.join(", ")}, `
+    + `the + at ${branchStage(550).plusY} and the = at ${branchStage(550).eqY}`);
+
+  check("the merge takes Skip's two row heights and no second set of numbers",
+    [550, 770].every((w) => {
+      const st = branchStage(w);
+      return st.mergeH === M.addBlockH(st.bandH, true, 0)
+        && st.bandY[1] - (st.bandY[0] + st.bandH) === M.PLUS_ROW
+        && st.bandY[2] - (st.bandY[1] + st.bandH) === M.EQ_ROW;
+    }),
+    `a + row of ${M.PLUS_ROW}px and an = row of ${M.EQ_ROW}, the same rows Skip's add stacks around`);
+
+  check("average stacks the same five rows as add, and concat one",
+    branchStage(550, { merge: "average" }).mergeH === branchStage(550).mergeH
+    && branchStage(550, { merge: "concat" }).mergeH === branchStage(550).bandH,
+    "the half is in the band header's expression, so no operator is added for it");
+
+  check("where the merge raises, torch's message takes the result band's row",
+    [550, 770].every((w) => {
+      const st = branchStage(w, { fc2: 6, errRows: 2 });
+      return st.err && st.bandY[2] === st.sumY
+        && st.mergeH === M.addBlockH(st.bandH, false, 2);
+    }),
+    "the two operands stack around the +, and the message prints under the =");
+
+  /* MEASURED IN THE BROWSER at the two stages the frame gives, 552 and 746.4,
+     which round to the same cell size as 550 and 770 and the same wrapped
+     counts. The captions take three rows where the merge reaches an output at
+     552 and two everywhere else, and torch's broadcast message three rows at
+     552 and two at 746.4. The two operator rows cost add and average 44px at
+     both widths, which is what the same two rows cost Skip; concat is
+     untouched.
+  */
+  check("Branching at add is 565px at 550 and 596 at 770, the two operator rows in",
+    branchStage(550, { capRows: 3 }).height === 565
+    && branchStage(770).height === 596,
+    `${branchStage(550, { capRows: 3 }).height} / ${branchStage(770).height}, `
+    + "44px more than the three bands stacked with no operator between them");
+
+  check("average is the same stage as add, and concat is 388px at 550 and 404 at 770",
+    branchStage(550, { merge: "average", capRows: 3 }).height === 565
+    && branchStage(770, { merge: "average" }).height === 596
+    && branchStage(550, { merge: "concat" }).height === 388
+    && branchStage(770, { merge: "concat" }).height === 404,
+    "concat writes no operator, so its merge is one band deep");
+
+  check("where add raises, Branching is 512px at 550 and 528 at 770",
+    branchStage(550, { fc2: 6, errRows: 3 }).height === 512
+    && branchStage(770, { fc2: 6, errRows: 2 }).height === 528,
+    "the message prints where the merged band would be, and no fc3 under it");
+
   /* --- Routing's weighted-sum block: does it fit, and what does it cost? ----
    * `routeGeom` in main.js, with the three constants main.js does not export
    * (main.js: XLAB 16, ROUTE_SPLIT 36, WBLOCK 64, the floor the box keeps so
    * the gate's four weight rows always have a box to sit in). The label widths
    * are model.js's measured defaults, which is what main.js reads off the live
    * canvas — 43 and 49 on the browser the mock was drawn on. */
-  const XLAB = 16;
   const ROUTE_SPLIT = 36;
   const WBLOCK = 64;
   const FIXED = M.routeSumFixed();
@@ -1075,32 +1163,76 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     }),
     `${PAGES.length} pages, ${PAGES.reduce((a, [, , st]) => a + M.pageUnits(st).length, 0)} drawn things`);
 
-  /* THE RULE, SWEPT. At every walk position of every page the drawn set is
-     exactly the lines that have run plus the one that is next. */
+  /* THE RULE, SWEPT. At every walk position of every page the drawn set is the
+     lines that have run, plus the LAYER BOXES and BUS ARM of the one that is
+     next. Everything the table marks `preview: false` is missing from that
+     second half. */
+  const at = (done, u) => M.stageOf(done, u.unit, u.preview !== false);
   let positions = 0;
   const bad = [];
   for (const [name, , st] of PAGES) {
     for (let done = 0; done <= st.units; done += 1) {
       positions += 1;
-      const drawn = M.pageUnits(st).filter((u) => M.stageOf(done, u.unit) !== "absent");
-      const want = M.pageUnits(st).filter((u) => u.unit <= done + 1);
-      const preview = drawn.filter((u) => M.stageOf(done, u.unit) === "preview");
+      const drawn = M.pageUnits(st).filter((u) => at(done, u) !== "absent");
+      const want = M.pageUnits(st).filter((u) =>
+        u.unit <= done || (u.unit === done + 1 && u.preview !== false));
+      const preview = drawn.filter((u) => at(done, u) === "preview");
       if (drawn.length !== want.length
         || !drawn.every((u, i) => u.id === want[i].id)
-        || !preview.every((u) => u.unit === done + 1)) {
+        || !preview.every((u) => u.unit === done + 1 && u.preview !== false)) {
         bad.push(`${name} at ${done}`);
       }
     }
   }
-  check("the drawn set is the lines run plus one, at every position of every page",
+  check("the drawn set is the lines run plus one line's layers, at every position",
     bad.length === 0, `${positions} walk positions swept${bad.length ? `, worst ${bad[0]}` : ""}`);
+
+  /* THE AMENDMENT, SWEPT (Kenneth on Skip, round 3: "downstream + and arrows
+     occur prematurely", "should appear at x3 + skip step"). An operator, a
+     rail, a band, an edge that names a value, Routing's box and every label
+     are drawn at NO position above the line that makes them. */
+  const LANDED_ONLY = {
+    "skip 10": ["skip label", "add", "rail", "bands", "out"],
+    /* at width 20 with no projection the add raises, so there is no out edge
+       and no fc_out under it: torch's message takes the result's row */
+    "skip 20": ["skip label", "add", "rail", "bands"],
+    "skip 20 proj": ["skip label", "add", "rail", "bands", "out"],
+    "gating sigmoid": ["gate arrow", "ring", "gated"],
+    "gating mask": ["gate arrow", "ring", "gated"],
+    "branching concat 6": ["x1", "x2", "merge", "x3"],
+    "branching concat 8": ["x1", "x2", "merge", "x3"],
+    "branching add 6": ["x1", "x2", "merge", "x3"],
+    "branching add 8": ["x1", "x2", "merge", "x3"],
+    "routing soft": ["weights", "branch names", "select", "weights arrow", "combined"],
+    "routing hard": ["weights", "branch names", "select", "weights arrow", "combined"],
+  };
+  check("the four flow pages mark every operator, rail, band and named edge",
+    Object.entries(LANDED_ONLY).every(([name, ids]) => {
+      const st = PAGES.find(([n]) => n === name)[2];
+      const marked = M.pageUnits(st).filter((u) => u.preview === false).map((u) => u.id);
+      return marked.length === ids.length && ids.every((id) => marked.includes(id));
+    }),
+    `${Object.values(LANDED_ONLY).reduce((a, ids) => a + ids.length, 0)} pieces with no pale form`);
+
+  let lanterns = 0;
+  const early = [];
+  for (const [name, , st] of PAGES) {
+    for (const u of M.pageUnits(st).filter((x) => x.preview === false)) {
+      for (let done = 0; done <= st.units; done += 1) {
+        lanterns += 1;
+        if (at(done, u) !== "absent" && done < u.unit) early.push(`${name} ${u.id} at ${done}`);
+      }
+    }
+  }
+  check("nothing marked landed-only is drawn above the line that makes it",
+    early.length === 0, `${lanterns} positions swept${early.length ? `, worst ${early[0]}` : ""}`);
 
   check("at rest a page draws the first line's layers and nothing further downstream",
     PAGES.every(([, , st]) => M.pageUnits(st).every((u) =>
-      M.stageOf(0, u.unit) === (u.unit === 1 ? "preview" : "absent"))));
+      at(0, u) === (u.unit === 1 && u.preview !== false ? "preview" : "absent"))));
 
   check("at the end of the walk every piece of the diagram has landed",
-    PAGES.every(([, , st]) => M.pageUnits(st).every((u) => M.stageOf(st.units, u.unit) === "landed")),
+    PAGES.every(([, , st]) => M.pageUnits(st).every((u) => at(st.units, u) === "landed")),
     "which is what ?shown=N at full N draws, so the settled states do not move");
 
   /* THE BAND ROWS ARE THE TARGETS, and a target that is not drawn is not a
@@ -1126,6 +1258,25 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     && /landed\(walk, 2\) \? rows\(b\.b2\.x/.test(drawSrc)
     && /landed\(walk, 1\) \? rows\(g\.gateCx/.test(drawSrc)
     && /landed\(walk, 5\)\s*\?\s*\[\.\.\.b\.bandY/.test(drawSrc));
+
+  /* THE FOUR FLOW PAGES REACH THE PALE FORM THROUGH `onStage` AND NOTHING
+     ELSE, so the sites that survive the amendment are countable: Skip's tee
+     and its projection box, Gating's gate arm, Branching's second arm and
+     Routing's three. Every one of them is a bus arm or a layer box, and every
+     one is line 1's or line 2's. */
+  check("the pale form is left to bus arms and layer boxes, five sites on the four pages",
+    (drawSrc.match(/onStage\(walk, \d\)/g) ?? []).join("|")
+      === "onStage(walk, 1)|onStage(walk, 1)|onStage(walk, 2)|onStage(walk, 2)|onStage(walk, 2)",
+    "no operator, rail, band, named edge or label previews on any of them");
+
+  check("an edge that names a value carries `preview: false`, four of them",
+    ["out  ${shapeText", "gated  ${shapeText", "x3  ${shapeText([4, state.feats])",
+      "combined  ${shapeText"].every((lead) => {
+      const i = drawSrc.indexOf(lead);
+      return i > 0 && drawSrc.slice(i, i + 140).includes("preview: false");
+    })
+    && (drawSrc.match(/, preview: false \}/g) ?? []).length === 4,
+    "out, gated, x3 and combined, and no other edge takes the flag");
 
   check("Skip's three bands are drawn and hit from one geometry",
     /function skipBands\(g, state\)/.test(drawSrc)

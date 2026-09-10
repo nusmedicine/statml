@@ -84,13 +84,21 @@ export const unitMs = (speed) => (speed === "slow" ? 1200 : speed === "fast" ? 3
  * next line to run, and ABSENT until then — so the stage holds the input, the
  * bus, and exactly one line more than the reader has asked for.
  *
+ * AMENDED IN ROUND 3: THE PREVIEW IS LAYER BOXES AND THE BUS ARM THAT REACHES
+ * THEM, AND NOTHING ELSE. Kenneth on Skip (2026-09-10): "downstream + and
+ * arrows occur prematurely", "should appear at x3 + skip step". An operator
+ * node, a rail and its elbow, a band, an edge that names a value the line
+ * computes, Routing's weighted-sum box and every label wait for the line that
+ * makes them. `preview: false` on a `pageUnits` entry is that mark, and the
+ * table below is the record of which pieces carry it.
+ *
  * Here rather than in `main.js` because the verify script has to read the same
  * rule the drawing does, and a rule computed twice is a rule that can differ
  * (5.8).
  */
-export function stageOf(done, unit) {
+export function stageOf(done, unit, preview = true) {
   if (done >= unit) return "landed";
-  if (done + 1 === unit) return "preview";
+  if (preview && done + 1 === unit) return "preview";
   return "absent";
 }
 
@@ -100,6 +108,9 @@ export function stageOf(done, unit) {
  * every line lands something and that nothing is drawn more than one line
  * ahead of the walk. `main.js` names the same units at the draw sites; this is
  * the table those names have to agree with.
+ *
+ * `preview: false` marks a piece that is not a layer box or a bus arm, so it
+ * has no pale form and appears only when its line lands (the amendment above).
  */
 export function pageUnits(state) {
   switch (state.kind) {
@@ -109,20 +120,25 @@ export function pageUnits(state) {
       return state.steps.map(([label], i) => ({ id: label, unit: i + 1 }));
     case "skip": {
       const u = [
+        /* the tee off x is a bus arm and previews; the word under its corner
+           is a label, so it waits for the line */
         { id: "skip", unit: 1 },
+        { id: "skip label", unit: 1, preview: false },
         { id: "fc1", unit: 2 },
         { id: "relu", unit: 3 },
         { id: "fc2", unit: 4 },
-        /* the rail and the + belong to `out = x3 + skip`, which is where the
-           two paths meet; line 1 previews the label and nothing else */
-        { id: "add", unit: 5 },
-        { id: "rail", unit: 5 },
+        /* the rail and the two operators belong to `out = x3 + skip`, which is
+           where the two paths meet, and none of them has a pale form */
+        { id: "add", unit: 5, preview: false },
+        { id: "rail", unit: 5, preview: false },
         /* the three bands are values, so they belong to the line that adds
            them and not to the lines that produced the two operands */
-        { id: "bands", unit: 5 },
+        { id: "bands", unit: 5, preview: false },
       ];
       if (state.proj) u.push({ id: "proj", unit: 1 });
-      if (state.match) u.push({ id: "fc_out", unit: 6 });
+      if (state.match) {
+        u.push({ id: "out", unit: 5, preview: false }, { id: "fc_out", unit: 6 });
+      }
       return u;
     }
     case "gating":
@@ -130,17 +146,21 @@ export function pageUnits(state) {
         { id: "fc1", unit: 1 },
         { id: "relu", unit: 1 },
         { id: state.gate === "mask" ? "mask" : "gate_fc", unit: 2 },
-        { id: "ring", unit: 3 },
-        { id: "gated", unit: 3 },
+        { id: "gate arrow", unit: 3, preview: false },
+        { id: "ring", unit: 3, preview: false },
+        { id: "gated", unit: 3, preview: false },
         { id: "fc2", unit: 4 },
       ];
     case "branching": {
       const u = [
         { id: "fc1", unit: 1 },
-        { id: "x1", unit: 1 },
+        { id: "x1", unit: 1, preview: false },
         { id: "fc2", unit: 2 },
-        { id: "x2", unit: 2 },
-        { id: "merge", unit: 3 },
+        { id: "x2", unit: 2, preview: false },
+        /* the merged band, the + and the = between the two operands, and the
+           edge that carries the merge into fc3 */
+        { id: "merge", unit: 3, preview: false },
+        { id: "x3", unit: 3, preview: false },
       ];
       if (!state.mergeError) u.push({ id: "fc3", unit: 4 });
       return u;
@@ -148,11 +168,15 @@ export function pageUnits(state) {
     case "routing":
       return [
         { id: "gate", unit: 1 },
-        { id: "weights", unit: 1 },
+        { id: "weights", unit: 1, preview: false },
         { id: "branches", unit: 2 },
+        { id: "branch names", unit: 2, preview: false },
         { id: "stack", unit: 3 },
-        { id: "select", unit: 4 },
-        { id: "combined", unit: 5 },
+        { id: "select", unit: 4, preview: false },
+        /* the arrow from the weights into the box is the multiply, so it lands
+           with the box on line 5, not on the unsqueeze line it leaves from */
+        { id: "weights arrow", unit: 5, preview: false },
+        { id: "combined", unit: 5, preview: false },
         { id: "fc_out", unit: 6 },
       ];
     default: {
@@ -819,31 +843,37 @@ export const CODE_SKIP = [
 ];
 export const CODE_SKIP_PROJ = CODE_SKIP.map((l) => (l === "skip = x" ? "skip = self.proj(x)" : l));
 
-/* --- the add, drawn as three bands ------------------------------------------
+/* --- an add, drawn as three bands -------------------------------------------
  * The page named the add with a `+` circle and printed the values of one
  * sample in the readout, and Kenneth asked for the bands the plan carried
  * (2026-09-10, round 2): x3, skip and out as three shaded tensors, the form
  * Branching already draws its merge in.
  *
- * THE BLOCK READS AS THE STATEMENT IT IS: x3, the `+`, skip, the `=`, out,
- * each operator on the spine in a row of its own between the bands it joins
- * (Kenneth, 2026-09-10, round 1). The draft stacked the two operands and put
- * the `+` under both, which left the operator between the second operand and
- * the result — an arrangement that reads as `x3` then `skip + out`. Where the
- * widths disagree torch's message takes the result's place, under the `=`.
+ * THE BLOCK READS AS THE STATEMENT IT IS: the first operand, the `+`, the
+ * second operand, the `=`, the result, each operator on the spine in a row of
+ * its own between the bands it joins (Kenneth, 2026-09-10, round 1). The draft
+ * stacked the two operands and put the `+` under both, which left the operator
+ * between the second operand and the result, an arrangement that reads as
+ * `x3` then `skip + out`. Where the widths disagree torch's message takes the
+ * result's place, under the `=`.
+ *
+ * THE SAME FIVE ROWS ARE BRANCHING'S MERGE at `add` and at `average`, so the
+ * constants and the height are ONE set (Kenneth, 2026-09-10, round 3). At
+ * average the result band is the half-sum and the band header's expression
+ * says so, so the two operators are still `+` and `=`.
  *
  * Here rather than in `main.js` because `pageHeight`, `draw`, `regions` and
  * the verify script all measure the same block (5.8).
  */
-export const SKIP_PLUS_GAP = 34;    // the row the + circle sits in, between the operands
-export const SKIP_EQ_GAP = 22;      // the row the = glyph sits in, before the result
-export const SKIP_BLOCK_FOOT = 8;   // under the result band, before the out edge
-export const SKIP_ERR_GAP = 22;     // into the result's row, to the message's first line
+export const PLUS_ROW = 34;    // the row the + circle sits in, between the operands
+export const EQ_ROW = 22;      // the row the = glyph sits in, before the result
+export const BLOCK_FOOT = 8;   // under the result band, before the edge that leaves it
+export const ERR_ROW = 22;     // into the result's row, to the message's first line
 
-/** The block's height, measured from the top of the x3 band. */
-export const skipBlockH = (bandH, match, errRows) =>
-  2 * bandH + SKIP_PLUS_GAP + SKIP_EQ_GAP
-  + (match ? bandH + SKIP_BLOCK_FOOT : SKIP_ERR_GAP + errRows * LINE + 10);
+/** The block's height, measured from the top of the first operand's band. */
+export const addBlockH = (bandH, match, errRows) =>
+  2 * bandH + PLUS_ROW + EQ_ROW
+  + (match ? bandH + BLOCK_FOOT : ERR_ROW + errRows * LINE + 10);
 
 export function skip(width, proj) {
   const x1 = applyLinear(S_FC1, X);
