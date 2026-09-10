@@ -1198,8 +1198,10 @@ function drawRnn(ctx, colors, w, params, state, anim) {
       if (row.dir && t < M.SEQ - 1) {
         const ax = x + s.cw;
         const ayy = cy + (row.tall * s.ch) / 2;
-        if (row.dir === "right") arrow(ctx, ax + 4, ayy, ax + s.op - 4, ayy, colors.ink3);
-        else arrow(ctx, ax + s.op - 4, ayy, ax + 4, ayy, colors.ink3);
+        /* the strip above draws its recurrence at 2px in --ink-2 (decision 15);
+           one figure, one arrow weight (Kenneth, round 4) */
+        if (row.dir === "right") arrow(ctx, ax + 4, ayy, ax + s.op - 4, ayy, colors.ink2, 2);
+        else arrow(ctx, ax + s.op - 4, ayy, ax + 4, ayy, colors.ink2, 2);
       }
       if (row.key === "x") {
         txt(ctx, colors, `t${t + 1}`, x + s.cw / 2, cy - 4,
@@ -2153,7 +2155,11 @@ defineWidget({
       type: "segmented",
       label: "Aggregate",
       detail: "how a node combines its neighbours' features with its own",
-      options: M.AGGREGATES,
+      /* three across a 300px rail truncates "Normalized sum" to "Normalized s…";
+         the two-column grid the Layer control already uses gives each 149px,
+         Max on its own row (Kenneth, round 4) */
+      options: M.AGGREGATES.map((o) => (o.value === "max" ? { ...o, span: true } : o)),
+      style: "grid",
       default: "normalized-sum",
       when: ON("graph"),
     },
