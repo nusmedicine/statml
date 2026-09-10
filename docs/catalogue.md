@@ -11738,6 +11738,23 @@ not previewed, on every page (Skip, Gating's ⊙ and gate arrow, Branching's
 merge, Routing's box), with `preview: false` on those entries of
 `pageUnits` so the verify sweep reads one table. Built by one Opus builder.
 
+**Built (`746d1db`)**: `+` and `=` on add and average; the preview narrowed to
+layer boxes on every page (`stageOf(done, unit, preview)`, `preview: false`
+on the operators, rails, bands, result edges and the Routing box in
+`pageUnits`, the verify sweep reading the flag); the arrow into the ⊙ and the
+arrow into the Routing box land with what they point at. 200 assertions;
+Branching add and average 565 / 596.
+
+**"Tested ok" (2026-09-11), with "do the copy audit and push to gallery".**
+The three draft decisions (per-step chain menus, hard routing's two
+written-out lines, Building's height following its parameters) and the
+readout tiles printing results at rest stand as built, since he tested with
+them and named nothing. The siblings' order: a read-only Opus 5 copy audit
+of every reader-facing string as a table, in parallel with the shooter and
+the placeholder states; the pick rows to him; the copy applied in one round;
+then the hashes from three identical shots, the full suite once at DPR 1.25
+with the pane fronted, the status flipped, and the push on his word above.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
